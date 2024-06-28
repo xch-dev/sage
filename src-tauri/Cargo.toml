@@ -1,5 +1,5 @@
 [package]
-name = "sage"
+name = "sage-tauri"
 version = "0.1.0"
 description = "A next generation Chia wallet."
 authors = ["Rigidity <me@rigidnetwork.com>"]
