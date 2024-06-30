@@ -11,7 +11,8 @@
     },
     "dependencies": {
         "react": "^18.3.1",
-        "react-dom": "^18.3.1"
+        "react-dom": "^18.3.1",
+        "usehooks-ts": "^3.1.0"
     },
     "devDependencies": {
         "@tauri-apps/cli": "2.0.0-beta.20",
