@@ -9,3 +9,4 @@ chia = "0.9.0"
 clvmr = "0.7.0"
 sqlx = { version = "0.7.4", features = ["sqlite", "runtime-tokio"] }
 anyhow = "1.0.86"
+thiserror = "1.0.61"
