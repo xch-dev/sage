@@ -1,5 +1,3 @@
-import './App.css';
-
 export default function App() {
-    return <p>Hello, world!</p>;
+    return <p className="bg-red-500">Hello</p>;
 }
