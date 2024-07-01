@@ -29,7 +29,13 @@ pub enum Error {
     SendError,
 
     #[error("Failed to receive response: {0}")]
-    ResponseError(#[from] RecvError),
+    Response(#[from] RecvError),
+
+    #[error("TLS error: {0}")]
+    Tls(#[from] native_tls::Error),
+
+    #[error("Missing certificate")]
+    MissingCertificate,
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

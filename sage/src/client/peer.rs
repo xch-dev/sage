@@ -1,10 +1,11 @@
 use std::sync::Arc;
 
 use chia::{
-    protocol::{ChiaProtocolMessage, Message},
+    protocol::{ChiaProtocolMessage, Message, SendTransaction, TransactionAck},
     traits::Streamable,
 };
 use futures_util::{stream::SplitSink, SinkExt, StreamExt};
+use sha2::{digest::FixedOutput, Digest, Sha256};
 use tokio::{
     net::TcpStream,
     sync::{
@@ -22,6 +23,9 @@ use super::{handler::handle_inbound_messages, requests::Requests};
 pub(super) type WebSocket = WebSocketStream<MaybeTlsStream<TcpStream>>;
 type Sink = SplitSink<WebSocket, tungstenite::Message>;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct PeerId([u8; 32]);
+
 #[derive(Debug, Clone)]
 pub struct Peer(Arc<PeerInner>);
 
@@ -30,10 +34,24 @@ struct PeerInner {
     sink: Mutex<Sink>,
     inbound_handle: JoinHandle<Result<()>>,
     requests: Arc<Requests>,
+    peer_id: PeerId,
 }
 
 impl Peer {
-    pub fn new(ws: WebSocket) -> (Self, Receiver<Event>) {
+    pub fn new(ws: WebSocket) -> Result<(Self, Receiver<Event>)> {
+        let cert = match ws.get_ref() {
+            MaybeTlsStream::NativeTls(tls) => tls.get_ref().peer_certificate()?,
+            _ => None,
+        };
+
+        let Some(cert) = cert else {
+            return Err(Error::MissingCertificate);
+        };
+
+        let mut hasher = Sha256::new();
+        hasher.update(cert.to_der()?);
+
+        let peer_id = PeerId(hasher.finalize_fixed().into());
         let (sink, stream) = ws.split();
         let (sender, receiver) = mpsc::channel(32);
         let requests = Arc::new(Requests::new());
@@ -45,9 +63,18 @@ impl Peer {
             sink: Mutex::new(sink),
             inbound_handle,
             requests,
+            peer_id,
         }));
 
-        (peer, receiver)
+        Ok((peer, receiver))
+    }
+
+    pub fn peer_id(&self) -> PeerId {
+        self.0.peer_id
+    }
+
+    pub async fn send_transaction(&self, body: SendTransaction) -> Result<TransactionAck> {
+        self.request_infallible(body).await
     }
 
     pub async fn send<T>(&self, body: T) -> Result<()>
@@ -67,13 +94,13 @@ impl Peer {
         Ok(())
     }
 
-    pub async fn request<T, E, B>(&self, body: B) -> Result<Response<T, E>>
+    pub async fn request_fallible<T, E, B>(&self, body: B) -> Result<Response<T, E>>
     where
         T: Streamable + ChiaProtocolMessage,
         E: Streamable + ChiaProtocolMessage,
         B: Streamable + ChiaProtocolMessage,
     {
-        let message = self.raw_request(body).await?;
+        let message = self.request_raw(body).await?;
         if message.msg_type != T::msg_type() && message.msg_type != E::msg_type() {
             return Err(Error::InvalidResponse(
                 vec![T::msg_type(), E::msg_type()],
@@ -92,7 +119,7 @@ impl Peer {
         T: Streamable + ChiaProtocolMessage,
         B: Streamable + ChiaProtocolMessage,
     {
-        let message = self.raw_request(body).await?;
+        let message = self.request_raw(body).await?;
         if message.msg_type != T::msg_type() {
             return Err(Error::InvalidResponse(
                 vec![T::msg_type()],
@@ -102,7 +129,7 @@ impl Peer {
         Ok(T::from_bytes(&message.data)?)
     }
 
-    pub async fn raw_request<T>(&self, body: T) -> Result<Message>
+    pub async fn request_raw<T>(&self, body: T) -> Result<Message>
     where
         T: Streamable + ChiaProtocolMessage,
     {

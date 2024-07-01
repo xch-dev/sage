@@ -3682,8 +3682,10 @@ dependencies = [
  "clvmr",
  "futures-util",
  "log",
+ "native-tls",
  "serde",
  "serde_with",
+ "sha2",
  "sqlx",
  "thiserror",
  "tokio",
@@ -4913,7 +4915,9 @@ checksum = "c6989540ced10490aaf14e6bad2e3d33728a2813310a0c71d1574304c49631cd"
 dependencies = [
  "futures-util",
  "log",
+ "native-tls",
  "tokio",
+ "tokio-native-tls",
  "tungstenite 0.23.0",
 ]
 
@@ -5136,6 +5140,7 @@ dependencies = [
  "http",
  "httparse",
  "log",
+ "native-tls",
  "rand 0.8.5",
  "sha1",
  "thiserror",
