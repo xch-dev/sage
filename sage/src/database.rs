@@ -1,24 +1,13 @@
 use chia::{
-    bls::PublicKey,
+    bls::{DerivableKey, PublicKey, SecretKey},
     protocol::{Bytes32, Coin, CoinState},
+    puzzles::{standard::StandardArgs, DeriveSynthetic},
 };
 use sqlx::{Sqlite, SqliteExecutor, SqlitePool, Transaction};
-use thiserror::Error;
 
-#[derive(Debug, Error)]
-pub enum DatabaseError {
-    #[error("SQLx error: {0}")]
-    Sqlx(#[from] sqlx::Error),
+use crate::{Error, Result};
 
-    #[error("invalid length {0}, expected {1}")]
-    InvalidLength(usize, usize),
-
-    #[error("precision lost in cast")]
-    PrecisionLoss,
-}
-
-type Result<T> = std::result::Result<T, DatabaseError>;
-
+#[derive(Debug, Clone)]
 pub struct Database {
     pool: SqlitePool,
 }
@@ -43,6 +32,10 @@ impl Database {
         insert_derivation(&self.pool, p2_puzzle_hash, index, hardened, synthetic_key).await
     }
 
+    pub async fn derivation_index(&self, hardened: bool) -> Result<u32> {
+        derivation_index(&self.pool, hardened).await
+    }
+
     pub async fn derivations(&self) -> Result<Vec<Bytes32>> {
         derivations(&self.pool).await
     }
@@ -60,6 +53,7 @@ impl Database {
     }
 }
 
+#[derive(Debug)]
 pub struct DatabaseTx<'a> {
     tx: Transaction<'a, Sqlite>,
 }
@@ -77,6 +71,46 @@ impl<'a> DatabaseTx<'a> {
         Ok(self.tx.rollback().await?)
     }
 
+    pub async fn generate_hardened_derivations(
+        &mut self,
+        intermediate_sk: &SecretKey,
+        amount: u32,
+    ) -> Result<()> {
+        let start = self.derivation_index(true).await?;
+
+        for index in start..(start + amount) {
+            let synthetic_key = intermediate_sk
+                .derive_hardened(index)
+                .derive_synthetic()
+                .public_key();
+
+            let p2_puzzle_hash = StandardArgs::curry_tree_hash(synthetic_key).into();
+
+            self.insert_derivation(p2_puzzle_hash, index, true, synthetic_key)
+                .await?;
+        }
+
+        Ok(())
+    }
+
+    pub async fn generate_unhardened_derivations(
+        &mut self,
+        intermediate_pk: &PublicKey,
+        amount: u32,
+    ) -> Result<()> {
+        let start = self.derivation_index(false).await?;
+
+        for index in start..(start + amount) {
+            let synthetic_key = intermediate_pk.derive_unhardened(index).derive_synthetic();
+            let p2_puzzle_hash = StandardArgs::curry_tree_hash(synthetic_key).into();
+
+            self.insert_derivation(p2_puzzle_hash, index, false, synthetic_key)
+                .await?;
+        }
+
+        Ok(())
+    }
+
     pub async fn insert_derivation(
         &mut self,
         p2_puzzle_hash: Bytes32,
@@ -92,6 +126,10 @@ impl<'a> DatabaseTx<'a> {
             synthetic_key,
         )
         .await
+    }
+
+    pub async fn derivation_index(&mut self, hardened: bool) -> Result<u32> {
+        derivation_index(&mut *self.tx, hardened).await
     }
 
     pub async fn derivations(&mut self) -> Result<Vec<Bytes32>> {
@@ -136,11 +174,29 @@ async fn insert_derivation(
     Ok(())
 }
 
+async fn derivation_index(conn: impl SqliteExecutor<'_>, hardened: bool) -> Result<u32> {
+    sqlx::query!(
+        "
+        SELECT MAX(`index`) AS `max_index`
+        FROM `derivations`
+        WHERE `hardened` = ?
+        ",
+        hardened
+    )
+    .fetch_one(conn)
+    .await?
+    .max_index
+    .map_or(0, |index| index + 1)
+    .try_into()
+    .map_err(|_| Error::PrecisionLoss)
+}
+
 async fn derivations(conn: impl SqliteExecutor<'_>) -> Result<Vec<Bytes32>> {
     let rows = sqlx::query!(
         "
         SELECT `p2_puzzle_hash`
         FROM `derivations`
+        ORDER BY `index` ASC, `hardened` ASC
         "
     )
     .fetch_all(conn)
@@ -216,11 +272,11 @@ async fn coin_state(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<O
         },
         spent_height: row
             .spent_height
-            .map(|height| height.try_into().map_err(|_| DatabaseError::PrecisionLoss))
+            .map(|height| height.try_into().map_err(|_| Error::PrecisionLoss))
             .transpose()?,
         created_height: row
             .created_height
-            .map(|height| height.try_into().map_err(|_| DatabaseError::PrecisionLoss))
+            .map(|height| height.try_into().map_err(|_| Error::PrecisionLoss))
             .transpose()?,
     }))
 }
@@ -228,23 +284,18 @@ async fn coin_state(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<O
 fn to_bytes<const N: usize>(slice: &[u8]) -> Result<[u8; N]> {
     slice
         .try_into()
-        .map_err(|_| DatabaseError::InvalidLength(slice.len(), N))
+        .map_err(|_| Error::InvalidLength(slice.len(), N))
 }
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashSet;
-
-    use chia::{
-        bls::DerivableKey,
-        puzzles::{standard::StandardArgs, DeriveSynthetic},
-    };
-    use chia_wallet_sdk::secret_key;
-
     use super::*;
 
+    use chia::puzzles::{standard::StandardArgs, DeriveSynthetic};
+    use chia_wallet_sdk::secret_key;
+
     #[sqlx::test]
-    fn test_derivations(pool: SqlitePool) -> anyhow::Result<()> {
+    fn test_derivation(pool: SqlitePool) -> anyhow::Result<()> {
         sqlx::migrate!("../migrations").run(&pool).await?;
 
         let db = Database::new(pool);
@@ -256,33 +307,50 @@ mod tests {
             .await?;
         assert_eq!(db.derivations().await?, [p2_puzzle_hash]);
         assert_eq!(db.synthetic_key(p2_puzzle_hash).await?, synthetic_key);
+        assert_eq!(db.derivation_index(false).await?, 1);
+        assert_eq!(db.derivation_index(true).await?, 0);
 
         Ok(())
     }
 
     #[sqlx::test]
-    fn test_transaction(pool: SqlitePool) -> anyhow::Result<()> {
+    fn test_hardened_derivations(pool: SqlitePool) -> anyhow::Result<()> {
         sqlx::migrate!("../migrations").run(&pool).await?;
 
         let db = Database::new(pool);
         let sk = secret_key()?;
-        let root_pk = sk.public_key();
 
-        let mut puzzle_hashes = HashSet::new();
         let mut tx = db.tx().await?;
-
-        for i in 0..100 {
-            let synthetic_key = root_pk.derive_unhardened(i).derive_synthetic();
-            let p2_puzzle_hash = StandardArgs::curry_tree_hash(synthetic_key).into();
-            puzzle_hashes.insert(p2_puzzle_hash);
-            tx.insert_derivation(p2_puzzle_hash, i, false, synthetic_key)
-                .await?;
-        }
-
+        tx.generate_hardened_derivations(&sk, 10).await?;
         tx.commit().await?;
 
-        let rows: HashSet<Bytes32> = db.derivations().await?.into_iter().collect();
-        assert_eq!(rows, puzzle_hashes);
+        let derivations = db.derivations().await?;
+        let first_pk = sk.derive_hardened(0).derive_synthetic().public_key();
+        let first_puzzle_hash = StandardArgs::curry_tree_hash(first_pk).into();
+
+        assert_eq!(derivations.len(), 10);
+        assert_eq!(derivations[0], first_puzzle_hash);
+
+        Ok(())
+    }
+
+    #[sqlx::test]
+    fn test_unhardened_derivations(pool: SqlitePool) -> anyhow::Result<()> {
+        sqlx::migrate!("../migrations").run(&pool).await?;
+
+        let db = Database::new(pool);
+        let pk = secret_key()?.public_key();
+
+        let mut tx = db.tx().await?;
+        tx.generate_unhardened_derivations(&pk, 10).await?;
+        tx.commit().await?;
+
+        let derivations = db.derivations().await?;
+        let first_pk = pk.derive_unhardened(0).derive_synthetic();
+        let first_puzzle_hash = StandardArgs::curry_tree_hash(first_pk).into();
+
+        assert_eq!(derivations.len(), 10);
+        assert_eq!(derivations[0], first_puzzle_hash);
 
         Ok(())
     }
