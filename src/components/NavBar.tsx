@@ -1,3 +1,4 @@
+import { ArrowBackIos } from '@mui/icons-material';
 import MenuIcon from '@mui/icons-material/Menu';
 import {
   AppBar,
@@ -9,10 +10,17 @@ import {
   Typography,
 } from '@mui/material';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
-export default function NavBar() {
+export interface NavBarProps {
+  label: string;
+  back: (() => void) | null;
+}
+
+export default function NavBar(props: NavBarProps) {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const isMenuOpen = Boolean(anchorEl);
+  const navigate = useNavigate();
 
   const openMenu = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -24,24 +32,56 @@ export default function NavBar() {
 
   return (
     <Box sx={{ flexGrow: 1 }}>
-      <AppBar position="static">
+      <AppBar position='static'>
         <Toolbar>
-          <Typography variant="h5" component="div" sx={{ flexGrow: 1 }}>
-            Wallet List
+          {props.back && (
+            <IconButton
+              size='large'
+              edge='start'
+              color='inherit'
+              sx={{ mr: 2 }}
+              onClick={props.back}
+            >
+              <ArrowBackIos />
+            </IconButton>
+          )}
+          <Typography variant='h5' component='div' sx={{ flexGrow: 1 }}>
+            {props.label}
           </Typography>
           <IconButton
-            size="large"
-            edge="end"
-            color="inherit"
+            size='large'
+            edge='end'
+            color='inherit'
             sx={{ ml: 2 }}
             onClick={openMenu}
           >
             <MenuIcon />
           </IconButton>
           <Menu anchorEl={anchorEl} open={isMenuOpen} onClose={closeMenu}>
-            <MenuItem onClick={closeMenu}>Create Wallet</MenuItem>
-            <MenuItem onClick={closeMenu}>Import Wallet</MenuItem>
-            <MenuItem onClick={closeMenu}>Logout</MenuItem>
+            <MenuItem
+              onClick={() => {
+                navigate('/create');
+                closeMenu();
+              }}
+            >
+              Create Wallet
+            </MenuItem>
+            <MenuItem
+              onClick={() => {
+                navigate('/import');
+                closeMenu();
+              }}
+            >
+              Import Wallet
+            </MenuItem>
+            <MenuItem
+              onClick={() => {
+                navigate('/');
+                closeMenu();
+              }}
+            >
+              Logout
+            </MenuItem>
           </Menu>
         </Toolbar>
       </AppBar>

@@ -12,6 +12,8 @@
     "resources:default",
     "image:default",
     "menu:default",
-    "tray:default"
+    "tray:default",
+    "clipboard-manager:default",
+    "clipboard-manager:allow-write-text"
   ]
 }

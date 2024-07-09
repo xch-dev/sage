@@ -7,7 +7,7 @@ export default function DarkToggle() {
   const { toggle, isDark } = useContext(DarkModeContext);
 
   return (
-    <IconButton onClick={toggle} color="primary">
+    <IconButton onClick={toggle} color='primary'>
       {isDark ? <LightMode /> : <DarkMode />}
     </IconButton>
   );

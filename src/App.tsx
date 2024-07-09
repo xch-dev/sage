@@ -7,16 +7,10 @@ import {
   RouterProvider,
 } from 'react-router-dom';
 import { useLocalStorage } from 'usehooks-ts';
+import CreateWallet from './pages/CreateWallet';
+import ImportWallet from './pages/ImportWallet';
 import Login from './pages/Login';
 import Wallet from './pages/Wallet';
-
-const router = createHashRouter(
-  createRoutesFromElements(
-    <Route path="/" element={<Login />}>
-      <Route path="wallet" element={<Wallet />} />
-    </Route>,
-  ),
-);
 
 export interface DarkModeContext {
   toggle: () => void;
@@ -27,6 +21,17 @@ export const DarkModeContext = createContext<DarkModeContext>({
   toggle: () => {},
   isDark: false,
 });
+
+const router = createHashRouter(
+  createRoutesFromElements(
+    <>
+      <Route path='/' element={<Login />} />
+      <Route path='/create' element={<CreateWallet />} />
+      <Route path='/import' element={<ImportWallet />} />
+      <Route path='/wallet' element={<Wallet />} />
+    </>,
+  ),
+);
 
 export default function App() {
   const [dark, setDark] = useLocalStorage('dark', false);
