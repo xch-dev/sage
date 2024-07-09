@@ -1,16 +1,14 @@
-import { useLocalStorage } from 'usehooks-ts';
+import { DarkMode, LightMode } from '@mui/icons-material';
+import { IconButton } from '@mui/material';
+import { useContext } from 'react';
+import { DarkModeContext } from '../App';
 
 export default function DarkToggle() {
-    const [dark, setDark] = useLocalStorage('dark', false);
+  const { toggle, isDark } = useContext(DarkModeContext);
 
-    const toggle = () => {
-        const html = document.querySelector('html')!;
-
-        if (dark) html.classList.remove('dark');
-        else html.classList.add('dark');
-
-        setDark(!dark);
-    };
-
-    return <button onClick={toggle}>{dark ? 'SUN' : 'MOON'}</button>;
+  return (
+    <IconButton onClick={toggle} color="primary">
+      {isDark ? <LightMode /> : <DarkMode />}
+    </IconButton>
+  );
 }

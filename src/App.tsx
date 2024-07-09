@@ -1,22 +1,60 @@
+import { createTheme, CssBaseline, ThemeProvider } from '@mui/material';
+import { createContext, useMemo } from 'react';
 import {
-    Route,
-    RouterProvider,
-    createHashRouter,
-    createRoutesFromElements,
+  createHashRouter,
+  createRoutesFromElements,
+  Route,
+  RouterProvider,
 } from 'react-router-dom';
+import { useLocalStorage } from 'usehooks-ts';
 import Login from './pages/Login';
 import Wallet from './pages/Wallet';
-import Welcome from './pages/Welcome';
 
 const router = createHashRouter(
-    createRoutesFromElements(
-        <Route path="/" element={<Welcome />}>
-            <Route path="wallet" element={<Wallet />} />
-            <Route path="login" element={<Login />} />
-        </Route>,
-    ),
+  createRoutesFromElements(
+    <Route path="/" element={<Login />}>
+      <Route path="wallet" element={<Wallet />} />
+    </Route>,
+  ),
 );
 
+export interface DarkModeContext {
+  toggle: () => void;
+  isDark: boolean;
+}
+
+export const DarkModeContext = createContext<DarkModeContext>({
+  toggle: () => {},
+  isDark: false,
+});
+
 export default function App() {
-    return <RouterProvider router={router} />;
+  const [dark, setDark] = useLocalStorage('dark', false);
+
+  const darkMode = useMemo<DarkModeContext>(
+    () => ({
+      toggle: () => setDark((dark) => !dark),
+      isDark: dark,
+    }),
+    [dark, setDark],
+  );
+
+  const theme = useMemo(
+    () =>
+      createTheme({
+        palette: {
+          mode: dark ? 'dark' : 'light',
+        },
+      }),
+    [dark],
+  );
+
+  return (
+    <DarkModeContext.Provider value={darkMode}>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <RouterProvider router={router} />
+      </ThemeProvider>
+    </DarkModeContext.Provider>
+  );
 }
