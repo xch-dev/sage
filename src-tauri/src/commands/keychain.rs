@@ -9,6 +9,30 @@ use crate::error::Error;
 use crate::{app_state::AppState, error::Result, models::WalletInfo};
 
 #[command]
+pub async fn active_wallet(state: State<'_, AppState>) -> Result<Option<WalletInfo>> {
+    let state = state.lock().await;
+    state.active_wallet()
+}
+
+#[command]
+pub async fn wallet_list(state: State<'_, AppState>) -> Result<Vec<WalletInfo>> {
+    let state = state.lock().await;
+    state.wallets()
+}
+
+#[command]
+pub async fn login_wallet(state: State<'_, AppState>, fingerprint: u32) -> Result<()> {
+    let state = state.lock().await;
+    state.login_wallet(fingerprint)
+}
+
+#[command]
+pub async fn logout_wallet(state: State<'_, AppState>) -> Result<()> {
+    let state = state.lock().await;
+    state.logout_wallet()
+}
+
+#[command]
 pub fn generate_mnemonic(use_24_words: bool) -> Result<String> {
     let mut rng = ChaCha20Rng::from_entropy();
     let mnemonic = if use_24_words {
@@ -19,12 +43,6 @@ pub fn generate_mnemonic(use_24_words: bool) -> Result<String> {
         Mnemonic::from_entropy(&entropy)?
     };
     Ok(mnemonic.to_string())
-}
-
-#[command]
-pub async fn wallet_list(state: State<'_, AppState>) -> Result<Vec<WalletInfo>> {
-    let state = state.lock().await;
-    state.wallets()
 }
 
 #[command]
@@ -47,6 +65,7 @@ pub async fn create_wallet(
     };
 
     state.rename_wallet(fingerprint, name)?;
+    state.login_wallet(fingerprint)?;
 
     Ok(())
 }
@@ -77,6 +96,7 @@ pub async fn import_wallet(state: State<'_, AppState>, name: String, key: String
     };
 
     state.rename_wallet(fingerprint, name)?;
+    state.login_wallet(fingerprint)?;
 
     Ok(())
 }

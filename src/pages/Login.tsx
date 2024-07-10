@@ -3,6 +3,7 @@ import {
   Delete,
   Edit,
   LocalFireDepartment,
+  Login as LoginIcon,
   MoreVert,
 } from '@mui/icons-material';
 import {
@@ -30,7 +31,9 @@ import Grid2 from '@mui/material/Unstable_Grid2/Grid2';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
+  activeWallet,
   deleteWallet,
+  loginWallet,
   renameWallet,
   WalletInfo,
   walletList,
@@ -41,9 +44,18 @@ import NavBar from '../components/NavBar';
 export default function Login() {
   const [wallets, setWallets] = useState<WalletInfo[] | null>(null);
 
+  const navigate = useNavigate();
+
   useEffect(() => {
     walletList().then(setWallets);
   }, []);
+
+  useEffect(() => {
+    activeWallet().then((fingerprint) => {
+      if (!fingerprint) return;
+      navigate('/wallet');
+    });
+  }, [navigate]);
 
   return (
     <>
@@ -92,8 +104,9 @@ function WalletItem(props: {
 
   const [isDeleteOpen, setDeleteOpen] = useState(false);
   const [isRenameOpen, setRenameOpen] = useState(false);
-
   const [newName, setNewName] = useState('');
+
+  const navigate = useNavigate();
 
   const openMenu = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -133,10 +146,18 @@ function WalletItem(props: {
     setNewName('');
   };
 
+  const loginSelf = (explicit: boolean) => {
+    if (isMenuOpen && !explicit) return;
+
+    loginWallet(props.wallet.fingerprint).then(() => {
+      navigate('/wallet');
+    });
+  };
+
   return (
     <Grid2 xs={12} sm={6} md={4}>
       <Card>
-        <CardActionArea>
+        <CardActionArea onClick={() => loginSelf(false)}>
           <CardContent>
             <Box
               display='flex'
@@ -183,6 +204,17 @@ function WalletItem(props: {
                   <Delete fontSize='small' />
                 </ListItemIcon>
                 <ListItemText>Delete</ListItemText>
+              </MenuItem>
+              <MenuItem
+                onClick={() => {
+                  loginSelf(true);
+                  closeMenu();
+                }}
+              >
+                <ListItemIcon>
+                  <LoginIcon fontSize='small' />
+                </ListItemIcon>
+                <ListItemText>Login</ListItemText>
               </MenuItem>
             </Menu>
             <Box

@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct Config {
     pub wallets: IndexMap<String, WalletConfig>,
+    pub active_wallet: Option<u32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

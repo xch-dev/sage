@@ -9,8 +9,9 @@ import {
   Toolbar,
   Typography,
 } from '@mui/material';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { activeWallet, logoutWallet, WalletInfo } from '../commands';
 
 export interface NavBarProps {
   label: string;
@@ -22,12 +23,25 @@ export default function NavBar(props: NavBarProps) {
   const isMenuOpen = Boolean(anchorEl);
   const navigate = useNavigate();
 
+  const [wallet, setWallet] = useState<WalletInfo | null>(null);
+
+  useEffect(() => {
+    activeWallet().then(setWallet);
+  }, []);
+
   const openMenu = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
   };
 
   const closeMenu = () => {
     setAnchorEl(null);
+  };
+
+  const logout = () => {
+    logoutWallet().then(() => {
+      navigate('/');
+    });
+    closeMenu();
   };
 
   return (
@@ -74,14 +88,7 @@ export default function NavBar(props: NavBarProps) {
             >
               Import Wallet
             </MenuItem>
-            <MenuItem
-              onClick={() => {
-                navigate('/');
-                closeMenu();
-              }}
-            >
-              Logout
-            </MenuItem>
+            {wallet && <MenuItem onClick={logout}>Logout</MenuItem>}
           </Menu>
         </Toolbar>
       </AppBar>

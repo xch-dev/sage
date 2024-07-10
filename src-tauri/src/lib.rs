@@ -14,6 +14,9 @@ pub fn run() {
         .plugin(tauri_plugin_clipboard_manager::init())
         .invoke_handler(tauri::generate_handler![
             commands::generate_mnemonic,
+            commands::active_wallet,
+            commands::login_wallet,
+            commands::logout_wallet,
             commands::wallet_list,
             commands::create_wallet,
             commands::import_wallet,

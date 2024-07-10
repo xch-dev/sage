@@ -42,6 +42,51 @@ impl AppStateInner {
         Ok(())
     }
 
+    pub fn login_wallet(&self, fingerprint: u32) -> Result<()> {
+        let mut config = self.load_config()?;
+        config.active_wallet = Some(fingerprint);
+        self.save_config(config)?;
+        Ok(())
+    }
+
+    pub fn logout_wallet(&self) -> Result<()> {
+        let mut config = self.load_config()?;
+        config.active_wallet = None;
+        self.save_config(config)?;
+        Ok(())
+    }
+
+    pub fn active_wallet(&self) -> Result<Option<WalletInfo>> {
+        let config = self.load_config()?;
+        let keychain = self.load_keychain()?;
+
+        let fingerprint = match config.active_wallet {
+            Some(fingerprint) => fingerprint,
+            None => return Ok(None),
+        };
+
+        let name = config
+            .wallets
+            .get(&fingerprint.to_string())
+            .map(|config| config.name.clone())
+            .unwrap_or_else(|| "Unnamed Wallet".to_string());
+
+        let Some(key) = keychain.get(&fingerprint) else {
+            return Ok(None);
+        };
+
+        let kind = match key {
+            KeyData::Public { .. } => WalletKind::Cold,
+            KeyData::Secret { .. } => WalletKind::Hot,
+        };
+
+        Ok(Some(WalletInfo {
+            name,
+            fingerprint,
+            kind,
+        }))
+    }
+
     pub fn wallets(&self) -> Result<Vec<WalletInfo>> {
         let keychain = self.load_keychain()?;
         let config = self.load_config()?;
@@ -150,6 +195,9 @@ impl AppStateInner {
         let mut config = self.load_config()?;
         keys.remove(&fingerprint);
         config.wallets.shift_remove(&fingerprint.to_string());
+        if config.active_wallet == Some(fingerprint) {
+            config.active_wallet = None;
+        }
         self.save_keychain(keys)?;
         self.save_config(config)?;
         Ok(())

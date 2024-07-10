@@ -1,5 +1,6 @@
 import { ContentCopy, Refresh } from '@mui/icons-material';
 import {
+  Alert,
   Box,
   Button,
   Chip,
@@ -18,7 +19,12 @@ import {
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { createWallet, generateMnemonic } from '../commands';
+import {
+  activeWallet,
+  createWallet,
+  generateMnemonic,
+  WalletInfo,
+} from '../commands';
 import Container from '../components/Container';
 import NavBar from '../components/NavBar';
 
@@ -29,8 +35,16 @@ export default function CreateWallet() {
   const [name, setName] = useState('');
   const [use24Words, setUse24Words] = useState(true);
   const [saveMnemonic, setSaveMnemonic] = useState(true);
-  const [nameError, setNameError] = useState(false);
   const [isConfirmOpen, setConfirmOpen] = useState(false);
+
+  const [nameError, setNameError] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const [currentWallet, setCurrentWallet] = useState<WalletInfo | null>(null);
+
+  useEffect(() => {
+    activeWallet().then(setCurrentWallet);
+  }, []);
 
   const loadMnemonic = useCallback(() => {
     generateMnemonic(use24Words).then(setMnemonic);
@@ -46,22 +60,27 @@ export default function CreateWallet() {
   }, [use24Words, loadMnemonic]);
 
   const submit = () => {
-    let valid = true;
-    if (!name) {
-      setNameError(true);
-      valid = false;
-    }
+    setNameError(!name);
 
-    if (!valid || !mnemonic) return;
+    if (nameError || !name || !mnemonic) return;
 
-    createWallet(name, mnemonic, saveMnemonic).then(() => {
-      navigate('/');
-    });
+    createWallet(name, mnemonic, saveMnemonic)
+      .then(() => navigate('/wallet'))
+      .catch(setError);
   };
 
   return (
     <>
-      <NavBar label='Create Wallet' back={() => navigate('/')} />
+      <NavBar
+        label='Create Wallet'
+        back={() => {
+          if (currentWallet) {
+            navigate('/wallet');
+          } else {
+            navigate('/');
+          }
+        }}
+      />
       <Container>
         <TextField
           label='Wallet Name'
@@ -147,6 +166,12 @@ export default function CreateWallet() {
         >
           Create Wallet
         </Button>
+
+        {error && (
+          <Alert variant='outlined' severity='error' sx={{ mt: 2 }}>
+            {error}
+          </Alert>
+        )}
       </Container>
 
       <Dialog open={isConfirmOpen} onClose={() => setConfirmOpen(false)}>

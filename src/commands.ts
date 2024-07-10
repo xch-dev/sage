@@ -12,6 +12,18 @@ export interface WalletInfo {
   kind: WalletKind;
 }
 
+export async function activeWallet(): Promise<WalletInfo | null> {
+  return await invoke('active_wallet');
+}
+
+export async function loginWallet(fingerprint: number): Promise<void> {
+  await invoke('login_wallet', { fingerprint });
+}
+
+export async function logoutWallet(): Promise<void> {
+  await invoke('logout_wallet');
+}
+
 export async function walletList(): Promise<WalletInfo[]> {
   return await invoke('wallet_list');
 }
