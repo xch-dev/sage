@@ -18,25 +18,25 @@ pub enum DerivationMode {
     Reuse,
 }
 
-impl DerivationMode {
-    pub fn is_default(&self) -> bool {
-        matches!(self, Self::Generate)
-    }
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WalletConfig {
     pub name: String,
-
-    #[serde(default, skip_serializing_if = "DerivationMode::is_default")]
+    #[serde(default)]
     pub derivation_mode: DerivationMode,
+    #[serde(default = "default_derivation_batch_size")]
+    pub derivation_batch_size: u32,
+}
+
+fn default_derivation_batch_size() -> u32 {
+    500
 }
 
 impl Default for WalletConfig {
     fn default() -> Self {
         Self {
             name: "Unnamed Wallet".to_string(),
-            derivation_mode: DerivationMode::Generate,
+            derivation_mode: DerivationMode::default(),
+            derivation_batch_size: default_derivation_batch_size(),
         }
     }
 }

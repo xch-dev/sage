@@ -17,6 +17,7 @@ import * as commands from '../commands';
 import Container from '../components/Container';
 import NavBar from '../components/NavBar';
 import { DerivationMode, WalletConfig, WalletInfo } from '../models';
+import { isValidU32 } from '../validation';
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -61,17 +62,26 @@ export default function Settings() {
 
 function WalletSettings(props: { wallet: WalletInfo }) {
   const [name, setName] = useState(props.wallet.name);
+
   const [derivationMode, setDerivationMode] = useState<DerivationMode | null>(
     null,
   );
+
+  const [derivationBatchSizeText, setDerivationBatchSize] = useState<
+    string | null
+  >(null);
+
+  const derivationBatchSize =
+    derivationBatchSizeText === null ? null : parseInt(derivationBatchSizeText);
+
+  const invalidDerivationBatchSize =
+    derivationBatchSize === null || !isValidU32(derivationBatchSize, 1);
 
   const [config, setConfig] = useState<WalletConfig | null>(null);
 
   useEffect(() => {
     commands.walletConfig(props.wallet.fingerprint).then(setConfig);
   }, [props.wallet.fingerprint]);
-
-  console.log(config);
 
   return (
     <>
@@ -136,6 +146,33 @@ function WalletSettings(props: { wallet: WalletInfo }) {
           </MenuItem>
         </Select>
       </FormControl>
+
+      <TextField
+        sx={{ mt: 4 }}
+        label='Derivation Batch Size'
+        fullWidth
+        value={derivationBatchSizeText ?? config?.derivation_batch_size ?? 500}
+        error={derivationBatchSizeText !== null && invalidDerivationBatchSize}
+        disabled={
+          (derivationMode ?? config?.derivation_mode) !==
+          DerivationMode.Generate
+        }
+        onChange={(event) => setDerivationBatchSize(event.target.value)}
+        onBlur={() => {
+          if (invalidDerivationBatchSize) return;
+
+          if (derivationBatchSize !== config?.derivation_batch_size) {
+            if (config) {
+              config.derivation_batch_size = derivationBatchSize;
+              setConfig(config);
+            }
+            commands.setDerivationBatchSize(
+              props.wallet.fingerprint,
+              derivationBatchSize,
+            );
+          }
+        }}
+      />
     </>
   );
 }

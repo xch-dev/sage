@@ -26,6 +26,19 @@ pub async fn set_derivation_mode(
 }
 
 #[command]
+pub async fn set_derivation_batch_size(
+    state: State<'_, AppState>,
+    fingerprint: u32,
+    derivation_batch_size: u32,
+) -> Result<()> {
+    let state = state.lock().await;
+    state.update_wallet_config(fingerprint, |config| {
+        config.derivation_batch_size = derivation_batch_size;
+    })?;
+    Ok(())
+}
+
+#[command]
 pub async fn rename_wallet(
     state: State<'_, AppState>,
     fingerprint: u32,

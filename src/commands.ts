@@ -54,3 +54,13 @@ export async function setDerivationMode(
 ): Promise<void> {
   await invoke('set_derivation_mode', { fingerprint, derivationMode });
 }
+
+export async function setDerivationBatchSize(
+  fingerprint: number,
+  derivationBatchSize: number,
+): Promise<void> {
+  await invoke('set_derivation_batch_size', {
+    fingerprint,
+    derivationBatchSize,
+  });
+}

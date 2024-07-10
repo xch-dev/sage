@@ -24,6 +24,7 @@ pub fn run() {
             commands::delete_wallet,
             commands::rename_wallet,
             commands::set_derivation_mode,
+            commands::set_derivation_batch_size,
         ])
         .setup(|app| {
             let path = app.path().app_data_dir()?;

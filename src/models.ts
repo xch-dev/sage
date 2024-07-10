@@ -18,4 +18,5 @@ export interface WalletInfo {
 export interface WalletConfig {
   name: string;
   derivation_mode: DerivationMode;
+  derivation_batch_size: number;
 }
