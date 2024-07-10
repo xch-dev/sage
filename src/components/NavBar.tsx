@@ -1,9 +1,17 @@
-import { ArrowBackIos } from '@mui/icons-material';
+import {
+  Add,
+  ArrowBackIos,
+  Logout,
+  PersonAdd,
+  Settings,
+} from '@mui/icons-material';
 import MenuIcon from '@mui/icons-material/Menu';
 import {
   AppBar,
   Box,
   IconButton,
+  ListItemIcon,
+  ListItemText,
   Menu,
   MenuItem,
   Toolbar,
@@ -11,11 +19,12 @@ import {
 } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { activeWallet, logoutWallet, WalletInfo } from '../commands';
+import { activeWallet, logoutWallet } from '../commands';
+import { WalletInfo } from '../models';
 
 export interface NavBarProps {
   label: string;
-  back: (() => void) | null;
+  back: 'logout' | (() => void) | null;
 }
 
 export default function NavBar(props: NavBarProps) {
@@ -41,25 +50,44 @@ export default function NavBar(props: NavBarProps) {
     logoutWallet().then(() => {
       navigate('/');
     });
-    closeMenu();
   };
 
   return (
     <Box sx={{ flexGrow: 1 }}>
       <AppBar position='static'>
         <Toolbar>
-          {props.back && (
-            <IconButton
-              size='large'
-              edge='start'
-              color='inherit'
-              sx={{ mr: 2 }}
-              onClick={props.back}
-            >
-              <ArrowBackIos />
-            </IconButton>
-          )}
-          <Typography variant='h5' component='div' sx={{ flexGrow: 1 }}>
+          {props.back &&
+            (props.back === 'logout' ? (
+              <IconButton
+                size='large'
+                edge='start'
+                color='inherit'
+                sx={{ mr: 2 }}
+                onClick={logout}
+              >
+                <Logout />
+              </IconButton>
+            ) : (
+              <IconButton
+                size='large'
+                edge='start'
+                color='inherit'
+                sx={{ mr: 2 }}
+                onClick={props.back}
+              >
+                <ArrowBackIos />
+              </IconButton>
+            ))}
+          <Typography
+            variant='h5'
+            component='div'
+            sx={{
+              flexGrow: 1,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}
+          >
             {props.label}
           </Typography>
           <IconButton
@@ -74,11 +102,25 @@ export default function NavBar(props: NavBarProps) {
           <Menu anchorEl={anchorEl} open={isMenuOpen} onClose={closeMenu}>
             <MenuItem
               onClick={() => {
+                navigate('/settings');
+                closeMenu();
+              }}
+            >
+              <ListItemIcon>
+                <Settings fontSize='small' />
+              </ListItemIcon>
+              <ListItemText>Settings</ListItemText>
+            </MenuItem>
+            <MenuItem
+              onClick={() => {
                 navigate('/create');
                 closeMenu();
               }}
             >
-              Create Wallet
+              <ListItemIcon>
+                <Add fontSize='small' />
+              </ListItemIcon>
+              <ListItemText>Create Wallet</ListItemText>
             </MenuItem>
             <MenuItem
               onClick={() => {
@@ -86,9 +128,24 @@ export default function NavBar(props: NavBarProps) {
                 closeMenu();
               }}
             >
-              Import Wallet
+              <ListItemIcon>
+                <PersonAdd fontSize='small' />
+              </ListItemIcon>
+              <ListItemText>Import Wallet</ListItemText>
             </MenuItem>
-            {wallet && <MenuItem onClick={logout}>Logout</MenuItem>}
+            {wallet && (
+              <MenuItem
+                onClick={() => {
+                  logout();
+                  closeMenu();
+                }}
+              >
+                <ListItemIcon>
+                  <Logout fontSize='small' />
+                </ListItemIcon>
+                <ListItemText>Logout</ListItemText>
+              </MenuItem>
+            )}
           </Menu>
         </Toolbar>
       </AppBar>

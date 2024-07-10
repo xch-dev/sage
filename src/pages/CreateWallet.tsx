@@ -19,14 +19,10 @@ import {
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  activeWallet,
-  createWallet,
-  generateMnemonic,
-  WalletInfo,
-} from '../commands';
+import { activeWallet, createWallet, generateMnemonic } from '../commands';
 import Container from '../components/Container';
 import NavBar from '../components/NavBar';
+import { WalletInfo } from '../models';
 
 export default function CreateWallet() {
   const navigate = useNavigate();
@@ -84,7 +80,6 @@ export default function CreateWallet() {
       <Container>
         <TextField
           label='Wallet Name'
-          variant='outlined'
           fullWidth
           required
           autoFocus

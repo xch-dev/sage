@@ -1,9 +1,10 @@
 import { Alert, Button, TextField, Typography } from '@mui/material';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { activeWallet, importWallet, WalletInfo } from '../commands';
+import { activeWallet, importWallet } from '../commands';
 import Container from '../components/Container';
 import NavBar from '../components/NavBar';
+import { WalletInfo } from '../models';
 
 export default function ImportWallet() {
   const navigate = useNavigate();
@@ -49,7 +50,6 @@ export default function ImportWallet() {
       <Container>
         <TextField
           label='Wallet Name'
-          variant='outlined'
           fullWidth
           autoFocus
           error={nameError}

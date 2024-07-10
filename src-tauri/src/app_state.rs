@@ -8,7 +8,7 @@ use std::{collections::HashMap, fs, path::PathBuf};
 use tokio::sync::Mutex;
 
 use crate::{
-    config::Config,
+    config::{Config, WalletConfig},
     error::Result,
     models::{WalletInfo, WalletKind},
 };
@@ -52,6 +52,25 @@ impl AppStateInner {
     pub fn logout_wallet(&self) -> Result<()> {
         let mut config = self.load_config()?;
         config.active_wallet = None;
+        self.save_config(config)?;
+        Ok(())
+    }
+
+    pub fn wallet_config(&self, fingerprint: u32) -> Result<WalletConfig> {
+        let config = self.load_config()?;
+        let wallet_config = config.wallets.get(&fingerprint.to_string()).cloned();
+        Ok(wallet_config.unwrap_or_default())
+    }
+
+    pub fn update_wallet_config(
+        &self,
+        fingerprint: u32,
+        f: impl FnOnce(&mut WalletConfig),
+    ) -> Result<()> {
+        let mut config = self.load_config()?;
+        let key = fingerprint.to_string();
+        let wallet_config = config.wallets.entry(key).or_default();
+        f(wallet_config);
         self.save_config(config)?;
         Ok(())
     }
@@ -180,14 +199,6 @@ impl AppStateInner {
         );
         self.save_keychain(keys)?;
         Ok(fingerprint)
-    }
-
-    pub fn rename_wallet(&self, fingerprint: u32, name: String) -> Result<()> {
-        let mut config = self.load_config()?;
-        let wallet_config = config.wallets.entry(fingerprint.to_string()).or_default();
-        wallet_config.name = name;
-        self.save_config(config)?;
-        Ok(())
     }
 
     pub fn delete_wallet(&self, fingerprint: u32) -> Result<()> {

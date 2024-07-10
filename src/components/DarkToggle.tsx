@@ -4,11 +4,11 @@ import { useContext } from 'react';
 import { DarkModeContext } from '../App';
 
 export default function DarkToggle() {
-  const { toggle, isDark } = useContext(DarkModeContext);
+  const { toggle, dark } = useContext(DarkModeContext);
 
   return (
     <IconButton onClick={toggle} color='primary'>
-      {isDark ? <LightMode /> : <DarkMode />}
+      {dark ? <LightMode /> : <DarkMode />}
     </IconButton>
   );
 }

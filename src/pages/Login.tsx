@@ -35,11 +35,11 @@ import {
   deleteWallet,
   loginWallet,
   renameWallet,
-  WalletInfo,
   walletList,
 } from '../commands';
 import Container from '../components/Container';
 import NavBar from '../components/NavBar';
+import { WalletInfo } from '../models';
 
 export default function Login() {
   const [wallets, setWallets] = useState<WalletInfo[] | null>(null);
@@ -226,7 +226,7 @@ function WalletItem(props: {
               <Typography color='text.secondary'>
                 {props.wallet.fingerprint}
               </Typography>
-              {props.wallet.kind == 'hot' ? (
+              {props.wallet.kind == 'Hot' ? (
                 <Chip
                   icon={<LocalFireDepartment />}
                   label='Hot Wallet'

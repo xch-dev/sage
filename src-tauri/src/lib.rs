@@ -15,6 +15,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::generate_mnemonic,
             commands::active_wallet,
+            commands::wallet_config,
             commands::login_wallet,
             commands::logout_wallet,
             commands::wallet_list,
@@ -22,6 +23,7 @@ pub fn run() {
             commands::import_wallet,
             commands::delete_wallet,
             commands::rename_wallet,
+            commands::set_derivation_mode,
         ])
         .setup(|app| {
             let path = app.path().app_data_dir()?;

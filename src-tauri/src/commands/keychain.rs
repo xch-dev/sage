@@ -64,7 +64,9 @@ pub async fn create_wallet(
         state.import_public_key(&master_pk)?
     };
 
-    state.rename_wallet(fingerprint, name)?;
+    state.update_wallet_config(fingerprint, |config| {
+        config.name = name;
+    })?;
     state.login_wallet(fingerprint)?;
 
     Ok(())
@@ -95,7 +97,9 @@ pub async fn import_wallet(state: State<'_, AppState>, name: String, key: String
         state.import_mnemonic(&mnemonic)?
     };
 
-    state.rename_wallet(fingerprint, name)?;
+    state.update_wallet_config(fingerprint, |config| {
+        config.name = name;
+    })?;
     state.login_wallet(fingerprint)?;
 
     Ok(())
@@ -105,16 +109,5 @@ pub async fn import_wallet(state: State<'_, AppState>, name: String, key: String
 pub async fn delete_wallet(state: State<'_, AppState>, fingerprint: u32) -> Result<()> {
     let state = state.lock().await;
     state.delete_wallet(fingerprint)?;
-    Ok(())
-}
-
-#[command]
-pub async fn rename_wallet(
-    state: State<'_, AppState>,
-    fingerprint: u32,
-    name: String,
-) -> Result<()> {
-    let state = state.lock().await;
-    state.rename_wallet(fingerprint, name)?;
     Ok(())
 }

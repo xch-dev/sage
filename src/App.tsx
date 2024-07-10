@@ -10,16 +10,19 @@ import { useLocalStorage } from 'usehooks-ts';
 import CreateWallet from './pages/CreateWallet';
 import ImportWallet from './pages/ImportWallet';
 import Login from './pages/Login';
+import Settings from './pages/Settings';
 import Wallet from './pages/Wallet';
 
 export interface DarkModeContext {
   toggle: () => void;
-  isDark: boolean;
+  dark: boolean;
+  setDark: (dark: boolean) => void;
 }
 
 export const DarkModeContext = createContext<DarkModeContext>({
   toggle: () => {},
-  isDark: false,
+  dark: false,
+  setDark: () => {},
 });
 
 const router = createHashRouter(
@@ -29,6 +32,7 @@ const router = createHashRouter(
       <Route path='/create' element={<CreateWallet />} />
       <Route path='/import' element={<ImportWallet />} />
       <Route path='/wallet' element={<Wallet />} />
+      <Route path='/settings' element={<Settings />} />
     </>,
   ),
 );
@@ -39,7 +43,8 @@ export default function App() {
   const darkMode = useMemo<DarkModeContext>(
     () => ({
       toggle: () => setDark((dark) => !dark),
-      isDark: dark,
+      dark,
+      setDark,
     }),
     [dark, setDark],
   );

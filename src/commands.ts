@@ -1,19 +1,16 @@
 import { invoke } from '@tauri-apps/api/core';
+import { DerivationMode, WalletConfig, WalletInfo } from './models';
 
 export async function generateMnemonic(use24Words: boolean): Promise<string> {
   return await invoke('generate_mnemonic', { use24Words });
 }
 
-export type WalletKind = 'cold' | 'hot';
-
-export interface WalletInfo {
-  name: string;
-  fingerprint: number;
-  kind: WalletKind;
-}
-
 export async function activeWallet(): Promise<WalletInfo | null> {
   return await invoke('active_wallet');
+}
+
+export async function walletConfig(fingerprint: number): Promise<WalletConfig> {
+  return await invoke('wallet_config', { fingerprint });
 }
 
 export async function loginWallet(fingerprint: number): Promise<void> {
@@ -49,4 +46,11 @@ export async function renameWallet(
   name: string,
 ): Promise<void> {
   await invoke('rename_wallet', { fingerprint, name });
+}
+
+export async function setDerivationMode(
+  fingerprint: number,
+  derivationMode: DerivationMode,
+): Promise<void> {
+  await invoke('set_derivation_mode', { fingerprint, derivationMode });
 }
