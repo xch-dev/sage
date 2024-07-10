@@ -1,4 +1,3 @@
-import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 
 import '@fontsource/roboto/300.css';
@@ -10,8 +9,4 @@ import App from './App.tsx';
 
 const element = document.getElementById('root')!;
 
-createRoot(element).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-);
+createRoot(element).render(<App />);

@@ -3,6 +3,11 @@ import {
   Box,
   Button,
   Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   Divider,
   FormControlLabel,
   IconButton,
@@ -13,7 +18,7 @@ import {
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { generateMnemonic } from '../commands';
+import { createWallet, generateMnemonic } from '../commands';
 import Container from '../components/Container';
 import NavBar from '../components/NavBar';
 
@@ -23,7 +28,9 @@ export default function CreateWallet() {
   const [mnemonic, setMnemonic] = useState<string | null>();
   const [name, setName] = useState('');
   const [use24Words, setUse24Words] = useState(true);
+  const [saveMnemonic, setSaveMnemonic] = useState(true);
   const [nameError, setNameError] = useState(false);
+  const [isConfirmOpen, setConfirmOpen] = useState(false);
 
   const loadMnemonic = useCallback(() => {
     generateMnemonic(use24Words).then(setMnemonic);
@@ -45,9 +52,11 @@ export default function CreateWallet() {
       valid = false;
     }
 
-    if (!valid) return;
+    if (!valid || !mnemonic) return;
 
-    navigate('/');
+    createWallet(name, mnemonic, saveMnemonic).then(() => {
+      navigate('/');
+    });
   };
 
   return (
@@ -59,30 +68,50 @@ export default function CreateWallet() {
           variant='outlined'
           fullWidth
           required
+          autoFocus
           value={name}
           error={nameError}
           onChange={(event) => setName(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault();
+              submit();
+            }
+          }}
         />
-        <Box
-          display='flex'
-          alignItems='center'
-          justifyContent='space-between'
-          mt={2}
-        >
+        <FormControlLabel
+          sx={{ mt: 2 }}
+          control={
+            <Switch
+              checked={use24Words}
+              onChange={(event) => setUse24Words(event.target.checked)}
+            />
+          }
+          label={
+            <Tooltip
+              title='While 12 word mnemonics are sufficiently hard to crack, you can choose to use 24 instead if you want to.'
+              placement='bottom-start'
+              enterDelay={750}
+            >
+              <span>Use 24 words</span>
+            </Tooltip>
+          }
+        />
+        <Box display='flex' alignItems='center' justifyContent='space-between'>
           <FormControlLabel
             control={
               <Switch
-                checked={use24Words}
-                onChange={(event) => setUse24Words(event.target.checked)}
+                checked={saveMnemonic}
+                onChange={(event) => setSaveMnemonic(event.target.checked)}
               />
             }
             label={
               <Tooltip
-                title='While 12 word mnemonics are sufficiently hard to crack, you can choose to use 24 instead if you want to.'
+                title='By disabling this you are creating a cold wallet, with no ability to sign transactions. The mnemonic will need to be saved elsewhere.'
                 placement='bottom-start'
                 enterDelay={750}
               >
-                <span>Use 24 words</span>
+                <span>Save mnemonic</span>
               </Tooltip>
             }
           />
@@ -106,10 +135,42 @@ export default function CreateWallet() {
             ))}
         </Box>
 
-        <Button variant='contained' fullWidth sx={{ mt: 3 }} onClick={submit}>
+        <Button
+          variant='contained'
+          fullWidth
+          sx={{ mt: 3 }}
+          disabled={!mnemonic || !name}
+          onClick={() => {
+            if (saveMnemonic) submit();
+            else setConfirmOpen(true);
+          }}
+        >
           Create Wallet
         </Button>
       </Container>
+
+      <Dialog open={isConfirmOpen} onClose={() => setConfirmOpen(false)}>
+        <DialogTitle>Did you save your mnemonic?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Make sure you have saved your mnemonic. You will not be able to
+            access it later, since it will not be saved in the wallet. You will
+            also not be able to make transactions with this wallet.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmOpen(false)}>Cancel</Button>
+          <Button
+            onClick={() => {
+              setConfirmOpen(false);
+              submit();
+            }}
+            autoFocus
+          >
+            Confirm
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }

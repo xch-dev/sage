@@ -10,7 +10,18 @@ export default function ImportWallet() {
     <>
       <NavBar label='Import Wallet' back={() => navigate('/')} />
       <Container>
-        <TextField label='Wallet Name' variant='outlined' fullWidth />
+        <TextField
+          label='Wallet Name'
+          variant='outlined'
+          fullWidth
+          autoFocus
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault();
+              // submit();
+            }
+          }}
+        />
       </Container>
     </>
   );
