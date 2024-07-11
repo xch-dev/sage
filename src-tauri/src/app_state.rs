@@ -1,9 +1,10 @@
 use bip39::Mnemonic;
-use chia::bls::{PublicKey, SecretKey};
+use chia::bls::{derive_keys::master_to_wallet_unhardened_intermediate, PublicKey, SecretKey};
 use itertools::Itertools;
 use rand::SeedableRng;
 use rand_chacha::ChaCha20Rng;
-use sage::{encrypt, KeyData, SecretKeyData};
+use sage::{encrypt, Database, KeyData, SecretKeyData, Wallet};
+use sqlx::SqlitePool;
 use std::{collections::HashMap, fs, path::PathBuf};
 use tokio::sync::Mutex;
 
@@ -19,6 +20,8 @@ pub struct AppStateInner {
     rng: ChaCha20Rng,
     key_path: PathBuf,
     config_path: PathBuf,
+    db_path: PathBuf,
+    wallet: Option<Wallet>,
 }
 
 impl AppStateInner {
@@ -27,25 +30,63 @@ impl AppStateInner {
             rng: ChaCha20Rng::from_entropy(),
             key_path: path.join("keys.bin"),
             config_path: path.join("config.toml"),
+            db_path: path.join("wallets"),
+            wallet: None,
         }
     }
 
-    pub fn initialize(&self) -> Result<()> {
+    pub async fn initialize(&mut self) -> Result<()> {
         if !self.key_path.try_exists()? {
             let keys = HashMap::<u32, KeyData>::new();
             fs::write(&self.key_path, bincode::serialize(&keys)?)?;
         }
-        if !self.config_path.try_exists()? {
+
+        let config = if !self.config_path.try_exists()? {
             let config = Config::default();
             fs::write(&self.config_path, toml::to_string_pretty(&config)?)?;
+            config
+        } else {
+            self.load_config()?
+        };
+
+        if !self.db_path.try_exists()? {
+            fs::create_dir(&self.db_path)?;
         }
+
+        if let Some(fingerprint) = config.active_wallet {
+            self.login_wallet(fingerprint).await?;
+        }
+
         Ok(())
     }
 
-    pub fn login_wallet(&self, fingerprint: u32) -> Result<()> {
+    pub async fn login_wallet(&mut self, fingerprint: u32) -> Result<()> {
         let mut config = self.load_config()?;
         config.active_wallet = Some(fingerprint);
         self.save_config(config)?;
+
+        let keychain = self.load_keychain()?;
+        let key = keychain.get(&fingerprint).cloned();
+
+        if let Some(key) = key {
+            let master_pk_bytes = match key {
+                KeyData::Public { master_pk } => master_pk,
+                KeyData::Secret { master_pk, .. } => master_pk,
+            };
+
+            let master_pk = PublicKey::from_bytes(&master_pk_bytes)?;
+            let intermediate_pk = master_to_wallet_unhardened_intermediate(&master_pk);
+
+            let path = self.db_path.join(format!("{fingerprint}.sqlite"));
+            let pool =
+                SqlitePool::connect(&format!("sqlite://{}?mode=rwc", path.display())).await?;
+            sqlx::migrate!("../migrations").run(&pool).await?;
+
+            let db = Database::new(pool);
+            let wallet = Wallet::new(db, intermediate_pk);
+            self.wallet = Some(wallet);
+        }
+
         Ok(())
     }
 

@@ -22,8 +22,8 @@ pub async fn wallet_list(state: State<'_, AppState>) -> Result<Vec<WalletInfo>> 
 
 #[command]
 pub async fn login_wallet(state: State<'_, AppState>, fingerprint: u32) -> Result<()> {
-    let state = state.lock().await;
-    state.login_wallet(fingerprint)
+    let mut state = state.lock().await;
+    state.login_wallet(fingerprint).await
 }
 
 #[command]
@@ -67,7 +67,7 @@ pub async fn create_wallet(
     state.update_wallet_config(fingerprint, |config| {
         config.name = name;
     })?;
-    state.login_wallet(fingerprint)?;
+    state.login_wallet(fingerprint).await?;
 
     Ok(())
 }
@@ -100,7 +100,7 @@ pub async fn import_wallet(state: State<'_, AppState>, name: String, key: String
     state.update_wallet_config(fingerprint, |config| {
         config.name = name;
     })?;
-    state.login_wallet(fingerprint)?;
+    state.login_wallet(fingerprint).await?;
 
     Ok(())
 }

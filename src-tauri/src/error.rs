@@ -32,6 +32,12 @@ pub enum Error {
 
     #[error("Keychain error: {0}")]
     Keychain(#[from] KeychainError),
+
+    #[error("SQLx error: {0}")]
+    Sqlx(#[from] sqlx::Error),
+
+    #[error("SQLx migration error: {0}")]
+    SqlxMigration(#[from] sqlx::migrate::MigrateError),
 }
 
 impl Serialize for Error {

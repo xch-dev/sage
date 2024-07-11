@@ -1,8 +1,8 @@
 import { invoke } from '@tauri-apps/api/core';
 import { DerivationMode, WalletConfig, WalletInfo } from './models';
 
-export async function generateMnemonic(use24Words: boolean): Promise<string> {
-  return await invoke('generate_mnemonic', { use24Words });
+export async function initialize(): Promise<void> {
+  await invoke('initialize');
 }
 
 export async function activeWallet(): Promise<WalletInfo | null> {
@@ -23,6 +23,10 @@ export async function logoutWallet(): Promise<void> {
 
 export async function walletList(): Promise<WalletInfo[]> {
   return await invoke('wallet_list');
+}
+
+export async function generateMnemonic(use24Words: boolean): Promise<string> {
+  return await invoke('generate_mnemonic', { use24Words });
 }
 
 export async function createWallet(

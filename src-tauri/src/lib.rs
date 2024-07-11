@@ -13,6 +13,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_clipboard_manager::init())
         .invoke_handler(tauri::generate_handler![
+            commands::initialize,
             commands::generate_mnemonic,
             commands::active_wallet,
             commands::wallet_config,
@@ -29,7 +30,6 @@ pub fn run() {
         .setup(|app| {
             let path = app.path().app_data_dir()?;
             let state = AppStateInner::new(path);
-            state.initialize()?;
             app.manage(Mutex::new(state));
             Ok(())
         })

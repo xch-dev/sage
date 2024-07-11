@@ -1,5 +1,10 @@
-import { createTheme, CssBaseline, ThemeProvider } from '@mui/material';
-import { createContext, useMemo } from 'react';
+import {
+  createTheme,
+  CssBaseline,
+  ThemeProvider,
+  Typography,
+} from '@mui/material';
+import { createContext, useEffect, useMemo, useState } from 'react';
 import {
   createHashRouter,
   createRoutesFromElements,
@@ -7,6 +12,8 @@ import {
   RouterProvider,
 } from 'react-router-dom';
 import { useLocalStorage } from 'usehooks-ts';
+import { initialize } from './commands';
+import Container from './components/Container';
 import CreateWallet from './pages/CreateWallet';
 import ImportWallet from './pages/ImportWallet';
 import Login from './pages/Login';
@@ -40,6 +47,9 @@ const router = createHashRouter(
 export default function App() {
   const [dark, setDark] = useLocalStorage('dark', false);
 
+  const [initialized, setInitialized] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
   const darkMode = useMemo<DarkModeContext>(
     () => ({
       toggle: () => setDark((dark) => !dark),
@@ -59,11 +69,25 @@ export default function App() {
     [dark],
   );
 
+  useEffect(() => {
+    initialize()
+      .then(() => setInitialized(true))
+      .catch(setError);
+  }, []);
+
   return (
     <DarkModeContext.Provider value={darkMode}>
       <ThemeProvider theme={theme}>
         <CssBaseline />
-        <RouterProvider router={router} />
+        {initialized && <RouterProvider router={router} />}
+        {error && (
+          <Container>
+            <Typography variant='h4'>Error</Typography>
+            <Typography color='error' mt={2}>
+              {error}
+            </Typography>
+          </Container>
+        )}
       </ThemeProvider>
     </DarkModeContext.Provider>
   );
