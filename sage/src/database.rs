@@ -188,7 +188,7 @@ async fn derivation_index(conn: impl SqliteExecutor<'_>, hardened: bool) -> Resu
     .max_index
     .map_or(0, |index| index + 1)
     .try_into()
-    .map_err(|_| Error::PrecisionLoss)
+    .map_err(|_| Error::PrecisionLost)
 }
 
 async fn derivations(conn: impl SqliteExecutor<'_>) -> Result<Vec<Bytes32>> {
@@ -272,11 +272,11 @@ async fn coin_state(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<O
         },
         spent_height: row
             .spent_height
-            .map(|height| height.try_into().map_err(|_| Error::PrecisionLoss))
+            .map(|height| height.try_into().map_err(|_| Error::PrecisionLost))
             .transpose()?,
         created_height: row
             .created_height
-            .map(|height| height.try_into().map_err(|_| Error::PrecisionLoss))
+            .map(|height| height.try_into().map_err(|_| Error::PrecisionLost))
             .transpose()?,
     }))
 }
