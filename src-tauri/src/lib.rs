@@ -7,6 +7,7 @@ mod commands;
 mod config;
 mod error;
 mod models;
+mod wallet;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -26,6 +27,8 @@ pub fn run() {
             commands::rename_wallet,
             commands::set_derivation_mode,
             commands::set_derivation_batch_size,
+            commands::set_derivation_index,
+            commands::derivation_info,
         ])
         .setup(|app| {
             let path = app.path().app_data_dir()?;

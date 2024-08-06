@@ -13,9 +13,8 @@ pub struct Config {
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum DerivationMode {
     #[default]
-    Generate,
-    Cycle,
-    Reuse,
+    Automatic,
+    Manual,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -25,6 +24,8 @@ pub struct WalletConfig {
     pub derivation_mode: DerivationMode,
     #[serde(default = "default_derivation_batch_size")]
     pub derivation_batch_size: u32,
+    #[serde(default)]
+    pub derivation_index: u32,
 }
 
 fn default_derivation_batch_size() -> u32 {
@@ -37,6 +38,7 @@ impl Default for WalletConfig {
             name: "Unnamed Wallet".to_string(),
             derivation_mode: DerivationMode::default(),
             derivation_batch_size: default_derivation_batch_size(),
+            derivation_index: 0,
         }
     }
 }

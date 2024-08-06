@@ -38,6 +38,12 @@ pub enum Error {
 
     #[error("SQLx migration error: {0}")]
     SqlxMigration(#[from] sqlx::migrate::MigrateError),
+
+    #[error("Wallet error: {0}")]
+    Wallet(#[from] sage::Error),
+
+    #[error("No active wallet")]
+    NoActiveWallet,
 }
 
 impl Serialize for Error {

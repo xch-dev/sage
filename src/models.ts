@@ -4,9 +4,8 @@ export enum WalletKind {
 }
 
 export enum DerivationMode {
-  Reuse = 'Reuse',
-  Cycle = 'Cycle',
-  Generate = 'Generate',
+  Automatic = 'Automatic',
+  Manual = 'Manual',
 }
 
 export interface WalletInfo {

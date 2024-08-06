@@ -3,7 +3,6 @@ use std::{collections::HashMap, sync::Arc};
 use tokio::sync::Mutex;
 
 mod event;
-mod handler;
 mod peer;
 mod request;
 mod requests;
@@ -14,31 +13,18 @@ pub use peer::*;
 pub use request::*;
 pub use response::*;
 
-#[derive(Debug, Clone, Copy)]
-pub struct ClientOptions {
-    target_peers: usize,
-}
-
-impl Default for ClientOptions {
-    fn default() -> Self {
-        Self { target_peers: 3 }
-    }
-}
-
-#[derive(Debug, Clone)]
+#[derive(Debug, Default, Clone)]
 pub struct Client(Arc<ClientInner>);
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 struct ClientInner {
-    peers: Arc<Mutex<HashMap<PeerId, Peer>>>,
-    options: ClientOptions,
+    peers: Mutex<HashMap<PeerId, Peer>>,
 }
 
 impl Client {
-    pub fn new(options: ClientOptions) -> Self {
+    pub fn new() -> Self {
         Self(Arc::new(ClientInner {
-            peers: Arc::new(Mutex::new(HashMap::new())),
-            options,
+            peers: Mutex::new(HashMap::new()),
         }))
     }
 

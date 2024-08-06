@@ -3,7 +3,7 @@ use chia::bls::{derive_keys::master_to_wallet_unhardened_intermediate, PublicKey
 use itertools::Itertools;
 use rand::SeedableRng;
 use rand_chacha::ChaCha20Rng;
-use sage::{encrypt, Database, KeyData, SecretKeyData, Wallet};
+use sage::{encrypt, Database, KeyData, SecretKeyData};
 use sqlx::SqlitePool;
 use std::{collections::HashMap, fs, path::PathBuf};
 use tokio::sync::Mutex;
@@ -12,6 +12,7 @@ use crate::{
     config::{Config, WalletConfig},
     error::Result,
     models::{WalletInfo, WalletKind},
+    wallet::Wallet,
 };
 
 pub type AppState = Mutex<AppStateInner>;
@@ -60,15 +61,25 @@ impl AppStateInner {
         Ok(())
     }
 
+    pub fn wallet(&self) -> Option<&Wallet> {
+        self.wallet.as_ref()
+    }
+
     pub async fn login_wallet(&mut self, fingerprint: u32) -> Result<()> {
         let mut config = self.load_config()?;
         config.active_wallet = Some(fingerprint);
-        self.save_config(config)?;
+        self.save_config(&config)?;
 
         let keychain = self.load_keychain()?;
         let key = keychain.get(&fingerprint).cloned();
 
         if let Some(key) = key {
+            let wallet_config = config
+                .wallets
+                .get(&fingerprint.to_string())
+                .cloned()
+                .unwrap_or_default();
+
             let master_pk_bytes = match key {
                 KeyData::Public { master_pk } => master_pk,
                 KeyData::Secret { master_pk, .. } => master_pk,
@@ -83,7 +94,12 @@ impl AppStateInner {
             sqlx::migrate!("../migrations").run(&pool).await?;
 
             let db = Database::new(pool);
-            let wallet = Wallet::new(db, intermediate_pk);
+            let wallet = Wallet::new(fingerprint, intermediate_pk, db);
+
+            wallet
+                .initial_sync(wallet_config.derivation_batch_size)
+                .await?;
+
             self.wallet = Some(wallet);
         }
 
@@ -93,7 +109,7 @@ impl AppStateInner {
     pub fn logout_wallet(&self) -> Result<()> {
         let mut config = self.load_config()?;
         config.active_wallet = None;
-        self.save_config(config)?;
+        self.save_config(&config)?;
         Ok(())
     }
 
@@ -112,7 +128,7 @@ impl AppStateInner {
         let key = fingerprint.to_string();
         let wallet_config = config.wallets.entry(key).or_default();
         f(wallet_config);
-        self.save_config(config)?;
+        self.save_config(&config)?;
         Ok(())
     }
 
@@ -251,7 +267,7 @@ impl AppStateInner {
             config.active_wallet = None;
         }
         self.save_keychain(keys)?;
-        self.save_config(config)?;
+        self.save_config(&config)?;
         Ok(())
     }
 
@@ -260,8 +276,8 @@ impl AppStateInner {
         Ok(toml::from_str(&config)?)
     }
 
-    fn save_config(&self, config: Config) -> Result<()> {
-        let config = toml::to_string_pretty(&config)?;
+    fn save_config(&self, config: &Config) -> Result<()> {
+        let config = toml::to_string_pretty(config)?;
         fs::write(&self.config_path, config)?;
         Ok(())
     }

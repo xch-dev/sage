@@ -1,11 +1,7 @@
 import {
   Box,
   Divider,
-  FormControl,
   FormControlLabel,
-  InputLabel,
-  MenuItem,
-  Select,
   Switch,
   TextField,
   Typography,
@@ -121,41 +117,36 @@ function WalletSettings(props: { wallet: WalletInfo }) {
         }}
       />
 
-      <FormControl fullWidth sx={{ mt: 4 }}>
-        <InputLabel id='derivation-mode'>Derivation Mode</InputLabel>
-        <Select
-          labelId='derivaiton-mode'
-          value={
-            derivationMode ?? config?.derivation_mode ?? DerivationMode.Generate
-          }
-          label='Derivation Mode'
-          onChange={(event) => {
-            const mode = event.target.value as DerivationMode;
-            commands.setDerivationMode(props.wallet.fingerprint, mode);
-            setDerivationMode(mode);
-          }}
-        >
-          <MenuItem value={DerivationMode.Generate}>
-            Generate addresses automatically
-          </MenuItem>
-          <MenuItem value={DerivationMode.Cycle}>
-            Cycle through existing addresses
-          </MenuItem>
-          <MenuItem value={DerivationMode.Reuse}>
-            Reuse the same address
-          </MenuItem>
-        </Select>
-      </FormControl>
+      <FormControlLabel
+        sx={{ mt: 4 }}
+        control={
+          <Switch
+            checked={
+              (derivationMode ??
+                config?.derivation_mode ??
+                DerivationMode.Automatic) == DerivationMode.Automatic
+            }
+            onChange={(event) => {
+              const mode = event.target.checked
+                ? DerivationMode.Automatic
+                : DerivationMode.Manual;
+              commands.setDerivationMode(props.wallet.fingerprint, mode);
+              setDerivationMode(mode);
+            }}
+          />
+        }
+        label='Generate addresses automatically'
+      />
 
       <TextField
-        sx={{ mt: 4 }}
-        label='Derivation Batch Size'
+        sx={{ mt: 2 }}
+        label='Address Batch Size'
         fullWidth
         value={derivationBatchSizeText ?? config?.derivation_batch_size ?? 500}
         error={derivationBatchSizeText !== null && invalidDerivationBatchSize}
         disabled={
           (derivationMode ?? config?.derivation_mode) !==
-          DerivationMode.Generate
+          DerivationMode.Automatic
         }
         onChange={(event) => setDerivationBatchSize(event.target.value)}
         onBlur={() => {

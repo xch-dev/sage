@@ -32,8 +32,29 @@ pub async fn set_derivation_batch_size(
     derivation_batch_size: u32,
 ) -> Result<()> {
     let state = state.lock().await;
+
     state.update_wallet_config(fingerprint, |config| {
         config.derivation_batch_size = derivation_batch_size;
+    })?;
+
+    if let Some(wallet) = state.wallet() {
+        if wallet.fingerprint() == fingerprint {
+            wallet.initial_sync(derivation_batch_size).await?;
+        }
+    }
+
+    Ok(())
+}
+
+#[command]
+pub async fn set_derivation_index(
+    state: State<'_, AppState>,
+    fingerprint: u32,
+    derivation_index: u32,
+) -> Result<()> {
+    let state = state.lock().await;
+    state.update_wallet_config(fingerprint, |config| {
+        config.derivation_index = derivation_index;
     })?;
     Ok(())
 }
