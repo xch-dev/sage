@@ -45,7 +45,7 @@ hex = "0.4.3"
 
 # Tauri
 tauri = "2.0.0-rc.0"
-tauri-plugin-clipboard-manager = "2.1.6"
+tauri-plugin-clipboard-manager = "2.0.0-rc.0"
 tauri-build = "2.0.0-rc.0"
 
 # Chia
