@@ -12,26 +12,26 @@ rust-version = "1.70"
 name = "sage_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
-[build-dependencies]
-tauri-build = { version = "2.0.0-beta.17", features = [] }
-
 [dependencies]
-sage = { path = "../sage" }
-serde_json = "1.0.118"
-serde = { version = "1.0.203", features = ["derive"] }
-tauri = { version = "2.0.0-beta.23", features = [] }
-bip39 = "2.0.0"
-rand = "0.8.5"
-rand_chacha = "0.3.1"
-thiserror = "1.0.61"
-tauri-plugin-clipboard-manager = "2.1.0-beta.5"
-tokio = "1.38.0"
-bincode = "1.3.3"
-toml = { version = "0.8.14", features = ["preserve_order"] }
-indexmap = { version = "2.2.6", features = ["serde"] }
-chia-wallet-sdk = "0.11.0"
-hex = "0.4.3"
-chia = "0.9.0"
-itertools = "0.13.0"
-toml_edit = { version = "0.22.15", features = ["serde"] }
-sqlx = { version = "0.7.4", features = ["sqlite", "runtime-tokio"] }
+sage = { workspace = true }
+serde_json = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+tauri = { workspace = true, features = [] }
+bip39 = { workspace = true }
+rand = { workspace = true }
+rand_chacha = { workspace = true }
+thiserror = { workspace = true }
+tauri-plugin-clipboard-manager = { workspace = true }
+tokio = { workspace = true }
+bincode = { workspace = true }
+toml = { workspace = true, features = ["preserve_order"] }
+indexmap = { workspace = true, features = ["serde"] }
+chia-wallet-sdk = { workspace = true }
+hex = { workspace = true }
+chia = { workspace = true }
+itertools = { workspace = true }
+toml_edit = { workspace = true, features = ["serde"] }
+sqlx = { workspace = true, features = ["sqlite", "runtime-tokio"] }
+
+[build-dependencies]
+tauri-build = { workspace = true, features = [] }
