@@ -44,6 +44,9 @@ pub enum Error {
 
     #[error("No active wallet")]
     NoActiveWallet,
+
+    #[error("Unknown wallet fingerprint: {0}")]
+    Fingerprint(u32),
 }
 
 impl Serialize for Error {

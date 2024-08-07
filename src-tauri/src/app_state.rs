@@ -10,7 +10,7 @@ use tokio::sync::Mutex;
 
 use crate::{
     config::{Config, WalletConfig},
-    error::Result,
+    error::{Error, Result},
     models::{WalletInfo, WalletKind},
     wallet::Wallet,
 };
@@ -21,6 +21,7 @@ pub struct AppStateInner {
     rng: ChaCha20Rng,
     key_path: PathBuf,
     config_path: PathBuf,
+    config: Config,
     db_path: PathBuf,
     wallet: Option<Wallet>,
 }
@@ -31,6 +32,7 @@ impl AppStateInner {
             rng: ChaCha20Rng::from_entropy(),
             key_path: path.join("keys.bin"),
             config_path: path.join("config.toml"),
+            config: Config::default(),
             db_path: path.join("wallets"),
             wallet: None,
         }
@@ -42,23 +44,44 @@ impl AppStateInner {
             fs::write(&self.key_path, bincode::serialize(&keys)?)?;
         }
 
-        let config = if !self.config_path.try_exists()? {
-            let config = Config::default();
-            fs::write(&self.config_path, toml::to_string_pretty(&config)?)?;
-            config
+        if !self.config_path.try_exists()? {
+            fs::write(&self.config_path, toml::to_string_pretty(&self.config)?)?;
         } else {
-            self.load_config()?
+            let text = fs::read_to_string(&self.config_path)?;
+            self.config = toml::from_str(&text)?;
         };
 
         if !self.db_path.try_exists()? {
             fs::create_dir(&self.db_path)?;
         }
 
-        if let Some(fingerprint) = config.active_wallet {
+        if let Some(fingerprint) = self.config.active_wallet {
             self.login_wallet(fingerprint).await?;
         }
 
         Ok(())
+    }
+
+    pub fn config(&self) -> &Config {
+        &self.config
+    }
+
+    pub fn config_mut(&mut self) -> &mut Config {
+        &mut self.config
+    }
+
+    pub fn wallet_config(&self, fingerprint: u32) -> Result<&WalletConfig> {
+        self.config
+            .wallets
+            .get(&fingerprint.to_string())
+            .ok_or(Error::Fingerprint(fingerprint))
+    }
+
+    pub fn wallet_config_mut(&mut self, fingerprint: u32) -> Result<&mut WalletConfig> {
+        self.config
+            .wallets
+            .get_mut(&fingerprint.to_string())
+            .ok_or(Error::Fingerprint(fingerprint))
     }
 
     pub fn wallet(&self) -> Option<&Wallet> {
@@ -66,15 +89,15 @@ impl AppStateInner {
     }
 
     pub async fn login_wallet(&mut self, fingerprint: u32) -> Result<()> {
-        let mut config = self.load_config()?;
-        config.active_wallet = Some(fingerprint);
-        self.save_config(&config)?;
+        self.config.active_wallet = Some(fingerprint);
+        self.save_config()?;
 
         let keychain = self.load_keychain()?;
         let key = keychain.get(&fingerprint).cloned();
 
         if let Some(key) = key {
-            let wallet_config = config
+            let wallet_config = self
+                .config
                 .wallets
                 .get(&fingerprint.to_string())
                 .cloned()
@@ -106,42 +129,22 @@ impl AppStateInner {
         Ok(())
     }
 
-    pub fn logout_wallet(&self) -> Result<()> {
-        let mut config = self.load_config()?;
-        config.active_wallet = None;
-        self.save_config(&config)?;
-        Ok(())
-    }
-
-    pub fn wallet_config(&self, fingerprint: u32) -> Result<WalletConfig> {
-        let config = self.load_config()?;
-        let wallet_config = config.wallets.get(&fingerprint.to_string()).cloned();
-        Ok(wallet_config.unwrap_or_default())
-    }
-
-    pub fn update_wallet_config(
-        &self,
-        fingerprint: u32,
-        f: impl FnOnce(&mut WalletConfig),
-    ) -> Result<()> {
-        let mut config = self.load_config()?;
-        let key = fingerprint.to_string();
-        let wallet_config = config.wallets.entry(key).or_default();
-        f(wallet_config);
-        self.save_config(&config)?;
+    pub fn logout_wallet(&mut self) -> Result<()> {
+        self.config.active_wallet = None;
+        self.save_config()?;
         Ok(())
     }
 
     pub fn active_wallet(&self) -> Result<Option<WalletInfo>> {
-        let config = self.load_config()?;
         let keychain = self.load_keychain()?;
 
-        let fingerprint = match config.active_wallet {
+        let fingerprint = match self.config.active_wallet {
             Some(fingerprint) => fingerprint,
             None => return Ok(None),
         };
 
-        let name = config
+        let name = self
+            .config
             .wallets
             .get(&fingerprint.to_string())
             .map(|config| config.name.clone())
@@ -165,11 +168,10 @@ impl AppStateInner {
 
     pub fn wallets(&self) -> Result<Vec<WalletInfo>> {
         let keychain = self.load_keychain()?;
-        let config = self.load_config()?;
 
-        let mut wallets = Vec::with_capacity(config.wallets.len());
+        let mut wallets = Vec::with_capacity(self.config.wallets.len());
 
-        for (fingerprint, wallet) in &config.wallets {
+        for (fingerprint, wallet) in &self.config.wallets {
             let fingerprint = fingerprint.parse::<u32>()?;
             let Some(key) = keychain.get(&fingerprint) else {
                 continue;
@@ -187,7 +189,7 @@ impl AppStateInner {
         for fingerprint in keychain
             .keys()
             .copied()
-            .filter(|fingerprint| !config.wallets.contains_key(&fingerprint.to_string()))
+            .filter(|fingerprint| !self.config.wallets.contains_key(&fingerprint.to_string()))
             .sorted()
         {
             let key = keychain.get(&fingerprint).unwrap();
@@ -258,26 +260,20 @@ impl AppStateInner {
         Ok(fingerprint)
     }
 
-    pub fn delete_wallet(&self, fingerprint: u32) -> Result<()> {
+    pub fn delete_wallet(&mut self, fingerprint: u32) -> Result<()> {
         let mut keys = self.load_keychain()?;
-        let mut config = self.load_config()?;
         keys.remove(&fingerprint);
-        config.wallets.shift_remove(&fingerprint.to_string());
-        if config.active_wallet == Some(fingerprint) {
-            config.active_wallet = None;
+        self.config.wallets.shift_remove(&fingerprint.to_string());
+        if self.config.active_wallet == Some(fingerprint) {
+            self.config.active_wallet = None;
         }
         self.save_keychain(keys)?;
-        self.save_config(&config)?;
+        self.save_config()?;
         Ok(())
     }
 
-    fn load_config(&self) -> Result<Config> {
-        let config = fs::read_to_string(&self.config_path)?;
-        Ok(toml::from_str(&config)?)
-    }
-
-    fn save_config(&self, config: &Config) -> Result<()> {
-        let config = toml::to_string_pretty(config)?;
+    pub fn save_config(&self) -> Result<()> {
+        let config = toml::to_string_pretty(&self.config)?;
         fs::write(&self.config_path, config)?;
         Ok(())
     }

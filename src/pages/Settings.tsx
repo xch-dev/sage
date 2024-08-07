@@ -24,7 +24,13 @@ import { DarkModeContext } from '../App';
 import * as commands from '../commands';
 import Container from '../components/Container';
 import NavBar from '../components/NavBar';
-import { DerivationMode, WalletConfig, WalletInfo } from '../models';
+import {
+  DerivationMode,
+  NetworkConfig,
+  PeerMode,
+  WalletConfig,
+  WalletInfo,
+} from '../models';
 import { isValidU32 } from '../validation';
 
 export default function Settings() {
@@ -79,7 +85,21 @@ function GlobalSettings() {
 }
 
 function NetworkSettings() {
-  const [networkId, setNetworkId] = useState<string>('mainnet');
+  const [peerMode, setPeerMode] = useState<PeerMode | null>(null);
+  const [targetPeersText, setTargetPeers] = useState<string | null>(null);
+  const [networkId, setNetworkId] = useState<string | null>(null);
+
+  const targetPeers =
+    targetPeersText === null ? null : parseInt(targetPeersText);
+
+  const invalidTargetPeers =
+    targetPeers === null || !isValidU32(targetPeers, 1);
+
+  const [config, setConfig] = useState<NetworkConfig | null>(null);
+
+  useEffect(() => {
+    commands.networkConfig().then(setConfig);
+  }, []);
 
   const [isInfoOpen, setInfoOpen] = useState(false);
 
@@ -102,19 +122,63 @@ function NetworkSettings() {
 
       <FormControlLabel
         sx={{ mt: 2, display: 'block' }}
-        control={<Switch defaultChecked={true} />}
+        control={
+          <Switch
+            checked={
+              (peerMode ?? config?.peer_mode ?? PeerMode.Automatic) ==
+              PeerMode.Automatic
+            }
+            onChange={(event) => {
+              const mode = event.target.checked
+                ? PeerMode.Automatic
+                : PeerMode.Manual;
+              commands.setPeerMode(mode);
+              setPeerMode(mode);
+            }}
+          />
+        }
         label='Discover peers automatically'
       />
 
-      <TextField sx={{ mt: 3 }} label='Target Peers' fullWidth value={5} />
+      <TextField
+        sx={{ mt: 3 }}
+        label='Target Peers'
+        fullWidth
+        value={targetPeersText ?? config?.target_peers ?? 500}
+        error={targetPeersText !== null && invalidTargetPeers}
+        disabled={(peerMode ?? config?.peer_mode) !== PeerMode.Automatic}
+        onChange={(event) => setTargetPeers(event.target.value)}
+        onBlur={() => {
+          if (invalidTargetPeers) return;
+
+          if (targetPeers !== config?.target_peers) {
+            if (config) {
+              config.target_peers = targetPeers;
+              setConfig(config);
+            }
+            commands.setTargetPeers(targetPeers);
+          }
+        }}
+      />
 
       <FormControl sx={{ mt: 4 }} fullWidth>
-        <InputLabel id='network-label'>Selected Network</InputLabel>
+        <InputLabel id='network-id'>Network Id</InputLabel>
         <Select
-          label='Selected Network'
-          labelId='network-label'
-          value={networkId}
-          onChange={(event) => setNetworkId(event.target.value)}
+          label='Network Id'
+          labelId='network-id'
+          value={networkId ?? config?.network_id ?? 'mainnet'}
+          onChange={(event) => {
+            const networkId = event.target.value;
+
+            if (networkId !== config?.network_id) {
+              if (config) {
+                config.network_id = networkId;
+                setConfig(config);
+              }
+              commands.setNetworkId(networkId);
+              setNetworkId(networkId);
+            }
+          }}
         >
           <MenuItem value='mainnet'>Mainnet</MenuItem>
           <MenuItem value='testnet11'>Testnet11</MenuItem>
@@ -136,11 +200,9 @@ function NetworkSettings() {
 
 function WalletSettings(props: { wallet: WalletInfo }) {
   const [name, setName] = useState(props.wallet.name);
-
   const [derivationMode, setDerivationMode] = useState<DerivationMode | null>(
     null,
   );
-
   const [derivationBatchSizeText, setDerivationBatchSize] = useState<
     string | null
   >(null);

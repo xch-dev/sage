@@ -1,5 +1,11 @@
 import { invoke } from '@tauri-apps/api/core';
-import { DerivationMode, WalletConfig, WalletInfo } from './models';
+import {
+  DerivationMode,
+  NetworkConfig,
+  PeerMode,
+  WalletConfig,
+  WalletInfo,
+} from './models';
 
 export async function initialize(): Promise<void> {
   await invoke('initialize');
@@ -7,6 +13,22 @@ export async function initialize(): Promise<void> {
 
 export async function activeWallet(): Promise<WalletInfo | null> {
   return await invoke('active_wallet');
+}
+
+export async function networkConfig(): Promise<NetworkConfig> {
+  return await invoke('network_config');
+}
+
+export async function setTargetPeers(targetPeers: number): Promise<void> {
+  await invoke('set_target_peers', { targetPeers });
+}
+
+export async function setPeerMode(peerMode: PeerMode): Promise<void> {
+  await invoke('set_peer_mode', { peerMode });
+}
+
+export async function setNetworkId(networkId: string): Promise<void> {
+  await invoke('set_network_id', { networkId });
 }
 
 export async function walletConfig(fingerprint: number): Promise<WalletConfig> {

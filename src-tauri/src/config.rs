@@ -1,45 +1,32 @@
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+mod derivation_mode;
+mod network_config;
+mod peer_mode;
+mod wallet_config;
+
+pub use derivation_mode::*;
+pub use network_config::*;
+pub use peer_mode::*;
+pub use wallet_config::*;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
     #[serde(default, skip_serializing_if = "IndexMap::is_empty")]
     pub wallets: IndexMap<String, WalletConfig>,
-
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub active_wallet: Option<u32>,
-}
-
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum DerivationMode {
-    #[default]
-    Automatic,
-    Manual,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct WalletConfig {
-    pub name: String,
     #[serde(default)]
-    pub derivation_mode: DerivationMode,
-    #[serde(default = "default_derivation_batch_size")]
-    pub derivation_batch_size: u32,
-    #[serde(default)]
-    pub derivation_index: u32,
+    pub network: NetworkConfig,
 }
 
-fn default_derivation_batch_size() -> u32 {
-    500
-}
-
-impl Default for WalletConfig {
+impl Default for Config {
     fn default() -> Self {
         Self {
-            name: "Unnamed Wallet".to_string(),
-            derivation_mode: DerivationMode::default(),
-            derivation_batch_size: default_derivation_batch_size(),
-            derivation_index: 0,
+            wallets: IndexMap::new(),
+            active_wallet: None,
+            network: NetworkConfig::default(),
         }
     }
 }

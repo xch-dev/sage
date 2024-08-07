@@ -2,14 +2,53 @@ use tauri::{command, State};
 
 use crate::{
     app_state::AppState,
-    config::{DerivationMode, WalletConfig},
+    config::{DerivationMode, NetworkConfig, PeerMode, WalletConfig},
     error::Result,
 };
 
 #[command]
+pub async fn network_config(state: State<'_, AppState>) -> Result<NetworkConfig> {
+    let state = state.lock().await;
+    Ok(state.config().network.clone())
+}
+
+#[command]
+pub async fn set_peer_mode(state: State<'_, AppState>, peer_mode: PeerMode) -> Result<()> {
+    let mut state = state.lock().await;
+
+    let config = state.config_mut();
+    config.network.peer_mode = peer_mode;
+    state.save_config()?;
+
+    Ok(())
+}
+
+#[command]
+pub async fn set_target_peers(state: State<'_, AppState>, target_peers: u32) -> Result<()> {
+    let mut state = state.lock().await;
+
+    let config = state.config_mut();
+    config.network.target_peers = target_peers;
+    state.save_config()?;
+
+    Ok(())
+}
+
+#[command]
+pub async fn set_network_id(state: State<'_, AppState>, network_id: String) -> Result<()> {
+    let mut state = state.lock().await;
+
+    let config = state.config_mut();
+    config.network.network_id = network_id;
+    state.save_config()?;
+
+    Ok(())
+}
+
+#[command]
 pub async fn wallet_config(state: State<'_, AppState>, fingerprint: u32) -> Result<WalletConfig> {
     let state = state.lock().await;
-    state.wallet_config(fingerprint)
+    state.wallet_config(fingerprint).cloned()
 }
 
 #[command]
@@ -18,10 +57,12 @@ pub async fn set_derivation_mode(
     fingerprint: u32,
     derivation_mode: DerivationMode,
 ) -> Result<()> {
-    let state = state.lock().await;
-    state.update_wallet_config(fingerprint, |config| {
-        config.derivation_mode = derivation_mode;
-    })?;
+    let mut state = state.lock().await;
+
+    let config = state.wallet_config_mut(fingerprint)?;
+    config.derivation_mode = derivation_mode;
+    state.save_config()?;
+
     Ok(())
 }
 
@@ -31,11 +72,11 @@ pub async fn set_derivation_batch_size(
     fingerprint: u32,
     derivation_batch_size: u32,
 ) -> Result<()> {
-    let state = state.lock().await;
+    let mut state = state.lock().await;
 
-    state.update_wallet_config(fingerprint, |config| {
-        config.derivation_batch_size = derivation_batch_size;
-    })?;
+    let config = state.wallet_config_mut(fingerprint)?;
+    config.derivation_batch_size = derivation_batch_size;
+    state.save_config()?;
 
     if let Some(wallet) = state.wallet() {
         if wallet.fingerprint() == fingerprint {
@@ -52,10 +93,12 @@ pub async fn set_derivation_index(
     fingerprint: u32,
     derivation_index: u32,
 ) -> Result<()> {
-    let state = state.lock().await;
-    state.update_wallet_config(fingerprint, |config| {
-        config.derivation_index = derivation_index;
-    })?;
+    let mut state = state.lock().await;
+
+    let config = state.wallet_config_mut(fingerprint)?;
+    config.derivation_index = derivation_index;
+    state.save_config()?;
+
     Ok(())
 }
 
@@ -65,9 +108,11 @@ pub async fn rename_wallet(
     fingerprint: u32,
     name: String,
 ) -> Result<()> {
-    let state = state.lock().await;
-    state.update_wallet_config(fingerprint, |config| {
-        config.name = name;
-    })?;
+    let mut state = state.lock().await;
+
+    let config = state.wallet_config_mut(fingerprint)?;
+    config.name = name;
+    state.save_config()?;
+
     Ok(())
 }

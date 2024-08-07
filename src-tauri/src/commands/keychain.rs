@@ -28,7 +28,7 @@ pub async fn login_wallet(state: State<'_, AppState>, fingerprint: u32) -> Resul
 
 #[command]
 pub async fn logout_wallet(state: State<'_, AppState>) -> Result<()> {
-    let state = state.lock().await;
+    let mut state = state.lock().await;
     state.logout_wallet()
 }
 
@@ -64,9 +64,10 @@ pub async fn create_wallet(
         state.import_public_key(&master_pk)?
     };
 
-    state.update_wallet_config(fingerprint, |config| {
-        config.name = name;
-    })?;
+    let config = state.wallet_config_mut(fingerprint)?;
+    config.name = name;
+    state.save_config()?;
+
     state.login_wallet(fingerprint).await?;
 
     Ok(())
@@ -97,9 +98,10 @@ pub async fn import_wallet(state: State<'_, AppState>, name: String, key: String
         state.import_mnemonic(&mnemonic)?
     };
 
-    state.update_wallet_config(fingerprint, |config| {
-        config.name = name;
-    })?;
+    let config = state.wallet_config_mut(fingerprint)?;
+    config.name = name;
+    state.save_config()?;
+
     state.login_wallet(fingerprint).await?;
 
     Ok(())
@@ -107,7 +109,7 @@ pub async fn import_wallet(state: State<'_, AppState>, name: String, key: String
 
 #[command]
 pub async fn delete_wallet(state: State<'_, AppState>, fingerprint: u32) -> Result<()> {
-    let state = state.lock().await;
+    let mut state = state.lock().await;
     state.delete_wallet(fingerprint)?;
     Ok(())
 }
