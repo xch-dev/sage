@@ -1,9 +1,9 @@
 {
   "productName": "sage",
   "version": "0.1.0",
-  "identifier": "me.rigidity.sage",
+  "identifier": "com.rigidnetwork.sage",
   "build": {
-    "frontendDist": "..",
+    "frontendDist": "../dist",
     "devUrl": "http://localhost:5173",
     "beforeDevCommand": "pnpm run dev",
     "beforeBuildCommand": "pnpm run build"

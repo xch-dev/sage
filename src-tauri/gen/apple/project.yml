@@ -12,7 +12,7 @@ settingGroups:
     base:
       PRODUCT_NAME: sage
       PRODUCT_BUNDLE_IDENTIFIER: me.rigidity.sage
-      DEVELOPMENT_TEAM: JCAQAUK2DD
+      DEVELOPMENT_TEAM: NQJQRYZZG3
       CODE_SIGN_STYLE: Automatic
 targetTemplates:
   app:
