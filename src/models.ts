@@ -1,11 +1,11 @@
 export enum WalletKind {
-  Cold = 'Cold',
-  Hot = 'Hot',
+  Cold = 'cold',
+  Hot = 'hot',
 }
 
 export enum DerivationMode {
-  Automatic = 'Automatic',
-  Manual = 'Manual',
+  Automatic = 'automatic',
+  Manual = 'manual',
 }
 
 export interface WalletInfo {

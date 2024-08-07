@@ -1,7 +1,9 @@
 import {
   Add,
   ArrowBackIos,
+  Delete,
   Logout,
+  NetworkCheck,
   PersonAdd,
   Settings,
 } from '@mui/icons-material';
@@ -9,7 +11,16 @@ import MenuIcon from '@mui/icons-material/Menu';
 import {
   AppBar,
   Box,
+  Button,
+  Checkbox,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   IconButton,
+  List,
+  ListItem,
   ListItemIcon,
   ListItemText,
   Menu,
@@ -34,6 +45,8 @@ export default function NavBar(props: NavBarProps) {
 
   const [wallet, setWallet] = useState<WalletInfo | null>(null);
 
+  const [isPeersOpen, setPeersOpen] = useState(false);
+
   useEffect(() => {
     activeWallet().then(setWallet);
   }, []);
@@ -54,7 +67,7 @@ export default function NavBar(props: NavBarProps) {
 
   return (
     <Box sx={{ flexGrow: 1 }}>
-      <AppBar position='static'>
+      <AppBar position='fixed'>
         <Toolbar>
           {props.back &&
             (props.back === 'logout' ? (
@@ -111,6 +124,19 @@ export default function NavBar(props: NavBarProps) {
               </ListItemIcon>
               <ListItemText>Settings</ListItemText>
             </MenuItem>
+
+            <MenuItem
+              onClick={() => {
+                setPeersOpen(true);
+                closeMenu();
+              }}
+            >
+              <ListItemIcon>
+                <NetworkCheck fontSize='small' />
+              </ListItemIcon>
+              <ListItemText>Peers</ListItemText>
+            </MenuItem>
+
             <MenuItem
               onClick={() => {
                 navigate('/create');
@@ -122,6 +148,7 @@ export default function NavBar(props: NavBarProps) {
               </ListItemIcon>
               <ListItemText>Create Wallet</ListItemText>
             </MenuItem>
+
             <MenuItem
               onClick={() => {
                 navigate('/import');
@@ -133,6 +160,7 @@ export default function NavBar(props: NavBarProps) {
               </ListItemIcon>
               <ListItemText>Import Wallet</ListItemText>
             </MenuItem>
+
             {wallet && (
               <MenuItem
                 onClick={() => {
@@ -149,6 +177,56 @@ export default function NavBar(props: NavBarProps) {
           </Menu>
         </Toolbar>
       </AppBar>
+
+      <Toolbar />
+
+      <PeersDialog isOpen={isPeersOpen} close={() => setPeersOpen(false)} />
     </Box>
+  );
+}
+
+interface PeersDialogProps {
+  isOpen: boolean;
+  close: () => void;
+}
+
+function PeersDialog({ isOpen, close }: PeersDialogProps) {
+  return (
+    <Dialog open={isOpen} onClose={close}>
+      <DialogTitle>Peer Connections</DialogTitle>
+      <DialogContent>
+        <DialogContentText>
+          <List sx={{ minWidth: 320 }} disablePadding dense>
+            <ListItem
+              secondaryAction={
+                <IconButton edge='end'>
+                  <Delete />
+                </IconButton>
+              }
+            >
+              <ListItemIcon>
+                <Checkbox edge='start' disableRipple />
+              </ListItemIcon>
+              <ListItemText primary='127.0.0.1:8444' />
+            </ListItem>
+            <ListItem
+              secondaryAction={
+                <IconButton edge='end'>
+                  <Delete />
+                </IconButton>
+              }
+            >
+              <ListItemIcon>
+                <Checkbox edge='start' disableRipple />
+              </ListItemIcon>
+              <ListItemText primary='127.0.0.1:8444' />
+            </ListItem>
+          </List>
+        </DialogContentText>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={close}>Close</Button>
+      </DialogActions>
+    </Dialog>
   );
 }

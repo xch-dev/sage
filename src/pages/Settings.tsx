@@ -1,7 +1,19 @@
+import { PersonSearch, WifiFind } from '@mui/icons-material';
 import {
   Box,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   Divider,
+  FormControl,
   FormControlLabel,
+  IconButton,
+  InputLabel,
+  MenuItem,
+  Select,
   Switch,
   TextField,
   Typography,
@@ -20,8 +32,6 @@ export default function Settings() {
 
   const [wallet, setWallet] = useState<WalletInfo | null>(null);
 
-  const { dark, setDark } = useContext(DarkModeContext);
-
   useEffect(() => {
     commands.activeWallet().then(setWallet);
   }, []);
@@ -39,19 +49,87 @@ export default function Settings() {
         }}
       />
       <Container>
-        <Typography variant='h5'>App</Typography>
-        <FormControlLabel
-          sx={{ mt: 2 }}
-          control={
-            <Switch
-              checked={dark}
-              onChange={(event) => setDark(event.target.checked)}
-            />
-          }
-          label='Dark mode'
-        />
+        <GlobalSettings />
+        <NetworkSettings />
         {wallet && <WalletSettings wallet={wallet} />}
       </Container>
+    </>
+  );
+}
+
+function GlobalSettings() {
+  const { dark, setDark } = useContext(DarkModeContext);
+
+  return (
+    <>
+      <Typography variant='h5'>Global</Typography>
+
+      <FormControlLabel
+        sx={{ mt: 2, display: 'block' }}
+        control={
+          <Switch
+            checked={dark}
+            onChange={(event) => setDark(event.target.checked)}
+          />
+        }
+        label='Dark mode'
+      />
+    </>
+  );
+}
+
+function NetworkSettings() {
+  const [networkId, setNetworkId] = useState<string>('mainnet');
+
+  const [isInfoOpen, setInfoOpen] = useState(false);
+
+  return (
+    <>
+      <Divider sx={{ mt: 3 }} />
+
+      <Box
+        display='flex'
+        justifyContent='space-between'
+        alignItems='center'
+        mt={3}
+      >
+        <Typography variant='h5'>Network</Typography>
+
+        <IconButton onClick={() => setInfoOpen(true)}>
+          <WifiFind />
+        </IconButton>
+      </Box>
+
+      <FormControlLabel
+        sx={{ mt: 2, display: 'block' }}
+        control={<Switch defaultChecked={true} />}
+        label='Discover peers automatically'
+      />
+
+      <TextField sx={{ mt: 3 }} label='Target Peers' fullWidth value={5} />
+
+      <FormControl sx={{ mt: 4 }} fullWidth>
+        <InputLabel id='network-label'>Selected Network</InputLabel>
+        <Select
+          label='Selected Network'
+          labelId='network-label'
+          value={networkId}
+          onChange={(event) => setNetworkId(event.target.value)}
+        >
+          <MenuItem value='mainnet'>Mainnet</MenuItem>
+          <MenuItem value='testnet11'>Testnet11</MenuItem>
+        </Select>
+      </FormControl>
+
+      <Dialog open={isInfoOpen} onClose={() => setInfoOpen(false)}>
+        <DialogTitle>Network Info</DialogTitle>
+        <DialogContent>
+          <DialogContentText>Test</DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setInfoOpen(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }
@@ -79,9 +157,12 @@ function WalletSettings(props: { wallet: WalletInfo }) {
     commands.walletConfig(props.wallet.fingerprint).then(setConfig);
   }, [props.wallet.fingerprint]);
 
+  const [isInfoOpen, setInfoOpen] = useState(false);
+
   return (
     <>
       <Divider sx={{ mt: 3 }} />
+
       <Box
         display='flex'
         justifyContent='space-between'
@@ -90,13 +171,9 @@ function WalletSettings(props: { wallet: WalletInfo }) {
       >
         <Typography variant='h5'>Wallet</Typography>
 
-        <Typography
-          variant='h6'
-          sx={{ fontWeight: 'normal' }}
-          color='text.secondary'
-        >
-          {props.wallet.fingerprint}
-        </Typography>
+        <IconButton onClick={() => setInfoOpen(true)}>
+          <PersonSearch />
+        </IconButton>
       </Box>
 
       <TextField
@@ -118,7 +195,7 @@ function WalletSettings(props: { wallet: WalletInfo }) {
       />
 
       <FormControlLabel
-        sx={{ mt: 4 }}
+        sx={{ mt: 4, display: 'block' }}
         control={
           <Switch
             checked={
@@ -139,7 +216,7 @@ function WalletSettings(props: { wallet: WalletInfo }) {
       />
 
       <TextField
-        sx={{ mt: 2 }}
+        sx={{ mt: 3 }}
         label='Address Batch Size'
         fullWidth
         value={derivationBatchSizeText ?? config?.derivation_batch_size ?? 500}
@@ -164,6 +241,16 @@ function WalletSettings(props: { wallet: WalletInfo }) {
           }
         }}
       />
+
+      <Dialog open={isInfoOpen} onClose={() => setInfoOpen(false)}>
+        <DialogTitle>Wallet Info</DialogTitle>
+        <DialogContent>
+          <DialogContentText>{props.wallet.fingerprint}</DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setInfoOpen(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }
