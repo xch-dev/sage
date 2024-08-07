@@ -5,7 +5,11 @@ use rand::SeedableRng;
 use rand_chacha::ChaCha20Rng;
 use sage::{encrypt, Database, KeyData, SecretKeyData};
 use sqlx::SqlitePool;
-use std::{collections::HashMap, fs, path::PathBuf};
+use std::{
+    collections::HashMap,
+    fs,
+    path::{Path, PathBuf},
+};
 use tokio::sync::Mutex;
 
 use crate::{
@@ -19,17 +23,19 @@ pub type AppState = Mutex<AppStateInner>;
 
 pub struct AppStateInner {
     rng: ChaCha20Rng,
+    path: PathBuf,
     key_path: PathBuf,
     config_path: PathBuf,
-    config: Config,
     db_path: PathBuf,
+    config: Config,
     wallet: Option<Wallet>,
 }
 
 impl AppStateInner {
-    pub fn new(path: PathBuf) -> Self {
+    pub fn new(path: &Path) -> Self {
         Self {
             rng: ChaCha20Rng::from_entropy(),
+            path: path.to_path_buf(),
             key_path: path.join("keys.bin"),
             config_path: path.join("config.toml"),
             config: Config::default(),
@@ -39,6 +45,10 @@ impl AppStateInner {
     }
 
     pub async fn initialize(&mut self) -> Result<()> {
+        if !self.path.try_exists()? {
+            fs::create_dir_all(&self.path)?;
+        }
+
         if !self.key_path.try_exists()? {
             let keys = HashMap::<u32, KeyData>::new();
             fs::write(&self.key_path, bincode::serialize(&keys)?)?;
@@ -70,18 +80,25 @@ impl AppStateInner {
         &mut self.config
     }
 
-    pub fn wallet_config(&self, fingerprint: u32) -> Result<&WalletConfig> {
+    pub fn try_wallet_config(&self, fingerprint: u32) -> Result<&WalletConfig> {
         self.config
             .wallets
             .get(&fingerprint.to_string())
             .ok_or(Error::Fingerprint(fingerprint))
     }
 
-    pub fn wallet_config_mut(&mut self, fingerprint: u32) -> Result<&mut WalletConfig> {
+    pub fn try_wallet_config_mut(&mut self, fingerprint: u32) -> Result<&mut WalletConfig> {
         self.config
             .wallets
             .get_mut(&fingerprint.to_string())
             .ok_or(Error::Fingerprint(fingerprint))
+    }
+
+    pub fn wallet_config_mut(&mut self, fingerprint: u32) -> &mut WalletConfig {
+        self.config
+            .wallets
+            .entry(fingerprint.to_string())
+            .or_default()
     }
 
     pub fn wallet(&self) -> Option<&Wallet> {

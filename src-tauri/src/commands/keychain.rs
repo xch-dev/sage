@@ -64,7 +64,7 @@ pub async fn create_wallet(
         state.import_public_key(&master_pk)?
     };
 
-    let config = state.wallet_config_mut(fingerprint)?;
+    let config = state.wallet_config_mut(fingerprint);
     config.name = name;
     state.save_config()?;
 
@@ -98,7 +98,7 @@ pub async fn import_wallet(state: State<'_, AppState>, name: String, key: String
         state.import_mnemonic(&mnemonic)?
     };
 
-    let config = state.wallet_config_mut(fingerprint)?;
+    let config = state.wallet_config_mut(fingerprint);
     config.name = name;
     state.save_config()?;
 

@@ -48,7 +48,7 @@ pub async fn set_network_id(state: State<'_, AppState>, network_id: String) -> R
 #[command]
 pub async fn wallet_config(state: State<'_, AppState>, fingerprint: u32) -> Result<WalletConfig> {
     let state = state.lock().await;
-    state.wallet_config(fingerprint).cloned()
+    state.try_wallet_config(fingerprint).cloned()
 }
 
 #[command]
@@ -59,7 +59,7 @@ pub async fn set_derivation_mode(
 ) -> Result<()> {
     let mut state = state.lock().await;
 
-    let config = state.wallet_config_mut(fingerprint)?;
+    let config = state.try_wallet_config_mut(fingerprint)?;
     config.derivation_mode = derivation_mode;
     state.save_config()?;
 
@@ -74,7 +74,7 @@ pub async fn set_derivation_batch_size(
 ) -> Result<()> {
     let mut state = state.lock().await;
 
-    let config = state.wallet_config_mut(fingerprint)?;
+    let config = state.try_wallet_config_mut(fingerprint)?;
     config.derivation_batch_size = derivation_batch_size;
     state.save_config()?;
 
@@ -95,7 +95,7 @@ pub async fn set_derivation_index(
 ) -> Result<()> {
     let mut state = state.lock().await;
 
-    let config = state.wallet_config_mut(fingerprint)?;
+    let config = state.try_wallet_config_mut(fingerprint)?;
     config.derivation_index = derivation_index;
     state.save_config()?;
 
@@ -110,7 +110,7 @@ pub async fn rename_wallet(
 ) -> Result<()> {
     let mut state = state.lock().await;
 
-    let config = state.wallet_config_mut(fingerprint)?;
+    let config = state.try_wallet_config_mut(fingerprint)?;
     config.name = name;
     state.save_config()?;
 
