@@ -296,7 +296,7 @@ mod tests {
 
     #[sqlx::test]
     fn test_derivation(pool: SqlitePool) -> anyhow::Result<()> {
-        sqlx::migrate!("../migrations").run(&pool).await?;
+        sqlx::migrate!("../../migrations").run(&pool).await?;
 
         let db = Database::new(pool);
         let sk = secret_key()?;
@@ -315,7 +315,7 @@ mod tests {
 
     #[sqlx::test]
     fn test_hardened_derivations(pool: SqlitePool) -> anyhow::Result<()> {
-        sqlx::migrate!("../migrations").run(&pool).await?;
+        sqlx::migrate!("../../migrations").run(&pool).await?;
 
         let db = Database::new(pool);
         let sk = secret_key()?;
@@ -336,7 +336,7 @@ mod tests {
 
     #[sqlx::test]
     fn test_unhardened_derivations(pool: SqlitePool) -> anyhow::Result<()> {
-        sqlx::migrate!("../migrations").run(&pool).await?;
+        sqlx::migrate!("../../migrations").run(&pool).await?;
 
         let db = Database::new(pool);
         let pk = secret_key()?.public_key();
