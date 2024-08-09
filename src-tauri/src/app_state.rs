@@ -4,7 +4,8 @@ use indexmap::{indexmap, IndexMap};
 use itertools::Itertools;
 use rand::SeedableRng;
 use rand_chacha::ChaCha20Rng;
-use sage::{encrypt, Database, KeyData, Network, SecretKeyData};
+use sage::{encrypt, Database, KeyData, SecretKeyData};
+use sage_client::Network;
 use sqlx::SqlitePool;
 use std::{
     collections::HashMap,

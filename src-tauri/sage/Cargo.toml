@@ -9,22 +9,12 @@ workspace = true
 [dependencies]
 chia-wallet-sdk = { workspace = true }
 chia = { workspace = true }
-clvmr = { workspace = true }
 sqlx = { workspace = true, features = ["sqlite", "runtime-tokio"] }
 anyhow = { workspace = true }
 thiserror = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_with = { workspace = true, features = ["hex"] }
 bincode = { workspace = true }
-tokio-tungstenite = { workspace = true, features = ["native-tls"] }
-tokio = { workspace = true, features = ["full"] }
-tungstenite = { workspace = true }
-futures-util = { workspace = true }
-log = { workspace = true }
-native-tls = { workspace = true }
-sha2 = { workspace = true }
 aes-gcm = { workspace = true }
 rand = { workspace = true }
 argon2 = { workspace = true }
-hex = { workspace = true }
-hex-literal = { workspace = true }

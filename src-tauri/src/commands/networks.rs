@@ -1,5 +1,5 @@
 use indexmap::IndexMap;
-use sage::Network;
+use sage_client::Network;
 use tauri::{command, State};
 
 use crate::{app_state::AppState, error::Result};

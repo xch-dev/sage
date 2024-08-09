@@ -4003,17 +4003,26 @@ dependencies = [
  "bincode",
  "chia",
  "chia-wallet-sdk",
- "clvmr",
+ "rand 0.8.5",
+ "serde",
+ "serde_with",
+ "sqlx",
+ "thiserror",
+]
+
+[[package]]
+name = "sage-client"
+version = "0.1.0"
+dependencies = [
+ "chia",
  "futures-util",
  "hex",
  "hex-literal",
  "log",
  "native-tls",
- "rand 0.8.5",
  "serde",
  "serde_with",
  "sha2",
- "sqlx",
  "thiserror",
  "tokio",
  "tokio-tungstenite 0.23.1",
@@ -4027,15 +4036,14 @@ dependencies = [
  "bincode",
  "bip39",
  "chia",
- "chia-wallet-sdk",
  "hex",
  "indexmap 2.3.0",
  "itertools",
  "rand 0.8.5",
  "rand_chacha 0.3.1",
  "sage",
+ "sage-client",
  "serde",
- "serde_json",
  "sqlx",
  "tauri",
  "tauri-build",
@@ -4043,7 +4051,6 @@ dependencies = [
  "thiserror",
  "tokio",
  "toml 0.8.19",
- "toml_edit 0.22.20",
 ]
 
 [[package]]
