@@ -1,7 +1,6 @@
 import {
   Add,
   ArrowBackIos,
-  Delete,
   Logout,
   NetworkCheck,
   PersonAdd,
@@ -11,16 +10,7 @@ import MenuIcon from '@mui/icons-material/Menu';
 import {
   AppBar,
   Box,
-  Button,
-  Checkbox,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
   IconButton,
-  List,
-  ListItem,
   ListItemIcon,
   ListItemText,
   Menu,
@@ -44,8 +34,6 @@ export default function NavBar(props: NavBarProps) {
   const navigate = useNavigate();
 
   const [wallet, setWallet] = useState<WalletInfo | null>(null);
-
-  const [isPeersOpen, setPeersOpen] = useState(false);
 
   useEffect(() => {
     activeWallet().then(setWallet);
@@ -127,7 +115,7 @@ export default function NavBar(props: NavBarProps) {
 
             <MenuItem
               onClick={() => {
-                setPeersOpen(true);
+                navigate('/peers');
                 closeMenu();
               }}
             >
@@ -179,54 +167,6 @@ export default function NavBar(props: NavBarProps) {
       </AppBar>
 
       <Toolbar />
-
-      <PeersDialog isOpen={isPeersOpen} close={() => setPeersOpen(false)} />
     </Box>
-  );
-}
-
-interface PeersDialogProps {
-  isOpen: boolean;
-  close: () => void;
-}
-
-function PeersDialog({ isOpen, close }: PeersDialogProps) {
-  return (
-    <Dialog open={isOpen} onClose={close}>
-      <DialogTitle>Peer Connections</DialogTitle>
-      <DialogContent>
-        <DialogContentText>
-          <List sx={{ minWidth: 320 }} disablePadding dense>
-            <ListItem
-              secondaryAction={
-                <IconButton edge='end'>
-                  <Delete />
-                </IconButton>
-              }
-            >
-              <ListItemIcon>
-                <Checkbox edge='start' disableRipple />
-              </ListItemIcon>
-              <ListItemText primary='127.0.0.1:8444' />
-            </ListItem>
-            <ListItem
-              secondaryAction={
-                <IconButton edge='end'>
-                  <Delete />
-                </IconButton>
-              }
-            >
-              <ListItemIcon>
-                <Checkbox edge='start' disableRipple />
-              </ListItemIcon>
-              <ListItemText primary='127.0.0.1:8444' />
-            </ListItem>
-          </List>
-        </DialogContentText>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={close}>Close</Button>
-      </DialogActions>
-    </Dialog>
   );
 }

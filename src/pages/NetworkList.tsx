@@ -15,6 +15,7 @@ import {
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as commands from '../commands';
+import ListContainer from '../components/ListContainer';
 import NavBar from '../components/NavBar';
 import { Network, NetworkConfig } from '../models';
 
@@ -42,16 +43,9 @@ export default function NetworkList() {
         }}
       />
 
-      <Box
-        sx={{
-          mx: { xs: 2, sm: 'auto' },
-          mt: { xs: 2, sm: 4 },
-          width: { sm: '540px', md: '700px' },
-        }}
-      >
+      <ListContainer>
         <List
           sx={{ width: '100%', bgcolor: 'background.paper' }}
-          aria-label='contacts'
           component={Paper}
           disablePadding
         >
@@ -84,7 +78,7 @@ export default function NetworkList() {
         <Button variant='contained' fullWidth sx={{ mt: 2 }}>
           Add Network
         </Button>
-      </Box>
+      </ListContainer>
     </>
   );
 }
