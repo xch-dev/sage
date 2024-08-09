@@ -147,7 +147,10 @@ impl AppStateInner {
             let master_pk = PublicKey::from_bytes(&master_pk_bytes)?;
             let intermediate_pk = master_to_wallet_unhardened_intermediate(&master_pk);
 
-            let path = self.db_path.join(format!("{fingerprint}.sqlite"));
+            let network_id = &self.config.network.network_id;
+            let path = self
+                .db_path
+                .join(format!("{fingerprint}-{network_id}.sqlite"));
             let pool =
                 SqlitePool::connect(&format!("sqlite://{}?mode=rwc", path.display())).await?;
             sqlx::migrate!("../migrations").run(&pool).await?;

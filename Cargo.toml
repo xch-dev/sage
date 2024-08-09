@@ -1,5 +1,5 @@
 [workspace]
-members = ["sage", "src-tauri"]
+members = ["src-tauri", "src-tauri/sage"]
 resolver = "2"
 
 [workspace.lints.rust]
@@ -34,7 +34,7 @@ must_use_candidate = "allow"
 
 [workspace.dependencies]
 # Serialization
-sage = { path = "./sage" }
+sage = { path = "./src-tauri/sage" }
 serde = "1.0.204"
 serde_with = "3.9.0"
 serde_json = "1.0.122"
