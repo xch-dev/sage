@@ -85,6 +85,8 @@ function GlobalSettings() {
 }
 
 function NetworkSettings() {
+  const navigate = useNavigate();
+
   const [peerMode, setPeerMode] = useState<PeerMode | null>(null);
   const [targetPeersText, setTargetPeers] = useState<string | null>(null);
   const [networkId, setNetworkId] = useState<string | null>(null);
@@ -101,8 +103,6 @@ function NetworkSettings() {
     commands.networkConfig().then(setConfig);
   }, []);
 
-  const [isInfoOpen, setInfoOpen] = useState(false);
-
   return (
     <>
       <Divider sx={{ mt: 3 }} />
@@ -115,7 +115,7 @@ function NetworkSettings() {
       >
         <Typography variant='h5'>Network</Typography>
 
-        <IconButton onClick={() => setInfoOpen(true)}>
+        <IconButton onClick={() => navigate('/networks')}>
           <WifiFind />
         </IconButton>
       </Box>
@@ -153,8 +153,7 @@ function NetworkSettings() {
 
           if (targetPeers !== config?.target_peers) {
             if (config) {
-              config.target_peers = targetPeers;
-              setConfig(config);
+              setConfig({ ...config, target_peers: targetPeers });
             }
             commands.setTargetPeers(targetPeers);
           }
@@ -172,8 +171,7 @@ function NetworkSettings() {
 
             if (networkId !== config?.network_id) {
               if (config) {
-                config.network_id = networkId;
-                setConfig(config);
+                setConfig({ ...config, network_id: networkId });
               }
               commands.setNetworkId(networkId);
               setNetworkId(networkId);
@@ -184,16 +182,6 @@ function NetworkSettings() {
           <MenuItem value='testnet11'>Testnet11</MenuItem>
         </Select>
       </FormControl>
-
-      <Dialog open={isInfoOpen} onClose={() => setInfoOpen(false)}>
-        <DialogTitle>Network Info</DialogTitle>
-        <DialogContent>
-          <DialogContentText>Test</DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setInfoOpen(false)}>Close</Button>
-        </DialogActions>
-      </Dialog>
     </>
   );
 }
@@ -248,8 +236,7 @@ function WalletSettings(props: { wallet: WalletInfo }) {
         onBlur={() => {
           if (name !== config?.name) {
             if (config) {
-              config.name = name;
-              setConfig(config);
+              setConfig({ ...config, name });
             }
             if (name) commands.renameWallet(props.wallet.fingerprint, name);
           }
@@ -293,8 +280,10 @@ function WalletSettings(props: { wallet: WalletInfo }) {
 
           if (derivationBatchSize !== config?.derivation_batch_size) {
             if (config) {
-              config.derivation_batch_size = derivationBatchSize;
-              setConfig(config);
+              setConfig({
+                ...config,
+                derivation_batch_size: derivationBatchSize,
+              });
             }
             commands.setDerivationBatchSize(
               props.wallet.fingerprint,

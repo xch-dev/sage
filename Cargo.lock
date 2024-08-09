@@ -4006,6 +4006,7 @@ dependencies = [
  "clvmr",
  "futures-util",
  "hex",
+ "hex-literal",
  "log",
  "native-tls",
  "rand 0.8.5",

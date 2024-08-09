@@ -31,3 +31,10 @@ export interface NetworkConfig {
   target_peers: number;
   peer_mode: PeerMode;
 }
+
+export interface Network {
+  default_port: number;
+  genesis_challenge: string;
+  agg_sig_me: string | null;
+  dns_introducers: string[];
+}

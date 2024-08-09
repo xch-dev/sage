@@ -1,9 +1,10 @@
 use bip39::Mnemonic;
 use chia::bls::{derive_keys::master_to_wallet_unhardened_intermediate, PublicKey, SecretKey};
+use indexmap::{indexmap, IndexMap};
 use itertools::Itertools;
 use rand::SeedableRng;
 use rand_chacha::ChaCha20Rng;
-use sage::{encrypt, Database, KeyData, SecretKeyData};
+use sage::{encrypt, Database, KeyData, Network, SecretKeyData};
 use sqlx::SqlitePool;
 use std::{
     collections::HashMap,
@@ -26,8 +27,10 @@ pub struct AppStateInner {
     path: PathBuf,
     key_path: PathBuf,
     config_path: PathBuf,
+    networks_path: PathBuf,
     db_path: PathBuf,
     config: Config,
+    networks: IndexMap<String, Network>,
     wallet: Option<Wallet>,
 }
 
@@ -38,7 +41,12 @@ impl AppStateInner {
             path: path.to_path_buf(),
             key_path: path.join("keys.bin"),
             config_path: path.join("config.toml"),
+            networks_path: path.join("networks.toml"),
             config: Config::default(),
+            networks: indexmap! {
+                "mainnet".to_string() => Network::default_mainnet(),
+                "testnet11".to_string() => Network::default_testnet11(),
+            },
             db_path: path.join("wallets"),
             wallet: None,
         }
@@ -60,6 +68,13 @@ impl AppStateInner {
             let text = fs::read_to_string(&self.config_path)?;
             self.config = toml::from_str(&text)?;
         };
+
+        if !self.networks_path.try_exists()? {
+            fs::write(&self.networks_path, toml::to_string_pretty(&self.networks)?)?;
+        } else {
+            let text = fs::read_to_string(&self.networks_path)?;
+            self.networks = toml::from_str(&text)?;
+        }
 
         if !self.db_path.try_exists()? {
             fs::create_dir(&self.db_path)?;
@@ -99,6 +114,10 @@ impl AppStateInner {
             .wallets
             .entry(fingerprint.to_string())
             .or_default()
+    }
+
+    pub fn networks(&self) -> &IndexMap<String, Network> {
+        &self.networks
     }
 
     pub fn wallet(&self) -> Option<&Wallet> {

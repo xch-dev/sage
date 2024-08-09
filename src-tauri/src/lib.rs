@@ -24,6 +24,8 @@ pub fn run() {
             commands::set_derivation_mode,
             commands::set_derivation_batch_size,
             commands::set_derivation_index,
+            // Networks
+            commands::network_list,
             // Keychain
             commands::active_wallet,
             commands::wallet_list,

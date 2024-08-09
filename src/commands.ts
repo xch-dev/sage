@@ -1,6 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import {
   DerivationMode,
+  Network,
   NetworkConfig,
   PeerMode,
   WalletConfig,
@@ -33,6 +34,10 @@ export async function setNetworkId(networkId: string): Promise<void> {
 
 export async function walletConfig(fingerprint: number): Promise<WalletConfig> {
   return await invoke('wallet_config', { fingerprint });
+}
+
+export async function networkList(): Promise<Record<string, Network>> {
+  return await invoke('network_list');
 }
 
 export async function loginWallet(fingerprint: number): Promise<void> {
