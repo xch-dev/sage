@@ -19,7 +19,7 @@ use tauri::AppHandle;
 use tokio::{sync::Mutex, task::JoinHandle};
 
 use crate::{
-    config::{Config, WalletConfig},
+    config::{Config, PeerMode, WalletConfig},
     error::{Error, Result},
     models::{WalletInfo, WalletKind},
     peer_discovery::peer_discovery,
@@ -58,7 +58,7 @@ impl AppStateInner {
         }
     }
 
-    pub fn start_peer_discovery(&mut self) -> Result<()> {
+    pub fn setup_networking(&mut self) -> Result<()> {
         if let Some(task) = self.peer_discovery_task.take() {
             task.abort();
         }
@@ -82,13 +82,16 @@ impl AppStateInner {
 
         let tls_connector = create_tls_connector(&cert)?;
 
-        self.peer_discovery_task = Some(tokio::spawn(peer_discovery(
-            tls_connector,
-            network_id,
-            network,
-            self.config.network.target_peers as usize,
-            peers,
-        )));
+        if self.config.network.peer_mode == PeerMode::Automatic {
+            self.peer_discovery_task = Some(tokio::spawn(peer_discovery(
+                tls_connector,
+                self.config.network.clone(),
+                network,
+                peers,
+            )));
+        } else {
+            self.peer_discovery_task = None;
+        }
 
         Ok(())
     }

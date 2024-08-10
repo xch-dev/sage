@@ -23,7 +23,7 @@ pub async fn set_peer_mode(state: State<'_, AppState>, peer_mode: PeerMode) -> R
 }
 
 #[command]
-pub async fn set_target_peers(state: State<'_, AppState>, target_peers: u32) -> Result<()> {
+pub async fn set_target_peers(state: State<'_, AppState>, target_peers: usize) -> Result<()> {
     let mut state = state.lock().await;
 
     state.config.network.target_peers = target_peers;

@@ -6,9 +6,11 @@ use chia::{
 };
 use native_tls::TlsConnector;
 use tokio::sync::mpsc;
+use tracing::instrument;
 
 use crate::{Error, Peer, Result};
 
+#[instrument(skip(tls_connector))]
 pub async fn connect_peer(
     network_id: String,
     tls_connector: TlsConnector,

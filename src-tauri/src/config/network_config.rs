@@ -7,7 +7,7 @@ pub struct NetworkConfig {
     #[serde(default = "default_network_id")]
     pub network_id: String,
     #[serde(default = "default_target_peers")]
-    pub target_peers: u32,
+    pub target_peers: usize,
     #[serde(default)]
     pub peer_mode: PeerMode,
 }
@@ -26,6 +26,6 @@ fn default_network_id() -> String {
     "mainnet".to_string()
 }
 
-fn default_target_peers() -> u32 {
+fn default_target_peers() -> usize {
     5
 }

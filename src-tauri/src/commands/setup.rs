@@ -1,7 +1,7 @@
 use std::fs;
 
 use tauri::{command, State};
-use tracing::level_filters::LevelFilter;
+use tracing::{info, level_filters::LevelFilter};
 use tracing_appender::rolling::{Builder, Rotation};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, Layer};
 
@@ -62,11 +62,13 @@ pub async fn initialize(state: State<'_, AppState>) -> Result<()> {
         .with(file_layer.with_filter(LevelFilter::from_level(log_level)))
         .init();
 
+    info!("Initial setup complete");
+
     if let Some(fingerprint) = state.config.wallet.active_fingerprint {
         state.login_wallet(fingerprint).await?;
     }
 
-    state.start_peer_discovery()?;
+    state.setup_networking()?;
 
     Ok(())
 }
