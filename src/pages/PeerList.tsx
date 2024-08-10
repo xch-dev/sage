@@ -10,6 +10,7 @@ import {
   ListItemText,
   Paper,
 } from '@mui/material';
+import { listen } from '@tauri-apps/api/event';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { peerList } from '../commands';
@@ -24,6 +25,14 @@ export default function NetworkList() {
 
   useEffect(() => {
     peerList().then(setPeers);
+
+    const unlisten = listen('peer-update', () => {
+      peerList().then(setPeers);
+    });
+
+    return () => {
+      unlisten.then((fn) => fn());
+    };
   }, []);
 
   const anyTrusted =
@@ -41,9 +50,11 @@ export default function NetworkList() {
       <ListContainer>
         {peers !== null && (
           <List sx={{ width: '100%' }} component={Paper} disablePadding>
-            {peers.map((peer, i) => (
-              <PeerItem key={i} peer={peer} anyTrusted={anyTrusted} />
-            ))}
+            {peers
+              .sort((a, b) => a.ip_addr.localeCompare(b.ip_addr))
+              .map((peer, i) => (
+                <PeerItem key={i} peer={peer} anyTrusted={anyTrusted} />
+              ))}
           </List>
         )}
 

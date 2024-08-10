@@ -22,7 +22,7 @@ use crate::{
     config::{Config, PeerMode, WalletConfig},
     error::{Error, Result},
     models::{WalletInfo, WalletKind},
-    peer_discovery::peer_discovery,
+    peer_discovery::{peer_discovery, PeerContext},
     wallet::Wallet,
 };
 
@@ -83,12 +83,13 @@ impl AppStateInner {
         let tls_connector = create_tls_connector(&cert)?;
 
         if self.config.network.peer_mode == PeerMode::Automatic {
-            self.peer_discovery_task = Some(tokio::spawn(peer_discovery(
+            self.peer_discovery_task = Some(tokio::spawn(peer_discovery(PeerContext {
                 tls_connector,
-                self.config.network.clone(),
+                config: self.config.network.clone(),
                 network,
                 peers,
-            )));
+                app_handle: self.app_handle.clone(),
+            })));
         } else {
             self.peer_discovery_task = None;
         }
