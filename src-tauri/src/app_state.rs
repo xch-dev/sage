@@ -26,14 +26,14 @@ use crate::{
 pub type AppState = Mutex<AppStateInner>;
 
 pub struct AppStateInner {
-    app_handle: AppHandle,
-    rng: ChaCha20Rng,
-    path: PathBuf,
-    config: Config,
-    networks: IndexMap<String, Network>,
-    keys: HashMap<u32, KeyData>,
-    wallet: Option<Wallet>,
-    peers: HashMap<SocketAddr, Peer>,
+    pub app_handle: AppHandle,
+    pub rng: ChaCha20Rng,
+    pub path: PathBuf,
+    pub config: Config,
+    pub networks: IndexMap<String, Network>,
+    pub keys: HashMap<u32, KeyData>,
+    pub wallet: Option<Wallet>,
+    pub peers: HashMap<SocketAddr, Peer>,
 }
 
 impl AppStateInner {
@@ -51,49 +51,6 @@ impl AppStateInner {
             wallet: None,
             peers: HashMap::new(),
         }
-    }
-
-    pub async fn initialize(&mut self) -> Result<()> {
-        fs::create_dir_all(&self.path)?;
-
-        let key_path = self.path.join("keys.bin");
-        let config_path = self.path.join("config.toml");
-        let networks_path = self.path.join("networks.toml");
-
-        if !key_path.try_exists()? {
-            fs::write(&key_path, bincode::serialize(&self.keys)?)?;
-        } else {
-            let data = fs::read(&key_path)?;
-            self.keys = bincode::deserialize(&data)?;
-        }
-
-        if !config_path.try_exists()? {
-            fs::write(&config_path, toml::to_string_pretty(&self.config)?)?;
-        } else {
-            let text = fs::read_to_string(&config_path)?;
-            self.config = toml::from_str(&text)?;
-        };
-
-        if !networks_path.try_exists()? {
-            fs::write(&networks_path, toml::to_string_pretty(&self.networks)?)?;
-        } else {
-            let text = fs::read_to_string(&networks_path)?;
-            self.networks = toml::from_str(&text)?;
-        }
-
-        if let Some(fingerprint) = self.config.wallet.active_fingerprint {
-            self.login_wallet(fingerprint).await?;
-        }
-
-        Ok(())
-    }
-
-    pub fn config(&self) -> &Config {
-        &self.config
-    }
-
-    pub fn config_mut(&mut self) -> &mut Config {
-        &mut self.config
     }
 
     pub fn try_wallet_config(&self, fingerprint: u32) -> Result<&WalletConfig> {
@@ -115,18 +72,6 @@ impl AppStateInner {
             .wallets
             .entry(fingerprint.to_string())
             .or_default()
-    }
-
-    pub fn networks(&self) -> &IndexMap<String, Network> {
-        &self.networks
-    }
-
-    pub fn keys(&self) -> &HashMap<u32, KeyData> {
-        &self.keys
-    }
-
-    pub fn wallet(&self) -> Option<&Wallet> {
-        self.wallet.as_ref()
     }
 
     pub async fn login_wallet(&mut self, fingerprint: u32) -> Result<()> {
