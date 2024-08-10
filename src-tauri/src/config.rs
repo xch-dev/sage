@@ -13,10 +13,10 @@ pub use wallet_config::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
+    #[serde(default)]
+    pub wallet: GeneralWalletConfig,
     #[serde(default, skip_serializing_if = "IndexMap::is_empty")]
     pub wallets: IndexMap<String, WalletConfig>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub active_wallet: Option<u32>,
     #[serde(default)]
     pub network: NetworkConfig,
 }
@@ -24,9 +24,15 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Self {
+            wallet: GeneralWalletConfig::default(),
             wallets: IndexMap::new(),
-            active_wallet: None,
             network: NetworkConfig::default(),
         }
     }
+}
+
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+pub struct GeneralWalletConfig {
+    #[serde(default)]
+    pub active_fingerprint: Option<u32>,
 }

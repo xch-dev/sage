@@ -44,11 +44,7 @@ export default function NetworkList() {
       />
 
       <ListContainer>
-        <List
-          sx={{ width: '100%', bgcolor: 'background.paper' }}
-          component={Paper}
-          disablePadding
-        >
+        <List sx={{ width: '100%' }} component={Paper} disablePadding>
           {networks === null
             ? null
             : Object.entries(networks).map(([networkId, network], i) => (

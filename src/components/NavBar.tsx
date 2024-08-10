@@ -1,8 +1,12 @@
 import {
   Add,
   ArrowBackIos,
+  Collections,
+  Contacts,
+  Image as ImageIcon,
   Logout,
   NetworkCheck,
+  Paid,
   PersonAdd,
   Settings,
 } from '@mui/icons-material';
@@ -10,6 +14,7 @@ import MenuIcon from '@mui/icons-material/Menu';
 import {
   AppBar,
   Box,
+  Divider,
   IconButton,
   ListItemIcon,
   ListItemText,
@@ -101,17 +106,79 @@ export default function NavBar(props: NavBarProps) {
             <MenuIcon />
           </IconButton>
           <Menu anchorEl={anchorEl} open={isMenuOpen} onClose={closeMenu}>
-            <MenuItem
-              onClick={() => {
-                navigate('/settings');
-                closeMenu();
-              }}
-            >
-              <ListItemIcon>
-                <Settings fontSize='small' />
-              </ListItemIcon>
-              <ListItemText>Settings</ListItemText>
-            </MenuItem>
+            {wallet ? (
+              <>
+                <MenuItem>
+                  <ListItemIcon>
+                    <Paid fontSize='small' />
+                  </ListItemIcon>
+                  <ListItemText>Issue CAT</ListItemText>
+                </MenuItem>
+
+                <MenuItem>
+                  <ListItemIcon>
+                    <Contacts fontSize='small' />
+                  </ListItemIcon>
+                  <ListItemText>Create DID</ListItemText>
+                </MenuItem>
+
+                <MenuItem>
+                  <ListItemIcon>
+                    <ImageIcon fontSize='small' />
+                  </ListItemIcon>
+                  <ListItemText>Mint NFT</ListItemText>
+                </MenuItem>
+
+                <MenuItem>
+                  <ListItemIcon>
+                    <Collections fontSize='small' />
+                  </ListItemIcon>
+                  <ListItemText>Bulk Mint NFTs</ListItemText>
+                </MenuItem>
+
+                <Divider sx={{ my: 0.5 }} />
+
+                <MenuItem
+                  onClick={() => {
+                    logout();
+                    closeMenu();
+                  }}
+                >
+                  <ListItemIcon>
+                    <Logout fontSize='small' />
+                  </ListItemIcon>
+                  <ListItemText>Logout</ListItemText>
+                </MenuItem>
+              </>
+            ) : (
+              <>
+                <MenuItem
+                  onClick={() => {
+                    navigate('/create');
+                    closeMenu();
+                  }}
+                >
+                  <ListItemIcon>
+                    <Add fontSize='small' />
+                  </ListItemIcon>
+                  <ListItemText>Create Wallet</ListItemText>
+                </MenuItem>
+
+                <MenuItem
+                  onClick={() => {
+                    navigate('/import');
+                    closeMenu();
+                  }}
+                >
+                  <ListItemIcon>
+                    <PersonAdd fontSize='small' />
+                  </ListItemIcon>
+                  <ListItemText>Import Wallet</ListItemText>
+                </MenuItem>
+
+                <Divider sx={{ my: 0.5 }} />
+              </>
+            )}
 
             <MenuItem
               onClick={() => {
@@ -127,41 +194,15 @@ export default function NavBar(props: NavBarProps) {
 
             <MenuItem
               onClick={() => {
-                navigate('/create');
+                navigate('/settings');
                 closeMenu();
               }}
             >
               <ListItemIcon>
-                <Add fontSize='small' />
+                <Settings fontSize='small' />
               </ListItemIcon>
-              <ListItemText>Create Wallet</ListItemText>
+              <ListItemText>Settings</ListItemText>
             </MenuItem>
-
-            <MenuItem
-              onClick={() => {
-                navigate('/import');
-                closeMenu();
-              }}
-            >
-              <ListItemIcon>
-                <PersonAdd fontSize='small' />
-              </ListItemIcon>
-              <ListItemText>Import Wallet</ListItemText>
-            </MenuItem>
-
-            {wallet && (
-              <MenuItem
-                onClick={() => {
-                  logout();
-                  closeMenu();
-                }}
-              >
-                <ListItemIcon>
-                  <Logout fontSize='small' />
-                </ListItemIcon>
-                <ListItemText>Logout</ListItemText>
-              </MenuItem>
-            )}
           </Menu>
         </Toolbar>
       </AppBar>

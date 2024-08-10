@@ -27,11 +27,7 @@ export default function NetworkList() {
       />
 
       <ListContainer>
-        <List
-          sx={{ width: '100%', bgcolor: 'background.paper' }}
-          component={Paper}
-          disablePadding
-        >
+        <List sx={{ width: '100%' }} component={Paper} disablePadding>
           <PeerItem peer={{ ipAddr: '127.0.0.1', port: 8444 }} />
         </List>
 

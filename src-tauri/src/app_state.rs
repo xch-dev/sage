@@ -26,10 +26,6 @@ pub type AppState = Mutex<AppStateInner>;
 pub struct AppStateInner {
     rng: ChaCha20Rng,
     path: PathBuf,
-    key_path: PathBuf,
-    config_path: PathBuf,
-    networks_path: PathBuf,
-    db_path: PathBuf,
     config: Config,
     networks: IndexMap<String, Network>,
     wallet: Option<Wallet>,
@@ -40,48 +36,42 @@ impl AppStateInner {
         Self {
             rng: ChaCha20Rng::from_entropy(),
             path: path.to_path_buf(),
-            key_path: path.join("keys.bin"),
-            config_path: path.join("config.toml"),
-            networks_path: path.join("networks.toml"),
             config: Config::default(),
             networks: indexmap! {
                 "mainnet".to_string() => Network::default_mainnet(),
                 "testnet11".to_string() => Network::default_testnet11(),
             },
-            db_path: path.join("wallets"),
             wallet: None,
         }
     }
 
     pub async fn initialize(&mut self) -> Result<()> {
-        if !self.path.try_exists()? {
-            fs::create_dir_all(&self.path)?;
-        }
+        fs::create_dir_all(&self.path)?;
 
-        if !self.key_path.try_exists()? {
+        let key_path = self.path.join("keys.bin");
+        let config_path = self.path.join("config.toml");
+        let networks_path = self.path.join("networks.toml");
+
+        if !key_path.try_exists()? {
             let keys = HashMap::<u32, KeyData>::new();
-            fs::write(&self.key_path, bincode::serialize(&keys)?)?;
+            fs::write(&key_path, bincode::serialize(&keys)?)?;
         }
 
-        if !self.config_path.try_exists()? {
-            fs::write(&self.config_path, toml::to_string_pretty(&self.config)?)?;
+        if !config_path.try_exists()? {
+            fs::write(&config_path, toml::to_string_pretty(&self.config)?)?;
         } else {
-            let text = fs::read_to_string(&self.config_path)?;
+            let text = fs::read_to_string(&config_path)?;
             self.config = toml::from_str(&text)?;
         };
 
-        if !self.networks_path.try_exists()? {
-            fs::write(&self.networks_path, toml::to_string_pretty(&self.networks)?)?;
+        if !networks_path.try_exists()? {
+            fs::write(&networks_path, toml::to_string_pretty(&self.networks)?)?;
         } else {
-            let text = fs::read_to_string(&self.networks_path)?;
+            let text = fs::read_to_string(&networks_path)?;
             self.networks = toml::from_str(&text)?;
         }
 
-        if !self.db_path.try_exists()? {
-            fs::create_dir(&self.db_path)?;
-        }
-
-        if let Some(fingerprint) = self.config.active_wallet {
+        if let Some(fingerprint) = self.config.wallet.active_fingerprint {
             self.login_wallet(fingerprint).await?;
         }
 
@@ -126,59 +116,81 @@ impl AppStateInner {
     }
 
     pub async fn login_wallet(&mut self, fingerprint: u32) -> Result<()> {
-        self.config.active_wallet = Some(fingerprint);
+        self.config.wallet.active_fingerprint = Some(fingerprint);
         self.save_config()?;
 
         let keychain = self.load_keychain()?;
         let key = keychain.get(&fingerprint).cloned();
 
-        if let Some(key) = key {
-            let wallet_config = self
-                .config
-                .wallets
-                .get(&fingerprint.to_string())
-                .cloned()
-                .unwrap_or_default();
+        let Some(key) = key else {
+            return Err(Error::Fingerprint(fingerprint));
+        };
 
-            let master_pk_bytes = match key {
-                KeyData::Public { master_pk } => master_pk,
-                KeyData::Secret { master_pk, .. } => master_pk,
-            };
+        let wallet_config = self
+            .config
+            .wallets
+            .get(&fingerprint.to_string())
+            .cloned()
+            .unwrap_or_default();
 
-            let master_pk = PublicKey::from_bytes(&master_pk_bytes)?;
-            let intermediate_pk = master_to_wallet_unhardened_intermediate(&master_pk);
+        let master_pk_bytes = match key {
+            KeyData::Public { master_pk } => master_pk,
+            KeyData::Secret { master_pk, .. } => master_pk,
+        };
 
-            let network_id = &self.config.network.network_id;
-            let path = self
-                .db_path
-                .join(format!("{fingerprint}-{network_id}.sqlite"));
-            let pool =
-                SqlitePool::connect(&format!("sqlite://{}?mode=rwc", path.display())).await?;
-            sqlx::migrate!("../migrations").run(&pool).await?;
+        let master_pk = PublicKey::from_bytes(&master_pk_bytes)?;
+        let intermediate_pk = master_to_wallet_unhardened_intermediate(&master_pk);
 
-            let db = Database::new(pool);
-            let wallet = Wallet::new(fingerprint, intermediate_pk, db);
+        let path = self.path.join("wallets").join(fingerprint.to_string());
+        fs::create_dir_all(&path)?;
 
-            wallet
-                .initial_sync(wallet_config.derivation_batch_size)
-                .await?;
+        let network_id = &self.config.network.network_id;
+        let path = path.join(format!("{network_id}.sqlite"));
+        let pool = SqlitePool::connect(&format!("sqlite://{}?mode=rwc", path.display())).await?;
+        sqlx::migrate!("../migrations").run(&pool).await?;
 
-            self.wallet = Some(wallet);
-        }
+        let db = Database::new(pool);
+        let wallet = Wallet::new(fingerprint, intermediate_pk, db);
+
+        wallet
+            .initial_sync(wallet_config.derivation_batch_size)
+            .await?;
+
+        self.wallet = Some(wallet);
 
         Ok(())
     }
 
     pub fn logout_wallet(&mut self) -> Result<()> {
-        self.config.active_wallet = None;
+        self.config.wallet.active_fingerprint = None;
         self.save_config()?;
+        Ok(())
+    }
+
+    pub fn delete_wallet(&mut self, fingerprint: u32) -> Result<()> {
+        let mut keys = self.load_keychain()?;
+        keys.remove(&fingerprint);
+
+        self.config.wallets.shift_remove(&fingerprint.to_string());
+        if self.config.wallet.active_fingerprint == Some(fingerprint) {
+            self.config.wallet.active_fingerprint = None;
+        }
+
+        self.save_keychain(keys)?;
+        self.save_config()?;
+
+        let path = self.path.join("wallets").join(fingerprint.to_string());
+        if path.try_exists()? {
+            fs::remove_dir_all(path)?;
+        }
+
         Ok(())
     }
 
     pub fn active_wallet(&self) -> Result<Option<WalletInfo>> {
         let keychain = self.load_keychain()?;
 
-        let fingerprint = match self.config.active_wallet {
+        let fingerprint = match self.config.wallet.active_fingerprint {
             Some(fingerprint) => fingerprint,
             None => return Ok(None),
         };
@@ -300,32 +312,20 @@ impl AppStateInner {
         Ok(fingerprint)
     }
 
-    pub fn delete_wallet(&mut self, fingerprint: u32) -> Result<()> {
-        let mut keys = self.load_keychain()?;
-        keys.remove(&fingerprint);
-        self.config.wallets.shift_remove(&fingerprint.to_string());
-        if self.config.active_wallet == Some(fingerprint) {
-            self.config.active_wallet = None;
-        }
-        self.save_keychain(keys)?;
-        self.save_config()?;
-        Ok(())
-    }
-
     pub fn save_config(&self) -> Result<()> {
         let config = toml::to_string_pretty(&self.config)?;
-        fs::write(&self.config_path, config)?;
+        fs::write(self.path.join("config.toml"), config)?;
         Ok(())
     }
 
     fn load_keychain(&self) -> Result<HashMap<u32, KeyData>> {
-        let data = fs::read(&self.key_path)?;
+        let data = fs::read(self.path.join("keys.bin"))?;
         Ok(bincode::deserialize(&data)?)
     }
 
     fn save_keychain(&self, keychain: HashMap<u32, KeyData>) -> Result<()> {
         let data = bincode::serialize(&keychain)?;
-        fs::write(&self.key_path, data)?;
+        fs::write(self.path.join("keys.bin"), data)?;
         Ok(())
     }
 }
