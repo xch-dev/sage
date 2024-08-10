@@ -38,3 +38,10 @@ export interface Network {
   agg_sig_me: string | null;
   dns_introducers: string[];
 }
+
+export interface PeerInfo {
+  node_id: string;
+  ip_addr: string;
+  port: number;
+  trusted: boolean;
+}

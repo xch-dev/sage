@@ -39,5 +39,7 @@ pub async fn initialize(state: State<'_, AppState>) -> Result<()> {
         state.login_wallet(fingerprint).await?;
     }
 
+    state.start_peer_discovery()?;
+
     Ok(())
 }

@@ -1,5 +1,6 @@
 use bip39::Mnemonic;
 use chia::bls::{derive_keys::master_to_wallet_unhardened_intermediate, PublicKey, SecretKey};
+use chia_wallet_sdk::{create_tls_connector, load_ssl_cert};
 use indexmap::{indexmap, IndexMap};
 use itertools::Itertools;
 use rand::SeedableRng;
@@ -12,14 +13,16 @@ use std::{
     fs,
     net::SocketAddr,
     path::{Path, PathBuf},
+    sync::Arc,
 };
 use tauri::AppHandle;
-use tokio::sync::Mutex;
+use tokio::{sync::Mutex, task::JoinHandle};
 
 use crate::{
     config::{Config, WalletConfig},
     error::{Error, Result},
     models::{WalletInfo, WalletKind},
+    peer_discovery::peer_discovery,
     wallet::Wallet,
 };
 
@@ -33,7 +36,8 @@ pub struct AppStateInner {
     pub networks: IndexMap<String, Network>,
     pub keys: HashMap<u32, KeyData>,
     pub wallet: Option<Wallet>,
-    pub peers: HashMap<SocketAddr, Peer>,
+    pub peers: Arc<Mutex<HashMap<SocketAddr, Peer>>>,
+    peer_discovery_task: Option<JoinHandle<()>>,
 }
 
 impl AppStateInner {
@@ -49,8 +53,44 @@ impl AppStateInner {
             },
             keys: HashMap::new(),
             wallet: None,
-            peers: HashMap::new(),
+            peers: Arc::new(Mutex::new(HashMap::new())),
+            peer_discovery_task: None,
         }
+    }
+
+    pub fn start_peer_discovery(&mut self) -> Result<()> {
+        if let Some(task) = self.peer_discovery_task.take() {
+            task.abort();
+        }
+
+        let peers = self.peers.clone();
+        let network_id = self.config.network.network_id.clone();
+
+        let Some(network) = self.networks.get(network_id.as_str()).cloned() else {
+            return Err(Error::UnknownNetwork(network_id.clone()));
+        };
+
+        let ssl_dir = self.path.join("ssl");
+        if !ssl_dir.try_exists()? {
+            fs::create_dir_all(&ssl_dir)?;
+        }
+
+        let cert = load_ssl_cert(
+            ssl_dir.join("wallet.crt").to_str().unwrap(),
+            ssl_dir.join("wallet.key").to_str().unwrap(),
+        )?;
+
+        let tls_connector = create_tls_connector(&cert)?;
+
+        self.peer_discovery_task = Some(tokio::spawn(peer_discovery(
+            tls_connector,
+            network_id,
+            network,
+            self.config.network.target_peers as usize,
+            peers,
+        )));
+
+        Ok(())
     }
 
     pub fn try_wallet_config(&self, fingerprint: u32) -> Result<&WalletConfig> {

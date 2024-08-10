@@ -1,4 +1,4 @@
-use chia::protocol::ProtocolMessageTypes;
+use chia::protocol::{NodeType, ProtocolMessageTypes};
 use thiserror::Error;
 use tokio::sync::oneshot::error::RecvError;
 
@@ -30,6 +30,15 @@ pub enum Error {
 
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
+
+    #[error("Missing response during handshake")]
+    MissingHandshake,
+
+    #[error("Expected node type {0:?}, but found {1:?}")]
+    WrongNodeType(NodeType, NodeType),
+
+    #[error("Expected network {0}, but found {1}")]
+    WrongNetwork(String, String),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

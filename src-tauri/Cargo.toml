@@ -16,6 +16,7 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 sage = { workspace = true }
 sage-client = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
+serde_with = { workspace = true, features = ["hex"] }
 tauri = { workspace = true, features = [] }
 bip39 = { workspace = true }
 rand = { workspace = true }
@@ -28,8 +29,11 @@ toml = { workspace = true, features = ["preserve_order"] }
 indexmap = { workspace = true, features = ["serde"] }
 hex = { workspace = true }
 chia = { workspace = true }
+chia-wallet-sdk = { workspace = true }
 itertools = { workspace = true }
 sqlx = { workspace = true, features = ["sqlite", "runtime-tokio"] }
+native-tls = { workspace = true }
+futures-util = { workspace = true }
 
 [build-dependencies]
 tauri-build = { workspace = true, features = [] }

@@ -7,6 +7,7 @@ mod commands;
 mod config;
 mod error;
 mod models;
+mod peer_discovery;
 mod wallet;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -40,6 +41,8 @@ pub fn run() {
             commands::initialize,
             // Wallet
             commands::derivation_info,
+            // Peers
+            commands::peer_list,
         ])
         .setup(|app| {
             let path = app.path().app_data_dir()?;

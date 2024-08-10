@@ -1,5 +1,6 @@
 use std::num::ParseIntError;
 
+use chia_wallet_sdk::SslError;
 use sage::KeychainError;
 use serde::{Serialize, Serializer};
 use thiserror::Error;
@@ -42,11 +43,20 @@ pub enum Error {
     #[error("Wallet error: {0}")]
     Wallet(#[from] sage::Error),
 
+    #[error("SSL error: {0}")]
+    Ssl(#[from] SslError),
+
+    #[error("TLS error: {0}")]
+    Tls(#[from] native_tls::Error),
+
     #[error("No active wallet")]
     NoActiveWallet,
 
     #[error("Unknown wallet fingerprint: {0}")]
     Fingerprint(u32),
+
+    #[error("Unknown network: {0}")]
+    UnknownNetwork(String),
 }
 
 impl Serialize for Error {

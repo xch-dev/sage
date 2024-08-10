@@ -10,12 +10,24 @@ import {
   ListItemText,
   Paper,
 } from '@mui/material';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { peerList } from '../commands';
 import ListContainer from '../components/ListContainer';
 import NavBar from '../components/NavBar';
+import { PeerInfo } from '../models';
 
 export default function NetworkList() {
   const navigate = useNavigate();
+
+  const [peers, setPeers] = useState<PeerInfo[] | null>(null);
+
+  useEffect(() => {
+    peerList().then(setPeers);
+  }, []);
+
+  const anyTrusted =
+    peers === null ? false : peers.some((peer) => peer.trusted);
 
   return (
     <>
@@ -27,9 +39,13 @@ export default function NetworkList() {
       />
 
       <ListContainer>
-        <List sx={{ width: '100%' }} component={Paper} disablePadding>
-          <PeerItem peer={{ ipAddr: '127.0.0.1', port: 8444 }} />
-        </List>
+        {peers !== null && (
+          <List sx={{ width: '100%' }} component={Paper} disablePadding>
+            {peers.map((peer, i) => (
+              <PeerItem key={i} peer={peer} anyTrusted={anyTrusted} />
+            ))}
+          </List>
+        )}
 
         <Button variant='contained' fullWidth sx={{ mt: 2 }}>
           Add Peer
@@ -39,9 +55,7 @@ export default function NetworkList() {
   );
 }
 
-function PeerItem(props: { peer: { ipAddr: string; port: number } }) {
-  const trusted = true;
-
+function PeerItem(props: { peer: PeerInfo; anyTrusted: boolean }) {
   return (
     <ListItem
       disablePadding
@@ -54,15 +68,15 @@ function PeerItem(props: { peer: { ipAddr: string; port: number } }) {
       }
     >
       <ListItemButton>
-        {trusted && (
+        {props.peer.trusted && (
           <ListItemIcon>
             <Star />
           </ListItemIcon>
         )}
         <ListItemText
-          primary={props.peer.ipAddr}
+          primary={props.peer.ip_addr}
           secondary={props.peer.port}
-          inset={!trusted}
+          inset={!props.peer.trusted && props.anyTrusted}
         />
       </ListItemButton>
     </ListItem>

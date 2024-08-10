@@ -3,6 +3,7 @@ import {
   DerivationMode,
   Network,
   NetworkConfig,
+  PeerInfo,
   PeerMode,
   WalletConfig,
   WalletInfo,
@@ -94,4 +95,8 @@ export async function setDerivationBatchSize(
     fingerprint,
     derivationBatchSize,
   });
+}
+
+export async function peerList(): Promise<PeerInfo[]> {
+  return await invoke('peer_list');
 }
