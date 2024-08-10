@@ -2,16 +2,44 @@ use bip39::Mnemonic;
 use chia::bls::{PublicKey, SecretKey};
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
+use sage::KeyData;
 use std::str::FromStr;
 use tauri::{command, State};
 
 use crate::error::Error;
+use crate::models::WalletKind;
 use crate::{app_state::AppState, error::Result, models::WalletInfo};
 
 #[command]
 pub async fn active_wallet(state: State<'_, AppState>) -> Result<Option<WalletInfo>> {
     let state = state.lock().await;
-    state.active_wallet()
+
+    let fingerprint = match state.config().wallet.active_fingerprint {
+        Some(fingerprint) => fingerprint,
+        None => return Ok(None),
+    };
+
+    let name = state
+        .config()
+        .wallets
+        .get(&fingerprint.to_string())
+        .map(|config| config.name.clone())
+        .unwrap_or_else(|| "Unnamed Wallet".to_string());
+
+    let Some(key) = state.keys().get(&fingerprint) else {
+        return Ok(None);
+    };
+
+    let kind = match key {
+        KeyData::Public { .. } => WalletKind::Cold,
+        KeyData::Secret { .. } => WalletKind::Hot,
+    };
+
+    Ok(Some(WalletInfo {
+        name,
+        fingerprint,
+        kind,
+    }))
 }
 
 #[command]

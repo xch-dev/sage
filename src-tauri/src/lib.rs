@@ -43,7 +43,7 @@ pub fn run() {
         ])
         .setup(|app| {
             let path = app.path().app_data_dir()?;
-            let state = AppStateInner::new(&path);
+            let state = AppStateInner::new(app.handle().clone(), &path);
             app.manage(Mutex::new(state));
             Ok(())
         })
