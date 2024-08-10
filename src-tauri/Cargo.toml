@@ -34,6 +34,8 @@ itertools = { workspace = true }
 sqlx = { workspace = true, features = ["sqlite", "runtime-tokio"] }
 native-tls = { workspace = true }
 futures-util = { workspace = true }
+log = { workspace = true }
+log4rs = { workspace = true }
 
 [build-dependencies]
 tauri-build = { workspace = true, features = [] }
