@@ -1,13 +1,9 @@
 use std::fs;
 
-use log::LevelFilter;
-use log4rs::{
-    append::file::FileAppender,
-    config::{Appender, Root},
-    encode::pattern::PatternEncoder,
-    Config,
-};
 use tauri::{command, State};
+use tracing::level_filters::LevelFilter;
+use tracing_appender::rolling::{Builder, Rotation};
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, Layer};
 
 use crate::{app_state::AppState, error::Result};
 
@@ -47,19 +43,24 @@ pub async fn initialize(state: State<'_, AppState>) -> Result<()> {
         state.networks = toml::from_str(&text)?;
     }
 
-    let logfile = FileAppender::builder()
-        .encoder(Box::new(PatternEncoder::new("{l} - {m}\n")))
-        .build(log_dir.join("output.log"))?;
+    let log_level = state.config.app.log_level.parse()?;
 
-    let config = Config::builder()
-        .appender(Appender::builder().build("logfile", Box::new(logfile)))
-        .build(
-            Root::builder()
-                .appender("logfile")
-                .build(LevelFilter::Debug),
-        )?;
+    let log_file = Builder::new()
+        .filename_prefix("app.log")
+        .rotation(Rotation::DAILY)
+        .max_log_files(3)
+        .build(log_dir.as_path())?;
 
-    log4rs::init_config(config)?;
+    let file_layer = tracing_subscriber::fmt::layer()
+        .with_writer(log_file)
+        .with_ansi(false);
+
+    let stdout_layer = tracing_subscriber::fmt::layer().pretty();
+
+    tracing_subscriber::registry()
+        .with(stdout_layer.with_filter(LevelFilter::from_level(log_level)))
+        .with(file_layer.with_filter(LevelFilter::from_level(log_level)))
+        .init();
 
     if let Some(fingerprint) = state.config.wallet.active_fingerprint {
         state.login_wallet(fingerprint).await?;

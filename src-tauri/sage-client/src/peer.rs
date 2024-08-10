@@ -110,7 +110,7 @@ impl Peer {
 
         let inbound_handle = tokio::spawn(async move {
             if let Err(error) = handle_inbound_messages(stream, sender, requests_clone).await {
-                log::warn!("Error handling message: {error}");
+                tracing::error!("Error handling message: {error}");
             }
         });
 
@@ -310,10 +310,10 @@ async fn handle_inbound_messages(
 
         match message {
             Text(text) => {
-                log::warn!("Received unexpected text message: {text}");
+                tracing::warn!("Received unexpected text message: {text}");
             }
             Close(close) => {
-                log::warn!("Received close: {close:?}");
+                tracing::warn!("Received close: {close:?}");
                 break;
             }
             Ping(_ping) => {}
@@ -323,14 +323,14 @@ async fn handle_inbound_messages(
 
                 let Some(id) = message.id else {
                     sender.send(message).await.map_err(|error| {
-                        log::warn!("Failed to send peer message event: {error}");
+                        tracing::warn!("Failed to send peer message event: {error}");
                         Error::EventNotSent
                     })?;
                     continue;
                 };
 
                 let Some(request) = requests.remove(id).await else {
-                    log::warn!(
+                    tracing::warn!(
                         "Received {:?} message with untracked id {id}",
                         message.msg_type
                     );
@@ -340,7 +340,7 @@ async fn handle_inbound_messages(
                 request.send(message);
             }
             Frame(frame) => {
-                log::warn!("Received frame: {frame}");
+                tracing::warn!("Received frame: {frame}");
             }
         }
     }

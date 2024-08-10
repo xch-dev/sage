@@ -15,7 +15,7 @@ tokio-tungstenite = { workspace = true, features = ["native-tls"] }
 tokio = { workspace = true, features = ["full"] }
 tungstenite = { workspace = true }
 futures-util = { workspace = true }
-log = { workspace = true }
+tracing = { workspace = true }
 native-tls = { workspace = true }
 sha2 = { workspace = true }
 hex = { workspace = true }

@@ -1,19 +1,19 @@
 use std::num::ParseIntError;
 
 use chia_wallet_sdk::SslError;
-use log::SetLoggerError;
-use log4rs::config::runtime::ConfigErrors;
 use sage::KeychainError;
 use serde::{Serialize, Serializer};
 use thiserror::Error;
+use tracing::metadata::ParseLevelError;
+use tracing_appender::rolling::InitError;
 
 #[derive(Debug, Error)]
 pub enum Error {
-    #[error("Logging config error: {0}")]
-    LogConfig(#[from] ConfigErrors),
+    #[error("Could not parse log level: {0}")]
+    ParseLogLevel(#[from] ParseLevelError),
 
-    #[error("Set logger error: {0}")]
-    SetLogger(#[from] SetLoggerError),
+    #[error("Log init error: {0}")]
+    LogInit(#[from] InitError),
 
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),

@@ -1,11 +1,13 @@
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 
+mod app_config;
 mod derivation_mode;
 mod network_config;
 mod peer_mode;
 mod wallet_config;
 
+pub use app_config::*;
 pub use derivation_mode::*;
 pub use network_config::*;
 pub use peer_mode::*;
@@ -13,6 +15,8 @@ pub use wallet_config::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
+    #[serde(default)]
+    pub app: AppConfig,
     #[serde(default)]
     pub wallet: GeneralWalletConfig,
     #[serde(default, skip_serializing_if = "IndexMap::is_empty")]
@@ -27,6 +31,7 @@ impl Default for Config {
             wallet: GeneralWalletConfig::default(),
             wallets: IndexMap::new(),
             network: NetworkConfig::default(),
+            app: AppConfig::default(),
         }
     }
 }
