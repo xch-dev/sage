@@ -65,6 +65,9 @@ pub enum Error {
 
     #[error("Unknown network: {0}")]
     UnknownNetwork(String),
+
+    #[error("Tauri error: {0}")]
+    Tauri(#[from] tauri::Error),
 }
 
 impl Serialize for Error {

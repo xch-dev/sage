@@ -68,7 +68,7 @@ pub async fn initialize(state: State<'_, AppState>) -> Result<()> {
         state.login_wallet(fingerprint).await?;
     }
 
-    state.setup_networking()?;
+    state.setup_networking(false).await?;
 
     Ok(())
 }

@@ -18,6 +18,7 @@ pub async fn set_peer_mode(state: State<'_, AppState>, peer_mode: PeerMode) -> R
 
     state.config.network.peer_mode = peer_mode;
     state.save_config()?;
+    state.setup_networking(false).await?;
 
     Ok(())
 }
@@ -28,6 +29,7 @@ pub async fn set_target_peers(state: State<'_, AppState>, target_peers: usize) -
 
     state.config.network.target_peers = target_peers;
     state.save_config()?;
+    state.setup_networking(false).await?;
 
     Ok(())
 }
@@ -38,6 +40,7 @@ pub async fn set_network_id(state: State<'_, AppState>, network_id: String) -> R
 
     state.config.network.network_id = network_id;
     state.save_config()?;
+    state.setup_networking(true).await?;
 
     Ok(())
 }

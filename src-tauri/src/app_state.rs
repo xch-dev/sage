@@ -15,7 +15,7 @@ use std::{
     path::{Path, PathBuf},
     sync::Arc,
 };
-use tauri::AppHandle;
+use tauri::{AppHandle, Emitter};
 use tokio::{sync::Mutex, task::JoinHandle};
 
 use crate::{
@@ -58,14 +58,19 @@ impl AppStateInner {
         }
     }
 
-    pub fn setup_networking(&mut self) -> Result<()> {
+    pub async fn setup_networking(&mut self, reset_peers: bool) -> Result<()> {
+        let mut lock = self.peers.lock().await;
+
+        if reset_peers {
+            lock.clear();
+            self.app_handle.emit("peer-update", ())?;
+        }
+
         if let Some(task) = self.peer_discovery_task.take() {
             task.abort();
         }
 
-        let peers = self.peers.clone();
         let network_id = self.config.network.network_id.clone();
-
         let Some(network) = self.networks.get(network_id.as_str()).cloned() else {
             return Err(Error::UnknownNetwork(network_id.clone()));
         };
@@ -87,7 +92,7 @@ impl AppStateInner {
                 tls_connector,
                 config: self.config.network.clone(),
                 network,
-                peers,
+                peers: self.peers.clone(),
                 app_handle: self.app_handle.clone(),
             })));
         } else {
