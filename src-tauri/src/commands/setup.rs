@@ -64,10 +64,6 @@ pub async fn initialize(state: State<'_, AppState>) -> Result<()> {
 
     info!("Initial setup complete");
 
-    if let Some(fingerprint) = state.config.wallet.active_fingerprint {
-        state.login_wallet(fingerprint).await?;
-    }
-
     state.setup_networking(false).await?;
 
     Ok(())

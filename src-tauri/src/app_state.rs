@@ -99,33 +99,17 @@ impl AppStateInner {
             self.peer_discovery_task = None;
         }
 
+        drop(lock);
+        self.setup_wallet().await?;
+
         Ok(())
     }
 
-    pub fn try_wallet_config(&self, fingerprint: u32) -> Result<&WalletConfig> {
-        self.config
-            .wallets
-            .get(&fingerprint.to_string())
-            .ok_or(Error::Fingerprint(fingerprint))
-    }
-
-    pub fn try_wallet_config_mut(&mut self, fingerprint: u32) -> Result<&mut WalletConfig> {
-        self.config
-            .wallets
-            .get_mut(&fingerprint.to_string())
-            .ok_or(Error::Fingerprint(fingerprint))
-    }
-
-    pub fn wallet_config_mut(&mut self, fingerprint: u32) -> &mut WalletConfig {
-        self.config
-            .wallets
-            .entry(fingerprint.to_string())
-            .or_default()
-    }
-
-    pub async fn login_wallet(&mut self, fingerprint: u32) -> Result<()> {
-        self.config.wallet.active_fingerprint = Some(fingerprint);
-        self.save_config()?;
+    pub async fn setup_wallet(&mut self) -> Result<()> {
+        let Some(fingerprint) = self.config.wallet.active_fingerprint else {
+            self.wallet = None;
+            return Ok(());
+        };
 
         let key = self.keys.get(&fingerprint).cloned();
 
@@ -168,10 +152,25 @@ impl AppStateInner {
         Ok(())
     }
 
-    pub fn logout_wallet(&mut self) -> Result<()> {
-        self.config.wallet.active_fingerprint = None;
-        self.save_config()?;
-        Ok(())
+    pub fn try_wallet_config(&self, fingerprint: u32) -> Result<&WalletConfig> {
+        self.config
+            .wallets
+            .get(&fingerprint.to_string())
+            .ok_or(Error::Fingerprint(fingerprint))
+    }
+
+    pub fn try_wallet_config_mut(&mut self, fingerprint: u32) -> Result<&mut WalletConfig> {
+        self.config
+            .wallets
+            .get_mut(&fingerprint.to_string())
+            .ok_or(Error::Fingerprint(fingerprint))
+    }
+
+    pub fn wallet_config_mut(&mut self, fingerprint: u32) -> &mut WalletConfig {
+        self.config
+            .wallets
+            .entry(fingerprint.to_string())
+            .or_default()
     }
 
     pub fn delete_wallet(&mut self, fingerprint: u32) -> Result<()> {

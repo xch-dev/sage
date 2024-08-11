@@ -15,12 +15,13 @@ CREATE TABLE `coin_states` (
     `amount` BLOB NOT NULL,
     `spent_height` INTEGER,
     `created_height` INTEGER,
-    `hint` BLOB
+    `synced` INTEGER NOT NULL CHECK (`synced` IN (0, 1))
 );
 
+CREATE INDEX `parent_index` ON `coin_states` (`parent_coin_id`);
+CREATE INDEX `puzzle_hash_index` ON `coin_states` (`puzzle_hash`);
 CREATE INDEX `spent_height_index` ON `coin_states` (`spent_height`);
 CREATE INDEX `created_height_index` ON `coin_states` (`created_height`);
-CREATE INDEX `hint_index` ON `coin_states` (`hint`);
 
 CREATE TABLE `cat_coins` (
     `coin_id` BLOB NOT NULL PRIMARY KEY,

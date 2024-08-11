@@ -44,8 +44,12 @@ impl Database {
         synthetic_key(&self.pool, p2_puzzle_hash).await
     }
 
-    pub async fn insert_coin_state(&self, coin_state: CoinState) -> Result<()> {
-        insert_coin_state(&self.pool, coin_state).await
+    pub async fn insert_unsynced_coin_state(&self, coin_state: CoinState) -> Result<()> {
+        insert_unsynced_coin_state(&self.pool, coin_state).await
+    }
+
+    pub async fn mark_coin_synced(&self, coin_id: Bytes32) -> Result<()> {
+        mark_coin_synced(&self.pool, coin_id).await
     }
 
     pub async fn coin_state(&self, coin_id: Bytes32) -> Result<Option<CoinState>> {
@@ -140,8 +144,12 @@ impl<'a> DatabaseTx<'a> {
         synthetic_key(&mut *self.tx, p2_puzzle_hash).await
     }
 
-    pub async fn insert_coin_state(&mut self, coin_state: CoinState) -> Result<()> {
-        insert_coin_state(&mut *self.tx, coin_state).await
+    pub async fn insert_unsynced_coin_state(&mut self, coin_state: CoinState) -> Result<()> {
+        insert_unsynced_coin_state(&mut *self.tx, coin_state).await
+    }
+
+    pub async fn mark_coin_synced(&mut self, coin_id: Bytes32) -> Result<()> {
+        mark_coin_synced(&mut *self.tx, coin_id).await
     }
 
     pub async fn coin_state(&mut self, coin_id: Bytes32) -> Result<Option<CoinState>> {
@@ -225,7 +233,10 @@ async fn synthetic_key(
     Ok(PublicKey::from_bytes(&to_bytes(bytes)?).unwrap())
 }
 
-async fn insert_coin_state(conn: impl SqliteExecutor<'_>, coin_state: CoinState) -> Result<()> {
+async fn insert_unsynced_coin_state(
+    conn: impl SqliteExecutor<'_>,
+    coin_state: CoinState,
+) -> Result<()> {
     let coin_id = coin_state.coin.coin_id();
     let coin_id_ref = coin_id.as_ref();
     let parent_coin_id = coin_state.coin.parent_coin_info.as_ref();
@@ -234,13 +245,28 @@ async fn insert_coin_state(conn: impl SqliteExecutor<'_>, coin_state: CoinState)
     let amount_ref = amount.as_ref();
     sqlx::query!(
         "
-        INSERT INTO `coin_states` (`coin_id`, `parent_coin_id`, `puzzle_hash`, `amount`)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO `coin_states` (`coin_id`, `parent_coin_id`, `puzzle_hash`, `amount`, `synced`)
+        VALUES (?, ?, ?, ?, 0)
         ",
         coin_id_ref,
         parent_coin_id,
         puzzle_hash,
         amount_ref
+    )
+    .execute(conn)
+    .await?;
+    Ok(())
+}
+
+async fn mark_coin_synced(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<()> {
+    let coin_id = coin_id.as_ref();
+    sqlx::query!(
+        "
+        UPDATE `coin_states`
+        SET `synced` = 1
+        WHERE `coin_id` = ?
+        ",
+        coin_id
     )
     .execute(conn)
     .await?;
