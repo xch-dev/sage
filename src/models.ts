@@ -45,3 +45,8 @@ export interface PeerInfo {
   port: number;
   trusted: boolean;
 }
+
+export interface SyncInfo {
+  total_coins: number;
+  synced_coins: number;
+}

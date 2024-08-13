@@ -17,23 +17,31 @@ import {
 import Grid2 from '@mui/material/Unstable_Grid2/Grid2';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { activeWallet } from '../commands';
+import * as commands from '../commands';
 import ListContainer from '../components/ListContainer';
 import NavBar from '../components/NavBar';
-import { WalletInfo } from '../models';
+import { SyncInfo, WalletInfo } from '../models';
 
 export default function Wallet() {
   const navigate = useNavigate();
 
   const [wallet, setWallet] = useState<WalletInfo | null>(null);
+  const [syncInfo, setSyncInfo] = useState<SyncInfo>({
+    total_coins: 0,
+    synced_coins: 0,
+  });
   const [tab, setTab] = useState(0);
 
   useEffect(() => {
-    activeWallet().then((wallet) => {
+    commands.activeWallet().then((wallet) => {
       if (wallet) return setWallet(wallet);
       navigate('/');
     });
   }, [navigate]);
+
+  useEffect(() => {
+    commands.syncInfo().then(setSyncInfo);
+  }, []);
 
   return (
     <>
@@ -56,7 +64,7 @@ export default function Wallet() {
                 >
                   Balance
                 </Typography>
-                <Typography fontSize={22}>1.2418 XCH</Typography>
+                <Typography fontSize={22}>Unknown</Typography>
               </Paper>
             </Grid2>
             <Grid2 xs={12} md={6}>
@@ -66,9 +74,11 @@ export default function Wallet() {
                   fontWeight='normal'
                   color='text.secondary'
                 >
-                  Derivation Index
+                  Sync Status
                 </Typography>
-                <Typography fontSize={22}>1000</Typography>
+                <Typography fontSize={22}>
+                  {syncInfo.synced_coins}/{syncInfo.total_coins}
+                </Typography>
               </Paper>
             </Grid2>
           </Grid2>

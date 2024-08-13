@@ -4,6 +4,7 @@ use chia_wallet_sdk::SslError;
 use sage::KeychainError;
 use serde::{Serialize, Serializer};
 use thiserror::Error;
+use tokio::time::error::Elapsed;
 use tracing::metadata::ParseLevelError;
 use tracing_appender::rolling::InitError;
 
@@ -68,6 +69,15 @@ pub enum Error {
 
     #[error("Tauri error: {0}")]
     Tauri(#[from] tauri::Error),
+
+    #[error("Client error: {0}")]
+    Client(#[from] sage_client::Error),
+
+    #[error("Timeout error")]
+    Timeout(#[from] Elapsed),
+
+    #[error("Subscription limit reached")]
+    SubscriptionLimitReached,
 }
 
 impl Serialize for Error {

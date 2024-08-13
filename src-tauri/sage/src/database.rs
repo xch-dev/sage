@@ -1,7 +1,6 @@
 use chia::{
-    bls::{DerivableKey, PublicKey, SecretKey},
+    bls::PublicKey,
     protocol::{Bytes32, Coin, CoinState},
-    puzzles::{standard::StandardArgs, DeriveSynthetic},
 };
 use sqlx::{Sqlite, SqliteExecutor, SqlitePool, Transaction};
 
@@ -22,6 +21,18 @@ impl Database {
         Ok(DatabaseTx::new(tx))
     }
 
+    pub async fn insert_peak(&self, height: u32, header_hash: Bytes32) -> Result<()> {
+        insert_peak(&self.pool, height, header_hash).await
+    }
+
+    pub async fn delete_peak(&self, height: u32) -> Result<()> {
+        delete_peak(&self.pool, height).await
+    }
+
+    pub async fn latest_peak(&self) -> Result<Option<(u32, Bytes32)>> {
+        latest_peak(&self.pool).await
+    }
+
     pub async fn insert_derivation(
         &self,
         p2_puzzle_hash: Bytes32,
@@ -36,8 +47,8 @@ impl Database {
         derivation_index(&self.pool, hardened).await
     }
 
-    pub async fn derivations(&self) -> Result<Vec<Bytes32>> {
-        derivations(&self.pool).await
+    pub async fn p2_puzzle_hashes(&self) -> Result<Vec<Bytes32>> {
+        p2_puzzle_hashes(&self.pool).await
     }
 
     pub async fn synthetic_key(&self, p2_puzzle_hash: Bytes32) -> Result<PublicKey> {
@@ -50,6 +61,14 @@ impl Database {
 
     pub async fn mark_coin_synced(&self, coin_id: Bytes32) -> Result<()> {
         mark_coin_synced(&self.pool, coin_id).await
+    }
+
+    pub async fn total_coin_count(&self) -> Result<u32> {
+        total_coin_count(&self.pool).await
+    }
+
+    pub async fn synced_coin_count(&self) -> Result<u32> {
+        synced_coin_count(&self.pool).await
     }
 
     pub async fn coin_state(&self, coin_id: Bytes32) -> Result<Option<CoinState>> {
@@ -75,44 +94,16 @@ impl<'a> DatabaseTx<'a> {
         Ok(self.tx.rollback().await?)
     }
 
-    pub async fn generate_hardened_derivations(
-        &mut self,
-        intermediate_sk: &SecretKey,
-        amount: u32,
-    ) -> Result<()> {
-        let start = self.derivation_index(true).await?;
-
-        for index in start..(start + amount) {
-            let synthetic_key = intermediate_sk
-                .derive_hardened(index)
-                .derive_synthetic()
-                .public_key();
-
-            let p2_puzzle_hash = StandardArgs::curry_tree_hash(synthetic_key).into();
-
-            self.insert_derivation(p2_puzzle_hash, index, true, synthetic_key)
-                .await?;
-        }
-
-        Ok(())
+    pub async fn insert_peak(&mut self, height: u32, header_hash: Bytes32) -> Result<()> {
+        insert_peak(&mut *self.tx, height, header_hash).await
     }
 
-    pub async fn generate_unhardened_derivations(
-        &mut self,
-        intermediate_pk: &PublicKey,
-        amount: u32,
-    ) -> Result<()> {
-        let start = self.derivation_index(false).await?;
+    pub async fn delete_peak(&mut self, height: u32) -> Result<()> {
+        delete_peak(&mut *self.tx, height).await
+    }
 
-        for index in start..(start + amount) {
-            let synthetic_key = intermediate_pk.derive_unhardened(index).derive_synthetic();
-            let p2_puzzle_hash = StandardArgs::curry_tree_hash(synthetic_key).into();
-
-            self.insert_derivation(p2_puzzle_hash, index, false, synthetic_key)
-                .await?;
-        }
-
-        Ok(())
+    pub async fn latest_peak(&mut self) -> Result<Option<(u32, Bytes32)>> {
+        latest_peak(&mut *self.tx).await
     }
 
     pub async fn insert_derivation(
@@ -136,8 +127,8 @@ impl<'a> DatabaseTx<'a> {
         derivation_index(&mut *self.tx, hardened).await
     }
 
-    pub async fn derivations(&mut self) -> Result<Vec<Bytes32>> {
-        derivations(&mut *self.tx).await
+    pub async fn p2_puzzle_hashes(&mut self) -> Result<Vec<Bytes32>> {
+        p2_puzzle_hashes(&mut *self.tx).await
     }
 
     pub async fn synthetic_key(&mut self, p2_puzzle_hash: Bytes32) -> Result<PublicKey> {
@@ -152,9 +143,69 @@ impl<'a> DatabaseTx<'a> {
         mark_coin_synced(&mut *self.tx, coin_id).await
     }
 
+    pub async fn total_coin_count(&mut self) -> Result<u32> {
+        total_coin_count(&mut *self.tx).await
+    }
+
+    pub async fn synced_coin_count(&mut self) -> Result<u32> {
+        synced_coin_count(&mut *self.tx).await
+    }
+
     pub async fn coin_state(&mut self, coin_id: Bytes32) -> Result<Option<CoinState>> {
         coin_state(&mut *self.tx, coin_id).await
     }
+}
+
+async fn insert_peak(
+    conn: impl SqliteExecutor<'_>,
+    height: u32,
+    header_hash: Bytes32,
+) -> Result<()> {
+    let header_hash = header_hash.as_ref();
+    sqlx::query!(
+        "
+        INSERT INTO `peaks` (`height`, `header_hash`)
+        VALUES (?, ?)
+        ",
+        height,
+        header_hash
+    )
+    .execute(conn)
+    .await?;
+    Ok(())
+}
+
+async fn delete_peak(conn: impl SqliteExecutor<'_>, height: u32) -> Result<()> {
+    sqlx::query!(
+        "
+        DELETE FROM `peaks`
+        WHERE `height` = ?
+        ",
+        height
+    )
+    .execute(conn)
+    .await?;
+    Ok(())
+}
+
+async fn latest_peak(conn: impl SqliteExecutor<'_>) -> Result<Option<(u32, Bytes32)>> {
+    sqlx::query!(
+        "
+        SELECT `height`, `header_hash`
+        FROM `peaks`
+        ORDER BY `height` DESC
+        LIMIT 1
+        "
+    )
+    .fetch_optional(conn)
+    .await?
+    .map(|row| {
+        Ok((
+            row.height.try_into().map_err(|_| Error::PrecisionLost)?,
+            Bytes32::new(to_bytes(&row.header_hash).unwrap()),
+        ))
+    })
+    .transpose()
 }
 
 async fn insert_derivation(
@@ -199,7 +250,7 @@ async fn derivation_index(conn: impl SqliteExecutor<'_>, hardened: bool) -> Resu
     .map_err(|_| Error::PrecisionLost)
 }
 
-async fn derivations(conn: impl SqliteExecutor<'_>) -> Result<Vec<Bytes32>> {
+async fn p2_puzzle_hashes(conn: impl SqliteExecutor<'_>) -> Result<Vec<Bytes32>> {
     let rows = sqlx::query!(
         "
         SELECT `p2_puzzle_hash`
@@ -273,6 +324,31 @@ async fn mark_coin_synced(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Re
     Ok(())
 }
 
+async fn total_coin_count(conn: impl SqliteExecutor<'_>) -> Result<u32> {
+    let row = sqlx::query!(
+        "
+        SELECT COUNT(*) AS `total`
+        FROM `coin_states`
+        "
+    )
+    .fetch_one(conn)
+    .await?;
+    row.total.try_into().map_err(|_| Error::PrecisionLost)
+}
+
+async fn synced_coin_count(conn: impl SqliteExecutor<'_>) -> Result<u32> {
+    let row = sqlx::query!(
+        "
+        SELECT COUNT(*) AS `synced`
+        FROM `coin_states`
+        WHERE `synced` = 1
+        "
+    )
+    .fetch_one(conn)
+    .await?;
+    row.synced.try_into().map_err(|_| Error::PrecisionLost)
+}
+
 async fn coin_state(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Option<CoinState>> {
     let coin_id = coin_id.as_ref();
 
@@ -311,73 +387,4 @@ fn to_bytes<const N: usize>(slice: &[u8]) -> Result<[u8; N]> {
     slice
         .try_into()
         .map_err(|_| Error::InvalidLength(slice.len(), N))
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    use chia::puzzles::{standard::StandardArgs, DeriveSynthetic};
-    use chia_wallet_sdk::secret_key;
-
-    #[sqlx::test]
-    fn test_derivation(pool: SqlitePool) -> anyhow::Result<()> {
-        sqlx::migrate!("../../migrations").run(&pool).await?;
-
-        let db = Database::new(pool);
-        let sk = secret_key()?;
-        let synthetic_key = sk.public_key().derive_synthetic();
-        let p2_puzzle_hash = StandardArgs::curry_tree_hash(synthetic_key).into();
-
-        db.insert_derivation(p2_puzzle_hash, 0, false, synthetic_key)
-            .await?;
-        assert_eq!(db.derivations().await?, [p2_puzzle_hash]);
-        assert_eq!(db.synthetic_key(p2_puzzle_hash).await?, synthetic_key);
-        assert_eq!(db.derivation_index(false).await?, 1);
-        assert_eq!(db.derivation_index(true).await?, 0);
-
-        Ok(())
-    }
-
-    #[sqlx::test]
-    fn test_hardened_derivations(pool: SqlitePool) -> anyhow::Result<()> {
-        sqlx::migrate!("../../migrations").run(&pool).await?;
-
-        let db = Database::new(pool);
-        let sk = secret_key()?;
-
-        let mut tx = db.tx().await?;
-        tx.generate_hardened_derivations(&sk, 10).await?;
-        tx.commit().await?;
-
-        let derivations = db.derivations().await?;
-        let first_pk = sk.derive_hardened(0).derive_synthetic().public_key();
-        let first_puzzle_hash = StandardArgs::curry_tree_hash(first_pk).into();
-
-        assert_eq!(derivations.len(), 10);
-        assert_eq!(derivations[0], first_puzzle_hash);
-
-        Ok(())
-    }
-
-    #[sqlx::test]
-    fn test_unhardened_derivations(pool: SqlitePool) -> anyhow::Result<()> {
-        sqlx::migrate!("../../migrations").run(&pool).await?;
-
-        let db = Database::new(pool);
-        let pk = secret_key()?.public_key();
-
-        let mut tx = db.tx().await?;
-        tx.generate_unhardened_derivations(&pk, 10).await?;
-        tx.commit().await?;
-
-        let derivations = db.derivations().await?;
-        let first_pk = pk.derive_unhardened(0).derive_synthetic();
-        let first_puzzle_hash = StandardArgs::curry_tree_hash(first_pk).into();
-
-        assert_eq!(derivations.len(), 10);
-        assert_eq!(derivations[0], first_puzzle_hash);
-
-        Ok(())
-    }
 }

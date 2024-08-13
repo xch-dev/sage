@@ -4,9 +4,11 @@ use chia::protocol::{
     Bytes32, ChiaProtocolMessage, CoinStateFilters, Message, PuzzleSolutionResponse,
     RegisterForCoinUpdates, RegisterForPhUpdates, RejectCoinState, RejectPuzzleSolution,
     RejectPuzzleState, RequestChildren, RequestCoinState, RequestPeers, RequestPuzzleSolution,
-    RequestPuzzleState, RequestTransaction, RespondChildren, RespondCoinState, RespondPeers,
-    RespondPuzzleSolution, RespondPuzzleState, RespondToCoinUpdates, RespondToPhUpdates,
-    RespondTransaction, SendTransaction, SpendBundle, TransactionAck,
+    RequestPuzzleState, RequestRemoveCoinSubscriptions, RequestRemovePuzzleSubscriptions,
+    RequestTransaction, RespondChildren, RespondCoinState, RespondPeers, RespondPuzzleSolution,
+    RespondPuzzleState, RespondRemoveCoinSubscriptions, RespondRemovePuzzleSubscriptions,
+    RespondToCoinUpdates, RespondToPhUpdates, RespondTransaction, SendTransaction, SpendBundle,
+    TransactionAck,
 };
 use chia::traits::Streamable;
 use futures_util::{
@@ -189,6 +191,22 @@ impl Peer {
         min_height: u32,
     ) -> Result<RespondToCoinUpdates> {
         self.request_infallible(RegisterForCoinUpdates::new(coin_ids, min_height))
+            .await
+    }
+
+    pub async fn remove_puzzle_subscriptions(
+        &self,
+        puzzle_hashes: Option<Vec<Bytes32>>,
+    ) -> Result<RespondRemovePuzzleSubscriptions> {
+        self.request_infallible(RequestRemovePuzzleSubscriptions::new(puzzle_hashes))
+            .await
+    }
+
+    pub async fn remove_coin_subscriptions(
+        &self,
+        coin_ids: Option<Vec<Bytes32>>,
+    ) -> Result<RespondRemoveCoinSubscriptions> {
+        self.request_infallible(RequestRemoveCoinSubscriptions::new(coin_ids))
             .await
     }
 

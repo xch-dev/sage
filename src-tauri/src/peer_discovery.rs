@@ -1,10 +1,10 @@
-use std::{collections::HashMap, net::SocketAddr, sync::Arc, time::Duration};
+use std::{net::SocketAddr, sync::Arc, time::Duration};
 
 use chia::protocol::Message;
 use futures_util::{stream::FuturesUnordered, StreamExt};
 use native_tls::TlsConnector;
 use rand::{seq::SliceRandom, thread_rng};
-use sage_client::{connect_peer, Network, Peer};
+use sage_client::{connect_peer, Network};
 use tauri::{AppHandle, Emitter};
 use tokio::{
     net::lookup_host,
@@ -13,20 +13,21 @@ use tokio::{
 };
 use tracing::{debug, info, instrument, warn};
 
-use crate::config::NetworkConfig;
+use crate::{config::NetworkConfig, sync_manager::SyncManager};
 
 pub struct PeerContext {
     pub tls_connector: TlsConnector,
     pub config: NetworkConfig,
     pub network: Network,
-    pub peers: Arc<Mutex<HashMap<SocketAddr, Peer>>>,
+    pub sync_manager: Arc<Mutex<SyncManager>>,
     pub app_handle: AppHandle,
 }
 
 #[instrument(skip(ctx))]
 pub async fn peer_discovery(ctx: PeerContext) {
     loop {
-        if ctx.peers.lock().await.len() < ctx.config.target_peers && !connect_dns(&ctx).await {
+        if ctx.sync_manager.lock().await.len() < ctx.config.target_peers && !connect_dns(&ctx).await
+        {
             warn!("Insufficient peers");
         }
         sleep(Duration::from_secs(5)).await;
@@ -36,7 +37,7 @@ pub async fn peer_discovery(ctx: PeerContext) {
 #[instrument(skip(ctx))]
 async fn connect_dns(ctx: &PeerContext) -> bool {
     for host in &ctx.network.dns_introducers {
-        if ctx.peers.lock().await.len() >= ctx.config.target_peers {
+        if ctx.sync_manager.lock().await.len() >= ctx.config.target_peers {
             return true;
         }
 
@@ -65,7 +66,7 @@ async fn connect_dns(ctx: &PeerContext) -> bool {
         }
     }
 
-    ctx.peers.lock().await.len() >= ctx.config.target_peers
+    ctx.sync_manager.lock().await.len() >= ctx.config.target_peers
 }
 
 #[instrument(skip(ctx))]
@@ -91,20 +92,20 @@ async fn connect_peers(ctx: &PeerContext, socket_addrs: Vec<SocketAddr>) {
         };
 
         if let Ok((peer, receiver)) = result {
-            let mut peer_lock = ctx.peers.lock().await;
+            let mut sync_manager = ctx.sync_manager.lock().await;
 
-            if peer_lock.len() >= ctx.config.target_peers {
+            if sync_manager.len() >= ctx.config.target_peers {
                 debug!("Target peers already reached");
                 break;
             }
 
             let socket_addr = peer.socket_addr();
-            peer_lock.insert(socket_addr, peer);
+            sync_manager.add_peer(peer);
 
             tokio::spawn(handle_peer(
                 socket_addr,
                 receiver,
-                ctx.peers.clone(),
+                ctx.sync_manager.clone(),
                 ctx.app_handle.clone(),
             ));
 
@@ -117,19 +118,19 @@ async fn connect_peers(ctx: &PeerContext, socket_addrs: Vec<SocketAddr>) {
     }
 }
 
-#[instrument(skip(receiver, peers, app_handle))]
+#[instrument(skip(receiver, sync_manager, app_handle))]
 async fn handle_peer(
     socket_addr: SocketAddr,
     mut receiver: mpsc::Receiver<Message>,
-    peers: Arc<Mutex<HashMap<SocketAddr, Peer>>>,
+    sync_manager: Arc<Mutex<SyncManager>>,
     app_handle: AppHandle,
 ) {
     while let Some(message) = receiver.recv().await {
         debug!("Received message {:?}", message.msg_type);
     }
 
-    let mut peers = peers.lock().await;
-    peers.remove(&socket_addr);
+    let mut sync_manager = sync_manager.lock().await;
+    sync_manager.remove_peer(&socket_addr);
 
     if let Err(error) = app_handle.emit("peer-update", ()) {
         warn!("Failed to emit peer update: {error}");

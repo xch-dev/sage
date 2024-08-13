@@ -1,3 +1,8 @@
+CREATE TABLE `peaks` (
+    `height` INTEGER NOT NULL PRIMARY KEY,
+    `header_hash` BLOB NOT NULL
+);
+
 CREATE TABLE `derivations` (
     `p2_puzzle_hash` BLOB NOT NULL PRIMARY KEY,
     `index` INTEGER NOT NULL,

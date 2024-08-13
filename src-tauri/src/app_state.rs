@@ -1,17 +1,21 @@
 use bip39::Mnemonic;
-use chia::bls::{derive_keys::master_to_wallet_unhardened_intermediate, PublicKey, SecretKey};
+use chia::{
+    bls::{
+        derive_keys::master_to_wallet_unhardened_intermediate, DerivableKey, PublicKey, SecretKey,
+    },
+    puzzles::{standard::StandardArgs, DeriveSynthetic},
+};
 use chia_wallet_sdk::{create_tls_connector, load_ssl_cert};
 use indexmap::{indexmap, IndexMap};
 use itertools::Itertools;
 use rand::SeedableRng;
 use rand_chacha::ChaCha20Rng;
 use sage::{encrypt, Database, KeyData, SecretKeyData};
-use sage_client::{Network, Peer};
+use sage_client::Network;
 use sqlx::SqlitePool;
 use std::{
     collections::HashMap,
     fs,
-    net::SocketAddr,
     path::{Path, PathBuf},
     sync::Arc,
 };
@@ -23,6 +27,7 @@ use crate::{
     error::{Error, Result},
     models::{WalletInfo, WalletKind},
     peer_discovery::{peer_discovery, PeerContext},
+    sync_manager::SyncManager,
     wallet::Wallet,
 };
 
@@ -35,15 +40,15 @@ pub struct AppStateInner {
     pub config: Config,
     pub networks: IndexMap<String, Network>,
     pub keys: HashMap<u32, KeyData>,
-    pub wallet: Option<Wallet>,
-    pub peers: Arc<Mutex<HashMap<SocketAddr, Peer>>>,
+    pub wallet: Option<Arc<Wallet>>,
+    pub sync_manager: Arc<Mutex<SyncManager>>,
     peer_discovery_task: Option<JoinHandle<()>>,
 }
 
 impl AppStateInner {
     pub fn new(app_handle: AppHandle, path: &Path) -> Self {
         Self {
-            app_handle,
+            app_handle: app_handle.clone(),
             rng: ChaCha20Rng::from_entropy(),
             path: path.to_path_buf(),
             config: Config::default(),
@@ -53,16 +58,14 @@ impl AppStateInner {
             },
             keys: HashMap::new(),
             wallet: None,
-            peers: Arc::new(Mutex::new(HashMap::new())),
+            sync_manager: Arc::new(Mutex::new(SyncManager::new(app_handle))),
             peer_discovery_task: None,
         }
     }
 
     pub async fn setup_networking(&mut self, reset_peers: bool) -> Result<()> {
-        let mut lock = self.peers.lock().await;
-
         if reset_peers {
-            lock.clear();
+            self.sync_manager = Arc::new(Mutex::new(SyncManager::new(self.app_handle.clone())));
             self.app_handle.emit("peer-update", ())?;
         }
 
@@ -92,14 +95,13 @@ impl AppStateInner {
                 tls_connector,
                 config: self.config.network.clone(),
                 network,
-                peers: self.peers.clone(),
+                sync_manager: self.sync_manager.clone(),
                 app_handle: self.app_handle.clone(),
             })));
         } else {
             self.peer_discovery_task = None;
         }
 
-        drop(lock);
         self.setup_wallet().await?;
 
         Ok(())
@@ -117,7 +119,7 @@ impl AppStateInner {
             return Err(Error::Fingerprint(fingerprint));
         };
 
-        let wallet_config = self
+        let _wallet_config = self
             .config
             .wallets
             .get(&fingerprint.to_string())
@@ -141,13 +143,31 @@ impl AppStateInner {
         sqlx::migrate!("../migrations").run(&pool).await?;
 
         let db = Database::new(pool);
-        let wallet = Wallet::new(fingerprint, intermediate_pk, db);
+        let wallet = Wallet::new(
+            fingerprint,
+            intermediate_pk,
+            db.clone(),
+            self.networks[network_id].genesis_challenge.into(),
+        );
 
-        wallet
-            .initial_sync(wallet_config.derivation_batch_size)
-            .await?;
+        let mut tx = db.tx().await?;
 
-        self.wallet = Some(wallet);
+        let index = tx.derivation_index(false).await?;
+
+        for i in index..1000 {
+            let pk = intermediate_pk.derive_unhardened(i).derive_synthetic();
+            let p2_puzzle_hash = StandardArgs::curry_tree_hash(pk);
+            tx.insert_derivation(p2_puzzle_hash.into(), i, false, pk)
+                .await?;
+        }
+
+        tx.commit().await?;
+
+        self.wallet = Some(Arc::new(wallet));
+        self.sync_manager
+            .lock()
+            .await
+            .switch_wallet(self.wallet.clone());
 
         Ok(())
     }

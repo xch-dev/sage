@@ -80,7 +80,7 @@ pub async fn set_derivation_batch_size(
 
     if let Some(wallet) = state.wallet.as_ref() {
         if wallet.fingerprint() == fingerprint {
-            wallet.initial_sync(derivation_batch_size).await?;
+            // TODO: wallet.initial_sync(derivation_batch_size).await?;
         }
     }
 

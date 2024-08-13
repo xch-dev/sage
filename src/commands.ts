@@ -5,6 +5,7 @@ import {
   NetworkConfig,
   PeerInfo,
   PeerMode,
+  SyncInfo,
   WalletConfig,
   WalletInfo,
 } from './models';
@@ -99,4 +100,8 @@ export async function setDerivationBatchSize(
 
 export async function peerList(): Promise<PeerInfo[]> {
   return await invoke('peer_list');
+}
+
+export async function syncInfo(): Promise<SyncInfo> {
+  return await invoke('sync_info');
 }

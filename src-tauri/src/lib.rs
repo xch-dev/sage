@@ -8,6 +8,7 @@ mod config;
 mod error;
 mod models;
 mod peer_discovery;
+mod sync_manager;
 mod wallet;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -40,7 +41,7 @@ pub fn run() {
             // Setup
             commands::initialize,
             // Wallet
-            commands::derivation_info,
+            commands::sync_info,
             // Peers
             commands::peer_list,
         ])
