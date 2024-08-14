@@ -20,6 +20,7 @@ CREATE TABLE `coin_states` (
     `amount` BLOB NOT NULL,
     `spent_height` INTEGER,
     `created_height` INTEGER,
+    `hint` BLOB,
     `synced` INTEGER NOT NULL CHECK (`synced` IN (0, 1))
 );
 
@@ -27,8 +28,10 @@ CREATE INDEX `parent_index` ON `coin_states` (`parent_coin_id`);
 CREATE INDEX `puzzle_hash_index` ON `coin_states` (`puzzle_hash`);
 CREATE INDEX `spent_height_index` ON `coin_states` (`spent_height`);
 CREATE INDEX `created_height_index` ON `coin_states` (`created_height`);
+CREATE INDEX `hint_index` ON `coin_states` (`hint`);
+CREATE INDEX `synced_index` ON `coin_states` (`synced`);
 
-CREATE TABLE `cat_coins` (
+CREATE TABLE `cat_info` (
     `coin_id` BLOB NOT NULL PRIMARY KEY,
     `parent_parent_coin_id` BLOB NOT NULL,
     `parent_inner_puzzle_hash` BLOB NOT NULL,
@@ -38,5 +41,5 @@ CREATE TABLE `cat_coins` (
     FOREIGN KEY (`coin_id`) REFERENCES `coin_states` (`coin_id`)
 );
 
-CREATE INDEX `p2_puzzle_hash_index` ON `cat_coins` (`p2_puzzle_hash`);
-CREATE INDEX `asset_id_index` ON `cat_coins` (`asset_id`);
+CREATE INDEX `p2_puzzle_hash_index` ON `cat_info` (`p2_puzzle_hash`);
+CREATE INDEX `asset_id_index` ON `cat_info` (`asset_id`);

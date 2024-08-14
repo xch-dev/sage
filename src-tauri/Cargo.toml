@@ -30,6 +30,7 @@ indexmap = { workspace = true, features = ["serde"] }
 hex = { workspace = true }
 chia = { workspace = true }
 chia-wallet-sdk = { workspace = true }
+clvmr = { workspace = true }
 itertools = { workspace = true }
 sqlx = { workspace = true, features = ["sqlite", "runtime-tokio"] }
 native-tls = { workspace = true }

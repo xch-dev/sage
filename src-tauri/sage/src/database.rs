@@ -1,7 +1,9 @@
 use chia::{
     bls::PublicKey,
     protocol::{Bytes32, Coin, CoinState},
+    puzzles::LineageProof,
 };
+use chia_wallet_sdk::puzzles::CatInfo;
 use sqlx::{Sqlite, SqliteExecutor, SqlitePool, Transaction};
 
 use crate::{Error, Result};
@@ -47,6 +49,10 @@ impl Database {
         derivation_index(&self.pool, hardened).await
     }
 
+    pub async fn max_used_derivation_index(&self) -> Result<Option<u32>> {
+        max_used_derivation_index(&self.pool).await
+    }
+
     pub async fn p2_puzzle_hashes(&self) -> Result<Vec<Bytes32>> {
         p2_puzzle_hashes(&self.pool).await
     }
@@ -55,8 +61,16 @@ impl Database {
         synthetic_key(&self.pool, p2_puzzle_hash).await
     }
 
-    pub async fn insert_unsynced_coin_state(&self, coin_state: CoinState) -> Result<()> {
-        insert_unsynced_coin_state(&self.pool, coin_state).await
+    pub async fn try_insert_coin_state(&self, coin_state: CoinState) -> Result<()> {
+        try_insert_coin_state(&self.pool, coin_state).await
+    }
+
+    pub async fn remove_coin_state(&self, coin_id: Bytes32) -> Result<()> {
+        remove_coin_state(&self.pool, coin_id).await
+    }
+
+    pub async fn unsynced_coin_states(&self, limit: usize) -> Result<Vec<CoinState>> {
+        unsynced_coin_states(&self.pool, limit).await
     }
 
     pub async fn mark_coin_synced(&self, coin_id: Bytes32) -> Result<()> {
@@ -73,6 +87,20 @@ impl Database {
 
     pub async fn coin_state(&self, coin_id: Bytes32) -> Result<Option<CoinState>> {
         coin_state(&self.pool, coin_id).await
+    }
+
+    pub async fn insert_cat_info(
+        &self,
+        coin_id: Bytes32,
+        lineage_proof: LineageProof,
+        p2_puzzle_hash: Bytes32,
+        asset_id: Bytes32,
+    ) -> Result<()> {
+        insert_cat_info(&self.pool, coin_id, lineage_proof, p2_puzzle_hash, asset_id).await
+    }
+
+    pub async fn cat_info(&self, coin_id: Bytes32) -> Result<Option<CatInfo>> {
+        cat_info(&self.pool, coin_id).await
     }
 }
 
@@ -127,6 +155,10 @@ impl<'a> DatabaseTx<'a> {
         derivation_index(&mut *self.tx, hardened).await
     }
 
+    pub async fn max_used_derivation_index(&mut self) -> Result<Option<u32>> {
+        max_used_derivation_index(&mut *self.tx).await
+    }
+
     pub async fn p2_puzzle_hashes(&mut self) -> Result<Vec<Bytes32>> {
         p2_puzzle_hashes(&mut *self.tx).await
     }
@@ -135,8 +167,16 @@ impl<'a> DatabaseTx<'a> {
         synthetic_key(&mut *self.tx, p2_puzzle_hash).await
     }
 
-    pub async fn insert_unsynced_coin_state(&mut self, coin_state: CoinState) -> Result<()> {
-        insert_unsynced_coin_state(&mut *self.tx, coin_state).await
+    pub async fn try_insert_coin_state(&mut self, coin_state: CoinState) -> Result<()> {
+        try_insert_coin_state(&mut *self.tx, coin_state).await
+    }
+
+    pub async fn remove_coin_state(&mut self, coin_id: Bytes32) -> Result<()> {
+        remove_coin_state(&mut *self.tx, coin_id).await
+    }
+
+    pub async fn unsynced_coin_states(&mut self, limit: usize) -> Result<Vec<CoinState>> {
+        unsynced_coin_states(&mut *self.tx, limit).await
     }
 
     pub async fn mark_coin_synced(&mut self, coin_id: Bytes32) -> Result<()> {
@@ -153,6 +193,27 @@ impl<'a> DatabaseTx<'a> {
 
     pub async fn coin_state(&mut self, coin_id: Bytes32) -> Result<Option<CoinState>> {
         coin_state(&mut *self.tx, coin_id).await
+    }
+
+    pub async fn insert_cat_info(
+        &mut self,
+        coin_id: Bytes32,
+        lineage_proof: LineageProof,
+        p2_puzzle_hash: Bytes32,
+        asset_id: Bytes32,
+    ) -> Result<()> {
+        insert_cat_info(
+            &mut *self.tx,
+            coin_id,
+            lineage_proof,
+            p2_puzzle_hash,
+            asset_id,
+        )
+        .await
+    }
+
+    pub async fn cat_info(&mut self, coin_id: Bytes32) -> Result<Option<CatInfo>> {
+        cat_info(&mut *self.tx, coin_id).await
     }
 }
 
@@ -250,6 +311,21 @@ async fn derivation_index(conn: impl SqliteExecutor<'_>, hardened: bool) -> Resu
     .map_err(|_| Error::PrecisionLost)
 }
 
+async fn max_used_derivation_index(conn: impl SqliteExecutor<'_>) -> Result<Option<u32>> {
+    let row = sqlx::query!(
+        "
+        SELECT MAX(`index`) AS `max_index`
+        FROM `derivations`
+        WHERE EXISTS (SELECT * FROM `coin_states` WHERE `puzzle_hash` = `p2_puzzle_hash` OR `hint` = `p2_puzzle_hash`)
+        "
+    )
+    .fetch_one(conn)
+    .await?;
+    row.max_index
+        .map(|index| index.try_into().map_err(|_| Error::PrecisionLost))
+        .transpose()
+}
+
 async fn p2_puzzle_hashes(conn: impl SqliteExecutor<'_>) -> Result<Vec<Bytes32>> {
     let rows = sqlx::query!(
         "
@@ -284,10 +360,7 @@ async fn synthetic_key(
     Ok(PublicKey::from_bytes(&to_bytes(bytes)?).unwrap())
 }
 
-async fn insert_unsynced_coin_state(
-    conn: impl SqliteExecutor<'_>,
-    coin_state: CoinState,
-) -> Result<()> {
+async fn try_insert_coin_state(conn: impl SqliteExecutor<'_>, coin_state: CoinState) -> Result<()> {
     let coin_id = coin_state.coin.coin_id();
     let coin_id_ref = coin_id.as_ref();
     let parent_coin_id = coin_state.coin.parent_coin_info.as_ref();
@@ -296,17 +369,79 @@ async fn insert_unsynced_coin_state(
     let amount_ref = amount.as_ref();
     sqlx::query!(
         "
-        INSERT INTO `coin_states` (`coin_id`, `parent_coin_id`, `puzzle_hash`, `amount`, `synced`)
-        VALUES (?, ?, ?, ?, 0)
+        INSERT OR IGNORE INTO `coin_states` (
+            `coin_id`,
+            `parent_coin_id`,
+            `puzzle_hash`,
+            `amount`,
+            `created_height`,
+            `spent_height`,
+            `synced`,
+            `hint`
+        )
+        VALUES (
+            ?,
+            ?,
+            ?,
+            ?,
+            ?,
+            ?,
+            EXISTS (SELECT * FROM `derivations` WHERE `p2_puzzle_hash` = ?),
+            NULL
+        )
         ",
         coin_id_ref,
         parent_coin_id,
         puzzle_hash,
-        amount_ref
+        amount_ref,
+        coin_state.created_height,
+        coin_state.spent_height,
+        puzzle_hash
     )
     .execute(conn)
     .await?;
     Ok(())
+}
+
+async fn remove_coin_state(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<()> {
+    let coin_id = coin_id.as_ref();
+    sqlx::query!(
+        "
+        DELETE FROM `coin_states`
+        WHERE `coin_id` = ?
+        ",
+        coin_id
+    )
+    .execute(conn)
+    .await?;
+    Ok(())
+}
+
+async fn unsynced_coin_states(
+    conn: impl SqliteExecutor<'_>,
+    limit: usize,
+) -> Result<Vec<CoinState>> {
+    let limit: i64 = limit.try_into().map_err(|_| Error::PrecisionLost)?;
+    let rows = sqlx::query!(
+        "
+        SELECT *
+        FROM `coin_states`
+        WHERE `synced` = 0 AND `created_height` IS NOT NULL
+        LIMIT ?
+        ",
+        limit
+    )
+    .fetch_all(conn)
+    .await?;
+    rows.into_iter()
+        .map(|row| {
+            to_coin_state(
+                to_coin(&row.parent_coin_id, &row.puzzle_hash, &row.amount)?,
+                row.created_height,
+                row.spent_height,
+            )
+        })
+        .collect()
 }
 
 async fn mark_coin_synced(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<()> {
@@ -366,21 +501,121 @@ async fn coin_state(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<O
         return Ok(None);
     };
 
-    Ok(Some(CoinState {
-        coin: Coin {
-            parent_coin_info: Bytes32::new(to_bytes(&row.parent_coin_id)?),
-            puzzle_hash: Bytes32::new(to_bytes(&row.puzzle_hash)?),
-            amount: u64::from_be_bytes(to_bytes(&row.amount)?),
-        },
-        spent_height: row
-            .spent_height
-            .map(|height| height.try_into().map_err(|_| Error::PrecisionLost))
-            .transpose()?,
-        created_height: row
-            .created_height
-            .map(|height| height.try_into().map_err(|_| Error::PrecisionLost))
-            .transpose()?,
+    Ok(Some(to_coin_state(
+        to_coin(&row.parent_coin_id, &row.puzzle_hash, &row.amount)?,
+        row.created_height,
+        row.spent_height,
+    )?))
+}
+
+async fn insert_cat_info(
+    conn: impl SqliteExecutor<'_>,
+    coin_id: Bytes32,
+    lineage_proof: LineageProof,
+    p2_puzzle_hash: Bytes32,
+    asset_id: Bytes32,
+) -> Result<()> {
+    let coin_id = coin_id.as_ref();
+    let parent_parent_coin_id = lineage_proof.parent_parent_coin_id.as_ref();
+    let parent_inner_puzzle_hash = lineage_proof.parent_inner_puzzle_hash.as_ref();
+    let parent_amount = lineage_proof.parent_amount.to_be_bytes();
+    let parent_amount = parent_amount.as_ref();
+    let p2_puzzle_hash = p2_puzzle_hash.as_ref();
+    let asset_id = asset_id.as_ref();
+
+    sqlx::query!(
+        "
+        INSERT INTO `cat_info` (
+            `coin_id`,
+            `parent_parent_coin_id`,
+            `parent_inner_puzzle_hash`,
+            `parent_amount`,
+            `p2_puzzle_hash`,
+            `asset_id`
+        )
+        VALUES (?, ?, ?, ?, ?, ?)
+        ",
+        coin_id,
+        parent_parent_coin_id,
+        parent_inner_puzzle_hash,
+        parent_amount,
+        p2_puzzle_hash,
+        asset_id
+    )
+    .execute(conn)
+    .await?;
+
+    Ok(())
+}
+
+async fn cat_info(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Option<CatInfo>> {
+    let coin_id = coin_id.as_ref();
+
+    let Some(row) = sqlx::query!(
+        "
+        SELECT
+            cs.parent_coin_id, cs.puzzle_hash, cs.amount,
+            cat.parent_parent_coin_id, cat.parent_inner_puzzle_hash, cat.parent_amount,
+            cat.p2_puzzle_hash, cat.asset_id
+        FROM `coin_states` AS cs
+        INNER JOIN cat_info AS cat
+        ON cs.coin_id = cat.coin_id
+        WHERE cs.coin_id = ?
+        ",
+        coin_id
+    )
+    .fetch_optional(conn)
+    .await?
+    else {
+        return Ok(None);
+    };
+
+    Ok(Some(CatInfo {
+        coin: to_coin(&row.parent_coin_id, &row.puzzle_hash, &row.amount)?,
+        lineage_proof: to_lineage_proof(
+            &row.parent_parent_coin_id,
+            &row.parent_inner_puzzle_hash,
+            &row.parent_amount,
+        )?,
+        p2_puzzle_hash: Bytes32::new(to_bytes(&row.p2_puzzle_hash).unwrap()),
+        asset_id: Bytes32::new(to_bytes(&row.asset_id).unwrap()),
     }))
+}
+
+fn to_coin_state(
+    coin: Coin,
+    created_height: Option<i64>,
+    spent_height: Option<i64>,
+) -> Result<CoinState> {
+    Ok(CoinState {
+        coin,
+        spent_height: spent_height
+            .map(|height| height.try_into().map_err(|_| Error::PrecisionLost))
+            .transpose()?,
+        created_height: created_height
+            .map(|height| height.try_into().map_err(|_| Error::PrecisionLost))
+            .transpose()?,
+    })
+}
+
+fn to_coin(parent_coin_id: &[u8], puzzle_hash: &[u8], amount: &[u8]) -> Result<Coin> {
+    Ok(Coin {
+        parent_coin_info: Bytes32::new(to_bytes(parent_coin_id)?),
+        puzzle_hash: Bytes32::new(to_bytes(puzzle_hash)?),
+        amount: u64::from_be_bytes(to_bytes(amount)?),
+    })
+}
+
+fn to_lineage_proof(
+    parent_parent_coin_id: &[u8],
+    parent_inner_puzzle_hash: &[u8],
+    parent_amount: &[u8],
+) -> Result<LineageProof> {
+    Ok(LineageProof {
+        parent_parent_coin_id: Bytes32::new(to_bytes(parent_parent_coin_id)?),
+        parent_inner_puzzle_hash: Bytes32::new(to_bytes(parent_inner_puzzle_hash)?),
+        parent_amount: u64::from_be_bytes(to_bytes(parent_amount)?),
+    })
 }
 
 fn to_bytes<const N: usize>(slice: &[u8]) -> Result<[u8; N]> {

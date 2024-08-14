@@ -23,10 +23,11 @@ use tauri::{AppHandle, Emitter};
 use tokio::{sync::Mutex, task::JoinHandle};
 
 use crate::{
-    config::{Config, PeerMode, WalletConfig},
+    config::{Config, DerivationMode, PeerMode, WalletConfig},
     error::{Error, Result},
     models::{WalletInfo, WalletKind},
     peer_discovery::{peer_discovery, PeerContext},
+    puzzle_sync::puzzle_sync,
     sync_manager::SyncManager,
     wallet::Wallet,
 };
@@ -43,6 +44,7 @@ pub struct AppStateInner {
     pub wallet: Option<Arc<Wallet>>,
     pub sync_manager: Arc<Mutex<SyncManager>>,
     peer_discovery_task: Option<JoinHandle<()>>,
+    puzzle_sync_task: Option<JoinHandle<()>>,
 }
 
 impl AppStateInner {
@@ -60,6 +62,7 @@ impl AppStateInner {
             wallet: None,
             sync_manager: Arc::new(Mutex::new(SyncManager::new(app_handle))),
             peer_discovery_task: None,
+            puzzle_sync_task: None,
         }
     }
 
@@ -110,6 +113,10 @@ impl AppStateInner {
     pub async fn setup_wallet(&mut self) -> Result<()> {
         let Some(fingerprint) = self.config.wallet.active_fingerprint else {
             self.wallet = None;
+            self.sync_manager.lock().await.switch_wallet(None);
+            if let Some(task) = self.puzzle_sync_task.take() {
+                task.abort();
+            }
             return Ok(());
         };
 
@@ -138,17 +145,18 @@ impl AppStateInner {
         fs::create_dir_all(&path)?;
 
         let network_id = &self.config.network.network_id;
+        let genesis_challenge = self.networks[network_id].genesis_challenge.into();
         let path = path.join(format!("{network_id}.sqlite"));
         let pool = SqlitePool::connect(&format!("sqlite://{}?mode=rwc", path.display())).await?;
         sqlx::migrate!("../migrations").run(&pool).await?;
 
         let db = Database::new(pool);
-        let wallet = Wallet::new(
+        let wallet = Arc::new(Wallet::new(
             fingerprint,
             intermediate_pk,
             db.clone(),
-            self.networks[network_id].genesis_challenge.into(),
-        );
+            genesis_challenge,
+        ));
 
         let mut tx = db.tx().await?;
 
@@ -163,11 +171,27 @@ impl AppStateInner {
 
         tx.commit().await?;
 
-        self.wallet = Some(Arc::new(wallet));
-        self.sync_manager
-            .lock()
-            .await
-            .switch_wallet(self.wallet.clone());
+        let wallet_config = self
+            .try_wallet_config(fingerprint)
+            .cloned()
+            .unwrap_or_default();
+
+        self.wallet = Some(wallet.clone());
+
+        let mut sync_manager = self.sync_manager.lock().await;
+
+        sync_manager.update_settings(
+            wallet_config.derivation_batch_size,
+            wallet_config.derivation_mode == DerivationMode::Automatic,
+        );
+
+        sync_manager.switch_wallet(Some(wallet.clone()));
+
+        self.puzzle_sync_task = Some(tokio::spawn(puzzle_sync(
+            wallet,
+            self.sync_manager.clone(),
+            genesis_challenge,
+        )));
 
         Ok(())
     }

@@ -39,7 +39,7 @@ impl Wallet {
     pub async fn sync_against(&self, peer: &Peer, batch_size: u32) -> Result<()> {
         let mut tx = self.db.tx().await?;
 
-        let (mut prev_height, mut prev_header_hash) = tx
+        let (start_height, start_header_hash) = tx
             .latest_peak()
             .await?
             .map(|(height, header_hash)| (Some(height), header_hash))
@@ -47,12 +47,30 @@ impl Wallet {
 
         debug!(
             "Syncing from previous height {:?} with header hash {}",
-            prev_height, prev_header_hash
+            start_height, start_header_hash
         );
 
         let puzzle_hashes = tx.p2_puzzle_hashes().await?;
 
         tx.commit().await?;
+
+        for batch in puzzle_hashes.chunks(batch_size as usize) {
+            self.sync_puzzle_hashes(peer, start_height, start_header_hash, batch)
+                .await?;
+        }
+
+        Ok(())
+    }
+
+    async fn sync_puzzle_hashes(
+        &self,
+        peer: &Peer,
+        start_height: Option<u32>,
+        start_header_hash: Bytes32,
+        puzzle_hashes: &[Bytes32],
+    ) -> Result<()> {
+        let mut prev_height = start_height;
+        let mut prev_header_hash = start_header_hash;
 
         loop {
             debug!(
@@ -62,7 +80,7 @@ impl Wallet {
 
             let response = peer
                 .request_puzzle_state(
-                    puzzle_hashes.clone(),
+                    puzzle_hashes.to_vec(),
                     prev_height,
                     prev_header_hash,
                     CoinStateFilters::new(true, true, true, 0),
@@ -77,7 +95,7 @@ impl Wallet {
                     let mut tx = self.db.tx().await?;
 
                     for coin_state in data.coin_states {
-                        tx.insert_unsynced_coin_state(coin_state).await?;
+                        tx.try_insert_coin_state(coin_state).await?;
                     }
 
                     tx.commit().await?;

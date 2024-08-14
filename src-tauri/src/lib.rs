@@ -8,6 +8,7 @@ mod config;
 mod error;
 mod models;
 mod peer_discovery;
+mod puzzle_sync;
 mod sync_manager;
 mod wallet;
 
