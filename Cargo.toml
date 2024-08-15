@@ -67,6 +67,7 @@ tokio = "1.39.2"
 tokio-tungstenite = "0.23.1"
 tungstenite = "0.23.0"
 futures-util = "0.3.30"
+futures-lite = "2.3.0"
 native-tls = "0.2.12"
 sqlx = "0.8.0"
 

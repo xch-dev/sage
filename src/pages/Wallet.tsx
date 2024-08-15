@@ -15,6 +15,7 @@ import {
   Typography,
 } from '@mui/material';
 import Grid2 from '@mui/material/Unstable_Grid2/Grid2';
+import { listen } from '@tauri-apps/api/event';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as commands from '../commands';
@@ -41,6 +42,14 @@ export default function Wallet() {
 
   useEffect(() => {
     commands.syncInfo().then(setSyncInfo);
+
+    const unlisten = listen('coin-update', () => {
+      commands.syncInfo().then(setSyncInfo);
+    });
+
+    return () => {
+      unlisten.then((fn) => fn());
+    };
   }, []);
 
   return (
@@ -77,7 +86,7 @@ export default function Wallet() {
                   Sync Status
                 </Typography>
                 <Typography fontSize={22}>
-                  {syncInfo.synced_coins}/{syncInfo.total_coins}
+                  {syncInfo.synced_coins}/{syncInfo.total_coins} Coins Synced
                 </Typography>
               </Paper>
             </Grid2>

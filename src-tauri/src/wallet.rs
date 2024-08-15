@@ -4,29 +4,33 @@ use chia::{
 };
 use sage::Database;
 use sage_client::Peer;
+use tauri::{AppHandle, Emitter};
 use tracing::{debug, instrument, warn};
 
 use crate::error::{Error, Result};
 
 #[derive(Debug)]
 pub struct Wallet {
+    pub app_handle: AppHandle,
+    pub db: Database,
     pub fingerprint: u32,
     pub intermediate_pk: PublicKey,
-    pub db: Database,
     pub genesis_challenge: Bytes32,
 }
 
 impl Wallet {
     pub fn new(
+        app_handle: AppHandle,
+        db: Database,
         fingerprint: u32,
         intermediate_pk: PublicKey,
-        db: Database,
         genesis_challenge: Bytes32,
     ) -> Self {
         Self {
+            app_handle,
+            db,
             fingerprint,
             intermediate_pk,
-            db,
             genesis_challenge,
         }
     }
@@ -92,6 +96,8 @@ impl Wallet {
                 Ok(data) => {
                     debug!("Received {} coin states", data.coin_states.len());
 
+                    let has_coin_states = !data.coin_states.is_empty();
+
                     let mut tx = self.db.tx().await?;
 
                     for coin_state in data.coin_states {
@@ -99,6 +105,12 @@ impl Wallet {
                     }
 
                     tx.commit().await?;
+
+                    if has_coin_states {
+                        if let Err(error) = self.app_handle.emit("coin-update", ()) {
+                            warn!("Failed to emit coin update: {error}");
+                        }
+                    }
 
                     if data.is_finished {
                         break;

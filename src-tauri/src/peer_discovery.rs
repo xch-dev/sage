@@ -26,6 +26,7 @@ pub struct PeerContext {
 #[instrument(skip(ctx))]
 pub async fn peer_discovery(ctx: PeerContext) {
     loop {
+        ctx.sync_manager.lock().await.poll().await;
         if ctx.sync_manager.lock().await.len() < ctx.config.target_peers && !connect_dns(&ctx).await
         {
             warn!("Insufficient peers");
@@ -100,7 +101,10 @@ async fn connect_peers(ctx: &PeerContext, socket_addrs: Vec<SocketAddr>) {
             }
 
             let socket_addr = peer.socket_addr();
-            sync_manager.add_peer(peer);
+
+            if !sync_manager.add_peer(peer) {
+                continue;
+            }
 
             tokio::spawn(handle_peer(
                 socket_addr,

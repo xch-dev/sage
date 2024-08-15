@@ -5,10 +5,11 @@ use chia::{
     protocol::{Bytes32, CoinState},
 };
 use chia_wallet_sdk::{CatPuzzle, Puzzle};
-use clvmr::Allocator;
+use clvmr::{Allocator, NodePtr};
 use futures_util::{stream::FuturesUnordered, StreamExt};
 use sage::Database;
 use sage_client::Peer;
+use tauri::Emitter;
 use tokio::{sync::Mutex, time::sleep};
 use tracing::{debug, warn};
 
@@ -52,15 +53,28 @@ async fn process_unsynced_puzzles(
         );
 
         futures.push(async move {
+            let socket_addr = peer.socket_addr();
             let result = process_coin(peer, wallet.db.clone(), coin_state, genesis_challenge).await;
-            (coin_state.coin.coin_id(), result)
+            (socket_addr, result)
         });
     }
 
-    while let Some((coin_id, result)) = futures.next().await {
-        if let Err(error) = result {
-            warn!("Error processing unsynced puzzle: {:?}", error);
-            wallet.db.remove_coin_state(coin_id).await?;
+    while let Some((socket_addr, result)) = futures.next().await {
+        match result {
+            Ok(successful) => {
+                if successful {
+                    if let Err(error) = wallet.app_handle.emit("coin-update", ()) {
+                        warn!("Failed to emit coin update: {error}");
+                    }
+                } else {
+                    warn!("Coin doesn't exist, banning peer");
+                    sync_manager.lock().await.ban_peer(&socket_addr);
+                }
+            }
+            Err(error) => {
+                warn!("Error processing unsynced puzzle: {:?}", error);
+                sync_manager.lock().await.ban_peer(&socket_addr);
+            }
         }
     }
 
@@ -72,42 +86,69 @@ async fn process_coin(
     db: Database,
     coin_state: CoinState,
     genesis_challenge: Bytes32,
-) -> Result<()> {
-    let coin_id = coin_state.coin.coin_id();
-
-    let response = peer
+) -> Result<bool> {
+    let Ok(response) = peer
         .request_puzzle_and_solution(
             coin_state.coin.parent_coin_info,
             coin_state.created_height.unwrap(),
         )
         .await?
-        .map_err(|_| Error::RejectPuzzleSolution(coin_id))?;
+    else {
+        return Ok(false);
+    };
+
+    let Ok(parent_response) = peer
+        .request_coin_state(
+            vec![coin_state.coin.parent_coin_info],
+            None,
+            genesis_challenge,
+            false,
+        )
+        .await?
+    else {
+        return Err(Error::ErroneousCoinStateRejection);
+    };
+
+    let Some(parent_coin_state) = parent_response.coin_states.into_iter().next() else {
+        return Ok(false);
+    };
 
     let mut allocator = Allocator::new();
     let puzzle_ptr = response.puzzle.to_node_ptr(&mut allocator)?;
     let solution_ptr = response.solution.to_node_ptr(&mut allocator)?;
 
-    let puzzle = Puzzle::parse(&allocator, puzzle_ptr);
+    if let Err(error) = add_puzzle_info(
+        &db,
+        &mut allocator,
+        parent_coin_state,
+        puzzle_ptr,
+        solution_ptr,
+        coin_state,
+    )
+    .await
+    {
+        warn!("Error fetching puzzle info: {:?}", error);
+        db.remove_coin_state(coin_state.coin.coin_id()).await?;
+        return Ok(true);
+    }
 
-    if let Some(cat) = CatPuzzle::parse(&allocator, &puzzle)? {
-        let response = peer
-            .request_coin_state(
-                vec![coin_state.coin.parent_coin_info],
-                None,
-                genesis_challenge,
-                false,
-            )
-            .await?
-            .map_err(|_| Error::RejectCoinState(coin_id))?;
+    Ok(true)
+}
 
-        let parent_coin_state = response
-            .coin_states
-            .into_iter()
-            .next()
-            .ok_or_else(|| Error::MissingCoinState(coin_state.coin.parent_coin_info))?;
+async fn add_puzzle_info(
+    db: &Database,
+    allocator: &mut Allocator,
+    parent_coin_state: CoinState,
+    puzzle_ptr: NodePtr,
+    solution_ptr: NodePtr,
+    coin_state: CoinState,
+) -> Result<()> {
+    let coin_id = coin_state.coin.coin_id();
+    let puzzle = Puzzle::parse(allocator, puzzle_ptr);
 
+    if let Some(cat) = CatPuzzle::parse(allocator, &puzzle)? {
         let cat_info = cat.child_coin_info(
-            &mut allocator,
+            allocator,
             parent_coin_state.coin,
             coin_state.coin,
             solution_ptr,
@@ -129,8 +170,5 @@ async fn process_coin(
         return Ok(());
     }
 
-    Err(Error::UnknownCoinType(
-        coin_state.coin.coin_id(),
-        puzzle.mod_hash().into(),
-    ))
+    Err(Error::UnknownPuzzle(coin_id, puzzle.mod_hash().into()))
 }

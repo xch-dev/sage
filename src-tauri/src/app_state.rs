@@ -152,9 +152,10 @@ impl AppStateInner {
 
         let db = Database::new(pool);
         let wallet = Arc::new(Wallet::new(
+            self.app_handle.clone(),
+            db.clone(),
             fingerprint,
             intermediate_pk,
-            db.clone(),
             genesis_challenge,
         ));
 

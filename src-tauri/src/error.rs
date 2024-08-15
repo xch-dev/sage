@@ -83,20 +83,14 @@ pub enum Error {
     #[error("To CLVM error: {0}")]
     ToClvm(#[from] ToClvmError),
 
-    #[error("Rejected puzzle and solution for coin id {0}")]
-    RejectPuzzleSolution(Bytes32),
-
-    #[error("Rejected coin state for coin id {0}")]
-    RejectCoinState(Bytes32),
-
-    #[error("Missing coin state for coin id {0}")]
-    MissingCoinState(Bytes32),
-
     #[error("Parse error: {0}")]
     Parse(#[from] ParseError),
 
-    #[error("Unknown coin {0} with type {1}")]
-    UnknownCoinType(Bytes32, Bytes32),
+    #[error("Coin {0} has unknown puzzle mod hash {1}")]
+    UnknownPuzzle(Bytes32, Bytes32),
+
+    #[error("Erroneous rejection for coin state")]
+    ErroneousCoinStateRejection,
 }
 
 impl Serialize for Error {
