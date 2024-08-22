@@ -3,7 +3,7 @@ use chia::{
     protocol::{Bytes32, Coin, CoinState},
     puzzles::LineageProof,
 };
-use chia_wallet_sdk::puzzles::CatInfo;
+use chia_wallet_sdk::Cat;
 use sqlx::{Sqlite, SqliteExecutor, SqlitePool, Transaction};
 
 use crate::{Error, Result};
@@ -99,7 +99,7 @@ impl Database {
         insert_cat_info(&self.pool, coin_id, lineage_proof, p2_puzzle_hash, asset_id).await
     }
 
-    pub async fn cat_info(&self, coin_id: Bytes32) -> Result<Option<CatInfo>> {
+    pub async fn cat_info(&self, coin_id: Bytes32) -> Result<Option<Cat>> {
         cat_info(&self.pool, coin_id).await
     }
 }
@@ -212,7 +212,7 @@ impl<'a> DatabaseTx<'a> {
         .await
     }
 
-    pub async fn cat_info(&mut self, coin_id: Bytes32) -> Result<Option<CatInfo>> {
+    pub async fn cat_info(&mut self, coin_id: Bytes32) -> Result<Option<Cat>> {
         cat_info(&mut *self.tx, coin_id).await
     }
 }
@@ -516,7 +516,7 @@ async fn insert_cat_info(
     asset_id: Bytes32,
 ) -> Result<()> {
     let coin_id = coin_id.as_ref();
-    let parent_parent_coin_id = lineage_proof.parent_parent_coin_id.as_ref();
+    let parent_parent_coin_id = lineage_proof.parent_parent_coin_info.as_ref();
     let parent_inner_puzzle_hash = lineage_proof.parent_inner_puzzle_hash.as_ref();
     let parent_amount = lineage_proof.parent_amount.to_be_bytes();
     let parent_amount = parent_amount.as_ref();
@@ -548,7 +548,7 @@ async fn insert_cat_info(
     Ok(())
 }
 
-async fn cat_info(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Option<CatInfo>> {
+async fn cat_info(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Option<Cat>> {
     let coin_id = coin_id.as_ref();
 
     let Some(row) = sqlx::query!(
@@ -570,13 +570,13 @@ async fn cat_info(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Opt
         return Ok(None);
     };
 
-    Ok(Some(CatInfo {
+    Ok(Some(Cat {
         coin: to_coin(&row.parent_coin_id, &row.puzzle_hash, &row.amount)?,
-        lineage_proof: to_lineage_proof(
+        lineage_proof: Some(to_lineage_proof(
             &row.parent_parent_coin_id,
             &row.parent_inner_puzzle_hash,
             &row.parent_amount,
-        )?,
+        )?),
         p2_puzzle_hash: Bytes32::new(to_bytes(&row.p2_puzzle_hash).unwrap()),
         asset_id: Bytes32::new(to_bytes(&row.asset_id).unwrap()),
     }))
@@ -612,7 +612,7 @@ fn to_lineage_proof(
     parent_amount: &[u8],
 ) -> Result<LineageProof> {
     Ok(LineageProof {
-        parent_parent_coin_id: Bytes32::new(to_bytes(parent_parent_coin_id)?),
+        parent_parent_coin_info: Bytes32::new(to_bytes(parent_parent_coin_id)?),
         parent_inner_puzzle_hash: Bytes32::new(to_bytes(parent_inner_puzzle_hash)?),
         parent_amount: u64::from_be_bytes(to_bytes(parent_amount)?),
     })

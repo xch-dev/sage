@@ -1,5 +1,5 @@
+use chia_wallet_sdk::Network;
 use indexmap::IndexMap;
-use sage_client::Network;
 use tauri::{command, State};
 
 use crate::{app_state::AppState, error::Result};

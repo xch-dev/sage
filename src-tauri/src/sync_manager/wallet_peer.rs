@@ -1,4 +1,4 @@
-use sage_client::Peer;
+use chia_wallet_sdk::Peer;
 
 use super::sync_status::SyncStatus;
 

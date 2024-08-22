@@ -1,7 +1,7 @@
 use std::num::ParseIntError;
 
 use chia::{clvm_traits::ToClvmError, protocol::Bytes32};
-use chia_wallet_sdk::{ParseError, SslError};
+use chia_wallet_sdk::{ClientError, DriverError};
 use sage::KeychainError;
 use serde::{Serialize, Serializer};
 use thiserror::Error;
@@ -53,8 +53,11 @@ pub enum Error {
     #[error("Wallet error: {0}")]
     Wallet(#[from] sage::Error),
 
-    #[error("SSL error: {0}")]
-    Ssl(#[from] SslError),
+    #[error("Driver error: {0}")]
+    Driver(#[from] DriverError),
+
+    #[error("Client error: {0}")]
+    Client(#[from] ClientError),
 
     #[error("TLS error: {0}")]
     Tls(#[from] native_tls::Error),
@@ -71,9 +74,6 @@ pub enum Error {
     #[error("Tauri error: {0}")]
     Tauri(#[from] tauri::Error),
 
-    #[error("Client error: {0}")]
-    Client(#[from] sage_client::Error),
-
     #[error("Timeout error")]
     Timeout(#[from] Elapsed),
 
@@ -82,9 +82,6 @@ pub enum Error {
 
     #[error("To CLVM error: {0}")]
     ToClvm(#[from] ToClvmError),
-
-    #[error("Parse error: {0}")]
-    Parse(#[from] ParseError),
 
     #[error("Coin {0} has unknown puzzle mod hash {1}")]
     UnknownPuzzle(Bytes32, Bytes32),

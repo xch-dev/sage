@@ -1,17 +1,14 @@
 use bip39::Mnemonic;
 use chia::{
-    bls::{
-        derive_keys::master_to_wallet_unhardened_intermediate, DerivableKey, PublicKey, SecretKey,
-    },
+    bls::{master_to_wallet_unhardened_intermediate, DerivableKey, PublicKey, SecretKey},
     puzzles::{standard::StandardArgs, DeriveSynthetic},
 };
-use chia_wallet_sdk::{create_tls_connector, load_ssl_cert};
+use chia_wallet_sdk::{create_tls_connector, load_ssl_cert, Network};
 use indexmap::{indexmap, IndexMap};
 use itertools::Itertools;
 use rand::SeedableRng;
 use rand_chacha::ChaCha20Rng;
 use sage::{encrypt, Database, KeyData, SecretKeyData};
-use sage_client::Network;
 use sqlx::SqlitePool;
 use std::{
     collections::HashMap,

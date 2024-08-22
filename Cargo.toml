@@ -1,5 +1,5 @@
 [workspace]
-members = ["src-tauri", "src-tauri/sage", "src-tauri/sage-client"]
+members = ["src-tauri", "src-tauri/sage"]
 resolver = "2"
 
 [workspace.lints.rust]
@@ -35,7 +35,6 @@ must_use_candidate = "allow"
 [workspace.dependencies]
 # Serialization
 sage = { path = "./src-tauri/sage" }
-sage-client = { path = "./src-tauri/sage-client" }
 serde = "1.0.204"
 serde_with = "3.9.0"
 serde_json = "1.0.122"
@@ -50,10 +49,10 @@ tauri-plugin-clipboard-manager = "2.0.0-rc.0"
 tauri-build = "2.0.0-rc.0"
 
 # Chia
-chia = "0.9.0"
-clvmr = "0.7.0"
+chia = "0.12.0"
+clvmr = "0.8.0"
 bip39 = "2.0.0"
-chia-wallet-sdk = "0.11.0"
+chia-wallet-sdk = "0.12.0"
 
 # Crypto
 sha2 = "0.10.8"
@@ -82,3 +81,6 @@ hex-literal = "0.4.1"
 tracing = "0.1.40"
 tracing-subscriber = "0.3.18"
 tracing-appender = "0.2.3"
+
+[patch.crates-io]
+chia-wallet-sdk = { path = "../wallet-sdk" }

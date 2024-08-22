@@ -1,14 +1,13 @@
 use std::{sync::Arc, time::Duration};
 
 use chia::{
-    clvm_traits::ToNodePtr,
+    clvm_traits::ToClvm,
     protocol::{Bytes32, CoinState},
 };
-use chia_wallet_sdk::{CatPuzzle, Puzzle};
+use chia_wallet_sdk::{Cat, Peer, Primitive, Puzzle};
 use clvmr::{Allocator, NodePtr};
 use futures_util::{stream::FuturesUnordered, StreamExt};
 use sage::Database;
-use sage_client::Peer;
 use tauri::Emitter;
 use tokio::{sync::Mutex, time::sleep};
 use tracing::{debug, warn};
@@ -114,8 +113,8 @@ async fn process_coin(
     };
 
     let mut allocator = Allocator::new();
-    let puzzle_ptr = response.puzzle.to_node_ptr(&mut allocator)?;
-    let solution_ptr = response.solution.to_node_ptr(&mut allocator)?;
+    let puzzle_ptr = response.puzzle.to_clvm(&mut allocator)?;
+    let solution_ptr = response.solution.to_clvm(&mut allocator)?;
 
     if let Err(error) = add_puzzle_info(
         &db,
@@ -139,36 +138,37 @@ async fn add_puzzle_info(
     db: &Database,
     allocator: &mut Allocator,
     parent_coin_state: CoinState,
-    puzzle_ptr: NodePtr,
-    solution_ptr: NodePtr,
+    parent_puzzle_ptr: NodePtr,
+    parent_solution: NodePtr,
     coin_state: CoinState,
 ) -> Result<()> {
     let coin_id = coin_state.coin.coin_id();
-    let puzzle = Puzzle::parse(allocator, puzzle_ptr);
+    let parent_puzzle = Puzzle::parse(allocator, parent_puzzle_ptr);
 
-    if let Some(cat) = CatPuzzle::parse(allocator, &puzzle)? {
-        let cat_info = cat.child_coin_info(
-            allocator,
-            parent_coin_state.coin,
-            coin_state.coin,
-            solution_ptr,
-        )?;
+    if let Some(cat) = Cat::from_parent_spend(
+        allocator,
+        parent_coin_state.coin,
+        parent_puzzle,
+        parent_solution,
+        coin_state.coin,
+    )? {
+        let Some(lineage_proof) = cat.lineage_proof else {
+            return Ok(());
+        };
 
         let mut tx = db.tx().await?;
 
         tx.mark_coin_synced(coin_id).await?;
-        tx.insert_cat_info(
-            coin_id,
-            cat_info.lineage_proof,
-            cat_info.p2_puzzle_hash,
-            cat_info.asset_id,
-        )
-        .await?;
+        tx.insert_cat_info(coin_id, lineage_proof, cat.p2_puzzle_hash, cat.asset_id)
+            .await?;
 
         tx.commit().await?;
 
         return Ok(());
     }
 
-    Err(Error::UnknownPuzzle(coin_id, puzzle.mod_hash().into()))
+    Err(Error::UnknownPuzzle(
+        coin_id,
+        parent_puzzle.mod_hash().into(),
+    ))
 }

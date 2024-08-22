@@ -7,14 +7,14 @@ use std::{
 mod sync_status;
 mod wallet_peer;
 
+use chia_wallet_sdk::Peer;
 use futures_lite::future::poll_once;
 use futures_util::FutureExt;
-use sage_client::Peer;
 use tauri::{AppHandle, Emitter};
-
-pub use sync_status::*;
 use tokio::task::unconstrained;
 use tracing::warn;
+
+pub use sync_status::*;
 pub use wallet_peer::*;
 
 use crate::wallet::Wallet;
