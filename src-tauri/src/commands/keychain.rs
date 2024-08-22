@@ -14,17 +14,18 @@ use crate::{app_state::AppState, error::Result, models::WalletInfo};
 pub async fn active_wallet(state: State<'_, AppState>) -> Result<Option<WalletInfo>> {
     let state = state.lock().await;
 
-    let fingerprint = match state.config.wallet.active_fingerprint {
-        Some(fingerprint) => fingerprint,
-        None => return Ok(None),
+    let Some(fingerprint) = state.config.wallet.active_fingerprint else {
+        return Ok(None);
     };
 
     let name = state
         .config
         .wallets
         .get(&fingerprint.to_string())
-        .map(|config| config.name.clone())
-        .unwrap_or_else(|| "Unnamed Wallet".to_string());
+        .map_or_else(
+            || "Unnamed Wallet".to_string(),
+            |config| config.name.clone(),
+        );
 
     let Some(key) = state.keys.get(&fingerprint) else {
         return Ok(None);

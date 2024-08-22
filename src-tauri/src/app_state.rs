@@ -131,8 +131,7 @@ impl AppStateInner {
             .unwrap_or_default();
 
         let master_pk_bytes = match key {
-            KeyData::Public { master_pk } => master_pk,
-            KeyData::Secret { master_pk, .. } => master_pk,
+            KeyData::Public { master_pk } | KeyData::Secret { master_pk, .. } => master_pk,
         };
 
         let master_pk = PublicKey::from_bytes(&master_pk_bytes)?;
@@ -142,7 +141,7 @@ impl AppStateInner {
         fs::create_dir_all(&path)?;
 
         let network_id = &self.config.network.network_id;
-        let genesis_challenge = self.networks[network_id].genesis_challenge.into();
+        let genesis_challenge = self.networks[network_id].genesis_challenge;
         let path = path.join(format!("{network_id}.sqlite"));
         let pool = SqlitePool::connect(&format!("sqlite://{}?mode=rwc", path.display())).await?;
         sqlx::migrate!("../migrations").run(&pool).await?;

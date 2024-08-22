@@ -26,7 +26,7 @@ pub struct PeerContext {
 #[instrument(skip(ctx))]
 pub async fn peer_discovery(ctx: PeerContext) {
     loop {
-        ctx.sync_manager.lock().await.poll().await;
+        ctx.sync_manager.lock().await.poll();
         if ctx.sync_manager.lock().await.len() < ctx.config.target_peers && !connect_dns(&ctx).await
         {
             warn!("Insufficient peers");

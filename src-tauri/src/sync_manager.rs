@@ -97,10 +97,10 @@ impl SyncManager {
         self.automatically_derive = automatically_derive;
     }
 
-    pub async fn poll(&mut self) {
+    pub fn poll(&mut self) {
         let mut bans = Vec::new();
 
-        for (addr, peer) in self.wallet_peers.iter_mut() {
+        for (addr, peer) in &mut self.wallet_peers {
             let SyncStatus::Syncing(task) = &mut peer.sync_status else {
                 continue;
             };

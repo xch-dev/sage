@@ -22,25 +22,25 @@ pub async fn initialize(state: State<'_, AppState>) -> Result<()> {
         std::fs::create_dir_all(&log_dir)?;
     }
 
-    if !key_path.try_exists()? {
-        fs::write(&key_path, bincode::serialize(&state.keys)?)?;
-    } else {
+    if key_path.try_exists()? {
         let data = fs::read(&key_path)?;
         state.keys = bincode::deserialize(&data)?;
+    } else {
+        fs::write(&key_path, bincode::serialize(&state.keys)?)?;
     }
 
-    if !config_path.try_exists()? {
-        fs::write(&config_path, toml::to_string_pretty(&state.config)?)?;
-    } else {
+    if config_path.try_exists()? {
         let text = fs::read_to_string(&config_path)?;
         state.config = toml::from_str(&text)?;
+    } else {
+        fs::write(&config_path, toml::to_string_pretty(&state.config)?)?;
     };
 
-    if !networks_path.try_exists()? {
-        fs::write(&networks_path, toml::to_string_pretty(&state.networks)?)?;
-    } else {
+    if networks_path.try_exists()? {
         let text = fs::read_to_string(&networks_path)?;
         state.networks = toml::from_str(&text)?;
+    } else {
+        fs::write(&networks_path, toml::to_string_pretty(&state.networks)?)?;
     }
 
     let log_level = state.config.app.log_level.parse()?;

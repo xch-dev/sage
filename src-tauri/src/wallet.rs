@@ -14,7 +14,7 @@ pub struct Wallet {
     pub app_handle: AppHandle,
     pub db: Database,
     pub fingerprint: u32,
-    pub intermediate_pk: PublicKey,
+    pub _intermediate_pk: PublicKey,
     pub genesis_challenge: Bytes32,
 }
 
@@ -30,7 +30,7 @@ impl Wallet {
             app_handle,
             db,
             fingerprint,
-            intermediate_pk,
+            _intermediate_pk: intermediate_pk,
             genesis_challenge,
         }
     }
@@ -46,8 +46,9 @@ impl Wallet {
         let (start_height, start_header_hash) = tx
             .latest_peak()
             .await?
-            .map(|(height, header_hash)| (Some(height), header_hash))
-            .unwrap_or((None, self.genesis_challenge));
+            .map_or((None, self.genesis_challenge), |(height, header_hash)| {
+                (Some(height), header_hash)
+            });
 
         debug!(
             "Syncing from previous height {:?} with header hash {}",

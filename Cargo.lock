@@ -3994,6 +3994,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "sage-database"
+version = "0.1.0"
+
+[[package]]
 name = "sage-tauri"
 version = "0.1.0"
 dependencies = [
