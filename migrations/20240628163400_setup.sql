@@ -6,7 +6,7 @@ CREATE TABLE `peaks` (
 CREATE TABLE `derivations` (
     `p2_puzzle_hash` BLOB NOT NULL PRIMARY KEY,
     `index` INTEGER NOT NULL,
-    `hardened` INTEGER NOT NULL CHECK (`hardened` IN (0, 1)),
+    `hardened` BOOLEAN NOT NULL,
     `synthetic_key` BLOB NOT NULL
 );
 
@@ -21,7 +21,7 @@ CREATE TABLE `coin_states` (
     `spent_height` INTEGER,
     `created_height` INTEGER,
     `hint` BLOB,
-    `synced` INTEGER NOT NULL CHECK (`synced` IN (0, 1))
+    `synced` BOOLEAN NOT NULL
 );
 
 CREATE INDEX `parent_index` ON `coin_states` (`parent_coin_id`);

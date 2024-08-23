@@ -38,6 +38,9 @@ multiple_crate_versions = "allow"
 must_use_candidate = "allow"
 similar_names = "allow"
 used_underscore_binding = "allow"
+unwrap_used = "warn"
+expect_used = "warn"
+wildcard_imports = "allow"
 
 [workspace.dependencies]
 # Serialization
