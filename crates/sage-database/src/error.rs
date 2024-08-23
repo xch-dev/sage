@@ -1,7 +1,7 @@
 use thiserror::Error;
 
 #[derive(Debug, Error)]
-pub enum Error {
+pub enum DatabaseError {
     #[error("SQLx error: {0}")]
     Sqlx(#[from] sqlx::Error),
 
@@ -12,4 +12,4 @@ pub enum Error {
     InvalidLength(usize, usize),
 }
 
-pub type Result<T> = std::result::Result<T, Error>;
+pub(crate) type Result<T> = std::result::Result<T, DatabaseError>;

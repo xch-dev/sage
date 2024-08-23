@@ -8,7 +8,8 @@ use indexmap::{indexmap, IndexMap};
 use itertools::Itertools;
 use rand::SeedableRng;
 use rand_chacha::ChaCha20Rng;
-use sage::{encrypt, Database, KeyData, SecretKeyData};
+use sage::{encrypt, KeyData, SecretKeyData};
+use sage_database::Database;
 use sqlx::SqlitePool;
 use std::{
     collections::HashMap,

@@ -6,7 +6,7 @@ use chia::{
 use chia_wallet_sdk::Cat;
 use sqlx::{Sqlite, SqliteExecutor, SqlitePool, Transaction};
 
-use crate::{Error, Result};
+use crate::error::{DatabaseError, Result};
 
 #[derive(Debug, Clone)]
 pub struct Database {
@@ -262,7 +262,9 @@ async fn latest_peak(conn: impl SqliteExecutor<'_>) -> Result<Option<(u32, Bytes
     .await?
     .map(|row| {
         Ok((
-            row.height.try_into().map_err(|_| Error::PrecisionLost)?,
+            row.height
+                .try_into()
+                .map_err(|_| DatabaseError::PrecisionLost)?,
             Bytes32::new(to_bytes(&row.header_hash).unwrap()),
         ))
     })
@@ -308,7 +310,7 @@ async fn derivation_index(conn: impl SqliteExecutor<'_>, hardened: bool) -> Resu
     .max_index
     .map_or(0, |index| index + 1)
     .try_into()
-    .map_err(|_| Error::PrecisionLost)
+    .map_err(|_| DatabaseError::PrecisionLost)
 }
 
 async fn max_used_derivation_index(conn: impl SqliteExecutor<'_>) -> Result<Option<u32>> {
@@ -322,7 +324,7 @@ async fn max_used_derivation_index(conn: impl SqliteExecutor<'_>) -> Result<Opti
     .fetch_one(conn)
     .await?;
     row.max_index
-        .map(|index| index.try_into().map_err(|_| Error::PrecisionLost))
+        .map(|index| index.try_into().map_err(|_| DatabaseError::PrecisionLost))
         .transpose()
 }
 
@@ -421,7 +423,7 @@ async fn unsynced_coin_states(
     conn: impl SqliteExecutor<'_>,
     limit: usize,
 ) -> Result<Vec<CoinState>> {
-    let limit: i64 = limit.try_into().map_err(|_| Error::PrecisionLost)?;
+    let limit: i64 = limit.try_into().map_err(|_| DatabaseError::PrecisionLost)?;
     let rows = sqlx::query!(
         "
         SELECT *
@@ -468,7 +470,9 @@ async fn total_coin_count(conn: impl SqliteExecutor<'_>) -> Result<u32> {
     )
     .fetch_one(conn)
     .await?;
-    row.total.try_into().map_err(|_| Error::PrecisionLost)
+    row.total
+        .try_into()
+        .map_err(|_| DatabaseError::PrecisionLost)
 }
 
 async fn synced_coin_count(conn: impl SqliteExecutor<'_>) -> Result<u32> {
@@ -481,7 +485,9 @@ async fn synced_coin_count(conn: impl SqliteExecutor<'_>) -> Result<u32> {
     )
     .fetch_one(conn)
     .await?;
-    row.synced.try_into().map_err(|_| Error::PrecisionLost)
+    row.synced
+        .try_into()
+        .map_err(|_| DatabaseError::PrecisionLost)
 }
 
 async fn coin_state(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Option<CoinState>> {
@@ -590,10 +596,10 @@ fn to_coin_state(
     Ok(CoinState {
         coin,
         spent_height: spent_height
-            .map(|height| height.try_into().map_err(|_| Error::PrecisionLost))
+            .map(|height| height.try_into().map_err(|_| DatabaseError::PrecisionLost))
             .transpose()?,
         created_height: created_height
-            .map(|height| height.try_into().map_err(|_| Error::PrecisionLost))
+            .map(|height| height.try_into().map_err(|_| DatabaseError::PrecisionLost))
             .transpose()?,
     })
 }
@@ -621,5 +627,5 @@ fn to_lineage_proof(
 fn to_bytes<const N: usize>(slice: &[u8]) -> Result<[u8; N]> {
     slice
         .try_into()
-        .map_err(|_| Error::InvalidLength(slice.len(), N))
+        .map_err(|_| DatabaseError::InvalidLength(slice.len(), N))
 }

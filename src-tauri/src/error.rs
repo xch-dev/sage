@@ -3,6 +3,7 @@ use std::num::ParseIntError;
 use chia::{clvm_traits::ToClvmError, protocol::Bytes32};
 use chia_wallet_sdk::{ClientError, DriverError};
 use sage::KeychainError;
+use sage_database::DatabaseError;
 use serde::{Serialize, Serializer};
 use thiserror::Error;
 use tokio::time::error::Elapsed;
@@ -50,8 +51,8 @@ pub enum Error {
     #[error("SQLx migration error: {0}")]
     SqlxMigration(#[from] sqlx::migrate::MigrateError),
 
-    #[error("Wallet error: {0}")]
-    Wallet(#[from] sage::Error),
+    #[error("Database error: {0}")]
+    Database(#[from] DatabaseError),
 
     #[error("Driver error: {0}")]
     Driver(#[from] DriverError),

@@ -3,7 +3,7 @@ use chia::{
     protocol::{Bytes32, CoinStateFilters, RejectStateReason},
 };
 use chia_wallet_sdk::Peer;
-use sage::Database;
+use sage_database::Database;
 use tauri::{AppHandle, Emitter};
 use tracing::{debug, instrument, warn};
 

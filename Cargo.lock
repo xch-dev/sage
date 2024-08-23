@@ -3996,6 +3996,12 @@ dependencies = [
 [[package]]
 name = "sage-database"
 version = "0.1.0"
+dependencies = [
+ "chia",
+ "chia-wallet-sdk",
+ "sqlx",
+ "thiserror",
+]
 
 [[package]]
 name = "sage-tauri"
@@ -4015,6 +4021,7 @@ dependencies = [
  "rand 0.8.5",
  "rand_chacha 0.3.1",
  "sage",
+ "sage-database",
  "serde",
  "serde_with",
  "sqlx",
