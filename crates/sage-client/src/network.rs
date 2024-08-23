@@ -4,7 +4,7 @@ use chia::protocol::Bytes32;
 use hex_literal::hex;
 use serde::{Deserialize, Serialize};
 use serde_with::{hex::Hex, serde_as};
-use tracing::instrument;
+use tracing::{error, instrument};
 
 use crate::ClientError;
 
@@ -48,12 +48,15 @@ impl Network {
     }
 
     #[instrument]
-    pub async fn lookup_all(&self) -> Result<Vec<SocketAddr>, ClientError> {
+    pub async fn lookup_all(&self) -> Vec<SocketAddr> {
         let mut result = Vec::new();
         for dns_introducer in &self.dns_introducers {
-            result.extend(self.lookup_host(dns_introducer).await?);
+            match self.lookup_host(dns_introducer).await {
+                Ok(addrs) => result.extend(addrs),
+                Err(error) => error!("Failed to lookup DNS introducer {dns_introducer}: {error}"),
+            }
         }
-        Ok(result)
+        result
     }
 
     #[instrument]

@@ -42,4 +42,7 @@ pub enum ClientError {
 
     #[error("Expected network {0}, but found {1}")]
     WrongNetwork(String, String),
+
+    #[error("The peer is banned")]
+    BannedPeer,
 }
