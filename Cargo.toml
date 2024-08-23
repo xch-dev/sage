@@ -39,13 +39,14 @@ must_use_candidate = "allow"
 similar_names = "allow"
 used_underscore_binding = "allow"
 unwrap_used = "warn"
-expect_used = "warn"
 wildcard_imports = "allow"
 
 [workspace.dependencies]
-# Serialization
 sage = { path = "./src-tauri/sage" }
 sage-database = { path = "./crates/sage-database" }
+sage-client = { path = "./crates/sage-client" }
+
+# Serialization
 serde = "1.0.204"
 serde_with = "3.9.0"
 serde_json = "1.0.122"
@@ -77,6 +78,8 @@ futures-util = "0.3.30"
 futures-lite = "2.3.0"
 native-tls = "0.2.12"
 sqlx = "0.8.0"
+tokio-tungstenite = { version = "0.21.0", features = ["native-tls"] }
+tungstenite = "0.21.0"
 
 # Utilities
 indexmap = "2.3.0"
@@ -89,6 +92,3 @@ hex-literal = "0.4.1"
 tracing = "0.1.40"
 tracing-subscriber = "0.3.18"
 tracing-appender = "0.2.3"
-
-[patch.crates-io]
-chia-wallet-sdk = { path = "../wallet-sdk" }

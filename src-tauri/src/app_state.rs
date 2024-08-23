@@ -3,12 +3,12 @@ use chia::{
     bls::{master_to_wallet_unhardened_intermediate, DerivableKey, PublicKey, SecretKey},
     puzzles::{standard::StandardArgs, DeriveSynthetic},
 };
-use chia_wallet_sdk::{create_tls_connector, load_ssl_cert, Network};
 use indexmap::{indexmap, IndexMap};
 use itertools::Itertools;
 use rand::SeedableRng;
 use rand_chacha::ChaCha20Rng;
 use sage::{encrypt, KeyData, SecretKeyData};
+use sage_client::{create_tls_connector, load_ssl_cert, Network};
 use sage_database::Database;
 use sqlx::SqlitePool;
 use std::{

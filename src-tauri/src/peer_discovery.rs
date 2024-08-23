@@ -1,10 +1,10 @@
 use std::{net::SocketAddr, sync::Arc, time::Duration};
 
 use chia::protocol::Message;
-use chia_wallet_sdk::{connect_peer, Network};
 use futures_util::{stream::FuturesUnordered, StreamExt};
 use native_tls::TlsConnector;
 use rand::{seq::SliceRandom, thread_rng};
+use sage_client::{connect_peer, Network};
 use tauri::{AppHandle, Emitter};
 use tokio::{
     net::lookup_host,

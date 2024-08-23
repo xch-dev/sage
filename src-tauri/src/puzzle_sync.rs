@@ -4,10 +4,11 @@ use chia::{
     clvm_traits::ToClvm,
     protocol::{Bytes32, CoinState},
 };
-use chia_wallet_sdk::{Cat, Peer, Primitive, Puzzle};
+use chia_wallet_sdk::{Cat, Primitive, Puzzle};
 use clvmr::{Allocator, NodePtr};
 use futures_lite::StreamExt;
 use futures_util::stream::FuturesUnordered;
+use sage_client::Peer;
 use sage_database::Database;
 use tauri::Emitter;
 use tokio::{sync::Mutex, time::sleep};

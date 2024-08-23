@@ -644,27 +644,21 @@ dependencies = [
 [[package]]
 name = "chia-sdk-client"
 version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0559f37c6ffa4381ec197e9d1b3900b7adbaf975360c8b6a1213f9a0a97d4e80"
 dependencies = [
- "chia-protocol",
+ "chia-client",
  "chia-ssl",
- "chia-traits 0.11.0",
- "futures-util",
- "hex",
- "hex-literal",
  "native-tls",
- "serde",
- "serde_with",
- "sha2",
  "thiserror",
- "tokio",
  "tokio-tungstenite",
- "tracing",
- "tungstenite",
 ]
 
 [[package]]
 name = "chia-sdk-driver"
 version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8d9cbab12bffa5be93d1d1c81097f3102ee3a4c1f6c386fbaef2c69c98bd0d2a"
 dependencies = [
  "chia-bls 0.11.0",
  "chia-protocol",
@@ -682,6 +676,8 @@ dependencies = [
 [[package]]
 name = "chia-sdk-offers"
 version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d04e3c49ab014fc6771ed7515c59292899a4038d8871a7bdf91c07b5a90fdc88"
 dependencies = [
  "bech32",
  "chia-bls 0.11.0",
@@ -695,13 +691,14 @@ dependencies = [
  "clvmr",
  "flate2",
  "indexmap 2.3.0",
- "once_cell",
  "thiserror",
 ]
 
 [[package]]
 name = "chia-sdk-signer"
 version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a6e8200601f85a585e2f0ac9527106e1d2d488e6099522431b0da9a76f326232"
 dependencies = [
  "chia-bls 0.11.0",
  "chia-consensus",
@@ -715,6 +712,8 @@ dependencies = [
 [[package]]
 name = "chia-sdk-test"
 version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "00a55103cc8ad25974e968c4c33dd86d0620813df257b2262e832e1e1c1459df"
 dependencies = [
  "anyhow",
  "bip39",
@@ -743,16 +742,16 @@ dependencies = [
 [[package]]
 name = "chia-sdk-types"
 version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5467cbca000834c17538df826b16ba40435780f09dfd2c4f662548e6ec274176"
 dependencies = [
  "chia-bls 0.11.0",
  "chia-consensus",
  "chia-protocol",
  "clvm-traits",
- "clvm-utils",
  "clvmr",
  "hex-literal",
  "once_cell",
- "paste",
  "thiserror",
 ]
 
@@ -795,6 +794,8 @@ dependencies = [
 [[package]]
 name = "chia-wallet-sdk"
 version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9a6fc3521ab4493f02909cb1b5389571c56407a7627e1415f5f9a00570a89b7d"
 dependencies = [
  "bech32",
  "chia-protocol",
@@ -3994,6 +3995,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "sage-client"
+version = "0.1.0"
+dependencies = [
+ "chia",
+ "futures-util",
+ "hex",
+ "hex-literal",
+ "native-tls",
+ "serde",
+ "serde_with",
+ "sha2",
+ "thiserror",
+ "tokio",
+ "tokio-tungstenite",
+ "tracing",
+ "tungstenite",
+]
+
+[[package]]
 name = "sage-database"
 version = "0.1.0"
 dependencies = [
@@ -4021,6 +4041,7 @@ dependencies = [
  "rand 0.8.5",
  "rand_chacha 0.3.1",
  "sage",
+ "sage-client",
  "sage-database",
  "serde",
  "serde_with",

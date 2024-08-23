@@ -17,6 +17,7 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 [dependencies]
 sage = { workspace = true }
 sage-database = { workspace = true }
+sage-client = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_with = { workspace = true, features = ["hex"] }
 tauri = { workspace = true, features = [] }

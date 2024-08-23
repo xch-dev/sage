@@ -1,0 +1,30 @@
+[package]
+name = "sage-client"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+description = "The p2p networking client for Sage."
+authors = ["Rigidity <me@rigidnetwork.com>"]
+homepage = "https://github.com/rigidity/sage"
+repository = "https://github.com/rigidity/sage"
+readme = { workspace = true }
+keywords = { workspace = true }
+categories = { workspace = true }
+
+[lints]
+workspace = true
+
+[dependencies]
+chia = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true, features = ["sync"] }
+tungstenite = { workspace = true }
+native-tls = { workspace = true }
+tracing = { workspace = true }
+hex-literal = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_with = { workspace = true, features = ["hex"] }
+futures-util = { workspace = true }
+sha2 = { workspace = true }
+tokio-tungstenite = { workspace = true }
+hex = { workspace = true }
