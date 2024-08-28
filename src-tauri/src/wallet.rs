@@ -2,16 +2,14 @@ use chia::{
     bls::PublicKey,
     protocol::{Bytes32, CoinStateFilters, RejectStateReason},
 };
-use sage_client::Peer;
+use chia_wallet_sdk::Peer;
 use sage_database::Database;
-use tauri::{AppHandle, Emitter};
 use tracing::{debug, instrument, warn};
 
 use crate::error::{Error, Result};
 
 #[derive(Debug)]
 pub struct Wallet {
-    pub app_handle: AppHandle,
     pub db: Database,
     pub fingerprint: u32,
     pub _intermediate_pk: PublicKey,
@@ -20,14 +18,12 @@ pub struct Wallet {
 
 impl Wallet {
     pub fn new(
-        app_handle: AppHandle,
         db: Database,
         fingerprint: u32,
         intermediate_pk: PublicKey,
         genesis_challenge: Bytes32,
     ) -> Self {
         Self {
-            app_handle,
             db,
             fingerprint,
             _intermediate_pk: intermediate_pk,
@@ -97,8 +93,6 @@ impl Wallet {
                 Ok(data) => {
                     debug!("Received {} coin states", data.coin_states.len());
 
-                    let has_coin_states = !data.coin_states.is_empty();
-
                     let mut tx = self.db.tx().await?;
 
                     for coin_state in data.coin_states {
@@ -106,12 +100,6 @@ impl Wallet {
                     }
 
                     tx.commit().await?;
-
-                    if has_coin_states {
-                        if let Err(error) = self.app_handle.emit("coin-update", ()) {
-                            warn!("Failed to emit coin update: {error}");
-                        }
-                    }
 
                     if data.is_finished {
                         break;

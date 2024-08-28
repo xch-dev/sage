@@ -1,23 +1,23 @@
-use bip39::Mnemonic;
-use chia::{
-    bls::{master_to_wallet_unhardened_intermediate, DerivableKey, PublicKey, SecretKey},
-    puzzles::{standard::StandardArgs, DeriveSynthetic},
-};
-use indexmap::{indexmap, IndexMap};
-use itertools::Itertools;
-use rand::SeedableRng;
-use rand_chacha::ChaCha20Rng;
-use sage::{encrypt, KeyData, SecretKeyData};
-use sage_client::{create_tls_connector, load_ssl_cert, Network};
-use sage_database::Database;
-use sqlx::SqlitePool;
 use std::{
     collections::HashMap,
     fs,
     path::{Path, PathBuf},
     sync::Arc,
 };
-use tauri::{AppHandle, Emitter};
+
+use bip39::Mnemonic;
+use chia::{
+    bls::{master_to_wallet_unhardened_intermediate, DerivableKey, PublicKey, SecretKey},
+    puzzles::{standard::StandardArgs, DeriveSynthetic},
+};
+use chia_wallet_sdk::{create_tls_connector, load_ssl_cert, Network};
+use indexmap::{indexmap, IndexMap};
+use itertools::Itertools;
+use rand::SeedableRng;
+use rand_chacha::ChaCha20Rng;
+use sage::{encrypt, KeyData, SecretKeyData};
+use sage_database::Database;
+use sqlx::SqlitePool;
 use tokio::{sync::Mutex, task::JoinHandle};
 
 use crate::{
@@ -33,7 +33,6 @@ use crate::{
 pub type AppState = Mutex<AppStateInner>;
 
 pub struct AppStateInner {
-    pub app_handle: AppHandle,
     pub rng: ChaCha20Rng,
     pub path: PathBuf,
     pub config: Config,
@@ -46,9 +45,8 @@ pub struct AppStateInner {
 }
 
 impl AppStateInner {
-    pub fn new(app_handle: AppHandle, path: &Path) -> Self {
+    pub fn new(path: &Path) -> Self {
         Self {
-            app_handle: app_handle.clone(),
             rng: ChaCha20Rng::from_entropy(),
             path: path.to_path_buf(),
             config: Config::default(),
@@ -58,7 +56,7 @@ impl AppStateInner {
             },
             keys: HashMap::new(),
             wallet: None,
-            sync_manager: Arc::new(Mutex::new(SyncManager::new(app_handle))),
+            sync_manager: Arc::new(Mutex::new(SyncManager::new())),
             peer_discovery_task: None,
             puzzle_sync_task: None,
         }
@@ -66,8 +64,7 @@ impl AppStateInner {
 
     pub async fn setup_networking(&mut self, reset_peers: bool) -> Result<()> {
         if reset_peers {
-            self.sync_manager = Arc::new(Mutex::new(SyncManager::new(self.app_handle.clone())));
-            self.app_handle.emit("peer-update", ())?;
+            self.sync_manager = Arc::new(Mutex::new(SyncManager::new()));
         }
 
         if let Some(task) = self.peer_discovery_task.take() {
@@ -97,7 +94,6 @@ impl AppStateInner {
                 config: self.config.network.clone(),
                 network,
                 sync_manager: self.sync_manager.clone(),
-                app_handle: self.app_handle.clone(),
             })));
         } else {
             self.peer_discovery_task = None;
@@ -149,7 +145,6 @@ impl AppStateInner {
 
         let db = Database::new(pool);
         let wallet = Arc::new(Wallet::new(
-            self.app_handle.clone(),
             db.clone(),
             fingerprint,
             intermediate_pk,

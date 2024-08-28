@@ -44,7 +44,6 @@ wildcard_imports = "allow"
 [workspace.dependencies]
 sage = { path = "./src-tauri/sage" }
 sage-database = { path = "./crates/sage-database" }
-sage-client = { path = "./crates/sage-client" }
 
 # Serialization
 serde = "1.0.204"
@@ -62,7 +61,7 @@ tauri-build = "2.0.0-rc.0"
 # Chia
 chia = "0.12.0"
 clvmr = "0.8.0"
-chia-wallet-sdk = "0.12.0"
+chia-wallet-sdk = { path = "../wallet-sdk" }
 bip39 = "2.0.0"
 
 # Crypto

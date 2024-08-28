@@ -1,9 +1,9 @@
 use std::num::ParseIntError;
 
 use chia::{clvm_traits::ToClvmError, protocol::Bytes32};
+use chia_wallet_sdk::ClientError;
 use chia_wallet_sdk::DriverError;
 use sage::KeychainError;
-use sage_client::ClientError;
 use sage_database::DatabaseError;
 use serde::{Serialize, Serializer};
 use thiserror::Error;

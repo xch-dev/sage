@@ -5,11 +5,10 @@ use tokio::sync::Mutex;
 mod app_state;
 mod commands;
 mod config;
+mod discover_peers;
 mod error;
 mod models;
-mod peer_discovery;
 mod puzzle_sync;
-mod sync_manager;
 mod wallet;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -48,7 +47,7 @@ pub fn run() {
         ])
         .setup(|app| {
             let path = app.path().app_data_dir()?;
-            let state = AppStateInner::new(app.handle().clone(), &path);
+            let state = AppStateInner::new(&path);
             app.manage(Mutex::new(state));
             Ok(())
         })
