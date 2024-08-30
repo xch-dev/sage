@@ -3998,15 +3998,11 @@ name = "sage"
 version = "0.1.0"
 dependencies = [
  "aes-gcm",
- "anyhow",
  "argon2",
  "bincode",
- "chia",
- "chia-wallet-sdk",
  "rand 0.8.5",
  "serde",
  "serde_with",
- "sqlx",
  "thiserror",
 ]
 

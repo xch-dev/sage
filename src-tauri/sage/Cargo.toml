@@ -7,10 +7,6 @@ edition = "2021"
 workspace = true
 
 [dependencies]
-chia-wallet-sdk = { workspace = true }
-chia = { workspace = true }
-sqlx = { workspace = true, features = ["sqlite", "runtime-tokio"] }
-anyhow = { workspace = true }
 thiserror = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_with = { workspace = true, features = ["hex"] }
