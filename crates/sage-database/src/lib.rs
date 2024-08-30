@@ -1,4 +1,4 @@
-mod cat_info;
+mod cat_coins;
 mod coin_states;
 mod database;
 mod derivations;

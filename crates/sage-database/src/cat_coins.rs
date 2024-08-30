@@ -60,7 +60,7 @@ async fn insert_cat_info(
 
     sqlx::query!(
         "
-        INSERT INTO `cat_info` (
+        INSERT INTO `cat_coins` (
             `coin_id`,
             `parent_parent_coin_id`,
             `parent_inner_puzzle_hash`,
@@ -93,7 +93,7 @@ async fn cat_info(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Opt
             cat.parent_parent_coin_id, cat.parent_inner_puzzle_hash, cat.parent_amount,
             cat.p2_puzzle_hash, cat.asset_id
         FROM `coin_states` AS cs
-        INNER JOIN cat_info AS cat
+        INNER JOIN `cat_coins` AS cat
         ON cs.coin_id = cat.coin_id
         WHERE cs.coin_id = ?
         ",
