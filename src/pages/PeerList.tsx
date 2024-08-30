@@ -2,6 +2,12 @@ import { Delete, Star } from '@mui/icons-material';
 import {
   Box,
   Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  FormControlLabel,
   IconButton,
   List,
   ListItem,
@@ -9,10 +15,12 @@ import {
   ListItemIcon,
   ListItemText,
   Paper,
+  Switch,
+  Tooltip,
 } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { peerList } from '../commands';
+import { peerList, removePeer } from '../commands';
 import ListContainer from '../components/ListContainer';
 import NavBar from '../components/NavBar';
 import { PeerInfo } from '../models';
@@ -22,9 +30,19 @@ export default function NetworkList() {
 
   const [peers, setPeers] = useState<PeerInfo[] | null>(null);
 
-  useEffect(() => {
+  const updatePeers = () => {
     peerList().then(setPeers);
-  }, []);
+
+    const interval = setInterval(() => {
+      peerList().then(setPeers);
+    }, 1000);
+
+    return () => {
+      clearInterval(interval);
+    };
+  };
+
+  useEffect(updatePeers, []);
 
   const anyTrusted =
     peers === null ? false : peers.some((peer) => peer.trusted);
@@ -44,7 +62,12 @@ export default function NetworkList() {
             {peers
               .sort((a, b) => a.ip_addr.localeCompare(b.ip_addr))
               .map((peer, i) => (
-                <PeerItem key={i} peer={peer} anyTrusted={anyTrusted} />
+                <PeerItem
+                  key={i}
+                  peer={peer}
+                  anyTrusted={anyTrusted}
+                  updatePeers={updatePeers}
+                />
               ))}
           </List>
         )}
@@ -57,13 +80,20 @@ export default function NetworkList() {
   );
 }
 
-function PeerItem(props: { peer: PeerInfo; anyTrusted: boolean }) {
+function PeerItem(props: {
+  peer: PeerInfo;
+  anyTrusted: boolean;
+  updatePeers: () => void;
+}) {
+  const [removeOpen, setRemoveOpen] = useState(false);
+  const [ban, setBan] = useState(false);
+
   return (
     <ListItem
       disablePadding
       secondaryAction={
         <Box display='flex' gap={1.5}>
-          <IconButton edge='end'>
+          <IconButton edge='end' onClick={() => setRemoveOpen(true)}>
             <Delete />
           </IconButton>
         </Box>
@@ -81,6 +111,48 @@ function PeerItem(props: { peer: PeerInfo; anyTrusted: boolean }) {
           inset={!props.peer.trusted && props.anyTrusted}
         />
       </ListItemButton>
+
+      <Dialog open={removeOpen} onClose={() => setRemoveOpen(false)}>
+        <DialogTitle>Are you sure you want to remove the peer?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            This will remove the peer from your connections. If you are
+            currently syncing against this peer, a new one will be used to
+            replace it.
+          </DialogContentText>
+
+          <FormControlLabel
+            sx={{ mt: 2 }}
+            control={
+              <Switch
+                checked={ban}
+                onChange={(event) => setBan(event.target.checked)}
+              />
+            }
+            label={
+              <Tooltip
+                title='Will temporarily prevent the peer from being connected to.'
+                placement='bottom-start'
+                enterDelay={750}
+              >
+                <span>Ban peer temporarily</span>
+              </Tooltip>
+            }
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setRemoveOpen(false)}>Cancel</Button>
+          <Button
+            onClick={() => {
+              setRemoveOpen(false);
+              removePeer(props.peer.ip_addr, ban).then(props.updatePeers);
+            }}
+            autoFocus
+          >
+            Confirm
+          </Button>
+        </DialogActions>
+      </Dialog>
     </ListItem>
   );
 }

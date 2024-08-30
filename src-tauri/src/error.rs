@@ -1,3 +1,4 @@
+use std::net::AddrParseError;
 use std::num::ParseIntError;
 
 use chia::{clvm_traits::ToClvmError, protocol::Bytes32};
@@ -15,6 +16,9 @@ use tracing_appender::rolling::InitError;
 pub enum Error {
     #[error("Could not parse log level: {0}")]
     ParseLogLevel(#[from] ParseLevelError),
+
+    #[error("IP address parse error: {0}")]
+    ParseIp(#[from] AddrParseError),
 
     #[error("Log init error: {0}")]
     LogInit(#[from] InitError),

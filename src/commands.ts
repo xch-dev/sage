@@ -102,6 +102,10 @@ export async function peerList(): Promise<PeerInfo[]> {
   return await invoke('peer_list');
 }
 
+export async function removePeer(ipAddr: string, ban: boolean): Promise<void> {
+  await invoke('remove_peer', { ipAddr, ban });
+}
+
 export async function syncInfo(): Promise<SyncInfo> {
   return await invoke('sync_info');
 }

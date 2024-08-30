@@ -43,6 +43,7 @@ pub fn run() {
             commands::sync_info,
             // Peers
             commands::peer_list,
+            commands::remove_peer,
         ])
         .setup(|app| {
             let path = app.path().app_data_dir()?;
