@@ -6,8 +6,10 @@ use super::PeerMode;
 pub struct NetworkConfig {
     #[serde(default = "default_network_id")]
     pub network_id: String,
+
     #[serde(default = "default_target_peers")]
     pub target_peers: usize,
+
     #[serde(default)]
     pub peer_mode: PeerMode,
 }

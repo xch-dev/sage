@@ -5,10 +5,9 @@ use tokio::sync::Mutex;
 mod app_state;
 mod commands;
 mod config;
-mod discover_peers;
 mod error;
 mod models;
-mod puzzle_sync;
+mod sync;
 mod wallet;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

@@ -12,7 +12,7 @@ use crate::error::{Error, Result};
 pub struct Wallet {
     pub db: Database,
     pub fingerprint: u32,
-    pub _intermediate_pk: PublicKey,
+    pub intermediate_pk: PublicKey,
     pub genesis_challenge: Bytes32,
 }
 
@@ -26,7 +26,7 @@ impl Wallet {
         Self {
             db,
             fingerprint,
-            _intermediate_pk: intermediate_pk,
+            intermediate_pk,
             genesis_challenge,
         }
     }

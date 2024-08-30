@@ -18,15 +18,14 @@ use rand_chacha::ChaCha20Rng;
 use sage::{encrypt, KeyData, SecretKeyData};
 use sage_database::Database;
 use sqlx::SqlitePool;
-use tokio::{sync::Mutex, task::JoinHandle};
+use tokio::sync::Mutex;
 
 use crate::{
     config::{Config, DerivationMode, PeerMode, WalletConfig},
     error::{Error, Result},
     models::{WalletInfo, WalletKind},
-    peer_discovery::{peer_discovery, PeerContext},
     puzzle_sync::puzzle_sync,
-    sync_manager::SyncManager,
+    sync::SyncManager,
     wallet::Wallet,
 };
 
@@ -39,9 +38,7 @@ pub struct AppStateInner {
     pub networks: IndexMap<String, Network>,
     pub keys: HashMap<u32, KeyData>,
     pub wallet: Option<Arc<Wallet>>,
-    pub sync_manager: Arc<Mutex<SyncManager>>,
-    peer_discovery_task: Option<JoinHandle<()>>,
-    puzzle_sync_task: Option<JoinHandle<()>>,
+    pub sync_manager: Option<SyncManager>,
 }
 
 impl AppStateInner {
@@ -56,9 +53,7 @@ impl AppStateInner {
             },
             keys: HashMap::new(),
             wallet: None,
-            sync_manager: Arc::new(Mutex::new(SyncManager::new())),
-            peer_discovery_task: None,
-            puzzle_sync_task: None,
+            sync_manager: None,
         }
     }
 

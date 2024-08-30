@@ -759,11 +759,9 @@ dependencies = [
  "chia-protocol",
  "chia-sdk-derive",
  "clvm-traits",
- "clvm-utils",
  "clvmr",
  "hex-literal",
  "once_cell",
- "thiserror",
 ]
 
 [[package]]

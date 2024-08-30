@@ -90,6 +90,9 @@ pub enum Error {
 
     #[error("Erroneous rejection for coin state")]
     ErroneousCoinStateRejection,
+
+    #[error("Streamable error: {0}")]
+    Streamable(#[from] chia::traits::Error),
 }
 
 impl Serialize for Error {
