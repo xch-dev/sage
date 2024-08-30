@@ -40,7 +40,6 @@ export interface Network {
 }
 
 export interface PeerInfo {
-  node_id: string;
   ip_addr: string;
   port: number;
   trusted: boolean;

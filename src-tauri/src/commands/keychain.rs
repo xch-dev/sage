@@ -54,7 +54,7 @@ pub async fn login_wallet(state: State<'_, AppState>, fingerprint: u32) -> Resul
     let mut state = state.lock().await;
     state.config.wallet.active_fingerprint = Some(fingerprint);
     state.save_config()?;
-    state.setup_wallet().await
+    state.switch_wallet().await
 }
 
 #[command]
@@ -62,7 +62,7 @@ pub async fn logout_wallet(state: State<'_, AppState>) -> Result<()> {
     let mut state = state.lock().await;
     state.config.wallet.active_fingerprint = None;
     state.save_config()?;
-    state.setup_wallet().await
+    state.switch_wallet().await
 }
 
 #[command]
@@ -102,7 +102,7 @@ pub async fn create_wallet(
     state.config.wallet.active_fingerprint = Some(fingerprint);
     state.save_config()?;
 
-    state.setup_wallet().await
+    state.switch_wallet().await
 }
 
 #[command]
@@ -135,7 +135,7 @@ pub async fn import_wallet(state: State<'_, AppState>, name: String, key: String
     state.config.wallet.active_fingerprint = Some(fingerprint);
     state.save_config()?;
 
-    state.setup_wallet().await
+    state.switch_wallet().await
 }
 
 #[command]

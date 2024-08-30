@@ -64,7 +64,7 @@ pub async fn initialize(state: State<'_, AppState>) -> Result<()> {
 
     info!("Initial setup complete");
 
-    state.setup_networking(false).await?;
+    state.reset_sync_task(false).await?;
 
     Ok(())
 }

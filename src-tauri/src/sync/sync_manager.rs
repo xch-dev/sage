@@ -1,4 +1,8 @@
-use std::{net::SocketAddr, sync::Arc, time::Duration};
+use std::{
+    net::{IpAddr, SocketAddr},
+    sync::Arc,
+    time::Duration,
+};
 
 use chia::{
     protocol::{Message, NewPeakWallet, ProtocolMessageTypes},
@@ -15,15 +19,20 @@ use tokio::{
 };
 use tracing::info;
 
-use crate::config::NetworkConfig;
+use crate::{
+    config::{NetworkConfig, PeerMode},
+    wallet::Wallet,
+};
 
 use super::{
     peer_state::{handle_peer, handle_peer_events, PeerEvent, PeerState},
     sync_state::SyncState,
+    wallet_sync::{lookup_puzzles, sync_wallet},
 };
 
 pub struct SyncManager {
     state: Arc<Mutex<SyncState>>,
+    wallet: Option<Arc<Wallet>>,
     network_id: NetworkId,
     network: Network,
     network_config: NetworkConfig,
@@ -31,11 +40,26 @@ pub struct SyncManager {
     interval: Duration,
     sender: mpsc::Sender<PeerEvent>,
     receiver_task: JoinHandle<()>,
+    wallet_sync_task: Option<(IpAddr, JoinHandle<()>)>,
+    puzzle_lookup_task: Option<JoinHandle<()>>,
+}
+
+impl Drop for SyncManager {
+    fn drop(&mut self) {
+        self.receiver_task.abort();
+        if let Some((_, task)) = &mut self.wallet_sync_task {
+            task.abort();
+        }
+        if let Some(task) = &mut self.puzzle_lookup_task {
+            task.abort();
+        }
+    }
 }
 
 impl SyncManager {
     pub fn new(
         state: Arc<Mutex<SyncState>>,
+        wallet: Option<Arc<Wallet>>,
         network_id: NetworkId,
         network: Network,
         network_config: NetworkConfig,
@@ -47,6 +71,7 @@ impl SyncManager {
 
         Self {
             state,
+            wallet,
             network_id,
             network,
             network_config,
@@ -54,6 +79,8 @@ impl SyncManager {
             interval,
             sender,
             receiver_task,
+            wallet_sync_task: None,
+            puzzle_lookup_task: None,
         }
     }
 
@@ -67,9 +94,13 @@ impl SyncManager {
     async fn update(&mut self) {
         let peer_count = self.state.lock().await.peer_count();
 
-        if peer_count < self.network_config.target_peers {
+        if self.network_config.peer_mode == PeerMode::Automatic
+            && peer_count < self.network_config.target_peers
+        {
             self.dns_discovery().await;
         }
+
+        self.update_tasks().await;
     }
 
     async fn dns_discovery(&mut self) {
@@ -167,5 +198,34 @@ impl SyncManager {
         });
 
         true
+    }
+
+    async fn update_tasks(&mut self) {
+        let state = self.state.lock().await;
+
+        if let Some(task) = &mut self.wallet_sync_task {
+            if !state.is_connected(task.0) {
+                task.1.abort();
+                self.wallet_sync_task = None;
+            }
+        }
+
+        if let Some(wallet) = self.wallet.clone() {
+            if self.wallet_sync_task.is_none() {
+                if let Some(peer) = state.acquire_peer() {
+                    let ip = peer.socket_addr().ip();
+                    let task = tokio::spawn(sync_wallet(wallet.clone(), peer));
+                    self.wallet_sync_task = Some((ip, task));
+                }
+            }
+
+            if self.puzzle_lookup_task.is_none() {
+                let task = tokio::spawn(lookup_puzzles(wallet, self.state.clone()));
+                self.puzzle_lookup_task = Some(task);
+            }
+        } else {
+            self.wallet_sync_task = None;
+            self.puzzle_lookup_task = None;
+        }
     }
 }

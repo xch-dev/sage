@@ -3,6 +3,7 @@ use std::{
     fs,
     path::{Path, PathBuf},
     sync::Arc,
+    time::Duration,
 };
 
 use bip39::Mnemonic;
@@ -10,7 +11,7 @@ use chia::{
     bls::{master_to_wallet_unhardened_intermediate, DerivableKey, PublicKey, SecretKey},
     puzzles::{standard::StandardArgs, DeriveSynthetic},
 };
-use chia_wallet_sdk::{create_tls_connector, load_ssl_cert, Network};
+use chia_wallet_sdk::{create_tls_connector, load_ssl_cert, Network, NetworkId};
 use indexmap::{indexmap, IndexMap};
 use itertools::Itertools;
 use rand::SeedableRng;
@@ -18,14 +19,13 @@ use rand_chacha::ChaCha20Rng;
 use sage::{encrypt, KeyData, SecretKeyData};
 use sage_database::Database;
 use sqlx::SqlitePool;
-use tokio::sync::Mutex;
+use tokio::{sync::Mutex, task::JoinHandle};
 
 use crate::{
-    config::{Config, DerivationMode, PeerMode, WalletConfig},
+    config::{Config, WalletConfig},
     error::{Error, Result},
     models::{WalletInfo, WalletKind},
-    puzzle_sync::puzzle_sync,
-    sync::SyncManager,
+    sync::{SyncManager, SyncState},
     wallet::Wallet,
 };
 
@@ -38,7 +38,8 @@ pub struct AppStateInner {
     pub networks: IndexMap<String, Network>,
     pub keys: HashMap<u32, KeyData>,
     pub wallet: Option<Arc<Wallet>>,
-    pub sync_manager: Option<SyncManager>,
+    pub sync_task: Option<JoinHandle<()>>,
+    pub sync_state: Arc<Mutex<SyncState>>,
 }
 
 impl AppStateInner {
@@ -53,16 +54,17 @@ impl AppStateInner {
             },
             keys: HashMap::new(),
             wallet: None,
-            sync_manager: None,
+            sync_task: None,
+            sync_state: Arc::new(Mutex::new(SyncState::default())),
         }
     }
 
-    pub async fn setup_networking(&mut self, reset_peers: bool) -> Result<()> {
+    pub async fn reset_sync_task(&mut self, reset_peers: bool) -> Result<()> {
         if reset_peers {
-            self.sync_manager = Arc::new(Mutex::new(SyncManager::new()));
+            self.sync_state = Arc::new(Mutex::new(SyncState::default()));
         }
 
-        if let Some(task) = self.peer_discovery_task.take() {
+        if let Some(task) = self.sync_task.take() {
             task.abort();
         }
 
@@ -83,29 +85,26 @@ impl AppStateInner {
 
         let tls_connector = create_tls_connector(&cert)?;
 
-        if self.config.network.peer_mode == PeerMode::Automatic {
-            self.peer_discovery_task = Some(tokio::spawn(peer_discovery(PeerContext {
-                tls_connector,
-                config: self.config.network.clone(),
+        self.sync_task = Some(tokio::spawn(
+            SyncManager::new(
+                self.sync_state.clone(),
+                self.wallet.clone(),
+                NetworkId::Custom(network_id),
                 network,
-                sync_manager: self.sync_manager.clone(),
-            })));
-        } else {
-            self.peer_discovery_task = None;
-        }
-
-        self.setup_wallet().await?;
+                self.config.network.clone(),
+                tls_connector,
+                Duration::from_secs(3),
+            )
+            .sync(),
+        ));
 
         Ok(())
     }
 
-    pub async fn setup_wallet(&mut self) -> Result<()> {
+    pub async fn switch_wallet(&mut self) -> Result<()> {
         let Some(fingerprint) = self.config.wallet.active_fingerprint else {
             self.wallet = None;
-            self.sync_manager.lock().await.switch_wallet(None);
-            if let Some(task) = self.puzzle_sync_task.take() {
-                task.abort();
-            }
+            self.reset_sync_task(false).await?;
             return Ok(());
         };
 
@@ -166,20 +165,7 @@ impl AppStateInner {
 
         self.wallet = Some(wallet.clone());
 
-        let mut sync_manager = self.sync_manager.lock().await;
-
-        sync_manager.update_settings(
-            wallet_config.derivation_batch_size,
-            wallet_config.derivation_mode == DerivationMode::Automatic,
-        );
-
-        sync_manager.switch_wallet(Some(wallet.clone()));
-
-        self.puzzle_sync_task = Some(tokio::spawn(puzzle_sync(
-            wallet,
-            self.sync_manager.clone(),
-            genesis_challenge,
-        )));
+        self.reset_sync_task(false).await?;
 
         Ok(())
     }

@@ -4,6 +4,7 @@ use std::{
 };
 
 use chia::protocol::Bytes32;
+use chia_wallet_sdk::Peer;
 
 use super::peer_state::PeerState;
 
@@ -31,8 +32,23 @@ impl SyncState {
             .unwrap_or(0)
     }
 
+    pub fn peers(&self) -> impl Iterator<Item = &Peer> {
+        self.peers.values().map(|peer| &peer.peer)
+    }
+
     pub fn peer_count(&self) -> usize {
         self.peers.len()
+    }
+
+    pub fn is_connected(&self, ip: IpAddr) -> bool {
+        self.peers.contains_key(&ip)
+    }
+
+    pub fn acquire_peer(&self) -> Option<Peer> {
+        self.peers
+            .values()
+            .max_by_key(|peer| peer.claimed_peak)
+            .map(|peer| peer.peer.clone())
     }
 
     pub fn ban(&mut self, ip: IpAddr) {
