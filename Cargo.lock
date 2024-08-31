@@ -4030,6 +4030,7 @@ dependencies = [
  "hex",
  "indexmap 2.3.0",
  "itertools",
+ "log",
  "native-tls",
  "rand 0.8.5",
  "rand_chacha 0.3.1",

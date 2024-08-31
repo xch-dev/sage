@@ -2,6 +2,7 @@ use std::{
     collections::HashMap,
     fs,
     path::{Path, PathBuf},
+    str::FromStr,
     sync::Arc,
     time::Duration,
 };
@@ -18,7 +19,10 @@ use rand::SeedableRng;
 use rand_chacha::ChaCha20Rng;
 use sage::{encrypt, KeyData, SecretKeyData};
 use sage_database::Database;
-use sqlx::SqlitePool;
+use sqlx::{
+    sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions},
+    ConnectOptions,
+};
 use tokio::{sync::Mutex, task::JoinHandle};
 
 use crate::{
@@ -140,7 +144,13 @@ impl AppStateInner {
         let network_id = &self.config.network.network_id;
         let genesis_challenge = self.networks[network_id].genesis_challenge;
         let path = path.join(format!("{network_id}.sqlite"));
-        let pool = SqlitePool::connect(&format!("sqlite://{}?mode=rwc", path.display())).await?;
+        let pool = SqlitePoolOptions::new()
+            .connect_with(
+                SqliteConnectOptions::from_str(&format!("sqlite://{}?mode=rwc", path.display()))?
+                    .journal_mode(SqliteJournalMode::Wal)
+                    .log_statements(log::LevelFilter::Trace),
+            )
+            .await?;
         sqlx::migrate!("../migrations").run(&pool).await?;
 
         let db = Database::new(pool);
