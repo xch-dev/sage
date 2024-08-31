@@ -51,6 +51,14 @@ export interface SyncInfo {
   synced_coins: number;
 }
 
+export interface P2CoinData {
+  coin_id: string;
+  address: string;
+  created_height: number | null;
+  spent_height: number | null;
+  amount: string;
+}
+
 export interface DidData {
   encoded_id: string;
   launcher_id: string;

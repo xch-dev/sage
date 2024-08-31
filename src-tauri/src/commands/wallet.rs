@@ -1,11 +1,10 @@
-use bigdecimal::BigDecimal;
 use chia_wallet_sdk::encode_address;
 use tauri::{command, State};
 
 use crate::{
     app_state::AppState,
     error::{Error, Result},
-    models::{DidData, NftData, SyncInfo},
+    models::{encode_xch_amount, DidData, NftData, P2CoinData, SyncInfo},
 };
 
 #[command]
@@ -22,11 +21,31 @@ pub async fn sync_info(state: State<'_, AppState>) -> Result<SyncInfo> {
     tx.commit().await?;
 
     Ok(SyncInfo {
-        xch_balance: (BigDecimal::from(balance) / BigDecimal::from(1_000_000_000_000u128))
-            .to_string(),
+        xch_balance: encode_xch_amount(balance),
         total_coins,
         synced_coins,
     })
+}
+
+#[command]
+pub async fn p2_coin_list(state: State<'_, AppState>) -> Result<Vec<P2CoinData>> {
+    let state = state.lock().await;
+    let wallet = state.wallet.as_ref().ok_or(Error::NoActiveWallet)?;
+
+    let coin_states = wallet.db.unspent_p2_coin_states().await?;
+
+    coin_states
+        .into_iter()
+        .map(|cs| {
+            Ok(P2CoinData {
+                coin_id: cs.coin.coin_id(),
+                address: encode_address(cs.coin.puzzle_hash.to_bytes(), state.prefix())?,
+                created_height: cs.created_height,
+                spent_height: cs.spent_height,
+                amount: encode_xch_amount(cs.coin.amount as u128),
+            })
+        })
+        .collect()
 }
 
 #[command]
@@ -45,7 +64,7 @@ pub async fn did_list(state: State<'_, AppState>) -> Result<Vec<DidData>> {
         did_data.push(DidData {
             encoded_id: encode_address(did.info.launcher_id.to_bytes(), "did:chia:")?,
             launcher_id: did.info.launcher_id,
-            address: encode_address(did.info.p2_puzzle_hash.to_bytes(), "xch")?,
+            address: encode_address(did.info.p2_puzzle_hash.to_bytes(), state.prefix())?,
         });
     }
 
@@ -70,7 +89,7 @@ pub async fn nft_list(state: State<'_, AppState>) -> Result<Vec<NftData>> {
         nft_data.push(NftData {
             encoded_id: encode_address(nft.info.launcher_id.to_bytes(), "nft")?,
             launcher_id: nft.info.launcher_id,
-            address: encode_address(nft.info.p2_puzzle_hash.to_bytes(), "xch")?,
+            address: encode_address(nft.info.p2_puzzle_hash.to_bytes(), state.prefix())?,
         });
     }
 

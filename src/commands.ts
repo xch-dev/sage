@@ -5,6 +5,7 @@ import {
   Network,
   NetworkConfig,
   NftData,
+  P2CoinData,
   PeerInfo,
   PeerMode,
   SyncInfo,
@@ -110,6 +111,10 @@ export async function removePeer(ipAddr: string, ban: boolean): Promise<void> {
 
 export async function syncInfo(): Promise<SyncInfo> {
   return await invoke('sync_info');
+}
+
+export async function p2CoinList(): Promise<P2CoinData[]> {
+  return await invoke('p2_coin_list');
 }
 
 export async function didList(): Promise<DidData[]> {

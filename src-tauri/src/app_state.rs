@@ -186,6 +186,13 @@ impl AppStateInner {
         Ok(())
     }
 
+    pub fn prefix(&self) -> &'static str {
+        match self.config.network.network_id.as_str() {
+            "mainnet" => "xch",
+            _ => "txch",
+        }
+    }
+
     pub fn try_wallet_config(&self, fingerprint: u32) -> Result<&WalletConfig> {
         self.config
             .wallets

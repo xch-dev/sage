@@ -1,6 +1,10 @@
 import {
   AccountBalance,
+  ArrowForward,
   Collections,
+  CompareArrows,
+  ForkRight,
+  KeyboardArrowDown,
   Wallet as WalletIcon,
 } from '@mui/icons-material';
 import {
@@ -8,19 +12,25 @@ import {
   BottomNavigation,
   BottomNavigationAction,
   Box,
+  Button,
   ListItemAvatar,
   ListItemButton,
+  ListItemIcon,
   ListItemText,
+  Menu,
+  MenuItem,
   Paper,
   Typography,
 } from '@mui/material';
 import Grid2 from '@mui/material/Unstable_Grid2/Grid2';
+import { DataGrid, GridRowSelectionModel } from '@mui/x-data-grid';
+import BigNumber from 'bignumber.js';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as commands from '../commands';
 import ListContainer from '../components/ListContainer';
 import NavBar from '../components/NavBar';
-import { DidData, NftData, SyncInfo, WalletInfo } from '../models';
+import { NftData, P2CoinData, SyncInfo, WalletInfo } from '../models';
 
 export default function Wallet() {
   const navigate = useNavigate();
@@ -31,8 +41,11 @@ export default function Wallet() {
     total_coins: 0,
     synced_coins: 0,
   });
-  const [didList, setDidList] = useState<DidData[]>([]);
+  const [p2Coins, setP2Coins] = useState<P2CoinData[]>([]);
   const [tab, setTab] = useState(0);
+
+  const [rowSelectionModel, setRowSelectionModel] =
+    useState<GridRowSelectionModel>([]);
 
   useEffect(() => {
     commands.activeWallet().then((wallet) => {
@@ -43,82 +56,156 @@ export default function Wallet() {
 
   useEffect(() => {
     commands.syncInfo().then(setSyncInfo);
+    commands.p2CoinList().then(setP2Coins);
 
     const interval = setInterval(() => {
       commands.syncInfo().then(setSyncInfo);
+      commands.p2CoinList().then(setP2Coins);
     }, 2000);
 
     return () => clearInterval(interval);
   }, []);
 
-  useEffect(() => {
-    commands.didList().then(setDidList);
-
-    const interval = setInterval(() => {
-      commands.didList().then(setDidList);
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, []);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const open = Boolean(anchorEl);
+  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
 
   return (
     <>
       <NavBar label={wallet?.name ?? 'Loading...'} back='logout' />
 
       <ListContainer>
-        {tab === 0 ? (
-          <Grid2
-            container
-            spacing={2}
-            alignItems='center'
-            justifyContent='center'
-          >
-            <Grid2 xs={12} md={6}>
-              <Paper sx={{ p: 1.5, px: 2 }}>
-                <Typography
-                  fontSize={20}
-                  fontWeight='normal'
-                  color='text.secondary'
-                >
-                  Balance
-                </Typography>
-                <Typography fontSize={22}>{syncInfo.xch_balance}</Typography>
-              </Paper>
-            </Grid2>
-            <Grid2 xs={12} md={6}>
-              <Paper sx={{ p: 1.5, px: 2 }}>
-                <Typography
-                  fontSize={20}
-                  fontWeight='normal'
-                  color='text.secondary'
-                >
-                  Sync Status
-                </Typography>
-                <Typography fontSize={22}>
-                  {syncInfo.synced_coins}/{syncInfo.total_coins} Coins
-                </Typography>
-              </Paper>
-            </Grid2>
-          </Grid2>
-        ) : tab === 1 ? (
-          <TokenList />
-        ) : (
-          <NftList />
-        )}
+        <Box pb={11}>
+          {tab === 0 ? (
+            <>
+              <Grid2
+                container
+                spacing={2}
+                alignItems='center'
+                justifyContent='center'
+              >
+                <Grid2 xs={12} md={6}>
+                  <Paper sx={{ p: 1.5, px: 2 }}>
+                    <Typography
+                      fontSize={20}
+                      fontWeight='normal'
+                      color='text.secondary'
+                    >
+                      Balance
+                    </Typography>
+                    <Typography fontSize={22}>
+                      {syncInfo.xch_balance}
+                    </Typography>
+                  </Paper>
+                </Grid2>
+                <Grid2 xs={12} md={6}>
+                  <Paper sx={{ p: 1.5, px: 2 }}>
+                    <Typography
+                      fontSize={20}
+                      fontWeight='normal'
+                      color='text.secondary'
+                    >
+                      Sync Status
+                    </Typography>
+                    <Typography fontSize={22}>
+                      {syncInfo.synced_coins}/{syncInfo.total_coins} Coins
+                    </Typography>
+                  </Paper>
+                </Grid2>
+              </Grid2>
 
-        {didList.map((did) => (
-          <Paper key={did.launcher_id} sx={{ mt: 2 }}>
-            <ListItemButton>
-              <ListItemAvatar>
-                <Avatar />
-              </ListItemAvatar>
-              <ListItemText
-                primary={did.encoded_id}
-                secondary={did.launcher_id}
-              />
-            </ListItemButton>
-          </Paper>
-        ))}
+              <Box mt={2}>
+                <Box display='flex' justifyContent='end'>
+                  <Button
+                    variant='outlined'
+                    endIcon={<KeyboardArrowDown />}
+                    disabled={rowSelectionModel.length === 0}
+                    onClick={handleClick}
+                  >
+                    Actions
+                  </Button>
+
+                  <Menu
+                    anchorEl={anchorEl}
+                    open={open}
+                    onClose={handleClose}
+                    MenuListProps={{
+                      'aria-labelledby': 'basic-button',
+                    }}
+                  >
+                    <MenuItem disabled={rowSelectionModel.length < 2}>
+                      <ListItemIcon>
+                        <CompareArrows fontSize='small' />
+                      </ListItemIcon>
+                      <ListItemText>Combine</ListItemText>
+                    </MenuItem>
+
+                    <MenuItem>
+                      <ListItemIcon>
+                        <ForkRight fontSize='small' />
+                      </ListItemIcon>
+                      <ListItemText>Split</ListItemText>
+                    </MenuItem>
+
+                    <MenuItem>
+                      <ListItemIcon>
+                        <ArrowForward fontSize='small' />
+                      </ListItemIcon>
+                      <ListItemText>Transfer</ListItemText>
+                    </MenuItem>
+                  </Menu>
+                </Box>
+
+                <DataGrid
+                  sx={{ mt: 1, height: 340 }}
+                  columns={[
+                    { field: 'id', headerName: 'Coin Id', width: 150 },
+                    {
+                      field: 'amount',
+                      headerName: 'Amount',
+                      width: 125,
+                      valueGetter: (_value, row) => new BigNumber(row.amount),
+                    },
+                    { field: 'confirmed', headerName: 'Confirmed', width: 100 },
+                    { field: 'spent', headerName: 'Spent', width: 100 },
+                  ]}
+                  rows={p2Coins.map((coin) => ({
+                    id: coin.coin_id,
+                    amount: coin.amount,
+                    confirmed: coin.created_height,
+                    spent: coin.spent_height ?? 'N/A',
+                  }))}
+                  rowHeight={48}
+                  checkboxSelection
+                  onRowSelectionModelChange={(newRowSelectionModel) => {
+                    setRowSelectionModel(newRowSelectionModel);
+                  }}
+                  rowSelectionModel={rowSelectionModel}
+                  initialState={{
+                    sorting: {
+                      sortModel: [{ field: 'confirmed', sort: 'desc' }],
+                    },
+                    pagination: {
+                      paginationModel: {
+                        pageSize: 10,
+                      },
+                    },
+                  }}
+                  pageSizeOptions={[10, 25, 50, 100]}
+                />
+              </Box>
+            </>
+          ) : tab === 1 ? (
+            <TokenList />
+          ) : (
+            <NftList />
+          )}
+        </Box>
       </ListContainer>
 
       <Paper
