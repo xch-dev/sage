@@ -29,6 +29,7 @@ pub async fn sync_wallet(
     wallet: Arc<Wallet>,
     genesis_challenge: Bytes32,
     peer: Peer,
+    state: Arc<Mutex<SyncState>>,
 ) -> Result<()> {
     info!("Starting sync against peer {}", peer.socket_addr());
 
@@ -42,22 +43,16 @@ pub async fn sync_wallet(
 
     let mut derive_more = true;
 
-    let mut new_peak = None;
-
     for batch in p2_puzzle_hashes.chunks(1000) {
-        let sync =
+        derive_more |=
             sync_puzzle_hashes(&wallet, &peer, start_height, start_header_hash, batch).await?;
-
-        derive_more = sync.found_coins;
-
-        if new_peak.is_none() {
-            new_peak = Some((sync.prev_height, sync.prev_header_hash));
-        }
     }
 
     let mut start_index = p2_puzzle_hashes.len() as u32;
 
     while derive_more {
+        derive_more = false;
+
         let intermediate_pk = wallet.intermediate_pk;
 
         let new_derivations = spawn_blocking(move || {
@@ -79,13 +74,8 @@ pub async fn sync_wallet(
             .collect();
 
         for batch in p2_puzzle_hashes.chunks(1000) {
-            let sync = sync_puzzle_hashes(&wallet, &peer, None, genesis_challenge, batch).await?;
-
-            derive_more = sync.found_coins;
-
-            if new_peak.is_none() {
-                new_peak = Some((sync.prev_height, sync.prev_header_hash));
-            }
+            derive_more |=
+                sync_puzzle_hashes(&wallet, &peer, None, genesis_challenge, batch).await?;
         }
 
         start_index += new_derivations.len() as u32;
@@ -95,10 +85,18 @@ pub async fn sync_wallet(
             tx.insert_derivation(p2_puzzle_hash, index, false, synthetic_key)
                 .await?;
         }
-        if let Some((Some(height), header_hash)) = new_peak {
-            tx.insert_peak(height, header_hash).await?;
-        }
         tx.commit().await?;
+    }
+
+    if let Some((height, header_hash)) = state.lock().await.peak() {
+        // TODO: Maybe look into a better way.
+        info!(
+            "Updating peak to height {} with header hash {}",
+            height, header_hash
+        );
+        wallet.db.insert_peak(height, header_hash).await?;
+    } else {
+        warn!("No peak found");
     }
 
     Ok(())
@@ -123,6 +121,11 @@ pub async fn lookup_puzzles(
         }
 
         let peers: Vec<Peer> = state.lock().await.peers().cloned().collect();
+
+        if peers.is_empty() {
+            sleep(Duration::from_secs(5)).await;
+            continue;
+        }
 
         info!(
             "Looking up puzzles for {} coins",
@@ -154,8 +157,6 @@ pub async fn lookup_puzzles(
                 wallet.db.mark_coin_synced(coin_id).await?;
             }
         }
-
-        sleep(Duration::from_secs(1)).await;
     }
 }
 
@@ -166,7 +167,7 @@ async fn lookup_puzzle(
     coin_state: CoinState,
 ) -> Result<()> {
     let Some(parent_coin_state) = timeout(
-        Duration::from_secs(2),
+        Duration::from_secs(3),
         peer.request_coin_state(
             vec![coin_state.coin.parent_coin_info],
             None,
@@ -244,12 +245,6 @@ async fn lookup_puzzle(
     Ok(())
 }
 
-struct Sync {
-    found_coins: bool,
-    prev_height: Option<u32>,
-    prev_header_hash: Bytes32,
-}
-
 #[instrument(skip(wallet, peer, puzzle_hashes))]
 async fn sync_puzzle_hashes(
     wallet: &Wallet,
@@ -257,7 +252,7 @@ async fn sync_puzzle_hashes(
     start_height: Option<u32>,
     start_header_hash: Bytes32,
     puzzle_hashes: &[Bytes32],
-) -> Result<Sync> {
+) -> Result<bool> {
     let mut prev_height = start_height;
     let mut prev_header_hash = start_header_hash;
     let mut found_coins = false;
@@ -271,7 +266,7 @@ async fn sync_puzzle_hashes(
         );
 
         let response = timeout(
-            Duration::from_secs(5),
+            Duration::from_secs(15),
             peer.request_puzzle_state(
                 puzzle_hashes.to_vec(),
                 prev_height,
@@ -302,12 +297,12 @@ async fn sync_puzzle_hashes(
 
                 tx.commit().await?;
 
+                prev_height = Some(data.height);
+                prev_header_hash = data.header_hash;
+
                 if data.is_finished {
                     break;
                 }
-
-                prev_height = Some(data.height);
-                prev_header_hash = data.header_hash;
             }
             Err(rejection) => match rejection.reason {
                 RejectStateReason::ExceededSubscriptionLimit => {
@@ -325,9 +320,5 @@ async fn sync_puzzle_hashes(
         }
     }
 
-    Ok(Sync {
-        found_coins,
-        prev_height,
-        prev_header_hash,
-    })
+    Ok(found_coins)
 }

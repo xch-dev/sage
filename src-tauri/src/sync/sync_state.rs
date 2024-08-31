@@ -5,6 +5,7 @@ use std::{
 
 use chia::protocol::Bytes32;
 use chia_wallet_sdk::Peer;
+use itertools::Itertools;
 
 use super::peer_state::PeerState;
 
@@ -24,12 +25,12 @@ impl SyncState {
         }
     }
 
-    pub fn peak_height(&self) -> u32 {
+    pub fn peak(&self) -> Option<(u32, Bytes32)> {
         self.peers
             .values()
-            .map(|peer| peer.claimed_peak)
-            .max()
-            .unwrap_or(0)
+            .map(|peer| (peer.claimed_peak, peer.header_hash))
+            .sorted_by_key(|(height, _)| -(*height as i64))
+            .next()
     }
 
     pub fn peers(&self) -> impl Iterator<Item = &Peer> {

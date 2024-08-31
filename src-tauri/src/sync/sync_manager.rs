@@ -9,7 +9,7 @@ use chia::{
     traits::Streamable,
 };
 use chia_wallet_sdk::{connect_peer, Network, NetworkId, Peer};
-use futures_lite::StreamExt;
+use futures_lite::{future::poll_once, StreamExt};
 use futures_util::stream::FuturesUnordered;
 use native_tls::TlsConnector;
 use tokio::{
@@ -17,7 +17,7 @@ use tokio::{
     task::JoinHandle,
     time::{sleep, timeout},
 };
-use tracing::debug;
+use tracing::{debug, warn};
 
 use crate::{
     config::{NetworkConfig, PeerMode},
@@ -111,6 +111,7 @@ impl SyncManager {
         }
 
         self.update_tasks().await;
+        self.poll_tasks().await;
     }
 
     async fn dns_discovery(&mut self) {
@@ -222,6 +223,7 @@ impl SyncManager {
                             wallet.clone(),
                             self.network.genesis_challenge,
                             peer,
+                            self.state.clone(),
                         ));
                         *sync = InitialWalletSync::Syncing { ip, task };
                     }
@@ -252,6 +254,26 @@ impl SyncManager {
             }
         } else {
             self.puzzle_lookup_task = None;
+        }
+    }
+
+    async fn poll_tasks(&mut self) {
+        if let InitialWalletSync::Syncing { ip, task } = &mut self.initial_wallet_sync {
+            if let Ok(Some(result)) = timeout(Duration::from_secs(1), poll_once(task)).await {
+                match result {
+                    Ok(Ok(())) => {
+                        self.initial_wallet_sync = InitialWalletSync::Subscribed(*ip);
+                    }
+                    Ok(Err(error)) => {
+                        warn!("Initial wallet sync failed: {error}");
+                        self.initial_wallet_sync = InitialWalletSync::Idle;
+                    }
+                    Err(_timeout) => {
+                        warn!("Initial wallet sync timed out");
+                        self.initial_wallet_sync = InitialWalletSync::Idle;
+                    }
+                }
+            }
         }
     }
 }

@@ -28,7 +28,7 @@ async fn insert_p2_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Resu
 
     sqlx::query!(
         "
-        INSERT INTO `p2_coins` (`coin_id`) VALUES (?)
+        REPLACE INTO `p2_coins` (`coin_id`) VALUES (?)
         ",
         coin_id
     )

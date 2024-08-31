@@ -60,7 +60,7 @@ async fn insert_cat_coin(
 
     sqlx::query!(
         "
-        INSERT INTO `cat_coins` (
+        REPLACE INTO `cat_coins` (
             `coin_id`,
             `parent_parent_coin_id`,
             `parent_inner_puzzle_hash`,
