@@ -51,7 +51,14 @@ export interface SyncInfo {
   synced_coins: number;
 }
 
+export interface DidData {
+  encoded_id: string;
+  launcher_id: string;
+  address: string;
+}
+
 export interface NftData {
+  encoded_id: string;
   launcher_id: string;
   address: string;
 }

@@ -1,6 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import {
   DerivationMode,
+  DidData,
   Network,
   NetworkConfig,
   NftData,
@@ -109,6 +110,10 @@ export async function removePeer(ipAddr: string, ban: boolean): Promise<void> {
 
 export async function syncInfo(): Promise<SyncInfo> {
   return await invoke('sync_info');
+}
+
+export async function didList(): Promise<DidData[]> {
+  return await invoke('did_list');
 }
 
 export async function nftList(): Promise<NftData[]> {

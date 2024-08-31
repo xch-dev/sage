@@ -20,7 +20,7 @@ import { useNavigate } from 'react-router-dom';
 import * as commands from '../commands';
 import ListContainer from '../components/ListContainer';
 import NavBar from '../components/NavBar';
-import { NftData, SyncInfo, WalletInfo } from '../models';
+import { DidData, NftData, SyncInfo, WalletInfo } from '../models';
 
 export default function Wallet() {
   const navigate = useNavigate();
@@ -31,6 +31,7 @@ export default function Wallet() {
     total_coins: 0,
     synced_coins: 0,
   });
+  const [didList, setDidList] = useState<DidData[]>([]);
   const [tab, setTab] = useState(0);
 
   useEffect(() => {
@@ -46,6 +47,16 @@ export default function Wallet() {
     const interval = setInterval(() => {
       commands.syncInfo().then(setSyncInfo);
     }, 2000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    commands.didList().then(setDidList);
+
+    const interval = setInterval(() => {
+      commands.didList().then(setDidList);
+    }, 5000);
 
     return () => clearInterval(interval);
   }, []);
@@ -94,6 +105,20 @@ export default function Wallet() {
         ) : (
           <NftList />
         )}
+
+        {didList.map((did) => (
+          <Paper key={did.launcher_id} sx={{ mt: 2 }}>
+            <ListItemButton>
+              <ListItemAvatar>
+                <Avatar />
+              </ListItemAvatar>
+              <ListItemText
+                primary={did.encoded_id}
+                secondary={did.launcher_id}
+              />
+            </ListItemButton>
+          </Paper>
+        ))}
       </ListContainer>
 
       <Paper

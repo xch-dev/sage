@@ -6,7 +6,7 @@ use chia::{
     protocol::{Bytes32, CoinState, CoinStateFilters, Program, RejectStateReason},
     puzzles::{standard::StandardArgs, DeriveSynthetic, Proof},
 };
-use chia_wallet_sdk::{Cat, HashedPtr, Nft, Peer, Primitive, Puzzle};
+use chia_wallet_sdk::{Cat, Did, HashedPtr, Nft, Peer, Primitive, Puzzle};
 use clvmr::Allocator;
 use futures_lite::StreamExt;
 use futures_util::stream::FuturesUnordered;
@@ -104,6 +104,7 @@ pub async fn sync_wallet(
 
 enum PuzzleInfo {
     Cat(Box<Cat>),
+    Did(Box<Did<Program>>),
     Nft(Box<Nft<Program>>),
     Unknown,
 }
@@ -218,6 +219,19 @@ async fn lookup_puzzle(
             return Ok(PuzzleInfo::Cat(Box::new(cat)));
         }
 
+        let did = Did::<HashedPtr>::from_parent_spend(
+            &mut allocator,
+            parent_coin,
+            parent_puzzle,
+            parent_solution,
+            coin,
+        );
+
+        if let Some(did) = did.ok().flatten() {
+            let metadata = Program::from_clvm(&allocator, did.info.metadata.ptr())?;
+            return Ok(PuzzleInfo::Did(Box::new(did.with_metadata(metadata))));
+        }
+
         let nft = Nft::<HashedPtr>::from_parent_spend(
             &mut allocator,
             parent_coin,
@@ -247,6 +261,12 @@ async fn lookup_puzzle(
                     cat.asset_id,
                 )
                 .await?;
+            }
+        }
+        PuzzleInfo::Did(did) => {
+            if let Proof::Lineage(lineage_proof) = did.proof {
+                tx.insert_did_coin(did.coin.coin_id(), lineage_proof, did.info)
+                    .await?;
             }
         }
         PuzzleInfo::Nft(nft) => {

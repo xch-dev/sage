@@ -2,6 +2,7 @@ mod cat_coins;
 mod coin_states;
 mod database;
 mod derivations;
+mod did_coins;
 mod error;
 mod nft_coins;
 mod p2_coins;

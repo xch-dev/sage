@@ -52,6 +52,22 @@ CREATE TABLE `cat_coins` (
 CREATE INDEX `cat_p2` ON `cat_coins` (`p2_puzzle_hash`);
 CREATE INDEX `cat_asset_id` ON `cat_coins` (`asset_id`);
 
+CREATE TABLE `did_coins` (
+    `coin_id` BLOB NOT NULL PRIMARY KEY,
+    `parent_parent_coin_id` BLOB NOT NULL,
+    `parent_inner_puzzle_hash` BLOB NOT NULL,
+    `parent_amount` BLOB NOT NULL,
+    `launcher_id` BLOB NOT NULL,
+    `recovery_list_hash` BLOB,
+    `num_verifications_required` BLOB NOT NULL,
+    `metadata` BLOB NOT NULL,
+    `p2_puzzle_hash` BLOB NOT NULL,
+    FOREIGN KEY (`coin_id`) REFERENCES `coin_states` (`coin_id`)
+);
+
+CREATE INDEX `did_launcher_id` ON `did_coins` (`launcher_id`);
+CREATE INDEX `did_p2` ON `did_coins` (`p2_puzzle_hash`);
+
 CREATE TABLE `nft_coins` (
     `coin_id` BLOB NOT NULL PRIMARY KEY,
     `parent_parent_coin_id` BLOB NOT NULL,

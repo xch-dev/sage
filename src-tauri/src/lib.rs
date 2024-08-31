@@ -41,6 +41,7 @@ pub fn run() {
             commands::initialize,
             // Wallet
             commands::sync_info,
+            commands::did_list,
             commands::nft_list,
             // Peers
             commands::peer_list,
