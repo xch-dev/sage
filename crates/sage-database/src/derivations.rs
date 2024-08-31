@@ -120,7 +120,7 @@ async fn max_used_derivation_index(conn: impl SqliteExecutor<'_>) -> Result<Opti
         "
         SELECT MAX(`index`) AS `max_index`
         FROM `derivations`
-        WHERE EXISTS (SELECT * FROM `coin_states` WHERE `puzzle_hash` = `p2_puzzle_hash` OR `hint` = `p2_puzzle_hash`)
+        WHERE EXISTS (SELECT * FROM `coin_states` WHERE `puzzle_hash` = `p2_puzzle_hash`)
         "
     )
     .fetch_one(conn)

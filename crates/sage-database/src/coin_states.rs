@@ -83,8 +83,7 @@ async fn insert_coin_state(
             `amount`,
             `created_height`,
             `spent_height`,
-            `synced`,
-            `hint`
+            `synced`
         )
         VALUES (
             ?,
@@ -93,8 +92,7 @@ async fn insert_coin_state(
             ?,
             ?,
             ?,
-            ?,
-            NULL
+            ?
         )
         ",
         coin_id_ref,

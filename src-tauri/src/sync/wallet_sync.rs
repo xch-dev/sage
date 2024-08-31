@@ -73,11 +73,6 @@ pub async fn sync_wallet(
             .map(|(_, _, p2_puzzle_hash)| *p2_puzzle_hash)
             .collect();
 
-        for batch in p2_puzzle_hashes.chunks(1000) {
-            derive_more |=
-                sync_puzzle_hashes(&wallet, &peer, None, genesis_challenge, batch).await?;
-        }
-
         start_index += new_derivations.len() as u32;
 
         let mut tx = wallet.db.tx().await?;
@@ -86,6 +81,11 @@ pub async fn sync_wallet(
                 .await?;
         }
         tx.commit().await?;
+
+        for batch in p2_puzzle_hashes.chunks(1000) {
+            derive_more |=
+                sync_puzzle_hashes(&wallet, &peer, None, genesis_challenge, batch).await?;
+        }
     }
 
     if let Some((height, header_hash)) = state.lock().await.peak() {
@@ -234,7 +234,7 @@ async fn lookup_puzzle(
             }
         }
         PuzzleInfo::Unknown => {
-            // TODO: tx.insert_unknown_coin(coin_state.coin.coin_id()).await?;
+            tx.insert_unknown_coin(coin_state.coin.coin_id()).await?;
         }
     }
 
@@ -266,7 +266,7 @@ async fn sync_puzzle_hashes(
         );
 
         let response = timeout(
-            Duration::from_secs(15),
+            Duration::from_secs(45),
             peer.request_puzzle_state(
                 puzzle_hashes.to_vec(),
                 prev_height,

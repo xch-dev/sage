@@ -10,8 +10,8 @@ CREATE TABLE `derivations` (
     `synthetic_key` BLOB NOT NULL
 );
 
-CREATE INDEX `index_index` ON `derivations` (`index`, `hardened`);
-CREATE INDEX `synthetic_key_index` ON `derivations` (`synthetic_key`);
+CREATE INDEX `derivation_index` ON `derivations` (`index`, `hardened`);
+CREATE INDEX `derivation_key` ON `derivations` (`synthetic_key`);
 
 CREATE TABLE `coin_states` (
     `coin_id` BLOB NOT NULL PRIMARY KEY,
@@ -20,16 +20,19 @@ CREATE TABLE `coin_states` (
     `amount` BLOB NOT NULL,
     `spent_height` INTEGER,
     `created_height` INTEGER,
-    `hint` BLOB,
     `synced` BOOLEAN NOT NULL
 );
 
-CREATE INDEX `parent_index` ON `coin_states` (`parent_coin_id`);
-CREATE INDEX `puzzle_hash_index` ON `coin_states` (`puzzle_hash`);
-CREATE INDEX `spent_height_index` ON `coin_states` (`spent_height`);
-CREATE INDEX `created_height_index` ON `coin_states` (`created_height`);
-CREATE INDEX `hint_index` ON `coin_states` (`hint`);
-CREATE INDEX `synced_index` ON `coin_states` (`synced`);
+CREATE INDEX `coin_parent` ON `coin_states` (`parent_coin_id`);
+CREATE INDEX `coin_puzzle_hash` ON `coin_states` (`puzzle_hash`);
+CREATE INDEX `coin_spent` ON `coin_states` (`spent_height`);
+CREATE INDEX `coin_created` ON `coin_states` (`created_height`);
+CREATE INDEX `coin_synced` ON `coin_states` (`synced`);
+
+CREATE TABLE `unknown_coins` (
+    `coin_id` BLOB NOT NULL PRIMARY KEY,
+    FOREIGN KEY (`coin_id`) REFERENCES `coin_states` (`coin_id`)
+);
 
 CREATE TABLE `p2_coins` (
     `coin_id` BLOB NOT NULL PRIMARY KEY,
@@ -46,5 +49,23 @@ CREATE TABLE `cat_coins` (
     FOREIGN KEY (`coin_id`) REFERENCES `coin_states` (`coin_id`)
 );
 
-CREATE INDEX `p2_puzzle_hash_index` ON `cat_coins` (`p2_puzzle_hash`);
-CREATE INDEX `asset_id_index` ON `cat_coins` (`asset_id`);
+CREATE INDEX `cat_p2` ON `cat_coins` (`p2_puzzle_hash`);
+CREATE INDEX `cat_asset_id` ON `cat_coins` (`asset_id`);
+
+CREATE TABLE `nft_coins` (
+    `coin_id` BLOB NOT NULL PRIMARY KEY,
+    `parent_parent_coin_id` BLOB NOT NULL,
+    `parent_inner_puzzle_hash` BLOB NOT NULL,
+    `parent_amount` BLOB NOT NULL,
+    `launcher_id` BLOB NOT NULL,
+    `metadata` BLOB NOT NULL,
+    `metadata_updater_puzzle_hash` BLOB NOT NULL,
+    `current_owner` BLOB,
+    `royalty_puzzle_hash` BLOB NOT NULL,
+    `royalty_ten_thousandths` INTEGER NOT NULL,
+    `p2_puzzle_hash` BLOB NOT NULL,
+    FOREIGN KEY (`coin_id`) REFERENCES `coin_states` (`coin_id`)
+);
+
+CREATE INDEX `nft_launcher_id` ON `nft_coins` (`launcher_id`);
+CREATE INDEX `nft_p2` ON `nft_coins` (`p2_puzzle_hash`);
