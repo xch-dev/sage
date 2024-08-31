@@ -8,6 +8,7 @@ use sage::KeychainError;
 use sage_database::DatabaseError;
 use serde::{Serialize, Serializer};
 use thiserror::Error;
+use tokio::task::JoinError;
 use tokio::time::error::Elapsed;
 use tracing::metadata::ParseLevelError;
 use tracing_appender::rolling::InitError;
@@ -97,6 +98,9 @@ pub enum Error {
 
     #[error("Streamable error: {0}")]
     Streamable(#[from] chia::traits::Error),
+
+    #[error("Join error: {0}")]
+    Join(#[from] JoinError),
 }
 
 impl Serialize for Error {

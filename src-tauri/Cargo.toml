@@ -41,6 +41,7 @@ tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 tracing-appender = { workspace = true }
 futures-lite = { workspace = true }
+rayon = { workspace = true }
 
 [build-dependencies]
 tauri-build = { workspace = true, features = [] }

@@ -29,6 +29,10 @@ impl Database {
     pub async fn synthetic_key(&self, p2_puzzle_hash: Bytes32) -> Result<PublicKey> {
         synthetic_key(&self.pool, p2_puzzle_hash).await
     }
+
+    pub async fn is_p2_puzzle_hash(&self, p2_puzzle_hash: Bytes32) -> Result<bool> {
+        is_p2_puzzle_hash(&self.pool, p2_puzzle_hash).await
+    }
 }
 
 impl<'a> DatabaseTx<'a> {
@@ -63,6 +67,10 @@ impl<'a> DatabaseTx<'a> {
 
     pub async fn synthetic_key(&mut self, p2_puzzle_hash: Bytes32) -> Result<PublicKey> {
         synthetic_key(&mut *self.tx, p2_puzzle_hash).await
+    }
+
+    pub async fn is_p2_puzzle_hash(&mut self, p2_puzzle_hash: Bytes32) -> Result<bool> {
+        is_p2_puzzle_hash(&mut *self.tx, p2_puzzle_hash).await
     }
 }
 
@@ -152,4 +160,18 @@ async fn synthetic_key(
     .await?;
     let bytes = row.synthetic_key.as_slice();
     Ok(PublicKey::from_bytes(&to_bytes(bytes)?)?)
+}
+
+async fn is_p2_puzzle_hash(conn: impl SqliteExecutor<'_>, p2_puzzle_hash: Bytes32) -> Result<bool> {
+    let p2_puzzle_hash = p2_puzzle_hash.as_ref();
+    Ok(sqlx::query!(
+        "
+        SELECT COUNT(*) AS `count` FROM `derivations` WHERE `p2_puzzle_hash` = ?
+        ",
+        p2_puzzle_hash
+    )
+    .fetch_one(conn)
+    .await?
+    .count
+        > 0)
 }

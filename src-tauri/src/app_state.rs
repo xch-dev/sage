@@ -59,7 +59,7 @@ impl AppStateInner {
         }
     }
 
-    pub async fn reset_sync_task(&mut self, reset_peers: bool) -> Result<()> {
+    pub fn reset_sync_task(&mut self, reset_peers: bool) -> Result<()> {
         if reset_peers {
             self.sync_state = Arc::new(Mutex::new(SyncState::default()));
         }
@@ -79,8 +79,14 @@ impl AppStateInner {
         }
 
         let cert = load_ssl_cert(
-            ssl_dir.join("wallet.crt").to_str().unwrap(),
-            ssl_dir.join("wallet.key").to_str().unwrap(),
+            ssl_dir
+                .join("wallet.crt")
+                .to_str()
+                .expect("invalid crt file name"),
+            ssl_dir
+                .join("wallet.key")
+                .to_str()
+                .expect("invalid key file name"),
         )?;
 
         let tls_connector = create_tls_connector(&cert)?;
@@ -104,7 +110,7 @@ impl AppStateInner {
     pub async fn switch_wallet(&mut self) -> Result<()> {
         let Some(fingerprint) = self.config.wallet.active_fingerprint else {
             self.wallet = None;
-            self.reset_sync_task(false).await?;
+            self.reset_sync_task(false)?;
             return Ok(());
         };
 
@@ -165,7 +171,7 @@ impl AppStateInner {
 
         self.wallet = Some(wallet.clone());
 
-        self.reset_sync_task(false).await?;
+        self.reset_sync_task(false)?;
 
         Ok(())
     }
@@ -235,7 +241,7 @@ impl AppStateInner {
             .filter(|fingerprint| !self.config.wallets.contains_key(&fingerprint.to_string()))
             .sorted()
         {
-            let key = self.keys.get(&fingerprint).unwrap();
+            let key = self.keys.get(&fingerprint).expect("expected key data");
             wallets.push(WalletInfo {
                 name: "Unnamed Wallet".to_string(),
                 fingerprint,

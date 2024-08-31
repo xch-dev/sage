@@ -5,30 +5,30 @@ use sqlx::SqliteExecutor;
 use crate::{error::Result, to_bytes32, to_coin, to_lineage_proof, Database, DatabaseTx};
 
 impl Database {
-    pub async fn insert_cat_info(
+    pub async fn insert_cat_coin(
         &self,
         coin_id: Bytes32,
         lineage_proof: LineageProof,
         p2_puzzle_hash: Bytes32,
         asset_id: Bytes32,
     ) -> Result<()> {
-        insert_cat_info(&self.pool, coin_id, lineage_proof, p2_puzzle_hash, asset_id).await
+        insert_cat_coin(&self.pool, coin_id, lineage_proof, p2_puzzle_hash, asset_id).await
     }
 
-    pub async fn cat_info(&self, coin_id: Bytes32) -> Result<Option<Cat>> {
-        cat_info(&self.pool, coin_id).await
+    pub async fn cat_coin(&self, coin_id: Bytes32) -> Result<Option<Cat>> {
+        cat_coin(&self.pool, coin_id).await
     }
 }
 
 impl<'a> DatabaseTx<'a> {
-    pub async fn insert_cat_info(
+    pub async fn insert_cat_coin(
         &mut self,
         coin_id: Bytes32,
         lineage_proof: LineageProof,
         p2_puzzle_hash: Bytes32,
         asset_id: Bytes32,
     ) -> Result<()> {
-        insert_cat_info(
+        insert_cat_coin(
             &mut *self.tx,
             coin_id,
             lineage_proof,
@@ -38,12 +38,12 @@ impl<'a> DatabaseTx<'a> {
         .await
     }
 
-    pub async fn cat_info(&mut self, coin_id: Bytes32) -> Result<Option<Cat>> {
-        cat_info(&mut *self.tx, coin_id).await
+    pub async fn cat_coin(&mut self, coin_id: Bytes32) -> Result<Option<Cat>> {
+        cat_coin(&mut *self.tx, coin_id).await
     }
 }
 
-async fn insert_cat_info(
+async fn insert_cat_coin(
     conn: impl SqliteExecutor<'_>,
     coin_id: Bytes32,
     lineage_proof: LineageProof,
@@ -83,7 +83,7 @@ async fn insert_cat_info(
     Ok(())
 }
 
-async fn cat_info(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Option<Cat>> {
+async fn cat_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Option<Cat>> {
     let coin_id = coin_id.as_ref();
 
     let Some(row) = sqlx::query!(

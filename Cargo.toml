@@ -40,6 +40,7 @@ similar_names = "allow"
 used_underscore_binding = "allow"
 unwrap_used = "warn"
 wildcard_imports = "allow"
+cast_possible_truncation = "allow"
 
 [workspace.dependencies]
 sage = { path = "./src-tauri/sage" }
@@ -59,7 +60,7 @@ tauri-plugin-clipboard-manager = "2.0.0-rc.0"
 tauri-build = "2.0.0-rc.0"
 
 # Chia
-chia = "0.12.0"
+chia = "0.13.0"
 clvmr = "0.8.0"
 chia-wallet-sdk = { path = "../wallet-sdk" }
 bip39 = "2.0.0"
@@ -86,6 +87,7 @@ itertools = "0.13.0"
 anyhow = "1.0.86"
 thiserror = "1.0.63"
 hex-literal = "0.4.1"
+rayon = "1.10.0"
 
 # Tracing
 tracing = "0.1.40"

@@ -17,10 +17,11 @@ use tokio::{
     task::JoinHandle,
     time::{sleep, timeout},
 };
-use tracing::info;
+use tracing::debug;
 
 use crate::{
     config::{NetworkConfig, PeerMode},
+    error::Result,
     wallet::Wallet,
 };
 
@@ -40,7 +41,7 @@ pub struct SyncManager {
     interval: Duration,
     sender: mpsc::Sender<PeerEvent>,
     receiver_task: JoinHandle<()>,
-    wallet_sync_task: Option<(IpAddr, JoinHandle<()>)>,
+    wallet_sync_task: Option<(IpAddr, JoinHandle<Result<()>>)>,
     puzzle_lookup_task: Option<JoinHandle<()>>,
 }
 
@@ -146,11 +147,11 @@ impl SyncManager {
                     }
                 }
                 Ok(Err(error)) => {
-                    info!("Failed to connect to peer {socket_addr}: {error}");
+                    debug!("Failed to connect to peer {socket_addr}: {error}");
                     self.state.lock().await.ban(socket_addr.ip());
                 }
                 Err(_timeout) => {
-                    info!("Connection to peer {socket_addr} timed out");
+                    debug!("Connection to peer {socket_addr} timed out");
                     self.state.lock().await.ban(socket_addr.ip());
                 }
             }
@@ -165,7 +166,7 @@ impl SyncManager {
 
     async fn try_add_peer(&mut self, peer: Peer, mut receiver: mpsc::Receiver<Message>) -> bool {
         let Ok(Some(message)) = timeout(Duration::from_secs(2), receiver.recv()).await else {
-            info!(
+            debug!(
                 "Timeout receiving NewPeakWallet message from peer {}",
                 peer.socket_addr()
             );
@@ -173,7 +174,7 @@ impl SyncManager {
         };
 
         if message.msg_type != ProtocolMessageTypes::NewPeakWallet {
-            info!(
+            debug!(
                 "Received unexpected message from peer {}",
                 peer.socket_addr()
             );
@@ -181,7 +182,7 @@ impl SyncManager {
         }
 
         let Ok(message) = NewPeakWallet::from_bytes(&message.data) else {
-            info!(
+            debug!(
                 "Invalid NewPeakWallet message from peer {}",
                 peer.socket_addr()
             );
@@ -214,7 +215,8 @@ impl SyncManager {
             if self.wallet_sync_task.is_none() {
                 if let Some(peer) = state.acquire_peer() {
                     let ip = peer.socket_addr().ip();
-                    let task = tokio::spawn(sync_wallet(wallet.clone(), peer));
+                    let task =
+                        tokio::spawn(sync_wallet(wallet.clone(), self.network.clone(), peer));
                     self.wallet_sync_task = Some((ip, task));
                 }
             }

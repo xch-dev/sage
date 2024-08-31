@@ -9,7 +9,7 @@ use tokio::{
     sync::{mpsc, Mutex},
     task::JoinHandle,
 };
-use tracing::{debug, info, instrument};
+use tracing::{debug, instrument};
 
 use crate::error::Error;
 
@@ -43,10 +43,13 @@ pub async fn handle_peer(
                 message: Some(message),
             })
             .await
-            .unwrap();
+            .expect("failed to send peer event");
     }
 
-    sender.send(PeerEvent { ip, message: None }).await.unwrap();
+    sender
+        .send(PeerEvent { ip, message: None })
+        .await
+        .expect("failed to send peer event");
 }
 
 pub async fn handle_peer_events(
@@ -59,7 +62,7 @@ pub async fn handle_peer_events(
         match event.message {
             Some(message) => {
                 if let Err(error) = handle_peer_event(event.ip, message, &state).await {
-                    info!("Error handling peer event: {error}");
+                    debug!("Error handling peer event: {error}");
                 }
             }
             None => {
