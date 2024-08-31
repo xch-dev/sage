@@ -37,19 +37,19 @@ pub async fn handle_peer(
     sender: mpsc::Sender<PeerEvent>,
 ) {
     while let Some(message) = receiver.recv().await {
-        sender
+        if sender
             .send(PeerEvent {
                 ip,
                 message: Some(message),
             })
             .await
-            .expect("failed to send peer event");
+            .is_err()
+        {
+            return;
+        }
     }
 
-    sender
-        .send(PeerEvent { ip, message: None })
-        .await
-        .expect("failed to send peer event");
+    sender.send(PeerEvent { ip, message: None }).await.ok();
 }
 
 pub async fn handle_peer_events(
