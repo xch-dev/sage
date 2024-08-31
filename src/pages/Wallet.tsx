@@ -27,6 +27,7 @@ export default function Wallet() {
 
   const [wallet, setWallet] = useState<WalletInfo | null>(null);
   const [syncInfo, setSyncInfo] = useState<SyncInfo>({
+    xch_balance: 'Syncing',
     total_coins: 0,
     synced_coins: 0,
   });
@@ -41,6 +42,12 @@ export default function Wallet() {
 
   useEffect(() => {
     commands.syncInfo().then(setSyncInfo);
+
+    const interval = setInterval(() => {
+      commands.syncInfo().then(setSyncInfo);
+    }, 2000);
+
+    return () => clearInterval(interval);
   }, []);
 
   return (
@@ -64,7 +71,7 @@ export default function Wallet() {
                 >
                   Balance
                 </Typography>
-                <Typography fontSize={22}>Unknown</Typography>
+                <Typography fontSize={22}>{syncInfo.xch_balance}</Typography>
               </Paper>
             </Grid2>
             <Grid2 xs={12} md={6}>
@@ -77,7 +84,7 @@ export default function Wallet() {
                   Sync Status
                 </Typography>
                 <Typography fontSize={22}>
-                  {syncInfo.synced_coins}/{syncInfo.total_coins} Coins Synced
+                  {syncInfo.synced_coins}/{syncInfo.total_coins} Coins
                 </Typography>
               </Paper>
             </Grid2>

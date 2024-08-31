@@ -43,6 +43,7 @@ tracing-appender = { workspace = true }
 futures-lite = { workspace = true }
 rayon = { workspace = true }
 log = { workspace = true }
+bigdecimal = { workspace = true }
 
 [build-dependencies]
 tauri-build = { workspace = true, features = [] }

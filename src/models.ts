@@ -46,6 +46,7 @@ export interface PeerInfo {
 }
 
 export interface SyncInfo {
+  xch_balance: string;
   total_coins: number;
   synced_coins: number;
 }
