@@ -41,14 +41,23 @@ pub struct SyncManager {
     interval: Duration,
     sender: mpsc::Sender<PeerEvent>,
     receiver_task: JoinHandle<()>,
-    wallet_sync_task: Option<(IpAddr, JoinHandle<Result<()>>)>,
+    initial_wallet_sync: InitialWalletSync,
     puzzle_lookup_task: Option<JoinHandle<Result<()>>>,
+}
+
+enum InitialWalletSync {
+    Idle,
+    Syncing {
+        ip: IpAddr,
+        task: JoinHandle<Result<()>>,
+    },
+    Subscribed(IpAddr),
 }
 
 impl Drop for SyncManager {
     fn drop(&mut self) {
         self.receiver_task.abort();
-        if let Some((_, task)) = &mut self.wallet_sync_task {
+        if let InitialWalletSync::Syncing { task, .. } = &mut self.initial_wallet_sync {
             task.abort();
         }
         if let Some(task) = &mut self.puzzle_lookup_task {
@@ -80,7 +89,7 @@ impl SyncManager {
             interval,
             sender,
             receiver_task,
-            wallet_sync_task: None,
+            initial_wallet_sync: InitialWalletSync::Idle,
             puzzle_lookup_task: None,
         }
     }
@@ -204,26 +213,35 @@ impl SyncManager {
     async fn update_tasks(&mut self) {
         let state = self.state.lock().await;
 
-        if let Some(task) = &mut self.wallet_sync_task {
-            if !state.is_connected(task.0) {
-                task.1.abort();
-                self.wallet_sync_task = None;
+        match &mut self.initial_wallet_sync {
+            sync @ InitialWalletSync::Idle => {
+                if let Some(wallet) = self.wallet.clone() {
+                    if let Some(peer) = state.acquire_peer() {
+                        let ip = peer.socket_addr().ip();
+                        let task = tokio::spawn(sync_wallet(
+                            wallet.clone(),
+                            self.network.genesis_challenge,
+                            peer,
+                        ));
+                        *sync = InitialWalletSync::Syncing { ip, task };
+                    }
+                }
             }
+            InitialWalletSync::Syncing { ip, task }
+                if !state.is_connected(*ip) || self.wallet.is_none() =>
+            {
+                task.abort();
+                self.initial_wallet_sync = InitialWalletSync::Idle;
+            }
+            InitialWalletSync::Subscribed(ip)
+                if !state.is_connected(*ip) || self.wallet.is_none() =>
+            {
+                self.initial_wallet_sync = InitialWalletSync::Idle;
+            }
+            _ => {}
         }
 
         if let Some(wallet) = self.wallet.clone() {
-            if self.wallet_sync_task.is_none() {
-                if let Some(peer) = state.acquire_peer() {
-                    let ip = peer.socket_addr().ip();
-                    let task = tokio::spawn(sync_wallet(
-                        wallet.clone(),
-                        self.network.genesis_challenge,
-                        peer,
-                    ));
-                    self.wallet_sync_task = Some((ip, task));
-                }
-            }
-
             if self.puzzle_lookup_task.is_none() {
                 let task = tokio::spawn(lookup_puzzles(
                     wallet,
@@ -233,7 +251,6 @@ impl SyncManager {
                 self.puzzle_lookup_task = Some(task);
             }
         } else {
-            self.wallet_sync_task = None;
             self.puzzle_lookup_task = None;
         }
     }

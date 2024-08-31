@@ -11,7 +11,11 @@ use clvmr::Allocator;
 use futures_lite::StreamExt;
 use futures_util::stream::FuturesUnordered;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
-use tokio::{sync::Mutex, task::spawn_blocking, time::sleep};
+use tokio::{
+    sync::Mutex,
+    task::spawn_blocking,
+    time::{sleep, timeout},
+};
 use tracing::{debug, info, instrument, warn};
 
 use crate::{
@@ -38,9 +42,17 @@ pub async fn sync_wallet(
 
     let mut derive_more = true;
 
+    let mut new_peak = None;
+
     for batch in p2_puzzle_hashes.chunks(1000) {
-        derive_more =
+        let sync =
             sync_puzzle_hashes(&wallet, &peer, start_height, start_header_hash, batch).await?;
+
+        derive_more = sync.found_coins;
+
+        if new_peak.is_none() {
+            new_peak = Some((sync.prev_height, sync.prev_header_hash));
+        }
     }
 
     let mut start_index = p2_puzzle_hashes.len() as u32;
@@ -67,8 +79,13 @@ pub async fn sync_wallet(
             .collect();
 
         for batch in p2_puzzle_hashes.chunks(1000) {
-            derive_more =
-                sync_puzzle_hashes(&wallet, &peer, None, genesis_challenge, batch).await?;
+            let sync = sync_puzzle_hashes(&wallet, &peer, None, genesis_challenge, batch).await?;
+
+            derive_more = sync.found_coins;
+
+            if new_peak.is_none() {
+                new_peak = Some((sync.prev_height, sync.prev_header_hash));
+            }
         }
 
         start_index += new_derivations.len() as u32;
@@ -77,6 +94,9 @@ pub async fn sync_wallet(
         for (index, synthetic_key, p2_puzzle_hash) in new_derivations {
             tx.insert_derivation(p2_puzzle_hash, index, false, synthetic_key)
                 .await?;
+        }
+        if let Some((Some(height), header_hash)) = new_peak {
+            tx.insert_peak(height, header_hash).await?;
         }
         tx.commit().await?;
     }
@@ -95,8 +115,19 @@ pub async fn lookup_puzzles(
     state: Arc<Mutex<SyncState>>,
 ) -> Result<()> {
     loop {
-        let coin_states = wallet.db.unsynced_coin_states(10).await?;
+        let coin_states = wallet.db.unsynced_coin_states(30).await?;
+
+        if coin_states.is_empty() {
+            sleep(Duration::from_secs(5)).await;
+            continue;
+        }
+
         let peers: Vec<Peer> = state.lock().await.peers().cloned().collect();
+
+        info!(
+            "Looking up puzzles for {} coins",
+            coin_states.len().min(peers.len())
+        );
 
         let mut futures = FuturesUnordered::new();
 
@@ -134,19 +165,20 @@ async fn lookup_puzzle(
     genesis_challenge: Bytes32,
     coin_state: CoinState,
 ) -> Result<()> {
-    let Some(parent_coin_state) = peer
-        .request_coin_state(
+    let Some(parent_coin_state) = timeout(
+        Duration::from_secs(2),
+        peer.request_coin_state(
             vec![coin_state.coin.parent_coin_info],
             None,
             genesis_challenge,
             false,
-        )
-        .await?
-        .map_err(|_| Error::Rejection)?
-        .coin_states
-        .into_iter()
-        .next()
-    else {
+        ),
+    )
+    .await??
+    .map_err(|_| Error::Rejection)?
+    .coin_states
+    .into_iter()
+    .next() else {
         return Err(Error::CoinStateNotFound);
     };
 
@@ -154,10 +186,12 @@ async fn lookup_puzzle(
         .created_height
         .ok_or(Error::MissingCreatedHeight)?;
 
-    let response = peer
-        .request_puzzle_and_solution(coin_state.coin.parent_coin_info, height)
-        .await?
-        .map_err(|_| Error::Rejection)?;
+    let response = timeout(
+        Duration::from_secs(3),
+        peer.request_puzzle_and_solution(coin_state.coin.parent_coin_info, height),
+    )
+    .await??
+    .map_err(|_| Error::Rejection)?;
 
     let info = spawn_blocking(move || -> Result<PuzzleInfo> {
         let mut allocator = Allocator::new();
@@ -210,6 +244,12 @@ async fn lookup_puzzle(
     Ok(())
 }
 
+struct Sync {
+    found_coins: bool,
+    prev_height: Option<u32>,
+    prev_header_hash: Bytes32,
+}
+
 #[instrument(skip(wallet, peer, puzzle_hashes))]
 async fn sync_puzzle_hashes(
     wallet: &Wallet,
@@ -217,7 +257,7 @@ async fn sync_puzzle_hashes(
     start_height: Option<u32>,
     start_header_hash: Bytes32,
     puzzle_hashes: &[Bytes32],
-) -> Result<bool> {
+) -> Result<Sync> {
     let mut prev_height = start_height;
     let mut prev_header_hash = start_header_hash;
     let mut found_coins = false;
@@ -230,15 +270,17 @@ async fn sync_puzzle_hashes(
             peer.socket_addr()
         );
 
-        let response = peer
-            .request_puzzle_state(
+        let response = timeout(
+            Duration::from_secs(5),
+            peer.request_puzzle_state(
                 puzzle_hashes.to_vec(),
                 prev_height,
                 prev_header_hash,
                 CoinStateFilters::new(true, true, true, 0),
                 true,
-            )
-            .await?;
+            ),
+        )
+        .await??;
 
         match response {
             Ok(data) => {
@@ -283,5 +325,9 @@ async fn sync_puzzle_hashes(
         }
     }
 
-    Ok(found_coins)
+    Ok(Sync {
+        found_coins,
+        prev_height,
+        prev_header_hash,
+    })
 }
