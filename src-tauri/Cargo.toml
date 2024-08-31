@@ -31,11 +31,10 @@ toml = { workspace = true, features = ["preserve_order"] }
 indexmap = { workspace = true, features = ["serde"] }
 hex = { workspace = true }
 chia = { workspace = true }
-chia-wallet-sdk = { workspace = true }
+chia-wallet-sdk = { workspace = true, features = ["rustls"] }
 clvmr = { workspace = true }
 itertools = { workspace = true }
 sqlx = { workspace = true, features = ["sqlite", "runtime-tokio"] }
-native-tls = { workspace = true }
 futures-util = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }

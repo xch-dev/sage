@@ -3,7 +3,9 @@ use std::fs;
 use tauri::{command, State};
 use tracing::{info, level_filters::LevelFilter};
 use tracing_appender::rolling::{Builder, Rotation};
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, Layer};
+use tracing_subscriber::{
+    fmt::format::FmtSpan, layer::SubscriberExt, util::SubscriberInitExt, Layer,
+};
 
 use crate::{app_state::AppState, error::Result};
 
@@ -53,14 +55,26 @@ pub async fn initialize(state: State<'_, AppState>) -> Result<()> {
 
     let file_layer = tracing_subscriber::fmt::layer()
         .with_writer(log_file)
-        .with_ansi(false);
+        .with_ansi(false)
+        .with_target(false)
+        .compact();
 
+    // TODO: Fix ANSI better
+    #[cfg(not(mobile))]
     let stdout_layer = tracing_subscriber::fmt::layer().pretty();
 
-    tracing_subscriber::registry()
-        .with(stdout_layer.with_filter(LevelFilter::from_level(log_level)))
-        .with(file_layer.with_filter(LevelFilter::from_level(log_level)))
-        .init();
+    let registry = tracing_subscriber::registry()
+        .with(file_layer.with_filter(LevelFilter::from_level(log_level)));
+
+    #[cfg(not(mobile))]
+    {
+        registry
+            .with(stdout_layer.with_filter(LevelFilter::from_level(log_level)))
+            .init();
+    }
+
+    #[cfg(mobile)]
+    registry.init();
 
     info!("Initial setup complete");
 

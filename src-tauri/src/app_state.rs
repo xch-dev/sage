@@ -12,7 +12,7 @@ use chia::{
     bls::{master_to_wallet_unhardened_intermediate, DerivableKey, PublicKey, SecretKey},
     puzzles::{standard::StandardArgs, DeriveSynthetic},
 };
-use chia_wallet_sdk::{create_tls_connector, load_ssl_cert, Network, NetworkId};
+use chia_wallet_sdk::{create_rustls_connector, load_ssl_cert, Network, NetworkId};
 use indexmap::{indexmap, IndexMap};
 use itertools::Itertools;
 use rand::SeedableRng;
@@ -93,7 +93,7 @@ impl AppStateInner {
                 .expect("invalid key file name"),
         )?;
 
-        let tls_connector = create_tls_connector(&cert)?;
+        let connector = create_rustls_connector(&cert)?;
 
         self.sync_task = Some(tokio::spawn(
             SyncManager::new(
@@ -102,7 +102,7 @@ impl AppStateInner {
                 NetworkId::Custom(network_id),
                 network,
                 self.config.network.clone(),
-                tls_connector,
+                connector,
                 Duration::from_secs(3),
             )
             .sync(),

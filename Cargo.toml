@@ -78,10 +78,7 @@ argon2 = "0.5.3"
 tokio = "1.39.2"
 futures-util = "0.3.30"
 futures-lite = "2.3.0"
-native-tls = "0.2.12"
 sqlx = "0.8.0"
-tokio-tungstenite = { version = "0.21.0", features = ["native-tls"] }
-tungstenite = "0.21.0"
 
 # Utilities
 indexmap = "2.3.0"

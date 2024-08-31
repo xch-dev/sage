@@ -7,8 +7,11 @@ import '@fontsource/roboto/700.css';
 
 import App from './App.tsx';
 
+import { appDataDir } from '@tauri-apps/api/path';
 import './index.css';
 
 const element = document.getElementById('root')!;
 
 createRoot(element).render(<App />);
+
+appDataDir().then(console.log.bind(console.log));

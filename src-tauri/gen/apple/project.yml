@@ -1,6 +1,6 @@
 name: sage-tauri
 options:
-  bundleIdPrefix: me.rigidity.sage
+  bundleIdPrefix: com.rigidnetwork.sage
   deploymentTarget:
     iOS: 13.0
 fileGroups: [../../src]
@@ -11,8 +11,7 @@ settingGroups:
   app:
     base:
       PRODUCT_NAME: sage
-      PRODUCT_BUNDLE_IDENTIFIER: me.rigidity.sage
-      DEVELOPMENT_TEAM: NQJQRYZZG3
+      PRODUCT_BUNDLE_IDENTIFIER: com.rigidnetwork.sage
       CODE_SIGN_STYLE: Automatic
 targetTemplates:
   app:

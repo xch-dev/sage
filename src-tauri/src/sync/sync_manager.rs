@@ -8,10 +8,9 @@ use chia::{
     protocol::{Message, NewPeakWallet, ProtocolMessageTypes},
     traits::Streamable,
 };
-use chia_wallet_sdk::{connect_peer, Network, NetworkId, Peer};
+use chia_wallet_sdk::{connect_peer, Connector, Network, NetworkId, Peer};
 use futures_lite::{future::poll_once, StreamExt};
 use futures_util::stream::FuturesUnordered;
-use native_tls::TlsConnector;
 use tokio::{
     sync::{mpsc, Mutex},
     task::JoinHandle,
@@ -37,7 +36,7 @@ pub struct SyncManager {
     network_id: NetworkId,
     network: Network,
     network_config: NetworkConfig,
-    tls_connector: TlsConnector,
+    connector: Connector,
     interval: Duration,
     sender: mpsc::Sender<PeerEvent>,
     receiver_task: JoinHandle<()>,
@@ -73,7 +72,7 @@ impl SyncManager {
         network_id: NetworkId,
         network: Network,
         network_config: NetworkConfig,
-        tls_connector: TlsConnector,
+        connector: Connector,
         interval: Duration,
     ) -> Self {
         let (sender, receiver) = mpsc::channel(network_config.target_peers.max(1));
@@ -85,7 +84,7 @@ impl SyncManager {
             network_id,
             network,
             network_config,
-            tls_connector,
+            connector,
             interval,
             sender,
             receiver_task,
@@ -133,12 +132,12 @@ impl SyncManager {
             }
 
             let network_id = self.network_id.clone();
-            let tls_connector = self.tls_connector.clone();
+            let connector = self.connector.clone();
 
             futures.push(async move {
                 let result = timeout(
                     Duration::from_secs(3),
-                    connect_peer(network_id, tls_connector, socket_addr),
+                    connect_peer(network_id, connector, socket_addr),
                 )
                 .await;
                 (socket_addr, result)

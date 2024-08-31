@@ -67,9 +67,6 @@ pub enum Error {
     #[error("Client error: {0}")]
     Client(#[from] ClientError),
 
-    #[error("TLS error: {0}")]
-    Tls(#[from] native_tls::Error),
-
     #[error("No active wallet")]
     NoActiveWallet,
 
