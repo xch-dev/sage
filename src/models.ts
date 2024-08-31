@@ -50,3 +50,8 @@ export interface SyncInfo {
   total_coins: number;
   synced_coins: number;
 }
+
+export interface NftData {
+  launcher_id: string;
+  address: string;
+}

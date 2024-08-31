@@ -17,8 +17,12 @@ impl Database {
         insert_nft_coin(&self.pool, coin_id, lineage_proof, nft_info).await
     }
 
-    pub async fn nft_coin(&self, coin_id: Bytes32) -> Result<Option<Nft<Program>>> {
-        nft_coin(&self.pool, coin_id).await
+    pub async fn nft_coin(&self, launcher_id: Bytes32) -> Result<Option<Nft<Program>>> {
+        nft_coin(&self.pool, launcher_id).await
+    }
+
+    pub async fn nft_list(&self) -> Result<Vec<Bytes32>> {
+        nft_list(&self.pool).await
     }
 }
 
@@ -32,8 +36,12 @@ impl<'a> DatabaseTx<'a> {
         insert_nft_coin(&mut *self.tx, coin_id, lineage_proof, nft_info).await
     }
 
-    pub async fn nft_coin(&mut self, coin_id: Bytes32) -> Result<Option<Nft<Program>>> {
-        nft_coin(&mut *self.tx, coin_id).await
+    pub async fn nft_coin(&mut self, launcher_id: Bytes32) -> Result<Option<Nft<Program>>> {
+        nft_coin(&mut *self.tx, launcher_id).await
+    }
+
+    pub async fn nft_list(&mut self) -> Result<Vec<Bytes32>> {
+        nft_list(&mut *self.tx).await
     }
 }
 
@@ -90,8 +98,11 @@ async fn insert_nft_coin(
     Ok(())
 }
 
-async fn nft_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Option<Nft<Program>>> {
-    let coin_id = coin_id.as_ref();
+async fn nft_coin(
+    conn: impl SqliteExecutor<'_>,
+    launcher_id: Bytes32,
+) -> Result<Option<Nft<Program>>> {
+    let launcher_id = launcher_id.as_ref();
 
     let Some(row) = sqlx::query!(
         "
@@ -104,9 +115,9 @@ async fn nft_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Opt
         FROM `coin_states` AS cs
         INNER JOIN `nft_coins` AS nft
         ON cs.coin_id = nft.coin_id
-        WHERE cs.coin_id = ?
+        WHERE nft.launcher_id = ?
         ",
-        coin_id
+        launcher_id
     )
     .fetch_optional(conn)
     .await?
@@ -134,4 +145,20 @@ async fn nft_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Opt
             p2_puzzle_hash: to_bytes32(&row.p2_puzzle_hash)?,
         },
     }))
+}
+
+async fn nft_list(conn: impl SqliteExecutor<'_>) -> Result<Vec<Bytes32>> {
+    let rows = sqlx::query!(
+        "
+        SELECT `launcher_id` FROM `nft_coins`
+        INNER JOIN `coin_states` ON `nft_coins`.`coin_id` = `coin_states`.`coin_id`
+        WHERE `coin_states`.`spent_height` IS NULL
+        "
+    )
+    .fetch_all(conn)
+    .await?;
+
+    rows.into_iter()
+        .map(|row| to_bytes32(&row.launcher_id))
+        .collect()
 }

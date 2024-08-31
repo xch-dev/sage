@@ -20,7 +20,7 @@ import { useNavigate } from 'react-router-dom';
 import * as commands from '../commands';
 import ListContainer from '../components/ListContainer';
 import NavBar from '../components/NavBar';
-import { SyncInfo, WalletInfo } from '../models';
+import { NftData, SyncInfo, WalletInfo } from '../models';
 
 export default function Wallet() {
   const navigate = useNavigate();
@@ -166,13 +166,30 @@ function TokenListItem(props: {
 }
 
 function NftList() {
+  const [nftList, setNftList] = useState<NftData[]>([]);
+
+  useEffect(() => {
+    commands.nftList().then(setNftList);
+
+    const interval = setInterval(() => {
+      commands.nftList().then(setNftList);
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <>
-      <img
-        width={300}
-        height={200}
-        src='https://ipfs.filebase.io/ipfs/QmQtkc4TKphm5wyQCqg14sr77jY1URFD9Ji6MVcj1oN4Kt/29.png'
-      />
+      {nftList.map((nft) => (
+        <Paper key={nft.launcher_id}>
+          <ListItemButton>
+            <ListItemAvatar>
+              <Avatar />
+            </ListItemAvatar>
+            <ListItemText primary={nft.address} secondary={nft.launcher_id} />
+          </ListItemButton>
+        </Paper>
+      ))}
     </>
   );
 }

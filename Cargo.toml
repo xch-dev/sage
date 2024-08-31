@@ -65,6 +65,7 @@ chia = "0.13.0"
 clvmr = "0.8.0"
 chia-wallet-sdk = { path = "../wallet-sdk" }
 bip39 = "2.0.0"
+bech32 = "0.9.1"
 
 # Crypto
 sha2 = "0.10.8"

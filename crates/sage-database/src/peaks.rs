@@ -39,7 +39,7 @@ async fn insert_peak(
     let header_hash = header_hash.as_ref();
     sqlx::query!(
         "
-        INSERT INTO `peaks` (`height`, `header_hash`)
+        REPLACE INTO `peaks` (`height`, `header_hash`)
         VALUES (?, ?)
         ",
         height,

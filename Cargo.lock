@@ -4033,6 +4033,7 @@ dependencies = [
 name = "sage-tauri"
 version = "0.1.0"
 dependencies = [
+ "bech32",
  "bigdecimal",
  "bincode",
  "bip39",

@@ -2,11 +2,11 @@ use std::{sync::Arc, time::Duration};
 
 use chia::{
     bls::DerivableKey,
-    clvm_traits::ToClvm,
-    protocol::{Bytes32, CoinState, CoinStateFilters, RejectStateReason},
-    puzzles::{standard::StandardArgs, DeriveSynthetic},
+    clvm_traits::{FromClvm, ToClvm},
+    protocol::{Bytes32, CoinState, CoinStateFilters, Program, RejectStateReason},
+    puzzles::{standard::StandardArgs, DeriveSynthetic, Proof},
 };
-use chia_wallet_sdk::{Cat, Peer, Primitive, Puzzle};
+use chia_wallet_sdk::{Cat, HashedPtr, Nft, Peer, Primitive, Puzzle};
 use clvmr::Allocator;
 use futures_lite::StreamExt;
 use futures_util::stream::FuturesUnordered;
@@ -104,6 +104,7 @@ pub async fn sync_wallet(
 
 enum PuzzleInfo {
     Cat(Box<Cat>),
+    Nft(Box<Nft<Program>>),
     Unknown,
 }
 
@@ -202,20 +203,35 @@ async fn lookup_puzzle(
 
         let parent_solution = response.solution.to_clvm(&mut allocator)?;
 
-        if let Some(cat) = Cat::from_parent_spend(
+        let parent_coin = parent_coin_state.coin;
+        let coin = coin_state.coin;
+
+        let cat = Cat::from_parent_spend(
             &mut allocator,
-            parent_coin_state.coin,
+            parent_coin,
             parent_puzzle,
             parent_solution,
-            coin_state.coin,
-        )
-        .ok()
-        .flatten()
-        {
-            Ok(PuzzleInfo::Cat(Box::new(cat)))
-        } else {
-            Ok(PuzzleInfo::Unknown)
+            coin,
+        );
+
+        if let Some(cat) = cat.ok().flatten() {
+            return Ok(PuzzleInfo::Cat(Box::new(cat)));
         }
+
+        let nft = Nft::<HashedPtr>::from_parent_spend(
+            &mut allocator,
+            parent_coin,
+            parent_puzzle,
+            parent_solution,
+            coin,
+        );
+
+        if let Some(nft) = nft.ok().flatten() {
+            let metadata = Program::from_clvm(&allocator, nft.info.metadata.ptr())?;
+            return Ok(PuzzleInfo::Nft(Box::new(nft.with_metadata(metadata))));
+        }
+
+        Ok(PuzzleInfo::Unknown)
     })
     .await??;
 
@@ -231,6 +247,12 @@ async fn lookup_puzzle(
                     cat.asset_id,
                 )
                 .await?;
+            }
+        }
+        PuzzleInfo::Nft(nft) => {
+            if let Proof::Lineage(lineage_proof) = nft.proof {
+                tx.insert_nft_coin(nft.coin.coin_id(), lineage_proof, nft.info)
+                    .await?;
             }
         }
         PuzzleInfo::Unknown => {

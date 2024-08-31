@@ -3,6 +3,7 @@ import {
   DerivationMode,
   Network,
   NetworkConfig,
+  NftData,
   PeerInfo,
   PeerMode,
   SyncInfo,
@@ -108,4 +109,8 @@ export async function removePeer(ipAddr: string, ban: boolean): Promise<void> {
 
 export async function syncInfo(): Promise<SyncInfo> {
   return await invoke('sync_info');
+}
+
+export async function nftList(): Promise<NftData[]> {
+  return await invoke('nft_list');
 }
