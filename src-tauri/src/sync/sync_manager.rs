@@ -42,7 +42,7 @@ pub struct SyncManager {
     sender: mpsc::Sender<PeerEvent>,
     receiver_task: JoinHandle<()>,
     wallet_sync_task: Option<(IpAddr, JoinHandle<Result<()>>)>,
-    puzzle_lookup_task: Option<JoinHandle<()>>,
+    puzzle_lookup_task: Option<JoinHandle<Result<()>>>,
 }
 
 impl Drop for SyncManager {
@@ -215,14 +215,21 @@ impl SyncManager {
             if self.wallet_sync_task.is_none() {
                 if let Some(peer) = state.acquire_peer() {
                     let ip = peer.socket_addr().ip();
-                    let task =
-                        tokio::spawn(sync_wallet(wallet.clone(), self.network.clone(), peer));
+                    let task = tokio::spawn(sync_wallet(
+                        wallet.clone(),
+                        self.network.genesis_challenge,
+                        peer,
+                    ));
                     self.wallet_sync_task = Some((ip, task));
                 }
             }
 
             if self.puzzle_lookup_task.is_none() {
-                let task = tokio::spawn(lookup_puzzles(wallet, self.state.clone()));
+                let task = tokio::spawn(lookup_puzzles(
+                    wallet,
+                    self.network.genesis_challenge,
+                    self.state.clone(),
+                ));
                 self.puzzle_lookup_task = Some(task);
             }
         } else {

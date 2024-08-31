@@ -1,13 +1,17 @@
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 
 use chia::{
     bls::DerivableKey,
-    protocol::{Bytes32, CoinStateFilters, RejectStateReason},
+    clvm_traits::ToClvm,
+    protocol::{Bytes32, CoinState, CoinStateFilters, RejectStateReason},
     puzzles::{standard::StandardArgs, DeriveSynthetic},
 };
-use chia_wallet_sdk::{Network, Peer};
+use chia_wallet_sdk::{Cat, Peer, Primitive, Puzzle};
+use clvmr::Allocator;
+use futures_lite::StreamExt;
+use futures_util::stream::FuturesUnordered;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
-use tokio::{sync::Mutex, task::spawn_blocking};
+use tokio::{sync::Mutex, task::spawn_blocking, time::sleep};
 use tracing::{debug, info, instrument, warn};
 
 use crate::{
@@ -17,13 +21,17 @@ use crate::{
 
 use super::sync_state::SyncState;
 
-pub async fn sync_wallet(wallet: Arc<Wallet>, network: Network, peer: Peer) -> Result<()> {
+pub async fn sync_wallet(
+    wallet: Arc<Wallet>,
+    genesis_challenge: Bytes32,
+    peer: Peer,
+) -> Result<()> {
     info!("Starting sync against peer {}", peer.socket_addr());
 
     let mut tx = wallet.db.tx().await?;
     let p2_puzzle_hashes = tx.p2_puzzle_hashes().await?;
     let (start_height, start_header_hash) = tx.latest_peak().await?.map_or_else(
-        || (None, network.genesis_challenge),
+        || (None, genesis_challenge),
         |(peak, header_hash)| (Some(peak), header_hash),
     );
     tx.commit().await?;
@@ -60,7 +68,7 @@ pub async fn sync_wallet(wallet: Arc<Wallet>, network: Network, peer: Peer) -> R
 
         for batch in p2_puzzle_hashes.chunks(1000) {
             derive_more =
-                sync_puzzle_hashes(&wallet, &peer, None, network.genesis_challenge, batch).await?;
+                sync_puzzle_hashes(&wallet, &peer, None, genesis_challenge, batch).await?;
         }
 
         start_index += new_derivations.len() as u32;
@@ -76,7 +84,131 @@ pub async fn sync_wallet(wallet: Arc<Wallet>, network: Network, peer: Peer) -> R
     Ok(())
 }
 
-pub async fn lookup_puzzles(wallet: Arc<Wallet>, state: Arc<Mutex<SyncState>>) {}
+enum PuzzleInfo {
+    Cat(Box<Cat>),
+    Unknown,
+}
+
+pub async fn lookup_puzzles(
+    wallet: Arc<Wallet>,
+    genesis_challenge: Bytes32,
+    state: Arc<Mutex<SyncState>>,
+) -> Result<()> {
+    loop {
+        let coin_states = wallet.db.unsynced_coin_states(10).await?;
+        let peers: Vec<Peer> = state.lock().await.peers().cloned().collect();
+
+        let mut futures = FuturesUnordered::new();
+
+        for (peer, coin_state) in peers.into_iter().zip(coin_states.into_iter()) {
+            let wallet = wallet.clone();
+            let addr = peer.socket_addr();
+            let coin_id = coin_state.coin.coin_id();
+            futures.push(tokio::spawn(async move {
+                let result = lookup_puzzle(wallet, peer, genesis_challenge, coin_state).await;
+                (addr, coin_id, result)
+            }));
+        }
+
+        while let Some(result) = futures.next().await {
+            let (addr, coin_id, result) = result?;
+
+            if let Err(error) = result {
+                warn!(
+                    "Failed to lookup puzzle for coin {} from peer {}: {}",
+                    coin_id, addr, error
+                );
+                state.lock().await.ban(addr.ip());
+            } else {
+                wallet.db.mark_coin_synced(coin_id).await?;
+            }
+        }
+
+        sleep(Duration::from_secs(1)).await;
+    }
+}
+
+async fn lookup_puzzle(
+    wallet: Arc<Wallet>,
+    peer: Peer,
+    genesis_challenge: Bytes32,
+    coin_state: CoinState,
+) -> Result<()> {
+    let Some(parent_coin_state) = peer
+        .request_coin_state(
+            vec![coin_state.coin.parent_coin_info],
+            None,
+            genesis_challenge,
+            false,
+        )
+        .await?
+        .map_err(|_| Error::Rejection)?
+        .coin_states
+        .into_iter()
+        .next()
+    else {
+        return Err(Error::CoinStateNotFound);
+    };
+
+    let height = coin_state
+        .created_height
+        .ok_or(Error::MissingCreatedHeight)?;
+
+    let response = peer
+        .request_puzzle_and_solution(coin_state.coin.parent_coin_info, height)
+        .await?
+        .map_err(|_| Error::Rejection)?;
+
+    let info = spawn_blocking(move || -> Result<PuzzleInfo> {
+        let mut allocator = Allocator::new();
+
+        let parent_puzzle_ptr = response.puzzle.to_clvm(&mut allocator)?;
+        let parent_puzzle = Puzzle::parse(&allocator, parent_puzzle_ptr);
+
+        let parent_solution = response.solution.to_clvm(&mut allocator)?;
+
+        if let Some(cat) = Cat::from_parent_spend(
+            &mut allocator,
+            parent_coin_state.coin,
+            parent_puzzle,
+            parent_solution,
+            coin_state.coin,
+        )
+        .ok()
+        .flatten()
+        {
+            Ok(PuzzleInfo::Cat(Box::new(cat)))
+        } else {
+            Ok(PuzzleInfo::Unknown)
+        }
+    })
+    .await??;
+
+    let mut tx = wallet.db.tx().await?;
+
+    match info {
+        PuzzleInfo::Cat(cat) => {
+            if let Some(lineage_proof) = cat.lineage_proof {
+                tx.insert_cat_coin(
+                    cat.coin.coin_id(),
+                    lineage_proof,
+                    cat.p2_puzzle_hash,
+                    cat.asset_id,
+                )
+                .await?;
+            }
+        }
+        PuzzleInfo::Unknown => {
+            // TODO: tx.insert_unknown_coin(coin_state.coin.coin_id()).await?;
+        }
+    }
+
+    tx.mark_coin_synced(coin_state.coin.coin_id()).await?;
+
+    tx.commit().await?;
+
+    Ok(())
+}
 
 #[instrument(skip(wallet, peer, puzzle_hashes))]
 async fn sync_puzzle_hashes(
@@ -117,9 +249,11 @@ async fn sync_puzzle_hashes(
                 for coin_state in data.coin_states {
                     found_coins = true;
 
-                    tx.try_insert_coin_state(coin_state).await?;
+                    let is_p2 = tx.is_p2_puzzle_hash(coin_state.coin.puzzle_hash).await?;
 
-                    if tx.is_p2_puzzle_hash(coin_state.coin.puzzle_hash).await? {
+                    tx.insert_coin_state(coin_state, is_p2).await?;
+
+                    if is_p2 {
                         tx.insert_p2_coin(coin_state.coin.coin_id()).await?;
                     }
                 }

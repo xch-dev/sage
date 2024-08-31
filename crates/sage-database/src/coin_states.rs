@@ -4,8 +4,8 @@ use sqlx::SqliteExecutor;
 use crate::{error::Result, to_coin, to_coin_state, Database, DatabaseTx};
 
 impl Database {
-    pub async fn try_insert_coin_state(&self, coin_state: CoinState) -> Result<()> {
-        try_insert_coin_state(&self.pool, coin_state).await
+    pub async fn insert_coin_state(&self, coin_state: CoinState, synced: bool) -> Result<()> {
+        insert_coin_state(&self.pool, coin_state, synced).await
     }
 
     pub async fn remove_coin_state(&self, coin_id: Bytes32) -> Result<()> {
@@ -34,8 +34,8 @@ impl Database {
 }
 
 impl<'a> DatabaseTx<'a> {
-    pub async fn try_insert_coin_state(&mut self, coin_state: CoinState) -> Result<()> {
-        try_insert_coin_state(&mut *self.tx, coin_state).await
+    pub async fn insert_coin_state(&mut self, coin_state: CoinState, synced: bool) -> Result<()> {
+        insert_coin_state(&mut *self.tx, coin_state, synced).await
     }
 
     pub async fn remove_coin_state(&mut self, coin_id: Bytes32) -> Result<()> {
@@ -63,7 +63,11 @@ impl<'a> DatabaseTx<'a> {
     }
 }
 
-async fn try_insert_coin_state(conn: impl SqliteExecutor<'_>, coin_state: CoinState) -> Result<()> {
+async fn insert_coin_state(
+    conn: impl SqliteExecutor<'_>,
+    coin_state: CoinState,
+    synced: bool,
+) -> Result<()> {
     let coin_id = coin_state.coin.coin_id();
     let coin_id_ref = coin_id.as_ref();
     let parent_coin_id = coin_state.coin.parent_coin_info.as_ref();
@@ -72,7 +76,7 @@ async fn try_insert_coin_state(conn: impl SqliteExecutor<'_>, coin_state: CoinSt
     let amount_ref = amount.as_ref();
     sqlx::query!(
         "
-        INSERT OR IGNORE INTO `coin_states` (
+        REPLACE INTO `coin_states` (
             `coin_id`,
             `parent_coin_id`,
             `puzzle_hash`,
@@ -89,7 +93,7 @@ async fn try_insert_coin_state(conn: impl SqliteExecutor<'_>, coin_state: CoinSt
             ?,
             ?,
             ?,
-            EXISTS (SELECT * FROM `derivations` WHERE `p2_puzzle_hash` = ?),
+            ?,
             NULL
         )
         ",
@@ -99,7 +103,7 @@ async fn try_insert_coin_state(conn: impl SqliteExecutor<'_>, coin_state: CoinSt
         amount_ref,
         coin_state.created_height,
         coin_state.spent_height,
-        puzzle_hash
+        synced
     )
     .execute(conn)
     .await?;

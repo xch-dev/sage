@@ -93,8 +93,14 @@ pub enum Error {
     #[error("Coin {0} has unknown puzzle mod hash {1}")]
     UnknownPuzzle(Bytes32, Bytes32),
 
-    #[error("Erroneous rejection for coin state")]
-    ErroneousCoinStateRejection,
+    #[error("Unexpected rejection")]
+    Rejection,
+
+    #[error("Coin state not found")]
+    CoinStateNotFound,
+
+    #[error("Missing created height")]
+    MissingCreatedHeight,
 
     #[error("Streamable error: {0}")]
     Streamable(#[from] chia::traits::Error),
