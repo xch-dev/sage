@@ -23,11 +23,11 @@ import {
   Typography,
 } from '@mui/material';
 import Grid2 from '@mui/material/Unstable_Grid2/Grid2';
-import { DataGrid, GridRowSelectionModel } from '@mui/x-data-grid';
-import BigNumber from 'bignumber.js';
-import { useEffect, useMemo, useState } from 'react';
+import { GridRowSelectionModel } from '@mui/x-data-grid';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as commands from '../commands';
+import CoinList from '../components/CoinList';
 import ListContainer from '../components/ListContainer';
 import NavBar from '../components/NavBar';
 import { NftData, P2CoinData, SyncInfo, WalletInfo } from '../models';
@@ -44,21 +44,7 @@ export default function Wallet() {
   const [p2Coins, setP2Coins] = useState<P2CoinData[]>([]);
   const [tab, setTab] = useState(0);
 
-  const [rowSelectionModel, setRowSelectionModel] =
-    useState<GridRowSelectionModel>([]);
-
-  const rows = useMemo(() => {
-    return p2Coins.map((coin) => ({
-      id: coin.coin_id,
-      amount: coin.amount,
-      confirmed: coin.created_height,
-      spent: coin.spent_height,
-      updated:
-        coin.created_height && coin.spent_height
-          ? Math.max(coin.created_height, coin.spent_height)
-          : (coin.created_height ?? coin.spent_height),
-    }));
-  }, [p2Coins]);
+  const [selectedCoins, setSelectedCoins] = useState<GridRowSelectionModel>([]);
 
   useEffect(() => {
     commands.activeWallet().then((wallet) => {
@@ -137,7 +123,7 @@ export default function Wallet() {
                   <Button
                     variant='outlined'
                     endIcon={<KeyboardArrowDown />}
-                    disabled={rowSelectionModel.length === 0}
+                    disabled={selectedCoins.length === 0}
                     onClick={handleClick}
                   >
                     Actions
@@ -151,7 +137,7 @@ export default function Wallet() {
                       'aria-labelledby': 'basic-button',
                     }}
                   >
-                    <MenuItem disabled={rowSelectionModel.length < 2}>
+                    <MenuItem disabled={selectedCoins.length < 2}>
                       <ListItemIcon>
                         <CompareArrows fontSize='small' />
                       </ListItemIcon>
@@ -174,78 +160,10 @@ export default function Wallet() {
                   </Menu>
                 </Box>
 
-                <DataGrid
-                  sx={{ mt: 1, height: 400 }}
-                  columns={[
-                    {
-                      field: 'id',
-                      headerName: 'Coin',
-                      width: 150,
-                      description: 'The coin id on the Chia blockchain',
-                    },
-                    {
-                      field: 'amount',
-                      headerName: 'Amount',
-                      width: 150,
-                      valueGetter: (_value, row) => new BigNumber(row.amount),
-                      description: 'The amount of XCH in this coin',
-                    },
-                    {
-                      field: 'confirmed',
-                      headerName: 'Confirmed',
-                      width: 150,
-                      description:
-                        'The block height at which the coin was created',
-                    },
-                    {
-                      field: 'spent',
-                      headerName: 'Spent',
-                      width: 150,
-                      description:
-                        'The block height at which the coin was spent',
-                    },
-                    {
-                      field: 'updated',
-                      headerName: 'Updated',
-                      width: 150,
-                      description:
-                        'The last block height that this coin was updated',
-                    },
-                  ]}
-                  rows={rows}
-                  rowHeight={52}
-                  checkboxSelection
-                  onRowSelectionModelChange={(newRowSelectionModel) => {
-                    setRowSelectionModel(newRowSelectionModel);
-                  }}
-                  rowSelectionModel={rowSelectionModel}
-                  initialState={{
-                    sorting: {
-                      sortModel: [{ field: 'updated', sort: 'desc' }],
-                    },
-                    pagination: {
-                      paginationModel: {
-                        pageSize: 10,
-                      },
-                    },
-                    filter: {
-                      filterModel: {
-                        items: [
-                          {
-                            id: 1,
-                            field: 'spent',
-                            operator: 'isEmpty',
-                          },
-                        ],
-                      },
-                    },
-                    columns: {
-                      columnVisibilityModel: {
-                        updated: false,
-                      },
-                    },
-                  }}
-                  pageSizeOptions={[10, 25, 50, 100]}
+                <CoinList
+                  coins={p2Coins}
+                  selectedCoins={selectedCoins}
+                  setSelectedCoins={setSelectedCoins}
                 />
               </Box>
             </>
