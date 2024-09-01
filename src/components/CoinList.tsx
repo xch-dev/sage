@@ -1,10 +1,10 @@
 import { DataGrid, GridRowSelectionModel } from '@mui/x-data-grid';
 import BigNumber from 'bignumber.js';
 import { useMemo } from 'react';
-import { P2CoinData } from '../models';
+import { CoinData } from '../models';
 
 export interface CoinListProps {
-  coins: P2CoinData[];
+  coins: CoinData[];
   selectedCoins: GridRowSelectionModel;
   setSelectedCoins: React.Dispatch<React.SetStateAction<GridRowSelectionModel>>;
 }

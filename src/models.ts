@@ -51,7 +51,7 @@ export interface SyncInfo {
   synced_coins: number;
 }
 
-export interface P2CoinData {
+export interface CoinData {
   coin_id: string;
   address: string;
   created_height: number | null;
@@ -71,8 +71,8 @@ export interface NftData {
   address: string;
 }
 
-export type SyncEvent =
+export type SyncEventData =
   | { type: 'start'; ip: string }
   | { type: 'stop' }
   | { type: 'subscribed' }
-  | { type: 'coin_update'; coin_ids: string[] };
+  | { type: 'coin_update'; coins: CoinData[] };

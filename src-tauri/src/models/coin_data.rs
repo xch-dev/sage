@@ -4,7 +4,7 @@ use serde_with::{hex::Hex, serde_as};
 
 #[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct P2CoinData {
+pub struct CoinData {
     #[serde_as(as = "Hex")]
     pub coin_id: Bytes32,
     pub address: String,

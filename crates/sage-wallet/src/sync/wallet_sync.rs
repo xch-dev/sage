@@ -148,11 +148,7 @@ async fn sync_puzzle_hashes(
             Ok(data) => {
                 debug!("Received {} coin states", data.coin_states.len());
 
-                let coins_changed: Vec<Bytes32> = data
-                    .coin_states
-                    .iter()
-                    .map(|cs| cs.coin.coin_id())
-                    .collect();
+                let mut p2_coins_changed = Vec::new();
 
                 let mut tx = db.tx().await?;
 
@@ -165,13 +161,14 @@ async fn sync_puzzle_hashes(
 
                     if is_p2 {
                         tx.insert_p2_coin(coin_state.coin.coin_id()).await?;
+                        p2_coins_changed.push(coin_state.coin.coin_id());
                     }
                 }
 
                 tx.commit().await?;
 
                 sync_sender
-                    .send(SyncEvent::CoinUpdate(coins_changed))
+                    .send(SyncEvent::CoinUpdate(p2_coins_changed))
                     .await
                     .ok();
 

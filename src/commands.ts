@@ -1,11 +1,11 @@
 import { invoke } from '@tauri-apps/api/core';
 import {
+  CoinData,
   DerivationMode,
   DidData,
   Network,
   NetworkConfig,
   NftData,
-  P2CoinData,
   PeerInfo,
   PeerMode,
   SyncInfo,
@@ -113,7 +113,7 @@ export async function syncInfo(): Promise<SyncInfo> {
   return await invoke('sync_info');
 }
 
-export async function p2CoinList(): Promise<P2CoinData[]> {
+export async function p2CoinList(): Promise<CoinData[]> {
   return await invoke('p2_coin_list');
 }
 

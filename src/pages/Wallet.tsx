@@ -33,9 +33,9 @@ import CoinList from '../components/CoinList';
 import ListContainer from '../components/ListContainer';
 import NavBar from '../components/NavBar';
 import {
+  CoinData,
   NftData,
-  P2CoinData,
-  SyncEvent,
+  SyncEventData,
   SyncInfo,
   WalletInfo,
 } from '../models';
@@ -89,7 +89,7 @@ function MainWallet() {
     total_coins: 0,
     synced_coins: 0,
   });
-  const [p2Coins, setP2Coins] = useState<P2CoinData[]>([]);
+  const [p2Coins, setP2Coins] = useState<CoinData[]>([]);
   const [selectedCoins, setSelectedCoins] = useState<GridRowSelectionModel>([]);
 
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -105,10 +105,19 @@ function MainWallet() {
   useEffect(() => {
     commands.syncInfo().then(setSyncInfo);
     commands.p2CoinList().then(setP2Coins);
+  }, []);
 
-    const unlisten = listen('sync', (event: Event<SyncEvent>) => {
+  useEffect(() => {
+    const unlisten = listen('sync', (event: Event<SyncEventData>) => {
       if (event.payload.type === 'coin_update') {
-        commands.p2CoinList().then(setP2Coins);
+        const newCoins = p2Coins.slice();
+        for (const coin of event.payload.coins) {
+          console.log(coin);
+          const index = newCoins.findIndex((c) => c.coin_id === coin.coin_id);
+          if (index !== -1) newCoins[index] = coin;
+          else newCoins.push(coin);
+        }
+        setP2Coins(newCoins);
       }
       commands.syncInfo().then(setSyncInfo);
     });
@@ -116,7 +125,7 @@ function MainWallet() {
     return () => {
       unlisten.then((u) => u());
     };
-  }, []);
+  }, [p2Coins]);
 
   return (
     <>

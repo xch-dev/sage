@@ -4,7 +4,7 @@ use tauri::{command, State};
 use crate::{
     app_state::AppState,
     error::{Error, Result},
-    models::{encode_xch_amount, DidData, NftData, P2CoinData, SyncInfo},
+    models::{encode_xch_amount, CoinData, DidData, NftData, SyncInfo},
 };
 
 #[command]
@@ -28,7 +28,7 @@ pub async fn sync_info(state: State<'_, AppState>) -> Result<SyncInfo> {
 }
 
 #[command]
-pub async fn p2_coin_list(state: State<'_, AppState>) -> Result<Vec<P2CoinData>> {
+pub async fn p2_coin_list(state: State<'_, AppState>) -> Result<Vec<CoinData>> {
     let state = state.lock().await;
     let wallet = state.wallet.as_ref().ok_or(Error::NoActiveWallet)?;
 
@@ -37,7 +37,7 @@ pub async fn p2_coin_list(state: State<'_, AppState>) -> Result<Vec<P2CoinData>>
     coin_states
         .into_iter()
         .map(|cs| {
-            Ok(P2CoinData {
+            Ok(CoinData {
                 coin_id: cs.coin.coin_id(),
                 address: encode_address(cs.coin.puzzle_hash.to_bytes(), state.prefix())?,
                 created_height: cs.created_height,
