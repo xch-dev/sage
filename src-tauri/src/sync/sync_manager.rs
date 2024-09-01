@@ -265,10 +265,12 @@ impl SyncManager {
                     }
                     Ok(Err(error)) => {
                         warn!("Initial wallet sync failed: {error}");
+                        self.state.lock().await.ban(*ip);
                         self.initial_wallet_sync = InitialWalletSync::Idle;
                     }
                     Err(_timeout) => {
                         warn!("Initial wallet sync timed out");
+                        self.state.lock().await.ban(*ip);
                         self.initial_wallet_sync = InitialWalletSync::Idle;
                     }
                 }

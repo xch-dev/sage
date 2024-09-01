@@ -41,6 +41,7 @@ pub async fn set_network_id(state: State<'_, AppState>, network_id: String) -> R
     state.config.network.network_id = network_id;
     state.save_config()?;
     state.reset_sync_task(true)?;
+    state.switch_wallet().await?;
 
     Ok(())
 }
