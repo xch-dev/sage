@@ -7,6 +7,7 @@ use chia::{
 };
 use chia_wallet_sdk::Peer;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
+use sage_database::Database;
 use tokio::{sync::Mutex, task::spawn_blocking, time::timeout};
 use tracing::{debug, info, instrument, warn};
 
@@ -34,7 +35,7 @@ pub async fn sync_wallet(
 
     for batch in p2_puzzle_hashes.chunks(1000) {
         derive_more |=
-            sync_puzzle_hashes(&wallet, &peer, start_height, start_header_hash, batch).await?;
+            sync_puzzle_hashes(&wallet.db, &peer, start_height, start_header_hash, batch).await?;
     }
 
     let mut start_index = p2_puzzle_hashes.len() as u32;
@@ -73,7 +74,7 @@ pub async fn sync_wallet(
 
         for batch in p2_puzzle_hashes.chunks(1000) {
             derive_more |=
-                sync_puzzle_hashes(&wallet, &peer, None, genesis_challenge, batch).await?;
+                sync_puzzle_hashes(&wallet.db, &peer, None, genesis_challenge, batch).await?;
         }
     }
 
@@ -91,9 +92,9 @@ pub async fn sync_wallet(
     Ok(())
 }
 
-#[instrument(skip(wallet, peer, puzzle_hashes))]
+#[instrument(skip(db, peer, puzzle_hashes))]
 async fn sync_puzzle_hashes(
-    wallet: &Wallet,
+    db: &Database,
     peer: &Peer,
     start_height: Option<u32>,
     start_header_hash: Bytes32,
@@ -128,7 +129,7 @@ async fn sync_puzzle_hashes(
             Ok(data) => {
                 debug!("Received {} coin states", data.coin_states.len());
 
-                let mut tx = wallet.db.tx().await?;
+                let mut tx = db.tx().await?;
 
                 for coin_state in data.coin_states {
                     found_coins = true;
