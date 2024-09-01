@@ -72,7 +72,7 @@ export default function CoinList(props: CoinListProps) {
         },
         pagination: {
           paginationModel: {
-            pageSize: 10,
+            pageSize: 25,
           },
         },
         filter: {
@@ -92,7 +92,7 @@ export default function CoinList(props: CoinListProps) {
           },
         },
       }}
-      pageSizeOptions={[10, 25, 50, 100]}
+      pageSizeOptions={[25, 50, 100]}
     />
   );
 }
