@@ -30,6 +30,9 @@ pub enum SyncError {
     #[error("Unexpected rejection")]
     Rejection,
 
+    #[error("Subscription limit exceeded")]
+    SubscriptionLimit,
+
     #[error("Missing coin state {0}")]
     MissingCoinState(Bytes32),
 

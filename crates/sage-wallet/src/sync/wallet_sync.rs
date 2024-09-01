@@ -10,7 +10,7 @@ use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use tokio::{sync::Mutex, task::spawn_blocking, time::timeout};
 use tracing::{debug, info, instrument, warn};
 
-use crate::{Wallet, WalletError};
+use crate::{SyncError, Wallet, WalletError};
 
 use super::PeerState;
 
@@ -122,7 +122,7 @@ async fn sync_puzzle_hashes(
             ),
         )
         .await
-        .unwrap()?;
+        .map_err(|_| WalletError::Sync(SyncError::Timeout))??;
 
         match response {
             Ok(data) => {
@@ -157,8 +157,7 @@ async fn sync_puzzle_hashes(
                         "Subscription limit reached against peer {}",
                         peer.socket_addr()
                     );
-                    // return Err(Error::SubscriptionLimitReached);
-                    todo!()
+                    return Err(WalletError::Sync(SyncError::SubscriptionLimit));
                 }
                 RejectStateReason::Reorg => {
                     // TODO: Handle reorgs gracefully

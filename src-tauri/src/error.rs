@@ -81,9 +81,6 @@ pub enum Error {
     #[error("Timeout error")]
     Timeout(#[from] Elapsed),
 
-    #[error("Subscription limit reached")]
-    SubscriptionLimitReached,
-
     #[error("To CLVM error: {0}")]
     ToClvm(#[from] ToClvmError),
 

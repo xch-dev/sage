@@ -4,6 +4,7 @@ use chia::{
     protocol::{Message, NewPeakWallet, ProtocolMessageTypes},
     traits::Streamable,
 };
+use chia_wallet_sdk::ClientError;
 use tokio::sync::{mpsc, Mutex};
 use tracing::{debug, instrument};
 
@@ -67,7 +68,7 @@ async fn handle_peer_event(
     state: &Arc<Mutex<PeerState>>,
 ) -> Result<(), WalletError> {
     if message.msg_type == ProtocolMessageTypes::NewPeakWallet {
-        let message = NewPeakWallet::from_bytes(&message.data).unwrap();
+        let message = NewPeakWallet::from_bytes(&message.data).map_err(ClientError::from)?;
         state
             .lock()
             .await
