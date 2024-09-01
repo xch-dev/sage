@@ -26,7 +26,7 @@ use super::{
     peer_info::PeerInfo,
     puzzle_queue::PuzzleQueue,
     wallet_sync::sync_wallet,
-    PeerState,
+    PeerState, SyncEvent,
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -42,9 +42,9 @@ pub struct SyncManager {
     network_id: NetworkId,
     network: Network,
     connector: Connector,
-    interval: Duration,
-    sender: mpsc::Sender<PeerEvent>,
-    receiver_task: JoinHandle<()>,
+    sync_sender: mpsc::Sender<SyncEvent>,
+    peer_sender: mpsc::Sender<PeerEvent>,
+    peer_receiver_task: JoinHandle<()>,
     initial_wallet_sync: InitialWalletSync,
     puzzle_lookup_task: Option<JoinHandle<Result<(), WalletError>>>,
 }
@@ -66,7 +66,7 @@ enum InitialWalletSync {
 
 impl Drop for SyncManager {
     fn drop(&mut self) {
-        self.receiver_task.abort();
+        self.peer_receiver_task.abort();
         if let InitialWalletSync::Syncing { task, .. } = &mut self.initial_wallet_sync {
             task.abort();
         }
@@ -84,30 +84,33 @@ impl SyncManager {
         network_id: NetworkId,
         network: Network,
         connector: Connector,
-        interval: Duration,
-    ) -> Self {
-        let (sender, receiver) = mpsc::channel(options.target_peers.max(1));
-        let receiver_task = tokio::spawn(handle_peer_events(receiver, state.clone()));
+    ) -> (Self, mpsc::Receiver<SyncEvent>) {
+        let (peer_sender, receiver) = mpsc::channel(options.target_peers.max(1));
+        let peer_receiver_task = tokio::spawn(handle_peer_events(receiver, state.clone()));
 
-        Self {
+        let (sync_sender, receiver) = mpsc::channel(32);
+
+        let manager = Self {
             options,
             state,
             wallet,
             network_id,
             network,
             connector,
-            interval,
-            sender,
-            receiver_task,
+            peer_sender,
+            sync_sender,
+            peer_receiver_task,
             initial_wallet_sync: InitialWalletSync::Idle,
             puzzle_lookup_task: None,
-        }
+        };
+
+        (manager, receiver)
     }
 
     pub async fn sync(mut self) {
         loop {
             self.update().await;
-            sleep(self.interval).await;
+            sleep(Duration::from_secs(1)).await;
         }
     }
 
@@ -213,7 +216,7 @@ impl SyncManager {
             peer,
             claimed_peak: message.height,
             header_hash: message.header_hash,
-            receive_message_task: tokio::spawn(handle_peer(ip, receiver, self.sender.clone())),
+            receive_message_task: tokio::spawn(handle_peer(ip, receiver, self.peer_sender.clone())),
         });
 
         true
@@ -233,8 +236,10 @@ impl SyncManager {
                             self.network.genesis_challenge,
                             peer,
                             self.state.clone(),
+                            self.sync_sender.clone(),
                         ));
                         *sync = InitialWalletSync::Syncing { ip, task };
+                        self.sync_sender.send(SyncEvent::Start(ip)).await.ok();
                     }
                 }
             }
@@ -243,11 +248,13 @@ impl SyncManager {
             {
                 task.abort();
                 self.initial_wallet_sync = InitialWalletSync::Idle;
+                self.sync_sender.send(SyncEvent::Stop).await.ok();
             }
             InitialWalletSync::Subscribed(ip)
                 if !state.is_connected(*ip) || self.wallet.is_none() =>
             {
                 self.initial_wallet_sync = InitialWalletSync::Idle;
+                self.sync_sender.send(SyncEvent::Stop).await.ok();
             }
             _ => {}
         }
@@ -275,16 +282,19 @@ impl SyncManager {
                 match result {
                     Ok(Ok(())) => {
                         self.initial_wallet_sync = InitialWalletSync::Subscribed(*ip);
+                        self.sync_sender.send(SyncEvent::Subscribed).await.ok();
                     }
                     Ok(Err(error)) => {
                         warn!("Initial wallet sync failed: {error}");
                         self.state.lock().await.ban(*ip);
                         self.initial_wallet_sync = InitialWalletSync::Idle;
+                        self.sync_sender.send(SyncEvent::Stop).await.ok();
                     }
                     Err(_timeout) => {
                         warn!("Initial wallet sync timed out");
                         self.state.lock().await.ban(*ip);
                         self.initial_wallet_sync = InitialWalletSync::Idle;
+                        self.sync_sender.send(SyncEvent::Stop).await.ok();
                     }
                 }
             }

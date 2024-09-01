@@ -4,7 +4,6 @@ use std::{
     path::{Path, PathBuf},
     str::FromStr,
     sync::Arc,
-    time::Duration,
 };
 
 use bip39::Mnemonic;
@@ -24,17 +23,19 @@ use sqlx::{
     sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions},
     ConnectOptions,
 };
+use tauri::{AppHandle, Emitter};
 use tokio::{sync::Mutex, task::JoinHandle};
 
 use crate::{
     config::{Config, PeerMode, WalletConfig},
     error::{Error, Result},
-    models::{WalletInfo, WalletKind},
+    models::{SyncEvent, WalletInfo, WalletKind},
 };
 
 pub type AppState = Mutex<AppStateInner>;
 
 pub struct AppStateInner {
+    pub app_handle: AppHandle,
     pub rng: ChaCha20Rng,
     pub path: PathBuf,
     pub config: Config,
@@ -46,8 +47,9 @@ pub struct AppStateInner {
 }
 
 impl AppStateInner {
-    pub fn new(path: &Path) -> Self {
+    pub fn new(app_handle: AppHandle, path: &Path) -> Self {
         Self {
+            app_handle,
             rng: ChaCha20Rng::from_entropy(),
             path: path.to_path_buf(),
             config: Config::default(),
@@ -94,21 +96,29 @@ impl AppStateInner {
 
         let connector = create_rustls_connector(&cert)?;
 
-        self.sync_task = Some(tokio::spawn(
-            SyncManager::new(
-                SyncOptions {
-                    target_peers: self.config.network.target_peers,
-                    find_peers: self.config.network.peer_mode == PeerMode::Automatic,
-                },
-                self.peer_state.clone(),
-                self.wallet.clone(),
-                NetworkId::Custom(network_id),
-                network,
-                connector,
-                Duration::from_secs(3),
-            )
-            .sync(),
-        ));
+        let (sync_manager, mut sync_receiver) = SyncManager::new(
+            SyncOptions {
+                target_peers: self.config.network.target_peers,
+                find_peers: self.config.network.peer_mode == PeerMode::Automatic,
+            },
+            self.peer_state.clone(),
+            self.wallet.clone(),
+            NetworkId::Custom(network_id),
+            network,
+            connector,
+        );
+
+        self.sync_task = Some(tokio::spawn(sync_manager.sync()));
+
+        // TODO: Should this task be aborted? It should get cleaned up automatically anyways I think.
+        let app_handle = self.app_handle.clone();
+        tokio::spawn(async move {
+            while let Some(event) = sync_receiver.recv().await {
+                if app_handle.emit("sync", SyncEvent::from(event)).is_err() {
+                    break;
+                }
+            }
+        });
 
         Ok(())
     }

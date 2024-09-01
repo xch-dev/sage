@@ -47,8 +47,9 @@ pub fn run() {
             commands::remove_peer,
         ])
         .setup(|app| {
+            let app_handle = app.handle().clone();
             let path = app.path().app_data_dir()?;
-            let state = AppStateInner::new(&path);
+            let state = AppStateInner::new(app_handle, &path);
             app.manage(Mutex::new(state));
             Ok(())
         })

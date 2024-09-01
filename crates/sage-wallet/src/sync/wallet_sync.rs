@@ -8,12 +8,16 @@ use chia::{
 use chia_wallet_sdk::Peer;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use sage_database::Database;
-use tokio::{sync::Mutex, task::spawn_blocking, time::timeout};
+use tokio::{
+    sync::{mpsc, Mutex},
+    task::spawn_blocking,
+    time::timeout,
+};
 use tracing::{debug, info, instrument, warn};
 
 use crate::{SyncError, WalletError};
 
-use super::PeerState;
+use super::{PeerState, SyncEvent};
 
 pub async fn sync_wallet(
     db: Database,
@@ -21,6 +25,7 @@ pub async fn sync_wallet(
     genesis_challenge: Bytes32,
     peer: Peer,
     state: Arc<Mutex<PeerState>>,
+    sync_sender: mpsc::Sender<SyncEvent>,
 ) -> Result<(), WalletError> {
     info!("Starting sync against peer {}", peer.socket_addr());
 
@@ -35,8 +40,15 @@ pub async fn sync_wallet(
     let mut derive_more = p2_puzzle_hashes.is_empty();
 
     for batch in p2_puzzle_hashes.chunks(1000) {
-        derive_more |=
-            sync_puzzle_hashes(&db, &peer, start_height, start_header_hash, batch).await?;
+        derive_more |= sync_puzzle_hashes(
+            &db,
+            &peer,
+            start_height,
+            start_header_hash,
+            batch,
+            sync_sender.clone(),
+        )
+        .await?;
     }
 
     let mut start_index = p2_puzzle_hashes.len() as u32;
@@ -72,7 +84,15 @@ pub async fn sync_wallet(
         tx.commit().await?;
 
         for batch in p2_puzzle_hashes.chunks(1000) {
-            derive_more |= sync_puzzle_hashes(&db, &peer, None, genesis_challenge, batch).await?;
+            derive_more |= sync_puzzle_hashes(
+                &db,
+                &peer,
+                None,
+                genesis_challenge,
+                batch,
+                sync_sender.clone(),
+            )
+            .await?;
         }
     }
 
@@ -97,6 +117,7 @@ async fn sync_puzzle_hashes(
     start_height: Option<u32>,
     start_header_hash: Bytes32,
     puzzle_hashes: &[Bytes32],
+    sync_sender: mpsc::Sender<SyncEvent>,
 ) -> Result<bool, WalletError> {
     let mut prev_height = start_height;
     let mut prev_header_hash = start_header_hash;
@@ -127,6 +148,12 @@ async fn sync_puzzle_hashes(
             Ok(data) => {
                 debug!("Received {} coin states", data.coin_states.len());
 
+                let coins_changed: Vec<Bytes32> = data
+                    .coin_states
+                    .iter()
+                    .map(|cs| cs.coin.coin_id())
+                    .collect();
+
                 let mut tx = db.tx().await?;
 
                 for coin_state in data.coin_states {
@@ -142,6 +169,11 @@ async fn sync_puzzle_hashes(
                 }
 
                 tx.commit().await?;
+
+                sync_sender
+                    .send(SyncEvent::CoinUpdate(coins_changed))
+                    .await
+                    .ok();
 
                 prev_height = Some(data.height);
                 prev_header_hash = data.header_hash;
