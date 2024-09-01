@@ -23,7 +23,7 @@ import {
   Toolbar,
   Typography,
 } from '@mui/material';
-import { useEffect, useState } from 'react';
+import { ReactElement, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { activeWallet, logoutWallet } from '../commands';
 import { WalletInfo } from '../models';
@@ -57,6 +57,117 @@ export default function NavBar(props: NavBarProps) {
       navigate('/');
     });
   };
+
+  const items: Array<ReactElement> = [];
+
+  if (wallet) {
+    items.push(
+      <MenuItem key='issue_cat'>
+        <ListItemIcon>
+          <Paid fontSize='small' />
+        </ListItemIcon>
+        <ListItemText>Issue CAT</ListItemText>
+      </MenuItem>,
+
+      <MenuItem key='create_did'>
+        <ListItemIcon>
+          <Contacts fontSize='small' />
+        </ListItemIcon>
+        <ListItemText>Create DID</ListItemText>
+      </MenuItem>,
+
+      <MenuItem key='mint_nft'>
+        <ListItemIcon>
+          <ImageIcon fontSize='small' />
+        </ListItemIcon>
+        <ListItemText>Mint NFT</ListItemText>
+      </MenuItem>,
+
+      <MenuItem key='bulk_mint_nfts'>
+        <ListItemIcon>
+          <Collections fontSize='small' />
+        </ListItemIcon>
+        <ListItemText>Bulk Mint NFTs</ListItemText>
+      </MenuItem>,
+
+      <Divider key='end_wallet' sx={{ my: 0.5 }} />,
+    );
+  } else {
+    items.push(
+      <MenuItem
+        key='create_wallet'
+        onClick={() => {
+          navigate('/create');
+          closeMenu();
+        }}
+      >
+        <ListItemIcon>
+          <Add fontSize='small' />
+        </ListItemIcon>
+        <ListItemText>Create Wallet</ListItemText>
+      </MenuItem>,
+
+      <MenuItem
+        key='import_wallet'
+        onClick={() => {
+          navigate('/import');
+          closeMenu();
+        }}
+      >
+        <ListItemIcon>
+          <PersonAdd fontSize='small' />
+        </ListItemIcon>
+        <ListItemText>Import Wallet</ListItemText>
+      </MenuItem>,
+
+      <Divider key='end_import' sx={{ my: 0.5 }} />,
+    );
+  }
+
+  items.push(
+    <MenuItem
+      key='peers'
+      onClick={() => {
+        navigate('/peers');
+        closeMenu();
+      }}
+    >
+      <ListItemIcon>
+        <NetworkCheck fontSize='small' />
+      </ListItemIcon>
+      <ListItemText>Peers</ListItemText>
+    </MenuItem>,
+
+    <MenuItem
+      key='settings'
+      onClick={() => {
+        navigate('/settings');
+        closeMenu();
+      }}
+    >
+      <ListItemIcon>
+        <Settings fontSize='small' />
+      </ListItemIcon>
+      <ListItemText>Settings</ListItemText>
+    </MenuItem>,
+  );
+
+  if (wallet) {
+    items.push(
+      <MenuItem
+        key='logout'
+        onClick={() => {
+          logout();
+          closeMenu();
+        }}
+      >
+        <ListItemIcon>
+          <Logout fontSize='small' />
+        </ListItemIcon>
+        <ListItemText>Logout</ListItemText>
+      </MenuItem>,
+    );
+  }
 
   return (
     <Box sx={{ flexGrow: 1 }}>
@@ -106,103 +217,7 @@ export default function NavBar(props: NavBarProps) {
             <MenuIcon />
           </IconButton>
           <Menu anchorEl={anchorEl} open={isMenuOpen} onClose={closeMenu}>
-            {wallet ? (
-              <>
-                <MenuItem>
-                  <ListItemIcon>
-                    <Paid fontSize='small' />
-                  </ListItemIcon>
-                  <ListItemText>Issue CAT</ListItemText>
-                </MenuItem>
-
-                <MenuItem>
-                  <ListItemIcon>
-                    <Contacts fontSize='small' />
-                  </ListItemIcon>
-                  <ListItemText>Create DID</ListItemText>
-                </MenuItem>
-
-                <MenuItem>
-                  <ListItemIcon>
-                    <ImageIcon fontSize='small' />
-                  </ListItemIcon>
-                  <ListItemText>Mint NFT</ListItemText>
-                </MenuItem>
-
-                <MenuItem>
-                  <ListItemIcon>
-                    <Collections fontSize='small' />
-                  </ListItemIcon>
-                  <ListItemText>Bulk Mint NFTs</ListItemText>
-                </MenuItem>
-
-                <Divider sx={{ my: 0.5 }} />
-
-                <MenuItem
-                  onClick={() => {
-                    logout();
-                    closeMenu();
-                  }}
-                >
-                  <ListItemIcon>
-                    <Logout fontSize='small' />
-                  </ListItemIcon>
-                  <ListItemText>Logout</ListItemText>
-                </MenuItem>
-              </>
-            ) : (
-              <>
-                <MenuItem
-                  onClick={() => {
-                    navigate('/create');
-                    closeMenu();
-                  }}
-                >
-                  <ListItemIcon>
-                    <Add fontSize='small' />
-                  </ListItemIcon>
-                  <ListItemText>Create Wallet</ListItemText>
-                </MenuItem>
-
-                <MenuItem
-                  onClick={() => {
-                    navigate('/import');
-                    closeMenu();
-                  }}
-                >
-                  <ListItemIcon>
-                    <PersonAdd fontSize='small' />
-                  </ListItemIcon>
-                  <ListItemText>Import Wallet</ListItemText>
-                </MenuItem>
-
-                <Divider sx={{ my: 0.5 }} />
-              </>
-            )}
-
-            <MenuItem
-              onClick={() => {
-                navigate('/peers');
-                closeMenu();
-              }}
-            >
-              <ListItemIcon>
-                <NetworkCheck fontSize='small' />
-              </ListItemIcon>
-              <ListItemText>Peers</ListItemText>
-            </MenuItem>
-
-            <MenuItem
-              onClick={() => {
-                navigate('/settings');
-                closeMenu();
-              }}
-            >
-              <ListItemIcon>
-                <Settings fontSize='small' />
-              </ListItemIcon>
-              <ListItemText>Settings</ListItemText>
-            </MenuItem>
+            {items}
           </Menu>
         </Toolbar>
       </AppBar>
