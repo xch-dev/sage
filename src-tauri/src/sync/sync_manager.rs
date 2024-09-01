@@ -11,6 +11,7 @@ use chia::{
 use chia_wallet_sdk::{connect_peer, Connector, Network, NetworkId, Peer};
 use futures_lite::{future::poll_once, StreamExt};
 use futures_util::stream::FuturesUnordered;
+use sage_wallet::Wallet;
 use tokio::{
     sync::{mpsc, Mutex},
     task::JoinHandle,
@@ -21,7 +22,6 @@ use tracing::{debug, warn};
 use crate::{
     config::{NetworkConfig, PeerMode},
     error::Result,
-    wallet::Wallet,
 };
 
 use super::{

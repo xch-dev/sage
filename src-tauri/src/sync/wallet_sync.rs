@@ -11,6 +11,7 @@ use clvmr::Allocator;
 use futures_lite::StreamExt;
 use futures_util::stream::FuturesUnordered;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
+use sage_wallet::Wallet;
 use tokio::{
     sync::Mutex,
     task::spawn_blocking,
@@ -18,10 +19,7 @@ use tokio::{
 };
 use tracing::{debug, info, instrument, warn};
 
-use crate::{
-    error::{Error, Result},
-    wallet::Wallet,
-};
+use crate::error::{Error, Result};
 
 use super::sync_state::SyncState;
 

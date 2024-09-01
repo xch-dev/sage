@@ -19,6 +19,7 @@ use rand::SeedableRng;
 use rand_chacha::ChaCha20Rng;
 use sage_database::Database;
 use sage_keychain::{encrypt, KeyData, SecretKeyData};
+use sage_wallet::Wallet;
 use sqlx::{
     sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions},
     ConnectOptions,
@@ -30,7 +31,6 @@ use crate::{
     error::{Error, Result},
     models::{WalletInfo, WalletKind},
     sync::{SyncManager, SyncState},
-    wallet::Wallet,
 };
 
 pub type AppState = Mutex<AppStateInner>;

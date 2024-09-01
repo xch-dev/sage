@@ -23,8 +23,4 @@ impl Wallet {
             genesis_challenge,
         }
     }
-
-    pub fn fingerprint(&self) -> u32 {
-        self.fingerprint
-    }
 }

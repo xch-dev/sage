@@ -45,6 +45,7 @@ cast_possible_truncation = "allow"
 [workspace.dependencies]
 sage-database = { path = "./crates/sage-database" }
 sage-keychain = { path = "./crates/sage-keychain" }
+sage-wallet = { path = "./crates/sage-wallet" }
 
 # Serialization
 serde = "1.0.204"

@@ -4162,6 +4162,7 @@ dependencies = [
  "rayon",
  "sage-database",
  "sage-keychain",
+ "sage-wallet",
  "serde",
  "serde_with",
  "sqlx",
@@ -4174,6 +4175,14 @@ dependencies = [
  "tracing",
  "tracing-appender",
  "tracing-subscriber",
+]
+
+[[package]]
+name = "sage-wallet"
+version = "0.1.0"
+dependencies = [
+ "chia",
+ "sage-database",
 ]
 
 [[package]]
