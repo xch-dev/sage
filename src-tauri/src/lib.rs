@@ -4,7 +4,6 @@ use tokio::sync::Mutex;
 
 mod app_state;
 mod commands;
-mod config;
 mod error;
 mod models;
 

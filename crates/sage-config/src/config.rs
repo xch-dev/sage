@@ -1,17 +1,7 @@
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 
-mod app_config;
-mod derivation_mode;
-mod network_config;
-mod peer_mode;
-mod wallet_config;
-
-pub use app_config::*;
-pub use derivation_mode::*;
-pub use network_config::*;
-pub use peer_mode::*;
-pub use wallet_config::*;
+use crate::{AppConfig, NetworkConfig, WalletConfig};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
@@ -36,7 +26,7 @@ impl Default for Config {
     }
 }
 
-#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Copy, Serialize, Deserialize)]
 pub struct GeneralWalletConfig {
     #[serde(default)]
     pub active_fingerprint: Option<u32>,

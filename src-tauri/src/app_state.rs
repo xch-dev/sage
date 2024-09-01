@@ -16,6 +16,7 @@ use indexmap::{indexmap, IndexMap};
 use itertools::Itertools;
 use rand::SeedableRng;
 use rand_chacha::ChaCha20Rng;
+use sage_config::{Config, PeerMode, WalletConfig};
 use sage_database::Database;
 use sage_keychain::{encrypt, KeyData, SecretKeyData};
 use sage_wallet::{PeerState, SyncManager, SyncOptions, Wallet};
@@ -27,7 +28,6 @@ use tauri::{AppHandle, Emitter};
 use tokio::{sync::Mutex, task::JoinHandle};
 
 use crate::{
-    config::{Config, PeerMode, WalletConfig},
     error::{Error, Result},
     models::{SyncEvent, WalletInfo, WalletKind},
 };

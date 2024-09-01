@@ -1,10 +1,7 @@
+use sage_config::{DerivationMode, NetworkConfig, PeerMode, WalletConfig};
 use tauri::{command, State};
 
-use crate::{
-    app_state::AppState,
-    config::{DerivationMode, NetworkConfig, PeerMode, WalletConfig},
-    error::Result,
-};
+use crate::{app_state::AppState, error::Result};
 
 #[command]
 pub async fn network_config(state: State<'_, AppState>) -> Result<NetworkConfig> {

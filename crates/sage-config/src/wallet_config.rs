@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use super::DerivationMode;
+use crate::DerivationMode;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WalletConfig {
