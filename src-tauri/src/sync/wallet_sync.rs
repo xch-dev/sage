@@ -109,11 +109,7 @@ enum PuzzleInfo {
     Unknown,
 }
 
-pub async fn lookup_puzzles(
-    wallet: Arc<Wallet>,
-    genesis_challenge: Bytes32,
-    state: Arc<Mutex<SyncState>>,
-) -> Result<()> {
+pub async fn lookup_puzzles(wallet: Arc<Wallet>, state: Arc<Mutex<SyncState>>) -> Result<()> {
     loop {
         let coin_states = wallet.db.unsynced_coin_states(30).await?;
 
@@ -141,7 +137,7 @@ pub async fn lookup_puzzles(
             let addr = peer.socket_addr();
             let coin_id = coin_state.coin.coin_id();
             futures.push(tokio::spawn(async move {
-                let result = lookup_puzzle(wallet, peer, genesis_challenge, coin_state).await;
+                let result = lookup_puzzle(wallet, peer, coin_state).await;
                 (addr, coin_id, result)
             }));
         }
@@ -162,18 +158,13 @@ pub async fn lookup_puzzles(
     }
 }
 
-async fn lookup_puzzle(
-    wallet: Arc<Wallet>,
-    peer: Peer,
-    genesis_challenge: Bytes32,
-    coin_state: CoinState,
-) -> Result<()> {
+async fn lookup_puzzle(wallet: Arc<Wallet>, peer: Peer, coin_state: CoinState) -> Result<()> {
     let Some(parent_coin_state) = timeout(
         Duration::from_secs(3),
         peer.request_coin_state(
             vec![coin_state.coin.parent_coin_info],
             None,
-            genesis_challenge,
+            wallet.genesis_challenge,
             false,
         ),
     )

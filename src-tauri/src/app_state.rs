@@ -174,11 +174,6 @@ impl AppStateInner {
 
         tx.commit().await?;
 
-        let wallet_config = self
-            .try_wallet_config(fingerprint)
-            .cloned()
-            .unwrap_or_default();
-
         self.wallet = Some(wallet.clone());
 
         self.reset_sync_task(false)?;

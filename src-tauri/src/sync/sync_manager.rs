@@ -244,11 +244,7 @@ impl SyncManager {
 
         if let Some(wallet) = self.wallet.clone() {
             if self.puzzle_lookup_task.is_none() {
-                let task = tokio::spawn(lookup_puzzles(
-                    wallet,
-                    self.network.genesis_challenge,
-                    self.state.clone(),
-                ));
+                let task = tokio::spawn(lookup_puzzles(wallet, self.state.clone()));
                 self.puzzle_lookup_task = Some(task);
             }
         } else {

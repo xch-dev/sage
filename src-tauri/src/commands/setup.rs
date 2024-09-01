@@ -3,9 +3,7 @@ use std::fs;
 use tauri::{command, State};
 use tracing::{info, level_filters::LevelFilter};
 use tracing_appender::rolling::{Builder, Rotation};
-use tracing_subscriber::{
-    fmt::format::FmtSpan, layer::SubscriberExt, util::SubscriberInitExt, Layer,
-};
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, Layer};
 
 use crate::{app_state::AppState, error::Result};
 

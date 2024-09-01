@@ -17,19 +17,11 @@ pub struct SyncState {
 }
 
 impl SyncState {
-    pub fn new(banned_peers: HashSet<IpAddr>, trusted_peers: HashSet<IpAddr>) -> Self {
-        Self {
-            peers: HashMap::new(),
-            banned_peers,
-            trusted_peers,
-        }
-    }
-
     pub fn peak(&self) -> Option<(u32, Bytes32)> {
         self.peers
             .values()
             .map(|peer| (peer.claimed_peak, peer.header_hash))
-            .sorted_by_key(|(height, _)| -(*height as i64))
+            .sorted_by_key(|(height, _)| -i64::from(*height))
             .next()
     }
 
@@ -62,12 +54,6 @@ impl SyncState {
 
     pub fn is_banned(&self, ip: IpAddr) -> bool {
         self.banned_peers.contains(&ip)
-    }
-
-    pub fn reset_peers(&mut self) {
-        self.peers.drain().for_each(|(_ip, peer)| {
-            peer.task.abort();
-        });
     }
 
     pub fn update_peak(&mut self, ip: IpAddr, height: u32, header_hash: Bytes32) {

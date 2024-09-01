@@ -1,10 +1,8 @@
 use std::net::AddrParseError;
 use std::num::ParseIntError;
 
-use chia::clvm_traits::FromClvmError;
-use chia::{clvm_traits::ToClvmError, protocol::Bytes32};
-use chia_wallet_sdk::DriverError;
-use chia_wallet_sdk::{AddressError, ClientError};
+use chia::clvm_traits::{FromClvmError, ToClvmError};
+use chia_wallet_sdk::{AddressError, ClientError, DriverError};
 use sage::KeychainError;
 use sage_database::DatabaseError;
 use serde::{Serialize, Serializer};
@@ -90,9 +88,6 @@ pub enum Error {
 
     #[error("From CLVM error: {0}")]
     FromClvm(#[from] FromClvmError),
-
-    #[error("Coin {0} has unknown puzzle mod hash {1}")]
-    UnknownPuzzle(Bytes32, Bytes32),
 
     #[error("Unexpected rejection")]
     Rejection,
