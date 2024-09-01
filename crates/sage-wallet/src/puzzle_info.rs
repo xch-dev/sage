@@ -5,7 +5,7 @@ use chia::{
 };
 use chia_wallet_sdk::{Cat, Did, DidInfo, HashedPtr, Nft, NftInfo, Primitive, Puzzle};
 use clvmr::Allocator;
-use tracing::{debug_span, warn};
+use tracing::{debug, debug_span, warn};
 
 use crate::ParseError;
 
@@ -42,9 +42,11 @@ impl PuzzleInfo {
         let parse_span = debug_span!(
             "parse",
             parent_coin = %parent_coin.coin_id(),
-            coin_id = %coin.coin_id()
+            coin = %coin.coin_id()
         );
         let _span = parse_span.enter();
+
+        debug!("Parsing parent puzzle and solution");
 
         let mut allocator = Allocator::new();
 
