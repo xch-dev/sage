@@ -3,8 +3,8 @@ use std::num::ParseIntError;
 
 use chia::clvm_traits::{FromClvmError, ToClvmError};
 use chia_wallet_sdk::{AddressError, ClientError, DriverError};
-use sage::KeychainError;
 use sage_database::DatabaseError;
+use sage_keychain::KeychainError;
 use serde::{Serialize, Serializer};
 use thiserror::Error;
 use tokio::task::JoinError;

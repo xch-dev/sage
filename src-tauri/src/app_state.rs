@@ -17,8 +17,8 @@ use indexmap::{indexmap, IndexMap};
 use itertools::Itertools;
 use rand::SeedableRng;
 use rand_chacha::ChaCha20Rng;
-use sage::{encrypt, KeyData, SecretKeyData};
 use sage_database::Database;
+use sage_keychain::{encrypt, KeyData, SecretKeyData};
 use sqlx::{
     sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions},
     ConnectOptions,

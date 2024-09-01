@@ -4118,7 +4118,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f3cb5ba0dc43242ce17de99c180e96db90b235b8a9fdc9543c96d2209116bd9f"
 
 [[package]]
-name = "sage"
+name = "sage-database"
+version = "0.1.0"
+dependencies = [
+ "chia",
+ "chia-wallet-sdk",
+ "sqlx",
+ "thiserror",
+]
+
+[[package]]
+name = "sage-keychain"
 version = "0.1.0"
 dependencies = [
  "aes-gcm",
@@ -4127,16 +4137,6 @@ dependencies = [
  "rand 0.8.5",
  "serde",
  "serde_with",
- "thiserror",
-]
-
-[[package]]
-name = "sage-database"
-version = "0.1.0"
-dependencies = [
- "chia",
- "chia-wallet-sdk",
- "sqlx",
  "thiserror",
 ]
 
@@ -4160,8 +4160,8 @@ dependencies = [
  "rand 0.8.5",
  "rand_chacha 0.3.1",
  "rayon",
- "sage",
  "sage-database",
+ "sage-keychain",
  "serde",
  "serde_with",
  "sqlx",

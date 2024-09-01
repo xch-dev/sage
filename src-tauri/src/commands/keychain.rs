@@ -2,7 +2,7 @@ use bip39::Mnemonic;
 use chia::bls::{PublicKey, SecretKey};
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
-use sage::KeyData;
+use sage_keychain::KeyData;
 use std::str::FromStr;
 use tauri::{command, State};
 
