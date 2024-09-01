@@ -7,7 +7,6 @@ mod commands;
 mod config;
 mod error;
 mod models;
-mod sync;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {

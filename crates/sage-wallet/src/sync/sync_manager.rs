@@ -1,4 +1,5 @@
 use std::{
+    fmt,
     net::{IpAddr, SocketAddr},
     sync::Arc,
     time::Duration,
@@ -28,18 +29,30 @@ use super::{
     PeerState,
 };
 
+#[derive(Debug, Clone, Copy)]
+pub struct SyncOptions {
+    pub target_peers: usize,
+    pub find_peers: bool,
+}
+
 pub struct SyncManager {
+    options: SyncOptions,
     state: Arc<Mutex<PeerState>>,
     wallet: Option<Arc<Wallet>>,
     network_id: NetworkId,
     network: Network,
-    network_config: NetworkConfig,
     connector: Connector,
     interval: Duration,
     sender: mpsc::Sender<PeerEvent>,
     receiver_task: JoinHandle<()>,
     initial_wallet_sync: InitialWalletSync,
     puzzle_lookup_task: Option<JoinHandle<Result<(), WalletError>>>,
+}
+
+impl fmt::Debug for SyncManager {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("SyncManager").finish()
+    }
 }
 
 enum InitialWalletSync {
@@ -65,23 +78,23 @@ impl Drop for SyncManager {
 
 impl SyncManager {
     pub fn new(
+        options: SyncOptions,
         state: Arc<Mutex<PeerState>>,
         wallet: Option<Arc<Wallet>>,
         network_id: NetworkId,
         network: Network,
-        network_config: NetworkConfig,
         connector: Connector,
         interval: Duration,
     ) -> Self {
-        let (sender, receiver) = mpsc::channel(network_config.target_peers.max(1));
+        let (sender, receiver) = mpsc::channel(options.target_peers.max(1));
         let receiver_task = tokio::spawn(handle_peer_events(receiver, state.clone()));
 
         Self {
+            options,
             state,
             wallet,
             network_id,
             network,
-            network_config,
             connector,
             interval,
             sender,
@@ -101,9 +114,7 @@ impl SyncManager {
     async fn update(&mut self) {
         let peer_count = self.state.lock().await.peer_count();
 
-        if self.network_config.peer_mode == PeerMode::Automatic
-            && peer_count < self.network_config.target_peers
-        {
+        if self.options.find_peers && peer_count < self.options.target_peers {
             self.dns_discovery().await;
         }
 
@@ -168,7 +179,7 @@ impl SyncManager {
     }
 
     async fn check_peer_count(&mut self) -> bool {
-        self.state.lock().await.peer_count() >= self.network_config.target_peers
+        self.state.lock().await.peer_count() >= self.options.target_peers
     }
 
     async fn try_add_peer(&mut self, peer: Peer, mut receiver: mpsc::Receiver<Message>) -> bool {
