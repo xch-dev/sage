@@ -36,15 +36,7 @@ export default function Wallet() {
   const navigate = useNavigate();
 
   const [wallet, setWallet] = useState<WalletInfo | null>(null);
-  const [syncInfo, setSyncInfo] = useState<SyncInfo>({
-    xch_balance: 'Syncing',
-    total_coins: 0,
-    synced_coins: 0,
-  });
-  const [p2Coins, setP2Coins] = useState<P2CoinData[]>([]);
   const [tab, setTab] = useState(0);
-
-  const [selectedCoins, setSelectedCoins] = useState<GridRowSelectionModel>([]);
 
   useEffect(() => {
     commands.activeWallet().then((wallet) => {
@@ -53,125 +45,13 @@ export default function Wallet() {
     });
   }, [navigate]);
 
-  useEffect(() => {
-    commands.syncInfo().then(setSyncInfo);
-    commands.p2CoinList().then(setP2Coins);
-
-    const interval = setInterval(() => {
-      commands.syncInfo().then(setSyncInfo);
-      commands.p2CoinList().then(setP2Coins);
-    }, 20000);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const open = Boolean(anchorEl);
-  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
-  const handleClose = () => {
-    setAnchorEl(null);
-  };
-
   return (
     <>
       <NavBar label={wallet?.name ?? 'Loading...'} back='logout' />
 
       <ListContainer>
         <Box pb={11}>
-          {tab === 0 ? (
-            <>
-              <Grid2
-                container
-                spacing={2}
-                alignItems='center'
-                justifyContent='center'
-              >
-                <Grid2 xs={12} md={6}>
-                  <Paper sx={{ p: 1.5, px: 2 }}>
-                    <Typography
-                      fontSize={20}
-                      fontWeight='normal'
-                      color='text.secondary'
-                    >
-                      Balance
-                    </Typography>
-                    <Typography fontSize={22}>
-                      {syncInfo.xch_balance}
-                    </Typography>
-                  </Paper>
-                </Grid2>
-                <Grid2 xs={12} md={6}>
-                  <Paper sx={{ p: 1.5, px: 2 }}>
-                    <Typography
-                      fontSize={20}
-                      fontWeight='normal'
-                      color='text.secondary'
-                    >
-                      Sync Status
-                    </Typography>
-                    <Typography fontSize={22}>
-                      {syncInfo.synced_coins}/{syncInfo.total_coins} Coins
-                    </Typography>
-                  </Paper>
-                </Grid2>
-              </Grid2>
-
-              <Box mt={2}>
-                <Box display='flex' justifyContent='end'>
-                  <Button
-                    variant='outlined'
-                    endIcon={<KeyboardArrowDown />}
-                    disabled={selectedCoins.length === 0}
-                    onClick={handleClick}
-                  >
-                    Actions
-                  </Button>
-
-                  <Menu
-                    anchorEl={anchorEl}
-                    open={open}
-                    onClose={handleClose}
-                    MenuListProps={{
-                      'aria-labelledby': 'basic-button',
-                    }}
-                  >
-                    <MenuItem disabled={selectedCoins.length < 2}>
-                      <ListItemIcon>
-                        <CompareArrows fontSize='small' />
-                      </ListItemIcon>
-                      <ListItemText>Combine</ListItemText>
-                    </MenuItem>
-
-                    <MenuItem>
-                      <ListItemIcon>
-                        <ForkRight fontSize='small' />
-                      </ListItemIcon>
-                      <ListItemText>Split</ListItemText>
-                    </MenuItem>
-
-                    <MenuItem>
-                      <ListItemIcon>
-                        <ArrowForward fontSize='small' />
-                      </ListItemIcon>
-                      <ListItemText>Transfer</ListItemText>
-                    </MenuItem>
-                  </Menu>
-                </Box>
-
-                <CoinList
-                  coins={p2Coins}
-                  selectedCoins={selectedCoins}
-                  setSelectedCoins={setSelectedCoins}
-                />
-              </Box>
-            </>
-          ) : tab === 1 ? (
-            <TokenList />
-          ) : (
-            <NftList />
-          )}
+          {tab === 0 ? <MainWallet /> : tab === 1 ? <TokenList /> : <NftList />}
         </Box>
       </ListContainer>
 
@@ -191,6 +71,120 @@ export default function Wallet() {
           <BottomNavigationAction label='NFTs' icon={<Collections />} />
         </BottomNavigation>
       </Paper>
+    </>
+  );
+}
+
+function MainWallet() {
+  const [syncInfo, setSyncInfo] = useState<SyncInfo>({
+    xch_balance: 'Syncing',
+    total_coins: 0,
+    synced_coins: 0,
+  });
+  const [p2Coins, setP2Coins] = useState<P2CoinData[]>([]);
+  const [selectedCoins, setSelectedCoins] = useState<GridRowSelectionModel>([]);
+
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const open = Boolean(anchorEl);
+
+  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
+
+  useEffect(() => {
+    commands.syncInfo().then(setSyncInfo);
+    commands.p2CoinList().then(setP2Coins);
+
+    const interval = setInterval(() => {
+      commands.syncInfo().then(setSyncInfo);
+      commands.p2CoinList().then(setP2Coins);
+    }, 20000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <>
+      <Grid2 container spacing={2} alignItems='center' justifyContent='center'>
+        <Grid2 xs={12} md={6}>
+          <Paper sx={{ p: 1.5, px: 2 }}>
+            <Typography
+              fontSize={20}
+              fontWeight='normal'
+              color='text.secondary'
+            >
+              Balance
+            </Typography>
+            <Typography fontSize={22}>{syncInfo.xch_balance}</Typography>
+          </Paper>
+        </Grid2>
+        <Grid2 xs={12} md={6}>
+          <Paper sx={{ p: 1.5, px: 2 }}>
+            <Typography
+              fontSize={20}
+              fontWeight='normal'
+              color='text.secondary'
+            >
+              Sync Status
+            </Typography>
+            <Typography fontSize={22}>
+              {syncInfo.synced_coins}/{syncInfo.total_coins} Coins
+            </Typography>
+          </Paper>
+        </Grid2>
+      </Grid2>
+
+      <Box mt={2}>
+        <Box display='flex' justifyContent='end'>
+          <Button
+            variant='outlined'
+            endIcon={<KeyboardArrowDown />}
+            disabled={selectedCoins.length === 0}
+            onClick={handleClick}
+          >
+            Actions
+          </Button>
+
+          <Menu
+            anchorEl={anchorEl}
+            open={open}
+            onClose={handleClose}
+            MenuListProps={{
+              'aria-labelledby': 'basic-button',
+            }}
+          >
+            <MenuItem disabled={selectedCoins.length < 2}>
+              <ListItemIcon>
+                <CompareArrows fontSize='small' />
+              </ListItemIcon>
+              <ListItemText>Combine</ListItemText>
+            </MenuItem>
+
+            <MenuItem>
+              <ListItemIcon>
+                <ForkRight fontSize='small' />
+              </ListItemIcon>
+              <ListItemText>Split</ListItemText>
+            </MenuItem>
+
+            <MenuItem>
+              <ListItemIcon>
+                <ArrowForward fontSize='small' />
+              </ListItemIcon>
+              <ListItemText>Transfer</ListItemText>
+            </MenuItem>
+          </Menu>
+        </Box>
+
+        <CoinList
+          coins={p2Coins}
+          selectedCoins={selectedCoins}
+          setSelectedCoins={setSelectedCoins}
+        />
+      </Box>
     </>
   );
 }
