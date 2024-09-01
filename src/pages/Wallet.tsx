@@ -25,7 +25,7 @@ import {
 import Grid2 from '@mui/material/Unstable_Grid2/Grid2';
 import { DataGrid, GridRowSelectionModel } from '@mui/x-data-grid';
 import BigNumber from 'bignumber.js';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as commands from '../commands';
 import ListContainer from '../components/ListContainer';
@@ -47,6 +47,19 @@ export default function Wallet() {
   const [rowSelectionModel, setRowSelectionModel] =
     useState<GridRowSelectionModel>([]);
 
+  const rows = useMemo(() => {
+    return p2Coins.map((coin) => ({
+      id: coin.coin_id,
+      amount: coin.amount,
+      confirmed: coin.created_height,
+      spent: coin.spent_height,
+      updated:
+        coin.created_height && coin.spent_height
+          ? Math.max(coin.created_height, coin.spent_height)
+          : (coin.created_height ?? coin.spent_height),
+    }));
+  }, [p2Coins]);
+
   useEffect(() => {
     commands.activeWallet().then((wallet) => {
       if (wallet) return setWallet(wallet);
@@ -61,7 +74,7 @@ export default function Wallet() {
     const interval = setInterval(() => {
       commands.syncInfo().then(setSyncInfo);
       commands.p2CoinList().then(setP2Coins);
-    }, 2000);
+    }, 20000);
 
     return () => clearInterval(interval);
   }, []);
@@ -162,25 +175,45 @@ export default function Wallet() {
                 </Box>
 
                 <DataGrid
-                  sx={{ mt: 1, height: 340 }}
+                  sx={{ mt: 1, height: 400 }}
                   columns={[
-                    { field: 'id', headerName: 'Coin Id', width: 150 },
+                    {
+                      field: 'id',
+                      headerName: 'Coin',
+                      width: 150,
+                      description: 'The coin id on the Chia blockchain',
+                    },
                     {
                       field: 'amount',
                       headerName: 'Amount',
-                      width: 125,
+                      width: 150,
                       valueGetter: (_value, row) => new BigNumber(row.amount),
+                      description: 'The amount of XCH in this coin',
                     },
-                    { field: 'confirmed', headerName: 'Confirmed', width: 100 },
-                    { field: 'spent', headerName: 'Spent', width: 100 },
+                    {
+                      field: 'confirmed',
+                      headerName: 'Confirmed',
+                      width: 150,
+                      description:
+                        'The block height at which the coin was created',
+                    },
+                    {
+                      field: 'spent',
+                      headerName: 'Spent',
+                      width: 150,
+                      description:
+                        'The block height at which the coin was spent',
+                    },
+                    {
+                      field: 'updated',
+                      headerName: 'Updated',
+                      width: 150,
+                      description:
+                        'The last block height that this coin was updated',
+                    },
                   ]}
-                  rows={p2Coins.map((coin) => ({
-                    id: coin.coin_id,
-                    amount: coin.amount,
-                    confirmed: coin.created_height,
-                    spent: coin.spent_height ?? 'N/A',
-                  }))}
-                  rowHeight={48}
+                  rows={rows}
+                  rowHeight={52}
                   checkboxSelection
                   onRowSelectionModelChange={(newRowSelectionModel) => {
                     setRowSelectionModel(newRowSelectionModel);
@@ -188,11 +221,27 @@ export default function Wallet() {
                   rowSelectionModel={rowSelectionModel}
                   initialState={{
                     sorting: {
-                      sortModel: [{ field: 'confirmed', sort: 'desc' }],
+                      sortModel: [{ field: 'updated', sort: 'desc' }],
                     },
                     pagination: {
                       paginationModel: {
                         pageSize: 10,
+                      },
+                    },
+                    filter: {
+                      filterModel: {
+                        items: [
+                          {
+                            id: 1,
+                            field: 'spent',
+                            operator: 'isEmpty',
+                          },
+                        ],
+                      },
+                    },
+                    columns: {
+                      columnVisibilityModel: {
+                        updated: false,
                       },
                     },
                   }}

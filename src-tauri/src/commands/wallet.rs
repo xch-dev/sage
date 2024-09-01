@@ -32,7 +32,7 @@ pub async fn p2_coin_list(state: State<'_, AppState>) -> Result<Vec<P2CoinData>>
     let state = state.lock().await;
     let wallet = state.wallet.as_ref().ok_or(Error::NoActiveWallet)?;
 
-    let coin_states = wallet.db.unspent_p2_coin_states().await?;
+    let coin_states = wallet.db.p2_coin_states().await?;
 
     coin_states
         .into_iter()
