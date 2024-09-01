@@ -66,6 +66,7 @@ impl PuzzleQueue {
             let (addr, coin_id, result) = result?;
 
             if let Err(error) = result {
+                // TODO: Not all errors should result in this exact behavior.
                 warn!(
                     "Failed to lookup puzzle of {} from peer {}: {}",
                     coin_id, addr, error
