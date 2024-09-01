@@ -1,13 +1,10 @@
-mod cat_coins;
 mod coin_states;
 mod database;
 mod derivations;
-mod did_coins;
 mod error;
-mod nft_coins;
 mod p2_coins;
 mod peaks;
-mod unknown_coins;
+mod primitives;
 mod utils;
 
 pub use database::*;
