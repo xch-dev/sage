@@ -50,4 +50,13 @@ pub enum ParseError {
 
     #[error("Could not serialize CLVM")]
     Serialize,
+
+    #[error("Could not evaluate puzzle and solution")]
+    Eval,
+
+    #[error("Invalid condition list")]
+    InvalidConditions,
+
+    #[error("Unknown coin is missing hint")]
+    MissingHint,
 }

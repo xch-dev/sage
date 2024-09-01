@@ -141,8 +141,6 @@ pub async fn lookup_puzzles(wallet: Arc<Wallet>, state: Arc<Mutex<SyncState>>) -
                     coin_id, addr, error
                 );
                 state.lock().await.ban(addr.ip());
-            } else {
-                wallet.db.mark_coin_synced(coin_id).await?;
             }
         }
     }

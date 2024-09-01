@@ -16,7 +16,7 @@ impl Database {
         unsynced_coin_states(&self.pool, limit).await
     }
 
-    pub async fn mark_coin_synced(&self, coin_id: Bytes32, hint: Option<Bytes32>) -> Result<()> {
+    pub async fn mark_coin_synced(&self, coin_id: Bytes32, hint: Bytes32) -> Result<()> {
         mark_coin_synced(&self.pool, coin_id, hint).await
     }
 
@@ -46,11 +46,7 @@ impl<'a> DatabaseTx<'a> {
         unsynced_coin_states(&mut *self.tx, limit).await
     }
 
-    pub async fn mark_coin_synced(
-        &mut self,
-        coin_id: Bytes32,
-        hint: Option<Bytes32>,
-    ) -> Result<()> {
+    pub async fn mark_coin_synced(&mut self, coin_id: Bytes32, hint: Bytes32) -> Result<()> {
         mark_coin_synced(&mut *self.tx, coin_id, hint).await
     }
 
@@ -156,10 +152,10 @@ async fn unsynced_coin_states(
 async fn mark_coin_synced(
     conn: impl SqliteExecutor<'_>,
     coin_id: Bytes32,
-    hint: Option<Bytes32>,
+    hint: Bytes32,
 ) -> Result<()> {
     let coin_id = coin_id.as_ref();
-    let hint = hint.as_deref();
+    let hint = hint.as_ref();
     sqlx::query!(
         "
         UPDATE `coin_states`

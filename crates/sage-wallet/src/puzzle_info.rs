@@ -3,7 +3,9 @@ use chia::{
     protocol::{Bytes32, Coin, Program},
     puzzles::{LineageProof, Proof},
 };
-use chia_wallet_sdk::{Cat, Did, DidInfo, HashedPtr, Nft, NftInfo, Primitive, Puzzle};
+use chia_wallet_sdk::{
+    run_puzzle, Cat, Condition, Did, DidInfo, HashedPtr, Nft, NftInfo, Primitive, Puzzle,
+};
 use clvmr::Allocator;
 use tracing::{debug, debug_span, warn};
 
@@ -29,7 +31,7 @@ pub enum PuzzleInfo {
         info: NftInfo<Program>,
     },
     /// The coin could not be parsed due to an error or it was a kind of puzzle we don't know about.
-    Unknown,
+    Unknown { hint: Bytes32 },
 }
 
 impl PuzzleInfo {
@@ -60,6 +62,28 @@ impl PuzzleInfo {
             .to_clvm(&mut allocator)
             .map_err(|_| ParseError::AllocateSolution)?;
 
+        let output = run_puzzle(&mut allocator, parent_puzzle_ptr, parent_solution)
+            .map_err(|_| ParseError::Eval)?;
+
+        let conditions = Vec::<Condition>::from_clvm(&allocator, output)
+            .map_err(|_| ParseError::InvalidConditions)?;
+
+        let Some(mut create_coin) = conditions
+            .into_iter()
+            .filter_map(Condition::into_create_coin)
+            .find(|cond| {
+                cond.puzzle_hash == coin.puzzle_hash
+                    && cond.amount == coin.amount
+                    && !cond.memos.is_empty()
+                    && cond.memos[0].len() == 32
+            })
+        else {
+            return Err(ParseError::MissingHint);
+        };
+
+        let hint = Bytes32::try_from(create_coin.memos.remove(0).into_inner())
+            .expect("the hint is always 32 bytes, as checked above");
+
         match Cat::from_parent_spend(
             &mut allocator,
             parent_coin,
@@ -70,14 +94,14 @@ impl PuzzleInfo {
             // If there was an error parsing the CAT, we can exit early.
             Err(error) => {
                 warn!("Invalid CAT: {}", error);
-                return Ok(Self::Unknown);
+                return Ok(Self::Unknown { hint });
             }
 
             // If the coin is a CAT coin, return the relevant information.
             Ok(Some(cat)) => {
                 // We don't support parsing eve CATs during syncing.
                 let Some(lineage_proof) = cat.lineage_proof else {
-                    return Ok(Self::Unknown);
+                    return Ok(Self::Unknown { hint });
                 };
 
                 return Ok(Self::Cat {
@@ -101,14 +125,14 @@ impl PuzzleInfo {
             // If there was an error parsing the NFT, we can exit early.
             Err(error) => {
                 warn!("Invalid NFT: {}", error);
-                return Ok(Self::Unknown);
+                return Ok(Self::Unknown { hint });
             }
 
             // If the coin is a NFT coin, return the relevant information.
             Ok(Some(nft)) => {
                 // We don't support parsing eve NFTs during syncing.
                 let Proof::Lineage(lineage_proof) = nft.proof else {
-                    return Ok(Self::Unknown);
+                    return Ok(Self::Unknown { hint });
                 };
 
                 let metadata = Program::from_clvm(&allocator, nft.info.metadata.ptr())
@@ -134,14 +158,14 @@ impl PuzzleInfo {
             // If there was an error parsing the DID, we can exit early.
             Err(error) => {
                 warn!("Invalid DID: {}", error);
-                return Ok(Self::Unknown);
+                return Ok(Self::Unknown { hint });
             }
 
             // If the coin is a DID coin, return the relevant information.
             Ok(Some(did)) => {
                 // We don't support parsing eve DIDs during syncing.
                 let Proof::Lineage(lineage_proof) = did.proof else {
-                    return Ok(Self::Unknown);
+                    return Ok(Self::Unknown { hint });
                 };
 
                 let metadata = Program::from_clvm(&allocator, did.info.metadata.ptr())
@@ -157,6 +181,6 @@ impl PuzzleInfo {
             Ok(None) => {}
         }
 
-        Ok(Self::Unknown)
+        Ok(Self::Unknown { hint })
     }
 }
