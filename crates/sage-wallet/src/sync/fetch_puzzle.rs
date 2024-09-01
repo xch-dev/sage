@@ -63,6 +63,7 @@ pub async fn fetch_puzzle(
             lineage_proof,
             p2_puzzle_hash,
         } => {
+            tx.mark_coin_synced(coin_id, Some(p2_puzzle_hash)).await?;
             tx.insert_cat_coin(coin_id, lineage_proof, p2_puzzle_hash, asset_id)
                 .await?;
         }
@@ -70,20 +71,23 @@ pub async fn fetch_puzzle(
             lineage_proof,
             info,
         } => {
+            tx.mark_coin_synced(coin_id, Some(info.p2_puzzle_hash))
+                .await?;
             tx.insert_did_coin(coin_id, lineage_proof, info).await?;
         }
         PuzzleInfo::Nft {
             lineage_proof,
             info,
         } => {
+            tx.mark_coin_synced(coin_id, Some(info.p2_puzzle_hash))
+                .await?;
             tx.insert_nft_coin(coin_id, lineage_proof, info).await?;
         }
         PuzzleInfo::Unknown => {
-            tx.insert_unknown_coin(coin_state.coin.coin_id()).await?;
+            tx.mark_coin_synced(coin_id, None).await?;
+            tx.insert_unknown_coin(coin_id).await?;
         }
     }
-
-    tx.mark_coin_synced(coin_state.coin.coin_id()).await?;
 
     tx.commit().await?;
 

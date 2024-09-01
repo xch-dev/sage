@@ -16,8 +16,8 @@ impl Database {
         unsynced_coin_states(&self.pool, limit).await
     }
 
-    pub async fn mark_coin_synced(&self, coin_id: Bytes32) -> Result<()> {
-        mark_coin_synced(&self.pool, coin_id).await
+    pub async fn mark_coin_synced(&self, coin_id: Bytes32, hint: Option<Bytes32>) -> Result<()> {
+        mark_coin_synced(&self.pool, coin_id, hint).await
     }
 
     pub async fn total_coin_count(&self) -> Result<u32> {
@@ -46,8 +46,12 @@ impl<'a> DatabaseTx<'a> {
         unsynced_coin_states(&mut *self.tx, limit).await
     }
 
-    pub async fn mark_coin_synced(&mut self, coin_id: Bytes32) -> Result<()> {
-        mark_coin_synced(&mut *self.tx, coin_id).await
+    pub async fn mark_coin_synced(
+        &mut self,
+        coin_id: Bytes32,
+        hint: Option<Bytes32>,
+    ) -> Result<()> {
+        mark_coin_synced(&mut *self.tx, coin_id, hint).await
     }
 
     pub async fn total_coin_count(&mut self) -> Result<u32> {
@@ -149,14 +153,20 @@ async fn unsynced_coin_states(
         .collect()
 }
 
-async fn mark_coin_synced(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<()> {
+async fn mark_coin_synced(
+    conn: impl SqliteExecutor<'_>,
+    coin_id: Bytes32,
+    hint: Option<Bytes32>,
+) -> Result<()> {
     let coin_id = coin_id.as_ref();
+    let hint = hint.as_deref();
     sqlx::query!(
         "
         UPDATE `coin_states`
-        SET `synced` = 1
+        SET `synced` = 1, `hint` = ?
         WHERE `coin_id` = ?
         ",
+        hint,
         coin_id
     )
     .execute(conn)
