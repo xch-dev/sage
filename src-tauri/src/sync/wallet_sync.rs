@@ -87,7 +87,7 @@ pub async fn sync_wallet(
     if let Some((height, header_hash)) = state.lock().await.peak() {
         // TODO: Maybe look into a better way.
         info!(
-            "Updating peak to height {} with header hash {}",
+            "Updating peak to {} with header hash {}",
             height, header_hash
         );
         wallet.db.insert_peak(height, header_hash).await?;
@@ -162,7 +162,7 @@ async fn sync_puzzle_hashes(
 
     loop {
         debug!(
-            "Requesting puzzle state from previous height {:?} with header hash {} from peer {}",
+            "Requesting coins at height {:?} and header hash {} from peer {}",
             prev_height,
             prev_header_hash,
             peer.socket_addr()

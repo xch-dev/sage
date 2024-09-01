@@ -179,11 +179,13 @@ function MainWallet() {
           </Menu>
         </Box>
 
-        <CoinList
-          coins={p2Coins}
-          selectedCoins={selectedCoins}
-          setSelectedCoins={setSelectedCoins}
-        />
+        <Box height={400}>
+          <CoinList
+            coins={p2Coins}
+            selectedCoins={selectedCoins}
+            setSelectedCoins={setSelectedCoins}
+          />
+        </Box>
       </Box>
     </>
   );

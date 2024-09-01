@@ -11,6 +11,7 @@ export default function Container(props: PropsWithChildren<object>) {
       alignItems='center'
       justifyContent='center'
       m={2}
+      mb={4}
       sx={{ marginTop: { xs: 2, sm: 4 } }}
     >
       <Grid2 xs={12} sm={8} md={7} lg={6}>

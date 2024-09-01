@@ -25,7 +25,7 @@ export default function CoinList(props: CoinListProps) {
 
   return (
     <DataGrid
-      sx={{ mt: 1, height: 400 }}
+      sx={{ mt: 1, height: '100%' }}
       columns={[
         {
           field: 'id',
