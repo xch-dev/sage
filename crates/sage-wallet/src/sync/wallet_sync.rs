@@ -1,7 +1,7 @@
 use std::{sync::Arc, time::Duration};
 
 use chia::{
-    bls::DerivableKey,
+    bls::{DerivableKey, PublicKey},
     protocol::{Bytes32, CoinStateFilters, RejectStateReason},
     puzzles::{standard::StandardArgs, DeriveSynthetic},
 };
@@ -11,19 +11,20 @@ use sage_database::Database;
 use tokio::{sync::Mutex, task::spawn_blocking, time::timeout};
 use tracing::{debug, info, instrument, warn};
 
-use crate::{SyncError, Wallet, WalletError};
+use crate::{SyncError, WalletError};
 
 use super::PeerState;
 
 pub async fn sync_wallet(
-    wallet: Arc<Wallet>,
+    db: Database,
+    intermediate_pk: PublicKey,
     genesis_challenge: Bytes32,
     peer: Peer,
     state: Arc<Mutex<PeerState>>,
 ) -> Result<(), WalletError> {
     info!("Starting sync against peer {}", peer.socket_addr());
 
-    let mut tx = wallet.db.tx().await?;
+    let mut tx = db.tx().await?;
     let p2_puzzle_hashes = tx.p2_puzzle_hashes().await?;
     let (start_height, start_header_hash) = tx.latest_peak().await?.map_or_else(
         || (None, genesis_challenge),
@@ -35,15 +36,13 @@ pub async fn sync_wallet(
 
     for batch in p2_puzzle_hashes.chunks(1000) {
         derive_more |=
-            sync_puzzle_hashes(&wallet.db, &peer, start_height, start_header_hash, batch).await?;
+            sync_puzzle_hashes(&db, &peer, start_height, start_header_hash, batch).await?;
     }
 
     let mut start_index = p2_puzzle_hashes.len() as u32;
 
     while derive_more {
         derive_more = false;
-
-        let intermediate_pk = wallet.intermediate_pk;
 
         let new_derivations = spawn_blocking(move || {
             (start_index..start_index + 1000)
@@ -65,7 +64,7 @@ pub async fn sync_wallet(
 
         start_index += new_derivations.len() as u32;
 
-        let mut tx = wallet.db.tx().await?;
+        let mut tx = db.tx().await?;
         for (index, synthetic_key, p2_puzzle_hash) in new_derivations {
             tx.insert_derivation(p2_puzzle_hash, index, false, synthetic_key)
                 .await?;
@@ -73,8 +72,7 @@ pub async fn sync_wallet(
         tx.commit().await?;
 
         for batch in p2_puzzle_hashes.chunks(1000) {
-            derive_more |=
-                sync_puzzle_hashes(&wallet.db, &peer, None, genesis_challenge, batch).await?;
+            derive_more |= sync_puzzle_hashes(&db, &peer, None, genesis_challenge, batch).await?;
         }
     }
 
@@ -84,7 +82,7 @@ pub async fn sync_wallet(
             "Updating peak to {} with header hash {}",
             height, header_hash
         );
-        wallet.db.insert_peak(height, header_hash).await?;
+        db.insert_peak(height, header_hash).await?;
     } else {
         warn!("No peak found");
     }

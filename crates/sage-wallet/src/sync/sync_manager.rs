@@ -228,7 +228,8 @@ impl SyncManager {
                     if let Some(peer) = state.acquire_peer() {
                         let ip = peer.socket_addr().ip();
                         let task = tokio::spawn(sync_wallet(
-                            wallet.clone(),
+                            wallet.db.clone(),
+                            wallet.intermediate_pk,
                             self.network.genesis_challenge,
                             peer,
                             self.state.clone(),
