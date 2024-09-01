@@ -44,6 +44,7 @@ pub struct AppStateInner {
     pub wallet: Option<Arc<Wallet>>,
     pub sync_task: Option<JoinHandle<()>>,
     pub peer_state: Arc<Mutex<PeerState>>,
+    pub initialized: bool,
 }
 
 impl AppStateInner {
@@ -61,6 +62,7 @@ impl AppStateInner {
             wallet: None,
             sync_task: None,
             peer_state: Arc::new(Mutex::new(PeerState::default())),
+            initialized: false,
         }
     }
 

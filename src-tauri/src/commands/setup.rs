@@ -11,6 +11,12 @@ use crate::{app_state::AppState, error::Result};
 pub async fn initialize(state: State<'_, AppState>) -> Result<()> {
     let mut state = state.lock().await;
 
+    if state.initialized {
+        return Ok(());
+    }
+
+    state.initialized = true;
+
     fs::create_dir_all(&state.path)?;
 
     let key_path = state.path.join("keys.bin");

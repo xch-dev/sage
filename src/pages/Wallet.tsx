@@ -25,13 +25,20 @@ import {
   Typography,
 } from '@mui/material';
 import { GridRowSelectionModel } from '@mui/x-data-grid';
+import { Event, listen } from '@tauri-apps/api/event';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as commands from '../commands';
 import CoinList from '../components/CoinList';
 import ListContainer from '../components/ListContainer';
 import NavBar from '../components/NavBar';
-import { NftData, P2CoinData, SyncInfo, WalletInfo } from '../models';
+import {
+  NftData,
+  P2CoinData,
+  SyncEvent,
+  SyncInfo,
+  WalletInfo,
+} from '../models';
 
 export default function Wallet() {
   const navigate = useNavigate();
@@ -99,12 +106,16 @@ function MainWallet() {
     commands.syncInfo().then(setSyncInfo);
     commands.p2CoinList().then(setP2Coins);
 
-    const interval = setInterval(() => {
+    const unlisten = listen('sync', (event: Event<SyncEvent>) => {
+      if (event.payload.type === 'coin_update') {
+        commands.p2CoinList().then(setP2Coins);
+      }
       commands.syncInfo().then(setSyncInfo);
-      commands.p2CoinList().then(setP2Coins);
-    }, 500);
+    });
 
-    return () => clearInterval(interval);
+    return () => {
+      unlisten.then((u) => u());
+    };
   }, []);
 
   return (

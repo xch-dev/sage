@@ -48,8 +48,6 @@ const router = createHashRouter(
   ),
 );
 
-let initializedGlobal = false;
-
 export default function App() {
   const [dark, setDark] = useLocalStorage('dark', false);
 
@@ -76,13 +74,9 @@ export default function App() {
   );
 
   useEffect(() => {
-    if (initializedGlobal) return;
-
     initialize()
       .then(() => setInitialized(true))
       .catch(setError);
-
-    initializedGlobal = true;
   }, []);
 
   return (

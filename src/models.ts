@@ -70,3 +70,9 @@ export interface NftData {
   launcher_id: string;
   address: string;
 }
+
+export type SyncEvent =
+  | { type: 'start'; ip: string }
+  | { type: 'stop' }
+  | { type: 'subscribed' }
+  | { type: 'coin_update'; coin_ids: string[] };
