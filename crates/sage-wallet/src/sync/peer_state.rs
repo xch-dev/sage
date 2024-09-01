@@ -67,7 +67,7 @@ impl PeerState {
         self.peers.remove(&ip);
     }
 
-    pub fn add_peer(&mut self, state: PeerInfo) {
+    pub(super) fn add_peer(&mut self, state: PeerInfo) {
         self.peers.insert(state.peer.socket_addr().ip(), state);
     }
 }

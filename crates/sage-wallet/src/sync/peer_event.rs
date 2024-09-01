@@ -4,11 +4,12 @@ use chia::{
     protocol::{Message, NewPeakWallet, ProtocolMessageTypes},
     traits::Streamable,
 };
-use sage_wallet::PeerState;
 use tokio::sync::{mpsc, Mutex};
 use tracing::{debug, instrument};
 
-use crate::error::Error;
+use crate::WalletError;
+
+use super::PeerState;
 
 #[derive(Debug)]
 pub struct PeerEvent {
@@ -64,9 +65,9 @@ async fn handle_peer_event(
     ip: IpAddr,
     message: Message,
     state: &Arc<Mutex<PeerState>>,
-) -> Result<(), Error> {
+) -> Result<(), WalletError> {
     if message.msg_type == ProtocolMessageTypes::NewPeakWallet {
-        let message = NewPeakWallet::from_bytes(&message.data)?;
+        let message = NewPeakWallet::from_bytes(&message.data).unwrap();
         state
             .lock()
             .await

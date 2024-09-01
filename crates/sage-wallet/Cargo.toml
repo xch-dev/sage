@@ -24,3 +24,5 @@ tracing = { workspace = true }
 tokio = { workspace = true, features = ["time"] }
 itertools = { workspace = true }
 futures-util = { workspace = true }
+futures-lite = { workspace = true }
+rayon = { workspace = true }

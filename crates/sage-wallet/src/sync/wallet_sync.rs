@@ -7,18 +7,19 @@ use chia::{
 };
 use chia_wallet_sdk::Peer;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
-use sage_wallet::{PeerState, Wallet};
 use tokio::{sync::Mutex, task::spawn_blocking, time::timeout};
 use tracing::{debug, info, instrument, warn};
 
-use crate::error::{Error, Result};
+use crate::{Wallet, WalletError};
+
+use super::PeerState;
 
 pub async fn sync_wallet(
     wallet: Arc<Wallet>,
     genesis_challenge: Bytes32,
     peer: Peer,
     state: Arc<Mutex<PeerState>>,
-) -> Result<()> {
+) -> Result<(), WalletError> {
     info!("Starting sync against peer {}", peer.socket_addr());
 
     let mut tx = wallet.db.tx().await?;
@@ -97,7 +98,7 @@ async fn sync_puzzle_hashes(
     start_height: Option<u32>,
     start_header_hash: Bytes32,
     puzzle_hashes: &[Bytes32],
-) -> Result<bool> {
+) -> Result<bool, WalletError> {
     let mut prev_height = start_height;
     let mut prev_header_hash = start_header_hash;
     let mut found_coins = false;
@@ -120,7 +121,8 @@ async fn sync_puzzle_hashes(
                 true,
             ),
         )
-        .await??;
+        .await
+        .unwrap()?;
 
         match response {
             Ok(data) => {
@@ -155,11 +157,12 @@ async fn sync_puzzle_hashes(
                         "Subscription limit reached against peer {}",
                         peer.socket_addr()
                     );
-                    return Err(Error::SubscriptionLimitReached);
+                    // return Err(Error::SubscriptionLimitReached);
+                    todo!()
                 }
                 RejectStateReason::Reorg => {
                     // TODO: Handle reorgs gracefully
-                    todo!();
+                    todo!()
                 }
             },
         }

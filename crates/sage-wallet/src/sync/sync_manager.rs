@@ -11,7 +11,6 @@ use chia::{
 use chia_wallet_sdk::{connect_peer, Connector, Network, NetworkId, Peer};
 use futures_lite::{future::poll_once, StreamExt};
 use futures_util::stream::FuturesUnordered;
-use sage_wallet::{PeerInfo, PeerState, PuzzleQueue, Wallet, WalletError};
 use tokio::{
     sync::{mpsc, Mutex},
     task::JoinHandle,
@@ -19,14 +18,14 @@ use tokio::{
 };
 use tracing::{debug, warn};
 
-use crate::{
-    config::{NetworkConfig, PeerMode},
-    error::Result,
-};
+use crate::{Wallet, WalletError};
 
 use super::{
-    peer_state::{handle_peer, handle_peer_events, PeerEvent},
+    peer_event::{handle_peer, handle_peer_events, PeerEvent},
+    peer_info::PeerInfo,
+    puzzle_queue::PuzzleQueue,
     wallet_sync::sync_wallet,
+    PeerState,
 };
 
 pub struct SyncManager {
@@ -40,14 +39,14 @@ pub struct SyncManager {
     sender: mpsc::Sender<PeerEvent>,
     receiver_task: JoinHandle<()>,
     initial_wallet_sync: InitialWalletSync,
-    puzzle_lookup_task: Option<JoinHandle<std::result::Result<(), WalletError>>>,
+    puzzle_lookup_task: Option<JoinHandle<Result<(), WalletError>>>,
 }
 
 enum InitialWalletSync {
     Idle,
     Syncing {
         ip: IpAddr,
-        task: JoinHandle<Result<()>>,
+        task: JoinHandle<Result<(), WalletError>>,
     },
     Subscribed(IpAddr),
 }
