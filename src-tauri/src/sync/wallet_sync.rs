@@ -37,7 +37,7 @@ pub async fn sync_wallet(
     );
     tx.commit().await?;
 
-    let mut derive_more = true;
+    let mut derive_more = p2_puzzle_hashes.is_empty();
 
     for batch in p2_puzzle_hashes.chunks(1000) {
         derive_more |=

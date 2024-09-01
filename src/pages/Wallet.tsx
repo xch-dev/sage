@@ -4,7 +4,7 @@ import {
   Collections,
   CompareArrows,
   ForkRight,
-  KeyboardArrowDown,
+  MoreVert,
   Wallet as WalletIcon,
 } from '@mui/icons-material';
 import {
@@ -13,6 +13,8 @@ import {
   BottomNavigationAction,
   Box,
   Button,
+  IconButton,
+  LinearProgress,
   ListItemAvatar,
   ListItemButton,
   ListItemIcon,
@@ -22,7 +24,6 @@ import {
   Paper,
   Typography,
 } from '@mui/material';
-import Grid2 from '@mui/material/Unstable_Grid2/Grid2';
 import { GridRowSelectionModel } from '@mui/x-data-grid';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -101,90 +102,90 @@ function MainWallet() {
     const interval = setInterval(() => {
       commands.syncInfo().then(setSyncInfo);
       commands.p2CoinList().then(setP2Coins);
-    }, 20000);
+    }, 500);
 
     return () => clearInterval(interval);
   }, []);
 
   return (
     <>
-      <Grid2 container spacing={2} alignItems='center' justifyContent='center'>
-        <Grid2 xs={12} md={6}>
-          <Paper sx={{ p: 1.5, px: 2 }}>
-            <Typography
-              fontSize={20}
-              fontWeight='normal'
-              color='text.secondary'
-            >
-              Balance
-            </Typography>
-            <Typography fontSize={22}>{syncInfo.xch_balance}</Typography>
-          </Paper>
-        </Grid2>
-        <Grid2 xs={12} md={6}>
-          <Paper sx={{ p: 1.5, px: 2 }}>
-            <Typography
-              fontSize={20}
-              fontWeight='normal'
-              color='text.secondary'
-            >
-              Sync Status
-            </Typography>
-            <Typography fontSize={22}>
-              {syncInfo.synced_coins}/{syncInfo.total_coins} Coins
-            </Typography>
-          </Paper>
-        </Grid2>
-      </Grid2>
+      <Box mt={1}>
+        <Typography variant='h5' fontSize={30} textAlign='center'>
+          {syncInfo.xch_balance} XCH
+        </Typography>
 
-      <Box mt={2}>
-        <Box display='flex' justifyContent='end'>
-          <Button
-            variant='outlined'
-            endIcon={<KeyboardArrowDown />}
-            disabled={selectedCoins.length === 0}
-            onClick={handleClick}
-          >
-            Actions
-          </Button>
+        <LinearProgress
+          variant='determinate'
+          value={Math.ceil(
+            (syncInfo.synced_coins / syncInfo.total_coins) * 100,
+          )}
+          sx={{ mt: 2 }}
+        />
 
-          <Menu
-            anchorEl={anchorEl}
-            open={open}
-            onClose={handleClose}
-            MenuListProps={{
-              'aria-labelledby': 'basic-button',
-            }}
-          >
-            <MenuItem disabled={selectedCoins.length < 2}>
-              <ListItemIcon>
-                <CompareArrows fontSize='small' />
-              </ListItemIcon>
-              <ListItemText>Combine</ListItemText>
-            </MenuItem>
-
-            <MenuItem>
-              <ListItemIcon>
-                <ForkRight fontSize='small' />
-              </ListItemIcon>
-              <ListItemText>Split</ListItemText>
-            </MenuItem>
-
-            <MenuItem>
-              <ListItemIcon>
-                <ArrowForward fontSize='small' />
-              </ListItemIcon>
-              <ListItemText>Transfer</ListItemText>
-            </MenuItem>
-          </Menu>
+        <Box mt={1} textAlign='center'>
+          {syncInfo.synced_coins}
+          {syncInfo.synced_coins === syncInfo.total_coins
+            ? ''
+            : `/${syncInfo.total_coins}`}{' '}
+          coins synced
         </Box>
 
-        <Box height={400}>
+        <Box display='flex' gap={2} mt={2}>
+          <Button variant='outlined' size='large' sx={{ flexGrow: 1 }}>
+            Send
+          </Button>
+          <Button variant='outlined' size='large' sx={{ flexGrow: 1 }}>
+            Receive
+          </Button>
+        </Box>
+
+        <Box height={350} position='relative' mt={2}>
           <CoinList
             coins={p2Coins}
             selectedCoins={selectedCoins}
             setSelectedCoins={setSelectedCoins}
           />
+
+          <Box
+            position='absolute'
+            top={9}
+            right={5}
+            display={selectedCoins.length === 0 ? 'none' : 'block'}
+          >
+            <IconButton onClick={handleClick}>
+              <MoreVert />
+            </IconButton>
+
+            <Menu
+              anchorEl={anchorEl}
+              open={open}
+              onClose={handleClose}
+              MenuListProps={{
+                'aria-labelledby': 'basic-button',
+              }}
+            >
+              <MenuItem disabled={selectedCoins.length < 2}>
+                <ListItemIcon>
+                  <CompareArrows fontSize='small' />
+                </ListItemIcon>
+                <ListItemText>Combine</ListItemText>
+              </MenuItem>
+
+              <MenuItem>
+                <ListItemIcon>
+                  <ForkRight fontSize='small' />
+                </ListItemIcon>
+                <ListItemText>Split</ListItemText>
+              </MenuItem>
+
+              <MenuItem>
+                <ListItemIcon>
+                  <ArrowForward fontSize='small' />
+                </ListItemIcon>
+                <ListItemText>Transfer</ListItemText>
+              </MenuItem>
+            </Menu>
+          </Box>
         </Box>
       </Box>
     </>

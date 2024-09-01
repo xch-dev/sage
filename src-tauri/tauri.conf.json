@@ -12,8 +12,8 @@
     "windows": [
       {
         "title": "Sage",
-        "width": 1050,
-        "height": 700,
+        "width": 1150,
+        "height": 750,
         "resizable": true,
         "fullscreen": false
       }
