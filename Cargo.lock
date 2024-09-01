@@ -4182,7 +4182,11 @@ name = "sage-wallet"
 version = "0.1.0"
 dependencies = [
  "chia",
+ "chia-wallet-sdk",
+ "clvmr",
  "sage-database",
+ "thiserror",
+ "tracing",
 ]
 
 [[package]]

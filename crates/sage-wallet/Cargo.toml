@@ -16,4 +16,8 @@ workspace = true
 
 [dependencies]
 chia = { workspace = true }
+clvmr = { workspace = true }
+chia-wallet-sdk = { workspace = true }
 sage-database = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }

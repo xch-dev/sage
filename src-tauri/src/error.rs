@@ -5,6 +5,7 @@ use chia::clvm_traits::{FromClvmError, ToClvmError};
 use chia_wallet_sdk::{AddressError, ClientError, DriverError};
 use sage_database::DatabaseError;
 use sage_keychain::KeychainError;
+use sage_wallet::ParseError;
 use serde::{Serialize, Serializer};
 use thiserror::Error;
 use tokio::task::JoinError;
@@ -109,6 +110,9 @@ pub enum Error {
 
     #[error("Bech32 error: {0}")]
     Bech32(#[from] bech32::Error),
+
+    #[error("Parse error: {0}")]
+    Parse(#[from] ParseError),
 }
 
 impl Serialize for Error {
