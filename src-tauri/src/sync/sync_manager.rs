@@ -11,7 +11,7 @@ use chia::{
 use chia_wallet_sdk::{connect_peer, Connector, Network, NetworkId, Peer};
 use futures_lite::{future::poll_once, StreamExt};
 use futures_util::stream::FuturesUnordered;
-use sage_wallet::Wallet;
+use sage_wallet::{PeerInfo, PeerState, PuzzleQueue, Wallet, WalletError};
 use tokio::{
     sync::{mpsc, Mutex},
     task::JoinHandle,
@@ -25,13 +25,12 @@ use crate::{
 };
 
 use super::{
-    peer_state::{handle_peer, handle_peer_events, PeerEvent, PeerState},
-    sync_state::SyncState,
-    wallet_sync::{lookup_puzzles, sync_wallet},
+    peer_state::{handle_peer, handle_peer_events, PeerEvent},
+    wallet_sync::sync_wallet,
 };
 
 pub struct SyncManager {
-    state: Arc<Mutex<SyncState>>,
+    state: Arc<Mutex<PeerState>>,
     wallet: Option<Arc<Wallet>>,
     network_id: NetworkId,
     network: Network,
@@ -41,7 +40,7 @@ pub struct SyncManager {
     sender: mpsc::Sender<PeerEvent>,
     receiver_task: JoinHandle<()>,
     initial_wallet_sync: InitialWalletSync,
-    puzzle_lookup_task: Option<JoinHandle<Result<()>>>,
+    puzzle_lookup_task: Option<JoinHandle<std::result::Result<(), WalletError>>>,
 }
 
 enum InitialWalletSync {
@@ -67,7 +66,7 @@ impl Drop for SyncManager {
 
 impl SyncManager {
     pub fn new(
-        state: Arc<Mutex<SyncState>>,
+        state: Arc<Mutex<PeerState>>,
         wallet: Option<Arc<Wallet>>,
         network_id: NetworkId,
         network: Network,
@@ -200,11 +199,11 @@ impl SyncManager {
 
         let ip = peer.socket_addr().ip();
 
-        self.state.lock().await.add_peer(PeerState {
+        self.state.lock().await.add_peer(PeerInfo {
             peer,
             claimed_peak: message.height,
             header_hash: message.header_hash,
-            task: tokio::spawn(handle_peer(ip, receiver, self.sender.clone())),
+            receive_message_task: tokio::spawn(handle_peer(ip, receiver, self.sender.clone())),
         });
 
         true
@@ -244,7 +243,14 @@ impl SyncManager {
 
         if let Some(wallet) = self.wallet.clone() {
             if self.puzzle_lookup_task.is_none() {
-                let task = tokio::spawn(lookup_puzzles(wallet, self.state.clone()));
+                let task = tokio::spawn(
+                    PuzzleQueue::new(
+                        wallet.db.clone(),
+                        wallet.genesis_challenge,
+                        self.state.clone(),
+                    )
+                    .start(),
+                );
                 self.puzzle_lookup_task = Some(task);
             }
         } else {

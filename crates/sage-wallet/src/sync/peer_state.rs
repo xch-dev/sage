@@ -7,16 +7,16 @@ use chia::protocol::Bytes32;
 use chia_wallet_sdk::Peer;
 use itertools::Itertools;
 
-use super::peer_state::PeerState;
+use super::peer_info::PeerInfo;
 
-#[derive(Default)]
-pub struct SyncState {
-    peers: HashMap<IpAddr, PeerState>,
+#[derive(Debug, Default)]
+pub struct PeerState {
+    peers: HashMap<IpAddr, PeerInfo>,
     banned_peers: HashSet<IpAddr>,
     trusted_peers: HashSet<IpAddr>,
 }
 
-impl SyncState {
+impl PeerState {
     pub fn peak(&self) -> Option<(u32, Bytes32)> {
         self.peers
             .values()
@@ -64,14 +64,10 @@ impl SyncState {
     }
 
     pub fn remove_peer(&mut self, ip: IpAddr) {
-        if let Some(peer) = self.peers.remove(&ip) {
-            peer.task.abort();
-        }
+        self.peers.remove(&ip);
     }
 
-    pub(super) fn add_peer(&mut self, state: PeerState) {
-        if let Some(old) = self.peers.insert(state.peer.socket_addr().ip(), state) {
-            old.task.abort();
-        }
+    pub fn add_peer(&mut self, state: PeerInfo) {
+        self.peers.insert(state.peer.socket_addr().ip(), state);
     }
 }

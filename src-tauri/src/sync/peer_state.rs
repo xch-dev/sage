@@ -1,26 +1,14 @@
 use std::{net::IpAddr, sync::Arc};
 
 use chia::{
-    protocol::{Bytes32, Message, NewPeakWallet, ProtocolMessageTypes},
+    protocol::{Message, NewPeakWallet, ProtocolMessageTypes},
     traits::Streamable,
 };
-use chia_wallet_sdk::Peer;
-use tokio::{
-    sync::{mpsc, Mutex},
-    task::JoinHandle,
-};
+use sage_wallet::PeerState;
+use tokio::sync::{mpsc, Mutex};
 use tracing::{debug, instrument};
 
 use crate::error::Error;
-
-use super::sync_state::SyncState;
-
-pub struct PeerState {
-    pub peer: Peer,
-    pub claimed_peak: u32,
-    pub header_hash: Bytes32,
-    pub task: JoinHandle<()>,
-}
 
 #[derive(Debug)]
 pub struct PeerEvent {
@@ -54,7 +42,7 @@ pub async fn handle_peer(
 
 pub async fn handle_peer_events(
     mut receiver: mpsc::Receiver<PeerEvent>,
-    state: Arc<Mutex<SyncState>>,
+    state: Arc<Mutex<PeerState>>,
 ) {
     while let Some(event) = receiver.recv().await {
         debug!("Received peer event {event:?}");
@@ -75,7 +63,7 @@ pub async fn handle_peer_events(
 async fn handle_peer_event(
     ip: IpAddr,
     message: Message,
-    state: &Arc<Mutex<SyncState>>,
+    state: &Arc<Mutex<PeerState>>,
 ) -> Result<(), Error> {
     if message.msg_type == ProtocolMessageTypes::NewPeakWallet {
         let message = NewPeakWallet::from_bytes(&message.data)?;

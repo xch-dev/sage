@@ -4183,6 +4183,8 @@ dependencies = [
  "chia",
  "chia-wallet-sdk",
  "clvmr",
+ "futures-util",
+ "itertools 0.13.0",
  "sage-database",
  "thiserror",
  "tokio",

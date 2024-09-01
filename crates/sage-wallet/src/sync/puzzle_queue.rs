@@ -1,16 +1,86 @@
-use std::time::Duration;
+use std::{sync::Arc, time::Duration};
 
 use chia::protocol::{Bytes32, CoinState};
 use chia_wallet_sdk::Peer;
+use futures_util::{stream::FuturesUnordered, StreamExt};
 use sage_database::Database;
-use tokio::{task::spawn_blocking, time::timeout};
-use tracing::instrument;
+use tokio::{sync::Mutex, task::spawn_blocking, time::timeout};
+use tracing::{info, instrument, warn};
 
 use crate::{PuzzleInfo, SyncError, WalletError};
 
+use super::PeerState;
+
+#[derive(Debug)]
+pub struct PuzzleQueue {
+    db: Database,
+    genesis_challenge: Bytes32,
+    state: Arc<Mutex<PeerState>>,
+}
+
+impl PuzzleQueue {
+    pub fn new(db: Database, genesis_challenge: Bytes32, state: Arc<Mutex<PeerState>>) -> Self {
+        Self {
+            db,
+            genesis_challenge,
+            state,
+        }
+    }
+
+    pub async fn start(mut self) -> Result<(), WalletError> {
+        loop {
+            self.process_batch().await?;
+        }
+    }
+
+    async fn process_batch(&mut self) -> Result<(), WalletError> {
+        let peers: Vec<Peer> = self.state.lock().await.peers().cloned().collect();
+        if peers.is_empty() {
+            return Ok(());
+        }
+
+        let coin_states = self.db.unsynced_coin_states(peers.len()).await?;
+        if coin_states.is_empty() {
+            return Ok(());
+        }
+
+        info!(
+            "Syncing a batch of {} coins",
+            coin_states.len().min(peers.len())
+        );
+
+        let mut futures = FuturesUnordered::new();
+
+        for (peer, coin_state) in peers.into_iter().zip(coin_states.into_iter()) {
+            let db = self.db.clone();
+            let genesis_challenge = self.genesis_challenge;
+            let addr = peer.socket_addr();
+            let coin_id = coin_state.coin.coin_id();
+            futures.push(tokio::spawn(async move {
+                let result = fetch_puzzle(&peer, &db, genesis_challenge, coin_state).await;
+                (addr, coin_id, result)
+            }));
+        }
+
+        while let Some(result) = futures.next().await {
+            let (addr, coin_id, result) = result?;
+
+            if let Err(error) = result {
+                warn!(
+                    "Failed to lookup puzzle of {} from peer {}: {}",
+                    coin_id, addr, error
+                );
+                self.state.lock().await.ban(addr.ip());
+            }
+        }
+
+        Ok(())
+    }
+}
+
 /// Fetches info for a coin's puzzle and inserts it into the database.
 #[instrument(skip(peer, db))]
-pub async fn fetch_puzzle(
+async fn fetch_puzzle(
     peer: &Peer,
     db: &Database,
     genesis_challenge: Bytes32,

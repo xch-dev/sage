@@ -19,7 +19,7 @@ use rand::SeedableRng;
 use rand_chacha::ChaCha20Rng;
 use sage_database::Database;
 use sage_keychain::{encrypt, KeyData, SecretKeyData};
-use sage_wallet::Wallet;
+use sage_wallet::{PeerState, Wallet};
 use sqlx::{
     sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions},
     ConnectOptions,
@@ -30,7 +30,7 @@ use crate::{
     config::{Config, WalletConfig},
     error::{Error, Result},
     models::{WalletInfo, WalletKind},
-    sync::{SyncManager, SyncState},
+    sync::SyncManager,
 };
 
 pub type AppState = Mutex<AppStateInner>;
@@ -43,7 +43,7 @@ pub struct AppStateInner {
     pub keys: HashMap<u32, KeyData>,
     pub wallet: Option<Arc<Wallet>>,
     pub sync_task: Option<JoinHandle<()>>,
-    pub sync_state: Arc<Mutex<SyncState>>,
+    pub peer_state: Arc<Mutex<PeerState>>,
 }
 
 impl AppStateInner {
@@ -59,13 +59,13 @@ impl AppStateInner {
             keys: HashMap::new(),
             wallet: None,
             sync_task: None,
-            sync_state: Arc::new(Mutex::new(SyncState::default())),
+            peer_state: Arc::new(Mutex::new(PeerState::default())),
         }
     }
 
     pub fn reset_sync_task(&mut self, reset_peers: bool) -> Result<()> {
         if reset_peers {
-            self.sync_state = Arc::new(Mutex::new(SyncState::default()));
+            self.peer_state = Arc::new(Mutex::new(PeerState::default()));
         }
 
         if let Some(task) = self.sync_task.take() {
@@ -97,7 +97,7 @@ impl AppStateInner {
 
         self.sync_task = Some(tokio::spawn(
             SyncManager::new(
-                self.sync_state.clone(),
+                self.peer_state.clone(),
                 self.wallet.clone(),
                 NetworkId::Custom(network_id),
                 network,

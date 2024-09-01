@@ -6,26 +6,18 @@ use chia::{
     puzzles::{standard::StandardArgs, DeriveSynthetic},
 };
 use chia_wallet_sdk::Peer;
-use futures_lite::StreamExt;
-use futures_util::stream::FuturesUnordered;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
-use sage_wallet::{fetch_puzzle, Wallet};
-use tokio::{
-    sync::Mutex,
-    task::spawn_blocking,
-    time::{sleep, timeout},
-};
+use sage_wallet::{PeerState, Wallet};
+use tokio::{sync::Mutex, task::spawn_blocking, time::timeout};
 use tracing::{debug, info, instrument, warn};
 
 use crate::error::{Error, Result};
-
-use super::sync_state::SyncState;
 
 pub async fn sync_wallet(
     wallet: Arc<Wallet>,
     genesis_challenge: Bytes32,
     peer: Peer,
-    state: Arc<Mutex<SyncState>>,
+    state: Arc<Mutex<PeerState>>,
 ) -> Result<()> {
     info!("Starting sync against peer {}", peer.socket_addr());
 
@@ -96,54 +88,6 @@ pub async fn sync_wallet(
     }
 
     Ok(())
-}
-
-pub async fn lookup_puzzles(wallet: Arc<Wallet>, state: Arc<Mutex<SyncState>>) -> Result<()> {
-    loop {
-        let coin_states = wallet.db.unsynced_coin_states(30).await?;
-
-        if coin_states.is_empty() {
-            sleep(Duration::from_secs(5)).await;
-            continue;
-        }
-
-        let peers: Vec<Peer> = state.lock().await.peers().cloned().collect();
-
-        if peers.is_empty() {
-            sleep(Duration::from_secs(5)).await;
-            continue;
-        }
-
-        info!(
-            "Looking up puzzles for {} coins",
-            coin_states.len().min(peers.len())
-        );
-
-        let mut futures = FuturesUnordered::new();
-
-        for (peer, coin_state) in peers.into_iter().zip(coin_states.into_iter()) {
-            let wallet = wallet.clone();
-            let addr = peer.socket_addr();
-            let coin_id = coin_state.coin.coin_id();
-            futures.push(tokio::spawn(async move {
-                let result =
-                    fetch_puzzle(&peer, &wallet.db, wallet.genesis_challenge, coin_state).await;
-                (addr, coin_id, result)
-            }));
-        }
-
-        while let Some(result) = futures.next().await {
-            let (addr, coin_id, result) = result?;
-
-            if let Err(error) = result {
-                warn!(
-                    "Failed to lookup puzzle for coin {} from peer {}: {}",
-                    coin_id, addr, error
-                );
-                state.lock().await.ban(addr.ip());
-            }
-        }
-    }
 }
 
 #[instrument(skip(wallet, peer, puzzle_hashes))]
