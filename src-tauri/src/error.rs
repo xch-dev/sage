@@ -90,14 +90,8 @@ pub enum Error {
     #[error("From CLVM error: {0}")]
     FromClvm(#[from] FromClvmError),
 
-    #[error("Unexpected rejection")]
-    Rejection,
-
     #[error("Coin state not found")]
     CoinStateNotFound,
-
-    #[error("Missing created height")]
-    MissingCreatedHeight,
 
     #[error("Streamable error: {0}")]
     Streamable(#[from] chia::traits::Error),

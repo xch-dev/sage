@@ -2,14 +2,14 @@ use std::{sync::Arc, time::Duration};
 
 use chia::{
     bls::DerivableKey,
-    protocol::{Bytes32, CoinState, CoinStateFilters, RejectStateReason},
+    protocol::{Bytes32, CoinStateFilters, RejectStateReason},
     puzzles::{standard::StandardArgs, DeriveSynthetic},
 };
 use chia_wallet_sdk::Peer;
 use futures_lite::StreamExt;
 use futures_util::stream::FuturesUnordered;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
-use sage_wallet::{PuzzleInfo, Wallet};
+use sage_wallet::{fetch_puzzle, Wallet};
 use tokio::{
     sync::Mutex,
     task::spawn_blocking,
@@ -126,7 +126,8 @@ pub async fn lookup_puzzles(wallet: Arc<Wallet>, state: Arc<Mutex<SyncState>>) -
             let addr = peer.socket_addr();
             let coin_id = coin_state.coin.coin_id();
             futures.push(tokio::spawn(async move {
-                let result = lookup_puzzle(wallet, peer, coin_state).await;
+                let result =
+                    fetch_puzzle(&peer, &wallet.db, wallet.genesis_challenge, coin_state).await;
                 (addr, coin_id, result)
             }));
         }
@@ -145,82 +146,6 @@ pub async fn lookup_puzzles(wallet: Arc<Wallet>, state: Arc<Mutex<SyncState>>) -
             }
         }
     }
-}
-
-async fn lookup_puzzle(wallet: Arc<Wallet>, peer: Peer, coin_state: CoinState) -> Result<()> {
-    let Some(parent_coin_state) = timeout(
-        Duration::from_secs(3),
-        peer.request_coin_state(
-            vec![coin_state.coin.parent_coin_info],
-            None,
-            wallet.genesis_challenge,
-            false,
-        ),
-    )
-    .await??
-    .map_err(|_| Error::Rejection)?
-    .coin_states
-    .into_iter()
-    .next() else {
-        return Err(Error::CoinStateNotFound);
-    };
-
-    let height = coin_state
-        .created_height
-        .ok_or(Error::MissingCreatedHeight)?;
-
-    let response = timeout(
-        Duration::from_secs(3),
-        peer.request_puzzle_and_solution(coin_state.coin.parent_coin_info, height),
-    )
-    .await??
-    .map_err(|_| Error::Rejection)?;
-
-    let info = spawn_blocking(move || {
-        PuzzleInfo::parse(
-            parent_coin_state.coin,
-            &response.puzzle,
-            &response.solution,
-            coin_state.coin,
-        )
-    })
-    .await??;
-
-    let coin_id = coin_state.coin.coin_id();
-
-    let mut tx = wallet.db.tx().await?;
-
-    match info {
-        PuzzleInfo::Cat {
-            asset_id,
-            lineage_proof,
-            p2_puzzle_hash,
-        } => {
-            tx.insert_cat_coin(coin_id, lineage_proof, p2_puzzle_hash, asset_id)
-                .await?;
-        }
-        PuzzleInfo::Did {
-            lineage_proof,
-            info,
-        } => {
-            tx.insert_did_coin(coin_id, lineage_proof, info).await?;
-        }
-        PuzzleInfo::Nft {
-            lineage_proof,
-            info,
-        } => {
-            tx.insert_nft_coin(coin_id, lineage_proof, info).await?;
-        }
-        PuzzleInfo::Unknown => {
-            tx.insert_unknown_coin(coin_state.coin.coin_id()).await?;
-        }
-    }
-
-    tx.mark_coin_synced(coin_state.coin.coin_id()).await?;
-
-    tx.commit().await?;
-
-    Ok(())
 }
 
 #[instrument(skip(wallet, peer, puzzle_hashes))]
