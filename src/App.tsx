@@ -19,6 +19,8 @@ import ImportWallet from './pages/ImportWallet';
 import Login from './pages/Login';
 import NetworkList from './pages/NetworkList';
 import PeerList from './pages/PeerList';
+import Receive from './pages/Receive';
+import Send from './pages/Send';
 import Settings from './pages/Settings';
 import Wallet from './pages/Wallet';
 
@@ -41,6 +43,8 @@ const router = createHashRouter(
       <Route path='/create' element={<CreateWallet />} />
       <Route path='/import' element={<ImportWallet />} />
       <Route path='/wallet' element={<Wallet />} />
+      <Route path='/send' element={<Send />} />
+      <Route path='/receive' element={<Receive />} />
       <Route path='/settings' element={<Settings />} />
       <Route path='/networks' element={<NetworkList />} />
       <Route path='/peers' element={<PeerList />} />

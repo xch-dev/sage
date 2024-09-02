@@ -78,6 +78,7 @@ export default function Wallet() {
 }
 
 function MainWallet() {
+  const navigate = useNavigate();
   const walletState = useWalletState();
 
   const [selectedCoins, setSelectedCoins] = useState<GridRowSelectionModel>([]);
@@ -119,10 +120,20 @@ function MainWallet() {
         </Box>
 
         <Box display='flex' gap={2} mt={2}>
-          <Button variant='outlined' size='large' sx={{ flexGrow: 1 }}>
+          <Button
+            variant='outlined'
+            size='large'
+            sx={{ flexGrow: 1 }}
+            onClick={() => navigate('/send')}
+          >
             Send
           </Button>
-          <Button variant='outlined' size='large' sx={{ flexGrow: 1 }}>
+          <Button
+            variant='outlined'
+            size='large'
+            sx={{ flexGrow: 1 }}
+            onClick={() => navigate('/receive')}
+          >
             Receive
           </Button>
         </Box>
