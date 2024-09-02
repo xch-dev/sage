@@ -2,12 +2,12 @@ use bip39::Mnemonic;
 use chia::bls::{PublicKey, SecretKey};
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
-use sage_keychain::KeyData;
+use sage_keychain::{decrypt, KeyData, SecretKeyData};
 use std::str::FromStr;
 use tauri::{command, State};
 
 use crate::error::Error;
-use crate::models::WalletKind;
+use crate::models::{WalletKind, WalletSecrets};
 use crate::{app_state::AppState, error::Result, models::WalletInfo};
 
 #[command]
@@ -31,15 +31,56 @@ pub async fn active_wallet(state: State<'_, AppState>) -> Result<Option<WalletIn
         return Ok(None);
     };
 
-    let kind = match key {
-        KeyData::Public { .. } => WalletKind::Cold,
-        KeyData::Secret { .. } => WalletKind::Hot,
+    let (master_pk, kind) = match key {
+        KeyData::Public { master_pk } => (master_pk, WalletKind::Cold),
+        KeyData::Secret { master_pk, .. } => (master_pk, WalletKind::Hot),
     };
 
     Ok(Some(WalletInfo {
         name,
         fingerprint,
+        public_key: hex::encode(master_pk),
         kind,
+    }))
+}
+
+#[command]
+pub async fn get_wallet_secrets(
+    state: State<'_, AppState>,
+    fingerprint: u32,
+) -> Result<Option<WalletSecrets>> {
+    let state = state.lock().await;
+
+    let Some(key) = state.keys.get(&fingerprint) else {
+        return Ok(None);
+    };
+
+    let (mnemonic, secret_key) = match key {
+        KeyData::Public { .. } => return Ok(None),
+        KeyData::Secret {
+            entropy, encrypted, ..
+        } => {
+            let data = decrypt::<SecretKeyData>(encrypted, b"")?;
+
+            let mnemonic = if *entropy {
+                Some(Mnemonic::from_entropy(&data.0)?)
+            } else {
+                None
+            };
+
+            let secret_key = if let Some(mnemonic) = mnemonic.as_ref() {
+                SecretKey::from_seed(&mnemonic.to_seed(""))
+            } else {
+                SecretKey::from_bytes(&data.0.try_into().expect("invalid length"))?
+            };
+
+            (mnemonic, secret_key)
+        }
+    };
+
+    Ok(Some(WalletSecrets {
+        mnemonic: mnemonic.map(|m| m.to_string()),
+        secret_key: secret_key.to_bytes(),
     }))
 }
 

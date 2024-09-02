@@ -25,6 +25,7 @@ pub fn run() {
             commands::network_list,
             // Keychain
             commands::active_wallet,
+            commands::get_wallet_secrets,
             commands::wallet_list,
             commands::login_wallet,
             commands::logout_wallet,

@@ -85,14 +85,15 @@ impl SyncManager {
         network: Network,
         connector: Connector,
     ) -> (Self, mpsc::Receiver<SyncEvent>) {
+        let (sync_sender, sync_receiver) = mpsc::channel(32);
+
         let (peer_sender, receiver) = mpsc::channel(options.target_peers.max(1));
         let peer_receiver_task = tokio::spawn(handle_peer_events(
             wallet.as_ref().map(|wallet| wallet.db.clone()),
             receiver,
             state.clone(),
+            sync_sender.clone(),
         ));
-
-        let (sync_sender, receiver) = mpsc::channel(32);
 
         let manager = Self {
             options,
@@ -108,7 +109,7 @@ impl SyncManager {
             puzzle_lookup_task: None,
         };
 
-        (manager, receiver)
+        (manager, sync_receiver)
     }
 
     pub async fn sync(mut self) {

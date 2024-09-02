@@ -263,6 +263,9 @@ impl AppStateInner {
             wallets.push(WalletInfo {
                 name: wallet.name.clone(),
                 fingerprint,
+                public_key: hex::encode(match key {
+                    KeyData::Public { master_pk } | KeyData::Secret { master_pk, .. } => master_pk,
+                }),
                 kind: match key {
                     KeyData::Public { .. } => WalletKind::Cold,
                     KeyData::Secret { .. } => WalletKind::Hot,
@@ -281,6 +284,9 @@ impl AppStateInner {
             wallets.push(WalletInfo {
                 name: "Unnamed Wallet".to_string(),
                 fingerprint,
+                public_key: hex::encode(match key {
+                    KeyData::Public { master_pk } | KeyData::Secret { master_pk, .. } => master_pk,
+                }),
                 kind: match key {
                     KeyData::Public { .. } => WalletKind::Cold,
                     KeyData::Secret { .. } => WalletKind::Hot,

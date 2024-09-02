@@ -6,6 +6,7 @@ mod peer_info;
 mod sync_event_data;
 mod sync_info;
 mod wallet_info;
+mod wallet_secrets;
 
 pub use coin_data::*;
 pub use convert::*;
@@ -15,3 +16,4 @@ pub use peer_info::*;
 pub use sync_event_data::*;
 pub use sync_info::*;
 pub use wallet_info::*;
+pub use wallet_secrets::*;

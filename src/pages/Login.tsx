@@ -5,6 +5,7 @@ import {
   LocalFireDepartment,
   Login as LoginIcon,
   MoreVert,
+  Person,
 } from '@mui/icons-material';
 import {
   Box,
@@ -33,13 +34,14 @@ import { useNavigate } from 'react-router-dom';
 import {
   activeWallet,
   deleteWallet,
+  getWalletSecrets,
   loginWallet,
   renameWallet,
   walletList,
 } from '../commands';
 import Container from '../components/Container';
 import NavBar from '../components/NavBar';
-import { WalletInfo, WalletKind } from '../models';
+import { WalletInfo, WalletKind, WalletSecrets } from '../models';
 
 export default function Login() {
   const [wallets, setWallets] = useState<WalletInfo[] | null>(null);
@@ -99,14 +101,17 @@ function WalletItem(props: {
   wallets: WalletInfo[];
   setWallets: (wallets: WalletInfo[]) => void;
 }) {
+  const navigate = useNavigate();
+
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const isMenuOpen = Boolean(anchorEl);
 
   const [isDeleteOpen, setDeleteOpen] = useState(false);
   const [isRenameOpen, setRenameOpen] = useState(false);
+  const [isDetailsOpen, setDetailsOpen] = useState(false);
   const [newName, setNewName] = useState('');
 
-  const navigate = useNavigate();
+  const [secrets, setSecrets] = useState<WalletSecrets | null>(null);
 
   const openMenu = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -154,6 +159,15 @@ function WalletItem(props: {
     });
   };
 
+  useEffect(() => {
+    if (!isDetailsOpen) {
+      setSecrets(null);
+      return;
+    }
+
+    getWalletSecrets(props.wallet.fingerprint).then(setSecrets);
+  }, [isDetailsOpen, props.wallet.fingerprint]);
+
   return (
     <Grid2 xs={12} sm={6} md={4}>
       <Card>
@@ -177,34 +191,13 @@ function WalletItem(props: {
                 <MoreVert />
               </IconButton>
             </Box>
+
             <Menu
               anchorEl={anchorEl}
               open={isMenuOpen}
               onClose={closeMenu}
               onMouseDown={(e) => e.stopPropagation()}
             >
-              <MenuItem
-                onClick={() => {
-                  setRenameOpen(true);
-                  closeMenu();
-                }}
-              >
-                <ListItemIcon>
-                  <Edit fontSize='small' />
-                </ListItemIcon>
-                <ListItemText>Rename</ListItemText>
-              </MenuItem>
-              <MenuItem
-                onClick={() => {
-                  setDeleteOpen(true);
-                  closeMenu();
-                }}
-              >
-                <ListItemIcon>
-                  <Delete fontSize='small' />
-                </ListItemIcon>
-                <ListItemText>Delete</ListItemText>
-              </MenuItem>
               <MenuItem
                 onClick={() => {
                   loginSelf(true);
@@ -216,7 +209,44 @@ function WalletItem(props: {
                 </ListItemIcon>
                 <ListItemText>Login</ListItemText>
               </MenuItem>
+
+              <MenuItem
+                onClick={() => {
+                  setDetailsOpen(true);
+                  closeMenu();
+                }}
+              >
+                <ListItemIcon>
+                  <Person fontSize='small' />
+                </ListItemIcon>
+                <ListItemText>Details</ListItemText>
+              </MenuItem>
+
+              <MenuItem
+                onClick={() => {
+                  setRenameOpen(true);
+                  closeMenu();
+                }}
+              >
+                <ListItemIcon>
+                  <Edit fontSize='small' />
+                </ListItemIcon>
+                <ListItemText>Rename</ListItemText>
+              </MenuItem>
+
+              <MenuItem
+                onClick={() => {
+                  setDeleteOpen(true);
+                  closeMenu();
+                }}
+              >
+                <ListItemIcon>
+                  <Delete fontSize='small' />
+                </ListItemIcon>
+                <ListItemText>Delete</ListItemText>
+              </MenuItem>
             </Menu>
+
             <Box
               display='flex'
               alignItems='center'
@@ -297,6 +327,47 @@ function WalletItem(props: {
           </Button>
           <Button onClick={renameSelf} autoFocus disabled={!newName}>
             Rename
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={isDetailsOpen} onClose={() => setDetailsOpen(false)}>
+        <DialogTitle>Wallet Details</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            <Typography variant='h6' color='text.primary'>
+              Public Key
+            </Typography>
+            <Typography sx={{ wordBreak: 'break-all' }}>
+              {props.wallet.public_key}
+            </Typography>
+
+            {secrets && (
+              <>
+                <Typography mt={2} variant='h6' color='text.primary'>
+                  Secret Key
+                </Typography>
+                <Typography sx={{ wordBreak: 'break-all' }}>
+                  {secrets.secret_key}
+                </Typography>
+
+                {secrets.mnemonic && (
+                  <>
+                    <Typography mt={2} variant='h6' color='text.primary'>
+                      Mnemonic
+                    </Typography>
+                    <Typography sx={{ wordBreak: 'break-word' }}>
+                      {secrets.mnemonic}
+                    </Typography>
+                  </>
+                )}
+              </>
+            )}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDetailsOpen(false)} autoFocus>
+            Done
           </Button>
         </DialogActions>
       </Dialog>

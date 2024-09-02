@@ -11,7 +11,7 @@ use tracing::{debug, info, instrument};
 
 use crate::WalletError;
 
-use super::{wallet_sync::update_coins, PeerState};
+use super::{wallet_sync::update_coins, PeerState, SyncEvent};
 
 #[derive(Debug)]
 pub struct PeerEvent {
@@ -47,6 +47,7 @@ pub async fn handle_peer_events(
     db: Option<Database>,
     mut receiver: mpsc::Receiver<PeerEvent>,
     state: Arc<Mutex<PeerState>>,
+    sync_sender: mpsc::Sender<SyncEvent>,
 ) {
     while let Some(event) = receiver.recv().await {
         let Some(message) = event.message else {
@@ -55,7 +56,9 @@ pub async fn handle_peer_events(
             continue;
         };
 
-        if let Err(error) = handle_peer_event(db.as_ref(), event.ip, message, &state).await {
+        if let Err(error) =
+            handle_peer_event(db.as_ref(), event.ip, message, &state, &sync_sender).await
+        {
             debug!("Error handling peer event: {error}");
         }
     }
@@ -66,6 +69,7 @@ async fn handle_peer_event(
     ip: IpAddr,
     message: Message,
     state: &Arc<Mutex<PeerState>>,
+    sync_sender: &mpsc::Sender<SyncEvent>,
 ) -> Result<(), WalletError> {
     match message.msg_type {
         ProtocolMessageTypes::NewPeakWallet => {
@@ -84,6 +88,7 @@ async fn handle_peer_event(
                     "Received updates and synced to peak {} with header hash {}",
                     message.height, message.peak_hash
                 );
+                sync_sender.send(SyncEvent::CoinUpdate).await.ok();
             }
         }
         _ => {

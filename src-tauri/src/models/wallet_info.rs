@@ -11,5 +11,6 @@ pub enum WalletKind {
 pub struct WalletInfo {
     pub name: String,
     pub fingerprint: u32,
+    pub public_key: String,
     pub kind: WalletKind,
 }

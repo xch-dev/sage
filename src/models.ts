@@ -6,7 +6,13 @@ export enum WalletKind {
 export interface WalletInfo {
   name: string;
   fingerprint: number;
+  public_key: string;
   kind: WalletKind;
+}
+
+export interface WalletSecrets {
+  mnemonic: string | null;
+  secret_key: string;
 }
 
 export interface WalletConfig {

@@ -81,11 +81,12 @@ pub fn encrypt(
     })
 }
 
-pub fn decrypt<T>(encrypted: &Encrypted, key: &Key<Aes256Gcm>) -> Result<T, KeychainError>
+pub fn decrypt<T>(encrypted: &Encrypted, password: &[u8]) -> Result<T, KeychainError>
 where
     T: DeserializeOwned,
 {
-    let cipher = Aes256Gcm::new(key);
+    let key = encryption_key(password, &encrypted.salt)?;
+    let cipher = Aes256Gcm::new(&key);
 
     let nonce = Nonce::from_slice(&encrypted.nonce);
     let ciphertext = encrypted.ciphertext.as_ref();

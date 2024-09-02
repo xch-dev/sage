@@ -9,6 +9,7 @@ import {
   SyncInfo,
   WalletConfig,
   WalletInfo,
+  WalletSecrets,
 } from './models';
 import { clearState, fetchState } from './state';
 
@@ -18,6 +19,12 @@ export async function initialize(): Promise<void> {
 
 export async function activeWallet(): Promise<WalletInfo | null> {
   return await invoke('active_wallet');
+}
+
+export async function getWalletSecrets(
+  fingerprint: number,
+): Promise<WalletSecrets> {
+  return await invoke('get_wallet_secrets', { fingerprint });
 }
 
 export async function networkConfig(): Promise<NetworkConfig> {
