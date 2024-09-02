@@ -110,16 +110,9 @@ function MainWallet() {
   useEffect(() => {
     const unlisten = listen('sync', (event: Event<SyncEventData>) => {
       if (event.payload.type === 'coin_update') {
-        const newCoins = p2Coins.slice();
-        for (const coin of event.payload.coins) {
-          console.log(coin);
-          const index = newCoins.findIndex((c) => c.coin_id === coin.coin_id);
-          if (index !== -1) newCoins[index] = coin;
-          else newCoins.push(coin);
-        }
-        setP2Coins(newCoins);
+        commands.p2CoinList().then(setP2Coins);
+        commands.syncInfo().then(setSyncInfo);
       }
-      commands.syncInfo().then(setSyncInfo);
     });
 
     return () => {

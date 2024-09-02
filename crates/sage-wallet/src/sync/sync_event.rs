@@ -1,11 +1,9 @@
 use std::net::IpAddr;
 
-use chia::protocol::Bytes32;
-
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SyncEvent {
     Start(IpAddr),
     Stop,
     Subscribed,
-    CoinUpdate(Vec<Bytes32>),
+    CoinUpdate,
 }

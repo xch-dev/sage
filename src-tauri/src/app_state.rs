@@ -11,7 +11,7 @@ use chia::{
     bls::{master_to_wallet_unhardened_intermediate, DerivableKey, PublicKey, SecretKey},
     puzzles::{standard::StandardArgs, DeriveSynthetic},
 };
-use chia_wallet_sdk::{create_rustls_connector, encode_address, load_ssl_cert, Network, NetworkId};
+use chia_wallet_sdk::{create_rustls_connector, load_ssl_cert, Network, NetworkId};
 use indexmap::{indexmap, IndexMap};
 use itertools::Itertools;
 use rand::SeedableRng;
@@ -26,11 +26,10 @@ use sqlx::{
 };
 use tauri::{AppHandle, Emitter};
 use tokio::{sync::Mutex, task::JoinHandle};
-use tracing::warn;
 
 use crate::{
     error::{Error, Result},
-    models::{encode_xch_amount, CoinData, SyncEventData, WalletInfo, WalletKind},
+    models::{SyncEventData, WalletInfo, WalletKind},
 };
 
 pub type AppState = Mutex<AppStateInner>;
@@ -115,8 +114,6 @@ impl AppStateInner {
 
         // TODO: Should this task be aborted? It should get cleaned up automatically anyways I think.
         let app_handle = self.app_handle.clone();
-        let wallet = self.wallet.clone();
-        let prefix = self.prefix().to_string();
 
         tokio::spawn(async move {
             while let Some(event) = sync_receiver.recv().await {
@@ -124,33 +121,8 @@ impl AppStateInner {
                     SyncEvent::Start(ip) => SyncEventData::Start { ip: ip.to_string() },
                     SyncEvent::Stop => SyncEventData::Stop,
                     SyncEvent::Subscribed => SyncEventData::Subscribed,
-                    SyncEvent::CoinUpdate(coin_ids) => {
-                        let Some(wallet) = wallet.as_ref() else {
-                            warn!("Received coin update event without active wallet");
-                            continue;
-                        };
-
-                        let mut coins = Vec::new();
-
-                        for coin_id in coin_ids {
-                            let Some(cs) = wallet.db.coin_state(coin_id).await? else {
-                                warn!("Missing coin state for {coin_id}");
-                                continue;
-                            };
-
-                            coins.push(CoinData {
-                                coin_id,
-                                address: encode_address(cs.coin.puzzle_hash.to_bytes(), &prefix)?,
-                                created_height: cs.created_height,
-                                spent_height: cs.spent_height,
-                                amount: encode_xch_amount(cs.coin.amount as u128),
-                            });
-                        }
-
-                        SyncEventData::CoinUpdate { coins }
-                    }
+                    SyncEvent::CoinUpdate => SyncEventData::CoinUpdate,
                 };
-
                 if app_handle.emit("sync", event).is_err() {
                     break;
                 }
