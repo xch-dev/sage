@@ -28,7 +28,7 @@ pub async fn sync_info(state: State<'_, AppState>) -> Result<SyncInfo> {
 }
 
 #[command]
-pub async fn p2_coin_list(state: State<'_, AppState>) -> Result<Vec<CoinData>> {
+pub async fn coin_list(state: State<'_, AppState>) -> Result<Vec<CoinData>> {
     let state = state.lock().await;
     let wallet = state.wallet.as_ref().ok_or(Error::NoActiveWallet)?;
 

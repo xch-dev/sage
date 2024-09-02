@@ -113,8 +113,8 @@ export async function syncInfo(): Promise<SyncInfo> {
   return await invoke('sync_info');
 }
 
-export async function p2CoinList(): Promise<CoinData[]> {
-  return await invoke('p2_coin_list');
+export async function coinList(): Promise<CoinData[]> {
+  return await invoke('coin_list');
 }
 
 export async function didList(): Promise<DidData[]> {

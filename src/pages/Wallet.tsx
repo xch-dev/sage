@@ -25,20 +25,14 @@ import {
   Typography,
 } from '@mui/material';
 import { GridRowSelectionModel } from '@mui/x-data-grid';
-import { Event, listen } from '@tauri-apps/api/event';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as commands from '../commands';
 import CoinList from '../components/CoinList';
 import ListContainer from '../components/ListContainer';
 import NavBar from '../components/NavBar';
-import {
-  CoinData,
-  NftData,
-  SyncEventData,
-  SyncInfo,
-  WalletInfo,
-} from '../models';
+import { NftData, WalletInfo } from '../models';
+import { useWalletState } from '../state';
 
 export default function Wallet() {
   const navigate = useNavigate();
@@ -84,12 +78,8 @@ export default function Wallet() {
 }
 
 function MainWallet() {
-  const [syncInfo, setSyncInfo] = useState<SyncInfo>({
-    xch_balance: 'Syncing',
-    total_coins: 0,
-    synced_coins: 0,
-  });
-  const [p2Coins, setP2Coins] = useState<CoinData[]>([]);
+  const walletState = useWalletState();
+
   const [selectedCoins, setSelectedCoins] = useState<GridRowSelectionModel>([]);
 
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -102,46 +92,29 @@ function MainWallet() {
     setAnchorEl(null);
   };
 
-  useEffect(() => {
-    commands.syncInfo().then(setSyncInfo);
-    commands.p2CoinList().then(setP2Coins);
-  }, []);
-
-  useEffect(() => {
-    const unlisten = listen('sync', (event: Event<SyncEventData>) => {
-      if (event.payload.type === 'coin_update') {
-        commands.p2CoinList().then(setP2Coins);
-        commands.syncInfo().then(setSyncInfo);
-      } else if (event.payload.type === 'puzzle_update') {
-        commands.syncInfo().then(setSyncInfo);
-      }
-    });
-
-    return () => {
-      unlisten.then((u) => u());
-    };
-  }, [p2Coins]);
-
   return (
     <>
       <Box mt={1}>
         <Typography variant='h5' fontSize={30} textAlign='center'>
-          {syncInfo.xch_balance} XCH
+          {walletState.syncInfo.xch_balance} XCH
         </Typography>
 
         <LinearProgress
           variant='determinate'
           value={Math.ceil(
-            (syncInfo.synced_coins / syncInfo.total_coins) * 100,
+            (walletState.syncInfo.synced_coins /
+              walletState.syncInfo.total_coins) *
+              100,
           )}
           sx={{ mt: 2 }}
         />
 
         <Box mt={1} textAlign='center'>
-          {syncInfo.synced_coins}
-          {syncInfo.synced_coins === syncInfo.total_coins
+          {walletState.syncInfo.synced_coins}
+          {walletState.syncInfo.synced_coins ===
+          walletState.syncInfo.total_coins
             ? ''
-            : `/${syncInfo.total_coins}`}{' '}
+            : `/${walletState.syncInfo.total_coins}`}{' '}
           coins synced
         </Box>
 
@@ -156,7 +129,7 @@ function MainWallet() {
 
         <Box height={350} position='relative' mt={2}>
           <CoinList
-            coins={p2Coins}
+            coins={walletState.coins}
             selectedCoins={selectedCoins}
             setSelectedCoins={setSelectedCoins}
           />
