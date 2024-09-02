@@ -10,7 +10,9 @@ export interface WalletState {
 
 export const useWalletState = create<WalletState>()(() => ({
   syncInfo: {
-    xch_balance: 'Syncing',
+    address: 'Unknown',
+    balance: 'Syncing',
+    ticker: '',
     total_coins: 0,
     synced_coins: 0,
   },
@@ -20,7 +22,9 @@ export const useWalletState = create<WalletState>()(() => ({
 export function clearState() {
   useWalletState.setState({
     syncInfo: {
-      xch_balance: 'Syncing',
+      address: 'Unknown',
+      balance: 'Syncing',
+      ticker: '',
       total_coins: 0,
       synced_coins: 0,
     },

@@ -18,10 +18,20 @@ pub async fn sync_info(state: State<'_, AppState>) -> Result<SyncInfo> {
     let total_coins = tx.total_coin_count().await?;
     let synced_coins = tx.synced_coin_count().await?;
 
+    let max = tx.derivation_index(false).await? - 1;
+    let max_used = tx.max_used_derivation_index(false).await?;
+    let mut index = max_used.map_or(0, |i| i + 1);
+    if index > max {
+        index = max;
+    }
+    let p2_puzzle_hash = tx.p2_puzzle_hash(index, false).await?;
+
     tx.commit().await?;
 
     Ok(SyncInfo {
-        xch_balance: encode_xch_amount(balance),
+        address: encode_address(p2_puzzle_hash.to_bytes(), state.prefix())?,
+        balance: encode_xch_amount(balance),
+        ticker: state.prefix().to_string().to_uppercase(),
         total_coins,
         synced_coins,
     })

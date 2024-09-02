@@ -97,7 +97,7 @@ function MainWallet() {
     <>
       <Box mt={1}>
         <Typography variant='h5' fontSize={30} textAlign='center'>
-          {walletState.syncInfo.xch_balance} XCH
+          {walletState.syncInfo.balance} {walletState.syncInfo.ticker}
         </Typography>
 
         <LinearProgress

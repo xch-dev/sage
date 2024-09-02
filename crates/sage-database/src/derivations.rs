@@ -18,8 +18,8 @@ impl Database {
         derivation_index(&self.pool, hardened).await
     }
 
-    pub async fn max_used_derivation_index(&self) -> Result<Option<u32>> {
-        max_used_derivation_index(&self.pool).await
+    pub async fn max_used_derivation_index(&self, hardened: bool) -> Result<Option<u32>> {
+        max_used_derivation_index(&self.pool, hardened).await
     }
 
     pub async fn p2_puzzle_hashes(&self) -> Result<Vec<Bytes32>> {
@@ -28,6 +28,10 @@ impl Database {
 
     pub async fn synthetic_key(&self, p2_puzzle_hash: Bytes32) -> Result<PublicKey> {
         synthetic_key(&self.pool, p2_puzzle_hash).await
+    }
+
+    pub async fn p2_puzzle_hash(&self, index: u32, hardened: bool) -> Result<Bytes32> {
+        p2_puzzle_hash(&self.pool, index, hardened).await
     }
 
     pub async fn is_p2_puzzle_hash(&self, p2_puzzle_hash: Bytes32) -> Result<bool> {
@@ -57,8 +61,8 @@ impl<'a> DatabaseTx<'a> {
         derivation_index(&mut *self.tx, hardened).await
     }
 
-    pub async fn max_used_derivation_index(&mut self) -> Result<Option<u32>> {
-        max_used_derivation_index(&mut *self.tx).await
+    pub async fn max_used_derivation_index(&mut self, hardened: bool) -> Result<Option<u32>> {
+        max_used_derivation_index(&mut *self.tx, hardened).await
     }
 
     pub async fn p2_puzzle_hashes(&mut self) -> Result<Vec<Bytes32>> {
@@ -67,6 +71,10 @@ impl<'a> DatabaseTx<'a> {
 
     pub async fn synthetic_key(&mut self, p2_puzzle_hash: Bytes32) -> Result<PublicKey> {
         synthetic_key(&mut *self.tx, p2_puzzle_hash).await
+    }
+
+    pub async fn p2_puzzle_hash(&mut self, index: u32, hardened: bool) -> Result<Bytes32> {
+        p2_puzzle_hash(&mut *self.tx, index, hardened).await
     }
 
     pub async fn is_p2_puzzle_hash(&mut self, p2_puzzle_hash: Bytes32) -> Result<bool> {
@@ -115,13 +123,22 @@ async fn derivation_index(conn: impl SqliteExecutor<'_>, hardened: bool) -> Resu
     .try_into()?)
 }
 
-async fn max_used_derivation_index(conn: impl SqliteExecutor<'_>) -> Result<Option<u32>> {
+async fn max_used_derivation_index(
+    conn: impl SqliteExecutor<'_>,
+    hardened: bool,
+) -> Result<Option<u32>> {
     let row = sqlx::query!(
         "
         SELECT MAX(`index`) AS `max_index`
         FROM `derivations`
-        WHERE EXISTS (SELECT * FROM `coin_states` WHERE `puzzle_hash` = `p2_puzzle_hash`)
-        "
+        WHERE EXISTS (
+            SELECT COUNT(*) FROM `coin_states`
+            WHERE `puzzle_hash` = `p2_puzzle_hash`
+            OR `hint` = `p2_puzzle_hash`
+        )
+        AND `hardened` = ?
+        ",
+        hardened
     )
     .fetch_one(conn)
     .await?;
@@ -160,6 +177,26 @@ async fn synthetic_key(
     .await?;
     let bytes = row.synthetic_key.as_slice();
     Ok(PublicKey::from_bytes(&to_bytes(bytes)?)?)
+}
+
+async fn p2_puzzle_hash(
+    conn: impl SqliteExecutor<'_>,
+    index: u32,
+    hardened: bool,
+) -> Result<Bytes32> {
+    let row = sqlx::query!(
+        "
+        SELECT `p2_puzzle_hash`
+        FROM `derivations`
+        WHERE `index` = ?
+        AND `hardened` = ?
+        ",
+        index,
+        hardened
+    )
+    .fetch_one(conn)
+    .await?;
+    to_bytes32(&row.p2_puzzle_hash)
 }
 
 async fn is_p2_puzzle_hash(conn: impl SqliteExecutor<'_>, p2_puzzle_hash: Bytes32) -> Result<bool> {
