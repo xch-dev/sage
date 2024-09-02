@@ -23,7 +23,7 @@ export async function activeWallet(): Promise<WalletInfo | null> {
 
 export async function getWalletSecrets(
   fingerprint: number,
-): Promise<WalletSecrets> {
+): Promise<WalletSecrets | null> {
   return await invoke('get_wallet_secrets', { fingerprint });
 }
 
