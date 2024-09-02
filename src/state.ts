@@ -17,6 +17,22 @@ export const useWalletState = create<WalletState>()(() => ({
   coins: [],
 }));
 
+export function clearState() {
+  useWalletState.setState({
+    syncInfo: {
+      xch_balance: 'Syncing',
+      total_coins: 0,
+      synced_coins: 0,
+    },
+    coins: [],
+  });
+}
+
+export function fetchState() {
+  updateCoins();
+  updateSyncInfo();
+}
+
 function updateCoins() {
   commands.coinList().then((coins) => {
     useWalletState.setState({
@@ -43,9 +59,4 @@ listen<SyncEventData>('sync', (event) => {
       updateSyncInfo();
       break;
   }
-});
-
-commands.initialize().then(() => {
-  updateCoins();
-  updateSyncInfo();
 });

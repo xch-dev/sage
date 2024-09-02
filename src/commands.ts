@@ -12,6 +12,7 @@ import {
   WalletConfig,
   WalletInfo,
 } from './models';
+import { clearState, fetchState } from './state';
 
 export async function initialize(): Promise<void> {
   await invoke('initialize');
@@ -46,7 +47,9 @@ export async function networkList(): Promise<Record<string, Network>> {
 }
 
 export async function loginWallet(fingerprint: number): Promise<void> {
+  clearState();
   await invoke('login_wallet', { fingerprint });
+  fetchState();
 }
 
 export async function logoutWallet(): Promise<void> {
