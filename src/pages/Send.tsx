@@ -1,7 +1,8 @@
 import { Button, TextField, Typography } from '@mui/material';
 import BigNumber from 'bignumber.js';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import * as commands from '../commands';
 import Container from '../components/Container';
 import NavBar from '../components/NavBar';
 import { useWalletState } from '../state';
@@ -13,6 +14,7 @@ export default function Send() {
   const balance = BigNumber(walletState.syncInfo.balance);
 
   const [address, setAddress] = useState('');
+  const [validAddress, setValidAddress] = useState('');
   const [amount, setAmount] = useState('');
   const [fee, setFee] = useState('');
 
@@ -20,6 +22,20 @@ export default function Send() {
   const feeNum = BigNumber(fee);
   const total = amountNum.plus(feeNum);
   const greaterThanBalance = total.isGreaterThan(balance);
+
+  useEffect(() => {
+    if (address === validAddress) {
+      return;
+    }
+
+    commands.validateAddress(address).then((valid) => {
+      if (valid) {
+        setValidAddress(address);
+      }
+    });
+  }, [address, validAddress]);
+
+  const addressValid = address === validAddress;
 
   return (
     <>
@@ -34,6 +50,7 @@ export default function Send() {
           fullWidth
           value={address}
           onChange={(e) => setAddress(e.target.value)}
+          error={address.length > 0 && !addressValid}
         />
         <Typography sx={{ mt: 1 }} variant='subtitle1' color='text.secondary'>
           Transactions cannot be reversed, so make sure that this is the correct
@@ -70,7 +87,12 @@ export default function Send() {
           sx={{ mt: 2 }}
           variant='contained'
           fullWidth
-          disabled={greaterThanBalance || amountNum.isNaN() || feeNum.isNaN()}
+          disabled={
+            greaterThanBalance ||
+            amountNum.isNaN() ||
+            feeNum.isNaN() ||
+            !addressValid
+          }
         >
           Send
         </Button>

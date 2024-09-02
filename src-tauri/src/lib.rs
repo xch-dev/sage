@@ -40,6 +40,7 @@ pub fn run() {
             commands::coin_list,
             commands::did_list,
             commands::nft_list,
+            commands::validate_address,
             // Peers
             commands::peer_list,
             commands::remove_peer,

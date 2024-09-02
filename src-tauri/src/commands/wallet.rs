@@ -1,4 +1,4 @@
-use chia_wallet_sdk::encode_address;
+use chia_wallet_sdk::{decode_address, encode_address};
 use tauri::{command, State};
 
 use crate::{
@@ -106,4 +106,13 @@ pub async fn nft_list(state: State<'_, AppState>) -> Result<Vec<NftData>> {
     tx.commit().await?;
 
     Ok(nft_data)
+}
+
+#[command]
+pub async fn validate_address(state: State<'_, AppState>, address: String) -> Result<bool> {
+    let state = state.lock().await;
+    let Some((_puzzle_hash, prefix)) = decode_address(&address).ok() else {
+        return Ok(false);
+    };
+    Ok(prefix == state.prefix())
 }

@@ -128,3 +128,7 @@ export async function didList(): Promise<DidData[]> {
 export async function nftList(): Promise<NftData[]> {
   return await invoke('nft_list');
 }
+
+export async function validateAddress(address: string): Promise<boolean> {
+  return await invoke('validate_address', { address });
+}
