@@ -23,7 +23,10 @@ export default function Send() {
 
   return (
     <>
-      <NavBar label='Send XCH' back={() => navigate(-1)} />
+      <NavBar
+        label={`Send ${walletState.syncInfo.ticker}`}
+        back={() => navigate(-1)}
+      />
 
       <Container>
         <TextField
@@ -46,7 +49,7 @@ export default function Send() {
           error={amount.length > 0 && amountNum.isNaN()}
         />
         <Typography sx={{ mt: 1 }} variant='subtitle1' color='text.secondary'>
-          The amount to send in XCH. Your balance is
+          The amount to send in {walletState.syncInfo.ticker}. Your balance is
           <b>{' ' + walletState.syncInfo.balance}.</b>
         </Typography>
 
