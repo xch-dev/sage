@@ -1,7 +1,5 @@
 use serde::{Deserialize, Serialize};
 
-use super::PeerMode;
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NetworkConfig {
     #[serde(default = "default_network_id")]
@@ -10,8 +8,8 @@ pub struct NetworkConfig {
     #[serde(default = "default_target_peers")]
     pub target_peers: usize,
 
-    #[serde(default)]
-    pub peer_mode: PeerMode,
+    #[serde(default = "default_discover_peers")]
+    pub discover_peers: bool,
 }
 
 impl Default for NetworkConfig {
@@ -19,7 +17,7 @@ impl Default for NetworkConfig {
         Self {
             network_id: default_network_id(),
             target_peers: default_target_peers(),
-            peer_mode: PeerMode::default(),
+            discover_peers: default_discover_peers(),
         }
     }
 }
@@ -30,4 +28,8 @@ fn default_network_id() -> String {
 
 fn default_target_peers() -> usize {
     5
+}
+
+fn default_discover_peers() -> bool {
+    true
 }

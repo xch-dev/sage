@@ -1,13 +1,11 @@
 import { invoke } from '@tauri-apps/api/core';
 import {
   CoinData,
-  DerivationMode,
   DidData,
   Network,
   NetworkConfig,
   NftData,
   PeerInfo,
-  PeerMode,
   SyncInfo,
   WalletConfig,
   WalletInfo,
@@ -30,8 +28,8 @@ export async function setTargetPeers(targetPeers: number): Promise<void> {
   await invoke('set_target_peers', { targetPeers });
 }
 
-export async function setPeerMode(peerMode: PeerMode): Promise<void> {
-  await invoke('set_peer_mode', { peerMode });
+export async function setDiscoverPeers(discoverPeers: boolean): Promise<void> {
+  await invoke('set_discover_peers', { discoverPeers });
 }
 
 export async function setNetworkId(networkId: string): Promise<void> {
@@ -87,11 +85,14 @@ export async function renameWallet(
   await invoke('rename_wallet', { fingerprint, name });
 }
 
-export async function setDerivationMode(
+export async function setDeriveAutomatically(
   fingerprint: number,
-  derivationMode: DerivationMode,
+  deriveAutomatically: boolean,
 ): Promise<void> {
-  await invoke('set_derivation_mode', { fingerprint, derivationMode });
+  await invoke('set_derive_automatically', {
+    fingerprint,
+    deriveAutomatically,
+  });
 }
 
 export async function setDerivationBatchSize(

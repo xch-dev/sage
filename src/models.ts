@@ -3,16 +3,6 @@ export enum WalletKind {
   Hot = 'hot',
 }
 
-export enum DerivationMode {
-  Automatic = 'automatic',
-  Manual = 'manual',
-}
-
-export enum PeerMode {
-  Automatic = 'automatic',
-  Manual = 'manual',
-}
-
 export interface WalletInfo {
   name: string;
   fingerprint: number;
@@ -21,7 +11,7 @@ export interface WalletInfo {
 
 export interface WalletConfig {
   name: string;
-  derivation_mode: DerivationMode;
+  derive_automatically: boolean;
   derivation_batch_size: number;
   derivation_index: number;
 }
@@ -29,7 +19,7 @@ export interface WalletConfig {
 export interface NetworkConfig {
   network_id: string;
   target_peers: number;
-  peer_mode: PeerMode;
+  discover_peers: boolean;
 }
 
 export interface Network {

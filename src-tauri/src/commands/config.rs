@@ -1,4 +1,4 @@
-use sage_config::{DerivationMode, NetworkConfig, PeerMode, WalletConfig};
+use sage_config::{NetworkConfig, WalletConfig};
 use tauri::{command, State};
 
 use crate::{app_state::AppState, error::Result};
@@ -10,12 +10,14 @@ pub async fn network_config(state: State<'_, AppState>) -> Result<NetworkConfig>
 }
 
 #[command]
-pub async fn set_peer_mode(state: State<'_, AppState>, peer_mode: PeerMode) -> Result<()> {
+pub async fn set_discover_peers(state: State<'_, AppState>, discover_peers: bool) -> Result<()> {
     let mut state = state.lock().await;
 
-    state.config.network.peer_mode = peer_mode;
-    state.save_config()?;
-    state.reset_sync_task(false)?;
+    if state.config.network.discover_peers != discover_peers {
+        state.config.network.discover_peers = discover_peers;
+        state.save_config()?;
+        state.reset_sync_task(false)?;
+    }
 
     Ok(())
 }
@@ -50,16 +52,19 @@ pub async fn wallet_config(state: State<'_, AppState>, fingerprint: u32) -> Resu
 }
 
 #[command]
-pub async fn set_derivation_mode(
+pub async fn set_derive_automatically(
     state: State<'_, AppState>,
     fingerprint: u32,
-    derivation_mode: DerivationMode,
+    derive_automatically: bool,
 ) -> Result<()> {
     let mut state = state.lock().await;
 
     let config = state.try_wallet_config_mut(fingerprint)?;
-    config.derivation_mode = derivation_mode;
-    state.save_config()?;
+
+    if config.derive_automatically != derive_automatically {
+        config.derive_automatically = derive_automatically;
+        state.save_config()?;
+    }
 
     Ok(())
 }
@@ -81,21 +86,6 @@ pub async fn set_derivation_batch_size(
             // TODO: wallet.initial_sync(derivation_batch_size).await?;
         }
     }
-
-    Ok(())
-}
-
-#[command]
-pub async fn set_derivation_index(
-    state: State<'_, AppState>,
-    fingerprint: u32,
-    derivation_index: u32,
-) -> Result<()> {
-    let mut state = state.lock().await;
-
-    let config = state.try_wallet_config_mut(fingerprint)?;
-    config.derivation_index = derivation_index;
-    state.save_config()?;
 
     Ok(())
 }

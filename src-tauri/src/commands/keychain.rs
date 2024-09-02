@@ -14,7 +14,7 @@ use crate::{app_state::AppState, error::Result, models::WalletInfo};
 pub async fn active_wallet(state: State<'_, AppState>) -> Result<Option<WalletInfo>> {
     let state = state.lock().await;
 
-    let Some(fingerprint) = state.config.wallet.active_fingerprint else {
+    let Some(fingerprint) = state.config.app.active_fingerprint else {
         return Ok(None);
     };
 
@@ -52,7 +52,7 @@ pub async fn wallet_list(state: State<'_, AppState>) -> Result<Vec<WalletInfo>> 
 #[command]
 pub async fn login_wallet(state: State<'_, AppState>, fingerprint: u32) -> Result<()> {
     let mut state = state.lock().await;
-    state.config.wallet.active_fingerprint = Some(fingerprint);
+    state.config.app.active_fingerprint = Some(fingerprint);
     state.save_config()?;
     state.switch_wallet().await
 }
@@ -60,7 +60,7 @@ pub async fn login_wallet(state: State<'_, AppState>, fingerprint: u32) -> Resul
 #[command]
 pub async fn logout_wallet(state: State<'_, AppState>) -> Result<()> {
     let mut state = state.lock().await;
-    state.config.wallet.active_fingerprint = None;
+    state.config.app.active_fingerprint = None;
     state.save_config()?;
     state.switch_wallet().await
 }
@@ -99,7 +99,7 @@ pub async fn create_wallet(
 
     let config = state.wallet_config_mut(fingerprint);
     config.name = name;
-    state.config.wallet.active_fingerprint = Some(fingerprint);
+    state.config.app.active_fingerprint = Some(fingerprint);
     state.save_config()?;
 
     state.switch_wallet().await
@@ -132,7 +132,7 @@ pub async fn import_wallet(state: State<'_, AppState>, name: String, key: String
 
     let config = state.wallet_config_mut(fingerprint);
     config.name = name;
-    state.config.wallet.active_fingerprint = Some(fingerprint);
+    state.config.app.active_fingerprint = Some(fingerprint);
     state.save_config()?;
 
     state.switch_wallet().await

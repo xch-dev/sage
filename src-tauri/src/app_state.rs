@@ -16,7 +16,7 @@ use indexmap::{indexmap, IndexMap};
 use itertools::Itertools;
 use rand::SeedableRng;
 use rand_chacha::ChaCha20Rng;
-use sage_config::{Config, PeerMode, WalletConfig};
+use sage_config::{Config, WalletConfig};
 use sage_database::Database;
 use sage_keychain::{encrypt, KeyData, SecretKeyData};
 use sage_wallet::{PeerState, SyncEvent, SyncManager, SyncOptions, Wallet};
@@ -101,7 +101,7 @@ impl AppStateInner {
         let (sync_manager, mut sync_receiver) = SyncManager::new(
             SyncOptions {
                 target_peers: self.config.network.target_peers,
-                find_peers: self.config.network.peer_mode == PeerMode::Automatic,
+                find_peers: self.config.network.discover_peers,
             },
             self.peer_state.clone(),
             self.wallet.clone(),
@@ -136,7 +136,7 @@ impl AppStateInner {
     }
 
     pub async fn switch_wallet(&mut self) -> Result<()> {
-        let Some(fingerprint) = self.config.wallet.active_fingerprint else {
+        let Some(fingerprint) = self.config.app.active_fingerprint else {
             self.wallet = None;
             self.reset_sync_task(false)?;
             return Ok(());
@@ -237,8 +237,8 @@ impl AppStateInner {
         self.keys.remove(&fingerprint);
 
         self.config.wallets.shift_remove(&fingerprint.to_string());
-        if self.config.wallet.active_fingerprint == Some(fingerprint) {
-            self.config.wallet.active_fingerprint = None;
+        if self.config.app.active_fingerprint == Some(fingerprint) {
+            self.config.app.active_fingerprint = None;
         }
 
         self.save_keychain()?;

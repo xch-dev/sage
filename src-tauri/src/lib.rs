@@ -14,14 +14,13 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             // Network Config
             commands::network_config,
-            commands::set_peer_mode,
+            commands::set_discover_peers,
             commands::set_target_peers,
             commands::set_network_id,
             // Wallet Config
             commands::wallet_config,
-            commands::set_derivation_mode,
+            commands::set_derive_automatically,
             commands::set_derivation_batch_size,
-            commands::set_derivation_index,
             // Networks
             commands::network_list,
             // Keychain

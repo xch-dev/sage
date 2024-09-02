@@ -24,13 +24,7 @@ import { DarkModeContext } from '../App';
 import * as commands from '../commands';
 import Container from '../components/Container';
 import NavBar from '../components/NavBar';
-import {
-  DerivationMode,
-  NetworkConfig,
-  PeerMode,
-  WalletConfig,
-  WalletInfo,
-} from '../models';
+import { NetworkConfig, WalletConfig, WalletInfo } from '../models';
 import { isValidU32 } from '../validation';
 
 export default function Settings() {
@@ -87,7 +81,7 @@ function GlobalSettings() {
 function NetworkSettings() {
   const navigate = useNavigate();
 
-  const [peerMode, setPeerMode] = useState<PeerMode | null>(null);
+  const [discoverPeers, setDiscoverPeers] = useState<boolean | null>(null);
   const [targetPeersText, setTargetPeers] = useState<string | null>(null);
   const [networkId, setNetworkId] = useState<string | null>(null);
 
@@ -124,16 +118,10 @@ function NetworkSettings() {
         sx={{ mt: 2, display: 'block' }}
         control={
           <Switch
-            checked={
-              (peerMode ?? config?.peer_mode ?? PeerMode.Automatic) ==
-              PeerMode.Automatic
-            }
+            checked={discoverPeers ?? config?.discover_peers ?? true}
             onChange={(event) => {
-              const mode = event.target.checked
-                ? PeerMode.Automatic
-                : PeerMode.Manual;
-              commands.setPeerMode(mode);
-              setPeerMode(mode);
+              commands.setDiscoverPeers(event.target.checked);
+              setDiscoverPeers(event.target.checked);
             }}
           />
         }
@@ -146,7 +134,7 @@ function NetworkSettings() {
         fullWidth
         value={targetPeersText ?? config?.target_peers ?? 500}
         error={targetPeersText !== null && invalidTargetPeers}
-        disabled={(peerMode ?? config?.peer_mode) !== PeerMode.Automatic}
+        disabled={!(discoverPeers ?? config?.discover_peers)}
         onChange={(event) => setTargetPeers(event.target.value)}
         onBlur={() => {
           if (invalidTargetPeers) return;
@@ -188,9 +176,9 @@ function NetworkSettings() {
 
 function WalletSettings(props: { wallet: WalletInfo }) {
   const [name, setName] = useState(props.wallet.name);
-  const [derivationMode, setDerivationMode] = useState<DerivationMode | null>(
-    null,
-  );
+  const [deriveAutomatically, setDeriveAutomatically] = useState<
+    boolean | null
+  >(true);
   const [derivationBatchSizeText, setDerivationBatchSize] = useState<
     string | null
   >(null);
@@ -248,16 +236,14 @@ function WalletSettings(props: { wallet: WalletInfo }) {
         control={
           <Switch
             checked={
-              (derivationMode ??
-                config?.derivation_mode ??
-                DerivationMode.Automatic) == DerivationMode.Automatic
+              deriveAutomatically ?? config?.derive_automatically ?? true
             }
             onChange={(event) => {
-              const mode = event.target.checked
-                ? DerivationMode.Automatic
-                : DerivationMode.Manual;
-              commands.setDerivationMode(props.wallet.fingerprint, mode);
-              setDerivationMode(mode);
+              commands.setDeriveAutomatically(
+                props.wallet.fingerprint,
+                event.target.checked,
+              );
+              setDeriveAutomatically(event.target.checked);
             }}
           />
         }
@@ -270,10 +256,7 @@ function WalletSettings(props: { wallet: WalletInfo }) {
         fullWidth
         value={derivationBatchSizeText ?? config?.derivation_batch_size ?? 500}
         error={derivationBatchSizeText !== null && invalidDerivationBatchSize}
-        disabled={
-          (derivationMode ?? config?.derivation_mode) !==
-          DerivationMode.Automatic
-        }
+        disabled={!(deriveAutomatically ?? config?.derive_automatically)}
         onChange={(event) => setDerivationBatchSize(event.target.value)}
         onBlur={() => {
           if (invalidDerivationBatchSize) return;
