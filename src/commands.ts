@@ -52,12 +52,12 @@ export async function networkList(): Promise<Record<string, Network>> {
 }
 
 export async function loginWallet(fingerprint: number): Promise<void> {
-  clearState();
   await invoke('login_wallet', { fingerprint });
-  fetchState();
+  await fetchState();
 }
 
 export async function logoutWallet(): Promise<void> {
+  clearState();
   await invoke('logout_wallet');
 }
 

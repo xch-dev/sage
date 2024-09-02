@@ -32,9 +32,8 @@ export function clearState() {
   });
 }
 
-export function fetchState() {
-  updateCoins();
-  updateSyncInfo();
+export async function fetchState() {
+  await Promise.all([updateCoins(), updateSyncInfo()]);
 }
 
 function updateCoins() {
@@ -63,4 +62,13 @@ listen<SyncEventData>('sync', (event) => {
       updateSyncInfo();
       break;
   }
+});
+
+commands.initialize().then(() => {
+  commands.activeWallet().then((wallet) => {
+    if (wallet) {
+      updateCoins();
+      updateSyncInfo();
+    }
+  });
 });

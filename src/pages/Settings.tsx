@@ -25,6 +25,7 @@ import * as commands from '../commands';
 import Container from '../components/Container';
 import NavBar from '../components/NavBar';
 import { NetworkConfig, WalletConfig, WalletInfo } from '../models';
+import { clearState, fetchState } from '../state';
 import { isValidU32 } from '../validation';
 
 export default function Settings() {
@@ -161,7 +162,10 @@ function NetworkSettings() {
               if (config) {
                 setConfig({ ...config, network_id: networkId });
               }
-              commands.setNetworkId(networkId);
+              clearState();
+              commands.setNetworkId(networkId).then(() => {
+                fetchState();
+              });
               setNetworkId(networkId);
             }
           }}
