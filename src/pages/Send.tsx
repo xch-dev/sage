@@ -10,7 +10,7 @@ export default function Send() {
   const navigate = useNavigate();
   const walletState = useWalletState();
 
-  const balance = BigNumber(walletState.syncInfo.xch_balance);
+  const balance = BigNumber(walletState.syncInfo.balance);
 
   const [address, setAddress] = useState('');
   const [amount, setAmount] = useState('');
@@ -47,7 +47,7 @@ export default function Send() {
         />
         <Typography sx={{ mt: 1 }} variant='subtitle1' color='text.secondary'>
           The amount to send in XCH. Your balance is
-          <b>{' ' + walletState.syncInfo.xch_balance}.</b>
+          <b>{' ' + walletState.syncInfo.balance}.</b>
         </Typography>
 
         <TextField
