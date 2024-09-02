@@ -4,26 +4,37 @@ use chia::protocol::{Bytes32, CoinState};
 use chia_wallet_sdk::Peer;
 use futures_util::{stream::FuturesUnordered, StreamExt};
 use sage_database::Database;
-use tokio::{sync::Mutex, task::spawn_blocking, time::timeout};
+use tokio::{
+    sync::{mpsc, Mutex},
+    task::spawn_blocking,
+    time::timeout,
+};
 use tracing::{info, instrument, warn};
 
 use crate::{PuzzleInfo, SyncError, WalletError};
 
-use super::PeerState;
+use super::{PeerState, SyncEvent};
 
 #[derive(Debug)]
 pub struct PuzzleQueue {
     db: Database,
     genesis_challenge: Bytes32,
     state: Arc<Mutex<PeerState>>,
+    sync_sender: mpsc::Sender<SyncEvent>,
 }
 
 impl PuzzleQueue {
-    pub fn new(db: Database, genesis_challenge: Bytes32, state: Arc<Mutex<PeerState>>) -> Self {
+    pub fn new(
+        db: Database,
+        genesis_challenge: Bytes32,
+        state: Arc<Mutex<PeerState>>,
+        sync_sender: mpsc::Sender<SyncEvent>,
+    ) -> Self {
         Self {
             db,
             genesis_challenge,
             state,
+            sync_sender,
         }
     }
 
@@ -74,6 +85,8 @@ impl PuzzleQueue {
                 self.state.lock().await.ban(addr.ip());
             }
         }
+
+        self.sync_sender.send(SyncEvent::PuzzleUpdate).await.ok();
 
         Ok(())
     }

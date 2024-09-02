@@ -73,4 +73,4 @@ export interface NftData {
 
 export type SyncEventData =
   | { type: 'start'; ip: string }
-  | { type: 'stop' | 'subscribed' | 'coin_update' };
+  | { type: 'stop' | 'subscribed' | 'coin_update' | 'puzzle_update' };

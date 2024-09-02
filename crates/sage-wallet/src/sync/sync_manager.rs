@@ -266,6 +266,7 @@ impl SyncManager {
                         wallet.db.clone(),
                         wallet.genesis_challenge,
                         self.state.clone(),
+                        self.sync_sender.clone(),
                     )
                     .start(),
                 );

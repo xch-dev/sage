@@ -6,4 +6,5 @@ pub enum SyncEvent {
     Stop,
     Subscribed,
     CoinUpdate,
+    PuzzleUpdate,
 }

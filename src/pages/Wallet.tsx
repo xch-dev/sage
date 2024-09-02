@@ -112,6 +112,8 @@ function MainWallet() {
       if (event.payload.type === 'coin_update') {
         commands.p2CoinList().then(setP2Coins);
         commands.syncInfo().then(setSyncInfo);
+      } else if (event.payload.type === 'puzzle_update') {
+        commands.syncInfo().then(setSyncInfo);
       }
     });
 
