@@ -2,12 +2,12 @@ use std::{sync::Arc, time::Duration};
 
 use chia::{
     bls::{DerivableKey, PublicKey},
-    protocol::{Bytes32, CoinStateFilters, RejectStateReason},
+    protocol::{Bytes32, CoinState, CoinStateFilters, RejectStateReason},
     puzzles::{standard::StandardArgs, DeriveSynthetic},
 };
 use chia_wallet_sdk::Peer;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
-use sage_database::Database;
+use sage_database::{Database, DatabaseError};
 use tokio::{
     sync::{mpsc, Mutex},
     task::spawn_blocking,
@@ -148,23 +148,11 @@ async fn sync_puzzle_hashes(
             Ok(data) => {
                 debug!("Received {} coin states", data.coin_states.len());
 
-                let mut tx = db.tx().await?;
-
-                for coin_state in data.coin_states {
+                if !data.coin_states.is_empty() {
                     found_coins = true;
-
-                    let is_p2 = tx.is_p2_puzzle_hash(coin_state.coin.puzzle_hash).await?;
-
-                    tx.insert_coin_state(coin_state, is_p2).await?;
-
-                    if is_p2 {
-                        tx.insert_p2_coin(coin_state.coin.coin_id()).await?;
-                    }
+                    update_coins(db, data.coin_states).await?;
+                    sync_sender.send(SyncEvent::CoinUpdate).await.ok();
                 }
-
-                tx.commit().await?;
-
-                sync_sender.send(SyncEvent::CoinUpdate).await.ok();
 
                 prev_height = Some(data.height);
                 prev_header_hash = data.header_hash;
@@ -190,4 +178,22 @@ async fn sync_puzzle_hashes(
     }
 
     Ok(found_coins)
+}
+
+pub async fn update_coins(db: &Database, coin_states: Vec<CoinState>) -> Result<(), DatabaseError> {
+    let mut tx = db.tx().await?;
+
+    for coin_state in coin_states {
+        let is_p2 = tx.is_p2_puzzle_hash(coin_state.coin.puzzle_hash).await?;
+
+        tx.insert_coin_state(coin_state, is_p2).await?;
+
+        if is_p2 {
+            tx.insert_p2_coin(coin_state.coin.coin_id()).await?;
+        }
+    }
+
+    tx.commit().await?;
+
+    Ok(())
 }

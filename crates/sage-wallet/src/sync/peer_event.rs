@@ -1,16 +1,17 @@
 use std::{net::IpAddr, sync::Arc};
 
 use chia::{
-    protocol::{Message, NewPeakWallet, ProtocolMessageTypes},
+    protocol::{CoinStateUpdate, Message, NewPeakWallet, ProtocolMessageTypes},
     traits::Streamable,
 };
 use chia_wallet_sdk::ClientError;
+use sage_database::Database;
 use tokio::sync::{mpsc, Mutex};
-use tracing::{debug, instrument};
+use tracing::{debug, info, instrument};
 
 use crate::WalletError;
 
-use super::PeerState;
+use super::{wallet_sync::update_coins, PeerState};
 
 #[derive(Debug)]
 pub struct PeerEvent {
@@ -43,36 +44,51 @@ pub async fn handle_peer(
 }
 
 pub async fn handle_peer_events(
+    db: Option<Database>,
     mut receiver: mpsc::Receiver<PeerEvent>,
     state: Arc<Mutex<PeerState>>,
 ) {
     while let Some(event) = receiver.recv().await {
-        debug!("Received peer event {event:?}");
+        let Some(message) = event.message else {
+            state.lock().await.remove_peer(event.ip);
+            debug!("Peer {} disconnected gracefully", event.ip);
+            continue;
+        };
 
-        match event.message {
-            Some(message) => {
-                if let Err(error) = handle_peer_event(event.ip, message, &state).await {
-                    debug!("Error handling peer event: {error}");
-                }
-            }
-            None => {
-                state.lock().await.remove_peer(event.ip);
-            }
+        if let Err(error) = handle_peer_event(db.as_ref(), event.ip, message, &state).await {
+            debug!("Error handling peer event: {error}");
         }
     }
 }
 
 async fn handle_peer_event(
+    db: Option<&Database>,
     ip: IpAddr,
     message: Message,
     state: &Arc<Mutex<PeerState>>,
 ) -> Result<(), WalletError> {
-    if message.msg_type == ProtocolMessageTypes::NewPeakWallet {
-        let message = NewPeakWallet::from_bytes(&message.data).map_err(ClientError::from)?;
-        state
-            .lock()
-            .await
-            .update_peak(ip, message.height, message.header_hash);
+    match message.msg_type {
+        ProtocolMessageTypes::NewPeakWallet => {
+            let message = NewPeakWallet::from_bytes(&message.data).map_err(ClientError::from)?;
+            state
+                .lock()
+                .await
+                .update_peak(ip, message.height, message.header_hash);
+        }
+        ProtocolMessageTypes::CoinStateUpdate => {
+            let message = CoinStateUpdate::from_bytes(&message.data).map_err(ClientError::from)?;
+            if let Some(db) = db {
+                update_coins(db, message.items).await?;
+                db.insert_peak(message.height, message.peak_hash).await?;
+                info!(
+                    "Received updates and synced to peak {} with header hash {}",
+                    message.height, message.peak_hash
+                );
+            }
+        }
+        _ => {
+            debug!("Received unexpected message type: {:?}", message.msg_type);
+        }
     }
 
     Ok(())

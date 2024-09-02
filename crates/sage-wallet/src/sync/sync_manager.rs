@@ -86,7 +86,11 @@ impl SyncManager {
         connector: Connector,
     ) -> (Self, mpsc::Receiver<SyncEvent>) {
         let (peer_sender, receiver) = mpsc::channel(options.target_peers.max(1));
-        let peer_receiver_task = tokio::spawn(handle_peer_events(receiver, state.clone()));
+        let peer_receiver_task = tokio::spawn(handle_peer_events(
+            wallet.as_ref().map(|wallet| wallet.db.clone()),
+            receiver,
+            state.clone(),
+        ));
 
         let (sync_sender, receiver) = mpsc::channel(32);
 
