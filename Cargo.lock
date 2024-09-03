@@ -318,6 +318,7 @@ dependencies = [
  "num-bigint",
  "num-integer",
  "num-traits",
+ "serde",
 ]
 
 [[package]]
@@ -4200,7 +4201,11 @@ checksum = "f3cb5ba0dc43242ce17de99c180e96db90b235b8a9fdc9543c96d2209116bd9f"
 name = "sage-api"
 version = "0.1.0"
 dependencies = [
+ "bigdecimal",
+ "num-traits",
+ "once_cell",
  "serde",
+ "specta",
 ]
 
 [[package]]
@@ -4682,6 +4687,7 @@ version = "2.0.0-rc.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4ccbb212565d2dc177bc15ecb7b039d66c4490da892436a4eee5b394d620c9bc"
 dependencies = [
+ "bigdecimal",
  "indexmap 2.5.0",
  "paste",
  "specta-macros",
