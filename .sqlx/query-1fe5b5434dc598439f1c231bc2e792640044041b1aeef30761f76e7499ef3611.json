@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        REPLACE INTO `did_coins` (\n            `coin_id`,\n            `parent_parent_coin_id`,\n            `parent_inner_puzzle_hash`,\n            `parent_amount`,\n            `launcher_id`,\n            `recovery_list_hash`,\n            `num_verifications_required`,\n            `metadata`,\n            `p2_puzzle_hash`\n        )\n        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 9
+    },
+    "nullable": []
+  },
+  "hash": "1fe5b5434dc598439f1c231bc2e792640044041b1aeef30761f76e7499ef3611"
+}

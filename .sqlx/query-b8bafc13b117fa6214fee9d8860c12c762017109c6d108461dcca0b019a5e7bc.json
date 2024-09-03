@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        REPLACE INTO `p2_coins` (`coin_id`) VALUES (?)\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "b8bafc13b117fa6214fee9d8860c12c762017109c6d108461dcca0b019a5e7bc"
+}

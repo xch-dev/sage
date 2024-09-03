@@ -1,0 +1,62 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT *\n        FROM `coin_states`\n        WHERE `synced` = 0 AND `created_height` IS NOT NULL\n        LIMIT ?\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "coin_id",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "parent_coin_id",
+        "ordinal": 1,
+        "type_info": "Blob"
+      },
+      {
+        "name": "puzzle_hash",
+        "ordinal": 2,
+        "type_info": "Blob"
+      },
+      {
+        "name": "amount",
+        "ordinal": 3,
+        "type_info": "Blob"
+      },
+      {
+        "name": "spent_height",
+        "ordinal": 4,
+        "type_info": "Integer"
+      },
+      {
+        "name": "created_height",
+        "ordinal": 5,
+        "type_info": "Integer"
+      },
+      {
+        "name": "hint",
+        "ordinal": 6,
+        "type_info": "Blob"
+      },
+      {
+        "name": "synced",
+        "ordinal": 7,
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "b3480fca8bf6a0db0b6db2162436963ccca7351613b7f3f1ee2d4f2f917797f4"
+}
