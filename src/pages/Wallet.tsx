@@ -27,11 +27,10 @@ import {
 import { GridRowSelectionModel } from '@mui/x-data-grid';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import * as commands from '../commands';
+import { commands, NftData, WalletInfo } from '../bindings';
 import CoinList from '../components/CoinList';
 import ListContainer from '../components/ListContainer';
 import NavBar from '../components/NavBar';
-import { NftData, WalletInfo } from '../models';
 import { useWalletState } from '../state';
 
 export default function Wallet() {
@@ -42,7 +41,10 @@ export default function Wallet() {
 
   useEffect(() => {
     commands.activeWallet().then((wallet) => {
-      if (wallet) return setWallet(wallet);
+      if (wallet.status === 'error') {
+        return;
+      }
+      if (wallet.data) return setWallet(wallet.data);
       navigate('/');
     });
   }, [navigate]);
@@ -244,10 +246,18 @@ function NftList() {
   const [nftList, setNftList] = useState<NftData[]>([]);
 
   useEffect(() => {
-    commands.nftList().then(setNftList);
+    commands.nftList().then((res) => {
+      if (res.status === 'ok') {
+        setNftList(res.data);
+      }
+    });
 
     const interval = setInterval(() => {
-      commands.nftList().then(setNftList);
+      commands.nftList().then((res) => {
+        if (res.status === 'ok') {
+          setNftList(res.data);
+        }
+      });
     }, 5000);
 
     return () => clearInterval(interval);

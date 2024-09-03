@@ -3,6 +3,7 @@ use chia::bls::{PublicKey, SecretKey};
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use sage_keychain::{decrypt, KeyData, SecretKeyData};
+use specta::specta;
 use std::str::FromStr;
 use tauri::{command, State};
 
@@ -11,6 +12,7 @@ use crate::models::{WalletKind, WalletSecrets};
 use crate::{app_state::AppState, error::Result, models::WalletInfo};
 
 #[command]
+#[specta]
 pub async fn active_wallet(state: State<'_, AppState>) -> Result<Option<WalletInfo>> {
     let state = state.lock().await;
 
@@ -45,6 +47,7 @@ pub async fn active_wallet(state: State<'_, AppState>) -> Result<Option<WalletIn
 }
 
 #[command]
+#[specta]
 pub async fn get_wallet_secrets(
     state: State<'_, AppState>,
     fingerprint: u32,
@@ -80,17 +83,19 @@ pub async fn get_wallet_secrets(
 
     Ok(Some(WalletSecrets {
         mnemonic: mnemonic.map(|m| m.to_string()),
-        secret_key: secret_key.to_bytes(),
+        secret_key: hex::encode(secret_key.to_bytes()),
     }))
 }
 
 #[command]
+#[specta]
 pub async fn wallet_list(state: State<'_, AppState>) -> Result<Vec<WalletInfo>> {
     let state = state.lock().await;
     state.wallets()
 }
 
 #[command]
+#[specta]
 pub async fn login_wallet(state: State<'_, AppState>, fingerprint: u32) -> Result<()> {
     let mut state = state.lock().await;
     state.config.app.active_fingerprint = Some(fingerprint);
@@ -99,6 +104,7 @@ pub async fn login_wallet(state: State<'_, AppState>, fingerprint: u32) -> Resul
 }
 
 #[command]
+#[specta]
 pub async fn logout_wallet(state: State<'_, AppState>) -> Result<()> {
     let mut state = state.lock().await;
     state.config.app.active_fingerprint = None;
@@ -107,6 +113,7 @@ pub async fn logout_wallet(state: State<'_, AppState>) -> Result<()> {
 }
 
 #[command]
+#[specta]
 pub fn generate_mnemonic(use_24_words: bool) -> Result<String> {
     let mut rng = ChaCha20Rng::from_entropy();
     let mnemonic = if use_24_words {
@@ -120,6 +127,7 @@ pub fn generate_mnemonic(use_24_words: bool) -> Result<String> {
 }
 
 #[command]
+#[specta]
 pub async fn create_wallet(
     state: State<'_, AppState>,
     name: String,
@@ -147,6 +155,7 @@ pub async fn create_wallet(
 }
 
 #[command]
+#[specta]
 pub async fn import_wallet(state: State<'_, AppState>, name: String, key: String) -> Result<()> {
     let mut state = state.lock().await;
 
@@ -180,6 +189,7 @@ pub async fn import_wallet(state: State<'_, AppState>, name: String, key: String
 }
 
 #[command]
+#[specta]
 pub async fn delete_wallet(state: State<'_, AppState>, fingerprint: u32) -> Result<()> {
     let mut state = state.lock().await;
     state.delete_wallet(fingerprint)?;

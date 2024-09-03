@@ -19,10 +19,9 @@ import {
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { activeWallet, createWallet, generateMnemonic } from '../commands';
+import { commands, WalletInfo } from '../bindings';
 import Container from '../components/Container';
 import NavBar from '../components/NavBar';
-import { WalletInfo } from '../models';
 
 export default function CreateWallet() {
   const navigate = useNavigate();
@@ -39,11 +38,19 @@ export default function CreateWallet() {
   const [currentWallet, setCurrentWallet] = useState<WalletInfo | null>(null);
 
   useEffect(() => {
-    activeWallet().then(setCurrentWallet);
+    commands.activeWallet().then((res) => {
+      if (res.status === 'ok') {
+        setCurrentWallet(res.data);
+      }
+    });
   }, []);
 
   const loadMnemonic = useCallback(() => {
-    generateMnemonic(use24Words).then(setMnemonic);
+    commands.generateMnemonic(use24Words).then((res) => {
+      if (res.status === 'ok') {
+        setMnemonic(res.data);
+      }
+    });
   }, [use24Words]);
 
   const copyMnemonic = useCallback(() => {
@@ -60,8 +67,13 @@ export default function CreateWallet() {
 
     if (nameError || !name || !mnemonic) return;
 
-    createWallet(name, mnemonic, saveMnemonic)
-      .then(() => navigate('/wallet'))
+    commands
+      .createWallet(name, mnemonic, saveMnemonic)
+      .then((res) => {
+        if (res.status === 'ok') {
+          navigate('/wallet');
+        }
+      })
       .catch(setError);
   };
 

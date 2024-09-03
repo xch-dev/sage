@@ -1,7 +1,7 @@
 import { DataGrid, GridRowSelectionModel } from '@mui/x-data-grid';
 import BigNumber from 'bignumber.js';
 import { useMemo } from 'react';
-import { CoinData } from '../models';
+import { CoinData } from '../bindings';
 import { useWalletState } from '../state';
 
 export interface CoinListProps {

@@ -1,10 +1,9 @@
 import { Alert, Button, TextField, Typography } from '@mui/material';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { activeWallet, importWallet } from '../commands';
+import { commands, WalletInfo } from '../bindings';
 import Container from '../components/Container';
 import NavBar from '../components/NavBar';
-import { WalletInfo } from '../models';
 
 export default function ImportWallet() {
   const navigate = useNavigate();
@@ -20,7 +19,11 @@ export default function ImportWallet() {
   const keyRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    activeWallet().then(setCurrentWallet);
+    commands.activeWallet().then((res) => {
+      if (res.status === 'ok') {
+        setCurrentWallet(res.data);
+      }
+    });
   }, []);
 
   const submit = () => {
@@ -29,8 +32,13 @@ export default function ImportWallet() {
 
     if (nameError || keyError || !name || !key) return;
 
-    importWallet(name, key)
-      .then(() => navigate('/wallet'))
+    commands
+      .importWallet(name, key)
+      .then((res) => {
+        if (res.status === 'ok') {
+          navigate('/wallet');
+        }
+      })
       .catch(setError);
   };
 

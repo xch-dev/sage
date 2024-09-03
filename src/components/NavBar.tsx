@@ -25,8 +25,8 @@ import {
 } from '@mui/material';
 import { ReactElement, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { activeWallet, logoutWallet } from '../commands';
-import { WalletInfo } from '../models';
+import { commands, WalletInfo } from '../bindings';
+import { logoutAndUpdateState } from '../state';
 
 export interface NavBarProps {
   label: string;
@@ -41,7 +41,10 @@ export default function NavBar(props: NavBarProps) {
   const [wallet, setWallet] = useState<WalletInfo | null>(null);
 
   useEffect(() => {
-    activeWallet().then(setWallet);
+    commands.activeWallet().then((res) => {
+      if (res.status === 'error') return;
+      setWallet(res.data);
+    });
   }, []);
 
   const openMenu = (event: React.MouseEvent<HTMLElement>) => {
@@ -53,7 +56,7 @@ export default function NavBar(props: NavBarProps) {
   };
 
   const logout = () => {
-    logoutWallet().then(() => {
+    logoutAndUpdateState().then(() => {
       navigate('/');
     });
   };

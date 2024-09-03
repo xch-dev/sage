@@ -20,10 +20,9 @@ import {
 } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { peerList, removePeer } from '../commands';
+import { commands, PeerInfo } from '../bindings';
 import ListContainer from '../components/ListContainer';
 import NavBar from '../components/NavBar';
-import { PeerInfo } from '../models';
 
 export default function NetworkList() {
   const navigate = useNavigate();
@@ -31,10 +30,18 @@ export default function NetworkList() {
   const [peers, setPeers] = useState<PeerInfo[] | null>(null);
 
   const updatePeers = () => {
-    peerList().then(setPeers);
+    commands.peerList().then((res) => {
+      if (res.status === 'ok') {
+        setPeers(res.data);
+      }
+    });
 
     const interval = setInterval(() => {
-      peerList().then(setPeers);
+      commands.peerList().then((res) => {
+        if (res.status === 'ok') {
+          setPeers(res.data);
+        }
+      });
     }, 1000);
 
     return () => {
@@ -145,7 +152,11 @@ function PeerItem(props: {
           <Button
             onClick={() => {
               setRemoveOpen(false);
-              removePeer(props.peer.ip_addr, ban).then(props.updatePeers);
+              commands.removePeer(props.peer.ip_addr, ban).then((res) => {
+                if (res.status === 'ok') {
+                  props.updatePeers();
+                }
+              });
             }}
             autoFocus
           >

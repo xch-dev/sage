@@ -1,13 +1,17 @@
 use std::fs;
 
+use chia_wallet_sdk::Network;
+use indexmap::IndexMap;
+use specta::specta;
 use tauri::{command, State};
 use tracing::{info, level_filters::LevelFilter};
 use tracing_appender::rolling::{Builder, Rotation};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, Layer};
 
-use crate::{app_state::AppState, error::Result};
+use crate::{app_state::AppState, error::Result, models::NetworkInfo};
 
 #[command]
+#[specta]
 pub async fn initialize(state: State<'_, AppState>) -> Result<()> {
     let mut state = state.lock().await;
 
@@ -44,9 +48,36 @@ pub async fn initialize(state: State<'_, AppState>) -> Result<()> {
 
     if networks_path.try_exists()? {
         let text = fs::read_to_string(&networks_path)?;
-        state.networks = toml::from_str(&text)?;
+        let networks: IndexMap<String, NetworkInfo> = toml::from_str(&text)?;
+
+        for (network_id, network) in networks {
+            state.networks.insert(
+                network_id,
+                Network {
+                    default_port: network.default_port,
+                    genesis_challenge: hex::decode(&network.genesis_challenge)?.try_into()?,
+                    agg_sig_me: network
+                        .agg_sig_me
+                        .map(|x| Result::Ok(hex::decode(&x)?.try_into()?))
+                        .transpose()?,
+                    dns_introducers: network.dns_introducers,
+                },
+            );
+        }
     } else {
-        fs::write(&networks_path, toml::to_string_pretty(&state.networks)?)?;
+        let mut networks = IndexMap::new();
+
+        for (network_id, network) in &state.networks {
+            let info = NetworkInfo {
+                default_port: network.default_port,
+                genesis_challenge: hex::encode(network.genesis_challenge),
+                agg_sig_me: network.agg_sig_me.map(hex::encode),
+                dns_introducers: network.dns_introducers.clone(),
+            };
+            networks.insert(network_id.clone(), info);
+        }
+
+        fs::write(&networks_path, toml::to_string_pretty(&networks)?)?;
     }
 
     let log_level = state.config.app.log_level.parse()?;

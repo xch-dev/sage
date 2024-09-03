@@ -1,7 +1,5 @@
-import { listen } from '@tauri-apps/api/event';
 import { create } from 'zustand';
-import * as commands from './commands';
-import { CoinData, SyncEventData, SyncInfo } from './models';
+import { CoinData, commands, events, SyncInfo } from './bindings';
 
 export interface WalletState {
   syncInfo: SyncInfo;
@@ -38,21 +36,29 @@ export async function fetchState() {
 
 function updateCoins() {
   commands.coinList().then((coins) => {
+    if (coins.status === 'error') {
+      console.error(coins.error);
+      return;
+    }
     useWalletState.setState({
-      coins,
+      coins: coins.data,
     });
   });
 }
 
 function updateSyncInfo() {
   commands.syncInfo().then((syncInfo) => {
+    if (syncInfo.status === 'error') {
+      console.error(syncInfo.error);
+      return;
+    }
     useWalletState.setState({
-      syncInfo,
+      syncInfo: syncInfo.data,
     });
   });
 }
 
-listen<SyncEventData>('sync', (event) => {
+events.syncEvent.listen((event) => {
   switch (event.payload.type) {
     case 'coin_update':
       updateCoins();
@@ -67,8 +73,17 @@ listen<SyncEventData>('sync', (event) => {
 commands.initialize().then(() => {
   commands.activeWallet().then((wallet) => {
     if (wallet) {
-      updateCoins();
-      updateSyncInfo();
+      fetchState();
     }
   });
 });
+
+export async function loginAndUpdateState(fingerprint: number): Promise<void> {
+  await commands.loginWallet(fingerprint);
+  await fetchState();
+}
+
+export async function logoutAndUpdateState(): Promise<void> {
+  clearState();
+  await commands.logoutWallet();
+}

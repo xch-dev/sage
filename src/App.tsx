@@ -12,7 +12,7 @@ import {
   RouterProvider,
 } from 'react-router-dom';
 import { useLocalStorage } from 'usehooks-ts';
-import { initialize } from './commands';
+import { commands } from './bindings';
 import Container from './components/Container';
 import CreateWallet from './pages/CreateWallet';
 import ImportWallet from './pages/ImportWallet';
@@ -78,8 +78,15 @@ export default function App() {
   );
 
   useEffect(() => {
-    initialize()
-      .then(() => setInitialized(true))
+    commands
+      .initialize()
+      .then((result) => {
+        if (result.status === 'ok') {
+          setInitialized(true);
+        } else {
+          setError(result.error);
+        }
+      })
       .catch(setError);
   }, []);
 

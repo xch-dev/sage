@@ -14,15 +14,14 @@ import {
 } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import * as commands from '../commands';
+import { commands, NetworkConfig, NetworkInfo } from '../bindings';
 import ListContainer from '../components/ListContainer';
 import NavBar from '../components/NavBar';
-import { Network, NetworkConfig } from '../models';
 
 export default function NetworkList() {
   const navigate = useNavigate();
 
-  const [networks, setNetworks] = useState<Record<string, Network> | null>(
+  const [networks, setNetworks] = useState<Record<string, NetworkInfo> | null>(
     null,
   );
   const [networkConfig, setNetworkConfig] = useState<NetworkConfig | null>(
@@ -30,8 +29,16 @@ export default function NetworkList() {
   );
 
   useEffect(() => {
-    commands.networkList().then(setNetworks);
-    commands.networkConfig().then(setNetworkConfig);
+    commands.networkList().then((res) => {
+      if (res.status === 'ok') {
+        setNetworks(res.data);
+      }
+    });
+    commands.networkConfig().then((res) => {
+      if (res.status === 'ok') {
+        setNetworkConfig(res.data);
+      }
+    });
   }, []);
 
   return (
@@ -82,7 +89,7 @@ export default function NetworkList() {
 function NetworkItem(props: {
   selectedNetworkId: string | null;
   networkId: string;
-  network: Network;
+  network: NetworkInfo;
   switchNetwork: () => void;
 }) {
   const theme = useTheme();

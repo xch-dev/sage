@@ -1,10 +1,8 @@
 use serde::{Deserialize, Serialize};
-use serde_with::{hex::Hex, serde_as};
+use specta::Type;
 
-#[serde_as]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub struct WalletSecrets {
     pub mnemonic: Option<String>,
-    #[serde_as(as = "Hex")]
-    pub secret_key: [u8; 32],
+    pub secret_key: String,
 }

@@ -1,5 +1,8 @@
 use app_state::AppStateInner;
+use models::SyncEvent;
+use specta_typescript::Typescript;
 use tauri::Manager;
+use tauri_specta::{collect_commands, collect_events, Builder};
 use tokio::sync::Mutex;
 
 mod app_state;
@@ -9,9 +12,9 @@ mod models;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
-        .plugin(tauri_plugin_clipboard_manager::init())
-        .invoke_handler(tauri::generate_handler![
+    let builder = Builder::<tauri::Wry>::new()
+        // Then register them (separated by a comma)
+        .commands(collect_commands![
             // Network Config
             commands::network_config,
             commands::set_discover_peers,
@@ -46,7 +49,18 @@ pub fn run() {
             commands::peer_list,
             commands::remove_peer,
         ])
-        .setup(|app| {
+        .events(collect_events![SyncEvent]);
+
+    #[cfg(debug_assertions)] // <- Only export on non-release builds
+    builder
+        .export(Typescript::default(), "../src/bindings.ts")
+        .expect("Failed to export TypeScript bindings");
+
+    tauri::Builder::default()
+        .plugin(tauri_plugin_clipboard_manager::init())
+        .invoke_handler(builder.invoke_handler())
+        .setup(move |app| {
+            builder.mount_events(app);
             let app_handle = app.handle().clone();
             let path = app.path().app_data_dir()?;
             let state = AppStateInner::new(app_handle, &path);

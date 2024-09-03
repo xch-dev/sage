@@ -29,7 +29,7 @@ use tokio::{sync::Mutex, task::JoinHandle};
 
 use crate::{
     error::{Error, Result},
-    models::{SyncEventData, WalletInfo, WalletKind},
+    models::{SyncEvent as SyncEventData, WalletInfo, WalletKind},
 };
 
 pub type AppState = Mutex<AppStateInner>;
@@ -100,7 +100,7 @@ impl AppStateInner {
 
         let (sync_manager, mut sync_receiver) = SyncManager::new(
             SyncOptions {
-                target_peers: self.config.network.target_peers,
+                target_peers: self.config.network.target_peers as usize,
                 find_peers: self.config.network.discover_peers,
             },
             self.peer_state.clone(),
@@ -124,7 +124,7 @@ impl AppStateInner {
                     SyncEvent::CoinUpdate => SyncEventData::CoinUpdate,
                     SyncEvent::PuzzleUpdate => SyncEventData::PuzzleUpdate,
                 };
-                if app_handle.emit("sync", event).is_err() {
+                if app_handle.emit("sync-event", event).is_err() {
                     break;
                 }
             }

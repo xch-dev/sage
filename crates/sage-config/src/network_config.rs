@@ -1,12 +1,13 @@
 use serde::{Deserialize, Serialize};
+use specta::Type;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub struct NetworkConfig {
     #[serde(default = "default_network_id")]
     pub network_id: String,
 
     #[serde(default = "default_target_peers")]
-    pub target_peers: usize,
+    pub target_peers: u32,
 
     #[serde(default = "default_discover_peers")]
     pub discover_peers: bool,
@@ -26,7 +27,7 @@ fn default_network_id() -> String {
     "mainnet".to_string()
 }
 
-fn default_target_peers() -> usize {
+fn default_target_peers() -> u32 {
     5
 }
 

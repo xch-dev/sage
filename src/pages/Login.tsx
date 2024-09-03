@@ -31,17 +31,10 @@ import {
 import Grid2 from '@mui/material/Unstable_Grid2/Grid2';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  activeWallet,
-  deleteWallet,
-  getWalletSecrets,
-  loginWallet,
-  renameWallet,
-  walletList,
-} from '../commands';
+import { commands, WalletInfo, WalletSecrets } from '../bindings';
 import Container from '../components/Container';
 import NavBar from '../components/NavBar';
-import { WalletInfo, WalletKind, WalletSecrets } from '../models';
+import { loginAndUpdateState } from '../state';
 
 export default function Login() {
   const [wallets, setWallets] = useState<WalletInfo[] | null>(null);
@@ -49,12 +42,16 @@ export default function Login() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    walletList().then(setWallets);
+    commands.walletList().then((res) => {
+      if (res.status === 'ok') {
+        setWallets(res.data);
+      }
+    });
   }, []);
 
   useEffect(() => {
-    activeWallet().then((fingerprint) => {
-      if (!fingerprint) return;
+    commands.activeWallet().then((res) => {
+      if (res.status === 'error' || !res.data) return;
       navigate('/wallet');
     });
   }, [navigate]);
@@ -124,7 +121,8 @@ function WalletItem(props: {
   };
 
   const deleteSelf = () => {
-    deleteWallet(props.wallet.fingerprint).then(() => {
+    commands.deleteWallet(props.wallet.fingerprint).then((res) => {
+      if (res.status === 'error') return;
       props.setWallets(
         props.wallets.filter(
           (wallet) => wallet.fingerprint !== props.wallet.fingerprint,
@@ -137,7 +135,8 @@ function WalletItem(props: {
   const renameSelf = () => {
     if (!newName) return;
 
-    renameWallet(props.wallet.fingerprint, newName).then(() => {
+    commands.renameWallet(props.wallet.fingerprint, newName).then((res) => {
+      if (res.status === 'error') return;
       props.setWallets(
         props.wallets.map((wallet) =>
           wallet.fingerprint === props.wallet.fingerprint
@@ -154,7 +153,7 @@ function WalletItem(props: {
   const loginSelf = (explicit: boolean) => {
     if (isMenuOpen && !explicit) return;
 
-    loginWallet(props.wallet.fingerprint).then(() => {
+    loginAndUpdateState(props.wallet.fingerprint).then(() => {
       navigate('/wallet');
     });
   };
@@ -165,7 +164,10 @@ function WalletItem(props: {
       return;
     }
 
-    getWalletSecrets(props.wallet.fingerprint).then(setSecrets);
+    commands.getWalletSecrets(props.wallet.fingerprint).then((res) => {
+      if (res.status === 'error') return;
+      setSecrets(res.data);
+    });
   }, [isDetailsOpen, props.wallet.fingerprint]);
 
   return (
@@ -256,7 +258,7 @@ function WalletItem(props: {
               <Typography color='text.secondary'>
                 {props.wallet.fingerprint}
               </Typography>
-              {props.wallet.kind == WalletKind.Hot ? (
+              {props.wallet.kind == 'hot' ? (
                 <Chip
                   icon={<LocalFireDepartment />}
                   label='Hot Wallet'

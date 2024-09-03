@@ -1,15 +1,18 @@
 use sage_config::{NetworkConfig, WalletConfig};
+use specta::specta;
 use tauri::{command, State};
 
 use crate::{app_state::AppState, error::Result};
 
 #[command]
+#[specta]
 pub async fn network_config(state: State<'_, AppState>) -> Result<NetworkConfig> {
     let state = state.lock().await;
     Ok(state.config.network.clone())
 }
 
 #[command]
+#[specta]
 pub async fn set_discover_peers(state: State<'_, AppState>, discover_peers: bool) -> Result<()> {
     let mut state = state.lock().await;
 
@@ -23,7 +26,8 @@ pub async fn set_discover_peers(state: State<'_, AppState>, discover_peers: bool
 }
 
 #[command]
-pub async fn set_target_peers(state: State<'_, AppState>, target_peers: usize) -> Result<()> {
+#[specta]
+pub async fn set_target_peers(state: State<'_, AppState>, target_peers: u32) -> Result<()> {
     let mut state = state.lock().await;
 
     state.config.network.target_peers = target_peers;
@@ -34,6 +38,7 @@ pub async fn set_target_peers(state: State<'_, AppState>, target_peers: usize) -
 }
 
 #[command]
+#[specta]
 pub async fn set_network_id(state: State<'_, AppState>, network_id: String) -> Result<()> {
     let mut state = state.lock().await;
 
@@ -46,12 +51,14 @@ pub async fn set_network_id(state: State<'_, AppState>, network_id: String) -> R
 }
 
 #[command]
+#[specta]
 pub async fn wallet_config(state: State<'_, AppState>, fingerprint: u32) -> Result<WalletConfig> {
     let state = state.lock().await;
     state.try_wallet_config(fingerprint).cloned()
 }
 
 #[command]
+#[specta]
 pub async fn set_derive_automatically(
     state: State<'_, AppState>,
     fingerprint: u32,
@@ -70,6 +77,7 @@ pub async fn set_derive_automatically(
 }
 
 #[command]
+#[specta]
 pub async fn set_derivation_batch_size(
     state: State<'_, AppState>,
     fingerprint: u32,
@@ -91,6 +99,7 @@ pub async fn set_derivation_batch_size(
 }
 
 #[command]
+#[specta]
 pub async fn rename_wallet(
     state: State<'_, AppState>,
     fingerprint: u32,

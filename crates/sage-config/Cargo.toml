@@ -16,5 +16,5 @@ workspace = true
 
 [dependencies]
 serde = { workspace = true }
-serde_with = { workspace = true }
 indexmap = { workspace = true }
+specta = { workspace = true, features = ["derive", "indexmap"] }

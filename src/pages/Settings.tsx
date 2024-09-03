@@ -21,10 +21,9 @@ import {
 import { useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DarkModeContext } from '../App';
-import * as commands from '../commands';
+import { commands, NetworkConfig, WalletConfig, WalletInfo } from '../bindings';
 import Container from '../components/Container';
 import NavBar from '../components/NavBar';
-import { NetworkConfig, WalletConfig, WalletInfo } from '../models';
 import { clearState, fetchState } from '../state';
 import { isValidU32 } from '../validation';
 
@@ -34,7 +33,12 @@ export default function Settings() {
   const [wallet, setWallet] = useState<WalletInfo | null>(null);
 
   useEffect(() => {
-    commands.activeWallet().then(setWallet);
+    commands.activeWallet().then((res) => {
+      if (res.status === 'error') {
+        return;
+      }
+      setWallet(res.data);
+    });
   }, []);
 
   return (
@@ -95,7 +99,12 @@ function NetworkSettings() {
   const [config, setConfig] = useState<NetworkConfig | null>(null);
 
   useEffect(() => {
-    commands.networkConfig().then(setConfig);
+    commands.networkConfig().then((res) => {
+      if (res.status === 'error') {
+        return;
+      }
+      setConfig(res.data);
+    });
   }, []);
 
   return (
@@ -196,7 +205,12 @@ function WalletSettings(props: { wallet: WalletInfo }) {
   const [config, setConfig] = useState<WalletConfig | null>(null);
 
   useEffect(() => {
-    commands.walletConfig(props.wallet.fingerprint).then(setConfig);
+    commands.walletConfig(props.wallet.fingerprint).then((res) => {
+      if (res.status === 'error') {
+        return;
+      }
+      setConfig(res.data);
+    });
   }, [props.wallet.fingerprint]);
 
   const [isInfoOpen, setInfoOpen] = useState(false);

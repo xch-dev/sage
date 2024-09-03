@@ -1,118 +1,226 @@
+use std::array::TryFromSliceError;
 use std::net::AddrParseError;
 use std::num::ParseIntError;
 
 use chia::clvm_traits::{FromClvmError, ToClvmError};
 use chia_wallet_sdk::{AddressError, ClientError, DriverError};
+use hex::FromHexError;
 use sage_database::DatabaseError;
 use sage_keychain::KeychainError;
 use sage_wallet::ParseError;
-use serde::{Serialize, Serializer};
+use serde::Serialize;
+use specta::Type;
 use thiserror::Error;
 use tokio::task::JoinError;
 use tokio::time::error::Elapsed;
 use tracing::metadata::ParseLevelError;
 use tracing_appender::rolling::InitError;
 
-#[derive(Debug, Error)]
+#[derive(Debug, Error, Serialize, Type)]
 pub enum Error {
     #[error("Could not parse log level: {0}")]
-    ParseLogLevel(#[from] ParseLevelError),
+    ParseLogLevel(
+        #[serde(skip)]
+        #[from]
+        ParseLevelError,
+    ),
 
     #[error("IP address parse error: {0}")]
-    ParseIp(#[from] AddrParseError),
+    ParseIp(
+        #[serde(skip)]
+        #[from]
+        AddrParseError,
+    ),
 
     #[error("Log init error: {0}")]
-    LogInit(#[from] InitError),
+    LogInit(
+        #[serde(skip)]
+        #[from]
+        InitError,
+    ),
 
     #[error("IO error: {0}")]
-    Io(#[from] std::io::Error),
+    Io(
+        #[serde(skip)]
+        #[from]
+        std::io::Error,
+    ),
 
     #[error("Bip39 error: {0}")]
-    Bip39(#[from] bip39::Error),
+    Bip39(
+        #[serde(skip)]
+        #[from]
+        bip39::Error,
+    ),
 
     #[error("BLS error: {0}")]
-    Bls(#[from] chia::bls::Error),
+    Bls(
+        #[serde(skip)]
+        #[from]
+        chia::bls::Error,
+    ),
 
     #[error("Bincode error: {0}")]
-    Bincode(#[from] bincode::Error),
+    Bincode(
+        #[serde(skip)]
+        #[from]
+        bincode::Error,
+    ),
 
     #[error("TOML deserialization error: {0}")]
-    DeserializeToml(#[from] toml::de::Error),
+    DeserializeToml(
+        #[serde(skip)]
+        #[from]
+        toml::de::Error,
+    ),
 
     #[error("TOML serialization error: {0}")]
-    SerializeToml(#[from] toml::ser::Error),
+    SerializeToml(
+        #[serde(skip)]
+        #[from]
+        toml::ser::Error,
+    ),
 
     #[error("Invalid key size")]
     InvalidKeySize,
 
     #[error("ParseInt error: {0}")]
-    ParseInt(#[from] ParseIntError),
+    ParseInt(
+        #[serde(skip)]
+        #[from]
+        ParseIntError,
+    ),
 
     #[error("Keychain error: {0}")]
-    Keychain(#[from] KeychainError),
+    Keychain(
+        #[serde(skip)]
+        #[from]
+        KeychainError,
+    ),
 
     #[error("SQLx error: {0}")]
-    Sqlx(#[from] sqlx::Error),
+    Sqlx(
+        #[serde(skip)]
+        #[from]
+        sqlx::Error,
+    ),
 
     #[error("SQLx migration error: {0}")]
-    SqlxMigration(#[from] sqlx::migrate::MigrateError),
+    SqlxMigration(
+        #[serde(skip)]
+        #[from]
+        sqlx::migrate::MigrateError,
+    ),
 
     #[error("Database error: {0}")]
-    Database(#[from] DatabaseError),
+    Database(
+        #[serde(skip)]
+        #[from]
+        DatabaseError,
+    ),
 
     #[error("Driver error: {0}")]
-    Driver(#[from] DriverError),
+    Driver(
+        #[serde(skip)]
+        #[from]
+        DriverError,
+    ),
 
     #[error("Client error: {0}")]
-    Client(#[from] ClientError),
+    Client(
+        #[serde(skip)]
+        #[from]
+        ClientError,
+    ),
 
     #[error("No active wallet")]
     NoActiveWallet,
 
     #[error("Unknown wallet fingerprint: {0}")]
-    Fingerprint(u32),
+    Fingerprint(#[serde(skip)] u32),
 
     #[error("Unknown network: {0}")]
-    UnknownNetwork(String),
+    UnknownNetwork(#[serde(skip)] String),
 
     #[error("Tauri error: {0}")]
-    Tauri(#[from] tauri::Error),
+    Tauri(
+        #[serde(skip)]
+        #[from]
+        tauri::Error,
+    ),
 
     #[error("Timeout error")]
-    Timeout(#[from] Elapsed),
+    Timeout(
+        #[serde(skip)]
+        #[from]
+        Elapsed,
+    ),
 
     #[error("To CLVM error: {0}")]
-    ToClvm(#[from] ToClvmError),
+    ToClvm(
+        #[serde(skip)]
+        #[from]
+        ToClvmError,
+    ),
 
     #[error("From CLVM error: {0}")]
-    FromClvm(#[from] FromClvmError),
+    FromClvm(
+        #[serde(skip)]
+        #[from]
+        FromClvmError,
+    ),
 
     #[error("Coin state not found")]
     CoinStateNotFound,
 
     #[error("Streamable error: {0}")]
-    Streamable(#[from] chia::traits::Error),
+    Streamable(
+        #[serde(skip)]
+        #[from]
+        chia::traits::Error,
+    ),
 
     #[error("Join error: {0}")]
-    Join(#[from] JoinError),
+    Join(
+        #[serde(skip)]
+        #[from]
+        JoinError,
+    ),
 
     #[error("Address error: {0}")]
-    Address(#[from] AddressError),
+    Address(
+        #[serde(skip)]
+        #[from]
+        AddressError,
+    ),
 
     #[error("Bech32 error: {0}")]
-    Bech32(#[from] bech32::Error),
+    Bech32(
+        #[serde(skip)]
+        #[from]
+        bech32::Error,
+    ),
 
     #[error("Parse error: {0}")]
-    Parse(#[from] ParseError),
-}
+    Parse(
+        #[serde(skip)]
+        #[from]
+        ParseError,
+    ),
 
-impl Serialize for Error {
-    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        serializer.serialize_str(&self.to_string())
-    }
+    #[error("From hex error: {0}")]
+    FromHex(
+        #[serde(skip)]
+        #[from]
+        FromHexError,
+    ),
+
+    #[error("Try from slice error: {0}")]
+    TryFromSlice(
+        #[serde(skip)]
+        #[from]
+        TryFromSliceError,
+    ),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

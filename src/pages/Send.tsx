@@ -2,7 +2,7 @@ import { Button, TextField, Typography } from '@mui/material';
 import BigNumber from 'bignumber.js';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import * as commands from '../commands';
+import { commands } from '../bindings';
 import Container from '../components/Container';
 import NavBar from '../components/NavBar';
 import { useWalletState } from '../state';
@@ -29,7 +29,7 @@ export default function Send() {
     }
 
     commands.validateAddress(address).then((valid) => {
-      if (valid) {
+      if (valid.status === 'ok' && valid.data) {
         setValidAddress(address);
       }
     });
