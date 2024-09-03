@@ -39,7 +39,7 @@ pub async fn sync_wallet(
 
     let mut derive_more = p2_puzzle_hashes.is_empty();
 
-    for batch in p2_puzzle_hashes.chunks(1000) {
+    for batch in p2_puzzle_hashes.chunks(500) {
         derive_more |= sync_puzzle_hashes(
             &db,
             &peer,
@@ -57,7 +57,7 @@ pub async fn sync_wallet(
         derive_more = false;
 
         let new_derivations = spawn_blocking(move || {
-            (start_index..start_index + 1000)
+            (start_index..start_index + 500)
                 .into_par_iter()
                 .map(|index| {
                     let synthetic_key = intermediate_pk.derive_unhardened(index).derive_synthetic();
@@ -83,7 +83,7 @@ pub async fn sync_wallet(
         }
         tx.commit().await?;
 
-        for batch in p2_puzzle_hashes.chunks(1000) {
+        for batch in p2_puzzle_hashes.chunks(500) {
             derive_more |= sync_puzzle_hashes(
                 &db,
                 &peer,
@@ -96,10 +96,10 @@ pub async fn sync_wallet(
         }
     }
 
-    if let Some((height, header_hash)) = state.lock().await.peak() {
+    if let Some((height, header_hash)) = state.lock().await.peak_of(peer.socket_addr().ip()) {
         // TODO: Maybe look into a better way.
         info!(
-            "Updating peak to {} with header hash {}",
+            "Updating peak from peer to {} with header hash {}",
             height, header_hash
         );
         db.insert_peak(height, header_hash).await?;

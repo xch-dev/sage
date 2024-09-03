@@ -7,10 +7,7 @@ use std::{
 };
 
 use bip39::Mnemonic;
-use chia::{
-    bls::{master_to_wallet_unhardened_intermediate, DerivableKey, PublicKey, SecretKey},
-    puzzles::{standard::StandardArgs, DeriveSynthetic},
-};
+use chia::bls::{master_to_wallet_unhardened_intermediate, PublicKey, SecretKey};
 use chia_wallet_sdk::{create_rustls_connector, load_ssl_cert, Network, NetworkId};
 use indexmap::{indexmap, IndexMap};
 use itertools::Itertools;
@@ -184,19 +181,6 @@ impl AppStateInner {
             intermediate_pk,
             genesis_challenge,
         ));
-
-        let mut tx = db.tx().await?;
-
-        let index = tx.derivation_index(false).await?;
-
-        for i in index..1000 {
-            let pk = intermediate_pk.derive_unhardened(i).derive_synthetic();
-            let p2_puzzle_hash = StandardArgs::curry_tree_hash(pk);
-            tx.insert_derivation(p2_puzzle_hash.into(), i, false, pk)
-                .await?;
-        }
-
-        tx.commit().await?;
 
         self.wallet = Some(wallet.clone());
 

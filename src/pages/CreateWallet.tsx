@@ -22,6 +22,7 @@ import { useNavigate } from 'react-router-dom';
 import { commands, WalletInfo } from '../bindings';
 import Container from '../components/Container';
 import NavBar from '../components/NavBar';
+import { fetchState } from '../state';
 
 export default function CreateWallet() {
   const navigate = useNavigate();
@@ -71,7 +72,9 @@ export default function CreateWallet() {
       .createWallet(name, mnemonic, saveMnemonic)
       .then((res) => {
         if (res.status === 'ok') {
-          navigate('/wallet');
+          fetchState().then(() => {
+            navigate('/wallet');
+          });
         }
       })
       .catch(setError);

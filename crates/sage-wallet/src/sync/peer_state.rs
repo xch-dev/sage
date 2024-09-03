@@ -25,6 +25,12 @@ impl PeerState {
             .next()
     }
 
+    pub fn peak_of(&self, ip: IpAddr) -> Option<(u32, Bytes32)> {
+        self.peers
+            .get(&ip)
+            .map(|peer| (peer.claimed_peak, peer.header_hash))
+    }
+
     pub fn peers(&self) -> impl Iterator<Item = &Peer> {
         self.peers.values().map(|peer| &peer.peer)
     }
