@@ -42,6 +42,7 @@ wildcard_imports = "allow"
 cast_possible_truncation = "allow"
 
 [workspace.dependencies]
+sage-api = { path = "./crates/sage-api" }
 sage-config = { path = "./crates/sage-config" }
 sage-database = { path = "./crates/sage-database" }
 sage-keychain = { path = "./crates/sage-keychain" }

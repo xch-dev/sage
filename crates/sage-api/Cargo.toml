@@ -1,0 +1,18 @@
+[package]
+name = "sage-api"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+description = "API definitions for the Sage wallet."
+authors = ["Rigidity <me@rigidnetwork.com>"]
+homepage = "https://github.com/rigidity/sage"
+repository = "https://github.com/rigidity/sage"
+readme = { workspace = true }
+keywords = { workspace = true }
+categories = { workspace = true }
+
+[lints]
+workspace = true
+
+[dependencies]
+serde = { workspace = true }
