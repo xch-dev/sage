@@ -173,6 +173,14 @@ async getCoins() : Promise<Result<CoinRecord[], Error>> {
     else return { status: "error", error: e  as any };
 }
 },
+async getCats() : Promise<Result<CatRecord[], Error>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_cats") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async getDids() : Promise<Result<DidRecord[], Error>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("get_dids") };
@@ -231,6 +239,7 @@ syncEvent: "sync-event"
 /** user-defined types **/
 
 export type Amount = string
+export type CatRecord = { asset_id: string; name: string | null; description: string | null; ticker: string | null; precision: number; icon_url: string | null }
 export type CoinRecord = { coin_id: string; address: string; amount: Amount; created_height: number | null; spent_height: number | null }
 export type DidRecord = { encoded_id: string; launcher_id: string; coin_id: string; address: string }
 export type Error = { kind: ErrorKind; reason: string }

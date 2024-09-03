@@ -87,3 +87,12 @@ CREATE TABLE `nft_coins` (
 
 CREATE INDEX `nft_launcher_id` ON `nft_coins` (`launcher_id`);
 CREATE INDEX `nft_p2` ON `nft_coins` (`p2_puzzle_hash`);
+
+CREATE TABLE `cats` (
+    `asset_id` BLOB NOT NULL PRIMARY KEY,
+    `name` TEXT,
+    `description` TEXT,
+    `ticker` TEXT,
+    `precision` INTEGER NOT NULL,
+    `icon_url` TEXT
+);

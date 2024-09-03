@@ -1,0 +1,50 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT\n            `asset_id`,\n            `name`,\n            `description`,\n            `ticker`,\n            `precision`,\n            `icon_url`\n        FROM `cats`\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "asset_id",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "name",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "description",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "ticker",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "precision",
+        "ordinal": 4,
+        "type_info": "Integer"
+      },
+      {
+        "name": "icon_url",
+        "ordinal": 5,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      true,
+      false,
+      true
+    ]
+  },
+  "hash": "c9436ee7f938cbf829aaf589ff0cdf3f25df42a7b1c4b83dea338c13f02f8bbb"
+}

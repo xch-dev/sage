@@ -42,6 +42,7 @@ pub fn run() {
             // Wallet
             commands::get_sync_status,
             commands::get_coins,
+            commands::get_cats,
             commands::get_dids,
             commands::get_nfts,
             commands::validate_address,

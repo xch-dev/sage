@@ -3,7 +3,7 @@ use std::{sync::Arc, time::Duration};
 use chia::protocol::{Bytes32, CoinState};
 use chia_wallet_sdk::Peer;
 use futures_util::{stream::FuturesUnordered, StreamExt};
-use sage_database::Database;
+use sage_database::{CatRow, Database};
 use tokio::{
     sync::{mpsc, Mutex},
     task::spawn_blocking,
@@ -147,6 +147,11 @@ async fn fetch_puzzle(
             lineage_proof,
             p2_puzzle_hash,
         } => {
+            tx.maybe_insert_cat(CatRow {
+                asset_id,
+                ..CatRow::default()
+            })
+            .await?;
             tx.mark_coin_synced(coin_id, p2_puzzle_hash).await?;
             tx.insert_cat_coin(coin_id, lineage_proof, p2_puzzle_hash, asset_id)
                 .await?;

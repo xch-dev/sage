@@ -9,5 +9,6 @@ mod utils;
 
 pub use database::*;
 pub use error::*;
+pub use primitives::*;
 
 pub(crate) use utils::*;

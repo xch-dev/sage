@@ -7,7 +7,38 @@ use sqlx::SqliteExecutor;
 
 use crate::{error::Result, to_bytes, to_bytes32, to_coin, to_lineage_proof, Database, DatabaseTx};
 
+#[derive(Debug, Clone)]
+pub struct CatRow {
+    pub asset_id: Bytes32,
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub ticker: Option<String>,
+    pub precision: u8,
+    pub icon_url: Option<String>,
+}
+
+impl Default for CatRow {
+    fn default() -> Self {
+        Self {
+            asset_id: Bytes32::default(),
+            name: None,
+            description: None,
+            ticker: None,
+            precision: 3,
+            icon_url: None,
+        }
+    }
+}
+
 impl Database {
+    pub async fn maybe_insert_cat(&self, row: CatRow) -> Result<()> {
+        maybe_insert_cat(&self.pool, row).await
+    }
+
+    pub async fn cats(&self) -> Result<Vec<CatRow>> {
+        cats(&self.pool).await
+    }
+
     pub async fn insert_cat_coin(
         &self,
         coin_id: Bytes32,
@@ -62,6 +93,14 @@ impl Database {
 }
 
 impl<'a> DatabaseTx<'a> {
+    pub async fn maybe_insert_cat(&mut self, row: CatRow) -> Result<()> {
+        maybe_insert_cat(&mut *self.tx, row).await
+    }
+
+    pub async fn cats(&mut self) -> Result<Vec<CatRow>> {
+        cats(&mut *self.tx).await
+    }
+
     pub async fn insert_cat_coin(
         &mut self,
         coin_id: Bytes32,
@@ -120,6 +159,62 @@ impl<'a> DatabaseTx<'a> {
     pub async fn insert_unknown_coin(&mut self, coin_id: Bytes32) -> Result<()> {
         insert_unknown_coin(&mut *self.tx, coin_id).await
     }
+}
+
+async fn maybe_insert_cat(conn: impl SqliteExecutor<'_>, row: CatRow) -> Result<()> {
+    let asset_id = row.asset_id.as_ref();
+
+    sqlx::query!(
+        "
+        INSERT OR IGNORE INTO `cats` (
+            `asset_id`,
+            `name`,
+            `description`,
+            `ticker`,
+            `precision`,
+            `icon_url`
+        ) VALUES (?, ?, ?, ?, ?, ?)
+        ",
+        asset_id,
+        row.name,
+        row.description,
+        row.ticker,
+        row.precision,
+        row.icon_url
+    )
+    .execute(conn)
+    .await?;
+    Ok(())
+}
+
+async fn cats(conn: impl SqliteExecutor<'_>) -> Result<Vec<CatRow>> {
+    let rows = sqlx::query!(
+        "
+        SELECT
+            `asset_id`,
+            `name`,
+            `description`,
+            `ticker`,
+            `precision`,
+            `icon_url`
+        FROM `cats`
+        "
+    )
+    .fetch_all(conn)
+    .await?;
+
+    rows.into_iter()
+        .map(|row| {
+            Ok(CatRow {
+                asset_id: to_bytes32(&row.asset_id)?,
+                name: row.name,
+                description: row.description,
+                ticker: row.ticker,
+                precision: row.precision.try_into()?,
+                icon_url: row.icon_url,
+            })
+        })
+        .collect()
 }
 
 async fn insert_cat_coin(

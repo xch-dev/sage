@@ -1,6 +1,6 @@
 use bigdecimal::BigDecimal;
 use chia_wallet_sdk::{decode_address, encode_address};
-use sage_api::{Amount, CoinRecord, DidRecord, NftRecord, SyncStatus};
+use sage_api::{Amount, CatRecord, CoinRecord, DidRecord, NftRecord, SyncStatus};
 use specta::specta;
 use tauri::{command, State};
 
@@ -53,6 +53,27 @@ pub async fn get_coins(state: State<'_, AppState>) -> Result<Vec<CoinRecord>> {
                 amount: Amount::from_mojos(cs.coin.amount as u128, state.unit().decimals),
                 created_height: cs.created_height,
                 spent_height: cs.spent_height,
+            })
+        })
+        .collect()
+}
+
+#[command]
+#[specta]
+pub async fn get_cats(state: State<'_, AppState>) -> Result<Vec<CatRecord>> {
+    let state = state.lock().await;
+    let wallet = state.wallet()?;
+    let cats = wallet.db.cats().await?;
+
+    cats.into_iter()
+        .map(|cat| {
+            Ok(CatRecord {
+                asset_id: hex::encode(cat.asset_id),
+                name: cat.name,
+                description: cat.description,
+                ticker: cat.ticker,
+                precision: cat.precision,
+                icon_url: cat.icon_url,
             })
         })
         .collect()
