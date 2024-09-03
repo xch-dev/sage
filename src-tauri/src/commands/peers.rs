@@ -1,4 +1,4 @@
-use std::{net::IpAddr, str::FromStr};
+use std::net::IpAddr;
 
 use itertools::Itertools;
 use specta::specta;
@@ -25,11 +25,9 @@ pub async fn peer_list(state: State<'_, AppState>) -> Result<Vec<PeerInfo>> {
 
 #[command]
 #[specta]
-pub async fn remove_peer(state: State<'_, AppState>, ip_addr: String, ban: bool) -> Result<()> {
+pub async fn remove_peer(state: State<'_, AppState>, ip_addr: IpAddr, ban: bool) -> Result<()> {
     let state = state.lock().await;
     let mut peer_state = state.peer_state.lock().await;
-
-    let ip_addr = IpAddr::from_str(&ip_addr)?;
 
     if ban {
         peer_state.ban(ip_addr);

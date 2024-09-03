@@ -40,10 +40,10 @@ pub fn run() {
             // Setup
             commands::initialize,
             // Wallet
-            commands::sync_info,
-            commands::coin_list,
-            commands::did_list,
-            commands::nft_list,
+            commands::get_sync_status,
+            commands::get_coins,
+            commands::get_dids,
+            commands::get_nfts,
             commands::validate_address,
             // Peers
             commands::peer_list,

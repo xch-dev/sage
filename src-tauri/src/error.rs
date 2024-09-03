@@ -1,226 +1,234 @@
-use std::array::TryFromSliceError;
-use std::net::AddrParseError;
-use std::num::ParseIntError;
+use std::{array::TryFromSliceError, fmt, io, num::ParseIntError};
 
-use chia::clvm_traits::{FromClvmError, ToClvmError};
-use chia_wallet_sdk::{AddressError, ClientError, DriverError};
+use chia_wallet_sdk::ClientError;
 use hex::FromHexError;
 use sage_database::DatabaseError;
 use sage_keychain::KeychainError;
-use sage_wallet::ParseError;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use specta::Type;
-use thiserror::Error;
-use tokio::task::JoinError;
-use tokio::time::error::Elapsed;
+use sqlx::migrate::MigrateError;
 use tracing::metadata::ParseLevelError;
-use tracing_appender::rolling::InitError;
 
-#[derive(Debug, Error, Serialize, Type)]
-pub enum Error {
-    #[error("Could not parse log level: {0}")]
-    ParseLogLevel(
-        #[serde(skip)]
-        #[from]
-        ParseLevelError,
-    ),
-
-    #[error("IP address parse error: {0}")]
-    ParseIp(
-        #[serde(skip)]
-        #[from]
-        AddrParseError,
-    ),
-
-    #[error("Log init error: {0}")]
-    LogInit(
-        #[serde(skip)]
-        #[from]
-        InitError,
-    ),
-
-    #[error("IO error: {0}")]
-    Io(
-        #[serde(skip)]
-        #[from]
-        std::io::Error,
-    ),
-
-    #[error("Bip39 error: {0}")]
-    Bip39(
-        #[serde(skip)]
-        #[from]
-        bip39::Error,
-    ),
-
-    #[error("BLS error: {0}")]
-    Bls(
-        #[serde(skip)]
-        #[from]
-        chia::bls::Error,
-    ),
-
-    #[error("Bincode error: {0}")]
-    Bincode(
-        #[serde(skip)]
-        #[from]
-        bincode::Error,
-    ),
-
-    #[error("TOML deserialization error: {0}")]
-    DeserializeToml(
-        #[serde(skip)]
-        #[from]
-        toml::de::Error,
-    ),
-
-    #[error("TOML serialization error: {0}")]
-    SerializeToml(
-        #[serde(skip)]
-        #[from]
-        toml::ser::Error,
-    ),
-
-    #[error("Invalid key size")]
-    InvalidKeySize,
-
-    #[error("ParseInt error: {0}")]
-    ParseInt(
-        #[serde(skip)]
-        #[from]
-        ParseIntError,
-    ),
-
-    #[error("Keychain error: {0}")]
-    Keychain(
-        #[serde(skip)]
-        #[from]
-        KeychainError,
-    ),
-
-    #[error("SQLx error: {0}")]
-    Sqlx(
-        #[serde(skip)]
-        #[from]
-        sqlx::Error,
-    ),
-
-    #[error("SQLx migration error: {0}")]
-    SqlxMigration(
-        #[serde(skip)]
-        #[from]
-        sqlx::migrate::MigrateError,
-    ),
-
-    #[error("Database error: {0}")]
-    Database(
-        #[serde(skip)]
-        #[from]
-        DatabaseError,
-    ),
-
-    #[error("Driver error: {0}")]
-    Driver(
-        #[serde(skip)]
-        #[from]
-        DriverError,
-    ),
-
-    #[error("Client error: {0}")]
-    Client(
-        #[serde(skip)]
-        #[from]
-        ClientError,
-    ),
-
-    #[error("No active wallet")]
-    NoActiveWallet,
-
-    #[error("Unknown wallet fingerprint: {0}")]
-    Fingerprint(#[serde(skip)] u32),
-
-    #[error("Unknown network: {0}")]
-    UnknownNetwork(#[serde(skip)] String),
-
-    #[error("Tauri error: {0}")]
-    Tauri(
-        #[serde(skip)]
-        #[from]
-        tauri::Error,
-    ),
-
-    #[error("Timeout error")]
-    Timeout(
-        #[serde(skip)]
-        #[from]
-        Elapsed,
-    ),
-
-    #[error("To CLVM error: {0}")]
-    ToClvm(
-        #[serde(skip)]
-        #[from]
-        ToClvmError,
-    ),
-
-    #[error("From CLVM error: {0}")]
-    FromClvm(
-        #[serde(skip)]
-        #[from]
-        FromClvmError,
-    ),
-
-    #[error("Coin state not found")]
-    CoinStateNotFound,
-
-    #[error("Streamable error: {0}")]
-    Streamable(
-        #[serde(skip)]
-        #[from]
-        chia::traits::Error,
-    ),
-
-    #[error("Join error: {0}")]
-    Join(
-        #[serde(skip)]
-        #[from]
-        JoinError,
-    ),
-
-    #[error("Address error: {0}")]
-    Address(
-        #[serde(skip)]
-        #[from]
-        AddressError,
-    ),
-
-    #[error("Bech32 error: {0}")]
-    Bech32(
-        #[serde(skip)]
-        #[from]
-        bech32::Error,
-    ),
-
-    #[error("Parse error: {0}")]
-    Parse(
-        #[serde(skip)]
-        #[from]
-        ParseError,
-    ),
-
-    #[error("From hex error: {0}")]
-    FromHex(
-        #[serde(skip)]
-        #[from]
-        FromHexError,
-    ),
-
-    #[error("Try from slice error: {0}")]
-    TryFromSlice(
-        #[serde(skip)]
-        #[from]
-        TryFromSliceError,
-    ),
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct Error {
+    kind: ErrorKind,
+    reason: String,
 }
 
+impl Error {
+    pub fn unknown_network(network: &str) -> Self {
+        Self {
+            kind: ErrorKind::UnknownNetwork,
+            reason: format!("Unknown network {network}"),
+        }
+    }
+
+    pub fn unknown_fingerprint(fingerprint: u32) -> Self {
+        Self {
+            kind: ErrorKind::UnknownFingerprint,
+            reason: format!("Unknown fingerprint {fingerprint}"),
+        }
+    }
+
+    pub fn not_logged_in(fingerprint: u32) -> Self {
+        Self {
+            kind: ErrorKind::NotLoggedIn,
+            reason: format!("Not logged in with fingerprint {fingerprint}"),
+        }
+    }
+
+    pub fn invalid_key(reason: &str) -> Self {
+        Self {
+            kind: ErrorKind::InvalidKey,
+            reason: format!("Invalid key: {reason}"),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Type)]
+pub enum ErrorKind {
+    Io,
+    Database,
+    Client,
+    Keychain,
+    Logging,
+    Serialization,
+    InvalidAddress,
+    InvalidMnemonic,
+    InvalidKey,
+    UnknownNetwork,
+    UnknownFingerprint,
+    NotLoggedIn,
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.reason)
+    }
+}
+
+impl std::error::Error for Error {}
+
 pub type Result<T> = std::result::Result<T, Error>;
+
+impl From<io::Error> for Error {
+    fn from(error: io::Error) -> Self {
+        Self {
+            kind: ErrorKind::Io,
+            reason: error.to_string(),
+        }
+    }
+}
+
+impl From<bincode::Error> for Error {
+    fn from(value: bincode::Error) -> Self {
+        Self {
+            kind: ErrorKind::Serialization,
+            reason: value.to_string(),
+        }
+    }
+}
+
+impl From<toml::de::Error> for Error {
+    fn from(value: toml::de::Error) -> Self {
+        Self {
+            kind: ErrorKind::Serialization,
+            reason: value.to_string(),
+        }
+    }
+}
+
+impl From<toml::ser::Error> for Error {
+    fn from(value: toml::ser::Error) -> Self {
+        Self {
+            kind: ErrorKind::Serialization,
+            reason: value.to_string(),
+        }
+    }
+}
+
+impl From<DatabaseError> for Error {
+    fn from(value: DatabaseError) -> Self {
+        Self {
+            kind: ErrorKind::Database,
+            reason: value.to_string(),
+        }
+    }
+}
+
+impl From<sqlx::Error> for Error {
+    fn from(value: sqlx::Error) -> Self {
+        Self {
+            kind: ErrorKind::Database,
+            reason: value.to_string(),
+        }
+    }
+}
+
+impl From<MigrateError> for Error {
+    fn from(value: MigrateError) -> Self {
+        Self {
+            kind: ErrorKind::Database,
+            reason: value.to_string(),
+        }
+    }
+}
+
+impl From<bech32::Error> for Error {
+    fn from(value: bech32::Error) -> Self {
+        Self {
+            kind: ErrorKind::InvalidAddress,
+            reason: value.to_string(),
+        }
+    }
+}
+
+impl From<chia::bls::Error> for Error {
+    fn from(value: chia::bls::Error) -> Self {
+        Self {
+            kind: ErrorKind::InvalidKey,
+            reason: value.to_string(),
+        }
+    }
+}
+
+impl From<chia::ssl::Error> for Error {
+    fn from(value: chia::ssl::Error) -> Self {
+        Self {
+            kind: ErrorKind::Client,
+            reason: value.to_string(),
+        }
+    }
+}
+
+impl From<ClientError> for Error {
+    fn from(value: ClientError) -> Self {
+        Self {
+            kind: ErrorKind::Client,
+            reason: value.to_string(),
+        }
+    }
+}
+
+impl From<ParseIntError> for Error {
+    fn from(value: ParseIntError) -> Self {
+        Self {
+            kind: ErrorKind::Serialization,
+            reason: value.to_string(),
+        }
+    }
+}
+
+impl From<KeychainError> for Error {
+    fn from(value: KeychainError) -> Self {
+        Self {
+            kind: ErrorKind::Keychain,
+            reason: value.to_string(),
+        }
+    }
+}
+
+impl From<bip39::Error> for Error {
+    fn from(value: bip39::Error) -> Self {
+        Self {
+            kind: ErrorKind::InvalidMnemonic,
+            reason: value.to_string(),
+        }
+    }
+}
+
+impl From<FromHexError> for Error {
+    fn from(value: FromHexError) -> Self {
+        Self {
+            kind: ErrorKind::Serialization,
+            reason: value.to_string(),
+        }
+    }
+}
+
+impl From<TryFromSliceError> for Error {
+    fn from(value: TryFromSliceError) -> Self {
+        Self {
+            kind: ErrorKind::Serialization,
+            reason: value.to_string(),
+        }
+    }
+}
+
+impl From<ParseLevelError> for Error {
+    fn from(value: ParseLevelError) -> Self {
+        Self {
+            kind: ErrorKind::Logging,
+            reason: value.to_string(),
+        }
+    }
+}
+
+impl From<tracing_appender::rolling::InitError> for Error {
+    fn from(value: tracing_appender::rolling::InitError) -> Self {
+        Self {
+            kind: ErrorKind::Logging,
+            reason: value.to_string(),
+        }
+    }
+}

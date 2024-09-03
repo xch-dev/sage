@@ -89,11 +89,8 @@ pub async fn set_derivation_batch_size(
     config.derivation_batch_size = derivation_batch_size;
     state.save_config()?;
 
-    if let Some(wallet) = state.wallet.as_ref() {
-        if wallet.fingerprint == fingerprint {
-            // TODO: wallet.initial_sync(derivation_batch_size).await?;
-        }
-    }
+    // TODO: Only if needed.
+    state.reset_sync_task(false)?;
 
     Ok(())
 }

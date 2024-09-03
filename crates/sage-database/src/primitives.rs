@@ -35,8 +35,8 @@ impl Database {
         nft_coin(&self.pool, launcher_id).await
     }
 
-    pub async fn nft_list(&self) -> Result<Vec<Bytes32>> {
-        nft_list(&self.pool).await
+    pub async fn nft_coins(&self) -> Result<Vec<Nft<Program>>> {
+        nft_coins(&self.pool).await
     }
 
     pub async fn insert_did_coin(
@@ -52,8 +52,8 @@ impl Database {
         did_coin(&self.pool, launcher_id).await
     }
 
-    pub async fn did_list(&self) -> Result<Vec<Bytes32>> {
-        did_list(&self.pool).await
+    pub async fn did_coins(&self) -> Result<Vec<Did<Program>>> {
+        did_coins(&self.pool).await
     }
 
     pub async fn insert_unknown_coin(&self, coin_id: Bytes32) -> Result<()> {
@@ -96,8 +96,8 @@ impl<'a> DatabaseTx<'a> {
         nft_coin(&mut *self.tx, launcher_id).await
     }
 
-    pub async fn nft_list(&mut self) -> Result<Vec<Bytes32>> {
-        nft_list(&mut *self.tx).await
+    pub async fn nft_coins(&mut self) -> Result<Vec<Nft<Program>>> {
+        nft_coins(&mut *self.tx).await
     }
 
     pub async fn insert_did_coin(
@@ -113,8 +113,8 @@ impl<'a> DatabaseTx<'a> {
         did_coin(&mut *self.tx, launcher_id).await
     }
 
-    pub async fn did_list(&mut self) -> Result<Vec<Bytes32>> {
-        did_list(&mut *self.tx).await
+    pub async fn did_coins(&mut self) -> Result<Vec<Did<Program>>> {
+        did_coins(&mut *self.tx).await
     }
 
     pub async fn insert_unknown_coin(&mut self, coin_id: Bytes32) -> Result<()> {
@@ -298,19 +298,46 @@ async fn nft_coin(
     }))
 }
 
-async fn nft_list(conn: impl SqliteExecutor<'_>) -> Result<Vec<Bytes32>> {
+async fn nft_coins(conn: impl SqliteExecutor<'_>) -> Result<Vec<Nft<Program>>> {
     let rows = sqlx::query!(
         "
-        SELECT `launcher_id` FROM `nft_coins`
-        INNER JOIN `coin_states` ON `nft_coins`.`coin_id` = `coin_states`.`coin_id`
-        WHERE `coin_states`.`spent_height` IS NULL
+        SELECT
+            cs.parent_coin_id, cs.puzzle_hash, cs.amount,
+            nft.parent_parent_coin_id, nft.parent_inner_puzzle_hash, nft.parent_amount,
+            nft.launcher_id, nft.metadata, nft.metadata_updater_puzzle_hash,
+            nft.current_owner, nft.royalty_puzzle_hash, nft.royalty_ten_thousandths,
+            nft.p2_puzzle_hash
+        FROM `coin_states` AS cs
+        INNER JOIN `nft_coins` AS nft
+        ON cs.coin_id = nft.coin_id
         "
     )
     .fetch_all(conn)
     .await?;
 
     rows.into_iter()
-        .map(|row| to_bytes32(&row.launcher_id))
+        .map(|row| {
+            Ok(Nft {
+                coin: to_coin(&row.parent_coin_id, &row.puzzle_hash, &row.amount)?,
+                proof: Proof::Lineage(to_lineage_proof(
+                    &row.parent_parent_coin_id,
+                    &row.parent_inner_puzzle_hash,
+                    &row.parent_amount,
+                )?),
+                info: NftInfo {
+                    launcher_id: to_bytes32(&row.launcher_id)?,
+                    metadata: row.metadata.into(),
+                    metadata_updater_puzzle_hash: to_bytes32(&row.metadata_updater_puzzle_hash)?,
+                    current_owner: row
+                        .current_owner
+                        .map(|owner| to_bytes32(&owner))
+                        .transpose()?,
+                    royalty_puzzle_hash: to_bytes32(&row.royalty_puzzle_hash)?,
+                    royalty_ten_thousandths: row.royalty_ten_thousandths.try_into()?,
+                    p2_puzzle_hash: to_bytes32(&row.p2_puzzle_hash)?,
+                },
+            })
+        })
         .collect()
 }
 
@@ -411,19 +438,45 @@ async fn did_coin(
     }))
 }
 
-async fn did_list(conn: impl SqliteExecutor<'_>) -> Result<Vec<Bytes32>> {
+async fn did_coins(conn: impl SqliteExecutor<'_>) -> Result<Vec<Did<Program>>> {
     let rows = sqlx::query!(
         "
-        SELECT `launcher_id` FROM `did_coins`
-        INNER JOIN `coin_states` ON `did_coins`.`coin_id` = `coin_states`.`coin_id`
-        WHERE `coin_states`.`spent_height` IS NULL
+        SELECT
+            cs.parent_coin_id, cs.puzzle_hash, cs.amount,
+            did.parent_parent_coin_id, did.parent_inner_puzzle_hash, did.parent_amount,
+            did.launcher_id, did.recovery_list_hash, did.num_verifications_required,
+            did.metadata, did.p2_puzzle_hash
+        FROM `coin_states` AS cs
+        INNER JOIN `did_coins` AS did
+        ON cs.coin_id = did.coin_id
         "
     )
     .fetch_all(conn)
     .await?;
 
     rows.into_iter()
-        .map(|row| to_bytes32(&row.launcher_id))
+        .map(|row| {
+            Ok(Did {
+                coin: to_coin(&row.parent_coin_id, &row.puzzle_hash, &row.amount)?,
+                proof: Proof::Lineage(to_lineage_proof(
+                    &row.parent_parent_coin_id,
+                    &row.parent_inner_puzzle_hash,
+                    &row.parent_amount,
+                )?),
+                info: DidInfo::<Program> {
+                    launcher_id: to_bytes32(&row.launcher_id)?,
+                    recovery_list_hash: row
+                        .recovery_list_hash
+                        .map(|hash| to_bytes32(&hash))
+                        .transpose()?,
+                    num_verifications_required: u64::from_be_bytes(to_bytes(
+                        &row.num_verifications_required,
+                    )?),
+                    metadata: row.metadata.into(),
+                    p2_puzzle_hash: to_bytes32(&row.p2_puzzle_hash)?,
+                },
+            })
+        })
         .collect()
 }
 

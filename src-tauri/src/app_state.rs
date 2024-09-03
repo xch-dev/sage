@@ -13,6 +13,7 @@ use indexmap::{indexmap, IndexMap};
 use itertools::Itertools;
 use rand::SeedableRng;
 use rand_chacha::ChaCha20Rng;
+use sage_api::{Unit, XCH};
 use sage_config::{Config, WalletConfig};
 use sage_database::Database;
 use sage_keychain::{encrypt, KeyData, SecretKeyData};
@@ -38,7 +39,8 @@ pub struct AppStateInner {
     pub config: Config,
     pub networks: IndexMap<String, Network>,
     pub keys: HashMap<u32, KeyData>,
-    pub wallet: Option<Arc<Wallet>>,
+    wallet: Option<Arc<Wallet>>,
+    unit: Unit,
     pub sync_task: Option<JoinHandle<()>>,
     pub peer_state: Arc<Mutex<PeerState>>,
     pub initialized: bool,
@@ -57,10 +59,15 @@ impl AppStateInner {
             },
             keys: HashMap::new(),
             wallet: None,
+            unit: XCH.clone(),
             sync_task: None,
             peer_state: Arc::new(Mutex::new(PeerState::default())),
             initialized: false,
         }
+    }
+
+    pub fn unit(&self) -> &Unit {
+        &self.unit
     }
 
     pub fn reset_sync_task(&mut self, reset_peers: bool) -> Result<()> {
@@ -74,7 +81,7 @@ impl AppStateInner {
 
         let network_id = self.config.network.network_id.clone();
         let Some(network) = self.networks.get(network_id.as_str()).cloned() else {
-            return Err(Error::UnknownNetwork(network_id.clone()));
+            return Err(Error::unknown_network(&network_id));
         };
 
         let ssl_dir = self.path.join("ssl");
@@ -142,7 +149,7 @@ impl AppStateInner {
         let key = self.keys.get(&fingerprint).cloned();
 
         let Some(key) = key else {
-            return Err(Error::Fingerprint(fingerprint));
+            return Err(Error::unknown_fingerprint(fingerprint));
         };
 
         let _wallet_config = self
@@ -189,6 +196,23 @@ impl AppStateInner {
         Ok(())
     }
 
+    pub fn wallet(&self, fingerprint: u32) -> Result<Arc<Wallet>> {
+        if !self.keys.contains_key(&fingerprint) {
+            return Err(Error::unknown_fingerprint(fingerprint));
+        }
+
+        let wallet = self
+            .wallet
+            .as_ref()
+            .ok_or(Error::not_logged_in(fingerprint))?;
+
+        if wallet.fingerprint != fingerprint {
+            return Err(Error::not_logged_in(fingerprint));
+        }
+
+        Ok(wallet.clone())
+    }
+
     pub fn prefix(&self) -> &'static str {
         match self.config.network.network_id.as_str() {
             "mainnet" => "xch",
@@ -200,14 +224,14 @@ impl AppStateInner {
         self.config
             .wallets
             .get(&fingerprint.to_string())
-            .ok_or(Error::Fingerprint(fingerprint))
+            .ok_or(Error::unknown_fingerprint(fingerprint))
     }
 
     pub fn try_wallet_config_mut(&mut self, fingerprint: u32) -> Result<&mut WalletConfig> {
         self.config
             .wallets
             .get_mut(&fingerprint.to_string())
-            .ok_or(Error::Fingerprint(fingerprint))
+            .ok_or(Error::unknown_fingerprint(fingerprint))
     }
 
     pub fn wallet_config_mut(&mut self, fingerprint: u32) -> &mut WalletConfig {

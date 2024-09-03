@@ -7,9 +7,9 @@ use specta::specta;
 use std::str::FromStr;
 use tauri::{command, State};
 
-use crate::error::Error;
+use crate::error::{Error, Result};
 use crate::models::{WalletKind, WalletSecrets};
-use crate::{app_state::AppState, error::Result, models::WalletInfo};
+use crate::{app_state::AppState, models::WalletInfo};
 
 #[command]
 #[specta]
@@ -173,7 +173,7 @@ pub async fn import_wallet(state: State<'_, AppState>, name: String, key: String
             let master_sk = SecretKey::from_bytes(&master_sk)?;
             state.import_secret_key(&master_sk)?
         } else {
-            return Err(Error::InvalidKeySize);
+            return Err(Error::invalid_key("Must be 32 or 48 bytes"));
         }
     } else {
         let mnemonic = Mnemonic::from_str(&key)?;

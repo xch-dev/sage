@@ -1,18 +1,21 @@
+use bigdecimal::BigDecimal;
 use chia_wallet_sdk::{decode_address, encode_address};
+use sage_api::{
+    Amount, CoinRecord, DidRecord, GetCoins, GetDids, GetNfts, GetSyncStatus, NftRecord, SyncStatus,
+};
 use specta::specta;
 use tauri::{command, State};
 
-use crate::{
-    app_state::AppState,
-    error::{Error, Result},
-    models::{encode_xch_amount, CoinData, DidData, NftData, SyncInfo},
-};
+use crate::{app_state::AppState, error::Result};
 
 #[command]
 #[specta]
-pub async fn sync_info(state: State<'_, AppState>) -> Result<SyncInfo> {
+pub async fn get_sync_status(
+    state: State<'_, AppState>,
+    request: GetSyncStatus,
+) -> Result<SyncStatus> {
     let state = state.lock().await;
-    let wallet = state.wallet.as_ref().ok_or(Error::NoActiveWallet)?;
+    let wallet = state.wallet(request.fingerprint)?;
 
     let mut tx = wallet.db.tx().await?;
 
@@ -30,32 +33,31 @@ pub async fn sync_info(state: State<'_, AppState>) -> Result<SyncInfo> {
 
     tx.commit().await?;
 
-    Ok(SyncInfo {
-        address: encode_address(p2_puzzle_hash.to_bytes(), state.prefix())?,
-        balance: encode_xch_amount(balance),
-        ticker: state.prefix().to_string().to_uppercase(),
+    Ok(SyncStatus {
+        balance: Amount::from_mojos(balance, state.unit().decimals),
+        unit: state.unit().clone(),
         total_coins,
         synced_coins,
+        receive_address: encode_address(p2_puzzle_hash.to_bytes(), state.prefix())?,
     })
 }
 
 #[command]
 #[specta]
-pub async fn coin_list(state: State<'_, AppState>) -> Result<Vec<CoinData>> {
+pub async fn get_coins(state: State<'_, AppState>, request: GetCoins) -> Result<Vec<CoinRecord>> {
     let state = state.lock().await;
-    let wallet = state.wallet.as_ref().ok_or(Error::NoActiveWallet)?;
-
+    let wallet = state.wallet(request.fingerprint)?;
     let coin_states = wallet.db.p2_coin_states().await?;
 
     coin_states
         .into_iter()
         .map(|cs| {
-            Ok(CoinData {
+            Ok(CoinRecord {
                 coin_id: hex::encode(cs.coin.coin_id()),
                 address: encode_address(cs.coin.puzzle_hash.to_bytes(), state.prefix())?,
+                amount: Amount::from_mojos(cs.coin.amount as u128, state.unit().decimals),
                 created_height: cs.created_height,
                 spent_height: cs.spent_height,
-                amount: encode_xch_amount(cs.coin.amount as u128),
             })
         })
         .collect()
@@ -63,54 +65,53 @@ pub async fn coin_list(state: State<'_, AppState>) -> Result<Vec<CoinData>> {
 
 #[command]
 #[specta]
-pub async fn did_list(state: State<'_, AppState>) -> Result<Vec<DidData>> {
+pub async fn get_dids(state: State<'_, AppState>, request: GetDids) -> Result<Vec<DidRecord>> {
     let state = state.lock().await;
-    let wallet = state.wallet.as_ref().ok_or(Error::NoActiveWallet)?;
+    let wallet = state.wallet(request.fingerprint)?;
 
-    let mut did_data = Vec::new();
-
-    let mut tx = wallet.db.tx().await?;
-
-    let did_ids = tx.did_list().await?;
-
-    for did_id in did_ids {
-        let did = tx.did_coin(did_id).await?.ok_or(Error::CoinStateNotFound)?;
-        did_data.push(DidData {
-            encoded_id: encode_address(did.info.launcher_id.to_bytes(), "did:chia:")?,
-            launcher_id: hex::encode(did.info.launcher_id),
-            address: encode_address(did.info.p2_puzzle_hash.to_bytes(), state.prefix())?,
-        });
-    }
-
-    tx.commit().await?;
-
-    Ok(did_data)
+    wallet
+        .db
+        .did_coins()
+        .await?
+        .into_iter()
+        .map(|did| {
+            Ok(DidRecord {
+                encoded_id: encode_address(did.info.launcher_id.to_bytes(), "did:chia:")?,
+                launcher_id: hex::encode(did.info.launcher_id),
+                coin_id: hex::encode(did.coin.coin_id()),
+                address: encode_address(did.info.p2_puzzle_hash.to_bytes(), state.prefix())?,
+            })
+        })
+        .collect()
 }
 
 #[command]
 #[specta]
-pub async fn nft_list(state: State<'_, AppState>) -> Result<Vec<NftData>> {
+pub async fn get_nfts(state: State<'_, AppState>, request: GetNfts) -> Result<Vec<NftRecord>> {
     let state = state.lock().await;
-    let wallet = state.wallet.as_ref().ok_or(Error::NoActiveWallet)?;
+    let wallet = state.wallet(request.fingerprint)?;
 
-    let mut nft_data = Vec::new();
-
-    let mut tx = wallet.db.tx().await?;
-
-    let nft_ids = tx.nft_list().await?;
-
-    for nft_id in nft_ids {
-        let nft = tx.nft_coin(nft_id).await?.ok_or(Error::CoinStateNotFound)?;
-        nft_data.push(NftData {
-            encoded_id: encode_address(nft.info.launcher_id.to_bytes(), "nft")?,
-            launcher_id: hex::encode(nft.info.launcher_id),
-            address: encode_address(nft.info.p2_puzzle_hash.to_bytes(), state.prefix())?,
-        });
-    }
-
-    tx.commit().await?;
-
-    Ok(nft_data)
+    wallet
+        .db
+        .nft_coins()
+        .await?
+        .into_iter()
+        .map(|nft| {
+            Ok(NftRecord {
+                encoded_id: encode_address(nft.info.launcher_id.to_bytes(), "nft")?,
+                launcher_id: hex::encode(nft.info.launcher_id),
+                coin_id: hex::encode(nft.coin.coin_id()),
+                address: encode_address(nft.info.p2_puzzle_hash.to_bytes(), state.prefix())?,
+                royalty_address: encode_address(
+                    nft.info.royalty_puzzle_hash.to_bytes(),
+                    state.prefix(),
+                )?,
+                royalty_percent: (BigDecimal::from(nft.info.royalty_ten_thousandths)
+                    / BigDecimal::from(100))
+                .to_string(),
+            })
+        })
+        .collect()
 }
 
 #[command]
