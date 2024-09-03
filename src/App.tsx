@@ -84,7 +84,7 @@ export default function App() {
         if (result.status === 'ok') {
           setInitialized(true);
         } else {
-          setError(result.error);
+          setError(result.error.reason);
         }
       })
       .catch(setError);

@@ -196,18 +196,19 @@ impl AppStateInner {
         Ok(())
     }
 
-    pub fn wallet(&self, fingerprint: u32) -> Result<Arc<Wallet>> {
+    pub fn wallet(&self) -> Result<Arc<Wallet>> {
+        let Some(fingerprint) = self.config.app.active_fingerprint else {
+            return Err(Error::not_logged_in());
+        };
+
         if !self.keys.contains_key(&fingerprint) {
             return Err(Error::unknown_fingerprint(fingerprint));
         }
 
-        let wallet = self
-            .wallet
-            .as_ref()
-            .ok_or(Error::not_logged_in(fingerprint))?;
+        let wallet = self.wallet.as_ref().ok_or(Error::not_logged_in())?;
 
         if wallet.fingerprint != fingerprint {
-            return Err(Error::not_logged_in(fingerprint));
+            return Err(Error::not_logged_in());
         }
 
         Ok(wallet.clone())

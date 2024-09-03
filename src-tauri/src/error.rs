@@ -30,10 +30,10 @@ impl Error {
         }
     }
 
-    pub fn not_logged_in(fingerprint: u32) -> Self {
+    pub fn not_logged_in() -> Self {
         Self {
             kind: ErrorKind::NotLoggedIn,
-            reason: format!("Not logged in with fingerprint {fingerprint}"),
+            reason: "Not currently logged into a wallet".to_string(),
         }
     }
 

@@ -27,7 +27,7 @@ import {
 import { GridRowSelectionModel } from '@mui/x-data-grid';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { commands, NftData, WalletInfo } from '../bindings';
+import { commands, NftRecord, WalletInfo } from '../bindings';
 import CoinList from '../components/CoinList';
 import ListContainer from '../components/ListContainer';
 import NavBar from '../components/NavBar';
@@ -99,25 +99,23 @@ function MainWallet() {
     <>
       <Box mt={1}>
         <Typography variant='h5' fontSize={30} textAlign='center'>
-          {walletState.syncInfo.balance} {walletState.syncInfo.ticker}
+          {walletState.sync.balance} {walletState.sync.unit.ticker}
         </Typography>
 
         <LinearProgress
           variant='determinate'
           value={Math.ceil(
-            (walletState.syncInfo.synced_coins /
-              walletState.syncInfo.total_coins) *
+            (walletState.sync.synced_coins / walletState.sync.total_coins) *
               100,
           )}
           sx={{ mt: 2 }}
         />
 
         <Box mt={1} textAlign='center'>
-          {walletState.syncInfo.synced_coins}
-          {walletState.syncInfo.synced_coins ===
-          walletState.syncInfo.total_coins
+          {walletState.sync.synced_coins}
+          {walletState.sync.synced_coins === walletState.sync.total_coins
             ? ''
-            : `/${walletState.syncInfo.total_coins}`}{' '}
+            : `/${walletState.sync.total_coins}`}{' '}
           coins synced
         </Box>
 
@@ -243,17 +241,17 @@ function TokenListItem(props: {
 }
 
 function NftList() {
-  const [nftList, setNftList] = useState<NftData[]>([]);
+  const [nftList, setNftList] = useState<NftRecord[]>([]);
 
   useEffect(() => {
-    commands.nftList().then((res) => {
+    commands.getNfts().then((res) => {
       if (res.status === 'ok') {
         setNftList(res.data);
       }
     });
 
     const interval = setInterval(() => {
-      commands.nftList().then((res) => {
+      commands.getNfts().then((res) => {
         if (res.status === 'ok') {
           setNftList(res.data);
         }

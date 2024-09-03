@@ -157,33 +157,33 @@ async initialize() : Promise<Result<null, Error>> {
     else return { status: "error", error: e  as any };
 }
 },
-async syncInfo() : Promise<Result<SyncInfo, Error>> {
+async getSyncStatus() : Promise<Result<SyncStatus, Error>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("sync_info") };
+    return { status: "ok", data: await TAURI_INVOKE("get_sync_status") };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
 },
-async coinList() : Promise<Result<CoinData[], Error>> {
+async getCoins() : Promise<Result<CoinRecord[], Error>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("coin_list") };
+    return { status: "ok", data: await TAURI_INVOKE("get_coins") };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
 },
-async didList() : Promise<Result<DidData[], Error>> {
+async getDids() : Promise<Result<DidRecord[], Error>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("did_list") };
+    return { status: "ok", data: await TAURI_INVOKE("get_dids") };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
 },
-async nftList() : Promise<Result<NftData[], Error>> {
+async getNfts() : Promise<Result<NftRecord[], Error>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("nft_list") };
+    return { status: "ok", data: await TAURI_INVOKE("get_nfts") };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -230,15 +230,18 @@ syncEvent: "sync-event"
 
 /** user-defined types **/
 
-export type CoinData = { coin_id: string; address: string; created_height: number | null; spent_height: number | null; amount: string }
-export type DidData = { encoded_id: string; launcher_id: string; address: string }
-export type Error = "ParseLogLevel" | "ParseIp" | "LogInit" | "Io" | "Bip39" | "Bls" | "Bincode" | "DeserializeToml" | "SerializeToml" | "InvalidKeySize" | "ParseInt" | "Keychain" | "Sqlx" | "SqlxMigration" | "Database" | "Driver" | "Client" | "NoActiveWallet" | "Fingerprint" | "UnknownNetwork" | "Tauri" | "Timeout" | "ToClvm" | "FromClvm" | "CoinStateNotFound" | "Streamable" | "Join" | "Address" | "Bech32" | "Parse" | "FromHex" | "TryFromSlice"
+export type Amount = string
+export type CoinRecord = { coin_id: string; address: string; amount: Amount; created_height: number | null; spent_height: number | null }
+export type DidRecord = { encoded_id: string; launcher_id: string; coin_id: string; address: string }
+export type Error = { kind: ErrorKind; reason: string }
+export type ErrorKind = "Io" | "Database" | "Client" | "Keychain" | "Logging" | "Serialization" | "InvalidAddress" | "InvalidMnemonic" | "InvalidKey" | "UnknownNetwork" | "UnknownFingerprint" | "NotLoggedIn"
 export type NetworkConfig = { network_id?: string; target_peers?: number; discover_peers?: boolean }
 export type NetworkInfo = { default_port: number; genesis_challenge: string; agg_sig_me: string | null; dns_introducers: string[] }
-export type NftData = { encoded_id: string; launcher_id: string; address: string }
+export type NftRecord = { encoded_id: string; launcher_id: string; coin_id: string; address: string; royalty_address: string; royalty_percent: string }
 export type PeerInfo = { ip_addr: string; port: number; trusted: boolean }
 export type SyncEvent = { type: "start"; ip: string } | { type: "stop" } | { type: "subscribed" } | { type: "coin_update" } | { type: "puzzle_update" }
-export type SyncInfo = { address: string; balance: string; ticker: string; total_coins: number; synced_coins: number }
+export type SyncStatus = { balance: Amount; unit: Unit; synced_coins: number; total_coins: number; receive_address: string }
+export type Unit = { ticker: string; decimals: number }
 export type WalletConfig = { name?: string; derive_automatically?: boolean; derivation_batch_size?: number }
 export type WalletInfo = { name: string; fingerprint: number; public_key: string; kind: WalletKind }
 export type WalletKind = "cold" | "hot"

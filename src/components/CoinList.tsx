@@ -1,11 +1,11 @@
 import { DataGrid, GridRowSelectionModel } from '@mui/x-data-grid';
 import BigNumber from 'bignumber.js';
 import { useMemo } from 'react';
-import { CoinData } from '../bindings';
+import { CoinRecord } from '../bindings';
 import { useWalletState } from '../state';
 
 export interface CoinListProps {
-  coins: CoinData[];
+  coins: CoinRecord[];
   selectedCoins: GridRowSelectionModel;
   setSelectedCoins: React.Dispatch<React.SetStateAction<GridRowSelectionModel>>;
 }
@@ -41,7 +41,7 @@ export default function CoinList(props: CoinListProps) {
           headerName: 'Amount',
           width: 150,
           valueGetter: (_value, row) => new BigNumber(row.amount),
-          description: `The amount of ${walletState.syncInfo.ticker} in this coin`,
+          description: `The amount of ${walletState.sync.unit.ticker} in this coin`,
         },
         {
           field: 'confirmed',

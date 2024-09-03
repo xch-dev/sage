@@ -1,16 +1,19 @@
 import { create } from 'zustand';
-import { CoinData, commands, events, SyncInfo } from './bindings';
+import { CoinRecord, commands, events, SyncStatus } from './bindings';
 
 export interface WalletState {
-  syncInfo: SyncInfo;
-  coins: CoinData[];
+  sync: SyncStatus;
+  coins: CoinRecord[];
 }
 
 export const useWalletState = create<WalletState>()(() => ({
-  syncInfo: {
-    address: 'Unknown',
+  sync: {
+    receive_address: 'Unknown',
     balance: 'Syncing',
-    ticker: 'XCH',
+    unit: {
+      ticker: 'XCH',
+      decimals: 12,
+    },
     total_coins: 0,
     synced_coins: 0,
   },
@@ -19,10 +22,13 @@ export const useWalletState = create<WalletState>()(() => ({
 
 export function clearState() {
   useWalletState.setState({
-    syncInfo: {
-      address: 'Unknown',
+    sync: {
+      receive_address: 'Unknown',
       balance: 'Syncing',
-      ticker: 'XCH',
+      unit: {
+        ticker: 'XCH',
+        decimals: 12,
+      },
       total_coins: 0,
       synced_coins: 0,
     },
@@ -31,11 +37,11 @@ export function clearState() {
 }
 
 export async function fetchState() {
-  await Promise.all([updateCoins(), updateSyncInfo()]);
+  await Promise.all([updateCoins(), updateSyncStatus()]);
 }
 
 function updateCoins() {
-  commands.coinList().then((coins) => {
+  commands.getCoins().then((coins) => {
     if (coins.status === 'error') {
       console.error(coins.error);
       return;
@@ -46,14 +52,14 @@ function updateCoins() {
   });
 }
 
-function updateSyncInfo() {
-  commands.syncInfo().then((syncInfo) => {
-    if (syncInfo.status === 'error') {
-      console.error(syncInfo.error);
+function updateSyncStatus() {
+  commands.getSyncStatus().then((sync) => {
+    if (sync.status === 'error') {
+      console.error(sync.error);
       return;
     }
     useWalletState.setState({
-      syncInfo: syncInfo.data,
+      sync: sync.data,
     });
   });
 }
@@ -62,17 +68,17 @@ events.syncEvent.listen((event) => {
   switch (event.payload.type) {
     case 'coin_update':
       updateCoins();
-      updateSyncInfo();
+      updateSyncStatus();
       break;
     case 'puzzle_update':
-      updateSyncInfo();
+      updateSyncStatus();
       break;
   }
 });
 
 commands.initialize().then(() => {
   commands.activeWallet().then((wallet) => {
-    if (wallet) {
+    if (wallet.status === 'ok' && wallet.data !== null) {
       fetchState();
     }
   });

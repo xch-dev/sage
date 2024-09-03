@@ -11,7 +11,7 @@ export default function Send() {
   const navigate = useNavigate();
   const walletState = useWalletState();
 
-  const balance = BigNumber(walletState.syncInfo.balance);
+  const balance = BigNumber(walletState.sync.balance);
 
   const [address, setAddress] = useState('');
   const [validAddress, setValidAddress] = useState('');
@@ -40,7 +40,7 @@ export default function Send() {
   return (
     <>
       <NavBar
-        label={`Send ${walletState.syncInfo.ticker}`}
+        label={`Send ${walletState.sync.unit.ticker}`}
         back={() => navigate(-1)}
       />
 
@@ -66,8 +66,8 @@ export default function Send() {
           error={amount.length > 0 && amountNum.isNaN()}
         />
         <Typography sx={{ mt: 1 }} variant='subtitle1' color='text.secondary'>
-          The amount to send in {walletState.syncInfo.ticker}. Your balance is
-          <b>{' ' + walletState.syncInfo.balance}.</b>
+          The amount to send in {walletState.sync.unit.ticker}. Your balance is
+          <b>{' ' + walletState.sync.balance}.</b>
         </Typography>
 
         <TextField

@@ -10,11 +10,11 @@ export default function Receive() {
   return (
     <>
       <NavBar
-        label={`Receive ${walletState.syncInfo.ticker}`}
+        label={`Receive ${walletState.sync.unit.ticker}`}
         back={() => navigate(-1)}
       />
 
-      <Container>{walletState.syncInfo.address}</Container>
+      <Container>{walletState.sync.receive_address}</Container>
     </>
   );
 }

@@ -1,8 +1,6 @@
 use bigdecimal::BigDecimal;
 use chia_wallet_sdk::{decode_address, encode_address};
-use sage_api::{
-    Amount, CoinRecord, DidRecord, GetCoins, GetDids, GetNfts, GetSyncStatus, NftRecord, SyncStatus,
-};
+use sage_api::{Amount, CoinRecord, DidRecord, NftRecord, SyncStatus};
 use specta::specta;
 use tauri::{command, State};
 
@@ -10,12 +8,9 @@ use crate::{app_state::AppState, error::Result};
 
 #[command]
 #[specta]
-pub async fn get_sync_status(
-    state: State<'_, AppState>,
-    request: GetSyncStatus,
-) -> Result<SyncStatus> {
+pub async fn get_sync_status(state: State<'_, AppState>) -> Result<SyncStatus> {
     let state = state.lock().await;
-    let wallet = state.wallet(request.fingerprint)?;
+    let wallet = state.wallet()?;
 
     let mut tx = wallet.db.tx().await?;
 
@@ -44,9 +39,9 @@ pub async fn get_sync_status(
 
 #[command]
 #[specta]
-pub async fn get_coins(state: State<'_, AppState>, request: GetCoins) -> Result<Vec<CoinRecord>> {
+pub async fn get_coins(state: State<'_, AppState>) -> Result<Vec<CoinRecord>> {
     let state = state.lock().await;
-    let wallet = state.wallet(request.fingerprint)?;
+    let wallet = state.wallet()?;
     let coin_states = wallet.db.p2_coin_states().await?;
 
     coin_states
@@ -65,9 +60,9 @@ pub async fn get_coins(state: State<'_, AppState>, request: GetCoins) -> Result<
 
 #[command]
 #[specta]
-pub async fn get_dids(state: State<'_, AppState>, request: GetDids) -> Result<Vec<DidRecord>> {
+pub async fn get_dids(state: State<'_, AppState>) -> Result<Vec<DidRecord>> {
     let state = state.lock().await;
-    let wallet = state.wallet(request.fingerprint)?;
+    let wallet = state.wallet()?;
 
     wallet
         .db
@@ -87,9 +82,9 @@ pub async fn get_dids(state: State<'_, AppState>, request: GetDids) -> Result<Ve
 
 #[command]
 #[specta]
-pub async fn get_nfts(state: State<'_, AppState>, request: GetNfts) -> Result<Vec<NftRecord>> {
+pub async fn get_nfts(state: State<'_, AppState>) -> Result<Vec<NftRecord>> {
     let state = state.lock().await;
-    let wallet = state.wallet(request.fingerprint)?;
+    let wallet = state.wallet()?;
 
     wallet
         .db
