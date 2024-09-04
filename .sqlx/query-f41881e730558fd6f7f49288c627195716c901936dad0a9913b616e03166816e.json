@@ -1,0 +1,86 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT\n            `launcher_id`,\n            `coin_id`,\n            `p2_puzzle_hash`,\n            `royalty_puzzle_hash`,\n            `royalty_ten_thousandths`,\n            `current_owner`,\n            `data_hash`,\n            `metadata_json`,\n            `metadata_hash`,\n            `license_hash`,\n            `edition_number`,\n            `edition_total`\n        FROM `nfts`\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "launcher_id",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "coin_id",
+        "ordinal": 1,
+        "type_info": "Blob"
+      },
+      {
+        "name": "p2_puzzle_hash",
+        "ordinal": 2,
+        "type_info": "Blob"
+      },
+      {
+        "name": "royalty_puzzle_hash",
+        "ordinal": 3,
+        "type_info": "Blob"
+      },
+      {
+        "name": "royalty_ten_thousandths",
+        "ordinal": 4,
+        "type_info": "Integer"
+      },
+      {
+        "name": "current_owner",
+        "ordinal": 5,
+        "type_info": "Blob"
+      },
+      {
+        "name": "data_hash",
+        "ordinal": 6,
+        "type_info": "Blob"
+      },
+      {
+        "name": "metadata_json",
+        "ordinal": 7,
+        "type_info": "Text"
+      },
+      {
+        "name": "metadata_hash",
+        "ordinal": 8,
+        "type_info": "Blob"
+      },
+      {
+        "name": "license_hash",
+        "ordinal": 9,
+        "type_info": "Blob"
+      },
+      {
+        "name": "edition_number",
+        "ordinal": 10,
+        "type_info": "Integer"
+      },
+      {
+        "name": "edition_total",
+        "ordinal": 11,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "f41881e730558fd6f7f49288c627195716c901936dad0a9913b616e03166816e"
+}

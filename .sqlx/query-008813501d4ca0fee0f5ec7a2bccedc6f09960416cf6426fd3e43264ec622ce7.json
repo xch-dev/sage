@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        DELETE FROM `nft_uris` WHERE `nft_id` = ?\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "008813501d4ca0fee0f5ec7a2bccedc6f09960416cf6426fd3e43264ec622ce7"
+}

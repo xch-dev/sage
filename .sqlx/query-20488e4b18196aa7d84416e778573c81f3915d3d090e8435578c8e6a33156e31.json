@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n        SELECT\n            cs.parent_coin_id, cs.puzzle_hash, cs.amount,\n            nft.parent_parent_coin_id, nft.parent_inner_puzzle_hash, nft.parent_amount,\n            nft.launcher_id, nft.metadata, nft.metadata_updater_puzzle_hash,\n            nft.current_owner, nft.royalty_puzzle_hash, nft.royalty_ten_thousandths,\n            nft.p2_puzzle_hash\n        FROM `coin_states` AS cs\n        INNER JOIN `nft_coins` AS nft\n        ON cs.coin_id = nft.coin_id\n        WHERE cs.spent_height IS NULL\n        ",
+  "query": "\n        SELECT\n            cs.parent_coin_id, cs.puzzle_hash, cs.amount,\n            nft.parent_parent_coin_id, nft.parent_inner_puzzle_hash, nft.parent_amount,\n            nft.launcher_id, nft.metadata, nft.metadata_updater_puzzle_hash,\n            nft.current_owner, nft.royalty_puzzle_hash, nft.royalty_ten_thousandths,\n            nft.p2_puzzle_hash\n        FROM `coin_states` AS cs\n        INNER JOIN `nft_coins` AS nft\n        ON cs.coin_id = nft.coin_id\n        WHERE cs.spent_height IS NULL\n        AND nft.launcher_id NOT IN (SELECT `launcher_id` FROM `nfts` WHERE `coin_id` = cs.coin_id)\n        ",
   "describe": {
     "columns": [
       {
@@ -88,5 +88,5 @@
       false
     ]
   },
-  "hash": "ba4942683d70ad1f7c73b6527fc07660c23169ef39192c901af9dc70b7ca4f5d"
+  "hash": "20488e4b18196aa7d84416e778573c81f3915d3d090e8435578c8e6a33156e31"
 }
