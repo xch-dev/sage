@@ -1,22 +1,18 @@
 use std::{
-    collections::HashMap,
     fs,
     path::{Path, PathBuf},
     str::FromStr,
     sync::Arc,
 };
 
-use bip39::Mnemonic;
-use chia::bls::{master_to_wallet_unhardened_intermediate, PublicKey, SecretKey};
+use chia::bls::master_to_wallet_unhardened_intermediate;
 use chia_wallet_sdk::{create_rustls_connector, load_ssl_cert, Network, NetworkId};
 use indexmap::{indexmap, IndexMap};
 use itertools::Itertools;
-use rand::SeedableRng;
-use rand_chacha::ChaCha20Rng;
 use sage_api::{Unit, XCH};
 use sage_config::{Config, WalletConfig};
 use sage_database::Database;
-use sage_keychain::{encrypt, KeyData, SecretKeyData};
+use sage_keychain::Keychain;
 use sage_wallet::{PeerState, SyncEvent, SyncManager, SyncOptions, Wallet};
 use sqlx::{
     sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions},
@@ -37,11 +33,10 @@ pub type AppState = Mutex<AppStateInner>;
 
 pub struct AppStateInner {
     app_handle: AppHandle,
-    rng: ChaCha20Rng,
     path: PathBuf,
     pub config: Config,
+    pub keychain: Keychain,
     pub networks: IndexMap<String, Network>,
-    pub keys: HashMap<u32, KeyData>,
     wallet: Option<Arc<Wallet>>,
     unit: Unit,
     sync_task: Option<JoinHandle<()>>,
@@ -53,14 +48,13 @@ impl AppStateInner {
     pub fn new(app_handle: AppHandle, path: &Path) -> Self {
         Self {
             app_handle,
-            rng: ChaCha20Rng::from_entropy(),
             path: path.to_path_buf(),
             config: Config::default(),
+            keychain: Keychain::default(),
             networks: indexmap! {
                 "mainnet".to_string() => Network::default_mainnet(),
                 "testnet11".to_string() => Network::default_testnet11(),
             },
-            keys: HashMap::new(),
             wallet: None,
             unit: XCH.clone(),
             sync_task: None,
@@ -93,9 +87,9 @@ impl AppStateInner {
 
         if key_path.try_exists()? {
             let data = fs::read(&key_path)?;
-            self.keys = bincode::deserialize(&data)?;
+            self.keychain = Keychain::from_bytes(&data)?;
         } else {
-            fs::write(&key_path, bincode::serialize(&self.keys)?)?;
+            fs::write(&key_path, self.keychain.to_bytes()?)?;
         }
 
         if config_path.try_exists()? {
@@ -255,9 +249,7 @@ impl AppStateInner {
             return Ok(());
         };
 
-        let key = self.keys.get(&fingerprint).cloned();
-
-        let Some(key) = key else {
+        let Some(master_pk) = self.keychain.extract_public_key(fingerprint)? else {
             return Err(Error::unknown_fingerprint(fingerprint));
         };
 
@@ -268,11 +260,6 @@ impl AppStateInner {
             .cloned()
             .unwrap_or_default();
 
-        let master_pk_bytes = match key {
-            KeyData::Public { master_pk } | KeyData::Secret { master_pk, .. } => master_pk,
-        };
-
-        let master_pk = PublicKey::from_bytes(&master_pk_bytes)?;
         let intermediate_pk = master_to_wallet_unhardened_intermediate(&master_pk);
 
         let path = self.path.join("wallets").join(fingerprint.to_string());
@@ -310,7 +297,7 @@ impl AppStateInner {
             return Err(Error::not_logged_in());
         };
 
-        if !self.keys.contains_key(&fingerprint) {
+        if !self.keychain.contains(fingerprint) {
             return Err(Error::unknown_fingerprint(fingerprint));
         }
 
@@ -352,7 +339,7 @@ impl AppStateInner {
     }
 
     pub fn delete_wallet(&mut self, fingerprint: u32) -> Result<()> {
-        self.keys.remove(&fingerprint);
+        self.keychain.remove(fingerprint);
 
         self.config.wallets.shift_remove(&fingerprint.to_string());
         if self.config.app.active_fingerprint == Some(fingerprint) {
@@ -375,95 +362,46 @@ impl AppStateInner {
 
         for (fingerprint, wallet) in &self.config.wallets {
             let fingerprint = fingerprint.parse::<u32>()?;
-            let Some(key) = self.keys.get(&fingerprint) else {
+
+            let Some(master_pk) = self.keychain.extract_public_key(fingerprint)? else {
                 continue;
             };
+
             wallets.push(WalletInfo {
                 name: wallet.name.clone(),
                 fingerprint,
-                public_key: hex::encode(match key {
-                    KeyData::Public { master_pk } | KeyData::Secret { master_pk, .. } => master_pk,
-                }),
-                kind: match key {
-                    KeyData::Public { .. } => WalletKind::Cold,
-                    KeyData::Secret { .. } => WalletKind::Hot,
+                public_key: hex::encode(master_pk.to_bytes()),
+                kind: if self.keychain.has_secret_key(fingerprint) {
+                    WalletKind::Hot
+                } else {
+                    WalletKind::Cold
                 },
             });
         }
 
         for fingerprint in self
-            .keys
-            .keys()
-            .copied()
+            .keychain
+            .fingerprints()
             .filter(|fingerprint| !self.config.wallets.contains_key(&fingerprint.to_string()))
             .sorted()
         {
-            let key = self.keys.get(&fingerprint).expect("expected key data");
+            let Some(master_pk) = self.keychain.extract_public_key(fingerprint)? else {
+                continue;
+            };
+
             wallets.push(WalletInfo {
                 name: "Unnamed Wallet".to_string(),
                 fingerprint,
-                public_key: hex::encode(match key {
-                    KeyData::Public { master_pk } | KeyData::Secret { master_pk, .. } => master_pk,
-                }),
-                kind: match key {
-                    KeyData::Public { .. } => WalletKind::Cold,
-                    KeyData::Secret { .. } => WalletKind::Hot,
+                public_key: hex::encode(master_pk.to_bytes()),
+                kind: if self.keychain.has_secret_key(fingerprint) {
+                    WalletKind::Hot
+                } else {
+                    WalletKind::Cold
                 },
             });
         }
 
         Ok(wallets)
-    }
-
-    pub fn import_public_key(&mut self, master_pk: &PublicKey) -> Result<u32> {
-        let fingerprint = master_pk.get_fingerprint();
-        self.keys.insert(
-            fingerprint,
-            KeyData::Public {
-                master_pk: master_pk.to_bytes(),
-            },
-        );
-        self.save_keychain()?;
-        Ok(fingerprint)
-    }
-
-    pub fn import_secret_key(&mut self, master_sk: &SecretKey) -> Result<u32> {
-        let master_pk = master_sk.public_key();
-        let fingerprint = master_pk.get_fingerprint();
-        let encrypted = encrypt(
-            b"",
-            &mut self.rng,
-            &SecretKeyData(master_sk.to_bytes().to_vec()),
-        )?;
-        self.keys.insert(
-            fingerprint,
-            KeyData::Secret {
-                master_pk: master_pk.to_bytes(),
-                entropy: false,
-                encrypted,
-            },
-        );
-        self.save_keychain()?;
-        Ok(fingerprint)
-    }
-
-    pub fn import_mnemonic(&mut self, mnemonic: &Mnemonic) -> Result<u32> {
-        let entropy = mnemonic.to_entropy();
-        let seed = mnemonic.to_seed("");
-        let master_sk = SecretKey::from_seed(&seed);
-        let master_pk = master_sk.public_key();
-        let fingerprint = master_pk.get_fingerprint();
-        let encrypted = encrypt(b"", &mut self.rng, &SecretKeyData(entropy))?;
-        self.keys.insert(
-            fingerprint,
-            KeyData::Secret {
-                master_pk: master_pk.to_bytes(),
-                entropy: true,
-                encrypted,
-            },
-        );
-        self.save_keychain()?;
-        Ok(fingerprint)
     }
 
     pub fn save_config(&self) -> Result<()> {
@@ -473,8 +411,7 @@ impl AppStateInner {
     }
 
     pub fn save_keychain(&self) -> Result<()> {
-        let data = bincode::serialize(&self.keys)?;
-        fs::write(self.path.join("keys.bin"), data)?;
+        fs::write(self.path.join("keys.bin"), self.keychain.to_bytes()?)?;
         Ok(())
     }
 }

@@ -11,7 +11,6 @@ use rand_chacha::ChaCha20Rng;
 use sage_api::{Amount, CatRecord, CoinRecord, DidRecord, NftRecord, SyncStatus};
 use sage_config::{NetworkConfig, WalletConfig};
 use sage_database::NftUriKind;
-use sage_keychain::{decrypt, KeyData, SecretKeyData};
 use specta::specta;
 use tauri::{command, State};
 
@@ -372,20 +371,19 @@ pub async fn active_wallet(state: State<'_, AppState>) -> Result<Option<WalletIn
             |config| config.name.clone(),
         );
 
-    let Some(key) = state.keys.get(&fingerprint) else {
+    let Some(master_pk) = state.keychain.extract_public_key(fingerprint)? else {
         return Ok(None);
-    };
-
-    let (master_pk, kind) = match key {
-        KeyData::Public { master_pk } => (master_pk, WalletKind::Cold),
-        KeyData::Secret { master_pk, .. } => (master_pk, WalletKind::Hot),
     };
 
     Ok(Some(WalletInfo {
         name,
         fingerprint,
-        public_key: hex::encode(master_pk),
-        kind,
+        public_key: hex::encode(master_pk.to_bytes()),
+        kind: if state.keychain.has_secret_key(fingerprint) {
+            WalletKind::Hot
+        } else {
+            WalletKind::Cold
+        },
     }))
 }
 
@@ -397,31 +395,8 @@ pub async fn get_wallet_secrets(
 ) -> Result<Option<WalletSecrets>> {
     let state = state.lock().await;
 
-    let Some(key) = state.keys.get(&fingerprint) else {
+    let (mnemonic, Some(secret_key)) = state.keychain.extract_secrets(fingerprint, b"")? else {
         return Ok(None);
-    };
-
-    let (mnemonic, secret_key) = match key {
-        KeyData::Public { .. } => return Ok(None),
-        KeyData::Secret {
-            entropy, encrypted, ..
-        } => {
-            let data = decrypt::<SecretKeyData>(encrypted, b"")?;
-
-            let mnemonic = if *entropy {
-                Some(Mnemonic::from_entropy(&data.0)?)
-            } else {
-                None
-            };
-
-            let secret_key = if let Some(mnemonic) = mnemonic.as_ref() {
-                SecretKey::from_seed(&mnemonic.to_seed(""))
-            } else {
-                SecretKey::from_bytes(&data.0.try_into().expect("invalid length"))?
-            };
-
-            (mnemonic, secret_key)
-        }
     };
 
     Ok(Some(WalletSecrets {
@@ -481,13 +456,14 @@ pub async fn create_wallet(
     let mnemonic = Mnemonic::from_str(&mnemonic)?;
 
     let fingerprint = if save_mnemonic {
-        state.import_mnemonic(&mnemonic)?
+        state.keychain.add_mnemonic(&mnemonic, b"")?
     } else {
         let seed = mnemonic.to_seed("");
         let master_sk = SecretKey::from_seed(&seed);
         let master_pk = master_sk.public_key();
-        state.import_public_key(&master_pk)?
+        state.keychain.add_public_key(&master_pk)?
     };
+    state.save_keychain()?;
 
     let config = state.wallet_config_mut(fingerprint);
     config.name = name;
@@ -511,17 +487,18 @@ pub async fn import_wallet(state: State<'_, AppState>, name: String, key: String
     let fingerprint = if let Ok(bytes) = hex::decode(key_hex) {
         if let Ok(master_pk) = bytes.clone().try_into() {
             let master_pk = PublicKey::from_bytes(&master_pk)?;
-            state.import_public_key(&master_pk)?
+            state.keychain.add_public_key(&master_pk)?
         } else if let Ok(master_sk) = bytes.try_into() {
             let master_sk = SecretKey::from_bytes(&master_sk)?;
-            state.import_secret_key(&master_sk)?
+            state.keychain.add_secret_key(&master_sk, b"")?
         } else {
             return Err(Error::invalid_key("Must be 32 or 48 bytes"));
         }
     } else {
         let mnemonic = Mnemonic::from_str(&key)?;
-        state.import_mnemonic(&mnemonic)?
+        state.keychain.add_mnemonic(&mnemonic, b"")?
     };
+    state.save_keychain()?;
 
     let config = state.wallet_config_mut(fingerprint);
     config.name = name;

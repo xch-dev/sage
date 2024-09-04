@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, Bytes};
 
-use crate::Encrypted;
+use crate::encrypt::Encrypted;
 
 #[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -1,7 +1,7 @@
 mod encrypt;
 mod error;
 mod key_data;
+mod keychain;
 
-pub use encrypt::*;
 pub use error::*;
-pub use key_data::*;
+pub use keychain::*;

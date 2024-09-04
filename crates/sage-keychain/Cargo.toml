@@ -15,10 +15,13 @@ categories = { workspace = true }
 workspace = true
 
 [dependencies]
+chia = { workspace = true }
+bip39 = { workspace = true }
 thiserror = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_with = { workspace = true, features = ["hex"] }
 bincode = { workspace = true }
 aes-gcm = { workspace = true }
 rand = { workspace = true }
+rand_chacha = { workspace = true }
 argon2 = { workspace = true }
