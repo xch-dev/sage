@@ -46,7 +46,7 @@ pub struct AppStateInner {
     unit: Unit,
     sync_task: Option<JoinHandle<()>>,
     pub peer_state: Arc<Mutex<PeerState>>,
-    pub initialized: bool,
+    initialized: bool,
 }
 
 impl AppStateInner {
