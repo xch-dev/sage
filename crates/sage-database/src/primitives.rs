@@ -5,7 +5,10 @@ use chia::{
 use chia_wallet_sdk::{Cat, Did, DidInfo, Nft, NftInfo};
 use sqlx::SqliteExecutor;
 
-use crate::{error::Result, to_bytes, to_bytes32, to_coin, to_lineage_proof, Database, DatabaseTx};
+use crate::{
+    error::Result, to_bytes, to_bytes32, to_coin, to_lineage_proof, Database, DatabaseError,
+    DatabaseTx,
+};
 
 #[derive(Debug, Clone)]
 pub struct CatRow {
@@ -15,6 +18,35 @@ pub struct CatRow {
     pub ticker: Option<String>,
     pub precision: u8,
     pub icon_url: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct NftRow {
+    pub launcher_id: Bytes32,
+    pub coin_id: Bytes32,
+    pub p2_puzzle_hash: Bytes32,
+    pub royalty_puzzle_hash: Bytes32,
+    pub royalty_ten_thousandths: u16,
+    pub current_owner: Option<Bytes32>,
+    pub data_hash: Option<Bytes32>,
+    pub metadata_json: Option<String>,
+    pub metadata_hash: Option<Bytes32>,
+    pub license_hash: Option<Bytes32>,
+    pub edition_number: Option<u32>,
+    pub edition_total: Option<u32>,
+}
+
+#[derive(Debug, Clone)]
+pub struct NftUri {
+    pub uri: String,
+    pub kind: NftUriKind,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum NftUriKind {
+    Data,
+    Metadata,
+    License,
 }
 
 impl Database {
@@ -48,6 +80,39 @@ impl Database {
         cat_coin(&self.pool, coin_id).await
     }
 
+    pub async fn update_nft(&self, row: NftRow) -> Result<()> {
+        update_nft(&self.pool, row).await
+    }
+
+    pub async fn delete_nfts(&self) -> Result<()> {
+        delete_nfts(&self.pool).await
+    }
+
+    pub async fn nfts(&self) -> Result<Vec<NftRow>> {
+        nfts(&self.pool).await
+    }
+
+    pub async fn insert_nft_uri(
+        &self,
+        nft_id: Bytes32,
+        uri: String,
+        kind: NftUriKind,
+    ) -> Result<()> {
+        insert_nft_uri(&self.pool, nft_id, uri, kind).await
+    }
+
+    pub async fn clear_nft_uris(&self, nft_id: Bytes32) -> Result<()> {
+        clear_nft_uris(&self.pool, nft_id).await
+    }
+
+    pub async fn nft_uris(&self, nft_id: Bytes32) -> Result<Vec<NftUri>> {
+        nft_uris(&self.pool, nft_id).await
+    }
+
+    pub async fn nft(&self, launcher_id: Bytes32) -> Result<Option<NftRow>> {
+        nft(&self.pool, launcher_id).await
+    }
+
     pub async fn insert_nft_coin(
         &self,
         coin_id: Bytes32,
@@ -61,8 +126,8 @@ impl Database {
         nft_coin(&self.pool, launcher_id).await
     }
 
-    pub async fn nft_coins(&self) -> Result<Vec<Nft<Program>>> {
-        nft_coins(&self.pool).await
+    pub async fn updated_nft_coins(&self) -> Result<Vec<Nft<Program>>> {
+        updated_nft_coins(&self.pool).await
     }
 
     pub async fn insert_did_coin(
@@ -125,6 +190,39 @@ impl<'a> DatabaseTx<'a> {
         cat_coin(&mut *self.tx, coin_id).await
     }
 
+    pub async fn update_nft(&mut self, row: NftRow) -> Result<()> {
+        update_nft(&mut *self.tx, row).await
+    }
+
+    pub async fn delete_nfts(&mut self) -> Result<()> {
+        delete_nfts(&mut *self.tx).await
+    }
+
+    pub async fn nfts(&mut self) -> Result<Vec<NftRow>> {
+        nfts(&mut *self.tx).await
+    }
+
+    pub async fn insert_nft_uri(
+        &mut self,
+        nft_id: Bytes32,
+        uri: String,
+        kind: NftUriKind,
+    ) -> Result<()> {
+        insert_nft_uri(&mut *self.tx, nft_id, uri, kind).await
+    }
+
+    pub async fn clear_nft_uris(&mut self, nft_id: Bytes32) -> Result<()> {
+        clear_nft_uris(&mut *self.tx, nft_id).await
+    }
+
+    pub async fn nft_uris(&mut self, nft_id: Bytes32) -> Result<Vec<NftUri>> {
+        nft_uris(&mut *self.tx, nft_id).await
+    }
+
+    pub async fn nft(&mut self, launcher_id: Bytes32) -> Result<Option<NftRow>> {
+        nft(&mut *self.tx, launcher_id).await
+    }
+
     pub async fn insert_nft_coin(
         &mut self,
         coin_id: Bytes32,
@@ -138,8 +236,8 @@ impl<'a> DatabaseTx<'a> {
         nft_coin(&mut *self.tx, launcher_id).await
     }
 
-    pub async fn nft_coins(&mut self) -> Result<Vec<Nft<Program>>> {
-        nft_coins(&mut *self.tx).await
+    pub async fn updated_nft_coins(&mut self) -> Result<Vec<Nft<Program>>> {
+        updated_nft_coins(&mut *self.tx).await
     }
 
     pub async fn insert_did_coin(
@@ -333,6 +431,219 @@ async fn cat_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Opt
     }))
 }
 
+async fn update_nft(conn: impl SqliteExecutor<'_>, row: NftRow) -> Result<()> {
+    let launcher_id = row.launcher_id.as_ref();
+    let coin_id = row.coin_id.as_ref();
+    let p2_puzzle_hash = row.p2_puzzle_hash.as_ref();
+    let royalty_puzzle_hash = row.royalty_puzzle_hash.as_ref();
+    let royalty_ten_thousandths = row.royalty_ten_thousandths;
+    let current_owner = row.current_owner.as_deref();
+    let data_hash = row.data_hash.as_deref();
+    let metadata_json = row.metadata_json.as_ref();
+    let metadata_hash = row.metadata_hash.as_deref();
+    let license_hash = row.license_hash.as_deref();
+    let edition_number = row.edition_number;
+    let edition_total = row.edition_total;
+
+    sqlx::query!(
+        "
+        REPLACE INTO `nfts` (
+            `launcher_id`,
+            `coin_id`,
+            `p2_puzzle_hash`,
+            `royalty_puzzle_hash`,
+            `royalty_ten_thousandths`,
+            `current_owner`,
+            `data_hash`,
+            `metadata_json`,
+            `metadata_hash`,
+            `license_hash`,
+            `edition_number`,
+            `edition_total`
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ",
+        launcher_id,
+        coin_id,
+        p2_puzzle_hash,
+        royalty_puzzle_hash,
+        royalty_ten_thousandths,
+        current_owner,
+        data_hash,
+        metadata_json,
+        metadata_hash,
+        license_hash,
+        edition_number,
+        edition_total
+    )
+    .execute(conn)
+    .await?;
+
+    Ok(())
+}
+
+async fn clear_nft_uris(conn: impl SqliteExecutor<'_>, nft_id: Bytes32) -> Result<()> {
+    let nft_id = nft_id.as_ref();
+
+    sqlx::query!(
+        "
+        DELETE FROM `nft_uris` WHERE `nft_id` = ?
+        ",
+        nft_id
+    )
+    .execute(conn)
+    .await?;
+
+    Ok(())
+}
+
+async fn insert_nft_uri(
+    conn: impl SqliteExecutor<'_>,
+    nft_id: Bytes32,
+    uri: String,
+    kind: NftUriKind,
+) -> Result<()> {
+    let nft_id = nft_id.as_ref();
+    let kind = match kind {
+        NftUriKind::Data => 0,
+        NftUriKind::Metadata => 1,
+        NftUriKind::License => 2,
+    };
+
+    sqlx::query!(
+        "
+        INSERT INTO `nft_uris` (`nft_id`, `uri`, `kind`) VALUES (?, ?, ?)
+        ",
+        nft_id,
+        uri,
+        kind
+    )
+    .execute(conn)
+    .await?;
+
+    Ok(())
+}
+
+async fn nfts(conn: impl SqliteExecutor<'_>) -> Result<Vec<NftRow>> {
+    let rows = sqlx::query!(
+        "
+        SELECT
+            `launcher_id`,
+            `coin_id`,
+            `p2_puzzle_hash`,
+            `royalty_puzzle_hash`,
+            `royalty_ten_thousandths`,
+            `current_owner`,
+            `data_hash`,
+            `metadata_json`,
+            `metadata_hash`,
+            `license_hash`,
+            `edition_number`,
+            `edition_total`
+        FROM `nfts`
+        "
+    )
+    .fetch_all(conn)
+    .await?;
+
+    rows.into_iter()
+        .map(|row| {
+            Ok(NftRow {
+                launcher_id: to_bytes32(&row.launcher_id)?,
+                coin_id: to_bytes32(&row.coin_id)?,
+                p2_puzzle_hash: to_bytes32(&row.p2_puzzle_hash)?,
+                royalty_puzzle_hash: to_bytes32(&row.royalty_puzzle_hash)?,
+                royalty_ten_thousandths: row.royalty_ten_thousandths.try_into()?,
+                current_owner: row
+                    .current_owner
+                    .map(|owner| to_bytes32(&owner))
+                    .transpose()?,
+                data_hash: row.data_hash.as_deref().map(to_bytes32).transpose()?,
+                metadata_json: row.metadata_json,
+                metadata_hash: row.metadata_hash.as_deref().map(to_bytes32).transpose()?,
+                license_hash: row.license_hash.as_deref().map(to_bytes32).transpose()?,
+                edition_number: row.edition_number.map(u32::try_from).transpose()?,
+                edition_total: row.edition_total.map(u32::try_from).transpose()?,
+            })
+        })
+        .collect()
+}
+
+async fn nft(conn: impl SqliteExecutor<'_>, launcher_id: Bytes32) -> Result<Option<NftRow>> {
+    let launcher_id = launcher_id.as_ref();
+
+    let row = sqlx::query!(
+        "
+        SELECT
+            `launcher_id`,
+            `coin_id`,
+            `p2_puzzle_hash`,
+            `royalty_puzzle_hash`,
+            `royalty_ten_thousandths`,
+            `current_owner`,
+            `data_hash`,
+            `metadata_json`,
+            `metadata_hash`,
+            `license_hash`,
+            `edition_number`,
+            `edition_total`
+        FROM `nfts`
+        WHERE `launcher_id` = ?
+        ",
+        launcher_id
+    )
+    .fetch_optional(conn)
+    .await?;
+
+    row.map(|row| {
+        Ok(NftRow {
+            launcher_id: to_bytes32(&row.launcher_id)?,
+            coin_id: to_bytes32(&row.coin_id)?,
+            p2_puzzle_hash: to_bytes32(&row.p2_puzzle_hash)?,
+            royalty_puzzle_hash: to_bytes32(&row.royalty_puzzle_hash)?,
+            royalty_ten_thousandths: row.royalty_ten_thousandths.try_into()?,
+            current_owner: row
+                .current_owner
+                .map(|owner| to_bytes32(&owner))
+                .transpose()?,
+            data_hash: row.data_hash.as_deref().map(to_bytes32).transpose()?,
+            metadata_json: row.metadata_json,
+            metadata_hash: row.metadata_hash.as_deref().map(to_bytes32).transpose()?,
+            license_hash: row.license_hash.as_deref().map(to_bytes32).transpose()?,
+            edition_number: row.edition_number.map(u32::try_from).transpose()?,
+            edition_total: row.edition_total.map(u32::try_from).transpose()?,
+        })
+    })
+    .transpose()
+}
+
+async fn nft_uris(conn: impl SqliteExecutor<'_>, nft_id: Bytes32) -> Result<Vec<NftUri>> {
+    let nft_id = nft_id.as_ref();
+
+    let rows = sqlx::query!(
+        "
+        SELECT `uri`, `kind` FROM `nft_uris` WHERE `nft_id` = ?
+        ",
+        nft_id
+    )
+    .fetch_all(conn)
+    .await?;
+
+    rows.into_iter()
+        .map(|row| {
+            Ok(NftUri {
+                uri: row.uri,
+                kind: match row.kind {
+                    0 => NftUriKind::Data,
+                    1 => NftUriKind::Metadata,
+                    2 => NftUriKind::License,
+                    _ => return Err(DatabaseError::InvalidEnumVariant),
+                },
+            })
+        })
+        .collect()
+}
+
 async fn insert_nft_coin(
     conn: impl SqliteExecutor<'_>,
     coin_id: Bytes32,
@@ -435,7 +746,7 @@ async fn nft_coin(
     }))
 }
 
-async fn nft_coins(conn: impl SqliteExecutor<'_>) -> Result<Vec<Nft<Program>>> {
+async fn updated_nft_coins(conn: impl SqliteExecutor<'_>) -> Result<Vec<Nft<Program>>> {
     let rows = sqlx::query!(
         "
         SELECT
@@ -448,6 +759,7 @@ async fn nft_coins(conn: impl SqliteExecutor<'_>) -> Result<Vec<Nft<Program>>> {
         INNER JOIN `nft_coins` AS nft
         ON cs.coin_id = nft.coin_id
         WHERE cs.spent_height IS NULL
+        AND nft.launcher_id NOT IN (SELECT `launcher_id` FROM `nfts` WHERE `coin_id` = cs.coin_id)
         "
     )
     .fetch_all(conn)
@@ -477,6 +789,23 @@ async fn nft_coins(conn: impl SqliteExecutor<'_>) -> Result<Vec<Nft<Program>>> {
             })
         })
         .collect()
+}
+
+async fn delete_nfts(conn: impl SqliteExecutor<'_>) -> Result<()> {
+    sqlx::query!(
+        "
+        DELETE FROM `nfts`
+        WHERE `launcher_id` NOT IN (
+            SELECT `launcher_id` FROM `nft_coins`
+            INNER JOIN `coin_states` ON `nft_coins`.`coin_id` = `coin_states`.`coin_id`
+            WHERE `coin_states`.`spent_height` IS NOT NULL
+        )
+        "
+    )
+    .execute(conn)
+    .await?;
+
+    Ok(())
 }
 
 async fn insert_did_coin(

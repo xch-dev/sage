@@ -10,6 +10,7 @@ use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use sage_api::{Amount, CatRecord, CoinRecord, DidRecord, NftRecord, SyncStatus};
 use sage_config::{NetworkConfig, WalletConfig};
+use sage_database::NftUriKind;
 use sage_keychain::{decrypt, KeyData, SecretKeyData};
 use specta::specta;
 use tauri::{command, State};
@@ -135,27 +136,53 @@ pub async fn get_nfts(state: State<'_, AppState>) -> Result<Vec<NftRecord>> {
     let state = state.lock().await;
     let wallet = state.wallet()?;
 
-    wallet
-        .db
-        .nft_coins()
-        .await?
-        .into_iter()
-        .map(|nft| {
-            Ok(NftRecord {
-                encoded_id: encode_address(nft.info.launcher_id.to_bytes(), "nft")?,
-                launcher_id: hex::encode(nft.info.launcher_id),
-                coin_id: hex::encode(nft.coin.coin_id()),
-                address: encode_address(nft.info.p2_puzzle_hash.to_bytes(), state.prefix())?,
-                royalty_address: encode_address(
-                    nft.info.royalty_puzzle_hash.to_bytes(),
-                    state.prefix(),
-                )?,
-                royalty_percent: (BigDecimal::from(nft.info.royalty_ten_thousandths)
-                    / BigDecimal::from(100))
-                .to_string(),
-            })
-        })
-        .collect()
+    let mut records = Vec::new();
+
+    let mut tx = wallet.db.tx().await?;
+
+    for nft in tx.nfts().await? {
+        let uris = tx.nft_uris(nft.launcher_id).await?;
+        let mut data_uris = Vec::new();
+        let mut metadata_uris = Vec::new();
+        let mut license_uris = Vec::new();
+
+        for uri in uris {
+            match uri.kind {
+                NftUriKind::Data => data_uris.push(uri.uri),
+                NftUriKind::Metadata => metadata_uris.push(uri.uri),
+                NftUriKind::License => license_uris.push(uri.uri),
+            }
+        }
+
+        records.push(NftRecord {
+            encoded_id: encode_address(nft.launcher_id.to_bytes(), "nft")?,
+            launcher_id: hex::encode(nft.launcher_id),
+            encoded_owner_did: nft
+                .current_owner
+                .map(|owner| encode_address(owner.to_bytes(), "did:chia:"))
+                .transpose()?,
+            owner_did: nft.current_owner.map(hex::encode),
+            coin_id: hex::encode(nft.coin_id),
+            address: encode_address(nft.p2_puzzle_hash.to_bytes(), state.prefix())?,
+            royalty_address: encode_address(nft.royalty_puzzle_hash.to_bytes(), state.prefix())?,
+            royalty_percent: (BigDecimal::from(nft.royalty_ten_thousandths)
+                / BigDecimal::from(100))
+            .to_string(),
+            data_uris,
+            data_hash: nft.data_hash.map(hex::encode),
+            metadata_uris,
+            metadata_json: nft.metadata_json,
+            metadata_hash: nft.metadata_hash.map(hex::encode),
+            license_uris,
+            license_hash: nft.license_hash.map(hex::encode),
+            edition_number: nft.edition_number,
+            edition_total: nft.edition_total,
+        });
+    }
+
+    tx.commit().await?;
+
+    Ok(records)
 }
 
 #[command]

@@ -96,3 +96,25 @@ CREATE TABLE `cats` (
     `precision` INTEGER NOT NULL,
     `icon_url` TEXT
 );
+
+CREATE TABLE `nfts` (
+    `launcher_id` BLOB NOT NULL PRIMARY KEY,
+    `coin_id` BLOB NOT NULL,
+    `p2_puzzle_hash` BLOB NOT NULL,
+    `royalty_puzzle_hash` BLOB NOT NULL,
+    `royalty_ten_thousandths` INTEGER NOT NULL,
+    `current_owner` BLOB,
+    `data_hash` BLOB,
+    `metadata_json` TEXT,
+    `metadata_hash` BLOB,
+    `license_hash` BLOB,
+    `edition_number` INTEGER,
+    `edition_total` INTEGER
+);
+
+CREATE TABLE `nft_uris` (
+    `nft_id` BLOB NOT NULL,
+    `uri` TEXT NOT NULL,
+    `kind` INTEGER NOT NULL,
+    FOREIGN KEY (`nft_id`) REFERENCES `nfts` (`launcher_id`) ON DELETE CASCADE
+);

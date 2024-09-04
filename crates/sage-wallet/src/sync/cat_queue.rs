@@ -6,6 +6,7 @@ use tokio::{
     sync::mpsc,
     time::{sleep, timeout},
 };
+use tracing::info;
 
 use crate::{SyncError, WalletError};
 
@@ -46,6 +47,11 @@ impl CatQueue {
         let Some(asset_id) = self.db.unidentified_cat().await? else {
             return Ok(());
         };
+
+        info!(
+            "Looking up CAT with asset id {} from spacescan.io",
+            asset_id
+        );
 
         let response = timeout(
             Duration::from_secs(10),

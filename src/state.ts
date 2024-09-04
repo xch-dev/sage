@@ -76,7 +76,11 @@ events.syncEvent.listen((event) => {
   }
 });
 
-commands.initialize().then(() => {
+commands.initialize().then((result) => {
+  if (result.status === 'error') {
+    console.error(result.error);
+    return;
+  }
   commands.activeWallet().then((wallet) => {
     if (wallet.status === 'ok' && wallet.data !== null) {
       fetchState();

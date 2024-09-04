@@ -8,4 +8,5 @@ pub enum SyncEvent {
     CoinUpdate,
     PuzzleUpdate,
     CatUpdate,
+    NftUpdate,
 }

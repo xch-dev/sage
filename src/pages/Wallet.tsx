@@ -305,6 +305,8 @@ function NftList() {
     return () => clearInterval(interval);
   }, []);
 
+  console.log(nftList);
+
   return (
     <>
       {nftList.map((nft) => (

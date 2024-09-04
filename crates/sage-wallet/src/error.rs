@@ -54,6 +54,9 @@ pub enum ParseError {
     #[error("Could not allocate solution")]
     AllocateSolution,
 
+    #[error("Could not allocate metadata")]
+    AllocateMetadata,
+
     #[error("Could not serialize CLVM")]
     Serialize,
 

@@ -170,9 +170,9 @@ impl AppStateInner {
         #[cfg(mobile)]
         registry.init();
 
-        info!("Initial setup complete");
-
         self.switch_wallet().await?;
+
+        info!("Initial setup complete");
 
         Ok(())
     }
@@ -235,6 +235,7 @@ impl AppStateInner {
                     SyncEvent::CoinUpdate => SyncEventData::CoinUpdate,
                     SyncEvent::PuzzleUpdate => SyncEventData::PuzzleUpdate,
                     SyncEvent::CatUpdate => SyncEventData::CatUpdate,
+                    SyncEvent::NftUpdate => SyncEventData::NftUpdate,
                 };
                 if app_handle.emit("sync-event", event).is_err() {
                     break;

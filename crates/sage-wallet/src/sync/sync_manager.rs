@@ -23,6 +23,7 @@ use crate::{Wallet, WalletError};
 
 use super::{
     cat_queue::CatQueue,
+    nft_queue::NftQueue,
     peer_event::{handle_peer, handle_peer_events, PeerEvent},
     peer_info::PeerInfo,
     puzzle_queue::PuzzleQueue,
@@ -49,6 +50,7 @@ pub struct SyncManager {
     initial_wallet_sync: InitialWalletSync,
     puzzle_lookup_task: Option<JoinHandle<Result<(), WalletError>>>,
     cat_queue_task: Option<JoinHandle<Result<(), WalletError>>>,
+    nft_queue_task: Option<JoinHandle<Result<(), WalletError>>>,
 }
 
 impl fmt::Debug for SyncManager {
@@ -113,6 +115,7 @@ impl SyncManager {
             initial_wallet_sync: InitialWalletSync::Idle,
             puzzle_lookup_task: None,
             cat_queue_task: None,
+            nft_queue_task: None,
         };
 
         (manager, sync_receiver)
@@ -290,9 +293,17 @@ impl SyncManager {
                 );
                 self.cat_queue_task = Some(task);
             }
+
+            if self.nft_queue_task.is_none() {
+                let task = tokio::spawn(
+                    NftQueue::new(wallet.db.clone(), self.sync_sender.clone()).start(),
+                );
+                self.nft_queue_task = Some(task);
+            }
         } else {
             self.puzzle_lookup_task = None;
             self.cat_queue_task = None;
+            self.nft_queue_task = None;
         }
     }
 
@@ -324,6 +335,13 @@ impl SyncManager {
             if let Ok(Some(Err(error))) = timeout(Duration::from_secs(1), poll_once(task)).await {
                 warn!("Spacescan.io CAT lookup queue failed with error: {error}");
                 self.cat_queue_task = None;
+            }
+        }
+
+        if let Some(task) = &mut self.nft_queue_task {
+            if let Ok(Some(Err(error))) = timeout(Duration::from_secs(1), poll_once(task)).await {
+                warn!("NFT update queue failed with error: {error}");
+                self.nft_queue_task = None;
             }
         }
     }

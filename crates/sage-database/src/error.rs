@@ -15,6 +15,9 @@ pub enum DatabaseError {
 
     #[error("BLS error: {0}")]
     Bls(#[from] chia::bls::Error),
+
+    #[error("Invalid enum variant")]
+    InvalidEnumVariant,
 }
 
 pub(crate) type Result<T> = std::result::Result<T, DatabaseError>;
