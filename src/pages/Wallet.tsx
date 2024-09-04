@@ -26,6 +26,7 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
+import Grid2 from '@mui/material/Unstable_Grid2/Grid2';
 import { GridRowSelectionModel } from '@mui/x-data-grid';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -307,24 +308,65 @@ function NftList() {
   }, []);
 
   return (
-    <>
-      {nfts.map((nft) => (
-        <Paper key={nft.launcher_id}>
-          <ListItemButton>
-            <ListItemAvatar>
-              <Avatar src={nft.data_uris[0]} sx={{ width: 90, height: 90 }} />
-            </ListItemAvatar>
-            <ListItemText
-              primary={
-                nft.metadata_json
-                  ? (JSON.parse(nft.metadata_json).name ?? 'Unknown NFT')
-                  : 'Unknown NFT'
-              }
-              secondary={nft.encoded_id}
-            />
-          </ListItemButton>
-        </Paper>
+    <Grid2 container spacing={2}>
+      {nfts.map((nft, i) => (
+        <Nft nft={nft} key={i} />
       ))}
-    </>
+    </Grid2>
+  );
+}
+
+function Nft({ nft }: { nft: NftRecord }) {
+  const theme = useTheme();
+
+  if (!nft.metadata_json) console.log(nft);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let json: any = {};
+
+  if (nft.metadata_json) {
+    try {
+      json = JSON.parse(nft.metadata_json);
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  return (
+    <Grid2 xs={6} sm={4} md={4}>
+      <Box position='relative' width='100%' height='100%'>
+        <Button sx={{ padding: 0, width: '100%', height: '100%' }}>
+          <img
+            src={nft.data_uris[0]}
+            style={{
+              width: '100%',
+              height: '100%',
+              borderRadius: theme.shape.borderRadius,
+            }}
+          />
+
+          <Paper
+            sx={{
+              position: 'absolute',
+              bottom: 0,
+              width: '100%',
+              height: '40px',
+              p: 1,
+              borderTopLeftRadius: '0px',
+              borderTopRightRadius: '0px',
+              borderBottomLeftRadius: theme.shape.borderRadius,
+              borderBottomRightRadius: theme.shape.borderRadius,
+              textAlign: 'center',
+              textTransform: 'none',
+              overflow: 'none',
+            }}
+          >
+            <Typography variant='body1' width='100%' height='100%'>
+              {json.name ?? 'Unknown NFT'}
+            </Typography>
+          </Paper>
+        </Button>
+      </Box>
+    </Grid2>
   );
 }
