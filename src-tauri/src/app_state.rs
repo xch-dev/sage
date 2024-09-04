@@ -234,6 +234,7 @@ impl AppStateInner {
                     SyncEvent::Subscribed => SyncEventData::Subscribed,
                     SyncEvent::CoinUpdate => SyncEventData::CoinUpdate,
                     SyncEvent::PuzzleUpdate => SyncEventData::PuzzleUpdate,
+                    SyncEvent::CatUpdate => SyncEventData::CatUpdate,
                 };
                 if app_handle.emit("sync-event", event).is_err() {
                     break;

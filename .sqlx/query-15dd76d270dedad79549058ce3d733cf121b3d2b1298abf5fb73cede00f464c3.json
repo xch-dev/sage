@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT `asset_id` FROM `cat_coins`\n        WHERE `asset_id` NOT IN (SELECT `asset_id` FROM `cats`)\n        LIMIT 1\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "asset_id",
+        "ordinal": 0,
+        "type_info": "Blob"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "15dd76d270dedad79549058ce3d733cf121b3d2b1298abf5fb73cede00f464c3"
+}

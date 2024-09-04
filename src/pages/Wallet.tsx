@@ -214,7 +214,10 @@ function TokenList() {
     updateCats();
 
     const unlisten = events.syncEvent.listen((event) => {
-      if (event.payload.type === 'puzzle_update') {
+      if (
+        event.payload.type === 'puzzle_update' ||
+        event.payload.type === 'cat_update'
+      ) {
         updateCats();
       }
     });

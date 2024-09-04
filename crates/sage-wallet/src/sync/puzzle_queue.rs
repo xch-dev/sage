@@ -3,8 +3,7 @@ use std::{sync::Arc, time::Duration};
 use chia::protocol::{Bytes32, CoinState};
 use chia_wallet_sdk::Peer;
 use futures_util::{stream::FuturesUnordered, StreamExt};
-use sage_database::{CatRow, Database};
-use serde::Deserialize;
+use sage_database::Database;
 use tokio::{
     sync::{mpsc, Mutex},
     task::spawn_blocking,
@@ -140,11 +139,6 @@ async fn fetch_puzzle(
 
     let coin_id = coin_state.coin.coin_id();
 
-    let cat_row = match &info {
-        PuzzleInfo::Cat { asset_id, .. } => request(*asset_id).await,
-        _ => None,
-    };
-
     let mut tx = db.tx().await?;
 
     match info {
@@ -153,15 +147,6 @@ async fn fetch_puzzle(
             lineage_proof,
             p2_puzzle_hash,
         } => {
-            tx.maybe_insert_cat(cat_row.unwrap_or(CatRow {
-                asset_id,
-                name: None,
-                ticker: None,
-                description: None,
-                icon_url: None,
-                precision: 3,
-            }))
-            .await?;
             tx.mark_coin_synced(coin_id, p2_puzzle_hash).await?;
             tx.insert_cat_coin(coin_id, lineage_proof, p2_puzzle_hash, asset_id)
                 .await?;
@@ -189,53 +174,4 @@ async fn fetch_puzzle(
     tx.commit().await?;
 
     Ok(())
-}
-
-#[derive(Deserialize)]
-struct Response {
-    data: ResponseData,
-}
-
-#[derive(Deserialize)]
-struct ResponseData {
-    name: Option<String>,
-    symbol: Option<String>,
-    description: Option<String>,
-    preview_url: Option<String>,
-}
-
-async fn request(asset_id: Bytes32) -> Option<CatRow> {
-    let response = match timeout(
-        Duration::from_secs(10),
-        reqwest::get(format!("https://api-fin.spacescan.io/cat/info/{asset_id}")),
-    )
-    .await
-    {
-        Ok(Ok(response)) => response,
-        Err(_) => {
-            warn!("Timed out fetching CAT info from spacescan.io");
-            return None;
-        }
-        Ok(Err(error)) => {
-            warn!("Failed to fetch CAT info from spacescan.io: {}", error);
-            return None;
-        }
-    };
-
-    let response: Response = match response.json().await {
-        Ok(response) => response,
-        Err(error) => {
-            warn!("Failed to parse CAT info JSON from spacescan.io: {}", error);
-            return None;
-        }
-    };
-
-    Some(CatRow {
-        asset_id,
-        name: response.data.name,
-        ticker: response.data.symbol,
-        description: response.data.description,
-        icon_url: response.data.preview_url,
-        precision: 3,
-    })
 }

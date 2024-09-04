@@ -22,6 +22,7 @@ use tracing::{debug, warn};
 use crate::{Wallet, WalletError};
 
 use super::{
+    cat_queue::CatQueue,
     peer_event::{handle_peer, handle_peer_events, PeerEvent},
     peer_info::PeerInfo,
     puzzle_queue::PuzzleQueue,
@@ -47,6 +48,7 @@ pub struct SyncManager {
     peer_receiver_task: JoinHandle<()>,
     initial_wallet_sync: InitialWalletSync,
     puzzle_lookup_task: Option<JoinHandle<Result<(), WalletError>>>,
+    cat_queue_task: Option<JoinHandle<Result<(), WalletError>>>,
 }
 
 impl fmt::Debug for SyncManager {
@@ -71,6 +73,9 @@ impl Drop for SyncManager {
             task.abort();
         }
         if let Some(task) = &mut self.puzzle_lookup_task {
+            task.abort();
+        }
+        if let Some(task) = &mut self.cat_queue_task {
             task.abort();
         }
     }
@@ -107,6 +112,7 @@ impl SyncManager {
             peer_receiver_task,
             initial_wallet_sync: InitialWalletSync::Idle,
             puzzle_lookup_task: None,
+            cat_queue_task: None,
         };
 
         (manager, sync_receiver)
@@ -277,8 +283,16 @@ impl SyncManager {
                 );
                 self.puzzle_lookup_task = Some(task);
             }
+
+            if self.cat_queue_task.is_none() {
+                let task = tokio::spawn(
+                    CatQueue::new(wallet.db.clone(), self.sync_sender.clone()).start(),
+                );
+                self.cat_queue_task = Some(task);
+            }
         } else {
             self.puzzle_lookup_task = None;
+            self.cat_queue_task = None;
         }
     }
 
@@ -303,6 +317,13 @@ impl SyncManager {
                         self.sync_sender.send(SyncEvent::Stop).await.ok();
                     }
                 }
+            }
+        }
+
+        if let Some(task) = &mut self.cat_queue_task {
+            if let Ok(Some(Err(error))) = timeout(Duration::from_secs(1), poll_once(task)).await {
+                warn!("Spacescan.io CAT lookup queue failed with error: {error}");
+                self.cat_queue_task = None;
             }
         }
     }

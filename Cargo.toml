@@ -86,7 +86,7 @@ tokio = "1.39.2"
 futures-util = "0.3.30"
 futures-lite = "2.3.0"
 sqlx = "0.8.0"
-reqwest = "0.12.7"
+reqwest = { version = "0.12.7", default-features = false }
 
 # Utilities
 indexmap = "2.3.0"

@@ -10,4 +10,5 @@ pub enum SyncEvent {
     Subscribed,
     CoinUpdate,
     PuzzleUpdate,
+    CatUpdate,
 }

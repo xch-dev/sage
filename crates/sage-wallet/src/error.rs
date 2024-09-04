@@ -22,7 +22,7 @@ pub enum WalletError {
     Join(#[from] JoinError),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
+#[derive(Debug, Error)]
 pub enum SyncError {
     #[error("Timeout exceeded")]
     Timeout,
@@ -41,6 +41,9 @@ pub enum SyncError {
 
     #[error("Missing puzzle and solution for {0}")]
     MissingPuzzleAndSolution(Bytes32),
+
+    #[error("Error fetching CAT  {0}: {1}")]
+    FetchCat(Bytes32, reqwest::Error),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]

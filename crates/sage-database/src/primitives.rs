@@ -22,8 +22,16 @@ impl Database {
         maybe_insert_cat(&self.pool, row).await
     }
 
+    pub async fn update_cat(&self, row: CatRow) -> Result<()> {
+        update_cat(&self.pool, row).await
+    }
+
     pub async fn cats(&self) -> Result<Vec<CatRow>> {
         cats(&self.pool).await
+    }
+
+    pub async fn unidentified_cat(&self) -> Result<Option<Bytes32>> {
+        unidentified_cat(&self.pool).await
     }
 
     pub async fn insert_cat_coin(
@@ -84,8 +92,16 @@ impl<'a> DatabaseTx<'a> {
         maybe_insert_cat(&mut *self.tx, row).await
     }
 
+    pub async fn update_cat(&mut self, row: CatRow) -> Result<()> {
+        update_cat(&mut *self.tx, row).await
+    }
+
     pub async fn cats(&mut self) -> Result<Vec<CatRow>> {
         cats(&mut *self.tx).await
+    }
+
+    pub async fn unidentified_cat(&mut self) -> Result<Option<Bytes32>> {
+        unidentified_cat(&mut *self.tx).await
     }
 
     pub async fn insert_cat_coin(
@@ -174,6 +190,32 @@ async fn maybe_insert_cat(conn: impl SqliteExecutor<'_>, row: CatRow) -> Result<
     Ok(())
 }
 
+async fn update_cat(conn: impl SqliteExecutor<'_>, row: CatRow) -> Result<()> {
+    let asset_id = row.asset_id.as_ref();
+
+    sqlx::query!(
+        "
+        REPLACE INTO `cats` (
+            `asset_id`,
+            `name`,
+            `description`,
+            `ticker`,
+            `precision`,
+            `icon_url`
+        ) VALUES (?, ?, ?, ?, ?, ?)
+        ",
+        asset_id,
+        row.name,
+        row.description,
+        row.ticker,
+        row.precision,
+        row.icon_url
+    )
+    .execute(conn)
+    .await?;
+    Ok(())
+}
+
 async fn cats(conn: impl SqliteExecutor<'_>) -> Result<Vec<CatRow>> {
     let rows = sqlx::query!(
         "
@@ -202,6 +244,19 @@ async fn cats(conn: impl SqliteExecutor<'_>) -> Result<Vec<CatRow>> {
             })
         })
         .collect()
+}
+
+async fn unidentified_cat(conn: impl SqliteExecutor<'_>) -> Result<Option<Bytes32>> {
+    let rows = sqlx::query!(
+        "
+        SELECT `asset_id` FROM `cat_coins`
+        WHERE `asset_id` NOT IN (SELECT `asset_id` FROM `cats`)
+        LIMIT 1
+        "
+    )
+    .fetch_optional(conn)
+    .await?;
+    rows.map(|row| to_bytes32(&row.asset_id)).transpose()
 }
 
 async fn insert_cat_coin(
