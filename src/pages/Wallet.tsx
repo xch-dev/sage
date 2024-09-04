@@ -213,11 +213,15 @@ function TokenList() {
   useEffect(() => {
     updateCats();
 
-    events.syncEvent.listen((event) => {
+    const unlisten = events.syncEvent.listen((event) => {
       if (event.payload.type === 'puzzle_update') {
         updateCats();
       }
     });
+
+    return () => {
+      unlisten.then((u) => u());
+    };
   }, []);
 
   return (
