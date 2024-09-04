@@ -132,6 +132,7 @@ async fn unsynced_coin_states(
         SELECT *
         FROM `coin_states`
         WHERE `synced` = 0 AND `created_height` IS NOT NULL
+        ORDER BY `spent_height` ASC
         LIMIT ?
         ",
         limit

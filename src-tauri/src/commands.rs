@@ -38,13 +38,21 @@ pub async fn get_sync_status(state: State<'_, AppState>) -> Result<SyncStatus> {
     let total_coins = tx.total_coin_count().await?;
     let synced_coins = tx.synced_coin_count().await?;
 
-    let max = tx.derivation_index(false).await? - 1;
-    let max_used = tx.max_used_derivation_index(false).await?;
-    let mut index = max_used.map_or(0, |i| i + 1);
-    if index > max {
-        index = max;
-    }
-    let p2_puzzle_hash = tx.p2_puzzle_hash(index, false).await?;
+    let next_index = tx.derivation_index(false).await?;
+
+    let receive_address = if next_index > 0 {
+        let max = next_index - 1;
+        let max_used = tx.max_used_derivation_index(false).await?;
+        let mut index = max_used.map_or(0, |i| i + 1);
+        if index > max {
+            index = max;
+        }
+        let puzzle_hash = tx.p2_puzzle_hash(index, false).await?;
+
+        Some(encode_address(puzzle_hash.to_bytes(), state.prefix())?)
+    } else {
+        None
+    };
 
     tx.commit().await?;
 
@@ -53,7 +61,7 @@ pub async fn get_sync_status(state: State<'_, AppState>) -> Result<SyncStatus> {
         unit: state.unit().clone(),
         total_coins,
         synced_coins,
-        receive_address: encode_address(p2_puzzle_hash.to_bytes(), state.prefix())?,
+        receive_address: receive_address.unwrap_or_default(),
     })
 }
 

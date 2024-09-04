@@ -226,9 +226,19 @@ function TokenList() {
 
   return (
     <Box display='flex' flexDirection='column' gap={2}>
-      {cats.map((cat) => (
-        <TokenListItem cat={cat} />
-      ))}
+      {cats
+        .sort((a, b) => {
+          if (a.name && b.name) {
+            return a.name.localeCompare(b.name);
+          } else if (a.name) {
+            return -1;
+          } else {
+            return 1;
+          }
+        })
+        .map((cat, i) => (
+          <TokenListItem key={i} cat={cat} />
+        ))}
     </Box>
   );
 }

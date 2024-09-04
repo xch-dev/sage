@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n        SELECT *\n        FROM `coin_states`\n        WHERE `synced` = 0 AND `created_height` IS NOT NULL\n        LIMIT ?\n        ",
+  "query": "\n        SELECT *\n        FROM `coin_states`\n        WHERE `synced` = 0 AND `created_height` IS NOT NULL\n        ORDER BY `spent_height` ASC\n        LIMIT ?\n        ",
   "describe": {
     "columns": [
       {
@@ -58,5 +58,5 @@
       false
     ]
   },
-  "hash": "b3480fca8bf6a0db0b6db2162436963ccca7351613b7f3f1ee2d4f2f917797f4"
+  "hash": "8ff157723ba335104fe877458b242b3755b8f95063daed3cf990617e766cb66c"
 }

@@ -17,19 +17,6 @@ pub struct CatRow {
     pub icon_url: Option<String>,
 }
 
-impl Default for CatRow {
-    fn default() -> Self {
-        Self {
-            asset_id: Bytes32::default(),
-            name: None,
-            description: None,
-            ticker: None,
-            precision: 3,
-            icon_url: None,
-        }
-    }
-}
-
 impl Database {
     pub async fn maybe_insert_cat(&self, row: CatRow) -> Result<()> {
         maybe_insert_cat(&self.pool, row).await
