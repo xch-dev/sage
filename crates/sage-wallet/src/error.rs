@@ -42,7 +42,7 @@ pub enum SyncError {
     #[error("Missing puzzle and solution for {0}")]
     MissingPuzzleAndSolution(Bytes32),
 
-    #[error("Error fetching CAT  {0}: {1}")]
+    #[error("Error fetching CAT {0}: {1}")]
     FetchCat(Bytes32, reqwest::Error),
 }
 

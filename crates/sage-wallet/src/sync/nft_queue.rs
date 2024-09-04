@@ -5,8 +5,13 @@ use chia::{
     puzzles::nft::NftMetadata,
 };
 use clvmr::Allocator;
+use futures_lite::StreamExt;
+use futures_util::stream::FuturesUnordered;
 use sage_database::{Database, NftRow, NftUriKind};
-use tokio::{sync::mpsc, time::sleep};
+use tokio::{
+    sync::mpsc,
+    time::{sleep, timeout},
+};
 use tracing::info;
 
 use crate::{ParseError, WalletError};
@@ -53,6 +58,49 @@ impl NftQueue {
 
             let metadata = NftMetadata::from_clvm(&allocator, metadata_ptr).ok();
 
+            let metadata_json = if let Some(metadata) = &metadata {
+                let mut futures = FuturesUnordered::new();
+
+                for uri in &metadata.metadata_uris {
+                    futures.push(async move {
+                        let result = timeout(Duration::from_secs(5), reqwest::get(uri)).await;
+                        (uri, result)
+                    });
+                }
+
+                let mut metadata_json = None;
+
+                while let Some((uri, result)) = futures.next().await {
+                    let text = match result {
+                        Ok(Ok(response)) => timeout(Duration::from_secs(3), response.text()).await,
+                        Err(_timeout) => {
+                            info!("Timeout fetching {}", uri);
+                            continue;
+                        }
+                        Ok(Err(error)) => {
+                            info!("Error fetching {}: {}", uri, error);
+                            continue;
+                        }
+                    };
+
+                    match text {
+                        Ok(Ok(text)) => {
+                            metadata_json = Some(text);
+                        }
+                        Ok(Err(error)) => {
+                            info!("Error reading {}: {}", uri, error);
+                        }
+                        Err(_timeout) => {
+                            info!("Timeout reading {}", uri);
+                        }
+                    }
+                }
+
+                metadata_json
+            } else {
+                None
+            };
+
             let mut tx = self.db.tx().await?;
 
             tx.update_nft(NftRow {
@@ -71,7 +119,7 @@ impl NftQueue {
                 edition_total: metadata
                     .as_ref()
                     .and_then(|meta| meta.edition_total.try_into().ok()),
-                metadata_json: metadata.as_ref().map(|_| "{}".to_string()),
+                metadata_json,
             })
             .await?;
 

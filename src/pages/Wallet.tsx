@@ -214,10 +214,7 @@ function TokenList() {
     updateCats();
 
     const unlisten = events.syncEvent.listen((event) => {
-      if (
-        event.payload.type === 'puzzle_update' ||
-        event.payload.type === 'cat_update'
-      ) {
+      if (event.payload.type === 'cat_update') {
         updateCats();
       }
     });
@@ -285,37 +282,46 @@ function TokenListItem(props: { cat: CatRecord }) {
 }
 
 function NftList() {
-  const [nftList, setNftList] = useState<NftRecord[]>([]);
+  const [nfts, setNfts] = useState<NftRecord[]>([]);
+
+  const updateNfts = () => {
+    commands.getNfts().then((result) => {
+      if (result.status === 'ok') {
+        setNfts(result.data);
+      }
+    });
+  };
 
   useEffect(() => {
-    commands.getNfts().then((res) => {
-      if (res.status === 'ok') {
-        setNftList(res.data);
+    updateNfts();
+
+    const unlisten = events.syncEvent.listen((event) => {
+      if (event.payload.type === 'nft_update') {
+        updateNfts();
       }
     });
 
-    const interval = setInterval(() => {
-      commands.getNfts().then((res) => {
-        if (res.status === 'ok') {
-          setNftList(res.data);
-        }
-      });
-    }, 5000);
-
-    return () => clearInterval(interval);
+    return () => {
+      unlisten.then((u) => u());
+    };
   }, []);
-
-  console.log(nftList);
 
   return (
     <>
-      {nftList.map((nft) => (
+      {nfts.map((nft) => (
         <Paper key={nft.launcher_id}>
           <ListItemButton>
             <ListItemAvatar>
-              <Avatar />
+              <Avatar src={nft.data_uris[0]} sx={{ width: 90, height: 90 }} />
             </ListItemAvatar>
-            <ListItemText primary={nft.address} secondary={nft.launcher_id} />
+            <ListItemText
+              primary={
+                nft.metadata_json
+                  ? (JSON.parse(nft.metadata_json).name ?? 'Unknown NFT')
+                  : 'Unknown NFT'
+              }
+              secondary={nft.encoded_id}
+            />
           </ListItemButton>
         </Paper>
       ))}
