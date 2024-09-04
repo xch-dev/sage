@@ -17,6 +17,7 @@ import { useNavigate } from 'react-router-dom';
 import { commands, NetworkConfig, NetworkInfo } from '../bindings';
 import ListContainer from '../components/ListContainer';
 import NavBar from '../components/NavBar';
+import { fetchState } from '../state';
 
 export default function NetworkList() {
   const navigate = useNavigate();
@@ -67,11 +68,15 @@ export default function NetworkList() {
                     ) {
                       return;
                     }
-                    commands.setNetworkId(networkId).then(() => {
+                    commands.setNetworkId(networkId).then((result) => {
+                      if (result.status === 'error') return;
+
                       setNetworkConfig({
                         ...networkConfig,
                         network_id: networkId,
                       });
+
+                      fetchState();
                     });
                   }}
                 />
