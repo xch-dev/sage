@@ -26,8 +26,8 @@ impl Database {
         p2_puzzle_hashes(&self.pool).await
     }
 
-    pub async fn synthetic_key(&self, p2_puzzle_hash: Bytes32) -> Result<PublicKey> {
-        synthetic_key(&self.pool, p2_puzzle_hash).await
+    pub async fn indexed_synthetic_key(&self, p2_puzzle_hash: Bytes32) -> Result<(u32, PublicKey)> {
+        indexed_synthetic_key(&self.pool, p2_puzzle_hash).await
     }
 
     pub async fn p2_puzzle_hash(&self, index: u32, hardened: bool) -> Result<Bytes32> {
@@ -69,8 +69,11 @@ impl<'a> DatabaseTx<'a> {
         p2_puzzle_hashes(&mut *self.tx).await
     }
 
-    pub async fn synthetic_key(&mut self, p2_puzzle_hash: Bytes32) -> Result<PublicKey> {
-        synthetic_key(&mut *self.tx, p2_puzzle_hash).await
+    pub async fn indexed_synthetic_key(
+        &mut self,
+        p2_puzzle_hash: Bytes32,
+    ) -> Result<(u32, PublicKey)> {
+        indexed_synthetic_key(&mut *self.tx, p2_puzzle_hash).await
     }
 
     pub async fn p2_puzzle_hash(&mut self, index: u32, hardened: bool) -> Result<Bytes32> {
@@ -160,14 +163,14 @@ async fn p2_puzzle_hashes(conn: impl SqliteExecutor<'_>) -> Result<Vec<Bytes32>>
         .collect::<Result<_>>()
 }
 
-async fn synthetic_key(
+async fn indexed_synthetic_key(
     conn: impl SqliteExecutor<'_>,
     p2_puzzle_hash: Bytes32,
-) -> Result<PublicKey> {
+) -> Result<(u32, PublicKey)> {
     let p2_puzzle_hash = p2_puzzle_hash.as_ref();
     let row = sqlx::query!(
         "
-        SELECT `synthetic_key`
+        SELECT `index`, `synthetic_key`
         FROM `derivations`
         WHERE `p2_puzzle_hash` = ?
         ",
@@ -176,7 +179,10 @@ async fn synthetic_key(
     .fetch_one(conn)
     .await?;
     let bytes = row.synthetic_key.as_slice();
-    Ok(PublicKey::from_bytes(&to_bytes(bytes)?)?)
+    Ok((
+        row.index.try_into()?,
+        PublicKey::from_bytes(&to_bytes(bytes)?)?,
+    ))
 }
 
 async fn p2_puzzle_hash(

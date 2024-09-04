@@ -9,7 +9,7 @@ use chia::bls::master_to_wallet_unhardened_intermediate;
 use chia_wallet_sdk::{create_rustls_connector, load_ssl_cert, Network, NetworkId};
 use indexmap::{indexmap, IndexMap};
 use itertools::Itertools;
-use sage_api::{Unit, XCH};
+use sage_api::{Unit, TXCH, XCH};
 use sage_config::{Config, WalletConfig};
 use sage_database::Database;
 use sage_keychain::Keychain;
@@ -286,6 +286,10 @@ impl AppStateInner {
         ));
 
         self.wallet = Some(wallet.clone());
+        self.unit = match network_id.as_str() {
+            "mainnet" => XCH.clone(),
+            _ => TXCH.clone(),
+        };
 
         self.reset_sync_task(false)?;
 

@@ -1,3 +1,5 @@
+use std::fmt;
+
 use bigdecimal::BigDecimal;
 use num_traits::ToPrimitive;
 use serde::{Deserialize, Serialize};
@@ -15,8 +17,19 @@ impl Amount {
         Self(BigDecimal::from(mojos) / 10u64.pow(decimals.into()))
     }
 
-    pub fn to_mojos(&self, decimals: u8) -> Option<u128> {
+    pub fn to_mojos_u128(&self, decimals: u8) -> Option<u128> {
         let mojos = &self.0 * 10u64.pow(decimals.into());
         mojos.to_u128()
+    }
+
+    pub fn to_mojos(&self, decimals: u8) -> Option<u64> {
+        let mojos = &self.0 * 10u64.pow(decimals.into());
+        mojos.to_u64()
+    }
+}
+
+impl fmt::Display for Amount {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
     }
 }

@@ -1,7 +1,8 @@
 use std::{array::TryFromSliceError, fmt, io, num::ParseIntError};
 
-use chia_wallet_sdk::ClientError;
+use chia_wallet_sdk::{AddressError, ClientError, DriverError, SignerError};
 use hex::FromHexError;
+use sage_api::Amount;
 use sage_database::DatabaseError;
 use sage_keychain::KeychainError;
 use serde::{Deserialize, Serialize};
@@ -27,6 +28,41 @@ impl Error {
         Self {
             kind: ErrorKind::UnknownFingerprint,
             reason: format!("Unknown fingerprint {fingerprint}"),
+        }
+    }
+
+    pub fn invalid_amount(amount: &Amount) -> Self {
+        Self {
+            kind: ErrorKind::InvalidAmount,
+            reason: format!("Invalid amount {amount}"),
+        }
+    }
+
+    pub fn invalid_prefix(prefix: &str) -> Self {
+        Self {
+            kind: ErrorKind::InvalidAddress,
+            reason: format!("Invalid address prefix {prefix}"),
+        }
+    }
+
+    pub fn insufficient_funds() -> Self {
+        Self {
+            kind: ErrorKind::InsufficientFunds,
+            reason: "Insufficient funds".to_string(),
+        }
+    }
+
+    pub fn no_secret_key() -> Self {
+        Self {
+            kind: ErrorKind::TransactionFailed,
+            reason: "No secret key available".to_string(),
+        }
+    }
+
+    pub fn no_peers() -> Self {
+        Self {
+            kind: ErrorKind::TransactionFailed,
+            reason: "No peers available to broadcast transaction to".to_string(),
         }
     }
 
@@ -56,6 +92,9 @@ pub enum ErrorKind {
     InvalidAddress,
     InvalidMnemonic,
     InvalidKey,
+    InvalidAmount,
+    InsufficientFunds,
+    TransactionFailed,
     UnknownNetwork,
     UnknownFingerprint,
     NotLoggedIn,
@@ -228,6 +267,33 @@ impl From<tracing_appender::rolling::InitError> for Error {
     fn from(value: tracing_appender::rolling::InitError) -> Self {
         Self {
             kind: ErrorKind::Logging,
+            reason: value.to_string(),
+        }
+    }
+}
+
+impl From<AddressError> for Error {
+    fn from(value: AddressError) -> Self {
+        Self {
+            kind: ErrorKind::InvalidAddress,
+            reason: value.to_string(),
+        }
+    }
+}
+
+impl From<DriverError> for Error {
+    fn from(value: DriverError) -> Self {
+        Self {
+            kind: ErrorKind::TransactionFailed,
+            reason: value.to_string(),
+        }
+    }
+}
+
+impl From<SignerError> for Error {
+    fn from(value: SignerError) -> Self {
+        Self {
+            kind: ErrorKind::TransactionFailed,
             reason: value.to_string(),
         }
     }

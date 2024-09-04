@@ -1,4 +1,4 @@
-use chia::protocol::{Bytes32, CoinState};
+use chia::protocol::{Bytes32, Coin, CoinState};
 use sqlx::SqliteExecutor;
 
 use crate::{error::Result, to_bytes, to_coin, to_coin_state, Database, DatabaseTx};
@@ -15,6 +15,10 @@ impl Database {
     pub async fn p2_coin_states(&self) -> Result<Vec<CoinState>> {
         p2_coin_states(&self.pool).await
     }
+
+    pub async fn p2_coins(&self) -> Result<Vec<Coin>> {
+        p2_coins(&self.pool).await
+    }
 }
 
 impl<'a> DatabaseTx<'a> {
@@ -28,6 +32,10 @@ impl<'a> DatabaseTx<'a> {
 
     pub async fn p2_coin_states(&mut self) -> Result<Vec<CoinState>> {
         p2_coin_states(&mut *self.tx).await
+    }
+
+    pub async fn p2_coins(&mut self) -> Result<Vec<Coin>> {
+        p2_coins(&mut *self.tx).await
     }
 }
 
@@ -80,5 +88,20 @@ async fn p2_coin_states(conn: impl SqliteExecutor<'_>) -> Result<Vec<CoinState>>
                 row.spent_height,
             )
         })
+        .collect()
+}
+
+async fn p2_coins(conn: impl SqliteExecutor<'_>) -> Result<Vec<Coin>> {
+    let rows = sqlx::query!(
+        "
+        SELECT `parent_coin_id`, `puzzle_hash`, `amount` FROM `coin_states`
+        INNER JOIN `p2_coins` ON `coin_states`.`coin_id` = `p2_coins`.`coin_id`
+        "
+    )
+    .fetch_all(conn)
+    .await?;
+
+    rows.iter()
+        .map(|row| to_coin(&row.parent_coin_id, &row.puzzle_hash, &row.amount))
         .collect()
 }
