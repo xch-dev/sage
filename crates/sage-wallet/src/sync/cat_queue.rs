@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use chia::protocol::Bytes32;
 use sage_database::{CatRow, Database};
 use serde::Deserialize;
 use tokio::{
@@ -53,18 +54,31 @@ impl CatQueue {
             asset_id
         );
 
-        let response = timeout(
-            Duration::from_secs(10),
-            reqwest::get(format!("https://api-fin.spacescan.io/cat/info/{asset_id}")),
-        )
-        .await
-        .map_err(|_| SyncError::Timeout)?
-        .map_err(|error| SyncError::FetchCat(asset_id, error))?;
-
-        let response = response
-            .json::<Response>()
-            .await
-            .map_err(|error| SyncError::FetchCat(asset_id, error))?;
+        let response = match timeout(Duration::from_secs(10), lookup_cat(asset_id)).await {
+            Ok(Ok(response)) => response,
+            Ok(Err(error)) => {
+                info!("Failed to fetch CAT: {:?}", error);
+                Response {
+                    data: ResponseData {
+                        name: None,
+                        symbol: None,
+                        description: None,
+                        preview_url: None,
+                    },
+                }
+            }
+            Err(_) => {
+                info!("Timeout fetching CAT");
+                Response {
+                    data: ResponseData {
+                        name: None,
+                        symbol: None,
+                        description: None,
+                        preview_url: None,
+                    },
+                }
+            }
+        };
 
         self.db
             .update_cat(CatRow {
@@ -81,4 +95,21 @@ impl CatQueue {
 
         Ok(())
     }
+}
+
+async fn lookup_cat(asset_id: Bytes32) -> Result<Response, SyncError> {
+    let response = timeout(
+        Duration::from_secs(10),
+        reqwest::get(format!("https://api-fin.spacescan.io/cat/info/{asset_id}")),
+    )
+    .await
+    .map_err(|_| SyncError::Timeout)?
+    .map_err(|error| SyncError::FetchCat(asset_id, error))?;
+
+    let response = response
+        .json::<Response>()
+        .await
+        .map_err(|error| SyncError::FetchCat(asset_id, error))?;
+
+    Ok(response)
 }

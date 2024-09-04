@@ -332,16 +332,36 @@ impl SyncManager {
         }
 
         if let Some(task) = &mut self.cat_queue_task {
-            if let Ok(Some(Err(error))) = timeout(Duration::from_secs(1), poll_once(task)).await {
-                warn!("Spacescan.io CAT lookup queue failed with error: {error}");
-                self.cat_queue_task = None;
+            match poll_once(task).await {
+                Some(Err(error)) => {
+                    warn!("CAT lookup queue failed with panic: {error}");
+                    self.cat_queue_task = None;
+                }
+                Some(Ok(Err(error))) => {
+                    warn!("CAT lookup queue failed with error: {error}");
+                    self.cat_queue_task = None;
+                }
+                Some(Ok(Ok(()))) => {
+                    self.cat_queue_task = None;
+                }
+                None => {}
             }
         }
 
         if let Some(task) = &mut self.nft_queue_task {
-            if let Ok(Some(Err(error))) = timeout(Duration::from_secs(1), poll_once(task)).await {
-                warn!("NFT update queue failed with error: {error}");
-                self.nft_queue_task = None;
+            match poll_once(task).await {
+                Some(Err(error)) => {
+                    warn!("NFT update queue failed with panic: {error}");
+                    self.nft_queue_task = None;
+                }
+                Some(Ok(Err(error))) => {
+                    warn!("NFT update queue failed with error: {error}");
+                    self.nft_queue_task = None;
+                }
+                Some(Ok(Ok(()))) => {
+                    self.nft_queue_task = None;
+                }
+                None => {}
             }
         }
     }
