@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n        SELECT\n            cs.parent_coin_id, cs.puzzle_hash, cs.amount,\n            nft.parent_parent_coin_id, nft.parent_inner_puzzle_hash, nft.parent_amount,\n            nft.launcher_id, nft.metadata, nft.metadata_updater_puzzle_hash,\n            nft.current_owner, nft.royalty_puzzle_hash, nft.royalty_ten_thousandths,\n            nft.p2_puzzle_hash\n        FROM `coin_states` AS cs\n        INNER JOIN `nft_coins` AS nft\n        ON cs.coin_id = nft.coin_id\n        ",
+  "query": "\n        SELECT\n            cs.parent_coin_id, cs.puzzle_hash, cs.amount,\n            did.parent_parent_coin_id, did.parent_inner_puzzle_hash, did.parent_amount,\n            did.launcher_id, did.recovery_list_hash, did.num_verifications_required,\n            did.metadata, did.p2_puzzle_hash\n        FROM `coin_states` AS cs\n        INNER JOIN `did_coins` AS did\n        ON cs.coin_id = did.coin_id\n        WHERE cs.spent_height IS NULL\n        ",
   "describe": {
     "columns": [
       {
@@ -39,33 +39,23 @@
         "type_info": "Blob"
       },
       {
-        "name": "metadata",
+        "name": "recovery_list_hash",
         "ordinal": 7,
         "type_info": "Blob"
       },
       {
-        "name": "metadata_updater_puzzle_hash",
+        "name": "num_verifications_required",
         "ordinal": 8,
         "type_info": "Blob"
       },
       {
-        "name": "current_owner",
+        "name": "metadata",
         "ordinal": 9,
         "type_info": "Blob"
       },
       {
-        "name": "royalty_puzzle_hash",
-        "ordinal": 10,
-        "type_info": "Blob"
-      },
-      {
-        "name": "royalty_ten_thousandths",
-        "ordinal": 11,
-        "type_info": "Integer"
-      },
-      {
         "name": "p2_puzzle_hash",
-        "ordinal": 12,
+        "ordinal": 10,
         "type_info": "Blob"
       }
     ],
@@ -80,13 +70,11 @@
       false,
       false,
       false,
-      false,
-      false,
       true,
       false,
       false,
       false
     ]
   },
-  "hash": "b01c7743d7c644fcbe630e0c075b95ceb7c4a85d54b62261da07b919eb7feb76"
+  "hash": "dfaa0a10b22230a59959f744a135c989b545fa781079b8090ebfb6b5b271f692"
 }

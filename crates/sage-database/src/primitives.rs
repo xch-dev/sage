@@ -405,6 +405,7 @@ async fn nft_coins(conn: impl SqliteExecutor<'_>) -> Result<Vec<Nft<Program>>> {
         FROM `coin_states` AS cs
         INNER JOIN `nft_coins` AS nft
         ON cs.coin_id = nft.coin_id
+        WHERE cs.spent_height IS NULL
         "
     )
     .fetch_all(conn)
@@ -544,6 +545,7 @@ async fn did_coins(conn: impl SqliteExecutor<'_>) -> Result<Vec<Did<Program>>> {
         FROM `coin_states` AS cs
         INNER JOIN `did_coins` AS did
         ON cs.coin_id = did.coin_id
+        WHERE cs.spent_height IS NULL
         "
     )
     .fetch_all(conn)
