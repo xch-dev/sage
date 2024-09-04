@@ -23,11 +23,19 @@ import {
   MenuItem,
   Paper,
   Typography,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import { GridRowSelectionModel } from '@mui/x-data-grid';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { commands, NftRecord, WalletInfo } from '../bindings';
+import {
+  CatRecord,
+  commands,
+  events,
+  NftRecord,
+  WalletInfo,
+} from '../bindings';
 import CoinList from '../components/CoinList';
 import ListContainer from '../components/ListContainer';
 import NavBar from '../components/NavBar';
@@ -192,38 +200,55 @@ function MainWallet() {
 }
 
 function TokenList() {
+  const [cats, setCats] = useState<CatRecord[]>([]);
+
+  const updateCats = () => {
+    commands.getCats().then((result) => {
+      if (result.status === 'ok') {
+        setCats(result.data);
+      }
+    });
+  };
+
+  useEffect(() => {
+    updateCats();
+
+    events.syncEvent.listen((event) => {
+      if (event.payload.type === 'puzzle_update') {
+        updateCats();
+      }
+    });
+  }, []);
+
   return (
     <Box display='flex' flexDirection='column' gap={2}>
-      <TokenListItem
-        balance='416.17'
-        ticker='SBX'
-        name='Spacebux'
-        icon='https://icons.dexie.space/a628c1c2c6fcb74d53746157e438e108eab5c0bb3e5c80ff9b1910b3e4832913.webp'
-      />
-      <TokenListItem
-        balance='23.2'
-        ticker='MWIF'
-        name='Marmot Wif Hat'
-        icon='https://icons.dexie.space/e233f9c0ebc092f083aaacf6295402ed0a0bb1f9acb1b56500d8a4f5a5e4c957.webp'
-      />
+      {cats.map((cat) => (
+        <TokenListItem cat={cat} />
+      ))}
     </Box>
   );
 }
 
-function TokenListItem(props: {
-  icon: string;
-  ticker: string;
-  balance: string;
-  name: string;
-}) {
+function TokenListItem(props: { cat: CatRecord }) {
+  const theme = useTheme();
+  const md = useMediaQuery(theme.breakpoints.up('md'));
+  const sm = useMediaQuery(theme.breakpoints.up('sm'));
+
+  const chars = sm ? 16 : 8;
+
   return (
     <Paper>
       <ListItemButton>
         <ListItemAvatar>
-          <Avatar alt={props.ticker} src={props.icon} />
+          {props.cat.icon_url && (
+            <Avatar
+              alt={props.cat.ticker ?? undefined}
+              src={props.cat.icon_url}
+            />
+          )}
         </ListItemAvatar>
         <ListItemText
-          primary={props.name}
+          primary={props.cat.name ?? 'Unknown CAT'}
           secondary={
             <Typography
               sx={{ display: 'inline' }}
@@ -231,7 +256,9 @@ function TokenListItem(props: {
               variant='body2'
               color='text.primary'
             >
-              {props.balance} {props.ticker}
+              {md
+                ? props.cat.asset_id
+                : `${props.cat.asset_id.slice(0, chars)}..${props.cat.asset_id.slice(-chars)}`}
             </Typography>
           }
         />
