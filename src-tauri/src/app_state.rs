@@ -24,24 +24,27 @@ use sqlx::{
 };
 use tauri::{AppHandle, Emitter};
 use tokio::{sync::Mutex, task::JoinHandle};
+use tracing::{info, level_filters::LevelFilter};
+use tracing_appender::rolling::{Builder, Rotation};
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, Layer};
 
 use crate::{
     error::{Error, Result},
-    models::{SyncEvent as SyncEventData, WalletInfo, WalletKind},
+    models::{NetworkInfo, SyncEvent as SyncEventData, WalletInfo, WalletKind},
 };
 
 pub type AppState = Mutex<AppStateInner>;
 
 pub struct AppStateInner {
-    pub app_handle: AppHandle,
-    pub rng: ChaCha20Rng,
-    pub path: PathBuf,
+    app_handle: AppHandle,
+    rng: ChaCha20Rng,
+    path: PathBuf,
     pub config: Config,
     pub networks: IndexMap<String, Network>,
     pub keys: HashMap<u32, KeyData>,
     wallet: Option<Arc<Wallet>>,
     unit: Unit,
-    pub sync_task: Option<JoinHandle<()>>,
+    sync_task: Option<JoinHandle<()>>,
     pub peer_state: Arc<Mutex<PeerState>>,
     pub initialized: bool,
 }
@@ -68,6 +71,110 @@ impl AppStateInner {
 
     pub fn unit(&self) -> &Unit {
         &self.unit
+    }
+
+    pub async fn initialize(&mut self) -> Result<()> {
+        if self.initialized {
+            return Ok(());
+        }
+
+        self.initialized = true;
+
+        fs::create_dir_all(&self.path)?;
+
+        let key_path = self.path.join("keys.bin");
+        let config_path = self.path.join("config.toml");
+        let networks_path = self.path.join("networks.toml");
+
+        let log_dir = self.path.join("log");
+        if !log_dir.exists() {
+            std::fs::create_dir_all(&log_dir)?;
+        }
+
+        if key_path.try_exists()? {
+            let data = fs::read(&key_path)?;
+            self.keys = bincode::deserialize(&data)?;
+        } else {
+            fs::write(&key_path, bincode::serialize(&self.keys)?)?;
+        }
+
+        if config_path.try_exists()? {
+            let text = fs::read_to_string(&config_path)?;
+            self.config = toml::from_str(&text)?;
+        } else {
+            fs::write(&config_path, toml::to_string_pretty(&self.config)?)?;
+        };
+
+        if networks_path.try_exists()? {
+            let text = fs::read_to_string(&networks_path)?;
+            let networks: IndexMap<String, NetworkInfo> = toml::from_str(&text)?;
+
+            for (network_id, network) in networks {
+                self.networks.insert(
+                    network_id,
+                    Network {
+                        default_port: network.default_port,
+                        genesis_challenge: hex::decode(&network.genesis_challenge)?.try_into()?,
+                        agg_sig_me: network
+                            .agg_sig_me
+                            .map(|x| Result::Ok(hex::decode(&x)?.try_into()?))
+                            .transpose()?,
+                        dns_introducers: network.dns_introducers,
+                    },
+                );
+            }
+        } else {
+            let mut networks = IndexMap::new();
+
+            for (network_id, network) in &self.networks {
+                let info = NetworkInfo {
+                    default_port: network.default_port,
+                    genesis_challenge: hex::encode(network.genesis_challenge),
+                    agg_sig_me: network.agg_sig_me.map(hex::encode),
+                    dns_introducers: network.dns_introducers.clone(),
+                };
+                networks.insert(network_id.clone(), info);
+            }
+
+            fs::write(&networks_path, toml::to_string_pretty(&networks)?)?;
+        }
+
+        let log_level = self.config.app.log_level.parse()?;
+
+        let log_file = Builder::new()
+            .filename_prefix("app.log")
+            .rotation(Rotation::DAILY)
+            .max_log_files(3)
+            .build(log_dir.as_path())?;
+
+        let file_layer = tracing_subscriber::fmt::layer()
+            .with_writer(log_file)
+            .with_ansi(false)
+            .with_target(false)
+            .compact();
+
+        // TODO: Fix ANSI better
+        #[cfg(not(mobile))]
+        let stdout_layer = tracing_subscriber::fmt::layer().pretty();
+
+        let registry = tracing_subscriber::registry()
+            .with(file_layer.with_filter(LevelFilter::from_level(log_level)));
+
+        #[cfg(not(mobile))]
+        {
+            registry
+                .with(stdout_layer.with_filter(LevelFilter::from_level(log_level)))
+                .init();
+        }
+
+        #[cfg(mobile)]
+        registry.init();
+
+        info!("Initial setup complete");
+
+        self.switch_wallet().await?;
+
+        Ok(())
     }
 
     pub fn reset_sync_task(&mut self, reset_peers: bool) -> Result<()> {
