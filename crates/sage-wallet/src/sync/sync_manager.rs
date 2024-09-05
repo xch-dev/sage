@@ -22,11 +22,10 @@ use tokio::{
 };
 use tracing::{debug, info, warn};
 
-use crate::{CatQueue, NftQueue, Wallet, WalletError};
+use crate::{CatQueue, NftQueue, PuzzleQueue, Wallet, WalletError};
 
 use super::{
     peer_event::{handle_peer, handle_peer_events, PeerEvent},
-    puzzle_queue::PuzzleQueue,
     wallet_sync::sync_wallet,
     PeerInfo, PeerState, SyncEvent,
 };

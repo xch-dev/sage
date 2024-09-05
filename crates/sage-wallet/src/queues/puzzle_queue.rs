@@ -11,9 +11,7 @@ use tokio::{
 };
 use tracing::{debug, info, instrument};
 
-use crate::{PuzzleInfo, SyncError, WalletError};
-
-use super::{PeerState, SyncEvent};
+use crate::{PeerState, PuzzleInfo, SyncError, SyncEvent, WalletError};
 
 #[derive(Debug)]
 pub struct PuzzleQueue {
