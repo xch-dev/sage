@@ -152,7 +152,7 @@ impl SyncManager {
     async fn dns_discovery(&mut self) {
         let addrs = self.network.lookup_all(Duration::from_secs(3), 10).await;
 
-        for addrs in addrs.chunks(10) {
+        for addrs in addrs.chunks(30) {
             if self.connect_batch(addrs).await {
                 break;
             }
@@ -201,7 +201,7 @@ impl SyncManager {
                         addrs.push(SocketAddr::new(new_ip, self.network.default_port));
                     }
 
-                    for addrs in addrs.chunks(10) {
+                    for addrs in addrs.chunks(30) {
                         if self.connect_batch(addrs).await {
                             return true;
                         }
