@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n        SELECT\n            `launcher_id`,\n            `coin_id`,\n            `p2_puzzle_hash`,\n            `royalty_puzzle_hash`,\n            `royalty_ten_thousandths`,\n            `current_owner`,\n            `data_hash`,\n            `metadata_json`,\n            `metadata_hash`,\n            `license_hash`,\n            `edition_number`,\n            `edition_total`\n        FROM `nfts`\n        ",
+  "query": "\n        SELECT\n            `launcher_id`,\n            `coin_id`,\n            `p2_puzzle_hash`,\n            `royalty_puzzle_hash`,\n            `royalty_ten_thousandths`,\n            `current_owner`,\n            `data_hash`,\n            `metadata_json`,\n            `metadata_hash`,\n            `license_hash`,\n            `edition_number`,\n            `edition_total`\n        FROM `nfts`\n        ORDER BY `launcher_id`\n        LIMIT ? OFFSET ?\n        ",
   "describe": {
     "columns": [
       {
@@ -65,7 +65,7 @@
       }
     ],
     "parameters": {
-      "Right": 0
+      "Right": 2
     },
     "nullable": [
       false,
@@ -82,5 +82,5 @@
       true
     ]
   },
-  "hash": "f41881e730558fd6f7f49288c627195716c901936dad0a9913b616e03166816e"
+  "hash": "62c367ca5ae3aef7b059541c44f2c5d5ed34f53fc68861fa1d2accaa23df39bd"
 }

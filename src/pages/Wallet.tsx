@@ -322,8 +322,10 @@ function NftList() {
   };
 
   useEffect(() => {
-    updateNfts(page);
+    updateNfts(0);
+  }, []);
 
+  useEffect(() => {
     const unlisten = events.syncEvent.listen((event) => {
       if (event.payload.type === 'nft_update') {
         updateNfts(page);
