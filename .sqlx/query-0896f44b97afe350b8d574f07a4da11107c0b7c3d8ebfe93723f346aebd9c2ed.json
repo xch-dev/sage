@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT `index`, `synthetic_key`\n        FROM `derivations`\n        WHERE `p2_puzzle_hash` = ?\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "index",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "synthetic_key",
+        "ordinal": 1,
+        "type_info": "Blob"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "0896f44b97afe350b8d574f07a4da11107c0b7c3d8ebfe93723f346aebd9c2ed"
+}
