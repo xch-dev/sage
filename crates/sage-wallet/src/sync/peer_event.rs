@@ -28,6 +28,8 @@ pub async fn handle_peer(
     sender: mpsc::Sender<PeerEvent>,
 ) {
     while let Some(message) = receiver.recv().await {
+        debug!("Received message from peer {}: {:?}", ip, message.msg_type);
+
         if sender
             .send(PeerEvent {
                 ip,
@@ -89,6 +91,8 @@ async fn handle_peer_event(
                     message.height, message.peak_hash
                 );
                 sync_sender.send(SyncEvent::CoinUpdate).await.ok();
+            } else {
+                debug!("Received coin state update but no database to update");
             }
         }
         _ => {
