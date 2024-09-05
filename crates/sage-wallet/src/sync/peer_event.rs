@@ -54,7 +54,7 @@ pub async fn handle_peer_events(
     while let Some(event) = receiver.recv().await {
         let Some(message) = event.message else {
             state.lock().await.remove_peer(event.ip);
-            debug!("Peer {} disconnected gracefully", event.ip);
+            debug!("Peer {} disconnected", event.ip);
             continue;
         };
 

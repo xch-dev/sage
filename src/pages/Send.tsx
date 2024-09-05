@@ -1,4 +1,13 @@
-import { Button, TextField, Typography } from '@mui/material';
+import {
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  TextField,
+  Typography,
+} from '@mui/material';
 import BigNumber from 'bignumber.js';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -17,6 +26,7 @@ export default function Send() {
   const [validAddress, setValidAddress] = useState('');
   const [amount, setAmount] = useState('');
   const [fee, setFee] = useState('');
+  const [isConfirmOpen, setConfirmOpen] = useState(false);
 
   const amountNum = BigNumber(amount);
   const feeNum = BigNumber(fee);
@@ -103,10 +113,44 @@ export default function Send() {
             feeNum.isNaN() ||
             !addressValid
           }
-          onClick={submit}
+          onClick={() => setConfirmOpen(true)}
         >
           Send
         </Button>
+
+        <Dialog open={isConfirmOpen} onClose={() => setConfirmOpen(false)}>
+          <DialogTitle>
+            Are you sure you want to send {walletState.sync.unit.ticker}?
+          </DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              This transaction cannot be reversed once it has been initiated.
+              <Typography variant='h6' color='text.primary' mt={2}>
+                Amount
+              </Typography>
+              <Typography sx={{ wordBreak: 'break-all' }}>
+                {amount} {walletState.sync.unit.ticker} (with a fee of {fee}{' '}
+                {walletState.sync.unit.ticker})
+              </Typography>
+              <Typography variant='h6' color='text.primary' mt={2}>
+                Address
+              </Typography>
+              <Typography sx={{ wordBreak: 'break-all' }}>{address}</Typography>
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setConfirmOpen(false)}>Cancel</Button>
+            <Button
+              onClick={() => {
+                setConfirmOpen(false);
+                submit();
+              }}
+              autoFocus
+            >
+              Confirm
+            </Button>
+          </DialogActions>
+        </Dialog>
       </Container>
     </>
   );
