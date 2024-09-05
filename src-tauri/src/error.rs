@@ -52,6 +52,13 @@ impl Error {
         }
     }
 
+    pub fn no_change_address() -> Self {
+        Self {
+            kind: ErrorKind::TransactionFailed,
+            reason: "No change address available".to_string(),
+        }
+    }
+
     pub fn no_secret_key() -> Self {
         Self {
             kind: ErrorKind::TransactionFailed,

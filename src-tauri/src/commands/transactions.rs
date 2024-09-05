@@ -20,6 +20,7 @@ use tauri::{command, State};
 use crate::{
     app_state::AppState,
     error::{Error, Result},
+    utils::fetch_puzzle_hash,
 };
 
 #[command]
@@ -65,12 +66,16 @@ pub async fn send(
     let mut tx = wallet.db.tx().await?;
     let mut keys = HashMap::new();
 
-    let coins = tx.p2_coins().await?;
+    let coins = tx.unspent_p2_coins().await?;
 
     for coin in &coins {
         let key = tx.indexed_synthetic_key(coin.puzzle_hash).await?;
         keys.insert(coin.puzzle_hash, key);
     }
+
+    let Some(change_puzzle_hash) = fetch_puzzle_hash(&mut tx).await? else {
+        return Err(Error::no_change_address());
+    };
 
     tx.commit().await?;
 
@@ -96,8 +101,7 @@ pub async fn send(
             );
 
             if change_amount > 0 {
-                conditions =
-                    conditions.create_coin(coins[0].puzzle_hash, change_amount, Vec::new());
+                conditions = conditions.create_coin(change_puzzle_hash, change_amount, Vec::new());
             }
 
             conditions

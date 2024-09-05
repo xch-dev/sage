@@ -5,7 +5,7 @@ use sage_database::NftUriKind;
 use specta::specta;
 use tauri::{command, State};
 
-use crate::{app_state::AppState, error::Result};
+use crate::{app_state::AppState, error::Result, utils::fetch_puzzle_hash};
 
 #[command]
 #[specta]
@@ -19,21 +19,11 @@ pub async fn get_sync_status(state: State<'_, AppState>) -> Result<SyncStatus> {
     let total_coins = tx.total_coin_count().await?;
     let synced_coins = tx.synced_coin_count().await?;
 
-    let next_index = tx.derivation_index(false).await?;
+    let puzzle_hash = fetch_puzzle_hash(&mut tx).await?;
 
-    let receive_address = if next_index > 0 {
-        let max = next_index - 1;
-        let max_used = tx.max_used_derivation_index(false).await?;
-        let mut index = max_used.map_or(0, |i| i + 1);
-        if index > max {
-            index = max;
-        }
-        let puzzle_hash = tx.p2_puzzle_hash(index, false).await?;
-
-        Some(encode_address(puzzle_hash.to_bytes(), state.prefix())?)
-    } else {
-        None
-    };
+    let receive_address = puzzle_hash
+        .map(|puzzle_hash| encode_address(puzzle_hash.to_bytes(), state.prefix()))
+        .transpose()?;
 
     tx.commit().await?;
 
