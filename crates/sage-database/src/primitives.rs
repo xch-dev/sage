@@ -798,7 +798,7 @@ async fn delete_nfts(conn: impl SqliteExecutor<'_>) -> Result<()> {
         WHERE `launcher_id` NOT IN (
             SELECT `launcher_id` FROM `nft_coins`
             INNER JOIN `coin_states` ON `nft_coins`.`coin_id` = `coin_states`.`coin_id`
-            WHERE `coin_states`.`spent_height` IS NOT NULL
+            WHERE `coin_states`.`spent_height` IS NULL
         )
         "
     )

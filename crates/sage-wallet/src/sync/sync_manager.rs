@@ -80,6 +80,9 @@ impl Drop for SyncManager {
         if let Some(task) = &mut self.cat_queue_task {
             task.abort();
         }
+        if let Some(task) = &mut self.nft_queue_task {
+            task.abort();
+        }
     }
 }
 

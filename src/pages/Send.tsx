@@ -93,6 +93,7 @@ export default function Send() {
             feeNum.isNaN() ||
             !addressValid
           }
+          onClick={() => console.log('xyz')}
         >
           Send
         </Button>

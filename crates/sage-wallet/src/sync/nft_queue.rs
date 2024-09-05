@@ -123,6 +123,8 @@ impl NftQueue {
             })
             .await?;
 
+            info!("Updated NFT {}", nft.info.launcher_id);
+
             if let Some(metadata) = metadata {
                 tx.clear_nft_uris(nft.info.launcher_id).await?;
 
@@ -146,6 +148,8 @@ impl NftQueue {
         }
 
         self.sync_sender.send(SyncEvent::NftUpdate).await.ok();
+
+        info!("Updated NFTs");
 
         Ok(())
     }
