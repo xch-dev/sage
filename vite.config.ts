@@ -22,4 +22,7 @@ export default defineConfig({
       ignored: ['**/src-tauri/**'],
     },
   },
+  build: {
+    chunkSizeWarningLimit: 1024,
+  },
 });
