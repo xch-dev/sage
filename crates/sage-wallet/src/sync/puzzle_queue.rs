@@ -9,7 +9,7 @@ use tokio::{
     task::spawn_blocking,
     time::timeout,
 };
-use tracing::{info, instrument, warn};
+use tracing::{debug, info, instrument};
 
 use crate::{PuzzleInfo, SyncError, WalletError};
 
@@ -84,7 +84,7 @@ impl PuzzleQueue {
 
             if let Err(error) = result {
                 // TODO: Not all errors should result in this exact behavior.
-                warn!(
+                debug!(
                     "Failed to lookup puzzle of {} from peer {}: {}",
                     coin_id, addr, error
                 );
