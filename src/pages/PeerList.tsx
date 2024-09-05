@@ -63,8 +63,6 @@ export default function NetworkList() {
         }}
       />
 
-      {peers?.length ?? 0}
-
       <ListContainer>
         {peers !== null && (
           <List sx={{ width: '100%' }} component={Paper} disablePadding>
