@@ -29,13 +29,6 @@ pub async fn sync_wallet(
 ) -> Result<(), WalletError> {
     info!("Starting sync against peer {}", peer.socket_addr());
 
-    timeout(
-        Duration::from_secs(2),
-        peer.remove_puzzle_subscriptions(None),
-    )
-    .await
-    .map_err(|_| SyncError::Timeout)??;
-
     let mut tx = db.tx().await?;
     let p2_puzzle_hashes = tx.p2_puzzle_hashes().await?;
     let (start_height, start_header_hash) = tx.latest_peak().await?.map_or_else(

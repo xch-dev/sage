@@ -3,6 +3,7 @@ use std::{
     path::{Path, PathBuf},
     str::FromStr,
     sync::Arc,
+    time::Duration,
 };
 
 use chia::bls::master_to_wallet_unhardened_intermediate;
@@ -207,6 +208,16 @@ impl AppStateInner {
             SyncOptions {
                 target_peers: self.config.network.target_peers as usize,
                 find_peers: self.config.network.discover_peers,
+                max_peer_age_seconds: 3600 * 8,
+                max_peers_for_dns: 0,
+                dns_batch_size: 10,
+                connection_batch_size: 30,
+                sync_delay: Duration::from_secs(1),
+                connection_timeout: Duration::from_secs(3),
+                initial_peak_timeout: Duration::from_secs(2),
+                remove_subscription_timeout: Duration::from_secs(3),
+                request_peers_timeout: Duration::from_secs(3),
+                dns_timeout: Duration::from_secs(3),
             },
             self.peer_state.clone(),
             self.wallet.clone(),

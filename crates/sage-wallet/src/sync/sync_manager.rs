@@ -14,6 +14,7 @@ use chia::{
 use chia_wallet_sdk::{connect_peer, Connector, Network, NetworkId, Peer};
 use futures_lite::{future::poll_once, StreamExt};
 use futures_util::stream::FuturesUnordered;
+use itertools::Itertools;
 use tokio::{
     sync::{mpsc, Mutex},
     task::JoinHandle,
@@ -34,6 +35,16 @@ use super::{
 pub struct SyncOptions {
     pub target_peers: usize,
     pub find_peers: bool,
+    pub max_peers_for_dns: usize,
+    pub dns_batch_size: usize,
+    pub connection_batch_size: usize,
+    pub max_peer_age_seconds: u64,
+    pub sync_delay: Duration,
+    pub connection_timeout: Duration,
+    pub initial_peak_timeout: Duration,
+    pub remove_subscription_timeout: Duration,
+    pub request_peers_timeout: Duration,
+    pub dns_timeout: Duration,
 }
 
 pub struct SyncManager {
@@ -95,11 +106,11 @@ impl SyncManager {
         connector: Connector,
     ) -> (Self, mpsc::Receiver<SyncEvent>) {
         let (sync_sender, sync_receiver) = mpsc::channel(32);
+        let (peer_sender, peer_receiver) = mpsc::channel(options.target_peers.max(1));
 
-        let (peer_sender, receiver) = mpsc::channel(options.target_peers.max(1));
         let peer_receiver_task = tokio::spawn(handle_peer_events(
             wallet.as_ref().map(|wallet| wallet.db.clone()),
-            receiver,
+            peer_receiver,
             state.clone(),
             sync_sender.clone(),
         ));
@@ -124,9 +135,47 @@ impl SyncManager {
     }
 
     pub async fn sync(mut self) {
+        self.clear_subscriptions().await;
+
         loop {
             self.update().await;
-            sleep(Duration::from_secs(1)).await;
+            sleep(self.options.sync_delay).await;
+        }
+    }
+
+    async fn clear_subscriptions(&self) {
+        let mut futures = FuturesUnordered::new();
+
+        for peer in self
+            .state
+            .lock()
+            .await
+            .peers()
+            .map(|info| info.peer.clone())
+            .collect_vec()
+        {
+            let ip = peer.socket_addr().ip();
+
+            futures.push(async move {
+                let result = timeout(
+                    self.options.remove_subscription_timeout,
+                    peer.remove_puzzle_subscriptions(None),
+                )
+                .await;
+                (ip, result)
+            });
+        }
+
+        while let Some((ip, result)) = futures.next().await {
+            match result {
+                Ok(Ok(_response)) => {}
+                Ok(Err(error)) => {
+                    debug!("Failed to clear subscriptions from {ip}: {error}");
+                }
+                Err(_timeout) => {
+                    debug!("Timeout clearing subscriptions from {ip}");
+                }
+            }
         }
     }
 
@@ -134,7 +183,7 @@ impl SyncManager {
         let peer_count = self.state.lock().await.peer_count();
 
         if self.options.find_peers && peer_count < self.options.target_peers {
-            if peer_count > 0 {
+            if peer_count > self.options.max_peers_for_dns {
                 if !self.peer_discovery().await {
                     self.dns_discovery().await;
                 }
@@ -148,9 +197,12 @@ impl SyncManager {
     }
 
     async fn dns_discovery(&mut self) {
-        let addrs = self.network.lookup_all(Duration::from_secs(3), 10).await;
+        let addrs = self
+            .network
+            .lookup_all(self.options.dns_timeout, self.options.dns_batch_size)
+            .await;
 
-        for addrs in addrs.chunks(30) {
+        for addrs in addrs.chunks(self.options.connection_batch_size) {
             if self.connect_batch(addrs).await {
                 break;
             }
@@ -175,8 +227,9 @@ impl SyncManager {
 
         for peer in peers {
             let ip = peer.socket_addr().ip();
+            let duration = self.options.request_peers_timeout;
             futures.push(async move {
-                let result = timeout(Duration::from_secs(5), peer.request_peers()).await;
+                let result = timeout(duration, peer.request_peers()).await;
                 (ip, result)
             });
         }
@@ -190,9 +243,9 @@ impl SyncManager {
         while let Some((ip, result)) = futures.next().await {
             match result {
                 Ok(Ok(mut response)) => {
-                    response
-                        .peer_list
-                        .retain(|item| item.timestamp >= timestamp - 3600 * 8);
+                    response.peer_list.retain(|item| {
+                        item.timestamp >= timestamp - self.options.max_peer_age_seconds
+                    });
 
                     if !response.peer_list.is_empty() {
                         info!(
@@ -217,7 +270,7 @@ impl SyncManager {
                         addrs.push(SocketAddr::new(new_ip, self.network.default_port));
                     }
 
-                    for addrs in addrs.chunks(30) {
+                    for addrs in addrs.chunks(self.options.connection_batch_size) {
                         if self.connect_batch(addrs).await {
                             return true;
                         }
@@ -249,13 +302,11 @@ impl SyncManager {
 
             let network_id = self.network_id.clone();
             let connector = self.connector.clone();
+            let duration = self.options.connection_timeout;
 
             futures.push(async move {
-                let result = timeout(
-                    Duration::from_secs(3),
-                    connect_peer(network_id, connector, socket_addr),
-                )
-                .await;
+                let result =
+                    timeout(duration, connect_peer(network_id, connector, socket_addr)).await;
                 (socket_addr, result)
             });
         }
@@ -290,7 +341,8 @@ impl SyncManager {
     }
 
     async fn try_add_peer(&mut self, peer: Peer, mut receiver: mpsc::Receiver<Message>) -> bool {
-        let Ok(Some(message)) = timeout(Duration::from_secs(2), receiver.recv()).await else {
+        let Ok(Some(message)) = timeout(self.options.initial_peak_timeout, receiver.recv()).await
+        else {
             debug!(
                 "Timeout receiving NewPeakWallet message from peer {}",
                 peer.socket_addr()
