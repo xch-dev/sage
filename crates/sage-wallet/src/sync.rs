@@ -1,5 +1,3 @@
-mod cat_queue;
-mod nft_queue;
 mod peer_event;
 mod peer_info;
 mod peer_state;

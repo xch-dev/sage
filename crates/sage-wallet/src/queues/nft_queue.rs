@@ -14,9 +14,7 @@ use tokio::{
 };
 use tracing::info;
 
-use crate::{ParseError, WalletError};
-
-use super::SyncEvent;
+use crate::{ParseError, SyncEvent, WalletError};
 
 #[derive(Debug)]
 pub struct NftQueue {

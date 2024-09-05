@@ -9,9 +9,7 @@ use tokio::{
 };
 use tracing::info;
 
-use crate::{SyncError, WalletError};
-
-use super::SyncEvent;
+use crate::{SyncError, SyncEvent, WalletError};
 
 #[derive(Deserialize)]
 struct Response {
