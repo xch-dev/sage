@@ -1,9 +1,10 @@
 use std::{
+    cmp::Reverse,
     fmt,
     net::{IpAddr, SocketAddr},
     str::FromStr,
     sync::Arc,
-    time::Duration,
+    time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
 use chia::{
@@ -183,12 +184,30 @@ impl SyncManager {
             });
         }
 
+        let start = SystemTime::now();
+        let since_the_epoch = start
+            .duration_since(UNIX_EPOCH)
+            .expect("Time went backwards");
+        let timestamp = since_the_epoch.as_secs();
+
         while let Some((ip, result)) = futures.next().await {
             match result {
-                Ok(Ok(response)) => {
+                Ok(Ok(mut response)) => {
+                    response
+                        .peer_list
+                        .retain(|item| item.timestamp >= timestamp - 3600);
+
                     if !response.peer_list.is_empty() {
-                        info!("Received {} peers from {}", response.peer_list.len(), ip);
+                        info!(
+                            "Received {} recent peers from {}",
+                            response.peer_list.len(),
+                            ip
+                        );
                     }
+
+                    response
+                        .peer_list
+                        .sort_by_key(|item| Reverse(item.timestamp));
 
                     let mut addrs = Vec::new();
 

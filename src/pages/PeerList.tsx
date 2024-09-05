@@ -17,6 +17,7 @@ import {
   Paper,
   Switch,
   Tooltip,
+  Typography,
 } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -64,8 +65,12 @@ export default function NetworkList() {
       />
 
       <ListContainer>
+        <Typography variant='h5' textAlign='center'>
+          Connected to {peers?.length ?? 0} peers
+        </Typography>
+
         {peers !== null && (
-          <List sx={{ width: '100%' }} component={Paper} disablePadding>
+          <List sx={{ mt: 2, width: '100%' }} component={Paper} disablePadding>
             {peers
               .sort((a, b) => a.ip_addr.localeCompare(b.ip_addr))
               .map((peer, i) => (
