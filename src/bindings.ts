@@ -213,9 +213,9 @@ async send(address: string, amount: Amount, fee: Amount) : Promise<Result<null, 
     else return { status: "error", error: e  as any };
 }
 },
-async peerList() : Promise<Result<PeerInfo[], Error>> {
+async getPeers() : Promise<Result<PeerRecord[], Error>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("peer_list") };
+    return { status: "ok", data: await TAURI_INVOKE("get_peers") };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -255,7 +255,7 @@ export type ErrorKind = "Io" | "Database" | "Client" | "Keychain" | "Logging" | 
 export type NetworkConfig = { network_id?: string; target_peers?: number; discover_peers?: boolean }
 export type NetworkInfo = { default_port: number; genesis_challenge: string; agg_sig_me: string | null; dns_introducers: string[] }
 export type NftRecord = { encoded_id: string; launcher_id: string; encoded_owner_did: string | null; owner_did: string | null; coin_id: string; address: string; royalty_address: string; royalty_percent: string; data_uris: string[]; data_hash: string | null; metadata_uris: string[]; metadata_json: string | null; metadata_hash: string | null; license_uris: string[]; license_hash: string | null; edition_number: number | null; edition_total: number | null }
-export type PeerInfo = { ip_addr: string; port: number; trusted: boolean }
+export type PeerRecord = { ip_addr: string; port: number; trusted: boolean; peak_height: number }
 export type SyncEvent = { type: "start"; ip: string } | { type: "stop" } | { type: "subscribed" } | { type: "coin_update" } | { type: "puzzle_update" } | { type: "cat_update" } | { type: "nft_update" }
 export type SyncStatus = { balance: Amount; unit: Unit; synced_coins: number; total_coins: number; receive_address: string }
 export type Unit = { ticker: string; decimals: number }

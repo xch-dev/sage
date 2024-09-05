@@ -45,7 +45,13 @@ impl PuzzleQueue {
     }
 
     async fn process_batch(&mut self) -> Result<(), WalletError> {
-        let peers: Vec<Peer> = self.state.lock().await.peers().cloned().collect();
+        let peers: Vec<Peer> = self
+            .state
+            .lock()
+            .await
+            .peers()
+            .map(|info| info.peer.clone())
+            .collect();
         if peers.is_empty() {
             return Ok(());
         }

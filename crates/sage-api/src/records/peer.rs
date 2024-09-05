@@ -2,8 +2,9 @@ use serde::{Deserialize, Serialize};
 use specta::Type;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
-pub struct PeerInfo {
+pub struct PeerRecord {
     pub ip_addr: String,
     pub port: u16,
     pub trusted: bool,
+    pub peak_height: u32,
 }

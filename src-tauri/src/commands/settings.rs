@@ -2,29 +2,27 @@ use std::net::IpAddr;
 
 use indexmap::IndexMap;
 use itertools::Itertools;
+use sage_api::PeerRecord;
 use sage_config::{NetworkConfig, WalletConfig};
 use specta::specta;
 use tauri::{command, State};
 
-use crate::{
-    app_state::AppState,
-    error::Result,
-    models::{NetworkInfo, PeerInfo},
-};
+use crate::{app_state::AppState, error::Result, models::NetworkInfo};
 
 #[command]
 #[specta]
-pub async fn peer_list(state: State<'_, AppState>) -> Result<Vec<PeerInfo>> {
+pub async fn get_peers(state: State<'_, AppState>) -> Result<Vec<PeerRecord>> {
     let state = state.lock().await;
     let peer_state = state.peer_state.lock().await;
 
     Ok(peer_state
         .peers()
-        .sorted_by_key(|peer| peer.socket_addr().ip())
-        .map(|peer| PeerInfo {
-            ip_addr: peer.socket_addr().ip().to_string(),
-            port: peer.socket_addr().port(),
+        .sorted_by_key(|info| info.peer.socket_addr().ip())
+        .map(|info| PeerRecord {
+            ip_addr: info.peer.socket_addr().ip().to_string(),
+            port: info.peer.socket_addr().port(),
             trusted: false,
+            peak_height: info.claimed_peak,
         })
         .collect())
 }

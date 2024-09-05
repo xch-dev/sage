@@ -151,7 +151,13 @@ pub async fn send(
 
     let spend_bundle = SpendBundle::new(coin_spends, aggregated_signature);
 
-    let peers: Vec<Peer> = state.peer_state.lock().await.peers().cloned().collect();
+    let peers: Vec<Peer> = state
+        .peer_state
+        .lock()
+        .await
+        .peers()
+        .map(|info| info.peer.clone())
+        .collect();
 
     if peers.is_empty() {
         return Err(Error::no_peers());

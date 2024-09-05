@@ -20,24 +20,24 @@ import {
 } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { commands, PeerInfo } from '../bindings';
+import { commands, PeerRecord } from '../bindings';
 import ListContainer from '../components/ListContainer';
 import NavBar from '../components/NavBar';
 
 export default function NetworkList() {
   const navigate = useNavigate();
 
-  const [peers, setPeers] = useState<PeerInfo[] | null>(null);
+  const [peers, setPeers] = useState<PeerRecord[] | null>(null);
 
   const updatePeers = () => {
-    commands.peerList().then((res) => {
+    commands.getPeers().then((res) => {
       if (res.status === 'ok') {
         setPeers(res.data);
       }
     });
 
     const interval = setInterval(() => {
-      commands.peerList().then((res) => {
+      commands.getPeers().then((res) => {
         if (res.status === 'ok') {
           setPeers(res.data);
         }
@@ -88,7 +88,7 @@ export default function NetworkList() {
 }
 
 function PeerItem(props: {
-  peer: PeerInfo;
+  peer: PeerRecord;
   anyTrusted: boolean;
   updatePeers: () => void;
 }) {
@@ -114,7 +114,7 @@ function PeerItem(props: {
         )}
         <ListItemText
           primary={props.peer.ip_addr}
-          secondary={props.peer.port}
+          secondary={`Port ${props.peer.port} | Peak height ${props.peer.peak_height}`}
           inset={!props.peer.trusted && props.anyTrusted}
         />
       </ListItemButton>

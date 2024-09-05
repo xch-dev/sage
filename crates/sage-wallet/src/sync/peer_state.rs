@@ -31,8 +31,8 @@ impl PeerState {
             .map(|peer| (peer.claimed_peak, peer.header_hash))
     }
 
-    pub fn peers(&self) -> impl Iterator<Item = &Peer> {
-        self.peers.values().map(|peer| &peer.peer)
+    pub fn peers(&self) -> impl Iterator<Item = &PeerInfo> {
+        self.peers.values()
     }
 
     pub fn peer_count(&self) -> usize {

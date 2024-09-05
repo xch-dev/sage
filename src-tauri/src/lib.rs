@@ -50,7 +50,7 @@ pub fn run() {
             // Transactions
             commands::send,
             // Peers
-            commands::peer_list,
+            commands::get_peers,
             commands::remove_peer,
         ])
         .events(collect_events![SyncEvent]);
