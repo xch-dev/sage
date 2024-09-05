@@ -195,7 +195,7 @@ impl SyncManager {
                 Ok(Ok(mut response)) => {
                     response
                         .peer_list
-                        .retain(|item| item.timestamp >= timestamp - 3600);
+                        .retain(|item| item.timestamp >= timestamp - 3600 * 8);
 
                     if !response.peer_list.is_empty() {
                         info!(
@@ -244,9 +244,11 @@ impl SyncManager {
         let mut futures = FuturesUnordered::new();
 
         for &socket_addr in addrs {
-            if self.state.lock().await.is_banned(socket_addr.ip()) {
+            let state = self.state.lock().await;
+            if state.is_connected(socket_addr.ip()) || state.is_banned(socket_addr.ip()) {
                 continue;
             }
+            drop(state);
 
             let network_id = self.network_id.clone();
             let connector = self.connector.clone();
