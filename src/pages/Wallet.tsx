@@ -283,36 +283,85 @@ function TokenListItem(props: { cat: CatRecord }) {
 }
 
 function NftList() {
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [nfts, setNfts] = useState<NftRecord[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  const updateNfts = () => {
-    commands.getNfts().then((result) => {
-      if (result.status === 'ok') {
-        setNfts(result.data);
-      }
-    });
+  const updateNfts = async (page: number) => {
+    return await commands
+      .getNfts({ offset: page * 60, limit: 60 })
+      .then((result) => {
+        if (result.status === 'ok') {
+          setNfts(result.data.items);
+          setTotalPages(Math.max(1, Math.ceil(result.data.total / 60)));
+        } else {
+          throw new Error('Failed to get NFTs');
+        }
+      });
+  };
+
+  const nextPage = () => {
+    if (loading) return;
+    setLoading(true);
+    updateNfts(page + 1)
+      .then(() => setPage(page + 1))
+      .finally(() => {
+        setLoading(false);
+      });
+  };
+
+  const previousPage = () => {
+    if (loading) return;
+    setLoading(true);
+    updateNfts(page - 1)
+      .then(() => setPage(page - 1))
+      .finally(() => {
+        setLoading(false);
+      });
   };
 
   useEffect(() => {
-    updateNfts();
+    updateNfts(page);
 
     const unlisten = events.syncEvent.listen((event) => {
       if (event.payload.type === 'nft_update') {
-        updateNfts();
+        updateNfts(page);
       }
     });
 
     return () => {
       unlisten.then((u) => u());
     };
-  }, []);
+  }, [page]);
 
   return (
-    <Grid2 container spacing={2}>
-      {nfts.map((nft, i) => (
-        <Nft nft={nft} key={i} />
-      ))}
-    </Grid2>
+    <>
+      <Box display='flex' justifyContent='center' alignItems='center' gap={2}>
+        <Button
+          variant='outlined'
+          onClick={() => previousPage()}
+          disabled={page === 0}
+        >
+          Previous
+        </Button>
+        <Typography variant='body1'>
+          Page {page + 1} of {totalPages}
+        </Typography>
+        <Button
+          variant='outlined'
+          onClick={() => nextPage()}
+          disabled={page >= totalPages - 1}
+        >
+          Next
+        </Button>
+      </Box>
+      <Grid2 mt={3} container spacing={2}>
+        {nfts.map((nft, i) => (
+          <Nft nft={nft} key={i} />
+        ))}
+      </Grid2>
+    </>
   );
 }
 
@@ -321,7 +370,6 @@ function Nft({ nft }: { nft: NftRecord }) {
 
   if (!nft.metadata_json) console.log(nft);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let json: any = {};
 
   if (nft.metadata_json) {

@@ -1,6 +1,8 @@
 use bigdecimal::BigDecimal;
 use chia_wallet_sdk::encode_address;
-use sage_api::{Amount, CatRecord, CoinRecord, DidRecord, NftRecord, SyncStatus};
+use sage_api::{
+    Amount, CatRecord, CoinRecord, DidRecord, GetNfts, GetNftsResponse, NftRecord, SyncStatus,
+};
 use sage_database::NftUriKind;
 use specta::specta;
 use tauri::{command, State};
@@ -102,7 +104,7 @@ pub async fn get_dids(state: State<'_, AppState>) -> Result<Vec<DidRecord>> {
 
 #[command]
 #[specta]
-pub async fn get_nfts(state: State<'_, AppState>) -> Result<Vec<NftRecord>> {
+pub async fn get_nfts(state: State<'_, AppState>, request: GetNfts) -> Result<GetNftsResponse> {
     let state = state.lock().await;
     let wallet = state.wallet()?;
 
@@ -110,7 +112,7 @@ pub async fn get_nfts(state: State<'_, AppState>) -> Result<Vec<NftRecord>> {
 
     let mut tx = wallet.db.tx().await?;
 
-    for nft in tx.nfts().await? {
+    for nft in tx.nfts(request.limit, request.offset).await? {
         let uris = tx.nft_uris(nft.launcher_id).await?;
         let mut data_uris = Vec::new();
         let mut metadata_uris = Vec::new();
@@ -150,7 +152,12 @@ pub async fn get_nfts(state: State<'_, AppState>) -> Result<Vec<NftRecord>> {
         });
     }
 
+    let total = tx.nft_count().await?;
+
     tx.commit().await?;
 
-    Ok(records)
+    Ok(GetNftsResponse {
+        items: records,
+        total,
+    })
 }

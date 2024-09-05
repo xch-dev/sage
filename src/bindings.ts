@@ -189,9 +189,9 @@ async getDids() : Promise<Result<DidRecord[], Error>> {
     else return { status: "error", error: e  as any };
 }
 },
-async getNfts() : Promise<Result<NftRecord[], Error>> {
+async getNfts(request: GetNfts) : Promise<Result<GetNftsResponse, Error>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("get_nfts") };
+    return { status: "ok", data: await TAURI_INVOKE("get_nfts", { request }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -252,6 +252,8 @@ export type CoinRecord = { coin_id: string; address: string; amount: Amount; cre
 export type DidRecord = { encoded_id: string; launcher_id: string; coin_id: string; address: string }
 export type Error = { kind: ErrorKind; reason: string }
 export type ErrorKind = "Io" | "Database" | "Client" | "Keychain" | "Logging" | "Serialization" | "InvalidAddress" | "InvalidMnemonic" | "InvalidKey" | "InvalidAmount" | "InsufficientFunds" | "TransactionFailed" | "UnknownNetwork" | "UnknownFingerprint" | "NotLoggedIn"
+export type GetNfts = { offset: number; limit: number }
+export type GetNftsResponse = { items: NftRecord[]; total: number }
 export type NetworkConfig = { network_id?: string; target_peers?: number; discover_peers?: boolean }
 export type NetworkInfo = { default_port: number; genesis_challenge: string; agg_sig_me: string | null; dns_introducers: string[] }
 export type NftRecord = { encoded_id: string; launcher_id: string; encoded_owner_did: string | null; owner_did: string | null; coin_id: string; address: string; royalty_address: string; royalty_percent: string; data_uris: string[]; data_hash: string | null; metadata_uris: string[]; metadata_json: string | null; metadata_hash: string | null; license_uris: string[]; license_hash: string | null; edition_number: number | null; edition_total: number | null }

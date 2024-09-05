@@ -88,8 +88,12 @@ impl Database {
         delete_nfts(&self.pool).await
     }
 
-    pub async fn nfts(&self) -> Result<Vec<NftRow>> {
-        nfts(&self.pool).await
+    pub async fn nfts(&self, limit: u32, offset: u32) -> Result<Vec<NftRow>> {
+        nfts(&self.pool, limit, offset).await
+    }
+
+    pub async fn nft_count(&self) -> Result<u32> {
+        nft_count(&self.pool).await
     }
 
     pub async fn insert_nft_uri(
@@ -198,8 +202,12 @@ impl<'a> DatabaseTx<'a> {
         delete_nfts(&mut *self.tx).await
     }
 
-    pub async fn nfts(&mut self) -> Result<Vec<NftRow>> {
-        nfts(&mut *self.tx).await
+    pub async fn nfts(&mut self, limit: u32, offset: u32) -> Result<Vec<NftRow>> {
+        nfts(&mut *self.tx, limit, offset).await
+    }
+
+    pub async fn nft_count(&mut self) -> Result<u32> {
+        nft_count(&mut *self.tx).await
     }
 
     pub async fn insert_nft_uri(
@@ -524,7 +532,7 @@ async fn insert_nft_uri(
     Ok(())
 }
 
-async fn nfts(conn: impl SqliteExecutor<'_>) -> Result<Vec<NftRow>> {
+async fn nfts(conn: impl SqliteExecutor<'_>, limit: u32, offset: u32) -> Result<Vec<NftRow>> {
     let rows = sqlx::query!(
         "
         SELECT
@@ -541,7 +549,11 @@ async fn nfts(conn: impl SqliteExecutor<'_>) -> Result<Vec<NftRow>> {
             `edition_number`,
             `edition_total`
         FROM `nfts`
-        "
+        ORDER BY `launcher_id`
+        LIMIT ? OFFSET ?
+        ",
+        limit,
+        offset
     )
     .fetch_all(conn)
     .await?;
@@ -615,6 +627,18 @@ async fn nft(conn: impl SqliteExecutor<'_>, launcher_id: Bytes32) -> Result<Opti
         })
     })
     .transpose()
+}
+
+async fn nft_count(conn: impl SqliteExecutor<'_>) -> Result<u32> {
+    let row = sqlx::query!(
+        "
+        SELECT COUNT(*) AS `count` FROM `nfts`
+        "
+    )
+    .fetch_one(conn)
+    .await?;
+
+    Ok(row.count.try_into()?)
 }
 
 async fn nft_uris(conn: impl SqliteExecutor<'_>, nft_id: Bytes32) -> Result<Vec<NftUri>> {
