@@ -90,8 +90,8 @@ impl Database {
         update_nft(&self.pool, row).await
     }
 
-    pub async fn delete_nfts(&self) -> Result<()> {
-        delete_nfts(&self.pool).await
+    pub async fn delete_old_nfts(&self) -> Result<()> {
+        delete_old_nfts(&self.pool).await
     }
 
     pub async fn nfts(&self, limit: u32, offset: u32) -> Result<Vec<NftRow>> {
@@ -136,8 +136,8 @@ impl Database {
         nft_coin(&self.pool, launcher_id).await
     }
 
-    pub async fn updated_nft_coins(&self) -> Result<Vec<UncachedNftInfo>> {
-        updated_nft_coins(&self.pool).await
+    pub async fn updated_nft_coins(&self, limit: u32) -> Result<Vec<UncachedNftInfo>> {
+        updated_nft_coins(&self.pool, limit).await
     }
 
     pub async fn insert_did_coin(
@@ -204,8 +204,8 @@ impl<'a> DatabaseTx<'a> {
         update_nft(&mut *self.tx, row).await
     }
 
-    pub async fn delete_nfts(&mut self) -> Result<()> {
-        delete_nfts(&mut *self.tx).await
+    pub async fn delete_old_nfts(&mut self) -> Result<()> {
+        delete_old_nfts(&mut *self.tx).await
     }
 
     pub async fn nfts(&mut self, limit: u32, offset: u32) -> Result<Vec<NftRow>> {
@@ -250,8 +250,8 @@ impl<'a> DatabaseTx<'a> {
         nft_coin(&mut *self.tx, launcher_id).await
     }
 
-    pub async fn updated_nft_coins(&mut self) -> Result<Vec<UncachedNftInfo>> {
-        updated_nft_coins(&mut *self.tx).await
+    pub async fn updated_nft_coins(&mut self, limit: u32) -> Result<Vec<UncachedNftInfo>> {
+        updated_nft_coins(&mut *self.tx, limit).await
     }
 
     pub async fn insert_did_coin(
@@ -776,7 +776,10 @@ async fn nft_coin(
     }))
 }
 
-async fn updated_nft_coins(conn: impl SqliteExecutor<'_>) -> Result<Vec<UncachedNftInfo>> {
+async fn updated_nft_coins(
+    conn: impl SqliteExecutor<'_>,
+    limit: u32,
+) -> Result<Vec<UncachedNftInfo>> {
     let rows = sqlx::query!(
         "
         SELECT
@@ -791,8 +794,9 @@ async fn updated_nft_coins(conn: impl SqliteExecutor<'_>) -> Result<Vec<Uncached
         ON nft.launcher_id = n.launcher_id
         WHERE cs.spent_height IS NULL
         AND (n.launcher_id IS NULL OR n.coin_id != cs.coin_id)
-        LIMIT 100
-        "
+        LIMIT ?
+        ",
+        limit
     )
     .fetch_all(conn)
     .await?;
@@ -818,17 +822,17 @@ async fn updated_nft_coins(conn: impl SqliteExecutor<'_>) -> Result<Vec<Uncached
         .collect()
 }
 
-async fn delete_nfts(conn: impl SqliteExecutor<'_>) -> Result<()> {
+async fn delete_old_nfts(conn: impl SqliteExecutor<'_>) -> Result<()> {
     sqlx::query!(
         "
         DELETE FROM `nfts`
-        WHERE `launcher_id` IN (
-            SELECT nfts.`launcher_id`
-            FROM `nfts`
-            LEFT JOIN `nft_coins` nc ON nfts.`launcher_id` = nc.`launcher_id`
-            LEFT JOIN `coin_states` cs ON nc.`coin_id` = cs.`coin_id` AND cs.`spent_height` IS NULL
-            WHERE cs.`coin_id` IS NULL
-        )
+        WHERE NOT EXISTS (
+            SELECT 1
+            FROM `nft_coins` nc
+            JOIN `coin_states` cs ON nc.`coin_id` = cs.`coin_id`
+            WHERE nc.`launcher_id` = nfts.`launcher_id`
+            AND cs.`spent_height` IS NULL
+        );
         "
     )
     .execute(conn)
