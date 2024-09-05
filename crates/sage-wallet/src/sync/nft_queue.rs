@@ -32,7 +32,7 @@ impl NftQueue {
     pub async fn start(self) -> Result<(), WalletError> {
         loop {
             self.process_batch().await?;
-            sleep(Duration::from_secs(5)).await;
+            sleep(Duration::from_secs(1)).await;
         }
     }
 
@@ -105,7 +105,7 @@ impl NftQueue {
 
             tx.update_nft(NftRow {
                 launcher_id: nft.info.launcher_id,
-                coin_id: nft.coin.coin_id(),
+                coin_id: nft.coin_id,
                 p2_puzzle_hash: nft.info.p2_puzzle_hash,
                 royalty_puzzle_hash: nft.info.royalty_puzzle_hash,
                 royalty_ten_thousandths: nft.info.royalty_ten_thousandths,

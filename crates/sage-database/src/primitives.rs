@@ -49,6 +49,12 @@ pub enum NftUriKind {
     License,
 }
 
+#[derive(Debug, Clone)]
+pub struct UncachedNftInfo {
+    pub info: NftInfo<Program>,
+    pub coin_id: Bytes32,
+}
+
 impl Database {
     pub async fn maybe_insert_cat(&self, row: CatRow) -> Result<()> {
         maybe_insert_cat(&self.pool, row).await
@@ -130,7 +136,7 @@ impl Database {
         nft_coin(&self.pool, launcher_id).await
     }
 
-    pub async fn updated_nft_coins(&self) -> Result<Vec<Nft<Program>>> {
+    pub async fn updated_nft_coins(&self) -> Result<Vec<UncachedNftInfo>> {
         updated_nft_coins(&self.pool).await
     }
 
@@ -244,7 +250,7 @@ impl<'a> DatabaseTx<'a> {
         nft_coin(&mut *self.tx, launcher_id).await
     }
 
-    pub async fn updated_nft_coins(&mut self) -> Result<Vec<Nft<Program>>> {
+    pub async fn updated_nft_coins(&mut self) -> Result<Vec<UncachedNftInfo>> {
         updated_nft_coins(&mut *self.tx).await
     }
 
@@ -770,20 +776,22 @@ async fn nft_coin(
     }))
 }
 
-async fn updated_nft_coins(conn: impl SqliteExecutor<'_>) -> Result<Vec<Nft<Program>>> {
+async fn updated_nft_coins(conn: impl SqliteExecutor<'_>) -> Result<Vec<UncachedNftInfo>> {
     let rows = sqlx::query!(
         "
         SELECT
-            cs.parent_coin_id, cs.puzzle_hash, cs.amount,
             nft.parent_parent_coin_id, nft.parent_inner_puzzle_hash, nft.parent_amount,
             nft.launcher_id, nft.metadata, nft.metadata_updater_puzzle_hash,
             nft.current_owner, nft.royalty_puzzle_hash, nft.royalty_ten_thousandths,
-            nft.p2_puzzle_hash
-        FROM `coin_states` AS cs
-        INNER JOIN `nft_coins` AS nft
+            nft.p2_puzzle_hash, nft.coin_id
+        FROM `nft_coins` AS nft
+        INNER JOIN `coin_states` AS cs
         ON cs.coin_id = nft.coin_id
+        LEFT JOIN `nfts` AS n
+        ON nft.launcher_id = n.launcher_id
         WHERE cs.spent_height IS NULL
-        AND nft.launcher_id NOT IN (SELECT `launcher_id` FROM `nfts` WHERE `coin_id` = cs.coin_id)
+        AND (n.launcher_id IS NULL OR n.coin_id != cs.coin_id)
+        LIMIT 100
         "
     )
     .fetch_all(conn)
@@ -791,13 +799,8 @@ async fn updated_nft_coins(conn: impl SqliteExecutor<'_>) -> Result<Vec<Nft<Prog
 
     rows.into_iter()
         .map(|row| {
-            Ok(Nft {
-                coin: to_coin(&row.parent_coin_id, &row.puzzle_hash, &row.amount)?,
-                proof: Proof::Lineage(to_lineage_proof(
-                    &row.parent_parent_coin_id,
-                    &row.parent_inner_puzzle_hash,
-                    &row.parent_amount,
-                )?),
+            Ok(UncachedNftInfo {
+                coin_id: to_bytes32(&row.coin_id)?,
                 info: NftInfo {
                     launcher_id: to_bytes32(&row.launcher_id)?,
                     metadata: row.metadata.into(),
@@ -819,10 +822,12 @@ async fn delete_nfts(conn: impl SqliteExecutor<'_>) -> Result<()> {
     sqlx::query!(
         "
         DELETE FROM `nfts`
-        WHERE `launcher_id` NOT IN (
-            SELECT `launcher_id` FROM `nft_coins`
-            INNER JOIN `coin_states` ON `nft_coins`.`coin_id` = `coin_states`.`coin_id`
-            WHERE `coin_states`.`spent_height` IS NULL
+        WHERE `launcher_id` IN (
+            SELECT nfts.`launcher_id`
+            FROM `nfts`
+            LEFT JOIN `nft_coins` nc ON nfts.`launcher_id` = nc.`launcher_id`
+            LEFT JOIN `coin_states` cs ON nc.`coin_id` = cs.`coin_id` AND cs.`spent_height` IS NULL
+            WHERE cs.`coin_id` IS NULL
         )
         "
     )

@@ -1,6 +1,5 @@
 use app_state::AppStateInner;
 use models::SyncEvent;
-use specta_typescript::Typescript;
 use tauri::Manager;
 use tauri_specta::{collect_commands, collect_events, Builder};
 use tokio::sync::Mutex;
@@ -10,6 +9,9 @@ mod commands;
 mod error;
 mod models;
 mod utils;
+
+#[cfg(debug_assertions)]
+use specta_typescript::Typescript;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
