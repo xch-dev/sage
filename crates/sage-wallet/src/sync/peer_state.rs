@@ -6,8 +6,21 @@ use std::{
 use chia::protocol::Bytes32;
 use chia_wallet_sdk::Peer;
 use itertools::Itertools;
+use tokio::task::JoinHandle;
 
-use super::peer_info::PeerInfo;
+#[derive(Debug)]
+pub struct PeerInfo {
+    pub peer: Peer,
+    pub claimed_peak: u32,
+    pub header_hash: Bytes32,
+    pub receive_message_task: JoinHandle<()>,
+}
+
+impl Drop for PeerInfo {
+    fn drop(&mut self) {
+        self.receive_message_task.abort();
+    }
+}
 
 #[derive(Debug, Default)]
 pub struct PeerState {

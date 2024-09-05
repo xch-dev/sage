@@ -25,10 +25,9 @@ use crate::{CatQueue, NftQueue, Wallet, WalletError};
 
 use super::{
     peer_event::{handle_peer, handle_peer_events, PeerEvent},
-    peer_info::PeerInfo,
     puzzle_queue::PuzzleQueue,
     wallet_sync::sync_wallet,
-    PeerState, SyncEvent,
+    PeerInfo, PeerState, SyncEvent,
 };
 
 #[derive(Debug, Clone, Copy)]
