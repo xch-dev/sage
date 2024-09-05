@@ -75,19 +75,32 @@ pub async fn send(
     tx.commit().await?;
 
     let coins = select_coins(coins, total_amount).map_err(|_| Error::insufficient_funds())?;
+    let selected_amount = coins.iter().fold(0, |acc, coin| acc + coin.amount as u128);
+    let change_amount: u64 = (selected_amount - total_amount)
+        .try_into()
+        .expect("Invalid change");
 
     let mut ctx = SpendContext::new();
 
     let origin_coin_id = coins[0].coin_id();
 
-    for (i, coin) in coins.into_iter().enumerate() {
+    for (i, &coin) in coins.iter().enumerate() {
         let pk = keys[&coin.puzzle_hash].1;
         let p2 = StandardLayer::new(pk);
 
         let conditions = if i == 0 {
-            Conditions::new()
-                .reserve_fee(fee)
-                .create_coin(puzzle_hash.into(), amount, Vec::new())
+            let mut conditions = Conditions::new().reserve_fee(fee).create_coin(
+                puzzle_hash.into(),
+                amount,
+                Vec::new(),
+            );
+
+            if change_amount > 0 {
+                conditions =
+                    conditions.create_coin(coins[0].puzzle_hash, change_amount, Vec::new());
+            }
+
+            conditions
         } else {
             Conditions::new().assert_concurrent_spend(origin_coin_id)
         };

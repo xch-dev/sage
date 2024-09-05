@@ -37,6 +37,16 @@ export default function Send() {
 
   const addressValid = address === validAddress;
 
+  const submit = () => {
+    commands.send(address, amount, fee).then((result) => {
+      if (result.status === 'ok') {
+        navigate(-1);
+      } else {
+        console.error(result.error);
+      }
+    });
+  };
+
   return (
     <>
       <NavBar
@@ -93,7 +103,7 @@ export default function Send() {
             feeNum.isNaN() ||
             !addressValid
           }
-          onClick={() => console.log('xyz')}
+          onClick={submit}
         >
           Send
         </Button>
