@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        DELETE FROM `nfts`\n        WHERE NOT EXISTS (\n            SELECT 1\n            FROM `nft_coins` nc\n            JOIN `coin_states` cs ON nc.`coin_id` = cs.`coin_id`\n            WHERE nc.`launcher_id` = nfts.`launcher_id`\n            AND cs.`spent_height` IS NULL\n        );\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "dd684c85931416898e76bd43c2481d9a92ccd8f2b004695696eb74e3e6c3c135"
+}

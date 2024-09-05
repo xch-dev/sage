@@ -1,0 +1,80 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT\n            nft.parent_parent_coin_id, nft.parent_inner_puzzle_hash, nft.parent_amount,\n            nft.launcher_id, nft.metadata, nft.metadata_updater_puzzle_hash,\n            nft.current_owner, nft.royalty_puzzle_hash, nft.royalty_ten_thousandths,\n            nft.p2_puzzle_hash, nft.coin_id\n        FROM `nft_coins` AS nft\n        INNER JOIN `coin_states` AS cs\n        ON cs.coin_id = nft.coin_id\n        LEFT JOIN `nfts` AS n\n        ON nft.launcher_id = n.launcher_id\n        WHERE cs.spent_height IS NULL\n        AND (n.launcher_id IS NULL OR n.coin_id != cs.coin_id)\n        LIMIT ?\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "parent_parent_coin_id",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "parent_inner_puzzle_hash",
+        "ordinal": 1,
+        "type_info": "Blob"
+      },
+      {
+        "name": "parent_amount",
+        "ordinal": 2,
+        "type_info": "Blob"
+      },
+      {
+        "name": "launcher_id",
+        "ordinal": 3,
+        "type_info": "Blob"
+      },
+      {
+        "name": "metadata",
+        "ordinal": 4,
+        "type_info": "Blob"
+      },
+      {
+        "name": "metadata_updater_puzzle_hash",
+        "ordinal": 5,
+        "type_info": "Blob"
+      },
+      {
+        "name": "current_owner",
+        "ordinal": 6,
+        "type_info": "Blob"
+      },
+      {
+        "name": "royalty_puzzle_hash",
+        "ordinal": 7,
+        "type_info": "Blob"
+      },
+      {
+        "name": "royalty_ten_thousandths",
+        "ordinal": 8,
+        "type_info": "Integer"
+      },
+      {
+        "name": "p2_puzzle_hash",
+        "ordinal": 9,
+        "type_info": "Blob"
+      },
+      {
+        "name": "coin_id",
+        "ordinal": 10,
+        "type_info": "Blob"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "b6cf015882a3d987a0a174f8d9528cf251fe92927a3a43048885514ea0965370"
+}
