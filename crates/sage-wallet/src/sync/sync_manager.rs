@@ -1,6 +1,7 @@
 use std::{
     fmt,
     net::{IpAddr, SocketAddr},
+    str::FromStr,
     sync::Arc,
     time::Duration,
 };
@@ -17,7 +18,7 @@ use tokio::{
     task::JoinHandle,
     time::{sleep, timeout},
 };
-use tracing::{debug, warn};
+use tracing::{debug, info, warn};
 
 use crate::{Wallet, WalletError};
 
@@ -135,7 +136,13 @@ impl SyncManager {
         let peer_count = self.state.lock().await.peer_count();
 
         if self.options.find_peers && peer_count < self.options.target_peers {
-            self.dns_discovery().await;
+            if peer_count > 0 {
+                if !self.peer_discovery().await {
+                    self.dns_discovery().await;
+                }
+            } else {
+                self.dns_discovery().await;
+            }
         }
 
         self.update_tasks().await;
@@ -150,6 +157,68 @@ impl SyncManager {
                 break;
             }
         }
+    }
+
+    async fn peer_discovery(&mut self) -> bool {
+        let peers: Vec<Peer> = self
+            .state
+            .lock()
+            .await
+            .peers()
+            .map(|info| info.peer.clone())
+            .collect();
+
+        if peers.is_empty() {
+            warn!("No existing peers to request new peers from");
+            return false;
+        }
+
+        let mut futures = FuturesUnordered::new();
+
+        for peer in peers {
+            let ip = peer.socket_addr().ip();
+            futures.push(async move {
+                let result = timeout(Duration::from_secs(5), peer.request_peers()).await;
+                (ip, result)
+            });
+        }
+
+        while let Some((ip, result)) = futures.next().await {
+            match result {
+                Ok(Ok(response)) => {
+                    if !response.peer_list.is_empty() {
+                        info!("Received {} peers from {}", response.peer_list.len(), ip);
+                    }
+
+                    let mut addrs = Vec::new();
+
+                    for item in response.peer_list {
+                        let Some(new_ip) = IpAddr::from_str(&item.host).ok() else {
+                            debug!("Invalid IP address in peer list");
+                            self.state.lock().await.ban(ip);
+                            break;
+                        };
+                        addrs.push(SocketAddr::new(new_ip, self.network.default_port));
+                    }
+
+                    for addrs in addrs.chunks(10) {
+                        if self.connect_batch(addrs).await {
+                            return true;
+                        }
+                    }
+                }
+                Ok(Err(error)) => {
+                    debug!("Failed to request peers from {}: {}", ip, error);
+                    self.state.lock().await.ban(ip);
+                }
+                Err(_timeout) => {
+                    debug!("Request for peers from {} timed out", ip);
+                    self.state.lock().await.ban(ip);
+                }
+            }
+        }
+
+        false
     }
 
     async fn connect_batch(&mut self, addrs: &[SocketAddr]) -> bool {
