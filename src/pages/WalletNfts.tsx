@@ -91,8 +91,6 @@ export function WalletNfts() {
 function Nft({ nft }: { nft: NftRecord }) {
   const theme = useTheme();
 
-  if (!nft.metadata_json) console.log(nft);
-
   let json: any = {};
 
   if (nft.metadata_json) {

@@ -10,16 +10,27 @@ import {
   Paper,
 } from '@mui/material';
 import { useEffect, useState } from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { commands, WalletInfo } from '../bindings';
 import ListContainer from '../components/ListContainer';
 import NavBar from '../components/NavBar';
 
 export default function Wallet() {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  let initialTab = null;
+
+  if (location.pathname === '/wallet') {
+    initialTab = 0;
+  } else if (location.pathname === '/wallet/tokens') {
+    initialTab = 1;
+  } else if (location.pathname === '/wallet/nfts') {
+    initialTab = 2;
+  }
 
   const [wallet, setWallet] = useState<WalletInfo | null>(null);
-  const [tab, setTab] = useState(0);
+  const [tab, setTab] = useState(initialTab ?? 0);
 
   useEffect(() => {
     commands.activeWallet().then((wallet) => {
@@ -33,7 +44,10 @@ export default function Wallet() {
 
   return (
     <>
-      <NavBar label={wallet?.name ?? 'Loading...'} back='logout' />
+      <NavBar
+        label={wallet?.name ?? 'Loading...'}
+        back={initialTab === null ? () => navigate(-1) : 'logout'}
+      />
 
       <ListContainer>
         <Box pb={11}>

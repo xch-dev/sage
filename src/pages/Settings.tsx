@@ -43,16 +43,7 @@ export default function Settings() {
 
   return (
     <>
-      <NavBar
-        label='Settings'
-        back={() => {
-          if (wallet) {
-            navigate('/wallet');
-          } else {
-            navigate('/');
-          }
-        }}
-      />
+      <NavBar label='Settings' back={() => navigate(-1)} />
       <Container>
         <GlobalSettings />
         <NetworkSettings />
