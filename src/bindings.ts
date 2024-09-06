@@ -213,6 +213,22 @@ async validateAddress(address: string) : Promise<Result<boolean, Error>> {
     else return { status: "error", error: e  as any };
 }
 },
+async updateCatInfo(record: CatRecord) : Promise<Result<null, Error>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("update_cat_info", { record }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async removeCatInfo(assetId: string) : Promise<Result<null, Error>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("remove_cat_info", { assetId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async send(address: string, amount: Amount, fee: Amount) : Promise<Result<null, Error>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("send", { address, amount, fee }) };
@@ -267,7 +283,7 @@ export type CatRecord = { asset_id: string; name: string | null; description: st
 export type CoinRecord = { coin_id: string; address: string; amount: Amount; created_height: number | null; spent_height: number | null }
 export type DidRecord = { encoded_id: string; launcher_id: string; coin_id: string; address: string }
 export type Error = { kind: ErrorKind; reason: string }
-export type ErrorKind = "Io" | "Database" | "Client" | "Keychain" | "Logging" | "Serialization" | "InvalidAddress" | "InvalidMnemonic" | "InvalidKey" | "InvalidAmount" | "InsufficientFunds" | "TransactionFailed" | "UnknownNetwork" | "UnknownFingerprint" | "NotLoggedIn" | "Sync"
+export type ErrorKind = "Io" | "Database" | "Client" | "Keychain" | "Logging" | "Serialization" | "InvalidAddress" | "InvalidMnemonic" | "InvalidKey" | "InvalidAmount" | "InvalidAssetId" | "InsufficientFunds" | "TransactionFailed" | "UnknownNetwork" | "UnknownFingerprint" | "NotLoggedIn" | "Sync"
 export type GetNfts = { offset: number; limit: number }
 export type GetNftsResponse = { items: NftRecord[]; total: number }
 export type NetworkConfig = { network_id?: string; target_peers?: number; discover_peers?: boolean }

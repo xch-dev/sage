@@ -47,6 +47,13 @@ impl Error {
         }
     }
 
+    pub fn invalid_asset_id() -> Self {
+        Self {
+            kind: ErrorKind::InvalidAssetId,
+            reason: "Invalid asset id".to_string(),
+        }
+    }
+
     pub fn insufficient_funds() -> Self {
         Self {
             kind: ErrorKind::InsufficientFunds,
@@ -102,6 +109,7 @@ pub enum ErrorKind {
     InvalidMnemonic,
     InvalidKey,
     InvalidAmount,
+    InvalidAssetId,
     InsufficientFunds,
     TransactionFailed,
     UnknownNetwork,

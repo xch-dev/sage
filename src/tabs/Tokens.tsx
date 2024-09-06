@@ -2,6 +2,12 @@ import { Edit, MoreVert, Refresh } from '@mui/icons-material';
 import {
   Avatar,
   Box,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   IconButton,
   ListItem,
   ListItemAvatar,
@@ -11,11 +17,12 @@ import {
   Menu,
   MenuItem,
   Paper,
+  TextField,
   Typography,
   useMediaQuery,
   useTheme,
 } from '@mui/material';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { CatRecord, commands, events } from '../bindings';
 
 export function WalletTokens() {
@@ -55,8 +62,8 @@ export function WalletTokens() {
             return 1;
           }
         })
-        .map((cat, i) => (
-          <Token key={i} cat={cat} />
+        .map((cat) => (
+          <Token key={cat.asset_id} cat={cat} updateCats={updateCats} />
         ))}
     </Box>
   );
@@ -64,6 +71,7 @@ export function WalletTokens() {
 
 interface TokenProps {
   cat: CatRecord;
+  updateCats: () => void;
 }
 
 function Token(props: TokenProps) {
@@ -72,6 +80,12 @@ function Token(props: TokenProps) {
   const sm = useMediaQuery(theme.breakpoints.up('sm'));
 
   const chars = sm ? 16 : 8;
+
+  const [isEditOpen, setEditOpen] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newTicker, setNewTicker] = useState('');
+
+  const tickerRef = useRef<HTMLInputElement>(null);
 
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
@@ -82,6 +96,31 @@ function Token(props: TokenProps) {
 
   const handleClose = () => {
     setAnchorEl(null);
+  };
+
+  const redownload = () => {
+    commands.removeCatInfo(props.cat.asset_id).then((res) => {
+      if (res.status === 'ok') {
+        props.updateCats();
+      }
+    });
+
+    handleClose();
+  };
+
+  const edit = () => {
+    if (!newName || !newTicker) return;
+
+    props.cat.name = newName;
+    props.cat.ticker = newTicker;
+
+    commands.updateCatInfo(props.cat).then((res) => {
+      if (res.status === 'ok') {
+        props.updateCats();
+      }
+    });
+
+    setEditOpen(false);
   };
 
   return (
@@ -107,20 +146,91 @@ function Token(props: TokenProps) {
               open={open}
               onClose={handleClose}
             >
-              <MenuItem>
+              <MenuItem
+                onClick={() => {
+                  setEditOpen(true);
+                  handleClose();
+                }}
+              >
                 <ListItemIcon>
                   <Edit fontSize='small' />
                 </ListItemIcon>
                 <ListItemText>Edit</ListItemText>
               </MenuItem>
 
-              <MenuItem>
+              <MenuItem onClick={redownload}>
                 <ListItemIcon>
                   <Refresh fontSize='small' />
                 </ListItemIcon>
                 <ListItemText>Redownload</ListItemText>
               </MenuItem>
             </Menu>
+
+            <Dialog
+              open={isEditOpen}
+              onClose={() => {
+                setNewName('');
+                setNewTicker('');
+                setEditOpen(false);
+              }}
+            >
+              <DialogTitle>Edit Token</DialogTitle>
+              <DialogContent>
+                <DialogContentText>
+                  Enter the new display details for this token.
+                </DialogContentText>
+                <TextField
+                  label='Name'
+                  variant='standard'
+                  margin='dense'
+                  required
+                  fullWidth
+                  autoFocus
+                  value={newName}
+                  onChange={(event) => setNewName(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault();
+                      tickerRef.current?.focus();
+                    }
+                  }}
+                />
+
+                <TextField
+                  inputRef={tickerRef}
+                  label='Ticker'
+                  variant='standard'
+                  margin='dense'
+                  required
+                  fullWidth
+                  value={newTicker}
+                  onChange={(event) => setNewTicker(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault();
+                      edit();
+                    }
+                  }}
+                />
+              </DialogContent>
+              <DialogActions>
+                <Button
+                  onClick={() => {
+                    setNewName('');
+                    setEditOpen(false);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={edit}
+                  autoFocus
+                  disabled={!newName || !newTicker}
+                >
+                  Submit
+                </Button>
+              </DialogActions>
+            </Dialog>
           </Box>
         }
       >

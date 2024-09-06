@@ -64,6 +64,10 @@ impl Database {
         update_cat(&self.pool, row).await
     }
 
+    pub async fn delete_cat(&self, asset_id: Bytes32) -> Result<()> {
+        delete_cat(&self.pool, asset_id).await
+    }
+
     pub async fn cats(&self) -> Result<Vec<CatRow>> {
         cats(&self.pool).await
     }
@@ -169,6 +173,10 @@ impl<'a> DatabaseTx<'a> {
 
     pub async fn update_cat(&mut self, row: CatRow) -> Result<()> {
         update_cat(&mut *self.tx, row).await
+    }
+
+    pub async fn delete_cat(&mut self, asset_id: Bytes32) -> Result<()> {
+        delete_cat(&mut *self.tx, asset_id).await
     }
 
     pub async fn cats(&mut self) -> Result<Vec<CatRow>> {
@@ -328,6 +336,21 @@ async fn update_cat(conn: impl SqliteExecutor<'_>, row: CatRow) -> Result<()> {
     Ok(())
 }
 
+async fn delete_cat(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<()> {
+    let asset_id = asset_id.as_ref();
+
+    sqlx::query!(
+        "
+        DELETE FROM `cats` WHERE `asset_id` = ?
+        ",
+        asset_id
+    )
+    .execute(conn)
+    .await?;
+
+    Ok(())
+}
+
 async fn cats(conn: impl SqliteExecutor<'_>) -> Result<Vec<CatRow>> {
     let rows = sqlx::query!(
         "
@@ -339,6 +362,7 @@ async fn cats(conn: impl SqliteExecutor<'_>) -> Result<Vec<CatRow>> {
             `precision`,
             `icon_url`
         FROM `cats`
+        ORDER BY `name` ASC, `asset_id` ASC
         "
     )
     .fetch_all(conn)
