@@ -23,6 +23,7 @@ import {
   useTheme,
 } from '@mui/material';
 import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { CatRecord, commands, events } from '../bindings';
 
 export function WalletTokens() {
@@ -75,6 +76,7 @@ interface TokenProps {
 }
 
 function Token(props: TokenProps) {
+  const navigate = useNavigate();
   const theme = useTheme();
   const md = useMediaQuery(theme.breakpoints.up('md'));
   const sm = useMediaQuery(theme.breakpoints.up('sm'));
@@ -92,6 +94,8 @@ function Token(props: TokenProps) {
 
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(event.currentTarget);
+    event.preventDefault();
+    event.stopPropagation();
   };
 
   const handleClose = () => {
@@ -165,74 +169,12 @@ function Token(props: TokenProps) {
                 <ListItemText>Redownload</ListItemText>
               </MenuItem>
             </Menu>
-
-            <Dialog
-              open={isEditOpen}
-              onClose={() => {
-                setNewName('');
-                setNewTicker('');
-                setEditOpen(false);
-              }}
-            >
-              <DialogTitle>Edit Token</DialogTitle>
-              <DialogContent>
-                <DialogContentText>
-                  Enter the new display details for this token.
-                </DialogContentText>
-                <TextField
-                  label='Name'
-                  variant='standard'
-                  margin='dense'
-                  required
-                  fullWidth
-                  autoFocus
-                  value={newName}
-                  onChange={(event) => setNewName(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter') {
-                      event.preventDefault();
-                      tickerRef.current?.focus();
-                    }
-                  }}
-                />
-
-                <TextField
-                  inputRef={tickerRef}
-                  label='Ticker'
-                  variant='standard'
-                  margin='dense'
-                  required
-                  fullWidth
-                  value={newTicker}
-                  onChange={(event) => setNewTicker(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter') {
-                      event.preventDefault();
-                      edit();
-                    }
-                  }}
-                />
-              </DialogContent>
-              <DialogActions>
-                <Button
-                  onClick={() => {
-                    setNewName('');
-                    setEditOpen(false);
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={edit}
-                  autoFocus
-                  disabled={!newName || !newTicker}
-                >
-                  Submit
-                </Button>
-              </DialogActions>
-            </Dialog>
           </Box>
         }
+        onClick={() => {
+          if (open) return;
+          navigate(`/wallet/token/${props.cat.asset_id}`);
+        }}
       >
         <ListItemButton>
           <ListItemAvatar>
@@ -260,6 +202,76 @@ function Token(props: TokenProps) {
           />
         </ListItemButton>
       </ListItem>
+
+      <Dialog
+        open={isEditOpen}
+        onClose={() => {
+          setNewName('');
+          setNewTicker('');
+          setEditOpen(false);
+        }}
+      >
+        <DialogTitle>Edit Token</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Enter the new display details for this token.
+          </DialogContentText>
+          <TextField
+            label='Name'
+            variant='standard'
+            margin='dense'
+            required
+            fullWidth
+            autoFocus
+            value={newName}
+            onChange={(event) => setNewName(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                event.preventDefault();
+                tickerRef.current?.focus();
+              }
+            }}
+          />
+
+          <TextField
+            inputRef={tickerRef}
+            label='Ticker'
+            variant='standard'
+            margin='dense'
+            required
+            fullWidth
+            value={newTicker}
+            onChange={(event) => setNewTicker(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                event.preventDefault();
+                edit();
+              }
+            }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={(event) => {
+              event.preventDefault();
+              setNewName('');
+              setEditOpen(false);
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={(event) => {
+              event.preventDefault();
+              edit();
+            }}
+            autoFocus
+            disabled={!newName || !newTicker}
+          >
+            Submit
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Paper>
   );
 }

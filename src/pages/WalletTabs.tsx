@@ -10,13 +10,10 @@ import {
   Paper,
 } from '@mui/material';
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Outlet, useNavigate } from 'react-router-dom';
 import { commands, WalletInfo } from '../bindings';
 import ListContainer from '../components/ListContainer';
 import NavBar from '../components/NavBar';
-import { MainWallet } from '../tabs/Main';
-import { WalletNfts } from '../tabs/Nfts';
-import { WalletTokens } from '../tabs/Tokens';
 
 export default function Wallet() {
   const navigate = useNavigate();
@@ -40,13 +37,7 @@ export default function Wallet() {
 
       <ListContainer>
         <Box pb={11}>
-          {tab === 0 ? (
-            <MainWallet />
-          ) : tab === 1 ? (
-            <WalletTokens />
-          ) : (
-            <WalletNfts />
-          )}
+          <Outlet />
         </Box>
       </ListContainer>
 
@@ -61,9 +52,21 @@ export default function Wallet() {
             setTab(newValue);
           }}
         >
-          <BottomNavigationAction label='Wallet' icon={<WalletIcon />} />
-          <BottomNavigationAction label='Tokens' icon={<AccountBalance />} />
-          <BottomNavigationAction label='NFTs' icon={<Collections />} />
+          <BottomNavigationAction
+            label='Wallet'
+            icon={<WalletIcon />}
+            onClick={() => navigate('')}
+          />
+          <BottomNavigationAction
+            label='Tokens'
+            icon={<AccountBalance />}
+            onClick={() => navigate('tokens')}
+          />
+          <BottomNavigationAction
+            label='NFTs'
+            icon={<Collections />}
+            onClick={() => navigate('nfts')}
+          />
         </BottomNavigation>
       </Paper>
     </>

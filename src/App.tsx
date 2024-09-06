@@ -22,7 +22,11 @@ import PeerList from './pages/PeerList';
 import Receive from './pages/Receive';
 import Send from './pages/Send';
 import Settings from './pages/Settings';
-import Wallet from './pages/Wallet';
+import Token from './pages/Token';
+import { MainWallet } from './pages/WalletMain';
+import { WalletNfts } from './pages/WalletNfts';
+import Wallet from './pages/WalletTabs';
+import { WalletTokens } from './pages/WalletTokens';
 
 export interface DarkModeContext {
   toggle: () => void;
@@ -42,7 +46,12 @@ const router = createHashRouter(
       <Route path='/' element={<Login />} />
       <Route path='/create' element={<CreateWallet />} />
       <Route path='/import' element={<ImportWallet />} />
-      <Route path='/wallet' element={<Wallet />} />
+      <Route path='/wallet' element={<Wallet />}>
+        <Route path='' element={<MainWallet />} />
+        <Route path='tokens' element={<WalletTokens />} />
+        <Route path='nfts' element={<WalletNfts />} />
+        <Route path='token/:asset_id' element={<Token />} />
+      </Route>
       <Route path='/send' element={<Send />} />
       <Route path='/receive' element={<Receive />} />
       <Route path='/settings' element={<Settings />} />
