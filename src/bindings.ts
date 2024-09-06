@@ -181,6 +181,14 @@ async getCoins() : Promise<Result<CoinRecord[], Error>> {
     else return { status: "error", error: e  as any };
 }
 },
+async getCatCoins(assetId: string) : Promise<Result<CoinRecord[], Error>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_cat_coins", { assetId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async getCats() : Promise<Result<CatRecord[], Error>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("get_cats") };

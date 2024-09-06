@@ -7,7 +7,11 @@ use sage_database::NftUriKind;
 use specta::specta;
 use tauri::{command, State};
 
-use crate::{app_state::AppState, error::Result, utils::fetch_puzzle_hash};
+use crate::{
+    app_state::AppState,
+    error::{Error, Result},
+    utils::fetch_puzzle_hash,
+};
 
 #[command]
 #[specta]
@@ -67,6 +71,35 @@ pub async fn get_coins(state: State<'_, AppState>) -> Result<Vec<CoinRecord>> {
                 coin_id: hex::encode(cs.coin.coin_id()),
                 address: encode_address(cs.coin.puzzle_hash.to_bytes(), state.prefix())?,
                 amount: Amount::from_mojos(cs.coin.amount as u128, state.unit().decimals),
+                created_height: cs.created_height,
+                spent_height: cs.spent_height,
+            })
+        })
+        .collect()
+}
+
+#[command]
+#[specta]
+pub async fn get_cat_coins(
+    state: State<'_, AppState>,
+    asset_id: String,
+) -> Result<Vec<CoinRecord>> {
+    let state = state.lock().await;
+    let wallet = state.wallet()?;
+
+    let asset_id: [u8; 32] = hex::decode(asset_id)?
+        .try_into()
+        .map_err(|_| Error::invalid_asset_id())?;
+
+    let coin_states = wallet.db.cat_coin_states(asset_id.into()).await?;
+
+    coin_states
+        .into_iter()
+        .map(|cs| {
+            Ok(CoinRecord {
+                coin_id: hex::encode(cs.coin.coin_id()),
+                address: encode_address(cs.coin.puzzle_hash.to_bytes(), state.prefix())?,
+                amount: Amount::from_mojos(cs.coin.amount as u128, 3),
                 created_height: cs.created_height,
                 spent_height: cs.spent_height,
             })

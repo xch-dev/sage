@@ -1,13 +1,13 @@
 use chia::{
-    protocol::{Bytes32, Program},
+    protocol::{Bytes32, CoinState, Program},
     puzzles::{LineageProof, Proof},
 };
 use chia_wallet_sdk::{Cat, Did, DidInfo, Nft, NftInfo};
 use sqlx::SqliteExecutor;
 
 use crate::{
-    error::Result, to_bytes, to_bytes32, to_coin, to_lineage_proof, Database, DatabaseError,
-    DatabaseTx,
+    error::Result, to_bytes, to_bytes32, to_coin, to_coin_state, to_lineage_proof, Database,
+    DatabaseError, DatabaseTx,
 };
 
 #[derive(Debug, Clone)]
@@ -88,6 +88,10 @@ impl Database {
 
     pub async fn cat_coin(&self, coin_id: Bytes32) -> Result<Option<Cat>> {
         cat_coin(&self.pool, coin_id).await
+    }
+
+    pub async fn cat_coin_states(&self, asset_id: Bytes32) -> Result<Vec<CoinState>> {
+        cat_coin_states(&self.pool, asset_id).await
     }
 
     pub async fn update_nft(&self, row: NftRow) -> Result<()> {
@@ -206,6 +210,10 @@ impl<'a> DatabaseTx<'a> {
 
     pub async fn cat_coin(&mut self, coin_id: Bytes32) -> Result<Option<Cat>> {
         cat_coin(&mut *self.tx, coin_id).await
+    }
+
+    pub async fn cat_coin_states(&mut self, asset_id: Bytes32) -> Result<Vec<CoinState>> {
+        cat_coin_states(&mut *self.tx, asset_id).await
     }
 
     pub async fn update_nft(&mut self, row: NftRow) -> Result<()> {
@@ -467,6 +475,38 @@ async fn cat_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Opt
         p2_puzzle_hash: to_bytes32(&row.p2_puzzle_hash)?,
         asset_id: to_bytes32(&row.asset_id)?,
     }))
+}
+
+async fn cat_coin_states(
+    conn: impl SqliteExecutor<'_>,
+    asset_id: Bytes32,
+) -> Result<Vec<CoinState>> {
+    let asset_id = asset_id.as_ref();
+
+    let rows = sqlx::query!(
+        "
+        SELECT
+            cs.parent_coin_id, cs.puzzle_hash, cs.amount,
+            cs.spent_height, cs.created_height
+        FROM `coin_states` AS cs
+        INNER JOIN `cat_coins` AS cat
+        ON cs.coin_id = cat.coin_id
+        WHERE cat.asset_id = ?
+        ",
+        asset_id
+    )
+    .fetch_all(conn)
+    .await?;
+
+    rows.into_iter()
+        .map(|row| {
+            to_coin_state(
+                to_coin(&row.parent_coin_id, &row.puzzle_hash, &row.amount)?,
+                row.created_height,
+                row.spent_height,
+            )
+        })
+        .collect()
 }
 
 async fn update_nft(conn: impl SqliteExecutor<'_>, row: NftRow) -> Result<()> {
