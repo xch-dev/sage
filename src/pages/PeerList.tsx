@@ -70,7 +70,7 @@ export default function NetworkList() {
         </Typography>
 
         {peers !== null && (
-          <List sx={{ mt: 2, width: '100%' }} component={Paper} disablePadding>
+          <List sx={{ mt: 3, width: '100%' }} component={Paper} disablePadding>
             {peers
               .sort((a, b) => a.ip_addr.localeCompare(b.ip_addr))
               .map((peer, i) => (

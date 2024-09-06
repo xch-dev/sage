@@ -44,6 +44,7 @@ pub fn run() {
             commands::initialize,
             // Wallet
             commands::get_sync_status,
+            commands::get_addresses,
             commands::get_coins,
             commands::get_cats,
             commands::get_dids,

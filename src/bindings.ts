@@ -165,6 +165,14 @@ async getSyncStatus() : Promise<Result<SyncStatus, Error>> {
     else return { status: "error", error: e  as any };
 }
 },
+async getAddresses() : Promise<Result<string[], Error>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_addresses") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async getCoins() : Promise<Result<CoinRecord[], Error>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("get_coins") };

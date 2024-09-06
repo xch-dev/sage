@@ -11,6 +11,21 @@ use crate::{app_state::AppState, error::Result, utils::fetch_puzzle_hash};
 
 #[command]
 #[specta]
+pub async fn get_addresses(state: State<'_, AppState>) -> Result<Vec<String>> {
+    let state = state.lock().await;
+    let wallet = state.wallet()?;
+
+    let puzzle_hashes = wallet.db.p2_puzzle_hashes_unhardened().await?;
+    let addresses = puzzle_hashes
+        .into_iter()
+        .map(|puzzle_hash| Ok(encode_address(puzzle_hash.to_bytes(), state.prefix())?))
+        .collect::<Result<Vec<_>>>()?;
+
+    Ok(addresses)
+}
+
+#[command]
+#[specta]
 pub async fn get_sync_status(state: State<'_, AppState>) -> Result<SyncStatus> {
     let state = state.lock().await;
     let wallet = state.wallet()?;

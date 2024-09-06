@@ -33,6 +33,7 @@ export function MainWallet() {
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(event.currentTarget);
   };
+
   const handleClose = () => {
     setAnchorEl(null);
   };
@@ -44,21 +45,22 @@ export function MainWallet() {
           {walletState.sync.balance} {walletState.sync.unit.ticker}
         </Typography>
 
-        <LinearProgress
-          variant='determinate'
-          value={Math.ceil(
-            (walletState.sync.synced_coins / walletState.sync.total_coins) *
-              100,
-          )}
-          sx={{ mt: 2 }}
-        />
+        {walletState.sync.total_coins > walletState.sync.synced_coins && (
+          <LinearProgress
+            variant='determinate'
+            value={Math.ceil(
+              (walletState.sync.synced_coins / walletState.sync.total_coins) *
+                100,
+            )}
+            sx={{ mt: 2 }}
+          />
+        )}
 
         <Box mt={1} textAlign='center'>
           {walletState.sync.synced_coins}
           {walletState.sync.synced_coins === walletState.sync.total_coins
-            ? ''
-            : `/${walletState.sync.total_coins}`}{' '}
-          coins synced
+            ? ' coins synced'
+            : `/${walletState.sync.total_coins} coins synced`}
         </Box>
 
         <Box display='flex' gap={2} mt={2}>
@@ -97,14 +99,7 @@ export function MainWallet() {
               <MoreVert />
             </IconButton>
 
-            <Menu
-              anchorEl={anchorEl}
-              open={open}
-              onClose={handleClose}
-              MenuListProps={{
-                'aria-labelledby': 'basic-button',
-              }}
-            >
+            <Menu anchorEl={anchorEl} open={open} onClose={handleClose}>
               <MenuItem disabled={selectedCoins.length < 2}>
                 <ListItemIcon>
                   <CompareArrows fontSize='small' />

@@ -26,6 +26,10 @@ impl Database {
         p2_puzzle_hashes(&self.pool).await
     }
 
+    pub async fn p2_puzzle_hashes_unhardened(&self) -> Result<Vec<Bytes32>> {
+        p2_puzzle_hashes_unhardened(&self.pool).await
+    }
+
     pub async fn indexed_synthetic_key(&self, p2_puzzle_hash: Bytes32) -> Result<(u32, PublicKey)> {
         indexed_synthetic_key(&self.pool, p2_puzzle_hash).await
     }
@@ -67,6 +71,10 @@ impl<'a> DatabaseTx<'a> {
 
     pub async fn p2_puzzle_hashes(&mut self) -> Result<Vec<Bytes32>> {
         p2_puzzle_hashes(&mut *self.tx).await
+    }
+
+    pub async fn p2_puzzle_hashes_unhardened(&mut self) -> Result<Vec<Bytes32>> {
+        p2_puzzle_hashes_unhardened(&mut *self.tx).await
     }
 
     pub async fn indexed_synthetic_key(
@@ -154,6 +162,22 @@ async fn p2_puzzle_hashes(conn: impl SqliteExecutor<'_>) -> Result<Vec<Bytes32>>
         SELECT `p2_puzzle_hash`
         FROM `derivations`
         ORDER BY `index` ASC, `hardened` ASC
+        "
+    )
+    .fetch_all(conn)
+    .await?;
+    rows.into_iter()
+        .map(|row| to_bytes32(&row.p2_puzzle_hash))
+        .collect::<Result<_>>()
+}
+
+async fn p2_puzzle_hashes_unhardened(conn: impl SqliteExecutor<'_>) -> Result<Vec<Bytes32>> {
+    let rows = sqlx::query!(
+        "
+        SELECT `p2_puzzle_hash`
+        FROM `derivations`
+        WHERE `hardened` = 0
+        ORDER BY `index` ASC
         "
     )
     .fetch_all(conn)

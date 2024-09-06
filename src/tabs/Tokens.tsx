@@ -1,9 +1,15 @@
+import { Edit, MoreVert, Refresh } from '@mui/icons-material';
 import {
   Avatar,
   Box,
+  IconButton,
+  ListItem,
   ListItemAvatar,
   ListItemButton,
+  ListItemIcon,
   ListItemText,
+  Menu,
+  MenuItem,
   Paper,
   Typography,
   useMediaQuery,
@@ -38,7 +44,7 @@ export function WalletTokens() {
   }, []);
 
   return (
-    <Box display='flex' flexDirection='column' gap={2}>
+    <Box display='flex' flexDirection='column' gap={1.5}>
       {cats
         .sort((a, b) => {
           if (a.name && b.name) {
@@ -67,33 +73,83 @@ function Token(props: TokenProps) {
 
   const chars = sm ? 16 : 8;
 
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const open = Boolean(anchorEl);
+
+  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
+
   return (
     <Paper>
-      <ListItemButton>
-        <ListItemAvatar>
-          {props.cat.icon_url && (
-            <Avatar
-              alt={props.cat.ticker ?? undefined}
-              src={props.cat.icon_url}
-            />
-          )}
-        </ListItemAvatar>
-        <ListItemText
-          primary={props.cat.name ?? 'Unknown CAT'}
-          secondary={
-            <Typography
-              sx={{ display: 'inline' }}
-              component='span'
-              variant='body2'
-              color='text.primary'
+      <ListItem
+        disablePadding
+        secondaryAction={
+          <Box display='flex'>
+            <IconButton edge='end' onClick={handleClick}>
+              <MoreVert />
+            </IconButton>
+
+            <Menu
+              anchorOrigin={{
+                vertical: 'center',
+                horizontal: 'left',
+              }}
+              transformOrigin={{
+                vertical: 'top',
+                horizontal: 'right',
+              }}
+              anchorEl={anchorEl}
+              open={open}
+              onClose={handleClose}
             >
-              {md
-                ? props.cat.asset_id
-                : `${props.cat.asset_id.slice(0, chars)}..${props.cat.asset_id.slice(-chars)}`}
-            </Typography>
-          }
-        />
-      </ListItemButton>
+              <MenuItem>
+                <ListItemIcon>
+                  <Edit fontSize='small' />
+                </ListItemIcon>
+                <ListItemText>Edit</ListItemText>
+              </MenuItem>
+
+              <MenuItem>
+                <ListItemIcon>
+                  <Refresh fontSize='small' />
+                </ListItemIcon>
+                <ListItemText>Redownload</ListItemText>
+              </MenuItem>
+            </Menu>
+          </Box>
+        }
+      >
+        <ListItemButton>
+          <ListItemAvatar>
+            {props.cat.icon_url && (
+              <Avatar
+                alt={props.cat.ticker ?? undefined}
+                src={props.cat.icon_url}
+              />
+            )}
+          </ListItemAvatar>
+          <ListItemText
+            primary={props.cat.name ?? 'Unknown CAT'}
+            secondary={
+              <Typography
+                sx={{ display: 'inline' }}
+                component='span'
+                variant='body2'
+                color='text.primary'
+              >
+                {md
+                  ? props.cat.asset_id
+                  : `${props.cat.asset_id.slice(0, chars)}..${props.cat.asset_id.slice(-chars)}`}
+              </Typography>
+            }
+          />
+        </ListItemButton>
+      </ListItem>
     </Paper>
   );
 }
