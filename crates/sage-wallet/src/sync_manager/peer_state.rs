@@ -81,6 +81,11 @@ impl PeerState {
         self.banned_peers.contains(&ip)
     }
 
+    pub fn trust(&mut self, ip: IpAddr) {
+        self.trusted_peers.insert(ip);
+        self.banned_peers.remove(&ip);
+    }
+
     pub fn update_peak(&mut self, ip: IpAddr, height: u32, header_hash: Bytes32) {
         if let Some(peer) = self.peers.get_mut(&ip) {
             peer.claimed_peak = height;

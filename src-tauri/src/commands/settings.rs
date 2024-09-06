@@ -46,6 +46,19 @@ pub async fn remove_peer(state: State<'_, AppState>, ip_addr: IpAddr, ban: bool)
 
 #[command]
 #[specta]
+pub async fn add_peer(state: State<'_, AppState>, ip: IpAddr, trusted: bool) -> Result<()> {
+    state
+        .lock()
+        .await
+        .command_sender
+        .send(SyncCommand::ConnectPeer { ip, trusted })
+        .await?;
+
+    Ok(())
+}
+
+#[command]
+#[specta]
 pub async fn network_list(state: State<'_, AppState>) -> Result<IndexMap<String, NetworkInfo>> {
     let state = state.lock().await;
 

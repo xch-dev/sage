@@ -1,4 +1,9 @@
-use std::{fmt, net::IpAddr, sync::Arc, time::Duration};
+use std::{
+    fmt,
+    net::{IpAddr, SocketAddr},
+    sync::Arc,
+    time::Duration,
+};
 
 use chia::{
     protocol::{CoinStateUpdate, Message, NewPeakWallet, ProtocolMessageTypes},
@@ -148,6 +153,14 @@ impl SyncManager {
                         debug!("Failed to handle message from {ip}: {error}");
                         self.state.lock().await.ban(ip);
                     }
+                }
+                SyncCommand::ConnectPeer { ip, trusted } => {
+                    if trusted {
+                        self.state.lock().await.trust(ip);
+                    }
+
+                    self.connect_batch(&[SocketAddr::new(ip, self.network.default_port)])
+                        .await;
                 }
                 SyncCommand::ConnectionClosed(ip) => {
                     self.state.lock().await.remove_peer(ip);

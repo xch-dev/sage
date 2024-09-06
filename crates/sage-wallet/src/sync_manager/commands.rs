@@ -18,6 +18,10 @@ pub enum SyncCommand {
         ip: IpAddr,
         message: Message,
     },
+    ConnectPeer {
+        ip: IpAddr,
+        trusted: bool,
+    },
     ConnectionClosed(IpAddr),
     SetDiscoverPeers(bool),
     SetTargetPeers(usize),

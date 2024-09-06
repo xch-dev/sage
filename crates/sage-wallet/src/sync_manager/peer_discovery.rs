@@ -151,7 +151,7 @@ impl SyncManager {
         false
     }
 
-    async fn connect_batch(&mut self, addrs: &[SocketAddr]) -> bool {
+    pub(super) async fn connect_batch(&mut self, addrs: &[SocketAddr]) -> bool {
         let mut futures = FuturesUnordered::new();
 
         for &socket_addr in addrs {

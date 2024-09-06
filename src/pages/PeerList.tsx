@@ -16,6 +16,7 @@ import {
   ListItemText,
   Paper,
   Switch,
+  TextField,
   Tooltip,
   Typography,
 } from '@mui/material';
@@ -29,6 +30,9 @@ export default function NetworkList() {
   const navigate = useNavigate();
 
   const [peers, setPeers] = useState<PeerRecord[] | null>(null);
+  const [isAddOpen, setAddOpen] = useState(false);
+  const [ip, setIp] = useState('');
+  const [trusted, setTrusted] = useState(true);
 
   const updatePeers = () => {
     commands.getPeers().then((res) => {
@@ -36,21 +40,17 @@ export default function NetworkList() {
         setPeers(res.data);
       }
     });
+  };
 
-    const interval = setInterval(() => {
-      commands.getPeers().then((res) => {
-        if (res.status === 'ok') {
-          setPeers(res.data);
-        }
-      });
-    }, 1000);
+  useEffect(() => {
+    updatePeers();
+
+    const interval = setInterval(updatePeers, 1000);
 
     return () => {
       clearInterval(interval);
     };
-  };
-
-  useEffect(updatePeers, []);
+  }, []);
 
   const anyTrusted =
     peers === null ? false : peers.some((peer) => peer.trusted);
@@ -84,9 +84,62 @@ export default function NetworkList() {
           </List>
         )}
 
-        <Button variant='contained' fullWidth sx={{ mt: 2 }}>
+        <Button
+          variant='contained'
+          fullWidth
+          sx={{ mt: 2 }}
+          onClick={() => setAddOpen(true)}
+        >
           Add Peer
         </Button>
+
+        <Dialog open={isAddOpen} onClose={() => setAddOpen(false)}>
+          <DialogTitle>Add new peer</DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              Enter the IP address of the peer you want to connect to.
+            </DialogContentText>
+
+            <TextField
+              sx={{ mt: 2 }}
+              fullWidth
+              label='IP Address'
+              value={ip}
+              onChange={(e) => setIp(e.target.value)}
+            />
+
+            <FormControlLabel
+              sx={{ mt: 1 }}
+              control={
+                <Switch
+                  checked={trusted}
+                  onChange={(event) => setTrusted(event.target.checked)}
+                />
+              }
+              label={
+                <Tooltip
+                  title='Prevents the peer from being banned.'
+                  placement='bottom-start'
+                  enterDelay={750}
+                >
+                  <span>Trusted peer</span>
+                </Tooltip>
+              }
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setAddOpen(false)}>Cancel</Button>
+            <Button
+              onClick={() => {
+                setAddOpen(false);
+                commands.addPeer(ip, trusted);
+              }}
+              autoFocus
+            >
+              Connect
+            </Button>
+          </DialogActions>
+        </Dialog>
       </ListContainer>
     </>
   );

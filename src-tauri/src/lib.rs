@@ -53,6 +53,7 @@ pub fn run() {
             commands::send,
             // Peers
             commands::get_peers,
+            commands::add_peer,
             commands::remove_peer,
         ])
         .events(collect_events![SyncEvent]);

@@ -221,6 +221,14 @@ async getPeers() : Promise<Result<PeerRecord[], Error>> {
     else return { status: "error", error: e  as any };
 }
 },
+async addPeer(ip: string, trusted: boolean) : Promise<Result<null, Error>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("add_peer", { ip, trusted }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async removePeer(ipAddr: string, ban: boolean) : Promise<Result<null, Error>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("remove_peer", { ipAddr, ban }) };
