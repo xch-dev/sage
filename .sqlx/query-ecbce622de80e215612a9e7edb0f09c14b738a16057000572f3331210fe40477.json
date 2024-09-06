@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        DELETE FROM `cats` WHERE `asset_id` = ?\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "ecbce622de80e215612a9e7edb0f09c14b738a16057000572f3331210fe40477"
+}
