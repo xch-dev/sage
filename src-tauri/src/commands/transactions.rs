@@ -50,11 +50,11 @@ pub async fn send(
         return Err(Error::no_secret_key());
     }
 
-    let Some(amount) = amount.to_mojos(state.unit().decimals) else {
+    let Some(amount) = amount.to_mojos(state.unit.decimals) else {
         return Err(Error::invalid_amount(&amount));
     };
 
-    let Some(fee) = fee.to_mojos(state.unit().decimals) else {
+    let Some(fee) = fee.to_mojos(state.unit.decimals) else {
         return Err(Error::invalid_amount(&fee));
     };
 
@@ -131,7 +131,7 @@ pub async fn combine(state: State<'_, AppState>, coin_ids: Vec<String>, fee: Amo
         return Err(Error::no_secret_key());
     }
 
-    let Some(fee) = fee.to_mojos(state.unit().decimals) else {
+    let Some(fee) = fee.to_mojos(state.unit.decimals) else {
         return Err(Error::invalid_amount(&fee));
     };
 

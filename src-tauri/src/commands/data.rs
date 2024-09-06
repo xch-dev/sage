@@ -49,8 +49,8 @@ pub async fn get_sync_status(state: State<'_, AppState>) -> Result<SyncStatus> {
     tx.commit().await?;
 
     Ok(SyncStatus {
-        balance: Amount::from_mojos(balance, state.unit().decimals),
-        unit: state.unit().clone(),
+        balance: Amount::from_mojos(balance, state.unit.decimals),
+        unit: state.unit.clone(),
         total_coins,
         synced_coins,
         receive_address: receive_address.unwrap_or_default(),
@@ -70,7 +70,7 @@ pub async fn get_coins(state: State<'_, AppState>) -> Result<Vec<CoinRecord>> {
             Ok(CoinRecord {
                 coin_id: hex::encode(cs.coin.coin_id()),
                 address: encode_address(cs.coin.puzzle_hash.to_bytes(), state.prefix())?,
-                amount: Amount::from_mojos(cs.coin.amount as u128, state.unit().decimals),
+                amount: Amount::from_mojos(cs.coin.amount as u128, state.unit.decimals),
                 created_height: cs.created_height,
                 spent_height: cs.spent_height,
             })

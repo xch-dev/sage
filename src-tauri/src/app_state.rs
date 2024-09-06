@@ -33,14 +33,14 @@ use crate::{
 pub type AppState = Mutex<AppStateInner>;
 
 pub struct AppStateInner {
-    app_handle: AppHandle,
-    path: PathBuf,
+    pub app_handle: AppHandle,
+    pub path: PathBuf,
     pub config: Config,
     pub keychain: Keychain,
     pub networks: IndexMap<String, Network>,
-    wallet: Option<Arc<Wallet>>,
-    unit: Unit,
-    initialized: bool,
+    pub wallet: Option<Arc<Wallet>>,
+    pub unit: Unit,
+    pub initialized: bool,
     pub peer_state: Arc<Mutex<PeerState>>,
     pub command_sender: mpsc::Sender<SyncCommand>,
 }
@@ -62,10 +62,6 @@ impl AppStateInner {
             peer_state: Arc::new(Mutex::new(PeerState::default())),
             command_sender: mpsc::channel(1).0,
         }
-    }
-
-    pub fn unit(&self) -> &Unit {
-        &self.unit
     }
 
     pub async fn initialize(&mut self) -> Result<()> {
