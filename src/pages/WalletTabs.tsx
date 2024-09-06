@@ -19,18 +19,17 @@ export default function Wallet() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  let initialTab = null;
+  let tab = null;
 
   if (location.pathname === '/wallet') {
-    initialTab = 0;
+    tab = 0;
   } else if (location.pathname === '/wallet/tokens') {
-    initialTab = 1;
+    tab = 1;
   } else if (location.pathname === '/wallet/nfts') {
-    initialTab = 2;
+    tab = 2;
   }
 
   const [wallet, setWallet] = useState<WalletInfo | null>(null);
-  const [tab, setTab] = useState(initialTab ?? 0);
 
   useEffect(() => {
     commands.activeWallet().then((wallet) => {
@@ -46,7 +45,7 @@ export default function Wallet() {
     <>
       <NavBar
         label={wallet?.name ?? 'Loading...'}
-        back={initialTab === null ? () => navigate(-1) : 'logout'}
+        back={tab === null ? () => navigate(-1) : 'logout'}
       />
 
       <ListContainer>
@@ -59,13 +58,7 @@ export default function Wallet() {
         sx={{ position: 'fixed', bottom: 0, left: 0, right: 0 }}
         elevation={3}
       >
-        <BottomNavigation
-          showLabels
-          value={tab}
-          onChange={(_event, newValue) => {
-            setTab(newValue);
-          }}
-        >
+        <BottomNavigation showLabels value={tab}>
           <BottomNavigationAction
             label='Wallet'
             icon={<WalletIcon />}
