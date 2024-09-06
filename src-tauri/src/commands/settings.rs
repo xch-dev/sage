@@ -77,7 +77,7 @@ pub async fn set_discover_peers(state: State<'_, AppState>, discover_peers: bool
     if state.config.network.discover_peers != discover_peers {
         state.config.network.discover_peers = discover_peers;
         state.save_config()?;
-        state.reset_sync_task(false)?;
+        // state.reset_sync_task(false)?;
     }
 
     Ok(())
@@ -90,7 +90,7 @@ pub async fn set_target_peers(state: State<'_, AppState>, target_peers: u32) -> 
 
     state.config.network.target_peers = target_peers;
     state.save_config()?;
-    state.reset_sync_task(false)?;
+    // state.reset_sync_task(false)?;
 
     Ok(())
 }
@@ -102,7 +102,7 @@ pub async fn set_network_id(state: State<'_, AppState>, network_id: String) -> R
 
     state.config.network.network_id = network_id;
     state.save_config()?;
-    state.reset_sync_task(true)?;
+    // state.reset_sync_task(true)?;
     state.switch_wallet().await?;
 
     Ok(())
@@ -148,7 +148,7 @@ pub async fn set_derivation_batch_size(
     state.save_config()?;
 
     // TODO: Only if needed.
-    state.reset_sync_task(false)?;
+    // state.reset_sync_task(false)?;
 
     Ok(())
 }

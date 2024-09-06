@@ -5,9 +5,11 @@ use hex::FromHexError;
 use sage_api::Amount;
 use sage_database::DatabaseError;
 use sage_keychain::KeychainError;
+use sage_wallet::SyncCommand;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 use sqlx::migrate::MigrateError;
+use tokio::sync::mpsc;
 use tracing::metadata::ParseLevelError;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
@@ -105,6 +107,7 @@ pub enum ErrorKind {
     UnknownNetwork,
     UnknownFingerprint,
     NotLoggedIn,
+    Sync,
 }
 
 impl fmt::Display for Error {
@@ -301,6 +304,15 @@ impl From<SignerError> for Error {
     fn from(value: SignerError) -> Self {
         Self {
             kind: ErrorKind::TransactionFailed,
+            reason: value.to_string(),
+        }
+    }
+}
+
+impl From<mpsc::error::SendError<SyncCommand>> for Error {
+    fn from(value: mpsc::error::SendError<SyncCommand>) -> Self {
+        Self {
+            kind: ErrorKind::Sync,
             reason: value.to_string(),
         }
     }

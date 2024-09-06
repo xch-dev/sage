@@ -89,7 +89,9 @@ impl fmt::Debug for SyncManager {
     }
 }
 
+#[derive(Default)]
 enum InitialWalletSync {
+    #[default]
     Idle,
     Syncing {
         ip: IpAddr,
@@ -159,12 +161,15 @@ impl SyncManager {
             match command {
                 SyncCommand::SwitchWallet { wallet } => {
                     self.clear_subscriptions().await;
+                    self.abort_wallet_tasks();
                     self.wallet = wallet;
                 }
                 SyncCommand::SwitchNetwork {
                     network_id,
                     network,
                 } => {
+                    self.state.lock().await.reset();
+                    self.abort_wallet_tasks();
                     self.network_id = network_id;
                     self.network = network;
                 }
@@ -179,6 +184,23 @@ impl SyncManager {
                     debug!("Peer {ip} disconnected");
                 }
             }
+        }
+    }
+
+    fn abort_wallet_tasks(&mut self) {
+        if let InitialWalletSync::Syncing { task, .. } =
+            std::mem::take(&mut self.initial_wallet_sync)
+        {
+            task.abort();
+        }
+        if let Some(task) = self.puzzle_lookup_task.take() {
+            task.abort();
+        }
+        if let Some(task) = &mut self.cat_queue_task.take() {
+            task.abort();
+        }
+        if let Some(task) = &mut self.nft_queue_task.take() {
+            task.abort();
         }
     }
 

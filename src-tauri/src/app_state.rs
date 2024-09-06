@@ -7,20 +7,20 @@ use std::{
 };
 
 use chia::bls::master_to_wallet_unhardened_intermediate;
-use chia_wallet_sdk::{create_rustls_connector, load_ssl_cert, Network, NetworkId};
+use chia_wallet_sdk::{create_rustls_connector, load_ssl_cert, Connector, Network, NetworkId};
 use indexmap::{indexmap, IndexMap};
 use itertools::Itertools;
 use sage_api::{Unit, TXCH, XCH};
 use sage_config::{Config, WalletConfig};
 use sage_database::Database;
 use sage_keychain::Keychain;
-use sage_wallet::{PeerState, SyncEvent, SyncManager, SyncOptions, Wallet};
+use sage_wallet::{PeerState, SyncCommand, SyncEvent, SyncManager, SyncOptions, Wallet};
 use sqlx::{
     sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions},
     ConnectOptions,
 };
 use tauri::{AppHandle, Emitter};
-use tokio::{sync::Mutex, task::JoinHandle};
+use tokio::sync::{mpsc, Mutex};
 use tracing::{info, level_filters::LevelFilter};
 use tracing_appender::rolling::{Builder, Rotation};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, Layer};
@@ -40,9 +40,9 @@ pub struct AppStateInner {
     pub networks: IndexMap<String, Network>,
     wallet: Option<Arc<Wallet>>,
     unit: Unit,
-    sync_task: Option<JoinHandle<()>>,
-    pub peer_state: Arc<Mutex<PeerState>>,
     initialized: bool,
+    pub peer_state: Arc<Mutex<PeerState>>,
+    command_sender: mpsc::Sender<SyncCommand>,
 }
 
 impl AppStateInner {
@@ -58,9 +58,9 @@ impl AppStateInner {
             },
             wallet: None,
             unit: XCH.clone(),
-            sync_task: None,
-            peer_state: Arc::new(Mutex::new(PeerState::default())),
             initialized: false,
+            peer_state: Arc::new(Mutex::new(PeerState::default())),
+            command_sender: mpsc::channel(1).0,
         }
     }
 
@@ -77,14 +77,61 @@ impl AppStateInner {
 
         fs::create_dir_all(&self.path)?;
 
-        let key_path = self.path.join("keys.bin");
-        let config_path = self.path.join("config.toml");
-        let networks_path = self.path.join("networks.toml");
+        self.setup_logging()?;
+        self.setup_keys()?;
+        self.setup_config()?;
+        self.setup_networks()?;
+        self.setup_sync_manager()?;
+        self.switch_wallet().await?;
 
+        info!("Initial setup complete");
+
+        Ok(())
+    }
+
+    fn setup_logging(&mut self) -> Result<()> {
         let log_dir = self.path.join("log");
+
         if !log_dir.exists() {
             std::fs::create_dir_all(&log_dir)?;
         }
+
+        let log_level = self.config.app.log_level.parse()?;
+
+        let log_file = Builder::new()
+            .filename_prefix("app.log")
+            .rotation(Rotation::DAILY)
+            .max_log_files(3)
+            .build(log_dir.as_path())?;
+
+        let file_layer = tracing_subscriber::fmt::layer()
+            .with_writer(log_file)
+            .with_ansi(false)
+            .with_target(false)
+            .compact();
+
+        // TODO: Fix ANSI better
+        #[cfg(not(mobile))]
+        let stdout_layer = tracing_subscriber::fmt::layer().pretty();
+
+        let registry = tracing_subscriber::registry()
+            .with(file_layer.with_filter(LevelFilter::from_level(log_level)));
+
+        #[cfg(not(mobile))]
+        {
+            registry
+                .with(stdout_layer.with_filter(LevelFilter::from_level(log_level)))
+                .init();
+        }
+
+        #[cfg(mobile)]
+        registry.init();
+
+        Ok(())
+    }
+
+    fn setup_keys(&mut self) -> Result<()> {
+        let key_path = self.path.join("keys.bin");
 
         if key_path.try_exists()? {
             let data = fs::read(&key_path)?;
@@ -93,12 +140,26 @@ impl AppStateInner {
             fs::write(&key_path, self.keychain.to_bytes()?)?;
         }
 
+        Ok(())
+    }
+
+    fn setup_config(&mut self) -> Result<()> {
+        let config_path = self.path.join("config.toml");
+
         if config_path.try_exists()? {
             let text = fs::read_to_string(&config_path)?;
             self.config = toml::from_str(&text)?;
         } else {
             fs::write(&config_path, toml::to_string_pretty(&self.config)?)?;
         };
+
+        Ok(())
+    }
+
+    fn setup_networks(&mut self) -> Result<()> {
+        // TODO: Rewrite
+
+        let networks_path = self.path.join("networks.toml");
 
         if networks_path.try_exists()? {
             let text = fs::read_to_string(&networks_path)?;
@@ -134,58 +195,10 @@ impl AppStateInner {
             fs::write(&networks_path, toml::to_string_pretty(&networks)?)?;
         }
 
-        let log_level = self.config.app.log_level.parse()?;
-
-        let log_file = Builder::new()
-            .filename_prefix("app.log")
-            .rotation(Rotation::DAILY)
-            .max_log_files(3)
-            .build(log_dir.as_path())?;
-
-        let file_layer = tracing_subscriber::fmt::layer()
-            .with_writer(log_file)
-            .with_ansi(false)
-            .with_target(false)
-            .compact();
-
-        // TODO: Fix ANSI better
-        #[cfg(not(mobile))]
-        let stdout_layer = tracing_subscriber::fmt::layer().pretty();
-
-        let registry = tracing_subscriber::registry()
-            .with(file_layer.with_filter(LevelFilter::from_level(log_level)));
-
-        #[cfg(not(mobile))]
-        {
-            registry
-                .with(stdout_layer.with_filter(LevelFilter::from_level(log_level)))
-                .init();
-        }
-
-        #[cfg(mobile)]
-        registry.init();
-
-        self.switch_wallet().await?;
-
-        info!("Initial setup complete");
-
         Ok(())
     }
 
-    pub fn reset_sync_task(&mut self, reset_peers: bool) -> Result<()> {
-        if reset_peers {
-            self.peer_state = Arc::new(Mutex::new(PeerState::default()));
-        }
-
-        if let Some(task) = self.sync_task.take() {
-            task.abort();
-        }
-
-        let network_id = self.config.network.network_id.clone();
-        let Some(network) = self.networks.get(network_id.as_str()).cloned() else {
-            return Err(Error::unknown_network(&network_id));
-        };
-
+    fn setup_ssl(&mut self) -> Result<Connector> {
         let ssl_dir = self.path.join("ssl");
         if !ssl_dir.try_exists()? {
             fs::create_dir_all(&ssl_dir)?;
@@ -202,9 +215,18 @@ impl AppStateInner {
                 .expect("invalid key file name"),
         )?;
 
-        let connector = create_rustls_connector(&cert)?;
+        Ok(create_rustls_connector(&cert)?)
+    }
 
-        let (sync_manager, mut sync_receiver) = SyncManager::new(
+    fn setup_sync_manager(&mut self) -> Result<()> {
+        let connector = self.setup_ssl()?;
+
+        let network_id = self.config.network.network_id.clone();
+        let Some(network) = self.networks.get(network_id.as_str()).cloned() else {
+            return Err(Error::unknown_network(&network_id));
+        };
+
+        let (sync_manager, command_sender, mut event_receiver) = SyncManager::new(
             SyncOptions {
                 target_peers: self.config.network.target_peers as usize,
                 find_peers: self.config.network.discover_peers,
@@ -226,13 +248,12 @@ impl AppStateInner {
             connector,
         );
 
-        self.sync_task = Some(tokio::spawn(sync_manager.sync()));
+        tokio::spawn(sync_manager.sync());
+        self.command_sender = command_sender;
 
-        // TODO: Should this task be aborted? It should get cleaned up automatically anyways I think.
         let app_handle = self.app_handle.clone();
-
         tokio::spawn(async move {
-            while let Some(event) = sync_receiver.recv().await {
+            while let Some(event) = event_receiver.recv().await {
                 let event = match event {
                     SyncEvent::Start(ip) => SyncEventData::Start { ip: ip.to_string() },
                     SyncEvent::Stop => SyncEventData::Stop,
@@ -256,7 +277,9 @@ impl AppStateInner {
     pub async fn switch_wallet(&mut self) -> Result<()> {
         let Some(fingerprint) = self.config.app.active_fingerprint else {
             self.wallet = None;
-            self.reset_sync_task(false)?;
+            self.command_sender
+                .send(SyncCommand::SwitchWallet { wallet: None })
+                .await?;
             return Ok(());
         };
 
@@ -302,7 +325,11 @@ impl AppStateInner {
             _ => TXCH.clone(),
         };
 
-        self.reset_sync_task(false)?;
+        self.command_sender
+            .send(SyncCommand::SwitchWallet {
+                wallet: Some(wallet),
+            })
+            .await?;
 
         Ok(())
     }

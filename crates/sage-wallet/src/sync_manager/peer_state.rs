@@ -30,6 +30,12 @@ pub struct PeerState {
 }
 
 impl PeerState {
+    pub fn reset(&mut self) {
+        self.peers.clear();
+        self.banned_peers.clear();
+        self.trusted_peers.clear();
+    }
+
     pub fn peak(&self) -> Option<(u32, Bytes32)> {
         self.peers
             .values()
