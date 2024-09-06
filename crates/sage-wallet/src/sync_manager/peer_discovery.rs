@@ -247,7 +247,7 @@ impl SyncManager {
                     }
                 }
 
-                sender.send(SyncCommand::ConnectionClosed { ip }).await.ok();
+                sender.send(SyncCommand::ConnectionClosed(ip)).await.ok();
             }),
         });
 

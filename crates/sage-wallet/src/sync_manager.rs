@@ -16,27 +16,15 @@ use wallet_sync::{sync_wallet, update_coins};
 
 use crate::{CatQueue, NftQueue, PuzzleQueue, Wallet, WalletError};
 
+mod commands;
+mod options;
 mod peer_discovery;
 mod peer_state;
 mod wallet_sync;
 
+pub use commands::*;
+pub use options::*;
 pub use peer_state::*;
-
-#[derive(Debug, Clone, Copy)]
-pub struct SyncOptions {
-    pub target_peers: usize,
-    pub find_peers: bool,
-    pub max_peers_for_dns: usize,
-    pub dns_batch_size: usize,
-    pub connection_batch_size: usize,
-    pub max_peer_age_seconds: u64,
-    pub sync_delay: Duration,
-    pub connection_timeout: Duration,
-    pub initial_peak_timeout: Duration,
-    pub remove_subscription_timeout: Duration,
-    pub request_peers_timeout: Duration,
-    pub dns_timeout: Duration,
-}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SyncEvent {
@@ -47,24 +35,6 @@ pub enum SyncEvent {
     PuzzleUpdate,
     CatUpdate,
     NftUpdate,
-}
-
-#[derive(Debug)]
-pub enum SyncCommand {
-    SwitchWallet {
-        wallet: Option<Arc<Wallet>>,
-    },
-    SwitchNetwork {
-        network_id: NetworkId,
-        network: Network,
-    },
-    HandleMessage {
-        ip: IpAddr,
-        message: Message,
-    },
-    ConnectionClosed {
-        ip: IpAddr,
-    },
 }
 
 pub struct SyncManager {
@@ -179,9 +149,15 @@ impl SyncManager {
                         self.state.lock().await.ban(ip);
                     }
                 }
-                SyncCommand::ConnectionClosed { ip } => {
+                SyncCommand::ConnectionClosed(ip) => {
                     self.state.lock().await.remove_peer(ip);
                     debug!("Peer {ip} disconnected");
+                }
+                SyncCommand::SetDiscoverPeers(discover_peers) => {
+                    self.options.discover_peers = discover_peers;
+                }
+                SyncCommand::SetTargetPeers(target_peers) => {
+                    self.options.target_peers = target_peers;
                 }
             }
         }
@@ -246,7 +222,7 @@ impl SyncManager {
     async fn update(&mut self) {
         let peer_count = self.state.lock().await.peer_count();
 
-        if self.options.find_peers && peer_count < self.options.target_peers {
+        if self.options.discover_peers && peer_count < self.options.target_peers {
             if peer_count > self.options.max_peers_for_dns {
                 if !self.peer_discovery().await {
                     self.dns_discovery().await;

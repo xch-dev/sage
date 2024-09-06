@@ -1,9 +1,11 @@
 use std::net::IpAddr;
 
+use chia_wallet_sdk::NetworkId;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use sage_api::PeerRecord;
 use sage_config::{NetworkConfig, WalletConfig};
+use sage_wallet::SyncCommand;
 use specta::specta;
 use tauri::{command, State};
 
@@ -77,7 +79,10 @@ pub async fn set_discover_peers(state: State<'_, AppState>, discover_peers: bool
     if state.config.network.discover_peers != discover_peers {
         state.config.network.discover_peers = discover_peers;
         state.save_config()?;
-        // state.reset_sync_task(false)?;
+        state
+            .command_sender
+            .send(SyncCommand::SetDiscoverPeers(discover_peers))
+            .await?;
     }
 
     Ok(())
@@ -90,7 +95,10 @@ pub async fn set_target_peers(state: State<'_, AppState>, target_peers: u32) -> 
 
     state.config.network.target_peers = target_peers;
     state.save_config()?;
-    // state.reset_sync_task(false)?;
+    state
+        .command_sender
+        .send(SyncCommand::SetTargetPeers(target_peers as usize))
+        .await?;
 
     Ok(())
 }
@@ -100,9 +108,21 @@ pub async fn set_target_peers(state: State<'_, AppState>, target_peers: u32) -> 
 pub async fn set_network_id(state: State<'_, AppState>, network_id: String) -> Result<()> {
     let mut state = state.lock().await;
 
-    state.config.network.network_id = network_id;
+    state.config.network.network_id.clone_from(&network_id);
     state.save_config()?;
-    // state.reset_sync_task(true)?;
+
+    state
+        .command_sender
+        .send(SyncCommand::SwitchNetwork {
+            network_id: if network_id == "mainnet" {
+                NetworkId::Mainnet
+            } else {
+                NetworkId::Testnet11
+            },
+            network: state.networks[&network_id].clone(),
+        })
+        .await?;
+
     state.switch_wallet().await?;
 
     Ok(())
@@ -147,8 +167,7 @@ pub async fn set_derivation_batch_size(
     config.derivation_batch_size = derivation_batch_size;
     state.save_config()?;
 
-    // TODO: Only if needed.
-    // state.reset_sync_task(false)?;
+    // TODO: Update sync manager
 
     Ok(())
 }

@@ -42,7 +42,7 @@ pub struct AppStateInner {
     unit: Unit,
     initialized: bool,
     pub peer_state: Arc<Mutex<PeerState>>,
-    command_sender: mpsc::Sender<SyncCommand>,
+    pub command_sender: mpsc::Sender<SyncCommand>,
 }
 
 impl AppStateInner {
@@ -77,10 +77,10 @@ impl AppStateInner {
 
         fs::create_dir_all(&self.path)?;
 
-        self.setup_logging()?;
         self.setup_keys()?;
         self.setup_config()?;
         self.setup_networks()?;
+        self.setup_logging()?;
         self.setup_sync_manager()?;
         self.switch_wallet().await?;
 
@@ -229,7 +229,7 @@ impl AppStateInner {
         let (sync_manager, command_sender, mut event_receiver) = SyncManager::new(
             SyncOptions {
                 target_peers: self.config.network.target_peers as usize,
-                find_peers: self.config.network.discover_peers,
+                discover_peers: self.config.network.discover_peers,
                 max_peer_age_seconds: 3600 * 8,
                 max_peers_for_dns: 0,
                 dns_batch_size: 10,
@@ -286,13 +286,6 @@ impl AppStateInner {
         let Some(master_pk) = self.keychain.extract_public_key(fingerprint)? else {
             return Err(Error::unknown_fingerprint(fingerprint));
         };
-
-        let _wallet_config = self
-            .config
-            .wallets
-            .get(&fingerprint.to_string())
-            .cloned()
-            .unwrap_or_default();
 
         let intermediate_pk = master_to_wallet_unhardened_intermediate(&master_pk);
 
