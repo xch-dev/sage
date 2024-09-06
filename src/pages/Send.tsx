@@ -66,45 +66,43 @@ export default function Send() {
 
       <Container>
         <TextField
-          label='Destination address'
+          label='Destination Address'
           fullWidth
           value={address}
           onChange={(e) => setAddress(e.target.value)}
           error={address.length > 0 && !addressValid}
         />
-        <Typography sx={{ mt: 1 }} variant='subtitle1' color='text.secondary'>
-          Transactions cannot be reversed, so make sure that this is the correct
-          address before sending.
+        <Typography sx={{ mt: 1 }} variant='subtitle1'>
+          Ensure this is correct. Transactions cannot be reversed.
         </Typography>
 
         <TextField
-          sx={{ mt: 2 }}
+          sx={{ mt: 3 }}
           label='Amount'
           fullWidth
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
           error={amount.length > 0 && amountNum.isNaN()}
         />
-        <Typography sx={{ mt: 1 }} variant='subtitle1' color='text.secondary'>
-          The amount to send in {walletState.sync.unit.ticker}. Your balance is
-          <b>{' ' + walletState.sync.balance}.</b>
+        <Typography sx={{ mt: 1 }} variant='subtitle1'>
+          Your balance is {walletState.sync.balance}{' '}
+          {walletState.sync.unit.ticker}.
         </Typography>
 
         <TextField
-          sx={{ mt: 2 }}
-          label='Fee'
+          sx={{ mt: 3 }}
+          label='Network Fee'
           fullWidth
           value={fee}
           onChange={(e) => setFee(e.target.value)}
           error={fee.length > 0 && feeNum.isNaN()}
         />
-        <Typography sx={{ mt: 1 }} variant='subtitle1' color='text.secondary'>
-          The network fee that will be included. If the mempool is full, this
-          will help expedite the transaction.
+        <Typography sx={{ mt: 1 }} variant='subtitle1'>
+          This will help ensure your transaction is processed quickly.
         </Typography>
 
         <Button
-          sx={{ mt: 2 }}
+          sx={{ mt: 3 }}
           variant='contained'
           fullWidth
           disabled={

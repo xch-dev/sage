@@ -1,9 +1,9 @@
 import {
   Add,
   ArrowBackIos,
-  Collections,
   Contacts,
   Image as ImageIcon,
+  ListAlt,
   Logout,
   NetworkCheck,
   Paid,
@@ -76,7 +76,7 @@ export default function NavBar(props: NavBarProps) {
         <ListItemIcon>
           <Contacts fontSize='small' />
         </ListItemIcon>
-        <ListItemText>Create DID</ListItemText>
+        <ListItemText>Manage DIDs</ListItemText>
       </MenuItem>,
 
       <MenuItem key='mint_nft'>
@@ -86,11 +86,17 @@ export default function NavBar(props: NavBarProps) {
         <ListItemText>Mint NFT</ListItemText>
       </MenuItem>,
 
-      <MenuItem key='bulk_mint_nfts'>
+      <MenuItem
+        key='addresses'
+        onClick={() => {
+          navigate('/receive');
+          closeMenu();
+        }}
+      >
         <ListItemIcon>
-          <Collections fontSize='small' />
+          <ListAlt fontSize='small' />
         </ListItemIcon>
-        <ListItemText>Bulk Mint NFTs</ListItemText>
+        <ListItemText>Addresses</ListItemText>
       </MenuItem>,
 
       <Divider key='end_wallet' sx={{ my: 0.5 }} />,
