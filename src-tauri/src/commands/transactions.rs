@@ -5,7 +5,7 @@ use chia::{
         master_to_wallet_unhardened_intermediate, sign, DerivableKey, PublicKey, SecretKey,
         Signature,
     },
-    protocol::SpendBundle,
+    protocol::{Bytes32, CoinSpend, SpendBundle},
     puzzles::DeriveSynthetic,
 };
 use chia_wallet_sdk::{
@@ -14,11 +14,13 @@ use chia_wallet_sdk::{
 };
 use clvmr::Allocator;
 use sage_api::Amount;
+use sage_wallet::Wallet;
 use specta::specta;
 use tauri::{command, State};
+use tokio::sync::MutexGuard;
 
 use crate::{
-    app_state::AppState,
+    app_state::{AppState, AppStateInner},
     error::{Error, Result},
     utils::fetch_puzzle_hash,
 };
@@ -94,11 +96,12 @@ pub async fn send(
         let p2 = StandardLayer::new(pk);
 
         let conditions = if i == 0 {
-            let mut conditions = Conditions::new().reserve_fee(fee).create_coin(
-                puzzle_hash.into(),
-                amount,
-                Vec::new(),
-            );
+            let mut conditions =
+                Conditions::new().create_coin(puzzle_hash.into(), amount, Vec::new());
+
+            if fee > 0 {
+                conditions = conditions.reserve_fee(fee);
+            }
 
             if change_amount > 0 {
                 conditions = conditions.create_coin(change_puzzle_hash, change_amount, Vec::new());
@@ -113,10 +116,104 @@ pub async fn send(
     }
 
     let coin_spends = ctx.take();
+    transact(&state, &wallet, coin_spends).await?;
 
-    let mut allocator = Allocator::new();
+    Ok(())
+}
+
+#[command]
+#[specta]
+pub async fn combine(state: State<'_, AppState>, coin_ids: Vec<String>, fee: Amount) -> Result<()> {
+    let state = state.lock().await;
+    let wallet = state.wallet()?;
+
+    if !state.keychain.has_secret_key(wallet.fingerprint) {
+        return Err(Error::no_secret_key());
+    }
+
+    let Some(fee) = fee.to_mojos(state.unit().decimals) else {
+        return Err(Error::invalid_amount(&fee));
+    };
+
+    let coin_ids = coin_ids
+        .iter()
+        .map(|coin_id| Ok(hex::decode(coin_id)?.try_into()?))
+        .collect::<Result<Vec<Bytes32>>>()?;
+
+    let mut tx = wallet.db.tx().await?;
+
+    let mut coins = Vec::new();
+    let mut total_amount = 0;
+
+    for coin_id in coin_ids {
+        let Some(coin_state) = tx.coin_state(coin_id).await? else {
+            return Err(Error::unknown_coin_id());
+        };
+        coins.push(coin_state.coin);
+        total_amount += coin_state.coin.amount as u128;
+    }
+
+    let mut keys = HashMap::new();
+
+    for coin in &coins {
+        let key = tx.indexed_synthetic_key(coin.puzzle_hash).await?;
+        keys.insert(coin.puzzle_hash, key);
+    }
+
+    let Some(output_puzzle_hash) = fetch_puzzle_hash(&mut tx).await? else {
+        return Err(Error::no_change_address());
+    };
+
+    tx.commit().await?;
+
+    if fee as u128 > total_amount {
+        return Err(Error::insufficient_coin_total());
+    }
+
+    let mut ctx = SpendContext::new();
+
+    let origin_coin_id = coins[0].coin_id();
+
+    for (i, &coin) in coins.iter().enumerate() {
+        let pk = keys[&coin.puzzle_hash].1;
+        let p2 = StandardLayer::new(pk);
+
+        let conditions = if i == 0 {
+            let mut conditions = Conditions::new();
+
+            if fee > 0 {
+                conditions = conditions.reserve_fee(fee);
+            }
+
+            if fee as u128 != total_amount {
+                conditions = conditions.create_coin(
+                    output_puzzle_hash,
+                    (total_amount - fee as u128).try_into()?,
+                    Vec::new(),
+                );
+            }
+
+            conditions
+        } else {
+            Conditions::new().assert_concurrent_spend(origin_coin_id)
+        };
+
+        p2.spend(&mut ctx, coin, conditions)?;
+    }
+
+    let coin_spends = ctx.take();
+    transact(&state, &wallet, coin_spends).await?;
+
+    Ok(())
+}
+
+async fn transact(
+    state: &MutexGuard<'_, AppStateInner>,
+    wallet: &Wallet,
+    coin_spends: Vec<CoinSpend>,
+) -> Result<()> {
     let required_signatures = RequiredSignature::from_coin_spends(
-        &mut allocator,
+        &mut Allocator::new(),
         &coin_spends,
         if state.config.network.network_id == "mainnet" {
             &MAINNET_CONSTANTS
@@ -125,6 +222,16 @@ pub async fn send(
         },
     )?;
 
+    let mut indices = HashMap::new();
+
+    for required in &required_signatures {
+        let pk = required.public_key();
+        let Some(index) = wallet.db.synthetic_key_index(pk).await? else {
+            return Err(Error::unknown_public_key());
+        };
+        indices.insert(pk, index);
+    }
+
     let (_mnemonic, Some(master_sk)) = state.keychain.extract_secrets(wallet.fingerprint, b"")?
     else {
         return Err(Error::no_secret_key());
@@ -132,9 +239,9 @@ pub async fn send(
 
     let intermediate_sk = master_to_wallet_unhardened_intermediate(&master_sk);
 
-    let secret_keys: HashMap<PublicKey, SecretKey> = keys
-        .values()
-        .map(|(index, pk)| {
+    let secret_keys: HashMap<PublicKey, SecretKey> = indices
+        .iter()
+        .map(|(pk, index)| {
             (
                 *pk,
                 intermediate_sk.derive_unhardened(*index).derive_synthetic(),

@@ -140,7 +140,7 @@ function Token(props: TokenProps) {
             <Menu
               anchorOrigin={{
                 vertical: 'center',
-                horizontal: 'left',
+                horizontal: 'center',
               }}
               transformOrigin={{
                 vertical: 'top',

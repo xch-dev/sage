@@ -7,17 +7,25 @@ import {
 import {
   Box,
   Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   IconButton,
   LinearProgress,
   ListItemIcon,
   ListItemText,
   Menu,
   MenuItem,
+  TextField,
   Typography,
 } from '@mui/material';
 import { GridRowSelectionModel } from '@mui/x-data-grid';
+import BigNumber from 'bignumber.js';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { commands } from '../bindings';
 import CoinList from '../components/CoinList';
 import { useWalletState } from '../state';
 
@@ -26,6 +34,10 @@ export function MainWallet() {
   const walletState = useWalletState();
 
   const [selectedCoins, setSelectedCoins] = useState<GridRowSelectionModel>([]);
+  const [isCombineOpen, setCombineOpen] = useState(false);
+  const [fee, setFee] = useState('');
+
+  const feeNum = BigNumber(fee);
 
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
@@ -36,6 +48,21 @@ export function MainWallet() {
 
   const handleClose = () => {
     setAnchorEl(null);
+  };
+
+  const canCombine =
+    !feeNum.isNaN() && BigNumber(walletState.sync.balance).gte(feeNum);
+
+  const combine = () => {
+    if (!canCombine) return;
+
+    commands.combine(selectedCoins as string[], fee).then((result) => {
+      setCombineOpen(false);
+
+      if (result.status === 'ok') {
+        setSelectedCoins([]);
+      }
+    });
   };
 
   return (
@@ -99,8 +126,26 @@ export function MainWallet() {
               <MoreVert />
             </IconButton>
 
-            <Menu anchorEl={anchorEl} open={open} onClose={handleClose}>
-              <MenuItem disabled={selectedCoins.length < 2}>
+            <Menu
+              anchorOrigin={{
+                vertical: 'center',
+                horizontal: 'center',
+              }}
+              transformOrigin={{
+                vertical: 'top',
+                horizontal: 'right',
+              }}
+              anchorEl={anchorEl}
+              open={open}
+              onClose={handleClose}
+            >
+              <MenuItem
+                disabled={selectedCoins.length < 2}
+                onClick={() => {
+                  setCombineOpen(true);
+                  handleClose();
+                }}
+              >
                 <ListItemIcon>
                   <CompareArrows fontSize='small' />
                 </ListItemIcon>
@@ -124,6 +169,57 @@ export function MainWallet() {
           </Box>
         </Box>
       </Box>
+
+      <Dialog
+        open={isCombineOpen}
+        onClose={() => {
+          setCombineOpen(false);
+        }}
+      >
+        <DialogTitle>Combine {walletState.sync.unit.ticker}</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            This will combine all of the selected coins into one.
+          </DialogContentText>
+          <TextField
+            label='Network Fee'
+            variant='standard'
+            margin='dense'
+            required
+            fullWidth
+            autoFocus
+            value={fee}
+            error={fee.length > 0 && !canCombine}
+            onChange={(event) => setFee(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                event.preventDefault();
+                combine();
+              }
+            }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={(event) => {
+              event.preventDefault();
+              setCombineOpen(false);
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={(event) => {
+              event.preventDefault();
+              combine();
+            }}
+            autoFocus
+            disabled={!canCombine}
+          >
+            Combine
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }

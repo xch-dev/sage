@@ -1,4 +1,8 @@
-use std::{array::TryFromSliceError, fmt, io, num::ParseIntError};
+use std::{
+    array::TryFromSliceError,
+    fmt, io,
+    num::{ParseIntError, TryFromIntError},
+};
 
 use chia_wallet_sdk::{AddressError, ClientError, DriverError, SignerError};
 use hex::FromHexError;
@@ -79,6 +83,27 @@ impl Error {
         Self {
             kind: ErrorKind::TransactionFailed,
             reason: "No secret key available".to_string(),
+        }
+    }
+
+    pub fn unknown_public_key() -> Self {
+        Self {
+            kind: ErrorKind::TransactionFailed,
+            reason: "Unknown public key for signing".to_string(),
+        }
+    }
+
+    pub fn unknown_coin_id() -> Self {
+        Self {
+            kind: ErrorKind::TransactionFailed,
+            reason: "Unknown coin id".to_string(),
+        }
+    }
+
+    pub fn insufficient_coin_total() -> Self {
+        Self {
+            kind: ErrorKind::TransactionFailed,
+            reason: "Insufficient coin total".to_string(),
         }
     }
 
@@ -329,6 +354,15 @@ impl From<mpsc::error::SendError<SyncCommand>> for Error {
     fn from(value: mpsc::error::SendError<SyncCommand>) -> Self {
         Self {
             kind: ErrorKind::Sync,
+            reason: value.to_string(),
+        }
+    }
+}
+
+impl From<TryFromIntError> for Error {
+    fn from(value: TryFromIntError) -> Self {
+        Self {
+            kind: ErrorKind::InvalidAmount,
             reason: value.to_string(),
         }
     }

@@ -57,6 +57,7 @@ pub fn run() {
             commands::remove_cat_info,
             // Transactions
             commands::send,
+            commands::combine,
             // Peers
             commands::get_peers,
             commands::add_peer,

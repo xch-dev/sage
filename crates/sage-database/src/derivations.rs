@@ -34,6 +34,10 @@ impl Database {
         indexed_synthetic_key(&self.pool, p2_puzzle_hash).await
     }
 
+    pub async fn synthetic_key_index(&self, synthetic_key: PublicKey) -> Result<Option<u32>> {
+        synthetic_key_index(&self.pool, synthetic_key).await
+    }
+
     pub async fn p2_puzzle_hash(&self, index: u32, hardened: bool) -> Result<Bytes32> {
         p2_puzzle_hash(&self.pool, index, hardened).await
     }
@@ -82,6 +86,10 @@ impl<'a> DatabaseTx<'a> {
         p2_puzzle_hash: Bytes32,
     ) -> Result<(u32, PublicKey)> {
         indexed_synthetic_key(&mut *self.tx, p2_puzzle_hash).await
+    }
+
+    pub async fn synthetic_key_index(&mut self, synthetic_key: PublicKey) -> Result<Option<u32>> {
+        synthetic_key_index(&mut *self.tx, synthetic_key).await
     }
 
     pub async fn p2_puzzle_hash(&mut self, index: u32, hardened: bool) -> Result<Bytes32> {
@@ -207,6 +215,27 @@ async fn indexed_synthetic_key(
         row.index.try_into()?,
         PublicKey::from_bytes(&to_bytes(bytes)?)?,
     ))
+}
+
+async fn synthetic_key_index(
+    conn: impl SqliteExecutor<'_>,
+    synthetic_key: PublicKey,
+) -> Result<Option<u32>> {
+    let synthetic_key = synthetic_key.to_bytes();
+    let synthetic_key_ref = synthetic_key.as_ref();
+    Ok(sqlx::query!(
+        "
+        SELECT `index`
+        FROM `derivations`
+        WHERE `synthetic_key` = ?
+        AND `hardened` = 0
+        ",
+        synthetic_key_ref
+    )
+    .fetch_optional(conn)
+    .await?
+    .map(|row| row.index.try_into())
+    .transpose()?)
 }
 
 async fn p2_puzzle_hash(
