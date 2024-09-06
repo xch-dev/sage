@@ -54,6 +54,13 @@ impl Error {
         }
     }
 
+    pub fn invalid_launcher_id() -> Self {
+        Self {
+            kind: ErrorKind::InvalidLauncherId,
+            reason: "Invalid launcher id".to_string(),
+        }
+    }
+
     pub fn insufficient_funds() -> Self {
         Self {
             kind: ErrorKind::InsufficientFunds,
@@ -110,6 +117,7 @@ pub enum ErrorKind {
     InvalidKey,
     InvalidAmount,
     InvalidAssetId,
+    InvalidLauncherId,
     InsufficientFunds,
     TransactionFailed,
     UnknownNetwork,

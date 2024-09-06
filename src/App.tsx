@@ -18,6 +18,7 @@ import CreateWallet from './pages/CreateWallet';
 import ImportWallet from './pages/ImportWallet';
 import Login from './pages/Login';
 import NetworkList from './pages/NetworkList';
+import Nft from './pages/Nft';
 import PeerList from './pages/PeerList';
 import Receive from './pages/Receive';
 import Send from './pages/Send';
@@ -51,6 +52,7 @@ const router = createHashRouter(
         <Route path='tokens' element={<WalletTokens />} />
         <Route path='nfts' element={<WalletNfts />} />
         <Route path='token/:asset_id' element={<Token />} />
+        <Route path='nft/:launcher_id' element={<Nft />} />
       </Route>
       <Route path='/send' element={<Send />} />
       <Route path='/receive' element={<Receive />} />

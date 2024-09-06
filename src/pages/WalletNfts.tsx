@@ -1,6 +1,7 @@
 import { Box, Button, Paper, Typography, useTheme } from '@mui/material';
 import Grid2 from '@mui/material/Unstable_Grid2/Grid2';
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { commands, events, NftRecord } from '../bindings';
 
 export function WalletNfts() {
@@ -89,6 +90,7 @@ export function WalletNfts() {
 }
 
 function Nft({ nft }: { nft: NftRecord }) {
+  const navigate = useNavigate();
   const theme = useTheme();
 
   let json: any = {};
@@ -104,7 +106,10 @@ function Nft({ nft }: { nft: NftRecord }) {
   return (
     <Grid2 xs={6} sm={4} md={4}>
       <Box position='relative' width='100%' height='100%'>
-        <Button sx={{ padding: 0, width: '100%', height: '100%' }}>
+        <Button
+          sx={{ padding: 0, width: '100%', height: '100%' }}
+          onClick={() => navigate(`/wallet/nft/${nft.launcher_id}`)}
+        >
           <img
             src={nft.data_uris[0]}
             style={{
