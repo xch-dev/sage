@@ -35,9 +35,9 @@ export default function Nft() {
   });
 
   const metadata = useMemo(() => {
-    if (!nft || !nft.metadata_json) return {};
+    if (!nft || !nft.metadata) return {};
     try {
-      return JSON.parse(nft.metadata_json) ?? {};
+      return JSON.parse(nft.metadata) ?? {};
     } catch {
       return {};
     }
@@ -56,14 +56,14 @@ export default function Nft() {
           mt={1}
           sx={{ wordBreak: 'break-all' }}
         >
-          {nft?.encoded_id}
+          {nft?.launcher_id}
         </Typography>
 
         <Grid2 container mt={2}>
           <Grid2 xs={12} md={6}>
             <Box sx={{ p: 1.5, width: '100%', mx: 'auto' }}>
               <img
-                src={nft?.data_uris[0]}
+                src={`data:${nft?.data_mime_type};base64,${nft?.data}`}
                 style={{
                   width: '100%',
                   aspectRatio: 1,
@@ -89,7 +89,7 @@ export default function Nft() {
                 Owner DID
               </Typography>
               <Typography variant='body1' sx={{ wordBreak: 'break-all' }}>
-                {nft?.encoded_owner_did}
+                {nft?.owner_did}
               </Typography>
 
               <Typography variant='h6' mt={2}>

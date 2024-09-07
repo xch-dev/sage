@@ -211,28 +211,40 @@ pub async fn get_nfts(state: State<'_, AppState>, request: GetNfts) -> Result<Ge
     })
 }
 
-// #[command]
-// #[specta]
-// pub async fn get_nft(state: State<'_, AppState>, launcher_id: String) -> Result<Option<NftRecord>> {
-//     let state = state.lock().await;
-//     let wallet = state.wallet()?;
+#[command]
+#[specta]
+pub async fn get_nft(state: State<'_, AppState>, launcher_id: String) -> Result<Option<NftRecord>> {
+    let state = state.lock().await;
+    let wallet = state.wallet()?;
 
-//     let launcher_id: [u8; 32] = hex::decode(launcher_id)?
-//         .try_into()
-//         .map_err(|_| Error::invalid_launcher_id())?;
+    let launcher_id: [u8; 32] = hex::decode(launcher_id)?
+        .try_into()
+        .map_err(|_| Error::invalid_launcher_id())?;
 
-//     let mut tx = wallet.db.tx().await?;
+    let mut tx = wallet.db.tx().await?;
 
-//     let Some(nft) = tx.nft(launcher_id.into()).await? else {
-//         return Ok(None);
-//     };
-//     let uris = tx.nft_uris(nft.launcher_id).await?;
-//     let record = nft_record(nft, uris, &state.network().address_prefix)?;
+    let Some(nft) = tx.fetch_nft(launcher_id.into()).await? else {
+        return Ok(None);
+    };
 
-//     tx.commit().await?;
+    let data = if let Some(hash) = nft.data_hash {
+        tx.fetch_nft_data(hash).await?
+    } else {
+        None
+    };
 
-//     Ok(Some(record))
-// }
+    let metadata = if let Some(hash) = nft.metadata_hash {
+        tx.fetch_nft_data(hash).await?
+    } else {
+        None
+    };
+
+    tx.commit().await?;
+
+    let record = nft_record(&nft, &state.network().address_prefix, data, metadata)?;
+
+    Ok(Some(record))
+}
 
 fn nft_record(
     nft: &NftDisplayInfo,
@@ -245,6 +257,7 @@ fn nft_record(
     let metadata = NftMetadata::from_clvm(&allocator, ptr).ok();
 
     Ok(NftRecord {
+        launcher_id_hex: hex::encode(nft.info.launcher_id),
         launcher_id: encode_address(nft.info.launcher_id.to_bytes(), "nft")?,
         owner_did: nft
             .info

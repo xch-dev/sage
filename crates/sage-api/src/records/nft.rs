@@ -4,6 +4,7 @@ use specta::Type;
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub struct NftRecord {
     pub launcher_id: String,
+    pub launcher_id_hex: String,
     pub owner_did: Option<String>,
     pub coin_id: String,
     pub address: String,

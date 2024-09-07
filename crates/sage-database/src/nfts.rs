@@ -60,6 +60,10 @@ impl<'a> DatabaseTx<'a> {
         fetch_nfts(&mut *self.tx, limit, offset).await
     }
 
+    pub async fn fetch_nft(&mut self, launcher_id: Bytes32) -> Result<Option<NftDisplayInfo>> {
+        fetch_nft(&mut *self.tx, launcher_id).await
+    }
+
     pub async fn nft_count(&mut self) -> Result<u32> {
         nft_count(&mut *self.tx).await
     }
@@ -211,6 +215,62 @@ async fn fetch_nfts(
     }
 
     Ok(nfts)
+}
+
+async fn fetch_nft(
+    conn: impl SqliteExecutor<'_>,
+    launcher_id: Bytes32,
+) -> Result<Option<NftDisplayInfo>> {
+    let launcher_id = launcher_id.as_ref();
+
+    let row = sqlx::query!(
+        "
+        SELECT
+            `coin_id`,
+            `launcher_id`,
+            `metadata`,
+            `metadata_updater_puzzle_hash`,
+            `current_owner`,
+            `royalty_puzzle_hash`,
+            `royalty_ten_thousandths`,
+            `p2_puzzle_hash`,
+            `data_hash`,
+            `metadata_hash`,
+            `license_hash`
+        FROM `nft_coins`
+        WHERE `launcher_id` = ?
+        ",
+        launcher_id
+    )
+    .fetch_optional(conn)
+    .await?;
+
+    row.map(|row| {
+        let coin_id = to_bytes32(&row.coin_id)?;
+
+        let info = NftInfo {
+            launcher_id: to_bytes32(&row.launcher_id)?,
+            metadata: row.metadata.into(),
+            metadata_updater_puzzle_hash: to_bytes32(&row.metadata_updater_puzzle_hash)?,
+            current_owner: row.current_owner.as_deref().map(to_bytes32).transpose()?,
+            royalty_puzzle_hash: to_bytes32(&row.royalty_puzzle_hash)?,
+            royalty_ten_thousandths: row.royalty_ten_thousandths.try_into()?,
+            p2_puzzle_hash: to_bytes32(&row.p2_puzzle_hash)?,
+        };
+
+        let data_hash = row.data_hash.as_deref().map(to_bytes32).transpose()?;
+        let metadata_hash = row.metadata_hash.as_deref().map(to_bytes32).transpose()?;
+        let license_hash = row.license_hash.as_deref().map(to_bytes32).transpose()?;
+
+        Ok(NftDisplayInfo {
+            coin_id,
+            info,
+            data_hash,
+            metadata_hash,
+            license_hash,
+        })
+    })
+    .transpose()
 }
 
 async fn nft_count(conn: impl SqliteExecutor<'_>) -> Result<u32> {

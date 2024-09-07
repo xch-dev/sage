@@ -106,7 +106,7 @@ function Nft({ nft }: { nft: NftRecord }) {
       <Box position='relative' width='100%' height='100%'>
         <Button
           sx={{ padding: 0, width: '100%', height: '100%' }}
-          onClick={() => navigate(`/wallet/nft/${nft.launcher_id}`)}
+          onClick={() => navigate(`/wallet/nft/${nft.launcher_id_hex}`)}
         >
           <img
             src={`data:${nft.data_mime_type};base64,${nft.data}`}
