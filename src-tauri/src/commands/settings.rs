@@ -1,15 +1,14 @@
 use std::net::IpAddr;
 
-use chia_wallet_sdk::NetworkId;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use sage_api::PeerRecord;
-use sage_config::{NetworkConfig, WalletConfig};
+use sage_config::{Network, NetworkConfig, WalletConfig};
 use sage_wallet::SyncCommand;
 use specta::specta;
 use tauri::{command, State};
 
-use crate::{app_state::AppState, error::Result, models::NetworkInfo};
+use crate::{app_state::AppState, error::Result};
 
 #[command]
 #[specta]
@@ -59,22 +58,9 @@ pub async fn add_peer(state: State<'_, AppState>, ip: IpAddr, trusted: bool) -> 
 
 #[command]
 #[specta]
-pub async fn network_list(state: State<'_, AppState>) -> Result<IndexMap<String, NetworkInfo>> {
+pub async fn network_list(state: State<'_, AppState>) -> Result<IndexMap<String, Network>> {
     let state = state.lock().await;
-
-    let mut networks = IndexMap::new();
-
-    for (network_id, network) in &state.networks {
-        let info = NetworkInfo {
-            default_port: network.default_port,
-            genesis_challenge: hex::encode(network.genesis_challenge),
-            agg_sig_me: network.agg_sig_me.map(hex::encode),
-            dns_introducers: network.dns_introducers.clone(),
-        };
-        networks.insert(network_id.clone(), info);
-    }
-
-    Ok(networks)
+    Ok(state.networks.clone())
 }
 
 #[command]
@@ -124,15 +110,17 @@ pub async fn set_network_id(state: State<'_, AppState>, network_id: String) -> R
     state.config.network.network_id.clone_from(&network_id);
     state.save_config()?;
 
+    let network = state.network();
+
     state
         .command_sender
         .send(SyncCommand::SwitchNetwork {
-            network_id: if network_id == "mainnet" {
-                NetworkId::Mainnet
-            } else {
-                NetworkId::Testnet11
+            network_id,
+            network: chia_wallet_sdk::Network {
+                default_port: network.default_port,
+                genesis_challenge: hex::decode(&network.genesis_challenge)?.try_into()?,
+                dns_introducers: network.dns_introducers.clone(),
             },
-            network: state.networks[&network_id].clone(),
         })
         .await?;
 

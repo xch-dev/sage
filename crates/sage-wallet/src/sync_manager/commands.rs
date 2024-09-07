@@ -1,7 +1,7 @@
 use std::{net::IpAddr, sync::Arc};
 
 use chia::protocol::Message;
-use chia_wallet_sdk::{Network, NetworkId};
+use chia_wallet_sdk::Network;
 
 use crate::Wallet;
 
@@ -11,7 +11,7 @@ pub enum SyncCommand {
         wallet: Option<Arc<Wallet>>,
     },
     SwitchNetwork {
-        network_id: NetworkId,
+        network_id: String,
         network: Network,
     },
     HandleMessage {

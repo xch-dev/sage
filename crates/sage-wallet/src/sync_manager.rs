@@ -9,7 +9,7 @@ use chia::{
     protocol::{CoinStateUpdate, Message, NewPeakWallet, ProtocolMessageTypes},
     traits::Streamable,
 };
-use chia_wallet_sdk::{ClientError, Connector, Network, NetworkId};
+use chia_wallet_sdk::{ClientError, Connector, Network};
 use futures_lite::future::poll_once;
 use tokio::{
     sync::{mpsc, Mutex},
@@ -46,7 +46,7 @@ pub struct SyncManager {
     options: SyncOptions,
     state: Arc<Mutex<PeerState>>,
     wallet: Option<Arc<Wallet>>,
-    network_id: NetworkId,
+    network_id: String,
     network: Network,
     connector: Connector,
     event_sender: mpsc::Sender<SyncEvent>,
@@ -97,7 +97,7 @@ impl SyncManager {
         options: SyncOptions,
         state: Arc<Mutex<PeerState>>,
         wallet: Option<Arc<Wallet>>,
-        network_id: NetworkId,
+        network_id: String,
         network: Network,
         connector: Connector,
     ) -> (Self, mpsc::Sender<SyncCommand>, mpsc::Receiver<SyncEvent>) {

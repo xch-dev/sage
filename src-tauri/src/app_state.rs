@@ -7,11 +7,11 @@ use std::{
 };
 
 use chia::bls::master_to_wallet_unhardened_intermediate;
-use chia_wallet_sdk::{create_rustls_connector, load_ssl_cert, Connector, Network, NetworkId};
+use chia_wallet_sdk::{create_rustls_connector, load_ssl_cert, Connector};
 use indexmap::{indexmap, IndexMap};
 use itertools::Itertools;
 use sage_api::{Unit, TXCH, XCH};
-use sage_config::{Config, WalletConfig};
+use sage_config::{Config, Network, WalletConfig, MAINNET, TESTNET11};
 use sage_database::Database;
 use sage_keychain::Keychain;
 use sage_wallet::{PeerState, SyncCommand, SyncEvent, SyncManager, SyncOptions, Wallet};
@@ -27,7 +27,7 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, Layer};
 
 use crate::{
     error::{Error, Result},
-    models::{NetworkInfo, SyncEvent as SyncEventData, WalletInfo, WalletKind},
+    models::{SyncEvent as SyncEventData, WalletInfo, WalletKind},
 };
 
 pub type AppState = Mutex<AppStateInner>;
@@ -53,8 +53,8 @@ impl AppStateInner {
             config: Config::default(),
             keychain: Keychain::default(),
             networks: indexmap! {
-                "mainnet".to_string() => Network::default_mainnet(),
-                "testnet11".to_string() => Network::default_testnet11(),
+                "mainnet".to_string() => MAINNET.clone(),
+                "testnet11".to_string() => TESTNET11.clone(),
             },
             wallet: None,
             unit: XCH.clone(),
@@ -153,42 +153,13 @@ impl AppStateInner {
     }
 
     fn setup_networks(&mut self) -> Result<()> {
-        // TODO: Rewrite
-
         let networks_path = self.path.join("networks.toml");
 
         if networks_path.try_exists()? {
             let text = fs::read_to_string(&networks_path)?;
-            let networks: IndexMap<String, NetworkInfo> = toml::from_str(&text)?;
-
-            for (network_id, network) in networks {
-                self.networks.insert(
-                    network_id,
-                    Network {
-                        default_port: network.default_port,
-                        genesis_challenge: hex::decode(&network.genesis_challenge)?.try_into()?,
-                        agg_sig_me: network
-                            .agg_sig_me
-                            .map(|x| Result::Ok(hex::decode(&x)?.try_into()?))
-                            .transpose()?,
-                        dns_introducers: network.dns_introducers,
-                    },
-                );
-            }
+            self.networks = toml::from_str(&text)?;
         } else {
-            let mut networks = IndexMap::new();
-
-            for (network_id, network) in &self.networks {
-                let info = NetworkInfo {
-                    default_port: network.default_port,
-                    genesis_challenge: hex::encode(network.genesis_challenge),
-                    agg_sig_me: network.agg_sig_me.map(hex::encode),
-                    dns_introducers: network.dns_introducers.clone(),
-                };
-                networks.insert(network_id.clone(), info);
-            }
-
-            fs::write(&networks_path, toml::to_string_pretty(&networks)?)?;
+            fs::write(&networks_path, toml::to_string_pretty(&self.networks)?)?;
         }
 
         Ok(())
@@ -239,8 +210,12 @@ impl AppStateInner {
             },
             self.peer_state.clone(),
             self.wallet.clone(),
-            NetworkId::Custom(network_id),
-            network,
+            network_id,
+            chia_wallet_sdk::Network {
+                default_port: network.default_port,
+                genesis_challenge: hex::decode(&network.genesis_challenge)?.try_into()?,
+                dns_introducers: network.dns_introducers.clone(),
+            },
             connector,
         );
 
@@ -289,7 +264,7 @@ impl AppStateInner {
         fs::create_dir_all(&path)?;
 
         let network_id = &self.config.network.network_id;
-        let genesis_challenge = self.networks[network_id].genesis_challenge;
+        let genesis_challenge = &self.networks[network_id].genesis_challenge;
         let path = path.join(format!("{network_id}.sqlite"));
         let pool = SqlitePoolOptions::new()
             .connect_with(
@@ -305,7 +280,7 @@ impl AppStateInner {
             db.clone(),
             fingerprint,
             intermediate_pk,
-            genesis_challenge,
+            hex::decode(genesis_challenge)?.try_into()?,
         ));
 
         self.wallet = Some(wallet.clone());
@@ -321,6 +296,12 @@ impl AppStateInner {
             .await?;
 
         Ok(())
+    }
+
+    pub fn network(&self) -> &Network {
+        self.networks
+            .get(&self.config.network.network_id)
+            .expect("network not found")
     }
 
     pub fn wallet(&self) -> Result<Arc<Wallet>> {
@@ -339,13 +320,6 @@ impl AppStateInner {
         }
 
         Ok(wallet.clone())
-    }
-
-    pub fn prefix(&self) -> &'static str {
-        match self.config.network.network_id.as_str() {
-            "mainnet" => "xch",
-            _ => "txch",
-        }
     }
 
     pub fn try_wallet_config(&self, fingerprint: u32) -> Result<&WalletConfig> {

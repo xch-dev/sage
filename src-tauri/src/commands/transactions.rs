@@ -32,7 +32,7 @@ pub async fn validate_address(state: State<'_, AppState>, address: String) -> Re
     let Some((_puzzle_hash, prefix)) = decode_address(&address).ok() else {
         return Ok(false);
     };
-    Ok(prefix == state.prefix())
+    Ok(prefix == state.network().address_prefix)
 }
 
 #[command]
@@ -59,7 +59,7 @@ pub async fn send(
     };
 
     let (puzzle_hash, prefix) = decode_address(&address)?;
-    if prefix != state.prefix() {
+    if prefix != state.network().address_prefix {
         return Err(Error::invalid_prefix(&prefix));
     }
 

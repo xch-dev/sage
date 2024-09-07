@@ -22,7 +22,12 @@ pub async fn get_addresses(state: State<'_, AppState>) -> Result<Vec<String>> {
     let puzzle_hashes = wallet.db.p2_puzzle_hashes_unhardened().await?;
     let addresses = puzzle_hashes
         .into_iter()
-        .map(|puzzle_hash| Ok(encode_address(puzzle_hash.to_bytes(), state.prefix())?))
+        .map(|puzzle_hash| {
+            Ok(encode_address(
+                puzzle_hash.to_bytes(),
+                &state.network().address_prefix,
+            )?)
+        })
         .collect::<Result<Vec<_>>>()?;
 
     Ok(addresses)
@@ -43,7 +48,7 @@ pub async fn get_sync_status(state: State<'_, AppState>) -> Result<SyncStatus> {
     let puzzle_hash = fetch_puzzle_hash(&mut tx).await?;
 
     let receive_address = puzzle_hash
-        .map(|puzzle_hash| encode_address(puzzle_hash.to_bytes(), state.prefix()))
+        .map(|puzzle_hash| encode_address(puzzle_hash.to_bytes(), &state.network().address_prefix))
         .transpose()?;
 
     tx.commit().await?;
@@ -69,7 +74,10 @@ pub async fn get_coins(state: State<'_, AppState>) -> Result<Vec<CoinRecord>> {
         .map(|cs| {
             Ok(CoinRecord {
                 coin_id: hex::encode(cs.coin.coin_id()),
-                address: encode_address(cs.coin.puzzle_hash.to_bytes(), state.prefix())?,
+                address: encode_address(
+                    cs.coin.puzzle_hash.to_bytes(),
+                    &state.network().address_prefix,
+                )?,
                 amount: Amount::from_mojos(cs.coin.amount as u128, state.unit.decimals),
                 created_height: cs.created_height,
                 spent_height: cs.spent_height,
@@ -98,7 +106,10 @@ pub async fn get_cat_coins(
         .map(|cs| {
             Ok(CoinRecord {
                 coin_id: hex::encode(cs.coin.coin_id()),
-                address: encode_address(cs.coin.puzzle_hash.to_bytes(), state.prefix())?,
+                address: encode_address(
+                    cs.coin.puzzle_hash.to_bytes(),
+                    &state.network().address_prefix,
+                )?,
                 amount: Amount::from_mojos(cs.coin.amount as u128, 3),
                 created_height: cs.created_height,
                 spent_height: cs.spent_height,
@@ -144,7 +155,10 @@ pub async fn get_dids(state: State<'_, AppState>) -> Result<Vec<DidRecord>> {
                 encoded_id: encode_address(did.info.launcher_id.to_bytes(), "did:chia:")?,
                 launcher_id: hex::encode(did.info.launcher_id),
                 coin_id: hex::encode(did.coin.coin_id()),
-                address: encode_address(did.info.p2_puzzle_hash.to_bytes(), state.prefix())?,
+                address: encode_address(
+                    did.info.p2_puzzle_hash.to_bytes(),
+                    &state.network().address_prefix,
+                )?,
             })
         })
         .collect()
@@ -162,7 +176,7 @@ pub async fn get_nfts(state: State<'_, AppState>, request: GetNfts) -> Result<Ge
 
     for nft in tx.nfts(request.limit, request.offset).await? {
         let uris = tx.nft_uris(nft.launcher_id).await?;
-        records.push(nft_record(nft, uris, state.prefix())?);
+        records.push(nft_record(nft, uris, &state.network().address_prefix)?);
     }
 
     let total = tx.nft_count().await?;
@@ -191,7 +205,7 @@ pub async fn get_nft(state: State<'_, AppState>, launcher_id: String) -> Result<
         return Ok(None);
     };
     let uris = tx.nft_uris(nft.launcher_id).await?;
-    let record = nft_record(nft, uris, state.prefix())?;
+    let record = nft_record(nft, uris, &state.network().address_prefix)?;
 
     tx.commit().await?;
 
