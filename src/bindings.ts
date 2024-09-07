@@ -61,7 +61,7 @@ async setDerivationBatchSize(fingerprint: number, derivationBatchSize: number) :
     else return { status: "error", error: e  as any };
 }
 },
-async networkList() : Promise<Result<{ [key in string]: NetworkInfo }, Error>> {
+async networkList() : Promise<Result<{ [key in string]: Network }, Error>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("network_list") };
 } catch (e) {
@@ -310,8 +310,8 @@ export type Error = { kind: ErrorKind; reason: string }
 export type ErrorKind = "Io" | "Database" | "Client" | "Keychain" | "Logging" | "Serialization" | "InvalidAddress" | "InvalidMnemonic" | "InvalidKey" | "InvalidAmount" | "InvalidAssetId" | "InvalidLauncherId" | "InsufficientFunds" | "TransactionFailed" | "UnknownNetwork" | "UnknownFingerprint" | "NotLoggedIn" | "Sync"
 export type GetNfts = { offset: number; limit: number }
 export type GetNftsResponse = { items: NftRecord[]; total: number }
+export type Network = { default_port: number; ticker: string; address_prefix: string; precision: number; genesis_challenge: string; agg_sig_me: string; dns_introducers: string[] }
 export type NetworkConfig = { network_id?: string; target_peers?: number; discover_peers?: boolean }
-export type NetworkInfo = { default_port: number; genesis_challenge: string; agg_sig_me: string | null; dns_introducers: string[] }
 export type NftRecord = { encoded_id: string; launcher_id: string; encoded_owner_did: string | null; owner_did: string | null; coin_id: string; address: string; royalty_address: string; royalty_percent: string; data_uris: string[]; data_hash: string | null; metadata_uris: string[]; metadata_json: string | null; metadata_hash: string | null; license_uris: string[]; license_hash: string | null; edition_number: number | null; edition_total: number | null }
 export type PeerRecord = { ip_addr: string; port: number; trusted: boolean; peak_height: number }
 export type SyncEvent = { type: "start"; ip: string } | { type: "stop" } | { type: "subscribed" } | { type: "coin_update" } | { type: "puzzle_update" } | { type: "cat_update" } | { type: "nft_update" }
