@@ -193,8 +193,6 @@ pub async fn update_coins(db: &Database, coin_states: Vec<CoinState>) -> Result<
         }
     }
 
-    tx.delete_old_nfts().await?;
-
     tx.commit().await?;
 
     Ok(())

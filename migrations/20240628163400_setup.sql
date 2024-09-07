@@ -93,8 +93,18 @@ CREATE INDEX `nft_p2` ON `nft_coins` (`p2_puzzle_hash`);
 
 CREATE TABLE `nft_data` (
     `hash` BLOB NOT NULL PRIMARY KEY,
-    `data` BLOB NOT NULL
+    `data` BLOB NOT NULL,
+    `mime_type` TEXT NOT NULL
 );
+
+CREATE TABLE `nft_uris` (
+    `uri` TEXT NOT NULL,
+    `hash` BLOB NOT NULL,
+    `checked` BOOLEAN NOT NULL,
+    PRIMARY KEY (`uri`, `hash`)
+);
+
+CREATE INDEX `nft_uri_checked_hash` ON `nft_uris` (`checked`, `hash`);
 
 CREATE TABLE `cats` (
     `asset_id` BLOB NOT NULL PRIMARY KEY,

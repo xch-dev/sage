@@ -1,7 +1,7 @@
 use chia::{
     clvm_traits::{FromClvm, ToClvm},
     protocol::{Bytes32, Coin, Program},
-    puzzles::{LineageProof, Proof},
+    puzzles::{nft::NftMetadata, LineageProof, Proof},
 };
 use chia_wallet_sdk::{
     run_puzzle, Cat, Condition, Did, DidInfo, HashedPtr, Nft, NftInfo, Primitive, Puzzle,
@@ -12,6 +12,7 @@ use tracing::{debug_span, warn};
 use crate::ParseError;
 
 /// Information about the puzzle and lineage of a coin, to be inserted into the database alongside a coin.
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PuzzleInfo {
     /// A non-eve coin which follows the CAT2 standard.
@@ -29,6 +30,12 @@ pub enum PuzzleInfo {
     Nft {
         lineage_proof: LineageProof,
         info: NftInfo<Program>,
+        data_hash: Option<Bytes32>,
+        metadata_hash: Option<Bytes32>,
+        license_hash: Option<Bytes32>,
+        data_uris: Vec<String>,
+        metadata_uris: Vec<String>,
+        license_uris: Vec<String>,
     },
     /// The coin could not be parsed due to an error or it was a kind of puzzle we don't know about.
     Unknown { hint: Bytes32 },
@@ -133,12 +140,29 @@ impl PuzzleInfo {
                     return Ok(Self::Unknown { hint });
                 };
 
-                let metadata = Program::from_clvm(&allocator, nft.info.metadata.ptr())
+                let metadata = NftMetadata::from_clvm(&allocator, nft.info.metadata.ptr()).ok();
+
+                let metadata_program = Program::from_clvm(&allocator, nft.info.metadata.ptr())
                     .map_err(|_| ParseError::Serialize)?;
 
                 return Ok(Self::Nft {
                     lineage_proof,
-                    info: nft.info.with_metadata(metadata),
+                    info: nft.info.with_metadata(metadata_program),
+                    data_hash: metadata.as_ref().and_then(|m| m.data_hash),
+                    metadata_hash: metadata.as_ref().and_then(|m| m.metadata_hash),
+                    license_hash: metadata.as_ref().and_then(|m| m.license_hash),
+                    data_uris: metadata
+                        .as_ref()
+                        .map(|m| m.data_uris.clone())
+                        .unwrap_or_default(),
+                    metadata_uris: metadata
+                        .as_ref()
+                        .map(|m| m.metadata_uris.clone())
+                        .unwrap_or_default(),
+                    license_uris: metadata
+                        .as_ref()
+                        .map(|m| m.license_uris.clone())
+                        .unwrap_or_default(),
                 });
             }
 

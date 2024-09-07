@@ -165,9 +165,42 @@ async fn fetch_puzzle(
         PuzzleInfo::Nft {
             lineage_proof,
             info,
+            data_hash,
+            metadata_hash,
+            license_hash,
+            data_uris,
+            metadata_uris,
+            license_uris,
         } => {
             tx.mark_coin_synced(coin_id, info.p2_puzzle_hash).await?;
-            tx.insert_nft_coin(coin_id, lineage_proof, info).await?;
+
+            tx.insert_nft_coin(
+                coin_id,
+                lineage_proof,
+                info,
+                data_hash,
+                metadata_hash,
+                license_hash,
+            )
+            .await?;
+
+            if let Some(hash) = data_hash {
+                for uri in data_uris {
+                    tx.insert_nft_uri(uri, hash).await?;
+                }
+            }
+
+            if let Some(hash) = metadata_hash {
+                for uri in metadata_uris {
+                    tx.insert_nft_uri(uri, hash).await?;
+                }
+            }
+
+            if let Some(hash) = license_hash {
+                for uri in license_uris {
+                    tx.insert_nft_uri(uri, hash).await?;
+                }
+            }
         }
         PuzzleInfo::Unknown { hint } => {
             tx.mark_coin_synced(coin_id, hint).await?;

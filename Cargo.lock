@@ -4369,6 +4369,7 @@ dependencies = [
 name = "sage-tauri"
 version = "0.1.0"
 dependencies = [
+ "base64 0.22.1",
  "bech32",
  "bigdecimal",
  "bincode",

@@ -4,6 +4,7 @@ use std::{
     num::{ParseIntError, TryFromIntError},
 };
 
+use chia::clvm_traits::{FromClvmError, ToClvmError};
 use chia_wallet_sdk::{AddressError, ClientError, DriverError, SignerError};
 use hex::FromHexError;
 use sage_api::Amount;
@@ -363,6 +364,24 @@ impl From<TryFromIntError> for Error {
     fn from(value: TryFromIntError) -> Self {
         Self {
             kind: ErrorKind::InvalidAmount,
+            reason: value.to_string(),
+        }
+    }
+}
+
+impl From<FromClvmError> for Error {
+    fn from(value: FromClvmError) -> Self {
+        Self {
+            kind: ErrorKind::Serialization,
+            reason: value.to_string(),
+        }
+    }
+}
+
+impl From<ToClvmError> for Error {
+    fn from(value: ToClvmError) -> Self {
+        Self {
+            kind: ErrorKind::Serialization,
             reason: value.to_string(),
         }
     }

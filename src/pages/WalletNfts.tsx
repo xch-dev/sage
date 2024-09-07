@@ -2,7 +2,7 @@ import { Box, Button, Paper, Typography, useTheme } from '@mui/material';
 import Grid2 from '@mui/material/Unstable_Grid2/Grid2';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { commands, events, NftRecord } from '../bindings';
+import { commands, NftRecord } from '../bindings';
 
 export function WalletNfts() {
   const [page, setPage] = useState(0);
@@ -48,14 +48,12 @@ export function WalletNfts() {
   }, []);
 
   useEffect(() => {
-    const unlisten = events.syncEvent.listen((event) => {
-      if (event.payload.type === 'nft_update') {
-        updateNfts(page);
-      }
-    });
+    const interval = setInterval(() => {
+      updateNfts(page);
+    }, 5000);
 
     return () => {
-      unlisten.then((u) => u());
+      clearInterval(interval);
     };
   }, [page]);
 
@@ -95,9 +93,9 @@ function Nft({ nft }: { nft: NftRecord }) {
 
   let json: any = {};
 
-  if (nft.metadata_json) {
+  if (nft.metadata) {
     try {
-      json = JSON.parse(nft.metadata_json);
+      json = JSON.parse(nft.metadata);
     } catch (error) {
       console.error(error);
     }
@@ -111,7 +109,7 @@ function Nft({ nft }: { nft: NftRecord }) {
           onClick={() => navigate(`/wallet/nft/${nft.launcher_id}`)}
         >
           <img
-            src={nft.data_uris[0]}
+            src={`data:${nft.data_mime_type};base64,${nft.data}`}
             style={{
               width: '100%',
               height: '100%',

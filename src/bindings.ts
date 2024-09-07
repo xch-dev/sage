@@ -213,14 +213,6 @@ async getNfts(request: GetNfts) : Promise<Result<GetNftsResponse, Error>> {
     else return { status: "error", error: e  as any };
 }
 },
-async getNft(launcherId: string) : Promise<Result<NftRecord | null, Error>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_nft", { launcherId }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
 async validateAddress(address: string) : Promise<Result<boolean, Error>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("validate_address", { address }) };
@@ -312,7 +304,7 @@ export type GetNfts = { offset: number; limit: number }
 export type GetNftsResponse = { items: NftRecord[]; total: number }
 export type Network = { default_port: number; ticker: string; address_prefix: string; precision: number; genesis_challenge: string; agg_sig_me: string; dns_introducers: string[] }
 export type NetworkConfig = { network_id?: string; target_peers?: number; discover_peers?: boolean }
-export type NftRecord = { encoded_id: string; launcher_id: string; encoded_owner_did: string | null; owner_did: string | null; coin_id: string; address: string; royalty_address: string; royalty_percent: string; data_uris: string[]; data_hash: string | null; metadata_uris: string[]; metadata_json: string | null; metadata_hash: string | null; license_uris: string[]; license_hash: string | null; edition_number: number | null; edition_total: number | null }
+export type NftRecord = { launcher_id: string; owner_did: string | null; coin_id: string; address: string; royalty_address: string; royalty_percent: string; data_uris: string[]; data_hash: string | null; metadata_uris: string[]; metadata_hash: string | null; license_uris: string[]; license_hash: string | null; edition_number: number | null; edition_total: number | null; data_mime_type: string | null; data: string | null; metadata: string | null }
 export type PeerRecord = { ip_addr: string; port: number; trusted: boolean; peak_height: number }
 export type SyncEvent = { type: "start"; ip: string } | { type: "stop" } | { type: "subscribed" } | { type: "coin_update" } | { type: "puzzle_update" } | { type: "cat_update" } | { type: "nft_update" }
 export type SyncStatus = { balance: Amount; unit: Unit; synced_coins: number; total_coins: number; receive_address: string }
