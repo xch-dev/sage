@@ -1,0 +1,80 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT\n            `coin_id`,\n            `launcher_id`,\n            `metadata`,\n            `metadata_updater_puzzle_hash`,\n            `current_owner`,\n            `royalty_puzzle_hash`,\n            `royalty_ten_thousandths`,\n            `p2_puzzle_hash`,\n            `data_hash`,\n            `metadata_hash`,\n            `license_hash`\n        FROM `nft_coins`\n        WHERE `launcher_id` = ?\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "coin_id",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "launcher_id",
+        "ordinal": 1,
+        "type_info": "Blob"
+      },
+      {
+        "name": "metadata",
+        "ordinal": 2,
+        "type_info": "Blob"
+      },
+      {
+        "name": "metadata_updater_puzzle_hash",
+        "ordinal": 3,
+        "type_info": "Blob"
+      },
+      {
+        "name": "current_owner",
+        "ordinal": 4,
+        "type_info": "Blob"
+      },
+      {
+        "name": "royalty_puzzle_hash",
+        "ordinal": 5,
+        "type_info": "Blob"
+      },
+      {
+        "name": "royalty_ten_thousandths",
+        "ordinal": 6,
+        "type_info": "Integer"
+      },
+      {
+        "name": "p2_puzzle_hash",
+        "ordinal": 7,
+        "type_info": "Blob"
+      },
+      {
+        "name": "data_hash",
+        "ordinal": 8,
+        "type_info": "Blob"
+      },
+      {
+        "name": "metadata_hash",
+        "ordinal": 9,
+        "type_info": "Blob"
+      },
+      {
+        "name": "license_hash",
+        "ordinal": 10,
+        "type_info": "Blob"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "6dcab18967139419788a85f1414777752a7d90bd9ab08afee6a5f9596653800f"
+}

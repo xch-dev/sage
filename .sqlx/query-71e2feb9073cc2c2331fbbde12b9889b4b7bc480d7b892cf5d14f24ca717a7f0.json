@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT `data`, `mime_type` FROM `nft_data` WHERE `hash` = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "data",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "mime_type",
+        "ordinal": 1,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "71e2feb9073cc2c2331fbbde12b9889b4b7bc480d7b892cf5d14f24ca717a7f0"
+}
