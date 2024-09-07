@@ -94,10 +94,6 @@ impl Database {
         cat_coin_states(&self.pool, asset_id).await
     }
 
-    pub async fn update_nft(&self, row: NftRow) -> Result<()> {
-        update_nft(&self.pool, row).await
-    }
-
     pub async fn delete_old_nfts(&self) -> Result<()> {
         delete_old_nfts(&self.pool).await
     }
@@ -108,19 +104,6 @@ impl Database {
 
     pub async fn nft_count(&self) -> Result<u32> {
         nft_count(&self.pool).await
-    }
-
-    pub async fn insert_nft_uri(
-        &self,
-        nft_id: Bytes32,
-        uri: String,
-        kind: NftUriKind,
-    ) -> Result<()> {
-        insert_nft_uri(&self.pool, nft_id, uri, kind).await
-    }
-
-    pub async fn clear_nft_uris(&self, nft_id: Bytes32) -> Result<()> {
-        clear_nft_uris(&self.pool, nft_id).await
     }
 
     pub async fn nft_uris(&self, nft_id: Bytes32) -> Result<Vec<NftUri>> {
@@ -216,10 +199,6 @@ impl<'a> DatabaseTx<'a> {
         cat_coin_states(&mut *self.tx, asset_id).await
     }
 
-    pub async fn update_nft(&mut self, row: NftRow) -> Result<()> {
-        update_nft(&mut *self.tx, row).await
-    }
-
     pub async fn delete_old_nfts(&mut self) -> Result<()> {
         delete_old_nfts(&mut *self.tx).await
     }
@@ -230,19 +209,6 @@ impl<'a> DatabaseTx<'a> {
 
     pub async fn nft_count(&mut self) -> Result<u32> {
         nft_count(&mut *self.tx).await
-    }
-
-    pub async fn insert_nft_uri(
-        &mut self,
-        nft_id: Bytes32,
-        uri: String,
-        kind: NftUriKind,
-    ) -> Result<()> {
-        insert_nft_uri(&mut *self.tx, nft_id, uri, kind).await
-    }
-
-    pub async fn clear_nft_uris(&mut self, nft_id: Bytes32) -> Result<()> {
-        clear_nft_uris(&mut *self.tx, nft_id).await
     }
 
     pub async fn nft_uris(&mut self, nft_id: Bytes32) -> Result<Vec<NftUri>> {
@@ -507,99 +473,6 @@ async fn cat_coin_states(
             )
         })
         .collect()
-}
-
-async fn update_nft(conn: impl SqliteExecutor<'_>, row: NftRow) -> Result<()> {
-    let launcher_id = row.launcher_id.as_ref();
-    let coin_id = row.coin_id.as_ref();
-    let p2_puzzle_hash = row.p2_puzzle_hash.as_ref();
-    let royalty_puzzle_hash = row.royalty_puzzle_hash.as_ref();
-    let royalty_ten_thousandths = row.royalty_ten_thousandths;
-    let current_owner = row.current_owner.as_deref();
-    let data_hash = row.data_hash.as_deref();
-    let metadata_json = row.metadata_json.as_ref();
-    let metadata_hash = row.metadata_hash.as_deref();
-    let license_hash = row.license_hash.as_deref();
-    let edition_number = row.edition_number;
-    let edition_total = row.edition_total;
-
-    sqlx::query!(
-        "
-        REPLACE INTO `nfts` (
-            `launcher_id`,
-            `coin_id`,
-            `p2_puzzle_hash`,
-            `royalty_puzzle_hash`,
-            `royalty_ten_thousandths`,
-            `current_owner`,
-            `data_hash`,
-            `metadata_json`,
-            `metadata_hash`,
-            `license_hash`,
-            `edition_number`,
-            `edition_total`
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ",
-        launcher_id,
-        coin_id,
-        p2_puzzle_hash,
-        royalty_puzzle_hash,
-        royalty_ten_thousandths,
-        current_owner,
-        data_hash,
-        metadata_json,
-        metadata_hash,
-        license_hash,
-        edition_number,
-        edition_total
-    )
-    .execute(conn)
-    .await?;
-
-    Ok(())
-}
-
-async fn clear_nft_uris(conn: impl SqliteExecutor<'_>, nft_id: Bytes32) -> Result<()> {
-    let nft_id = nft_id.as_ref();
-
-    sqlx::query!(
-        "
-        DELETE FROM `nft_uris` WHERE `nft_id` = ?
-        ",
-        nft_id
-    )
-    .execute(conn)
-    .await?;
-
-    Ok(())
-}
-
-async fn insert_nft_uri(
-    conn: impl SqliteExecutor<'_>,
-    nft_id: Bytes32,
-    uri: String,
-    kind: NftUriKind,
-) -> Result<()> {
-    let nft_id = nft_id.as_ref();
-    let kind = match kind {
-        NftUriKind::Data => 0,
-        NftUriKind::Metadata => 1,
-        NftUriKind::License => 2,
-    };
-
-    sqlx::query!(
-        "
-        INSERT INTO `nft_uris` (`nft_id`, `uri`, `kind`) VALUES (?, ?, ?)
-        ",
-        nft_id,
-        uri,
-        kind
-    )
-    .execute(conn)
-    .await?;
-
-    Ok(())
 }
 
 async fn nfts(conn: impl SqliteExecutor<'_>, limit: u32, offset: u32) -> Result<Vec<NftRow>> {
