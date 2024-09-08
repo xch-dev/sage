@@ -76,13 +76,8 @@ impl<'a> DatabaseTx<'a> {
         mark_nft_uri_checked(&mut *self.tx, uri, hash).await
     }
 
-    pub async fn insert_nft_data(
-        &mut self,
-        hash: Bytes32,
-        data: Vec<u8>,
-        mime_type: String,
-    ) -> Result<()> {
-        insert_nft_data(&mut *self.tx, hash, data, mime_type).await
+    pub async fn insert_nft_data(&mut self, hash: Bytes32, nft_data: NftData) -> Result<()> {
+        insert_nft_data(&mut *self.tx, hash, nft_data).await
     }
 
     pub async fn fetch_nft_data(&mut self, hash: Bytes32) -> Result<Option<NftData>> {
@@ -344,10 +339,11 @@ async fn mark_nft_uri_checked(
 async fn insert_nft_data(
     conn: impl SqliteExecutor<'_>,
     hash: Bytes32,
-    data: Vec<u8>,
-    mime_type: String,
+    nft_data: NftData,
 ) -> Result<()> {
     let hash = hash.as_ref();
+    let data = nft_data.blob;
+    let mime_type = nft_data.mime_type;
 
     sqlx::query!(
         "INSERT OR IGNORE INTO `nft_data` (`hash`, `data`, `mime_type`) VALUES (?, ?, ?)",
