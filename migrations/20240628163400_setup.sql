@@ -24,12 +24,13 @@ CREATE TABLE `coin_states` (
     `synced` BOOLEAN NOT NULL
 );
 
-CREATE INDEX `coin_parent` ON `coin_states` (`parent_coin_id`);
 CREATE INDEX `coin_puzzle_hash` ON `coin_states` (`puzzle_hash`);
+CREATE INDEX `coin_hint` ON `coin_states` (`hint`);
 CREATE INDEX `coin_spent` ON `coin_states` (`spent_height`);
 CREATE INDEX `coin_created` ON `coin_states` (`created_height`);
-CREATE INDEX `coin_hint` ON `coin_states` (`hint`);
 CREATE INDEX `coin_synced` ON `coin_states` (`synced`);
+CREATE INDEX `coin_height` ON `coin_states` (`created_height`, `spent_height`);
+
 
 CREATE TABLE `unknown_coins` (
     `coin_id` BLOB NOT NULL PRIMARY KEY,

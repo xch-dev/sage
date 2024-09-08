@@ -83,7 +83,7 @@ export function MainWallet() {
           />
         )}
 
-        <Box mt={1} textAlign='center'>
+        <Box mt={2} textAlign='center'>
           {walletState.sync.synced_coins}
           {walletState.sync.synced_coins === walletState.sync.total_coins
             ? ' coins synced'
