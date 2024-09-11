@@ -141,10 +141,7 @@ impl SyncManager {
                     debug!("Failed to request peers from {}: {}", ip, error);
                     self.state.lock().await.ban(ip);
                 }
-                Err(_timeout) => {
-                    debug!("Request for peers from {} timed out", ip);
-                    self.state.lock().await.ban(ip);
-                }
+                Err(_timeout) => {}
             }
         }
 
