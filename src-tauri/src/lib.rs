@@ -8,7 +8,6 @@ mod app_state;
 mod commands;
 mod error;
 mod models;
-mod utils;
 
 #[cfg(debug_assertions)]
 use specta_typescript::Typescript;

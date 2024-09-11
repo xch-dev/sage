@@ -9,8 +9,7 @@ use chia::{
     puzzles::DeriveSynthetic,
 };
 use chia_wallet_sdk::{
-    decode_address, select_coins, Conditions, Peer, RequiredSignature, SpendContext, StandardLayer,
-    MAINNET_CONSTANTS, TESTNET11_CONSTANTS,
+    decode_address, Peer, RequiredSignature, MAINNET_CONSTANTS, TESTNET11_CONSTANTS,
 };
 use clvmr::Allocator;
 use sage_api::Amount;
@@ -22,7 +21,6 @@ use tokio::sync::MutexGuard;
 use crate::{
     app_state::{AppState, AppStateInner},
     error::{Error, Result},
-    utils::fetch_puzzle_hash,
 };
 
 #[command]
@@ -50,6 +48,11 @@ pub async fn send(
         return Err(Error::no_secret_key());
     }
 
+    let (puzzle_hash, prefix) = decode_address(&address)?;
+    if prefix != state.network().address_prefix {
+        return Err(Error::invalid_prefix(&prefix));
+    }
+
     let Some(amount) = amount.to_mojos(state.unit.decimals) else {
         return Err(Error::invalid_amount(&amount));
     };
@@ -58,64 +61,10 @@ pub async fn send(
         return Err(Error::invalid_amount(&fee));
     };
 
-    let (puzzle_hash, prefix) = decode_address(&address)?;
-    if prefix != state.network().address_prefix {
-        return Err(Error::invalid_prefix(&prefix));
-    }
+    let coin_spends = wallet
+        .send_xch(puzzle_hash.into(), amount, fee, Vec::new())
+        .await?;
 
-    let total_amount = amount as u128 + fee as u128;
-
-    let mut tx = wallet.db.tx().await?;
-    let mut keys = HashMap::new();
-
-    let coins = tx.unspent_p2_coins().await?;
-
-    for coin in &coins {
-        let key = tx.indexed_synthetic_key(coin.puzzle_hash).await?;
-        keys.insert(coin.puzzle_hash, key);
-    }
-
-    let Some(change_puzzle_hash) = fetch_puzzle_hash(&mut tx).await? else {
-        return Err(Error::no_change_address());
-    };
-
-    tx.commit().await?;
-
-    let coins = select_coins(coins, total_amount).map_err(|_| Error::insufficient_funds())?;
-    let selected_amount = coins.iter().fold(0, |acc, coin| acc + coin.amount as u128);
-    let change_amount: u64 = (selected_amount - total_amount)
-        .try_into()
-        .expect("Invalid change");
-
-    let mut ctx = SpendContext::new();
-
-    let origin_coin_id = coins[0].coin_id();
-
-    for (i, &coin) in coins.iter().enumerate() {
-        let pk = keys[&coin.puzzle_hash].1;
-        let p2 = StandardLayer::new(pk);
-
-        let conditions = if i == 0 {
-            let mut conditions =
-                Conditions::new().create_coin(puzzle_hash.into(), amount, Vec::new());
-
-            if fee > 0 {
-                conditions = conditions.reserve_fee(fee);
-            }
-
-            if change_amount > 0 {
-                conditions = conditions.create_coin(change_puzzle_hash, change_amount, Vec::new());
-            }
-
-            conditions
-        } else {
-            Conditions::new().assert_concurrent_spend(origin_coin_id)
-        };
-
-        p2.spend(&mut ctx, coin, conditions)?;
-    }
-
-    let coin_spends = ctx.take();
     transact(&state, &wallet, coin_spends).await?;
 
     Ok(())
@@ -143,65 +92,23 @@ pub async fn combine(state: State<'_, AppState>, coin_ids: Vec<String>, fee: Amo
     let mut tx = wallet.db.tx().await?;
 
     let mut coins = Vec::new();
-    let mut total_amount = 0;
 
     for coin_id in coin_ids {
         let Some(coin_state) = tx.coin_state(coin_id).await? else {
             return Err(Error::unknown_coin_id());
         };
+
+        if coin_state.spent_height.is_some() {
+            return Err(Error::already_spent(coin_id));
+        }
+
         coins.push(coin_state.coin);
-        total_amount += coin_state.coin.amount as u128;
     }
-
-    let mut keys = HashMap::new();
-
-    for coin in &coins {
-        let key = tx.indexed_synthetic_key(coin.puzzle_hash).await?;
-        keys.insert(coin.puzzle_hash, key);
-    }
-
-    let Some(output_puzzle_hash) = fetch_puzzle_hash(&mut tx).await? else {
-        return Err(Error::no_change_address());
-    };
 
     tx.commit().await?;
 
-    if fee as u128 > total_amount {
-        return Err(Error::insufficient_coin_total());
-    }
+    let coin_spends = wallet.combine_xch(coins, fee).await?;
 
-    let mut ctx = SpendContext::new();
-
-    let origin_coin_id = coins[0].coin_id();
-
-    for (i, &coin) in coins.iter().enumerate() {
-        let pk = keys[&coin.puzzle_hash].1;
-        let p2 = StandardLayer::new(pk);
-
-        let conditions = if i == 0 {
-            let mut conditions = Conditions::new();
-
-            if fee > 0 {
-                conditions = conditions.reserve_fee(fee);
-            }
-
-            if fee as u128 != total_amount {
-                conditions = conditions.create_coin(
-                    output_puzzle_hash,
-                    (total_amount - fee as u128).try_into()?,
-                    Vec::new(),
-                );
-            }
-
-            conditions
-        } else {
-            Conditions::new().assert_concurrent_spend(origin_coin_id)
-        };
-
-        p2.spend(&mut ctx, coin, conditions)?;
-    }
-
-    let coin_spends = ctx.take();
     transact(&state, &wallet, coin_spends).await?;
 
     Ok(())

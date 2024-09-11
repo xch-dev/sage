@@ -10,13 +10,13 @@ use sage_api::{
     Amount, CatRecord, CoinRecord, DidRecord, GetNfts, GetNftsResponse, NftRecord, SyncStatus,
 };
 use sage_database::{NftData, NftDisplayInfo};
+use sage_wallet::WalletError;
 use specta::specta;
 use tauri::{command, State};
 
 use crate::{
     app_state::AppState,
     error::{Error, Result},
-    utils::fetch_puzzle_hash,
 };
 
 #[command]
@@ -46,18 +46,20 @@ pub async fn get_sync_status(state: State<'_, AppState>) -> Result<SyncStatus> {
     let wallet = state.wallet()?;
 
     let mut tx = wallet.db.tx().await?;
-
     let balance = tx.p2_balance().await?;
     let total_coins = tx.total_coin_count().await?;
     let synced_coins = tx.synced_coin_count().await?;
+    tx.commit().await?;
 
-    let puzzle_hash = fetch_puzzle_hash(&mut tx).await?;
+    let puzzle_hash = match wallet.unused_puzzle_hash().await {
+        Ok(puzzle_hash) => Some(puzzle_hash),
+        Err(WalletError::NoDerivations) => None,
+        Err(error) => return Err(error.into()),
+    };
 
     let receive_address = puzzle_hash
         .map(|puzzle_hash| encode_address(puzzle_hash.to_bytes(), &state.network().address_prefix))
         .transpose()?;
-
-    tx.commit().await?;
 
     Ok(SyncStatus {
         balance: Amount::from_mojos(balance, state.unit.decimals),

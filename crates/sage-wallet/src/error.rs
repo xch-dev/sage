@@ -1,5 +1,5 @@
 use chia::protocol::Bytes32;
-use chia_wallet_sdk::ClientError;
+use chia_wallet_sdk::{ClientError, CoinSelectionError, DriverError};
 use sage_database::DatabaseError;
 use thiserror::Error;
 use tokio::task::JoinError;
@@ -17,6 +17,18 @@ pub enum WalletError {
 
     #[error("Parse error: {0}")]
     Parse(#[from] ParseError),
+
+    #[error("Coin selection error: {0}")]
+    CoinSelection(#[from] CoinSelectionError),
+
+    #[error("Output amount exceeds input coin total")]
+    InsufficientFunds,
+
+    #[error("Driver error: {0}")]
+    Driver(#[from] DriverError),
+
+    #[error("No keys have been derived")]
+    NoDerivations,
 
     #[error("Join error: {0}")]
     Join(#[from] JoinError),

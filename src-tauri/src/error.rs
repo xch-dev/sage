@@ -4,13 +4,16 @@ use std::{
     num::{ParseIntError, TryFromIntError},
 };
 
-use chia::clvm_traits::{FromClvmError, ToClvmError};
+use chia::{
+    clvm_traits::{FromClvmError, ToClvmError},
+    protocol::Bytes32,
+};
 use chia_wallet_sdk::{AddressError, ClientError, DriverError, SignerError};
 use hex::FromHexError;
 use sage_api::Amount;
 use sage_database::DatabaseError;
 use sage_keychain::KeychainError;
-use sage_wallet::SyncCommand;
+use sage_wallet::{SyncCommand, WalletError};
 use serde::{Deserialize, Serialize};
 use specta::Type;
 use sqlx::migrate::MigrateError;
@@ -73,13 +76,6 @@ impl Error {
         }
     }
 
-    pub fn no_change_address() -> Self {
-        Self {
-            kind: ErrorKind::TransactionFailed,
-            reason: "No change address available".to_string(),
-        }
-    }
-
     pub fn no_secret_key() -> Self {
         Self {
             kind: ErrorKind::TransactionFailed,
@@ -98,6 +94,13 @@ impl Error {
         Self {
             kind: ErrorKind::TransactionFailed,
             reason: "Unknown coin id".to_string(),
+        }
+    }
+
+    pub fn already_spent(coin_id: Bytes32) -> Self {
+        Self {
+            kind: ErrorKind::TransactionFailed,
+            reason: format!("Coin {coin_id} has already been spent"),
         }
     }
 
@@ -150,6 +153,7 @@ pub enum ErrorKind {
     UnknownFingerprint,
     NotLoggedIn,
     Sync,
+    Wallet,
 }
 
 impl fmt::Display for Error {
@@ -382,6 +386,15 @@ impl From<ToClvmError> for Error {
     fn from(value: ToClvmError) -> Self {
         Self {
             kind: ErrorKind::Serialization,
+            reason: value.to_string(),
+        }
+    }
+}
+
+impl From<WalletError> for Error {
+    fn from(value: WalletError) -> Self {
+        Self {
+            kind: ErrorKind::Wallet,
             reason: value.to_string(),
         }
     }

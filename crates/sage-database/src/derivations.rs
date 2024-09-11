@@ -4,28 +4,6 @@ use sqlx::SqliteExecutor;
 use crate::{to_bytes, to_bytes32, Database, DatabaseTx, Result};
 
 impl Database {
-    pub async fn insert_derivation(
-        &self,
-        p2_puzzle_hash: Bytes32,
-        index: u32,
-        hardened: bool,
-        synthetic_key: PublicKey,
-    ) -> Result<()> {
-        insert_derivation(&self.pool, p2_puzzle_hash, index, hardened, synthetic_key).await
-    }
-
-    pub async fn derivation_index(&self, hardened: bool) -> Result<u32> {
-        derivation_index(&self.pool, hardened).await
-    }
-
-    pub async fn max_used_derivation_index(&self, hardened: bool) -> Result<Option<u32>> {
-        max_used_derivation_index(&self.pool, hardened).await
-    }
-
-    pub async fn p2_puzzle_hashes(&self) -> Result<Vec<Bytes32>> {
-        p2_puzzle_hashes(&self.pool).await
-    }
-
     pub async fn p2_puzzle_hashes_unhardened(&self) -> Result<Vec<Bytes32>> {
         p2_puzzle_hashes_unhardened(&self.pool).await
     }
@@ -86,6 +64,10 @@ impl<'a> DatabaseTx<'a> {
         p2_puzzle_hash: Bytes32,
     ) -> Result<(u32, PublicKey)> {
         indexed_synthetic_key(&mut *self.tx, p2_puzzle_hash).await
+    }
+
+    pub async fn synthetic_key(&mut self, p2_puzzle_hash: Bytes32) -> Result<PublicKey> {
+        synthetic_key(&mut *self.tx, p2_puzzle_hash).await
     }
 
     pub async fn synthetic_key_index(&mut self, synthetic_key: PublicKey) -> Result<Option<u32>> {
@@ -215,6 +197,25 @@ async fn indexed_synthetic_key(
         row.index.try_into()?,
         PublicKey::from_bytes(&to_bytes(bytes)?)?,
     ))
+}
+
+async fn synthetic_key(
+    conn: impl SqliteExecutor<'_>,
+    p2_puzzle_hash: Bytes32,
+) -> Result<PublicKey> {
+    let p2_puzzle_hash = p2_puzzle_hash.as_ref();
+    let row = sqlx::query!(
+        "
+        SELECT `synthetic_key`
+        FROM `derivations`
+        WHERE `p2_puzzle_hash` = ?
+        ",
+        p2_puzzle_hash
+    )
+    .fetch_one(conn)
+    .await?;
+    let bytes = row.synthetic_key.as_slice();
+    Ok(PublicKey::from_bytes(&to_bytes(bytes)?)?)
 }
 
 async fn synthetic_key_index(
