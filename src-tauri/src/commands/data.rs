@@ -51,9 +51,9 @@ pub async fn get_sync_status(state: State<'_, AppState>) -> Result<SyncStatus> {
     let synced_coins = tx.synced_coin_count().await?;
     tx.commit().await?;
 
-    let puzzle_hash = match wallet.unused_puzzle_hash().await {
+    let puzzle_hash = match wallet.p2_puzzle_hash(false, false).await {
         Ok(puzzle_hash) => Some(puzzle_hash),
-        Err(WalletError::NoDerivations) => None,
+        Err(WalletError::InsufficientDerivations) => None,
         Err(error) => return Err(error.into()),
     };
 

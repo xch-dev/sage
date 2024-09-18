@@ -17,7 +17,7 @@ use tokio::{
     time::{sleep, timeout},
 };
 use tracing::{debug, info, warn};
-use wallet_sync::{sync_wallet, update_coins};
+use wallet_sync::{incremental_sync, sync_wallet};
 
 use crate::{CatQueue, NftQueue, PuzzleQueue, Wallet, WalletError};
 
@@ -207,7 +207,7 @@ impl SyncManager {
                 let message =
                     CoinStateUpdate::from_bytes(&message.data).map_err(ClientError::from)?;
                 if let Some(wallet) = self.wallet.as_ref() {
-                    update_coins(&wallet.db, message.items).await?;
+                    incremental_sync(wallet, message.items, true).await?;
 
                     wallet
                         .db
@@ -258,9 +258,7 @@ impl SyncManager {
                     if let Some(peer) = state.acquire_peer() {
                         let ip = peer.socket_addr().ip();
                         let task = tokio::spawn(sync_wallet(
-                            wallet.db.clone(),
-                            wallet.intermediate_pk,
-                            self.network.genesis_challenge,
+                            wallet.clone(),
                             peer,
                             self.state.clone(),
                             self.event_sender.clone(),

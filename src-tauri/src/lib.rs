@@ -57,6 +57,7 @@ pub fn run() {
             // Transactions
             commands::send,
             commands::combine,
+            commands::split,
             // Peers
             commands::get_peers,
             commands::add_peer,

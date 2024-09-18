@@ -1,13 +1,12 @@
 use std::{sync::Arc, time::Duration};
 
 use chia::{
-    bls::{DerivableKey, PublicKey},
+    bls::DerivableKey,
     protocol::{Bytes32, CoinState, CoinStateFilters, RejectStateReason},
     puzzles::{standard::StandardArgs, DeriveSynthetic},
 };
 use chia_wallet_sdk::Peer;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
-use sage_database::{Database, DatabaseError};
 use tokio::{
     sync::{mpsc, Mutex},
     task::spawn_blocking,
@@ -15,24 +14,22 @@ use tokio::{
 };
 use tracing::{debug, info, instrument, warn};
 
-use crate::{SyncError, WalletError};
+use crate::{SyncError, Wallet, WalletError};
 
 use super::{PeerState, SyncEvent};
 
 pub async fn sync_wallet(
-    db: Database,
-    intermediate_pk: PublicKey,
-    genesis_challenge: Bytes32,
+    wallet: Arc<Wallet>,
     peer: Peer,
     state: Arc<Mutex<PeerState>>,
     sync_sender: mpsc::Sender<SyncEvent>,
 ) -> Result<(), WalletError> {
     info!("Starting sync against peer {}", peer.socket_addr());
 
-    let mut tx = db.tx().await?;
+    let mut tx = wallet.db.tx().await?;
     let p2_puzzle_hashes = tx.p2_puzzle_hashes().await?;
     let (start_height, start_header_hash) = tx.latest_peak().await?.map_or_else(
-        || (None, genesis_challenge),
+        || (None, wallet.genesis_challenge),
         |(peak, header_hash)| (Some(peak), header_hash),
     );
     tx.commit().await?;
@@ -41,7 +38,7 @@ pub async fn sync_wallet(
 
     for batch in p2_puzzle_hashes.chunks(500) {
         derive_more |= sync_puzzle_hashes(
-            &db,
+            &wallet,
             &peer,
             start_height,
             start_header_hash,
@@ -55,6 +52,8 @@ pub async fn sync_wallet(
 
     while derive_more {
         derive_more = false;
+
+        let intermediate_pk = wallet.intermediate_pk;
 
         let new_derivations = spawn_blocking(move || {
             (start_index..start_index + 500)
@@ -76,7 +75,7 @@ pub async fn sync_wallet(
 
         start_index += new_derivations.len() as u32;
 
-        let mut tx = db.tx().await?;
+        let mut tx = wallet.db.tx().await?;
         for (index, synthetic_key, p2_puzzle_hash) in new_derivations {
             tx.insert_derivation(p2_puzzle_hash, index, false, synthetic_key)
                 .await?;
@@ -85,10 +84,10 @@ pub async fn sync_wallet(
 
         for batch in p2_puzzle_hashes.chunks(500) {
             derive_more |= sync_puzzle_hashes(
-                &db,
+                &wallet,
                 &peer,
                 None,
-                genesis_challenge,
+                wallet.genesis_challenge,
                 batch,
                 sync_sender.clone(),
             )
@@ -102,7 +101,7 @@ pub async fn sync_wallet(
             "Updating peak from peer to {} with header hash {}",
             height, header_hash
         );
-        db.insert_peak(height, header_hash).await?;
+        wallet.db.insert_peak(height, header_hash).await?;
     } else {
         warn!("No peak found");
     }
@@ -110,9 +109,9 @@ pub async fn sync_wallet(
     Ok(())
 }
 
-#[instrument(skip(db, peer, puzzle_hashes))]
+#[instrument(skip(wallet, peer, puzzle_hashes))]
 async fn sync_puzzle_hashes(
-    db: &Database,
+    wallet: &Wallet,
     peer: &Peer,
     start_height: Option<u32>,
     start_header_hash: Bytes32,
@@ -150,7 +149,7 @@ async fn sync_puzzle_hashes(
 
                 if !data.coin_states.is_empty() {
                     found_coins = true;
-                    update_coins(db, data.coin_states).await?;
+                    incremental_sync(wallet, data.coin_states, true).await?;
                     sync_sender.send(SyncEvent::CoinUpdate).await.ok();
                 }
 
@@ -180,8 +179,12 @@ async fn sync_puzzle_hashes(
     Ok(found_coins)
 }
 
-pub async fn update_coins(db: &Database, coin_states: Vec<CoinState>) -> Result<(), DatabaseError> {
-    let mut tx = db.tx().await?;
+pub async fn incremental_sync(
+    wallet: &Wallet,
+    coin_states: Vec<CoinState>,
+    derive_automatically: bool,
+) -> Result<(), WalletError> {
+    let mut tx = wallet.db.tx().await?;
 
     for coin_state in coin_states {
         let is_p2 = tx.is_p2_puzzle_hash(coin_state.coin.puzzle_hash).await?;
@@ -190,6 +193,22 @@ pub async fn update_coins(db: &Database, coin_states: Vec<CoinState>) -> Result<
 
         if is_p2 {
             tx.insert_p2_coin(coin_state.coin.coin_id()).await?;
+        }
+    }
+
+    if derive_automatically {
+        let max_index = tx
+            .max_used_derivation_index(false)
+            .await?
+            .map_or(0, |index| index + 1);
+        let mut next_index = tx.derivation_index(false).await?;
+
+        while next_index < max_index + 500 {
+            wallet
+                .insert_unhardened_derivations(&mut tx, next_index..next_index + 500)
+                .await?;
+
+            next_index += 500;
         }
     }
 

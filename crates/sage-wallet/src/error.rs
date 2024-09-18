@@ -27,8 +27,8 @@ pub enum WalletError {
     #[error("Driver error: {0}")]
     Driver(#[from] DriverError),
 
-    #[error("No keys have been derived")]
-    NoDerivations,
+    #[error("Not enough keys have been derived")]
+    InsufficientDerivations,
 
     #[error("Join error: {0}")]
     Join(#[from] JoinError),

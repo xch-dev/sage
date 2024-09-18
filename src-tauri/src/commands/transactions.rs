@@ -62,7 +62,7 @@ pub async fn send(
     };
 
     let coin_spends = wallet
-        .send_xch(puzzle_hash.into(), amount, fee, Vec::new())
+        .send_xch(puzzle_hash.into(), amount, fee, Vec::new(), false, true)
         .await?;
 
     transact(&state, &wallet, coin_spends).await?;
@@ -107,7 +107,60 @@ pub async fn combine(state: State<'_, AppState>, coin_ids: Vec<String>, fee: Amo
 
     tx.commit().await?;
 
-    let coin_spends = wallet.combine_xch(coins, fee).await?;
+    let coin_spends = wallet
+        .combine_xch(coins, fee, Vec::new(), false, true)
+        .await?;
+
+    transact(&state, &wallet, coin_spends).await?;
+
+    Ok(())
+}
+
+#[command]
+#[specta]
+pub async fn split(
+    state: State<'_, AppState>,
+    coin_ids: Vec<String>,
+    output_count: u32,
+    fee: Amount,
+) -> Result<()> {
+    let state = state.lock().await;
+    let wallet = state.wallet()?;
+
+    if !state.keychain.has_secret_key(wallet.fingerprint) {
+        return Err(Error::no_secret_key());
+    }
+
+    let Some(fee) = fee.to_mojos(state.unit.decimals) else {
+        return Err(Error::invalid_amount(&fee));
+    };
+
+    let coin_ids = coin_ids
+        .iter()
+        .map(|coin_id| Ok(hex::decode(coin_id)?.try_into()?))
+        .collect::<Result<Vec<Bytes32>>>()?;
+
+    let mut tx = wallet.db.tx().await?;
+
+    let mut coins = Vec::new();
+
+    for coin_id in coin_ids {
+        let Some(coin_state) = tx.coin_state(coin_id).await? else {
+            return Err(Error::unknown_coin_id());
+        };
+
+        if coin_state.spent_height.is_some() {
+            return Err(Error::already_spent(coin_id));
+        }
+
+        coins.push(coin_state.coin);
+    }
+
+    tx.commit().await?;
+
+    let coin_spends = wallet
+        .split_xch(&coins, output_count as usize, fee, Vec::new(), false, true)
+        .await?;
 
     transact(&state, &wallet, coin_spends).await?;
 

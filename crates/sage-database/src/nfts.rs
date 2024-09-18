@@ -171,7 +171,7 @@ async fn fetch_nfts(
             `metadata_hash`,
             `license_hash`
         FROM `nft_coins`
-        INNER JOIN `coin_states` AS cs INDEXED BY created_spent_coin ON `nft_coins`.`coin_id` = `cs`.`coin_id`
+        INNER JOIN `coin_states` AS cs INDEXED BY `coin_height` ON `nft_coins`.`coin_id` = `cs`.`coin_id`
         WHERE `cs`.`spent_height` IS NULL
         ORDER BY `created_height` DESC
         LIMIT ? OFFSET ?

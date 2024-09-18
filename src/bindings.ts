@@ -261,6 +261,14 @@ async combine(coinIds: string[], fee: Amount) : Promise<Result<null, Error>> {
     else return { status: "error", error: e  as any };
 }
 },
+async split(coinIds: string[], outputCount: number, fee: Amount) : Promise<Result<null, Error>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("split", { coinIds, outputCount, fee }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async getPeers() : Promise<Result<PeerRecord[], Error>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("get_peers") };
@@ -307,7 +315,7 @@ export type CatRecord = { asset_id: string; name: string | null; description: st
 export type CoinRecord = { coin_id: string; address: string; amount: Amount; created_height: number | null; spent_height: number | null }
 export type DidRecord = { encoded_id: string; launcher_id: string; coin_id: string; address: string }
 export type Error = { kind: ErrorKind; reason: string }
-export type ErrorKind = "Io" | "Database" | "Client" | "Keychain" | "Logging" | "Serialization" | "InvalidAddress" | "InvalidMnemonic" | "InvalidKey" | "InvalidAmount" | "InvalidAssetId" | "InvalidLauncherId" | "InsufficientFunds" | "TransactionFailed" | "UnknownNetwork" | "UnknownFingerprint" | "NotLoggedIn" | "Sync"
+export type ErrorKind = "Io" | "Database" | "Client" | "Keychain" | "Logging" | "Serialization" | "InvalidAddress" | "InvalidMnemonic" | "InvalidKey" | "InvalidAmount" | "InvalidAssetId" | "InvalidLauncherId" | "InsufficientFunds" | "TransactionFailed" | "UnknownNetwork" | "UnknownFingerprint" | "NotLoggedIn" | "Sync" | "Wallet"
 export type GetNfts = { offset: number; limit: number }
 export type GetNftsResponse = { items: NftRecord[]; total: number }
 export type Network = { default_port: number; ticker: string; address_prefix: string; precision: number; genesis_challenge: string; agg_sig_me: string; dns_introducers: string[] }
