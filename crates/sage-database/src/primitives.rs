@@ -1,5 +1,5 @@
 use chia::{
-    protocol::{Bytes32, CoinState, Program},
+    protocol::{Bytes32, Coin, CoinState, Program},
     puzzles::{LineageProof, Proof},
 };
 use chia_wallet_sdk::{Cat, Did, DidInfo};
@@ -14,10 +14,17 @@ use crate::{
 pub struct CatRow {
     pub asset_id: Bytes32,
     pub name: Option<String>,
-    pub description: Option<String>,
     pub ticker: Option<String>,
-    pub precision: u8,
+    pub description: Option<String>,
     pub icon_url: Option<String>,
+    pub visible: bool,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct CatCoin {
+    pub coin: Coin,
+    pub lineage_proof: LineageProof,
+    pub p2_puzzle_hash: Bytes32,
 }
 
 impl Database {
@@ -49,6 +56,10 @@ impl Database {
         asset_id: Bytes32,
     ) -> Result<()> {
         insert_cat_coin(&self.pool, coin_id, lineage_proof, p2_puzzle_hash, asset_id).await
+    }
+
+    pub async fn unspent_cat_coins(&self, asset_id: Bytes32) -> Result<Vec<CatCoin>> {
+        unspent_cat_coins(&self.pool, asset_id).await
     }
 
     pub async fn cat_coin(&self, coin_id: Bytes32) -> Result<Option<Cat>> {
@@ -157,18 +168,18 @@ async fn maybe_insert_cat(conn: impl SqliteExecutor<'_>, row: CatRow) -> Result<
         INSERT OR IGNORE INTO `cats` (
             `asset_id`,
             `name`,
-            `description`,
             `ticker`,
-            `precision`,
-            `icon_url`
+            `description`,
+            `icon_url`,
+            `visible`
         ) VALUES (?, ?, ?, ?, ?, ?)
         ",
         asset_id,
         row.name,
-        row.description,
         row.ticker,
-        row.precision,
-        row.icon_url
+        row.description,
+        row.icon_url,
+        row.visible,
     )
     .execute(conn)
     .await?;
@@ -183,18 +194,18 @@ async fn update_cat(conn: impl SqliteExecutor<'_>, row: CatRow) -> Result<()> {
         REPLACE INTO `cats` (
             `asset_id`,
             `name`,
-            `description`,
             `ticker`,
-            `precision`,
-            `icon_url`
+            `description`,
+            `icon_url`,
+            `visible`
         ) VALUES (?, ?, ?, ?, ?, ?)
         ",
         asset_id,
         row.name,
-        row.description,
         row.ticker,
-        row.precision,
-        row.icon_url
+        row.description,
+        row.icon_url,
+        row.visible
     )
     .execute(conn)
     .await?;
@@ -222,10 +233,10 @@ async fn cats(conn: impl SqliteExecutor<'_>) -> Result<Vec<CatRow>> {
         SELECT
             `asset_id`,
             `name`,
-            `description`,
             `ticker`,
-            `precision`,
-            `icon_url`
+            `description`,
+            `icon_url`,
+            `visible`
         FROM `cats`
         ORDER BY `name` ASC, `asset_id` ASC
         "
@@ -238,10 +249,10 @@ async fn cats(conn: impl SqliteExecutor<'_>) -> Result<Vec<CatRow>> {
             Ok(CatRow {
                 asset_id: to_bytes32(&row.asset_id)?,
                 name: row.name,
-                description: row.description,
                 ticker: row.ticker,
-                precision: row.precision.try_into()?,
+                description: row.description,
                 icon_url: row.icon_url,
+                visible: row.visible,
             })
         })
         .collect()
@@ -298,6 +309,41 @@ async fn insert_cat_coin(
     .await?;
 
     Ok(())
+}
+
+async fn unspent_cat_coins(
+    conn: impl SqliteExecutor<'_>,
+    asset_id: Bytes32,
+) -> Result<Vec<CatCoin>> {
+    let asset_id = asset_id.as_ref();
+
+    let rows = sqlx::query!(
+        "
+        SELECT
+            `parent_coin_id`, `puzzle_hash`, `amount`, `p2_puzzle_hash`,
+            `parent_parent_coin_id`, `parent_inner_puzzle_hash`, `parent_amount`
+        FROM `cat_coins`
+        INNER JOIN `coin_states` ON `cat_coins`.`coin_id` = `coin_states`.`coin_id`
+        WHERE `cat_coins`.`asset_id` = ? AND `coin_states`.`spent_height` IS NULL
+        ",
+        asset_id
+    )
+    .fetch_all(conn)
+    .await?;
+
+    rows.into_iter()
+        .map(|row| {
+            Ok(CatCoin {
+                coin: to_coin(&row.parent_coin_id, &row.puzzle_hash, &row.amount)?,
+                lineage_proof: to_lineage_proof(
+                    &row.parent_parent_coin_id,
+                    &row.parent_inner_puzzle_hash,
+                    &row.parent_amount,
+                )?,
+                p2_puzzle_hash: to_bytes32(&row.p2_puzzle_hash)?,
+            })
+        })
+        .collect()
 }
 
 async fn cat_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Option<Cat>> {

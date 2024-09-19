@@ -1,11 +1,17 @@
-use std::{collections::HashSet, mem, ops::Range};
+use std::{
+    collections::{HashMap, HashSet},
+    mem,
+    ops::Range,
+};
 
 use chia::{
     bls::{DerivableKey, PublicKey},
     protocol::{Bytes, Bytes32, Coin, CoinSpend},
     puzzles::{standard::StandardArgs, DeriveSynthetic},
 };
-use chia_wallet_sdk::{select_coins, Cat, Conditions, SpendContext, StandardLayer};
+use chia_wallet_sdk::{
+    select_coins, Cat, CatSpend, Conditions, SpendContext, SpendWithConditions, StandardLayer,
+};
 use sage_database::{Database, DatabaseTx};
 
 use crate::WalletError;
@@ -117,6 +123,36 @@ impl Wallet {
         Ok(select_coins(spendable_coins, amount)?)
     }
 
+    /// Selects one or more unspent CAT coins from the database.
+    async fn select_cat_coins(
+        &self,
+        asset_id: Bytes32,
+        amount: u128,
+    ) -> Result<Vec<Cat>, WalletError> {
+        let cat_coins = self.db.unspent_cat_coins(asset_id).await?;
+
+        let mut cats = HashMap::with_capacity(cat_coins.len());
+        let mut spendable_coins = Vec::with_capacity(cat_coins.len());
+
+        for cat in &cat_coins {
+            cats.insert(
+                cat.coin,
+                Cat {
+                    coin: cat.coin,
+                    lineage_proof: Some(cat.lineage_proof),
+                    asset_id,
+                    p2_puzzle_hash: cat.p2_puzzle_hash,
+                },
+            );
+            spendable_coins.push(cat.coin);
+        }
+
+        Ok(select_coins(spendable_coins, amount)?
+            .into_iter()
+            .map(|coin| cats[&coin])
+            .collect())
+    }
+
     /// Spends the given coins individually with the given conditions. No outputs are created automatically.
     async fn spend_p2_coins_separately(
         &self,
@@ -162,6 +198,34 @@ impl Wallet {
             }),
         )
         .await
+    }
+
+    /// Spends the CATs with the given conditions. No outputs are created automatically.
+    async fn spend_cat_coins(
+        &self,
+        ctx: &mut SpendContext,
+        cats: impl Iterator<Item = (Cat, Conditions)>,
+    ) -> Result<(), WalletError> {
+        let mut tx = self.db.tx().await?;
+        let mut cat_spends = Vec::new();
+
+        for (cat, conditions) in cats {
+            // We need to figure out what the synthetic public key is for this CAT coin.
+            let synthetic_key = tx.synthetic_key(cat.p2_puzzle_hash).await?;
+
+            // Create the standard p2 layer for the key.
+            let p2 = StandardLayer::new(synthetic_key);
+
+            // Spend the CAT with the given conditions.
+            cat_spends.push(CatSpend::new(
+                cat,
+                p2.spend_with_conditions(ctx, conditions)?,
+            ));
+        }
+
+        Cat::spend_all(ctx, &cat_spends)?;
+
+        Ok(())
     }
 
     /// Sends the given amount of XCH to the given puzzle hash, minus the fee.
@@ -214,7 +278,7 @@ impl Wallet {
             return Err(WalletError::InsufficientFunds);
         }
 
-        let change_puzzle_hash = self.p2_puzzle_hash(hardened, reuse).await?;
+        let p2_puzzle_hash = self.p2_puzzle_hash(hardened, reuse).await?;
 
         let change: u64 = (total - fee as u128)
             .try_into()
@@ -227,7 +291,7 @@ impl Wallet {
         }
 
         if change > 0 {
-            conditions = conditions.create_coin(change_puzzle_hash, change, memos.clone());
+            conditions = conditions.create_coin(p2_puzzle_hash, change, memos.clone());
         }
 
         let mut ctx = SpendContext::new();
@@ -422,5 +486,67 @@ impl Wallet {
         self.spend_p2_coins(&mut ctx, coins, conditions).await?;
 
         Ok((ctx.take(), eve.asset_id))
+    }
+
+    /// Sends the given amount of XCH to the given puzzle hash, minus the fee.
+    #[allow(clippy::too_many_arguments)]
+    pub async fn send_cat(
+        &self,
+        asset_id: Bytes32,
+        puzzle_hash: Bytes32,
+        amount: u64,
+        fee: u64,
+        memos: Vec<Bytes>,
+        hardened: bool,
+        reuse: bool,
+    ) -> Result<Vec<CoinSpend>, WalletError> {
+        let fee_coins = self.select_p2_coins(fee as u128).await?;
+        let fee_selected: u128 = fee_coins.iter().map(|coin| coin.amount as u128).sum();
+        let fee_change: u64 = (fee_selected - fee as u128)
+            .try_into()
+            .expect("fee change overflow");
+
+        let cats = self.select_cat_coins(asset_id, amount as u128).await?;
+        let cat_selected: u128 = cats.iter().map(|cat| cat.coin.amount as u128).sum();
+        let cat_change: u64 = (cat_selected - amount as u128)
+            .try_into()
+            .expect("change amount overflow");
+
+        let change_puzzle_hash = self.p2_puzzle_hash(hardened, reuse).await?;
+
+        let mut conditions = Conditions::new().assert_concurrent_spend(cats[0].coin.coin_id());
+
+        if fee > 0 {
+            conditions = conditions.reserve_fee(fee);
+        }
+
+        if fee_change > 0 {
+            conditions = conditions.create_coin(change_puzzle_hash, fee_change, Vec::new());
+        }
+
+        let mut ctx = SpendContext::new();
+
+        self.spend_p2_coins(&mut ctx, fee_coins, conditions).await?;
+
+        self.spend_cat_coins(
+            &mut ctx,
+            cats.into_iter().enumerate().map(|(i, cat)| {
+                if i != 0 {
+                    return (cat, Conditions::new());
+                }
+
+                let mut conditions =
+                    Conditions::new().create_coin(puzzle_hash, amount, memos.clone());
+
+                if cat_change > 0 {
+                    conditions = conditions.create_coin(change_puzzle_hash, cat_change, Vec::new());
+                }
+
+                (cat, conditions)
+            }),
+        )
+        .await?;
+
+        Ok(ctx.take())
     }
 }

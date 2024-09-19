@@ -110,9 +110,9 @@ CREATE INDEX `nft_uri_checked_hash` ON `nft_uris` (`checked`, `hash`);
 CREATE TABLE `cats` (
     `asset_id` BLOB NOT NULL PRIMARY KEY,
     `name` TEXT,
-    `description` TEXT,
     `ticker` TEXT,
-    `precision` INTEGER NOT NULL,
-    `icon_url` TEXT
+    `description` TEXT,
+    `icon_url` TEXT,
+    `visible` BOOLEAN NOT NULL
 );
 

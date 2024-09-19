@@ -138,10 +138,10 @@ pub async fn get_cats(state: State<'_, AppState>) -> Result<Vec<CatRecord>> {
             Ok(CatRecord {
                 asset_id: hex::encode(cat.asset_id),
                 name: cat.name,
-                description: cat.description,
                 ticker: cat.ticker,
-                precision: cat.precision,
+                description: cat.description,
                 icon_url: cat.icon_url,
+                visible: cat.visible,
             })
         })
         .collect()

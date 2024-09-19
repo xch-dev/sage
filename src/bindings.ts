@@ -277,6 +277,14 @@ async issueCat(name: string, amount: Amount, fee: Amount) : Promise<Result<null,
     else return { status: "error", error: e  as any };
 }
 },
+async sendCat(assetId: string, address: string, amount: Amount, fee: Amount) : Promise<Result<null, Error>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("send_cat", { assetId, address, amount, fee }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async getPeers() : Promise<Result<PeerRecord[], Error>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("get_peers") };
@@ -319,7 +327,7 @@ syncEvent: "sync-event"
 /** user-defined types **/
 
 export type Amount = string
-export type CatRecord = { asset_id: string; name: string | null; description: string | null; ticker: string | null; precision: number; icon_url: string | null }
+export type CatRecord = { asset_id: string; name: string | null; ticker: string | null; description: string | null; icon_url: string | null; visible: boolean }
 export type CoinRecord = { coin_id: string; address: string; amount: Amount; created_height: number | null; spent_height: number | null }
 export type DidRecord = { encoded_id: string; launcher_id: string; coin_id: string; address: string }
 export type Error = { kind: ErrorKind; reason: string }

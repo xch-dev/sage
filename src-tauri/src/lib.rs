@@ -59,6 +59,7 @@ pub fn run() {
             commands::combine,
             commands::split,
             commands::issue_cat,
+            commands::send_cat,
             // Peers
             commands::get_peers,
             commands::add_peer,

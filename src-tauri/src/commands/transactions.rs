@@ -200,12 +200,60 @@ pub async fn issue_cat(
         .maybe_insert_cat(CatRow {
             asset_id,
             name: Some(name),
-            description: None,
             ticker: None,
-            precision: 3,
+            description: None,
             icon_url: None,
+            visible: true,
         })
         .await?;
+
+    Ok(())
+}
+
+#[command]
+#[specta]
+pub async fn send_cat(
+    state: State<'_, AppState>,
+    asset_id: String,
+    address: String,
+    amount: Amount,
+    fee: Amount,
+) -> Result<()> {
+    let state = state.lock().await;
+    let wallet = state.wallet()?;
+
+    if !state.keychain.has_secret_key(wallet.fingerprint) {
+        return Err(Error::no_secret_key());
+    }
+
+    let asset_id: Bytes32 = hex::decode(asset_id)?.try_into()?;
+
+    let (puzzle_hash, prefix) = decode_address(&address)?;
+    if prefix != state.network().address_prefix {
+        return Err(Error::invalid_prefix(&prefix));
+    }
+
+    let Some(amount) = amount.to_mojos(3) else {
+        return Err(Error::invalid_amount(&amount));
+    };
+
+    let Some(fee) = fee.to_mojos(state.unit.decimals) else {
+        return Err(Error::invalid_amount(&fee));
+    };
+
+    let coin_spends = wallet
+        .send_cat(
+            asset_id,
+            puzzle_hash.into(),
+            amount,
+            fee,
+            Vec::new(),
+            false,
+            true,
+        )
+        .await?;
+
+    transact(&state, &wallet, coin_spends).await?;
 
     Ok(())
 }

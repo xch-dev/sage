@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n        SELECT\n            `asset_id`,\n            `name`,\n            `description`,\n            `ticker`,\n            `precision`,\n            `icon_url`\n        FROM `cats`\n        ORDER BY `name` ASC, `asset_id` ASC\n        ",
+  "query": "\n        SELECT\n            `asset_id`,\n            `name`,\n            `ticker`,\n            `description`,\n            `icon_url`,\n            `visible`\n        FROM `cats`\n        ORDER BY `name` ASC, `asset_id` ASC\n        ",
   "describe": {
     "columns": [
       {
@@ -14,24 +14,24 @@
         "type_info": "Text"
       },
       {
-        "name": "description",
+        "name": "ticker",
         "ordinal": 2,
         "type_info": "Text"
       },
       {
-        "name": "ticker",
+        "name": "description",
         "ordinal": 3,
         "type_info": "Text"
       },
       {
-        "name": "precision",
+        "name": "icon_url",
         "ordinal": 4,
-        "type_info": "Integer"
+        "type_info": "Text"
       },
       {
-        "name": "icon_url",
+        "name": "visible",
         "ordinal": 5,
-        "type_info": "Text"
+        "type_info": "Bool"
       }
     ],
     "parameters": {
@@ -42,9 +42,9 @@
       true,
       true,
       true,
-      false,
-      true
+      true,
+      false
     ]
   },
-  "hash": "c964a8f9a763a257362f8d5d2f4238c4ad66d666a94bd17aacc5332d24cabfa2"
+  "hash": "b9a57ebb3e57678d69b47459e6b970e3cec6ccea097c7e3eafaf4da244e79ce0"
 }

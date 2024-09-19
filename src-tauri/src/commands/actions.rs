@@ -40,8 +40,8 @@ pub async fn update_cat_info(state: State<'_, AppState>, record: CatRecord) -> R
             name: record.name,
             description: record.description,
             ticker: record.ticker,
-            precision: record.precision,
             icon_url: record.icon_url,
+            visible: record.visible,
         })
         .await?;
 

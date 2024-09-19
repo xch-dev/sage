@@ -95,7 +95,7 @@ async fn insert_derivation(
     let synthetic_key_ref = synthetic_key.as_ref();
     sqlx::query!(
         "
-        INSERT INTO `derivations` (`p2_puzzle_hash`, `index`, `hardened`, `synthetic_key`)
+        INSERT OR IGNORE INTO `derivations` (`p2_puzzle_hash`, `index`, `hardened`, `synthetic_key`)
         VALUES (?, ?, ?, ?)
         ",
         p2_puzzle_hash,

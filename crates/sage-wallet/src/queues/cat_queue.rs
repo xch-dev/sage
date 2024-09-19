@@ -85,7 +85,7 @@ impl CatQueue {
                 ticker: response.data.symbol,
                 description: response.data.description,
                 icon_url: response.data.preview_url,
-                precision: 3,
+                visible: true,
             })
             .await?;
 

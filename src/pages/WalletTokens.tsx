@@ -1,4 +1,4 @@
-import { Edit, MoreVert, Refresh } from '@mui/icons-material';
+import { Edit, MoreVert, Refresh, VisibilityOff } from '@mui/icons-material';
 import {
   Avatar,
   Box,
@@ -54,6 +54,7 @@ export function WalletTokens() {
   return (
     <Box display='flex' flexDirection='column' gap={1.5}>
       {cats
+        .filter((cat) => cat.visible)
         .sort((a, b) => {
           if (a.name && b.name) {
             return a.name.localeCompare(b.name);
@@ -127,6 +128,18 @@ function Token(props: TokenProps) {
     setEditOpen(false);
   };
 
+  const hide = () => {
+    props.cat.visible = false;
+
+    commands.updateCatInfo(props.cat).then((res) => {
+      if (res.status === 'ok') {
+        props.updateCats();
+      }
+    });
+
+    handleClose();
+  };
+
   return (
     <Paper>
       <ListItem
@@ -167,6 +180,13 @@ function Token(props: TokenProps) {
                   <Refresh fontSize='small' />
                 </ListItemIcon>
                 <ListItemText>Redownload</ListItemText>
+              </MenuItem>
+
+              <MenuItem onClick={hide}>
+                <ListItemIcon>
+                  <VisibilityOff fontSize='small' />
+                </ListItemIcon>
+                <ListItemText>Hide</ListItemText>
               </MenuItem>
             </Menu>
           </Box>
