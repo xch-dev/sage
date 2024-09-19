@@ -5,7 +5,7 @@ use chia::{
     protocol::{Bytes, Bytes32, Coin, CoinSpend},
     puzzles::{standard::StandardArgs, DeriveSynthetic},
 };
-use chia_wallet_sdk::{select_coins, Conditions, SpendContext, StandardLayer};
+use chia_wallet_sdk::{select_coins, Cat, Conditions, SpendContext, StandardLayer};
 use sage_database::{Database, DatabaseTx};
 
 use crate::WalletError;
@@ -112,17 +112,17 @@ impl Wallet {
     }
 
     /// Selects one or more unspent p2 coins from the database.
-    pub async fn select_p2_coins(&self, amount: u128) -> Result<Vec<Coin>, WalletError> {
+    async fn select_p2_coins(&self, amount: u128) -> Result<Vec<Coin>, WalletError> {
         let spendable_coins = self.db.unspent_p2_coins().await?;
         Ok(select_coins(spendable_coins, amount)?)
     }
 
     /// Spends the given coins individually with the given conditions. No outputs are created automatically.
-    pub async fn spend_p2_coins_separately(
+    async fn spend_p2_coins_separately(
         &self,
+        ctx: &mut SpendContext,
         coins: impl Iterator<Item = (Coin, Conditions)>,
-    ) -> Result<Vec<CoinSpend>, WalletError> {
-        let mut ctx = SpendContext::new();
+    ) -> Result<(), WalletError> {
         let mut tx = self.db.tx().await?;
 
         for (coin, conditions) in coins {
@@ -133,30 +133,34 @@ impl Wallet {
             let p2 = StandardLayer::new(synthetic_key);
 
             // Spend the coin with the given conditions.
-            p2.spend(&mut ctx, coin, conditions)?;
+            p2.spend(ctx, coin, conditions)?;
         }
 
-        Ok(ctx.take())
+        Ok(())
     }
 
     /// Spends the coins with the first coin producing all of the output conditions.
     /// The other coins assert that the first coin is spent within the transaction.
     /// This prevents the first coin from being removed from the transaction to steal the funds.
-    pub async fn spend_p2_coins(
+    async fn spend_p2_coins(
         &self,
+        ctx: &mut SpendContext,
         coins: Vec<Coin>,
         mut conditions: Conditions,
-    ) -> Result<Vec<CoinSpend>, WalletError> {
+    ) -> Result<(), WalletError> {
         let first_coin_id = coins[0].coin_id();
 
-        self.spend_p2_coins_separately(coins.into_iter().enumerate().map(|(i, coin)| {
-            let conditions = if i == 0 {
-                mem::take(&mut conditions)
-            } else {
-                Conditions::new().assert_concurrent_spend(first_coin_id)
-            };
-            (coin, conditions)
-        }))
+        self.spend_p2_coins_separately(
+            ctx,
+            coins.into_iter().enumerate().map(|(i, coin)| {
+                let conditions = if i == 0 {
+                    mem::take(&mut conditions)
+                } else {
+                    Conditions::new().assert_concurrent_spend(first_coin_id)
+                };
+                (coin, conditions)
+            }),
+        )
         .await
     }
 
@@ -190,7 +194,9 @@ impl Wallet {
             conditions = conditions.create_coin(change_puzzle_hash, change, Vec::new());
         }
 
-        self.spend_p2_coins(coins, conditions).await
+        let mut ctx = SpendContext::new();
+        self.spend_p2_coins(&mut ctx, coins, conditions).await?;
+        Ok(ctx.take())
     }
 
     /// Combines multiple p2 coins into a single coin, with the given fee subtracted from the output.
@@ -224,7 +230,9 @@ impl Wallet {
             conditions = conditions.create_coin(change_puzzle_hash, change, memos.clone());
         }
 
-        self.spend_p2_coins(coins, conditions).await
+        let mut ctx = SpendContext::new();
+        self.spend_p2_coins(&mut ctx, coins, conditions).await?;
+        Ok(ctx.take())
     }
 
     /// Splits the given coins into multiple new coins, with the given fee subtracted from the output.
@@ -260,41 +268,48 @@ impl Wallet {
             .p2_puzzle_hashes(derivations_needed, hardened, reuse)
             .await?;
 
-        self.spend_p2_coins_separately(coins.iter().enumerate().map(|(i, coin)| {
-            let mut conditions = Conditions::new();
+        let mut ctx = SpendContext::new();
 
-            if i == 0 && fee > 0 {
-                conditions = conditions.reserve_fee(fee);
-            }
+        self.spend_p2_coins_separately(
+            &mut ctx,
+            coins.iter().enumerate().map(|(i, coin)| {
+                let mut conditions = Conditions::new();
 
-            if coins.len() > 1 {
-                if i == coins.len() - 1 {
-                    conditions = conditions.assert_concurrent_spend(coins[0].coin_id());
-                } else {
-                    conditions = conditions.assert_concurrent_spend(coins[i + 1].coin_id());
-                }
-            }
-
-            for &derivation in &derivations {
-                if remaining_count == 0 {
-                    break;
+                if i == 0 && fee > 0 {
+                    conditions = conditions.reserve_fee(fee);
                 }
 
-                let amount: u64 = (max_individual_amount as u128)
-                    .min(remaining_amount)
-                    .try_into()
-                    .expect("output amount overflow");
+                if coins.len() > 1 {
+                    if i == coins.len() - 1 {
+                        conditions = conditions.assert_concurrent_spend(coins[0].coin_id());
+                    } else {
+                        conditions = conditions.assert_concurrent_spend(coins[i + 1].coin_id());
+                    }
+                }
 
-                remaining_amount -= amount as u128;
+                for &derivation in &derivations {
+                    if remaining_count == 0 {
+                        break;
+                    }
 
-                conditions = conditions.create_coin(derivation, amount, memos.clone());
+                    let amount: u64 = (max_individual_amount as u128)
+                        .min(remaining_amount)
+                        .try_into()
+                        .expect("output amount overflow");
 
-                remaining_count -= 1;
-            }
+                    remaining_amount -= amount as u128;
 
-            (*coin, conditions)
-        }))
-        .await
+                    conditions = conditions.create_coin(derivation, amount, memos.clone());
+
+                    remaining_count -= 1;
+                }
+
+                (*coin, conditions)
+            }),
+        )
+        .await?;
+
+        Ok(ctx.take())
     }
 
     /// Creates a transaction that transfers the given coins to the given puzzle hash, minus the fee as needed.
@@ -311,48 +326,101 @@ impl Wallet {
             .into_iter()
             .collect();
 
-        self.spend_p2_coins_separately(coins.iter().enumerate().map(|(i, coin)| {
-            let conditions = if fee > 0 && fee_coins.contains(coin) {
-                // Consume as much as possible from the fee.
-                let consumed = fee.min(coin.amount);
-                fee -= consumed;
+        let mut ctx = SpendContext::new();
 
-                // If there is excess amount in this coin after the fee is paid, create a new output.
-                if consumed < coin.amount {
-                    Conditions::new().create_coin(
-                        puzzle_hash,
-                        coin.amount - consumed,
-                        memos.clone(),
-                    )
+        self.spend_p2_coins_separately(
+            &mut ctx,
+            coins.iter().enumerate().map(|(i, coin)| {
+                let conditions = if fee > 0 && fee_coins.contains(coin) {
+                    // Consume as much as possible from the fee.
+                    let consumed = fee.min(coin.amount);
+                    fee -= consumed;
+
+                    // If there is excess amount in this coin after the fee is paid, create a new output.
+                    if consumed < coin.amount {
+                        Conditions::new().create_coin(
+                            puzzle_hash,
+                            coin.amount - consumed,
+                            memos.clone(),
+                        )
+                    } else {
+                        Conditions::new()
+                    }
                 } else {
-                    Conditions::new()
-                }
-            } else {
-                // Otherwise, just create a new output coin at the given puzzle hash.
-                Conditions::new().create_coin(puzzle_hash, coin.amount, memos.clone())
-            };
+                    // Otherwise, just create a new output coin at the given puzzle hash.
+                    Conditions::new().create_coin(puzzle_hash, coin.amount, memos.clone())
+                };
 
-            // Ensure that there is a ring of assertions for all of the coins.
-            // This prevents any of them from being removed from the transaction later.
-            let conditions = if coins.len() > 1 {
-                if i == coins.len() - 1 {
-                    conditions.assert_concurrent_spend(coins[0].coin_id())
+                // Ensure that there is a ring of assertions for all of the coins.
+                // This prevents any of them from being removed from the transaction later.
+                let conditions = if coins.len() > 1 {
+                    if i == coins.len() - 1 {
+                        conditions.assert_concurrent_spend(coins[0].coin_id())
+                    } else {
+                        conditions.assert_concurrent_spend(coins[i + 1].coin_id())
+                    }
                 } else {
-                    conditions.assert_concurrent_spend(coins[i + 1].coin_id())
-                }
-            } else {
-                conditions
-            };
+                    conditions
+                };
 
-            // The fee is reserved by one coin, even though it can come from multiple coins.
-            let conditions = if i == 0 {
-                conditions.reserve_fee(fee)
-            } else {
-                conditions
-            };
+                // The fee is reserved by one coin, even though it can come from multiple coins.
+                let conditions = if i == 0 {
+                    conditions.reserve_fee(fee)
+                } else {
+                    conditions
+                };
 
-            (*coin, conditions)
-        }))
-        .await
+                (*coin, conditions)
+            }),
+        )
+        .await?;
+
+        Ok(ctx.take())
+    }
+
+    pub async fn issue_cat(
+        &self,
+        amount: u64,
+        fee: u64,
+        multi_issuance_key: Option<PublicKey>,
+        hardened: bool,
+        reuse: bool,
+    ) -> Result<(Vec<CoinSpend>, Bytes32), WalletError> {
+        let total_amount = amount as u128 + fee as u128;
+        let coins = self.select_p2_coins(total_amount).await?;
+        let selected: u128 = coins.iter().map(|coin| coin.amount as u128).sum();
+
+        let change: u64 = (selected - total_amount)
+            .try_into()
+            .expect("change amount overflow");
+
+        let p2_puzzle_hash = self.p2_puzzle_hash(hardened, reuse).await?;
+
+        let mut ctx = SpendContext::new();
+
+        let eve_conditions = Conditions::new().create_coin(
+            p2_puzzle_hash,
+            amount,
+            vec![p2_puzzle_hash.to_vec().into()],
+        );
+
+        let (mut conditions, eve) = match multi_issuance_key {
+            Some(pk) => {
+                Cat::multi_issuance_eve(&mut ctx, coins[0].coin_id(), pk, amount, eve_conditions)?
+            }
+            None => Cat::single_issuance_eve(&mut ctx, coins[0].coin_id(), amount, eve_conditions)?,
+        };
+
+        if fee > 0 {
+            conditions = conditions.reserve_fee(fee);
+        }
+
+        if change > 0 {
+            conditions = conditions.create_coin(p2_puzzle_hash, change, Vec::new());
+        }
+
+        self.spend_p2_coins(&mut ctx, coins, conditions).await?;
+
+        Ok((ctx.take(), eve.asset_id))
     }
 }

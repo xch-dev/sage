@@ -16,6 +16,7 @@ import { commands } from './bindings';
 import Container from './components/Container';
 import CreateWallet from './pages/CreateWallet';
 import ImportWallet from './pages/ImportWallet';
+import IssueCat from './pages/IssueCat';
 import Login from './pages/Login';
 import NetworkList from './pages/NetworkList';
 import Nft from './pages/Nft';
@@ -54,6 +55,7 @@ const router = createHashRouter(
         <Route path='token/:asset_id' element={<Token />} />
         <Route path='nft/:launcher_id' element={<Nft />} />
       </Route>
+      <Route path='/issue-cat' element={<IssueCat />} />
       <Route path='/send' element={<Send />} />
       <Route path='/receive' element={<Receive />} />
       <Route path='/settings' element={<Settings />} />

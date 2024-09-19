@@ -19,11 +19,21 @@ impl Amount {
 
     pub fn to_mojos_u128(&self, decimals: u8) -> Option<u128> {
         let mojos = &self.0 * 10u64.pow(decimals.into());
+
+        if mojos.normalized().fractional_digit_count() > 0 {
+            return None;
+        }
+
         mojos.to_u128()
     }
 
     pub fn to_mojos(&self, decimals: u8) -> Option<u64> {
         let mojos = &self.0 * 10u64.pow(decimals.into());
+
+        if mojos.normalized().fractional_digit_count() > 0 {
+            return None;
+        }
+
         mojos.to_u64()
     }
 }

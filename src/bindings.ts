@@ -269,6 +269,14 @@ async split(coinIds: string[], outputCount: number, fee: Amount) : Promise<Resul
     else return { status: "error", error: e  as any };
 }
 },
+async issueCat(name: string, amount: Amount, fee: Amount) : Promise<Result<null, Error>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("issue_cat", { name, amount, fee }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async getPeers() : Promise<Result<PeerRecord[], Error>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("get_peers") };

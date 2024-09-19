@@ -65,7 +65,13 @@ export default function NavBar(props: NavBarProps) {
 
   if (wallet) {
     items.push(
-      <MenuItem key='issue_cat'>
+      <MenuItem
+        key='issue_cat'
+        onClick={() => {
+          navigate('/issue-cat');
+          closeMenu();
+        }}
+      >
         <ListItemIcon>
           <Paid fontSize='small' />
         </ListItemIcon>
