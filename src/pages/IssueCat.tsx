@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { commands } from '../bindings';
+import { commands, Error } from '../bindings';
 import Container from '../components/Container';
+import ErrorDialog from '../components/ErrorDialog';
 import Form, { FormValue } from '../components/Form';
 import NavBar from '../components/NavBar';
 import { useWalletState } from '../state';
@@ -16,11 +17,13 @@ export default function IssueCat() {
     fee: '',
     multiIssuance: false,
   });
+  const [error, setError] = useState<Error | null>(null);
 
   const issue = () => {
     commands.issueCat(values.name, values.amount, values.fee).then((result) => {
       if (result.status === 'error') {
         console.error(result.error);
+        setError(result.error);
         return;
       }
 
@@ -60,6 +63,8 @@ export default function IssueCat() {
           onSubmit={issue}
         />
       </Container>
+
+      <ErrorDialog error={error} setError={setError} />
     </>
   );
 }

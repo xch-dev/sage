@@ -82,13 +82,16 @@ export default function Form({
               valid =
                 !amount.isNaN() &&
                 amount.isGreaterThanOrEqualTo(0) &&
-                amount.isFinite() &&
-                amount.isLessThanOrEqualTo(BigNumber('18446744073709551615'));
+                amount.isFinite();
 
               const amountMojos = amount.multipliedBy(
                 BigNumber(10).pow(field.unit.decimals),
               );
-              valid &&= amountMojos.decimalPlaces() === 0;
+              valid &&=
+                amountMojos.decimalPlaces() === 0 &&
+                amountMojos.isLessThanOrEqualTo(
+                  BigNumber('18446744073709551615'),
+                );
             }
 
             if (!valid) {
@@ -97,6 +100,7 @@ export default function Form({
 
             return (
               <TextField
+                key={field.id}
                 sx={{ mt: first ? 0 : 2 }}
                 inputRef={inputRef}
                 label={field.label}
@@ -120,6 +124,7 @@ export default function Form({
           case 'option': {
             return (
               <FormControlLabel
+                key={field.id}
                 sx={{ mt: first ? 0 : 2 }}
                 autoFocus={first}
                 control={

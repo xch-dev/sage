@@ -149,6 +149,31 @@ pub async fn get_cats(state: State<'_, AppState>) -> Result<Vec<CatRecord>> {
 
 #[command]
 #[specta]
+pub async fn get_cat(state: State<'_, AppState>, asset_id: String) -> Result<Option<CatRecord>> {
+    let state = state.lock().await;
+    let wallet = state.wallet()?;
+
+    let asset_id: [u8; 32] = hex::decode(asset_id)?
+        .try_into()
+        .map_err(|_| Error::invalid_asset_id())?;
+
+    let cat = wallet.db.cat(asset_id.into()).await?;
+
+    cat.map(|cat| {
+        Ok(CatRecord {
+            asset_id: hex::encode(cat.asset_id),
+            name: cat.name,
+            ticker: cat.ticker,
+            description: cat.description,
+            icon_url: cat.icon_url,
+            visible: cat.visible,
+        })
+    })
+    .transpose()
+}
+
+#[command]
+#[specta]
 pub async fn get_dids(state: State<'_, AppState>) -> Result<Vec<DidRecord>> {
     let state = state.lock().await;
     let wallet = state.wallet()?;

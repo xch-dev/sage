@@ -44,6 +44,10 @@ impl Database {
         cats(&self.pool).await
     }
 
+    pub async fn cat(&self, asset_id: Bytes32) -> Result<Option<CatRow>> {
+        cat(&self.pool, asset_id).await
+    }
+
     pub async fn unidentified_cat(&self) -> Result<Option<Bytes32>> {
         unidentified_cat(&self.pool).await
     }
@@ -256,6 +260,39 @@ async fn cats(conn: impl SqliteExecutor<'_>) -> Result<Vec<CatRow>> {
             })
         })
         .collect()
+}
+
+async fn cat(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<Option<CatRow>> {
+    let asset_id = asset_id.as_ref();
+
+    let row = sqlx::query!(
+        "
+        SELECT
+            `asset_id`,
+            `name`,
+            `ticker`,
+            `description`,
+            `icon_url`,
+            `visible`
+        FROM `cats`
+        WHERE `asset_id` = ?
+        ",
+        asset_id
+    )
+    .fetch_optional(conn)
+    .await?;
+
+    row.map(|row| {
+        Ok(CatRow {
+            asset_id: to_bytes32(&row.asset_id)?,
+            name: row.name,
+            ticker: row.ticker,
+            description: row.description,
+            icon_url: row.icon_url,
+            visible: row.visible,
+        })
+    })
+    .transpose()
 }
 
 async fn unidentified_cat(conn: impl SqliteExecutor<'_>) -> Result<Option<Bytes32>> {

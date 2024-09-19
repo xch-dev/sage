@@ -23,6 +23,7 @@ import Nft from './pages/Nft';
 import PeerList from './pages/PeerList';
 import Receive from './pages/Receive';
 import Send from './pages/Send';
+import SendCat from './pages/SendCat';
 import Settings from './pages/Settings';
 import Token from './pages/Token';
 import { MainWallet } from './pages/WalletMain';
@@ -57,6 +58,7 @@ const router = createHashRouter(
       </Route>
       <Route path='/issue-cat' element={<IssueCat />} />
       <Route path='/send' element={<Send />} />
+      <Route path='/send-cat/:asset_id' element={<SendCat />} />
       <Route path='/receive' element={<Receive />} />
       <Route path='/settings' element={<Settings />} />
       <Route path='/networks' element={<NetworkList />} />

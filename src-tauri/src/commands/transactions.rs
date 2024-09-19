@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, time::Duration};
 
 use chia::{
     bls::{
@@ -17,7 +17,7 @@ use sage_database::CatRow;
 use sage_wallet::Wallet;
 use specta::specta;
 use tauri::{command, State};
-use tokio::sync::MutexGuard;
+use tokio::{sync::MutexGuard, time::timeout};
 
 use crate::{
     app_state::{AppState, AppStateInner},
@@ -242,15 +242,7 @@ pub async fn send_cat(
     };
 
     let coin_spends = wallet
-        .send_cat(
-            asset_id,
-            puzzle_hash.into(),
-            amount,
-            fee,
-            Vec::new(),
-            false,
-            true,
-        )
+        .send_cat(asset_id, puzzle_hash.into(), amount, fee, false, true)
         .await?;
 
     transact(&state, &wallet, coin_spends).await?;
@@ -328,7 +320,22 @@ async fn transact(
     );
 
     for peer in peers {
-        let ack = peer.send_transaction(spend_bundle.clone()).await?;
+        let ack = match timeout(
+            Duration::from_secs(3),
+            peer.send_transaction(spend_bundle.clone()),
+        )
+        .await
+        {
+            Ok(Ok(ack)) => ack,
+            Err(_timeout) => {
+                log::warn!("Transaction timed out for {}", peer.socket_addr());
+                continue;
+            }
+            Ok(Err(err)) => {
+                log::warn!("Transaction failed for {}: {}", peer.socket_addr(), err);
+                continue;
+            }
+        };
 
         log::info!(
             "Transaction sent to {} with ack {:?}",

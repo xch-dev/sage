@@ -74,6 +74,7 @@ async fn insert_coin_state(
     let puzzle_hash = coin_state.coin.puzzle_hash.as_ref();
     let amount = coin_state.coin.amount.to_be_bytes();
     let amount_ref = amount.as_ref();
+
     sqlx::query!(
         "
         REPLACE INTO `coin_states` (

@@ -1,12 +1,13 @@
-import { Box } from '@mui/material';
+import { Box, Button } from '@mui/material';
 import { GridRowSelectionModel } from '@mui/x-data-grid';
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { CoinRecord, commands, events } from '../bindings';
 import CoinList from '../components/CoinList';
 import ListContainer from '../components/ListContainer';
 
 export default function Token() {
+  const navigate = useNavigate();
   const { asset_id: assetId } = useParams();
 
   const [coins, setCoins] = useState<CoinRecord[]>([]);
@@ -40,6 +41,25 @@ export default function Token() {
   return (
     <>
       <ListContainer>
+        <Box display='flex' gap={2} mt={2}>
+          <Button
+            variant='outlined'
+            size='large'
+            sx={{ flexGrow: 1 }}
+            onClick={() => navigate('/send-cat/' + assetId)}
+          >
+            Send
+          </Button>
+          <Button
+            variant='outlined'
+            size='large'
+            sx={{ flexGrow: 1 }}
+            onClick={() => navigate('/receive')}
+          >
+            Receive
+          </Button>
+        </Box>
+
         <Box height={350} position='relative' mt={2}>
           <CoinList
             coins={coins}

@@ -207,6 +207,18 @@ impl SyncManager {
                 let message =
                     CoinStateUpdate::from_bytes(&message.data).map_err(ClientError::from)?;
                 if let Some(wallet) = self.wallet.as_ref() {
+                    let unspent_count = message
+                        .items
+                        .iter()
+                        .filter(|item| item.spent_height.is_none())
+                        .count();
+
+                    let spent_count = message
+                        .items
+                        .iter()
+                        .filter(|item| item.spent_height.is_some())
+                        .count();
+
                     incremental_sync(wallet, message.items, true).await?;
 
                     wallet
@@ -215,7 +227,8 @@ impl SyncManager {
                         .await?;
 
                     info!(
-                        "Received updates and synced to peak {} with header hash {}",
+                        "Received {} unspent coins, {} spent coins, and synced to peak {} with header hash {}",
+                        unspent_count, spent_count,
                         message.height, message.peak_hash
                     );
 

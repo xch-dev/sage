@@ -489,14 +489,12 @@ impl Wallet {
     }
 
     /// Sends the given amount of XCH to the given puzzle hash, minus the fee.
-    #[allow(clippy::too_many_arguments)]
     pub async fn send_cat(
         &self,
         asset_id: Bytes32,
         puzzle_hash: Bytes32,
         amount: u64,
         fee: u64,
-        memos: Vec<Bytes>,
         hardened: bool,
         reuse: bool,
     ) -> Result<Vec<CoinSpend>, WalletError> {
@@ -536,10 +534,14 @@ impl Wallet {
                 }
 
                 let mut conditions =
-                    Conditions::new().create_coin(puzzle_hash, amount, memos.clone());
+                    Conditions::new().create_coin(puzzle_hash, amount, vec![puzzle_hash.into()]);
 
                 if cat_change > 0 {
-                    conditions = conditions.create_coin(change_puzzle_hash, cat_change, Vec::new());
+                    conditions = conditions.create_coin(
+                        change_puzzle_hash,
+                        cat_change,
+                        vec![change_puzzle_hash.into()],
+                    );
                 }
 
                 (cat, conditions)
