@@ -51,12 +51,16 @@ jobs:
       - name: Install
         run: pnpm install
 
-      - name: Bundle
-        run: CI=true pnpm tauri build
-
-      - uses: actions/upload-artifact@v4
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          CI: true
         with:
-          name: macos
-          path: |
-            ./target/aarch64-apple-darwin/release/bundle/macos/*.app
-            ./target/aarch64-apple-darwin/release/bundle/dmg/*.dmg
+          tagName: app-v__VERSION__ # the action automatically replaces \_\_VERSION\_\_ with the app version.
+          releaseName: 'App v__VERSION__'
+          releaseBody: 'See the assets to download this version and install.'
+          releaseDraft: true
+          prerelease: false
+          args: ${{ matrix.args }}
