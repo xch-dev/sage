@@ -133,18 +133,23 @@ pub async fn get_cats(state: State<'_, AppState>) -> Result<Vec<CatRecord>> {
     let wallet = state.wallet()?;
     let cats = wallet.db.cats().await?;
 
-    cats.into_iter()
-        .map(|cat| {
-            Ok(CatRecord {
-                asset_id: hex::encode(cat.asset_id),
-                name: cat.name,
-                ticker: cat.ticker,
-                description: cat.description,
-                icon_url: cat.icon_url,
-                visible: cat.visible,
-            })
-        })
-        .collect()
+    let mut records = Vec::with_capacity(cats.len());
+
+    for cat in cats {
+        let balance = wallet.db.cat_balance(cat.asset_id).await?;
+
+        records.push(CatRecord {
+            asset_id: hex::encode(cat.asset_id),
+            name: cat.name,
+            ticker: cat.ticker,
+            description: cat.description,
+            icon_url: cat.icon_url,
+            visible: cat.visible,
+            balance: Amount::from_mojos(balance, 3),
+        });
+    }
+
+    Ok(records)
 }
 
 #[command]
@@ -158,6 +163,7 @@ pub async fn get_cat(state: State<'_, AppState>, asset_id: String) -> Result<Opt
         .map_err(|_| Error::invalid_asset_id())?;
 
     let cat = wallet.db.cat(asset_id.into()).await?;
+    let balance = wallet.db.cat_balance(asset_id.into()).await?;
 
     cat.map(|cat| {
         Ok(CatRecord {
@@ -167,6 +173,7 @@ pub async fn get_cat(state: State<'_, AppState>, asset_id: String) -> Result<Opt
             description: cat.description,
             icon_url: cat.icon_url,
             visible: cat.visible,
+            balance: Amount::from_mojos(balance, 3),
         })
     })
     .transpose()

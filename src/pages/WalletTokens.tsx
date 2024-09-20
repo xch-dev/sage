@@ -206,7 +206,7 @@ function Token(props: TokenProps) {
             )}
           </ListItemAvatar>
           <ListItemText
-            primary={props.cat.name ?? 'Unknown CAT'}
+            primary={`${props.cat.name ?? 'Unknown CAT'} - ${props.cat.balance} ${props.cat.ticker ?? ''}`}
             secondary={
               <Typography
                 sx={{ display: 'inline' }}

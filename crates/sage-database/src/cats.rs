@@ -6,7 +6,8 @@ use chia_wallet_sdk::Cat;
 use sqlx::SqliteExecutor;
 
 use crate::{
-    error::Result, to_bytes32, to_coin, to_coin_state, to_lineage_proof, Database, DatabaseTx,
+    error::Result, to_bytes, to_bytes32, to_coin, to_coin_state, to_lineage_proof, Database,
+    DatabaseTx,
 };
 
 #[derive(Debug, Clone)]
@@ -71,6 +72,10 @@ impl Database {
 
     pub async fn cat_coin_states(&self, asset_id: Bytes32) -> Result<Vec<CoinState>> {
         cat_coin_states(&self.pool, asset_id).await
+    }
+
+    pub async fn cat_balance(&self, asset_id: Bytes32) -> Result<u128> {
+        cat_balance(&self.pool, asset_id).await
     }
 }
 
@@ -404,4 +409,23 @@ async fn cat_coin_states(
             )
         })
         .collect()
+}
+
+async fn cat_balance(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<u128> {
+    let asset_id = asset_id.as_ref();
+
+    let row = sqlx::query!(
+        "
+        SELECT `amount` FROM `coin_states`
+        INNER JOIN `cat_coins` ON `coin_states`.`coin_id` = `cat_coins`.`coin_id`
+        WHERE `coin_states`.`spent_height` IS NULL AND `cat_coins`.`asset_id` = ?
+        ",
+        asset_id
+    )
+    .fetch_all(conn)
+    .await?;
+
+    row.iter()
+        .map(|row| Ok(u64::from_be_bytes(to_bytes(&row.amount)?) as u128))
+        .sum::<Result<u128>>()
 }

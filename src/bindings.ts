@@ -335,7 +335,7 @@ syncEvent: "sync-event"
 /** user-defined types **/
 
 export type Amount = string
-export type CatRecord = { asset_id: string; name: string | null; ticker: string | null; description: string | null; icon_url: string | null; visible: boolean }
+export type CatRecord = { asset_id: string; name: string | null; ticker: string | null; description: string | null; icon_url: string | null; visible: boolean; balance: Amount }
 export type CoinRecord = { coin_id: string; address: string; amount: Amount; created_height: number | null; spent_height: number | null }
 export type DidRecord = { encoded_id: string; launcher_id: string; coin_id: string; address: string }
 export type Error = { kind: ErrorKind; reason: string }
