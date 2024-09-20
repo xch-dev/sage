@@ -30,7 +30,14 @@ Finally, the wallet driver code is written on the backend using the [Chia Wallet
 
 ## Development
 
-First, you will need to clone the repo and install Rust via [Rustup](https://rustup.rs). You will also need [PNPM](https://pnpm.io/installation).
+These instructions should get you up and running with a source installation.
+
+First, there are some prerequisites:
+
+1. Clone the repo
+2. Install Rust via [Rustup](https://rustup.rs)
+3. Install [PNPM](https://pnpm.io/installation)
+4. Setup system dependencies for [Tauri](https://v2.tauri.app/start/prerequisites/)
 
 Install the frontend dependencies:
 
