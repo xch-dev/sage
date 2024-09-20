@@ -10,7 +10,7 @@ use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use tokio::{
     sync::{mpsc, Mutex},
     task::spawn_blocking,
-    time::timeout,
+    time::{sleep, timeout},
 };
 use tracing::{debug, info, instrument, warn};
 
@@ -136,7 +136,11 @@ async fn sync_coin_ids(
     coin_ids: Vec<Bytes32>,
     sync_sender: mpsc::Sender<SyncEvent>,
 ) -> Result<(), WalletError> {
-    for coin_ids in coin_ids.chunks(10000) {
+    for (i, coin_ids) in coin_ids.chunks(10000).enumerate() {
+        if i != 0 {
+            sleep(Duration::from_millis(500)).await;
+        }
+
         debug!(
             "Subscribing to coins at height {:?} and header hash {} from peer {}",
             start_height,

@@ -1,12 +1,12 @@
 use std::{
-    fmt,
+    fmt, mem,
     net::{IpAddr, SocketAddr},
     sync::Arc,
     time::Duration,
 };
 
 use chia::{
-    protocol::{CoinStateUpdate, Message, NewPeakWallet, ProtocolMessageTypes},
+    protocol::{Bytes32, CoinStateUpdate, Message, NewPeakWallet, ProtocolMessageTypes},
     traits::Streamable,
 };
 use chia_wallet_sdk::{ClientError, Connector, Network};
@@ -57,6 +57,7 @@ pub struct SyncManager {
     puzzle_lookup_task: Option<JoinHandle<Result<(), WalletError>>>,
     cat_queue_task: Option<JoinHandle<Result<(), WalletError>>>,
     nft_queue_task: Option<JoinHandle<Result<(), WalletError>>>,
+    pending_coin_subscriptions: Vec<Bytes32>,
 }
 
 impl fmt::Debug for SyncManager {
@@ -119,6 +120,7 @@ impl SyncManager {
             puzzle_lookup_task: None,
             cat_queue_task: None,
             nft_queue_task: None,
+            pending_coin_subscriptions: Vec::new(),
         };
 
         (manager, command_sender, event_receiver)
@@ -128,6 +130,7 @@ impl SyncManager {
         loop {
             self.process_commands().await;
             self.update().await;
+            self.subscribe();
             sleep(self.options.sync_delay).await;
         }
     }
@@ -164,23 +167,7 @@ impl SyncManager {
                         .await;
                 }
                 SyncCommand::SubscribeCoin { coin_id } => {
-                    if let InitialWalletSync::Subscribed(ip) = self.initial_wallet_sync {
-                        if let Some(info) = self.state.lock().await.peer(ip) {
-                            // TODO: Handle cases
-                            timeout(
-                                Duration::from_secs(3),
-                                info.peer.request_coin_state(
-                                    vec![coin_id],
-                                    None,
-                                    self.network.genesis_challenge,
-                                    true,
-                                ),
-                            )
-                            .await
-                            .map(Result::ok)
-                            .ok();
-                        }
-                    }
+                    self.pending_coin_subscriptions.push(coin_id);
                 }
                 SyncCommand::ConnectionClosed(ip) => {
                     self.state.lock().await.remove_peer(ip);
@@ -192,6 +179,35 @@ impl SyncManager {
                 SyncCommand::SetTargetPeers(target_peers) => {
                     self.options.target_peers = target_peers;
                 }
+            }
+        }
+    }
+
+    async fn subscribe(&mut self) {
+        if self.pending_coin_subscriptions.is_empty() {
+            return;
+        }
+
+        info!(
+            "Subscribing to {} new coin ids",
+            self.pending_coin_subscriptions.len()
+        );
+
+        if let InitialWalletSync::Subscribed(ip) = self.initial_wallet_sync {
+            if let Some(info) = self.state.lock().await.peer(ip) {
+                // TODO: Handle cases
+                timeout(
+                    Duration::from_secs(3),
+                    info.peer.request_coin_state(
+                        mem::take(&mut self.pending_coin_subscriptions),
+                        None,
+                        self.network.genesis_challenge,
+                        true,
+                    ),
+                )
+                .await
+                .map(Result::ok)
+                .ok();
             }
         }
     }
