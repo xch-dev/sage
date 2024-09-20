@@ -54,7 +54,10 @@ jobs:
         run: pnpm install
 
       - name: Save API key to file
-        run: echo ${{ secrets.APPLE_API_KEY }} > ./apple-api-key.p8
+        run: 'echo "$APPLE_API_KEY" > apple-api-key.p8'
+        shell: bash
+        env:
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
 
       - uses: tauri-apps/tauri-action@v0
         env:
