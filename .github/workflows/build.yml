@@ -46,6 +46,9 @@ jobs:
 
       - uses: pnpm/action-setup@v4
 
+      - name: Install
+        run: pnpm install
+
       - name: Bundle
         run: CI=true pnpm tauri build --ci
 
