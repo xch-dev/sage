@@ -15,7 +15,6 @@ categories = { workspace = true }
 workspace = true
 
 [dependencies]
-chia = { workspace = true }
 chia-wallet-sdk = { workspace = true }
 serde = { workspace = true }
 indexmap = { workspace = true }
