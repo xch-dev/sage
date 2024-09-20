@@ -24,7 +24,7 @@ impl Default for NetworkConfig {
 }
 
 fn default_network_id() -> String {
-    "mainnet".to_string()
+    "testnet11".to_string()
 }
 
 fn default_target_peers() -> u32 {
