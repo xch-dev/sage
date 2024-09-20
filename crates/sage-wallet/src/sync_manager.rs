@@ -130,7 +130,7 @@ impl SyncManager {
         loop {
             self.process_commands().await;
             self.update().await;
-            self.subscribe();
+            self.subscribe().await;
             sleep(self.options.sync_delay).await;
         }
     }
@@ -188,13 +188,13 @@ impl SyncManager {
             return;
         }
 
-        info!(
-            "Subscribing to {} new coin ids",
-            self.pending_coin_subscriptions.len()
-        );
-
         if let InitialWalletSync::Subscribed(ip) = self.initial_wallet_sync {
             if let Some(info) = self.state.lock().await.peer(ip) {
+                debug!(
+                    "Subscribing to {} new coin ids",
+                    self.pending_coin_subscriptions.len()
+                );
+
                 // TODO: Handle cases
                 timeout(
                     Duration::from_secs(3),

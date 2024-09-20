@@ -9,7 +9,7 @@ use tokio::{
     task::spawn_blocking,
     time::timeout,
 };
-use tracing::{debug, info, instrument};
+use tracing::{debug, instrument};
 
 use crate::{PeerState, PuzzleInfo, SyncCommand, SyncError, SyncEvent, WalletError};
 
@@ -62,7 +62,7 @@ impl PuzzleQueue {
             return Ok(());
         }
 
-        info!(
+        debug!(
             "Syncing a batch of {} coins",
             coin_states.len().min(peers.len())
         );

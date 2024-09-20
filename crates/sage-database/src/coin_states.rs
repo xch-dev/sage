@@ -251,9 +251,9 @@ async fn coin_state(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<O
 async fn unspent_nft_coin_ids(conn: impl SqliteExecutor<'_>) -> Result<Vec<Bytes32>> {
     let rows = sqlx::query!(
         "
-        SELECT `nft_coins`.`coin_id`
-        FROM `nft_coins`
-        INNER JOIN `coin_states`
+        SELECT `coin_states`.`coin_id`
+        FROM `coin_states` INDEXED BY `coin_spent`
+        INNER JOIN `nft_coins` ON `coin_states`.`coin_id` = `nft_coins`.`coin_id`
         WHERE `spent_height` IS NULL
         "
     )
@@ -268,9 +268,9 @@ async fn unspent_nft_coin_ids(conn: impl SqliteExecutor<'_>) -> Result<Vec<Bytes
 async fn unspent_did_coin_ids(conn: impl SqliteExecutor<'_>) -> Result<Vec<Bytes32>> {
     let rows = sqlx::query!(
         "
-        SELECT `did_coins`.`coin_id`
-        FROM `did_coins`
-        INNER JOIN `coin_states`
+        SELECT `coin_states`.`coin_id`
+        FROM `coin_states` INDEXED BY `coin_spent`
+        INNER JOIN `did_coins` ON `coin_states`.`coin_id` = `did_coins`.`coin_id`
         WHERE `spent_height` IS NULL
         "
     )
@@ -285,9 +285,9 @@ async fn unspent_did_coin_ids(conn: impl SqliteExecutor<'_>) -> Result<Vec<Bytes
 async fn unspent_cat_coin_ids(conn: impl SqliteExecutor<'_>) -> Result<Vec<Bytes32>> {
     let rows = sqlx::query!(
         "
-        SELECT `cat_coins`.`coin_id`
-        FROM `cat_coins`
-        INNER JOIN `coin_states`
+        SELECT `coin_states`.`coin_id`
+        FROM `coin_states` INDEXED BY `coin_spent`
+        INNER JOIN `cat_coins` ON `coin_states`.`coin_id` = `cat_coins`.`coin_id`
         WHERE `spent_height` IS NULL
         "
     )
