@@ -61,6 +61,10 @@ impl<'a> DatabaseTx<'a> {
     pub async fn coin_state(&mut self, coin_id: Bytes32) -> Result<Option<CoinState>> {
         coin_state(&mut *self.tx, coin_id).await
     }
+
+    pub async fn insert_unknown_coin(&mut self, coin_id: Bytes32) -> Result<()> {
+        insert_unknown_coin(&mut *self.tx, coin_id).await
+    }
 }
 
 async fn insert_coin_state(
@@ -106,6 +110,21 @@ async fn insert_coin_state(
     )
     .execute(conn)
     .await?;
+    Ok(())
+}
+
+async fn insert_unknown_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<()> {
+    let coin_id = coin_id.as_ref();
+
+    sqlx::query!(
+        "
+        REPLACE INTO `unknown_coins` (`coin_id`) VALUES (?)
+        ",
+        coin_id
+    )
+    .execute(conn)
+    .await?;
+
     Ok(())
 }
 
