@@ -52,7 +52,7 @@ jobs:
         run: pnpm install
 
       - name: Bundle
-        run: CI=true pnpm tauri build --ci
+        run: CI=true pnpm tauri build
 
       - uses: actions/upload-artifact@v4
         with:
