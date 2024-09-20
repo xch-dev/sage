@@ -21,7 +21,6 @@ sage-database = { workspace = true }
 sage-keychain = { workspace = true }
 sage-wallet = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
-serde_with = { workspace = true, features = ["hex"] }
 tauri = { workspace = true, features = [] }
 tauri-specta = { workspace = true, features = ["derive", "typescript"] }
 specta = { workspace = true }
@@ -29,7 +28,6 @@ specta-typescript = { workspace = true }
 bip39 = { workspace = true }
 rand = { workspace = true }
 rand_chacha = { workspace = true }
-thiserror = { workspace = true }
 tauri-plugin-clipboard-manager = { workspace = true }
 tokio = { workspace = true }
 bincode = { workspace = true }
@@ -41,12 +39,9 @@ chia-wallet-sdk = { workspace = true, features = ["rustls"] }
 clvmr = { workspace = true }
 itertools = { workspace = true }
 sqlx = { workspace = true, features = ["sqlite", "runtime-tokio"] }
-futures-util = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 tracing-appender = { workspace = true }
-futures-lite = { workspace = true }
-rayon = { workspace = true }
 log = { workspace = true }
 bigdecimal = { workspace = true }
 bech32 = { workspace = true }
