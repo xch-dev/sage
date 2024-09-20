@@ -38,10 +38,20 @@ jobs:
       - name: Fmt
         run: cargo fmt --all -- --files-with-diff --check
 
-  build:
-    runs-on: ubuntu-latest
+  build-macos:
+    runs-on: macos-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - uses: pnpm/action-setup@v4
+
+      - name: Bundle
+        run: CI=true pnpm tauri build --ci
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          path: |
+            ./target/aarch64-apple-darwin/release/bundle/macos/*.app
+            ./target/aarch64-apple-darwin/release/bundle/dmg/*.dmg
