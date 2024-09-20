@@ -1,4 +1,4 @@
-use std::net::IpAddr;
+use std::{net::IpAddr, time::Duration};
 
 use indexmap::IndexMap;
 use itertools::Itertools;
@@ -35,7 +35,7 @@ pub async fn remove_peer(state: State<'_, AppState>, ip_addr: IpAddr, ban: bool)
     let mut peer_state = state.peer_state.lock().await;
 
     if ban {
-        peer_state.ban(ip_addr);
+        peer_state.ban(ip_addr, Duration::from_secs(60 * 60));
     } else {
         peer_state.remove_peer(ip_addr);
     }

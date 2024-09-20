@@ -155,7 +155,7 @@ impl SyncManager {
                 SyncCommand::HandleMessage { ip, message } => {
                     if let Err(error) = self.handle_message(ip, message).await {
                         debug!("Failed to handle message from {ip}: {error}");
-                        self.state.lock().await.ban(ip);
+                        self.state.lock().await.ban(ip, Duration::from_secs(300));
                     }
                 }
                 SyncCommand::ConnectPeer { ip, trusted } => {
@@ -401,13 +401,13 @@ impl SyncManager {
                     }
                     Ok(Err(error)) => {
                         warn!("Initial wallet sync failed: {error}");
-                        self.state.lock().await.ban(*ip);
+                        self.state.lock().await.ban(*ip, Duration::from_secs(300));
                         self.initial_wallet_sync = InitialWalletSync::Idle;
                         self.event_sender.send(SyncEvent::Stop).await.ok();
                     }
                     Err(_timeout) => {
                         warn!("Initial wallet sync timed out");
-                        self.state.lock().await.ban(*ip);
+                        self.state.lock().await.ban(*ip, Duration::from_secs(300));
                         self.initial_wallet_sync = InitialWalletSync::Idle;
                         self.event_sender.send(SyncEvent::Stop).await.ok();
                     }

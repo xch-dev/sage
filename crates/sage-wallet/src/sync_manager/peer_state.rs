@@ -1,6 +1,7 @@
 use std::{
     collections::{HashMap, HashSet},
     net::IpAddr,
+    time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
 use chia::protocol::Bytes32;
@@ -25,7 +26,7 @@ impl Drop for PeerInfo {
 #[derive(Debug, Default)]
 pub struct PeerState {
     peers: HashMap<IpAddr, PeerInfo>,
-    banned_peers: HashSet<IpAddr>,
+    banned_peers: HashMap<IpAddr, u64>,
     trusted_peers: HashSet<IpAddr>,
 }
 
@@ -69,16 +70,34 @@ impl PeerState {
             .map(|peer| peer.peer.clone())
     }
 
-    pub fn ban(&mut self, ip: IpAddr) {
+    pub fn ban(&mut self, ip: IpAddr, duration: Duration) {
         if self.trusted_peers.contains(&ip) {
             return;
         }
-        self.banned_peers.insert(ip);
+
+        let start = SystemTime::now();
+        let since_the_epoch = start
+            .duration_since(UNIX_EPOCH)
+            .expect("Time went backwards");
+
+        self.banned_peers
+            .insert(ip, since_the_epoch.as_secs() + duration.as_secs());
+
+        self.banned_peers
+            .retain(|_, ban_until| *ban_until > since_the_epoch.as_secs());
+
         self.remove_peer(ip);
     }
 
     pub fn is_banned(&self, ip: IpAddr) -> bool {
-        self.banned_peers.contains(&ip)
+        self.banned_peers.get(&ip).is_some_and(|ban_until| {
+            let start = SystemTime::now();
+            let since_the_epoch = start
+                .duration_since(UNIX_EPOCH)
+                .expect("Time went backwards");
+
+            *ban_until > since_the_epoch.as_secs()
+        })
     }
 
     pub fn trust(&mut self, ip: IpAddr) {

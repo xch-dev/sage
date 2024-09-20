@@ -28,7 +28,7 @@ fn default_network_id() -> String {
 }
 
 fn default_target_peers() -> u32 {
-    5
+    3
 }
 
 fn default_discover_peers() -> bool {

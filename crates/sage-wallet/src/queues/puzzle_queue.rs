@@ -92,7 +92,11 @@ impl PuzzleQueue {
                     "Failed to lookup puzzle of {} from peer {}: {}",
                     coin_id, addr, error
                 );
-                self.state.lock().await.ban(addr.ip());
+
+                self.state
+                    .lock()
+                    .await
+                    .ban(addr.ip(), Duration::from_secs(300));
             }
         }
 

@@ -2,7 +2,7 @@ use std::{
     cmp::Reverse,
     net::{IpAddr, SocketAddr},
     str::FromStr,
-    time::{SystemTime, UNIX_EPOCH},
+    time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
 use chia::{
@@ -131,7 +131,7 @@ impl SyncManager {
                     for item in response.peer_list {
                         let Some(new_ip) = IpAddr::from_str(&item.host).ok() else {
                             debug!("Invalid IP address in peer list");
-                            self.state.lock().await.ban(ip);
+                            self.state.lock().await.ban(ip, Duration::from_secs(300));
                             break;
                         };
                         addrs.push(SocketAddr::new(new_ip, self.network.default_port));
@@ -145,7 +145,7 @@ impl SyncManager {
                 }
                 Ok(Err(error)) => {
                     debug!("Failed to request peers from {}: {}", ip, error);
-                    self.state.lock().await.ban(ip);
+                    self.state.lock().await.ban(ip, Duration::from_secs(300));
                 }
                 Err(_timeout) => {}
             }
@@ -183,16 +183,25 @@ impl SyncManager {
                             return true;
                         }
                     } else {
-                        self.state.lock().await.ban(socket_addr.ip());
+                        self.state
+                            .lock()
+                            .await
+                            .ban(socket_addr.ip(), Duration::from_secs(60 * 10));
                     }
                 }
                 Ok(Err(error)) => {
                     debug!("Failed to connect to peer {socket_addr}: {error}");
-                    self.state.lock().await.ban(socket_addr.ip());
+                    self.state
+                        .lock()
+                        .await
+                        .ban(socket_addr.ip(), Duration::from_secs(60 * 10));
                 }
                 Err(_timeout) => {
                     debug!("Connection to peer {socket_addr} timed out");
-                    self.state.lock().await.ban(socket_addr.ip());
+                    self.state
+                        .lock()
+                        .await
+                        .ban(socket_addr.ip(), Duration::from_secs(60 * 10));
                 }
             }
         }
