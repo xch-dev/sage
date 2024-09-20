@@ -16,6 +16,7 @@ concurrency:
 
 jobs:
   lint:
+    name: Lint
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -39,6 +40,7 @@ jobs:
         run: cargo fmt --all -- --files-with-diff --check
 
   build-macos:
+    name: MacOS Bundle
     runs-on: macos-latest
     steps:
       - name: Checkout
