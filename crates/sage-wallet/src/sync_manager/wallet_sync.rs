@@ -27,12 +27,30 @@ pub async fn sync_wallet(
     info!("Starting sync against peer {}", peer.socket_addr());
 
     let mut tx = wallet.db.tx().await?;
+
+    let mut coin_ids = Vec::new();
+    coin_ids.extend(tx.unspent_nft_coin_ids().await?);
+    coin_ids.extend(tx.unspent_did_coin_ids().await?);
+    coin_ids.extend(tx.unspent_cat_coin_ids().await?);
+
     let p2_puzzle_hashes = tx.p2_puzzle_hashes().await?;
+
     let (start_height, start_header_hash) = tx.latest_peak().await?.map_or_else(
         || (None, wallet.genesis_challenge),
         |(peak, header_hash)| (Some(peak), header_hash),
     );
+
     tx.commit().await?;
+
+    sync_coin_ids(
+        &wallet,
+        &peer,
+        start_height,
+        start_header_hash,
+        coin_ids,
+        sync_sender.clone(),
+    )
+    .await?;
 
     let mut derive_more = p2_puzzle_hashes.is_empty();
 
@@ -109,6 +127,58 @@ pub async fn sync_wallet(
     Ok(())
 }
 
+#[instrument(skip(wallet, peer, coin_ids))]
+async fn sync_coin_ids(
+    wallet: &Wallet,
+    peer: &Peer,
+    start_height: Option<u32>,
+    start_header_hash: Bytes32,
+    coin_ids: Vec<Bytes32>,
+    sync_sender: mpsc::Sender<SyncEvent>,
+) -> Result<(), WalletError> {
+    for coin_ids in coin_ids.chunks(10000) {
+        debug!(
+            "Subscribing to coins at height {:?} and header hash {} from peer {}",
+            start_height,
+            start_header_hash,
+            peer.socket_addr()
+        );
+
+        let response = timeout(
+            Duration::from_secs(10),
+            peer.request_coin_state(coin_ids.to_vec(), start_height, start_header_hash, true),
+        )
+        .await
+        .map_err(|_| WalletError::Sync(SyncError::Timeout))??;
+
+        match response {
+            Ok(data) => {
+                debug!("Received {} coin states", data.coin_states.len());
+
+                if !data.coin_states.is_empty() {
+                    incremental_sync(wallet, data.coin_states, true).await?;
+                    sync_sender.send(SyncEvent::CoinUpdate).await.ok();
+                }
+            }
+            Err(rejection) => match rejection.reason {
+                RejectStateReason::ExceededSubscriptionLimit => {
+                    warn!(
+                        "Subscription limit reached against peer {}",
+                        peer.socket_addr()
+                    );
+                    return Err(WalletError::Sync(SyncError::SubscriptionLimit));
+                }
+                RejectStateReason::Reorg => {
+                    // TODO: Handle reorgs gracefully
+                    todo!()
+                }
+            },
+        }
+    }
+
+    Ok(())
+}
+
 #[instrument(skip(wallet, peer, puzzle_hashes))]
 async fn sync_puzzle_hashes(
     wallet: &Wallet,
@@ -124,7 +194,7 @@ async fn sync_puzzle_hashes(
 
     loop {
         debug!(
-            "Requesting coins at height {:?} and header hash {} from peer {}",
+            "Subscribing to puzzles at height {:?} and header hash {} from peer {}",
             prev_height,
             prev_header_hash,
             peer.socket_addr()

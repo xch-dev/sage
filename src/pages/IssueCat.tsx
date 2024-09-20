@@ -15,7 +15,6 @@ export default function IssueCat() {
     name: '',
     amount: '',
     fee: '',
-    multiIssuance: false,
   });
   const [error, setError] = useState<Error | null>(null);
 
@@ -51,11 +50,6 @@ export default function IssueCat() {
               type: 'amount',
               label: 'Fee',
               unit: walletState.sync.unit,
-            },
-            {
-              id: 'multiIssuance',
-              type: 'option',
-              label: 'Allow more to be issued later',
             },
           ]}
           values={values}

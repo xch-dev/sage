@@ -34,27 +34,33 @@ impl SyncManager {
         {
             let ip = peer.socket_addr().ip();
 
+            let puzzle_peer = peer.clone();
+            let duration = self.options.remove_subscription_timeout;
+
             futures.push(async move {
-                let result = timeout(
-                    self.options.remove_subscription_timeout,
-                    peer.remove_puzzle_subscriptions(None),
-                )
-                .await;
-                (ip, result)
+                match timeout(duration, puzzle_peer.remove_puzzle_subscriptions(None)).await {
+                    Ok(Ok(..)) => {}
+                    Ok(Err(error)) => {
+                        debug!("Failed to clear puzzle subscriptions from {ip}: {error}");
+                    }
+                    Err(_timeout) => {
+                        debug!("Timeout clearing puzzle subscriptions from {ip}");
+                    }
+                }
+
+                match timeout(duration, peer.remove_coin_subscriptions(None)).await {
+                    Ok(Ok(..)) => {}
+                    Ok(Err(error)) => {
+                        debug!("Failed to clear coin subscriptions from {ip}: {error}");
+                    }
+                    Err(_timeout) => {
+                        debug!("Timeout clearing coin subscriptions from {ip}");
+                    }
+                }
             });
         }
 
-        while let Some((ip, result)) = futures.next().await {
-            match result {
-                Ok(Ok(_response)) => {}
-                Ok(Err(error)) => {
-                    debug!("Failed to clear subscriptions from {ip}: {error}");
-                }
-                Err(_timeout) => {
-                    debug!("Timeout clearing subscriptions from {ip}");
-                }
-            }
-        }
+        while let Some(()) = futures.next().await {}
     }
 
     pub(super) async fn dns_discovery(&mut self) {

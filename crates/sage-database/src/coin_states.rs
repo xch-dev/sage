@@ -1,7 +1,7 @@
 use chia::protocol::{Bytes32, CoinState};
 use sqlx::SqliteExecutor;
 
-use crate::{error::Result, to_coin, to_coin_state, Database, DatabaseTx};
+use crate::{error::Result, to_bytes32, to_coin, to_coin_state, Database, DatabaseTx};
 
 impl Database {
     pub async fn insert_coin_state(&self, coin_state: CoinState, synced: bool) -> Result<()> {
@@ -14,10 +14,6 @@ impl Database {
 
     pub async fn unsynced_coin_states(&self, limit: usize) -> Result<Vec<CoinState>> {
         unsynced_coin_states(&self.pool, limit).await
-    }
-
-    pub async fn mark_coin_synced(&self, coin_id: Bytes32, hint: Bytes32) -> Result<()> {
-        mark_coin_synced(&self.pool, coin_id, hint).await
     }
 
     pub async fn total_coin_count(&self) -> Result<u32> {
@@ -46,8 +42,8 @@ impl<'a> DatabaseTx<'a> {
         unsynced_coin_states(&mut *self.tx, limit).await
     }
 
-    pub async fn mark_coin_synced(&mut self, coin_id: Bytes32, hint: Bytes32) -> Result<()> {
-        mark_coin_synced(&mut *self.tx, coin_id, hint).await
+    pub async fn update_coin_synced(&mut self, coin_id: Bytes32, hint: Bytes32) -> Result<()> {
+        update_coin_synced(&mut *self.tx, coin_id, hint).await
     }
 
     pub async fn total_coin_count(&mut self) -> Result<u32> {
@@ -64,6 +60,18 @@ impl<'a> DatabaseTx<'a> {
 
     pub async fn insert_unknown_coin(&mut self, coin_id: Bytes32) -> Result<()> {
         insert_unknown_coin(&mut *self.tx, coin_id).await
+    }
+
+    pub async fn unspent_nft_coin_ids(&mut self) -> Result<Vec<Bytes32>> {
+        unspent_nft_coin_ids(&mut *self.tx).await
+    }
+
+    pub async fn unspent_did_coin_ids(&mut self) -> Result<Vec<Bytes32>> {
+        unspent_did_coin_ids(&mut *self.tx).await
+    }
+
+    pub async fn unspent_cat_coin_ids(&mut self) -> Result<Vec<Bytes32>> {
+        unspent_cat_coin_ids(&mut *self.tx).await
     }
 }
 
@@ -170,7 +178,7 @@ async fn unsynced_coin_states(
         .collect()
 }
 
-async fn mark_coin_synced(
+async fn update_coin_synced(
     conn: impl SqliteExecutor<'_>,
     coin_id: Bytes32,
     hint: Bytes32,
@@ -238,4 +246,55 @@ async fn coin_state(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<O
         row.created_height,
         row.spent_height,
     )?))
+}
+
+async fn unspent_nft_coin_ids(conn: impl SqliteExecutor<'_>) -> Result<Vec<Bytes32>> {
+    let rows = sqlx::query!(
+        "
+        SELECT `nft_coins`.`coin_id`
+        FROM `nft_coins`
+        INNER JOIN `coin_states`
+        WHERE `spent_height` IS NULL
+        "
+    )
+    .fetch_all(conn)
+    .await?;
+
+    rows.into_iter()
+        .map(|row| to_bytes32(&row.coin_id))
+        .collect()
+}
+
+async fn unspent_did_coin_ids(conn: impl SqliteExecutor<'_>) -> Result<Vec<Bytes32>> {
+    let rows = sqlx::query!(
+        "
+        SELECT `did_coins`.`coin_id`
+        FROM `did_coins`
+        INNER JOIN `coin_states`
+        WHERE `spent_height` IS NULL
+        "
+    )
+    .fetch_all(conn)
+    .await?;
+
+    rows.into_iter()
+        .map(|row| to_bytes32(&row.coin_id))
+        .collect()
+}
+
+async fn unspent_cat_coin_ids(conn: impl SqliteExecutor<'_>) -> Result<Vec<Bytes32>> {
+    let rows = sqlx::query!(
+        "
+        SELECT `cat_coins`.`coin_id`
+        FROM `cat_coins`
+        INNER JOIN `coin_states`
+        WHERE `spent_height` IS NULL
+        "
+    )
+    .fetch_all(conn)
+    .await?;
+
+    rows.into_iter()
+        .map(|row| to_bytes32(&row.coin_id))
+        .collect()
 }

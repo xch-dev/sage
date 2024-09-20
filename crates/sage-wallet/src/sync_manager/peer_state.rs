@@ -93,6 +93,10 @@ impl PeerState {
         }
     }
 
+    pub fn peer(&self, ip: IpAddr) -> Option<&PeerInfo> {
+        self.peers.get(&ip)
+    }
+
     pub fn remove_peer(&mut self, ip: IpAddr) {
         self.peers.remove(&ip);
     }

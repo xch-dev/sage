@@ -1,6 +1,6 @@
 use std::{net::IpAddr, sync::Arc};
 
-use chia::protocol::Message;
+use chia::protocol::{Bytes32, Message};
 use chia_wallet_sdk::Network;
 
 use crate::Wallet;
@@ -21,6 +21,9 @@ pub enum SyncCommand {
     ConnectPeer {
         ip: IpAddr,
         trusted: bool,
+    },
+    SubscribeCoin {
+        coin_id: Bytes32,
     },
     ConnectionClosed(IpAddr),
     SetDiscoverPeers(bool),

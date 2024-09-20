@@ -11,7 +11,7 @@ use tokio::{
 };
 use tracing::{debug, info, instrument};
 
-use crate::{PeerState, PuzzleInfo, SyncError, SyncEvent, WalletError};
+use crate::{PeerState, PuzzleInfo, SyncCommand, SyncError, SyncEvent, WalletError};
 
 #[derive(Debug)]
 pub struct PuzzleQueue {
@@ -19,6 +19,7 @@ pub struct PuzzleQueue {
     genesis_challenge: Bytes32,
     state: Arc<Mutex<PeerState>>,
     sync_sender: mpsc::Sender<SyncEvent>,
+    command_sender: mpsc::Sender<SyncCommand>,
 }
 
 impl PuzzleQueue {
@@ -27,12 +28,14 @@ impl PuzzleQueue {
         genesis_challenge: Bytes32,
         state: Arc<Mutex<PeerState>>,
         sync_sender: mpsc::Sender<SyncEvent>,
+        command_sender: mpsc::Sender<SyncCommand>,
     ) -> Self {
         Self {
             db,
             genesis_challenge,
             state,
             sync_sender,
+            command_sender,
         }
     }
 
@@ -71,8 +74,11 @@ impl PuzzleQueue {
             let genesis_challenge = self.genesis_challenge;
             let addr = peer.socket_addr();
             let coin_id = coin_state.coin.coin_id();
+            let command_sender = self.command_sender.clone();
+
             futures.push(tokio::spawn(async move {
-                let result = fetch_puzzle(&peer, &db, genesis_challenge, coin_state).await;
+                let result =
+                    fetch_puzzle(&peer, &db, genesis_challenge, coin_state, command_sender).await;
                 (addr, coin_id, result)
             }));
         }
@@ -97,12 +103,13 @@ impl PuzzleQueue {
 }
 
 /// Fetches info for a coin's puzzle and inserts it into the database.
-#[instrument(skip(peer, db))]
+#[instrument(skip(peer, db, command_sender))]
 async fn fetch_puzzle(
     peer: &Peer,
     db: &Database,
     genesis_challenge: Bytes32,
     coin_state: CoinState,
+    command_sender: mpsc::Sender<SyncCommand>,
 ) -> Result<(), WalletError> {
     let parent_id = coin_state.coin.parent_coin_info;
 
@@ -151,16 +158,26 @@ async fn fetch_puzzle(
             lineage_proof,
             p2_puzzle_hash,
         } => {
-            tx.mark_coin_synced(coin_id, p2_puzzle_hash).await?;
+            tx.update_coin_synced(coin_id, p2_puzzle_hash).await?;
             tx.insert_cat_coin(coin_id, lineage_proof, p2_puzzle_hash, asset_id)
                 .await?;
+
+            command_sender
+                .send(SyncCommand::SubscribeCoin { coin_id })
+                .await
+                .ok();
         }
         PuzzleInfo::Did {
             lineage_proof,
             info,
         } => {
-            tx.mark_coin_synced(coin_id, info.p2_puzzle_hash).await?;
+            tx.update_coin_synced(coin_id, info.p2_puzzle_hash).await?;
             tx.insert_did_coin(coin_id, lineage_proof, info).await?;
+
+            command_sender
+                .send(SyncCommand::SubscribeCoin { coin_id })
+                .await
+                .ok();
         }
         PuzzleInfo::Nft {
             lineage_proof,
@@ -172,7 +189,7 @@ async fn fetch_puzzle(
             metadata_uris,
             license_uris,
         } => {
-            tx.mark_coin_synced(coin_id, info.p2_puzzle_hash).await?;
+            tx.update_coin_synced(coin_id, info.p2_puzzle_hash).await?;
 
             tx.insert_nft_coin(
                 coin_id,
@@ -201,9 +218,14 @@ async fn fetch_puzzle(
                     tx.insert_nft_uri(uri, hash).await?;
                 }
             }
+
+            command_sender
+                .send(SyncCommand::SubscribeCoin { coin_id })
+                .await
+                .ok();
         }
         PuzzleInfo::Unknown { hint } => {
-            tx.mark_coin_synced(coin_id, hint).await?;
+            tx.update_coin_synced(coin_id, hint).await?;
             tx.insert_unknown_coin(coin_id).await?;
         }
     }

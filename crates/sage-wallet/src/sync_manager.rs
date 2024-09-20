@@ -11,6 +11,7 @@ use chia::{
 };
 use chia_wallet_sdk::{ClientError, Connector, Network};
 use futures_lite::future::poll_once;
+use itertools::Itertools;
 use tokio::{
     sync::{mpsc, Mutex},
     task::JoinHandle,
@@ -162,6 +163,25 @@ impl SyncManager {
                     self.connect_batch(&[SocketAddr::new(ip, self.network.default_port)])
                         .await;
                 }
+                SyncCommand::SubscribeCoin { coin_id } => {
+                    if let InitialWalletSync::Subscribed(ip) = self.initial_wallet_sync {
+                        if let Some(info) = self.state.lock().await.peer(ip) {
+                            // TODO: Handle cases
+                            timeout(
+                                Duration::from_secs(3),
+                                info.peer.request_coin_state(
+                                    vec![coin_id],
+                                    None,
+                                    self.network.genesis_challenge,
+                                    true,
+                                ),
+                            )
+                            .await
+                            .map(Result::ok)
+                            .ok();
+                        }
+                    }
+                }
                 SyncCommand::ConnectionClosed(ip) => {
                     self.state.lock().await.remove_peer(ip);
                     debug!("Peer {ip} disconnected");
@@ -213,11 +233,34 @@ impl SyncManager {
                         .filter(|item| item.spent_height.is_none())
                         .count();
 
-                    let spent_count = message
+                    let spent_coin_ids = message
                         .items
                         .iter()
-                        .filter(|item| item.spent_height.is_some())
-                        .count();
+                        .filter_map(|item| {
+                            if item.spent_height.is_some() {
+                                Some(item.coin.coin_id())
+                            } else {
+                                None
+                            }
+                        })
+                        .collect_vec();
+
+                    let spent_count = spent_coin_ids.len();
+
+                    if !spent_coin_ids.is_empty() {
+                        if let InitialWalletSync::Subscribed(ip) = self.initial_wallet_sync {
+                            if let Some(info) = self.state.lock().await.peer(ip) {
+                                // TODO: Handle cases
+                                timeout(
+                                    Duration::from_secs(3),
+                                    info.peer.remove_coin_subscriptions(Some(spent_coin_ids)),
+                                )
+                                .await
+                                .map(Result::ok)
+                                .ok();
+                            }
+                        }
+                    }
 
                     incremental_sync(wallet, message.items, true).await?;
 
@@ -305,6 +348,7 @@ impl SyncManager {
                         wallet.genesis_challenge,
                         self.state.clone(),
                         self.event_sender.clone(),
+                        self.command_sender.clone(),
                     )
                     .start(),
                 );
