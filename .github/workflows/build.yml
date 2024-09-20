@@ -54,7 +54,7 @@ jobs:
         run: pnpm install
 
       - name: Save API key to file
-        run: 'echo "$APPLE_API_SECRET_KEY" > apple-api-key.p8'
+        run: 'echo "$APPLE_API_SECRET_KEY" > ${{ github.workspace }}/apple-api-key.p8'
         shell: bash
         env:
           APPLE_API_KEY: ${{ secrets.APPLE_API_SECRET_KEY }}
@@ -66,7 +66,7 @@ jobs:
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
           APPLE_API_KEY: ${{ secrets.APPLE_API_KEY_ID }}
-          APPLE_API_KEY_PATH: ./apple-api-key.p8
+          APPLE_API_KEY_PATH: ${{ github.workspace }}/apple-api-key.p8
           CI: true
         with:
           tagName: app-v__VERSION__ # the action automatically replaces \_\_VERSION\_\_ with the app version.
