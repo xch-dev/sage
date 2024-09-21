@@ -54,7 +54,7 @@ jobs:
         run: pnpm install
 
       - name: Save API key to file
-        run: 'echo "$APPLE_API_SECRET_KEY" > ${{ github.workspace }}/apple-api-key.p8'
+        run: 'echo -n "$APPLE_API_SECRET_KEY" > ${{ github.workspace }}/apple-api-key.p8'
         shell: bash
         env:
           APPLE_API_KEY: ${{ secrets.APPLE_API_SECRET_KEY }}
