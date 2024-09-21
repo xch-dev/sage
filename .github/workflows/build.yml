@@ -59,6 +59,9 @@ jobs:
         env:
           APPLE_API_KEY: ${{ secrets.APPLE_API_SECRET_KEY }}
 
+      - name: Print sha256sum
+        run: sha256sum ${{ github.workspace }}/apple-api-key.p8
+
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
