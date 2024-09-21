@@ -54,7 +54,9 @@ jobs:
         run: pnpm install
 
       - name: Save API key to file
-        run: echo -n '${{ secrets.APPLE_API_SECRET_KEY }}' > ~/private_keys/AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8
+        run: |
+          mkdir -p ~/private_keys
+          echo -n '${{ secrets.APPLE_API_SECRET_KEY }}' > ~/private_keys/AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8
 
       - name: Print sha256sum
         run: brew install coreutils && sha256sum ~/private_keys/AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8
