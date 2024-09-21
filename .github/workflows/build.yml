@@ -42,6 +42,7 @@ jobs:
   build-macos:
     name: MacOS Bundle
     runs-on: macos-latest
+    if: startsWith(github.event.ref, 'refs/tags/v')
     permissions:
       contents: write
     steps:
