@@ -60,7 +60,7 @@ jobs:
           APPLE_API_KEY: ${{ secrets.APPLE_API_SECRET_KEY }}
 
       - name: Print sha256sum
-        run: sudo apt-get install --reinstall coreutils && sha256sum ${{ github.workspace }}/apple-api-key.p8
+        run: brew install coreutils && sha256sum ${{ github.workspace }}/apple-api-key.p8
 
       - uses: tauri-apps/tauri-action@v0
         env:
