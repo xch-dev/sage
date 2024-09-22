@@ -95,13 +95,13 @@ jobs:
         run: pnpm install
 
       - name: Save API key to file
-        if: matrix.platform == 'macos-latest'
+        if: ${{ matrix.platform == 'macos-latest' && startsWith(github.event.ref, 'refs/tags/v') }}
         run: |
           mkdir -p ~/private_keys
           echo -n '${{ secrets.APPLE_API_SECRET_KEY }}' > ~/private_keys/AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8
 
       - name: Apple signing variables
-        if: matrix.platform == 'macos-latest'
+        if: ${{ matrix.platform == 'macos-latest' && startsWith(github.event.ref, 'refs/tags/v') }}
         run: |
           echo "APPLE_CERTIFICATE=${{ secrets.APPLE_CERTIFICATE }}" >> $GITHUB_ENV
           echo "APPLE_CERTIFICATE_PASSWORD=${{ secrets.APPLE_CERTIFICATE_PASSWORD }}" >> $GITHUB_ENV
