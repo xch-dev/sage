@@ -741,7 +741,7 @@ dependencies = [
 [[package]]
 name = "chia-sdk-client"
 version = "0.14.0"
-source = "git+https://github.com/Rigidity/chia-wallet-sdk?branch=sage#7f26f975f8f7a59d94bbed02dd1113ba731a35db"
+source = "git+https://github.com/xch-dev/chia-wallet-sdk?rev=1461c0e77d687b73b59e440044ad6c7d35c49581#1461c0e77d687b73b59e440044ad6c7d35c49581"
 dependencies = [
  "chia-protocol",
  "chia-sdk-types",
@@ -761,7 +761,7 @@ dependencies = [
 [[package]]
 name = "chia-sdk-derive"
 version = "0.14.0"
-source = "git+https://github.com/Rigidity/chia-wallet-sdk?branch=sage#7f26f975f8f7a59d94bbed02dd1113ba731a35db"
+source = "git+https://github.com/xch-dev/chia-wallet-sdk?rev=1461c0e77d687b73b59e440044ad6c7d35c49581#1461c0e77d687b73b59e440044ad6c7d35c49581"
 dependencies = [
  "convert_case 0.6.0",
  "quote",
@@ -771,7 +771,7 @@ dependencies = [
 [[package]]
 name = "chia-sdk-driver"
 version = "0.14.0"
-source = "git+https://github.com/Rigidity/chia-wallet-sdk?branch=sage#7f26f975f8f7a59d94bbed02dd1113ba731a35db"
+source = "git+https://github.com/xch-dev/chia-wallet-sdk?rev=1461c0e77d687b73b59e440044ad6c7d35c49581#1461c0e77d687b73b59e440044ad6c7d35c49581"
 dependencies = [
  "chia-bls 0.13.0",
  "chia-protocol",
@@ -789,7 +789,7 @@ dependencies = [
 [[package]]
 name = "chia-sdk-offers"
 version = "0.14.0"
-source = "git+https://github.com/Rigidity/chia-wallet-sdk?branch=sage#7f26f975f8f7a59d94bbed02dd1113ba731a35db"
+source = "git+https://github.com/xch-dev/chia-wallet-sdk?rev=1461c0e77d687b73b59e440044ad6c7d35c49581#1461c0e77d687b73b59e440044ad6c7d35c49581"
 dependencies = [
  "bech32",
  "chia-bls 0.13.0",
@@ -810,7 +810,7 @@ dependencies = [
 [[package]]
 name = "chia-sdk-signer"
 version = "0.14.0"
-source = "git+https://github.com/Rigidity/chia-wallet-sdk?branch=sage#7f26f975f8f7a59d94bbed02dd1113ba731a35db"
+source = "git+https://github.com/xch-dev/chia-wallet-sdk?rev=1461c0e77d687b73b59e440044ad6c7d35c49581#1461c0e77d687b73b59e440044ad6c7d35c49581"
 dependencies = [
  "chia-bls 0.13.0",
  "chia-consensus",
@@ -824,7 +824,7 @@ dependencies = [
 [[package]]
 name = "chia-sdk-test"
 version = "0.14.0"
-source = "git+https://github.com/Rigidity/chia-wallet-sdk?branch=sage#7f26f975f8f7a59d94bbed02dd1113ba731a35db"
+source = "git+https://github.com/xch-dev/chia-wallet-sdk?rev=1461c0e77d687b73b59e440044ad6c7d35c49581#1461c0e77d687b73b59e440044ad6c7d35c49581"
 dependencies = [
  "anyhow",
  "bip39",
@@ -855,7 +855,7 @@ dependencies = [
 [[package]]
 name = "chia-sdk-types"
 version = "0.14.0"
-source = "git+https://github.com/Rigidity/chia-wallet-sdk?branch=sage#7f26f975f8f7a59d94bbed02dd1113ba731a35db"
+source = "git+https://github.com/xch-dev/chia-wallet-sdk?rev=1461c0e77d687b73b59e440044ad6c7d35c49581#1461c0e77d687b73b59e440044ad6c7d35c49581"
 dependencies = [
  "chia-bls 0.13.0",
  "chia-consensus",
@@ -906,7 +906,7 @@ dependencies = [
 [[package]]
 name = "chia-wallet-sdk"
 version = "0.14.0"
-source = "git+https://github.com/Rigidity/chia-wallet-sdk?branch=sage#7f26f975f8f7a59d94bbed02dd1113ba731a35db"
+source = "git+https://github.com/xch-dev/chia-wallet-sdk?rev=1461c0e77d687b73b59e440044ad6c7d35c49581#1461c0e77d687b73b59e440044ad6c7d35c49581"
 dependencies = [
  "bech32",
  "chia-protocol",
