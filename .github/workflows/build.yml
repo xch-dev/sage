@@ -78,6 +78,10 @@ jobs:
             });
             return release.data.id;
 
+      - name: Install x86_64-apple-darwin target
+        if: matrix.platform_name == 'MacOS x86_64'
+        run: rustup target add x86_64-apple-darwin
+
       - name: Ubuntu dependencies
         if: matrix.platform == 'ubuntu-22.04'
         run: sudo apt-get install -y libgtk-3-dev libjavascriptcoregtk-4.1-dev libwebkit2gtk-4.1-dev
