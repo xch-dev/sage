@@ -47,7 +47,7 @@ export default function NetworkList() {
       <NavBar
         label='Network List'
         back={() => {
-          navigate('/settings');
+          navigate(-1);
         }}
       />
 
