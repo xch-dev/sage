@@ -40,9 +40,8 @@ jobs:
         run: cargo fmt --all -- --files-with-diff --check
 
   build:
-    name: MacOS Bundle
-    runs-on: macos-latest
-    if: startsWith(github.event.ref, 'refs/tags/v')
+    name: Bundle ${{ matrix.platform_name }}
+    runs-on: ${{ matrix.platform }}
     permissions:
       contents: write
     strategy:
@@ -50,18 +49,23 @@ jobs:
       matrix:
         include:
           - platform: 'macos-latest'
+            platform_name: MacOS ARM64
             args: '--target aarch64-apple-darwin'
           - platform: 'macos-latest'
+            platform_name: MacOS x86_64
             args: '--target x86_64-apple-darwin'
           - platform: 'ubuntu-22.04'
+            platform_name: Linux
             args: ''
           - platform: 'windows-latest'
+            platform_name: Windows
             args: ''
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Get release
+        if: startsWith(github.event.ref, 'refs/tags/v')
         id: get_release
         uses: actions/github-script@v6
         with:
@@ -105,7 +109,13 @@ jobs:
           echo "APPLE_API_KEY=${{ secrets.APPLE_API_KEY_ID }}" >> $GITHUB_ENV
           echo "APPLE_API_KEY_PATH=~/private_keys/AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8" >> $GITHUB_ENV
 
-      - uses: tauri-apps/tauri-action@v0
+      - name: Dry run
+        if: ${{ !startsWith(github.event.ref, 'refs/tags/v') }}
+        run: pnpm tauri build ${{ matrix.args }}
+
+      - name: Publish
+        uses: tauri-apps/tauri-action@v0
+        if: ${{ startsWith(github.event.ref, 'refs/tags/v') }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CI: true
