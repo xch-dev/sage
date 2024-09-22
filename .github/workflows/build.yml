@@ -16,6 +16,7 @@ concurrency:
 
 jobs:
   lint:
+    name: Lint
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -39,9 +40,89 @@ jobs:
         run: cargo fmt --all -- --files-with-diff --check
 
   build:
-    runs-on: ubuntu-latest
+    name: Bundle ${{ matrix.platform_name }}
+    runs-on: ${{ matrix.platform }}
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: 'macos-latest'
+            platform_name: MacOS ARM64
+            args: '--target aarch64-apple-darwin'
+          - platform: 'macos-latest'
+            platform_name: MacOS x86_64
+            args: '--target x86_64-apple-darwin'
+          - platform: 'ubuntu-22.04'
+            platform_name: Linux
+            args: ''
+          - platform: 'windows-latest'
+            platform_name: Windows
+            args: ''
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v4
+      - name: Get release
+        if: startsWith(github.event.ref, 'refs/tags/v')
+        id: get_release
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const tag = process.env.GITHUB_REF.split('/').pop();
+            const release = await github.rest.repos.getReleaseByTag({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag: tag,
+            });
+            return release.data.id;
+
+      - name: Install x86_64-apple-darwin target
+        if: matrix.platform_name == 'MacOS x86_64'
+        run: rustup target add x86_64-apple-darwin
+
+      - name: Ubuntu dependencies
+        if: matrix.platform == 'ubuntu-22.04'
+        run: sudo apt-get install -y libgtk-3-dev libjavascriptcoregtk-4.1-dev libwebkit2gtk-4.1-dev
+
+      - name: Windows dependencies
+        if: matrix.platform == 'windows-latest'
+        run: |
+          choco install nasm
+          echo "C:\Program Files\NASM" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Frontend dependencies
+        run: pnpm install
+
+      - name: Save API key to file
+        if: ${{ matrix.platform == 'macos-latest' && startsWith(github.event.ref, 'refs/tags/v') }}
+        run: |
+          mkdir -p ~/private_keys
+          echo -n '${{ secrets.APPLE_API_SECRET_KEY }}' > ~/private_keys/AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8
+
+      - name: Apple signing variables
+        if: ${{ matrix.platform == 'macos-latest' && startsWith(github.event.ref, 'refs/tags/v') }}
+        run: |
+          echo "APPLE_CERTIFICATE=${{ secrets.APPLE_CERTIFICATE }}" >> $GITHUB_ENV
+          echo "APPLE_CERTIFICATE_PASSWORD=${{ secrets.APPLE_CERTIFICATE_PASSWORD }}" >> $GITHUB_ENV
+          echo "APPLE_API_ISSUER=${{ secrets.APPLE_API_ISSUER }}" >> $GITHUB_ENV
+          echo "APPLE_API_KEY=${{ secrets.APPLE_API_KEY_ID }}" >> $GITHUB_ENV
+          echo "APPLE_API_KEY_PATH=~/private_keys/AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8" >> $GITHUB_ENV
+
+      - name: Dry run
+        if: ${{ !startsWith(github.event.ref, 'refs/tags/v') }}
+        run: pnpm tauri build ${{ matrix.args }}
+
+      - name: Publish
+        uses: tauri-apps/tauri-action@v0
+        if: ${{ startsWith(github.event.ref, 'refs/tags/v') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CI: true
+        with:
+          releaseId: ${{ steps.get_release.outputs.result }}
+          args: ${{ matrix.args }}

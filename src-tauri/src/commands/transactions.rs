@@ -9,7 +9,8 @@ use chia::{
     puzzles::DeriveSynthetic,
 };
 use chia_wallet_sdk::{
-    decode_address, Peer, RequiredSignature, MAINNET_CONSTANTS, TESTNET11_CONSTANTS,
+    decode_address, AggSigConstants, Peer, RequiredSignature, MAINNET_CONSTANTS,
+    TESTNET11_CONSTANTS,
 };
 use clvmr::Allocator;
 use sage_api::Amount;
@@ -258,10 +259,10 @@ async fn transact(
     let required_signatures = RequiredSignature::from_coin_spends(
         &mut Allocator::new(),
         &coin_spends,
-        if state.config.network.network_id == "mainnet" {
-            &MAINNET_CONSTANTS
+        &if state.config.network.network_id == "mainnet" {
+            AggSigConstants::new(MAINNET_CONSTANTS.agg_sig_me_additional_data)
         } else {
-            &TESTNET11_CONSTANTS
+            AggSigConstants::new(TESTNET11_CONSTANTS.agg_sig_me_additional_data)
         },
     )?;
 
