@@ -10,7 +10,6 @@
 		01F19EE188458C3FBC0FAC1C /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F5E5720FDE8B96D681CBAED /* QuartzCore.framework */; };
 		08123E47E36510857B843AC0 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 164E2E350268ED2A04513FEE /* UIKit.framework */; };
 		1ACB1DFBDEB0809BFDA2C513 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 1CDD10E891CE5538614601C2 /* LaunchScreen.storyboard */; };
-		4685E8588A6773D94A249E84 /* libsage_lib.a in Frameworks */ = {isa = PBXBuildFile; fileRef = BAABF8847FF6F1F0D3F2CA63 /* libsage_lib.a */; };
 		4935DEBDC84053B71A354C40 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9B47ECAF54C86639AF69E484 /* Metal.framework */; };
 		719111851834D6EE97A0113E /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1A61E0D1642C6570A5101E3A /* CoreGraphics.framework */; };
 		79D4CDB9EB3D4A13BA84481F /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BCDAEB1DE5FD02983C866661 /* MetalKit.framework */; };
@@ -19,55 +18,39 @@
 		D77BB436DA92BA7054DB296F /* main.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4A3D52136706249F106003A2 /* main.mm */; };
 		DC8A7E7BC85CF72391F7DB06 /* WebKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1272591EA92E9E93072C73F8 /* WebKit.framework */; };
 		ED56FD091A61C5EF0E4B49FB /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 32D9D63B1548E841957A1E32 /* Assets.xcassets */; };
+		FEF377FC1FC81BF2E0E465DF /* libapp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 1F9E557ADA88D73B10BF473F /* libapp.a */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		00C69FAB903CAC38E1229909 /* convert.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = convert.rs; sourceTree = "<group>"; };
 		046EF1EBB621DCF40B92A2D8 /* sage-tauri_iOS.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "sage-tauri_iOS.entitlements"; sourceTree = "<group>"; };
-		053D1C0AE59D7FE2D2D68D6A /* wallet_sync.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = wallet_sync.rs; sourceTree = "<group>"; };
-		057D004EE365244723EAF402 /* sync_state.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = sync_state.rs; sourceTree = "<group>"; };
 		1272591EA92E9E93072C73F8 /* WebKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WebKit.framework; path = System/Library/Frameworks/WebKit.framework; sourceTree = SDKROOT; };
-		15FC168902390DCBEBF851A4 /* sage.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = sage.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		15FC168902390DCBEBF851A4 /* Sage.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Sage.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		164E2E350268ED2A04513FEE /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
 		1A61E0D1642C6570A5101E3A /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
 		1CDD10E891CE5538614601C2 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
+		1F9E557ADA88D73B10BF473F /* libapp.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libapp.a; sourceTree = "<group>"; };
 		2095E574A265BCC2EA05F42F /* app_state.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = app_state.rs; sourceTree = "<group>"; };
-		22BC1A46377353FE52C58208 /* keychain.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = keychain.rs; sourceTree = "<group>"; };
 		2304A1988156A19CBDF4A717 /* main.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = main.rs; sourceTree = "<group>"; };
 		32D9D63B1548E841957A1E32 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		33ED59AE03F20D25D18F98D2 /* config.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = config.rs; sourceTree = "<group>"; };
-		3923F9D144DEE79BEA1D7080 /* p2_coin_data.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = p2_coin_data.rs; sourceTree = "<group>"; };
-		3B7B70A519930D306921B756 /* app_config.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = app_config.rs; sourceTree = "<group>"; };
-		41CA0497B9BFCABE55BB3B92 /* peer_state.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = peer_state.rs; sourceTree = "<group>"; };
 		4A3D52136706249F106003A2 /* main.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = main.mm; sourceTree = "<group>"; };
 		4F5E5720FDE8B96D681CBAED /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
 		518875D00FD14133C61149AB /* commands.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = commands.rs; sourceTree = "<group>"; };
-		56CA42148BF338546BA7C8C9 /* wallet.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = wallet.rs; sourceTree = "<group>"; };
-		68392BF2EFB575DA1D3AE443 /* setup.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = setup.rs; sourceTree = "<group>"; };
-		684AB0E3AFF91C37EBEF1BC9 /* wallet.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = wallet.rs; sourceTree = "<group>"; };
+		7F4AE3FD85419DB6C21E0D60 /* data.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = data.rs; sourceTree = "<group>"; };
 		7F5BF2F34A8FE054D23E3F41 /* lib.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = lib.rs; sourceTree = "<group>"; };
-		84C44A383FC8A9C405B5B69E /* nft_data.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = nft_data.rs; sourceTree = "<group>"; };
-		859D4790DF33C63ADF5CB30C /* network_config.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = network_config.rs; sourceTree = "<group>"; };
 		893D302D4C4EDB40E4B55D37 /* wallet_info.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = wallet_info.rs; sourceTree = "<group>"; };
 		99381C16136E96C3E129FD55 /* bindings.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = bindings.h; sourceTree = "<group>"; };
-		9A414AFCE05BBBF6C290CA72 /* wallet_config.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = wallet_config.rs; sourceTree = "<group>"; };
 		9B47ECAF54C86639AF69E484 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
 		9BE24BD519EDDCAD25BB3710 /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
-		A13CDFE3E2981A1A3CE2757A /* config.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = config.rs; sourceTree = "<group>"; };
 		A5A605B7CB8DC8CA37D58A02 /* assets */ = {isa = PBXFileReference; lastKnownFileType = folder; path = assets; sourceTree = SOURCE_ROOT; };
-		AF7DE3B07B8307C98B88F757 /* networks.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = networks.rs; sourceTree = "<group>"; };
-		AFC7858073AC2F20A4FDF740 /* peers.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = peers.rs; sourceTree = "<group>"; };
 		B21A22BA09E13A56C775180C /* models.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = models.rs; sourceTree = "<group>"; };
-		B57B3368137C814F0FC963CF /* sync_manager.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = sync_manager.rs; sourceTree = "<group>"; };
-		BAABF8847FF6F1F0D3F2CA63 /* libsage_lib.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libsage_lib.a; sourceTree = "<group>"; };
 		BCDAEB1DE5FD02983C866661 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
-		C4B61B28FCB1FE2F4B37342A /* sync.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = sync.rs; sourceTree = "<group>"; };
-		C62CEADFBAA53A6806E1349C /* peer_mode.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = peer_mode.rs; sourceTree = "<group>"; };
-		E21516161EDF74D6C1BF72A7 /* peer_info.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = peer_info.rs; sourceTree = "<group>"; };
-		EFA0DDC314A5DF73AD10984E /* sync_info.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = sync_info.rs; sourceTree = "<group>"; };
+		BD0237FE31D6F7BB679551C7 /* wallet_secrets.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = wallet_secrets.rs; sourceTree = "<group>"; };
+		C3CA5C59E12700C0697667EB /* actions.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = actions.rs; sourceTree = "<group>"; };
+		D0FC0F0F666AB69665597074 /* sync_event.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = sync_event.rs; sourceTree = "<group>"; };
+		EFD3C13026CD2B6A72171CD6 /* keys.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = keys.rs; sourceTree = "<group>"; };
+		F051B947A7DEBAF5B2BB6703 /* transactions.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = transactions.rs; sourceTree = "<group>"; };
 		F7817F2DF56B54F478F55A1C /* error.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = error.rs; sourceTree = "<group>"; };
-		FD1F0C619059A9E010E90CAC /* derivation_mode.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = derivation_mode.rs; sourceTree = "<group>"; };
-		FE7BE072625B647EEC5B9766 /* did_data.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = did_data.rs; sourceTree = "<group>"; };
+		FAC6C2B458EA8C4CF914B2D3 /* settings.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = settings.rs; sourceTree = "<group>"; };
 		FFAE4B03B84DF1CE0FF7B0B3 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -76,7 +59,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				4685E8588A6773D94A249E84 /* libsage_lib.a in Frameworks */,
+				FEF377FC1FC81BF2E0E465DF /* libapp.a in Frameworks */,
 				719111851834D6EE97A0113E /* CoreGraphics.framework in Frameworks */,
 				4935DEBDC84053B71A354C40 /* Metal.framework in Frameworks */,
 				79D4CDB9EB3D4A13BA84481F /* MetalKit.framework in Frameworks */,
@@ -116,13 +99,9 @@
 		3BBCB642278EC04F38655EF6 /* models */ = {
 			isa = PBXGroup;
 			children = (
-				00C69FAB903CAC38E1229909 /* convert.rs */,
-				FE7BE072625B647EEC5B9766 /* did_data.rs */,
-				84C44A383FC8A9C405B5B69E /* nft_data.rs */,
-				3923F9D144DEE79BEA1D7080 /* p2_coin_data.rs */,
-				E21516161EDF74D6C1BF72A7 /* peer_info.rs */,
-				EFA0DDC314A5DF73AD10984E /* sync_info.rs */,
+				D0FC0F0F666AB69665597074 /* sync_event.rs */,
 				893D302D4C4EDB40E4B55D37 /* wallet_info.rs */,
+				BD0237FE31D6F7BB679551C7 /* wallet_secrets.rs */,
 			);
 			path = models;
 			sourceTree = "<group>";
@@ -134,34 +113,17 @@
 			path = Externals;
 			sourceTree = "<group>";
 		};
-		4EE97D55152E717DA18B31FC /* config */ = {
-			isa = PBXGroup;
-			children = (
-				3B7B70A519930D306921B756 /* app_config.rs */,
-				FD1F0C619059A9E010E90CAC /* derivation_mode.rs */,
-				859D4790DF33C63ADF5CB30C /* network_config.rs */,
-				C62CEADFBAA53A6806E1349C /* peer_mode.rs */,
-				9A414AFCE05BBBF6C290CA72 /* wallet_config.rs */,
-			);
-			path = config;
-			sourceTree = "<group>";
-		};
 		57B2C6D1FA6A049877186812 /* src */ = {
 			isa = PBXGroup;
 			children = (
 				2095E574A265BCC2EA05F42F /* app_state.rs */,
 				518875D00FD14133C61149AB /* commands.rs */,
-				33ED59AE03F20D25D18F98D2 /* config.rs */,
 				F7817F2DF56B54F478F55A1C /* error.rs */,
 				7F5BF2F34A8FE054D23E3F41 /* lib.rs */,
 				2304A1988156A19CBDF4A717 /* main.rs */,
 				B21A22BA09E13A56C775180C /* models.rs */,
-				C4B61B28FCB1FE2F4B37342A /* sync.rs */,
-				684AB0E3AFF91C37EBEF1BC9 /* wallet.rs */,
 				D856C1C1C0F61F26341C7400 /* commands */,
-				4EE97D55152E717DA18B31FC /* config */,
 				3BBCB642278EC04F38655EF6 /* models */,
-				9F425CC9DAA1727A55B0AC91 /* sync */,
 			);
 			name = src;
 			path = ../../src;
@@ -171,7 +133,7 @@
 			isa = PBXGroup;
 			children = (
 				1A61E0D1642C6570A5101E3A /* CoreGraphics.framework */,
-				BAABF8847FF6F1F0D3F2CA63 /* libsage_lib.a */,
+				1F9E557ADA88D73B10BF473F /* libapp.a */,
 				9B47ECAF54C86639AF69E484 /* Metal.framework */,
 				BCDAEB1DE5FD02983C866661 /* MetalKit.framework */,
 				4F5E5720FDE8B96D681CBAED /* QuartzCore.framework */,
@@ -194,7 +156,7 @@
 		8FA733EA2608F62686E85E83 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				15FC168902390DCBEBF851A4 /* sage.app */,
+				15FC168902390DCBEBF851A4 /* Sage.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -205,17 +167,6 @@
 				99381C16136E96C3E129FD55 /* bindings.h */,
 			);
 			path = bindings;
-			sourceTree = "<group>";
-		};
-		9F425CC9DAA1727A55B0AC91 /* sync */ = {
-			isa = PBXGroup;
-			children = (
-				41CA0497B9BFCABE55BB3B92 /* peer_state.rs */,
-				B57B3368137C814F0FC963CF /* sync_manager.rs */,
-				057D004EE365244723EAF402 /* sync_state.rs */,
-				053D1C0AE59D7FE2D2D68D6A /* wallet_sync.rs */,
-			);
-			path = sync;
 			sourceTree = "<group>";
 		};
 		C6641728095DCADE87EEA506 /* sage-tauri_iOS */ = {
@@ -230,12 +181,11 @@
 		D856C1C1C0F61F26341C7400 /* commands */ = {
 			isa = PBXGroup;
 			children = (
-				A13CDFE3E2981A1A3CE2757A /* config.rs */,
-				22BC1A46377353FE52C58208 /* keychain.rs */,
-				AF7DE3B07B8307C98B88F757 /* networks.rs */,
-				AFC7858073AC2F20A4FDF740 /* peers.rs */,
-				68392BF2EFB575DA1D3AE443 /* setup.rs */,
-				56CA42148BF338546BA7C8C9 /* wallet.rs */,
+				C3CA5C59E12700C0697667EB /* actions.rs */,
+				7F4AE3FD85419DB6C21E0D60 /* data.rs */,
+				EFD3C13026CD2B6A72171CD6 /* keys.rs */,
+				FAC6C2B458EA8C4CF914B2D3 /* settings.rs */,
+				F051B947A7DEBAF5B2BB6703 /* transactions.rs */,
 			);
 			path = commands;
 			sourceTree = "<group>";
@@ -258,7 +208,7 @@
 			);
 			name = "sage-tauri_iOS";
 			productName = "sage-tauri_iOS";
-			productReference = 15FC168902390DCBEBF851A4 /* sage.app */;
+			productReference = 15FC168902390DCBEBF851A4 /* Sage.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -269,11 +219,6 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1430;
-				TargetAttributes = {
-					24D652EC5BE9A86367B2B089 = {
-						ProvisioningStyle = Automatic;
-					};
-				};
 			};
 			buildConfigurationList = DA6C23F1856A16A27853A977 /* Build configuration list for PBXProject "sage-tauri" */;
 			compatibilityVersion = "Xcode 14.0";
@@ -320,9 +265,9 @@
 			outputFileListPaths = (
 			);
 			outputPaths = (
-				"$(SRCROOT)/Externals/x86_64/${CONFIGURATION}/libsage_lib.a",
-				"$(SRCROOT)/Externals/arm64/${CONFIGURATION}/libsage_lib.a",
-				"$(SRCROOT)/Externals/arm64-sim/${CONFIGURATION}/libsage_lib.a",
+				"$(SRCROOT)/Externals/x86_64/${CONFIGURATION}/libapp.a",
+				"$(SRCROOT)/Externals/arm64/${CONFIGURATION}/libapp.a",
+				"$(SRCROOT)/Externals/arm64-sim/${CONFIGURATION}/libapp.a",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -445,7 +390,7 @@
 					"$(TOOLCHAIN_DIR)/usr/lib/swift-5.0/$(PLATFORM_NAME)",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.rigidnetwork.sage;
-				PRODUCT_NAME = sage;
+				PRODUCT_NAME = Sage;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VALID_ARCHS = "arm64  arm64-sim";
@@ -562,7 +507,7 @@
 					"$(TOOLCHAIN_DIR)/usr/lib/swift-5.0/$(PLATFORM_NAME)",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.rigidnetwork.sage;
-				PRODUCT_NAME = sage;
+				PRODUCT_NAME = Sage;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VALID_ARCHS = "arm64  arm64-sim";
