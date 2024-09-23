@@ -9,7 +9,7 @@ mod commands;
 mod error;
 mod models;
 
-#[cfg(debug_assertions)]
+#[cfg(all(debug_assertions, not(mobile)))]
 use specta_typescript::Typescript;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -68,7 +68,8 @@ pub fn run() {
         ])
         .events(collect_events![SyncEvent]);
 
-    #[cfg(debug_assertions)] // <- Only export on non-release builds
+    // On mobile or release mode we should not export the TypeScript bindings
+    #[cfg(all(debug_assertions, not(mobile)))]
     builder
         .export(Typescript::default(), "../src/bindings.ts")
         .expect("Failed to export TypeScript bindings");

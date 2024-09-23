@@ -15,7 +15,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "24D652EC5BE9A86367B2B089"
-               BuildableName = "sage.app"
+               BuildableName = "Sage.app"
                BlueprintName = "sage-tauri_iOS"
                ReferencedContainer = "container:sage-tauri.xcodeproj">
             </BuildableReference>
@@ -31,7 +31,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "24D652EC5BE9A86367B2B089"
-            BuildableName = "sage.app"
+            BuildableName = "Sage.app"
             BlueprintName = "sage-tauri_iOS"
             ReferencedContainer = "container:sage-tauri.xcodeproj">
          </BuildableReference>
@@ -66,7 +66,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "24D652EC5BE9A86367B2B089"
-            BuildableName = "sage.app"
+            BuildableName = "Sage.app"
             BlueprintName = "sage-tauri_iOS"
             ReferencedContainer = "container:sage-tauri.xcodeproj">
          </BuildableReference>
@@ -95,7 +95,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "24D652EC5BE9A86367B2B089"
-            BuildableName = "sage.app"
+            BuildableName = "Sage.app"
             BlueprintName = "sage-tauri_iOS"
             ReferencedContainer = "container:sage-tauri.xcodeproj">
          </BuildableReference>
