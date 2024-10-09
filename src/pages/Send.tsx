@@ -1,108 +1,287 @@
-import {
-  Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
-  Typography,
-} from '@mui/material';
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { commands, Error } from '../bindings';
+import { useCallback, useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { CatRecord, commands, Error, events } from '../bindings';
 import Container from '../components/Container';
 import ErrorDialog from '../components/ErrorDialog';
-import Form, { FormValue } from '../components/Form';
-import { useWalletState } from '../state';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
 import Header from '@/components/Header';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { useWalletState } from '@/state';
+import BigNumber from 'bignumber.js';
+import { LoaderCircleIcon } from 'lucide-react';
+
+const amountType = (decimals: number) =>
+  z
+    .string()
+    .refine(
+      (amount) => (BigNumber(amount).decimalPlaces() || 0) <= decimals,
+      'Value has too many decimals',
+    )
+    .refine((amount) => {
+      const mojos = BigNumber(amount || 0).multipliedBy(
+        BigNumber(10).pow(decimals),
+      );
+
+      return mojos.isLessThanOrEqualTo(BigNumber('18446744073709551615'));
+    }, 'Values is too large');
 
 export default function Send() {
+  const { asset_id: assetId } = useParams();
+
   const navigate = useNavigate();
   const walletState = useWalletState();
 
+  const [asset, setAsset] = useState<(CatRecord & { decimals: number }) | null>(
+    null,
+  );
   const [isConfirmOpen, setConfirmOpen] = useState(false);
-  const [values, setValues] = useState({
-    address: '',
-    amount: '',
-    fee: '',
-  });
+  const [pending, setPending] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
-  const submit = () => {
-    commands.send(values.address, values.amount, values.fee).then((result) => {
+  const updateCat = useCallback(() => {
+    commands.getCat(assetId!).then((result) => {
       if (result.status === 'ok') {
-        navigate(-1);
+        setAsset({ ...result.data!, decimals: 3 });
       } else {
         console.error(result.error);
         setError(result.error);
       }
     });
+  }, [assetId]);
+
+  useEffect(() => {
+    if (assetId === 'xch') {
+      setAsset({
+        asset_id: 'xch',
+        name: 'Chia',
+        description: 'The native token of the Chia blockchain.',
+        ticker: walletState.sync.unit.ticker,
+        decimals: walletState.sync.unit.decimals,
+        balance: walletState.sync.balance,
+        icon_url: 'https://icons.dexie.space/xch.webp',
+        visible: true,
+      });
+    } else {
+      updateCat();
+
+      const unlisten = events.syncEvent.listen((event) => {
+        if (event.payload.type === 'cat_update') {
+          updateCat();
+        }
+      });
+
+      return () => {
+        unlisten.then((u) => u());
+      };
+    }
+  }, [
+    updateCat,
+    assetId,
+    walletState.sync.balance,
+    walletState.sync.unit.decimals,
+    walletState.sync.unit.ticker,
+  ]);
+
+  const formSchema = z.object({
+    address: z
+      .string()
+      .refine(
+        (address) =>
+          commands
+            .validateAddress(address)
+            .then((result) => result.status === 'ok' && result.data),
+        'Invalid address',
+      ),
+    amount: amountType(asset?.decimals).refine(
+      (amount) => BigNumber(amount).isGreaterThan(0),
+      'Amount must be greater than 0',
+    ),
+    fee: amountType(walletState.sync.unit.decimals).optional(),
+  });
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+  });
+
+  const onSubmit = () => {
+    setConfirmOpen(true);
+  };
+
+  const values = form.getValues();
+
+  const submit = () => {
+    setPending(true);
+    commands
+      .send(
+        values.address,
+        values.amount.toString(),
+        values.fee?.toString() || '0',
+      )
+      .then((result) => {
+        if (result.status === 'ok') {
+          navigate(-1);
+        } else {
+          console.error(result.error);
+          setError(result.error);
+        }
+      })
+      .finally(() => setPending(false));
   };
 
   return (
     <>
-      <Header
-        title={`Send ${walletState.sync.unit.ticker}`}
-        back={() => navigate(-1)}
-      />
+      <Header title={`Send ${asset?.ticker}`} back={() => navigate(-1)} />
 
-      <Container>
-        <Form
-          fields={[
-            { id: 'address', type: 'text', label: 'Address' },
-            {
-              id: 'amount',
-              type: 'amount',
-              label: 'Amount',
-              unit: walletState.sync.unit,
-            },
-            {
-              id: 'fee',
-              type: 'amount',
-              label: 'Fee',
-              unit: walletState.sync.unit,
-            },
-          ]}
-          values={values}
-          setValues={setValues as (values: Record<string, FormValue>) => void}
-          submitName={`Send ${walletState.sync.unit.ticker}`}
-          onSubmit={() => setConfirmOpen(true)}
-        />
+      <Container className='max-w-xl'>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-4'>
+            <FormField
+              control={form.control}
+              name='address'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Address</FormLabel>
+                  <FormControl>
+                    <Input
+                      autoCorrect='off'
+                      autoCapitalize='off'
+                      autoComplete='off'
+                      placeholder='Enter address'
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-        <Dialog open={isConfirmOpen} onClose={() => setConfirmOpen(false)}>
-          <DialogTitle>
-            Are you sure you want to send {walletState.sync.unit.ticker}?
-          </DialogTitle>
-          <DialogContent>
-            <DialogContentText>
-              This transaction cannot be reversed once it has been initiated.
-              <Typography variant='h6' color='text.primary' mt={2}>
-                Amount
-              </Typography>
-              <Typography sx={{ wordBreak: 'break-all' }}>
-                {values.amount} {walletState.sync.unit.ticker} (with a fee of{' '}
-                {values.fee} {walletState.sync.unit.ticker})
-              </Typography>
-              <Typography variant='h6' color='text.primary' mt={2}>
-                Address
-              </Typography>
-              <Typography sx={{ wordBreak: 'break-all' }}>
-                {values.address}
-              </Typography>
-            </DialogContentText>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setConfirmOpen(false)}>Cancel</Button>
-            <Button
-              onClick={() => {
-                setConfirmOpen(false);
-                submit();
-              }}
-              autoFocus
-            >
-              Confirm
+            <div className='grid sm:grid-cols-2 gap-4'>
+              <FormField
+                control={form.control}
+                name='amount'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Amount</FormLabel>
+                    <FormControl>
+                      <div className='relative'>
+                        <Input
+                          type='text'
+                          placeholder='0.00'
+                          {...field}
+                          className='pr-12'
+                        />
+
+                        <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
+                          <span
+                            className='text-gray-500 sm:text-sm'
+                            id='price-currency'
+                          >
+                            {asset?.ticker}
+                          </span>
+                        </div>
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name='fee'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Fee</FormLabel>
+                    <FormControl>
+                      <div className='relative'>
+                        <Input
+                          type='text'
+                          placeholder='0.00'
+                          {...field}
+                          className='pr-12'
+                        />
+
+                        <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
+                          <span
+                            className='text-gray-500 sm:text-sm'
+                            id='price-currency'
+                          >
+                            {walletState.sync.unit.ticker}
+                          </span>
+                        </div>
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <Button type='submit' disabled={pending}>
+              {pending && (
+                <LoaderCircleIcon className='mr-2 h-4 w-4 animate-spin' />
+              )}
+              {pending ? 'Sending' : 'Send'} {asset?.ticker}
             </Button>
-          </DialogActions>
+          </form>
+        </Form>
+
+        <Dialog open={isConfirmOpen} onOpenChange={setConfirmOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>
+                Are you sure you want to send {asset?.ticker}?
+              </DialogTitle>
+              <DialogDescription>
+                This transaction cannot be reversed once it has been initiated.
+              </DialogDescription>
+            </DialogHeader>
+            <div className='space-y-4'>
+              <div>
+                <h6 className='text-sm font-semibold'>Amount</h6>
+                <p className='break-all'>
+                  {values.amount} {asset?.ticker} (with a fee of{' '}
+                  {values.fee || 0} {walletState.sync.unit.ticker})
+                </p>
+              </div>
+              <div>
+                <h6 className='text-sm font-semibold'>Address</h6>
+                <p className='break-all'>{values.address}</p>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant='outline' onClick={() => setConfirmOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  setConfirmOpen(false);
+                  submit();
+                }}
+              >
+                Confirm
+              </Button>
+            </DialogFooter>
+          </DialogContent>
         </Dialog>
       </Container>
 

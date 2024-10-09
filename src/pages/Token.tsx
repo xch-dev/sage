@@ -98,15 +98,7 @@ export default function Token() {
                 {asset?.balance ?? 'Loading'} {asset?.ticker}
               </div>
               <div className='flex gap-2 mt-2'>
-                <Button
-                  onClick={() =>
-                    navigate(
-                      assetId === 'xch'
-                        ? '/wallet/send'
-                        : '/wallet/send-cat/' + assetId,
-                    )
-                  }
-                >
+                <Button onClick={() => navigate('/wallet/send/' + assetId)}>
                   <Send className='mr-2 h-4 w-4' /> Send
                 </Button>
                 <Button
