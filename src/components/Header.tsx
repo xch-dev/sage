@@ -1,13 +1,13 @@
-import { PropsWithChildren, useEffect } from 'react';
+import { PropsWithChildren } from 'react';
 import { Button } from './ui/button';
 import { ChevronLeft, Menu } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
 import { Cog, Images, LogOut, Wallet as WalletIcon } from 'lucide-react';
-import { useState } from 'react';
-import { commands, PeerRecord, WalletInfo } from '../bindings';
 import icon from '@/icon.png';
 import { logoutAndUpdateState } from '@/state';
+import { useWallet } from '@/hooks/useWallet';
+import { usePeers } from '@/contexts/PeerContext';
 
 export default function Header(
   props: PropsWithChildren<{ title: string; back?: () => void }>,
@@ -15,42 +15,19 @@ export default function Header(
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [wallet, setWallet] = useState<WalletInfo | null>(null);
+  const { wallet } = useWallet();
+  const { peers } = usePeers();
 
-  useEffect(() => {
-    commands.activeWallet().then((wallet) => {
-      if (wallet.status === 'error') {
-        return;
-      }
-      if (wallet.data) return setWallet(wallet.data);
-    });
-  }, []);
+  const peerMaxHeight =
+    peers?.reduce((max, peer) => {
+      return Math.max(max, peer.peak_height);
+    }, 0) || 0;
 
   const logout = () => {
     logoutAndUpdateState().then(() => {
       navigate('/');
     });
   };
-
-  const [peers, setPeers] = useState<PeerRecord[] | null>(null);
-
-  const updatePeers = () => {
-    commands.getPeers().then((res) => {
-      if (res.status === 'ok') {
-        setPeers(res.data);
-      }
-    });
-  };
-
-  useEffect(() => {
-    updatePeers();
-
-    const interval = setInterval(updatePeers, 1000);
-
-    return () => {
-      clearInterval(interval);
-    };
-  }, []);
 
   const hasBackButton = props.back || location.pathname.split('/').length > 2;
 
@@ -123,10 +100,22 @@ export default function Header(
         )}
         <span className='text-xl font-semibold'>{props.title}</span>
       </div>
-      <div className='flex items-center gap-1.5 text-sm text-muted-foreground font-bold'>
-        <span className='inline-flex h-2 w-2 rounded-full bg-emerald-600'></span>
-        {peers?.length} peers
-      </div>
+      <Link to='/peers'>
+        <Button
+          variant='ghost'
+          className='flex items-center gap-1.5 text-sm text-muted-foreground font-bold'
+        >
+          <span
+            className={
+              'inline-flex h-2 w-2 rounded-full' +
+              ' ' +
+              (peerMaxHeight > 0 ? 'bg-emerald-600' : 'bg-yellow-600')
+            }
+          ></span>
+          {peers?.length} peers,
+          {peerMaxHeight ? ` ${peerMaxHeight} peak` : ' connecting...'}
+        </Button>
+      </Link>
     </header>
   );
 }

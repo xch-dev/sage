@@ -1,7 +1,7 @@
 import { Alert } from '@mui/material';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { commands, WalletInfo } from '../bindings';
+import { commands } from '../bindings';
 import Container from '../components/Container';
 import { fetchState } from '../state';
 import Header from '@/components/Header';
@@ -24,17 +24,7 @@ import { Button } from '@/components/ui/button';
 export default function ImportWallet() {
   const navigate = useNavigate();
 
-  const [_, setCurrentWallet] = useState<WalletInfo | null>(null);
-
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    commands.activeWallet().then((res) => {
-      if (res.status === 'ok') {
-        setCurrentWallet(res.data);
-      }
-    });
-  }, []);
 
   const submit = (values: z.infer<typeof formSchema>) => {
     commands

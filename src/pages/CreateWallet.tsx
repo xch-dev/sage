@@ -1,7 +1,7 @@
 import { Alert } from '@mui/material';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { commands, WalletInfo } from '../bindings';
+import { commands } from '../bindings';
 import Container from '../components/Container';
 import { fetchState } from '../state';
 import Header from '@/components/Header';
@@ -38,16 +38,6 @@ export default function CreateWallet() {
   const navigate = useNavigate();
 
   const [error, setError] = useState<string | null>(null);
-
-  const [_, setCurrentWallet] = useState<WalletInfo | null>(null);
-
-  useEffect(() => {
-    commands.activeWallet().then((res) => {
-      if (res.status === 'ok') {
-        setCurrentWallet(res.data);
-      }
-    });
-  }, []);
 
   const submit = (values: z.infer<typeof formSchema>) => {
     commands

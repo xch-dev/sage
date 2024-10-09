@@ -23,10 +23,10 @@ import {
   Toolbar,
   Typography,
 } from '@mui/material';
-import { ReactElement, useEffect, useState } from 'react';
+import { ReactElement, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { commands, WalletInfo } from '../bindings';
 import { logoutAndUpdateState } from '../state';
+import { useWallet } from '@/hooks/useWallet';
 
 export interface NavBarProps {
   label: string;
@@ -38,14 +38,7 @@ export default function NavBar(props: NavBarProps) {
   const isMenuOpen = Boolean(anchorEl);
   const navigate = useNavigate();
 
-  const [wallet, setWallet] = useState<WalletInfo | null>(null);
-
-  useEffect(() => {
-    commands.activeWallet().then((res) => {
-      if (res.status === 'error') return;
-      setWallet(res.data);
-    });
-  }, []);
+  const { wallet } = useWallet();
 
   const openMenu = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);

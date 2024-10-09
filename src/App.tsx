@@ -29,6 +29,7 @@ import { MainWallet } from './pages/WalletMain';
 import { WalletNfts } from './pages/WalletNfts';
 import Wallet from './pages/Wallet';
 import { WalletTokens } from './pages/WalletTokens';
+import { PeerProvider } from './contexts/PeerContext';
 
 export interface DarkModeContext {
   toggle: () => void;
@@ -111,7 +112,11 @@ export default function App() {
     <DarkModeContext.Provider value={darkMode}>
       <ThemeProvider theme={theme}>
         <CssBaseline />
-        {initialized && <RouterProvider router={router} />}
+        {initialized && (
+          <PeerProvider>
+            <RouterProvider router={router} />
+          </PeerProvider>
+        )}
         {error && (
           <Container>
             <Typography variant='h4'>Error</Typography>

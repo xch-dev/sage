@@ -83,7 +83,7 @@ export default function Token() {
 
   return (
     <>
-      <Header title={asset?.name ?? 'Unknown asset'} />
+      <Header title={asset ? (asset.name ?? 'Unknown asset') : ''} />
       <Container>
         <div className='grid lg:grid-cols-2 gap-8'>
           <Card>
@@ -95,7 +95,7 @@ export default function Token() {
             </CardHeader>
             <CardContent className='flex flex-col gap-2'>
               <div className='text-4xl font-medium font-mono'>
-                {asset?.balance ?? 'Loading'} {asset?.ticker}
+                {asset?.balance ?? ' '} {asset?.ticker}
               </div>
               <div className='flex gap-2 mt-2'>
                 <Button onClick={() => navigate('/wallet/send/' + assetId)}>

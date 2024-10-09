@@ -18,18 +18,10 @@ import {
 import { clearState, fetchState } from '@/state';
 import Container from '@/components/Container';
 import Header from '@/components/Header';
+import { useWallet } from '@/hooks/useWallet';
 
 export default function Settings() {
-  const [wallet, setWallet] = useState<WalletInfo | null>(null);
-
-  useEffect(() => {
-    commands.activeWallet().then((res) => {
-      if (res.status === 'error') {
-        return;
-      }
-      setWallet(res.data);
-    });
-  }, []);
+  const { wallet } = useWallet();
 
   return (
     <>
