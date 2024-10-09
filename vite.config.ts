@@ -1,4 +1,5 @@
 import react from '@vitejs/plugin-react-swc';
+import path from 'path';
 import { defineConfig } from 'vite';
 
 const host = process.env.TAURI_DEV_HOST;
@@ -24,5 +25,10 @@ export default defineConfig({
   },
   build: {
     chunkSizeWarningLimit: 1024,
+  },
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+    },
   },
 });

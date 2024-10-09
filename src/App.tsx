@@ -82,15 +82,17 @@ export default function App() {
     [dark, setDark],
   );
 
-  const theme = useMemo(
-    () =>
-      createTheme({
-        palette: {
-          mode: dark ? 'dark' : 'light',
-        },
-      }),
-    [dark],
-  );
+  const theme = useMemo(() => {
+    const root = window.document.documentElement;
+    root.classList.remove(dark ? 'light' : 'dark');
+    root.classList.add(dark ? 'dark' : 'light');
+
+    return createTheme({
+      palette: {
+        mode: dark ? 'dark' : 'light',
+      },
+    });
+  }, [dark]);
 
   useEffect(() => {
     commands

@@ -1,37 +1,50 @@
-import {
-  ArrowForward,
-  CompareArrows,
-  ForkRight,
-  MoreVert,
-} from '@mui/icons-material';
-import {
-  Box,
-  Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
-  IconButton,
-  LinearProgress,
-  ListItemIcon,
-  ListItemText,
-  Menu,
-  MenuItem,
-  TextField,
-  Typography,
-} from '@mui/material';
 import { GridRowSelectionModel } from '@mui/x-data-grid';
 import BigNumber from 'bignumber.js';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { commands } from '../bindings';
-import CoinList from '../components/CoinList';
+import { CatRecord, commands, events } from '../bindings';
 import { useWalletState } from '../state';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export function MainWallet() {
   const navigate = useNavigate();
   const walletState = useWalletState();
+
+  const [cats, setCats] = useState<CatRecord[]>([]);
+
+  const updateCats = () => {
+    commands.getCats().then(async (result) => {
+      if (result.status === 'ok') {
+        setCats(
+          await Promise.all(
+            result.data.map(async (cat) => {
+              const response = await fetch(
+                `https://api-testnet.dexie.space/v1/assets?page_size=25&page=1&type=all&code=${cat.asset_id}`,
+              );
+              const catInfo = (await response.json()).assets[0];
+              console.log(catInfo, cat);
+
+              return { ...cat, name: catInfo.name, ticker: catInfo.code };
+            }),
+          ),
+        );
+      }
+    });
+  };
+
+  useEffect(() => {
+    updateCats();
+
+    const unlisten = events.syncEvent.listen((event) => {
+      if (event.payload.type === 'cat_update') {
+        updateCats();
+      }
+    });
+
+    return () => {
+      unlisten.then((u) => u());
+    };
+  }, []);
 
   const [selectedCoins, setSelectedCoins] = useState<GridRowSelectionModel>([]);
   const [isCombineOpen, setCombineOpen] = useState(false);
@@ -101,234 +114,42 @@ export function MainWallet() {
 
   return (
     <>
-      <Box mt={1}>
-        <Typography variant='h5' fontSize={30} textAlign='center'>
-          {walletState.sync.balance} {walletState.sync.unit.ticker}
-        </Typography>
+      <div className='grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-3 xl:grid-cols-4'>
+        <Card x-chunk='dashboard-01-chunk-0'>
+          <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
+            <CardTitle className='text-sm font-medium'>Chia</CardTitle>
 
-        {walletState.sync.total_coins > walletState.sync.synced_coins && (
-          <LinearProgress
-            variant='determinate'
-            value={Math.ceil(
-              (walletState.sync.synced_coins / walletState.sync.total_coins) *
-                100,
-            )}
-            sx={{ mt: 2 }}
-          />
-        )}
+            <img
+              alt={`XCH logo`}
+              className='h-6 w-6'
+              src='https://icons.dexie.space/xch.webp'
+            />
+          </CardHeader>
+          <CardContent>
+            <div className='text-2xl font-bold'>
+              {walletState.sync.balance} {walletState.sync.unit.ticker}
+            </div>
+          </CardContent>
+        </Card>
+        {cats.map((cat) => (
+          <Card x-chunk='dashboard-01-chunk-0'>
+            <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
+              <CardTitle className='text-sm font-medium'>{cat.name}</CardTitle>
 
-        <Box mt={2} textAlign='center'>
-          {walletState.sync.synced_coins}
-          {walletState.sync.synced_coins === walletState.sync.total_coins
-            ? ' coins synced'
-            : `/${walletState.sync.total_coins} coins synced`}
-        </Box>
-
-        <Box display='flex' gap={2} mt={2}>
-          <Button
-            variant='outlined'
-            size='large'
-            sx={{ flexGrow: 1 }}
-            onClick={() => navigate('/send')}
-          >
-            Send
-          </Button>
-          <Button
-            variant='outlined'
-            size='large'
-            sx={{ flexGrow: 1 }}
-            onClick={() => navigate('/receive')}
-          >
-            Receive
-          </Button>
-        </Box>
-
-        <Box height={350} position='relative' mt={2}>
-          <CoinList
-            coins={walletState.coins}
-            selectedCoins={selectedCoins}
-            setSelectedCoins={setSelectedCoins}
-          />
-
-          <Box
-            position='absolute'
-            top={9}
-            right={5}
-            display={selectedCoins.length === 0 ? 'none' : 'block'}
-          >
-            <IconButton onClick={handleClick}>
-              <MoreVert />
-            </IconButton>
-
-            <Menu
-              anchorOrigin={{
-                vertical: 'center',
-                horizontal: 'center',
-              }}
-              transformOrigin={{
-                vertical: 'top',
-                horizontal: 'right',
-              }}
-              anchorEl={anchorEl}
-              open={open}
-              onClose={handleClose}
-            >
-              <MenuItem
-                disabled={selectedCoins.length < 2}
-                onClick={() => {
-                  setCombineOpen(true);
-                  handleClose();
-                }}
-              >
-                <ListItemIcon>
-                  <CompareArrows fontSize='small' />
-                </ListItemIcon>
-                <ListItemText>Combine</ListItemText>
-              </MenuItem>
-
-              <MenuItem
-                disabled={selectedCoins.length === 0}
-                onClick={() => {
-                  setSplitOpen(true);
-                  handleClose();
-                }}
-              >
-                <ListItemIcon>
-                  <ForkRight fontSize='small' />
-                </ListItemIcon>
-                <ListItemText>Split</ListItemText>
-              </MenuItem>
-
-              <MenuItem disabled={selectedCoins.length === 0}>
-                <ListItemIcon>
-                  <ArrowForward fontSize='small' />
-                </ListItemIcon>
-                <ListItemText>Transfer</ListItemText>
-              </MenuItem>
-            </Menu>
-          </Box>
-        </Box>
-      </Box>
-
-      <Dialog
-        open={isCombineOpen}
-        onClose={() => {
-          setCombineOpen(false);
-        }}
-      >
-        <DialogTitle>Combine {walletState.sync.unit.ticker}</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            This will combine all of the selected coins into one.
-          </DialogContentText>
-          <TextField
-            label='Network Fee'
-            variant='standard'
-            margin='dense'
-            required
-            fullWidth
-            autoFocus
-            value={combineFee}
-            error={combineFee.length > 0 && !canCombine}
-            onChange={(event) => setCombineFee(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') {
-                event.preventDefault();
-                combine();
-              }
-            }}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button
-            onClick={(event) => {
-              event.preventDefault();
-              setCombineOpen(false);
-            }}
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={(event) => {
-              event.preventDefault();
-              combine();
-            }}
-            autoFocus
-            disabled={!canCombine}
-          >
-            Combine
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      <Dialog
-        open={isSplitOpen}
-        onClose={() => {
-          setSplitOpen(false);
-        }}
-      >
-        <DialogTitle>Split {walletState.sync.unit.ticker}</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            This will split all of the selected coins.
-          </DialogContentText>
-          <TextField
-            label='Output Count'
-            variant='standard'
-            margin='dense'
-            required
-            fullWidth
-            autoFocus
-            value={splitOutputCount}
-            error={splitOutputCount.length > 0 && !outputCountValid}
-            onChange={(event) => setSplitOutputCount(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') {
-                event.preventDefault();
-                splitFeeRef.current?.focus();
-              }
-            }}
-          />
-          <TextField
-            inputRef={splitFeeRef}
-            label='Network Fee'
-            variant='standard'
-            margin='dense'
-            required
-            fullWidth
-            sx={{ mt: 1 }}
-            value={splitFee}
-            error={splitFee.length > 0 && !splitFeeValid}
-            onChange={(event) => setSplitFee(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') {
-                event.preventDefault();
-                split();
-              }
-            }}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button
-            onClick={(event) => {
-              event.preventDefault();
-              setSplitOpen(false);
-            }}
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={(event) => {
-              event.preventDefault();
-              split();
-            }}
-            autoFocus
-            disabled={!canSplit}
-          >
-            Split
-          </Button>
-        </DialogActions>
-      </Dialog>
+              <img
+                alt={`${cat.asset_id} logo`}
+                className='h-6 w-6'
+                src={`https://icons-testnet.dexie.space/${cat.asset_id}.webp`}
+              />
+            </CardHeader>
+            <CardContent>
+              <div className='text-2xl font-bold'>
+                {cat.balance} {cat.ticker}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </>
   );
 }
