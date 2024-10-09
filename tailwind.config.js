@@ -1,9 +1,15 @@
+import * as defaultTheme from 'tailwindcss/defaultTheme';
+
 /** @type {import('tailwindcss').Config} */
 export default {
   darkMode: ['class'],
   content: ['src/**/*.{ts,tsx}', 'index.html'],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['"Geist Mono"', ...defaultTheme.fontFamily.sans],
+      },
+
       borderRadius: {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',

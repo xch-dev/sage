@@ -1,10 +1,12 @@
 import { GridRowSelectionModel } from '@mui/x-data-grid';
 import BigNumber from 'bignumber.js';
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { CatRecord, commands, events } from '../bindings';
 import { useWalletState } from '../state';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import Header from '@/components/Header';
+import Container from '@/components/Container';
 
 export function MainWallet() {
   const navigate = useNavigate();
@@ -15,19 +17,7 @@ export function MainWallet() {
   const updateCats = () => {
     commands.getCats().then(async (result) => {
       if (result.status === 'ok') {
-        setCats(
-          await Promise.all(
-            result.data.map(async (cat) => {
-              const response = await fetch(
-                `https://api-testnet.dexie.space/v1/assets?page_size=25&page=1&type=all&code=${cat.asset_id}`,
-              );
-              const catInfo = (await response.json()).assets[0];
-              console.log(catInfo, cat);
-
-              return { ...cat, name: catInfo.name, ticker: catInfo.code };
-            }),
-          ),
-        );
+        setCats(result.data);
       }
     });
   };
@@ -114,42 +104,53 @@ export function MainWallet() {
 
   return (
     <>
-      <div className='grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-3 xl:grid-cols-4'>
-        <Card x-chunk='dashboard-01-chunk-0'>
-          <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-            <CardTitle className='text-sm font-medium'>Chia</CardTitle>
+      <Header title='Wallet' />
+      <Container>
+        <div className='grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-3 xl:grid-cols-4'>
+          <Link to={`/wallet/token/xch`}>
+            <Card className='hover:-translate-y-0.5 duration-100 hover:shadow-md'>
+              <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
+                <CardTitle className='text-sm font-medium'>Chia</CardTitle>
 
-            <img
-              alt={`XCH logo`}
-              className='h-6 w-6'
-              src='https://icons.dexie.space/xch.webp'
-            />
-          </CardHeader>
-          <CardContent>
-            <div className='text-2xl font-bold'>
-              {walletState.sync.balance} {walletState.sync.unit.ticker}
-            </div>
-          </CardContent>
-        </Card>
-        {cats.map((cat) => (
-          <Card x-chunk='dashboard-01-chunk-0'>
-            <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-              <CardTitle className='text-sm font-medium'>{cat.name}</CardTitle>
+                <img
+                  alt={`XCH logo`}
+                  className='h-6 w-6'
+                  src='https://icons.dexie.space/xch.webp'
+                />
+              </CardHeader>
+              <CardContent>
+                <div className='text-2xl font-medium'>
+                  {walletState.sync.balance} {walletState.sync.unit.ticker}
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+          {cats.map((cat) => (
+            <Link to={`/wallet/token/${cat.asset_id}`}>
+              <Card className='hover:-translate-y-0.5 duration-100 hover:shadow-md'>
+                <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2 space-x-2'>
+                  <CardTitle className='text-sm font-medium truncate'>
+                    {cat.name}
+                  </CardTitle>
 
-              <img
-                alt={`${cat.asset_id} logo`}
-                className='h-6 w-6'
-                src={`https://icons-testnet.dexie.space/${cat.asset_id}.webp`}
-              />
-            </CardHeader>
-            <CardContent>
-              <div className='text-2xl font-bold'>
-                {cat.balance} {cat.ticker}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+                  {cat.icon_url && (
+                    <img
+                      alt={`${cat.asset_id} logo`}
+                      className='h-6 w-6'
+                      src={cat.icon_url}
+                    />
+                  )}
+                </CardHeader>
+                <CardContent>
+                  <div className='text-2xl font-medium'>
+                    {cat.balance} {cat.ticker}
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+          ))}
+        </div>
+      </Container>
     </>
   );
 }

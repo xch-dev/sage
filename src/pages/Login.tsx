@@ -1,40 +1,37 @@
-import {
-  AcUnit,
-  Delete,
-  Edit,
-  LocalFireDepartment,
-  Login as LoginIcon,
-  MoreVert,
-  Person,
-} from '@mui/icons-material';
-import {
-  Box,
-  Button,
-  Card,
-  CardActionArea,
-  CardContent,
-  Chip,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
-  IconButton,
-  ListItemIcon,
-  ListItemText,
-  Menu,
-  MenuItem,
-  Skeleton,
-  TextField,
-  Typography,
-} from '@mui/material';
+import { AcUnit, LocalFireDepartment } from '@mui/icons-material';
+import { Chip, Skeleton } from '@mui/material';
 import Grid2 from '@mui/material/Unstable_Grid2/Grid2';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { commands, WalletInfo, WalletSecrets } from '../bindings';
 import Container from '../components/Container';
-import NavBar from '../components/NavBar';
 import { loginAndUpdateState } from '../state';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardTitle, CardHeader } from '@/components/ui/card';
+import {
+  EyeIcon,
+  LogInIcon,
+  MoreVerticalIcon,
+  PenIcon,
+  TrashIcon,
+} from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 
 export default function Login() {
   const [wallets, setWallets] = useState<WalletInfo[] | null>(null);
@@ -57,11 +54,21 @@ export default function Login() {
   }, [navigate]);
 
   return (
-    <>
-      <NavBar label='Wallet Login' back={null} />
+    <div className='flex-1 space-y-4 p-8 pt-6'>
+      <div className='flex items-center justify-between space-y-2'>
+        <h2 className='text-3xl font-bold tracking-tight'>Wallets</h2>
+        {wallets?.length && (
+          <div className='flex items-center space-x-2'>
+            <Button variant='outline' onClick={() => navigate('/import')}>
+              Import
+            </Button>
+            <Button onClick={() => navigate('/create')}>Create</Button>
+          </div>
+        )}
+      </div>{' '}
       {wallets ? (
         wallets.length ? (
-          <Grid2 container spacing={2} margin={2} justifyContent={'center'}>
+          <div className='grid md:grid-cols-2 lg:grid-cols-3 gap-4'>
             {wallets.map((wallet, i) => (
               <WalletItem
                 key={i}
@@ -70,14 +77,14 @@ export default function Login() {
                 setWallets={setWallets}
               />
             ))}
-          </Grid2>
+          </div>
         ) : (
           <Welcome />
         )
       ) : (
         <SkeletonWalletList />
       )}
-    </>
+    </div>
   );
 }
 
@@ -172,206 +179,187 @@ function WalletItem(props: {
 
   return (
     <Grid2 xs={12} sm={6} md={4}>
-      <Card>
-        <CardActionArea onClick={() => loginSelf(false)}>
-          <CardContent>
-            <Box
-              display='flex'
-              alignItems='center'
-              justifyContent='space-between'
-              mt={-0.9}
-            >
-              <Typography variant='h5' component='div'>
-                {props.wallet.name}
-              </Typography>
-              <IconButton
-                sx={{ mr: -0.9 }}
-                color='inherit'
-                onClick={openMenu}
-                onMouseDown={(e) => e.stopPropagation()}
-              >
-                <MoreVert />
-              </IconButton>
-            </Box>
-
-            <Menu
-              anchorEl={anchorEl}
-              open={isMenuOpen}
-              onClose={closeMenu}
-              onMouseDown={(e) => e.stopPropagation()}
-            >
-              <MenuItem
-                onClick={() => {
-                  loginSelf(true);
-                  closeMenu();
-                }}
-              >
-                <ListItemIcon>
-                  <LoginIcon fontSize='small' />
-                </ListItemIcon>
-                <ListItemText>Login</ListItemText>
-              </MenuItem>
-
-              <MenuItem
-                onClick={() => {
-                  setDetailsOpen(true);
-                  closeMenu();
-                }}
-              >
-                <ListItemIcon>
-                  <Person fontSize='small' />
-                </ListItemIcon>
-                <ListItemText>Details</ListItemText>
-              </MenuItem>
-
-              <MenuItem
-                onClick={() => {
-                  setRenameOpen(true);
-                  closeMenu();
-                }}
-              >
-                <ListItemIcon>
-                  <Edit fontSize='small' />
-                </ListItemIcon>
-                <ListItemText>Rename</ListItemText>
-              </MenuItem>
-
-              <MenuItem
-                onClick={() => {
-                  setDeleteOpen(true);
-                  closeMenu();
-                }}
-              >
-                <ListItemIcon>
-                  <Delete fontSize='small' />
-                </ListItemIcon>
-                <ListItemText>Delete</ListItemText>
-              </MenuItem>
-            </Menu>
-
-            <Box
-              display='flex'
-              alignItems='center'
-              justifyContent='space-between'
-              mt={1}
-            >
-              <Typography color='text.secondary'>
-                {props.wallet.fingerprint}
-              </Typography>
-              {props.wallet.kind == 'hot' ? (
-                <Chip
-                  icon={<LocalFireDepartment />}
-                  label='Hot Wallet'
-                  size='small'
-                />
-              ) : (
-                <Chip icon={<AcUnit />} label='Cold Wallet' size='small' />
-              )}
-            </Box>
-          </CardContent>
-        </CardActionArea>
+      <Card onClick={() => loginSelf(false)} className='cursor-pointer'>
+        <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
+          <CardTitle className='text-2xl'>{props.wallet.name}</CardTitle>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant='ghost' size='icon'>
+                <MoreVerticalIcon className='h-5 w-5' />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align='end'>
+              <DropdownMenuGroup>
+                <DropdownMenuItem
+                  className='cursor-pointer'
+                  onClick={(e) => {
+                    loginSelf(false);
+                    e.stopPropagation();
+                  }}
+                >
+                  <LogInIcon className='mr-2 h-4 w-4' />
+                  <span>Login</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className='cursor-pointer'
+                  onClick={(e) => {
+                    setDetailsOpen(true);
+                    e.stopPropagation();
+                  }}
+                >
+                  <EyeIcon className='mr-2 h-4 w-4' />
+                  <span>Details</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className='cursor-pointer'
+                  onClick={(e) => {
+                    setRenameOpen(true);
+                    e.stopPropagation();
+                  }}
+                >
+                  <PenIcon className='mr-2 h-4 w-4' />
+                  <span>Rename</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className='cursor-pointer text-red-600 focus:text-red-500'
+                  onClick={(e) => {
+                    setDeleteOpen(true);
+                    e.stopPropagation();
+                  }}
+                >
+                  <TrashIcon className='mr-2 h-4 w-4' />
+                  <span>Delete</span>
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </CardHeader>
+        <CardContent>
+          <div className='flex items-center mt-1 justify-between'>
+            <span className='text-muted-foreground'>
+              {props.wallet.fingerprint}
+            </span>
+            {props.wallet.kind == 'hot' ? (
+              <Chip
+                icon={<LocalFireDepartment />}
+                label='Hot Wallet'
+                size='small'
+              />
+            ) : (
+              <Chip icon={<AcUnit />} label='Cold Wallet' size='small' />
+            )}
+          </div>
+        </CardContent>
       </Card>
 
-      <Dialog open={isDeleteOpen} onClose={() => setDeleteOpen(false)}>
-        <DialogTitle>Permanently Delete</DialogTitle>
+      <Dialog
+        open={isDeleteOpen}
+        onOpenChange={(open) => !open && setDeleteOpen(false)}
+      >
         <DialogContent>
-          <DialogContentText>
-            Are you sure you want to delete this wallet? This cannot be undone,
-            and all funds will be lost unless you have saved your mnemonic
-            phrase.
-          </DialogContentText>
+          <DialogHeader>
+            <DialogTitle>Permanently Delete</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this wallet? This cannot be
+              undone, and all funds will be lost unless you have saved your
+              mnemonic phrase.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant='outline' onClick={() => setDeleteOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant='destructive' onClick={deleteSelf} autoFocus>
+              Delete
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteOpen(false)}>Cancel</Button>
-          <Button onClick={deleteSelf} autoFocus>
-            Delete
-          </Button>
-        </DialogActions>
       </Dialog>
 
       <Dialog
         open={isRenameOpen}
-        onClose={() => {
-          setNewName('');
-          setRenameOpen(false);
-        }}
+        onOpenChange={(open) => !open && setRenameOpen(false)}
       >
-        <DialogTitle>Rename Wallet</DialogTitle>
         <DialogContent>
-          <DialogContentText>
-            Enter the new display name for this wallet.
-          </DialogContentText>
-          <TextField
-            label='Wallet Name'
-            variant='standard'
-            margin='dense'
-            required
-            fullWidth
-            autoFocus
-            value={newName}
-            onChange={(event) => setNewName(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') {
-                event.preventDefault();
-                renameSelf();
-              }
-            }}
-          />
+          <DialogHeader>
+            <DialogTitle>Rename Wallet</DialogTitle>
+            <DialogDescription>
+              Enter the new display name for this wallet.
+            </DialogDescription>
+          </DialogHeader>
+          <div className='grid w-full items-center gap-4'>
+            <div className='flex flex-col space-y-1.5'>
+              <Label htmlFor='name'>Wallet Name</Label>
+              <Input
+                id='name'
+                placeholder='Name of your wallet'
+                value={newName}
+                onChange={(event) => setNewName(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault();
+                    renameSelf();
+                  }
+                }}
+              />
+            </div>
+          </div>
+
+          <DialogFooter className='gap-2'>
+            <Button
+              variant='outline'
+              onClick={() => {
+                setRenameOpen(false);
+                setNewName('');
+              }}
+            >
+              Cancel
+            </Button>
+            <Button onClick={renameSelf} disabled={!newName}>
+              Rename
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button
-            onClick={() => {
-              setNewName('');
-              setRenameOpen(false);
-            }}
-          >
-            Cancel
-          </Button>
-          <Button onClick={renameSelf} autoFocus disabled={!newName}>
-            Rename
-          </Button>
-        </DialogActions>
       </Dialog>
 
-      <Dialog open={isDetailsOpen} onClose={() => setDetailsOpen(false)}>
-        <DialogTitle>Wallet Details</DialogTitle>
+      <Dialog
+        open={isDetailsOpen}
+        onOpenChange={(open) => !open && setDetailsOpen(false)}
+      >
         <DialogContent>
-          <DialogContentText>
-            <Typography variant='h6' color='text.primary'>
-              Public Key
-            </Typography>
-            <Typography sx={{ wordBreak: 'break-all' }}>
-              {props.wallet.public_key}
-            </Typography>
-
+          <DialogHeader>
+            <DialogTitle>Wallet Details</DialogTitle>
+          </DialogHeader>
+          <div className='space-y-4'>
+            <div>
+              <h3 className='font-semibold'>Public Key</h3>
+              <p className='break-all text-sm text-muted-foreground'>
+                {props.wallet.public_key}
+              </p>
+            </div>
             {secrets && (
               <>
-                <Typography mt={2} variant='h6' color='text.primary'>
-                  Secret Key
-                </Typography>
-                <Typography sx={{ wordBreak: 'break-all' }}>
-                  {secrets.secret_key}
-                </Typography>
-
+                <div>
+                  <h3 className='font-semibold'>Secret Key</h3>
+                  <p className='break-all text-sm text-muted-foreground'>
+                    {secrets.secret_key}
+                  </p>
+                </div>
                 {secrets.mnemonic && (
-                  <>
-                    <Typography mt={2} variant='h6' color='text.primary'>
-                      Mnemonic
-                    </Typography>
-                    <Typography sx={{ wordBreak: 'break-word' }}>
+                  <div>
+                    <h3 className='font-semibold'>Mnemonic</h3>
+                    <p className='break-words text-sm text-muted-foreground'>
                       {secrets.mnemonic}
-                    </Typography>
-                  </>
+                    </p>
+                  </div>
                 )}
               </>
             )}
-          </DialogContentText>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setDetailsOpen(false)}>Done</Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDetailsOpen(false)} autoFocus>
-            Done
-          </Button>
-        </DialogActions>
       </Dialog>
     </Grid2>
   );
@@ -382,33 +370,19 @@ function Welcome() {
 
   return (
     <Container>
-      <Typography variant='h3' component='div' textAlign='center'>
-        Sage Wallet
-      </Typography>
+      <div className='text-center text-6xl'>Sage Wallet</div>
 
-      <Typography variant='body1' component='div' textAlign='center' mt={3}>
+      <div className='text-center mt-4'>
         There aren't any wallets to log into yet. To get started, create a new
         wallet or import an existing one.
-      </Typography>
+      </div>
 
-      <Button
-        variant='contained'
-        color='primary'
-        fullWidth
-        sx={{ mt: 4 }}
-        onClick={() => navigate('/create')}
-      >
-        Create Wallet
-      </Button>
-      <Button
-        variant='outlined'
-        color='secondary'
-        fullWidth
-        sx={{ mt: 2 }}
-        onClick={() => navigate('/import')}
-      >
-        Import Wallet
-      </Button>
+      <div className='flex justify-center gap-4 mt-6'>
+        <Button variant='outline' onClick={() => navigate('/import')}>
+          Import Wallet
+        </Button>
+        <Button onClick={() => navigate('/create')}>Create Wallet</Button>
+      </div>
     </Container>
   );
 }

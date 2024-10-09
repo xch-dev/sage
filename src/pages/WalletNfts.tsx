@@ -3,6 +3,8 @@ import Grid2 from '@mui/material/Unstable_Grid2/Grid2';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { commands, NftRecord } from '../bindings';
+import Header from '@/components/Header';
+import Container from '@/components/Container';
 
 export function WalletNfts() {
   const [page, setPage] = useState(0);
@@ -59,30 +61,33 @@ export function WalletNfts() {
 
   return (
     <>
-      <Box display='flex' justifyContent='center' alignItems='center' gap={2}>
-        <Button
-          variant='outlined'
-          onClick={() => previousPage()}
-          disabled={page === 0}
-        >
-          Previous
-        </Button>
-        <Typography variant='body1'>
-          Page {page + 1} of {totalPages}
-        </Typography>
-        <Button
-          variant='outlined'
-          onClick={() => nextPage()}
-          disabled={page >= totalPages - 1}
-        >
-          Next
-        </Button>
-      </Box>
-      <Grid2 mt={3} container spacing={2}>
-        {nfts.map((nft, i) => (
-          <Nft nft={nft} key={i} />
-        ))}
-      </Grid2>
+      <Header title='NFTs' />
+      <Container>
+        <Box display='flex' justifyContent='center' alignItems='center' gap={2}>
+          <Button
+            variant='outlined'
+            onClick={() => previousPage()}
+            disabled={page === 0}
+          >
+            Previous
+          </Button>
+          <Typography variant='body1'>
+            Page {page + 1} of {totalPages}
+          </Typography>
+          <Button
+            variant='outlined'
+            onClick={() => nextPage()}
+            disabled={page >= totalPages - 1}
+          >
+            Next
+          </Button>
+        </Box>
+        <Grid2 mt={3} container spacing={2}>
+          {nfts.map((nft, i) => (
+            <Nft nft={nft} key={i} />
+          ))}
+        </Grid2>
+      </Container>
     </>
   );
 }

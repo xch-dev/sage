@@ -13,8 +13,8 @@ import { CatRecord, commands, Error, events } from '../bindings';
 import Container from '../components/Container';
 import ErrorDialog from '../components/ErrorDialog';
 import Form, { FormValue } from '../components/Form';
-import NavBar from '../components/NavBar';
 import { useWalletState } from '../state';
+import Header from '@/components/Header';
 
 export default function SendCat() {
   const { asset_id: assetId } = useParams();
@@ -72,8 +72,7 @@ export default function SendCat() {
 
   return (
     <>
-      <NavBar label={`Send ${ticker}`} back={() => navigate(-1)} />
-
+      <Header title={`Send ${ticker}`} />
       <Container>
         <Form
           fields={[

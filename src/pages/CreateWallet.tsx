@@ -1,42 +1,45 @@
-import { ContentCopy, Refresh } from '@mui/icons-material';
-import {
-  Alert,
-  Box,
-  Button,
-  Chip,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
-  Divider,
-  FormControlLabel,
-  IconButton,
-  Switch,
-  TextField,
-  Tooltip,
-} from '@mui/material';
-import { writeText } from '@tauri-apps/plugin-clipboard-manager';
+import { Alert } from '@mui/material';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { commands, WalletInfo } from '../bindings';
 import Container from '../components/Container';
-import NavBar from '../components/NavBar';
 import { fetchState } from '../state';
+import Header from '@/components/Header';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
+import { writeText } from '@tauri-apps/plugin-clipboard-manager';
+import { CopyIcon, RefreshCwIcon } from 'lucide-react';
 
 export default function CreateWallet() {
   const navigate = useNavigate();
 
-  const [mnemonic, setMnemonic] = useState<string | null>();
-  const [name, setName] = useState('');
-  const [use24Words, setUse24Words] = useState(true);
-  const [saveMnemonic, setSaveMnemonic] = useState(true);
-  const [isConfirmOpen, setConfirmOpen] = useState(false);
-
-  const [nameError, setNameError] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [currentWallet, setCurrentWallet] = useState<WalletInfo | null>(null);
+  const [_, setCurrentWallet] = useState<WalletInfo | null>(null);
 
   useEffect(() => {
     commands.activeWallet().then((res) => {
@@ -46,30 +49,9 @@ export default function CreateWallet() {
     });
   }, []);
 
-  const loadMnemonic = useCallback(() => {
-    commands.generateMnemonic(use24Words).then((res) => {
-      if (res.status === 'ok') {
-        setMnemonic(res.data);
-      }
-    });
-  }, [use24Words]);
-
-  const copyMnemonic = useCallback(() => {
-    if (!mnemonic) return;
-    writeText(mnemonic);
-  }, [mnemonic]);
-
-  useEffect(() => {
-    loadMnemonic();
-  }, [use24Words, loadMnemonic]);
-
-  const submit = () => {
-    setNameError(!name);
-
-    if (nameError || !name || !mnemonic) return;
-
+  const submit = (values: z.infer<typeof formSchema>) => {
     commands
-      .createWallet(name, mnemonic, saveMnemonic)
+      .createWallet(values.walletName, values.mnemonic, values.saveMnemonic)
       .then((res) => {
         if (res.status === 'ok') {
           fetchState().then(() => {
@@ -82,100 +64,9 @@ export default function CreateWallet() {
 
   return (
     <>
-      <NavBar
-        label='Create Wallet'
-        back={() => {
-          if (currentWallet) {
-            navigate('/wallet');
-          } else {
-            navigate('/');
-          }
-        }}
-      />
+      <Header title='Create Wallet' back={() => navigate('/')} />
       <Container>
-        <TextField
-          label='Wallet Name'
-          fullWidth
-          required
-          autoFocus
-          value={name}
-          error={nameError}
-          onChange={(event) => setName(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter') {
-              event.preventDefault();
-              submit();
-            }
-          }}
-        />
-        <FormControlLabel
-          sx={{ mt: 2 }}
-          control={
-            <Switch
-              checked={use24Words}
-              onChange={(event) => setUse24Words(event.target.checked)}
-            />
-          }
-          label={
-            <Tooltip
-              title='While 12 word mnemonics are sufficiently hard to crack, you can choose to use 24 instead if you want to.'
-              placement='bottom-start'
-              enterDelay={750}
-            >
-              <span>Use 24 words</span>
-            </Tooltip>
-          }
-        />
-        <Box display='flex' alignItems='center' justifyContent='space-between'>
-          <FormControlLabel
-            control={
-              <Switch
-                checked={saveMnemonic}
-                onChange={(event) => setSaveMnemonic(event.target.checked)}
-              />
-            }
-            label={
-              <Tooltip
-                title='By disabling this you are creating a cold wallet, with no ability to sign transactions. The mnemonic will need to be saved elsewhere.'
-                placement='bottom-start'
-                enterDelay={750}
-              >
-                <span>Save mnemonic</span>
-              </Tooltip>
-            }
-          />
-          <Box display='flex' alignItems='center'>
-            <IconButton size='medium' onClick={loadMnemonic}>
-              <Refresh />
-            </IconButton>
-            <IconButton size='medium' onClick={copyMnemonic}>
-              <ContentCopy />
-            </IconButton>
-          </Box>
-        </Box>
-
-        <Divider sx={{ mt: 2 }} />
-
-        <Box mt={3} textAlign='center'>
-          {mnemonic
-            ?.split(' ')
-            .map((word, i) => (
-              <Chip key={i} label={word} variant='outlined' sx={{ m: '2px' }} />
-            ))}
-        </Box>
-
-        <Button
-          variant='contained'
-          fullWidth
-          sx={{ mt: 3 }}
-          disabled={!mnemonic || !name}
-          onClick={() => {
-            if (saveMnemonic) submit();
-            else setConfirmOpen(true);
-          }}
-        >
-          Create Wallet
-        </Button>
+        <CreateForm onSubmit={submit} />
 
         {error && (
           <Alert variant='outlined' severity='error' sx={{ mt: 2 }}>
@@ -183,29 +74,187 @@ export default function CreateWallet() {
           </Alert>
         )}
       </Container>
-
-      <Dialog open={isConfirmOpen} onClose={() => setConfirmOpen(false)}>
-        <DialogTitle>Did you save your mnemonic?</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            Make sure you have saved your mnemonic. You will not be able to
-            access it later, since it will not be saved in the wallet. You will
-            also not be able to make transactions with this wallet.
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setConfirmOpen(false)}>Cancel</Button>
-          <Button
-            onClick={() => {
-              setConfirmOpen(false);
-              submit();
-            }}
-            autoFocus
-          >
-            Confirm
-          </Button>
-        </DialogActions>
-      </Dialog>
     </>
+  );
+}
+
+const formSchema = z.object({
+  walletName: z.string(),
+  mnemonic: z.string(),
+  use24Words: z.boolean(),
+  saveMnemonic: z.boolean(),
+});
+
+function CreateForm(props: {
+  onSubmit: (values: z.infer<typeof formSchema>) => void;
+}) {
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+  });
+
+  const use24Words = form.watch('use24Words', true);
+
+  const loadMnemonic = useCallback(() => {
+    commands.generateMnemonic(use24Words).then((res) => {
+      if (res.status === 'ok') {
+        form.setValue('mnemonic', res.data);
+      }
+    });
+  }, [form, use24Words]);
+
+  useEffect(() => {
+    loadMnemonic();
+  }, [loadMnemonic]);
+
+  const mnemonic = form.watch('mnemonic');
+  const copyMnemonic = useCallback(() => {
+    if (!mnemonic) return;
+    writeText(mnemonic);
+  }, [mnemonic]);
+
+  const [isConfirmOpen, setConfirmOpen] = useState(false);
+
+  const confirmAndSubmit = (values: z.infer<typeof formSchema>) => {
+    if (!values.saveMnemonic) {
+      setConfirmOpen(true);
+    } else {
+      props.onSubmit(values);
+    }
+  };
+
+  return (
+    <Form {...form}>
+      <form
+        onSubmit={form.handleSubmit(confirmAndSubmit)}
+        className='space-y-4 max-w-xl mx-auto py-4'
+      >
+        <FormField
+          control={form.control}
+          name='walletName'
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Wallet Name</FormLabel>
+              <FormControl>
+                <Input placeholder='' required {...field} />
+              </FormControl>
+
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name='use24Words'
+          defaultValue={true}
+          render={({ field }) => (
+            <FormItem className='flex flex-row items-center justify-between rounded-lg border p-4 gap-2'>
+              <label htmlFor='use24Words' className='space-y-0.5'>
+                <FormLabel>Use 24 words</FormLabel>
+                <FormDescription>
+                  While 12 word mnemonics are sufficiently hard to crack, you
+                  can choose to use 24 instead to increase security.
+                </FormDescription>
+              </label>
+              <FormControl>
+                <Switch
+                  id='use24Words'
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name='saveMnemonic'
+          defaultValue={true}
+          render={({ field }) => (
+            <FormItem className='flex flex-row items-center justify-between rounded-lg border p-4 gap-2'>
+              <label htmlFor='saveMnemonic' className='space-y-0.5'>
+                <FormLabel>Save mnemonic</FormLabel>
+                <FormDescription>
+                  By disabling this you are creating a cold wallet, with no
+                  ability to sign transactions. The mnemonic will need to be
+                  saved elsewhere.
+                </FormDescription>
+              </label>
+              <FormControl>
+                <Switch
+                  id='saveMnemonic'
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
+            </FormItem>
+          )}
+        />
+
+        <Separator className='my-4' />
+
+        <div className='mt-3'>
+          <div className='flex justify-between items-center mb-2'>
+            <Label>Mnemonic</Label>
+            <div>
+              <Button
+                type='button'
+                variant='ghost'
+                size='sm'
+                onClick={loadMnemonic}
+              >
+                <RefreshCwIcon className='h-4 w-4' />
+              </Button>
+              <Button
+                type='button'
+                variant='ghost'
+                size='sm'
+                onClick={copyMnemonic}
+              >
+                <CopyIcon className='h-4 w-4' />
+              </Button>
+            </div>
+          </div>
+          <div className='flex flex-wrap'>
+            {form
+              .watch('mnemonic')
+              ?.split(' ')
+              .map((word, i) => (
+                <Badge key={i} variant='outline' className='m-0.5 font-medium'>
+                  {word}
+                </Badge>
+              ))}
+          </div>
+        </div>
+
+        <Button type='submit'>Submit</Button>
+      </form>
+      <Dialog open={isConfirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Did you save your mnemonic?</DialogTitle>
+            <DialogDescription>
+              Make sure you have saved your mnemonic. You will not be able to
+              access it later, since it will not be saved in the wallet. You
+              will also not be able to make transactions with this wallet.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant='outline' onClick={() => setConfirmOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                setConfirmOpen(false);
+                props.onSubmit(form.getValues());
+              }}
+            >
+              Confirm
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Form>
   );
 }

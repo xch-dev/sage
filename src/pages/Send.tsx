@@ -13,8 +13,8 @@ import { commands, Error } from '../bindings';
 import Container from '../components/Container';
 import ErrorDialog from '../components/ErrorDialog';
 import Form, { FormValue } from '../components/Form';
-import NavBar from '../components/NavBar';
 import { useWalletState } from '../state';
+import Header from '@/components/Header';
 
 export default function Send() {
   const navigate = useNavigate();
@@ -41,8 +41,8 @@ export default function Send() {
 
   return (
     <>
-      <NavBar
-        label={`Send ${walletState.sync.unit.ticker}`}
+      <Header
+        title={`Send ${walletState.sync.unit.ticker}`}
         back={() => navigate(-1)}
       />
 

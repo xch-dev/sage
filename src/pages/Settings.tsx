@@ -16,6 +16,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { clearState, fetchState } from '@/state';
+import Container from '@/components/Container';
+import Header from '@/components/Header';
 
 export default function Settings() {
   const [wallet, setWallet] = useState<WalletInfo | null>(null);
@@ -32,11 +34,14 @@ export default function Settings() {
   return (
     <>
       <Layout>
-        <div className='flex flex-col gap-4'>
-          <GlobalSettings />
-          <NetworkSettings />
-          {wallet && <WalletSettings wallet={wallet} />}
-        </div>
+        <Header title='Settings' />
+        <Container>
+          <div className='flex flex-col gap-4'>
+            <GlobalSettings />
+            <NetworkSettings />
+            {wallet && <WalletSettings wallet={wallet} />}
+          </div>
+        </Container>
       </Layout>
     </>
   );

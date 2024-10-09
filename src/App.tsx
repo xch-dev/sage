@@ -28,7 +28,7 @@ import Settings from './pages/Settings';
 import Token from './pages/Token';
 import { MainWallet } from './pages/WalletMain';
 import { WalletNfts } from './pages/WalletNfts';
-import Wallet from './pages/WalletTabs';
+import Wallet from './pages/Wallet';
 import { WalletTokens } from './pages/WalletTokens';
 
 export interface DarkModeContext {
@@ -52,14 +52,16 @@ const router = createHashRouter(
       <Route path='/wallet' element={<Wallet />}>
         <Route path='' element={<MainWallet />} />
         <Route path='tokens' element={<WalletTokens />} />
-        <Route path='nfts' element={<WalletNfts />} />
         <Route path='token/:asset_id' element={<Token />} />
-        <Route path='nft/:launcher_id' element={<Nft />} />
+        <Route path='issue-cat' element={<IssueCat />} />
+        <Route path='send' element={<Send />} />
+        <Route path='send-cat/:asset_id' element={<SendCat />} />
+        <Route path='receive' element={<Receive />} />
       </Route>
-      <Route path='/issue-cat' element={<IssueCat />} />
-      <Route path='/send' element={<Send />} />
-      <Route path='/send-cat/:asset_id' element={<SendCat />} />
-      <Route path='/receive' element={<Receive />} />
+      <Route path='/nfts' element={<Wallet />}>
+        <Route path='' element={<WalletNfts />} />
+        <Route path=':launcher_id' element={<Nft />} />
+      </Route>
       <Route path='/settings' element={<Settings />} />
       <Route path='/networks' element={<NetworkList />} />
       <Route path='/peers' element={<PeerList />} />

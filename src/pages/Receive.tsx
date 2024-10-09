@@ -4,9 +4,9 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { commands, events } from '../bindings';
 import AddressList from '../components/AddressList';
-import ListContainer from '../components/ListContainer';
-import NavBar from '../components/NavBar';
 import { useWalletState } from '../state';
+import Header from '@/components/Header';
+import Container from '@/components/Container';
 
 export default function Receive() {
   const navigate = useNavigate();
@@ -37,12 +37,9 @@ export default function Receive() {
 
   return (
     <>
-      <NavBar
-        label={`Receive ${walletState.sync.unit.ticker}`}
-        back={() => navigate(-1)}
-      />
+      <Header title={`Receive ${walletState.sync.unit.ticker}`} />
 
-      <ListContainer>
+      <Container>
         <Typography variant='h4'>Receive Address</Typography>
 
         <Typography
@@ -68,7 +65,7 @@ export default function Receive() {
         <Box height={350} mt={2}>
           <AddressList addresses={addresses} />
         </Box>
-      </ListContainer>
+      </Container>
     </>
   );
 }

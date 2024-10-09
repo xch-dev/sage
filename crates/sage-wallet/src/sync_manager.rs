@@ -373,7 +373,12 @@ impl SyncManager {
 
             if self.cat_queue_task.is_none() {
                 let task = tokio::spawn(
-                    CatQueue::new(wallet.db.clone(), self.event_sender.clone()).start(),
+                    CatQueue::new(
+                        wallet.db.clone(),
+                        self.network.clone(),
+                        self.event_sender.clone(),
+                    )
+                    .start(),
                 );
                 self.cat_queue_task = Some(task);
             }

@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use chia::protocol::Bytes32;
+use chia_wallet_sdk::{Network, MAINNET_CONSTANTS, TESTNET11_CONSTANTS};
 use sage_database::{CatRow, Database};
 use serde::Deserialize;
 use tokio::{
@@ -13,26 +14,30 @@ use crate::{SyncError, SyncEvent, WalletError};
 
 #[derive(Deserialize)]
 struct Response {
-    data: ResponseData,
+    assets: Vec<AssetData>,
 }
 
-#[derive(Deserialize)]
-struct ResponseData {
+#[derive(Deserialize, Clone)]
+struct AssetData {
     name: Option<String>,
-    symbol: Option<String>,
+    code: Option<String>,
     description: Option<String>,
-    preview_url: Option<String>,
 }
 
 #[derive(Debug)]
 pub struct CatQueue {
     db: Database,
+    network: Network,
     sync_sender: mpsc::Sender<SyncEvent>,
 }
 
 impl CatQueue {
-    pub fn new(db: Database, sync_sender: mpsc::Sender<SyncEvent>) -> Self {
-        Self { db, sync_sender }
+    pub fn new(db: Database, network: Network, sync_sender: mpsc::Sender<SyncEvent>) -> Self {
+        Self {
+            db,
+            network,
+            sync_sender,
+        }
     }
 
     pub async fn start(self) -> Result<(), WalletError> {
@@ -52,39 +57,45 @@ impl CatQueue {
             asset_id
         );
 
-        let response = match timeout(Duration::from_secs(10), lookup_cat(asset_id)).await {
-            Ok(Ok(response)) => response,
-            Ok(Err(error)) => {
-                info!("Failed to fetch CAT: {:?}", error);
-                Response {
-                    data: ResponseData {
+        let asset =
+            match timeout(Duration::from_secs(10), lookup_cat(&self.network, asset_id)).await {
+                Ok(Ok(response)) => response.assets.first().cloned().unwrap_or(AssetData {
+                    name: None,
+                    code: None,
+                    description: None,
+                }),
+                Ok(Err(error)) => {
+                    info!("Failed to fetch CAT: {:?}", error);
+                    AssetData {
                         name: None,
-                        symbol: None,
+                        code: None,
                         description: None,
-                        preview_url: None,
-                    },
+                    }
                 }
-            }
-            Err(_) => {
-                info!("Timeout fetching CAT");
-                Response {
-                    data: ResponseData {
+                Err(_) => {
+                    info!("Timeout fetching CAT");
+                    AssetData {
                         name: None,
-                        symbol: None,
+                        code: None,
                         description: None,
-                        preview_url: None,
-                    },
+                    }
                 }
-            }
-        };
+            };
+
+        let dexie_image_base_url =
+            if self.network.genesis_challenge == TESTNET11_CONSTANTS.genesis_challenge {
+                "https://icons-testnet.dexie.space"
+            } else {
+                "https://icons.dexie.space"
+            };
 
         self.db
             .update_cat(CatRow {
                 asset_id,
-                name: response.data.name,
-                ticker: response.data.symbol,
-                description: response.data.description,
-                icon_url: response.data.preview_url,
+                name: asset.name,
+                ticker: asset.code,
+                description: asset.description,
+                icon_url: Some(format!("{dexie_image_base_url}/{asset_id}.webp")),
                 visible: true,
             })
             .await?;
@@ -95,10 +106,18 @@ impl CatQueue {
     }
 }
 
-async fn lookup_cat(asset_id: Bytes32) -> Result<Response, SyncError> {
+async fn lookup_cat(network: &Network, asset_id: Bytes32) -> Result<Response, SyncError> {
+    let dexie_base_url = if network.genesis_challenge == TESTNET11_CONSTANTS.genesis_challenge {
+        "https://api-testnet.dexie.space/v1"
+    } else {
+        "https://api.dexie.space/v1"
+    };
+
     let response = timeout(
         Duration::from_secs(10),
-        reqwest::get(format!("https://api-fin.spacescan.io/cat/info/{asset_id}")),
+        reqwest::get(format!(
+            "{dexie_base_url}/assets?page_size=25&page=1&type=all&code={asset_id}"
+        )),
     )
     .await
     .map_err(|_| SyncError::Timeout)?
