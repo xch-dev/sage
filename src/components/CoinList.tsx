@@ -1,16 +1,3 @@
-import { CoinRecord } from '../bindings';
-import BigNumber from 'bignumber.js';
-import {
-  ColumnDef,
-  flexRender,
-  getCoreRowModel,
-  useReactTable,
-  getSortedRowModel,
-  SortingState,
-  getPaginationRowModel,
-  getFilteredRowModel,
-  RowSelectionState,
-} from '@tanstack/react-table';
 import {
   Table,
   TableBody,
@@ -19,9 +6,18 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { useState } from 'react';
-import { Checkbox } from './ui/checkbox';
-import { Button } from './ui/button';
+import {
+  ColumnDef,
+  flexRender,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  RowSelectionState,
+  SortingState,
+  useReactTable,
+} from '@tanstack/react-table';
+import BigNumber from 'bignumber.js';
 import {
   ArrowDown,
   ArrowUp,
@@ -30,6 +26,10 @@ import {
   FilterIcon,
   FilterXIcon,
 } from 'lucide-react';
+import { useState } from 'react';
+import { CoinRecord } from '../bindings';
+import { Button } from './ui/button';
+import { Checkbox } from './ui/checkbox';
 
 export interface CoinListProps {
   coins: CoinRecord[];

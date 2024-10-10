@@ -1,13 +1,19 @@
-import { PropsWithChildren, ReactNode, useMemo } from 'react';
-import { Button } from './ui/button';
-import { ChevronLeft, Menu } from 'lucide-react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
-import { Cog, Images, LogOut, Wallet as WalletIcon } from 'lucide-react';
+import { usePeers } from '@/contexts/PeerContext';
+import { useWallet } from '@/hooks/useWallet';
 import icon from '@/icon.png';
 import { logoutAndUpdateState, useWalletState } from '@/state';
-import { useWallet } from '@/hooks/useWallet';
-import { usePeers } from '@/contexts/PeerContext';
+import {
+  ChevronLeft,
+  Cog,
+  Images,
+  LogOut,
+  Menu,
+  Wallet as WalletIcon,
+} from 'lucide-react';
+import { PropsWithChildren, ReactNode, useMemo } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Button } from './ui/button';
+import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
 
 export default function Header(
   props: PropsWithChildren<{

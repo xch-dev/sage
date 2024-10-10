@@ -1,9 +1,6 @@
-import { useEffect, useState } from 'react';
-import { commands, events } from '../bindings';
-import AddressList from '../components/AddressList';
-import { useWalletState } from '../state';
-import Header from '@/components/Header';
 import Container from '@/components/Container';
+import Header from '@/components/Header';
+import { ReceiveAddress } from '@/components/ReceiveAddress';
 import {
   Card,
   CardContent,
@@ -11,7 +8,10 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { ReceiveAddress } from '@/components/ReceiveAddress';
+import { useEffect, useState } from 'react';
+import { commands, events } from '../bindings';
+import AddressList from '../components/AddressList';
+import { useWalletState } from '../state';
 
 export default function Receive() {
   const walletState = useWalletState();

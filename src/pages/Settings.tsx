@@ -1,13 +1,9 @@
-import { useContext, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { DarkModeContext } from '../App';
-import { commands, NetworkConfig, WalletConfig, WalletInfo } from '../bindings';
-import { isValidU32 } from '../validation';
+import Container from '@/components/Container';
+import Header from '@/components/Header';
 import Layout from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -15,10 +11,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { clearState, fetchState } from '@/state';
-import Container from '@/components/Container';
-import Header from '@/components/Header';
+import { Switch } from '@/components/ui/switch';
 import { useWallet } from '@/hooks/useWallet';
+import { clearState, fetchState } from '@/state';
+import { useContext, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { DarkModeContext } from '../App';
+import { commands, NetworkConfig, WalletConfig, WalletInfo } from '../bindings';
+import { isValidU32 } from '../validation';
 
 export default function Settings() {
   const { wallet } = useWallet();

@@ -8,9 +8,10 @@ import {
 import { useLocalStorage } from 'usehooks-ts';
 import { commands } from './bindings';
 import Container from './components/Container';
+import { PeerProvider } from './contexts/PeerContext';
 import CreateWallet from './pages/CreateWallet';
 import ImportWallet from './pages/ImportWallet';
-import IssueCat from './pages/IssueCat';
+import IssueToken from './pages/IssueToken';
 import Login from './pages/Login';
 import Nft from './pages/Nft';
 import PeerList from './pages/PeerList';
@@ -18,10 +19,9 @@ import Receive from './pages/Receive';
 import Send from './pages/Send';
 import Settings from './pages/Settings';
 import Token from './pages/Token';
+import Wallet from './pages/Wallet';
 import { MainWallet } from './pages/WalletMain';
 import { WalletNfts } from './pages/WalletNfts';
-import Wallet from './pages/Wallet';
-import { PeerProvider } from './contexts/PeerContext';
 
 export interface DarkModeContext {
   toggle: () => void;
@@ -44,7 +44,7 @@ const router = createHashRouter(
       <Route path='/wallet' element={<Wallet />}>
         <Route path='' element={<MainWallet />} />
         <Route path='token/:asset_id' element={<Token />} />
-        <Route path='issue-cat' element={<IssueCat />} />
+        <Route path='issue-token' element={<IssueToken />} />
         <Route path='send/:asset_id' element={<Send />} />
         <Route path='receive' element={<Receive />} />
       </Route>

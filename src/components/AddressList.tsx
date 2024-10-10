@@ -1,11 +1,3 @@
-import { useMemo } from 'react';
-import {
-  ColumnDef,
-  flexRender,
-  getCoreRowModel,
-  useReactTable,
-  getPaginationRowModel,
-} from '@tanstack/react-table';
 import {
   Table,
   TableBody,
@@ -14,8 +6,16 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Button } from './ui/button';
+import {
+  ColumnDef,
+  flexRender,
+  getCoreRowModel,
+  getPaginationRowModel,
+  useReactTable,
+} from '@tanstack/react-table';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useMemo } from 'react';
+import { Button } from './ui/button';
 
 export interface AddressListProps {
   addresses: string[];

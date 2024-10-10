@@ -1,21 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
-import { CatRecord, CoinRecord, commands, events } from '../bindings';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import Header from '@/components/Header';
-import { Button } from '@/components/ui/button';
-import {
-  HandHelping,
-  MergeIcon,
-  MoreHorizontalIcon,
-  Send,
-  SplitIcon,
-} from 'lucide-react';
-import Container from '@/components/Container';
 import CoinList from '@/components/CoinList';
-import { useWalletState } from '@/state';
-import { RowSelectionState } from '@tanstack/react-table';
-import BigNumber from 'bignumber.js';
+import Container from '@/components/Container';
+import Header from '@/components/Header';
+import { ReceiveAddress } from '@/components/ReceiveAddress';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -24,10 +12,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
   Form,
   FormControl,
@@ -36,15 +26,25 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { amount } from '@/lib/formTypes';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { ReceiveAddress } from '@/components/ReceiveAddress';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { amount } from '@/lib/formTypes';
+import { useWalletState } from '@/state';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { RowSelectionState } from '@tanstack/react-table';
+import BigNumber from 'bignumber.js';
+import {
+  HandHelping,
+  MergeIcon,
+  MoreHorizontalIcon,
+  Send,
+  SplitIcon,
+} from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import * as z from 'zod';
+import { CatRecord, CoinRecord, commands, events } from '../bindings';
 
 export default function Token() {
   const navigate = useNavigate();
