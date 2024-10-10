@@ -29,7 +29,7 @@ export default function Nft() {
     return () => {
       unlisten.then((u) => u());
     };
-  });
+  }, []);
 
   const metadata = useMemo(() => {
     if (!nft || !nft.metadata) return {};
