@@ -1,11 +1,11 @@
-import { PropsWithChildren } from 'react';
+import { PropsWithChildren, ReactNode, useMemo } from 'react';
 import { Button } from './ui/button';
 import { ChevronLeft, Menu } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
 import { Cog, Images, LogOut, Wallet as WalletIcon } from 'lucide-react';
 import icon from '@/icon.png';
-import { logoutAndUpdateState } from '@/state';
+import { logoutAndUpdateState, useWalletState } from '@/state';
 import { useWallet } from '@/hooks/useWallet';
 import { usePeers } from '@/contexts/PeerContext';
 
@@ -21,6 +21,12 @@ export default function Header(
 
   const { wallet } = useWallet();
   const { peers } = usePeers();
+
+  const walletState = useWalletState();
+  const isSynced = useMemo(
+    () => walletState.sync.synced_coins === walletState.sync.total_coins,
+    [walletState.sync.synced_coins, walletState.sync.total_coins],
+  );
 
   const peerMaxHeight =
     peers?.reduce((max, peer) => {
@@ -92,11 +98,17 @@ export default function Header(
                 className={
                   'inline-flex h-3 w-3 m-1 rounded-full' +
                   ' ' +
-                  (peerMaxHeight > 0 ? 'bg-emerald-600' : 'bg-yellow-600')
+                  (isSynced ? 'bg-emerald-600' : 'bg-yellow-600')
                 }
               ></span>
-              {peers?.length} peers,
-              {peerMaxHeight ? ` ${peerMaxHeight} peak` : ' connecting...'}
+              {isSynced ? (
+                <>
+                  {peers?.length} peers,
+                  {peerMaxHeight ? ` ${peerMaxHeight} peak` : ' connecting...'}
+                </>
+              ) : (
+                `Syncing ${walletState.sync.synced_coins} / ${walletState.sync.total_coins} coins`
+              )}
             </Link>
             <Link
               to='/settings'

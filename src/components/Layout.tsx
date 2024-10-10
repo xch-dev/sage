@@ -1,10 +1,10 @@
 import { Cog, Images, LogOut, Wallet as WalletIcon } from 'lucide-react';
-import { PropsWithChildren, useEffect, useState } from 'react';
+import { PropsWithChildren, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { commands, WalletInfo } from '../bindings';
 
 import icon from '@/icon.png';
-import { logoutAndUpdateState } from '@/state';
+import { logoutAndUpdateState, useWalletState } from '@/state';
 import { usePeers } from '@/contexts/PeerContext';
 
 export default function Layout(props: PropsWithChildren<object>) {
@@ -12,6 +12,12 @@ export default function Layout(props: PropsWithChildren<object>) {
 
   const [wallet, setWallet] = useState<WalletInfo | null>(null);
   const { peers } = usePeers();
+
+  const walletState = useWalletState();
+  const isSynced = useMemo(
+    () => walletState.sync.synced_coins === walletState.sync.total_coins,
+    [walletState.sync.synced_coins, walletState.sync.total_coins],
+  );
 
   const peerMaxHeight =
     peers?.reduce((max, peer) => {
@@ -72,11 +78,19 @@ export default function Layout(props: PropsWithChildren<object>) {
                     className={
                       'inline-flex h-2 w-2 m-1 rounded-full' +
                       ' ' +
-                      (peerMaxHeight > 0 ? 'bg-emerald-600' : 'bg-yellow-600')
+                      (isSynced ? 'bg-emerald-600' : 'bg-yellow-600')
                     }
                   ></span>
-                  {peers?.length} peers,
-                  {peerMaxHeight ? ` ${peerMaxHeight} peak` : ' connecting...'}
+                  {isSynced ? (
+                    <>
+                      {peers?.length} peers,
+                      {peerMaxHeight
+                        ? ` ${peerMaxHeight} peak`
+                        : ' connecting...'}
+                    </>
+                  ) : (
+                    `Syncing ${walletState.sync.synced_coins} / ${walletState.sync.total_coins} coins`
+                  )}
                 </Link>
                 <Link
                   to={'/settings'}
