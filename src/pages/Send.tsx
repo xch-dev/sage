@@ -26,26 +26,12 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useWalletState } from '@/state';
-import BigNumber from 'bignumber.js';
 import { LoaderCircleIcon } from 'lucide-react';
-
-const amountType = (decimals: number) =>
-  z
-    .string()
-    .refine(
-      (amount) => (BigNumber(amount).decimalPlaces() || 0) <= decimals,
-      'Value has too many decimals',
-    )
-    .refine((amount) => {
-      const mojos = BigNumber(amount || 0).multipliedBy(
-        BigNumber(10).pow(decimals),
-      );
-
-      return mojos.isLessThanOrEqualTo(BigNumber('18446744073709551615'));
-    }, 'Values is too large');
+import { amount, positiveAmount } from '@/lib/formTypes';
 
 export default function Send() {
   const { asset_id: assetId } = useParams();
+  const isXch = assetId === 'xch';
 
   const navigate = useNavigate();
   const walletState = useWalletState();
@@ -69,7 +55,7 @@ export default function Send() {
   }, [assetId]);
 
   useEffect(() => {
-    if (assetId === 'xch') {
+    if (isXch) {
       setAsset({
         asset_id: 'xch',
         name: 'Chia',
@@ -95,7 +81,7 @@ export default function Send() {
     }
   }, [
     updateCat,
-    assetId,
+    isXch,
     walletState.sync.balance,
     walletState.sync.unit.decimals,
     walletState.sync.unit.ticker,
@@ -111,11 +97,8 @@ export default function Send() {
             .then((result) => result.status === 'ok' && result.data),
         'Invalid address',
       ),
-    amount: amountType(asset?.decimals).refine(
-      (amount) => BigNumber(amount).isGreaterThan(0),
-      'Amount must be greater than 0',
-    ),
-    fee: amountType(walletState.sync.unit.decimals).optional(),
+    amount: positiveAmount(asset?.decimals || 12),
+    fee: amount(walletState.sync.unit.decimals).optional(),
   });
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -130,12 +113,19 @@ export default function Send() {
 
   const submit = () => {
     setPending(true);
-    commands
-      .send(
-        values.address,
-        values.amount.toString(),
-        values.fee?.toString() || '0',
-      )
+    (isXch
+      ? commands.send(
+          values.address,
+          values.amount.toString(),
+          values.fee?.toString() || '0',
+        )
+      : commands.sendCat(
+          assetId!,
+          values.address,
+          values.amount.toString(),
+          values.fee?.toString() || '0',
+        )
+    )
       .then((result) => {
         if (result.status === 'ok') {
           navigate(-1);

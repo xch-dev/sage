@@ -1,9 +1,3 @@
-import {
-  createTheme,
-  CssBaseline,
-  ThemeProvider,
-  Typography,
-} from '@mui/material';
 import { createContext, useEffect, useMemo, useState } from 'react';
 import {
   createHashRouter,
@@ -18,7 +12,6 @@ import CreateWallet from './pages/CreateWallet';
 import ImportWallet from './pages/ImportWallet';
 import IssueCat from './pages/IssueCat';
 import Login from './pages/Login';
-import NetworkList from './pages/NetworkList';
 import Nft from './pages/Nft';
 import PeerList from './pages/PeerList';
 import Receive from './pages/Receive';
@@ -28,7 +21,6 @@ import Token from './pages/Token';
 import { MainWallet } from './pages/WalletMain';
 import { WalletNfts } from './pages/WalletNfts';
 import Wallet from './pages/Wallet';
-import { WalletTokens } from './pages/WalletTokens';
 import { PeerProvider } from './contexts/PeerContext';
 
 export interface DarkModeContext {
@@ -51,7 +43,6 @@ const router = createHashRouter(
       <Route path='/import' element={<ImportWallet />} />
       <Route path='/wallet' element={<Wallet />}>
         <Route path='' element={<MainWallet />} />
-        <Route path='tokens' element={<WalletTokens />} />
         <Route path='token/:asset_id' element={<Token />} />
         <Route path='issue-cat' element={<IssueCat />} />
         <Route path='send/:asset_id' element={<Send />} />
@@ -62,7 +53,6 @@ const router = createHashRouter(
         <Route path=':launcher_id' element={<Nft />} />
       </Route>
       <Route path='/settings' element={<Settings />} />
-      <Route path='/networks' element={<NetworkList />} />
       <Route path='/peers' element={<PeerList />} />
     </>,
   ),
@@ -83,16 +73,10 @@ export default function App() {
     [dark, setDark],
   );
 
-  const theme = useMemo(() => {
+  useEffect(() => {
     const root = window.document.documentElement;
     root.classList.remove(dark ? 'light' : 'dark');
     root.classList.add(dark ? 'dark' : 'light');
-
-    return createTheme({
-      palette: {
-        mode: dark ? 'dark' : 'light',
-      },
-    });
   }, [dark]);
 
   useEffect(() => {
@@ -110,22 +94,17 @@ export default function App() {
 
   return (
     <DarkModeContext.Provider value={darkMode}>
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
-        {initialized && (
-          <PeerProvider>
-            <RouterProvider router={router} />
-          </PeerProvider>
-        )}
-        {error && (
-          <Container>
-            <Typography variant='h4'>Error</Typography>
-            <Typography color='error' mt={2}>
-              {error}
-            </Typography>
-          </Container>
-        )}
-      </ThemeProvider>
+      {initialized && (
+        <PeerProvider>
+          <RouterProvider router={router} />
+        </PeerProvider>
+      )}
+      {error && (
+        <Container>
+          <h2 className='text-2xl font-bold mb-2'>Error</h2>
+          <p className='text-red-500 mt-2'>{error}</p>
+        </Container>
+      )}
     </DarkModeContext.Provider>
   );
 }

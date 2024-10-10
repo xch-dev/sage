@@ -1,11 +1,12 @@
+import { Button } from '@/components/ui/button';
 import {
-  Button,
   Dialog,
-  DialogActions,
   DialogContent,
-  DialogContentText,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
   DialogTitle,
-} from '@mui/material';
+} from '@/components/ui/dialog';
 import { Error } from '../bindings';
 
 export interface ErrorDialogProps {
@@ -83,16 +84,18 @@ export default function ErrorDialog({ error, setError }: ErrorDialogProps) {
   }
 
   return (
-    <Dialog open={error !== null} onClose={() => setError(null)}>
-      <DialogTitle>{kind ? `${kind} ` : ''}Error</DialogTitle>
+    <Dialog open={error !== null} onOpenChange={() => setError(null)}>
       <DialogContent>
-        <DialogContentText>{error?.reason}</DialogContentText>
+        <DialogHeader>
+          <DialogTitle>{kind ? `${kind} ` : ''}Error</DialogTitle>
+          <DialogDescription>{error?.reason}</DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button onClick={() => setError(null)} autoFocus>
+            Ok
+          </Button>
+        </DialogFooter>
       </DialogContent>
-      <DialogActions>
-        <Button onClick={() => setError(null)} autoFocus>
-          Ok
-        </Button>
-      </DialogActions>
     </Dialog>
   );
 }

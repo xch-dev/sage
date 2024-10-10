@@ -1,10 +1,11 @@
-import { Box, Button, Paper, Typography, useTheme } from '@mui/material';
-import Grid2 from '@mui/material/Unstable_Grid2/Grid2';
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { commands, NftRecord } from '../bindings';
+import { Button } from '@/components/ui/button';
 import Header from '@/components/Header';
 import Container from '@/components/Container';
+import { ReceiveAddress } from '@/components/ReceiveAddress';
+import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
 
 export function WalletNfts() {
   const [page, setPage] = useState(0);
@@ -14,11 +15,11 @@ export function WalletNfts() {
 
   const updateNfts = async (page: number) => {
     return await commands
-      .getNfts({ offset: page * 60, limit: 60 })
+      .getNfts({ offset: page * 12, limit: 12 })
       .then((result) => {
         if (result.status === 'ok') {
           setNfts(result.data.items);
-          setTotalPages(Math.max(1, Math.ceil(result.data.total / 60)));
+          setTotalPages(Math.max(1, Math.ceil(result.data.total / 12)));
         } else {
           throw new Error('Failed to get NFTs');
         }
@@ -61,41 +62,43 @@ export function WalletNfts() {
 
   return (
     <>
-      <Header title='NFTs' />
+      <Header title='NFTs'>
+        {' '}
+        <ReceiveAddress />
+      </Header>
       <Container>
-        <Box display='flex' justifyContent='center' alignItems='center' gap={2}>
-          <Button
-            variant='outlined'
-            onClick={() => previousPage()}
-            disabled={page === 0}
-          >
-            Previous
-          </Button>
-          <Typography variant='body1'>
-            Page {page + 1} of {totalPages}
-          </Typography>
-          <Button
-            variant='outlined'
-            onClick={() => nextPage()}
-            disabled={page >= totalPages - 1}
-          >
-            Next
-          </Button>
-        </Box>
-        <Grid2 mt={3} container spacing={2}>
+        <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-6'>
           {nfts.map((nft, i) => (
             <Nft nft={nft} key={i} />
           ))}
-        </Grid2>
+        </div>
+        <div className='flex justify-center items-center gap-2'>
+          <Button
+            variant='outline'
+            size='icon'
+            onClick={() => previousPage()}
+            disabled={page === 0}
+          >
+            <ChevronLeftIcon className='h-4 w-4' />
+          </Button>
+          <p className='text-sm text-muted-foreground font-medium'>
+            Page {page + 1} of {totalPages}
+          </p>
+          <Button
+            variant='outline'
+            size='icon'
+            onClick={() => nextPage()}
+            disabled={page >= totalPages - 1}
+          >
+            <ChevronRightIcon className='h-4 w-4' />
+          </Button>
+        </div>
       </Container>
     </>
   );
 }
 
 function Nft({ nft }: { nft: NftRecord }) {
-  const navigate = useNavigate();
-  const theme = useTheme();
-
   let json: any = {};
 
   if (nft.metadata) {
@@ -107,43 +110,27 @@ function Nft({ nft }: { nft: NftRecord }) {
   }
 
   return (
-    <Grid2 xs={6} sm={4} md={4}>
-      <Box position='relative' width='100%' height='100%'>
-        <Button
-          sx={{ padding: 0, width: '100%', height: '100%' }}
-          onClick={() => navigate(`/wallet/nft/${nft.launcher_id_hex}`)}
-        >
+    <Link to={`/nfts/${nft.launcher_id_hex}`} className='group space-y-3'>
+      <span>
+        <div className='overflow-hidden rounded-md'>
           <img
+            alt={json.name}
+            loading='lazy'
+            width='150'
+            height='150'
+            className='h-auto w-auto object-cover transition-all group-hover:scale-105 aspect-square color-[transparent]'
             src={`data:${nft.data_mime_type};base64,${nft.data}`}
-            style={{
-              width: '100%',
-              height: '100%',
-              borderRadius: theme.shape.borderRadius,
-            }}
           />
-
-          <Paper
-            sx={{
-              position: 'absolute',
-              bottom: 0,
-              width: '100%',
-              height: '40px',
-              p: 1,
-              borderTopLeftRadius: '0px',
-              borderTopRightRadius: '0px',
-              borderBottomLeftRadius: theme.shape.borderRadius,
-              borderBottomRightRadius: theme.shape.borderRadius,
-              textAlign: 'center',
-              textTransform: 'none',
-              overflow: 'none',
-            }}
-          >
-            <Typography variant='body1' width='100%' height='100%'>
-              {json.name ?? 'Unknown NFT'}
-            </Typography>
-          </Paper>
-        </Button>
-      </Box>
-    </Grid2>
+        </div>
+      </span>
+      <div className='space-y-1 text-sm'>
+        <span className='font-medium leading-none'>
+          {json.name ?? 'Unknown NFT'}
+        </span>
+        <p className='text-xs text-muted-foreground'>
+          {json.collection && json.collection.name}
+        </p>
+      </div>
+    </Link>
   );
 }

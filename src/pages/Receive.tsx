@@ -1,15 +1,19 @@
-import { Box, Button, Typography } from '@mui/material';
-import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { commands, events } from '../bindings';
 import AddressList from '../components/AddressList';
 import { useWalletState } from '../state';
 import Header from '@/components/Header';
 import Container from '@/components/Container';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { ReceiveAddress } from '@/components/ReceiveAddress';
 
 export default function Receive() {
-  const navigate = useNavigate();
   const walletState = useWalletState();
 
   const [addresses, setAddresses] = useState<string[]>([]);
@@ -33,38 +37,33 @@ export default function Receive() {
     return () => {
       unlisten.then((u) => u());
     };
-  });
+  }, []);
 
   return (
     <>
       <Header title={`Receive ${walletState.sync.unit.ticker}`} />
 
-      <Container>
-        <Typography variant='h4'>Receive Address</Typography>
-
-        <Typography
-          variant='body1'
-          fontSize={20}
-          mt={2}
-          sx={{ wordBreak: 'break-all' }}
-        >
-          {walletState.sync.receive_address}
-        </Typography>
-
-        <Button
-          fullWidth
-          variant='outlined'
-          sx={{ mt: 2 }}
-          onClick={() => {
-            writeText(walletState.sync.receive_address);
-          }}
-        >
-          Copy
-        </Button>
-
-        <Box height={350} mt={2}>
-          <AddressList addresses={addresses} />
-        </Box>
+      <Container className='flex flex-col gap-4 max-w-screen-lg'>
+        <Card>
+          <CardHeader>
+            <CardTitle className='text-lg font-medium'>Fresh Address</CardTitle>
+            <CardDescription>
+              The wallet generates a new address after each transaction. Old
+              ones stay valid.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ReceiveAddress />
+          </CardContent>
+        </Card>
+        <Card className='max-w-full'>
+          <CardHeader>
+            <CardTitle className='text-lg font-medium'>All Addresses</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <AddressList addresses={addresses} />
+          </CardContent>
+        </Card>
       </Container>
     </>
   );

@@ -1,13 +1,6 @@
-import { Alert } from '@mui/material';
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { commands } from '../bindings';
-import Container from '../components/Container';
-import { fetchState } from '../state';
 import Header from '@/components/Header';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 import {
   Form,
   FormControl,
@@ -19,7 +12,15 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Button } from '@/components/ui/button';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { useNavigate } from 'react-router-dom';
+import * as z from 'zod';
+import { commands } from '../bindings';
+import Container from '../components/Container';
+import { fetchState } from '../state';
+import { AlertCircle } from 'lucide-react';
 
 export default function ImportWallet() {
   const navigate = useNavigate();
@@ -47,8 +48,10 @@ export default function ImportWallet() {
         <ImportForm onSubmit={submit} />
 
         {error && (
-          <Alert variant='outlined' severity='error' sx={{ mt: 2 }}>
-            {error}
+          <Alert variant='destructive'>
+            <AlertCircle className='h-4 w-4' />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
       </Container>

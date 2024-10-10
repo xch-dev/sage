@@ -10,7 +10,11 @@ import { useWallet } from '@/hooks/useWallet';
 import { usePeers } from '@/contexts/PeerContext';
 
 export default function Header(
-  props: PropsWithChildren<{ title: string; back?: () => void }>,
+  props: PropsWithChildren<{
+    title: string;
+    back?: () => void;
+    children?: ReactNode;
+  }>,
 ) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -32,9 +36,19 @@ export default function Header(
   const hasBackButton = props.back || location.pathname.split('/').length > 2;
 
   return (
-    <header className='flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6'>
+    <header className='flex items-center gap-4 px-4 lg:px-6 pt-2'>
       <Sheet>
-        {!hasBackButton && (
+        {hasBackButton ? (
+          <Button
+            variant='outline'
+            size='icon'
+            onClick={() => (props.back ? props.back() : navigate(-1))}
+            className='md:hidden text-muted-foreground'
+          >
+            <ChevronLeft className='h-5 w-5' />
+            <span className='sr-only'>Back</span>
+          </Button>
+        ) : (
           <SheetTrigger asChild>
             <Button
               variant='outline'
@@ -47,7 +61,7 @@ export default function Header(
           </SheetTrigger>
         )}
         <SheetContent side='left' className='flex flex-col'>
-          <div className='flex h-14 items-center px-4 lg:h-[60px] lg:px-6'>
+          <div className='flex h-14 items-center lg:h-[60px]'>
             <Link to='/' className='flex items-center gap-2 font-semibold'>
               <img src={icon} className='h-6 w-6' alt='Wallet icon' />
               <span className=''>{wallet?.name}</span>
@@ -59,7 +73,7 @@ export default function Header(
               className='mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground'
             >
               <WalletIcon className='h-5 w-5' />
-              Wallet
+              Assets
             </Link>
             <Link
               to='/nfts'
@@ -70,6 +84,20 @@ export default function Header(
             </Link>
           </nav>
           <nav className='mt-auto grid gap-2 text-lg font-medium'>
+            <Link
+              to='/peers'
+              className='mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground'
+            >
+              <span
+                className={
+                  'inline-flex h-3 w-3 m-1 rounded-full' +
+                  ' ' +
+                  (peerMaxHeight > 0 ? 'bg-emerald-600' : 'bg-yellow-600')
+                }
+              ></span>
+              {peers?.length} peers,
+              {peerMaxHeight ? ` ${peerMaxHeight} peak` : ' connecting...'}
+            </Link>
             <Link
               to='/settings'
               className='mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground'
@@ -87,35 +115,29 @@ export default function Header(
           </nav>
         </SheetContent>
       </Sheet>
-      <div className='w-full flex-1'>
-        {hasBackButton && (
-          <Button
-            variant='outline'
-            size='icon'
-            onClick={() => (props.back ? props.back() : navigate(-1))}
-            className='mr-4'
-          >
-            <ChevronLeft className='h-4 w-4' />
-          </Button>
+      <div className='flex-1 md:mt-2 flex items-center md:block'>
+        {hasBackButton ? (
+          <>
+            <Button
+              variant='link'
+              size='sm'
+              onClick={() => (props.back ? props.back() : navigate(-1))}
+              className='hidden md:flex px-0 text-muted-foreground'
+            >
+              <ChevronLeft className='h-4 w-4 mr-1' />
+              Back
+            </Button>
+          </>
+        ) : (
+          <div className='md:h-8'></div>
         )}
-        <span className='text-xl font-semibold'>{props.title}</span>
+        <div className='flex-1 flex justify-between items-center gap-4 md:h-9 md:my-2'>
+          <h1 className='text-xl font-bold tracking-tight md:text-3xl'>
+            {props.title}
+          </h1>
+          <div className='hidden md:block'>{props.children}</div>
+        </div>
       </div>
-      <Link to='/peers'>
-        <Button
-          variant='ghost'
-          className='flex items-center gap-1.5 text-sm text-muted-foreground font-bold'
-        >
-          <span
-            className={
-              'inline-flex h-2 w-2 rounded-full' +
-              ' ' +
-              (peerMaxHeight > 0 ? 'bg-emerald-600' : 'bg-yellow-600')
-            }
-          ></span>
-          {peers?.length} peers,
-          {peerMaxHeight ? ` ${peerMaxHeight} peak` : ' connecting...'}
-        </Button>
-      </Link>
     </header>
   );
 }

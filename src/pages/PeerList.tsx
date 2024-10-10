@@ -45,6 +45,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import Layout from '@/components/Layout';
 
 export default function NetworkList() {
   const navigate = useNavigate();
@@ -130,183 +131,185 @@ export default function NetworkList() {
 
   return (
     <>
-      <Header
-        title='Peer List'
-        back={() => {
-          navigate(-1);
-        }}
-      />
+      <Layout>
+        <Header title='Peer List' />
 
-      <Container className='max-w-2xl mx-auto'>
-        <Card className='rounded-md border mt-4'>
-          <CardHeader>
-            <div className='flex justify-between items-center'>
-              <CardTitle>Connected to {peers?.length ?? 0} peers</CardTitle>
-              <Dialog open={isAddOpen} onOpenChange={setAddOpen}>
-                <DialogTrigger asChild>
-                  <Button variant='outline'>Add Peer</Button>
-                </DialogTrigger>
-                <DialogContent className='sm:max-w-[425px]'>
-                  <DialogHeader>
-                    <DialogTitle>Add new peer</DialogTitle>
-                    <DialogDescription>
-                      Enter the IP address of the peer you want to connect to.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className='grid gap-4 py-4'>
-                    <div className='flex flex-col space-y-1.5'>
-                      <Label htmlFor='ip'>IP Address</Label>
-                      <Input
-                        id='ip'
-                        value={ip}
-                        onChange={(e) => setIp(e.target.value)}
-                      />
+        <Container className='max-w-2xl'>
+          <Card className='rounded-md border'>
+            <CardHeader>
+              <div className='flex justify-between items-center'>
+                <CardTitle>Connected to {peers?.length ?? 0} peers</CardTitle>
+                <Dialog open={isAddOpen} onOpenChange={setAddOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant='outline'>Add Peer</Button>
+                  </DialogTrigger>
+                  <DialogContent className='sm:max-w-[425px]'>
+                    <DialogHeader>
+                      <DialogTitle>Add new peer</DialogTitle>
+                      <DialogDescription>
+                        Enter the IP address of the peer you want to connect to.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className='grid gap-4 py-4'>
+                      <div className='flex flex-col space-y-1.5'>
+                        <Label htmlFor='ip'>IP Address</Label>
+                        <Input
+                          id='ip'
+                          value={ip}
+                          onChange={(e) => setIp(e.target.value)}
+                        />
+                      </div>
+                      <div className='flex items-center space-x-2'>
+                        <Switch
+                          id='trusted'
+                          checked={trusted}
+                          onCheckedChange={(checked) => setTrusted(checked)}
+                        />
+                        <Label htmlFor='trusted'>Trusted peer</Label>
+                        <Popover>
+                          <PopoverTrigger>
+                            <HelpCircleIcon className='h-4 w-4 text-muted-foreground' />
+                          </PopoverTrigger>
+                          <PopoverContent className='text-sm'>
+                            Prevents the peer from being banned.
+                          </PopoverContent>
+                        </Popover>
+                      </div>
                     </div>
-                    <div className='flex items-center space-x-2'>
-                      <Switch
-                        id='trusted'
-                        checked={trusted}
-                        onCheckedChange={(checked) => setTrusted(checked)}
-                      />
-                      <Label htmlFor='trusted'>Trusted peer</Label>
-                      <Popover>
-                        <PopoverTrigger>
-                          <HelpCircleIcon className='h-4 w-4 text-muted-foreground' />
-                        </PopoverTrigger>
-                        <PopoverContent className='text-sm'>
-                          Prevents the peer from being banned.
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button variant='outline' onClick={() => setAddOpen(false)}>
-                      Cancel
-                    </Button>
-                    <Button
-                      onClick={() => {
-                        setAddOpen(false);
-                        commands.addPeer(ip, trusted);
-                        setIp;
-                      }}
-                      autoFocus
-                    >
-                      Connect
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => {
-                      return (
-                        <TableHead key={header.id} className='px-4'>
-                          {header.isPlaceholder
-                            ? null
-                            : flexRender(
-                                header.column.columnDef.header,
-                                header.getContext(),
-                              )}
-                        </TableHead>
-                      );
-                    })}
-                  </TableRow>
-                ))}
-              </TableHeader>
-              <TableBody>
-                {table.getRowModel().rows?.length ? (
-                  table.getRowModel().rows.map((row) => (
-                    <TableRow
-                      key={row.id}
-                      data-state={row.getIsSelected() && 'selected'}
-                    >
-                      {row.getVisibleCells().map((cell) => (
-                        <TableCell key={cell.id} className='px-4'>
-                          {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext(),
-                          )}
-                        </TableCell>
-                      ))}
+                    <DialogFooter>
+                      <Button
+                        variant='outline'
+                        onClick={() => setAddOpen(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          setAddOpen(false);
+                          commands.addPeer(ip, trusted);
+                          setIp;
+                        }}
+                        autoFocus
+                      >
+                        Connect
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  {table.getHeaderGroups().map((headerGroup) => (
+                    <TableRow key={headerGroup.id}>
+                      {headerGroup.headers.map((header) => {
+                        return (
+                          <TableHead key={header.id} className='px-4'>
+                            {header.isPlaceholder
+                              ? null
+                              : flexRender(
+                                  header.column.columnDef.header,
+                                  header.getContext(),
+                                )}
+                          </TableHead>
+                        );
+                      })}
                     </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell
-                      colSpan={columns.length}
-                      className='h-24 text-center'
-                    >
-                      No results.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+                  ))}
+                </TableHeader>
+                <TableBody>
+                  {table.getRowModel().rows?.length ? (
+                    table.getRowModel().rows.map((row) => (
+                      <TableRow
+                        key={row.id}
+                        data-state={row.getIsSelected() && 'selected'}
+                      >
+                        {row.getVisibleCells().map((cell) => (
+                          <TableCell key={cell.id} className='px-4'>
+                            {flexRender(
+                              cell.column.columnDef.cell,
+                              cell.getContext(),
+                            )}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell
+                        colSpan={columns.length}
+                        className='h-24 text-center'
+                      >
+                        No results.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
 
-        <Dialog
-          open={!!peerToDelete}
-          onOpenChange={(open) => !open && setPeerToDelete(null)}
-        >
-          <DialogContent>
-            <DialogTitle>Are you sure you want to remove the peer?</DialogTitle>
+          <Dialog
+            open={!!peerToDelete}
+            onOpenChange={(open) => !open && setPeerToDelete(null)}
+          >
+            <DialogContent>
+              <DialogTitle>
+                Are you sure you want to remove the peer?
+              </DialogTitle>
 
-            <DialogDescription>
-              This will remove the peer from your connections. If you are
-              currently syncing against this peer, a new one will be used to
-              replace it.
-            </DialogDescription>
+              <DialogDescription>
+                This will remove the peer from your connections. If you are
+                currently syncing against this peer, a new one will be used to
+                replace it.
+              </DialogDescription>
 
-            <div className='flex items-center space-x-2'>
-              <Switch
-                id='ban'
-                checked={ban}
-                onCheckedChange={(checked) => setBan(checked)}
-              />
-              <Label htmlFor='ban'>Ban peer temporarily</Label>
-              <Popover>
-                <PopoverTrigger>
-                  <HelpCircleIcon className='h-4 w-4 text-muted-foreground' />
-                </PopoverTrigger>
-                <PopoverContent className='text-sm'>
-                  Will temporarily prevent the peer from being connected to.
-                </PopoverContent>
-              </Popover>
-            </div>
-            <DialogFooter>
-              <Button
-                type='button'
-                variant='secondary'
-                onClick={() => setPeerToDelete(null)}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={() => {
-                  peerToDelete &&
-                    commands
-                      .removePeer(peerToDelete.ip_addr, ban)
-                      .then((res) => {
-                        if (res.status === 'ok') {
-                          setPeerToDelete(null);
-                          updatePeers();
-                        }
-                      });
-                }}
-                autoFocus
-              >
-                Remove Peer
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </Container>
+              <div className='flex items-center space-x-2'>
+                <Switch
+                  id='ban'
+                  checked={ban}
+                  onCheckedChange={(checked) => setBan(checked)}
+                />
+                <Label htmlFor='ban'>Ban peer temporarily</Label>
+                <Popover>
+                  <PopoverTrigger>
+                    <HelpCircleIcon className='h-4 w-4 text-muted-foreground' />
+                  </PopoverTrigger>
+                  <PopoverContent className='text-sm'>
+                    Will temporarily prevent the peer from being connected to.
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <DialogFooter>
+                <Button
+                  type='button'
+                  variant='secondary'
+                  onClick={() => setPeerToDelete(null)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => {
+                    peerToDelete &&
+                      commands
+                        .removePeer(peerToDelete.ip_addr, ban)
+                        .then((res) => {
+                          if (res.status === 'ok') {
+                            setPeerToDelete(null);
+                            updatePeers();
+                          }
+                        });
+                  }}
+                  autoFocus
+                >
+                  Remove Peer
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </Container>
+      </Layout>
     </>
   );
 }

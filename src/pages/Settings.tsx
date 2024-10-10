@@ -27,7 +27,7 @@ export default function Settings() {
     <>
       <Layout>
         <Header title='Settings' />
-        <Container>
+        <Container className='max-w-2xl'>
           <div className='flex flex-col gap-4'>
             <GlobalSettings />
             <NetworkSettings />

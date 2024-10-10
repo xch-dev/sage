@@ -1,6 +1,3 @@
-import { AcUnit, LocalFireDepartment } from '@mui/icons-material';
-import { Chip, Skeleton } from '@mui/material';
-import Grid2 from '@mui/material/Unstable_Grid2/Grid2';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { commands, WalletInfo, WalletSecrets } from '../bindings';
@@ -10,9 +7,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardTitle, CardHeader } from '@/components/ui/card';
 import {
   EyeIcon,
+  FlameIcon,
   LogInIcon,
   MoreVerticalIcon,
   PenIcon,
+  SnowflakeIcon,
   TrashIcon,
 } from 'lucide-react';
 import {
@@ -32,6 +31,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function Login() {
   const [wallets, setWallets] = useState<WalletInfo[] | null>(null);
@@ -56,14 +56,16 @@ export default function Login() {
   return (
     <div className='flex-1 space-y-4 p-8 pt-6'>
       <div className='flex items-center justify-between space-y-2'>
-        <h2 className='text-3xl font-bold tracking-tight'>Wallets</h2>
-        {wallets?.length && (
-          <div className='flex items-center space-x-2'>
-            <Button variant='outline' onClick={() => navigate('/import')}>
-              Import
-            </Button>
-            <Button onClick={() => navigate('/create')}>Create</Button>
-          </div>
+        {wallets && wallets.length > 0 && (
+          <>
+            <h2 className='text-3xl font-bold tracking-tight'>Wallets</h2>
+            <div className='flex items-center space-x-2'>
+              <Button variant='outline' onClick={() => navigate('/import')}>
+                Import
+              </Button>
+              <Button onClick={() => navigate('/create')}>Create</Button>
+            </div>
+          </>
         )}
       </div>{' '}
       {wallets ? (
@@ -90,13 +92,13 @@ export default function Login() {
 
 function SkeletonWalletList() {
   return (
-    <Grid2 container spacing={2} margin={2} justifyContent={'center'}>
+    <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 m-4'>
       {Array.from({ length: 3 }).map((_, i) => (
-        <Grid2 key={i} xs={12} sm={6} md={4}>
-          <Skeleton variant='rounded' height={100} />
-        </Grid2>
+        <div key={i} className='w-full'>
+          <Skeleton className='h-[100px] w-full' />
+        </div>
       ))}
-    </Grid2>
+    </div>
   );
 }
 
@@ -178,7 +180,7 @@ function WalletItem(props: {
   }, [isDetailsOpen, props.wallet.fingerprint]);
 
   return (
-    <Grid2 xs={12} sm={6} md={4}>
+    <>
       <Card onClick={() => loginSelf(false)} className='cursor-pointer'>
         <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
           <CardTitle className='text-2xl'>{props.wallet.name}</CardTitle>
@@ -240,13 +242,15 @@ function WalletItem(props: {
               {props.wallet.fingerprint}
             </span>
             {props.wallet.kind == 'hot' ? (
-              <Chip
-                icon={<LocalFireDepartment />}
-                label='Hot Wallet'
-                size='small'
-              />
+              <div className='inline-flex gap-0.5 items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80'>
+                <FlameIcon className='h-4 w-4 pb-0.5' />
+                <span>Hot Wallet</span>
+              </div>
             ) : (
-              <Chip icon={<AcUnit />} label='Cold Wallet' size='small' />
+              <div className='inline-flex gap-0.5 items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80'>
+                <SnowflakeIcon className='h-4 w-4 pb-0.5' />
+                <span>Cold Wallet</span>
+              </div>
             )}
           </div>
         </CardContent>
@@ -361,7 +365,7 @@ function WalletItem(props: {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </Grid2>
+    </>
   );
 }
 

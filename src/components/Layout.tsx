@@ -5,11 +5,18 @@ import { commands, WalletInfo } from '../bindings';
 
 import icon from '@/icon.png';
 import { logoutAndUpdateState } from '@/state';
+import { usePeers } from '@/contexts/PeerContext';
 
 export default function Layout(props: PropsWithChildren<object>) {
   const navigate = useNavigate();
 
   const [wallet, setWallet] = useState<WalletInfo | null>(null);
+  const { peers } = usePeers();
+
+  const peerMaxHeight =
+    peers?.reduce((max, peer) => {
+      return Math.max(max, peer.peak_height);
+    }, 0) || 0;
 
   useEffect(() => {
     commands.activeWallet().then((wallet) => {
@@ -29,11 +36,11 @@ export default function Layout(props: PropsWithChildren<object>) {
 
   return (
     <>
-      <div className='grid h-screen w-screen md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]'>
+      <div className='grid h-screen w-screen md:grid-cols-[280px_1fr]'>
         <div className='hidden border-r bg-muted/40 md:block overflow-y-auto'>
           <div className='flex h-full max-h-screen flex-col gap-2'>
             <div className='flex h-14 items-center px-4 lg:h-[60px] lg:px-6'>
-              <Link href='/' className='flex items-center gap-2 font-semibold'>
+              <Link to='/' className='flex items-center gap-2 font-semibold'>
                 <img src={icon} className='h-6 w-6' />
                 <span className=''>{wallet?.name}</span>
               </Link>
@@ -45,7 +52,7 @@ export default function Layout(props: PropsWithChildren<object>) {
                   className='flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary'
                 >
                   <WalletIcon className='h-4 w-4' />
-                  Wallet
+                  Assets
                 </Link>
                 <Link
                   to={'/nfts'}
@@ -57,6 +64,20 @@ export default function Layout(props: PropsWithChildren<object>) {
               </nav>
 
               <nav className='grid px-2 text-sm font-medium lg:px-4'>
+                <Link
+                  to='/peers'
+                  className='flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary'
+                >
+                  <span
+                    className={
+                      'inline-flex h-2 w-2 m-1 rounded-full' +
+                      ' ' +
+                      (peerMaxHeight > 0 ? 'bg-emerald-600' : 'bg-yellow-600')
+                    }
+                  ></span>
+                  {peers?.length} peers,
+                  {peerMaxHeight ? ` ${peerMaxHeight} peak` : ' connecting...'}
+                </Link>
                 <Link
                   to={'/settings'}
                   className='flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary'
@@ -73,25 +94,11 @@ export default function Layout(props: PropsWithChildren<object>) {
                 </button>
               </nav>
             </div>
-            {/* <div className='mt-auto p-4'>
-              <Card x-chunk='dashboard-02-chunk-0'>
-                <CardHeader className='p-2 pt-0 md:p-4'>
-                  <CardTitle>Upgrade to Pro</CardTitle>
-                  <CardDescription>
-                    Unlock all features and get unlimited access to our support
-                    team.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className='p-2 pt-0 md:p-4 md:pt-0'>
-                  <Button size='sm' className='w-full'>
-                    Upgrade
-                  </Button>
-                </CardContent>
-              </Card>
-            </div> */}
           </div>
         </div>
-        <div className='flex flex-col h-screen'>{props.children}</div>
+        <div className='flex flex-col h-screen overflow-auto'>
+          {props.children}
+        </div>
       </div>
     </>
   );

@@ -3,59 +3,141 @@ import { useNavigate } from 'react-router-dom';
 import { commands, Error } from '../bindings';
 import Container from '../components/Container';
 import ErrorDialog from '../components/ErrorDialog';
-import Form, { FormValue } from '../components/Form';
-import NavBar from '../components/NavBar';
 import { useWalletState } from '../state';
+import Header from '@/components/Header';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { LoaderCircleIcon } from 'lucide-react';
+import { amount, positiveAmount } from '@/lib/formTypes';
 
 export default function IssueCat() {
   const navigate = useNavigate();
   const walletState = useWalletState();
 
-  const [values, setValues] = useState({
-    name: '',
-    amount: '',
-    fee: '',
-  });
   const [error, setError] = useState<Error | null>(null);
+  const [pending, setPending] = useState(false);
 
-  const issue = () => {
-    commands.issueCat(values.name, values.amount, values.fee).then((result) => {
-      if (result.status === 'error') {
-        console.error(result.error);
-        setError(result.error);
-        return;
-      }
+  const formSchema = z.object({
+    name: z.string().min(1, 'Name is required'),
+    amount: positiveAmount(3),
+    fee: amount(walletState.sync.unit.decimals).optional(),
+  });
 
-      navigate('/wallet/tokens');
-    });
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+  });
+
+  const onSubmit = (values: z.infer<typeof formSchema>) => {
+    setPending(true);
+    commands
+      .issueCat(
+        values.name,
+        values.amount.toString(),
+        values.fee?.toString() || '0',
+      )
+      .then((result) => {
+        if (result.status === 'error') {
+          console.error(result.error);
+          setError(result.error);
+          return;
+        }
+        navigate('/wallet');
+      })
+      .finally(() => setPending(false));
   };
 
   return (
     <>
-      <NavBar label='Issue CAT' back={() => navigate(-1)} />
+      <Header title='Issue CAT' />
 
-      <Container>
-        <Form
-          submitName='Issue CAT'
-          fields={[
-            { id: 'name', type: 'text', label: 'Name' },
-            {
-              id: 'amount',
-              type: 'amount',
-              label: 'Amount',
-              unit: { ticker: 'CAT', decimals: 3 },
-            },
-            {
-              id: 'fee',
-              type: 'amount',
-              label: 'Fee',
-              unit: walletState.sync.unit,
-            },
-          ]}
-          values={values}
-          setValues={setValues as (values: Record<string, FormValue>) => void}
-          onSubmit={issue}
-        />
+      <Container className='max-w-xl'>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-4'>
+            <FormField
+              control={form.control}
+              name='name'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder='Enter CAT name' {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div className='grid sm:grid-cols-2 gap-4'>
+              <FormField
+                control={form.control}
+                name='amount'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Amount</FormLabel>
+                    <FormControl>
+                      <div className='relative'>
+                        <Input
+                          type='text'
+                          placeholder='0.00'
+                          {...field}
+                          className='pr-12'
+                        />
+                        <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
+                          <span className='text-gray-500 sm:text-sm'>CAT</span>
+                        </div>
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name='fee'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Fee</FormLabel>
+                    <FormControl>
+                      <div className='relative'>
+                        <Input
+                          type='text'
+                          placeholder='0.00'
+                          {...field}
+                          className='pr-12'
+                        />
+                        <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
+                          <span className='text-gray-500 sm:text-sm'>
+                            {walletState.sync.unit.ticker}
+                          </span>
+                        </div>
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <Button type='submit' disabled={pending}>
+              {pending && (
+                <LoaderCircleIcon className='mr-2 h-4 w-4 animate-spin' />
+              )}
+              {pending ? 'Issuing' : 'Issue'} CAT
+            </Button>
+          </form>
+        </Form>
       </Container>
 
       <ErrorDialog error={error} setError={setError} />

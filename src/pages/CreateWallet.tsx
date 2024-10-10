@@ -1,13 +1,15 @@
-import { Alert } from '@mui/material';
-import { useCallback, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { commands } from '../bindings';
-import Container from '../components/Container';
-import { fetchState } from '../state';
 import Header from '@/components/Header';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   Form,
   FormControl,
@@ -18,21 +20,19 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Switch } from '@/components/ui/switch';
-import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
-import { CopyIcon, RefreshCwIcon } from 'lucide-react';
+import { AlertCircle, CopyIcon, RefreshCwIcon } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { useNavigate } from 'react-router-dom';
+import * as z from 'zod';
+import { commands } from '../bindings';
+import Container from '../components/Container';
+import { fetchState } from '../state';
 
 export default function CreateWallet() {
   const navigate = useNavigate();
@@ -59,8 +59,10 @@ export default function CreateWallet() {
         <CreateForm onSubmit={submit} />
 
         {error && (
-          <Alert variant='outlined' severity='error' sx={{ mt: 2 }}>
-            {error}
+          <Alert variant='destructive'>
+            <AlertCircle className='h-4 w-4' />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
       </Container>
