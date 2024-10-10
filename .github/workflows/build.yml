@@ -25,6 +25,9 @@ jobs:
       - name: Install PNPM
         uses: pnpm/action-setup@v4
 
+      - name: Install dependencies
+        run: pnpm install
+
       - name: Prettier
         run: pnpm prettier:check
 
