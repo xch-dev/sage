@@ -1,9 +1,3 @@
-import {
-  createTheme,
-  CssBaseline,
-  ThemeProvider,
-  Typography,
-} from '@mui/material';
 import { createContext, useEffect, useMemo, useState } from 'react';
 import {
   createHashRouter,
@@ -18,18 +12,16 @@ import CreateWallet from './pages/CreateWallet';
 import ImportWallet from './pages/ImportWallet';
 import IssueCat from './pages/IssueCat';
 import Login from './pages/Login';
-import NetworkList from './pages/NetworkList';
 import Nft from './pages/Nft';
 import PeerList from './pages/PeerList';
 import Receive from './pages/Receive';
 import Send from './pages/Send';
-import SendCat from './pages/SendCat';
 import Settings from './pages/Settings';
 import Token from './pages/Token';
 import { MainWallet } from './pages/WalletMain';
 import { WalletNfts } from './pages/WalletNfts';
-import Wallet from './pages/WalletTabs';
-import { WalletTokens } from './pages/WalletTokens';
+import Wallet from './pages/Wallet';
+import { PeerProvider } from './contexts/PeerContext';
 
 export interface DarkModeContext {
   toggle: () => void;
@@ -51,17 +43,16 @@ const router = createHashRouter(
       <Route path='/import' element={<ImportWallet />} />
       <Route path='/wallet' element={<Wallet />}>
         <Route path='' element={<MainWallet />} />
-        <Route path='tokens' element={<WalletTokens />} />
-        <Route path='nfts' element={<WalletNfts />} />
         <Route path='token/:asset_id' element={<Token />} />
-        <Route path='nft/:launcher_id' element={<Nft />} />
+        <Route path='issue-cat' element={<IssueCat />} />
+        <Route path='send/:asset_id' element={<Send />} />
+        <Route path='receive' element={<Receive />} />
       </Route>
-      <Route path='/issue-cat' element={<IssueCat />} />
-      <Route path='/send' element={<Send />} />
-      <Route path='/send-cat/:asset_id' element={<SendCat />} />
-      <Route path='/receive' element={<Receive />} />
+      <Route path='/nfts' element={<Wallet />}>
+        <Route path='' element={<WalletNfts />} />
+        <Route path=':launcher_id' element={<Nft />} />
+      </Route>
       <Route path='/settings' element={<Settings />} />
-      <Route path='/networks' element={<NetworkList />} />
       <Route path='/peers' element={<PeerList />} />
     </>,
   ),
@@ -82,15 +73,11 @@ export default function App() {
     [dark, setDark],
   );
 
-  const theme = useMemo(
-    () =>
-      createTheme({
-        palette: {
-          mode: dark ? 'dark' : 'light',
-        },
-      }),
-    [dark],
-  );
+  useEffect(() => {
+    const root = window.document.documentElement;
+    root.classList.remove(dark ? 'light' : 'dark');
+    root.classList.add(dark ? 'dark' : 'light');
+  }, [dark]);
 
   useEffect(() => {
     commands
@@ -107,18 +94,17 @@ export default function App() {
 
   return (
     <DarkModeContext.Provider value={darkMode}>
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
-        {initialized && <RouterProvider router={router} />}
-        {error && (
-          <Container>
-            <Typography variant='h4'>Error</Typography>
-            <Typography color='error' mt={2}>
-              {error}
-            </Typography>
-          </Container>
-        )}
-      </ThemeProvider>
+      {initialized && (
+        <PeerProvider>
+          <RouterProvider router={router} />
+        </PeerProvider>
+      )}
+      {error && (
+        <Container>
+          <h2 className='text-2xl font-bold mb-2'>Error</h2>
+          <p className='text-red-500 mt-2'>{error}</p>
+        </Container>
+      )}
     </DarkModeContext.Provider>
   );
 }

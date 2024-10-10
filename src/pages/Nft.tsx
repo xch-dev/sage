@@ -1,13 +1,12 @@
-import { Box, Typography, useTheme } from '@mui/material';
-import Grid2 from '@mui/material/Unstable_Grid2/Grid2';
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { commands, events, NftRecord } from '../bindings';
-import ListContainer from '../components/ListContainer';
+import { commands, events, NetworkConfig, NftRecord } from '../bindings';
+import Header from '@/components/Header';
+import Container from '@/components/Container';
+import { Button } from '@/components/ui/button';
+import { open } from '@tauri-apps/plugin-shell';
 
 export default function Nft() {
-  const theme = useTheme();
-
   const { launcher_id: launcherId } = useParams();
 
   const [nft, setNft] = useState<NftRecord | null>(null);
@@ -32,7 +31,7 @@ export default function Nft() {
     return () => {
       unlisten.then((u) => u());
     };
-  });
+  }, []);
 
   const metadata = useMemo(() => {
     if (!nft || !nft.metadata) return {};
@@ -43,79 +42,79 @@ export default function Nft() {
     }
   }, [nft]);
 
+  const [config, setConfig] = useState<NetworkConfig | null>(null);
+
+  useEffect(() => {
+    commands.networkConfig().then((res) => {
+      if (res.status === 'error') {
+        return;
+      }
+      setConfig(res.data);
+    });
+  }, []);
+
   return (
     <>
-      <ListContainer>
-        <Typography variant='h4' textAlign='center' mt={4}>
-          {metadata.name ?? 'Unknown NFT'}
-        </Typography>
+      <Header title={metadata.name ?? 'Unknown NFT'} />
+      <Container>
+        <div className='text-muted-foreground text-sm'>{nft?.launcher_id}</div>
+        <div className='grid lg:grid-cols-2 gap-4 mt-4'>
+          <div className='py-2'>
+            <img
+              alt='NFT image'
+              src={`data:${nft?.data_mime_type};base64,${nft?.data}`}
+              className='w-full rounded-lg'
+            />
+          </div>
+          <div className='p-2 flex flex-col '>
+            {metadata.description && (
+              <>
+                <h6 className='text-lg font-bold '>Description</h6>
+                <div className='break-all text-sm mb-4'>
+                  {metadata.description}
+                </div>
+              </>
+            )}
+            <h6 className='text-lg font-bold'>Owner DID</h6>
+            <div className='break-all font-mono tracking-tight text-sm'>
+              {nft?.owner_did ?? 'None'}
+            </div>
 
-        <Typography
-          variant='subtitle1'
-          textAlign='center'
-          mt={1}
-          sx={{ wordBreak: 'break-all' }}
-        >
-          {nft?.launcher_id}
-        </Typography>
+            <h6 className='text-lg font-bold mt-4'>Address</h6>
+            <div className='break-all font-mono tracking-tight text-sm'>
+              {nft?.address}
+            </div>
 
-        <Grid2 container mt={2}>
-          <Grid2 xs={12} md={6}>
-            <Box sx={{ p: 1.5, width: '100%', mx: 'auto' }}>
+            <h6 className='text-lg font-bold mt-4'>Coin Id</h6>
+            <div className='break-all font-mono tracking-tight text-sm'>
+              {nft?.coin_id}
+            </div>
+
+            <h6 className='text-lg font-bold mt-4'>
+              Royalties ({nft?.royalty_percent}%)
+            </h6>
+            <div className='break-all font-mono tracking-tight text-sm'>
+              {nft?.royalty_address}
+            </div>
+            <Button
+              variant='outline'
+              className='mt-4'
+              onClick={() =>
+                open(
+                  `https://${config?.network_id !== 'mainnet' ? 'testnet.' : ''}mintgarden.io/nfts/${nft?.launcher_id}`,
+                )
+              }
+            >
               <img
-                src={`data:${nft?.data_mime_type};base64,${nft?.data}`}
-                style={{
-                  width: '100%',
-                  aspectRatio: 1,
-                  borderRadius: theme.shape.borderRadius,
-                }}
+                src='https://mintgarden.io/mint-logo.svg'
+                className='h-4 w-4 mr-2'
+                alt='MintGarden logo'
               />
-
-              {metadata.description && (
-                <>
-                  <Typography variant='h6' mt={2}>
-                    Description
-                  </Typography>
-                  <Typography variant='body1'>
-                    {metadata.description}
-                  </Typography>
-                </>
-              )}
-            </Box>
-          </Grid2>
-          <Grid2 xs={12} md={6}>
-            <Box sx={{ p: 1.5 }}>
-              <Typography variant='h6' sx={{ m: 0 }}>
-                Owner DID
-              </Typography>
-              <Typography variant='body1' sx={{ wordBreak: 'break-all' }}>
-                {nft?.owner_did}
-              </Typography>
-
-              <Typography variant='h6' mt={2}>
-                Address
-              </Typography>
-              <Typography variant='body1' sx={{ wordBreak: 'break-all' }}>
-                {nft?.address}
-              </Typography>
-
-              <Typography variant='h6' mt={2}>
-                Coin Id
-              </Typography>
-              <Typography variant='body1' sx={{ wordBreak: 'break-all' }}>
-                {nft?.coin_id}
-              </Typography>
-
-              <Typography variant='h6' mt={2}>
-                Royalties ({nft?.royalty_percent}%)
-              </Typography>
-              <Typography variant='body1' sx={{ wordBreak: 'break-all' }}>
-                {nft?.royalty_address}
-              </Typography>
-            </Box>
-          </Grid2>
-        </Grid2>
-      </ListContainer>
+              Inspect on MintGarden
+            </Button>
+          </div>
+        </div>
+      </Container>
     </>
   );
 }

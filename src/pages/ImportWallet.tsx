@@ -1,40 +1,35 @@
-import { Alert, Button, TextField, Typography } from '@mui/material';
-import { useEffect, useRef, useState } from 'react';
+import Header from '@/components/Header';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
-import { commands, WalletInfo } from '../bindings';
+import * as z from 'zod';
+import { commands } from '../bindings';
 import Container from '../components/Container';
-import NavBar from '../components/NavBar';
 import { fetchState } from '../state';
+import { AlertCircle } from 'lucide-react';
 
 export default function ImportWallet() {
   const navigate = useNavigate();
 
-  const [currentWallet, setCurrentWallet] = useState<WalletInfo | null>(null);
-  const [name, setName] = useState('');
-  const [key, setKey] = useState('');
-
-  const [nameError, setNameError] = useState(false);
-  const [keyError, setKeyError] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const keyRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    commands.activeWallet().then((res) => {
-      if (res.status === 'ok') {
-        setCurrentWallet(res.data);
-      }
-    });
-  }, []);
-
-  const submit = () => {
-    setNameError(!name);
-    setKeyError(!key);
-
-    if (nameError || keyError || !name || !key) return;
-
+  const submit = (values: z.infer<typeof formSchema>) => {
     commands
-      .importWallet(name, key)
+      .importWallet(values.walletName, values.walletKey)
       .then((res) => {
         if (res.status === 'ok') {
           fetchState().then(() => {
@@ -47,72 +42,76 @@ export default function ImportWallet() {
 
   return (
     <>
-      <NavBar
-        label='Import Wallet'
-        back={() => {
-          if (currentWallet) {
-            navigate('/wallet');
-          } else {
-            navigate('/');
-          }
-        }}
-      />
+      <Header title='Import Wallet' back={() => navigate('/')} />
 
       <Container>
-        <TextField
-          label='Wallet Name'
-          fullWidth
-          autoFocus
-          error={nameError}
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter') {
-              event.preventDefault();
-              keyRef.current?.focus();
-            }
-          }}
-        />
-
-        <Typography sx={{ mt: 2 }}>
-          Enter your mnemonic, private key, or public key below. If it's a
-          public key, it will be imported as a read-only cold wallet.
-        </Typography>
-
-        <TextField
-          label='Wallet Key'
-          rows={2}
-          inputRef={keyRef}
-          fullWidth
-          multiline
-          error={keyError}
-          value={key}
-          onChange={(event) => setKey(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter') {
-              event.preventDefault();
-              submit();
-            }
-          }}
-          sx={{ mt: 2 }}
-        />
-
-        <Button
-          variant='contained'
-          fullWidth
-          sx={{ mt: 3 }}
-          disabled={!key || !name}
-          onClick={submit}
-        >
-          Import Wallet
-        </Button>
+        <ImportForm onSubmit={submit} />
 
         {error && (
-          <Alert variant='outlined' severity='error' sx={{ mt: 2 }}>
-            {error}
+          <Alert variant='destructive'>
+            <AlertCircle className='h-4 w-4' />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
       </Container>
     </>
+  );
+}
+
+const formSchema = z.object({
+  walletName: z.string(),
+  walletKey: z.string(),
+});
+
+function ImportForm(props: {
+  onSubmit: (values: z.infer<typeof formSchema>) => void;
+}) {
+  // Insert constants here
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+  });
+
+  return (
+    <Form {...form}>
+      <form
+        onSubmit={form.handleSubmit(props.onSubmit)}
+        className='space-y-4 max-w-xl mx-auto py-4'
+      >
+        <FormField
+          control={form.control}
+          name='walletName'
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Wallet Name</FormLabel>
+              <FormControl>
+                <Input required {...field} />
+              </FormControl>
+
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name='walletKey'
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Wallet Key</FormLabel>
+              <FormControl>
+                <Textarea className='resize-none' {...field} />
+              </FormControl>
+              <FormDescription>
+                Enter your mnemonic, private key, or public key below. If it's a
+                public key, it will be imported as a read-only cold wallet.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <Button type='submit'>Import Wallet</Button>
+      </form>
+    </Form>
   );
 }
