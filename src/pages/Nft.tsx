@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { commands, events, NftRecord } from '../bindings';
+import { commands, events, NetworkConfig, NftRecord } from '../bindings';
 import Header from '@/components/Header';
 import Container from '@/components/Container';
+import { Button } from '@/components/ui/button';
+import { open } from '@tauri-apps/plugin-shell';
 
 export default function Nft() {
   const { launcher_id: launcherId } = useParams();
@@ -40,13 +42,23 @@ export default function Nft() {
     }
   }, [nft]);
 
+  const [config, setConfig] = useState<NetworkConfig | null>(null);
+
+  useEffect(() => {
+    commands.networkConfig().then((res) => {
+      if (res.status === 'error') {
+        return;
+      }
+      setConfig(res.data);
+    });
+  }, []);
+
   return (
     <>
       <Header title={metadata.name ?? 'Unknown NFT'} />
       <Container>
         <div className='text-muted-foreground text-sm'>{nft?.launcher_id}</div>
-
-        <div className='grid md:grid-cols-2 gap-4 mt-4'>
+        <div className='grid lg:grid-cols-2 gap-4 mt-4'>
           <div className='py-2'>
             <img
               alt='NFT image'
@@ -58,7 +70,9 @@ export default function Nft() {
             {metadata.description && (
               <>
                 <h6 className='text-lg font-bold '>Description</h6>
-                <div className='break-all mb-4'>{metadata.description}</div>
+                <div className='break-all text-sm mb-4'>
+                  {metadata.description}
+                </div>
               </>
             )}
             <h6 className='text-lg font-bold'>Owner DID</h6>
@@ -82,6 +96,22 @@ export default function Nft() {
             <div className='break-all font-mono tracking-tight text-sm'>
               {nft?.royalty_address}
             </div>
+            <Button
+              variant='outline'
+              className='mt-4'
+              onClick={() =>
+                open(
+                  `https://${config?.network_id !== 'mainnet' ? 'testnet.' : ''}mintgarden.io/nfts/${nft?.launcher_id}`,
+                )
+              }
+            >
+              <img
+                src='https://mintgarden.io/mint-logo.svg'
+                className='h-4 w-4 mr-2'
+                alt='MintGarden logo'
+              />
+              Inspect on MintGarden
+            </Button>
           </div>
         </div>
       </Container>
