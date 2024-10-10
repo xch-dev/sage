@@ -58,8 +58,8 @@ export function MainWallet() {
                 />
               </CardHeader>
               <CardContent>
-                <div className='text-2xl font-medium'>
-                  {walletState.sync.balance} {walletState.sync.unit.ticker}
+                <div className='text-2xl font-medium truncate'>
+                  {walletState.sync.balance}
                 </div>
               </CardContent>
             </Card>
@@ -71,7 +71,7 @@ export function MainWallet() {
               >
                 <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2 space-x-2'>
                   <CardTitle className='text-sm font-medium truncate'>
-                    {cat.name}
+                    {cat.name || 'Unknown CAT'}
                   </CardTitle>
 
                   {cat.icon_url && (
@@ -83,8 +83,8 @@ export function MainWallet() {
                   )}
                 </CardHeader>
                 <CardContent>
-                  <div className='text-2xl font-medium'>
-                    {cat.balance} {cat.ticker}
+                  <div className='text-2xl font-medium truncate'>
+                    {cat.balance}
                   </div>
                 </CardContent>
               </Card>
