@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use chia::protocol::Bytes32;
-use chia_wallet_sdk::{Network, MAINNET_CONSTANTS, TESTNET11_CONSTANTS};
+use chia_wallet_sdk::{Network, TESTNET11_CONSTANTS};
 use sage_database::{CatRow, Database};
 use serde::Deserialize;
 use tokio::{
