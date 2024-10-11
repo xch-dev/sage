@@ -1,7 +1,6 @@
 import Container from '@/components/Container';
 import Header from '@/components/Header';
 import Layout from '@/components/Layout';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -58,10 +57,6 @@ function GlobalSettings() {
               />
               <Label htmlFor='dark-mode'>Dark Mode</Label>
             </div>
-
-            <Button variant='destructive' className='max-w-36'>
-              Erase Data
-            </Button>
           </div>
         </CardContent>
       </Card>
