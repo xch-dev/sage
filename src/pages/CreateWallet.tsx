@@ -21,7 +21,6 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
@@ -129,7 +128,6 @@ function CreateForm(props: {
               <FormControl>
                 <Input placeholder='' required {...field} />
               </FormControl>
-
               <FormMessage />
             </FormItem>
           )}
@@ -184,8 +182,6 @@ function CreateForm(props: {
           )}
         />
 
-        <Separator className='my-4' />
-
         <div className='mt-3'>
           <div className='flex justify-between items-center mb-2'>
             <Label>Mnemonic</Label>
@@ -213,7 +209,11 @@ function CreateForm(props: {
               .watch('mnemonic')
               ?.split(' ')
               .map((word, i) => (
-                <Badge key={i} variant='outline' className='m-0.5 font-medium'>
+                <Badge
+                  key={i}
+                  variant='outline'
+                  className='py-1.5 px-2.5 m-0.5 rounded-lg font-medium'
+                >
                   {word}
                 </Badge>
               ))}

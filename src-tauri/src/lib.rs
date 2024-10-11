@@ -39,6 +39,7 @@ pub fn run() {
             commands::import_wallet,
             commands::delete_wallet,
             commands::rename_wallet,
+            commands::resync_wallet,
             // Setup
             commands::initialize,
             // Wallet

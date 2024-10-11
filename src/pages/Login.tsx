@@ -19,6 +19,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
+  EraserIcon,
   EyeIcon,
   FlameIcon,
   LogInIcon,
@@ -115,18 +116,16 @@ function WalletItem(props: {
   const [isDeleteOpen, setDeleteOpen] = useState(false);
   const [isRenameOpen, setRenameOpen] = useState(false);
   const [isDetailsOpen, setDetailsOpen] = useState(false);
+  const [isResyncOpen, setResyncOpen] = useState(false);
   const [newName, setNewName] = useState('');
 
   const [secrets, setSecrets] = useState<WalletSecrets | null>(null);
 
-  const openMenu = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
-    event.stopPropagation();
-    event.preventDefault();
-  };
-
-  const closeMenu = () => {
-    setAnchorEl(null);
+  const resyncSelf = () => {
+    commands.resyncWallet(props.wallet.fingerprint).then((res) => {
+      if (res.status === 'error') return;
+      setResyncOpen(false);
+    });
   };
 
   const deleteSelf = () => {
@@ -185,7 +184,7 @@ function WalletItem(props: {
         <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
           <CardTitle className='text-2xl'>{props.wallet.name}</CardTitle>
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+            <DropdownMenuTrigger asChild className='-mr-2.5'>
               <Button variant='ghost' size='icon'>
                 <MoreVerticalIcon className='h-5 w-5' />
               </Button>
@@ -225,6 +224,16 @@ function WalletItem(props: {
                 <DropdownMenuItem
                   className='cursor-pointer text-red-600 focus:text-red-500'
                   onClick={(e) => {
+                    setResyncOpen(true);
+                    e.stopPropagation();
+                  }}
+                >
+                  <EraserIcon className='mr-2 h-4 w-4' />
+                  <span>Resync</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className='cursor-pointer text-red-600 focus:text-red-500'
+                  onClick={(e) => {
                     setDeleteOpen(true);
                     e.stopPropagation();
                   }}
@@ -242,12 +251,12 @@ function WalletItem(props: {
               {props.wallet.fingerprint}
             </span>
             {props.wallet.kind == 'hot' ? (
-              <div className='inline-flex gap-0.5 items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80'>
+              <div className='inline-flex gap-0.5 items-center rounded-full border px-2 py-1.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80'>
                 <FlameIcon className='h-4 w-4 pb-0.5' />
                 <span>Hot Wallet</span>
               </div>
             ) : (
-              <div className='inline-flex gap-0.5 items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80'>
+              <div className='inline-flex gap-0.5 items-center rounded-full border px-2 py-1.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80'>
                 <SnowflakeIcon className='h-4 w-4 pb-0.5' />
                 <span>Cold Wallet</span>
               </div>
@@ -255,6 +264,30 @@ function WalletItem(props: {
           </div>
         </CardContent>
       </Card>
+
+      <Dialog
+        open={isResyncOpen}
+        onOpenChange={(open) => !open && setResyncOpen(false)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Resync Wallet</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to resync this wallet's data? This will
+              remove custom names for tokens and profiles and redownload all of
+              the data from the network.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant='outline' onClick={() => setResyncOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant='destructive' onClick={resyncSelf} autoFocus>
+              Resync
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog
         open={isDeleteOpen}

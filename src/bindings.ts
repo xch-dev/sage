@@ -149,6 +149,14 @@ async renameWallet(fingerprint: number, name: string) : Promise<Result<null, Err
     else return { status: "error", error: e  as any };
 }
 },
+async resyncWallet(fingerprint: number) : Promise<Result<null, Error>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("resync_wallet", { fingerprint }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async initialize() : Promise<Result<null, Error>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("initialize") };

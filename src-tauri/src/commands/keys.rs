@@ -83,6 +83,29 @@ pub async fn login_wallet(state: State<'_, AppState>, fingerprint: u32) -> Resul
 
 #[command]
 #[specta]
+pub async fn resync_wallet(state: State<'_, AppState>, fingerprint: u32) -> Result<()> {
+    let mut state = state.lock().await;
+
+    let login = state.config.app.active_fingerprint == Some(fingerprint);
+
+    if login {
+        state.config.app.active_fingerprint = None;
+        state.switch_wallet().await?;
+    }
+
+    state.delete_wallet_db(fingerprint)?;
+
+    if login {
+        state.config.app.active_fingerprint = Some(fingerprint);
+        state.save_config()?;
+        state.switch_wallet().await?;
+    }
+
+    Ok(())
+}
+
+#[command]
+#[specta]
 pub async fn logout_wallet(state: State<'_, AppState>) -> Result<()> {
     let mut state = state.lock().await;
     state.config.app.active_fingerprint = None;

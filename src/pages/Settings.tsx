@@ -1,6 +1,7 @@
 import Container from '@/components/Container';
 import Header from '@/components/Header';
 import Layout from '@/components/Layout';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,7 +16,6 @@ import { Switch } from '@/components/ui/switch';
 import { useWallet } from '@/hooks/useWallet';
 import { clearState, fetchState } from '@/state';
 import { useContext, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { DarkModeContext } from '../App';
 import { commands, NetworkConfig, WalletConfig, WalletInfo } from '../bindings';
 import { isValidU32 } from '../validation';
@@ -49,13 +49,19 @@ function GlobalSettings() {
           <CardTitle>Global</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className='flex items-center space-x-2'>
-            <Switch
-              id='dark-mode'
-              checked={dark}
-              onCheckedChange={(checked) => setDark(checked)}
-            />
-            <Label htmlFor='dark-mode'>Dark Mode</Label>
+          <div className='grid gap-6'>
+            <div className='flex items-center space-x-2'>
+              <Switch
+                id='dark-mode'
+                checked={dark}
+                onCheckedChange={(checked) => setDark(checked)}
+              />
+              <Label htmlFor='dark-mode'>Dark Mode</Label>
+            </div>
+
+            <Button variant='destructive' className='max-w-36'>
+              Erase Data
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -64,8 +70,6 @@ function GlobalSettings() {
 }
 
 function NetworkSettings() {
-  const navigate = useNavigate();
-
   const [discoverPeers, setDiscoverPeers] = useState<boolean | null>(null);
   const [targetPeersText, setTargetPeers] = useState<string | null>(null);
   const [networkId, setNetworkId] = useState<string | null>(null);
@@ -189,8 +193,6 @@ function WalletSettings(props: { wallet: WalletInfo }) {
     });
   }, [props.wallet.fingerprint]);
 
-  const [isInfoOpen, setInfoOpen] = useState(false);
-
   return (
     <>
       <Card>
@@ -206,7 +208,6 @@ function WalletSettings(props: { wallet: WalletInfo }) {
                 type='text'
                 className='w-full'
                 value={name}
-                // error={!name}
                 onChange={(event) => setName(event.target.value)}
                 onBlur={() => {
                   if (name !== config?.name) {
@@ -248,9 +249,6 @@ function WalletSettings(props: { wallet: WalletInfo }) {
                   config?.derivation_batch_size ??
                   500
                 }
-                // error={
-                //   derivationBatchSizeText !== null && invalidDerivationBatchSize
-                // }
                 disabled={
                   !(deriveAutomatically ?? config?.derive_automatically)
                 }

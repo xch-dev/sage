@@ -3,6 +3,7 @@ import {
   HandCoins,
   Images,
   LogOut,
+  SquareUserRound,
   Wallet as WalletIcon,
 } from 'lucide-react';
 import { PropsWithChildren, useEffect, useMemo, useState } from 'react';
@@ -70,6 +71,10 @@ export default function Layout(props: PropsWithChildren<object>) {
                 <NavLink url='/nfts'>
                   <Images className='h-4 w-4' />
                   NFTs
+                </NavLink>
+                <NavLink url='/dids'>
+                  <SquareUserRound className='h-4 w-4' />
+                  Profiles
                 </NavLink>
                 <Separator className='my-2' />
                 <NavLink url='/wallet/issue-token'>
