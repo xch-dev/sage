@@ -1,15 +1,11 @@
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
-
 use chia::protocol::{Bytes32, CoinSpend};
-use chia_wallet_sdk::{
-    decode_address, AggSigConstants, Peer, MAINNET_CONSTANTS, TESTNET11_CONSTANTS,
-};
+use chia_wallet_sdk::{decode_address, AggSigConstants, MAINNET_CONSTANTS, TESTNET11_CONSTANTS};
 use sage_api::Amount;
 use sage_database::CatRow;
 use sage_wallet::Wallet;
 use specta::specta;
 use tauri::{command, State};
-use tokio::{sync::MutexGuard, time::timeout};
+use tokio::sync::MutexGuard;
 
 use crate::{
     app_state::{AppState, AppStateInner},
@@ -293,66 +289,6 @@ async fn transact(
     };
 
     wallet.insert_transaction(&spend_bundle, peak.0).await?;
-
-    let peers: Vec<Peer> = state
-        .peer_state
-        .lock()
-        .await
-        .peers()
-        .map(|info| info.peer.clone())
-        .collect();
-
-    if peers.is_empty() {
-        return Err(Error::no_peers());
-    }
-
-    log::info!(
-        "Broadcasting transaction id {}: {:?}",
-        spend_bundle.name(),
-        spend_bundle
-    );
-
-    let mut successful = false;
-
-    for peer in peers {
-        let ack = match timeout(
-            Duration::from_secs(3),
-            peer.send_transaction(spend_bundle.clone()),
-        )
-        .await
-        {
-            Ok(Ok(ack)) => ack,
-            Err(_timeout) => {
-                log::warn!("Transaction timed out for {}", peer.socket_addr());
-                continue;
-            }
-            Ok(Err(err)) => {
-                log::warn!("Transaction failed for {}: {}", peer.socket_addr(), err);
-                continue;
-            }
-        };
-
-        successful = true;
-
-        log::info!(
-            "Transaction sent to {} with ack {:?}",
-            peer.socket_addr(),
-            ack
-        );
-    }
-
-    if successful {
-        let timestamp = SystemTime::now()
-            .duration_since(UNIX_EPOCH)?
-            .as_secs()
-            .try_into()
-            .expect("timestamp exceeds i64");
-
-        wallet
-            .db
-            .update_transaction_mempool_time(spend_bundle.name(), timestamp)
-            .await?;
-    }
 
     Ok(())
 }

@@ -53,6 +53,7 @@ impl PuzzleQueue {
             .peers()
             .map(|info| info.peer.clone())
             .collect();
+
         if peers.is_empty() {
             return Ok(());
         }

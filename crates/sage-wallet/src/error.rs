@@ -1,3 +1,5 @@
+use std::time::SystemTimeError;
+
 use chia::{bls::PublicKey, protocol::Bytes32};
 use chia_wallet_sdk::{ClientError, CoinSelectionError, DriverError, SignerError};
 use sage_database::DatabaseError;
@@ -38,6 +40,9 @@ pub enum WalletError {
 
     #[error("Unknown public key in transaction: {0:?}")]
     UnknownPublicKey(PublicKey),
+
+    #[error("Time error: {0}")]
+    Time(#[from] SystemTimeError),
 }
 
 #[derive(Debug, Error)]

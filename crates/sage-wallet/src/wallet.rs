@@ -596,7 +596,7 @@ impl Wallet {
 
     pub async fn sign_transaction(
         &self,
-        coin_spends: Vec<CoinSpend>,
+        mut coin_spends: Vec<CoinSpend>,
         agg_sig_constants: &AggSigConstants,
         master_sk: SecretKey,
     ) -> Result<SpendBundle, WalletError> {
@@ -632,6 +632,8 @@ impl Wallet {
             let sk = secret_keys[&required.public_key()].clone();
             aggregated_signature += &sign(&sk, required.final_message());
         }
+
+        coin_spends.sort_by_key(|cs| cs.coin.coin_id());
 
         Ok(SpendBundle::new(coin_spends, aggregated_signature))
     }

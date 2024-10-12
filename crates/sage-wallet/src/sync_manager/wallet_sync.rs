@@ -268,6 +268,11 @@ pub async fn incremental_sync(
         if is_p2 {
             tx.insert_p2_coin(coin_state.coin.coin_id()).await?;
         }
+
+        if coin_state.spent_height.is_some() {
+            tx.delete_transactions_for_coin(coin_state.coin.coin_id())
+                .await?;
+        }
     }
 
     if derive_automatically {
