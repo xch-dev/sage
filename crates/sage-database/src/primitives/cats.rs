@@ -2,7 +2,6 @@ use chia::{
     protocol::{Bytes32, Coin, CoinState},
     puzzles::LineageProof,
 };
-use chia_wallet_sdk::Cat;
 use sqlx::SqliteExecutor;
 
 use crate::{
@@ -52,22 +51,8 @@ impl Database {
         unidentified_cat(&self.pool).await
     }
 
-    pub async fn insert_cat_coin(
-        &self,
-        coin_id: Bytes32,
-        lineage_proof: LineageProof,
-        p2_puzzle_hash: Bytes32,
-        asset_id: Bytes32,
-    ) -> Result<()> {
-        insert_cat_coin(&self.pool, coin_id, lineage_proof, p2_puzzle_hash, asset_id).await
-    }
-
     pub async fn unspent_cat_coins(&self, asset_id: Bytes32) -> Result<Vec<CatCoin>> {
         unspent_cat_coins(&self.pool, asset_id).await
-    }
-
-    pub async fn cat_coin(&self, coin_id: Bytes32) -> Result<Option<Cat>> {
-        cat_coin(&self.pool, coin_id).await
     }
 
     pub async fn cat_coin_states(&self, asset_id: Bytes32) -> Result<Vec<CoinState>> {
@@ -80,26 +65,6 @@ impl Database {
 }
 
 impl<'a> DatabaseTx<'a> {
-    pub async fn maybe_insert_cat(&mut self, row: CatRow) -> Result<()> {
-        maybe_insert_cat(&mut *self.tx, row).await
-    }
-
-    pub async fn update_cat(&mut self, row: CatRow) -> Result<()> {
-        update_cat(&mut *self.tx, row).await
-    }
-
-    pub async fn delete_cat(&mut self, asset_id: Bytes32) -> Result<()> {
-        delete_cat(&mut *self.tx, asset_id).await
-    }
-
-    pub async fn cats(&mut self) -> Result<Vec<CatRow>> {
-        cats(&mut *self.tx).await
-    }
-
-    pub async fn unidentified_cat(&mut self) -> Result<Option<Bytes32>> {
-        unidentified_cat(&mut *self.tx).await
-    }
-
     pub async fn insert_cat_coin(
         &mut self,
         coin_id: Bytes32,
@@ -115,14 +80,6 @@ impl<'a> DatabaseTx<'a> {
             asset_id,
         )
         .await
-    }
-
-    pub async fn cat_coin(&mut self, coin_id: Bytes32) -> Result<Option<Cat>> {
-        cat_coin(&mut *self.tx, coin_id).await
-    }
-
-    pub async fn cat_coin_states(&mut self, asset_id: Bytes32) -> Result<Vec<CoinState>> {
-        cat_coin_states(&mut *self.tx, asset_id).await
     }
 }
 
@@ -343,40 +300,6 @@ async fn unspent_cat_coins(
             })
         })
         .collect()
-}
-
-async fn cat_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Option<Cat>> {
-    let coin_id = coin_id.as_ref();
-
-    let Some(row) = sqlx::query!(
-        "
-        SELECT
-            cs.parent_coin_id, cs.puzzle_hash, cs.amount,
-            cat.parent_parent_coin_id, cat.parent_inner_puzzle_hash, cat.parent_amount,
-            cat.p2_puzzle_hash, cat.asset_id
-        FROM `coin_states` AS cs
-        INNER JOIN `cat_coins` AS cat
-        ON cs.coin_id = cat.coin_id
-        WHERE cs.coin_id = ?
-        ",
-        coin_id
-    )
-    .fetch_optional(conn)
-    .await?
-    else {
-        return Ok(None);
-    };
-
-    Ok(Some(Cat {
-        coin: to_coin(&row.parent_coin_id, &row.puzzle_hash, &row.amount)?,
-        lineage_proof: Some(to_lineage_proof(
-            &row.parent_parent_coin_id,
-            &row.parent_inner_puzzle_hash,
-            &row.parent_amount,
-        )?),
-        p2_puzzle_hash: to_bytes32(&row.p2_puzzle_hash)?,
-        asset_id: to_bytes32(&row.asset_id)?,
-    }))
 }
 
 async fn cat_coin_states(
