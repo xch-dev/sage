@@ -1,17 +1,9 @@
 use chia::protocol::{Bytes32, Coin, CoinState};
 use sqlx::SqliteExecutor;
 
-use crate::{error::Result, to_bytes, to_coin, to_coin_state, Database, DatabaseTx};
+use crate::{to_bytes, to_coin, to_coin_state, Database, DatabaseTx, Result};
 
 impl Database {
-    pub async fn insert_p2_coin(&self, coin_id: Bytes32) -> Result<()> {
-        insert_p2_coin(&self.pool, coin_id).await
-    }
-
-    pub async fn p2_balance(&self) -> Result<u128> {
-        p2_balance(&self.pool).await
-    }
-
     pub async fn p2_coin_states(&self) -> Result<Vec<CoinState>> {
         p2_coin_states(&self.pool).await
     }
@@ -28,14 +20,6 @@ impl<'a> DatabaseTx<'a> {
 
     pub async fn p2_balance(&mut self) -> Result<u128> {
         p2_balance(&mut *self.tx).await
-    }
-
-    pub async fn p2_coin_states(&mut self) -> Result<Vec<CoinState>> {
-        p2_coin_states(&mut *self.tx).await
-    }
-
-    pub async fn unspent_p2_coins(&mut self) -> Result<Vec<Coin>> {
-        unspent_p2_coins(&mut *self.tx).await
     }
 }
 

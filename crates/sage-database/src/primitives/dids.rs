@@ -5,7 +5,7 @@ use chia::{
 use chia_wallet_sdk::{Did, DidInfo};
 use sqlx::SqliteExecutor;
 
-use crate::{error::Result, to_bytes, to_bytes32, to_coin, to_lineage_proof, Database, DatabaseTx};
+use crate::{to_bytes, to_bytes32, to_coin, to_lineage_proof, Database, DatabaseTx, Result};
 
 impl Database {
     pub async fn did_coins(&self) -> Result<Vec<Did<Program>>> {

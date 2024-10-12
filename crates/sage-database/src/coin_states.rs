@@ -1,45 +1,17 @@
 use chia::protocol::{Bytes32, CoinState};
 use sqlx::SqliteExecutor;
 
-use crate::{error::Result, to_bytes32, to_coin, to_coin_state, Database, DatabaseTx};
+use crate::{to_bytes32, to_coin, to_coin_state, Database, DatabaseTx, Result};
 
 impl Database {
-    pub async fn insert_coin_state(&self, coin_state: CoinState, synced: bool) -> Result<()> {
-        insert_coin_state(&self.pool, coin_state, synced).await
-    }
-
-    pub async fn remove_coin_state(&self, coin_id: Bytes32) -> Result<()> {
-        remove_coin_state(&self.pool, coin_id).await
-    }
-
     pub async fn unsynced_coin_states(&self, limit: usize) -> Result<Vec<CoinState>> {
         unsynced_coin_states(&self.pool, limit).await
-    }
-
-    pub async fn total_coin_count(&self) -> Result<u32> {
-        total_coin_count(&self.pool).await
-    }
-
-    pub async fn synced_coin_count(&self) -> Result<u32> {
-        synced_coin_count(&self.pool).await
-    }
-
-    pub async fn coin_state(&self, coin_id: Bytes32) -> Result<Option<CoinState>> {
-        coin_state(&self.pool, coin_id).await
     }
 }
 
 impl<'a> DatabaseTx<'a> {
     pub async fn insert_coin_state(&mut self, coin_state: CoinState, synced: bool) -> Result<()> {
         insert_coin_state(&mut *self.tx, coin_state, synced).await
-    }
-
-    pub async fn remove_coin_state(&mut self, coin_id: Bytes32) -> Result<()> {
-        remove_coin_state(&mut *self.tx, coin_id).await
-    }
-
-    pub async fn unsynced_coin_states(&mut self, limit: usize) -> Result<Vec<CoinState>> {
-        unsynced_coin_states(&mut *self.tx, limit).await
     }
 
     pub async fn update_coin_synced(&mut self, coin_id: Bytes32, hint: Bytes32) -> Result<()> {
@@ -133,20 +105,6 @@ async fn insert_unknown_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) ->
     .execute(conn)
     .await?;
 
-    Ok(())
-}
-
-async fn remove_coin_state(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<()> {
-    let coin_id = coin_id.as_ref();
-    sqlx::query!(
-        "
-        DELETE FROM `coin_states`
-        WHERE `coin_id` = ?
-        ",
-        coin_id
-    )
-    .execute(conn)
-    .await?;
     Ok(())
 }
 

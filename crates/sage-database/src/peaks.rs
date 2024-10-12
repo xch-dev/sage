@@ -7,25 +7,9 @@ impl Database {
     pub async fn insert_peak(&self, height: u32, header_hash: Bytes32) -> Result<()> {
         insert_peak(&self.pool, height, header_hash).await
     }
-
-    pub async fn delete_peak(&self, height: u32) -> Result<()> {
-        delete_peak(&self.pool, height).await
-    }
-
-    pub async fn latest_peak(&self) -> Result<Option<(u32, Bytes32)>> {
-        latest_peak(&self.pool).await
-    }
 }
 
 impl<'a> DatabaseTx<'a> {
-    pub async fn insert_peak(&mut self, height: u32, header_hash: Bytes32) -> Result<()> {
-        insert_peak(&mut *self.tx, height, header_hash).await
-    }
-
-    pub async fn delete_peak(&mut self, height: u32) -> Result<()> {
-        delete_peak(&mut *self.tx, height).await
-    }
-
     pub async fn latest_peak(&mut self) -> Result<Option<(u32, Bytes32)>> {
         latest_peak(&mut *self.tx).await
     }
@@ -44,19 +28,6 @@ async fn insert_peak(
         ",
         height,
         header_hash
-    )
-    .execute(conn)
-    .await?;
-    Ok(())
-}
-
-async fn delete_peak(conn: impl SqliteExecutor<'_>, height: u32) -> Result<()> {
-    sqlx::query!(
-        "
-        DELETE FROM `peaks`
-        WHERE `height` = ?
-        ",
-        height
     )
     .execute(conn)
     .await?;

@@ -5,8 +5,7 @@ use chia::{
 use sqlx::SqliteExecutor;
 
 use crate::{
-    error::Result, to_bytes, to_bytes32, to_coin, to_coin_state, to_lineage_proof, Database,
-    DatabaseTx,
+    to_bytes, to_bytes32, to_coin, to_coin_state, to_lineage_proof, Database, DatabaseTx, Result,
 };
 
 #[derive(Debug, Clone)]
