@@ -242,6 +242,30 @@ pub async fn send_cat(
     Ok(())
 }
 
+#[command]
+#[specta]
+pub async fn create_did(state: State<'_, AppState>, name: String, fee: Amount) -> Result<()> {
+    // TODO: DID naming
+    let _ = name;
+
+    let state = state.lock().await;
+    let wallet = state.wallet()?;
+
+    if !state.keychain.has_secret_key(wallet.fingerprint) {
+        return Err(Error::no_secret_key());
+    }
+
+    let Some(fee) = fee.to_mojos(state.unit.decimals) else {
+        return Err(Error::invalid_amount(&fee));
+    };
+
+    let (coin_spends, _did) = wallet.create_did(fee, false, true).await?;
+
+    transact(&state, &wallet, coin_spends).await?;
+
+    Ok(())
+}
+
 async fn transact(
     state: &MutexGuard<'_, AppStateInner>,
     wallet: &Wallet,

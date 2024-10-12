@@ -52,6 +52,7 @@ pub fn run() {
             commands::get_dids,
             commands::get_nfts,
             commands::get_nft,
+            commands::get_pending_transactions,
             commands::validate_address,
             // Actions
             commands::update_cat_info,
@@ -62,6 +63,7 @@ pub fn run() {
             commands::split,
             commands::issue_cat,
             commands::send_cat,
+            commands::create_did,
             // Peers
             commands::get_peers,
             commands::add_peer,

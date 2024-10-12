@@ -9,6 +9,7 @@ import { useLocalStorage } from 'usehooks-ts';
 import { commands } from './bindings';
 import Container from './components/Container';
 import { PeerProvider } from './contexts/PeerContext';
+import CreateProfile from './pages/CreateProfile';
 import CreateWallet from './pages/CreateWallet';
 import ImportWallet from './pages/ImportWallet';
 import IssueToken from './pages/IssueToken';
@@ -19,6 +20,7 @@ import Receive from './pages/Receive';
 import Send from './pages/Send';
 import Settings from './pages/Settings';
 import Token from './pages/Token';
+import { Transactions } from './pages/Transactions';
 import Wallet from './pages/Wallet';
 import { WalletDids } from './pages/WalletDids';
 import { MainWallet } from './pages/WalletMain';
@@ -55,6 +57,10 @@ const router = createHashRouter(
       </Route>
       <Route path='/dids' element={<Wallet />}>
         <Route path='' element={<WalletDids />} />
+        <Route path='create-profile' element={<CreateProfile />} />
+      </Route>
+      <Route path='/transactions' element={<Wallet />}>
+        <Route path='' element={<Transactions />} />
       </Route>
       <Route path='/settings' element={<Settings />} />
       <Route path='/peers' element={<PeerList />} />

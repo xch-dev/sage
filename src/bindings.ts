@@ -237,6 +237,14 @@ async getNft(launcherId: string) : Promise<Result<NftRecord | null, Error>> {
     else return { status: "error", error: e  as any };
 }
 },
+async getPendingTransactions() : Promise<Result<PendingTransactionRecord[], Error>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_pending_transactions") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async validateAddress(address: string) : Promise<Result<boolean, Error>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("validate_address", { address }) };
@@ -301,6 +309,14 @@ async sendCat(assetId: string, address: string, amount: Amount, fee: Amount) : P
     else return { status: "error", error: e  as any };
 }
 },
+async createDid(name: string, fee: Amount) : Promise<Result<null, Error>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("create_did", { name, fee }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async getPeers() : Promise<Result<PeerRecord[], Error>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("get_peers") };
@@ -354,6 +370,7 @@ export type Network = { default_port: number; ticker: string; address_prefix: st
 export type NetworkConfig = { network_id?: string; target_peers?: number; discover_peers?: boolean }
 export type NftRecord = { launcher_id: string; launcher_id_hex: string; owner_did: string | null; coin_id: string; address: string; royalty_address: string; royalty_percent: string; data_uris: string[]; data_hash: string | null; metadata_uris: string[]; metadata_hash: string | null; license_uris: string[]; license_hash: string | null; edition_number: number | null; edition_total: number | null; data_mime_type: string | null; data: string | null; metadata: string | null }
 export type PeerRecord = { ip_addr: string; port: number; trusted: boolean; peak_height: number }
+export type PendingTransactionRecord = { transaction_id: string; fee: Amount; submitted_at: string | null; expiration_height: number | null }
 export type SyncEvent = { type: "start"; ip: string } | { type: "stop" } | { type: "subscribed" } | { type: "coin_update" } | { type: "puzzle_update" } | { type: "cat_update" } | { type: "nft_update" }
 export type SyncStatus = { balance: Amount; unit: Unit; synced_coins: number; total_coins: number; receive_address: string }
 export type Unit = { ticker: string; decimals: number }

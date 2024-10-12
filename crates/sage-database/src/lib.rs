@@ -6,6 +6,7 @@ mod transactions;
 mod utils;
 
 pub use primitives::*;
+pub use transactions::*;
 
 pub(crate) use utils::*;
 

@@ -11,31 +11,34 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { EyeOff, MoreVerticalIcon, PenIcon, UserRoundPlus } from 'lucide-react';
+import { useWalletState } from '@/state';
+import { ReloadIcon } from '@radix-ui/react-icons';
+import { FastForward, Info, MoreVerticalIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { commands, DidRecord } from '../bindings';
+import { commands, PendingTransactionRecord } from '../bindings';
 
-export function WalletDids() {
-  const navigate = useNavigate();
+export function Transactions() {
+  const walletState = useWalletState();
 
-  const [dids, setDids] = useState<DidRecord[]>([]);
+  const [transactions, setTransactions] = useState<PendingTransactionRecord[]>(
+    [],
+  );
 
-  const updateDids = async () => {
-    return await commands.getDids().then((result) => {
+  const updateTransactions = async () => {
+    return await commands.getPendingTransactions().then((result) => {
       if (result.status === 'ok') {
-        setDids(result.data);
+        setTransactions(result.data);
       } else {
-        throw new Error('Failed to get DIDs');
+        throw new Error('Failed to get pending transactions');
       }
     });
   };
 
   useEffect(() => {
-    updateDids();
+    updateTransactions();
 
     const interval = setInterval(() => {
-      updateDids();
+      updateTransactions();
     }, 5000);
 
     return () => {
@@ -45,32 +48,27 @@ export function WalletDids() {
 
   return (
     <>
-      <Header title='Profiles'>
+      <Header title='Transactions'>
         <ReceiveAddress />
       </Header>
       <Container>
-        {dids.length === 0 && (
-          <Alert className='mb-4'>
-            <UserRoundPlus className='h-4 w-4' />
-            <AlertTitle>Create a profile?</AlertTitle>
-            <AlertDescription>
-              You do not currently have any DID profiles. Would you like to
-              create one?
-            </AlertDescription>
-          </Alert>
-        )}
-        <Button onClick={() => navigate('create-profile')} className='mb-4'>
-          Create Profile
-        </Button>
-        {dids.map((did, i) => {
+        <Alert className='mb-4'>
+          <Info className='h-4 w-4' />
+          <AlertTitle>Note</AlertTitle>
+          <AlertDescription>
+            This only shows transactions initiated by this app that are
+            currently pending in the mempool.
+          </AlertDescription>
+        </Alert>
+        {transactions.map((transaction, i) => {
           return (
             <Card
               key={i}
               className='hover:-translate-y-0.5 duration-100 hover:shadow-md'
             >
               <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-                <CardTitle className='text-xl font-medium'>
-                  Untitled Profile
+                <CardTitle className='text-2xl font-medium'>
+                  Transaction {transaction.transaction_id.slice(0, 16)}
                 </CardTitle>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild className='-mr-2.5'>
@@ -86,25 +84,25 @@ export function WalletDids() {
                           e.stopPropagation();
                         }}
                       >
-                        <PenIcon className='mr-2 h-4 w-4' />
-                        <span>Rename</span>
+                        <ReloadIcon className='mr-2 h-4 w-4' />
+                        <span>Resubmit</span>
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        className='cursor-pointer text-red-600 focus:text-red-500'
+                        className='cursor-pointer'
                         onClick={(e) => {
                           e.stopPropagation();
                         }}
                       >
-                        <EyeOff className='mr-2 h-4 w-4' />
-                        <span>Hide</span>
+                        <FastForward className='mr-2 h-4 w-4' />
+                        <span>Increase Fee</span>
                       </DropdownMenuItem>
                     </DropdownMenuGroup>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </CardHeader>
               <CardContent>
-                <div className='text-sm font-medium truncate'>
-                  {did.encoded_id}
+                <div className='text-sm truncate'>
+                  With a fee of {transaction.fee} {walletState.sync.unit.ticker}
                 </div>
               </CardContent>
             </Card>

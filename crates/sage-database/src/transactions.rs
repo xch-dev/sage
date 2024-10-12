@@ -4,7 +4,15 @@ use chia::{
 };
 use sqlx::SqliteExecutor;
 
-use crate::{Database, DatabaseTx, Result};
+use crate::{to_bytes, to_bytes32, Database, DatabaseTx, Result};
+
+#[derive(Debug, Clone, Copy)]
+pub struct TransactionRow {
+    pub transaction_id: Bytes32,
+    pub fee: u64,
+    pub submitted_at: Option<i64>,
+    pub expiration_height: Option<u32>,
+}
 
 impl Database {
     pub async fn update_transaction_mempool_time(
@@ -13,6 +21,10 @@ impl Database {
         timestamp: i64,
     ) -> Result<()> {
         update_transaction_mempool_time(&self.pool, transaction_id, timestamp).await
+    }
+
+    pub async fn transactions(&self) -> Result<Vec<TransactionRow>> {
+        transactions(&self.pool).await
     }
 }
 
@@ -143,4 +155,31 @@ async fn update_transaction_mempool_time(
     .await?;
 
     Ok(())
+}
+
+async fn transactions(conn: impl SqliteExecutor<'_>) -> Result<Vec<TransactionRow>> {
+    let rows = sqlx::query!(
+        "
+        SELECT
+            `transaction_id`,
+            `fee`,
+            `submitted_at`,
+            `expiration_height`
+        FROM `transactions`
+        ORDER BY `submitted_at` DESC, `transaction_id` ASC
+        "
+    )
+    .fetch_all(conn)
+    .await?;
+
+    rows.into_iter()
+        .map(|row| {
+            Ok(TransactionRow {
+                transaction_id: to_bytes32(&row.transaction_id)?,
+                fee: u64::from_be_bytes(to_bytes(&row.fee)?),
+                submitted_at: row.submitted_at,
+                expiration_height: row.expiration_height.map(TryInto::try_into).transpose()?,
+            })
+        })
+        .collect()
 }

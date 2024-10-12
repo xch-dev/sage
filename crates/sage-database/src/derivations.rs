@@ -8,6 +8,10 @@ impl Database {
         p2_puzzle_hashes_unhardened(&self.pool).await
     }
 
+    pub async fn synthetic_key(&self, p2_puzzle_hash: Bytes32) -> Result<PublicKey> {
+        synthetic_key(&self.pool, p2_puzzle_hash).await
+    }
+
     pub async fn synthetic_key_index(&self, synthetic_key: PublicKey) -> Result<Option<u32>> {
         synthetic_key_index(&self.pool, synthetic_key).await
     }

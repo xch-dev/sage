@@ -1,4 +1,5 @@
 import {
+  ArrowLeftRight,
   Cog,
   HandCoins,
   Images,
@@ -75,6 +76,10 @@ export default function Layout(props: PropsWithChildren<object>) {
                 <NavLink url='/dids'>
                   <SquareUserRound className='h-4 w-4' />
                   Profiles
+                </NavLink>
+                <NavLink url='/transactions'>
+                  <ArrowLeftRight className='h-4 w-4' />
+                  Transactions
                 </NavLink>
                 <Separator className='my-2' />
                 <NavLink url='/wallet/issue-token'>

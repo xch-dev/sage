@@ -7,7 +7,8 @@ use chia::{
 use chia_wallet_sdk::encode_address;
 use clvmr::Allocator;
 use sage_api::{
-    Amount, CatRecord, CoinRecord, DidRecord, GetNfts, GetNftsResponse, NftRecord, SyncStatus,
+    Amount, CatRecord, CoinRecord, DidRecord, GetNfts, GetNftsResponse, NftRecord,
+    PendingTransactionRecord, SyncStatus,
 };
 use sage_database::{NftData, NftDisplayInfo};
 use sage_wallet::WalletError;
@@ -199,6 +200,31 @@ pub async fn get_dids(state: State<'_, AppState>) -> Result<Vec<DidRecord>> {
                     did.info.p2_puzzle_hash.to_bytes(),
                     &state.network().address_prefix,
                 )?,
+            })
+        })
+        .collect()
+}
+
+#[command]
+#[specta]
+pub async fn get_pending_transactions(
+    state: State<'_, AppState>,
+) -> Result<Vec<PendingTransactionRecord>> {
+    let state = state.lock().await;
+    let wallet = state.wallet()?;
+
+    wallet
+        .db
+        .transactions()
+        .await?
+        .into_iter()
+        .map(|tx| {
+            Ok(PendingTransactionRecord {
+                transaction_id: hex::encode(tx.transaction_id),
+                fee: Amount::from_mojos(tx.fee as u128, state.unit.decimals),
+                // TODO: Date format?
+                submitted_at: tx.submitted_at.map(|ts| ts.to_string()),
+                expiration_height: tx.expiration_height,
             })
         })
         .collect()
