@@ -84,9 +84,9 @@ jobs:
             });
             return release.data.id;
 
-      # - name: Install x86_64-apple-darwin target
-      #   if: matrix.platform_name == 'MacOS x86_64'
-      #   run: rustup target add x86_64-apple-darwin
+      - name: Install x86_64-apple-darwin target
+        if: matrix.platform == 'macos-latest'
+        run: rustup target add x86_64-apple-darwin
 
       - name: Ubuntu dependencies
         if: matrix.platform == 'ubuntu-22.04'
