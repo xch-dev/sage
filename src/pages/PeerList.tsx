@@ -1,6 +1,3 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { commands, PeerRecord } from '../bindings';
 import Header from '@/components/Header';
 import {
   ColumnDef,
@@ -8,6 +5,9 @@ import {
   getCoreRowModel,
   useReactTable,
 } from '@tanstack/react-table';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { commands, PeerRecord } from '../bindings';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -29,23 +29,23 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 
+import Container from '@/components/Container';
+import Layout from '@/components/Layout';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { Switch } from '@/components/ui/switch';
 import {
   BadgeCheckIcon,
   BadgeIcon,
   BanIcon,
   HelpCircleIcon,
 } from 'lucide-react';
-import Container from '@/components/Container';
-import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Switch } from '@/components/ui/switch';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import Layout from '@/components/Layout';
 
 export default function NetworkList() {
   const navigate = useNavigate();

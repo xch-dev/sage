@@ -1,11 +1,12 @@
+import Container from '@/components/Container';
+import Header from '@/components/Header';
+import { ReceiveAddress } from '@/components/ReceiveAddress';
+import { Button } from '@/components/ui/button';
+import missing from '@/missing.jpg';
+import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { commands, NftRecord } from '../bindings';
-import { Button } from '@/components/ui/button';
-import Header from '@/components/Header';
-import Container from '@/components/Container';
-import { ReceiveAddress } from '@/components/ReceiveAddress';
-import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
 
 export function WalletNfts() {
   const [page, setPage] = useState(0);
@@ -59,6 +60,8 @@ export function WalletNfts() {
       clearInterval(interval);
     };
   }, [page]);
+
+  console.log(nfts);
 
   return (
     <>
@@ -119,7 +122,11 @@ function Nft({ nft }: { nft: NftRecord }) {
             width='150'
             height='150'
             className='h-auto w-auto object-cover transition-all group-hover:scale-105 aspect-square color-[transparent]'
-            src={`data:${nft.data_mime_type};base64,${nft.data}`}
+            src={
+              nft.data
+                ? `data:${nft.data_mime_type};base64,${nft.data}`
+                : missing
+            }
           />
         </div>
       </span>

@@ -1,13 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { commands, Error } from '../bindings';
-import Container from '../components/Container';
-import ErrorDialog from '../components/ErrorDialog';
-import { useWalletState } from '../state';
 import Header from '@/components/Header';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
+import { Button } from '@/components/ui/button';
 import {
   Form,
   FormControl,
@@ -17,11 +9,19 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { LoaderCircleIcon } from 'lucide-react';
 import { amount, positiveAmount } from '@/lib/formTypes';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { LoaderCircleIcon } from 'lucide-react';
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { useNavigate } from 'react-router-dom';
+import * as z from 'zod';
+import { commands, Error } from '../bindings';
+import Container from '../components/Container';
+import ErrorDialog from '../components/ErrorDialog';
+import { useWalletState } from '../state';
 
-export default function IssueCat() {
+export default function IssueToken() {
   const navigate = useNavigate();
   const walletState = useWalletState();
 
@@ -59,7 +59,7 @@ export default function IssueCat() {
 
   return (
     <>
-      <Header title='Issue CAT' />
+      <Header title='Issue Token' />
 
       <Container className='max-w-xl'>
         <Form {...form}>
@@ -71,7 +71,7 @@ export default function IssueCat() {
                 <FormItem>
                   <FormLabel>Name</FormLabel>
                   <FormControl>
-                    <Input placeholder='Enter CAT name' {...field} />
+                    <Input placeholder='Enter name' {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -94,7 +94,9 @@ export default function IssueCat() {
                           className='pr-12'
                         />
                         <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
-                          <span className='text-gray-500 sm:text-sm'>CAT</span>
+                          <span className='text-gray-500 sm:text-sm'>
+                            Token
+                          </span>
                         </div>
                       </div>
                     </FormControl>
@@ -134,7 +136,7 @@ export default function IssueCat() {
               {pending && (
                 <LoaderCircleIcon className='mr-2 h-4 w-4 animate-spin' />
               )}
-              {pending ? 'Issuing' : 'Issue'} CAT
+              {pending ? 'Issuing' : 'Issue'} Token
             </Button>
           </form>
         </Form>

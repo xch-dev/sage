@@ -1,10 +1,10 @@
+import Container from '@/components/Container';
+import Header from '@/components/Header';
+import { Button } from '@/components/ui/button';
+import { open } from '@tauri-apps/plugin-shell';
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { commands, events, NetworkConfig, NftRecord } from '../bindings';
-import Header from '@/components/Header';
-import Container from '@/components/Container';
-import { Button } from '@/components/ui/button';
-import { open } from '@tauri-apps/plugin-shell';
 
 export default function Nft() {
   const { launcher_id: launcherId } = useParams();

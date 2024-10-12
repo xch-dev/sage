@@ -1,12 +1,12 @@
+import Container from '@/components/Container';
+import Header from '@/components/Header';
+import { ReceiveAddress } from '@/components/ReceiveAddress';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { CatRecord, commands, events } from '../bindings';
 import { useWalletState } from '../state';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import Header from '@/components/Header';
-import Container from '@/components/Container';
-import { Button } from '@/components/ui/button';
-import { ReceiveAddress } from '@/components/ReceiveAddress';
 
 export function MainWallet() {
   const walletState = useWalletState();

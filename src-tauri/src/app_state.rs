@@ -20,7 +20,7 @@ use sqlx::{
     ConnectOptions,
 };
 use tauri::{AppHandle, Emitter};
-use tokio::sync::{mpsc, Mutex};
+use tokio::sync::{mpsc, oneshot, Mutex};
 use tracing::{info, level_filters::LevelFilter};
 use tracing_appender::rolling::{Builder, Rotation};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, Layer};
@@ -248,9 +248,20 @@ impl AppStateInner {
     pub async fn switch_wallet(&mut self) -> Result<()> {
         let Some(fingerprint) = self.config.app.active_fingerprint else {
             self.wallet = None;
+
+            let (sender, receiver) = oneshot::channel();
+
             self.command_sender
-                .send(SyncCommand::SwitchWallet { wallet: None })
+                .send(SyncCommand::SwitchWallet {
+                    wallet: None,
+                    callback: sender,
+                })
                 .await?;
+
+            // receiver.await?;
+
+            drop(receiver);
+
             return Ok(());
         };
 
@@ -260,12 +271,10 @@ impl AppStateInner {
 
         let intermediate_pk = master_to_wallet_unhardened_intermediate(&master_pk);
 
-        let path = self.path.join("wallets").join(fingerprint.to_string());
-        fs::create_dir_all(&path)?;
-
+        let path = self.wallet_db_path(fingerprint)?;
         let network_id = &self.config.network.network_id;
         let genesis_challenge = &self.networks[network_id].genesis_challenge;
-        let path = path.join(format!("{network_id}.sqlite"));
+
         let pool = SqlitePoolOptions::new()
             .connect_with(
                 SqliteConnectOptions::from_str(&format!("sqlite://{}?mode=rwc", path.display()))?
@@ -289,13 +298,33 @@ impl AppStateInner {
             _ => TXCH.clone(),
         };
 
+        let (sender, receiver) = oneshot::channel();
+
         self.command_sender
             .send(SyncCommand::SwitchWallet {
                 wallet: Some(wallet),
+                callback: sender,
             })
             .await?;
 
+        // receiver.await?;
+
+        drop(receiver);
+
         Ok(())
+    }
+
+    pub fn delete_wallet_db(&self, fingerprint: u32) -> Result<()> {
+        let path = self.wallet_db_path(fingerprint)?;
+        Ok(fs::remove_file(path)?)
+    }
+
+    pub fn wallet_db_path(&self, fingerprint: u32) -> Result<PathBuf> {
+        let path = self.path.join("wallets").join(fingerprint.to_string());
+        fs::create_dir_all(&path)?;
+        let network_id = &self.config.network.network_id;
+        let path = path.join(format!("{network_id}.sqlite"));
+        Ok(path)
     }
 
     pub fn network(&self) -> &Network {

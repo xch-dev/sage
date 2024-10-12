@@ -13,6 +13,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { AlertCircle } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
@@ -20,7 +21,6 @@ import * as z from 'zod';
 import { commands } from '../bindings';
 import Container from '../components/Container';
 import { fetchState } from '../state';
-import { AlertCircle } from 'lucide-react';
 
 export default function ImportWallet() {
   const navigate = useNavigate();

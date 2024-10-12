@@ -1,20 +1,3 @@
-import { useCallback, useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { CatRecord, commands, Error, events } from '../bindings';
-import Container from '../components/Container';
-import ErrorDialog from '../components/ErrorDialog';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import {
@@ -25,9 +8,26 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { useWalletState } from '@/state';
-import { LoaderCircleIcon } from 'lucide-react';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
 import { amount, positiveAmount } from '@/lib/formTypes';
+import { useWalletState } from '@/state';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { LoaderCircleIcon } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { useNavigate, useParams } from 'react-router-dom';
+import * as z from 'zod';
+import { CatRecord, commands, Error, events } from '../bindings';
+import Container from '../components/Container';
+import ErrorDialog from '../components/ErrorDialog';
 
 export default function Send() {
   const { asset_id: assetId } = useParams();

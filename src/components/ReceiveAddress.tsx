@@ -1,8 +1,8 @@
 import { useWalletState } from '@/state';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
+import { CopyCheckIcon, CopyIcon } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from './ui/button';
-import { CopyCheckIcon, CopyIcon } from 'lucide-react';
 
 export function ReceiveAddress(props: { className?: string }) {
   const walletState = useWalletState();

@@ -17,7 +17,7 @@ use sage_wallet::{SyncCommand, WalletError};
 use serde::{Deserialize, Serialize};
 use specta::Type;
 use sqlx::migrate::MigrateError;
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, oneshot::error::RecvError};
 use tracing::metadata::ParseLevelError;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
@@ -393,6 +393,15 @@ impl From<ToClvmError> for Error {
 
 impl From<WalletError> for Error {
     fn from(value: WalletError) -> Self {
+        Self {
+            kind: ErrorKind::Wallet,
+            reason: value.to_string(),
+        }
+    }
+}
+
+impl From<RecvError> for Error {
+    fn from(value: RecvError) -> Self {
         Self {
             kind: ErrorKind::Wallet,
             reason: value.to_string(),
