@@ -9,17 +9,18 @@ use chia::{
         master_to_wallet_unhardened_intermediate, sign, DerivableKey, PublicKey, SecretKey,
         Signature,
     },
+    clvm_traits::{FromClvm, ToClvm},
     protocol::{Bytes, Bytes32, Coin, CoinSpend, SpendBundle},
     puzzles::{standard::StandardArgs, DeriveSynthetic},
 };
 use chia_wallet_sdk::{
-    select_coins, AggSigConstants, Cat, CatSpend, Conditions, RequiredSignature, SpendContext,
-    SpendWithConditions, StandardLayer,
+    run_puzzle, select_coins, AggSigConstants, Cat, CatSpend, Condition, Conditions,
+    RequiredSignature, SpendContext, SpendWithConditions, StandardLayer,
 };
-use clvmr::Allocator;
+use clvmr::{Allocator, NodePtr};
 use sage_database::{Database, DatabaseTx};
 
-use crate::WalletError;
+use crate::{ParseError, WalletError};
 
 #[derive(Debug)]
 pub struct Wallet {
@@ -597,5 +598,82 @@ impl Wallet {
         }
 
         Ok(SpendBundle::new(coin_spends, aggregated_signature))
+    }
+
+    pub async fn insert_transaction(
+        &self,
+        spend_bundle: &SpendBundle,
+        peak: u32,
+    ) -> Result<(), WalletError> {
+        let mut tx = self.db.tx().await?;
+
+        let mut input_amount = 0;
+        let mut output_amount = 0;
+        let mut expiration_height = None::<u32>;
+
+        for coin_spend in &spend_bundle.coin_spends {
+            input_amount += coin_spend.coin.amount;
+
+            let mut allocator = Allocator::new();
+
+            let puzzle = coin_spend
+                .puzzle_reveal
+                .to_clvm(&mut allocator)
+                .map_err(|_| ParseError::AllocatePuzzle)?;
+
+            let solution = coin_spend
+                .solution
+                .to_clvm(&mut allocator)
+                .map_err(|_| ParseError::AllocateSolution)?;
+
+            let output =
+                run_puzzle(&mut allocator, puzzle, solution).map_err(|_| ParseError::Eval)?;
+
+            let conditions = Conditions::<NodePtr>::from_clvm(&allocator, output)
+                .map_err(|_| ParseError::InvalidConditions)?;
+
+            for condition in conditions {
+                match condition {
+                    Condition::CreateCoin(create_coin) => {
+                        output_amount += create_coin.amount;
+                    }
+                    Condition::AssertBeforeHeightRelative(cond) => {
+                        expiration_height = expiration_height
+                            .map_or(Some(peak + cond.height), |current| {
+                                Some(current.min(peak + cond.height))
+                            });
+                    }
+                    Condition::AssertBeforeHeightAbsolute(cond) => {
+                        expiration_height = expiration_height
+                            .map_or(Some(cond.height), |current| Some(current.min(cond.height)));
+                    }
+                    _ => {}
+                }
+            }
+        }
+
+        let transaction_id = spend_bundle.name();
+
+        tx.insert_transaction(
+            transaction_id,
+            spend_bundle.aggregated_signature.clone(),
+            input_amount - output_amount,
+            expiration_height,
+        )
+        .await?;
+
+        for coin_spend in &spend_bundle.coin_spends {
+            tx.insert_transaction_spend(
+                coin_spend.coin,
+                transaction_id,
+                coin_spend.puzzle_reveal.clone(),
+                coin_spend.solution.clone(),
+            )
+            .await?;
+        }
+
+        tx.commit().await?;
+
+        Ok(())
     }
 }

@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use chia::protocol::{Bytes32, CoinSpend};
 use chia_wallet_sdk::{
@@ -264,6 +264,12 @@ async fn transact(
         )
         .await?;
 
+    let Some(peak) = wallet.db.latest_peak().await? else {
+        return Err(Error::no_peak());
+    };
+
+    wallet.insert_transaction(&spend_bundle, peak.0).await?;
+
     let peers: Vec<Peer> = state
         .peer_state
         .lock()
@@ -281,6 +287,8 @@ async fn transact(
         spend_bundle.name(),
         spend_bundle
     );
+
+    let mut successful = false;
 
     for peer in peers {
         let ack = match timeout(
@@ -300,11 +308,26 @@ async fn transact(
             }
         };
 
+        successful = true;
+
         log::info!(
             "Transaction sent to {} with ack {:?}",
             peer.socket_addr(),
             ack
         );
+    }
+
+    if successful {
+        let timestamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)?
+            .as_secs()
+            .try_into()
+            .expect("timestamp exceeds i64");
+
+        wallet
+            .db
+            .update_transaction_mempool_time(spend_bundle.name(), timestamp)
+            .await?;
     }
 
     Ok(())

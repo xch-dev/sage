@@ -2,6 +2,7 @@ use std::{
     array::TryFromSliceError,
     fmt, io,
     num::{ParseIntError, TryFromIntError},
+    time::SystemTimeError,
 };
 
 use chia::{
@@ -122,6 +123,13 @@ impl Error {
         Self {
             kind: ErrorKind::InvalidKey,
             reason: format!("Invalid key: {reason}"),
+        }
+    }
+
+    pub fn no_peak() -> Self {
+        Self {
+            kind: ErrorKind::TransactionFailed,
+            reason: "There is no blockchain peak yet, you haven't started syncing".to_string(),
         }
     }
 }
@@ -388,6 +396,15 @@ impl From<RecvError> for Error {
     fn from(value: RecvError) -> Self {
         Self {
             kind: ErrorKind::Wallet,
+            reason: value.to_string(),
+        }
+    }
+}
+
+impl From<SystemTimeError> for Error {
+    fn from(value: SystemTimeError) -> Self {
+        Self {
+            kind: ErrorKind::Io,
             reason: value.to_string(),
         }
     }
