@@ -8,7 +8,7 @@ use chia::{
     clvm_traits::{FromClvmError, ToClvmError},
     protocol::Bytes32,
 };
-use chia_wallet_sdk::{AddressError, ClientError, DriverError, SignerError};
+use chia_wallet_sdk::{AddressError, ClientError, DriverError};
 use hex::FromHexError;
 use sage_api::Amount;
 use sage_database::DatabaseError;
@@ -80,13 +80,6 @@ impl Error {
         Self {
             kind: ErrorKind::TransactionFailed,
             reason: "No secret key available".to_string(),
-        }
-    }
-
-    pub fn unknown_public_key() -> Self {
-        Self {
-            kind: ErrorKind::TransactionFailed,
-            reason: "Unknown public key for signing".to_string(),
         }
     }
 
@@ -339,15 +332,6 @@ impl From<AddressError> for Error {
 
 impl From<DriverError> for Error {
     fn from(value: DriverError) -> Self {
-        Self {
-            kind: ErrorKind::TransactionFailed,
-            reason: value.to_string(),
-        }
-    }
-}
-
-impl From<SignerError> for Error {
-    fn from(value: SignerError) -> Self {
         Self {
             kind: ErrorKind::TransactionFailed,
             reason: value.to_string(),

@@ -2,6 +2,7 @@ mod coin_states;
 mod derivations;
 mod peaks;
 mod primitives;
+mod transactions;
 mod utils;
 
 pub use primitives::*;

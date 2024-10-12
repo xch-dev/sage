@@ -1,18 +1,9 @@
-use std::{collections::HashMap, time::Duration};
+use std::time::Duration;
 
-use chia::{
-    bls::{
-        master_to_wallet_unhardened_intermediate, sign, DerivableKey, PublicKey, SecretKey,
-        Signature,
-    },
-    protocol::{Bytes32, CoinSpend, SpendBundle},
-    puzzles::DeriveSynthetic,
-};
+use chia::protocol::{Bytes32, CoinSpend};
 use chia_wallet_sdk::{
-    decode_address, AggSigConstants, Peer, RequiredSignature, MAINNET_CONSTANTS,
-    TESTNET11_CONSTANTS,
+    decode_address, AggSigConstants, Peer, MAINNET_CONSTANTS, TESTNET11_CONSTANTS,
 };
-use clvmr::Allocator;
 use sage_api::Amount;
 use sage_database::CatRow;
 use sage_wallet::Wallet;
@@ -256,51 +247,22 @@ async fn transact(
     wallet: &Wallet,
     coin_spends: Vec<CoinSpend>,
 ) -> Result<()> {
-    let required_signatures = RequiredSignature::from_coin_spends(
-        &mut Allocator::new(),
-        &coin_spends,
-        &if state.config.network.network_id == "mainnet" {
-            AggSigConstants::new(MAINNET_CONSTANTS.agg_sig_me_additional_data)
-        } else {
-            AggSigConstants::new(TESTNET11_CONSTANTS.agg_sig_me_additional_data)
-        },
-    )?;
-
-    let mut indices = HashMap::new();
-
-    for required in &required_signatures {
-        let pk = required.public_key();
-        let Some(index) = wallet.db.synthetic_key_index(pk).await? else {
-            return Err(Error::unknown_public_key());
-        };
-        indices.insert(pk, index);
-    }
-
     let (_mnemonic, Some(master_sk)) = state.keychain.extract_secrets(wallet.fingerprint, b"")?
     else {
         return Err(Error::no_secret_key());
     };
 
-    let intermediate_sk = master_to_wallet_unhardened_intermediate(&master_sk);
-
-    let secret_keys: HashMap<PublicKey, SecretKey> = indices
-        .iter()
-        .map(|(pk, index)| {
-            (
-                *pk,
-                intermediate_sk.derive_unhardened(*index).derive_synthetic(),
-            )
-        })
-        .collect();
-
-    let mut aggregated_signature = Signature::default();
-
-    for required in required_signatures {
-        let sk = secret_keys[&required.public_key()].clone();
-        aggregated_signature += &sign(&sk, required.final_message());
-    }
-
-    let spend_bundle = SpendBundle::new(coin_spends, aggregated_signature);
+    let spend_bundle = wallet
+        .sign_transaction(
+            coin_spends,
+            &if state.config.network.network_id == "mainnet" {
+                AggSigConstants::new(MAINNET_CONSTANTS.agg_sig_me_additional_data)
+            } else {
+                AggSigConstants::new(TESTNET11_CONSTANTS.agg_sig_me_additional_data)
+            },
+            master_sk,
+        )
+        .await?;
 
     let peers: Vec<Peer> = state
         .peer_state
