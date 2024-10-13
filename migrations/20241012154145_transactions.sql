@@ -6,6 +6,10 @@ CREATE TABLE `transactions` (
     `expiration_height` INTEGER
 );
 
+ALTER TABLE `coin_states` ADD `transaction_id` BLOB
+    REFERENCES `transactions` (`transaction_id`)
+    ON DELETE CASCADE;
+
 CREATE TABLE `transaction_spends` (
     `coin_id` BLOB NOT NULL PRIMARY KEY,
     `transaction_id` BLOB NOT NULL,

@@ -163,7 +163,7 @@ async fn fetch_puzzle(
             lineage_proof,
             p2_puzzle_hash,
         } => {
-            tx.update_coin_synced(coin_id, p2_puzzle_hash).await?;
+            tx.sync_coin(coin_id, p2_puzzle_hash).await?;
             tx.insert_cat_coin(coin_id, lineage_proof, p2_puzzle_hash, asset_id)
                 .await?;
 
@@ -176,7 +176,7 @@ async fn fetch_puzzle(
             lineage_proof,
             info,
         } => {
-            tx.update_coin_synced(coin_id, info.p2_puzzle_hash).await?;
+            tx.sync_coin(coin_id, info.p2_puzzle_hash).await?;
             tx.insert_did_coin(coin_id, lineage_proof, info).await?;
 
             command_sender
@@ -194,7 +194,7 @@ async fn fetch_puzzle(
             metadata_uris,
             license_uris,
         } => {
-            tx.update_coin_synced(coin_id, info.p2_puzzle_hash).await?;
+            tx.sync_coin(coin_id, info.p2_puzzle_hash).await?;
 
             tx.insert_nft_coin(
                 coin_id,
@@ -230,7 +230,7 @@ async fn fetch_puzzle(
                 .ok();
         }
         PuzzleInfo::Unknown { hint } => {
-            tx.update_coin_synced(coin_id, hint).await?;
+            tx.sync_coin(coin_id, hint).await?;
             tx.insert_unknown_coin(coin_id).await?;
         }
     }

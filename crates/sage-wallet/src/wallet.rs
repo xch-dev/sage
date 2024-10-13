@@ -125,7 +125,7 @@ impl Wallet {
 
     /// Selects one or more unspent p2 coins from the database.
     async fn select_p2_coins(&self, amount: u128) -> Result<Vec<Coin>, WalletError> {
-        let spendable_coins = self.db.unspent_p2_coins().await?;
+        let spendable_coins = self.db.spendable_coins().await?;
         Ok(select_coins(spendable_coins, amount)?)
     }
 
@@ -135,7 +135,7 @@ impl Wallet {
         asset_id: Bytes32,
         amount: u128,
     ) -> Result<Vec<Cat>, WalletError> {
-        let cat_coins = self.db.unspent_cat_coins(asset_id).await?;
+        let cat_coins = self.db.spendable_cat_coins(asset_id).await?;
 
         let mut cats = HashMap::with_capacity(cat_coins.len());
         let mut spendable_coins = Vec::with_capacity(cat_coins.len());

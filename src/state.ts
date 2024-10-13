@@ -73,6 +73,10 @@ events.syncEvent.listen((event) => {
     case 'puzzle_update':
       updateSyncStatus();
       break;
+    case 'transaction_update':
+      updateCoins();
+      updateSyncStatus();
+      break;
   }
 });
 
