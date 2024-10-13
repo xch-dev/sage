@@ -140,7 +140,11 @@ export default function CoinList(props: CoinListProps) {
           </Button>
         );
       },
-      cell: (info) => info.getValue(),
+      cell: ({ row }) => (
+        <div className='truncate overflow-hidden'>
+          {row.original.created_height ?? ''}
+        </div>
+      ),
     },
     {
       accessorKey: 'spent_height',
@@ -184,7 +188,11 @@ export default function CoinList(props: CoinListProps) {
       filterFn: (row, _, filterValue) => {
         return filterValue === 'Unspent' && !row.original.spent_height;
       },
-      cell: (info) => info.getValue() || '',
+      cell: ({ row }) => (
+        <div className='truncate overflow-hidden'>
+          {row.original.spent_height ?? ''}
+        </div>
+      ),
     },
   ];
 

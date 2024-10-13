@@ -3,9 +3,7 @@ use chia::{
     protocol::{Bytes32, Coin, Program},
     puzzles::{nft::NftMetadata, LineageProof, Proof},
 };
-use chia_wallet_sdk::{
-    run_puzzle, Cat, Condition, Did, DidInfo, HashedPtr, Nft, NftInfo, Primitive, Puzzle,
-};
+use chia_wallet_sdk::{run_puzzle, Cat, Condition, Did, DidInfo, HashedPtr, Nft, NftInfo, Puzzle};
 use clvmr::Allocator;
 use tracing::{debug_span, warn};
 
@@ -89,13 +87,7 @@ impl PuzzleInfo {
         let hint = Bytes32::try_from(create_coin.memos.remove(0).into_inner())
             .expect("the hint is always 32 bytes, as checked above");
 
-        match Cat::from_parent_spend(
-            &mut allocator,
-            parent_coin,
-            parent_puzzle,
-            parent_solution,
-            coin,
-        ) {
+        match Cat::parse_children(&mut allocator, parent_coin, parent_puzzle, parent_solution) {
             // If there was an error parsing the CAT, we can exit early.
             Err(error) => {
                 warn!("Invalid CAT: {}", error);
@@ -103,7 +95,12 @@ impl PuzzleInfo {
             }
 
             // If the coin is a CAT coin, return the relevant information.
-            Ok(Some(cat)) => {
+            Ok(Some(cats)) => {
+                let Some(cat) = cats.into_iter().find(|cat| cat.coin == coin) else {
+                    warn!("CAT coin not found in children");
+                    return Ok(Self::Unknown { hint });
+                };
+
                 // We don't support parsing eve CATs during syncing.
                 let Some(lineage_proof) = cat.lineage_proof else {
                     return Ok(Self::Unknown { hint });
@@ -120,12 +117,11 @@ impl PuzzleInfo {
             Ok(None) => {}
         }
 
-        match Nft::<HashedPtr>::from_parent_spend(
+        match Nft::<HashedPtr>::parse_child(
             &mut allocator,
             parent_coin,
             parent_puzzle,
             parent_solution,
-            coin,
         ) {
             // If there was an error parsing the NFT, we can exit early.
             Err(error) => {
@@ -135,6 +131,11 @@ impl PuzzleInfo {
 
             // If the coin is a NFT coin, return the relevant information.
             Ok(Some(nft)) => {
+                if nft.coin != coin {
+                    warn!("NFT coin does not match expected coin");
+                    return Ok(Self::Unknown { hint });
+                }
+
                 // We don't support parsing eve NFTs during syncing.
                 let Proof::Lineage(lineage_proof) = nft.proof else {
                     return Ok(Self::Unknown { hint });
@@ -170,7 +171,7 @@ impl PuzzleInfo {
             Ok(None) => {}
         }
 
-        match Did::<HashedPtr>::from_parent_spend(
+        match Did::<HashedPtr>::parse_child(
             &mut allocator,
             parent_coin,
             parent_puzzle,

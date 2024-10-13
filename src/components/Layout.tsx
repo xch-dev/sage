@@ -1,4 +1,5 @@
 import {
+  ArrowLeftRight,
   Cog,
   HandCoins,
   Images,
@@ -76,6 +77,10 @@ export default function Layout(props: PropsWithChildren<object>) {
                   <SquareUserRound className='h-4 w-4' />
                   Profiles
                 </NavLink>
+                <NavLink url='/transactions'>
+                  <ArrowLeftRight className='h-4 w-4' />
+                  Transactions
+                </NavLink>
                 <Separator className='my-2' />
                 <NavLink url='/wallet/issue-token'>
                   <HandCoins className='h-4 w-4' />
@@ -97,9 +102,9 @@ export default function Layout(props: PropsWithChildren<object>) {
                   ></span>
                   {isSynced ? (
                     <>
-                      {peers?.length} peers,
+                      {peers?.length} peers
                       {peerMaxHeight
-                        ? ` ${peerMaxHeight} peak`
+                        ? ` | peak ${peerMaxHeight}`
                         : ' connecting...'}
                     </>
                   ) : (

@@ -1,51 +1,36 @@
 {
   "db_name": "SQLite",
-  "query": "\n        SELECT *\n        FROM `coin_states`\n        WHERE `coin_id` = ?\n        ",
+  "query": "\n        SELECT\n            cs.parent_coin_id, cs.puzzle_hash, cs.amount,\n            cs.spent_height, cs.created_height, cs.transaction_id\n        FROM `coin_states` AS cs\n        INNER JOIN `cat_coins` AS cat\n        ON cs.coin_id = cat.coin_id\n        WHERE cat.asset_id = ?\n        ",
   "describe": {
     "columns": [
       {
-        "name": "coin_id",
+        "name": "parent_coin_id",
         "ordinal": 0,
         "type_info": "Blob"
       },
       {
-        "name": "parent_coin_id",
+        "name": "puzzle_hash",
         "ordinal": 1,
         "type_info": "Blob"
       },
       {
-        "name": "puzzle_hash",
+        "name": "amount",
         "ordinal": 2,
         "type_info": "Blob"
       },
       {
-        "name": "amount",
-        "ordinal": 3,
-        "type_info": "Blob"
-      },
-      {
         "name": "spent_height",
-        "ordinal": 4,
+        "ordinal": 3,
         "type_info": "Integer"
       },
       {
         "name": "created_height",
-        "ordinal": 5,
+        "ordinal": 4,
         "type_info": "Integer"
       },
       {
-        "name": "hint",
-        "ordinal": 6,
-        "type_info": "Blob"
-      },
-      {
-        "name": "synced",
-        "ordinal": 7,
-        "type_info": "Bool"
-      },
-      {
         "name": "transaction_id",
-        "ordinal": 8,
+        "ordinal": 5,
         "type_info": "Blob"
       }
     ],
@@ -56,13 +41,10 @@
       false,
       false,
       false,
-      false,
       true,
       true,
-      true,
-      false,
       true
     ]
   },
-  "hash": "c591e46250ecb00a96c4bed2d2b66a5ffb5b43d3619d58ec40b97dbee20c285c"
+  "hash": "618dd472f460afbe45071305e0bc1474e9a119724c30b9e64adf0a715663335e"
 }

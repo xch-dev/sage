@@ -7,7 +7,8 @@ use chia::{
 use chia_wallet_sdk::encode_address;
 use clvmr::Allocator;
 use sage_api::{
-    Amount, CatRecord, CoinRecord, DidRecord, GetNfts, GetNftsResponse, NftRecord, SyncStatus,
+    Amount, CatRecord, CoinRecord, DidRecord, GetNfts, GetNftsResponse, NftRecord,
+    PendingTransactionRecord, SyncStatus,
 };
 use sage_database::{NftData, NftDisplayInfo};
 use sage_wallet::WalletError;
@@ -46,7 +47,7 @@ pub async fn get_sync_status(state: State<'_, AppState>) -> Result<SyncStatus> {
     let wallet = state.wallet()?;
 
     let mut tx = wallet.db.tx().await?;
-    let balance = tx.p2_balance().await?;
+    let balance = tx.spendable_balance().await?;
     let total_coins = tx.total_coin_count().await?;
     let synced_coins = tx.synced_coin_count().await?;
     tx.commit().await?;
@@ -75,23 +76,43 @@ pub async fn get_sync_status(state: State<'_, AppState>) -> Result<SyncStatus> {
 pub async fn get_coins(state: State<'_, AppState>) -> Result<Vec<CoinRecord>> {
     let state = state.lock().await;
     let wallet = state.wallet()?;
-    let coin_states = wallet.db.p2_coin_states().await?;
 
-    coin_states
-        .into_iter()
-        .map(|cs| {
-            Ok(CoinRecord {
-                coin_id: hex::encode(cs.coin.coin_id()),
-                address: encode_address(
-                    cs.coin.puzzle_hash.to_bytes(),
-                    &state.network().address_prefix,
-                )?,
-                amount: Amount::from_mojos(cs.coin.amount as u128, state.unit.decimals),
-                created_height: cs.created_height,
-                spent_height: cs.spent_height,
-            })
-        })
-        .collect()
+    let mut tx = wallet.db.tx().await?;
+    let mut records = Vec::new();
+
+    let rows = tx.p2_coin_states().await?;
+
+    for row in rows {
+        let cs = row.coin_state;
+
+        let transaction_id = tx
+            .transactions_for_coin(cs.coin.coin_id())
+            .await?
+            .into_iter()
+            .map(hex::encode)
+            .next();
+
+        records.push(CoinRecord {
+            coin_id: hex::encode(cs.coin.coin_id()),
+            address: encode_address(
+                cs.coin.puzzle_hash.to_bytes(),
+                &state.network().address_prefix,
+            )?,
+            amount: Amount::from_mojos(cs.coin.amount as u128, state.unit.decimals),
+            created_height: cs
+                .created_height
+                .as_ref()
+                .map(ToString::to_string)
+                .or_else(|| row.transaction_id.map(hex::encode)),
+            spent_height: cs
+                .spent_height
+                .as_ref()
+                .map(ToString::to_string)
+                .or(transaction_id),
+        });
+    }
+
+    Ok(records)
 }
 
 #[command]
@@ -107,23 +128,42 @@ pub async fn get_cat_coins(
         .try_into()
         .map_err(|_| Error::invalid_asset_id())?;
 
-    let coin_states = wallet.db.cat_coin_states(asset_id.into()).await?;
+    let mut tx = wallet.db.tx().await?;
+    let mut records = Vec::new();
 
-    coin_states
-        .into_iter()
-        .map(|cs| {
-            Ok(CoinRecord {
-                coin_id: hex::encode(cs.coin.coin_id()),
-                address: encode_address(
-                    cs.coin.puzzle_hash.to_bytes(),
-                    &state.network().address_prefix,
-                )?,
-                amount: Amount::from_mojos(cs.coin.amount as u128, 3),
-                created_height: cs.created_height,
-                spent_height: cs.spent_height,
-            })
-        })
-        .collect()
+    let rows = tx.cat_coin_states(asset_id.into()).await?;
+
+    for row in rows {
+        let cs = row.coin_state;
+
+        let transaction_id = tx
+            .transactions_for_coin(cs.coin.coin_id())
+            .await?
+            .into_iter()
+            .map(hex::encode)
+            .next();
+
+        records.push(CoinRecord {
+            coin_id: hex::encode(cs.coin.coin_id()),
+            address: encode_address(
+                cs.coin.puzzle_hash.to_bytes(),
+                &state.network().address_prefix,
+            )?,
+            amount: Amount::from_mojos(cs.coin.amount as u128, 3),
+            created_height: cs
+                .created_height
+                .as_ref()
+                .map(ToString::to_string)
+                .or_else(|| row.transaction_id.map(hex::encode)),
+            spent_height: cs
+                .spent_height
+                .as_ref()
+                .map(ToString::to_string)
+                .or(transaction_id),
+        });
+    }
+
+    Ok(records)
 }
 
 #[command]
@@ -136,7 +176,7 @@ pub async fn get_cats(state: State<'_, AppState>) -> Result<Vec<CatRecord>> {
     let mut records = Vec::with_capacity(cats.len());
 
     for cat in cats {
-        let balance = wallet.db.cat_balance(cat.asset_id).await?;
+        let balance = wallet.db.spendable_cat_balance(cat.asset_id).await?;
 
         records.push(CatRecord {
             asset_id: hex::encode(cat.asset_id),
@@ -163,7 +203,7 @@ pub async fn get_cat(state: State<'_, AppState>, asset_id: String) -> Result<Opt
         .map_err(|_| Error::invalid_asset_id())?;
 
     let cat = wallet.db.cat(asset_id.into()).await?;
-    let balance = wallet.db.cat_balance(asset_id.into()).await?;
+    let balance = wallet.db.spendable_cat_balance(asset_id.into()).await?;
 
     cat.map(|cat| {
         Ok(CatRecord {
@@ -199,6 +239,31 @@ pub async fn get_dids(state: State<'_, AppState>) -> Result<Vec<DidRecord>> {
                     did.info.p2_puzzle_hash.to_bytes(),
                     &state.network().address_prefix,
                 )?,
+            })
+        })
+        .collect()
+}
+
+#[command]
+#[specta]
+pub async fn get_pending_transactions(
+    state: State<'_, AppState>,
+) -> Result<Vec<PendingTransactionRecord>> {
+    let state = state.lock().await;
+    let wallet = state.wallet()?;
+
+    wallet
+        .db
+        .transactions()
+        .await?
+        .into_iter()
+        .map(|tx| {
+            Ok(PendingTransactionRecord {
+                transaction_id: hex::encode(tx.transaction_id),
+                fee: Amount::from_mojos(tx.fee as u128, state.unit.decimals),
+                // TODO: Date format?
+                submitted_at: tx.submitted_at.map(|ts| ts.to_string()),
+                expiration_height: tx.expiration_height,
             })
         })
         .collect()

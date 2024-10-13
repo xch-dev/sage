@@ -2,13 +2,14 @@ use std::{
     array::TryFromSliceError,
     fmt, io,
     num::{ParseIntError, TryFromIntError},
+    time::SystemTimeError,
 };
 
 use chia::{
     clvm_traits::{FromClvmError, ToClvmError},
     protocol::Bytes32,
 };
-use chia_wallet_sdk::{AddressError, ClientError, DriverError, SignerError};
+use chia_wallet_sdk::{AddressError, ClientError, DriverError};
 use hex::FromHexError;
 use sage_api::Amount;
 use sage_database::DatabaseError;
@@ -83,13 +84,6 @@ impl Error {
         }
     }
 
-    pub fn unknown_public_key() -> Self {
-        Self {
-            kind: ErrorKind::TransactionFailed,
-            reason: "Unknown public key for signing".to_string(),
-        }
-    }
-
     pub fn unknown_coin_id() -> Self {
         Self {
             kind: ErrorKind::TransactionFailed,
@@ -129,6 +123,13 @@ impl Error {
         Self {
             kind: ErrorKind::InvalidKey,
             reason: format!("Invalid key: {reason}"),
+        }
+    }
+
+    pub fn no_peak() -> Self {
+        Self {
+            kind: ErrorKind::TransactionFailed,
+            reason: "There is no blockchain peak yet, you haven't started syncing".to_string(),
         }
     }
 }
@@ -346,15 +347,6 @@ impl From<DriverError> for Error {
     }
 }
 
-impl From<SignerError> for Error {
-    fn from(value: SignerError) -> Self {
-        Self {
-            kind: ErrorKind::TransactionFailed,
-            reason: value.to_string(),
-        }
-    }
-}
-
 impl From<mpsc::error::SendError<SyncCommand>> for Error {
     fn from(value: mpsc::error::SendError<SyncCommand>) -> Self {
         Self {
@@ -404,6 +396,15 @@ impl From<RecvError> for Error {
     fn from(value: RecvError) -> Self {
         Self {
             kind: ErrorKind::Wallet,
+            reason: value.to_string(),
+        }
+    }
+}
+
+impl From<SystemTimeError> for Error {
+    fn from(value: SystemTimeError) -> Self {
+        Self {
+            kind: ErrorKind::Io,
             reason: value.to_string(),
         }
     }

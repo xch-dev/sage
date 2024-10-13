@@ -1,24 +1,11 @@
-use std::{collections::HashMap, time::Duration};
-
-use chia::{
-    bls::{
-        master_to_wallet_unhardened_intermediate, sign, DerivableKey, PublicKey, SecretKey,
-        Signature,
-    },
-    protocol::{Bytes32, CoinSpend, SpendBundle},
-    puzzles::DeriveSynthetic,
-};
-use chia_wallet_sdk::{
-    decode_address, AggSigConstants, Peer, RequiredSignature, MAINNET_CONSTANTS,
-    TESTNET11_CONSTANTS,
-};
-use clvmr::Allocator;
+use chia::protocol::{Bytes32, CoinSpend};
+use chia_wallet_sdk::{decode_address, AggSigConstants, MAINNET_CONSTANTS, TESTNET11_CONSTANTS};
 use sage_api::Amount;
 use sage_database::CatRow;
 use sage_wallet::Wallet;
 use specta::specta;
 use tauri::{command, State};
-use tokio::{sync::MutexGuard, time::timeout};
+use tokio::sync::MutexGuard;
 
 use crate::{
     app_state::{AppState, AppStateInner},
@@ -251,99 +238,57 @@ pub async fn send_cat(
     Ok(())
 }
 
+#[command]
+#[specta]
+pub async fn create_did(state: State<'_, AppState>, name: String, fee: Amount) -> Result<()> {
+    // TODO: DID naming
+    let _ = name;
+
+    let state = state.lock().await;
+    let wallet = state.wallet()?;
+
+    if !state.keychain.has_secret_key(wallet.fingerprint) {
+        return Err(Error::no_secret_key());
+    }
+
+    let Some(fee) = fee.to_mojos(state.unit.decimals) else {
+        return Err(Error::invalid_amount(&fee));
+    };
+
+    let (coin_spends, _did) = wallet.create_did(fee, false, true).await?;
+
+    transact(&state, &wallet, coin_spends).await?;
+
+    Ok(())
+}
+
 async fn transact(
     state: &MutexGuard<'_, AppStateInner>,
     wallet: &Wallet,
     coin_spends: Vec<CoinSpend>,
 ) -> Result<()> {
-    let required_signatures = RequiredSignature::from_coin_spends(
-        &mut Allocator::new(),
-        &coin_spends,
-        &if state.config.network.network_id == "mainnet" {
-            AggSigConstants::new(MAINNET_CONSTANTS.agg_sig_me_additional_data)
-        } else {
-            AggSigConstants::new(TESTNET11_CONSTANTS.agg_sig_me_additional_data)
-        },
-    )?;
-
-    let mut indices = HashMap::new();
-
-    for required in &required_signatures {
-        let pk = required.public_key();
-        let Some(index) = wallet.db.synthetic_key_index(pk).await? else {
-            return Err(Error::unknown_public_key());
-        };
-        indices.insert(pk, index);
-    }
-
     let (_mnemonic, Some(master_sk)) = state.keychain.extract_secrets(wallet.fingerprint, b"")?
     else {
         return Err(Error::no_secret_key());
     };
 
-    let intermediate_sk = master_to_wallet_unhardened_intermediate(&master_sk);
-
-    let secret_keys: HashMap<PublicKey, SecretKey> = indices
-        .iter()
-        .map(|(pk, index)| {
-            (
-                *pk,
-                intermediate_sk.derive_unhardened(*index).derive_synthetic(),
-            )
-        })
-        .collect();
-
-    let mut aggregated_signature = Signature::default();
-
-    for required in required_signatures {
-        let sk = secret_keys[&required.public_key()].clone();
-        aggregated_signature += &sign(&sk, required.final_message());
-    }
-
-    let spend_bundle = SpendBundle::new(coin_spends, aggregated_signature);
-
-    let peers: Vec<Peer> = state
-        .peer_state
-        .lock()
-        .await
-        .peers()
-        .map(|info| info.peer.clone())
-        .collect();
-
-    if peers.is_empty() {
-        return Err(Error::no_peers());
-    }
-
-    log::info!(
-        "Broadcasting transaction id {}: {:?}",
-        spend_bundle.name(),
-        spend_bundle
-    );
-
-    for peer in peers {
-        let ack = match timeout(
-            Duration::from_secs(3),
-            peer.send_transaction(spend_bundle.clone()),
+    let spend_bundle = wallet
+        .sign_transaction(
+            coin_spends,
+            &if state.config.network.network_id == "mainnet" {
+                AggSigConstants::new(MAINNET_CONSTANTS.agg_sig_me_additional_data)
+            } else {
+                AggSigConstants::new(TESTNET11_CONSTANTS.agg_sig_me_additional_data)
+            },
+            master_sk,
         )
-        .await
-        {
-            Ok(Ok(ack)) => ack,
-            Err(_timeout) => {
-                log::warn!("Transaction timed out for {}", peer.socket_addr());
-                continue;
-            }
-            Ok(Err(err)) => {
-                log::warn!("Transaction failed for {}: {}", peer.socket_addr(), err);
-                continue;
-            }
-        };
+        .await?;
 
-        log::info!(
-            "Transaction sent to {} with ack {:?}",
-            peer.socket_addr(),
-            ack
-        );
-    }
+    let Some(peak) = wallet.db.latest_peak().await? else {
+        return Err(Error::no_peak());
+    };
+
+    wallet.insert_transaction(&spend_bundle, peak.0).await?;
 
     Ok(())
 }

@@ -9,7 +9,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { amount, positiveAmount } from '@/lib/formTypes';
+import { amount } from '@/lib/formTypes';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { LoaderCircleIcon } from 'lucide-react';
 import { useState } from 'react';
@@ -21,7 +21,7 @@ import Container from '../components/Container';
 import ErrorDialog from '../components/ErrorDialog';
 import { useWalletState } from '../state';
 
-export default function IssueToken() {
+export default function CreateProfile() {
   const navigate = useNavigate();
   const walletState = useWalletState();
 
@@ -30,7 +30,6 @@ export default function IssueToken() {
 
   const formSchema = z.object({
     name: z.string().min(1, 'Name is required'),
-    amount: positiveAmount(3),
     fee: amount(walletState.sync.unit.decimals).optional(),
   });
 
@@ -41,11 +40,7 @@ export default function IssueToken() {
   const onSubmit = (values: z.infer<typeof formSchema>) => {
     setPending(true);
     commands
-      .issueCat(
-        values.name,
-        values.amount.toString(),
-        values.fee?.toString() || '0',
-      )
+      .createDid(values.name, values.fee?.toString() || '0')
       .then((result) => {
         if (result.status === 'error') {
           console.error(result.error);
@@ -59,7 +54,7 @@ export default function IssueToken() {
 
   return (
     <>
-      <Header title='Issue Token' />
+      <Header title='Create Profile' />
 
       <Container className='max-w-xl'>
         <Form {...form}>
@@ -79,32 +74,6 @@ export default function IssueToken() {
             />
 
             <div className='grid sm:grid-cols-2 gap-4'>
-              <FormField
-                control={form.control}
-                name='amount'
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Amount</FormLabel>
-                    <FormControl>
-                      <div className='relative'>
-                        <Input
-                          type='text'
-                          placeholder='0.00'
-                          {...field}
-                          className='pr-12'
-                        />
-                        <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
-                          <span className='text-gray-500 sm:text-sm'>
-                            Token
-                          </span>
-                        </div>
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
               <FormField
                 control={form.control}
                 name='fee'
@@ -136,7 +105,7 @@ export default function IssueToken() {
               {pending && (
                 <LoaderCircleIcon className='mr-2 h-4 w-4 animate-spin' />
               )}
-              {pending ? 'Issuing' : 'Issue'} Token
+              {pending ? 'Creating' : 'Create'} Profile
             </Button>
           </form>
         </Form>

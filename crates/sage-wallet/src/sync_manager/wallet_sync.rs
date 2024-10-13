@@ -263,10 +263,15 @@ pub async fn incremental_sync(
     for coin_state in coin_states {
         let is_p2 = tx.is_p2_puzzle_hash(coin_state.coin.puzzle_hash).await?;
 
-        tx.insert_coin_state(coin_state, is_p2).await?;
+        tx.insert_coin_state(coin_state, is_p2, None).await?;
 
         if is_p2 {
             tx.insert_p2_coin(coin_state.coin.coin_id()).await?;
+        }
+
+        if coin_state.spent_height.is_some() {
+            tx.delete_transactions_for_coin(coin_state.coin.coin_id())
+                .await?;
         }
     }
 

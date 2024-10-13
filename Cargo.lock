@@ -740,15 +740,15 @@ dependencies = [
 
 [[package]]
 name = "chia-sdk-client"
-version = "0.14.0"
-source = "git+https://github.com/xch-dev/chia-wallet-sdk?rev=1461c0e77d687b73b59e440044ad6c7d35c49581#1461c0e77d687b73b59e440044ad6c7d35c49581"
+version = "0.16.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5dcfee8ff999738ddb5088d075178be68cf0d66080b95033c1b3ab18dc61b2ee"
 dependencies = [
  "chia-protocol",
  "chia-sdk-types",
  "chia-ssl",
  "chia-traits 0.11.0",
  "futures-util",
- "hex",
  "rustls 0.22.4",
  "rustls-pemfile",
  "thiserror",
@@ -760,8 +760,9 @@ dependencies = [
 
 [[package]]
 name = "chia-sdk-derive"
-version = "0.14.0"
-source = "git+https://github.com/xch-dev/chia-wallet-sdk?rev=1461c0e77d687b73b59e440044ad6c7d35c49581#1461c0e77d687b73b59e440044ad6c7d35c49581"
+version = "0.16.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7a82cb9417b06da45d95465fd48e7b24895cd48714e008e61e7af3ea6bb850da"
 dependencies = [
  "convert_case 0.6.0",
  "quote",
@@ -770,8 +771,9 @@ dependencies = [
 
 [[package]]
 name = "chia-sdk-driver"
-version = "0.14.0"
-source = "git+https://github.com/xch-dev/chia-wallet-sdk?rev=1461c0e77d687b73b59e440044ad6c7d35c49581#1461c0e77d687b73b59e440044ad6c7d35c49581"
+version = "0.16.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "500ecf85518fee7173717aa5ca197d969211634b7d0c3d97cc94eabc7c780c3a"
 dependencies = [
  "chia-bls 0.13.0",
  "chia-protocol",
@@ -788,8 +790,9 @@ dependencies = [
 
 [[package]]
 name = "chia-sdk-offers"
-version = "0.14.0"
-source = "git+https://github.com/xch-dev/chia-wallet-sdk?rev=1461c0e77d687b73b59e440044ad6c7d35c49581#1461c0e77d687b73b59e440044ad6c7d35c49581"
+version = "0.16.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "43bc0c662c8ad3400df27c86d685cf1618deb5610921163f94ccb25233dbba53"
 dependencies = [
  "bech32",
  "chia-bls 0.13.0",
@@ -809,8 +812,9 @@ dependencies = [
 
 [[package]]
 name = "chia-sdk-signer"
-version = "0.14.0"
-source = "git+https://github.com/xch-dev/chia-wallet-sdk?rev=1461c0e77d687b73b59e440044ad6c7d35c49581#1461c0e77d687b73b59e440044ad6c7d35c49581"
+version = "0.16.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bd5ef4d8cea455b7df71305f6b0baaf4651f77a4a4a7673e5741f2ee4565d34a"
 dependencies = [
  "chia-bls 0.13.0",
  "chia-consensus",
@@ -823,8 +827,9 @@ dependencies = [
 
 [[package]]
 name = "chia-sdk-test"
-version = "0.14.0"
-source = "git+https://github.com/xch-dev/chia-wallet-sdk?rev=1461c0e77d687b73b59e440044ad6c7d35c49581#1461c0e77d687b73b59e440044ad6c7d35c49581"
+version = "0.16.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5020f9ea03ae0c337740371eb3ca7e52b0b624f68a32ff77fecccd2e5c35cc43"
 dependencies = [
  "anyhow",
  "bip39",
@@ -854,8 +859,9 @@ dependencies = [
 
 [[package]]
 name = "chia-sdk-types"
-version = "0.14.0"
-source = "git+https://github.com/xch-dev/chia-wallet-sdk?rev=1461c0e77d687b73b59e440044ad6c7d35c49581#1461c0e77d687b73b59e440044ad6c7d35c49581"
+version = "0.16.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f4ffcd7a5e45fa28fd57cf44999b2df5fe11d334640cd372090322f5c97b6c60"
 dependencies = [
  "chia-bls 0.13.0",
  "chia-consensus",
@@ -905,8 +911,9 @@ dependencies = [
 
 [[package]]
 name = "chia-wallet-sdk"
-version = "0.14.0"
-source = "git+https://github.com/xch-dev/chia-wallet-sdk?rev=1461c0e77d687b73b59e440044ad6c7d35c49581#1461c0e77d687b73b59e440044ad6c7d35c49581"
+version = "0.16.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b19d8dfca2c8903d463a1e13601f13208625733bac8d572d84f4207a897e2e4f"
 dependencies = [
  "bech32",
  "chia-protocol",

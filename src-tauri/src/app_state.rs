@@ -233,6 +233,7 @@ impl AppStateInner {
                     SyncEvent::PuzzleUpdate => SyncEventData::PuzzleUpdate,
                     SyncEvent::CatUpdate => SyncEventData::CatUpdate,
                     SyncEvent::NftUpdate => SyncEventData::NftUpdate,
+                    SyncEvent::TransactionUpdate => SyncEventData::TransactionUpdate,
                 };
                 if app_handle.emit("sync-event", event).is_err() {
                     break;

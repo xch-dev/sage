@@ -42,6 +42,11 @@
         "name": "synced",
         "ordinal": 7,
         "type_info": "Bool"
+      },
+      {
+        "name": "transaction_id",
+        "ordinal": 8,
+        "type_info": "Blob"
       }
     ],
     "parameters": {
@@ -55,7 +60,8 @@
       true,
       true,
       true,
-      false
+      false,
+      true
     ]
   },
   "hash": "7e00419012ca5e1f372f20820a5326a278caf5870c682710a9207a190db26418"
