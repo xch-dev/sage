@@ -110,6 +110,8 @@ jobs:
       - name: Bindgen CLI
         run: cargo install bindgen-cli --locked
 
+      # On MacOS we only notarize on tagged releases
+      # On iOS we need these secrets as well to do code signing
       - name: Build with secrets
         if: ${{ (matrix.platform_name == 'MacOS' && startsWith(github.event.ref, 'refs/tags/v')) || matrix.platform_name == 'iOS' }}
         run: ${{ matrix.build }}
@@ -121,8 +123,48 @@ jobs:
           APPLE_API_KEY_PATH: ~/private_keys/AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8
           CI: true
 
+      # We don't currently do signing on other platforms
       - name: Build without secrets
         if: ${{ !((matrix.platform_name == 'MacOS' && startsWith(github.event.ref, 'refs/tags/v')) || matrix.platform_name == 'iOS') }}
         run: ${{ matrix.build }}
         env:
           CI: true
+
+      - name: Assets (MacOS)
+        uses: softprops/action-gh-release@v2
+        if: ${{ matrix.platform_name == 'MacOS' && startsWith(github.event.ref, 'refs/tags/v') }}
+        with:
+          files: |
+            target/universal-apple-darwin/release/bundle/macos/*.app
+            target/universal-apple-darwin/release/bundle/dmg/*.dmg
+
+      - name: Assets (Linux)
+        uses: softprops/action-gh-release@v2
+        if: ${{ matrix.platform_name == 'Linux (x64)' && startsWith(github.event.ref, 'refs/tags/v') }}
+        with:
+          files: |
+            target/release/bundle/deb/*.deb
+            target/release/bundle/rpm/*.rpm
+            target/release/bundle/appimage/*.AppImage
+
+      - name: Assets (Windows x64)
+        uses: softprops/action-gh-release@v2
+        if: ${{ matrix.platform_name == 'Windows (x64)' && startsWith(github.event.ref, 'refs/tags/v') }}
+        with:
+          files: |
+            target/release/bundle/msi/*.msi
+            target/release/bundle/nsis/*.exe
+
+      - name: Assets (Windows ARM)
+        uses: softprops/action-gh-release@v2
+        if: ${{ matrix.platform_name == 'Windows (ARM)' && startsWith(github.event.ref, 'refs/tags/v') }}
+        with:
+          files: |
+            target/aarch64-pc-windows-msvc/release/bundle/msi/*.msi
+            target/aarch64-pc-windows-msvc/release/bundle/nsis/*.exe
+
+      - name: Assets (iOS)
+        uses: softprops/action-gh-release@v2
+        if: ${{ matrix.platform_name == 'iOS' && startsWith(github.event.ref, 'refs/tags/v') }}
+        with:
+          files: src-tauri/gen/apple/build/arm64/*.ipa
