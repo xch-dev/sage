@@ -64,8 +64,11 @@ jobs:
             platform_name: Linux
             args: ''
           - platform: 'windows-latest'
-            platform_name: Windows
+            platform_name: Windows (x64)
             args: ''
+          - platform: 'windows-latest'
+            platform_name: Windows (ARM)
+            args: '--target aarch64-pc-windows-msvc'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
