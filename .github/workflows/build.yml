@@ -69,7 +69,6 @@ jobs:
           - platform: 'macos-latest'
             platform_name: iOS
             build: 'pnpm tauri ios build --export-method app-store-connect'
-            build_dev: 'pnpm tauri ios build --export-method release-testing'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -111,8 +110,8 @@ jobs:
       - name: Bindgen CLI
         run: cargo install bindgen-cli --locked
 
-      - name: Notarized build
-        if: ${{ startsWith(github.event.ref, 'refs/tags/v') && matrix.platform == 'macos-latest' }}
+      - name: Build (Apple)
+        if: matrix.platform == 'macos-latest'
         run: ${{ matrix.build }}
         env:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
@@ -122,8 +121,8 @@ jobs:
           APPLE_API_KEY_PATH: ~/private_keys/AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8
           CI: true
 
-      - name: Unnotarized build
-        if: ${{ !(startsWith(github.event.ref, 'refs/tags/v') && matrix.platform == 'macos-latest') }}
-        run: ${{ matrix.build_dev || matrix.build }}
+      - name: Build (Non-Apple)
+        if: matrix.platform != 'macos-latest'
+        run: ${{ matrix.build }}
         env:
           CI: true
