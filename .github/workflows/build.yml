@@ -68,7 +68,7 @@ jobs:
             build: 'pnpm tauri build --target aarch64-pc-windows-msvc'
           - platform: 'macos-latest'
             platform_name: iOS
-            build: 'pnpm tauri ios build -- --export-method app-store-connect'
+            build: 'pnpm tauri ios build --export-method app-store-connect'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
