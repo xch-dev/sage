@@ -110,8 +110,8 @@ jobs:
       - name: Bindgen CLI
         run: cargo install bindgen-cli --locked
 
-      - name: Build (Apple)
-        if: matrix.platform == 'macos-latest'
+      - name: Build (Notarized)
+        if: ${{ matrix.platform == 'macos-latest' && startsWith(github.event.ref, 'refs/tags/v')) }}
         run: ${{ matrix.build }}
         env:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
@@ -121,8 +121,10 @@ jobs:
           APPLE_API_KEY_PATH: ~/private_keys/AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8
           CI: true
 
-      - name: Build (Non-Apple)
-        if: matrix.platform != 'macos-latest'
+      - name: Build (Unnotarized)
+        if: ${{ !(matrix.platform == 'macos-latest' && startsWith(github.event.ref, 'refs/tags/v')) }}
         run: ${{ matrix.build }}
         env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           CI: true
