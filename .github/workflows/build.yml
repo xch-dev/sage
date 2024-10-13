@@ -59,39 +59,28 @@ jobs:
         include:
           - platform: 'macos-latest'
             platform_name: MacOS
-            args: '--target universal-apple-darwin'
+            build: 'pnpm tauri build --target universal-apple-darwin'
           - platform: 'ubuntu-22.04'
             platform_name: Linux
-            args: ''
+            build: 'pnpm tauri build'
           - platform: 'windows-latest'
             platform_name: Windows (x64)
-            args: ''
+            build: 'pnpm tauri build'
           - platform: 'windows-latest'
             platform_name: Windows (ARM)
-            args: '--target aarch64-pc-windows-msvc'
+            build: 'pnpm tauri build --target aarch64-pc-windows-msvc'
+          - platform: 'macos-latest'
+            platform_name: iOS
+            build: 'pnpm tauri ios build'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Get release
-        if: startsWith(github.event.ref, 'refs/tags/v')
-        id: get_release
-        uses: actions/github-script@v6
-        with:
-          script: |
-            const tag = process.env.GITHUB_REF.split('/').pop();
-            const release = await github.rest.repos.getReleaseByTag({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              tag: tag,
-            });
-            return release.data.id;
-
-      - name: Install x86_64-apple-darwin target
-        if: matrix.platform == 'macos-latest'
+      - name: Add x86_64-apple-darwin
+        if: matrix.platform_name == 'MacOS'
         run: rustup target add x86_64-apple-darwin
 
-      - name: Install aarch64-pc-windows-msvc target
+      - name: Add aarch64-pc-windows-msvc
         if: matrix.platform_name == 'Windows (ARM)'
         run: rustup target add aarch64-pc-windows-msvc
 
@@ -111,19 +100,15 @@ jobs:
       - name: Frontend dependencies
         run: pnpm install
 
-      - name: Dry run
-        if: ${{ !startsWith(github.event.ref, 'refs/tags/v') }}
-        run: pnpm tauri build ${{ matrix.args }}
-
       - name: Save API key to file
         if: ${{ matrix.platform == 'macos-latest' && startsWith(github.event.ref, 'refs/tags/v') }}
         run: |
           mkdir -p ~/private_keys
           echo -n '${{ secrets.APPLE_API_SECRET_KEY }}' > ~/private_keys/AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8
 
-      - name: Publish (MacOS)
-        uses: tauri-apps/tauri-action@v0
+      - name: Notarized build
         if: ${{ startsWith(github.event.ref, 'refs/tags/v') && matrix.platform == 'macos-latest' }}
+        run: ${{ matrix.build }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
@@ -132,16 +117,6 @@ jobs:
           APPLE_API_KEY: ${{ secrets.APPLE_API_KEY_ID }}
           APPLE_API_KEY_PATH: ~/private_keys/AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8
           CI: true
-        with:
-          releaseId: ${{ steps.get_release.outputs.result }}
-          args: ${{ matrix.args }}
 
-      - name: Publish
-        uses: tauri-apps/tauri-action@v0
-        if: ${{ startsWith(github.event.ref, 'refs/tags/v') && matrix.platform != 'macos-latest' }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CI: true
-        with:
-          releaseId: ${{ steps.get_release.outputs.result }}
-          args: ${{ matrix.args }}
+      - name: Unnotarized build
+        run: ${{ matrix.build }}
