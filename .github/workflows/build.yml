@@ -102,7 +102,7 @@ jobs:
         run: pnpm install
 
       - name: Save API key to file
-        if: ${{ startsWith(github.event.ref, 'refs/tags/v') && matrix.platform == 'macos-latest' }}
+        if: matrix.platform == 'macos-latest'
         run: |
           mkdir -p ~/private_keys
           echo -n '${{ secrets.APPLE_API_SECRET_KEY }}' > ~/private_keys/AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8
