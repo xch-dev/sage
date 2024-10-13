@@ -80,6 +80,10 @@ jobs:
         if: matrix.platform_name == 'MacOS'
         run: rustup target add x86_64-apple-darwin
 
+      - name: Add aarch64-apple-ios
+        if: matrix.platform_name == 'iOS'
+        run: rustup target add aarch64-apple-ios
+
       - name: Add aarch64-pc-windows-msvc
         if: matrix.platform_name == 'Windows (ARM)'
         run: rustup target add aarch64-pc-windows-msvc
