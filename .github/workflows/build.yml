@@ -69,6 +69,7 @@ jobs:
           - platform: 'macos-latest'
             platform_name: iOS
             build: 'pnpm tauri ios build --export-method app-store-connect'
+            build_dev: 'pnpm tauri ios build --export-method debugging'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -114,7 +115,7 @@ jobs:
       # On iOS we need these secrets as well to do code signing
       - name: Build with secrets
         if: ${{ (matrix.platform_name == 'MacOS' && startsWith(github.event.ref, 'refs/tags/v')) || matrix.platform_name == 'iOS' }}
-        run: ${{ matrix.build }}
+        run: ${{ startsWith(github.event.ref, 'refs/tags/v') && matrix.build || matrix.build_dev || matrix.build }}
         env:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
@@ -126,7 +127,7 @@ jobs:
       # We don't currently do signing on other platforms
       - name: Build without secrets
         if: ${{ !((matrix.platform_name == 'MacOS' && startsWith(github.event.ref, 'refs/tags/v')) || matrix.platform_name == 'iOS') }}
-        run: ${{ matrix.build }}
+        run: ${{ matrix.build_dev || matrix.build }}
         env:
           CI: true
 
