@@ -34,15 +34,12 @@ jobs:
       - name: Install GTK
         run: sudo apt-get install libgtk-3-dev libjavascriptcoregtk-4.1-dev libwebkit2gtk-4.1-dev
 
-      - name: Cargo binstall
-        run: curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
-
       - name: Clippy
         run: cargo clippy --workspace --all-features --all-targets
 
       - name: Unused dependencies
         run: |
-          cargo binstall cargo-machete --locked -y
+          cargo install cargo-machete --locked
           cargo machete
 
       - name: Fmt
@@ -71,13 +68,10 @@ jobs:
             build: 'pnpm tauri build --target aarch64-pc-windows-msvc'
           - platform: 'macos-latest'
             platform_name: iOS
-            build: 'pnpm tauri ios build'
+            build: 'pnpm tauri ios build -- --export-method app-store-connect'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Cargo binstall
-        run: curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
 
       - name: Add x86_64-apple-darwin
         if: matrix.platform_name == 'MacOS'
@@ -108,19 +102,18 @@ jobs:
         run: pnpm install
 
       - name: Save API key to file
-        if: ${{ matrix.platform == 'macos-latest' && startsWith(github.event.ref, 'refs/tags/v') }}
+        if: ${{ startsWith(github.event.ref, 'refs/tags/v') && matrix.platform == 'macos-latest' }}
         run: |
           mkdir -p ~/private_keys
           echo -n '${{ secrets.APPLE_API_SECRET_KEY }}' > ~/private_keys/AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8
 
       - name: Bindgen CLI
-        run: cargo binstall bindgen-cli --locked -y
+        run: cargo install bindgen-cli --locked
 
       - name: Notarized build
         if: ${{ startsWith(github.event.ref, 'refs/tags/v') && matrix.platform == 'macos-latest' }}
         run: ${{ matrix.build }}
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
@@ -131,3 +124,6 @@ jobs:
 
       - name: Unnotarized build
         run: ${{ matrix.build }}
+        env:
+          IOS_MOBILE_PROVISION: ${{ secrets.IOS_MOBILE_PROVISION }}
+          CI: true
