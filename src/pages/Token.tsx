@@ -117,6 +117,7 @@ export default function Token() {
   }, [assetId, walletState.sync.balance]);
 
   const [selectedCoins, setSelectedCoins] = useState<RowSelectionState>({});
+
   const selectedCoinIds = useMemo(() => {
     return Object.keys(selectedCoins).filter((key) => selectedCoins[key]);
   }, [selectedCoins]);
@@ -293,14 +294,14 @@ export default function Token() {
                     <>
                       <Button
                         variant='outline'
-                        disabled={Object.keys(selectedCoins).length < 1}
+                        disabled={selectedCoinIds.length < 1}
                         onClick={() => setSplitOpen(true)}
                       >
                         <SplitIcon className='mr-2 h-4 w-4' /> Split
                       </Button>
                       <Button
                         variant='outline'
-                        disabled={Object.keys(selectedCoins).length < 2}
+                        disabled={selectedCoinIds.length < 2}
                         onClick={() => setCombineOpen(true)}
                       >
                         <MergeIcon className='mr-2 h-4 w-4' />

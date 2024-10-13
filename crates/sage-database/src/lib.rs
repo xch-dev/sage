@@ -5,6 +5,7 @@ mod primitives;
 mod transactions;
 mod utils;
 
+pub use coin_states::*;
 pub use primitives::*;
 pub use transactions::*;
 

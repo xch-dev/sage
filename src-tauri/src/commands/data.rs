@@ -76,23 +76,43 @@ pub async fn get_sync_status(state: State<'_, AppState>) -> Result<SyncStatus> {
 pub async fn get_coins(state: State<'_, AppState>) -> Result<Vec<CoinRecord>> {
     let state = state.lock().await;
     let wallet = state.wallet()?;
-    let coin_states = wallet.db.p2_coin_states().await?;
 
-    coin_states
-        .into_iter()
-        .map(|cs| {
-            Ok(CoinRecord {
-                coin_id: hex::encode(cs.coin.coin_id()),
-                address: encode_address(
-                    cs.coin.puzzle_hash.to_bytes(),
-                    &state.network().address_prefix,
-                )?,
-                amount: Amount::from_mojos(cs.coin.amount as u128, state.unit.decimals),
-                created_height: cs.created_height,
-                spent_height: cs.spent_height,
-            })
-        })
-        .collect()
+    let mut tx = wallet.db.tx().await?;
+    let mut records = Vec::new();
+
+    let rows = tx.p2_coin_states().await?;
+
+    for row in rows {
+        let cs = row.coin_state;
+
+        let transaction_id = tx
+            .transactions_for_coin(cs.coin.coin_id())
+            .await?
+            .into_iter()
+            .map(hex::encode)
+            .next();
+
+        records.push(CoinRecord {
+            coin_id: hex::encode(cs.coin.coin_id()),
+            address: encode_address(
+                cs.coin.puzzle_hash.to_bytes(),
+                &state.network().address_prefix,
+            )?,
+            amount: Amount::from_mojos(cs.coin.amount as u128, state.unit.decimals),
+            created_height: cs
+                .created_height
+                .as_ref()
+                .map(ToString::to_string)
+                .or_else(|| row.transaction_id.map(hex::encode)),
+            spent_height: cs
+                .spent_height
+                .as_ref()
+                .map(ToString::to_string)
+                .or(transaction_id),
+        });
+    }
+
+    Ok(records)
 }
 
 #[command]
@@ -108,23 +128,42 @@ pub async fn get_cat_coins(
         .try_into()
         .map_err(|_| Error::invalid_asset_id())?;
 
-    let coin_states = wallet.db.cat_coin_states(asset_id.into()).await?;
+    let mut tx = wallet.db.tx().await?;
+    let mut records = Vec::new();
 
-    coin_states
-        .into_iter()
-        .map(|cs| {
-            Ok(CoinRecord {
-                coin_id: hex::encode(cs.coin.coin_id()),
-                address: encode_address(
-                    cs.coin.puzzle_hash.to_bytes(),
-                    &state.network().address_prefix,
-                )?,
-                amount: Amount::from_mojos(cs.coin.amount as u128, 3),
-                created_height: cs.created_height,
-                spent_height: cs.spent_height,
-            })
-        })
-        .collect()
+    let rows = tx.cat_coin_states(asset_id.into()).await?;
+
+    for row in rows {
+        let cs = row.coin_state;
+
+        let transaction_id = tx
+            .transactions_for_coin(cs.coin.coin_id())
+            .await?
+            .into_iter()
+            .map(hex::encode)
+            .next();
+
+        records.push(CoinRecord {
+            coin_id: hex::encode(cs.coin.coin_id()),
+            address: encode_address(
+                cs.coin.puzzle_hash.to_bytes(),
+                &state.network().address_prefix,
+            )?,
+            amount: Amount::from_mojos(cs.coin.amount as u128, 3),
+            created_height: cs
+                .created_height
+                .as_ref()
+                .map(ToString::to_string)
+                .or_else(|| row.transaction_id.map(hex::encode)),
+            spent_height: cs
+                .spent_height
+                .as_ref()
+                .map(ToString::to_string)
+                .or(transaction_id),
+        });
+    }
+
+    Ok(records)
 }
 
 #[command]

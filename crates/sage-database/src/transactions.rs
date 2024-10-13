@@ -64,6 +64,10 @@ impl<'a> DatabaseTx<'a> {
         delete_transactions_for_coin(&mut *self.tx, coin_id).await
     }
 
+    pub async fn transactions_for_coin(&mut self, coin_id: Bytes32) -> Result<Vec<Bytes32>> {
+        transactions_for_coin(&mut *self.tx, coin_id).await
+    }
+
     pub async fn resubmittable_transactions(
         &mut self,
         threshold: i64,
@@ -224,6 +228,28 @@ async fn delete_transactions_for_coin(
     .await?;
 
     Ok(())
+}
+
+async fn transactions_for_coin(
+    conn: impl SqliteExecutor<'_>,
+    coin_id: Bytes32,
+) -> Result<Vec<Bytes32>> {
+    let coin_id = coin_id.as_ref();
+
+    let rows = sqlx::query!(
+        "
+        SELECT `transaction_id`
+        FROM `transaction_spends`
+        WHERE `coin_id` = ?
+        ",
+        coin_id
+    )
+    .fetch_all(conn)
+    .await?;
+
+    rows.into_iter()
+        .map(|row| to_bytes32(&row.transaction_id))
+        .collect()
 }
 
 async fn resubmittable_transactions(

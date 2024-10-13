@@ -1,19 +1,21 @@
-use chia::protocol::{Bytes32, Coin, CoinState};
+use chia::protocol::{Bytes32, Coin};
 use sqlx::SqliteExecutor;
 
-use crate::{to_bytes, to_coin, to_coin_state, Database, DatabaseTx, Result};
+use crate::{
+    to_bytes, to_bytes32, to_coin, to_coin_state, CoinStateRow, Database, DatabaseTx, Result,
+};
 
 impl Database {
-    pub async fn p2_coin_states(&self) -> Result<Vec<CoinState>> {
-        p2_coin_states(&self.pool).await
-    }
-
     pub async fn spendable_coins(&self) -> Result<Vec<Coin>> {
         spendable_coins(&self.pool).await
     }
 }
 
 impl<'a> DatabaseTx<'a> {
+    pub async fn p2_coin_states(&mut self) -> Result<Vec<CoinStateRow>> {
+        p2_coin_states(&mut *self.tx).await
+    }
+
     pub async fn insert_p2_coin(&mut self, coin_id: Bytes32) -> Result<()> {
         insert_p2_coin(&mut *self.tx, coin_id).await
     }
@@ -76,7 +78,7 @@ async fn spendable_coins(conn: impl SqliteExecutor<'_>) -> Result<Vec<Coin>> {
         .collect()
 }
 
-async fn p2_coin_states(conn: impl SqliteExecutor<'_>) -> Result<Vec<CoinState>> {
+async fn p2_coin_states(conn: impl SqliteExecutor<'_>) -> Result<Vec<CoinStateRow>> {
     let rows = sqlx::query!(
         "
         SELECT `coin_states`.* FROM `coin_states`
@@ -86,13 +88,16 @@ async fn p2_coin_states(conn: impl SqliteExecutor<'_>) -> Result<Vec<CoinState>>
     .fetch_all(conn)
     .await?;
 
-    rows.iter()
+    rows.into_iter()
         .map(|row| {
-            to_coin_state(
-                to_coin(&row.parent_coin_id, &row.puzzle_hash, &row.amount)?,
-                row.created_height,
-                row.spent_height,
-            )
+            Ok(CoinStateRow {
+                coin_state: to_coin_state(
+                    to_coin(&row.parent_coin_id, &row.puzzle_hash, &row.amount)?,
+                    row.created_height,
+                    row.spent_height,
+                )?,
+                transaction_id: row.transaction_id.map(|id| to_bytes32(&id)).transpose()?,
+            })
         })
         .collect()
 }

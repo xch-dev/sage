@@ -1,11 +1,12 @@
 use chia::{
-    protocol::{Bytes32, Coin, CoinState},
+    protocol::{Bytes32, Coin},
     puzzles::LineageProof,
 };
 use sqlx::SqliteExecutor;
 
 use crate::{
-    to_bytes, to_bytes32, to_coin, to_coin_state, to_lineage_proof, Database, DatabaseTx, Result,
+    to_bytes, to_bytes32, to_coin, to_coin_state, to_lineage_proof, CoinStateRow, Database,
+    DatabaseTx, Result,
 };
 
 #[derive(Debug, Clone)]
@@ -57,10 +58,6 @@ impl Database {
     pub async fn spendable_cat_balance(&self, asset_id: Bytes32) -> Result<u128> {
         spendable_cat_balance(&self.pool, asset_id).await
     }
-
-    pub async fn cat_coin_states(&self, asset_id: Bytes32) -> Result<Vec<CoinState>> {
-        cat_coin_states(&self.pool, asset_id).await
-    }
 }
 
 impl<'a> DatabaseTx<'a> {
@@ -79,6 +76,10 @@ impl<'a> DatabaseTx<'a> {
             asset_id,
         )
         .await
+    }
+
+    pub async fn cat_coin_states(&mut self, asset_id: Bytes32) -> Result<Vec<CoinStateRow>> {
+        cat_coin_states(&mut *self.tx, asset_id).await
     }
 }
 
@@ -331,14 +332,14 @@ async fn spendable_cat_balance(conn: impl SqliteExecutor<'_>, asset_id: Bytes32)
 async fn cat_coin_states(
     conn: impl SqliteExecutor<'_>,
     asset_id: Bytes32,
-) -> Result<Vec<CoinState>> {
+) -> Result<Vec<CoinStateRow>> {
     let asset_id = asset_id.as_ref();
 
     let rows = sqlx::query!(
         "
         SELECT
             cs.parent_coin_id, cs.puzzle_hash, cs.amount,
-            cs.spent_height, cs.created_height
+            cs.spent_height, cs.created_height, cs.transaction_id
         FROM `coin_states` AS cs
         INNER JOIN `cat_coins` AS cat
         ON cs.coin_id = cat.coin_id
@@ -351,11 +352,14 @@ async fn cat_coin_states(
 
     rows.into_iter()
         .map(|row| {
-            to_coin_state(
-                to_coin(&row.parent_coin_id, &row.puzzle_hash, &row.amount)?,
-                row.created_height,
-                row.spent_height,
-            )
+            Ok(CoinStateRow {
+                coin_state: to_coin_state(
+                    to_coin(&row.parent_coin_id, &row.puzzle_hash, &row.amount)?,
+                    row.created_height,
+                    row.spent_height,
+                )?,
+                transaction_id: row.transaction_id.map(|id| to_bytes32(&id)).transpose()?,
+            })
         })
         .collect()
 }

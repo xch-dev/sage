@@ -3,6 +3,12 @@ use sqlx::SqliteExecutor;
 
 use crate::{to_bytes32, to_coin, to_coin_state, Database, DatabaseTx, Result};
 
+#[derive(Debug, Clone, Copy)]
+pub struct CoinStateRow {
+    pub coin_state: CoinState,
+    pub transaction_id: Option<Bytes32>,
+}
+
 impl Database {
     pub async fn unsynced_coin_states(&self, limit: usize) -> Result<Vec<CoinState>> {
         unsynced_coin_states(&self.pool, limit).await

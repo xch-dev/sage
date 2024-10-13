@@ -102,9 +102,9 @@ export default function Layout(props: PropsWithChildren<object>) {
                   ></span>
                   {isSynced ? (
                     <>
-                      {peers?.length} peers,
+                      {peers?.length} peers
                       {peerMaxHeight
-                        ? ` ${peerMaxHeight} peak`
+                        ? ` | peak ${peerMaxHeight}`
                         : ' connecting...'}
                     </>
                   ) : (
