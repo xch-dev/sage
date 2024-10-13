@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT `coin_states`.`amount` FROM `coin_states` INDEXED BY `coin_spent`\n        INNER JOIN `cat_coins` ON `coin_states`.`coin_id` = `cat_coins`.`coin_id`\n        LEFT JOIN `transaction_spends` ON `coin_states`.`coin_id` = `transaction_spends`.`coin_id`\n        WHERE `coin_states`.`spent_height` IS NULL\n        AND `cat_coins`.`asset_id` = ?\n        AND `transaction_spends`.`coin_id` IS NULL\n        AND `coin_states`.`transaction_id` IS NULL\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "amount",
+        "ordinal": 0,
+        "type_info": "Blob"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "9c148797c6a72ceeb8e08bf506019953007ee7b8a2338d1b35f1326c270f478b"
+}
