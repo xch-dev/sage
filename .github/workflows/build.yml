@@ -76,6 +76,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Cargo binstall
+        run: curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
+
       - name: Add x86_64-apple-darwin
         if: matrix.platform_name == 'MacOS'
         run: rustup target add x86_64-apple-darwin
@@ -109,6 +112,9 @@ jobs:
         run: |
           mkdir -p ~/private_keys
           echo -n '${{ secrets.APPLE_API_SECRET_KEY }}' > ~/private_keys/AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8
+
+      - name: Bindgen CLI
+        run: cargo binstall bindgen-cli --locked -y
 
       - name: Notarized build
         if: ${{ startsWith(github.event.ref, 'refs/tags/v') && matrix.platform == 'macos-latest' }}
