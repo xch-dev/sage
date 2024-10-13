@@ -111,7 +111,7 @@ jobs:
         run: cargo install bindgen-cli --locked
 
       - name: Build (Notarized)
-        if: ${{ matrix.platform == 'macos-latest' && startsWith(github.event.ref, 'refs/tags/v')) }}
+        if: ${{ matrix.platform == 'macos-latest' && startsWith(github.event.ref, 'refs/tags/v') }}
         run: ${{ matrix.build }}
         env:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
