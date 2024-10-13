@@ -58,8 +58,11 @@ jobs:
             platform_name: MacOS
             build: 'pnpm tauri build --target universal-apple-darwin'
           - platform: 'ubuntu-22.04'
-            platform_name: Linux
+            platform_name: Linux (x64)
             build: 'pnpm tauri build'
+          - platform: 'ubuntu-22.04'
+            platform_name: Linux (ARM)
+            build: 'pnpm tauri build --target aarch64-unknown-linux-gnu'
           - platform: 'windows-latest'
             platform_name: Windows (x64)
             build: 'pnpm tauri build'
@@ -84,6 +87,10 @@ jobs:
       - name: Add aarch64-pc-windows-msvc
         if: matrix.platform_name == 'Windows (ARM)'
         run: rustup target add aarch64-pc-windows-msvc
+
+      - name: Add aarch64-unknown-linux-gnu
+        if: matrix.platform_name == 'Linux (ARM)'
+        run: rustup target add aarch64-unknown-linux-gnu
 
       - name: Ubuntu dependencies
         if: matrix.platform == 'ubuntu-22.04'
