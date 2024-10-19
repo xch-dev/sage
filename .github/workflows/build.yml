@@ -97,6 +97,12 @@ jobs:
         if: matrix.platform == 'ubuntu-22.04'
         run: sudo apt-get install -y libgtk-3-dev libjavascriptcoregtk-4.1-dev libwebkit2gtk-4.1-dev
 
+      - name: Setup ARM cross compilation on Ubuntu
+        if: matrix.platform_name == 'Linux (ARM)'
+        run: |
+          sudo apt-get install -y gcc-aarch64-linux-gnu libc6-dev-arm64-cross pkg-config-aarch64-linux-gnu libssl-dev:arm64
+          echo "PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/pkgconfig" >> $GITHUB_ENV
+
       - name: Windows dependencies
         if: matrix.platform == 'windows-latest'
         run: |
@@ -133,8 +139,15 @@ jobs:
 
       # We don't currently do signing on other platforms
       - name: Build without secrets
-        if: ${{ !((matrix.platform_name == 'MacOS' && startsWith(github.event.ref, 'refs/tags/v')) || matrix.platform_name == 'iOS') }}
-        run: ${{ matrix.build_dev || matrix.build }}
+        if: ${{ !((matrix.platform_name == 'MacOS' && startsWith(github.event.ref, 'refs/tags/v')) || matrix.platform_name == 'iOS' || matrix.platform_name == 'Linux (ARM)') }}
+        run: ${{ matrix.build }}
+        env:
+          CI: true
+
+      # We need to do cross-compilation for Linux ARM
+      - name: Build without secrets (Linux ARM)
+        if: matrix.platform_name == 'Linux (ARM)'
+        run: cross ${{ matrix.build }}
         env:
           CI: true
 
