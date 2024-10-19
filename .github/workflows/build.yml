@@ -133,15 +133,8 @@ jobs:
 
       # We don't currently do signing on other platforms
       - name: Build without secrets
-        if: ${{ !((matrix.platform_name == 'MacOS' && startsWith(github.event.ref, 'refs/tags/v')) || matrix.platform_name == 'iOS' || matrix.platform_name == 'Linux (ARM)') }}
+        if: ${{ !((matrix.platform_name == 'MacOS' && startsWith(github.event.ref, 'refs/tags/v')) || matrix.platform_name == 'iOS') }}
         run: ${{ matrix.build }}
-        env:
-          CI: true
-
-      # We need to do cross-compilation for Linux ARM
-      - name: Build without secrets (Linux ARM)
-        if: matrix.platform_name == 'Linux (ARM)'
-        run: cross ${{ matrix.build }}
         env:
           CI: true
 
