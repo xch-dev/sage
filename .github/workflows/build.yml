@@ -245,3 +245,7 @@ jobs:
         with:
           files: |
             src-tauri/gen/apple/build/arm64/*.ipa
+
+      - name: Upload to App Store (or TestFlight)
+        if: matrix.platform_name == 'iOS' && startsWith(github.event.ref, 'refs/tags/v')
+        run: xcrun altool --upload-app --type ios --file "src-tauri/gen/apple/build/arm64/*.ipa" --apiKey $APPLE_API_KEY_ID --apiIssuer $APPLE_API_ISSUER
