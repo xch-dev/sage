@@ -105,7 +105,11 @@ export default function Token() {
       updateCat();
 
       const unlisten = events.syncEvent.listen((event) => {
-        if (event.payload.type === 'cat_update') {
+        if (
+          event.payload.type === 'cat_update' ||
+          event.payload.type === 'coin_update' ||
+          event.payload.type === 'transaction_update'
+        ) {
           updateCat();
         }
       });
