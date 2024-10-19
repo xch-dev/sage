@@ -34,22 +34,19 @@ jobs:
       - name: Install GTK
         run: sudo apt-get install libgtk-3-dev libjavascriptcoregtk-4.1-dev libwebkit2gtk-4.1-dev
 
-      - name: Cargo binstall
-        run: curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
-
       - name: Clippy
         run: cargo clippy --workspace --all-features --all-targets
 
       - name: Unused dependencies
         run: |
-          cargo binstall cargo-machete --locked -y
+          cargo install cargo-machete --locked
           cargo machete
 
       - name: Fmt
         run: cargo fmt --all -- --files-with-diff --check
 
   build:
-    name: Bundle ${{ matrix.platform_name }}
+    name: ${{ matrix.platform_name }}
     runs-on: ${{ matrix.platform }}
     permissions:
       contents: write
@@ -59,39 +56,33 @@ jobs:
         include:
           - platform: 'macos-latest'
             platform_name: MacOS
-            args: '--target universal-apple-darwin'
+            build: 'pnpm tauri build --target universal-apple-darwin'
           - platform: 'ubuntu-22.04'
-            platform_name: Linux
-            args: ''
+            platform_name: Linux (x64)
+            build: 'pnpm tauri build'
           - platform: 'windows-latest'
             platform_name: Windows (x64)
-            args: ''
+            build: 'pnpm tauri build'
           - platform: 'windows-latest'
             platform_name: Windows (ARM)
-            args: '--target aarch64-pc-windows-msvc'
+            build: 'pnpm tauri build --target aarch64-pc-windows-msvc'
+          - platform: 'macos-latest'
+            platform_name: iOS
+            build: 'pnpm tauri ios build --export-method app-store-connect'
+            build_dev: 'pnpm tauri ios build --export-method debugging'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Get release
-        if: startsWith(github.event.ref, 'refs/tags/v')
-        id: get_release
-        uses: actions/github-script@v6
-        with:
-          script: |
-            const tag = process.env.GITHUB_REF.split('/').pop();
-            const release = await github.rest.repos.getReleaseByTag({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              tag: tag,
-            });
-            return release.data.id;
-
-      - name: Install x86_64-apple-darwin target
-        if: matrix.platform == 'macos-latest'
+      - name: Add x86_64-apple-darwin
+        if: matrix.platform_name == 'MacOS'
         run: rustup target add x86_64-apple-darwin
 
-      - name: Install aarch64-pc-windows-msvc target
+      - name: Add aarch64-apple-ios
+        if: matrix.platform_name == 'iOS'
+        run: rustup target add aarch64-apple-ios
+
+      - name: Add aarch64-pc-windows-msvc
         if: matrix.platform_name == 'Windows (ARM)'
         run: rustup target add aarch64-pc-windows-msvc
 
@@ -111,37 +102,150 @@ jobs:
       - name: Frontend dependencies
         run: pnpm install
 
-      - name: Dry run
-        if: ${{ !startsWith(github.event.ref, 'refs/tags/v') }}
-        run: pnpm tauri build ${{ matrix.args }}
-
       - name: Save API key to file
-        if: ${{ matrix.platform == 'macos-latest' && startsWith(github.event.ref, 'refs/tags/v') }}
+        if: matrix.platform == 'macos-latest'
         run: |
           mkdir -p ~/private_keys
           echo -n '${{ secrets.APPLE_API_SECRET_KEY }}' > ~/private_keys/AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8
 
-      - name: Publish (MacOS)
-        uses: tauri-apps/tauri-action@v0
-        if: ${{ startsWith(github.event.ref, 'refs/tags/v') && matrix.platform == 'macos-latest' }}
+      - name: Bindgen CLI
+        run: cargo install bindgen-cli --locked
+
+      # On MacOS we only notarize on tagged releases
+      # On iOS we need these secrets as well to do code signing
+      - name: Build with secrets
+        if: ${{ (matrix.platform_name == 'MacOS' && startsWith(github.event.ref, 'refs/tags/v')) || matrix.platform_name == 'iOS' }}
+        run: ${{ startsWith(github.event.ref, 'refs/tags/v') && matrix.build || matrix.build_dev || matrix.build }}
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
           APPLE_API_KEY: ${{ secrets.APPLE_API_KEY_ID }}
           APPLE_API_KEY_PATH: ~/private_keys/AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8
           CI: true
-        with:
-          releaseId: ${{ steps.get_release.outputs.result }}
-          args: ${{ matrix.args }}
 
-      - name: Publish
-        uses: tauri-apps/tauri-action@v0
-        if: ${{ startsWith(github.event.ref, 'refs/tags/v') && matrix.platform != 'macos-latest' }}
+      # We don't currently do signing on other platforms
+      - name: Build without secrets
+        if: ${{ !((matrix.platform_name == 'MacOS' && startsWith(github.event.ref, 'refs/tags/v')) || matrix.platform_name == 'iOS') }}
+        run: ${{ matrix.build_dev || matrix.build }}
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CI: true
+
+      # MacOS
+      - name: Upload APP (MacOS)
+        uses: actions/upload-artifact@v4
+        if: matrix.platform_name == 'MacOS'
         with:
-          releaseId: ${{ steps.get_release.outputs.result }}
-          args: ${{ matrix.args }}
+          name: Sage.app
+          path: target/universal-apple-darwin/release/bundle/macos/*.app
+
+      - name: Upload DMG (MacOS)
+        uses: actions/upload-artifact@v4
+        if: matrix.platform_name == 'MacOS'
+        with:
+          name: Sage.dmg
+          path: target/universal-apple-darwin/release/bundle/dmg/*.dmg
+
+      - name: Release (MacOS)
+        uses: softprops/action-gh-release@v2
+        if: matrix.platform_name == 'MacOS' && startsWith(github.event.ref, 'refs/tags/v')
+        with:
+          files: |
+            target/universal-apple-darwin/release/bundle/macos/*.app
+            target/universal-apple-darwin/release/bundle/dmg/*.dmg
+
+      # Linux x64
+      - name: Upload DEB (Linux x64)
+        uses: actions/upload-artifact@v4
+        if: matrix.platform_name == 'Linux (x64)'
+        with:
+          name: Sage.deb
+          path: target/release/bundle/deb/*.deb
+
+      - name: Upload DMG (Linux x64)
+        uses: actions/upload-artifact@v4
+        if: matrix.platform_name == 'Linux (x64)'
+        with:
+          name: Sage.rpm
+          path: target/release/bundle/rpm/*.rpm
+
+      - name: Upload AppImage (Linux x64)
+        uses: actions/upload-artifact@v4
+        if: matrix.platform_name == 'Linux (x64)'
+        with:
+          name: Sage.AppImage
+          path: target/release/bundle/appimage/*.AppImage
+
+      - name: Release (Linux x64)
+        uses: softprops/action-gh-release@v2
+        if: matrix.platform_name == 'Linux (x64)' && startsWith(github.event.ref, 'refs/tags/v')
+        with:
+          files: |
+            target/release/bundle/deb/*.deb
+            target/release/bundle/rpm/*.rpm
+            target/release/bundle/appimage/*.AppImage
+
+      # Windows x64
+      - name: Upload MSI (Windows x64)
+        uses: actions/upload-artifact@v4
+        if: matrix.platform_name == 'Windows (x64)'
+        with:
+          name: Sage_x64.msi
+          path: target/release/bundle/msi/*.msi
+
+      - name: Upload EXE (Windows x64)
+        uses: actions/upload-artifact@v4
+        if: matrix.platform_name == 'Windows (x64)'
+        with:
+          name: Sage_x64.exe
+          path: target/release/bundle/nsis/*.exe
+
+      - name: Release (Windows x64)
+        uses: softprops/action-gh-release@v2
+        if: matrix.platform_name == 'Windows (x64)' && startsWith(github.event.ref, 'refs/tags/v')
+        with:
+          files: |
+            target/release/bundle/msi/*.msi
+            target/release/bundle/nsis/*.exe
+
+      # Windows ARM
+      - name: Upload MSI (Windows ARM)
+        uses: actions/upload-artifact@v4
+        if: matrix.platform_name == 'Windows (ARM)'
+        with:
+          name: Sage_ARM64.msi
+          path: target/aarch64-pc-windows-msvc/release/bundle/msi/*.msi
+
+      - name: Upload EXE (Windows ARM)
+        uses: actions/upload-artifact@v4
+        if: matrix.platform_name == 'Windows (ARM)'
+        with:
+          name: Sage_ARM64.exe
+          path: target/aarch64-pc-windows-msvc/release/bundle/nsis/*.exe
+
+      - name: Release (Windows ARM)
+        uses: softprops/action-gh-release@v2
+        if: matrix.platform_name == 'Windows (ARM)' && startsWith(github.event.ref, 'refs/tags/v')
+        with:
+          files: |
+            target/aarch64-pc-windows-msvc/release/bundle/msi/*.msi
+            target/aarch64-pc-windows-msvc/release/bundle/nsis/*.exe
+
+      # iOS
+      - name: Upload IPA (iOS)
+        uses: actions/upload-artifact@v4
+        if: matrix.platform_name == 'iOS'
+        with:
+          name: Sage.ipa
+          path: src-tauri/gen/apple/build/arm64/*.ipa
+
+      - name: Release (iOS)
+        uses: softprops/action-gh-release@v2
+        if: matrix.platform_name == 'iOS' && startsWith(github.event.ref, 'refs/tags/v')
+        with:
+          files: |
+            src-tauri/gen/apple/build/arm64/*.ipa
+
+      - name: Upload to App Store (or TestFlight)
+        if: matrix.platform_name == 'iOS' && startsWith(github.event.ref, 'refs/tags/v')
+        run: xcrun altool --upload-app --type ios --file "src-tauri/gen/apple/build/arm64/*.ipa" --apiKey $APPLE_API_KEY_ID --apiIssuer $APPLE_API_ISSUER
