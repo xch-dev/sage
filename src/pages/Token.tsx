@@ -105,7 +105,11 @@ export default function Token() {
       updateCat();
 
       const unlisten = events.syncEvent.listen((event) => {
-        if (event.payload.type === 'cat_update') {
+        if (
+          event.payload.type === 'cat_update' ||
+          event.payload.type === 'coin_update' ||
+          event.payload.type === 'transaction_update'
+        ) {
           updateCat();
         }
       });
@@ -121,6 +125,25 @@ export default function Token() {
   const selectedCoinIds = useMemo(() => {
     return Object.keys(selectedCoins).filter((key) => selectedCoins[key]);
   }, [selectedCoins]);
+
+  const canCombine = useMemo(
+    () =>
+      selectedCoinIds.length >= 2 &&
+      selectedCoinIds.every(
+        (id) =>
+          !coins.find((coin) => coin.coin_id === id)?.spend_transaction_id,
+      ),
+    [selectedCoinIds, coins],
+  );
+  const canSplit = useMemo(
+    () =>
+      selectedCoinIds.length >= 1 &&
+      selectedCoinIds.every(
+        (id) =>
+          !coins.find((coin) => coin.coin_id === id)?.spend_transaction_id,
+      ),
+    [selectedCoinIds, coins],
+  );
 
   const [isCombineOpen, setCombineOpen] = useState(false);
   const [isSplitOpen, setSplitOpen] = useState(false);
@@ -257,7 +280,7 @@ export default function Token() {
                 </Link>
                 {asset && assetId !== 'xch' && (
                   <DropdownMenu>
-                    <DropdownMenuTrigger>
+                    <DropdownMenuTrigger asChild>
                       <Button variant='outline' size='icon'>
                         <MoreHorizontalIcon className='h-4 w-4' />
                       </Button>
@@ -294,14 +317,14 @@ export default function Token() {
                     <>
                       <Button
                         variant='outline'
-                        disabled={selectedCoinIds.length < 1}
+                        disabled={!canSplit}
                         onClick={() => setSplitOpen(true)}
                       >
                         <SplitIcon className='mr-2 h-4 w-4' /> Split
                       </Button>
                       <Button
                         variant='outline'
-                        disabled={selectedCoinIds.length < 2}
+                        disabled={!canCombine}
                         onClick={() => setCombineOpen(true)}
                       >
                         <MergeIcon className='mr-2 h-4 w-4' />
