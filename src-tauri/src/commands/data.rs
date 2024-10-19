@@ -85,7 +85,7 @@ pub async fn get_coins(state: State<'_, AppState>) -> Result<Vec<CoinRecord>> {
     for row in rows {
         let cs = row.coin_state;
 
-        let transaction_id = tx
+        let spend_transaction_id = tx
             .transactions_for_coin(cs.coin.coin_id())
             .await?
             .into_iter()
@@ -99,16 +99,10 @@ pub async fn get_coins(state: State<'_, AppState>) -> Result<Vec<CoinRecord>> {
                 &state.network().address_prefix,
             )?,
             amount: Amount::from_mojos(cs.coin.amount as u128, state.unit.decimals),
-            created_height: cs
-                .created_height
-                .as_ref()
-                .map(ToString::to_string)
-                .or_else(|| row.transaction_id.map(hex::encode)),
-            spent_height: cs
-                .spent_height
-                .as_ref()
-                .map(ToString::to_string)
-                .or(transaction_id),
+            created_height: cs.created_height,
+            spent_height: cs.spent_height,
+            create_transaction_id: row.transaction_id.map(hex::encode),
+            spend_transaction_id,
         });
     }
 
@@ -136,7 +130,7 @@ pub async fn get_cat_coins(
     for row in rows {
         let cs = row.coin_state;
 
-        let transaction_id = tx
+        let spend_transaction_id = tx
             .transactions_for_coin(cs.coin.coin_id())
             .await?
             .into_iter()
@@ -150,16 +144,10 @@ pub async fn get_cat_coins(
                 &state.network().address_prefix,
             )?,
             amount: Amount::from_mojos(cs.coin.amount as u128, 3),
-            created_height: cs
-                .created_height
-                .as_ref()
-                .map(ToString::to_string)
-                .or_else(|| row.transaction_id.map(hex::encode)),
-            spent_height: cs
-                .spent_height
-                .as_ref()
-                .map(ToString::to_string)
-                .or(transaction_id),
+            created_height: cs.created_height,
+            spent_height: cs.spent_height,
+            create_transaction_id: row.transaction_id.map(hex::encode),
+            spend_transaction_id,
         });
     }
 

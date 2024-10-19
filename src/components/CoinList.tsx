@@ -122,6 +122,15 @@ export default function CoinList(props: CoinListProps) {
     },
     {
       accessorKey: 'created_height',
+      sortingFn: (rowA, rowB) => {
+        const a =
+          (rowA.original.created_height ?? 0) +
+          (rowA.original.spend_transaction_id ? 10000000 : 0);
+        const b =
+          (rowB.original.created_height ?? 0) +
+          (rowB.original.spend_transaction_id ? 10000000 : 0);
+        return a < b ? -1 : a > b ? 1 : 0;
+      },
       header: ({ column }) => {
         return (
           <Button
@@ -148,6 +157,15 @@ export default function CoinList(props: CoinListProps) {
     },
     {
       accessorKey: 'spent_height',
+      sortingFn: (rowA, rowB) => {
+        const a =
+          (rowA.original.spent_height ?? 0) +
+          (rowA.original.spend_transaction_id ? 10000000 : 0);
+        const b =
+          (rowB.original.spent_height ?? 0) +
+          (rowB.original.spend_transaction_id ? 10000000 : 0);
+        return a < b ? -1 : a > b ? 1 : 0;
+      },
       header: ({ column }) => {
         return (
           <div className='flex items-center'>
@@ -186,11 +204,15 @@ export default function CoinList(props: CoinListProps) {
         );
       },
       filterFn: (row, _, filterValue) => {
-        return filterValue === 'Unspent' && !row.original.spent_height;
+        return (
+          filterValue === 'Unspent' &&
+          (!!row.original.spend_transaction_id || !row.original.spent_height)
+        );
       },
       cell: ({ row }) => (
         <div className='truncate overflow-hidden'>
-          {row.original.spent_height ?? ''}
+          {row.original.spent_height ??
+            (row.original.spend_transaction_id ? 'Pending...' : '')}
         </div>
       ),
     },
@@ -257,7 +279,12 @@ export default function CoinList(props: CoinListProps) {
                       style={{
                         maxWidth: cell.column.columnDef.size,
                       }}
-                      className='h-12'
+                      className={
+                        'h-12' +
+                        (row.original.spend_transaction_id
+                          ? ' text-neutral-400 bg-neutral-50 font-medium'
+                          : '')
+                      }
                     >
                       {flexRender(
                         cell.column.columnDef.cell,
