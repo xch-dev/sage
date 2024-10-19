@@ -100,7 +100,9 @@ jobs:
       - name: Setup ARM cross compilation on Ubuntu
         if: matrix.platform_name == 'Linux (ARM)'
         run: |
-          sudo apt-get install -y gcc-aarch64-linux-gnu libc6-dev-arm64-cross pkg-config-aarch64-linux-gnu libssl-dev:arm64
+          sudo dpkg --add-architecture arm64
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu libc6-dev-arm64-cross pkg-config libssl-dev:arm64
           echo "PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/pkgconfig" >> $GITHUB_ENV
 
       - name: Windows dependencies
