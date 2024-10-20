@@ -367,7 +367,11 @@ export default function Token() {
                 )}
               />
               <DialogFooter className='gap-2'>
-                <Button variant='outline' onClick={() => setCombineOpen(false)}>
+                <Button
+                  type='button'
+                  variant='outline'
+                  onClick={() => setCombineOpen(false)}
+                >
                   Cancel
                 </Button>
                 <Button type='submit'>Combine</Button>
@@ -423,7 +427,11 @@ export default function Token() {
                 )}
               />
               <DialogFooter className='gap-2'>
-                <Button variant='outline' onClick={() => setSplitOpen(false)}>
+                <Button
+                  type='button'
+                  variant='outline'
+                  onClick={() => setSplitOpen(false)}
+                >
                   Cancel
                 </Button>
                 <Button type='submit'>Split</Button>
