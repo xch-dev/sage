@@ -36,7 +36,7 @@ pub enum PuzzleInfo {
         license_uris: Vec<String>,
     },
     /// The coin could not be parsed due to an error or it was a kind of puzzle we don't know about.
-    Unknown { hint: Bytes32 },
+    Unknown { hint: Option<Bytes32> },
 }
 
 impl PuzzleInfo {
@@ -81,29 +81,31 @@ impl PuzzleInfo {
                     && cond.memos[0].len() == 32
             })
         else {
-            return Err(ParseError::MissingHint);
+            return Ok(Self::Unknown { hint: None });
         };
 
         let hint = Bytes32::try_from(create_coin.memos.remove(0).into_inner())
             .expect("the hint is always 32 bytes, as checked above");
 
+        let unknown = Self::Unknown { hint: Some(hint) };
+
         match Cat::parse_children(&mut allocator, parent_coin, parent_puzzle, parent_solution) {
             // If there was an error parsing the CAT, we can exit early.
             Err(error) => {
                 warn!("Invalid CAT: {}", error);
-                return Ok(Self::Unknown { hint });
+                return Ok(unknown);
             }
 
             // If the coin is a CAT coin, return the relevant information.
             Ok(Some(cats)) => {
                 let Some(cat) = cats.into_iter().find(|cat| cat.coin == coin) else {
                     warn!("CAT coin not found in children");
-                    return Ok(Self::Unknown { hint });
+                    return Ok(unknown);
                 };
 
                 // We don't support parsing eve CATs during syncing.
                 let Some(lineage_proof) = cat.lineage_proof else {
-                    return Ok(Self::Unknown { hint });
+                    return Ok(unknown);
                 };
 
                 return Ok(Self::Cat {
@@ -126,19 +128,19 @@ impl PuzzleInfo {
             // If there was an error parsing the NFT, we can exit early.
             Err(error) => {
                 warn!("Invalid NFT: {}", error);
-                return Ok(Self::Unknown { hint });
+                return Ok(unknown);
             }
 
             // If the coin is a NFT coin, return the relevant information.
             Ok(Some(nft)) => {
                 if nft.coin != coin {
                     warn!("NFT coin does not match expected coin");
-                    return Ok(Self::Unknown { hint });
+                    return Ok(unknown);
                 }
 
                 // We don't support parsing eve NFTs during syncing.
                 let Proof::Lineage(lineage_proof) = nft.proof else {
-                    return Ok(Self::Unknown { hint });
+                    return Ok(unknown);
                 };
 
                 let metadata = NftMetadata::from_clvm(&allocator, nft.info.metadata.ptr()).ok();
@@ -181,14 +183,14 @@ impl PuzzleInfo {
             // If there was an error parsing the DID, we can exit early.
             Err(error) => {
                 warn!("Invalid DID: {}", error);
-                return Ok(Self::Unknown { hint });
+                return Ok(unknown);
             }
 
             // If the coin is a DID coin, return the relevant information.
             Ok(Some(did)) => {
                 // We don't support parsing eve DIDs during syncing.
                 let Proof::Lineage(lineage_proof) = did.proof else {
-                    return Ok(Self::Unknown { hint });
+                    return Ok(unknown);
                 };
 
                 let metadata = Program::from_clvm(&allocator, did.info.metadata.ptr())
@@ -204,6 +206,6 @@ impl PuzzleInfo {
             Ok(None) => {}
         }
 
-        Ok(Self::Unknown { hint })
+        Ok(unknown)
     }
 }

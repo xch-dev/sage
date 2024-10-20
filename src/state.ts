@@ -80,18 +80,6 @@ events.syncEvent.listen((event) => {
   }
 });
 
-commands.initialize().then((result) => {
-  if (result.status === 'error') {
-    console.error(result.error);
-    return;
-  }
-  commands.activeWallet().then((wallet) => {
-    if (wallet.status === 'ok' && wallet.data !== null) {
-      fetchState();
-    }
-  });
-});
-
 export async function loginAndUpdateState(fingerprint: number): Promise<void> {
   await commands.loginWallet(fingerprint);
   await fetchState();

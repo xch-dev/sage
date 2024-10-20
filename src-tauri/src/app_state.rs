@@ -21,7 +21,7 @@ use sqlx::{
 };
 use tauri::{AppHandle, Emitter};
 use tokio::sync::{mpsc, oneshot, Mutex};
-use tracing::{info, level_filters::LevelFilter};
+use tracing::{error, info, level_filters::LevelFilter};
 use tracing_appender::rolling::{Builder, Rotation};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, Layer};
 
@@ -276,14 +276,36 @@ impl AppStateInner {
         let network_id = &self.config.network.network_id;
         let genesis_challenge = &self.networks[network_id].genesis_challenge;
 
-        let pool = SqlitePoolOptions::new()
+        let mut pool = SqlitePoolOptions::new()
             .connect_with(
                 SqliteConnectOptions::from_str(&format!("sqlite://{}?mode=rwc", path.display()))?
                     .journal_mode(SqliteJournalMode::Wal)
                     .log_statements(log::LevelFilter::Trace),
             )
             .await?;
-        sqlx::migrate!("../migrations").run(&pool).await?;
+
+        // TODO: Remove this before out of beta.
+        if let Err(error) = sqlx::migrate!("../migrations").run(&pool).await {
+            error!("Error migrating database, dropping database: {error:?}");
+
+            pool.close().await;
+            drop(pool);
+
+            fs::remove_file(&path)?;
+
+            pool = SqlitePoolOptions::new()
+                .connect_with(
+                    SqliteConnectOptions::from_str(&format!(
+                        "sqlite://{}?mode=rwc",
+                        path.display()
+                    ))?
+                    .journal_mode(SqliteJournalMode::Wal)
+                    .log_statements(log::LevelFilter::Trace),
+                )
+                .await?;
+
+            sqlx::migrate!("../migrations").run(&pool).await?;
+        }
 
         let db = Database::new(pool);
         let wallet = Arc::new(Wallet::new(

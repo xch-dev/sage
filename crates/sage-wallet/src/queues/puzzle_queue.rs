@@ -7,7 +7,7 @@ use sage_database::Database;
 use tokio::{
     sync::{mpsc, Mutex},
     task::spawn_blocking,
-    time::timeout,
+    time::{sleep, timeout},
 };
 use tracing::{debug, instrument};
 
@@ -42,6 +42,7 @@ impl PuzzleQueue {
     pub async fn start(mut self) -> Result<(), WalletError> {
         loop {
             self.process_batch().await?;
+            sleep(Duration::from_millis(150)).await;
         }
     }
 
@@ -55,11 +56,13 @@ impl PuzzleQueue {
             .collect();
 
         if peers.is_empty() {
+            sleep(Duration::from_secs(3)).await;
             return Ok(());
         }
 
         let coin_states = self.db.unsynced_coin_states(peers.len()).await?;
         if coin_states.is_empty() {
+            sleep(Duration::from_secs(3)).await;
             return Ok(());
         }
 
@@ -163,7 +166,7 @@ async fn fetch_puzzle(
             lineage_proof,
             p2_puzzle_hash,
         } => {
-            tx.sync_coin(coin_id, p2_puzzle_hash).await?;
+            tx.sync_coin(coin_id, Some(p2_puzzle_hash)).await?;
             tx.insert_cat_coin(coin_id, lineage_proof, p2_puzzle_hash, asset_id)
                 .await?;
 
@@ -176,7 +179,7 @@ async fn fetch_puzzle(
             lineage_proof,
             info,
         } => {
-            tx.sync_coin(coin_id, info.p2_puzzle_hash).await?;
+            tx.sync_coin(coin_id, Some(info.p2_puzzle_hash)).await?;
             tx.insert_new_did(info.launcher_id, None, true).await?;
             tx.insert_did_coin(coin_id, lineage_proof, info).await?;
 
@@ -195,7 +198,7 @@ async fn fetch_puzzle(
             metadata_uris,
             license_uris,
         } => {
-            tx.sync_coin(coin_id, info.p2_puzzle_hash).await?;
+            tx.sync_coin(coin_id, Some(info.p2_puzzle_hash)).await?;
 
             tx.insert_nft_coin(
                 coin_id,

@@ -23,12 +23,12 @@ impl Database {
         update_transaction_mempool_time(&self.pool, transaction_id, timestamp).await
     }
 
-    pub async fn transactions(&self) -> Result<Vec<TransactionRow>> {
-        transactions(&self.pool).await
+    pub async fn delete_confirmed_transactions(&self) -> Result<()> {
+        delete_confirmed_transactions(&self.pool).await
     }
 
-    pub async fn remove_transaction(&self, transaction_id: Bytes32) -> Result<()> {
-        remove_transaction(&self.pool, transaction_id).await
+    pub async fn transactions(&self) -> Result<Vec<TransactionRow>> {
+        transactions(&self.pool).await
     }
 }
 
@@ -60,10 +60,6 @@ impl<'a> DatabaseTx<'a> {
         insert_transaction_spend(&mut *self.tx, coin, transaction_id, puzzle_reveal, solution).await
     }
 
-    pub async fn delete_transactions_for_coin(&mut self, coin_id: Bytes32) -> Result<()> {
-        delete_transactions_for_coin(&mut *self.tx, coin_id).await
-    }
-
     pub async fn transactions_for_coin(&mut self, coin_id: Bytes32) -> Result<Vec<Bytes32>> {
         transactions_for_coin(&mut *self.tx, coin_id).await
     }
@@ -77,6 +73,22 @@ impl<'a> DatabaseTx<'a> {
 
     pub async fn coin_spends(&mut self, transaction_id: Bytes32) -> Result<Vec<CoinSpend>> {
         coin_spends(&mut *self.tx, transaction_id).await
+    }
+
+    pub async fn confirm_coins(&mut self, transaction_id: Bytes32) -> Result<()> {
+        confirm_coins(&mut *self.tx, transaction_id).await
+    }
+
+    pub async fn remove_transaction(&mut self, transaction_id: Bytes32) -> Result<()> {
+        remove_transaction(&mut *self.tx, transaction_id).await
+    }
+
+    pub async fn delete_coins(&mut self, transaction_id: Bytes32) -> Result<()> {
+        delete_coins(&mut *self.tx, transaction_id).await
+    }
+
+    pub async fn transaction_for_spent_coin(&mut self, coin_id: Bytes32) -> Result<Vec<Bytes32>> {
+        transaction_for_spent_coin(&mut *self.tx, coin_id).await
     }
 }
 
@@ -207,29 +219,6 @@ async fn transactions(conn: impl SqliteExecutor<'_>) -> Result<Vec<TransactionRo
         .collect()
 }
 
-async fn delete_transactions_for_coin(
-    conn: impl SqliteExecutor<'_>,
-    coin_id: Bytes32,
-) -> Result<()> {
-    let coin_id = coin_id.as_ref();
-
-    sqlx::query!(
-        "
-        DELETE FROM `transactions`
-        WHERE `transaction_id` IN (
-            SELECT `transaction_id`
-            FROM `transaction_spends`
-            WHERE `coin_id` = ?
-        )
-        ",
-        coin_id
-    )
-    .execute(conn)
-    .await?;
-
-    Ok(())
-}
-
 async fn transactions_for_coin(
     conn: impl SqliteExecutor<'_>,
     coin_id: Bytes32,
@@ -250,6 +239,23 @@ async fn transactions_for_coin(
     rows.into_iter()
         .map(|row| to_bytes32(&row.transaction_id))
         .collect()
+}
+
+async fn delete_confirmed_transactions(conn: impl SqliteExecutor<'_>) -> Result<()> {
+    sqlx::query!(
+        "
+        DELETE FROM `transactions` WHERE `transaction_id` IN (
+            SELECT `transaction_spends`.`transaction_id`
+            FROM `transaction_spends`
+            INNER JOIN `coin_states` ON `transaction_spends`.`coin_id` = `coin_states`.`coin_id`
+            WHERE `coin_states`.`spent_height` IS NOT NULL
+        )
+        "
+    )
+    .execute(conn)
+    .await?;
+
+    Ok(())
 }
 
 async fn resubmittable_transactions(
@@ -331,4 +337,59 @@ async fn remove_transaction(conn: impl SqliteExecutor<'_>, transaction_id: Bytes
     .await?;
 
     Ok(())
+}
+
+async fn confirm_coins(conn: impl SqliteExecutor<'_>, transaction_id: Bytes32) -> Result<()> {
+    let transaction_id = transaction_id.as_ref();
+
+    sqlx::query!(
+        "
+        UPDATE `coin_states`
+        SET `transaction_id` = NULL
+        WHERE `transaction_id` = ?
+        ",
+        transaction_id
+    )
+    .execute(conn)
+    .await?;
+
+    Ok(())
+}
+
+async fn delete_coins(conn: impl SqliteExecutor<'_>, transaction_id: Bytes32) -> Result<()> {
+    let transaction_id = transaction_id.as_ref();
+
+    sqlx::query!(
+        "
+        DELETE FROM `coin_states`
+        WHERE `transaction_id` = ?
+        ",
+        transaction_id
+    )
+    .execute(conn)
+    .await?;
+
+    Ok(())
+}
+
+async fn transaction_for_spent_coin(
+    conn: impl SqliteExecutor<'_>,
+    coin_id: Bytes32,
+) -> Result<Vec<Bytes32>> {
+    let coin_id = coin_id.as_ref();
+
+    let rows = sqlx::query!(
+        "
+        SELECT `transaction_id`
+        FROM `transaction_spends`
+        WHERE `coin_id` = ?
+        ",
+        coin_id
+    )
+    .fetch_all(conn)
+    .await?;
+
+    rows.into_iter()
+        .map(|row| to_bytes32(&row.transaction_id))
+        .collect()
 }

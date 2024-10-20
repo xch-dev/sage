@@ -270,8 +270,13 @@ pub async fn incremental_sync(
         }
 
         if coin_state.spent_height.is_some() {
-            tx.delete_transactions_for_coin(coin_state.coin.coin_id())
-                .await?;
+            for transaction_id in tx
+                .transaction_for_spent_coin(coin_state.coin.coin_id())
+                .await?
+            {
+                tx.confirm_coins(transaction_id).await?;
+                tx.remove_transaction(transaction_id).await?;
+            }
         }
     }
 

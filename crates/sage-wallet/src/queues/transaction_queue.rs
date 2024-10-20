@@ -45,6 +45,8 @@ impl TransactionQueue {
     }
 
     async fn process_batch(&mut self) -> Result<(), WalletError> {
+        self.db.delete_confirmed_transactions().await?;
+
         let peers: Vec<Peer> = self
             .state
             .lock()
@@ -72,7 +74,7 @@ impl TransactionQueue {
             return Ok(());
         }
 
-        info!("Resubmitting {} transactions", rows.len());
+        info!("Submitting the following transactions: {rows:?}");
 
         for (transaction_id, aggregated_signature) in rows {
             let coin_spends = tx.coin_spends(transaction_id).await?;
@@ -146,14 +148,17 @@ impl TransactionQueue {
                     .iter()
                     .any(|cs| cs.spent_height.is_some())
                 {
-                    info!("Transaction is completed");
                     removed = true;
                     break;
                 }
             }
 
             if removed {
-                self.db.remove_transaction(spend_bundle.name()).await?;
+                info!("Transaction has been confirmed, removing from transaction list and confirming coins");
+                let mut tx = self.db.tx().await?;
+                tx.confirm_coins(spend_bundle.name()).await?;
+                tx.remove_transaction(spend_bundle.name()).await?;
+                tx.commit().await?;
                 continue;
             }
 
@@ -187,6 +192,8 @@ impl TransactionQueue {
             }
 
             if successful {
+                info!("Transaction inclusion in mempool successful, updating timestamp");
+
                 let timestamp = SystemTime::now()
                     .duration_since(UNIX_EPOCH)?
                     .as_secs()
@@ -199,7 +206,11 @@ impl TransactionQueue {
 
                 updated = true;
             } else {
-                self.db.remove_transaction(spend_bundle.name()).await?;
+                info!("Transaction has failed, removing from transaction list and removing coins");
+                let mut tx = self.db.tx().await?;
+                tx.delete_coins(spend_bundle.name()).await?;
+                tx.remove_transaction(spend_bundle.name()).await?;
+                tx.commit().await?;
             }
         }
 

@@ -25,6 +25,7 @@ import Wallet from './pages/Wallet';
 import { WalletDids } from './pages/WalletDids';
 import { MainWallet } from './pages/WalletMain';
 import { WalletNfts } from './pages/WalletNfts';
+import { fetchState } from './state';
 
 export interface DarkModeContext {
   toggle: () => void;
@@ -95,7 +96,14 @@ export default function App() {
       .then((result) => {
         if (result.status === 'ok') {
           setInitialized(true);
+
+          commands.activeWallet().then((wallet) => {
+            if (wallet.status === 'ok' && wallet.data !== null) {
+              fetchState();
+            }
+          });
         } else {
+          console.error(result.error);
           setError(result.error.reason);
         }
       })

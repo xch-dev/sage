@@ -125,10 +125,16 @@ export default function CoinList(props: CoinListProps) {
       sortingFn: (rowA, rowB) => {
         const a =
           (rowA.original.created_height ?? 0) +
-          (rowA.original.spend_transaction_id ? 10000000 : 0);
+          (rowA.original.spend_transaction_id ||
+          rowA.original.create_transaction_id
+            ? 10000000
+            : 0);
         const b =
           (rowB.original.created_height ?? 0) +
-          (rowB.original.spend_transaction_id ? 10000000 : 0);
+          (rowB.original.spend_transaction_id ||
+          rowB.original.create_transaction_id
+            ? 10000000
+            : 0);
         return a < b ? -1 : a > b ? 1 : 0;
       },
       header: ({ column }) => {
@@ -151,7 +157,8 @@ export default function CoinList(props: CoinListProps) {
       },
       cell: ({ row }) => (
         <div className='truncate overflow-hidden'>
-          {row.original.created_height ?? ''}
+          {row.original.created_height ??
+            (row.original.create_transaction_id ? 'Pending...' : '')}
         </div>
       ),
     },
@@ -281,7 +288,8 @@ export default function CoinList(props: CoinListProps) {
                       }}
                       className={
                         'h-12' +
-                        (row.original.spend_transaction_id
+                        (row.original.spend_transaction_id ||
+                        row.original.create_transaction_id
                           ? ' text-neutral-400 bg-neutral-50 font-medium'
                           : '')
                       }
