@@ -241,9 +241,6 @@ pub async fn send_cat(
 #[command]
 #[specta]
 pub async fn create_did(state: State<'_, AppState>, name: String, fee: Amount) -> Result<()> {
-    // TODO: DID naming
-    let _ = name;
-
     let state = state.lock().await;
     let wallet = state.wallet()?;
 
@@ -255,9 +252,14 @@ pub async fn create_did(state: State<'_, AppState>, name: String, fee: Amount) -
         return Err(Error::invalid_amount(&fee));
     };
 
-    let (coin_spends, _did) = wallet.create_did(fee, false, true).await?;
+    let (coin_spends, did) = wallet.create_did(fee, false, true).await?;
 
     transact(&state, &wallet, coin_spends).await?;
+
+    wallet
+        .db
+        .insert_new_did(did.info.launcher_id, Some(name), true)
+        .await?;
 
     Ok(())
 }

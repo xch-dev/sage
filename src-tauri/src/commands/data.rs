@@ -10,7 +10,7 @@ use sage_api::{
     Amount, CatRecord, CoinRecord, DidRecord, GetNfts, GetNftsResponse, NftRecord,
     PendingTransactionRecord, SyncStatus,
 };
-use sage_database::{NftData, NftDisplayInfo};
+use sage_database::{DidRow, NftData, NftDisplayInfo};
 use sage_wallet::WalletError;
 use specta::specta;
 use tauri::{command, State};
@@ -218,15 +218,16 @@ pub async fn get_dids(state: State<'_, AppState>) -> Result<Vec<DidRecord>> {
         .did_coins()
         .await?
         .into_iter()
-        .map(|did| {
+        .map(|DidRow { did, name, visible }| {
             Ok(DidRecord {
-                encoded_id: encode_address(did.info.launcher_id.to_bytes(), "did:chia:")?,
-                launcher_id: hex::encode(did.info.launcher_id),
+                launcher_id: encode_address(did.info.launcher_id.to_bytes(), "did:chia:")?,
                 coin_id: hex::encode(did.coin.coin_id()),
                 address: encode_address(
                     did.info.p2_puzzle_hash.to_bytes(),
                     &state.network().address_prefix,
                 )?,
+                name,
+                visible,
             })
         })
         .collect()

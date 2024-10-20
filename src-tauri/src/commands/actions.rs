@@ -1,3 +1,4 @@
+use chia_wallet_sdk::decode_address;
 use sage_api::CatRecord;
 use sage_database::CatRow;
 use specta::specta;
@@ -43,6 +44,31 @@ pub async fn update_cat_info(state: State<'_, AppState>, record: CatRecord) -> R
             icon_url: record.icon_url,
             visible: record.visible,
         })
+        .await?;
+
+    Ok(())
+}
+
+#[command]
+#[specta]
+pub async fn update_did(
+    state: State<'_, AppState>,
+    did_id: String,
+    name: Option<String>,
+    visible: bool,
+) -> Result<()> {
+    let state = state.lock().await;
+    let wallet = state.wallet()?;
+
+    let (launcher_id, prefix) = decode_address(&did_id)?;
+
+    if prefix != "did:chia:" {
+        return Err(Error::invalid_prefix(&prefix));
+    }
+
+    wallet
+        .db
+        .update_did(launcher_id.into(), name, visible)
         .await?;
 
     Ok(())

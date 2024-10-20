@@ -177,6 +177,7 @@ async fn fetch_puzzle(
             info,
         } => {
             tx.sync_coin(coin_id, info.p2_puzzle_hash).await?;
+            tx.insert_new_did(info.launcher_id, None, true).await?;
             tx.insert_did_coin(coin_id, lineage_proof, info).await?;
 
             command_sender

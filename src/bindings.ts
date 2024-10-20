@@ -269,6 +269,14 @@ async removeCatInfo(assetId: string) : Promise<Result<null, Error>> {
     else return { status: "error", error: e  as any };
 }
 },
+async updateDid(didId: string, name: string | null, visible: boolean) : Promise<Result<null, Error>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("update_did", { didId, name, visible }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async send(address: string, amount: Amount, fee: Amount) : Promise<Result<null, Error>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("send", { address, amount, fee }) };
@@ -361,7 +369,7 @@ syncEvent: "sync-event"
 export type Amount = string
 export type CatRecord = { asset_id: string; name: string | null; ticker: string | null; description: string | null; icon_url: string | null; visible: boolean; balance: Amount }
 export type CoinRecord = { coin_id: string; address: string; amount: Amount; created_height: number | null; spent_height: number | null; create_transaction_id: string | null; spend_transaction_id: string | null }
-export type DidRecord = { encoded_id: string; launcher_id: string; coin_id: string; address: string }
+export type DidRecord = { launcher_id: string; coin_id: string; address: string; name: string | null; visible: boolean }
 export type Error = { kind: ErrorKind; reason: string }
 export type ErrorKind = "Io" | "Database" | "Client" | "Keychain" | "Logging" | "Serialization" | "InvalidAddress" | "InvalidMnemonic" | "InvalidKey" | "InvalidAmount" | "InvalidAssetId" | "InvalidLauncherId" | "InsufficientFunds" | "TransactionFailed" | "UnknownNetwork" | "UnknownFingerprint" | "NotLoggedIn" | "Sync" | "Wallet"
 export type GetNfts = { offset: number; limit: number }

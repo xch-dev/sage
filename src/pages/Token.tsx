@@ -48,9 +48,9 @@ import { CatRecord, CoinRecord, commands, events } from '../bindings';
 
 export default function Token() {
   const navigate = useNavigate();
-  const { asset_id: assetId } = useParams();
-
   const walletState = useWalletState();
+
+  const { asset_id: assetId } = useParams();
 
   const [asset, setAsset] = useState<CatRecord | null>(null);
   const [coins, setCoins] = useState<CoinRecord[]>([]);

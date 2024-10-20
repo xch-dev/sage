@@ -57,6 +57,7 @@ pub fn run() {
             // Actions
             commands::update_cat_info,
             commands::remove_cat_info,
+            commands::update_did,
             // Transactions
             commands::send,
             commands::combine,
