@@ -220,12 +220,8 @@ export default function Token() {
           <CoinCard
             coins={coins}
             asset={asset}
-            splitHandler={
-              !asset || asset.asset_id === 'xch' ? null : commands.split
-            }
-            combineHandler={
-              !asset || asset.asset_id === 'xch' ? null : commands.combine
-            }
+            splitHandler={asset?.asset_id === 'xch' ? commands.split : null}
+            combineHandler={asset?.asset_id === 'xch' ? commands.combine : null}
           />
         </div>
       </Container>
