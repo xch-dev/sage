@@ -75,7 +75,7 @@ export function WalletDids() {
         </Button>
 
         {hasHiddenDids && (
-          <div className='flex items-center gap-2 mb-6'>
+          <div className='inline-flex items-center gap-2 ml-6'>
             <label htmlFor='viewHidden'>View hidden profiles</label>
             <Switch
               id='viewHidden'
@@ -86,7 +86,7 @@ export function WalletDids() {
         )}
 
         {visibleDids.length === 0 && (
-          <Alert>
+          <Alert className='mt-2'>
             <UserRoundPlus className='h-4 w-4' />
             <AlertTitle>Create a profile?</AlertTitle>
             <AlertDescription>
@@ -97,9 +97,31 @@ export function WalletDids() {
         )}
 
         <div className='mt-2 grid gap-4 md:grid-cols-2 md:gap-4 lg:grid-cols-3 xl:grid-cols-4'>
-          {visibleDids.map((did) => {
-            return <Profile did={did} updateDids={updateDids} />;
-          })}
+          {visibleDids
+            .sort((a, b) => {
+              if (a.visible !== b.visible) {
+                return a.visible ? -1 : 1;
+              }
+
+              if (a.name && b.name) {
+                return a.name.localeCompare(b.name);
+              } else if (a.name) {
+                return -1;
+              } else if (b.name) {
+                return 1;
+              } else {
+                return a.coin_id.localeCompare(b.coin_id);
+              }
+            })
+            .map((did) => {
+              return (
+                <Profile
+                  key={did.launcher_id}
+                  did={did}
+                  updateDids={updateDids}
+                />
+              );
+            })}
         </div>
       </Container>
     </>
@@ -146,14 +168,14 @@ function Profile({ did, updateDids }: ProfileProps) {
     <>
       <Card
         key={did.launcher_id}
-        className={`hover:-translate-y-0.5 duration-100 hover:shadow-md ${!did.visible ? 'opacity-50 grayscale' : ''}`}
+        className={`hover:-translate-y-0.5 duration-100 hover:shadow-md ${!did.visible ? 'opacity-50 grayscale' : did.create_transaction_id !== null ? 'pulsate-opacity' : ''}`}
       >
-        <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2 space-x-2'>
+        <CardHeader className='-mt-2 flex flex-row items-center justify-between space-y-0 pb-2 pr-2 space-x-2'>
           <CardTitle className='text-md font-medium truncate'>
             {did.name ?? 'Untitled Profile'}
           </CardTitle>
           <DropdownMenu>
-            <DropdownMenuTrigger asChild className='-mr-2.5'>
+            <DropdownMenuTrigger asChild>
               <Button variant='ghost' size='icon'>
                 <MoreVerticalIcon className='h-5 w-5' />
               </Button>

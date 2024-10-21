@@ -12,6 +12,8 @@ pub struct DidRow {
     pub did: Did<Program>,
     pub name: Option<String>,
     pub visible: bool,
+    pub create_transaction_id: Option<Bytes32>,
+    pub created_height: Option<u32>,
 }
 
 impl Database {
@@ -166,13 +168,16 @@ async fn did_coins(conn: impl SqliteExecutor<'_>) -> Result<Vec<DidRow>> {
         "
         SELECT
             cs.parent_coin_id, cs.puzzle_hash, cs.amount,
+            cs.transaction_id AS create_transaction_id, cs.created_height,
             did.parent_parent_coin_id, did.parent_inner_puzzle_hash, did.parent_amount,
             did.launcher_id, did.recovery_list_hash, did.num_verifications_required,
             did.metadata, did.p2_puzzle_hash, name, visible
         FROM `coin_states` AS cs
         INNER JOIN `did_coins` AS did ON cs.coin_id = did.coin_id
         INNER JOIN `dids` ON did.launcher_id = dids.launcher_id
+        LEFT JOIN `transaction_spends` ON cs.coin_id = transaction_spends.coin_id
         WHERE cs.spent_height IS NULL
+        AND transaction_spends.transaction_id IS NULL
         "
     )
     .fetch_all(conn)
@@ -203,6 +208,12 @@ async fn did_coins(conn: impl SqliteExecutor<'_>) -> Result<Vec<DidRow>> {
                 },
                 name: row.name,
                 visible: row.visible,
+                create_transaction_id: row
+                    .create_transaction_id
+                    .as_deref()
+                    .map(to_bytes32)
+                    .transpose()?,
+                created_height: row.created_height.map(TryInto::try_into).transpose()?,
             })
         })
         .collect()
