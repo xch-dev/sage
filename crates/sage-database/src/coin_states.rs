@@ -25,7 +25,7 @@ impl<'a> DatabaseTx<'a> {
         insert_coin_state(&mut *self.tx, coin_state, synced, transaction_id).await
     }
 
-    pub async fn sync_coin(&mut self, coin_id: Bytes32, hint: Bytes32) -> Result<()> {
+    pub async fn sync_coin(&mut self, coin_id: Bytes32, hint: Option<Bytes32>) -> Result<()> {
         sync_coin(&mut *self.tx, coin_id, hint).await
     }
 
@@ -156,9 +156,13 @@ async fn unsynced_coin_states(
         .collect()
 }
 
-async fn sync_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32, hint: Bytes32) -> Result<()> {
+async fn sync_coin(
+    conn: impl SqliteExecutor<'_>,
+    coin_id: Bytes32,
+    hint: Option<Bytes32>,
+) -> Result<()> {
     let coin_id = coin_id.as_ref();
-    let hint = hint.as_ref();
+    let hint = hint.as_deref();
     sqlx::query!(
         "
         UPDATE `coin_states`

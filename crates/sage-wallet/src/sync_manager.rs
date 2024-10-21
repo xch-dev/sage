@@ -22,27 +22,17 @@ use wallet_sync::{incremental_sync, sync_wallet};
 
 use crate::{CatQueue, NftQueue, PuzzleQueue, TransactionQueue, Wallet, WalletError};
 
-mod commands;
 mod options;
 mod peer_discovery;
 mod peer_state;
+mod sync_command;
+mod sync_event;
 mod wallet_sync;
 
-pub use commands::*;
 pub use options::*;
 pub use peer_state::*;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SyncEvent {
-    Start(IpAddr),
-    Stop,
-    Subscribed,
-    CoinUpdate,
-    PuzzleUpdate,
-    CatUpdate,
-    NftUpdate,
-    TransactionUpdate,
-}
+pub use sync_command::*;
+pub use sync_event::*;
 
 pub struct SyncManager {
     options: SyncOptions,
@@ -288,7 +278,7 @@ impl SyncManager {
                         }
                     }
 
-                    incremental_sync(wallet, message.items, true).await?;
+                    incremental_sync(wallet, message.items, true, &self.event_sender).await?;
 
                     wallet
                         .db
@@ -301,7 +291,7 @@ impl SyncManager {
                         message.height, message.peak_hash
                     );
 
-                    self.event_sender.send(SyncEvent::CoinUpdate).await.ok();
+                    self.event_sender.send(SyncEvent::CoinState).await.ok();
                 } else {
                     debug!("Received coin state update but no database to update");
                 }

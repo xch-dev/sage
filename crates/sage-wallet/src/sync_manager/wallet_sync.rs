@@ -100,6 +100,8 @@ pub async fn sync_wallet(
         }
         tx.commit().await?;
 
+        sync_sender.send(SyncEvent::Derivation).await.ok();
+
         for batch in p2_puzzle_hashes.chunks(500) {
             derive_more |= sync_puzzle_hashes(
                 &wallet,
@@ -160,8 +162,8 @@ async fn sync_coin_ids(
                 debug!("Received {} coin states", data.coin_states.len());
 
                 if !data.coin_states.is_empty() {
-                    incremental_sync(wallet, data.coin_states, true).await?;
-                    sync_sender.send(SyncEvent::CoinUpdate).await.ok();
+                    incremental_sync(wallet, data.coin_states, true, &sync_sender).await?;
+                    sync_sender.send(SyncEvent::CoinState).await.ok();
                 }
             }
             Err(rejection) => match rejection.reason {
@@ -223,8 +225,8 @@ async fn sync_puzzle_hashes(
 
                 if !data.coin_states.is_empty() {
                     found_coins = true;
-                    incremental_sync(wallet, data.coin_states, true).await?;
-                    sync_sender.send(SyncEvent::CoinUpdate).await.ok();
+                    incremental_sync(wallet, data.coin_states, true, &sync_sender).await?;
+                    sync_sender.send(SyncEvent::CoinState).await.ok();
                 }
 
                 prev_height = Some(data.height);
@@ -257,6 +259,7 @@ pub async fn incremental_sync(
     wallet: &Wallet,
     coin_states: Vec<CoinState>,
     derive_automatically: bool,
+    sync_sender: &mpsc::Sender<SyncEvent>,
 ) -> Result<(), WalletError> {
     let mut tx = wallet.db.tx().await?;
 
@@ -270,10 +273,17 @@ pub async fn incremental_sync(
         }
 
         if coin_state.spent_height.is_some() {
-            tx.delete_transactions_for_coin(coin_state.coin.coin_id())
-                .await?;
+            for transaction_id in tx
+                .transaction_for_spent_coin(coin_state.coin.coin_id())
+                .await?
+            {
+                tx.confirm_coins(transaction_id).await?;
+                tx.remove_transaction(transaction_id).await?;
+            }
         }
     }
+
+    let mut derived = false;
 
     if derive_automatically {
         let max_index = tx
@@ -287,11 +297,16 @@ pub async fn incremental_sync(
                 .insert_unhardened_derivations(&mut tx, next_index..next_index + 500)
                 .await?;
 
+            derived = true;
             next_index += 500;
         }
     }
 
     tx.commit().await?;
+
+    if derived {
+        sync_sender.send(SyncEvent::Derivation).await.ok();
+    }
 
     Ok(())
 }

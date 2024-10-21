@@ -21,7 +21,8 @@ CREATE TABLE `coin_states` (
     `spent_height` INTEGER,
     `created_height` INTEGER,
     `hint` BLOB,
-    `synced` BOOLEAN NOT NULL
+    `synced` BOOLEAN NOT NULL,
+    `transaction_id` BLOB
 );
 
 CREATE INDEX `coin_puzzle_hash` ON `coin_states` (`puzzle_hash`);
@@ -30,7 +31,7 @@ CREATE INDEX `coin_spent` ON `coin_states` (`spent_height`);
 CREATE INDEX `coin_created` ON `coin_states` (`created_height`);
 CREATE INDEX `coin_synced` ON `coin_states` (`synced`);
 CREATE INDEX `coin_height` ON `coin_states` (`created_height`, `spent_height`);
-
+CREATE INDEX `coin_transaction` ON `coin_states` (`transaction_id`);
 
 CREATE TABLE `unknown_coins` (
     `coin_id` BLOB NOT NULL PRIMARY KEY,
@@ -116,3 +117,27 @@ CREATE TABLE `cats` (
     `visible` BOOLEAN NOT NULL
 );
 
+CREATE TABLE `dids` (
+    `launcher_id` BLOB NOT NULL PRIMARY KEY,
+    `name` TEXT,
+    `visible` BOOLEAN NOT NULL
+);
+
+CREATE TABLE `transactions` (
+    `transaction_id` BLOB NOT NULL PRIMARY KEY,
+    `aggregated_signature` BLOB NOT NULL,
+    `fee` BLOB NOT NULL,
+    `submitted_at` INTEGER,
+    `expiration_height` INTEGER
+);
+
+CREATE TABLE `transaction_spends` (
+    `coin_id` BLOB NOT NULL PRIMARY KEY,
+    `transaction_id` BLOB NOT NULL,
+    `parent_coin_id` BLOB NOT NULL,
+    `puzzle_hash` BLOB NOT NULL,
+    `amount` BLOB NOT NULL,
+    `puzzle_reveal` BLOB NOT NULL,
+    `solution` BLOB NOT NULL,
+    FOREIGN KEY (`transaction_id`) REFERENCES `transactions` (`transaction_id`) ON DELETE CASCADE
+);

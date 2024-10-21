@@ -61,7 +61,7 @@ impl NftQueue {
             tx.commit().await?;
         }
 
-        self.sync_sender.send(SyncEvent::NftUpdate).await.ok();
+        self.sync_sender.send(SyncEvent::NftData).await.ok();
 
         Ok(())
     }

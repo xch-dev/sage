@@ -70,3 +70,19 @@ html {
     @apply bg-background text-foreground;
   }
 }
+
+@keyframes pulsate-opacity {
+  0% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 0.2;
+  }
+  100% {
+    opacity: 0.6;
+  }
+}
+
+.pulsate-opacity {
+  animation: pulsate-opacity 1.5s infinite;
+}

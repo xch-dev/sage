@@ -10,7 +10,7 @@ use chia::bls::master_to_wallet_unhardened_intermediate;
 use chia_wallet_sdk::{create_rustls_connector, load_ssl_cert, Connector};
 use indexmap::{indexmap, IndexMap};
 use itertools::Itertools;
-use sage_api::{Unit, TXCH, XCH};
+use sage_api::{SyncEvent as ApiEvent, Unit, TXCH, XCH};
 use sage_config::{Config, Network, WalletConfig, MAINNET, TESTNET11};
 use sage_database::Database;
 use sage_keychain::Keychain;
@@ -21,13 +21,13 @@ use sqlx::{
 };
 use tauri::{AppHandle, Emitter};
 use tokio::sync::{mpsc, oneshot, Mutex};
-use tracing::{info, level_filters::LevelFilter};
+use tracing::{error, info, level_filters::LevelFilter};
 use tracing_appender::rolling::{Builder, Rotation};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, Layer};
 
 use crate::{
     error::{Error, Result},
-    models::{SyncEvent as SyncEventData, WalletInfo, WalletKind},
+    models::{WalletInfo, WalletKind},
 };
 
 pub type AppState = Mutex<AppStateInner>;
@@ -226,14 +226,15 @@ impl AppStateInner {
         tokio::spawn(async move {
             while let Some(event) = event_receiver.recv().await {
                 let event = match event {
-                    SyncEvent::Start(ip) => SyncEventData::Start { ip: ip.to_string() },
-                    SyncEvent::Stop => SyncEventData::Stop,
-                    SyncEvent::Subscribed => SyncEventData::Subscribed,
-                    SyncEvent::CoinUpdate => SyncEventData::CoinUpdate,
-                    SyncEvent::PuzzleUpdate => SyncEventData::PuzzleUpdate,
-                    SyncEvent::CatUpdate => SyncEventData::CatUpdate,
-                    SyncEvent::NftUpdate => SyncEventData::NftUpdate,
-                    SyncEvent::TransactionUpdate => SyncEventData::TransactionUpdate,
+                    SyncEvent::Start(ip) => ApiEvent::Start { ip: ip.to_string() },
+                    SyncEvent::Stop => ApiEvent::Stop,
+                    SyncEvent::Subscribed => ApiEvent::Subscribed,
+                    SyncEvent::Derivation => ApiEvent::Derivation,
+                    SyncEvent::CoinState => ApiEvent::CoinState,
+                    SyncEvent::PuzzleBatchSynced => ApiEvent::PuzzleBatchSynced,
+                    SyncEvent::CatInfo => ApiEvent::CatInfo,
+                    SyncEvent::DidInfo => ApiEvent::DidInfo,
+                    SyncEvent::NftData => ApiEvent::NftData,
                 };
                 if app_handle.emit("sync-event", event).is_err() {
                     break;
@@ -276,14 +277,36 @@ impl AppStateInner {
         let network_id = &self.config.network.network_id;
         let genesis_challenge = &self.networks[network_id].genesis_challenge;
 
-        let pool = SqlitePoolOptions::new()
+        let mut pool = SqlitePoolOptions::new()
             .connect_with(
                 SqliteConnectOptions::from_str(&format!("sqlite://{}?mode=rwc", path.display()))?
                     .journal_mode(SqliteJournalMode::Wal)
                     .log_statements(log::LevelFilter::Trace),
             )
             .await?;
-        sqlx::migrate!("../migrations").run(&pool).await?;
+
+        // TODO: Remove this before out of beta.
+        if let Err(error) = sqlx::migrate!("../migrations").run(&pool).await {
+            error!("Error migrating database, dropping database: {error:?}");
+
+            pool.close().await;
+            drop(pool);
+
+            fs::remove_file(&path)?;
+
+            pool = SqlitePoolOptions::new()
+                .connect_with(
+                    SqliteConnectOptions::from_str(&format!(
+                        "sqlite://{}?mode=rwc",
+                        path.display()
+                    ))?
+                    .journal_mode(SqliteJournalMode::Wal)
+                    .log_statements(log::LevelFilter::Trace),
+                )
+                .await?;
+
+            sqlx::migrate!("../migrations").run(&pool).await?;
+        }
 
         let db = Database::new(pool);
         let wallet = Arc::new(Wallet::new(

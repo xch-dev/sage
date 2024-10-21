@@ -29,7 +29,13 @@ export function MainWallet() {
     updateCats();
 
     const unlisten = events.syncEvent.listen((event) => {
-      if (event.payload.type === 'cat_update') {
+      const type = event.payload.type;
+
+      if (
+        type === 'coin_state' ||
+        type === 'puzzle_batch_synced' ||
+        type === 'cat_info'
+      ) {
         updateCats();
       }
     });
@@ -49,7 +55,7 @@ export function MainWallet() {
           <Link to={`/wallet/token/xch`}>
             <Card className='hover:-translate-y-0.5 duration-100 hover:shadow-md'>
               <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-                <CardTitle className='text-sm font-medium'>Chia</CardTitle>
+                <CardTitle className='text-md font-medium'>Chia</CardTitle>
 
                 <img
                   alt={`XCH logo`}
@@ -70,7 +76,7 @@ export function MainWallet() {
                 className={`hover:-translate-y-0.5 duration-100 hover:shadow-md ${!cat.visible ? 'opacity-50 grayscale' : ''}`}
               >
                 <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2 space-x-2'>
-                  <CardTitle className='text-sm font-medium truncate'>
+                  <CardTitle className='text-md font-medium truncate'>
                     {cat.name || 'Unknown CAT'}
                   </CardTitle>
 
@@ -84,7 +90,7 @@ export function MainWallet() {
                 </CardHeader>
                 <CardContent>
                   <div className='text-2xl font-medium truncate'>
-                    {cat.balance}
+                    {cat.balance} {cat.ticker ?? ''}
                   </div>
                 </CardContent>
               </Card>

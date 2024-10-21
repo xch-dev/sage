@@ -48,9 +48,9 @@ import { CatRecord, CoinRecord, commands, events } from '../bindings';
 
 export default function Token() {
   const navigate = useNavigate();
-  const { asset_id: assetId } = useParams();
-
   const walletState = useWalletState();
+
+  const { asset_id: assetId } = useParams();
 
   const [asset, setAsset] = useState<CatRecord | null>(null);
   const [coins, setCoins] = useState<CoinRecord[]>([]);
@@ -58,6 +58,7 @@ export default function Token() {
   const updateCoins = () => {
     const getCoins =
       assetId === 'xch' ? commands.getCoins() : commands.getCatCoins(assetId!);
+
     getCoins.then((res) => {
       if (res.status === 'ok') {
         setCoins(res.data);
@@ -69,10 +70,9 @@ export default function Token() {
     updateCoins();
 
     const unlisten = events.syncEvent.listen((event) => {
-      if (
-        event.payload.type === 'coin_update' ||
-        event.payload.type === 'puzzle_update'
-      ) {
+      const type = event.payload.type;
+
+      if (type === 'coin_state' || type === 'puzzle_batch_synced') {
         updateCoins();
       }
     });
@@ -105,10 +105,12 @@ export default function Token() {
       updateCat();
 
       const unlisten = events.syncEvent.listen((event) => {
+        const type = event.payload.type;
+
         if (
-          event.payload.type === 'cat_update' ||
-          event.payload.type === 'coin_update' ||
-          event.payload.type === 'transaction_update'
+          type === 'coin_state' ||
+          type === 'puzzle_batch_synced' ||
+          type === 'cat_info'
         ) {
           updateCat();
         }
@@ -119,6 +121,194 @@ export default function Token() {
       };
     }
   }, [assetId, walletState.sync.balance]);
+
+  const redownload = () => {
+    if (!assetId || assetId === 'xch') return;
+
+    commands.removeCatInfo(assetId).then((res) => {
+      if (res.status === 'ok') {
+        updateCat();
+      }
+    });
+  };
+
+  const setVisibility = (visible: boolean) => {
+    if (!asset || assetId === 'xch') return;
+    asset.visible = visible;
+
+    commands.updateCatInfo(asset).then((res) => {
+      if (res.status === 'ok') {
+        navigate('/wallet');
+      }
+    });
+  };
+
+  const [isEditOpen, setEditOpen] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newTicker, setNewTicker] = useState('');
+
+  const edit = () => {
+    if (!newName || !newTicker || !asset) return;
+
+    asset.name = newName;
+    asset.ticker = newTicker;
+
+    commands.updateCatInfo(asset).then((res) => {
+      if (res.status === 'ok') {
+        updateCat();
+      }
+    });
+
+    setEditOpen(false);
+  };
+
+  return (
+    <>
+      <Header title={asset ? (asset.name ?? 'Unknown asset') : ''} />
+      <Container>
+        <div className='flex flex-col gap-8 max-w-screen-lg'>
+          <Card>
+            <CardHeader className='flex flex-row justify-between items-center space-y-0 pb-2'>
+              <div className='text-4xl font-medium font-mono'>
+                {asset?.balance ?? ' '} {asset?.ticker}
+              </div>
+              <div>
+                <img
+                  alt='asset icon'
+                  src={asset?.icon_url ?? ''}
+                  className='h-8 w-8'
+                />
+              </div>
+            </CardHeader>
+            <CardContent className='flex flex-col gap-2'>
+              <ReceiveAddress className='mt-2' />
+
+              <div className='flex gap-2 mt-2'>
+                <Link to={`/wallet/send/${assetId}`}>
+                  <Button>
+                    <Send className='mr-2 h-4 w-4' /> Send
+                  </Button>
+                </Link>
+                <Link to='/wallet/receive'>
+                  <Button variant={'outline'}>
+                    <HandHelping className='mr-2 h-4 w-4' /> Receive
+                  </Button>
+                </Link>
+                {asset && assetId !== 'xch' && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant='outline' size='icon'>
+                        <MoreHorizontalIcon className='h-4 w-4' />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      <DropdownMenuItem onClick={() => setEditOpen(true)}>
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={redownload}>
+                        Refresh Info
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => setVisibility(!asset.visible)}
+                      >
+                        {asset.visible ? 'Hide' : 'Show'} Asset
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+          <CoinCard
+            coins={coins}
+            asset={asset}
+            splitHandler={asset?.asset_id === 'xch' ? commands.split : null}
+            combineHandler={asset?.asset_id === 'xch' ? commands.combine : null}
+          />
+        </div>
+      </Container>
+
+      <Dialog
+        open={isEditOpen}
+        onOpenChange={(open) => !open && setEditOpen(false)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Token Details</DialogTitle>
+            <DialogDescription>
+              Enter the new display details for this token
+            </DialogDescription>
+          </DialogHeader>
+          <div className='grid w-full items-center gap-4'>
+            <div className='flex flex-col space-y-1.5'>
+              <Label htmlFor='name'>Name</Label>
+              <Input
+                id='name'
+                placeholder='Name of this token'
+                value={newName}
+                onChange={(event) => setNewName(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault();
+                    edit();
+                  }
+                }}
+              />
+            </div>
+          </div>
+          <div className='grid w-full items-center gap-4'>
+            <div className='flex flex-col space-y-1.5'>
+              <Label htmlFor='ticker'>Ticker</Label>
+              <Input
+                id='ticker'
+                placeholder='Ticker for this token'
+                value={newTicker}
+                onChange={(event) => setNewTicker(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault();
+                    edit();
+                  }
+                }}
+              />
+            </div>
+          </div>
+
+          <DialogFooter className='gap-2'>
+            <Button
+              variant='outline'
+              onClick={() => {
+                setEditOpen(false);
+                setNewName('');
+                setNewTicker('');
+              }}
+            >
+              Cancel
+            </Button>
+            <Button onClick={edit} disabled={!newName || !newTicker}>
+              Rename
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+interface CoinCardProps {
+  coins: CoinRecord[];
+  asset: CatRecord | null;
+  splitHandler: typeof commands.split | null;
+  combineHandler: typeof commands.combine | null;
+}
+
+function CoinCard({
+  coins,
+  asset,
+  splitHandler,
+  combineHandler,
+}: CoinCardProps) {
+  const walletState = useWalletState();
 
   const [selectedCoins, setSelectedCoins] = useState<RowSelectionState>({});
 
@@ -206,140 +396,42 @@ export default function Token() {
       .catch((error) => console.log('Failed to split coins', error));
   };
 
-  const redownload = () => {
-    if (!assetId || assetId === 'xch') return;
-
-    commands.removeCatInfo(assetId).then((res) => {
-      if (res.status === 'ok') {
-        updateCat();
-      }
-    });
-  };
-
-  const setVisibility = (visible: boolean) => {
-    if (!asset || assetId === 'xch') return;
-    asset.visible = visible;
-
-    commands.updateCatInfo(asset).then((res) => {
-      if (res.status === 'ok') {
-        navigate('/wallet');
-      }
-    });
-  };
-
-  const [isEditOpen, setEditOpen] = useState(false);
-  const [newName, setNewName] = useState('');
-  const [newTicker, setNewTicker] = useState('');
-
-  const edit = () => {
-    if (!newName || !newTicker || !asset) return;
-
-    asset.name = newName;
-    asset.ticker = newTicker;
-
-    commands.updateCatInfo(asset).then((res) => {
-      if (res.status === 'ok') {
-        updateCat();
-      }
-    });
-
-    setEditOpen(false);
-  };
-
   return (
-    <>
-      <Header title={asset ? (asset.name ?? 'Unknown asset') : ''} />
-      <Container>
-        <div className='flex flex-col gap-8 max-w-screen-lg'>
-          <Card>
-            <CardHeader className='flex flex-row justify-between items-center space-y-0 pb-2'>
-              <div className='text-4xl font-medium font-mono'>
-                {asset?.balance ?? ' '} {asset?.ticker}
-              </div>
-              <div>
-                <img
-                  alt='asset icon'
-                  src={asset?.icon_url ?? ''}
-                  className='h-8 w-8'
-                />
-              </div>
-            </CardHeader>
-            <CardContent className='flex flex-col gap-2'>
-              <ReceiveAddress className='mt-2' />
+    <Card className='max-w-full overflow-auto'>
+      <CardHeader>
+        <CardTitle className='text-lg font-medium'>Coins</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <CoinList
+          coins={coins}
+          selectedCoins={selectedCoins}
+          setSelectedCoins={setSelectedCoins}
+          actions={
+            <>
+              {splitHandler && (
+                <Button
+                  variant='outline'
+                  disabled={!canSplit}
+                  onClick={() => setSplitOpen(true)}
+                >
+                  <SplitIcon className='mr-2 h-4 w-4' /> Split
+                </Button>
+              )}
+              {combineHandler && (
+                <Button
+                  variant='outline'
+                  disabled={!canCombine}
+                  onClick={() => setCombineOpen(true)}
+                >
+                  <MergeIcon className='mr-2 h-4 w-4' />
+                  Combine
+                </Button>
+              )}
+            </>
+          }
+        />
+      </CardContent>
 
-              <div className='flex gap-2 mt-2'>
-                <Link to={`/wallet/send/${assetId}`}>
-                  <Button>
-                    <Send className='mr-2 h-4 w-4' /> Send
-                  </Button>
-                </Link>
-                <Link to='/wallet/receive'>
-                  <Button variant={'outline'}>
-                    <HandHelping className='mr-2 h-4 w-4' /> Receive
-                  </Button>
-                </Link>
-                {asset && assetId !== 'xch' && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant='outline' size='icon'>
-                        <MoreHorizontalIcon className='h-4 w-4' />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                      <DropdownMenuItem onClick={() => setEditOpen(true)}>
-                        Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={redownload}>
-                        Fetch details
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => setVisibility(!asset.visible)}
-                      >
-                        {asset.visible ? 'Hide' : 'Show'} asset
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-          <Card className='max-w-full overflow-auto'>
-            <CardHeader>
-              <CardTitle className='text-lg font-medium'>Coins</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <CoinList
-                coins={coins}
-                selectedCoins={selectedCoins}
-                setSelectedCoins={setSelectedCoins}
-                actions={
-                  asset?.asset_id === 'xch' ? (
-                    <>
-                      <Button
-                        variant='outline'
-                        disabled={!canSplit}
-                        onClick={() => setSplitOpen(true)}
-                      >
-                        <SplitIcon className='mr-2 h-4 w-4' /> Split
-                      </Button>
-                      <Button
-                        variant='outline'
-                        disabled={!canCombine}
-                        onClick={() => setCombineOpen(true)}
-                      >
-                        <MergeIcon className='mr-2 h-4 w-4' />
-                        Combine
-                      </Button>
-                    </>
-                  ) : (
-                    ''
-                  )
-                }
-              />
-            </CardContent>
-          </Card>
-        </div>
-      </Container>
       <Dialog open={isCombineOpen} onOpenChange={setCombineOpen}>
         <DialogContent>
           <DialogHeader>
@@ -440,69 +532,6 @@ export default function Token() {
           </Form>
         </DialogContent>
       </Dialog>
-      <Dialog
-        open={isEditOpen}
-        onOpenChange={(open) => !open && setEditOpen(false)}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Token Details</DialogTitle>
-            <DialogDescription>
-              Enter the new display details for this token
-            </DialogDescription>
-          </DialogHeader>
-          <div className='grid w-full items-center gap-4'>
-            <div className='flex flex-col space-y-1.5'>
-              <Label htmlFor='name'>Name</Label>
-              <Input
-                id='name'
-                placeholder='Name of this token'
-                value={newName}
-                onChange={(event) => setNewName(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') {
-                    event.preventDefault();
-                    edit();
-                  }
-                }}
-              />
-            </div>
-          </div>
-          <div className='grid w-full items-center gap-4'>
-            <div className='flex flex-col space-y-1.5'>
-              <Label htmlFor='ticker'>Ticker</Label>
-              <Input
-                id='ticker'
-                placeholder='Ticker for this token'
-                value={newTicker}
-                onChange={(event) => setNewTicker(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') {
-                    event.preventDefault();
-                    edit();
-                  }
-                }}
-              />
-            </div>
-          </div>
-
-          <DialogFooter className='gap-2'>
-            <Button
-              variant='outline'
-              onClick={() => {
-                setEditOpen(false);
-                setNewName('');
-                setNewTicker('');
-              }}
-            >
-              Cancel
-            </Button>
-            <Button onClick={edit} disabled={!newName || !newTicker}>
-              Rename
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
+    </Card>
   );
 }

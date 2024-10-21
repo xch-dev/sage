@@ -66,30 +66,14 @@ function updateSyncStatus() {
 
 events.syncEvent.listen((event) => {
   switch (event.payload.type) {
-    case 'coin_update':
+    case 'coin_state':
       updateCoins();
       updateSyncStatus();
       break;
-    case 'puzzle_update':
-      updateSyncStatus();
-      break;
-    case 'transaction_update':
-      updateCoins();
+    case 'derivation':
       updateSyncStatus();
       break;
   }
-});
-
-commands.initialize().then((result) => {
-  if (result.status === 'error') {
-    console.error(result.error);
-    return;
-  }
-  commands.activeWallet().then((wallet) => {
-    if (wallet.status === 'ok' && wallet.data !== null) {
-      fetchState();
-    }
-  });
 });
 
 export async function loginAndUpdateState(fingerprint: number): Promise<void> {

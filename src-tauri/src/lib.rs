@@ -1,5 +1,5 @@
 use app_state::AppStateInner;
-use models::SyncEvent;
+use sage_api::SyncEvent;
 use tauri::Manager;
 use tauri_specta::{collect_commands, collect_events, Builder};
 use tokio::sync::Mutex;
@@ -57,6 +57,7 @@ pub fn run() {
             // Actions
             commands::update_cat_info,
             commands::remove_cat_info,
+            commands::update_did,
             // Transactions
             commands::send,
             commands::combine,

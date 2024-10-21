@@ -88,7 +88,4 @@ pub enum ParseError {
 
     #[error("Invalid condition list")]
     InvalidConditions,
-
-    #[error("Unknown coin is missing hint")]
-    MissingHint,
 }

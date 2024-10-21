@@ -47,7 +47,7 @@ export default function CreateProfile() {
           setError(result.error);
           return;
         }
-        navigate('/wallet');
+        navigate('/dids');
       })
       .finally(() => setPending(false));
   };

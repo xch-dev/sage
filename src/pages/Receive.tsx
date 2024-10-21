@@ -29,7 +29,7 @@ export default function Receive() {
     updateAddresses();
 
     const unlisten = events.syncEvent.listen((event) => {
-      if (event.payload.type === 'coin_update') {
+      if (event.payload.type === 'derivation') {
         updateAddresses();
       }
     });

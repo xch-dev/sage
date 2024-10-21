@@ -1,0 +1,104 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT\n            cs.parent_coin_id, cs.puzzle_hash, cs.amount,\n            cs.transaction_id AS create_transaction_id, cs.created_height,\n            did.parent_parent_coin_id, did.parent_inner_puzzle_hash, did.parent_amount,\n            did.launcher_id, did.recovery_list_hash, did.num_verifications_required,\n            did.metadata, did.p2_puzzle_hash, name, visible\n        FROM `coin_states` AS cs\n        INNER JOIN `did_coins` AS did ON cs.coin_id = did.coin_id\n        INNER JOIN `dids` ON did.launcher_id = dids.launcher_id\n        LEFT JOIN `transaction_spends` ON cs.coin_id = transaction_spends.coin_id\n        WHERE cs.spent_height IS NULL\n        AND transaction_spends.transaction_id IS NULL\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "parent_coin_id",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "puzzle_hash",
+        "ordinal": 1,
+        "type_info": "Blob"
+      },
+      {
+        "name": "amount",
+        "ordinal": 2,
+        "type_info": "Blob"
+      },
+      {
+        "name": "create_transaction_id",
+        "ordinal": 3,
+        "type_info": "Blob"
+      },
+      {
+        "name": "created_height",
+        "ordinal": 4,
+        "type_info": "Integer"
+      },
+      {
+        "name": "parent_parent_coin_id",
+        "ordinal": 5,
+        "type_info": "Blob"
+      },
+      {
+        "name": "parent_inner_puzzle_hash",
+        "ordinal": 6,
+        "type_info": "Blob"
+      },
+      {
+        "name": "parent_amount",
+        "ordinal": 7,
+        "type_info": "Blob"
+      },
+      {
+        "name": "launcher_id",
+        "ordinal": 8,
+        "type_info": "Blob"
+      },
+      {
+        "name": "recovery_list_hash",
+        "ordinal": 9,
+        "type_info": "Blob"
+      },
+      {
+        "name": "num_verifications_required",
+        "ordinal": 10,
+        "type_info": "Blob"
+      },
+      {
+        "name": "metadata",
+        "ordinal": 11,
+        "type_info": "Blob"
+      },
+      {
+        "name": "p2_puzzle_hash",
+        "ordinal": 12,
+        "type_info": "Blob"
+      },
+      {
+        "name": "name",
+        "ordinal": 13,
+        "type_info": "Text"
+      },
+      {
+        "name": "visible",
+        "ordinal": 14,
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "dfcde1ea41ddc345990e32827c02aaa2452c0e2ae62b455d351e22e34db387f0"
+}

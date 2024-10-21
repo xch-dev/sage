@@ -4,4 +4,5 @@ mod nfts;
 mod xch;
 
 pub use cats::*;
+pub use dids::*;
 pub use nfts::*;

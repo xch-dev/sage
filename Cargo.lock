@@ -4386,6 +4386,7 @@ dependencies = [
  "once_cell",
  "serde",
  "specta",
+ "tauri-specta",
 ]
 
 [[package]]
