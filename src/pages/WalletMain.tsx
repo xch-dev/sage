@@ -29,7 +29,13 @@ export function MainWallet() {
     updateCats();
 
     const unlisten = events.syncEvent.listen((event) => {
-      if (event.payload.type === 'cat_update') {
+      const type = event.payload.type;
+
+      if (
+        type === 'coin_state' ||
+        type === 'puzzle_batch_synced' ||
+        type === 'cat_info'
+      ) {
         updateCats();
       }
     });

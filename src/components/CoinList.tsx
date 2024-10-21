@@ -123,18 +123,25 @@ export default function CoinList(props: CoinListProps) {
     {
       accessorKey: 'created_height',
       sortingFn: (rowA, rowB) => {
+        const addSpend = 1_000_000_000;
+        const addCreate = 2_000_000_000;
+
         const a =
           (rowA.original.created_height ?? 0) +
-          (rowA.original.spend_transaction_id ||
-          rowA.original.create_transaction_id
-            ? 10000000
-            : 0);
+          (rowA.original.spend_transaction_id
+            ? addSpend
+            : rowA.original.create_transaction_id
+              ? addCreate
+              : 0);
+
         const b =
           (rowB.original.created_height ?? 0) +
-          (rowB.original.spend_transaction_id ||
-          rowB.original.create_transaction_id
-            ? 10000000
-            : 0);
+          (rowB.original.spend_transaction_id
+            ? addSpend
+            : rowB.original.create_transaction_id
+              ? addCreate
+              : 0);
+
         return a < b ? -1 : a > b ? 1 : 0;
       },
       header: ({ column }) => {
@@ -290,7 +297,7 @@ export default function CoinList(props: CoinListProps) {
                         'h-12' +
                         (row.original.spend_transaction_id ||
                         row.original.create_transaction_id
-                          ? ' text-neutral-400 bg-neutral-50 font-medium'
+                          ? ' text-neutral-400 bg-neutral-50 dark:text-neutral-200 dark:bg-neutral-900 font-medium'
                           : '')
                       }
                     >

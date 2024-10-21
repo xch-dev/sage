@@ -58,6 +58,7 @@ export default function Token() {
   const updateCoins = () => {
     const getCoins =
       assetId === 'xch' ? commands.getCoins() : commands.getCatCoins(assetId!);
+
     getCoins.then((res) => {
       if (res.status === 'ok') {
         setCoins(res.data);
@@ -69,10 +70,9 @@ export default function Token() {
     updateCoins();
 
     const unlisten = events.syncEvent.listen((event) => {
-      if (
-        event.payload.type === 'coin_update' ||
-        event.payload.type === 'puzzle_update'
-      ) {
+      const type = event.payload.type;
+
+      if (type === 'coin_state' || type === 'puzzle_batch_synced') {
         updateCoins();
       }
     });
@@ -105,10 +105,12 @@ export default function Token() {
       updateCat();
 
       const unlisten = events.syncEvent.listen((event) => {
+        const type = event.payload.type;
+
         if (
-          event.payload.type === 'cat_update' ||
-          event.payload.type === 'coin_update' ||
-          event.payload.type === 'transaction_update'
+          type === 'coin_state' ||
+          type === 'puzzle_batch_synced' ||
+          type === 'cat_info'
         ) {
           updateCat();
         }

@@ -215,10 +215,7 @@ impl TransactionQueue {
         }
 
         if updated {
-            self.sync_sender
-                .send(SyncEvent::TransactionUpdate)
-                .await
-                .ok();
+            self.sync_sender.send(SyncEvent::CoinState).await.ok();
         }
 
         Ok(())

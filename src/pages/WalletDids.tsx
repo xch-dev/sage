@@ -31,7 +31,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { commands, DidRecord } from '../bindings';
+import { commands, DidRecord, events } from '../bindings';
 
 export function WalletDids() {
   const navigate = useNavigate();
@@ -52,12 +52,20 @@ export function WalletDids() {
   useEffect(() => {
     updateDids();
 
-    const interval = setInterval(() => {
-      updateDids();
-    }, 5000);
+    const unlisten = events.syncEvent.listen((event) => {
+      const type = event.payload.type;
+
+      if (
+        type === 'coin_state' ||
+        type === 'puzzle_batch_synced' ||
+        type === 'did_info'
+      ) {
+        updateDids();
+      }
+    });
 
     return () => {
-      clearInterval(interval);
+      unlisten.then((u) => u());
     };
   }, []);
 

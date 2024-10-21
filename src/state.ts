@@ -66,15 +66,11 @@ function updateSyncStatus() {
 
 events.syncEvent.listen((event) => {
   switch (event.payload.type) {
-    case 'coin_update':
+    case 'coin_state':
       updateCoins();
       updateSyncStatus();
       break;
-    case 'puzzle_update':
-      updateSyncStatus();
-      break;
-    case 'transaction_update':
-      updateCoins();
+    case 'derivation':
       updateSyncStatus();
       break;
   }

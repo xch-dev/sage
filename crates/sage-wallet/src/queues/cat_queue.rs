@@ -100,7 +100,7 @@ impl CatQueue {
             })
             .await?;
 
-        self.sync_sender.send(SyncEvent::CatUpdate).await.ok();
+        self.sync_sender.send(SyncEvent::CatInfo).await.ok();
 
         Ok(())
     }

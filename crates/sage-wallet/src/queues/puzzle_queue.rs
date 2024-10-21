@@ -104,7 +104,10 @@ impl PuzzleQueue {
             }
         }
 
-        self.sync_sender.send(SyncEvent::PuzzleUpdate).await.ok();
+        self.sync_sender
+            .send(SyncEvent::PuzzleBatchSynced)
+            .await
+            .ok();
 
         Ok(())
     }
