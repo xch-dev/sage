@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        UPDATE `coin_states`\n        SET `transaction_id` = NULL\n        WHERE `transaction_id` = ?\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "e0db9e9d4087d424a9ac831f673f622bd569b117ba045f65e3afe29dc95cb82c"
+}
