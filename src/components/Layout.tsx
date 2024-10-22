@@ -70,7 +70,7 @@ export default function Layout(props: PropsWithChildren<object>) {
                       );
                     }
                     case 'separator': {
-                      return <Separator className='my-2' />;
+                      return <Separator className='my-2' key={i} />;
                     }
                   }
                 })}

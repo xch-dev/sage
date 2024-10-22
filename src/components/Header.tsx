@@ -91,7 +91,7 @@ export default function Header(
                   );
                 }
                 case 'separator': {
-                  return <Separator className='my-2' />;
+                  return <Separator className='my-2' key={i} />;
                 }
               }
             })}
