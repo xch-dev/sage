@@ -73,6 +73,9 @@ jobs:
             platform_name: iOS
             build: 'pnpm tauri ios build --export-method app-store-connect'
             build_dev: 'pnpm tauri ios build --export-method debugging'
+          - platform: 'macos-latest'
+            platform_name: Android
+            build: 'pnpm tauri android build'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -93,6 +96,10 @@ jobs:
         if: matrix.platform_name == 'Linux (ARM)'
         run: rustup target add aarch64-unknown-linux-gnu
 
+      - name: Add Android targets
+        if: matrix.platform_name == 'Android'
+        run: rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android
+
       - name: Ubuntu dependencies
         if: matrix.platform == 'ubuntu-22.04' || matrix.platform == 'linux-arm64'
         run: sudo apt-get install -y libgtk-3-dev libjavascriptcoregtk-4.1-dev libwebkit2gtk-4.1-dev
@@ -102,6 +109,30 @@ jobs:
         run: |
           choco install nasm
           echo "C:\Program Files\NASM" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Install Android NDK
+        uses: nttld/setup-ndk@v1
+        id: setup-ndk
+        if: matrix.platform_name == 'Android'
+        with:
+          ndk-version: r26d
+          link-to-sdk: true
+          add-to-path: true
+
+      - name: Add NDK toolchain to path
+        if: matrix.platform_name == 'Android'
+        run: echo "$ANDROID_NDK/toolchains/llvm/prebuilt/darwin-x86_64/bin" >> $GITHUB_PATH
+        env:
+          ANDROID_NDK: ${{ steps.setup-ndk.outputs.ndk-path }}
+
+      - name: Setup Android signing
+        if: matrix.platform_name == 'Android'
+        run: |
+          cd src-tauri/gen/android
+          echo "keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}" > keystore.properties
+          echo "password=${{ secrets.ANDROID_KEY_PASSWORD }}" >> keystore.properties
+          base64 -d <<< "${{ secrets.ANDROID_KEY_BASE64 }}" > $RUNNER_TEMP/keystore.jks
+          echo "storeFile=$RUNNER_TEMP/keystore.jks" >> keystore.properties
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
@@ -131,9 +162,19 @@ jobs:
           APPLE_API_KEY_PATH: ~/private_keys/AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8
           CI: true
 
+      # On Android we need to use the NDK environment variables.
+      - name: Build with NDK
+        if: matrix.platform_name == 'Android'
+        run: ${{ matrix.build }}
+        env:
+          ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+          ANDROID_NDK: ${{ steps.setup-ndk.outputs.ndk-path }}
+          NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+          CI: true
+
       # We don't currently do signing on other platforms
       - name: Build without secrets
-        if: ${{ !((matrix.platform_name == 'MacOS' && startsWith(github.event.ref, 'refs/tags/v')) || matrix.platform_name == 'iOS') }}
+        if: ${{ !((matrix.platform_name == 'MacOS' && startsWith(github.event.ref, 'refs/tags/v')) || matrix.platform_name == 'iOS' || matrix.platform_name == 'Android') }}
         run: ${{ matrix.build }}
         env:
           CI: true
@@ -274,7 +315,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: matrix.platform_name == 'iOS'
         with:
-          name: Sage.ipa
+          name: Sage_iOS.ipa
           path: src-tauri/gen/apple/build/arm64/*.ipa
 
       - name: Release (iOS)
@@ -290,3 +331,26 @@ jobs:
         env:
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
           APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+
+      # Android
+      - name: Upload AAB (Android)
+        uses: actions/upload-artifact@v4
+        if: matrix.platform_name == 'Android'
+        with:
+          name: Sage_Android.aab
+          path: src-tauri/gen/android/app/build/outputs/bundle/universalRelease/app-universal-release.aab
+
+      - name: Upload APK (Android)
+        uses: actions/upload-artifact@v4
+        if: matrix.platform_name == 'Android'
+        with:
+          name: Sage_Android.apk
+          path: src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk
+
+      - name: Release (Android)
+        uses: softprops/action-gh-release@v2
+        if: matrix.platform_name == 'Android' && startsWith(github.event.ref, 'refs/tags/v')
+        with:
+          files: |
+            src-tauri/gen/android/app/build/outputs/bundle/universalRelease/app-universal-release.aab
+            src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk
