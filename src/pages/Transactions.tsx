@@ -62,10 +62,7 @@ export function Transactions() {
         </Alert>
         {transactions.map((transaction, i) => {
           return (
-            <Card
-              key={i}
-              className='hover:-translate-y-0.5 duration-100 hover:shadow-md'
-            >
+            <Card key={i}>
               <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
                 <CardTitle className='text-2xl font-medium'>
                   Transaction {transaction.transaction_id.slice(0, 16)}

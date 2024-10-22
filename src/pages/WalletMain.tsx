@@ -53,7 +53,7 @@ export function MainWallet() {
       <Container>
         <div className='grid gap-4 md:grid-cols-2 md:gap-4 lg:grid-cols-3 xl:grid-cols-4'>
           <Link to={`/wallet/token/xch`}>
-            <Card className='hover:-translate-y-0.5 duration-100 hover:shadow-md'>
+            <Card className='transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900'>
               <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
                 <CardTitle className='text-md font-medium'>Chia</CardTitle>
 
@@ -73,7 +73,7 @@ export function MainWallet() {
           {visibleCats.map((cat) => (
             <Link key={cat.asset_id} to={`/wallet/token/${cat.asset_id}`}>
               <Card
-                className={`hover:-translate-y-0.5 duration-100 hover:shadow-md ${!cat.visible ? 'opacity-50 grayscale' : ''}`}
+                className={`transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900 ${!cat.visible ? 'opacity-50 grayscale' : ''}`}
               >
                 <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2 space-x-2'>
                   <CardTitle className='text-md font-medium truncate'>

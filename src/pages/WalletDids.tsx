@@ -27,6 +27,7 @@ import {
   EyeOff,
   MoreVerticalIcon,
   PenIcon,
+  UserIcon,
   UserRoundPlus,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -176,10 +177,11 @@ function Profile({ did, updateDids }: ProfileProps) {
     <>
       <Card
         key={did.launcher_id}
-        className={`hover:-translate-y-0.5 duration-100 hover:shadow-md ${!did.visible ? 'opacity-50 grayscale' : did.create_transaction_id !== null ? 'pulsate-opacity' : ''}`}
+        className={`${!did.visible ? 'opacity-50 grayscale' : did.create_transaction_id !== null ? 'pulsate-opacity' : ''}`}
       >
         <CardHeader className='-mt-2 flex flex-row items-center justify-between space-y-0 pb-2 pr-2 space-x-2'>
-          <CardTitle className='text-md font-medium truncate'>
+          <CardTitle className='text-md font-medium truncate flex items-center'>
+            <UserIcon className='mr-2 h-4 w-4' />
             {did.name ?? 'Untitled Profile'}
           </CardTitle>
           <DropdownMenu>
