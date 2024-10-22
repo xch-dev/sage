@@ -345,7 +345,7 @@ jobs:
         if: matrix.platform_name == 'Android'
         with:
           name: Sage_Android.apk
-          path: src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release-unsigned.apk
+          path: src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk
 
       - name: Release (Android)
         uses: softprops/action-gh-release@v2
@@ -353,4 +353,4 @@ jobs:
         with:
           files: |
             src-tauri/gen/android/app/build/outputs/bundle/universalRelease/app-universal-release.aab
-            src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release-unsigned.apk
+            src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk
