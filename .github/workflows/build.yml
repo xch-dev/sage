@@ -108,9 +108,12 @@ jobs:
 
       - name: Install Android NDK
         uses: nttld/setup-ndk@v1
+        id: setup-ndk
         if: matrix.platform_name == 'Android'
         with:
           ndk-version: r26d
+          link-to-sdk: true
+          add-to-path: true
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
@@ -140,9 +143,18 @@ jobs:
           APPLE_API_KEY_PATH: ~/private_keys/AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8
           CI: true
 
+      # On Android we need to use the NDK environment variables.
+      - name: Build with NDK
+        if: matrix.platform_name == 'Android'
+        run: ${{ matrix.build }}
+        env:
+          ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+          ANDROID_NDK: ${{ steps.setup-ndk.outputs.ndk-path }}
+          CI: true
+
       # We don't currently do signing on other platforms
       - name: Build without secrets
-        if: ${{ !((matrix.platform_name == 'MacOS' && startsWith(github.event.ref, 'refs/tags/v')) || matrix.platform_name == 'iOS') }}
+        if: ${{ !((matrix.platform_name == 'MacOS' && startsWith(github.event.ref, 'refs/tags/v')) || matrix.platform_name == 'iOS' || matrix.platform_name == 'Android') }}
         run: ${{ matrix.build }}
         env:
           CI: true
