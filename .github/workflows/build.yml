@@ -96,6 +96,10 @@ jobs:
         if: matrix.platform_name == 'Linux (ARM)'
         run: rustup target add aarch64-unknown-linux-gnu
 
+      - name: Add aarch64-linux-android
+        if: matrix.platform_name == 'Android'
+        run: rustup target add aarch64-linux-android
+
       - name: Ubuntu dependencies
         if: matrix.platform == 'ubuntu-22.04' || matrix.platform == 'linux-arm64'
         run: sudo apt-get install -y libgtk-3-dev libjavascriptcoregtk-4.1-dev libwebkit2gtk-4.1-dev
@@ -314,12 +318,19 @@ jobs:
           APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
 
       # Android
-      - name: Upload APK (Android)
+      - name: Upload AAB (Android)
         uses: actions/upload-artifact@v4
         if: matrix.platform_name == 'Android'
         with:
           name: Sage_Android.aab
           path: src-tauri/gen/android/app/build/outputs/bundle/universalRelease/app-universal-release.aab
+
+      - name: Upload APK (Android)
+        uses: actions/upload-artifact@v4
+        if: matrix.platform_name == 'Android'
+        with:
+          name: Sage_Android.apk
+          path: src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release-unsigned.apk
 
       - name: Release (Android)
         uses: softprops/action-gh-release@v2
@@ -327,3 +338,4 @@ jobs:
         with:
           files: |
             src-tauri/gen/android/app/build/outputs/bundle/universalRelease/app-universal-release.aab
+            src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release-unsigned.apk
