@@ -48,7 +48,7 @@ export default function Header(
   const hasBackButton = props.back || location.pathname.split('/').length > 2;
 
   return (
-    <header className='flex items-center gap-4 px-4 lg:px-6 pt-2'>
+    <header className='flex items-center gap-4 px-4 lg:px-6 pt-2 sticky top-0 bg-background z-10'>
       <Sheet>
         {hasBackButton ? (
           <Button
