@@ -73,6 +73,9 @@ jobs:
             platform_name: iOS
             build: 'pnpm tauri ios build --export-method app-store-connect'
             build_dev: 'pnpm tauri ios build --export-method debugging'
+          - platform: 'macos-latest'
+            platform_name: Android
+            build: 'pnpm tauri android build'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -102,6 +105,12 @@ jobs:
         run: |
           choco install nasm
           echo "C:\Program Files\NASM" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Install Android NDK
+        uses: nttld/setup-ndk@v1
+        if: matrix.platform_name == 'Android'
+        with:
+          ndk-version: r26d
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
@@ -274,7 +283,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: matrix.platform_name == 'iOS'
         with:
-          name: Sage.ipa
+          name: Sage_iOS.ipa
           path: src-tauri/gen/apple/build/arm64/*.ipa
 
       - name: Release (iOS)
@@ -290,3 +299,18 @@ jobs:
         env:
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
           APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+
+      # Android
+      - name: Upload APK (Android)
+        uses: actions/upload-artifact@v4
+        if: matrix.platform_name == 'Android'
+        with:
+          name: Sage_Android.aab
+          path: src-tauri/gen/android/app/build/outputs/bundle/universalRelease/app-universal-release.aab
+
+      - name: Release (Android)
+        uses: softprops/action-gh-release@v2
+        if: matrix.platform_name == 'Android' && startsWith(github.event.ref, 'refs/tags/v')
+        with:
+          files: |
+            src-tauri/gen/android/app/build/outputs/bundle/universalRelease/app-universal-release.aab
