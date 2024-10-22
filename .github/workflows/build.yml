@@ -119,6 +119,12 @@ jobs:
           link-to-sdk: true
           add-to-path: true
 
+      - name: Add NDK toolchain to path
+        if: matrix.platform_name == 'Android'
+        run: echo "$ANDROID_NDK/toolchains/llvm/prebuilt/darwin-x86_64/bin" >> $GITHUB_PATH
+        env:
+          ANDROID_NDK: ${{ steps.setup-ndk.outputs.ndk-path }}
+
       - name: Install pnpm
         uses: pnpm/action-setup@v4
 
