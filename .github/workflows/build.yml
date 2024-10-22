@@ -96,9 +96,9 @@ jobs:
         if: matrix.platform_name == 'Linux (ARM)'
         run: rustup target add aarch64-unknown-linux-gnu
 
-      - name: Add aarch64-linux-android
+      - name: Add Android targets
         if: matrix.platform_name == 'Android'
-        run: rustup target add aarch64-linux-android
+        run: rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android
 
       - name: Ubuntu dependencies
         if: matrix.platform == 'ubuntu-22.04' || matrix.platform == 'linux-arm64'
