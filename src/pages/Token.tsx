@@ -168,11 +168,12 @@ export default function Token() {
       <Container>
         <div className='flex flex-col gap-8 max-w-screen-lg'>
           <Card>
-            <CardHeader className='flex flex-row justify-between items-center space-y-0 pb-2'>
-              <div className='text-4xl font-medium font-mono'>
-                {asset?.balance ?? ' '} {asset?.ticker}
+            <CardHeader className='flex flex-row justify-between items-center space-y-0 space-x-2 pb-2'>
+              <div className='flex text-xl sm:text-4xl font-medium font-mono truncate'>
+                <span className='truncate'>{asset?.balance ?? ' '}&nbsp;</span>
+                {asset?.ticker}
               </div>
-              <div>
+              <div className='flex-shrink-0'>
                 <img
                   alt='asset icon'
                   src={asset?.icon_url ?? ''}
@@ -183,7 +184,7 @@ export default function Token() {
             <CardContent className='flex flex-col gap-2'>
               <ReceiveAddress className='mt-2' />
 
-              <div className='flex gap-2 mt-2'>
+              <div className='flex gap-2 mt-2 flex-wrap'>
                 <Link to={`/wallet/send/${assetId}`}>
                   <Button>
                     <Send className='mr-2 h-4 w-4' /> Send
