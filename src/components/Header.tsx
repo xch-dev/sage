@@ -2,17 +2,12 @@ import { usePeers } from '@/contexts/PeerContext';
 import { useWallet } from '@/hooks/useWallet';
 import icon from '@/icon.png';
 import { logoutAndUpdateState, useWalletState } from '@/state';
-import {
-  ChevronLeft,
-  Cog,
-  Images,
-  LogOut,
-  Menu,
-  Wallet as WalletIcon,
-} from 'lucide-react';
+import { ChevronLeft, Cog, LogOut, Menu } from 'lucide-react';
 import { PropsWithChildren, ReactNode, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { navItems } from './Nav';
 import { Button } from './ui/button';
+import { Separator } from './ui/separator';
 import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
 
 export default function Header(
@@ -80,20 +75,26 @@ export default function Header(
             </Link>
           </div>
           <nav className='grid gap-2 text-lg font-medium'>
-            <Link
-              to='/wallet'
-              className='mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground'
-            >
-              <WalletIcon className='h-5 w-5' />
-              Assets
-            </Link>
-            <Link
-              to='/nfts'
-              className='mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground'
-            >
-              <Images className='h-5 w-5' />
-              NFTs
-            </Link>
+            {navItems.map((item, i) => {
+              switch (item.type) {
+                case 'link': {
+                  const Icon = item.icon;
+                  return (
+                    <Link
+                      key={i}
+                      to={item.url}
+                      className='mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground'
+                    >
+                      <Icon className='h-5 w-5' />
+                      {item.label}
+                    </Link>
+                  );
+                }
+                case 'separator': {
+                  return <Separator className='my-2' key={i} />;
+                }
+              }
+            })}
           </nav>
           <nav className='mt-auto grid gap-2 text-lg font-medium'>
             <Link

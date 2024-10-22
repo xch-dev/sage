@@ -1,12 +1,4 @@
-import {
-  ArrowLeftRight,
-  Cog,
-  HandCoins,
-  Images,
-  LogOut,
-  SquareUserRound,
-  Wallet as WalletIcon,
-} from 'lucide-react';
+import { Cog, LogOut } from 'lucide-react';
 import { PropsWithChildren, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { commands, WalletInfo } from '../bindings';
@@ -14,6 +6,7 @@ import { commands, WalletInfo } from '../bindings';
 import { usePeers } from '@/contexts/PeerContext';
 import icon from '@/icon.png';
 import { logoutAndUpdateState, useWalletState } from '@/state';
+import { navItems } from './Nav';
 import { Separator } from './ui/separator';
 
 export default function Layout(props: PropsWithChildren<object>) {
@@ -65,27 +58,22 @@ export default function Layout(props: PropsWithChildren<object>) {
             </div>
             <div className='flex-1 flex flex-col justify-between pb-4'>
               <nav className='grid items-start px-2 text-sm font-medium lg:px-4'>
-                <NavLink url='/wallet'>
-                  <WalletIcon className='h-4 w-4' />
-                  Wallet
-                </NavLink>
-                <NavLink url='/nfts'>
-                  <Images className='h-4 w-4' />
-                  NFTs
-                </NavLink>
-                <NavLink url='/dids'>
-                  <SquareUserRound className='h-4 w-4' />
-                  Profiles
-                </NavLink>
-                <NavLink url='/transactions'>
-                  <ArrowLeftRight className='h-4 w-4' />
-                  Transactions
-                </NavLink>
-                <Separator className='my-2' />
-                <NavLink url='/wallet/issue-token'>
-                  <HandCoins className='h-4 w-4' />
-                  Issue Token
-                </NavLink>
+                {navItems.map((item, i) => {
+                  switch (item.type) {
+                    case 'link': {
+                      const Icon = item.icon;
+                      return (
+                        <NavLink key={i} url={item.url}>
+                          <Icon className='h-4 w-4' />
+                          {item.label}
+                        </NavLink>
+                      );
+                    }
+                    case 'separator': {
+                      return <Separator className='my-2' key={i} />;
+                    }
+                  }
+                })}
               </nav>
 
               <nav className='grid px-2 text-sm font-medium lg:px-4'>
