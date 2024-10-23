@@ -325,6 +325,14 @@ async createDid(name: string, fee: Amount) : Promise<Result<null, Error>> {
     else return { status: "error", error: e  as any };
 }
 },
+async bulkMintNfts(request: BulkMintNfts) : Promise<Result<BulkMintNftsResponse, Error>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("bulk_mint_nfts", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async getPeers() : Promise<Result<PeerRecord[], Error>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("get_peers") };
@@ -367,16 +375,19 @@ syncEvent: "sync-event"
 /** user-defined types **/
 
 export type Amount = string
+export type BulkMintNfts = { nft_mints: NftMint[]; did_id: string; fee: Amount }
+export type BulkMintNftsResponse = { nft_ids: string[] }
 export type CatRecord = { asset_id: string; name: string | null; ticker: string | null; description: string | null; icon_url: string | null; visible: boolean; balance: Amount }
 export type CoinRecord = { coin_id: string; address: string; amount: Amount; created_height: number | null; spent_height: number | null; create_transaction_id: string | null; spend_transaction_id: string | null }
 export type DidRecord = { launcher_id: string; name: string | null; visible: boolean; coin_id: string; address: string; amount: Amount; created_height: number | null; create_transaction_id: string | null }
 export type Error = { kind: ErrorKind; reason: string }
-export type ErrorKind = "Io" | "Database" | "Client" | "Keychain" | "Logging" | "Serialization" | "InvalidAddress" | "InvalidMnemonic" | "InvalidKey" | "InvalidAmount" | "InvalidAssetId" | "InvalidLauncherId" | "InsufficientFunds" | "TransactionFailed" | "UnknownNetwork" | "UnknownFingerprint" | "NotLoggedIn" | "Sync" | "Wallet"
+export type ErrorKind = "Io" | "Database" | "Client" | "Keychain" | "Logging" | "Serialization" | "InvalidAddress" | "InvalidMnemonic" | "InvalidKey" | "InvalidAmount" | "InvalidRoyalty" | "InvalidAssetId" | "InvalidLauncherId" | "InsufficientFunds" | "TransactionFailed" | "UnknownNetwork" | "UnknownFingerprint" | "NotLoggedIn" | "Sync" | "Wallet"
 export type GetNfts = { offset: number; limit: number }
 export type GetNftsResponse = { items: NftRecord[]; total: number }
 export type Network = { default_port: number; ticker: string; address_prefix: string; precision: number; genesis_challenge: string; agg_sig_me: string; dns_introducers: string[] }
 export type NetworkConfig = { network_id?: string; target_peers?: number; discover_peers?: boolean }
-export type NftRecord = { launcher_id: string; launcher_id_hex: string; owner_did: string | null; coin_id: string; address: string; royalty_address: string; royalty_percent: string; data_uris: string[]; data_hash: string | null; metadata_uris: string[]; metadata_hash: string | null; license_uris: string[]; license_hash: string | null; edition_number: number | null; edition_total: number | null; data_mime_type: string | null; data: string | null; metadata: string | null }
+export type NftMint = { edition_number: number | null; edition_total: number | null; data_uris: string[]; data_hash: string | null; metadata_uris: string[]; metadata_hash: string | null; license_uris: string[]; license_hash: string | null; royalty_address: string | null; royalty_percent: Amount }
+export type NftRecord = { launcher_id: string; launcher_id_hex: string; owner_did: string | null; coin_id: string; address: string; royalty_address: string; royalty_percent: string; data_uris: string[]; data_hash: string | null; metadata_uris: string[]; metadata_hash: string | null; license_uris: string[]; license_hash: string | null; edition_number: number | null; edition_total: number | null; data_mime_type: string | null; data: string | null; metadata: string | null; created_height: number | null; create_transaction_id: string | null }
 export type PeerRecord = { ip_addr: string; port: number; trusted: boolean; peak_height: number }
 export type PendingTransactionRecord = { transaction_id: string; fee: Amount; submitted_at: string | null; expiration_height: number | null }
 export type SyncEvent = { type: "start"; ip: string } | { type: "stop" } | { type: "subscribed" } | { type: "derivation" } | { type: "coin_state" } | { type: "puzzle_batch_synced" } | { type: "cat_info" } | { type: "did_info" } | { type: "nft_data" }

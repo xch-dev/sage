@@ -49,6 +49,13 @@ impl Error {
         }
     }
 
+    pub fn invalid_royalty(amount: &Amount) -> Self {
+        Self {
+            kind: ErrorKind::InvalidRoyalty,
+            reason: format!("Invalid royalty {amount}"),
+        }
+    }
+
     pub fn invalid_prefix(prefix: &str) -> Self {
         Self {
             kind: ErrorKind::InvalidAddress,
@@ -146,6 +153,7 @@ pub enum ErrorKind {
     InvalidMnemonic,
     InvalidKey,
     InvalidAmount,
+    InvalidRoyalty,
     InvalidAssetId,
     InvalidLauncherId,
     InsufficientFunds,

@@ -10,7 +10,7 @@ use sage_api::{
     Amount, CatRecord, CoinRecord, DidRecord, GetNfts, GetNftsResponse, NftRecord,
     PendingTransactionRecord, SyncStatus,
 };
-use sage_database::{DidRow, NftData, NftDisplayInfo};
+use sage_database::{DidRow, NftData, NftRow};
 use sage_wallet::WalletError;
 use specta::specta;
 use tauri::{command, State};
@@ -346,7 +346,7 @@ pub async fn get_nft(state: State<'_, AppState>, launcher_id: String) -> Result<
 }
 
 fn nft_record(
-    nft: &NftDisplayInfo,
+    nft: &NftRow,
     prefix: &str,
     data: Option<NftData>,
     offchain_metadata: Option<NftData>,
@@ -401,5 +401,7 @@ fn nft_record(
                 None
             }
         }),
+        created_height: nft.created_height,
+        create_transaction_id: nft.create_transaction_id.map(hex::encode),
     })
 }

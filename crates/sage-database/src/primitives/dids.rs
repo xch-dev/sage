@@ -38,6 +38,10 @@ impl Database {
     pub async fn did_coins(&self) -> Result<Vec<DidRow>> {
         did_coins(&self.pool).await
     }
+
+    pub async fn did(&self, did_id: Bytes32) -> Result<Option<Did<Program>>> {
+        did(&self.pool, did_id).await
+    }
 }
 
 impl<'a> DatabaseTx<'a> {
@@ -217,4 +221,50 @@ async fn did_coins(conn: impl SqliteExecutor<'_>) -> Result<Vec<DidRow>> {
             })
         })
         .collect()
+}
+
+async fn did(conn: impl SqliteExecutor<'_>, did_id: Bytes32) -> Result<Option<Did<Program>>> {
+    let did_id = did_id.as_ref();
+
+    let Some(row) = sqlx::query!(
+        "
+        SELECT
+            cs.parent_coin_id, cs.puzzle_hash, cs.amount,
+            did.parent_parent_coin_id, did.parent_inner_puzzle_hash, did.parent_amount,
+            did.launcher_id, did.recovery_list_hash, did.num_verifications_required,
+            did.metadata, did.p2_puzzle_hash
+        FROM `coin_states` AS cs
+        INNER JOIN `did_coins` AS did ON cs.coin_id = did.coin_id
+        WHERE did.launcher_id = ?
+        AND cs.spent_height IS NULL
+        AND cs.created_height IS NOT NULL
+        ",
+        did_id
+    )
+    .fetch_optional(conn)
+    .await?
+    else {
+        return Ok(None);
+    };
+
+    Ok(Some(Did {
+        coin: to_coin(&row.parent_coin_id, &row.puzzle_hash, &row.amount)?,
+        proof: Proof::Lineage(to_lineage_proof(
+            &row.parent_parent_coin_id,
+            &row.parent_inner_puzzle_hash,
+            &row.parent_amount,
+        )?),
+        info: DidInfo::<Program> {
+            launcher_id: to_bytes32(&row.launcher_id)?,
+            recovery_list_hash: row
+                .recovery_list_hash
+                .map(|hash| to_bytes32(&hash))
+                .transpose()?,
+            num_verifications_required: u64::from_be_bytes(to_bytes(
+                &row.num_verifications_required,
+            )?),
+            metadata: row.metadata.into(),
+            p2_puzzle_hash: to_bytes32(&row.p2_puzzle_hash)?,
+        },
+    }))
 }

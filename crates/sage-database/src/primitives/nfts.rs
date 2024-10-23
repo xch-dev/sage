@@ -8,12 +8,14 @@ use sqlx::SqliteExecutor;
 use crate::{to_bytes32, Database, DatabaseTx, Result};
 
 #[derive(Debug, Clone)]
-pub struct NftDisplayInfo {
+pub struct NftRow {
     pub coin_id: Bytes32,
     pub info: NftInfo<Program>,
     pub data_hash: Option<Bytes32>,
     pub metadata_hash: Option<Bytes32>,
     pub license_hash: Option<Bytes32>,
+    pub create_transaction_id: Option<Bytes32>,
+    pub created_height: Option<u32>,
 }
 
 #[derive(Debug, Clone)]
@@ -56,11 +58,11 @@ impl<'a> DatabaseTx<'a> {
         .await
     }
 
-    pub async fn fetch_nfts(&mut self, limit: u32, offset: u32) -> Result<Vec<NftDisplayInfo>> {
+    pub async fn fetch_nfts(&mut self, limit: u32, offset: u32) -> Result<Vec<NftRow>> {
         fetch_nfts(&mut *self.tx, limit, offset).await
     }
 
-    pub async fn fetch_nft(&mut self, launcher_id: Bytes32) -> Result<Option<NftDisplayInfo>> {
+    pub async fn fetch_nft(&mut self, launcher_id: Bytes32) -> Result<Option<NftRow>> {
         fetch_nft(&mut *self.tx, launcher_id).await
     }
 
@@ -112,7 +114,7 @@ async fn insert_nft_coin(
 
     sqlx::query!(
         "
-        INSERT INTO `nft_coins` (
+        REPLACE INTO `nft_coins` (
             `coin_id`,
             `parent_parent_coin_id`,
             `parent_inner_puzzle_hash`,
@@ -151,11 +153,7 @@ async fn insert_nft_coin(
     Ok(())
 }
 
-async fn fetch_nfts(
-    conn: impl SqliteExecutor<'_>,
-    limit: u32,
-    offset: u32,
-) -> Result<Vec<NftDisplayInfo>> {
+async fn fetch_nfts(conn: impl SqliteExecutor<'_>, limit: u32, offset: u32) -> Result<Vec<NftRow>> {
     let rows = sqlx::query!(
         "
         SELECT
@@ -169,11 +167,15 @@ async fn fetch_nfts(
             `p2_puzzle_hash`,
             `data_hash`,
             `metadata_hash`,
-            `license_hash`
+            `license_hash`,
+            cs.`transaction_id`,
+            `created_height`
         FROM `nft_coins`
         INNER JOIN `coin_states` AS cs INDEXED BY `coin_height` ON `nft_coins`.`coin_id` = `cs`.`coin_id`
+        LEFT JOIN `transaction_spends` ON `cs`.`coin_id` = `transaction_spends`.`coin_id`
         WHERE `cs`.`spent_height` IS NULL
-        ORDER BY `created_height` DESC
+        AND `transaction_spends`.`transaction_id` IS NULL
+        ORDER BY cs.`transaction_id` DESC, `created_height` DESC
         LIMIT ? OFFSET ?
         ",
         limit,
@@ -201,28 +203,27 @@ async fn fetch_nfts(
         let metadata_hash = row.metadata_hash.as_deref().map(to_bytes32).transpose()?;
         let license_hash = row.license_hash.as_deref().map(to_bytes32).transpose()?;
 
-        nfts.push(NftDisplayInfo {
+        nfts.push(NftRow {
             coin_id,
             info,
             data_hash,
             metadata_hash,
             license_hash,
+            create_transaction_id: row.transaction_id.as_deref().map(to_bytes32).transpose()?,
+            created_height: row.created_height.map(TryInto::try_into).transpose()?,
         });
     }
 
     Ok(nfts)
 }
 
-async fn fetch_nft(
-    conn: impl SqliteExecutor<'_>,
-    launcher_id: Bytes32,
-) -> Result<Option<NftDisplayInfo>> {
+async fn fetch_nft(conn: impl SqliteExecutor<'_>, launcher_id: Bytes32) -> Result<Option<NftRow>> {
     let launcher_id = launcher_id.as_ref();
 
     let row = sqlx::query!(
         "
         SELECT
-            `coin_id`,
+            cs.`coin_id`,
             `launcher_id`,
             `metadata`,
             `metadata_updater_puzzle_hash`,
@@ -232,8 +233,11 @@ async fn fetch_nft(
             `p2_puzzle_hash`,
             `data_hash`,
             `metadata_hash`,
-            `license_hash`
+            `license_hash`,
+            `transaction_id`,
+            `created_height`
         FROM `nft_coins`
+        INNER JOIN `coin_states` AS cs ON `nft_coins`.`coin_id` = `cs`.`coin_id`
         WHERE `launcher_id` = ?
         ",
         launcher_id
@@ -258,12 +262,14 @@ async fn fetch_nft(
         let metadata_hash = row.metadata_hash.as_deref().map(to_bytes32).transpose()?;
         let license_hash = row.license_hash.as_deref().map(to_bytes32).transpose()?;
 
-        Ok(NftDisplayInfo {
+        Ok(NftRow {
             coin_id,
             info,
             data_hash,
             metadata_hash,
             license_hash,
+            create_transaction_id: row.transaction_id.as_deref().map(to_bytes32).transpose()?,
+            created_height: row.created_height.map(TryInto::try_into).transpose()?,
         })
     })
     .transpose()

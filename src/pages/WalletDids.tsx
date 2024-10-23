@@ -22,6 +22,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { useDids } from '@/hooks/useDids';
 import {
   EyeIcon,
   EyeOff,
@@ -30,45 +31,16 @@ import {
   UserIcon,
   UserRoundPlus,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { commands, DidRecord, events } from '../bindings';
+import { commands, DidRecord } from '../bindings';
 
 export function WalletDids() {
   const navigate = useNavigate();
 
   const [showHidden, setShowHidden] = useState(false);
-  const [dids, setDids] = useState<DidRecord[]>([]);
 
-  const updateDids = async () => {
-    return await commands.getDids().then((result) => {
-      if (result.status === 'ok') {
-        setDids(result.data);
-      } else {
-        throw new Error('Failed to get DIDs');
-      }
-    });
-  };
-
-  useEffect(() => {
-    updateDids();
-
-    const unlisten = events.syncEvent.listen((event) => {
-      const type = event.payload.type;
-
-      if (
-        type === 'coin_state' ||
-        type === 'puzzle_batch_synced' ||
-        type === 'did_info'
-      ) {
-        updateDids();
-      }
-    });
-
-    return () => {
-      unlisten.then((u) => u());
-    };
-  }, []);
+  const { dids, updateDids } = useDids();
 
   const visibleDids = showHidden ? dids : dids.filter((did) => did.visible);
   const hasHiddenDids = dids.findIndex((did) => !did.visible) > -1;
@@ -106,31 +78,15 @@ export function WalletDids() {
         )}
 
         <div className='mt-2 grid gap-4 md:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'>
-          {visibleDids
-            .sort((a, b) => {
-              if (a.visible !== b.visible) {
-                return a.visible ? -1 : 1;
-              }
-
-              if (a.name && b.name) {
-                return a.name.localeCompare(b.name);
-              } else if (a.name) {
-                return -1;
-              } else if (b.name) {
-                return 1;
-              } else {
-                return a.coin_id.localeCompare(b.coin_id);
-              }
-            })
-            .map((did) => {
-              return (
-                <Profile
-                  key={did.launcher_id}
-                  did={did}
-                  updateDids={updateDids}
-                />
-              );
-            })}
+          {visibleDids.map((did) => {
+            return (
+              <Profile
+                key={did.launcher_id}
+                did={did}
+                updateDids={updateDids}
+              />
+            );
+          })}
         </div>
       </Container>
     </>
