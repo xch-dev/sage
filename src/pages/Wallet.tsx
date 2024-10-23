@@ -3,10 +3,8 @@ import { Outlet } from 'react-router-dom';
 
 export default function Wallet() {
   return (
-    <>
-      <Layout>
-        <Outlet />
-      </Layout>
-    </>
+    <Layout>
+      <Outlet />
+    </Layout>
   );
 }

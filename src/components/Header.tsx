@@ -5,9 +5,8 @@ import { logoutAndUpdateState, useWalletState } from '@/state';
 import { ChevronLeft, Cog, LogOut, Menu } from 'lucide-react';
 import { PropsWithChildren, ReactNode, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { navItems } from './Nav';
+import { Nav } from './Nav';
 import { Button } from './ui/button';
-import { Separator } from './ui/separator';
 import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
 
 export default function Header(
@@ -74,29 +73,8 @@ export default function Header(
               <span className=''>{wallet?.name}</span>
             </Link>
           </div>
-          <nav className='grid gap-2 text-lg font-medium'>
-            {navItems.map((item, i) => {
-              switch (item.type) {
-                case 'link': {
-                  const Icon = item.icon;
-                  return (
-                    <Link
-                      key={i}
-                      to={item.url}
-                      className='mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground'
-                    >
-                      <Icon className='h-5 w-5' />
-                      {item.label}
-                    </Link>
-                  );
-                }
-                case 'separator': {
-                  return <Separator className='my-2' key={i} />;
-                }
-              }
-            })}
-          </nav>
-          <nav className='mt-auto grid gap-2 text-lg font-medium'>
+          <Nav />
+          <nav className='mt-auto grid gap-1 text-md font-medium'>
             <Link
               to='/peers'
               className='mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground'
@@ -121,14 +99,14 @@ export default function Header(
               to='/settings'
               className='mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground'
             >
-              <Cog className='h-5 w-5' />
+              <Cog className='h-4 w-4' />
               Settings
             </Link>
             <button
               onClick={logout}
               className='mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground'
             >
-              <LogOut className='h-5 w-5' />
+              <LogOut className='h-4 w-4' />
               Logout
             </button>
           </nav>

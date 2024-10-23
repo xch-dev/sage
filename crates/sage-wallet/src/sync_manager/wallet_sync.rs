@@ -163,7 +163,6 @@ async fn sync_coin_ids(
 
                 if !data.coin_states.is_empty() {
                     incremental_sync(wallet, data.coin_states, true, &sync_sender).await?;
-                    sync_sender.send(SyncEvent::CoinState).await.ok();
                 }
             }
             Err(rejection) => match rejection.reason {
@@ -226,7 +225,6 @@ async fn sync_puzzle_hashes(
                 if !data.coin_states.is_empty() {
                     found_coins = true;
                     incremental_sync(wallet, data.coin_states, true, &sync_sender).await?;
-                    sync_sender.send(SyncEvent::CoinState).await.ok();
                 }
 
                 prev_height = Some(data.height);
@@ -303,6 +301,8 @@ pub async fn incremental_sync(
     }
 
     tx.commit().await?;
+
+    sync_sender.send(SyncEvent::CoinState).await.ok();
 
     if derived {
         sync_sender.send(SyncEvent::Derivation).await.ok();
