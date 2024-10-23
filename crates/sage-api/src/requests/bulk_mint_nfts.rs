@@ -15,11 +15,8 @@ pub struct NftMint {
     pub edition_number: Option<u32>,
     pub edition_total: Option<u32>,
     pub data_uris: Vec<String>,
-    pub data_hash: Option<String>,
     pub metadata_uris: Vec<String>,
-    pub metadata_hash: Option<String>,
     pub license_uris: Vec<String>,
-    pub license_hash: Option<String>,
     pub royalty_address: Option<String>,
     pub royalty_percent: Amount,
 }

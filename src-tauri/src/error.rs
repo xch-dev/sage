@@ -14,7 +14,7 @@ use hex::FromHexError;
 use sage_api::Amount;
 use sage_database::DatabaseError;
 use sage_keychain::KeychainError;
-use sage_wallet::{SyncCommand, WalletError};
+use sage_wallet::{SyncCommand, UriError, WalletError};
 use serde::{Deserialize, Serialize};
 use specta::Type;
 use sqlx::migrate::MigrateError;
@@ -413,6 +413,15 @@ impl From<SystemTimeError> for Error {
     fn from(value: SystemTimeError) -> Self {
         Self {
             kind: ErrorKind::Io,
+            reason: value.to_string(),
+        }
+    }
+}
+
+impl From<UriError> for Error {
+    fn from(value: UriError) -> Self {
+        Self {
+            kind: ErrorKind::Wallet,
             reason: value.to_string(),
         }
     }

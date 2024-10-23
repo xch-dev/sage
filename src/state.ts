@@ -73,6 +73,9 @@ events.syncEvent.listen((event) => {
     case 'derivation':
       updateSyncStatus();
       break;
+    case 'puzzle_batch_synced':
+      updateSyncStatus();
+      break;
   }
 });
 

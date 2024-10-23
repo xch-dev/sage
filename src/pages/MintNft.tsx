@@ -43,11 +43,16 @@ export default function MintNft() {
     fee: amount(walletState.sync.unit.decimals).optional(),
     royaltyAddress: z.string().optional(),
     royaltyPercent: amount(2),
+    dataUris: z.string(),
+    metadataUris: z.string(),
+    licenseUris: z.string().optional(),
   });
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
   });
+
+  console.log(form.getValues());
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
     setPending(true);
@@ -59,14 +64,23 @@ export default function MintNft() {
           {
             edition_number: null,
             edition_total: null,
-            royalty_address: values.royaltyAddress ?? null,
+            royalty_address: values.royaltyAddress || null,
             royalty_percent: values.royaltyPercent,
-            data_uris: [],
-            data_hash: null,
-            metadata_uris: [],
-            metadata_hash: null,
-            license_uris: [],
-            license_hash: null,
+            data_uris: values.dataUris
+              .split(',')
+              .map((uri) => uri.trim())
+              .filter(Boolean),
+            data_hash: '00'.repeat(32),
+            metadata_uris: values.metadataUris
+              .split(',')
+              .map((uri) => uri.trim())
+              .filter(Boolean),
+            metadata_hash: '00'.repeat(32),
+            license_uris: (values.licenseUris ?? '')
+              .split(',')
+              .map((uri) => uri.trim())
+              .filter(Boolean),
+            license_hash: '00'.repeat(32),
           },
         ],
       })
@@ -120,6 +134,105 @@ export default function MintNft() {
               )}
             />
 
+            <FormField
+              control={form.control}
+              name='dataUris'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Data URLs</FormLabel>
+                  <FormControl>
+                    <Input
+                      type='text'
+                      placeholder='Enter comma separated URLs'
+                      {...field}
+                      className='pr-12'
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name='metadataUris'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Metadata URLs</FormLabel>
+                  <FormControl>
+                    <Input
+                      type='text'
+                      placeholder='Enter comma separated URLs'
+                      {...field}
+                      className='pr-12'
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name='licenseUris'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>License URLs</FormLabel>
+                  <FormControl>
+                    <Input
+                      type='text'
+                      placeholder='Enter comma separated URLs'
+                      {...field}
+                      className='pr-12'
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name='royaltyAddress'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Royalty Address</FormLabel>
+                  <FormControl>
+                    <Input
+                      type='text'
+                      placeholder='Enter address'
+                      {...field}
+                      className='pr-12'
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div className='grid sm:grid-cols-2 gap-4'>
+              <FormField
+                control={form.control}
+                name='royaltyPercent'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Royalty Percent</FormLabel>
+                    <FormControl>
+                      <div className='relative'>
+                        <Input
+                          type='text'
+                          placeholder='Enter percent'
+                          {...field}
+                          className='pr-12'
+                        />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
             <div className='grid sm:grid-cols-2 gap-4'>
               <FormField
                 control={form.control}
@@ -140,57 +253,6 @@ export default function MintNft() {
                             {walletState.sync.unit.ticker}
                           </span>
                         </div>
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <div className='grid sm:grid-cols-2 gap-4'>
-              <FormField
-                control={form.control}
-                name='royaltyAddress'
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Royalty Address</FormLabel>
-                    <FormControl>
-                      <div className='relative'>
-                        <Input
-                          type='text'
-                          placeholder='Enter address'
-                          {...field}
-                          className='pr-12'
-                        />
-                        <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
-                          <span className='text-gray-500 sm:text-sm'>
-                            {walletState.sync.unit.ticker}
-                          </span>
-                        </div>
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <div className='grid sm:grid-cols-2 gap-4'>
-              <FormField
-                control={form.control}
-                name='royaltyPercent'
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Royalty Percent</FormLabel>
-                    <FormControl>
-                      <div className='relative'>
-                        <Input
-                          type='text'
-                          placeholder='Enter percent'
-                          {...field}
-                          className='pr-12'
-                        />
                       </div>
                     </FormControl>
                     <FormMessage />

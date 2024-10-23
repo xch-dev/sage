@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use chia::{
     protocol::{Bytes32, CoinSpend},
     puzzles::nft::NftMetadata,
@@ -7,7 +9,7 @@ use chia_wallet_sdk::{
 };
 use sage_api::{Amount, BulkMintNfts, BulkMintNftsResponse};
 use sage_database::CatRow;
-use sage_wallet::{Wallet, WalletNftMint};
+use sage_wallet::{fetch_uris, Wallet, WalletNftMint};
 use specta::specta;
 use tauri::{command, State};
 use tokio::sync::MutexGuard;
@@ -295,27 +297,6 @@ pub async fn bulk_mint_nfts(
     let mut mints = Vec::with_capacity(request.nft_mints.len());
 
     for item in request.nft_mints {
-        let data_hash = item
-            .data_hash
-            .map(hex::decode)
-            .transpose()?
-            .map(TryInto::try_into)
-            .transpose()?;
-
-        let metadata_hash = item
-            .metadata_hash
-            .map(hex::decode)
-            .transpose()?
-            .map(TryInto::try_into)
-            .transpose()?;
-
-        let license_hash = item
-            .license_hash
-            .map(hex::decode)
-            .transpose()?
-            .map(TryInto::try_into)
-            .transpose()?;
-
         let royalty_puzzle_hash = item
             .royalty_address
             .map(|address| {
@@ -329,6 +310,48 @@ pub async fn bulk_mint_nfts(
 
         let Some(royalty_ten_thousandths) = item.royalty_percent.to_ten_thousandths() else {
             return Err(Error::invalid_royalty(&item.royalty_percent));
+        };
+
+        let data_hash = if item.data_uris.is_empty() {
+            None
+        } else {
+            Some(
+                fetch_uris(
+                    item.data_uris.clone(),
+                    Duration::from_secs(15),
+                    Duration::from_secs(5),
+                )
+                .await?
+                .hash,
+            )
+        };
+
+        let metadata_hash = if item.metadata_uris.is_empty() {
+            None
+        } else {
+            Some(
+                fetch_uris(
+                    item.metadata_uris.clone(),
+                    Duration::from_secs(15),
+                    Duration::from_secs(15),
+                )
+                .await?
+                .hash,
+            )
+        };
+
+        let license_hash = if item.license_uris.is_empty() {
+            None
+        } else {
+            Some(
+                fetch_uris(
+                    item.license_uris.clone(),
+                    Duration::from_secs(15),
+                    Duration::from_secs(15),
+                )
+                .await?
+                .hash,
+            )
         };
 
         mints.push(WalletNftMint {
