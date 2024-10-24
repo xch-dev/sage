@@ -10,13 +10,13 @@ Sage is:
 
 ## Disclaimer
 
-Sage is still in beta and has not been thoroughly tested yet. For now, it should only be used on testnet11, and you should back up your keys elsewhere.
-
-The app is not guaranteed to be stable and can have breaking database and config changes between releases. If you are looking for stability, I recommend choosing a different wallet until Sage is out of beta.
+Sage is still in beta testing and isn't guaranteed to be stable, so it should be used with caution. Please make sure you backup your keys and don't put too much XCH in mainnet wallets.
 
 ## Installation
 
-There are currently no pre-built executables for this app. In the meantime, you can see the [Development](#development) section for source installation instructions.
+You can download binaries for any platform (including desktop and Android) on the releases page. For iOS, you can participate in the [public TestFlight](https://testflight.apple.com/join/BmUdFXpP).
+
+If you want to build from source, see the [Development](#development) section for instructions.
 
 ## Contributing
 
@@ -55,4 +55,11 @@ And build the application with:
 
 ```bash
 pnpm tauri build
+```
+
+You can also run the app in the iOS or Android simulator, though it may take some prior setup:
+
+```bash
+pnpm tauri ios dev
+pnpm tauri android dev
 ```
