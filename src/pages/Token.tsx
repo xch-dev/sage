@@ -223,7 +223,9 @@ export default function Token() {
           <CoinCard
             coins={coins}
             asset={asset}
-            splitHandler={asset?.asset_id === 'xch' ? commands.split : null}
+            splitHandler={
+              asset?.asset_id === 'xch' ? commands.split : commands.splitCat
+            }
             combineHandler={
               asset?.asset_id === 'xch' ? commands.combine : commands.combineCat
             }

@@ -2,8 +2,8 @@ import Container from '@/components/Container';
 import Header from '@/components/Header';
 import { ReceiveAddress } from '@/components/ReceiveAddress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Switch } from '@/components/ui/switch';
 import { InfoIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -15,6 +15,30 @@ export function MainWallet() {
 
   const [cats, setCats] = useState<CatRecord[]>([]);
   const [showHidden, setShowHidden] = useState(false);
+
+  cats.sort((a, b) => {
+    if (a.visible && !b.visible) {
+      return -1;
+    }
+
+    if (!a.visible && b.visible) {
+      return 1;
+    }
+
+    if (!a.name && b.name) {
+      return -1;
+    }
+
+    if (a.name && !b.name) {
+      return 1;
+    }
+
+    if (!a.name && !b.name) {
+      return 0;
+    }
+
+    return a.name!.localeCompare(b.name!);
+  });
 
   const visibleCats = cats.filter((cat) => showHidden || cat.visible);
   const hasHiddenAssets = !!cats.find((cat) => !cat.visible);
@@ -64,6 +88,17 @@ export function MainWallet() {
           </Alert>
         )}
 
+        {hasHiddenAssets && (
+          <div className='inline-flex items-center gap-2 mb-4'>
+            <label htmlFor='viewHidden'>View hidden</label>
+            <Switch
+              id='viewHidden'
+              checked={showHidden}
+              onCheckedChange={(value) => setShowHidden(value)}
+            />
+          </div>
+        )}
+
         <div className='grid gap-2 md:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'>
           <Link to={`/wallet/token/xch`}>
             <Card className='transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900'>
@@ -110,17 +145,6 @@ export function MainWallet() {
             </Link>
           ))}
         </div>
-        {hasHiddenAssets && (
-          <div className='mt-4'>
-            <Button
-              variant='link'
-              className='text-muted-foreground text-xs'
-              onClick={() => setShowHidden(!showHidden)}
-            >
-              {showHidden ? 'Hide' : 'Show'} hidden assets
-            </Button>
-          </div>
-        )}
       </Container>
     </>
   );

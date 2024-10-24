@@ -202,6 +202,48 @@ pub async fn combine_cat(
 
 #[command]
 #[specta]
+pub async fn split_cat(
+    state: State<'_, AppState>,
+    coin_ids: Vec<String>,
+    output_count: u32,
+    fee: Amount,
+) -> Result<()> {
+    let state = state.lock().await;
+    let wallet = state.wallet()?;
+
+    if !state.keychain.has_secret_key(wallet.fingerprint) {
+        return Err(Error::no_secret_key());
+    }
+
+    let Some(fee) = fee.to_mojos(state.unit.decimals) else {
+        return Err(Error::invalid_amount(&fee));
+    };
+
+    let coin_ids = coin_ids
+        .iter()
+        .map(|coin_id| Ok(hex::decode(coin_id)?.try_into()?))
+        .collect::<Result<Vec<Bytes32>>>()?;
+
+    let mut cats = Vec::new();
+
+    for coin_id in coin_ids {
+        let Some(cat) = wallet.db.cat_coin(coin_id).await? else {
+            return Err(Error::unknown_coin_id());
+        };
+        cats.push(cat);
+    }
+
+    let coin_spends = wallet
+        .split_cat(cats, output_count as usize, fee, false, true)
+        .await?;
+
+    transact(&state, &wallet, coin_spends).await?;
+
+    Ok(())
+}
+
+#[command]
+#[specta]
 pub async fn issue_cat(
     state: State<'_, AppState>,
     name: String,

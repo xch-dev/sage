@@ -47,7 +47,7 @@ pub async fn get_sync_status(state: State<'_, AppState>) -> Result<SyncStatus> {
     let wallet = state.wallet()?;
 
     let mut tx = wallet.db.tx().await?;
-    let balance = tx.spendable_balance().await?;
+    let balance = tx.balance().await?;
     let total_coins = tx.total_coin_count().await?;
     let synced_coins = tx.synced_coin_count().await?;
     tx.commit().await?;
@@ -164,7 +164,7 @@ pub async fn get_cats(state: State<'_, AppState>) -> Result<Vec<CatRecord>> {
     let mut records = Vec::with_capacity(cats.len());
 
     for cat in cats {
-        let balance = wallet.db.spendable_cat_balance(cat.asset_id).await?;
+        let balance = wallet.db.cat_balance(cat.asset_id).await?;
 
         records.push(CatRecord {
             asset_id: hex::encode(cat.asset_id),
@@ -191,7 +191,7 @@ pub async fn get_cat(state: State<'_, AppState>, asset_id: String) -> Result<Opt
         .map_err(|_| Error::invalid_asset_id())?;
 
     let cat = wallet.db.cat(asset_id.into()).await?;
-    let balance = wallet.db.spendable_cat_balance(asset_id.into()).await?;
+    let balance = wallet.db.cat_balance(asset_id.into()).await?;
 
     cat.map(|cat| {
         Ok(CatRecord {

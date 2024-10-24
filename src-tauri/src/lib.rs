@@ -64,6 +64,7 @@ pub fn run() {
             commands::combine,
             commands::split,
             commands::combine_cat,
+            commands::split_cat,
             commands::issue_cat,
             commands::send_cat,
             commands::create_did,

@@ -20,8 +20,8 @@ impl<'a> DatabaseTx<'a> {
         insert_p2_coin(&mut *self.tx, coin_id).await
     }
 
-    pub async fn spendable_balance(&mut self) -> Result<u128> {
-        spendable_balance(&mut *self.tx).await
+    pub async fn balance(&mut self) -> Result<u128> {
+        balance(&mut *self.tx).await
     }
 }
 
@@ -40,7 +40,7 @@ async fn insert_p2_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Resu
     Ok(())
 }
 
-async fn spendable_balance(conn: impl SqliteExecutor<'_>) -> Result<u128> {
+async fn balance(conn: impl SqliteExecutor<'_>) -> Result<u128> {
     let row = sqlx::query!(
         "
         SELECT `coin_states`.`amount` FROM `coin_states` INDEXED BY `coin_spent`
@@ -48,7 +48,6 @@ async fn spendable_balance(conn: impl SqliteExecutor<'_>) -> Result<u128> {
         LEFT JOIN `transaction_spends` ON `coin_states`.`coin_id` = `transaction_spends`.`coin_id`
         WHERE `coin_states`.`spent_height` IS NULL
         AND `transaction_spends`.`coin_id` IS NULL
-        AND `coin_states`.`transaction_id` IS NULL
         "
     )
     .fetch_all(conn)

@@ -317,6 +317,14 @@ async combineCat(coinIds: string[], fee: Amount) : Promise<Result<null, Error>> 
     else return { status: "error", error: e  as any };
 }
 },
+async splitCat(coinIds: string[], outputCount: number, fee: Amount) : Promise<Result<null, Error>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("split_cat", { coinIds, outputCount, fee }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async issueCat(name: string, ticker: string, amount: Amount, fee: Amount) : Promise<Result<null, Error>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("issue_cat", { name, ticker, amount, fee }) };

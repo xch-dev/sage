@@ -52,7 +52,7 @@ export function WalletDids() {
       </Header>
       <Container>
         {hasHiddenDids && (
-          <div className='inline-flex items-center gap-2'>
+          <div className='inline-flex items-center gap-2 mb-2'>
             <label htmlFor='viewHidden'>View hidden</label>
             <Switch
               id='viewHidden'

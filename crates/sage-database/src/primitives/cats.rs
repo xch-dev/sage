@@ -56,8 +56,8 @@ impl Database {
         spendable_cat_coins(&self.pool, asset_id).await
     }
 
-    pub async fn spendable_cat_balance(&self, asset_id: Bytes32) -> Result<u128> {
-        spendable_cat_balance(&self.pool, asset_id).await
+    pub async fn cat_balance(&self, asset_id: Bytes32) -> Result<u128> {
+        cat_balance(&self.pool, asset_id).await
     }
 
     pub async fn cat_coin(&self, coin_id: Bytes32) -> Result<Option<Cat>> {
@@ -311,7 +311,7 @@ async fn spendable_cat_coins(
         .collect()
 }
 
-async fn spendable_cat_balance(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<u128> {
+async fn cat_balance(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<u128> {
     let asset_id = asset_id.as_ref();
 
     let row = sqlx::query!(
@@ -322,7 +322,6 @@ async fn spendable_cat_balance(conn: impl SqliteExecutor<'_>, asset_id: Bytes32)
         WHERE `coin_states`.`spent_height` IS NULL
         AND `cat_coins`.`asset_id` = ?
         AND `transaction_spends`.`coin_id` IS NULL
-        AND `coin_states`.`transaction_id` IS NULL
         ",
         asset_id
     )
