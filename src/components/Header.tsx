@@ -81,15 +81,17 @@ export default function Header(
             >
               <span
                 className={
-                  'inline-flex h-3 w-3 m-1 rounded-full' +
+                  'inline-flex h-3 w-3 m-0.5 rounded-full' +
                   ' ' +
                   (isSynced ? 'bg-emerald-600' : 'bg-yellow-600')
                 }
               ></span>
               {isSynced ? (
                 <>
-                  {peers?.length} peers,
-                  {peerMaxHeight ? ` ${peerMaxHeight} peak` : ' connecting...'}
+                  {peers?.length} peers
+                  {peerMaxHeight
+                    ? ` at peak ${peerMaxHeight}`
+                    : ' connecting...'}
                 </>
               ) : (
                 `Syncing ${walletState.sync.synced_coins} / ${walletState.sync.total_coins} coins`

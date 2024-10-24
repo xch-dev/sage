@@ -1,4 +1,10 @@
-import { HandCoins, Images, SquareUserRound, WalletIcon } from 'lucide-react';
+import {
+  HandCoins,
+  ImagePlus,
+  Images,
+  SquareUserRound,
+  WalletIcon,
+} from 'lucide-react';
 import { PropsWithChildren } from 'react';
 import { Link } from 'react-router-dom';
 import { Separator } from './ui/separator';
@@ -18,10 +24,14 @@ export function Nav() {
         <SquareUserRound className='h-4 w-4' />
         Profiles
       </NavLink>
-      <Separator />
+      <Separator className='my-1' />
       <NavLink url={'/wallet/issue-token'}>
         <HandCoins className='h-4 w-4' />
         Issue Token
+      </NavLink>
+      <NavLink url={'/nfts/mint-nft'}>
+        <ImagePlus className='h-4 w-4' />
+        Mint NFT
       </NavLink>
     </nav>
   );

@@ -301,9 +301,17 @@ async split(coinIds: string[], outputCount: number, fee: Amount) : Promise<Resul
     else return { status: "error", error: e  as any };
 }
 },
-async issueCat(name: string, amount: Amount, fee: Amount) : Promise<Result<null, Error>> {
+async combineCat(coinIds: string[], fee: Amount) : Promise<Result<null, Error>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("issue_cat", { name, amount, fee }) };
+    return { status: "ok", data: await TAURI_INVOKE("combine_cat", { coinIds, fee }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async issueCat(name: string, ticker: string, amount: Amount, fee: Amount) : Promise<Result<null, Error>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("issue_cat", { name, ticker, amount, fee }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };

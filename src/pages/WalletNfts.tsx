@@ -4,7 +4,7 @@ import { ReceiveAddress } from '@/components/ReceiveAddress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import missing from '@/missing.jpg';
+import { nftUri } from '@/lib/nftUri';
 import { ChevronLeftIcon, ChevronRightIcon, Image } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -84,10 +84,6 @@ export function WalletNfts() {
       </Header>
 
       <Container>
-        <Button onClick={() => navigate('mint-nft')} className='mb-4'>
-          Mint NFT
-        </Button>
-
         {hasHiddenNfts && (
           <div className='inline-flex items-center gap-2 ml-4'>
             <label htmlFor='viewHidden'>View hidden</label>
@@ -132,7 +128,7 @@ export function WalletNfts() {
           </div>
         )}
 
-        <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-6'>
+        <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mt-6 mb-2'>
           {nfts.map((nft, i) => (
             <Nft nft={nft} key={i} />
           ))}
@@ -156,25 +152,19 @@ function Nft({ nft }: { nft: NftRecord }) {
   return (
     <Link
       to={`/nfts/${nft.launcher_id_hex}`}
-      className={`group space-y-3${nft.create_transaction_id !== null ? ' pulsate-opacity' : ''}`}
+      className={`group space-y-1${nft.create_transaction_id !== null ? ' pulsate-opacity' : ''}`}
     >
-      <span>
-        <div className='overflow-hidden rounded-md'>
-          <img
-            alt={json.name}
-            loading='lazy'
-            width='150'
-            height='150'
-            className='h-auto w-auto object-cover transition-all group-hover:scale-105 aspect-square color-[transparent]'
-            src={
-              nft.data
-                ? `data:${nft.data_mime_type};base64,${nft.data}`
-                : missing
-            }
-          />
-        </div>
-      </span>
-      <div className='space-y-1 text-sm'>
+      <div className='overflow-hidden rounded-md'>
+        <img
+          alt={json.name}
+          loading='lazy'
+          width='150'
+          height='150'
+          className='h-auto w-auto object-cover transition-all group-hover:scale-105 aspect-square color-[transparent]'
+          src={nftUri(nft.data_mime_type, nft.data)}
+        />
+      </div>
+      <div className='text-md text-center'>
         <span className='font-medium leading-none'>
           {json.name ?? 'Unknown NFT'}
         </span>

@@ -224,7 +224,9 @@ export default function Token() {
             coins={coins}
             asset={asset}
             splitHandler={asset?.asset_id === 'xch' ? commands.split : null}
-            combineHandler={asset?.asset_id === 'xch' ? commands.combine : null}
+            combineHandler={
+              asset?.asset_id === 'xch' ? commands.combine : commands.combineCat
+            }
           />
         </div>
       </Container>
@@ -354,8 +356,7 @@ function CoinCard({
   });
 
   const onCombineSubmit = (values: z.infer<typeof combineFormSchema>) => {
-    commands
-      .combine(selectedCoinIds, values.combineFee)
+    combineHandler?.(selectedCoinIds, values.combineFee)
       .then((result) => {
         setCombineOpen(false);
 
@@ -383,8 +384,7 @@ function CoinCard({
   });
 
   const onSplitSubmit = (values: z.infer<typeof splitFormSchema>) => {
-    commands
-      .split(selectedCoinIds, values.outputCount, values.splitFee)
+    splitHandler?.(selectedCoinIds, values.outputCount, values.splitFee)
       .then((result) => {
         setSplitOpen(false);
 

@@ -66,7 +66,7 @@ export default function Layout(props: PropsWithChildren<object>) {
               >
                 <span
                   className={
-                    'inline-flex h-2 w-2 m-1 rounded-full' +
+                    'inline-flex h-3 w-3 m-0.5 rounded-full' +
                     ' ' +
                     (isSynced ? 'bg-emerald-600' : 'bg-yellow-600')
                   }
@@ -75,7 +75,7 @@ export default function Layout(props: PropsWithChildren<object>) {
                   <>
                     {peers?.length} peers
                     {peerMaxHeight
-                      ? ` | peak ${peerMaxHeight}`
+                      ? ` at peak ${peerMaxHeight}`
                       : ' connecting...'}
                   </>
                 ) : (

@@ -287,7 +287,6 @@ impl Wallet {
         &self,
         coins: Vec<Coin>,
         fee: u64,
-        memos: Vec<Bytes>,
         hardened: bool,
         reuse: bool,
     ) -> Result<Vec<CoinSpend>, WalletError> {
@@ -310,7 +309,7 @@ impl Wallet {
         }
 
         if change > 0 {
-            conditions = conditions.create_coin(p2_puzzle_hash, change, memos.clone());
+            conditions = conditions.create_coin(p2_puzzle_hash, change, Vec::new());
         }
 
         let mut ctx = SpendContext::new();
@@ -324,7 +323,6 @@ impl Wallet {
         coins: &[Coin],
         output_count: usize,
         fee: u64,
-        memos: Vec<Bytes>,
         hardened: bool,
         reuse: bool,
     ) -> Result<Vec<CoinSpend>, WalletError> {
@@ -382,7 +380,7 @@ impl Wallet {
 
                     remaining_amount -= amount as u128;
 
-                    conditions = conditions.create_coin(derivation, amount, memos.clone());
+                    conditions = conditions.create_coin(derivation, amount, Vec::new());
 
                     remaining_count -= 1;
                 }
@@ -402,7 +400,6 @@ impl Wallet {
         coins: Vec<Coin>,
         puzzle_hash: Bytes32,
         mut fee: u64,
-        memos: Vec<Bytes>,
     ) -> Result<Vec<CoinSpend>, WalletError> {
         // Select the most optimal coins to use for the fee, to keep cost to a minimum.
         let fee_coins: HashSet<Coin> = select_coins(coins.clone(), fee as u128)?
@@ -424,14 +421,14 @@ impl Wallet {
                         Conditions::new().create_coin(
                             puzzle_hash,
                             coin.amount - consumed,
-                            memos.clone(),
+                            Vec::new(),
                         )
                     } else {
                         Conditions::new()
                     }
                 } else {
                     // Otherwise, just create a new output coin at the given puzzle hash.
-                    Conditions::new().create_coin(puzzle_hash, coin.amount, memos.clone())
+                    Conditions::new().create_coin(puzzle_hash, coin.amount, Vec::new())
                 };
 
                 // Ensure that there is a ring of assertions for all of the coins.
@@ -454,6 +451,65 @@ impl Wallet {
                 };
 
                 (*coin, conditions)
+            }),
+        )
+        .await?;
+
+        Ok(ctx.take())
+    }
+
+    /// Combines multiple CAT coins into a single coin, with the given fee subtracted from the output.
+    pub async fn combine_cat(
+        &self,
+        cats: Vec<Cat>,
+        fee: u64,
+        hardened: bool,
+        reuse: bool,
+    ) -> Result<Vec<CoinSpend>, WalletError> {
+        let fee_coins = self.select_p2_coins(fee as u128).await?;
+        let fee_total: u128 = fee_coins.iter().map(|coin| coin.amount as u128).sum();
+        let cat_total: u128 = cats.iter().map(|cat| cat.coin.amount as u128).sum();
+
+        if fee as u128 > fee_total {
+            return Err(WalletError::InsufficientFunds);
+        }
+
+        let p2_puzzle_hash = self.p2_puzzle_hash(hardened, reuse).await?;
+
+        let fee_change: u64 = (fee_total - fee as u128)
+            .try_into()
+            .expect("change amount overflow");
+
+        let mut fee_conditions = Conditions::new().assert_concurrent_spend(cats[0].coin.coin_id());
+
+        if fee > 0 {
+            fee_conditions = fee_conditions.reserve_fee(fee);
+        }
+
+        if fee_change > 0 {
+            fee_conditions = fee_conditions.create_coin(p2_puzzle_hash, fee_change, Vec::new());
+        }
+
+        let mut ctx = SpendContext::new();
+
+        self.spend_p2_coins(&mut ctx, fee_coins, fee_conditions)
+            .await?;
+
+        self.spend_cat_coins(
+            &mut ctx,
+            cats.into_iter().enumerate().map(|(i, cat)| {
+                if i == 0 {
+                    (
+                        cat,
+                        Conditions::new().create_coin(
+                            p2_puzzle_hash,
+                            cat_total.try_into().expect("output amount overflow"),
+                            vec![p2_puzzle_hash.into()],
+                        ),
+                    )
+                } else {
+                    (cat, Conditions::new())
+                }
             }),
         )
         .await?;
