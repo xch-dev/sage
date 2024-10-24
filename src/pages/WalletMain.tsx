@@ -1,8 +1,10 @@
 import Container from '@/components/Container';
 import Header from '@/components/Header';
 import { ReceiveAddress } from '@/components/ReceiveAddress';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { InfoIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { CatRecord, commands, events } from '../bindings';
@@ -51,6 +53,17 @@ export function MainWallet() {
         <ReceiveAddress />
       </Header>
       <Container>
+        {walletState.sync.synced_coins < walletState.sync.total_coins && (
+          <Alert className='mt-2 mb-4'>
+            <InfoIcon className='h-4 w-4' />
+            <AlertTitle>Syncing in progress...</AlertTitle>
+            <AlertDescription>
+              The wallet is still syncing. Balances may not be accurate until it
+              completes.
+            </AlertDescription>
+          </Alert>
+        )}
+
         <div className='grid gap-2 md:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'>
           <Link to={`/wallet/token/xch`}>
             <Card className='transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900'>

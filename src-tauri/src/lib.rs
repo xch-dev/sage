@@ -58,6 +58,7 @@ pub fn run() {
             commands::update_cat_info,
             commands::remove_cat_info,
             commands::update_did,
+            commands::update_nft,
             // Transactions
             commands::send,
             commands::combine,

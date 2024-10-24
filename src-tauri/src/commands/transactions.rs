@@ -412,6 +412,14 @@ pub async fn bulk_mint_nfts(
         .bulk_mint_nfts(fee, launcher_id.into(), mints, false, true)
         .await?;
 
+    let mut tx = wallet.db.tx().await?;
+
+    for nft in &nfts {
+        tx.insert_new_nft(nft.info.launcher_id, true).await?;
+    }
+
+    tx.commit().await?;
+
     transact(&state, &wallet, coin_spends).await?;
 
     Ok(BulkMintNftsResponse {

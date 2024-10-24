@@ -403,5 +403,6 @@ fn nft_record(
         }),
         created_height: nft.created_height,
         create_transaction_id: nft.create_transaction_id.map(hex::encode),
+        visible: nft.visible,
     })
 }

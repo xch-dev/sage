@@ -51,12 +51,8 @@ export function WalletDids() {
         <ReceiveAddress />
       </Header>
       <Container>
-        <Button onClick={() => navigate('create-profile')} className='mb-4'>
-          Create Profile
-        </Button>
-
         {hasHiddenDids && (
-          <div className='inline-flex items-center gap-2 ml-4'>
+          <div className='inline-flex items-center gap-2'>
             <label htmlFor='viewHidden'>View hidden</label>
             <Switch
               id='viewHidden'

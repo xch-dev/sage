@@ -3,6 +3,7 @@ import {
   ImagePlus,
   Images,
   SquareUserRound,
+  UserPlus,
   WalletIcon,
 } from 'lucide-react';
 import { PropsWithChildren } from 'react';
@@ -28,6 +29,10 @@ export function Nav() {
       <NavLink url={'/wallet/issue-token'}>
         <HandCoins className='h-4 w-4' />
         Issue Token
+      </NavLink>
+      <NavLink url={'/dids/create-profile'}>
+        <UserPlus className='h-4 w-4' />
+        Create Profile
       </NavLink>
       <NavLink url={'/nfts/mint-nft'}>
         <ImagePlus className='h-4 w-4' />

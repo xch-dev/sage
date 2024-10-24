@@ -73,3 +73,20 @@ pub async fn update_did(
 
     Ok(())
 }
+
+#[command]
+#[specta]
+pub async fn update_nft(state: State<'_, AppState>, nft_id: String, visible: bool) -> Result<()> {
+    let state = state.lock().await;
+    let wallet = state.wallet()?;
+
+    let (launcher_id, prefix) = decode_address(&nft_id)?;
+
+    if prefix != "nft" {
+        return Err(Error::invalid_prefix(&prefix));
+    }
+
+    wallet.db.update_nft(launcher_id.into(), visible).await?;
+
+    Ok(())
+}

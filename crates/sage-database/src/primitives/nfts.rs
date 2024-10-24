@@ -16,6 +16,7 @@ pub struct NftRow {
     pub license_hash: Option<Bytes32>,
     pub create_transaction_id: Option<Bytes32>,
     pub created_height: Option<u32>,
+    pub visible: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -33,6 +34,10 @@ pub struct NftUri {
 impl Database {
     pub async fn unchecked_nft_uris(&self, limit: u32) -> Result<Vec<NftUri>> {
         unchecked_nft_uris(&self.pool, limit).await
+    }
+
+    pub async fn update_nft(&self, launcher_id: Bytes32, visible: bool) -> Result<()> {
+        update_nft(&self.pool, launcher_id, visible).await
     }
 }
 
@@ -84,6 +89,14 @@ impl<'a> DatabaseTx<'a> {
 
     pub async fn fetch_nft_data(&mut self, hash: Bytes32) -> Result<Option<NftData>> {
         fetch_nft_data(&mut *self.tx, hash).await
+    }
+
+    pub async fn insert_new_nft(&mut self, launcher_id: Bytes32, visible: bool) -> Result<()> {
+        insert_new_nft(&mut *self.tx, launcher_id, visible).await
+    }
+
+    pub async fn nft_visible(&mut self, launcher_id: Bytes32) -> Result<bool> {
+        nft_visible(&mut *self.tx, launcher_id).await
     }
 }
 
@@ -158,7 +171,7 @@ async fn fetch_nfts(conn: impl SqliteExecutor<'_>, limit: u32, offset: u32) -> R
         "
         SELECT
             `nft_coins`.`coin_id`,
-            `launcher_id`,
+            `nft_coins`.`launcher_id`,
             `metadata`,
             `metadata_updater_puzzle_hash`,
             `current_owner`,
@@ -169,13 +182,15 @@ async fn fetch_nfts(conn: impl SqliteExecutor<'_>, limit: u32, offset: u32) -> R
             `metadata_hash`,
             `license_hash`,
             cs.`transaction_id`,
-            `created_height`
+            `created_height`,
+            `visible`
         FROM `nft_coins`
+        INNER JOIN `nfts` INDEXED BY `nft_visible` ON `nft_coins`.`launcher_id` = `nfts`.`launcher_id`
         INNER JOIN `coin_states` AS cs INDEXED BY `coin_height` ON `nft_coins`.`coin_id` = `cs`.`coin_id`
         LEFT JOIN `transaction_spends` ON `cs`.`coin_id` = `transaction_spends`.`coin_id`
         WHERE `cs`.`spent_height` IS NULL
         AND `transaction_spends`.`transaction_id` IS NULL
-        ORDER BY cs.`transaction_id` DESC, `created_height` DESC
+        ORDER BY `visible` DESC, cs.`transaction_id` DESC, `created_height` DESC
         LIMIT ? OFFSET ?
         ",
         limit,
@@ -211,6 +226,7 @@ async fn fetch_nfts(conn: impl SqliteExecutor<'_>, limit: u32, offset: u32) -> R
             license_hash,
             create_transaction_id: row.transaction_id.as_deref().map(to_bytes32).transpose()?,
             created_height: row.created_height.map(TryInto::try_into).transpose()?,
+            visible: row.visible,
         });
     }
 
@@ -224,7 +240,7 @@ async fn fetch_nft(conn: impl SqliteExecutor<'_>, launcher_id: Bytes32) -> Resul
         "
         SELECT
             cs.`coin_id`,
-            `launcher_id`,
+            `nft_coins`.`launcher_id`,
             `metadata`,
             `metadata_updater_puzzle_hash`,
             `current_owner`,
@@ -235,10 +251,12 @@ async fn fetch_nft(conn: impl SqliteExecutor<'_>, launcher_id: Bytes32) -> Resul
             `metadata_hash`,
             `license_hash`,
             `transaction_id`,
-            `created_height`
+            `created_height`,
+            `visible`
         FROM `nft_coins`
         INNER JOIN `coin_states` AS cs ON `nft_coins`.`coin_id` = `cs`.`coin_id`
-        WHERE `launcher_id` = ?
+        INNER JOIN `nfts` ON `nft_coins`.`launcher_id` = `nfts`.`launcher_id`
+        WHERE `nft_coins`.`launcher_id` = ?
         ",
         launcher_id
     )
@@ -270,6 +288,7 @@ async fn fetch_nft(conn: impl SqliteExecutor<'_>, launcher_id: Bytes32) -> Resul
             license_hash,
             create_transaction_id: row.transaction_id.as_deref().map(to_bytes32).transpose()?,
             created_height: row.created_height.map(TryInto::try_into).transpose()?,
+            visible: row.visible,
         })
     })
     .transpose()
@@ -377,4 +396,53 @@ async fn fetch_nft_data(conn: impl SqliteExecutor<'_>, hash: Bytes32) -> Result<
         blob: row.data,
         mime_type: row.mime_type,
     }))
+}
+
+async fn insert_new_nft(
+    conn: impl SqliteExecutor<'_>,
+    launcher_id: Bytes32,
+    visible: bool,
+) -> Result<()> {
+    let launcher_id = launcher_id.as_ref();
+
+    sqlx::query!(
+        "INSERT OR IGNORE INTO `nfts` (`launcher_id`, `visible`) VALUES (?, ?)",
+        launcher_id,
+        visible
+    )
+    .execute(conn)
+    .await?;
+
+    Ok(())
+}
+
+async fn update_nft(
+    conn: impl SqliteExecutor<'_>,
+    launcher_id: Bytes32,
+    visible: bool,
+) -> Result<()> {
+    let launcher_id = launcher_id.as_ref();
+
+    sqlx::query!(
+        "REPLACE INTO `nfts` (`launcher_id`, `visible`) VALUES (?, ?)",
+        launcher_id,
+        visible
+    )
+    .execute(conn)
+    .await?;
+
+    Ok(())
+}
+
+async fn nft_visible(conn: impl SqliteExecutor<'_>, launcher_id: Bytes32) -> Result<bool> {
+    let launcher_id = launcher_id.as_ref();
+
+    let row = sqlx::query!(
+        "SELECT `visible` FROM `nfts` WHERE `launcher_id` = ?",
+        launcher_id
+    )
+    .fetch_optional(conn)
+    .await?;
+
+    Ok(row.is_some_and(|row| row.visible))
 }

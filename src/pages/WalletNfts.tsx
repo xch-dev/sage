@@ -3,9 +3,23 @@ import Header from '@/components/Header';
 import { ReceiveAddress } from '@/components/ReceiveAddress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Switch } from '@/components/ui/switch';
 import { nftUri } from '@/lib/nftUri';
-import { ChevronLeftIcon, ChevronRightIcon, Image } from 'lucide-react';
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  EyeIcon,
+  EyeOff,
+  Image,
+  MoreVerticalIcon,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { commands, events, NftRecord } from '../bindings';
@@ -74,8 +88,8 @@ export function WalletNfts() {
     };
   }, [page]);
 
-  const visibleNfts = showHidden ? nfts : nfts;
-  const hasHiddenNfts = false;
+  const visibleNfts = showHidden ? nfts : nfts.filter((nft) => nft.visible);
+  const hasHiddenNfts = nfts.findIndex((nft) => !nft.visible) > -1;
 
   return (
     <>
@@ -85,7 +99,7 @@ export function WalletNfts() {
 
       <Container>
         {hasHiddenNfts && (
-          <div className='inline-flex items-center gap-2 ml-4'>
+          <div className='inline-flex items-center gap-2'>
             <label htmlFor='viewHidden'>View hidden</label>
             <Switch
               id='viewHidden'
@@ -129,8 +143,8 @@ export function WalletNfts() {
         )}
 
         <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mt-6 mb-2'>
-          {nfts.map((nft, i) => (
-            <Nft nft={nft} key={i} />
+          {visibleNfts.map((nft, i) => (
+            <Nft nft={nft} key={i} updateNfts={() => updateNfts(page)} />
           ))}
         </div>
       </Container>
@@ -138,7 +152,12 @@ export function WalletNfts() {
   );
 }
 
-function Nft({ nft }: { nft: NftRecord }) {
+interface NftProps {
+  nft: NftRecord;
+  updateNfts: () => void;
+}
+
+function Nft({ nft, updateNfts }: NftProps) {
   let json: any = {};
 
   if (nft.metadata) {
@@ -149,12 +168,22 @@ function Nft({ nft }: { nft: NftRecord }) {
     }
   }
 
+  const toggleVisibility = () => {
+    commands.updateNft(nft.launcher_id, !nft.visible).then((result) => {
+      if (result.status === 'ok') {
+        updateNfts();
+      } else {
+        throw new Error('Failed to toggle visibility for NFT');
+      }
+    });
+  };
+
   return (
     <Link
       to={`/nfts/${nft.launcher_id_hex}`}
-      className={`group space-y-1${nft.create_transaction_id !== null ? ' pulsate-opacity' : ''}`}
+      className={`group${`${!nft.visible ? ' opacity-50 grayscale' : nft.create_transaction_id !== null ? ' pulsate-opacity' : ''}`}`}
     >
-      <div className='overflow-hidden rounded-md'>
+      <div className='overflow-hidden rounded-t-md relative'>
         <img
           alt={json.name}
           loading='lazy'
@@ -164,13 +193,41 @@ function Nft({ nft }: { nft: NftRecord }) {
           src={nftUri(nft.data_mime_type, nft.data)}
         />
       </div>
-      <div className='text-md text-center'>
-        <span className='font-medium leading-none'>
-          {json.name ?? 'Unknown NFT'}
+      <div className='text-md flex items-center justify-between border rounded-b p-1 pl-2'>
+        <span className='truncate'>
+          <span className='font-medium leading-none'>
+            {json.name ?? 'Unknown NFT'}
+          </span>
+          <p className='text-xs text-muted-foreground'>
+            {json.collection?.name ?? 'No collection'}
+          </p>
         </span>
-        <p className='text-xs text-muted-foreground'>
-          {json.collection && json.collection.name}
-        </p>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant='ghost' size='icon'>
+              <MoreVerticalIcon className='h-5 w-5' />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align='end'>
+            <DropdownMenuGroup>
+              <DropdownMenuItem
+                className='cursor-pointer text-red-600 focus:text-red-500'
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleVisibility();
+                }}
+              >
+                {nft.visible ? (
+                  <EyeOff className='mr-2 h-4 w-4' />
+                ) : (
+                  <EyeIcon className='mr-2 h-4 w-4' />
+                )}
+                <span>{nft.visible ? 'Hide' : 'Show'}</span>
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </Link>
   );

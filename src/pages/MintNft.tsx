@@ -70,17 +70,14 @@ export default function MintNft() {
               .split(',')
               .map((uri) => uri.trim())
               .filter(Boolean),
-            data_hash: '00'.repeat(32),
             metadata_uris: values.metadataUris
               .split(',')
               .map((uri) => uri.trim())
               .filter(Boolean),
-            metadata_hash: '00'.repeat(32),
             license_uris: (values.licenseUris ?? '')
               .split(',')
               .map((uri) => uri.trim())
               .filter(Boolean),
-            license_hash: '00'.repeat(32),
           },
         ],
       })

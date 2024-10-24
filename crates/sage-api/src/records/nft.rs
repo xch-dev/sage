@@ -23,4 +23,5 @@ pub struct NftRecord {
     pub metadata: Option<String>,
     pub created_height: Option<u32>,
     pub create_transaction_id: Option<String>,
+    pub visible: bool,
 }
