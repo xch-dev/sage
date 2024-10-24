@@ -32,7 +32,7 @@ jobs:
         run: pnpm prettier:check
 
       - name: Install GTK
-        run: sudo apt-get install libgtk-3-dev libjavascriptcoregtk-4.1-dev libwebkit2gtk-4.1-dev
+        run: sudo apt-get update && sudo apt-get install libgtk-3-dev libjavascriptcoregtk-4.1-dev libwebkit2gtk-4.1-dev
 
       - name: Clippy
         run: cargo clippy --workspace --all-features --all-targets
@@ -102,7 +102,7 @@ jobs:
 
       - name: Ubuntu dependencies
         if: matrix.platform == 'ubuntu-22.04' || matrix.platform == 'linux-arm64'
-        run: sudo apt-get install -y libgtk-3-dev libjavascriptcoregtk-4.1-dev libwebkit2gtk-4.1-dev
+        run: sudo apt-get update && sudo apt-get install -y libgtk-3-dev libjavascriptcoregtk-4.1-dev libwebkit2gtk-4.1-dev
 
       - name: Windows dependencies
         if: matrix.platform == 'windows-latest'
