@@ -1,0 +1,98 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT\n            `nft_coins`.`coin_id`,\n            `nft_coins`.`launcher_id`,\n            `metadata`,\n            `metadata_updater_puzzle_hash`,\n            `current_owner`,\n            `royalty_puzzle_hash`,\n            `royalty_ten_thousandths`,\n            `p2_puzzle_hash`,\n            `data_hash`,\n            `metadata_hash`,\n            `license_hash`,\n            cs.`transaction_id`,\n            `created_height`,\n            `visible`\n        FROM `nft_coins`\n        INNER JOIN `nfts` INDEXED BY `nft_visible` ON `nft_coins`.`launcher_id` = `nfts`.`launcher_id`\n        INNER JOIN `coin_states` AS cs INDEXED BY `coin_height` ON `nft_coins`.`coin_id` = `cs`.`coin_id`\n        LEFT JOIN `transaction_spends` ON `cs`.`coin_id` = `transaction_spends`.`coin_id`\n        WHERE `cs`.`spent_height` IS NULL\n        AND `transaction_spends`.`transaction_id` IS NULL\n        ORDER BY `visible` DESC, cs.`transaction_id` DESC, `created_height` DESC\n        LIMIT ? OFFSET ?\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "coin_id",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "launcher_id",
+        "ordinal": 1,
+        "type_info": "Blob"
+      },
+      {
+        "name": "metadata",
+        "ordinal": 2,
+        "type_info": "Blob"
+      },
+      {
+        "name": "metadata_updater_puzzle_hash",
+        "ordinal": 3,
+        "type_info": "Blob"
+      },
+      {
+        "name": "current_owner",
+        "ordinal": 4,
+        "type_info": "Blob"
+      },
+      {
+        "name": "royalty_puzzle_hash",
+        "ordinal": 5,
+        "type_info": "Blob"
+      },
+      {
+        "name": "royalty_ten_thousandths",
+        "ordinal": 6,
+        "type_info": "Integer"
+      },
+      {
+        "name": "p2_puzzle_hash",
+        "ordinal": 7,
+        "type_info": "Blob"
+      },
+      {
+        "name": "data_hash",
+        "ordinal": 8,
+        "type_info": "Blob"
+      },
+      {
+        "name": "metadata_hash",
+        "ordinal": 9,
+        "type_info": "Blob"
+      },
+      {
+        "name": "license_hash",
+        "ordinal": 10,
+        "type_info": "Blob"
+      },
+      {
+        "name": "transaction_id",
+        "ordinal": 11,
+        "type_info": "Blob"
+      },
+      {
+        "name": "created_height",
+        "ordinal": 12,
+        "type_info": "Integer"
+      },
+      {
+        "name": "visible",
+        "ordinal": 13,
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "f6f934b980349d009253854e2bba07a36f7d4a414636b1bac64c462cc3045dcc"
+}

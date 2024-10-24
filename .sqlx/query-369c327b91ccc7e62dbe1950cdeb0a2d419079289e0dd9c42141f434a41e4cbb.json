@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        REPLACE INTO `nft_coins` (\n            `coin_id`,\n            `parent_parent_coin_id`,\n            `parent_inner_puzzle_hash`,\n            `parent_amount`,\n            `launcher_id`,\n            `metadata`,\n            `metadata_updater_puzzle_hash`,\n            `current_owner`,\n            `royalty_puzzle_hash`,\n            `royalty_ten_thousandths`,\n            `p2_puzzle_hash`,\n            `data_hash`,\n            `metadata_hash`,\n            `license_hash`\n        )\n        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 14
+    },
+    "nullable": []
+  },
+  "hash": "369c327b91ccc7e62dbe1950cdeb0a2d419079289e0dd9c42141f434a41e4cbb"
+}
