@@ -10,18 +10,30 @@ use chia::{
         Signature,
     },
     clvm_traits::{FromClvm, ToClvm},
-    protocol::{Bytes, Bytes32, Coin, CoinSpend, CoinState, SpendBundle},
-    puzzles::{standard::StandardArgs, DeriveSynthetic},
+    protocol::{Bytes, Bytes32, Coin, CoinSpend, CoinState, Program, SpendBundle},
+    puzzles::{
+        nft::{NftMetadata, NFT_METADATA_UPDATER_PUZZLE_HASH},
+        standard::StandardArgs,
+        DeriveSynthetic,
+    },
 };
 use chia_wallet_sdk::{
-    run_puzzle, select_coins, AggSigConstants, Cat, CatSpend, Condition, Conditions, Did, Launcher,
-    RequiredSignature, SpendContext, SpendWithConditions, StandardLayer,
+    run_puzzle, select_coins, AggSigConstants, Cat, CatSpend, Condition, Conditions, Did, DidOwner,
+    HashedPtr, Launcher, Nft, NftMint, RequiredSignature, SpendContext, SpendWithConditions,
+    StandardLayer,
 };
 use clvmr::{Allocator, NodePtr};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use sage_database::{Database, DatabaseTx};
 
 use crate::{ParseError, PuzzleInfo, WalletError};
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WalletNftMint {
+    pub metadata: NftMetadata,
+    pub royalty_puzzle_hash: Option<Bytes32>,
+    pub royalty_ten_thousandths: u16,
+}
 
 #[derive(Debug)]
 pub struct Wallet {
@@ -275,7 +287,6 @@ impl Wallet {
         &self,
         coins: Vec<Coin>,
         fee: u64,
-        memos: Vec<Bytes>,
         hardened: bool,
         reuse: bool,
     ) -> Result<Vec<CoinSpend>, WalletError> {
@@ -298,7 +309,7 @@ impl Wallet {
         }
 
         if change > 0 {
-            conditions = conditions.create_coin(p2_puzzle_hash, change, memos.clone());
+            conditions = conditions.create_coin(p2_puzzle_hash, change, Vec::new());
         }
 
         let mut ctx = SpendContext::new();
@@ -306,13 +317,12 @@ impl Wallet {
         Ok(ctx.take())
     }
 
-    /// Splits the given coins into multiple new coins, with the given fee subtracted from the output.
+    /// Splits the given XCH coins into multiple new coins, with the given fee subtracted from the output.
     pub async fn split_xch(
         &self,
         coins: &[Coin],
         output_count: usize,
         fee: u64,
-        memos: Vec<Bytes>,
         hardened: bool,
         reuse: bool,
     ) -> Result<Vec<CoinSpend>, WalletError> {
@@ -370,7 +380,7 @@ impl Wallet {
 
                     remaining_amount -= amount as u128;
 
-                    conditions = conditions.create_coin(derivation, amount, memos.clone());
+                    conditions = conditions.create_coin(derivation, amount, Vec::new());
 
                     remaining_count -= 1;
                 }
@@ -390,7 +400,6 @@ impl Wallet {
         coins: Vec<Coin>,
         puzzle_hash: Bytes32,
         mut fee: u64,
-        memos: Vec<Bytes>,
     ) -> Result<Vec<CoinSpend>, WalletError> {
         // Select the most optimal coins to use for the fee, to keep cost to a minimum.
         let fee_coins: HashSet<Coin> = select_coins(coins.clone(), fee as u128)?
@@ -412,14 +421,14 @@ impl Wallet {
                         Conditions::new().create_coin(
                             puzzle_hash,
                             coin.amount - consumed,
-                            memos.clone(),
+                            Vec::new(),
                         )
                     } else {
                         Conditions::new()
                     }
                 } else {
                     // Otherwise, just create a new output coin at the given puzzle hash.
-                    Conditions::new().create_coin(puzzle_hash, coin.amount, memos.clone())
+                    Conditions::new().create_coin(puzzle_hash, coin.amount, Vec::new())
                 };
 
                 // Ensure that there is a ring of assertions for all of the coins.
@@ -442,6 +451,141 @@ impl Wallet {
                 };
 
                 (*coin, conditions)
+            }),
+        )
+        .await?;
+
+        Ok(ctx.take())
+    }
+
+    /// Combines multiple CAT coins into a single coin, with the given fee subtracted from the output.
+    pub async fn combine_cat(
+        &self,
+        cats: Vec<Cat>,
+        fee: u64,
+        hardened: bool,
+        reuse: bool,
+    ) -> Result<Vec<CoinSpend>, WalletError> {
+        let fee_coins = self.select_p2_coins(fee as u128).await?;
+        let fee_total: u128 = fee_coins.iter().map(|coin| coin.amount as u128).sum();
+        let cat_total: u128 = cats.iter().map(|cat| cat.coin.amount as u128).sum();
+
+        let p2_puzzle_hash = self.p2_puzzle_hash(hardened, reuse).await?;
+
+        let fee_change: u64 = (fee_total - fee as u128)
+            .try_into()
+            .expect("change amount overflow");
+
+        let mut fee_conditions = Conditions::new().assert_concurrent_spend(cats[0].coin.coin_id());
+
+        if fee > 0 {
+            fee_conditions = fee_conditions.reserve_fee(fee);
+        }
+
+        if fee_change > 0 {
+            fee_conditions = fee_conditions.create_coin(p2_puzzle_hash, fee_change, Vec::new());
+        }
+
+        let mut ctx = SpendContext::new();
+
+        self.spend_p2_coins(&mut ctx, fee_coins, fee_conditions)
+            .await?;
+
+        self.spend_cat_coins(
+            &mut ctx,
+            cats.into_iter().enumerate().map(|(i, cat)| {
+                if i == 0 {
+                    (
+                        cat,
+                        Conditions::new().create_coin(
+                            p2_puzzle_hash,
+                            cat_total.try_into().expect("output amount overflow"),
+                            vec![p2_puzzle_hash.into()],
+                        ),
+                    )
+                } else {
+                    (cat, Conditions::new())
+                }
+            }),
+        )
+        .await?;
+
+        Ok(ctx.take())
+    }
+
+    /// Splits the given CAT coins into multiple new coins, with the given fee subtracted from the output.
+    pub async fn split_cat(
+        &self,
+        cats: Vec<Cat>,
+        output_count: usize,
+        fee: u64,
+        hardened: bool,
+        reuse: bool,
+    ) -> Result<Vec<CoinSpend>, WalletError> {
+        let fee_coins = self.select_p2_coins(fee as u128).await?;
+        let fee_total: u128 = fee_coins.iter().map(|coin| coin.amount as u128).sum();
+        let cat_total: u128 = cats.iter().map(|cat| cat.coin.amount as u128).sum();
+
+        let mut remaining_count = output_count;
+        let mut remaining_amount = cat_total;
+
+        let max_individual_amount: u64 = remaining_amount
+            .div_ceil(output_count as u128)
+            .try_into()
+            .expect("output amount overflow");
+
+        let derivations_needed: u32 = output_count
+            .div_ceil(cats.len())
+            .try_into()
+            .expect("derivation count overflow");
+
+        let derivations = self
+            .p2_puzzle_hashes(derivations_needed, hardened, reuse)
+            .await?;
+
+        let mut ctx = SpendContext::new();
+
+        let fee_change: u64 = (fee_total - fee as u128)
+            .try_into()
+            .expect("change amount overflow");
+
+        let mut fee_conditions = Conditions::new().assert_concurrent_spend(cats[0].coin.coin_id());
+
+        if fee > 0 {
+            fee_conditions = fee_conditions.reserve_fee(fee);
+        }
+
+        if fee_change > 0 {
+            fee_conditions = fee_conditions.create_coin(derivations[0], fee_change, Vec::new());
+        }
+
+        self.spend_p2_coins(&mut ctx, fee_coins, fee_conditions)
+            .await?;
+
+        self.spend_cat_coins(
+            &mut ctx,
+            cats.into_iter().map(|cat| {
+                let mut conditions = Conditions::new();
+
+                for &derivation in &derivations {
+                    if remaining_count == 0 {
+                        break;
+                    }
+
+                    let amount: u64 = (max_individual_amount as u128)
+                        .min(remaining_amount)
+                        .try_into()
+                        .expect("output amount overflow");
+
+                    remaining_amount -= amount as u128;
+
+                    conditions =
+                        conditions.create_coin(derivation, amount, vec![derivation.into()]);
+
+                    remaining_count -= 1;
+                }
+
+                (cat, conditions)
             }),
         )
         .await?;
@@ -595,6 +739,76 @@ impl Wallet {
         Ok((ctx.take(), did))
     }
 
+    pub async fn bulk_mint_nfts(
+        &self,
+        fee: u64,
+        did_id: Bytes32,
+        mints: Vec<WalletNftMint>,
+        hardened: bool,
+        reuse: bool,
+    ) -> Result<(Vec<CoinSpend>, Vec<Nft<NftMetadata>>, Did<Program>), WalletError> {
+        let Some(did) = self.db.did(did_id).await? else {
+            return Err(WalletError::MissingDid(did_id));
+        };
+
+        let total_amount = fee as u128 + 1;
+        let coins = self.select_p2_coins(total_amount).await?;
+        let selected: u128 = coins.iter().map(|coin| coin.amount as u128).sum();
+
+        let change: u64 = (selected - total_amount)
+            .try_into()
+            .expect("change amount overflow");
+
+        let p2_puzzle_hash = self.p2_puzzle_hash(hardened, reuse).await?;
+
+        let mut ctx = SpendContext::new();
+
+        let did_metadata_ptr = ctx.alloc(&did.info.metadata)?;
+        let did = did.with_metadata(HashedPtr::from_ptr(&ctx.allocator, did_metadata_ptr));
+
+        let synthetic_key = self.db.synthetic_key(did.info.p2_puzzle_hash).await?;
+        let p2 = StandardLayer::new(synthetic_key);
+
+        let mut did_conditions = Conditions::new();
+        let mut nfts = Vec::with_capacity(mints.len());
+
+        for (i, mint) in mints.into_iter().enumerate() {
+            let mint = NftMint {
+                metadata: mint.metadata,
+                metadata_updater_puzzle_hash: NFT_METADATA_UPDATER_PUZZLE_HASH.into(),
+                royalty_puzzle_hash: mint.royalty_puzzle_hash.unwrap_or(p2_puzzle_hash),
+                royalty_ten_thousandths: mint.royalty_ten_thousandths,
+                p2_puzzle_hash,
+                owner: Some(DidOwner::from_did_info(&did.info)),
+            };
+
+            let (mint_nft, nft) = Launcher::new(did.coin.coin_id(), i as u64 * 2)
+                .with_singleton_amount(1)
+                .mint_nft(&mut ctx, mint)?;
+
+            did_conditions = did_conditions.extend(mint_nft);
+            nfts.push(nft);
+        }
+
+        let new_did = did.update(&mut ctx, &p2, did_conditions)?;
+
+        let mut conditions = Conditions::new().assert_concurrent_spend(did.coin.coin_id());
+
+        if fee > 0 {
+            conditions = conditions.reserve_fee(fee);
+        }
+
+        if change > 0 {
+            conditions = conditions.create_coin(p2_puzzle_hash, change, Vec::new());
+        }
+
+        self.spend_p2_coins(&mut ctx, coins, conditions).await?;
+
+        let new_did = new_did.with_metadata(ctx.serialize(&new_did.info.metadata)?);
+
+        Ok((ctx.take(), nfts, new_did))
+    }
+
     pub async fn sign_transaction(
         &self,
         mut coin_spends: Vec<CoinSpend>,
@@ -739,10 +953,15 @@ impl Wallet {
                 let coin_state = CoinState::new(coin, None, None);
                 let coin_id = coin.coin_id();
 
-                tx.insert_coin_state(coin_state, true, Some(transaction_id))
-                    .await?;
+                macro_rules! insert_coin {
+                    () => {
+                        tx.insert_coin_state(coin_state, true, Some(transaction_id))
+                            .await?;
+                    };
+                }
 
                 if tx.is_p2_puzzle_hash(coin.puzzle_hash).await? {
+                    insert_coin!();
                     tx.insert_p2_coin(coin_id).await?;
                     continue;
                 }
@@ -753,17 +972,23 @@ impl Wallet {
                         lineage_proof,
                         p2_puzzle_hash,
                     } => {
-                        tx.sync_coin(coin_id, Some(p2_puzzle_hash)).await?;
-                        tx.insert_cat_coin(coin_id, lineage_proof, p2_puzzle_hash, asset_id)
-                            .await?;
+                        if tx.is_p2_puzzle_hash(p2_puzzle_hash).await? {
+                            insert_coin!();
+                            tx.sync_coin(coin_id, Some(p2_puzzle_hash)).await?;
+                            tx.insert_cat_coin(coin_id, lineage_proof, p2_puzzle_hash, asset_id)
+                                .await?;
+                        }
                     }
                     PuzzleInfo::Did {
                         lineage_proof,
                         info,
                     } => {
-                        tx.sync_coin(coin_id, Some(info.p2_puzzle_hash)).await?;
-                        tx.insert_new_did(info.launcher_id, None, true).await?;
-                        tx.insert_did_coin(coin_id, lineage_proof, info).await?;
+                        if tx.is_p2_puzzle_hash(info.p2_puzzle_hash).await? {
+                            insert_coin!();
+                            tx.sync_coin(coin_id, Some(info.p2_puzzle_hash)).await?;
+                            tx.insert_new_did(info.launcher_id, None, true).await?;
+                            tx.insert_did_coin(coin_id, lineage_proof, info).await?;
+                        }
                     }
                     PuzzleInfo::Nft {
                         lineage_proof,
@@ -775,38 +1000,50 @@ impl Wallet {
                         metadata_uris,
                         license_uris,
                     } => {
-                        tx.sync_coin(coin_id, Some(info.p2_puzzle_hash)).await?;
-                        tx.insert_nft_coin(
-                            coin_id,
-                            lineage_proof,
-                            info,
-                            data_hash,
-                            metadata_hash,
-                            license_hash,
-                        )
-                        .await?;
+                        if tx.is_p2_puzzle_hash(info.p2_puzzle_hash).await? {
+                            insert_coin!();
 
-                        if let Some(hash) = data_hash {
-                            for uri in data_uris {
-                                tx.insert_nft_uri(uri, hash).await?;
+                            tx.sync_coin(coin_id, Some(info.p2_puzzle_hash)).await?;
+                            tx.insert_new_nft(info.launcher_id, true).await?;
+                            tx.insert_nft_coin(
+                                coin_id,
+                                lineage_proof,
+                                info,
+                                data_hash,
+                                metadata_hash,
+                                license_hash,
+                            )
+                            .await?;
+
+                            if let Some(hash) = data_hash {
+                                for uri in data_uris {
+                                    tx.insert_nft_uri(uri, hash).await?;
+                                }
                             }
-                        }
 
-                        if let Some(hash) = metadata_hash {
-                            for uri in metadata_uris {
-                                tx.insert_nft_uri(uri, hash).await?;
+                            if let Some(hash) = metadata_hash {
+                                for uri in metadata_uris {
+                                    tx.insert_nft_uri(uri, hash).await?;
+                                }
                             }
-                        }
 
-                        if let Some(hash) = license_hash {
-                            for uri in license_uris {
-                                tx.insert_nft_uri(uri, hash).await?;
+                            if let Some(hash) = license_hash {
+                                for uri in license_uris {
+                                    tx.insert_nft_uri(uri, hash).await?;
+                                }
                             }
                         }
                     }
                     PuzzleInfo::Unknown { hint } => {
-                        tx.sync_coin(coin_id, hint).await?;
-                        tx.insert_unknown_coin(coin_id).await?;
+                        let Some(p2_puzzle_hash) = hint else {
+                            continue;
+                        };
+
+                        if tx.is_p2_puzzle_hash(p2_puzzle_hash).await? {
+                            insert_coin!();
+                            tx.sync_coin(coin_id, hint).await?;
+                            tx.insert_unknown_coin(coin_id).await?;
+                        }
                     }
                 }
             }

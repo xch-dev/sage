@@ -1,8 +1,10 @@
 import Container from '@/components/Container';
 import Header from '@/components/Header';
 import { ReceiveAddress } from '@/components/ReceiveAddress';
-import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Switch } from '@/components/ui/switch';
+import { InfoIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { CatRecord, commands, events } from '../bindings';
@@ -13,6 +15,30 @@ export function MainWallet() {
 
   const [cats, setCats] = useState<CatRecord[]>([]);
   const [showHidden, setShowHidden] = useState(false);
+
+  cats.sort((a, b) => {
+    if (a.visible && !b.visible) {
+      return -1;
+    }
+
+    if (!a.visible && b.visible) {
+      return 1;
+    }
+
+    if (!a.name && b.name) {
+      return -1;
+    }
+
+    if (a.name && !b.name) {
+      return 1;
+    }
+
+    if (!a.name && !b.name) {
+      return 0;
+    }
+
+    return a.name!.localeCompare(b.name!);
+  });
 
   const visibleCats = cats.filter((cat) => showHidden || cat.visible);
   const hasHiddenAssets = !!cats.find((cat) => !cat.visible);
@@ -51,7 +77,29 @@ export function MainWallet() {
         <ReceiveAddress />
       </Header>
       <Container>
-        <div className='grid gap-4 md:grid-cols-2 md:gap-4 lg:grid-cols-3 xl:grid-cols-4'>
+        {walletState.sync.synced_coins < walletState.sync.total_coins && (
+          <Alert className='mt-2 mb-4'>
+            <InfoIcon className='h-4 w-4' />
+            <AlertTitle>Syncing in progress...</AlertTitle>
+            <AlertDescription>
+              The wallet is still syncing. Balances may not be accurate until it
+              completes.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {hasHiddenAssets && (
+          <div className='inline-flex items-center gap-2 mb-4'>
+            <label htmlFor='viewHidden'>View hidden</label>
+            <Switch
+              id='viewHidden'
+              checked={showHidden}
+              onCheckedChange={(value) => setShowHidden(value)}
+            />
+          </div>
+        )}
+
+        <div className='grid gap-2 md:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'>
           <Link to={`/wallet/token/xch`}>
             <Card className='transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900'>
               <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
@@ -97,17 +145,6 @@ export function MainWallet() {
             </Link>
           ))}
         </div>
-        {hasHiddenAssets && (
-          <div className='mt-4'>
-            <Button
-              variant='link'
-              className='text-muted-foreground text-xs'
-              onClick={() => setShowHidden(!showHidden)}
-            >
-              {showHidden ? 'Hide' : 'Show'} hidden assets
-            </Button>
-          </div>
-        )}
       </Container>
     </>
   );

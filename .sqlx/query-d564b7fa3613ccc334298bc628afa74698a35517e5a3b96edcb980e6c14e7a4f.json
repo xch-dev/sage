@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT `visible` FROM `nfts` WHERE `launcher_id` = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "visible",
+        "ordinal": 0,
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "d564b7fa3613ccc334298bc628afa74698a35517e5a3b96edcb980e6c14e7a4f"
+}

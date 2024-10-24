@@ -38,6 +38,9 @@ pub enum WalletError {
     #[error("Not enough keys have been derived")]
     InsufficientDerivations,
 
+    #[error("Spendable DID not found: {0}")]
+    MissingDid(Bytes32),
+
     #[error("Unknown public key in transaction: {0:?}")]
     UnknownPublicKey(PublicKey),
 

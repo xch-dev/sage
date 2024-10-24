@@ -30,6 +30,7 @@ export default function IssueToken() {
 
   const formSchema = z.object({
     name: z.string().min(1, 'Name is required'),
+    ticker: z.string().min(1, 'Ticker is required'),
     amount: positiveAmount(3),
     fee: amount(walletState.sync.unit.decimals).optional(),
   });
@@ -43,6 +44,7 @@ export default function IssueToken() {
     commands
       .issueCat(
         values.name,
+        values.ticker,
         values.amount.toString(),
         values.fee?.toString() || '0',
       )
@@ -64,19 +66,35 @@ export default function IssueToken() {
       <Container className='max-w-xl'>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-4'>
-            <FormField
-              control={form.control}
-              name='name'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder='Display name' {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className='grid sm:grid-cols-2 gap-4'>
+              <FormField
+                control={form.control}
+                name='name'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder='Display name' {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name='ticker'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Ticker</FormLabel>
+                    <FormControl>
+                      <Input placeholder='Currency symbol' {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <div className='grid sm:grid-cols-2 gap-4'>
               <FormField
@@ -94,9 +112,7 @@ export default function IssueToken() {
                           className='pr-12'
                         />
                         <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
-                          <span className='text-gray-500 sm:text-sm'>
-                            Token
-                          </span>
+                          <span className='text-gray-500 sm:text-sm'>CAT</span>
                         </div>
                       </div>
                     </FormControl>

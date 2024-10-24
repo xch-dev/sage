@@ -123,6 +123,13 @@ CREATE TABLE `dids` (
     `visible` BOOLEAN NOT NULL
 );
 
+CREATE TABLE `nfts` (
+    `launcher_id` BLOB NOT NULL PRIMARY KEY,
+    `visible` BOOLEAN NOT NULL
+);
+
+CREATE INDEX `nft_visible` ON `nfts` (`visible`);
+
 CREATE TABLE `transactions` (
     `transaction_id` BLOB NOT NULL PRIMARY KEY,
     `aggregated_signature` BLOB NOT NULL,

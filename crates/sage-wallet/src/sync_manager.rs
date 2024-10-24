@@ -290,8 +290,6 @@ impl SyncManager {
                         unspent_count, spent_count,
                         message.height, message.peak_hash
                     );
-
-                    self.event_sender.send(SyncEvent::CoinState).await.ok();
                 } else {
                     debug!("Received coin state update but no database to update");
                 }

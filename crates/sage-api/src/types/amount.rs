@@ -36,6 +36,16 @@ impl Amount {
 
         mojos.to_u64()
     }
+
+    pub fn to_ten_thousandths(&self) -> Option<u16> {
+        let mojos = &self.0 * 100u16;
+
+        if mojos.normalized().fractional_digit_count() > 0 {
+            return None;
+        }
+
+        mojos.to_u16()
+    }
 }
 
 impl fmt::Display for Amount {

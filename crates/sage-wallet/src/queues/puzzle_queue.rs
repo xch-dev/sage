@@ -202,7 +202,7 @@ async fn fetch_puzzle(
             license_uris,
         } => {
             tx.sync_coin(coin_id, Some(info.p2_puzzle_hash)).await?;
-
+            tx.insert_new_nft(info.launcher_id, true).await?;
             tx.insert_nft_coin(
                 coin_id,
                 lineage_proof,

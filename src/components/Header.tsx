@@ -5,9 +5,8 @@ import { logoutAndUpdateState, useWalletState } from '@/state';
 import { ChevronLeft, Cog, LogOut, Menu } from 'lucide-react';
 import { PropsWithChildren, ReactNode, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { navItems } from './Nav';
+import { Nav } from './Nav';
 import { Button } from './ui/button';
-import { Separator } from './ui/separator';
 import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
 
 export default function Header(
@@ -43,7 +42,7 @@ export default function Header(
   const hasBackButton = props.back || location.pathname.split('/').length > 2;
 
   return (
-    <header className='flex items-center gap-4 px-4 lg:px-6 pt-2 sticky top-0 bg-background z-10'>
+    <header className='flex items-center gap-4 px-4 lg:px-6 pt-4 sticky top-0 bg-background z-10'>
       <Sheet>
         {hasBackButton ? (
           <Button
@@ -69,49 +68,33 @@ export default function Header(
         )}
         <SheetContent side='left' className='flex flex-col'>
           <div className='flex h-14 items-center lg:h-[60px]'>
-            <Link to='/' className='flex items-center gap-2 font-semibold'>
+            <Link
+              to='/wallet'
+              className='flex items-center gap-2 font-semibold'
+            >
               <img src={icon} className='h-6 w-6' alt='Wallet icon' />
-              <span className=''>{wallet?.name}</span>
+              <span>{wallet?.name}</span>
             </Link>
           </div>
-          <nav className='grid gap-2 text-lg font-medium'>
-            {navItems.map((item, i) => {
-              switch (item.type) {
-                case 'link': {
-                  const Icon = item.icon;
-                  return (
-                    <Link
-                      key={i}
-                      to={item.url}
-                      className='mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground'
-                    >
-                      <Icon className='h-5 w-5' />
-                      {item.label}
-                    </Link>
-                  );
-                }
-                case 'separator': {
-                  return <Separator className='my-2' key={i} />;
-                }
-              }
-            })}
-          </nav>
-          <nav className='mt-auto grid gap-2 text-lg font-medium'>
+          <Nav />
+          <nav className='mt-auto grid gap-1 text-md font-medium'>
             <Link
               to='/peers'
               className='mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground'
             >
               <span
                 className={
-                  'inline-flex h-3 w-3 m-1 rounded-full' +
+                  'inline-flex h-3 w-3 m-0.5 rounded-full' +
                   ' ' +
                   (isSynced ? 'bg-emerald-600' : 'bg-yellow-600')
                 }
               ></span>
               {isSynced ? (
                 <>
-                  {peers?.length} peers,
-                  {peerMaxHeight ? ` ${peerMaxHeight} peak` : ' connecting...'}
+                  {peers?.length} peers
+                  {peerMaxHeight
+                    ? ` at peak ${peerMaxHeight}`
+                    : ' connecting...'}
                 </>
               ) : (
                 `Syncing ${walletState.sync.synced_coins} / ${walletState.sync.total_coins} coins`
@@ -121,14 +104,14 @@ export default function Header(
               to='/settings'
               className='mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground'
             >
-              <Cog className='h-5 w-5' />
+              <Cog className='h-4 w-4' />
               Settings
             </Link>
             <button
               onClick={logout}
               className='mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground'
             >
-              <LogOut className='h-5 w-5' />
+              <LogOut className='h-4 w-4' />
               Logout
             </button>
           </nav>

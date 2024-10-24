@@ -1,6 +1,7 @@
 import Container from '@/components/Container';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
+import { nftUri } from '@/lib/nftUri';
 import { open } from '@tauri-apps/plugin-shell';
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
@@ -67,7 +68,7 @@ export default function Nft() {
           <div className='py-2'>
             <img
               alt='NFT image'
-              src={`data:${nft?.data_mime_type};base64,${nft?.data}`}
+              src={nftUri(nft?.data_mime_type ?? null, nft?.data ?? null)}
               className='w-full rounded-lg'
             />
           </div>

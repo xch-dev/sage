@@ -1,8 +1,15 @@
-use chia::protocol::{Bytes32, CoinSpend};
-use chia_wallet_sdk::{decode_address, AggSigConstants, MAINNET_CONSTANTS, TESTNET11_CONSTANTS};
-use sage_api::Amount;
+use std::time::Duration;
+
+use chia::{
+    protocol::{Bytes32, CoinSpend},
+    puzzles::nft::NftMetadata,
+};
+use chia_wallet_sdk::{
+    decode_address, encode_address, AggSigConstants, MAINNET_CONSTANTS, TESTNET11_CONSTANTS,
+};
+use sage_api::{Amount, BulkMintNfts, BulkMintNftsResponse};
 use sage_database::CatRow;
-use sage_wallet::Wallet;
+use sage_wallet::{fetch_uris, Wallet, WalletNftMint};
 use specta::specta;
 use tauri::{command, State};
 use tokio::sync::MutexGuard;
@@ -96,9 +103,7 @@ pub async fn combine(state: State<'_, AppState>, coin_ids: Vec<String>, fee: Amo
 
     tx.commit().await?;
 
-    let coin_spends = wallet
-        .combine_xch(coins, fee, Vec::new(), false, true)
-        .await?;
+    let coin_spends = wallet.combine_xch(coins, fee, false, true).await?;
 
     transact(&state, &wallet, coin_spends).await?;
 
@@ -148,7 +153,88 @@ pub async fn split(
     tx.commit().await?;
 
     let coin_spends = wallet
-        .split_xch(&coins, output_count as usize, fee, Vec::new(), false, true)
+        .split_xch(&coins, output_count as usize, fee, false, true)
+        .await?;
+
+    transact(&state, &wallet, coin_spends).await?;
+
+    Ok(())
+}
+
+#[command]
+#[specta]
+pub async fn combine_cat(
+    state: State<'_, AppState>,
+    coin_ids: Vec<String>,
+    fee: Amount,
+) -> Result<()> {
+    let state = state.lock().await;
+    let wallet = state.wallet()?;
+
+    if !state.keychain.has_secret_key(wallet.fingerprint) {
+        return Err(Error::no_secret_key());
+    }
+
+    let Some(fee) = fee.to_mojos(state.unit.decimals) else {
+        return Err(Error::invalid_amount(&fee));
+    };
+
+    let coin_ids = coin_ids
+        .iter()
+        .map(|coin_id| Ok(hex::decode(coin_id)?.try_into()?))
+        .collect::<Result<Vec<Bytes32>>>()?;
+
+    let mut cats = Vec::new();
+
+    for coin_id in coin_ids {
+        let Some(cat) = wallet.db.cat_coin(coin_id).await? else {
+            return Err(Error::unknown_coin_id());
+        };
+        cats.push(cat);
+    }
+
+    let coin_spends = wallet.combine_cat(cats, fee, false, true).await?;
+
+    transact(&state, &wallet, coin_spends).await?;
+
+    Ok(())
+}
+
+#[command]
+#[specta]
+pub async fn split_cat(
+    state: State<'_, AppState>,
+    coin_ids: Vec<String>,
+    output_count: u32,
+    fee: Amount,
+) -> Result<()> {
+    let state = state.lock().await;
+    let wallet = state.wallet()?;
+
+    if !state.keychain.has_secret_key(wallet.fingerprint) {
+        return Err(Error::no_secret_key());
+    }
+
+    let Some(fee) = fee.to_mojos(state.unit.decimals) else {
+        return Err(Error::invalid_amount(&fee));
+    };
+
+    let coin_ids = coin_ids
+        .iter()
+        .map(|coin_id| Ok(hex::decode(coin_id)?.try_into()?))
+        .collect::<Result<Vec<Bytes32>>>()?;
+
+    let mut cats = Vec::new();
+
+    for coin_id in coin_ids {
+        let Some(cat) = wallet.db.cat_coin(coin_id).await? else {
+            return Err(Error::unknown_coin_id());
+        };
+        cats.push(cat);
+    }
+
+    let coin_spends = wallet
+        .split_cat(cats, output_count as usize, fee, false, true)
         .await?;
 
     transact(&state, &wallet, coin_spends).await?;
@@ -161,6 +247,7 @@ pub async fn split(
 pub async fn issue_cat(
     state: State<'_, AppState>,
     name: String,
+    ticker: String,
     amount: Amount,
     fee: Amount,
 ) -> Result<()> {
@@ -188,7 +275,7 @@ pub async fn issue_cat(
         .maybe_insert_cat(CatRow {
             asset_id,
             name: Some(name),
-            ticker: None,
+            ticker: Some(ticker),
             description: None,
             icon_url: None,
             visible: true,
@@ -262,6 +349,127 @@ pub async fn create_did(state: State<'_, AppState>, name: String, fee: Amount) -
     transact(&state, &wallet, coin_spends).await?;
 
     Ok(())
+}
+
+#[command]
+#[specta]
+pub async fn bulk_mint_nfts(
+    state: State<'_, AppState>,
+    request: BulkMintNfts,
+) -> Result<BulkMintNftsResponse> {
+    let state = state.lock().await;
+    let wallet = state.wallet()?;
+
+    if !state.keychain.has_secret_key(wallet.fingerprint) {
+        return Err(Error::no_secret_key());
+    }
+
+    let Some(fee) = request.fee.to_mojos(state.unit.decimals) else {
+        return Err(Error::invalid_amount(&request.fee));
+    };
+
+    let (launcher_id, prefix) = decode_address(&request.did_id)?;
+
+    if prefix != "did:chia:" {
+        return Err(Error::invalid_prefix(&prefix));
+    }
+
+    let mut mints = Vec::with_capacity(request.nft_mints.len());
+
+    for item in request.nft_mints {
+        let royalty_puzzle_hash = item
+            .royalty_address
+            .map(|address| {
+                let (puzzle_hash, prefix) = decode_address(&address)?;
+                if prefix != state.network().address_prefix {
+                    return Err(Error::invalid_prefix(&prefix));
+                }
+                Ok(puzzle_hash.into())
+            })
+            .transpose()?;
+
+        let Some(royalty_ten_thousandths) = item.royalty_percent.to_ten_thousandths() else {
+            return Err(Error::invalid_royalty(&item.royalty_percent));
+        };
+
+        let data_hash = if item.data_uris.is_empty() {
+            None
+        } else {
+            Some(
+                fetch_uris(
+                    item.data_uris.clone(),
+                    Duration::from_secs(15),
+                    Duration::from_secs(5),
+                )
+                .await?
+                .hash,
+            )
+        };
+
+        let metadata_hash = if item.metadata_uris.is_empty() {
+            None
+        } else {
+            Some(
+                fetch_uris(
+                    item.metadata_uris.clone(),
+                    Duration::from_secs(15),
+                    Duration::from_secs(15),
+                )
+                .await?
+                .hash,
+            )
+        };
+
+        let license_hash = if item.license_uris.is_empty() {
+            None
+        } else {
+            Some(
+                fetch_uris(
+                    item.license_uris.clone(),
+                    Duration::from_secs(15),
+                    Duration::from_secs(15),
+                )
+                .await?
+                .hash,
+            )
+        };
+
+        mints.push(WalletNftMint {
+            metadata: NftMetadata {
+                edition_number: item.edition_number.map_or(1, Into::into),
+                edition_total: item.edition_total.map_or(1, Into::into),
+                data_uris: item.data_uris,
+                data_hash,
+                metadata_uris: item.metadata_uris,
+                metadata_hash,
+                license_uris: item.license_uris,
+                license_hash,
+            },
+            royalty_puzzle_hash,
+            royalty_ten_thousandths,
+        });
+    }
+
+    let (coin_spends, nfts, _did) = wallet
+        .bulk_mint_nfts(fee, launcher_id.into(), mints, false, true)
+        .await?;
+
+    let mut tx = wallet.db.tx().await?;
+
+    for nft in &nfts {
+        tx.insert_new_nft(nft.info.launcher_id, true).await?;
+    }
+
+    tx.commit().await?;
+
+    transact(&state, &wallet, coin_spends).await?;
+
+    Ok(BulkMintNftsResponse {
+        nft_ids: nfts
+            .into_iter()
+            .map(|nft| Result::Ok(encode_address(nft.info.launcher_id.into(), "nft")?))
+            .collect::<Result<_>>()?,
+    })
 }
 
 async fn transact(

@@ -58,13 +58,17 @@ pub fn run() {
             commands::update_cat_info,
             commands::remove_cat_info,
             commands::update_did,
+            commands::update_nft,
             // Transactions
             commands::send,
             commands::combine,
             commands::split,
+            commands::combine_cat,
+            commands::split_cat,
             commands::issue_cat,
             commands::send_cat,
             commands::create_did,
+            commands::bulk_mint_nfts,
             // Peers
             commands::get_peers,
             commands::add_peer,
