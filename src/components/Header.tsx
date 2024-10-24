@@ -42,7 +42,7 @@ export default function Header(
   const hasBackButton = props.back || location.pathname.split('/').length > 2;
 
   return (
-    <header className='flex items-center gap-4 px-4 lg:px-6 pt-2 sticky top-0 bg-background z-10'>
+    <header className='flex items-center gap-4 px-4 lg:px-6 pt-4 sticky top-0 bg-background z-10'>
       <Sheet>
         {hasBackButton ? (
           <Button
@@ -68,9 +68,12 @@ export default function Header(
         )}
         <SheetContent side='left' className='flex flex-col'>
           <div className='flex h-14 items-center lg:h-[60px]'>
-            <Link to='/' className='flex items-center gap-2 font-semibold'>
+            <Link
+              to='/wallet'
+              className='flex items-center gap-2 font-semibold'
+            >
               <img src={icon} className='h-6 w-6' alt='Wallet icon' />
-              <span className=''>{wallet?.name}</span>
+              <span>{wallet?.name}</span>
             </Link>
           </div>
           <Nav />
