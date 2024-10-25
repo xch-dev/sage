@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{fs, str::FromStr};
 
 use bip39::Mnemonic;
 use chia::bls::{PublicKey, SecretKey};
@@ -89,7 +89,15 @@ pub async fn resync_wallet(state: State<'_, AppState>, fingerprint: u32) -> Resu
         state.switch_wallet().await?;
     }
 
-    state.delete_wallet_db(fingerprint)?;
+    fs::remove_file(
+        state
+            .path
+            .join("wallets")
+            .join(fingerprint.to_string())
+            .join("db")
+            .join(format!("{}.sqlite", &state.config.network.network_id)),
+    )
+    .ok();
 
     if login {
         state.config.app.active_fingerprint = Some(fingerprint);

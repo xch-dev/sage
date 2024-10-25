@@ -123,7 +123,10 @@ function WalletItem(props: {
 
   const resyncSelf = () => {
     commands.resyncWallet(props.wallet.fingerprint).then((res) => {
-      if (res.status === 'error') return;
+      if (res.status === 'error') {
+        console.error(res.error);
+        return;
+      }
       setResyncOpen(false);
     });
   };
@@ -274,8 +277,7 @@ function WalletItem(props: {
             <DialogTitle>Resync Wallet</DialogTitle>
             <DialogDescription>
               Are you sure you want to resync this wallet's data? This will
-              remove custom names for tokens and profiles and redownload all of
-              the data from the network.
+              redownload all of the data from the network.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

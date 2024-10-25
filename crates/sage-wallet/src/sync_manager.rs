@@ -20,7 +20,7 @@ use tokio::{
 use tracing::{debug, info, warn};
 use wallet_sync::{incremental_sync, sync_wallet};
 
-use crate::{CatQueue, NftQueue, PuzzleQueue, TransactionQueue, Wallet, WalletError};
+use crate::{NftQueue, PuzzleQueue, TransactionQueue, Wallet, WalletError};
 
 mod options;
 mod peer_discovery;
@@ -46,7 +46,6 @@ pub struct SyncManager {
     command_receiver: mpsc::Receiver<SyncCommand>,
     initial_wallet_sync: InitialWalletSync,
     puzzle_lookup_task: Option<JoinHandle<Result<(), WalletError>>>,
-    cat_queue_task: Option<JoinHandle<Result<(), WalletError>>>,
     nft_queue_task: Option<JoinHandle<Result<(), WalletError>>>,
     transaction_queue_task: Option<JoinHandle<Result<(), WalletError>>>,
     pending_coin_subscriptions: Vec<Bytes32>,
@@ -75,9 +74,6 @@ impl Drop for SyncManager {
             task.abort();
         }
         if let Some(task) = &mut self.puzzle_lookup_task {
-            task.abort();
-        }
-        if let Some(task) = &mut self.cat_queue_task {
             task.abort();
         }
         if let Some(task) = &mut self.nft_queue_task {
@@ -113,7 +109,6 @@ impl SyncManager {
             command_receiver,
             initial_wallet_sync: InitialWalletSync::Idle,
             puzzle_lookup_task: None,
-            cat_queue_task: None,
             nft_queue_task: None,
             transaction_queue_task: None,
             pending_coin_subscriptions: Vec::new(),
@@ -134,11 +129,10 @@ impl SyncManager {
     async fn process_commands(&mut self) {
         while let Ok(command) = self.command_receiver.try_recv() {
             match command {
-                SyncCommand::SwitchWallet { wallet, callback } => {
+                SyncCommand::SwitchWallet { wallet } => {
                     self.clear_subscriptions().await;
                     self.abort_wallet_tasks();
                     self.wallet = wallet;
-                    callback.send(()).ok();
                 }
                 SyncCommand::SwitchNetwork {
                     network_id,
@@ -216,9 +210,6 @@ impl SyncManager {
             task.abort();
         }
         if let Some(task) = self.puzzle_lookup_task.take() {
-            task.abort();
-        }
-        if let Some(task) = &mut self.cat_queue_task.take() {
             task.abort();
         }
         if let Some(task) = &mut self.nft_queue_task.take() {
@@ -369,18 +360,6 @@ impl SyncManager {
                 self.puzzle_lookup_task = Some(task);
             }
 
-            if self.cat_queue_task.is_none() {
-                let task = tokio::spawn(
-                    CatQueue::new(
-                        wallet.db.clone(),
-                        self.network.clone(),
-                        self.event_sender.clone(),
-                    )
-                    .start(),
-                );
-                self.cat_queue_task = Some(task);
-            }
-
             if self.nft_queue_task.is_none() {
                 let task = tokio::spawn(
                     NftQueue::new(wallet.db.clone(), self.event_sender.clone()).start(),
@@ -402,7 +381,6 @@ impl SyncManager {
             }
         } else {
             self.puzzle_lookup_task = None;
-            self.cat_queue_task = None;
             self.nft_queue_task = None;
             self.transaction_queue_task = None;
         }
@@ -429,23 +407,6 @@ impl SyncManager {
                         self.event_sender.send(SyncEvent::Stop).await.ok();
                     }
                 }
-            }
-        }
-
-        if let Some(task) = &mut self.cat_queue_task {
-            match poll_once(task).await {
-                Some(Err(error)) => {
-                    warn!("CAT lookup queue failed with panic: {error}");
-                    self.cat_queue_task = None;
-                }
-                Some(Ok(Err(error))) => {
-                    warn!("CAT lookup queue failed with error: {error}");
-                    self.cat_queue_task = None;
-                }
-                Some(Ok(Ok(()))) => {
-                    self.cat_queue_task = None;
-                }
-                None => {}
             }
         }
 

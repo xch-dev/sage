@@ -11,7 +11,7 @@ use sage_api::{Amount, BulkMintNfts, BulkMintNftsResponse};
 use sage_wallet::{fetch_uris, Wallet, WalletNftMint};
 use specta::specta;
 use tauri::{command, State};
-use tokio::sync::MutexGuard;
+use tokio::sync::{oneshot, MutexGuard};
 
 use crate::{AppState, AppStateInner, Error, Result};
 
@@ -45,11 +45,11 @@ pub async fn send(
         return Err(Error::invalid_prefix(&prefix));
     }
 
-    let Some(amount) = amount.to_mojos(state.unit.decimals) else {
+    let Some(amount) = amount.to_mojos(wallet.unit.decimals) else {
         return Err(Error::invalid_amount(&amount));
     };
 
-    let Some(fee) = fee.to_mojos(state.unit.decimals) else {
+    let Some(fee) = fee.to_mojos(wallet.unit.decimals) else {
         return Err(Error::invalid_amount(&fee));
     };
 
@@ -57,7 +57,7 @@ pub async fn send(
         .send_xch(puzzle_hash.into(), amount, fee, Vec::new(), false, true)
         .await?;
 
-    transact(&state, &wallet, coin_spends).await?;
+    transact(&state, wallet, coin_spends).await?;
 
     Ok(())
 }
@@ -72,7 +72,7 @@ pub async fn combine(state: State<'_, AppState>, coin_ids: Vec<String>, fee: Amo
         return Err(Error::no_secret_key());
     }
 
-    let Some(fee) = fee.to_mojos(state.unit.decimals) else {
+    let Some(fee) = fee.to_mojos(wallet.unit.decimals) else {
         return Err(Error::invalid_amount(&fee));
     };
 
@@ -101,7 +101,7 @@ pub async fn combine(state: State<'_, AppState>, coin_ids: Vec<String>, fee: Amo
 
     let coin_spends = wallet.combine_xch(coins, fee, false, true).await?;
 
-    transact(&state, &wallet, coin_spends).await?;
+    transact(&state, wallet, coin_spends).await?;
 
     Ok(())
 }
@@ -121,7 +121,7 @@ pub async fn split(
         return Err(Error::no_secret_key());
     }
 
-    let Some(fee) = fee.to_mojos(state.unit.decimals) else {
+    let Some(fee) = fee.to_mojos(wallet.unit.decimals) else {
         return Err(Error::invalid_amount(&fee));
     };
 
@@ -152,7 +152,7 @@ pub async fn split(
         .split_xch(&coins, output_count as usize, fee, false, true)
         .await?;
 
-    transact(&state, &wallet, coin_spends).await?;
+    transact(&state, wallet, coin_spends).await?;
 
     Ok(())
 }
@@ -171,7 +171,7 @@ pub async fn combine_cat(
         return Err(Error::no_secret_key());
     }
 
-    let Some(fee) = fee.to_mojos(state.unit.decimals) else {
+    let Some(fee) = fee.to_mojos(wallet.unit.decimals) else {
         return Err(Error::invalid_amount(&fee));
     };
 
@@ -191,7 +191,7 @@ pub async fn combine_cat(
 
     let coin_spends = wallet.combine_cat(cats, fee, false, true).await?;
 
-    transact(&state, &wallet, coin_spends).await?;
+    transact(&state, wallet, coin_spends).await?;
 
     Ok(())
 }
@@ -211,7 +211,7 @@ pub async fn split_cat(
         return Err(Error::no_secret_key());
     }
 
-    let Some(fee) = fee.to_mojos(state.unit.decimals) else {
+    let Some(fee) = fee.to_mojos(wallet.unit.decimals) else {
         return Err(Error::invalid_amount(&fee));
     };
 
@@ -233,7 +233,7 @@ pub async fn split_cat(
         .split_cat(cats, output_count as usize, fee, false, true)
         .await?;
 
-    transact(&state, &wallet, coin_spends).await?;
+    transact(&state, wallet, coin_spends).await?;
 
     Ok(())
 }
@@ -258,25 +258,25 @@ pub async fn issue_cat(
         return Err(Error::invalid_amount(&amount));
     };
 
-    let Some(fee) = fee.to_mojos(state.unit.decimals) else {
+    let Some(fee) = fee.to_mojos(wallet.unit.decimals) else {
         return Err(Error::invalid_amount(&fee));
     };
 
     let (coin_spends, asset_id) = wallet.issue_cat(amount, fee, None, false, true).await?;
 
-    transact(&state, &wallet, coin_spends).await?;
+    transact(&state, wallet, coin_spends).await?;
 
-    wallet
-        .db
-        .maybe_insert_cat(CatRow {
-            asset_id,
-            name: Some(name),
-            ticker: Some(ticker),
-            description: None,
-            icon_url: None,
-            visible: true,
-        })
-        .await?;
+    {
+        let mut assets = wallet.assets.lock().await;
+        let asset = assets.tokens.entry(hex::encode(asset_id)).or_default();
+
+        asset.name = Some(name);
+        asset.ticker = Some(ticker);
+    }
+
+    let (sender, receiver) = oneshot::channel();
+    wallet.saver.send(sender).await.ok();
+    receiver.await.ok();
 
     Ok(())
 }
@@ -308,7 +308,7 @@ pub async fn send_cat(
         return Err(Error::invalid_amount(&amount));
     };
 
-    let Some(fee) = fee.to_mojos(state.unit.decimals) else {
+    let Some(fee) = fee.to_mojos(wallet.unit.decimals) else {
         return Err(Error::invalid_amount(&fee));
     };
 
@@ -316,7 +316,7 @@ pub async fn send_cat(
         .send_cat(asset_id, puzzle_hash.into(), amount, fee, false, true)
         .await?;
 
-    transact(&state, &wallet, coin_spends).await?;
+    transact(&state, wallet, coin_spends).await?;
 
     Ok(())
 }
@@ -331,18 +331,27 @@ pub async fn create_did(state: State<'_, AppState>, name: String, fee: Amount) -
         return Err(Error::no_secret_key());
     }
 
-    let Some(fee) = fee.to_mojos(state.unit.decimals) else {
+    let Some(fee) = fee.to_mojos(wallet.unit.decimals) else {
         return Err(Error::invalid_amount(&fee));
     };
 
     let (coin_spends, did) = wallet.create_did(fee, false, true).await?;
 
-    wallet
-        .db
-        .insert_new_did(did.info.launcher_id, Some(name), true)
-        .await?;
+    {
+        let mut assets = wallet.assets.lock().await;
+        let asset = assets
+            .profiles
+            .entry(encode_address(did.info.launcher_id.into(), "did:chia:")?)
+            .or_default();
 
-    transact(&state, &wallet, coin_spends).await?;
+        asset.name = Some(name);
+    }
+
+    let (sender, receiver) = oneshot::channel();
+    wallet.saver.send(sender).await.ok();
+    receiver.await.ok();
+
+    transact(&state, wallet, coin_spends).await?;
 
     Ok(())
 }
@@ -360,7 +369,7 @@ pub async fn bulk_mint_nfts(
         return Err(Error::no_secret_key());
     }
 
-    let Some(fee) = request.fee.to_mojos(state.unit.decimals) else {
+    let Some(fee) = request.fee.to_mojos(wallet.unit.decimals) else {
         return Err(Error::invalid_amount(&request.fee));
     };
 
@@ -450,15 +459,7 @@ pub async fn bulk_mint_nfts(
         .bulk_mint_nfts(fee, launcher_id.into(), mints, false, true)
         .await?;
 
-    let mut tx = wallet.db.tx().await?;
-
-    for nft in &nfts {
-        tx.insert_new_nft(nft.info.launcher_id, true).await?;
-    }
-
-    tx.commit().await?;
-
-    transact(&state, &wallet, coin_spends).await?;
+    transact(&state, wallet, coin_spends).await?;
 
     Ok(BulkMintNftsResponse {
         nft_ids: nfts
@@ -494,7 +495,7 @@ pub async fn transfer_nft(
         return Err(Error::invalid_prefix(&prefix));
     }
 
-    let Some(fee) = fee.to_mojos(state.unit.decimals) else {
+    let Some(fee) = fee.to_mojos(wallet.unit.decimals) else {
         return Err(Error::invalid_amount(&fee));
     };
 
@@ -502,7 +503,7 @@ pub async fn transfer_nft(
         .transfer_nft(launcher_id.into(), puzzle_hash.into(), fee, false, true)
         .await?;
 
-    transact(&state, &wallet, coin_spends).await?;
+    transact(&state, wallet, coin_spends).await?;
 
     Ok(())
 }

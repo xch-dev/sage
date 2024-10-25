@@ -10,6 +10,7 @@ use sage_api::{
     Amount, CatRecord, CoinRecord, DidRecord, GetNfts, GetNftsResponse, NftRecord,
     PendingTransactionRecord, SyncStatus,
 };
+use sage_config::Assets;
 use sage_database::{DidRow, NftData, NftRow};
 use sage_wallet::WalletError;
 use specta::specta;
@@ -60,8 +61,8 @@ pub async fn get_sync_status(state: State<'_, AppState>) -> Result<SyncStatus> {
         .transpose()?;
 
     Ok(SyncStatus {
-        balance: Amount::from_mojos(balance, state.unit.decimals),
-        unit: state.unit.clone(),
+        balance: Amount::from_mojos(balance, wallet.unit.decimals),
+        unit: wallet.unit.clone(),
         total_coins,
         synced_coins,
         receive_address: receive_address.unwrap_or_default(),
@@ -95,7 +96,7 @@ pub async fn get_coins(state: State<'_, AppState>) -> Result<Vec<CoinRecord>> {
                 cs.coin.puzzle_hash.to_bytes(),
                 &state.network().address_prefix,
             )?,
-            amount: Amount::from_mojos(cs.coin.amount as u128, state.unit.decimals),
+            amount: Amount::from_mojos(cs.coin.amount as u128, wallet.unit.decimals),
             created_height: cs.created_height,
             spent_height: cs.spent_height,
             create_transaction_id: row.transaction_id.map(hex::encode),
@@ -156,20 +157,27 @@ pub async fn get_cat_coins(
 pub async fn get_cats(state: State<'_, AppState>) -> Result<Vec<CatRecord>> {
     let state = state.lock().await;
     let wallet = state.wallet()?;
-    let cats = wallet.db.cats().await?;
+    let asset_ids = wallet.db.asset_ids().await?;
 
-    let mut records = Vec::with_capacity(cats.len());
+    let mut records = Vec::with_capacity(asset_ids.len());
 
-    for cat in cats {
-        let balance = wallet.db.cat_balance(cat.asset_id).await?;
+    let assets = wallet.assets.lock().await;
+
+    for asset_id in asset_ids {
+        let balance = wallet.db.cat_balance(asset_id).await?;
+        let cat = assets
+            .tokens
+            .get(&hex::encode(asset_id))
+            .cloned()
+            .unwrap_or_default();
 
         records.push(CatRecord {
-            asset_id: hex::encode(cat.asset_id),
+            asset_id: hex::encode(asset_id),
             name: cat.name,
             ticker: cat.ticker,
             description: cat.description,
             icon_url: cat.icon_url,
-            visible: cat.visible,
+            visible: !cat.hidden,
             balance: Amount::from_mojos(balance, 3),
         });
     }
@@ -179,7 +187,7 @@ pub async fn get_cats(state: State<'_, AppState>) -> Result<Vec<CatRecord>> {
 
 #[command]
 #[specta]
-pub async fn get_cat(state: State<'_, AppState>, asset_id: String) -> Result<Option<CatRecord>> {
+pub async fn get_cat(state: State<'_, AppState>, asset_id: String) -> Result<CatRecord> {
     let state = state.lock().await;
     let wallet = state.wallet()?;
 
@@ -187,21 +195,25 @@ pub async fn get_cat(state: State<'_, AppState>, asset_id: String) -> Result<Opt
         .try_into()
         .map_err(|_| Error::invalid_asset_id())?;
 
-    let cat = wallet.db.cat(asset_id.into()).await?;
+    let cat = wallet
+        .assets
+        .lock()
+        .await
+        .tokens
+        .get(&hex::encode(asset_id))
+        .cloned()
+        .unwrap_or_default();
     let balance = wallet.db.cat_balance(asset_id.into()).await?;
 
-    cat.map(|cat| {
-        Ok(CatRecord {
-            asset_id: hex::encode(cat.asset_id),
-            name: cat.name,
-            ticker: cat.ticker,
-            description: cat.description,
-            icon_url: cat.icon_url,
-            visible: cat.visible,
-            balance: Amount::from_mojos(balance, 3),
-        })
+    Ok(CatRecord {
+        asset_id: hex::encode(asset_id),
+        name: cat.name,
+        ticker: cat.ticker,
+        description: cat.description,
+        icon_url: cat.icon_url,
+        visible: !cat.hidden,
+        balance: Amount::from_mojos(balance, 3),
     })
-    .transpose()
 }
 
 #[command]
@@ -209,6 +221,8 @@ pub async fn get_cat(state: State<'_, AppState>, asset_id: String) -> Result<Opt
 pub async fn get_dids(state: State<'_, AppState>) -> Result<Vec<DidRecord>> {
     let state = state.lock().await;
     let wallet = state.wallet()?;
+
+    let assets = wallet.assets.lock().await;
 
     wallet
         .db
@@ -218,21 +232,22 @@ pub async fn get_dids(state: State<'_, AppState>) -> Result<Vec<DidRecord>> {
         .map(
             |DidRow {
                  did,
-                 name,
-                 visible,
                  created_height,
                  create_transaction_id,
              }| {
+                let did_id = encode_address(did.info.launcher_id.to_bytes(), "did:chia:")?;
+                let asset = assets.profiles.get(&did_id).cloned();
+
                 Ok(DidRecord {
-                    launcher_id: encode_address(did.info.launcher_id.to_bytes(), "did:chia:")?,
-                    name,
-                    visible,
+                    launcher_id: did_id,
+                    name: asset.as_ref().and_then(|asset| asset.name.clone()),
+                    visible: asset.map_or(true, |asset| !asset.hidden),
                     coin_id: hex::encode(did.coin.coin_id()),
                     address: encode_address(
                         did.info.p2_puzzle_hash.to_bytes(),
                         &state.network().address_prefix,
                     )?,
-                    amount: Amount::from_mojos(did.coin.amount as u128, state.unit.decimals),
+                    amount: Amount::from_mojos(did.coin.amount as u128, wallet.unit.decimals),
                     created_height,
                     create_transaction_id: create_transaction_id.map(hex::encode),
                 })
@@ -257,7 +272,7 @@ pub async fn get_pending_transactions(
         .map(|tx| {
             Ok(PendingTransactionRecord {
                 transaction_id: hex::encode(tx.transaction_id),
-                fee: Amount::from_mojos(tx.fee as u128, state.unit.decimals),
+                fee: Amount::from_mojos(tx.fee as u128, wallet.unit.decimals),
                 // TODO: Date format?
                 submitted_at: tx.submitted_at.map(|ts| ts.to_string()),
                 expiration_height: tx.expiration_height,
@@ -296,6 +311,7 @@ pub async fn get_nfts(state: State<'_, AppState>, request: GetNfts) -> Result<Ge
             &state.network().address_prefix,
             data,
             metadata,
+            &*wallet.assets.lock().await,
         )?);
     }
 
@@ -339,7 +355,13 @@ pub async fn get_nft(state: State<'_, AppState>, launcher_id: String) -> Result<
 
     tx.commit().await?;
 
-    let record = nft_record(&nft, &state.network().address_prefix, data, metadata)?;
+    let record = nft_record(
+        &nft,
+        &state.network().address_prefix,
+        data,
+        metadata,
+        &*wallet.assets.lock().await,
+    )?;
 
     Ok(Some(record))
 }
@@ -349,14 +371,17 @@ fn nft_record(
     prefix: &str,
     data: Option<NftData>,
     offchain_metadata: Option<NftData>,
+    assets: &Assets,
 ) -> Result<NftRecord> {
     let mut allocator = Allocator::new();
     let ptr = nft.info.metadata.to_clvm(&mut allocator)?;
     let metadata = NftMetadata::from_clvm(&allocator, ptr).ok();
 
+    let nft_id = encode_address(nft.info.launcher_id.to_bytes(), "nft")?;
+
     Ok(NftRecord {
         launcher_id_hex: hex::encode(nft.info.launcher_id),
-        launcher_id: encode_address(nft.info.launcher_id.to_bytes(), "nft")?,
+        launcher_id: nft_id.clone(),
         owner_did: nft
             .info
             .current_owner
@@ -402,6 +427,6 @@ fn nft_record(
         }),
         created_height: nft.created_height,
         create_transaction_id: nft.create_transaction_id.map(hex::encode),
-        visible: nft.visible,
+        visible: assets.nfts.get(&nft_id).map_or(true, |nft| !nft.hidden),
     })
 }

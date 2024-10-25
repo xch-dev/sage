@@ -1,5 +1,4 @@
 import {
-  FileSliders,
   HandCoins,
   ImagePlus,
   Images,
@@ -25,10 +24,6 @@ export function Nav() {
       <NavLink url={'/dids'}>
         <SquareUserRound className='h-4 w-4' />
         Profiles
-      </NavLink>
-      <NavLink url={'/offers'}>
-        <FileSliders className='h-4 w-4' />
-        Offers
       </NavLink>
       <Separator className='my-2' />
       <NavLink url={'/wallet/issue-token'}>

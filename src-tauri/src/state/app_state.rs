@@ -1,27 +1,20 @@
 use std::{
     fs,
     path::{Path, PathBuf},
-    str::FromStr,
     sync::Arc,
     time::Duration,
 };
 
-use chia::bls::master_to_wallet_unhardened_intermediate;
 use chia_wallet_sdk::{create_rustls_connector, load_ssl_cert, Connector};
 use indexmap::{indexmap, IndexMap};
 use itertools::Itertools;
-use sage_api::{SyncEvent as ApiEvent, Unit, TXCH, XCH};
+use sage_api::SyncEvent as ApiEvent;
 use sage_config::{Config, Network, WalletConfig, MAINNET, TESTNET11};
-use sage_database::Database;
 use sage_keychain::Keychain;
-use sage_wallet::{PeerState, SyncCommand, SyncEvent, SyncManager, SyncOptions, Wallet};
-use sqlx::{
-    sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions},
-    ConnectOptions,
-};
+use sage_wallet::{PeerState, SyncCommand, SyncEvent, SyncManager, SyncOptions};
 use tauri::{AppHandle, Emitter};
-use tokio::sync::{mpsc, oneshot, Mutex};
-use tracing::{error, info, level_filters::LevelFilter};
+use tokio::sync::{mpsc, Mutex};
+use tracing::{info, level_filters::LevelFilter};
 use tracing_appender::rolling::{Builder, Rotation};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, Layer};
 
@@ -29,6 +22,8 @@ use crate::{
     error::{Error, Result},
     models::{WalletInfo, WalletKind},
 };
+
+use super::WalletState;
 
 pub type AppState = Mutex<AppStateInner>;
 
@@ -38,11 +33,10 @@ pub struct AppStateInner {
     pub config: Config,
     pub keychain: Keychain,
     pub networks: IndexMap<String, Network>,
-    pub wallet: Option<Arc<Wallet>>,
-    pub unit: Unit,
     pub initialized: bool,
     pub peer_state: Arc<Mutex<PeerState>>,
     pub command_sender: mpsc::Sender<SyncCommand>,
+    pub wallet: Option<WalletState>,
 }
 
 impl AppStateInner {
@@ -57,7 +51,6 @@ impl AppStateInner {
                 "testnet11".to_string() => TESTNET11.clone(),
             },
             wallet: None,
-            unit: XCH.clone(),
             initialized: false,
             peer_state: Arc::new(Mutex::new(PeerState::default())),
             command_sender: mpsc::channel(1).0,
@@ -209,7 +202,7 @@ impl AppStateInner {
                 dns_timeout: Duration::from_secs(3),
             },
             self.peer_state.clone(),
-            self.wallet.clone(),
+            self.wallet.as_ref().map(|state| state.inner.clone()),
             network_id,
             chia_wallet_sdk::Network {
                 default_port: network.default_port,
@@ -251,18 +244,9 @@ impl AppStateInner {
         let Some(fingerprint) = self.config.app.active_fingerprint else {
             self.wallet = None;
 
-            let (sender, receiver) = oneshot::channel();
-
             self.command_sender
-                .send(SyncCommand::SwitchWallet {
-                    wallet: None,
-                    callback: sender,
-                })
+                .send(SyncCommand::SwitchWallet { wallet: None })
                 .await?;
-
-            // receiver.await?;
-
-            drop(receiver);
 
             return Ok(());
         };
@@ -271,88 +255,23 @@ impl AppStateInner {
             return Err(Error::unknown_fingerprint(fingerprint));
         };
 
-        let intermediate_pk = master_to_wallet_unhardened_intermediate(&master_pk);
+        let wallet_path = self.path.join("wallets").join(fingerprint.to_string());
+        let network_id = self.config.network.network_id.clone();
+        let genesis_challenge =
+            hex::decode(&self.networks[&network_id].genesis_challenge)?.try_into()?;
 
-        let path = self.wallet_db_path(fingerprint)?;
-        let network_id = &self.config.network.network_id;
-        let genesis_challenge = &self.networks[network_id].genesis_challenge;
-
-        let mut pool = SqlitePoolOptions::new()
-            .connect_with(
-                SqliteConnectOptions::from_str(&format!("sqlite://{}?mode=rwc", path.display()))?
-                    .journal_mode(SqliteJournalMode::Wal)
-                    .log_statements(log::LevelFilter::Trace),
-            )
-            .await?;
-
-        // TODO: Remove this before out of beta.
-        if let Err(error) = sqlx::migrate!("../migrations").run(&pool).await {
-            error!("Error migrating database, dropping database: {error:?}");
-
-            pool.close().await;
-            drop(pool);
-
-            fs::remove_file(&path)?;
-
-            pool = SqlitePoolOptions::new()
-                .connect_with(
-                    SqliteConnectOptions::from_str(&format!(
-                        "sqlite://{}?mode=rwc",
-                        path.display()
-                    ))?
-                    .journal_mode(SqliteJournalMode::Wal)
-                    .log_statements(log::LevelFilter::Trace),
-                )
-                .await?;
-
-            sqlx::migrate!("../migrations").run(&pool).await?;
-        }
-
-        let db = Database::new(pool);
-        let wallet = Arc::new(Wallet::new(
-            db.clone(),
-            fingerprint,
-            intermediate_pk,
-            hex::decode(genesis_challenge)?.try_into()?,
-        ));
-
-        self.wallet = Some(wallet.clone());
-        self.unit = match network_id.as_str() {
-            "mainnet" => XCH.clone(),
-            _ => TXCH.clone(),
-        };
-
-        let (sender, receiver) = oneshot::channel();
+        let wallet =
+            WalletState::open(wallet_path, network_id, genesis_challenge, master_pk).await?;
+        let inner = wallet.inner.clone();
+        self.wallet = Some(wallet);
 
         self.command_sender
             .send(SyncCommand::SwitchWallet {
-                wallet: Some(wallet),
-                callback: sender,
+                wallet: Some(inner),
             })
             .await?;
 
-        // receiver.await?;
-
-        drop(receiver);
-
         Ok(())
-    }
-
-    pub fn delete_wallet_db(&self, fingerprint: u32) -> Result<()> {
-        let path = self.wallet_db_path(fingerprint)?;
-        Ok(fs::remove_file(path)?)
-    }
-
-    pub fn wallet_db_path(&self, fingerprint: u32) -> Result<PathBuf> {
-        let path = self
-            .path
-            .join("wallets")
-            .join(fingerprint.to_string())
-            .join("db");
-        fs::create_dir_all(&path)?;
-        let network_id = &self.config.network.network_id;
-        let path = path.join(format!("{network_id}.sqlite"));
-        Ok(path)
     }
 
     pub fn network(&self) -> &Network {
@@ -361,7 +280,7 @@ impl AppStateInner {
             .expect("network not found")
     }
 
-    pub fn wallet(&self) -> Result<Arc<Wallet>> {
+    pub fn wallet(&self) -> Result<&WalletState> {
         let Some(fingerprint) = self.config.app.active_fingerprint else {
             return Err(Error::not_logged_in());
         };
@@ -376,7 +295,25 @@ impl AppStateInner {
             return Err(Error::not_logged_in());
         }
 
-        Ok(wallet.clone())
+        Ok(wallet)
+    }
+
+    pub fn wallet_mut(&mut self) -> Result<&mut WalletState> {
+        let Some(fingerprint) = self.config.app.active_fingerprint else {
+            return Err(Error::not_logged_in());
+        };
+
+        if !self.keychain.contains(fingerprint) {
+            return Err(Error::unknown_fingerprint(fingerprint));
+        }
+
+        let wallet = self.wallet.as_mut().ok_or(Error::not_logged_in())?;
+
+        if wallet.fingerprint != fingerprint {
+            return Err(Error::not_logged_in());
+        }
+
+        Ok(wallet)
     }
 
     pub fn try_wallet_config(&self, fingerprint: u32) -> Result<&WalletConfig> {

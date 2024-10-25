@@ -29,6 +29,10 @@ impl Database {
     pub async fn cat_coin(&self, coin_id: Bytes32) -> Result<Option<Cat>> {
         cat_coin(&self.pool, coin_id).await
     }
+
+    pub async fn asset_ids(&self) -> Result<Vec<Bytes32>> {
+        asset_ids(&self.pool).await
+    }
 }
 
 impl<'a> DatabaseTx<'a> {
@@ -221,4 +225,14 @@ async fn cat_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Opt
         })
     })
     .transpose()
+}
+
+async fn asset_ids(conn: impl SqliteExecutor<'_>) -> Result<Vec<Bytes32>> {
+    let rows = sqlx::query!("SELECT `asset_id` FROM `cat_coins` GROUP BY `asset_id`")
+        .fetch_all(conn)
+        .await?;
+
+    rows.into_iter()
+        .map(|row| to_bytes32(&row.asset_id))
+        .collect()
 }

@@ -43,64 +43,64 @@ impl CatQueue {
     pub async fn start(self) -> Result<(), WalletError> {
         loop {
             self.process_batch().await?;
-            sleep(Duration::from_secs(1)).await;
+            sleep(Duration::from_secs(10)).await;
         }
     }
 
     async fn process_batch(&self) -> Result<(), WalletError> {
-        // let Some(asset_id) = self.db.unidentified_cat().await? else {
-        //     return Ok(());
-        // };
+        let mut asset_ids = self.db.asset_ids().await?;
 
-        // info!(
-        //     "Looking up CAT with asset id {} from spacescan.io",
-        //     asset_id
-        // );
+        let assets = self.assets;
 
-        // let asset =
-        //     match timeout(Duration::from_secs(10), lookup_cat(&self.network, asset_id)).await {
-        //         Ok(Ok(response)) => response.assets.first().cloned().unwrap_or(AssetData {
-        //             name: None,
-        //             code: None,
-        //             description: None,
-        //         }),
-        //         Ok(Err(error)) => {
-        //             info!("Failed to fetch CAT: {:?}", error);
-        //             AssetData {
-        //                 name: None,
-        //                 code: None,
-        //                 description: None,
-        //             }
-        //         }
-        //         Err(_) => {
-        //             info!("Timeout fetching CAT");
-        //             AssetData {
-        //                 name: None,
-        //                 code: None,
-        //                 description: None,
-        //             }
-        //         }
-        //     };
+        info!(
+            "Looking up CAT with asset id {} from spacescan.io",
+            asset_id
+        );
 
-        // let dexie_image_base_url =
-        //     if self.network.genesis_challenge == TESTNET11_CONSTANTS.genesis_challenge {
-        //         "https://icons-testnet.dexie.space"
-        //     } else {
-        //         "https://icons.dexie.space"
-        //     };
+        let asset =
+            match timeout(Duration::from_secs(10), lookup_cat(&self.network, asset_id)).await {
+                Ok(Ok(response)) => response.assets.first().cloned().unwrap_or(AssetData {
+                    name: None,
+                    code: None,
+                    description: None,
+                }),
+                Ok(Err(error)) => {
+                    info!("Failed to fetch CAT: {:?}", error);
+                    AssetData {
+                        name: None,
+                        code: None,
+                        description: None,
+                    }
+                }
+                Err(_) => {
+                    info!("Timeout fetching CAT");
+                    AssetData {
+                        name: None,
+                        code: None,
+                        description: None,
+                    }
+                }
+            };
 
-        // self.db
-        //     .update_cat(CatRow {
-        //         asset_id,
-        //         name: asset.name,
-        //         ticker: asset.code,
-        //         description: asset.description,
-        //         icon_url: Some(format!("{dexie_image_base_url}/{asset_id}.webp")),
-        //         visible: true,
-        //     })
-        //     .await?;
+        let dexie_image_base_url =
+            if self.network.genesis_challenge == TESTNET11_CONSTANTS.genesis_challenge {
+                "https://icons-testnet.dexie.space"
+            } else {
+                "https://icons.dexie.space"
+            };
 
-        // self.sync_sender.send(SyncEvent::CatInfo).await.ok();
+        self.db
+            .update_cat(CatRow {
+                asset_id,
+                name: asset.name,
+                ticker: asset.code,
+                description: asset.description,
+                icon_url: Some(format!("{dexie_image_base_url}/{asset_id}.webp")),
+                visible: true,
+            })
+            .await?;
+
+        self.sync_sender.send(SyncEvent::CatInfo).await.ok();
 
         Ok(())
     }

@@ -16,7 +16,6 @@ import IssueToken from './pages/IssueToken';
 import Login from './pages/Login';
 import MintNft from './pages/MintNft';
 import Nft from './pages/Nft';
-import Offers from './pages/Offers';
 import PeerList from './pages/PeerList';
 import Receive from './pages/Receive';
 import Send from './pages/Send';
@@ -65,9 +64,6 @@ const router = createHashRouter(
       </Route>
       <Route path='/transactions' element={<Wallet />}>
         <Route path='' element={<Transactions />} />
-      </Route>
-      <Route path='/offers' element={<Wallet />}>
-        <Route path='' element={<Offers />} />
       </Route>
       <Route path='/settings' element={<Settings />} />
       <Route path='/peers' element={<PeerList />} />

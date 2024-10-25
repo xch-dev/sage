@@ -2,7 +2,7 @@ use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize, Type)]
 pub struct Assets {
     pub tokens: IndexMap<String, Token>,
     pub profiles: IndexMap<String, Profile>,
