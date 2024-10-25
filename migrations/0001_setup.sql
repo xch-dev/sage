@@ -31,7 +31,7 @@ CREATE INDEX `coin_hint` ON `coin_states` (`hint`);
 CREATE INDEX `coin_spent` ON `coin_states` (`spent_height`);
 CREATE INDEX `coin_created` ON `coin_states` (`created_height`);
 CREATE INDEX `coin_synced` ON `coin_states` (`synced`);
-CREATE INDEX `coin_height` ON `coin_states` (`created_height`, `spent_height`);
+CREATE INDEX `coin_height` ON `coin_states` (`spent_height` ASC, `created_height` DESC);
 CREATE INDEX `coin_transaction` ON `coin_states` (`transaction_id`);
 
 CREATE TABLE `unknown_coins` (
