@@ -1,5 +1,3 @@
-use std::time::Instant;
-
 use base64::prelude::*;
 use bigdecimal::BigDecimal;
 use chia::{
@@ -16,7 +14,6 @@ use sage_database::{DidRow, NftData, NftRow};
 use sage_wallet::WalletError;
 use specta::specta;
 use tauri::{command, State};
-use tracing::warn;
 
 use crate::{
     app_state::AppState,
@@ -275,9 +272,6 @@ pub async fn get_pending_transactions(
 #[command]
 #[specta]
 pub async fn get_nfts(state: State<'_, AppState>, request: GetNfts) -> Result<GetNftsResponse> {
-    let mut old = Instant::now();
-    let start = Instant::now();
-
     let state = state.lock().await;
     let wallet = state.wallet()?;
 
@@ -285,17 +279,7 @@ pub async fn get_nfts(state: State<'_, AppState>, request: GetNfts) -> Result<Ge
 
     let mut tx = wallet.db.tx().await?;
 
-    let setup = old.elapsed();
-    old = Instant::now();
-
-    warn!("Time to setup: {:?}", setup);
-
     let nfts = tx.fetch_nfts(request.limit, request.offset).await?;
-
-    let fetch = old.elapsed();
-    old = Instant::now();
-
-    warn!("Time to fetch: {:?}", fetch);
 
     for nft in nfts {
         let data = if let Some(hash) = nft.data_hash {
@@ -310,33 +294,17 @@ pub async fn get_nfts(state: State<'_, AppState>, request: GetNfts) -> Result<Ge
             None
         };
 
-        let data_time = old.elapsed();
-        old = Instant::now();
-
-        warn!("Time to fetch data: {:?}", data_time);
-
         records.push(nft_record(
             &nft,
             &state.network().address_prefix,
             data,
             metadata,
         )?);
-
-        let extract = old.elapsed();
-        old = Instant::now();
-
-        warn!("Time to extract: {:?}", extract);
     }
 
     let total = tx.nft_count().await?;
 
     tx.commit().await?;
-
-    let finish = old.elapsed();
-    let total_time = start.elapsed();
-
-    warn!("Time to finish: {:?}", finish);
-    warn!("Total time: {:?}", total_time);
 
     Ok(GetNftsResponse {
         items: records,
