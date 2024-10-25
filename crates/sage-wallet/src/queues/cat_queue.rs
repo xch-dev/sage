@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use chia::protocol::Bytes32;
 use chia_wallet_sdk::{Network, TESTNET11_CONSTANTS};
-use sage_database::{CatRow, Database};
+use sage_database::Database;
 use serde::Deserialize;
 use tokio::{
     sync::mpsc,
@@ -48,59 +48,59 @@ impl CatQueue {
     }
 
     async fn process_batch(&self) -> Result<(), WalletError> {
-        let Some(asset_id) = self.db.unidentified_cat().await? else {
-            return Ok(());
-        };
+        // let Some(asset_id) = self.db.unidentified_cat().await? else {
+        //     return Ok(());
+        // };
 
-        info!(
-            "Looking up CAT with asset id {} from spacescan.io",
-            asset_id
-        );
+        // info!(
+        //     "Looking up CAT with asset id {} from spacescan.io",
+        //     asset_id
+        // );
 
-        let asset =
-            match timeout(Duration::from_secs(10), lookup_cat(&self.network, asset_id)).await {
-                Ok(Ok(response)) => response.assets.first().cloned().unwrap_or(AssetData {
-                    name: None,
-                    code: None,
-                    description: None,
-                }),
-                Ok(Err(error)) => {
-                    info!("Failed to fetch CAT: {:?}", error);
-                    AssetData {
-                        name: None,
-                        code: None,
-                        description: None,
-                    }
-                }
-                Err(_) => {
-                    info!("Timeout fetching CAT");
-                    AssetData {
-                        name: None,
-                        code: None,
-                        description: None,
-                    }
-                }
-            };
+        // let asset =
+        //     match timeout(Duration::from_secs(10), lookup_cat(&self.network, asset_id)).await {
+        //         Ok(Ok(response)) => response.assets.first().cloned().unwrap_or(AssetData {
+        //             name: None,
+        //             code: None,
+        //             description: None,
+        //         }),
+        //         Ok(Err(error)) => {
+        //             info!("Failed to fetch CAT: {:?}", error);
+        //             AssetData {
+        //                 name: None,
+        //                 code: None,
+        //                 description: None,
+        //             }
+        //         }
+        //         Err(_) => {
+        //             info!("Timeout fetching CAT");
+        //             AssetData {
+        //                 name: None,
+        //                 code: None,
+        //                 description: None,
+        //             }
+        //         }
+        //     };
 
-        let dexie_image_base_url =
-            if self.network.genesis_challenge == TESTNET11_CONSTANTS.genesis_challenge {
-                "https://icons-testnet.dexie.space"
-            } else {
-                "https://icons.dexie.space"
-            };
+        // let dexie_image_base_url =
+        //     if self.network.genesis_challenge == TESTNET11_CONSTANTS.genesis_challenge {
+        //         "https://icons-testnet.dexie.space"
+        //     } else {
+        //         "https://icons.dexie.space"
+        //     };
 
-        self.db
-            .update_cat(CatRow {
-                asset_id,
-                name: asset.name,
-                ticker: asset.code,
-                description: asset.description,
-                icon_url: Some(format!("{dexie_image_base_url}/{asset_id}.webp")),
-                visible: true,
-            })
-            .await?;
+        // self.db
+        //     .update_cat(CatRow {
+        //         asset_id,
+        //         name: asset.name,
+        //         ticker: asset.code,
+        //         description: asset.description,
+        //         icon_url: Some(format!("{dexie_image_base_url}/{asset_id}.webp")),
+        //         visible: true,
+        //     })
+        //     .await?;
 
-        self.sync_sender.send(SyncEvent::CatInfo).await.ok();
+        // self.sync_sender.send(SyncEvent::CatInfo).await.ok();
 
         Ok(())
     }

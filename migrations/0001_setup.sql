@@ -109,28 +109,6 @@ CREATE TABLE `nft_uris` (
 
 CREATE INDEX `nft_uri_checked_hash` ON `nft_uris` (`checked`, `hash`);
 
-CREATE TABLE `cats` (
-    `asset_id` BLOB NOT NULL PRIMARY KEY,
-    `name` TEXT,
-    `ticker` TEXT,
-    `description` TEXT,
-    `icon_url` TEXT,
-    `visible` BOOLEAN NOT NULL
-);
-
-CREATE TABLE `dids` (
-    `launcher_id` BLOB NOT NULL PRIMARY KEY,
-    `name` TEXT,
-    `visible` BOOLEAN NOT NULL
-);
-
-CREATE TABLE `nfts` (
-    `launcher_id` BLOB NOT NULL PRIMARY KEY,
-    `visible` BOOLEAN NOT NULL
-);
-
-CREATE INDEX `nft_visible` ON `nfts` (`visible`);
-
 CREATE TABLE `transactions` (
     `transaction_id` BLOB NOT NULL PRIMARY KEY,
     `aggregated_signature` BLOB NOT NULL,

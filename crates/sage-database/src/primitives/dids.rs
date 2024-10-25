@@ -10,31 +10,11 @@ use crate::{to_bytes, to_bytes32, to_coin, to_lineage_proof, Database, DatabaseT
 #[derive(Debug, Clone)]
 pub struct DidRow {
     pub did: Did<Program>,
-    pub name: Option<String>,
-    pub visible: bool,
     pub create_transaction_id: Option<Bytes32>,
     pub created_height: Option<u32>,
 }
 
 impl Database {
-    pub async fn insert_new_did(
-        &self,
-        launcher_id: Bytes32,
-        name: Option<String>,
-        visible: bool,
-    ) -> Result<()> {
-        insert_new_did(&self.pool, launcher_id, name, visible).await
-    }
-
-    pub async fn update_did(
-        &self,
-        launcher_id: Bytes32,
-        name: Option<String>,
-        visible: bool,
-    ) -> Result<()> {
-        update_did(&self.pool, launcher_id, name, visible).await
-    }
-
     pub async fn did_coins(&self) -> Result<Vec<DidRow>> {
         did_coins(&self.pool).await
     }
@@ -45,15 +25,6 @@ impl Database {
 }
 
 impl<'a> DatabaseTx<'a> {
-    pub async fn insert_new_did(
-        &mut self,
-        launcher_id: Bytes32,
-        name: Option<String>,
-        visible: bool,
-    ) -> Result<()> {
-        insert_new_did(&mut *self.tx, launcher_id, name, visible).await
-    }
-
     pub async fn insert_did_coin(
         &mut self,
         coin_id: Bytes32,
@@ -62,60 +33,6 @@ impl<'a> DatabaseTx<'a> {
     ) -> Result<()> {
         insert_did_coin(&mut *self.tx, coin_id, lineage_proof, did_info).await
     }
-}
-
-async fn insert_new_did(
-    conn: impl SqliteExecutor<'_>,
-    launcher_id: Bytes32,
-    name: Option<String>,
-    visible: bool,
-) -> Result<()> {
-    let launcher_id = launcher_id.as_ref();
-
-    sqlx::query!(
-        "
-        INSERT OR IGNORE INTO `dids` (
-            `launcher_id`,
-            `name`,
-            `visible`
-        )
-        VALUES (?, ?, ?)
-        ",
-        launcher_id,
-        name,
-        visible
-    )
-    .execute(conn)
-    .await?;
-
-    Ok(())
-}
-
-async fn update_did(
-    conn: impl SqliteExecutor<'_>,
-    launcher_id: Bytes32,
-    name: Option<String>,
-    visible: bool,
-) -> Result<()> {
-    let launcher_id = launcher_id.as_ref();
-
-    sqlx::query!(
-        "
-        REPLACE INTO `dids` (
-            `launcher_id`,
-            `name`,
-            `visible`
-        )
-        VALUES (?, ?, ?)
-        ",
-        launcher_id,
-        name,
-        visible
-    )
-    .execute(conn)
-    .await?;
-
-    Ok(())
 }
 
 async fn insert_did_coin(
@@ -175,10 +92,9 @@ async fn did_coins(conn: impl SqliteExecutor<'_>) -> Result<Vec<DidRow>> {
             cs.transaction_id AS create_transaction_id, cs.created_height,
             did.parent_parent_coin_id, did.parent_inner_puzzle_hash, did.parent_amount,
             did.launcher_id, did.recovery_list_hash, did.num_verifications_required,
-            did.metadata, did.p2_puzzle_hash, name, visible
+            did.metadata, did.p2_puzzle_hash
         FROM `coin_states` AS cs
         INNER JOIN `did_coins` AS did ON cs.coin_id = did.coin_id
-        INNER JOIN `dids` ON did.launcher_id = dids.launcher_id
         LEFT JOIN `transaction_spends` ON cs.coin_id = transaction_spends.coin_id
         WHERE cs.spent_height IS NULL
         AND transaction_spends.transaction_id IS NULL
@@ -210,8 +126,6 @@ async fn did_coins(conn: impl SqliteExecutor<'_>) -> Result<Vec<DidRow>> {
                         p2_puzzle_hash: to_bytes32(&row.p2_puzzle_hash)?,
                     },
                 },
-                name: row.name,
-                visible: row.visible,
                 create_transaction_id: row
                     .create_transaction_id
                     .as_deref()

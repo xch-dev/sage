@@ -344,7 +344,11 @@ impl AppStateInner {
     }
 
     pub fn wallet_db_path(&self, fingerprint: u32) -> Result<PathBuf> {
-        let path = self.path.join("wallets").join(fingerprint.to_string());
+        let path = self
+            .path
+            .join("wallets")
+            .join(fingerprint.to_string())
+            .join("db");
         fs::create_dir_all(&path)?;
         let network_id = &self.config.network.network_id;
         let path = path.join(format!("{network_id}.sqlite"));

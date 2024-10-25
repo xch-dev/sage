@@ -10,16 +10,6 @@ use crate::{
     DatabaseTx, Result,
 };
 
-#[derive(Debug, Clone)]
-pub struct CatRow {
-    pub asset_id: Bytes32,
-    pub name: Option<String>,
-    pub ticker: Option<String>,
-    pub description: Option<String>,
-    pub icon_url: Option<String>,
-    pub visible: bool,
-}
-
 #[derive(Debug, Clone, Copy)]
 pub struct CatCoin {
     pub coin: Coin,
@@ -28,30 +18,6 @@ pub struct CatCoin {
 }
 
 impl Database {
-    pub async fn maybe_insert_cat(&self, row: CatRow) -> Result<()> {
-        maybe_insert_cat(&self.pool, row).await
-    }
-
-    pub async fn update_cat(&self, row: CatRow) -> Result<()> {
-        update_cat(&self.pool, row).await
-    }
-
-    pub async fn delete_cat(&self, asset_id: Bytes32) -> Result<()> {
-        delete_cat(&self.pool, asset_id).await
-    }
-
-    pub async fn cats(&self) -> Result<Vec<CatRow>> {
-        cats(&self.pool).await
-    }
-
-    pub async fn cat(&self, asset_id: Bytes32) -> Result<Option<CatRow>> {
-        cat(&self.pool, asset_id).await
-    }
-
-    pub async fn unidentified_cat(&self) -> Result<Option<Bytes32>> {
-        unidentified_cat(&self.pool).await
-    }
-
     pub async fn spendable_cat_coins(&self, asset_id: Bytes32) -> Result<Vec<CatCoin>> {
         spendable_cat_coins(&self.pool, asset_id).await
     }
@@ -86,150 +52,6 @@ impl<'a> DatabaseTx<'a> {
     pub async fn cat_coin_states(&mut self, asset_id: Bytes32) -> Result<Vec<CoinStateRow>> {
         cat_coin_states(&mut *self.tx, asset_id).await
     }
-}
-
-async fn maybe_insert_cat(conn: impl SqliteExecutor<'_>, row: CatRow) -> Result<()> {
-    let asset_id = row.asset_id.as_ref();
-
-    sqlx::query!(
-        "
-        INSERT OR IGNORE INTO `cats` (
-            `asset_id`,
-            `name`,
-            `ticker`,
-            `description`,
-            `icon_url`,
-            `visible`
-        ) VALUES (?, ?, ?, ?, ?, ?)
-        ",
-        asset_id,
-        row.name,
-        row.ticker,
-        row.description,
-        row.icon_url,
-        row.visible,
-    )
-    .execute(conn)
-    .await?;
-    Ok(())
-}
-
-async fn update_cat(conn: impl SqliteExecutor<'_>, row: CatRow) -> Result<()> {
-    let asset_id = row.asset_id.as_ref();
-
-    sqlx::query!(
-        "
-        REPLACE INTO `cats` (
-            `asset_id`,
-            `name`,
-            `ticker`,
-            `description`,
-            `icon_url`,
-            `visible`
-        ) VALUES (?, ?, ?, ?, ?, ?)
-        ",
-        asset_id,
-        row.name,
-        row.ticker,
-        row.description,
-        row.icon_url,
-        row.visible
-    )
-    .execute(conn)
-    .await?;
-    Ok(())
-}
-
-async fn delete_cat(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<()> {
-    let asset_id = asset_id.as_ref();
-
-    sqlx::query!(
-        "
-        DELETE FROM `cats` WHERE `asset_id` = ?
-        ",
-        asset_id
-    )
-    .execute(conn)
-    .await?;
-
-    Ok(())
-}
-
-async fn cats(conn: impl SqliteExecutor<'_>) -> Result<Vec<CatRow>> {
-    let rows = sqlx::query!(
-        "
-        SELECT
-            `asset_id`,
-            `name`,
-            `ticker`,
-            `description`,
-            `icon_url`,
-            `visible`
-        FROM `cats`
-        ORDER BY `name` ASC, `asset_id` ASC
-        "
-    )
-    .fetch_all(conn)
-    .await?;
-
-    rows.into_iter()
-        .map(|row| {
-            Ok(CatRow {
-                asset_id: to_bytes32(&row.asset_id)?,
-                name: row.name,
-                ticker: row.ticker,
-                description: row.description,
-                icon_url: row.icon_url,
-                visible: row.visible,
-            })
-        })
-        .collect()
-}
-
-async fn cat(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<Option<CatRow>> {
-    let asset_id = asset_id.as_ref();
-
-    let row = sqlx::query!(
-        "
-        SELECT
-            `asset_id`,
-            `name`,
-            `ticker`,
-            `description`,
-            `icon_url`,
-            `visible`
-        FROM `cats`
-        WHERE `asset_id` = ?
-        ",
-        asset_id
-    )
-    .fetch_optional(conn)
-    .await?;
-
-    row.map(|row| {
-        Ok(CatRow {
-            asset_id: to_bytes32(&row.asset_id)?,
-            name: row.name,
-            ticker: row.ticker,
-            description: row.description,
-            icon_url: row.icon_url,
-            visible: row.visible,
-        })
-    })
-    .transpose()
-}
-
-async fn unidentified_cat(conn: impl SqliteExecutor<'_>) -> Result<Option<Bytes32>> {
-    let rows = sqlx::query!(
-        "
-        SELECT `asset_id` FROM `cat_coins`
-        WHERE `asset_id` NOT IN (SELECT `asset_id` FROM `cats`)
-        LIMIT 1
-        "
-    )
-    .fetch_optional(conn)
-    .await?;
-    rows.map(|row| to_bytes32(&row.asset_id)).transpose()
 }
 
 async fn insert_cat_coin(
