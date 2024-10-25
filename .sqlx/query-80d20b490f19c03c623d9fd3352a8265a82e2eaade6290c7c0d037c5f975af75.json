@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n        SELECT\n            cs.`coin_id`,\n            `nft_coins`.`launcher_id`,\n            `metadata`,\n            `metadata_updater_puzzle_hash`,\n            `current_owner`,\n            `royalty_puzzle_hash`,\n            `royalty_ten_thousandths`,\n            `p2_puzzle_hash`,\n            `data_hash`,\n            `metadata_hash`,\n            `license_hash`,\n            `transaction_id`,\n            `created_height`,\n            `visible`\n        FROM `nft_coins`\n        INNER JOIN `coin_states` AS cs ON `nft_coins`.`coin_id` = `cs`.`coin_id`\n        INNER JOIN `nfts` ON `nft_coins`.`launcher_id` = `nfts`.`launcher_id`\n        WHERE `nft_coins`.`launcher_id` = ?\n        ",
+  "query": "\n        SELECT\n            `nft_coins`.`coin_id`,\n            `nft_coins`.`launcher_id`,\n            `metadata`,\n            `metadata_updater_puzzle_hash`,\n            `current_owner`,\n            `royalty_puzzle_hash`,\n            `royalty_ten_thousandths`,\n            `p2_puzzle_hash`,\n            `data_hash`,\n            `metadata_hash`,\n            `license_hash`,\n            cs.`transaction_id`,\n            `created_height`,\n            `visible`\n        FROM `nft_coins`\n        INNER JOIN `coin_states` AS cs INDEXED BY `coin_height` ON `nft_coins`.`coin_id` = `cs`.`coin_id`\n        LEFT JOIN `transaction_spends` ON `cs`.`coin_id` = `transaction_spends`.`coin_id`\n        INNER JOIN `nfts` INDEXED BY `nft_visible` ON `nft_coins`.`launcher_id` = `nfts`.`launcher_id`\n        WHERE `cs`.`spent_height` IS NULL\n        AND `transaction_spends`.`transaction_id` IS NULL\n        ORDER BY `visible` DESC, cs.`transaction_id` DESC, `created_height` DESC\n        LIMIT ? OFFSET ?\n        ",
   "describe": {
     "columns": [
       {
@@ -75,7 +75,7 @@
       }
     ],
     "parameters": {
-      "Right": 1
+      "Right": 2
     },
     "nullable": [
       false,
@@ -94,5 +94,5 @@
       false
     ]
   },
-  "hash": "40b86e546936bd5d891a3af65fe1e987028f7203e2dc01c43f5df0fd26b33419"
+  "hash": "80d20b490f19c03c623d9fd3352a8265a82e2eaade6290c7c0d037c5f975af75"
 }

@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n        SELECT\n            `nft_coins`.`coin_id`,\n            `nft_coins`.`launcher_id`,\n            `metadata`,\n            `metadata_updater_puzzle_hash`,\n            `current_owner`,\n            `royalty_puzzle_hash`,\n            `royalty_ten_thousandths`,\n            `p2_puzzle_hash`,\n            `data_hash`,\n            `metadata_hash`,\n            `license_hash`,\n            cs.`transaction_id`,\n            `created_height`,\n            `visible`\n        FROM `nft_coins`\n        INNER JOIN `nfts` INDEXED BY `nft_visible` ON `nft_coins`.`launcher_id` = `nfts`.`launcher_id`\n        INNER JOIN `coin_states` AS cs INDEXED BY `coin_height` ON `nft_coins`.`coin_id` = `cs`.`coin_id`\n        LEFT JOIN `transaction_spends` ON `cs`.`coin_id` = `transaction_spends`.`coin_id`\n        WHERE `cs`.`spent_height` IS NULL\n        AND `transaction_spends`.`transaction_id` IS NULL\n        ORDER BY `visible` DESC, cs.`transaction_id` DESC, `created_height` DESC\n        LIMIT ? OFFSET ?\n        ",
+  "query": "\n        SELECT\n            cs.`coin_id`,\n            `nft_coins`.`launcher_id`,\n            `metadata`,\n            `metadata_updater_puzzle_hash`,\n            `current_owner`,\n            `royalty_puzzle_hash`,\n            `royalty_ten_thousandths`,\n            `p2_puzzle_hash`,\n            `data_hash`,\n            `metadata_hash`,\n            `license_hash`,\n            cs.`transaction_id`,\n            `created_height`,\n            `visible`\n        FROM `nft_coins`\n        INNER JOIN `coin_states` AS cs INDEXED BY `coin_height` ON `nft_coins`.`coin_id` = `cs`.`coin_id`\n        LEFT JOIN `transaction_spends` ON `cs`.`coin_id` = `transaction_spends`.`coin_id`\n        INNER JOIN `nfts` ON `nft_coins`.`launcher_id` = `nfts`.`launcher_id`\n        WHERE `nft_coins`.`launcher_id` = ?\n        AND `spent_height` IS NULL\n        AND `transaction_spends`.`transaction_id` IS NULL\n        ",
   "describe": {
     "columns": [
       {
@@ -75,7 +75,7 @@
       }
     ],
     "parameters": {
-      "Right": 2
+      "Right": 1
     },
     "nullable": [
       false,
@@ -94,5 +94,5 @@
       false
     ]
   },
-  "hash": "f6f934b980349d009253854e2bba07a36f7d4a414636b1bac64c462cc3045dcc"
+  "hash": "c690c613b94c080958743bd5b5f92f66246c319abdbca80f7fc7bf690af6aebb"
 }
