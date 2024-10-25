@@ -298,24 +298,6 @@ impl AppStateInner {
         Ok(wallet)
     }
 
-    pub fn wallet_mut(&mut self) -> Result<&mut WalletState> {
-        let Some(fingerprint) = self.config.app.active_fingerprint else {
-            return Err(Error::not_logged_in());
-        };
-
-        if !self.keychain.contains(fingerprint) {
-            return Err(Error::unknown_fingerprint(fingerprint));
-        }
-
-        let wallet = self.wallet.as_mut().ok_or(Error::not_logged_in())?;
-
-        if wallet.fingerprint != fingerprint {
-            return Err(Error::not_logged_in());
-        }
-
-        Ok(wallet)
-    }
-
     pub fn try_wallet_config(&self, fingerprint: u32) -> Result<&WalletConfig> {
         self.config
             .wallets

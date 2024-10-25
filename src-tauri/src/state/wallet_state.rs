@@ -19,11 +19,7 @@ use sqlx::{
     sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions},
     SqlitePool,
 };
-use tauri::async_runtime::Sender;
-use tokio::{
-    sync::{mpsc, oneshot, Mutex},
-    task::JoinHandle,
-};
+use tokio::sync::Mutex;
 use tracing::error;
 
 use crate::Result;
@@ -32,8 +28,7 @@ pub struct WalletState {
     pub inner: Arc<Wallet>,
     pub unit: Unit,
     pub assets: Arc<Mutex<Assets>>,
-    pub saver: Sender<oneshot::Sender<()>>,
-    save_task: JoinHandle<()>,
+    pub assets_path: PathBuf,
 }
 
 impl WalletState {
@@ -62,28 +57,14 @@ impl WalletState {
         }
 
         let assets = if assets_path.try_exists()? {
-            serde_json::from_str(&fs::read_to_string(&assets_path)?)?
+            Assets::load(&assets_path)?
         } else {
             let assets = Assets::default();
-            Self::save_assets(&assets_path, &assets)?;
+            assets.save(&assets_path)?;
             assets
         };
 
         let assets = Arc::new(Mutex::new(assets));
-
-        let (sender, mut receiver) = mpsc::channel::<oneshot::Sender<()>>(1);
-
-        let save_task = tokio::spawn({
-            let assets = assets.clone();
-            async move {
-                while let Some(callback) = receiver.recv().await {
-                    if let Err(error) = Self::save_assets(&assets_path, &*assets.lock().await) {
-                        error!("Error saving assets: {error:?}");
-                    }
-                    callback.send(()).ok();
-                }
-            }
-        });
 
         Ok(Self {
             inner: Arc::new(Wallet::new(
@@ -97,8 +78,7 @@ impl WalletState {
                 _ => TXCH.clone(),
             },
             assets,
-            saver: sender,
-            save_task,
+            assets_path,
         })
     }
 
@@ -129,11 +109,6 @@ impl WalletState {
         fs::remove_file(db_path)?;
         Ok(())
     }
-
-    fn save_assets(assets_path: &Path, assets: &Assets) -> Result<()> {
-        fs::write(assets_path, serde_json::to_string_pretty(assets)?)?;
-        Ok(())
-    }
 }
 
 impl Deref for WalletState {
@@ -141,11 +116,5 @@ impl Deref for WalletState {
 
     fn deref(&self) -> &Self::Target {
         &self.inner
-    }
-}
-
-impl Drop for WalletState {
-    fn drop(&mut self) {
-        self.save_task.abort();
     }
 }

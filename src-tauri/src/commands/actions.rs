@@ -2,7 +2,6 @@ use chia_wallet_sdk::decode_address;
 use sage_api::CatRecord;
 use specta::specta;
 use tauri::{command, State};
-use tokio::sync::oneshot;
 
 use crate::{AppState, Error, Result};
 
@@ -16,14 +15,9 @@ pub async fn remove_cat_info(state: State<'_, AppState>, asset_id: String) -> Re
         .try_into()
         .map_err(|_| Error::invalid_asset_id())?;
 
-    {
-        let mut assets = wallet.assets.lock().await;
-        assets.tokens.shift_remove(&hex::encode(asset_id));
-    }
-
-    let (sender, receiver) = oneshot::channel();
-    wallet.saver.send(sender).await.ok();
-    receiver.await.ok();
+    let mut assets = wallet.assets.lock().await;
+    assets.tokens.shift_remove(&hex::encode(asset_id));
+    assets.save(&wallet.assets_path)?;
 
     Ok(())
 }
@@ -38,20 +32,16 @@ pub async fn update_cat_info(state: State<'_, AppState>, record: CatRecord) -> R
         .try_into()
         .map_err(|_| Error::invalid_asset_id())?;
 
-    {
-        let mut assets = wallet.assets.lock().await;
-        let asset = assets.tokens.entry(hex::encode(asset_id)).or_default();
+    let mut assets = wallet.assets.lock().await;
+    let asset = assets.tokens.entry(hex::encode(asset_id)).or_default();
 
-        asset.name = record.name;
-        asset.description = record.description;
-        asset.ticker = record.ticker;
-        asset.icon_url = record.icon_url;
-        asset.hidden = !record.visible;
-    }
+    asset.name = record.name;
+    asset.description = record.description;
+    asset.ticker = record.ticker;
+    asset.icon_url = record.icon_url;
+    asset.hidden = !record.visible;
 
-    let (sender, receiver) = oneshot::channel();
-    wallet.saver.send(sender).await.ok();
-    receiver.await.ok();
+    assets.save(&wallet.assets_path)?;
 
     Ok(())
 }
@@ -73,17 +63,13 @@ pub async fn update_did(
         return Err(Error::invalid_prefix(&prefix));
     }
 
-    {
-        let mut assets = wallet.assets.lock().await;
-        let asset = assets.profiles.entry(did_id).or_default();
+    let mut assets = wallet.assets.lock().await;
+    let asset = assets.profiles.entry(did_id).or_default();
 
-        asset.name = name;
-        asset.hidden = !visible;
-    }
+    asset.name = name;
+    asset.hidden = !visible;
 
-    let (sender, receiver) = oneshot::channel();
-    wallet.saver.send(sender).await.ok();
-    receiver.await.ok();
+    assets.save(&wallet.assets_path)?;
 
     Ok(())
 }
@@ -100,16 +86,12 @@ pub async fn update_nft(state: State<'_, AppState>, nft_id: String, visible: boo
         return Err(Error::invalid_prefix(&prefix));
     }
 
-    {
-        let mut assets = wallet.assets.lock().await;
-        let asset = assets.nfts.entry(nft_id).or_default();
+    let mut assets = wallet.assets.lock().await;
+    let asset = assets.nfts.entry(nft_id).or_default();
 
-        asset.hidden = !visible;
-    }
+    asset.hidden = !visible;
 
-    let (sender, receiver) = oneshot::channel();
-    wallet.saver.send(sender).await.ok();
-    receiver.await.ok();
+    assets.save(&wallet.assets_path)?;
 
     Ok(())
 }

@@ -4414,7 +4414,9 @@ dependencies = [
  "indexmap 2.5.0",
  "once_cell",
  "serde",
+ "serde_json",
  "specta",
+ "thiserror",
 ]
 
 [[package]]

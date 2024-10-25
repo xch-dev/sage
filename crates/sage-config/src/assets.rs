@@ -1,12 +1,30 @@
+use std::path::Path;
+
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use specta::Type;
+
+use crate::ConfigError;
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize, Type)]
 pub struct Assets {
     pub tokens: IndexMap<String, Token>,
     pub profiles: IndexMap<String, Profile>,
     pub nfts: IndexMap<String, Nft>,
+}
+
+impl Assets {
+    pub fn load(path: &Path) -> Result<Self, ConfigError> {
+        let data = std::fs::read_to_string(path)?;
+        let assets = serde_json::from_str(&data)?;
+        Ok(assets)
+    }
+
+    pub fn save(&self, path: &Path) -> Result<(), ConfigError> {
+        let data = serde_json::to_string_pretty(self)?;
+        std::fs::write(path, data)?;
+        Ok(())
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]

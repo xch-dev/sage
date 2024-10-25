@@ -12,6 +12,7 @@ use chia::{
 use chia_wallet_sdk::{AddressError, ClientError, DriverError};
 use hex::FromHexError;
 use sage_api::Amount;
+use sage_config::ConfigError;
 use sage_database::DatabaseError;
 use sage_keychain::KeychainError;
 use sage_wallet::{SyncCommand, UriError, WalletError};
@@ -427,8 +428,8 @@ impl From<UriError> for Error {
     }
 }
 
-impl From<serde_json::Error> for Error {
-    fn from(value: serde_json::Error) -> Self {
+impl From<ConfigError> for Error {
+    fn from(value: ConfigError) -> Self {
         Self {
             kind: ErrorKind::Serialization,
             reason: value.to_string(),

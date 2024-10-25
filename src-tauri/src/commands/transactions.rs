@@ -11,7 +11,7 @@ use sage_api::{Amount, BulkMintNfts, BulkMintNftsResponse};
 use sage_wallet::{fetch_uris, Wallet, WalletNftMint};
 use specta::specta;
 use tauri::{command, State};
-use tokio::sync::{oneshot, MutexGuard};
+use tokio::sync::MutexGuard;
 
 use crate::{AppState, AppStateInner, Error, Result};
 
@@ -266,17 +266,13 @@ pub async fn issue_cat(
 
     transact(&state, wallet, coin_spends).await?;
 
-    {
-        let mut assets = wallet.assets.lock().await;
-        let asset = assets.tokens.entry(hex::encode(asset_id)).or_default();
+    let mut assets = wallet.assets.lock().await;
+    let asset = assets.tokens.entry(hex::encode(asset_id)).or_default();
 
-        asset.name = Some(name);
-        asset.ticker = Some(ticker);
-    }
+    asset.name = Some(name);
+    asset.ticker = Some(ticker);
 
-    let (sender, receiver) = oneshot::channel();
-    wallet.saver.send(sender).await.ok();
-    receiver.await.ok();
+    assets.save(&wallet.assets_path)?;
 
     Ok(())
 }
@@ -337,19 +333,15 @@ pub async fn create_did(state: State<'_, AppState>, name: String, fee: Amount) -
 
     let (coin_spends, did) = wallet.create_did(fee, false, true).await?;
 
-    {
-        let mut assets = wallet.assets.lock().await;
-        let asset = assets
-            .profiles
-            .entry(encode_address(did.info.launcher_id.into(), "did:chia:")?)
-            .or_default();
+    let mut assets = wallet.assets.lock().await;
+    let asset = assets
+        .profiles
+        .entry(encode_address(did.info.launcher_id.into(), "did:chia:")?)
+        .or_default();
 
-        asset.name = Some(name);
-    }
+    asset.name = Some(name);
 
-    let (sender, receiver) = oneshot::channel();
-    wallet.saver.send(sender).await.ok();
-    receiver.await.ok();
+    assets.save(&wallet.assets_path)?;
 
     transact(&state, wallet, coin_spends).await?;
 
