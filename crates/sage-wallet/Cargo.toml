@@ -27,4 +27,3 @@ futures-util = { workspace = true }
 futures-lite = { workspace = true }
 rayon = { workspace = true }
 reqwest = { workspace = true, default-features = false, features = ["http2", "rustls-tls-webpki-roots"] }
-serde = { workspace = true, features = ["derive"] }

@@ -8,7 +8,6 @@ pub enum SyncEvent {
     Derivation,
     CoinState,
     PuzzleBatchSynced,
-    CatInfo,
     DidInfo,
     NftData,
 }

@@ -19,20 +19,25 @@ use sqlx::{
     sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions},
     SqlitePool,
 };
-use tokio::sync::Mutex;
+use tauri::AppHandle;
+use tokio::{sync::Mutex, task::JoinHandle};
 use tracing::error;
 
 use crate::Result;
+
+use super::CatQueue;
 
 pub struct WalletState {
     pub inner: Arc<Wallet>,
     pub unit: Unit,
     pub assets: Arc<Mutex<Assets>>,
     pub assets_path: PathBuf,
+    pub cat_task: JoinHandle<Result<()>>,
 }
 
 impl WalletState {
     pub async fn open(
+        app_handle: AppHandle,
         wallet_path: PathBuf,
         network_id: String,
         genesis_challenge: Bytes32,
@@ -66,9 +71,22 @@ impl WalletState {
 
         let assets = Arc::new(Mutex::new(assets));
 
+        let db = Database::new(pool);
+
+        let cat_task = tokio::spawn(
+            CatQueue::new(
+                db.clone(),
+                app_handle,
+                genesis_challenge,
+                assets.clone(),
+                assets_path.clone(),
+            )
+            .start(),
+        );
+
         Ok(Self {
             inner: Arc::new(Wallet::new(
-                Database::new(pool),
+                db,
                 fingerprint,
                 intermediate_pk,
                 genesis_challenge,
@@ -79,6 +97,7 @@ impl WalletState {
             },
             assets,
             assets_path,
+            cat_task,
         })
     }
 
@@ -116,5 +135,11 @@ impl Deref for WalletState {
 
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+
+impl Drop for WalletState {
+    fn drop(&mut self) {
+        self.cat_task.abort();
     }
 }

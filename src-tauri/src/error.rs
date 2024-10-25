@@ -140,6 +140,13 @@ impl Error {
             reason: "There is no blockchain peak yet, you haven't started syncing".to_string(),
         }
     }
+
+    pub fn fetch_cat(asset_id: Bytes32) -> Self {
+        Self {
+            kind: ErrorKind::Fetch,
+            reason: format!("Failed to fetch CAT {asset_id}"),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Type)]
@@ -164,6 +171,7 @@ pub enum ErrorKind {
     NotLoggedIn,
     Sync,
     Wallet,
+    Fetch,
 }
 
 impl fmt::Display for Error {

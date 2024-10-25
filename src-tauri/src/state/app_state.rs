@@ -225,7 +225,6 @@ impl AppStateInner {
                     SyncEvent::Derivation => ApiEvent::Derivation,
                     SyncEvent::CoinState => ApiEvent::CoinState,
                     SyncEvent::PuzzleBatchSynced => ApiEvent::PuzzleBatchSynced,
-                    SyncEvent::CatInfo => ApiEvent::CatInfo,
                     SyncEvent::DidInfo => ApiEvent::DidInfo,
                     SyncEvent::NftData => ApiEvent::NftData,
                 };
@@ -260,8 +259,14 @@ impl AppStateInner {
         let genesis_challenge =
             hex::decode(&self.networks[&network_id].genesis_challenge)?.try_into()?;
 
-        let wallet =
-            WalletState::open(wallet_path, network_id, genesis_challenge, master_pk).await?;
+        let wallet = WalletState::open(
+            self.app_handle.clone(),
+            wallet_path,
+            network_id,
+            genesis_challenge,
+            master_pk,
+        )
+        .await?;
         let inner = wallet.inner.clone();
         self.wallet = Some(wallet);
 

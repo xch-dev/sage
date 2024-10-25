@@ -48,6 +48,7 @@ bech32 = { workspace = true }
 base64 = { workspace = true }
 tauri-plugin-shell = { workspace = true }
 serde_json = { workspace = true }
+reqwest = { workspace = true, default-features = false, features = ["http2", "rustls-tls-webpki-roots"] }
 
 # This is to ensure that the bindgen feature is enabled for the aws-lc-rs crate.
 # https://aws.github.io/aws-lc-rs/platform_support.html#tested-platforms
