@@ -23,10 +23,6 @@ impl Database {
         update_transaction_mempool_time(&self.pool, transaction_id, timestamp).await
     }
 
-    pub async fn delete_confirmed_transactions(&self) -> Result<()> {
-        delete_confirmed_transactions(&self.pool).await
-    }
-
     pub async fn transactions(&self) -> Result<Vec<TransactionRow>> {
         transactions(&self.pool).await
     }
@@ -81,10 +77,6 @@ impl<'a> DatabaseTx<'a> {
 
     pub async fn remove_transaction(&mut self, transaction_id: Bytes32) -> Result<()> {
         remove_transaction(&mut *self.tx, transaction_id).await
-    }
-
-    pub async fn delete_coins(&mut self, transaction_id: Bytes32) -> Result<()> {
-        delete_coins(&mut *self.tx, transaction_id).await
     }
 
     pub async fn transaction_for_spent_coin(&mut self, coin_id: Bytes32) -> Result<Vec<Bytes32>> {
@@ -241,23 +233,6 @@ async fn transactions_for_coin(
         .collect()
 }
 
-async fn delete_confirmed_transactions(conn: impl SqliteExecutor<'_>) -> Result<()> {
-    sqlx::query!(
-        "
-        DELETE FROM `transactions` WHERE `transaction_id` IN (
-            SELECT `transaction_spends`.`transaction_id`
-            FROM `transaction_spends`
-            INNER JOIN `coin_states` ON `transaction_spends`.`coin_id` = `coin_states`.`coin_id`
-            WHERE `coin_states`.`spent_height` IS NOT NULL
-        )
-        "
-    )
-    .execute(conn)
-    .await?;
-
-    Ok(())
-}
-
 async fn resubmittable_transactions(
     conn: impl SqliteExecutor<'_>,
     threshold: i64,
@@ -346,22 +321,6 @@ async fn confirm_coins(conn: impl SqliteExecutor<'_>, transaction_id: Bytes32) -
         "
         UPDATE `coin_states`
         SET `transaction_id` = NULL
-        WHERE `transaction_id` = ?
-        ",
-        transaction_id
-    )
-    .execute(conn)
-    .await?;
-
-    Ok(())
-}
-
-async fn delete_coins(conn: impl SqliteExecutor<'_>, transaction_id: Bytes32) -> Result<()> {
-    let transaction_id = transaction_id.as_ref();
-
-    sqlx::query!(
-        "
-        DELETE FROM `coin_states`
         WHERE `transaction_id` = ?
         ",
         transaction_id

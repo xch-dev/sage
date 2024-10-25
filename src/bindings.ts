@@ -357,6 +357,14 @@ async bulkMintNfts(request: BulkMintNfts) : Promise<Result<BulkMintNftsResponse,
     else return { status: "error", error: e  as any };
 }
 },
+async transferNft(nftId: string, address: string, fee: Amount) : Promise<Result<null, Error>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("transfer_nft", { nftId, address, fee }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async getPeers() : Promise<Result<PeerRecord[], Error>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("get_peers") };

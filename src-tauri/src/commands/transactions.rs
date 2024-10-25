@@ -472,6 +472,45 @@ pub async fn bulk_mint_nfts(
     })
 }
 
+#[command]
+#[specta]
+pub async fn transfer_nft(
+    state: State<'_, AppState>,
+    nft_id: String,
+    address: String,
+    fee: Amount,
+) -> Result<()> {
+    let state = state.lock().await;
+    let wallet = state.wallet()?;
+
+    if !state.keychain.has_secret_key(wallet.fingerprint) {
+        return Err(Error::no_secret_key());
+    }
+
+    let (launcher_id, prefix) = decode_address(&nft_id)?;
+
+    if prefix != "nft" {
+        return Err(Error::invalid_prefix(&prefix));
+    }
+
+    let (puzzle_hash, prefix) = decode_address(&address)?;
+    if prefix != state.network().address_prefix {
+        return Err(Error::invalid_prefix(&prefix));
+    }
+
+    let Some(fee) = fee.to_mojos(state.unit.decimals) else {
+        return Err(Error::invalid_amount(&fee));
+    };
+
+    let (coin_spends, _new_nft) = wallet
+        .transfer_nft(launcher_id.into(), puzzle_hash.into(), fee, false, true)
+        .await?;
+
+    transact(&state, &wallet, coin_spends).await?;
+
+    Ok(())
+}
+
 async fn transact(
     state: &MutexGuard<'_, AppStateInner>,
     wallet: &Wallet,

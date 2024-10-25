@@ -155,7 +155,7 @@ function Profile({ did, updateDids }: ProfileProps) {
                   <span>Rename</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  className='cursor-pointer text-red-600 focus:text-red-500'
+                  className='cursor-pointer'
                   onClick={(e) => {
                     e.stopPropagation();
                     toggleVisibility();

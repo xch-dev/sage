@@ -69,6 +69,7 @@ pub fn run() {
             commands::send_cat,
             commands::create_did,
             commands::bulk_mint_nfts,
+            commands::transfer_nft,
             // Peers
             commands::get_peers,
             commands::add_peer,

@@ -235,9 +235,12 @@ async fn did(conn: impl SqliteExecutor<'_>, did_id: Bytes32) -> Result<Option<Di
             did.metadata, did.p2_puzzle_hash
         FROM `coin_states` AS cs
         INNER JOIN `did_coins` AS did ON cs.coin_id = did.coin_id
+        LEFT JOIN `transaction_spends` ON cs.coin_id = transaction_spends.coin_id
         WHERE did.launcher_id = ?
         AND cs.spent_height IS NULL
         AND cs.created_height IS NOT NULL
+        AND cs.transaction_id IS NULL
+        AND transaction_spends.transaction_id IS NULL
         ",
         did_id
     )

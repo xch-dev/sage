@@ -324,19 +324,29 @@ function CoinCard({
   const canCombine = useMemo(
     () =>
       selectedCoinIds.length >= 2 &&
-      selectedCoinIds.every(
-        (id) =>
-          !coins.find((coin) => coin.coin_id === id)?.spend_transaction_id,
-      ),
+      selectedCoinIds.every((id) => {
+        const coin = coins.find((coin) => coin.coin_id === id);
+        return (
+          !coin?.spend_transaction_id &&
+          !coin?.create_transaction_id &&
+          coin?.created_height &&
+          !coin?.spent_height
+        );
+      }),
     [selectedCoinIds, coins],
   );
   const canSplit = useMemo(
     () =>
       selectedCoinIds.length >= 1 &&
-      selectedCoinIds.every(
-        (id) =>
-          !coins.find((coin) => coin.coin_id === id)?.spend_transaction_id,
-      ),
+      selectedCoinIds.every((id) => {
+        const coin = coins.find((coin) => coin.coin_id === id);
+        return (
+          !coin?.spend_transaction_id &&
+          !coin?.create_transaction_id &&
+          coin?.created_height &&
+          !coin?.spent_height
+        );
+      }),
     [selectedCoinIds, coins],
   );
 
@@ -389,8 +399,6 @@ function CoinCard({
     splitHandler?.(selectedCoinIds, values.outputCount, values.splitFee)
       .then((result) => {
         setSplitOpen(false);
-
-        console.log(result);
 
         if (result.status === 'ok') {
           setSelectedCoins({});

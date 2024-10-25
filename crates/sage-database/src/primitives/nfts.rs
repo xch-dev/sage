@@ -1,11 +1,11 @@
 use chia::{
     protocol::{Bytes32, Program},
-    puzzles::LineageProof,
+    puzzles::{LineageProof, Proof},
 };
-use chia_wallet_sdk::NftInfo;
+use chia_wallet_sdk::{Nft, NftInfo};
 use sqlx::SqliteExecutor;
 
-use crate::{to_bytes32, Database, DatabaseTx, Result};
+use crate::{to_bytes32, to_coin, to_lineage_proof, Database, DatabaseTx, Result};
 
 #[derive(Debug, Clone)]
 pub struct NftRow {
@@ -38,6 +38,10 @@ impl Database {
 
     pub async fn update_nft(&self, launcher_id: Bytes32, visible: bool) -> Result<()> {
         update_nft(&self.pool, launcher_id, visible).await
+    }
+
+    pub async fn nft(&self, launcher_id: Bytes32) -> Result<Option<Nft<Program>>> {
+        nft(&self.pool, launcher_id).await
     }
 }
 
@@ -185,9 +189,9 @@ async fn fetch_nfts(conn: impl SqliteExecutor<'_>, limit: u32, offset: u32) -> R
             `created_height`,
             `visible`
         FROM `nft_coins`
-        INNER JOIN `nfts` INDEXED BY `nft_visible` ON `nft_coins`.`launcher_id` = `nfts`.`launcher_id`
         INNER JOIN `coin_states` AS cs INDEXED BY `coin_height` ON `nft_coins`.`coin_id` = `cs`.`coin_id`
         LEFT JOIN `transaction_spends` ON `cs`.`coin_id` = `transaction_spends`.`coin_id`
+        INNER JOIN `nfts` INDEXED BY `nft_visible` ON `nft_coins`.`launcher_id` = `nfts`.`launcher_id`
         WHERE `cs`.`spent_height` IS NULL
         AND `transaction_spends`.`transaction_id` IS NULL
         ORDER BY `visible` DESC, cs.`transaction_id` DESC, `created_height` DESC
@@ -250,13 +254,16 @@ async fn fetch_nft(conn: impl SqliteExecutor<'_>, launcher_id: Bytes32) -> Resul
             `data_hash`,
             `metadata_hash`,
             `license_hash`,
-            `transaction_id`,
+            cs.`transaction_id`,
             `created_height`,
             `visible`
         FROM `nft_coins`
-        INNER JOIN `coin_states` AS cs ON `nft_coins`.`coin_id` = `cs`.`coin_id`
+        INNER JOIN `coin_states` AS cs INDEXED BY `coin_height` ON `nft_coins`.`coin_id` = `cs`.`coin_id`
+        LEFT JOIN `transaction_spends` ON `cs`.`coin_id` = `transaction_spends`.`coin_id`
         INNER JOIN `nfts` ON `nft_coins`.`launcher_id` = `nfts`.`launcher_id`
         WHERE `nft_coins`.`launcher_id` = ?
+        AND `spent_height` IS NULL
+        AND `transaction_spends`.`transaction_id` IS NULL
         ",
         launcher_id
     )
@@ -445,4 +452,59 @@ async fn nft_visible(conn: impl SqliteExecutor<'_>, launcher_id: Bytes32) -> Res
     .await?;
 
     Ok(row.is_some_and(|row| row.visible))
+}
+
+async fn nft(conn: impl SqliteExecutor<'_>, launcher_id: Bytes32) -> Result<Option<Nft<Program>>> {
+    let launcher_id = launcher_id.as_ref();
+
+    let Some(row) = sqlx::query!(
+        "
+        SELECT
+            `coin_states`.`parent_coin_id`,
+            `coin_states`.`puzzle_hash`,
+            `coin_states`.`amount`,
+            `parent_parent_coin_id`,
+            `parent_inner_puzzle_hash`,
+            `parent_amount`,
+            `launcher_id`,
+            `metadata`,
+            `metadata_updater_puzzle_hash`,
+            `current_owner`,
+            `royalty_puzzle_hash`,
+            `royalty_ten_thousandths`,
+            `p2_puzzle_hash`
+        FROM `nft_coins`
+        INNER JOIN `coin_states` INDEXED BY `coin_height` ON `nft_coins`.`coin_id` = `coin_states`.`coin_id`
+        LEFT JOIN `transaction_spends` ON `coin_states`.`coin_id` = `transaction_spends`.`coin_id`
+        WHERE `launcher_id` = ?
+        AND `spent_height` IS NULL
+        AND `created_height` IS NOT NULL
+        AND `coin_states`.`transaction_id` IS NULL
+        AND `transaction_spends`.`transaction_id` IS NULL
+        ",
+        launcher_id
+    )
+    .fetch_optional(conn)
+    .await?
+    else {
+        return Ok(None);
+    };
+
+    Ok(Some(Nft {
+        coin: to_coin(&row.parent_coin_id, &row.puzzle_hash, &row.amount)?,
+        proof: Proof::Lineage(to_lineage_proof(
+            &row.parent_parent_coin_id,
+            &row.parent_inner_puzzle_hash,
+            &row.parent_amount,
+        )?),
+        info: NftInfo {
+            launcher_id: to_bytes32(&row.launcher_id)?,
+            metadata: row.metadata.into(),
+            metadata_updater_puzzle_hash: to_bytes32(&row.metadata_updater_puzzle_hash)?,
+            current_owner: row.current_owner.as_deref().map(to_bytes32).transpose()?,
+            royalty_puzzle_hash: to_bytes32(&row.royalty_puzzle_hash)?,
+            royalty_ten_thousandths: row.royalty_ten_thousandths.try_into()?,
+            p2_puzzle_hash: to_bytes32(&row.p2_puzzle_hash)?,
+        },
+    }))
 }

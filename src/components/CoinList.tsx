@@ -220,7 +220,8 @@ export default function CoinList(props: CoinListProps) {
       filterFn: (row, _, filterValue) => {
         return (
           filterValue === 'Unspent' &&
-          (!!row.original.spend_transaction_id || !row.original.spent_height)
+          !row.original.spend_transaction_id &&
+          !row.original.spent_height
         );
       },
       cell: ({ row }) => (
@@ -297,7 +298,7 @@ export default function CoinList(props: CoinListProps) {
                         'h-12' +
                         (row.original.spend_transaction_id ||
                         row.original.create_transaction_id
-                          ? ' text-neutral-400 bg-neutral-50 dark:text-neutral-200 dark:bg-neutral-900 font-medium'
+                          ? ' pulsate-opacity'
                           : '')
                       }
                     >
