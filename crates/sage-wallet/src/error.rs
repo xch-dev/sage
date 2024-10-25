@@ -41,6 +41,9 @@ pub enum WalletError {
     #[error("Spendable DID not found: {0}")]
     MissingDid(Bytes32),
 
+    #[error("Spendable NFT not found: {0}")]
+    MissingNft(Bytes32),
+
     #[error("Unknown public key in transaction: {0:?}")]
     UnknownPublicKey(PublicKey),
 

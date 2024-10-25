@@ -4,14 +4,35 @@ import { ReceiveAddress } from '@/components/ReceiveAddress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
+import { amount } from '@/lib/formTypes';
 import { nftUri } from '@/lib/nftUri';
+import { useWalletState } from '@/state';
+import { zodResolver } from '@hookform/resolvers/zod';
+import BigNumber from 'bignumber.js';
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -19,9 +40,12 @@ import {
   EyeOff,
   Image,
   MoreVerticalIcon,
+  SendIcon,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
+import { z } from 'zod';
 import { commands, events, NftRecord } from '../bindings';
 
 export function WalletNfts() {
@@ -158,6 +182,10 @@ interface NftProps {
 }
 
 function Nft({ nft, updateNfts }: NftProps) {
+  const walletState = useWalletState();
+
+  const [isTransferOpen, setTransferOpen] = useState(false);
+
   let json: any = {};
 
   if (nft.metadata) {
@@ -178,57 +206,154 @@ function Nft({ nft, updateNfts }: NftProps) {
     });
   };
 
-  return (
-    <Link
-      to={`/nfts/${nft.launcher_id_hex}`}
-      className={`group${`${!nft.visible ? ' opacity-50 grayscale' : nft.create_transaction_id !== null ? ' pulsate-opacity' : ''}`}`}
-    >
-      <div className='overflow-hidden rounded-t-md relative'>
-        <img
-          alt={json.name}
-          loading='lazy'
-          width='150'
-          height='150'
-          className='h-auto w-auto object-cover transition-all group-hover:scale-105 aspect-square color-[transparent]'
-          src={nftUri(nft.data_mime_type, nft.data)}
-        />
-      </div>
-      <div className='text-md flex items-center justify-between border rounded-b p-1 pl-2'>
-        <span className='truncate'>
-          <span className='font-medium leading-none'>
-            {json.name ?? 'Unknown NFT'}
-          </span>
-          <p className='text-xs text-muted-foreground'>
-            {json.collection?.name ?? 'No collection'}
-          </p>
-        </span>
+  const transferFormSchema = z.object({
+    address: z.string().min(1, 'Address is required'),
+    fee: amount(walletState.sync.unit.decimals).refine(
+      (amount) => BigNumber(walletState.sync.balance).gte(amount || 0),
+      'Not enough funds to cover the fee',
+    ),
+  });
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant='ghost' size='icon'>
-              <MoreVerticalIcon className='h-5 w-5' />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align='end'>
-            <DropdownMenuGroup>
-              <DropdownMenuItem
-                className='cursor-pointer text-red-600 focus:text-red-500'
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleVisibility();
-                }}
-              >
-                {nft.visible ? (
-                  <EyeOff className='mr-2 h-4 w-4' />
-                ) : (
-                  <EyeIcon className='mr-2 h-4 w-4' />
+  const transferForm = useForm<z.infer<typeof transferFormSchema>>({
+    resolver: zodResolver(transferFormSchema),
+    defaultValues: {
+      address: '',
+      fee: '0',
+    },
+  });
+
+  const onTransferSubmit = (values: z.infer<typeof transferFormSchema>) => {
+    commands
+      .transferNft(nft.launcher_id, values.address, values.fee)
+      .then((result) => {
+        setTransferOpen(false);
+        updateNfts();
+        if (result.status === 'error') {
+          console.error('Failed to transfer NFT', result.error);
+        }
+      })
+      .catch((error) => console.log('Failed to combine coins', error));
+  };
+
+  return (
+    <>
+      <Link
+        to={`/nfts/${nft.launcher_id_hex}`}
+        className={`group${`${!nft.visible ? ' opacity-50 grayscale' : nft.create_transaction_id !== null ? ' pulsate-opacity' : ''}`}`}
+      >
+        <div className='overflow-hidden rounded-t-md relative'>
+          <img
+            alt={json.name}
+            loading='lazy'
+            width='150'
+            height='150'
+            className='h-auto w-auto object-cover transition-all group-hover:scale-105 aspect-square color-[transparent]'
+            src={nftUri(nft.data_mime_type, nft.data)}
+          />
+        </div>
+        <div className='text-md flex items-center justify-between rounded-b p-1 pl-2 bg-neutral-200 dark:bg-neutral-800'>
+          <span className='truncate'>
+            <span className='font-medium leading-none'>
+              {json.name ?? 'Unknown NFT'}
+            </span>
+            <p className='text-xs text-muted-foreground'>
+              {json.collection?.name ?? 'No collection'}
+            </p>
+          </span>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant='ghost' size='icon'>
+                <MoreVerticalIcon className='h-5 w-5' />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align='end'>
+              <DropdownMenuGroup>
+                <DropdownMenuItem
+                  className='cursor-pointer'
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    transferForm.reset();
+                    setTransferOpen(true);
+                  }}
+                  disabled={!!nft.create_transaction_id}
+                >
+                  <SendIcon className='mr-2 h-4 w-4' />
+                  <span>Transfer</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className='cursor-pointer'
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleVisibility();
+                  }}
+                >
+                  {nft.visible ? (
+                    <EyeOff className='mr-2 h-4 w-4' />
+                  ) : (
+                    <EyeIcon className='mr-2 h-4 w-4' />
+                  )}
+                  <span>{nft.visible ? 'Hide' : 'Show'}</span>
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </Link>
+
+      <Dialog open={isTransferOpen} onOpenChange={setTransferOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Transfer NFT</DialogTitle>
+            <DialogDescription>
+              This will send the NFT to the provided address.
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...transferForm}>
+            <form
+              onSubmit={transferForm.handleSubmit(onTransferSubmit)}
+              className='space-y-4'
+            >
+              <FormField
+                control={transferForm.control}
+                name='address'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Address</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
                 )}
-                <span>{nft.visible ? 'Hide' : 'Show'}</span>
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-    </Link>
+              />
+              <FormField
+                control={transferForm.control}
+                name='fee'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Network Fee</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter className='gap-2'>
+                <Button
+                  type='button'
+                  variant='outline'
+                  onClick={() => setTransferOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button type='submit'>Transfer</Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

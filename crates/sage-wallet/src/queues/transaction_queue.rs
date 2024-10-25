@@ -45,8 +45,6 @@ impl TransactionQueue {
     }
 
     async fn process_batch(&mut self) -> Result<(), WalletError> {
-        self.db.delete_confirmed_transactions().await?;
-
         let peers: Vec<Peer> = self
             .state
             .lock()
@@ -68,7 +66,7 @@ impl TransactionQueue {
         let mut tx = self.db.tx().await?;
         let mut spend_bundles = Vec::new();
 
-        let rows = tx.resubmittable_transactions(timestamp - 120).await?;
+        let rows = tx.resubmittable_transactions(timestamp - 180).await?;
 
         if rows.is_empty() {
             return Ok(());
@@ -83,10 +81,10 @@ impl TransactionQueue {
 
         tx.commit().await?;
 
-        let mut updated = false;
-
         for spend_bundle in spend_bundles {
             sleep(Duration::from_secs(1)).await;
+
+            let transaction_id = spend_bundle.name();
 
             let peers: Vec<Peer> = self
                 .state
@@ -102,11 +100,11 @@ impl TransactionQueue {
 
             info!(
                 "Broadcasting transaction id {}: {:?}",
-                spend_bundle.name(),
-                spend_bundle
+                transaction_id, spend_bundle
             );
 
-            let mut removed = false;
+            let mut tx_confirmed = false;
+            let mut tx_removed = false;
 
             for peer in peers.clone() {
                 let response = match timeout(
@@ -146,19 +144,36 @@ impl TransactionQueue {
                 if response
                     .coin_states
                     .iter()
+                    .all(|cs| cs.spent_height.is_some())
+                {
+                    tx_confirmed = true;
+                    break;
+                } else if response
+                    .coin_states
+                    .iter()
                     .any(|cs| cs.spent_height.is_some())
                 {
-                    removed = true;
+                    tx_removed = true;
                     break;
                 }
             }
 
-            if removed {
-                info!("Transaction has been confirmed, removing from transaction list and confirming coins");
+            if tx_confirmed {
+                info!("Transaction {transaction_id} confirmed, removing and confirming coins");
+
                 let mut tx = self.db.tx().await?;
-                tx.confirm_coins(spend_bundle.name()).await?;
-                tx.remove_transaction(spend_bundle.name()).await?;
+                tx.confirm_coins(transaction_id).await?;
+                tx.remove_transaction(transaction_id).await?;
                 tx.commit().await?;
+
+                continue;
+            } else if tx_removed {
+                info!("Transaction {transaction_id} failed");
+
+                let mut tx = self.db.tx().await?;
+                tx.remove_transaction(transaction_id).await?;
+                tx.commit().await?;
+
                 continue;
             }
 
@@ -201,22 +216,17 @@ impl TransactionQueue {
                     .expect("timestamp exceeds i64");
 
                 self.db
-                    .update_transaction_mempool_time(spend_bundle.name(), timestamp)
+                    .update_transaction_mempool_time(transaction_id, timestamp)
                     .await?;
-
-                updated = true;
             } else {
-                info!("Transaction has failed, removing from transaction list and removing coins");
+                info!("Transaction {transaction_id} failed");
                 let mut tx = self.db.tx().await?;
-                tx.delete_coins(spend_bundle.name()).await?;
-                tx.remove_transaction(spend_bundle.name()).await?;
+                tx.remove_transaction(transaction_id).await?;
                 tx.commit().await?;
             }
         }
 
-        if updated {
-            self.sync_sender.send(SyncEvent::CoinState).await.ok();
-        }
+        self.sync_sender.send(SyncEvent::CoinState).await.ok();
 
         Ok(())
     }

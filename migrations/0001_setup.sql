@@ -22,7 +22,8 @@ CREATE TABLE `coin_states` (
     `created_height` INTEGER,
     `hint` BLOB,
     `synced` BOOLEAN NOT NULL,
-    `transaction_id` BLOB
+    `transaction_id` BLOB,
+    FOREIGN KEY (`transaction_id`) REFERENCES `transactions` (`transaction_id`) ON DELETE CASCADE
 );
 
 CREATE INDEX `coin_puzzle_hash` ON `coin_states` (`puzzle_hash`);
@@ -35,12 +36,12 @@ CREATE INDEX `coin_transaction` ON `coin_states` (`transaction_id`);
 
 CREATE TABLE `unknown_coins` (
     `coin_id` BLOB NOT NULL PRIMARY KEY,
-    FOREIGN KEY (`coin_id`) REFERENCES `coin_states` (`coin_id`)
+    FOREIGN KEY (`coin_id`) REFERENCES `coin_states` (`coin_id`) ON DELETE CASCADE
 );
 
 CREATE TABLE `p2_coins` (
     `coin_id` BLOB NOT NULL PRIMARY KEY,
-    FOREIGN KEY (`coin_id`) REFERENCES `coin_states` (`coin_id`)
+    FOREIGN KEY (`coin_id`) REFERENCES `coin_states` (`coin_id`) ON DELETE CASCADE
 );
 
 CREATE TABLE `cat_coins` (
@@ -50,7 +51,7 @@ CREATE TABLE `cat_coins` (
     `parent_amount` BLOB NOT NULL,
     `p2_puzzle_hash` BLOB NOT NULL,
     `asset_id` BLOB NOT NULL,
-    FOREIGN KEY (`coin_id`) REFERENCES `coin_states` (`coin_id`)
+    FOREIGN KEY (`coin_id`) REFERENCES `coin_states` (`coin_id`) ON DELETE CASCADE
 );
 
 CREATE INDEX `cat_p2` ON `cat_coins` (`p2_puzzle_hash`);
@@ -66,7 +67,7 @@ CREATE TABLE `did_coins` (
     `num_verifications_required` BLOB NOT NULL,
     `metadata` BLOB NOT NULL,
     `p2_puzzle_hash` BLOB NOT NULL,
-    FOREIGN KEY (`coin_id`) REFERENCES `coin_states` (`coin_id`)
+    FOREIGN KEY (`coin_id`) REFERENCES `coin_states` (`coin_id`) ON DELETE CASCADE
 );
 
 CREATE INDEX `did_launcher_id` ON `did_coins` (`launcher_id`);
@@ -87,7 +88,7 @@ CREATE TABLE `nft_coins` (
     `data_hash` BLOB,
     `metadata_hash` BLOB,
     `license_hash` BLOB,
-    FOREIGN KEY (`coin_id`) REFERENCES `coin_states` (`coin_id`)
+    FOREIGN KEY (`coin_id`) REFERENCES `coin_states` (`coin_id`) ON DELETE CASCADE
 );
 
 CREATE INDEX `nft_launcher_id` ON `nft_coins` (`launcher_id`);

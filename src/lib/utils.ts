@@ -4,3 +4,8 @@ import { twMerge } from 'tailwind-merge';
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
+
+export function dbg<T>(value: T): T {
+  console.log(value);
+  return value;
+}

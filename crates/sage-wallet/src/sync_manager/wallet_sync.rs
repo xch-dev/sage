@@ -275,7 +275,6 @@ pub async fn incremental_sync(
                 .transaction_for_spent_coin(coin_state.coin.coin_id())
                 .await?
             {
-                tx.confirm_coins(transaction_id).await?;
                 tx.remove_transaction(transaction_id).await?;
             }
         }
