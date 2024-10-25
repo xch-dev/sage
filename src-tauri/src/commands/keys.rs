@@ -7,11 +7,7 @@ use rand_chacha::ChaCha20Rng;
 use specta::specta;
 use tauri::{command, State};
 
-use crate::{
-    app_state::AppState,
-    error::{Error, Result},
-    models::{WalletInfo, WalletKind, WalletSecrets},
-};
+use crate::{AppState, Error, Result, WalletInfo, WalletKind, WalletSecrets};
 
 #[command]
 #[specta]

@@ -1,13 +1,16 @@
-use app_state::AppStateInner;
 use sage_api::SyncEvent;
 use tauri::Manager;
 use tauri_specta::{collect_commands, collect_events, Builder};
 use tokio::sync::Mutex;
 
-mod app_state;
 mod commands;
 mod error;
 mod models;
+mod state;
+
+pub(crate) use error::*;
+pub(crate) use models::*;
+pub(crate) use state::*;
 
 #[cfg(all(debug_assertions, not(mobile)))]
 use specta_typescript::Typescript;

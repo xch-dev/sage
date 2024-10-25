@@ -8,16 +8,12 @@ use chia_wallet_sdk::{
     decode_address, encode_address, AggSigConstants, MAINNET_CONSTANTS, TESTNET11_CONSTANTS,
 };
 use sage_api::{Amount, BulkMintNfts, BulkMintNftsResponse};
-use sage_database::CatRow;
 use sage_wallet::{fetch_uris, Wallet, WalletNftMint};
 use specta::specta;
 use tauri::{command, State};
 use tokio::sync::MutexGuard;
 
-use crate::{
-    app_state::{AppState, AppStateInner},
-    error::{Error, Result},
-};
+use crate::{AppState, AppStateInner, Error, Result};
 
 #[command]
 #[specta]

@@ -1,7 +1,7 @@
 use specta::specta;
 use tauri::{command, State};
 
-use crate::{app_state::AppState, error::Result};
+use crate::{AppState, Result};
 
 mod actions;
 mod data;

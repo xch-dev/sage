@@ -15,10 +15,7 @@ use sage_wallet::WalletError;
 use specta::specta;
 use tauri::{command, State};
 
-use crate::{
-    app_state::AppState,
-    error::{Error, Result},
-};
+use crate::{AppState, Error, Result};
 
 #[command]
 #[specta]

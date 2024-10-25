@@ -1,13 +1,9 @@
 use chia_wallet_sdk::decode_address;
 use sage_api::CatRecord;
-use sage_database::CatRow;
 use specta::specta;
 use tauri::{command, State};
 
-use crate::{
-    app_state::AppState,
-    error::{Error, Result},
-};
+use crate::{AppState, Error, Result};
 
 #[command]
 #[specta]

@@ -8,7 +8,7 @@ use sage_wallet::SyncCommand;
 use specta::specta;
 use tauri::{command, State};
 
-use crate::{app_state::AppState, error::Result};
+use crate::{AppState, Result};
 
 #[command]
 #[specta]
