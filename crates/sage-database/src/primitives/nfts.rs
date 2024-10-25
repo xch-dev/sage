@@ -188,13 +188,13 @@ async fn fetch_nfts(conn: impl SqliteExecutor<'_>, limit: u32, offset: u32) -> R
             cs.`transaction_id`,
             `created_height`,
             `visible`
-        FROM `nft_coins`
-        INNER JOIN `coin_states` AS cs INDEXED BY `coin_height` ON `nft_coins`.`coin_id` = `cs`.`coin_id`
+        FROM `coin_states` AS cs INDEXED BY `coin_height`
+        INNER JOIN `nft_coins` ON `nft_coins`.`coin_id` = `cs`.`coin_id`
         LEFT JOIN `transaction_spends` ON `cs`.`coin_id` = `transaction_spends`.`coin_id`
         INNER JOIN `nfts` INDEXED BY `nft_visible` ON `nft_coins`.`launcher_id` = `nfts`.`launcher_id`
         WHERE `cs`.`spent_height` IS NULL
         AND `transaction_spends`.`transaction_id` IS NULL
-        ORDER BY `visible` DESC, cs.`transaction_id` DESC, `created_height` DESC
+        ORDER BY `created_height` DESC NULLS LAST
         LIMIT ? OFFSET ?
         ",
         limit,

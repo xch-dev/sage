@@ -79,7 +79,7 @@ export default function Layout(props: PropsWithChildren<object>) {
                       : ' connecting...'}
                   </>
                 ) : (
-                  `Syncing ${walletState.sync.synced_coins} / ${walletState.sync.total_coins} coins`
+                  `Syncing ${walletState.sync.synced_coins} / ${walletState.sync.total_coins}`
                 )}
               </Link>
               <Link

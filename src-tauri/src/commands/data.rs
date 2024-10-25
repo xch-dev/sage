@@ -279,7 +279,9 @@ pub async fn get_nfts(state: State<'_, AppState>, request: GetNfts) -> Result<Ge
 
     let mut tx = wallet.db.tx().await?;
 
-    for nft in tx.fetch_nfts(request.limit, request.offset).await? {
+    let nfts = tx.fetch_nfts(request.limit, request.offset).await?;
+
+    for nft in nfts {
         let data = if let Some(hash) = nft.data_hash {
             tx.fetch_nft_data(hash).await?
         } else {
