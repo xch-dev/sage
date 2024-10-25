@@ -1,4 +1,5 @@
 import {
+  FileSliders,
   HandCoins,
   ImagePlus,
   Images,
@@ -12,7 +13,7 @@ import { Separator } from './ui/separator';
 
 export function Nav() {
   return (
-    <nav className='grid gap-1 text-md font-medium'>
+    <nav className='grid text-md font-medium'>
       <NavLink url={'/wallet'}>
         <WalletIcon className='h-4 w-4' />
         Wallet
@@ -25,7 +26,11 @@ export function Nav() {
         <SquareUserRound className='h-4 w-4' />
         Profiles
       </NavLink>
-      <Separator className='my-1' />
+      <NavLink url={'/offers'}>
+        <FileSliders className='h-4 w-4' />
+        Offers
+      </NavLink>
+      <Separator className='my-2' />
       <NavLink url={'/wallet/issue-token'}>
         <HandCoins className='h-4 w-4' />
         Issue Token
