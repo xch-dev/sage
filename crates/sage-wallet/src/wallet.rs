@@ -818,7 +818,7 @@ impl Wallet {
         reuse: bool,
     ) -> Result<(Vec<CoinSpend>, Nft<Program>), WalletError> {
         let Some(nft) = self.db.nft(nft_id).await? else {
-            return Err(WalletError::MissingDid(nft_id));
+            return Err(WalletError::MissingNft(nft_id));
         };
 
         let total_amount = fee as u128 + 1;
