@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n        SELECT\n            cs.`coin_id`,\n            `nft_coins`.`launcher_id`,\n            `metadata`,\n            `metadata_updater_puzzle_hash`,\n            `current_owner`,\n            `royalty_puzzle_hash`,\n            `royalty_ten_thousandths`,\n            `p2_puzzle_hash`,\n            `data_hash`,\n            `metadata_hash`,\n            `license_hash`,\n            cs.`transaction_id`,\n            `created_height`,\n            `visible`\n        FROM `nft_coins`\n        INNER JOIN `coin_states` AS cs INDEXED BY `coin_height` ON `nft_coins`.`coin_id` = `cs`.`coin_id`\n        LEFT JOIN `transaction_spends` ON `cs`.`coin_id` = `transaction_spends`.`coin_id`\n        INNER JOIN `nfts` ON `nft_coins`.`launcher_id` = `nfts`.`launcher_id`\n        WHERE `nft_coins`.`launcher_id` = ?\n        AND `spent_height` IS NULL\n        AND `transaction_spends`.`transaction_id` IS NULL\n        ",
+  "query": "\n        SELECT\n            cs.`coin_id`,\n            `nft_coins`.`launcher_id`,\n            `metadata`,\n            `metadata_updater_puzzle_hash`,\n            `current_owner`,\n            `royalty_puzzle_hash`,\n            `royalty_ten_thousandths`,\n            `p2_puzzle_hash`,\n            `data_hash`,\n            `metadata_hash`,\n            `license_hash`,\n            cs.`transaction_id`,\n            `created_height`\n        FROM `nft_coins`\n        INNER JOIN `coin_states` AS cs INDEXED BY `coin_height` ON `nft_coins`.`coin_id` = `cs`.`coin_id`\n        LEFT JOIN `transaction_spends` ON `cs`.`coin_id` = `transaction_spends`.`coin_id`\n        WHERE `nft_coins`.`launcher_id` = ?\n        AND `spent_height` IS NULL\n        AND `transaction_spends`.`transaction_id` IS NULL\n        ",
   "describe": {
     "columns": [
       {
@@ -67,11 +67,6 @@
         "name": "created_height",
         "ordinal": 12,
         "type_info": "Integer"
-      },
-      {
-        "name": "visible",
-        "ordinal": 13,
-        "type_info": "Bool"
       }
     ],
     "parameters": {
@@ -90,9 +85,8 @@
       true,
       true,
       true,
-      true,
-      false
+      true
     ]
   },
-  "hash": "c690c613b94c080958743bd5b5f92f66246c319abdbca80f7fc7bf690af6aebb"
+  "hash": "ca62b23cbba01f95e58c1e2bd69a66c52d7fd3892f275d6a28338c53649d659e"
 }

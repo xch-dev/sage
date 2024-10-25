@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n        SELECT `asset_id` FROM `cat_coins`\n        WHERE `asset_id` NOT IN (SELECT `asset_id` FROM `cats`)\n        LIMIT 1\n        ",
+  "query": "SELECT `asset_id` FROM `cat_coins` GROUP BY `asset_id`",
   "describe": {
     "columns": [
       {
@@ -16,5 +16,5 @@
       false
     ]
   },
-  "hash": "15dd76d270dedad79549058ce3d733cf121b3d2b1298abf5fb73cede00f464c3"
+  "hash": "659e3d6efa1d53ed855ef1db4092f6882573267d18ca4c0570fff53603281657"
 }

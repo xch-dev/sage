@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n        SELECT\n            `nft_coins`.`coin_id`,\n            `nft_coins`.`launcher_id`,\n            `metadata`,\n            `metadata_updater_puzzle_hash`,\n            `current_owner`,\n            `royalty_puzzle_hash`,\n            `royalty_ten_thousandths`,\n            `p2_puzzle_hash`,\n            `data_hash`,\n            `metadata_hash`,\n            `license_hash`,\n            cs.`transaction_id`,\n            `created_height`,\n            `visible`\n        FROM `coin_states` AS cs INDEXED BY `coin_height`\n        INNER JOIN `nft_coins` ON `nft_coins`.`coin_id` = `cs`.`coin_id`\n        LEFT JOIN `transaction_spends` ON `cs`.`coin_id` = `transaction_spends`.`coin_id`\n        INNER JOIN `nfts` INDEXED BY `nft_visible` ON `nft_coins`.`launcher_id` = `nfts`.`launcher_id`\n        WHERE `cs`.`spent_height` IS NULL\n        AND `transaction_spends`.`transaction_id` IS NULL\n        ORDER BY `created_height` DESC NULLS LAST\n        LIMIT ? OFFSET ?\n        ",
+  "query": "\n        SELECT\n            `nft_coins`.`coin_id`,\n            `nft_coins`.`launcher_id`,\n            `metadata`,\n            `metadata_updater_puzzle_hash`,\n            `current_owner`,\n            `royalty_puzzle_hash`,\n            `royalty_ten_thousandths`,\n            `p2_puzzle_hash`,\n            `data_hash`,\n            `metadata_hash`,\n            `license_hash`,\n            cs.`transaction_id`,\n            `created_height`\n        FROM `coin_states` AS cs INDEXED BY `coin_height`\n        INNER JOIN `nft_coins` ON `nft_coins`.`coin_id` = `cs`.`coin_id`\n        LEFT JOIN `transaction_spends` ON `cs`.`coin_id` = `transaction_spends`.`coin_id`\n        WHERE `cs`.`spent_height` IS NULL\n        AND `transaction_spends`.`transaction_id` IS NULL\n        ORDER BY `created_height` DESC NULLS LAST\n        LIMIT ? OFFSET ?\n        ",
   "describe": {
     "columns": [
       {
@@ -67,11 +67,6 @@
         "name": "created_height",
         "ordinal": 12,
         "type_info": "Integer"
-      },
-      {
-        "name": "visible",
-        "ordinal": 13,
-        "type_info": "Bool"
       }
     ],
     "parameters": {
@@ -90,9 +85,8 @@
       true,
       true,
       true,
-      true,
-      false
+      true
     ]
   },
-  "hash": "c691d415e6292b528e254c500c607cdc602bfb169641360ea8952f10cf1406dd"
+  "hash": "747dd6375a5eb00fab8cf045879563ed5223e4ba44d71d17f09af54ba3581937"
 }
