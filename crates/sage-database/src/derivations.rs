@@ -15,6 +15,10 @@ impl Database {
     pub async fn synthetic_key_index(&self, synthetic_key: PublicKey) -> Result<Option<u32>> {
         synthetic_key_index(&self.pool, synthetic_key).await
     }
+
+    pub async fn is_p2_puzzle_hash(&self, p2_puzzle_hash: Bytes32) -> Result<bool> {
+        is_p2_puzzle_hash(&self.pool, p2_puzzle_hash).await
+    }
 }
 
 impl<'a> DatabaseTx<'a> {

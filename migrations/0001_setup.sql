@@ -135,8 +135,7 @@ CREATE TABLE `transactions` (
     `transaction_id` BLOB NOT NULL PRIMARY KEY,
     `aggregated_signature` BLOB NOT NULL,
     `fee` BLOB NOT NULL,
-    `submitted_at` INTEGER,
-    `expiration_height` INTEGER
+    `submitted_at` INTEGER
 );
 
 CREATE TABLE `transaction_spends` (

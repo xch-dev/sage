@@ -1,5 +1,6 @@
-use std::time::Duration;
+use std::{collections::HashMap, time::Duration};
 
+use base64::prelude::*;
 use chia::{
     protocol::{Bytes32, CoinSpend},
     puzzles::nft::NftMetadata,
@@ -7,9 +8,12 @@ use chia::{
 use chia_wallet_sdk::{
     decode_address, encode_address, AggSigConstants, MAINNET_CONSTANTS, TESTNET11_CONSTANTS,
 };
-use sage_api::{Amount, BulkMintNfts, BulkMintNftsResponse};
+use sage_api::{
+    Amount, BulkMintNfts, BulkMintNftsResponse, CoinKind as ApiCoinKind, CoinSummary,
+    TransactionSummary,
+};
 use sage_database::CatRow;
-use sage_wallet::{fetch_uris, Wallet, WalletNftMint};
+use sage_wallet::{fetch_uris, CoinKind, Data, Transaction, Wallet, WalletError, WalletNftMint};
 use specta::specta;
 use tauri::{command, State};
 use tokio::sync::MutexGuard;
@@ -515,29 +519,117 @@ async fn transact(
     state: &MutexGuard<'_, AppStateInner>,
     wallet: &Wallet,
     coin_spends: Vec<CoinSpend>,
-) -> Result<()> {
-    let (_mnemonic, Some(master_sk)) = state.keychain.extract_secrets(wallet.fingerprint, b"")?
-    else {
-        return Err(Error::no_secret_key());
-    };
+    confirm: bool,
+    nft_data: HashMap<Bytes32, Data>,
+) -> Result<Option<TransactionSummary>> {
+    if confirm {
+        let transaction = Transaction::from_coin_spends(coin_spends).map_err(WalletError::Parse)?;
 
-    let spend_bundle = wallet
-        .sign_transaction(
-            coin_spends,
-            &if state.config.network.network_id == "mainnet" {
-                AggSigConstants::new(MAINNET_CONSTANTS.agg_sig_me_additional_data)
-            } else {
-                AggSigConstants::new(TESTNET11_CONSTANTS.agg_sig_me_additional_data)
-            },
-            master_sk,
-        )
-        .await?;
+        let mut inputs = Vec::with_capacity(transaction.inputs.len());
+        let mut outputs = Vec::with_capacity(transaction.outputs.len());
 
-    let Some(peak) = wallet.db.latest_peak().await? else {
-        return Err(Error::no_peak());
-    };
+        for input in transaction.inputs {
+            let coin = input.coin_spend.coin;
+            let mut amount = Amount::from_mojos(coin.amount as u128, state.unit.decimals);
 
-    wallet.insert_transaction(&spend_bundle, peak.0).await?;
+            let (kind, p2_puzzle_hash) = match input.kind {
+                CoinKind::Unknown => {
+                    let kind = if wallet.db.is_p2_puzzle_hash(coin.puzzle_hash).await? {
+                        ApiCoinKind::Xch
+                    } else {
+                        ApiCoinKind::Unknown
+                    };
+                    (kind, coin.puzzle_hash)
+                }
+                CoinKind::Cat {
+                    asset_id,
+                    p2_puzzle_hash,
+                } => {
+                    let cat = wallet.db.cat(asset_id).await?;
+                    let kind = ApiCoinKind::Cat {
+                        asset_id: hex::encode(asset_id),
+                        name: cat.as_ref().and_then(|cat| cat.name.clone()),
+                        ticker: cat.as_ref().and_then(|cat| cat.ticker.clone()),
+                        icon_url: cat.as_ref().and_then(|cat| cat.icon_url.clone()),
+                    };
+                    amount = Amount::from_mojos(coin.amount as u128, 3);
+                    (kind, p2_puzzle_hash)
+                }
+                CoinKind::Did { info } => {
+                    let name = wallet.db.did_name(info.launcher_id).await?;
+                    let kind = ApiCoinKind::Did {
+                        launcher_id: encode_address(info.launcher_id.into(), "did:chia:")?,
+                        name,
+                    };
+                    (kind, info.p2_puzzle_hash)
+                }
+                CoinKind::Nft { info, metadata } => {
+                    let (image_data, image_mime_type, name) = if let Some(metadata) = metadata {
+                        let (image_data, image_mime_type) =
+                            if let Some(data_hash) = metadata.data_hash {
+                                let data = wallet.db.fetch_nft_data(data_hash).await?;
+                                data.map(|data| {
+                                    (
+                                        Some(BASE64_STANDARD.encode(&data.blob)),
+                                        Some(data.mime_type),
+                                    )
+                                })
+                                .unwrap_or_default()
+                            } else {
+                                (None, None)
+                            };
 
-    Ok(())
+                        (image_data, image_mime_type, name)
+                    } else {
+                        (None, None, None)
+                    };
+
+                    let kind = ApiCoinKind::Nft {
+                        launcher_id: encode_address(info.launcher_id.into(), "nft")?,
+                        image_data,
+                        image_mime_type,
+                        name,
+                    };
+                    (kind, info.p2_puzzle_hash)
+                }
+            };
+
+            let address = encode_address(p2_puzzle_hash.into(), &state.network().address_prefix)?;
+
+            inputs.push(CoinSummary {
+                coin_id: hex::encode(coin.coin_id()),
+                amount,
+                address,
+                kind,
+            });
+        }
+
+        Ok(Some(TransactionSummary {
+            fee: Amount::from_mojos(transaction.fee as u128, state.unit.decimals),
+            inputs,
+            outputs,
+        }))
+    } else {
+        let (_mnemonic, Some(master_sk)) =
+            state.keychain.extract_secrets(wallet.fingerprint, b"")?
+        else {
+            return Err(Error::no_secret_key());
+        };
+
+        let spend_bundle = wallet
+            .sign_transaction(
+                coin_spends,
+                &if state.config.network.network_id == "mainnet" {
+                    AggSigConstants::new(MAINNET_CONSTANTS.agg_sig_me_additional_data)
+                } else {
+                    AggSigConstants::new(TESTNET11_CONSTANTS.agg_sig_me_additional_data)
+                },
+                master_sk,
+            )
+            .await?;
+
+        wallet.insert_transaction(spend_bundle).await?;
+
+        Ok(None)
+    }
 }

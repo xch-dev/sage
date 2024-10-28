@@ -9,7 +9,6 @@ use chia::{
         master_to_wallet_unhardened_intermediate, sign, DerivableKey, PublicKey, SecretKey,
         Signature,
     },
-    clvm_traits::{FromClvm, ToClvm},
     protocol::{Bytes, Bytes32, Coin, CoinSpend, CoinState, Program, SpendBundle},
     puzzles::{
         nft::{NftMetadata, NFT_METADATA_UPDATER_PUZZLE_HASH},
@@ -18,15 +17,13 @@ use chia::{
     },
 };
 use chia_wallet_sdk::{
-    run_puzzle, select_coins, AggSigConstants, Cat, CatSpend, Condition, Conditions, Did, DidOwner,
-    HashedPtr, Launcher, Nft, NftMint, RequiredSignature, SpendContext, SpendWithConditions,
-    StandardLayer,
+    select_coins, AggSigConstants, Cat, CatSpend, Conditions, Did, DidOwner, HashedPtr, Launcher,
+    Nft, NftMint, RequiredSignature, SpendContext, SpendWithConditions, StandardLayer,
 };
-use clvmr::{Allocator, NodePtr};
-use rayon::iter::{IntoParallelIterator, ParallelIterator};
+use clvmr::Allocator;
 use sage_database::{Database, DatabaseTx};
 
-use crate::{ParseError, PuzzleInfo, WalletError};
+use crate::{ChildKind, Transaction, WalletError};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WalletNftMint {
@@ -902,105 +899,31 @@ impl Wallet {
         Ok(SpendBundle::new(coin_spends, aggregated_signature))
     }
 
-    pub async fn insert_transaction(
-        &self,
-        spend_bundle: &SpendBundle,
-        peak: u32,
-    ) -> Result<(), WalletError> {
-        let mut input_amount = 0;
-        let mut output_amount = 0;
-        let mut expiration_height = None::<u32>;
-        let mut spend_outputs = Vec::<Vec<(Coin, PuzzleInfo)>>::new();
-
-        for coin_spend in &spend_bundle.coin_spends {
-            input_amount += coin_spend.coin.amount;
-
-            let mut allocator = Allocator::new();
-
-            let puzzle = coin_spend
-                .puzzle_reveal
-                .to_clvm(&mut allocator)
-                .map_err(|_| ParseError::AllocatePuzzle)?;
-
-            let solution = coin_spend
-                .solution
-                .to_clvm(&mut allocator)
-                .map_err(|_| ParseError::AllocateSolution)?;
-
-            let output =
-                run_puzzle(&mut allocator, puzzle, solution).map_err(|_| ParseError::Eval)?;
-
-            let conditions = Conditions::<NodePtr>::from_clvm(&allocator, output)
-                .map_err(|_| ParseError::InvalidConditions)?;
-
-            let mut outputs = Vec::new();
-
-            for condition in conditions {
-                match condition {
-                    Condition::CreateCoin(create_coin) => {
-                        output_amount += create_coin.amount;
-                        outputs.push(Coin::new(
-                            coin_spend.coin.coin_id(),
-                            create_coin.puzzle_hash,
-                            create_coin.amount,
-                        ));
-                    }
-                    Condition::AssertBeforeHeightRelative(cond) => {
-                        expiration_height = expiration_height
-                            .map_or(Some(peak + cond.height), |current| {
-                                Some(current.min(peak + cond.height))
-                            });
-                    }
-                    Condition::AssertBeforeHeightAbsolute(cond) => {
-                        expiration_height = expiration_height
-                            .map_or(Some(cond.height), |current| Some(current.min(cond.height)));
-                    }
-                    _ => {}
-                }
-            }
-
-            spend_outputs.push(
-                outputs
-                    .into_par_iter()
-                    .map(|coin| {
-                        Ok((
-                            coin,
-                            PuzzleInfo::parse(
-                                coin_spend.coin,
-                                &coin_spend.puzzle_reveal,
-                                &coin_spend.solution,
-                                coin,
-                            )?,
-                        ))
-                    })
-                    .collect::<Result<_, ParseError>>()?,
-            );
-        }
-
+    pub async fn insert_transaction(&self, spend_bundle: SpendBundle) -> Result<(), WalletError> {
         let transaction_id = spend_bundle.name();
+        let transaction = Transaction::from_coin_spends(spend_bundle.coin_spends)?;
 
         let mut tx = self.db.tx().await?;
 
         tx.insert_transaction(
             transaction_id,
             spend_bundle.aggregated_signature.clone(),
-            input_amount - output_amount,
-            expiration_height,
+            transaction.fee,
         )
         .await?;
 
-        for (i, coin_spend) in spend_bundle.coin_spends.iter().enumerate() {
+        for input in transaction.inputs {
             tx.insert_transaction_spend(
-                coin_spend.coin,
+                input.coin_spend.coin,
                 transaction_id,
-                coin_spend.puzzle_reveal.clone(),
-                coin_spend.solution.clone(),
+                input.coin_spend.puzzle_reveal,
+                input.coin_spend.solution,
             )
             .await?;
 
-            for (coin, puzzle) in spend_outputs[i].clone() {
-                let coin_state = CoinState::new(coin, None, None);
-                let coin_id = coin.coin_id();
+            for output in input.outputs {
+                let coin_state = CoinState::new(output.coin, None, None);
+                let coin_id = output.coin.coin_id();
 
                 macro_rules! insert_coin {
                     () => {
@@ -1009,14 +932,15 @@ impl Wallet {
                     };
                 }
 
-                if tx.is_p2_puzzle_hash(coin.puzzle_hash).await? {
+                if tx.is_p2_puzzle_hash(output.coin.puzzle_hash).await? {
                     insert_coin!();
                     tx.insert_p2_coin(coin_id).await?;
                     continue;
                 }
 
-                match puzzle {
-                    PuzzleInfo::Cat {
+                match output.kind {
+                    ChildKind::Launcher => {}
+                    ChildKind::Cat {
                         asset_id,
                         lineage_proof,
                         p2_puzzle_hash,
@@ -1028,7 +952,7 @@ impl Wallet {
                                 .await?;
                         }
                     }
-                    PuzzleInfo::Did {
+                    ChildKind::Did {
                         lineage_proof,
                         info,
                     } => {
@@ -1039,16 +963,15 @@ impl Wallet {
                             tx.insert_did_coin(coin_id, lineage_proof, info).await?;
                         }
                     }
-                    PuzzleInfo::Nft {
+                    ChildKind::Nft {
                         lineage_proof,
                         info,
-                        data_hash,
-                        metadata_hash,
-                        license_hash,
-                        data_uris,
-                        metadata_uris,
-                        license_uris,
+                        metadata,
                     } => {
+                        let data_hash = metadata.as_ref().and_then(|m| m.data_hash);
+                        let metadata_hash = metadata.as_ref().and_then(|m| m.metadata_hash);
+                        let license_hash = metadata.as_ref().and_then(|m| m.license_hash);
+
                         if tx.is_p2_puzzle_hash(info.p2_puzzle_hash).await? {
                             insert_coin!();
 
@@ -1064,26 +987,28 @@ impl Wallet {
                             )
                             .await?;
 
-                            if let Some(hash) = data_hash {
-                                for uri in data_uris {
-                                    tx.insert_nft_uri(uri, hash).await?;
+                            if let Some(metadata) = metadata {
+                                if let Some(hash) = data_hash {
+                                    for uri in metadata.data_uris {
+                                        tx.insert_nft_uri(uri, hash).await?;
+                                    }
                                 }
-                            }
 
-                            if let Some(hash) = metadata_hash {
-                                for uri in metadata_uris {
-                                    tx.insert_nft_uri(uri, hash).await?;
+                                if let Some(hash) = metadata_hash {
+                                    for uri in metadata.metadata_uris {
+                                        tx.insert_nft_uri(uri, hash).await?;
+                                    }
                                 }
-                            }
 
-                            if let Some(hash) = license_hash {
-                                for uri in license_uris {
-                                    tx.insert_nft_uri(uri, hash).await?;
+                                if let Some(hash) = license_hash {
+                                    for uri in metadata.license_uris {
+                                        tx.insert_nft_uri(uri, hash).await?;
+                                    }
                                 }
                             }
                         }
                     }
-                    PuzzleInfo::Unknown { hint } => {
+                    ChildKind::Unknown { hint } => {
                         let Some(p2_puzzle_hash) = hint else {
                             continue;
                         };

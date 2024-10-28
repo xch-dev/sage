@@ -11,7 +11,7 @@ use tokio::{
 };
 use tracing::{debug, instrument};
 
-use crate::{PeerState, PuzzleInfo, SyncCommand, SyncError, SyncEvent, WalletError};
+use crate::{ChildKind, PeerState, SyncCommand, SyncError, SyncEvent, WalletError};
 
 #[derive(Debug)]
 pub struct PuzzleQueue {
@@ -150,7 +150,7 @@ async fn fetch_puzzle(
     .map_err(|_| SyncError::MissingPuzzleAndSolution(parent_id))?;
 
     let info = spawn_blocking(move || {
-        PuzzleInfo::parse(
+        ChildKind::from_parent(
             parent_coin_state.coin,
             &response.puzzle,
             &response.solution,
@@ -164,7 +164,8 @@ async fn fetch_puzzle(
     let mut tx = db.tx().await?;
 
     match info {
-        PuzzleInfo::Cat {
+        ChildKind::Launcher => {}
+        ChildKind::Cat {
             asset_id,
             lineage_proof,
             p2_puzzle_hash,
@@ -178,7 +179,7 @@ async fn fetch_puzzle(
                 .await
                 .ok();
         }
-        PuzzleInfo::Did {
+        ChildKind::Did {
             lineage_proof,
             info,
         } => {
@@ -191,16 +192,15 @@ async fn fetch_puzzle(
                 .await
                 .ok();
         }
-        PuzzleInfo::Nft {
+        ChildKind::Nft {
             lineage_proof,
             info,
-            data_hash,
-            metadata_hash,
-            license_hash,
-            data_uris,
-            metadata_uris,
-            license_uris,
+            metadata,
         } => {
+            let data_hash = metadata.as_ref().and_then(|m| m.data_hash);
+            let metadata_hash = metadata.as_ref().and_then(|m| m.metadata_hash);
+            let license_hash = metadata.as_ref().and_then(|m| m.license_hash);
+
             tx.sync_coin(coin_id, Some(info.p2_puzzle_hash)).await?;
             tx.insert_new_nft(info.launcher_id, true).await?;
             tx.insert_nft_coin(
@@ -213,21 +213,23 @@ async fn fetch_puzzle(
             )
             .await?;
 
-            if let Some(hash) = data_hash {
-                for uri in data_uris {
-                    tx.insert_nft_uri(uri, hash).await?;
+            if let Some(metadata) = metadata {
+                if let Some(hash) = data_hash {
+                    for uri in metadata.data_uris {
+                        tx.insert_nft_uri(uri, hash).await?;
+                    }
                 }
-            }
 
-            if let Some(hash) = metadata_hash {
-                for uri in metadata_uris {
-                    tx.insert_nft_uri(uri, hash).await?;
+                if let Some(hash) = metadata_hash {
+                    for uri in metadata.metadata_uris {
+                        tx.insert_nft_uri(uri, hash).await?;
+                    }
                 }
-            }
 
-            if let Some(hash) = license_hash {
-                for uri in license_uris {
-                    tx.insert_nft_uri(uri, hash).await?;
+                if let Some(hash) = license_hash {
+                    for uri in metadata.license_uris {
+                        tx.insert_nft_uri(uri, hash).await?;
+                    }
                 }
             }
 
@@ -236,7 +238,7 @@ async fn fetch_puzzle(
                 .await
                 .ok();
         }
-        PuzzleInfo::Unknown { hint } => {
+        ChildKind::Unknown { hint } => {
             tx.sync_coin(coin_id, hint).await?;
             tx.insert_unknown_coin(coin_id).await?;
         }

@@ -1,7 +1,7 @@
 use chia::{
     clvm_traits::{FromClvm, ToClvm},
     protocol::{Bytes32, Coin, Program},
-    puzzles::{nft::NftMetadata, LineageProof, Proof},
+    puzzles::{nft::NftMetadata, singleton::SINGLETON_LAUNCHER_PUZZLE_HASH, LineageProof, Proof},
 };
 use chia_wallet_sdk::{run_puzzle, Cat, Condition, Did, DidInfo, HashedPtr, Nft, NftInfo, Puzzle};
 use clvmr::Allocator;
@@ -9,49 +9,46 @@ use tracing::{debug_span, warn};
 
 use crate::ParseError;
 
-/// Information about the puzzle and lineage of a coin, to be inserted into the database alongside a coin.
+#[derive(Debug, Clone)]
 #[allow(clippy::large_enum_variant)]
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum PuzzleInfo {
-    /// A non-eve coin which follows the CAT2 standard.
+pub enum ChildKind {
+    Unknown {
+        hint: Option<Bytes32>,
+    },
+    Launcher,
     Cat {
         asset_id: Bytes32,
-        lineage_proof: LineageProof,
         p2_puzzle_hash: Bytes32,
+        lineage_proof: LineageProof,
     },
-    /// A non-eve coin which follows the DID1 standard.
     Did {
-        lineage_proof: LineageProof,
         info: DidInfo<Program>,
-    },
-    /// A non-eve coin which follows the NFT1 standard.
-    Nft {
         lineage_proof: LineageProof,
-        info: NftInfo<Program>,
-        data_hash: Option<Bytes32>,
-        metadata_hash: Option<Bytes32>,
-        license_hash: Option<Bytes32>,
-        data_uris: Vec<String>,
-        metadata_uris: Vec<String>,
-        license_uris: Vec<String>,
     },
-    /// The coin could not be parsed due to an error or it was a kind of puzzle we don't know about.
-    Unknown { hint: Option<Bytes32> },
+    Nft {
+        info: NftInfo<Program>,
+        lineage_proof: LineageProof,
+        metadata: Option<NftMetadata>,
+    },
 }
 
-impl PuzzleInfo {
-    pub fn parse(
+impl ChildKind {
+    pub fn from_parent(
         parent_coin: Coin,
         parent_puzzle: &Program,
         parent_solution: &Program,
         coin: Coin,
     ) -> Result<Self, ParseError> {
         let parse_span = debug_span!(
-            "parse",
+            "parse from parent",
             parent_coin = %parent_coin.coin_id(),
             coin = %coin.coin_id()
         );
         let _span = parse_span.enter();
+
+        if coin.puzzle_hash == SINGLETON_LAUNCHER_PUZZLE_HASH.into() {
+            return Ok(Self::Launcher);
+        }
 
         let mut allocator = Allocator::new();
 
@@ -143,29 +140,15 @@ impl PuzzleInfo {
                     return Ok(unknown);
                 };
 
-                let metadata = NftMetadata::from_clvm(&allocator, nft.info.metadata.ptr()).ok();
-
                 let metadata_program = Program::from_clvm(&allocator, nft.info.metadata.ptr())
                     .map_err(|_| ParseError::Serialize)?;
+
+                let metadata = NftMetadata::from_clvm(&allocator, nft.info.metadata.ptr()).ok();
 
                 return Ok(Self::Nft {
                     lineage_proof,
                     info: nft.info.with_metadata(metadata_program),
-                    data_hash: metadata.as_ref().and_then(|m| m.data_hash),
-                    metadata_hash: metadata.as_ref().and_then(|m| m.metadata_hash),
-                    license_hash: metadata.as_ref().and_then(|m| m.license_hash),
-                    data_uris: metadata
-                        .as_ref()
-                        .map(|m| m.data_uris.clone())
-                        .unwrap_or_default(),
-                    metadata_uris: metadata
-                        .as_ref()
-                        .map(|m| m.metadata_uris.clone())
-                        .unwrap_or_default(),
-                    license_uris: metadata
-                        .as_ref()
-                        .map(|m| m.license_uris.clone())
-                        .unwrap_or_default(),
+                    metadata,
                 });
             }
 

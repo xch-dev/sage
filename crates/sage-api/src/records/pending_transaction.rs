@@ -8,5 +8,4 @@ pub struct PendingTransactionRecord {
     pub transaction_id: String,
     pub fee: Amount,
     pub submitted_at: Option<String>,
-    pub expiration_height: Option<u32>,
 }
