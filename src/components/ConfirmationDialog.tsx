@@ -7,15 +7,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { LoaderCircleIcon } from 'lucide-react';
+import { useWalletState } from '@/state';
+import { LoaderCircleIcon, MoveRight } from 'lucide-react';
 import { useState } from 'react';
-import { TransactionSummary } from '../bindings';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from './ui/accordion';
+import { Input, Output, TransactionSummary } from '../bindings';
+import { Badge } from './ui/badge';
 
 export interface ConfirmationDialogProps {
   summary: TransactionSummary | null;
@@ -42,20 +38,14 @@ export default function ConfirmationDialog({
         <DialogHeader>
           <DialogTitle>Confirm transaction?</DialogTitle>
           <DialogDescription>
-            {JSON.stringify(summary)}
-
-            <Accordion type='single' collapsible>
-              <AccordionItem value='item-1'>
-                <AccordionTrigger>Is it accessible?</AccordionTrigger>
-                <AccordionContent>
-                  Yes. It adheres to the WAI-ARIA design pattern.
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
+            {summary?.inputs.map((input) => {
+              return <InputItem key={input.coin_id} input={input} />;
+            })}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <Button
+            variant='ghost'
             onClick={() => {
               close();
               setPending(false);
@@ -81,5 +71,48 @@ export default function ConfirmationDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+interface InputProps {
+  input: Input;
+}
+
+function InputItem({ input }: InputProps) {
+  const walletState = useWalletState();
+
+  return (
+    <div className='flex flex-col gap-1 mt-2 w-full font-medium text-left text-neutral-900 dark:text-neutral-200 bg-neutral-200 dark:bg-neutral-900 p-3 rounded-lg'>
+      <div className='flex items-center gap-2'>
+        <Badge>{walletState.sync.unit.ticker}</Badge>
+        <span>
+          {input.amount} {walletState.sync.unit.ticker}
+        </span>
+      </div>
+
+      {input.outputs.map((output) => (
+        <OutputItem key={output.coin_id} output={output} />
+      ))}
+    </div>
+  );
+}
+
+interface OutputProps {
+  output: Output;
+}
+
+function OutputItem({ output }: OutputProps) {
+  const walletState = useWalletState();
+
+  return (
+    <div className='flex items-start gap-2 ml-4 truncate'>
+      <MoveRight />
+      <div>
+        <div className='truncate w-[250px]'>{output.address}</div>
+        <div>
+          {output.amount} {walletState.sync.unit.ticker}
+        </div>
+      </div>
+    </div>
   );
 }
