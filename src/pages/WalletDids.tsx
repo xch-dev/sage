@@ -1,3 +1,4 @@
+import ConfirmationDialog from '@/components/ConfirmationDialog';
 import Container from '@/components/Container';
 import Header from '@/components/Header';
 import { ReceiveAddress } from '@/components/ReceiveAddress';
@@ -19,21 +20,36 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useDids } from '@/hooks/useDids';
+import { amount } from '@/lib/formTypes';
+import { useWalletState } from '@/state';
+import { zodResolver } from '@hookform/resolvers/zod';
+import BigNumber from 'bignumber.js';
 import {
   EyeIcon,
   EyeOff,
   MoreVerticalIcon,
   PenIcon,
+  SendIcon,
   UserIcon,
   UserRoundPlus,
 } from 'lucide-react';
 import { useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
-import { commands, DidRecord } from '../bindings';
+import { z } from 'zod';
+import { commands, DidRecord, TransactionSummary } from '../bindings';
 
 export function WalletDids() {
   const navigate = useNavigate();
@@ -95,8 +111,12 @@ interface ProfileProps {
 }
 
 function Profile({ did, updateDids }: ProfileProps) {
+  const walletState = useWalletState();
+
   const [name, setName] = useState('');
   const [renameOpen, setRenameOpen] = useState(false);
+  const [isTransferOpen, setTransferOpen] = useState(false);
+  const [summary, setSummary] = useState<TransactionSummary | null>(null);
 
   const rename = () => {
     if (!name) return;
@@ -125,6 +145,35 @@ function Profile({ did, updateDids }: ProfileProps) {
       });
   };
 
+  const transferFormSchema = z.object({
+    address: z.string().min(1, 'Address is required'),
+    fee: amount(walletState.sync.unit.decimals).refine(
+      (amount) => BigNumber(walletState.sync.balance).gte(amount || 0),
+      'Not enough funds to cover the fee',
+    ),
+  });
+
+  const transferForm = useForm<z.infer<typeof transferFormSchema>>({
+    resolver: zodResolver(transferFormSchema),
+    defaultValues: {
+      address: '',
+      fee: '0',
+    },
+  });
+
+  const onTransferSubmit = (values: z.infer<typeof transferFormSchema>) => {
+    commands
+      .transferDid(did.launcher_id, values.address, values.fee)
+      .then((result) => {
+        setTransferOpen(false);
+        if (result.status === 'error') {
+          console.error('Failed to transfer DID', result.error);
+        } else {
+          setSummary(result.data);
+        }
+      });
+  };
+
   return (
     <>
       <Card
@@ -144,6 +193,16 @@ function Profile({ did, updateDids }: ProfileProps) {
             </DropdownMenuTrigger>
             <DropdownMenuContent align='end'>
               <DropdownMenuGroup>
+                <DropdownMenuItem
+                  className='cursor-pointer'
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setTransferOpen(true);
+                  }}
+                >
+                  <SendIcon className='mr-2 h-4 w-4' />
+                  <span>Transfer</span>
+                </DropdownMenuItem>
                 <DropdownMenuItem
                   className='cursor-pointer'
                   onClick={(e) => {
@@ -221,6 +280,66 @@ function Profile({ did, updateDids }: ProfileProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={isTransferOpen} onOpenChange={setTransferOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Transfer DID</DialogTitle>
+            <DialogDescription>
+              This will send the DID to the provided address.
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...transferForm}>
+            <form
+              onSubmit={transferForm.handleSubmit(onTransferSubmit)}
+              className='space-y-4'
+            >
+              <FormField
+                control={transferForm.control}
+                name='address'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Address</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={transferForm.control}
+                name='fee'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Network Fee</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter className='gap-2'>
+                <Button
+                  type='button'
+                  variant='outline'
+                  onClick={() => setTransferOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button type='submit'>Transfer</Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      <ConfirmationDialog
+        summary={summary}
+        close={() => setSummary(null)}
+        onConfirm={() => updateDids()}
+      />
     </>
   );
 }
