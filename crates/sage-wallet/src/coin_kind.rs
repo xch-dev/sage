@@ -7,7 +7,7 @@ use chia_wallet_sdk::{CatLayer, DidInfo, HashedPtr, Layer, NftInfo, Puzzle};
 use clvmr::Allocator;
 use tracing::{debug_span, warn};
 
-use crate::{ChildKind, ParseError};
+use crate::ParseError;
 
 #[derive(Debug, Clone)]
 #[allow(clippy::large_enum_variant)]
@@ -109,24 +109,5 @@ impl CoinKind {
         }
 
         Ok(Self::Unknown)
-    }
-}
-
-impl From<ChildKind> for CoinKind {
-    fn from(value: ChildKind) -> Self {
-        match value {
-            ChildKind::Unknown { .. } => Self::Unknown,
-            ChildKind::Launcher => Self::Launcher,
-            ChildKind::Cat {
-                asset_id,
-                p2_puzzle_hash,
-                ..
-            } => Self::Cat {
-                asset_id,
-                p2_puzzle_hash,
-            },
-            ChildKind::Did { info, .. } => Self::Did { info },
-            ChildKind::Nft { info, metadata, .. } => Self::Nft { info, metadata },
-        }
     }
 }
