@@ -284,9 +284,9 @@ function Profile({ did, updateDids }: ProfileProps) {
       <Dialog open={isTransferOpen} onOpenChange={setTransferOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Transfer DID</DialogTitle>
+            <DialogTitle>Transfer Profile</DialogTitle>
             <DialogDescription>
-              This will send the DID to the provided address.
+              This will send the profile to the provided address.
             </DialogDescription>
           </DialogHeader>
           <Form {...transferForm}>

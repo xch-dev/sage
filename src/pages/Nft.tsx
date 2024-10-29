@@ -64,8 +64,8 @@ export default function Nft() {
       <Header title={metadata.name ?? 'Unknown NFT'} />
       <Container>
         <div className='text-muted-foreground text-sm'>{nft?.launcher_id}</div>
-        <div className='grid lg:grid-cols-2 gap-4 mt-4'>
-          <div className='py-2'>
+        <div className='grid sm:grid-cols-2 gap-4 mt-4'>
+          <div className='flex flex-col gap-2 py-2'>
             <img
               alt='NFT image'
               src={nftUri(nft?.data_mime_type ?? null, nft?.data ?? null)}
