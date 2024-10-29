@@ -444,3 +444,12 @@ impl From<chia::traits::Error> for Error {
         }
     }
 }
+
+impl From<Vec<u8>> for Error {
+    fn from(value: Vec<u8>) -> Self {
+        Self {
+            kind: ErrorKind::Serialization,
+            reason: format!("Unexpected bytes with length {}", value.len()),
+        }
+    }
+}

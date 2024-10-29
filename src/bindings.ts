@@ -365,9 +365,17 @@ async transferNft(nftId: string, address: string, fee: Amount) : Promise<Result<
     else return { status: "error", error: e  as any };
 }
 },
-async submitTransaction(data: string) : Promise<Result<null, Error>> {
+async signTransaction(coinSpends: CoinSpendJson[]) : Promise<Result<SpendBundleJson, Error>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("submit_transaction", { data }) };
+    return { status: "ok", data: await TAURI_INVOKE("sign_transaction", { coinSpends }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async submitTransaction(spendBundle: SpendBundleJson) : Promise<Result<null, Error>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("submit_transaction", { spendBundle }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -418,7 +426,9 @@ export type Amount = string
 export type BulkMintNfts = { nft_mints: NftMint[]; did_id: string; fee: Amount }
 export type BulkMintNftsResponse = { nft_ids: string[]; summary: TransactionSummary }
 export type CatRecord = { asset_id: string; name: string | null; ticker: string | null; description: string | null; icon_url: string | null; visible: boolean; balance: Amount }
+export type CoinJson = { parent_coin_info: string; puzzle_hash: string; amount: number }
 export type CoinRecord = { coin_id: string; address: string; amount: Amount; created_height: number | null; spent_height: number | null; create_transaction_id: string | null; spend_transaction_id: string | null }
+export type CoinSpendJson = { coin: CoinJson; puzzle_reveal: string; solution: string }
 export type DidRecord = { launcher_id: string; name: string | null; visible: boolean; coin_id: string; address: string; amount: Amount; created_height: number | null; create_transaction_id: string | null }
 export type Error = { kind: ErrorKind; reason: string }
 export type ErrorKind = "Io" | "Database" | "Client" | "Keychain" | "Logging" | "Serialization" | "InvalidAddress" | "InvalidMnemonic" | "InvalidKey" | "InvalidAmount" | "InvalidRoyalty" | "InvalidAssetId" | "InvalidLauncherId" | "InsufficientFunds" | "TransactionFailed" | "UnknownNetwork" | "UnknownFingerprint" | "NotLoggedIn" | "Sync" | "Wallet"
@@ -432,9 +442,10 @@ export type NftRecord = { launcher_id: string; launcher_id_hex: string; owner_di
 export type Output = { coin_id: string; amount: Amount; address: string; receiving: boolean }
 export type PeerRecord = { ip_addr: string; port: number; trusted: boolean; peak_height: number }
 export type PendingTransactionRecord = { transaction_id: string; fee: Amount; submitted_at: string | null }
+export type SpendBundleJson = { coin_spends: CoinSpendJson[]; aggregated_signature: string }
 export type SyncEvent = { type: "start"; ip: string } | { type: "stop" } | { type: "subscribed" } | { type: "derivation" } | { type: "coin_state" } | { type: "puzzle_batch_synced" } | { type: "cat_info" } | { type: "did_info" } | { type: "nft_data" }
 export type SyncStatus = { balance: Amount; unit: Unit; synced_coins: number; total_coins: number; receive_address: string }
-export type TransactionSummary = { fee: Amount; inputs: Input[]; data: string }
+export type TransactionSummary = { fee: Amount; inputs: Input[]; coin_spends: CoinSpendJson[] }
 export type Unit = { ticker: string; decimals: number }
 export type WalletConfig = { name?: string; derive_automatically?: boolean; derivation_batch_size?: number }
 export type WalletInfo = { name: string; fingerprint: number; public_key: string; kind: WalletKind }

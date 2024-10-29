@@ -10,7 +10,7 @@ mod error;
 mod models;
 
 #[cfg(all(debug_assertions, not(mobile)))]
-use specta_typescript::Typescript;
+use specta_typescript::{BigIntExportBehavior, Typescript};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -70,6 +70,7 @@ pub fn run() {
             commands::create_did,
             commands::bulk_mint_nfts,
             commands::transfer_nft,
+            commands::sign_transaction,
             commands::submit_transaction,
             // Peers
             commands::get_peers,
@@ -81,7 +82,10 @@ pub fn run() {
     // On mobile or release mode we should not export the TypeScript bindings
     #[cfg(all(debug_assertions, not(mobile)))]
     builder
-        .export(Typescript::default(), "../src/bindings.ts")
+        .export(
+            Typescript::default().bigint(BigIntExportBehavior::Number),
+            "../src/bindings.ts",
+        )
         .expect("Failed to export TypeScript bindings");
 
     tauri::Builder::default()
