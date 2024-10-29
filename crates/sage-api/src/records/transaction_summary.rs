@@ -7,6 +7,7 @@ use crate::Amount;
 pub struct TransactionSummary {
     pub fee: Amount,
     pub inputs: Vec<Input>,
+    pub data: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]

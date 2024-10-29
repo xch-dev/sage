@@ -4,6 +4,7 @@ use base64::prelude::*;
 use chia::{
     protocol::{Bytes32, CoinSpend},
     puzzles::nft::NftMetadata,
+    traits::Streamable,
 };
 use chia_wallet_sdk::{
     decode_address, encode_address, AggSigConstants, MAINNET_CONSTANTS, TESTNET11_CONSTANTS,
@@ -42,8 +43,7 @@ pub async fn send(
     address: String,
     amount: Amount,
     fee: Amount,
-    confirm: bool,
-) -> Result<Option<TransactionSummary>> {
+) -> Result<TransactionSummary> {
     let state = state.lock().await;
     let wallet = state.wallet()?;
 
@@ -68,13 +68,7 @@ pub async fn send(
         .send_xch(puzzle_hash.into(), amount, fee, Vec::new(), false, true)
         .await?;
 
-    transact(
-        &state,
-        &wallet,
-        coin_spends,
-        ConfirmationInfo::new_if(confirm),
-    )
-    .await
+    summarize(&state, &wallet, coin_spends, ConfirmationInfo::default()).await
 }
 
 #[command]
@@ -83,8 +77,7 @@ pub async fn combine(
     state: State<'_, AppState>,
     coin_ids: Vec<String>,
     fee: Amount,
-    confirm: bool,
-) -> Result<Option<TransactionSummary>> {
+) -> Result<TransactionSummary> {
     let state = state.lock().await;
     let wallet = state.wallet()?;
 
@@ -121,13 +114,7 @@ pub async fn combine(
 
     let coin_spends = wallet.combine_xch(coins, fee, false, true).await?;
 
-    transact(
-        &state,
-        &wallet,
-        coin_spends,
-        ConfirmationInfo::new_if(confirm),
-    )
-    .await
+    summarize(&state, &wallet, coin_spends, ConfirmationInfo::default()).await
 }
 
 #[command]
@@ -137,8 +124,7 @@ pub async fn split(
     coin_ids: Vec<String>,
     output_count: u32,
     fee: Amount,
-    confirm: bool,
-) -> Result<Option<TransactionSummary>> {
+) -> Result<TransactionSummary> {
     let state = state.lock().await;
     let wallet = state.wallet()?;
 
@@ -177,13 +163,7 @@ pub async fn split(
         .split_xch(&coins, output_count as usize, fee, false, true)
         .await?;
 
-    transact(
-        &state,
-        &wallet,
-        coin_spends,
-        ConfirmationInfo::new_if(confirm),
-    )
-    .await
+    summarize(&state, &wallet, coin_spends, ConfirmationInfo::default()).await
 }
 
 #[command]
@@ -192,8 +172,7 @@ pub async fn combine_cat(
     state: State<'_, AppState>,
     coin_ids: Vec<String>,
     fee: Amount,
-    confirm: bool,
-) -> Result<Option<TransactionSummary>> {
+) -> Result<TransactionSummary> {
     let state = state.lock().await;
     let wallet = state.wallet()?;
 
@@ -221,13 +200,7 @@ pub async fn combine_cat(
 
     let coin_spends = wallet.combine_cat(cats, fee, false, true).await?;
 
-    transact(
-        &state,
-        &wallet,
-        coin_spends,
-        ConfirmationInfo::new_if(confirm),
-    )
-    .await
+    summarize(&state, &wallet, coin_spends, ConfirmationInfo::default()).await
 }
 
 #[command]
@@ -237,8 +210,7 @@ pub async fn split_cat(
     coin_ids: Vec<String>,
     output_count: u32,
     fee: Amount,
-    confirm: bool,
-) -> Result<Option<TransactionSummary>> {
+) -> Result<TransactionSummary> {
     let state = state.lock().await;
     let wallet = state.wallet()?;
 
@@ -268,13 +240,7 @@ pub async fn split_cat(
         .split_cat(cats, output_count as usize, fee, false, true)
         .await?;
 
-    transact(
-        &state,
-        &wallet,
-        coin_spends,
-        ConfirmationInfo::new_if(confirm),
-    )
-    .await
+    summarize(&state, &wallet, coin_spends, ConfirmationInfo::default()).await
 }
 
 #[command]
@@ -285,8 +251,7 @@ pub async fn issue_cat(
     ticker: String,
     amount: Amount,
     fee: Amount,
-    confirm: bool,
-) -> Result<Option<TransactionSummary>> {
+) -> Result<TransactionSummary> {
     let state = state.lock().await;
     let wallet = state.wallet()?;
 
@@ -304,13 +269,7 @@ pub async fn issue_cat(
 
     let (coin_spends, asset_id) = wallet.issue_cat(amount, fee, None, false, true).await?;
 
-    let summary = transact(
-        &state,
-        &wallet,
-        coin_spends,
-        ConfirmationInfo::new_if(confirm),
-    )
-    .await?;
+    let summary = summarize(&state, &wallet, coin_spends, ConfirmationInfo::default()).await?;
 
     wallet
         .db
@@ -335,8 +294,7 @@ pub async fn send_cat(
     address: String,
     amount: Amount,
     fee: Amount,
-    confirm: bool,
-) -> Result<Option<TransactionSummary>> {
+) -> Result<TransactionSummary> {
     let state = state.lock().await;
     let wallet = state.wallet()?;
 
@@ -363,13 +321,7 @@ pub async fn send_cat(
         .send_cat(asset_id, puzzle_hash.into(), amount, fee, false, true)
         .await?;
 
-    transact(
-        &state,
-        &wallet,
-        coin_spends,
-        ConfirmationInfo::new_if(confirm),
-    )
-    .await
+    summarize(&state, &wallet, coin_spends, ConfirmationInfo::default()).await
 }
 
 #[command]
@@ -378,8 +330,7 @@ pub async fn create_did(
     state: State<'_, AppState>,
     name: String,
     fee: Amount,
-    confirm: bool,
-) -> Result<Option<TransactionSummary>> {
+) -> Result<TransactionSummary> {
     let state = state.lock().await;
     let wallet = state.wallet()?;
 
@@ -401,13 +352,7 @@ pub async fn create_did(
     let mut confirm_info = ConfirmationInfo::default();
     confirm_info.did_names.insert(did.info.launcher_id, name);
 
-    transact(
-        &state,
-        &wallet,
-        coin_spends,
-        confirm.then_some(confirm_info),
-    )
-    .await
+    summarize(&state, &wallet, coin_spends, confirm_info).await
 }
 
 #[command]
@@ -415,7 +360,6 @@ pub async fn create_did(
 pub async fn bulk_mint_nfts(
     state: State<'_, AppState>,
     request: BulkMintNfts,
-    confirm: bool,
 ) -> Result<BulkMintNftsResponse> {
     let state = state.lock().await;
     let wallet = state.wallet()?;
@@ -529,13 +473,7 @@ pub async fn bulk_mint_nfts(
 
     tx.commit().await?;
 
-    let summary = transact(
-        &state,
-        &wallet,
-        coin_spends,
-        confirm.then_some(confirm_info),
-    )
-    .await?;
+    let summary = summarize(&state, &wallet, coin_spends, confirm_info).await?;
 
     Ok(BulkMintNftsResponse {
         nft_ids: nfts
@@ -553,8 +491,7 @@ pub async fn transfer_nft(
     nft_id: String,
     address: String,
     fee: Amount,
-    confirm: bool,
-) -> Result<Option<TransactionSummary>> {
+) -> Result<TransactionSummary> {
     let state = state.lock().await;
     let wallet = state.wallet()?;
 
@@ -581,13 +518,17 @@ pub async fn transfer_nft(
         .transfer_nft(launcher_id.into(), puzzle_hash.into(), fee, false, true)
         .await?;
 
-    transact(
-        &state,
-        &wallet,
-        coin_spends,
-        ConfirmationInfo::new_if(confirm),
-    )
-    .await
+    summarize(&state, &wallet, coin_spends, ConfirmationInfo::default()).await
+}
+
+#[command]
+#[specta]
+pub async fn submit_transaction(state: State<'_, AppState>, data: String) -> Result<()> {
+    let state = state.lock().await;
+    let wallet = state.wallet()?;
+    let data = hex::decode(data)?;
+    let coin_spends = Vec::<CoinSpend>::from_bytes_unchecked(&data)?;
+    submit(&state, &wallet, coin_spends).await
 }
 
 #[derive(Default)]
@@ -596,46 +537,40 @@ struct ConfirmationInfo {
     nft_data: HashMap<Bytes32, Data>,
 }
 
-impl ConfirmationInfo {
-    fn new_if(confirm: bool) -> Option<Self> {
-        if confirm {
-            Some(Self::default())
-        } else {
-            None
-        }
-    }
-}
-
-async fn transact(
+async fn submit(
     state: &MutexGuard<'_, AppStateInner>,
     wallet: &Wallet,
     coin_spends: Vec<CoinSpend>,
-    confirm: Option<ConfirmationInfo>,
-) -> Result<Option<TransactionSummary>> {
-    let Some(cache) = confirm else {
-        let (_mnemonic, Some(master_sk)) =
-            state.keychain.extract_secrets(wallet.fingerprint, b"")?
-        else {
-            return Err(Error::no_secret_key());
-        };
-
-        let spend_bundle = wallet
-            .sign_transaction(
-                coin_spends,
-                &if state.config.network.network_id == "mainnet" {
-                    AggSigConstants::new(MAINNET_CONSTANTS.agg_sig_me_additional_data)
-                } else {
-                    AggSigConstants::new(TESTNET11_CONSTANTS.agg_sig_me_additional_data)
-                },
-                master_sk,
-            )
-            .await?;
-
-        wallet.insert_transaction(spend_bundle).await?;
-
-        return Ok(None);
+) -> Result<()> {
+    let (_mnemonic, Some(master_sk)) = state.keychain.extract_secrets(wallet.fingerprint, b"")?
+    else {
+        return Err(Error::no_secret_key());
     };
 
+    let spend_bundle = wallet
+        .sign_transaction(
+            coin_spends,
+            &if state.config.network.network_id == "mainnet" {
+                AggSigConstants::new(MAINNET_CONSTANTS.agg_sig_me_additional_data)
+            } else {
+                AggSigConstants::new(TESTNET11_CONSTANTS.agg_sig_me_additional_data)
+            },
+            master_sk,
+        )
+        .await?;
+
+    wallet.insert_transaction(spend_bundle).await?;
+
+    Ok(())
+}
+
+async fn summarize(
+    state: &MutexGuard<'_, AppStateInner>,
+    wallet: &Wallet,
+    coin_spends: Vec<CoinSpend>,
+    cache: ConfirmationInfo,
+) -> Result<TransactionSummary> {
+    let data = coin_spends.to_bytes()?;
     let transaction = Transaction::from_coin_spends(coin_spends).map_err(WalletError::Parse)?;
 
     let mut inputs = Vec::with_capacity(transaction.inputs.len());
@@ -757,10 +692,11 @@ async fn transact(
         });
     }
 
-    Ok(Some(TransactionSummary {
+    Ok(TransactionSummary {
         fee: Amount::from_mojos(transaction.fee as u128, state.unit.decimals),
         inputs,
-    }))
+        data: hex::encode(data),
+    })
 }
 
 #[derive(Debug, Default)]

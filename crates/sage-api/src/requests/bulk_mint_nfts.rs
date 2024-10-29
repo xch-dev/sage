@@ -24,5 +24,5 @@ pub struct NftMint {
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub struct BulkMintNftsResponse {
     pub nft_ids: Vec<String>,
-    pub summary: Option<TransactionSummary>,
+    pub summary: TransactionSummary,
 }
