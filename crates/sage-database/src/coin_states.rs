@@ -88,16 +88,7 @@ async fn insert_coin_state(
             `synced`,
             `transaction_id`
         )
-        VALUES (
-            ?,
-            ?,
-            ?,
-            ?,
-            ?,
-            ?,
-            ?,
-            ?
-        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ",
         coin_id_ref,
         parent_coin_id,
