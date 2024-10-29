@@ -40,7 +40,7 @@ impl CoinKind {
 
         let puzzle = Puzzle::parse(&allocator, puzzle_ptr);
 
-        if puzzle.mod_hash() == SINGLETON_LAUNCHER_PUZZLE_HASH {
+        if puzzle.curried_puzzle_hash() == SINGLETON_LAUNCHER_PUZZLE_HASH {
             return Ok(Self::Launcher);
         }
 

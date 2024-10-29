@@ -114,15 +114,14 @@ export default function Send() {
   const onSubmit = () => {
     const command = isXch
       ? commands.send
-      : (address: string, amount: Amount, fee: Amount, confirm: boolean) => {
-          return commands.sendCat(assetId!, address, amount, fee, confirm);
+      : (address: string, amount: Amount, fee: Amount) => {
+          return commands.sendCat(assetId!, address, amount, fee);
         };
 
     command(
       values.address,
       values.amount.toString(),
       values.fee?.toString() || '0',
-      true,
     ).then((confirmation) => {
       if (confirmation.status === 'error') {
         console.error(confirmation.error);
@@ -233,37 +232,10 @@ export default function Send() {
       <ConfirmationDialog
         summary={summary}
         close={() => setSummary(null)}
-        confirm={async () => {
-          const command = isXch
-            ? commands.send
-            : (
-                address: string,
-                amount: Amount,
-                fee: Amount,
-                confirm: boolean,
-              ) => {
-                return commands.sendCat(
-                  assetId!,
-                  address,
-                  amount,
-                  fee,
-                  confirm,
-                );
-              };
-
-          const result = await command(
-            values.address,
-            values.amount.toString(),
-            values.fee?.toString() || '0',
-            false,
-          );
-
-          if (result.status === 'ok') {
-            navigate(-1);
-          } else {
-            console.error(result.error);
-            setError(result.error);
-          }
+        onConfirm={() => navigate(-1)}
+        onError={(error) => {
+          console.error(error);
+          setError(error);
         }}
       />
     </>

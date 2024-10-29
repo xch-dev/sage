@@ -1,3 +1,4 @@
+import ConfirmationDialog from '@/components/ConfirmationDialog';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import {
@@ -11,12 +12,11 @@ import {
 import { Input } from '@/components/ui/input';
 import { amount } from '@/lib/formTypes';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { LoaderCircleIcon } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import * as z from 'zod';
-import { commands, Error } from '../bindings';
+import { commands, Error, TransactionSummary } from '../bindings';
 import Container from '../components/Container';
 import ErrorDialog from '../components/ErrorDialog';
 import { useWalletState } from '../state';
@@ -26,7 +26,7 @@ export default function CreateProfile() {
   const walletState = useWalletState();
 
   const [error, setError] = useState<Error | null>(null);
-  const [pending, setPending] = useState(false);
+  const [summary, setSummary] = useState<TransactionSummary | null>(null);
 
   const formSchema = z.object({
     name: z.string().min(1, 'Name is required'),
@@ -38,18 +38,17 @@ export default function CreateProfile() {
   });
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
-    setPending(true);
     commands
-      .createDid(values.name, values.fee?.toString() || '0', false)
+      .createDid(values.name, values.fee?.toString() || '0')
       .then((result) => {
         if (result.status === 'error') {
           console.error(result.error);
           setError(result.error);
           return;
+        } else {
+          setSummary(result.data);
         }
-        navigate('/dids');
-      })
-      .finally(() => setPending(false));
+      });
   };
 
   return (
@@ -101,17 +100,17 @@ export default function CreateProfile() {
               />
             </div>
 
-            <Button type='submit' disabled={pending}>
-              {pending && (
-                <LoaderCircleIcon className='mr-2 h-4 w-4 animate-spin' />
-              )}
-              {pending ? 'Creating' : 'Create'} Profile
-            </Button>
+            <Button type='submit'>Create Profile</Button>
           </form>
         </Form>
       </Container>
 
       <ErrorDialog error={error} setError={setError} />
+      <ConfirmationDialog
+        summary={summary}
+        close={() => setSummary(null)}
+        onConfirm={() => navigate('/dids')}
+      />
     </>
   );
 }

@@ -1,4 +1,5 @@
 import CoinList from '@/components/CoinList';
+import ConfirmationDialog from '@/components/ConfirmationDialog';
 import Container from '@/components/Container';
 import Header from '@/components/Header';
 import { ReceiveAddress } from '@/components/ReceiveAddress';
@@ -44,7 +45,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import * as z from 'zod';
-import { CatRecord, CoinRecord, commands, events } from '../bindings';
+import {
+  CatRecord,
+  CoinRecord,
+  commands,
+  events,
+  TransactionSummary,
+} from '../bindings';
 
 export default function Token() {
   const navigate = useNavigate();
@@ -54,6 +61,8 @@ export default function Token() {
 
   const [asset, setAsset] = useState<CatRecord | null>(null);
   const [coins, setCoins] = useState<CoinRecord[]>([]);
+  const [summary, setSummary] = useState<TransactionSummary | null>(null);
+  const [selectedCoins, setSelectedCoins] = useState<RowSelectionState>({});
 
   const updateCoins = () => {
     const getCoins =
@@ -229,6 +238,9 @@ export default function Token() {
             combineHandler={
               asset?.asset_id === 'xch' ? commands.combine : commands.combineCat
             }
+            setSummary={setSummary}
+            selectedCoins={selectedCoins}
+            setSelectedCoins={setSelectedCoins}
           />
         </div>
       </Container>
@@ -296,6 +308,12 @@ export default function Token() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ConfirmationDialog
+        summary={summary}
+        close={() => setSummary(null)}
+        onConfirm={() => setSelectedCoins({})}
+      />
     </>
   );
 }
@@ -305,6 +323,9 @@ interface CoinCardProps {
   asset: CatRecord | null;
   splitHandler: typeof commands.split | null;
   combineHandler: typeof commands.combine | null;
+  setSummary: (summary: TransactionSummary) => void;
+  selectedCoins: RowSelectionState;
+  setSelectedCoins: React.Dispatch<React.SetStateAction<RowSelectionState>>;
 }
 
 function CoinCard({
@@ -312,10 +333,11 @@ function CoinCard({
   asset,
   splitHandler,
   combineHandler,
+  setSummary,
+  selectedCoins,
+  setSelectedCoins,
 }: CoinCardProps) {
   const walletState = useWalletState();
-
-  const [selectedCoins, setSelectedCoins] = useState<RowSelectionState>({});
 
   const selectedCoinIds = useMemo(() => {
     return Object.keys(selectedCoins).filter((key) => selectedCoins[key]);
@@ -368,12 +390,12 @@ function CoinCard({
   });
 
   const onCombineSubmit = (values: z.infer<typeof combineFormSchema>) => {
-    combineHandler?.(selectedCoinIds, values.combineFee, false)
+    combineHandler?.(selectedCoinIds, values.combineFee)
       .then((result) => {
         setCombineOpen(false);
 
         if (result.status === 'ok') {
-          setSelectedCoins({});
+          setSummary(result.data);
         }
       })
       .catch((error) => console.log('Failed to combine coins', error));
@@ -396,12 +418,12 @@ function CoinCard({
   });
 
   const onSplitSubmit = (values: z.infer<typeof splitFormSchema>) => {
-    splitHandler?.(selectedCoinIds, values.outputCount, values.splitFee, false)
+    splitHandler?.(selectedCoinIds, values.outputCount, values.splitFee)
       .then((result) => {
         setSplitOpen(false);
 
         if (result.status === 'ok') {
-          setSelectedCoins({});
+          setSummary(result.data);
         }
       })
       .catch((error) => console.log('Failed to split coins', error));

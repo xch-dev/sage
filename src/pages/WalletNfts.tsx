@@ -1,3 +1,4 @@
+import ConfirmationDialog from '@/components/ConfirmationDialog';
 import Container from '@/components/Container';
 import Header from '@/components/Header';
 import { ReceiveAddress } from '@/components/ReceiveAddress';
@@ -46,7 +47,7 @@ import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
 import { z } from 'zod';
-import { commands, events, NftRecord } from '../bindings';
+import { commands, events, NftRecord, TransactionSummary } from '../bindings';
 
 export function WalletNfts() {
   const navigate = useNavigate();
@@ -185,6 +186,7 @@ function Nft({ nft, updateNfts }: NftProps) {
   const walletState = useWalletState();
 
   const [isTransferOpen, setTransferOpen] = useState(false);
+  const [summary, setSummary] = useState<TransactionSummary | null>(null);
 
   let json: any = {};
 
@@ -224,15 +226,15 @@ function Nft({ nft, updateNfts }: NftProps) {
 
   const onTransferSubmit = (values: z.infer<typeof transferFormSchema>) => {
     commands
-      .transferNft(nft.launcher_id, values.address, values.fee, false)
+      .transferNft(nft.launcher_id, values.address, values.fee)
       .then((result) => {
         setTransferOpen(false);
-        updateNfts();
         if (result.status === 'error') {
           console.error('Failed to transfer NFT', result.error);
+        } else {
+          setSummary(result.data);
         }
-      })
-      .catch((error) => console.log('Failed to combine coins', error));
+      });
   };
 
   return (
@@ -354,6 +356,12 @@ function Nft({ nft, updateNfts }: NftProps) {
           </Form>
         </DialogContent>
       </Dialog>
+
+      <ConfirmationDialog
+        summary={summary}
+        close={() => setSummary(null)}
+        onConfirm={() => updateNfts()}
+      />
     </>
   );
 }

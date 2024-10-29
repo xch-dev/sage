@@ -33,6 +33,7 @@ pub struct Output {
 pub enum InputKind {
     Unknown,
     Xch,
+    Launcher,
     Cat {
         asset_id: String,
         name: Option<String>,
@@ -49,13 +50,4 @@ pub enum InputKind {
         image_mime_type: Option<String>,
         name: Option<String>,
     },
-    DidLauncher {
-        name: Option<String>,
-    },
-    NftLauncher {
-        image_data: Option<String>,
-        image_mime_type: Option<String>,
-        name: Option<String>,
-    },
-    UnknownLauncher,
 }

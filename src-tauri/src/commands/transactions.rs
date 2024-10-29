@@ -588,32 +588,7 @@ async fn summarize(
                 };
                 (kind, coin.puzzle_hash)
             }
-            CoinKind::Launcher => {
-                let mut kind = InputKind::UnknownLauncher;
-
-                for output in &input.outputs {
-                    match &output.kind {
-                        ChildKind::Did { info, .. } => {
-                            let name = cache.did_names.get(&info.launcher_id).cloned();
-
-                            kind = InputKind::DidLauncher { name };
-                        }
-                        ChildKind::Nft { metadata, .. } => {
-                            let extracted =
-                                extract_nft_data(None, metadata.clone(), &cache).await?;
-
-                            kind = InputKind::NftLauncher {
-                                image_data: extracted.image_data,
-                                image_mime_type: extracted.image_mime_type,
-                                name: extracted.name,
-                            };
-                        }
-                        _ => {}
-                    }
-                }
-
-                (kind, coin.puzzle_hash)
-            }
+            CoinKind::Launcher => (InputKind::Launcher, coin.puzzle_hash),
             CoinKind::Cat {
                 asset_id,
                 p2_puzzle_hash,
