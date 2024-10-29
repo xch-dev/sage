@@ -45,13 +45,11 @@ import {
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { z } from 'zod';
 import { commands, events, NftRecord, TransactionSummary } from '../bindings';
 
 export function WalletNfts() {
-  const navigate = useNavigate();
-
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [showHidden, setShowHidden] = useState(false);
