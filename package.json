@@ -28,6 +28,7 @@
     "@radix-ui/react-separator": "^1.1.0",
     "@radix-ui/react-slot": "^1.1.0",
     "@radix-ui/react-switch": "^1.1.0",
+    "@radix-ui/react-tabs": "^1.1.1",
     "@tanstack/react-table": "^8.20.5",
     "@tauri-apps/api": "2.0.0-rc.4",
     "@tauri-apps/plugin-clipboard-manager": "2.0.0-rc.1",

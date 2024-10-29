@@ -2,15 +2,16 @@ use std::{collections::HashMap, time::Duration};
 
 use base64::prelude::*;
 use chia::{
-    protocol::{Bytes32, CoinSpend},
+    bls::Signature,
+    protocol::{Bytes32, Coin, CoinSpend, SpendBundle},
     puzzles::nft::NftMetadata,
-    traits::Streamable,
 };
 use chia_wallet_sdk::{
     decode_address, encode_address, AggSigConstants, MAINNET_CONSTANTS, TESTNET11_CONSTANTS,
 };
 use sage_api::{
-    Amount, BulkMintNfts, BulkMintNftsResponse, Input, InputKind, Output, TransactionSummary,
+    Amount, BulkMintNfts, BulkMintNftsResponse, CoinJson, CoinSpendJson, Input, InputKind, Output,
+    SpendBundleJson, TransactionSummary,
 };
 use sage_database::{CatRow, Database};
 use sage_wallet::{
@@ -523,25 +524,13 @@ pub async fn transfer_nft(
 
 #[command]
 #[specta]
-pub async fn submit_transaction(state: State<'_, AppState>, data: String) -> Result<()> {
+pub async fn sign_transaction(
+    state: State<'_, AppState>,
+    coin_spends: Vec<CoinSpendJson>,
+) -> Result<SpendBundleJson> {
     let state = state.lock().await;
     let wallet = state.wallet()?;
-    let data = hex::decode(data)?;
-    let coin_spends = Vec::<CoinSpend>::from_bytes_unchecked(&data)?;
-    submit(&state, &wallet, coin_spends).await
-}
 
-#[derive(Default)]
-struct ConfirmationInfo {
-    did_names: HashMap<Bytes32, String>,
-    nft_data: HashMap<Bytes32, Data>,
-}
-
-async fn submit(
-    state: &MutexGuard<'_, AppStateInner>,
-    wallet: &Wallet,
-    coin_spends: Vec<CoinSpend>,
-) -> Result<()> {
     let (_mnemonic, Some(master_sk)) = state.keychain.extract_secrets(wallet.fingerprint, b"")?
     else {
         return Err(Error::no_secret_key());
@@ -549,7 +538,7 @@ async fn submit(
 
     let spend_bundle = wallet
         .sign_transaction(
-            coin_spends,
+            coin_spends.iter().map(rust_spend).collect::<Result<_>>()?,
             &if state.config.network.network_id == "mainnet" {
                 AggSigConstants::new(MAINNET_CONSTANTS.agg_sig_me_additional_data)
             } else {
@@ -559,9 +548,29 @@ async fn submit(
         )
         .await?;
 
-    wallet.insert_transaction(spend_bundle).await?;
+    Ok(json_bundle(&spend_bundle))
+}
+
+#[command]
+#[specta]
+pub async fn submit_transaction(
+    state: State<'_, AppState>,
+    spend_bundle: SpendBundleJson,
+) -> Result<()> {
+    let state = state.lock().await;
+    let wallet = state.wallet()?;
+
+    wallet
+        .insert_transaction(rust_bundle(&spend_bundle)?)
+        .await?;
 
     Ok(())
+}
+
+#[derive(Default)]
+struct ConfirmationInfo {
+    did_names: HashMap<Bytes32, String>,
+    nft_data: HashMap<Bytes32, Data>,
 }
 
 async fn summarize(
@@ -570,8 +579,8 @@ async fn summarize(
     coin_spends: Vec<CoinSpend>,
     cache: ConfirmationInfo,
 ) -> Result<TransactionSummary> {
-    let data = coin_spends.to_bytes()?;
-    let transaction = Transaction::from_coin_spends(coin_spends).map_err(WalletError::Parse)?;
+    let transaction =
+        Transaction::from_coin_spends(coin_spends.clone()).map_err(WalletError::Parse)?;
 
     let mut inputs = Vec::with_capacity(transaction.inputs.len());
 
@@ -670,7 +679,7 @@ async fn summarize(
     Ok(TransactionSummary {
         fee: Amount::from_mojos(transaction.fee as u128, state.unit.decimals),
         inputs,
-        data: hex::encode(data),
+        coin_spends: coin_spends.iter().map(json_spend).collect(),
     })
 }
 
@@ -723,4 +732,72 @@ async fn extract_nft_data(
     }
 
     Ok(result)
+}
+
+fn json_bundle(spend_bundle: &SpendBundle) -> SpendBundleJson {
+    SpendBundleJson {
+        coin_spends: spend_bundle.coin_spends.iter().map(json_spend).collect(),
+        aggregated_signature: format!(
+            "0x{}",
+            hex::encode(spend_bundle.aggregated_signature.to_bytes())
+        ),
+    }
+}
+
+fn json_spend(coin_spend: &CoinSpend) -> CoinSpendJson {
+    CoinSpendJson {
+        coin: json_coin(&coin_spend.coin),
+        puzzle_reveal: hex::encode(&coin_spend.puzzle_reveal),
+        solution: hex::encode(&coin_spend.solution),
+    }
+}
+
+fn json_coin(coin: &Coin) -> CoinJson {
+    CoinJson {
+        parent_coin_info: format!("0x{}", hex::encode(coin.parent_coin_info)),
+        puzzle_hash: format!("0x{}", hex::encode(coin.puzzle_hash)),
+        amount: coin.amount,
+    }
+}
+
+fn rust_bundle(spend_bundle: &SpendBundleJson) -> Result<SpendBundle> {
+    Ok(SpendBundle {
+        coin_spends: spend_bundle
+            .coin_spends
+            .iter()
+            .map(rust_spend)
+            .collect::<Result<_>>()?,
+        aggregated_signature: Signature::from_bytes(&decode_hex_sized(
+            &spend_bundle.aggregated_signature,
+        )?)?,
+    })
+}
+
+fn rust_spend(coin_spend: &CoinSpendJson) -> Result<CoinSpend> {
+    Ok(CoinSpend {
+        coin: rust_coin(&coin_spend.coin)?,
+        puzzle_reveal: decode_hex(&coin_spend.puzzle_reveal)?.into(),
+        solution: decode_hex(&coin_spend.solution)?.into(),
+    })
+}
+
+fn rust_coin(coin: &CoinJson) -> Result<Coin> {
+    Ok(Coin {
+        parent_coin_info: decode_hex_sized(&coin.parent_coin_info)?.into(),
+        puzzle_hash: decode_hex_sized(&coin.puzzle_hash)?.into(),
+        amount: coin.amount,
+    })
+}
+
+fn decode_hex(hex: &str) -> Result<Vec<u8>> {
+    if let Some(stripped) = hex.strip_prefix("0x") {
+        Ok(hex::decode(stripped)?)
+    } else {
+        Ok(hex::decode(hex)?)
+    }
+}
+
+fn decode_hex_sized<const N: usize>(hex: &str) -> Result<[u8; N]> {
+    let bytes = decode_hex(hex)?;
+    Ok(bytes.try_into()?)
 }
