@@ -224,7 +224,7 @@ function Nft({ nft, updateNfts }: NftProps) {
 
   const onTransferSubmit = (values: z.infer<typeof transferFormSchema>) => {
     commands
-      .transferNft(nft.launcher_id, values.address, values.fee)
+      .transferNft(nft.launcher_id, values.address, values.fee, false)
       .then((result) => {
         setTransferOpen(false);
         updateNfts();

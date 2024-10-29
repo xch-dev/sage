@@ -57,30 +57,33 @@ export default function MintNft() {
   const onSubmit = (values: z.infer<typeof formSchema>) => {
     setPending(true);
     commands
-      .bulkMintNfts({
-        fee: values.fee?.toString() || '0',
-        did_id: values.profile,
-        nft_mints: [
-          {
-            edition_number: null,
-            edition_total: null,
-            royalty_address: values.royaltyAddress || null,
-            royalty_percent: values.royaltyPercent,
-            data_uris: values.dataUris
-              .split(',')
-              .map((uri) => uri.trim())
-              .filter(Boolean),
-            metadata_uris: values.metadataUris
-              .split(',')
-              .map((uri) => uri.trim())
-              .filter(Boolean),
-            license_uris: (values.licenseUris ?? '')
-              .split(',')
-              .map((uri) => uri.trim())
-              .filter(Boolean),
-          },
-        ],
-      })
+      .bulkMintNfts(
+        {
+          fee: values.fee?.toString() || '0',
+          did_id: values.profile,
+          nft_mints: [
+            {
+              edition_number: null,
+              edition_total: null,
+              royalty_address: values.royaltyAddress || null,
+              royalty_percent: values.royaltyPercent,
+              data_uris: values.dataUris
+                .split(',')
+                .map((uri) => uri.trim())
+                .filter(Boolean),
+              metadata_uris: values.metadataUris
+                .split(',')
+                .map((uri) => uri.trim())
+                .filter(Boolean),
+              license_uris: (values.licenseUris ?? '')
+                .split(',')
+                .map((uri) => uri.trim())
+                .filter(Boolean),
+            },
+          ],
+        },
+        false,
+      )
       .then((result) => {
         if (result.status === 'error') {
           console.error(result.error);

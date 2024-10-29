@@ -47,6 +47,7 @@ export default function IssueToken() {
         values.ticker,
         values.amount.toString(),
         values.fee?.toString() || '0',
+        false,
       )
       .then((result) => {
         if (result.status === 'error') {

@@ -368,7 +368,7 @@ function CoinCard({
   });
 
   const onCombineSubmit = (values: z.infer<typeof combineFormSchema>) => {
-    combineHandler?.(selectedCoinIds, values.combineFee)
+    combineHandler?.(selectedCoinIds, values.combineFee, false)
       .then((result) => {
         setCombineOpen(false);
 
@@ -396,7 +396,7 @@ function CoinCard({
   });
 
   const onSplitSubmit = (values: z.infer<typeof splitFormSchema>) => {
-    splitHandler?.(selectedCoinIds, values.outputCount, values.splitFee)
+    splitHandler?.(selectedCoinIds, values.outputCount, values.splitFee, false)
       .then((result) => {
         setSplitOpen(false);
 

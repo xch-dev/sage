@@ -1,3 +1,4 @@
+import ConfirmationDialog from '@/components/ConfirmationDialog';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import {
@@ -20,12 +21,18 @@ import { Input } from '@/components/ui/input';
 import { amount, positiveAmount } from '@/lib/formTypes';
 import { useWalletState } from '@/state';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { LoaderCircleIcon } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router-dom';
 import * as z from 'zod';
-import { CatRecord, commands, Error, events } from '../bindings';
+import {
+  Amount,
+  CatRecord,
+  commands,
+  Error,
+  events,
+  TransactionSummary,
+} from '../bindings';
 import Container from '../components/Container';
 import ErrorDialog from '../components/ErrorDialog';
 
@@ -40,8 +47,8 @@ export default function Send() {
     null,
   );
   const [isConfirmOpen, setConfirmOpen] = useState(false);
-  const [pending, setPending] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  const [summary, setSummary] = useState<TransactionSummary | null>(null);
 
   const updateCat = useCallback(() => {
     commands.getCat(assetId!).then((result) => {
@@ -118,29 +125,27 @@ export default function Send() {
   const values = form.getValues();
 
   const submit = () => {
-    setPending(true);
-    (isXch
-      ? commands.send(
-          values.address,
-          values.amount.toString(),
-          values.fee?.toString() || '0',
-        )
-      : commands.sendCat(
-          assetId!,
-          values.address,
-          values.amount.toString(),
-          values.fee?.toString() || '0',
-        )
-    )
-      .then((result) => {
-        if (result.status === 'ok') {
-          navigate(-1);
-        } else {
-          console.error(result.error);
-          setError(result.error);
-        }
-      })
-      .finally(() => setPending(false));
+    const command = isXch
+      ? commands.send
+      : (address: string, amount: Amount, fee: Amount, confirm: boolean) => {
+          return commands.sendCat(assetId!, address, amount, fee, confirm);
+        };
+
+    command(
+      values.address,
+      values.amount.toString(),
+      values.fee?.toString() || '0',
+      true,
+    ).then((confirmation) => {
+      if (confirmation.status === 'error') {
+        console.error(confirmation.error);
+        return;
+      } else {
+        console.log(confirmation.data);
+      }
+
+      setSummary(confirmation.data);
+    });
   };
 
   return (
@@ -232,12 +237,7 @@ export default function Send() {
               />
             </div>
 
-            <Button type='submit' disabled={pending}>
-              {pending && (
-                <LoaderCircleIcon className='mr-2 h-4 w-4 animate-spin' />
-              )}
-              {pending ? 'Sending' : 'Send'} {asset?.ticker}
-            </Button>
+            <Button type='submit'>Send {asset?.ticker}</Button>
           </form>
         </Form>
 
@@ -282,6 +282,42 @@ export default function Send() {
       </Container>
 
       <ErrorDialog error={error} setError={setError} />
+      <ConfirmationDialog
+        summary={summary}
+        close={() => setSummary(null)}
+        confirm={async () => {
+          const command = isXch
+            ? commands.send
+            : (
+                address: string,
+                amount: Amount,
+                fee: Amount,
+                confirm: boolean,
+              ) => {
+                return commands.sendCat(
+                  assetId!,
+                  address,
+                  amount,
+                  fee,
+                  confirm,
+                );
+              };
+
+          const result = await command(
+            values.address,
+            values.amount.toString(),
+            values.fee?.toString() || '0',
+            false,
+          );
+
+          if (result.status === 'ok') {
+            navigate(-1);
+          } else {
+            console.error(result.error);
+            setError(result.error);
+          }
+        }}
+      />
     </>
   );
 }

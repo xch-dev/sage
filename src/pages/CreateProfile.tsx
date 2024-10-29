@@ -40,7 +40,7 @@ export default function CreateProfile() {
   const onSubmit = (values: z.infer<typeof formSchema>) => {
     setPending(true);
     commands
-      .createDid(values.name, values.fee?.toString() || '0')
+      .createDid(values.name, values.fee?.toString() || '0', false)
       .then((result) => {
         if (result.status === 'error') {
           console.error(result.error);

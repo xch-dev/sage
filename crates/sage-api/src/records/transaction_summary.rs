@@ -55,4 +55,5 @@ pub enum InputKind {
         image_mime_type: Option<String>,
         name: Option<String>,
     },
+    UnknownLauncher,
 }
