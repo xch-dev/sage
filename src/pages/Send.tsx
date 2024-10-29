@@ -2,14 +2,6 @@ import ConfirmationDialog from '@/components/ConfirmationDialog';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import {
   Form,
   FormControl,
   FormField,
@@ -46,7 +38,6 @@ export default function Send() {
   const [asset, setAsset] = useState<(CatRecord & { decimals: number }) | null>(
     null,
   );
-  const [isConfirmOpen, setConfirmOpen] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [summary, setSummary] = useState<TransactionSummary | null>(null);
 
@@ -118,13 +109,9 @@ export default function Send() {
     resolver: zodResolver(formSchema),
   });
 
-  const onSubmit = () => {
-    setConfirmOpen(true);
-  };
-
   const values = form.getValues();
 
-  const submit = () => {
+  const onSubmit = () => {
     const command = isXch
       ? commands.send
       : (address: string, amount: Amount, fee: Amount, confirm: boolean) => {
@@ -240,45 +227,6 @@ export default function Send() {
             <Button type='submit'>Send {asset?.ticker}</Button>
           </form>
         </Form>
-
-        <Dialog open={isConfirmOpen} onOpenChange={setConfirmOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>
-                Are you sure you want to send {asset?.ticker}?
-              </DialogTitle>
-              <DialogDescription>
-                This transaction cannot be reversed once it has been initiated.
-              </DialogDescription>
-            </DialogHeader>
-            <div className='space-y-4'>
-              <div>
-                <h6 className='text-sm font-semibold'>Amount</h6>
-                <p className='break-all'>
-                  {values.amount} {asset?.ticker} (with a fee of{' '}
-                  {values.fee || 0} {walletState.sync.unit.ticker})
-                </p>
-              </div>
-              <div>
-                <h6 className='text-sm font-semibold'>Address</h6>
-                <p className='break-all'>{values.address}</p>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant='outline' onClick={() => setConfirmOpen(false)}>
-                Cancel
-              </Button>
-              <Button
-                onClick={() => {
-                  setConfirmOpen(false);
-                  submit();
-                }}
-              >
-                Confirm
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       </Container>
 
       <ErrorDialog error={error} setError={setError} />

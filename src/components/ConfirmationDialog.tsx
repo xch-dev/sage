@@ -10,6 +10,12 @@ import {
 import { LoaderCircleIcon } from 'lucide-react';
 import { useState } from 'react';
 import { TransactionSummary } from '../bindings';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from './ui/accordion';
 
 export interface ConfirmationDialogProps {
   summary: TransactionSummary | null;
@@ -35,7 +41,18 @@ export default function ConfirmationDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Confirm transaction?</DialogTitle>
-          <DialogDescription>The fee is {summary?.fee}</DialogDescription>
+          <DialogDescription>
+            {JSON.stringify(summary)}
+
+            <Accordion type='single' collapsible>
+              <AccordionItem value='item-1'>
+                <AccordionTrigger>Is it accessible?</AccordionTrigger>
+                <AccordionContent>
+                  Yes. It adheres to the WAI-ARIA design pattern.
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          </DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <Button

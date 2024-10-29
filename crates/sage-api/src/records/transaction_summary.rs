@@ -24,6 +24,7 @@ pub struct Output {
     pub coin_id: String,
     pub amount: Amount,
     pub address: String,
+    pub receiving: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]

@@ -744,6 +744,7 @@ async fn transact(
                 coin_id: hex::encode(output.coin.coin_id()),
                 amount,
                 address,
+                receiving: wallet.db.is_p2_puzzle_hash(p2_puzzle_hash).await?,
             });
         }
 
