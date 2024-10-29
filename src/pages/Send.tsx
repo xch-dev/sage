@@ -1,13 +1,6 @@
+import ConfirmationDialog from '@/components/ConfirmationDialog';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import {
   Form,
   FormControl,
@@ -20,12 +13,18 @@ import { Input } from '@/components/ui/input';
 import { amount, positiveAmount } from '@/lib/formTypes';
 import { useWalletState } from '@/state';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { LoaderCircleIcon } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router-dom';
 import * as z from 'zod';
-import { CatRecord, commands, Error, events } from '../bindings';
+import {
+  Amount,
+  CatRecord,
+  commands,
+  Error,
+  events,
+  TransactionSummary,
+} from '../bindings';
 import Container from '../components/Container';
 import ErrorDialog from '../components/ErrorDialog';
 
@@ -39,9 +38,8 @@ export default function Send() {
   const [asset, setAsset] = useState<(CatRecord & { decimals: number }) | null>(
     null,
   );
-  const [isConfirmOpen, setConfirmOpen] = useState(false);
-  const [pending, setPending] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  const [summary, setSummary] = useState<TransactionSummary | null>(null);
 
   const updateCat = useCallback(() => {
     commands.getCat(assetId!).then((result) => {
@@ -111,36 +109,29 @@ export default function Send() {
     resolver: zodResolver(formSchema),
   });
 
-  const onSubmit = () => {
-    setConfirmOpen(true);
-  };
-
   const values = form.getValues();
 
-  const submit = () => {
-    setPending(true);
-    (isXch
-      ? commands.send(
-          values.address,
-          values.amount.toString(),
-          values.fee?.toString() || '0',
-        )
-      : commands.sendCat(
-          assetId!,
-          values.address,
-          values.amount.toString(),
-          values.fee?.toString() || '0',
-        )
-    )
-      .then((result) => {
-        if (result.status === 'ok') {
-          navigate(-1);
-        } else {
-          console.error(result.error);
-          setError(result.error);
-        }
-      })
-      .finally(() => setPending(false));
+  const onSubmit = () => {
+    const command = isXch
+      ? commands.send
+      : (address: string, amount: Amount, fee: Amount) => {
+          return commands.sendCat(assetId!, address, amount, fee);
+        };
+
+    command(
+      values.address,
+      values.amount.toString(),
+      values.fee?.toString() || '0',
+    ).then((confirmation) => {
+      if (confirmation.status === 'error') {
+        console.error(confirmation.error);
+        return;
+      } else {
+        console.log(confirmation.data);
+      }
+
+      setSummary(confirmation.data);
+    });
   };
 
   return (
@@ -232,56 +223,21 @@ export default function Send() {
               />
             </div>
 
-            <Button type='submit' disabled={pending}>
-              {pending && (
-                <LoaderCircleIcon className='mr-2 h-4 w-4 animate-spin' />
-              )}
-              {pending ? 'Sending' : 'Send'} {asset?.ticker}
-            </Button>
+            <Button type='submit'>Send {asset?.ticker}</Button>
           </form>
         </Form>
-
-        <Dialog open={isConfirmOpen} onOpenChange={setConfirmOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>
-                Are you sure you want to send {asset?.ticker}?
-              </DialogTitle>
-              <DialogDescription>
-                This transaction cannot be reversed once it has been initiated.
-              </DialogDescription>
-            </DialogHeader>
-            <div className='space-y-4'>
-              <div>
-                <h6 className='text-sm font-semibold'>Amount</h6>
-                <p className='break-all'>
-                  {values.amount} {asset?.ticker} (with a fee of{' '}
-                  {values.fee || 0} {walletState.sync.unit.ticker})
-                </p>
-              </div>
-              <div>
-                <h6 className='text-sm font-semibold'>Address</h6>
-                <p className='break-all'>{values.address}</p>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant='outline' onClick={() => setConfirmOpen(false)}>
-                Cancel
-              </Button>
-              <Button
-                onClick={() => {
-                  setConfirmOpen(false);
-                  submit();
-                }}
-              >
-                Confirm
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       </Container>
 
       <ErrorDialog error={error} setError={setError} />
+      <ConfirmationDialog
+        summary={summary}
+        close={() => setSummary(null)}
+        onConfirm={() => navigate(-1)}
+        onError={(error) => {
+          console.error(error);
+          setError(error);
+        }}
+      />
     </>
   );
 }

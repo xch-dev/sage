@@ -11,7 +11,6 @@ pub struct TransactionRow {
     pub transaction_id: Bytes32,
     pub fee: u64,
     pub submitted_at: Option<i64>,
-    pub expiration_height: Option<u32>,
 }
 
 impl Database {
@@ -34,16 +33,8 @@ impl<'a> DatabaseTx<'a> {
         transaction_id: Bytes32,
         aggregated_signature: Signature,
         fee: u64,
-        expiration_height: Option<u32>,
     ) -> Result<()> {
-        insert_transaction(
-            &mut *self.tx,
-            transaction_id,
-            aggregated_signature,
-            fee,
-            expiration_height,
-        )
-        .await
+        insert_transaction(&mut *self.tx, transaction_id, aggregated_signature, fee).await
     }
 
     pub async fn insert_transaction_spend(
@@ -89,7 +80,6 @@ async fn insert_transaction(
     transaction_id: Bytes32,
     aggregated_signature: Signature,
     fee: u64,
-    expiration_height: Option<u32>,
 ) -> Result<()> {
     let transaction_id = transaction_id.as_ref();
     let aggregated_signature = aggregated_signature.to_bytes();
@@ -102,15 +92,13 @@ async fn insert_transaction(
         INSERT INTO `transactions` (
             `transaction_id`,
             `aggregated_signature`,
-            `fee`,
-            `expiration_height`
+            `fee`
         )
-        VALUES (?, ?, ?, ?)
+        VALUES (?, ?, ?)
         ",
         transaction_id,
         aggregated_signature,
-        fee,
-        expiration_height
+        fee
     )
     .execute(conn)
     .await?;
@@ -190,8 +178,7 @@ async fn transactions(conn: impl SqliteExecutor<'_>) -> Result<Vec<TransactionRo
         SELECT
             `transaction_id`,
             `fee`,
-            `submitted_at`,
-            `expiration_height`
+            `submitted_at`
         FROM `transactions`
         ORDER BY `submitted_at` DESC, `transaction_id` ASC
         "
@@ -205,7 +192,6 @@ async fn transactions(conn: impl SqliteExecutor<'_>) -> Result<Vec<TransactionRo
                 transaction_id: to_bytes32(&row.transaction_id)?,
                 fee: u64::from_be_bytes(to_bytes(&row.fee)?),
                 submitted_at: row.submitted_at,
-                expiration_height: row.expiration_height.map(TryInto::try_into).transpose()?,
             })
         })
         .collect()

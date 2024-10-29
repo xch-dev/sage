@@ -1,3 +1,4 @@
+import ConfirmationDialog from '@/components/ConfirmationDialog';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import {
@@ -24,7 +25,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import * as z from 'zod';
-import { commands, Error } from '../bindings';
+import { commands, Error, TransactionSummary } from '../bindings';
 import Container from '../components/Container';
 import ErrorDialog from '../components/ErrorDialog';
 import { useWalletState } from '../state';
@@ -37,6 +38,7 @@ export default function MintNft() {
 
   const [error, setError] = useState<Error | null>(null);
   const [pending, setPending] = useState(false);
+  const [summary, setSummary] = useState<TransactionSummary | null>(null);
 
   const formSchema = z.object({
     profile: z.string().min(1, 'Profile is required'),
@@ -52,10 +54,9 @@ export default function MintNft() {
     resolver: zodResolver(formSchema),
   });
 
-  console.log(form.getValues());
-
   const onSubmit = (values: z.infer<typeof formSchema>) => {
     setPending(true);
+
     commands
       .bulkMintNfts({
         fee: values.fee?.toString() || '0',
@@ -85,11 +86,13 @@ export default function MintNft() {
         if (result.status === 'error') {
           console.error(result.error);
           setError(result.error);
-          return;
+        } else {
+          setSummary(result.data.summary);
         }
-        navigate('/nfts');
       })
-      .finally(() => setPending(false));
+      .finally(() => {
+        setPending(false);
+      });
   };
 
   return (
@@ -269,6 +272,11 @@ export default function MintNft() {
       </Container>
 
       <ErrorDialog error={error} setError={setError} />
+      <ConfirmationDialog
+        summary={summary}
+        close={() => setSummary(null)}
+        onConfirm={() => navigate('/nfts')}
+      />
     </>
   );
 }

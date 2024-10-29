@@ -263,7 +263,6 @@ pub async fn get_pending_transactions(
                 fee: Amount::from_mojos(tx.fee as u128, state.unit.decimals),
                 // TODO: Date format?
                 submitted_at: tx.submitted_at.map(|ts| ts.to_string()),
-                expiration_height: tx.expiration_height,
             })
         })
         .collect()

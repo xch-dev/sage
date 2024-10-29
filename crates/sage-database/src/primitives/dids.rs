@@ -42,6 +42,10 @@ impl Database {
     pub async fn did(&self, did_id: Bytes32) -> Result<Option<Did<Program>>> {
         did(&self.pool, did_id).await
     }
+
+    pub async fn did_name(&self, launcher_id: Bytes32) -> Result<Option<String>> {
+        did_name(&self.pool, launcher_id).await
+    }
 }
 
 impl<'a> DatabaseTx<'a> {
@@ -270,4 +274,24 @@ async fn did(conn: impl SqliteExecutor<'_>, did_id: Bytes32) -> Result<Option<Di
             p2_puzzle_hash: to_bytes32(&row.p2_puzzle_hash)?,
         },
     }))
+}
+
+async fn did_name(conn: impl SqliteExecutor<'_>, launcher_id: Bytes32) -> Result<Option<String>> {
+    let launcher_id = launcher_id.as_ref();
+
+    let Some(row) = sqlx::query!(
+        "
+        SELECT `name`
+        FROM `dids`
+        WHERE `launcher_id` = ?
+        ",
+        launcher_id
+    )
+    .fetch_optional(conn)
+    .await?
+    else {
+        return Ok(None);
+    };
+
+    Ok(row.name)
 }

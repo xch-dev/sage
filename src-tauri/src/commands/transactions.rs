@@ -1,15 +1,22 @@
-use std::time::Duration;
+use std::{collections::HashMap, time::Duration};
 
+use base64::prelude::*;
 use chia::{
     protocol::{Bytes32, CoinSpend},
     puzzles::nft::NftMetadata,
+    traits::Streamable,
 };
 use chia_wallet_sdk::{
     decode_address, encode_address, AggSigConstants, MAINNET_CONSTANTS, TESTNET11_CONSTANTS,
 };
-use sage_api::{Amount, BulkMintNfts, BulkMintNftsResponse};
-use sage_database::CatRow;
-use sage_wallet::{fetch_uris, Wallet, WalletNftMint};
+use sage_api::{
+    Amount, BulkMintNfts, BulkMintNftsResponse, Input, InputKind, Output, TransactionSummary,
+};
+use sage_database::{CatRow, Database};
+use sage_wallet::{
+    fetch_uris, ChildKind, CoinKind, Data, Transaction, Wallet, WalletError, WalletNftMint,
+};
+use serde::Deserialize;
 use specta::specta;
 use tauri::{command, State};
 use tokio::sync::MutexGuard;
@@ -36,7 +43,7 @@ pub async fn send(
     address: String,
     amount: Amount,
     fee: Amount,
-) -> Result<()> {
+) -> Result<TransactionSummary> {
     let state = state.lock().await;
     let wallet = state.wallet()?;
 
@@ -61,14 +68,16 @@ pub async fn send(
         .send_xch(puzzle_hash.into(), amount, fee, Vec::new(), false, true)
         .await?;
 
-    transact(&state, &wallet, coin_spends).await?;
-
-    Ok(())
+    summarize(&state, &wallet, coin_spends, ConfirmationInfo::default()).await
 }
 
 #[command]
 #[specta]
-pub async fn combine(state: State<'_, AppState>, coin_ids: Vec<String>, fee: Amount) -> Result<()> {
+pub async fn combine(
+    state: State<'_, AppState>,
+    coin_ids: Vec<String>,
+    fee: Amount,
+) -> Result<TransactionSummary> {
     let state = state.lock().await;
     let wallet = state.wallet()?;
 
@@ -105,9 +114,7 @@ pub async fn combine(state: State<'_, AppState>, coin_ids: Vec<String>, fee: Amo
 
     let coin_spends = wallet.combine_xch(coins, fee, false, true).await?;
 
-    transact(&state, &wallet, coin_spends).await?;
-
-    Ok(())
+    summarize(&state, &wallet, coin_spends, ConfirmationInfo::default()).await
 }
 
 #[command]
@@ -117,7 +124,7 @@ pub async fn split(
     coin_ids: Vec<String>,
     output_count: u32,
     fee: Amount,
-) -> Result<()> {
+) -> Result<TransactionSummary> {
     let state = state.lock().await;
     let wallet = state.wallet()?;
 
@@ -156,9 +163,7 @@ pub async fn split(
         .split_xch(&coins, output_count as usize, fee, false, true)
         .await?;
 
-    transact(&state, &wallet, coin_spends).await?;
-
-    Ok(())
+    summarize(&state, &wallet, coin_spends, ConfirmationInfo::default()).await
 }
 
 #[command]
@@ -167,7 +172,7 @@ pub async fn combine_cat(
     state: State<'_, AppState>,
     coin_ids: Vec<String>,
     fee: Amount,
-) -> Result<()> {
+) -> Result<TransactionSummary> {
     let state = state.lock().await;
     let wallet = state.wallet()?;
 
@@ -195,9 +200,7 @@ pub async fn combine_cat(
 
     let coin_spends = wallet.combine_cat(cats, fee, false, true).await?;
 
-    transact(&state, &wallet, coin_spends).await?;
-
-    Ok(())
+    summarize(&state, &wallet, coin_spends, ConfirmationInfo::default()).await
 }
 
 #[command]
@@ -207,7 +210,7 @@ pub async fn split_cat(
     coin_ids: Vec<String>,
     output_count: u32,
     fee: Amount,
-) -> Result<()> {
+) -> Result<TransactionSummary> {
     let state = state.lock().await;
     let wallet = state.wallet()?;
 
@@ -237,9 +240,7 @@ pub async fn split_cat(
         .split_cat(cats, output_count as usize, fee, false, true)
         .await?;
 
-    transact(&state, &wallet, coin_spends).await?;
-
-    Ok(())
+    summarize(&state, &wallet, coin_spends, ConfirmationInfo::default()).await
 }
 
 #[command]
@@ -250,7 +251,7 @@ pub async fn issue_cat(
     ticker: String,
     amount: Amount,
     fee: Amount,
-) -> Result<()> {
+) -> Result<TransactionSummary> {
     let state = state.lock().await;
     let wallet = state.wallet()?;
 
@@ -268,7 +269,7 @@ pub async fn issue_cat(
 
     let (coin_spends, asset_id) = wallet.issue_cat(amount, fee, None, false, true).await?;
 
-    transact(&state, &wallet, coin_spends).await?;
+    let summary = summarize(&state, &wallet, coin_spends, ConfirmationInfo::default()).await?;
 
     wallet
         .db
@@ -282,7 +283,7 @@ pub async fn issue_cat(
         })
         .await?;
 
-    Ok(())
+    Ok(summary)
 }
 
 #[command]
@@ -293,7 +294,7 @@ pub async fn send_cat(
     address: String,
     amount: Amount,
     fee: Amount,
-) -> Result<()> {
+) -> Result<TransactionSummary> {
     let state = state.lock().await;
     let wallet = state.wallet()?;
 
@@ -320,14 +321,16 @@ pub async fn send_cat(
         .send_cat(asset_id, puzzle_hash.into(), amount, fee, false, true)
         .await?;
 
-    transact(&state, &wallet, coin_spends).await?;
-
-    Ok(())
+    summarize(&state, &wallet, coin_spends, ConfirmationInfo::default()).await
 }
 
 #[command]
 #[specta]
-pub async fn create_did(state: State<'_, AppState>, name: String, fee: Amount) -> Result<()> {
+pub async fn create_did(
+    state: State<'_, AppState>,
+    name: String,
+    fee: Amount,
+) -> Result<TransactionSummary> {
     let state = state.lock().await;
     let wallet = state.wallet()?;
 
@@ -343,12 +346,13 @@ pub async fn create_did(state: State<'_, AppState>, name: String, fee: Amount) -
 
     wallet
         .db
-        .insert_new_did(did.info.launcher_id, Some(name), true)
+        .insert_new_did(did.info.launcher_id, Some(name.clone()), true)
         .await?;
 
-    transact(&state, &wallet, coin_spends).await?;
+    let mut confirm_info = ConfirmationInfo::default();
+    confirm_info.did_names.insert(did.info.launcher_id, name);
 
-    Ok(())
+    summarize(&state, &wallet, coin_spends, confirm_info).await
 }
 
 #[command]
@@ -375,6 +379,7 @@ pub async fn bulk_mint_nfts(
     }
 
     let mut mints = Vec::with_capacity(request.nft_mints.len());
+    let mut confirm_info = ConfirmationInfo::default();
 
     for item in request.nft_mints {
         let royalty_puzzle_hash = item
@@ -395,43 +400,49 @@ pub async fn bulk_mint_nfts(
         let data_hash = if item.data_uris.is_empty() {
             None
         } else {
-            Some(
-                fetch_uris(
-                    item.data_uris.clone(),
-                    Duration::from_secs(15),
-                    Duration::from_secs(5),
-                )
-                .await?
-                .hash,
+            let data = fetch_uris(
+                item.data_uris.clone(),
+                Duration::from_secs(15),
+                Duration::from_secs(5),
             )
+            .await?;
+
+            let hash = data.hash;
+            confirm_info.nft_data.insert(data.hash, data);
+
+            Some(hash)
         };
 
         let metadata_hash = if item.metadata_uris.is_empty() {
             None
         } else {
-            Some(
-                fetch_uris(
-                    item.metadata_uris.clone(),
-                    Duration::from_secs(15),
-                    Duration::from_secs(15),
-                )
-                .await?
-                .hash,
+            let metadata = fetch_uris(
+                item.metadata_uris.clone(),
+                Duration::from_secs(15),
+                Duration::from_secs(15),
             )
+            .await?;
+
+            let hash = metadata.hash;
+            confirm_info.nft_data.insert(metadata.hash, metadata);
+
+            Some(hash)
         };
 
         let license_hash = if item.license_uris.is_empty() {
             None
         } else {
-            Some(
-                fetch_uris(
-                    item.license_uris.clone(),
-                    Duration::from_secs(15),
-                    Duration::from_secs(15),
-                )
-                .await?
-                .hash,
+            let data = fetch_uris(
+                item.license_uris.clone(),
+                Duration::from_secs(15),
+                Duration::from_secs(15),
             )
+            .await?;
+
+            let hash = data.hash;
+            confirm_info.nft_data.insert(data.hash, data);
+
+            Some(hash)
         };
 
         mints.push(WalletNftMint {
@@ -462,13 +473,14 @@ pub async fn bulk_mint_nfts(
 
     tx.commit().await?;
 
-    transact(&state, &wallet, coin_spends).await?;
+    let summary = summarize(&state, &wallet, coin_spends, confirm_info).await?;
 
     Ok(BulkMintNftsResponse {
         nft_ids: nfts
             .into_iter()
             .map(|nft| Result::Ok(encode_address(nft.info.launcher_id.into(), "nft")?))
             .collect::<Result<_>>()?,
+        summary,
     })
 }
 
@@ -479,7 +491,7 @@ pub async fn transfer_nft(
     nft_id: String,
     address: String,
     fee: Amount,
-) -> Result<()> {
+) -> Result<TransactionSummary> {
     let state = state.lock().await;
     let wallet = state.wallet()?;
 
@@ -506,12 +518,26 @@ pub async fn transfer_nft(
         .transfer_nft(launcher_id.into(), puzzle_hash.into(), fee, false, true)
         .await?;
 
-    transact(&state, &wallet, coin_spends).await?;
-
-    Ok(())
+    summarize(&state, &wallet, coin_spends, ConfirmationInfo::default()).await
 }
 
-async fn transact(
+#[command]
+#[specta]
+pub async fn submit_transaction(state: State<'_, AppState>, data: String) -> Result<()> {
+    let state = state.lock().await;
+    let wallet = state.wallet()?;
+    let data = hex::decode(data)?;
+    let coin_spends = Vec::<CoinSpend>::from_bytes_unchecked(&data)?;
+    submit(&state, &wallet, coin_spends).await
+}
+
+#[derive(Default)]
+struct ConfirmationInfo {
+    did_names: HashMap<Bytes32, String>,
+    nft_data: HashMap<Bytes32, Data>,
+}
+
+async fn submit(
     state: &MutexGuard<'_, AppStateInner>,
     wallet: &Wallet,
     coin_spends: Vec<CoinSpend>,
@@ -533,11 +559,168 @@ async fn transact(
         )
         .await?;
 
-    let Some(peak) = wallet.db.latest_peak().await? else {
-        return Err(Error::no_peak());
-    };
-
-    wallet.insert_transaction(&spend_bundle, peak.0).await?;
+    wallet.insert_transaction(spend_bundle).await?;
 
     Ok(())
+}
+
+async fn summarize(
+    state: &MutexGuard<'_, AppStateInner>,
+    wallet: &Wallet,
+    coin_spends: Vec<CoinSpend>,
+    cache: ConfirmationInfo,
+) -> Result<TransactionSummary> {
+    let data = coin_spends.to_bytes()?;
+    let transaction = Transaction::from_coin_spends(coin_spends).map_err(WalletError::Parse)?;
+
+    let mut inputs = Vec::with_capacity(transaction.inputs.len());
+
+    for input in transaction.inputs {
+        let coin = input.coin_spend.coin;
+        let mut amount = Amount::from_mojos(coin.amount as u128, state.unit.decimals);
+
+        let (kind, p2_puzzle_hash) = match input.kind {
+            CoinKind::Unknown => {
+                let kind = if wallet.db.is_p2_puzzle_hash(coin.puzzle_hash).await? {
+                    InputKind::Xch
+                } else {
+                    InputKind::Unknown
+                };
+                (kind, coin.puzzle_hash)
+            }
+            CoinKind::Launcher => (InputKind::Launcher, coin.puzzle_hash),
+            CoinKind::Cat {
+                asset_id,
+                p2_puzzle_hash,
+            } => {
+                let cat = wallet.db.cat(asset_id).await?;
+                let kind = InputKind::Cat {
+                    asset_id: hex::encode(asset_id),
+                    name: cat.as_ref().and_then(|cat| cat.name.clone()),
+                    ticker: cat.as_ref().and_then(|cat| cat.ticker.clone()),
+                    icon_url: cat.as_ref().and_then(|cat| cat.icon_url.clone()),
+                };
+                amount = Amount::from_mojos(coin.amount as u128, 3);
+                (kind, p2_puzzle_hash)
+            }
+            CoinKind::Did { info } => {
+                let name = if let Some(name) = cache.did_names.get(&info.launcher_id).cloned() {
+                    Some(name)
+                } else {
+                    wallet.db.did_name(info.launcher_id).await?
+                };
+
+                let kind = InputKind::Did {
+                    launcher_id: encode_address(info.launcher_id.into(), "did:chia:")?,
+                    name,
+                };
+
+                (kind, info.p2_puzzle_hash)
+            }
+            CoinKind::Nft { info, metadata } => {
+                let extracted = extract_nft_data(Some(&wallet.db), metadata, &cache).await?;
+
+                let kind = InputKind::Nft {
+                    launcher_id: encode_address(info.launcher_id.into(), "nft")?,
+                    image_data: extracted.image_data,
+                    image_mime_type: extracted.image_mime_type,
+                    name: extracted.name,
+                };
+                (kind, info.p2_puzzle_hash)
+            }
+        };
+
+        let address = encode_address(p2_puzzle_hash.into(), &state.network().address_prefix)?;
+
+        let mut outputs = Vec::new();
+
+        for output in input.outputs {
+            let amount = match output.kind {
+                ChildKind::Cat { .. } => Amount::from_mojos(output.coin.amount as u128, 3),
+                _ => Amount::from_mojos(output.coin.amount as u128, state.unit.decimals),
+            };
+
+            let p2_puzzle_hash = match output.kind {
+                ChildKind::Unknown { hint } => hint.unwrap_or(output.coin.puzzle_hash),
+                ChildKind::Launcher => output.coin.puzzle_hash,
+                ChildKind::Cat { p2_puzzle_hash, .. } => p2_puzzle_hash,
+                ChildKind::Did { info, .. } => info.p2_puzzle_hash,
+                ChildKind::Nft { info, .. } => info.p2_puzzle_hash,
+            };
+
+            let address = encode_address(p2_puzzle_hash.into(), &state.network().address_prefix)?;
+
+            outputs.push(Output {
+                coin_id: hex::encode(output.coin.coin_id()),
+                amount,
+                address,
+                receiving: wallet.db.is_p2_puzzle_hash(p2_puzzle_hash).await?,
+            });
+        }
+
+        inputs.push(Input {
+            coin_id: hex::encode(coin.coin_id()),
+            amount,
+            address,
+            kind,
+            outputs,
+        });
+    }
+
+    Ok(TransactionSummary {
+        fee: Amount::from_mojos(transaction.fee as u128, state.unit.decimals),
+        inputs,
+        data: hex::encode(data),
+    })
+}
+
+#[derive(Debug, Default)]
+struct ExtractedNftData {
+    image_data: Option<String>,
+    image_mime_type: Option<String>,
+    name: Option<String>,
+}
+
+#[derive(Deserialize)]
+struct OffchainMetadata {
+    #[serde(default)]
+    name: Option<String>,
+}
+
+async fn extract_nft_data(
+    db: Option<&Database>,
+    onchain_metadata: Option<NftMetadata>,
+    cache: &ConfirmationInfo,
+) -> Result<ExtractedNftData> {
+    let mut result = ExtractedNftData::default();
+
+    let Some(onchain_metadata) = onchain_metadata else {
+        return Ok(result);
+    };
+
+    if let Some(data_hash) = onchain_metadata.data_hash {
+        if let Some(data) = cache.nft_data.get(&data_hash) {
+            result.image_data = Some(BASE64_STANDARD.encode(&data.blob));
+            result.image_mime_type = Some(data.mime_type.clone());
+        } else if let Some(db) = &db {
+            if let Some(data) = db.fetch_nft_data(data_hash).await? {
+                result.image_data = Some(BASE64_STANDARD.encode(&data.blob));
+                result.image_mime_type = Some(data.mime_type);
+            }
+        }
+    }
+
+    if let Some(metadata_hash) = onchain_metadata.metadata_hash {
+        if let Some(metadata) = cache.nft_data.get(&metadata_hash) {
+            let metadata: OffchainMetadata = serde_json::from_slice(&metadata.blob)?;
+            result.name = metadata.name;
+        } else if let Some(db) = &db {
+            if let Some(metadata) = db.fetch_nft_data(metadata_hash).await? {
+                let metadata: OffchainMetadata = serde_json::from_slice(&metadata.blob)?;
+                result.name = metadata.name;
+            }
+        }
+    }
+
+    Ok(result)
 }

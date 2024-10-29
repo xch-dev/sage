@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
-use crate::Amount;
+use crate::{Amount, TransactionSummary};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub struct BulkMintNfts {
@@ -24,4 +24,5 @@ pub struct NftMint {
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub struct BulkMintNftsResponse {
     pub nft_ids: Vec<String>,
+    pub summary: TransactionSummary,
 }

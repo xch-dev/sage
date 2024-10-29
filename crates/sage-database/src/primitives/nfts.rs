@@ -43,6 +43,10 @@ impl Database {
     pub async fn nft(&self, launcher_id: Bytes32) -> Result<Option<Nft<Program>>> {
         nft(&self.pool, launcher_id).await
     }
+
+    pub async fn fetch_nft_data(&self, hash: Bytes32) -> Result<Option<NftData>> {
+        fetch_nft_data(&self.pool, hash).await
+    }
 }
 
 impl<'a> DatabaseTx<'a> {

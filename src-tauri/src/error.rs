@@ -426,3 +426,21 @@ impl From<UriError> for Error {
         }
     }
 }
+
+impl From<serde_json::Error> for Error {
+    fn from(value: serde_json::Error) -> Self {
+        Self {
+            kind: ErrorKind::Serialization,
+            reason: value.to_string(),
+        }
+    }
+}
+
+impl From<chia::traits::Error> for Error {
+    fn from(value: chia::traits::Error) -> Self {
+        Self {
+            kind: ErrorKind::Serialization,
+            reason: value.to_string(),
+        }
+    }
+}

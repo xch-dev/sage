@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n        SELECT\n            `transaction_id`,\n            `fee`,\n            `submitted_at`,\n            `expiration_height`\n        FROM `transactions`\n        ORDER BY `submitted_at` DESC, `transaction_id` ASC\n        ",
+  "query": "\n        SELECT\n            `transaction_id`,\n            `fee`,\n            `submitted_at`\n        FROM `transactions`\n        ORDER BY `submitted_at` DESC, `transaction_id` ASC\n        ",
   "describe": {
     "columns": [
       {
@@ -17,11 +17,6 @@
         "name": "submitted_at",
         "ordinal": 2,
         "type_info": "Integer"
-      },
-      {
-        "name": "expiration_height",
-        "ordinal": 3,
-        "type_info": "Integer"
       }
     ],
     "parameters": {
@@ -30,9 +25,8 @@
     "nullable": [
       false,
       false,
-      true,
       true
     ]
   },
-  "hash": "dffc6fddfbb3c31e82fd7b57bb8e08a4cf273e2f933dd6490e506be9cfb0d1cc"
+  "hash": "8a728911b3877476b9649f890645c5b658d377a98d7c6fe8952fd6c9f7da6d84"
 }

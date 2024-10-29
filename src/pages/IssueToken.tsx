@@ -1,3 +1,4 @@
+import ConfirmationDialog from '@/components/ConfirmationDialog';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import {
@@ -11,12 +12,11 @@ import {
 import { Input } from '@/components/ui/input';
 import { amount, positiveAmount } from '@/lib/formTypes';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { LoaderCircleIcon } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import * as z from 'zod';
-import { commands, Error } from '../bindings';
+import { commands, Error, TransactionSummary } from '../bindings';
 import Container from '../components/Container';
 import ErrorDialog from '../components/ErrorDialog';
 import { useWalletState } from '../state';
@@ -26,7 +26,7 @@ export default function IssueToken() {
   const walletState = useWalletState();
 
   const [error, setError] = useState<Error | null>(null);
-  const [pending, setPending] = useState(false);
+  const [summary, setSummary] = useState<TransactionSummary | null>(null);
 
   const formSchema = z.object({
     name: z.string().min(1, 'Name is required'),
@@ -40,7 +40,6 @@ export default function IssueToken() {
   });
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
-    setPending(true);
     commands
       .issueCat(
         values.name,
@@ -52,11 +51,10 @@ export default function IssueToken() {
         if (result.status === 'error') {
           console.error(result.error);
           setError(result.error);
-          return;
+        } else {
+          setSummary(result.data);
         }
-        navigate('/wallet');
-      })
-      .finally(() => setPending(false));
+      });
   };
 
   return (
@@ -148,17 +146,17 @@ export default function IssueToken() {
               />
             </div>
 
-            <Button type='submit' disabled={pending}>
-              {pending && (
-                <LoaderCircleIcon className='mr-2 h-4 w-4 animate-spin' />
-              )}
-              {pending ? 'Issuing' : 'Issue'} Token
-            </Button>
+            <Button type='submit'>Issue Token</Button>
           </form>
         </Form>
       </Container>
 
       <ErrorDialog error={error} setError={setError} />
+      <ConfirmationDialog
+        summary={summary}
+        close={() => setSummary(null)}
+        onConfirm={() => navigate('/wallet')}
+      />
     </>
   );
 }
