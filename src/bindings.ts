@@ -365,6 +365,14 @@ async transferNft(nftId: string, address: string, fee: Amount) : Promise<Result<
     else return { status: "error", error: e  as any };
 }
 },
+async transferDid(didId: string, address: string, fee: Amount) : Promise<Result<TransactionSummary, Error>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("transfer_did", { didId, address, fee }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async signTransaction(coinSpends: CoinSpendJson[]) : Promise<Result<SpendBundleJson, Error>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("sign_transaction", { coinSpends }) };
