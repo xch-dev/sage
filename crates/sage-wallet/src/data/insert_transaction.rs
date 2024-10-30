@@ -85,6 +85,7 @@ pub async fn insert_transaction(
                             minter_did: None,
                             owner_did: info.current_owner,
                             visible: true,
+                            sensitive_content: false,
                             name: None,
                             created_height: None,
                             metadata_hash,
@@ -99,6 +100,7 @@ pub async fn insert_transaction(
                             // TODO: Handle Minter DID for pending transactions.
                             let info = compute_nft_info(None, blob.as_deref());
 
+                            row.sensitive_content = info.sensitive_content;
                             row.name = info.name;
                         }
 

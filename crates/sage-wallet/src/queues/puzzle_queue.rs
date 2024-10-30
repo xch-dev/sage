@@ -170,6 +170,7 @@ async fn fetch_puzzle(
         None
     };
 
+    let mut ids = Vec::new();
     let mut tx = db.tx().await?;
 
     match info {
@@ -182,11 +183,7 @@ async fn fetch_puzzle(
             tx.sync_coin(coin_id, Some(p2_puzzle_hash)).await?;
             tx.insert_cat_coin(coin_id, lineage_proof, p2_puzzle_hash, asset_id)
                 .await?;
-
-            command_sender
-                .send(SyncCommand::SubscribeCoin { coin_id })
-                .await
-                .ok();
+            ids.push(coin_id);
         }
         ChildKind::Did {
             lineage_proof,
@@ -195,11 +192,7 @@ async fn fetch_puzzle(
             tx.sync_coin(coin_id, Some(info.p2_puzzle_hash)).await?;
             tx.insert_new_did(info.launcher_id, None, true).await?;
             tx.insert_did_coin(coin_id, lineage_proof, info).await?;
-
-            command_sender
-                .send(SyncCommand::SubscribeCoin { coin_id })
-                .await
-                .ok();
+            ids.push(coin_id);
         }
         ChildKind::Nft {
             lineage_proof,
@@ -218,6 +211,7 @@ async fn fetch_puzzle(
                 minter_did,
                 owner_did: info.current_owner,
                 visible: true,
+                sensitive_content: false,
                 name: None,
                 created_height: coin_state.created_height,
                 metadata_hash,
@@ -233,6 +227,7 @@ async fn fetch_puzzle(
 
             let computed_info = compute_nft_info(minter_did, metadata_blob.as_deref());
 
+            row.sensitive_content = computed_info.sensitive_content;
             row.name = computed_info.name;
             row.collection_id = computed_info
                 .collection
@@ -278,10 +273,7 @@ async fn fetch_puzzle(
                 }
             }
 
-            command_sender
-                .send(SyncCommand::SubscribeCoin { coin_id })
-                .await
-                .ok();
+            ids.push(coin_id);
         }
         ChildKind::Unknown { hint } => {
             tx.sync_coin(coin_id, hint).await?;
@@ -290,6 +282,11 @@ async fn fetch_puzzle(
     }
 
     tx.commit().await?;
+
+    command_sender
+        .send(SyncCommand::SubscribeCoins { coin_ids: ids })
+        .await
+        .ok();
 
     Ok(())
 }

@@ -9,6 +9,7 @@ import { useLocalStorage } from 'usehooks-ts';
 import { commands } from './bindings';
 import Container from './components/Container';
 import { PeerProvider } from './contexts/PeerContext';
+import Collection from './pages/Collection';
 import CreateProfile from './pages/CreateProfile';
 import CreateWallet from './pages/CreateWallet';
 import { DidList } from './pages/DidList';
@@ -57,6 +58,9 @@ const router = createHashRouter(
         <Route path='' element={<NftList />} />
         <Route path=':launcher_id' element={<Nft />} />
         <Route path='mint-nft' element={<MintNft />} />
+      </Route>
+      <Route path='/collections' element={<Wallet />}>
+        <Route path=':launcher_id' element={<Collection />} />
       </Route>
       <Route path='/dids' element={<Wallet />}>
         <Route path='' element={<DidList />} />

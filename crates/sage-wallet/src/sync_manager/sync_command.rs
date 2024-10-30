@@ -24,8 +24,8 @@ pub enum SyncCommand {
         ip: IpAddr,
         trusted: bool,
     },
-    SubscribeCoin {
-        coin_id: Bytes32,
+    SubscribeCoins {
+        coin_ids: Vec<Bytes32>,
     },
     ConnectionClosed(IpAddr),
     SetDiscoverPeers(bool),

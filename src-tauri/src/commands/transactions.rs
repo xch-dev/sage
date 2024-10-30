@@ -469,12 +469,22 @@ pub async fn bulk_mint_nfts(
     let mut tx = wallet.db.tx().await?;
 
     for nft in &nfts {
+        let info = compute_nft_info(
+            None,
+            nft.info
+                .metadata
+                .metadata_hash
+                .and_then(|hash| confirm_info.nft_data.get(&hash))
+                .map(|data| data.blob.as_ref()),
+        );
+
         tx.insert_nft(NftRow {
             launcher_id: nft.info.launcher_id,
             collection_id: None,
             minter_did: Some(did.info.launcher_id),
             owner_did: nft.info.current_owner,
-            name: None,
+            sensitive_content: info.sensitive_content,
+            name: info.name,
             created_height: None,
             visible: true,
             metadata_hash: nft.info.metadata.metadata_hash,

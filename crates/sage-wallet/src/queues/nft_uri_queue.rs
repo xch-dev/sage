@@ -66,6 +66,7 @@ impl NftUriQueue {
                             for mut nft in nfts {
                                 let info = compute_nft_info(nft.minter_did, Some(&data.blob));
 
+                                nft.sensitive_content = info.sensitive_content;
                                 nft.name = info.name;
                                 nft.collection_id =
                                     info.collection.as_ref().map(|col| col.collection_id);

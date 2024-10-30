@@ -1,11 +1,15 @@
 use chia::{protocol::Bytes32, sha2::Sha256};
 use sage_database::NftCollectionRow;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct OffchainMetadata {
     #[serde(default)]
     name: Option<String>,
+
+    #[serde(default)]
+    sensitive_content: Option<Value>,
 
     #[serde(default)]
     collection: Option<Collection>,
@@ -23,6 +27,7 @@ struct Collection {
 #[derive(Debug, Default, Clone)]
 pub struct ComputedNftInfo {
     pub name: Option<String>,
+    pub sensitive_content: bool,
     pub collection: Option<NftCollectionRow>,
 }
 
@@ -44,6 +49,7 @@ pub fn compute_nft_info(did_id: Option<Bytes32>, blob: Option<&[u8]>) -> Compute
             did_id,
             metadata_collection_id,
             name,
+            visible: true,
         })
     } else {
         None
@@ -51,6 +57,14 @@ pub fn compute_nft_info(did_id: Option<Bytes32>, blob: Option<&[u8]>) -> Compute
 
     ComputedNftInfo {
         name: json.name,
+        sensitive_content: json.sensitive_content.is_some_and(|value| match value {
+            Value::Bool(value) => value,
+            Value::Null => false,
+            Value::Array(items) => !items.is_empty(),
+            Value::Object(items) => !items.is_empty(),
+            Value::Number(_value) => true,
+            Value::String(value) => !value.is_empty(),
+        }),
         collection,
     }
 }

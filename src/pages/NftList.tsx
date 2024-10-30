@@ -35,11 +35,14 @@ import { useWalletState } from '@/state';
 import { zodResolver } from '@hookform/resolvers/zod';
 import BigNumber from 'bignumber.js';
 import {
+  ArrowUpAz,
   ChevronLeftIcon,
   ChevronRightIcon,
+  Clock2,
   EyeIcon,
   EyeOff,
   Image,
+  Images,
   MoreVerticalIcon,
   SendIcon,
 } from 'lucide-react';
@@ -47,31 +50,55 @@ import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link } from 'react-router-dom';
 import { z } from 'zod';
-import { commands, events, NftRecord, TransactionSummary } from '../bindings';
+import {
+  commands,
+  events,
+  NftCollectionRecord,
+  NftRecord,
+  TransactionSummary,
+} from '../bindings';
+
+const pageSize = 12;
 
 export function NftList() {
+  const walletState = useWalletState();
+
   const [page, setPage] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
-  const [showHidden, setShowHidden] = useState(false);
   const [nfts, setNfts] = useState<NftRecord[]>([]);
+  const [collections, setCollections] = useState<NftCollectionRecord[]>([]);
   const [loading, setLoading] = useState(false);
 
+  const [showHidden, setShowHidden] = useState(false);
+  const [view, setView] = useState<'name' | 'recent' | 'collection'>('name');
+
   const updateNfts = async (page: number) => {
-    return await commands
-      .getNfts({ offset: page * 12, limit: 12 })
-      .then((result) => {
-        if (result.status === 'ok') {
-          setNfts(result.data.items);
-          setTotalPages(Math.max(1, Math.ceil(result.data.total / 12)));
-        } else {
-          throw new Error('Failed to get NFTs');
-        }
-      });
+    if (view === 'name') {
+      return await commands
+        .getNfts({ offset: page * pageSize, limit: pageSize })
+        .then((result) => {
+          if (result.status === 'ok') {
+            setNfts(result.data);
+          } else {
+            throw new Error('Failed to get NFTs');
+          }
+        });
+    } else if (view === 'collection') {
+      await commands
+        .getNftCollections({ offset: page * pageSize, limit: pageSize })
+        .then((result) => {
+          if (result.status === 'ok') {
+            setCollections(result.data);
+          } else {
+            throw new Error('Failed to get NFT collections');
+          }
+        });
+    }
   };
 
   const nextPage = () => {
     if (loading) return;
     setLoading(true);
+
     updateNfts(page + 1)
       .then(() => setPage(page + 1))
       .finally(() => {
@@ -82,6 +109,7 @@ export function NftList() {
   const previousPage = () => {
     if (loading) return;
     setLoading(true);
+
     updateNfts(page - 1)
       .then(() => setPage(page - 1))
       .finally(() => {
@@ -91,7 +119,7 @@ export function NftList() {
 
   useEffect(() => {
     updateNfts(0);
-  }, []);
+  }, [view]);
 
   useEffect(() => {
     const unlisten = events.syncEvent.listen((event) => {
@@ -114,6 +142,24 @@ export function NftList() {
   const visibleNfts = showHidden ? nfts : nfts.filter((nft) => nft.visible);
   const hasHiddenNfts = nfts.findIndex((nft) => !nft.visible) > -1;
 
+  const visibleCollections = showHidden
+    ? collections
+    : collections.filter((collection) => collection.visible);
+  const hasHiddenCollections =
+    collections.findIndex((collection) => !collection.visible) > -1;
+
+  const hasHidden =
+    (view === 'collection' && hasHiddenCollections) || hasHiddenNfts;
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(
+      (view === 'collection'
+        ? walletState.nfts.visible_collections
+        : walletState.nfts.visible_nfts) / pageSize,
+    ),
+  );
+
   return (
     <>
       <Header title='NFTs'>
@@ -121,7 +167,7 @@ export function NftList() {
       </Header>
 
       <Container>
-        {hasHiddenNfts && (
+        {hasHidden && (
           <div className='inline-flex items-center gap-2 mb-2'>
             <label htmlFor='viewHidden'>View hidden</label>
             <Switch
@@ -132,17 +178,16 @@ export function NftList() {
           </div>
         )}
 
-        {visibleNfts.length === 0 ? (
+        {walletState.nfts.nfts === 0 ? (
           <Alert className='mt-2'>
             <Image className='h-4 w-4' />
             <AlertTitle>Mint an NFT?</AlertTitle>
             <AlertDescription>
-              You do not currently have any {nfts.length > 0 ? 'visible ' : ''}
-              NFTs. Would you like to mint one?
+              You do not currently have any NFTs. Would you like to mint one?
             </AlertDescription>
           </Alert>
         ) : (
-          <div className='flex justify-center items-center gap-2'>
+          <div className='relative flex justify-center items-center gap-2'>
             <Button
               variant='outline'
               size='icon'
@@ -162,15 +207,167 @@ export function NftList() {
             >
               <ChevronRightIcon className='h-4 w-4' />
             </Button>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <div className='absolute right-0'>
+                  <Button variant='outline' size='icon' onClick={() => {}}>
+                    {view === 'name' ? (
+                      <ArrowUpAz className='h-4 w-4' />
+                    ) : view === 'recent' ? (
+                      <Clock2 className='h-4 w-4' />
+                    ) : (
+                      <Images className='h-4 w-4' />
+                    )}
+                  </Button>
+                </div>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align='end'>
+                <DropdownMenuGroup>
+                  <DropdownMenuItem
+                    className='cursor-pointer'
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setView('name');
+                      setPage(0);
+                    }}
+                  >
+                    <ArrowUpAz className='mr-2 h-4 w-4' />
+                    <span>Sort Alphabetically</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className='cursor-pointer'
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setView('recent');
+                      setPage(0);
+                    }}
+                  >
+                    <Clock2 className='mr-2 h-4 w-4' />
+                    <span>Sort Recent</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className='cursor-pointer'
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setView('collection');
+                      setPage(0);
+                    }}
+                  >
+                    <Images className='mr-2 h-4 w-4' />
+                    <span>Group Collections</span>
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         )}
 
         <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mt-6 mb-2'>
-          {visibleNfts.map((nft, i) => (
-            <Nft nft={nft} key={i} updateNfts={() => updateNfts(page)} />
-          ))}
+          {view === 'collection' ? (
+            <>
+              {visibleCollections.map((col, i) => (
+                <Collection
+                  col={col}
+                  key={i}
+                  updateNfts={() => updateNfts(page)}
+                />
+              ))}
+              <Collection
+                col={{
+                  name: 'Uncategorized',
+                  did_id: 'Miscellaneous',
+                  metadata_collection_id: 'Uncategorized',
+                  collection_id: null,
+                  visible: true,
+                }}
+                updateNfts={() => updateNfts(page)}
+              />
+            </>
+          ) : (
+            visibleNfts.map((nft, i) => (
+              <Nft nft={nft} key={i} updateNfts={() => updateNfts(page)} />
+            ))
+          )}
         </div>
       </Container>
+    </>
+  );
+}
+
+interface CollectionProps {
+  col: Omit<NftCollectionRecord, 'collection_id'> & {
+    collection_id: string | null;
+  };
+  updateNfts: () => void;
+}
+
+function Collection({ col, updateNfts }: CollectionProps) {
+  const toggleVisibility = () => {
+    // commands.updateNft(nft.launcher_id, !nft.visible).then((result) => {
+    //   if (result.status === 'ok') {
+    //     updateNfts();
+    //   } else {
+    //     throw new Error('Failed to toggle visibility for NFT');
+    //   }
+    // });
+  };
+
+  return (
+    <>
+      <Link
+        to={`/collections/${col.collection_id}`}
+        className={`group${`${!col.visible ? ' opacity-50 grayscale' : ''}`}`}
+      >
+        <div className='overflow-hidden rounded-t-md relative'>
+          <img
+            alt={col.name ?? 'Unknown Collection'}
+            loading='lazy'
+            width='150'
+            height='150'
+            className='h-auto w-auto object-cover transition-all group-hover:scale-105 aspect-square color-[transparent]'
+            src={'https://example.com' /* todo */}
+          />
+        </div>
+        <div className='text-md flex items-center justify-between rounded-b p-1 pl-2 bg-neutral-200 dark:bg-neutral-800'>
+          <span className='truncate'>
+            <span className='font-medium leading-none'>
+              {col.name ?? 'Unknown Collection'}
+            </span>
+            {col.collection_id && (
+              <p className='text-xs text-muted-foreground'>
+                {col.collection_id}
+              </p>
+            )}
+          </span>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant='ghost' size='icon'>
+                <MoreVerticalIcon className='h-5 w-5' />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align='end'>
+              <DropdownMenuGroup>
+                <DropdownMenuItem
+                  className='cursor-pointer'
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleVisibility();
+                  }}
+                >
+                  {col.visible ? (
+                    <EyeOff className='mr-2 h-4 w-4' />
+                  ) : (
+                    <EyeIcon className='mr-2 h-4 w-4' />
+                  )}
+                  <span>{col.visible ? 'Hide' : 'Show'}</span>
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </Link>
     </>
   );
 }

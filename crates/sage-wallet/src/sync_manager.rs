@@ -163,8 +163,8 @@ impl SyncManager {
                     self.connect_batch(&[SocketAddr::new(ip, self.network.default_port)])
                         .await;
                 }
-                SyncCommand::SubscribeCoin { coin_id } => {
-                    self.pending_coin_subscriptions.push(coin_id);
+                SyncCommand::SubscribeCoins { coin_ids } => {
+                    self.pending_coin_subscriptions.extend(coin_ids);
                 }
                 SyncCommand::ConnectionClosed(ip) => {
                     self.state.lock().await.remove_peer(ip);

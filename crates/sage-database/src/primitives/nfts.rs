@@ -12,6 +12,7 @@ pub struct NftCollectionRow {
     pub collection_id: Bytes32,
     pub did_id: Bytes32,
     pub metadata_collection_id: String,
+    pub visible: bool,
     pub name: Option<String>,
 }
 
@@ -22,6 +23,7 @@ pub struct NftRow {
     pub minter_did: Option<Bytes32>,
     pub owner_did: Option<Bytes32>,
     pub visible: bool,
+    pub sensitive_content: bool,
     pub name: Option<String>,
     pub created_height: Option<u32>,
     pub metadata_hash: Option<Bytes32>,
@@ -58,6 +60,14 @@ impl Database {
 }
 
 impl<'a> DatabaseTx<'a> {
+    pub async fn nft_collections_visible_named(
+        &mut self,
+        offset: u32,
+        limit: u32,
+    ) -> Result<Vec<NftCollectionRow>> {
+        nft_collections_visible_named(&mut *self.tx, offset, limit).await
+    }
+
     pub async fn insert_nft_coin(
         &mut self,
         coin_id: Bytes32,
@@ -77,6 +87,14 @@ impl<'a> DatabaseTx<'a> {
             license_hash,
         )
         .await
+    }
+
+    pub async fn nft_collection_count(&mut self) -> Result<u32> {
+        nft_collection_count(&mut *self.tx).await
+    }
+
+    pub async fn visible_nft_collection_count(&mut self) -> Result<u32> {
+        visible_nft_collection_count(&mut *self.tx).await
     }
 
     pub async fn nfts_visible_named(&mut self, limit: u32, offset: u32) -> Result<Vec<NftRow>> {
@@ -150,16 +168,91 @@ async fn insert_nft_collection(conn: impl SqliteExecutor<'_>, row: NftCollection
     let name = row.name.as_deref();
 
     sqlx::query!(
-        "REPLACE INTO `nft_collections` (`collection_id`, `did_id`, `metadata_collection_id`, `name`) VALUES (?, ?, ?, ?)",
+        "
+        REPLACE INTO `nft_collections` (
+            `collection_id`,
+            `did_id`,
+            `metadata_collection_id`,
+            `visible`,
+            `name`
+        )
+        VALUES (?, ?, ?, ?, ?)
+        ",
         collection_id,
         did_id,
         row.metadata_collection_id,
+        row.visible,
         name
     )
     .execute(conn)
     .await?;
 
     Ok(())
+}
+
+async fn nft_collections_visible_named(
+    conn: impl SqliteExecutor<'_>,
+    offset: u32,
+    limit: u32,
+) -> Result<Vec<NftCollectionRow>> {
+    let rows = sqlx::query!(
+        "
+        SELECT
+            `collection_id`,
+            `did_id`,
+            `metadata_collection_id`,
+            `visible`,
+            `name`
+        FROM `nft_collections` INDEXED BY `col_named`
+        WHERE `visible` = 1
+        ORDER BY `is_named` DESC, `name` ASC, `collection_id` ASC
+        LIMIT ? OFFSET ?
+        ",
+        limit,
+        offset
+    )
+    .fetch_all(conn)
+    .await?;
+
+    let mut collections = Vec::new();
+
+    for row in rows {
+        collections.push(NftCollectionRow {
+            collection_id: to_bytes32(&row.collection_id)?,
+            did_id: to_bytes32(&row.did_id)?,
+            metadata_collection_id: row.metadata_collection_id,
+            visible: row.visible,
+            name: row.name,
+        });
+    }
+
+    Ok(collections)
+}
+
+async fn nft_collection_count(conn: impl SqliteExecutor<'_>) -> Result<u32> {
+    let row = sqlx::query!(
+        "
+        SELECT COUNT(*) AS `count` FROM `nft_collections`
+        WHERE `visible` = 1
+        "
+    )
+    .fetch_one(conn)
+    .await?;
+
+    Ok(row.count.try_into()?)
+}
+
+async fn visible_nft_collection_count(conn: impl SqliteExecutor<'_>) -> Result<u32> {
+    let row = sqlx::query!(
+        "
+        SELECT COUNT(*) AS `count` FROM `nft_collections`
+        WHERE `visible` = 1
+        "
+    )
+    .fetch_one(conn)
+    .await?;
+
+    Ok(row.count.try_into()?)
 }
 
 async fn nft_count(conn: impl SqliteExecutor<'_>) -> Result<u32> {
@@ -293,15 +386,17 @@ async fn insert_nft(conn: impl SqliteExecutor<'_>, row: NftRow) -> Result<()> {
             `minter_did`,
             `owner_did`,
             `visible`,
+            `sensitive_content`,
             `name`,
             `created_height`,
             `metadata_hash`
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
         launcher_id,
         collection_id,
         minter_did,
         owner_did,
         row.visible,
+        row.sensitive_content,
         name,
         row.created_height,
         metadata_hash
@@ -323,6 +418,7 @@ async fn nft_row(conn: impl SqliteExecutor<'_>, launcher_id: Bytes32) -> Result<
             `minter_did`,
             `owner_did`,
             `visible`,
+            `sensitive_content`,
             `name`,
             `created_height`,
             `metadata_hash`
@@ -343,6 +439,7 @@ async fn nft_row(conn: impl SqliteExecutor<'_>, launcher_id: Bytes32) -> Result<
         minter_did: row.minter_did.as_deref().map(to_bytes32).transpose()?,
         owner_did: row.owner_did.as_deref().map(to_bytes32).transpose()?,
         visible: row.visible,
+        sensitive_content: row.sensitive_content,
         name: row.name,
         created_height: row.created_height.map(TryInto::try_into).transpose()?,
         metadata_hash: row.metadata_hash.as_deref().map(to_bytes32).transpose()?,
@@ -446,6 +543,7 @@ async fn nfts_by_metadata_hash(
             `minter_did`,
             `owner_did`,
             `visible`,
+            `sensitive_content`,
             `name`,
             `created_height`,
             `metadata_hash`
@@ -466,6 +564,7 @@ async fn nfts_by_metadata_hash(
             minter_did: row.minter_did.as_deref().map(to_bytes32).transpose()?,
             owner_did: row.owner_did.as_deref().map(to_bytes32).transpose()?,
             visible: row.visible,
+            sensitive_content: row.sensitive_content,
             name: row.name,
             created_height: row.created_height.map(TryInto::try_into).transpose()?,
             metadata_hash: row.metadata_hash.as_deref().map(to_bytes32).transpose()?,
@@ -488,6 +587,7 @@ async fn nfts_visible_named(
             `minter_did`,
             `owner_did`,
             `visible`,
+            `sensitive_content`,
             `name`,
             `created_height`,
             `metadata_hash`
@@ -511,6 +611,7 @@ async fn nfts_visible_named(
             minter_did: row.minter_did.as_deref().map(to_bytes32).transpose()?,
             owner_did: row.owner_did.as_deref().map(to_bytes32).transpose()?,
             visible: row.visible,
+            sensitive_content: row.sensitive_content,
             name: row.name,
             created_height: row.created_height.map(TryInto::try_into).transpose()?,
             metadata_hash: row.metadata_hash.as_deref().map(to_bytes32).transpose()?,

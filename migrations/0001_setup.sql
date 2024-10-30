@@ -113,9 +113,12 @@ CREATE TABLE `nft_collections` (
     `collection_id` BLOB NOT NULL PRIMARY KEY,
     `did_id` BLOB NOT NULL,
     `metadata_collection_id` TEXT NOT NULL,
+    `visible` BOOLEAN NOT NULL,
     `name` TEXT,
     `is_named` BOOLEAN GENERATED ALWAYS AS (`name` IS NOT NULL) STORED
 );
+
+CREATE INDEX `col_named` ON `nft_collections` (`visible` DESC, `is_named` DESC, `name` ASC, `collection_id` ASC);
 
 CREATE TABLE `nfts` (
     `launcher_id` BLOB NOT NULL PRIMARY KEY,
@@ -123,12 +126,12 @@ CREATE TABLE `nfts` (
     `minter_did` BLOB,
     `owner_did` BLOB,
     `visible` BOOLEAN NOT NULL,
+    `sensitive_content` BOOLEAN NOT NULL,
     `name` TEXT,
     `is_named` BOOLEAN GENERATED ALWAYS AS (`name` IS NOT NULL) STORED,
     `created_height` INTEGER,
     `is_pending` BOOLEAN GENERATED ALWAYS AS (`created_height` IS NULL) STORED,
-    `metadata_hash` BLOB,
-    FOREIGN KEY (`collection_id`) REFERENCES `nft_collections` (`collection_id`) ON DELETE CASCADE
+    `metadata_hash` BLOB
 );
 
 CREATE INDEX `nft_metadata` ON `nfts` (`metadata_hash`);

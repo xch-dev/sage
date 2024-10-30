@@ -8,6 +8,7 @@ pub struct NftRecord {
     pub minter_did: Option<String>,
     pub owner_did: Option<String>,
     pub visible: bool,
+    pub sensitive_content: bool,
     pub name: Option<String>,
     pub created_height: Option<u32>,
     pub data_mime_type: Option<String>,

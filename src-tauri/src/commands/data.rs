@@ -1,5 +1,3 @@
-use std::time::Instant;
-
 use base64::prelude::*;
 use bigdecimal::BigDecimal;
 use chia::{
@@ -9,14 +7,13 @@ use chia::{
 use chia_wallet_sdk::{decode_address, encode_address};
 use clvmr::Allocator;
 use sage_api::{
-    Amount, CatRecord, CoinRecord, DidRecord, GetNfts, GetNftsResponse, NftInfo, NftRecord,
-    PendingTransactionRecord, SyncStatus,
+    Amount, CatRecord, CoinRecord, DidRecord, GetNftCollections, GetNfts, NftCollectionRecord,
+    NftInfo, NftRecord, NftStatus, PendingTransactionRecord, SyncStatus,
 };
 use sage_database::DidRow;
 use sage_wallet::WalletError;
 use specta::specta;
 use tauri::{command, State};
-use tracing::warn;
 
 use crate::{
     app_state::AppState,
@@ -273,7 +270,33 @@ pub async fn get_pending_transactions(
 
 #[command]
 #[specta]
-pub async fn get_nfts(state: State<'_, AppState>, request: GetNfts) -> Result<GetNftsResponse> {
+pub async fn get_nft_status(state: State<'_, AppState>) -> Result<NftStatus> {
+    let state = state.lock().await;
+    let wallet = state.wallet()?;
+
+    let mut tx = wallet.db.tx().await?;
+
+    let nfts = tx.nft_count().await?;
+    let collections = tx.nft_collection_count().await?;
+    let visible_nfts = tx.visible_nft_count().await?;
+    let visible_collections = tx.visible_nft_collection_count().await?;
+
+    tx.commit().await?;
+
+    Ok(NftStatus {
+        nfts,
+        visible_nfts,
+        collections,
+        visible_collections,
+    })
+}
+
+#[command]
+#[specta]
+pub async fn get_nft_collections(
+    state: State<'_, AppState>,
+    request: GetNftCollections,
+) -> Result<Vec<NftCollectionRecord>> {
     let state = state.lock().await;
     let wallet = state.wallet()?;
 
@@ -281,9 +304,36 @@ pub async fn get_nfts(state: State<'_, AppState>, request: GetNfts) -> Result<Ge
 
     let mut tx = wallet.db.tx().await?;
 
-    let time = Instant::now();
+    let collections = tx
+        .nft_collections_visible_named(request.limit, request.offset)
+        .await?;
+
+    for col in collections {
+        records.push(NftCollectionRecord {
+            collection_id: encode_address(col.collection_id.to_bytes(), "col")?,
+            did_id: encode_address(col.did_id.to_bytes(), "did:chia:")?,
+            metadata_collection_id: col.metadata_collection_id,
+            visible: col.visible,
+            name: col.name,
+        });
+    }
+
+    tx.commit().await?;
+
+    Ok(records)
+}
+
+#[command]
+#[specta]
+pub async fn get_nfts(state: State<'_, AppState>, request: GetNfts) -> Result<Vec<NftRecord>> {
+    let state = state.lock().await;
+    let wallet = state.wallet()?;
+
+    let mut records = Vec::new();
+
+    let mut tx = wallet.db.tx().await?;
+
     let nfts = tx.nfts_visible_named(request.limit, request.offset).await?;
-    warn!("nfts_visible_named: {:?}", time.elapsed());
 
     for nft in nfts {
         let data = if let Some(hash) = tx.data_hash(nft.launcher_id).await? {
@@ -307,6 +357,7 @@ pub async fn get_nfts(state: State<'_, AppState>, request: GetNfts) -> Result<Ge
                 .map(|did| encode_address(did.to_bytes(), "did:chia:"))
                 .transpose()?,
             visible: nft.visible,
+            sensitive_content: nft.sensitive_content,
             name: nft.name,
             data: data.as_ref().map(|data| BASE64_STANDARD.encode(&data.blob)),
             data_mime_type: data.map(|data| data.mime_type),
@@ -314,14 +365,9 @@ pub async fn get_nfts(state: State<'_, AppState>, request: GetNfts) -> Result<Ge
         });
     }
 
-    let total = tx.nft_count().await?;
-
     tx.commit().await?;
 
-    Ok(GetNftsResponse {
-        items: records,
-        total,
-    })
+    Ok(records)
 }
 
 #[command]
