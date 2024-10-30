@@ -15,7 +15,7 @@ use sage_api::{
 };
 use sage_database::{CatRow, Database, NftRow};
 use sage_wallet::{
-    fetch_uris, insert_transaction, ChildKind, CoinKind, Data, OffchainMetadata, Transaction,
+    compute_nft_info, fetch_uris, insert_transaction, ChildKind, CoinKind, Data, Transaction,
     Wallet, WalletError, WalletNftMint,
 };
 use specta::specta;
@@ -692,6 +692,7 @@ async fn summarize(
                     image_mime_type: extracted.image_mime_type,
                     name: extracted.name,
                 };
+
                 (kind, info.p2_puzzle_hash)
             }
         };
@@ -772,12 +773,12 @@ async fn extract_nft_data(
 
     if let Some(metadata_hash) = onchain_metadata.metadata_hash {
         if let Some(metadata) = cache.nft_data.get(&metadata_hash) {
-            let metadata: OffchainMetadata = serde_json::from_slice(&metadata.blob)?;
-            result.name = metadata.name;
+            let info = compute_nft_info(None, Some(&metadata.blob));
+            result.name = info.name;
         } else if let Some(db) = &db {
             if let Some(metadata) = db.fetch_nft_data(metadata_hash).await? {
-                let metadata: OffchainMetadata = serde_json::from_slice(&metadata.blob)?;
-                result.name = metadata.name;
+                let info = compute_nft_info(None, Some(&metadata.blob));
+                result.name = info.name;
             }
         }
     }

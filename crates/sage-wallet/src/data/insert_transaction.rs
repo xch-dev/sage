@@ -4,7 +4,9 @@ use chia::{
 };
 use sage_database::{DatabaseTx, NftRow};
 
-use crate::{ChildKind, OffchainMetadata, Transaction, WalletError};
+use crate::{ChildKind, Transaction, WalletError};
+
+use super::compute_nft_info;
 
 pub async fn insert_transaction(
     tx: &mut DatabaseTx<'_>,
@@ -89,14 +91,15 @@ pub async fn insert_transaction(
                         });
 
                         if let Some(metadata_hash) = metadata_hash {
-                            let data = tx.fetch_nft_data(metadata_hash).await?;
-                            if let Some(data) = data {
-                                let json: Option<OffchainMetadata> =
-                                    serde_json::from_slice(&data.blob).ok();
-                                if let Some(json) = json {
-                                    row.name = json.name;
-                                }
-                            }
+                            let blob = tx
+                                .fetch_nft_data(metadata_hash)
+                                .await?
+                                .map(|data| data.blob);
+
+                            // TODO: Handle Minter DID for pending transactions.
+                            let info = compute_nft_info(None, blob.as_deref());
+
+                            row.name = info.name;
                         }
 
                         row.owner_did = info.current_owner;

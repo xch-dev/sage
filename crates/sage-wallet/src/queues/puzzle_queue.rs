@@ -12,7 +12,7 @@ use tokio::{
 use tracing::{debug, instrument};
 
 use crate::{
-    fetch_nft_did, ChildKind, OffchainMetadata, PeerState, SyncCommand, SyncError, SyncEvent,
+    compute_nft_info, fetch_nft_did, ChildKind, PeerState, SyncCommand, SyncError, SyncEvent,
     WalletError,
 };
 
@@ -223,14 +223,24 @@ async fn fetch_puzzle(
                 metadata_hash,
             });
 
-            if let Some(metadata_hash) = metadata_hash {
-                let data = tx.fetch_nft_data(metadata_hash).await?;
-                if let Some(data) = data {
-                    let json: Option<OffchainMetadata> = serde_json::from_slice(&data.blob).ok();
-                    if let Some(json) = json {
-                        row.name = json.name;
-                    }
-                }
+            let metadata_blob = if let Some(metadata_hash) = metadata_hash {
+                tx.fetch_nft_data(metadata_hash)
+                    .await?
+                    .map(|data| data.blob)
+            } else {
+                None
+            };
+
+            let computed_info = compute_nft_info(minter_did, metadata_blob.as_deref());
+
+            row.name = computed_info.name;
+            row.collection_id = computed_info
+                .collection
+                .as_ref()
+                .map(|col| col.collection_id);
+
+            if let Some(collection) = computed_info.collection {
+                tx.insert_nft_collection(collection).await?;
             }
 
             row.owner_did = info.current_owner;

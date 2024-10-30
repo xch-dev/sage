@@ -8,6 +8,14 @@ use sqlx::SqliteExecutor;
 use crate::{to_bytes32, to_coin, to_lineage_proof, Database, DatabaseTx, Result};
 
 #[derive(Debug, Clone)]
+pub struct NftCollectionRow {
+    pub collection_id: Bytes32,
+    pub did_id: Bytes32,
+    pub metadata_collection_id: String,
+    pub name: Option<String>,
+}
+
+#[derive(Debug, Clone)]
 pub struct NftRow {
     pub launcher_id: Bytes32,
     pub collection_id: Option<Bytes32>,
@@ -130,6 +138,28 @@ impl<'a> DatabaseTx<'a> {
     pub async fn nft(&mut self, launcher_id: Bytes32) -> Result<Option<Nft<Program>>> {
         nft(&mut *self.tx, launcher_id).await
     }
+
+    pub async fn insert_nft_collection(&mut self, row: NftCollectionRow) -> Result<()> {
+        insert_nft_collection(&mut *self.tx, row).await
+    }
+}
+
+async fn insert_nft_collection(conn: impl SqliteExecutor<'_>, row: NftCollectionRow) -> Result<()> {
+    let collection_id = row.collection_id.as_ref();
+    let did_id = row.did_id.as_ref();
+    let name = row.name.as_deref();
+
+    sqlx::query!(
+        "REPLACE INTO `nft_collections` (`collection_id`, `did_id`, `metadata_collection_id`, `name`) VALUES (?, ?, ?, ?)",
+        collection_id,
+        did_id,
+        row.metadata_collection_id,
+        name
+    )
+    .execute(conn)
+    .await?;
+
+    Ok(())
 }
 
 async fn nft_count(conn: impl SqliteExecutor<'_>) -> Result<u32> {

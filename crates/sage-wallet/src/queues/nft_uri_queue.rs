@@ -6,7 +6,7 @@ use sage_database::{Database, NftData};
 use tokio::{sync::mpsc, time::sleep};
 use tracing::{debug, info};
 
-use crate::{fetch_uri, OffchainMetadata, SyncEvent, WalletError};
+use crate::{compute_nft_info, fetch_uri, SyncEvent, WalletError};
 
 #[derive(Debug)]
 pub struct NftUriQueue {
@@ -64,11 +64,16 @@ impl NftUriQueue {
                             let nfts = tx.nfts_by_metadata_hash(item.hash).await?;
 
                             for mut nft in nfts {
-                                let metadata: Option<OffchainMetadata> =
-                                    serde_json::from_slice(&data.blob).ok();
-                                if let Some(metadata) = metadata {
-                                    nft.name = metadata.name;
+                                let info = compute_nft_info(nft.minter_did, Some(&data.blob));
+
+                                nft.name = info.name;
+                                nft.collection_id =
+                                    info.collection.as_ref().map(|col| col.collection_id);
+
+                                if let Some(collection) = info.collection {
+                                    tx.insert_nft_collection(collection).await?;
                                 }
+
                                 tx.insert_nft(nft).await?;
                             }
                         }
