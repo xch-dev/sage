@@ -15,8 +15,8 @@ use sage_api::{
 };
 use sage_database::{CatRow, Database, NftRow};
 use sage_wallet::{
-    fetch_uris, ChildKind, CoinKind, Data, OffchainMetadata, Transaction, Wallet, WalletError,
-    WalletNftMint,
+    fetch_uris, ChildKind, CoinKind, Data, DatabaseExt, OffchainMetadata, Transaction, Wallet,
+    WalletError, WalletNftMint,
 };
 use specta::specta;
 use tauri::{command, State};
@@ -607,9 +607,18 @@ pub async fn submit_transaction(
     let state = state.lock().await;
     let wallet = state.wallet()?;
 
-    wallet
-        .insert_transaction(rust_bundle(&spend_bundle)?)
-        .await?;
+    let spend_bundle = rust_bundle(&spend_bundle)?;
+
+    let mut tx = wallet.db.tx().await?;
+
+    tx.insert_transaction(
+        spend_bundle.name(),
+        Transaction::from_coin_spends(spend_bundle.coin_spends)?,
+        spend_bundle.aggregated_signature,
+    )
+    .await?;
+
+    tx.commit().await?;
 
     Ok(())
 }

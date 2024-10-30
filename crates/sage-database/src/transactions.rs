@@ -28,13 +28,13 @@ impl Database {
 }
 
 impl<'a> DatabaseTx<'a> {
-    pub async fn insert_transaction(
+    pub async fn insert_pending_transaction(
         &mut self,
         transaction_id: Bytes32,
         aggregated_signature: Signature,
         fee: u64,
     ) -> Result<()> {
-        insert_transaction(&mut *self.tx, transaction_id, aggregated_signature, fee).await
+        insert_pending_transaction(&mut *self.tx, transaction_id, aggregated_signature, fee).await
     }
 
     pub async fn insert_transaction_spend(
@@ -75,7 +75,7 @@ impl<'a> DatabaseTx<'a> {
     }
 }
 
-async fn insert_transaction(
+async fn insert_pending_transaction(
     conn: impl SqliteExecutor<'_>,
     transaction_id: Bytes32,
     aggregated_signature: Signature,
