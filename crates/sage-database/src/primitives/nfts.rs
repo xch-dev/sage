@@ -126,6 +126,10 @@ impl<'a> DatabaseTx<'a> {
     pub async fn nfts_by_metadata_hash(&mut self, metadata_hash: Bytes32) -> Result<Vec<NftRow>> {
         nfts_by_metadata_hash(&mut *self.tx, metadata_hash).await
     }
+
+    pub async fn nft(&mut self, launcher_id: Bytes32) -> Result<Option<Nft<Program>>> {
+        nft(&mut *self.tx, launcher_id).await
+    }
 }
 
 async fn nft_count(conn: impl SqliteExecutor<'_>) -> Result<u32> {

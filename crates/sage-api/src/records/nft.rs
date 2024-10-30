@@ -34,8 +34,7 @@ pub struct NftInfo {
     pub edition_number: Option<u32>,
     pub edition_total: Option<u32>,
     pub created_height: Option<u32>,
-    pub create_transaction_id: Option<String>,
-    pub data_mime_type: Option<String>,
     pub data: Option<String>,
+    pub data_mime_type: Option<String>,
     pub metadata: Option<String>,
 }

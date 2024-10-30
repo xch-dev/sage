@@ -5,12 +5,12 @@ import { nftUri } from '@/lib/nftUri';
 import { open } from '@tauri-apps/plugin-shell';
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { commands, events, NetworkConfig, NftRecord } from '../bindings';
+import { commands, events, NetworkConfig, NftInfo } from '../bindings';
 
 export default function Nft() {
   const { launcher_id: launcherId } = useParams();
 
-  const [nft, setNft] = useState<NftRecord | null>(null);
+  const [nft, setNft] = useState<NftInfo | null>(null);
 
   const updateNft = () => {
     commands.getNft(launcherId!).then((res) => {
@@ -81,6 +81,12 @@ export default function Nft() {
                 </div>
               </>
             )}
+
+            <h6 className='text-lg font-bold'>Minter DID</h6>
+            <div className='break-all font-mono tracking-tight text-sm'>
+              {nft?.minter_did ?? 'None'}
+            </div>
+
             <h6 className='text-lg font-bold'>Owner DID</h6>
             <div className='break-all font-mono tracking-tight text-sm'>
               {nft?.owner_did ?? 'None'}
