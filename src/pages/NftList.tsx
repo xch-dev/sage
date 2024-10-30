@@ -49,7 +49,7 @@ import { Link } from 'react-router-dom';
 import { z } from 'zod';
 import { commands, events, NftRecord, TransactionSummary } from '../bindings';
 
-export function WalletNfts() {
+export function NftList() {
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [showHidden, setShowHidden] = useState(false);

@@ -11,21 +11,21 @@ import Container from './components/Container';
 import { PeerProvider } from './contexts/PeerContext';
 import CreateProfile from './pages/CreateProfile';
 import CreateWallet from './pages/CreateWallet';
+import { DidList } from './pages/DidList';
 import ImportWallet from './pages/ImportWallet';
 import IssueToken from './pages/IssueToken';
 import Login from './pages/Login';
 import MintNft from './pages/MintNft';
 import Nft from './pages/Nft';
+import { NftList } from './pages/NftList';
 import PeerList from './pages/PeerList';
 import Receive from './pages/Receive';
 import Send from './pages/Send';
 import Settings from './pages/Settings';
 import Token from './pages/Token';
+import { TokenList } from './pages/TokenList';
 import { Transactions } from './pages/Transactions';
 import Wallet from './pages/Wallet';
-import { WalletDids } from './pages/WalletDids';
-import { MainWallet } from './pages/WalletMain';
-import { WalletNfts } from './pages/WalletNfts';
 import { fetchState } from './state';
 
 export interface DarkModeContext {
@@ -47,19 +47,19 @@ const router = createHashRouter(
       <Route path='/create' element={<CreateWallet />} />
       <Route path='/import' element={<ImportWallet />} />
       <Route path='/wallet' element={<Wallet />}>
-        <Route path='' element={<MainWallet />} />
+        <Route path='' element={<TokenList />} />
         <Route path='token/:asset_id' element={<Token />} />
         <Route path='issue-token' element={<IssueToken />} />
         <Route path='send/:asset_id' element={<Send />} />
         <Route path='receive' element={<Receive />} />
       </Route>
       <Route path='/nfts' element={<Wallet />}>
-        <Route path='' element={<WalletNfts />} />
+        <Route path='' element={<NftList />} />
         <Route path=':launcher_id' element={<Nft />} />
         <Route path='mint-nft' element={<MintNft />} />
       </Route>
       <Route path='/dids' element={<Wallet />}>
-        <Route path='' element={<WalletDids />} />
+        <Route path='' element={<DidList />} />
         <Route path='create-profile' element={<CreateProfile />} />
       </Route>
       <Route path='/transactions' element={<Wallet />}>

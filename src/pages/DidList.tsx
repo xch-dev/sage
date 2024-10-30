@@ -47,13 +47,10 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 import { commands, DidRecord, TransactionSummary } from '../bindings';
 
-export function WalletDids() {
-  const navigate = useNavigate();
-
+export function DidList() {
   const [showHidden, setShowHidden] = useState(false);
 
   const { dids, updateDids } = useDids();
