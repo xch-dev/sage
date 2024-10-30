@@ -13,11 +13,11 @@ use sage_api::{
     Amount, BulkMintNfts, BulkMintNftsResponse, CoinJson, CoinSpendJson, Input, InputKind, Output,
     SpendBundleJson, TransactionSummary,
 };
-use sage_database::{CatRow, Database};
+use sage_database::{CatRow, Database, NftRow};
 use sage_wallet::{
-    fetch_uris, ChildKind, CoinKind, Data, Transaction, Wallet, WalletError, WalletNftMint,
+    fetch_uris, ChildKind, CoinKind, Data, OffchainMetadata, Transaction, Wallet, WalletError,
+    WalletNftMint,
 };
-use serde::Deserialize;
 use specta::specta;
 use tauri::{command, State};
 use tokio::sync::MutexGuard;
@@ -462,14 +462,24 @@ pub async fn bulk_mint_nfts(
         });
     }
 
-    let (coin_spends, nfts, _did) = wallet
+    let (coin_spends, nfts, did) = wallet
         .bulk_mint_nfts(fee, launcher_id.into(), mints, false, true)
         .await?;
 
     let mut tx = wallet.db.tx().await?;
 
     for nft in &nfts {
-        tx.insert_new_nft(nft.info.launcher_id, true).await?;
+        tx.insert_nft(NftRow {
+            launcher_id: nft.info.launcher_id,
+            collection_id: None,
+            minter_did: Some(did.info.launcher_id),
+            owner_did: nft.info.current_owner,
+            name: None,
+            created_height: None,
+            visible: true,
+            metadata_hash: nft.info.metadata.metadata_hash,
+        })
+        .await?;
     }
 
     tx.commit().await?;
@@ -724,12 +734,6 @@ async fn summarize(
 struct ExtractedNftData {
     image_data: Option<String>,
     image_mime_type: Option<String>,
-    name: Option<String>,
-}
-
-#[derive(Deserialize)]
-struct OffchainMetadata {
-    #[serde(default)]
     name: Option<String>,
 }
 

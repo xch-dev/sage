@@ -6,15 +6,15 @@ use sage_database::{Database, NftData};
 use tokio::{sync::mpsc, time::sleep};
 use tracing::{debug, info};
 
-use crate::{fetch_uri, SyncEvent, WalletError};
+use crate::{fetch_uri, OffchainMetadata, SyncEvent, WalletError};
 
 #[derive(Debug)]
-pub struct NftQueue {
+pub struct NftUriQueue {
     db: Database,
     sync_sender: mpsc::Sender<SyncEvent>,
 }
 
-impl NftQueue {
+impl NftUriQueue {
     pub fn new(db: Database, sync_sender: mpsc::Sender<SyncEvent>) -> Self {
         Self { db, sync_sender }
     }
@@ -51,14 +51,27 @@ impl NftQueue {
             match result {
                 Ok(data) => {
                     if data.hash == item.hash {
-                        tx.insert_nft_data(
-                            item.hash,
-                            NftData {
-                                mime_type: data.mime_type,
-                                blob: data.blob,
-                            },
-                        )
-                        .await?;
+                        if tx.fetch_nft_data(item.hash).await?.is_none() {
+                            tx.insert_nft_data(
+                                item.hash,
+                                NftData {
+                                    mime_type: data.mime_type,
+                                    blob: data.blob.clone(),
+                                },
+                            )
+                            .await?;
+
+                            let nfts = tx.nfts_by_metadata_hash(item.hash).await?;
+
+                            for mut nft in nfts {
+                                let metadata: Option<OffchainMetadata> =
+                                    serde_json::from_slice(&data.blob).ok();
+                                if let Some(metadata) = metadata {
+                                    nft.name = metadata.name;
+                                }
+                                tx.insert_nft(nft).await?;
+                            }
+                        }
                     } else {
                         debug!(
                             "Hash mismatch for URI {} (expected {} but found {})",
@@ -71,7 +84,7 @@ impl NftQueue {
                 }
             };
 
-            tx.mark_nft_uri_checked(item.uri, item.hash).await?;
+            tx.set_nft_uri_checked(item.uri, item.hash).await?;
 
             tx.commit().await?;
         }

@@ -3,7 +3,7 @@ use std::{sync::Arc, time::Duration};
 use chia::protocol::{Bytes32, CoinState};
 use chia_wallet_sdk::Peer;
 use futures_util::{stream::FuturesUnordered, StreamExt};
-use sage_database::Database;
+use sage_database::{Database, NftRow};
 use tokio::{
     sync::{mpsc, Mutex},
     task::spawn_blocking,
@@ -11,7 +11,10 @@ use tokio::{
 };
 use tracing::{debug, instrument};
 
-use crate::{ChildKind, PeerState, SyncCommand, SyncError, SyncEvent, WalletError};
+use crate::{
+    fetch_nft_did, ChildKind, OffchainMetadata, PeerState, SyncCommand, SyncError, SyncEvent,
+    WalletError,
+};
 
 #[derive(Debug)]
 pub struct PuzzleQueue {
@@ -125,7 +128,7 @@ async fn fetch_puzzle(
     let parent_id = coin_state.coin.parent_coin_info;
 
     let Some(parent_coin_state) = timeout(
-        Duration::from_secs(3),
+        Duration::from_secs(5),
         peer.request_coin_state(vec![parent_id], None, genesis_challenge, false),
     )
     .await
@@ -142,7 +145,7 @@ async fn fetch_puzzle(
         .ok_or(SyncError::UnconfirmedCoin(parent_id))?;
 
     let response = timeout(
-        Duration::from_secs(3),
+        Duration::from_secs(5),
         peer.request_puzzle_and_solution(parent_id, height),
     )
     .await
@@ -160,6 +163,12 @@ async fn fetch_puzzle(
     .await??;
 
     let coin_id = coin_state.coin.coin_id();
+
+    let minter_did = if let ChildKind::Nft { info, .. } = &info {
+        fetch_nft_did(peer, genesis_challenge, info.launcher_id).await?
+    } else {
+        None
+    };
 
     let mut tx = db.tx().await?;
 
@@ -202,7 +211,33 @@ async fn fetch_puzzle(
             let license_hash = metadata.as_ref().and_then(|m| m.license_hash);
 
             tx.sync_coin(coin_id, Some(info.p2_puzzle_hash)).await?;
-            tx.insert_new_nft(info.launcher_id, true).await?;
+
+            let mut row = tx.nft_row(info.launcher_id).await?.unwrap_or(NftRow {
+                launcher_id: info.launcher_id,
+                collection_id: None,
+                minter_did,
+                owner_did: info.current_owner,
+                visible: true,
+                name: None,
+                created_height: coin_state.created_height,
+                metadata_hash,
+            });
+
+            if let Some(metadata_hash) = metadata_hash {
+                let data = tx.fetch_nft_data(metadata_hash).await?;
+                if let Some(data) = data {
+                    let json: Option<OffchainMetadata> = serde_json::from_slice(&data.blob).ok();
+                    if let Some(json) = json {
+                        row.name = json.name;
+                    }
+                }
+            }
+
+            row.owner_did = info.current_owner;
+            row.created_height = coin_state.created_height;
+
+            tx.insert_nft(row).await?;
+
             tx.insert_nft_coin(
                 coin_id,
                 lineage_proof,

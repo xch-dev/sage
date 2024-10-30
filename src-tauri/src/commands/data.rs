@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use base64::prelude::*;
 use bigdecimal::BigDecimal;
 use chia::{
@@ -14,6 +16,7 @@ use sage_database::{DidRow, NftData, NftRow};
 use sage_wallet::WalletError;
 use specta::specta;
 use tauri::{command, State};
+use tracing::warn;
 
 use crate::{
     app_state::AppState,
@@ -278,27 +281,37 @@ pub async fn get_nfts(state: State<'_, AppState>, request: GetNfts) -> Result<Ge
 
     let mut tx = wallet.db.tx().await?;
 
-    let nfts = tx.fetch_nfts(request.limit, request.offset).await?;
+    let time = Instant::now();
+    let nfts = tx.nfts_visible_named(request.limit, request.offset).await?;
+    warn!("nfts_visible_named: {:?}", time.elapsed());
 
     for nft in nfts {
-        let data = if let Some(hash) = nft.data_hash {
+        let data = if let Some(hash) = tx.data_hash(nft.launcher_id).await? {
             tx.fetch_nft_data(hash).await?
         } else {
             None
         };
 
-        let metadata = if let Some(hash) = nft.metadata_hash {
-            tx.fetch_nft_data(hash).await?
-        } else {
-            None
-        };
-
-        records.push(nft_record(
-            &nft,
-            &state.network().address_prefix,
-            data,
-            metadata,
-        )?);
+        records.push(NftRecord {
+            launcher_id: encode_address(nft.launcher_id.to_bytes(), "nft")?,
+            collection_id: nft
+                .collection_id
+                .map(|col| encode_address(col.to_bytes(), "col"))
+                .transpose()?,
+            minter_did: nft
+                .minter_did
+                .map(|did| encode_address(did.to_bytes(), "did:chia:"))
+                .transpose()?,
+            owner_did: nft
+                .owner_did
+                .map(|did| encode_address(did.to_bytes(), "did:chia:"))
+                .transpose()?,
+            visible: nft.visible,
+            name: nft.name,
+            data: data.as_ref().map(|data| BASE64_STANDARD.encode(&data.blob)),
+            data_mime_type: data.map(|data| data.mime_type),
+            created_height: nft.created_height,
+        });
     }
 
     let total = tx.nft_count().await?;
@@ -314,96 +327,98 @@ pub async fn get_nfts(state: State<'_, AppState>, request: GetNfts) -> Result<Ge
 #[command]
 #[specta]
 pub async fn get_nft(state: State<'_, AppState>, launcher_id: String) -> Result<Option<NftRecord>> {
-    let state = state.lock().await;
-    let wallet = state.wallet()?;
+    // let state = state.lock().await;
+    // let wallet = state.wallet()?;
 
-    let launcher_id: [u8; 32] = hex::decode(launcher_id)?
-        .try_into()
-        .map_err(|_| Error::invalid_launcher_id())?;
+    // let launcher_id: [u8; 32] = hex::decode(launcher_id)?
+    //     .try_into()
+    //     .map_err(|_| Error::invalid_launcher_id())?;
 
-    let mut tx = wallet.db.tx().await?;
+    // let mut tx = wallet.db.tx().await?;
 
-    let Some(nft) = tx.fetch_nft(launcher_id.into()).await? else {
-        return Ok(None);
-    };
+    // let Some(nft) = tx.fetch_nft(launcher_id.into()).await? else {
+    //     return Ok(None);
+    // };
 
-    let data = if let Some(hash) = nft.data_hash {
-        tx.fetch_nft_data(hash).await?
-    } else {
-        None
-    };
+    // let data = if let Some(hash) = nft.data_hash {
+    //     tx.fetch_nft_data(hash).await?
+    // } else {
+    //     None
+    // };
 
-    let metadata = if let Some(hash) = nft.metadata_hash {
-        tx.fetch_nft_data(hash).await?
-    } else {
-        None
-    };
+    // let metadata = if let Some(hash) = nft.metadata_hash {
+    //     tx.fetch_nft_data(hash).await?
+    // } else {
+    //     None
+    // };
 
-    tx.commit().await?;
+    // tx.commit().await?;
 
-    let record = nft_record(&nft, &state.network().address_prefix, data, metadata)?;
+    // let record = nft_record(&nft, &state.network().address_prefix, data, metadata)?;
 
-    Ok(Some(record))
+    // Ok(Some(record))
+
+    Ok(None)
 }
 
-fn nft_record(
-    nft: &NftRow,
-    prefix: &str,
-    data: Option<NftData>,
-    offchain_metadata: Option<NftData>,
-) -> Result<NftRecord> {
-    let mut allocator = Allocator::new();
-    let ptr = nft.info.metadata.to_clvm(&mut allocator)?;
-    let metadata = NftMetadata::from_clvm(&allocator, ptr).ok();
+// fn nft_record(
+//     nft: &NftRow,
+//     prefix: &str,
+//     data: Option<NftData>,
+//     offchain_metadata: Option<NftData>,
+// ) -> Result<NftRecord> {
+//     let mut allocator = Allocator::new();
+//     let ptr = nft.info.metadata.to_clvm(&mut allocator)?;
+//     let metadata = NftMetadata::from_clvm(&allocator, ptr).ok();
 
-    Ok(NftRecord {
-        launcher_id_hex: hex::encode(nft.info.launcher_id),
-        launcher_id: encode_address(nft.info.launcher_id.to_bytes(), "nft")?,
-        owner_did: nft
-            .info
-            .current_owner
-            .map(|owner| encode_address(owner.to_bytes(), "did:chia:"))
-            .transpose()?,
-        coin_id: hex::encode(nft.coin_id),
-        address: encode_address(nft.info.p2_puzzle_hash.to_bytes(), prefix)?,
-        royalty_address: encode_address(nft.info.royalty_puzzle_hash.to_bytes(), prefix)?,
-        royalty_percent: (BigDecimal::from(nft.info.royalty_ten_thousandths)
-            / BigDecimal::from(100))
-        .to_string(),
-        data_uris: metadata
-            .as_ref()
-            .map(|m| m.data_uris.clone())
-            .unwrap_or_default(),
-        data_hash: nft.data_hash.map(hex::encode),
-        metadata_uris: metadata
-            .as_ref()
-            .map(|m| m.metadata_uris.clone())
-            .unwrap_or_default(),
-        metadata_hash: nft.metadata_hash.map(hex::encode),
-        license_uris: metadata
-            .as_ref()
-            .map(|m| m.license_uris.clone())
-            .unwrap_or_default(),
-        license_hash: nft.license_hash.map(hex::encode),
-        edition_number: metadata
-            .as_ref()
-            .map(|m| m.edition_number.try_into())
-            .transpose()?,
-        edition_total: metadata
-            .as_ref()
-            .map(|m| m.edition_total.try_into())
-            .transpose()?,
-        data_mime_type: data.as_ref().map(|data| data.mime_type.clone()),
-        data: data.map(|data| BASE64_STANDARD.encode(&data.blob)),
-        metadata: offchain_metadata.and_then(|offchain_metadata| {
-            if offchain_metadata.mime_type == "application/json" {
-                String::from_utf8(offchain_metadata.blob).ok()
-            } else {
-                None
-            }
-        }),
-        created_height: nft.created_height,
-        create_transaction_id: nft.create_transaction_id.map(hex::encode),
-        visible: nft.visible,
-    })
-}
+//     Ok(NftRecord {
+//         launcher_id_hex: hex::encode(nft.info.launcher_id),
+//         launcher_id: encode_address(nft.info.launcher_id.to_bytes(), "nft")?,
+//         owner_did: nft
+//             .info
+//             .current_owner
+//             .map(|owner| encode_address(owner.to_bytes(), "did:chia:"))
+//             .transpose()?,
+//         coin_id: hex::encode(nft.coin_id),
+//         address: encode_address(nft.info.p2_puzzle_hash.to_bytes(), prefix)?,
+//         royalty_address: encode_address(nft.info.royalty_puzzle_hash.to_bytes(), prefix)?,
+//         royalty_percent: (BigDecimal::from(nft.info.royalty_ten_thousandths)
+//             / BigDecimal::from(100))
+//         .to_string(),
+//         data_uris: metadata
+//             .as_ref()
+//             .map(|m| m.data_uris.clone())
+//             .unwrap_or_default(),
+//         data_hash: nft.data_hash.map(hex::encode),
+//         metadata_uris: metadata
+//             .as_ref()
+//             .map(|m| m.metadata_uris.clone())
+//             .unwrap_or_default(),
+//         metadata_hash: nft.metadata_hash.map(hex::encode),
+//         license_uris: metadata
+//             .as_ref()
+//             .map(|m| m.license_uris.clone())
+//             .unwrap_or_default(),
+//         license_hash: nft.license_hash.map(hex::encode),
+//         edition_number: metadata
+//             .as_ref()
+//             .map(|m| m.edition_number.try_into())
+//             .transpose()?,
+//         edition_total: metadata
+//             .as_ref()
+//             .map(|m| m.edition_total.try_into())
+//             .transpose()?,
+//         data_mime_type: data.as_ref().map(|data| data.mime_type.clone()),
+//         data: data.map(|data| BASE64_STANDARD.encode(&data.blob)),
+//         metadata: offchain_metadata.and_then(|offchain_metadata| {
+//             if offchain_metadata.mime_type == "application/json" {
+//                 String::from_utf8(offchain_metadata.blob).ok()
+//             } else {
+//                 None
+//             }
+//         }),
+//         created_height: nft.created_height,
+//         create_transaction_id: nft.create_transaction_id.map(hex::encode),
+//         visible: nft.visible,
+//     })
+// }

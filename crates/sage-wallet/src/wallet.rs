@@ -21,9 +21,9 @@ use chia_wallet_sdk::{
     Nft, NftMint, RequiredSignature, SpendContext, SpendWithConditions, StandardLayer,
 };
 use clvmr::Allocator;
-use sage_database::{Database, DatabaseTx};
+use sage_database::{Database, DatabaseTx, NftRow};
 
-use crate::{ChildKind, Transaction, WalletError};
+use crate::{ChildKind, OffchainMetadata, Transaction, WalletError};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WalletNftMint {
@@ -1025,7 +1025,34 @@ impl Wallet {
                             insert_coin!();
 
                             tx.sync_coin(coin_id, Some(info.p2_puzzle_hash)).await?;
-                            tx.insert_new_nft(info.launcher_id, true).await?;
+
+                            let mut row = tx.nft_row(info.launcher_id).await?.unwrap_or(NftRow {
+                                launcher_id: info.launcher_id,
+                                collection_id: None,
+                                minter_did: None,
+                                owner_did: info.current_owner,
+                                visible: true,
+                                name: None,
+                                created_height: None,
+                                metadata_hash,
+                            });
+
+                            if let Some(metadata_hash) = metadata_hash {
+                                let data = tx.fetch_nft_data(metadata_hash).await?;
+                                if let Some(data) = data {
+                                    let json: Option<OffchainMetadata> =
+                                        serde_json::from_slice(&data.blob).ok();
+                                    if let Some(json) = json {
+                                        row.name = json.name;
+                                    }
+                                }
+                            }
+
+                            row.owner_did = info.current_owner;
+                            row.created_height = None;
+
+                            tx.insert_nft(row).await?;
+
                             tx.insert_nft_coin(
                                 coin_id,
                                 lineage_proof,

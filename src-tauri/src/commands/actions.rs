@@ -86,7 +86,10 @@ pub async fn update_nft(state: State<'_, AppState>, nft_id: String, visible: boo
         return Err(Error::invalid_prefix(&prefix));
     }
 
-    wallet.db.update_nft(launcher_id.into(), visible).await?;
+    wallet
+        .db
+        .set_nft_visible(launcher_id.into(), visible)
+        .await?;
 
     Ok(())
 }

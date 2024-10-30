@@ -186,16 +186,6 @@ function Nft({ nft, updateNfts }: NftProps) {
   const [isTransferOpen, setTransferOpen] = useState(false);
   const [summary, setSummary] = useState<TransactionSummary | null>(null);
 
-  let json: any = {};
-
-  if (nft.metadata) {
-    try {
-      json = JSON.parse(nft.metadata);
-    } catch (error) {
-      console.error(error);
-    }
-  }
-
   const toggleVisibility = () => {
     commands.updateNft(nft.launcher_id, !nft.visible).then((result) => {
       if (result.status === 'ok') {
@@ -238,12 +228,12 @@ function Nft({ nft, updateNfts }: NftProps) {
   return (
     <>
       <Link
-        to={`/nfts/${nft.launcher_id_hex}`}
-        className={`group${`${!nft.visible ? ' opacity-50 grayscale' : nft.create_transaction_id !== null ? ' pulsate-opacity' : ''}`}`}
+        to={`/nfts/${nft.launcher_id}`}
+        className={`group${`${!nft.visible ? ' opacity-50 grayscale' : !nft.created_height ? ' pulsate-opacity' : ''}`}`}
       >
         <div className='overflow-hidden rounded-t-md relative'>
           <img
-            alt={json.name}
+            alt={nft.name ?? 'Unknown NFT'}
             loading='lazy'
             width='150'
             height='150'
@@ -254,10 +244,10 @@ function Nft({ nft, updateNfts }: NftProps) {
         <div className='text-md flex items-center justify-between rounded-b p-1 pl-2 bg-neutral-200 dark:bg-neutral-800'>
           <span className='truncate'>
             <span className='font-medium leading-none'>
-              {json.name ?? 'Unknown NFT'}
+              {nft.name ?? 'Unknown NFT'}
             </span>
             <p className='text-xs text-muted-foreground'>
-              {json.collection?.name ?? 'No collection'}
+              {nft.collection_id ?? 'No collection'}
             </p>
           </span>
 
@@ -276,7 +266,7 @@ function Nft({ nft, updateNfts }: NftProps) {
                     transferForm.reset();
                     setTransferOpen(true);
                   }}
-                  disabled={!!nft.create_transaction_id}
+                  disabled={!nft.created_height}
                 >
                   <SendIcon className='mr-2 h-4 w-4' />
                   <span>Transfer</span>

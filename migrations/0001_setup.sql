@@ -34,6 +34,24 @@ CREATE INDEX `coin_synced` ON `coin_states` (`synced`);
 CREATE INDEX `coin_height` ON `coin_states` (`spent_height` ASC, `created_height` DESC);
 CREATE INDEX `coin_transaction` ON `coin_states` (`transaction_id`);
 
+CREATE TABLE `transactions` (
+    `transaction_id` BLOB NOT NULL PRIMARY KEY,
+    `aggregated_signature` BLOB NOT NULL,
+    `fee` BLOB NOT NULL,
+    `submitted_at` INTEGER
+);
+
+CREATE TABLE `transaction_spends` (
+    `coin_id` BLOB NOT NULL PRIMARY KEY,
+    `transaction_id` BLOB NOT NULL,
+    `parent_coin_id` BLOB NOT NULL,
+    `puzzle_hash` BLOB NOT NULL,
+    `amount` BLOB NOT NULL,
+    `puzzle_reveal` BLOB NOT NULL,
+    `solution` BLOB NOT NULL,
+    FOREIGN KEY (`transaction_id`) REFERENCES `transactions` (`transaction_id`) ON DELETE CASCADE
+);
+
 CREATE TABLE `unknown_coins` (
     `coin_id` BLOB NOT NULL PRIMARY KEY,
     FOREIGN KEY (`coin_id`) REFERENCES `coin_states` (`coin_id`) ON DELETE CASCADE
@@ -42,6 +60,15 @@ CREATE TABLE `unknown_coins` (
 CREATE TABLE `p2_coins` (
     `coin_id` BLOB NOT NULL PRIMARY KEY,
     FOREIGN KEY (`coin_id`) REFERENCES `coin_states` (`coin_id`) ON DELETE CASCADE
+);
+
+CREATE TABLE `cats` (
+    `asset_id` BLOB NOT NULL PRIMARY KEY,
+    `name` TEXT,
+    `ticker` TEXT,
+    `description` TEXT,
+    `icon_url` TEXT,
+    `visible` BOOLEAN NOT NULL
 );
 
 CREATE TABLE `cat_coins` (
@@ -56,6 +83,15 @@ CREATE TABLE `cat_coins` (
 
 CREATE INDEX `cat_p2` ON `cat_coins` (`p2_puzzle_hash`);
 CREATE INDEX `cat_asset_id` ON `cat_coins` (`asset_id`);
+
+CREATE TABLE `dids` (
+    `launcher_id` BLOB NOT NULL PRIMARY KEY,
+    `name` TEXT,
+    `visible` BOOLEAN NOT NULL,
+    `is_named` BOOLEAN GENERATED ALWAYS AS (`name` IS NOT NULL) STORED
+);
+
+CREATE INDEX `did_index` ON `dids` (`visible` DESC, `is_named` DESC, `name` ASC);
 
 CREATE TABLE `did_coins` (
     `coin_id` BLOB NOT NULL PRIMARY KEY,
@@ -72,6 +108,32 @@ CREATE TABLE `did_coins` (
 
 CREATE INDEX `did_launcher_id` ON `did_coins` (`launcher_id`);
 CREATE INDEX `did_p2` ON `did_coins` (`p2_puzzle_hash`);
+
+CREATE TABLE `nft_collections` (
+    `collection_id` BLOB NOT NULL PRIMARY KEY,
+    `did_id` BLOB NOT NULL,
+    `metadata_collection_id` TEXT NOT NULL,
+    `name` TEXT,
+    `is_named` BOOLEAN GENERATED ALWAYS AS (`name` IS NOT NULL) STORED
+);
+
+CREATE TABLE `nfts` (
+    `launcher_id` BLOB NOT NULL PRIMARY KEY,
+    `collection_id` BLOB,
+    `minter_did` BLOB,
+    `owner_did` BLOB,
+    `visible` BOOLEAN NOT NULL,
+    `name` TEXT,
+    `is_named` BOOLEAN GENERATED ALWAYS AS (`name` IS NOT NULL) STORED,
+    `created_height` INTEGER,
+    `is_pending` BOOLEAN GENERATED ALWAYS AS (`created_height` IS NULL) STORED,
+    `metadata_hash` BLOB,
+    FOREIGN KEY (`collection_id`) REFERENCES `nft_collections` (`collection_id`) ON DELETE CASCADE
+);
+
+CREATE INDEX `nft_metadata` ON `nfts` (`metadata_hash`);
+CREATE INDEX `nft_named` ON `nfts` (`visible` DESC, `is_named` DESC, `name` ASC, `launcher_id` ASC);
+CREATE INDEX `nft_recent` ON `nfts` (`visible` DESC, `is_pending` DESC, `created_height` DESC, `launcher_id` ASC);
 
 CREATE TABLE `nft_coins` (
     `coin_id` BLOB NOT NULL PRIMARY KEY,
@@ -108,43 +170,3 @@ CREATE TABLE `nft_uris` (
 );
 
 CREATE INDEX `nft_uri_checked_hash` ON `nft_uris` (`checked`, `hash`);
-
-CREATE TABLE `cats` (
-    `asset_id` BLOB NOT NULL PRIMARY KEY,
-    `name` TEXT,
-    `ticker` TEXT,
-    `description` TEXT,
-    `icon_url` TEXT,
-    `visible` BOOLEAN NOT NULL
-);
-
-CREATE TABLE `dids` (
-    `launcher_id` BLOB NOT NULL PRIMARY KEY,
-    `name` TEXT,
-    `visible` BOOLEAN NOT NULL
-);
-
-CREATE TABLE `nfts` (
-    `launcher_id` BLOB NOT NULL PRIMARY KEY,
-    `visible` BOOLEAN NOT NULL
-);
-
-CREATE INDEX `nft_visible` ON `nfts` (`visible`);
-
-CREATE TABLE `transactions` (
-    `transaction_id` BLOB NOT NULL PRIMARY KEY,
-    `aggregated_signature` BLOB NOT NULL,
-    `fee` BLOB NOT NULL,
-    `submitted_at` INTEGER
-);
-
-CREATE TABLE `transaction_spends` (
-    `coin_id` BLOB NOT NULL PRIMARY KEY,
-    `transaction_id` BLOB NOT NULL,
-    `parent_coin_id` BLOB NOT NULL,
-    `puzzle_hash` BLOB NOT NULL,
-    `amount` BLOB NOT NULL,
-    `puzzle_reveal` BLOB NOT NULL,
-    `solution` BLOB NOT NULL,
-    FOREIGN KEY (`transaction_id`) REFERENCES `transactions` (`transaction_id`) ON DELETE CASCADE
-);
