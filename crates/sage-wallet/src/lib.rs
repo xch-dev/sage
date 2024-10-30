@@ -1,7 +1,6 @@
 mod child_kind;
 mod coin_kind;
 mod data;
-mod database;
 mod error;
 mod offchain_metadata;
 mod queues;
@@ -12,7 +11,6 @@ mod wallet;
 pub use child_kind::*;
 pub use coin_kind::*;
 pub use data::*;
-pub use database::*;
 pub use error::*;
 pub use offchain_metadata::*;
 pub use queues::*;
