@@ -58,6 +58,10 @@ impl Database {
     pub async fn fetch_nft_data(&self, hash: Bytes32) -> Result<Option<NftData>> {
         fetch_nft_data(&self.pool, hash).await
     }
+
+    pub async fn nft_collection(&self, collection_id: Bytes32) -> Result<NftCollectionRow> {
+        nft_collection(&self.pool, collection_id).await
+    }
 }
 
 impl<'a> DatabaseTx<'a> {
@@ -236,6 +240,39 @@ async fn nft_collection_name(
     .await?;
 
     Ok(row.name)
+}
+
+async fn nft_collection(
+    conn: impl SqliteExecutor<'_>,
+    collection_id: Bytes32,
+) -> Result<NftCollectionRow> {
+    let collection_id = collection_id.as_ref();
+
+    let row = sqlx::query!(
+        "
+        SELECT
+            `collection_id`,
+            `did_id`,
+            `metadata_collection_id`,
+            `visible`,
+            `name`,
+            `icon`
+        FROM `nft_collections`
+        WHERE `collection_id` = ?
+        ",
+        collection_id
+    )
+    .fetch_one(conn)
+    .await?;
+
+    Ok(NftCollectionRow {
+        collection_id: to_bytes32(&row.collection_id)?,
+        did_id: to_bytes32(&row.did_id)?,
+        metadata_collection_id: row.metadata_collection_id,
+        visible: row.visible,
+        name: row.name,
+        icon: row.icon,
+    })
 }
 
 async fn nft_collections_visible_named(

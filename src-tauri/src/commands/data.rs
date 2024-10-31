@@ -330,6 +330,33 @@ pub async fn get_nft_collections(
 
 #[command]
 #[specta]
+pub async fn get_nft_collection(
+    state: State<'_, AppState>,
+    collection_id: String,
+) -> Result<NftCollectionRecord> {
+    let state = state.lock().await;
+    let wallet = state.wallet()?;
+
+    let (collection_id, prefix) = decode_address(&collection_id)?;
+
+    if prefix != "col" {
+        return Err(Error::invalid_prefix(&prefix));
+    }
+
+    let collection = wallet.db.nft_collection(collection_id.into()).await?;
+
+    Ok(NftCollectionRecord {
+        collection_id: encode_address(collection.collection_id.to_bytes(), "col")?,
+        did_id: encode_address(collection.did_id.to_bytes(), "did:chia:")?,
+        metadata_collection_id: collection.metadata_collection_id,
+        visible: collection.visible,
+        name: collection.name,
+        icon: collection.icon,
+    })
+}
+
+#[command]
+#[specta]
 pub async fn get_nfts(state: State<'_, AppState>, request: GetNfts) -> Result<Vec<NftRecord>> {
     let state = state.lock().await;
     let wallet = state.wallet()?;
