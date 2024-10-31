@@ -17,14 +17,9 @@ pub async fn insert_transaction(
     tx.insert_pending_transaction(transaction_id, aggregated_signature, transaction.fee)
         .await?;
 
-    for input in transaction.inputs {
-        tx.insert_transaction_spend(
-            input.coin_spend.coin,
-            transaction_id,
-            input.coin_spend.puzzle_reveal,
-            input.coin_spend.solution,
-        )
-        .await?;
+    for (index, input) in transaction.inputs.into_iter().enumerate() {
+        tx.insert_transaction_spend(transaction_id, input.coin_spend, index)
+            .await?;
 
         for output in input.outputs {
             let coin_state = CoinState::new(output.coin, None, None);

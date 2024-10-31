@@ -43,6 +43,7 @@ CREATE TABLE `transactions` (
 
 CREATE TABLE `transaction_spends` (
     `coin_id` BLOB NOT NULL PRIMARY KEY,
+    `index` INTEGER NOT NULL,
     `transaction_id` BLOB NOT NULL,
     `parent_coin_id` BLOB NOT NULL,
     `puzzle_hash` BLOB NOT NULL,
@@ -51,6 +52,8 @@ CREATE TABLE `transaction_spends` (
     `solution` BLOB NOT NULL,
     FOREIGN KEY (`transaction_id`) REFERENCES `transactions` (`transaction_id`) ON DELETE CASCADE
 );
+
+CREATE INDEX `indexed_spend` ON `transaction_spends` (`transaction_id`, `index` ASC);
 
 CREATE TABLE `unknown_coins` (
     `coin_id` BLOB NOT NULL PRIMARY KEY,
@@ -114,6 +117,7 @@ CREATE TABLE `nft_collections` (
     `did_id` BLOB NOT NULL,
     `metadata_collection_id` TEXT NOT NULL,
     `visible` BOOLEAN NOT NULL,
+    `icon` TEXT,
     `name` TEXT,
     `is_named` BOOLEAN GENERATED ALWAYS AS (`name` IS NOT NULL) STORED
 );

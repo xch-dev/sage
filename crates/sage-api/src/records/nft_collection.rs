@@ -8,4 +8,5 @@ pub struct NftCollectionRecord {
     pub metadata_collection_id: String,
     pub visible: bool,
     pub name: Option<String>,
+    pub icon: Option<String>,
 }

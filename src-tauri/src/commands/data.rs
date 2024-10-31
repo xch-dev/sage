@@ -315,6 +315,7 @@ pub async fn get_nft_collections(
             metadata_collection_id: col.metadata_collection_id,
             visible: col.visible,
             name: col.name,
+            icon: col.icon,
         });
     }
 

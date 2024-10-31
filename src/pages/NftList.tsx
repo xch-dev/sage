@@ -276,6 +276,7 @@ export function NftList() {
               <Collection
                 col={{
                   name: 'Uncategorized',
+                  icon: '',
                   did_id: 'Miscellaneous',
                   metadata_collection_id: 'Uncategorized',
                   collection_id: null,

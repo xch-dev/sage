@@ -39,12 +39,11 @@ impl<'a> DatabaseTx<'a> {
 
     pub async fn insert_transaction_spend(
         &mut self,
-        coin: Coin,
         transaction_id: Bytes32,
-        puzzle_reveal: Program,
-        solution: Program,
+        coin_spend: CoinSpend,
+        index: usize,
     ) -> Result<()> {
-        insert_transaction_spend(&mut *self.tx, coin, transaction_id, puzzle_reveal, solution).await
+        insert_transaction_spend(&mut *self.tx, transaction_id, coin_spend, index).await
     }
 
     pub async fn transactions_for_coin(&mut self, coin_id: Bytes32) -> Result<Vec<Bytes32>> {
@@ -108,25 +107,26 @@ async fn insert_pending_transaction(
 
 async fn insert_transaction_spend(
     conn: impl SqliteExecutor<'_>,
-    coin: Coin,
     transaction_id: Bytes32,
-    puzzle_reveal: Program,
-    solution: Program,
+    coin_spend: CoinSpend,
+    index: usize,
 ) -> Result<()> {
-    let coin_id = coin.coin_id();
+    let coin_id = coin_spend.coin.coin_id();
     let coin_id = coin_id.as_ref();
+    let index: i64 = index.try_into()?;
     let transaction_id = transaction_id.as_ref();
-    let parent_coin_id = coin.parent_coin_info.as_ref();
-    let puzzle_hash = coin.puzzle_hash.as_ref();
-    let amount = coin.amount.to_be_bytes();
+    let parent_coin_id = coin_spend.coin.parent_coin_info.as_ref();
+    let puzzle_hash = coin_spend.coin.puzzle_hash.as_ref();
+    let amount = coin_spend.coin.amount.to_be_bytes();
     let amount = amount.as_ref();
-    let puzzle_reveal = puzzle_reveal.as_ref();
-    let solution = solution.as_ref();
+    let puzzle_reveal = coin_spend.puzzle_reveal.as_ref();
+    let solution = coin_spend.solution.as_ref();
 
     sqlx::query!(
         "
         INSERT INTO `transaction_spends` (
             `coin_id`,
+            `index`,
             `transaction_id`,
             `parent_coin_id`,
             `puzzle_hash`,
@@ -134,9 +134,10 @@ async fn insert_transaction_spend(
             `puzzle_reveal`,
             `solution`
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ",
         coin_id,
+        index,
         transaction_id,
         parent_coin_id,
         puzzle_hash,
@@ -260,9 +261,9 @@ async fn coin_spends(
             `amount`,
             `puzzle_reveal`,
             `solution`
-        FROM `transaction_spends`
+        FROM `transaction_spends` INDEXED BY `indexed_spend`
         WHERE `transaction_id` = ?
-        ORDER BY `coin_id` ASC
+        ORDER BY `index` ASC
         ",
         transaction_id
     )

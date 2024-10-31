@@ -22,6 +22,18 @@ struct Collection {
 
     #[serde(default)]
     name: Option<String>,
+
+    #[serde(default)]
+    attributes: Option<Vec<Attribute>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct Attribute {
+    #[serde(default, rename = "type")]
+    key: Option<String>,
+
+    #[serde(default)]
+    value: Option<Value>,
 }
 
 #[derive(Debug, Default, Clone)]
@@ -41,6 +53,7 @@ pub fn compute_nft_info(did_id: Option<Bytes32>, blob: Option<&[u8]>) -> Compute
         Some(Collection {
             id: Some(metadata_collection_id),
             name,
+            attributes,
         }),
     ) = (did_id, json.collection)
     {
@@ -49,6 +62,12 @@ pub fn compute_nft_info(did_id: Option<Bytes32>, blob: Option<&[u8]>) -> Compute
             did_id,
             metadata_collection_id,
             name,
+            icon: attributes.unwrap_or_default().into_iter().find_map(|item| {
+                match (item.key.as_deref(), item.value) {
+                    (Some("icon"), Some(Value::String(icon))) => Some(icon),
+                    _ => None,
+                }
+            }),
             visible: true,
         })
     } else {

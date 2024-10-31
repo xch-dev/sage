@@ -14,6 +14,7 @@ pub struct NftCollectionRow {
     pub metadata_collection_id: String,
     pub visible: bool,
     pub name: Option<String>,
+    pub icon: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -160,12 +161,17 @@ impl<'a> DatabaseTx<'a> {
     pub async fn insert_nft_collection(&mut self, row: NftCollectionRow) -> Result<()> {
         insert_nft_collection(&mut *self.tx, row).await
     }
+
+    pub async fn nft_launcher_id(&mut self, coin_id: Bytes32) -> Result<Option<Bytes32>> {
+        nft_launcher_id(&mut *self.tx, coin_id).await
+    }
 }
 
 async fn insert_nft_collection(conn: impl SqliteExecutor<'_>, row: NftCollectionRow) -> Result<()> {
     let collection_id = row.collection_id.as_ref();
     let did_id = row.did_id.as_ref();
     let name = row.name.as_deref();
+    let icon = row.icon.as_deref();
 
     sqlx::query!(
         "
@@ -174,15 +180,17 @@ async fn insert_nft_collection(conn: impl SqliteExecutor<'_>, row: NftCollection
             `did_id`,
             `metadata_collection_id`,
             `visible`,
-            `name`
+            `name`,
+            `icon`
         )
-        VALUES (?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?)
         ",
         collection_id,
         did_id,
         row.metadata_collection_id,
         row.visible,
-        name
+        name,
+        icon
     )
     .execute(conn)
     .await?;
@@ -202,7 +210,8 @@ async fn nft_collections_visible_named(
             `did_id`,
             `metadata_collection_id`,
             `visible`,
-            `name`
+            `name`,
+            `icon`
         FROM `nft_collections` INDEXED BY `col_named`
         WHERE `visible` = 1
         ORDER BY `is_named` DESC, `name` ASC, `collection_id` ASC
@@ -223,6 +232,7 @@ async fn nft_collections_visible_named(
             metadata_collection_id: row.metadata_collection_id,
             visible: row.visible,
             name: row.name,
+            icon: row.icon,
         });
     }
 
@@ -751,4 +761,22 @@ async fn license_hash(
     };
 
     Ok(Some(to_bytes32(&license_hash)?))
+}
+async fn nft_launcher_id(
+    conn: impl SqliteExecutor<'_>,
+    coin_id: Bytes32,
+) -> Result<Option<Bytes32>> {
+    let coin_id = coin_id.as_ref();
+
+    let Some(row) = sqlx::query!(
+        "SELECT `launcher_id` FROM `nft_coins` WHERE `coin_id` = ?",
+        coin_id
+    )
+    .fetch_optional(conn)
+    .await?
+    else {
+        return Ok(None);
+    };
+
+    Ok(Some(to_bytes32(&row.launcher_id)?))
 }

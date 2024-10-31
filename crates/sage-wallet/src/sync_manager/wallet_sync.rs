@@ -262,20 +262,22 @@ pub async fn incremental_sync(
     let mut tx = wallet.db.tx().await?;
 
     for coin_state in coin_states {
+        let coin_id = coin_state.coin.coin_id();
         let is_p2 = tx.is_p2_puzzle_hash(coin_state.coin.puzzle_hash).await?;
 
         tx.insert_coin_state(coin_state, is_p2, None).await?;
 
         if is_p2 {
-            tx.insert_p2_coin(coin_state.coin.coin_id()).await?;
+            tx.insert_p2_coin(coin_id).await?;
         }
 
         if coin_state.spent_height.is_some() {
-            for transaction_id in tx
-                .transaction_for_spent_coin(coin_state.coin.coin_id())
-                .await?
-            {
+            for transaction_id in tx.transaction_for_spent_coin(coin_id).await? {
                 tx.remove_transaction(transaction_id).await?;
+            }
+
+            if let Some(launcher_id) = tx.nft_launcher_id(coin_id).await? {
+                tx.delete_nft(launcher_id).await?;
             }
         }
     }
