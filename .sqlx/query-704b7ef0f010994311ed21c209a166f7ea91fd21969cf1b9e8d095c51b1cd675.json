@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT `license_hash` FROM `nft_coins` WHERE `launcher_id` = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "license_hash",
+        "ordinal": 0,
+        "type_info": "Blob"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "704b7ef0f010994311ed21c209a166f7ea91fd21969cf1b9e8d095c51b1cd675"
+}
