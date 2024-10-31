@@ -5,6 +5,7 @@ use specta::Type;
 pub struct NftRecord {
     pub launcher_id: String,
     pub collection_id: Option<String>,
+    pub collection_name: Option<String>,
     pub minter_did: Option<String>,
     pub owner_did: Option<String>,
     pub visible: bool,
@@ -19,6 +20,7 @@ pub struct NftRecord {
 pub struct NftInfo {
     pub launcher_id: String,
     pub collection_id: Option<String>,
+    pub collection_name: Option<String>,
     pub minter_did: Option<String>,
     pub owner_did: Option<String>,
     pub visible: bool,

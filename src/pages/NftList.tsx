@@ -29,6 +29,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
+import collectionImage from '@/images/collection.png';
 import { amount } from '@/lib/formTypes';
 import { nftUri } from '@/lib/nftUri';
 import { useWalletState } from '@/state';
@@ -72,9 +73,14 @@ export function NftList() {
   const [view, setView] = useState<'name' | 'recent' | 'collection'>('name');
 
   const updateNfts = async (page: number) => {
-    if (view === 'name') {
+    if (view === 'name' || view === 'recent') {
       return await commands
-        .getNfts({ offset: page * pageSize, limit: pageSize })
+        .getNfts({
+          offset: page * pageSize,
+          limit: pageSize,
+          sort_mode: view,
+          include_hidden: showHidden,
+        })
         .then((result) => {
           if (result.status === 'ok') {
             setNfts(result.data);
@@ -84,7 +90,11 @@ export function NftList() {
         });
     } else if (view === 'collection') {
       await commands
-        .getNftCollections({ offset: page * pageSize, limit: pageSize })
+        .getNftCollections({
+          offset: page * pageSize,
+          limit: pageSize,
+          include_hidden: showHidden,
+        })
         .then((result) => {
           if (result.status === 'ok') {
             setCollections(result.data);
@@ -322,21 +332,21 @@ function Collection({ col, updateNfts }: CollectionProps) {
       >
         <div className='overflow-hidden rounded-t-md relative'>
           <img
-            alt={col.name ?? 'Unknown Collection'}
+            alt={col.name ?? 'Unnamed'}
             loading='lazy'
             width='150'
             height='150'
             className='h-auto w-auto object-cover transition-all group-hover:scale-105 aspect-square color-[transparent]'
-            src={'https://example.com' /* todo */}
+            src={collectionImage}
           />
         </div>
         <div className='text-md flex items-center justify-between rounded-b p-1 pl-2 bg-neutral-200 dark:bg-neutral-800'>
           <span className='truncate'>
-            <span className='font-medium leading-none'>
-              {col.name ?? 'Unknown Collection'}
+            <span className='font-medium leading-none truncate'>
+              {col.name ?? 'Unnamed'}
             </span>
             {col.collection_id && (
-              <p className='text-xs text-muted-foreground'>
+              <p className='text-xs text-muted-foreground truncate'>
                 {col.collection_id}
               </p>
             )}
@@ -431,7 +441,7 @@ function Nft({ nft, updateNfts }: NftProps) {
       >
         <div className='overflow-hidden rounded-t-md relative'>
           <img
-            alt={nft.name ?? 'Unknown NFT'}
+            alt={nft.name ?? 'Unnamed'}
             loading='lazy'
             width='150'
             height='150'
@@ -441,11 +451,11 @@ function Nft({ nft, updateNfts }: NftProps) {
         </div>
         <div className='text-md flex items-center justify-between rounded-b p-1 pl-2 bg-neutral-200 dark:bg-neutral-800'>
           <span className='truncate'>
-            <span className='font-medium leading-none'>
-              {nft.name ?? 'Unknown NFT'}
+            <span className='font-medium leading-none truncate'>
+              {nft.name ?? 'Unnamed'}
             </span>
-            <p className='text-xs text-muted-foreground'>
-              {nft.collection_id ?? 'No collection'}
+            <p className='text-xs text-muted-foreground truncate'>
+              {nft.collection_name ?? 'No collection'}
             </p>
           </span>
 

@@ -1,5 +1,5 @@
-import invalid from '@/invalid.png';
-import missing from '@/missing.png';
+import invalid from '@/images/invalid.png';
+import missing from '@/images/missing.png';
 
 export function nftUri(mimeType: string | null, data: string | null): string {
   if (data === null || mimeType === null) return missing;

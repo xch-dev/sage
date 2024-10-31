@@ -8,7 +8,7 @@ use chia_wallet_sdk::{decode_address, encode_address};
 use clvmr::Allocator;
 use sage_api::{
     Amount, CatRecord, CoinRecord, DidRecord, GetNftCollections, GetNfts, NftCollectionRecord,
-    NftInfo, NftRecord, NftStatus, PendingTransactionRecord, SyncStatus,
+    NftInfo, NftRecord, NftSortMode, NftStatus, PendingTransactionRecord, SyncStatus,
 };
 use sage_database::DidRow;
 use sage_wallet::WalletError;
@@ -304,9 +304,13 @@ pub async fn get_nft_collections(
 
     let mut tx = wallet.db.tx().await?;
 
-    let collections = tx
-        .nft_collections_visible_named(request.limit, request.offset)
-        .await?;
+    let collections = if request.include_hidden {
+        tx.nft_collections_named(request.limit, request.offset)
+            .await?
+    } else {
+        tx.nft_collections_visible_named(request.limit, request.offset)
+            .await?
+    };
 
     for col in collections {
         records.push(NftCollectionRecord {
@@ -334,11 +338,25 @@ pub async fn get_nfts(state: State<'_, AppState>, request: GetNfts) -> Result<Ve
 
     let mut tx = wallet.db.tx().await?;
 
-    let nfts = tx.nfts_visible_named(request.limit, request.offset).await?;
+    let nfts = match (request.sort_mode, request.include_hidden) {
+        (NftSortMode::Name, true) => tx.nfts_named(request.limit, request.offset).await?,
+        (NftSortMode::Name, false) => tx.nfts_visible_named(request.limit, request.offset).await?,
+        (NftSortMode::Recent, true) => tx.nfts_recent(request.limit, request.offset).await?,
+        (NftSortMode::Recent, false) => {
+            tx.nfts_visible_recent(request.limit, request.offset)
+                .await?
+        }
+    };
 
     for nft in nfts {
         let data = if let Some(hash) = tx.data_hash(nft.launcher_id).await? {
             tx.fetch_nft_data(hash).await?
+        } else {
+            None
+        };
+
+        let collection_name = if let Some(collection_id) = nft.collection_id {
+            tx.nft_collection_name(collection_id).await?
         } else {
             None
         };
@@ -349,6 +367,7 @@ pub async fn get_nfts(state: State<'_, AppState>, request: GetNfts) -> Result<Ve
                 .collection_id
                 .map(|col| encode_address(col.to_bytes(), "col"))
                 .transpose()?,
+            collection_name,
             minter_did: nft
                 .minter_did
                 .map(|did| encode_address(did.to_bytes(), "did:chia:"))
@@ -412,6 +431,12 @@ pub async fn get_nft(state: State<'_, AppState>, launcher_id: String) -> Result<
         None
     };
 
+    let collection_name = if let Some(collection_id) = nft_row.collection_id {
+        tx.nft_collection_name(collection_id).await?
+    } else {
+        None
+    };
+
     tx.commit().await?;
 
     Ok(Some(NftInfo {
@@ -420,6 +445,7 @@ pub async fn get_nft(state: State<'_, AppState>, launcher_id: String) -> Result<
             .collection_id
             .map(|col| encode_address(col.to_bytes(), "col"))
             .transpose()?,
+        collection_name,
         minter_did: nft_row
             .minter_did
             .map(|did| encode_address(did.to_bytes(), "did:chia:"))
