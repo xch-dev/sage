@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n        SELECT\n            `launcher_id`,\n            `collection_id`,\n            `minter_did`,\n            `owner_did`,\n            `visible`,\n            `sensitive_content`,\n            `name`,\n            `created_height`,\n            `metadata_hash`\n        FROM `nfts` INDEXED BY `nft_recent`\n        ORDER BY `visible` DESC, `is_pending` DESC, `created_height` DESC, `launcher_id` ASC\n        LIMIT ? OFFSET ?\n        ",
+  "query": "\n        SELECT\n            `launcher_id`,\n            `coin_id`,\n            `collection_id`,\n            `minter_did`,\n            `owner_did`,\n            `visible`,\n            `sensitive_content`,\n            `name`,\n            `created_height`,\n            `metadata_hash`\n        FROM `nfts` INDEXED BY `nft_named`\n        ORDER BY `visible` DESC, `is_named` DESC, `name` ASC, `launcher_id` ASC\n        LIMIT ? OFFSET ?\n        ",
   "describe": {
     "columns": [
       {
@@ -9,43 +9,48 @@
         "type_info": "Blob"
       },
       {
-        "name": "collection_id",
+        "name": "coin_id",
         "ordinal": 1,
         "type_info": "Blob"
       },
       {
-        "name": "minter_did",
+        "name": "collection_id",
         "ordinal": 2,
         "type_info": "Blob"
       },
       {
-        "name": "owner_did",
+        "name": "minter_did",
         "ordinal": 3,
         "type_info": "Blob"
       },
       {
-        "name": "visible",
+        "name": "owner_did",
         "ordinal": 4,
-        "type_info": "Bool"
+        "type_info": "Blob"
       },
       {
-        "name": "sensitive_content",
+        "name": "visible",
         "ordinal": 5,
         "type_info": "Bool"
       },
       {
-        "name": "name",
+        "name": "sensitive_content",
         "ordinal": 6,
+        "type_info": "Bool"
+      },
+      {
+        "name": "name",
+        "ordinal": 7,
         "type_info": "Text"
       },
       {
         "name": "created_height",
-        "ordinal": 7,
+        "ordinal": 8,
         "type_info": "Integer"
       },
       {
         "name": "metadata_hash",
-        "ordinal": 8,
+        "ordinal": 9,
         "type_info": "Blob"
       }
     ],
@@ -53,6 +58,7 @@
       "Right": 2
     },
     "nullable": [
+      false,
       false,
       true,
       true,
@@ -64,5 +70,5 @@
       true
     ]
   },
-  "hash": "e9c47a08d71d6b79bdc72768c0d2ab13be7b8d72b477e3a6127f2d2644681d73"
+  "hash": "fbcb37e50e3cfb90bd56f88e2830d47d550ca336f8aaaf0fe89bdcdc9a8ca680"
 }
