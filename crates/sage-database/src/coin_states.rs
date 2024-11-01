@@ -25,6 +25,15 @@ impl<'a> DatabaseTx<'a> {
         insert_coin_state(&mut *self.tx, coin_state, synced, transaction_id).await
     }
 
+    pub async fn set_coin_height(
+        &mut self,
+        coin_id: Bytes32,
+        created_height: Option<u32>,
+        spent_height: Option<u32>,
+    ) -> Result<()> {
+        set_coin_height(&mut *self.tx, coin_id, created_height, spent_height).await
+    }
+
     pub async fn sync_coin(&mut self, coin_id: Bytes32, hint: Option<Bytes32>) -> Result<()> {
         sync_coin(&mut *self.tx, coin_id, hint).await
     }
@@ -78,7 +87,7 @@ async fn insert_coin_state(
 
     sqlx::query!(
         "
-        REPLACE INTO `coin_states` (
+        INSERT OR IGNORE INTO `coin_states` (
             `coin_id`,
             `parent_coin_id`,
             `puzzle_hash`,
@@ -98,6 +107,28 @@ async fn insert_coin_state(
         coin_state.spent_height,
         synced,
         transaction_id
+    )
+    .execute(conn)
+    .await?;
+    Ok(())
+}
+
+async fn set_coin_height(
+    conn: impl SqliteExecutor<'_>,
+    coin_id: Bytes32,
+    created_height: Option<u32>,
+    spent_height: Option<u32>,
+) -> Result<()> {
+    let coin_id = coin_id.as_ref();
+    sqlx::query!(
+        "
+        UPDATE `coin_states`
+        SET `created_height` = ?, `spent_height` = ?, `transaction_id` = NULL
+        WHERE `coin_id` = ?
+        ",
+        created_height,
+        spent_height,
+        coin_id
     )
     .execute(conn)
     .await?;

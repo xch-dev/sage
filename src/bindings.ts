@@ -237,6 +237,14 @@ async getNftCollections(request: GetNftCollections) : Promise<Result<NftCollecti
     else return { status: "error", error: e  as any };
 }
 },
+async getNftCollection(collectionId: string) : Promise<Result<NftCollectionRecord, Error>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_nft_collection", { collectionId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async getNfts(request: GetNfts) : Promise<Result<NftRecord[], Error>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("get_nfts", { request }) };

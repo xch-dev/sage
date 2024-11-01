@@ -207,6 +207,7 @@ async fn fetch_puzzle(
 
             let mut row = tx.nft_row(info.launcher_id).await?.unwrap_or(NftRow {
                 launcher_id: info.launcher_id,
+                coin_id,
                 collection_id: None,
                 minter_did,
                 owner_did: info.current_owner,
@@ -227,6 +228,7 @@ async fn fetch_puzzle(
 
             let computed_info = compute_nft_info(minter_did, metadata_blob.as_deref());
 
+            row.coin_id = coin_id;
             row.sensitive_content = computed_info.sensitive_content;
             row.name = computed_info.name;
             row.collection_id = computed_info
@@ -241,8 +243,6 @@ async fn fetch_puzzle(
             row.owner_did = info.current_owner;
             row.created_height = coin_state.created_height;
 
-            tx.insert_nft(row).await?;
-
             tx.insert_nft_coin(
                 coin_id,
                 lineage_proof,
@@ -252,6 +252,8 @@ async fn fetch_puzzle(
                 license_hash,
             )
             .await?;
+
+            tx.insert_nft(row).await?;
 
             if let Some(metadata) = metadata {
                 if let Some(hash) = data_hash {

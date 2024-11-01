@@ -28,7 +28,6 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Switch } from '@/components/ui/switch';
 import collectionImage from '@/images/collection.png';
 import { amount } from '@/lib/formTypes';
 import { nftUri } from '@/lib/nftUri';
@@ -149,17 +148,9 @@ export function NftList() {
     };
   }, [page]);
 
-  const visibleNfts = showHidden ? nfts : nfts.filter((nft) => nft.visible);
-  const hasHiddenNfts = nfts.findIndex((nft) => !nft.visible) > -1;
-
-  const visibleCollections = showHidden
-    ? collections
-    : collections.filter((collection) => collection.visible);
-  const hasHiddenCollections =
-    collections.findIndex((collection) => !collection.visible) > -1;
-
-  const hasHidden =
-    (view === 'collection' && hasHiddenCollections) || hasHiddenNfts;
+  useEffect(() => {
+    updateNfts(page);
+  }, [showHidden]);
 
   const totalPages = Math.max(
     1,
@@ -177,17 +168,6 @@ export function NftList() {
       </Header>
 
       <Container>
-        {hasHidden && (
-          <div className='inline-flex items-center gap-2 mb-2'>
-            <label htmlFor='viewHidden'>View hidden</label>
-            <Switch
-              id='viewHidden'
-              checked={showHidden}
-              onCheckedChange={(value) => setShowHidden(value)}
-            />
-          </div>
-        )}
-
         {walletState.nfts.nfts === 0 ? (
           <Alert className='mt-2'>
             <Image className='h-4 w-4' />
@@ -218,10 +198,22 @@ export function NftList() {
               <ChevronRightIcon className='h-4 w-4' />
             </Button>
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <div className='absolute right-0'>
-                  <Button variant='outline' size='icon' onClick={() => {}}>
+            <div className='absolute right-0 flex gap-2 items-center'>
+              <Button
+                variant='outline'
+                size='icon'
+                onClick={() => setShowHidden(!showHidden)}
+              >
+                {showHidden ? (
+                  <EyeIcon className='h-4 w-4' />
+                ) : (
+                  <EyeOff className='h-4 w-4' />
+                )}
+              </Button>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant='outline' size='icon'>
                     {view === 'name' ? (
                       <ArrowUpAz className='h-4 w-4' />
                     ) : view === 'recent' ? (
@@ -230,53 +222,53 @@ export function NftList() {
                       <Images className='h-4 w-4' />
                     )}
                   </Button>
-                </div>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align='end'>
-                <DropdownMenuGroup>
-                  <DropdownMenuItem
-                    className='cursor-pointer'
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setView('name');
-                      setPage(0);
-                    }}
-                  >
-                    <ArrowUpAz className='mr-2 h-4 w-4' />
-                    <span>Sort Alphabetically</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    className='cursor-pointer'
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setView('recent');
-                      setPage(0);
-                    }}
-                  >
-                    <Clock2 className='mr-2 h-4 w-4' />
-                    <span>Sort Recent</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    className='cursor-pointer'
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setView('collection');
-                      setPage(0);
-                    }}
-                  >
-                    <Images className='mr-2 h-4 w-4' />
-                    <span>Group Collections</span>
-                  </DropdownMenuItem>
-                </DropdownMenuGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align='end'>
+                  <DropdownMenuGroup>
+                    <DropdownMenuItem
+                      className='cursor-pointer'
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setView('name');
+                        setPage(0);
+                      }}
+                    >
+                      <ArrowUpAz className='mr-2 h-4 w-4' />
+                      <span>Sort Alphabetically</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className='cursor-pointer'
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setView('recent');
+                        setPage(0);
+                      }}
+                    >
+                      <Clock2 className='mr-2 h-4 w-4' />
+                      <span>Sort Recent</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className='cursor-pointer'
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setView('collection');
+                        setPage(0);
+                      }}
+                    >
+                      <Images className='mr-2 h-4 w-4' />
+                      <span>Group Collections</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
         )}
 
         <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mt-6 mb-2'>
           {view === 'collection' ? (
             <>
-              {visibleCollections.map((col, i) => (
+              {collections.map((col, i) => (
                 <Collection
                   col={col}
                   key={i}
@@ -296,7 +288,7 @@ export function NftList() {
               />
             </>
           ) : (
-            visibleNfts.map((nft, i) => (
+            nfts.map((nft, i) => (
               <Nft nft={nft} key={i} updateNfts={() => updateNfts(page)} />
             ))
           )}

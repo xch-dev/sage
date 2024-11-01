@@ -13,7 +13,7 @@ use sage_api::{
     Amount, BulkMintNfts, BulkMintNftsResponse, CoinJson, CoinSpendJson, Input, InputKind, Output,
     SpendBundleJson, TransactionSummary,
 };
-use sage_database::{CatRow, Database, NftRow};
+use sage_database::{CatRow, Database};
 use sage_wallet::{
     compute_nft_info, fetch_uris, insert_transaction, ChildKind, CoinKind, Data, Transaction,
     Wallet, WalletError, WalletNftMint,
@@ -462,37 +462,9 @@ pub async fn bulk_mint_nfts(
         });
     }
 
-    let (coin_spends, nfts, did) = wallet
+    let (coin_spends, nfts, _did) = wallet
         .bulk_mint_nfts(fee, launcher_id.into(), mints, false, true)
         .await?;
-
-    let mut tx = wallet.db.tx().await?;
-
-    for nft in &nfts {
-        let info = compute_nft_info(
-            None,
-            nft.info
-                .metadata
-                .metadata_hash
-                .and_then(|hash| confirm_info.nft_data.get(&hash))
-                .map(|data| data.blob.as_ref()),
-        );
-
-        tx.insert_nft(NftRow {
-            launcher_id: nft.info.launcher_id,
-            collection_id: None,
-            minter_did: Some(did.info.launcher_id),
-            owner_did: nft.info.current_owner,
-            sensitive_content: info.sensitive_content,
-            name: info.name,
-            created_height: None,
-            visible: true,
-            metadata_hash: nft.info.metadata.metadata_hash,
-        })
-        .await?;
-    }
-
-    tx.commit().await?;
 
     let summary = summarize(&state, &wallet, coin_spends, confirm_info).await?;
 

@@ -20,6 +20,7 @@ pub struct NftCollectionRow {
 #[derive(Debug, Clone)]
 pub struct NftRow {
     pub launcher_id: Bytes32,
+    pub coin_id: Bytes32,
     pub collection_id: Option<Bytes32>,
     pub minter_did: Option<Bytes32>,
     pub owner_did: Option<Bytes32>,
@@ -51,8 +52,8 @@ impl Database {
         set_nft_visible(&self.pool, launcher_id, visible).await
     }
 
-    pub async fn nft(&self, launcher_id: Bytes32) -> Result<Option<Nft<Program>>> {
-        nft(&self.pool, launcher_id).await
+    pub async fn spendable_nft(&self, launcher_id: Bytes32) -> Result<Option<Nft<Program>>> {
+        spendable_nft(&self.pool, launcher_id).await
     }
 
     pub async fn fetch_nft_data(&self, hash: Bytes32) -> Result<Option<NftData>> {
@@ -500,6 +501,7 @@ async fn fetch_nft_data(conn: impl SqliteExecutor<'_>, hash: Bytes32) -> Result<
 
 async fn insert_nft(conn: impl SqliteExecutor<'_>, row: NftRow) -> Result<()> {
     let launcher_id = row.launcher_id.as_ref();
+    let coin_id = row.coin_id.as_ref();
     let collection_id = row.collection_id.as_deref();
     let minter_did = row.minter_did.as_deref();
     let owner_did = row.owner_did.as_deref();
@@ -509,6 +511,7 @@ async fn insert_nft(conn: impl SqliteExecutor<'_>, row: NftRow) -> Result<()> {
     sqlx::query!(
         "REPLACE INTO `nfts` (
             `launcher_id`,
+            `coin_id`,
             `collection_id`,
             `minter_did`,
             `owner_did`,
@@ -517,8 +520,9 @@ async fn insert_nft(conn: impl SqliteExecutor<'_>, row: NftRow) -> Result<()> {
             `name`,
             `created_height`,
             `metadata_hash`
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         launcher_id,
+        coin_id,
         collection_id,
         minter_did,
         owner_did,
@@ -541,6 +545,7 @@ async fn nft_row(conn: impl SqliteExecutor<'_>, launcher_id: Bytes32) -> Result<
         "
         SELECT
             `launcher_id`,
+            `coin_id`,
             `collection_id`,
             `minter_did`,
             `owner_did`,
@@ -562,6 +567,7 @@ async fn nft_row(conn: impl SqliteExecutor<'_>, launcher_id: Bytes32) -> Result<
 
     Ok(Some(NftRow {
         launcher_id: to_bytes32(&row.launcher_id)?,
+        coin_id: to_bytes32(&row.coin_id)?,
         collection_id: row.collection_id.as_deref().map(to_bytes32).transpose()?,
         minter_did: row.minter_did.as_deref().map(to_bytes32).transpose()?,
         owner_did: row.owner_did.as_deref().map(to_bytes32).transpose()?,
@@ -601,7 +607,10 @@ async fn set_nft_visible(
     Ok(())
 }
 
-async fn nft(conn: impl SqliteExecutor<'_>, launcher_id: Bytes32) -> Result<Option<Nft<Program>>> {
+async fn spendable_nft(
+    conn: impl SqliteExecutor<'_>,
+    launcher_id: Bytes32,
+) -> Result<Option<Nft<Program>>> {
     let launcher_id = launcher_id.as_ref();
 
     let Some(row) = sqlx::query!(
@@ -656,6 +665,59 @@ async fn nft(conn: impl SqliteExecutor<'_>, launcher_id: Bytes32) -> Result<Opti
     }))
 }
 
+async fn nft(conn: impl SqliteExecutor<'_>, launcher_id: Bytes32) -> Result<Option<Nft<Program>>> {
+    let launcher_id = launcher_id.as_ref();
+
+    let Some(row) = sqlx::query!(
+        "
+        SELECT
+            `coin_states`.`parent_coin_id`,
+            `coin_states`.`puzzle_hash`,
+            `coin_states`.`amount`,
+            `parent_parent_coin_id`,
+            `parent_inner_puzzle_hash`,
+            `parent_amount`,
+            `launcher_id`,
+            `metadata`,
+            `metadata_updater_puzzle_hash`,
+            `current_owner`,
+            `royalty_puzzle_hash`,
+            `royalty_ten_thousandths`,
+            `p2_puzzle_hash`
+        FROM `nft_coins`
+        INNER JOIN `coin_states` INDEXED BY `coin_height` ON `nft_coins`.`coin_id` = `coin_states`.`coin_id`
+        LEFT JOIN `transaction_spends` ON `coin_states`.`coin_id` = `transaction_spends`.`coin_id`
+        WHERE `launcher_id` = ?
+        AND `spent_height` IS NULL
+        AND `transaction_spends`.`transaction_id` IS NULL
+        ",
+        launcher_id
+    )
+    .fetch_optional(conn)
+    .await?
+    else {
+        return Ok(None);
+    };
+
+    Ok(Some(Nft {
+        coin: to_coin(&row.parent_coin_id, &row.puzzle_hash, &row.amount)?,
+        proof: Proof::Lineage(to_lineage_proof(
+            &row.parent_parent_coin_id,
+            &row.parent_inner_puzzle_hash,
+            &row.parent_amount,
+        )?),
+        info: NftInfo {
+            launcher_id: to_bytes32(&row.launcher_id)?,
+            metadata: row.metadata.into(),
+            metadata_updater_puzzle_hash: to_bytes32(&row.metadata_updater_puzzle_hash)?,
+            current_owner: row.current_owner.as_deref().map(to_bytes32).transpose()?,
+            royalty_puzzle_hash: to_bytes32(&row.royalty_puzzle_hash)?,
+            royalty_ten_thousandths: row.royalty_ten_thousandths.try_into()?,
+            p2_puzzle_hash: to_bytes32(&row.p2_puzzle_hash)?,
+        },
+    }))
+}
+
 async fn nfts_by_metadata_hash(
     conn: impl SqliteExecutor<'_>,
     metadata_hash: Bytes32,
@@ -666,6 +728,7 @@ async fn nfts_by_metadata_hash(
         "
         SELECT
             `launcher_id`,
+            `coin_id`,
             `collection_id`,
             `minter_did`,
             `owner_did`,
@@ -687,6 +750,7 @@ async fn nfts_by_metadata_hash(
     for row in rows {
         nfts.push(NftRow {
             launcher_id: to_bytes32(&row.launcher_id)?,
+            coin_id: to_bytes32(&row.coin_id)?,
             collection_id: row.collection_id.as_deref().map(to_bytes32).transpose()?,
             minter_did: row.minter_did.as_deref().map(to_bytes32).transpose()?,
             owner_did: row.owner_did.as_deref().map(to_bytes32).transpose()?,
@@ -710,6 +774,7 @@ async fn nfts_visible_named(
         "
         SELECT
             `launcher_id`,
+            `coin_id`,
             `collection_id`,
             `minter_did`,
             `owner_did`,
@@ -734,6 +799,7 @@ async fn nfts_visible_named(
     for row in rows {
         nfts.push(NftRow {
             launcher_id: to_bytes32(&row.launcher_id)?,
+            coin_id: to_bytes32(&row.coin_id)?,
             collection_id: row.collection_id.as_deref().map(to_bytes32).transpose()?,
             minter_did: row.minter_did.as_deref().map(to_bytes32).transpose()?,
             owner_did: row.owner_did.as_deref().map(to_bytes32).transpose()?,
@@ -757,6 +823,7 @@ async fn nfts_visible_recent(
         "
         SELECT
             `launcher_id`,
+            `coin_id`,
             `collection_id`,
             `minter_did`,
             `owner_did`,
@@ -781,6 +848,7 @@ async fn nfts_visible_recent(
     for row in rows {
         nfts.push(NftRow {
             launcher_id: to_bytes32(&row.launcher_id)?,
+            coin_id: to_bytes32(&row.coin_id)?,
             collection_id: row.collection_id.as_deref().map(to_bytes32).transpose()?,
             minter_did: row.minter_did.as_deref().map(to_bytes32).transpose()?,
             owner_did: row.owner_did.as_deref().map(to_bytes32).transpose()?,
@@ -800,6 +868,7 @@ async fn nfts_named(conn: impl SqliteExecutor<'_>, limit: u32, offset: u32) -> R
         "
         SELECT
             `launcher_id`,
+            `coin_id`,
             `collection_id`,
             `minter_did`,
             `owner_did`,
@@ -823,6 +892,7 @@ async fn nfts_named(conn: impl SqliteExecutor<'_>, limit: u32, offset: u32) -> R
     for row in rows {
         nfts.push(NftRow {
             launcher_id: to_bytes32(&row.launcher_id)?,
+            coin_id: to_bytes32(&row.coin_id)?,
             collection_id: row.collection_id.as_deref().map(to_bytes32).transpose()?,
             minter_did: row.minter_did.as_deref().map(to_bytes32).transpose()?,
             owner_did: row.owner_did.as_deref().map(to_bytes32).transpose()?,
@@ -846,6 +916,7 @@ async fn nfts_recent(
         "
         SELECT
             `launcher_id`,
+            `coin_id`,
             `collection_id`,
             `minter_did`,
             `owner_did`,
@@ -869,6 +940,7 @@ async fn nfts_recent(
     for row in rows {
         nfts.push(NftRow {
             launcher_id: to_bytes32(&row.launcher_id)?,
+            coin_id: to_bytes32(&row.coin_id)?,
             collection_id: row.collection_id.as_deref().map(to_bytes32).transpose()?,
             minter_did: row.minter_did.as_deref().map(to_bytes32).transpose()?,
             owner_did: row.owner_did.as_deref().map(to_bytes32).transpose()?,
@@ -910,7 +982,7 @@ async fn insert_nft_coin(
 
     sqlx::query!(
         "
-        REPLACE INTO `nft_coins` (
+        INSERT OR IGNORE INTO `nft_coins` (
             `coin_id`,
             `parent_parent_coin_id`,
             `parent_inner_puzzle_hash`,

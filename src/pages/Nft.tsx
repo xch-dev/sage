@@ -87,7 +87,7 @@ export default function Nft() {
               {nft?.minter_did ?? 'None'}
             </div>
 
-            <h6 className='text-lg font-bold'>Owner DID</h6>
+            <h6 className='text-lg font-bold mt-4'>Owner DID</h6>
             <div className='break-all font-mono tracking-tight text-sm'>
               {nft?.owner_did ?? 'None'}
             </div>

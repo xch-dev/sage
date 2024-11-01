@@ -814,7 +814,7 @@ impl Wallet {
         hardened: bool,
         reuse: bool,
     ) -> Result<(Vec<CoinSpend>, Nft<Program>), WalletError> {
-        let Some(nft) = self.db.nft(nft_id).await? else {
+        let Some(nft) = self.db.spendable_nft(nft_id).await? else {
             return Err(WalletError::MissingNft(nft_id));
         };
 

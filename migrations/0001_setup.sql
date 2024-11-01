@@ -126,6 +126,7 @@ CREATE INDEX `col_named` ON `nft_collections` (`visible` DESC, `is_named` DESC, 
 
 CREATE TABLE `nfts` (
     `launcher_id` BLOB NOT NULL PRIMARY KEY,
+    `coin_id` BLOB NOT NULL,
     `collection_id` BLOB,
     `minter_did` BLOB,
     `owner_did` BLOB,
@@ -135,7 +136,8 @@ CREATE TABLE `nfts` (
     `is_named` BOOLEAN GENERATED ALWAYS AS (`name` IS NOT NULL) STORED,
     `created_height` INTEGER,
     `is_pending` BOOLEAN GENERATED ALWAYS AS (`created_height` IS NULL) STORED,
-    `metadata_hash` BLOB
+    `metadata_hash` BLOB,
+    FOREIGN KEY (`coin_id`) REFERENCES `nft_coins` (`coin_id`) ON DELETE CASCADE
 );
 
 CREATE INDEX `nft_metadata` ON `nfts` (`metadata_hash`);

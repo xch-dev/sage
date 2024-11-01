@@ -76,6 +76,7 @@ pub async fn insert_transaction(
 
                         let mut row = tx.nft_row(info.launcher_id).await?.unwrap_or(NftRow {
                             launcher_id: info.launcher_id,
+                            coin_id,
                             collection_id: None,
                             minter_did: None,
                             owner_did: info.current_owner,
@@ -99,10 +100,9 @@ pub async fn insert_transaction(
                             row.name = info.name;
                         }
 
+                        row.coin_id = coin_id;
                         row.owner_did = info.current_owner;
                         row.created_height = None;
-
-                        tx.insert_nft(row).await?;
 
                         tx.insert_nft_coin(
                             coin_id,
@@ -113,6 +113,8 @@ pub async fn insert_transaction(
                             license_hash,
                         )
                         .await?;
+
+                        tx.insert_nft(row).await?;
 
                         if let Some(metadata) = metadata {
                             if let Some(hash) = data_hash {
