@@ -43,6 +43,22 @@ pub struct NftUri {
     pub uri: String,
 }
 
+#[allow(unused)]
+struct SqlNftRow {
+    pub launcher_id: Vec<u8>,
+    pub coin_id: Vec<u8>,
+    pub collection_id: Option<Vec<u8>>,
+    pub minter_did: Option<Vec<u8>>,
+    pub owner_did: Option<Vec<u8>>,
+    pub visible: bool,
+    pub sensitive_content: bool,
+    pub name: Option<String>,
+    pub created_height: Option<i64>,
+    pub metadata_hash: Option<Vec<u8>>,
+    pub is_named: Option<bool>,
+    pub is_pending: Option<bool>,
+}
+
 impl Database {
     pub async fn unchecked_nft_uris(&self, limit: u32) -> Result<Vec<NftUri>> {
         unchecked_nft_uris(&self.pool, limit).await
@@ -133,6 +149,50 @@ impl<'a> DatabaseTx<'a> {
 
     pub async fn visible_nft_count(&mut self) -> Result<u32> {
         visible_nft_count(&mut *self.tx).await
+    }
+
+    pub async fn collection_nfts_visible_named(
+        &mut self,
+        collection_id: Bytes32,
+        limit: u32,
+        offset: u32,
+    ) -> Result<Vec<NftRow>> {
+        collection_nfts_visible_named(&mut *self.tx, collection_id, limit, offset).await
+    }
+
+    pub async fn collection_nfts_visible_recent(
+        &mut self,
+        collection_id: Bytes32,
+        limit: u32,
+        offset: u32,
+    ) -> Result<Vec<NftRow>> {
+        collection_nfts_visible_recent(&mut *self.tx, collection_id, limit, offset).await
+    }
+
+    pub async fn collection_nfts_named(
+        &mut self,
+        collection_id: Bytes32,
+        limit: u32,
+        offset: u32,
+    ) -> Result<Vec<NftRow>> {
+        collection_nfts_named(&mut *self.tx, collection_id, limit, offset).await
+    }
+
+    pub async fn collection_nfts_recent(
+        &mut self,
+        collection_id: Bytes32,
+        limit: u32,
+        offset: u32,
+    ) -> Result<Vec<NftRow>> {
+        collection_nfts_recent(&mut *self.tx, collection_id, limit, offset).await
+    }
+
+    pub async fn collection_nft_count(&mut self, collection_id: Bytes32) -> Result<u32> {
+        collection_nft_count(&mut *self.tx, collection_id).await
+    }
+
+    pub async fn collection_visible_nft_count(&mut self, collection_id: Bytes32) -> Result<u32> {
+        collection_visible_nft_count(&mut *self.tx, collection_id).await
     }
 
     pub async fn insert_nft_uri(&mut self, uri: String, hash: Bytes32) -> Result<()> {
@@ -402,6 +462,44 @@ async fn visible_nft_count(conn: impl SqliteExecutor<'_>) -> Result<u32> {
         SELECT COUNT(*) AS `count` FROM `nfts`
         WHERE `visible` = 1
         "
+    )
+    .fetch_one(conn)
+    .await?;
+
+    Ok(row.count.try_into()?)
+}
+
+async fn collection_nft_count(
+    conn: impl SqliteExecutor<'_>,
+    collection_id: Bytes32,
+) -> Result<u32> {
+    let collection_id = collection_id.as_ref();
+
+    let row = sqlx::query!(
+        "
+        SELECT COUNT(*) AS `count` FROM `nfts` INDEXED BY `nft_col_recent`
+        WHERE `collection_id` = ? AND `visible` = 1
+        ",
+        collection_id
+    )
+    .fetch_one(conn)
+    .await?;
+
+    Ok(row.count.try_into()?)
+}
+
+async fn collection_visible_nft_count(
+    conn: impl SqliteExecutor<'_>,
+    collection_id: Bytes32,
+) -> Result<u32> {
+    let collection_id = collection_id.as_ref();
+
+    let row = sqlx::query!(
+        "
+        SELECT COUNT(*) AS `count` FROM `nfts` INDEXED BY `nft_col_recent`
+        WHERE `collection_id` = ? AND `visible` = 1
+        ",
+        collection_id
     )
     .fetch_one(conn)
     .await?;
@@ -724,45 +822,19 @@ async fn nfts_by_metadata_hash(
 ) -> Result<Vec<NftRow>> {
     let metadata_hash = metadata_hash.as_ref();
 
-    let rows = sqlx::query!(
+    sqlx::query_as!(
+        SqlNftRow,
         "
-        SELECT
-            `launcher_id`,
-            `coin_id`,
-            `collection_id`,
-            `minter_did`,
-            `owner_did`,
-            `visible`,
-            `sensitive_content`,
-            `name`,
-            `created_height`,
-            `metadata_hash`
-        FROM `nfts` INDEXED BY `nft_metadata`
+        SELECT * FROM `nfts` INDEXED BY `nft_metadata`
         WHERE `metadata_hash` = ?
         ",
         metadata_hash
     )
     .fetch_all(conn)
-    .await?;
-
-    let mut nfts = Vec::new();
-
-    for row in rows {
-        nfts.push(NftRow {
-            launcher_id: to_bytes32(&row.launcher_id)?,
-            coin_id: to_bytes32(&row.coin_id)?,
-            collection_id: row.collection_id.as_deref().map(to_bytes32).transpose()?,
-            minter_did: row.minter_did.as_deref().map(to_bytes32).transpose()?,
-            owner_did: row.owner_did.as_deref().map(to_bytes32).transpose()?,
-            visible: row.visible,
-            sensitive_content: row.sensitive_content,
-            name: row.name,
-            created_height: row.created_height.map(TryInto::try_into).transpose()?,
-            metadata_hash: row.metadata_hash.as_deref().map(to_bytes32).transpose()?,
-        });
-    }
-
-    Ok(nfts)
+    .await?
+    .into_iter()
+    .map(to_nft_row)
+    .collect()
 }
 
 async fn nfts_visible_named(
@@ -770,20 +842,10 @@ async fn nfts_visible_named(
     limit: u32,
     offset: u32,
 ) -> Result<Vec<NftRow>> {
-    let rows = sqlx::query!(
+    sqlx::query_as!(
+        SqlNftRow,
         "
-        SELECT
-            `launcher_id`,
-            `coin_id`,
-            `collection_id`,
-            `minter_did`,
-            `owner_did`,
-            `visible`,
-            `sensitive_content`,
-            `name`,
-            `created_height`,
-            `metadata_hash`
-        FROM `nfts` INDEXED BY `nft_named`
+        SELECT * FROM `nfts` INDEXED BY `nft_named`
         WHERE `visible` = 1
         ORDER BY `is_named` DESC, `name` ASC, `launcher_id` ASC
         LIMIT ? OFFSET ?
@@ -792,26 +854,10 @@ async fn nfts_visible_named(
         offset
     )
     .fetch_all(conn)
-    .await?;
-
-    let mut nfts = Vec::new();
-
-    for row in rows {
-        nfts.push(NftRow {
-            launcher_id: to_bytes32(&row.launcher_id)?,
-            coin_id: to_bytes32(&row.coin_id)?,
-            collection_id: row.collection_id.as_deref().map(to_bytes32).transpose()?,
-            minter_did: row.minter_did.as_deref().map(to_bytes32).transpose()?,
-            owner_did: row.owner_did.as_deref().map(to_bytes32).transpose()?,
-            visible: row.visible,
-            sensitive_content: row.sensitive_content,
-            name: row.name,
-            created_height: row.created_height.map(TryInto::try_into).transpose()?,
-            metadata_hash: row.metadata_hash.as_deref().map(to_bytes32).transpose()?,
-        });
-    }
-
-    Ok(nfts)
+    .await?
+    .into_iter()
+    .map(to_nft_row)
+    .collect()
 }
 
 async fn nfts_visible_recent(
@@ -819,20 +865,10 @@ async fn nfts_visible_recent(
     limit: u32,
     offset: u32,
 ) -> Result<Vec<NftRow>> {
-    let rows = sqlx::query!(
+    sqlx::query_as!(
+        SqlNftRow,
         "
-        SELECT
-            `launcher_id`,
-            `coin_id`,
-            `collection_id`,
-            `minter_did`,
-            `owner_did`,
-            `visible`,
-            `sensitive_content`,
-            `name`,
-            `created_height`,
-            `metadata_hash`
-        FROM `nfts` INDEXED BY `nft_recent`
+        SELECT * FROM `nfts` INDEXED BY `nft_recent`
         WHERE `visible` = 1
         ORDER BY `is_pending` DESC, `created_height` DESC, `launcher_id` ASC
         LIMIT ? OFFSET ?
@@ -841,43 +877,17 @@ async fn nfts_visible_recent(
         offset
     )
     .fetch_all(conn)
-    .await?;
-
-    let mut nfts = Vec::new();
-
-    for row in rows {
-        nfts.push(NftRow {
-            launcher_id: to_bytes32(&row.launcher_id)?,
-            coin_id: to_bytes32(&row.coin_id)?,
-            collection_id: row.collection_id.as_deref().map(to_bytes32).transpose()?,
-            minter_did: row.minter_did.as_deref().map(to_bytes32).transpose()?,
-            owner_did: row.owner_did.as_deref().map(to_bytes32).transpose()?,
-            visible: row.visible,
-            sensitive_content: row.sensitive_content,
-            name: row.name,
-            created_height: row.created_height.map(TryInto::try_into).transpose()?,
-            metadata_hash: row.metadata_hash.as_deref().map(to_bytes32).transpose()?,
-        });
-    }
-
-    Ok(nfts)
+    .await?
+    .into_iter()
+    .map(to_nft_row)
+    .collect()
 }
 
 async fn nfts_named(conn: impl SqliteExecutor<'_>, limit: u32, offset: u32) -> Result<Vec<NftRow>> {
-    let rows = sqlx::query!(
+    sqlx::query_as!(
+        SqlNftRow,
         "
-        SELECT
-            `launcher_id`,
-            `coin_id`,
-            `collection_id`,
-            `minter_did`,
-            `owner_did`,
-            `visible`,
-            `sensitive_content`,
-            `name`,
-            `created_height`,
-            `metadata_hash`
-        FROM `nfts` INDEXED BY `nft_named`
+        SELECT * FROM `nfts` INDEXED BY `nft_named`
         ORDER BY `visible` DESC, `is_named` DESC, `name` ASC, `launcher_id` ASC
         LIMIT ? OFFSET ?
         ",
@@ -885,26 +895,10 @@ async fn nfts_named(conn: impl SqliteExecutor<'_>, limit: u32, offset: u32) -> R
         offset
     )
     .fetch_all(conn)
-    .await?;
-
-    let mut nfts = Vec::new();
-
-    for row in rows {
-        nfts.push(NftRow {
-            launcher_id: to_bytes32(&row.launcher_id)?,
-            coin_id: to_bytes32(&row.coin_id)?,
-            collection_id: row.collection_id.as_deref().map(to_bytes32).transpose()?,
-            minter_did: row.minter_did.as_deref().map(to_bytes32).transpose()?,
-            owner_did: row.owner_did.as_deref().map(to_bytes32).transpose()?,
-            visible: row.visible,
-            sensitive_content: row.sensitive_content,
-            name: row.name,
-            created_height: row.created_height.map(TryInto::try_into).transpose()?,
-            metadata_hash: row.metadata_hash.as_deref().map(to_bytes32).transpose()?,
-        });
-    }
-
-    Ok(nfts)
+    .await?
+    .into_iter()
+    .map(to_nft_row)
+    .collect()
 }
 
 async fn nfts_recent(
@@ -912,20 +906,10 @@ async fn nfts_recent(
     limit: u32,
     offset: u32,
 ) -> Result<Vec<NftRow>> {
-    let rows = sqlx::query!(
+    sqlx::query_as!(
+        SqlNftRow,
         "
-        SELECT
-            `launcher_id`,
-            `coin_id`,
-            `collection_id`,
-            `minter_did`,
-            `owner_did`,
-            `visible`,
-            `sensitive_content`,
-            `name`,
-            `created_height`,
-            `metadata_hash`
-        FROM `nfts` INDEXED BY `nft_recent`
+        SELECT * FROM `nfts` INDEXED BY `nft_recent`
         ORDER BY `visible` DESC, `is_pending` DESC, `created_height` DESC, `launcher_id` ASC
         LIMIT ? OFFSET ?
         ",
@@ -933,26 +917,118 @@ async fn nfts_recent(
         offset
     )
     .fetch_all(conn)
-    .await?;
+    .await?
+    .into_iter()
+    .map(to_nft_row)
+    .collect()
+}
 
-    let mut nfts = Vec::new();
+async fn collection_nfts_visible_named(
+    conn: impl SqliteExecutor<'_>,
+    collection_id: Bytes32,
+    limit: u32,
+    offset: u32,
+) -> Result<Vec<NftRow>> {
+    let collection_id = collection_id.as_ref();
 
-    for row in rows {
-        nfts.push(NftRow {
-            launcher_id: to_bytes32(&row.launcher_id)?,
-            coin_id: to_bytes32(&row.coin_id)?,
-            collection_id: row.collection_id.as_deref().map(to_bytes32).transpose()?,
-            minter_did: row.minter_did.as_deref().map(to_bytes32).transpose()?,
-            owner_did: row.owner_did.as_deref().map(to_bytes32).transpose()?,
-            visible: row.visible,
-            sensitive_content: row.sensitive_content,
-            name: row.name,
-            created_height: row.created_height.map(TryInto::try_into).transpose()?,
-            metadata_hash: row.metadata_hash.as_deref().map(to_bytes32).transpose()?,
-        });
-    }
+    sqlx::query_as!(
+        SqlNftRow,
+        "
+        SELECT * FROM `nfts` INDEXED BY `nft_col_named`
+        WHERE `collection_id` = ? AND `visible` = 1
+        ORDER BY `is_named` DESC, `name` ASC, `launcher_id` ASC
+        LIMIT ? OFFSET ?
+        ",
+        collection_id,
+        limit,
+        offset
+    )
+    .fetch_all(conn)
+    .await?
+    .into_iter()
+    .map(to_nft_row)
+    .collect()
+}
 
-    Ok(nfts)
+async fn collection_nfts_visible_recent(
+    conn: impl SqliteExecutor<'_>,
+    collection_id: Bytes32,
+    limit: u32,
+    offset: u32,
+) -> Result<Vec<NftRow>> {
+    let collection_id = collection_id.as_ref();
+
+    sqlx::query_as!(
+        SqlNftRow,
+        "
+        SELECT * FROM `nfts` INDEXED BY `nft_col_recent`
+        WHERE `collection_id` = ? AND `visible` = 1
+        ORDER BY `is_pending` DESC, `created_height` DESC, `launcher_id` ASC
+        LIMIT ? OFFSET ?
+        ",
+        collection_id,
+        limit,
+        offset
+    )
+    .fetch_all(conn)
+    .await?
+    .into_iter()
+    .map(to_nft_row)
+    .collect()
+}
+
+async fn collection_nfts_named(
+    conn: impl SqliteExecutor<'_>,
+    collection_id: Bytes32,
+    limit: u32,
+    offset: u32,
+) -> Result<Vec<NftRow>> {
+    let collection_id = collection_id.as_ref();
+
+    sqlx::query_as!(
+        SqlNftRow,
+        "
+        SELECT * FROM `nfts` INDEXED BY `nft_col_named`
+        WHERE `collection_id` = ?
+        ORDER BY `visible` DESC, `is_named` DESC, `name` ASC, `launcher_id` ASC
+        LIMIT ? OFFSET ?
+        ",
+        collection_id,
+        limit,
+        offset
+    )
+    .fetch_all(conn)
+    .await?
+    .into_iter()
+    .map(to_nft_row)
+    .collect()
+}
+
+async fn collection_nfts_recent(
+    conn: impl SqliteExecutor<'_>,
+    collection_id: Bytes32,
+    limit: u32,
+    offset: u32,
+) -> Result<Vec<NftRow>> {
+    let collection_id = collection_id.as_ref();
+
+    sqlx::query_as!(
+        SqlNftRow,
+        "
+        SELECT * FROM `nfts` INDEXED BY `nft_col_recent`
+        WHERE `collection_id` = ?
+        ORDER BY `visible` DESC, `is_pending` DESC, `created_height` DESC, `launcher_id` ASC
+        LIMIT ? OFFSET ?
+        ",
+        collection_id,
+        limit,
+        offset
+    )
+    .fetch_all(conn)
+    .await?
+    .into_iter()
+    .map(to_nft_row)
+    .collect()
 }
 
 async fn insert_nft_coin(
@@ -1103,4 +1179,19 @@ async fn nft_launcher_id(
     };
 
     Ok(Some(to_bytes32(&row.launcher_id)?))
+}
+
+fn to_nft_row(row: SqlNftRow) -> Result<NftRow> {
+    Ok(NftRow {
+        launcher_id: to_bytes32(&row.launcher_id)?,
+        coin_id: to_bytes32(&row.coin_id)?,
+        collection_id: row.collection_id.as_deref().map(to_bytes32).transpose()?,
+        minter_did: row.minter_did.as_deref().map(to_bytes32).transpose()?,
+        owner_did: row.owner_did.as_deref().map(to_bytes32).transpose()?,
+        visible: row.visible,
+        sensitive_content: row.sensitive_content,
+        name: row.name,
+        created_height: row.created_height.map(TryInto::try_into).transpose()?,
+        metadata_hash: row.metadata_hash.as_deref().map(to_bytes32).transpose()?,
+    })
 }

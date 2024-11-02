@@ -143,6 +143,8 @@ CREATE TABLE `nfts` (
 CREATE INDEX `nft_metadata` ON `nfts` (`metadata_hash`);
 CREATE INDEX `nft_named` ON `nfts` (`visible` DESC, `is_named` DESC, `name` ASC, `launcher_id` ASC);
 CREATE INDEX `nft_recent` ON `nfts` (`visible` DESC, `is_pending` DESC, `created_height` DESC, `launcher_id` ASC);
+CREATE INDEX `nft_col_named` ON `nfts` (`collection_id`, `visible` DESC, `is_named` DESC, `name` ASC, `launcher_id` ASC);
+CREATE INDEX `nft_col_recent` ON `nfts` (`collection_id`, `visible` DESC, `is_pending` DESC, `created_height` DESC, `launcher_id` ASC);
 
 CREATE TABLE `nft_coins` (
     `coin_id` BLOB NOT NULL PRIMARY KEY,

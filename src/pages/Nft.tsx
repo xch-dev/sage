@@ -122,13 +122,6 @@ export default function Nft() {
               </div>
             )}
 
-            {nft?.data_hash && (
-              <div>
-                <h6 className='text-md font-bold'>Data Hash</h6>
-                <div className='break-all text-sm'>{nft.data_hash}</div>
-              </div>
-            )}
-
             {(nft?.metadata_uris.length || null) && (
               <div>
                 <h6 className='text-md font-bold'>Metadata URIs</h6>
@@ -144,13 +137,6 @@ export default function Nft() {
               </div>
             )}
 
-            {nft?.metadata_hash && (
-              <div>
-                <h6 className='text-md font-bold'>Metadata Hash</h6>
-                <div className='break-all text-sm'>{nft.metadata_hash}</div>
-              </div>
-            )}
-
             {(nft?.license_uris.length || null) && (
               <div>
                 <h6 className='text-md font-bold'>License URIs</h6>
@@ -163,6 +149,20 @@ export default function Nft() {
                     {uri}
                   </div>
                 ))}
+              </div>
+            )}
+
+            {nft?.data_hash && (
+              <div>
+                <h6 className='text-md font-bold'>Data Hash</h6>
+                <div className='break-all text-sm'>{nft.data_hash}</div>
+              </div>
+            )}
+
+            {nft?.metadata_hash && (
+              <div>
+                <h6 className='text-md font-bold'>Metadata Hash</h6>
+                <div className='break-all text-sm'>{nft.metadata_hash}</div>
               </div>
             )}
 

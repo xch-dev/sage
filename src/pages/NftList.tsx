@@ -48,7 +48,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { z } from 'zod';
 import {
   commands,
@@ -60,16 +60,51 @@ import {
 
 const pageSize = 12;
 
+enum View {
+  Name = 'name',
+  Recent = 'recent',
+  Collection = 'collection',
+}
+
+function parseView(view: string): View {
+  switch (view) {
+    case 'name':
+      return View.Name;
+    case 'recent':
+      return View.Recent;
+    case 'collection':
+      return View.Collection;
+    default:
+      return View.Name;
+  }
+}
+
 export function NftList() {
   const walletState = useWalletState();
 
-  const [page, setPage] = useState(0);
+  const [params, setParams] = useSearchParams();
+
+  const page = parseInt(params.get('page') ?? '0');
+  const view = parseView(params.get('view') ?? 'name');
+
+  const updateParams = ({ page, view }: { page?: number; view?: View }) => {
+    setParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (page !== undefined) {
+        next.set('page', page.toString());
+      }
+      if (view !== undefined) {
+        next.set('view', view);
+      }
+      return next;
+    });
+  };
+
   const [nfts, setNfts] = useState<NftRecord[]>([]);
   const [collections, setCollections] = useState<NftCollectionRecord[]>([]);
   const [loading, setLoading] = useState(false);
 
   const [showHidden, setShowHidden] = useState(false);
-  const [view, setView] = useState<'name' | 'recent' | 'collection'>('name');
 
   const updateNfts = async (page: number) => {
     if (view === 'name' || view === 'recent') {
@@ -109,7 +144,7 @@ export function NftList() {
     setLoading(true);
 
     updateNfts(page + 1)
-      .then(() => setPage(page + 1))
+      .then(() => updateParams({ page: page + 1 }))
       .finally(() => {
         setLoading(false);
       });
@@ -120,7 +155,7 @@ export function NftList() {
     setLoading(true);
 
     updateNfts(page - 1)
-      .then(() => setPage(page - 1))
+      .then(() => updateParams({ page: page - 1 }))
       .finally(() => {
         setLoading(false);
       });
@@ -229,8 +264,10 @@ export function NftList() {
                       className='cursor-pointer'
                       onClick={(e) => {
                         e.stopPropagation();
-                        setView('name');
-                        setPage(0);
+                        updateParams({
+                          page: 0,
+                          view: View.Name,
+                        });
                       }}
                     >
                       <ArrowUpAz className='mr-2 h-4 w-4' />
@@ -240,8 +277,10 @@ export function NftList() {
                       className='cursor-pointer'
                       onClick={(e) => {
                         e.stopPropagation();
-                        setView('recent');
-                        setPage(0);
+                        updateParams({
+                          page: 0,
+                          view: View.Recent,
+                        });
                       }}
                     >
                       <Clock2 className='mr-2 h-4 w-4' />
@@ -251,8 +290,10 @@ export function NftList() {
                       className='cursor-pointer'
                       onClick={(e) => {
                         e.stopPropagation();
-                        setView('collection');
-                        setPage(0);
+                        updateParams({
+                          page: 0,
+                          view: View.Collection,
+                        });
                       }}
                     >
                       <Images className='mr-2 h-4 w-4' />
