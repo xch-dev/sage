@@ -4509,6 +4509,7 @@ dependencies = [
  "reqwest",
  "sage-database",
  "serde",
+ "serde_json",
  "thiserror",
  "tokio",
  "tracing",

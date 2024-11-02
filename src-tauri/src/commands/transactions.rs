@@ -15,9 +15,9 @@ use sage_api::{
 };
 use sage_database::{CatRow, Database};
 use sage_wallet::{
-    fetch_uris, ChildKind, CoinKind, Data, Transaction, Wallet, WalletError, WalletNftMint,
+    compute_nft_info, fetch_uris, insert_transaction, ChildKind, CoinKind, Data, Transaction,
+    Wallet, WalletError, WalletNftMint,
 };
-use serde::Deserialize;
 use specta::specta;
 use tauri::{command, State};
 use tokio::sync::MutexGuard;
@@ -466,14 +466,6 @@ pub async fn bulk_mint_nfts(
         .bulk_mint_nfts(fee, launcher_id.into(), mints, false, true)
         .await?;
 
-    let mut tx = wallet.db.tx().await?;
-
-    for nft in &nfts {
-        tx.insert_new_nft(nft.info.launcher_id, true).await?;
-    }
-
-    tx.commit().await?;
-
     let summary = summarize(&state, &wallet, coin_spends, confirm_info).await?;
 
     Ok(BulkMintNftsResponse {
@@ -597,9 +589,19 @@ pub async fn submit_transaction(
     let state = state.lock().await;
     let wallet = state.wallet()?;
 
-    wallet
-        .insert_transaction(rust_bundle(&spend_bundle)?)
-        .await?;
+    let spend_bundle = rust_bundle(&spend_bundle)?;
+
+    let mut tx = wallet.db.tx().await?;
+
+    insert_transaction(
+        &mut tx,
+        spend_bundle.name(),
+        Transaction::from_coin_spends(spend_bundle.coin_spends)?,
+        spend_bundle.aggregated_signature,
+    )
+    .await?;
+
+    tx.commit().await?;
 
     Ok(())
 }
@@ -672,6 +674,7 @@ async fn summarize(
                     image_mime_type: extracted.image_mime_type,
                     name: extracted.name,
                 };
+
                 (kind, info.p2_puzzle_hash)
             }
         };
@@ -727,12 +730,6 @@ struct ExtractedNftData {
     name: Option<String>,
 }
 
-#[derive(Deserialize)]
-struct OffchainMetadata {
-    #[serde(default)]
-    name: Option<String>,
-}
-
 async fn extract_nft_data(
     db: Option<&Database>,
     onchain_metadata: Option<NftMetadata>,
@@ -758,12 +755,12 @@ async fn extract_nft_data(
 
     if let Some(metadata_hash) = onchain_metadata.metadata_hash {
         if let Some(metadata) = cache.nft_data.get(&metadata_hash) {
-            let metadata: OffchainMetadata = serde_json::from_slice(&metadata.blob)?;
-            result.name = metadata.name;
+            let info = compute_nft_info(None, Some(&metadata.blob));
+            result.name = info.name;
         } else if let Some(db) = &db {
             if let Some(metadata) = db.fetch_nft_data(metadata_hash).await? {
-                let metadata: OffchainMetadata = serde_json::from_slice(&metadata.blob)?;
-                result.name = metadata.name;
+                let info = compute_nft_info(None, Some(&metadata.blob));
+                result.name = info.name;
             }
         }
     }

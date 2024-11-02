@@ -14,7 +14,7 @@ use hex::FromHexError;
 use sage_api::Amount;
 use sage_database::DatabaseError;
 use sage_keychain::KeychainError;
-use sage_wallet::{SyncCommand, UriError, WalletError};
+use sage_wallet::{ParseError, SyncCommand, UriError, WalletError};
 use serde::{Deserialize, Serialize};
 use specta::Type;
 use sqlx::migrate::MigrateError;
@@ -450,6 +450,15 @@ impl From<Vec<u8>> for Error {
         Self {
             kind: ErrorKind::Serialization,
             reason: format!("Unexpected bytes with length {}", value.len()),
+        }
+    }
+}
+
+impl From<ParseError> for Error {
+    fn from(value: ParseError) -> Self {
+        Self {
+            kind: ErrorKind::Wallet,
+            reason: value.to_string(),
         }
     }
 }

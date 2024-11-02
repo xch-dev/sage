@@ -1,0 +1,86 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT * FROM `nfts` INDEXED BY `nft_metadata`\n        WHERE `metadata_hash` = ?\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "launcher_id",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "coin_id",
+        "ordinal": 1,
+        "type_info": "Blob"
+      },
+      {
+        "name": "collection_id",
+        "ordinal": 2,
+        "type_info": "Blob"
+      },
+      {
+        "name": "minter_did",
+        "ordinal": 3,
+        "type_info": "Blob"
+      },
+      {
+        "name": "owner_did",
+        "ordinal": 4,
+        "type_info": "Blob"
+      },
+      {
+        "name": "visible",
+        "ordinal": 5,
+        "type_info": "Bool"
+      },
+      {
+        "name": "sensitive_content",
+        "ordinal": 6,
+        "type_info": "Bool"
+      },
+      {
+        "name": "name",
+        "ordinal": 7,
+        "type_info": "Text"
+      },
+      {
+        "name": "is_named",
+        "ordinal": 8,
+        "type_info": "Bool"
+      },
+      {
+        "name": "created_height",
+        "ordinal": 9,
+        "type_info": "Integer"
+      },
+      {
+        "name": "is_pending",
+        "ordinal": 10,
+        "type_info": "Bool"
+      },
+      {
+        "name": "metadata_hash",
+        "ordinal": 11,
+        "type_info": "Blob"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      true,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "1a6d7c18b1fb2286ebade255b4f3380a1312e0530c1ba0418e783a7be8a521cb"
+}

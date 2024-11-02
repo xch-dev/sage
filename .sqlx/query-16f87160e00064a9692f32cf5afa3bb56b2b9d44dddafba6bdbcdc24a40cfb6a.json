@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT `metadata_hash` FROM `nft_coins` WHERE `launcher_id` = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "metadata_hash",
+        "ordinal": 0,
+        "type_info": "Blob"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "16f87160e00064a9692f32cf5afa3bb56b2b9d44dddafba6bdbcdc24a40cfb6a"
+}

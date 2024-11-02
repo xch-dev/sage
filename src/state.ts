@@ -1,8 +1,15 @@
 import { create } from 'zustand';
-import { CoinRecord, commands, events, SyncStatus } from './bindings';
+import {
+  CoinRecord,
+  commands,
+  events,
+  NftStatus,
+  SyncStatus,
+} from './bindings';
 
 export interface WalletState {
   sync: SyncStatus;
+  nfts: NftStatus;
   coins: CoinRecord[];
 }
 
@@ -16,6 +23,12 @@ export const useWalletState = create<WalletState>()(() => ({
     },
     total_coins: 0,
     synced_coins: 0,
+  },
+  nfts: {
+    nfts: 0,
+    visible_nfts: 0,
+    collections: 0,
+    visible_collections: 0,
   },
   coins: [],
 }));
@@ -32,12 +45,18 @@ export function clearState() {
       total_coins: 0,
       synced_coins: 0,
     },
+    nfts: {
+      nfts: 0,
+      visible_nfts: 0,
+      collections: 0,
+      visible_collections: 0,
+    },
     coins: [],
   });
 }
 
 export async function fetchState() {
-  await Promise.all([updateCoins(), updateSyncStatus()]);
+  await Promise.all([updateCoins(), updateSyncStatus(), updateNftStatus()]);
 }
 
 function updateCoins() {
@@ -64,17 +83,34 @@ function updateSyncStatus() {
   });
 }
 
+function updateNftStatus() {
+  commands.getNftStatus().then((nfts) => {
+    if (nfts.status === 'error') {
+      console.error(nfts.error);
+      return;
+    }
+    useWalletState.setState({
+      nfts: nfts.data,
+    });
+  });
+}
+
 events.syncEvent.listen((event) => {
   switch (event.payload.type) {
     case 'coin_state':
       updateCoins();
       updateSyncStatus();
+      updateNftStatus();
       break;
     case 'derivation':
       updateSyncStatus();
       break;
     case 'puzzle_batch_synced':
       updateSyncStatus();
+      updateNftStatus();
+      break;
+    case 'nft_data':
+      updateNftStatus();
       break;
   }
 });

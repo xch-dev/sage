@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        REPLACE INTO `nft_collections` (\n            `collection_id`,\n            `did_id`,\n            `metadata_collection_id`,\n            `visible`,\n            `name`,\n            `icon`\n        )\n        VALUES (?, ?, ?, ?, ?, ?)\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 6
+    },
+    "nullable": []
+  },
+  "hash": "ace44d37f3726b3bdeab85040527ff2c3cc895e4d7a07dc4c1119eadf7a7b0c4"
+}

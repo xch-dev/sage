@@ -10,7 +10,7 @@ import { Link } from 'react-router-dom';
 import { CatRecord, commands, events } from '../bindings';
 import { useWalletState } from '../state';
 
-export function MainWallet() {
+export function TokenList() {
   const walletState = useWalletState();
 
   const [cats, setCats] = useState<CatRecord[]>([]);

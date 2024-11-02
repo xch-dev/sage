@@ -65,8 +65,14 @@ pub enum SyncError {
     #[error("Missing coin state {0}")]
     MissingCoinState(Bytes32),
 
+    #[error("Missing child coin")]
+    MissingChild,
+
     #[error("Unconfirmed coin {0}")]
     UnconfirmedCoin(Bytes32),
+
+    #[error("Unspent coin {0}")]
+    UnspentCoin(Bytes32),
 
     #[error("Missing puzzle and solution for {0}")]
     MissingPuzzleAndSolution(Bytes32),

@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n        SELECT\n            `parent_coin_id`,\n            `puzzle_hash`,\n            `amount`,\n            `puzzle_reveal`,\n            `solution`\n        FROM `transaction_spends`\n        WHERE `transaction_id` = ?\n        ORDER BY `coin_id` ASC\n        ",
+  "query": "\n        SELECT\n            `parent_coin_id`,\n            `puzzle_hash`,\n            `amount`,\n            `puzzle_reveal`,\n            `solution`\n        FROM `transaction_spends` INDEXED BY `indexed_spend`\n        WHERE `transaction_id` = ?\n        ORDER BY `index` ASC\n        ",
   "describe": {
     "columns": [
       {
@@ -40,5 +40,5 @@
       false
     ]
   },
-  "hash": "0835558ea1f144a417feda4080cb08d8c09d5b8a8da48aff1b25b818b5f51a75"
+  "hash": "de732b1577723b588fc9b5855074acbb44e2eb40b909da5316600bc8de74569a"
 }

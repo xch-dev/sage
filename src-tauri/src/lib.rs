@@ -50,8 +50,12 @@ pub fn run() {
             commands::get_cats,
             commands::get_cat,
             commands::get_dids,
+            commands::get_nft_status,
+            commands::get_nft_collections,
+            commands::get_nft_collection,
             commands::get_nfts,
             commands::get_nft,
+            commands::get_collection_nfts,
             commands::get_pending_transactions,
             commands::validate_address,
             // Actions

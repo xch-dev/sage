@@ -4,6 +4,7 @@ import Header from '@/components/Header';
 import { ReceiveAddress } from '@/components/ReceiveAddress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -28,100 +29,42 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { useDids } from '@/hooks/useDids';
 import { amount } from '@/lib/formTypes';
-import { nftUri } from '@/lib/nftUri';
 import { useWalletState } from '@/state';
 import { zodResolver } from '@hookform/resolvers/zod';
 import BigNumber from 'bignumber.js';
 import {
-  ChevronLeftIcon,
-  ChevronRightIcon,
   EyeIcon,
   EyeOff,
-  Image,
   MoreVerticalIcon,
+  PenIcon,
   SendIcon,
+  UserIcon,
+  UserRoundPlus,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { Link } from 'react-router-dom';
 import { z } from 'zod';
-import { commands, events, NftRecord, TransactionSummary } from '../bindings';
+import { commands, DidRecord, TransactionSummary } from '../bindings';
 
-export function WalletNfts() {
-  const [page, setPage] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
+export function DidList() {
   const [showHidden, setShowHidden] = useState(false);
-  const [nfts, setNfts] = useState<NftRecord[]>([]);
-  const [loading, setLoading] = useState(false);
 
-  const updateNfts = async (page: number) => {
-    return await commands
-      .getNfts({ offset: page * 12, limit: 12 })
-      .then((result) => {
-        if (result.status === 'ok') {
-          setNfts(result.data.items);
-          setTotalPages(Math.max(1, Math.ceil(result.data.total / 12)));
-        } else {
-          throw new Error('Failed to get NFTs');
-        }
-      });
-  };
+  const { dids, updateDids } = useDids();
 
-  const nextPage = () => {
-    if (loading) return;
-    setLoading(true);
-    updateNfts(page + 1)
-      .then(() => setPage(page + 1))
-      .finally(() => {
-        setLoading(false);
-      });
-  };
-
-  const previousPage = () => {
-    if (loading) return;
-    setLoading(true);
-    updateNfts(page - 1)
-      .then(() => setPage(page - 1))
-      .finally(() => {
-        setLoading(false);
-      });
-  };
-
-  useEffect(() => {
-    updateNfts(0);
-  }, []);
-
-  useEffect(() => {
-    const unlisten = events.syncEvent.listen((event) => {
-      const type = event.payload.type;
-
-      if (
-        type === 'coin_state' ||
-        type === 'puzzle_batch_synced' ||
-        type === 'nft_data'
-      ) {
-        updateNfts(page);
-      }
-    });
-
-    return () => {
-      unlisten.then((u) => u());
-    };
-  }, [page]);
-
-  const visibleNfts = showHidden ? nfts : nfts.filter((nft) => nft.visible);
-  const hasHiddenNfts = nfts.findIndex((nft) => !nft.visible) > -1;
+  const visibleDids = showHidden ? dids : dids.filter((did) => did.visible);
+  const hasHiddenDids = dids.findIndex((did) => !did.visible) > -1;
 
   return (
     <>
-      <Header title='NFTs'>
+      <Header title='Profiles'>
         <ReceiveAddress />
       </Header>
-
       <Container>
-        {hasHiddenNfts && (
+        {hasHiddenDids && (
           <div className='inline-flex items-center gap-2 mb-2'>
             <label htmlFor='viewHidden'>View hidden</label>
             <Switch
@@ -132,78 +75,71 @@ export function WalletNfts() {
           </div>
         )}
 
-        {visibleNfts.length === 0 ? (
+        {visibleDids.length === 0 && (
           <Alert className='mt-2'>
-            <Image className='h-4 w-4' />
-            <AlertTitle>Mint an NFT?</AlertTitle>
+            <UserRoundPlus className='h-4 w-4' />
+            <AlertTitle>Create a profile?</AlertTitle>
             <AlertDescription>
-              You do not currently have any {nfts.length > 0 ? 'visible ' : ''}
-              NFTs. Would you like to mint one?
+              You do not currently have any {dids.length > 0 ? 'visible ' : ''}
+              DID profiles. Would you like to create one?
             </AlertDescription>
           </Alert>
-        ) : (
-          <div className='flex justify-center items-center gap-2'>
-            <Button
-              variant='outline'
-              size='icon'
-              onClick={() => previousPage()}
-              disabled={page === 0}
-            >
-              <ChevronLeftIcon className='h-4 w-4' />
-            </Button>
-            <p className='text-sm text-muted-foreground font-medium'>
-              Page {page + 1} of {totalPages}
-            </p>
-            <Button
-              variant='outline'
-              size='icon'
-              onClick={() => nextPage()}
-              disabled={page >= totalPages - 1}
-            >
-              <ChevronRightIcon className='h-4 w-4' />
-            </Button>
-          </div>
         )}
 
-        <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mt-6 mb-2'>
-          {visibleNfts.map((nft, i) => (
-            <Nft nft={nft} key={i} updateNfts={() => updateNfts(page)} />
-          ))}
+        <div className='mt-2 grid gap-4 md:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'>
+          {visibleDids.map((did) => {
+            return (
+              <Profile
+                key={did.launcher_id}
+                did={did}
+                updateDids={updateDids}
+              />
+            );
+          })}
         </div>
       </Container>
     </>
   );
 }
 
-interface NftProps {
-  nft: NftRecord;
-  updateNfts: () => void;
+interface ProfileProps {
+  did: DidRecord;
+  updateDids: () => void;
 }
 
-function Nft({ nft, updateNfts }: NftProps) {
+function Profile({ did, updateDids }: ProfileProps) {
   const walletState = useWalletState();
 
+  const [name, setName] = useState('');
+  const [renameOpen, setRenameOpen] = useState(false);
   const [isTransferOpen, setTransferOpen] = useState(false);
   const [summary, setSummary] = useState<TransactionSummary | null>(null);
 
-  let json: any = {};
+  const rename = () => {
+    if (!name) return;
 
-  if (nft.metadata) {
-    try {
-      json = JSON.parse(nft.metadata);
-    } catch (error) {
-      console.error(error);
-    }
-  }
+    commands.updateDid(did.launcher_id, name, did.visible).then((result) => {
+      setRenameOpen(false);
 
-  const toggleVisibility = () => {
-    commands.updateNft(nft.launcher_id, !nft.visible).then((result) => {
       if (result.status === 'ok') {
-        updateNfts();
+        setName('');
+        updateDids();
       } else {
-        throw new Error('Failed to toggle visibility for NFT');
+        throw new Error(`Failed to rename DID: ${result.error.reason}`);
       }
     });
+  };
+
+  const toggleVisibility = () => {
+    commands
+      .updateDid(did.launcher_id, did.name, !did.visible)
+      .then((result) => {
+        if (result.status === 'ok') {
+          updateDids();
+        } else {
+          throw new Error('Failed to toggle visibility for DID');
+        }
+      });
   };
 
   const transferFormSchema = z.object({
@@ -224,11 +160,11 @@ function Nft({ nft, updateNfts }: NftProps) {
 
   const onTransferSubmit = (values: z.infer<typeof transferFormSchema>) => {
     commands
-      .transferNft(nft.launcher_id, values.address, values.fee)
+      .transferDid(did.launcher_id, values.address, values.fee)
       .then((result) => {
         setTransferOpen(false);
         if (result.status === 'error') {
-          console.error('Failed to transfer NFT', result.error);
+          console.error('Failed to transfer DID', result.error);
         } else {
           setSummary(result.data);
         }
@@ -237,30 +173,15 @@ function Nft({ nft, updateNfts }: NftProps) {
 
   return (
     <>
-      <Link
-        to={`/nfts/${nft.launcher_id_hex}`}
-        className={`group${`${!nft.visible ? ' opacity-50 grayscale' : nft.create_transaction_id !== null ? ' pulsate-opacity' : ''}`}`}
+      <Card
+        key={did.launcher_id}
+        className={`${!did.visible ? 'opacity-50 grayscale' : did.create_transaction_id !== null ? 'pulsate-opacity' : ''}`}
       >
-        <div className='overflow-hidden rounded-t-md relative'>
-          <img
-            alt={json.name}
-            loading='lazy'
-            width='150'
-            height='150'
-            className='h-auto w-auto object-cover transition-all group-hover:scale-105 aspect-square color-[transparent]'
-            src={nftUri(nft.data_mime_type, nft.data)}
-          />
-        </div>
-        <div className='text-md flex items-center justify-between rounded-b p-1 pl-2 bg-neutral-200 dark:bg-neutral-800'>
-          <span className='truncate'>
-            <span className='font-medium leading-none'>
-              {json.name ?? 'Unknown NFT'}
-            </span>
-            <p className='text-xs text-muted-foreground'>
-              {json.collection?.name ?? 'No collection'}
-            </p>
-          </span>
-
+        <CardHeader className='-mt-2 flex flex-row items-center justify-between space-y-0 pb-2 pr-2 space-x-2'>
+          <CardTitle className='text-md font-medium truncate flex items-center'>
+            <UserIcon className='mr-2 h-4 w-4' />
+            {did.name ?? 'Untitled Profile'}
+          </CardTitle>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant='ghost' size='icon'>
@@ -273,10 +194,8 @@ function Nft({ nft, updateNfts }: NftProps) {
                   className='cursor-pointer'
                   onClick={(e) => {
                     e.stopPropagation();
-                    transferForm.reset();
                     setTransferOpen(true);
                   }}
-                  disabled={!!nft.create_transaction_id}
                 >
                   <SendIcon className='mr-2 h-4 w-4' />
                   <span>Transfer</span>
@@ -285,28 +204,86 @@ function Nft({ nft, updateNfts }: NftProps) {
                   className='cursor-pointer'
                   onClick={(e) => {
                     e.stopPropagation();
+                    setRenameOpen(true);
+                  }}
+                >
+                  <PenIcon className='mr-2 h-4 w-4' />
+                  <span>Rename</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className='cursor-pointer'
+                  onClick={(e) => {
+                    e.stopPropagation();
                     toggleVisibility();
                   }}
                 >
-                  {nft.visible ? (
+                  {did.visible ? (
                     <EyeOff className='mr-2 h-4 w-4' />
                   ) : (
                     <EyeIcon className='mr-2 h-4 w-4' />
                   )}
-                  <span>{nft.visible ? 'Hide' : 'Show'}</span>
+                  <span>{did.visible ? 'Hide' : 'Show'}</span>
                 </DropdownMenuItem>
               </DropdownMenuGroup>
             </DropdownMenuContent>
           </DropdownMenu>
-        </div>
-      </Link>
+        </CardHeader>
+        <CardContent>
+          <div className='text-sm font-medium truncate'>{did.launcher_id}</div>
+        </CardContent>
+      </Card>
+
+      <Dialog
+        open={renameOpen}
+        onOpenChange={(open) => !open && setRenameOpen(false)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rename Profile</DialogTitle>
+            <DialogDescription>
+              Enter the new display name for this profile.
+            </DialogDescription>
+          </DialogHeader>
+          <div className='grid w-full items-center gap-4'>
+            <div className='flex flex-col space-y-1.5'>
+              <Label htmlFor='name'>Name</Label>
+              <Input
+                id='name'
+                placeholder='Profile name'
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault();
+                    rename();
+                  }
+                }}
+              />
+            </div>
+          </div>
+          <DialogFooter className='gap-2'>
+            <Button
+              variant='outline'
+              onClick={() => {
+                setRenameOpen(false);
+                setName('');
+              }}
+            >
+              Cancel
+            </Button>
+            <Button onClick={rename} disabled={!name}>
+              Rename
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={isTransferOpen} onOpenChange={setTransferOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Transfer NFT</DialogTitle>
+            <DialogTitle>Transfer Profile</DialogTitle>
             <DialogDescription>
-              This will send the NFT to the provided address.
+              This will send the profile to the provided address.
             </DialogDescription>
           </DialogHeader>
           <Form {...transferForm}>
@@ -358,7 +335,7 @@ function Nft({ nft, updateNfts }: NftProps) {
       <ConfirmationDialog
         summary={summary}
         close={() => setSummary(null)}
-        onConfirm={() => updateNfts()}
+        onConfirm={() => updateDids()}
       />
     </>
   );

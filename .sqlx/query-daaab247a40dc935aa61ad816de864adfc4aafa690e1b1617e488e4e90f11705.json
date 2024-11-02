@@ -1,0 +1,50 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT\n            `collection_id`,\n            `did_id`,\n            `metadata_collection_id`,\n            `visible`,\n            `name`,\n            `icon`\n        FROM `nft_collections`\n        WHERE `collection_id` = ?\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "collection_id",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "did_id",
+        "ordinal": 1,
+        "type_info": "Blob"
+      },
+      {
+        "name": "metadata_collection_id",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "visible",
+        "ordinal": 3,
+        "type_info": "Bool"
+      },
+      {
+        "name": "name",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "icon",
+        "ordinal": 5,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "daaab247a40dc935aa61ad816de864adfc4aafa690e1b1617e488e4e90f11705"
+}
