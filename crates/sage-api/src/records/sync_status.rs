@@ -10,4 +10,5 @@ pub struct SyncStatus {
     pub synced_coins: u32,
     pub total_coins: u32,
     pub receive_address: String,
+    pub burn_address: String,
 }

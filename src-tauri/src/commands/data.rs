@@ -7,6 +7,7 @@ use chia::{
 };
 use chia_wallet_sdk::{decode_address, encode_address};
 use clvmr::Allocator;
+use hex_literal::hex;
 use sage_api::{
     Amount, CatRecord, CoinRecord, DidRecord, GetCollectionNfts, GetNftCollections, GetNfts,
     NftCollectionRecord, NftInfo, NftRecord, NftSortMode, NftStatus, PendingTransactionRecord,
@@ -70,6 +71,10 @@ pub async fn get_sync_status(state: State<'_, AppState>) -> Result<SyncStatus> {
         total_coins,
         synced_coins,
         receive_address: receive_address.unwrap_or_default(),
+        burn_address: encode_address(
+            hex!("000000000000000000000000000000000000000000000000000000000000dead"),
+            &state.network().address_prefix,
+        )?,
     })
 }
 

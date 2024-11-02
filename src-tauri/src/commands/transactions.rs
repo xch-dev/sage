@@ -9,6 +9,7 @@ use chia::{
 use chia_wallet_sdk::{
     decode_address, encode_address, AggSigConstants, MAINNET_CONSTANTS, TESTNET11_CONSTANTS,
 };
+use hex_literal::hex;
 use sage_api::{
     Amount, BulkMintNfts, BulkMintNftsResponse, CoinJson, CoinSpendJson, Input, InputKind, Output,
     SpendBundleJson, TransactionSummary,
@@ -704,6 +705,8 @@ async fn summarize(
                 amount,
                 address,
                 receiving: wallet.db.is_p2_puzzle_hash(p2_puzzle_hash).await?,
+                burning: p2_puzzle_hash.to_bytes()
+                    == hex!("000000000000000000000000000000000000000000000000000000000000dead"),
             });
         }
 

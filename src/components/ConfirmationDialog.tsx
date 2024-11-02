@@ -87,7 +87,11 @@ export default function ConfirmationDialog({
           created.push({
             badge: 'Chia',
             label: `${output.amount} ${ticker}`,
-            address: output.receiving ? 'Change' : output.address,
+            address: output.burning
+              ? 'Permanently Burned'
+              : output.receiving
+                ? 'Change'
+                : output.address,
             sort: 1,
           });
         }
@@ -111,7 +115,11 @@ export default function ConfirmationDialog({
           created.push({
             badge: `CAT ${input.name || input.asset_id}`,
             label: `${output.amount} ${ticker}`,
-            address: output.receiving ? 'Change' : output.address,
+            address: output.burning
+              ? 'Permanently Burned'
+              : output.receiving
+                ? 'Change'
+                : output.address,
             sort: 2,
           });
         }
@@ -146,7 +154,11 @@ export default function ConfirmationDialog({
             created.push({
               badge: 'Profile',
               label: input.name || 'Unnamed',
-              address: output.receiving ? 'You' : output.address,
+              address: output.burning
+                ? 'Permanently Burned'
+                : output.receiving
+                  ? 'You'
+                  : output.address,
               sort: 3,
             });
           }
@@ -182,7 +194,11 @@ export default function ConfirmationDialog({
             created.push({
               badge: 'NFT',
               label: input.name || 'Unknown',
-              address: output.receiving ? 'You' : output.address,
+              address: output.burning
+                ? 'Permanently Burned'
+                : output.receiving
+                  ? 'You'
+                  : output.address,
               sort: 4,
             });
           }

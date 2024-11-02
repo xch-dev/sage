@@ -39,6 +39,7 @@ import BigNumber from 'bignumber.js';
 import {
   EyeIcon,
   EyeOff,
+  Flame,
   MoreVerticalIcon,
   PenIcon,
   SendIcon,
@@ -112,7 +113,8 @@ function Profile({ did, updateDids }: ProfileProps) {
 
   const [name, setName] = useState('');
   const [renameOpen, setRenameOpen] = useState(false);
-  const [isTransferOpen, setTransferOpen] = useState(false);
+  const [transferOpen, setTransferOpen] = useState(false);
+  const [burnOpen, setBurnOpen] = useState(false);
   const [summary, setSummary] = useState<TransactionSummary | null>(null);
 
   const rename = () => {
@@ -171,6 +173,33 @@ function Profile({ did, updateDids }: ProfileProps) {
       });
   };
 
+  const burnFormSchema = z.object({
+    fee: amount(walletState.sync.unit.decimals).refine(
+      (amount) => BigNumber(walletState.sync.balance).gte(amount || 0),
+      'Not enough funds to cover the fee',
+    ),
+  });
+
+  const burnForm = useForm<z.infer<typeof burnFormSchema>>({
+    resolver: zodResolver(burnFormSchema),
+    defaultValues: {
+      fee: '0',
+    },
+  });
+
+  const onBurnSubmit = (values: z.infer<typeof burnFormSchema>) => {
+    commands
+      .transferDid(did.launcher_id, walletState.sync.burn_address, values.fee)
+      .then((result) => {
+        setBurnOpen(false);
+        if (result.status === 'error') {
+          console.error('Failed to burn DID', result.error);
+        } else {
+          setSummary(result.data);
+        }
+      });
+  };
+
   return (
     <>
       <Card
@@ -200,6 +229,18 @@ function Profile({ did, updateDids }: ProfileProps) {
                   <SendIcon className='mr-2 h-4 w-4' />
                   <span>Transfer</span>
                 </DropdownMenuItem>
+
+                <DropdownMenuItem
+                  className='cursor-pointer'
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setBurnOpen(true);
+                  }}
+                >
+                  <Flame className='mr-2 h-4 w-4' />
+                  <span>Burn</span>
+                </DropdownMenuItem>
+
                 <DropdownMenuItem
                   className='cursor-pointer'
                   onClick={(e) => {
@@ -210,6 +251,7 @@ function Profile({ did, updateDids }: ProfileProps) {
                   <PenIcon className='mr-2 h-4 w-4' />
                   <span>Rename</span>
                 </DropdownMenuItem>
+
                 <DropdownMenuItem
                   className='cursor-pointer'
                   onClick={(e) => {
@@ -278,7 +320,7 @@ function Profile({ did, updateDids }: ProfileProps) {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isTransferOpen} onOpenChange={setTransferOpen}>
+      <Dialog open={transferOpen} onOpenChange={setTransferOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Transfer Profile</DialogTitle>
@@ -326,6 +368,48 @@ function Profile({ did, updateDids }: ProfileProps) {
                   Cancel
                 </Button>
                 <Button type='submit'>Transfer</Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={burnOpen} onOpenChange={setBurnOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Burn Profile</DialogTitle>
+            <DialogDescription>
+              This will permanently delete the profile by sending it to the burn
+              address.
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...burnForm}>
+            <form
+              onSubmit={burnForm.handleSubmit(onBurnSubmit)}
+              className='space-y-4'
+            >
+              <FormField
+                control={burnForm.control}
+                name='fee'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Network Fee</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter className='gap-2'>
+                <Button
+                  type='button'
+                  variant='outline'
+                  onClick={() => setBurnOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button type='submit'>Burn</Button>
               </DialogFooter>
             </form>
           </Form>

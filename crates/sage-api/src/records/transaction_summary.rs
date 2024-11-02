@@ -46,6 +46,7 @@ pub struct Output {
     pub amount: Amount,
     pub address: String,
     pub receiving: bool,
+    pub burning: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]

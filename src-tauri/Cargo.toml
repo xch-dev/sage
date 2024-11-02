@@ -34,6 +34,7 @@ bincode = { workspace = true }
 toml = { workspace = true, features = ["preserve_order"] }
 indexmap = { workspace = true, features = ["serde"] }
 hex = { workspace = true }
+hex-literal = { workspace = true }
 chia = { workspace = true }
 chia-wallet-sdk = { workspace = true, features = ["rustls"] }
 clvmr = { workspace = true }
