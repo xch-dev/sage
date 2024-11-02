@@ -1,17 +1,9 @@
-import ConfirmationDialog from '@/components/ConfirmationDialog';
 import Container from '@/components/Container';
 import Header from '@/components/Header';
+import { NftCard } from '@/components/NftCard';
 import { ReceiveAddress } from '@/components/ReceiveAddress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,21 +11,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
 import collectionImage from '@/images/collection.png';
-import { amount } from '@/lib/formTypes';
-import { nftUri } from '@/lib/nftUri';
 import { useWalletState } from '@/state';
-import { zodResolver } from '@hookform/resolvers/zod';
-import BigNumber from 'bignumber.js';
 import {
   ArrowUpAz,
   ChevronLeftIcon,
@@ -44,19 +23,10 @@ import {
   Image,
   Images,
   MoreVerticalIcon,
-  SendIcon,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
 import { Link, useSearchParams } from 'react-router-dom';
-import { z } from 'zod';
-import {
-  commands,
-  events,
-  NftCollectionRecord,
-  NftRecord,
-  TransactionSummary,
-} from '../bindings';
+import { commands, events, NftCollectionRecord, NftRecord } from '../bindings';
 
 const pageSize = 12;
 
@@ -330,7 +300,7 @@ export function NftList() {
             </>
           ) : (
             nfts.map((nft, i) => (
-              <Nft nft={nft} key={i} updateNfts={() => updateNfts(page)} />
+              <NftCard nft={nft} key={i} updateNfts={() => updateNfts(page)} />
             ))
           )}
         </div>
@@ -412,185 +382,6 @@ function Collection({ col, updateNfts }: CollectionProps) {
           </DropdownMenu>
         </div>
       </Link>
-    </>
-  );
-}
-
-interface NftProps {
-  nft: NftRecord;
-  updateNfts: () => void;
-}
-
-function Nft({ nft, updateNfts }: NftProps) {
-  const walletState = useWalletState();
-
-  const [isTransferOpen, setTransferOpen] = useState(false);
-  const [summary, setSummary] = useState<TransactionSummary | null>(null);
-
-  const toggleVisibility = () => {
-    commands.updateNft(nft.launcher_id, !nft.visible).then((result) => {
-      if (result.status === 'ok') {
-        updateNfts();
-      } else {
-        throw new Error('Failed to toggle visibility for NFT');
-      }
-    });
-  };
-
-  const transferFormSchema = z.object({
-    address: z.string().min(1, 'Address is required'),
-    fee: amount(walletState.sync.unit.decimals).refine(
-      (amount) => BigNumber(walletState.sync.balance).gte(amount || 0),
-      'Not enough funds to cover the fee',
-    ),
-  });
-
-  const transferForm = useForm<z.infer<typeof transferFormSchema>>({
-    resolver: zodResolver(transferFormSchema),
-    defaultValues: {
-      address: '',
-      fee: '0',
-    },
-  });
-
-  const onTransferSubmit = (values: z.infer<typeof transferFormSchema>) => {
-    commands
-      .transferNft(nft.launcher_id, values.address, values.fee)
-      .then((result) => {
-        setTransferOpen(false);
-        if (result.status === 'error') {
-          console.error('Failed to transfer NFT', result.error);
-        } else {
-          setSummary(result.data);
-        }
-      });
-  };
-
-  return (
-    <>
-      <Link
-        to={`/nfts/${nft.launcher_id}`}
-        className={`group${`${!nft.visible ? ' opacity-50 grayscale' : !nft.created_height ? ' pulsate-opacity' : ''}`}`}
-      >
-        <div className='overflow-hidden rounded-t-md relative'>
-          <img
-            alt={nft.name ?? 'Unnamed'}
-            loading='lazy'
-            width='150'
-            height='150'
-            className='h-auto w-auto object-cover transition-all group-hover:scale-105 aspect-square color-[transparent]'
-            src={nftUri(nft.data_mime_type, nft.data)}
-          />
-        </div>
-        <div className='text-md flex items-center justify-between rounded-b p-1 pl-2 bg-neutral-200 dark:bg-neutral-800'>
-          <span className='truncate'>
-            <span className='font-medium leading-none truncate'>
-              {nft.name ?? 'Unnamed'}
-            </span>
-            <p className='text-xs text-muted-foreground truncate'>
-              {nft.collection_name ?? 'No collection'}
-            </p>
-          </span>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant='ghost' size='icon'>
-                <MoreVerticalIcon className='h-5 w-5' />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align='end'>
-              <DropdownMenuGroup>
-                <DropdownMenuItem
-                  className='cursor-pointer'
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    transferForm.reset();
-                    setTransferOpen(true);
-                  }}
-                  disabled={!nft.created_height}
-                >
-                  <SendIcon className='mr-2 h-4 w-4' />
-                  <span>Transfer</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  className='cursor-pointer'
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleVisibility();
-                  }}
-                >
-                  {nft.visible ? (
-                    <EyeOff className='mr-2 h-4 w-4' />
-                  ) : (
-                    <EyeIcon className='mr-2 h-4 w-4' />
-                  )}
-                  <span>{nft.visible ? 'Hide' : 'Show'}</span>
-                </DropdownMenuItem>
-              </DropdownMenuGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </Link>
-
-      <Dialog open={isTransferOpen} onOpenChange={setTransferOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Transfer NFT</DialogTitle>
-            <DialogDescription>
-              This will send the NFT to the provided address.
-            </DialogDescription>
-          </DialogHeader>
-          <Form {...transferForm}>
-            <form
-              onSubmit={transferForm.handleSubmit(onTransferSubmit)}
-              className='space-y-4'
-            >
-              <FormField
-                control={transferForm.control}
-                name='address'
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Address</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={transferForm.control}
-                name='fee'
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Network Fee</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <DialogFooter className='gap-2'>
-                <Button
-                  type='button'
-                  variant='outline'
-                  onClick={() => setTransferOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button type='submit'>Transfer</Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
-
-      <ConfirmationDialog
-        summary={summary}
-        close={() => setSummary(null)}
-        onConfirm={() => updateNfts()}
-      />
     </>
   );
 }
