@@ -16,6 +16,7 @@ export interface WalletState {
 export const useWalletState = create<WalletState>()(() => ({
   sync: {
     receive_address: 'Unknown',
+    burn_address: 'Unknown',
     balance: 'Syncing',
     unit: {
       ticker: 'XCH',
@@ -37,6 +38,7 @@ export function clearState() {
   useWalletState.setState({
     sync: {
       receive_address: 'Unknown',
+      burn_address: 'Unknown',
       balance: 'Syncing',
       unit: {
         ticker: 'XCH',
