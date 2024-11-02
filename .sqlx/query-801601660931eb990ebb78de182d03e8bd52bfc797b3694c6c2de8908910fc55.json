@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n        SELECT\n            `launcher_id`,\n            `coin_id`,\n            `collection_id`,\n            `minter_did`,\n            `owner_did`,\n            `visible`,\n            `sensitive_content`,\n            `name`,\n            `created_height`,\n            `metadata_hash`\n        FROM `nfts` INDEXED BY `nft_named`\n        ORDER BY `visible` DESC, `is_named` DESC, `name` ASC, `launcher_id` ASC\n        LIMIT ? OFFSET ?\n        ",
+  "query": "\n        SELECT * FROM `nfts` INDEXED BY `nft_named`\n        WHERE `visible` = 1\n        ORDER BY `is_named` DESC, `name` ASC, `launcher_id` ASC\n        LIMIT ? OFFSET ?\n        ",
   "describe": {
     "columns": [
       {
@@ -44,13 +44,23 @@
         "type_info": "Text"
       },
       {
-        "name": "created_height",
+        "name": "is_named",
         "ordinal": 8,
+        "type_info": "Bool"
+      },
+      {
+        "name": "created_height",
+        "ordinal": 9,
         "type_info": "Integer"
       },
       {
+        "name": "is_pending",
+        "ordinal": 10,
+        "type_info": "Bool"
+      },
+      {
         "name": "metadata_hash",
-        "ordinal": 9,
+        "ordinal": 11,
         "type_info": "Blob"
       }
     ],
@@ -67,8 +77,10 @@
       false,
       true,
       true,
+      true,
+      true,
       true
     ]
   },
-  "hash": "fbcb37e50e3cfb90bd56f88e2830d47d550ca336f8aaaf0fe89bdcdc9a8ca680"
+  "hash": "801601660931eb990ebb78de182d03e8bd52bfc797b3694c6c2de8908910fc55"
 }

@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT COUNT(*) AS `count` FROM `nfts` INDEXED BY `nft_col_recent`\n        WHERE `collection_id` = ? AND `visible` = 1\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "count",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "729272d426ab025f035127591ead571b903aaf7d79f007ae9dc2b2a3e1e1a4fe"
+}
