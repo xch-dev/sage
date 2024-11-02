@@ -60,7 +60,7 @@ const router = createHashRouter(
         <Route path='mint-nft' element={<MintNft />} />
       </Route>
       <Route path='/collections' element={<Wallet />}>
-        <Route path=':launcher_id' element={<Collection />} />
+        <Route path=':collection_id' element={<Collection />} />
       </Route>
       <Route path='/dids' element={<Wallet />}>
         <Route path='' element={<DidList />} />

@@ -2,15 +2,17 @@ use base64::prelude::*;
 use bigdecimal::BigDecimal;
 use chia::{
     clvm_traits::{FromClvm, ToClvm},
+    protocol::Bytes32,
     puzzles::nft::NftMetadata,
 };
 use chia_wallet_sdk::{decode_address, encode_address};
 use clvmr::Allocator;
 use sage_api::{
-    Amount, CatRecord, CoinRecord, DidRecord, GetNftCollections, GetNfts, NftCollectionRecord,
-    NftInfo, NftRecord, NftSortMode, NftStatus, PendingTransactionRecord, SyncStatus,
+    Amount, CatRecord, CoinRecord, DidRecord, GetCollectionNfts, GetNftCollections, GetNfts,
+    NftCollectionRecord, NftInfo, NftRecord, NftSortMode, NftStatus, PendingTransactionRecord,
+    SyncStatus,
 };
-use sage_database::DidRow;
+use sage_database::{DidRow, NftData, NftRow};
 use sage_wallet::WalletError;
 use specta::specta;
 use tauri::{command, State};
@@ -313,6 +315,9 @@ pub async fn get_nft_collections(
     };
 
     for col in collections {
+        let total = tx.collection_nft_count(col.collection_id).await?;
+        let total_visible = tx.collection_visible_nft_count(col.collection_id).await?;
+
         records.push(NftCollectionRecord {
             collection_id: encode_address(col.collection_id.to_bytes(), "col")?,
             did_id: encode_address(col.did_id.to_bytes(), "did:chia:")?,
@@ -320,6 +325,8 @@ pub async fn get_nft_collections(
             visible: col.visible,
             name: col.name,
             icon: col.icon,
+            nfts: total,
+            visible_nfts: total_visible,
         });
     }
 
@@ -332,26 +339,67 @@ pub async fn get_nft_collections(
 #[specta]
 pub async fn get_nft_collection(
     state: State<'_, AppState>,
-    collection_id: String,
+    collection_id: Option<String>,
 ) -> Result<NftCollectionRecord> {
     let state = state.lock().await;
     let wallet = state.wallet()?;
 
-    let (collection_id, prefix) = decode_address(&collection_id)?;
+    let collection_id = if let Some(collection_id) = collection_id {
+        let (collection_id, prefix) = decode_address(&collection_id)?;
 
-    if prefix != "col" {
-        return Err(Error::invalid_prefix(&prefix));
-    }
+        if prefix != "col" {
+            return Err(Error::invalid_prefix(&prefix));
+        }
 
-    let collection = wallet.db.nft_collection(collection_id.into()).await?;
+        Some(Bytes32::from(collection_id))
+    } else {
+        None
+    };
 
-    Ok(NftCollectionRecord {
-        collection_id: encode_address(collection.collection_id.to_bytes(), "col")?,
-        did_id: encode_address(collection.did_id.to_bytes(), "did:chia:")?,
-        metadata_collection_id: collection.metadata_collection_id,
-        visible: collection.visible,
-        name: collection.name,
-        icon: collection.icon,
+    let collection = if let Some(collection_id) = collection_id {
+        Some(wallet.db.nft_collection(collection_id).await?)
+    } else {
+        None
+    };
+
+    let mut tx = wallet.db.tx().await?;
+
+    let total = if let Some(collection_id) = collection_id {
+        tx.collection_nft_count(collection_id).await?
+    } else {
+        tx.no_collection_nft_count().await?
+    };
+
+    let total_visible = if let Some(collection_id) = collection_id {
+        tx.collection_visible_nft_count(collection_id).await?
+    } else {
+        tx.no_collection_visible_nft_count().await?
+    };
+
+    tx.commit().await?;
+
+    Ok(if let Some(collection) = collection {
+        NftCollectionRecord {
+            collection_id: encode_address(collection.collection_id.to_bytes(), "col")?,
+            did_id: encode_address(collection.did_id.to_bytes(), "did:chia:")?,
+            metadata_collection_id: collection.metadata_collection_id,
+            visible: collection.visible,
+            name: collection.name,
+            icon: collection.icon,
+            nfts: total,
+            visible_nfts: total_visible,
+        }
+    } else {
+        NftCollectionRecord {
+            collection_id: "None".to_string(),
+            did_id: "Miscellaneous".to_string(),
+            metadata_collection_id: "None".to_string(),
+            visible: true,
+            name: Some("Uncategorized".to_string()),
+            icon: None,
+            nfts: total,
+            visible_nfts: total_visible,
+        }
     })
 }
 
@@ -388,28 +436,88 @@ pub async fn get_nfts(state: State<'_, AppState>, request: GetNfts) -> Result<Ve
             None
         };
 
-        records.push(NftRecord {
-            launcher_id: encode_address(nft.launcher_id.to_bytes(), "nft")?,
-            collection_id: nft
-                .collection_id
-                .map(|col| encode_address(col.to_bytes(), "col"))
-                .transpose()?,
-            collection_name,
-            minter_did: nft
-                .minter_did
-                .map(|did| encode_address(did.to_bytes(), "did:chia:"))
-                .transpose()?,
-            owner_did: nft
-                .owner_did
-                .map(|did| encode_address(did.to_bytes(), "did:chia:"))
-                .transpose()?,
-            visible: nft.visible,
-            sensitive_content: nft.sensitive_content,
-            name: nft.name,
-            data: data.as_ref().map(|data| BASE64_STANDARD.encode(&data.blob)),
-            data_mime_type: data.map(|data| data.mime_type),
-            created_height: nft.created_height,
-        });
+        records.push(nft_record(nft, collection_name, data)?);
+    }
+
+    tx.commit().await?;
+
+    Ok(records)
+}
+
+#[command]
+#[specta]
+pub async fn get_collection_nfts(
+    state: State<'_, AppState>,
+    request: GetCollectionNfts,
+) -> Result<Vec<NftRecord>> {
+    let state = state.lock().await;
+    let wallet = state.wallet()?;
+
+    let collection_id = if let Some(collection_id) = request.collection_id {
+        let (collection_id, prefix) = decode_address(&collection_id)?;
+
+        if prefix != "col" {
+            return Err(Error::invalid_prefix(&prefix));
+        }
+
+        Some(Bytes32::from(collection_id))
+    } else {
+        None
+    };
+
+    let mut records = Vec::new();
+
+    let mut tx = wallet.db.tx().await?;
+
+    let nfts = match (request.sort_mode, request.include_hidden, collection_id) {
+        (NftSortMode::Name, true, Some(collection_id)) => {
+            tx.collection_nfts_named(collection_id, request.limit, request.offset)
+                .await?
+        }
+        (NftSortMode::Name, false, Some(collection_id)) => {
+            tx.collection_nfts_visible_named(collection_id, request.limit, request.offset)
+                .await?
+        }
+        (NftSortMode::Recent, true, Some(collection_id)) => {
+            tx.collection_nfts_recent(collection_id, request.limit, request.offset)
+                .await?
+        }
+        (NftSortMode::Recent, false, Some(collection_id)) => {
+            tx.collection_nfts_visible_recent(collection_id, request.limit, request.offset)
+                .await?
+        }
+        (NftSortMode::Name, true, None) => {
+            tx.no_collection_nfts_named(request.limit, request.offset)
+                .await?
+        }
+        (NftSortMode::Name, false, None) => {
+            tx.no_collection_nfts_visible_named(request.limit, request.offset)
+                .await?
+        }
+        (NftSortMode::Recent, true, None) => {
+            tx.no_collection_nfts_recent(request.limit, request.offset)
+                .await?
+        }
+        (NftSortMode::Recent, false, None) => {
+            tx.no_collection_nfts_visible_recent(request.limit, request.offset)
+                .await?
+        }
+    };
+
+    for nft in nfts {
+        let data = if let Some(hash) = tx.data_hash(nft.launcher_id).await? {
+            tx.fetch_nft_data(hash).await?
+        } else {
+            None
+        };
+
+        let collection_name = if let Some(collection_id) = nft.collection_id {
+            tx.nft_collection_name(collection_id).await?
+        } else {
+            None
+        };
+
+        records.push(nft_record(nft, collection_name, data)?);
     }
 
     tx.commit().await?;
@@ -528,4 +636,33 @@ pub async fn get_nft(state: State<'_, AppState>, launcher_id: String) -> Result<
             }
         }),
     }))
+}
+
+fn nft_record(
+    nft: NftRow,
+    collection_name: Option<String>,
+    data: Option<NftData>,
+) -> Result<NftRecord> {
+    Ok(NftRecord {
+        launcher_id: encode_address(nft.launcher_id.to_bytes(), "nft")?,
+        collection_id: nft
+            .collection_id
+            .map(|col| encode_address(col.to_bytes(), "col"))
+            .transpose()?,
+        collection_name,
+        minter_did: nft
+            .minter_did
+            .map(|did| encode_address(did.to_bytes(), "did:chia:"))
+            .transpose()?,
+        owner_did: nft
+            .owner_did
+            .map(|did| encode_address(did.to_bytes(), "did:chia:"))
+            .transpose()?,
+        visible: nft.visible,
+        sensitive_content: nft.sensitive_content,
+        name: nft.name,
+        data: data.as_ref().map(|data| BASE64_STANDARD.encode(&data.blob)),
+        data_mime_type: data.map(|data| data.mime_type),
+        created_height: nft.created_height,
+    })
 }

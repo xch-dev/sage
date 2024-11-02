@@ -5,7 +5,7 @@ import { useWalletState } from '@/state';
 import { zodResolver } from '@hookform/resolvers/zod';
 import BigNumber from 'bignumber.js';
 import { EyeIcon, EyeOff, MoreVertical, SendIcon } from 'lucide-react';
-import { useState } from 'react';
+import { PropsWithChildren, useState } from 'react';
 import { Form, useForm } from 'react-hook-form';
 import { Link } from 'react-router-dom';
 import { z } from 'zod';
@@ -38,6 +38,14 @@ import { Input } from './ui/input';
 export interface NftProps {
   nft: NftRecord;
   updateNfts: () => void;
+}
+
+export function NftCardList({ children }: PropsWithChildren) {
+  return (
+    <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mt-6 mb-2'>
+      {children}
+    </div>
+  );
 }
 
 export function NftCard({ nft, updateNfts }: NftProps) {

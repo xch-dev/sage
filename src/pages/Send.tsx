@@ -126,8 +126,6 @@ export default function Send() {
       if (confirmation.status === 'error') {
         console.error(confirmation.error);
         return;
-      } else {
-        console.log(confirmation.data);
       }
 
       setSummary(confirmation.data);

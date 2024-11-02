@@ -237,7 +237,7 @@ async getNftCollections(request: GetNftCollections) : Promise<Result<NftCollecti
     else return { status: "error", error: e  as any };
 }
 },
-async getNftCollection(collectionId: string) : Promise<Result<NftCollectionRecord, Error>> {
+async getNftCollection(collectionId: string | null) : Promise<Result<NftCollectionRecord, Error>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("get_nft_collection", { collectionId }) };
 } catch (e) {
@@ -256,6 +256,14 @@ async getNfts(request: GetNfts) : Promise<Result<NftRecord[], Error>> {
 async getNft(launcherId: string) : Promise<Result<NftInfo | null, Error>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("get_nft", { launcherId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async getCollectionNfts(request: GetCollectionNfts) : Promise<Result<NftRecord[], Error>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_collection_nfts", { request }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -464,12 +472,13 @@ export type CoinSpendJson = { coin: CoinJson; puzzle_reveal: string; solution: s
 export type DidRecord = { launcher_id: string; name: string | null; visible: boolean; coin_id: string; address: string; amount: Amount; created_height: number | null; create_transaction_id: string | null }
 export type Error = { kind: ErrorKind; reason: string }
 export type ErrorKind = "Io" | "Database" | "Client" | "Keychain" | "Logging" | "Serialization" | "InvalidAddress" | "InvalidMnemonic" | "InvalidKey" | "InvalidAmount" | "InvalidRoyalty" | "InvalidAssetId" | "InvalidLauncherId" | "InsufficientFunds" | "TransactionFailed" | "UnknownNetwork" | "UnknownFingerprint" | "NotLoggedIn" | "Sync" | "Wallet"
+export type GetCollectionNfts = { collection_id: string | null; offset: number; limit: number; sort_mode: NftSortMode; include_hidden: boolean }
 export type GetNftCollections = { offset: number; limit: number; include_hidden: boolean }
 export type GetNfts = { offset: number; limit: number; sort_mode: NftSortMode; include_hidden: boolean }
 export type Input = ({ type: "unknown" } | { type: "xch" } | { type: "launcher" } | { type: "cat"; asset_id: string; name: string | null; ticker: string | null; icon_url: string | null } | { type: "did"; launcher_id: string; name: string | null } | { type: "nft"; launcher_id: string; image_data: string | null; image_mime_type: string | null; name: string | null }) & { coin_id: string; amount: Amount; address: string; outputs: Output[] }
 export type Network = { default_port: number; ticker: string; address_prefix: string; precision: number; genesis_challenge: string; agg_sig_me: string; dns_introducers: string[] }
 export type NetworkConfig = { network_id?: string; target_peers?: number; discover_peers?: boolean }
-export type NftCollectionRecord = { collection_id: string; did_id: string; metadata_collection_id: string; visible: boolean; name: string | null; icon: string | null }
+export type NftCollectionRecord = { collection_id: string; did_id: string; metadata_collection_id: string; visible: boolean; name: string | null; icon: string | null; nfts: number; visible_nfts: number }
 export type NftInfo = { launcher_id: string; collection_id: string | null; collection_name: string | null; minter_did: string | null; owner_did: string | null; visible: boolean; coin_id: string; address: string; royalty_address: string; royalty_percent: string; data_uris: string[]; data_hash: string | null; metadata_uris: string[]; metadata_hash: string | null; license_uris: string[]; license_hash: string | null; edition_number: number | null; edition_total: number | null; created_height: number | null; data: string | null; data_mime_type: string | null; metadata: string | null }
 export type NftMint = { edition_number: number | null; edition_total: number | null; data_uris: string[]; metadata_uris: string[]; license_uris: string[]; royalty_address: string | null; royalty_percent: Amount }
 export type NftRecord = { launcher_id: string; collection_id: string | null; collection_name: string | null; minter_did: string | null; owner_did: string | null; visible: boolean; sensitive_content: boolean; name: string | null; created_height: number | null; data_mime_type: string | null; data: string | null }

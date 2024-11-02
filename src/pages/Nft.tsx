@@ -236,9 +236,9 @@ export default function Nft() {
                 <img
                   src='https://spacescan.io/images/spacescan-logo-192.png'
                   className='h-4 w-4 mr-2'
-                  alt='SpaceScan logo'
+                  alt='Spacescan.io logo'
                 />
-                SpaceScan
+                Spacescan.io
               </Button>
             </div>
           </div>
