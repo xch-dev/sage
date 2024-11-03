@@ -7,7 +7,7 @@ pub(crate) struct CatSql {
     pub name: Option<String>,
     pub ticker: Option<String>,
     pub description: Option<String>,
-    pub icon_url: Option<String>,
+    pub icon: Option<String>,
     pub visible: bool,
 }
 
@@ -17,7 +17,7 @@ pub struct CatRow {
     pub name: Option<String>,
     pub ticker: Option<String>,
     pub description: Option<String>,
-    pub icon_url: Option<String>,
+    pub icon: Option<String>,
     pub visible: bool,
 }
 
@@ -28,7 +28,7 @@ impl CatSql {
             name: self.name.clone(),
             ticker: self.ticker.clone(),
             description: self.description.clone(),
-            icon_url: self.icon_url.clone(),
+            icon: self.icon.clone(),
             visible: self.visible,
         })
     }

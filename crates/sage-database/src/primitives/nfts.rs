@@ -1,11 +1,13 @@
 use chia::{
     protocol::{Bytes32, Program},
-    puzzles::{LineageProof, Proof},
+    puzzles::LineageProof,
 };
 use chia_wallet_sdk::{Nft, NftInfo};
 use sqlx::SqliteExecutor;
 
-use crate::{to_bytes32, CollectionRow, CollectionSql, Database, DatabaseTx, Result};
+use crate::{
+    to_bytes32, CollectionRow, CollectionSql, Database, DatabaseTx, FullNftCoinSql, Result,
+};
 
 #[derive(Debug, Clone)]
 pub struct NftRow {
@@ -738,7 +740,8 @@ async fn spendable_nft(
 ) -> Result<Option<Nft<Program>>> {
     let launcher_id = launcher_id.as_ref();
 
-    let Some(row) = sqlx::query!(
+    let Some(sql) = sqlx::query_as!(
+        FullNftCoinSql,
         "
         SELECT
             `coin_states`.`parent_coin_id`,
@@ -771,29 +774,14 @@ async fn spendable_nft(
         return Ok(None);
     };
 
-    Ok(Some(Nft {
-        coin: to_coin(&row.parent_coin_id, &row.puzzle_hash, &row.amount)?,
-        proof: Proof::Lineage(to_lineage_proof(
-            &row.parent_parent_coin_id,
-            &row.parent_inner_puzzle_hash,
-            &row.parent_amount,
-        )?),
-        info: NftInfo {
-            launcher_id: to_bytes32(&row.launcher_id)?,
-            metadata: row.metadata.into(),
-            metadata_updater_puzzle_hash: to_bytes32(&row.metadata_updater_puzzle_hash)?,
-            current_owner: row.current_owner.as_deref().map(to_bytes32).transpose()?,
-            royalty_puzzle_hash: to_bytes32(&row.royalty_puzzle_hash)?,
-            royalty_ten_thousandths: row.royalty_ten_thousandths.try_into()?,
-            p2_puzzle_hash: to_bytes32(&row.p2_puzzle_hash)?,
-        },
-    }))
+    Ok(Some(sql.into_row()?))
 }
 
 async fn nft(conn: impl SqliteExecutor<'_>, launcher_id: Bytes32) -> Result<Option<Nft<Program>>> {
     let launcher_id = launcher_id.as_ref();
 
-    let Some(row) = sqlx::query!(
+    let Some(sql) = sqlx::query_as!(
+        FullNftCoinSql,
         "
         SELECT
             `coin_states`.`parent_coin_id`,
@@ -824,23 +812,7 @@ async fn nft(conn: impl SqliteExecutor<'_>, launcher_id: Bytes32) -> Result<Opti
         return Ok(None);
     };
 
-    Ok(Some(Nft {
-        coin: to_coin(&row.parent_coin_id, &row.puzzle_hash, &row.amount)?,
-        proof: Proof::Lineage(to_lineage_proof(
-            &row.parent_parent_coin_id,
-            &row.parent_inner_puzzle_hash,
-            &row.parent_amount,
-        )?),
-        info: NftInfo {
-            launcher_id: to_bytes32(&row.launcher_id)?,
-            metadata: row.metadata.into(),
-            metadata_updater_puzzle_hash: to_bytes32(&row.metadata_updater_puzzle_hash)?,
-            current_owner: row.current_owner.as_deref().map(to_bytes32).transpose()?,
-            royalty_puzzle_hash: to_bytes32(&row.royalty_puzzle_hash)?,
-            royalty_ten_thousandths: row.royalty_ten_thousandths.try_into()?,
-            p2_puzzle_hash: to_bytes32(&row.p2_puzzle_hash)?,
-        },
-    }))
+    Ok(Some(sql.into_row()?))
 }
 
 async fn nfts_by_metadata_hash(

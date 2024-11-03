@@ -78,7 +78,7 @@ async fn maybe_insert_cat(conn: impl SqliteExecutor<'_>, row: CatRow) -> Result<
             `name`,
             `ticker`,
             `description`,
-            `icon_url`,
+            `icon`,
             `visible`
         ) VALUES (?, ?, ?, ?, ?, ?)
         ",
@@ -86,7 +86,7 @@ async fn maybe_insert_cat(conn: impl SqliteExecutor<'_>, row: CatRow) -> Result<
         row.name,
         row.ticker,
         row.description,
-        row.icon_url,
+        row.icon,
         row.visible,
     )
     .execute(conn)
@@ -104,7 +104,7 @@ async fn update_cat(conn: impl SqliteExecutor<'_>, row: CatRow) -> Result<()> {
             `name`,
             `ticker`,
             `description`,
-            `icon_url`,
+            `icon`,
             `visible`
         ) VALUES (?, ?, ?, ?, ?, ?)
         ",
@@ -112,7 +112,7 @@ async fn update_cat(conn: impl SqliteExecutor<'_>, row: CatRow) -> Result<()> {
         row.name,
         row.ticker,
         row.description,
-        row.icon_url,
+        row.icon,
         row.visible
     )
     .execute(conn)
@@ -143,7 +143,7 @@ async fn cats(conn: impl SqliteExecutor<'_>) -> Result<Vec<CatRow>> {
             `name`,
             `ticker`,
             `description`,
-            `icon_url`,
+            `icon`,
             `visible`
         FROM `cats`
         ORDER BY `name` ASC, `asset_id` ASC
@@ -159,7 +159,7 @@ async fn cats(conn: impl SqliteExecutor<'_>) -> Result<Vec<CatRow>> {
                 name: row.name,
                 ticker: row.ticker,
                 description: row.description,
-                icon_url: row.icon_url,
+                icon: row.icon,
                 visible: row.visible,
             })
         })
@@ -176,7 +176,7 @@ async fn cat(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<Option<
             `name`,
             `ticker`,
             `description`,
-            `icon_url`,
+            `icon`,
             `visible`
         FROM `cats`
         WHERE `asset_id` = ?
@@ -192,7 +192,7 @@ async fn cat(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<Option<
             name: row.name,
             ticker: row.ticker,
             description: row.description,
-            icon_url: row.icon_url,
+            icon: row.icon,
             visible: row.visible,
         })
     })

@@ -11,6 +11,12 @@ pub(crate) struct CoinStateSql {
     pub transaction_id: Option<Vec<u8>>,
 }
 
+pub(crate) struct CoinSql {
+    pub parent_coin_id: Vec<u8>,
+    pub puzzle_hash: Vec<u8>,
+    pub amount: Vec<u8>,
+}
+
 #[derive(Debug, Clone, Copy)]
 pub struct CoinStateRow {
     pub coin_state: CoinState,
@@ -30,6 +36,16 @@ impl CoinStateSql {
                 created_height: self.created_height.map(TryInto::try_into).transpose()?,
             },
             transaction_id: self.transaction_id.as_deref().map(to_bytes32).transpose()?,
+        })
+    }
+}
+
+impl CoinSql {
+    pub fn into_row(self) -> Result<Coin, DatabaseError> {
+        Ok(Coin {
+            parent_coin_info: to_bytes32(&self.parent_coin_id)?,
+            puzzle_hash: to_bytes32(&self.puzzle_hash)?,
+            amount: to_u64(&self.amount)?,
         })
     }
 }
