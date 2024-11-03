@@ -1,13 +1,7 @@
 use chia::protocol::{Bytes32, CoinState};
 use sqlx::SqliteExecutor;
 
-use crate::{to_bytes32, to_coin, to_coin_state, Database, DatabaseTx, Result};
-
-#[derive(Debug, Clone, Copy)]
-pub struct CoinStateRow {
-    pub coin_state: CoinState,
-    pub transaction_id: Option<Bytes32>,
-}
+use crate::{to_bytes32, CoinStateSql, Database, DatabaseTx, Result};
 
 impl Database {
     pub async fn unsynced_coin_states(&self, limit: usize) -> Result<Vec<CoinState>> {
@@ -155,9 +149,10 @@ async fn unsynced_coin_states(
     limit: usize,
 ) -> Result<Vec<CoinState>> {
     let limit: i64 = limit.try_into()?;
-    let rows = sqlx::query!(
+    let rows = sqlx::query_as!(
+        CoinStateSql,
         "
-        SELECT *
+        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `created_height`, `spent_height`, `transaction_id`
         FROM `coin_states`
         WHERE `synced` = 0 AND `created_height` IS NOT NULL
         ORDER BY `spent_height` ASC
@@ -168,13 +163,7 @@ async fn unsynced_coin_states(
     .fetch_all(conn)
     .await?;
     rows.into_iter()
-        .map(|row| {
-            to_coin_state(
-                to_coin(&row.parent_coin_id, &row.puzzle_hash, &row.amount)?,
-                row.created_height,
-                row.spent_height,
-            )
-        })
+        .map(|sql| sql.into_row().map(|row| row.coin_state))
         .collect()
 }
 
@@ -242,9 +231,10 @@ async fn synced_coin_count(conn: impl SqliteExecutor<'_>) -> Result<u32> {
 async fn coin_state(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Option<CoinState>> {
     let coin_id = coin_id.as_ref();
 
-    let Some(row) = sqlx::query!(
+    let Some(sql) = sqlx::query_as!(
+        CoinStateSql,
         "
-        SELECT *
+        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `created_height`, `spent_height`, `transaction_id`
         FROM `coin_states`
         WHERE `coin_id` = ?
         ",
@@ -256,11 +246,7 @@ async fn coin_state(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<O
         return Ok(None);
     };
 
-    Ok(Some(to_coin_state(
-        to_coin(&row.parent_coin_id, &row.puzzle_hash, &row.amount)?,
-        row.created_height,
-        row.spent_height,
-    )?))
+    Ok(Some(sql.into_row()?.coin_state))
 }
 
 async fn unspent_nft_coin_ids(conn: impl SqliteExecutor<'_>) -> Result<Vec<Bytes32>> {

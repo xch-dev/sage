@@ -5,7 +5,7 @@ use chia::{
 use chia_wallet_sdk::{Did, DidInfo};
 use sqlx::SqliteExecutor;
 
-use crate::{to_bytes, to_bytes32, to_coin, to_lineage_proof, Database, DatabaseTx, Result};
+use crate::{to_bytes, to_bytes32, Database, DatabaseTx, Result};
 
 #[derive(Debug, Clone)]
 pub struct DidRow {

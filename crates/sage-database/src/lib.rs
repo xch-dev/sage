@@ -2,11 +2,12 @@ mod coin_states;
 mod derivations;
 mod peaks;
 mod primitives;
+mod rows;
 mod transactions;
 mod utils;
 
-pub use coin_states::*;
 pub use primitives::*;
+pub use rows::*;
 pub use transactions::*;
 
 pub(crate) use utils::*;

@@ -1,31 +1,11 @@
-use chia::{
-    protocol::{Bytes32, Coin},
-    puzzles::LineageProof,
-};
+use chia::{protocol::Bytes32, puzzles::LineageProof};
 use chia_wallet_sdk::Cat;
 use sqlx::SqliteExecutor;
 
 use crate::{
-    to_bytes, to_bytes32, to_coin, to_coin_state, to_lineage_proof, CoinStateRow, Database,
-    DatabaseTx, Result,
+    to_bytes, to_bytes32, CatCoinRow, CatCoinSql, CatRow, CoinStateRow, CoinStateSql, Database,
+    DatabaseTx, FullCatCoinSql, Result,
 };
-
-#[derive(Debug, Clone)]
-pub struct CatRow {
-    pub asset_id: Bytes32,
-    pub name: Option<String>,
-    pub ticker: Option<String>,
-    pub description: Option<String>,
-    pub icon_url: Option<String>,
-    pub visible: bool,
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct CatCoin {
-    pub coin: Coin,
-    pub lineage_proof: LineageProof,
-    pub p2_puzzle_hash: Bytes32,
-}
 
 impl Database {
     pub async fn maybe_insert_cat(&self, row: CatRow) -> Result<()> {
@@ -52,7 +32,7 @@ impl Database {
         unidentified_cat(&self.pool).await
     }
 
-    pub async fn spendable_cat_coins(&self, asset_id: Bytes32) -> Result<Vec<CatCoin>> {
+    pub async fn spendable_cat_coins(&self, asset_id: Bytes32) -> Result<Vec<CatCoinRow>> {
         spendable_cat_coins(&self.pool, asset_id).await
     }
 
@@ -275,10 +255,11 @@ async fn insert_cat_coin(
 async fn spendable_cat_coins(
     conn: impl SqliteExecutor<'_>,
     asset_id: Bytes32,
-) -> Result<Vec<CatCoin>> {
+) -> Result<Vec<CatCoinRow>> {
     let asset_id = asset_id.as_ref();
 
-    let rows = sqlx::query!(
+    let rows = sqlx::query_as!(
+        CatCoinSql,
         "
         SELECT
             cs.`parent_coin_id`, cs.`puzzle_hash`, cs.`amount`, `p2_puzzle_hash`,
@@ -296,19 +277,7 @@ async fn spendable_cat_coins(
     .fetch_all(conn)
     .await?;
 
-    rows.into_iter()
-        .map(|row| {
-            Ok(CatCoin {
-                coin: to_coin(&row.parent_coin_id, &row.puzzle_hash, &row.amount)?,
-                lineage_proof: to_lineage_proof(
-                    &row.parent_parent_coin_id,
-                    &row.parent_inner_puzzle_hash,
-                    &row.parent_amount,
-                )?,
-                p2_puzzle_hash: to_bytes32(&row.p2_puzzle_hash)?,
-            })
-        })
-        .collect()
+    rows.into_iter().map(|sql| sql.into_row()).collect()
 }
 
 async fn cat_balance(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<u128> {
@@ -339,39 +308,27 @@ async fn cat_coin_states(
 ) -> Result<Vec<CoinStateRow>> {
     let asset_id = asset_id.as_ref();
 
-    let rows = sqlx::query!(
+    let rows = sqlx::query_as!(
+        CoinStateSql,
         "
-        SELECT
-            cs.parent_coin_id, cs.puzzle_hash, cs.amount,
-            cs.spent_height, cs.created_height, cs.transaction_id
-        FROM `coin_states` AS cs
-        INNER JOIN `cat_coins` AS cat
-        ON cs.coin_id = cat.coin_id
-        WHERE cat.asset_id = ?
+        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `spent_height`, `created_height`, `transaction_id`
+        FROM `cat_coins`
+        INNER JOIN `coin_states` ON `coin_states`.coin_id = `cat_coins`.coin_id
+        WHERE `asset_id` = ?
         ",
         asset_id
     )
     .fetch_all(conn)
     .await?;
 
-    rows.into_iter()
-        .map(|row| {
-            Ok(CoinStateRow {
-                coin_state: to_coin_state(
-                    to_coin(&row.parent_coin_id, &row.puzzle_hash, &row.amount)?,
-                    row.created_height,
-                    row.spent_height,
-                )?,
-                transaction_id: row.transaction_id.map(|id| to_bytes32(&id)).transpose()?,
-            })
-        })
-        .collect()
+    rows.into_iter().map(|sql| sql.into_row()).collect()
 }
 
 async fn cat_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Option<Cat>> {
     let coin_id = coin_id.as_ref();
 
-    let row = sqlx::query!(
+    let row = sqlx::query_as!(
+        FullCatCoinSql,
         "
         SELECT
             `parent_coin_id`, `puzzle_hash`, `amount`,
@@ -386,17 +343,5 @@ async fn cat_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Opt
     .fetch_optional(conn)
     .await?;
 
-    row.map(|row| {
-        Ok(Cat {
-            coin: to_coin(&row.parent_coin_id, &row.puzzle_hash, &row.amount)?,
-            asset_id: to_bytes32(&row.asset_id)?,
-            p2_puzzle_hash: to_bytes32(&row.p2_puzzle_hash)?,
-            lineage_proof: Some(to_lineage_proof(
-                &row.parent_parent_coin_id,
-                &row.parent_inner_puzzle_hash,
-                &row.parent_amount,
-            )?),
-        })
-    })
-    .transpose()
+    row.map(|sql| sql.into_row()).transpose()
 }
