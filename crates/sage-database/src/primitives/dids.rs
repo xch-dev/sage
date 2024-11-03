@@ -7,15 +7,6 @@ use sqlx::SqliteExecutor;
 
 use crate::{to_bytes, to_bytes32, Database, DatabaseTx, Result};
 
-#[derive(Debug, Clone)]
-pub struct DidRow {
-    pub did: Did<Program>,
-    pub name: Option<String>,
-    pub visible: bool,
-    pub create_transaction_id: Option<Bytes32>,
-    pub created_height: Option<u32>,
-}
-
 impl Database {
     pub async fn insert_new_did(
         &self,
