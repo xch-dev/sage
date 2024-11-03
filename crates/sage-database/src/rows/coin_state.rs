@@ -18,7 +18,7 @@ pub struct CoinStateRow {
 }
 
 impl CoinStateSql {
-    pub(crate) fn into_row(self) -> Result<CoinStateRow, DatabaseError> {
+    pub fn into_row(self) -> Result<CoinStateRow, DatabaseError> {
         Ok(CoinStateRow {
             coin_state: CoinState {
                 coin: Coin {

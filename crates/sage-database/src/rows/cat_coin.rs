@@ -35,7 +35,7 @@ pub struct CatCoinRow {
 }
 
 impl CatCoinSql {
-    pub(crate) fn into_row(self) -> Result<CatCoinRow, DatabaseError> {
+    pub fn into_row(self) -> Result<CatCoinRow, DatabaseError> {
         Ok(CatCoinRow {
             coin: Coin {
                 parent_coin_info: to_bytes32(&self.parent_coin_id)?,

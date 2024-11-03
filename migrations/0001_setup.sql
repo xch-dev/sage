@@ -69,10 +69,13 @@ CREATE TABLE `cats` (
     `asset_id` BLOB NOT NULL PRIMARY KEY,
     `name` TEXT,
     `ticker` TEXT,
+    `visible` BOOLEAN NOT NULL,
+    `icon` TEXT,
     `description` TEXT,
-    `icon_url` TEXT,
-    `visible` BOOLEAN NOT NULL
+    `is_named` BOOLEAN GENERATED ALWAYS AS (`name` IS NOT NULL) STORED
 );
+
+CREATE INDEX `cat_name` ON `cats` (`visible` DESC, `is_named` DESC, `name` ASC, `asset_id` ASC);
 
 CREATE TABLE `cat_coins` (
     `coin_id` BLOB NOT NULL PRIMARY KEY,
@@ -84,7 +87,6 @@ CREATE TABLE `cat_coins` (
     FOREIGN KEY (`coin_id`) REFERENCES `coin_states` (`coin_id`) ON DELETE CASCADE
 );
 
-CREATE INDEX `cat_p2` ON `cat_coins` (`p2_puzzle_hash`);
 CREATE INDEX `cat_asset_id` ON `cat_coins` (`asset_id`);
 
 CREATE TABLE `dids` (
@@ -94,7 +96,7 @@ CREATE TABLE `dids` (
     `is_named` BOOLEAN GENERATED ALWAYS AS (`name` IS NOT NULL) STORED
 );
 
-CREATE INDEX `did_index` ON `dids` (`visible` DESC, `is_named` DESC, `name` ASC);
+CREATE INDEX `did_name` ON `dids` (`visible` DESC, `is_named` DESC, `name` ASC, `launcher_id` ASC);
 
 CREATE TABLE `did_coins` (
     `coin_id` BLOB NOT NULL PRIMARY KEY,
@@ -110,19 +112,18 @@ CREATE TABLE `did_coins` (
 );
 
 CREATE INDEX `did_launcher_id` ON `did_coins` (`launcher_id`);
-CREATE INDEX `did_p2` ON `did_coins` (`p2_puzzle_hash`);
 
-CREATE TABLE `nft_collections` (
+CREATE TABLE `collections` (
     `collection_id` BLOB NOT NULL PRIMARY KEY,
     `did_id` BLOB NOT NULL,
     `metadata_collection_id` TEXT NOT NULL,
+    `name` TEXT,
     `visible` BOOLEAN NOT NULL,
     `icon` TEXT,
-    `name` TEXT,
     `is_named` BOOLEAN GENERATED ALWAYS AS (`name` IS NOT NULL) STORED
 );
 
-CREATE INDEX `col_named` ON `nft_collections` (`visible` DESC, `is_named` DESC, `name` ASC, `collection_id` ASC);
+CREATE INDEX `col_name` ON `collections` (`visible` DESC, `is_named` DESC, `name` ASC, `collection_id` ASC);
 
 CREATE TABLE `nfts` (
     `launcher_id` BLOB NOT NULL PRIMARY KEY,
@@ -141,9 +142,9 @@ CREATE TABLE `nfts` (
 );
 
 CREATE INDEX `nft_metadata` ON `nfts` (`metadata_hash`);
-CREATE INDEX `nft_named` ON `nfts` (`visible` DESC, `is_named` DESC, `name` ASC, `launcher_id` ASC);
+CREATE INDEX `nft_name` ON `nfts` (`visible` DESC, `is_named` DESC, `name` ASC, `launcher_id` ASC);
 CREATE INDEX `nft_recent` ON `nfts` (`visible` DESC, `is_pending` DESC, `created_height` DESC, `launcher_id` ASC);
-CREATE INDEX `nft_col_named` ON `nfts` (`collection_id`, `visible` DESC, `is_named` DESC, `name` ASC, `launcher_id` ASC);
+CREATE INDEX `nft_col_name` ON `nfts` (`collection_id`, `visible` DESC, `is_named` DESC, `name` ASC, `launcher_id` ASC);
 CREATE INDEX `nft_col_recent` ON `nfts` (`collection_id`, `visible` DESC, `is_pending` DESC, `created_height` DESC, `launcher_id` ASC);
 
 CREATE TABLE `nft_coins` (
@@ -165,7 +166,6 @@ CREATE TABLE `nft_coins` (
 );
 
 CREATE INDEX `nft_launcher_id` ON `nft_coins` (`launcher_id`);
-CREATE INDEX `nft_p2` ON `nft_coins` (`p2_puzzle_hash`);
 
 CREATE TABLE `nft_data` (
     `hash` BLOB NOT NULL PRIMARY KEY,

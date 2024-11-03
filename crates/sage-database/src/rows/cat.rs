@@ -22,7 +22,7 @@ pub struct CatRow {
 }
 
 impl CatSql {
-    pub(crate) fn into_row(&self) -> Result<CatRow, DatabaseError> {
+    pub fn into_row(&self) -> Result<CatRow, DatabaseError> {
         Ok(CatRow {
             asset_id: to_bytes32(&self.asset_id)?,
             name: self.name.clone(),
