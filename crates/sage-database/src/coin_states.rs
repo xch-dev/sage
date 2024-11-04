@@ -7,6 +7,10 @@ impl Database {
     pub async fn unsynced_coin_states(&self, limit: usize) -> Result<Vec<CoinState>> {
         unsynced_coin_states(&self.pool, limit).await
     }
+
+    pub async fn coin_state(&self, coin_id: Bytes32) -> Result<Option<CoinState>> {
+        coin_state(&self.pool, coin_id).await
+    }
 }
 
 impl<'a> DatabaseTx<'a> {

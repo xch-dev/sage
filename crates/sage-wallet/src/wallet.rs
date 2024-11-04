@@ -744,7 +744,7 @@ impl Wallet {
         hardened: bool,
         reuse: bool,
     ) -> Result<(Vec<CoinSpend>, Vec<Nft<NftMetadata>>, Did<Program>), WalletError> {
-        let Some(did) = self.db.did(did_id).await? else {
+        let Some(did) = self.db.spendable_did(did_id).await? else {
             return Err(WalletError::MissingDid(did_id));
         };
 
@@ -863,7 +863,7 @@ impl Wallet {
         hardened: bool,
         reuse: bool,
     ) -> Result<(Vec<CoinSpend>, Did<Program>), WalletError> {
-        let Some(did) = self.db.did(did_id).await? else {
+        let Some(did) = self.db.spendable_did(did_id).await? else {
             return Err(WalletError::MissingDid(did_id));
         };
 

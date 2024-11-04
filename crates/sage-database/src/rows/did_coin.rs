@@ -1,5 +1,5 @@
 use chia::{
-    protocol::{Coin, Program},
+    protocol::{Bytes32, Coin, Program},
     puzzles::{LineageProof, Proof},
 };
 use chia_wallet_sdk::{Did, DidInfo};
@@ -20,6 +20,23 @@ pub(crate) struct FullDidCoinSql {
     pub num_verifications_required: Vec<u8>,
     pub metadata: Vec<u8>,
     pub p2_puzzle_hash: Vec<u8>,
+}
+
+pub(crate) struct DidCoinInfoSql {
+    pub coin_id: Vec<u8>,
+    pub amount: Vec<u8>,
+    pub p2_puzzle_hash: Vec<u8>,
+    pub created_height: Option<i64>,
+    pub transaction_id: Option<Vec<u8>>,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct DidCoinInfo {
+    pub coin_id: Bytes32,
+    pub amount: u64,
+    pub p2_puzzle_hash: Bytes32,
+    pub created_height: Option<u32>,
+    pub transaction_id: Option<Bytes32>,
 }
 
 impl IntoRow for FullDidCoinSql {
@@ -48,6 +65,20 @@ impl IntoRow for FullDidCoinSql {
                 metadata: self.metadata.into(),
                 p2_puzzle_hash: to_bytes32(&self.p2_puzzle_hash)?,
             },
+        })
+    }
+}
+
+impl IntoRow for DidCoinInfoSql {
+    type Row = DidCoinInfo;
+
+    fn into_row(self) -> Result<DidCoinInfo, DatabaseError> {
+        Ok(DidCoinInfo {
+            coin_id: to_bytes32(&self.coin_id)?,
+            amount: to_u64(&self.amount)?,
+            p2_puzzle_hash: to_bytes32(&self.p2_puzzle_hash)?,
+            created_height: self.created_height.map(TryInto::try_into).transpose()?,
+            transaction_id: self.transaction_id.as_deref().map(to_bytes32).transpose()?,
         })
     }
 }

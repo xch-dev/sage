@@ -13,7 +13,7 @@ use sage_api::{
     NftCollectionRecord, NftInfo, NftRecord, NftSortMode, NftStatus, PendingTransactionRecord,
     SyncStatus,
 };
-use sage_database::{DidRow, NftData, NftRow};
+use sage_database::{NftData, NftRow};
 use sage_wallet::WalletError;
 use specta::specta;
 use tauri::{command, State};
@@ -220,35 +220,29 @@ pub async fn get_dids(state: State<'_, AppState>) -> Result<Vec<DidRecord>> {
     let state = state.lock().await;
     let wallet = state.wallet()?;
 
-    wallet
-        .db
-        .did_coins()
-        .await?
-        .into_iter()
-        .map(
-            |DidRow {
-                 did,
-                 name,
-                 visible,
-                 created_height,
-                 create_transaction_id,
-             }| {
-                Ok(DidRecord {
-                    launcher_id: encode_address(did.info.launcher_id.to_bytes(), "did:chia:")?,
-                    name,
-                    visible,
-                    coin_id: hex::encode(did.coin.coin_id()),
-                    address: encode_address(
-                        did.info.p2_puzzle_hash.to_bytes(),
-                        &state.network().address_prefix,
-                    )?,
-                    amount: Amount::from_mojos(did.coin.amount as u128, state.unit.decimals),
-                    created_height,
-                    create_transaction_id: create_transaction_id.map(hex::encode),
-                })
-            },
-        )
-        .collect()
+    let mut records = Vec::new();
+
+    for row in wallet.db.dids_by_name().await? {
+        let Some(did) = wallet.db.did_coin_info(row.launcher_id).await? else {
+            continue;
+        };
+
+        records.push(DidRecord {
+            launcher_id: encode_address(row.launcher_id.to_bytes(), "did:chia:")?,
+            name: row.name,
+            visible: row.visible,
+            coin_id: hex::encode(did.coin_id),
+            address: encode_address(
+                did.p2_puzzle_hash.to_bytes(),
+                &state.network().address_prefix,
+            )?,
+            amount: Amount::from_mojos(did.amount as u128, state.unit.decimals),
+            created_height: did.created_height,
+            create_transaction_id: did.transaction_id.map(hex::encode),
+        });
+    }
+
+    Ok(records)
 }
 
 #[command]

@@ -10,6 +10,7 @@ mod wallet;
 
 pub use child_kind::*;
 pub use coin_kind::*;
+pub use database::*;
 pub use error::*;
 pub use queues::*;
 pub use sync_manager::*;

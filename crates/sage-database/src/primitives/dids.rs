@@ -5,7 +5,10 @@ use chia::{
 use chia_wallet_sdk::{Did, DidInfo};
 use sqlx::SqliteExecutor;
 
-use crate::{into_row, Database, DatabaseTx, DidRow, DidSql, FullDidCoinSql, IntoRow, Result};
+use crate::{
+    into_row, Database, DatabaseTx, DidCoinInfo, DidCoinInfoSql, DidRow, DidSql, FullDidCoinSql,
+    IntoRow, Result,
+};
 
 impl Database {
     pub async fn insert_new_did(
@@ -30,8 +33,12 @@ impl Database {
         dids_by_name(&self.pool).await
     }
 
-    pub async fn did(&self, did_id: Bytes32) -> Result<Option<Did<Program>>> {
-        did(&self.pool, did_id).await
+    pub async fn did_coin_info(&self, did_id: Bytes32) -> Result<Option<DidCoinInfo>> {
+        did_coin_info(&self.pool, did_id).await
+    }
+
+    pub async fn spendable_did(&self, did_id: Bytes32) -> Result<Option<Did<Program>>> {
+        spendable_did(&self.pool, did_id).await
     }
 
     pub async fn did_name(&self, launcher_id: Bytes32) -> Result<Option<String>> {
@@ -178,7 +185,36 @@ async fn dids_by_name(conn: impl SqliteExecutor<'_>) -> Result<Vec<DidRow>> {
     .collect()
 }
 
-async fn did(conn: impl SqliteExecutor<'_>, did_id: Bytes32) -> Result<Option<Did<Program>>> {
+async fn did_coin_info(
+    conn: impl SqliteExecutor<'_>,
+    did_id: Bytes32,
+) -> Result<Option<DidCoinInfo>> {
+    let did_id = did_id.as_ref();
+
+    let Some(sql) = sqlx::query_as!(
+        DidCoinInfoSql,
+        "
+        SELECT
+            `did_coins`.`coin_id`, `amount`, `p2_puzzle_hash`, `created_height`, `transaction_id`
+        FROM `did_coins`
+        INNER JOIN `coin_states` ON `coin_states`.coin_id = `did_coins`.coin_id
+        WHERE `launcher_id` = ?
+        ",
+        did_id
+    )
+    .fetch_optional(conn)
+    .await?
+    else {
+        return Ok(None);
+    };
+
+    Ok(Some(sql.into_row()?))
+}
+
+async fn spendable_did(
+    conn: impl SqliteExecutor<'_>,
+    did_id: Bytes32,
+) -> Result<Option<Did<Program>>> {
     let did_id = did_id.as_ref();
 
     let Some(sql) = sqlx::query_as!(
