@@ -345,15 +345,8 @@ async fn collection(
     sqlx::query_as!(
         CollectionSql,
         "
-        SELECT
-            `collection_id`,
-            `did_id`,
-            `metadata_collection_id`,
-            `visible`,
-            `name`,
-            `icon`
-        FROM `collections`
-        WHERE `collection_id` = ?
+        SELECT `collection_id`, `did_id`, `metadata_collection_id`, `visible`, `name`, `icon`
+        FROM `collections` WHERE `collection_id` = ?
         ",
         collection_id
     )
@@ -370,13 +363,7 @@ async fn collections_visible_named(
     sqlx::query_as!(
         CollectionSql,
         "
-        SELECT
-            `collection_id`,
-            `did_id`,
-            `metadata_collection_id`,
-            `visible`,
-            `name`,
-            `icon`
+        SELECT `collection_id`, `did_id`, `metadata_collection_id`, `visible`, `name`, `icon`
         FROM `collections` INDEXED BY `col_name`
         WHERE `visible` = 1
         ORDER BY `is_named` DESC, `name` ASC, `collection_id` ASC
@@ -400,13 +387,7 @@ async fn collections_named(
     sqlx::query_as!(
         CollectionSql,
         "
-        SELECT
-            `collection_id`,
-            `did_id`,
-            `metadata_collection_id`,
-            `visible`,
-            `name`,
-            `icon`
+        SELECT `collection_id`, `did_id`, `metadata_collection_id`, `visible`, `name`, `icon`
         FROM `collections` INDEXED BY `col_name`
         ORDER BY `visible` DESC, `is_named` DESC, `name` ASC, `collection_id` ASC
         LIMIT ? OFFSET ?
@@ -672,16 +653,8 @@ async fn nft_row(conn: impl SqliteExecutor<'_>, launcher_id: Bytes32) -> Result<
     let Some(row) = sqlx::query!(
         "
         SELECT
-            `launcher_id`,
-            `coin_id`,
-            `collection_id`,
-            `minter_did`,
-            `owner_did`,
-            `visible`,
-            `sensitive_content`,
-            `name`,
-            `created_height`,
-            `metadata_hash`
+            `launcher_id`, `coin_id`, `collection_id`, `minter_did`, `owner_did`,
+            `visible`, `sensitive_content`, `name`, `created_height`, `metadata_hash`
         FROM `nfts`
         WHERE `launcher_id` = ?
         ",
@@ -745,19 +718,10 @@ async fn spendable_nft(
         FullNftCoinSql,
         "
         SELECT
-            `coin_states`.`parent_coin_id`,
-            `coin_states`.`puzzle_hash`,
-            `coin_states`.`amount`,
-            `parent_parent_coin_id`,
-            `parent_inner_puzzle_hash`,
-            `parent_amount`,
-            `launcher_id`,
-            `metadata`,
-            `metadata_updater_puzzle_hash`,
-            `current_owner`,
-            `royalty_puzzle_hash`,
-            `royalty_ten_thousandths`,
-            `p2_puzzle_hash`
+            `coin_states`.`parent_coin_id`, `coin_states`.`puzzle_hash`, `coin_states`.`amount`,
+            `parent_parent_coin_id`, `parent_inner_puzzle_hash`, `parent_amount`,
+            `launcher_id`, `metadata`, `metadata_updater_puzzle_hash`, `current_owner`,
+            `royalty_puzzle_hash`, `royalty_ten_thousandths`, `p2_puzzle_hash`
         FROM `nft_coins`
         INNER JOIN `coin_states` INDEXED BY `coin_height` ON `nft_coins`.`coin_id` = `coin_states`.`coin_id`
         LEFT JOIN `transaction_spends` ON `coin_states`.`coin_id` = `transaction_spends`.`coin_id`
@@ -785,19 +749,10 @@ async fn nft(conn: impl SqliteExecutor<'_>, launcher_id: Bytes32) -> Result<Opti
         FullNftCoinSql,
         "
         SELECT
-            `coin_states`.`parent_coin_id`,
-            `coin_states`.`puzzle_hash`,
-            `coin_states`.`amount`,
-            `parent_parent_coin_id`,
-            `parent_inner_puzzle_hash`,
-            `parent_amount`,
-            `launcher_id`,
-            `metadata`,
-            `metadata_updater_puzzle_hash`,
-            `current_owner`,
-            `royalty_puzzle_hash`,
-            `royalty_ten_thousandths`,
-            `p2_puzzle_hash`
+            `coin_states`.`parent_coin_id`, `coin_states`.`puzzle_hash`, `coin_states`.`amount`,
+            `parent_parent_coin_id`, `parent_inner_puzzle_hash`, `parent_amount`,
+            `launcher_id`, `metadata`, `metadata_updater_puzzle_hash`, `current_owner`,
+            `royalty_puzzle_hash`, `royalty_ten_thousandths`, `p2_puzzle_hash`
         FROM `nft_coins`
         INNER JOIN `coin_states` INDEXED BY `coin_height` ON `nft_coins`.`coin_id` = `coin_states`.`coin_id`
         LEFT JOIN `transaction_spends` ON `coin_states`.`coin_id` = `transaction_spends`.`coin_id`
