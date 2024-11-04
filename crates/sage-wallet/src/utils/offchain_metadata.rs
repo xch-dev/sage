@@ -1,5 +1,5 @@
 use chia::{protocol::Bytes32, sha2::Sha256};
-use sage_database::NftCollectionRow;
+use sage_database::CollectionRow;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -40,7 +40,7 @@ struct Attribute {
 pub struct ComputedNftInfo {
     pub name: Option<String>,
     pub sensitive_content: bool,
-    pub collection: Option<NftCollectionRow>,
+    pub collection: Option<CollectionRow>,
 }
 
 pub fn compute_nft_info(did_id: Option<Bytes32>, blob: Option<&[u8]>) -> ComputedNftInfo {
@@ -57,7 +57,7 @@ pub fn compute_nft_info(did_id: Option<Bytes32>, blob: Option<&[u8]>) -> Compute
         }),
     ) = (did_id, json.collection)
     {
-        Some(NftCollectionRow {
+        Some(CollectionRow {
             collection_id: calculate_collection_id(did_id, &metadata_collection_id),
             did_id,
             metadata_collection_id,

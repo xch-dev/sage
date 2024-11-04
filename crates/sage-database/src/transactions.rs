@@ -69,7 +69,10 @@ impl<'a> DatabaseTx<'a> {
         remove_transaction(&mut *self.tx, transaction_id).await
     }
 
-    pub async fn transaction_for_spent_coin(&mut self, coin_id: Bytes32) -> Result<Vec<Bytes32>> {
+    pub async fn transaction_for_spent_coin(
+        &mut self,
+        coin_id: Bytes32,
+    ) -> Result<Option<Bytes32>> {
         transaction_for_spent_coin(&mut *self.tx, coin_id).await
     }
 }
@@ -321,10 +324,10 @@ async fn confirm_coins(conn: impl SqliteExecutor<'_>, transaction_id: Bytes32) -
 async fn transaction_for_spent_coin(
     conn: impl SqliteExecutor<'_>,
     coin_id: Bytes32,
-) -> Result<Vec<Bytes32>> {
+) -> Result<Option<Bytes32>> {
     let coin_id = coin_id.as_ref();
 
-    let rows = sqlx::query!(
+    let Some(row) = sqlx::query!(
         "
         SELECT `transaction_id`
         FROM `transaction_spends`
@@ -332,10 +335,11 @@ async fn transaction_for_spent_coin(
         ",
         coin_id
     )
-    .fetch_all(conn)
-    .await?;
+    .fetch_optional(conn)
+    .await?
+    else {
+        return Ok(None);
+    };
 
-    rows.into_iter()
-        .map(|row| to_bytes32(&row.transaction_id))
-        .collect()
+    Ok(Some(to_bytes32(&row.transaction_id)?))
 }

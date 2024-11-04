@@ -6,6 +6,8 @@ use chia_wallet_sdk::Cat;
 
 use crate::{to_bytes32, to_u64, DatabaseError};
 
+use super::IntoRow;
+
 pub(crate) struct CatCoinSql {
     pub parent_coin_id: Vec<u8>,
     pub puzzle_hash: Vec<u8>,
@@ -34,8 +36,10 @@ pub struct CatCoinRow {
     pub p2_puzzle_hash: Bytes32,
 }
 
-impl CatCoinSql {
-    pub fn into_row(self) -> Result<CatCoinRow, DatabaseError> {
+impl IntoRow for CatCoinSql {
+    type Row = CatCoinRow;
+
+    fn into_row(self) -> Result<CatCoinRow, DatabaseError> {
         Ok(CatCoinRow {
             coin: Coin {
                 parent_coin_info: to_bytes32(&self.parent_coin_id)?,
@@ -52,8 +56,10 @@ impl CatCoinSql {
     }
 }
 
-impl FullCatCoinSql {
-    pub(crate) fn into_row(self) -> Result<Cat, DatabaseError> {
+impl IntoRow for FullCatCoinSql {
+    type Row = Cat;
+
+    fn into_row(self) -> Result<Cat, DatabaseError> {
         Ok(Cat {
             coin: Coin {
                 parent_coin_info: to_bytes32(&self.parent_coin_id)?,

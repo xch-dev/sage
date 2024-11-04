@@ -6,6 +6,8 @@ use chia_wallet_sdk::{Nft, NftInfo};
 
 use crate::{to_bytes32, to_u64, DatabaseError};
 
+use super::IntoRow;
+
 pub(crate) struct FullNftCoinSql {
     pub parent_coin_id: Vec<u8>,
     pub puzzle_hash: Vec<u8>,
@@ -22,8 +24,10 @@ pub(crate) struct FullNftCoinSql {
     pub p2_puzzle_hash: Vec<u8>,
 }
 
-impl FullNftCoinSql {
-    pub fn into_row(self) -> Result<Nft<Program>, DatabaseError> {
+impl IntoRow for FullNftCoinSql {
+    type Row = Nft<Program>;
+
+    fn into_row(self) -> Result<Nft<Program>, DatabaseError> {
         Ok(Nft {
             coin: Coin {
                 parent_coin_info: to_bytes32(&self.parent_coin_id)?,

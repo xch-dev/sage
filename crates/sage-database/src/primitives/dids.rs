@@ -1,11 +1,11 @@
 use chia::{
     protocol::{Bytes32, Program},
-    puzzles::{LineageProof, Proof},
+    puzzles::LineageProof,
 };
 use chia_wallet_sdk::{Did, DidInfo};
 use sqlx::SqliteExecutor;
 
-use crate::{to_bytes, to_bytes32, Database, DatabaseTx, Result};
+use crate::{into_row, Database, DatabaseTx, DidRow, DidSql, FullDidCoinSql, IntoRow, Result};
 
 impl Database {
     pub async fn insert_new_did(
@@ -26,8 +26,8 @@ impl Database {
         update_did(&self.pool, launcher_id, name, visible).await
     }
 
-    pub async fn did_coins(&self) -> Result<Vec<DidRow>> {
-        did_coins(&self.pool).await
+    pub async fn dids_by_name(&self) -> Result<Vec<DidRow>> {
+        dids_by_name(&self.pool).await
     }
 
     pub async fn did(&self, did_id: Bytes32) -> Result<Option<Did<Program>>> {
@@ -162,66 +162,27 @@ async fn insert_did_coin(
     Ok(())
 }
 
-async fn did_coins(conn: impl SqliteExecutor<'_>) -> Result<Vec<DidRow>> {
-    let rows = sqlx::query!(
+async fn dids_by_name(conn: impl SqliteExecutor<'_>) -> Result<Vec<DidRow>> {
+    sqlx::query_as!(
+        DidSql,
         "
-        SELECT
-            cs.parent_coin_id, cs.puzzle_hash, cs.amount,
-            cs.transaction_id AS create_transaction_id, cs.created_height,
-            did.parent_parent_coin_id, did.parent_inner_puzzle_hash, did.parent_amount,
-            did.launcher_id, did.recovery_list_hash, did.num_verifications_required,
-            did.metadata, did.p2_puzzle_hash, name, visible
-        FROM `coin_states` AS cs
-        INNER JOIN `did_coins` AS did ON cs.coin_id = did.coin_id
-        INNER JOIN `dids` ON did.launcher_id = dids.launcher_id
-        LEFT JOIN `transaction_spends` ON cs.coin_id = transaction_spends.coin_id
-        WHERE cs.spent_height IS NULL
-        AND transaction_spends.transaction_id IS NULL
+        SELECT `launcher_id`, `name`, `visible`
+        FROM `dids` INDEXED BY `did_name`
+        ORDER BY `visible` DESC, `is_named` DESC, `name` ASC, `launcher_id` ASC
         "
     )
     .fetch_all(conn)
-    .await?;
-
-    rows.into_iter()
-        .map(|row| {
-            Ok(DidRow {
-                did: Did {
-                    coin: to_coin(&row.parent_coin_id, &row.puzzle_hash, &row.amount)?,
-                    proof: Proof::Lineage(to_lineage_proof(
-                        &row.parent_parent_coin_id,
-                        &row.parent_inner_puzzle_hash,
-                        &row.parent_amount,
-                    )?),
-                    info: DidInfo::<Program> {
-                        launcher_id: to_bytes32(&row.launcher_id)?,
-                        recovery_list_hash: row
-                            .recovery_list_hash
-                            .map(|hash| to_bytes32(&hash))
-                            .transpose()?,
-                        num_verifications_required: u64::from_be_bytes(to_bytes(
-                            &row.num_verifications_required,
-                        )?),
-                        metadata: row.metadata.into(),
-                        p2_puzzle_hash: to_bytes32(&row.p2_puzzle_hash)?,
-                    },
-                },
-                name: row.name,
-                visible: row.visible,
-                create_transaction_id: row
-                    .create_transaction_id
-                    .as_deref()
-                    .map(to_bytes32)
-                    .transpose()?,
-                created_height: row.created_height.map(TryInto::try_into).transpose()?,
-            })
-        })
-        .collect()
+    .await?
+    .into_iter()
+    .map(into_row)
+    .collect()
 }
 
 async fn did(conn: impl SqliteExecutor<'_>, did_id: Bytes32) -> Result<Option<Did<Program>>> {
     let did_id = did_id.as_ref();
 
-    let Some(row) = sqlx::query!(
+    let Some(sql) = sqlx::query_as!(
+        FullDidCoinSql,
         "
         SELECT
             cs.parent_coin_id, cs.puzzle_hash, cs.amount,
@@ -245,26 +206,7 @@ async fn did(conn: impl SqliteExecutor<'_>, did_id: Bytes32) -> Result<Option<Di
         return Ok(None);
     };
 
-    Ok(Some(Did {
-        coin: to_coin(&row.parent_coin_id, &row.puzzle_hash, &row.amount)?,
-        proof: Proof::Lineage(to_lineage_proof(
-            &row.parent_parent_coin_id,
-            &row.parent_inner_puzzle_hash,
-            &row.parent_amount,
-        )?),
-        info: DidInfo::<Program> {
-            launcher_id: to_bytes32(&row.launcher_id)?,
-            recovery_list_hash: row
-                .recovery_list_hash
-                .map(|hash| to_bytes32(&hash))
-                .transpose()?,
-            num_verifications_required: u64::from_be_bytes(to_bytes(
-                &row.num_verifications_required,
-            )?),
-            metadata: row.metadata.into(),
-            p2_puzzle_hash: to_bytes32(&row.p2_puzzle_hash)?,
-        },
-    }))
+    Ok(Some(sql.into_row()?))
 }
 
 async fn did_name(conn: impl SqliteExecutor<'_>, launcher_id: Bytes32) -> Result<Option<String>> {

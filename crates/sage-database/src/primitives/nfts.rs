@@ -6,7 +6,8 @@ use chia_wallet_sdk::{Nft, NftInfo};
 use sqlx::SqliteExecutor;
 
 use crate::{
-    to_bytes32, CollectionRow, CollectionSql, Database, DatabaseTx, FullNftCoinSql, Result,
+    into_row, to_bytes32, CollectionRow, CollectionSql, Database, DatabaseTx, FullNftCoinSql,
+    IntoRow, Result,
 };
 
 #[derive(Debug, Clone)]
@@ -387,7 +388,7 @@ async fn collections_visible_named(
     .fetch_all(conn)
     .await?
     .into_iter()
-    .map(|sql| sql.into_row())
+    .map(into_row)
     .collect()
 }
 
@@ -416,7 +417,7 @@ async fn collections_named(
     .fetch_all(conn)
     .await?
     .into_iter()
-    .map(|sql| sql.into_row())
+    .map(into_row)
     .collect()
 }
 

@@ -19,3 +19,15 @@ pub use nft::*;
 pub use nft_coin::*;
 pub use nft_data::*;
 pub use nft_uri::*;
+
+use crate::DatabaseError;
+
+pub(crate) trait IntoRow {
+    type Row;
+
+    fn into_row(self) -> Result<Self::Row, DatabaseError>;
+}
+
+pub(crate) fn into_row<T: IntoRow>(t: T) -> Result<T::Row, DatabaseError> {
+    t.into_row()
+}

@@ -2,6 +2,8 @@ use chia::protocol::Bytes32;
 
 use crate::{to_bytes32, DatabaseError};
 
+use super::IntoRow;
+
 pub(crate) struct CollectionSql {
     pub collection_id: Vec<u8>,
     pub did_id: Vec<u8>,
@@ -21,8 +23,10 @@ pub struct CollectionRow {
     pub icon: Option<String>,
 }
 
-impl CollectionSql {
-    pub fn into_row(&self) -> Result<CollectionRow, DatabaseError> {
+impl IntoRow for CollectionSql {
+    type Row = CollectionRow;
+
+    fn into_row(self) -> Result<CollectionRow, DatabaseError> {
         Ok(CollectionRow {
             collection_id: to_bytes32(&self.collection_id)?,
             did_id: to_bytes32(&self.did_id)?,

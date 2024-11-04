@@ -2,6 +2,8 @@ use chia::protocol::{Bytes32, Coin, CoinState};
 
 use crate::{to_bytes32, to_u64, DatabaseError};
 
+use super::IntoRow;
+
 pub(crate) struct CoinStateSql {
     pub parent_coin_id: Vec<u8>,
     pub puzzle_hash: Vec<u8>,
@@ -23,8 +25,10 @@ pub struct CoinStateRow {
     pub transaction_id: Option<Bytes32>,
 }
 
-impl CoinStateSql {
-    pub fn into_row(self) -> Result<CoinStateRow, DatabaseError> {
+impl IntoRow for CoinStateSql {
+    type Row = CoinStateRow;
+
+    fn into_row(self) -> Result<CoinStateRow, DatabaseError> {
         Ok(CoinStateRow {
             coin_state: CoinState {
                 coin: Coin {
@@ -40,8 +44,10 @@ impl CoinStateSql {
     }
 }
 
-impl CoinSql {
-    pub fn into_row(self) -> Result<Coin, DatabaseError> {
+impl IntoRow for CoinSql {
+    type Row = Coin;
+
+    fn into_row(self) -> Result<Coin, DatabaseError> {
         Ok(Coin {
             parent_coin_info: to_bytes32(&self.parent_coin_id)?,
             puzzle_hash: to_bytes32(&self.puzzle_hash)?,

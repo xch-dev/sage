@@ -1,7 +1,7 @@
 use chia::protocol::{Bytes32, CoinState};
 use sqlx::SqliteExecutor;
 
-use crate::{to_bytes32, CoinStateSql, Database, DatabaseTx, Result};
+use crate::{to_bytes32, CoinStateSql, Database, DatabaseTx, IntoRow, Result};
 
 impl Database {
     pub async fn unsynced_coin_states(&self, limit: usize) -> Result<Vec<CoinState>> {
@@ -19,13 +19,21 @@ impl<'a> DatabaseTx<'a> {
         insert_coin_state(&mut *self.tx, coin_state, synced, transaction_id).await
     }
 
-    pub async fn set_coin_height(
+    pub async fn update_coin_state(
         &mut self,
         coin_id: Bytes32,
         created_height: Option<u32>,
         spent_height: Option<u32>,
+        transaction_id: Option<Bytes32>,
     ) -> Result<()> {
-        set_coin_height(&mut *self.tx, coin_id, created_height, spent_height).await
+        update_coin_state(
+            &mut *self.tx,
+            coin_id,
+            created_height,
+            spent_height,
+            transaction_id,
+        )
+        .await
     }
 
     pub async fn sync_coin(&mut self, coin_id: Bytes32, hint: Option<Bytes32>) -> Result<()> {
@@ -107,21 +115,25 @@ async fn insert_coin_state(
     Ok(())
 }
 
-async fn set_coin_height(
+async fn update_coin_state(
     conn: impl SqliteExecutor<'_>,
     coin_id: Bytes32,
     created_height: Option<u32>,
     spent_height: Option<u32>,
+    transaction_id: Option<Bytes32>,
 ) -> Result<()> {
     let coin_id = coin_id.as_ref();
+    let transaction_id = transaction_id.as_deref();
+
     sqlx::query!(
         "
         UPDATE `coin_states`
-        SET `created_height` = ?, `spent_height` = ?, `transaction_id` = NULL
+        SET `created_height` = ?, `spent_height` = ?, `transaction_id` = ?
         WHERE `coin_id` = ?
         ",
         created_height,
         spent_height,
+        transaction_id,
         coin_id
     )
     .execute(conn)

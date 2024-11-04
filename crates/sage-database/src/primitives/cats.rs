@@ -3,8 +3,8 @@ use chia_wallet_sdk::Cat;
 use sqlx::SqliteExecutor;
 
 use crate::{
-    to_bytes, to_bytes32, CatCoinRow, CatCoinSql, CatRow, CoinStateRow, CoinStateSql, Database,
-    DatabaseTx, FullCatCoinSql, Result,
+    into_row, to_bytes, to_bytes32, CatCoinRow, CatCoinSql, CatRow, CoinStateRow, CoinStateSql,
+    Database, DatabaseTx, FullCatCoinSql, Result,
 };
 
 impl Database {
@@ -277,7 +277,7 @@ async fn spendable_cat_coins(
     .fetch_all(conn)
     .await?;
 
-    rows.into_iter().map(|sql| sql.into_row()).collect()
+    rows.into_iter().map(into_row).collect()
 }
 
 async fn cat_balance(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<u128> {
@@ -321,7 +321,7 @@ async fn cat_coin_states(
     .fetch_all(conn)
     .await?;
 
-    rows.into_iter().map(|sql| sql.into_row()).collect()
+    rows.into_iter().map(into_row).collect()
 }
 
 async fn cat_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Option<Cat>> {
@@ -343,5 +343,5 @@ async fn cat_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Opt
     .fetch_optional(conn)
     .await?;
 
-    row.map(|sql| sql.into_row()).transpose()
+    row.map(into_row).transpose()
 }

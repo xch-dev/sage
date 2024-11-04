@@ -1,5 +1,6 @@
 mod child_kind;
 mod coin_kind;
+mod database;
 mod error;
 mod queues;
 mod sync_manager;

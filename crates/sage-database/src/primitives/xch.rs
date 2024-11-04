@@ -1,7 +1,9 @@
 use chia::protocol::{Bytes32, Coin};
 use sqlx::SqliteExecutor;
 
-use crate::{to_bytes, CoinSql, CoinStateRow, CoinStateSql, Database, DatabaseTx, Result};
+use crate::{
+    into_row, to_bytes, CoinSql, CoinStateRow, CoinStateSql, Database, DatabaseTx, Result,
+};
 
 impl Database {
     pub async fn spendable_coins(&self) -> Result<Vec<Coin>> {
@@ -71,7 +73,7 @@ async fn spendable_coins(conn: impl SqliteExecutor<'_>) -> Result<Vec<Coin>> {
     .fetch_all(conn)
     .await?
     .into_iter()
-    .map(|sql| sql.into_row())
+    .map(into_row)
     .collect()
 }
 
@@ -87,5 +89,5 @@ async fn p2_coin_states(conn: impl SqliteExecutor<'_>) -> Result<Vec<CoinStateRo
     .fetch_all(conn)
     .await?;
 
-    rows.into_iter().map(|sql| sql.into_row()).collect()
+    rows.into_iter().map(into_row).collect()
 }
