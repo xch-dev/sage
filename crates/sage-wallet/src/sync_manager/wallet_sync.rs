@@ -267,15 +267,20 @@ pub async fn incremental_sync(
 
         tx.insert_coin_state(coin_state, is_p2, None).await?;
 
-        tx.set_coin_height(coin_id, coin_state.created_height, coin_state.spent_height)
-            .await?;
+        tx.update_coin_state(
+            coin_id,
+            coin_state.created_height,
+            coin_state.spent_height,
+            None,
+        )
+        .await?;
 
         if is_p2 {
             tx.insert_p2_coin(coin_id).await?;
         }
 
         if coin_state.spent_height.is_some() {
-            for transaction_id in tx.transaction_for_spent_coin(coin_id).await? {
+            if let Some(transaction_id) = tx.transaction_for_spent_coin(coin_id).await? {
                 tx.remove_transaction(transaction_id).await?;
             }
 

@@ -36,6 +36,10 @@ impl<'a> DatabaseTx<'a> {
         .await
     }
 
+    pub async fn delete_coin_state(&mut self, coin_id: Bytes32) -> Result<()> {
+        delete_coin_state(&mut *self.tx, coin_id).await
+    }
+
     pub async fn sync_coin(&mut self, coin_id: Bytes32, hint: Option<Bytes32>) -> Result<()> {
         sync_coin(&mut *self.tx, coin_id, hint).await
     }
@@ -54,10 +58,6 @@ impl<'a> DatabaseTx<'a> {
 
     pub async fn coin_state(&mut self, coin_id: Bytes32) -> Result<Option<CoinState>> {
         coin_state(&mut *self.tx, coin_id).await
-    }
-
-    pub async fn insert_unknown_coin(&mut self, coin_id: Bytes32) -> Result<()> {
-        insert_unknown_coin(&mut *self.tx, coin_id).await
     }
 
     pub async fn unspent_nft_coin_ids(&mut self) -> Result<Vec<Bytes32>> {
@@ -141,18 +141,17 @@ async fn update_coin_state(
     Ok(())
 }
 
-async fn insert_unknown_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<()> {
+async fn delete_coin_state(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<()> {
     let coin_id = coin_id.as_ref();
-
     sqlx::query!(
         "
-        REPLACE INTO `unknown_coins` (`coin_id`) VALUES (?)
+        DELETE FROM `coin_states`
+        WHERE `coin_id` = ?
         ",
         coin_id
     )
     .execute(conn)
     .await?;
-
     Ok(())
 }
 

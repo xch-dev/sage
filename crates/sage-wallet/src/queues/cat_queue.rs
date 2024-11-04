@@ -95,7 +95,7 @@ impl CatQueue {
                 name: asset.name,
                 ticker: asset.code,
                 description: asset.description,
-                icon_url: Some(format!("{dexie_image_base_url}/{asset_id}.webp")),
+                icon: Some(format!("{dexie_image_base_url}/{asset_id}.webp")),
                 visible: true,
             })
             .await?;

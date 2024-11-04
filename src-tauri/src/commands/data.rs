@@ -178,7 +178,7 @@ pub async fn get_cats(state: State<'_, AppState>) -> Result<Vec<CatRecord>> {
             name: cat.name,
             ticker: cat.ticker,
             description: cat.description,
-            icon_url: cat.icon_url,
+            icon_url: cat.icon,
             visible: cat.visible,
             balance: Amount::from_mojos(balance, 3),
         });
@@ -206,7 +206,7 @@ pub async fn get_cat(state: State<'_, AppState>, asset_id: String) -> Result<Opt
             name: cat.name,
             ticker: cat.ticker,
             description: cat.description,
-            icon_url: cat.icon_url,
+            icon_url: cat.icon,
             visible: cat.visible,
             balance: Amount::from_mojos(balance, 3),
         })
@@ -284,9 +284,9 @@ pub async fn get_nft_status(state: State<'_, AppState>) -> Result<NftStatus> {
     let mut tx = wallet.db.tx().await?;
 
     let nfts = tx.nft_count().await?;
-    let collections = tx.nft_collection_count().await?;
+    let collections = tx.collection_count().await?;
     let visible_nfts = tx.visible_nft_count().await?;
-    let visible_collections = tx.visible_nft_collection_count().await?;
+    let visible_collections = tx.visible_collection_count().await?;
 
     tx.commit().await?;
 
@@ -312,10 +312,9 @@ pub async fn get_nft_collections(
     let mut tx = wallet.db.tx().await?;
 
     let collections = if request.include_hidden {
-        tx.nft_collections_named(request.limit, request.offset)
-            .await?
+        tx.collections_named(request.limit, request.offset).await?
     } else {
-        tx.nft_collections_visible_named(request.limit, request.offset)
+        tx.collections_visible_named(request.limit, request.offset)
             .await?
     };
 
@@ -362,7 +361,7 @@ pub async fn get_nft_collection(
     };
 
     let collection = if let Some(collection_id) = collection_id {
-        Some(wallet.db.nft_collection(collection_id).await?)
+        Some(wallet.db.collection(collection_id).await?)
     } else {
         None
     };
@@ -436,7 +435,7 @@ pub async fn get_nfts(state: State<'_, AppState>, request: GetNfts) -> Result<Ve
         };
 
         let collection_name = if let Some(collection_id) = nft.collection_id {
-            tx.nft_collection_name(collection_id).await?
+            tx.collection_name(collection_id).await?
         } else {
             None
         };
@@ -517,7 +516,7 @@ pub async fn get_collection_nfts(
         };
 
         let collection_name = if let Some(collection_id) = nft.collection_id {
-            tx.nft_collection_name(collection_id).await?
+            tx.collection_name(collection_id).await?
         } else {
             None
         };
@@ -572,7 +571,7 @@ pub async fn get_nft(state: State<'_, AppState>, launcher_id: String) -> Result<
     };
 
     let collection_name = if let Some(collection_id) = nft_row.collection_id {
-        tx.nft_collection_name(collection_id).await?
+        tx.collection_name(collection_id).await?
     } else {
         None
     };

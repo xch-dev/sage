@@ -1,7 +1,7 @@
 use chia::protocol::{Bytes32, CoinState};
-use sage_database::DatabaseTx;
+use sage_database::{DatabaseTx, NftRow};
 
-use crate::WalletError;
+use crate::{compute_nft_info, ChildKind, WalletError};
 
 pub async fn upsert_coin(
     tx: &mut DatabaseTx<'_>,
@@ -31,8 +31,128 @@ pub async fn upsert_coin(
         tx.insert_p2_coin(coin_id).await?;
     }
 
+    // If the coin has been spent, we need to handle the side effects.
     if coin_state.spent_height.is_some() {
         spend_coin(tx, coin_id).await?;
+    }
+
+    Ok(())
+}
+
+pub async fn insert_puzzle(
+    tx: &mut DatabaseTx<'_>,
+    coin_state: CoinState,
+    info: ChildKind,
+    minter_did: Option<Bytes32>,
+) -> Result<(), WalletError> {
+    let coin_id = coin_state.coin.coin_id();
+
+    match info {
+        ChildKind::Launcher | ChildKind::Unknown { .. } => {}
+        ChildKind::Cat {
+            asset_id,
+            lineage_proof,
+            p2_puzzle_hash,
+        } => {
+            tx.sync_coin(coin_id, Some(p2_puzzle_hash)).await?;
+            tx.insert_cat_coin(coin_id, lineage_proof, p2_puzzle_hash, asset_id)
+                .await?;
+        }
+        ChildKind::Did {
+            lineage_proof,
+            info,
+        } => {
+            tx.sync_coin(coin_id, Some(info.p2_puzzle_hash)).await?;
+            tx.insert_new_did(info.launcher_id, None, true).await?;
+            tx.insert_did_coin(coin_id, lineage_proof, info).await?;
+        }
+        ChildKind::Nft {
+            lineage_proof,
+            info,
+            metadata,
+        } => {
+            let data_hash = metadata.as_ref().and_then(|m| m.data_hash);
+            let metadata_hash = metadata.as_ref().and_then(|m| m.metadata_hash);
+            let license_hash = metadata.as_ref().and_then(|m| m.license_hash);
+            let launcher_id = info.launcher_id;
+            let owner_did = info.current_owner;
+
+            tx.sync_coin(coin_id, Some(info.p2_puzzle_hash)).await?;
+
+            tx.insert_nft_coin(
+                coin_id,
+                lineage_proof,
+                info,
+                data_hash,
+                metadata_hash,
+                license_hash,
+            )
+            .await?;
+
+            if coin_state.spent_height.is_some() {
+                return Ok(());
+            }
+
+            let mut row = tx.nft_row(launcher_id).await?.unwrap_or(NftRow {
+                launcher_id,
+                coin_id,
+                collection_id: None,
+                minter_did,
+                owner_did,
+                visible: true,
+                sensitive_content: false,
+                name: None,
+                created_height: coin_state.created_height,
+                metadata_hash,
+            });
+
+            let metadata_blob = if let Some(metadata_hash) = metadata_hash {
+                tx.fetch_nft_data(metadata_hash)
+                    .await?
+                    .map(|data| data.blob)
+            } else {
+                None
+            };
+
+            let computed_info = compute_nft_info(minter_did, metadata_blob.as_deref());
+
+            row.coin_id = coin_id;
+            row.sensitive_content = computed_info.sensitive_content;
+            row.name = computed_info.name;
+            row.collection_id = computed_info
+                .collection
+                .as_ref()
+                .map(|col| col.collection_id);
+
+            if let Some(collection) = computed_info.collection {
+                tx.insert_collection(collection).await?;
+            }
+
+            row.owner_did = owner_did;
+            row.created_height = coin_state.created_height;
+
+            tx.insert_nft(row).await?;
+
+            if let Some(metadata) = metadata {
+                if let Some(hash) = data_hash {
+                    for uri in metadata.data_uris {
+                        tx.insert_nft_uri(uri, hash).await?;
+                    }
+                }
+
+                if let Some(hash) = metadata_hash {
+                    for uri in metadata.metadata_uris {
+                        tx.insert_nft_uri(uri, hash).await?;
+                    }
+                }
+
+                if let Some(hash) = license_hash {
+                    for uri in metadata.license_uris {
+                        tx.insert_nft_uri(uri, hash).await?;
+                    }
+                }
+            }
+        }
     }
 
     Ok(())

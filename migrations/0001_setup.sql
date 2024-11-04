@@ -55,11 +55,6 @@ CREATE TABLE `transaction_spends` (
 
 CREATE INDEX `indexed_spend` ON `transaction_spends` (`transaction_id`, `index` ASC);
 
-CREATE TABLE `unknown_coins` (
-    `coin_id` BLOB NOT NULL PRIMARY KEY,
-    FOREIGN KEY (`coin_id`) REFERENCES `coin_states` (`coin_id`) ON DELETE CASCADE
-);
-
 CREATE TABLE `p2_coins` (
     `coin_id` BLOB NOT NULL PRIMARY KEY,
     FOREIGN KEY (`coin_id`) REFERENCES `coin_states` (`coin_id`) ON DELETE CASCADE

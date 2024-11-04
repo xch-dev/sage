@@ -16,8 +16,8 @@ use sage_api::{
 };
 use sage_database::{CatRow, Database};
 use sage_wallet::{
-    compute_nft_info, fetch_uris, insert_transaction, ChildKind, CoinKind, Data, Transaction,
-    Wallet, WalletError, WalletNftMint,
+    compute_nft_info, fetch_uris, insert_transaction, ChildKind, CoinKind, Data, SyncCommand,
+    Transaction, Wallet, WalletError, WalletNftMint,
 };
 use specta::specta;
 use tauri::{command, State};
@@ -280,7 +280,7 @@ pub async fn issue_cat(
             name: Some(name),
             ticker: Some(ticker),
             description: None,
-            icon_url: None,
+            icon: None,
             visible: true,
         })
         .await?;
@@ -594,7 +594,7 @@ pub async fn submit_transaction(
 
     let mut tx = wallet.db.tx().await?;
 
-    insert_transaction(
+    let subscriptions = insert_transaction(
         &mut tx,
         spend_bundle.name(),
         Transaction::from_coin_spends(spend_bundle.coin_spends)?,
@@ -603,6 +603,13 @@ pub async fn submit_transaction(
     .await?;
 
     tx.commit().await?;
+
+    state
+        .command_sender
+        .send(SyncCommand::SubscribeCoins {
+            coin_ids: subscriptions,
+        })
+        .await?;
 
     Ok(())
 }
@@ -647,7 +654,7 @@ async fn summarize(
                     asset_id: hex::encode(asset_id),
                     name: cat.as_ref().and_then(|cat| cat.name.clone()),
                     ticker: cat.as_ref().and_then(|cat| cat.ticker.clone()),
-                    icon_url: cat.as_ref().and_then(|cat| cat.icon_url.clone()),
+                    icon_url: cat.as_ref().and_then(|cat| cat.icon.clone()),
                 };
                 amount = Amount::from_mojos(coin.amount as u128, 3);
                 (kind, p2_puzzle_hash)
