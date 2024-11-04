@@ -11,6 +11,7 @@ pub(crate) struct CatSql {
     pub description: Option<String>,
     pub icon: Option<String>,
     pub visible: bool,
+    pub fetched: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -21,6 +22,7 @@ pub struct CatRow {
     pub description: Option<String>,
     pub icon: Option<String>,
     pub visible: bool,
+    pub fetched: bool,
 }
 
 impl IntoRow for CatSql {
@@ -34,6 +36,7 @@ impl IntoRow for CatSql {
             description: self.description.clone(),
             icon: self.icon.clone(),
             visible: self.visible,
+            fetched: self.fetched,
         })
     }
 }

@@ -67,9 +67,11 @@ CREATE TABLE `cats` (
     `visible` BOOLEAN NOT NULL,
     `icon` TEXT,
     `description` TEXT,
+    `fetched` BOOLEAN NOT NULL,
     `is_named` BOOLEAN GENERATED ALWAYS AS (`name` IS NOT NULL) STORED
 );
 
+CREATE INDEX `cat_lookup` ON `cats` (`fetched`);
 CREATE INDEX `cat_name` ON `cats` (`visible` DESC, `is_named` DESC, `name` ASC, `asset_id` ASC);
 
 CREATE TABLE `cat_coins` (

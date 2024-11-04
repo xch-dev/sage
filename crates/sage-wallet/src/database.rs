@@ -172,6 +172,7 @@ pub async fn insert_puzzle(
 pub async fn delete_puzzle(tx: &mut DatabaseTx<'_>, coin_id: Bytes32) -> Result<(), WalletError> {
     tx.delete_nft(coin_id).await?;
     tx.delete_did(coin_id).await?;
+
     Ok(())
 }
 

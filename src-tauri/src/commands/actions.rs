@@ -19,7 +19,7 @@ pub async fn remove_cat_info(state: State<'_, AppState>, asset_id: String) -> Re
         .try_into()
         .map_err(|_| Error::invalid_asset_id())?;
 
-    wallet.db.delete_cat(asset_id.into()).await?;
+    wallet.db.refetch_cat(asset_id.into()).await?;
 
     Ok(())
 }
@@ -43,6 +43,7 @@ pub async fn update_cat_info(state: State<'_, AppState>, record: CatRecord) -> R
             ticker: record.ticker,
             icon: record.icon_url,
             visible: record.visible,
+            fetched: true,
         })
         .await?;
 

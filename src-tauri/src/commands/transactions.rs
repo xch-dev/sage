@@ -267,13 +267,14 @@ pub async fn issue_cat(
 
     wallet
         .db
-        .maybe_insert_cat(CatRow {
+        .insert_cat(CatRow {
             asset_id,
             name: Some(name),
             ticker: Some(ticker),
             description: None,
             icon: None,
             visible: true,
+            fetched: true,
         })
         .await?;
 

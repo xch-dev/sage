@@ -3,21 +3,17 @@ use chia_wallet_sdk::Cat;
 use sqlx::SqliteExecutor;
 
 use crate::{
-    into_row, to_bytes, to_bytes32, CatCoinRow, CatCoinSql, CatRow, CoinStateRow, CoinStateSql,
-    Database, DatabaseTx, FullCatCoinSql, Result,
+    into_row, to_bytes, to_bytes32, CatCoinRow, CatCoinSql, CatRow, CatSql, CoinStateRow,
+    CoinStateSql, Database, DatabaseTx, FullCatCoinSql, Result,
 };
 
 impl Database {
-    pub async fn maybe_insert_cat(&self, row: CatRow) -> Result<()> {
-        maybe_insert_cat(&self.pool, row).await
+    pub async fn insert_cat(&self, row: CatRow) -> Result<()> {
+        insert_cat(&self.pool, row).await
     }
 
     pub async fn update_cat(&self, row: CatRow) -> Result<()> {
         update_cat(&self.pool, row).await
-    }
-
-    pub async fn delete_cat(&self, asset_id: Bytes32) -> Result<()> {
-        delete_cat(&self.pool, asset_id).await
     }
 
     pub async fn cats(&self) -> Result<Vec<CatRow>> {
@@ -28,8 +24,8 @@ impl Database {
         cat(&self.pool, asset_id).await
     }
 
-    pub async fn unidentified_cat(&self) -> Result<Option<Bytes32>> {
-        unidentified_cat(&self.pool).await
+    pub async fn unfetched_cat(&self) -> Result<Option<Bytes32>> {
+        unfetched_cat(&self.pool).await
     }
 
     pub async fn spendable_cat_coins(&self, asset_id: Bytes32) -> Result<Vec<CatCoinRow>> {
@@ -42,6 +38,10 @@ impl Database {
 
     pub async fn cat_coin(&self, coin_id: Bytes32) -> Result<Option<Cat>> {
         cat_coin(&self.pool, coin_id).await
+    }
+
+    pub async fn refetch_cat(&self, asset_id: Bytes32) -> Result<()> {
+        refetch_cat(&self.pool, asset_id).await
     }
 }
 
@@ -68,7 +68,7 @@ impl<'a> DatabaseTx<'a> {
     }
 }
 
-async fn maybe_insert_cat(conn: impl SqliteExecutor<'_>, row: CatRow) -> Result<()> {
+async fn insert_cat(conn: impl SqliteExecutor<'_>, row: CatRow) -> Result<()> {
     let asset_id = row.asset_id.as_ref();
 
     sqlx::query!(
@@ -120,64 +120,28 @@ async fn update_cat(conn: impl SqliteExecutor<'_>, row: CatRow) -> Result<()> {
     Ok(())
 }
 
-async fn delete_cat(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<()> {
-    let asset_id = asset_id.as_ref();
-
-    sqlx::query!(
-        "
-        DELETE FROM `cats` WHERE `asset_id` = ?
-        ",
-        asset_id
-    )
-    .execute(conn)
-    .await?;
-
-    Ok(())
-}
-
 async fn cats(conn: impl SqliteExecutor<'_>) -> Result<Vec<CatRow>> {
-    let rows = sqlx::query!(
+    let rows = sqlx::query_as!(
+        CatSql,
         "
-        SELECT
-            `asset_id`,
-            `name`,
-            `ticker`,
-            `description`,
-            `icon`,
-            `visible`
-        FROM `cats`
+        SELECT `asset_id`, `name`, `ticker`, `description`, `icon`, `visible`, `fetched`
+        FROM `cats` INDEXED BY `cat_name`
         ORDER BY `name` ASC, `asset_id` ASC
         "
     )
     .fetch_all(conn)
     .await?;
 
-    rows.into_iter()
-        .map(|row| {
-            Ok(CatRow {
-                asset_id: to_bytes32(&row.asset_id)?,
-                name: row.name,
-                ticker: row.ticker,
-                description: row.description,
-                icon: row.icon,
-                visible: row.visible,
-            })
-        })
-        .collect()
+    rows.into_iter().map(into_row).collect()
 }
 
 async fn cat(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<Option<CatRow>> {
     let asset_id = asset_id.as_ref();
 
-    let row = sqlx::query!(
+    let row = sqlx::query_as!(
+        CatSql,
         "
-        SELECT
-            `asset_id`,
-            `name`,
-            `ticker`,
-            `description`,
-            `icon`,
-            `visible`
+        SELECT `asset_id`, `name`, `ticker`, `description`, `icon`, `visible`, `fetched`
         FROM `cats`
         WHERE `asset_id` = ?
         ",
@@ -186,24 +150,13 @@ async fn cat(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<Option<
     .fetch_optional(conn)
     .await?;
 
-    row.map(|row| {
-        Ok(CatRow {
-            asset_id: to_bytes32(&row.asset_id)?,
-            name: row.name,
-            ticker: row.ticker,
-            description: row.description,
-            icon: row.icon,
-            visible: row.visible,
-        })
-    })
-    .transpose()
+    row.map(into_row).transpose()
 }
 
-async fn unidentified_cat(conn: impl SqliteExecutor<'_>) -> Result<Option<Bytes32>> {
+async fn unfetched_cat(conn: impl SqliteExecutor<'_>) -> Result<Option<Bytes32>> {
     let rows = sqlx::query!(
         "
-        SELECT `asset_id` FROM `cat_coins`
-        WHERE `asset_id` NOT IN (SELECT `asset_id` FROM `cats`)
+        SELECT `asset_id` FROM `cats` WHERE `fetched` = 0
         LIMIT 1
         "
     )
@@ -264,7 +217,7 @@ async fn spendable_cat_coins(
         SELECT
             cs.`parent_coin_id`, cs.`puzzle_hash`, cs.`amount`, `p2_puzzle_hash`,
             `parent_parent_coin_id`, `parent_inner_puzzle_hash`, `parent_amount`
-        FROM `cat_coins`
+        FROM `cat_coins` INDEXED BY `cat_asset_id`
         INNER JOIN `coin_states` AS cs ON `cat_coins`.`coin_id` = cs.`coin_id`
         LEFT JOIN `transaction_spends` ON cs.`coin_id` = `transaction_spends`.`coin_id`
         WHERE `cat_coins`.`asset_id` = ?
@@ -312,7 +265,7 @@ async fn cat_coin_states(
         CoinStateSql,
         "
         SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `spent_height`, `created_height`, `transaction_id`
-        FROM `cat_coins`
+        FROM `cat_coins` INDEXED BY `cat_asset_id`
         INNER JOIN `coin_states` ON `coin_states`.coin_id = `cat_coins`.coin_id
         WHERE `asset_id` = ?
         ",
@@ -344,4 +297,19 @@ async fn cat_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Opt
     .await?;
 
     row.map(into_row).transpose()
+}
+
+async fn refetch_cat(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<()> {
+    let asset_id = asset_id.as_ref();
+
+    sqlx::query!(
+        "
+        UPDATE `cats` SET `fetched` = 0 WHERE `asset_id` = ?
+        ",
+        asset_id
+    )
+    .execute(conn)
+    .await?;
+
+    Ok(())
 }
