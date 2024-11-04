@@ -64,6 +64,7 @@ impl PuzzleQueue {
         }
 
         let coin_states = self.db.unsynced_coin_states(peers.len()).await?;
+
         if coin_states.is_empty() {
             sleep(Duration::from_secs(3)).await;
             return Ok(());

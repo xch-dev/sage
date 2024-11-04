@@ -60,10 +60,6 @@ impl<'a> DatabaseTx<'a> {
         synced_coin_count(&mut *self.tx).await
     }
 
-    pub async fn coin_state(&mut self, coin_id: Bytes32) -> Result<Option<CoinState>> {
-        coin_state(&mut *self.tx, coin_id).await
-    }
-
     pub async fn unspent_nft_coin_ids(&mut self) -> Result<Vec<Bytes32>> {
         unspent_nft_coin_ids(&mut *self.tx).await
     }

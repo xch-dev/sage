@@ -96,12 +96,10 @@ pub async fn combine(
         .map(|coin_id| Ok(hex::decode(coin_id)?.try_into()?))
         .collect::<Result<Vec<Bytes32>>>()?;
 
-    let mut tx = wallet.db.tx().await?;
-
     let mut coins = Vec::new();
 
     for coin_id in coin_ids {
-        let Some(coin_state) = tx.coin_state(coin_id).await? else {
+        let Some(coin_state) = wallet.db.coin_state(coin_id).await? else {
             return Err(Error::unknown_coin_id());
         };
 
@@ -111,8 +109,6 @@ pub async fn combine(
 
         coins.push(coin_state.coin);
     }
-
-    tx.commit().await?;
 
     let coin_spends = wallet.combine_xch(coins, fee, false, true).await?;
 
@@ -143,12 +139,10 @@ pub async fn split(
         .map(|coin_id| Ok(hex::decode(coin_id)?.try_into()?))
         .collect::<Result<Vec<Bytes32>>>()?;
 
-    let mut tx = wallet.db.tx().await?;
-
     let mut coins = Vec::new();
 
     for coin_id in coin_ids {
-        let Some(coin_state) = tx.coin_state(coin_id).await? else {
+        let Some(coin_state) = wallet.db.coin_state(coin_id).await? else {
             return Err(Error::unknown_coin_id());
         };
 
@@ -158,8 +152,6 @@ pub async fn split(
 
         coins.push(coin_state.coin);
     }
-
-    tx.commit().await?;
 
     let coin_spends = wallet
         .split_xch(&coins, output_count as usize, fee, false, true)
