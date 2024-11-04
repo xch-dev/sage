@@ -86,9 +86,11 @@ CREATE INDEX `cat_asset_id` ON `cat_coins` (`asset_id`);
 
 CREATE TABLE `dids` (
     `launcher_id` BLOB NOT NULL PRIMARY KEY,
+    `coin_id` BLOB NOT NULL,
     `name` TEXT,
     `visible` BOOLEAN NOT NULL,
-    `is_named` BOOLEAN GENERATED ALWAYS AS (`name` IS NOT NULL) STORED
+    `is_named` BOOLEAN GENERATED ALWAYS AS (`name` IS NOT NULL) STORED,
+    FOREIGN KEY (`coin_id`) REFERENCES `did_coins` (`coin_id`) ON DELETE CASCADE
 );
 
 CREATE INDEX `did_name` ON `dids` (`visible` DESC, `is_named` DESC, `name` ASC, `launcher_id` ASC);

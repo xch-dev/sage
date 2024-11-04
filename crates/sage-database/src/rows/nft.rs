@@ -4,6 +4,7 @@ use crate::{to_bytes32, DatabaseError};
 
 use super::IntoRow;
 
+#[allow(unused)]
 pub(crate) struct NftSql {
     pub launcher_id: Vec<u8>,
     pub coin_id: Vec<u8>,

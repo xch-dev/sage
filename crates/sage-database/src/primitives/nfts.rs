@@ -222,8 +222,8 @@ impl<'a> DatabaseTx<'a> {
         nft_row(&mut *self.tx, launcher_id).await
     }
 
-    pub async fn delete_nft(&mut self, launcher_id: Bytes32) -> Result<()> {
-        delete_nft(&mut *self.tx, launcher_id).await
+    pub async fn delete_nft(&mut self, coin_id: Bytes32) -> Result<()> {
+        delete_nft(&mut *self.tx, coin_id).await
     }
 
     pub async fn data_hash(&mut self, launcher_id: Bytes32) -> Result<Option<Bytes32>> {
@@ -248,10 +248,6 @@ impl<'a> DatabaseTx<'a> {
 
     pub async fn insert_collection(&mut self, row: CollectionRow) -> Result<()> {
         insert_collection(&mut *self.tx, row).await
-    }
-
-    pub async fn nft_launcher_id(&mut self, coin_id: Bytes32) -> Result<Option<Bytes32>> {
-        nft_launcher_id(&mut *self.tx, coin_id).await
     }
 
     pub async fn collection_name(&mut self, collection_id: Bytes32) -> Result<Option<String>> {
@@ -650,10 +646,10 @@ async fn nft_row(conn: impl SqliteExecutor<'_>, launcher_id: Bytes32) -> Result<
     }))
 }
 
-async fn delete_nft(conn: impl SqliteExecutor<'_>, launcher_id: Bytes32) -> Result<()> {
-    let launcher_id = launcher_id.as_ref();
+async fn delete_nft(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<()> {
+    let coin_id = coin_id.as_ref();
 
-    sqlx::query!("DELETE FROM `nfts` WHERE `launcher_id` = ?", launcher_id)
+    sqlx::query!("DELETE FROM `nfts` WHERE `coin_id` = ?", coin_id)
         .execute(conn)
         .await?;
 
@@ -1178,22 +1174,4 @@ async fn license_hash(
     };
 
     Ok(Some(to_bytes32(&license_hash)?))
-}
-async fn nft_launcher_id(
-    conn: impl SqliteExecutor<'_>,
-    coin_id: Bytes32,
-) -> Result<Option<Bytes32>> {
-    let coin_id = coin_id.as_ref();
-
-    let Some(row) = sqlx::query!(
-        "SELECT `launcher_id` FROM `nft_coins` WHERE `coin_id` = ?",
-        coin_id
-    )
-    .fetch_optional(conn)
-    .await?
-    else {
-        return Ok(None);
-    };
-
-    Ok(Some(to_bytes32(&row.launcher_id)?))
 }

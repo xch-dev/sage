@@ -12,7 +12,7 @@ use tokio::{
 };
 use tracing::{info, warn};
 
-use crate::{PeerState, SyncEvent, WalletError};
+use crate::{safely_remove_transaction, PeerState, SyncEvent, WalletError};
 
 #[derive(Debug)]
 pub struct TransactionQueue {
@@ -163,7 +163,7 @@ impl TransactionQueue {
 
                 let mut tx = self.db.tx().await?;
                 tx.confirm_coins(transaction_id).await?;
-                tx.remove_transaction(transaction_id).await?;
+                safely_remove_transaction(&mut tx, transaction_id).await?;
                 tx.commit().await?;
 
                 continue;
@@ -171,7 +171,7 @@ impl TransactionQueue {
                 info!("Transaction {transaction_id} failed");
 
                 let mut tx = self.db.tx().await?;
-                tx.remove_transaction(transaction_id).await?;
+                safely_remove_transaction(&mut tx, transaction_id).await?;
                 tx.commit().await?;
 
                 continue;
@@ -221,7 +221,7 @@ impl TransactionQueue {
             } else {
                 info!("Transaction {transaction_id} failed");
                 let mut tx = self.db.tx().await?;
-                tx.remove_transaction(transaction_id).await?;
+                safely_remove_transaction(&mut tx, transaction_id).await?;
                 tx.commit().await?;
             }
         }

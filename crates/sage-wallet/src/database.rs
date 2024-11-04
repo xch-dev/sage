@@ -34,10 +34,18 @@ pub async fn upsert_coin(
         tx.insert_p2_coin(coin_id).await?;
     }
 
-    // If the coin has been spent, we need to handle the side effects.
-    if coin_state.spent_height.is_some() {
-        spend_coin(tx, coin_id).await?;
+    Ok(())
+}
+
+pub async fn handle_spent_coin(
+    tx: &mut DatabaseTx<'_>,
+    coin_id: Bytes32,
+) -> Result<(), WalletError> {
+    if let Some(transaction_id) = tx.transaction_for_spent_coin(coin_id).await? {
+        safely_remove_transaction(tx, transaction_id).await?;
     }
+
+    delete_puzzle(tx, coin_id).await?;
 
     Ok(())
 }
@@ -161,15 +169,9 @@ pub async fn insert_puzzle(
     Ok(())
 }
 
-pub async fn spend_coin(tx: &mut DatabaseTx<'_>, coin_id: Bytes32) -> Result<(), WalletError> {
-    if let Some(transaction_id) = tx.transaction_for_spent_coin(coin_id).await? {
-        tx.remove_transaction(transaction_id).await?;
-    }
-
-    if let Some(launcher_id) = tx.nft_launcher_id(coin_id).await? {
-        tx.delete_nft(launcher_id).await?;
-    }
-
+pub async fn delete_puzzle(tx: &mut DatabaseTx<'_>, coin_id: Bytes32) -> Result<(), WalletError> {
+    tx.delete_nft(coin_id).await?;
+    tx.delete_did(coin_id).await?;
     Ok(())
 }
 
@@ -183,6 +185,12 @@ pub async fn insert_transaction(
 
     tx.insert_pending_transaction(transaction_id, aggregated_signature, transaction.fee)
         .await?;
+
+    let inputs: Vec<Bytes32> = transaction
+        .inputs
+        .iter()
+        .map(|input| input.coin_spend.coin.coin_id())
+        .collect();
 
     for (index, input) in transaction.inputs.into_iter().enumerate() {
         tx.insert_transaction_spend(transaction_id, input.coin_spend, index)
@@ -219,5 +227,22 @@ pub async fn insert_transaction(
         }
     }
 
+    for coin_id in inputs {
+        delete_puzzle(tx, coin_id).await?;
+    }
+
     Ok(subscriptions)
+}
+
+pub async fn safely_remove_transaction(
+    tx: &mut DatabaseTx<'_>,
+    transaction_id: Bytes32,
+) -> Result<(), WalletError> {
+    for coin_id in tx.transaction_coin_ids(transaction_id).await? {
+        tx.unsync_coin(coin_id).await?;
+    }
+
+    tx.remove_transaction(transaction_id).await?;
+
+    Ok(())
 }

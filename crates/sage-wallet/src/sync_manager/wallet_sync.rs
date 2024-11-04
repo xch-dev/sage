@@ -14,7 +14,7 @@ use tokio::{
 };
 use tracing::{debug, info, instrument, warn};
 
-use crate::{SyncError, Wallet, WalletError};
+use crate::{handle_spent_coin, upsert_coin, SyncError, Wallet, WalletError};
 
 use super::{PeerState, SyncEvent};
 
@@ -262,31 +262,10 @@ pub async fn incremental_sync(
     let mut tx = wallet.db.tx().await?;
 
     for coin_state in coin_states {
-        let coin_id = coin_state.coin.coin_id();
-        let is_p2 = tx.is_p2_puzzle_hash(coin_state.coin.puzzle_hash).await?;
-
-        tx.insert_coin_state(coin_state, is_p2, None).await?;
-
-        tx.update_coin_state(
-            coin_id,
-            coin_state.created_height,
-            coin_state.spent_height,
-            None,
-        )
-        .await?;
-
-        if is_p2 {
-            tx.insert_p2_coin(coin_id).await?;
-        }
+        upsert_coin(&mut tx, coin_state, None).await?;
 
         if coin_state.spent_height.is_some() {
-            if let Some(transaction_id) = tx.transaction_for_spent_coin(coin_id).await? {
-                tx.remove_transaction(transaction_id).await?;
-            }
-
-            if let Some(launcher_id) = tx.nft_launcher_id(coin_id).await? {
-                tx.delete_nft(launcher_id).await?;
-            }
+            handle_spent_coin(&mut tx, coin_state.coin.coin_id()).await?;
         }
     }
 

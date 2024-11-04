@@ -48,6 +48,10 @@ impl<'a> DatabaseTx<'a> {
         sync_coin(&mut *self.tx, coin_id, hint).await
     }
 
+    pub async fn unsync_coin(&mut self, coin_id: Bytes32) -> Result<()> {
+        unsync_coin(&mut *self.tx, coin_id).await
+    }
+
     pub async fn remove_coin_transaction_id(&mut self, coin_id: Bytes32) -> Result<()> {
         remove_coin_transaction_id(&mut *self.tx, coin_id).await
     }
@@ -185,17 +189,30 @@ async fn sync_coin(
 ) -> Result<()> {
     let coin_id = coin_id.as_ref();
     let hint = hint.as_deref();
+
     sqlx::query!(
         "
-        UPDATE `coin_states`
-        SET `synced` = 1, `hint` = ?
-        WHERE `coin_id` = ?
+        UPDATE `coin_states` SET `synced` = 1, `hint` = ? WHERE `coin_id` = ?
         ",
         hint,
         coin_id
     )
     .execute(conn)
     .await?;
+
+    Ok(())
+}
+
+async fn unsync_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<()> {
+    let coin_id = coin_id.as_ref();
+
+    sqlx::query!(
+        "UPDATE `coin_states` SET `synced` = 0 WHERE `coin_id` = ?",
+        coin_id
+    )
+    .execute(conn)
+    .await?;
+
     Ok(())
 }
 

@@ -64,6 +64,10 @@ impl<'a> DatabaseTx<'a> {
     ) -> Result<()> {
         insert_did_coin(&mut *self.tx, coin_id, lineage_proof, did_info).await
     }
+
+    pub async fn delete_did(&mut self, coin_id: Bytes32) -> Result<()> {
+        delete_did(&mut *self.tx, coin_id).await
+    }
 }
 
 async fn insert_new_did(
@@ -140,7 +144,7 @@ async fn insert_did_coin(
 
     sqlx::query!(
         "
-        REPLACE INTO `did_coins` (
+        INSERT OR IGNORE INTO `did_coins` (
             `coin_id`,
             `parent_parent_coin_id`,
             `parent_inner_puzzle_hash`,
@@ -263,4 +267,19 @@ async fn did_name(conn: impl SqliteExecutor<'_>, launcher_id: Bytes32) -> Result
     };
 
     Ok(row.name)
+}
+
+async fn delete_did(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<()> {
+    let coin_id = coin_id.as_ref();
+
+    sqlx::query!(
+        "
+        DELETE FROM `dids` WHERE `coin_id` = ?
+        ",
+        coin_id
+    )
+    .execute(conn)
+    .await?;
+
+    Ok(())
 }

@@ -75,6 +75,10 @@ impl<'a> DatabaseTx<'a> {
     ) -> Result<Option<Bytes32>> {
         transaction_for_spent_coin(&mut *self.tx, coin_id).await
     }
+
+    pub async fn transaction_coin_ids(&mut self, transaction_id: Bytes32) -> Result<Vec<Bytes32>> {
+        transaction_coin_ids(&mut *self.tx, transaction_id).await
+    }
 }
 
 async fn insert_pending_transaction(
@@ -342,4 +346,24 @@ async fn transaction_for_spent_coin(
     };
 
     Ok(Some(to_bytes32(&row.transaction_id)?))
+}
+
+async fn transaction_coin_ids(
+    conn: impl SqliteExecutor<'_>,
+    transaction_id: Bytes32,
+) -> Result<Vec<Bytes32>> {
+    let transaction_id = transaction_id.as_ref();
+
+    let rows = sqlx::query!(
+        "
+        SELECT `coin_id` FROM `transaction_spends` WHERE `transaction_id` = ?
+        ",
+        transaction_id
+    )
+    .fetch_all(conn)
+    .await?;
+
+    rows.into_iter()
+        .map(|row| to_bytes32(&row.coin_id))
+        .collect()
 }
