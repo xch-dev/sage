@@ -2,7 +2,7 @@ use chia::{
     bls::Signature,
     protocol::{Bytes32, CoinState},
 };
-use sage_database::{DatabaseTx, NftRow};
+use sage_database::{DatabaseTx, DidRow, NftRow};
 
 use crate::{compute_nft_info, ChildKind, Transaction, WalletError};
 
@@ -74,7 +74,12 @@ pub async fn insert_puzzle(
             info,
         } => {
             tx.sync_coin(coin_id, Some(info.p2_puzzle_hash)).await?;
-            tx.insert_new_did(info.launcher_id, None, true).await?;
+            tx.insert_did(DidRow {
+                launcher_id: info.launcher_id,
+                name: None,
+                visible: true,
+            })
+            .await?;
             tx.insert_did_coin(coin_id, lineage_proof, info).await?;
         }
         ChildKind::Nft {

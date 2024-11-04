@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n        SELECT\n            cs.`parent_coin_id`, cs.`puzzle_hash`, cs.`amount`, `p2_puzzle_hash`,\n            `parent_parent_coin_id`, `parent_inner_puzzle_hash`, `parent_amount`\n        FROM `cat_coins`\n        INNER JOIN `coin_states` AS cs ON `cat_coins`.`coin_id` = cs.`coin_id`\n        LEFT JOIN `transaction_spends` ON cs.`coin_id` = `transaction_spends`.`coin_id`\n        WHERE `cat_coins`.`asset_id` = ?\n        AND cs.`spent_height` IS NULL\n        AND `transaction_spends`.`coin_id` IS NULL\n        AND cs.`transaction_id` IS NULL\n        ",
+  "query": "\n        SELECT\n            cs.`parent_coin_id`, cs.`puzzle_hash`, cs.`amount`, `p2_puzzle_hash`,\n            `parent_parent_coin_id`, `parent_inner_puzzle_hash`, `parent_amount`\n        FROM `cat_coins` INDEXED BY `cat_asset_id`\n        INNER JOIN `coin_states` AS cs ON `cat_coins`.`coin_id` = cs.`coin_id`\n        LEFT JOIN `transaction_spends` ON cs.`coin_id` = `transaction_spends`.`coin_id`\n        WHERE `cat_coins`.`asset_id` = ?\n        AND cs.`spent_height` IS NULL\n        AND `transaction_spends`.`coin_id` IS NULL\n        AND cs.`transaction_id` IS NULL\n        ",
   "describe": {
     "columns": [
       {
@@ -52,5 +52,5 @@
       false
     ]
   },
-  "hash": "653a506c85f4efa9fd0c36dd496b617baa99229605a2ee9f0a1d43f3e723279c"
+  "hash": "d3303c8a5c766f3eefcb0ab2b3f3e6d3552d84b6975c7758e46a11f39c0081c4"
 }

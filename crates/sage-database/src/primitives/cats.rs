@@ -16,8 +16,8 @@ impl Database {
         update_cat(&self.pool, row).await
     }
 
-    pub async fn cats(&self) -> Result<Vec<CatRow>> {
-        cats(&self.pool).await
+    pub async fn cats_by_name(&self) -> Result<Vec<CatRow>> {
+        cats_by_name(&self.pool).await
     }
 
     pub async fn cat(&self, asset_id: Bytes32) -> Result<Option<CatRow>> {
@@ -120,13 +120,13 @@ async fn update_cat(conn: impl SqliteExecutor<'_>, row: CatRow) -> Result<()> {
     Ok(())
 }
 
-async fn cats(conn: impl SqliteExecutor<'_>) -> Result<Vec<CatRow>> {
+async fn cats_by_name(conn: impl SqliteExecutor<'_>) -> Result<Vec<CatRow>> {
     let rows = sqlx::query_as!(
         CatSql,
         "
         SELECT `asset_id`, `name`, `ticker`, `description`, `icon`, `visible`, `fetched`
         FROM `cats` INDEXED BY `cat_name`
-        ORDER BY `name` ASC, `asset_id` ASC
+        ORDER BY `visible` DESC, `is_named` DESC, `name` ASC, `asset_id` ASC
         "
     )
     .fetch_all(conn)
@@ -182,7 +182,7 @@ async fn insert_cat_coin(
 
     sqlx::query!(
         "
-        REPLACE INTO `cat_coins` (
+        INSERT OR IGNORE INTO `cat_coins` (
             `coin_id`,
             `parent_parent_coin_id`,
             `parent_inner_puzzle_hash`,

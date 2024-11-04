@@ -166,7 +166,7 @@ pub async fn get_cat_coins(
 pub async fn get_cats(state: State<'_, AppState>) -> Result<Vec<CatRecord>> {
     let state = state.lock().await;
     let wallet = state.wallet()?;
-    let cats = wallet.db.cats().await?;
+    let cats = wallet.db.cats_by_name().await?;
 
     let mut records = Vec::with_capacity(cats.len());
 

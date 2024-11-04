@@ -1,6 +1,6 @@
 use chia_wallet_sdk::decode_address;
 use sage_api::CatRecord;
-use sage_database::CatRow;
+use sage_database::{CatRow, DidRow};
 use specta::specta;
 use tauri::{command, State};
 
@@ -69,7 +69,11 @@ pub async fn update_did(
 
     wallet
         .db
-        .update_did(launcher_id.into(), name, visible)
+        .update_did(DidRow {
+            launcher_id: launcher_id.into(),
+            name,
+            visible,
+        })
         .await?;
 
     Ok(())

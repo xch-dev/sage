@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `spent_height`, `created_height`, `transaction_id`\n        FROM `cat_coins`\n        INNER JOIN `coin_states` ON `coin_states`.coin_id = `cat_coins`.coin_id\n        WHERE `asset_id` = ?\n        ",
+  "query": "\n        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `spent_height`, `created_height`, `transaction_id`\n        FROM `cat_coins` INDEXED BY `cat_asset_id`\n        INNER JOIN `coin_states` ON `coin_states`.coin_id = `cat_coins`.coin_id\n        WHERE `asset_id` = ?\n        ",
   "describe": {
     "columns": [
       {
@@ -46,5 +46,5 @@
       true
     ]
   },
-  "hash": "4c781575943434e23e4e030fd2bff39252f564f3f545da7e9e5b01cc6177f19b"
+  "hash": "ccf24ae534c77cdbfa1e6030ad4e275d7abafd101b48cbc32ecd53b76c8016cf"
 }

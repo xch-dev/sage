@@ -11,22 +11,12 @@ use crate::{
 };
 
 impl Database {
-    pub async fn insert_new_did(
-        &self,
-        launcher_id: Bytes32,
-        name: Option<String>,
-        visible: bool,
-    ) -> Result<()> {
-        insert_new_did(&self.pool, launcher_id, name, visible).await
+    pub async fn insert_did(&self, row: DidRow) -> Result<()> {
+        insert_did(&self.pool, row).await
     }
 
-    pub async fn update_did(
-        &self,
-        launcher_id: Bytes32,
-        name: Option<String>,
-        visible: bool,
-    ) -> Result<()> {
-        update_did(&self.pool, launcher_id, name, visible).await
+    pub async fn update_did(&self, row: DidRow) -> Result<()> {
+        update_did(&self.pool, row).await
     }
 
     pub async fn dids_by_name(&self) -> Result<Vec<DidRow>> {
@@ -47,13 +37,8 @@ impl Database {
 }
 
 impl<'a> DatabaseTx<'a> {
-    pub async fn insert_new_did(
-        &mut self,
-        launcher_id: Bytes32,
-        name: Option<String>,
-        visible: bool,
-    ) -> Result<()> {
-        insert_new_did(&mut *self.tx, launcher_id, name, visible).await
+    pub async fn insert_did(&mut self, row: DidRow) -> Result<()> {
+        insert_did(&mut *self.tx, row).await
     }
 
     pub async fn insert_did_coin(
@@ -70,13 +55,8 @@ impl<'a> DatabaseTx<'a> {
     }
 }
 
-async fn insert_new_did(
-    conn: impl SqliteExecutor<'_>,
-    launcher_id: Bytes32,
-    name: Option<String>,
-    visible: bool,
-) -> Result<()> {
-    let launcher_id = launcher_id.as_ref();
+async fn insert_did(conn: impl SqliteExecutor<'_>, row: DidRow) -> Result<()> {
+    let launcher_id = row.launcher_id.as_ref();
 
     sqlx::query!(
         "
@@ -88,8 +68,8 @@ async fn insert_new_did(
         VALUES (?, ?, ?)
         ",
         launcher_id,
-        name,
-        visible
+        row.name,
+        row.visible
     )
     .execute(conn)
     .await?;
@@ -97,13 +77,8 @@ async fn insert_new_did(
     Ok(())
 }
 
-async fn update_did(
-    conn: impl SqliteExecutor<'_>,
-    launcher_id: Bytes32,
-    name: Option<String>,
-    visible: bool,
-) -> Result<()> {
-    let launcher_id = launcher_id.as_ref();
+async fn update_did(conn: impl SqliteExecutor<'_>, row: DidRow) -> Result<()> {
+    let launcher_id = row.launcher_id.as_ref();
 
     sqlx::query!(
         "
@@ -115,8 +90,8 @@ async fn update_did(
         VALUES (?, ?, ?)
         ",
         launcher_id,
-        name,
-        visible
+        row.name,
+        row.visible
     )
     .execute(conn)
     .await?;
