@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT `name` FROM `nft_collections` WHERE `collection_id` = ?",
+  "query": "SELECT `name` FROM `collections` WHERE `collection_id` = ?",
   "describe": {
     "columns": [
       {
@@ -16,5 +16,5 @@
       true
     ]
   },
-  "hash": "c0e6db915ac0e819bc93fcd0c5f425f0914503516964aa0f84a74831583ae908"
+  "hash": "58a5fc4e0127de1f53d3071b1d7597ef0088d86a2fa00036dc8d8f0eefc5f156"
 }

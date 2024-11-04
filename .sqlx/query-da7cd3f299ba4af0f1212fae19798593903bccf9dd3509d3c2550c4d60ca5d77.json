@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n        SELECT * FROM `nfts` INDEXED BY `nft_col_named`\n        WHERE `collection_id` IS NULL AND `visible` = 1\n        ORDER BY `is_named` DESC, `name` ASC, `launcher_id` ASC\n        LIMIT ? OFFSET ?\n        ",
+  "query": "\n        SELECT * FROM `nfts` INDEXED BY `nft_name`\n        WHERE `visible` = 1\n        ORDER BY `is_named` DESC, `name` ASC, `launcher_id` ASC\n        LIMIT ? OFFSET ?\n        ",
   "describe": {
     "columns": [
       {
@@ -82,5 +82,5 @@
       true
     ]
   },
-  "hash": "354e992e7b1c796745d4bea684cb2c393585c611a05518b2ef2e11fe4f4ffdf8"
+  "hash": "da7cd3f299ba4af0f1212fae19798593903bccf9dd3509d3c2550c4d60ca5d77"
 }

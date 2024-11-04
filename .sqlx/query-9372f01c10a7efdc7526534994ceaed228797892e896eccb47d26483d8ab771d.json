@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        INSERT OR IGNORE INTO `cats` (\n            `asset_id`,\n            `name`,\n            `ticker`,\n            `description`,\n            `icon`,\n            `visible`\n        ) VALUES (?, ?, ?, ?, ?, ?)\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 6
+    },
+    "nullable": []
+  },
+  "hash": "9372f01c10a7efdc7526534994ceaed228797892e896eccb47d26483d8ab771d"
+}

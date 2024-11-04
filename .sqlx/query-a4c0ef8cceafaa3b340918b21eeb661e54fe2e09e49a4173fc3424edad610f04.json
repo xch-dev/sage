@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n        SELECT\n            `asset_id`,\n            `name`,\n            `ticker`,\n            `description`,\n            `icon_url`,\n            `visible`\n        FROM `cats`\n        WHERE `asset_id` = ?\n        ",
+  "query": "\n        SELECT\n            `asset_id`,\n            `name`,\n            `ticker`,\n            `description`,\n            `icon`,\n            `visible`\n        FROM `cats`\n        ORDER BY `name` ASC, `asset_id` ASC\n        ",
   "describe": {
     "columns": [
       {
@@ -24,7 +24,7 @@
         "type_info": "Text"
       },
       {
-        "name": "icon_url",
+        "name": "icon",
         "ordinal": 4,
         "type_info": "Text"
       },
@@ -35,7 +35,7 @@
       }
     ],
     "parameters": {
-      "Right": 1
+      "Right": 0
     },
     "nullable": [
       false,
@@ -46,5 +46,5 @@
       false
     ]
   },
-  "hash": "a28ff078551783cf5d9e464cb67d1d1e12af17b48def0ee2e1d776123f37994b"
+  "hash": "a4c0ef8cceafaa3b340918b21eeb661e54fe2e09e49a4173fc3424edad610f04"
 }

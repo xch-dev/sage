@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n        SELECT COUNT(*) AS `count` FROM `nft_collections`\n        WHERE `visible` = 1\n        ",
+  "query": "\n        SELECT COUNT(*) AS `count` FROM `collections`\n        WHERE `visible` = 1\n        ",
   "describe": {
     "columns": [
       {
@@ -16,5 +16,5 @@
       false
     ]
   },
-  "hash": "fc2bc853db0bb5424bb821675c6412ab4fe23d6937fa683075129603f9fc708b"
+  "hash": "fd9f732f3a7ed809b9d4c2ededebdeeb3765c89c9fc78576f447c646c46f445c"
 }

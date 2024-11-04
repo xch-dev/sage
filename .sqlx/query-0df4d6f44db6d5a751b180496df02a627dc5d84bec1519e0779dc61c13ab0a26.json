@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n        SELECT\n            `collection_id`,\n            `did_id`,\n            `metadata_collection_id`,\n            `visible`,\n            `name`,\n            `icon`\n        FROM `nft_collections` INDEXED BY `col_named`\n        ORDER BY `visible` DESC, `is_named` DESC, `name` ASC, `collection_id` ASC\n        LIMIT ? OFFSET ?\n        ",
+  "query": "\n        SELECT `collection_id`, `did_id`, `metadata_collection_id`, `visible`, `name`, `icon`\n        FROM `collections` INDEXED BY `col_name`\n        ORDER BY `visible` DESC, `is_named` DESC, `name` ASC, `collection_id` ASC\n        LIMIT ? OFFSET ?\n        ",
   "describe": {
     "columns": [
       {
@@ -46,5 +46,5 @@
       true
     ]
   },
-  "hash": "9a1dc322a4232077760ee3ce3944dadacd3017271df05a10a422f2081e5cf7e4"
+  "hash": "0df4d6f44db6d5a751b180496df02a627dc5d84bec1519e0779dc61c13ab0a26"
 }

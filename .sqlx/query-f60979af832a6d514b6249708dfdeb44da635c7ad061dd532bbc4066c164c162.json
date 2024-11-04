@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n        SELECT\n            cs.parent_coin_id, cs.puzzle_hash, cs.amount,\n            cs.spent_height, cs.created_height, cs.transaction_id\n        FROM `coin_states` AS cs\n        INNER JOIN `cat_coins` AS cat\n        ON cs.coin_id = cat.coin_id\n        WHERE cat.asset_id = ?\n        ",
+  "query": "\n        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `created_height`, `spent_height`, `transaction_id`\n        FROM `coin_states`\n        WHERE `synced` = 0 AND `created_height` IS NOT NULL\n        ORDER BY `spent_height` ASC\n        LIMIT ?\n        ",
   "describe": {
     "columns": [
       {
@@ -19,12 +19,12 @@
         "type_info": "Blob"
       },
       {
-        "name": "spent_height",
+        "name": "created_height",
         "ordinal": 3,
         "type_info": "Integer"
       },
       {
-        "name": "created_height",
+        "name": "spent_height",
         "ordinal": 4,
         "type_info": "Integer"
       },
@@ -46,5 +46,5 @@
       true
     ]
   },
-  "hash": "618dd472f460afbe45071305e0bc1474e9a119724c30b9e64adf0a715663335e"
+  "hash": "f60979af832a6d514b6249708dfdeb44da635c7ad061dd532bbc4066c164c162"
 }
