@@ -16,9 +16,7 @@ pub use collection::*;
 pub use did::*;
 pub use did_coin::*;
 pub use nft::*;
-pub use nft_coin::*;
-pub use nft_data::*;
-pub use nft_uri::*;
+pub(crate) use nft_coin::*;
 
 use crate::DatabaseError;
 
