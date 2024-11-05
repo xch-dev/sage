@@ -46,6 +46,10 @@ impl Database {
 }
 
 impl<'a> DatabaseTx<'a> {
+    pub async fn insert_cat(&mut self, row: CatRow) -> Result<()> {
+        insert_cat(&mut *self.tx, row).await
+    }
+
     pub async fn insert_cat_coin(
         &mut self,
         coin_id: Bytes32,

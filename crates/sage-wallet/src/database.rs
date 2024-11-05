@@ -2,7 +2,7 @@ use chia::{
     bls::Signature,
     protocol::{Bytes32, CoinState},
 };
-use sage_database::{DatabaseTx, DidRow, NftRow};
+use sage_database::{CatRow, DatabaseTx, DidRow, NftRow};
 
 use crate::{compute_nft_info, ChildKind, Transaction, WalletError};
 
@@ -66,6 +66,16 @@ pub async fn insert_puzzle(
             p2_puzzle_hash,
         } => {
             tx.sync_coin(coin_id, Some(p2_puzzle_hash)).await?;
+            tx.insert_cat(CatRow {
+                asset_id,
+                name: None,
+                ticker: None,
+                description: None,
+                icon: None,
+                visible: true,
+                fetched: false,
+            })
+            .await?;
             tx.insert_cat_coin(coin_id, lineage_proof, p2_puzzle_hash, asset_id)
                 .await?;
         }
@@ -73,14 +83,29 @@ pub async fn insert_puzzle(
             lineage_proof,
             info,
         } => {
+            let launcher_id = info.launcher_id;
+
             tx.sync_coin(coin_id, Some(info.p2_puzzle_hash)).await?;
+            tx.insert_did_coin(coin_id, lineage_proof, info).await?;
+
+            if coin_state.spent_height.is_some() {
+                return Ok(());
+            }
+
+            let name = tx.get_future_did_name(launcher_id).await?;
+
+            if name.is_some() {
+                tx.delete_future_did_name(launcher_id).await?;
+            }
+
             tx.insert_did(DidRow {
-                launcher_id: info.launcher_id,
-                name: None,
+                launcher_id,
+                coin_id,
+                name,
                 visible: true,
+                created_height: coin_state.created_height,
             })
             .await?;
-            tx.insert_did_coin(coin_id, lineage_proof, info).await?;
         }
         ChildKind::Nft {
             lineage_proof,
@@ -192,11 +217,13 @@ pub async fn insert_transaction(
     tx.insert_pending_transaction(transaction_id, aggregated_signature, transaction.fee)
         .await?;
 
-    let inputs: Vec<Bytes32> = transaction
+    for coin_id in transaction
         .inputs
         .iter()
         .map(|input| input.coin_spend.coin.coin_id())
-        .collect();
+    {
+        delete_puzzle(tx, coin_id).await?;
+    }
 
     for (index, input) in transaction.inputs.into_iter().enumerate() {
         tx.insert_transaction_spend(transaction_id, input.coin_spend, index)
@@ -231,10 +258,6 @@ pub async fn insert_transaction(
 
             insert_puzzle(tx, coin_state, output.kind, None).await?;
         }
-    }
-
-    for coin_id in inputs {
-        delete_puzzle(tx, coin_id).await?;
     }
 
     Ok(subscriptions)

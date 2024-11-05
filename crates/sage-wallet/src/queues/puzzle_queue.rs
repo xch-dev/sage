@@ -107,10 +107,11 @@ impl PuzzleQueue {
                         coin_id, addr, error
                     );
 
-                    self.state
-                        .lock()
-                        .await
-                        .ban(addr.ip(), Duration::from_secs(300));
+                    self.state.lock().await.ban(
+                        addr.ip(),
+                        Duration::from_secs(300),
+                        "failed puzzle lookup",
+                    );
                 }
             }
         }

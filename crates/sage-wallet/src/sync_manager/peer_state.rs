@@ -8,6 +8,7 @@ use chia::protocol::Bytes32;
 use chia_wallet_sdk::Peer;
 use itertools::Itertools;
 use tokio::task::JoinHandle;
+use tracing::debug;
 
 #[derive(Debug)]
 pub struct PeerInfo {
@@ -70,7 +71,9 @@ impl PeerState {
             .map(|peer| peer.peer.clone())
     }
 
-    pub fn ban(&mut self, ip: IpAddr, duration: Duration) {
+    pub fn ban(&mut self, ip: IpAddr, duration: Duration, message: &str) {
+        debug!("Banning peer {ip} ({duration:?}): {message}");
+
         if self.trusted_peers.contains(&ip) {
             return;
         }

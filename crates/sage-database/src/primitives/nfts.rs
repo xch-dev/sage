@@ -768,7 +768,7 @@ async fn nfts_visible_named(
         "
         SELECT * FROM `nfts` INDEXED BY `nft_name`
         WHERE `visible` = 1
-        ORDER BY `is_named` DESC, `name` ASC, `launcher_id` ASC
+        ORDER BY `is_pending` DESC, `is_named` DESC, `name` ASC, `launcher_id` ASC
         LIMIT ? OFFSET ?
         ",
         limit,
@@ -809,7 +809,7 @@ async fn nfts_named(conn: impl SqliteExecutor<'_>, limit: u32, offset: u32) -> R
         NftSql,
         "
         SELECT * FROM `nfts` INDEXED BY `nft_name`
-        ORDER BY `visible` DESC, `is_named` DESC, `name` ASC, `launcher_id` ASC
+        ORDER BY `visible` DESC, `is_pending` DESC, `is_named` DESC, `name` ASC, `launcher_id` ASC
         LIMIT ? OFFSET ?
         ",
         limit,
@@ -857,7 +857,7 @@ async fn collection_nfts_visible_named(
         "
         SELECT * FROM `nfts` INDEXED BY `nft_col_name`
         WHERE `collection_id` = ? AND `visible` = 1
-        ORDER BY `is_named` DESC, `name` ASC, `launcher_id` ASC
+        ORDER BY `is_pending` DESC, `is_named` DESC, `name` ASC, `launcher_id` ASC
         LIMIT ? OFFSET ?
         ",
         collection_id,
@@ -911,7 +911,7 @@ async fn collection_nfts_named(
         "
         SELECT * FROM `nfts` INDEXED BY `nft_col_name`
         WHERE `collection_id` = ?
-        ORDER BY `visible` DESC, `is_named` DESC, `name` ASC, `launcher_id` ASC
+        ORDER BY `visible` DESC, `is_pending` DESC, `is_named` DESC, `name` ASC, `launcher_id` ASC
         LIMIT ? OFFSET ?
         ",
         collection_id,
@@ -962,7 +962,7 @@ async fn no_collection_nfts_visible_named(
         "
         SELECT * FROM `nfts` INDEXED BY `nft_col_name`
         WHERE `collection_id` IS NULL AND `visible` = 1
-        ORDER BY `is_named` DESC, `name` ASC, `launcher_id` ASC
+        ORDER BY `is_pending` DESC, `is_named` DESC, `name` ASC, `launcher_id` ASC
         LIMIT ? OFFSET ?
         ",
         limit,
@@ -1008,7 +1008,7 @@ async fn no_collection_nfts_named(
         "
         SELECT * FROM `nfts` INDEXED BY `nft_col_name`
         WHERE `collection_id` IS NULL
-        ORDER BY `visible` DESC, `is_named` DESC, `name` ASC, `launcher_id` ASC
+        ORDER BY `visible` DESC, `is_pending` DESC, `is_named` DESC, `name` ASC, `launcher_id` ASC
         LIMIT ? OFFSET ?
         ",
         limit,

@@ -23,8 +23,12 @@ impl Database {
         dids_by_name(&self.pool).await
     }
 
-    pub async fn did_coin_info(&self, did_id: Bytes32) -> Result<Option<DidCoinInfo>> {
-        did_coin_info(&self.pool, did_id).await
+    pub async fn did(&self, launcher_id: Bytes32) -> Result<Option<DidRow>> {
+        did(&self.pool, launcher_id).await
+    }
+
+    pub async fn did_coin_info(&self, coin_id: Bytes32) -> Result<Option<DidCoinInfo>> {
+        did_coin_info(&self.pool, coin_id).await
     }
 
     pub async fn spendable_did(&self, did_id: Bytes32) -> Result<Option<Did<Program>>> {
@@ -33,6 +37,10 @@ impl Database {
 
     pub async fn did_name(&self, launcher_id: Bytes32) -> Result<Option<String>> {
         did_name(&self.pool, launcher_id).await
+    }
+
+    pub async fn set_future_did_name(&self, launcher_id: Bytes32, name: String) -> Result<()> {
+        set_future_did_name(&self.pool, launcher_id, name).await
     }
 }
 
@@ -53,23 +61,36 @@ impl<'a> DatabaseTx<'a> {
     pub async fn delete_did(&mut self, coin_id: Bytes32) -> Result<()> {
         delete_did(&mut *self.tx, coin_id).await
     }
+
+    pub async fn delete_future_did_name(&mut self, launcher_id: Bytes32) -> Result<()> {
+        delete_future_did_name(&mut *self.tx, launcher_id).await
+    }
+
+    pub async fn get_future_did_name(&mut self, launcher_id: Bytes32) -> Result<Option<String>> {
+        get_future_did_name(&mut *self.tx, launcher_id).await
+    }
 }
 
 async fn insert_did(conn: impl SqliteExecutor<'_>, row: DidRow) -> Result<()> {
     let launcher_id = row.launcher_id.as_ref();
+    let coin_id = row.coin_id.as_ref();
 
     sqlx::query!(
         "
         INSERT OR IGNORE INTO `dids` (
             `launcher_id`,
+            `coin_id`,
             `name`,
-            `visible`
+            `visible`,
+            `created_height`
         )
-        VALUES (?, ?, ?)
+        VALUES (?, ?, ?, ?, ?)
         ",
         launcher_id,
+        coin_id,
         row.name,
-        row.visible
+        row.visible,
+        row.created_height
     )
     .execute(conn)
     .await?;
@@ -79,19 +100,24 @@ async fn insert_did(conn: impl SqliteExecutor<'_>, row: DidRow) -> Result<()> {
 
 async fn update_did(conn: impl SqliteExecutor<'_>, row: DidRow) -> Result<()> {
     let launcher_id = row.launcher_id.as_ref();
+    let coin_id = row.coin_id.as_ref();
 
     sqlx::query!(
         "
         REPLACE INTO `dids` (
             `launcher_id`,
+            `coin_id`,
             `name`,
-            `visible`
+            `visible`,
+            `created_height`
         )
-        VALUES (?, ?, ?)
+        VALUES (?, ?, ?, ?, ?)
         ",
         launcher_id,
+        coin_id,
         row.name,
-        row.visible
+        row.visible,
+        row.created_height
     )
     .execute(conn)
     .await?;
@@ -152,9 +178,9 @@ async fn dids_by_name(conn: impl SqliteExecutor<'_>) -> Result<Vec<DidRow>> {
     sqlx::query_as!(
         DidSql,
         "
-        SELECT `launcher_id`, `name`, `visible`
+        SELECT `launcher_id`, `coin_id`, `name`, `visible`, `created_height`
         FROM `dids` INDEXED BY `did_name`
-        ORDER BY `visible` DESC, `is_named` DESC, `name` ASC, `launcher_id` ASC
+        ORDER BY `visible` DESC, `is_pending` DESC, `is_named` DESC, `name` ASC, `launcher_id` ASC
         "
     )
     .fetch_all(conn)
@@ -164,11 +190,29 @@ async fn dids_by_name(conn: impl SqliteExecutor<'_>) -> Result<Vec<DidRow>> {
     .collect()
 }
 
+async fn did(conn: impl SqliteExecutor<'_>, launcher_id: Bytes32) -> Result<Option<DidRow>> {
+    let launcher_id = launcher_id.as_ref();
+
+    sqlx::query_as!(
+        DidSql,
+        "
+        SELECT `launcher_id`, `coin_id`, `name`, `visible`, `created_height`
+        FROM `dids`
+        WHERE `launcher_id` = ?
+        ",
+        launcher_id
+    )
+    .fetch_optional(conn)
+    .await?
+    .map(into_row)
+    .transpose()
+}
+
 async fn did_coin_info(
     conn: impl SqliteExecutor<'_>,
-    did_id: Bytes32,
+    coin_id: Bytes32,
 ) -> Result<Option<DidCoinInfo>> {
-    let did_id = did_id.as_ref();
+    let coin_id = coin_id.as_ref();
 
     let Some(sql) = sqlx::query_as!(
         DidCoinInfoSql,
@@ -177,9 +221,9 @@ async fn did_coin_info(
             `did_coins`.`coin_id`, `amount`, `p2_puzzle_hash`, `created_height`, `transaction_id`
         FROM `did_coins`
         INNER JOIN `coin_states` ON `coin_states`.coin_id = `did_coins`.coin_id
-        WHERE `launcher_id` = ?
+        WHERE `did_coins`.`coin_id` = ?
         ",
-        did_id
+        coin_id
     )
     .fetch_optional(conn)
     .await?
@@ -252,6 +296,60 @@ async fn delete_did(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<(
         DELETE FROM `dids` WHERE `coin_id` = ?
         ",
         coin_id
+    )
+    .execute(conn)
+    .await?;
+
+    Ok(())
+}
+
+async fn set_future_did_name(
+    conn: impl SqliteExecutor<'_>,
+    launcher_id: Bytes32,
+    name: String,
+) -> Result<()> {
+    let launcher_id = launcher_id.as_ref();
+
+    sqlx::query!(
+        "
+        REPLACE INTO `future_did_names` (`launcher_id`, `name`)
+        VALUES (?, ?)
+        ",
+        launcher_id,
+        name
+    )
+    .execute(conn)
+    .await?;
+
+    Ok(())
+}
+
+async fn get_future_did_name(
+    conn: impl SqliteExecutor<'_>,
+    launcher_id: Bytes32,
+) -> Result<Option<String>> {
+    let launcher_id = launcher_id.as_ref();
+
+    Ok(sqlx::query!(
+        "
+        SELECT `name` FROM `future_did_names`
+        WHERE `launcher_id` = ?
+        ",
+        launcher_id
+    )
+    .fetch_optional(conn)
+    .await?
+    .map(|row| row.name))
+}
+
+async fn delete_future_did_name(conn: impl SqliteExecutor<'_>, launcher_id: Bytes32) -> Result<()> {
+    let launcher_id = launcher_id.as_ref();
+
+    sqlx::query!(
+        "
+        DELETE FROM `future_did_names` WHERE `launcher_id` = ?
+        ",
+        launcher_id
     )
     .execute(conn)
     .await?;

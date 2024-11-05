@@ -223,7 +223,7 @@ pub async fn get_dids(state: State<'_, AppState>) -> Result<Vec<DidRecord>> {
     let mut records = Vec::new();
 
     for row in wallet.db.dids_by_name().await? {
-        let Some(did) = wallet.db.did_coin_info(row.launcher_id).await? else {
+        let Some(did) = wallet.db.did_coin_info(row.coin_id).await? else {
             continue;
         };
 

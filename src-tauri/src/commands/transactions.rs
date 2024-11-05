@@ -14,7 +14,7 @@ use sage_api::{
     Amount, BulkMintNfts, BulkMintNftsResponse, CoinJson, CoinSpendJson, Input, InputKind, Output,
     SpendBundleJson, TransactionSummary,
 };
-use sage_database::{CatRow, Database, DidRow};
+use sage_database::{CatRow, Database};
 use sage_wallet::{
     compute_nft_info, fetch_uris, insert_transaction, ChildKind, CoinKind, Data, SyncCommand,
     Transaction, Wallet, WalletError, WalletNftMint,
@@ -341,11 +341,7 @@ pub async fn create_did(
 
     wallet
         .db
-        .insert_did(DidRow {
-            launcher_id: did.info.launcher_id,
-            name: Some(name.clone()),
-            visible: true,
-        })
+        .set_future_did_name(did.info.launcher_id, name.clone())
         .await?;
 
     let mut confirm_info = ConfirmationInfo::default();
