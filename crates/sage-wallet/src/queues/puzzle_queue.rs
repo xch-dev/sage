@@ -187,20 +187,18 @@ async fn fetch_puzzle(
 
     let subscribe = info.subscribe();
 
-    let mut tx = db.tx().await?;
-
     let remove = match info.p2_puzzle_hash() {
-        Some(p2_puzzle_hash) => !tx.is_p2_puzzle_hash(p2_puzzle_hash).await?,
+        Some(p2_puzzle_hash) => !db.is_p2_puzzle_hash(p2_puzzle_hash).await?,
         None => true,
     };
 
     if remove {
-        tx.delete_coin_state(coin_id).await?;
+        db.delete_coin_state(coin_id).await?;
     } else {
+        let mut tx = db.tx().await?;
         insert_puzzle(&mut tx, coin_state, info, minter_did).await?;
+        tx.commit().await?;
     }
-
-    tx.commit().await?;
 
     Ok(subscribe)
 }

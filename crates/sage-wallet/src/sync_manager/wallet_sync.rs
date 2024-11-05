@@ -26,21 +26,17 @@ pub async fn sync_wallet(
 ) -> Result<(), WalletError> {
     info!("Starting sync against peer {}", peer.socket_addr());
 
-    let mut tx = wallet.db.tx().await?;
-
     let mut coin_ids = Vec::new();
-    coin_ids.extend(tx.unspent_nft_coin_ids().await?);
-    coin_ids.extend(tx.unspent_did_coin_ids().await?);
-    coin_ids.extend(tx.unspent_cat_coin_ids().await?);
+    coin_ids.extend(wallet.db.unspent_nft_coin_ids().await?);
+    coin_ids.extend(wallet.db.unspent_did_coin_ids().await?);
+    coin_ids.extend(wallet.db.unspent_cat_coin_ids().await?);
 
-    let p2_puzzle_hashes = tx.p2_puzzle_hashes().await?;
+    let p2_puzzle_hashes = wallet.db.p2_puzzle_hashes().await?;
 
-    let (start_height, start_header_hash) = tx.latest_peak().await?.map_or_else(
+    let (start_height, start_header_hash) = wallet.db.latest_peak().await?.map_or_else(
         || (None, wallet.genesis_challenge),
         |(peak, header_hash)| (Some(peak), header_hash),
     );
-
-    tx.commit().await?;
 
     sync_coin_ids(
         &wallet,

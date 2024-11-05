@@ -42,25 +42,153 @@ impl Database {
     pub async fn collection(&self, collection_id: Bytes32) -> Result<CollectionRow> {
         collection(&self.pool, collection_id).await
     }
+
+    pub async fn collection_count(&self) -> Result<u32> {
+        collection_count(&self.pool).await
+    }
+
+    pub async fn visible_collection_count(&self) -> Result<u32> {
+        visible_collection_count(&self.pool).await
+    }
+
+    pub async fn nfts_visible_named(&self, limit: u32, offset: u32) -> Result<Vec<NftRow>> {
+        nfts_visible_named(&self.pool, limit, offset).await
+    }
+
+    pub async fn nfts_visible_recent(&self, limit: u32, offset: u32) -> Result<Vec<NftRow>> {
+        nfts_visible_recent(&self.pool, limit, offset).await
+    }
+
+    pub async fn nfts_named(&self, limit: u32, offset: u32) -> Result<Vec<NftRow>> {
+        nfts_named(&self.pool, limit, offset).await
+    }
+
+    pub async fn nfts_recent(&self, limit: u32, offset: u32) -> Result<Vec<NftRow>> {
+        nfts_recent(&self.pool, limit, offset).await
+    }
+
+    pub async fn nft_count(&self) -> Result<u32> {
+        nft_count(&self.pool).await
+    }
+
+    pub async fn visible_nft_count(&self) -> Result<u32> {
+        visible_nft_count(&self.pool).await
+    }
+
+    pub async fn collection_nfts_visible_named(
+        &self,
+        collection_id: Bytes32,
+        limit: u32,
+        offset: u32,
+    ) -> Result<Vec<NftRow>> {
+        collection_nfts_visible_named(&self.pool, collection_id, limit, offset).await
+    }
+
+    pub async fn collection_nfts_visible_recent(
+        &self,
+        collection_id: Bytes32,
+        limit: u32,
+        offset: u32,
+    ) -> Result<Vec<NftRow>> {
+        collection_nfts_visible_recent(&self.pool, collection_id, limit, offset).await
+    }
+
+    pub async fn collection_nfts_named(
+        &self,
+        collection_id: Bytes32,
+        limit: u32,
+        offset: u32,
+    ) -> Result<Vec<NftRow>> {
+        collection_nfts_named(&self.pool, collection_id, limit, offset).await
+    }
+
+    pub async fn collection_nfts_recent(
+        &self,
+        collection_id: Bytes32,
+        limit: u32,
+        offset: u32,
+    ) -> Result<Vec<NftRow>> {
+        collection_nfts_recent(&self.pool, collection_id, limit, offset).await
+    }
+
+    pub async fn no_collection_nfts_visible_named(
+        &self,
+        limit: u32,
+        offset: u32,
+    ) -> Result<Vec<NftRow>> {
+        no_collection_nfts_visible_named(&self.pool, limit, offset).await
+    }
+
+    pub async fn no_collection_nfts_visible_recent(
+        &self,
+        limit: u32,
+        offset: u32,
+    ) -> Result<Vec<NftRow>> {
+        no_collection_nfts_visible_recent(&self.pool, limit, offset).await
+    }
+
+    pub async fn no_collection_nfts_named(&self, limit: u32, offset: u32) -> Result<Vec<NftRow>> {
+        no_collection_nfts_named(&self.pool, limit, offset).await
+    }
+
+    pub async fn no_collection_nfts_recent(&self, limit: u32, offset: u32) -> Result<Vec<NftRow>> {
+        no_collection_nfts_recent(&self.pool, limit, offset).await
+    }
+
+    pub async fn collection_nft_count(&self, collection_id: Bytes32) -> Result<u32> {
+        collection_nft_count(&self.pool, collection_id).await
+    }
+
+    pub async fn collection_visible_nft_count(&self, collection_id: Bytes32) -> Result<u32> {
+        collection_visible_nft_count(&self.pool, collection_id).await
+    }
+
+    pub async fn no_collection_nft_count(&self) -> Result<u32> {
+        no_collection_nft_count(&self.pool).await
+    }
+
+    pub async fn no_collection_visible_nft_count(&self) -> Result<u32> {
+        no_collection_visible_nft_count(&self.pool).await
+    }
+
+    pub async fn collections_visible_named(
+        &self,
+        limit: u32,
+        offset: u32,
+    ) -> Result<Vec<CollectionRow>> {
+        collections_visible_named(&self.pool, offset, limit).await
+    }
+
+    pub async fn collections_named(&self, limit: u32, offset: u32) -> Result<Vec<CollectionRow>> {
+        collections_named(&self.pool, offset, limit).await
+    }
+
+    pub async fn nft_row(&self, launcher_id: Bytes32) -> Result<Option<NftRow>> {
+        nft_row(&self.pool, launcher_id).await
+    }
+
+    pub async fn nft(&self, launcher_id: Bytes32) -> Result<Option<Nft<Program>>> {
+        nft(&self.pool, launcher_id).await
+    }
+
+    pub async fn collection_name(&self, collection_id: Bytes32) -> Result<Option<String>> {
+        collection_name(&self.pool, collection_id).await
+    }
+
+    pub async fn data_hash(&self, launcher_id: Bytes32) -> Result<Option<Bytes32>> {
+        data_hash(&self.pool, launcher_id).await
+    }
+
+    pub async fn metadata_hash(&self, launcher_id: Bytes32) -> Result<Option<Bytes32>> {
+        metadata_hash(&self.pool, launcher_id).await
+    }
+
+    pub async fn license_hash(&self, launcher_id: Bytes32) -> Result<Option<Bytes32>> {
+        license_hash(&self.pool, launcher_id).await
+    }
 }
 
 impl<'a> DatabaseTx<'a> {
-    pub async fn collections_visible_named(
-        &mut self,
-        limit: u32,
-        offset: u32,
-    ) -> Result<Vec<CollectionRow>> {
-        collections_visible_named(&mut *self.tx, offset, limit).await
-    }
-
-    pub async fn collections_named(
-        &mut self,
-        limit: u32,
-        offset: u32,
-    ) -> Result<Vec<CollectionRow>> {
-        collections_named(&mut *self.tx, offset, limit).await
-    }
-
     pub async fn insert_nft_coin(
         &mut self,
         coin_id: Bytes32,
@@ -80,122 +208,6 @@ impl<'a> DatabaseTx<'a> {
             license_hash,
         )
         .await
-    }
-
-    pub async fn collection_count(&mut self) -> Result<u32> {
-        collection_count(&mut *self.tx).await
-    }
-
-    pub async fn visible_collection_count(&mut self) -> Result<u32> {
-        visible_collection_count(&mut *self.tx).await
-    }
-
-    pub async fn nfts_visible_named(&mut self, limit: u32, offset: u32) -> Result<Vec<NftRow>> {
-        nfts_visible_named(&mut *self.tx, limit, offset).await
-    }
-
-    pub async fn nfts_visible_recent(&mut self, limit: u32, offset: u32) -> Result<Vec<NftRow>> {
-        nfts_visible_recent(&mut *self.tx, limit, offset).await
-    }
-
-    pub async fn nfts_named(&mut self, limit: u32, offset: u32) -> Result<Vec<NftRow>> {
-        nfts_named(&mut *self.tx, limit, offset).await
-    }
-
-    pub async fn nfts_recent(&mut self, limit: u32, offset: u32) -> Result<Vec<NftRow>> {
-        nfts_recent(&mut *self.tx, limit, offset).await
-    }
-
-    pub async fn nft_count(&mut self) -> Result<u32> {
-        nft_count(&mut *self.tx).await
-    }
-
-    pub async fn visible_nft_count(&mut self) -> Result<u32> {
-        visible_nft_count(&mut *self.tx).await
-    }
-
-    pub async fn collection_nfts_visible_named(
-        &mut self,
-        collection_id: Bytes32,
-        limit: u32,
-        offset: u32,
-    ) -> Result<Vec<NftRow>> {
-        collection_nfts_visible_named(&mut *self.tx, collection_id, limit, offset).await
-    }
-
-    pub async fn collection_nfts_visible_recent(
-        &mut self,
-        collection_id: Bytes32,
-        limit: u32,
-        offset: u32,
-    ) -> Result<Vec<NftRow>> {
-        collection_nfts_visible_recent(&mut *self.tx, collection_id, limit, offset).await
-    }
-
-    pub async fn collection_nfts_named(
-        &mut self,
-        collection_id: Bytes32,
-        limit: u32,
-        offset: u32,
-    ) -> Result<Vec<NftRow>> {
-        collection_nfts_named(&mut *self.tx, collection_id, limit, offset).await
-    }
-
-    pub async fn collection_nfts_recent(
-        &mut self,
-        collection_id: Bytes32,
-        limit: u32,
-        offset: u32,
-    ) -> Result<Vec<NftRow>> {
-        collection_nfts_recent(&mut *self.tx, collection_id, limit, offset).await
-    }
-
-    pub async fn no_collection_nfts_visible_named(
-        &mut self,
-        limit: u32,
-        offset: u32,
-    ) -> Result<Vec<NftRow>> {
-        no_collection_nfts_visible_named(&mut *self.tx, limit, offset).await
-    }
-
-    pub async fn no_collection_nfts_visible_recent(
-        &mut self,
-        limit: u32,
-        offset: u32,
-    ) -> Result<Vec<NftRow>> {
-        no_collection_nfts_visible_recent(&mut *self.tx, limit, offset).await
-    }
-
-    pub async fn no_collection_nfts_named(
-        &mut self,
-        limit: u32,
-        offset: u32,
-    ) -> Result<Vec<NftRow>> {
-        no_collection_nfts_named(&mut *self.tx, limit, offset).await
-    }
-
-    pub async fn no_collection_nfts_recent(
-        &mut self,
-        limit: u32,
-        offset: u32,
-    ) -> Result<Vec<NftRow>> {
-        no_collection_nfts_recent(&mut *self.tx, limit, offset).await
-    }
-
-    pub async fn collection_nft_count(&mut self, collection_id: Bytes32) -> Result<u32> {
-        collection_nft_count(&mut *self.tx, collection_id).await
-    }
-
-    pub async fn collection_visible_nft_count(&mut self, collection_id: Bytes32) -> Result<u32> {
-        collection_visible_nft_count(&mut *self.tx, collection_id).await
-    }
-
-    pub async fn no_collection_nft_count(&mut self) -> Result<u32> {
-        no_collection_nft_count(&mut *self.tx).await
-    }
-
-    pub async fn no_collection_visible_nft_count(&mut self) -> Result<u32> {
-        no_collection_visible_nft_count(&mut *self.tx).await
     }
 
     pub async fn insert_nft_uri(&mut self, uri: String, hash: Bytes32) -> Result<()> {
@@ -226,18 +238,6 @@ impl<'a> DatabaseTx<'a> {
         nft_row_by_coin(&mut *self.tx, coin_id).await
     }
 
-    pub async fn data_hash(&mut self, launcher_id: Bytes32) -> Result<Option<Bytes32>> {
-        data_hash(&mut *self.tx, launcher_id).await
-    }
-
-    pub async fn metadata_hash(&mut self, launcher_id: Bytes32) -> Result<Option<Bytes32>> {
-        metadata_hash(&mut *self.tx, launcher_id).await
-    }
-
-    pub async fn license_hash(&mut self, launcher_id: Bytes32) -> Result<Option<Bytes32>> {
-        license_hash(&mut *self.tx, launcher_id).await
-    }
-
     pub async fn nfts_by_metadata_hash(&mut self, metadata_hash: Bytes32) -> Result<Vec<NftRow>> {
         nfts_by_metadata_hash(&mut *self.tx, metadata_hash).await
     }
@@ -248,10 +248,6 @@ impl<'a> DatabaseTx<'a> {
 
     pub async fn insert_collection(&mut self, row: CollectionRow) -> Result<()> {
         insert_collection(&mut *self.tx, row).await
-    }
-
-    pub async fn collection_name(&mut self, collection_id: Bytes32) -> Result<Option<String>> {
-        collection_name(&mut *self.tx, collection_id).await
     }
 }
 

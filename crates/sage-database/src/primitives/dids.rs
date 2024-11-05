@@ -15,10 +15,6 @@ impl Database {
         insert_did(&self.pool, row).await
     }
 
-    pub async fn update_did(&self, row: DidRow) -> Result<()> {
-        update_did(&self.pool, row).await
-    }
-
     pub async fn dids_by_name(&self) -> Result<Vec<DidRow>> {
         dids_by_name(&self.pool).await
     }
@@ -66,45 +62,16 @@ impl<'a> DatabaseTx<'a> {
         get_future_did_name(&mut *self.tx, launcher_id).await
     }
 
-    pub async fn did_row_by_coin(&mut self, coin_id: Bytes32) -> Result<Option<DidRow>> {
-        did_row_by_coin(&mut *self.tx, coin_id).await
+    pub async fn did_row(&mut self, launcher_id: Bytes32) -> Result<Option<DidRow>> {
+        did_row(&mut *self.tx, launcher_id).await
     }
 
-    pub async fn update_did(&mut self, row: DidRow) -> Result<()> {
-        update_did(&mut *self.tx, row).await
+    pub async fn did_row_by_coin(&mut self, coin_id: Bytes32) -> Result<Option<DidRow>> {
+        did_row_by_coin(&mut *self.tx, coin_id).await
     }
 }
 
 async fn insert_did(conn: impl SqliteExecutor<'_>, row: DidRow) -> Result<()> {
-    let launcher_id = row.launcher_id.as_ref();
-    let coin_id = row.coin_id.as_ref();
-
-    sqlx::query!(
-        "
-        INSERT OR IGNORE INTO `dids` (
-            `launcher_id`,
-            `coin_id`,
-            `name`,
-            `is_owned`,
-            `visible`,
-            `created_height`
-        )
-        VALUES (?, ?, ?, ?, ?, ?)
-        ",
-        launcher_id,
-        coin_id,
-        row.name,
-        row.is_owned,
-        row.visible,
-        row.created_height
-    )
-    .execute(conn)
-    .await?;
-
-    Ok(())
-}
-
-async fn update_did(conn: impl SqliteExecutor<'_>, row: DidRow) -> Result<()> {
     let launcher_id = row.launcher_id.as_ref();
     let coin_id = row.coin_id.as_ref();
 

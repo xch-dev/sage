@@ -8,6 +8,10 @@ impl Database {
         p2_puzzle_hashes_unhardened(&self.pool).await
     }
 
+    pub async fn p2_puzzle_hashes(&self) -> Result<Vec<Bytes32>> {
+        p2_puzzle_hashes(&self.pool).await
+    }
+
     pub async fn synthetic_key(&self, p2_puzzle_hash: Bytes32) -> Result<PublicKey> {
         synthetic_key(&self.pool, p2_puzzle_hash).await
     }
@@ -45,10 +49,6 @@ impl<'a> DatabaseTx<'a> {
 
     pub async fn max_used_derivation_index(&mut self, hardened: bool) -> Result<Option<u32>> {
         max_used_derivation_index(&mut *self.tx, hardened).await
-    }
-
-    pub async fn p2_puzzle_hashes(&mut self) -> Result<Vec<Bytes32>> {
-        p2_puzzle_hashes(&mut *self.tx).await
     }
 
     pub async fn synthetic_key(&mut self, p2_puzzle_hash: Bytes32) -> Result<PublicKey> {

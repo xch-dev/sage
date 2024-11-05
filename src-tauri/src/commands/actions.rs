@@ -73,7 +73,7 @@ pub async fn update_did(
 
     wallet
         .db
-        .update_did(DidRow {
+        .insert_did(DidRow {
             launcher_id: launcher_id.into(),
             coin_id: row.coin_id,
             name,

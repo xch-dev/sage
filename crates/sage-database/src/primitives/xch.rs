@@ -9,19 +9,19 @@ impl Database {
     pub async fn spendable_coins(&self) -> Result<Vec<Coin>> {
         spendable_coins(&self.pool).await
     }
+
+    pub async fn balance(&self) -> Result<u128> {
+        balance(&self.pool).await
+    }
+
+    pub async fn p2_coin_states(&self) -> Result<Vec<CoinStateRow>> {
+        p2_coin_states(&self.pool).await
+    }
 }
 
 impl<'a> DatabaseTx<'a> {
-    pub async fn p2_coin_states(&mut self) -> Result<Vec<CoinStateRow>> {
-        p2_coin_states(&mut *self.tx).await
-    }
-
     pub async fn insert_p2_coin(&mut self, coin_id: Bytes32) -> Result<()> {
         insert_p2_coin(&mut *self.tx, coin_id).await
-    }
-
-    pub async fn balance(&mut self) -> Result<u128> {
-        balance(&mut *self.tx).await
     }
 }
 

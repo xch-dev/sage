@@ -32,6 +32,8 @@ pub async fn upsert_coin(
     // This allows querying for XCH coins without joining on the derivations table.
     if is_p2 {
         tx.insert_p2_coin(coin_id).await?;
+    } else {
+        update_created_puzzle(tx, coin_state).await?;
     }
 
     Ok(())
@@ -98,15 +100,23 @@ pub async fn insert_puzzle(
                 tx.delete_future_did_name(launcher_id).await?;
             }
 
-            tx.insert_did(DidRow {
+            let mut row = tx.did_row(launcher_id).await?.unwrap_or(DidRow {
                 launcher_id,
                 coin_id,
                 name,
                 is_owned: coin_state.spent_height.is_none(),
                 visible: true,
                 created_height: coin_state.created_height,
-            })
-            .await?;
+            });
+
+            if coin_state.spent_height.is_none() {
+                row.is_owned = true;
+            }
+
+            row.coin_id = coin_id;
+            row.created_height = coin_state.created_height;
+
+            tx.insert_did(row).await?;
         }
         ChildKind::Nft {
             lineage_proof,
@@ -148,6 +158,10 @@ pub async fn insert_puzzle(
                 created_height: coin_state.created_height,
                 metadata_hash,
             });
+
+            if coin_state.spent_height.is_none() {
+                row.is_owned = true;
+            }
 
             let metadata_blob = if let Some(metadata_hash) = metadata_hash {
                 tx.fetch_nft_data(metadata_hash)
@@ -204,11 +218,30 @@ pub async fn insert_puzzle(
 pub async fn delete_puzzle(tx: &mut DatabaseTx<'_>, coin_id: Bytes32) -> Result<(), WalletError> {
     if let Some(mut row) = tx.did_row_by_coin(coin_id).await? {
         row.is_owned = false;
-        tx.update_did(row).await?;
+        tx.insert_did(row).await?;
     }
 
     if let Some(mut row) = tx.nft_row_by_coin(coin_id).await? {
         row.is_owned = false;
+        tx.insert_nft(row).await?;
+    }
+
+    Ok(())
+}
+
+pub async fn update_created_puzzle(
+    tx: &mut DatabaseTx<'_>,
+    coin_state: CoinState,
+) -> Result<(), WalletError> {
+    let coin_id = coin_state.coin.coin_id();
+
+    if let Some(mut row) = tx.did_row_by_coin(coin_id).await? {
+        row.created_height = coin_state.created_height;
+        tx.insert_did(row).await?;
+    }
+
+    if let Some(mut row) = tx.nft_row_by_coin(coin_id).await? {
+        row.created_height = coin_state.created_height;
         tx.insert_nft(row).await?;
     }
 

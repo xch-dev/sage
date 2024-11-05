@@ -43,6 +43,10 @@ impl Database {
     pub async fn refetch_cat(&self, asset_id: Bytes32) -> Result<()> {
         refetch_cat(&self.pool, asset_id).await
     }
+
+    pub async fn cat_coin_states(&self, asset_id: Bytes32) -> Result<Vec<CoinStateRow>> {
+        cat_coin_states(&self.pool, asset_id).await
+    }
 }
 
 impl<'a> DatabaseTx<'a> {
@@ -65,10 +69,6 @@ impl<'a> DatabaseTx<'a> {
             asset_id,
         )
         .await
-    }
-
-    pub async fn cat_coin_states(&mut self, asset_id: Bytes32) -> Result<Vec<CoinStateRow>> {
-        cat_coin_states(&mut *self.tx, asset_id).await
     }
 }
 

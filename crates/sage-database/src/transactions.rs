@@ -25,6 +25,21 @@ impl Database {
     pub async fn transactions(&self) -> Result<Vec<TransactionRow>> {
         transactions(&self.pool).await
     }
+
+    pub async fn resubmittable_transactions(
+        &self,
+        threshold: i64,
+    ) -> Result<Vec<(Bytes32, Signature)>> {
+        resubmittable_transactions(&self.pool, threshold).await
+    }
+
+    pub async fn coin_spends(&self, transaction_id: Bytes32) -> Result<Vec<CoinSpend>> {
+        coin_spends(&self.pool, transaction_id).await
+    }
+
+    pub async fn transactions_for_coin(&self, coin_id: Bytes32) -> Result<Vec<Bytes32>> {
+        transactions_for_coin(&self.pool, coin_id).await
+    }
 }
 
 impl<'a> DatabaseTx<'a> {
@@ -44,21 +59,6 @@ impl<'a> DatabaseTx<'a> {
         index: usize,
     ) -> Result<()> {
         insert_transaction_spend(&mut *self.tx, transaction_id, coin_spend, index).await
-    }
-
-    pub async fn transactions_for_coin(&mut self, coin_id: Bytes32) -> Result<Vec<Bytes32>> {
-        transactions_for_coin(&mut *self.tx, coin_id).await
-    }
-
-    pub async fn resubmittable_transactions(
-        &mut self,
-        threshold: i64,
-    ) -> Result<Vec<(Bytes32, Signature)>> {
-        resubmittable_transactions(&mut *self.tx, threshold).await
-    }
-
-    pub async fn coin_spends(&mut self, transaction_id: Bytes32) -> Result<Vec<CoinSpend>> {
-        coin_spends(&mut *self.tx, transaction_id).await
     }
 
     pub async fn confirm_coins(&mut self, transaction_id: Bytes32) -> Result<()> {

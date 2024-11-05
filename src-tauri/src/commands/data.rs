@@ -49,11 +49,9 @@ pub async fn get_sync_status(state: State<'_, AppState>) -> Result<SyncStatus> {
     let state = state.lock().await;
     let wallet = state.wallet()?;
 
-    let mut tx = wallet.db.tx().await?;
-    let balance = tx.balance().await?;
-    let total_coins = tx.total_coin_count().await?;
-    let synced_coins = tx.synced_coin_count().await?;
-    tx.commit().await?;
+    let balance = wallet.db.balance().await?;
+    let total_coins = wallet.db.total_coin_count().await?;
+    let synced_coins = wallet.db.synced_coin_count().await?;
 
     let puzzle_hash = match wallet.p2_puzzle_hash(false, false).await {
         Ok(puzzle_hash) => Some(puzzle_hash),
@@ -84,15 +82,15 @@ pub async fn get_coins(state: State<'_, AppState>) -> Result<Vec<CoinRecord>> {
     let state = state.lock().await;
     let wallet = state.wallet()?;
 
-    let mut tx = wallet.db.tx().await?;
     let mut records = Vec::new();
 
-    let rows = tx.p2_coin_states().await?;
+    let rows = wallet.db.p2_coin_states().await?;
 
     for row in rows {
         let cs = row.coin_state;
 
-        let spend_transaction_id = tx
+        let spend_transaction_id = wallet
+            .db
             .transactions_for_coin(cs.coin.coin_id())
             .await?
             .into_iter()
@@ -129,15 +127,15 @@ pub async fn get_cat_coins(
         .try_into()
         .map_err(|_| Error::invalid_asset_id())?;
 
-    let mut tx = wallet.db.tx().await?;
     let mut records = Vec::new();
 
-    let rows = tx.cat_coin_states(asset_id.into()).await?;
+    let rows = wallet.db.cat_coin_states(asset_id.into()).await?;
 
     for row in rows {
         let cs = row.coin_state;
 
-        let spend_transaction_id = tx
+        let spend_transaction_id = wallet
+            .db
             .transactions_for_coin(cs.coin.coin_id())
             .await?
             .into_iter()
@@ -275,14 +273,10 @@ pub async fn get_nft_status(state: State<'_, AppState>) -> Result<NftStatus> {
     let state = state.lock().await;
     let wallet = state.wallet()?;
 
-    let mut tx = wallet.db.tx().await?;
-
-    let nfts = tx.nft_count().await?;
-    let collections = tx.collection_count().await?;
-    let visible_nfts = tx.visible_nft_count().await?;
-    let visible_collections = tx.visible_collection_count().await?;
-
-    tx.commit().await?;
+    let nfts = wallet.db.nft_count().await?;
+    let collections = wallet.db.collection_count().await?;
+    let visible_nfts = wallet.db.visible_nft_count().await?;
+    let visible_collections = wallet.db.visible_collection_count().await?;
 
     Ok(NftStatus {
         nfts,
@@ -303,18 +297,24 @@ pub async fn get_nft_collections(
 
     let mut records = Vec::new();
 
-    let mut tx = wallet.db.tx().await?;
-
     let collections = if request.include_hidden {
-        tx.collections_named(request.limit, request.offset).await?
+        wallet
+            .db
+            .collections_named(request.limit, request.offset)
+            .await?
     } else {
-        tx.collections_visible_named(request.limit, request.offset)
+        wallet
+            .db
+            .collections_visible_named(request.limit, request.offset)
             .await?
     };
 
     for col in collections {
-        let total = tx.collection_nft_count(col.collection_id).await?;
-        let total_visible = tx.collection_visible_nft_count(col.collection_id).await?;
+        let total = wallet.db.collection_nft_count(col.collection_id).await?;
+        let total_visible = wallet
+            .db
+            .collection_visible_nft_count(col.collection_id)
+            .await?;
 
         records.push(NftCollectionRecord {
             collection_id: encode_address(col.collection_id.to_bytes(), "col")?,
@@ -327,8 +327,6 @@ pub async fn get_nft_collections(
             visible_nfts: total_visible,
         });
     }
-
-    tx.commit().await?;
 
     Ok(records)
 }
@@ -360,21 +358,20 @@ pub async fn get_nft_collection(
         None
     };
 
-    let mut tx = wallet.db.tx().await?;
-
     let total = if let Some(collection_id) = collection_id {
-        tx.collection_nft_count(collection_id).await?
+        wallet.db.collection_nft_count(collection_id).await?
     } else {
-        tx.no_collection_nft_count().await?
+        wallet.db.no_collection_nft_count().await?
     };
 
     let total_visible = if let Some(collection_id) = collection_id {
-        tx.collection_visible_nft_count(collection_id).await?
+        wallet
+            .db
+            .collection_visible_nft_count(collection_id)
+            .await?
     } else {
-        tx.no_collection_visible_nft_count().await?
+        wallet.db.no_collection_visible_nft_count().await?
     };
-
-    tx.commit().await?;
 
     Ok(if let Some(collection) = collection {
         NftCollectionRecord {
@@ -409,35 +406,38 @@ pub async fn get_nfts(state: State<'_, AppState>, request: GetNfts) -> Result<Ve
 
     let mut records = Vec::new();
 
-    let mut tx = wallet.db.tx().await?;
-
     let nfts = match (request.sort_mode, request.include_hidden) {
-        (NftSortMode::Name, true) => tx.nfts_named(request.limit, request.offset).await?,
-        (NftSortMode::Name, false) => tx.nfts_visible_named(request.limit, request.offset).await?,
-        (NftSortMode::Recent, true) => tx.nfts_recent(request.limit, request.offset).await?,
+        (NftSortMode::Name, true) => wallet.db.nfts_named(request.limit, request.offset).await?,
+        (NftSortMode::Name, false) => {
+            wallet
+                .db
+                .nfts_visible_named(request.limit, request.offset)
+                .await?
+        }
+        (NftSortMode::Recent, true) => wallet.db.nfts_recent(request.limit, request.offset).await?,
         (NftSortMode::Recent, false) => {
-            tx.nfts_visible_recent(request.limit, request.offset)
+            wallet
+                .db
+                .nfts_visible_recent(request.limit, request.offset)
                 .await?
         }
     };
 
     for nft in nfts {
-        let data = if let Some(hash) = tx.data_hash(nft.launcher_id).await? {
-            tx.fetch_nft_data(hash).await?
+        let data = if let Some(hash) = wallet.db.data_hash(nft.launcher_id).await? {
+            wallet.db.fetch_nft_data(hash).await?
         } else {
             None
         };
 
         let collection_name = if let Some(collection_id) = nft.collection_id {
-            tx.collection_name(collection_id).await?
+            wallet.db.collection_name(collection_id).await?
         } else {
             None
         };
 
         records.push(nft_record(nft, collection_name, data)?);
     }
-
-    tx.commit().await?;
 
     Ok(records)
 }
@@ -465,60 +465,72 @@ pub async fn get_collection_nfts(
 
     let mut records = Vec::new();
 
-    let mut tx = wallet.db.tx().await?;
-
     let nfts = match (request.sort_mode, request.include_hidden, collection_id) {
         (NftSortMode::Name, true, Some(collection_id)) => {
-            tx.collection_nfts_named(collection_id, request.limit, request.offset)
+            wallet
+                .db
+                .collection_nfts_named(collection_id, request.limit, request.offset)
                 .await?
         }
         (NftSortMode::Name, false, Some(collection_id)) => {
-            tx.collection_nfts_visible_named(collection_id, request.limit, request.offset)
+            wallet
+                .db
+                .collection_nfts_visible_named(collection_id, request.limit, request.offset)
                 .await?
         }
         (NftSortMode::Recent, true, Some(collection_id)) => {
-            tx.collection_nfts_recent(collection_id, request.limit, request.offset)
+            wallet
+                .db
+                .collection_nfts_recent(collection_id, request.limit, request.offset)
                 .await?
         }
         (NftSortMode::Recent, false, Some(collection_id)) => {
-            tx.collection_nfts_visible_recent(collection_id, request.limit, request.offset)
+            wallet
+                .db
+                .collection_nfts_visible_recent(collection_id, request.limit, request.offset)
                 .await?
         }
         (NftSortMode::Name, true, None) => {
-            tx.no_collection_nfts_named(request.limit, request.offset)
+            wallet
+                .db
+                .no_collection_nfts_named(request.limit, request.offset)
                 .await?
         }
         (NftSortMode::Name, false, None) => {
-            tx.no_collection_nfts_visible_named(request.limit, request.offset)
+            wallet
+                .db
+                .no_collection_nfts_visible_named(request.limit, request.offset)
                 .await?
         }
         (NftSortMode::Recent, true, None) => {
-            tx.no_collection_nfts_recent(request.limit, request.offset)
+            wallet
+                .db
+                .no_collection_nfts_recent(request.limit, request.offset)
                 .await?
         }
         (NftSortMode::Recent, false, None) => {
-            tx.no_collection_nfts_visible_recent(request.limit, request.offset)
+            wallet
+                .db
+                .no_collection_nfts_visible_recent(request.limit, request.offset)
                 .await?
         }
     };
 
     for nft in nfts {
-        let data = if let Some(hash) = tx.data_hash(nft.launcher_id).await? {
-            tx.fetch_nft_data(hash).await?
+        let data = if let Some(hash) = wallet.db.data_hash(nft.launcher_id).await? {
+            wallet.db.fetch_nft_data(hash).await?
         } else {
             None
         };
 
         let collection_name = if let Some(collection_id) = nft.collection_id {
-            tx.collection_name(collection_id).await?
+            wallet.db.collection_name(collection_id).await?
         } else {
             None
         };
 
         records.push(nft_record(nft, collection_name, data)?);
     }
-
-    tx.commit().await?;
 
     Ok(records)
 }
@@ -534,13 +546,11 @@ pub async fn get_nft(state: State<'_, AppState>, launcher_id: String) -> Result<
         return Err(Error::invalid_prefix(&prefix));
     }
 
-    let mut tx = wallet.db.tx().await?;
-
-    let Some(nft_row) = tx.nft_row(launcher_id.into()).await? else {
+    let Some(nft_row) = wallet.db.nft_row(launcher_id.into()).await? else {
         return Ok(None);
     };
 
-    let Some(nft) = tx.nft(launcher_id.into()).await? else {
+    let Some(nft) = wallet.db.nft(launcher_id.into()).await? else {
         return Ok(None);
     };
 
@@ -553,24 +563,22 @@ pub async fn get_nft(state: State<'_, AppState>, launcher_id: String) -> Result<
     let license_hash = metadata.as_ref().and_then(|m| m.license_hash);
 
     let data = if let Some(hash) = data_hash {
-        tx.fetch_nft_data(hash).await?
+        wallet.db.fetch_nft_data(hash).await?
     } else {
         None
     };
 
     let offchain_metadata = if let Some(hash) = metadata_hash {
-        tx.fetch_nft_data(hash).await?
+        wallet.db.fetch_nft_data(hash).await?
     } else {
         None
     };
 
     let collection_name = if let Some(collection_id) = nft_row.collection_id {
-        tx.collection_name(collection_id).await?
+        wallet.db.collection_name(collection_id).await?
     } else {
         None
     };
-
-    tx.commit().await?;
 
     Ok(Some(NftInfo {
         launcher_id: encode_address(nft_row.launcher_id.to_bytes(), "nft")?,

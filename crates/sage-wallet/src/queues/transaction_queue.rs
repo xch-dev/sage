@@ -63,10 +63,9 @@ impl TransactionQueue {
             .try_into()
             .expect("timestamp does not fit in i64");
 
-        let mut tx = self.db.tx().await?;
         let mut spend_bundles = Vec::new();
 
-        let rows = tx.resubmittable_transactions(timestamp - 180).await?;
+        let rows = self.db.resubmittable_transactions(timestamp - 180).await?;
 
         if rows.is_empty() {
             return Ok(());
@@ -75,11 +74,9 @@ impl TransactionQueue {
         info!("Submitting the following transactions: {rows:?}");
 
         for (transaction_id, aggregated_signature) in rows {
-            let coin_spends = tx.coin_spends(transaction_id).await?;
+            let coin_spends = self.db.coin_spends(transaction_id).await?;
             spend_bundles.push(SpendBundle::new(coin_spends, aggregated_signature));
         }
-
-        tx.commit().await?;
 
         for spend_bundle in spend_bundles {
             sleep(Duration::from_secs(1)).await;

@@ -11,6 +11,30 @@ impl Database {
     pub async fn coin_state(&self, coin_id: Bytes32) -> Result<Option<CoinState>> {
         coin_state(&self.pool, coin_id).await
     }
+
+    pub async fn unspent_nft_coin_ids(&self) -> Result<Vec<Bytes32>> {
+        unspent_nft_coin_ids(&self.pool).await
+    }
+
+    pub async fn unspent_did_coin_ids(&self) -> Result<Vec<Bytes32>> {
+        unspent_did_coin_ids(&self.pool).await
+    }
+
+    pub async fn unspent_cat_coin_ids(&self) -> Result<Vec<Bytes32>> {
+        unspent_cat_coin_ids(&self.pool).await
+    }
+
+    pub async fn delete_coin_state(&self, coin_id: Bytes32) -> Result<()> {
+        delete_coin_state(&self.pool, coin_id).await
+    }
+
+    pub async fn total_coin_count(&self) -> Result<u32> {
+        total_coin_count(&self.pool).await
+    }
+
+    pub async fn synced_coin_count(&self) -> Result<u32> {
+        synced_coin_count(&self.pool).await
+    }
 }
 
 impl<'a> DatabaseTx<'a> {
@@ -40,10 +64,6 @@ impl<'a> DatabaseTx<'a> {
         .await
     }
 
-    pub async fn delete_coin_state(&mut self, coin_id: Bytes32) -> Result<()> {
-        delete_coin_state(&mut *self.tx, coin_id).await
-    }
-
     pub async fn sync_coin(&mut self, coin_id: Bytes32, hint: Option<Bytes32>) -> Result<()> {
         sync_coin(&mut *self.tx, coin_id, hint).await
     }
@@ -54,26 +74,6 @@ impl<'a> DatabaseTx<'a> {
 
     pub async fn remove_coin_transaction_id(&mut self, coin_id: Bytes32) -> Result<()> {
         remove_coin_transaction_id(&mut *self.tx, coin_id).await
-    }
-
-    pub async fn total_coin_count(&mut self) -> Result<u32> {
-        total_coin_count(&mut *self.tx).await
-    }
-
-    pub async fn synced_coin_count(&mut self) -> Result<u32> {
-        synced_coin_count(&mut *self.tx).await
-    }
-
-    pub async fn unspent_nft_coin_ids(&mut self) -> Result<Vec<Bytes32>> {
-        unspent_nft_coin_ids(&mut *self.tx).await
-    }
-
-    pub async fn unspent_did_coin_ids(&mut self) -> Result<Vec<Bytes32>> {
-        unspent_did_coin_ids(&mut *self.tx).await
-    }
-
-    pub async fn unspent_cat_coin_ids(&mut self) -> Result<Vec<Bytes32>> {
-        unspent_cat_coin_ids(&mut *self.tx).await
     }
 }
 
