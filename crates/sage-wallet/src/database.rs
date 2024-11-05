@@ -102,6 +102,7 @@ pub async fn insert_puzzle(
                 launcher_id,
                 coin_id,
                 name,
+                is_owned: coin_state.spent_height.is_none(),
                 visible: true,
                 created_height: coin_state.created_height,
             })
@@ -143,6 +144,7 @@ pub async fn insert_puzzle(
                 visible: true,
                 sensitive_content: false,
                 name: None,
+                is_owned: coin_state.spent_height.is_none(),
                 created_height: coin_state.created_height,
                 metadata_hash,
             });
@@ -200,8 +202,15 @@ pub async fn insert_puzzle(
 }
 
 pub async fn delete_puzzle(tx: &mut DatabaseTx<'_>, coin_id: Bytes32) -> Result<(), WalletError> {
-    tx.delete_nft(coin_id).await?;
-    tx.delete_did(coin_id).await?;
+    if let Some(mut row) = tx.did_row_by_coin(coin_id).await? {
+        row.is_owned = false;
+        tx.update_did(row).await?;
+    }
+
+    if let Some(mut row) = tx.nft_row_by_coin(coin_id).await? {
+        row.is_owned = false;
+        tx.insert_nft(row).await?;
+    }
 
     Ok(())
 }

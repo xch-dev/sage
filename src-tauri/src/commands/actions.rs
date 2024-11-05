@@ -67,7 +67,7 @@ pub async fn update_did(
         return Err(Error::invalid_prefix(&prefix));
     }
 
-    let Some(row) = wallet.db.did(launcher_id.into()).await? else {
+    let Some(row) = wallet.db.did_row(launcher_id.into()).await? else {
         return Err(Error::invalid_launcher_id());
     };
 
@@ -77,6 +77,7 @@ pub async fn update_did(
             launcher_id: launcher_id.into(),
             coin_id: row.coin_id,
             name,
+            is_owned: row.is_owned,
             visible,
             created_height: row.created_height,
         })

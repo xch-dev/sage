@@ -91,13 +91,15 @@ CREATE TABLE `dids` (
     `coin_id` BLOB NOT NULL,
     `name` TEXT,
     `visible` BOOLEAN NOT NULL,
+    `is_owned` BOOLEAN NOT NULL,
     `is_named` BOOLEAN GENERATED ALWAYS AS (`name` IS NOT NULL) STORED,
     `created_height` INTEGER,
     `is_pending` BOOLEAN GENERATED ALWAYS AS (`created_height` IS NULL) STORED,
     FOREIGN KEY (`coin_id`) REFERENCES `did_coins` (`coin_id`) ON DELETE CASCADE
 );
 
-CREATE INDEX `did_name` ON `dids` (`visible` DESC, `is_pending` DESC, `is_named` DESC, `name` ASC, `launcher_id` ASC);
+CREATE INDEX `did_coin_id` ON `dids` (`coin_id`);
+CREATE INDEX `did_name` ON `dids` (`is_owned`, `visible` DESC, `is_pending` DESC, `is_named` DESC, `name` ASC, `launcher_id` ASC);
 
 CREATE TABLE `future_did_names` (
     `launcher_id` BLOB NOT NULL PRIMARY KEY,
@@ -140,6 +142,7 @@ CREATE TABLE `nfts` (
     `visible` BOOLEAN NOT NULL,
     `sensitive_content` BOOLEAN NOT NULL,
     `name` TEXT,
+    `is_owned` BOOLEAN NOT NULL,
     `is_named` BOOLEAN GENERATED ALWAYS AS (`name` IS NOT NULL) STORED,
     `created_height` INTEGER,
     `is_pending` BOOLEAN GENERATED ALWAYS AS (`created_height` IS NULL) STORED,
@@ -147,11 +150,12 @@ CREATE TABLE `nfts` (
     FOREIGN KEY (`coin_id`) REFERENCES `nft_coins` (`coin_id`) ON DELETE CASCADE
 );
 
-CREATE INDEX `nft_metadata` ON `nfts` (`metadata_hash`);
-CREATE INDEX `nft_name` ON `nfts` (`visible` DESC, `is_pending` DESC, `is_named` DESC, `name` ASC, `launcher_id` ASC);
-CREATE INDEX `nft_recent` ON `nfts` (`visible` DESC, `is_pending` DESC, `created_height` DESC, `launcher_id` ASC);
-CREATE INDEX `nft_col_name` ON `nfts` (`collection_id`, `visible` DESC, `is_pending` DESC, `is_named` DESC, `name` ASC, `launcher_id` ASC);
-CREATE INDEX `nft_col_recent` ON `nfts` (`collection_id`, `visible` DESC, `is_pending` DESC, `created_height` DESC, `launcher_id` ASC);
+CREATE INDEX `nft_coin_id` ON `nfts` (`coin_id`);
+CREATE INDEX `nft_metadata` ON `nfts` (`is_owned`, `metadata_hash`);
+CREATE INDEX `nft_name` ON `nfts` (`is_owned`, `visible` DESC, `is_pending` DESC, `is_named` DESC, `name` ASC, `launcher_id` ASC);
+CREATE INDEX `nft_recent` ON `nfts` (`is_owned`, `visible` DESC, `is_pending` DESC, `created_height` DESC, `launcher_id` ASC);
+CREATE INDEX `nft_col_name` ON `nfts` (`is_owned`, `collection_id`, `visible` DESC, `is_pending` DESC, `is_named` DESC, `name` ASC, `launcher_id` ASC);
+CREATE INDEX `nft_col_recent` ON `nfts` (`is_owned`, `collection_id`, `visible` DESC, `is_pending` DESC, `created_height` DESC, `launcher_id` ASC);
 
 CREATE TABLE `nft_coins` (
     `coin_id` BLOB NOT NULL PRIMARY KEY,

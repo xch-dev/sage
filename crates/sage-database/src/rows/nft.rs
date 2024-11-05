@@ -14,6 +14,7 @@ pub(crate) struct NftSql {
     pub visible: bool,
     pub sensitive_content: bool,
     pub name: Option<String>,
+    pub is_owned: bool,
     pub created_height: Option<i64>,
     pub metadata_hash: Option<Vec<u8>>,
     pub is_named: Option<bool>,
@@ -30,6 +31,7 @@ pub struct NftRow {
     pub visible: bool,
     pub sensitive_content: bool,
     pub name: Option<String>,
+    pub is_owned: bool,
     pub created_height: Option<u32>,
     pub metadata_hash: Option<Bytes32>,
 }
@@ -47,6 +49,7 @@ impl IntoRow for NftSql {
             visible: self.visible,
             sensitive_content: self.sensitive_content,
             name: self.name,
+            is_owned: self.is_owned,
             created_height: self.created_height.map(TryInto::try_into).transpose()?,
             metadata_hash: self.metadata_hash.as_deref().map(to_bytes32).transpose()?,
         })

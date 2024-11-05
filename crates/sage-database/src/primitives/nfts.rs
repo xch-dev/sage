@@ -222,8 +222,8 @@ impl<'a> DatabaseTx<'a> {
         nft_row(&mut *self.tx, launcher_id).await
     }
 
-    pub async fn delete_nft(&mut self, coin_id: Bytes32) -> Result<()> {
-        delete_nft(&mut *self.tx, coin_id).await
+    pub async fn nft_row_by_coin(&mut self, coin_id: Bytes32) -> Result<Option<NftRow>> {
+        nft_row_by_coin(&mut *self.tx, coin_id).await
     }
 
     pub async fn data_hash(&mut self, launcher_id: Bytes32) -> Result<Option<Bytes32>> {
@@ -398,7 +398,7 @@ async fn nft_count(conn: impl SqliteExecutor<'_>) -> Result<u32> {
     let row = sqlx::query!(
         "
         SELECT COUNT(*) AS `count` FROM `nfts`
-        WHERE `visible` = 1
+        WHERE `is_owned` = 1 AND `visible` = 1
         "
     )
     .fetch_one(conn)
@@ -411,7 +411,7 @@ async fn visible_nft_count(conn: impl SqliteExecutor<'_>) -> Result<u32> {
     let row = sqlx::query!(
         "
         SELECT COUNT(*) AS `count` FROM `nfts`
-        WHERE `visible` = 1
+        WHERE `is_owned` = 1 AND `visible` = 1
         "
     )
     .fetch_one(conn)
@@ -429,7 +429,7 @@ async fn collection_nft_count(
     let row = sqlx::query!(
         "
         SELECT COUNT(*) AS `count` FROM `nfts` INDEXED BY `nft_col_recent`
-        WHERE `collection_id` = ? AND `visible` = 1
+        WHERE `is_owned` = 1 AND `collection_id` = ? AND `visible` = 1
         ",
         collection_id
     )
@@ -448,7 +448,7 @@ async fn collection_visible_nft_count(
     let row = sqlx::query!(
         "
         SELECT COUNT(*) AS `count` FROM `nfts` INDEXED BY `nft_col_recent`
-        WHERE `collection_id` = ? AND `visible` = 1
+        WHERE `is_owned` = 1 AND `collection_id` = ? AND `visible` = 1
         ",
         collection_id
     )
@@ -462,7 +462,7 @@ async fn no_collection_nft_count(conn: impl SqliteExecutor<'_>) -> Result<u32> {
     let row = sqlx::query!(
         "
         SELECT COUNT(*) AS `count` FROM `nfts` INDEXED BY `nft_col_recent`
-        WHERE `collection_id` IS NULL AND `visible` = 1
+        WHERE `is_owned` = 1 AND `collection_id` IS NULL AND `visible` = 1
         "
     )
     .fetch_one(conn)
@@ -475,7 +475,7 @@ async fn no_collection_visible_nft_count(conn: impl SqliteExecutor<'_>) -> Resul
     let row = sqlx::query!(
         "
         SELECT COUNT(*) AS `count` FROM `nfts` INDEXED BY `nft_col_recent`
-        WHERE `collection_id` IS NULL AND `visible` = 1
+        WHERE `is_owned` = 1 AND `collection_id` IS NULL AND `visible` = 1
         "
     )
     .fetch_one(conn)
@@ -593,9 +593,10 @@ async fn insert_nft(conn: impl SqliteExecutor<'_>, row: NftRow) -> Result<()> {
             `visible`,
             `sensitive_content`,
             `name`,
+            `is_owned`,
             `created_height`,
             `metadata_hash`
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         launcher_id,
         coin_id,
         collection_id,
@@ -604,6 +605,7 @@ async fn insert_nft(conn: impl SqliteExecutor<'_>, row: NftRow) -> Result<()> {
         row.visible,
         row.sensitive_content,
         name,
+        row.is_owned,
         row.created_height,
         metadata_hash
     )
@@ -616,44 +618,36 @@ async fn insert_nft(conn: impl SqliteExecutor<'_>, row: NftRow) -> Result<()> {
 async fn nft_row(conn: impl SqliteExecutor<'_>, launcher_id: Bytes32) -> Result<Option<NftRow>> {
     let launcher_id = launcher_id.as_ref();
 
-    let Some(row) = sqlx::query!(
+    sqlx::query_as!(
+        NftSql,
         "
-        SELECT
-            `launcher_id`, `coin_id`, `collection_id`, `minter_did`, `owner_did`,
-            `visible`, `sensitive_content`, `name`, `created_height`, `metadata_hash`
-        FROM `nfts`
-        WHERE `launcher_id` = ?
+        SELECT * FROM `nfts` WHERE `launcher_id` = ?
         ",
         launcher_id
     )
     .fetch_optional(conn)
     .await?
-    else {
-        return Ok(None);
-    };
-
-    Ok(Some(NftRow {
-        launcher_id: to_bytes32(&row.launcher_id)?,
-        coin_id: to_bytes32(&row.coin_id)?,
-        collection_id: row.collection_id.as_deref().map(to_bytes32).transpose()?,
-        minter_did: row.minter_did.as_deref().map(to_bytes32).transpose()?,
-        owner_did: row.owner_did.as_deref().map(to_bytes32).transpose()?,
-        visible: row.visible,
-        sensitive_content: row.sensitive_content,
-        name: row.name,
-        created_height: row.created_height.map(TryInto::try_into).transpose()?,
-        metadata_hash: row.metadata_hash.as_deref().map(to_bytes32).transpose()?,
-    }))
+    .map(into_row)
+    .transpose()
 }
 
-async fn delete_nft(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<()> {
+async fn nft_row_by_coin(
+    conn: impl SqliteExecutor<'_>,
+    coin_id: Bytes32,
+) -> Result<Option<NftRow>> {
     let coin_id = coin_id.as_ref();
 
-    sqlx::query!("DELETE FROM `nfts` WHERE `coin_id` = ?", coin_id)
-        .execute(conn)
-        .await?;
-
-    Ok(())
+    sqlx::query_as!(
+        NftSql,
+        "
+        SELECT * FROM `nfts` WHERE `coin_id` = ?
+        ",
+        coin_id
+    )
+    .fetch_optional(conn)
+    .await?
+    .map(into_row)
+    .transpose()
 }
 
 async fn set_nft_visible(
@@ -767,7 +761,7 @@ async fn nfts_visible_named(
         NftSql,
         "
         SELECT * FROM `nfts` INDEXED BY `nft_name`
-        WHERE `visible` = 1
+        WHERE `is_owned` = 1 AND `visible` = 1
         ORDER BY `is_pending` DESC, `is_named` DESC, `name` ASC, `launcher_id` ASC
         LIMIT ? OFFSET ?
         ",
@@ -790,7 +784,7 @@ async fn nfts_visible_recent(
         NftSql,
         "
         SELECT * FROM `nfts` INDEXED BY `nft_recent`
-        WHERE `visible` = 1
+        WHERE `is_owned` = 1 AND `visible` = 1
         ORDER BY `is_pending` DESC, `created_height` DESC, `launcher_id` ASC
         LIMIT ? OFFSET ?
         ",
@@ -809,6 +803,7 @@ async fn nfts_named(conn: impl SqliteExecutor<'_>, limit: u32, offset: u32) -> R
         NftSql,
         "
         SELECT * FROM `nfts` INDEXED BY `nft_name`
+        WHERE `is_owned` = 1
         ORDER BY `visible` DESC, `is_pending` DESC, `is_named` DESC, `name` ASC, `launcher_id` ASC
         LIMIT ? OFFSET ?
         ",
@@ -831,6 +826,7 @@ async fn nfts_recent(
         NftSql,
         "
         SELECT * FROM `nfts` INDEXED BY `nft_recent`
+        WHERE `is_owned` = 1
         ORDER BY `visible` DESC, `is_pending` DESC, `created_height` DESC, `launcher_id` ASC
         LIMIT ? OFFSET ?
         ",
@@ -856,7 +852,7 @@ async fn collection_nfts_visible_named(
         NftSql,
         "
         SELECT * FROM `nfts` INDEXED BY `nft_col_name`
-        WHERE `collection_id` = ? AND `visible` = 1
+        WHERE `is_owned` = 1 AND `collection_id` = ? AND `visible` = 1
         ORDER BY `is_pending` DESC, `is_named` DESC, `name` ASC, `launcher_id` ASC
         LIMIT ? OFFSET ?
         ",
@@ -883,7 +879,7 @@ async fn collection_nfts_visible_recent(
         NftSql,
         "
         SELECT * FROM `nfts` INDEXED BY `nft_col_recent`
-        WHERE `collection_id` = ? AND `visible` = 1
+        WHERE `is_owned` = 1 AND `collection_id` = ? AND `visible` = 1
         ORDER BY `is_pending` DESC, `created_height` DESC, `launcher_id` ASC
         LIMIT ? OFFSET ?
         ",
@@ -910,7 +906,7 @@ async fn collection_nfts_named(
         NftSql,
         "
         SELECT * FROM `nfts` INDEXED BY `nft_col_name`
-        WHERE `collection_id` = ?
+        WHERE `is_owned` = 1 AND `collection_id` = ?
         ORDER BY `visible` DESC, `is_pending` DESC, `is_named` DESC, `name` ASC, `launcher_id` ASC
         LIMIT ? OFFSET ?
         ",
@@ -937,7 +933,7 @@ async fn collection_nfts_recent(
         NftSql,
         "
         SELECT * FROM `nfts` INDEXED BY `nft_col_recent`
-        WHERE `collection_id` = ?
+        WHERE `is_owned` = 1 AND `collection_id` = ?
         ORDER BY `visible` DESC, `is_pending` DESC, `created_height` DESC, `launcher_id` ASC
         LIMIT ? OFFSET ?
         ",
@@ -961,7 +957,7 @@ async fn no_collection_nfts_visible_named(
         NftSql,
         "
         SELECT * FROM `nfts` INDEXED BY `nft_col_name`
-        WHERE `collection_id` IS NULL AND `visible` = 1
+        WHERE `is_owned` = 1 AND `collection_id` IS NULL AND `visible` = 1
         ORDER BY `is_pending` DESC, `is_named` DESC, `name` ASC, `launcher_id` ASC
         LIMIT ? OFFSET ?
         ",
@@ -984,7 +980,7 @@ async fn no_collection_nfts_visible_recent(
         NftSql,
         "
         SELECT * FROM `nfts` INDEXED BY `nft_col_recent`
-        WHERE `collection_id` IS NULL AND `visible` = 1
+        WHERE `is_owned` = 1 AND `collection_id` IS NULL AND `visible` = 1
         ORDER BY `is_pending` DESC, `created_height` DESC, `launcher_id` ASC
         LIMIT ? OFFSET ?
         ",
@@ -1007,7 +1003,7 @@ async fn no_collection_nfts_named(
         NftSql,
         "
         SELECT * FROM `nfts` INDEXED BY `nft_col_name`
-        WHERE `collection_id` IS NULL
+        WHERE `is_owned` = 1 AND `collection_id` IS NULL
         ORDER BY `visible` DESC, `is_pending` DESC, `is_named` DESC, `name` ASC, `launcher_id` ASC
         LIMIT ? OFFSET ?
         ",
@@ -1030,7 +1026,7 @@ async fn no_collection_nfts_recent(
         NftSql,
         "
         SELECT * FROM `nfts` INDEXED BY `nft_col_recent`
-        WHERE `collection_id` IS NULL
+        WHERE `is_owned` = 1 AND `collection_id` IS NULL
         ORDER BY `visible` DESC, `is_pending` DESC, `created_height` DESC, `launcher_id` ASC
         LIMIT ? OFFSET ?
         ",
