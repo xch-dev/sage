@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n        SELECT * FROM `nfts` INDEXED BY `nft_name`\n        ORDER BY `visible` DESC, `is_named` DESC, `name` ASC, `launcher_id` ASC\n        LIMIT ? OFFSET ?\n        ",
+  "query": "\n        SELECT * FROM `nfts` INDEXED BY `nft_col_recent`\n        WHERE `is_owned` = 1 AND `collection_id` = ?\n        ORDER BY `visible` DESC, `is_pending` DESC, `created_height` DESC, `launcher_id` ASC\n        LIMIT ? OFFSET ?\n        ",
   "describe": {
     "columns": [
       {
@@ -44,28 +44,33 @@
         "type_info": "Text"
       },
       {
-        "name": "is_named",
+        "name": "is_owned",
         "ordinal": 8,
         "type_info": "Bool"
       },
       {
-        "name": "created_height",
+        "name": "is_named",
         "ordinal": 9,
+        "type_info": "Bool"
+      },
+      {
+        "name": "created_height",
+        "ordinal": 10,
         "type_info": "Integer"
       },
       {
         "name": "is_pending",
-        "ordinal": 10,
+        "ordinal": 11,
         "type_info": "Bool"
       },
       {
         "name": "metadata_hash",
-        "ordinal": 11,
+        "ordinal": 12,
         "type_info": "Blob"
       }
     ],
     "parameters": {
-      "Right": 2
+      "Right": 3
     },
     "nullable": [
       false,
@@ -76,11 +81,12 @@
       false,
       false,
       true,
+      false,
       true,
       true,
       true,
       true
     ]
   },
-  "hash": "fedfc41e839aab794f9e89e6c20a82039a5d00c8ab27f09c12887a76d2291a3f"
+  "hash": "dce1744d3f53d3dbda512f9f489ab91b537664d85c6970b8ef8d495ea201957a"
 }

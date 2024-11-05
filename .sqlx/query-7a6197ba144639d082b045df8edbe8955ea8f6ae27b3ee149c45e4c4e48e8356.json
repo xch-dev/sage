@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n        SELECT * FROM `nfts` INDEXED BY `nft_metadata`\n        WHERE `metadata_hash` = ?\n        ",
+  "query": "\n        SELECT * FROM `nfts` INDEXED BY `nft_name`\n        WHERE `is_owned` = 1\n        ORDER BY `visible` DESC, `is_pending` DESC, `is_named` DESC, `name` ASC, `launcher_id` ASC\n        LIMIT ? OFFSET ?\n        ",
   "describe": {
     "columns": [
       {
@@ -70,7 +70,7 @@
       }
     ],
     "parameters": {
-      "Right": 1
+      "Right": 2
     },
     "nullable": [
       false,
@@ -88,5 +88,5 @@
       true
     ]
   },
-  "hash": "1a6d7c18b1fb2286ebade255b4f3380a1312e0530c1ba0418e783a7be8a521cb"
+  "hash": "7a6197ba144639d082b045df8edbe8955ea8f6ae27b3ee149c45e4c4e48e8356"
 }
