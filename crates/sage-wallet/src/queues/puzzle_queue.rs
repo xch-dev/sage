@@ -160,7 +160,7 @@ async fn fetch_puzzle(
         .ok_or(SyncError::UnconfirmedCoin(parent_id))?;
 
     let response = timeout(
-        Duration::from_secs(5),
+        Duration::from_secs(10),
         peer.request_puzzle_and_solution(parent_id, height),
     )
     .await

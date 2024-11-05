@@ -83,8 +83,9 @@ async fn insert_cat(conn: impl SqliteExecutor<'_>, row: CatRow) -> Result<()> {
             `ticker`,
             `description`,
             `icon`,
-            `visible`
-        ) VALUES (?, ?, ?, ?, ?, ?)
+            `visible`,
+            `fetched`
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)
         ",
         asset_id,
         row.name,
@@ -92,6 +93,7 @@ async fn insert_cat(conn: impl SqliteExecutor<'_>, row: CatRow) -> Result<()> {
         row.description,
         row.icon,
         row.visible,
+        row.fetched
     )
     .execute(conn)
     .await?;
@@ -109,15 +111,17 @@ async fn update_cat(conn: impl SqliteExecutor<'_>, row: CatRow) -> Result<()> {
             `ticker`,
             `description`,
             `icon`,
-            `visible`
-        ) VALUES (?, ?, ?, ?, ?, ?)
+            `visible`,
+            `fetched`
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)
         ",
         asset_id,
         row.name,
         row.ticker,
         row.description,
         row.icon,
-        row.visible
+        row.visible,
+        row.fetched
     )
     .execute(conn)
     .await?;
