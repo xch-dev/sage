@@ -191,4 +191,17 @@ impl ChildKind {
 
         Ok(unknown)
     }
+
+    pub fn p2_puzzle_hash(&self) -> Option<Bytes32> {
+        match self {
+            Self::Launcher | Self::Unknown { .. } => None,
+            Self::Cat { p2_puzzle_hash, .. } => Some(*p2_puzzle_hash),
+            Self::Did { info, .. } => Some(info.p2_puzzle_hash),
+            Self::Nft { info, .. } => Some(info.p2_puzzle_hash),
+        }
+    }
+
+    pub fn subscribe(&self) -> bool {
+        matches!(self, Self::Cat { .. } | Self::Did { .. } | Self::Nft { .. })
+    }
 }

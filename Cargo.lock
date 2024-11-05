@@ -4468,6 +4468,7 @@ dependencies = [
  "chia-wallet-sdk",
  "clvmr",
  "hex",
+ "hex-literal",
  "indexmap 2.5.0",
  "itertools 0.13.0",
  "log",

@@ -1,17 +1,39 @@
 use chia::protocol::{Bytes32, CoinState};
 use sqlx::SqliteExecutor;
 
-use crate::{to_bytes32, to_coin, to_coin_state, Database, DatabaseTx, Result};
-
-#[derive(Debug, Clone, Copy)]
-pub struct CoinStateRow {
-    pub coin_state: CoinState,
-    pub transaction_id: Option<Bytes32>,
-}
+use crate::{to_bytes32, CoinStateSql, Database, DatabaseTx, IntoRow, Result};
 
 impl Database {
     pub async fn unsynced_coin_states(&self, limit: usize) -> Result<Vec<CoinState>> {
         unsynced_coin_states(&self.pool, limit).await
+    }
+
+    pub async fn coin_state(&self, coin_id: Bytes32) -> Result<Option<CoinState>> {
+        coin_state(&self.pool, coin_id).await
+    }
+
+    pub async fn unspent_nft_coin_ids(&self) -> Result<Vec<Bytes32>> {
+        unspent_nft_coin_ids(&self.pool).await
+    }
+
+    pub async fn unspent_did_coin_ids(&self) -> Result<Vec<Bytes32>> {
+        unspent_did_coin_ids(&self.pool).await
+    }
+
+    pub async fn unspent_cat_coin_ids(&self) -> Result<Vec<Bytes32>> {
+        unspent_cat_coin_ids(&self.pool).await
+    }
+
+    pub async fn delete_coin_state(&self, coin_id: Bytes32) -> Result<()> {
+        delete_coin_state(&self.pool, coin_id).await
+    }
+
+    pub async fn total_coin_count(&self) -> Result<u32> {
+        total_coin_count(&self.pool).await
+    }
+
+    pub async fn synced_coin_count(&self) -> Result<u32> {
+        synced_coin_count(&self.pool).await
     }
 }
 
@@ -25,49 +47,33 @@ impl<'a> DatabaseTx<'a> {
         insert_coin_state(&mut *self.tx, coin_state, synced, transaction_id).await
     }
 
-    pub async fn set_coin_height(
+    pub async fn update_coin_state(
         &mut self,
         coin_id: Bytes32,
         created_height: Option<u32>,
         spent_height: Option<u32>,
+        transaction_id: Option<Bytes32>,
     ) -> Result<()> {
-        set_coin_height(&mut *self.tx, coin_id, created_height, spent_height).await
+        update_coin_state(
+            &mut *self.tx,
+            coin_id,
+            created_height,
+            spent_height,
+            transaction_id,
+        )
+        .await
     }
 
     pub async fn sync_coin(&mut self, coin_id: Bytes32, hint: Option<Bytes32>) -> Result<()> {
         sync_coin(&mut *self.tx, coin_id, hint).await
     }
 
+    pub async fn unsync_coin(&mut self, coin_id: Bytes32) -> Result<()> {
+        unsync_coin(&mut *self.tx, coin_id).await
+    }
+
     pub async fn remove_coin_transaction_id(&mut self, coin_id: Bytes32) -> Result<()> {
         remove_coin_transaction_id(&mut *self.tx, coin_id).await
-    }
-
-    pub async fn total_coin_count(&mut self) -> Result<u32> {
-        total_coin_count(&mut *self.tx).await
-    }
-
-    pub async fn synced_coin_count(&mut self) -> Result<u32> {
-        synced_coin_count(&mut *self.tx).await
-    }
-
-    pub async fn coin_state(&mut self, coin_id: Bytes32) -> Result<Option<CoinState>> {
-        coin_state(&mut *self.tx, coin_id).await
-    }
-
-    pub async fn insert_unknown_coin(&mut self, coin_id: Bytes32) -> Result<()> {
-        insert_unknown_coin(&mut *self.tx, coin_id).await
-    }
-
-    pub async fn unspent_nft_coin_ids(&mut self) -> Result<Vec<Bytes32>> {
-        unspent_nft_coin_ids(&mut *self.tx).await
-    }
-
-    pub async fn unspent_did_coin_ids(&mut self) -> Result<Vec<Bytes32>> {
-        unspent_did_coin_ids(&mut *self.tx).await
-    }
-
-    pub async fn unspent_cat_coin_ids(&mut self) -> Result<Vec<Bytes32>> {
-        unspent_cat_coin_ids(&mut *self.tx).await
     }
 }
 
@@ -113,21 +119,25 @@ async fn insert_coin_state(
     Ok(())
 }
 
-async fn set_coin_height(
+async fn update_coin_state(
     conn: impl SqliteExecutor<'_>,
     coin_id: Bytes32,
     created_height: Option<u32>,
     spent_height: Option<u32>,
+    transaction_id: Option<Bytes32>,
 ) -> Result<()> {
     let coin_id = coin_id.as_ref();
+    let transaction_id = transaction_id.as_deref();
+
     sqlx::query!(
         "
         UPDATE `coin_states`
-        SET `created_height` = ?, `spent_height` = ?, `transaction_id` = NULL
+        SET `created_height` = ?, `spent_height` = ?, `transaction_id` = ?
         WHERE `coin_id` = ?
         ",
         created_height,
         spent_height,
+        transaction_id,
         coin_id
     )
     .execute(conn)
@@ -135,18 +145,17 @@ async fn set_coin_height(
     Ok(())
 }
 
-async fn insert_unknown_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<()> {
+async fn delete_coin_state(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<()> {
     let coin_id = coin_id.as_ref();
-
     sqlx::query!(
         "
-        REPLACE INTO `unknown_coins` (`coin_id`) VALUES (?)
+        DELETE FROM `coin_states`
+        WHERE `coin_id` = ?
         ",
         coin_id
     )
     .execute(conn)
     .await?;
-
     Ok(())
 }
 
@@ -155,9 +164,10 @@ async fn unsynced_coin_states(
     limit: usize,
 ) -> Result<Vec<CoinState>> {
     let limit: i64 = limit.try_into()?;
-    let rows = sqlx::query!(
+    let rows = sqlx::query_as!(
+        CoinStateSql,
         "
-        SELECT *
+        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `created_height`, `spent_height`, `transaction_id`
         FROM `coin_states`
         WHERE `synced` = 0 AND `created_height` IS NOT NULL
         ORDER BY `spent_height` ASC
@@ -168,13 +178,7 @@ async fn unsynced_coin_states(
     .fetch_all(conn)
     .await?;
     rows.into_iter()
-        .map(|row| {
-            to_coin_state(
-                to_coin(&row.parent_coin_id, &row.puzzle_hash, &row.amount)?,
-                row.created_height,
-                row.spent_height,
-            )
-        })
+        .map(|sql| sql.into_row().map(|row| row.coin_state))
         .collect()
 }
 
@@ -185,17 +189,30 @@ async fn sync_coin(
 ) -> Result<()> {
     let coin_id = coin_id.as_ref();
     let hint = hint.as_deref();
+
     sqlx::query!(
         "
-        UPDATE `coin_states`
-        SET `synced` = 1, `hint` = ?
-        WHERE `coin_id` = ?
+        UPDATE `coin_states` SET `synced` = 1, `hint` = ? WHERE `coin_id` = ?
         ",
         hint,
         coin_id
     )
     .execute(conn)
     .await?;
+
+    Ok(())
+}
+
+async fn unsync_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<()> {
+    let coin_id = coin_id.as_ref();
+
+    sqlx::query!(
+        "UPDATE `coin_states` SET `synced` = 0 WHERE `coin_id` = ?",
+        coin_id
+    )
+    .execute(conn)
+    .await?;
+
     Ok(())
 }
 
@@ -242,9 +259,10 @@ async fn synced_coin_count(conn: impl SqliteExecutor<'_>) -> Result<u32> {
 async fn coin_state(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Option<CoinState>> {
     let coin_id = coin_id.as_ref();
 
-    let Some(row) = sqlx::query!(
+    let Some(sql) = sqlx::query_as!(
+        CoinStateSql,
         "
-        SELECT *
+        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `created_height`, `spent_height`, `transaction_id`
         FROM `coin_states`
         WHERE `coin_id` = ?
         ",
@@ -256,11 +274,7 @@ async fn coin_state(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<O
         return Ok(None);
     };
 
-    Ok(Some(to_coin_state(
-        to_coin(&row.parent_coin_id, &row.puzzle_hash, &row.amount)?,
-        row.created_height,
-        row.spent_height,
-    )?))
+    Ok(Some(sql.into_row()?.coin_state))
 }
 
 async fn unspent_nft_coin_ids(conn: impl SqliteExecutor<'_>) -> Result<Vec<Bytes32>> {

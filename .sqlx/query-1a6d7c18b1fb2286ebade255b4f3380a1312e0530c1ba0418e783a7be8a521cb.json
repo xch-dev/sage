@@ -44,23 +44,28 @@
         "type_info": "Text"
       },
       {
-        "name": "is_named",
+        "name": "is_owned",
         "ordinal": 8,
         "type_info": "Bool"
       },
       {
-        "name": "created_height",
+        "name": "is_named",
         "ordinal": 9,
+        "type_info": "Bool"
+      },
+      {
+        "name": "created_height",
+        "ordinal": 10,
         "type_info": "Integer"
       },
       {
         "name": "is_pending",
-        "ordinal": 10,
+        "ordinal": 11,
         "type_info": "Bool"
       },
       {
         "name": "metadata_hash",
-        "ordinal": 11,
+        "ordinal": 12,
         "type_info": "Blob"
       }
     ],
@@ -76,6 +81,7 @@
       false,
       false,
       true,
+      false,
       true,
       true,
       true,

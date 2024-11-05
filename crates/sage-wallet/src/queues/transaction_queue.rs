@@ -12,7 +12,7 @@ use tokio::{
 };
 use tracing::{info, warn};
 
-use crate::{PeerState, SyncEvent, WalletError};
+use crate::{safely_remove_transaction, PeerState, SyncEvent, WalletError};
 
 #[derive(Debug)]
 pub struct TransactionQueue {
@@ -63,10 +63,9 @@ impl TransactionQueue {
             .try_into()
             .expect("timestamp does not fit in i64");
 
-        let mut tx = self.db.tx().await?;
         let mut spend_bundles = Vec::new();
 
-        let rows = tx.resubmittable_transactions(timestamp - 180).await?;
+        let rows = self.db.resubmittable_transactions(timestamp - 180).await?;
 
         if rows.is_empty() {
             return Ok(());
@@ -75,11 +74,9 @@ impl TransactionQueue {
         info!("Submitting the following transactions: {rows:?}");
 
         for (transaction_id, aggregated_signature) in rows {
-            let coin_spends = tx.coin_spends(transaction_id).await?;
+            let coin_spends = self.db.coin_spends(transaction_id).await?;
             spend_bundles.push(SpendBundle::new(coin_spends, aggregated_signature));
         }
-
-        tx.commit().await?;
 
         for spend_bundle in spend_bundles {
             sleep(Duration::from_secs(1)).await;
@@ -163,7 +160,7 @@ impl TransactionQueue {
 
                 let mut tx = self.db.tx().await?;
                 tx.confirm_coins(transaction_id).await?;
-                tx.remove_transaction(transaction_id).await?;
+                safely_remove_transaction(&mut tx, transaction_id).await?;
                 tx.commit().await?;
 
                 continue;
@@ -171,7 +168,7 @@ impl TransactionQueue {
                 info!("Transaction {transaction_id} failed");
 
                 let mut tx = self.db.tx().await?;
-                tx.remove_transaction(transaction_id).await?;
+                safely_remove_transaction(&mut tx, transaction_id).await?;
                 tx.commit().await?;
 
                 continue;
@@ -221,7 +218,7 @@ impl TransactionQueue {
             } else {
                 info!("Transaction {transaction_id} failed");
                 let mut tx = self.db.tx().await?;
-                tx.remove_transaction(transaction_id).await?;
+                safely_remove_transaction(&mut tx, transaction_id).await?;
                 tx.commit().await?;
             }
         }

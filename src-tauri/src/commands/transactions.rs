@@ -9,14 +9,15 @@ use chia::{
 use chia_wallet_sdk::{
     decode_address, encode_address, AggSigConstants, MAINNET_CONSTANTS, TESTNET11_CONSTANTS,
 };
+use hex_literal::hex;
 use sage_api::{
     Amount, BulkMintNfts, BulkMintNftsResponse, CoinJson, CoinSpendJson, Input, InputKind, Output,
     SpendBundleJson, TransactionSummary,
 };
 use sage_database::{CatRow, Database};
 use sage_wallet::{
-    compute_nft_info, fetch_uris, insert_transaction, ChildKind, CoinKind, Data, Transaction,
-    Wallet, WalletError, WalletNftMint,
+    compute_nft_info, fetch_uris, insert_transaction, ChildKind, CoinKind, Data, SyncCommand,
+    Transaction, Wallet, WalletError, WalletNftMint,
 };
 use specta::specta;
 use tauri::{command, State};
@@ -95,12 +96,10 @@ pub async fn combine(
         .map(|coin_id| Ok(hex::decode(coin_id)?.try_into()?))
         .collect::<Result<Vec<Bytes32>>>()?;
 
-    let mut tx = wallet.db.tx().await?;
-
     let mut coins = Vec::new();
 
     for coin_id in coin_ids {
-        let Some(coin_state) = tx.coin_state(coin_id).await? else {
+        let Some(coin_state) = wallet.db.coin_state(coin_id).await? else {
             return Err(Error::unknown_coin_id());
         };
 
@@ -110,8 +109,6 @@ pub async fn combine(
 
         coins.push(coin_state.coin);
     }
-
-    tx.commit().await?;
 
     let coin_spends = wallet.combine_xch(coins, fee, false, true).await?;
 
@@ -142,12 +139,10 @@ pub async fn split(
         .map(|coin_id| Ok(hex::decode(coin_id)?.try_into()?))
         .collect::<Result<Vec<Bytes32>>>()?;
 
-    let mut tx = wallet.db.tx().await?;
-
     let mut coins = Vec::new();
 
     for coin_id in coin_ids {
-        let Some(coin_state) = tx.coin_state(coin_id).await? else {
+        let Some(coin_state) = wallet.db.coin_state(coin_id).await? else {
             return Err(Error::unknown_coin_id());
         };
 
@@ -157,8 +152,6 @@ pub async fn split(
 
         coins.push(coin_state.coin);
     }
-
-    tx.commit().await?;
 
     let coin_spends = wallet
         .split_xch(&coins, output_count as usize, fee, false, true)
@@ -274,13 +267,14 @@ pub async fn issue_cat(
 
     wallet
         .db
-        .maybe_insert_cat(CatRow {
+        .insert_cat(CatRow {
             asset_id,
             name: Some(name),
             ticker: Some(ticker),
             description: None,
-            icon_url: None,
+            icon: None,
             visible: true,
+            fetched: true,
         })
         .await?;
 
@@ -347,7 +341,7 @@ pub async fn create_did(
 
     wallet
         .db
-        .insert_new_did(did.info.launcher_id, Some(name.clone()), true)
+        .set_future_did_name(did.info.launcher_id, name.clone())
         .await?;
 
     let mut confirm_info = ConfirmationInfo::default();
@@ -593,7 +587,7 @@ pub async fn submit_transaction(
 
     let mut tx = wallet.db.tx().await?;
 
-    insert_transaction(
+    let subscriptions = insert_transaction(
         &mut tx,
         spend_bundle.name(),
         Transaction::from_coin_spends(spend_bundle.coin_spends)?,
@@ -602,6 +596,13 @@ pub async fn submit_transaction(
     .await?;
 
     tx.commit().await?;
+
+    state
+        .command_sender
+        .send(SyncCommand::SubscribeCoins {
+            coin_ids: subscriptions,
+        })
+        .await?;
 
     Ok(())
 }
@@ -646,7 +647,7 @@ async fn summarize(
                     asset_id: hex::encode(asset_id),
                     name: cat.as_ref().and_then(|cat| cat.name.clone()),
                     ticker: cat.as_ref().and_then(|cat| cat.ticker.clone()),
-                    icon_url: cat.as_ref().and_then(|cat| cat.icon_url.clone()),
+                    icon_url: cat.as_ref().and_then(|cat| cat.icon.clone()),
                 };
                 amount = Amount::from_mojos(coin.amount as u128, 3);
                 (kind, p2_puzzle_hash)
@@ -704,6 +705,8 @@ async fn summarize(
                 amount,
                 address,
                 receiving: wallet.db.is_p2_puzzle_hash(p2_puzzle_hash).await?,
+                burning: p2_puzzle_hash.to_bytes()
+                    == hex!("000000000000000000000000000000000000000000000000000000000000dead"),
             });
         }
 

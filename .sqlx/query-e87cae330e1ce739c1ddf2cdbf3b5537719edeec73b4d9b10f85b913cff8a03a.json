@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT `coin_id` FROM `transaction_spends` WHERE `transaction_id` = ?\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "coin_id",
+        "ordinal": 0,
+        "type_info": "Blob"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "e87cae330e1ce739c1ddf2cdbf3b5537719edeec73b4d9b10f85b913cff8a03a"
+}

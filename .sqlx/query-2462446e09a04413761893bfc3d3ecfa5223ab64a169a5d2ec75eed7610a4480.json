@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "REPLACE INTO `nfts` (\n            `launcher_id`,\n            `coin_id`,\n            `collection_id`,\n            `minter_did`,\n            `owner_did`,\n            `visible`,\n            `sensitive_content`,\n            `name`,\n            `is_owned`,\n            `created_height`,\n            `metadata_hash`\n        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 11
+    },
+    "nullable": []
+  },
+  "hash": "2462446e09a04413761893bfc3d3ecfa5223ab64a169a5d2ec75eed7610a4480"
+}

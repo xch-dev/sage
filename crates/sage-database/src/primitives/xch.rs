@@ -2,26 +2,26 @@ use chia::protocol::{Bytes32, Coin};
 use sqlx::SqliteExecutor;
 
 use crate::{
-    to_bytes, to_bytes32, to_coin, to_coin_state, CoinStateRow, Database, DatabaseTx, Result,
+    into_row, to_bytes, CoinSql, CoinStateRow, CoinStateSql, Database, DatabaseTx, Result,
 };
 
 impl Database {
     pub async fn spendable_coins(&self) -> Result<Vec<Coin>> {
         spendable_coins(&self.pool).await
     }
+
+    pub async fn balance(&self) -> Result<u128> {
+        balance(&self.pool).await
+    }
+
+    pub async fn p2_coin_states(&self) -> Result<Vec<CoinStateRow>> {
+        p2_coin_states(&self.pool).await
+    }
 }
 
 impl<'a> DatabaseTx<'a> {
-    pub async fn p2_coin_states(&mut self) -> Result<Vec<CoinStateRow>> {
-        p2_coin_states(&mut *self.tx).await
-    }
-
     pub async fn insert_p2_coin(&mut self, coin_id: Bytes32) -> Result<()> {
         insert_p2_coin(&mut *self.tx, coin_id).await
-    }
-
-    pub async fn balance(&mut self) -> Result<u128> {
-        balance(&mut *self.tx).await
     }
 }
 
@@ -59,7 +59,8 @@ async fn balance(conn: impl SqliteExecutor<'_>) -> Result<u128> {
 }
 
 async fn spendable_coins(conn: impl SqliteExecutor<'_>) -> Result<Vec<Coin>> {
-    let rows = sqlx::query!(
+    sqlx::query_as!(
+        CoinSql,
         "
         SELECT `coin_states`.`parent_coin_id`, `coin_states`.`puzzle_hash`, `coin_states`.`amount` FROM `coin_states`
         INNER JOIN `p2_coins` ON `coin_states`.`coin_id` = `p2_coins`.`coin_id`
@@ -70,33 +71,23 @@ async fn spendable_coins(conn: impl SqliteExecutor<'_>) -> Result<Vec<Coin>> {
         "
     )
     .fetch_all(conn)
-    .await?;
-
-    rows.iter()
-        .map(|row| to_coin(&row.parent_coin_id, &row.puzzle_hash, &row.amount))
-        .collect()
+    .await?
+    .into_iter()
+    .map(into_row)
+    .collect()
 }
 
 async fn p2_coin_states(conn: impl SqliteExecutor<'_>) -> Result<Vec<CoinStateRow>> {
-    let rows = sqlx::query!(
+    let rows = sqlx::query_as!(
+        CoinStateSql,
         "
-        SELECT `coin_states`.* FROM `coin_states`
+        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `spent_height`, `created_height`, `transaction_id`
+        FROM `coin_states`
         INNER JOIN `p2_coins` ON `coin_states`.`coin_id` = `p2_coins`.`coin_id`
         "
     )
     .fetch_all(conn)
     .await?;
 
-    rows.into_iter()
-        .map(|row| {
-            Ok(CoinStateRow {
-                coin_state: to_coin_state(
-                    to_coin(&row.parent_coin_id, &row.puzzle_hash, &row.amount)?,
-                    row.created_height,
-                    row.spent_height,
-                )?,
-                transaction_id: row.transaction_id.map(|id| to_bytes32(&id)).transpose()?,
-            })
-        })
-        .collect()
+    rows.into_iter().map(into_row).collect()
 }

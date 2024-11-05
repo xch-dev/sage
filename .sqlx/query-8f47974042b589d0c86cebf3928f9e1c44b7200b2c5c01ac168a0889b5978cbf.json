@@ -1,0 +1,44 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT\n            `did_coins`.`coin_id`, `amount`, `p2_puzzle_hash`, `created_height`, `transaction_id`\n        FROM `did_coins`\n        INNER JOIN `coin_states` ON `coin_states`.coin_id = `did_coins`.coin_id\n        WHERE `did_coins`.`coin_id` = ?\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "coin_id",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "amount",
+        "ordinal": 1,
+        "type_info": "Blob"
+      },
+      {
+        "name": "p2_puzzle_hash",
+        "ordinal": 2,
+        "type_info": "Blob"
+      },
+      {
+        "name": "created_height",
+        "ordinal": 3,
+        "type_info": "Integer"
+      },
+      {
+        "name": "transaction_id",
+        "ordinal": 4,
+        "type_info": "Blob"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "8f47974042b589d0c86cebf3928f9e1c44b7200b2c5c01ac168a0889b5978cbf"
+}

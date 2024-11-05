@@ -1,0 +1,50 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT `launcher_id`, `coin_id`, `name`, `is_owned`, `visible`, `created_height`\n        FROM `dids` INDEXED BY `did_name`\n        WHERE `is_owned` = 1\n        ORDER BY `visible` DESC, `is_pending` DESC, `is_named` DESC, `name` ASC, `launcher_id` ASC\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "launcher_id",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "coin_id",
+        "ordinal": 1,
+        "type_info": "Blob"
+      },
+      {
+        "name": "name",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "is_owned",
+        "ordinal": 3,
+        "type_info": "Bool"
+      },
+      {
+        "name": "visible",
+        "ordinal": 4,
+        "type_info": "Bool"
+      },
+      {
+        "name": "created_height",
+        "ordinal": 5,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "955b4fba4689c0ae0a5eb46631fdc38ed92ac74d690c3f5a70a1fb94d9164a89"
+}

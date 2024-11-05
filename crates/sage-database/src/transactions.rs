@@ -25,6 +25,21 @@ impl Database {
     pub async fn transactions(&self) -> Result<Vec<TransactionRow>> {
         transactions(&self.pool).await
     }
+
+    pub async fn resubmittable_transactions(
+        &self,
+        threshold: i64,
+    ) -> Result<Vec<(Bytes32, Signature)>> {
+        resubmittable_transactions(&self.pool, threshold).await
+    }
+
+    pub async fn coin_spends(&self, transaction_id: Bytes32) -> Result<Vec<CoinSpend>> {
+        coin_spends(&self.pool, transaction_id).await
+    }
+
+    pub async fn transactions_for_coin(&self, coin_id: Bytes32) -> Result<Vec<Bytes32>> {
+        transactions_for_coin(&self.pool, coin_id).await
+    }
 }
 
 impl<'a> DatabaseTx<'a> {
@@ -46,21 +61,6 @@ impl<'a> DatabaseTx<'a> {
         insert_transaction_spend(&mut *self.tx, transaction_id, coin_spend, index).await
     }
 
-    pub async fn transactions_for_coin(&mut self, coin_id: Bytes32) -> Result<Vec<Bytes32>> {
-        transactions_for_coin(&mut *self.tx, coin_id).await
-    }
-
-    pub async fn resubmittable_transactions(
-        &mut self,
-        threshold: i64,
-    ) -> Result<Vec<(Bytes32, Signature)>> {
-        resubmittable_transactions(&mut *self.tx, threshold).await
-    }
-
-    pub async fn coin_spends(&mut self, transaction_id: Bytes32) -> Result<Vec<CoinSpend>> {
-        coin_spends(&mut *self.tx, transaction_id).await
-    }
-
     pub async fn confirm_coins(&mut self, transaction_id: Bytes32) -> Result<()> {
         confirm_coins(&mut *self.tx, transaction_id).await
     }
@@ -69,8 +69,15 @@ impl<'a> DatabaseTx<'a> {
         remove_transaction(&mut *self.tx, transaction_id).await
     }
 
-    pub async fn transaction_for_spent_coin(&mut self, coin_id: Bytes32) -> Result<Vec<Bytes32>> {
+    pub async fn transaction_for_spent_coin(
+        &mut self,
+        coin_id: Bytes32,
+    ) -> Result<Option<Bytes32>> {
         transaction_for_spent_coin(&mut *self.tx, coin_id).await
+    }
+
+    pub async fn transaction_coin_ids(&mut self, transaction_id: Bytes32) -> Result<Vec<Bytes32>> {
+        transaction_coin_ids(&mut *self.tx, transaction_id).await
     }
 }
 
@@ -321,10 +328,10 @@ async fn confirm_coins(conn: impl SqliteExecutor<'_>, transaction_id: Bytes32) -
 async fn transaction_for_spent_coin(
     conn: impl SqliteExecutor<'_>,
     coin_id: Bytes32,
-) -> Result<Vec<Bytes32>> {
+) -> Result<Option<Bytes32>> {
     let coin_id = coin_id.as_ref();
 
-    let rows = sqlx::query!(
+    let Some(row) = sqlx::query!(
         "
         SELECT `transaction_id`
         FROM `transaction_spends`
@@ -332,10 +339,31 @@ async fn transaction_for_spent_coin(
         ",
         coin_id
     )
+    .fetch_optional(conn)
+    .await?
+    else {
+        return Ok(None);
+    };
+
+    Ok(Some(to_bytes32(&row.transaction_id)?))
+}
+
+async fn transaction_coin_ids(
+    conn: impl SqliteExecutor<'_>,
+    transaction_id: Bytes32,
+) -> Result<Vec<Bytes32>> {
+    let transaction_id = transaction_id.as_ref();
+
+    let rows = sqlx::query!(
+        "
+        SELECT `coin_id` FROM `transaction_spends` WHERE `transaction_id` = ?
+        ",
+        transaction_id
+    )
     .fetch_all(conn)
     .await?;
 
     rows.into_iter()
-        .map(|row| to_bytes32(&row.transaction_id))
+        .map(|row| to_bytes32(&row.coin_id))
         .collect()
 }

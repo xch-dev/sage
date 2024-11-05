@@ -4,9 +4,9 @@ import { nftUri } from '@/lib/nftUri';
 import { useWalletState } from '@/state';
 import { zodResolver } from '@hookform/resolvers/zod';
 import BigNumber from 'bignumber.js';
-import { EyeIcon, EyeOff, MoreVertical, SendIcon } from 'lucide-react';
+import { EyeIcon, EyeOff, Flame, MoreVertical, SendIcon } from 'lucide-react';
 import { PropsWithChildren, useState } from 'react';
-import { Form, useForm } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { Link } from 'react-router-dom';
 import { z } from 'zod';
 import ConfirmationDialog from './ConfirmationDialog';
@@ -27,6 +27,7 @@ import {
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
 import {
+  Form,
   FormControl,
   FormField,
   FormItem,
@@ -51,7 +52,8 @@ export function NftCardList({ children }: PropsWithChildren) {
 export function NftCard({ nft, updateNfts }: NftProps) {
   const walletState = useWalletState();
 
-  const [isTransferOpen, setTransferOpen] = useState(false);
+  const [transferOpen, setTransferOpen] = useState(false);
+  const [burnOpen, setBurnOpen] = useState(false);
   const [summary, setSummary] = useState<TransactionSummary | null>(null);
 
   const toggleVisibility = () => {
@@ -87,6 +89,33 @@ export function NftCard({ nft, updateNfts }: NftProps) {
         setTransferOpen(false);
         if (result.status === 'error') {
           console.error('Failed to transfer NFT', result.error);
+        } else {
+          setSummary(result.data);
+        }
+      });
+  };
+
+  const burnFormSchema = z.object({
+    fee: amount(walletState.sync.unit.decimals).refine(
+      (amount) => BigNumber(walletState.sync.balance).gte(amount || 0),
+      'Not enough funds to cover the fee',
+    ),
+  });
+
+  const burnForm = useForm<z.infer<typeof burnFormSchema>>({
+    resolver: zodResolver(burnFormSchema),
+    defaultValues: {
+      fee: '0',
+    },
+  });
+
+  const onBurnSubmit = (values: z.infer<typeof burnFormSchema>) => {
+    commands
+      .transferNft(nft.launcher_id, walletState.sync.burn_address, values.fee)
+      .then((result) => {
+        setBurnOpen(false);
+        if (result.status === 'error') {
+          console.error('Failed to burn NFT', result.error);
         } else {
           setSummary(result.data);
         }
@@ -139,6 +168,20 @@ export function NftCard({ nft, updateNfts }: NftProps) {
                   <SendIcon className='mr-2 h-4 w-4' />
                   <span>Transfer</span>
                 </DropdownMenuItem>
+
+                <DropdownMenuItem
+                  className='cursor-pointer'
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    burnForm.reset();
+                    setBurnOpen(true);
+                  }}
+                  disabled={!nft.created_height}
+                >
+                  <Flame className='mr-2 h-4 w-4' />
+                  <span>Burn</span>
+                </DropdownMenuItem>
+
                 <DropdownMenuItem
                   className='cursor-pointer'
                   onClick={(e) => {
@@ -159,7 +202,7 @@ export function NftCard({ nft, updateNfts }: NftProps) {
         </div>
       </Link>
 
-      <Dialog open={isTransferOpen} onOpenChange={setTransferOpen}>
+      <Dialog open={transferOpen} onOpenChange={setTransferOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Transfer NFT</DialogTitle>
@@ -207,6 +250,48 @@ export function NftCard({ nft, updateNfts }: NftProps) {
                   Cancel
                 </Button>
                 <Button type='submit'>Transfer</Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={burnOpen} onOpenChange={setBurnOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Burn NFT</DialogTitle>
+            <DialogDescription>
+              This will permanently delete the NFT by sending it to the burn
+              address.
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...burnForm}>
+            <form
+              onSubmit={burnForm.handleSubmit(onBurnSubmit)}
+              className='space-y-4'
+            >
+              <FormField
+                control={burnForm.control}
+                name='fee'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Network Fee</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter className='gap-2'>
+                <Button
+                  type='button'
+                  variant='outline'
+                  onClick={() => setBurnOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button type='submit'>Burn</Button>
               </DialogFooter>
             </form>
           </Form>

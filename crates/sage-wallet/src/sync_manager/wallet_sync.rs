@@ -14,7 +14,7 @@ use tokio::{
 };
 use tracing::{debug, info, instrument, warn};
 
-use crate::{SyncError, Wallet, WalletError};
+use crate::{handle_spent_coin, upsert_coin, SyncError, Wallet, WalletError};
 
 use super::{PeerState, SyncEvent};
 
@@ -26,21 +26,17 @@ pub async fn sync_wallet(
 ) -> Result<(), WalletError> {
     info!("Starting sync against peer {}", peer.socket_addr());
 
-    let mut tx = wallet.db.tx().await?;
-
     let mut coin_ids = Vec::new();
-    coin_ids.extend(tx.unspent_nft_coin_ids().await?);
-    coin_ids.extend(tx.unspent_did_coin_ids().await?);
-    coin_ids.extend(tx.unspent_cat_coin_ids().await?);
+    coin_ids.extend(wallet.db.unspent_nft_coin_ids().await?);
+    coin_ids.extend(wallet.db.unspent_did_coin_ids().await?);
+    coin_ids.extend(wallet.db.unspent_cat_coin_ids().await?);
 
-    let p2_puzzle_hashes = tx.p2_puzzle_hashes().await?;
+    let p2_puzzle_hashes = wallet.db.p2_puzzle_hashes().await?;
 
-    let (start_height, start_header_hash) = tx.latest_peak().await?.map_or_else(
+    let (start_height, start_header_hash) = wallet.db.latest_peak().await?.map_or_else(
         || (None, wallet.genesis_challenge),
         |(peak, header_hash)| (Some(peak), header_hash),
     );
-
-    tx.commit().await?;
 
     sync_coin_ids(
         &wallet,
@@ -262,26 +258,10 @@ pub async fn incremental_sync(
     let mut tx = wallet.db.tx().await?;
 
     for coin_state in coin_states {
-        let coin_id = coin_state.coin.coin_id();
-        let is_p2 = tx.is_p2_puzzle_hash(coin_state.coin.puzzle_hash).await?;
-
-        tx.insert_coin_state(coin_state, is_p2, None).await?;
-
-        tx.set_coin_height(coin_id, coin_state.created_height, coin_state.spent_height)
-            .await?;
-
-        if is_p2 {
-            tx.insert_p2_coin(coin_id).await?;
-        }
+        upsert_coin(&mut tx, coin_state, None).await?;
 
         if coin_state.spent_height.is_some() {
-            for transaction_id in tx.transaction_for_spent_coin(coin_id).await? {
-                tx.remove_transaction(transaction_id).await?;
-            }
-
-            if let Some(launcher_id) = tx.nft_launcher_id(coin_id).await? {
-                tx.delete_nft(launcher_id).await?;
-            }
+            handle_spent_coin(&mut tx, coin_state.coin.coin_id()).await?;
         }
     }
 

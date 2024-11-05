@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT `name` FROM `collections` WHERE `collection_id` = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "name",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "58a5fc4e0127de1f53d3071b1d7597ef0088d86a2fa00036dc8d8f0eefc5f156"
+}

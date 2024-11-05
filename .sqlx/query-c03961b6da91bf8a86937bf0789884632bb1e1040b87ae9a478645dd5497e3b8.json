@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        UPDATE `coin_states` SET `synced` = 1, `hint` = ? WHERE `coin_id` = ?\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "c03961b6da91bf8a86937bf0789884632bb1e1040b87ae9a478645dd5497e3b8"
+}

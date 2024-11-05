@@ -175,11 +175,9 @@ impl Wallet {
         ctx: &mut SpendContext,
         coins: impl Iterator<Item = (Coin, Conditions)>,
     ) -> Result<(), WalletError> {
-        let mut tx = self.db.tx().await?;
-
         for (coin, conditions) in coins {
             // We need to figure out what the synthetic public key is for this p2 coin.
-            let synthetic_key = tx.synthetic_key(coin.puzzle_hash).await?;
+            let synthetic_key = self.db.synthetic_key(coin.puzzle_hash).await?;
 
             // Create the standard p2 layer for the key.
             let p2 = StandardLayer::new(synthetic_key);
@@ -222,12 +220,11 @@ impl Wallet {
         ctx: &mut SpendContext,
         cats: impl Iterator<Item = (Cat, Conditions)>,
     ) -> Result<(), WalletError> {
-        let mut tx = self.db.tx().await?;
         let mut cat_spends = Vec::new();
 
         for (cat, conditions) in cats {
             // We need to figure out what the synthetic public key is for this CAT coin.
-            let synthetic_key = tx.synthetic_key(cat.p2_puzzle_hash).await?;
+            let synthetic_key = self.db.synthetic_key(cat.p2_puzzle_hash).await?;
 
             // Create the standard p2 layer for the key.
             let p2 = StandardLayer::new(synthetic_key);
@@ -744,7 +741,7 @@ impl Wallet {
         hardened: bool,
         reuse: bool,
     ) -> Result<(Vec<CoinSpend>, Vec<Nft<NftMetadata>>, Did<Program>), WalletError> {
-        let Some(did) = self.db.did(did_id).await? else {
+        let Some(did) = self.db.spendable_did(did_id).await? else {
             return Err(WalletError::MissingDid(did_id));
         };
 
@@ -863,7 +860,7 @@ impl Wallet {
         hardened: bool,
         reuse: bool,
     ) -> Result<(Vec<CoinSpend>, Did<Program>), WalletError> {
-        let Some(did) = self.db.did(did_id).await? else {
+        let Some(did) = self.db.spendable_did(did_id).await? else {
             return Err(WalletError::MissingDid(did_id));
         };
 

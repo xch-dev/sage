@@ -72,7 +72,7 @@ impl NftUriQueue {
                                     info.collection.as_ref().map(|col| col.collection_id);
 
                                 if let Some(collection) = info.collection {
-                                    tx.insert_nft_collection(collection).await?;
+                                    tx.insert_collection(collection).await?;
                                 }
 
                                 tx.insert_nft(nft).await?;

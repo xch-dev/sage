@@ -48,7 +48,7 @@ impl CatQueue {
     }
 
     async fn process_batch(&self) -> Result<(), WalletError> {
-        let Some(asset_id) = self.db.unidentified_cat().await? else {
+        let Some(asset_id) = self.db.unfetched_cat().await? else {
             return Ok(());
         };
 
@@ -95,8 +95,9 @@ impl CatQueue {
                 name: asset.name,
                 ticker: asset.code,
                 description: asset.description,
-                icon_url: Some(format!("{dexie_image_base_url}/{asset_id}.webp")),
+                icon: Some(format!("{dexie_image_base_url}/{asset_id}.webp")),
                 visible: true,
+                fetched: true,
             })
             .await?;
 

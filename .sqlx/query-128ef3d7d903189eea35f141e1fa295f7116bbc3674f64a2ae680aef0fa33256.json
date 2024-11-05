@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT `asset_id` FROM `cats` WHERE `fetched` = 0\n        LIMIT 1\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "asset_id",
+        "ordinal": 0,
+        "type_info": "Blob"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "128ef3d7d903189eea35f141e1fa295f7116bbc3674f64a2ae680aef0fa33256"
+}
