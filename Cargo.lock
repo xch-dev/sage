@@ -4505,6 +4505,7 @@ dependencies = [
  "clvmr",
  "futures-lite",
  "futures-util",
+ "indexmap 2.5.0",
  "itertools 0.13.0",
  "rayon",
  "reqwest",
