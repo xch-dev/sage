@@ -1,10 +1,14 @@
 use std::time::SystemTimeError;
 
-use chia::{bls::PublicKey, protocol::Bytes32};
+use chia::{
+    clvm_traits::{FromClvmError, ToClvmError},
+    protocol::Bytes32,
+};
 use chia_wallet_sdk::{ClientError, CoinSelectionError, DriverError, SignerError};
+use clvmr::reduction::EvalErr;
 use sage_database::DatabaseError;
 use thiserror::Error;
-use tokio::task::JoinError;
+use tokio::{task::JoinError, time::error::Elapsed};
 
 #[derive(Debug, Error)]
 pub enum WalletError {
@@ -14,90 +18,63 @@ pub enum WalletError {
     #[error("Client error: {0}")]
     Client(#[from] ClientError),
 
-    #[error("Sync error: {0}")]
-    Sync(#[from] SyncError),
-
-    #[error("Parse error: {0}")]
-    Parse(#[from] ParseError),
-
     #[error("Driver error: {0}")]
     Driver(#[from] DriverError),
 
     #[error("Signer error: {0}")]
     Signer(#[from] SignerError),
 
-    #[error("Join error: {0}")]
-    Join(#[from] JoinError),
-
     #[error("Coin selection error: {0}")]
     CoinSelection(#[from] CoinSelectionError),
 
-    #[error("Output amount exceeds input coin total")]
+    #[error("Request error: {0}")]
+    Request(#[from] reqwest::Error),
+
+    #[error("Timeout exceeded")]
+    Elapsed(#[from] Elapsed),
+
+    #[error("Missing coin with id {0}")]
+    MissingCoin(Bytes32),
+
+    #[error("Missing spend with id {0}")]
+    MissingSpend(Bytes32),
+
+    #[error("Missing child of id {0}")]
+    MissingChild(Bytes32),
+
+    #[error("Peer misbehaved")]
+    PeerMisbehaved,
+
+    #[error("Subscription limit reached")]
+    SubscriptionLimitReached,
+
+    #[error("System time error: {0}")]
+    SystemTime(#[from] SystemTimeError),
+
+    #[error("Join error: {0}")]
+    Join(#[from] JoinError),
+
+    #[error("CLVM encoding error: {0}")]
+    ToClvm(#[from] ToClvmError),
+
+    #[error("CLVM decoding error: {0}")]
+    FromClvm(#[from] FromClvmError),
+
+    #[error("CLVM error: {0}")]
+    Clvm(#[from] EvalErr),
+
+    #[error("Insufficient funds")]
     InsufficientFunds,
 
-    #[error("Not enough keys have been derived")]
+    #[error("Insufficient derivations")]
     InsufficientDerivations,
 
-    #[error("Spendable DID not found: {0}")]
+    #[error("Missing secret key")]
+    UnknownPublicKey,
+
+    #[error("Missing DID with id {0}")]
     MissingDid(Bytes32),
 
-    #[error("Spendable NFT not found: {0}")]
+    #[error("Missing NFT with id {0}")]
     MissingNft(Bytes32),
-
-    #[error("Unknown public key in transaction: {0:?}")]
-    UnknownPublicKey(PublicKey),
-
-    #[error("Time error: {0}")]
-    Time(#[from] SystemTimeError),
-}
-
-#[derive(Debug, Error)]
-pub enum SyncError {
-    #[error("Timeout exceeded")]
-    Timeout,
-
-    #[error("Unexpected rejection")]
-    Rejection,
-
-    #[error("Subscription limit exceeded")]
-    SubscriptionLimit,
-
-    #[error("Missing coin state {0}")]
-    MissingCoinState(Bytes32),
-
-    #[error("Missing child coin")]
-    MissingChild,
-
-    #[error("Unconfirmed coin {0}")]
-    UnconfirmedCoin(Bytes32),
-
-    #[error("Unspent coin {0}")]
-    UnspentCoin(Bytes32),
-
-    #[error("Missing puzzle and solution for {0}")]
-    MissingPuzzleAndSolution(Bytes32),
-
-    #[error("Error fetching CAT {0}: {1}")]
-    FetchCat(Bytes32, reqwest::Error),
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
-pub enum ParseError {
-    #[error("Could not allocate puzzle reveal")]
-    AllocatePuzzle,
-
-    #[error("Could not allocate solution")]
-    AllocateSolution,
-
-    #[error("Could not allocate metadata")]
-    AllocateMetadata,
-
-    #[error("Could not serialize CLVM")]
-    Serialize,
-
-    #[error("Could not evaluate puzzle and solution")]
-    Eval,
-
-    #[error("Invalid condition list")]
-    InvalidConditions,
 }

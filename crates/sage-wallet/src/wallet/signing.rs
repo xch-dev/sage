@@ -52,7 +52,7 @@ impl Wallet {
         for required in &required_signatures {
             let pk = required.public_key();
             let Some(index) = self.db.synthetic_key_index(pk).await? else {
-                return Err(WalletError::UnknownPublicKey(pk));
+                return Err(WalletError::UnknownPublicKey);
             };
             indices.insert(pk, index);
         }

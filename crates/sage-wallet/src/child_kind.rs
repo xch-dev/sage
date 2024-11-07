@@ -7,7 +7,7 @@ use chia_wallet_sdk::{run_puzzle, Cat, Condition, Did, DidInfo, HashedPtr, Nft, 
 use clvmr::Allocator;
 use tracing::{debug_span, warn};
 
-use crate::ParseError;
+use crate::WalletError;
 
 #[derive(Debug, Clone)]
 #[allow(clippy::large_enum_variant)]
@@ -38,7 +38,7 @@ impl ChildKind {
         parent_puzzle: &Program,
         parent_solution: &Program,
         coin: Coin,
-    ) -> Result<Self, ParseError> {
+    ) -> Result<Self, WalletError> {
         let parse_span = debug_span!(
             "parse from parent",
             parent_coin = %parent_coin.coin_id(),
@@ -52,21 +52,12 @@ impl ChildKind {
 
         let mut allocator = Allocator::new();
 
-        let parent_puzzle_ptr = parent_puzzle
-            .to_clvm(&mut allocator)
-            .map_err(|_| ParseError::AllocatePuzzle)?;
-
+        let parent_puzzle_ptr = parent_puzzle.to_clvm(&mut allocator)?;
         let parent_puzzle = Puzzle::parse(&allocator, parent_puzzle_ptr);
+        let parent_solution = parent_solution.to_clvm(&mut allocator)?;
 
-        let parent_solution = parent_solution
-            .to_clvm(&mut allocator)
-            .map_err(|_| ParseError::AllocateSolution)?;
-
-        let output = run_puzzle(&mut allocator, parent_puzzle_ptr, parent_solution)
-            .map_err(|_| ParseError::Eval)?;
-
-        let conditions = Vec::<Condition>::from_clvm(&allocator, output)
-            .map_err(|_| ParseError::InvalidConditions)?;
+        let output = run_puzzle(&mut allocator, parent_puzzle_ptr, parent_solution)?;
+        let conditions = Vec::<Condition>::from_clvm(&allocator, output)?;
 
         let Some(mut create_coin) = conditions
             .into_iter()
@@ -140,9 +131,7 @@ impl ChildKind {
                     return Ok(unknown);
                 };
 
-                let metadata_program = Program::from_clvm(&allocator, nft.info.metadata.ptr())
-                    .map_err(|_| ParseError::Serialize)?;
-
+                let metadata_program = Program::from_clvm(&allocator, nft.info.metadata.ptr())?;
                 let metadata = NftMetadata::from_clvm(&allocator, nft.info.metadata.ptr()).ok();
 
                 return Ok(Self::Nft {
@@ -176,8 +165,7 @@ impl ChildKind {
                     return Ok(unknown);
                 };
 
-                let metadata = Program::from_clvm(&allocator, did.info.metadata.ptr())
-                    .map_err(|_| ParseError::Serialize)?;
+                let metadata = Program::from_clvm(&allocator, did.info.metadata.ptr())?;
 
                 return Ok(Self::Did {
                     lineage_proof,

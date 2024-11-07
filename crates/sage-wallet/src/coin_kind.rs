@@ -7,7 +7,7 @@ use chia_wallet_sdk::{CatLayer, DidInfo, HashedPtr, Layer, NftInfo, Puzzle};
 use clvmr::Allocator;
 use tracing::{debug_span, warn};
 
-use crate::ParseError;
+use crate::WalletError;
 
 #[derive(Debug, Clone)]
 #[allow(clippy::large_enum_variant)]
@@ -28,16 +28,13 @@ pub enum CoinKind {
 }
 
 impl CoinKind {
-    pub fn from_puzzle(puzzle: &Program) -> Result<Self, ParseError> {
+    pub fn from_puzzle(puzzle: &Program) -> Result<Self, WalletError> {
         let parse_span = debug_span!("parse puzzle");
         let _span = parse_span.enter();
 
         let mut allocator = Allocator::new();
 
-        let puzzle_ptr = puzzle
-            .to_clvm(&mut allocator)
-            .map_err(|_| ParseError::AllocatePuzzle)?;
-
+        let puzzle_ptr = puzzle.to_clvm(&mut allocator)?;
         let puzzle = Puzzle::parse(&allocator, puzzle_ptr);
 
         if puzzle.curried_puzzle_hash() == SINGLETON_LAUNCHER_PUZZLE_HASH {
@@ -72,9 +69,7 @@ impl CoinKind {
 
             // If the coin is a NFT coin, return the relevant information.
             Ok(Some((nft, _inner_puzzle))) => {
-                let metadata_program = Program::from_clvm(&allocator, nft.metadata.ptr())
-                    .map_err(|_| ParseError::Serialize)?;
-
+                let metadata_program = Program::from_clvm(&allocator, nft.metadata.ptr())?;
                 let metadata = NftMetadata::from_clvm(&allocator, nft.metadata.ptr()).ok();
 
                 return Ok(Self::Nft {
@@ -96,8 +91,7 @@ impl CoinKind {
 
             // If the coin is a DID coin, return the relevant information.
             Ok(Some((did, _inner_puzzle))) => {
-                let metadata = Program::from_clvm(&allocator, did.metadata.ptr())
-                    .map_err(|_| ParseError::Serialize)?;
+                let metadata = Program::from_clvm(&allocator, did.metadata.ptr())?;
 
                 return Ok(Self::Did {
                     info: did.with_metadata(metadata),
