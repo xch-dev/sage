@@ -37,7 +37,9 @@ impl Wallet {
         }
 
         let mut ctx = SpendContext::new();
+
         self.spend_p2_coins(&mut ctx, coins, conditions).await?;
+
         Ok(ctx.take())
     }
 }
