@@ -17,7 +17,7 @@ use sage_api::{
 use sage_database::{CatRow, Database};
 use sage_wallet::{
     compute_nft_info, fetch_uris, insert_transaction, ChildKind, CoinKind, Data, SyncCommand,
-    Transaction, Wallet, WalletError, WalletNftMint,
+    Transaction, Wallet, WalletNftMint,
 };
 use specta::specta;
 use tauri::{command, State};
@@ -619,8 +619,7 @@ async fn summarize(
     coin_spends: Vec<CoinSpend>,
     cache: ConfirmationInfo,
 ) -> Result<TransactionSummary> {
-    let transaction =
-        Transaction::from_coin_spends(coin_spends.clone()).map_err(WalletError::Parse)?;
+    let transaction = Transaction::from_coin_spends(coin_spends.clone())?;
 
     let mut inputs = Vec::with_capacity(transaction.inputs.len());
 
