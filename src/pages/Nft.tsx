@@ -229,7 +229,7 @@ export default function Nft() {
                 variant='outline'
                 onClick={() => {
                   open(
-                    `https://${config?.network_id !== 'mainnet' ? 'testnet11.' : ''}spacescan.io/nfts/${nft?.launcher_id}`,
+                    `https://${config?.network_id !== 'mainnet' ? 'testnet11.' : ''}spacescan.io/nft/${nft?.launcher_id}`,
                   );
                 }}
               >
