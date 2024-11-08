@@ -72,7 +72,7 @@ tauri-specta = "=2.0.0-rc.18"
 # Chia
 chia = "0.15.0"
 clvmr = "0.9.0"
-chia-wallet-sdk = { version = "0.17.0", features = ["rustls"] }
+chia-wallet-sdk = { version = "0.18.0", features = ["rustls"] }
 bip39 = "2.0.0"
 bech32 = "0.9.1"
 

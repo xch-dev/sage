@@ -1,10 +1,22 @@
-import { commands, NftRecord, TransactionSummary } from '@/bindings';
+import {
+  commands,
+  NftRecord,
+  NftUriKind,
+  TransactionSummary,
+} from '@/bindings';
 import { amount } from '@/lib/formTypes';
 import { nftUri } from '@/lib/nftUri';
 import { useWalletState } from '@/state';
 import { zodResolver } from '@hookform/resolvers/zod';
 import BigNumber from 'bignumber.js';
-import { EyeIcon, EyeOff, Flame, MoreVertical, SendIcon } from 'lucide-react';
+import {
+  EyeIcon,
+  EyeOff,
+  Flame,
+  LinkIcon,
+  MoreVertical,
+  SendIcon,
+} from 'lucide-react';
 import { PropsWithChildren, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link } from 'react-router-dom';
@@ -35,6 +47,13 @@ import {
   FormMessage,
 } from './ui/form';
 import { Input } from './ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from './ui/select';
 
 export interface NftProps {
   nft: NftRecord;
@@ -53,6 +72,7 @@ export function NftCard({ nft, updateNfts }: NftProps) {
   const walletState = useWalletState();
 
   const [transferOpen, setTransferOpen] = useState(false);
+  const [addUrlOpen, setAddUrlOpen] = useState(false);
   const [burnOpen, setBurnOpen] = useState(false);
   const [summary, setSummary] = useState<TransactionSummary | null>(null);
 
@@ -89,6 +109,42 @@ export function NftCard({ nft, updateNfts }: NftProps) {
         setTransferOpen(false);
         if (result.status === 'error') {
           console.error('Failed to transfer NFT', result.error);
+        } else {
+          setSummary(result.data);
+        }
+      });
+  };
+
+  const addUrlFormSchema = z.object({
+    url: z.string().min(1, 'URL is required'),
+    kind: z.string().min(1, 'Kind is required'),
+    fee: amount(walletState.sync.unit.decimals).refine(
+      (amount) => BigNumber(walletState.sync.balance).gte(amount || 0),
+      'Not enough funds to cover the fee',
+    ),
+  });
+
+  const addUrlForm = useForm<z.infer<typeof addUrlFormSchema>>({
+    resolver: zodResolver(addUrlFormSchema),
+    defaultValues: {
+      url: '',
+      kind: 'data',
+      fee: '0',
+    },
+  });
+
+  const onAddUrlSubmit = (values: z.infer<typeof addUrlFormSchema>) => {
+    commands
+      .addNftUri(
+        nft.launcher_id,
+        values.url,
+        values.kind as NftUriKind,
+        values.fee,
+      )
+      .then((result) => {
+        setAddUrlOpen(false);
+        if (result.status === 'error') {
+          console.error('Failed to add NFT URL', result.error);
         } else {
           setSummary(result.data);
         }
@@ -173,6 +229,19 @@ export function NftCard({ nft, updateNfts }: NftProps) {
                   className='cursor-pointer'
                   onClick={(e) => {
                     e.stopPropagation();
+                    addUrlForm.reset();
+                    setAddUrlOpen(true);
+                  }}
+                  disabled={!nft.created_height}
+                >
+                  <LinkIcon className='mr-2 h-4 w-4' />
+                  <span>Add URL</span>
+                </DropdownMenuItem>
+
+                <DropdownMenuItem
+                  className='cursor-pointer'
+                  onClick={(e) => {
+                    e.stopPropagation();
                     burnForm.reset();
                     setBurnOpen(true);
                   }}
@@ -228,6 +297,7 @@ export function NftCard({ nft, updateNfts }: NftProps) {
                   </FormItem>
                 )}
               />
+
               <FormField
                 control={transferForm.control}
                 name='fee'
@@ -241,6 +311,7 @@ export function NftCard({ nft, updateNfts }: NftProps) {
                   </FormItem>
                 )}
               />
+
               <DialogFooter className='gap-2'>
                 <Button
                   type='button'
@@ -250,6 +321,91 @@ export function NftCard({ nft, updateNfts }: NftProps) {
                   Cancel
                 </Button>
                 <Button type='submit'>Transfer</Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={addUrlOpen} onOpenChange={setAddUrlOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add NFT URL</DialogTitle>
+            <DialogDescription>
+              This will add an additional URL to the NFT. It is not possible to
+              remove URLs later, so be careful with this and try to use
+              permanent URLs if possible.
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...addUrlForm}>
+            <form
+              onSubmit={addUrlForm.handleSubmit(onAddUrlSubmit)}
+              className='space-y-4'
+            >
+              <FormField
+                control={addUrlForm.control}
+                name='url'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>URL</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={addUrlForm.control}
+                name='kind'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Kind</FormLabel>
+                    <FormControl>
+                      <Select
+                        name={field.name}
+                        value={field.value}
+                        onValueChange={field.onChange}
+                      >
+                        <SelectTrigger id='kind' aria-label='Select kind'>
+                          <SelectValue placeholder='Select kind' />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value='data'>Data</SelectItem>
+                          <SelectItem value='metadata'>Metadata</SelectItem>
+                          <SelectItem value='license'>License</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={addUrlForm.control}
+                name='fee'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Network Fee</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <DialogFooter className='gap-2'>
+                <Button
+                  type='button'
+                  variant='outline'
+                  onClick={() => setAddUrlOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button type='submit'>Add URL</Button>
               </DialogFooter>
             </form>
           </Form>
@@ -283,6 +439,7 @@ export function NftCard({ nft, updateNfts }: NftProps) {
                   </FormItem>
                 )}
               />
+
               <DialogFooter className='gap-2'>
                 <Button
                   type='button'

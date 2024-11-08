@@ -1,5 +1,4 @@
 import {
-  ArrowLeftRight,
   CoinsIcon,
   ImagePlus,
   Images,
@@ -26,10 +25,10 @@ export function Nav() {
         <SquareUserRound className='h-4 w-4' />
         Profiles
       </NavLink>
-      <NavLink url={'/offers'}>
+      {/* <NavLink url={'/offers'}>
         <ArrowLeftRight className='h-4 w-4' />
         Offers
-      </NavLink>
+      </NavLink> */}
       <Separator className='my-1' />
       <NavLink url={'/wallet/issue-token'}>
         <CoinsIcon className='h-4 w-4' />

@@ -171,7 +171,10 @@ impl SyncManager {
                     self.pending_coin_subscriptions.extend(coin_ids);
                 }
                 SyncCommand::ConnectionClosed(ip) => {
-                    self.state.lock().await.remove_peer(ip);
+                    self.state
+                        .lock()
+                        .await
+                        .ban(ip, Duration::from_secs(300), "peer disconnected");
                     debug!("Peer {ip} disconnected");
                 }
                 SyncCommand::SetDiscoverPeers(discover_peers) => {

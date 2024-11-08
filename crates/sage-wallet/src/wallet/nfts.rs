@@ -3,7 +3,8 @@ use chia::{
     puzzles::nft::{NftMetadata, NFT_METADATA_UPDATER_PUZZLE_HASH},
 };
 use chia_wallet_sdk::{
-    Conditions, Did, DidOwner, HashedPtr, Launcher, Nft, NftMint, SpendContext, StandardLayer,
+    Conditions, Did, DidOwner, HashedPtr, Launcher, MetadataUpdate, Nft, NftMint, SpendContext,
+    StandardLayer,
 };
 
 use crate::WalletError;
@@ -119,6 +120,62 @@ impl Wallet {
         let p2 = StandardLayer::new(synthetic_key);
 
         let new_nft = nft.transfer(&mut ctx, &p2, puzzle_hash, Conditions::new())?;
+
+        let mut conditions = Conditions::new().assert_concurrent_spend(nft.coin.coin_id());
+
+        if fee > 0 {
+            conditions = conditions.reserve_fee(fee);
+        }
+
+        if change > 0 {
+            conditions = conditions.create_coin(p2_puzzle_hash, change, Vec::new());
+        }
+
+        self.spend_p2_coins(&mut ctx, coins, conditions).await?;
+
+        let new_nft = new_nft.with_metadata(ctx.serialize(&new_nft.info.metadata)?);
+
+        Ok((ctx.take(), new_nft))
+    }
+
+    pub async fn add_nft_uri(
+        &self,
+        nft_id: Bytes32,
+        fee: u64,
+        uri: MetadataUpdate,
+        hardened: bool,
+        reuse: bool,
+    ) -> Result<(Vec<CoinSpend>, Nft<Program>), WalletError> {
+        let Some(nft) = self.db.spendable_nft(nft_id).await? else {
+            return Err(WalletError::MissingNft(nft_id));
+        };
+
+        let total_amount = fee as u128 + 1;
+        let coins = self.select_p2_coins(total_amount).await?;
+        let selected: u128 = coins.iter().map(|coin| coin.amount as u128).sum();
+
+        let change: u64 = (selected - total_amount)
+            .try_into()
+            .expect("change amount overflow");
+
+        let p2_puzzle_hash = self.p2_puzzle_hash(hardened, reuse).await?;
+
+        let mut ctx = SpendContext::new();
+
+        let nft_metadata_ptr = ctx.alloc(&nft.info.metadata)?;
+        let nft = nft.with_metadata(HashedPtr::from_ptr(&ctx.allocator, nft_metadata_ptr));
+
+        let synthetic_key = self.db.synthetic_key(nft.info.p2_puzzle_hash).await?;
+        let p2 = StandardLayer::new(synthetic_key);
+
+        let update_spend = uri.spend(&mut ctx)?;
+        let new_nft: Nft<HashedPtr> = nft.transfer_with_metadata(
+            &mut ctx,
+            &p2,
+            nft.info.p2_puzzle_hash,
+            update_spend,
+            Conditions::new(),
+        )?;
 
         let mut conditions = Conditions::new().assert_concurrent_spend(nft.coin.coin_id());
 
