@@ -1,7 +1,6 @@
 use std::{sync::Arc, time::Duration};
 
 use chia::protocol::{Bytes32, CoinState};
-use chia_wallet_sdk::Peer;
 use futures_util::{stream::FuturesUnordered, StreamExt};
 use sage_database::Database;
 use tokio::{
@@ -13,7 +12,7 @@ use tracing::{debug, instrument};
 
 use crate::{
     database::insert_puzzle, fetch_nft_did, ChildKind, PeerState, SyncCommand, SyncEvent,
-    WalletError,
+    WalletError, WalletPeer,
 };
 
 #[derive(Debug)]
@@ -63,13 +62,7 @@ impl PuzzleQueue {
     }
 
     async fn process_batch(&mut self) -> Result<Vec<Bytes32>, WalletError> {
-        let peers: Vec<Peer> = self
-            .state
-            .lock()
-            .await
-            .peers()
-            .map(|info| info.peer.clone())
-            .collect();
+        let peers = self.state.lock().await.peers();
 
         if peers.is_empty() {
             sleep(Duration::from_secs(3)).await;
@@ -134,47 +127,26 @@ impl PuzzleQueue {
 /// Fetches info for a coin's puzzle and inserts it into the database.
 #[instrument(skip(peer, db))]
 async fn fetch_puzzle(
-    peer: &Peer,
+    peer: &WalletPeer,
     db: &Database,
     genesis_challenge: Bytes32,
     coin_state: CoinState,
 ) -> Result<bool, WalletError> {
-    let parent_id = coin_state.coin.parent_coin_info;
-
-    let Some(parent_coin_state) = timeout(
-        Duration::from_secs(5),
-        peer.request_coin_state(vec![parent_id], None, genesis_challenge, false),
+    let parent_spend = timeout(
+        Duration::from_secs(15),
+        peer.fetch_coin_spend(coin_state.coin.parent_coin_info, genesis_challenge),
     )
-    .await??
-    .map_err(|_| WalletError::PeerMisbehaved)?
-    .coin_states
-    .into_iter()
-    .next() else {
-        return Err(WalletError::MissingCoin(parent_id));
-    };
-
-    let height = coin_state
-        .created_height
-        .ok_or(WalletError::MissingCoin(parent_id))?;
-
-    let response = timeout(
-        Duration::from_secs(10),
-        peer.request_puzzle_and_solution(parent_id, height),
-    )
-    .await??
-    .map_err(|_| WalletError::MissingSpend(parent_id))?;
+    .await??;
 
     let info = spawn_blocking(move || {
         ChildKind::from_parent(
-            parent_coin_state.coin,
-            &response.puzzle,
-            &response.solution,
+            parent_spend.coin,
+            &parent_spend.puzzle_reveal,
+            &parent_spend.solution,
             coin_state.coin,
         )
     })
     .await??;
-
-    let coin_id = coin_state.coin.coin_id();
 
     let minter_did = if let ChildKind::Nft { info, .. } = &info {
         fetch_nft_did(peer, genesis_challenge, info.launcher_id).await?
@@ -190,7 +162,7 @@ async fn fetch_puzzle(
     };
 
     if remove {
-        db.delete_coin_state(coin_id).await?;
+        db.delete_coin_state(coin_state.coin.coin_id()).await?;
     } else {
         let mut tx = db.tx().await?;
         insert_puzzle(&mut tx, coin_state, info, minter_did).await?;

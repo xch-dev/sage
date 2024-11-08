@@ -12,11 +12,10 @@ use chia::{
 use chia_wallet_sdk::{connect_peer, Peer};
 use futures_lite::StreamExt;
 use futures_util::stream::FuturesUnordered;
-use itertools::Itertools;
 use tokio::{sync::mpsc, time::timeout};
 use tracing::{debug, info, warn};
 
-use crate::SyncCommand;
+use crate::{SyncCommand, WalletPeer};
 
 use super::{PeerInfo, SyncManager};
 
@@ -24,37 +23,20 @@ impl SyncManager {
     pub(super) async fn clear_subscriptions(&self) {
         let mut futures = FuturesUnordered::new();
 
-        for peer in self
-            .state
-            .lock()
-            .await
-            .peers()
-            .map(|info| info.peer.clone())
-            .collect_vec()
-        {
+        for peer in self.state.lock().await.peers() {
             let ip = peer.socket_addr().ip();
 
             let puzzle_peer = peer.clone();
             let duration = self.options.remove_subscription_timeout;
 
             futures.push(async move {
-                match timeout(duration, puzzle_peer.remove_puzzle_subscriptions(None)).await {
+                match timeout(duration, puzzle_peer.unsubscribe()).await {
                     Ok(Ok(..)) => {}
                     Ok(Err(error)) => {
-                        debug!("Failed to clear puzzle subscriptions from {ip}: {error}");
+                        debug!("Failed to clear subscriptions from {ip}: {error}");
                     }
                     Err(_timeout) => {
-                        debug!("Timeout clearing puzzle subscriptions from {ip}");
-                    }
-                }
-
-                match timeout(duration, peer.remove_coin_subscriptions(None)).await {
-                    Ok(Ok(..)) => {}
-                    Ok(Err(error)) => {
-                        debug!("Failed to clear coin subscriptions from {ip}: {error}");
-                    }
-                    Err(_timeout) => {
-                        debug!("Timeout clearing coin subscriptions from {ip}");
+                        debug!("Timeout clearing subscriptions from {ip}");
                     }
                 }
             });
@@ -77,13 +59,7 @@ impl SyncManager {
     }
 
     pub(super) async fn peer_discovery(&mut self) -> bool {
-        let peers: Vec<Peer> = self
-            .state
-            .lock()
-            .await
-            .peers()
-            .map(|info| info.peer.clone())
-            .collect();
+        let peers = self.state.lock().await.peers();
 
         if peers.is_empty() {
             warn!("No existing peers to request new peers from");
@@ -254,7 +230,7 @@ impl SyncManager {
         let sender = self.command_sender.clone();
 
         self.state.lock().await.add_peer(PeerInfo {
-            peer,
+            peer: WalletPeer::new(peer),
             claimed_peak: message.height,
             header_hash: message.header_hash,
             receive_message_task: tokio::spawn(async move {

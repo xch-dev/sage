@@ -8,16 +8,14 @@ use chia::{
         singleton::SingletonSolution,
     },
 };
-use chia_wallet_sdk::{
-    run_puzzle, Condition, Conditions, DidInfo, HashedPtr, NftInfo, Peer, Puzzle,
-};
+use chia_wallet_sdk::{run_puzzle, Condition, Conditions, DidInfo, HashedPtr, NftInfo, Puzzle};
 use clvmr::{Allocator, NodePtr};
 use tokio::time::{sleep, timeout};
 
-use crate::WalletError;
+use crate::{WalletError, WalletPeer};
 
 pub async fn fetch_nft_did(
-    peer: &Peer,
+    peer: &WalletPeer,
     genesis_challenge: Bytes32,
     launcher_id: Bytes32,
 ) -> Result<Option<Bytes32>, WalletError> {
@@ -25,31 +23,15 @@ pub async fn fetch_nft_did(
     let mut parent_id = launcher_id;
 
     for _ in 0..5 {
-        let Some(parent) = timeout(
-            Duration::from_secs(5),
-            peer.request_coin_state(vec![parent_id], None, genesis_challenge, false),
+        let parent_spend = timeout(
+            Duration::from_secs(15),
+            peer.fetch_coin_spend(parent_id, genesis_challenge),
         )
-        .await??
-        .map_err(|_| WalletError::PeerMisbehaved)?
-        .coin_states
-        .into_iter()
-        .next() else {
-            break;
-        };
-
-        let height = parent.spent_height.ok_or(WalletError::PeerMisbehaved)?;
-
-        let response = timeout(
-            Duration::from_secs(5),
-            peer.request_puzzle_and_solution(parent_id, height),
-        )
-        .await??
-        .map_err(|_| WalletError::MissingSpend(parent_id))?;
+        .await??;
 
         let mut allocator = Allocator::new();
 
-        let puzzle_reveal = response.puzzle.to_clvm(&mut allocator)?;
-
+        let puzzle_reveal = parent_spend.puzzle_reveal.to_clvm(&mut allocator)?;
         let puzzle = Puzzle::parse(&allocator, puzzle_reveal);
 
         if let Some((did, _)) = DidInfo::<HashedPtr>::parse(&allocator, puzzle)
@@ -60,35 +42,22 @@ pub async fn fetch_nft_did(
             break;
         }
 
-        parent_id = parent.coin.parent_coin_info;
+        parent_id = parent_spend.coin.parent_coin_info;
 
         sleep(Duration::from_secs(1)).await;
     }
 
     if did_id.is_none() {
-        let Some(child) = timeout(Duration::from_secs(5), peer.request_children(launcher_id))
-            .await??
-            .coin_states
-            .into_iter()
-            .next()
-        else {
-            return Err(WalletError::MissingChild(launcher_id));
-        };
-
-        let child_id = child.coin.coin_id();
-        let height = child.spent_height.ok_or(WalletError::PeerMisbehaved)?;
-
-        let response = timeout(
-            Duration::from_secs(5),
-            peer.request_puzzle_and_solution(child_id, height),
-        )
-        .await??
-        .map_err(|_| WalletError::MissingSpend(child_id))?;
+        let child = timeout(Duration::from_secs(5), peer.fetch_child(launcher_id)).await??;
+        let spent_height = child.spent_height.ok_or(WalletError::PeerMisbehaved)?;
+        let (puzzle_reveal, solution) = peer
+            .fetch_puzzle_solution(child.coin.coin_id(), spent_height)
+            .await?;
 
         let mut allocator = Allocator::new();
 
-        let puzzle_reveal = response.puzzle.to_clvm(&mut allocator)?;
-        let solution = response.solution.to_clvm(&mut allocator)?;
+        let puzzle_reveal = puzzle_reveal.to_clvm(&mut allocator)?;
+        let solution = solution.to_clvm(&mut allocator)?;
         let puzzle = Puzzle::parse(&allocator, puzzle_reveal);
 
         if let Some((_nft_info, p2_puzzle)) = NftInfo::<HashedPtr>::parse(&allocator, puzzle)

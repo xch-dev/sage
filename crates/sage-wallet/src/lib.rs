@@ -7,6 +7,7 @@ mod sync_manager;
 mod transaction;
 mod utils;
 mod wallet;
+mod wallet_peer;
 
 pub use child_kind::*;
 pub use coin_kind::*;
@@ -17,3 +18,4 @@ pub use sync_manager::*;
 pub use transaction::*;
 pub use utils::*;
 pub use wallet::*;
+pub use wallet_peer::*;

@@ -17,13 +17,14 @@ pub async fn get_peers(state: State<'_, AppState>) -> Result<Vec<PeerRecord>> {
     let peer_state = state.peer_state.lock().await;
 
     Ok(peer_state
-        .peers()
-        .sorted_by_key(|info| info.peer.socket_addr().ip())
+        .peers_with_heights()
+        .into_iter()
+        .sorted_by_key(|info| info.0.socket_addr().ip())
         .map(|info| PeerRecord {
-            ip_addr: info.peer.socket_addr().ip().to_string(),
-            port: info.peer.socket_addr().port(),
+            ip_addr: info.0.socket_addr().ip().to_string(),
+            port: info.0.socket_addr().port(),
             trusted: false,
-            peak_height: info.claimed_peak,
+            peak_height: info.1,
         })
         .collect())
 }
