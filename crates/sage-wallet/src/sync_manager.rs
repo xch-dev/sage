@@ -199,11 +199,9 @@ impl SyncManager {
                 // TODO: Handle cases
                 timeout(
                     Duration::from_secs(3),
-                    info.peer.request_coin_state(
+                    info.peer.subscribe_coins(
                         mem::take(&mut self.pending_coin_subscriptions),
-                        None,
                         self.network.genesis_challenge,
-                        true,
                     ),
                 )
                 .await
@@ -273,7 +271,7 @@ impl SyncManager {
                                 // TODO: Handle cases
                                 timeout(
                                     Duration::from_secs(3),
-                                    info.peer.remove_coin_subscriptions(Some(spent_coin_ids)),
+                                    info.peer.unsubscribe_coins(spent_coin_ids),
                                 )
                                 .await
                                 .map(Result::ok)

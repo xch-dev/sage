@@ -2,10 +2,9 @@ use std::{sync::Arc, time::Duration};
 
 use chia::{
     bls::DerivableKey,
-    protocol::{Bytes32, CoinState, CoinStateFilters, RejectStateReason},
+    protocol::{Bytes32, CoinState, CoinStateFilters},
     puzzles::{standard::StandardArgs, DeriveSynthetic},
 };
-use chia_wallet_sdk::Peer;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use tokio::{
     sync::{mpsc, Mutex},
@@ -14,13 +13,13 @@ use tokio::{
 };
 use tracing::{debug, info, instrument, warn};
 
-use crate::{handle_spent_coin, upsert_coin, Wallet, WalletError};
+use crate::{handle_spent_coin, upsert_coin, Wallet, WalletError, WalletPeer};
 
 use super::{PeerState, SyncEvent};
 
 pub async fn sync_wallet(
     wallet: Arc<Wallet>,
-    peer: Peer,
+    peer: WalletPeer,
     state: Arc<Mutex<PeerState>>,
     sync_sender: mpsc::Sender<SyncEvent>,
 ) -> Result<(), WalletError> {
@@ -41,8 +40,7 @@ pub async fn sync_wallet(
     sync_coin_ids(
         &wallet,
         &peer,
-        start_height,
-        start_header_hash,
+        wallet.genesis_challenge,
         coin_ids,
         sync_sender.clone(),
     )
@@ -128,9 +126,8 @@ pub async fn sync_wallet(
 #[instrument(skip(wallet, peer, coin_ids))]
 async fn sync_coin_ids(
     wallet: &Wallet,
-    peer: &Peer,
-    start_height: Option<u32>,
-    start_header_hash: Bytes32,
+    peer: &WalletPeer,
+    genesis_challenge: Bytes32,
     coin_ids: Vec<Bytes32>,
     sync_sender: mpsc::Sender<SyncEvent>,
 ) -> Result<(), WalletError> {
@@ -140,39 +137,21 @@ async fn sync_coin_ids(
         }
 
         debug!(
-            "Subscribing to coins at height {:?} and header hash {} from peer {}",
-            start_height,
-            start_header_hash,
+            "Subscribing to {} coins from peer {}",
+            coin_ids.len(),
             peer.socket_addr()
         );
 
-        let response = timeout(
+        let coin_states = timeout(
             Duration::from_secs(10),
-            peer.request_coin_state(coin_ids.to_vec(), start_height, start_header_hash, true),
+            peer.subscribe_coins(coin_ids.to_vec(), genesis_challenge),
         )
         .await??;
 
-        match response {
-            Ok(data) => {
-                debug!("Received {} coin states", data.coin_states.len());
+        debug!("Received {} coin states", coin_states.len());
 
-                if !data.coin_states.is_empty() {
-                    incremental_sync(wallet, data.coin_states, true, &sync_sender).await?;
-                }
-            }
-            Err(rejection) => match rejection.reason {
-                RejectStateReason::ExceededSubscriptionLimit => {
-                    warn!(
-                        "Subscription limit reached against peer {}",
-                        peer.socket_addr()
-                    );
-                    return Err(WalletError::SubscriptionLimitReached);
-                }
-                RejectStateReason::Reorg => {
-                    // TODO: Handle reorgs gracefully
-                    todo!()
-                }
-            },
+        if !coin_states.is_empty() {
+            incremental_sync(wallet, coin_states, true, &sync_sender).await?;
         }
     }
 
@@ -182,7 +161,7 @@ async fn sync_coin_ids(
 #[instrument(skip(wallet, peer, puzzle_hashes))]
 async fn sync_puzzle_hashes(
     wallet: &Wallet,
-    peer: &Peer,
+    peer: &WalletPeer,
     start_height: Option<u32>,
     start_header_hash: Bytes32,
     puzzle_hashes: &[Bytes32],
@@ -200,47 +179,29 @@ async fn sync_puzzle_hashes(
             peer.socket_addr()
         );
 
-        let response = timeout(
+        let data = timeout(
             Duration::from_secs(45),
-            peer.request_puzzle_state(
+            peer.subscribe_puzzles(
                 puzzle_hashes.to_vec(),
                 prev_height,
                 prev_header_hash,
                 CoinStateFilters::new(true, true, true, 0),
-                true,
             ),
         )
         .await??;
 
-        match response {
-            Ok(data) => {
-                debug!("Received {} coin states", data.coin_states.len());
+        debug!("Received {} coin states", data.coin_states.len());
 
-                if !data.coin_states.is_empty() {
-                    found_coins = true;
-                    incremental_sync(wallet, data.coin_states, true, &sync_sender).await?;
-                }
+        if !data.coin_states.is_empty() {
+            found_coins = true;
+            incremental_sync(wallet, data.coin_states, true, &sync_sender).await?;
+        }
 
-                prev_height = Some(data.height);
-                prev_header_hash = data.header_hash;
+        prev_height = Some(data.height);
+        prev_header_hash = data.header_hash;
 
-                if data.is_finished {
-                    break;
-                }
-            }
-            Err(rejection) => match rejection.reason {
-                RejectStateReason::ExceededSubscriptionLimit => {
-                    warn!(
-                        "Subscription limit reached against peer {}",
-                        peer.socket_addr()
-                    );
-                    return Err(WalletError::SubscriptionLimitReached);
-                }
-                RejectStateReason::Reorg => {
-                    // TODO: Handle reorgs gracefully
-                    todo!()
-                }
-            },
+        if data.is_finished {
+            break;
         }
     }
 

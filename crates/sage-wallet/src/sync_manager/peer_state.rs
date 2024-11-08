@@ -5,14 +5,15 @@ use std::{
 };
 
 use chia::protocol::Bytes32;
-use chia_wallet_sdk::Peer;
 use itertools::Itertools;
 use tokio::task::JoinHandle;
 use tracing::debug;
 
+use crate::WalletPeer;
+
 #[derive(Debug)]
 pub struct PeerInfo {
-    pub peer: Peer,
+    pub peer: WalletPeer,
     pub claimed_peak: u32,
     pub header_hash: Bytes32,
     pub receive_message_task: JoinHandle<()>,
@@ -52,8 +53,15 @@ impl PeerState {
             .map(|peer| (peer.claimed_peak, peer.header_hash))
     }
 
-    pub fn peers(&self) -> impl Iterator<Item = &PeerInfo> {
-        self.peers.values()
+    pub fn peers(&self) -> Vec<WalletPeer> {
+        self.peers.values().map(|info| info.peer.clone()).collect()
+    }
+
+    pub fn peers_with_heights(&self) -> Vec<(WalletPeer, u32)> {
+        self.peers
+            .values()
+            .map(|info| (info.peer.clone(), info.claimed_peak))
+            .collect()
     }
 
     pub fn peer_count(&self) -> usize {
@@ -64,11 +72,11 @@ impl PeerState {
         self.peers.contains_key(&ip)
     }
 
-    pub fn acquire_peer(&self) -> Option<Peer> {
+    pub fn acquire_peer(&self) -> Option<WalletPeer> {
         self.peers
             .values()
-            .max_by_key(|peer| peer.claimed_peak)
-            .map(|peer| peer.peer.clone())
+            .max_by_key(|info| info.claimed_peak)
+            .map(|info| info.peer.clone())
     }
 
     pub fn ban(&mut self, ip: IpAddr, duration: Duration, message: &str) {

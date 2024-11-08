@@ -4,7 +4,6 @@ use std::{
 };
 
 use chia::protocol::{Bytes32, SpendBundle};
-use chia_wallet_sdk::Peer;
 use sage_database::Database;
 use tokio::{
     sync::{mpsc, Mutex},
@@ -45,13 +44,7 @@ impl TransactionQueue {
     }
 
     async fn process_batch(&mut self) -> Result<(), WalletError> {
-        let peers: Vec<Peer> = self
-            .state
-            .lock()
-            .await
-            .peers()
-            .map(|info| info.peer.clone())
-            .collect();
+        let peers = self.state.lock().await.peers();
 
         if peers.is_empty() {
             return Ok(());
@@ -83,13 +76,7 @@ impl TransactionQueue {
 
             let transaction_id = spend_bundle.name();
 
-            let peers: Vec<Peer> = self
-                .state
-                .lock()
-                .await
-                .peers()
-                .map(|info| info.peer.clone())
-                .collect();
+            let peers = self.state.lock().await.peers();
 
             if peers.is_empty() {
                 return Ok(());
@@ -104,22 +91,20 @@ impl TransactionQueue {
             let mut tx_removed = false;
 
             for peer in peers.clone() {
-                let response = match timeout(
+                let coin_states = match timeout(
                     Duration::from_secs(2),
-                    peer.request_coin_state(
+                    peer.fetch_coins(
                         spend_bundle
                             .coin_spends
                             .iter()
                             .map(|cs| cs.coin.coin_id())
                             .collect(),
-                        None,
                         self.genesis_challenge,
-                        false,
                     ),
                 )
                 .await
                 {
-                    Ok(Ok(response)) => response,
+                    Ok(Ok(coin_states)) => coin_states,
                     Err(_timeout) => {
                         warn!("Coin lookup timed out for {}", peer.socket_addr());
                         continue;
@@ -130,26 +115,10 @@ impl TransactionQueue {
                     }
                 };
 
-                let Ok(response) = response else {
-                    warn!(
-                        "Coin lookup failed for {} with rejection",
-                        peer.socket_addr()
-                    );
-                    continue;
-                };
-
-                if response
-                    .coin_states
-                    .iter()
-                    .all(|cs| cs.spent_height.is_some())
-                {
+                if coin_states.iter().all(|cs| cs.spent_height.is_some()) {
                     tx_confirmed = true;
                     break;
-                } else if response
-                    .coin_states
-                    .iter()
-                    .any(|cs| cs.spent_height.is_some())
-                {
+                } else if coin_states.iter().any(|cs| cs.spent_height.is_some()) {
                     tx_removed = true;
                     break;
                 }
