@@ -75,6 +75,7 @@ pub fn run() {
             commands::bulk_mint_nfts,
             commands::transfer_nft,
             commands::transfer_did,
+            commands::add_nft_uri,
             commands::sign_transaction,
             commands::submit_transaction,
             // Peers

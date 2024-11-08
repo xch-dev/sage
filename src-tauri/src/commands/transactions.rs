@@ -7,12 +7,13 @@ use chia::{
     puzzles::nft::NftMetadata,
 };
 use chia_wallet_sdk::{
-    decode_address, encode_address, AggSigConstants, MAINNET_CONSTANTS, TESTNET11_CONSTANTS,
+    decode_address, encode_address, AggSigConstants, MetadataUpdate, MAINNET_CONSTANTS,
+    TESTNET11_CONSTANTS,
 };
 use hex_literal::hex;
 use sage_api::{
-    Amount, BulkMintNfts, BulkMintNftsResponse, CoinJson, CoinSpendJson, Input, InputKind, Output,
-    SpendBundleJson, TransactionSummary,
+    Amount, BulkMintNfts, BulkMintNftsResponse, CoinJson, CoinSpendJson, Input, InputKind,
+    NftUriKind, Output, SpendBundleJson, TransactionSummary,
 };
 use sage_database::{CatRow, Database};
 use sage_wallet::{
@@ -503,6 +504,45 @@ pub async fn transfer_nft(
 
     let (coin_spends, _new_nft) = wallet
         .transfer_nft(launcher_id.into(), puzzle_hash.into(), fee, false, true)
+        .await?;
+
+    summarize(&state, &wallet, coin_spends, ConfirmationInfo::default()).await
+}
+
+#[command]
+#[specta]
+pub async fn add_nft_uri(
+    state: State<'_, AppState>,
+    nft_id: String,
+    uri: String,
+    kind: NftUriKind,
+    fee: Amount,
+) -> Result<TransactionSummary> {
+    let state = state.lock().await;
+    let wallet = state.wallet()?;
+
+    if !state.keychain.has_secret_key(wallet.fingerprint) {
+        return Err(Error::no_secret_key());
+    }
+
+    let (launcher_id, prefix) = decode_address(&nft_id)?;
+
+    if prefix != "nft" {
+        return Err(Error::invalid_prefix(&prefix));
+    }
+
+    let Some(fee) = fee.to_mojos(state.unit.decimals) else {
+        return Err(Error::invalid_amount(&fee));
+    };
+
+    let uri = match kind {
+        NftUriKind::Data => MetadataUpdate::NewDataUri(uri),
+        NftUriKind::Metadata => MetadataUpdate::NewMetadataUri(uri),
+        NftUriKind::License => MetadataUpdate::NewLicenseUri(uri),
+    };
+
+    let (coin_spends, _new_nft) = wallet
+        .add_nft_uri(launcher_id.into(), fee, uri, false, true)
         .await?;
 
     summarize(&state, &wallet, coin_spends, ConfirmationInfo::default()).await

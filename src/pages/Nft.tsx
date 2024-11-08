@@ -91,7 +91,7 @@ export default function Nft() {
               </div>
             )}
 
-            {metadata.attributes && (
+            {(metadata.attributes?.length ?? 0) > 0 && (
               <div className='flex flex-col gap-1'>
                 <h6 className='text-md font-bold'>Attributes</h6>
                 <div className='grid grid-cols-2 gap-2'>

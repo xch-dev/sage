@@ -9,7 +9,7 @@ use chia::{
     protocol::{Message, NewPeakWallet, ProtocolMessageTypes},
     traits::Streamable,
 };
-use chia_wallet_sdk::{connect_peer, Peer};
+use chia_wallet_sdk::{connect_peer, Peer, PeerOptions};
 use futures_lite::StreamExt;
 use futures_util::stream::FuturesUnordered;
 use tokio::{sync::mpsc, time::timeout};
@@ -153,8 +153,11 @@ impl SyncManager {
             let duration = self.options.connection_timeout;
 
             futures.push(async move {
-                let result =
-                    timeout(duration, connect_peer(network_id, connector, socket_addr)).await;
+                let result = timeout(
+                    duration,
+                    connect_peer(network_id, connector, socket_addr, PeerOptions::default()),
+                )
+                .await;
                 (socket_addr, result)
             });
         }
@@ -229,7 +232,25 @@ impl SyncManager {
         let ip = peer.socket_addr().ip();
         let sender = self.command_sender.clone();
 
-        self.state.lock().await.add_peer(PeerInfo {
+        let mut state = self.state.lock().await;
+
+        for (peer, height) in state.peers_with_heights() {
+            if message.height < height.saturating_sub(3) {
+                debug!(
+                    "Peer {} is behind by more than 3 blocks, disconnecting",
+                    peer.socket_addr()
+                );
+                return false;
+            } else if message.height > height.saturating_add(3) {
+                state.ban(
+                    peer.socket_addr().ip(),
+                    Duration::from_secs(900),
+                    "peer is behind",
+                );
+            }
+        }
+
+        state.add_peer(PeerInfo {
             peer: WalletPeer::new(peer),
             claimed_peak: message.height,
             header_hash: message.header_hash,
@@ -242,7 +263,7 @@ impl SyncManager {
                         .await
                         .is_err()
                     {
-                        return;
+                        break;
                     }
                 }
 

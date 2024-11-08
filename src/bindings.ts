@@ -405,6 +405,14 @@ async transferDid(didId: string, address: string, fee: Amount) : Promise<Result<
     else return { status: "error", error: e  as any };
 }
 },
+async addNftUri(nftId: string, uri: string, kind: NftUriKind, fee: Amount) : Promise<Result<TransactionSummary, Error>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("add_nft_uri", { nftId, uri, kind, fee }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async signTransaction(coinSpends: CoinSpendJson[]) : Promise<Result<SpendBundleJson, Error>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("sign_transaction", { coinSpends }) };
@@ -484,6 +492,7 @@ export type NftMint = { edition_number: number | null; edition_total: number | n
 export type NftRecord = { launcher_id: string; collection_id: string | null; collection_name: string | null; minter_did: string | null; owner_did: string | null; visible: boolean; sensitive_content: boolean; name: string | null; created_height: number | null; data_mime_type: string | null; data: string | null }
 export type NftSortMode = "name" | "recent"
 export type NftStatus = { nfts: number; visible_nfts: number; collections: number; visible_collections: number }
+export type NftUriKind = "data" | "metadata" | "license"
 export type Output = { coin_id: string; amount: Amount; address: string; receiving: boolean; burning: boolean }
 export type PeerRecord = { ip_addr: string; port: number; trusted: boolean; peak_height: number }
 export type PendingTransactionRecord = { transaction_id: string; fee: Amount; submitted_at: string | null }

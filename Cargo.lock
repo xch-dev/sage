@@ -758,15 +758,17 @@ dependencies = [
 
 [[package]]
 name = "chia-sdk-client"
-version = "0.17.0"
+version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9e020c1ba12d33b6361292762c7cfef1344268a1879249cf6ccfbed46bb543ca"
+checksum = "c67bd78889331985558c3af7075b897e98d5507a5fb67945b42233dd22efe795"
 dependencies = [
+ "aws-lc-rs",
  "chia-protocol",
  "chia-sdk-types",
  "chia-ssl",
  "chia-traits 0.15.0",
  "futures-util",
+ "once_cell",
  "rustls 0.22.4",
  "rustls-pemfile",
  "thiserror",
@@ -778,9 +780,9 @@ dependencies = [
 
 [[package]]
 name = "chia-sdk-derive"
-version = "0.17.0"
+version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "118a662acfdf6c24f33276d1fdc2da6fe3f125a124d5205a2a1a0d243e4765c5"
+checksum = "a12346c930c0fb76fa6bc23e6516b42a6f05e80806df05875470d0775c072bd8"
 dependencies = [
  "convert_case 0.6.0",
  "quote",
@@ -789,9 +791,9 @@ dependencies = [
 
 [[package]]
 name = "chia-sdk-driver"
-version = "0.17.0"
+version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "515961d6fb37f236bd34eaa895e1acf7a73b607a8d07b4fb4ab43d447bafdb32"
+checksum = "58e79b60cf224d50468ee2c8c4fc340cdbf75185d25fffbb0dde10d6bf74917f"
 dependencies = [
  "chia-bls 0.15.0",
  "chia-protocol",
@@ -808,9 +810,9 @@ dependencies = [
 
 [[package]]
 name = "chia-sdk-offers"
-version = "0.17.0"
+version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2824942d9353e0c81f3fc4b41697cf39d4190938703c0de501f210932e5ec745"
+checksum = "60e1971c02703801882c1eb3d0944b7f7f734eed4cba759a8d5aa221f3fe6533"
 dependencies = [
  "bech32",
  "chia-bls 0.15.0",
@@ -830,9 +832,9 @@ dependencies = [
 
 [[package]]
 name = "chia-sdk-signer"
-version = "0.17.0"
+version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f940399682651241696467a2216bdfe9bfb8e50e6a178733126d7d7587948b2d"
+checksum = "ceacf2e67ab136876d93953f6eafff83741a32dffdb79db6a7423a6ef725a15b"
 dependencies = [
  "chia-bls 0.15.0",
  "chia-consensus",
@@ -845,9 +847,9 @@ dependencies = [
 
 [[package]]
 name = "chia-sdk-test"
-version = "0.17.0"
+version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a6f4354402e24c5d96b9e2395cd51fb592e07831a3674d58bcc3e308d576f389"
+checksum = "8766d35aede3b78992d24c7aa5e5b5b857a08811758dc2a84a099db939e71134"
 dependencies = [
  "anyhow",
  "bip39",
@@ -877,9 +879,9 @@ dependencies = [
 
 [[package]]
 name = "chia-sdk-types"
-version = "0.17.0"
+version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2c1458db7a8f8425d98a8bf04e7f5264a6ea3d4c85524f5d2f6b0d292b00d31c"
+checksum = "bd8e649d15459fd9f47230c2620f333885b258b24d653529c7f72035c029e239"
 dependencies = [
  "chia-bls 0.15.0",
  "chia-consensus",
@@ -889,6 +891,21 @@ dependencies = [
  "clvmr",
  "hex-literal",
  "once_cell",
+]
+
+[[package]]
+name = "chia-sdk-utils"
+version = "0.18.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9b8f6b1e64bd47130e0b6a3e29ea0e18bcf29c347c0159abaf658e3a9cc23a5c"
+dependencies = [
+ "bech32",
+ "chia-protocol",
+ "hex",
+ "indexmap 2.5.0",
+ "rand 0.8.5",
+ "rand_chacha 0.3.1",
+ "thiserror",
 ]
 
 [[package]]
@@ -938,23 +955,17 @@ dependencies = [
 
 [[package]]
 name = "chia-wallet-sdk"
-version = "0.17.0"
+version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "40898b07209d2da26e5bd01a39c1c82722a2e18c2d8e2247f8b13ffd18aa72d1"
+checksum = "670dfb279ca9431828e526914356ce0be5bb25c44fa84d38387bdc7639be9d2c"
 dependencies = [
- "bech32",
- "chia-protocol",
  "chia-sdk-client",
  "chia-sdk-driver",
  "chia-sdk-offers",
  "chia-sdk-signer",
  "chia-sdk-test",
  "chia-sdk-types",
- "hex",
- "indexmap 2.5.0",
- "rand 0.8.5",
- "rand_chacha 0.3.1",
- "thiserror",
+ "chia-sdk-utils",
 ]
 
 [[package]]
