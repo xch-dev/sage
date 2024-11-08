@@ -21,9 +21,9 @@ use sqlx::{
 };
 use tauri::{AppHandle, Emitter};
 use tokio::sync::{mpsc, oneshot, Mutex};
-use tracing::{error, info, level_filters::LevelFilter};
+use tracing::{error, info, Level};
 use tracing_appender::rolling::{Builder, Rotation};
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, Layer};
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer};
 
 use crate::{
     error::{Error, Result},
@@ -92,7 +92,7 @@ impl AppStateInner {
             std::fs::create_dir_all(&log_dir)?;
         }
 
-        let log_level = self.config.app.log_level.parse()?;
+        let log_level: Level = self.config.app.log_level.parse()?;
 
         let log_file = Builder::new()
             .filename_prefix("app.log")
@@ -100,28 +100,33 @@ impl AppStateInner {
             .max_log_files(3)
             .build(log_dir.as_path())?;
 
+        macro_rules! filter {
+            () => {
+                EnvFilter::new(format!(
+                    "{},rustls=off,tungstenite=off",
+                    log_level.to_string()
+                ))
+            };
+        }
+
         let file_layer = tracing_subscriber::fmt::layer()
             .with_writer(log_file)
             .with_ansi(false)
             .with_target(false)
-            .compact();
+            .compact()
+            .with_filter(filter!());
 
-        // TODO: Fix ANSI better
-        #[cfg(not(mobile))]
-        let stdout_layer = tracing_subscriber::fmt::layer().pretty();
+        let registry = tracing_subscriber::registry().with(file_layer);
 
-        let registry = tracing_subscriber::registry()
-            .with(file_layer.with_filter(LevelFilter::from_level(log_level)));
+        if cfg!(mobile) {
+            registry.try_init()?;
+        } else {
+            let stdout_layer = tracing_subscriber::fmt::layer().pretty();
 
-        #[cfg(not(mobile))]
-        {
             registry
-                .with(stdout_layer.with_filter(LevelFilter::from_level(log_level)))
-                .init();
+                .with(stdout_layer.with_filter(filter!()))
+                .try_init()?;
         }
-
-        #[cfg(mobile)]
-        registry.init();
 
         Ok(())
     }

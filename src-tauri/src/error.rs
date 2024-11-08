@@ -20,6 +20,7 @@ use specta::Type;
 use sqlx::migrate::MigrateError;
 use tokio::sync::{mpsc, oneshot::error::RecvError};
 use tracing::metadata::ParseLevelError;
+use tracing_subscriber::util::TryInitError;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub struct Error {
@@ -450,6 +451,15 @@ impl From<Vec<u8>> for Error {
         Self {
             kind: ErrorKind::Serialization,
             reason: format!("Unexpected bytes with length {}", value.len()),
+        }
+    }
+}
+
+impl From<TryInitError> for Error {
+    fn from(value: TryInitError) -> Self {
+        Self {
+            kind: ErrorKind::Logging,
+            reason: value.to_string(),
         }
     }
 }

@@ -41,7 +41,7 @@ clvmr = { workspace = true }
 itertools = { workspace = true }
 sqlx = { workspace = true, features = ["sqlite", "runtime-tokio"] }
 tracing = { workspace = true }
-tracing-subscriber = { workspace = true }
+tracing-subscriber = { workspace = true, features = ["env-filter"] }
 tracing-appender = { workspace = true }
 log = { workspace = true }
 bigdecimal = { workspace = true }
