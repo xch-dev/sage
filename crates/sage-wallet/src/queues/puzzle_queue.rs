@@ -12,8 +12,8 @@ use tokio::{
 use tracing::{debug, instrument};
 
 use crate::{
-    database::insert_puzzle, fetch_nft_did, ChildKind, PeerState, SyncCommand, SyncError,
-    SyncEvent, WalletError,
+    database::insert_puzzle, fetch_nft_did, ChildKind, PeerState, SyncCommand, SyncEvent,
+    WalletError,
 };
 
 #[derive(Debug)]
@@ -44,12 +44,25 @@ impl PuzzleQueue {
 
     pub async fn start(mut self) -> Result<(), WalletError> {
         loop {
-            self.process_batch().await?;
+            let subscriptions = self.process_batch().await?;
+
+            self.command_sender
+                .send(SyncCommand::SubscribeCoins {
+                    coin_ids: subscriptions,
+                })
+                .await
+                .ok();
+
+            self.sync_sender
+                .send(SyncEvent::PuzzleBatchSynced)
+                .await
+                .ok();
+
             sleep(Duration::from_millis(150)).await;
         }
     }
 
-    async fn process_batch(&mut self) -> Result<(), WalletError> {
+    async fn process_batch(&mut self) -> Result<Vec<Bytes32>, WalletError> {
         let peers: Vec<Peer> = self
             .state
             .lock()
@@ -60,14 +73,14 @@ impl PuzzleQueue {
 
         if peers.is_empty() {
             sleep(Duration::from_secs(3)).await;
-            return Ok(());
+            return Ok(Vec::new());
         }
 
         let coin_states = self.db.unsynced_coin_states(peers.len()).await?;
 
         if coin_states.is_empty() {
             sleep(Duration::from_secs(3)).await;
-            return Ok(());
+            return Ok(Vec::new());
         }
 
         debug!(
@@ -83,17 +96,15 @@ impl PuzzleQueue {
             let addr = peer.socket_addr();
             let coin_id = coin_state.coin.coin_id();
 
-            futures.push(tokio::spawn(async move {
+            futures.push(async move {
                 let result = fetch_puzzle(&peer, &db, genesis_challenge, coin_state).await;
                 (addr, coin_id, result)
-            }));
+            });
         }
 
         let mut subscriptions = Vec::new();
 
-        while let Some(result) = futures.next().await {
-            let (addr, coin_id, result) = result?;
-
+        while let Some((addr, coin_id, result)) = futures.next().await {
             match result {
                 Ok(subscribe) => {
                     if subscribe {
@@ -116,19 +127,7 @@ impl PuzzleQueue {
             }
         }
 
-        self.command_sender
-            .send(SyncCommand::SubscribeCoins {
-                coin_ids: subscriptions,
-            })
-            .await
-            .ok();
-
-        self.sync_sender
-            .send(SyncEvent::PuzzleBatchSynced)
-            .await
-            .ok();
-
-        Ok(())
+        Ok(subscriptions)
     }
 }
 
@@ -146,26 +145,24 @@ async fn fetch_puzzle(
         Duration::from_secs(5),
         peer.request_coin_state(vec![parent_id], None, genesis_challenge, false),
     )
-    .await
-    .map_err(|_| SyncError::Timeout)??
-    .map_err(|_| SyncError::Rejection)?
+    .await??
+    .map_err(|_| WalletError::PeerMisbehaved)?
     .coin_states
     .into_iter()
     .next() else {
-        return Err(SyncError::MissingCoinState(parent_id).into());
+        return Err(WalletError::MissingCoin(parent_id));
     };
 
     let height = coin_state
         .created_height
-        .ok_or(SyncError::UnconfirmedCoin(parent_id))?;
+        .ok_or(WalletError::MissingCoin(parent_id))?;
 
     let response = timeout(
         Duration::from_secs(10),
         peer.request_puzzle_and_solution(parent_id, height),
     )
-    .await
-    .map_err(|_| SyncError::Timeout)??
-    .map_err(|_| SyncError::MissingPuzzleAndSolution(parent_id))?;
+    .await??
+    .map_err(|_| WalletError::MissingSpend(parent_id))?;
 
     let info = spawn_blocking(move || {
         ChildKind::from_parent(

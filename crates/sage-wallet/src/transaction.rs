@@ -5,7 +5,7 @@ use chia::{
 use chia_wallet_sdk::{run_puzzle, Condition, Conditions};
 use clvmr::{Allocator, NodePtr};
 
-use crate::{ChildKind, CoinKind, ParseError};
+use crate::{ChildKind, CoinKind, WalletError};
 
 #[derive(Debug, Clone)]
 pub struct Transaction {
@@ -27,7 +27,7 @@ pub struct TransactionOutput {
 }
 
 impl Transaction {
-    pub fn from_coin_spends(coin_spends: Vec<CoinSpend>) -> Result<Self, ParseError> {
+    pub fn from_coin_spends(coin_spends: Vec<CoinSpend>) -> Result<Self, WalletError> {
         // TODO: Handle height and timestamp conditions.
 
         let mut inputs = Vec::new();
@@ -75,21 +75,13 @@ impl Transaction {
     }
 }
 
-fn run_conditions(puzzle_reveal: &Program, solution: &Program) -> Result<Conditions, ParseError> {
+fn run_conditions(puzzle_reveal: &Program, solution: &Program) -> Result<Conditions, WalletError> {
     let mut allocator = Allocator::new();
 
-    let puzzle = puzzle_reveal
-        .to_clvm(&mut allocator)
-        .map_err(|_| ParseError::AllocatePuzzle)?;
-
-    let solution = solution
-        .to_clvm(&mut allocator)
-        .map_err(|_| ParseError::AllocateSolution)?;
-
-    let output = run_puzzle(&mut allocator, puzzle, solution).map_err(|_| ParseError::Eval)?;
-
-    let conditions = Conditions::<NodePtr>::from_clvm(&allocator, output)
-        .map_err(|_| ParseError::InvalidConditions)?;
+    let puzzle = puzzle_reveal.to_clvm(&mut allocator)?;
+    let solution = solution.to_clvm(&mut allocator)?;
+    let output = run_puzzle(&mut allocator, puzzle, solution)?;
+    let conditions = Conditions::<NodePtr>::from_clvm(&allocator, output)?;
 
     Ok(conditions)
 }

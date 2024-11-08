@@ -14,12 +14,13 @@ use hex::FromHexError;
 use sage_api::Amount;
 use sage_database::DatabaseError;
 use sage_keychain::KeychainError;
-use sage_wallet::{ParseError, SyncCommand, UriError, WalletError};
+use sage_wallet::{SyncCommand, UriError, WalletError};
 use serde::{Deserialize, Serialize};
 use specta::Type;
 use sqlx::migrate::MigrateError;
 use tokio::sync::{mpsc, oneshot::error::RecvError};
 use tracing::metadata::ParseLevelError;
+use tracing_subscriber::util::TryInitError;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub struct Error {
@@ -454,10 +455,10 @@ impl From<Vec<u8>> for Error {
     }
 }
 
-impl From<ParseError> for Error {
-    fn from(value: ParseError) -> Self {
+impl From<TryInitError> for Error {
+    fn from(value: TryInitError) -> Self {
         Self {
-            kind: ErrorKind::Wallet,
+            kind: ErrorKind::Logging,
             reason: value.to_string(),
         }
     }

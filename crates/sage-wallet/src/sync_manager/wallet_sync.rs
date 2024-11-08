@@ -14,7 +14,7 @@ use tokio::{
 };
 use tracing::{debug, info, instrument, warn};
 
-use crate::{handle_spent_coin, upsert_coin, SyncError, Wallet, WalletError};
+use crate::{handle_spent_coin, upsert_coin, Wallet, WalletError};
 
 use super::{PeerState, SyncEvent};
 
@@ -150,8 +150,7 @@ async fn sync_coin_ids(
             Duration::from_secs(10),
             peer.request_coin_state(coin_ids.to_vec(), start_height, start_header_hash, true),
         )
-        .await
-        .map_err(|_| WalletError::Sync(SyncError::Timeout))??;
+        .await??;
 
         match response {
             Ok(data) => {
@@ -167,7 +166,7 @@ async fn sync_coin_ids(
                         "Subscription limit reached against peer {}",
                         peer.socket_addr()
                     );
-                    return Err(WalletError::Sync(SyncError::SubscriptionLimit));
+                    return Err(WalletError::SubscriptionLimitReached);
                 }
                 RejectStateReason::Reorg => {
                     // TODO: Handle reorgs gracefully
@@ -211,8 +210,7 @@ async fn sync_puzzle_hashes(
                 true,
             ),
         )
-        .await
-        .map_err(|_| WalletError::Sync(SyncError::Timeout))??;
+        .await??;
 
         match response {
             Ok(data) => {
@@ -236,7 +234,7 @@ async fn sync_puzzle_hashes(
                         "Subscription limit reached against peer {}",
                         peer.socket_addr()
                     );
-                    return Err(WalletError::Sync(SyncError::SubscriptionLimit));
+                    return Err(WalletError::SubscriptionLimitReached);
                 }
                 RejectStateReason::Reorg => {
                     // TODO: Handle reorgs gracefully

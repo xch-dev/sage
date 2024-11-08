@@ -10,7 +10,7 @@ use tokio::{
 };
 use tracing::info;
 
-use crate::{SyncError, SyncEvent, WalletError};
+use crate::{SyncEvent, WalletError};
 
 #[derive(Deserialize)]
 struct Response {
@@ -107,7 +107,7 @@ impl CatQueue {
     }
 }
 
-async fn lookup_cat(network: &Network, asset_id: Bytes32) -> Result<Response, SyncError> {
+async fn lookup_cat(network: &Network, asset_id: Bytes32) -> Result<Response, WalletError> {
     let dexie_base_url = if network.genesis_challenge == TESTNET11_CONSTANTS.genesis_challenge {
         "https://api-testnet.dexie.space/v1"
     } else {
@@ -120,14 +120,9 @@ async fn lookup_cat(network: &Network, asset_id: Bytes32) -> Result<Response, Sy
             "{dexie_base_url}/assets?page_size=25&page=1&type=all&code={asset_id}"
         )),
     )
-    .await
-    .map_err(|_| SyncError::Timeout)?
-    .map_err(|error| SyncError::FetchCat(asset_id, error))?;
-
-    let response = response
-        .json::<Response>()
-        .await
-        .map_err(|error| SyncError::FetchCat(asset_id, error))?;
+    .await??
+    .json::<Response>()
+    .await?;
 
     Ok(response)
 }
