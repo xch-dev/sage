@@ -24,7 +24,6 @@ use sage_wallet::{
 use specta::specta;
 use tauri::{command, State};
 use tokio::sync::MutexGuard;
-use tracing::warn;
 
 use crate::{
     app_state::{AppState, AppStateInner},
@@ -695,8 +694,6 @@ pub async fn make_offer(state: State<'_, AppState>, request: MakeOffer) -> Resul
             master_sk,
         )
         .await?;
-
-    warn!("Offer: {}", offer.encode()?);
 
     Ok(offer.encode()?)
 }

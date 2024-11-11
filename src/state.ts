@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import {
+  Assets,
   CoinRecord,
   commands,
   events,
@@ -11,50 +12,15 @@ export interface WalletState {
   sync: SyncStatus;
   nfts: NftStatus;
   coins: CoinRecord[];
+  offerAssets: Assets;
+  requestedAssets: Assets;
+  offerFee: string;
 }
 
-export const useWalletState = create<WalletState>()(() => ({
-  sync: {
-    receive_address: 'Unknown',
-    burn_address: 'Unknown',
-    balance: 'Syncing',
-    unit: {
-      ticker: 'XCH',
-      decimals: 12,
-    },
-    total_coins: 0,
-    synced_coins: 0,
-  },
-  nfts: {
-    nfts: 0,
-    visible_nfts: 0,
-    collections: 0,
-    visible_collections: 0,
-  },
-  coins: [],
-}));
+export const useWalletState = create<WalletState>()(() => defaultState());
 
 export function clearState() {
-  useWalletState.setState({
-    sync: {
-      receive_address: 'Unknown',
-      burn_address: 'Unknown',
-      balance: 'Syncing',
-      unit: {
-        ticker: 'XCH',
-        decimals: 12,
-      },
-      total_coins: 0,
-      synced_coins: 0,
-    },
-    nfts: {
-      nfts: 0,
-      visible_nfts: 0,
-      collections: 0,
-      visible_collections: 0,
-    },
-    coins: [],
-  });
+  useWalletState.setState(defaultState());
 }
 
 export async function fetchState() {
@@ -125,4 +91,54 @@ export async function loginAndUpdateState(fingerprint: number): Promise<void> {
 export async function logoutAndUpdateState(): Promise<void> {
   clearState();
   await commands.logoutWallet();
+}
+
+function defaultState(): WalletState {
+  return {
+    sync: {
+      receive_address: 'Unknown',
+      burn_address: 'Unknown',
+      balance: 'Syncing',
+      unit: {
+        ticker: 'XCH',
+        decimals: 12,
+      },
+      total_coins: 0,
+      synced_coins: 0,
+    },
+    nfts: {
+      nfts: 0,
+      visible_nfts: 0,
+      collections: 0,
+      visible_collections: 0,
+    },
+    coins: [],
+    offerAssets: {
+      xch: '',
+      nfts: [],
+      cats: [],
+    },
+    requestedAssets: {
+      xch: '',
+      nfts: [],
+      cats: [],
+    },
+    offerFee: '',
+  };
+}
+
+export function clearOffer() {
+  useWalletState.setState({
+    offerAssets: {
+      xch: '',
+      cats: [],
+      nfts: [],
+    },
+    requestedAssets: {
+      xch: '',
+      cats: [],
+      nfts: [],
+    },
+    offerFee: '',
+  });
 }
