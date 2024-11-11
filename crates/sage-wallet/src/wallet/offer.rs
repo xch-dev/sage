@@ -10,6 +10,7 @@ pub struct OfferedCoins {
     pub xch: u64,
     pub cats: IndexMap<Bytes32, u64>,
     pub nfts: IndexSet<Bytes32>,
+    pub fee: u64,
 }
 
 #[derive(Debug, Clone)]
@@ -38,6 +39,7 @@ pub struct UnsignedOffer {
 pub struct OfferSpend {
     pub p2_coins: Vec<Coin>,
     pub p2_amount: u64,
+    pub fee: u64,
     pub cats: Vec<CatOfferSpend>,
     pub nfts: Vec<NftOfferSpend>,
     pub assertions: Vec<AssertPuzzleAnnouncement>,

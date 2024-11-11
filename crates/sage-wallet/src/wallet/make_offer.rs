@@ -5,12 +5,12 @@ use chia::{
     protocol::Bytes32,
     puzzles::{
         cat::CatArgs,
-        offer::{Payment, SETTLEMENT_PAYMENTS_PUZZLE_HASH},
+        offer::{NotarizedPayment, Payment, SETTLEMENT_PAYMENTS_PUZZLE_HASH},
     },
 };
 use chia_wallet_sdk::{
-    calculate_nft_trace_price, Condition, Conditions, HashedPtr, Layer, NftInfo, Offer,
-    OfferBuilder, SpendContext, StandardLayer, TradePrice,
+    calculate_nft_royalty, calculate_nft_trace_price, payment_assertion, Condition, Conditions,
+    HashedPtr, Layer, NftInfo, Offer, OfferBuilder, SpendContext, StandardLayer, TradePrice,
 };
 use indexmap::IndexMap;
 
@@ -32,8 +32,10 @@ impl Wallet {
         let mut coin_ids = Vec::new();
 
         // Select coins for the XCH being offered.
-        let p2_coins = if offered.xch > 0 {
-            self.select_p2_coins(offered.xch as u128).await?
+        let total_xch = offered.xch + offered.fee;
+
+        let p2_coins = if total_xch > 0 {
+            self.select_p2_coins(total_xch as u128).await?
         } else {
             Vec::new()
         };
@@ -119,6 +121,45 @@ impl Wallet {
             )?;
         }
 
+        // Add royalty payments for NFTs you are offering.
+        let mut royalty_assertions = Vec::new();
+
+        if !nfts.is_empty() {
+            for (asset_id, amount) in [(None, requested.xch)].into_iter().chain(
+                requested
+                    .cats
+                    .iter()
+                    .map(|(asset_id, amount)| (Some(*asset_id), *amount)),
+            ) {
+                let trade_price = calculate_nft_trace_price(amount, nfts.len())
+                    .ok_or(WalletError::InvalidTradePrice)?;
+
+                for NftOfferSpend { nft, .. } in &nfts {
+                    let royalty =
+                        calculate_nft_royalty(trade_price, nft.info.royalty_ten_thousandths)
+                            .ok_or(WalletError::InvalidRoyaltyAmount)?;
+
+                    let mut puzzle_hash = SETTLEMENT_PAYMENTS_PUZZLE_HASH;
+
+                    if let Some(asset_id) = asset_id {
+                        puzzle_hash = CatArgs::curry_tree_hash(asset_id, puzzle_hash);
+                    }
+
+                    let notarized_payment = NotarizedPayment {
+                        nonce: nft.info.launcher_id,
+                        payments: vec![Payment::with_memos(
+                            nft.info.royalty_puzzle_hash,
+                            royalty,
+                            vec![nft.info.royalty_puzzle_hash.into()],
+                        )],
+                    };
+
+                    royalty_assertions
+                        .push(payment_assertion(puzzle_hash.into(), &notarized_payment));
+                }
+            }
+        }
+
         // Add requested CAT payments.
         for (asset_id, amount) in requested.cats {
             builder = builder.request(
@@ -161,13 +202,15 @@ impl Wallet {
         }
 
         // Finish the requested payments and get the list of announcement assertions.
-        let (assertions, builder) = builder.finish();
+        let (mut assertions, builder) = builder.finish();
+        assertions.extend(royalty_assertions);
 
         self.spend_assets(
             &mut ctx,
             OfferSpend {
                 p2_coins,
                 p2_amount: offered.xch,
+                fee: offered.fee,
                 cats: cats
                     .into_iter()
                     .map(|(asset_id, coins)| CatOfferSpend {
@@ -252,7 +295,7 @@ impl Wallet {
             }
 
             let total: u128 = spend.p2_coins.iter().map(|coin| coin.amount as u128).sum();
-            let change = total - spend.p2_amount as u128;
+            let change = total - spend.p2_amount as u128 - spend.fee as u128;
 
             if change > 0 {
                 conditions = conditions.create_coin(
@@ -260,6 +303,10 @@ impl Wallet {
                     change.try_into().expect("change overflow"),
                     Vec::new(),
                 );
+            }
+
+            if spend.fee > 0 {
+                conditions = conditions.reserve_fee(spend.fee);
             }
 
             self.spend_p2_coins(ctx, spend.p2_coins, conditions).await?;

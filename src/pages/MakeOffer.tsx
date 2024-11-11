@@ -30,6 +30,7 @@ export function MakeOffer() {
       .makeOffer({
         offered_assets: offerAssets,
         requested_assets: requestAssets,
+        fee,
       })
       .then((result) => {
         console.log(result);

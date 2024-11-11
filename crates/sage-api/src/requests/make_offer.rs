@@ -7,6 +7,7 @@ use crate::Amount;
 pub struct MakeOffer {
     pub requested_assets: Assets,
     pub offered_assets: Assets,
+    pub fee: Amount,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]

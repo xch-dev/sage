@@ -657,12 +657,17 @@ pub async fn make_offer(state: State<'_, AppState>, request: MakeOffer) -> Resul
         requested_nfts.insert(nft_id, offer_details);
     }
 
+    let Some(fee) = request.fee.to_mojos(state.unit.decimals) else {
+        return Err(Error::invalid_amount(&request.fee));
+    };
+
     let unsigned = wallet
         .make_offer(
             OfferedCoins {
                 xch: offered_xch,
                 cats: offered_cats,
                 nfts: offered_nfts,
+                fee,
             },
             OfferRequest {
                 xch: requested_xch,
