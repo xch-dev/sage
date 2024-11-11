@@ -16,33 +16,46 @@ pub async fn fetch_nft_offer_details(
 ) -> Result<Option<NftOfferDetails>, WalletError> {
     let mut offer_details = None::<NftOfferDetails>;
     let mut current_id = launcher_id;
+    let mut parent = None;
 
     loop {
         let Some(child) =
             timeout(Duration::from_secs(5), peer.try_fetch_child(current_id)).await??
         else {
-            break;
+            return Ok(None);
         };
 
-        let spent_height = child.spent_height.ok_or(WalletError::PeerMisbehaved)?;
-        current_id = child.coin.coin_id();
+        if child.spent_height.is_some() {
+            parent = Some(child);
+            current_id = child.coin.coin_id();
+            sleep(Duration::from_secs(1)).await;
+            continue;
+        }
 
-        let (puzzle_reveal, solution) = timeout(
+        let parent = parent.expect("parent not found");
+
+        let (parent_puzzle_reveal, parent_solution) = timeout(
             Duration::from_secs(15),
-            peer.fetch_puzzle_solution(current_id, spent_height),
+            peer.fetch_puzzle_solution(
+                parent.coin.coin_id(),
+                parent.spent_height.ok_or(WalletError::PeerMisbehaved)?,
+            ),
         )
         .await??;
 
         let mut allocator = Allocator::new();
+        let parent_puzzle = parent_puzzle_reveal.to_clvm(&mut allocator)?;
+        let parent_puzzle = Puzzle::parse(&allocator, parent_puzzle);
+        let parent_solution = parent_solution.to_clvm(&mut allocator)?;
 
-        let puzzle_reveal = puzzle_reveal.to_clvm(&mut allocator)?;
-        let puzzle = Puzzle::parse(&allocator, puzzle_reveal);
-        let solution = solution.to_clvm(&mut allocator)?;
-
-        if let Some(nft) =
-            Nft::<HashedPtr>::parse_child(&mut allocator, child.coin, puzzle, solution)
-                .ok()
-                .flatten()
+        if let Some(nft) = Nft::<HashedPtr>::parse_child(
+            &mut allocator,
+            parent.coin,
+            parent_puzzle,
+            parent_solution,
+        )
+        .ok()
+        .flatten()
         {
             offer_details = Some(NftOfferDetails {
                 metadata: Program::from_clvm(&allocator, nft.info.metadata.ptr())?,
@@ -53,7 +66,7 @@ pub async fn fetch_nft_offer_details(
             break;
         }
 
-        sleep(Duration::from_secs(1)).await;
+        break;
     }
 
     Ok(offer_details)
