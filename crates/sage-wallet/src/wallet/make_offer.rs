@@ -9,8 +9,8 @@ use chia::{
     },
 };
 use chia_wallet_sdk::{
-    calculate_nft_royalty, calculate_nft_trace_price, Condition, Conditions, HashedPtr, Layer,
-    NftInfo, Offer, OfferBuilder, SpendContext, StandardLayer, TradePrice,
+    calculate_nft_trace_price, Condition, Conditions, HashedPtr, Layer, NftInfo, Offer,
+    OfferBuilder, SpendContext, StandardLayer, TradePrice,
 };
 use indexmap::IndexMap;
 
@@ -117,44 +117,6 @@ impl Wallet {
                 &settlement,
                 vec![Payment::new(p2_puzzle_hash, requested.xch)],
             )?;
-        }
-
-        // Add royalty payments for NFTs you are offering.
-        if !nfts.is_empty() {
-            for (asset_id, amount) in [(None, requested.xch)].into_iter().chain(
-                requested
-                    .cats
-                    .iter()
-                    .map(|(asset_id, amount)| (Some(*asset_id), *amount)),
-            ) {
-                let trade_price = calculate_nft_trace_price(amount, nfts.len())
-                    .ok_or(WalletError::InvalidTradePrice)?;
-
-                for NftOfferSpend { nft, .. } in &nfts {
-                    let royalty =
-                        calculate_nft_royalty(trade_price, nft.info.royalty_ten_thousandths)
-                            .ok_or(WalletError::InvalidRoyaltyAmount)?;
-
-                    let mut puzzle = settlement;
-
-                    if let Some(asset_id) = asset_id {
-                        puzzle = ctx.alloc(&CurriedProgram {
-                            program: cat,
-                            args: CatArgs::new(asset_id, puzzle),
-                        })?;
-                    }
-
-                    builder = builder.request(
-                        &mut ctx,
-                        &puzzle,
-                        vec![Payment::with_memos(
-                            nft.info.royalty_puzzle_hash,
-                            royalty,
-                            vec![nft.info.royalty_puzzle_hash.into()],
-                        )],
-                    )?;
-                }
-            }
         }
 
         // Add requested CAT payments.
