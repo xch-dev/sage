@@ -234,7 +234,7 @@ impl SyncManager {
 
         let mut state = self.state.lock().await;
 
-        for (peer, height) in state.peers_with_heights() {
+        for (existing_peer, height) in state.peers_with_heights() {
             if message.height < height.saturating_sub(3) {
                 debug!(
                     "Peer {} is behind by more than 3 blocks, disconnecting",
@@ -243,7 +243,7 @@ impl SyncManager {
                 return false;
             } else if message.height > height.saturating_add(3) {
                 state.ban(
-                    peer.socket_addr().ip(),
+                    existing_peer.socket_addr().ip(),
                     Duration::from_secs(900),
                     "peer is behind",
                 );

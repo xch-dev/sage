@@ -42,10 +42,10 @@ export default function Layout(props: PropsWithChildren<object>) {
   };
 
   return (
-    <div className='grid h-screen w-screen md:grid-cols-[280px_1fr]'>
+    <div className='grid h-screen w-screen md:grid-cols-[250px_1fr]'>
       <div className='hidden border-r bg-muted/40 md:block overflow-y-auto'>
         <div className='flex h-full max-h-screen flex-col gap-2'>
-          <div className='flex h-14 items-center px-4 lg:h-[60px] lg:px-6'>
+          <div className='flex h-14 items-center pt-2 px-5'>
             <Link
               to='/wallet'
               className='flex items-center gap-2 font-semibold'
@@ -55,11 +55,11 @@ export default function Layout(props: PropsWithChildren<object>) {
             </Link>
           </div>
           <div className='flex-1 flex flex-col justify-between pb-4'>
-            <nav className='grid items-start px-2 text-sm font-medium lg:px-4'>
+            <nav className='grid items-start px-3 text-sm font-medium'>
               <Nav />
             </nav>
 
-            <nav className='grid px-2 text-sm font-medium lg:px-4'>
+            <nav className='grid px-3 text-sm font-medium'>
               <Link
                 to='/peers'
                 className='flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary'

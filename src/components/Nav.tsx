@@ -1,4 +1,5 @@
 import {
+  ArrowLeftRight,
   CoinsIcon,
   ImagePlus,
   Images,
@@ -25,10 +26,10 @@ export function Nav() {
         <SquareUserRound className='h-4 w-4' />
         Profiles
       </NavLink>
-      {/* <NavLink url={'/offers'}>
+      <NavLink url={'/offers'}>
         <ArrowLeftRight className='h-4 w-4' />
         Offers
-      </NavLink> */}
+      </NavLink>
       <Separator className='my-1' />
       <NavLink url={'/wallet/issue-token'}>
         <CoinsIcon className='h-4 w-4' />
@@ -54,7 +55,7 @@ function NavLink({ url, children }: PropsWithChildren<NavLinkProps>) {
   return (
     <Link
       to={url}
-      className='mx-[-0.65rem] md:mx-0 flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary'
+      className='flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary'
     >
       {children}
     </Link>

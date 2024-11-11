@@ -11,18 +11,20 @@ use chia_wallet_sdk::{
     TESTNET11_CONSTANTS,
 };
 use hex_literal::hex;
+use indexmap::{IndexMap, IndexSet};
 use sage_api::{
-    Amount, BulkMintNfts, BulkMintNftsResponse, CoinJson, CoinSpendJson, Input, InputKind,
-    NftUriKind, Output, SpendBundleJson, TransactionSummary,
+    Amount, BulkMintNfts, BulkMintNftsResponse, CatAmount, CoinJson, CoinSpendJson, Input,
+    InputKind, MakeOffer, NftUriKind, Output, SpendBundleJson, TransactionSummary,
 };
 use sage_database::{CatRow, Database};
 use sage_wallet::{
-    compute_nft_info, fetch_uris, insert_transaction, ChildKind, CoinKind, Data, SyncCommand,
-    Transaction, Wallet, WalletNftMint,
+    compute_nft_info, fetch_nft_offer_details, fetch_uris, insert_transaction, ChildKind, CoinKind,
+    Data, OfferRequest, OfferedCoins, SyncCommand, Transaction, Wallet, WalletNftMint,
 };
 use specta::specta;
 use tauri::{command, State};
 use tokio::sync::MutexGuard;
+use tracing::warn;
 
 use crate::{
     app_state::{AppState, AppStateInner},
@@ -583,6 +585,115 @@ pub async fn transfer_did(
         .await?;
 
     summarize(&state, &wallet, coin_spends, ConfirmationInfo::default()).await
+}
+
+#[command]
+#[specta]
+pub async fn make_offer(state: State<'_, AppState>, request: MakeOffer) -> Result<String> {
+    let state = state.lock().await;
+    let wallet = state.wallet()?;
+
+    let Some(offered_xch) = request.offered_assets.xch.to_mojos(state.unit.decimals) else {
+        return Err(Error::invalid_amount(&request.offered_assets.xch));
+    };
+
+    let mut offered_cats = IndexMap::new();
+
+    for CatAmount { asset_id, amount } in request.offered_assets.cats {
+        let Some(amount) = amount.to_mojos(3) else {
+            return Err(Error::invalid_amount(&amount));
+        };
+        let asset_id = hex::decode(&asset_id)?.try_into()?;
+        offered_cats.insert(asset_id, amount);
+    }
+
+    let mut offered_nfts = IndexSet::new();
+
+    for nft_id in request.offered_assets.nfts {
+        let (launcher_id, prefix) = decode_address(&nft_id)?;
+
+        if prefix != "nft" {
+            return Err(Error::invalid_prefix(&prefix));
+        }
+
+        offered_nfts.insert(launcher_id.into());
+    }
+
+    let Some(requested_xch) = request.requested_assets.xch.to_mojos(state.unit.decimals) else {
+        return Err(Error::invalid_amount(&request.requested_assets.xch));
+    };
+
+    let mut requested_cats = IndexMap::new();
+
+    for CatAmount { asset_id, amount } in request.requested_assets.cats {
+        let Some(amount) = amount.to_mojos(3) else {
+            return Err(Error::invalid_amount(&amount));
+        };
+        let asset_id = hex::decode(&asset_id)?.try_into()?;
+        requested_cats.insert(asset_id, amount);
+    }
+
+    let mut requested_nfts = IndexMap::new();
+    let mut peer = None;
+
+    for nft_id in request.requested_assets.nfts {
+        if peer.is_none() {
+            peer = state.peer_state.lock().await.acquire_peer();
+        }
+
+        let peer = peer.as_ref().ok_or(Error::no_peers())?;
+
+        let (launcher_id, prefix) = decode_address(&nft_id)?;
+
+        if prefix != "nft" {
+            return Err(Error::invalid_prefix(&prefix));
+        }
+
+        let nft_id: Bytes32 = launcher_id.into();
+        let Some(offer_details) = fetch_nft_offer_details(peer, nft_id).await? else {
+            return Err(Error::invalid_launcher_id());
+        };
+
+        requested_nfts.insert(nft_id, offer_details);
+    }
+
+    let unsigned = wallet
+        .make_offer(
+            OfferedCoins {
+                xch: offered_xch,
+                cats: offered_cats,
+                nfts: offered_nfts,
+            },
+            OfferRequest {
+                xch: requested_xch,
+                cats: requested_cats,
+                nfts: requested_nfts,
+            },
+            false,
+            true,
+        )
+        .await?;
+
+    let (_mnemonic, Some(master_sk)) = state.keychain.extract_secrets(wallet.fingerprint, b"")?
+    else {
+        return Err(Error::no_secret_key());
+    };
+
+    let offer = wallet
+        .sign_offer(
+            unsigned,
+            &if state.config.network.network_id == "mainnet" {
+                AggSigConstants::new(MAINNET_CONSTANTS.agg_sig_me_additional_data)
+            } else {
+                AggSigConstants::new(TESTNET11_CONSTANTS.agg_sig_me_additional_data)
+            },
+            master_sk,
+        )
+        .await?;
+
+    warn!("Offer: {}", offer.encode()?);
+
+    Ok(offer.encode()?)
 }
 
 #[command]

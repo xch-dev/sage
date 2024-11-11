@@ -3,11 +3,9 @@ import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { HandCoins } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 export function Offers() {
-  const navigate = useNavigate();
-
   return (
     <>
       <Header title='Offers' />

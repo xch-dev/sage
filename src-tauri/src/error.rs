@@ -9,7 +9,7 @@ use chia::{
     clvm_traits::{FromClvmError, ToClvmError},
     protocol::Bytes32,
 };
-use chia_wallet_sdk::{AddressError, ClientError, DriverError};
+use chia_wallet_sdk::{AddressError, ClientError, DriverError, OfferError};
 use hex::FromHexError;
 use sage_api::Amount;
 use sage_database::DatabaseError;
@@ -459,6 +459,15 @@ impl From<TryInitError> for Error {
     fn from(value: TryInitError) -> Self {
         Self {
             kind: ErrorKind::Logging,
+            reason: value.to_string(),
+        }
+    }
+}
+
+impl From<OfferError> for Error {
+    fn from(value: OfferError) -> Self {
+        Self {
+            kind: ErrorKind::TransactionFailed,
             reason: value.to_string(),
         }
     }

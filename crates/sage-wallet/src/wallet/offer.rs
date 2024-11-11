@@ -1,6 +1,8 @@
-use chia::protocol::{Bytes32, CoinSpend, Program};
+use chia::protocol::{Bytes32, Coin, CoinSpend, Program};
 
-use chia_wallet_sdk::{OfferBuilder, Partial, SpendContext};
+use chia_wallet_sdk::{
+    AssertPuzzleAnnouncement, Cat, Nft, OfferBuilder, Partial, SpendContext, TradePrice,
+};
 use indexmap::{IndexMap, IndexSet};
 
 #[derive(Debug, Clone)]
@@ -30,4 +32,26 @@ pub struct UnsignedOffer {
     pub ctx: SpendContext,
     pub coin_spends: Vec<CoinSpend>,
     pub builder: OfferBuilder<Partial>,
+}
+
+#[derive(Debug, Clone)]
+pub struct OfferSpend {
+    pub p2_coins: Vec<Coin>,
+    pub p2_amount: u64,
+    pub cats: Vec<CatOfferSpend>,
+    pub nfts: Vec<NftOfferSpend>,
+    pub assertions: Vec<AssertPuzzleAnnouncement>,
+    pub change_puzzle_hash: Bytes32,
+}
+
+#[derive(Debug, Clone)]
+pub struct CatOfferSpend {
+    pub coins: Vec<Cat>,
+    pub amount: u64,
+}
+
+#[derive(Debug, Clone)]
+pub struct NftOfferSpend {
+    pub nft: Nft<Program>,
+    pub trade_prices: Vec<TradePrice>,
 }
