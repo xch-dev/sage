@@ -8,7 +8,7 @@ use tokio::{
     task::spawn_blocking,
     time::{sleep, timeout},
 };
-use tracing::{debug, instrument};
+use tracing::{debug, instrument, warn};
 
 use crate::{
     database::insert_puzzle, fetch_nft_did, ChildKind, PeerState, SyncCommand, SyncEvent,
@@ -52,14 +52,12 @@ impl PuzzleQueue {
         let peers = self.state.lock().await.peers();
 
         if peers.is_empty() {
-            sleep(Duration::from_secs(3)).await;
             return Ok(());
         }
 
         let coin_states = self.db.unsynced_coin_states(peers.len()).await?;
 
         if coin_states.is_empty() {
-            sleep(Duration::from_secs(3)).await;
             return Ok(());
         }
 
@@ -131,6 +129,14 @@ async fn fetch_puzzle(
     genesis_challenge: Bytes32,
     coin_state: CoinState,
 ) -> Result<bool, WalletError> {
+    if db.is_p2_puzzle_hash(coin_state.coin.puzzle_hash).await? {
+        warn!(
+            "Could {} should already be synced, but isn't",
+            coin_state.coin.coin_id()
+        );
+        return Ok(false);
+    }
+
     let parent_spend = timeout(
         Duration::from_secs(15),
         peer.fetch_coin_spend(coin_state.coin.parent_coin_info, genesis_challenge),

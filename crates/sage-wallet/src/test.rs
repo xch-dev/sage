@@ -142,8 +142,8 @@ impl TestWallet {
         loop {
             let next = timeout(Duration::from_secs(10), self.events.recv())
                 .await
-                .expect("timed out listening for events")
-                .expect("missing event");
+                .unwrap_or_else(|_| panic!("timed out listening for {event:?}"))
+                .unwrap_or_else(|| panic!("missing {event:?}"));
 
             debug!("Consuming event: {next:?}");
 

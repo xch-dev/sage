@@ -310,7 +310,9 @@ pub async fn safely_remove_transaction(
     transaction_id: Bytes32,
 ) -> Result<(), WalletError> {
     for coin_id in tx.transaction_coin_ids(transaction_id).await? {
-        tx.unsync_coin(coin_id).await?;
+        if !tx.is_p2_coin(coin_id).await? {
+            tx.unsync_coin(coin_id).await?;
+        }
     }
 
     tx.remove_transaction(transaction_id).await?;
