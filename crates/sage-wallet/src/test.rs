@@ -70,9 +70,13 @@ impl TestWallet {
                 max_peer_age_seconds: 0,
                 timeouts: Timeouts {
                     sync_delay: Duration::from_millis(100),
+                    nft_uri_delay: Duration::from_millis(100),
+                    cat_delay: Duration::from_millis(100),
+                    puzzle_delay: Duration::from_millis(100),
                     transaction_delay: Duration::from_millis(100),
                     ..Default::default()
                 },
+                testing: true,
             },
             state,
             Some(wallet.clone()),
@@ -138,8 +142,8 @@ impl TestWallet {
         loop {
             let next = timeout(Duration::from_secs(10), self.events.recv())
                 .await
-                .expect("timed out listening for events")
-                .expect("missing event");
+                .unwrap_or_else(|_| panic!("timed out listening for {event:?}"))
+                .unwrap_or_else(|| panic!("missing {event:?}"));
 
             debug!("Consuming event: {next:?}");
 

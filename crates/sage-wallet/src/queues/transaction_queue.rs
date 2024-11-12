@@ -192,7 +192,7 @@ impl TransactionQueue {
             }
         }
 
-        self.sync_sender.send(SyncEvent::CoinState).await.ok();
+        self.sync_sender.send(SyncEvent::Transaction).await.ok();
 
         Ok(())
     }

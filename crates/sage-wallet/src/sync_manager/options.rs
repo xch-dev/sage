@@ -7,11 +7,15 @@ pub struct SyncOptions {
     pub connection_batch_size: usize,
     pub max_peer_age_seconds: u64,
     pub timeouts: Timeouts,
+    pub testing: bool,
 }
 
 #[derive(Debug, Clone, Copy)]
 pub struct Timeouts {
     pub sync_delay: Duration,
+    pub cat_delay: Duration,
+    pub nft_uri_delay: Duration,
+    pub puzzle_delay: Duration,
     pub transaction_delay: Duration,
     pub connection: Duration,
     pub initial_peak: Duration,
@@ -24,6 +28,9 @@ impl Default for Timeouts {
     fn default() -> Self {
         Self {
             sync_delay: Duration::from_secs(1),
+            cat_delay: Duration::from_secs(1),
+            nft_uri_delay: Duration::from_secs(1),
+            puzzle_delay: Duration::from_secs(1),
             transaction_delay: Duration::from_secs(1),
             connection: Duration::from_secs(3),
             initial_peak: Duration::from_secs(2),

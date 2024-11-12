@@ -202,7 +202,6 @@ mod tests {
 
         test.transact(coin_spends).await?;
         test.consume_until(SyncEvent::CoinState).await;
-        test.consume_until(SyncEvent::CoinState).await;
 
         assert_eq!(test.wallet.db.balance().await?, 1000);
         assert_eq!(test.wallet.db.spendable_coins().await?.len(), 3);
@@ -212,7 +211,6 @@ mod tests {
         assert_eq!(coin_spends.len(), 3);
 
         test.transact(coin_spends).await?;
-        test.consume_until(SyncEvent::CoinState).await;
         test.consume_until(SyncEvent::CoinState).await;
 
         assert_eq!(test.wallet.db.balance().await?, 1000);

@@ -1,3 +1,5 @@
+use std::mem;
+
 use chia::{
     bls::PublicKey,
     protocol::{Bytes32, CoinSpend},
@@ -65,7 +67,11 @@ impl Wallet {
         hardened: bool,
         reuse: bool,
     ) -> Result<Vec<CoinSpend>, WalletError> {
-        let fee_coins = self.select_p2_coins(fee as u128).await?;
+        let fee_coins = if fee > 0 {
+            self.select_p2_coins(fee as u128).await?
+        } else {
+            Vec::new()
+        };
         let fee_selected: u128 = fee_coins.iter().map(|coin| coin.amount as u128).sum();
         let fee_change: u64 = (fee_selected - fee as u128)
             .try_into()
@@ -79,19 +85,26 @@ impl Wallet {
 
         let change_puzzle_hash = self.p2_puzzle_hash(hardened, reuse).await?;
 
-        let mut conditions = Conditions::new().assert_concurrent_spend(cats[0].coin.coin_id());
+        let mut conditions = if fee_coins.is_empty() {
+            Conditions::new()
+        } else {
+            Conditions::new().assert_concurrent_spend(cats[0].coin.coin_id())
+        };
 
         if fee > 0 {
             conditions = conditions.reserve_fee(fee);
-        }
 
-        if fee_change > 0 {
-            conditions = conditions.create_coin(change_puzzle_hash, fee_change, Vec::new());
+            if fee_change > 0 {
+                conditions = conditions.create_coin(change_puzzle_hash, fee_change, Vec::new());
+            }
         }
 
         let mut ctx = SpendContext::new();
 
-        self.spend_p2_coins(&mut ctx, fee_coins, conditions).await?;
+        if !fee_coins.is_empty() {
+            self.spend_p2_coins(&mut ctx, fee_coins, mem::take(&mut conditions))
+                .await?;
+        }
 
         self.spend_cat_coins(
             &mut ctx,
@@ -100,8 +113,11 @@ impl Wallet {
                     return (cat, Conditions::new());
                 }
 
-                let mut conditions =
-                    Conditions::new().create_coin(puzzle_hash, amount, vec![puzzle_hash.into()]);
+                let mut conditions = mem::take(&mut conditions).create_coin(
+                    puzzle_hash,
+                    amount,
+                    vec![puzzle_hash.into()],
+                );
 
                 if cat_change > 0 {
                     conditions = conditions.create_coin(
@@ -117,5 +133,57 @@ impl Wallet {
         .await?;
 
         Ok(ctx.take())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use sqlx::SqlitePool;
+    use test_log::test;
+
+    use crate::{SyncEvent, TestWallet};
+
+    #[test(sqlx::test)]
+    async fn test_send_cat(pool: SqlitePool) -> anyhow::Result<()> {
+        let mut test = TestWallet::new(pool, 1500).await?;
+
+        let (coin_spends, asset_id) = test.wallet.issue_cat(1000, 0, None, false, true).await?;
+        assert_eq!(coin_spends.len(), 2);
+
+        test.transact(coin_spends).await?;
+        test.consume_until(SyncEvent::CoinState).await;
+
+        assert_eq!(test.wallet.db.balance().await?, 500);
+        assert_eq!(test.wallet.db.spendable_coins().await?.len(), 1);
+        assert_eq!(test.wallet.db.cat_balance(asset_id).await?, 1000);
+        assert_eq!(test.wallet.db.spendable_cat_coins(asset_id).await?.len(), 1);
+
+        let coin_spends = test
+            .wallet
+            .send_cat(asset_id, test.puzzle_hash, 750, 0, false, true)
+            .await?;
+        assert_eq!(coin_spends.len(), 1);
+
+        test.transact(coin_spends).await?;
+        test.consume_until(SyncEvent::CoinState).await;
+
+        assert_eq!(test.wallet.db.cat_balance(asset_id).await?, 1000);
+        assert_eq!(test.wallet.db.spendable_cat_coins(asset_id).await?.len(), 2);
+
+        let coin_spends = test
+            .wallet
+            .send_cat(asset_id, test.puzzle_hash, 1000, 500, false, true)
+            .await?;
+        assert_eq!(coin_spends.len(), 3);
+
+        test.transact(coin_spends).await?;
+        test.consume_until(SyncEvent::CoinState).await;
+
+        assert_eq!(test.wallet.db.balance().await?, 0);
+        assert_eq!(test.wallet.db.spendable_coins().await?.len(), 0);
+        assert_eq!(test.wallet.db.cat_balance(asset_id).await?, 1000);
+        assert_eq!(test.wallet.db.spendable_cat_coins(asset_id).await?.len(), 1);
+
+        Ok(())
     }
 }

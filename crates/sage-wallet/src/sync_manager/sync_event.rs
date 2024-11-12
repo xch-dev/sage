@@ -7,6 +7,7 @@ pub enum SyncEvent {
     Subscribed,
     Derivation,
     CoinState,
+    Transaction,
     PuzzleBatchSynced,
     CatInfo,
     DidInfo,

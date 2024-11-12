@@ -40,10 +40,10 @@ impl CatQueue {
         }
     }
 
-    pub async fn start(self) -> Result<(), WalletError> {
+    pub async fn start(self, delay: Duration) -> Result<(), WalletError> {
         loop {
             self.process_batch().await?;
-            sleep(Duration::from_secs(1)).await;
+            sleep(delay).await;
         }
     }
 

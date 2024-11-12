@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT COUNT(*) AS `count`\n        FROM `p2_coins`\n        WHERE `coin_id` = ?\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "count",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "5c8780401ea7fd6853c75c07bdafed8b9f51bdb4fda19c73e2c8d8c48a7262ca"
+}

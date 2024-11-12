@@ -35,6 +35,10 @@ impl Database {
     pub async fn synced_coin_count(&self) -> Result<u32> {
         synced_coin_count(&self.pool).await
     }
+
+    pub async fn sync_coin(&self, coin_id: Bytes32, hint: Option<Bytes32>) -> Result<()> {
+        sync_coin(&self.pool, coin_id, hint).await
+    }
 }
 
 impl<'a> DatabaseTx<'a> {
@@ -74,6 +78,10 @@ impl<'a> DatabaseTx<'a> {
 
     pub async fn remove_coin_transaction_id(&mut self, coin_id: Bytes32) -> Result<()> {
         remove_coin_transaction_id(&mut *self.tx, coin_id).await
+    }
+
+    pub async fn is_p2_coin(&mut self, coin_id: Bytes32) -> Result<bool> {
+        is_p2_coin(&mut *self.tx, coin_id).await
     }
 }
 
@@ -326,4 +334,21 @@ async fn unspent_cat_coin_ids(conn: impl SqliteExecutor<'_>) -> Result<Vec<Bytes
     rows.into_iter()
         .map(|row| to_bytes32(&row.coin_id))
         .collect()
+}
+
+async fn is_p2_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<bool> {
+    let coin_id = coin_id.as_ref();
+
+    let row = sqlx::query!(
+        "
+        SELECT COUNT(*) AS `count`
+        FROM `p2_coins`
+        WHERE `coin_id` = ?
+        ",
+        coin_id
+    )
+    .fetch_one(conn)
+    .await?;
+
+    Ok(row.count > 0)
 }
