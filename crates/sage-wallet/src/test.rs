@@ -76,6 +76,7 @@ impl TestWallet {
                     transaction_delay: Duration::from_millis(100),
                     ..Default::default()
                 },
+                testing: true,
             },
             state,
             Some(wallet.clone()),

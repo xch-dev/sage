@@ -7,6 +7,7 @@ pub struct SyncOptions {
     pub connection_batch_size: usize,
     pub max_peer_age_seconds: u64,
     pub timeouts: Timeouts,
+    pub testing: bool,
 }
 
 #[derive(Debug, Clone, Copy)]

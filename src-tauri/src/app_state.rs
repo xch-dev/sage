@@ -208,6 +208,7 @@ impl AppStateInner {
                 dns_batch_size: 10,
                 connection_batch_size: 30,
                 timeouts: Timeouts::default(),
+                testing: false,
             },
             self.peer_state.clone(),
             self.wallet.clone(),

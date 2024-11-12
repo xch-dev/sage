@@ -371,7 +371,7 @@ impl SyncManager {
                 self.puzzle_lookup_task = Some(task);
             }
 
-            if self.cat_queue_task.is_none() {
+            if self.cat_queue_task.is_none() && !self.options.testing {
                 let task = tokio::spawn(
                     CatQueue::new(
                         wallet.db.clone(),
@@ -383,7 +383,7 @@ impl SyncManager {
                 self.cat_queue_task = Some(task);
             }
 
-            if self.nft_uri_queue_task.is_none() {
+            if self.nft_uri_queue_task.is_none() && !self.options.testing {
                 let task = tokio::spawn(
                     NftUriQueue::new(wallet.db.clone(), self.event_sender.clone())
                         .start(self.options.timeouts.nft_uri_delay),
