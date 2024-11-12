@@ -231,7 +231,8 @@ impl AppStateInner {
                     SyncEvent::Stop => ApiEvent::Stop,
                     SyncEvent::Subscribed => ApiEvent::Subscribed,
                     SyncEvent::Derivation => ApiEvent::Derivation,
-                    SyncEvent::CoinState => ApiEvent::CoinState,
+                    // TODO: New event?
+                    SyncEvent::CoinState | SyncEvent::Transaction => ApiEvent::CoinState,
                     SyncEvent::PuzzleBatchSynced => ApiEvent::PuzzleBatchSynced,
                     SyncEvent::CatInfo => ApiEvent::CatInfo,
                     SyncEvent::DidInfo => ApiEvent::DidInfo,
