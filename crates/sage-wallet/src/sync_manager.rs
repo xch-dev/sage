@@ -127,7 +127,7 @@ impl SyncManager {
             self.process_commands().await;
             self.update().await;
             self.subscribe().await;
-            sleep(self.options.sync_delay).await;
+            sleep(self.options.timeouts.sync_delay).await;
         }
     }
 
@@ -398,7 +398,7 @@ impl SyncManager {
                         self.state.clone(),
                         self.event_sender.clone(),
                     )
-                    .start(),
+                    .start(self.options.timeouts.transaction_delay),
                 );
                 self.transaction_queue_task = Some(task);
             }

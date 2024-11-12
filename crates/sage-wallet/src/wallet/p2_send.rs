@@ -55,9 +55,6 @@ mod tests {
     async fn test_send_xch(pool: SqlitePool) -> anyhow::Result<()> {
         let mut test = TestWallet::new(pool, 1000).await?;
 
-        assert_eq!(test.wallet.db.balance().await?, 1000);
-        assert_eq!(test.wallet.db.spendable_coins().await?.len(), 1);
-
         let coin_spends = test
             .wallet
             .send_xch(test.puzzle_hash, 1000, 0, Vec::new(), false, true)
@@ -66,6 +63,7 @@ mod tests {
         assert_eq!(coin_spends.len(), 1);
 
         test.transact(coin_spends).await?;
+        test.consume_until(SyncEvent::CoinState).await;
         test.consume_until(SyncEvent::CoinState).await;
 
         assert_eq!(test.wallet.db.balance().await?, 1000);
@@ -78,9 +76,6 @@ mod tests {
     async fn test_send_xch_change(pool: SqlitePool) -> anyhow::Result<()> {
         let mut test = TestWallet::new(pool, 1000).await?;
 
-        assert_eq!(test.wallet.db.balance().await?, 1000);
-        assert_eq!(test.wallet.db.spendable_coins().await?.len(), 1);
-
         let coin_spends = test
             .wallet
             .send_xch(test.puzzle_hash, 250, 250, Vec::new(), false, true)
@@ -89,6 +84,7 @@ mod tests {
         assert_eq!(coin_spends.len(), 1);
 
         test.transact(coin_spends).await?;
+        test.consume_until(SyncEvent::CoinState).await;
         test.consume_until(SyncEvent::CoinState).await;
 
         assert_eq!(test.wallet.db.balance().await?, 750);

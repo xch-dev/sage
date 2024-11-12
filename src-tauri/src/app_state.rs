@@ -208,7 +208,6 @@ impl AppStateInner {
                 max_peer_age_seconds: 3600 * 8,
                 dns_batch_size: 10,
                 connection_batch_size: 30,
-                sync_delay: Duration::from_secs(1),
                 timeouts: Timeouts::default(),
             },
             self.peer_state.clone(),

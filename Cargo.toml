@@ -105,7 +105,7 @@ tracing = "0.1.40"
 tracing-subscriber = "0.3.18"
 tracing-appender = "0.2.3"
 log = "0.4.22"
-test-log = { version = "0.2.16", default-features = false }
+test-log = "0.2.16"
 
 [patch.crates-io]
-chia-wallet-sdk = { git = "https://github.com/xch-dev/chia-wallet-sdk", rev = "c9f0c19f9ca7cd8ceb8b787e9ad15d8a1247da6b" }
+chia-wallet-sdk = { path = "../wallet-sdk" }

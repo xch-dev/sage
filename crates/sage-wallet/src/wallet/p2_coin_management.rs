@@ -184,3 +184,40 @@ impl Wallet {
         Ok(ctx.take())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use sqlx::SqlitePool;
+    use test_log::test;
+
+    use crate::{SyncEvent, TestWallet};
+
+    #[test(sqlx::test)]
+    async fn test_xch_coin_management(pool: SqlitePool) -> anyhow::Result<()> {
+        let mut test = TestWallet::new(pool, 1000).await?;
+
+        let coins = test.wallet.db.spendable_coins().await?;
+        let coin_spends = test.wallet.split_xch(&coins, 3, 0, false, true).await?;
+        assert_eq!(coin_spends.len(), 1);
+
+        test.transact(coin_spends).await?;
+        test.consume_until(SyncEvent::CoinState).await;
+        test.consume_until(SyncEvent::CoinState).await;
+
+        assert_eq!(test.wallet.db.balance().await?, 1000);
+        assert_eq!(test.wallet.db.spendable_coins().await?.len(), 3);
+
+        let coins = test.wallet.db.spendable_coins().await?;
+        let coin_spends = test.wallet.combine_xch(coins, 0, false, true).await?;
+        assert_eq!(coin_spends.len(), 3);
+
+        test.transact(coin_spends).await?;
+        test.consume_until(SyncEvent::CoinState).await;
+        test.consume_until(SyncEvent::CoinState).await;
+
+        assert_eq!(test.wallet.db.balance().await?, 1000);
+        assert_eq!(test.wallet.db.spendable_coins().await?.len(), 1);
+
+        Ok(())
+    }
+}

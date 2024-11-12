@@ -17,8 +17,12 @@ use tokio::{
     },
     time::timeout,
 };
+use tracing::debug;
 
-use crate::{PeerState, SyncCommand, SyncEvent, SyncManager, SyncOptions, Timeouts, Wallet};
+use crate::{
+    insert_transaction, PeerState, SyncCommand, SyncEvent, SyncManager, SyncOptions, Timeouts,
+    Transaction, Wallet,
+};
 
 #[derive(Debug)]
 pub struct TestWallet {
@@ -64,8 +68,11 @@ impl TestWallet {
                 dns_batch_size: 0,
                 connection_batch_size: 0,
                 max_peer_age_seconds: 0,
-                sync_delay: Duration::from_millis(250),
-                timeouts: Timeouts::default(),
+                timeouts: Timeouts {
+                    sync_delay: Duration::from_millis(100),
+                    transaction_delay: Duration::from_millis(100),
+                    ..Default::default()
+                },
             },
             state,
             Some(wallet.clone()),
@@ -91,6 +98,7 @@ impl TestWallet {
         };
 
         test.consume_until(SyncEvent::Subscribed).await;
+        assert_eq!(test.wallet.db.balance().await?, balance as u128);
 
         Ok(test)
     }
@@ -105,19 +113,37 @@ impl TestWallet {
             )
             .await?;
 
-        self.peer.send_transaction(spend_bundle).await?;
+        let mut tx = self.wallet.db.tx().await?;
+
+        let subscriptions = insert_transaction(
+            &mut tx,
+            spend_bundle.name(),
+            Transaction::from_coin_spends(spend_bundle.coin_spends)?,
+            spend_bundle.aggregated_signature,
+        )
+        .await?;
+
+        tx.commit().await?;
+
+        self.sender
+            .send(SyncCommand::SubscribeCoins {
+                coin_ids: subscriptions,
+            })
+            .await?;
 
         Ok(())
     }
 
     pub async fn consume_until(&mut self, event: SyncEvent) {
         loop {
-            if event
-                == timeout(Duration::from_secs(10), self.events.recv())
-                    .await
-                    .expect("timed out listening for events")
-                    .expect("missing event")
-            {
+            let next = timeout(Duration::from_secs(10), self.events.recv())
+                .await
+                .expect("timed out listening for events")
+                .expect("missing event");
+
+            debug!("Consuming event: {next:?}");
+
+            if event == next {
                 return;
             }
         }
