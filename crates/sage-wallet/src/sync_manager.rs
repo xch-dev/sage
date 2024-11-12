@@ -177,9 +177,6 @@ impl SyncManager {
                         .ban(ip, Duration::from_secs(300), "peer disconnected");
                     debug!("Peer {ip} disconnected");
                 }
-                SyncCommand::SetDiscoverPeers(discover_peers) => {
-                    self.options.discover_peers = discover_peers;
-                }
                 SyncCommand::SetTargetPeers(target_peers) => {
                     self.options.target_peers = target_peers;
                 }
@@ -310,7 +307,7 @@ impl SyncManager {
     async fn update(&mut self) {
         let peer_count = self.state.lock().await.peer_count();
 
-        if self.options.discover_peers && peer_count < self.options.target_peers {
+        if peer_count < self.options.target_peers {
             if peer_count > self.options.max_peers_for_dns {
                 if !self.peer_discovery().await {
                     self.dns_discovery().await;
