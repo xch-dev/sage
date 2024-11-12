@@ -10,6 +10,7 @@ mod dids;
 mod make_offer;
 mod nfts;
 mod offer;
+mod offer_royalties;
 mod p2_coin_management;
 mod p2_send;
 mod p2_spends;

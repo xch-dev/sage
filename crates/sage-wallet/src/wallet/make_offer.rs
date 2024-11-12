@@ -2,21 +2,29 @@ use std::{collections::HashMap, mem};
 
 use chia::{
     clvm_utils::CurriedProgram,
-    protocol::Bytes32,
+    protocol::{Bytes32, Coin},
     puzzles::{
         cat::CatArgs,
-        offer::{NotarizedPayment, Payment, SETTLEMENT_PAYMENTS_PUZZLE_HASH},
+        offer::{
+            NotarizedPayment, Payment, SettlementPaymentsSolution, SETTLEMENT_PAYMENTS_PUZZLE_HASH,
+        },
     },
 };
 use chia_wallet_sdk::{
-    calculate_nft_royalty, calculate_nft_trace_price, payment_assertion, Condition, Conditions,
-    HashedPtr, Layer, NftInfo, Offer, OfferBuilder, SpendContext, StandardLayer, TradePrice,
+    Condition, Conditions, HashedPtr, Layer, NftInfo, Offer, OfferBuilder, SettlementLayer,
+    SpendContext, StandardLayer,
 };
 use indexmap::IndexMap;
 
 use crate::{OfferRequest, OfferedCoins, WalletError};
 
-use super::{CatOfferSpend, NftOfferSpend, OfferSpend, UnsignedOffer, Wallet};
+use super::{
+    offer_royalties::{
+        calculate_asset_prices, calculate_asset_royalties, calculate_royalty_assertions,
+        NftRoyaltyInfo,
+    },
+    CatOfferSpend, NftOfferSpend, OfferSpend, UnsignedOffer, Wallet,
+};
 
 impl Wallet {
     pub async fn make_offer(
@@ -28,11 +36,32 @@ impl Wallet {
     ) -> Result<UnsignedOffer, WalletError> {
         let p2_puzzle_hash = self.p2_puzzle_hash(hardened, reuse).await?;
 
+        // Calculate the royalty payments required for requested NFTs.
+        let mut requested_nft_royalty_info = Vec::new();
+
+        for (nft_id, info) in &requested.nfts {
+            requested_nft_royalty_info.push(NftRoyaltyInfo {
+                launcher_id: *nft_id,
+                royalty_puzzle_hash: info.royalty_puzzle_hash,
+                royalty_ten_thousandths: info.royalty_ten_thousandths,
+            });
+        }
+
+        let offered_trade_prices =
+            calculate_asset_prices(requested.nfts.len(), offered.xch, &offered.cats)?;
+
+        let royalties_we_pay =
+            calculate_asset_royalties(&requested_nft_royalty_info, &offered_trade_prices)?;
+
         // We need to get a list of all of the coin ids being offered for the nonce.
         let mut coin_ids = Vec::new();
 
         // Select coins for the XCH being offered.
-        let total_xch = offered.xch + offered.fee;
+        let total_xch = offered.xch
+            + offered.fee
+            + royalties_we_pay
+                .iter()
+                .fold(0, |acc, royalty| acc + royalty.amount);
 
         let p2_coins = if total_xch > 0 {
             self.select_p2_coins(total_xch as u128).await?
@@ -62,30 +91,8 @@ impl Wallet {
         }
 
         // Calculate trade prices for NFTs being offered.
-        let mut trade_prices = Vec::new();
-
-        if !offered.nfts.is_empty() {
-            for (asset_id, amount) in [(None, requested.xch)].into_iter().chain(
-                requested
-                    .cats
-                    .iter()
-                    .map(|(asset_id, amount)| (Some(*asset_id), *amount)),
-            ) {
-                let trade_price = calculate_nft_trace_price(amount, offered.nfts.len())
-                    .ok_or(WalletError::InvalidTradePrice)?;
-
-                let mut puzzle_hash = SETTLEMENT_PAYMENTS_PUZZLE_HASH;
-
-                if let Some(asset_id) = asset_id {
-                    puzzle_hash = CatArgs::curry_tree_hash(asset_id, puzzle_hash);
-                }
-
-                trade_prices.push(TradePrice {
-                    puzzle_hash: puzzle_hash.into(),
-                    amount: trade_price,
-                });
-            }
-        }
+        let requested_trade_prices =
+            calculate_asset_prices(offered.nfts.len(), requested.xch, &requested.cats)?;
 
         // Fetch coin info for the NFTs being offered.
         let mut nfts = Vec::new();
@@ -99,9 +106,23 @@ impl Wallet {
 
             nfts.push(NftOfferSpend {
                 nft,
-                trade_prices: trade_prices.clone(),
+                trade_prices: requested_trade_prices.clone(),
             });
         }
+
+        // Calculate royalty info for the NFTs being offered.
+        let mut offered_nft_royalty_info = Vec::new();
+
+        for spend in &nfts {
+            offered_nft_royalty_info.push(NftRoyaltyInfo {
+                launcher_id: spend.nft.info.launcher_id,
+                royalty_puzzle_hash: spend.nft.info.royalty_puzzle_hash,
+                royalty_ten_thousandths: spend.nft.info.royalty_ten_thousandths,
+            });
+        }
+
+        let royalties_they_pay =
+            calculate_asset_royalties(&offered_nft_royalty_info, &requested_trade_prices)?;
 
         // Calculate the nonce for the offer.
         let nonce = Offer::nonce(coin_ids);
@@ -120,45 +141,6 @@ impl Wallet {
                 &settlement,
                 vec![Payment::new(p2_puzzle_hash, requested.xch)],
             )?;
-        }
-
-        // Add royalty payments for NFTs you are offering and requesting.
-        let mut royalty_assertions = Vec::new();
-
-        if !nfts.is_empty() {
-            for (asset_id, amount) in [(None, requested.xch)].into_iter().chain(
-                requested
-                    .cats
-                    .iter()
-                    .map(|(asset_id, amount)| (Some(*asset_id), *amount)),
-            ) {
-                let trade_price = calculate_nft_trace_price(amount, nfts.len())
-                    .ok_or(WalletError::InvalidTradePrice)?;
-
-                for NftOfferSpend { nft, .. } in &nfts {
-                    let royalty =
-                        calculate_nft_royalty(trade_price, nft.info.royalty_ten_thousandths)
-                            .ok_or(WalletError::InvalidRoyaltyAmount)?;
-
-                    let mut puzzle_hash = SETTLEMENT_PAYMENTS_PUZZLE_HASH;
-
-                    if let Some(asset_id) = asset_id {
-                        puzzle_hash = CatArgs::curry_tree_hash(asset_id, puzzle_hash);
-                    }
-
-                    let notarized_payment = NotarizedPayment {
-                        nonce: nft.info.launcher_id,
-                        payments: vec![Payment::with_memos(
-                            nft.info.royalty_puzzle_hash,
-                            royalty,
-                            vec![nft.info.royalty_puzzle_hash.into()],
-                        )],
-                    };
-
-                    royalty_assertions
-                        .push(payment_assertion(puzzle_hash.into(), &notarized_payment));
-                }
-            }
         }
 
         // Add requested CAT payments.
@@ -204,7 +186,8 @@ impl Wallet {
 
         // Finish the requested payments and get the list of announcement assertions.
         let (mut assertions, builder) = builder.finish();
-        assertions.extend(royalty_assertions);
+
+        assertions.extend(calculate_royalty_assertions(&royalties_they_pay));
 
         self.spend_assets(
             &mut ctx,
@@ -212,6 +195,7 @@ impl Wallet {
                 p2_coins,
                 p2_amount: offered.xch,
                 fee: offered.fee,
+                royalties: royalties_we_pay,
                 cats: cats
                     .into_iter()
                     .map(|(asset_id, coins)| CatOfferSpend {
@@ -295,8 +279,44 @@ impl Wallet {
                 );
             }
 
+            for royalty in &spend.royalties {
+                conditions = conditions.create_coin(
+                    royalty.settlement_puzzle_hash,
+                    royalty.amount,
+                    Vec::new(),
+                );
+
+                let royalty_coin = Coin::new(
+                    spend.p2_coins[0].coin_id(),
+                    royalty.settlement_puzzle_hash,
+                    royalty.amount,
+                );
+
+                let coin_spend = SettlementLayer.construct_coin_spend(
+                    ctx,
+                    royalty_coin,
+                    SettlementPaymentsSolution {
+                        notarized_payments: vec![NotarizedPayment {
+                            nonce: royalty.nft_id,
+                            payments: vec![Payment::with_memos(
+                                royalty.p2_puzzle_hash,
+                                royalty.amount,
+                                vec![royalty.p2_puzzle_hash.into()],
+                            )],
+                        }],
+                    },
+                )?;
+                ctx.insert(coin_spend);
+            }
+
             let total: u128 = spend.p2_coins.iter().map(|coin| coin.amount as u128).sum();
-            let change = total - spend.p2_amount as u128 - spend.fee as u128;
+            let change = total
+                - spend.p2_amount as u128
+                - spend.fee as u128
+                - spend
+                    .royalties
+                    .iter()
+                    .fold(0u128, |acc, royalty| acc + royalty.amount as u128);
 
             if change > 0 {
                 conditions = conditions.create_coin(

@@ -5,6 +5,8 @@ use chia_wallet_sdk::{
 };
 use indexmap::{IndexMap, IndexSet};
 
+use super::offer_royalties::Royalty;
+
 #[derive(Debug, Clone)]
 pub struct OfferedCoins {
     pub xch: u64,
@@ -40,6 +42,7 @@ pub struct OfferSpend {
     pub p2_coins: Vec<Coin>,
     pub p2_amount: u64,
     pub fee: u64,
+    pub royalties: Vec<Royalty>,
     pub cats: Vec<CatOfferSpend>,
     pub nfts: Vec<NftOfferSpend>,
     pub assertions: Vec<AssertPuzzleAnnouncement>,
