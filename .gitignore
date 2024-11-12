@@ -24,6 +24,6 @@ dist-ssr
 *.sw?
 
 # Rust
-/target
+target
 /.env
 /test.sqlite*

@@ -203,7 +203,11 @@ impl SyncManager {
         self.state.lock().await.peer_count() >= self.options.target_peers
     }
 
-    async fn try_add_peer(&mut self, peer: Peer, mut receiver: mpsc::Receiver<Message>) -> bool {
+    pub(crate) async fn try_add_peer(
+        &mut self,
+        peer: Peer,
+        mut receiver: mpsc::Receiver<Message>,
+    ) -> bool {
         let Ok(Some(message)) = timeout(self.options.timeouts.initial_peak, receiver.recv()).await
         else {
             debug!(

@@ -43,37 +43,24 @@ impl PuzzleQueue {
 
     pub async fn start(mut self) -> Result<(), WalletError> {
         loop {
-            let subscriptions = self.process_batch().await?;
-
-            self.command_sender
-                .send(SyncCommand::SubscribeCoins {
-                    coin_ids: subscriptions,
-                })
-                .await
-                .ok();
-
-            self.sync_sender
-                .send(SyncEvent::PuzzleBatchSynced)
-                .await
-                .ok();
-
+            self.process_batch().await?;
             sleep(Duration::from_millis(150)).await;
         }
     }
 
-    async fn process_batch(&mut self) -> Result<Vec<Bytes32>, WalletError> {
+    async fn process_batch(&mut self) -> Result<(), WalletError> {
         let peers = self.state.lock().await.peers();
 
         if peers.is_empty() {
             sleep(Duration::from_secs(3)).await;
-            return Ok(Vec::new());
+            return Ok(());
         }
 
         let coin_states = self.db.unsynced_coin_states(peers.len()).await?;
 
         if coin_states.is_empty() {
             sleep(Duration::from_secs(3)).await;
-            return Ok(Vec::new());
+            return Ok(());
         }
 
         debug!(
@@ -120,7 +107,19 @@ impl PuzzleQueue {
             }
         }
 
-        Ok(subscriptions)
+        self.command_sender
+            .send(SyncCommand::SubscribeCoins {
+                coin_ids: subscriptions,
+            })
+            .await
+            .ok();
+
+        self.sync_sender
+            .send(SyncEvent::PuzzleBatchSynced)
+            .await
+            .ok();
+
+        Ok(())
     }
 }
 
