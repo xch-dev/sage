@@ -10,6 +10,7 @@ use chia::{
     protocol::Bytes32,
 };
 use chia_wallet_sdk::{AddressError, ClientError, DriverError, OfferError};
+use clvmr::reduction::EvalErr;
 use hex::FromHexError;
 use sage_api::Amount;
 use sage_database::DatabaseError;
@@ -468,6 +469,15 @@ impl From<OfferError> for Error {
     fn from(value: OfferError) -> Self {
         Self {
             kind: ErrorKind::TransactionFailed,
+            reason: value.to_string(),
+        }
+    }
+}
+
+impl From<EvalErr> for Error {
+    fn from(value: EvalErr) -> Self {
+        Self {
+            kind: ErrorKind::Wallet,
             reason: value.to_string(),
         }
     }

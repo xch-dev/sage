@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
-use crate::Amount;
+use crate::{Amount, AssetKind};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub struct TransactionSummary {
@@ -36,7 +36,7 @@ pub struct Input {
     pub amount: Amount,
     pub address: String,
     #[serde(flatten)]
-    pub kind: InputKind,
+    pub kind: AssetKind,
     pub outputs: Vec<Output>,
 }
 
@@ -47,28 +47,4 @@ pub struct Output {
     pub address: String,
     pub receiving: bool,
     pub burning: bool,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
-#[serde(tag = "type", rename_all = "snake_case")]
-pub enum InputKind {
-    Unknown,
-    Xch,
-    Launcher,
-    Cat {
-        asset_id: String,
-        name: Option<String>,
-        ticker: Option<String>,
-        icon_url: Option<String>,
-    },
-    Did {
-        launcher_id: String,
-        name: Option<String>,
-    },
-    Nft {
-        launcher_id: String,
-        image_data: Option<String>,
-        image_mime_type: Option<String>,
-        name: Option<String>,
-    },
 }

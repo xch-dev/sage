@@ -421,6 +421,14 @@ async makeOffer(request: MakeOffer) : Promise<Result<string, Error>> {
     else return { status: "error", error: e  as any };
 }
 },
+async viewOffer(offer: string) : Promise<Result<OfferSummary, Error>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("view_offer", { offer }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async signTransaction(coinSpends: CoinSpendJson[]) : Promise<Result<SpendBundleJson, Error>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("sign_transaction", { coinSpends }) };
@@ -504,9 +512,12 @@ export type NftRecord = { launcher_id: string; collection_id: string | null; col
 export type NftSortMode = "name" | "recent"
 export type NftStatus = { nfts: number; visible_nfts: number; collections: number; visible_collections: number }
 export type NftUriKind = "data" | "metadata" | "license"
+export type OfferSummary = { fee: Amount; offered: OfferedCoin[]; requested: RequestedAsset[] }
+export type OfferedCoin = ({ type: "unknown" } | { type: "xch" } | { type: "launcher" } | { type: "cat"; asset_id: string; name: string | null; ticker: string | null; icon_url: string | null } | { type: "did"; launcher_id: string; name: string | null } | { type: "nft"; launcher_id: string; image_data: string | null; image_mime_type: string | null; name: string | null }) & { coin_id: string; offered_amount: Amount }
 export type Output = { coin_id: string; amount: Amount; address: string; receiving: boolean; burning: boolean }
 export type PeerRecord = { ip_addr: string; port: number; trusted: boolean; peak_height: number }
 export type PendingTransactionRecord = { transaction_id: string; fee: Amount; submitted_at: string | null }
+export type RequestedAsset = ({ type: "unknown" } | { type: "xch" } | { type: "launcher" } | { type: "cat"; asset_id: string; name: string | null; ticker: string | null; icon_url: string | null } | { type: "did"; launcher_id: string; name: string | null } | { type: "nft"; launcher_id: string; image_data: string | null; image_mime_type: string | null; name: string | null }) & { amount: Amount }
 export type SpendBundleJson = { coin_spends: CoinSpendJson[]; aggregated_signature: string }
 export type SyncEvent = { type: "start"; ip: string } | { type: "stop" } | { type: "subscribed" } | { type: "derivation" } | { type: "coin_state" } | { type: "puzzle_batch_synced" } | { type: "cat_info" } | { type: "did_info" } | { type: "nft_data" }
 export type SyncStatus = { balance: Amount; unit: Unit; synced_coins: number; total_coins: number; receive_address: string; burn_address: string }
