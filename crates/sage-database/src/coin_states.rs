@@ -35,6 +35,10 @@ impl Database {
     pub async fn synced_coin_count(&self) -> Result<u32> {
         synced_coin_count(&self.pool).await
     }
+
+    pub async fn sync_coin(&self, coin_id: Bytes32, hint: Option<Bytes32>) -> Result<()> {
+        sync_coin(&self.pool, coin_id, hint).await
+    }
 }
 
 impl<'a> DatabaseTx<'a> {
