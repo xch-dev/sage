@@ -31,6 +31,7 @@ import { Transactions } from './pages/Transactions';
 import { ViewOffer } from './pages/ViewOffer';
 import Wallet from './pages/Wallet';
 import { fetchState } from './state';
+import { PriceProvider } from './contexts/PriceContext';
 
 export interface DarkModeContext {
   toggle: () => void;
@@ -128,7 +129,9 @@ export default function App() {
     <DarkModeContext.Provider value={darkMode}>
       {initialized && (
         <PeerProvider>
-          <RouterProvider router={router} />
+          <PriceProvider>
+            <RouterProvider router={router} />
+          </PriceProvider>
         </PeerProvider>
       )}
       {error && (
