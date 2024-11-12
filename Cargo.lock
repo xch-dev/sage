@@ -122,6 +122,55 @@ dependencies = [
 ]
 
 [[package]]
+name = "anstream"
+version = "0.6.18"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8acc5369981196006228e28809f761875c0327210a891e941f4c683b3a99529b"
+dependencies = [
+ "anstyle",
+ "anstyle-parse",
+ "anstyle-query",
+ "anstyle-wincon",
+ "colorchoice",
+ "is_terminal_polyfill",
+ "utf8parse",
+]
+
+[[package]]
+name = "anstyle"
+version = "1.0.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "55cc3b69f167a1ef2e161439aa98aed94e6028e5f9a59be9a6ffb47aef1651f9"
+
+[[package]]
+name = "anstyle-parse"
+version = "0.2.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3b2d16507662817a6a20a9ea92df6652ee4f94f914589377d69f3b21bc5798a9"
+dependencies = [
+ "utf8parse",
+]
+
+[[package]]
+name = "anstyle-query"
+version = "1.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "79947af37f4177cfead1110013d678905c37501914fba0efea834c3fe9a8d60c"
+dependencies = [
+ "windows-sys 0.59.0",
+]
+
+[[package]]
+name = "anstyle-wincon"
+version = "3.0.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2109dbce0e72be3ec00bed26e6a7479ca384ad226efdd66db8fa2e3a38c83125"
+dependencies = [
+ "anstyle",
+ "windows-sys 0.59.0",
+]
+
+[[package]]
 name = "anyhow"
 version = "1.0.86"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -752,8 +801,8 @@ dependencies = [
 
 [[package]]
 name = "chia-sdk-client"
-version = "0.18.0"
-source = "git+https://github.com/xch-dev/chia-wallet-sdk?rev=543743574fc15662395dc5d15b1cbf250783f802#543743574fc15662395dc5d15b1cbf250783f802"
+version = "0.19.0"
+source = "git+https://github.com/xch-dev/chia-wallet-sdk?rev=2cf81a1df37eaf94dda9fed74785f30ec24669f2#2cf81a1df37eaf94dda9fed74785f30ec24669f2"
 dependencies = [
  "aws-lc-rs",
  "chia-protocol",
@@ -773,8 +822,8 @@ dependencies = [
 
 [[package]]
 name = "chia-sdk-derive"
-version = "0.18.0"
-source = "git+https://github.com/xch-dev/chia-wallet-sdk?rev=543743574fc15662395dc5d15b1cbf250783f802#543743574fc15662395dc5d15b1cbf250783f802"
+version = "0.19.0"
+source = "git+https://github.com/xch-dev/chia-wallet-sdk?rev=2cf81a1df37eaf94dda9fed74785f30ec24669f2#2cf81a1df37eaf94dda9fed74785f30ec24669f2"
 dependencies = [
  "convert_case 0.6.0",
  "quote",
@@ -783,8 +832,8 @@ dependencies = [
 
 [[package]]
 name = "chia-sdk-driver"
-version = "0.18.0"
-source = "git+https://github.com/xch-dev/chia-wallet-sdk?rev=543743574fc15662395dc5d15b1cbf250783f802#543743574fc15662395dc5d15b1cbf250783f802"
+version = "0.19.0"
+source = "git+https://github.com/xch-dev/chia-wallet-sdk?rev=2cf81a1df37eaf94dda9fed74785f30ec24669f2#2cf81a1df37eaf94dda9fed74785f30ec24669f2"
 dependencies = [
  "bigdecimal",
  "chia-bls 0.15.0",
@@ -802,8 +851,8 @@ dependencies = [
 
 [[package]]
 name = "chia-sdk-offers"
-version = "0.18.0"
-source = "git+https://github.com/xch-dev/chia-wallet-sdk?rev=543743574fc15662395dc5d15b1cbf250783f802#543743574fc15662395dc5d15b1cbf250783f802"
+version = "0.19.0"
+source = "git+https://github.com/xch-dev/chia-wallet-sdk?rev=2cf81a1df37eaf94dda9fed74785f30ec24669f2#2cf81a1df37eaf94dda9fed74785f30ec24669f2"
 dependencies = [
  "bech32",
  "chia-bls 0.15.0",
@@ -823,8 +872,8 @@ dependencies = [
 
 [[package]]
 name = "chia-sdk-signer"
-version = "0.18.0"
-source = "git+https://github.com/xch-dev/chia-wallet-sdk?rev=543743574fc15662395dc5d15b1cbf250783f802#543743574fc15662395dc5d15b1cbf250783f802"
+version = "0.19.0"
+source = "git+https://github.com/xch-dev/chia-wallet-sdk?rev=2cf81a1df37eaf94dda9fed74785f30ec24669f2#2cf81a1df37eaf94dda9fed74785f30ec24669f2"
 dependencies = [
  "chia-bls 0.15.0",
  "chia-consensus",
@@ -837,8 +886,8 @@ dependencies = [
 
 [[package]]
 name = "chia-sdk-test"
-version = "0.18.0"
-source = "git+https://github.com/xch-dev/chia-wallet-sdk?rev=543743574fc15662395dc5d15b1cbf250783f802#543743574fc15662395dc5d15b1cbf250783f802"
+version = "0.19.0"
+source = "git+https://github.com/xch-dev/chia-wallet-sdk?rev=2cf81a1df37eaf94dda9fed74785f30ec24669f2#2cf81a1df37eaf94dda9fed74785f30ec24669f2"
 dependencies = [
  "anyhow",
  "bip39",
@@ -859,18 +908,18 @@ dependencies = [
  "hex",
  "indexmap 2.5.0",
  "itertools 0.13.0",
- "log",
  "rand 0.8.5",
  "rand_chacha 0.3.1",
  "thiserror 1.0.63",
  "tokio",
  "tokio-tungstenite",
+ "tracing",
 ]
 
 [[package]]
 name = "chia-sdk-types"
-version = "0.18.0"
-source = "git+https://github.com/xch-dev/chia-wallet-sdk?rev=543743574fc15662395dc5d15b1cbf250783f802#543743574fc15662395dc5d15b1cbf250783f802"
+version = "0.19.0"
+source = "git+https://github.com/xch-dev/chia-wallet-sdk?rev=2cf81a1df37eaf94dda9fed74785f30ec24669f2#2cf81a1df37eaf94dda9fed74785f30ec24669f2"
 dependencies = [
  "chia-bls 0.15.0",
  "chia-consensus",
@@ -884,8 +933,8 @@ dependencies = [
 
 [[package]]
 name = "chia-sdk-utils"
-version = "0.18.0"
-source = "git+https://github.com/xch-dev/chia-wallet-sdk?rev=543743574fc15662395dc5d15b1cbf250783f802#543743574fc15662395dc5d15b1cbf250783f802"
+version = "0.19.0"
+source = "git+https://github.com/xch-dev/chia-wallet-sdk?rev=2cf81a1df37eaf94dda9fed74785f30ec24669f2#2cf81a1df37eaf94dda9fed74785f30ec24669f2"
 dependencies = [
  "bech32",
  "chia-protocol",
@@ -943,8 +992,8 @@ dependencies = [
 
 [[package]]
 name = "chia-wallet-sdk"
-version = "0.18.0"
-source = "git+https://github.com/xch-dev/chia-wallet-sdk?rev=543743574fc15662395dc5d15b1cbf250783f802#543743574fc15662395dc5d15b1cbf250783f802"
+version = "0.19.0"
+source = "git+https://github.com/xch-dev/chia-wallet-sdk?rev=2cf81a1df37eaf94dda9fed74785f30ec24669f2#2cf81a1df37eaf94dda9fed74785f30ec24669f2"
 dependencies = [
  "chia-sdk-client",
  "chia-sdk-driver",
@@ -1113,6 +1162,12 @@ dependencies = [
  "libc",
  "objc",
 ]
+
+[[package]]
+name = "colorchoice"
+version = "1.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5b63caa9aa9397e2d9480a9b13673856c78d8ac123288526c37d7839f2a86990"
 
 [[package]]
 name = "combine"
@@ -1657,6 +1712,27 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b45de904aa0b010bce2ab45264d0631681847fa7b6f2eaa7dab7619943bc4f59"
 dependencies = [
  "cfg-if",
+]
+
+[[package]]
+name = "env_filter"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4f2c92ceda6ceec50f43169f9ee8424fe2db276791afde7b2cd8bc084cb376ab"
+dependencies = [
+ "log",
+]
+
+[[package]]
+name = "env_logger"
+version = "0.11.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e13fa619b91fb2381732789fc5de83b45675e882f66623b7d8cb4f643017018d"
+dependencies = [
+ "anstream",
+ "anstyle",
+ "env_filter",
+ "log",
 ]
 
 [[package]]
@@ -2601,6 +2677,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "is_terminal_polyfill"
+version = "1.70.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7943c866cc5cd64cbc25b2e01621d07fa8eb2a1a23160ee81ce38704e97b8ecf"
+
+[[package]]
 name = "itertools"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2821,7 +2903,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4979f22fdb869068da03c9f7528f8297c6fd2606bc3a4affe42e6a823fdb8da4"
 dependencies = [
  "cfg-if",
- "windows-targets 0.48.5",
+ "windows-targets 0.52.6",
 ]
 
 [[package]]
@@ -4481,6 +4563,7 @@ dependencies = [
 name = "sage-wallet"
 version = "0.7.0"
 dependencies = [
+ "anyhow",
  "chia",
  "chia-wallet-sdk",
  "clvmr",
@@ -4493,6 +4576,8 @@ dependencies = [
  "sage-database",
  "serde",
  "serde_json",
+ "sqlx",
+ "test-log",
  "thiserror 1.0.63",
  "tokio",
  "tracing",
@@ -5644,6 +5729,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "test-log"
+version = "0.2.16"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3dffced63c2b5c7be278154d76b479f9f9920ed34e7574201407f0b14e2bbb93"
+dependencies = [
+ "env_logger",
+ "test-log-macros",
+ "tracing-subscriber",
+]
+
+[[package]]
+name = "test-log-macros"
+version = "0.2.16"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5999e24eaa32083191ba4e425deb75cdf25efefabe5aaccb7446dd0d4122a3f5"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.87",
+]
+
+[[package]]
 name = "thin-slice"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6137,9 +6244,9 @@ checksum = "08f95100a766bf4f8f28f90d77e0a5461bbdb219042e7679bebe79004fed8d75"
 
 [[package]]
 name = "unicode-ident"
-version = "1.0.12"
+version = "1.0.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3354b9ac3fae1ff6755cb6db53683adb661634f67557942dea4facebec0fee4b"
+checksum = "e91b56cd4cadaeb79bbf1a5645f6b4f8dc5bde8834ad5894a8db35fda9efa1fe"
 
 [[package]]
 name = "unicode-normalization"
@@ -6219,6 +6326,12 @@ name = "utf-8"
 version = "0.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "09cc8ee72d2a9becf2f2febe0205bbed8fc6615b7cb429ad062dc7b7ddd036a9"
+
+[[package]]
+name = "utf8parse"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "06abde3611657adf66d383f00b093d7faecc7fa57071cce2578660c9f1010821"
 
 [[package]]
 name = "uuid"

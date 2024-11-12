@@ -26,7 +26,12 @@ itertools = { workspace = true }
 futures-util = { workspace = true }
 futures-lite = { workspace = true }
 rayon = { workspace = true }
-reqwest = { workspace = true, default-features = false, features = ["http2", "rustls-tls-webpki-roots"] }
+reqwest = { workspace = true, default-features = false, features = ["http2", "rustls-tls-webpki-roots", "json"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 indexmap = { workspace = true }
+
+[dev-dependencies]
+anyhow = { workspace = true }
+sqlx = { workspace = true, features = ["runtime-tokio"] }
+test-log = { workspace = true, features = ["trace"] }

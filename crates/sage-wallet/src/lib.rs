@@ -19,3 +19,9 @@ pub use transaction::*;
 pub use utils::*;
 pub use wallet::*;
 pub use wallet_peer::*;
+
+#[cfg(test)]
+mod test;
+
+#[cfg(test)]
+pub use test::*;

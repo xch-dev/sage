@@ -27,7 +27,7 @@ impl SyncManager {
             let ip = peer.socket_addr().ip();
 
             let puzzle_peer = peer.clone();
-            let duration = self.options.remove_subscription_timeout;
+            let duration = self.options.timeouts.remove_subscription;
 
             futures.push(async move {
                 match timeout(duration, puzzle_peer.unsubscribe()).await {
@@ -48,7 +48,7 @@ impl SyncManager {
     pub(super) async fn dns_discovery(&mut self) {
         let addrs = self
             .network
-            .lookup_all(self.options.dns_timeout, self.options.dns_batch_size)
+            .lookup_all(self.options.timeouts.dns, self.options.dns_batch_size)
             .await;
 
         for addrs in addrs.chunks(self.options.connection_batch_size) {
@@ -70,7 +70,7 @@ impl SyncManager {
 
         for peer in peers {
             let ip = peer.socket_addr().ip();
-            let duration = self.options.request_peers_timeout;
+            let duration = self.options.timeouts.request_peers;
             futures.push(async move {
                 let result = timeout(duration, peer.request_peers()).await;
                 (ip, result)
@@ -150,7 +150,7 @@ impl SyncManager {
 
             let network_id = self.network_id.clone();
             let connector = self.connector.clone();
-            let duration = self.options.connection_timeout;
+            let duration = self.options.timeouts.connection;
 
             futures.push(async move {
                 let result = timeout(
@@ -203,8 +203,12 @@ impl SyncManager {
         self.state.lock().await.peer_count() >= self.options.target_peers
     }
 
-    async fn try_add_peer(&mut self, peer: Peer, mut receiver: mpsc::Receiver<Message>) -> bool {
-        let Ok(Some(message)) = timeout(self.options.initial_peak_timeout, receiver.recv()).await
+    pub(crate) async fn try_add_peer(
+        &mut self,
+        peer: Peer,
+        mut receiver: mpsc::Receiver<Message>,
+    ) -> bool {
+        let Ok(Some(message)) = timeout(self.options.timeouts.initial_peak, receiver.recv()).await
         else {
             debug!(
                 "Timeout receiving NewPeakWallet message from peer {}",

@@ -81,7 +81,11 @@ pub async fn set_discover_peers(state: State<'_, AppState>, discover_peers: bool
         state.save_config()?;
         state
             .command_sender
-            .send(SyncCommand::SetDiscoverPeers(discover_peers))
+            .send(SyncCommand::SetTargetPeers(if discover_peers {
+                state.config.network.target_peers as usize
+            } else {
+                0
+            }))
             .await?;
     }
 

@@ -28,6 +28,5 @@ pub enum SyncCommand {
         coin_ids: Vec<Bytes32>,
     },
     ConnectionClosed(IpAddr),
-    SetDiscoverPeers(bool),
     SetTargetPeers(usize),
 }

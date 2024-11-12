@@ -3,7 +3,6 @@ use std::{
     path::{Path, PathBuf},
     str::FromStr,
     sync::Arc,
-    time::Duration,
 };
 
 use chia::bls::master_to_wallet_unhardened_intermediate;
@@ -14,7 +13,7 @@ use sage_api::{SyncEvent as ApiEvent, Unit, TXCH, XCH};
 use sage_config::{Config, Network, WalletConfig, MAINNET, TESTNET11};
 use sage_database::Database;
 use sage_keychain::Keychain;
-use sage_wallet::{PeerState, SyncCommand, SyncEvent, SyncManager, SyncOptions, Wallet};
+use sage_wallet::{PeerState, SyncCommand, SyncEvent, SyncManager, SyncOptions, Timeouts, Wallet};
 use sqlx::{
     sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions},
     ConnectOptions,
@@ -200,18 +199,15 @@ impl AppStateInner {
 
         let (sync_manager, command_sender, mut event_receiver) = SyncManager::new(
             SyncOptions {
-                target_peers: self.config.network.target_peers as usize,
-                discover_peers: self.config.network.discover_peers,
+                target_peers: if self.config.network.discover_peers {
+                    self.config.network.target_peers as usize
+                } else {
+                    0
+                },
                 max_peer_age_seconds: 3600 * 8,
-                max_peers_for_dns: 0,
                 dns_batch_size: 10,
                 connection_batch_size: 30,
-                sync_delay: Duration::from_secs(1),
-                connection_timeout: Duration::from_secs(3),
-                initial_peak_timeout: Duration::from_secs(2),
-                remove_subscription_timeout: Duration::from_secs(3),
-                request_peers_timeout: Duration::from_secs(3),
-                dns_timeout: Duration::from_secs(3),
+                timeouts: Timeouts::default(),
             },
             self.peer_state.clone(),
             self.wallet.clone(),

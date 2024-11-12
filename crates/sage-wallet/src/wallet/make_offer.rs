@@ -61,9 +61,7 @@ impl Wallet {
             cats.insert(asset_id, cat_coins);
         }
 
-        // Fetch coin info for the NFTs being offered.
-        let mut nfts = Vec::new();
-
+        // Calculate trade prices for NFTs being offered.
         let mut trade_prices = Vec::new();
 
         if !offered.nfts.is_empty() {
@@ -88,6 +86,9 @@ impl Wallet {
                 });
             }
         }
+
+        // Fetch coin info for the NFTs being offered.
+        let mut nfts = Vec::new();
 
         for nft_id in offered.nfts {
             let Some(nft) = self.db.nft(nft_id).await? else {
@@ -121,7 +122,7 @@ impl Wallet {
             )?;
         }
 
-        // Add royalty payments for NFTs you are offering.
+        // Add royalty payments for NFTs you are offering and requesting.
         let mut royalty_assertions = Vec::new();
 
         if !nfts.is_empty() {

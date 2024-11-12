@@ -36,10 +36,10 @@ impl TransactionQueue {
         }
     }
 
-    pub async fn start(mut self) -> Result<(), WalletError> {
+    pub async fn start(mut self, delay: Duration) -> Result<(), WalletError> {
         loop {
             self.process_batch().await?;
-            sleep(Duration::from_secs(3)).await;
+            sleep(delay).await;
         }
     }
 
