@@ -3,7 +3,6 @@ use std::{
     path::{Path, PathBuf},
     str::FromStr,
     sync::Arc,
-    time::Duration,
 };
 
 use chia::bls::master_to_wallet_unhardened_intermediate;
