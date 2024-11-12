@@ -3,18 +3,21 @@ use std::{collections::HashMap, time::Duration};
 use base64::prelude::*;
 use chia::{
     bls::Signature,
+    clvm_traits::{FromClvm, ToClvm},
     protocol::{Bytes32, Coin, CoinSpend, SpendBundle},
-    puzzles::nft::NftMetadata,
+    puzzles::{nft::NftMetadata, offer::SETTLEMENT_PAYMENTS_PUZZLE_HASH},
 };
 use chia_wallet_sdk::{
-    decode_address, encode_address, AggSigConstants, MetadataUpdate, MAINNET_CONSTANTS,
-    TESTNET11_CONSTANTS,
+    decode_address, encode_address, run_puzzle, AggSigConstants, Condition, Conditions,
+    MetadataUpdate, Offer, Puzzle, MAINNET_CONSTANTS, TESTNET11_CONSTANTS,
 };
+use clvmr::Allocator;
 use hex_literal::hex;
 use indexmap::{IndexMap, IndexSet};
 use sage_api::{
-    Amount, BulkMintNfts, BulkMintNftsResponse, CatAmount, CoinJson, CoinSpendJson, Input,
-    InputKind, MakeOffer, NftUriKind, Output, SpendBundleJson, TransactionSummary,
+    Amount, AssetKind, BulkMintNfts, BulkMintNftsResponse, CatAmount, CoinJson, CoinSpendJson,
+    Input, MakeOffer, NftUriKind, OfferSummary, OfferedCoin, Output, RequestedAsset,
+    SpendBundleJson, TransactionSummary,
 };
 use sage_database::{CatRow, Database};
 use sage_wallet::{
@@ -700,6 +703,14 @@ pub async fn make_offer(state: State<'_, AppState>, request: MakeOffer) -> Resul
 
 #[command]
 #[specta]
+pub async fn view_offer(state: State<'_, AppState>, offer: String) -> Result<OfferSummary> {
+    let state = state.lock().await;
+    let wallet = state.wallet()?;
+    summarize_offer(&state, &wallet, Offer::decode(&offer)?).await
+}
+
+#[command]
+#[specta]
 pub async fn sign_transaction(
     state: State<'_, AppState>,
     coin_spends: Vec<CoinSpendJson>,
@@ -783,19 +794,19 @@ async fn summarize(
         let (kind, p2_puzzle_hash) = match input.kind {
             CoinKind::Unknown => {
                 let kind = if wallet.db.is_p2_puzzle_hash(coin.puzzle_hash).await? {
-                    InputKind::Xch
+                    AssetKind::Xch
                 } else {
-                    InputKind::Unknown
+                    AssetKind::Unknown
                 };
                 (kind, coin.puzzle_hash)
             }
-            CoinKind::Launcher => (InputKind::Launcher, coin.puzzle_hash),
+            CoinKind::Launcher => (AssetKind::Launcher, coin.puzzle_hash),
             CoinKind::Cat {
                 asset_id,
                 p2_puzzle_hash,
             } => {
                 let cat = wallet.db.cat(asset_id).await?;
-                let kind = InputKind::Cat {
+                let kind = AssetKind::Cat {
                     asset_id: hex::encode(asset_id),
                     name: cat.as_ref().and_then(|cat| cat.name.clone()),
                     ticker: cat.as_ref().and_then(|cat| cat.ticker.clone()),
@@ -811,7 +822,7 @@ async fn summarize(
                     wallet.db.did_name(info.launcher_id).await?
                 };
 
-                let kind = InputKind::Did {
+                let kind = AssetKind::Did {
                     launcher_id: encode_address(info.launcher_id.into(), "did:chia:")?,
                     name,
                 };
@@ -821,7 +832,7 @@ async fn summarize(
             CoinKind::Nft { info, metadata } => {
                 let extracted = extract_nft_data(Some(&wallet.db), metadata, &cache).await?;
 
-                let kind = InputKind::Nft {
+                let kind = AssetKind::Nft {
                     launcher_id: encode_address(info.launcher_id.into(), "nft")?,
                     image_data: extracted.image_data,
                     image_mime_type: extracted.image_mime_type,
@@ -875,6 +886,190 @@ async fn summarize(
         fee: Amount::from_mojos(transaction.fee as u128, state.unit.decimals),
         inputs,
         coin_spends: coin_spends.iter().map(json_spend).collect(),
+    })
+}
+
+async fn summarize_offer(
+    state: &MutexGuard<'_, AppStateInner>,
+    wallet: &Wallet,
+    offer: Offer,
+) -> Result<OfferSummary> {
+    let mut allocator = Allocator::new();
+    let offer = offer.parse(&mut allocator)?;
+
+    let mut offered = Vec::new();
+    let mut fee = 0;
+
+    for coin_spend in &offer.coin_spends {
+        let parent_coin = coin_spend.coin;
+        let parent_puzzle = coin_spend.puzzle_reveal.to_clvm(&mut allocator)?;
+        let parent_puzzle = Puzzle::parse(&allocator, parent_puzzle);
+        let parent_solution = coin_spend.solution.to_clvm(&mut allocator)?;
+
+        let output = run_puzzle(&mut allocator, parent_puzzle.ptr(), parent_solution)?;
+        let conditions = Conditions::from_clvm(&allocator, output)?;
+
+        let mut coins = Vec::new();
+
+        for condition in conditions.clone() {
+            match condition {
+                Condition::CreateCoin(cond) => coins.push(Coin::new(
+                    parent_coin.coin_id(),
+                    cond.puzzle_hash,
+                    cond.amount,
+                )),
+                Condition::ReserveFee(cond) => fee += cond.amount,
+                _ => {}
+            }
+        }
+
+        let mut offered_amount = 0;
+        let mut kind = AssetKind::Unknown;
+
+        for coin in coins {
+            if matches!(kind, AssetKind::Unknown)
+                && coin.puzzle_hash == SETTLEMENT_PAYMENTS_PUZZLE_HASH.into()
+            {
+                kind = AssetKind::Xch;
+            }
+
+            let child = ChildKind::from_parent_cached(
+                &mut allocator,
+                parent_coin,
+                parent_puzzle,
+                parent_solution,
+                conditions.clone().into_iter().collect(),
+                coin,
+            )?;
+
+            if child.p2_puzzle_hash() != Some(SETTLEMENT_PAYMENTS_PUZZLE_HASH.into())
+                && coin.puzzle_hash != SETTLEMENT_PAYMENTS_PUZZLE_HASH.into()
+            {
+                continue;
+            }
+
+            offered_amount += coin.amount;
+
+            match child {
+                ChildKind::Launcher | ChildKind::Unknown { .. } => {}
+                ChildKind::Cat { asset_id, .. } => {
+                    // TODO: Melt?
+
+                    let cat = wallet.db.cat(asset_id).await?;
+
+                    kind = AssetKind::Cat {
+                        asset_id: hex::encode(asset_id),
+                        name: cat.as_ref().and_then(|cat| cat.name.clone()),
+                        ticker: cat.as_ref().and_then(|cat| cat.ticker.clone()),
+                        icon_url: cat.as_ref().and_then(|cat| cat.icon.clone()),
+                    };
+                }
+                ChildKind::Did { info, .. } => {
+                    let name = wallet.db.did_name(info.launcher_id).await?;
+
+                    kind = AssetKind::Did {
+                        launcher_id: encode_address(info.launcher_id.into(), "did:chia:")?,
+                        name,
+                    };
+                }
+                ChildKind::Nft { info, metadata, .. } => {
+                    let extracted =
+                        extract_nft_data(Some(&wallet.db), metadata, &ConfirmationInfo::default())
+                            .await?;
+
+                    kind = AssetKind::Nft {
+                        launcher_id: encode_address(info.launcher_id.into(), "nft")?,
+                        image_data: extracted.image_data,
+                        image_mime_type: extracted.image_mime_type,
+                        name: extracted.name,
+                    };
+                }
+            }
+        }
+
+        offered.push(OfferedCoin {
+            coin_id: hex::encode(parent_coin.coin_id()),
+            offered_amount: Amount::from_mojos(
+                offered_amount as u128,
+                if matches!(kind, AssetKind::Cat { .. }) {
+                    3
+                } else {
+                    state.unit.decimals
+                },
+            ),
+            kind,
+        });
+    }
+
+    let mut requested = Vec::new();
+
+    for (_hash, (puzzle, payments)) in offer.requested_payments {
+        let kind = CoinKind::from_puzzle_cached(&allocator, puzzle)?;
+
+        let payments: u64 = payments
+            .into_iter()
+            .flat_map(|item| item.payments)
+            .map(|payment| payment.amount)
+            .sum();
+
+        let kind = match kind {
+            CoinKind::Unknown => {
+                if puzzle.curried_puzzle_hash() == SETTLEMENT_PAYMENTS_PUZZLE_HASH {
+                    AssetKind::Xch
+                } else {
+                    AssetKind::Unknown
+                }
+            }
+            CoinKind::Launcher => AssetKind::Launcher,
+            CoinKind::Cat { asset_id, .. } => {
+                let cat = wallet.db.cat(asset_id).await?;
+
+                AssetKind::Cat {
+                    asset_id: hex::encode(asset_id),
+                    name: cat.as_ref().and_then(|cat| cat.name.clone()),
+                    ticker: cat.as_ref().and_then(|cat| cat.ticker.clone()),
+                    icon_url: cat.as_ref().and_then(|cat| cat.icon.clone()),
+                }
+            }
+            CoinKind::Did { info } => {
+                let name = wallet.db.did_name(info.launcher_id).await?;
+
+                AssetKind::Did {
+                    launcher_id: encode_address(info.launcher_id.into(), "did:chia:")?,
+                    name,
+                }
+            }
+            CoinKind::Nft { info, metadata } => {
+                let extracted =
+                    extract_nft_data(Some(&wallet.db), metadata, &ConfirmationInfo::default())
+                        .await?;
+
+                AssetKind::Nft {
+                    launcher_id: encode_address(info.launcher_id.into(), "nft")?,
+                    image_data: extracted.image_data,
+                    image_mime_type: extracted.image_mime_type,
+                    name: extracted.name,
+                }
+            }
+        };
+
+        requested.push(RequestedAsset {
+            amount: Amount::from_mojos(
+                payments as u128,
+                if matches!(kind, AssetKind::Cat { .. }) {
+                    3
+                } else {
+                    state.unit.decimals
+                },
+            ),
+            kind,
+        });
+    }
+
+    Ok(OfferSummary {
+        fee: Amount::from_mojos(fee as u128, state.unit.decimals),
+        offered,
+        requested,
     })
 }
 

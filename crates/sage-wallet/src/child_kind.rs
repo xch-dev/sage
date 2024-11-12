@@ -4,7 +4,7 @@ use chia::{
     puzzles::{nft::NftMetadata, singleton::SINGLETON_LAUNCHER_PUZZLE_HASH, LineageProof, Proof},
 };
 use chia_wallet_sdk::{run_puzzle, Cat, Condition, Did, DidInfo, HashedPtr, Nft, NftInfo, Puzzle};
-use clvmr::Allocator;
+use clvmr::{Allocator, NodePtr};
 use tracing::{debug_span, warn};
 
 use crate::WalletError;
@@ -39,6 +39,33 @@ impl ChildKind {
         parent_solution: &Program,
         coin: Coin,
     ) -> Result<Self, WalletError> {
+        let mut allocator = Allocator::new();
+
+        let parent_puzzle_ptr = parent_puzzle.to_clvm(&mut allocator)?;
+        let parent_puzzle = Puzzle::parse(&allocator, parent_puzzle_ptr);
+        let parent_solution = parent_solution.to_clvm(&mut allocator)?;
+
+        let output = run_puzzle(&mut allocator, parent_puzzle.ptr(), parent_solution)?;
+        let conditions = Vec::<Condition>::from_clvm(&allocator, output)?;
+
+        Self::from_parent_cached(
+            &mut allocator,
+            parent_coin,
+            parent_puzzle,
+            parent_solution,
+            conditions,
+            coin,
+        )
+    }
+
+    pub fn from_parent_cached(
+        allocator: &mut Allocator,
+        parent_coin: Coin,
+        parent_puzzle: Puzzle,
+        parent_solution: NodePtr,
+        conditions: Vec<Condition>,
+        coin: Coin,
+    ) -> Result<Self, WalletError> {
         let parse_span = debug_span!(
             "parse from parent",
             parent_coin = %parent_coin.coin_id(),
@@ -49,15 +76,6 @@ impl ChildKind {
         if coin.puzzle_hash == SINGLETON_LAUNCHER_PUZZLE_HASH.into() {
             return Ok(Self::Launcher);
         }
-
-        let mut allocator = Allocator::new();
-
-        let parent_puzzle_ptr = parent_puzzle.to_clvm(&mut allocator)?;
-        let parent_puzzle = Puzzle::parse(&allocator, parent_puzzle_ptr);
-        let parent_solution = parent_solution.to_clvm(&mut allocator)?;
-
-        let output = run_puzzle(&mut allocator, parent_puzzle_ptr, parent_solution)?;
-        let conditions = Vec::<Condition>::from_clvm(&allocator, output)?;
 
         let Some(mut create_coin) = conditions
             .into_iter()
@@ -77,7 +95,7 @@ impl ChildKind {
 
         let unknown = Self::Unknown { hint: Some(hint) };
 
-        match Cat::parse_children(&mut allocator, parent_coin, parent_puzzle, parent_solution) {
+        match Cat::parse_children(allocator, parent_coin, parent_puzzle, parent_solution) {
             // If there was an error parsing the CAT, we can exit early.
             Err(error) => {
                 warn!("Invalid CAT: {}", error);
@@ -107,12 +125,8 @@ impl ChildKind {
             Ok(None) => {}
         }
 
-        match Nft::<HashedPtr>::parse_child(
-            &mut allocator,
-            parent_coin,
-            parent_puzzle,
-            parent_solution,
-        ) {
+        match Nft::<HashedPtr>::parse_child(allocator, parent_coin, parent_puzzle, parent_solution)
+        {
             // If there was an error parsing the NFT, we can exit early.
             Err(error) => {
                 warn!("Invalid NFT: {}", error);
@@ -131,8 +145,8 @@ impl ChildKind {
                     return Ok(unknown);
                 };
 
-                let metadata_program = Program::from_clvm(&allocator, nft.info.metadata.ptr())?;
-                let metadata = NftMetadata::from_clvm(&allocator, nft.info.metadata.ptr()).ok();
+                let metadata_program = Program::from_clvm(allocator, nft.info.metadata.ptr())?;
+                let metadata = NftMetadata::from_clvm(allocator, nft.info.metadata.ptr()).ok();
 
                 return Ok(Self::Nft {
                     lineage_proof,
@@ -146,7 +160,7 @@ impl ChildKind {
         }
 
         match Did::<HashedPtr>::parse_child(
-            &mut allocator,
+            allocator,
             parent_coin,
             parent_puzzle,
             parent_solution,
@@ -165,7 +179,7 @@ impl ChildKind {
                     return Ok(unknown);
                 };
 
-                let metadata = Program::from_clvm(&allocator, did.info.metadata.ptr())?;
+                let metadata = Program::from_clvm(allocator, did.info.metadata.ptr())?;
 
                 return Ok(Self::Did {
                     lineage_proof,

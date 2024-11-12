@@ -28,6 +28,7 @@ import Settings from './pages/Settings';
 import Token from './pages/Token';
 import { TokenList } from './pages/TokenList';
 import { Transactions } from './pages/Transactions';
+import { ViewOffer } from './pages/ViewOffer';
 import Wallet from './pages/Wallet';
 import { fetchState } from './state';
 
@@ -74,6 +75,7 @@ const router = createHashRouter(
       <Route path='/offers' element={<Wallet />}>
         <Route path='' element={<Offers />} />
         <Route path='make' element={<MakeOffer />} />
+        <Route path='view/:offer' element={<ViewOffer />} />
       </Route>
       <Route path='/settings' element={<Settings />} />
       <Route path='/peers' element={<PeerList />} />

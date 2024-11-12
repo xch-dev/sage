@@ -29,19 +29,23 @@ pub enum CoinKind {
 
 impl CoinKind {
     pub fn from_puzzle(puzzle: &Program) -> Result<Self, WalletError> {
-        let parse_span = debug_span!("parse puzzle");
-        let _span = parse_span.enter();
-
         let mut allocator = Allocator::new();
 
         let puzzle_ptr = puzzle.to_clvm(&mut allocator)?;
         let puzzle = Puzzle::parse(&allocator, puzzle_ptr);
 
+        Self::from_puzzle_cached(&allocator, puzzle)
+    }
+
+    pub fn from_puzzle_cached(allocator: &Allocator, puzzle: Puzzle) -> Result<Self, WalletError> {
+        let parse_span = debug_span!("parse puzzle");
+        let _span = parse_span.enter();
+
         if puzzle.curried_puzzle_hash() == SINGLETON_LAUNCHER_PUZZLE_HASH {
             return Ok(Self::Launcher);
         }
 
-        match CatLayer::<HashedPtr>::parse_puzzle(&allocator, puzzle) {
+        match CatLayer::<HashedPtr>::parse_puzzle(allocator, puzzle) {
             // If there was an error parsing the CAT, we can exit early.
             Err(error) => {
                 warn!("Invalid CAT: {}", error);
@@ -60,7 +64,7 @@ impl CoinKind {
             Ok(None) => {}
         }
 
-        match NftInfo::<HashedPtr>::parse(&allocator, puzzle) {
+        match NftInfo::<HashedPtr>::parse(allocator, puzzle) {
             // If there was an error parsing the NFT, we can exit early.
             Err(error) => {
                 warn!("Invalid NFT: {}", error);
@@ -69,8 +73,8 @@ impl CoinKind {
 
             // If the coin is a NFT coin, return the relevant information.
             Ok(Some((nft, _inner_puzzle))) => {
-                let metadata_program = Program::from_clvm(&allocator, nft.metadata.ptr())?;
-                let metadata = NftMetadata::from_clvm(&allocator, nft.metadata.ptr()).ok();
+                let metadata_program = Program::from_clvm(allocator, nft.metadata.ptr())?;
+                let metadata = NftMetadata::from_clvm(allocator, nft.metadata.ptr()).ok();
 
                 return Ok(Self::Nft {
                     info: nft.with_metadata(metadata_program),
@@ -82,7 +86,7 @@ impl CoinKind {
             Ok(None) => {}
         }
 
-        match DidInfo::<HashedPtr>::parse(&allocator, puzzle) {
+        match DidInfo::<HashedPtr>::parse(allocator, puzzle) {
             // If there was an error parsing the DID, we can exit early.
             Err(error) => {
                 warn!("Invalid DID: {}", error);
@@ -91,7 +95,7 @@ impl CoinKind {
 
             // If the coin is a DID coin, return the relevant information.
             Ok(Some((did, _inner_puzzle))) => {
-                let metadata = Program::from_clvm(&allocator, did.metadata.ptr())?;
+                let metadata = Program::from_clvm(allocator, did.metadata.ptr())?;
 
                 return Ok(Self::Did {
                     info: did.with_metadata(metadata),
