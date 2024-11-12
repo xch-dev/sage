@@ -11,7 +11,7 @@ import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
 
 export default function Header(
   props: PropsWithChildren<{
-    title: string;
+    title: string | ReactNode;
     back?: () => void;
     children?: ReactNode;
   }>,

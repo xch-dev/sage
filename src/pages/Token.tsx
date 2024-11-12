@@ -1,7 +1,6 @@
 import CoinList from '@/components/CoinList';
 import ConfirmationDialog from '@/components/ConfirmationDialog';
 import Container from '@/components/Container';
-import { CopyBox } from '@/components/CopyBox';
 import Header from '@/components/Header';
 import { ReceiveAddress } from '@/components/ReceiveAddress';
 import { Button } from '@/components/ui/button';
@@ -53,6 +52,7 @@ import {
   events,
   TransactionSummary,
 } from '../bindings';
+import { CopyButton } from '@/components/CopyButton';
 
 export default function Token() {
   const navigate = useNavigate();
@@ -174,13 +174,18 @@ export default function Token() {
 
   return (
     <>
-      <Header title={asset ? (asset.name ?? 'Unknown asset') : ''} />
+      <Header
+        title={
+          <span>
+            {asset ? (asset.name ?? 'Unknown asset') : ''}{' '}
+            {asset?.asset_id !== 'xch' && (
+              <CopyButton value={asset?.asset_id ?? ''} />
+            )}
+          </span>
+        }
+      />
       <Container>
         <div className='flex flex-col gap-8 max-w-screen-lg'>
-          {asset?.asset_id !== 'xch' && (
-            <CopyBox title='Asset Id' content={asset?.asset_id ?? ''} />
-          )}
-
           <Card>
             <CardHeader className='flex flex-row justify-between items-center space-y-0 space-x-2 pb-2'>
               <div className='flex text-xl sm:text-4xl font-medium font-mono truncate'>
