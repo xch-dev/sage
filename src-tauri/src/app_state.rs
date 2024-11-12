@@ -206,7 +206,6 @@ impl AppStateInner {
                     0
                 },
                 max_peer_age_seconds: 3600 * 8,
-                max_peers_for_dns: 0,
                 dns_batch_size: 10,
                 connection_batch_size: 30,
                 sync_delay: Duration::from_secs(1),

@@ -308,7 +308,7 @@ impl SyncManager {
         let peer_count = self.state.lock().await.peer_count();
 
         if peer_count < self.options.target_peers {
-            if peer_count > self.options.max_peers_for_dns {
+            if peer_count > 0 {
                 if !self.peer_discovery().await {
                     self.dns_discovery().await;
                 }
