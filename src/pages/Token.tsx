@@ -1,7 +1,6 @@
 import CoinList from '@/components/CoinList';
 import ConfirmationDialog from '@/components/ConfirmationDialog';
 import Container from '@/components/Container';
-import { CopyBox } from '@/components/CopyBox';
 import Header from '@/components/Header';
 import { ReceiveAddress } from '@/components/ReceiveAddress';
 import { Button } from '@/components/ui/button';
@@ -53,10 +52,13 @@ import {
   events,
   TransactionSummary,
 } from '../bindings';
+import { usePrices } from '@/contexts/PriceContext';
+import { CopyButton } from '@/components/CopyButton';
 
 export default function Token() {
   const navigate = useNavigate();
   const walletState = useWalletState();
+  const { getBalanceInUsd } = usePrices();
 
   const { asset_id: assetId } = useParams();
 
@@ -64,6 +66,11 @@ export default function Token() {
   const [coins, setCoins] = useState<CoinRecord[]>([]);
   const [summary, setSummary] = useState<TransactionSummary | null>(null);
   const [selectedCoins, setSelectedCoins] = useState<RowSelectionState>({});
+
+  const balanceInUsd = useMemo(() => {
+    if (!asset) return '0';
+    return getBalanceInUsd(asset.asset_id, asset.balance);
+  }, [asset, getBalanceInUsd]);
 
   const updateCoins = () => {
     const getCoins =
@@ -174,25 +181,37 @@ export default function Token() {
 
   return (
     <>
-      <Header title={asset ? (asset.name ?? 'Unknown asset') : ''} />
+      <Header
+        title={
+          <span>
+            {asset ? (asset.name ?? 'Unknown asset') : ''}{' '}
+            {asset?.asset_id !== 'xch' && (
+              <CopyButton value={asset?.asset_id ?? ''} />
+            )}
+          </span>
+        }
+      />
       <Container>
         <div className='flex flex-col gap-8 max-w-screen-lg'>
-          {asset?.asset_id !== 'xch' && (
-            <CopyBox title='Asset Id' content={asset?.asset_id ?? ''} />
-          )}
-
           <Card>
-            <CardHeader className='flex flex-row justify-between items-center space-y-0 space-x-2 pb-2'>
-              <div className='flex text-xl sm:text-4xl font-medium font-mono truncate'>
-                <span className='truncate'>{asset?.balance ?? ' '}&nbsp;</span>
-                {asset?.ticker}
+            <CardHeader className='flex flex-col pb-2'>
+              <div className='flex flex-row justify-between items-center space-y-0 space-x-2'>
+                <div className='flex text-xl sm:text-4xl font-medium font-mono truncate'>
+                  <span className='truncate'>
+                    {asset?.balance ?? ' '}&nbsp;
+                  </span>
+                  {asset?.ticker}
+                </div>
+                <div className='flex-shrink-0'>
+                  <img
+                    alt='asset icon'
+                    src={asset?.icon_url ?? ''}
+                    className='h-8 w-8'
+                  />
+                </div>
               </div>
-              <div className='flex-shrink-0'>
-                <img
-                  alt='asset icon'
-                  src={asset?.icon_url ?? ''}
-                  className='h-8 w-8'
-                />
+              <div className='text-sm text-muted-foreground'>
+                ~${balanceInUsd}
               </div>
             </CardHeader>
             <CardContent className='flex flex-col gap-2'>
