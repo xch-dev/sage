@@ -2,11 +2,28 @@ import Container from '@/components/Container';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useWalletState } from '@/state';
 import { HandCoins } from 'lucide-react';
+import { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 export function Offers() {
   const navigate = useNavigate();
+  const walletState = useWalletState();
+
+  useEffect(() => {
+    if (
+      walletState.offerFee ||
+      walletState.offerAssets.xch ||
+      walletState.offerAssets.cats.length ||
+      walletState.offerAssets.nfts.length ||
+      walletState.requestedAssets.xch ||
+      walletState.requestedAssets.cats.length ||
+      walletState.requestedAssets.nfts.length
+    ) {
+      navigate('/offers/make', { replace: true });
+    }
+  }, [navigate, walletState]);
 
   return (
     <>

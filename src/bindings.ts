@@ -413,6 +413,14 @@ async addNftUri(nftId: string, uri: string, kind: NftUriKind, fee: Amount) : Pro
     else return { status: "error", error: e  as any };
 }
 },
+async makeOffer(request: MakeOffer) : Promise<Result<string, Error>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("make_offer", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async signTransaction(coinSpends: CoinSpendJson[]) : Promise<Result<SpendBundleJson, Error>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("sign_transaction", { coinSpends }) };
@@ -471,8 +479,10 @@ syncEvent: "sync-event"
 /** user-defined types **/
 
 export type Amount = string
+export type Assets = { xch: Amount; cats: CatAmount[]; nfts: string[] }
 export type BulkMintNfts = { nft_mints: NftMint[]; did_id: string; fee: Amount }
 export type BulkMintNftsResponse = { nft_ids: string[]; summary: TransactionSummary }
+export type CatAmount = { asset_id: string; amount: Amount }
 export type CatRecord = { asset_id: string; name: string | null; ticker: string | null; description: string | null; icon_url: string | null; visible: boolean; balance: Amount }
 export type CoinJson = { parent_coin_info: string; puzzle_hash: string; amount: number }
 export type CoinRecord = { coin_id: string; address: string; amount: Amount; created_height: number | null; spent_height: number | null; create_transaction_id: string | null; spend_transaction_id: string | null }
@@ -484,6 +494,7 @@ export type GetCollectionNfts = { collection_id: string | null; offset: number; 
 export type GetNftCollections = { offset: number; limit: number; include_hidden: boolean }
 export type GetNfts = { offset: number; limit: number; sort_mode: NftSortMode; include_hidden: boolean }
 export type Input = ({ type: "unknown" } | { type: "xch" } | { type: "launcher" } | { type: "cat"; asset_id: string; name: string | null; ticker: string | null; icon_url: string | null } | { type: "did"; launcher_id: string; name: string | null } | { type: "nft"; launcher_id: string; image_data: string | null; image_mime_type: string | null; name: string | null }) & { coin_id: string; amount: Amount; address: string; outputs: Output[] }
+export type MakeOffer = { requested_assets: Assets; offered_assets: Assets; fee: Amount }
 export type Network = { default_port: number; ticker: string; address_prefix: string; precision: number; genesis_challenge: string; agg_sig_me: string; dns_introducers: string[] }
 export type NetworkConfig = { network_id?: string; target_peers?: number; discover_peers?: boolean }
 export type NftCollectionRecord = { collection_id: string; did_id: string; metadata_collection_id: string; visible: boolean; name: string | null; icon: string | null; nfts: number; visible_nfts: number }
@@ -522,7 +533,7 @@ type __EventObj__<T> = {
 	once: (
 		cb: TAURI_API_EVENT.EventCallback<T>,
 	) => ReturnType<typeof TAURI_API_EVENT.once<T>>;
-	emit: T extends null
+	emit: null extends T
 		? (payload?: T) => ReturnType<typeof TAURI_API_EVENT.emit>
 		: (payload: T) => ReturnType<typeof TAURI_API_EVENT.emit>;
 };

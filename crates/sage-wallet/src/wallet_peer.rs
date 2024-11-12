@@ -81,18 +81,23 @@ impl WalletPeer {
     }
 
     pub async fn fetch_child(&self, coin_id: Bytes32) -> Result<CoinState, WalletError> {
-        let Some(child) = self
+        let Some(child) = self.try_fetch_child(coin_id).await? else {
+            return Err(WalletError::MissingChild(coin_id));
+        };
+        Ok(child)
+    }
+
+    pub async fn try_fetch_child(
+        &self,
+        coin_id: Bytes32,
+    ) -> Result<Option<CoinState>, WalletError> {
+        Ok(self
             .peer
             .request_children(coin_id)
             .await?
             .coin_states
             .into_iter()
-            .next()
-        else {
-            return Err(WalletError::MissingChild(coin_id));
-        };
-
-        Ok(child)
+            .next())
     }
 
     pub async fn send_transaction(

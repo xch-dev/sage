@@ -77,4 +77,10 @@ pub enum WalletError {
 
     #[error("Missing NFT with id {0}")]
     MissingNft(Bytes32),
+
+    #[error("Invalid trade price")]
+    InvalidTradePrice,
+
+    #[error("Invalid royalty amount")]
+    InvalidRoyaltyAmount,
 }

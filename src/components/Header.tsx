@@ -42,7 +42,7 @@ export default function Header(
   const hasBackButton = props.back || location.pathname.split('/').length > 2;
 
   return (
-    <header className='flex items-center gap-4 px-4 lg:px-6 pt-4 sticky top-0 bg-background z-10'>
+    <header className='flex items-center gap-4 px-4 md:px-6 pt-4 sticky top-0 bg-background z-10'>
       <Sheet>
         {hasBackButton ? (
           <Button
@@ -67,7 +67,7 @@ export default function Header(
           </SheetTrigger>
         )}
         <SheetContent side='left' className='flex flex-col'>
-          <div className='flex h-14 items-center lg:h-[60px]'>
+          <div className='flex h-14 items-center'>
             <Link
               to='/wallet'
               className='flex items-center gap-2 font-semibold'
@@ -76,7 +76,9 @@ export default function Header(
               <span>{wallet?.name}</span>
             </Link>
           </div>
-          <Nav />
+          <div className='-mx-2'>
+            <Nav />
+          </div>
           <nav className='mt-auto grid gap-1 text-md font-medium'>
             <Link
               to='/peers'
