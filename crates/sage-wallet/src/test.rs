@@ -70,6 +70,9 @@ impl TestWallet {
                 max_peer_age_seconds: 0,
                 timeouts: Timeouts {
                     sync_delay: Duration::from_millis(100),
+                    nft_uri_delay: Duration::from_millis(100),
+                    cat_delay: Duration::from_millis(100),
+                    puzzle_delay: Duration::from_millis(100),
                     transaction_delay: Duration::from_millis(100),
                     ..Default::default()
                 },

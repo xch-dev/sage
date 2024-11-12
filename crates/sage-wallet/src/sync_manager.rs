@@ -366,7 +366,7 @@ impl SyncManager {
                         self.event_sender.clone(),
                         self.command_sender.clone(),
                     )
-                    .start(),
+                    .start(self.options.timeouts.puzzle_delay),
                 );
                 self.puzzle_lookup_task = Some(task);
             }
@@ -378,14 +378,15 @@ impl SyncManager {
                         self.network.clone(),
                         self.event_sender.clone(),
                     )
-                    .start(),
+                    .start(self.options.timeouts.cat_delay),
                 );
                 self.cat_queue_task = Some(task);
             }
 
             if self.nft_uri_queue_task.is_none() {
                 let task = tokio::spawn(
-                    NftUriQueue::new(wallet.db.clone(), self.event_sender.clone()).start(),
+                    NftUriQueue::new(wallet.db.clone(), self.event_sender.clone())
+                        .start(self.options.timeouts.nft_uri_delay),
                 );
                 self.nft_uri_queue_task = Some(task);
             }
