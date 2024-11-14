@@ -1,16 +1,14 @@
 import { Amount, commands, Error, OfferSummary } from '@/bindings';
 import Container from '@/components/Container';
-import { CopyBox } from '@/components/CopyBox';
 import ErrorDialog from '@/components/ErrorDialog';
 import Header from '@/components/Header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
 import { useWalletState } from '@/state';
 import BigNumber from 'bignumber.js';
-import { HandCoins, Handshake } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { ArrowDownIcon, ArrowUpIcon } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 interface NftSummary {
@@ -21,6 +19,44 @@ interface CatSummary {
   name: string;
   ticker: string;
   amount: Amount;
+}
+
+function processAssets(assets: any[] | undefined) {
+  let amount = BigNumber(0);
+  const cats: Record<string, CatSummary> = {};
+  const nfts: Record<string, NftSummary> = {};
+
+  for (const asset of assets || []) {
+    console.log(asset);
+
+    switch (asset.type) {
+      case 'xch':
+        amount = amount.plus(asset.offered_amount || asset.amount);
+        break;
+
+      case 'cat':
+        if (!(asset.asset_id in cats)) {
+          cats[asset.asset_id] = {
+            amount: '0',
+            name: asset.name || 'Unknown',
+            ticker: asset.ticker || 'CAT',
+          };
+        }
+
+        cats[asset.asset_id].amount = BigNumber(cats[asset.asset_id].amount)
+          .plus(asset.offered_amount || asset.amount)
+          .toString();
+        break;
+
+      case 'nft':
+        nfts[asset.launcher_id] = {
+          name: asset.name || 'Unknown',
+        };
+        break;
+    }
+  }
+
+  return { amount, cats, nfts };
 }
 
 export function ViewOffer() {
@@ -43,121 +79,65 @@ export function ViewOffer() {
     });
   }, [offer]);
 
-  let offeredAmount = BigNumber(0);
-  const offeredCats: Record<string, CatSummary> = {};
-  const offeredNfts: Record<string, NftSummary> = {};
+  const {
+    amount: offeredAmount,
+    cats: offeredCats,
+    nfts: offeredNfts,
+  } = useMemo(() => processAssets(summary?.offered), [summary]);
 
-  for (const offered of summary?.offered || []) {
-    switch (offered.type) {
-      case 'xch':
-        offeredAmount = offeredAmount.plus(offered.offered_amount);
-        break;
-
-      case 'cat':
-        if (!(offered.asset_id in offeredCats)) {
-          offeredCats[offered.asset_id] = {
-            amount: '0',
-            name: offered.name || 'Unknown',
-            ticker: offered.ticker || 'CAT',
-          };
-        }
-
-        offeredCats[offered.asset_id].amount = BigNumber(
-          offeredCats[offered.asset_id].amount,
-        )
-          .plus(offered.offered_amount)
-          .toString();
-
-        break;
-
-      case 'nft':
-        offeredNfts[offered.launcher_id] = {
-          name: offered.name || 'Unknown',
-        };
-        break;
-    }
-  }
-
-  let requestedAmount = BigNumber(0);
-  const requestedCats: Record<string, CatSummary> = {};
-  const requestedNfts: Record<string, NftSummary> = {};
-
-  for (const requested of summary?.requested || []) {
-    switch (requested.type) {
-      case 'xch':
-        requestedAmount = requestedAmount.plus(requested.amount);
-        break;
-
-      case 'cat':
-        if (!(requested.asset_id in requestedCats)) {
-          requestedCats[requested.asset_id] = {
-            amount: '0',
-            name: requested.name || 'Unknown',
-            ticker: requested.ticker || 'CAT',
-          };
-        }
-
-        requestedCats[requested.asset_id].amount = BigNumber(
-          requestedCats[requested.asset_id].amount,
-        )
-          .plus(requested.amount)
-          .toString();
-
-        break;
-
-      case 'nft':
-        requestedNfts[requested.launcher_id] = {
-          name: requested.name || 'Unknown',
-        };
-        break;
-    }
-  }
+  const {
+    amount: requestedAmount,
+    cats: requestedCats,
+    nfts: requestedNfts,
+  } = useMemo(() => processAssets(summary?.requested), [summary]);
 
   return (
     <>
       <Header title='View Offer' />
 
       <Container>
-        <CopyBox title='Offer' content={offer ?? ''} />
-
-        <div className='mt-4 grid grid-cols-1 lg:grid-cols-2 gap-4'>
+        <div className='grid grid-cols-1 lg:grid-cols-2 gap-4 max-w-screen-lg'>
           <Card>
             <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2 pr-2 space-x-2'>
               <CardTitle className='text-md font-medium truncate flex items-center'>
-                <Handshake className='mr-2 h-4 w-4' />
-                Requested
+                <ArrowUpIcon className='mr-2 h-4 w-4' />
+                Offering
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className='text-sm font-medium'>
-                Add the assets you have to pay to fulfill the offer.
+            <CardContent className='flex flex-col divide-y'>
+              <div className='text-sm text-muted-foreground'>
+                The assets you have to pay to fulfill the offer.
               </div>
 
-              <Assets
-                amount={offeredAmount}
-                cats={offeredCats}
-                nfts={offeredNfts}
-              />
+              <div className='mt-4'>
+                <Assets
+                  amount={offeredAmount}
+                  cats={offeredCats}
+                  nfts={offeredNfts}
+                />
+              </div>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2 pr-2 space-x-2'>
               <CardTitle className='text-md font-medium truncate flex items-center'>
-                <HandCoins className='mr-2 h-4 w-4' />
-                Offered
+                <ArrowDownIcon className='mr-2 h-4 w-4' />
+                Receiving
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className='text-sm font-medium'>
+            <CardContent className='flex flex-col divide-y'>
+              <div className='text-sm text-muted-foreground'>
                 The assets being given to you as part of this offer.
               </div>
 
-              <Assets
-                amount={requestedAmount}
-                cats={requestedCats}
-                nfts={requestedNfts}
-              />
+              <div className='mt-4'>
+                <Assets
+                  amount={requestedAmount}
+                  cats={requestedCats}
+                  nfts={requestedNfts}
+                />
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -212,11 +192,11 @@ function Assets({ amount, cats, nfts }: AssetsProps) {
   }
 
   return (
-    <div className='mt-4 flex flex-col gap-2'>
+    <div className='flex flex-col space-y-4 divide-y [&>*]:pt-4 divide-neutral-200 dark:divide-neutral-800'>
       {amount.isGreaterThan(0) && (
-        <div className='mt-2 flex items-center gap-2 p-1.5 rounded-md border bg-neutral-900'>
-          <Badge className='max-w-[100px]'>
-            <span className='truncate'>Chia</span>
+        <div className='flex justify-between items-center gap-2 rounded-md'>
+          <Badge>
+            <span className='truncate'>XCH</span>
           </Badge>
           <div className='text-sm font-medium'>
             {amount.toString()} {walletState.sync.unit.ticker}
@@ -225,40 +205,43 @@ function Assets({ amount, cats, nfts }: AssetsProps) {
       )}
 
       {Object.entries(cats).map(([assetId, cat], i) => (
-        <div
-          key={i}
-          className='mt-2 flex flex-col gap-1.5 p-1.5 rounded-md border bg-neutral-900'
-        >
-          <div className='flex items-center gap-2'>
-            <Badge className='max-w-[100px]'>
-              <span className='truncate'>CAT</span>
-            </Badge>
-            <div className='text-sm font-medium truncate'>
-              {cat.amount} {cat.ticker} ({cat.name})
+        <div key={i} className='flex flex-col gap-1.5 rounded-md'>
+          <div className='overflow-hidden flex justify-between items-center gap-2'>
+            <div className='truncate flex items-center gap-2'>
+              <Badge className='max-w-[100px] bg-blue-600 text-white'>
+                <span className='truncate'>CAT</span>
+              </Badge>
+              <div className='text-xs text-muted-foreground truncate'>
+                {cat.name
+                  ? `${cat.name} (${assetId.substring(0, 6)}...${assetId.substring(
+                      assetId.length - 6,
+                    )})`
+                  : assetId.substring(0, 6) +
+                    '...' +
+                    assetId.substring(assetId.length - 6)}
+              </div>
+            </div>
+            <div className='text-sm font-medium whitespace-nowrap'>
+              {cat.amount} {cat.ticker}
             </div>
           </div>
-
-          <Separator />
-
-          <div className='text-xs truncate'>{assetId}</div>
         </div>
       ))}
 
       {Object.entries(nfts).map(([launcherId, nft], i) => (
-        <div
-          key={i}
-          className='mt-2 flex flex-col gap-1.5 p-1.5 rounded-md border bg-neutral-900'
-        >
-          <div className='flex items-center gap-2'>
-            <Badge className='max-w-[100px]'>
-              <span className='truncate'>NFT</span>
-            </Badge>
-            <div className='text-sm font-medium truncate'>{nft.name}</div>
+        <div key={i} className='flex flex-col gap-1.5 rounded-md'>
+          <div className='overflow-hidden flex justify-between items-center gap-2'>
+            <div className='truncate flex items-center gap-2'>
+              <Badge className='max-w-[100px] bg-green-600 text-white'>
+                <span className='truncate'>NFT</span>
+              </Badge>
+              <div className='max-w-[10rem] text-xs truncate text-muted-foreground'>
+                {launcherId}
+              </div>
+            </div>
+
+            <div className='text-sm font-medium'>{nft.name}</div>
           </div>
-
-          <Separator />
-
-          <div className='text-xs truncate'>{launcherId}</div>
         </div>
       ))}
     </div>
