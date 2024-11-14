@@ -101,11 +101,14 @@ impl Wallet {
             return Err(WalletError::MissingNft(nft_id));
         };
 
-        let total_amount = fee as u128 + 1;
-        let coins = self.select_p2_coins(total_amount).await?;
+        let coins = if fee > 0 {
+            self.select_p2_coins(fee as u128).await?
+        } else {
+            Vec::new()
+        };
         let selected: u128 = coins.iter().map(|coin| coin.amount as u128).sum();
 
-        let change: u64 = (selected - total_amount)
+        let change: u64 = (selected - fee as u128)
             .try_into()
             .expect("change amount overflow");
 
@@ -121,17 +124,17 @@ impl Wallet {
 
         let new_nft = nft.transfer(&mut ctx, &p2, puzzle_hash, Conditions::new())?;
 
-        let mut conditions = Conditions::new().assert_concurrent_spend(nft.coin.coin_id());
-
         if fee > 0 {
-            conditions = conditions.reserve_fee(fee);
-        }
+            let mut conditions = Conditions::new()
+                .assert_concurrent_spend(nft.coin.coin_id())
+                .reserve_fee(fee);
 
-        if change > 0 {
-            conditions = conditions.create_coin(p2_puzzle_hash, change, Vec::new());
-        }
+            if change > 0 {
+                conditions = conditions.create_coin(p2_puzzle_hash, change, Vec::new());
+            }
 
-        self.spend_p2_coins(&mut ctx, coins, conditions).await?;
+            self.spend_p2_coins(&mut ctx, coins, conditions).await?;
+        }
 
         let new_nft = new_nft.with_metadata(ctx.serialize(&new_nft.info.metadata)?);
 
@@ -150,11 +153,14 @@ impl Wallet {
             return Err(WalletError::MissingNft(nft_id));
         };
 
-        let total_amount = fee as u128 + 1;
-        let coins = self.select_p2_coins(total_amount).await?;
+        let coins = if fee > 0 {
+            self.select_p2_coins(fee as u128).await?
+        } else {
+            Vec::new()
+        };
         let selected: u128 = coins.iter().map(|coin| coin.amount as u128).sum();
 
-        let change: u64 = (selected - total_amount)
+        let change: u64 = (selected - fee as u128)
             .try_into()
             .expect("change amount overflow");
 
@@ -177,20 +183,84 @@ impl Wallet {
             Conditions::new(),
         )?;
 
-        let mut conditions = Conditions::new().assert_concurrent_spend(nft.coin.coin_id());
-
         if fee > 0 {
-            conditions = conditions.reserve_fee(fee);
-        }
+            let mut conditions = Conditions::new()
+                .assert_concurrent_spend(nft.coin.coin_id())
+                .reserve_fee(fee);
 
-        if change > 0 {
-            conditions = conditions.create_coin(p2_puzzle_hash, change, Vec::new());
-        }
+            if change > 0 {
+                conditions = conditions.create_coin(p2_puzzle_hash, change, Vec::new());
+            }
 
-        self.spend_p2_coins(&mut ctx, coins, conditions).await?;
+            self.spend_p2_coins(&mut ctx, coins, conditions).await?;
+        }
 
         let new_nft = new_nft.with_metadata(ctx.serialize(&new_nft.info.metadata)?);
 
         Ok((ctx.take(), new_nft))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use sqlx::SqlitePool;
+    use test_log::test;
+
+    use crate::{SyncEvent, TestWallet};
+
+    use super::*;
+
+    #[test(sqlx::test)]
+    async fn test_mint_nft(pool: SqlitePool) -> anyhow::Result<()> {
+        let mut test = TestWallet::new(pool, 2).await?;
+
+        let (coin_spends, did) = test.wallet.create_did(0, false, true).await?;
+        test.transact(coin_spends).await?;
+        test.consume_until(SyncEvent::CoinState).await;
+
+        let (coin_spends, mut nfts, _did) = test
+            .wallet
+            .bulk_mint_nfts(
+                0,
+                did.info.launcher_id,
+                vec![WalletNftMint {
+                    metadata: NftMetadata::default(),
+                    royalty_puzzle_hash: Some(Bytes32::default()),
+                    royalty_ten_thousandths: 300,
+                }],
+                false,
+                true,
+            )
+            .await?;
+        test.transact(coin_spends).await?;
+        test.consume_until(SyncEvent::PuzzleBatchSynced).await;
+
+        let puzzle_hash = test.wallet.p2_puzzle_hash(false, true).await?;
+
+        let nft = nfts.remove(0);
+
+        for item in [
+            MetadataUpdate::NewDataUri("abc".to_string()),
+            MetadataUpdate::NewMetadataUri("xyz".to_string()),
+            MetadataUpdate::NewLicenseUri("123".to_string()),
+        ] {
+            let (coin_spends, _nft) = test
+                .wallet
+                .add_nft_uri(nft.info.launcher_id, 0, item, false, true)
+                .await?;
+            test.transact(coin_spends).await?;
+            test.consume_until(SyncEvent::CoinState).await;
+        }
+
+        for _ in 0..2 {
+            let (coin_spends, _nft) = test
+                .wallet
+                .transfer_nft(nft.info.launcher_id, puzzle_hash, 0, false, true)
+                .await?;
+            test.transact(coin_spends).await?;
+            test.consume_until(SyncEvent::CoinState).await;
+        }
+
+        Ok(())
     }
 }

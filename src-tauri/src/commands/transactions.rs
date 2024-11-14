@@ -13,7 +13,7 @@ use chia_wallet_sdk::{
 };
 use clvmr::Allocator;
 use hex_literal::hex;
-use indexmap::{IndexMap, IndexSet};
+use indexmap::IndexMap;
 use sage_api::{
     Amount, AssetKind, BulkMintNfts, BulkMintNftsResponse, CatAmount, CoinJson, CoinSpendJson,
     Input, MakeOffer, NftUriKind, OfferSummary, OfferedCoin, Output, RequestedAsset,
@@ -22,7 +22,7 @@ use sage_api::{
 use sage_database::{CatRow, Database};
 use sage_wallet::{
     compute_nft_info, fetch_nft_offer_details, fetch_uris, insert_transaction, ChildKind, CoinKind,
-    Data, OfferRequest, OfferedCoins, SyncCommand, Transaction, Wallet, WalletNftMint,
+    Data, MakerSide, SyncCommand, TakerSide, Transaction, Wallet, WalletNftMint,
 };
 use specta::specta;
 use tauri::{command, State};
@@ -609,7 +609,7 @@ pub async fn make_offer(state: State<'_, AppState>, request: MakeOffer) -> Resul
         offered_cats.insert(asset_id, amount);
     }
 
-    let mut offered_nfts = IndexSet::new();
+    let mut offered_nfts = Vec::new();
 
     for nft_id in request.offered_assets.nfts {
         let (launcher_id, prefix) = decode_address(&nft_id)?;
@@ -618,7 +618,7 @@ pub async fn make_offer(state: State<'_, AppState>, request: MakeOffer) -> Resul
             return Err(Error::invalid_prefix(&prefix));
         }
 
-        offered_nfts.insert(launcher_id.into());
+        offered_nfts.push(launcher_id.into());
     }
 
     let Some(requested_xch) = request.requested_assets.xch.to_mojos(state.unit.decimals) else {
@@ -665,13 +665,13 @@ pub async fn make_offer(state: State<'_, AppState>, request: MakeOffer) -> Resul
 
     let unsigned = wallet
         .make_offer(
-            OfferedCoins {
+            MakerSide {
                 xch: offered_xch,
                 cats: offered_cats,
                 nfts: offered_nfts,
                 fee,
             },
-            OfferRequest {
+            TakerSide {
                 xch: requested_xch,
                 cats: requested_cats,
                 nfts: requested_nfts,
@@ -687,7 +687,7 @@ pub async fn make_offer(state: State<'_, AppState>, request: MakeOffer) -> Resul
     };
 
     let offer = wallet
-        .sign_offer(
+        .sign_make_offer(
             unsigned,
             &if state.config.network.network_id == "mainnet" {
                 AggSigConstants::new(MAINNET_CONSTANTS.agg_sig_me_additional_data)
@@ -699,6 +699,59 @@ pub async fn make_offer(state: State<'_, AppState>, request: MakeOffer) -> Resul
         .await?;
 
     Ok(offer.encode()?)
+}
+
+#[command]
+#[specta]
+pub async fn take_offer(state: State<'_, AppState>, offer: String, fee: Amount) -> Result<()> {
+    let state = state.lock().await;
+    let wallet = state.wallet()?;
+
+    let offer = Offer::decode(&offer)?;
+
+    let Some(fee) = fee.to_mojos(state.unit.decimals) else {
+        return Err(Error::invalid_amount(&fee));
+    };
+
+    let unsigned = wallet.take_offer(offer, fee, false, true).await?;
+
+    let (_mnemonic, Some(master_sk)) = state.keychain.extract_secrets(wallet.fingerprint, b"")?
+    else {
+        return Err(Error::no_secret_key());
+    };
+
+    let spend_bundle = wallet
+        .sign_take_offer(
+            unsigned,
+            &if state.config.network.network_id == "mainnet" {
+                AggSigConstants::new(MAINNET_CONSTANTS.agg_sig_me_additional_data)
+            } else {
+                AggSigConstants::new(TESTNET11_CONSTANTS.agg_sig_me_additional_data)
+            },
+            master_sk,
+        )
+        .await?;
+
+    let mut tx = wallet.db.tx().await?;
+
+    let subscriptions = insert_transaction(
+        &mut tx,
+        spend_bundle.name(),
+        Transaction::from_coin_spends(spend_bundle.coin_spends)?,
+        spend_bundle.aggregated_signature,
+    )
+    .await?;
+
+    tx.commit().await?;
+
+    state
+        .command_sender
+        .send(SyncCommand::SubscribeCoins {
+            coin_ids: subscriptions,
+        })
+        .await?;
+
+    Ok(())
 }
 
 #[command]

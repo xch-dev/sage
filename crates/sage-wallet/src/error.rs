@@ -4,7 +4,7 @@ use chia::{
     clvm_traits::{FromClvmError, ToClvmError},
     protocol::Bytes32,
 };
-use chia_wallet_sdk::{ClientError, CoinSelectionError, DriverError, SignerError};
+use chia_wallet_sdk::{ClientError, CoinSelectionError, DriverError, OfferError, SignerError};
 use clvmr::reduction::EvalErr;
 use sage_database::DatabaseError;
 use thiserror::Error;
@@ -23,6 +23,9 @@ pub enum WalletError {
 
     #[error("Signer error: {0}")]
     Signer(#[from] SignerError),
+
+    #[error("Offer error: {0}")]
+    Offer(#[from] OfferError),
 
     #[error("Coin selection error: {0}")]
     CoinSelection(#[from] CoinSelectionError),
@@ -83,4 +86,13 @@ pub enum WalletError {
 
     #[error("Invalid royalty amount")]
     InvalidRoyaltyAmount,
+
+    #[error("Invalid requested payment")]
+    InvalidRequestedPayment,
+
+    #[error("Unknown requested payment mod hash {0}")]
+    UnknownRequestedPayment(Bytes32),
+
+    #[error("Duplicate NFT requested payment with id {0}")]
+    DuplicateNftRequestedPayment(Bytes32),
 }

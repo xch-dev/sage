@@ -2,7 +2,7 @@ use std::{sync::Arc, time::Duration};
 
 use chia::{
     bls::{master_to_wallet_unhardened_intermediate, DerivableKey, SecretKey},
-    protocol::{Bytes32, CoinSpend},
+    protocol::{Bytes32, CoinSpend, SpendBundle},
     puzzles::{standard::StandardArgs, DeriveSynthetic},
 };
 use chia_wallet_sdk::{
@@ -117,6 +117,12 @@ impl TestWallet {
             )
             .await?;
 
+        self.push_bundle(spend_bundle).await?;
+
+        Ok(())
+    }
+
+    pub async fn push_bundle(&self, spend_bundle: SpendBundle) -> anyhow::Result<()> {
         let mut tx = self.wallet.db.tx().await?;
 
         let subscriptions = insert_transaction(

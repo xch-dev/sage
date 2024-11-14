@@ -8,13 +8,13 @@ use chia_wallet_sdk::{HashedPtr, Nft, Puzzle};
 use clvmr::Allocator;
 use tokio::time::{sleep, timeout};
 
-use crate::{NftOfferDetails, WalletError, WalletPeer};
+use crate::{RequestedNft, WalletError, WalletPeer};
 
 pub async fn fetch_nft_offer_details(
     peer: &WalletPeer,
     launcher_id: Bytes32,
-) -> Result<Option<NftOfferDetails>, WalletError> {
-    let mut offer_details = None::<NftOfferDetails>;
+) -> Result<Option<RequestedNft>, WalletError> {
+    let mut offer_details = None::<RequestedNft>;
     let mut current_id = launcher_id;
     let mut parent = None;
 
@@ -57,7 +57,7 @@ pub async fn fetch_nft_offer_details(
         .ok()
         .flatten()
         {
-            offer_details = Some(NftOfferDetails {
+            offer_details = Some(RequestedNft {
                 metadata: Program::from_clvm(&allocator, nft.info.metadata.ptr())?,
                 metadata_updater_puzzle_hash: nft.info.metadata_updater_puzzle_hash,
                 royalty_puzzle_hash: nft.info.royalty_puzzle_hash,

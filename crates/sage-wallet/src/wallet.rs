@@ -7,7 +7,6 @@ mod cats;
 mod coin_selection;
 mod derivations;
 mod dids;
-mod make_offer;
 mod nfts;
 mod offer;
 mod p2_coin_management;

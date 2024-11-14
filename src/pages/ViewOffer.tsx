@@ -167,7 +167,19 @@ export function ViewOffer() {
             Save Offer
           </Button>
 
-          <Button onClick={() => {}}>Take Offer</Button>
+          <Button
+            onClick={() => {
+              commands.takeOffer(offer!, '0.00005').then((result) => {
+                if (result.status === 'error') {
+                  setError(result.error);
+                } else {
+                  navigate('/offers');
+                }
+              });
+            }}
+          >
+            Take Offer
+          </Button>
         </div>
 
         <ErrorDialog
