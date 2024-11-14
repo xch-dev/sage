@@ -283,7 +283,7 @@ async fn summarize_offer(
                 image_mime_type: info.image_mime_type,
                 name: info.name,
                 royalty_percent: (BigDecimal::from(nft.info.royalty_ten_thousandths)
-                    / BigDecimal::from(10000))
+                    / BigDecimal::from(100))
                 .to_string(),
             },
         );
@@ -332,7 +332,7 @@ async fn summarize_offer(
                 image_mime_type: info.image_mime_type,
                 name: info.name,
                 royalty_percent: (BigDecimal::from(nft.royalty_ten_thousandths)
-                    / BigDecimal::from(10000))
+                    / BigDecimal::from(100))
                 .to_string(),
             },
         );
