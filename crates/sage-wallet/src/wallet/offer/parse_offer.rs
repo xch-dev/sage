@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use chia::{
     clvm_traits::{FromClvm, ToClvm},
     protocol::{Bytes32, Coin},
@@ -90,6 +92,12 @@ pub fn parse_locked_coins(
     let mut nfts = IndexMap::new();
     let mut fee = 0;
 
+    let spent_coin_ids: HashSet<Bytes32> = offer
+        .coin_spends
+        .iter()
+        .map(|coin_spend| coin_spend.coin.coin_id())
+        .collect();
+
     for coin_spend in &offer.coin_spends {
         let puzzle = coin_spend.puzzle_reveal.to_clvm(allocator)?;
         let puzzle = Puzzle::parse(allocator, puzzle);
@@ -113,6 +121,10 @@ pub fn parse_locked_coins(
         }
 
         for coin in coins {
+            if spent_coin_ids.contains(&coin.coin_id()) {
+                continue;
+            }
+
             if coin.puzzle_hash == SETTLEMENT_PAYMENTS_PUZZLE_HASH.into() {
                 xch.push(coin);
             }
@@ -120,6 +132,10 @@ pub fn parse_locked_coins(
 
         if let Some(children) = Cat::parse_children(allocator, coin_spend.coin, puzzle, solution)? {
             for child in children {
+                if spent_coin_ids.contains(&child.coin.coin_id()) {
+                    continue;
+                }
+
                 if child.p2_puzzle_hash == SETTLEMENT_PAYMENTS_PUZZLE_HASH.into() {
                     cats.entry(child.asset_id)
                         .or_insert_with(Vec::new)
@@ -131,7 +147,9 @@ pub fn parse_locked_coins(
         if let Some(child) =
             Nft::<HashedPtr>::parse_child(allocator, coin_spend.coin, puzzle, solution)?
         {
-            if child.info.p2_puzzle_hash == SETTLEMENT_PAYMENTS_PUZZLE_HASH.into() {
+            if !spent_coin_ids.contains(&child.coin.coin_id())
+                && child.info.p2_puzzle_hash == SETTLEMENT_PAYMENTS_PUZZLE_HASH.into()
+            {
                 nfts.insert(child.info.launcher_id, child);
             }
         }
