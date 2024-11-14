@@ -1,20 +1,16 @@
-use chia::{
-    clvm_traits::{FromClvm, ToClvm},
-    protocol::{Bytes32, Coin},
-    puzzles::offer::SETTLEMENT_PAYMENTS_PUZZLE_HASH,
-};
+use bigdecimal::BigDecimal;
+use chia::{clvm_traits::FromClvm, protocol::Bytes32, puzzles::nft::NftMetadata};
 use chia_wallet_sdk::{
-    decode_address, encode_address, run_puzzle, AggSigConstants, Condition, Conditions, Offer,
-    Puzzle, MAINNET_CONSTANTS, TESTNET11_CONSTANTS,
+    decode_address, encode_address, AggSigConstants, Offer, SpendContext, MAINNET_CONSTANTS,
+    TESTNET11_CONSTANTS,
 };
-use clvmr::Allocator;
 use indexmap::IndexMap;
 use sage_api::{
-    Amount, AssetKind, CatAmount, MakeOffer, OfferSummary, OfferedCoin, RequestedAsset,
+    Amount, CatAmount, MakeOffer, OfferAssets, OfferCat, OfferNft, OfferSummary, OfferXch,
 };
 use sage_wallet::{
-    fetch_nft_offer_details, insert_transaction, ChildKind, CoinKind, MakerSide, SyncCommand,
-    TakerSide, Transaction, Wallet,
+    calculate_royalties, fetch_nft_offer_details, insert_transaction, parse_locked_coins,
+    parse_offer_payments, MakerSide, NftRoyaltyInfo, SyncCommand, TakerSide, Transaction, Wallet,
 };
 use specta::specta;
 use tauri::{command, State};
@@ -205,181 +201,146 @@ async fn summarize_offer(
     wallet: &Wallet,
     offer: Offer,
 ) -> Result<OfferSummary> {
-    let mut allocator = Allocator::new();
-    let offer = offer.parse(&mut allocator)?;
+    let mut ctx = SpendContext::new();
 
-    let mut offered = Vec::new();
-    let mut fee = 0;
+    let offer = offer.parse(&mut ctx.allocator)?;
+    let locked_coins = parse_locked_coins(&mut ctx.allocator, &offer)?;
+    let maker_amounts = locked_coins.amounts();
 
-    for coin_spend in &offer.coin_spends {
-        let parent_coin = coin_spend.coin;
-        let parent_puzzle = coin_spend.puzzle_reveal.to_clvm(&mut allocator)?;
-        let parent_puzzle = Puzzle::parse(&allocator, parent_puzzle);
-        let parent_solution = coin_spend.solution.to_clvm(&mut allocator)?;
+    let mut builder = offer.take();
+    let requested_payments = parse_offer_payments(&mut ctx, &mut builder)?;
+    let taker_amounts = requested_payments.amounts();
 
-        let output = run_puzzle(&mut allocator, parent_puzzle.ptr(), parent_solution)?;
-        let conditions = Conditions::from_clvm(&allocator, output)?;
+    let maker_royalties = calculate_royalties(
+        &maker_amounts,
+        &requested_payments
+            .nfts
+            .values()
+            .map(|(nft, _payments)| NftRoyaltyInfo {
+                launcher_id: nft.launcher_id,
+                royalty_puzzle_hash: nft.royalty_puzzle_hash,
+                royalty_ten_thousandths: nft.royalty_ten_thousandths,
+            })
+            .collect::<Vec<_>>(),
+    )?;
 
-        let mut coins = Vec::new();
+    let taker_royalties = calculate_royalties(
+        &taker_amounts,
+        &locked_coins
+            .nfts
+            .values()
+            .map(|nft| NftRoyaltyInfo {
+                launcher_id: nft.info.launcher_id,
+                royalty_puzzle_hash: nft.info.royalty_puzzle_hash,
+                royalty_ten_thousandths: nft.info.royalty_ten_thousandths,
+            })
+            .collect::<Vec<_>>(),
+    )?;
 
-        for condition in conditions.clone() {
-            match condition {
-                Condition::CreateCoin(cond) => coins.push(Coin::new(
-                    parent_coin.coin_id(),
-                    cond.puzzle_hash,
-                    cond.amount,
-                )),
-                Condition::ReserveFee(cond) => fee += cond.amount,
-                _ => {}
-            }
-        }
+    let maker_royalties = maker_royalties.amounts();
+    let taker_royalties = taker_royalties.amounts();
 
-        let mut offered_amount = 0;
-        let mut kind = AssetKind::Unknown;
+    let mut maker = OfferAssets {
+        xch: OfferXch {
+            amount: Amount::from_mojos(maker_amounts.xch as u128, state.unit.decimals),
+            royalty: Amount::from_mojos(maker_royalties.xch as u128, state.unit.decimals),
+        },
+        cats: IndexMap::new(),
+        nfts: IndexMap::new(),
+    };
 
-        for coin in coins {
-            if matches!(kind, AssetKind::Unknown)
-                && coin.puzzle_hash == SETTLEMENT_PAYMENTS_PUZZLE_HASH.into()
-            {
-                kind = AssetKind::Xch;
-            }
+    for (asset_id, amount) in maker_amounts.cats {
+        let cat = wallet.db.cat(asset_id).await?;
 
-            let child = ChildKind::from_parent_cached(
-                &mut allocator,
-                parent_coin,
-                parent_puzzle,
-                parent_solution,
-                conditions.clone().into_iter().collect(),
-                coin,
-            )?;
-
-            if child.p2_puzzle_hash() != Some(SETTLEMENT_PAYMENTS_PUZZLE_HASH.into())
-                && coin.puzzle_hash != SETTLEMENT_PAYMENTS_PUZZLE_HASH.into()
-            {
-                continue;
-            }
-
-            offered_amount += coin.amount;
-
-            match child {
-                ChildKind::Launcher | ChildKind::Unknown { .. } => {}
-                ChildKind::Cat { asset_id, .. } => {
-                    // TODO: Melt?
-
-                    let cat = wallet.db.cat(asset_id).await?;
-
-                    kind = AssetKind::Cat {
-                        asset_id: hex::encode(asset_id),
-                        name: cat.as_ref().and_then(|cat| cat.name.clone()),
-                        ticker: cat.as_ref().and_then(|cat| cat.ticker.clone()),
-                        icon_url: cat.as_ref().and_then(|cat| cat.icon.clone()),
-                    };
-                }
-                ChildKind::Did { info, .. } => {
-                    let name = wallet.db.did_name(info.launcher_id).await?;
-
-                    kind = AssetKind::Did {
-                        launcher_id: encode_address(info.launcher_id.into(), "did:chia:")?,
-                        name,
-                    };
-                }
-                ChildKind::Nft { info, metadata, .. } => {
-                    let extracted =
-                        extract_nft_data(Some(&wallet.db), metadata, &ConfirmationInfo::default())
-                            .await?;
-
-                    kind = AssetKind::Nft {
-                        launcher_id: encode_address(info.launcher_id.into(), "nft")?,
-                        image_data: extracted.image_data,
-                        image_mime_type: extracted.image_mime_type,
-                        name: extracted.name,
-                    };
-                }
-            }
-        }
-
-        offered.push(OfferedCoin {
-            coin_id: hex::encode(parent_coin.coin_id()),
-            offered_amount: Amount::from_mojos(
-                offered_amount as u128,
-                if matches!(kind, AssetKind::Cat { .. }) {
-                    3
-                } else {
-                    state.unit.decimals
-                },
-            ),
-            kind,
-        });
+        maker.cats.insert(
+            hex::encode(asset_id),
+            OfferCat {
+                amount: Amount::from_mojos(amount as u128, 3),
+                royalty: Amount::from_mojos(
+                    maker_royalties.cats.get(&asset_id).copied().unwrap_or(0) as u128,
+                    3,
+                ),
+                name: cat.as_ref().and_then(|cat| cat.name.clone()),
+                ticker: cat.as_ref().and_then(|cat| cat.ticker.clone()),
+                icon_url: cat.as_ref().and_then(|cat| cat.icon.clone()),
+            },
+        );
     }
 
-    let mut requested = Vec::new();
+    for (launcher_id, nft) in locked_coins.nfts {
+        let metadata = NftMetadata::from_clvm(&ctx.allocator, nft.info.metadata.ptr())?;
+        let info = extract_nft_data(
+            Some(&wallet.db),
+            Some(metadata),
+            &ConfirmationInfo::default(),
+        )
+        .await?;
 
-    for (_hash, (puzzle, payments)) in offer.requested_payments {
-        let kind = CoinKind::from_puzzle_cached(&allocator, puzzle)?;
+        maker.nfts.insert(
+            encode_address(launcher_id.to_bytes(), "nft")?,
+            OfferNft {
+                image_data: info.image_data,
+                image_mime_type: info.image_mime_type,
+                name: info.name,
+                royalty_percent: (BigDecimal::from(nft.info.royalty_ten_thousandths)
+                    / BigDecimal::from(10000))
+                .to_string(),
+            },
+        );
+    }
 
-        let payments: u64 = payments
-            .into_iter()
-            .flat_map(|item| item.payments)
-            .map(|payment| payment.amount)
-            .sum();
+    let mut taker = OfferAssets {
+        xch: OfferXch {
+            amount: Amount::from_mojos(taker_amounts.xch as u128, state.unit.decimals),
+            royalty: Amount::from_mojos(taker_royalties.xch as u128, state.unit.decimals),
+        },
+        cats: IndexMap::new(),
+        nfts: IndexMap::new(),
+    };
 
-        let kind = match kind {
-            CoinKind::Unknown => {
-                if puzzle.curried_puzzle_hash() == SETTLEMENT_PAYMENTS_PUZZLE_HASH {
-                    AssetKind::Xch
-                } else {
-                    AssetKind::Unknown
-                }
-            }
-            CoinKind::Launcher => AssetKind::Launcher,
-            CoinKind::Cat { asset_id, .. } => {
-                let cat = wallet.db.cat(asset_id).await?;
+    for (asset_id, amount) in taker_amounts.cats {
+        let cat = wallet.db.cat(asset_id).await?;
 
-                AssetKind::Cat {
-                    asset_id: hex::encode(asset_id),
-                    name: cat.as_ref().and_then(|cat| cat.name.clone()),
-                    ticker: cat.as_ref().and_then(|cat| cat.ticker.clone()),
-                    icon_url: cat.as_ref().and_then(|cat| cat.icon.clone()),
-                }
-            }
-            CoinKind::Did { info } => {
-                let name = wallet.db.did_name(info.launcher_id).await?;
+        taker.cats.insert(
+            hex::encode(asset_id),
+            OfferCat {
+                amount: Amount::from_mojos(amount as u128, 3),
+                royalty: Amount::from_mojos(
+                    taker_royalties.cats.get(&asset_id).copied().unwrap_or(0) as u128,
+                    3,
+                ),
+                name: cat.as_ref().and_then(|cat| cat.name.clone()),
+                ticker: cat.as_ref().and_then(|cat| cat.ticker.clone()),
+                icon_url: cat.as_ref().and_then(|cat| cat.icon.clone()),
+            },
+        );
+    }
 
-                AssetKind::Did {
-                    launcher_id: encode_address(info.launcher_id.into(), "did:chia:")?,
-                    name,
-                }
-            }
-            CoinKind::Nft { info, metadata } => {
-                let extracted =
-                    extract_nft_data(Some(&wallet.db), metadata, &ConfirmationInfo::default())
-                        .await?;
+    for (launcher_id, (nft, _payments)) in requested_payments.nfts {
+        let metadata = NftMetadata::from_clvm(&ctx.allocator, nft.metadata.ptr())?;
+        let info = extract_nft_data(
+            Some(&wallet.db),
+            Some(metadata),
+            &ConfirmationInfo::default(),
+        )
+        .await?;
 
-                AssetKind::Nft {
-                    launcher_id: encode_address(info.launcher_id.into(), "nft")?,
-                    image_data: extracted.image_data,
-                    image_mime_type: extracted.image_mime_type,
-                    name: extracted.name,
-                }
-            }
-        };
-
-        requested.push(RequestedAsset {
-            amount: Amount::from_mojos(
-                payments as u128,
-                if matches!(kind, AssetKind::Cat { .. }) {
-                    3
-                } else {
-                    state.unit.decimals
-                },
-            ),
-            kind,
-        });
+        taker.nfts.insert(
+            encode_address(launcher_id.to_bytes(), "nft")?,
+            OfferNft {
+                image_data: info.image_data,
+                image_mime_type: info.image_mime_type,
+                name: info.name,
+                royalty_percent: (BigDecimal::from(nft.royalty_ten_thousandths)
+                    / BigDecimal::from(10000))
+                .to_string(),
+            },
+        );
     }
 
     Ok(OfferSummary {
-        fee: Amount::from_mojos(fee as u128, state.unit.decimals),
-        offered,
-        requested,
+        fee: Amount::from_mojos(locked_coins.fee as u128, state.unit.decimals),
+        maker,
+        taker,
     })
 }

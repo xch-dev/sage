@@ -1,4 +1,4 @@
-import { Amount, commands, Error, OfferSummary } from '@/bindings';
+import { commands, Error, OfferAssets, OfferSummary } from '@/bindings';
 import Container from '@/components/Container';
 import ErrorDialog from '@/components/ErrorDialog';
 import Header from '@/components/Header';
@@ -8,56 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useWalletState } from '@/state';
 import BigNumber from 'bignumber.js';
 import { ArrowDownIcon, ArrowUpIcon } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-
-interface NftSummary {
-  name: string;
-}
-
-interface CatSummary {
-  name: string;
-  ticker: string;
-  amount: Amount;
-}
-
-function processAssets(assets: any[] | undefined) {
-  let amount = BigNumber(0);
-  const cats: Record<string, CatSummary> = {};
-  const nfts: Record<string, NftSummary> = {};
-
-  for (const asset of assets || []) {
-    console.log(asset);
-
-    switch (asset.type) {
-      case 'xch':
-        amount = amount.plus(asset.offered_amount || asset.amount);
-        break;
-
-      case 'cat':
-        if (!(asset.asset_id in cats)) {
-          cats[asset.asset_id] = {
-            amount: '0',
-            name: asset.name || 'Unknown',
-            ticker: asset.ticker || 'CAT',
-          };
-        }
-
-        cats[asset.asset_id].amount = BigNumber(cats[asset.asset_id].amount)
-          .plus(asset.offered_amount || asset.amount)
-          .toString();
-        break;
-
-      case 'nft':
-        nfts[asset.launcher_id] = {
-          name: asset.name || 'Unknown',
-        };
-        break;
-    }
-  }
-
-  return { amount, cats, nfts };
-}
 
 export function ViewOffer() {
   const { offer } = useParams();
@@ -79,18 +31,6 @@ export function ViewOffer() {
     });
   }, [offer]);
 
-  const {
-    amount: requestedAmount,
-    cats: requestedCats,
-    nfts: requestedNfts,
-  } = useMemo(() => processAssets(summary?.offered), [summary]);
-
-  const {
-    amount: offeredAmount,
-    cats: offeredCats,
-    nfts: offeredNfts,
-  } = useMemo(() => processAssets(summary?.requested), [summary]);
-
   return (
     <>
       <Header title='View Offer' />
@@ -111,9 +51,13 @@ export function ViewOffer() {
 
               <div className='mt-4'>
                 <Assets
-                  amount={offeredAmount}
-                  cats={offeredCats}
-                  nfts={offeredNfts}
+                  assets={
+                    summary?.taker ?? {
+                      xch: { amount: '0', royalty: '0' },
+                      cats: {},
+                      nfts: {},
+                    }
+                  }
                 />
               </div>
             </CardContent>
@@ -133,9 +77,13 @@ export function ViewOffer() {
 
               <div className='mt-4'>
                 <Assets
-                  amount={requestedAmount}
-                  cats={requestedCats}
-                  nfts={requestedNfts}
+                  assets={
+                    summary?.maker ?? {
+                      xch: { amount: '0', royalty: '0' },
+                      cats: {},
+                      nfts: {},
+                    }
+                  }
                 />
               </div>
             </CardContent>
@@ -175,18 +123,18 @@ export function ViewOffer() {
 }
 
 interface AssetsProps {
-  amount: BigNumber;
-  cats: Record<string, CatSummary>;
-  nfts: Record<string, NftSummary>;
+  assets: OfferAssets;
 }
 
-function Assets({ amount, cats, nfts }: AssetsProps) {
+function Assets({ assets }: AssetsProps) {
   const walletState = useWalletState();
+
+  const amount = BigNumber(assets.xch.amount);
 
   if (
     amount.isLessThanOrEqualTo(0) &&
-    Object.keys(cats).length === 0 &&
-    Object.keys(nfts).length === 0
+    Object.keys(assets.cats).length === 0 &&
+    Object.keys(assets.nfts).length === 0
   ) {
     return <></>;
   }
@@ -204,7 +152,7 @@ function Assets({ amount, cats, nfts }: AssetsProps) {
         </div>
       )}
 
-      {Object.entries(cats).map(([assetId, cat], i) => (
+      {Object.entries(assets.cats).map(([assetId, cat], i) => (
         <div key={i} className='flex flex-col gap-1.5 rounded-md'>
           <div className='overflow-hidden flex justify-between items-center gap-2'>
             <div className='truncate flex items-center gap-2'>
@@ -228,7 +176,7 @@ function Assets({ amount, cats, nfts }: AssetsProps) {
         </div>
       ))}
 
-      {Object.entries(nfts).map(([launcherId, nft], i) => (
+      {Object.entries(assets.nfts).map(([launcherId, nft], i) => (
         <div key={i} className='flex flex-col gap-1.5 rounded-md'>
           <div className='overflow-hidden flex justify-between items-center gap-2'>
             <div className='truncate flex items-center gap-2'>
