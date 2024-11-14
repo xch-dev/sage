@@ -80,15 +80,15 @@ export function ViewOffer() {
   }, [offer]);
 
   const {
-    amount: offeredAmount,
-    cats: offeredCats,
-    nfts: offeredNfts,
-  } = useMemo(() => processAssets(summary?.offered), [summary]);
-
-  const {
     amount: requestedAmount,
     cats: requestedCats,
     nfts: requestedNfts,
+  } = useMemo(() => processAssets(summary?.offered), [summary]);
+
+  const {
+    amount: offeredAmount,
+    cats: offeredCats,
+    nfts: offeredNfts,
   } = useMemo(() => processAssets(summary?.requested), [summary]);
 
   return (
@@ -208,7 +208,7 @@ function Assets({ amount, cats, nfts }: AssetsProps) {
         <div key={i} className='flex flex-col gap-1.5 rounded-md'>
           <div className='overflow-hidden flex justify-between items-center gap-2'>
             <div className='truncate flex items-center gap-2'>
-              <Badge className='max-w-[100px] bg-blue-600 text-white'>
+              <Badge className='max-w-[100px] bg-blue-600 text-white dark:bg-blue-600 dark:text-white'>
                 <span className='truncate'>CAT</span>
               </Badge>
               <div className='text-xs text-muted-foreground truncate'>
@@ -232,7 +232,7 @@ function Assets({ amount, cats, nfts }: AssetsProps) {
         <div key={i} className='flex flex-col gap-1.5 rounded-md'>
           <div className='overflow-hidden flex justify-between items-center gap-2'>
             <div className='truncate flex items-center gap-2'>
-              <Badge className='max-w-[100px] bg-green-600 text-white'>
+              <Badge className='max-w-[100px] bg-green-600 text-white dark:bg-green-600 dark:text-white'>
                 <span className='truncate'>NFT</span>
               </Badge>
               <div className='max-w-[10rem] text-xs truncate text-muted-foreground'>
