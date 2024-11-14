@@ -1,16 +1,46 @@
 import Container from '@/components/Container';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { useWalletState } from '@/state';
 import { HandCoins } from 'lucide-react';
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { useState } from 'react';
 
 export function Offers() {
   const navigate = useNavigate();
   const walletState = useWalletState();
+  const [offerString, setOfferString] = useState('');
+  const [dialogOpen, setDialogOpen] = useState(false);
+
+  const viewOffer = useCallback(
+    (offer: string) => {
+      if (offer.trim()) {
+        navigate(`/offers/view/${encodeURIComponent(offer.trim())}`);
+      }
+    },
+    [navigate],
+  );
+
+  useEffect(() => {
+    const handlePaste = (e: ClipboardEvent) => {
+      const text = e.clipboardData?.getData('text');
+      if (text) {
+        viewOffer(text);
+      }
+    };
+
+    window.addEventListener('paste', handlePaste);
+    return () => window.removeEventListener('paste', handlePaste);
+  }, [viewOffer]);
 
   useEffect(() => {
     if (
@@ -26,59 +56,66 @@ export function Offers() {
     }
   }, [navigate, walletState]);
 
+  const handleViewOffer = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    viewOffer(offerString);
+  };
+
   return (
     <>
-      <Header title='Offers' />
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <Header title='Offers'>
+          <div className='flex items-center gap-2'>
+            <DialogTrigger asChild>
+              <Button variant='outline' className='flex items-center gap-1'>
+                View offer
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Enter Offer String</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleViewOffer} className='flex flex-col gap-4'>
+                <Textarea
+                  placeholder='Paste your offer string here...'
+                  value={offerString}
+                  onChange={(e) => setOfferString(e.target.value)}
+                  className='min-h-[200px] font-mono text-xs'
+                />
+                <Button type='submit'>View Offer</Button>
+              </form>
+            </DialogContent>
+            <Link to='/offers/make'>
+              <Button>New offer</Button>
+            </Link>
+          </div>
+        </Header>
 
-      <Container>
-        <div className='grid grid-cols-1 gap-4 lg:grid-cols-2'>
-          <Card>
-            <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2 pr-2 space-x-2'>
-              <CardTitle className='text-md font-medium truncate flex items-center'>
-                <HandCoins className='mr-2 h-4 w-4' />
-                Offer Builder
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className='text-sm font-medium'>
-                You can create an offer file that when taken will swap any
-                number of tokens trustlessly without an intermediary. This file
-                can be shared peer to peer or on decentralized exchanges like
-                Dexie.
-              </div>
-
+        <Container>
+          <div className='flex flex-col items-center justify-center py-12 text-center gap-4'>
+            <HandCoins className='h-12 w-12 text-muted-foreground' />
+            <div>
+              <h2 className='text-lg font-semibold'>No Offers yet</h2>
+              <p className='mt-2 text-sm text-muted-foreground'>
+                Create a new offer to get started with peer-to-peer trading.
+              </p>
+              <p className='mt-1 text-sm text-muted-foreground'>
+                You can also paste an offer using <kbd>Ctrl+V</kbd>.
+              </p>
+            </div>
+            <div className='flex gap-2'>
+              <DialogTrigger asChild>
+                <Button variant='outline' className='flex items-center gap-1'>
+                  View offer
+                </Button>
+              </DialogTrigger>
               <Link to='/offers/make'>
-                <Button className='mt-4'>Make Offer</Button>
+                <Button>Create new offer</Button>
               </Link>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2 pr-2 space-x-2'>
-              <CardTitle className='text-md font-medium truncate flex items-center'>
-                <HandCoins className='mr-2 h-4 w-4' />
-                View Offer
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className='text-sm font-medium'>
-                Enter a full offer file here to view information about the
-                offer, including the offered and requested assets. You can
-                decide whether to take the offer after reviewing its details.
-              </div>
-
-              <Input
-                className='mt-4'
-                placeholder='Paste offer file here'
-                onChange={(e) => {
-                  const offer = e.target.value.trim();
-                  navigate(`/offers/view/${offer}`);
-                }}
-              />
-            </CardContent>
-          </Card>
-        </div>
-      </Container>
+            </div>
+          </div>
+        </Container>
+      </Dialog>
     </>
   );
 }
