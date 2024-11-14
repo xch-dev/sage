@@ -181,7 +181,7 @@ function AssetSelector({ prefix, assets, setAssets }: AssetSelectorProps) {
           onClick={() => {
             setAssets({
               ...assets,
-              nfts: [...assets.nfts, ''],
+              nfts: ['', ...assets.nfts],
             });
           }}
         >
@@ -194,7 +194,7 @@ function AssetSelector({ prefix, assets, setAssets }: AssetSelectorProps) {
           onClick={() => {
             setAssets({
               ...assets,
-              cats: [...assets.cats, { asset_id: '', amount: '' }],
+              cats: [{ asset_id: '', amount: '' }, ...assets.cats],
             });
           }}
         >

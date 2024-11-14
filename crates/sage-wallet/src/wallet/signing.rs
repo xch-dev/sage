@@ -13,16 +13,16 @@ use clvmr::Allocator;
 
 use crate::WalletError;
 
-use super::{UnsignedOffer, Wallet};
+use super::{UnsignedMakeOffer, UnsignedTakeOffer, Wallet};
 
 impl Wallet {
-    pub async fn sign_offer(
+    pub async fn sign_make_offer(
         &self,
-        info: UnsignedOffer,
+        info: UnsignedMakeOffer,
         agg_sig_constants: &AggSigConstants,
         master_sk: SecretKey,
     ) -> Result<Offer, WalletError> {
-        let UnsignedOffer {
+        let UnsignedMakeOffer {
             mut ctx,
             coin_spends,
             builder,
@@ -33,6 +33,24 @@ impl Wallet {
             .await?;
 
         Ok(builder.bundle(&mut ctx, spend_bundle)?)
+    }
+
+    pub async fn sign_take_offer(
+        &self,
+        info: UnsignedTakeOffer,
+        agg_sig_constants: &AggSigConstants,
+        master_sk: SecretKey,
+    ) -> Result<SpendBundle, WalletError> {
+        let UnsignedTakeOffer {
+            coin_spends,
+            builder,
+        } = info;
+
+        let spend_bundle = self
+            .sign_transaction(coin_spends, agg_sig_constants, master_sk)
+            .await?;
+
+        Ok(builder.bundle(spend_bundle))
     }
 
     pub async fn sign_transaction(

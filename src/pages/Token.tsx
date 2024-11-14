@@ -1,6 +1,7 @@
 import CoinList from '@/components/CoinList';
 import ConfirmationDialog from '@/components/ConfirmationDialog';
 import Container from '@/components/Container';
+import { CopyButton } from '@/components/CopyButton';
 import Header from '@/components/Header';
 import { ReceiveAddress } from '@/components/ReceiveAddress';
 import { Button } from '@/components/ui/button';
@@ -29,6 +30,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { usePrices } from '@/contexts/PriceContext';
 import { amount } from '@/lib/formTypes';
 import { useWalletState } from '@/state';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -52,8 +54,6 @@ import {
   events,
   TransactionSummary,
 } from '../bindings';
-import { usePrices } from '@/contexts/PriceContext';
-import { CopyButton } from '@/components/CopyButton';
 
 export default function Token() {
   const navigate = useNavigate();

@@ -1,62 +1,15 @@
-use chia::protocol::{Bytes32, Coin, CoinSpend, Program};
+mod lock_assets;
+mod make_offer;
+mod offer_coins;
+mod parse_offer;
+mod royalties;
+mod take_offer;
+mod unlock_assets;
 
-use chia_wallet_sdk::{
-    AssertPuzzleAnnouncement, Cat, Nft, OfferBuilder, Partial, SpendContext, TradePrice,
-};
-use indexmap::{IndexMap, IndexSet};
-
-use super::offer_royalties::Royalty;
-
-#[derive(Debug, Clone)]
-pub struct OfferedCoins {
-    pub xch: u64,
-    pub cats: IndexMap<Bytes32, u64>,
-    pub nfts: IndexSet<Bytes32>,
-    pub fee: u64,
-}
-
-#[derive(Debug, Clone)]
-pub struct OfferRequest {
-    pub xch: u64,
-    pub cats: IndexMap<Bytes32, u64>,
-    pub nfts: IndexMap<Bytes32, NftOfferDetails>,
-}
-
-#[derive(Debug, Clone)]
-pub struct NftOfferDetails {
-    pub metadata: Program,
-    pub metadata_updater_puzzle_hash: Bytes32,
-    pub royalty_puzzle_hash: Bytes32,
-    pub royalty_ten_thousandths: u16,
-}
-
-#[derive(Debug)]
-pub struct UnsignedOffer {
-    pub ctx: SpendContext,
-    pub coin_spends: Vec<CoinSpend>,
-    pub builder: OfferBuilder<Partial>,
-}
-
-#[derive(Debug, Clone)]
-pub struct OfferSpend {
-    pub p2_coins: Vec<Coin>,
-    pub p2_amount: u64,
-    pub fee: u64,
-    pub royalties: Vec<Royalty>,
-    pub cats: Vec<CatOfferSpend>,
-    pub nfts: Vec<NftOfferSpend>,
-    pub assertions: Vec<AssertPuzzleAnnouncement>,
-    pub change_puzzle_hash: Bytes32,
-}
-
-#[derive(Debug, Clone)]
-pub struct CatOfferSpend {
-    pub coins: Vec<Cat>,
-    pub amount: u64,
-}
-
-#[derive(Debug, Clone)]
-pub struct NftOfferSpend {
-    pub nft: Nft<Program>,
-    pub trade_prices: Vec<TradePrice>,
-}
+pub use lock_assets::*;
+pub use make_offer::*;
+pub use offer_coins::*;
+pub use parse_offer::*;
+pub use royalties::*;
+pub use take_offer::*;
+pub use unlock_assets::*;
