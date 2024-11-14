@@ -163,4 +163,75 @@ mod tests {
 
         Ok(())
     }
+
+    #[test(sqlx::test)]
+    async fn test_nft_for_xch(pool: SqlitePool) -> anyhow::Result<()> {
+        let mut test = TestWallet::new(pool, 1032).await?;
+
+        let (coin_spends, did) = test.wallet.create_did(0, false, true).await?;
+        test.transact(coin_spends).await?;
+        test.consume_until(SyncEvent::CoinState).await;
+
+        let (coin_spends, mut nfts, _did) = test
+            .wallet
+            .bulk_mint_nfts(
+                0,
+                did.info.launcher_id,
+                vec![WalletNftMint {
+                    metadata: NftMetadata::default(),
+                    royalty_puzzle_hash: Some(Bytes32::default()),
+                    royalty_ten_thousandths: 300,
+                }],
+                false,
+                true,
+            )
+            .await?;
+        test.transact(coin_spends).await?;
+        test.consume_until(SyncEvent::PuzzleBatchSynced).await;
+
+        let nft = nfts.remove(0);
+
+        // Create offer
+        let offer = test
+            .wallet
+            .make_offer(
+                MakerSide {
+                    xch: 0,
+                    cats: IndexMap::new(),
+                    nfts: vec![nft.info.launcher_id],
+                    fee: 0,
+                },
+                TakerSide {
+                    xch: 1000,
+                    cats: IndexMap::new(),
+                    nfts: IndexMap::new(),
+                },
+                false,
+                true,
+            )
+            .await?;
+        let offer = test
+            .wallet
+            .sign_make_offer(
+                offer,
+                &AggSigConstants::new(TESTNET11_CONSTANTS.agg_sig_me_additional_data),
+                test.master_sk.clone(),
+            )
+            .await?;
+
+        // Take offer
+        let offer = test.wallet.take_offer(offer, 0, false, true).await?;
+        let spend_bundle = test
+            .wallet
+            .sign_take_offer(
+                offer,
+                &AggSigConstants::new(TESTNET11_CONSTANTS.agg_sig_me_additional_data),
+                test.master_sk.clone(),
+            )
+            .await?;
+        test.push_bundle(spend_bundle).await?;
+        test.consume_until(SyncEvent::CoinState).await;
+
+        Ok(())
+    }
 }
