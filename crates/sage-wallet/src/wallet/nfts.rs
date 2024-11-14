@@ -203,16 +203,15 @@ impl Wallet {
 
 #[cfg(test)]
 mod tests {
-    use sqlx::SqlitePool;
     use test_log::test;
 
     use crate::{SyncEvent, TestWallet};
 
     use super::*;
 
-    #[test(sqlx::test)]
-    async fn test_mint_nft(pool: SqlitePool) -> anyhow::Result<()> {
-        let mut test = TestWallet::new(pool, 2).await?;
+    #[test(tokio::test)]
+    async fn test_mint_nft() -> anyhow::Result<()> {
+        let mut test = TestWallet::new(2).await?;
 
         let (coin_spends, did) = test.wallet.create_did(0, false, true).await?;
         test.transact(coin_spends).await?;
