@@ -421,6 +421,14 @@ async makeOffer(request: MakeOffer) : Promise<Result<string, Error>> {
     else return { status: "error", error: e  as any };
 }
 },
+async takeOffer(offer: string, fee: Amount) : Promise<Result<null, Error>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("take_offer", { offer, fee }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async viewOffer(offer: string) : Promise<Result<OfferSummary, Error>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("view_offer", { offer }) };

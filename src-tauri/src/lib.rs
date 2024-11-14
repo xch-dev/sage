@@ -77,6 +77,7 @@ pub fn run() {
             commands::transfer_did,
             commands::add_nft_uri,
             commands::make_offer,
+            commands::take_offer,
             commands::view_offer,
             commands::sign_transaction,
             commands::submit_transaction,

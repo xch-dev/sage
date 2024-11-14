@@ -703,6 +703,59 @@ pub async fn make_offer(state: State<'_, AppState>, request: MakeOffer) -> Resul
 
 #[command]
 #[specta]
+pub async fn take_offer(state: State<'_, AppState>, offer: String, fee: Amount) -> Result<()> {
+    let state = state.lock().await;
+    let wallet = state.wallet()?;
+
+    let offer = Offer::decode(&offer)?;
+
+    let Some(fee) = fee.to_mojos(state.unit.decimals) else {
+        return Err(Error::invalid_amount(&fee));
+    };
+
+    let unsigned = wallet.take_offer(offer, fee, false, true).await?;
+
+    let (_mnemonic, Some(master_sk)) = state.keychain.extract_secrets(wallet.fingerprint, b"")?
+    else {
+        return Err(Error::no_secret_key());
+    };
+
+    let spend_bundle = wallet
+        .sign_take_offer(
+            unsigned,
+            &if state.config.network.network_id == "mainnet" {
+                AggSigConstants::new(MAINNET_CONSTANTS.agg_sig_me_additional_data)
+            } else {
+                AggSigConstants::new(TESTNET11_CONSTANTS.agg_sig_me_additional_data)
+            },
+            master_sk,
+        )
+        .await?;
+
+    let mut tx = wallet.db.tx().await?;
+
+    let subscriptions = insert_transaction(
+        &mut tx,
+        spend_bundle.name(),
+        Transaction::from_coin_spends(spend_bundle.coin_spends)?,
+        spend_bundle.aggregated_signature,
+    )
+    .await?;
+
+    tx.commit().await?;
+
+    state
+        .command_sender
+        .send(SyncCommand::SubscribeCoins {
+            coin_ids: subscriptions,
+        })
+        .await?;
+
+    Ok(())
+}
+
+#[command]
+#[specta]
 pub async fn view_offer(state: State<'_, AppState>, offer: String) -> Result<OfferSummary> {
     let state = state.lock().await;
     let wallet = state.wallet()?;
