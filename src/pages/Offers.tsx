@@ -63,9 +63,9 @@ export function Offers() {
 
   return (
     <>
-      <Header title='Offers'>
-        <div className='flex items-center gap-2'>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <Header title='Offers'>
+          <div className='flex items-center gap-2'>
             <DialogTrigger asChild>
               <Button variant='outline' className='flex items-center gap-1'>
                 View offer
@@ -85,30 +85,37 @@ export function Offers() {
                 <Button type='submit'>View Offer</Button>
               </form>
             </DialogContent>
-          </Dialog>
-          <Link to='/offers/make'>
-            <Button>New offer</Button>
-          </Link>
-        </div>
-      </Header>
-
-      <Container>
-        <div className='flex flex-col items-center justify-center py-12 text-center gap-4'>
-          <HandCoins className='h-12 w-12 text-muted-foreground' />
-          <div>
-            <h2 className='text-lg font-semibold'>No Offers yet</h2>
-            <p className='mt-2 text-sm text-muted-foreground'>
-              Create a new offer to get started with peer-to-peer trading.
-            </p>
-            <p className='mt-1 text-sm text-muted-foreground'>
-              You can also paste an offer using <kbd>Ctrl+V</kbd>.
-            </p>
+            <Link to='/offers/make'>
+              <Button>New offer</Button>
+            </Link>
           </div>
-          <Link to='/offers/make'>
-            <Button>Create new offer</Button>
-          </Link>
-        </div>
-      </Container>
+        </Header>
+
+        <Container>
+          <div className='flex flex-col items-center justify-center py-12 text-center gap-4'>
+            <HandCoins className='h-12 w-12 text-muted-foreground' />
+            <div>
+              <h2 className='text-lg font-semibold'>No Offers yet</h2>
+              <p className='mt-2 text-sm text-muted-foreground'>
+                Create a new offer to get started with peer-to-peer trading.
+              </p>
+              <p className='mt-1 text-sm text-muted-foreground'>
+                You can also paste an offer using <kbd>Ctrl+V</kbd>.
+              </p>
+            </div>
+            <div className='flex gap-2'>
+              <DialogTrigger asChild>
+                <Button variant='outline' className='flex items-center gap-1'>
+                  View offer
+                </Button>
+              </DialogTrigger>
+              <Link to='/offers/make'>
+                <Button>Create new offer</Button>
+              </Link>
+            </div>
+          </div>
+        </Container>
+      </Dialog>
     </>
   );
 }
