@@ -21,3 +21,4 @@ specta = { workspace = true, features = ["derive", "bigdecimal"] }
 bigdecimal = { workspace = true, features = ["serde"] }
 once_cell = { workspace = true }
 num-traits = { workspace = true }
+indexmap = { workspace = true }

@@ -30,7 +30,6 @@ impl Wallet {
 
         let mut builder = offer.take();
         let requested_payments = parse_offer_payments(&mut ctx, &mut builder)?;
-
         let taker_amounts = requested_payments.amounts();
 
         let taker_royalties = calculate_royalties(
