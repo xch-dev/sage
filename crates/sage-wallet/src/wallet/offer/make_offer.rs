@@ -146,9 +146,10 @@ impl Wallet {
 
         let trade_prices = calculate_trade_prices(&taker_amounts, maker.nfts.len())?;
 
-        // TODO: Assert royalties. This is IMPORTANT.
         let (assertions, builder) = builder.finish();
-        let extra_conditions = Conditions::new().extend(assertions);
+        let extra_conditions = Conditions::new()
+            .extend(assertions)
+            .extend(maker_royalties.assertions());
 
         // Spend the assets.
         self.lock_assets(

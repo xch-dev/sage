@@ -1,8 +1,14 @@
 use chia::{
     protocol::Bytes32,
-    puzzles::{cat::CatArgs, offer::SETTLEMENT_PAYMENTS_PUZZLE_HASH},
+    puzzles::{
+        cat::CatArgs,
+        offer::{NotarizedPayment, Payment, SETTLEMENT_PAYMENTS_PUZZLE_HASH},
+    },
 };
-use chia_wallet_sdk::{calculate_nft_royalty, calculate_nft_trace_price, TradePrice};
+use chia_wallet_sdk::{
+    calculate_nft_royalty, calculate_nft_trace_price, payment_assertion, AssertPuzzleAnnouncement,
+    TradePrice,
+};
 use indexmap::IndexMap;
 
 use crate::WalletError;
@@ -38,6 +44,28 @@ impl Royalties {
 
         amounts
     }
+
+    pub fn assertions(&self) -> Vec<AssertPuzzleAnnouncement> {
+        let mut assertions = Vec::new();
+
+        for royalty in &self.xch {
+            assertions.push(payment_assertion(
+                SETTLEMENT_PAYMENTS_PUZZLE_HASH.into(),
+                &royalty.notarized_payment(),
+            ));
+        }
+
+        for (&asset_id, royalties) in &self.cats {
+            for royalty in royalties {
+                assertions.push(payment_assertion(
+                    CatArgs::curry_tree_hash(asset_id, SETTLEMENT_PAYMENTS_PUZZLE_HASH).into(),
+                    &royalty.notarized_payment(),
+                ));
+            }
+        }
+
+        assertions
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -45,6 +73,19 @@ pub struct RoyaltyPayment {
     pub nft_id: Bytes32,
     pub p2_puzzle_hash: Bytes32,
     pub amount: u64,
+}
+
+impl RoyaltyPayment {
+    pub fn notarized_payment(&self) -> NotarizedPayment {
+        NotarizedPayment {
+            nonce: self.nft_id,
+            payments: vec![Payment::with_memos(
+                self.p2_puzzle_hash,
+                self.amount,
+                vec![self.p2_puzzle_hash.into()],
+            )],
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
