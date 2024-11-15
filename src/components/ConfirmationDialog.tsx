@@ -216,7 +216,8 @@ export default function ConfirmationDialog({
     },
     null,
     2,
-  );
+  ).replace(/"amount": "(.*?)"/g, '"amount": $1');
+  // TODO: Fix the above hack
 
   const [jsonCopied, setJsonCopied] = useState(false);
 

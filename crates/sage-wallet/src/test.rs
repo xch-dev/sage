@@ -29,6 +29,7 @@ static INDEX: Mutex<u32> = Mutex::const_new(0);
 #[derive(Debug)]
 pub struct TestWallet {
     pub sim: Arc<PeerSimulator>,
+    pub agg_sig: AggSigConstants,
     pub peer: Peer,
     pub wallet: Arc<Wallet>,
     pub master_sk: SecretKey,
@@ -116,6 +117,7 @@ impl TestWallet {
 
         let mut test = TestWallet {
             sim,
+            agg_sig: AggSigConstants::new(TESTNET11_CONSTANTS.agg_sig_me_additional_data),
             peer,
             wallet,
             master_sk: sk,
@@ -134,11 +136,7 @@ impl TestWallet {
     pub async fn transact(&self, coin_spends: Vec<CoinSpend>) -> anyhow::Result<()> {
         let spend_bundle = self
             .wallet
-            .sign_transaction(
-                coin_spends,
-                &AggSigConstants::new(TESTNET11_CONSTANTS.agg_sig_me_additional_data),
-                self.master_sk.clone(),
-            )
+            .sign_transaction(coin_spends, &self.agg_sig, self.master_sk.clone())
             .await?;
 
         self.push_bundle(spend_bundle).await?;

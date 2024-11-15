@@ -9,7 +9,7 @@ use chia::{
     protocol::{Bytes32, CoinStateUpdate, Message, NewPeakWallet, ProtocolMessageTypes},
     traits::Streamable,
 };
-use chia_wallet_sdk::{ClientError, Connector, Network};
+use chia_wallet_sdk::{ClientError, Connector, Network, MAINNET_CONSTANTS, TESTNET11_CONSTANTS};
 use futures_lite::future::poll_once;
 use itertools::Itertools;
 use tokio::{
@@ -191,11 +191,6 @@ impl SyncManager {
 
         if let InitialWalletSync::Subscribed(ip) = self.initial_wallet_sync {
             if let Some(info) = self.state.lock().await.peer(ip) {
-                debug!(
-                    "Subscribing to {} new coin ids",
-                    self.pending_coin_subscriptions.len()
-                );
-
                 // TODO: Handle cases
                 timeout(
                     Duration::from_secs(3),
@@ -372,15 +367,17 @@ impl SyncManager {
             }
 
             if self.cat_queue_task.is_none() && !self.options.testing {
-                let task = tokio::spawn(
-                    CatQueue::new(
-                        wallet.db.clone(),
-                        self.network.clone(),
-                        self.event_sender.clone(),
-                    )
-                    .start(self.options.timeouts.cat_delay),
-                );
-                self.cat_queue_task = Some(task);
+                let mainnet = self.network.genesis_challenge == MAINNET_CONSTANTS.genesis_challenge;
+                let testnet =
+                    self.network.genesis_challenge == TESTNET11_CONSTANTS.genesis_challenge;
+
+                if mainnet || testnet {
+                    let task = tokio::spawn(
+                        CatQueue::new(wallet.db.clone(), testnet, self.event_sender.clone())
+                            .start(self.options.timeouts.cat_delay),
+                    );
+                    self.cat_queue_task = Some(task);
+                }
             }
 
             if self.nft_uri_queue_task.is_none() && !self.options.testing {

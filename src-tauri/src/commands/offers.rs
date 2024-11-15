@@ -1,9 +1,6 @@
 use bigdecimal::BigDecimal;
 use chia::{clvm_traits::FromClvm, protocol::Bytes32, puzzles::nft::NftMetadata};
-use chia_wallet_sdk::{
-    decode_address, encode_address, AggSigConstants, Offer, SpendContext, MAINNET_CONSTANTS,
-    TESTNET11_CONSTANTS,
-};
+use chia_wallet_sdk::{decode_address, encode_address, AggSigConstants, Offer, SpendContext};
 use indexmap::IndexMap;
 use sage_api::{
     Amount, CatAmount, MakeOffer, OfferAssets, OfferCat, OfferNft, OfferSummary, OfferXch,
@@ -123,11 +120,7 @@ pub async fn make_offer(state: State<'_, AppState>, request: MakeOffer) -> Resul
     let offer = wallet
         .sign_make_offer(
             unsigned,
-            &if state.config.network.network_id == "mainnet" {
-                AggSigConstants::new(MAINNET_CONSTANTS.agg_sig_me_additional_data)
-            } else {
-                AggSigConstants::new(TESTNET11_CONSTANTS.agg_sig_me_additional_data)
-            },
+            &AggSigConstants::new(hex::decode(&state.network().agg_sig_me)?.try_into()?),
             master_sk,
         )
         .await?;
@@ -157,11 +150,7 @@ pub async fn take_offer(state: State<'_, AppState>, offer: String, fee: Amount) 
     let spend_bundle = wallet
         .sign_take_offer(
             unsigned,
-            &if state.config.network.network_id == "mainnet" {
-                AggSigConstants::new(MAINNET_CONSTANTS.agg_sig_me_additional_data)
-            } else {
-                AggSigConstants::new(TESTNET11_CONSTANTS.agg_sig_me_additional_data)
-            },
+            &AggSigConstants::new(hex::decode(&state.network().agg_sig_me)?.try_into()?),
             master_sk,
         )
         .await?;

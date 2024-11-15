@@ -216,6 +216,9 @@ export default function Nft() {
                     `https://${config?.network_id !== 'mainnet' ? 'testnet.' : ''}mintgarden.io/nfts/${nft?.launcher_id}`,
                   );
                 }}
+                disabled={
+                  !['mainnet', 'testnet11'].includes(config?.network_id ?? '')
+                }
               >
                 <img
                   src='https://mintgarden.io/mint-logo.svg'
@@ -232,6 +235,9 @@ export default function Nft() {
                     `https://${config?.network_id !== 'mainnet' ? 'testnet11.' : ''}spacescan.io/nft/${nft?.launcher_id}`,
                   );
                 }}
+                disabled={
+                  !['mainnet', 'testnet11'].includes(config?.network_id ?? '')
+                }
               >
                 <img
                   src='https://spacescan.io/images/spacescan-logo-192.png'

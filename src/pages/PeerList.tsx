@@ -6,7 +6,6 @@ import {
   useReactTable,
 } from '@tanstack/react-table';
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { commands, PeerRecord } from '../bindings';
 
 import { Button } from '@/components/ui/button';
@@ -48,8 +47,6 @@ import {
 } from 'lucide-react';
 
 export default function NetworkList() {
-  const navigate = useNavigate();
-
   const [peers, setPeers] = useState<PeerRecord[] | null>(null);
   const [isAddOpen, setAddOpen] = useState(false);
   const [ip, setIp] = useState('');
@@ -182,7 +179,11 @@ export default function NetworkList() {
                     <Button
                       onClick={() => {
                         setAddOpen(false);
-                        commands.addPeer(ip, trusted);
+                        commands.addPeer(ip, trusted).then((result) => {
+                          if (result.status === 'error') {
+                            console.error(result.error);
+                          }
+                        });
                         setIp;
                       }}
                       autoFocus

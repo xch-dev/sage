@@ -27,7 +27,7 @@ pub struct CoinSpendJson {
 pub struct CoinJson {
     pub parent_coin_info: String,
     pub puzzle_hash: String,
-    pub amount: u64,
+    pub amount: Amount,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]

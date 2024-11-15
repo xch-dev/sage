@@ -1,15 +1,13 @@
 use std::{collections::HashMap, time::Duration};
 
 use base64::prelude::*;
+use bigdecimal::BigDecimal;
 use chia::{
     bls::Signature,
     protocol::{Bytes32, Coin, CoinSpend, SpendBundle},
     puzzles::nft::NftMetadata,
 };
-use chia_wallet_sdk::{
-    decode_address, encode_address, AggSigConstants, MetadataUpdate, MAINNET_CONSTANTS,
-    TESTNET11_CONSTANTS,
-};
+use chia_wallet_sdk::{decode_address, encode_address, AggSigConstants, MetadataUpdate};
 use hex_literal::hex;
 use sage_api::{
     Amount, AssetKind, BulkMintNfts, BulkMintNftsResponse, CoinJson, CoinSpendJson, Input,
@@ -614,11 +612,7 @@ pub async fn sign_transaction(
     let spend_bundle = wallet
         .sign_transaction(
             coin_spends.iter().map(rust_spend).collect::<Result<_>>()?,
-            &if state.config.network.network_id == "mainnet" {
-                AggSigConstants::new(MAINNET_CONSTANTS.agg_sig_me_additional_data)
-            } else {
-                AggSigConstants::new(TESTNET11_CONSTANTS.agg_sig_me_additional_data)
-            },
+            &AggSigConstants::new(hex::decode(&state.network().agg_sig_me)?.try_into()?),
             master_sk,
         )
         .await?;
@@ -844,7 +838,7 @@ fn json_coin(coin: &Coin) -> CoinJson {
     CoinJson {
         parent_coin_info: format!("0x{}", hex::encode(coin.parent_coin_info)),
         puzzle_hash: format!("0x{}", hex::encode(coin.puzzle_hash)),
-        amount: coin.amount,
+        amount: Amount::new(BigDecimal::from(coin.amount)),
     }
 }
 
@@ -873,7 +867,10 @@ fn rust_coin(coin: &CoinJson) -> Result<Coin> {
     Ok(Coin {
         parent_coin_info: decode_hex_sized(&coin.parent_coin_info)?.into(),
         puzzle_hash: decode_hex_sized(&coin.puzzle_hash)?.into(),
-        amount: coin.amount,
+        amount: coin
+            .amount
+            .to_mojos(0)
+            .ok_or(Error::invalid_amount(&coin.amount))?,
     })
 }
 
