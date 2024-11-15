@@ -474,9 +474,9 @@ pub async fn bulk_mint_nfts(
 
 #[command]
 #[specta]
-pub async fn transfer_nft(
+pub async fn transfer_nfts(
     state: State<'_, AppState>,
-    nft_id: String,
+    nft_ids: Vec<String>,
     address: String,
     fee: Amount,
 ) -> Result<TransactionSummary> {
@@ -487,10 +487,16 @@ pub async fn transfer_nft(
         return Err(Error::no_secret_key());
     }
 
-    let (launcher_id, prefix) = decode_address(&nft_id)?;
+    let mut launcher_ids = Vec::new();
 
-    if prefix != "nft" {
-        return Err(Error::invalid_prefix(&prefix));
+    for nft_id in nft_ids {
+        let (launcher_id, prefix) = decode_address(&nft_id)?;
+
+        if prefix != "nft" {
+            return Err(Error::invalid_prefix(&prefix));
+        }
+
+        launcher_ids.push(launcher_id.into());
     }
 
     let (puzzle_hash, prefix) = decode_address(&address)?;
@@ -502,8 +508,8 @@ pub async fn transfer_nft(
         return Err(Error::invalid_amount(&fee));
     };
 
-    let (coin_spends, _new_nft) = wallet
-        .transfer_nft(launcher_id.into(), puzzle_hash.into(), fee, false, true)
+    let coin_spends = wallet
+        .transfer_nft(launcher_ids, puzzle_hash.into(), fee, false, true)
         .await?;
 
     summarize(&state, &wallet, coin_spends, ConfirmationInfo::default()).await
@@ -550,9 +556,9 @@ pub async fn add_nft_uri(
 
 #[command]
 #[specta]
-pub async fn transfer_did(
+pub async fn transfer_dids(
     state: State<'_, AppState>,
-    did_id: String,
+    did_ids: Vec<String>,
     address: String,
     fee: Amount,
 ) -> Result<TransactionSummary> {
@@ -563,10 +569,16 @@ pub async fn transfer_did(
         return Err(Error::no_secret_key());
     }
 
-    let (launcher_id, prefix) = decode_address(&did_id)?;
+    let mut launcher_ids = Vec::new();
 
-    if prefix != "did:chia:" {
-        return Err(Error::invalid_prefix(&prefix));
+    for did_id in did_ids {
+        let (launcher_id, prefix) = decode_address(&did_id)?;
+
+        if prefix != "did:chia:" {
+            return Err(Error::invalid_prefix(&prefix));
+        }
+
+        launcher_ids.push(launcher_id.into());
     }
 
     let (puzzle_hash, prefix) = decode_address(&address)?;
@@ -578,8 +590,8 @@ pub async fn transfer_did(
         return Err(Error::invalid_amount(&fee));
     };
 
-    let (coin_spends, _new_ndid) = wallet
-        .transfer_did(launcher_id.into(), puzzle_hash.into(), fee, false, true)
+    let coin_spends = wallet
+        .transfer_dids(launcher_ids, puzzle_hash.into(), fee, false, true)
         .await?;
 
     summarize(&state, &wallet, coin_spends, ConfirmationInfo::default()).await

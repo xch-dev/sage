@@ -162,7 +162,7 @@ function Profile({ did, updateDids }: ProfileProps) {
 
   const onTransferSubmit = (values: z.infer<typeof transferFormSchema>) => {
     commands
-      .transferDid(did.launcher_id, values.address, values.fee)
+      .transferDids([did.launcher_id], values.address, values.fee)
       .then((result) => {
         setTransferOpen(false);
         if (result.status === 'error') {
@@ -189,7 +189,11 @@ function Profile({ did, updateDids }: ProfileProps) {
 
   const onBurnSubmit = (values: z.infer<typeof burnFormSchema>) => {
     commands
-      .transferDid(did.launcher_id, walletState.sync.burn_address, values.fee)
+      .transferDids(
+        [did.launcher_id],
+        walletState.sync.burn_address,
+        values.fee,
+      )
       .then((result) => {
         setBurnOpen(false);
         if (result.status === 'error') {

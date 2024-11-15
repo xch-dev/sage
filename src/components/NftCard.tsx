@@ -104,7 +104,7 @@ export function NftCard({ nft, updateNfts }: NftProps) {
 
   const onTransferSubmit = (values: z.infer<typeof transferFormSchema>) => {
     commands
-      .transferNft(nft.launcher_id, values.address, values.fee)
+      .transferNfts([nft.launcher_id], values.address, values.fee)
       .then((result) => {
         setTransferOpen(false);
         if (result.status === 'error') {
@@ -167,7 +167,11 @@ export function NftCard({ nft, updateNfts }: NftProps) {
 
   const onBurnSubmit = (values: z.infer<typeof burnFormSchema>) => {
     commands
-      .transferNft(nft.launcher_id, walletState.sync.burn_address, values.fee)
+      .transferNfts(
+        [nft.launcher_id],
+        walletState.sync.burn_address,
+        values.fee,
+      )
       .then((result) => {
         setBurnOpen(false);
         if (result.status === 'error') {

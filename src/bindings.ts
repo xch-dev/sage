@@ -389,17 +389,17 @@ async bulkMintNfts(request: BulkMintNfts) : Promise<Result<BulkMintNftsResponse,
     else return { status: "error", error: e  as any };
 }
 },
-async transferNft(nftId: string, address: string, fee: Amount) : Promise<Result<TransactionSummary, Error>> {
+async transferNfts(nftIds: string[], address: string, fee: Amount) : Promise<Result<TransactionSummary, Error>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("transfer_nft", { nftId, address, fee }) };
+    return { status: "ok", data: await TAURI_INVOKE("transfer_nfts", { nftIds, address, fee }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
 },
-async transferDid(didId: string, address: string, fee: Amount) : Promise<Result<TransactionSummary, Error>> {
+async transferDids(didIds: string[], address: string, fee: Amount) : Promise<Result<TransactionSummary, Error>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("transfer_did", { didId, address, fee }) };
+    return { status: "ok", data: await TAURI_INVOKE("transfer_dids", { didIds, address, fee }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
