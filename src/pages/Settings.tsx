@@ -12,21 +12,26 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import useInitialization from '@/hooks/useInitialization';
 import { useWallet } from '@/hooks/useWallet';
 import { clearState, fetchState } from '@/state';
 import { useContext, useEffect, useState } from 'react';
 import { DarkModeContext } from '../App';
 import { commands, KeyInfo, NetworkConfig, WalletConfig } from '../bindings';
 import { isValidU32 } from '../validation';
+import { Button } from '@/components/ui/button';
+import { useWalletConnect } from '@/hooks/useWalletConnect';
 
 export default function Settings() {
-  const { wallet } = useWallet();
+  const initialized = useInitialization();
+  const wallet = useWallet(initialized);
 
   return (
     <Layout>
       <Header title='Settings' />
       <Container className='max-w-2xl'>
         <div className='flex flex-col gap-4'>
+          <WalletConnectSettings />
           <GlobalSettings />
           <NetworkSettings />
           {wallet && <WalletSettings wallet={wallet} />}
@@ -53,6 +58,78 @@ function GlobalSettings() {
               onCheckedChange={(checked) => setDark(checked)}
             />
             <Label htmlFor='dark-mode'>Dark Mode</Label>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function WalletConnectSettings() {
+  const { pair, sessions, disconnect } = useWalletConnect();
+  const [uri, setUri] = useState<string>('');
+  const [error, setError] = useState<string | null>(null);
+
+  const handlePair = async () => {
+    try {
+      setError(null);
+      await pair(uri);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to connect');
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>WalletConnect</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className='grid gap-6'>
+          <div className='flex flex-col gap-4'>
+            <div className='flex flex-col gap-2'>
+              {sessions.map((session: any) => (
+                <div
+                  key={session.topic}
+                  className='flex items-center justify-between gap-1'
+                >
+                  <div className='flex gap-2 items-center'>
+                    <img
+                      src={session.peer.metadata.icons[0]}
+                      alt={session.peer.metadata.name}
+                      className='h-8 w-8'
+                    />
+                    <span className='text-sm font-medium'>
+                      {session.peer.metadata.name}
+                    </span>
+                  </div>
+                  <Button
+                    variant='destructive'
+                    size='sm'
+                    onClick={() => disconnect(session.topic)}
+                  >
+                    Disconnect
+                  </Button>
+                </div>
+              ))}
+              {sessions.length === 0 && (
+                <span className='text-sm text-gray-500'>
+                  No active sessions
+                </span>
+              )}
+            </div>
+            <div className='flex flex-col gap-2'>
+              <div className='flex gap-2'>
+                <Input
+                  id='wc-uri'
+                  type='text'
+                  placeholder='Paste WalletConnect URI'
+                  onChange={(e) => setUri(e.target.value)}
+                />
+                <Button onClick={handlePair}>Connect</Button>
+              </div>
+              {error && <span className='text-sm text-red-500'>{error}</span>}
+            </div>
           </div>
         </div>
       </CardContent>

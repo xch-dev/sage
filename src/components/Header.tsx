@@ -8,6 +8,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Nav } from './Nav';
 import { Button } from './ui/button';
 import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
+import useInitialization from '@/hooks/useInitialization';
 
 export default function Header(
   props: PropsWithChildren<{
@@ -19,7 +20,8 @@ export default function Header(
   const navigate = useNavigate();
   const location = useLocation();
 
-  const { wallet } = useWallet();
+  const initialized = useInitialization();
+  const wallet = useWallet(initialized);
   const { peers } = usePeers();
 
   const walletState = useWalletState();

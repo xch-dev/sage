@@ -33,6 +33,8 @@
     "@tauri-apps/api": "2.0.0-rc.4",
     "@tauri-apps/plugin-clipboard-manager": "2.0.0-rc.1",
     "@tauri-apps/plugin-shell": "2.0.0",
+    "@walletconnect/sign-client": "^2.17.2",
+    "@walletconnect/types": "^2.17.2",
     "bignumber.js": "^9.1.2",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
