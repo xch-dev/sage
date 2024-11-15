@@ -54,11 +54,14 @@ impl Wallet {
             return Err(WalletError::MissingDid(did_id));
         };
 
-        let total_amount = fee as u128;
-        let coins = self.select_p2_coins(total_amount).await?;
+        let coins = if fee > 0 {
+            self.select_p2_coins(fee as u128).await?
+        } else {
+            Vec::new()
+        };
         let selected: u128 = coins.iter().map(|coin| coin.amount as u128).sum();
 
-        let change: u64 = (selected - total_amount)
+        let change: u64 = (selected - fee as u128)
             .try_into()
             .expect("change amount overflow");
 
@@ -74,20 +77,52 @@ impl Wallet {
 
         let new_did = did.transfer(&mut ctx, &p2, puzzle_hash, Conditions::new())?;
 
-        let mut conditions = Conditions::new().assert_concurrent_spend(did.coin.coin_id());
-
         if fee > 0 {
-            conditions = conditions.reserve_fee(fee);
-        }
+            let mut conditions = Conditions::new()
+                .assert_concurrent_spend(did.coin.coin_id())
+                .reserve_fee(fee);
 
-        if change > 0 {
-            conditions = conditions.create_coin(p2_puzzle_hash, change, Vec::new());
-        }
+            if change > 0 {
+                conditions = conditions.create_coin(p2_puzzle_hash, change, Vec::new());
+            }
 
-        self.spend_p2_coins(&mut ctx, coins, conditions).await?;
+            self.spend_p2_coins(&mut ctx, coins, conditions).await?;
+        }
 
         let new_did = new_did.with_metadata(ctx.serialize(&new_did.info.metadata)?);
 
         Ok((ctx.take(), new_did))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{SyncEvent, TestWallet};
+
+    use test_log::test;
+
+    #[test(tokio::test)]
+    async fn test_create_did() -> anyhow::Result<()> {
+        let mut test = TestWallet::new(1).await?;
+
+        let (coin_spends, did) = test.wallet.create_did(0, false, true).await?;
+        test.transact(coin_spends).await?;
+        test.consume_until(SyncEvent::CoinState).await;
+
+        for _ in 0..2 {
+            let (coin_spends, _did) = test
+                .wallet
+                .transfer_did(did.info.launcher_id, test.puzzle_hash, 0, false, true)
+                .await?;
+            test.transact(coin_spends).await?;
+            test.consume_until(SyncEvent::CoinState).await;
+        }
+
+        assert_ne!(
+            test.wallet.db.spendable_did(did.info.launcher_id).await?,
+            None
+        );
+
+        Ok(())
     }
 }
