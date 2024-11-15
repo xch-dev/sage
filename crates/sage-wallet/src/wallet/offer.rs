@@ -24,22 +24,22 @@ mod tests {
     use chia_wallet_sdk::{AggSigConstants, TESTNET11_CONSTANTS};
     use clvmr::Allocator;
     use indexmap::{indexmap, IndexMap};
-    use sqlx::SqlitePool;
     use test_log::test;
 
     use crate::{MakerSide, RequestedNft, SyncEvent, TakerSide, TestWallet, WalletNftMint};
 
-    #[test(sqlx::test)]
-    async fn test_offer_xch_for_cat(pool: SqlitePool) -> anyhow::Result<()> {
-        let mut test = TestWallet::new(pool, 2000).await?;
+    #[test(tokio::test)]
+    async fn test_offer_xch_for_cat() -> anyhow::Result<()> {
+        let mut alice = TestWallet::new(1000).await?;
+        let mut bob = alice.next(1000).await?;
 
         // Issue CAT
-        let (coin_spends, asset_id) = test.wallet.issue_cat(1000, 0, None, false, true).await?;
-        test.transact(coin_spends).await?;
-        test.consume_until(SyncEvent::CoinState).await;
+        let (coin_spends, asset_id) = bob.wallet.issue_cat(1000, 0, None, false, true).await?;
+        bob.transact(coin_spends).await?;
+        bob.consume_until(SyncEvent::CoinState).await;
 
         // Create offer
-        let offer = test
+        let offer = alice
             .wallet
             .make_offer(
                 MakerSide {
@@ -57,40 +57,48 @@ mod tests {
                 true,
             )
             .await?;
-        let offer = test
+        let offer = alice
             .wallet
             .sign_make_offer(
                 offer,
                 &AggSigConstants::new(TESTNET11_CONSTANTS.agg_sig_me_additional_data),
-                test.master_sk.clone(),
+                alice.master_sk.clone(),
             )
             .await?;
 
         // Take offer
-        let offer = test.wallet.take_offer(offer, 0, false, true).await?;
-        let spend_bundle = test
+        let offer = bob.wallet.take_offer(offer, 0, false, true).await?;
+        let spend_bundle = bob
             .wallet
             .sign_take_offer(
                 offer,
                 &AggSigConstants::new(TESTNET11_CONSTANTS.agg_sig_me_additional_data),
-                test.master_sk.clone(),
+                bob.master_sk.clone(),
             )
             .await?;
-        test.push_bundle(spend_bundle).await?;
-        test.consume_until(SyncEvent::CoinState).await;
+        bob.push_bundle(spend_bundle).await?;
+
+        // We need to wait for both wallets to sync in this case
+        bob.consume_until(SyncEvent::CoinState).await;
+        alice.consume_until(SyncEvent::PuzzleBatchSynced).await;
+
+        // Check balances
+        assert_eq!(alice.wallet.db.cat_balance(asset_id).await?, 1000);
+        assert_eq!(bob.wallet.db.balance().await?, 750);
 
         Ok(())
     }
 
-    #[test(sqlx::test)]
-    async fn test_xch_for_nft(pool: SqlitePool) -> anyhow::Result<()> {
-        let mut test = TestWallet::new(pool, 1032).await?;
+    #[test(tokio::test)]
+    async fn test_xch_for_nft() -> anyhow::Result<()> {
+        let mut alice = TestWallet::new(1030).await?;
+        let mut bob = alice.next(2).await?;
 
-        let (coin_spends, did) = test.wallet.create_did(0, false, true).await?;
-        test.transact(coin_spends).await?;
-        test.consume_until(SyncEvent::CoinState).await;
+        let (coin_spends, did) = bob.wallet.create_did(0, false, true).await?;
+        bob.transact(coin_spends).await?;
+        bob.consume_until(SyncEvent::CoinState).await;
 
-        let (coin_spends, mut nfts, _did) = test
+        let (coin_spends, mut nfts, _did) = bob
             .wallet
             .bulk_mint_nfts(
                 0,
@@ -104,8 +112,8 @@ mod tests {
                 true,
             )
             .await?;
-        test.transact(coin_spends).await?;
-        test.consume_until(SyncEvent::PuzzleBatchSynced).await;
+        bob.transact(coin_spends).await?;
+        bob.consume_until(SyncEvent::PuzzleBatchSynced).await;
 
         let nft = nfts.remove(0);
 
@@ -114,7 +122,7 @@ mod tests {
         let metadata = Program::from_clvm(&allocator, metadata)?;
 
         // Create offer
-        let offer = test
+        let offer = alice
             .wallet
             .make_offer(
                 MakerSide {
@@ -139,40 +147,51 @@ mod tests {
                 true,
             )
             .await?;
-        let offer = test
+        let offer = alice
             .wallet
             .sign_make_offer(
                 offer,
                 &AggSigConstants::new(TESTNET11_CONSTANTS.agg_sig_me_additional_data),
-                test.master_sk.clone(),
+                alice.master_sk.clone(),
             )
             .await?;
 
         // Take offer
-        let offer = test.wallet.take_offer(offer, 0, false, true).await?;
-        let spend_bundle = test
+        let offer = bob.wallet.take_offer(offer, 0, false, true).await?;
+        let spend_bundle = bob
             .wallet
             .sign_take_offer(
                 offer,
                 &AggSigConstants::new(TESTNET11_CONSTANTS.agg_sig_me_additional_data),
-                test.master_sk.clone(),
+                bob.master_sk.clone(),
             )
             .await?;
-        test.push_bundle(spend_bundle).await?;
-        test.consume_until(SyncEvent::CoinState).await;
+        bob.push_bundle(spend_bundle).await?;
+
+        // We need to wait for both wallets to sync in this case
+        bob.consume_until(SyncEvent::CoinState).await;
+        alice.consume_until(SyncEvent::PuzzleBatchSynced).await;
+
+        // Check balances
+        assert_ne!(
+            alice.wallet.db.spendable_nft(nft.info.launcher_id).await?,
+            None
+        );
+        assert_eq!(bob.wallet.db.balance().await?, 1000);
 
         Ok(())
     }
 
-    #[test(sqlx::test)]
-    async fn test_nft_for_xch(pool: SqlitePool) -> anyhow::Result<()> {
-        let mut test = TestWallet::new(pool, 1032).await?;
+    #[test(tokio::test)]
+    async fn test_nft_for_xch() -> anyhow::Result<()> {
+        let mut alice = TestWallet::new(2).await?;
+        let mut bob = alice.next(1030).await?;
 
-        let (coin_spends, did) = test.wallet.create_did(0, false, true).await?;
-        test.transact(coin_spends).await?;
-        test.consume_until(SyncEvent::CoinState).await;
+        let (coin_spends, did) = alice.wallet.create_did(0, false, true).await?;
+        alice.transact(coin_spends).await?;
+        alice.consume_until(SyncEvent::CoinState).await;
 
-        let (coin_spends, mut nfts, _did) = test
+        let (coin_spends, mut nfts, _did) = alice
             .wallet
             .bulk_mint_nfts(
                 0,
@@ -186,13 +205,13 @@ mod tests {
                 true,
             )
             .await?;
-        test.transact(coin_spends).await?;
-        test.consume_until(SyncEvent::PuzzleBatchSynced).await;
+        alice.transact(coin_spends).await?;
+        alice.consume_until(SyncEvent::PuzzleBatchSynced).await;
 
         let nft = nfts.remove(0);
 
         // Create offer
-        let offer = test
+        let offer = alice
             .wallet
             .make_offer(
                 MakerSide {
@@ -210,27 +229,37 @@ mod tests {
                 true,
             )
             .await?;
-        let offer = test
+        let offer = alice
             .wallet
             .sign_make_offer(
                 offer,
                 &AggSigConstants::new(TESTNET11_CONSTANTS.agg_sig_me_additional_data),
-                test.master_sk.clone(),
+                alice.master_sk.clone(),
             )
             .await?;
 
         // Take offer
-        let offer = test.wallet.take_offer(offer, 0, false, true).await?;
-        let spend_bundle = test
+        let offer = bob.wallet.take_offer(offer, 0, false, true).await?;
+        let spend_bundle = bob
             .wallet
             .sign_take_offer(
                 offer,
                 &AggSigConstants::new(TESTNET11_CONSTANTS.agg_sig_me_additional_data),
-                test.master_sk.clone(),
+                bob.master_sk.clone(),
             )
             .await?;
-        test.push_bundle(spend_bundle).await?;
-        test.consume_until(SyncEvent::CoinState).await;
+        bob.push_bundle(spend_bundle).await?;
+
+        // We need to wait for both wallets to sync in this case
+        alice.consume_until(SyncEvent::CoinState).await;
+        bob.consume_until(SyncEvent::CoinState).await;
+
+        // Check balances
+        assert_eq!(alice.wallet.db.balance().await?, 1000);
+        assert_ne!(
+            bob.wallet.db.spendable_nft(nft.info.launcher_id).await?,
+            None
+        );
 
         Ok(())
     }

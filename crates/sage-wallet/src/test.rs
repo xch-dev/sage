@@ -24,29 +24,52 @@ use crate::{
     Transaction, Wallet,
 };
 
+static INDEX: Mutex<u32> = Mutex::const_new(0);
+
 #[derive(Debug)]
 pub struct TestWallet {
-    pub sim: PeerSimulator,
+    pub sim: Arc<PeerSimulator>,
     pub peer: Peer,
     pub wallet: Arc<Wallet>,
     pub master_sk: SecretKey,
     pub puzzle_hash: Bytes32,
     pub sender: Sender<SyncCommand>,
     pub events: Receiver<SyncEvent>,
+    pub index: u32,
 }
 
 impl TestWallet {
-    pub async fn new(pool: SqlitePool, balance: u64) -> anyhow::Result<Self> {
+    pub async fn new(balance: u64) -> anyhow::Result<Self> {
+        let sim = PeerSimulator::new().await?;
+        Self::with_sim(Arc::new(sim), balance, 0).await
+    }
+
+    pub async fn next(&self, balance: u64) -> anyhow::Result<Self> {
+        Self::with_sim(self.sim.clone(), balance, self.index + 1).await
+    }
+
+    async fn with_sim(
+        sim: Arc<PeerSimulator>,
+        balance: u64,
+        key_index: u32,
+    ) -> anyhow::Result<Self> {
+        let db_index = {
+            let mut lock = INDEX.lock().await;
+            let index = *lock;
+            *lock += 1;
+            index
+        };
+        let pool =
+            SqlitePool::connect(&format!("file:testdb{db_index}?mode=memory&cache=shared")).await?;
         migrate!("../../migrations").run(&pool).await?;
         let db = Database::new(pool);
 
-        let sk = test_secret_key()?;
+        let sk = test_secret_key()?.derive_unhardened(key_index);
         let pk = sk.public_key();
         let fingerprint = pk.get_fingerprint();
         let intermediate_pk = master_to_wallet_unhardened_intermediate(&pk);
         let genesis_challenge = TESTNET11_CONSTANTS.genesis_challenge;
 
-        let sim = PeerSimulator::new().await?;
         let puzzle_hash =
             StandardArgs::curry_tree_hash(intermediate_pk.derive_unhardened(0).derive_synthetic());
 
@@ -99,6 +122,7 @@ impl TestWallet {
             puzzle_hash: puzzle_hash.into(),
             sender,
             events,
+            index: key_index,
         };
 
         test.consume_until(SyncEvent::Subscribed).await;

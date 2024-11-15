@@ -187,14 +187,13 @@ impl Wallet {
 
 #[cfg(test)]
 mod tests {
-    use sqlx::SqlitePool;
     use test_log::test;
 
     use crate::{SyncEvent, TestWallet};
 
-    #[test(sqlx::test)]
-    async fn test_xch_coin_management(pool: SqlitePool) -> anyhow::Result<()> {
-        let mut test = TestWallet::new(pool, 1000).await?;
+    #[test(tokio::test)]
+    async fn test_xch_coin_management() -> anyhow::Result<()> {
+        let mut test = TestWallet::new(1000).await?;
 
         let coins = test.wallet.db.spendable_coins().await?;
         let coin_spends = test.wallet.split_xch(&coins, 3, 0, false, true).await?;

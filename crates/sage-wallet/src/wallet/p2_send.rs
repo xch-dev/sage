@@ -46,14 +46,13 @@ impl Wallet {
 
 #[cfg(test)]
 mod tests {
-    use sqlx::SqlitePool;
     use test_log::test;
 
     use crate::{SyncEvent, TestWallet};
 
-    #[test(sqlx::test)]
-    async fn test_send_xch(pool: SqlitePool) -> anyhow::Result<()> {
-        let mut test = TestWallet::new(pool, 1000).await?;
+    #[test(tokio::test)]
+    async fn test_send_xch() -> anyhow::Result<()> {
+        let mut test = TestWallet::new(1000).await?;
 
         let coin_spends = test
             .wallet
@@ -71,9 +70,9 @@ mod tests {
         Ok(())
     }
 
-    #[test(sqlx::test)]
-    async fn test_send_xch_change(pool: SqlitePool) -> anyhow::Result<()> {
-        let mut test = TestWallet::new(pool, 1000).await?;
+    #[test(tokio::test)]
+    async fn test_send_xch_change() -> anyhow::Result<()> {
+        let mut test = TestWallet::new(1000).await?;
 
         let coin_spends = test
             .wallet

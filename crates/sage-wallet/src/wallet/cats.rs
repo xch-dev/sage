@@ -138,14 +138,13 @@ impl Wallet {
 
 #[cfg(test)]
 mod tests {
-    use sqlx::SqlitePool;
     use test_log::test;
 
     use crate::{SyncEvent, TestWallet};
 
-    #[test(sqlx::test)]
-    async fn test_send_cat(pool: SqlitePool) -> anyhow::Result<()> {
-        let mut test = TestWallet::new(pool, 1500).await?;
+    #[test(tokio::test)]
+    async fn test_send_cat() -> anyhow::Result<()> {
+        let mut test = TestWallet::new(1500).await?;
 
         let (coin_spends, asset_id) = test.wallet.issue_cat(1000, 0, None, false, true).await?;
         assert_eq!(coin_spends.len(), 2);
