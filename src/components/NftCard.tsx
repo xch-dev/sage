@@ -19,10 +19,13 @@ import {
 } from 'lucide-react';
 import { PropsWithChildren, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
+import { BurnDialog } from './BurnDialog';
 import ConfirmationDialog from './ConfirmationDialog';
+import { TransferDialog } from './TransferDialog';
 import { Button } from './ui/button';
+import { Checkbox } from './ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -58,6 +61,7 @@ import {
 export interface NftProps {
   nft: NftRecord;
   updateNfts: () => void;
+  selectionState: [boolean, (value: boolean) => void] | null;
 }
 
 export function NftCardList({ children }: PropsWithChildren) {
@@ -68,8 +72,9 @@ export function NftCardList({ children }: PropsWithChildren) {
   );
 }
 
-export function NftCard({ nft, updateNfts }: NftProps) {
+export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
   const walletState = useWalletState();
+  const navigate = useNavigate();
 
   const [transferOpen, setTransferOpen] = useState(false);
   const [addUrlOpen, setAddUrlOpen] = useState(false);
@@ -86,33 +91,15 @@ export function NftCard({ nft, updateNfts }: NftProps) {
     });
   };
 
-  const transferFormSchema = z.object({
-    address: z.string().min(1, 'Address is required'),
-    fee: amount(walletState.sync.unit.decimals).refine(
-      (amount) => BigNumber(walletState.sync.balance).gte(amount || 0),
-      'Not enough funds to cover the fee',
-    ),
-  });
-
-  const transferForm = useForm<z.infer<typeof transferFormSchema>>({
-    resolver: zodResolver(transferFormSchema),
-    defaultValues: {
-      address: '',
-      fee: '0',
-    },
-  });
-
-  const onTransferSubmit = (values: z.infer<typeof transferFormSchema>) => {
-    commands
-      .transferNfts([nft.launcher_id], values.address, values.fee)
-      .then((result) => {
-        setTransferOpen(false);
-        if (result.status === 'error') {
-          console.error('Failed to transfer NFT', result.error);
-        } else {
-          setSummary(result.data);
-        }
-      });
+  const onTransferSubmit = (address: string, fee: string) => {
+    commands.transferNfts([nft.launcher_id], address, fee).then((result) => {
+      setTransferOpen(false);
+      if (result.status === 'error') {
+        console.error('Failed to transfer NFT', result.error);
+      } else {
+        setSummary(result.data);
+      }
+    });
   };
 
   const addUrlFormSchema = z.object({
@@ -151,27 +138,9 @@ export function NftCard({ nft, updateNfts }: NftProps) {
       });
   };
 
-  const burnFormSchema = z.object({
-    fee: amount(walletState.sync.unit.decimals).refine(
-      (amount) => BigNumber(walletState.sync.balance).gte(amount || 0),
-      'Not enough funds to cover the fee',
-    ),
-  });
-
-  const burnForm = useForm<z.infer<typeof burnFormSchema>>({
-    resolver: zodResolver(burnFormSchema),
-    defaultValues: {
-      fee: '0',
-    },
-  });
-
-  const onBurnSubmit = (values: z.infer<typeof burnFormSchema>) => {
+  const onBurnSubmit = (fee: string) => {
     commands
-      .transferNfts(
-        [nft.launcher_id],
-        walletState.sync.burn_address,
-        values.fee,
-      )
+      .transferNfts([nft.launcher_id], walletState.sync.burn_address, fee)
       .then((result) => {
         setBurnOpen(false);
         if (result.status === 'error') {
@@ -184,9 +153,15 @@ export function NftCard({ nft, updateNfts }: NftProps) {
 
   return (
     <>
-      <Link
-        to={`/nfts/${nft.launcher_id}`}
-        className={`group${`${!nft.visible ? ' opacity-50 grayscale' : !nft.created_height ? ' pulsate-opacity' : ''}`}`}
+      <div
+        className={`cursor-pointer group${`${!nft.visible ? ' opacity-50 grayscale' : !nft.created_height ? ' pulsate-opacity' : ''}`}`}
+        onClick={() => {
+          if (selectionState === null) {
+            navigate(`/nfts/${nft.launcher_id}`);
+          } else {
+            selectionState[1](!selectionState[0]);
+          }
+        }}
       >
         <div className='overflow-hidden rounded-t-md relative'>
           <img
@@ -197,6 +172,13 @@ export function NftCard({ nft, updateNfts }: NftProps) {
             className='h-auto w-auto object-cover transition-all group-hover:scale-105 aspect-square color-[transparent]'
             src={nftUri(nft.data_mime_type, nft.data)}
           />
+
+          {selectionState !== null && (
+            <Checkbox
+              checked={selectionState[0]}
+              className='absolute top-2 right-2 w-5 h-5'
+            />
+          )}
         </div>
         <div className='text-md flex items-center justify-between rounded-b p-1 pl-2 bg-neutral-200 dark:bg-neutral-800'>
           <span className='truncate'>
@@ -220,7 +202,6 @@ export function NftCard({ nft, updateNfts }: NftProps) {
                   className='cursor-pointer'
                   onClick={(e) => {
                     e.stopPropagation();
-                    transferForm.reset();
                     setTransferOpen(true);
                   }}
                   disabled={!nft.created_height}
@@ -246,7 +227,6 @@ export function NftCard({ nft, updateNfts }: NftProps) {
                   className='cursor-pointer'
                   onClick={(e) => {
                     e.stopPropagation();
-                    burnForm.reset();
                     setBurnOpen(true);
                   }}
                   disabled={!nft.created_height}
@@ -273,63 +253,16 @@ export function NftCard({ nft, updateNfts }: NftProps) {
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-      </Link>
+      </div>
 
-      <Dialog open={transferOpen} onOpenChange={setTransferOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Transfer NFT</DialogTitle>
-            <DialogDescription>
-              This will send the NFT to the provided address.
-            </DialogDescription>
-          </DialogHeader>
-          <Form {...transferForm}>
-            <form
-              onSubmit={transferForm.handleSubmit(onTransferSubmit)}
-              className='space-y-4'
-            >
-              <FormField
-                control={transferForm.control}
-                name='address'
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Address</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={transferForm.control}
-                name='fee'
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Network Fee</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <DialogFooter className='gap-2'>
-                <Button
-                  type='button'
-                  variant='outline'
-                  onClick={() => setTransferOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button type='submit'>Transfer</Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
+      <TransferDialog
+        title='Transfer NFT'
+        open={transferOpen}
+        setOpen={setTransferOpen}
+        onSubmit={onTransferSubmit}
+      >
+        This will send the NFT to the provided address.
+      </TransferDialog>
 
       <Dialog open={addUrlOpen} onOpenChange={setAddUrlOpen}>
         <DialogContent>
@@ -416,48 +349,14 @@ export function NftCard({ nft, updateNfts }: NftProps) {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={burnOpen} onOpenChange={setBurnOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Burn NFT</DialogTitle>
-            <DialogDescription>
-              This will permanently delete the NFT by sending it to the burn
-              address.
-            </DialogDescription>
-          </DialogHeader>
-          <Form {...burnForm}>
-            <form
-              onSubmit={burnForm.handleSubmit(onBurnSubmit)}
-              className='space-y-4'
-            >
-              <FormField
-                control={burnForm.control}
-                name='fee'
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Network Fee</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <DialogFooter className='gap-2'>
-                <Button
-                  type='button'
-                  variant='outline'
-                  onClick={() => setBurnOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button type='submit'>Burn</Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
+      <BurnDialog
+        title='Burn NFT'
+        open={burnOpen}
+        setOpen={setBurnOpen}
+        onSubmit={onBurnSubmit}
+      >
+        This will permanently delete the NFT by sending it to the burn address.
+      </BurnDialog>
 
       <ConfirmationDialog
         summary={summary}
