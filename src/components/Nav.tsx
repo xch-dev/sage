@@ -1,15 +1,11 @@
 import {
   ArrowLeftRight,
-  CoinsIcon,
-  ImagePlus,
   Images,
   SquareUserRound,
-  UserPlus,
   WalletIcon,
 } from 'lucide-react';
 import { PropsWithChildren } from 'react';
 import { Link } from 'react-router-dom';
-import { Separator } from './ui/separator';
 
 export function Nav() {
   return (
@@ -29,19 +25,6 @@ export function Nav() {
       <NavLink url={'/offers'}>
         <ArrowLeftRight className='h-4 w-4' />
         Offers
-      </NavLink>
-      <Separator className='my-1' />
-      <NavLink url={'/wallet/issue-token'}>
-        <CoinsIcon className='h-4 w-4' />
-        Issue Token
-      </NavLink>
-      <NavLink url={'/dids/create-profile'}>
-        <UserPlus className='h-4 w-4' />
-        Create Profile
-      </NavLink>
-      <NavLink url={'/nfts/mint-nft'}>
-        <ImagePlus className='h-4 w-4' />
-        Mint NFT
       </NavLink>
     </nav>
   );

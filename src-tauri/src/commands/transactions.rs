@@ -1,15 +1,13 @@
 use std::{collections::HashMap, time::Duration};
 
 use base64::prelude::*;
+use bigdecimal::BigDecimal;
 use chia::{
     bls::Signature,
     protocol::{Bytes32, Coin, CoinSpend, SpendBundle},
     puzzles::nft::NftMetadata,
 };
-use chia_wallet_sdk::{
-    decode_address, encode_address, AggSigConstants, MetadataUpdate, MAINNET_CONSTANTS,
-    TESTNET11_CONSTANTS,
-};
+use chia_wallet_sdk::{decode_address, encode_address, AggSigConstants, MetadataUpdate};
 use hex_literal::hex;
 use sage_api::{
     Amount, AssetKind, BulkMintNfts, BulkMintNftsResponse, CoinJson, CoinSpendJson, Input,
@@ -474,9 +472,9 @@ pub async fn bulk_mint_nfts(
 
 #[command]
 #[specta]
-pub async fn transfer_nft(
+pub async fn transfer_nfts(
     state: State<'_, AppState>,
-    nft_id: String,
+    nft_ids: Vec<String>,
     address: String,
     fee: Amount,
 ) -> Result<TransactionSummary> {
@@ -487,10 +485,16 @@ pub async fn transfer_nft(
         return Err(Error::no_secret_key());
     }
 
-    let (launcher_id, prefix) = decode_address(&nft_id)?;
+    let mut launcher_ids = Vec::new();
 
-    if prefix != "nft" {
-        return Err(Error::invalid_prefix(&prefix));
+    for nft_id in nft_ids {
+        let (launcher_id, prefix) = decode_address(&nft_id)?;
+
+        if prefix != "nft" {
+            return Err(Error::invalid_prefix(&prefix));
+        }
+
+        launcher_ids.push(launcher_id.into());
     }
 
     let (puzzle_hash, prefix) = decode_address(&address)?;
@@ -502,8 +506,8 @@ pub async fn transfer_nft(
         return Err(Error::invalid_amount(&fee));
     };
 
-    let (coin_spends, _new_nft) = wallet
-        .transfer_nft(launcher_id.into(), puzzle_hash.into(), fee, false, true)
+    let coin_spends = wallet
+        .transfer_nft(launcher_ids, puzzle_hash.into(), fee, false, true)
         .await?;
 
     summarize(&state, &wallet, coin_spends, ConfirmationInfo::default()).await
@@ -550,9 +554,9 @@ pub async fn add_nft_uri(
 
 #[command]
 #[specta]
-pub async fn transfer_did(
+pub async fn transfer_dids(
     state: State<'_, AppState>,
-    did_id: String,
+    did_ids: Vec<String>,
     address: String,
     fee: Amount,
 ) -> Result<TransactionSummary> {
@@ -563,10 +567,16 @@ pub async fn transfer_did(
         return Err(Error::no_secret_key());
     }
 
-    let (launcher_id, prefix) = decode_address(&did_id)?;
+    let mut launcher_ids = Vec::new();
 
-    if prefix != "did:chia:" {
-        return Err(Error::invalid_prefix(&prefix));
+    for did_id in did_ids {
+        let (launcher_id, prefix) = decode_address(&did_id)?;
+
+        if prefix != "did:chia:" {
+            return Err(Error::invalid_prefix(&prefix));
+        }
+
+        launcher_ids.push(launcher_id.into());
     }
 
     let (puzzle_hash, prefix) = decode_address(&address)?;
@@ -578,8 +588,8 @@ pub async fn transfer_did(
         return Err(Error::invalid_amount(&fee));
     };
 
-    let (coin_spends, _new_ndid) = wallet
-        .transfer_did(launcher_id.into(), puzzle_hash.into(), fee, false, true)
+    let coin_spends = wallet
+        .transfer_dids(launcher_ids, puzzle_hash.into(), fee, false, true)
         .await?;
 
     summarize(&state, &wallet, coin_spends, ConfirmationInfo::default()).await
@@ -602,11 +612,7 @@ pub async fn sign_transaction(
     let spend_bundle = wallet
         .sign_transaction(
             coin_spends.iter().map(rust_spend).collect::<Result<_>>()?,
-            &if state.config.network.network_id == "mainnet" {
-                AggSigConstants::new(MAINNET_CONSTANTS.agg_sig_me_additional_data)
-            } else {
-                AggSigConstants::new(TESTNET11_CONSTANTS.agg_sig_me_additional_data)
-            },
+            &AggSigConstants::new(hex::decode(&state.network().agg_sig_me)?.try_into()?),
             master_sk,
         )
         .await?;
@@ -832,7 +838,7 @@ fn json_coin(coin: &Coin) -> CoinJson {
     CoinJson {
         parent_coin_info: format!("0x{}", hex::encode(coin.parent_coin_info)),
         puzzle_hash: format!("0x{}", hex::encode(coin.puzzle_hash)),
-        amount: coin.amount,
+        amount: Amount::new(BigDecimal::from(coin.amount)),
     }
 }
 
@@ -861,7 +867,10 @@ fn rust_coin(coin: &CoinJson) -> Result<Coin> {
     Ok(Coin {
         parent_coin_info: decode_hex_sized(&coin.parent_coin_info)?.into(),
         puzzle_hash: decode_hex_sized(&coin.puzzle_hash)?.into(),
-        amount: coin.amount,
+        amount: coin
+            .amount
+            .to_mojos(0)
+            .ok_or(Error::invalid_amount(&coin.amount))?,
     })
 }
 

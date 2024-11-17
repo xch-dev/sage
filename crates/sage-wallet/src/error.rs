@@ -95,4 +95,7 @@ pub enum WalletError {
 
     #[error("Duplicate NFT requested payment with id {0}")]
     DuplicateNftRequestedPayment(Bytes32),
+
+    #[error("Empty bulk transfer")]
+    EmptyBulkTransfer,
 }

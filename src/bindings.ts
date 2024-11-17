@@ -389,17 +389,17 @@ async bulkMintNfts(request: BulkMintNfts) : Promise<Result<BulkMintNftsResponse,
     else return { status: "error", error: e  as any };
 }
 },
-async transferNft(nftId: string, address: string, fee: Amount) : Promise<Result<TransactionSummary, Error>> {
+async transferNfts(nftIds: string[], address: string, fee: Amount) : Promise<Result<TransactionSummary, Error>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("transfer_nft", { nftId, address, fee }) };
+    return { status: "ok", data: await TAURI_INVOKE("transfer_nfts", { nftIds, address, fee }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
 },
-async transferDid(didId: string, address: string, fee: Amount) : Promise<Result<TransactionSummary, Error>> {
+async transferDids(didIds: string[], address: string, fee: Amount) : Promise<Result<TransactionSummary, Error>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("transfer_did", { didId, address, fee }) };
+    return { status: "ok", data: await TAURI_INVOKE("transfer_dids", { didIds, address, fee }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -500,7 +500,7 @@ export type BulkMintNfts = { nft_mints: NftMint[]; did_id: string; fee: Amount }
 export type BulkMintNftsResponse = { nft_ids: string[]; summary: TransactionSummary }
 export type CatAmount = { asset_id: string; amount: Amount }
 export type CatRecord = { asset_id: string; name: string | null; ticker: string | null; description: string | null; icon_url: string | null; visible: boolean; balance: Amount }
-export type CoinJson = { parent_coin_info: string; puzzle_hash: string; amount: number }
+export type CoinJson = { parent_coin_info: string; puzzle_hash: string; amount: Amount }
 export type CoinRecord = { coin_id: string; address: string; amount: Amount; created_height: number | null; spent_height: number | null; create_transaction_id: string | null; spend_transaction_id: string | null }
 export type CoinSpendJson = { coin: CoinJson; puzzle_reveal: string; solution: string }
 export type DidRecord = { launcher_id: string; name: string | null; visible: boolean; coin_id: string; address: string; amount: Amount; created_height: number | null; create_transaction_id: string | null }

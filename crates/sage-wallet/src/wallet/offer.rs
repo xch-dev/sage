@@ -21,7 +21,6 @@ mod tests {
         protocol::{Bytes32, Program},
         puzzles::nft::NftMetadata,
     };
-    use chia_wallet_sdk::{AggSigConstants, TESTNET11_CONSTANTS};
     use clvmr::Allocator;
     use indexmap::{indexmap, IndexMap};
     use test_log::test;
@@ -59,22 +58,14 @@ mod tests {
             .await?;
         let offer = alice
             .wallet
-            .sign_make_offer(
-                offer,
-                &AggSigConstants::new(TESTNET11_CONSTANTS.agg_sig_me_additional_data),
-                alice.master_sk.clone(),
-            )
+            .sign_make_offer(offer, &alice.agg_sig, alice.master_sk.clone())
             .await?;
 
         // Take offer
         let offer = bob.wallet.take_offer(offer, 0, false, true).await?;
         let spend_bundle = bob
             .wallet
-            .sign_take_offer(
-                offer,
-                &AggSigConstants::new(TESTNET11_CONSTANTS.agg_sig_me_additional_data),
-                bob.master_sk.clone(),
-            )
+            .sign_take_offer(offer, &bob.agg_sig, bob.master_sk.clone())
             .await?;
         bob.push_bundle(spend_bundle).await?;
 
@@ -149,22 +140,14 @@ mod tests {
             .await?;
         let offer = alice
             .wallet
-            .sign_make_offer(
-                offer,
-                &AggSigConstants::new(TESTNET11_CONSTANTS.agg_sig_me_additional_data),
-                alice.master_sk.clone(),
-            )
+            .sign_make_offer(offer, &alice.agg_sig, alice.master_sk.clone())
             .await?;
 
         // Take offer
         let offer = bob.wallet.take_offer(offer, 0, false, true).await?;
         let spend_bundle = bob
             .wallet
-            .sign_take_offer(
-                offer,
-                &AggSigConstants::new(TESTNET11_CONSTANTS.agg_sig_me_additional_data),
-                bob.master_sk.clone(),
-            )
+            .sign_take_offer(offer, &bob.agg_sig, bob.master_sk.clone())
             .await?;
         bob.push_bundle(spend_bundle).await?;
 
@@ -231,22 +214,14 @@ mod tests {
             .await?;
         let offer = alice
             .wallet
-            .sign_make_offer(
-                offer,
-                &AggSigConstants::new(TESTNET11_CONSTANTS.agg_sig_me_additional_data),
-                alice.master_sk.clone(),
-            )
+            .sign_make_offer(offer, &alice.agg_sig, alice.master_sk.clone())
             .await?;
 
         // Take offer
         let offer = bob.wallet.take_offer(offer, 0, false, true).await?;
         let spend_bundle = bob
             .wallet
-            .sign_take_offer(
-                offer,
-                &AggSigConstants::new(TESTNET11_CONSTANTS.agg_sig_me_additional_data),
-                bob.master_sk.clone(),
-            )
+            .sign_take_offer(offer, &bob.agg_sig, bob.master_sk.clone())
             .await?;
         bob.push_bundle(spend_bundle).await?;
 

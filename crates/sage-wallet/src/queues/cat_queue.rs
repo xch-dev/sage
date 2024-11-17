@@ -1,7 +1,6 @@
 use std::time::Duration;
 
 use chia::protocol::Bytes32;
-use chia_wallet_sdk::{Network, TESTNET11_CONSTANTS};
 use sage_database::{CatRow, Database};
 use serde::Deserialize;
 use tokio::{
@@ -27,15 +26,15 @@ struct AssetData {
 #[derive(Debug)]
 pub struct CatQueue {
     db: Database,
-    network: Network,
+    testnet: bool,
     sync_sender: mpsc::Sender<SyncEvent>,
 }
 
 impl CatQueue {
-    pub fn new(db: Database, network: Network, sync_sender: mpsc::Sender<SyncEvent>) -> Self {
+    pub fn new(db: Database, testnet: bool, sync_sender: mpsc::Sender<SyncEvent>) -> Self {
         Self {
             db,
-            network,
+            testnet,
             sync_sender,
         }
     }
@@ -57,37 +56,36 @@ impl CatQueue {
             asset_id
         );
 
-        let asset =
-            match timeout(Duration::from_secs(10), lookup_cat(&self.network, asset_id)).await {
-                Ok(Ok(response)) => response.assets.first().cloned().unwrap_or(AssetData {
+        let asset = match timeout(Duration::from_secs(10), lookup_cat(asset_id, self.testnet)).await
+        {
+            Ok(Ok(response)) => response.assets.first().cloned().unwrap_or(AssetData {
+                name: None,
+                code: None,
+                description: None,
+            }),
+            Ok(Err(error)) => {
+                info!("Failed to fetch CAT: {:?}", error);
+                AssetData {
                     name: None,
                     code: None,
                     description: None,
-                }),
-                Ok(Err(error)) => {
-                    info!("Failed to fetch CAT: {:?}", error);
-                    AssetData {
-                        name: None,
-                        code: None,
-                        description: None,
-                    }
                 }
-                Err(_) => {
-                    info!("Timeout fetching CAT");
-                    AssetData {
-                        name: None,
-                        code: None,
-                        description: None,
-                    }
+            }
+            Err(_) => {
+                info!("Timeout fetching CAT");
+                AssetData {
+                    name: None,
+                    code: None,
+                    description: None,
                 }
-            };
+            }
+        };
 
-        let dexie_image_base_url =
-            if self.network.genesis_challenge == TESTNET11_CONSTANTS.genesis_challenge {
-                "https://icons-testnet.dexie.space"
-            } else {
-                "https://icons.dexie.space"
-            };
+        let dexie_image_base_url = if self.testnet {
+            "https://icons-testnet.dexie.space"
+        } else {
+            "https://icons.dexie.space"
+        };
 
         self.db
             .update_cat(CatRow {
@@ -107,8 +105,8 @@ impl CatQueue {
     }
 }
 
-async fn lookup_cat(network: &Network, asset_id: Bytes32) -> Result<Response, WalletError> {
-    let dexie_base_url = if network.genesis_challenge == TESTNET11_CONSTANTS.genesis_challenge {
+async fn lookup_cat(asset_id: Bytes32, testnet: bool) -> Result<Response, WalletError> {
+    let dexie_base_url = if testnet {
         "https://api-testnet.dexie.space/v1"
     } else {
         "https://api.dexie.space/v1"

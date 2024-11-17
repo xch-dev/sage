@@ -1,7 +1,9 @@
+import { BurnDialog } from '@/components/BurnDialog';
 import ConfirmationDialog from '@/components/ConfirmationDialog';
 import Container from '@/components/Container';
 import Header from '@/components/Header';
 import { ReceiveAddress } from '@/components/ReceiveAddress';
+import { TransferDialog } from '@/components/TransferDialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,22 +22,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useDids } from '@/hooks/useDids';
-import { amount } from '@/lib/formTypes';
 import { useWalletState } from '@/state';
-import { zodResolver } from '@hookform/resolvers/zod';
-import BigNumber from 'bignumber.js';
 import {
   EyeIcon,
   EyeOff,
@@ -47,11 +38,12 @@ import {
   UserRoundPlus,
 } from 'lucide-react';
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
+import { useNavigate } from 'react-router-dom';
 import { commands, DidRecord, TransactionSummary } from '../bindings';
 
 export function DidList() {
+  const navigate = useNavigate();
+
   const [showHidden, setShowHidden] = useState(false);
 
   const { dids, updateDids } = useDids();
@@ -65,8 +57,10 @@ export function DidList() {
         <ReceiveAddress />
       </Header>
       <Container>
+        <Button onClick={() => navigate('/dids/create')}>Create Profile</Button>
+
         {hasHiddenDids && (
-          <div className='inline-flex items-center gap-2 mb-2'>
+          <div className='flex items-center gap-2 my-4'>
             <label htmlFor='viewHidden'>View hidden</label>
             <Switch
               id='viewHidden'
@@ -76,8 +70,8 @@ export function DidList() {
           </div>
         )}
 
-        {visibleDids.length === 0 && (
-          <Alert className='mt-2'>
+        {dids.length === 0 && (
+          <Alert className='mt-4'>
             <UserRoundPlus className='h-4 w-4' />
             <AlertTitle>Create a profile?</AlertTitle>
             <AlertDescription>
@@ -87,7 +81,7 @@ export function DidList() {
           </Alert>
         )}
 
-        <div className='mt-2 grid gap-4 md:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'>
+        <div className='mt-4 grid gap-4 md:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'>
           {visibleDids.map((did) => {
             return (
               <Profile
@@ -144,52 +138,20 @@ function Profile({ did, updateDids }: ProfileProps) {
       });
   };
 
-  const transferFormSchema = z.object({
-    address: z.string().min(1, 'Address is required'),
-    fee: amount(walletState.sync.unit.decimals).refine(
-      (amount) => BigNumber(walletState.sync.balance).gte(amount || 0),
-      'Not enough funds to cover the fee',
-    ),
-  });
-
-  const transferForm = useForm<z.infer<typeof transferFormSchema>>({
-    resolver: zodResolver(transferFormSchema),
-    defaultValues: {
-      address: '',
-      fee: '0',
-    },
-  });
-
-  const onTransferSubmit = (values: z.infer<typeof transferFormSchema>) => {
-    commands
-      .transferDid(did.launcher_id, values.address, values.fee)
-      .then((result) => {
-        setTransferOpen(false);
-        if (result.status === 'error') {
-          console.error('Failed to transfer DID', result.error);
-        } else {
-          setSummary(result.data);
-        }
-      });
+  const onTransferSubmit = (address: string, fee: string) => {
+    commands.transferDids([did.launcher_id], address, fee).then((result) => {
+      setTransferOpen(false);
+      if (result.status === 'error') {
+        console.error('Failed to transfer DID', result.error);
+      } else {
+        setSummary(result.data);
+      }
+    });
   };
 
-  const burnFormSchema = z.object({
-    fee: amount(walletState.sync.unit.decimals).refine(
-      (amount) => BigNumber(walletState.sync.balance).gte(amount || 0),
-      'Not enough funds to cover the fee',
-    ),
-  });
-
-  const burnForm = useForm<z.infer<typeof burnFormSchema>>({
-    resolver: zodResolver(burnFormSchema),
-    defaultValues: {
-      fee: '0',
-    },
-  });
-
-  const onBurnSubmit = (values: z.infer<typeof burnFormSchema>) => {
+  const onBurnSubmit = (fee: string) => {
     commands
-      .transferDid(did.launcher_id, walletState.sync.burn_address, values.fee)
+      .transferDids([did.launcher_id], walletState.sync.burn_address, fee)
       .then((result) => {
         setBurnOpen(false);
         if (result.status === 'error') {
@@ -320,101 +282,24 @@ function Profile({ did, updateDids }: ProfileProps) {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={transferOpen} onOpenChange={setTransferOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Transfer Profile</DialogTitle>
-            <DialogDescription>
-              This will send the profile to the provided address.
-            </DialogDescription>
-          </DialogHeader>
-          <Form {...transferForm}>
-            <form
-              onSubmit={transferForm.handleSubmit(onTransferSubmit)}
-              className='space-y-4'
-            >
-              <FormField
-                control={transferForm.control}
-                name='address'
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Address</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={transferForm.control}
-                name='fee'
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Network Fee</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <DialogFooter className='gap-2'>
-                <Button
-                  type='button'
-                  variant='outline'
-                  onClick={() => setTransferOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button type='submit'>Transfer</Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
+      <TransferDialog
+        title='Transfer Profile'
+        open={transferOpen}
+        setOpen={setTransferOpen}
+        onSubmit={onTransferSubmit}
+      >
+        This will send the profile to the provided address.
+      </TransferDialog>
 
-      <Dialog open={burnOpen} onOpenChange={setBurnOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Burn Profile</DialogTitle>
-            <DialogDescription>
-              This will permanently delete the profile by sending it to the burn
-              address.
-            </DialogDescription>
-          </DialogHeader>
-          <Form {...burnForm}>
-            <form
-              onSubmit={burnForm.handleSubmit(onBurnSubmit)}
-              className='space-y-4'
-            >
-              <FormField
-                control={burnForm.control}
-                name='fee'
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Network Fee</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <DialogFooter className='gap-2'>
-                <Button
-                  type='button'
-                  variant='outline'
-                  onClick={() => setBurnOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button type='submit'>Burn</Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
+      <BurnDialog
+        title='Burn Profile'
+        open={burnOpen}
+        setOpen={setBurnOpen}
+        onSubmit={onBurnSubmit}
+      >
+        This will permanently delete the profile by sending it to the burn
+        address.
+      </BurnDialog>
 
       <ConfirmationDialog
         summary={summary}

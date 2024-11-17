@@ -1,5 +1,6 @@
 import Container from '@/components/Container';
 import Header from '@/components/Header';
+import { MultiSelectActions } from '@/components/MultiSelectActions';
 import { NftCard, NftCardList } from '@/components/NftCard';
 import { NftOptions } from '@/components/NftOptions';
 import { ReceiveAddress } from '@/components/ReceiveAddress';
@@ -17,10 +18,11 @@ import collectionImage from '@/images/collection.png';
 import { useWalletState } from '@/state';
 import { EyeIcon, EyeOff, Image, MoreVerticalIcon } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { commands, events, NftCollectionRecord, NftRecord } from '../bindings';
 
 export function NftList() {
+  const navigate = useNavigate();
   const walletState = useWalletState();
 
   const [params, setParams] = useNftParams();
@@ -28,6 +30,8 @@ export function NftList() {
 
   const [nfts, setNfts] = useState<NftRecord[]>([]);
   const [collections, setCollections] = useState<NftCollectionRecord[]>([]);
+  const [multiSelect, setMultiSelect] = useState(false);
+  const [selected, setSelected] = useState<string[]>([]);
 
   const updateNfts = useCallback(
     async (page: number) => {
@@ -109,8 +113,10 @@ export function NftList() {
       </Header>
 
       <Container>
+        <Button onClick={() => navigate('/nfts/mint')}>Mint NFT</Button>
+
         {walletState.nfts.nfts === 0 ? (
-          <Alert className='mt-2'>
+          <Alert className='mt-4'>
             <Image className='h-4 w-4' />
             <AlertTitle>Mint an NFT?</AlertTitle>
             <AlertDescription>
@@ -120,9 +126,14 @@ export function NftList() {
         ) : (
           <NftOptions
             totalPages={totalPages}
-            allowCollections
             params={params}
             setParams={setParams}
+            multiSelect={multiSelect}
+            setMultiSelect={(value) => {
+              setMultiSelect(value);
+              setSelected([]);
+            }}
+            className='mt-4'
           />
         )}
 
@@ -136,28 +147,63 @@ export function NftList() {
                   updateNfts={() => updateNfts(page)}
                 />
               ))}
-              <Collection
-                col={{
-                  name: 'Uncategorized',
-                  icon: '',
-                  did_id: 'Miscellaneous',
-                  metadata_collection_id: 'Uncategorized',
-                  collection_id: 'none',
-                  visible: true,
-                  // TODO: Fix
-                  nfts: 0,
-                  visible_nfts: 0,
-                }}
-                updateNfts={() => updateNfts(page)}
-              />
+              {page === totalPages && (
+                <Collection
+                  col={{
+                    name: 'Uncategorized NFTs',
+                    icon: '',
+                    did_id: 'Miscellaneous',
+                    metadata_collection_id: 'Uncategorized',
+                    collection_id: 'No collection',
+                    visible: true,
+                    // TODO: Fix
+                    nfts: 0,
+                    visible_nfts: 0,
+                  }}
+                  updateNfts={() => updateNfts(page)}
+                />
+              )}
             </>
           ) : (
             nfts.map((nft, i) => (
-              <NftCard nft={nft} key={i} updateNfts={() => updateNfts(page)} />
+              <NftCard
+                nft={nft}
+                key={i}
+                updateNfts={() => updateNfts(page)}
+                selectionState={
+                  multiSelect
+                    ? [
+                        selected.includes(nft.launcher_id),
+                        (value) => {
+                          if (value && !selected.includes(nft.launcher_id)) {
+                            setSelected([...selected, nft.launcher_id]);
+                          } else if (
+                            !value &&
+                            selected.includes(nft.launcher_id)
+                          ) {
+                            setSelected(
+                              selected.filter((id) => id !== nft.launcher_id),
+                            );
+                          }
+                        },
+                      ]
+                    : null
+                }
+              />
             ))
           )}
         </NftCardList>
       </Container>
+
+      {selected.length > 0 && (
+        <MultiSelectActions
+          selected={selected}
+          onConfirm={() => {
+            setSelected([]);
+            setMultiSelect(false);
+          }}
+        />
+      )}
     </>
   );
 }

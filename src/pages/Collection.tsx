@@ -1,6 +1,7 @@
 import { commands, events, NftCollectionRecord, NftRecord } from '@/bindings';
 import Container from '@/components/Container';
 import Header from '@/components/Header';
+import { MultiSelectActions } from '@/components/MultiSelectActions';
 import { NftCard, NftCardList } from '@/components/NftCard';
 import { NftOptions } from '@/components/NftOptions';
 import { ReceiveAddress } from '@/components/ReceiveAddress';
@@ -18,6 +19,8 @@ export default function Collection() {
     null,
   );
   const [nfts, setNfts] = useState<NftRecord[]>([]);
+  const [multiSelect, setMultiSelect] = useState(false);
+  const [selected, setSelected] = useState<string[]>([]);
 
   const updateNfts = useCallback(
     async (page: number) => {
@@ -26,7 +29,7 @@ export default function Collection() {
       await commands
         .getCollectionNfts({
           collection_id:
-            collectionId === 'none' ? null : (collectionId ?? null),
+            collectionId === 'No collection' ? null : (collectionId ?? null),
           offset: (page - 1) * pageSize,
           limit: pageSize,
           sort_mode: view,
@@ -42,7 +45,7 @@ export default function Collection() {
 
       await commands
         .getNftCollection(
-          collectionId === 'none' ? null : (collectionId ?? null),
+          collectionId === 'No collection' ? null : (collectionId ?? null),
         )
         .then((result) => {
           if (result.status === 'ok') {
@@ -97,17 +100,56 @@ export default function Collection() {
 
       <Container>
         <NftOptions
+          isCollection
           totalPages={totalPages}
           params={params}
           setParams={setParams}
+          multiSelect={multiSelect}
+          setMultiSelect={(value) => {
+            setMultiSelect(value);
+            setSelected([]);
+          }}
         />
 
         <NftCardList>
           {nfts.map((nft, i) => (
-            <NftCard nft={nft} key={i} updateNfts={() => updateNfts(page)} />
+            <NftCard
+              nft={nft}
+              key={i}
+              updateNfts={() => updateNfts(page)}
+              selectionState={
+                multiSelect
+                  ? [
+                      selected.includes(nft.launcher_id),
+                      (value) => {
+                        if (value && !selected.includes(nft.launcher_id)) {
+                          setSelected([...selected, nft.launcher_id]);
+                        } else if (
+                          !value &&
+                          selected.includes(nft.launcher_id)
+                        ) {
+                          setSelected(
+                            selected.filter((id) => id !== nft.launcher_id),
+                          );
+                        }
+                      },
+                    ]
+                  : null
+              }
+            />
           ))}
         </NftCardList>
       </Container>
+
+      {selected.length > 0 && (
+        <MultiSelectActions
+          selected={selected}
+          onConfirm={() => {
+            setSelected([]);
+            setMultiSelect(false);
+          }}
+        />
+      )}
     </>
   );
 }

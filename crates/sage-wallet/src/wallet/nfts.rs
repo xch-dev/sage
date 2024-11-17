@@ -91,15 +91,25 @@ impl Wallet {
 
     pub async fn transfer_nft(
         &self,
-        nft_id: Bytes32,
+        nft_ids: Vec<Bytes32>,
         puzzle_hash: Bytes32,
         fee: u64,
         hardened: bool,
         reuse: bool,
-    ) -> Result<(Vec<CoinSpend>, Nft<Program>), WalletError> {
-        let Some(nft) = self.db.spendable_nft(nft_id).await? else {
-            return Err(WalletError::MissingNft(nft_id));
-        };
+    ) -> Result<Vec<CoinSpend>, WalletError> {
+        if nft_ids.is_empty() {
+            return Err(WalletError::EmptyBulkTransfer);
+        }
+
+        let mut nfts = Vec::new();
+
+        for nft_id in nft_ids {
+            let Some(nft) = self.db.spendable_nft(nft_id).await? else {
+                return Err(WalletError::MissingNft(nft_id));
+            };
+
+            nfts.push(nft);
+        }
 
         let coins = if fee > 0 {
             self.select_p2_coins(fee as u128).await?
@@ -116,17 +126,36 @@ impl Wallet {
 
         let mut ctx = SpendContext::new();
 
-        let nft_metadata_ptr = ctx.alloc(&nft.info.metadata)?;
-        let nft = nft.with_metadata(HashedPtr::from_ptr(&ctx.allocator, nft_metadata_ptr));
+        let nft_coin_ids = nfts
+            .iter()
+            .map(|nft| nft.coin.coin_id())
+            .collect::<Vec<_>>();
 
-        let synthetic_key = self.db.synthetic_key(nft.info.p2_puzzle_hash).await?;
-        let p2 = StandardLayer::new(synthetic_key);
+        for (i, nft) in nfts.into_iter().enumerate() {
+            let nft_metadata_ptr = ctx.alloc(&nft.info.metadata)?;
+            let nft = nft.with_metadata(HashedPtr::from_ptr(&ctx.allocator, nft_metadata_ptr));
 
-        let new_nft = nft.transfer(&mut ctx, &p2, puzzle_hash, Conditions::new())?;
+            let synthetic_key = self.db.synthetic_key(nft.info.p2_puzzle_hash).await?;
+            let p2 = StandardLayer::new(synthetic_key);
+
+            let conditions = if nft_coin_ids.len() == 1 {
+                Conditions::new()
+            } else {
+                Conditions::new().assert_concurrent_spend(
+                    nft_coin_ids[if i == 0 {
+                        nft_coin_ids.len() - 1
+                    } else {
+                        i - 1
+                    }],
+                )
+            };
+
+            let _nft = nft.transfer(&mut ctx, &p2, puzzle_hash, conditions)?;
+        }
 
         if fee > 0 {
             let mut conditions = Conditions::new()
-                .assert_concurrent_spend(nft.coin.coin_id())
+                .assert_concurrent_spend(nft_coin_ids[0])
                 .reserve_fee(fee);
 
             if change > 0 {
@@ -136,9 +165,7 @@ impl Wallet {
             self.spend_p2_coins(&mut ctx, coins, conditions).await?;
         }
 
-        let new_nft = new_nft.with_metadata(ctx.serialize(&new_nft.info.metadata)?);
-
-        Ok((ctx.take(), new_nft))
+        Ok(ctx.take())
     }
 
     pub async fn add_nft_uri(
@@ -252,9 +279,9 @@ mod tests {
         }
 
         for _ in 0..2 {
-            let (coin_spends, _nft) = test
+            let coin_spends = test
                 .wallet
-                .transfer_nft(nft.info.launcher_id, puzzle_hash, 0, false, true)
+                .transfer_nft(vec![nft.info.launcher_id], puzzle_hash, 0, false, true)
                 .await?;
             test.transact(coin_spends).await?;
             test.consume_until(SyncEvent::CoinState).await;

@@ -4,6 +4,7 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   Clock2,
+  CopyCheck,
   EyeIcon,
   EyeOff,
   Images,
@@ -19,34 +20,26 @@ import {
 
 export interface NftOptionsProps {
   totalPages: number;
-  allowCollections?: boolean;
+  isCollection?: boolean;
   params: NftParams;
   setParams: SetNftParams;
+  multiSelect: boolean;
+  setMultiSelect: (value: boolean) => void;
+  className?: string;
 }
 
 export function NftOptions({
   totalPages,
-  allowCollections,
+  isCollection,
   params: { page, view, showHidden },
   setParams,
+  multiSelect,
+  setMultiSelect,
+  className,
 }: NftOptionsProps) {
   return (
-    <div className='flex items-center justify-between'>
-      <div className='flex gap-2 items-center'>
-        <Button
-          variant='outline'
-          size='icon'
-          onClick={() => setParams({ showHidden: !showHidden })}
-        >
-          {showHidden ? (
-            <EyeIcon className='h-4 w-4' />
-          ) : (
-            <EyeOff className='h-4 w-4' />
-          )}
-        </Button>
-      </div>
-
-      <div className='flex gap-2 items-center'>
+    <div className={`flex items-center justify-between ${className}`}>
+      <div className='flex gap-3 items-center'>
         <Button
           variant='outline'
           size='icon'
@@ -56,7 +49,7 @@ export function NftOptions({
           <ChevronLeftIcon className='h-4 w-4' />
         </Button>
         <p className='text-sm text-muted-foreground font-medium'>
-          Page {page} of {totalPages}
+          {page} / {totalPages}
         </p>
         <Button
           variant='outline'
@@ -69,6 +62,30 @@ export function NftOptions({
       </div>
 
       <div className='flex gap-2 items-center'>
+        {view !== NftView.Collection && (
+          <Button
+            variant='outline'
+            size='icon'
+            onClick={() => setMultiSelect(!multiSelect)}
+          >
+            <CopyCheck
+              className={`h-4 w-4 ${multiSelect ? 'text-green-600 dark:text-green-400' : ''}`}
+            />
+          </Button>
+        )}
+
+        <Button
+          variant='outline'
+          size='icon'
+          onClick={() => setParams({ showHidden: !showHidden })}
+        >
+          {showHidden ? (
+            <EyeIcon className='h-4 w-4' />
+          ) : (
+            <EyeOff className='h-4 w-4' />
+          )}
+        </Button>
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant='outline' size='icon'>
@@ -112,7 +129,7 @@ export function NftOptions({
                 <span>Sort Recent</span>
               </DropdownMenuItem>
 
-              {allowCollections && (
+              {!isCollection && (
                 <DropdownMenuItem
                   className='cursor-pointer'
                   onClick={(e) => {
