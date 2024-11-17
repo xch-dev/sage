@@ -237,19 +237,23 @@ export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
                   <span>Transfer</span>
                 </DropdownMenuItem>
 
-                {nft.owner_did === null ? (
-                  <DropdownMenuItem
-                    className='cursor-pointer'
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setAssignOpen(true);
-                    }}
-                    disabled={!nft.created_height}
-                  >
-                    <UserRoundPlus className='mr-2 h-4 w-4' />
-                    <span>Assign Profile</span>
-                  </DropdownMenuItem>
-                ) : (
+                <DropdownMenuItem
+                  className='cursor-pointer'
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setAssignOpen(true);
+                  }}
+                  disabled={!nft.created_height}
+                >
+                  <UserRoundPlus className='mr-2 h-4 w-4' />
+                  <span>
+                    {nft.owner_did === null
+                      ? 'Assign Profile'
+                      : 'Reassign Profile'}
+                  </span>
+                </DropdownMenuItem>
+
+                {nft.owner_did !== null && (
                   <DropdownMenuItem
                     className='cursor-pointer'
                     onClick={(e) => {

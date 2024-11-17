@@ -87,11 +87,7 @@ export function AssignNftDialog({
                   <FormLabel>Profile</FormLabel>
                   <FormControl>
                     <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger
-                        id='profile'
-                        aria-label='Select profile'
-                        className='truncate max-w-full'
-                      >
+                      <SelectTrigger id='profile' aria-label='Select profile'>
                         <SelectValue placeholder='Select profile' />
                       </SelectTrigger>
                       <SelectContent>
