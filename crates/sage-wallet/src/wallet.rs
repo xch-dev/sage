@@ -6,6 +6,7 @@ mod cat_spends;
 mod cats;
 mod coin_selection;
 mod derivations;
+mod did_assign;
 mod dids;
 mod nfts;
 mod offer;

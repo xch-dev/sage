@@ -2,8 +2,8 @@ import { commands, TransactionSummary } from '@/bindings';
 import { useWalletState } from '@/state';
 import { ChevronDown, Flame, SendIcon } from 'lucide-react';
 import { useState } from 'react';
-import { BurnDialog } from './BurnDialog';
 import ConfirmationDialog from './ConfirmationDialog';
+import { FeeOnlyDialog } from './FeeOnlyDialog';
 import { TransferDialog } from './TransferDialog';
 import { Button } from './ui/button';
 import {
@@ -102,7 +102,7 @@ export function MultiSelectActions({
         you sure you want to proceed?
       </TransferDialog>
 
-      <BurnDialog
+      <FeeOnlyDialog
         title='Bulk Burn NFTs'
         open={burnOpen}
         setOpen={setBurnOpen}
@@ -110,7 +110,7 @@ export function MultiSelectActions({
       >
         This will bulk burn {selected.length} NFTs. This cannot be undone. Are
         you sure you want to proceed?
-      </BurnDialog>
+      </FeeOnlyDialog>
 
       <ConfirmationDialog
         summary={summary}

@@ -89,7 +89,7 @@ impl Wallet {
         Ok((ctx.take(), nfts, new_did))
     }
 
-    pub async fn transfer_nft(
+    pub async fn transfer_nfts(
         &self,
         nft_ids: Vec<Bytes32>,
         puzzle_hash: Bytes32,
@@ -122,7 +122,7 @@ impl Wallet {
             .try_into()
             .expect("change amount overflow");
 
-        let p2_puzzle_hash = self.p2_puzzle_hash(hardened, reuse).await?;
+        let change_puzzle_hash = self.p2_puzzle_hash(hardened, reuse).await?;
 
         let mut ctx = SpendContext::new();
 
@@ -159,7 +159,7 @@ impl Wallet {
                 .reserve_fee(fee);
 
             if change > 0 {
-                conditions = conditions.create_coin(p2_puzzle_hash, change, Vec::new());
+                conditions = conditions.create_coin(change_puzzle_hash, change, Vec::new());
             }
 
             self.spend_p2_coins(&mut ctx, coins, conditions).await?;
@@ -281,7 +281,7 @@ mod tests {
         for _ in 0..2 {
             let coin_spends = test
                 .wallet
-                .transfer_nft(vec![nft.info.launcher_id], puzzle_hash, 0, false, true)
+                .transfer_nfts(vec![nft.info.launcher_id], puzzle_hash, 0, false, true)
                 .await?;
             test.transact(coin_spends).await?;
             test.consume_until(SyncEvent::CoinState).await;

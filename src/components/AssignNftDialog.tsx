@@ -1,3 +1,4 @@
+import { useDids } from '@/hooks/useDids';
 import { amount } from '@/lib/formTypes';
 import { useWalletState } from '@/state';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -23,24 +24,34 @@ import {
   FormMessage,
 } from './ui/form';
 import { Input } from './ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from './ui/select';
 
-export interface BurnDialogProps {
+export interface AssignNftDialogProps {
   title: string;
   open: boolean;
   setOpen: (open: boolean) => void;
-  onSubmit: (fee: string) => void;
+  onSubmit: (profile: string, fee: string) => void;
 }
 
-export function BurnDialog({
+export function AssignNftDialog({
   title,
   open,
   setOpen,
   onSubmit,
   children,
-}: PropsWithChildren<BurnDialogProps>) {
+}: PropsWithChildren<AssignNftDialogProps>) {
   const walletState = useWalletState();
 
+  const { dids } = useDids();
+
   const schema = z.object({
+    profile: z.string().min(1, 'Profile is required'),
     fee: amount(walletState.sync.unit.decimals).refine(
       (amount) => BigNumber(walletState.sync.balance).gte(amount || 0),
       'Not enough funds to cover the fee',
@@ -50,12 +61,13 @@ export function BurnDialog({
   const form = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
     defaultValues: {
+      profile: '',
       fee: '0',
     },
   });
 
   const handler = (values: z.infer<typeof schema>) => {
-    onSubmit(values.fee);
+    onSubmit(values.profile, values.fee);
   };
 
   return (
@@ -67,6 +79,42 @@ export function BurnDialog({
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handler)} className='space-y-4'>
+            <FormField
+              control={form.control}
+              name='profile'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Profile</FormLabel>
+                  <FormControl>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger
+                        id='profile'
+                        aria-label='Select profile'
+                        className='truncate max-w-full'
+                      >
+                        <SelectValue placeholder='Select profile' />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {dids
+                          .filter((did) => did.visible)
+                          .map((did) => {
+                            return (
+                              <SelectItem
+                                key={did.launcher_id}
+                                value={did.launcher_id}
+                              >
+                                {did.name ?? did.launcher_id}
+                              </SelectItem>
+                            );
+                          })}
+                      </SelectContent>
+                    </Select>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <FormField
               control={form.control}
               name='fee'
