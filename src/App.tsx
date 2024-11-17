@@ -9,6 +9,7 @@ import { useLocalStorage } from 'usehooks-ts';
 import { commands } from './bindings';
 import Container from './components/Container';
 import { PeerProvider } from './contexts/PeerContext';
+import { PriceProvider } from './contexts/PriceContext';
 import Collection from './pages/Collection';
 import CreateProfile from './pages/CreateProfile';
 import CreateWallet from './pages/CreateWallet';
@@ -31,7 +32,6 @@ import { Transactions } from './pages/Transactions';
 import { ViewOffer } from './pages/ViewOffer';
 import Wallet from './pages/Wallet';
 import { fetchState } from './state';
-import { PriceProvider } from './contexts/PriceContext';
 
 export interface DarkModeContext {
   toggle: () => void;
@@ -61,14 +61,14 @@ const router = createHashRouter(
       <Route path='/nfts' element={<Wallet />}>
         <Route path='' element={<NftList />} />
         <Route path=':launcher_id' element={<Nft />} />
-        <Route path='mint-nft' element={<MintNft />} />
+        <Route path='mint' element={<MintNft />} />
       </Route>
       <Route path='/collections' element={<Wallet />}>
         <Route path=':collection_id' element={<Collection />} />
       </Route>
       <Route path='/dids' element={<Wallet />}>
         <Route path='' element={<DidList />} />
-        <Route path='create-profile' element={<CreateProfile />} />
+        <Route path='create' element={<CreateProfile />} />
       </Route>
       <Route path='/transactions' element={<Wallet />}>
         <Route path='' element={<Transactions />} />

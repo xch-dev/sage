@@ -25,6 +25,7 @@ export interface NftOptionsProps {
   setParams: SetNftParams;
   multiSelect: boolean;
   setMultiSelect: (value: boolean) => void;
+  className?: string;
 }
 
 export function NftOptions({
@@ -34,9 +35,10 @@ export function NftOptions({
   setParams,
   multiSelect,
   setMultiSelect,
+  className,
 }: NftOptionsProps) {
   return (
-    <div className='flex items-center justify-between'>
+    <div className={`flex items-center justify-between ${className}`}>
       <div className='flex gap-3 items-center'>
         <Button
           variant='outline'

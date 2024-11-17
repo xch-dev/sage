@@ -28,7 +28,7 @@ import {
   SendIcon,
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   commands,
   events,
@@ -38,6 +38,7 @@ import {
 } from '../bindings';
 
 export function NftList() {
+  const navigate = useNavigate();
   const walletState = useWalletState();
 
   const [params, setParams] = useNftParams();
@@ -156,8 +157,10 @@ export function NftList() {
       </Header>
 
       <Container>
+        <Button onClick={() => navigate('/nfts/mint')}>Mint NFT</Button>
+
         {walletState.nfts.nfts === 0 ? (
-          <Alert className='mt-2'>
+          <Alert className='mt-4'>
             <Image className='h-4 w-4' />
             <AlertTitle>Mint an NFT?</AlertTitle>
             <AlertDescription>
@@ -175,6 +178,7 @@ export function NftList() {
               setMultiSelect(value);
               setSelected([]);
             }}
+            className='mt-4'
           />
         )}
 

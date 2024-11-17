@@ -38,9 +38,12 @@ import {
   UserRoundPlus,
 } from 'lucide-react';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { commands, DidRecord, TransactionSummary } from '../bindings';
 
 export function DidList() {
+  const navigate = useNavigate();
+
   const [showHidden, setShowHidden] = useState(false);
 
   const { dids, updateDids } = useDids();
@@ -54,8 +57,10 @@ export function DidList() {
         <ReceiveAddress />
       </Header>
       <Container>
+        <Button onClick={() => navigate('/dids/create')}>Create Profile</Button>
+
         {hasHiddenDids && (
-          <div className='inline-flex items-center gap-2 mb-2'>
+          <div className='flex items-center gap-2 my-4'>
             <label htmlFor='viewHidden'>View hidden</label>
             <Switch
               id='viewHidden'
@@ -65,8 +70,8 @@ export function DidList() {
           </div>
         )}
 
-        {visibleDids.length === 0 && (
-          <Alert className='mt-2'>
+        {dids.length === 0 && (
+          <Alert className='mt-4'>
             <UserRoundPlus className='h-4 w-4' />
             <AlertTitle>Create a profile?</AlertTitle>
             <AlertDescription>
@@ -76,7 +81,7 @@ export function DidList() {
           </Alert>
         )}
 
-        <div className='mt-2 grid gap-4 md:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'>
+        <div className='mt-4 grid gap-4 md:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'>
           {visibleDids.map((did) => {
             return (
               <Profile
