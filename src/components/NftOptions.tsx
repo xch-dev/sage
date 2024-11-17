@@ -20,7 +20,7 @@ import {
 
 export interface NftOptionsProps {
   totalPages: number;
-  allowCollections?: boolean;
+  isCollection?: boolean;
   params: NftParams;
   setParams: SetNftParams;
   multiSelect: boolean;
@@ -30,7 +30,7 @@ export interface NftOptionsProps {
 
 export function NftOptions({
   totalPages,
-  allowCollections,
+  isCollection,
   params: { page, view, showHidden },
   setParams,
   multiSelect,
@@ -62,15 +62,17 @@ export function NftOptions({
       </div>
 
       <div className='flex gap-2 items-center'>
-        <Button
-          variant='outline'
-          size='icon'
-          onClick={() => setMultiSelect(!multiSelect)}
-        >
-          <CopyCheck
-            className={`h-4 w-4 ${multiSelect ? 'text-green-600 dark:text-green-400' : ''}`}
-          />
-        </Button>
+        {view !== NftView.Collection && (
+          <Button
+            variant='outline'
+            size='icon'
+            onClick={() => setMultiSelect(!multiSelect)}
+          >
+            <CopyCheck
+              className={`h-4 w-4 ${multiSelect ? 'text-green-600 dark:text-green-400' : ''}`}
+            />
+          </Button>
+        )}
 
         <Button
           variant='outline'
@@ -127,7 +129,7 @@ export function NftOptions({
                 <span>Sort Recent</span>
               </DropdownMenuItem>
 
-              {allowCollections && (
+              {!isCollection && (
                 <DropdownMenuItem
                   className='cursor-pointer'
                   onClick={(e) => {

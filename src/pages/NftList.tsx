@@ -1,11 +1,9 @@
-import { BurnDialog } from '@/components/BurnDialog';
-import ConfirmationDialog from '@/components/ConfirmationDialog';
 import Container from '@/components/Container';
 import Header from '@/components/Header';
+import { MultiSelectActions } from '@/components/MultiSelectActions';
 import { NftCard, NftCardList } from '@/components/NftCard';
 import { NftOptions } from '@/components/NftOptions';
 import { ReceiveAddress } from '@/components/ReceiveAddress';
-import { TransferDialog } from '@/components/TransferDialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
@@ -18,24 +16,10 @@ import {
 import { useNftParams } from '@/hooks/useNftParams';
 import collectionImage from '@/images/collection.png';
 import { useWalletState } from '@/state';
-import {
-  ChevronDown,
-  EyeIcon,
-  EyeOff,
-  Flame,
-  Image,
-  MoreVerticalIcon,
-  SendIcon,
-} from 'lucide-react';
+import { EyeIcon, EyeOff, Image, MoreVerticalIcon } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import {
-  commands,
-  events,
-  NftCollectionRecord,
-  NftRecord,
-  TransactionSummary,
-} from '../bindings';
+import { commands, events, NftCollectionRecord, NftRecord } from '../bindings';
 
 export function NftList() {
   const navigate = useNavigate();
@@ -48,10 +32,6 @@ export function NftList() {
   const [collections, setCollections] = useState<NftCollectionRecord[]>([]);
   const [multiSelect, setMultiSelect] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
-
-  const [transferOpen, setTransferOpen] = useState(false);
-  const [burnOpen, setBurnOpen] = useState(false);
-  const [summary, setSummary] = useState<TransactionSummary | null>(null);
 
   const updateNfts = useCallback(
     async (page: number) => {
@@ -126,30 +106,6 @@ export function NftList() {
     ),
   );
 
-  const onTransferSubmit = (address: string, fee: string) => {
-    commands.transferNfts(selected, address, fee).then((result) => {
-      setTransferOpen(false);
-      if (result.status === 'error') {
-        console.error('Failed to transfer NFTs', result.error);
-      } else {
-        setSummary(result.data);
-      }
-    });
-  };
-
-  const onBurnSubmit = (fee: string) => {
-    commands
-      .transferNfts(selected, walletState.sync.burn_address, fee)
-      .then((result) => {
-        setBurnOpen(false);
-        if (result.status === 'error') {
-          console.error('Failed to burn NFTs', result.error);
-        } else {
-          setSummary(result.data);
-        }
-      });
-  };
-
   return (
     <>
       <Header title='NFTs'>
@@ -170,7 +126,6 @@ export function NftList() {
         ) : (
           <NftOptions
             totalPages={totalPages}
-            allowCollections
             params={params}
             setParams={setParams}
             multiSelect={multiSelect}
@@ -192,20 +147,22 @@ export function NftList() {
                   updateNfts={() => updateNfts(page)}
                 />
               ))}
-              <Collection
-                col={{
-                  name: 'Uncategorized',
-                  icon: '',
-                  did_id: 'Miscellaneous',
-                  metadata_collection_id: 'Uncategorized',
-                  collection_id: 'none',
-                  visible: true,
-                  // TODO: Fix
-                  nfts: 0,
-                  visible_nfts: 0,
-                }}
-                updateNfts={() => updateNfts(page)}
-              />
+              {page === totalPages && (
+                <Collection
+                  col={{
+                    name: 'Uncategorized NFTs',
+                    icon: '',
+                    did_id: 'Miscellaneous',
+                    metadata_collection_id: 'Uncategorized',
+                    collection_id: 'No collection',
+                    visible: true,
+                    // TODO: Fix
+                    nfts: 0,
+                    visible_nfts: 0,
+                  }}
+                  updateNfts={() => updateNfts(page)}
+                />
+              )}
             </>
           ) : (
             nfts.map((nft, i) => (
@@ -239,72 +196,14 @@ export function NftList() {
       </Container>
 
       {selected.length > 0 && (
-        <div className='absolute flex justify-between items-center gap-3 bottom-6 w-60 px-5 p-3 rounded-lg shadow-md shadow-black left-1/2 -translate-x-1/2 bg-neutral-800'>
-          <span className='flex-shrink-0'>{selected.length} selected</span>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button className='flex items-center gap-1'>
-                Actions
-                <ChevronDown className='h-5 w-5' />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align='center'>
-              <DropdownMenuGroup>
-                <DropdownMenuItem
-                  className='cursor-pointer'
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setTransferOpen(true);
-                  }}
-                >
-                  <SendIcon className='mr-2 h-4 w-4' />
-                  <span>Transfer</span>
-                </DropdownMenuItem>
-
-                <DropdownMenuItem
-                  className='cursor-pointer'
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setBurnOpen(true);
-                  }}
-                >
-                  <Flame className='mr-2 h-4 w-4' />
-                  <span>Burn</span>
-                </DropdownMenuItem>
-              </DropdownMenuGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+        <MultiSelectActions
+          selected={selected}
+          onConfirm={() => {
+            setSelected([]);
+            setMultiSelect(false);
+          }}
+        />
       )}
-
-      <TransferDialog
-        title='Bulk Transfer NFTs'
-        open={transferOpen}
-        setOpen={setTransferOpen}
-        onSubmit={onTransferSubmit}
-      >
-        This will bulk transfer {selected.length} NFTs to another wallet. Are
-        you sure you want to proceed?
-      </TransferDialog>
-
-      <BurnDialog
-        title='Bulk Burn NFTs'
-        open={burnOpen}
-        setOpen={setBurnOpen}
-        onSubmit={onBurnSubmit}
-      >
-        This will bulk burn {selected.length} NFTs. This cannot be undone. Are
-        you sure you want to proceed?
-      </BurnDialog>
-
-      <ConfirmationDialog
-        summary={summary}
-        close={() => {
-          setSummary(null);
-          setSelected([]);
-          setMultiSelect(false);
-        }}
-      />
     </>
   );
 }
