@@ -17,11 +17,7 @@ use sage_wallet::WalletError;
 use specta::specta;
 use tauri::{command, State};
 
-use crate::{
-    app_state::AppState,
-    error::Result,
-    parse::{parse_asset_id, parse_collection_id, parse_nft_id},
-};
+use crate::{app_state::AppState, error::Result};
 
 #[command]
 #[specta]

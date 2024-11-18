@@ -17,7 +17,6 @@ pub type AppState = Mutex<AppStateInner>;
 
 pub struct AppStateInner {
     pub app_handle: AppHandle,
-    pub unit: Unit,
     pub initialized: bool,
     pub sage: Sage,
 }
@@ -40,7 +39,6 @@ impl AppStateInner {
     pub fn new(app_handle: AppHandle, path: &Path) -> Self {
         Self {
             app_handle,
-            unit: XCH.clone(),
             initialized: false,
             sage: Sage::new(path),
         }
@@ -79,31 +77,5 @@ impl AppStateInner {
         });
 
         Ok(())
-    }
-
-    #[allow(clippy::needless_pass_by_value)]
-    pub fn parse_address(&self, input: String) -> Result<Bytes32> {
-        let (puzzle_hash, prefix) = decode_address(&input)?;
-
-        if prefix != self.network().address_prefix {
-            return Err(Error {
-                kind: ErrorKind::Api,
-                reason: format!("Wrong address prefix: {prefix}"),
-            });
-        }
-
-        Ok(puzzle_hash.into())
-    }
-
-    #[allow(clippy::needless_pass_by_value)]
-    pub fn parse_amount(&self, input: Amount) -> Result<u64> {
-        let Some(amount) = input.to_mojos(self.unit.decimals) else {
-            return Err(Error {
-                kind: ErrorKind::Api,
-                reason: format!("Invalid amount: {input}"),
-            });
-        };
-
-        Ok(amount)
     }
 }

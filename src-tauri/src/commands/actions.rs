@@ -6,7 +6,6 @@ use tauri::{command, State};
 use crate::{
     app_state::AppState,
     error::{Error, ErrorKind, Result},
-    parse::{parse_asset_id, parse_did_id, parse_nft_id},
 };
 
 #[command]

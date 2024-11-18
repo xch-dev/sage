@@ -5,9 +5,10 @@ use std::{
     sync::Arc,
 };
 
-use chia::bls::master_to_wallet_unhardened_intermediate;
-use chia_wallet_sdk::{create_rustls_connector, load_ssl_cert, Connector};
+use chia::{bls::master_to_wallet_unhardened_intermediate, protocol::Bytes32};
+use chia_wallet_sdk::{create_rustls_connector, decode_address, load_ssl_cert, Connector};
 use indexmap::{indexmap, IndexMap};
+use sage_api::{Amount, Unit, TXCH, XCH};
 use sage_config::{Config, Network, WalletConfig, MAINNET, TESTNET11};
 use sage_database::Database;
 use sage_keychain::Keychain;
@@ -32,6 +33,7 @@ pub struct Sage {
     pub wallet: Option<Arc<Wallet>>,
     pub peer_state: Arc<Mutex<PeerState>>,
     pub command_sender: mpsc::Sender<SyncCommand>,
+    pub unit: Unit,
 }
 
 impl Sage {
@@ -47,6 +49,7 @@ impl Sage {
             wallet: None,
             peer_state: Arc::new(Mutex::new(PeerState::default())),
             command_sender: mpsc::channel(1).0,
+            unit: XCH.clone(),
         }
     }
 
@@ -266,6 +269,11 @@ impl Sage {
         ));
 
         self.wallet = Some(wallet.clone());
+        self.unit = if network_id == "mainnet" {
+            XCH.clone()
+        } else {
+            TXCH.clone()
+        };
 
         self.command_sender
             .send(SyncCommand::SwitchWallet {
@@ -274,6 +282,26 @@ impl Sage {
             .await?;
 
         Ok(())
+    }
+
+    #[allow(clippy::needless_pass_by_value)]
+    pub fn parse_address(&self, input: String) -> Result<Bytes32> {
+        let (puzzle_hash, prefix) = decode_address(&input)?;
+
+        if prefix != self.network().address_prefix {
+            return Err(Error::AddressPrefix(prefix));
+        }
+
+        Ok(puzzle_hash.into())
+    }
+
+    #[allow(clippy::needless_pass_by_value)]
+    pub fn parse_amount(&self, input: Amount) -> Result<u64> {
+        let Some(amount) = input.to_mojos(self.unit.decimals) else {
+            return Err(Error::InvalidCatAmount(input.to_string()));
+        };
+
+        Ok(amount)
     }
 
     pub fn delete_wallet_db(&self, fingerprint: u32) -> Result<()> {

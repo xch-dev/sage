@@ -7,7 +7,6 @@ use tokio::sync::Mutex;
 mod app_state;
 mod commands;
 mod error;
-mod parse;
 
 #[cfg(all(debug_assertions, not(mobile)))]
 use specta_typescript::{BigIntExportBehavior, Typescript};
@@ -27,6 +26,8 @@ pub fn run() {
             commands::get_keys,
             commands::get_key,
             commands::get_secret_key,
+            // Transactions
+            commands::send_xch,
             // Network Config
             commands::network_config,
             commands::set_discover_peers,
@@ -64,7 +65,6 @@ pub fn run() {
             commands::update_did,
             commands::update_nft,
             // Transactions
-            commands::send,
             commands::combine,
             commands::split,
             commands::combine_cat,

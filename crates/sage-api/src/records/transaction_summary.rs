@@ -6,8 +6,7 @@ use crate::{Amount, AssetKind};
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub struct TransactionSummary {
     pub fee: Amount,
-    pub inputs: Vec<Input>,
-    pub coin_spends: Vec<CoinSpendJson>,
+    pub inputs: Vec<TransactionInput>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
@@ -31,17 +30,17 @@ pub struct CoinJson {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
-pub struct Input {
+pub struct TransactionInput {
     pub coin_id: String,
     pub amount: Amount,
     pub address: String,
     #[serde(flatten)]
     pub kind: AssetKind,
-    pub outputs: Vec<Output>,
+    pub outputs: Vec<TransactionOutput>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
-pub struct Output {
+pub struct TransactionOutput {
     pub coin_id: String,
     pub amount: Amount,
     pub address: String,

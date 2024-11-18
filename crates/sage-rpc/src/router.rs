@@ -5,9 +5,10 @@ use axum::{
     routing::post,
     Json, Router,
 };
-use sage::{Error, Result};
+use sage::Result;
 use sage_api::{
-    DeleteKey, GenerateMnemonic, GetKey, GetKeys, GetSecretKey, ImportKey, Login, Logout, Resync,
+    DeleteKey, ErrorKind, GenerateMnemonic, GetKey, GetKeys, GetSecretKey, ImportKey, Login,
+    Logout, Resync,
 };
 use serde::Serialize;
 
@@ -75,26 +76,11 @@ where
     match value {
         Ok(data) => Json(data).into_response(),
         Err(error) => {
-            let status = match &error {
-                Error::Bls(..) | Error::Hex(..) | Error::TryFromSlice(..) | Error::ParseInt(..) => {
-                    StatusCode::BAD_REQUEST
-                }
-                Error::Client(..)
-                | Error::Sqlx(..)
-                | Error::SqlxMigration(..)
-                | Error::ParseLogLevel(..)
-                | Error::LogSubscriber(..)
-                | Error::LogAppender(..)
-                | Error::TomlDe(..)
-                | Error::TomlSer(..)
-                | Error::Io(..)
-                | Error::Bip39(..)
-                | Error::Keychain(..)
-                | Error::Send(..) => StatusCode::INTERNAL_SERVER_ERROR,
-                Error::UnknownNetwork | Error::UnknownFingerprint | Error::InvalidKey => {
-                    StatusCode::NOT_FOUND
-                }
-                Error::NotLoggedIn => StatusCode::UNAUTHORIZED,
+            let status = match error.kind() {
+                ErrorKind::Api => StatusCode::BAD_REQUEST,
+                ErrorKind::NotFound => StatusCode::NOT_FOUND,
+                ErrorKind::Unauthorized => StatusCode::UNAUTHORIZED,
+                ErrorKind::Wallet | ErrorKind::Internal => StatusCode::INTERNAL_SERVER_ERROR,
             };
             (status, error.to_string()).into_response()
         }
