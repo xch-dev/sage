@@ -13,9 +13,25 @@ async login(req: Login) : Promise<Result<null, Error>> {
     else return { status: "error", error: e  as any };
 }
 },
+async logout(req: Logout) : Promise<Result<null, Error>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("logout", { req }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async resync(req: Resync) : Promise<Result<null, Error>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("resync", { req }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async importKey(req: ImportKey) : Promise<Result<null, Error>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("import_key", { req }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -117,33 +133,9 @@ async walletList() : Promise<Result<WalletInfo[], Error>> {
     else return { status: "error", error: e  as any };
 }
 },
-async logoutWallet() : Promise<Result<null, Error>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("logout_wallet") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
 async generateMnemonic(use24Words: boolean) : Promise<Result<string, Error>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("generate_mnemonic", { use24Words }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async createWallet(name: string, mnemonic: string, saveMnemonic: boolean) : Promise<Result<null, Error>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("create_wallet", { name, mnemonic, saveMnemonic }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async importWallet(name: string, key: string) : Promise<Result<null, Error>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("import_wallet", { name, key }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -518,8 +510,10 @@ export type ErrorKind = "wallet" | "api" | "not_found" | "internal"
 export type GetCollectionNfts = { collection_id: string | null; offset: number; limit: number; sort_mode: NftSortMode; include_hidden: boolean }
 export type GetNftCollections = { offset: number; limit: number; include_hidden: boolean }
 export type GetNfts = { offset: number; limit: number; sort_mode: NftSortMode; include_hidden: boolean }
+export type ImportKey = { name: string; key: string; save_secrets?: boolean; login?: boolean }
 export type Input = ({ type: "unknown" } | { type: "xch" } | { type: "launcher" } | { type: "cat"; asset_id: string; name: string | null; ticker: string | null; icon_url: string | null } | { type: "did"; launcher_id: string; name: string | null } | { type: "nft"; launcher_id: string; image_data: string | null; image_mime_type: string | null; name: string | null }) & { coin_id: string; amount: Amount; address: string; outputs: Output[] }
 export type Login = { fingerprint: number }
+export type Logout = null
 export type MakeOffer = { requested_assets: Assets; offered_assets: Assets; fee: Amount }
 export type Network = { default_port: number; ticker: string; address_prefix: string; precision: number; genesis_challenge: string; agg_sig_me: string; dns_introducers: string[] }
 export type NetworkConfig = { network_id?: string; target_peers?: number; discover_peers?: boolean }

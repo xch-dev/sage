@@ -1,12 +1,21 @@
-use std::fs;
+use std::{fs, str::FromStr};
 
-use sage_api::{DeleteKey, Login, Resync};
+use bip39::Mnemonic;
+use chia::bls::{PublicKey, SecretKey};
+use sage_api::{DeleteKey, ImportKey, Login, Logout, Resync};
 
-use crate::{Result, Sage};
+use crate::{Error, Result, Sage};
 
 impl Sage {
     pub async fn login(&mut self, req: Login) -> Result<()> {
         self.config.app.active_fingerprint = Some(req.fingerprint);
+        self.save_config()?;
+        self.switch_wallet().await?;
+        Ok(())
+    }
+
+    pub async fn logout(&mut self, _req: Logout) -> Result<()> {
+        self.config.app.active_fingerprint = None;
         self.save_config()?;
         self.switch_wallet().await?;
         Ok(())
@@ -25,6 +34,53 @@ impl Sage {
         if login {
             self.config.app.active_fingerprint = Some(req.fingerprint);
             self.save_config()?;
+            self.switch_wallet().await?;
+        }
+
+        Ok(())
+    }
+
+    pub async fn import_key(&mut self, req: ImportKey) -> Result<()> {
+        let mut key_hex = req.key.as_str();
+
+        if key_hex.starts_with("0x") || key_hex.starts_with("0X") {
+            key_hex = &key_hex[2..];
+        }
+
+        let fingerprint = if let Ok(bytes) = hex::decode(key_hex) {
+            if let Ok(master_pk) = bytes.clone().try_into() {
+                let master_pk = PublicKey::from_bytes(&master_pk)?;
+                self.keychain.add_public_key(&master_pk)?
+            } else if let Ok(master_sk) = bytes.try_into() {
+                let master_sk = SecretKey::from_bytes(&master_sk)?;
+
+                if req.save_secrets {
+                    self.keychain.add_secret_key(&master_sk, b"")?
+                } else {
+                    self.keychain.add_public_key(&master_sk.public_key())?
+                }
+            } else {
+                return Err(Error::InvalidKey);
+            }
+        } else {
+            let mnemonic = Mnemonic::from_str(&req.key)?;
+
+            if req.save_secrets {
+                self.keychain.add_mnemonic(&mnemonic, b"")?
+            } else {
+                let master_sk = SecretKey::from_seed(&mnemonic.to_seed(""));
+                self.keychain.add_public_key(&master_sk.public_key())?
+            }
+        };
+
+        let config = self.wallet_config_mut(fingerprint);
+        config.name = req.name;
+        self.config.app.active_fingerprint = Some(fingerprint);
+
+        self.save_keychain()?;
+        self.save_config()?;
+
+        if req.login {
             self.switch_wallet().await?;
         }
 
@@ -110,16 +166,6 @@ impl Sage {
 //         mnemonic: mnemonic.map(|m| m.to_string()),
 //         secret_key: hex::encode(secret_key.to_bytes()),
 //     }))
-// }
-
-// #[command]
-// #[specta]
-// pub async fn logout_wallet(state: State<'_, AppState>) -> Result<()> {
-//     let mut state = state.lock().await;
-//     state.config.app.active_fingerprint = None;
-//     state.save_config()?;
-//     state.switch_wallet().await?;
-//     Ok(())
 // }
 
 // #[command]

@@ -40,7 +40,11 @@ export default function CreateWallet() {
 
   const submit = (values: z.infer<typeof formSchema>) => {
     commands
-      .createWallet(values.walletName, values.mnemonic, values.saveMnemonic)
+      .importKey({
+        name: values.walletName,
+        key: values.mnemonic,
+        save_secrets: values.saveMnemonic,
+      })
       .then((res) => {
         if (res.status === 'ok') {
           fetchState().then(() => {

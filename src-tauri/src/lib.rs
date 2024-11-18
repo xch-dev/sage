@@ -19,7 +19,9 @@ pub fn run() {
         .commands(collect_commands![
             // Keys
             commands::login,
+            commands::logout,
             commands::resync,
+            commands::import_key,
             commands::delete_key,
             // Network Config
             commands::network_config,
@@ -36,10 +38,7 @@ pub fn run() {
             commands::active_wallet,
             commands::get_wallet_secrets,
             commands::wallet_list,
-            commands::logout_wallet,
             commands::generate_mnemonic,
-            commands::create_wallet,
-            commands::import_wallet,
             commands::rename_wallet,
             // Setup
             commands::initialize,

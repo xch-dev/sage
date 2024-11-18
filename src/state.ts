@@ -90,7 +90,7 @@ export async function loginAndUpdateState(fingerprint: number): Promise<void> {
 
 export async function logoutAndUpdateState(): Promise<void> {
   clearState();
-  await commands.logoutWallet();
+  await commands.logout(null);
 }
 
 function defaultState(): WalletState {

@@ -3,7 +3,9 @@ mod delete_key;
 mod get_collection_nfts;
 mod get_nft_collections;
 mod get_nfts;
+mod import_key;
 mod login;
+mod logout;
 mod make_offer;
 mod resync;
 
@@ -12,6 +14,8 @@ pub use delete_key::*;
 pub use get_collection_nfts::*;
 pub use get_nft_collections::*;
 pub use get_nfts::*;
+pub use import_key::*;
 pub use login::*;
+pub use logout::*;
 pub use make_offer::*;
 pub use resync::*;

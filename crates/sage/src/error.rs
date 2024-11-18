@@ -19,6 +19,12 @@ pub enum Error {
     #[error("Client error: {0}")]
     Client(#[from] ClientError),
 
+    #[error("BLS error: {0}")]
+    Bls(#[from] chia::bls::Error),
+
+    #[error("BIP39 error: {0}")]
+    Bip39(#[from] bip39::Error),
+
     #[error("Send error: {0}")]
     Send(#[from] SendError<SyncCommand>),
 
@@ -60,6 +66,9 @@ pub enum Error {
 
     #[error("Not logged in")]
     NotLoggedIn,
+
+    #[error("Invalid key")]
+    InvalidKey,
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
