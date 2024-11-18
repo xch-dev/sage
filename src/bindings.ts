@@ -5,6 +5,30 @@
 
 
 export const commands = {
+async login(req: Login) : Promise<Result<null, Error>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("login", { req }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async resync(req: Resync) : Promise<Result<null, Error>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("resync", { req }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async deleteKey(req: DeleteKey) : Promise<Result<null, Error>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("delete_key", { req }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async networkConfig() : Promise<Result<NetworkConfig, Error>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("network_config") };
@@ -93,14 +117,6 @@ async walletList() : Promise<Result<WalletInfo[], Error>> {
     else return { status: "error", error: e  as any };
 }
 },
-async login(body: Login) : Promise<Result<null, Error>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("login", { body }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
 async logoutWallet() : Promise<Result<null, Error>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("logout_wallet") };
@@ -133,25 +149,9 @@ async importWallet(name: string, key: string) : Promise<Result<null, Error>> {
     else return { status: "error", error: e  as any };
 }
 },
-async deleteWallet(fingerprint: number) : Promise<Result<null, Error>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("delete_wallet", { fingerprint }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
 async renameWallet(fingerprint: number, name: string) : Promise<Result<null, Error>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("rename_wallet", { fingerprint, name }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async resyncWallet(fingerprint: number) : Promise<Result<null, Error>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("resync_wallet", { fingerprint }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -511,6 +511,7 @@ export type CatRecord = { asset_id: string; name: string | null; ticker: string 
 export type CoinJson = { parent_coin_info: string; puzzle_hash: string; amount: Amount }
 export type CoinRecord = { coin_id: string; address: string; amount: Amount; created_height: number | null; spent_height: number | null; create_transaction_id: string | null; spend_transaction_id: string | null }
 export type CoinSpendJson = { coin: CoinJson; puzzle_reveal: string; solution: string }
+export type DeleteKey = { fingerprint: number }
 export type DidRecord = { launcher_id: string; name: string | null; visible: boolean; coin_id: string; address: string; amount: Amount; created_height: number | null; create_transaction_id: string | null }
 export type Error = { kind: ErrorKind; reason: string }
 export type ErrorKind = "wallet" | "api" | "not_found" | "internal"
@@ -537,6 +538,7 @@ export type OfferXch = { amount: Amount; royalty: Amount }
 export type Output = { coin_id: string; amount: Amount; address: string; receiving: boolean; burning: boolean }
 export type PeerRecord = { ip_addr: string; port: number; trusted: boolean; peak_height: number }
 export type PendingTransactionRecord = { transaction_id: string; fee: Amount; submitted_at: string | null }
+export type Resync = { fingerprint: number }
 export type SpendBundleJson = { coin_spends: CoinSpendJson[]; aggregated_signature: string }
 export type SyncEvent = { type: "start"; ip: string } | { type: "stop" } | { type: "subscribed" } | { type: "derivation" } | { type: "coin_state" } | { type: "puzzle_batch_synced" } | { type: "cat_info" } | { type: "did_info" } | { type: "nft_data" }
 export type SyncStatus = { balance: Amount; unit: Unit; synced_coins: number; total_coins: number; receive_address: string; burn_address: string }

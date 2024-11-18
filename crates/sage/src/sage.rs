@@ -334,25 +334,6 @@ impl Sage {
             .or_default()
     }
 
-    pub fn delete_wallet(&mut self, fingerprint: u32) -> Result<()> {
-        self.keychain.remove(fingerprint);
-
-        self.config.wallets.shift_remove(&fingerprint.to_string());
-        if self.config.app.active_fingerprint == Some(fingerprint) {
-            self.config.app.active_fingerprint = None;
-        }
-
-        self.save_keychain()?;
-        self.save_config()?;
-
-        let path = self.path.join("wallets").join(fingerprint.to_string());
-        if path.try_exists()? {
-            fs::remove_dir_all(path)?;
-        }
-
-        Ok(())
-    }
-
     pub fn save_config(&self) -> Result<()> {
         let config = toml::to_string_pretty(&self.config)?;
         fs::write(self.path.join("config.toml"), config)?;

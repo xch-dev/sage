@@ -17,6 +17,10 @@ pub fn run() {
     let builder = Builder::<tauri::Wry>::new()
         // Then register them (separated by a comma)
         .commands(collect_commands![
+            // Keys
+            commands::login,
+            commands::resync,
+            commands::delete_key,
             // Network Config
             commands::network_config,
             commands::set_discover_peers,
@@ -32,14 +36,11 @@ pub fn run() {
             commands::active_wallet,
             commands::get_wallet_secrets,
             commands::wallet_list,
-            commands::login,
             commands::logout_wallet,
             commands::generate_mnemonic,
             commands::create_wallet,
             commands::import_wallet,
-            commands::delete_wallet,
             commands::rename_wallet,
-            commands::resync_wallet,
             // Setup
             commands::initialize,
             // Wallet

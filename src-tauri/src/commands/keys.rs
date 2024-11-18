@@ -4,7 +4,7 @@ use bip39::Mnemonic;
 use chia::bls::{PublicKey, SecretKey};
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
-use sage_api::{Login, WalletInfo, WalletKind, WalletSecrets};
+use sage_api::{DeleteKey, Login, Resync, WalletInfo, WalletKind, WalletSecrets};
 use specta::specta;
 use tauri::{command, State};
 
@@ -74,31 +74,20 @@ pub async fn get_wallet_secrets(
 
 #[command]
 #[specta]
-pub async fn login(state: State<'_, AppState>, body: Login) -> Result<()> {
-    Ok(state.lock().await.login(body).await?)
+pub async fn login(state: State<'_, AppState>, req: Login) -> Result<()> {
+    Ok(state.lock().await.login(req).await?)
 }
 
 #[command]
 #[specta]
-pub async fn resync_wallet(state: State<'_, AppState>, fingerprint: u32) -> Result<()> {
-    let mut state = state.lock().await;
+pub async fn resync(state: State<'_, AppState>, req: Resync) -> Result<()> {
+    Ok(state.lock().await.resync(req).await?)
+}
 
-    let login = state.config.app.active_fingerprint == Some(fingerprint);
-
-    if login {
-        state.config.app.active_fingerprint = None;
-        state.switch_wallet().await?;
-    }
-
-    state.delete_wallet_db(fingerprint)?;
-
-    if login {
-        state.config.app.active_fingerprint = Some(fingerprint);
-        state.save_config()?;
-        state.switch_wallet().await?;
-    }
-
-    Ok(())
+#[command]
+#[specta]
+pub async fn delete_key(state: State<'_, AppState>, req: DeleteKey) -> Result<()> {
+    Ok(state.lock().await.delete_key(req)?)
 }
 
 #[command]
@@ -191,13 +180,5 @@ pub async fn import_wallet(state: State<'_, AppState>, name: String, key: String
     state.save_config()?;
 
     state.switch_wallet().await?;
-    Ok(())
-}
-
-#[command]
-#[specta]
-pub async fn delete_wallet(state: State<'_, AppState>, fingerprint: u32) -> Result<()> {
-    let mut state = state.lock().await;
-    state.delete_wallet(fingerprint)?;
     Ok(())
 }

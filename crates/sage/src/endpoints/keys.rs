@@ -1,4 +1,6 @@
-use sage_api::Login;
+use std::fs;
+
+use sage_api::{DeleteKey, Login, Resync};
 
 use crate::{Result, Sage};
 
@@ -7,6 +9,46 @@ impl Sage {
         self.config.app.active_fingerprint = Some(req.fingerprint);
         self.save_config()?;
         self.switch_wallet().await?;
+        Ok(())
+    }
+
+    pub async fn resync(&mut self, req: Resync) -> Result<()> {
+        let login = self.config.app.active_fingerprint == Some(req.fingerprint);
+
+        if login {
+            self.config.app.active_fingerprint = None;
+            self.switch_wallet().await?;
+        }
+
+        self.delete_wallet_db(req.fingerprint)?;
+
+        if login {
+            self.config.app.active_fingerprint = Some(req.fingerprint);
+            self.save_config()?;
+            self.switch_wallet().await?;
+        }
+
+        Ok(())
+    }
+
+    pub fn delete_key(&mut self, req: DeleteKey) -> Result<()> {
+        self.keychain.remove(req.fingerprint);
+
+        self.config
+            .wallets
+            .shift_remove(&req.fingerprint.to_string());
+        if self.config.app.active_fingerprint == Some(req.fingerprint) {
+            self.config.app.active_fingerprint = None;
+        }
+
+        self.save_keychain()?;
+        self.save_config()?;
+
+        let path = self.path.join("wallets").join(req.fingerprint.to_string());
+        if path.try_exists()? {
+            fs::remove_dir_all(path)?;
+        }
+
         Ok(())
     }
 }
@@ -68,29 +110,6 @@ impl Sage {
 //         mnemonic: mnemonic.map(|m| m.to_string()),
 //         secret_key: hex::encode(secret_key.to_bytes()),
 //     }))
-// }
-
-// #[command]
-// #[specta]
-// pub async fn resync_wallet(state: State<'_, AppState>, fingerprint: u32) -> Result<()> {
-//     let mut state = state.lock().await;
-
-//     let login = state.config.app.active_fingerprint == Some(fingerprint);
-
-//     if login {
-//         state.config.app.active_fingerprint = None;
-//         state.switch_wallet().await?;
-//     }
-
-//     state.delete_wallet_db(fingerprint)?;
-
-//     if login {
-//         state.config.app.active_fingerprint = Some(fingerprint);
-//         state.save_config()?;
-//         state.switch_wallet().await?;
-//     }
-
-//     Ok(())
 // }
 
 // #[command]
@@ -183,13 +202,5 @@ impl Sage {
 //     state.save_config()?;
 
 //     state.switch_wallet().await?;
-//     Ok(())
-// }
-
-// #[command]
-// #[specta]
-// pub async fn delete_wallet(state: State<'_, AppState>, fingerprint: u32) -> Result<()> {
-//     let mut state = state.lock().await;
-//     state.delete_wallet(fingerprint)?;
 //     Ok(())
 // }

@@ -122,22 +122,24 @@ function WalletItem(props: {
   const [secrets, setSecrets] = useState<WalletSecrets | null>(null);
 
   const resyncSelf = () => {
-    commands.resyncWallet(props.wallet.fingerprint).then((res) => {
+    commands.resync({ fingerprint: props.wallet.fingerprint }).then((res) => {
       if (res.status === 'error') return;
       setResyncOpen(false);
     });
   };
 
   const deleteSelf = () => {
-    commands.deleteWallet(props.wallet.fingerprint).then((res) => {
-      if (res.status === 'error') return;
-      props.setWallets(
-        props.wallets.filter(
-          (wallet) => wallet.fingerprint !== props.wallet.fingerprint,
-        ),
-      );
-      setDeleteOpen(false);
-    });
+    commands
+      .deleteKey({ fingerprint: props.wallet.fingerprint })
+      .then((res) => {
+        if (res.status === 'error') return;
+        props.setWallets(
+          props.wallets.filter(
+            (wallet) => wallet.fingerprint !== props.wallet.fingerprint,
+          ),
+        );
+        setDeleteOpen(false);
+      });
   };
 
   const renameSelf = () => {
