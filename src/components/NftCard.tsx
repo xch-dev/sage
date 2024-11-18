@@ -190,7 +190,7 @@ export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
           }
         }}
       >
-        <div className='overflow-hidden rounded-t-md relative'>
+        <div className='overflow-hidden rounded-t-lg relative'>
           <img
             alt={nft.name ?? 'Unnamed'}
             loading='lazy'
@@ -207,7 +207,7 @@ export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
             />
           )}
         </div>
-        <div className='text-md flex items-center justify-between rounded-b p-1 pl-2 bg-neutral-200 dark:bg-neutral-800'>
+        <div className=' border border-neutral-200 bg-white text-neutral-950 shadow dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-50 text-md flex items-center justify-between rounded-b-lg p-2 pl-3'>
           <span className='truncate'>
             <span className='font-medium leading-none truncate'>
               {nft.name ?? 'Unnamed'}

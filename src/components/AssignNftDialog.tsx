@@ -78,7 +78,10 @@ export function AssignNftDialog({
           <DialogDescription>{children}</DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handler)} className='space-y-4'>
+          <form
+            onSubmit={form.handleSubmit(handler)}
+            className='space-y-4 overflow-hidden p-[1px]'
+          >
             <FormField
               control={form.control}
               name='profile'
@@ -90,7 +93,7 @@ export function AssignNftDialog({
                       <SelectTrigger id='profile' aria-label='Select profile'>
                         <SelectValue placeholder='Select profile' />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className='max-w-[var(--radix-select-trigger-width)]'>
                         {dids
                           .filter((did) => did.visible)
                           .map((did) => {
@@ -99,7 +102,8 @@ export function AssignNftDialog({
                                 key={did.launcher_id}
                                 value={did.launcher_id}
                               >
-                                {did.name ?? did.launcher_id}
+                                {did.name ??
+                                  `${did.launcher_id.slice(0, 14)}...${did.launcher_id.slice(-4)}`}
                               </SelectItem>
                             );
                           })}

@@ -122,7 +122,8 @@ export default function MintNft() {
                                 key={did.launcher_id}
                                 value={did.launcher_id}
                               >
-                                {did.name ?? did.launcher_id}
+                                {did.name ??
+                                  `${did.launcher_id.slice(0, 14)}...${did.launcher_id.slice(-4)}`}
                               </SelectItem>
                             );
                           })}
@@ -225,6 +226,9 @@ export default function MintNft() {
                           {...field}
                           className='pr-12'
                         />
+                        <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
+                          <span className='text-gray-500 sm:text-sm'>%</span>
+                        </div>
                       </div>
                     </FormControl>
                     <FormMessage />
@@ -239,7 +243,7 @@ export default function MintNft() {
                 name='fee'
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Fee</FormLabel>
+                    <FormLabel>Network Fee</FormLabel>
                     <FormControl>
                       <div className='relative'>
                         <Input

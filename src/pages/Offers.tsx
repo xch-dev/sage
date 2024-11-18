@@ -21,6 +21,8 @@ export function Offers() {
   const [offerString, setOfferString] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
 
+  const offers = [];
+
   const viewOffer = useCallback(
     (offer: string) => {
       if (offer.trim()) {
@@ -65,56 +67,60 @@ export function Offers() {
     <>
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <Header title='Offers'>
-          <div className='flex items-center gap-2'>
-            <DialogTrigger asChild>
-              <Button variant='outline' className='flex items-center gap-1'>
-                View offer
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Enter Offer String</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleViewOffer} className='flex flex-col gap-4'>
-                <Textarea
-                  placeholder='Paste your offer string here...'
-                  value={offerString}
-                  onChange={(e) => setOfferString(e.target.value)}
-                  className='min-h-[200px] font-mono text-xs'
-                />
-                <Button type='submit'>View Offer</Button>
-              </form>
-            </DialogContent>
-            <Link to='/offers/make'>
-              <Button>New offer</Button>
-            </Link>
-          </div>
-        </Header>
-
-        <Container>
-          <div className='flex flex-col items-center justify-center py-12 text-center gap-4'>
-            <HandCoins className='h-12 w-12 text-muted-foreground' />
-            <div>
-              <h2 className='text-lg font-semibold'>No Offers yet</h2>
-              <p className='mt-2 text-sm text-muted-foreground'>
-                Create a new offer to get started with peer-to-peer trading.
-              </p>
-              <p className='mt-1 text-sm text-muted-foreground'>
-                You can also paste an offer using <kbd>Ctrl+V</kbd>.
-              </p>
-            </div>
-            <div className='flex gap-2'>
+          {offers.length > 0 && (
+            <div className='flex items-center gap-2'>
               <DialogTrigger asChild>
                 <Button variant='outline' className='flex items-center gap-1'>
                   View offer
                 </Button>
               </DialogTrigger>
               <Link to='/offers/make'>
-                <Button>Create new offer</Button>
+                <Button>New offer</Button>
               </Link>
             </div>
-          </div>
+          )}
+        </Header>
+
+        <Container>
+          {offers.length === 0 && (
+            <div className='flex flex-col items-center justify-center py-12 text-center gap-4'>
+              <HandCoins className='h-12 w-12 text-muted-foreground' />
+              <div>
+                <h2 className='text-lg font-semibold'>No Offers yet</h2>
+                <p className='mt-2 text-sm text-muted-foreground'>
+                  Create a new offer to get started with peer-to-peer trading.
+                </p>
+                <p className='mt-1 text-sm text-muted-foreground'>
+                  You can also paste an offer using <kbd>Ctrl+V</kbd>.
+                </p>
+              </div>
+              <div className='flex gap-2'>
+                <DialogTrigger asChild>
+                  <Button variant='outline' className='flex items-center gap-1'>
+                    View offer
+                  </Button>
+                </DialogTrigger>
+                <Link to='/offers/make'>
+                  <Button>Create offer</Button>
+                </Link>
+              </div>
+            </div>
+          )}
         </Container>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Enter Offer String</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleViewOffer} className='flex flex-col gap-4'>
+            <Textarea
+              placeholder='Paste your offer string here...'
+              value={offerString}
+              onChange={(e) => setOfferString(e.target.value)}
+              className='min-h-[200px] font-mono text-xs'
+            />
+            <Button type='submit'>View Offer</Button>
+          </form>
+        </DialogContent>
       </Dialog>
     </>
   );
