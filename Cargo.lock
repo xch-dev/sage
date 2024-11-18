@@ -4553,6 +4553,28 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f3cb5ba0dc43242ce17de99c180e96db90b235b8a9fdc9543c96d2209116bd9f"
 
 [[package]]
+name = "sage"
+version = "0.7.0"
+dependencies = [
+ "chia",
+ "chia-wallet-sdk",
+ "hex",
+ "indexmap 2.5.0",
+ "log",
+ "sage-config",
+ "sage-database",
+ "sage-keychain",
+ "sage-wallet",
+ "sqlx",
+ "thiserror 1.0.63",
+ "tokio",
+ "toml 0.8.19",
+ "tracing",
+ "tracing-appender",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "sage-api"
 version = "0.7.0"
 dependencies = [
@@ -4631,6 +4653,7 @@ dependencies = [
  "log",
  "rand 0.8.5",
  "rand_chacha 0.3.1",
+ "sage",
  "sage-api",
  "sage-config",
  "sage-database",

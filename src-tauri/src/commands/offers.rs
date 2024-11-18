@@ -1,6 +1,6 @@
 use bigdecimal::BigDecimal;
-use chia::{clvm_traits::FromClvm, protocol::Bytes32, puzzles::nft::NftMetadata};
-use chia_wallet_sdk::{decode_address, encode_address, AggSigConstants, Offer, SpendContext};
+use chia::{clvm_traits::FromClvm, puzzles::nft::NftMetadata};
+use chia_wallet_sdk::{encode_address, AggSigConstants, Offer, SpendContext};
 use indexmap::IndexMap;
 use sage_api::{
     Amount, CatAmount, MakeOffer, OfferAssets, OfferCat, OfferNft, OfferSummary, OfferXch,
@@ -15,7 +15,8 @@ use tokio::sync::MutexGuard;
 
 use crate::{
     app_state::{AppState, AppStateInner},
-    error::{Error, Result},
+    error::{Error, ErrorKind, Result},
+    parse::{parse_asset_id, parse_cat_amount, parse_genesis_challenge, parse_nft_id},
 };
 
 use super::{extract_nft_data, ConfirmationInfo};
@@ -26,44 +27,26 @@ pub async fn make_offer(state: State<'_, AppState>, request: MakeOffer) -> Resul
     let state = state.lock().await;
     let wallet = state.wallet()?;
 
-    let Some(offered_xch) = request.offered_assets.xch.to_mojos(state.unit.decimals) else {
-        return Err(Error::invalid_amount(&request.offered_assets.xch));
-    };
+    let offered_xch = state.parse_amount(request.offered_assets.xch)?;
 
     let mut offered_cats = IndexMap::new();
 
     for CatAmount { asset_id, amount } in request.offered_assets.cats {
-        let Some(amount) = amount.to_mojos(3) else {
-            return Err(Error::invalid_amount(&amount));
-        };
-        let asset_id = hex::decode(&asset_id)?.try_into()?;
-        offered_cats.insert(asset_id, amount);
+        offered_cats.insert(parse_asset_id(asset_id)?, parse_cat_amount(amount)?);
     }
 
     let mut offered_nfts = Vec::new();
 
     for nft_id in request.offered_assets.nfts {
-        let (launcher_id, prefix) = decode_address(&nft_id)?;
-
-        if prefix != "nft" {
-            return Err(Error::invalid_prefix(&prefix));
-        }
-
-        offered_nfts.push(launcher_id.into());
+        offered_nfts.push(parse_nft_id(nft_id)?);
     }
 
-    let Some(requested_xch) = request.requested_assets.xch.to_mojos(state.unit.decimals) else {
-        return Err(Error::invalid_amount(&request.requested_assets.xch));
-    };
+    let requested_xch = state.parse_amount(request.requested_assets.xch)?;
 
     let mut requested_cats = IndexMap::new();
 
     for CatAmount { asset_id, amount } in request.requested_assets.cats {
-        let Some(amount) = amount.to_mojos(3) else {
-            return Err(Error::invalid_amount(&amount));
-        };
-        let asset_id = hex::decode(&asset_id)?.try_into()?;
-        requested_cats.insert(asset_id, amount);
+        requested_cats.insert(parse_asset_id(asset_id)?, parse_cat_amount(amount)?);
     }
 
     let mut requested_nfts = IndexMap::new();
@@ -74,25 +57,24 @@ pub async fn make_offer(state: State<'_, AppState>, request: MakeOffer) -> Resul
             peer = state.peer_state.lock().await.acquire_peer();
         }
 
-        let peer = peer.as_ref().ok_or(Error::no_peers())?;
+        let peer = peer.as_ref().ok_or(Error {
+            kind: ErrorKind::Api,
+            reason: "No peers are currently connected".to_string(),
+        })?;
 
-        let (launcher_id, prefix) = decode_address(&nft_id)?;
+        let nft_id = parse_nft_id(nft_id)?;
 
-        if prefix != "nft" {
-            return Err(Error::invalid_prefix(&prefix));
-        }
-
-        let nft_id: Bytes32 = launcher_id.into();
         let Some(offer_details) = fetch_nft_offer_details(peer, nft_id).await? else {
-            return Err(Error::invalid_launcher_id());
+            return Err(Error {
+                kind: ErrorKind::NotFound,
+                reason: format!("Could not fetch offer details for NFT {nft_id}"),
+            });
         };
 
         requested_nfts.insert(nft_id, offer_details);
     }
 
-    let Some(fee) = request.fee.to_mojos(state.unit.decimals) else {
-        return Err(Error::invalid_amount(&request.fee));
-    };
+    let fee = state.parse_amount(request.fee)?;
 
     let unsigned = wallet
         .make_offer(
@@ -114,7 +96,10 @@ pub async fn make_offer(state: State<'_, AppState>, request: MakeOffer) -> Resul
 
     let (_mnemonic, Some(master_sk)) = state.keychain.extract_secrets(wallet.fingerprint, b"")?
     else {
-        return Err(Error::no_secret_key());
+        return Err(Error {
+            kind: ErrorKind::Api,
+            reason: "There is no secret key for the wallet".into(),
+        });
     };
 
     let offer = wallet
@@ -135,22 +120,22 @@ pub async fn take_offer(state: State<'_, AppState>, offer: String, fee: Amount) 
     let wallet = state.wallet()?;
 
     let offer = Offer::decode(&offer)?;
-
-    let Some(fee) = fee.to_mojos(state.unit.decimals) else {
-        return Err(Error::invalid_amount(&fee));
-    };
+    let fee = state.parse_amount(fee)?;
 
     let unsigned = wallet.take_offer(offer, fee, false, true).await?;
 
     let (_mnemonic, Some(master_sk)) = state.keychain.extract_secrets(wallet.fingerprint, b"")?
     else {
-        return Err(Error::no_secret_key());
+        return Err(Error {
+            kind: ErrorKind::Api,
+            reason: "There is no secret key for the wallet".into(),
+        });
     };
 
     let spend_bundle = wallet
         .sign_take_offer(
             unsigned,
-            &AggSigConstants::new(hex::decode(&state.network().agg_sig_me)?.try_into()?),
+            &AggSigConstants::new(parse_genesis_challenge(state.network().agg_sig_me.clone())?),
             master_sk,
         )
         .await?;

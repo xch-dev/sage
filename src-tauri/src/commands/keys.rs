@@ -10,7 +10,7 @@ use tauri::{command, State};
 
 use crate::{
     app_state::AppState,
-    error::{Error, Result},
+    error::{Error, ErrorKind, Result},
 };
 
 #[command]
@@ -78,7 +78,8 @@ pub async fn login_wallet(state: State<'_, AppState>, fingerprint: u32) -> Resul
     let mut state = state.lock().await;
     state.config.app.active_fingerprint = Some(fingerprint);
     state.save_config()?;
-    state.switch_wallet().await
+    state.switch_wallet().await?;
+    Ok(())
 }
 
 #[command]
@@ -110,7 +111,8 @@ pub async fn logout_wallet(state: State<'_, AppState>) -> Result<()> {
     let mut state = state.lock().await;
     state.config.app.active_fingerprint = None;
     state.save_config()?;
-    state.switch_wallet().await
+    state.switch_wallet().await?;
+    Ok(())
 }
 
 #[command]
@@ -153,7 +155,8 @@ pub async fn create_wallet(
     state.config.app.active_fingerprint = Some(fingerprint);
     state.save_config()?;
 
-    state.switch_wallet().await
+    state.switch_wallet().await?;
+    Ok(())
 }
 
 #[command]
@@ -175,7 +178,10 @@ pub async fn import_wallet(state: State<'_, AppState>, name: String, key: String
             let master_sk = SecretKey::from_bytes(&master_sk)?;
             state.keychain.add_secret_key(&master_sk, b"")?
         } else {
-            return Err(Error::invalid_key("Must be 32 or 48 bytes"));
+            return Err(Error {
+                kind: ErrorKind::Api,
+                reason: "Invalid key".into(),
+            });
         }
     } else {
         let mnemonic = Mnemonic::from_str(&key)?;
@@ -188,7 +194,8 @@ pub async fn import_wallet(state: State<'_, AppState>, name: String, key: String
     state.config.app.active_fingerprint = Some(fingerprint);
     state.save_config()?;
 
-    state.switch_wallet().await
+    state.switch_wallet().await?;
+    Ok(())
 }
 
 #[command]

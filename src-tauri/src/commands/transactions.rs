@@ -7,7 +7,7 @@ use chia::{
     protocol::{Bytes32, Coin, CoinSpend, SpendBundle},
     puzzles::nft::NftMetadata,
 };
-use chia_wallet_sdk::{decode_address, encode_address, AggSigConstants, MetadataUpdate};
+use chia_wallet_sdk::{decode_address, encode_address, AggSigConstants, Cat, MetadataUpdate};
 use hex_literal::hex;
 use sage_api::{
     Amount, AssetKind, BulkMintNfts, BulkMintNftsResponse, CoinJson, CoinSpendJson, Input,
@@ -24,7 +24,11 @@ use tokio::sync::MutexGuard;
 
 use crate::{
     app_state::{AppState, AppStateInner},
-    error::{Error, Result},
+    error::{Error, ErrorKind, Result},
+    parse::{
+        parse_asset_id, parse_cat_amount, parse_coin_id, parse_did_id, parse_genesis_challenge,
+        parse_nft_id, parse_percent,
+    },
 };
 
 #[command]
@@ -48,25 +52,12 @@ pub async fn send(
     let state = state.lock().await;
     let wallet = state.wallet()?;
 
-    if !state.keychain.has_secret_key(wallet.fingerprint) {
-        return Err(Error::no_secret_key());
-    }
-
-    let (puzzle_hash, prefix) = decode_address(&address)?;
-    if prefix != state.network().address_prefix {
-        return Err(Error::invalid_prefix(&prefix));
-    }
-
-    let Some(amount) = amount.to_mojos(state.unit.decimals) else {
-        return Err(Error::invalid_amount(&amount));
-    };
-
-    let Some(fee) = fee.to_mojos(state.unit.decimals) else {
-        return Err(Error::invalid_amount(&fee));
-    };
+    let puzzle_hash = state.parse_address(address)?;
+    let amount = state.parse_amount(amount)?;
+    let fee = state.parse_amount(fee)?;
 
     let coin_spends = wallet
-        .send_xch(puzzle_hash.into(), amount, fee, Vec::new(), false, true)
+        .send_xch(puzzle_hash, amount, fee, Vec::new(), false, true)
         .await?;
 
     summarize(&state, &wallet, coin_spends, ConfirmationInfo::default()).await
@@ -82,32 +73,8 @@ pub async fn combine(
     let state = state.lock().await;
     let wallet = state.wallet()?;
 
-    if !state.keychain.has_secret_key(wallet.fingerprint) {
-        return Err(Error::no_secret_key());
-    }
-
-    let Some(fee) = fee.to_mojos(state.unit.decimals) else {
-        return Err(Error::invalid_amount(&fee));
-    };
-
-    let coin_ids = coin_ids
-        .iter()
-        .map(|coin_id| Ok(hex::decode(coin_id)?.try_into()?))
-        .collect::<Result<Vec<Bytes32>>>()?;
-
-    let mut coins = Vec::new();
-
-    for coin_id in coin_ids {
-        let Some(coin_state) = wallet.db.coin_state(coin_id).await? else {
-            return Err(Error::unknown_coin_id());
-        };
-
-        if coin_state.spent_height.is_some() {
-            return Err(Error::already_spent(coin_id));
-        }
-
-        coins.push(coin_state.coin);
-    }
+    let fee = state.parse_amount(fee)?;
+    let coins = fetch_coins(&wallet, coin_ids).await?;
 
     let coin_spends = wallet.combine_xch(coins, fee, false, true).await?;
 
@@ -125,32 +92,8 @@ pub async fn split(
     let state = state.lock().await;
     let wallet = state.wallet()?;
 
-    if !state.keychain.has_secret_key(wallet.fingerprint) {
-        return Err(Error::no_secret_key());
-    }
-
-    let Some(fee) = fee.to_mojos(state.unit.decimals) else {
-        return Err(Error::invalid_amount(&fee));
-    };
-
-    let coin_ids = coin_ids
-        .iter()
-        .map(|coin_id| Ok(hex::decode(coin_id)?.try_into()?))
-        .collect::<Result<Vec<Bytes32>>>()?;
-
-    let mut coins = Vec::new();
-
-    for coin_id in coin_ids {
-        let Some(coin_state) = wallet.db.coin_state(coin_id).await? else {
-            return Err(Error::unknown_coin_id());
-        };
-
-        if coin_state.spent_height.is_some() {
-            return Err(Error::already_spent(coin_id));
-        }
-
-        coins.push(coin_state.coin);
-    }
+    let fee = state.parse_amount(fee)?;
+    let coins = fetch_coins(&wallet, coin_ids).await?;
 
     let coin_spends = wallet
         .split_xch(&coins, output_count as usize, fee, false, true)
@@ -169,27 +112,8 @@ pub async fn combine_cat(
     let state = state.lock().await;
     let wallet = state.wallet()?;
 
-    if !state.keychain.has_secret_key(wallet.fingerprint) {
-        return Err(Error::no_secret_key());
-    }
-
-    let Some(fee) = fee.to_mojos(state.unit.decimals) else {
-        return Err(Error::invalid_amount(&fee));
-    };
-
-    let coin_ids = coin_ids
-        .iter()
-        .map(|coin_id| Ok(hex::decode(coin_id)?.try_into()?))
-        .collect::<Result<Vec<Bytes32>>>()?;
-
-    let mut cats = Vec::new();
-
-    for coin_id in coin_ids {
-        let Some(cat) = wallet.db.cat_coin(coin_id).await? else {
-            return Err(Error::unknown_coin_id());
-        };
-        cats.push(cat);
-    }
+    let fee = state.parse_amount(fee)?;
+    let cats = fetch_cats(&wallet, coin_ids).await?;
 
     let coin_spends = wallet.combine_cat(cats, fee, false, true).await?;
 
@@ -207,27 +131,8 @@ pub async fn split_cat(
     let state = state.lock().await;
     let wallet = state.wallet()?;
 
-    if !state.keychain.has_secret_key(wallet.fingerprint) {
-        return Err(Error::no_secret_key());
-    }
-
-    let Some(fee) = fee.to_mojos(state.unit.decimals) else {
-        return Err(Error::invalid_amount(&fee));
-    };
-
-    let coin_ids = coin_ids
-        .iter()
-        .map(|coin_id| Ok(hex::decode(coin_id)?.try_into()?))
-        .collect::<Result<Vec<Bytes32>>>()?;
-
-    let mut cats = Vec::new();
-
-    for coin_id in coin_ids {
-        let Some(cat) = wallet.db.cat_coin(coin_id).await? else {
-            return Err(Error::unknown_coin_id());
-        };
-        cats.push(cat);
-    }
+    let fee = state.parse_amount(fee)?;
+    let cats = fetch_cats(&wallet, coin_ids).await?;
 
     let coin_spends = wallet
         .split_cat(cats, output_count as usize, fee, false, true)
@@ -248,17 +153,8 @@ pub async fn issue_cat(
     let state = state.lock().await;
     let wallet = state.wallet()?;
 
-    if !state.keychain.has_secret_key(wallet.fingerprint) {
-        return Err(Error::no_secret_key());
-    }
-
-    let Some(amount) = amount.to_mojos(3) else {
-        return Err(Error::invalid_amount(&amount));
-    };
-
-    let Some(fee) = fee.to_mojos(state.unit.decimals) else {
-        return Err(Error::invalid_amount(&fee));
-    };
+    let amount = parse_cat_amount(amount)?;
+    let fee = state.parse_amount(fee)?;
 
     let (coin_spends, asset_id) = wallet.issue_cat(amount, fee, None, false, true).await?;
 
@@ -292,27 +188,13 @@ pub async fn send_cat(
     let state = state.lock().await;
     let wallet = state.wallet()?;
 
-    if !state.keychain.has_secret_key(wallet.fingerprint) {
-        return Err(Error::no_secret_key());
-    }
-
-    let asset_id: Bytes32 = hex::decode(asset_id)?.try_into()?;
-
-    let (puzzle_hash, prefix) = decode_address(&address)?;
-    if prefix != state.network().address_prefix {
-        return Err(Error::invalid_prefix(&prefix));
-    }
-
-    let Some(amount) = amount.to_mojos(3) else {
-        return Err(Error::invalid_amount(&amount));
-    };
-
-    let Some(fee) = fee.to_mojos(state.unit.decimals) else {
-        return Err(Error::invalid_amount(&fee));
-    };
+    let asset_id = parse_asset_id(asset_id)?;
+    let puzzle_hash = state.parse_address(address)?;
+    let amount = parse_cat_amount(amount)?;
+    let fee = state.parse_amount(fee)?;
 
     let coin_spends = wallet
-        .send_cat(asset_id, puzzle_hash.into(), amount, fee, false, true)
+        .send_cat(asset_id, puzzle_hash, amount, fee, false, true)
         .await?;
 
     summarize(&state, &wallet, coin_spends, ConfirmationInfo::default()).await
@@ -328,13 +210,7 @@ pub async fn create_did(
     let state = state.lock().await;
     let wallet = state.wallet()?;
 
-    if !state.keychain.has_secret_key(wallet.fingerprint) {
-        return Err(Error::no_secret_key());
-    }
-
-    let Some(fee) = fee.to_mojos(state.unit.decimals) else {
-        return Err(Error::invalid_amount(&fee));
-    };
+    let fee = state.parse_amount(fee)?;
 
     let (coin_spends, did) = wallet.create_did(fee, false, true).await?;
 
@@ -358,19 +234,8 @@ pub async fn bulk_mint_nfts(
     let state = state.lock().await;
     let wallet = state.wallet()?;
 
-    if !state.keychain.has_secret_key(wallet.fingerprint) {
-        return Err(Error::no_secret_key());
-    }
-
-    let Some(fee) = request.fee.to_mojos(state.unit.decimals) else {
-        return Err(Error::invalid_amount(&request.fee));
-    };
-
-    let (launcher_id, prefix) = decode_address(&request.did_id)?;
-
-    if prefix != "did:chia:" {
-        return Err(Error::invalid_prefix(&prefix));
-    }
+    let fee = state.parse_amount(request.fee)?;
+    let did_id = state.parse_address(request.did_id)?;
 
     let mut mints = Vec::with_capacity(request.nft_mints.len());
     let mut confirm_info = ConfirmationInfo::default();
@@ -378,18 +243,10 @@ pub async fn bulk_mint_nfts(
     for item in request.nft_mints {
         let royalty_puzzle_hash = item
             .royalty_address
-            .map(|address| {
-                let (puzzle_hash, prefix) = decode_address(&address)?;
-                if prefix != state.network().address_prefix {
-                    return Err(Error::invalid_prefix(&prefix));
-                }
-                Ok(puzzle_hash.into())
-            })
+            .map(|address| state.parse_address(address))
             .transpose()?;
 
-        let Some(royalty_ten_thousandths) = item.royalty_percent.to_ten_thousandths() else {
-            return Err(Error::invalid_royalty(&item.royalty_percent));
-        };
+        let royalty_ten_thousandths = parse_percent(item.royalty_percent)?;
 
         let data_hash = if item.data_uris.is_empty() {
             None
@@ -456,7 +313,7 @@ pub async fn bulk_mint_nfts(
     }
 
     let (coin_spends, nfts, _did) = wallet
-        .bulk_mint_nfts(fee, launcher_id.into(), mints, false, true)
+        .bulk_mint_nfts(fee, did_id, mints, false, true)
         .await?;
 
     let summary = summarize(&state, &wallet, coin_spends, confirm_info).await?;
@@ -481,33 +338,16 @@ pub async fn transfer_nfts(
     let state = state.lock().await;
     let wallet = state.wallet()?;
 
-    if !state.keychain.has_secret_key(wallet.fingerprint) {
-        return Err(Error::no_secret_key());
-    }
+    let nft_ids = nft_ids
+        .into_iter()
+        .map(parse_nft_id)
+        .collect::<Result<Vec<_>>>()?;
 
-    let mut launcher_ids = Vec::new();
-
-    for nft_id in nft_ids {
-        let (launcher_id, prefix) = decode_address(&nft_id)?;
-
-        if prefix != "nft" {
-            return Err(Error::invalid_prefix(&prefix));
-        }
-
-        launcher_ids.push(launcher_id.into());
-    }
-
-    let (puzzle_hash, prefix) = decode_address(&address)?;
-    if prefix != state.network().address_prefix {
-        return Err(Error::invalid_prefix(&prefix));
-    }
-
-    let Some(fee) = fee.to_mojos(state.unit.decimals) else {
-        return Err(Error::invalid_amount(&fee));
-    };
+    let puzzle_hash = state.parse_address(address)?;
+    let fee = state.parse_amount(fee)?;
 
     let coin_spends = wallet
-        .transfer_nfts(launcher_ids, puzzle_hash.into(), fee, false, true)
+        .transfer_nfts(nft_ids, puzzle_hash, fee, false, true)
         .await?;
 
     summarize(&state, &wallet, coin_spends, ConfirmationInfo::default()).await
@@ -525,19 +365,8 @@ pub async fn add_nft_uri(
     let state = state.lock().await;
     let wallet = state.wallet()?;
 
-    if !state.keychain.has_secret_key(wallet.fingerprint) {
-        return Err(Error::no_secret_key());
-    }
-
-    let (launcher_id, prefix) = decode_address(&nft_id)?;
-
-    if prefix != "nft" {
-        return Err(Error::invalid_prefix(&prefix));
-    }
-
-    let Some(fee) = fee.to_mojos(state.unit.decimals) else {
-        return Err(Error::invalid_amount(&fee));
-    };
+    let nft_id = parse_nft_id(nft_id)?;
+    let fee = state.parse_amount(fee)?;
 
     let uri = match kind {
         NftUriKind::Data => MetadataUpdate::NewDataUri(uri),
@@ -545,9 +374,7 @@ pub async fn add_nft_uri(
         NftUriKind::License => MetadataUpdate::NewLicenseUri(uri),
     };
 
-    let (coin_spends, _new_nft) = wallet
-        .add_nft_uri(launcher_id.into(), fee, uri, false, true)
-        .await?;
+    let (coin_spends, _new_nft) = wallet.add_nft_uri(nft_id, fee, uri, false, true).await?;
 
     summarize(&state, &wallet, coin_spends, ConfirmationInfo::default()).await
 }
@@ -563,40 +390,15 @@ pub async fn assign_nfts_to_did(
     let state = state.lock().await;
     let wallet = state.wallet()?;
 
-    if !state.keychain.has_secret_key(wallet.fingerprint) {
-        return Err(Error::no_secret_key());
-    }
-
-    let mut launcher_ids = Vec::new();
-
-    for nft_id in nft_ids {
-        let (launcher_id, prefix) = decode_address(&nft_id)?;
-
-        if prefix != "nft" {
-            return Err(Error::invalid_prefix(&prefix));
-        }
-
-        launcher_ids.push(launcher_id.into());
-    }
-
-    let did_id = if let Some(did_id) = did_id {
-        let (launcher_id, prefix) = decode_address(&did_id)?;
-
-        if prefix != "did:chia:" {
-            return Err(Error::invalid_prefix(&prefix));
-        }
-
-        Some(launcher_id.into())
-    } else {
-        None
-    };
-
-    let Some(fee) = fee.to_mojos(state.unit.decimals) else {
-        return Err(Error::invalid_amount(&fee));
-    };
+    let nft_ids = nft_ids
+        .into_iter()
+        .map(parse_nft_id)
+        .collect::<Result<Vec<_>>>()?;
+    let did_id = did_id.map(parse_nft_id).transpose()?;
+    let fee = state.parse_amount(fee)?;
 
     let coin_spends = wallet
-        .assign_nfts(launcher_ids, did_id, fee, false, true)
+        .assign_nfts(nft_ids, did_id, fee, false, true)
         .await?;
 
     summarize(&state, &wallet, coin_spends, ConfirmationInfo::default()).await
@@ -613,33 +415,15 @@ pub async fn transfer_dids(
     let state = state.lock().await;
     let wallet = state.wallet()?;
 
-    if !state.keychain.has_secret_key(wallet.fingerprint) {
-        return Err(Error::no_secret_key());
-    }
-
-    let mut launcher_ids = Vec::new();
-
-    for did_id in did_ids {
-        let (launcher_id, prefix) = decode_address(&did_id)?;
-
-        if prefix != "did:chia:" {
-            return Err(Error::invalid_prefix(&prefix));
-        }
-
-        launcher_ids.push(launcher_id.into());
-    }
-
-    let (puzzle_hash, prefix) = decode_address(&address)?;
-    if prefix != state.network().address_prefix {
-        return Err(Error::invalid_prefix(&prefix));
-    }
-
-    let Some(fee) = fee.to_mojos(state.unit.decimals) else {
-        return Err(Error::invalid_amount(&fee));
-    };
+    let did_ids = did_ids
+        .into_iter()
+        .map(parse_did_id)
+        .collect::<Result<Vec<_>>>()?;
+    let puzzle_hash = state.parse_address(address)?;
+    let fee = state.parse_amount(fee)?;
 
     let coin_spends = wallet
-        .transfer_dids(launcher_ids, puzzle_hash.into(), fee, false, true)
+        .transfer_dids(did_ids, puzzle_hash, fee, false, true)
         .await?;
 
     summarize(&state, &wallet, coin_spends, ConfirmationInfo::default()).await
@@ -656,13 +440,16 @@ pub async fn sign_transaction(
 
     let (_mnemonic, Some(master_sk)) = state.keychain.extract_secrets(wallet.fingerprint, b"")?
     else {
-        return Err(Error::no_secret_key());
+        return Err(Error {
+            kind: ErrorKind::Api,
+            reason: "There is no secret key for the wallet".into(),
+        });
     };
 
     let spend_bundle = wallet
         .sign_transaction(
             coin_spends.iter().map(rust_spend).collect::<Result<_>>()?,
-            &AggSigConstants::new(hex::decode(&state.network().agg_sig_me)?.try_into()?),
+            &AggSigConstants::new(parse_genesis_challenge(state.network().agg_sig_me.clone())?),
             master_sk,
         )
         .await?;
@@ -917,10 +704,10 @@ fn rust_coin(coin: &CoinJson) -> Result<Coin> {
     Ok(Coin {
         parent_coin_info: decode_hex_sized(&coin.parent_coin_info)?.into(),
         puzzle_hash: decode_hex_sized(&coin.puzzle_hash)?.into(),
-        amount: coin
-            .amount
-            .to_mojos(0)
-            .ok_or(Error::invalid_amount(&coin.amount))?,
+        amount: coin.amount.to_mojos(0).ok_or(Error {
+            kind: ErrorKind::Api,
+            reason: format!("Invalid coin amount: {}", coin.amount),
+        })?,
     })
 }
 
@@ -934,5 +721,73 @@ fn decode_hex(hex: &str) -> Result<Vec<u8>> {
 
 fn decode_hex_sized<const N: usize>(hex: &str) -> Result<[u8; N]> {
     let bytes = decode_hex(hex)?;
-    Ok(bytes.try_into()?)
+    bytes.try_into().map_err(|_| Error {
+        kind: ErrorKind::Api,
+        reason: "Invalid hex length".into(),
+    })
+}
+
+async fn fetch_coins(wallet: &Wallet, coin_ids: Vec<String>) -> Result<Vec<Coin>> {
+    let coin_ids = coin_ids
+        .into_iter()
+        .map(parse_coin_id)
+        .collect::<Result<Vec<Bytes32>>>()?;
+
+    let mut coins = Vec::new();
+
+    for coin_id in coin_ids {
+        let Some(coin_state) = wallet.db.coin_state(coin_id).await? else {
+            return Err(Error {
+                kind: ErrorKind::NotFound,
+                reason: format!("Coin not found: {coin_id}"),
+            });
+        };
+
+        if coin_state.spent_height.is_some() {
+            return Err(Error {
+                kind: ErrorKind::Api,
+                reason: format!("Coin already spent: {coin_id}"),
+            });
+        }
+
+        coins.push(coin_state.coin);
+    }
+
+    Ok(coins)
+}
+
+async fn fetch_cats(wallet: &Wallet, coin_ids: Vec<String>) -> Result<Vec<Cat>> {
+    let coin_ids = coin_ids
+        .into_iter()
+        .map(parse_coin_id)
+        .collect::<Result<Vec<Bytes32>>>()?;
+
+    let mut cats = Vec::new();
+
+    for coin_id in coin_ids {
+        let Some(coin_state) = wallet.db.coin_state(coin_id).await? else {
+            return Err(Error {
+                kind: ErrorKind::NotFound,
+                reason: format!("Coin not found: {coin_id}"),
+            });
+        };
+
+        if coin_state.spent_height.is_some() {
+            return Err(Error {
+                kind: ErrorKind::Api,
+                reason: format!("Coin already spent: {coin_id}"),
+            });
+        }
+
+        let Some(cat) = wallet.db.cat_coin(coin_id).await? else {
+            return Err(Error {
+                kind: ErrorKind::NotFound,
+                reason: format!("CAT coin not found: {coin_id}"),
+            });
+        };
+
+        cats.push(cat);
+    }
+
+    Ok(cats)
 }

@@ -1,4 +1,3 @@
-use chia_wallet_sdk::decode_address;
 use sage_api::CatRecord;
 use sage_database::{CatRow, DidRow};
 use specta::specta;
@@ -6,7 +5,8 @@ use tauri::{command, State};
 
 use crate::{
     app_state::AppState,
-    error::{Error, Result},
+    error::{Error, ErrorKind, Result},
+    parse::{parse_asset_id, parse_did_id, parse_nft_id},
 };
 
 #[command]
@@ -15,11 +15,8 @@ pub async fn remove_cat_info(state: State<'_, AppState>, asset_id: String) -> Re
     let state = state.lock().await;
     let wallet = state.wallet()?;
 
-    let asset_id: [u8; 32] = hex::decode(asset_id)?
-        .try_into()
-        .map_err(|_| Error::invalid_asset_id())?;
-
-    wallet.db.refetch_cat(asset_id.into()).await?;
+    let asset_id = parse_asset_id(asset_id)?;
+    wallet.db.refetch_cat(asset_id).await?;
 
     Ok(())
 }
@@ -30,14 +27,12 @@ pub async fn update_cat_info(state: State<'_, AppState>, record: CatRecord) -> R
     let state = state.lock().await;
     let wallet = state.wallet()?;
 
-    let asset_id: [u8; 32] = hex::decode(record.asset_id)?
-        .try_into()
-        .map_err(|_| Error::invalid_asset_id())?;
+    let asset_id = parse_asset_id(record.asset_id)?;
 
     wallet
         .db
         .update_cat(CatRow {
-            asset_id: asset_id.into(),
+            asset_id,
             name: record.name,
             description: record.description,
             ticker: record.ticker,
@@ -61,20 +56,19 @@ pub async fn update_did(
     let state = state.lock().await;
     let wallet = state.wallet()?;
 
-    let (launcher_id, prefix) = decode_address(&did_id)?;
+    let did_id = parse_did_id(did_id)?;
 
-    if prefix != "did:chia:" {
-        return Err(Error::invalid_prefix(&prefix));
-    }
-
-    let Some(row) = wallet.db.did_row(launcher_id.into()).await? else {
-        return Err(Error::invalid_launcher_id());
+    let Some(row) = wallet.db.did_row(did_id).await? else {
+        return Err(Error {
+            kind: ErrorKind::NotFound,
+            reason: "DID not found".into(),
+        });
     };
 
     wallet
         .db
         .insert_did(DidRow {
-            launcher_id: launcher_id.into(),
+            launcher_id: row.launcher_id,
             coin_id: row.coin_id,
             name,
             is_owned: row.is_owned,
@@ -92,16 +86,8 @@ pub async fn update_nft(state: State<'_, AppState>, nft_id: String, visible: boo
     let state = state.lock().await;
     let wallet = state.wallet()?;
 
-    let (launcher_id, prefix) = decode_address(&nft_id)?;
-
-    if prefix != "nft" {
-        return Err(Error::invalid_prefix(&prefix));
-    }
-
-    wallet
-        .db
-        .set_nft_visible(launcher_id.into(), visible)
-        .await?;
+    let nft_id = parse_nft_id(nft_id)?;
+    wallet.db.set_nft_visible(nft_id, visible).await?;
 
     Ok(())
 }

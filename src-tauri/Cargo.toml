@@ -15,6 +15,7 @@ name = "sage_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [dependencies]
+sage = { workspace = true }
 sage-api = { workspace = true }
 sage-config = { workspace = true }
 sage-database = { workspace = true }

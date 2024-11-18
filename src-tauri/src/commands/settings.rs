@@ -8,7 +8,7 @@ use sage_wallet::SyncCommand;
 use specta::specta;
 use tauri::{command, State};
 
-use crate::{app_state::AppState, error::Result};
+use crate::{app_state::AppState, error::Result, parse::parse_genesis_challenge};
 
 #[command]
 #[specta]
@@ -123,7 +123,7 @@ pub async fn set_network_id(state: State<'_, AppState>, network_id: String) -> R
             network_id,
             network: chia_wallet_sdk::Network {
                 default_port: network.default_port,
-                genesis_challenge: hex::decode(&network.genesis_challenge)?.try_into()?,
+                genesis_challenge: parse_genesis_challenge(network.genesis_challenge.clone())?,
                 dns_introducers: network.dns_introducers.clone(),
             },
         })
@@ -138,7 +138,7 @@ pub async fn set_network_id(state: State<'_, AppState>, network_id: String) -> R
 #[specta]
 pub async fn wallet_config(state: State<'_, AppState>, fingerprint: u32) -> Result<WalletConfig> {
     let state = state.lock().await;
-    state.try_wallet_config(fingerprint).cloned()
+    Ok(state.try_wallet_config(fingerprint).cloned()?)
 }
 
 #[command]

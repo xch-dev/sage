@@ -2,10 +2,9 @@ use base64::prelude::*;
 use bigdecimal::BigDecimal;
 use chia::{
     clvm_traits::{FromClvm, ToClvm},
-    protocol::Bytes32,
     puzzles::nft::NftMetadata,
 };
-use chia_wallet_sdk::{decode_address, encode_address};
+use chia_wallet_sdk::encode_address;
 use clvmr::Allocator;
 use hex_literal::hex;
 use sage_api::{
@@ -20,7 +19,8 @@ use tauri::{command, State};
 
 use crate::{
     app_state::AppState,
-    error::{Error, Result},
+    error::Result,
+    parse::{parse_asset_id, parse_collection_id, parse_nft_id},
 };
 
 #[command]
@@ -123,13 +123,11 @@ pub async fn get_cat_coins(
     let state = state.lock().await;
     let wallet = state.wallet()?;
 
-    let asset_id: [u8; 32] = hex::decode(asset_id)?
-        .try_into()
-        .map_err(|_| Error::invalid_asset_id())?;
+    let asset_id = parse_asset_id(asset_id)?;
 
     let mut records = Vec::new();
 
-    let rows = wallet.db.cat_coin_states(asset_id.into()).await?;
+    let rows = wallet.db.cat_coin_states(asset_id).await?;
 
     for row in rows {
         let cs = row.coin_state;
@@ -191,12 +189,9 @@ pub async fn get_cat(state: State<'_, AppState>, asset_id: String) -> Result<Opt
     let state = state.lock().await;
     let wallet = state.wallet()?;
 
-    let asset_id: [u8; 32] = hex::decode(asset_id)?
-        .try_into()
-        .map_err(|_| Error::invalid_asset_id())?;
-
-    let cat = wallet.db.cat(asset_id.into()).await?;
-    let balance = wallet.db.cat_balance(asset_id.into()).await?;
+    let asset_id = parse_asset_id(asset_id)?;
+    let cat = wallet.db.cat(asset_id).await?;
+    let balance = wallet.db.cat_balance(asset_id).await?;
 
     cat.map(|cat| {
         Ok(CatRecord {
@@ -340,17 +335,7 @@ pub async fn get_nft_collection(
     let state = state.lock().await;
     let wallet = state.wallet()?;
 
-    let collection_id = if let Some(collection_id) = collection_id {
-        let (collection_id, prefix) = decode_address(&collection_id)?;
-
-        if prefix != "col" {
-            return Err(Error::invalid_prefix(&prefix));
-        }
-
-        Some(Bytes32::from(collection_id))
-    } else {
-        None
-    };
+    let collection_id = collection_id.map(parse_collection_id).transpose()?;
 
     let collection = if let Some(collection_id) = collection_id {
         Some(wallet.db.collection(collection_id).await?)
@@ -451,17 +436,7 @@ pub async fn get_collection_nfts(
     let state = state.lock().await;
     let wallet = state.wallet()?;
 
-    let collection_id = if let Some(collection_id) = request.collection_id {
-        let (collection_id, prefix) = decode_address(&collection_id)?;
-
-        if prefix != "col" {
-            return Err(Error::invalid_prefix(&prefix));
-        }
-
-        Some(Bytes32::from(collection_id))
-    } else {
-        None
-    };
+    let collection_id = request.collection_id.map(parse_collection_id).transpose()?;
 
     let mut records = Vec::new();
 
@@ -541,16 +516,13 @@ pub async fn get_nft(state: State<'_, AppState>, launcher_id: String) -> Result<
     let state = state.lock().await;
     let wallet = state.wallet()?;
 
-    let (launcher_id, prefix) = decode_address(&launcher_id)?;
-    if prefix != "nft" {
-        return Err(Error::invalid_prefix(&prefix));
-    }
+    let nft_id = parse_nft_id(launcher_id)?;
 
-    let Some(nft_row) = wallet.db.nft_row(launcher_id.into()).await? else {
+    let Some(nft_row) = wallet.db.nft_row(nft_id).await? else {
         return Ok(None);
     };
 
-    let Some(nft) = wallet.db.nft(launcher_id.into()).await? else {
+    let Some(nft) = wallet.db.nft(nft_id).await? else {
         return Ok(None);
     };
 
