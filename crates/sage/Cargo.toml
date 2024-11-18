@@ -32,7 +32,5 @@ chia = { workspace = true }
 hex = { workspace = true }
 thiserror = { workspace = true }
 log = { workspace = true }
-rand = { workspace = true }
-rand_chacha = { workspace = true }
 bip39 = { workspace = true }
 itertools = { workspace = true }
