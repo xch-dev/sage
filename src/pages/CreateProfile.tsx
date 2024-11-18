@@ -78,7 +78,7 @@ export default function CreateProfile() {
                 name='fee'
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Fee</FormLabel>
+                    <FormLabel>Network Fee</FormLabel>
                     <FormControl>
                       <div className='relative'>
                         <Input

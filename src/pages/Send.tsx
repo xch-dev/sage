@@ -134,7 +134,10 @@ export default function Send() {
 
   return (
     <>
-      <Header title={`Send ${asset?.ticker}`} back={() => navigate(-1)} />
+      <Header
+        title={`Send ${asset?.ticker || 'unknown asset'}`}
+        back={() => navigate(-1)}
+      />
 
       <Container className='max-w-xl'>
         <Form {...form}>
