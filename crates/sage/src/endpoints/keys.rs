@@ -2,26 +2,29 @@ use std::{fs, str::FromStr};
 
 use bip39::Mnemonic;
 use chia::bls::{PublicKey, SecretKey};
-use sage_api::{DeleteKey, ImportKey, ImportKeyResponse, Login, Logout, Resync};
+use sage_api::{
+    DeleteKey, DeleteKeyResponse, ImportKey, ImportKeyResponse, Login, LoginResponse, Logout,
+    LogoutResponse, Resync, ResyncResponse,
+};
 
 use crate::{Error, Result, Sage};
 
 impl Sage {
-    pub async fn login(&mut self, req: Login) -> Result<()> {
+    pub async fn login(&mut self, req: Login) -> Result<LoginResponse> {
         self.config.app.active_fingerprint = Some(req.fingerprint);
         self.save_config()?;
         self.switch_wallet().await?;
-        Ok(())
+        Ok(LoginResponse {})
     }
 
-    pub async fn logout(&mut self, _req: Logout) -> Result<()> {
+    pub async fn logout(&mut self, _req: Logout) -> Result<LogoutResponse> {
         self.config.app.active_fingerprint = None;
         self.save_config()?;
         self.switch_wallet().await?;
-        Ok(())
+        Ok(LogoutResponse {})
     }
 
-    pub async fn resync(&mut self, req: Resync) -> Result<()> {
+    pub async fn resync(&mut self, req: Resync) -> Result<ResyncResponse> {
         let login = self.config.app.active_fingerprint == Some(req.fingerprint);
 
         if login {
@@ -37,7 +40,7 @@ impl Sage {
             self.switch_wallet().await?;
         }
 
-        Ok(())
+        Ok(ResyncResponse {})
     }
 
     pub async fn import_key(&mut self, req: ImportKey) -> Result<ImportKeyResponse> {
@@ -87,7 +90,7 @@ impl Sage {
         Ok(ImportKeyResponse { fingerprint })
     }
 
-    pub fn delete_key(&mut self, req: DeleteKey) -> Result<()> {
+    pub fn delete_key(&mut self, req: DeleteKey) -> Result<DeleteKeyResponse> {
         self.keychain.remove(req.fingerprint);
 
         self.config
@@ -105,7 +108,7 @@ impl Sage {
             fs::remove_dir_all(path)?;
         }
 
-        Ok(())
+        Ok(DeleteKeyResponse {})
     }
 }
 

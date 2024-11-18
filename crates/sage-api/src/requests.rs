@@ -1,21 +1,13 @@
 mod bulk_mint_nfts;
-mod delete_key;
 mod get_collection_nfts;
 mod get_nft_collections;
 mod get_nfts;
-mod import_key;
-mod login;
-mod logout;
+mod keys;
 mod make_offer;
-mod resync;
 
 pub use bulk_mint_nfts::*;
-pub use delete_key::*;
 pub use get_collection_nfts::*;
 pub use get_nft_collections::*;
 pub use get_nfts::*;
-pub use import_key::*;
-pub use login::*;
-pub use logout::*;
+pub use keys::*;
 pub use make_offer::*;
-pub use resync::*;

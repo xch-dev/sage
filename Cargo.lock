@@ -4586,6 +4586,7 @@ dependencies = [
  "indexmap 2.5.0",
  "num-traits",
  "once_cell",
+ "paste",
  "serde",
  "specta",
  "tauri-specta",

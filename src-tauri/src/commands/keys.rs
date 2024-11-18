@@ -2,8 +2,8 @@ use bip39::Mnemonic;
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use sage_api::{
-    DeleteKey, ImportKey, ImportKeyResponse, Login, Logout, Resync, WalletInfo, WalletKind,
-    WalletSecrets,
+    DeleteKey, DeleteKeyResponse, ImportKey, ImportKeyResponse, Login, LoginResponse, Logout,
+    LogoutResponse, Resync, ResyncResponse, WalletInfo, WalletKind, WalletSecrets,
 };
 use specta::specta;
 use tauri::{command, State};
@@ -12,19 +12,19 @@ use crate::{app_state::AppState, error::Result};
 
 #[command]
 #[specta]
-pub async fn login(state: State<'_, AppState>, req: Login) -> Result<()> {
+pub async fn login(state: State<'_, AppState>, req: Login) -> Result<LoginResponse> {
     Ok(state.lock().await.login(req).await?)
 }
 
 #[command]
 #[specta]
-pub async fn logout(state: State<'_, AppState>, req: Logout) -> Result<()> {
+pub async fn logout(state: State<'_, AppState>, req: Logout) -> Result<LogoutResponse> {
     Ok(state.lock().await.logout(req).await?)
 }
 
 #[command]
 #[specta]
-pub async fn resync(state: State<'_, AppState>, req: Resync) -> Result<()> {
+pub async fn resync(state: State<'_, AppState>, req: Resync) -> Result<ResyncResponse> {
     Ok(state.lock().await.resync(req).await?)
 }
 
@@ -36,7 +36,7 @@ pub async fn import_key(state: State<'_, AppState>, req: ImportKey) -> Result<Im
 
 #[command]
 #[specta]
-pub async fn delete_key(state: State<'_, AppState>, req: DeleteKey) -> Result<()> {
+pub async fn delete_key(state: State<'_, AppState>, req: DeleteKey) -> Result<DeleteKeyResponse> {
     Ok(state.lock().await.delete_key(req)?)
 }
 
