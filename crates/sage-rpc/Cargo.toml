@@ -16,8 +16,10 @@ workspace = true
 
 [dependencies]
 sage = { workspace = true }
+sage-api = { workspace = true }
 dirs = { workspace = true }
 axum = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
 anyhow = { workspace = true }
 tracing = { workspace = true }
+serde = { workspace = true }

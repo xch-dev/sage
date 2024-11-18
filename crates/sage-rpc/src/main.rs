@@ -1,10 +1,12 @@
 mod app_state;
 mod router;
 
+use std::sync::Arc;
+
 use app_state::AppState;
 use router::api_router;
 use sage::Sage;
-use tokio::net::TcpListener;
+use tokio::{net::TcpListener, sync::Mutex};
 use tracing::info;
 
 #[tokio::main]
@@ -26,7 +28,9 @@ async fn main() -> anyhow::Result<()> {
     let addr = listener.local_addr()?;
     info!("RPC server is listening at {addr}");
 
-    let app = api_router().with_state(AppState {});
+    let app = api_router().with_state(AppState {
+        sage: Arc::new(Mutex::new(app)),
+    });
     axum::serve(listener, app).await?;
 
     Ok(())

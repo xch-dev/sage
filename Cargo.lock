@@ -4636,6 +4636,8 @@ dependencies = [
  "axum",
  "dirs",
  "sage",
+ "sage-api",
+ "serde",
  "tokio",
  "tracing",
 ]
