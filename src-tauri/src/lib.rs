@@ -21,6 +21,7 @@ pub fn run() {
             commands::login,
             commands::logout,
             commands::resync,
+            commands::generate_mnemonic,
             commands::import_key,
             commands::delete_key,
             commands::get_keys,
@@ -38,7 +39,6 @@ pub fn run() {
             // Networks
             commands::network_list,
             // Keychain
-            commands::generate_mnemonic,
             commands::rename_wallet,
             // Setup
             commands::initialize,

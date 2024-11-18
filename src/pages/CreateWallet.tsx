@@ -90,9 +90,9 @@ function CreateForm(props: {
   const use24Words = form.watch('use24Words', true);
 
   const loadMnemonic = useCallback(() => {
-    commands.generateMnemonic(use24Words).then((res) => {
+    commands.generateMnemonic({ use_24_words: use24Words }).then((res) => {
       if (res.status === 'ok') {
-        form.setValue('mnemonic', res.data);
+        form.setValue('mnemonic', res.data.mnemonic);
       }
     });
   }, [form, use24Words]);

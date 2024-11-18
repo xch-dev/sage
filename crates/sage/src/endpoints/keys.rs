@@ -3,10 +3,13 @@ use std::{fs, str::FromStr};
 use bip39::Mnemonic;
 use chia::bls::{PublicKey, SecretKey};
 use itertools::Itertools;
+use rand::{Rng, SeedableRng};
+use rand_chacha::ChaCha20Rng;
 use sage_api::{
-    DeleteKey, DeleteKeyResponse, GetKey, GetKeyResponse, GetKeys, GetKeysResponse, GetSecretKey,
-    GetSecretKeyResponse, ImportKey, ImportKeyResponse, KeyInfo, KeyKind, Login, LoginResponse,
-    Logout, LogoutResponse, Resync, ResyncResponse, SecretKeyInfo,
+    DeleteKey, DeleteKeyResponse, GenerateMnemonic, GenerateMnemonicResponse, GetKey,
+    GetKeyResponse, GetKeys, GetKeysResponse, GetSecretKey, GetSecretKeyResponse, ImportKey,
+    ImportKeyResponse, KeyInfo, KeyKind, Login, LoginResponse, Logout, LogoutResponse, Resync,
+    ResyncResponse, SecretKeyInfo,
 };
 
 use crate::{Error, Result, Sage};
@@ -43,6 +46,20 @@ impl Sage {
         }
 
         Ok(ResyncResponse {})
+    }
+
+    pub fn generate_mnemonic(&self, req: GenerateMnemonic) -> Result<GenerateMnemonicResponse> {
+        let mut rng = ChaCha20Rng::from_entropy();
+        let mnemonic = if req.use_24_words {
+            let entropy: [u8; 32] = rng.gen();
+            Mnemonic::from_entropy(&entropy)?
+        } else {
+            let entropy: [u8; 16] = rng.gen();
+            Mnemonic::from_entropy(&entropy)?
+        };
+        Ok(GenerateMnemonicResponse {
+            mnemonic: mnemonic.to_string(),
+        })
     }
 
     pub async fn import_key(&mut self, req: ImportKey) -> Result<ImportKeyResponse> {
@@ -113,7 +130,7 @@ impl Sage {
         Ok(DeleteKeyResponse {})
     }
 
-    pub fn get_key(&mut self, req: GetKey) -> Result<GetKeyResponse> {
+    pub fn get_key(&self, req: GetKey) -> Result<GetKeyResponse> {
         let fingerprint = req.fingerprint.or(self.config.app.active_fingerprint);
 
         let Some(fingerprint) = fingerprint else {

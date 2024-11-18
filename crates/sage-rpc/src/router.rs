@@ -6,7 +6,9 @@ use axum::{
     Json, Router,
 };
 use sage::{Error, Result};
-use sage_api::{DeleteKey, GetKey, GetKeys, GetSecretKey, ImportKey, Login, Logout, Resync};
+use sage_api::{
+    DeleteKey, GenerateMnemonic, GetKey, GetKeys, GetSecretKey, ImportKey, Login, Logout, Resync,
+};
 use serde::Serialize;
 
 use crate::app_state::AppState;
@@ -21,6 +23,13 @@ pub async fn logout(State(state): State<AppState>, Json(req): Json<Logout>) -> R
 
 pub async fn resync(State(state): State<AppState>, Json(req): Json<Resync>) -> Response {
     handle(state.sage.lock().await.resync(req).await)
+}
+
+pub async fn generate_mnemonic(
+    State(state): State<AppState>,
+    Json(req): Json<GenerateMnemonic>,
+) -> Response {
+    handle(state.sage.lock().await.generate_mnemonic(req))
 }
 
 pub async fn import_key(State(state): State<AppState>, Json(req): Json<ImportKey>) -> Response {
@@ -51,6 +60,7 @@ pub fn api_router() -> Router<AppState> {
         .route("/login", post(login))
         .route("/logout", post(logout))
         .route("/resync", post(resync))
+        .route("/generate_mnemonic", post(generate_mnemonic))
         .route("/import_key", post(import_key))
         .route("/delete_key", post(delete_key))
         .route("/get_key", post(get_key))

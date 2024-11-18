@@ -29,6 +29,14 @@ async resync(req: Resync) : Promise<Result<ResyncResponse, Error>> {
     else return { status: "error", error: e  as any };
 }
 },
+async generateMnemonic(req: GenerateMnemonic) : Promise<Result<GenerateMnemonicResponse, Error>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("generate_mnemonic", { req }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async importKey(req: ImportKey) : Promise<Result<ImportKeyResponse, Error>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("import_key", { req }) };
@@ -128,14 +136,6 @@ async setDerivationBatchSize(fingerprint: number, derivationBatchSize: number) :
 async networkList() : Promise<Result<{ [key in string]: Network }, Error>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("network_list") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async generateMnemonic(use24Words: boolean) : Promise<Result<string, Error>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("generate_mnemonic", { use24Words }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -508,6 +508,8 @@ export type DeleteKeyResponse = Record<string, never>
 export type DidRecord = { launcher_id: string; name: string | null; visible: boolean; coin_id: string; address: string; amount: Amount; created_height: number | null; create_transaction_id: string | null }
 export type Error = { kind: ErrorKind; reason: string }
 export type ErrorKind = "wallet" | "api" | "not_found" | "internal"
+export type GenerateMnemonic = { use_24_words: boolean }
+export type GenerateMnemonicResponse = { mnemonic: string }
 export type GetCollectionNfts = { collection_id: string | null; offset: number; limit: number; sort_mode: NftSortMode; include_hidden: boolean }
 export type GetKey = { fingerprint?: number | null }
 export type GetKeyResponse = { key: KeyInfo | null }

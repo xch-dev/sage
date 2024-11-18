@@ -25,6 +25,16 @@ pub struct Resync {
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Type)]
 pub struct ResyncResponse {}
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Type)]
+pub struct GenerateMnemonic {
+    pub use_24_words: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct GenerateMnemonicResponse {
+    pub mnemonic: String,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub struct ImportKey {
     pub name: String,

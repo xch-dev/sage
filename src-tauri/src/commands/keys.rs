@@ -1,10 +1,7 @@
-use bip39::Mnemonic;
-use rand::{Rng, SeedableRng};
-use rand_chacha::ChaCha20Rng;
 use sage_api::{
-    DeleteKey, DeleteKeyResponse, GetKey, GetKeyResponse, GetKeys, GetKeysResponse, GetSecretKey,
-    GetSecretKeyResponse, ImportKey, ImportKeyResponse, Login, LoginResponse, Logout,
-    LogoutResponse, Resync, ResyncResponse,
+    DeleteKey, DeleteKeyResponse, GenerateMnemonic, GenerateMnemonicResponse, GetKey,
+    GetKeyResponse, GetKeys, GetKeysResponse, GetSecretKey, GetSecretKeyResponse, ImportKey,
+    ImportKeyResponse, Login, LoginResponse, Logout, LogoutResponse, Resync, ResyncResponse,
 };
 use specta::specta;
 use tauri::{command, State};
@@ -64,14 +61,9 @@ pub async fn get_secret_key(
 
 #[command]
 #[specta]
-pub fn generate_mnemonic(use_24_words: bool) -> Result<String> {
-    let mut rng = ChaCha20Rng::from_entropy();
-    let mnemonic = if use_24_words {
-        let entropy: [u8; 32] = rng.gen();
-        Mnemonic::from_entropy(&entropy)?
-    } else {
-        let entropy: [u8; 16] = rng.gen();
-        Mnemonic::from_entropy(&entropy)?
-    };
-    Ok(mnemonic.to_string())
+pub async fn generate_mnemonic(
+    state: State<'_, AppState>,
+    req: GenerateMnemonic,
+) -> Result<GenerateMnemonicResponse> {
+    Ok(state.lock().await.generate_mnemonic(req)?)
 }
