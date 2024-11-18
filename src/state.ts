@@ -84,7 +84,7 @@ events.syncEvent.listen((event) => {
 });
 
 export async function loginAndUpdateState(fingerprint: number): Promise<void> {
-  await commands.loginWallet(fingerprint);
+  await commands.login({ fingerprint });
   await fetchState();
 }
 

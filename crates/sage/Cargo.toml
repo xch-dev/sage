@@ -15,6 +15,7 @@ categories = { workspace = true }
 workspace = true
 
 [dependencies]
+sage-api = { workspace = true }
 sage-database = { workspace = true }
 sage-config = { workspace = true }
 sage-keychain = { workspace = true }
@@ -31,3 +32,6 @@ chia = { workspace = true }
 hex = { workspace = true }
 thiserror = { workspace = true }
 log = { workspace = true }
+rand = { workspace = true }
+rand_chacha = { workspace = true }
+bip39 = { workspace = true }

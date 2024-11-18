@@ -4,7 +4,7 @@ use bip39::Mnemonic;
 use chia::bls::{PublicKey, SecretKey};
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
-use sage_api::{WalletInfo, WalletKind, WalletSecrets};
+use sage_api::{Login, WalletInfo, WalletKind, WalletSecrets};
 use specta::specta;
 use tauri::{command, State};
 
@@ -74,12 +74,8 @@ pub async fn get_wallet_secrets(
 
 #[command]
 #[specta]
-pub async fn login_wallet(state: State<'_, AppState>, fingerprint: u32) -> Result<()> {
-    let mut state = state.lock().await;
-    state.config.app.active_fingerprint = Some(fingerprint);
-    state.save_config()?;
-    state.switch_wallet().await?;
-    Ok(())
+pub async fn login(state: State<'_, AppState>, body: Login) -> Result<()> {
+    Ok(state.lock().await.login(body).await?)
 }
 
 #[command]

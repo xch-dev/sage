@@ -1,3 +1,4 @@
+mod endpoints;
 mod error;
 mod sage;
 

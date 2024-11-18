@@ -93,9 +93,9 @@ async walletList() : Promise<Result<WalletInfo[], Error>> {
     else return { status: "error", error: e  as any };
 }
 },
-async loginWallet(fingerprint: number) : Promise<Result<null, Error>> {
+async login(body: Login) : Promise<Result<null, Error>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("login_wallet", { fingerprint }) };
+    return { status: "ok", data: await TAURI_INVOKE("login", { body }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -518,6 +518,7 @@ export type GetCollectionNfts = { collection_id: string | null; offset: number; 
 export type GetNftCollections = { offset: number; limit: number; include_hidden: boolean }
 export type GetNfts = { offset: number; limit: number; sort_mode: NftSortMode; include_hidden: boolean }
 export type Input = ({ type: "unknown" } | { type: "xch" } | { type: "launcher" } | { type: "cat"; asset_id: string; name: string | null; ticker: string | null; icon_url: string | null } | { type: "did"; launcher_id: string; name: string | null } | { type: "nft"; launcher_id: string; image_data: string | null; image_mime_type: string | null; name: string | null }) & { coin_id: string; amount: Amount; address: string; outputs: Output[] }
+export type Login = { fingerprint: number }
 export type MakeOffer = { requested_assets: Assets; offered_assets: Assets; fee: Amount }
 export type Network = { default_port: number; ticker: string; address_prefix: string; precision: number; genesis_challenge: string; agg_sig_me: string; dns_introducers: string[] }
 export type NetworkConfig = { network_id?: string; target_peers?: number; discover_peers?: boolean }

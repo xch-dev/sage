@@ -4556,11 +4556,15 @@ checksum = "f3cb5ba0dc43242ce17de99c180e96db90b235b8a9fdc9543c96d2209116bd9f"
 name = "sage"
 version = "0.7.0"
 dependencies = [
+ "bip39",
  "chia",
  "chia-wallet-sdk",
  "hex",
  "indexmap 2.5.0",
  "log",
+ "rand 0.8.5",
+ "rand_chacha 0.3.1",
+ "sage-api",
  "sage-config",
  "sage-database",
  "sage-keychain",
@@ -4629,8 +4633,12 @@ dependencies = [
 name = "sage-rpc"
 version = "0.7.0"
 dependencies = [
+ "anyhow",
  "axum",
  "dirs",
+ "sage",
+ "tokio",
+ "tracing",
 ]
 
 [[package]]
