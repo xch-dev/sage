@@ -1,6 +1,6 @@
-import { BurnDialog } from '@/components/BurnDialog';
 import ConfirmationDialog from '@/components/ConfirmationDialog';
 import Container from '@/components/Container';
+import { FeeOnlyDialog } from '@/components/FeeOnlyDialog';
 import Header from '@/components/Header';
 import { ReceiveAddress } from '@/components/ReceiveAddress';
 import { TransferDialog } from '@/components/TransferDialog';
@@ -291,7 +291,7 @@ function Profile({ did, updateDids }: ProfileProps) {
         This will send the profile to the provided address.
       </TransferDialog>
 
-      <BurnDialog
+      <FeeOnlyDialog
         title='Burn Profile'
         open={burnOpen}
         setOpen={setBurnOpen}
@@ -299,7 +299,7 @@ function Profile({ did, updateDids }: ProfileProps) {
       >
         This will permanently delete the profile by sending it to the burn
         address.
-      </BurnDialog>
+      </FeeOnlyDialog>
 
       <ConfirmationDialog
         summary={summary}

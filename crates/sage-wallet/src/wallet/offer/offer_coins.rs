@@ -109,7 +109,7 @@ impl Wallet {
         let mut nfts = IndexMap::new();
 
         for nft_id in nft_ids {
-            let Some(nft) = self.db.nft(nft_id).await? else {
+            let Some(nft) = self.db.spendable_nft(nft_id).await? else {
                 return Err(WalletError::MissingNft(nft_id));
             };
 

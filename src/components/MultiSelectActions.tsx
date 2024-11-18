@@ -1,9 +1,16 @@
 import { commands, TransactionSummary } from '@/bindings';
 import { useWalletState } from '@/state';
-import { ChevronDown, Flame, SendIcon } from 'lucide-react';
+import {
+  ChevronDown,
+  Flame,
+  SendIcon,
+  UserRoundMinus,
+  UserRoundPlus,
+} from 'lucide-react';
 import { useState } from 'react';
-import { BurnDialog } from './BurnDialog';
+import { AssignNftDialog } from './AssignNftDialog';
 import ConfirmationDialog from './ConfirmationDialog';
+import { FeeOnlyDialog } from './FeeOnlyDialog';
 import { TransferDialog } from './TransferDialog';
 import { Button } from './ui/button';
 import {
@@ -26,6 +33,8 @@ export function MultiSelectActions({
   const walletState = useWalletState();
 
   const [transferOpen, setTransferOpen] = useState(false);
+  const [assignOpen, setAssignOpen] = useState(false);
+  const [unassignOpen, setUnassignOpen] = useState(false);
   const [burnOpen, setBurnOpen] = useState(false);
   const [summary, setSummary] = useState<TransactionSummary | null>(null);
 
@@ -34,6 +43,28 @@ export function MultiSelectActions({
       setTransferOpen(false);
       if (result.status === 'error') {
         console.error('Failed to transfer NFTs', result.error);
+      } else {
+        setSummary(result.data);
+      }
+    });
+  };
+
+  const onAssignSubmit = (profile: string, fee: string) => {
+    commands.assignNftsToDid(selected, profile, fee).then((result) => {
+      setAssignOpen(false);
+      if (result.status === 'error') {
+        console.error('Failed to assign NFT', result.error);
+      } else {
+        setSummary(result.data);
+      }
+    });
+  };
+
+  const onUnassignSubmit = (fee: string) => {
+    commands.assignNftsToDid(selected, null, fee).then((result) => {
+      setUnassignOpen(false);
+      if (result.status === 'error') {
+        console.error('Failed to unassign NFT', result.error);
       } else {
         setSummary(result.data);
       }
@@ -81,6 +112,28 @@ export function MultiSelectActions({
                 className='cursor-pointer'
                 onClick={(e) => {
                   e.stopPropagation();
+                  setAssignOpen(true);
+                }}
+              >
+                <UserRoundPlus className='mr-2 h-4 w-4' />
+                <span>Assign Profile</span>
+              </DropdownMenuItem>
+
+              <DropdownMenuItem
+                className='cursor-pointer'
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setUnassignOpen(true);
+                }}
+              >
+                <UserRoundMinus className='mr-2 h-4 w-4' />
+                <span>Unassign Profile</span>
+              </DropdownMenuItem>
+
+              <DropdownMenuItem
+                className='cursor-pointer'
+                onClick={(e) => {
+                  e.stopPropagation();
                   setBurnOpen(true);
                 }}
               >
@@ -102,7 +155,25 @@ export function MultiSelectActions({
         you sure you want to proceed?
       </TransferDialog>
 
-      <BurnDialog
+      <AssignNftDialog
+        title='Bulk Assign Profile'
+        open={assignOpen}
+        setOpen={setAssignOpen}
+        onSubmit={onAssignSubmit}
+      >
+        This will bulk assign the NFTs to the selected profile.
+      </AssignNftDialog>
+
+      <FeeOnlyDialog
+        title='Bulk Unassign Profile'
+        open={unassignOpen}
+        setOpen={setUnassignOpen}
+        onSubmit={onUnassignSubmit}
+      >
+        This will bulk unassign the NFTs from their profiles.
+      </FeeOnlyDialog>
+
+      <FeeOnlyDialog
         title='Bulk Burn NFTs'
         open={burnOpen}
         setOpen={setBurnOpen}
@@ -110,7 +181,7 @@ export function MultiSelectActions({
       >
         This will bulk burn {selected.length} NFTs. This cannot be undone. Are
         you sure you want to proceed?
-      </BurnDialog>
+      </FeeOnlyDialog>
 
       <ConfirmationDialog
         summary={summary}

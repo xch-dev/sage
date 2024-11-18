@@ -16,13 +16,16 @@ import {
   LinkIcon,
   MoreVertical,
   SendIcon,
+  UserRoundMinus,
+  UserRoundPlus,
 } from 'lucide-react';
 import { PropsWithChildren, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
-import { BurnDialog } from './BurnDialog';
+import { AssignNftDialog } from './AssignNftDialog';
 import ConfirmationDialog from './ConfirmationDialog';
+import { FeeOnlyDialog } from './FeeOnlyDialog';
 import { TransferDialog } from './TransferDialog';
 import { Button } from './ui/button';
 import { Checkbox } from './ui/checkbox';
@@ -77,6 +80,8 @@ export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
   const navigate = useNavigate();
 
   const [transferOpen, setTransferOpen] = useState(false);
+  const [assignOpen, setAssignOpen] = useState(false);
+  const [unassignOpen, setUnassignOpen] = useState(false);
   const [addUrlOpen, setAddUrlOpen] = useState(false);
   const [burnOpen, setBurnOpen] = useState(false);
   const [summary, setSummary] = useState<TransactionSummary | null>(null);
@@ -96,6 +101,28 @@ export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
       setTransferOpen(false);
       if (result.status === 'error') {
         console.error('Failed to transfer NFT', result.error);
+      } else {
+        setSummary(result.data);
+      }
+    });
+  };
+
+  const onAssignSubmit = (profile: string, fee: string) => {
+    commands.assignNftsToDid([nft.launcher_id], profile, fee).then((result) => {
+      setAssignOpen(false);
+      if (result.status === 'error') {
+        console.error('Failed to assign NFT', result.error);
+      } else {
+        setSummary(result.data);
+      }
+    });
+  };
+
+  const onUnassignSubmit = (fee: string) => {
+    commands.assignNftsToDid([nft.launcher_id], null, fee).then((result) => {
+      setUnassignOpen(false);
+      if (result.status === 'error') {
+        console.error('Failed to unassign NFT', result.error);
       } else {
         setSummary(result.data);
       }
@@ -214,6 +241,36 @@ export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
                   className='cursor-pointer'
                   onClick={(e) => {
                     e.stopPropagation();
+                    setAssignOpen(true);
+                  }}
+                  disabled={!nft.created_height}
+                >
+                  <UserRoundPlus className='mr-2 h-4 w-4' />
+                  <span>
+                    {nft.owner_did === null
+                      ? 'Assign Profile'
+                      : 'Reassign Profile'}
+                  </span>
+                </DropdownMenuItem>
+
+                {nft.owner_did !== null && (
+                  <DropdownMenuItem
+                    className='cursor-pointer'
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setUnassignOpen(true);
+                    }}
+                    disabled={!nft.created_height}
+                  >
+                    <UserRoundMinus className='mr-2 h-4 w-4' />
+                    <span>Unassign Profile</span>
+                  </DropdownMenuItem>
+                )}
+
+                <DropdownMenuItem
+                  className='cursor-pointer'
+                  onClick={(e) => {
+                    e.stopPropagation();
                     addUrlForm.reset();
                     setAddUrlOpen(true);
                   }}
@@ -263,6 +320,24 @@ export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
       >
         This will send the NFT to the provided address.
       </TransferDialog>
+
+      <AssignNftDialog
+        title='Assign Profile'
+        open={assignOpen}
+        setOpen={setAssignOpen}
+        onSubmit={onAssignSubmit}
+      >
+        This will assign the NFT to the selected profile.
+      </AssignNftDialog>
+
+      <FeeOnlyDialog
+        title='Unassign Profile'
+        open={unassignOpen}
+        setOpen={setUnassignOpen}
+        onSubmit={onUnassignSubmit}
+      >
+        This will unassign the NFT from its profile.
+      </FeeOnlyDialog>
 
       <Dialog open={addUrlOpen} onOpenChange={setAddUrlOpen}>
         <DialogContent>
@@ -349,14 +424,14 @@ export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
         </DialogContent>
       </Dialog>
 
-      <BurnDialog
+      <FeeOnlyDialog
         title='Burn NFT'
         open={burnOpen}
         setOpen={setBurnOpen}
         onSubmit={onBurnSubmit}
       >
         This will permanently delete the NFT by sending it to the burn address.
-      </BurnDialog>
+      </FeeOnlyDialog>
 
       <ConfirmationDialog
         summary={summary}

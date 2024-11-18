@@ -413,6 +413,14 @@ async addNftUri(nftId: string, uri: string, kind: NftUriKind, fee: Amount) : Pro
     else return { status: "error", error: e  as any };
 }
 },
+async assignNftsToDid(nftIds: string[], didId: string | null, fee: Amount) : Promise<Result<TransactionSummary, Error>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("assign_nfts_to_did", { nftIds, didId, fee }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async makeOffer(request: MakeOffer) : Promise<Result<string, Error>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("make_offer", { request }) };

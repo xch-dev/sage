@@ -507,7 +507,7 @@ pub async fn transfer_nfts(
     };
 
     let coin_spends = wallet
-        .transfer_nft(launcher_ids, puzzle_hash.into(), fee, false, true)
+        .transfer_nfts(launcher_ids, puzzle_hash.into(), fee, false, true)
         .await?;
 
     summarize(&state, &wallet, coin_spends, ConfirmationInfo::default()).await
@@ -547,6 +547,56 @@ pub async fn add_nft_uri(
 
     let (coin_spends, _new_nft) = wallet
         .add_nft_uri(launcher_id.into(), fee, uri, false, true)
+        .await?;
+
+    summarize(&state, &wallet, coin_spends, ConfirmationInfo::default()).await
+}
+
+#[command]
+#[specta]
+pub async fn assign_nfts_to_did(
+    state: State<'_, AppState>,
+    nft_ids: Vec<String>,
+    did_id: Option<String>,
+    fee: Amount,
+) -> Result<TransactionSummary> {
+    let state = state.lock().await;
+    let wallet = state.wallet()?;
+
+    if !state.keychain.has_secret_key(wallet.fingerprint) {
+        return Err(Error::no_secret_key());
+    }
+
+    let mut launcher_ids = Vec::new();
+
+    for nft_id in nft_ids {
+        let (launcher_id, prefix) = decode_address(&nft_id)?;
+
+        if prefix != "nft" {
+            return Err(Error::invalid_prefix(&prefix));
+        }
+
+        launcher_ids.push(launcher_id.into());
+    }
+
+    let did_id = if let Some(did_id) = did_id {
+        let (launcher_id, prefix) = decode_address(&did_id)?;
+
+        if prefix != "did:chia:" {
+            return Err(Error::invalid_prefix(&prefix));
+        }
+
+        Some(launcher_id.into())
+    } else {
+        None
+    };
+
+    let Some(fee) = fee.to_mojos(state.unit.decimals) else {
+        return Err(Error::invalid_amount(&fee));
+    };
+
+    let coin_spends = wallet
+        .assign_nfts(launcher_ids, did_id, fee, false, true)
         .await?;
 
     summarize(&state, &wallet, coin_spends, ConfirmationInfo::default()).await

@@ -108,4 +108,4 @@ log = "0.4.22"
 test-log = "0.2.16"
 
 [patch.crates-io]
-chia-wallet-sdk = { git = "https://github.com/xch-dev/chia-wallet-sdk", rev = "2cf81a1df37eaf94dda9fed74785f30ec24669f2" }
+chia-wallet-sdk = { git = "https://github.com/xch-dev/chia-wallet-sdk", rev = "7f88188d58f061e9ccafe23ebbed78723fcd56ee" }

@@ -24,20 +24,20 @@ import {
 } from './ui/form';
 import { Input } from './ui/input';
 
-export interface BurnDialogProps {
+export interface FeeOnlyDialogProps {
   title: string;
   open: boolean;
   setOpen: (open: boolean) => void;
   onSubmit: (fee: string) => void;
 }
 
-export function BurnDialog({
+export function FeeOnlyDialog({
   title,
   open,
   setOpen,
   onSubmit,
   children,
-}: PropsWithChildren<BurnDialogProps>) {
+}: PropsWithChildren<FeeOnlyDialogProps>) {
   const walletState = useWalletState();
 
   const schema = z.object({
