@@ -23,6 +23,9 @@ pub fn run() {
             commands::resync,
             commands::import_key,
             commands::delete_key,
+            commands::get_keys,
+            commands::get_key,
+            commands::get_secret_key,
             // Network Config
             commands::network_config,
             commands::set_discover_peers,
@@ -35,9 +38,6 @@ pub fn run() {
             // Networks
             commands::network_list,
             // Keychain
-            commands::active_wallet,
-            commands::get_wallet_secrets,
-            commands::wallet_list,
             commands::generate_mnemonic,
             commands::rename_wallet,
             // Setup

@@ -4561,6 +4561,7 @@ dependencies = [
  "chia-wallet-sdk",
  "hex",
  "indexmap 2.5.0",
+ "itertools 0.13.0",
  "log",
  "rand 0.8.5",
  "rand_chacha 0.3.1",

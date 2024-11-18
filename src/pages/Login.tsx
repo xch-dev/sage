@@ -30,26 +30,26 @@ import {
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { commands, WalletInfo, WalletSecrets } from '../bindings';
+import { commands, KeyInfo, SecretKeyInfo } from '../bindings';
 import Container from '../components/Container';
 import { loginAndUpdateState } from '../state';
 
 export default function Login() {
-  const [wallets, setWallets] = useState<WalletInfo[] | null>(null);
+  const [keys, setKeys] = useState<KeyInfo[] | null>(null);
 
   const navigate = useNavigate();
 
   useEffect(() => {
-    commands.walletList().then((res) => {
+    commands.getKeys({}).then((res) => {
       if (res.status === 'ok') {
-        setWallets(res.data);
+        setKeys(res.data.keys);
       }
     });
   }, []);
 
   useEffect(() => {
-    commands.activeWallet().then((res) => {
-      if (res.status === 'error' || !res.data) return;
+    commands.getKey({}).then((res) => {
+      if (res.status === 'error' || !res.data.key) return;
       navigate('/wallet');
     });
   }, [navigate]);
@@ -57,7 +57,7 @@ export default function Login() {
   return (
     <div className='flex-1 space-y-4 p-8 pt-6'>
       <div className='flex items-center justify-between space-y-2'>
-        {wallets && wallets.length > 0 && (
+        {(keys?.length ?? 0) > 0 && (
           <>
             <h2 className='text-3xl font-bold tracking-tight'>Wallets</h2>
             <div className='flex items-center space-x-2'>
@@ -69,16 +69,11 @@ export default function Login() {
           </>
         )}
       </div>{' '}
-      {wallets ? (
-        wallets.length ? (
+      {keys !== null ? (
+        keys.length ? (
           <div className='grid md:grid-cols-2 lg:grid-cols-3 gap-4'>
-            {wallets.map((wallet, i) => (
-              <WalletItem
-                key={i}
-                wallet={wallet}
-                wallets={wallets}
-                setWallets={setWallets}
-              />
+            {keys.map((key, i) => (
+              <WalletItem key={i} info={key} keys={keys} setKeys={setKeys} />
             ))}
           </div>
         ) : (
@@ -103,11 +98,13 @@ function SkeletonWalletList() {
   );
 }
 
-function WalletItem(props: {
-  wallet: WalletInfo;
-  wallets: WalletInfo[];
-  setWallets: (wallets: WalletInfo[]) => void;
-}) {
+interface WalletItemProps {
+  info: KeyInfo;
+  keys: KeyInfo[];
+  setKeys: (keys: KeyInfo[]) => void;
+}
+
+function WalletItem({ info, keys, setKeys }: WalletItemProps) {
   const navigate = useNavigate();
 
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
@@ -119,39 +116,33 @@ function WalletItem(props: {
   const [isResyncOpen, setResyncOpen] = useState(false);
   const [newName, setNewName] = useState('');
 
-  const [secrets, setSecrets] = useState<WalletSecrets | null>(null);
+  const [secrets, setSecrets] = useState<SecretKeyInfo | null>(null);
 
   const resyncSelf = () => {
-    commands.resync({ fingerprint: props.wallet.fingerprint }).then((res) => {
+    commands.resync({ fingerprint: info.fingerprint }).then((res) => {
       if (res.status === 'error') return;
       setResyncOpen(false);
     });
   };
 
   const deleteSelf = () => {
-    commands
-      .deleteKey({ fingerprint: props.wallet.fingerprint })
-      .then((res) => {
-        if (res.status === 'error') return;
-        props.setWallets(
-          props.wallets.filter(
-            (wallet) => wallet.fingerprint !== props.wallet.fingerprint,
-          ),
-        );
-        setDeleteOpen(false);
-      });
+    commands.deleteKey({ fingerprint: info.fingerprint }).then((res) => {
+      if (res.status === 'error') return;
+      setKeys(keys.filter((key) => key.fingerprint !== info.fingerprint));
+      setDeleteOpen(false);
+    });
   };
 
   const renameSelf = () => {
     if (!newName) return;
 
-    commands.renameWallet(props.wallet.fingerprint, newName).then((res) => {
+    commands.renameWallet(info.fingerprint, newName).then((res) => {
       if (res.status === 'error') return;
-      props.setWallets(
-        props.wallets.map((wallet) =>
-          wallet.fingerprint === props.wallet.fingerprint
-            ? { ...wallet, name: newName }
-            : wallet,
+      setKeys(
+        keys.map((key) =>
+          key.fingerprint === info.fingerprint
+            ? { ...key, name: newName }
+            : key,
         ),
       );
       setRenameOpen(false);
@@ -163,7 +154,7 @@ function WalletItem(props: {
   const loginSelf = (explicit: boolean) => {
     if (isMenuOpen && !explicit) return;
 
-    loginAndUpdateState(props.wallet.fingerprint).then(() => {
+    loginAndUpdateState(info.fingerprint).then(() => {
       navigate('/wallet');
     });
   };
@@ -174,17 +165,17 @@ function WalletItem(props: {
       return;
     }
 
-    commands.getWalletSecrets(props.wallet.fingerprint).then((res) => {
+    commands.getSecretKey({ fingerprint: info.fingerprint }).then((res) => {
       if (res.status === 'error') return;
-      setSecrets(res.data);
+      setSecrets(res.data.secrets);
     });
-  }, [isDetailsOpen, props.wallet.fingerprint]);
+  }, [isDetailsOpen, info.fingerprint]);
 
   return (
     <>
       <Card onClick={() => loginSelf(false)} className='cursor-pointer'>
         <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-          <CardTitle className='text-2xl'>{props.wallet.name}</CardTitle>
+          <CardTitle className='text-2xl'>{info.name}</CardTitle>
           <DropdownMenu>
             <DropdownMenuTrigger asChild className='-mr-2.5'>
               <Button variant='ghost' size='icon'>
@@ -249,10 +240,8 @@ function WalletItem(props: {
         </CardHeader>
         <CardContent>
           <div className='flex items-center mt-1 justify-between'>
-            <span className='text-muted-foreground'>
-              {props.wallet.fingerprint}
-            </span>
-            {props.wallet.kind == 'hot' ? (
+            <span className='text-muted-foreground'>{info.fingerprint}</span>
+            {info.has_secrets ? (
               <div className='inline-flex gap-0.5 items-center rounded-full border px-2 py-1.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80'>
                 <FlameIcon className='h-4 w-4 pb-0.5' />
                 <span>Hot Wallet</span>
@@ -373,7 +362,7 @@ function WalletItem(props: {
             <div>
               <h3 className='font-semibold'>Public Key</h3>
               <p className='break-all text-sm text-muted-foreground'>
-                {props.wallet.public_key}
+                {info.public_key}
               </p>
             </div>
             {secrets && (

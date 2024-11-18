@@ -1,4 +1,4 @@
-use std::{array::TryFromSliceError, io};
+use std::{array::TryFromSliceError, io, num::ParseIntError};
 
 use chia_wallet_sdk::ClientError;
 use hex::FromHexError;
@@ -51,6 +51,9 @@ pub enum Error {
 
     #[error("Try from slice error: {0}")]
     TryFromSlice(#[from] TryFromSliceError),
+
+    #[error("Parse int error: {0}")]
+    ParseInt(#[from] ParseIntError),
 
     #[error("SQLx error: {0}")]
     Sqlx(#[from] sqlx::Error),

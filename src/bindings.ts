@@ -5,7 +5,7 @@
 
 
 export const commands = {
-async login(req: Login) : Promise<Result<null, Error>> {
+async login(req: Login) : Promise<Result<LoginResponse, Error>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("login", { req }) };
 } catch (e) {
@@ -13,7 +13,7 @@ async login(req: Login) : Promise<Result<null, Error>> {
     else return { status: "error", error: e  as any };
 }
 },
-async logout(req: Logout) : Promise<Result<null, Error>> {
+async logout(req: Logout) : Promise<Result<LogoutResponse, Error>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("logout", { req }) };
 } catch (e) {
@@ -21,7 +21,7 @@ async logout(req: Logout) : Promise<Result<null, Error>> {
     else return { status: "error", error: e  as any };
 }
 },
-async resync(req: Resync) : Promise<Result<null, Error>> {
+async resync(req: Resync) : Promise<Result<ResyncResponse, Error>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("resync", { req }) };
 } catch (e) {
@@ -37,9 +37,33 @@ async importKey(req: ImportKey) : Promise<Result<ImportKeyResponse, Error>> {
     else return { status: "error", error: e  as any };
 }
 },
-async deleteKey(req: DeleteKey) : Promise<Result<null, Error>> {
+async deleteKey(req: DeleteKey) : Promise<Result<DeleteKeyResponse, Error>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("delete_key", { req }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async getKeys(req: GetKeys) : Promise<Result<GetKeysResponse, Error>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_keys", { req }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async getKey(req: GetKey) : Promise<Result<GetKeyResponse, Error>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_key", { req }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async getSecretKey(req: GetSecretKey) : Promise<Result<GetSecretKeyResponse, Error>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_secret_key", { req }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -104,30 +128,6 @@ async setDerivationBatchSize(fingerprint: number, derivationBatchSize: number) :
 async networkList() : Promise<Result<{ [key in string]: Network }, Error>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("network_list") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async activeWallet() : Promise<Result<WalletInfo | null, Error>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("active_wallet") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async getWalletSecrets(fingerprint: number) : Promise<Result<WalletSecrets | null, Error>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_wallet_secrets", { fingerprint }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async walletList() : Promise<Result<WalletInfo[], Error>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("wallet_list") };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -504,17 +504,28 @@ export type CoinJson = { parent_coin_info: string; puzzle_hash: string; amount: 
 export type CoinRecord = { coin_id: string; address: string; amount: Amount; created_height: number | null; spent_height: number | null; create_transaction_id: string | null; spend_transaction_id: string | null }
 export type CoinSpendJson = { coin: CoinJson; puzzle_reveal: string; solution: string }
 export type DeleteKey = { fingerprint: number }
+export type DeleteKeyResponse = Record<string, never>
 export type DidRecord = { launcher_id: string; name: string | null; visible: boolean; coin_id: string; address: string; amount: Amount; created_height: number | null; create_transaction_id: string | null }
 export type Error = { kind: ErrorKind; reason: string }
 export type ErrorKind = "wallet" | "api" | "not_found" | "internal"
 export type GetCollectionNfts = { collection_id: string | null; offset: number; limit: number; sort_mode: NftSortMode; include_hidden: boolean }
+export type GetKey = { fingerprint?: number | null }
+export type GetKeyResponse = { key: KeyInfo | null }
+export type GetKeys = Record<string, never>
+export type GetKeysResponse = { keys: KeyInfo[] }
 export type GetNftCollections = { offset: number; limit: number; include_hidden: boolean }
 export type GetNfts = { offset: number; limit: number; sort_mode: NftSortMode; include_hidden: boolean }
+export type GetSecretKey = { fingerprint: number }
+export type GetSecretKeyResponse = { secrets: SecretKeyInfo | null }
 export type ImportKey = { name: string; key: string; save_secrets?: boolean; login?: boolean }
 export type ImportKeyResponse = { fingerprint: number }
 export type Input = ({ type: "unknown" } | { type: "xch" } | { type: "launcher" } | { type: "cat"; asset_id: string; name: string | null; ticker: string | null; icon_url: string | null } | { type: "did"; launcher_id: string; name: string | null } | { type: "nft"; launcher_id: string; image_data: string | null; image_mime_type: string | null; name: string | null }) & { coin_id: string; amount: Amount; address: string; outputs: Output[] }
+export type KeyInfo = { name: string; fingerprint: number; public_key: string; kind: KeyKind; has_secrets: boolean }
+export type KeyKind = "bls"
 export type Login = { fingerprint: number }
-export type Logout = null
+export type LoginResponse = Record<string, never>
+export type Logout = Record<string, never>
+export type LogoutResponse = Record<string, never>
 export type MakeOffer = { requested_assets: Assets; offered_assets: Assets; fee: Amount }
 export type Network = { default_port: number; ticker: string; address_prefix: string; precision: number; genesis_challenge: string; agg_sig_me: string; dns_introducers: string[] }
 export type NetworkConfig = { network_id?: string; target_peers?: number; discover_peers?: boolean }
@@ -534,15 +545,14 @@ export type Output = { coin_id: string; amount: Amount; address: string; receivi
 export type PeerRecord = { ip_addr: string; port: number; trusted: boolean; peak_height: number }
 export type PendingTransactionRecord = { transaction_id: string; fee: Amount; submitted_at: string | null }
 export type Resync = { fingerprint: number }
+export type ResyncResponse = Record<string, never>
+export type SecretKeyInfo = { mnemonic: string | null; secret_key: string }
 export type SpendBundleJson = { coin_spends: CoinSpendJson[]; aggregated_signature: string }
 export type SyncEvent = { type: "start"; ip: string } | { type: "stop" } | { type: "subscribed" } | { type: "derivation" } | { type: "coin_state" } | { type: "puzzle_batch_synced" } | { type: "cat_info" } | { type: "did_info" } | { type: "nft_data" }
 export type SyncStatus = { balance: Amount; unit: Unit; synced_coins: number; total_coins: number; receive_address: string; burn_address: string }
 export type TransactionSummary = { fee: Amount; inputs: Input[]; coin_spends: CoinSpendJson[] }
 export type Unit = { ticker: string; decimals: number }
 export type WalletConfig = { name?: string; derive_automatically?: boolean; derivation_batch_size?: number }
-export type WalletInfo = { name: string; fingerprint: number; public_key: string; kind: WalletKind }
-export type WalletKind = "cold" | "hot"
-export type WalletSecrets = { mnemonic: string | null; secret_key: string }
 
 /** tauri-specta globals **/
 

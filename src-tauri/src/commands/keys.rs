@@ -2,8 +2,9 @@ use bip39::Mnemonic;
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use sage_api::{
-    DeleteKey, DeleteKeyResponse, ImportKey, ImportKeyResponse, Login, LoginResponse, Logout,
-    LogoutResponse, Resync, ResyncResponse, WalletInfo, WalletKind, WalletSecrets,
+    DeleteKey, DeleteKeyResponse, GetKey, GetKeyResponse, GetKeys, GetKeysResponse, GetSecretKey,
+    GetSecretKeyResponse, ImportKey, ImportKeyResponse, Login, LoginResponse, Logout,
+    LogoutResponse, Resync, ResyncResponse,
 };
 use specta::specta;
 use tauri::{command, State};
@@ -42,61 +43,23 @@ pub async fn delete_key(state: State<'_, AppState>, req: DeleteKey) -> Result<De
 
 #[command]
 #[specta]
-pub async fn wallet_list(state: State<'_, AppState>) -> Result<Vec<WalletInfo>> {
-    let state = state.lock().await;
-    state.wallets()
+pub async fn get_keys(state: State<'_, AppState>, req: GetKeys) -> Result<GetKeysResponse> {
+    Ok(state.lock().await.get_keys(req)?)
 }
 
 #[command]
 #[specta]
-pub async fn active_wallet(state: State<'_, AppState>) -> Result<Option<WalletInfo>> {
-    let state = state.lock().await;
-
-    let Some(fingerprint) = state.config.app.active_fingerprint else {
-        return Ok(None);
-    };
-
-    let name = state
-        .config
-        .wallets
-        .get(&fingerprint.to_string())
-        .map_or_else(
-            || "Unnamed Wallet".to_string(),
-            |config| config.name.clone(),
-        );
-
-    let Some(master_pk) = state.keychain.extract_public_key(fingerprint)? else {
-        return Ok(None);
-    };
-
-    Ok(Some(WalletInfo {
-        name,
-        fingerprint,
-        public_key: hex::encode(master_pk.to_bytes()),
-        kind: if state.keychain.has_secret_key(fingerprint) {
-            WalletKind::Hot
-        } else {
-            WalletKind::Cold
-        },
-    }))
+pub async fn get_key(state: State<'_, AppState>, req: GetKey) -> Result<GetKeyResponse> {
+    Ok(state.lock().await.get_key(req)?)
 }
 
 #[command]
 #[specta]
-pub async fn get_wallet_secrets(
+pub async fn get_secret_key(
     state: State<'_, AppState>,
-    fingerprint: u32,
-) -> Result<Option<WalletSecrets>> {
-    let state = state.lock().await;
-
-    let (mnemonic, Some(secret_key)) = state.keychain.extract_secrets(fingerprint, b"")? else {
-        return Ok(None);
-    };
-
-    Ok(Some(WalletSecrets {
-        mnemonic: mnemonic.map(|m| m.to_string()),
-        secret_key: hex::encode(secret_key.to_bytes()),
-    }))
+    req: GetSecretKey,
+) -> Result<GetSecretKeyResponse> {
+    Ok(state.lock().await.get_secret_key(req)?)
 }
 
 #[command]

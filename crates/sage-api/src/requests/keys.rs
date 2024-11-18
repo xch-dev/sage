@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
+use crate::{KeyInfo, SecretKeyInfo};
+
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Type)]
 pub struct Login {
     pub fingerprint: u32,
@@ -49,3 +51,32 @@ pub struct DeleteKey {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Type)]
 pub struct DeleteKeyResponse {}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Type)]
+pub struct GetKeys {}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct GetKeysResponse {
+    pub keys: Vec<KeyInfo>,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Type)]
+pub struct GetKey {
+    #[serde(default)]
+    pub fingerprint: Option<u32>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct GetKeyResponse {
+    pub key: Option<KeyInfo>,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Type)]
+pub struct GetSecretKey {
+    pub fingerprint: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct GetSecretKeyResponse {
+    pub secrets: Option<SecretKeyInfo>,
+}

@@ -5,9 +5,8 @@ use std::{
 
 use chia::protocol::Bytes32;
 use chia_wallet_sdk::decode_address;
-use itertools::Itertools;
 use sage::Sage;
-use sage_api::{Amount, SyncEvent as ApiEvent, Unit, WalletInfo, WalletKind, XCH};
+use sage_api::{Amount, SyncEvent as ApiEvent, Unit, XCH};
 use sage_wallet::SyncEvent;
 use tauri::{AppHandle, Emitter};
 use tokio::sync::Mutex;
@@ -106,52 +105,5 @@ impl AppStateInner {
         };
 
         Ok(amount)
-    }
-
-    pub fn wallets(&self) -> Result<Vec<WalletInfo>> {
-        let mut wallets = Vec::with_capacity(self.config.wallets.len());
-
-        for (fingerprint, wallet) in &self.config.wallets {
-            let fingerprint = fingerprint.parse::<u32>()?;
-
-            let Some(master_pk) = self.keychain.extract_public_key(fingerprint)? else {
-                continue;
-            };
-
-            wallets.push(WalletInfo {
-                name: wallet.name.clone(),
-                fingerprint,
-                public_key: hex::encode(master_pk.to_bytes()),
-                kind: if self.keychain.has_secret_key(fingerprint) {
-                    WalletKind::Hot
-                } else {
-                    WalletKind::Cold
-                },
-            });
-        }
-
-        for fingerprint in self
-            .keychain
-            .fingerprints()
-            .filter(|fingerprint| !self.config.wallets.contains_key(&fingerprint.to_string()))
-            .sorted()
-        {
-            let Some(master_pk) = self.keychain.extract_public_key(fingerprint)? else {
-                continue;
-            };
-
-            wallets.push(WalletInfo {
-                name: "Unnamed Wallet".to_string(),
-                fingerprint,
-                public_key: hex::encode(master_pk.to_bytes()),
-                kind: if self.keychain.has_secret_key(fingerprint) {
-                    WalletKind::Hot
-                } else {
-                    WalletKind::Cold
-                },
-            });
-        }
-
-        Ok(wallets)
     }
 }
