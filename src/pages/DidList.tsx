@@ -35,6 +35,7 @@ import {
   PenIcon,
   SendIcon,
   UserIcon,
+  UserPlusIcon,
   UserRoundPlus,
 } from 'lucide-react';
 import { useState } from 'react';
@@ -57,7 +58,9 @@ export function DidList() {
         <ReceiveAddress />
       </Header>
       <Container>
-        <Button onClick={() => navigate('/dids/create')}>Create Profile</Button>
+        <Button onClick={() => navigate('/dids/create')}>
+          <UserPlusIcon className='h-4 w-4 mr-2' /> Create Profile
+        </Button>
 
         {hasHiddenDids && (
           <div className='flex items-center gap-2 my-4'>

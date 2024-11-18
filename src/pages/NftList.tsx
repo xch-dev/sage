@@ -16,7 +16,13 @@ import {
 import { useNftParams } from '@/hooks/useNftParams';
 import collectionImage from '@/images/collection.png';
 import { useWalletState } from '@/state';
-import { EyeIcon, EyeOff, Image, MoreVerticalIcon } from 'lucide-react';
+import {
+  EyeIcon,
+  EyeOff,
+  Image,
+  ImagePlusIcon,
+  MoreVerticalIcon,
+} from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { commands, events, NftCollectionRecord, NftRecord } from '../bindings';
@@ -113,7 +119,9 @@ export function NftList() {
       </Header>
 
       <Container>
-        <Button onClick={() => navigate('/nfts/mint')}>Mint NFT</Button>
+        <Button onClick={() => navigate('/nfts/mint')}>
+          <ImagePlusIcon className='h-4 w-4 mr-2' /> Mint NFT
+        </Button>
 
         {walletState.nfts.nfts === 0 ? (
           <Alert className='mt-4'>
