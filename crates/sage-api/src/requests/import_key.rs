@@ -14,3 +14,8 @@ pub struct ImportKey {
 fn yes() -> bool {
     true
 }
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Type)]
+pub struct ImportKeyResponse {
+    pub fingerprint: u32,
+}

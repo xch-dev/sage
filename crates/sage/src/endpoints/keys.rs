@@ -2,7 +2,7 @@ use std::{fs, str::FromStr};
 
 use bip39::Mnemonic;
 use chia::bls::{PublicKey, SecretKey};
-use sage_api::{DeleteKey, ImportKey, Login, Logout, Resync};
+use sage_api::{DeleteKey, ImportKey, ImportKeyResponse, Login, Logout, Resync};
 
 use crate::{Error, Result, Sage};
 
@@ -40,7 +40,7 @@ impl Sage {
         Ok(())
     }
 
-    pub async fn import_key(&mut self, req: ImportKey) -> Result<()> {
+    pub async fn import_key(&mut self, req: ImportKey) -> Result<ImportKeyResponse> {
         let mut key_hex = req.key.as_str();
 
         if key_hex.starts_with("0x") || key_hex.starts_with("0X") {
@@ -84,7 +84,7 @@ impl Sage {
             self.switch_wallet().await?;
         }
 
-        Ok(())
+        Ok(ImportKeyResponse { fingerprint })
     }
 
     pub fn delete_key(&mut self, req: DeleteKey) -> Result<()> {
@@ -166,87 +166,4 @@ impl Sage {
 //         mnemonic: mnemonic.map(|m| m.to_string()),
 //         secret_key: hex::encode(secret_key.to_bytes()),
 //     }))
-// }
-
-// #[command]
-// #[specta]
-// pub fn generate_mnemonic(use_24_words: bool) -> Result<String> {
-//     let mut rng = ChaCha20Rng::from_entropy();
-//     let mnemonic = if use_24_words {
-//         let entropy: [u8; 32] = rng.gen();
-//         Mnemonic::from_entropy(&entropy)?
-//     } else {
-//         let entropy: [u8; 16] = rng.gen();
-//         Mnemonic::from_entropy(&entropy)?
-//     };
-//     Ok(mnemonic.to_string())
-// }
-
-// #[command]
-// #[specta]
-// pub async fn create_wallet(
-//     state: State<'_, AppState>,
-//     name: String,
-//     mnemonic: String,
-//     save_mnemonic: bool,
-// ) -> Result<()> {
-//     let mut state = state.lock().await;
-//     let mnemonic = Mnemonic::from_str(&mnemonic)?;
-
-//     let fingerprint = if save_mnemonic {
-//         state.keychain.add_mnemonic(&mnemonic, b"")?
-//     } else {
-//         let seed = mnemonic.to_seed("");
-//         let master_sk = SecretKey::from_seed(&seed);
-//         let master_pk = master_sk.public_key();
-//         state.keychain.add_public_key(&master_pk)?
-//     };
-//     state.save_keychain()?;
-
-//     let config = state.wallet_config_mut(fingerprint);
-//     config.name = name;
-//     state.config.app.active_fingerprint = Some(fingerprint);
-//     state.save_config()?;
-
-//     state.switch_wallet().await?;
-//     Ok(())
-// }
-
-// #[command]
-// #[specta]
-// pub async fn import_wallet(state: State<'_, AppState>, name: String, key: String) -> Result<()> {
-//     let mut state = state.lock().await;
-
-//     let mut key_hex = key.as_str();
-
-//     if key_hex.starts_with("0x") || key_hex.starts_with("0X") {
-//         key_hex = &key_hex[2..];
-//     }
-
-//     let fingerprint = if let Ok(bytes) = hex::decode(key_hex) {
-//         if let Ok(master_pk) = bytes.clone().try_into() {
-//             let master_pk = PublicKey::from_bytes(&master_pk)?;
-//             state.keychain.add_public_key(&master_pk)?
-//         } else if let Ok(master_sk) = bytes.try_into() {
-//             let master_sk = SecretKey::from_bytes(&master_sk)?;
-//             state.keychain.add_secret_key(&master_sk, b"")?
-//         } else {
-//             return Err(Error {
-//                 kind: ErrorKind::Api,
-//                 reason: "Invalid key".into(),
-//             });
-//         }
-//     } else {
-//         let mnemonic = Mnemonic::from_str(&key)?;
-//         state.keychain.add_mnemonic(&mnemonic, b"")?
-//     };
-//     state.save_keychain()?;
-
-//     let config = state.wallet_config_mut(fingerprint);
-//     config.name = name;
-//     state.config.app.active_fingerprint = Some(fingerprint);
-//     state.save_config()?;
-
-//     state.switch_wallet().await?;
-//     Ok(())
 // }

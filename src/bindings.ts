@@ -29,7 +29,7 @@ async resync(req: Resync) : Promise<Result<null, Error>> {
     else return { status: "error", error: e  as any };
 }
 },
-async importKey(req: ImportKey) : Promise<Result<null, Error>> {
+async importKey(req: ImportKey) : Promise<Result<ImportKeyResponse, Error>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("import_key", { req }) };
 } catch (e) {
@@ -511,6 +511,7 @@ export type GetCollectionNfts = { collection_id: string | null; offset: number; 
 export type GetNftCollections = { offset: number; limit: number; include_hidden: boolean }
 export type GetNfts = { offset: number; limit: number; sort_mode: NftSortMode; include_hidden: boolean }
 export type ImportKey = { name: string; key: string; save_secrets?: boolean; login?: boolean }
+export type ImportKeyResponse = { fingerprint: number }
 export type Input = ({ type: "unknown" } | { type: "xch" } | { type: "launcher" } | { type: "cat"; asset_id: string; name: string | null; ticker: string | null; icon_url: string | null } | { type: "did"; launcher_id: string; name: string | null } | { type: "nft"; launcher_id: string; image_data: string | null; image_mime_type: string | null; name: string | null }) & { coin_id: string; amount: Amount; address: string; outputs: Output[] }
 export type Login = { fingerprint: number }
 export type Logout = null

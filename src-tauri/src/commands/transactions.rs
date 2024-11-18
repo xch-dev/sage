@@ -235,7 +235,7 @@ pub async fn bulk_mint_nfts(
     let wallet = state.wallet()?;
 
     let fee = state.parse_amount(request.fee)?;
-    let did_id = state.parse_address(request.did_id)?;
+    let did_id = parse_did_id(request.did_id)?;
 
     let mut mints = Vec::with_capacity(request.nft_mints.len());
     let mut confirm_info = ConfirmationInfo::default();
@@ -394,7 +394,7 @@ pub async fn assign_nfts_to_did(
         .into_iter()
         .map(parse_nft_id)
         .collect::<Result<Vec<_>>>()?;
-    let did_id = did_id.map(parse_nft_id).transpose()?;
+    let did_id = did_id.map(parse_did_id).transpose()?;
     let fee = state.parse_amount(fee)?;
 
     let coin_spends = wallet

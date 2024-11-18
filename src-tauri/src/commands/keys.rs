@@ -2,7 +2,8 @@ use bip39::Mnemonic;
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use sage_api::{
-    DeleteKey, ImportKey, Login, Logout, Resync, WalletInfo, WalletKind, WalletSecrets,
+    DeleteKey, ImportKey, ImportKeyResponse, Login, Logout, Resync, WalletInfo, WalletKind,
+    WalletSecrets,
 };
 use specta::specta;
 use tauri::{command, State};
@@ -29,7 +30,7 @@ pub async fn resync(state: State<'_, AppState>, req: Resync) -> Result<()> {
 
 #[command]
 #[specta]
-pub async fn import_key(state: State<'_, AppState>, req: ImportKey) -> Result<()> {
+pub async fn import_key(state: State<'_, AppState>, req: ImportKey) -> Result<ImportKeyResponse> {
     Ok(state.lock().await.import_key(req).await?)
 }
 
