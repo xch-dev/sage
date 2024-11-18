@@ -4,13 +4,13 @@ use bip39::Mnemonic;
 use chia::bls::{PublicKey, SecretKey};
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
+use sage_api::{WalletInfo, WalletKind, WalletSecrets};
 use specta::specta;
 use tauri::{command, State};
 
 use crate::{
     app_state::AppState,
     error::{Error, Result},
-    models::{WalletInfo, WalletKind, WalletSecrets},
 };
 
 #[command]

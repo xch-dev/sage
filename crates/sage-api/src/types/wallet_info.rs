@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Type)]
 #[serde(rename_all = "snake_case")]
 pub enum WalletKind {
     Cold,
@@ -14,4 +14,10 @@ pub struct WalletInfo {
     pub fingerprint: u32,
     pub public_key: String,
     pub kind: WalletKind,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct WalletSecrets {
+    pub mnemonic: Option<String>,
+    pub secret_key: String,
 }

@@ -7,7 +7,6 @@ use tokio::sync::Mutex;
 mod app_state;
 mod commands;
 mod error;
-mod models;
 
 #[cfg(all(debug_assertions, not(mobile)))]
 use specta_typescript::{BigIntExportBehavior, Typescript};

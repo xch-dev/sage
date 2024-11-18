@@ -59,6 +59,3 @@ tauri-build = { workspace = true, features = [] }
 
 [package.metadata.cargo-machete]
 ignored = ["serde_json", "aws-lc-rs"]
-
-[patch.crates-io]
-chia-wallet-sdk = { git = "https://github.com/xch-dev/chia-wallet-sdk", rev = "7f88188d58f061e9ccafe23ebbed78723fcd56ee" }

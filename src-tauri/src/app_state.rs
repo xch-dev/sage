@@ -9,7 +9,7 @@ use chia::bls::master_to_wallet_unhardened_intermediate;
 use chia_wallet_sdk::{create_rustls_connector, load_ssl_cert, Connector};
 use indexmap::{indexmap, IndexMap};
 use itertools::Itertools;
-use sage_api::{SyncEvent as ApiEvent, Unit, TXCH, XCH};
+use sage_api::{SyncEvent as ApiEvent, Unit, WalletInfo, WalletKind, TXCH, XCH};
 use sage_config::{Config, Network, WalletConfig, MAINNET, TESTNET11};
 use sage_database::Database;
 use sage_keychain::Keychain;
@@ -19,15 +19,12 @@ use sqlx::{
     ConnectOptions,
 };
 use tauri::{AppHandle, Emitter};
-use tokio::sync::{mpsc, oneshot, Mutex};
+use tokio::sync::{mpsc, Mutex};
 use tracing::{error, info, Level};
 use tracing_appender::rolling::{Builder, Rotation};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer};
 
-use crate::{
-    error::{Error, Result},
-    models::{WalletInfo, WalletKind},
-};
+use crate::error::{Error, Result};
 
 pub type AppState = Mutex<AppStateInner>;
 
@@ -254,18 +251,9 @@ impl AppStateInner {
         let Some(fingerprint) = self.config.app.active_fingerprint else {
             self.wallet = None;
 
-            let (sender, receiver) = oneshot::channel();
-
             self.command_sender
-                .send(SyncCommand::SwitchWallet {
-                    wallet: None,
-                    callback: sender,
-                })
+                .send(SyncCommand::SwitchWallet { wallet: None })
                 .await?;
-
-            // receiver.await?;
-
-            drop(receiver);
 
             return Ok(());
         };
@@ -325,18 +313,11 @@ impl AppStateInner {
             _ => TXCH.clone(),
         };
 
-        let (sender, receiver) = oneshot::channel();
-
         self.command_sender
             .send(SyncCommand::SwitchWallet {
                 wallet: Some(wallet),
-                callback: sender,
             })
             .await?;
-
-        // receiver.await?;
-
-        drop(receiver);
 
         Ok(())
     }

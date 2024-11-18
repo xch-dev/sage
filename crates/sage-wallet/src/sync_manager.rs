@@ -134,11 +134,10 @@ impl SyncManager {
     async fn process_commands(&mut self) {
         while let Ok(command) = self.command_receiver.try_recv() {
             match command {
-                SyncCommand::SwitchWallet { wallet, callback } => {
+                SyncCommand::SwitchWallet { wallet } => {
                     self.clear_subscriptions().await;
                     self.abort_wallet_tasks();
                     self.wallet = wallet;
-                    callback.send(()).ok();
                 }
                 SyncCommand::SwitchNetwork {
                     network_id,
