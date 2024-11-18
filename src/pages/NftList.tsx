@@ -226,9 +226,9 @@ function Collection({ col }: CollectionProps) {
     <>
       <Link
         to={`/collections/${col.collection_id}`}
-        className={`group${`${!col.visible ? ' opacity-50 grayscale' : ''}`}`}
+        className={`group${`${!col.visible ? ' opacity-50 grayscale' : ''}`} border border-neutral-200 rounded-lg dark:border-neutral-800`}
       >
-        <div className='overflow-hidden rounded-t-md relative'>
+        <div className='overflow-hidden rounded-t-lg relative'>
           <img
             alt={col.name ?? 'Unnamed'}
             loading='lazy'
@@ -238,7 +238,7 @@ function Collection({ col }: CollectionProps) {
             src={collectionImage}
           />
         </div>
-        <div className='text-md flex items-center justify-between rounded-b p-1 pl-2 bg-neutral-200 dark:bg-neutral-800'>
+        <div className='border-t bg-white text-neutral-950 shadow  dark:bg-neutral-900 dark:text-neutral-50 text-md flex items-center justify-between rounded-b-lg p-2 pl-3'>
           <span className='truncate'>
             <span className='font-medium leading-none truncate'>
               {col.name ?? 'Unnamed'}
