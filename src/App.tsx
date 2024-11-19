@@ -1,4 +1,4 @@
-import { createContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useEffect, useMemo } from 'react';
 import {
   createHashRouter,
   createRoutesFromElements,
@@ -6,10 +6,11 @@ import {
   RouterProvider,
 } from 'react-router-dom';
 import { useLocalStorage } from 'usehooks-ts';
-import { commands } from './bindings';
-import Container from './components/Container';
 import { PeerProvider } from './contexts/PeerContext';
 import { PriceProvider } from './contexts/PriceContext';
+import { WalletConnectProvider } from './contexts/WalletConnectContext';
+import useInitialization from './hooks/useInitialization';
+import { useWallet } from './hooks/useWallet';
 import Collection from './pages/Collection';
 import CreateProfile from './pages/CreateProfile';
 import CreateWallet from './pages/CreateWallet';
@@ -87,9 +88,6 @@ const router = createHashRouter(
 export default function App() {
   const [dark, setDark] = useLocalStorage('dark', false);
 
-  const [initialized, setInitialized] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
   const darkMode = useMemo<DarkModeContext>(
     () => ({
       toggle: () => setDark((dark) => !dark),
@@ -105,40 +103,25 @@ export default function App() {
     root.classList.add(dark ? 'dark' : 'light');
   }, [dark]);
 
-  useEffect(() => {
-    commands
-      .initialize()
-      .then((result) => {
-        if (result.status === 'ok') {
-          setInitialized(true);
+  const initialized = useInitialization();
+  const wallet = useWallet(initialized);
 
-          commands.getKey({}).then((result) => {
-            if (result.status === 'ok' && result.data.key !== null) {
-              fetchState();
-            }
-          });
-        } else {
-          console.error(result.error);
-          setError(result.error.reason);
-        }
-      })
-      .catch(setError);
-  }, []);
+  useEffect(() => {
+    if (wallet !== null) {
+      fetchState();
+    }
+  }, [wallet]);
 
   return (
     <DarkModeContext.Provider value={darkMode}>
       {initialized && (
         <PeerProvider>
-          <PriceProvider>
-            <RouterProvider router={router} />
-          </PriceProvider>
+          <WalletConnectProvider>
+            <PriceProvider>
+              <RouterProvider router={router} />
+            </PriceProvider>
+          </WalletConnectProvider>
         </PeerProvider>
-      )}
-      {error && (
-        <Container>
-          <h2 className='text-2xl font-bold mb-2'>Error</h2>
-          <p className='text-red-500 mt-2'>{error}</p>
-        </Container>
       )}
     </DarkModeContext.Provider>
   );

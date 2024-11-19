@@ -1,9 +1,10 @@
 import { Cog, LogOut } from 'lucide-react';
-import { PropsWithChildren, useEffect, useMemo, useState } from 'react';
+import { PropsWithChildren, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { commands, KeyInfo } from '../bindings';
 
 import { usePeers } from '@/contexts/PeerContext';
+import useInitialization from '@/hooks/useInitialization';
+import { useWallet } from '@/hooks/useWallet';
 import icon from '@/icon.png';
 import { logoutAndUpdateState, useWalletState } from '@/state';
 import { Nav } from './Nav';
@@ -11,7 +12,6 @@ import { Nav } from './Nav';
 export default function Layout(props: PropsWithChildren<object>) {
   const navigate = useNavigate();
 
-  const [key, setKey] = useState<KeyInfo | null>(null);
   const { peers } = usePeers();
 
   const walletState = useWalletState();
@@ -25,15 +25,8 @@ export default function Layout(props: PropsWithChildren<object>) {
       return Math.max(max, peer.peak_height);
     }, 0) || 0;
 
-  useEffect(() => {
-    commands.getKey({}).then((result) => {
-      if (result.status === 'error') {
-        return;
-      }
-      if (result.data) return setKey(result.data.key);
-      navigate('/');
-    });
-  }, [navigate]);
+  const initialized = useInitialization();
+  const wallet = useWallet(initialized);
 
   const logout = () => {
     logoutAndUpdateState().then(() => {
@@ -51,7 +44,7 @@ export default function Layout(props: PropsWithChildren<object>) {
               className='flex items-center gap-2 font-semibold'
             >
               <img src={icon} className='h-6 w-6' />
-              {key?.name}
+              {wallet?.name}
             </Link>
           </div>
           <div className='flex-1 flex flex-col justify-between pb-4'>
