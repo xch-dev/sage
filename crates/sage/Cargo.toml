@@ -40,3 +40,4 @@ bech32 = { workspace = true }
 hex-literal = { workspace = true }
 base64 = { workspace = true }
 bigdecimal = { workspace = true }
+clvmr = { workspace = true }

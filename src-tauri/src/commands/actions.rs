@@ -5,7 +5,7 @@ use tauri::{command, State};
 
 use crate::{
     app_state::AppState,
-    error::{Error, ErrorKind, Result},
+    error::{Error, Result},
 };
 
 #[command]

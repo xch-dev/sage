@@ -4562,6 +4562,7 @@ dependencies = [
  "bip39",
  "chia",
  "chia-wallet-sdk",
+ "clvmr",
  "hex",
  "hex-literal",
  "indexmap 2.5.0",

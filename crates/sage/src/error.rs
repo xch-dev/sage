@@ -1,6 +1,10 @@
-use std::{array::TryFromSliceError, io, num::ParseIntError};
+use std::{
+    array::TryFromSliceError,
+    io,
+    num::{ParseIntError, TryFromIntError},
+};
 
-use chia::protocol::Bytes32;
+use chia::{clvm_traits::ToClvmError, protocol::Bytes32};
 use chia_wallet_sdk::{AddressError, ClientError};
 use hex::FromHexError;
 use sage_api::ErrorKind;
@@ -35,6 +39,9 @@ pub enum Error {
 
     #[error("URI error: {0}")]
     Uri(#[from] UriError),
+
+    #[error("To CLVM error: {0}")]
+    ToClvm(#[from] ToClvmError),
 
     #[error("BLS error: {0}")]
     Bls(#[from] chia::bls::Error),
@@ -71,6 +78,9 @@ pub enum Error {
 
     #[error("Try from slice error: {0}")]
     TryFromSlice(#[from] TryFromSliceError),
+
+    #[error("Try from int error: {0}")]
+    TryFromInt(#[from] TryFromIntError),
 
     #[error("Parse int error: {0}")]
     ParseInt(#[from] ParseIntError),
@@ -168,7 +178,8 @@ impl Error {
             | Self::LogSubscriber(..)
             | Self::ParseLogLevel(..)
             | Self::Database(..)
-            | Self::Bech32m(..) => ErrorKind::Internal,
+            | Self::Bech32m(..)
+            | Self::ToClvm(..) => ErrorKind::Internal,
             Self::UnknownFingerprint
             | Self::UnknownNetwork
             | Self::MissingCoin(..)
@@ -177,6 +188,7 @@ impl Error {
             | Self::Hex(..)
             | Self::InvalidKey
             | Self::TryFromSlice(..)
+            | Self::TryFromInt(..)
             | Self::ParseInt(..)
             | Self::AddressPrefix(..)
             | Self::InvalidCatAmount(..)
