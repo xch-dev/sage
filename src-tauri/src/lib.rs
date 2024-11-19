@@ -16,7 +16,7 @@ pub fn run() {
     let builder = Builder::<tauri::Wry>::new()
         // Then register them (separated by a comma)
         .commands(collect_commands![
-            // Keys
+            commands::initialize,
             commands::login,
             commands::logout,
             commands::resync,
@@ -27,7 +27,6 @@ pub fn run() {
             commands::get_keys,
             commands::get_key,
             commands::get_secret_key,
-            // Transactions
             commands::send_xch,
             commands::combine_xch,
             commands::split_xch,
@@ -43,7 +42,6 @@ pub fn run() {
             commands::assign_nfts_to_did,
             commands::sign_coin_spends,
             commands::submit_transaction,
-            // Data
             commands::get_sync_status,
             commands::get_addresses,
             commands::get_xch_coins,
@@ -58,27 +56,20 @@ pub fn run() {
             commands::get_nft,
             commands::get_pending_transactions,
             commands::validate_address,
-            // Offers
             commands::make_offer,
             commands::take_offer,
             commands::view_offer,
-            // Network Config
             commands::network_config,
             commands::set_discover_peers,
             commands::set_target_peers,
             commands::set_network_id,
-            // Wallet Config
             commands::wallet_config,
             commands::set_derive_automatically,
             commands::set_derivation_batch_size,
-            // Setup
-            commands::initialize,
-            // Actions
             commands::update_cat,
             commands::remove_cat,
             commands::update_did,
             commands::update_nft,
-            // Peers
             commands::get_peers,
             commands::add_peer,
             commands::remove_peer,

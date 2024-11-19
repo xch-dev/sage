@@ -5,6 +5,14 @@
 
 
 export const commands = {
+async initialize() : Promise<Result<null, Error>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("initialize") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async login(req: Login) : Promise<Result<LoginResponse, Error>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("login", { req }) };
@@ -392,14 +400,6 @@ async setDeriveAutomatically(req: SetDeriveAutomatically) : Promise<Result<SetDe
 async setDerivationBatchSize(req: SetDerivationBatchSize) : Promise<Result<SetDerivationBatchSizeResponse, Error>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("set_derivation_batch_size", { req }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async initialize() : Promise<Result<null, Error>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("initialize") };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
