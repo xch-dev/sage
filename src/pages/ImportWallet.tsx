@@ -29,7 +29,7 @@ export default function ImportWallet() {
 
   const submit = (values: z.infer<typeof formSchema>) => {
     commands
-      .importWallet(values.walletName, values.walletKey)
+      .importKey({ name: values.walletName, key: values.walletKey })
       .then((res) => {
         if (res.status === 'ok') {
           fetchState().then(() => {

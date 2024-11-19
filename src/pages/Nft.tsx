@@ -14,9 +14,9 @@ export default function Nft() {
   const [nft, setNft] = useState<NftInfo | null>(null);
 
   const updateNft = () => {
-    commands.getNft(launcherId!).then((res) => {
+    commands.getNft({ nft_id: launcherId! }).then((res) => {
       if (res.status === 'ok') {
-        setNft(res.data);
+        setNft(res.data.nft);
       }
     });
   };

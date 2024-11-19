@@ -40,7 +40,11 @@ export default function CreateWallet() {
 
   const submit = (values: z.infer<typeof formSchema>) => {
     commands
-      .createWallet(values.walletName, values.mnemonic, values.saveMnemonic)
+      .importKey({
+        name: values.walletName,
+        key: values.mnemonic,
+        save_secrets: values.saveMnemonic,
+      })
       .then((res) => {
         if (res.status === 'ok') {
           fetchState().then(() => {
@@ -86,9 +90,9 @@ function CreateForm(props: {
   const use24Words = form.watch('use24Words', true);
 
   const loadMnemonic = useCallback(() => {
-    commands.generateMnemonic(use24Words).then((res) => {
+    commands.generateMnemonic({ use_24_words: use24Words }).then((res) => {
       if (res.status === 'ok') {
-        form.setValue('mnemonic', res.data);
+        form.setValue('mnemonic', res.data.mnemonic);
       }
     });
   }, [form, use24Words]);

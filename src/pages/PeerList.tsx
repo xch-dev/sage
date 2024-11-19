@@ -109,9 +109,9 @@ export default function NetworkList() {
   });
 
   const updatePeers = () => {
-    commands.getPeers().then((res) => {
+    commands.getPeers({}).then((res) => {
       if (res.status === 'ok') {
-        setPeers(res.data);
+        setPeers(res.data.peers);
       }
     });
   };
@@ -179,7 +179,7 @@ export default function NetworkList() {
                     <Button
                       onClick={() => {
                         setAddOpen(false);
-                        commands.addPeer(ip, trusted).then((result) => {
+                        commands.addPeer({ ip, trusted }).then((result) => {
                           if (result.status === 'error') {
                             console.error(result.error);
                           }
@@ -288,7 +288,7 @@ export default function NetworkList() {
                 onClick={() => {
                   peerToDelete &&
                     commands
-                      .removePeer(peerToDelete.ip_addr, ban)
+                      .removePeer({ ip: peerToDelete.ip_addr, ban })
                       .then((res) => {
                         if (res.status === 'ok') {
                           setPeerToDelete(null);

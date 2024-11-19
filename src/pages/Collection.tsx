@@ -27,7 +27,7 @@ export default function Collection() {
       if (view === NftView.Collection) return;
 
       await commands
-        .getCollectionNfts({
+        .getNfts({
           collection_id:
             collectionId === 'No collection' ? null : (collectionId ?? null),
           offset: (page - 1) * pageSize,
@@ -37,19 +37,20 @@ export default function Collection() {
         })
         .then((result) => {
           if (result.status === 'ok') {
-            setNfts(result.data);
+            setNfts(result.data.nfts);
           } else {
             throw new Error('Failed to get NFTs');
           }
         });
 
       await commands
-        .getNftCollection(
-          collectionId === 'No collection' ? null : (collectionId ?? null),
-        )
+        .getNftCollection({
+          collection_id:
+            collectionId === 'No collection' ? null : (collectionId ?? null),
+        })
         .then((result) => {
           if (result.status === 'ok') {
-            setCollection(result.data);
+            setCollection(result.data.collection);
           } else {
             throw new Error('Failed to get collection');
           }

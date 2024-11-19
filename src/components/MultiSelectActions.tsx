@@ -1,4 +1,4 @@
-import { commands, TransactionSummary } from '@/bindings';
+import { commands, TransactionResponse } from '@/bindings';
 import { useWalletState } from '@/state';
 import {
   ChevronDown,
@@ -36,50 +36,60 @@ export function MultiSelectActions({
   const [assignOpen, setAssignOpen] = useState(false);
   const [unassignOpen, setUnassignOpen] = useState(false);
   const [burnOpen, setBurnOpen] = useState(false);
-  const [summary, setSummary] = useState<TransactionSummary | null>(null);
+  const [response, setResponse] = useState<TransactionResponse | null>(null);
 
   const onTransferSubmit = (address: string, fee: string) => {
-    commands.transferNfts(selected, address, fee).then((result) => {
-      setTransferOpen(false);
-      if (result.status === 'error') {
-        console.error('Failed to transfer NFTs', result.error);
-      } else {
-        setSummary(result.data);
-      }
-    });
+    commands
+      .transferNfts({ nft_ids: selected, address, fee })
+      .then((result) => {
+        setTransferOpen(false);
+        if (result.status === 'error') {
+          console.error('Failed to transfer NFTs', result.error);
+        } else {
+          setResponse(result.data);
+        }
+      });
   };
 
   const onAssignSubmit = (profile: string, fee: string) => {
-    commands.assignNftsToDid(selected, profile, fee).then((result) => {
-      setAssignOpen(false);
-      if (result.status === 'error') {
-        console.error('Failed to assign NFT', result.error);
-      } else {
-        setSummary(result.data);
-      }
-    });
+    commands
+      .assignNftsToDid({ nft_ids: selected, did_id: profile, fee })
+      .then((result) => {
+        setAssignOpen(false);
+        if (result.status === 'error') {
+          console.error('Failed to assign NFT', result.error);
+        } else {
+          setResponse(result.data);
+        }
+      });
   };
 
   const onUnassignSubmit = (fee: string) => {
-    commands.assignNftsToDid(selected, null, fee).then((result) => {
-      setUnassignOpen(false);
-      if (result.status === 'error') {
-        console.error('Failed to unassign NFT', result.error);
-      } else {
-        setSummary(result.data);
-      }
-    });
+    commands
+      .assignNftsToDid({ nft_ids: selected, did_id: null, fee })
+      .then((result) => {
+        setUnassignOpen(false);
+        if (result.status === 'error') {
+          console.error('Failed to unassign NFT', result.error);
+        } else {
+          setResponse(result.data);
+        }
+      });
   };
 
   const onBurnSubmit = (fee: string) => {
     commands
-      .transferNfts(selected, walletState.sync.burn_address, fee)
+      .transferNfts({
+        nft_ids: selected,
+        address: walletState.sync.burn_address,
+        fee,
+      })
       .then((result) => {
         setBurnOpen(false);
         if (result.status === 'error') {
           console.error('Failed to burn NFTs', result.error);
         } else {
-          setSummary(result.data);
+          setResponse(result.data);
         }
       });
   };
@@ -186,9 +196,9 @@ export function MultiSelectActions({
       </FeeOnlyDialog>
 
       <ConfirmationDialog
-        summary={summary}
+        response={response}
         close={() => {
-          setSummary(null);
+          setResponse(null);
           onConfirm();
         }}
       />

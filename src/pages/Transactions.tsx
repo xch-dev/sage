@@ -25,9 +25,9 @@ export function Transactions() {
   );
 
   const updateTransactions = async () => {
-    return await commands.getPendingTransactions().then((result) => {
+    return await commands.getPendingTransactions({}).then((result) => {
       if (result.status === 'ok') {
-        setTransactions(result.data);
+        setTransactions(result.data.transactions);
       } else {
         throw new Error('Failed to get pending transactions');
       }

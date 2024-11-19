@@ -52,7 +52,7 @@ import {
   CoinRecord,
   commands,
   events,
-  TransactionSummary,
+  TransactionResponse,
 } from '../bindings';
 
 export default function Token() {
@@ -64,7 +64,7 @@ export default function Token() {
 
   const [asset, setAsset] = useState<CatRecord | null>(null);
   const [coins, setCoins] = useState<CoinRecord[]>([]);
-  const [summary, setSummary] = useState<TransactionSummary | null>(null);
+  const [response, setResponse] = useState<TransactionResponse | null>(null);
   const [selectedCoins, setSelectedCoins] = useState<RowSelectionState>({});
 
   const balanceInUsd = useMemo(() => {
@@ -74,11 +74,13 @@ export default function Token() {
 
   const updateCoins = () => {
     const getCoins =
-      assetId === 'xch' ? commands.getCoins() : commands.getCatCoins(assetId!);
+      assetId === 'xch'
+        ? commands.getXchCoins({})
+        : commands.getCatCoins({ asset_id: assetId! });
 
     getCoins.then((res) => {
       if (res.status === 'ok') {
-        setCoins(res.data);
+        setCoins(res.data.coins);
       }
     });
   };
@@ -100,9 +102,9 @@ export default function Token() {
   }, []);
 
   const updateCat = () => {
-    commands.getCat(assetId!).then((res) => {
+    commands.getCat({ asset_id: assetId! }).then((res) => {
       if (res.status === 'ok') {
-        setAsset(res.data);
+        setAsset(res.data.cat);
       }
     });
   };
@@ -142,7 +144,7 @@ export default function Token() {
   const redownload = () => {
     if (!assetId || assetId === 'xch') return;
 
-    commands.removeCatInfo(assetId).then((res) => {
+    commands.removeCat({ asset_id: assetId }).then((res) => {
       if (res.status === 'ok') {
         updateCat();
       }
@@ -153,7 +155,7 @@ export default function Token() {
     if (!asset || assetId === 'xch') return;
     asset.visible = visible;
 
-    commands.updateCatInfo(asset).then((res) => {
+    commands.updateCat({ record: asset }).then((res) => {
       if (res.status === 'ok') {
         navigate('/wallet');
       }
@@ -170,7 +172,7 @@ export default function Token() {
     asset.name = newName;
     asset.ticker = newTicker;
 
-    commands.updateCatInfo(asset).then((res) => {
+    commands.updateCat({ record: asset }).then((res) => {
       if (res.status === 'ok') {
         updateCat();
       }
@@ -257,12 +259,14 @@ export default function Token() {
             coins={coins}
             asset={asset}
             splitHandler={
-              asset?.asset_id === 'xch' ? commands.split : commands.splitCat
+              asset?.asset_id === 'xch' ? commands.splitXch : commands.splitCat
             }
             combineHandler={
-              asset?.asset_id === 'xch' ? commands.combine : commands.combineCat
+              asset?.asset_id === 'xch'
+                ? commands.combineXch
+                : commands.combineCat
             }
-            setSummary={setSummary}
+            setResponse={setResponse}
             selectedCoins={selectedCoins}
             setSelectedCoins={setSelectedCoins}
           />
@@ -334,8 +338,8 @@ export default function Token() {
       </Dialog>
 
       <ConfirmationDialog
-        summary={summary}
-        close={() => setSummary(null)}
+        response={response}
+        close={() => setResponse(null)}
         onConfirm={() => setSelectedCoins({})}
       />
     </>
@@ -345,9 +349,9 @@ export default function Token() {
 interface CoinCardProps {
   coins: CoinRecord[];
   asset: CatRecord | null;
-  splitHandler: typeof commands.split | null;
-  combineHandler: typeof commands.combine | null;
-  setSummary: (summary: TransactionSummary) => void;
+  splitHandler: typeof commands.splitXch | null;
+  combineHandler: typeof commands.combineXch | null;
+  setResponse: (response: TransactionResponse) => void;
   selectedCoins: RowSelectionState;
   setSelectedCoins: React.Dispatch<React.SetStateAction<RowSelectionState>>;
 }
@@ -357,7 +361,7 @@ function CoinCard({
   asset,
   splitHandler,
   combineHandler,
-  setSummary,
+  setResponse,
   selectedCoins,
   setSelectedCoins,
 }: CoinCardProps) {
@@ -414,12 +418,12 @@ function CoinCard({
   });
 
   const onCombineSubmit = (values: z.infer<typeof combineFormSchema>) => {
-    combineHandler?.(selectedCoinIds, values.combineFee)
+    combineHandler?.({ coin_ids: selectedCoinIds, fee: values.combineFee })
       .then((result) => {
         setCombineOpen(false);
 
         if (result.status === 'ok') {
-          setSummary(result.data);
+          setResponse(result.data);
         }
       })
       .catch((error) => console.log('Failed to combine coins', error));
@@ -442,12 +446,16 @@ function CoinCard({
   });
 
   const onSplitSubmit = (values: z.infer<typeof splitFormSchema>) => {
-    splitHandler?.(selectedCoinIds, values.outputCount, values.splitFee)
+    splitHandler?.({
+      coin_ids: selectedCoinIds,
+      output_count: values.outputCount,
+      fee: values.splitFee,
+    })
       .then((result) => {
         setSplitOpen(false);
 
         if (result.status === 'ok') {
-          setSummary(result.data);
+          setResponse(result.data);
         }
       })
       .catch((error) => console.log('Failed to split coins', error));

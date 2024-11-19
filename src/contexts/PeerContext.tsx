@@ -18,9 +18,9 @@ export function PeerProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const updatePeers = () => {
-      commands.getPeers().then((res) => {
+      commands.getPeers({}).then((res) => {
         if (res.status === 'ok') {
-          setPeers(res.data);
+          setPeers(res.data.peers);
         }
       });
     };

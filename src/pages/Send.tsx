@@ -18,12 +18,12 @@ import { useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router-dom';
 import * as z from 'zod';
 import {
-  Amount,
   CatRecord,
   commands,
   Error,
   events,
-  TransactionSummary,
+  SendXch,
+  TransactionResponse,
 } from '../bindings';
 import Container from '../components/Container';
 import ErrorDialog from '../components/ErrorDialog';
@@ -39,12 +39,12 @@ export default function Send() {
     null,
   );
   const [error, setError] = useState<Error | null>(null);
-  const [summary, setSummary] = useState<TransactionSummary | null>(null);
+  const [response, setResponse] = useState<TransactionResponse | null>(null);
 
   const updateCat = useCallback(() => {
-    commands.getCat(assetId!).then((result) => {
+    commands.getCat({ asset_id: assetId! }).then((result) => {
       if (result.status === 'ok') {
-        setAsset({ ...result.data!, decimals: 3 });
+        setAsset({ ...result.data.cat!, decimals: 3 });
       } else {
         console.error(result.error);
         setError(result.error);
@@ -113,22 +113,22 @@ export default function Send() {
 
   const onSubmit = () => {
     const command = isXch
-      ? commands.send
-      : (address: string, amount: Amount, fee: Amount) => {
-          return commands.sendCat(assetId!, address, amount, fee);
+      ? commands.sendXch
+      : (req: SendXch) => {
+          return commands.sendCat({ asset_id: assetId!, ...req });
         };
 
-    command(
-      values.address,
-      values.amount.toString(),
-      values.fee?.toString() || '0',
-    ).then((confirmation) => {
+    command({
+      address: values.address,
+      amount: values.amount.toString(),
+      fee: values.fee?.toString() || '0',
+    }).then((confirmation) => {
       if (confirmation.status === 'error') {
         console.error(confirmation.error);
         return;
       }
 
-      setSummary(confirmation.data);
+      setResponse(confirmation.data);
     });
   };
 
@@ -231,8 +231,8 @@ export default function Send() {
 
       <ErrorDialog error={error} setError={setError} />
       <ConfirmationDialog
-        summary={summary}
-        close={() => setSummary(null)}
+        response={response}
+        close={() => setResponse(null)}
         onConfirm={() => navigate(-1)}
         onError={(error) => {
           console.error(error);

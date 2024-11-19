@@ -2,23 +2,23 @@ import Container from '@/components/Container';
 import Header from '@/components/Header';
 import { ReceiveAddress } from '@/components/ReceiveAddress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Switch } from '@/components/ui/switch';
-import { ArrowDownAz, InfoIcon, ArrowDown10 } from 'lucide-react';
-import { useEffect, useState, useMemo } from 'react';
-import { Link } from 'react-router-dom';
-import { CatRecord, commands, events } from '../bindings';
-import { useWalletState } from '../state';
 import {
-  DropdownMenuItem,
   DropdownMenu,
-  DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 import { usePrices } from '@/contexts/PriceContext';
 import { useTokenParams } from '@/hooks/useTokenParams';
+import { ArrowDown10, ArrowDownAz, Coins, InfoIcon } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { CatRecord, commands, events } from '../bindings';
+import { useWalletState } from '../state';
 
 enum TokenView {
   Name = 'name',
@@ -26,7 +26,9 @@ enum TokenView {
 }
 
 export function TokenList() {
+  const navigate = useNavigate();
   const walletState = useWalletState();
+
   const { getBalanceInUsd } = usePrices();
 
   const [params, setParams] = useTokenParams();
@@ -75,9 +77,9 @@ export function TokenList() {
   const hasHiddenAssets = !!sortedCats.find((cat) => !cat.visible);
 
   const updateCats = () => {
-    commands.getCats().then(async (result) => {
+    commands.getCats({}).then(async (result) => {
       if (result.status === 'ok') {
-        setCats(result.data);
+        setCats(result.data.cats);
       }
     });
   };
@@ -114,8 +116,12 @@ export function TokenList() {
         </div>
       </Header>
       <Container>
+        <Button onClick={() => navigate('/wallet/issue-token')}>
+          <Coins className='h-4 w-4 mr-2' /> Issue Token
+        </Button>
+
         {walletState.sync.synced_coins < walletState.sync.total_coins && (
-          <Alert className='mt-2 mb-4'>
+          <Alert className='mt-4 mb-4'>
             <InfoIcon className='h-4 w-4' />
             <AlertTitle>Syncing in progress...</AlertTitle>
             <AlertDescription>
@@ -126,7 +132,7 @@ export function TokenList() {
         )}
 
         {hasHiddenAssets && (
-          <div className='inline-flex items-center gap-2 mb-4'>
+          <div className='inline-flex items-center gap-2 my-4'>
             <label htmlFor='viewHidden'>View hidden</label>
             <Switch
               id='viewHidden'
@@ -136,7 +142,7 @@ export function TokenList() {
           </div>
         )}
 
-        <div className='grid gap-2 md:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'>
+        <div className='mt-4 grid gap-2 md:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'>
           <Link to={`/wallet/token/xch`}>
             <Card className='transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900'>
               <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>

@@ -40,7 +40,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { commands, DidRecord, TransactionSummary } from '../bindings';
+import { commands, DidRecord, TransactionResponse } from '../bindings';
 
 export function DidList() {
   const navigate = useNavigate();
@@ -112,26 +112,32 @@ function Profile({ did, updateDids }: ProfileProps) {
   const [renameOpen, setRenameOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
   const [burnOpen, setBurnOpen] = useState(false);
-  const [summary, setSummary] = useState<TransactionSummary | null>(null);
+  const [response, setResponse] = useState<TransactionResponse | null>(null);
 
   const rename = () => {
     if (!name) return;
 
-    commands.updateDid(did.launcher_id, name, did.visible).then((result) => {
-      setRenameOpen(false);
+    commands
+      .updateDid({ did_id: did.launcher_id, name, visible: did.visible })
+      .then((result) => {
+        setRenameOpen(false);
 
-      if (result.status === 'ok') {
-        setName('');
-        updateDids();
-      } else {
-        throw new Error(`Failed to rename DID: ${result.error.reason}`);
-      }
-    });
+        if (result.status === 'ok') {
+          setName('');
+          updateDids();
+        } else {
+          throw new Error(`Failed to rename DID: ${result.error.reason}`);
+        }
+      });
   };
 
   const toggleVisibility = () => {
     commands
-      .updateDid(did.launcher_id, did.name, !did.visible)
+      .updateDid({
+        did_id: did.launcher_id,
+        name: did.name,
+        visible: !did.visible,
+      })
       .then((result) => {
         if (result.status === 'ok') {
           updateDids();
@@ -142,25 +148,31 @@ function Profile({ did, updateDids }: ProfileProps) {
   };
 
   const onTransferSubmit = (address: string, fee: string) => {
-    commands.transferDids([did.launcher_id], address, fee).then((result) => {
-      setTransferOpen(false);
-      if (result.status === 'error') {
-        console.error('Failed to transfer DID', result.error);
-      } else {
-        setSummary(result.data);
-      }
-    });
+    commands
+      .transferDids({ did_ids: [did.launcher_id], address, fee })
+      .then((result) => {
+        setTransferOpen(false);
+        if (result.status === 'error') {
+          console.error('Failed to transfer DID', result.error);
+        } else {
+          setResponse(result.data);
+        }
+      });
   };
 
   const onBurnSubmit = (fee: string) => {
     commands
-      .transferDids([did.launcher_id], walletState.sync.burn_address, fee)
+      .transferDids({
+        did_ids: [did.launcher_id],
+        address: walletState.sync.burn_address,
+        fee,
+      })
       .then((result) => {
         setBurnOpen(false);
         if (result.status === 'error') {
           console.error('Failed to burn DID', result.error);
         } else {
-          setSummary(result.data);
+          setResponse(result.data);
         }
       });
   };
@@ -305,8 +317,8 @@ function Profile({ did, updateDids }: ProfileProps) {
       </FeeOnlyDialog>
 
       <ConfirmationDialog
-        summary={summary}
-        close={() => setSummary(null)}
+        response={response}
+        close={() => setResponse(null)}
         onConfirm={() => updateDids()}
       />
     </>

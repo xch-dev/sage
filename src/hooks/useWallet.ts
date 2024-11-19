@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
-import { commands, WalletInfo } from '../bindings';
+import { commands, KeyInfo } from '../bindings';
 
 export function useWallet() {
-  const [wallet, setWallet] = useState<WalletInfo | null>(null);
+  const [wallet, setWallet] = useState<KeyInfo | null>(null);
 
   useEffect(() => {
-    commands.activeWallet().then((wallet) => {
-      if (wallet.status === 'ok' && wallet.data) {
-        setWallet(wallet.data);
+    commands.getKey({}).then((result) => {
+      if (result.status === 'ok' && result.data) {
+        setWallet(result.data.key);
       }
     });
   }, []);

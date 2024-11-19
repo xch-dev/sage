@@ -19,9 +19,9 @@ export default function Receive() {
   const [addresses, setAddresses] = useState<string[]>([]);
 
   const updateAddresses = () => {
-    commands.getAddresses().then((res) => {
+    commands.getAddresses({}).then((res) => {
       if (res.status === 'error') return;
-      setAddresses(res.data);
+      setAddresses(res.data.addresses);
     });
   };
 

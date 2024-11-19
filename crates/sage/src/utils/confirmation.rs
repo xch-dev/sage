@@ -1,0 +1,242 @@
+use std::collections::HashMap;
+
+use base64::{prelude::BASE64_STANDARD, Engine};
+use bigdecimal::BigDecimal;
+use chia::{
+    protocol::{Bytes32, Coin, CoinSpend, SpendBundle},
+    puzzles::nft::NftMetadata,
+};
+use chia_wallet_sdk::encode_address;
+use hex_literal::hex;
+use sage_api::{
+    Amount, AssetKind, CoinJson, CoinSpendJson, SpendBundleJson, TransactionInput,
+    TransactionOutput, TransactionSummary,
+};
+use sage_database::Database;
+use sage_wallet::{compute_nft_info, ChildKind, CoinKind, Data, Transaction};
+
+use crate::{Error, Result, Sage};
+
+use super::{parse_coin_id, parse_program, parse_puzzle_hash, parse_signature};
+
+#[derive(Debug, Default)]
+pub struct ConfirmationInfo {
+    pub did_names: HashMap<Bytes32, String>,
+    pub nft_data: HashMap<Bytes32, Data>,
+}
+
+impl Sage {
+    pub(crate) async fn summarize(
+        &self,
+        coin_spends: Vec<CoinSpend>,
+        cache: ConfirmationInfo,
+    ) -> Result<TransactionSummary> {
+        let wallet = self.wallet()?;
+
+        let transaction = Transaction::from_coin_spends(coin_spends)?;
+
+        let mut inputs = Vec::with_capacity(transaction.inputs.len());
+
+        for input in transaction.inputs {
+            let coin = input.coin_spend.coin;
+            let mut amount = Amount::from_mojos(coin.amount as u128, self.unit.decimals);
+
+            let (kind, p2_puzzle_hash) = match input.kind {
+                CoinKind::Unknown => {
+                    let kind = if wallet.db.is_p2_puzzle_hash(coin.puzzle_hash).await? {
+                        AssetKind::Xch
+                    } else {
+                        AssetKind::Unknown
+                    };
+                    (kind, coin.puzzle_hash)
+                }
+                CoinKind::Launcher => (AssetKind::Launcher, coin.puzzle_hash),
+                CoinKind::Cat {
+                    asset_id,
+                    p2_puzzle_hash,
+                } => {
+                    let cat = wallet.db.cat(asset_id).await?;
+                    let kind = AssetKind::Cat {
+                        asset_id: hex::encode(asset_id),
+                        name: cat.as_ref().and_then(|cat| cat.name.clone()),
+                        ticker: cat.as_ref().and_then(|cat| cat.ticker.clone()),
+                        icon_url: cat.as_ref().and_then(|cat| cat.icon.clone()),
+                    };
+                    amount = Amount::from_mojos(coin.amount as u128, 3);
+                    (kind, p2_puzzle_hash)
+                }
+                CoinKind::Did { info } => {
+                    let name = if let Some(name) = cache.did_names.get(&info.launcher_id).cloned() {
+                        Some(name)
+                    } else {
+                        wallet.db.did_name(info.launcher_id).await?
+                    };
+
+                    let kind = AssetKind::Did {
+                        launcher_id: encode_address(info.launcher_id.into(), "did:chia:")?,
+                        name,
+                    };
+
+                    (kind, info.p2_puzzle_hash)
+                }
+                CoinKind::Nft { info, metadata } => {
+                    let extracted = extract_nft_data(Some(&wallet.db), metadata, &cache).await?;
+
+                    let kind = AssetKind::Nft {
+                        launcher_id: encode_address(info.launcher_id.into(), "nft")?,
+                        image_data: extracted.image_data,
+                        image_mime_type: extracted.image_mime_type,
+                        name: extracted.name,
+                    };
+
+                    (kind, info.p2_puzzle_hash)
+                }
+            };
+
+            let address = encode_address(p2_puzzle_hash.into(), &self.network().address_prefix)?;
+
+            let mut outputs = Vec::new();
+
+            for output in input.outputs {
+                let amount = match output.kind {
+                    ChildKind::Cat { .. } => Amount::from_mojos(output.coin.amount as u128, 3),
+                    _ => Amount::from_mojos(output.coin.amount as u128, self.unit.decimals),
+                };
+
+                let p2_puzzle_hash = match output.kind {
+                    ChildKind::Unknown { hint } => hint.unwrap_or(output.coin.puzzle_hash),
+                    ChildKind::Launcher => output.coin.puzzle_hash,
+                    ChildKind::Cat { p2_puzzle_hash, .. } => p2_puzzle_hash,
+                    ChildKind::Did { info, .. } => info.p2_puzzle_hash,
+                    ChildKind::Nft { info, .. } => info.p2_puzzle_hash,
+                };
+
+                let address =
+                    encode_address(p2_puzzle_hash.into(), &self.network().address_prefix)?;
+
+                outputs.push(TransactionOutput {
+                    coin_id: hex::encode(output.coin.coin_id()),
+                    amount,
+                    address,
+                    receiving: wallet.db.is_p2_puzzle_hash(p2_puzzle_hash).await?,
+                    burning: p2_puzzle_hash.to_bytes()
+                        == hex!("000000000000000000000000000000000000000000000000000000000000dead"),
+                });
+            }
+
+            inputs.push(TransactionInput {
+                coin_id: hex::encode(coin.coin_id()),
+                amount,
+                address,
+                kind,
+                outputs,
+            });
+        }
+
+        Ok(TransactionSummary {
+            fee: Amount::from_mojos(transaction.fee as u128, self.unit.decimals),
+            inputs,
+        })
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct ExtractedNftData {
+    pub image_data: Option<String>,
+    pub image_mime_type: Option<String>,
+    pub name: Option<String>,
+}
+
+pub async fn extract_nft_data(
+    db: Option<&Database>,
+    onchain_metadata: Option<NftMetadata>,
+    cache: &ConfirmationInfo,
+) -> Result<ExtractedNftData> {
+    let mut result = ExtractedNftData::default();
+
+    let Some(onchain_metadata) = onchain_metadata else {
+        return Ok(result);
+    };
+
+    if let Some(data_hash) = onchain_metadata.data_hash {
+        if let Some(data) = cache.nft_data.get(&data_hash) {
+            result.image_data = Some(BASE64_STANDARD.encode(&data.blob));
+            result.image_mime_type = Some(data.mime_type.clone());
+        } else if let Some(db) = &db {
+            if let Some(data) = db.fetch_nft_data(data_hash).await? {
+                result.image_data = Some(BASE64_STANDARD.encode(&data.blob));
+                result.image_mime_type = Some(data.mime_type);
+            }
+        }
+    }
+
+    if let Some(metadata_hash) = onchain_metadata.metadata_hash {
+        if let Some(metadata) = cache.nft_data.get(&metadata_hash) {
+            let info = compute_nft_info(None, Some(&metadata.blob));
+            result.name = info.name;
+        } else if let Some(db) = &db {
+            if let Some(metadata) = db.fetch_nft_data(metadata_hash).await? {
+                let info = compute_nft_info(None, Some(&metadata.blob));
+                result.name = info.name;
+            }
+        }
+    }
+
+    Ok(result)
+}
+
+pub fn json_bundle(spend_bundle: &SpendBundle) -> SpendBundleJson {
+    SpendBundleJson {
+        coin_spends: spend_bundle.coin_spends.iter().map(json_spend).collect(),
+        aggregated_signature: format!(
+            "0x{}",
+            hex::encode(spend_bundle.aggregated_signature.to_bytes())
+        ),
+    }
+}
+
+pub fn json_spend(coin_spend: &CoinSpend) -> CoinSpendJson {
+    CoinSpendJson {
+        coin: json_coin(&coin_spend.coin),
+        puzzle_reveal: hex::encode(&coin_spend.puzzle_reveal),
+        solution: hex::encode(&coin_spend.solution),
+    }
+}
+
+pub fn json_coin(coin: &Coin) -> CoinJson {
+    CoinJson {
+        parent_coin_info: format!("0x{}", hex::encode(coin.parent_coin_info)),
+        puzzle_hash: format!("0x{}", hex::encode(coin.puzzle_hash)),
+        amount: Amount::new(BigDecimal::from(coin.amount)),
+    }
+}
+
+pub fn rust_bundle(spend_bundle: SpendBundleJson) -> Result<SpendBundle> {
+    Ok(SpendBundle {
+        coin_spends: spend_bundle
+            .coin_spends
+            .into_iter()
+            .map(rust_spend)
+            .collect::<Result<_>>()?,
+        aggregated_signature: parse_signature(spend_bundle.aggregated_signature)?,
+    })
+}
+
+pub fn rust_spend(coin_spend: CoinSpendJson) -> Result<CoinSpend> {
+    Ok(CoinSpend {
+        coin: rust_coin(coin_spend.coin)?,
+        puzzle_reveal: parse_program(coin_spend.puzzle_reveal)?,
+        solution: parse_program(coin_spend.solution)?,
+    })
+}
+
+pub fn rust_coin(coin: CoinJson) -> Result<Coin> {
+    Ok(Coin {
+        parent_coin_info: parse_coin_id(coin.parent_coin_info)?,
+        puzzle_hash: parse_puzzle_hash(coin.puzzle_hash)?,
+        amount: coin
+            .amount
+            .to_mojos(0)
+            .ok_or(Error::InvalidCoinAmount(coin.amount.to_string()))?,
+    })
+}

@@ -21,13 +21,13 @@ import {
   LoaderCircleIcon,
 } from 'lucide-react';
 import { PropsWithChildren, useState } from 'react';
-import { commands, Error, TransactionSummary } from '../bindings';
+import { commands, Error, TransactionResponse } from '../bindings';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { Badge } from './ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 
 export interface ConfirmationDialogProps {
-  summary: TransactionSummary | null;
+  response: TransactionResponse | null;
   close: () => void;
   onConfirm?: () => void;
   onError?: (error: Error) => void;
@@ -48,11 +48,17 @@ interface CreatedCoin {
 }
 
 export default function ConfirmationDialog({
-  summary,
+  response,
   close,
   onConfirm,
   onError,
 }: ConfirmationDialogProps) {
+  if (!onError) {
+    onError = (error) => {
+      console.error(error);
+    };
+  }
+
   const walletState = useWalletState();
 
   const [pending, setPending] = useState(false);
@@ -67,8 +73,8 @@ export default function ConfirmationDialog({
   const spent: Array<SpentCoin> = [];
   const created: Array<CreatedCoin> = [];
 
-  if (summary) {
-    for (const input of summary.inputs || []) {
+  if (response) {
+    for (const input of response.summary.inputs || []) {
       if (input.type === 'xch') {
         const ticker = walletState.sync.unit.ticker;
 
@@ -80,7 +86,9 @@ export default function ConfirmationDialog({
         });
 
         for (const output of input.outputs) {
-          if (summary.inputs.find((i) => i.coin_id === output.coin_id)) {
+          if (
+            response.summary.inputs.find((i) => i.coin_id === output.coin_id)
+          ) {
             continue;
           }
 
@@ -108,7 +116,9 @@ export default function ConfirmationDialog({
         });
 
         for (const output of input.outputs) {
-          if (summary.inputs.find((i) => i.coin_id === output.coin_id)) {
+          if (
+            response.summary.inputs.find((i) => i.coin_id === output.coin_id)
+          ) {
             continue;
           }
 
@@ -127,7 +137,7 @@ export default function ConfirmationDialog({
 
       if (input.type === 'did') {
         if (
-          !summary.inputs
+          !response.summary.inputs
             .map((i) => i.outputs)
             .flat()
             .find((o) => o.coin_id === input.coin_id)
@@ -141,7 +151,9 @@ export default function ConfirmationDialog({
         }
 
         for (const output of input.outputs) {
-          if (summary.inputs.find((i) => i.coin_id === output.coin_id)) {
+          if (
+            response.summary.inputs.find((i) => i.coin_id === output.coin_id)
+          ) {
             continue;
           }
 
@@ -167,7 +179,7 @@ export default function ConfirmationDialog({
 
       if (input.type === 'nft') {
         if (
-          !summary.inputs
+          !response.summary.inputs
             .map((i) => i.outputs)
             .flat()
             .find((o) => o.coin_id === input.coin_id)
@@ -181,7 +193,9 @@ export default function ConfirmationDialog({
         }
 
         for (const output of input.outputs) {
-          if (summary.inputs.find((i) => i.coin_id === output.coin_id)) {
+          if (
+            response.summary.inputs.find((i) => i.coin_id === output.coin_id)
+          ) {
             continue;
           }
 
@@ -209,7 +223,7 @@ export default function ConfirmationDialog({
 
   const json = JSON.stringify(
     {
-      coin_spends: summary?.coin_spends,
+      coin_spends: response?.coin_spends,
       aggregated_signature:
         signature ||
         '0xc00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000',
@@ -229,7 +243,7 @@ export default function ConfirmationDialog({
   };
 
   return (
-    <Dialog open={!!summary} onOpenChange={reset}>
+    <Dialog open={!!response} onOpenChange={reset}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Confirm transaction?</DialogTitle>
@@ -250,10 +264,10 @@ export default function ConfirmationDialog({
                 <TabsContent value='simple'>
                   <Group label='Summary' icon={BadgePlus}>
                     <div className='flex flex-col gap-2'>
-                      {!BigNumber(summary?.fee || 0).isZero() && (
+                      {!BigNumber(response?.summary.fee || 0).isZero() && (
                         <Item
                           badge='Fee'
-                          label={`${summary?.fee} ${walletState.sync.unit.ticker}`}
+                          label={`${response?.summary.fee} ${walletState.sync.unit.ticker}`}
                         />
                       )}
                       {created
@@ -290,12 +304,13 @@ export default function ConfirmationDialog({
                     </Group>
                     <Group label='Transaction Output' icon={BadgePlus}>
                       <div className='flex flex-col gap-2'>
-                        {!BigNumber(summary?.fee || 0).isZero() && (
+                        {!BigNumber(response?.summary.fee || 0).isZero() && (
                           <div className='flex flex-col gap-1 border-2 p-1.5 rounded-md'>
                             <div className='flex items-center gap-2'>
                               <Badge>Fee</Badge>
                               <span>
-                                {summary?.fee} {walletState.sync.unit.ticker}
+                                {response?.summary.fee}{' '}
+                                {walletState.sync.unit.ticker}
                               </span>
                             </div>
                           </div>
@@ -330,12 +345,14 @@ export default function ConfirmationDialog({
                     className='mt-2'
                     onClick={() => {
                       commands
-                        .signTransaction(summary!.coin_spends)
+                        .signCoinSpends({ coin_spends: response!.coin_spends })
                         .then((result) => {
                           if (result.status === 'error') {
                             onError?.(result.error);
                           } else {
-                            setSignature(result.data.aggregated_signature);
+                            setSignature(
+                              result.data.spend_bundle.aggregated_signature,
+                            );
                           }
                         });
                     }}
@@ -377,20 +394,23 @@ export default function ConfirmationDialog({
                 let finalSignature: string | null = signature;
 
                 if (!finalSignature) {
-                  const result = await commands.signTransaction(
-                    summary!.coin_spends,
-                  );
+                  const result = await commands.signCoinSpends({
+                    coin_spends: response!.coin_spends,
+                  });
                   if (result.status === 'error') {
                     reset();
                     onError?.(result.error);
                     return;
                   }
-                  finalSignature = result.data.aggregated_signature;
+                  finalSignature =
+                    result.data.spend_bundle.aggregated_signature;
                 }
 
                 const result = await commands.submitTransaction({
-                  coin_spends: summary!.coin_spends,
-                  aggregated_signature: finalSignature,
+                  spend_bundle: {
+                    coin_spends: response!.coin_spends,
+                    aggregated_signature: finalSignature,
+                  },
                 });
 
                 reset();

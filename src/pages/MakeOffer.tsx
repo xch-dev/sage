@@ -56,7 +56,7 @@ export function MakeOffer() {
         if (result.status === 'error') {
           console.error(result.error);
         } else {
-          setOffer(result.data);
+          setOffer(result.data.offer);
         }
       });
   };

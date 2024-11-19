@@ -1,0 +1,43 @@
+[package]
+name = "sage"
+version = "0.7.0"
+edition = "2021"
+license = "Apache-2.0"
+description = "A high level abstraction for running Sage wallet."
+authors = ["Rigidity <me@rigidnetwork.com>"]
+homepage = "https://github.com/rigidity/sage"
+repository = "https://github.com/rigidity/sage"
+readme = { workspace = true }
+keywords = { workspace = true }
+categories = { workspace = true }
+
+[lints]
+workspace = true
+
+[dependencies]
+sage-api = { workspace = true }
+sage-database = { workspace = true }
+sage-config = { workspace = true }
+sage-keychain = { workspace = true }
+sage-wallet = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true, features = ["env-filter"] }
+tracing-appender = { workspace = true }
+sqlx = { workspace = true, features = ["sqlite", "runtime-tokio"] }
+tokio = { workspace = true }
+indexmap = { workspace = true, features = ["serde"] }
+toml = { workspace = true, features = ["preserve_order"] }
+chia-wallet-sdk = { workspace = true, features = ["rustls"] }
+chia = { workspace = true }
+hex = { workspace = true }
+thiserror = { workspace = true }
+log = { workspace = true }
+bip39 = { workspace = true }
+itertools = { workspace = true }
+rand = { workspace = true }
+rand_chacha = { workspace = true }
+bech32 = { workspace = true }
+hex-literal = { workspace = true }
+base64 = { workspace = true }
+bigdecimal = { workspace = true }
+clvmr = { workspace = true }

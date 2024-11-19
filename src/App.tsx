@@ -112,8 +112,8 @@ export default function App() {
         if (result.status === 'ok') {
           setInitialized(true);
 
-          commands.activeWallet().then((wallet) => {
-            if (wallet.status === 'ok' && wallet.data !== null) {
+          commands.getKey({}).then((result) => {
+            if (result.status === 'ok' && result.data.key !== null) {
               fetchState();
             }
           });
