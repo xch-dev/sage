@@ -1,25 +1,25 @@
-import { createContext, ReactNode, useEffect, useState } from 'react';
-import { SignClient } from '@walletconnect/sign-client';
-import { useWallet } from '@/hooks/useWallet';
-import useInitialization from '@/hooks/useInitialization';
+import { commands } from '@/bindings';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
-  DialogDescription,
-  DialogTitle,
-  DialogHeader,
-  DialogContent,
-  DialogTrigger,
-  DialogFooter,
   DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
 } from '@/components/ui/dialog';
-import { SessionTypes, SignClientTypes } from '@walletconnect/types';
-import { Button } from '@/components/ui/button';
-import { commands } from '@/bindings';
 import {
   parseCommand as parseCommandParameters,
   walletConnectCommands,
 } from '@/constants/walletConnectCommands';
+import useInitialization from '@/hooks/useInitialization';
+import { useWallet } from '@/hooks/useWallet';
 import { getCurrentWindow, UserAttentionType } from '@tauri-apps/api/window';
+import { SignClient } from '@walletconnect/sign-client';
+import { SessionTypes, SignClientTypes } from '@walletconnect/types';
+import { createContext, ReactNode, useEffect, useState } from 'react';
 
 const signClient = await SignClient.init({
   projectId: '681ef0ed0dd8de01da5e02d3299bc59d',
@@ -40,16 +40,17 @@ const handleWalletConnectCommand = async (
   params: unknown,
 ) => {
   switch (command) {
-    case 'chip0002_getPublicKeys':
-      const { limit, offset } = parseCommandParameters(command, params);
-      return commands.activeWallet().then((res) => {
-        if (res.status === 'ok' && res.data) {
+    case 'chip0002_getPublicKeys': {
+      const { limit, offset } = parseCommandParameters(command, params)!;
+      return commands.getKey({}).then((res) => {
+        if (res.status === 'ok' && res.data.key) {
           return walletConnectCommands[command].returnType.parse([
-            res.data.public_key,
+            res.data.key.public_key,
           ]);
         }
         return null;
       });
+    }
     default:
       throw new Error(`Unknown command: ${command}`);
   }
@@ -82,7 +83,7 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
   async function handleAndRespond(request: SessionRequest) {
     try {
       const result = await handleWalletConnectCommand(
-        request.params.request.method,
+        request.params.request.method as keyof typeof walletConnectCommands,
         request.params.request.params,
       );
 
