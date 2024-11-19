@@ -53,6 +53,14 @@ async deleteKey(req: DeleteKey) : Promise<Result<DeleteKeyResponse, Error>> {
     else return { status: "error", error: e  as any };
 }
 },
+async renameKey(req: RenameKey) : Promise<Result<RenameKeyResponse, Error>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("rename_key", { req }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async getKeys(req: GetKeys) : Promise<Result<GetKeysResponse, Error>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("get_keys", { req }) };
@@ -77,193 +85,225 @@ async getSecretKey(req: GetSecretKey) : Promise<Result<GetSecretKeyResponse, Err
     else return { status: "error", error: e  as any };
 }
 },
-async networkConfig() : Promise<Result<NetworkConfig, Error>> {
+async sendXch(req: SendXch) : Promise<Result<TransactionResponse, Error>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("network_config") };
+    return { status: "ok", data: await TAURI_INVOKE("send_xch", { req }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
 },
-async setDiscoverPeers(discoverPeers: boolean) : Promise<Result<null, Error>> {
+async combineXch(req: CombineXch) : Promise<Result<TransactionResponse, Error>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("set_discover_peers", { discoverPeers }) };
+    return { status: "ok", data: await TAURI_INVOKE("combine_xch", { req }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
 },
-async setTargetPeers(targetPeers: number) : Promise<Result<null, Error>> {
+async splitXch(req: SplitXch) : Promise<Result<TransactionResponse, Error>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("set_target_peers", { targetPeers }) };
+    return { status: "ok", data: await TAURI_INVOKE("split_xch", { req }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
 },
-async setNetworkId(networkId: string) : Promise<Result<null, Error>> {
+async sendCat(req: SendCat) : Promise<Result<TransactionResponse, Error>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("set_network_id", { networkId }) };
+    return { status: "ok", data: await TAURI_INVOKE("send_cat", { req }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
 },
-async walletConfig(fingerprint: number) : Promise<Result<WalletConfig, Error>> {
+async combineCat(req: CombineCat) : Promise<Result<TransactionResponse, Error>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("wallet_config", { fingerprint }) };
+    return { status: "ok", data: await TAURI_INVOKE("combine_cat", { req }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
 },
-async setDeriveAutomatically(fingerprint: number, deriveAutomatically: boolean) : Promise<Result<null, Error>> {
+async splitCat(req: SplitCat) : Promise<Result<TransactionResponse, Error>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("set_derive_automatically", { fingerprint, deriveAutomatically }) };
+    return { status: "ok", data: await TAURI_INVOKE("split_cat", { req }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
 },
-async setDerivationBatchSize(fingerprint: number, derivationBatchSize: number) : Promise<Result<null, Error>> {
+async issueCat(req: IssueCat) : Promise<Result<TransactionResponse, Error>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("set_derivation_batch_size", { fingerprint, derivationBatchSize }) };
+    return { status: "ok", data: await TAURI_INVOKE("issue_cat", { req }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
 },
-async networkList() : Promise<Result<{ [key in string]: Network }, Error>> {
+async createDid(req: CreateDid) : Promise<Result<TransactionResponse, Error>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("network_list") };
+    return { status: "ok", data: await TAURI_INVOKE("create_did", { req }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
 },
-async renameWallet(fingerprint: number, name: string) : Promise<Result<null, Error>> {
+async bulkMintNfts(req: BulkMintNfts) : Promise<Result<TransactionResponse, Error>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("rename_wallet", { fingerprint, name }) };
+    return { status: "ok", data: await TAURI_INVOKE("bulk_mint_nfts", { req }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
 },
-async initialize() : Promise<Result<null, Error>> {
+async transferNfts(req: TransferNfts) : Promise<Result<TransactionResponse, Error>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("initialize") };
+    return { status: "ok", data: await TAURI_INVOKE("transfer_nfts", { req }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
 },
-async getSyncStatus() : Promise<Result<SyncStatus, Error>> {
+async transferDids(req: TransferDids) : Promise<Result<TransactionResponse, Error>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("get_sync_status") };
+    return { status: "ok", data: await TAURI_INVOKE("transfer_dids", { req }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
 },
-async getAddresses() : Promise<Result<string[], Error>> {
+async addNftUri(req: AddNftUri) : Promise<Result<TransactionResponse, Error>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("get_addresses") };
+    return { status: "ok", data: await TAURI_INVOKE("add_nft_uri", { req }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
 },
-async getCoins() : Promise<Result<CoinRecord[], Error>> {
+async assignNftsToDid(req: AssignNftsToDid) : Promise<Result<TransactionResponse, Error>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("get_coins") };
+    return { status: "ok", data: await TAURI_INVOKE("assign_nfts_to_did", { req }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
 },
-async getCatCoins(assetId: string) : Promise<Result<CoinRecord[], Error>> {
+async signCoinSpends(req: SignCoinSpends) : Promise<Result<SignCoinSpendsResponse, Error>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("get_cat_coins", { assetId }) };
+    return { status: "ok", data: await TAURI_INVOKE("sign_coin_spends", { req }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
 },
-async getCats() : Promise<Result<CatRecord[], Error>> {
+async submitTransaction(req: SubmitTransaction) : Promise<Result<SubmitTransactionResponse, Error>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("get_cats") };
+    return { status: "ok", data: await TAURI_INVOKE("submit_transaction", { req }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
 },
-async getCat(assetId: string) : Promise<Result<CatRecord | null, Error>> {
+async getSyncStatus(req: GetSyncStatus) : Promise<Result<GetSyncStatusResponse, Error>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("get_cat", { assetId }) };
+    return { status: "ok", data: await TAURI_INVOKE("get_sync_status", { req }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
 },
-async getDids() : Promise<Result<DidRecord[], Error>> {
+async getAddresses(req: GetAddresses) : Promise<Result<GetAddressesResponse, Error>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("get_dids") };
+    return { status: "ok", data: await TAURI_INVOKE("get_addresses", { req }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
 },
-async getNftStatus() : Promise<Result<NftStatus, Error>> {
+async getXchCoins(req: GetXchCoins) : Promise<Result<GetXchCoinsResponse, Error>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("get_nft_status") };
+    return { status: "ok", data: await TAURI_INVOKE("get_xch_coins", { req }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
 },
-async getNftCollections(request: GetNftCollections) : Promise<Result<NftCollectionRecord[], Error>> {
+async getCatCoins(req: GetCatCoins) : Promise<Result<GetCatCoinsResponse, Error>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("get_nft_collections", { request }) };
+    return { status: "ok", data: await TAURI_INVOKE("get_cat_coins", { req }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
 },
-async getNftCollection(collectionId: string | null) : Promise<Result<NftCollectionRecord, Error>> {
+async getCats(req: GetCats) : Promise<Result<GetCatsResponse, Error>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("get_nft_collection", { collectionId }) };
+    return { status: "ok", data: await TAURI_INVOKE("get_cats", { req }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
 },
-async getNfts(request: GetNfts) : Promise<Result<NftRecord[], Error>> {
+async getCat(req: GetCat) : Promise<Result<GetCatResponse, Error>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("get_nfts", { request }) };
+    return { status: "ok", data: await TAURI_INVOKE("get_cat", { req }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
 },
-async getNft(launcherId: string) : Promise<Result<NftInfo | null, Error>> {
+async getDids(req: GetDids) : Promise<Result<GetDidsResponse, Error>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("get_nft", { launcherId }) };
+    return { status: "ok", data: await TAURI_INVOKE("get_dids", { req }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
 },
-async getCollectionNfts(request: GetCollectionNfts) : Promise<Result<NftRecord[], Error>> {
+async getNftStatus(req: GetNftStatus) : Promise<Result<GetNftStatusResponse, Error>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("get_collection_nfts", { request }) };
+    return { status: "ok", data: await TAURI_INVOKE("get_nft_status", { req }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
 },
-async getPendingTransactions() : Promise<Result<PendingTransactionRecord[], Error>> {
+async getNftCollections(req: GetNftCollections) : Promise<Result<GetNftCollectionsResponse, Error>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("get_pending_transactions") };
+    return { status: "ok", data: await TAURI_INVOKE("get_nft_collections", { req }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async getNftCollection(req: GetNftCollection) : Promise<Result<GetNftCollectionResponse, Error>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_nft_collection", { req }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async getNfts(req: GetNfts) : Promise<Result<GetNftsResponse, Error>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_nfts", { req }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async getNft(req: GetNft) : Promise<Result<GetNftResponse, Error>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_nft", { req }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async getPendingTransactions(req: GetPendingTransactions) : Promise<Result<GetPendingTransactionsResponse, Error>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_pending_transactions", { req }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -277,201 +317,145 @@ async validateAddress(address: string) : Promise<Result<boolean, Error>> {
     else return { status: "error", error: e  as any };
 }
 },
-async updateCatInfo(record: CatRecord) : Promise<Result<null, Error>> {
+async makeOffer(req: MakeOffer) : Promise<Result<MakeOfferResponse, Error>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("update_cat_info", { record }) };
+    return { status: "ok", data: await TAURI_INVOKE("make_offer", { req }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
 },
-async removeCatInfo(assetId: string) : Promise<Result<null, Error>> {
+async takeOffer(req: TakeOffer) : Promise<Result<TakeOfferResponse, Error>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("remove_cat_info", { assetId }) };
+    return { status: "ok", data: await TAURI_INVOKE("take_offer", { req }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
 },
-async updateDid(didId: string, name: string | null, visible: boolean) : Promise<Result<null, Error>> {
+async viewOffer(req: ViewOffer) : Promise<Result<ViewOfferResponse, Error>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("update_did", { didId, name, visible }) };
+    return { status: "ok", data: await TAURI_INVOKE("view_offer", { req }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
 },
-async updateNft(nftId: string, visible: boolean) : Promise<Result<null, Error>> {
+async networkConfig() : Promise<Result<NetworkConfig, Error>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("update_nft", { nftId, visible }) };
+    return { status: "ok", data: await TAURI_INVOKE("network_config") };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
 },
-async send(address: string, amount: Amount, fee: Amount) : Promise<Result<TransactionSummary, Error>> {
+async setDiscoverPeers(req: SetDiscoverPeers) : Promise<Result<SetDiscoverPeersResponse, Error>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("send", { address, amount, fee }) };
+    return { status: "ok", data: await TAURI_INVOKE("set_discover_peers", { req }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
 },
-async combine(coinIds: string[], fee: Amount) : Promise<Result<TransactionSummary, Error>> {
+async setTargetPeers(req: SetTargetPeers) : Promise<Result<SetTargetPeersResponse, Error>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("combine", { coinIds, fee }) };
+    return { status: "ok", data: await TAURI_INVOKE("set_target_peers", { req }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
 },
-async split(coinIds: string[], outputCount: number, fee: Amount) : Promise<Result<TransactionSummary, Error>> {
+async setNetworkId(req: SetNetworkId) : Promise<Result<SetNetworkIdResponse, Error>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("split", { coinIds, outputCount, fee }) };
+    return { status: "ok", data: await TAURI_INVOKE("set_network_id", { req }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
 },
-async combineCat(coinIds: string[], fee: Amount) : Promise<Result<TransactionSummary, Error>> {
+async walletConfig(fingerprint: number) : Promise<Result<WalletConfig, Error>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("combine_cat", { coinIds, fee }) };
+    return { status: "ok", data: await TAURI_INVOKE("wallet_config", { fingerprint }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
 },
-async splitCat(coinIds: string[], outputCount: number, fee: Amount) : Promise<Result<TransactionSummary, Error>> {
+async setDeriveAutomatically(req: SetDeriveAutomatically) : Promise<Result<SetDeriveAutomaticallyResponse, Error>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("split_cat", { coinIds, outputCount, fee }) };
+    return { status: "ok", data: await TAURI_INVOKE("set_derive_automatically", { req }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
 },
-async issueCat(name: string, ticker: string, amount: Amount, fee: Amount) : Promise<Result<TransactionSummary, Error>> {
+async setDerivationBatchSize(req: SetDerivationBatchSize) : Promise<Result<SetDerivationBatchSizeResponse, Error>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("issue_cat", { name, ticker, amount, fee }) };
+    return { status: "ok", data: await TAURI_INVOKE("set_derivation_batch_size", { req }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
 },
-async sendCat(assetId: string, address: string, amount: Amount, fee: Amount) : Promise<Result<TransactionSummary, Error>> {
+async initialize() : Promise<Result<null, Error>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("send_cat", { assetId, address, amount, fee }) };
+    return { status: "ok", data: await TAURI_INVOKE("initialize") };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
 },
-async createDid(name: string, fee: Amount) : Promise<Result<TransactionSummary, Error>> {
+async updateCat(req: UpdateCat) : Promise<Result<UpdateCatResponse, Error>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("create_did", { name, fee }) };
+    return { status: "ok", data: await TAURI_INVOKE("update_cat", { req }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
 },
-async bulkMintNfts(request: BulkMintNfts) : Promise<Result<BulkMintNftsResponse, Error>> {
+async removeCat(req: RemoveCat) : Promise<Result<RemoveCatResponse, Error>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("bulk_mint_nfts", { request }) };
+    return { status: "ok", data: await TAURI_INVOKE("remove_cat", { req }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
 },
-async transferNfts(nftIds: string[], address: string, fee: Amount) : Promise<Result<TransactionSummary, Error>> {
+async updateDid(req: UpdateDid) : Promise<Result<UpdateDidResponse, Error>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("transfer_nfts", { nftIds, address, fee }) };
+    return { status: "ok", data: await TAURI_INVOKE("update_did", { req }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
 },
-async transferDids(didIds: string[], address: string, fee: Amount) : Promise<Result<TransactionSummary, Error>> {
+async updateNft(req: UpdateNft) : Promise<Result<UpdateNftResponse, Error>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("transfer_dids", { didIds, address, fee }) };
+    return { status: "ok", data: await TAURI_INVOKE("update_nft", { req }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
 },
-async addNftUri(nftId: string, uri: string, kind: NftUriKind, fee: Amount) : Promise<Result<TransactionSummary, Error>> {
+async getPeers(req: GetPeers) : Promise<Result<GetPeersResponse, Error>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("add_nft_uri", { nftId, uri, kind, fee }) };
+    return { status: "ok", data: await TAURI_INVOKE("get_peers", { req }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
 },
-async assignNftsToDid(nftIds: string[], didId: string | null, fee: Amount) : Promise<Result<TransactionSummary, Error>> {
+async addPeer(req: AddPeer) : Promise<Result<AddPeerResponse, Error>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("assign_nfts_to_did", { nftIds, didId, fee }) };
+    return { status: "ok", data: await TAURI_INVOKE("add_peer", { req }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
 },
-async makeOffer(request: MakeOffer) : Promise<Result<string, Error>> {
+async removePeer(req: RemovePeer) : Promise<Result<RemovePeerResponse, Error>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("make_offer", { request }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async takeOffer(offer: string, fee: Amount) : Promise<Result<null, Error>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("take_offer", { offer, fee }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async viewOffer(offer: string) : Promise<Result<OfferSummary, Error>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("view_offer", { offer }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async signTransaction(coinSpends: CoinSpendJson[]) : Promise<Result<SpendBundleJson, Error>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("sign_transaction", { coinSpends }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async submitTransaction(spendBundle: SpendBundleJson) : Promise<Result<null, Error>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("submit_transaction", { spendBundle }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async getPeers() : Promise<Result<PeerRecord[], Error>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_peers") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async addPeer(ip: string, trusted: boolean) : Promise<Result<null, Error>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("add_peer", { ip, trusted }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async removePeer(ipAddr: string, ban: boolean) : Promise<Result<null, Error>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("remove_peer", { ipAddr, ban }) };
+    return { status: "ok", data: await TAURI_INVOKE("remove_peer", { req }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -494,34 +478,65 @@ syncEvent: "sync-event"
 
 /** user-defined types **/
 
+export type AddNftUri = { nft_id: string; uri: string; fee: Amount; kind: NftUriKind; auto_submit?: boolean }
+export type AddPeer = { ip: string; trusted: boolean }
+export type AddPeerResponse = Record<string, never>
 export type Amount = string
 export type Assets = { xch: Amount; cats: CatAmount[]; nfts: string[] }
-export type BulkMintNfts = { nft_mints: NftMint[]; did_id: string; fee: Amount }
-export type BulkMintNftsResponse = { nft_ids: string[]; summary: TransactionSummary }
+export type AssignNftsToDid = { nft_ids: string[]; did_id: string | null; fee: Amount; auto_submit?: boolean }
+export type BulkMintNfts = { mints: NftMint[]; did_id: string; fee: Amount; auto_submit?: boolean }
 export type CatAmount = { asset_id: string; amount: Amount }
 export type CatRecord = { asset_id: string; name: string | null; ticker: string | null; description: string | null; icon_url: string | null; visible: boolean; balance: Amount }
 export type CoinJson = { parent_coin_info: string; puzzle_hash: string; amount: Amount }
 export type CoinRecord = { coin_id: string; address: string; amount: Amount; created_height: number | null; spent_height: number | null; create_transaction_id: string | null; spend_transaction_id: string | null }
 export type CoinSpendJson = { coin: CoinJson; puzzle_reveal: string; solution: string }
+export type CombineCat = { coin_ids: string[]; fee: Amount; auto_submit?: boolean }
+export type CombineXch = { coin_ids: string[]; fee: Amount; auto_submit?: boolean }
+export type CreateDid = { name: string; fee: Amount; auto_submit?: boolean }
 export type DeleteKey = { fingerprint: number }
 export type DeleteKeyResponse = Record<string, never>
 export type DidRecord = { launcher_id: string; name: string | null; visible: boolean; coin_id: string; address: string; amount: Amount; created_height: number | null; create_transaction_id: string | null }
 export type Error = { kind: ErrorKind; reason: string }
-export type ErrorKind = "wallet" | "api" | "not_found" | "internal"
+export type ErrorKind = "wallet" | "api" | "not_found" | "unauthorized" | "internal"
 export type GenerateMnemonic = { use_24_words: boolean }
 export type GenerateMnemonicResponse = { mnemonic: string }
-export type GetCollectionNfts = { collection_id: string | null; offset: number; limit: number; sort_mode: NftSortMode; include_hidden: boolean }
+export type GetAddresses = Record<string, never>
+export type GetAddressesResponse = { addresses: string[] }
+export type GetCat = { asset_id: string }
+export type GetCatCoins = { asset_id: string }
+export type GetCatCoinsResponse = { coins: CoinRecord[] }
+export type GetCatResponse = { cat: CatRecord | null }
+export type GetCats = Record<string, never>
+export type GetCatsResponse = { cats: CatRecord[] }
+export type GetDids = Record<string, never>
+export type GetDidsResponse = { dids: DidRecord[] }
 export type GetKey = { fingerprint?: number | null }
 export type GetKeyResponse = { key: KeyInfo | null }
 export type GetKeys = Record<string, never>
 export type GetKeysResponse = { keys: KeyInfo[] }
+export type GetNft = { nft_id: string }
+export type GetNftCollection = { collection_id: string | null }
+export type GetNftCollectionResponse = { collection: NftCollectionRecord | null }
 export type GetNftCollections = { offset: number; limit: number; include_hidden: boolean }
-export type GetNfts = { offset: number; limit: number; sort_mode: NftSortMode; include_hidden: boolean }
+export type GetNftCollectionsResponse = { collections: NftCollectionRecord[] }
+export type GetNftResponse = { nft: NftInfo | null }
+export type GetNftStatus = Record<string, never>
+export type GetNftStatusResponse = { nfts: number; visible_nfts: number; collections: number; visible_collections: number }
+export type GetNfts = { collection_id: string | null; offset: number; limit: number; sort_mode: NftSortMode; include_hidden: boolean }
+export type GetNftsResponse = { nfts: NftRecord[] }
+export type GetPeers = Record<string, never>
+export type GetPeersResponse = { peers: PeerRecord[] }
+export type GetPendingTransactions = Record<string, never>
+export type GetPendingTransactionsResponse = { transactions: PendingTransactionRecord[] }
 export type GetSecretKey = { fingerprint: number }
 export type GetSecretKeyResponse = { secrets: SecretKeyInfo | null }
+export type GetSyncStatus = Record<string, never>
+export type GetSyncStatusResponse = { balance: Amount; unit: Unit; synced_coins: number; total_coins: number; receive_address: string; burn_address: string }
+export type GetXchCoins = Record<string, never>
+export type GetXchCoinsResponse = { coins: CoinRecord[] }
 export type ImportKey = { name: string; key: string; save_secrets?: boolean; login?: boolean }
 export type ImportKeyResponse = { fingerprint: number }
-export type Input = ({ type: "unknown" } | { type: "xch" } | { type: "launcher" } | { type: "cat"; asset_id: string; name: string | null; ticker: string | null; icon_url: string | null } | { type: "did"; launcher_id: string; name: string | null } | { type: "nft"; launcher_id: string; image_data: string | null; image_mime_type: string | null; name: string | null }) & { coin_id: string; amount: Amount; address: string; outputs: Output[] }
+export type IssueCat = { name: string; ticker: string; amount: Amount; fee: Amount; auto_submit?: boolean }
 export type KeyInfo = { name: string; fingerprint: number; public_key: string; kind: KeyKind; has_secrets: boolean }
 export type KeyKind = "bls"
 export type Login = { fingerprint: number }
@@ -529,31 +544,67 @@ export type LoginResponse = Record<string, never>
 export type Logout = Record<string, never>
 export type LogoutResponse = Record<string, never>
 export type MakeOffer = { requested_assets: Assets; offered_assets: Assets; fee: Amount }
-export type Network = { default_port: number; ticker: string; address_prefix: string; precision: number; genesis_challenge: string; agg_sig_me: string; dns_introducers: string[] }
+export type MakeOfferResponse = { offer: string }
 export type NetworkConfig = { network_id?: string; target_peers?: number; discover_peers?: boolean }
 export type NftCollectionRecord = { collection_id: string; did_id: string; metadata_collection_id: string; visible: boolean; name: string | null; icon: string | null; nfts: number; visible_nfts: number }
 export type NftInfo = { launcher_id: string; collection_id: string | null; collection_name: string | null; minter_did: string | null; owner_did: string | null; visible: boolean; coin_id: string; address: string; royalty_address: string; royalty_percent: string; data_uris: string[]; data_hash: string | null; metadata_uris: string[]; metadata_hash: string | null; license_uris: string[]; license_hash: string | null; edition_number: number | null; edition_total: number | null; created_height: number | null; data: string | null; data_mime_type: string | null; metadata: string | null }
 export type NftMint = { edition_number: number | null; edition_total: number | null; data_uris: string[]; metadata_uris: string[]; license_uris: string[]; royalty_address: string | null; royalty_percent: Amount }
 export type NftRecord = { launcher_id: string; collection_id: string | null; collection_name: string | null; minter_did: string | null; owner_did: string | null; visible: boolean; sensitive_content: boolean; name: string | null; created_height: number | null; data_mime_type: string | null; data: string | null }
 export type NftSortMode = "name" | "recent"
-export type NftStatus = { nfts: number; visible_nfts: number; collections: number; visible_collections: number }
 export type NftUriKind = "data" | "metadata" | "license"
 export type OfferAssets = { xch: OfferXch; cats: { [key in string]: OfferCat }; nfts: { [key in string]: OfferNft } }
 export type OfferCat = { amount: Amount; royalty: Amount; name: string | null; ticker: string | null; icon_url: string | null }
 export type OfferNft = { image_data: string | null; image_mime_type: string | null; name: string | null; royalty_percent: string }
 export type OfferSummary = { fee: Amount; maker: OfferAssets; taker: OfferAssets }
 export type OfferXch = { amount: Amount; royalty: Amount }
-export type Output = { coin_id: string; amount: Amount; address: string; receiving: boolean; burning: boolean }
 export type PeerRecord = { ip_addr: string; port: number; trusted: boolean; peak_height: number }
 export type PendingTransactionRecord = { transaction_id: string; fee: Amount; submitted_at: string | null }
+export type RemoveCat = { asset_id: string }
+export type RemoveCatResponse = Record<string, never>
+export type RemovePeer = { ip: string; ban: boolean }
+export type RemovePeerResponse = Record<string, never>
+export type RenameKey = { fingerprint: number; name: string }
+export type RenameKeyResponse = Record<string, never>
 export type Resync = { fingerprint: number }
 export type ResyncResponse = Record<string, never>
 export type SecretKeyInfo = { mnemonic: string | null; secret_key: string }
+export type SendCat = { asset_id: string; address: string; amount: Amount; fee: Amount; auto_submit?: boolean }
+export type SendXch = { address: string; amount: Amount; fee: Amount; auto_submit?: boolean }
+export type SetDerivationBatchSize = { fingerprint: number; derivation_batch_size: number }
+export type SetDerivationBatchSizeResponse = Record<string, never>
+export type SetDeriveAutomatically = { fingerprint: number; derive_automatically: boolean }
+export type SetDeriveAutomaticallyResponse = Record<string, never>
+export type SetDiscoverPeers = { discover_peers: boolean }
+export type SetDiscoverPeersResponse = Record<string, never>
+export type SetNetworkId = { network_id: string }
+export type SetNetworkIdResponse = Record<string, never>
+export type SetTargetPeers = { target_peers: number }
+export type SetTargetPeersResponse = Record<string, never>
+export type SignCoinSpends = { coin_spends: CoinSpendJson[]; auto_submit?: boolean }
+export type SignCoinSpendsResponse = { spend_bundle: SpendBundleJson }
 export type SpendBundleJson = { coin_spends: CoinSpendJson[]; aggregated_signature: string }
+export type SplitCat = { coin_ids: string[]; output_count: number; fee: Amount; auto_submit?: boolean }
+export type SplitXch = { coin_ids: string[]; output_count: number; fee: Amount; auto_submit?: boolean }
+export type SubmitTransaction = { spend_bundle: SpendBundleJson }
+export type SubmitTransactionResponse = Record<string, never>
 export type SyncEvent = { type: "start"; ip: string } | { type: "stop" } | { type: "subscribed" } | { type: "derivation" } | { type: "coin_state" } | { type: "puzzle_batch_synced" } | { type: "cat_info" } | { type: "did_info" } | { type: "nft_data" }
-export type SyncStatus = { balance: Amount; unit: Unit; synced_coins: number; total_coins: number; receive_address: string; burn_address: string }
-export type TransactionSummary = { fee: Amount; inputs: Input[]; coin_spends: CoinSpendJson[] }
+export type TakeOffer = { offer: string; fee: Amount }
+export type TakeOfferResponse = Record<string, never>
+export type TransactionInput = ({ type: "unknown" } | { type: "xch" } | { type: "launcher" } | { type: "cat"; asset_id: string; name: string | null; ticker: string | null; icon_url: string | null } | { type: "did"; launcher_id: string; name: string | null } | { type: "nft"; launcher_id: string; image_data: string | null; image_mime_type: string | null; name: string | null }) & { coin_id: string; amount: Amount; address: string; outputs: TransactionOutput[] }
+export type TransactionOutput = { coin_id: string; amount: Amount; address: string; receiving: boolean; burning: boolean }
+export type TransactionResponse = { summary: TransactionSummary; coin_spends: CoinSpendJson[] }
+export type TransactionSummary = { fee: Amount; inputs: TransactionInput[] }
+export type TransferDids = { did_ids: string[]; address: string; fee: Amount; auto_submit?: boolean }
+export type TransferNfts = { nft_ids: string[]; address: string; fee: Amount; auto_submit?: boolean }
 export type Unit = { ticker: string; decimals: number }
+export type UpdateCat = { record: CatRecord }
+export type UpdateCatResponse = Record<string, never>
+export type UpdateDid = { did_id: string; name: string | null; visible: boolean }
+export type UpdateDidResponse = Record<string, never>
+export type UpdateNft = { nft_id: string; visible: boolean }
+export type UpdateNftResponse = Record<string, never>
+export type ViewOffer = { offer: string }
+export type ViewOfferResponse = { offer: OfferSummary }
 export type WalletConfig = { name?: string; derive_automatically?: boolean; derivation_batch_size?: number }
 
 /** tauri-specta globals **/
