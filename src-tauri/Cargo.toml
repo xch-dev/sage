@@ -18,27 +18,15 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 sage = { workspace = true }
 sage-api = { workspace = true }
 sage-config = { workspace = true }
-sage-database = { workspace = true }
-sage-keychain = { workspace = true }
 sage-wallet = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 tauri = { workspace = true, features = [] }
 tauri-specta = { workspace = true, features = ["derive", "typescript"] }
 specta = { workspace = true }
 specta-typescript = { workspace = true }
-bip39 = { workspace = true }
 tauri-plugin-clipboard-manager = { workspace = true }
 tokio = { workspace = true }
-indexmap = { workspace = true, features = ["serde"] }
-hex = { workspace = true }
-hex-literal = { workspace = true }
-chia = { workspace = true }
 chia-wallet-sdk = { workspace = true, features = ["rustls"] }
-clvmr = { workspace = true }
-itertools = { workspace = true }
-bigdecimal = { workspace = true }
-bech32 = { workspace = true }
-base64 = { workspace = true }
 tauri-plugin-shell = { workspace = true }
 serde_json = { workspace = true, features = ["arbitrary_precision"] }
 
