@@ -16,7 +16,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import * as z from 'zod';
-import { commands, Error, TransactionSummary } from '../bindings';
+import { commands, Error, TransactionResponse } from '../bindings';
 import Container from '../components/Container';
 import ErrorDialog from '../components/ErrorDialog';
 import { useWalletState } from '../state';
@@ -26,7 +26,7 @@ export default function CreateProfile() {
   const walletState = useWalletState();
 
   const [error, setError] = useState<Error | null>(null);
-  const [summary, setSummary] = useState<TransactionSummary | null>(null);
+  const [response, setResponse] = useState<TransactionResponse | null>(null);
 
   const formSchema = z.object({
     name: z.string().min(1, 'Name is required'),
@@ -39,14 +39,14 @@ export default function CreateProfile() {
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
     commands
-      .createDid(values.name, values.fee?.toString() || '0')
+      .createDid({ name: values.name, fee: values.fee?.toString() || '0' })
       .then((result) => {
         if (result.status === 'error') {
           console.error(result.error);
           setError(result.error);
           return;
         } else {
-          setSummary(result.data);
+          setResponse(result.data);
         }
       });
   };
@@ -107,8 +107,8 @@ export default function CreateProfile() {
 
       <ErrorDialog error={error} setError={setError} />
       <ConfirmationDialog
-        summary={summary}
-        close={() => setSummary(null)}
+        response={response}
+        close={() => setResponse(null)}
         onConfirm={() => navigate('/dids')}
       />
     </>

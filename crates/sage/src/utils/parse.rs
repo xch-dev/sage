@@ -24,7 +24,13 @@ pub fn parse_genesis_challenge(input: String) -> Result<Bytes32> {
 }
 
 pub fn parse_coin_id(input: String) -> Result<Bytes32> {
-    let asset_id: [u8; 32] = hex::decode(&input)?
+    let stripped = if let Some(stripped) = input.strip_prefix("0x") {
+        stripped
+    } else {
+        &input
+    };
+
+    let asset_id: [u8; 32] = hex::decode(stripped)?
         .try_into()
         .map_err(|_| Error::InvalidCoinId(input))?;
     Ok(asset_id.into())

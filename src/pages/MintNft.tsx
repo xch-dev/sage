@@ -25,7 +25,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import * as z from 'zod';
-import { commands, Error, TransactionSummary } from '../bindings';
+import { commands, Error, TransactionResponse } from '../bindings';
 import Container from '../components/Container';
 import ErrorDialog from '../components/ErrorDialog';
 import { useWalletState } from '../state';
@@ -38,7 +38,7 @@ export default function MintNft() {
 
   const [error, setError] = useState<Error | null>(null);
   const [pending, setPending] = useState(false);
-  const [summary, setSummary] = useState<TransactionSummary | null>(null);
+  const [response, setResponse] = useState<TransactionResponse | null>(null);
 
   const formSchema = z.object({
     profile: z.string().min(1, 'Profile is required'),
@@ -61,7 +61,7 @@ export default function MintNft() {
       .bulkMintNfts({
         fee: values.fee?.toString() || '0',
         did_id: values.profile,
-        nft_mints: [
+        mints: [
           {
             edition_number: null,
             edition_total: null,
@@ -87,7 +87,7 @@ export default function MintNft() {
           console.error(result.error);
           setError(result.error);
         } else {
-          setSummary(result.data.summary);
+          setResponse(result.data);
         }
       })
       .finally(() => {
@@ -277,8 +277,8 @@ export default function MintNft() {
 
       <ErrorDialog error={error} setError={setError} />
       <ConfirmationDialog
-        summary={summary}
-        close={() => setSummary(null)}
+        response={response}
+        close={() => setResponse(null)}
         onConfirm={() => navigate('/nfts')}
       />
     </>

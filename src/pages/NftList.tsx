@@ -44,6 +44,7 @@ export function NftList() {
       if (view === 'name' || view === 'recent') {
         return await commands
           .getNfts({
+            collection_id: 'all',
             offset: (page - 1) * pageSize,
             limit: pageSize,
             sort_mode: view,
@@ -51,7 +52,7 @@ export function NftList() {
           })
           .then((result) => {
             if (result.status === 'ok') {
-              setNfts(result.data);
+              setNfts(result.data.nfts);
             } else {
               throw new Error('Failed to get NFTs');
             }
@@ -65,7 +66,7 @@ export function NftList() {
           })
           .then((result) => {
             if (result.status === 'ok') {
-              setCollections(result.data);
+              setCollections(result.data.collections);
             } else {
               throw new Error('Failed to get NFT collections');
             }

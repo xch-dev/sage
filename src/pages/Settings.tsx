@@ -16,7 +16,7 @@ import { useWallet } from '@/hooks/useWallet';
 import { clearState, fetchState } from '@/state';
 import { useContext, useEffect, useState } from 'react';
 import { DarkModeContext } from '../App';
-import { commands, NetworkConfig, WalletConfig, WalletInfo } from '../bindings';
+import { commands, KeyInfo, NetworkConfig, WalletConfig } from '../bindings';
 import { isValidU32 } from '../validation';
 
 export default function Settings() {
@@ -94,7 +94,7 @@ function NetworkSettings() {
               id='discover-peers'
               checked={discoverPeers ?? config?.discover_peers ?? true}
               onCheckedChange={(checked) => {
-                commands.setDiscoverPeers(checked);
+                commands.setDiscoverPeers({ discover_peers: checked });
                 setDiscoverPeers(checked);
               }}
             />
@@ -117,7 +117,7 @@ function NetworkSettings() {
                   if (config) {
                     setConfig({ ...config, target_peers: targetPeers });
                   }
-                  commands.setTargetPeers(targetPeers);
+                  commands.setTargetPeers({ target_peers: targetPeers });
                 }
               }}
             />
@@ -132,7 +132,7 @@ function NetworkSettings() {
                     setConfig({ ...config, network_id: networkId });
                   }
                   clearState();
-                  commands.setNetworkId(networkId).then(() => {
+                  commands.setNetworkId({ network_id: networkId }).then(() => {
                     fetchState();
                   });
                   setNetworkId(networkId);
@@ -154,7 +154,7 @@ function NetworkSettings() {
   );
 }
 
-function WalletSettings(props: { wallet: WalletInfo }) {
+function WalletSettings(props: { wallet: KeyInfo }) {
   const [name, setName] = useState(props.wallet.name);
   const [deriveAutomatically, setDeriveAutomatically] = useState<
     boolean | null
@@ -201,7 +201,10 @@ function WalletSettings(props: { wallet: WalletInfo }) {
                     setConfig({ ...config, name });
                   }
                   if (name)
-                    commands.renameWallet(props.wallet.fingerprint, name);
+                    commands.renameKey({
+                      fingerprint: props.wallet.fingerprint,
+                      name,
+                    });
                 }
               }}
             />
@@ -213,10 +216,10 @@ function WalletSettings(props: { wallet: WalletInfo }) {
                 deriveAutomatically ?? config?.derive_automatically ?? true
               }
               onCheckedChange={(checked) => {
-                commands.setDeriveAutomatically(
-                  props.wallet.fingerprint,
-                  checked,
-                );
+                commands.setDeriveAutomatically({
+                  fingerprint: props.wallet.fingerprint,
+                  derive_automatically: checked,
+                });
                 setDeriveAutomatically(checked);
               }}
             />
@@ -245,10 +248,10 @@ function WalletSettings(props: { wallet: WalletInfo }) {
                       derivation_batch_size: derivationBatchSize,
                     });
                   }
-                  commands.setDerivationBatchSize(
-                    props.wallet.fingerprint,
-                    derivationBatchSize,
-                  );
+                  commands.setDerivationBatchSize({
+                    fingerprint: props.wallet.fingerprint,
+                    derivation_batch_size: derivationBatchSize,
+                  });
                 }
               }}
             />

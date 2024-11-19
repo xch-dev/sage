@@ -4,13 +4,13 @@ import {
   CoinRecord,
   commands,
   events,
-  NftStatus,
-  SyncStatus,
+  GetNftStatusResponse,
+  GetSyncStatusResponse,
 } from './bindings';
 
 export interface WalletState {
-  sync: SyncStatus;
-  nfts: NftStatus;
+  sync: GetSyncStatusResponse;
+  nfts: GetNftStatusResponse;
   coins: CoinRecord[];
   offerAssets: Assets;
   requestedAssets: Assets;
@@ -28,19 +28,19 @@ export async function fetchState() {
 }
 
 function updateCoins() {
-  commands.getCoins().then((coins) => {
+  commands.getXchCoins({}).then((coins) => {
     if (coins.status === 'error') {
       console.error(coins.error);
       return;
     }
     useWalletState.setState({
-      coins: coins.data,
+      coins: coins.data.coins,
     });
   });
 }
 
 function updateSyncStatus() {
-  commands.getSyncStatus().then((sync) => {
+  commands.getSyncStatus({}).then((sync) => {
     if (sync.status === 'error') {
       console.error(sync.error);
       return;
@@ -52,7 +52,7 @@ function updateSyncStatus() {
 }
 
 function updateNftStatus() {
-  commands.getNftStatus().then((nfts) => {
+  commands.getNftStatus({}).then((nfts) => {
     if (nfts.status === 'error') {
       console.error(nfts.error);
       return;

@@ -5,9 +5,9 @@ export function useDids() {
   const [dids, setDids] = useState<DidRecord[]>([]);
 
   const updateDids = async () => {
-    return await commands.getDids().then((result) => {
+    return await commands.getDids({}).then((result) => {
       if (result.status === 'ok') {
-        setDids(result.data);
+        setDids(result.data.dids);
       } else {
         throw new Error('Failed to get DIDs');
       }

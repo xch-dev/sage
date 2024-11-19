@@ -22,11 +22,11 @@ export function ViewOffer() {
   useEffect(() => {
     if (!offer) return;
 
-    commands.viewOffer(offer).then((result) => {
+    commands.viewOffer({ offer }).then((result) => {
       if (result.status === 'error') {
         setError(result.error);
       } else {
-        setSummary(result.data);
+        setSummary(result.data.offer);
       }
     });
   }, [offer]);
@@ -97,13 +97,15 @@ export function ViewOffer() {
 
           <Button
             onClick={() => {
-              commands.takeOffer(offer!, '0.00005').then((result) => {
-                if (result.status === 'error') {
-                  setError(result.error);
-                } else {
-                  navigate('/offers');
-                }
-              });
+              commands
+                .takeOffer({ offer: offer!, fee: '0.00005' })
+                .then((result) => {
+                  if (result.status === 'error') {
+                    setError(result.error);
+                  } else {
+                    navigate('/offers');
+                  }
+                });
             }}
           >
             Take Offer

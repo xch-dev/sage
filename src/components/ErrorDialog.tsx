@@ -18,65 +18,24 @@ export default function ErrorDialog({ error, setError }: ErrorDialogProps) {
   let kind: string | null;
 
   switch (error?.kind) {
-    case 'Client':
-    case 'Database':
-    case 'Keychain':
-    case 'Logging':
-    case 'Sync':
-    case 'Serialization':
-      kind = error.kind;
+    case 'api':
+      kind = 'API';
       break;
 
-    case 'InsufficientFunds':
-      kind = 'Transaction';
+    case 'internal':
+      kind = 'Internal';
       break;
 
-    case 'InvalidAddress':
-      kind = 'Address';
+    case 'not_found':
+      kind = 'Not Found';
       break;
 
-    case 'InvalidAmount':
-      kind = 'Amount';
+    case 'unauthorized':
+      kind = 'Auth';
       break;
 
-    case 'InvalidAssetId':
-      kind = 'Asset ID';
-      break;
-
-    case 'InvalidKey':
-      kind = 'Key';
-      break;
-
-    case 'InvalidMnemonic':
-      kind = 'Mnemonic';
-      break;
-
-    case 'InvalidLauncherId':
-      kind = 'Launcher ID';
-      break;
-
-    case 'NotLoggedIn':
-      kind = 'Account';
-      break;
-
-    case 'TransactionFailed':
-      kind = 'Transaction';
-      break;
-
-    case 'UnknownNetwork':
-      kind = 'Network';
-      break;
-
-    case 'UnknownFingerprint':
-      kind = 'Fingerprint';
-      break;
-
-    case 'Wallet':
+    case 'wallet':
       kind = 'Wallet';
-      break;
-
-    case 'Io':
-      kind = 'IO';
       break;
 
     default:

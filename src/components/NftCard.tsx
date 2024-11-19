@@ -2,7 +2,7 @@ import {
   commands,
   NftRecord,
   NftUriKind,
-  TransactionSummary,
+  TransactionResponse,
 } from '@/bindings';
 import { amount } from '@/lib/formTypes';
 import { nftUri } from '@/lib/nftUri';
@@ -84,49 +84,57 @@ export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
   const [unassignOpen, setUnassignOpen] = useState(false);
   const [addUrlOpen, setAddUrlOpen] = useState(false);
   const [burnOpen, setBurnOpen] = useState(false);
-  const [summary, setSummary] = useState<TransactionSummary | null>(null);
+  const [response, setResponse] = useState<TransactionResponse | null>(null);
 
   const toggleVisibility = () => {
-    commands.updateNft(nft.launcher_id, !nft.visible).then((result) => {
-      if (result.status === 'ok') {
-        updateNfts();
-      } else {
-        throw new Error('Failed to toggle visibility for NFT');
-      }
-    });
+    commands
+      .updateNft({ nft_id: nft.launcher_id, visible: !nft.visible })
+      .then((result) => {
+        if (result.status === 'ok') {
+          updateNfts();
+        } else {
+          throw new Error('Failed to toggle visibility for NFT');
+        }
+      });
   };
 
   const onTransferSubmit = (address: string, fee: string) => {
-    commands.transferNfts([nft.launcher_id], address, fee).then((result) => {
-      setTransferOpen(false);
-      if (result.status === 'error') {
-        console.error('Failed to transfer NFT', result.error);
-      } else {
-        setSummary(result.data);
-      }
-    });
+    commands
+      .transferNfts({ nft_ids: [nft.launcher_id], address, fee })
+      .then((result) => {
+        setTransferOpen(false);
+        if (result.status === 'error') {
+          console.error('Failed to transfer NFT', result.error);
+        } else {
+          setResponse(result.data);
+        }
+      });
   };
 
   const onAssignSubmit = (profile: string, fee: string) => {
-    commands.assignNftsToDid([nft.launcher_id], profile, fee).then((result) => {
-      setAssignOpen(false);
-      if (result.status === 'error') {
-        console.error('Failed to assign NFT', result.error);
-      } else {
-        setSummary(result.data);
-      }
-    });
+    commands
+      .assignNftsToDid({ nft_ids: [nft.launcher_id], did_id: profile, fee })
+      .then((result) => {
+        setAssignOpen(false);
+        if (result.status === 'error') {
+          console.error('Failed to assign NFT', result.error);
+        } else {
+          setResponse(result.data);
+        }
+      });
   };
 
   const onUnassignSubmit = (fee: string) => {
-    commands.assignNftsToDid([nft.launcher_id], null, fee).then((result) => {
-      setUnassignOpen(false);
-      if (result.status === 'error') {
-        console.error('Failed to unassign NFT', result.error);
-      } else {
-        setSummary(result.data);
-      }
-    });
+    commands
+      .assignNftsToDid({ nft_ids: [nft.launcher_id], did_id: null, fee })
+      .then((result) => {
+        setUnassignOpen(false);
+        if (result.status === 'error') {
+          console.error('Failed to unassign NFT', result.error);
+        } else {
+          setResponse(result.data);
+        }
+      });
   };
 
   const addUrlFormSchema = z.object({
@@ -149,31 +157,35 @@ export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
 
   const onAddUrlSubmit = (values: z.infer<typeof addUrlFormSchema>) => {
     commands
-      .addNftUri(
-        nft.launcher_id,
-        values.url,
-        values.kind as NftUriKind,
-        values.fee,
-      )
+      .addNftUri({
+        nft_id: nft.launcher_id,
+        uri: values.url,
+        kind: values.kind as NftUriKind,
+        fee: values.fee,
+      })
       .then((result) => {
         setAddUrlOpen(false);
         if (result.status === 'error') {
           console.error('Failed to add NFT URL', result.error);
         } else {
-          setSummary(result.data);
+          setResponse(result.data);
         }
       });
   };
 
   const onBurnSubmit = (fee: string) => {
     commands
-      .transferNfts([nft.launcher_id], walletState.sync.burn_address, fee)
+      .transferNfts({
+        nft_ids: [nft.launcher_id],
+        address: walletState.sync.burn_address,
+        fee,
+      })
       .then((result) => {
         setBurnOpen(false);
         if (result.status === 'error') {
           console.error('Failed to burn NFT', result.error);
         } else {
-          setSummary(result.data);
+          setResponse(result.data);
         }
       });
   };
@@ -434,8 +446,8 @@ export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
       </FeeOnlyDialog>
 
       <ConfirmationDialog
-        summary={summary}
-        close={() => setSummary(null)}
+        response={response}
+        close={() => setResponse(null)}
         onConfirm={() => updateNfts()}
       />
     </>

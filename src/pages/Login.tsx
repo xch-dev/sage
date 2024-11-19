@@ -136,17 +136,19 @@ function WalletItem({ info, keys, setKeys }: WalletItemProps) {
   const renameSelf = () => {
     if (!newName) return;
 
-    commands.renameWallet(info.fingerprint, newName).then((res) => {
-      if (res.status === 'error') return;
-      setKeys(
-        keys.map((key) =>
-          key.fingerprint === info.fingerprint
-            ? { ...key, name: newName }
-            : key,
-        ),
-      );
-      setRenameOpen(false);
-    });
+    commands
+      .renameKey({ fingerprint: info.fingerprint, name: newName })
+      .then((res) => {
+        if (res.status === 'error') return;
+        setKeys(
+          keys.map((key) =>
+            key.fingerprint === info.fingerprint
+              ? { ...key, name: newName }
+              : key,
+          ),
+        );
+        setRenameOpen(false);
+      });
 
     setNewName('');
   };
