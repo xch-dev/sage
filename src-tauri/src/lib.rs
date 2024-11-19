@@ -74,8 +74,8 @@ pub fn run() {
             // Setup
             commands::initialize,
             // Actions
-            commands::update_cat_info,
-            commands::remove_cat_info,
+            commands::update_cat,
+            commands::remove_cat,
             commands::update_did,
             commands::update_nft,
             // Peers

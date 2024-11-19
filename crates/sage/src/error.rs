@@ -5,8 +5,11 @@ use std::{
     num::{ParseIntError, TryFromIntError},
 };
 
-use chia::{clvm_traits::ToClvmError, protocol::Bytes32};
-use chia_wallet_sdk::{AddressError, ClientError};
+use chia::{
+    clvm_traits::{FromClvmError, ToClvmError},
+    protocol::Bytes32,
+};
+use chia_wallet_sdk::{AddressError, ClientError, OfferError};
 use hex::FromHexError;
 use sage_api::ErrorKind;
 use sage_database::DatabaseError;
@@ -38,11 +41,17 @@ pub enum Error {
     #[error("Client error: {0}")]
     Client(#[from] ClientError),
 
+    #[error("Offer error: {0}")]
+    Offer(#[from] OfferError),
+
     #[error("URI error: {0}")]
     Uri(#[from] UriError),
 
     #[error("To CLVM error: {0}")]
     ToClvm(#[from] ToClvmError),
+
+    #[error("From CLVM error: {0}")]
+    FromClvm(#[from] FromClvmError),
 
     #[error("BLS error: {0}")]
     Bls(#[from] chia::bls::Error),
@@ -146,6 +155,12 @@ pub enum Error {
     #[error("Missing coin: {0}")]
     MissingCoin(Bytes32),
 
+    #[error("Missing DID: {0}")]
+    MissingDid(Bytes32),
+
+    #[error("Missing NFT: {0}")]
+    MissingNft(Bytes32),
+
     #[error("Missing CAT coin: {0}")]
     MissingCatCoin(Bytes32),
 
@@ -154,6 +169,12 @@ pub enum Error {
 
     #[error("IP addr parse error: {0}")]
     IpAddrParse(#[from] AddrParseError),
+
+    #[error("No peers are currently available")]
+    NoPeers,
+
+    #[error("Could not fetch NFT with id: {0}")]
+    CouldNotFetchNft(Bytes32),
 }
 
 impl Error {
@@ -183,11 +204,14 @@ impl Error {
             | Self::ParseLogLevel(..)
             | Self::Database(..)
             | Self::Bech32m(..)
-            | Self::ToClvm(..) => ErrorKind::Internal,
+            | Self::ToClvm(..)
+            | Self::FromClvm(..) => ErrorKind::Internal,
             Self::UnknownFingerprint
             | Self::UnknownNetwork
             | Self::MissingCoin(..)
-            | Self::MissingCatCoin(..) => ErrorKind::NotFound,
+            | Self::MissingCatCoin(..)
+            | Self::MissingDid(..)
+            | Self::MissingNft(..) => ErrorKind::NotFound,
             Self::Bls(..)
             | Self::Hex(..)
             | Self::InvalidKey
@@ -209,7 +233,10 @@ impl Error {
             | Self::InvalidSignature(..)
             | Self::CoinSpent(..)
             | Self::Uri(..)
-            | Self::IpAddrParse(..) => ErrorKind::Api,
+            | Self::IpAddrParse(..)
+            | Self::Offer(..)
+            | Self::NoPeers
+            | Self::CouldNotFetchNft(..) => ErrorKind::Api,
         }
     }
 }
