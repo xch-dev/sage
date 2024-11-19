@@ -8,7 +8,7 @@ use std::{
 use chia::{bls::master_to_wallet_unhardened_intermediate, protocol::Bytes32};
 use chia_wallet_sdk::{create_rustls_connector, decode_address, load_ssl_cert, Connector};
 use indexmap::{indexmap, IndexMap};
-use sage_api::{Amount, Unit, TXCH, XCH};
+use sage_api::{Amount, Unit, XCH};
 use sage_config::{Config, Network, WalletConfig, MAINNET, TESTNET11};
 use sage_database::Database;
 use sage_keychain::Keychain;
@@ -224,10 +224,7 @@ impl Sage {
         };
 
         let intermediate_pk = master_to_wallet_unhardened_intermediate(&master_pk);
-
         let path = self.wallet_db_path(fingerprint)?;
-        let network_id = &self.config.network.network_id;
-        let genesis_challenge = &self.networks[network_id].genesis_challenge;
 
         let mut pool = SqlitePoolOptions::new()
             .connect_with(
@@ -265,14 +262,13 @@ impl Sage {
             db.clone(),
             fingerprint,
             intermediate_pk,
-            hex::decode(genesis_challenge)?.try_into()?,
+            hex::decode(&self.network().genesis_challenge)?.try_into()?,
         ));
 
         self.wallet = Some(wallet.clone());
-        self.unit = if network_id == "mainnet" {
-            XCH.clone()
-        } else {
-            TXCH.clone()
+        self.unit = Unit {
+            ticker: self.network().ticker.clone(),
+            decimals: self.network().precision,
         };
 
         self.command_sender
