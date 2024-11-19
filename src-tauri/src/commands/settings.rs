@@ -1,67 +1,34 @@
-use std::{net::IpAddr, time::Duration};
-
-use indexmap::IndexMap;
-use itertools::Itertools;
-use sage_api::PeerRecord;
-use sage_config::{Network, NetworkConfig, WalletConfig};
-use sage_wallet::SyncCommand;
+use sage_api::{
+    AddPeer, AddPeerResponse, GetPeers, GetPeersResponse, RemovePeer, RemovePeerResponse,
+    SetDerivationBatchSize, SetDerivationBatchSizeResponse, SetDeriveAutomatically,
+    SetDeriveAutomaticallyResponse, SetDiscoverPeers, SetDiscoverPeersResponse, SetNetworkId,
+    SetNetworkIdResponse, SetTargetPeers, SetTargetPeersResponse,
+};
+use sage_config::{NetworkConfig, WalletConfig};
 use specta::specta;
 use tauri::{command, State};
 
-use crate::{app_state::AppState, error::Result, parse::parse_genesis_challenge};
+use crate::{app_state::AppState, error::Result};
 
 #[command]
 #[specta]
-pub async fn get_peers(state: State<'_, AppState>) -> Result<Vec<PeerRecord>> {
-    let state = state.lock().await;
-    let peer_state = state.peer_state.lock().await;
-
-    Ok(peer_state
-        .peers_with_heights()
-        .into_iter()
-        .sorted_by_key(|info| info.0.socket_addr().ip())
-        .map(|info| PeerRecord {
-            ip_addr: info.0.socket_addr().ip().to_string(),
-            port: info.0.socket_addr().port(),
-            trusted: false,
-            peak_height: info.1,
-        })
-        .collect())
+pub async fn get_peers(state: State<'_, AppState>, req: GetPeers) -> Result<GetPeersResponse> {
+    Ok(state.lock().await.get_peers(req).await?)
 }
 
 #[command]
 #[specta]
-pub async fn remove_peer(state: State<'_, AppState>, ip_addr: IpAddr, ban: bool) -> Result<()> {
-    let state = state.lock().await;
-    let mut peer_state = state.peer_state.lock().await;
-
-    if ban {
-        peer_state.ban(ip_addr, Duration::from_secs(60 * 60), "manually banned");
-    } else {
-        peer_state.remove_peer(ip_addr);
-    }
-
-    Ok(())
+pub async fn remove_peer(
+    state: State<'_, AppState>,
+    req: RemovePeer,
+) -> Result<RemovePeerResponse> {
+    Ok(state.lock().await.remove_peer(req).await?)
 }
 
 #[command]
 #[specta]
-pub async fn add_peer(state: State<'_, AppState>, ip: IpAddr, trusted: bool) -> Result<()> {
-    state
-        .lock()
-        .await
-        .command_sender
-        .send(SyncCommand::ConnectPeer { ip, trusted })
-        .await?;
-
-    Ok(())
-}
-
-#[command]
-#[specta]
-pub async fn network_list(state: State<'_, AppState>) -> Result<IndexMap<String, Network>> {
-    let state = state.lock().await;
-    Ok(state.networks.clone())
+pub async fn add_peer(state: State<'_, AppState>, req: AddPeer) -> Result<AddPeerResponse> {
+    Ok(state.lock().await.add_peer(req).await?)
 }
 
 #[command]
@@ -73,65 +40,29 @@ pub async fn network_config(state: State<'_, AppState>) -> Result<NetworkConfig>
 
 #[command]
 #[specta]
-pub async fn set_discover_peers(state: State<'_, AppState>, discover_peers: bool) -> Result<()> {
-    let mut state = state.lock().await;
-
-    if state.config.network.discover_peers != discover_peers {
-        state.config.network.discover_peers = discover_peers;
-        state.save_config()?;
-        state
-            .command_sender
-            .send(SyncCommand::SetTargetPeers(if discover_peers {
-                state.config.network.target_peers as usize
-            } else {
-                0
-            }))
-            .await?;
-    }
-
-    Ok(())
+pub async fn set_discover_peers(
+    state: State<'_, AppState>,
+    req: SetDiscoverPeers,
+) -> Result<SetDiscoverPeersResponse> {
+    Ok(state.lock().await.set_discover_peers(req).await?)
 }
 
 #[command]
 #[specta]
-pub async fn set_target_peers(state: State<'_, AppState>, target_peers: u32) -> Result<()> {
-    let mut state = state.lock().await;
-
-    state.config.network.target_peers = target_peers;
-    state.save_config()?;
-    state
-        .command_sender
-        .send(SyncCommand::SetTargetPeers(target_peers as usize))
-        .await?;
-
-    Ok(())
+pub async fn set_target_peers(
+    state: State<'_, AppState>,
+    req: SetTargetPeers,
+) -> Result<SetTargetPeersResponse> {
+    Ok(state.lock().await.set_target_peers(req).await?)
 }
 
 #[command]
 #[specta]
-pub async fn set_network_id(state: State<'_, AppState>, network_id: String) -> Result<()> {
-    let mut state = state.lock().await;
-
-    state.config.network.network_id.clone_from(&network_id);
-    state.save_config()?;
-
-    let network = state.network();
-
-    state
-        .command_sender
-        .send(SyncCommand::SwitchNetwork {
-            network_id,
-            network: chia_wallet_sdk::Network {
-                default_port: network.default_port,
-                genesis_challenge: parse_genesis_challenge(network.genesis_challenge.clone())?,
-                dns_introducers: network.dns_introducers.clone(),
-            },
-        })
-        .await?;
-
-    state.switch_wallet().await?;
-
-    Ok(())
+pub async fn set_network_id(
+    state: State<'_, AppState>,
+    req: SetNetworkId,
+) -> Result<SetNetworkIdResponse> {
+    Ok(state.lock().await.set_network_id(req).await?)
 }
 
 #[command]
@@ -145,51 +76,16 @@ pub async fn wallet_config(state: State<'_, AppState>, fingerprint: u32) -> Resu
 #[specta]
 pub async fn set_derive_automatically(
     state: State<'_, AppState>,
-    fingerprint: u32,
-    derive_automatically: bool,
-) -> Result<()> {
-    let mut state = state.lock().await;
-
-    let config = state.try_wallet_config_mut(fingerprint)?;
-
-    if config.derive_automatically != derive_automatically {
-        config.derive_automatically = derive_automatically;
-        state.save_config()?;
-    }
-
-    Ok(())
+    req: SetDeriveAutomatically,
+) -> Result<SetDeriveAutomaticallyResponse> {
+    Ok(state.lock().await.set_derive_automatically(req)?)
 }
 
 #[command]
 #[specta]
 pub async fn set_derivation_batch_size(
     state: State<'_, AppState>,
-    fingerprint: u32,
-    derivation_batch_size: u32,
-) -> Result<()> {
-    let mut state = state.lock().await;
-
-    let config = state.try_wallet_config_mut(fingerprint)?;
-    config.derivation_batch_size = derivation_batch_size;
-    state.save_config()?;
-
-    // TODO: Update sync manager
-
-    Ok(())
-}
-
-#[command]
-#[specta]
-pub async fn rename_wallet(
-    state: State<'_, AppState>,
-    fingerprint: u32,
-    name: String,
-) -> Result<()> {
-    let mut state = state.lock().await;
-
-    let config = state.try_wallet_config_mut(fingerprint)?;
-    config.name = name;
-    state.save_config()?;
-
-    Ok(())
+    req: SetDerivationBatchSize,
+) -> Result<SetDerivationBatchSizeResponse> {
+    Ok(state.lock().await.set_derivation_batch_size(req)?)
 }

@@ -3,15 +3,13 @@ use std::{
     path::Path,
 };
 
-use chia::protocol::Bytes32;
-use chia_wallet_sdk::decode_address;
 use sage::Sage;
-use sage_api::{Amount, SyncEvent as ApiEvent, Unit, XCH};
+use sage_api::SyncEvent as ApiEvent;
 use sage_wallet::SyncEvent;
 use tauri::{AppHandle, Emitter};
 use tokio::sync::Mutex;
 
-use crate::error::{Error, ErrorKind, Result};
+use crate::error::Result;
 
 pub type AppState = Mutex<AppStateInner>;
 

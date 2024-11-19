@@ -8,8 +8,8 @@ use rand_chacha::ChaCha20Rng;
 use sage_api::{
     DeleteKey, DeleteKeyResponse, GenerateMnemonic, GenerateMnemonicResponse, GetKey,
     GetKeyResponse, GetKeys, GetKeysResponse, GetSecretKey, GetSecretKeyResponse, ImportKey,
-    ImportKeyResponse, KeyInfo, KeyKind, Login, LoginResponse, Logout, LogoutResponse, Resync,
-    ResyncResponse, SecretKeyInfo,
+    ImportKeyResponse, KeyInfo, KeyKind, Login, LoginResponse, Logout, LogoutResponse, RenameKey,
+    RenameKeyResponse, Resync, ResyncResponse, SecretKeyInfo,
 };
 
 use crate::{Error, Result, Sage};
@@ -128,6 +128,14 @@ impl Sage {
         }
 
         Ok(DeleteKeyResponse {})
+    }
+
+    pub fn rename_key(&mut self, req: RenameKey) -> Result<RenameKeyResponse> {
+        let config = self.try_wallet_config_mut(req.fingerprint)?;
+        config.name = req.name;
+        self.save_config()?;
+
+        Ok(RenameKeyResponse {})
     }
 
     pub fn get_key(&self, req: GetKey) -> Result<GetKeyResponse> {

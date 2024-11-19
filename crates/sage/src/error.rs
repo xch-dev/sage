@@ -1,6 +1,7 @@
 use std::{
     array::TryFromSliceError,
     io,
+    net::AddrParseError,
     num::{ParseIntError, TryFromIntError},
 };
 
@@ -150,6 +151,9 @@ pub enum Error {
 
     #[error("Coin already spent: {0}")]
     CoinSpent(Bytes32),
+
+    #[error("IP addr parse error: {0}")]
+    IpAddrParse(#[from] AddrParseError),
 }
 
 impl Error {
@@ -204,7 +208,8 @@ impl Error {
             | Self::InvalidPercentage(..)
             | Self::InvalidSignature(..)
             | Self::CoinSpent(..)
-            | Self::Uri(..) => ErrorKind::Api,
+            | Self::Uri(..)
+            | Self::IpAddrParse(..) => ErrorKind::Api,
         }
     }
 }

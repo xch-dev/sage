@@ -1,7 +1,8 @@
 use sage_api::{
     DeleteKey, DeleteKeyResponse, GenerateMnemonic, GenerateMnemonicResponse, GetKey,
     GetKeyResponse, GetKeys, GetKeysResponse, GetSecretKey, GetSecretKeyResponse, ImportKey,
-    ImportKeyResponse, Login, LoginResponse, Logout, LogoutResponse, Resync, ResyncResponse,
+    ImportKeyResponse, Login, LoginResponse, Logout, LogoutResponse, RenameKey, RenameKeyResponse,
+    Resync, ResyncResponse,
 };
 use specta::specta;
 use tauri::{command, State};
@@ -36,6 +37,12 @@ pub async fn import_key(state: State<'_, AppState>, req: ImportKey) -> Result<Im
 #[specta]
 pub async fn delete_key(state: State<'_, AppState>, req: DeleteKey) -> Result<DeleteKeyResponse> {
     Ok(state.lock().await.delete_key(req)?)
+}
+
+#[command]
+#[specta]
+pub async fn rename_key(state: State<'_, AppState>, req: RenameKey) -> Result<RenameKeyResponse> {
+    Ok(state.lock().await.rename_key(req)?)
 }
 
 #[command]

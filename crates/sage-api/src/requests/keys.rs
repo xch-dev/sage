@@ -62,6 +62,15 @@ pub struct DeleteKey {
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Type)]
 pub struct DeleteKeyResponse {}
 
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct RenameKey {
+    pub fingerprint: u32,
+    pub name: String,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Type)]
+pub struct RenameKeyResponse {}
+
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Type)]
 pub struct GetKeys {}
 
