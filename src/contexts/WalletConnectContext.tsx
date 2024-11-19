@@ -19,21 +19,13 @@ import { useWallet } from '@/hooks/useWallet';
 import { getCurrentWindow, UserAttentionType } from '@tauri-apps/api/window';
 import { SignClient } from '@walletconnect/sign-client';
 import { SessionTypes, SignClientTypes } from '@walletconnect/types';
-import { createContext, ReactNode, useEffect, useState } from 'react';
-
-const signClient = await SignClient.init({
-  projectId: '681ef0ed0dd8de01da5e02d3299bc59d',
-  // optional parameters
-  relayUrl: 'wss://relay.walletconnect.org',
-  metadata: {
-    name: 'Sage Wallet',
-    description: 'Sage Wallet',
-    url: 'https://sagewallet.com',
-    icons: [
-      'https://github.com/xch-dev/sage/blob/main/src-tauri/icons/icon.png?raw=true',
-    ],
-  },
-});
+import {
+  createContext,
+  ReactNode,
+  useCallback,
+  useEffect,
+  useState,
+} from 'react';
 
 const handleWalletConnectCommand = async (
   command: keyof typeof walletConnectCommands,
@@ -72,48 +64,77 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
   const initialized = useInitialization();
   const wallet = useWallet(initialized);
 
-  console.log('provider');
-
-  console.log('sessions', signClient.session.getAll());
-
+  const [signClient, setSignClient] = useState<Awaited<
+    ReturnType<typeof SignClient.init>
+  > | null>(null);
   const [sessions, setSessions] = useState<SessionTypes.Struct[]>([]);
-
   const [pendingRequests, setPendingRequests] = useState<SessionRequest[]>([]);
 
-  async function handleAndRespond(request: SessionRequest) {
-    try {
-      const result = await handleWalletConnectCommand(
-        request.params.request.method as keyof typeof walletConnectCommands,
-        request.params.request.params,
-      );
+  console.log('provider');
 
-      await signClient.respond({
-        topic: request.topic,
-        response: {
-          id: request.id,
-          jsonrpc: '2.0',
-          result: result,
-        },
-      });
-    } catch (e: any) {
-      console.error(e);
-      await signClient.respond({
-        topic: request.topic,
-        response: {
-          id: request.id,
-          jsonrpc: '2.0',
-          error: e.message,
-        },
-      });
-    }
-  }
+  console.log('sessions', signClient?.session.getAll());
 
   useEffect(() => {
+    SignClient.init({
+      projectId: '681ef0ed0dd8de01da5e02d3299bc59d',
+      // optional parameters
+      relayUrl: 'wss://relay.walletconnect.org',
+      metadata: {
+        name: 'Sage Wallet',
+        description: 'Sage Wallet',
+        url: 'https://sagewallet.com',
+        icons: [
+          'https://github.com/xch-dev/sage/blob/main/src-tauri/icons/icon.png?raw=true',
+        ],
+      },
+    }).then((client) => {
+      setSignClient(client);
+    });
+  }, []);
+
+  const handleAndRespond = useCallback(
+    async (request: SessionRequest) => {
+      if (!signClient) throw new Error('Sign client not initialized');
+
+      try {
+        const result = await handleWalletConnectCommand(
+          request.params.request.method as keyof typeof walletConnectCommands,
+          request.params.request.params,
+        );
+
+        await signClient.respond({
+          topic: request.topic,
+          response: {
+            id: request.id,
+            jsonrpc: '2.0',
+            result: result,
+          },
+        });
+      } catch (e: any) {
+        console.error(e);
+        await signClient.respond({
+          topic: request.topic,
+          response: {
+            id: request.id,
+            jsonrpc: '2.0',
+            error: e.message,
+          },
+        });
+      }
+    },
+    [signClient],
+  );
+
+  useEffect(() => {
+    if (!signClient) return;
+
     setSessions(signClient.session.getAll());
 
     async function handleSessionProposal(
       proposal: SignClientTypes.EventArguments['session_proposal'],
     ) {
+      if (!signClient) throw new Error('Sign client not initialized');
+
       console.log('session proposal', proposal);
       console.log('active wallet', wallet);
 
@@ -204,6 +225,8 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
     }
 
     async function handleSessionDelete() {
+      if (!signClient) throw new Error('Sign client not initialized');
+
       console.log('session deleted');
       setSessions(signClient.session.getAll());
     }
@@ -216,15 +239,19 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
       signClient.off('session_request', handleSessionRequest);
       signClient.off('session_delete', handleSessionDelete);
     };
-  }, [wallet, setPendingRequests]);
+  }, [signClient, wallet, handleAndRespond, setPendingRequests]);
 
   const pair = async (uri: string) => {
+    if (!signClient) throw new Error('Sign client not initialized');
+
     await signClient.core.pairing.pair({
       uri,
     });
   };
 
   const disconnect = async (topic: string) => {
+    if (!signClient) throw new Error('Sign client not initialized');
+
     await signClient.disconnect({
       topic,
       reason: { code: 1, message: 'User disconnected' },
@@ -244,6 +271,8 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
   };
 
   const rejectRequest = async (request: SessionRequest) => {
+    if (!signClient) throw new Error('Sign client not initialized');
+
     if (!pendingRequests.find((r) => r.id === request.id)) {
       return;
     }
