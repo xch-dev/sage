@@ -4677,12 +4677,17 @@ dependencies = [
  "axum-server",
  "clap",
  "dirs",
+ "paste",
+ "reqwest",
  "rustls 0.23.17",
  "rustls-pemfile",
  "sage",
  "sage-api",
+ "sage-config",
  "serde",
+ "serde_json",
  "tokio",
+ "toml 0.8.19",
  "tracing",
 ]
 

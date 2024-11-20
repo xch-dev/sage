@@ -21,6 +21,7 @@ path = "src/main.rs"
 [dependencies]
 sage = { workspace = true }
 sage-api = { workspace = true }
+sage-config = { workspace = true }
 dirs = { workspace = true }
 axum = { workspace = true }
 axum-server = { workspace = true, features = ["tls-rustls"] }
@@ -28,6 +29,10 @@ tokio = { workspace = true, features = ["full"] }
 anyhow = { workspace = true }
 tracing = { workspace = true }
 serde = { workspace = true }
+serde_json = { workspace = true }
 rustls = { workspace = true }
 rustls-pemfile = { workspace = true }
 clap = { workspace = true, features = ["derive"] }
+reqwest = { workspace = true, features = ["http2", "rustls-tls-webpki-roots", "json"] }
+paste = { workspace = true }
+toml = { workspace = true }

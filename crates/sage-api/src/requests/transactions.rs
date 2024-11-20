@@ -164,3 +164,17 @@ pub struct TransactionResponse {
     pub summary: TransactionSummary,
     pub coin_spends: Vec<CoinSpendJson>,
 }
+
+pub type SendXchResponse = TransactionResponse;
+pub type CombineXchResponse = TransactionResponse;
+pub type SplitXchResponse = TransactionResponse;
+pub type CombineCatResponse = TransactionResponse;
+pub type SplitCatResponse = TransactionResponse;
+pub type IssueCatResponse = TransactionResponse;
+pub type SendCatResponse = TransactionResponse;
+pub type CreateDidResponse = TransactionResponse;
+pub type BulkMintNftsResponse = TransactionResponse;
+pub type TransferNftsResponse = TransactionResponse;
+pub type AddNftUriResponse = TransactionResponse;
+pub type AssignNftsToDidResponse = TransactionResponse;
+pub type TransferDidsResponse = TransactionResponse;

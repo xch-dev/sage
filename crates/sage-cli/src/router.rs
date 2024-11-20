@@ -1,3 +1,13 @@
+use std::{
+    env,
+    fs::{self, File},
+    io::Read,
+    net::SocketAddr,
+    path::PathBuf,
+    sync::Arc,
+};
+
+use anyhow::{bail, Result};
 use axum::{
     extract::State,
     http::StatusCode,
@@ -5,11 +15,18 @@ use axum::{
     routing::post,
     Json, Router,
 };
-use sage::Result;
+use axum_server::tls_rustls::RustlsConfig;
+use clap::Parser;
+use paste::paste;
+use reqwest::{Client, Identity};
+use sage::Sage;
 use sage_api::ErrorKind;
-use serde::Serialize;
+use sage_config::Config;
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use tokio::sync::Mutex;
+use tracing::info;
 
-use crate::app_state::AppState;
+use crate::{app_state::AppState, tls::load_rustls_config};
 
 macro_rules! routes {
     ( $( $route:ident $( $kw:ident )?: $ty:ident = $url:literal ),* $(,)? ) => {
@@ -20,6 +37,24 @@ macro_rules! routes {
         pub fn api_router() -> Router<AppState> {
             Router::new()
                 $( .route($url, post($route)) )*
+        }
+
+        #[derive(Debug, Parser)]
+        #[clap(rename_all = "snake_case")]
+        pub enum RpcCommand {
+            Start,
+            $( $ty { #[clap(value_parser = parse_with_serde::<sage_api::$ty>)] body: sage_api::$ty } , )*
+        }
+
+        paste! {
+            impl RpcCommand {
+                pub async fn handle(self, path: PathBuf) -> anyhow::Result<()> {
+                    match self {
+                        Self::Start => start_rpc(path).await,
+                        $( Self::$ty { body } => call_rpc::<_, sage_api::[< $ty Response >]>(path, $url, body).await , )*
+                    }
+                }
+            }
         }
     };
 }
@@ -85,7 +120,106 @@ routes!(
     update_nft await: UpdateNft = "/update_nft",
 );
 
-fn handle<T>(value: Result<T>) -> Response
+async fn start_rpc(path: PathBuf) -> Result<()> {
+    let mut app = Sage::new(&path);
+    let mut receiver = app.initialize().await?;
+
+    tokio::spawn(async move {
+        while let Some(message) = receiver.recv().await {
+            println!("{message:?}");
+        }
+    });
+
+    let addr: SocketAddr = ([127, 0, 0, 1], app.config.rpc.server_port).into();
+    info!("RPC server is listening at {addr}");
+
+    let app = api_router().with_state(AppState {
+        sage: Arc::new(Mutex::new(app)),
+    });
+
+    let config = load_rustls_config(
+        path.join("ssl")
+            .join("wallet.crt")
+            .to_str()
+            .expect("could not convert path to string"),
+        path.join("ssl")
+            .join("wallet.key")
+            .to_str()
+            .expect("could not convert path to string"),
+    )?;
+
+    axum_server::bind_rustls(addr, RustlsConfig::from_config(Arc::new(config)))
+        .serve(app.into_make_service())
+        .await?;
+
+    Ok(())
+}
+
+pub async fn call_rpc<T: Serialize, R: Serialize + DeserializeOwned>(
+    path: PathBuf,
+    url: &str,
+    body: T,
+) -> Result<()> {
+    let addr = if let Ok(addr) = env::var("SAGE_RPC_HOST") {
+        addr.parse::<SocketAddr>()?
+    } else {
+        let config_path = path.join("config.toml");
+        let config = if config_path.try_exists()? {
+            let text = fs::read_to_string(&config_path)?;
+            toml::from_str(&text)?
+        } else {
+            Config::default()
+        };
+        ([127, 0, 0, 1], config.rpc.server_port).into()
+    };
+
+    let cert_path = env::var("SAGE_RPC_CERT_PATH").unwrap_or_else(|_| {
+        path.join("ssl")
+            .join("wallet.crt")
+            .to_str()
+            .expect("could not convert path to string")
+            .to_string()
+    });
+
+    let key_path = env::var("SAGE_RPC_KEY_PATH").unwrap_or_else(|_| {
+        path.join("ssl")
+            .join("wallet.key")
+            .to_str()
+            .expect("could not convert path to string")
+            .to_string()
+    });
+
+    let mut buf = Vec::new();
+    File::open(cert_path)?.read_to_end(&mut buf)?;
+    File::open(key_path)?.read_to_end(&mut buf)?;
+    let identity = Identity::from_pem(&buf)?;
+
+    let response = Client::builder()
+        .danger_accept_invalid_certs(true)
+        .use_rustls_tls()
+        .identity(identity)
+        .build()?
+        .post(format!("https://{addr}{url}"))
+        .json(&body)
+        .send()
+        .await?;
+
+    if response.status() != StatusCode::OK {
+        bail!(response.text().await?);
+    }
+
+    let json = response.json::<R>().await?;
+
+    println!("{}", serde_json::to_string_pretty(&json)?);
+
+    Ok(())
+}
+
+fn parse_with_serde<T: for<'de> Deserialize<'de>>(s: &str) -> Result<T, String> {
+    serde_json::from_str(s).map_err(|error| error.to_string())
+}
+
+fn handle<T>(value: sage::Result<T>) -> Response
 where
     T: Serialize,
 {

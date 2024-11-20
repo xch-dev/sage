@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use rustls::{
     client::danger::HandshakeSignatureValid,
     crypto::{aws_lc_rs::default_provider, verify_tls12_signature, verify_tls13_signature},
@@ -80,7 +80,7 @@ pub fn load_rustls_config(cert_path: &str, key_path: &str) -> Result<ServerConfi
     let certs = {
         let cert_file = fs::read(cert_path)?;
         rustls_pemfile::certs(&mut cert_file.as_slice())
-            .map(|item| item.map_err(|_| anyhow::anyhow!("Failed to parse certificate")))
+            .map(|item| item.map_err(|_| anyhow!("Failed to parse certificate")))
             .collect::<Result<Vec<_>>>()?
     };
 
@@ -92,7 +92,7 @@ pub fn load_rustls_config(cert_path: &str, key_path: &str) -> Result<ServerConfi
     let mut private_keys = {
         let key_file = fs::read(key_path)?;
         rustls_pemfile::pkcs8_private_keys(&mut key_file.as_slice())
-            .map(|item| item.map_err(|_| anyhow::anyhow!("Failed to parse key")))
+            .map(|item| item.map_err(|_| anyhow!("Failed to parse key")))
             .collect::<Result<Vec<_>>>()?
     };
 
