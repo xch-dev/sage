@@ -24,7 +24,11 @@ pub fn unlock_assets(
     for coin in locked.xch {
         let notarized_payment = NotarizedPayment {
             nonce,
-            payments: vec![Payment::new(p2_puzzle_hash, coin.amount)],
+            payments: vec![Payment::with_memos(
+                p2_puzzle_hash,
+                coin.amount,
+                vec![p2_puzzle_hash.into()],
+            )],
         };
 
         assertions.push(payment_assertion(coin.puzzle_hash, &notarized_payment));
