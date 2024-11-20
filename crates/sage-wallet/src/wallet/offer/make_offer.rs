@@ -93,7 +93,11 @@ impl Wallet {
             builder = builder.request(
                 &mut ctx,
                 &settlement,
-                vec![Payment::new(p2_puzzle_hash, taker.xch)],
+                vec![Payment::with_memos(
+                    p2_puzzle_hash,
+                    taker.xch,
+                    vec![p2_puzzle_hash.into()],
+                )],
             )?;
         }
 
