@@ -19,7 +19,10 @@ sage = { workspace = true }
 sage-api = { workspace = true }
 dirs = { workspace = true }
 axum = { workspace = true }
+axum-server = { workspace = true, features = ["tls-rustls"] }
 tokio = { workspace = true, features = ["full"] }
 anyhow = { workspace = true }
 tracing = { workspace = true }
 serde = { workspace = true }
+rustls = { workspace = true }
+rustls-pemfile = { workspace = true }
