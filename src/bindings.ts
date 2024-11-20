@@ -545,7 +545,7 @@ export type Logout = Record<string, never>
 export type LogoutResponse = Record<string, never>
 export type MakeOffer = { requested_assets: Assets; offered_assets: Assets; fee: Amount }
 export type MakeOfferResponse = { offer: string }
-export type NetworkConfig = { network_id?: string; target_peers?: number; discover_peers?: boolean }
+export type NetworkConfig = { network_id: string; target_peers: number; discover_peers: boolean }
 export type NftCollectionRecord = { collection_id: string; did_id: string; metadata_collection_id: string; visible: boolean; name: string | null; icon: string | null; nfts: number; visible_nfts: number }
 export type NftInfo = { launcher_id: string; collection_id: string | null; collection_name: string | null; minter_did: string | null; owner_did: string | null; visible: boolean; coin_id: string; address: string; royalty_address: string; royalty_percent: string; data_uris: string[]; data_hash: string | null; metadata_uris: string[]; metadata_hash: string | null; license_uris: string[]; license_hash: string | null; edition_number: number | null; edition_total: number | null; created_height: number | null; data: string | null; data_mime_type: string | null; metadata: string | null }
 export type NftMint = { edition_number: number | null; edition_total: number | null; data_uris: string[]; metadata_uris: string[]; license_uris: string[]; royalty_address: string | null; royalty_percent: Amount }
@@ -605,7 +605,7 @@ export type UpdateNft = { nft_id: string; visible: boolean }
 export type UpdateNftResponse = Record<string, never>
 export type ViewOffer = { offer: string }
 export type ViewOfferResponse = { offer: OfferSummary }
-export type WalletConfig = { name?: string; derive_automatically?: boolean; derivation_batch_size?: number }
+export type WalletConfig = { name: string; derive_automatically: boolean; derivation_batch_size: number }
 
 /** tauri-specta globals **/
 
