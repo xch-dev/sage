@@ -1,10 +1,4 @@
-mod app_state;
-mod router;
-
-use anyhow::Result;
-use app_state::AppState;
-use axum_server::tls_rustls::RustlsConfig;
-use router::api_router;
+use anyhow::{anyhow, Result};
 use rustls::{
     client::danger::HandshakeSignatureValid,
     crypto::{aws_lc_rs::default_provider, verify_tls12_signature, verify_tls13_signature},
@@ -15,10 +9,7 @@ use rustls::{
     },
     DistinguishedName, SignatureScheme,
 };
-use sage::Sage;
-use std::{fs, net::SocketAddr, sync::Arc};
-use tokio::sync::Mutex;
-use tracing::info;
+use std::{fs, sync::Arc};
 
 // Custom certificate verifier that only accepts the wallet certificate
 #[derive(Debug)]
@@ -84,12 +75,12 @@ impl ClientCertVerifier for WalletCertVerifier {
     }
 }
 
-fn load_rustls_config(cert_path: &str, key_path: &str) -> Result<ServerConfig> {
+pub fn load_rustls_config(cert_path: &str, key_path: &str) -> Result<ServerConfig> {
     // Load the certificate
     let certs = {
         let cert_file = fs::read(cert_path)?;
         rustls_pemfile::certs(&mut cert_file.as_slice())
-            .map(|item| item.map_err(|_| anyhow::anyhow!("Failed to parse certificate")))
+            .map(|item| item.map_err(|_| anyhow!("Failed to parse certificate")))
             .collect::<Result<Vec<_>>>()?
     };
 
@@ -101,7 +92,7 @@ fn load_rustls_config(cert_path: &str, key_path: &str) -> Result<ServerConfig> {
     let mut private_keys = {
         let key_file = fs::read(key_path)?;
         rustls_pemfile::pkcs8_private_keys(&mut key_file.as_slice())
-            .map(|item| item.map_err(|_| anyhow::anyhow!("Failed to parse key")))
+            .map(|item| item.map_err(|_| anyhow!("Failed to parse key")))
             .collect::<Result<Vec<_>>>()?
     };
 
@@ -119,48 +110,4 @@ fn load_rustls_config(cert_path: &str, key_path: &str) -> Result<ServerConfig> {
         .with_single_cert(certs, PrivateKeyDer::Pkcs8(private_keys.remove(0)))?;
 
     Ok(config)
-}
-
-#[tokio::main]
-async fn main() -> Result<()> {
-    default_provider()
-        .install_default()
-        .expect("could not install AWS LC provider");
-
-    let path = dirs::data_dir()
-        .expect("could not find data directory")
-        .join("com.rigidnetwork.sage");
-
-    let mut app = Sage::new(&path);
-    let mut receiver = app.initialize().await?;
-
-    tokio::spawn(async move {
-        while let Some(message) = receiver.recv().await {
-            println!("{message:?}");
-        }
-    });
-
-    let addr: SocketAddr = "0.0.0.0:3000".parse()?;
-    info!("RPC server is listening at {addr}");
-
-    let app = api_router().with_state(AppState {
-        sage: Arc::new(Mutex::new(app)),
-    });
-
-    let config = load_rustls_config(
-        path.join("ssl")
-            .join("wallet.crt")
-            .to_str()
-            .expect("could not convert path to string"),
-        path.join("ssl")
-            .join("wallet.key")
-            .to_str()
-            .expect("could not convert path to string"),
-    )?;
-
-    axum_server::bind_rustls(addr, RustlsConfig::from_config(Arc::new(config)))
-        .serve(app.into_make_service())
-        .await?;
-
-    Ok(())
 }

@@ -1,9 +1,9 @@
 [package]
-name = "sage-rpc"
+name = "sage-cli"
 version = "0.7.0"
 edition = "2021"
 license = "Apache-2.0"
-description = "An RPC server for the Sage wallet."
+description = "A CLI and RPC for Sage wallet."
 authors = ["Rigidity <me@rigidnetwork.com>"]
 homepage = "https://github.com/rigidity/sage"
 repository = "https://github.com/rigidity/sage"
@@ -14,9 +14,14 @@ categories = { workspace = true }
 [lints]
 workspace = true
 
+[[bin]]
+name = "sage"
+path = "src/main.rs"
+
 [dependencies]
 sage = { workspace = true }
 sage-api = { workspace = true }
+sage-config = { workspace = true }
 dirs = { workspace = true }
 axum = { workspace = true }
 axum-server = { workspace = true, features = ["tls-rustls"] }
@@ -24,5 +29,10 @@ tokio = { workspace = true, features = ["full"] }
 anyhow = { workspace = true }
 tracing = { workspace = true }
 serde = { workspace = true }
+serde_json = { workspace = true }
 rustls = { workspace = true }
 rustls-pemfile = { workspace = true }
+clap = { workspace = true, features = ["derive"] }
+reqwest = { workspace = true, features = ["http2", "rustls-tls-webpki-roots", "json"] }
+paste = { workspace = true }
+toml = { workspace = true }

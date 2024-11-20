@@ -109,9 +109,10 @@ tracing-appender = "0.2.3"
 log = "0.4.22"
 test-log = "0.2.16"
 
-# RPC
+# CLI
 dirs = "5.0.1"
 axum = "0.7.9"
 axum-server = "0.7.1"
 rustls = "0.23.17"
 rustls-pemfile = "2.2.0"
+clap = "4.5.21"

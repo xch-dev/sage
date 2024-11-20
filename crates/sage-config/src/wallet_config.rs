@@ -2,35 +2,19 @@ use serde::{Deserialize, Serialize};
 use specta::Type;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[serde(default)]
 pub struct WalletConfig {
-    #[serde(default = "default_wallet_name")]
     pub name: String,
-
-    #[serde(default = "default_derive_automatically")]
     pub derive_automatically: bool,
-
-    #[serde(default = "default_derivation_batch_size")]
     pub derivation_batch_size: u32,
 }
 
 impl Default for WalletConfig {
     fn default() -> Self {
         Self {
-            name: default_wallet_name(),
-            derive_automatically: default_derive_automatically(),
-            derivation_batch_size: default_derivation_batch_size(),
+            name: "Unnamed Wallet".to_string(),
+            derive_automatically: true,
+            derivation_batch_size: 500,
         }
     }
-}
-
-fn default_wallet_name() -> String {
-    "Unnamed Wallet".to_string()
-}
-
-fn default_derive_automatically() -> bool {
-    true
-}
-
-fn default_derivation_batch_size() -> u32 {
-    500
 }
