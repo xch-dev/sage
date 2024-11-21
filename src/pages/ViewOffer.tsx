@@ -1,10 +1,22 @@
-import { commands, Error, OfferAssets, OfferSummary } from '@/bindings';
+import {
+  commands,
+  Error,
+  OfferAssets,
+  OfferSummary,
+  TakeOfferResponse,
+} from '@/bindings';
+import ConfirmationDialog from '@/components/ConfirmationDialog';
 import Container from '@/components/Container';
+import { CopyButton } from '@/components/CopyButton';
 import ErrorDialog from '@/components/ErrorDialog';
 import Header from '@/components/Header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
+import { nftUri } from '@/lib/nftUri';
 import { useWalletState } from '@/state';
 import BigNumber from 'bignumber.js';
 import { ArrowDownIcon, ArrowUpIcon } from 'lucide-react';
@@ -17,7 +29,9 @@ export function ViewOffer() {
   const navigate = useNavigate();
 
   const [summary, setSummary] = useState<OfferSummary | null>(null);
+  const [response, setResponse] = useState<TakeOfferResponse | null>(null);
   const [error, setError] = useState<Error | null>(null);
+  const [fee, setFee] = useState('');
 
   useEffect(() => {
     if (!offer) return;
@@ -31,6 +45,16 @@ export function ViewOffer() {
     });
   }, [offer]);
 
+  const take = () => {
+    commands.takeOffer({ offer: offer!, fee: fee || '0' }).then((result) => {
+      if (result.status === 'error') {
+        setError(result.error);
+      } else {
+        setResponse(result.data);
+      }
+    });
+  };
+
   return (
     <>
       <Header title='View Offer' />
@@ -41,15 +65,17 @@ export function ViewOffer() {
             <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2 pr-2 space-x-2'>
               <CardTitle className='text-md font-medium truncate flex items-center'>
                 <ArrowUpIcon className='mr-2 h-4 w-4' />
-                Offering
+                Sending
               </CardTitle>
             </CardHeader>
-            <CardContent className='flex flex-col divide-y'>
+            <CardContent className='flex flex-col'>
               <div className='text-sm text-muted-foreground'>
                 The assets you have to pay to fulfill the offer.
               </div>
 
-              <div className='mt-4'>
+              <Separator className='my-4' />
+
+              <div className='flex flex-col gap-4'>
                 <Assets
                   assets={
                     summary?.taker ?? {
@@ -59,6 +85,30 @@ export function ViewOffer() {
                     }
                   }
                 />
+
+                <div className='flex flex-col space-y-1.5'>
+                  <Label htmlFor='fee'>Network Fee</Label>
+                  <Input
+                    id='fee'
+                    type='text'
+                    placeholder='0.00'
+                    className='pr-12'
+                    value={fee}
+                    onChange={(e) => setFee(e.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault();
+                        take();
+                      }
+                    }}
+                  />
+
+                  <span className='text-xs text-muted-foreground'>
+                    {BigNumber(summary?.fee ?? '0').isGreaterThan(0)
+                      ? `There is already a fee of ${summary?.fee} included by the maker.`
+                      : ''}
+                  </span>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -70,22 +120,22 @@ export function ViewOffer() {
                 Receiving
               </CardTitle>
             </CardHeader>
-            <CardContent className='flex flex-col divide-y'>
+            <CardContent className='flex flex-col'>
               <div className='text-sm text-muted-foreground'>
-                The assets being given to you as part of this offer.
+                The assets being given to you in the offer.
               </div>
 
-              <div className='mt-4'>
-                <Assets
-                  assets={
-                    summary?.maker ?? {
-                      xch: { amount: '0', royalty: '0' },
-                      cats: {},
-                      nfts: {},
-                    }
+              <Separator className='my-4' />
+
+              <Assets
+                assets={
+                  summary?.maker ?? {
+                    xch: { amount: '0', royalty: '0' },
+                    cats: {},
+                    nfts: {},
                   }
-                />
-              </div>
+                }
+              />
             </CardContent>
           </Card>
         </div>
@@ -95,21 +145,7 @@ export function ViewOffer() {
             Save Offer
           </Button>
 
-          <Button
-            onClick={() => {
-              commands
-                .takeOffer({ offer: offer!, fee: '0.00005' })
-                .then((result) => {
-                  if (result.status === 'error') {
-                    setError(result.error);
-                  } else {
-                    navigate('/offers');
-                  }
-                });
-            }}
-          >
-            Take Offer
-          </Button>
+          <Button onClick={take}>Take Offer</Button>
         </div>
 
         <ErrorDialog
@@ -120,6 +156,12 @@ export function ViewOffer() {
           }}
         />
       </Container>
+
+      <ConfirmationDialog
+        response={response}
+        close={() => setResponse(null)}
+        onConfirm={() => navigate('/offers')}
+      />
     </>
   );
 }
@@ -142,55 +184,113 @@ function Assets({ assets }: AssetsProps) {
   }
 
   return (
-    <div className='flex flex-col space-y-4 divide-y [&>*]:pt-4 divide-neutral-200 dark:divide-neutral-800'>
+    <div className='flex flex-col gap-2 divide-neutral-200 dark:divide-neutral-800'>
       {amount.isGreaterThan(0) && (
-        <div className='flex justify-between items-center gap-2 rounded-md'>
-          <Badge>
-            <span className='truncate'>XCH</span>
-          </Badge>
-          <div className='text-sm font-medium'>
-            {amount.toString()} {walletState.sync.unit.ticker}
+        <div className='flex flex-col gap-1.5 rounded-md border p-2'>
+          <div className='overflow-hidden flex items-center gap-2'>
+            <Badge>
+              <span className='truncate'>{walletState.sync.unit.ticker}</span>
+            </Badge>
+
+            <div className='text-sm font-medium'>
+              {BigNumber(amount).plus(assets.xch.royalty).toString()}{' '}
+              {walletState.sync.unit.ticker}
+            </div>
           </div>
+
+          {BigNumber(assets.xch.royalty).isGreaterThan(0) && (
+            <>
+              <Separator className='my-1' />
+
+              <div className='text-sm text-muted-foreground truncate text-neutral-600 dark:text-neutral-300'>
+                Amount includes {assets.xch.royalty}{' '}
+                {walletState.sync.unit.ticker} royalty
+              </div>
+            </>
+          )}
         </div>
       )}
 
       {Object.entries(assets.cats).map(([assetId, cat], i) => (
-        <div key={i} className='flex flex-col gap-1.5 rounded-md'>
-          <div className='overflow-hidden flex justify-between items-center gap-2'>
+        <div key={i} className='flex flex-col gap-1.5 rounded-md border p-2'>
+          <div className='overflow-hidden flex items-center gap-2'>
             <div className='truncate flex items-center gap-2'>
               <Badge className='max-w-[100px] bg-blue-600 text-white dark:bg-blue-600 dark:text-white'>
-                <span className='truncate'>CAT</span>
+                <span className='truncate'>{cat.ticker ?? 'CAT'}</span>
               </Badge>
-              <div className='text-xs text-muted-foreground truncate'>
-                {cat.name
-                  ? `${cat.name} (${assetId.substring(0, 6)}...${assetId.substring(
-                      assetId.length - 6,
-                    )})`
-                  : assetId.substring(0, 6) +
-                    '...' +
-                    assetId.substring(assetId.length - 6)}
-              </div>
             </div>
             <div className='text-sm font-medium whitespace-nowrap'>
-              {cat.amount} {cat.ticker}
+              {BigNumber(cat.amount).plus(cat.royalty).toString()} {cat.name}
             </div>
           </div>
+
+          <Separator className='my-1' />
+
+          <div className='flex gap-1.5 items-center'>
+            {cat.icon_url && (
+              <img src={cat.icon_url} className='w-6 h-6 rounded-full' />
+            )}
+
+            <div className='text-sm text-muted-foreground truncate font-mono'>
+              {assetId.slice(0, 10) + '...' + assetId.slice(-10)}
+            </div>
+
+            <CopyButton value={assetId} className='w-4 h-4' />
+          </div>
+
+          {BigNumber(cat.royalty).isGreaterThan(0) && (
+            <>
+              <Separator className='my-1' />
+
+              <div className='text-sm text-muted-foreground truncate text-neutral-600 dark:text-neutral-300'>
+                Amount includes {cat.royalty} {cat.ticker ?? 'CAT'} royalty
+              </div>
+            </>
+          )}
         </div>
       ))}
 
       {Object.entries(assets.nfts).map(([launcherId, nft], i) => (
-        <div key={i} className='flex flex-col gap-1.5 rounded-md'>
-          <div className='overflow-hidden flex justify-between items-center gap-2'>
+        <div key={i} className='flex flex-col gap-1.5 rounded-md border p-2'>
+          <div className='overflow-hidden flex items-center gap-2'>
             <div className='truncate flex items-center gap-2'>
               <Badge className='max-w-[100px] bg-green-600 text-white dark:bg-green-600 dark:text-white'>
                 <span className='truncate'>NFT</span>
               </Badge>
-              <div className='max-w-[10rem] text-xs truncate text-muted-foreground'>
-                {launcherId}
-              </div>
             </div>
 
-            <div className='text-sm font-medium'>{nft.name}</div>
+            <div className='text-sm font-medium'>{nft.name ?? 'Unnamed'}</div>
+          </div>
+
+          <Separator className='my-1' />
+
+          <div className='flex gap-1.5 items-center'>
+            <img
+              src={nftUri(nft.image_mime_type, nft.image_data)}
+              className='w-6 h-6 rounded-sm'
+            />
+
+            <div className='text-sm text-muted-foreground truncate font-mono'>
+              {launcherId.slice(0, 10) + '...' + launcherId.slice(-10)}
+            </div>
+
+            <CopyButton value={launcherId} className='w-4 h-4' />
+          </div>
+
+          <Separator className='my-1' />
+
+          <div className='flex gap-1.5 items-center text-sm text-muted-foreground truncate'>
+            <span>
+              <span className='text-neutral-600 dark:text-neutral-300'>
+                {nft.royalty_percent}% royalty to{' '}
+              </span>
+              <span className='font-mono'>
+                {nft.royalty_address.slice(0, 10) +
+                  '...' +
+                  nft.royalty_address.slice(-10)}
+              </span>
+            </span>
+            <CopyButton value={nft.royalty_address} className='w-4 h-4' />
           </div>
         </div>
       ))}

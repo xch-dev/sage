@@ -7,6 +7,7 @@ use futures_util::stream::FuturesUnordered;
 use reqwest::header::CONTENT_TYPE;
 use thiserror::Error;
 use tokio::time::timeout;
+use tracing::debug;
 
 #[derive(Debug, Clone)]
 pub struct Data {
@@ -114,29 +115,62 @@ pub async fn fetch_uris(
     while let Some((uri, result)) = futures.next().await {
         let item = result?;
 
-        let Some(data) = data.take() else {
+        let Some(old_data) = data.take() else {
             data = Some(item);
             continue;
         };
 
-        if data.hash != item.hash {
+        if old_data.hash != item.hash {
             return Err(UriError::HashMismatch {
                 uri,
-                expected: data.hash,
+                expected: old_data.hash,
                 found: item.hash,
             });
         }
 
-        if data.mime_type != item.mime_type {
+        if old_data.mime_type != item.mime_type {
             return Err(UriError::MimeTypeMismatch {
                 uri,
-                expected: data.mime_type,
+                expected: old_data.mime_type,
                 found: item.mime_type,
             });
         }
 
-        assert_eq!(data.blob, item.blob);
+        assert_eq!(old_data.blob, item.blob);
+
+        data = Some(item);
     }
 
     data.ok_or(UriError::NoUris)
+}
+
+pub async fn lookup_from_uris_with_hash(
+    uris: Vec<String>,
+    request_timeout: Duration,
+    stream_timeout: Duration,
+    hash: Bytes32,
+) -> Option<Data> {
+    let mut futures = FuturesUnordered::new();
+
+    for uri in uris {
+        futures.push(async move {
+            let result = fetch_uri(&uri, request_timeout, stream_timeout).await;
+            (uri, result)
+        });
+    }
+
+    while let Some((uri, result)) = futures.next().await {
+        let Ok(item) = result else {
+            debug!("Failed to fetch NFT URI {uri}, expected hash {hash}");
+            continue;
+        };
+
+        if hash != item.hash {
+            return None;
+        }
+
+        return Some(item);
+    }
+
+    None
 }
