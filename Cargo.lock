@@ -4630,6 +4630,7 @@ dependencies = [
  "base64 0.22.1",
  "bech32",
  "bigdecimal",
+ "bincode",
  "bip39",
  "chia",
  "chia-wallet-sdk",
@@ -4646,6 +4647,7 @@ dependencies = [
  "sage-database",
  "sage-keychain",
  "sage-wallet",
+ "serde",
  "serde_json",
  "sqlx",
  "thiserror 1.0.63",
@@ -4751,6 +4753,7 @@ dependencies = [
  "tauri-plugin-shell",
  "tauri-specta",
  "tokio",
+ "tracing",
 ]
 
 [[package]]

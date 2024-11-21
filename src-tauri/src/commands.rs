@@ -1,15 +1,39 @@
+use std::time::Duration;
+
 use chia_wallet_sdk::decode_address;
 use sage_api::*;
 use sage_config::{NetworkConfig, WalletConfig};
 use specta::specta;
 use tauri::{command, State};
+use tokio::time::sleep;
+use tracing::error;
 
 use crate::{app_state::AppState, error::Result};
 
 #[command]
 #[specta]
 pub async fn initialize(state: State<'_, AppState>) -> Result<()> {
-    state.lock().await.initialize().await
+    if state.lock().await.initialize().await? {
+        return Ok(());
+    }
+
+    let app_state = (*state).clone();
+
+    tokio::spawn(async move {
+        loop {
+            sleep(Duration::from_secs(5)).await;
+
+            let app_state = app_state.lock().await;
+
+            if let Err(error) = app_state.sage.save_peers().await {
+                error!("Error while saving peers: {error:?}");
+            }
+
+            drop(app_state);
+        }
+    });
+
+    Ok(())
 }
 
 #[command]

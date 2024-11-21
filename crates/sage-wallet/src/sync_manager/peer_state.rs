@@ -134,4 +134,20 @@ impl PeerState {
     pub(super) fn add_peer(&mut self, state: PeerInfo) {
         self.peers.insert(state.peer.socket_addr().ip(), state);
     }
+
+    pub fn trusted_peers(&self) -> &HashSet<IpAddr> {
+        &self.trusted_peers
+    }
+
+    pub fn banned_peers(&mut self) -> &HashMap<IpAddr, u64> {
+        self.banned_peers.retain(|_, ban_until| {
+            let start = SystemTime::now();
+            let since_the_epoch = start
+                .duration_since(UNIX_EPOCH)
+                .expect("Time went backwards");
+
+            *ban_until > since_the_epoch.as_secs()
+        });
+        &self.banned_peers
+    }
 }
