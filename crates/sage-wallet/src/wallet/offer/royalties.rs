@@ -2,7 +2,7 @@ use chia::{
     protocol::Bytes32,
     puzzles::{
         cat::CatArgs,
-        offer::{NotarizedPayment, Payment, SETTLEMENT_PAYMENTS_PUZZLE_HASH},
+        offer::{Memos, NotarizedPayment, Payment, SETTLEMENT_PAYMENTS_PUZZLE_HASH},
     },
 };
 use chia_wallet_sdk::{
@@ -82,7 +82,7 @@ impl RoyaltyPayment {
             payments: vec![Payment::with_memos(
                 self.p2_puzzle_hash,
                 self.amount,
-                vec![self.p2_puzzle_hash.into()],
+                Memos(vec![self.p2_puzzle_hash.into()]),
             )],
         }
     }

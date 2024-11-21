@@ -3,7 +3,8 @@ use std::{collections::HashMap, mem};
 use chia::{
     protocol::{Bytes32, Coin},
     puzzles::offer::{
-        NotarizedPayment, Payment, SettlementPaymentsSolution, SETTLEMENT_PAYMENTS_PUZZLE_HASH,
+        Memos, NotarizedPayment, Payment, SettlementPaymentsSolution,
+        SETTLEMENT_PAYMENTS_PUZZLE_HASH,
     },
 };
 use chia_wallet_sdk::{
@@ -111,7 +112,7 @@ impl Wallet {
                             payments: vec![Payment::with_memos(
                                 royalty.p2_puzzle_hash,
                                 royalty.amount,
-                                vec![royalty.p2_puzzle_hash.into()],
+                                Memos(vec![royalty.p2_puzzle_hash.into()]),
                             )],
                         }],
                     },
@@ -185,7 +186,7 @@ impl Wallet {
                             payments: vec![Payment::with_memos(
                                 royalty.p2_puzzle_hash,
                                 royalty.amount,
-                                vec![royalty.p2_puzzle_hash.into()],
+                                Memos(vec![royalty.p2_puzzle_hash.into()]),
                             )],
                         }],
                     },

@@ -2,7 +2,7 @@ use std::mem;
 
 use chia::{
     protocol::Bytes32,
-    puzzles::offer::{NotarizedPayment, Payment, SettlementPaymentsSolution},
+    puzzles::offer::{Memos, NotarizedPayment, Payment, SettlementPaymentsSolution},
 };
 use chia_wallet_sdk::{
     payment_assertion, AssertPuzzleAnnouncement, Cat, CatSpend, Layer, SettlementLayer,
@@ -27,7 +27,7 @@ pub fn unlock_assets(
             payments: vec![Payment::with_memos(
                 p2_puzzle_hash,
                 coin.amount,
-                vec![p2_puzzle_hash.into()],
+                Memos(vec![p2_puzzle_hash.into()]),
             )],
         };
 
@@ -51,7 +51,7 @@ pub fn unlock_assets(
                 payments: vec![Payment::with_memos(
                     p2_puzzle_hash,
                     cat.coin.amount,
-                    vec![p2_puzzle_hash.into()],
+                    Memos(vec![p2_puzzle_hash.into()]),
                 )],
             };
 
@@ -74,7 +74,7 @@ pub fn unlock_assets(
             payments: vec![Payment::with_memos(
                 p2_puzzle_hash,
                 nft.coin.amount,
-                vec![p2_puzzle_hash.into()],
+                Memos(vec![p2_puzzle_hash.into()]),
             )],
         };
 

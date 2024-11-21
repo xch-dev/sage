@@ -3,7 +3,7 @@ use chia::{
     protocol::{Bytes32, CoinSpend, Program},
     puzzles::{
         cat::CatArgs,
-        offer::{Payment, SETTLEMENT_PAYMENTS_PUZZLE_HASH},
+        offer::{Memos, Payment, SETTLEMENT_PAYMENTS_PUZZLE_HASH},
     },
 };
 use chia_wallet_sdk::{Conditions, Layer, NftInfo, OfferBuilder, Partial, SpendContext};
@@ -96,7 +96,7 @@ impl Wallet {
                 vec![Payment::with_memos(
                     p2_puzzle_hash,
                     taker.xch,
-                    vec![p2_puzzle_hash.into()],
+                    Memos(vec![p2_puzzle_hash.into()]),
                 )],
             )?;
         }
@@ -112,7 +112,7 @@ impl Wallet {
                 vec![Payment::with_memos(
                     p2_puzzle_hash,
                     amount,
-                    vec![p2_puzzle_hash.into()],
+                    Memos(vec![p2_puzzle_hash.into()]),
                 )],
             )?;
         }
@@ -137,7 +137,7 @@ impl Wallet {
                 vec![Payment::with_memos(
                     p2_puzzle_hash,
                     1,
-                    vec![p2_puzzle_hash.into()],
+                    Memos(vec![p2_puzzle_hash.into()]),
                 )],
             )?;
         }
