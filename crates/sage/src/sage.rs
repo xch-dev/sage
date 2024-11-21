@@ -3,6 +3,7 @@ use std::{
     path::{Path, PathBuf},
     str::FromStr,
     sync::Arc,
+    time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
 use chia::{bls::master_to_wallet_unhardened_intermediate, protocol::Bytes32};
@@ -22,7 +23,7 @@ use tracing::{error, info, Level};
 use tracing_appender::rolling::{Builder, Rotation};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer};
 
-use crate::{Error, Result};
+use crate::{peers::Peers, Error, Result};
 
 #[derive(Debug)]
 pub struct Sage {
@@ -63,6 +64,7 @@ impl Sage {
 
         let receiver = self.setup_sync_manager()?;
         self.switch_wallet().await?;
+        self.setup_peers().await?;
 
         info!("Sage wallet initialized");
 
@@ -276,6 +278,83 @@ impl Sage {
                 wallet: Some(wallet),
             })
             .await?;
+
+        Ok(())
+    }
+
+    pub async fn setup_peers(&mut self) -> Result<()> {
+        let peer_dir = self.path.join("peers");
+
+        if !peer_dir.exists() {
+            fs::create_dir_all(&peer_dir)?;
+        }
+
+        let peer_path = peer_dir.join(format!("{}.bin", self.config.network.network_id));
+
+        let peers = if peer_path.try_exists()? {
+            Peers::from_bytes(&fs::read(&peer_path)?).unwrap_or_else(|error| {
+                error!("Failed to load peers, reverting to default: {error}");
+                Peers::default()
+            })
+        } else {
+            Peers::default()
+        };
+
+        let mut state = self.peer_state.lock().await;
+
+        for (&ip, &timestamp) in &peers.banned {
+            let now = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .expect("system time before epoch")
+                .as_secs();
+
+            if now >= timestamp {
+                continue;
+            }
+
+            state.ban(ip, Duration::from_secs(timestamp - now), "already banned");
+        }
+
+        for &ip in &peers.connections {
+            if state.peer(ip).is_some() {
+                continue;
+            }
+
+            self.command_sender
+                .send(SyncCommand::ConnectPeer {
+                    ip,
+                    trusted: peers.trusted.contains(&ip),
+                })
+                .await?;
+        }
+
+        Ok(())
+    }
+
+    pub async fn save_peers(&self) -> Result<()> {
+        let peer_dir = self.path.join("peers");
+
+        if !peer_dir.exists() {
+            fs::create_dir_all(&peer_dir)?;
+        }
+
+        let mut peers = Peers::default();
+        let mut state = self.peer_state.lock().await;
+
+        for peer in state.peers() {
+            peers.connections.insert(peer.socket_addr().ip());
+        }
+
+        for (&ip, &ban) in state.banned_peers() {
+            peers.banned.insert(ip, ban);
+        }
+
+        for &ip in state.trusted_peers() {
+            peers.trusted.insert(ip);
+        }
+
+        let peer_path = peer_dir.join(format!("{}.bin", self.config.network.network_id));
+        fs::write(&peer_path, peers.to_bytes()?)?;
 
         Ok(())
     }

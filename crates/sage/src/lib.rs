@@ -2,6 +2,7 @@
 
 mod endpoints;
 mod error;
+mod peers;
 mod sage;
 mod utils;
 

@@ -46,7 +46,7 @@ import {
   HelpCircleIcon,
 } from 'lucide-react';
 
-export default function NetworkList() {
+export default function PeerList() {
   const [peers, setPeers] = useState<PeerRecord[] | null>(null);
   const [isAddOpen, setAddOpen] = useState(false);
   const [ip, setIp] = useState('');

@@ -9,6 +9,8 @@ export default function useInitialization() {
       commands.initialize().then((result) => {
         if (result.status === 'ok') {
           setInitialized(true);
+        } else {
+          console.error(result.error);
         }
       });
     } catch (err: unknown) {

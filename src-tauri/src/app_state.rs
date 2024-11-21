@@ -1,6 +1,7 @@
 use std::{
     ops::{Deref, DerefMut},
     path::Path,
+    sync::Arc,
 };
 
 use sage::Sage;
@@ -11,7 +12,7 @@ use tokio::sync::Mutex;
 
 use crate::error::Result;
 
-pub type AppState = Mutex<AppStateInner>;
+pub type AppState = Arc<Mutex<AppStateInner>>;
 
 pub struct AppStateInner {
     pub app_handle: AppHandle,
@@ -42,9 +43,9 @@ impl AppStateInner {
         }
     }
 
-    pub async fn initialize(&mut self) -> Result<()> {
+    pub async fn initialize(&mut self) -> Result<bool> {
         if self.initialized {
-            return Ok(());
+            return Ok(true);
         }
 
         self.initialized = true;
@@ -74,6 +75,6 @@ impl AppStateInner {
             Result::Ok(())
         });
 
-        Ok(())
+        Ok(false)
     }
 }

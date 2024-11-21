@@ -1,4 +1,4 @@
-use app_state::AppStateInner;
+use app_state::{AppState, AppStateInner};
 use sage_api::SyncEvent;
 use tauri::Manager;
 use tauri_specta::{collect_commands, collect_events, Builder};
@@ -66,6 +66,7 @@ pub fn run() {
             commands::wallet_config,
             commands::set_derive_automatically,
             commands::set_derivation_batch_size,
+            commands::get_networks,
             commands::update_cat,
             commands::remove_cat,
             commands::update_did,
@@ -93,8 +94,9 @@ pub fn run() {
             builder.mount_events(app);
             let app_handle = app.handle().clone();
             let path = app.path().app_data_dir()?;
-            let state = AppStateInner::new(app_handle, &path);
-            app.manage(Mutex::new(state));
+            let inner = AppStateInner::new(app_handle, &path);
+            let app_state = AppState::new(Mutex::new(inner));
+            app.manage(app_state);
             Ok(())
         })
         .run(tauri::generate_context!())

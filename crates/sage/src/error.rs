@@ -74,6 +74,9 @@ pub enum Error {
     #[error("TOML serialization error: {0}")]
     TomlSer(#[from] toml::ser::Error),
 
+    #[error("Bincode error: {0}")]
+    Bincode(#[from] bincode::Error),
+
     #[error("Logging initialization error: {0}")]
     LogSubscriber(#[from] TryInitError),
 
@@ -205,7 +208,8 @@ impl Error {
             | Self::Database(..)
             | Self::Bech32m(..)
             | Self::ToClvm(..)
-            | Self::FromClvm(..) => ErrorKind::Internal,
+            | Self::FromClvm(..)
+            | Self::Bincode(..) => ErrorKind::Internal,
             Self::UnknownFingerprint
             | Self::UnknownNetwork
             | Self::MissingCoin(..)

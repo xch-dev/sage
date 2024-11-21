@@ -405,6 +405,14 @@ async setDerivationBatchSize(req: SetDerivationBatchSize) : Promise<Result<SetDe
     else return { status: "error", error: e  as any };
 }
 },
+async getNetworks(req: GetNetworks) : Promise<Result<GetNetworksResponse, Error>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_networks", { req }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async updateCat(req: UpdateCat) : Promise<Result<UpdateCatResponse, Error>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("update_cat", { req }) };
@@ -514,6 +522,8 @@ export type GetKey = { fingerprint?: number | null }
 export type GetKeyResponse = { key: KeyInfo | null }
 export type GetKeys = Record<string, never>
 export type GetKeysResponse = { keys: KeyInfo[] }
+export type GetNetworks = Record<string, never>
+export type GetNetworksResponse = { networks: { [key in string]: Network } }
 export type GetNft = { nft_id: string }
 export type GetNftCollection = { collection_id: string | null }
 export type GetNftCollectionResponse = { collection: NftCollectionRecord | null }
@@ -545,6 +555,7 @@ export type Logout = Record<string, never>
 export type LogoutResponse = Record<string, never>
 export type MakeOffer = { requested_assets: Assets; offered_assets: Assets; fee: Amount }
 export type MakeOfferResponse = { offer: string }
+export type Network = { default_port: number; ticker: string; address_prefix: string; precision: number; genesis_challenge: string; agg_sig_me: string; dns_introducers: string[] }
 export type NetworkConfig = { network_id: string; target_peers: number; discover_peers: boolean }
 export type NftCollectionRecord = { collection_id: string; did_id: string; metadata_collection_id: string; visible: boolean; name: string | null; icon: string | null; nfts: number; visible_nfts: number }
 export type NftInfo = { launcher_id: string; collection_id: string | null; collection_name: string | null; minter_did: string | null; owner_did: string | null; visible: boolean; coin_id: string; address: string; royalty_address: string; royalty_percent: string; data_uris: string[]; data_hash: string | null; metadata_uris: string[]; metadata_hash: string | null; license_uris: string[]; license_hash: string | null; edition_number: number | null; edition_total: number | null; created_height: number | null; data: string | null; data_mime_type: string | null; metadata: string | null }
