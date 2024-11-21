@@ -2,10 +2,10 @@ use std::time::Duration;
 
 use itertools::Itertools;
 use sage_api::{
-    AddPeer, AddPeerResponse, GetPeers, GetPeersResponse, PeerRecord, RemovePeer,
-    RemovePeerResponse, SetDerivationBatchSize, SetDerivationBatchSizeResponse,
-    SetDeriveAutomatically, SetDeriveAutomaticallyResponse, SetDiscoverPeers,
-    SetDiscoverPeersResponse, SetNetworkId, SetNetworkIdResponse, SetTargetPeers,
+    AddPeer, AddPeerResponse, GetNetworks, GetNetworksResponse, GetPeers, GetPeersResponse,
+    PeerRecord, RemovePeer, RemovePeerResponse, SetDerivationBatchSize,
+    SetDerivationBatchSizeResponse, SetDeriveAutomatically, SetDeriveAutomaticallyResponse,
+    SetDiscoverPeers, SetDiscoverPeersResponse, SetNetworkId, SetNetworkIdResponse, SetTargetPeers,
     SetTargetPeersResponse,
 };
 use sage_wallet::SyncCommand;
@@ -135,5 +135,11 @@ impl Sage {
         // TODO: Update sync manager
 
         Ok(SetDerivationBatchSizeResponse {})
+    }
+
+    pub fn get_networks(&mut self, _req: GetNetworks) -> Result<GetNetworksResponse> {
+        Ok(GetNetworksResponse {
+            networks: self.networks.clone(),
+        })
     }
 }

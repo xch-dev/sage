@@ -1,3 +1,5 @@
+use indexmap::IndexMap;
+use sage_config::Network;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
@@ -70,3 +72,11 @@ pub struct SetDerivationBatchSize {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Type)]
 pub struct SetDerivationBatchSizeResponse {}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Type)]
+pub struct GetNetworks {}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct GetNetworksResponse {
+    pub networks: IndexMap<String, Network>,
+}

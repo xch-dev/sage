@@ -66,6 +66,7 @@ pub fn run() {
             commands::wallet_config,
             commands::set_derive_automatically,
             commands::set_derivation_batch_size,
+            commands::get_networks,
             commands::update_cat,
             commands::remove_cat,
             commands::update_did,

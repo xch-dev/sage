@@ -1,6 +1,7 @@
 import Container from '@/components/Container';
 import Header from '@/components/Header';
 import Layout from '@/components/Layout';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,13 +15,18 @@ import {
 import { Switch } from '@/components/ui/switch';
 import useInitialization from '@/hooks/useInitialization';
 import { useWallet } from '@/hooks/useWallet';
+import { useWalletConnect } from '@/hooks/useWalletConnect';
 import { clearState, fetchState } from '@/state';
 import { useContext, useEffect, useState } from 'react';
 import { DarkModeContext } from '../App';
-import { commands, KeyInfo, NetworkConfig, WalletConfig } from '../bindings';
+import {
+  commands,
+  KeyInfo,
+  Network,
+  NetworkConfig,
+  WalletConfig,
+} from '../bindings';
 import { isValidU32 } from '../validation';
-import { Button } from '@/components/ui/button';
-import { useWalletConnect } from '@/hooks/useWalletConnect';
 
 export default function Settings() {
   const initialized = useInitialization();
@@ -141,6 +147,7 @@ function NetworkSettings() {
   const [discoverPeers, setDiscoverPeers] = useState<boolean | null>(null);
   const [targetPeersText, setTargetPeers] = useState<string | null>(null);
   const [networkId, setNetworkId] = useState<string | null>(null);
+  const [networks, setNetworks] = useState<Record<string, Network>>({});
 
   const targetPeers =
     targetPeersText === null ? null : parseInt(targetPeersText);
@@ -156,6 +163,13 @@ function NetworkSettings() {
         return;
       }
       setConfig(res.data);
+    });
+
+    commands.getNetworks({}).then((res) => {
+      if (res.status === 'error') {
+        return;
+      }
+      setNetworks(res.data.networks);
     });
   }, []);
 
@@ -220,8 +234,11 @@ function NetworkSettings() {
                 <SelectValue placeholder='Select network' />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value='mainnet'>Mainnet</SelectItem>
-                <SelectItem value='testnet11'>Testnet 11</SelectItem>
+                {Object.keys(networks).map((networkId, i) => (
+                  <SelectItem key={i} value={networkId}>
+                    {networkId}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

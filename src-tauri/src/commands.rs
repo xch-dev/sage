@@ -428,3 +428,12 @@ pub async fn set_derivation_batch_size(
 ) -> Result<SetDerivationBatchSizeResponse> {
     Ok(state.lock().await.set_derivation_batch_size(req)?)
 }
+
+#[command]
+#[specta]
+pub async fn get_networks(
+    state: State<'_, AppState>,
+    req: GetNetworks,
+) -> Result<GetNetworksResponse> {
+    Ok(state.lock().await.get_networks(req)?)
+}

@@ -7,9 +7,11 @@ use sage_api::{
 use sage_wallet::{
     fetch_nft_offer_details, insert_transaction, MakerSide, SyncCommand, TakerSide, Transaction,
 };
+use tracing::debug;
 
 use crate::{
-    parse_asset_id, parse_cat_amount, parse_genesis_challenge, parse_nft_id, Error, Result, Sage,
+    json_bundle, parse_asset_id, parse_cat_amount, parse_genesis_challenge, parse_nft_id, Error,
+    Result, Sage,
 };
 
 impl Sage {
@@ -117,6 +119,11 @@ impl Sage {
                 master_sk,
             )
             .await?;
+
+        debug!(
+            "{}",
+            serde_json::to_string(&json_bundle(&spend_bundle)).expect("msg")
+        );
 
         let mut tx = wallet.db.tx().await?;
 

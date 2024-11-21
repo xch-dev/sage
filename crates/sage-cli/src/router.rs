@@ -113,6 +113,7 @@ routes!(
     set_network_id await: SetNetworkId = "/set_network_id",
     set_derive_automatically: SetDeriveAutomatically = "/set_derive_automatically",
     set_derivation_batch_size: SetDerivationBatchSize = "/set_derivation_batch_size",
+    get_networks: GetNetworks = "/get_networks",
 
     remove_cat await: RemoveCat = "/remove_cat",
     update_cat await: UpdateCat = "/update_cat",
