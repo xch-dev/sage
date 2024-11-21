@@ -106,6 +106,7 @@ impl Sage {
             .await?;
 
         self.switch_wallet().await?;
+        self.setup_peers().await?;
 
         Ok(SetNetworkIdResponse {})
     }

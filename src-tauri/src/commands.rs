@@ -21,7 +21,7 @@ pub async fn initialize(state: State<'_, AppState>) -> Result<()> {
 
     tokio::spawn(async move {
         loop {
-            sleep(Duration::from_secs(5)).await;
+            sleep(Duration::from_secs(3)).await;
 
             let app_state = app_state.lock().await;
 
