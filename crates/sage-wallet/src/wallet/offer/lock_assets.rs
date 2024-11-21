@@ -90,33 +90,40 @@ impl Wallet {
             }
 
             // Handle royalties.
-            for royalty in &royalties.xch {
+            let royalty_amount = royalties.xch_amount();
+
+            if royalty_amount > 0 {
                 conditions = conditions.create_coin(
                     SETTLEMENT_PAYMENTS_PUZZLE_HASH.into(),
-                    royalty.amount,
+                    royalty_amount,
                     Vec::new(),
                 );
 
                 let royalty_coin = Coin::new(
                     primary_xch_coin.coin_id(),
                     SETTLEMENT_PAYMENTS_PUZZLE_HASH.into(),
-                    royalty.amount,
+                    royalty_amount,
                 );
 
                 let coin_spend = SettlementLayer.construct_coin_spend(
                     ctx,
                     royalty_coin,
                     SettlementPaymentsSolution {
-                        notarized_payments: vec![NotarizedPayment {
-                            nonce: royalty.nft_id,
-                            payments: vec![Payment::with_memos(
-                                royalty.p2_puzzle_hash,
-                                royalty.amount,
-                                Memos(vec![royalty.p2_puzzle_hash.into()]),
-                            )],
-                        }],
+                        notarized_payments: royalties
+                            .xch
+                            .iter()
+                            .map(|royalty| NotarizedPayment {
+                                nonce: royalty.nft_id,
+                                payments: vec![Payment::with_memos(
+                                    royalty.p2_puzzle_hash,
+                                    royalty.amount,
+                                    Memos(vec![royalty.p2_puzzle_hash.into()]),
+                                )],
+                            })
+                            .collect(),
                     },
                 )?;
+
                 ctx.insert(coin_spend);
             }
 
@@ -142,7 +149,7 @@ impl Wallet {
 
             let amount = amounts.cats.get(&asset_id).copied().unwrap_or(0);
             let total_amount = cat_coins.iter().map(|cat| cat.coin.amount).sum::<u64>();
-            let change = total_amount - amount;
+            let change = total_amount - amount - royalties.cat_amount(asset_id);
 
             let mut conditions = primary_conditions
                 .remove(&primary_cat.coin.coin_id())
@@ -168,27 +175,32 @@ impl Wallet {
             }
 
             // Handle royalties.
-            for royalty in royalties.cats.get(&asset_id).cloned().unwrap_or_default() {
+            let royalty_amount = royalties.cat_amount(asset_id);
+
+            if royalty_amount > 0 {
                 conditions = conditions.create_coin(
                     SETTLEMENT_PAYMENTS_PUZZLE_HASH.into(),
-                    royalty.amount,
+                    royalty_amount,
                     vec![Bytes32::from(SETTLEMENT_PAYMENTS_PUZZLE_HASH).into()],
                 );
 
                 let royalty_cat = primary_cat
-                    .wrapped_child(SETTLEMENT_PAYMENTS_PUZZLE_HASH.into(), royalty.amount);
+                    .wrapped_child(SETTLEMENT_PAYMENTS_PUZZLE_HASH.into(), royalty_amount);
 
                 let inner_spend = SettlementLayer.construct_spend(
                     ctx,
                     SettlementPaymentsSolution {
-                        notarized_payments: vec![NotarizedPayment {
-                            nonce: royalty.nft_id,
-                            payments: vec![Payment::with_memos(
-                                royalty.p2_puzzle_hash,
-                                royalty.amount,
-                                Memos(vec![royalty.p2_puzzle_hash.into()]),
-                            )],
-                        }],
+                        notarized_payments: royalties.cats[&asset_id]
+                            .iter()
+                            .map(|royalty| NotarizedPayment {
+                                nonce: royalty.nft_id,
+                                payments: vec![Payment::with_memos(
+                                    royalty.p2_puzzle_hash,
+                                    royalty.amount,
+                                    Memos(vec![royalty.p2_puzzle_hash.into()]),
+                                )],
+                            })
+                            .collect(),
                     },
                 )?;
 

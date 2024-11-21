@@ -20,14 +20,19 @@ import {
   ForwardIcon,
   LoaderCircleIcon,
 } from 'lucide-react';
-import { PropsWithChildren, useState } from 'react';
-import { commands, Error, TransactionResponse } from '../bindings';
+import { PropsWithChildren, useEffect, useState } from 'react';
+import {
+  commands,
+  Error,
+  TakeOfferResponse,
+  TransactionResponse,
+} from '../bindings';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { Badge } from './ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 
 export interface ConfirmationDialogProps {
-  response: TransactionResponse | null;
+  response: TransactionResponse | TakeOfferResponse | null;
   close: () => void;
   onConfirm?: () => void;
   onError?: (error: Error) => void;
@@ -63,6 +68,12 @@ export default function ConfirmationDialog({
 
   const [pending, setPending] = useState(false);
   const [signature, setSignature] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (response !== null && 'spend_bundle' in response) {
+      setSignature(response.spend_bundle.aggregated_signature);
+    }
+  }, [response]);
 
   const reset = () => {
     setPending(false);
@@ -222,12 +233,16 @@ export default function ConfirmationDialog({
   }
 
   const json = JSON.stringify(
-    {
-      coin_spends: response?.coin_spends,
-      aggregated_signature:
-        signature ||
-        '0xc00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000',
-    },
+    response === null
+      ? null
+      : 'coin_spends' in response
+        ? {
+            coin_spends: response.coin_spends,
+            aggregated_signature:
+              signature ||
+              '0xc00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000',
+          }
+        : response.spend_bundle,
     null,
     2,
   ).replace(/"amount": "(.*?)"/g, '"amount": $1');
@@ -345,7 +360,14 @@ export default function ConfirmationDialog({
                     className='mt-2'
                     onClick={() => {
                       commands
-                        .signCoinSpends({ coin_spends: response!.coin_spends })
+                        .signCoinSpends({
+                          coin_spends:
+                            response === null
+                              ? []
+                              : 'coin_spends' in response
+                                ? response.coin_spends
+                                : response.spend_bundle.coin_spends,
+                        })
                         .then((result) => {
                           if (result.status === 'error') {
                             onError?.(result.error);
@@ -393,7 +415,11 @@ export default function ConfirmationDialog({
               (async () => {
                 let finalSignature: string | null = signature;
 
-                if (!finalSignature) {
+                if (
+                  !finalSignature &&
+                  response !== null &&
+                  'coin_spends' in response
+                ) {
                   const result = await commands.signCoinSpends({
                     coin_spends: response!.coin_spends,
                   });
@@ -408,8 +434,13 @@ export default function ConfirmationDialog({
 
                 const result = await commands.submitTransaction({
                   spend_bundle: {
-                    coin_spends: response!.coin_spends,
-                    aggregated_signature: finalSignature,
+                    coin_spends:
+                      response === null
+                        ? []
+                        : 'coin_spends' in response
+                          ? response.coin_spends
+                          : response.spend_bundle.coin_spends,
+                    aggregated_signature: finalSignature!,
                   },
                 });
 

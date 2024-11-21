@@ -10,8 +10,8 @@ use sage_wallet::{
 use tracing::debug;
 
 use crate::{
-    json_bundle, parse_asset_id, parse_cat_amount, parse_genesis_challenge, parse_nft_id, Error,
-    Result, Sage,
+    json_bundle, parse_asset_id, parse_cat_amount, parse_genesis_challenge, parse_nft_id,
+    ConfirmationInfo, Error, Result, Sage,
 };
 
 impl Sage {
@@ -125,25 +125,34 @@ impl Sage {
             serde_json::to_string(&json_bundle(&spend_bundle)).expect("msg")
         );
 
-        let mut tx = wallet.db.tx().await?;
+        if req.auto_submit {
+            let mut tx = wallet.db.tx().await?;
 
-        let subscriptions = insert_transaction(
-            &mut tx,
-            spend_bundle.name(),
-            Transaction::from_coin_spends(spend_bundle.coin_spends)?,
-            spend_bundle.aggregated_signature,
-        )
-        .await?;
-
-        tx.commit().await?;
-
-        self.command_sender
-            .send(SyncCommand::SubscribeCoins {
-                coin_ids: subscriptions,
-            })
+            let subscriptions = insert_transaction(
+                &mut tx,
+                spend_bundle.name(),
+                Transaction::from_coin_spends(spend_bundle.coin_spends.clone())?,
+                spend_bundle.aggregated_signature.clone(),
+            )
             .await?;
 
-        Ok(TakeOfferResponse {})
+            tx.commit().await?;
+
+            self.command_sender
+                .send(SyncCommand::SubscribeCoins {
+                    coin_ids: subscriptions,
+                })
+                .await?;
+        }
+
+        let json_bundle = json_bundle(&spend_bundle);
+
+        Ok(TakeOfferResponse {
+            summary: self
+                .summarize(spend_bundle.coin_spends, ConfirmationInfo::default())
+                .await?,
+            spend_bundle: json_bundle,
+        })
     }
 
     pub async fn view_offer(&self, req: ViewOffer) -> Result<ViewOfferResponse> {

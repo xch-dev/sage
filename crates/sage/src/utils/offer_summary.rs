@@ -1,9 +1,14 @@
+use std::time::Duration;
+
 use bigdecimal::BigDecimal;
 use chia::{clvm_traits::FromClvm, puzzles::nft::NftMetadata};
 use chia_wallet_sdk::{encode_address, Offer, SpendContext};
 use indexmap::IndexMap;
 use sage_api::{Amount, OfferAssets, OfferCat, OfferNft, OfferSummary, OfferXch};
-use sage_wallet::{calculate_royalties, parse_locked_coins, parse_offer_payments, NftRoyaltyInfo};
+use sage_wallet::{
+    calculate_royalties, lookup_from_uris_with_hash, parse_locked_coins, parse_offer_payments,
+    NftRoyaltyInfo,
+};
 
 use crate::{Result, Sage};
 
@@ -81,6 +86,35 @@ impl Sage {
 
         for (launcher_id, nft) in locked_coins.nfts {
             let metadata = NftMetadata::from_clvm(&ctx.allocator, nft.info.metadata.ptr())?;
+
+            let mut confirmation_info = ConfirmationInfo::default();
+
+            if let Some(hash) = metadata.data_hash {
+                if let Some(data) = lookup_from_uris_with_hash(
+                    metadata.data_uris.clone(),
+                    Duration::from_secs(10),
+                    Duration::from_secs(5),
+                    hash,
+                )
+                .await
+                {
+                    confirmation_info.nft_data.insert(hash, data);
+                }
+            }
+
+            if let Some(hash) = metadata.metadata_hash {
+                if let Some(data) = lookup_from_uris_with_hash(
+                    metadata.metadata_uris.clone(),
+                    Duration::from_secs(10),
+                    Duration::from_secs(5),
+                    hash,
+                )
+                .await
+                {
+                    confirmation_info.nft_data.insert(hash, data);
+                }
+            }
+
             let info = extract_nft_data(
                 Some(&wallet.db),
                 Some(metadata),
@@ -97,6 +131,10 @@ impl Sage {
                     royalty_percent: (BigDecimal::from(nft.info.royalty_ten_thousandths)
                         / BigDecimal::from(100))
                     .to_string(),
+                    royalty_address: encode_address(
+                        nft.info.royalty_puzzle_hash.into(),
+                        &self.network().address_prefix,
+                    )?,
                 },
             );
         }
@@ -146,6 +184,10 @@ impl Sage {
                     royalty_percent: (BigDecimal::from(nft.royalty_ten_thousandths)
                         / BigDecimal::from(100))
                     .to_string(),
+                    royalty_address: encode_address(
+                        nft.royalty_puzzle_hash.into(),
+                        &self.network().address_prefix,
+                    )?,
                 },
             );
         }

@@ -39,4 +39,5 @@ pub struct OfferNft {
     pub image_mime_type: Option<String>,
     pub name: Option<String>,
     pub royalty_percent: String,
+    pub royalty_address: String,
 }

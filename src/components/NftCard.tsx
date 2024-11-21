@@ -8,8 +8,10 @@ import { amount } from '@/lib/formTypes';
 import { nftUri } from '@/lib/nftUri';
 import { useWalletState } from '@/state';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 import BigNumber from 'bignumber.js';
 import {
+  Copy,
   EyeIcon,
   EyeOff,
   Flame,
@@ -42,6 +44,7 @@ import {
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
 import {
@@ -304,6 +307,8 @@ export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
                   <span>Burn</span>
                 </DropdownMenuItem>
 
+                <DropdownMenuSeparator />
+
                 <DropdownMenuItem
                   className='cursor-pointer'
                   onClick={(e) => {
@@ -317,6 +322,17 @@ export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
                     <EyeIcon className='mr-2 h-4 w-4' />
                   )}
                   <span>{nft.visible ? 'Hide' : 'Show'}</span>
+                </DropdownMenuItem>
+
+                <DropdownMenuItem
+                  className='cursor-pointer'
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    writeText(nft.launcher_id);
+                  }}
+                >
+                  <Copy className='mr-2 h-4 w-4' />
+                  <span>Copy ID</span>
                 </DropdownMenuItem>
               </DropdownMenuGroup>
             </DropdownMenuContent>
