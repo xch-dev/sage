@@ -10,6 +10,7 @@ use chia::{
     protocol::Bytes32,
 };
 use chia_wallet_sdk::{AddressError, ClientError, OfferError};
+use clvmr::reduction::EvalErr;
 use hex::FromHexError;
 use sage_api::ErrorKind;
 use sage_database::DatabaseError;
@@ -178,6 +179,9 @@ pub enum Error {
 
     #[error("Could not fetch NFT with id: {0}")]
     CouldNotFetchNft(Bytes32),
+
+    #[error("CLVM eval error: {0}")]
+    Eval(#[from] EvalErr),
 }
 
 impl Error {
@@ -209,7 +213,8 @@ impl Error {
             | Self::Bech32m(..)
             | Self::ToClvm(..)
             | Self::FromClvm(..)
-            | Self::Bincode(..) => ErrorKind::Internal,
+            | Self::Bincode(..)
+            | Self::Eval(..) => ErrorKind::Internal,
             Self::UnknownFingerprint
             | Self::UnknownNetwork
             | Self::MissingCoin(..)

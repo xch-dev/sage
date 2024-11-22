@@ -1,8 +1,9 @@
 use std::net::SocketAddr;
 
 use chia::protocol::{
-    Bytes32, CoinSpend, CoinState, CoinStateFilters, Program, RejectStateReason, RespondPeers,
-    RespondPuzzleState, SpendBundle, TransactionAck,
+    Bytes32, CoinSpend, CoinState, CoinStateFilters, Program, RejectStateReason,
+    RequestBlockHeader, RespondBlockHeader, RespondPeers, RespondPuzzleState, SpendBundle,
+    TransactionAck,
 };
 use chia_wallet_sdk::Peer;
 
@@ -189,5 +190,15 @@ impl WalletPeer {
     pub async fn unsubscribe_coins(&self, coin_ids: Vec<Bytes32>) -> Result<(), WalletError> {
         self.peer.remove_coin_subscriptions(Some(coin_ids)).await?;
         Ok(())
+    }
+
+    pub async fn block_timestamp(&self, height: u32) -> Result<Option<u64>, WalletError> {
+        Ok(self
+            .peer
+            .request_infallible::<RespondBlockHeader, _>(RequestBlockHeader::new(height))
+            .await?
+            .header_block
+            .foliage_transaction_block
+            .map(|block| block.timestamp))
     }
 }

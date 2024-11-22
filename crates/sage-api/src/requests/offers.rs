@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
-use crate::{Amount, OfferSummary, SpendBundleJson, TransactionSummary};
+use crate::{Amount, OfferRecord, OfferSummary, SpendBundleJson, TransactionSummary};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub struct MakeOffer {
@@ -53,9 +53,17 @@ pub struct ViewOfferResponse {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
-pub struct ImportOfferRequest {
+pub struct ImportOffer {
     pub offer: String,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Type)]
 pub struct ImportOfferResponse {}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Type)]
+pub struct GetOffers {}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct GetOffersResponse {
+    pub offers: Vec<OfferRecord>,
+}

@@ -1,17 +1,24 @@
+use std::time::{SystemTime, UNIX_EPOCH};
+
+use chia::protocol::SpendBundle;
 use chia_wallet_sdk::{AggSigConstants, Offer};
+use chrono::{Local, TimeZone};
+use clvmr::Allocator;
 use indexmap::IndexMap;
 use sage_api::{
-    CatAmount, MakeOffer, MakeOfferResponse, TakeOffer, TakeOfferResponse, ViewOffer,
+    CatAmount, GetOffers, GetOffersResponse, ImportOffer, ImportOfferResponse, MakeOffer,
+    MakeOfferResponse, OfferRecord, OfferRecordStatus, TakeOffer, TakeOfferResponse, ViewOffer,
     ViewOfferResponse,
 };
+use sage_database::{OfferRow, OfferStatus};
 use sage_wallet::{
     fetch_nft_offer_details, insert_transaction, MakerSide, SyncCommand, TakerSide, Transaction,
 };
-use tracing::debug;
+use tracing::{debug, warn};
 
 use crate::{
-    json_bundle, parse_asset_id, parse_cat_amount, parse_genesis_challenge, parse_nft_id,
-    ConfirmationInfo, Error, Result, Sage,
+    json_bundle, lookup_coin_creation, offer_expiration, parse_asset_id, parse_cat_amount,
+    parse_genesis_challenge, parse_nft_id, ConfirmationInfo, Error, OfferExpiration, Result, Sage,
 };
 
 impl Sage {
@@ -159,5 +166,89 @@ impl Sage {
         let offer = self.summarize_offer(Offer::decode(&req.offer)?).await?;
 
         Ok(ViewOfferResponse { offer })
+    }
+
+    pub async fn import_offer(&self, req: ImportOffer) -> Result<ImportOfferResponse> {
+        let wallet = self.wallet()?;
+        let offer = Offer::decode(&req.offer)?;
+        let spend_bundle: SpendBundle = offer.clone().into();
+        let peer = self.peer_state.lock().await.acquire_peer();
+
+        let mut allocator = Allocator::new();
+        let parsed_offer = offer.parse(&mut allocator)?;
+
+        let status = if let Some(peer) = peer {
+            let coin_creation = lookup_coin_creation(
+                &peer,
+                parsed_offer
+                    .coin_spends
+                    .iter()
+                    .map(|cs| cs.coin.coin_id())
+                    .collect(),
+                parse_genesis_challenge(self.network().genesis_challenge.clone())?,
+            )
+            .await?;
+            offer_expiration(&mut allocator, &parsed_offer, &coin_creation)?
+        } else {
+            warn!("No peers available to fetch coin creation information, so skipping for now");
+            OfferExpiration {
+                expiration_height: None,
+                expiration_timestamp: None,
+            }
+        };
+
+        let mut tx = wallet.db.tx().await?;
+
+        let inserted_timestamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("system time is before the UNIX epoch")
+            .as_secs();
+
+        let offer_id = spend_bundle.name();
+
+        tx.insert_offer(OfferRow {
+            offer_id,
+            encoded_offer: req.offer,
+            expiration_height: status.expiration_height,
+            expiration_timestamp: status.expiration_timestamp,
+            status: OfferStatus::Active,
+            inserted_timestamp,
+        })
+        .await?;
+
+        for coin_state in parsed_offer.coin_spends {
+            tx.insert_offer_coin(offer_id, coin_state.coin.coin_id())
+                .await?;
+        }
+
+        tx.commit().await?;
+
+        Ok(ImportOfferResponse {})
+    }
+
+    pub async fn get_offers(&self, _req: GetOffers) -> Result<GetOffersResponse> {
+        let wallet = self.wallet()?;
+        let offers = wallet.db.get_offers().await?;
+
+        let mut records = Vec::new();
+
+        for offer in offers {
+            records.push(OfferRecord {
+                offer: offer.encoded_offer,
+                status: match offer.status {
+                    OfferStatus::Active => OfferRecordStatus::Active,
+                    OfferStatus::Completed => OfferRecordStatus::Completed,
+                    OfferStatus::Cancelled => OfferRecordStatus::Cancelled,
+                    OfferStatus::Expired => OfferRecordStatus::Expired,
+                },
+                creation_date: Local
+                    .timestamp_opt(offer.inserted_timestamp.try_into()?, 0)
+                    .unwrap()
+                    .format("%B %d, %Y %r")
+                    .to_string(),
+            });
+        }
+
+        Ok(GetOffersResponse { offers: records })
     }
 }

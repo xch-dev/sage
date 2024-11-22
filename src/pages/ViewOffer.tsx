@@ -105,7 +105,7 @@ export function ViewOffer() {
 
                   <span className='text-xs text-muted-foreground'>
                     {BigNumber(summary?.fee ?? '0').isGreaterThan(0)
-                      ? `There is already a fee of ${summary?.fee} included by the maker.`
+                      ? `This does not include a fee of ${summary?.fee} which was already added by the maker.`
                       : ''}
                   </span>
                 </div>
@@ -141,7 +141,18 @@ export function ViewOffer() {
         </div>
 
         <div className='mt-4 flex gap-2'>
-          <Button variant='outline' onClick={() => {}}>
+          <Button
+            variant='outline'
+            onClick={() => {
+              commands.importOffer({ offer: offer! }).then((result) => {
+                if (result.status === 'error') {
+                  setError(result.error);
+                } else {
+                  navigate('/offers');
+                }
+              });
+            }}
+          >
             Save Offer
           </Button>
 

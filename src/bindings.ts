@@ -349,6 +349,22 @@ async viewOffer(req: ViewOffer) : Promise<Result<ViewOfferResponse, Error>> {
     else return { status: "error", error: e  as any };
 }
 },
+async importOffer(req: ImportOffer) : Promise<Result<ImportOfferResponse, Error>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("import_offer", { req }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async getOffers(req: GetOffers) : Promise<Result<GetOffersResponse, Error>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_offers", { req }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async networkConfig() : Promise<Result<NetworkConfig, Error>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("network_config") };
@@ -534,6 +550,8 @@ export type GetNftStatus = Record<string, never>
 export type GetNftStatusResponse = { nfts: number; visible_nfts: number; collections: number; visible_collections: number }
 export type GetNfts = { collection_id: string | null; offset: number; limit: number; sort_mode: NftSortMode; include_hidden: boolean }
 export type GetNftsResponse = { nfts: NftRecord[] }
+export type GetOffers = Record<string, never>
+export type GetOffersResponse = { offers: OfferRecord[] }
 export type GetPeers = Record<string, never>
 export type GetPeersResponse = { peers: PeerRecord[] }
 export type GetPendingTransactions = Record<string, never>
@@ -546,6 +564,8 @@ export type GetXchCoins = Record<string, never>
 export type GetXchCoinsResponse = { coins: CoinRecord[] }
 export type ImportKey = { name: string; key: string; save_secrets?: boolean; login?: boolean }
 export type ImportKeyResponse = { fingerprint: number }
+export type ImportOffer = { offer: string }
+export type ImportOfferResponse = Record<string, never>
 export type IssueCat = { name: string; ticker: string; amount: Amount; fee: Amount; auto_submit?: boolean }
 export type KeyInfo = { name: string; fingerprint: number; public_key: string; kind: KeyKind; has_secrets: boolean }
 export type KeyKind = "bls"
@@ -566,6 +586,8 @@ export type NftUriKind = "data" | "metadata" | "license"
 export type OfferAssets = { xch: OfferXch; cats: { [key in string]: OfferCat }; nfts: { [key in string]: OfferNft } }
 export type OfferCat = { amount: Amount; royalty: Amount; name: string | null; ticker: string | null; icon_url: string | null }
 export type OfferNft = { image_data: string | null; image_mime_type: string | null; name: string | null; royalty_percent: string; royalty_address: string }
+export type OfferRecord = { offer: string; status: OfferRecordStatus; creation_date: string }
+export type OfferRecordStatus = "active" | "completed" | "cancelled" | "expired"
 export type OfferSummary = { fee: Amount; maker: OfferAssets; taker: OfferAssets }
 export type OfferXch = { amount: Amount; royalty: Amount }
 export type PeerRecord = { ip_addr: string; port: number; trusted: boolean; peak_height: number }

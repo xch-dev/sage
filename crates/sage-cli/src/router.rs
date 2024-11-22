@@ -104,6 +104,8 @@ routes!(
     make_offer await: MakeOffer = "/make_offer",
     take_offer await: TakeOffer = "/take_offer",
     view_offer await: ViewOffer = "/view_offer",
+    import_offer await: ImportOffer = "/import_offer",
+    get_offers await: GetOffers = "/get_offers",
 
     get_peers await: GetPeers = "/get_peers",
     remove_peer await: RemovePeer = "/remove_peer",

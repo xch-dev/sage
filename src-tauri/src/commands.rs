@@ -249,6 +249,21 @@ pub async fn view_offer(state: State<'_, AppState>, req: ViewOffer) -> Result<Vi
 
 #[command]
 #[specta]
+pub async fn import_offer(
+    state: State<'_, AppState>,
+    req: ImportOffer,
+) -> Result<ImportOfferResponse> {
+    Ok(state.lock().await.import_offer(req).await?)
+}
+
+#[command]
+#[specta]
+pub async fn get_offers(state: State<'_, AppState>, req: GetOffers) -> Result<GetOffersResponse> {
+    Ok(state.lock().await.get_offers(req).await?)
+}
+
+#[command]
+#[specta]
 pub async fn get_sync_status(
     state: State<'_, AppState>,
     req: GetSyncStatus,
