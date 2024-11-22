@@ -228,7 +228,7 @@ impl Sage {
         let intermediate_pk = master_to_wallet_unhardened_intermediate(&master_pk);
         let path = self.wallet_db_path(fingerprint)?;
 
-        let mut pool = SqlitePoolOptions::new()
+        let pool = SqlitePoolOptions::new()
             .connect_with(
                 SqliteConnectOptions::from_str(&format!("sqlite://{}?mode=rwc", path.display()))?
                     .journal_mode(SqliteJournalMode::Wal)
@@ -236,28 +236,7 @@ impl Sage {
             )
             .await?;
 
-        // TODO: Remove this before out of beta.
-        if let Err(error) = sqlx::migrate!("../../migrations").run(&pool).await {
-            error!("Error migrating database, dropping database: {error:?}");
-
-            pool.close().await;
-            drop(pool);
-
-            fs::remove_file(&path)?;
-
-            pool = SqlitePoolOptions::new()
-                .connect_with(
-                    SqliteConnectOptions::from_str(&format!(
-                        "sqlite://{}?mode=rwc",
-                        path.display()
-                    ))?
-                    .journal_mode(SqliteJournalMode::Wal)
-                    .log_statements(log::LevelFilter::Trace),
-                )
-                .await?;
-
-            sqlx::migrate!("../../migrations").run(&pool).await?;
-        }
+        sqlx::migrate!("../../migrations").run(&pool).await?;
 
         let db = Database::new(pool);
         let wallet = Arc::new(Wallet::new(
