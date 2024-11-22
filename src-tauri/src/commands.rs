@@ -264,6 +264,15 @@ pub async fn get_offers(state: State<'_, AppState>, req: GetOffers) -> Result<Ge
 
 #[command]
 #[specta]
+pub async fn delete_offer(
+    state: State<'_, AppState>,
+    req: DeleteOffer,
+) -> Result<DeleteOfferResponse> {
+    Ok(state.lock().await.delete_offer(req).await?)
+}
+
+#[command]
+#[specta]
 pub async fn get_sync_status(
     state: State<'_, AppState>,
     req: GetSyncStatus,

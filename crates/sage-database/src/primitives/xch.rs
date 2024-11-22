@@ -65,8 +65,11 @@ async fn spendable_coins(conn: impl SqliteExecutor<'_>) -> Result<Vec<Coin>> {
         SELECT `coin_states`.`parent_coin_id`, `coin_states`.`puzzle_hash`, `coin_states`.`amount` FROM `coin_states`
         INNER JOIN `p2_coins` ON `coin_states`.`coin_id` = `p2_coins`.`coin_id`
         LEFT JOIN `transaction_spends` ON `coin_states`.`coin_id` = `transaction_spends`.`coin_id`
+        LEFT JOIN `offer_coins` ON `coin_states`.`coin_id` = `offer_coins`.`coin_id`
+        LEFT JOIN `offers` ON `offer_coins`.`offer_id` = `offers`.`offer_id`
         WHERE `coin_states`.`spent_height` IS NULL
         AND `transaction_spends`.`coin_id` IS NULL
+        AND (`offer_coins`.`coin_id` IS NULL OR `offers`.`status` > 0)
         AND `coin_states`.`transaction_id` IS NULL
         "
     )

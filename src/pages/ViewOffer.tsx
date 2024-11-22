@@ -45,13 +45,30 @@ export function ViewOffer() {
     });
   }, [offer]);
 
-  const take = () => {
-    commands.takeOffer({ offer: offer!, fee: fee || '0' }).then((result) => {
+  const importOffer = () => {
+    commands.importOffer({ offer: offer! }).then((result) => {
       if (result.status === 'error') {
         setError(result.error);
       } else {
-        setResponse(result.data);
+        navigate('/offers');
       }
+    });
+  };
+
+  const take = () => {
+    commands.importOffer({ offer: offer! }).then((result) => {
+      if (result.status === 'error') {
+        setError(result.error);
+        return;
+      }
+
+      commands.takeOffer({ offer: offer!, fee: fee || '0' }).then((result) => {
+        if (result.status === 'error') {
+          setError(result.error);
+        } else {
+          setResponse(result.data);
+        }
+      });
     });
   };
 
@@ -141,18 +158,7 @@ export function ViewOffer() {
         </div>
 
         <div className='mt-4 flex gap-2'>
-          <Button
-            variant='outline'
-            onClick={() => {
-              commands.importOffer({ offer: offer! }).then((result) => {
-                if (result.status === 'error') {
-                  setError(result.error);
-                } else {
-                  navigate('/offers');
-                }
-              });
-            }}
-          >
+          <Button variant='outline' onClick={importOffer}>
             Save Offer
           </Button>
 

@@ -3,6 +3,7 @@ use specta::Type;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub struct OfferRecord {
+    pub offer_id: String,
     pub offer: String,
     pub status: OfferRecordStatus,
     pub creation_date: String,

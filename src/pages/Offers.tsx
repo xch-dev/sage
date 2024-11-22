@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -19,13 +21,14 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { useWalletState } from '@/state';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
-import { CopyIcon, HandCoins, MoreVertical } from 'lucide-react';
+import { CopyIcon, HandCoins, MoreVertical, TrashIcon } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 export function Offers() {
   const navigate = useNavigate();
   const walletState = useWalletState();
+
   const [offerString, setOfferString] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [offers, setOffers] = useState<OfferRecord[]>([]);
@@ -113,53 +116,21 @@ export function Offers() {
               </div>
             </div>
 
-            <div>
+            <div className='flex flex-col gap-2'>
               {offers.map((record, i) => (
-                <Link
-                  to={`/offers/view/${encodeURIComponent(record.offer.trim())}`}
-                  className='block p-4 rounded-sm bg-neutral-100 dark:bg-neutral-900'
-                >
-                  <div
-                    key={i}
-                    className='flex justify-between items-center -mt-1.5'
-                  >
-                    <span className='text-lg'>
-                      {record.status === 'active'
-                        ? 'Pending'
-                        : record.status === 'completed'
-                          ? 'Taken'
-                          : record.status === 'cancelled'
-                            ? 'Cancelled'
-                            : 'Expired'}
-                    </span>
-
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant='ghost' size='icon' className='-mr-2'>
-                          <MoreVertical className='h-5 w-5' />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align='end'>
-                        <DropdownMenuGroup>
-                          <DropdownMenuItem
-                            className='cursor-pointer'
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              writeText(record.offer);
-                            }}
-                          >
-                            <CopyIcon className='mr-2 h-4 w-4' />
-                            <span>Copy Offer</span>
-                          </DropdownMenuItem>
-                        </DropdownMenuGroup>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-
-                  <span className='text-muted-foreground text-sm'>
-                    {record.creation_date}
-                  </span>
-                </Link>
+                <Offer
+                  record={record}
+                  refresh={() => {
+                    commands.getOffers({}).then((result) => {
+                      if (result.status === 'error') {
+                        console.error(result.error);
+                        return;
+                      }
+                      setOffers(result.data.offers);
+                    });
+                  }}
+                  key={i}
+                />
               ))}
             </div>
           </div>
@@ -178,6 +149,107 @@ export function Offers() {
             />
             <Button type='submit'>View Offer</Button>
           </form>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+interface OfferProps {
+  record: OfferRecord;
+  refresh: () => void;
+}
+
+function Offer({ record, refresh }: OfferProps) {
+  const [isDeleteOpen, setDeleteOpen] = useState(false);
+
+  return (
+    <>
+      <Link
+        to={`/offers/view/${encodeURIComponent(record.offer.trim())}`}
+        className='block p-4 rounded-sm bg-neutral-100 dark:bg-neutral-900'
+      >
+        <div className='flex justify-between items-center -mt-1.5'>
+          <span className='text-lg'>
+            {record.status === 'active'
+              ? 'Pending'
+              : record.status === 'completed'
+                ? 'Taken'
+                : record.status === 'cancelled'
+                  ? 'Cancelled'
+                  : 'Expired'}
+          </span>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant='ghost' size='icon' className='-mr-2'>
+                <MoreVertical className='h-5 w-5' />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align='end'>
+              <DropdownMenuGroup>
+                <DropdownMenuItem
+                  className='cursor-pointer'
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    writeText(record.offer);
+                  }}
+                >
+                  <CopyIcon className='mr-2 h-4 w-4' />
+                  <span>Copy</span>
+                </DropdownMenuItem>
+
+                <DropdownMenuItem
+                  className='cursor-pointer'
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDeleteOpen(true);
+                  }}
+                >
+                  <TrashIcon className='mr-2 h-4 w-4' />
+                  <span>Delete</span>
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
+        <span className='text-muted-foreground text-sm'>
+          {record.creation_date}
+        </span>
+      </Link>
+
+      <Dialog open={isDeleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete offer record?</DialogTitle>
+            <DialogDescription>
+              This will delete the offer from the wallet, but if it's shared
+              externally it can still be accepted. The only way to truly cancel
+              a public offer is by spending one or more of its coins.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant='outline' onClick={() => setDeleteOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                setDeleteOpen(false);
+                commands
+                  .deleteOffer({ offer_id: record.offer_id })
+                  .then((result) => {
+                    if (result.status === 'error') {
+                      console.error(result.error);
+                      return;
+                    }
+                    refresh();
+                  });
+              }}
+            >
+              Delete
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>

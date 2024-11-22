@@ -67,3 +67,11 @@ pub struct GetOffers {}
 pub struct GetOffersResponse {
     pub offers: Vec<OfferRecord>,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct DeleteOffer {
+    pub offer_id: String,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Type)]
+pub struct DeleteOfferResponse {}

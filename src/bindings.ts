@@ -365,6 +365,14 @@ async getOffers(req: GetOffers) : Promise<Result<GetOffersResponse, Error>> {
     else return { status: "error", error: e  as any };
 }
 },
+async deleteOffer(req: DeleteOffer) : Promise<Result<DeleteOfferResponse, Error>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("delete_offer", { req }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async networkConfig() : Promise<Result<NetworkConfig, Error>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("network_config") };
@@ -519,6 +527,8 @@ export type CombineXch = { coin_ids: string[]; fee: Amount; auto_submit?: boolea
 export type CreateDid = { name: string; fee: Amount; auto_submit?: boolean }
 export type DeleteKey = { fingerprint: number }
 export type DeleteKeyResponse = Record<string, never>
+export type DeleteOffer = { offer_id: string }
+export type DeleteOfferResponse = Record<string, never>
 export type DidRecord = { launcher_id: string; name: string | null; visible: boolean; coin_id: string; address: string; amount: Amount; created_height: number | null; create_transaction_id: string | null }
 export type Error = { kind: ErrorKind; reason: string }
 export type ErrorKind = "wallet" | "api" | "not_found" | "unauthorized" | "internal"
@@ -586,7 +596,7 @@ export type NftUriKind = "data" | "metadata" | "license"
 export type OfferAssets = { xch: OfferXch; cats: { [key in string]: OfferCat }; nfts: { [key in string]: OfferNft } }
 export type OfferCat = { amount: Amount; royalty: Amount; name: string | null; ticker: string | null; icon_url: string | null }
 export type OfferNft = { image_data: string | null; image_mime_type: string | null; name: string | null; royalty_percent: string; royalty_address: string }
-export type OfferRecord = { offer: string; status: OfferRecordStatus; creation_date: string }
+export type OfferRecord = { offer_id: string; offer: string; status: OfferRecordStatus; creation_date: string }
 export type OfferRecordStatus = "active" | "completed" | "cancelled" | "expired"
 export type OfferSummary = { fee: Amount; maker: OfferAssets; taker: OfferAssets }
 export type OfferXch = { amount: Amount; royalty: Amount }

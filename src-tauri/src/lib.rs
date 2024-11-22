@@ -61,6 +61,7 @@ pub fn run() {
             commands::view_offer,
             commands::import_offer,
             commands::get_offers,
+            commands::delete_offer,
             commands::network_config,
             commands::set_discover_peers,
             commands::set_target_peers,

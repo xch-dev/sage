@@ -13,6 +13,10 @@ impl Database {
     pub async fn get_offers(&self) -> Result<Vec<OfferRow>> {
         get_offers(&self.pool).await
     }
+
+    pub async fn delete_offer(&self, offer_id: Bytes32) -> Result<()> {
+        delete_offer(&self.pool, offer_id).await
+    }
 }
 
 impl DatabaseTx<'_> {
@@ -98,4 +102,14 @@ async fn get_offers(conn: impl SqliteExecutor<'_>) -> Result<Vec<OfferRow>> {
     .into_iter()
     .map(into_row)
     .collect()
+}
+
+pub async fn delete_offer(conn: impl SqliteExecutor<'_>, offer_id: Bytes32) -> Result<()> {
+    let offer_id = offer_id.as_ref();
+
+    sqlx::query!("DELETE FROM `offers` WHERE `offer_id` = ?", offer_id)
+        .execute(conn)
+        .await?;
+
+    Ok(())
 }

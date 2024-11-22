@@ -6,9 +6,9 @@ use chrono::{Local, TimeZone};
 use clvmr::Allocator;
 use indexmap::IndexMap;
 use sage_api::{
-    CatAmount, GetOffers, GetOffersResponse, ImportOffer, ImportOfferResponse, MakeOffer,
-    MakeOfferResponse, OfferRecord, OfferRecordStatus, TakeOffer, TakeOfferResponse, ViewOffer,
-    ViewOfferResponse,
+    CatAmount, DeleteOffer, DeleteOfferResponse, GetOffers, GetOffersResponse, ImportOffer,
+    ImportOfferResponse, MakeOffer, MakeOfferResponse, OfferRecord, OfferRecordStatus, TakeOffer,
+    TakeOfferResponse, ViewOffer, ViewOfferResponse,
 };
 use sage_database::{OfferRow, OfferStatus};
 use sage_wallet::{
@@ -234,6 +234,7 @@ impl Sage {
 
         for offer in offers {
             records.push(OfferRecord {
+                offer_id: hex::encode(offer.offer_id),
                 offer: offer.encoded_offer,
                 status: match offer.status {
                     OfferStatus::Active => OfferRecordStatus::Active,
@@ -250,5 +251,14 @@ impl Sage {
         }
 
         Ok(GetOffersResponse { offers: records })
+    }
+
+    pub async fn delete_offer(&self, req: DeleteOffer) -> Result<DeleteOfferResponse> {
+        let wallet = self.wallet()?;
+        let offer_id = hex::decode(&req.offer_id)?;
+
+        wallet.db.delete_offer(offer_id.try_into()?).await?;
+
+        Ok(DeleteOfferResponse {})
     }
 }
