@@ -1,0 +1,50 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT * FROM `offers` INDEXED BY `offer_timestamp` ORDER BY `inserted_timestamp` DESC",
+  "describe": {
+    "columns": [
+      {
+        "name": "offer_id",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "encoded_offer",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "expiration_height",
+        "ordinal": 2,
+        "type_info": "Integer"
+      },
+      {
+        "name": "expiration_timestamp",
+        "ordinal": 3,
+        "type_info": "Blob"
+      },
+      {
+        "name": "status",
+        "ordinal": 4,
+        "type_info": "Integer"
+      },
+      {
+        "name": "inserted_timestamp",
+        "ordinal": 5,
+        "type_info": "Blob"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "fe0f5937a4656a93de70df4db1c8e1647c1023b3132f913d287097337e7df483"
+}

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        INSERT OR IGNORE INTO `offers` (\n            `offer_id`, `encoded_offer`, `expiration_height`,\n            `expiration_timestamp`, `status`, `inserted_timestamp`\n        )\n        VALUES (?, ?, ?, ?, ?, ?)\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 6
+    },
+    "nullable": []
+  },
+  "hash": "31a694723b45a83e84555e63b2bdb9643b59a30b5f39fdfc490f739ff1563800"
+}
