@@ -84,20 +84,7 @@ export function Offers() {
   return (
     <>
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <Header title='Offers'>
-          {/* {offers.length > 0 && (
-            <div className='flex items-center gap-2'>
-              <DialogTrigger asChild>
-                <Button variant='outline' className='flex items-center gap-1'>
-                  View offer
-                </Button>
-              </DialogTrigger>
-              <Link to='/offers/make'>
-                <Button>New offer</Button>
-              </Link>
-            </div>
-          )} */}
-        </Header>
+        <Header title='Offers' />
 
         <Container>
           <div className='flex flex-col gap-10'>
