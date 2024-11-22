@@ -191,3 +191,20 @@ CREATE TABLE `nft_uris` (
 );
 
 CREATE INDEX `nft_uri_checked_hash` ON `nft_uris` (`checked`, `hash`);
+
+CREATE TABLE `offers` (
+    `offer_id` BLOB NOT NULL PRIMARY KEY,
+    `encoded_offer` TEXT NOT NULL,
+    `expiration_height` INTEGER NOT NULL,
+    `expiration_timestamp` BLOB NOT NULL,
+    `status` INTEGER NOT NULL
+);
+
+CREATE TABLE `offer_coins` (
+    `offer_id` BLOB NOT NULL,
+    `coin_id` BLOB NOT NULL,
+    PRIMARY KEY (`offer_id`, `coin_id`)
+);
+
+CREATE INDEX `offer_id` ON `offer_coins` (`offer_id`);
+CREATE INDEX `offer_coin_id` ON `offer_coins` (`coin_id`);

@@ -163,7 +163,7 @@ impl SyncManager {
                         self.state.lock().await.trust(ip);
                     }
 
-                    self.connect_batch(&[SocketAddr::new(ip, self.network.default_port)])
+                    self.connect_batch(&[SocketAddr::new(ip, self.network.default_port)], true)
                         .await;
                 }
                 SyncCommand::SubscribeCoins { coin_ids } => {

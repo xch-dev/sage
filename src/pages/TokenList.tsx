@@ -132,7 +132,7 @@ export function TokenList() {
         )}
 
         {hasHiddenAssets && (
-          <div className='inline-flex items-center gap-2 my-4'>
+          <div className='flex items-center gap-2 my-4'>
             <label htmlFor='viewHidden'>View hidden</label>
             <Switch
               id='viewHidden'

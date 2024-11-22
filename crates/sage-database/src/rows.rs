@@ -6,8 +6,8 @@ mod did;
 mod did_coin;
 mod nft;
 mod nft_coin;
-mod nft_data;
 mod nft_uri;
+mod offer;
 
 pub use cat::*;
 pub use cat_coin::*;
@@ -17,6 +17,7 @@ pub use did::*;
 pub use did_coin::*;
 pub use nft::*;
 pub(crate) use nft_coin::*;
+pub use offer::*;
 
 use crate::DatabaseError;
 

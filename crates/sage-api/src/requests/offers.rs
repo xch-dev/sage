@@ -51,3 +51,11 @@ pub struct ViewOffer {
 pub struct ViewOfferResponse {
     pub offer: OfferSummary,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct ImportOfferRequest {
+    pub offer: String,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Type)]
+pub struct ImportOfferResponse {}

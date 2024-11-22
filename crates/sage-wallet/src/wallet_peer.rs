@@ -42,6 +42,21 @@ impl WalletPeer {
         Ok(coin_state)
     }
 
+    pub async fn fetch_optional_coin(
+        &self,
+        coin_id: Bytes32,
+        genesis_challenge: Bytes32,
+    ) -> Result<Option<CoinState>, WalletError> {
+        Ok(self
+            .peer
+            .request_coin_state(vec![coin_id], None, genesis_challenge, false)
+            .await?
+            .map_err(|_| WalletError::PeerMisbehaved)?
+            .coin_states
+            .into_iter()
+            .next())
+    }
+
     pub async fn fetch_coins(
         &self,
         coin_ids: Vec<Bytes32>,
@@ -78,6 +93,23 @@ impl WalletPeer {
         let spent_height = coin_state.spent_height.ok_or(WalletError::PeerMisbehaved)?;
         let (puzzle_reveal, solution) = self.fetch_puzzle_solution(coin_id, spent_height).await?;
         Ok(CoinSpend::new(coin_state.coin, puzzle_reveal, solution))
+    }
+
+    pub async fn fetch_optional_coin_spend(
+        &self,
+        coin_id: Bytes32,
+        genesis_challenge: Bytes32,
+    ) -> Result<Option<CoinSpend>, WalletError> {
+        let Some(coin_state) = self.fetch_optional_coin(coin_id, genesis_challenge).await? else {
+            return Ok(None);
+        };
+        let spent_height = coin_state.spent_height.ok_or(WalletError::PeerMisbehaved)?;
+        let (puzzle_reveal, solution) = self.fetch_puzzle_solution(coin_id, spent_height).await?;
+        Ok(Some(CoinSpend::new(
+            coin_state.coin,
+            puzzle_reveal,
+            solution,
+        )))
     }
 
     pub async fn fetch_child(&self, coin_id: Bytes32) -> Result<CoinState, WalletError> {
