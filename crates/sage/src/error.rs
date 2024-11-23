@@ -19,7 +19,7 @@ use sage_wallet::{SyncCommand, UriError, WalletError};
 use sqlx::migrate::MigrateError;
 use thiserror::Error;
 use tokio::sync::mpsc::error::SendError;
-use tracing::metadata::ParseLevelError;
+use tracing::{metadata::ParseLevelError, subscriber::SetGlobalDefaultError};
 use tracing_appender::rolling::InitError;
 use tracing_subscriber::util::TryInitError;
 
@@ -83,6 +83,9 @@ pub enum Error {
 
     #[error("Logging initialization error: {0}")]
     LogAppender(#[from] InitError),
+
+    #[error("Set global default logger error: {0}")]
+    SetGlobalDefault(#[from] SetGlobalDefaultError),
 
     #[error("Parse log level error: {0}")]
     ParseLogLevel(#[from] ParseLevelError),
@@ -208,6 +211,7 @@ impl Error {
             | Self::TomlSer(..)
             | Self::LogAppender(..)
             | Self::LogSubscriber(..)
+            | Self::SetGlobalDefault(..)
             | Self::ParseLogLevel(..)
             | Self::Database(..)
             | Self::Bech32m(..)

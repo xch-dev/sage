@@ -24,6 +24,7 @@ deprecated = "deny"
 deprecated_in_future = "deny"
 missing_debug_implementations = "warn"
 missing_copy_implementations = "warn"
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(mobile)'] }
 
 [workspace.lints.clippy]
 all = { level = "deny", priority = -1 }
@@ -60,7 +61,7 @@ bigdecimal = "0.4.5"
 base64 = "0.22.1"
 
 # Tauri
-tauri = "2.1.0"
+tauri = "2.1.1"
 tauri-plugin-clipboard-manager = "2.0.2"
 tauri-plugin-shell = "2.0.2"
 tauri-build = "2.0.3"

@@ -91,6 +91,7 @@ impl TransactionQueue {
             let mut resolved = false;
 
             for peer in peers {
+                let ip = peer.socket_addr().ip();
                 match submit_transaction(peer, spend_bundle.clone(), self.genesis_challenge).await?
                 {
                     Status::Pending => {
@@ -110,14 +111,7 @@ impl TransactionQueue {
                         break;
                     }
                     Status::Failed => {
-                        info!("Transaction {transaction_id} failed");
-
-                        let mut tx = self.db.tx().await?;
-                        safely_remove_transaction(&mut tx, transaction_id).await?;
-                        tx.commit().await?;
-
-                        resolved = true;
-                        break;
+                        info!("Transaction {transaction_id} failed according to peer {ip}, but will check other peers");
                     }
                     Status::Unknown => {}
                 }
@@ -139,6 +133,14 @@ impl TransactionQueue {
                 self.db
                     .update_transaction_mempool_time(transaction_id, timestamp)
                     .await?;
+            } else {
+                info!(
+                    "Transaction inclusion in mempool failed for all peers, removing transaction"
+                );
+
+                let mut tx = self.db.tx().await?;
+                safely_remove_transaction(&mut tx, transaction_id).await?;
+                tx.commit().await?;
             }
         }
 
