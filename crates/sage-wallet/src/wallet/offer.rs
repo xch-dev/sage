@@ -25,7 +25,7 @@ mod tests {
     use indexmap::{indexmap, IndexMap};
     use test_log::test;
 
-    use crate::{MakerSide, RequestedNft, SyncEvent, TakerSide, TestWallet, WalletNftMint};
+    use crate::{MakerSide, RequestedNft, TakerSide, TestWallet, WalletNftMint};
 
     #[test(tokio::test)]
     async fn test_offer_xch_for_cat() -> anyhow::Result<()> {
@@ -35,7 +35,7 @@ mod tests {
         // Issue CAT
         let (coin_spends, asset_id) = bob.wallet.issue_cat(1000, 0, None, false, true).await?;
         bob.transact(coin_spends).await?;
-        bob.consume_until(SyncEvent::CoinState).await;
+        bob.wait_for_coins().await;
 
         // Create offer
         let offer = alice
@@ -70,8 +70,8 @@ mod tests {
         bob.push_bundle(spend_bundle).await?;
 
         // We need to wait for both wallets to sync in this case
-        bob.consume_until(SyncEvent::CoinState).await;
-        alice.consume_until(SyncEvent::PuzzleBatchSynced).await;
+        bob.wait_for_coins().await;
+        alice.wait_for_puzzles().await;
 
         // Check balances
         assert_eq!(alice.wallet.db.cat_balance(asset_id).await?, 1000);
@@ -87,7 +87,7 @@ mod tests {
 
         let (coin_spends, did) = bob.wallet.create_did(0, false, true).await?;
         bob.transact(coin_spends).await?;
-        bob.consume_until(SyncEvent::CoinState).await;
+        bob.wait_for_coins().await;
 
         let (coin_spends, mut nfts, _did) = bob
             .wallet
@@ -104,7 +104,7 @@ mod tests {
             )
             .await?;
         bob.transact(coin_spends).await?;
-        bob.consume_until(SyncEvent::PuzzleBatchSynced).await;
+        bob.wait_for_puzzles().await;
 
         let nft = nfts.remove(0);
 
@@ -152,8 +152,8 @@ mod tests {
         bob.push_bundle(spend_bundle).await?;
 
         // We need to wait for both wallets to sync in this case
-        bob.consume_until(SyncEvent::CoinState).await;
-        alice.consume_until(SyncEvent::PuzzleBatchSynced).await;
+        bob.wait_for_coins().await;
+        alice.wait_for_puzzles().await;
 
         // Check balances
         assert_ne!(
@@ -172,7 +172,7 @@ mod tests {
 
         let (coin_spends, did) = alice.wallet.create_did(0, false, true).await?;
         alice.transact(coin_spends).await?;
-        alice.consume_until(SyncEvent::CoinState).await;
+        alice.wait_for_coins().await;
 
         let (coin_spends, mut nfts, _did) = alice
             .wallet
@@ -189,7 +189,7 @@ mod tests {
             )
             .await?;
         alice.transact(coin_spends).await?;
-        alice.consume_until(SyncEvent::PuzzleBatchSynced).await;
+        alice.wait_for_puzzles().await;
 
         let nft = nfts.remove(0);
 
@@ -226,8 +226,8 @@ mod tests {
         bob.push_bundle(spend_bundle).await?;
 
         // We need to wait for both wallets to sync in this case
-        alice.consume_until(SyncEvent::CoinState).await;
-        bob.consume_until(SyncEvent::CoinState).await;
+        alice.wait_for_coins().await;
+        bob.wait_for_coins().await;
 
         // Check balances
         assert_eq!(alice.wallet.db.balance().await?, 1000);

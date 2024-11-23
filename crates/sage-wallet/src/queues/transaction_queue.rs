@@ -118,6 +118,13 @@ impl TransactionQueue {
             }
 
             if resolved {
+                self.sync_sender
+                    .send(SyncEvent::TransactionEnded {
+                        transaction_id,
+                        success: true,
+                    })
+                    .await
+                    .ok();
                 continue;
             }
 
@@ -141,10 +148,16 @@ impl TransactionQueue {
                 let mut tx = self.db.tx().await?;
                 safely_remove_transaction(&mut tx, transaction_id).await?;
                 tx.commit().await?;
+
+                self.sync_sender
+                    .send(SyncEvent::TransactionEnded {
+                        transaction_id,
+                        success: false,
+                    })
+                    .await
+                    .ok();
             }
         }
-
-        self.sync_sender.send(SyncEvent::Transaction).await.ok();
 
         Ok(())
     }

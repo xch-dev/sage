@@ -1,13 +1,22 @@
 use std::net::IpAddr;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+use chia::protocol::{Bytes32, CoinState};
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SyncEvent {
     Start(IpAddr),
     Stop,
     Subscribed,
-    Derivation,
-    CoinState,
-    Transaction,
+    DerivationIndex {
+        next_index: u32,
+    },
+    CoinsUpdated {
+        coin_states: Vec<CoinState>,
+    },
+    TransactionEnded {
+        transaction_id: Bytes32,
+        success: bool,
+    },
     PuzzleBatchSynced,
     CatInfo,
     DidInfo,

@@ -48,7 +48,7 @@ impl Wallet {
 mod tests {
     use test_log::test;
 
-    use crate::{SyncEvent, TestWallet};
+    use crate::TestWallet;
 
     #[test(tokio::test)]
     async fn test_send_xch() -> anyhow::Result<()> {
@@ -62,7 +62,7 @@ mod tests {
         assert_eq!(coin_spends.len(), 1);
 
         test.transact(coin_spends).await?;
-        test.consume_until(SyncEvent::CoinState).await;
+        test.wait_for_coins().await;
 
         assert_eq!(test.wallet.db.balance().await?, 1000);
         assert_eq!(test.wallet.db.spendable_coins().await?.len(), 1);
@@ -82,7 +82,7 @@ mod tests {
         assert_eq!(coin_spends.len(), 1);
 
         test.transact(coin_spends).await?;
-        test.consume_until(SyncEvent::CoinState).await;
+        test.wait_for_coins().await;
 
         assert_eq!(test.wallet.db.balance().await?, 750);
         assert_eq!(test.wallet.db.spendable_coins().await?.len(), 2);

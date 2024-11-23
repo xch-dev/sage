@@ -124,7 +124,7 @@ impl Wallet {
 
 #[cfg(test)]
 mod tests {
-    use crate::{SyncEvent, TestWallet};
+    use crate::TestWallet;
 
     use test_log::test;
 
@@ -134,7 +134,7 @@ mod tests {
 
         let (coin_spends, did) = test.wallet.create_did(0, false, true).await?;
         test.transact(coin_spends).await?;
-        test.consume_until(SyncEvent::CoinState).await;
+        test.wait_for_coins().await;
 
         for _ in 0..2 {
             let coin_spends = test
@@ -142,7 +142,7 @@ mod tests {
                 .transfer_dids(vec![did.info.launcher_id], test.puzzle_hash, 0, false, true)
                 .await?;
             test.transact(coin_spends).await?;
-            test.consume_until(SyncEvent::CoinState).await;
+            test.wait_for_coins().await;
         }
 
         assert_ne!(

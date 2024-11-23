@@ -59,9 +59,11 @@ impl AppStateInner {
                     SyncEvent::Start(ip) => ApiEvent::Start { ip: ip.to_string() },
                     SyncEvent::Stop => ApiEvent::Stop,
                     SyncEvent::Subscribed => ApiEvent::Subscribed,
-                    SyncEvent::Derivation => ApiEvent::Derivation,
+                    SyncEvent::DerivationIndex { .. } => ApiEvent::Derivation,
                     // TODO: New event?
-                    SyncEvent::CoinState | SyncEvent::Transaction => ApiEvent::CoinState,
+                    SyncEvent::CoinsUpdated { .. } | SyncEvent::TransactionEnded { .. } => {
+                        ApiEvent::CoinState
+                    }
                     SyncEvent::PuzzleBatchSynced => ApiEvent::PuzzleBatchSynced,
                     SyncEvent::CatInfo => ApiEvent::CatInfo,
                     SyncEvent::DidInfo => ApiEvent::DidInfo,
