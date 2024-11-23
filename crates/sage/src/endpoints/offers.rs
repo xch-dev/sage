@@ -5,11 +5,7 @@ use std::{
 
 use base64::{prelude::BASE64_STANDARD, Engine};
 use bigdecimal::BigDecimal;
-use chia::{
-    clvm_traits::FromClvm,
-    protocol::{Bytes32, SpendBundle},
-    puzzles::nft::NftMetadata,
-};
+use chia::{clvm_traits::FromClvm, protocol::SpendBundle, puzzles::nft::NftMetadata};
 use chia_wallet_sdk::{encode_address, AggSigConstants, Offer, SpendContext};
 use chrono::{Local, TimeZone};
 use clvmr::Allocator;
@@ -189,11 +185,8 @@ impl Sage {
 
         let mut allocator = Allocator::new();
         let parsed_offer = offer.parse(&mut allocator)?;
-        let coin_ids: Vec<Bytes32> = parsed_offer
-            .coin_spends
-            .iter()
-            .map(|cs| cs.coin.coin_id())
-            .collect();
+
+        let (maker, coin_ids) = parse_locked_coins(&mut allocator, &parsed_offer)?;
 
         let status = if let Some(peer) = peer {
             let coin_creation = lookup_coin_creation(
@@ -208,7 +201,6 @@ impl Sage {
             offer_expiration(&mut allocator, &parsed_offer, &HashMap::new())?
         };
 
-        let maker = parse_locked_coins(&mut allocator, &parsed_offer)?;
         let maker_amounts = maker.amounts();
         let mut builder = parsed_offer.take();
         let mut ctx = SpendContext::from(allocator);
@@ -489,8 +481,8 @@ impl Sage {
                 let asset_id = hex::encode(cat.asset_id);
 
                 let record = OfferCat {
-                    amount: Amount::from_mojos(cat.amount as u128, self.network().precision),
-                    royalty: Amount::from_mojos(cat.royalty as u128, self.network().precision),
+                    amount: Amount::from_mojos(cat.amount as u128, 3),
+                    royalty: Amount::from_mojos(cat.royalty as u128, 3),
                     name: cat.name,
                     ticker: cat.ticker,
                     icon_url: cat.icon,

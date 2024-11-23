@@ -1,4 +1,4 @@
-import { commands, OfferRecord } from '@/bindings';
+import { commands, OfferAssets, OfferRecord } from '@/bindings';
 import Container from '@/components/Container';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
@@ -19,8 +19,10 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Textarea } from '@/components/ui/textarea';
+import { nftUri } from '@/lib/nftUri';
 import { useWalletState } from '@/state';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
+import BigNumber from 'bignumber.js';
 import { CopyIcon, HandCoins, MoreVertical, TrashIcon } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -32,8 +34,6 @@ export function Offers() {
   const [offerString, setOfferString] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [offers, setOffers] = useState<OfferRecord[]>([]);
-
-  console.log(offers);
 
   const viewOffer = useCallback(
     (offer: string) => {
@@ -171,20 +171,30 @@ function Offer({ record, refresh }: OfferProps) {
         to={`/offers/view/${encodeURIComponent(record.offer.trim())}`}
         className='block p-4 rounded-sm bg-neutral-100 dark:bg-neutral-900'
       >
-        <div className='flex justify-between items-center -mt-1.5'>
-          <span className='text-lg'>
-            {record.status === 'active'
-              ? 'Pending'
-              : record.status === 'completed'
-                ? 'Taken'
-                : record.status === 'cancelled'
-                  ? 'Cancelled'
-                  : 'Expired'}
-          </span>
+        <div className='flex justify-between items-center'>
+          <div className='grid grid-cols-1 md:grid-cols-3 gap-x-10 gap-y-3'>
+            <div>
+              <div>
+                {record.status === 'active'
+                  ? 'Pending'
+                  : record.status === 'completed'
+                    ? 'Taken'
+                    : record.status === 'cancelled'
+                      ? 'Cancelled'
+                      : 'Expired'}
+              </div>
+
+              <div className='text-muted-foreground text-sm'>
+                {record.creation_date}
+              </div>
+            </div>
+            <AssetPreview label='Offered' assets={record.summary.maker} />
+            <AssetPreview label='Requested' assets={record.summary.taker} />
+          </div>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant='ghost' size='icon' className='-mr-2'>
+              <Button variant='ghost' size='icon' className='-mr-1.5'>
                 <MoreVertical className='h-5 w-5' />
               </Button>
             </DropdownMenuTrigger>
@@ -215,10 +225,6 @@ function Offer({ record, refresh }: OfferProps) {
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-
-        <span className='text-muted-foreground text-sm'>
-          {record.creation_date}
-        </span>
       </Link>
 
       <Dialog open={isDeleteOpen} onOpenChange={setDeleteOpen}>
@@ -255,5 +261,50 @@ function Offer({ record, refresh }: OfferProps) {
         </DialogContent>
       </Dialog>
     </>
+  );
+}
+
+interface AssetPreviewProps {
+  label: string;
+  assets: OfferAssets;
+}
+
+function AssetPreview({ label, assets }: AssetPreviewProps) {
+  const walletState = useWalletState();
+
+  return (
+    <div className='flex flex-col gap-1'>
+      <div>{label}</div>
+      {BigNumber(assets.xch.amount).isGreaterThan(0) && (
+        <div className='flex items-center gap-2'>
+          <img src='https://icons.dexie.space/xch.webp' className='w-8 h-8' />
+
+          <div className='text-sm text-muted-foreground truncate'>
+            {assets.xch.amount} {walletState.sync.unit.ticker}
+          </div>
+        </div>
+      )}
+      {Object.entries(assets.cats).map(([_assetId, cat]) => (
+        <div className='flex items-center gap-2'>
+          <img src={cat.icon_url!} className='w-8 h-8' />
+
+          <div className='text-sm text-muted-foreground truncate'>
+            {cat.amount} {cat.name ?? cat.ticker}
+          </div>
+        </div>
+      ))}
+      {Object.entries(assets.nfts).map(([_nftId, nft]) => (
+        <div className='flex items-center gap-2'>
+          <img
+            src={nftUri(nft.image_mime_type, nft.image_data)}
+            className='w-8 h-8'
+          />
+
+          <div className='text-sm text-muted-foreground truncate'>
+            {nft.name}
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }

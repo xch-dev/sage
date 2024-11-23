@@ -25,7 +25,7 @@ impl Wallet {
         let mut ctx = SpendContext::new();
 
         let offer = offer.parse(&mut ctx.allocator)?;
-        let locked_coins = parse_locked_coins(&mut ctx.allocator, &offer)?;
+        let (locked_coins, _original_coins) = parse_locked_coins(&mut ctx.allocator, &offer)?;
         let maker_amounts = locked_coins.amounts();
 
         let mut builder = offer.take();
