@@ -24,13 +24,18 @@
         "type_info": "Blob"
       },
       {
-        "name": "status",
+        "name": "fee",
         "ordinal": 4,
+        "type_info": "Blob"
+      },
+      {
+        "name": "status",
+        "ordinal": 5,
         "type_info": "Integer"
       },
       {
         "name": "inserted_timestamp",
-        "ordinal": 5,
+        "ordinal": 6,
         "type_info": "Blob"
       }
     ],
@@ -42,6 +47,7 @@
       false,
       true,
       true,
+      false,
       false,
       false
     ]

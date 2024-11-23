@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT * FROM `offers` INDEXED BY `offer_timestamp` ORDER BY `inserted_timestamp` DESC",
+  "query": "SELECT * FROM `offers` WHERE `offer_id` = ?",
   "describe": {
     "columns": [
       {
@@ -40,7 +40,7 @@
       }
     ],
     "parameters": {
-      "Right": 0
+      "Right": 1
     },
     "nullable": [
       false,
@@ -52,5 +52,5 @@
       false
     ]
   },
-  "hash": "fe0f5937a4656a93de70df4db1c8e1647c1023b3132f913d287097337e7df483"
+  "hash": "95cd0c18c584c6bfa4e327906d0711a8dbb63d744e569f44e52e0cd9686ef3ea"
 }
