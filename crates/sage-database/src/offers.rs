@@ -4,8 +4,8 @@ use chia::protocol::Bytes32;
 use sqlx::SqliteExecutor;
 
 use crate::{
-    into_row, Database, DatabaseTx, OfferCatRow, OfferCatSql, OfferNftRow, OfferNftSql, OfferRow,
-    OfferSql, OfferXchRow, OfferXchSql, Result,
+    into_row, to_bytes32, Database, DatabaseTx, OfferCatRow, OfferCatSql, OfferNftRow, OfferNftSql,
+    OfferRow, OfferSql, OfferStatus, OfferXchRow, OfferXchSql, Result,
 };
 
 impl Database {
@@ -35,6 +35,14 @@ impl Database {
 
     pub async fn get_offer(&self, offer_id: Bytes32) -> Result<Option<OfferRow>> {
         get_offer(&self.pool, offer_id).await
+    }
+
+    pub async fn update_offer_status(&self, offer_id: Bytes32, status: OfferStatus) -> Result<()> {
+        update_offer_status(&self.pool, offer_id, status).await
+    }
+
+    pub async fn offer_coin_ids(&self, offer_id: Bytes32) -> Result<Vec<Bytes32>> {
+        offer_coin_ids(&self.pool, offer_id).await
     }
 }
 
@@ -238,7 +246,7 @@ async fn get_offer(conn: impl SqliteExecutor<'_>, offer_id: Bytes32) -> Result<O
     .transpose()
 }
 
-pub async fn delete_offer(conn: impl SqliteExecutor<'_>, offer_id: Bytes32) -> Result<()> {
+async fn delete_offer(conn: impl SqliteExecutor<'_>, offer_id: Bytes32) -> Result<()> {
     let offer_id = offer_id.as_ref();
 
     sqlx::query!("DELETE FROM `offers` WHERE `offer_id` = ?", offer_id)
@@ -248,10 +256,7 @@ pub async fn delete_offer(conn: impl SqliteExecutor<'_>, offer_id: Bytes32) -> R
     Ok(())
 }
 
-pub async fn offer_xch(
-    conn: impl SqliteExecutor<'_>,
-    offer_id: Bytes32,
-) -> Result<Vec<OfferXchRow>> {
+async fn offer_xch(conn: impl SqliteExecutor<'_>, offer_id: Bytes32) -> Result<Vec<OfferXchRow>> {
     let offer_id = offer_id.as_ref();
 
     sqlx::query_as!(
@@ -266,10 +271,7 @@ pub async fn offer_xch(
     .collect()
 }
 
-pub async fn offer_nfts(
-    conn: impl SqliteExecutor<'_>,
-    offer_id: Bytes32,
-) -> Result<Vec<OfferNftRow>> {
+async fn offer_nfts(conn: impl SqliteExecutor<'_>, offer_id: Bytes32) -> Result<Vec<OfferNftRow>> {
     let offer_id = offer_id.as_ref();
 
     sqlx::query_as!(
@@ -284,10 +286,7 @@ pub async fn offer_nfts(
     .collect()
 }
 
-pub async fn offer_cats(
-    conn: impl SqliteExecutor<'_>,
-    offer_id: Bytes32,
-) -> Result<Vec<OfferCatRow>> {
+async fn offer_cats(conn: impl SqliteExecutor<'_>, offer_id: Bytes32) -> Result<Vec<OfferCatRow>> {
     let offer_id = offer_id.as_ref();
 
     sqlx::query_as!(
@@ -299,5 +298,38 @@ pub async fn offer_cats(
     .await?
     .into_iter()
     .map(into_row)
+    .collect()
+}
+
+async fn update_offer_status(
+    conn: impl SqliteExecutor<'_>,
+    offer_id: Bytes32,
+    status: OfferStatus,
+) -> Result<()> {
+    let offer_id = offer_id.as_ref();
+    let status = status as u8;
+
+    sqlx::query!(
+        "UPDATE `offers` SET `status` = ? WHERE `offer_id` = ?",
+        status,
+        offer_id
+    )
+    .execute(conn)
+    .await?;
+
+    Ok(())
+}
+
+async fn offer_coin_ids(conn: impl SqliteExecutor<'_>, offer_id: Bytes32) -> Result<Vec<Bytes32>> {
+    let offer_id = offer_id.as_ref();
+
+    sqlx::query!(
+        "SELECT `coin_id` FROM `offered_coins` WHERE `offer_id` = ?",
+        offer_id
+    )
+    .fetch_all(conn)
+    .await?
+    .into_iter()
+    .map(|row| to_bytes32(&row.coin_id))
     .collect()
 }

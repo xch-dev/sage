@@ -98,6 +98,7 @@ impl TestWallet {
                     cat_delay: Duration::from_millis(100),
                     puzzle_delay: Duration::from_millis(100),
                     transaction_delay: Duration::from_millis(100),
+                    offer_delay: Duration::from_millis(100),
                     ..Default::default()
                 },
                 testing: true,

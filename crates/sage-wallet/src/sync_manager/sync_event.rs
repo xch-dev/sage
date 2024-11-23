@@ -1,6 +1,7 @@
 use std::net::IpAddr;
 
 use chia::protocol::{Bytes32, CoinState};
+use sage_database::OfferStatus;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SyncEvent {
@@ -16,6 +17,10 @@ pub enum SyncEvent {
     TransactionEnded {
         transaction_id: Bytes32,
         success: bool,
+    },
+    OfferUpdated {
+        offer_id: Bytes32,
+        status: OfferStatus,
     },
     PuzzleBatchSynced,
     CatInfo,

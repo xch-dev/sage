@@ -61,9 +61,9 @@ impl AppStateInner {
                     SyncEvent::Subscribed => ApiEvent::Subscribed,
                     SyncEvent::DerivationIndex { .. } => ApiEvent::Derivation,
                     // TODO: New event?
-                    SyncEvent::CoinsUpdated { .. } | SyncEvent::TransactionEnded { .. } => {
-                        ApiEvent::CoinState
-                    }
+                    SyncEvent::CoinsUpdated { .. }
+                    | SyncEvent::TransactionEnded { .. }
+                    | SyncEvent::OfferUpdated { .. } => ApiEvent::CoinState,
                     SyncEvent::PuzzleBatchSynced => ApiEvent::PuzzleBatchSynced,
                     SyncEvent::CatInfo => ApiEvent::CatInfo,
                     SyncEvent::DidInfo => ApiEvent::DidInfo,
