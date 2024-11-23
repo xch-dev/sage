@@ -232,7 +232,7 @@ impl Wallet {
 mod tests {
     use test_log::test;
 
-    use crate::{SyncEvent, TestWallet};
+    use crate::TestWallet;
 
     use super::*;
 
@@ -242,7 +242,7 @@ mod tests {
 
         let (coin_spends, did) = test.wallet.create_did(0, false, true).await?;
         test.transact(coin_spends).await?;
-        test.consume_until(SyncEvent::CoinState).await;
+        test.wait_for_coins().await;
 
         let (coin_spends, mut nfts, _did) = test
             .wallet
@@ -259,7 +259,7 @@ mod tests {
             )
             .await?;
         test.transact(coin_spends).await?;
-        test.consume_until(SyncEvent::PuzzleBatchSynced).await;
+        test.wait_for_puzzles().await;
 
         let puzzle_hash = test.wallet.p2_puzzle_hash(false, true).await?;
 
@@ -275,7 +275,7 @@ mod tests {
                 .add_nft_uri(nft.info.launcher_id, 0, item, false, true)
                 .await?;
             test.transact(coin_spends).await?;
-            test.consume_until(SyncEvent::CoinState).await;
+            test.wait_for_coins().await;
         }
 
         for _ in 0..2 {
@@ -284,7 +284,7 @@ mod tests {
                 .transfer_nfts(vec![nft.info.launcher_id], puzzle_hash, 0, false, true)
                 .await?;
             test.transact(coin_spends).await?;
-            test.consume_until(SyncEvent::CoinState).await;
+            test.wait_for_coins().await;
         }
 
         Ok(())

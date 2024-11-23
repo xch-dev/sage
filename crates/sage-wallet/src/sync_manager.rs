@@ -20,7 +20,9 @@ use tokio::{
 use tracing::{debug, info, warn};
 use wallet_sync::{incremental_sync, sync_wallet};
 
-use crate::{CatQueue, NftUriQueue, PuzzleQueue, TransactionQueue, Wallet, WalletError};
+use crate::{
+    CatQueue, NftUriQueue, OfferQueue, PuzzleQueue, TransactionQueue, Wallet, WalletError,
+};
 
 mod options;
 mod peer_discovery;
@@ -49,6 +51,7 @@ pub struct SyncManager {
     cat_queue_task: Option<JoinHandle<Result<(), WalletError>>>,
     nft_uri_queue_task: Option<JoinHandle<Result<(), WalletError>>>,
     transaction_queue_task: Option<JoinHandle<Result<(), WalletError>>>,
+    offer_queue_task: Option<JoinHandle<Result<(), WalletError>>>,
     pending_coin_subscriptions: Vec<Bytes32>,
 }
 
@@ -86,6 +89,9 @@ impl Drop for SyncManager {
         if let Some(task) = &mut self.transaction_queue_task {
             task.abort();
         }
+        if let Some(task) = &mut self.offer_queue_task {
+            task.abort();
+        }
     }
 }
 
@@ -116,6 +122,7 @@ impl SyncManager {
             cat_queue_task: None,
             nft_uri_queue_task: None,
             transaction_queue_task: None,
+            offer_queue_task: None,
             pending_coin_subscriptions: Vec::new(),
         };
 
@@ -221,6 +228,9 @@ impl SyncManager {
             task.abort();
         }
         if let Some(task) = &mut self.transaction_queue_task.take() {
+            task.abort();
+        }
+        if let Some(task) = &mut self.offer_queue_task.take() {
             task.abort();
         }
     }
@@ -399,11 +409,25 @@ impl SyncManager {
                 );
                 self.transaction_queue_task = Some(task);
             }
+
+            if self.offer_queue_task.is_none() {
+                let task = tokio::spawn(
+                    OfferQueue::new(
+                        wallet.db.clone(),
+                        wallet.genesis_challenge,
+                        self.state.clone(),
+                        self.event_sender.clone(),
+                    )
+                    .start(self.options.timeouts.offer_delay),
+                );
+                self.offer_queue_task = Some(task);
+            }
         } else {
             self.puzzle_lookup_task = None;
             self.cat_queue_task = None;
             self.nft_uri_queue_task = None;
             self.transaction_queue_task = None;
+            self.offer_queue_task = None;
         }
     }
 
@@ -485,6 +509,23 @@ impl SyncManager {
                 }
                 Some(Ok(Ok(()))) => {
                     self.transaction_queue_task = None;
+                }
+                None => {}
+            }
+        }
+
+        if let Some(task) = &mut self.offer_queue_task {
+            match poll_once(task).await {
+                Some(Err(error)) => {
+                    warn!("Offer queue failed with panic: {error}");
+                    self.offer_queue_task = None;
+                }
+                Some(Ok(Err(error))) => {
+                    warn!("Offer queue failed with error: {error}");
+                    self.offer_queue_task = None;
+                }
+                Some(Ok(Ok(()))) => {
+                    self.offer_queue_task = None;
                 }
                 None => {}
             }

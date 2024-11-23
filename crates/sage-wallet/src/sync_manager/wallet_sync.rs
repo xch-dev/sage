@@ -94,7 +94,12 @@ pub async fn sync_wallet(
         }
         tx.commit().await?;
 
-        sync_sender.send(SyncEvent::Derivation).await.ok();
+        sync_sender
+            .send(SyncEvent::DerivationIndex {
+                next_index: start_index,
+            })
+            .await
+            .ok();
 
         for batch in p2_puzzle_hashes.chunks(500) {
             derive_more |= sync_puzzle_hashes(
@@ -216,7 +221,7 @@ pub async fn incremental_sync(
 ) -> Result<(), WalletError> {
     let mut tx = wallet.db.tx().await?;
 
-    for coin_state in coin_states {
+    for &coin_state in &coin_states {
         upsert_coin(&mut tx, coin_state, None).await?;
 
         if coin_state.spent_height.is_some() {
@@ -224,14 +229,20 @@ pub async fn incremental_sync(
         }
     }
 
+    sync_sender
+        .send(SyncEvent::CoinsUpdated { coin_states })
+        .await
+        .ok();
+
     let mut derived = false;
+
+    let mut next_index = tx.derivation_index(false).await?;
 
     if derive_automatically {
         let max_index = tx
             .max_used_derivation_index(false)
             .await?
             .map_or(0, |index| index + 1);
-        let mut next_index = tx.derivation_index(false).await?;
 
         while next_index < max_index + 500 {
             wallet
@@ -245,10 +256,11 @@ pub async fn incremental_sync(
 
     tx.commit().await?;
 
-    sync_sender.send(SyncEvent::CoinState).await.ok();
-
     if derived {
-        sync_sender.send(SyncEvent::Derivation).await.ok();
+        sync_sender
+            .send(SyncEvent::DerivationIndex { next_index })
+            .await
+            .ok();
     }
 
     Ok(())

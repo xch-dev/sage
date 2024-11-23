@@ -1,4 +1,4 @@
-import { commands, OfferAssets, OfferRecord } from '@/bindings';
+import { commands, events, OfferAssets, OfferRecord } from '@/bindings';
 import Container from '@/components/Container';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
@@ -44,7 +44,7 @@ export function Offers() {
     [navigate],
   );
 
-  useEffect(() => {
+  const updateOffers = () => {
     commands.getOffers({}).then((result) => {
       if (result.status === 'error') {
         console.error(result.error);
@@ -53,6 +53,20 @@ export function Offers() {
 
       setOffers(result.data.offers);
     });
+  };
+
+  useEffect(() => {
+    updateOffers();
+
+    const unlisten = events.syncEvent.listen((data) => {
+      if (data.payload.type === 'coin_state') {
+        updateOffers();
+      }
+    });
+
+    return () => {
+      unlisten.then((u) => u());
+    };
   }, []);
 
   useEffect(() => {
@@ -120,19 +134,7 @@ export function Offers() {
 
             <div className='flex flex-col gap-2'>
               {offers.map((record, i) => (
-                <Offer
-                  record={record}
-                  refresh={() => {
-                    commands.getOffers({}).then((result) => {
-                      if (result.status === 'error') {
-                        console.error(result.error);
-                        return;
-                      }
-                      setOffers(result.data.offers);
-                    });
-                  }}
-                  key={i}
-                />
+                <Offer record={record} refresh={updateOffers} key={i} />
               ))}
             </div>
           </div>

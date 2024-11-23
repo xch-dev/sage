@@ -98,6 +98,7 @@ impl TestWallet {
                     cat_delay: Duration::from_millis(100),
                     puzzle_delay: Duration::from_millis(100),
                     transaction_delay: Duration::from_millis(100),
+                    offer_delay: Duration::from_millis(100),
                     ..Default::default()
                 },
                 testing: true,
@@ -131,7 +132,8 @@ impl TestWallet {
             index: key_index,
         };
 
-        test.consume_until(SyncEvent::Subscribed).await;
+        test.consume_until(|event| matches!(event, SyncEvent::Subscribed))
+            .await;
         assert_eq!(test.wallet.db.balance().await?, balance as u128);
 
         Ok(test)
@@ -170,18 +172,28 @@ impl TestWallet {
         Ok(())
     }
 
-    pub async fn consume_until(&mut self, event: SyncEvent) {
+    pub async fn consume_until(&mut self, f: impl Fn(SyncEvent) -> bool) {
         loop {
             let next = timeout(Duration::from_secs(10), self.events.recv())
                 .await
-                .unwrap_or_else(|_| panic!("timed out listening for {event:?}"))
-                .unwrap_or_else(|| panic!("missing {event:?}"));
+                .unwrap_or_else(|_| panic!("timed out listening for event"))
+                .unwrap_or_else(|| panic!("missing next event"));
 
             debug!("Consuming event: {next:?}");
 
-            if event == next {
+            if f(next) {
                 return;
             }
         }
+    }
+
+    pub async fn wait_for_coins(&mut self) {
+        self.consume_until(|event| matches!(event, SyncEvent::CoinsUpdated { .. }))
+            .await;
+    }
+
+    pub async fn wait_for_puzzles(&mut self) {
+        self.consume_until(|event| matches!(event, SyncEvent::PuzzleBatchSynced))
+            .await;
     }
 }

@@ -132,7 +132,7 @@ mod tests {
     use chia::puzzles::nft::NftMetadata;
     use test_log::test;
 
-    use crate::{SyncEvent, TestWallet, WalletNftMint};
+    use crate::{TestWallet, WalletNftMint};
 
     use super::*;
 
@@ -142,7 +142,7 @@ mod tests {
 
         let (coin_spends, did) = test.wallet.create_did(0, false, true).await?;
         test.transact(coin_spends).await?;
-        test.consume_until(SyncEvent::CoinState).await;
+        test.wait_for_coins().await;
 
         let (coin_spends, mut nfts, _did) = test
             .wallet
@@ -159,7 +159,7 @@ mod tests {
             )
             .await?;
         test.transact(coin_spends).await?;
-        test.consume_until(SyncEvent::PuzzleBatchSynced).await;
+        test.wait_for_puzzles().await;
 
         let nft = nfts.remove(0);
 
@@ -168,7 +168,7 @@ mod tests {
             .assign_nfts(vec![nft.info.launcher_id], None, 0, false, true)
             .await?;
         test.transact(coin_spends).await?;
-        test.consume_until(SyncEvent::CoinState).await;
+        test.wait_for_coins().await;
 
         let coin_spends = test
             .wallet
@@ -181,7 +181,7 @@ mod tests {
             )
             .await?;
         test.transact(coin_spends).await?;
-        test.consume_until(SyncEvent::CoinState).await;
+        test.wait_for_coins().await;
 
         Ok(())
     }
