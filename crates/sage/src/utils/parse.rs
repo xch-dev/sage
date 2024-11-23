@@ -66,6 +66,13 @@ pub fn parse_collection_id(input: String) -> Result<Bytes32> {
     Ok(launcher_id.into())
 }
 
+pub fn parse_offer_id(input: String) -> Result<Bytes32> {
+    let asset_id: [u8; 32] = hex::decode(&input)?
+        .try_into()
+        .map_err(|_| Error::InvalidOfferId(input))?;
+    Ok(asset_id.into())
+}
+
 pub fn parse_cat_amount(input: Amount) -> Result<u64> {
     let Some(amount) = input.to_mojos(3) else {
         return Err(Error::InvalidCatAmount(input.to_string()));

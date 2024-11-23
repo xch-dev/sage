@@ -150,6 +150,9 @@ pub enum Error {
     #[error("Invalid asset id: {0}")]
     InvalidAssetId(String),
 
+    #[error("Invalid offer id: {0}")]
+    InvalidOfferId(String),
+
     #[error("Invalid percentage: {0}")]
     InvalidPercentage(String),
 
@@ -170,6 +173,9 @@ pub enum Error {
 
     #[error("Missing CAT coin: {0}")]
     MissingCatCoin(Bytes32),
+
+    #[error("Missing offer: {0}")]
+    MissingOffer(Bytes32),
 
     #[error("Coin already spent: {0}")]
     CoinSpent(Bytes32),
@@ -224,7 +230,8 @@ impl Error {
             | Self::MissingCoin(..)
             | Self::MissingCatCoin(..)
             | Self::MissingDid(..)
-            | Self::MissingNft(..) => ErrorKind::NotFound,
+            | Self::MissingNft(..)
+            | Self::MissingOffer(..) => ErrorKind::NotFound,
             Self::Bls(..)
             | Self::Hex(..)
             | Self::InvalidKey
@@ -242,6 +249,7 @@ impl Error {
             | Self::InvalidCoinId(..)
             | Self::InvalidPuzzleHash(..)
             | Self::InvalidAssetId(..)
+            | Self::InvalidOfferId(..)
             | Self::InvalidPercentage(..)
             | Self::InvalidSignature(..)
             | Self::CoinSpent(..)

@@ -106,6 +106,7 @@ routes!(
     view_offer await: ViewOffer = "/view_offer",
     import_offer await: ImportOffer = "/import_offer",
     get_offers await: GetOffers = "/get_offers",
+    get_offer await: GetOffer = "/get_offer",
     delete_offer await: DeleteOffer = "/delete_offer",
 
     get_peers await: GetPeers = "/get_peers",

@@ -32,6 +32,10 @@ impl Database {
     pub async fn offer_cats(&self, offer_id: Bytes32) -> Result<Vec<OfferCatRow>> {
         offer_cats(&self.pool, offer_id).await
     }
+
+    pub async fn get_offer(&self, offer_id: Bytes32) -> Result<Option<OfferRow>> {
+        get_offer(&self.pool, offer_id).await
+    }
 }
 
 impl DatabaseTx<'_> {
@@ -218,6 +222,20 @@ async fn get_offers(conn: impl SqliteExecutor<'_>) -> Result<Vec<OfferRow>> {
     .into_iter()
     .map(into_row)
     .collect()
+}
+
+async fn get_offer(conn: impl SqliteExecutor<'_>, offer_id: Bytes32) -> Result<Option<OfferRow>> {
+    let offer_id = offer_id.as_ref();
+
+    sqlx::query_as!(
+        OfferSql,
+        "SELECT * FROM `offers` WHERE `offer_id` = ?",
+        offer_id
+    )
+    .fetch_optional(conn)
+    .await?
+    .map(into_row)
+    .transpose()
 }
 
 pub async fn delete_offer(conn: impl SqliteExecutor<'_>, offer_id: Bytes32) -> Result<()> {

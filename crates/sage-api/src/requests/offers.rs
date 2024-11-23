@@ -69,6 +69,16 @@ pub struct GetOffersResponse {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct GetOffer {
+    pub offer_id: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct GetOfferResponse {
+    pub offer: OfferRecord,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub struct DeleteOffer {
     pub offer_id: String,
 }
