@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        INSERT OR IGNORE INTO `offer_nfts` (\n            `offer_id`, `requested`, `launcher_id`,\n            `royalty_puzzle_hash`, `royalty_ten_thousandths`,\n            `name`, `thumbnail`, `thumbnail_mime_type`\n        )\n        VALUES (?, ?, ?, ?, ?, ?, ?, ?)\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 8
+    },
+    "nullable": []
+  },
+  "hash": "b0a032da8f11fba1cd9689b08d98c0bef5f3d29ce386efd4a3acdc95e50fadd3"
+}

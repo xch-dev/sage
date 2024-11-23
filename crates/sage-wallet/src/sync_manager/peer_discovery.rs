@@ -52,7 +52,7 @@ impl SyncManager {
             .await;
 
         for addrs in addrs.chunks(self.options.connection_batch_size) {
-            if self.connect_batch(addrs).await {
+            if self.connect_batch(addrs, false).await {
                 break;
             }
         }
@@ -118,7 +118,7 @@ impl SyncManager {
                     }
 
                     for addrs in addrs.chunks(self.options.connection_batch_size) {
-                        if self.connect_batch(addrs).await {
+                        if self.connect_batch(addrs, false).await {
                             return true;
                         }
                     }
@@ -138,7 +138,7 @@ impl SyncManager {
         false
     }
 
-    pub(super) async fn connect_batch(&mut self, addrs: &[SocketAddr]) -> bool {
+    pub(super) async fn connect_batch(&mut self, addrs: &[SocketAddr], force: bool) -> bool {
         let mut futures = FuturesUnordered::new();
 
         for &socket_addr in addrs {
@@ -165,7 +165,7 @@ impl SyncManager {
         while let Some((socket_addr, result)) = futures.next().await {
             match result {
                 Ok(Ok((peer, receiver))) => {
-                    if self.try_add_peer(peer, receiver).await {
+                    if self.try_add_peer(peer, receiver, force).await {
                         if self.check_peer_count().await {
                             return true;
                         }
@@ -207,6 +207,7 @@ impl SyncManager {
         &mut self,
         peer: Peer,
         mut receiver: mpsc::Receiver<Message>,
+        force: bool,
     ) -> bool {
         let Ok(Some(message)) = timeout(self.options.timeouts.initial_peak, receiver.recv()).await
         else {
@@ -237,6 +238,31 @@ impl SyncManager {
         let sender = self.command_sender.clone();
 
         let mut state = self.state.lock().await;
+
+        if !force && state.peer_count() >= self.options.target_peers {
+            debug!(
+                "Peer {} is trying to connect when we have enough peers",
+                peer.socket_addr()
+            );
+            return false;
+        } else if force && state.peer_count() >= self.options.target_peers {
+            let mut peers = state.peers_with_heights();
+
+            peers.sort_by_key(|(peer, height)| {
+                (
+                    !state.trusted_peers().contains(&peer.socket_addr().ip()),
+                    *height,
+                )
+            });
+
+            let count = state.peer_count() - self.options.target_peers + 1;
+
+            debug!("Removing {} peers to make room for new peer", count);
+
+            for peer in peers.iter().take(count) {
+                state.remove_peer(peer.0.socket_addr().ip());
+            }
+        }
 
         for (existing_peer, height) in state.peers_with_heights() {
             if message.height < height.saturating_sub(3) {

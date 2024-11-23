@@ -111,7 +111,11 @@ impl TestWallet {
 
         let (peer, receiver) = sim.connect_raw().await?;
 
-        assert!(sync_manager.try_add_peer(peer.clone(), receiver).await);
+        assert!(
+            sync_manager
+                .try_add_peer(peer.clone(), receiver, true)
+                .await
+        );
 
         tokio::spawn(sync_manager.sync());
 

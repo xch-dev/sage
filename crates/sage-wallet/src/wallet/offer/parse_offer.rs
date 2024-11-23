@@ -86,7 +86,7 @@ impl RequestedPayments {
 pub fn parse_locked_coins(
     allocator: &mut Allocator,
     offer: &ParsedOffer,
-) -> Result<LockedCoins, WalletError> {
+) -> Result<(LockedCoins, Vec<Bytes32>), WalletError> {
     let mut xch = Vec::new();
     let mut cats = IndexMap::new();
     let mut nfts = IndexMap::new();
@@ -97,6 +97,8 @@ pub fn parse_locked_coins(
         .iter()
         .map(|coin_spend| coin_spend.coin.coin_id())
         .collect();
+
+    let mut created_coin_ids = Vec::new();
 
     for coin_spend in &offer.coin_spends {
         let puzzle = coin_spend.puzzle_reveal.to_clvm(allocator)?;
@@ -111,11 +113,11 @@ pub fn parse_locked_coins(
         for condition in conditions {
             match condition {
                 Condition::ReserveFee(cond) => fee += cond.amount,
-                Condition::CreateCoin(cond) => coins.push(Coin::new(
-                    coin_spend.coin.coin_id(),
-                    cond.puzzle_hash,
-                    cond.amount,
-                )),
+                Condition::CreateCoin(cond) => {
+                    let coin = Coin::new(coin_spend.coin.coin_id(), cond.puzzle_hash, cond.amount);
+                    coins.push(coin);
+                    created_coin_ids.push(coin.coin_id());
+                }
                 _ => {}
             }
         }
@@ -155,12 +157,18 @@ pub fn parse_locked_coins(
         }
     }
 
-    Ok(LockedCoins {
-        xch,
-        cats,
-        nfts,
-        fee,
-    })
+    Ok((
+        LockedCoins {
+            xch,
+            cats,
+            nfts,
+            fee,
+        },
+        spent_coin_ids
+            .difference(&created_coin_ids.into_iter().collect())
+            .copied()
+            .collect(),
+    ))
 }
 
 pub fn parse_offer_payments(

@@ -21,7 +21,9 @@ use sqlx::{
 use tokio::sync::{mpsc, Mutex};
 use tracing::{error, info, Level};
 use tracing_appender::rolling::{Builder, Rotation};
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer};
+use tracing_subscriber::{
+    filter::filter_fn, fmt, layer::SubscriberExt, EnvFilter, Layer, Registry,
+};
 
 use crate::{peers::Peers, Error, Result};
 
@@ -80,35 +82,38 @@ impl Sage {
 
         let log_level: Level = self.config.app.log_level.parse()?;
 
+        // Create rotated log file
         let log_file = Builder::new()
             .filename_prefix("app.log")
             .rotation(Rotation::DAILY)
             .max_log_files(3)
-            .build(log_dir.as_path())?;
+            .build(log_dir)?;
 
-        macro_rules! filter {
-            () => {
-                EnvFilter::new(format!(
-                    "{},rustls=off,tungstenite=off",
-                    log_level.to_string()
-                ))
-            };
-        }
+        // Common filter string
+        let filter_string = format!("{log_level},rustls=off,tungstenite=off");
 
-        let file_layer = tracing_subscriber::fmt::layer()
-            .with_writer(log_file)
-            .with_ansi(false)
+        // File layer - always without ANSI
+        let file_layer = fmt::layer()
             .with_target(false)
+            .with_ansi(false)
+            .with_writer(log_file)
             .compact()
-            .with_filter(filter!());
+            .with_filter(EnvFilter::new(&filter_string));
 
-        let registry = tracing_subscriber::registry().with(file_layer);
+        // Terminal layer - with ANSI and additional formatting
+        let terminal_layer = fmt::layer()
+            .with_target(false)
+            .with_ansi(true) // Explicitly enable ANSI for terminal
+            .compact()
+            .with_filter(EnvFilter::new(&filter_string));
 
-        let stdout_layer = tracing_subscriber::fmt::layer().pretty();
+        // Build subscriber differently based on platform
+        let subscriber = Registry::default()
+            .with(file_layer)
+            .with(terminal_layer.with_filter(filter_fn(|_| !cfg!(mobile))));
 
-        registry
-            .with(stdout_layer.with_filter(filter!()))
-            .try_init()?;
+        // Initialize the subscriber
+        tracing::subscriber::set_global_default(subscriber)?;
 
         Ok(())
     }
@@ -228,7 +233,7 @@ impl Sage {
         let intermediate_pk = master_to_wallet_unhardened_intermediate(&master_pk);
         let path = self.wallet_db_path(fingerprint)?;
 
-        let mut pool = SqlitePoolOptions::new()
+        let pool = SqlitePoolOptions::new()
             .connect_with(
                 SqliteConnectOptions::from_str(&format!("sqlite://{}?mode=rwc", path.display()))?
                     .journal_mode(SqliteJournalMode::Wal)
@@ -236,28 +241,7 @@ impl Sage {
             )
             .await?;
 
-        // TODO: Remove this before out of beta.
-        if let Err(error) = sqlx::migrate!("../../migrations").run(&pool).await {
-            error!("Error migrating database, dropping database: {error:?}");
-
-            pool.close().await;
-            drop(pool);
-
-            fs::remove_file(&path)?;
-
-            pool = SqlitePoolOptions::new()
-                .connect_with(
-                    SqliteConnectOptions::from_str(&format!(
-                        "sqlite://{}?mode=rwc",
-                        path.display()
-                    ))?
-                    .journal_mode(SqliteJournalMode::Wal)
-                    .log_statements(log::LevelFilter::Trace),
-                )
-                .await?;
-
-            sqlx::migrate!("../../migrations").run(&pool).await?;
-        }
+        sqlx::migrate!("../../migrations").run(&pool).await?;
 
         let db = Database::new(pool);
         let wallet = Arc::new(Wallet::new(

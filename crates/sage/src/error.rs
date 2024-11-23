@@ -10,6 +10,7 @@ use chia::{
     protocol::Bytes32,
 };
 use chia_wallet_sdk::{AddressError, ClientError, OfferError};
+use clvmr::reduction::EvalErr;
 use hex::FromHexError;
 use sage_api::ErrorKind;
 use sage_database::DatabaseError;
@@ -18,7 +19,7 @@ use sage_wallet::{SyncCommand, UriError, WalletError};
 use sqlx::migrate::MigrateError;
 use thiserror::Error;
 use tokio::sync::mpsc::error::SendError;
-use tracing::metadata::ParseLevelError;
+use tracing::{metadata::ParseLevelError, subscriber::SetGlobalDefaultError};
 use tracing_appender::rolling::InitError;
 use tracing_subscriber::util::TryInitError;
 
@@ -83,6 +84,9 @@ pub enum Error {
     #[error("Logging initialization error: {0}")]
     LogAppender(#[from] InitError),
 
+    #[error("Set global default logger error: {0}")]
+    SetGlobalDefault(#[from] SetGlobalDefaultError),
+
     #[error("Parse log level error: {0}")]
     ParseLogLevel(#[from] ParseLevelError),
 
@@ -146,6 +150,9 @@ pub enum Error {
     #[error("Invalid asset id: {0}")]
     InvalidAssetId(String),
 
+    #[error("Invalid offer id: {0}")]
+    InvalidOfferId(String),
+
     #[error("Invalid percentage: {0}")]
     InvalidPercentage(String),
 
@@ -167,6 +174,9 @@ pub enum Error {
     #[error("Missing CAT coin: {0}")]
     MissingCatCoin(Bytes32),
 
+    #[error("Missing offer: {0}")]
+    MissingOffer(Bytes32),
+
     #[error("Coin already spent: {0}")]
     CoinSpent(Bytes32),
 
@@ -178,6 +188,9 @@ pub enum Error {
 
     #[error("Could not fetch NFT with id: {0}")]
     CouldNotFetchNft(Bytes32),
+
+    #[error("CLVM eval error: {0}")]
+    Eval(#[from] EvalErr),
 }
 
 impl Error {
@@ -204,18 +217,21 @@ impl Error {
             | Self::TomlSer(..)
             | Self::LogAppender(..)
             | Self::LogSubscriber(..)
+            | Self::SetGlobalDefault(..)
             | Self::ParseLogLevel(..)
             | Self::Database(..)
             | Self::Bech32m(..)
             | Self::ToClvm(..)
             | Self::FromClvm(..)
-            | Self::Bincode(..) => ErrorKind::Internal,
+            | Self::Bincode(..)
+            | Self::Eval(..) => ErrorKind::Internal,
             Self::UnknownFingerprint
             | Self::UnknownNetwork
             | Self::MissingCoin(..)
             | Self::MissingCatCoin(..)
             | Self::MissingDid(..)
-            | Self::MissingNft(..) => ErrorKind::NotFound,
+            | Self::MissingNft(..)
+            | Self::MissingOffer(..) => ErrorKind::NotFound,
             Self::Bls(..)
             | Self::Hex(..)
             | Self::InvalidKey
@@ -233,6 +249,7 @@ impl Error {
             | Self::InvalidCoinId(..)
             | Self::InvalidPuzzleHash(..)
             | Self::InvalidAssetId(..)
+            | Self::InvalidOfferId(..)
             | Self::InvalidPercentage(..)
             | Self::InvalidSignature(..)
             | Self::CoinSpent(..)

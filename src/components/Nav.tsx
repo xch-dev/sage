@@ -1,5 +1,6 @@
 import {
   ArrowLeftRight,
+  BookUser,
   Images,
   SquareUserRound,
   WalletIcon,
@@ -25,6 +26,10 @@ export function Nav() {
       <NavLink url={'/offers'}>
         <ArrowLeftRight className='h-4 w-4' />
         Offers
+      </NavLink>
+      <NavLink url={'/wallet/receive'}>
+        <BookUser className='h-4 w-4' />
+        Addresses
       </NavLink>
     </nav>
   );

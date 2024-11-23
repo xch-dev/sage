@@ -228,9 +228,12 @@ async fn spendable_cat_coins(
         FROM `cat_coins` INDEXED BY `cat_asset_id`
         INNER JOIN `coin_states` AS cs ON `cat_coins`.`coin_id` = cs.`coin_id`
         LEFT JOIN `transaction_spends` ON cs.`coin_id` = `transaction_spends`.`coin_id`
+        LEFT JOIN `offered_coins` ON cs.`coin_id` = `offered_coins`.`coin_id`
+        LEFT JOIN `offers` ON `offered_coins`.`offer_id` = `offers`.`offer_id`
         WHERE `cat_coins`.`asset_id` = ?
         AND cs.`spent_height` IS NULL
         AND `transaction_spends`.`coin_id` IS NULL
+        AND (`offered_coins`.`coin_id` IS NULL OR `offers`.`status` > 0)
         AND cs.`transaction_id` IS NULL
         ",
         asset_id

@@ -23,11 +23,14 @@ pub async fn fetch_nft_did(
     let mut parent_id = launcher_id;
 
     for _ in 0..5 {
-        let parent_spend = timeout(
+        let Some(parent_spend) = timeout(
             Duration::from_secs(15),
-            peer.fetch_coin_spend(parent_id, genesis_challenge),
+            peer.fetch_optional_coin_spend(parent_id, genesis_challenge),
         )
-        .await??;
+        .await??
+        else {
+            break;
+        };
 
         let mut allocator = Allocator::new();
 

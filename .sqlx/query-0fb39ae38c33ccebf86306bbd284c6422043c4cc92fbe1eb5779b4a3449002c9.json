@@ -1,0 +1,62 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT * FROM `offer_nfts` WHERE `offer_id` = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "offer_id",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "requested",
+        "ordinal": 1,
+        "type_info": "Bool"
+      },
+      {
+        "name": "launcher_id",
+        "ordinal": 2,
+        "type_info": "Blob"
+      },
+      {
+        "name": "royalty_puzzle_hash",
+        "ordinal": 3,
+        "type_info": "Blob"
+      },
+      {
+        "name": "royalty_ten_thousandths",
+        "ordinal": 4,
+        "type_info": "Integer"
+      },
+      {
+        "name": "name",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "thumbnail",
+        "ordinal": 6,
+        "type_info": "Blob"
+      },
+      {
+        "name": "thumbnail_mime_type",
+        "ordinal": 7,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "0fb39ae38c33ccebf86306bbd284c6422043c4cc92fbe1eb5779b4a3449002c9"
+}

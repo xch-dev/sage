@@ -1,5 +1,6 @@
 mod coin_states;
 mod derivations;
+mod offers;
 mod peaks;
 mod primitives;
 mod rows;
@@ -68,6 +69,9 @@ pub enum DatabaseError {
 
     #[error("Invalid enum variant")]
     InvalidEnumVariant,
+
+    #[error("Invalid offer status {0}")]
+    InvalidOfferStatus(i64),
 }
 
 pub(crate) type Result<T> = std::result::Result<T, DatabaseError>;

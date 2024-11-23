@@ -154,12 +154,18 @@ export function MakeOffer() {
             <DialogFooter>
               <Button
                 onClick={() => {
-                  setOffer('');
-                  clearOffer();
-                  navigate('/offers', { replace: true });
+                  commands.importOffer({ offer }).then((result) => {
+                    setOffer('');
+                    clearOffer();
+                    if (result.status === 'error') {
+                      console.error(result.error);
+                    } else {
+                      navigate('/offers', { replace: true });
+                    }
+                  });
                 }}
               >
-                Done
+                Save
               </Button>
             </DialogFooter>
           </DialogContent>
