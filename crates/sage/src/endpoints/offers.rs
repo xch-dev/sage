@@ -533,7 +533,7 @@ impl Sage {
                 creation_date: Local
                     .timestamp_opt(offer.inserted_timestamp.try_into()?, 0)
                     .unwrap()
-                    .format("%B %d, %Y %r")
+                    .format("%b %d, %Y %r")
                     .to_string(),
                 summary: OfferSummary {
                     maker: OfferAssets {

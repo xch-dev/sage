@@ -171,9 +171,9 @@ function Offer({ record, refresh }: OfferProps) {
         to={`/offers/view/${encodeURIComponent(record.offer.trim())}`}
         className='block p-4 rounded-sm bg-neutral-100 dark:bg-neutral-900'
       >
-        <div className='flex justify-between items-center'>
-          <div className='grid grid-cols-1 md:grid-cols-3 gap-x-10 gap-y-3'>
-            <div>
+        <div className='flex justify-between'>
+          <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+            <div className='flex flex-col gap-1'>
               <div>
                 {record.status === 'active'
                   ? 'Pending'
@@ -183,18 +183,22 @@ function Offer({ record, refresh }: OfferProps) {
                       ? 'Cancelled'
                       : 'Expired'}
               </div>
-
               <div className='text-muted-foreground text-sm'>
                 {record.creation_date}
               </div>
             </div>
+
             <AssetPreview label='Offered' assets={record.summary.maker} />
             <AssetPreview label='Requested' assets={record.summary.taker} />
           </div>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant='ghost' size='icon' className='-mr-1.5'>
+              <Button
+                variant='ghost'
+                size='icon'
+                className='-mr-1.5 flex-shrink-0'
+              >
                 <MoreVertical className='h-5 w-5' />
               </Button>
             </DropdownMenuTrigger>
@@ -273,14 +277,17 @@ function AssetPreview({ label, assets }: AssetPreviewProps) {
   const walletState = useWalletState();
 
   return (
-    <div className='flex flex-col gap-1'>
+    <div className='flex flex-col gap-1 w-[125px] lg:w-[200px] xl:w-[300px]'>
       <div>{label}</div>
-      {BigNumber(assets.xch.amount).isGreaterThan(0) && (
+      {BigNumber(assets.xch.amount)
+        .plus(assets.xch.royalty)
+        .isGreaterThan(0) && (
         <div className='flex items-center gap-2'>
           <img src='https://icons.dexie.space/xch.webp' className='w-8 h-8' />
 
           <div className='text-sm text-muted-foreground truncate'>
-            {assets.xch.amount} {walletState.sync.unit.ticker}
+            {BigNumber(assets.xch.amount).plus(assets.xch.royalty).toString()}{' '}
+            {walletState.sync.unit.ticker}
           </div>
         </div>
       )}
@@ -289,7 +296,8 @@ function AssetPreview({ label, assets }: AssetPreviewProps) {
           <img src={cat.icon_url!} className='w-8 h-8' />
 
           <div className='text-sm text-muted-foreground truncate'>
-            {cat.amount} {cat.name ?? cat.ticker}
+            {BigNumber(cat.amount).plus(cat.royalty).toString()}{' '}
+            {cat.name ?? cat.ticker}
           </div>
         </div>
       ))}
