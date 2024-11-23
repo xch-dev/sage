@@ -33,6 +33,8 @@ export function Offers() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [offers, setOffers] = useState<OfferRecord[]>([]);
 
+  console.log(offers);
+
   const viewOffer = useCallback(
     (offer: string) => {
       if (offer.trim()) {

@@ -12,7 +12,7 @@ use sage_wallet::{
 
 use crate::{Result, Sage};
 
-use super::{extract_nft_data, ConfirmationInfo};
+use super::{extract_nft_data, ConfirmationInfo, ExtractedNftData};
 
 impl Sage {
     pub(crate) async fn summarize_offer(&self, offer: Offer) -> Result<OfferSummary> {
@@ -85,42 +85,41 @@ impl Sage {
         }
 
         for (launcher_id, nft) in locked_coins.nfts {
-            let metadata = NftMetadata::from_clvm(&ctx.allocator, nft.info.metadata.ptr())?;
+            let info = if let Ok(metadata) =
+                NftMetadata::from_clvm(&ctx.allocator, nft.info.metadata.ptr())
+            {
+                let mut confirmation_info = ConfirmationInfo::default();
 
-            let mut confirmation_info = ConfirmationInfo::default();
-
-            if let Some(hash) = metadata.data_hash {
-                if let Some(data) = lookup_from_uris_with_hash(
-                    metadata.data_uris.clone(),
-                    Duration::from_secs(10),
-                    Duration::from_secs(5),
-                    hash,
-                )
-                .await
-                {
-                    confirmation_info.nft_data.insert(hash, data);
+                if let Some(hash) = metadata.data_hash {
+                    if let Some(data) = lookup_from_uris_with_hash(
+                        metadata.data_uris.clone(),
+                        Duration::from_secs(10),
+                        Duration::from_secs(5),
+                        hash,
+                    )
+                    .await
+                    {
+                        confirmation_info.nft_data.insert(hash, data);
+                    }
                 }
-            }
 
-            if let Some(hash) = metadata.metadata_hash {
-                if let Some(data) = lookup_from_uris_with_hash(
-                    metadata.metadata_uris.clone(),
-                    Duration::from_secs(10),
-                    Duration::from_secs(5),
-                    hash,
-                )
-                .await
-                {
-                    confirmation_info.nft_data.insert(hash, data);
+                if let Some(hash) = metadata.metadata_hash {
+                    if let Some(data) = lookup_from_uris_with_hash(
+                        metadata.metadata_uris.clone(),
+                        Duration::from_secs(10),
+                        Duration::from_secs(5),
+                        hash,
+                    )
+                    .await
+                    {
+                        confirmation_info.nft_data.insert(hash, data);
+                    }
                 }
-            }
 
-            let info = extract_nft_data(
-                Some(&wallet.db),
-                Some(metadata),
-                &ConfirmationInfo::default(),
-            )
-            .await?;
+                extract_nft_data(Some(&wallet.db), Some(metadata), &confirmation_info).await?
+            } else {
+                ExtractedNftData::default()
+            };
 
             maker.nfts.insert(
                 encode_address(launcher_id.to_bytes(), "nft")?,
