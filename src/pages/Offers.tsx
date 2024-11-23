@@ -168,7 +168,7 @@ function Offer({ record, refresh }: OfferProps) {
   return (
     <>
       <Link
-        to={`/offers/view/${encodeURIComponent(record.offer.trim())}`}
+        to={`/offers/view_saved/${record.offer_id.trim()}`}
         className='block p-4 rounded-sm bg-neutral-100 dark:bg-neutral-900'
       >
         <div className='flex justify-between'>

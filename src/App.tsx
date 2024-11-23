@@ -31,6 +31,7 @@ import Token from './pages/Token';
 import { TokenList } from './pages/TokenList';
 import { Transactions } from './pages/Transactions';
 import { ViewOffer } from './pages/ViewOffer';
+import { ViewSavedOffer } from './pages/ViewSavedOffer';
 import Wallet from './pages/Wallet';
 import { fetchState } from './state';
 
@@ -78,6 +79,7 @@ const router = createHashRouter(
         <Route path='' element={<Offers />} />
         <Route path='make' element={<MakeOffer />} />
         <Route path='view/:offer' element={<ViewOffer />} />
+        <Route path='view_saved/:offer_id' element={<ViewSavedOffer />} />
       </Route>
       <Route path='/settings' element={<Settings />} />
       <Route path='/peers' element={<PeerList />} />

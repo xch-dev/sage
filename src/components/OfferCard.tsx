@@ -1,132 +1,72 @@
-import {
-  commands,
-  Error,
-  OfferAssets,
-  OfferSummary,
-  TakeOfferResponse,
-} from '@/bindings';
-import ConfirmationDialog from '@/components/ConfirmationDialog';
-import Container from '@/components/Container';
-import { CopyButton } from '@/components/CopyButton';
-import ErrorDialog from '@/components/ErrorDialog';
-import Header from '@/components/Header';
-import { OfferCard } from '@/components/OfferCard';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
+import { OfferAssets, OfferSummary } from '@/bindings';
 import { nftUri } from '@/lib/nftUri';
 import { useWalletState } from '@/state';
 import BigNumber from 'bignumber.js';
-import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { ArrowDownIcon, ArrowUpIcon } from 'lucide-react';
+import { PropsWithChildren } from 'react';
+import { CopyButton } from './CopyButton';
+import { Badge } from './ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Separator } from './ui/separator';
 
-export function ViewOffer() {
-  const { offer } = useParams();
+export interface OfferCardProps {
+  summary: OfferSummary;
+}
 
-  const navigate = useNavigate();
-
-  const [summary, setSummary] = useState<OfferSummary | null>(null);
-  const [response, setResponse] = useState<TakeOfferResponse | null>(null);
-  const [error, setError] = useState<Error | null>(null);
-  const [fee, setFee] = useState('');
-
-  useEffect(() => {
-    if (!offer) return;
-
-    commands.viewOffer({ offer }).then((result) => {
-      if (result.status === 'error') {
-        setError(result.error);
-      } else {
-        setSummary(result.data.offer);
-      }
-    });
-  }, [offer]);
-
-  const importOffer = () => {
-    commands.importOffer({ offer: offer! }).then((result) => {
-      if (result.status === 'error') {
-        setError(result.error);
-      } else {
-        navigate('/offers');
-      }
-    });
-  };
-
-  const take = () => {
-    commands.importOffer({ offer: offer! }).then((result) => {
-      if (result.status === 'error') {
-        setError(result.error);
-        return;
-      }
-
-      commands.takeOffer({ offer: offer!, fee: fee || '0' }).then((result) => {
-        if (result.status === 'error') {
-          setError(result.error);
-        } else {
-          setResponse(result.data);
-        }
-      });
-    });
-  };
-
+export function OfferCard({
+  summary,
+  children,
+}: PropsWithChildren<OfferCardProps>) {
   return (
-    <>
-      <Header title='View Offer' />
+    <div className='grid grid-cols-1 lg:grid-cols-2 gap-4 max-w-screen-lg'>
+      <Card>
+        <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2 pr-2 space-x-2'>
+          <CardTitle className='text-md font-medium truncate flex items-center'>
+            <ArrowUpIcon className='mr-2 h-4 w-4' />
+            Sending
+          </CardTitle>
+        </CardHeader>
+        <CardContent className='flex flex-col'>
+          <div className='text-sm text-muted-foreground'>
+            The assets you have to pay to fulfill the offer.
+          </div>
 
-      <Container>
-        {summary && (
-          <OfferCard summary={summary}>
-            <div className='flex flex-col space-y-1.5'>
-              <Label htmlFor='fee'>Network Fee</Label>
-              <Input
-                id='fee'
-                type='text'
-                placeholder='0.00'
-                className='pr-12'
-                value={fee}
-                onChange={(e) => setFee(e.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') {
-                    event.preventDefault();
-                    take();
-                  }
-                }}
-              />
+          <Separator className='my-4' />
 
-              <span className='text-xs text-muted-foreground'>
-                {BigNumber(summary?.fee ?? '0').isGreaterThan(0)
-                  ? `This does not include a fee of ${summary?.fee} which was already added by the maker.`
-                  : ''}
-              </span>
-            </div>
-          </OfferCard>
-        )}
+          <div className='flex flex-col gap-4'>
+            <Assets assets={summary.taker} />
 
-        <div className='mt-4 flex gap-2'>
-          <Button variant='outline' onClick={importOffer}>
-            Save Offer
-          </Button>
+            {children}
+          </div>
+        </CardContent>
+      </Card>
 
-          <Button onClick={take}>Take Offer</Button>
-        </div>
+      <Card>
+        <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2 pr-2 space-x-2'>
+          <CardTitle className='text-md font-medium truncate flex items-center'>
+            <ArrowDownIcon className='mr-2 h-4 w-4' />
+            Receiving
+          </CardTitle>
+        </CardHeader>
+        <CardContent className='flex flex-col'>
+          <div className='text-sm text-muted-foreground'>
+            The assets being given to you in the offer.
+          </div>
 
-        <ErrorDialog
-          error={error}
-          setError={(error) => {
-            setError(error);
-            if (error === null) navigate('/offers');
-          }}
-        />
-      </Container>
+          <Separator className='my-4' />
 
-      <ConfirmationDialog
-        response={response}
-        close={() => setResponse(null)}
-        onConfirm={() => navigate('/offers')}
-      />
-    </>
+          <Assets
+            assets={
+              summary?.maker ?? {
+                xch: { amount: '0', royalty: '0' },
+                cats: {},
+                nfts: {},
+              }
+            }
+          />
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 

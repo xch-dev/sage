@@ -365,6 +365,14 @@ async getOffers(req: GetOffers) : Promise<Result<GetOffersResponse, Error>> {
     else return { status: "error", error: e  as any };
 }
 },
+async getOffer(req: GetOffer) : Promise<Result<GetOfferResponse, Error>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_offer", { req }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async deleteOffer(req: DeleteOffer) : Promise<Result<DeleteOfferResponse, Error>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("delete_offer", { req }) };
@@ -560,6 +568,8 @@ export type GetNftStatus = Record<string, never>
 export type GetNftStatusResponse = { nfts: number; visible_nfts: number; collections: number; visible_collections: number }
 export type GetNfts = { collection_id: string | null; offset: number; limit: number; sort_mode: NftSortMode; include_hidden: boolean }
 export type GetNftsResponse = { nfts: NftRecord[] }
+export type GetOffer = { offer_id: string }
+export type GetOfferResponse = { offer: OfferRecord }
 export type GetOffers = Record<string, never>
 export type GetOffersResponse = { offers: OfferRecord[] }
 export type GetPeers = Record<string, never>
