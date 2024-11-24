@@ -12,15 +12,31 @@ export interface WalletState {
   sync: GetSyncStatusResponse;
   nfts: GetNftStatusResponse;
   coins: CoinRecord[];
-  offerAssets: Assets;
-  requestedAssets: Assets;
-  offerFee: string;
+}
+
+export interface OfferState {
+  offered: Assets;
+  requested: Assets;
+  fee: string;
+  expiration: OfferExpiration | null;
+}
+
+export interface OfferExpiration {
+  days: string;
+  hours: string;
+  minutes: string;
 }
 
 export const useWalletState = create<WalletState>()(() => defaultState());
+export const useOfferState = create<OfferState>()(() => defaultOffer());
 
 export function clearState() {
   useWalletState.setState(defaultState());
+  useOfferState.setState(defaultOffer());
+}
+
+export function clearOffer() {
+  useOfferState.setState(defaultOffer());
 }
 
 export async function fetchState() {
@@ -93,7 +109,7 @@ export async function logoutAndUpdateState(): Promise<void> {
   await commands.logout({});
 }
 
-function defaultState(): WalletState {
+export function defaultState(): WalletState {
   return {
     sync: {
       receive_address: 'Unknown',
@@ -113,32 +129,35 @@ function defaultState(): WalletState {
       visible_collections: 0,
     },
     coins: [],
-    offerAssets: {
-      xch: '',
-      nfts: [],
-      cats: [],
-    },
-    requestedAssets: {
-      xch: '',
-      nfts: [],
-      cats: [],
-    },
-    offerFee: '',
   };
 }
 
-export function clearOffer() {
-  useWalletState.setState({
-    offerAssets: {
+export function defaultOffer(): OfferState {
+  return {
+    offered: {
       xch: '',
       cats: [],
       nfts: [],
     },
-    requestedAssets: {
+    requested: {
       xch: '',
       cats: [],
       nfts: [],
     },
-    offerFee: '',
-  });
+    fee: '',
+    expiration: null,
+  };
+}
+
+export function isDefaultOffer(offer: OfferState): boolean {
+  return (
+    offer.offered.xch === '' &&
+    offer.offered.cats.length === 0 &&
+    offer.offered.nfts.length === 0 &&
+    offer.requested.xch === '' &&
+    offer.requested.cats.length === 0 &&
+    offer.requested.nfts.length === 0 &&
+    offer.fee === '' &&
+    offer.expiration === null
+  );
 }

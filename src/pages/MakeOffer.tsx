@@ -14,7 +14,8 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { clearOffer, useWalletState } from '@/state';
+import { Switch } from '@/components/ui/switch';
+import { clearOffer, useOfferState, useWalletState } from '@/state';
 import {
   HandCoins,
   Handshake,
@@ -26,6 +27,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 export function MakeOffer() {
+  const state = useOfferState();
   const walletState = useWalletState();
   const navigate = useNavigate();
 
@@ -35,22 +37,29 @@ export function MakeOffer() {
     commands
       .makeOffer({
         offered_assets: {
-          xch: walletState.offerAssets.xch || '0',
-          cats: walletState.offerAssets.cats.map((cat) => ({
+          xch: state.offered.xch || '0',
+          cats: state.offered.cats.map((cat) => ({
             asset_id: cat.asset_id,
             amount: cat.amount || '0',
           })),
-          nfts: walletState.offerAssets.nfts,
+          nfts: state.offered.nfts,
         },
         requested_assets: {
-          xch: walletState.requestedAssets.xch || '0',
-          cats: walletState.requestedAssets.cats.map((cat) => ({
+          xch: state.requested.xch || '0',
+          cats: state.requested.cats.map((cat) => ({
             asset_id: cat.asset_id,
             amount: cat.amount || '0',
           })),
-          nfts: walletState.requestedAssets.nfts,
+          nfts: state.requested.nfts,
         },
-        fee: walletState.offerFee || '0',
+        fee: state.fee || '0',
+        expires_at_second:
+          state.expiration === null
+            ? null
+            : Math.ceil(Date.now() / 1000) +
+              Number(state.expiration.days || '0') * 24 * 60 * 60 +
+              Number(state.expiration.hours || '0') * 60 * 60 +
+              Number(state.expiration.minutes || '0') * 60,
       })
       .then((result) => {
         if (result.status === 'error') {
@@ -60,6 +69,12 @@ export function MakeOffer() {
         }
       });
   };
+
+  const invalid =
+    state.expiration !== null &&
+    (isNaN(Number(state.expiration.days)) ||
+      isNaN(Number(state.expiration.hours)) ||
+      isNaN(Number(state.expiration.minutes)));
 
   return (
     <>
@@ -81,36 +96,11 @@ export function MakeOffer() {
 
               <AssetSelector
                 prefix='offer'
-                assets={walletState.offerAssets}
+                assets={state.offered}
                 setAssets={(assets) =>
-                  useWalletState.setState({ offerAssets: assets })
+                  useOfferState.setState({ offered: assets })
                 }
               />
-
-              <div className='mt-4 flex flex-col space-y-1.5'>
-                <Label htmlFor='fee'>Network Fee</Label>
-                <div className='relative'>
-                  <Input
-                    id='fee'
-                    type='text'
-                    placeholder='0.00'
-                    className='pr-12'
-                    value={walletState.offerFee}
-                    onChange={(e) =>
-                      useWalletState.setState({ offerFee: e.target.value })
-                    }
-                  />
-
-                  <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
-                    <span
-                      className='text-gray-500 sm:text-sm'
-                      id='price-currency'
-                    >
-                      {walletState.sync.unit.ticker}
-                    </span>
-                  </div>
-                </div>
-              </div>
             </CardContent>
           </Card>
 
@@ -128,17 +118,144 @@ export function MakeOffer() {
 
               <AssetSelector
                 prefix='requested'
-                assets={walletState.requestedAssets}
+                assets={state.requested}
                 setAssets={(assets) =>
-                  useWalletState.setState({ requestedAssets: assets })
+                  useOfferState.setState({ requested: assets })
                 }
               />
             </CardContent>
           </Card>
+
+          <div className='flex flex-col gap-4'>
+            <div className='flex flex-col space-y-1.5'>
+              <Label htmlFor='fee'>Network Fee</Label>
+              <div className='relative'>
+                <Input
+                  id='fee'
+                  type='text'
+                  placeholder='0.00'
+                  className='pr-12'
+                  value={state.fee}
+                  onChange={(e) =>
+                    useOfferState.setState({ fee: e.target.value })
+                  }
+                />
+
+                <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
+                  <span className='text-gray-500 text-sm' id='price-currency'>
+                    {walletState.sync.unit.ticker}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className='flex flex-col gap-2'>
+              <div className='flex items-center gap-2'>
+                <label htmlFor='expiring'>Expiring offer</label>
+                <Switch
+                  id='expiring'
+                  checked={state.expiration !== null}
+                  onCheckedChange={(value) => {
+                    if (value) {
+                      useOfferState.setState({
+                        expiration: {
+                          days: '1',
+                          hours: '',
+                          minutes: '',
+                        },
+                      });
+                    } else {
+                      useOfferState.setState({
+                        expiration: null,
+                      });
+                    }
+                  }}
+                />
+              </div>
+
+              {state.expiration !== null && (
+                <div className='flex gap-2'>
+                  <div className='relative'>
+                    <Input
+                      className='pr-12'
+                      value={state.expiration.days}
+                      placeholder='0'
+                      onChange={(e) => {
+                        if (state.expiration === null) return;
+
+                        useOfferState.setState({
+                          expiration: {
+                            ...state.expiration,
+                            days: e.target.value,
+                          },
+                        });
+                      }}
+                    />
+                    <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
+                      <span className='text-gray-500 text-sm'>Days</span>
+                    </div>
+                  </div>
+
+                  <div className='relative'>
+                    <Input
+                      className='pr-12'
+                      value={state.expiration.hours}
+                      placeholder='0'
+                      onChange={(e) => {
+                        if (state.expiration === null) return;
+
+                        useOfferState.setState({
+                          expiration: {
+                            ...state.expiration,
+                            hours: e.target.value,
+                          },
+                        });
+                      }}
+                    />
+                    <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
+                      <span className='text-gray-500 text-sm'>Hours</span>
+                    </div>
+                  </div>
+
+                  <div className='relative'>
+                    <Input
+                      className='pr-12'
+                      value={state.expiration.minutes}
+                      placeholder='0'
+                      onChange={(e) => {
+                        if (state.expiration === null) return;
+
+                        useOfferState.setState({
+                          expiration: {
+                            ...state.expiration,
+                            minutes: e.target.value,
+                          },
+                        });
+                      }}
+                    />
+                    <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
+                      <span className='text-gray-500 text-sm'>Minutes</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         <div className='mt-4 flex gap-2'>
-          <Button onClick={make}>Create Offer</Button>
+          <Button
+            variant='outline'
+            onClick={() => {
+              clearOffer();
+              navigate('/offers', { replace: true });
+            }}
+          >
+            Cancel Offer
+          </Button>
+          <Button onClick={make} disabled={invalid}>
+            Create Offer
+          </Button>
         </div>
 
         <Dialog open={!!offer} onOpenChange={() => setOffer('')}>
@@ -182,8 +299,6 @@ interface AssetSelectorProps {
 }
 
 function AssetSelector({ prefix, assets, setAssets }: AssetSelectorProps) {
-  const walletState = useWalletState();
-
   const [includeAmount, setIncludeAmount] = useState(!!assets.xch);
 
   return (

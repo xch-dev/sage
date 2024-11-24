@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Textarea } from '@/components/ui/textarea';
 import { nftUri } from '@/lib/nftUri';
-import { useWalletState } from '@/state';
+import { isDefaultOffer, useOfferState, useWalletState } from '@/state';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 import BigNumber from 'bignumber.js';
 import { CopyIcon, HandCoins, MoreVertical, TrashIcon } from 'lucide-react';
@@ -29,7 +29,7 @@ import { Link, useNavigate } from 'react-router-dom';
 
 export function Offers() {
   const navigate = useNavigate();
-  const walletState = useWalletState();
+  const offerState = useOfferState();
 
   const [offerString, setOfferString] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -82,18 +82,10 @@ export function Offers() {
   }, [viewOffer]);
 
   useEffect(() => {
-    if (
-      walletState.offerFee ||
-      walletState.offerAssets.xch ||
-      walletState.offerAssets.cats.length ||
-      walletState.offerAssets.nfts.length ||
-      walletState.requestedAssets.xch ||
-      walletState.requestedAssets.cats.length ||
-      walletState.requestedAssets.nfts.length
-    ) {
+    if (!isDefaultOffer(offerState)) {
       navigate('/offers/make', { replace: true });
     }
-  }, [navigate, walletState]);
+  }, [navigate, offerState]);
 
   const handleViewOffer = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -126,7 +118,7 @@ export function Offers() {
                     View offer
                   </Button>
                 </DialogTrigger>
-                <Link to='/offers/make'>
+                <Link to='/offers/make' replace={true}>
                   <Button>Create offer</Button>
                 </Link>
               </div>

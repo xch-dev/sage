@@ -33,7 +33,7 @@ impl Default for Timeouts {
             nft_uri_delay: Duration::from_secs(1),
             puzzle_delay: Duration::from_secs(1),
             transaction_delay: Duration::from_secs(1),
-            offer_delay: Duration::from_secs(1),
+            offer_delay: Duration::from_secs(5),
             connection: Duration::from_secs(3),
             initial_peak: Duration::from_secs(2),
             remove_subscription: Duration::from_secs(3),
