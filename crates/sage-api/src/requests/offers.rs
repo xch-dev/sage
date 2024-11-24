@@ -8,6 +8,7 @@ pub struct MakeOffer {
     pub requested_assets: Assets,
     pub offered_assets: Assets,
     pub fee: Amount,
+    pub expires_at_second: Option<u64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]

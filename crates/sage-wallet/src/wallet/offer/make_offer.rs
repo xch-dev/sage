@@ -51,6 +51,7 @@ impl Wallet {
         &self,
         maker: MakerSide,
         taker: TakerSide,
+        expires_at: Option<u64>,
         hardened: bool,
         reuse: bool,
     ) -> Result<UnsignedMakeOffer, WalletError> {
@@ -151,9 +152,13 @@ impl Wallet {
         let trade_prices = calculate_trade_prices(&taker_amounts, maker.nfts.len())?;
 
         let (assertions, builder) = builder.finish();
-        let extra_conditions = Conditions::new()
+        let mut extra_conditions = Conditions::new()
             .extend(assertions)
             .extend(maker_royalties.assertions());
+
+        if let Some(expires_at) = expires_at {
+            extra_conditions = extra_conditions.assert_before_seconds_absolute(expires_at);
+        }
 
         // Spend the assets.
         self.lock_assets(

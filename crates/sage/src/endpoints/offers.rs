@@ -90,6 +90,7 @@ impl Sage {
                     cats: requested_cats,
                     nfts: requested_nfts,
                 },
+                req.expires_at_second,
                 false,
                 true,
             )

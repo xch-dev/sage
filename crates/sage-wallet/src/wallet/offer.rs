@@ -52,6 +52,7 @@ mod tests {
                     cats: indexmap! { asset_id => 1000 },
                     nfts: IndexMap::new(),
                 },
+                None,
                 false,
                 true,
             )
@@ -134,6 +135,7 @@ mod tests {
                         },
                     },
                 },
+                None,
                 false,
                 true,
             )
@@ -208,6 +210,7 @@ mod tests {
                     cats: IndexMap::new(),
                     nfts: IndexMap::new(),
                 },
+                None,
                 false,
                 true,
             )
