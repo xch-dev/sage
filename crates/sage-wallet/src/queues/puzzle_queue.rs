@@ -8,7 +8,7 @@ use tokio::{
     task::spawn_blocking,
     time::{sleep, timeout},
 };
-use tracing::{debug, instrument, warn};
+use tracing::{debug, warn};
 
 use crate::{
     database::insert_puzzle, fetch_nft_did, ChildKind, PeerState, SyncCommand, SyncEvent,
@@ -122,7 +122,6 @@ impl PuzzleQueue {
 }
 
 /// Fetches info for a coin's puzzle and inserts it into the database.
-#[instrument(skip(peer, db))]
 async fn fetch_puzzle(
     peer: &WalletPeer,
     db: &Database,

@@ -11,7 +11,7 @@ use tokio::{
     task::spawn_blocking,
     time::{sleep, timeout},
 };
-use tracing::{debug, info, instrument, warn};
+use tracing::{debug, info, warn};
 
 use crate::{handle_spent_coin, upsert_coin, Wallet, WalletError, WalletPeer};
 
@@ -128,7 +128,6 @@ pub async fn sync_wallet(
     Ok(())
 }
 
-#[instrument(skip(wallet, peer, coin_ids))]
 async fn sync_coin_ids(
     wallet: &Wallet,
     peer: &WalletPeer,
@@ -163,7 +162,6 @@ async fn sync_coin_ids(
     Ok(())
 }
 
-#[instrument(skip(wallet, peer, puzzle_hashes))]
 async fn sync_puzzle_hashes(
     wallet: &Wallet,
     peer: &WalletPeer,
