@@ -13,7 +13,7 @@ import { commands, events } from '../bindings';
 import AddressList from '../components/AddressList';
 import { useWalletState } from '../state';
 
-export default function Receive() {
+export default function Addresses() {
   const walletState = useWalletState();
 
   const [addresses, setAddresses] = useState<string[]>([]);

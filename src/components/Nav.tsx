@@ -27,7 +27,7 @@ export function Nav() {
         <ArrowLeftRight className='h-4 w-4' />
         Offers
       </NavLink>
-      <NavLink url={'/wallet/receive'}>
+      <NavLink url={'/wallet/addresses'}>
         <BookUser className='h-4 w-4' />
         Addresses
       </NavLink>

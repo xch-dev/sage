@@ -225,7 +225,7 @@ export default function Token() {
                     <Send className='mr-2 h-4 w-4' /> Send
                   </Button>
                 </Link>
-                <Link to='/wallet/receive'>
+                <Link to='/wallet/addresses'>
                   <Button variant={'outline'}>
                     <HandHelping className='mr-2 h-4 w-4' /> Receive
                   </Button>
