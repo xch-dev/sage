@@ -1,10 +1,12 @@
+use std::collections::HashMap;
+
 use chia::{
     bls::Signature,
     protocol::{Bytes32, CoinState},
 };
-use sage_database::{CatRow, DatabaseTx, DidRow, NftRow};
+use sage_database::{CatRow, Database, DatabaseTx, DidRow, NftRow};
 
-use crate::{compute_nft_info, ChildKind, Transaction, WalletError};
+use crate::{compute_nft_info, fetch_nft_did, ChildKind, Transaction, WalletError, WalletPeer};
 
 pub async fn upsert_coin(
     tx: &mut DatabaseTx<'_>,
@@ -35,19 +37,6 @@ pub async fn upsert_coin(
     } else {
         update_created_puzzle(tx, coin_state).await?;
     }
-
-    Ok(())
-}
-
-pub async fn handle_spent_coin(
-    tx: &mut DatabaseTx<'_>,
-    coin_id: Bytes32,
-) -> Result<(), WalletError> {
-    if let Some(transaction_id) = tx.transaction_for_spent_coin(coin_id).await? {
-        safely_remove_transaction(tx, transaction_id).await?;
-    }
-
-    delete_puzzle(tx, coin_id).await?;
 
     Ok(())
 }
@@ -249,12 +238,36 @@ pub async fn update_created_puzzle(
 }
 
 pub async fn insert_transaction(
-    tx: &mut DatabaseTx<'_>,
+    db: &Database,
+    peer: &WalletPeer,
+    genesis_challenge: Bytes32,
     transaction_id: Bytes32,
     transaction: Transaction,
     aggregated_signature: Signature,
 ) -> Result<Vec<Bytes32>, WalletError> {
-    let mut subscriptions = Vec::new();
+    let mut coin_spends = HashMap::new();
+
+    for input in &transaction.inputs {
+        coin_spends.insert(input.coin_spend.coin.coin_id(), input.coin_spend.clone());
+    }
+
+    let mut minter_dids = HashMap::new();
+
+    for input in &transaction.inputs {
+        for output in &input.outputs {
+            let ChildKind::Nft { info, .. } = &output.kind else {
+                continue;
+            };
+
+            if let Some(did_id) =
+                fetch_nft_did(peer, genesis_challenge, info.launcher_id, &coin_spends).await?
+            {
+                minter_dids.insert(output.coin.coin_id(), did_id);
+            }
+        }
+    }
+
+    let mut tx = db.tx().await?;
 
     tx.insert_pending_transaction(transaction_id, aggregated_signature, transaction.fee)
         .await?;
@@ -264,8 +277,10 @@ pub async fn insert_transaction(
         .iter()
         .map(|input| input.coin_spend.coin.coin_id())
     {
-        delete_puzzle(tx, coin_id).await?;
+        delete_puzzle(&mut tx, coin_id).await?;
     }
+
+    let mut subscriptions = Vec::new();
 
     for (index, input) in transaction.inputs.into_iter().enumerate() {
         tx.insert_transaction_spend(transaction_id, input.coin_spend, index)
@@ -298,9 +313,17 @@ pub async fn insert_transaction(
                 subscriptions.push(coin_id);
             }
 
-            insert_puzzle(tx, coin_state, output.kind, None).await?;
+            insert_puzzle(
+                &mut tx,
+                coin_state,
+                output.kind,
+                minter_dids.get(&output.coin.coin_id()).copied(),
+            )
+            .await?;
         }
     }
+
+    tx.commit().await?;
 
     Ok(subscriptions)
 }

@@ -143,17 +143,22 @@ impl Sage {
         );
 
         if req.auto_submit {
-            let mut tx = wallet.db.tx().await?;
+            let peer = self
+                .peer_state
+                .lock()
+                .await
+                .acquire_peer()
+                .ok_or(Error::NoPeers)?;
 
             let subscriptions = insert_transaction(
-                &mut tx,
+                &wallet.db,
+                &peer,
+                wallet.genesis_challenge,
                 spend_bundle.name(),
                 Transaction::from_coin_spends(spend_bundle.coin_spends.clone())?,
                 spend_bundle.aggregated_signature.clone(),
             )
             .await?;
-
-            tx.commit().await?;
 
             self.command_sender
                 .send(SyncCommand::SubscribeCoins {

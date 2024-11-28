@@ -13,7 +13,7 @@ use tokio::{
 };
 use tracing::{debug, info, warn};
 
-use crate::{handle_spent_coin, upsert_coin, Wallet, WalletError, WalletPeer};
+use crate::{delete_puzzle, upsert_coin, Wallet, WalletError, WalletPeer};
 
 use super::{PeerState, SyncEvent};
 
@@ -223,7 +223,7 @@ pub async fn incremental_sync(
         upsert_coin(&mut tx, coin_state, None).await?;
 
         if coin_state.spent_height.is_some() {
-            handle_spent_coin(&mut tx, coin_state.coin.coin_id()).await?;
+            delete_puzzle(&mut tx, coin_state.coin.coin_id()).await?;
         }
     }
 

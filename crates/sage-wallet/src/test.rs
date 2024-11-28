@@ -37,6 +37,7 @@ pub struct TestWallet {
     pub sender: Sender<SyncCommand>,
     pub events: Receiver<SyncEvent>,
     pub index: u32,
+    pub state: Arc<Mutex<PeerState>>,
 }
 
 impl TestWallet {
@@ -103,7 +104,7 @@ impl TestWallet {
                 },
                 testing: true,
             },
-            state,
+            state.clone(),
             Some(wallet.clone()),
             "testnet11".to_string(),
             Network::default_testnet11(),
@@ -130,6 +131,7 @@ impl TestWallet {
             sender,
             events,
             index: key_index,
+            state,
         };
 
         test.consume_until(|event| matches!(event, SyncEvent::Subscribed))
@@ -151,17 +153,17 @@ impl TestWallet {
     }
 
     pub async fn push_bundle(&self, spend_bundle: SpendBundle) -> anyhow::Result<()> {
-        let mut tx = self.wallet.db.tx().await?;
+        let peer = self.state.lock().await.acquire_peer().expect("no peer");
 
         let subscriptions = insert_transaction(
-            &mut tx,
+            &self.wallet.db,
+            &peer,
+            TESTNET11_CONSTANTS.genesis_challenge,
             spend_bundle.name(),
             Transaction::from_coin_spends(spend_bundle.coin_spends)?,
             spend_bundle.aggregated_signature,
         )
         .await?;
-
-        tx.commit().await?;
 
         self.sender
             .send(SyncCommand::SubscribeCoins {
