@@ -146,6 +146,10 @@ pub fn calculate_royalties(
             let amount = calculate_nft_royalty(trade_price, nft.royalty_ten_thousandths)
                 .ok_or(WalletError::InvalidRoyaltyAmount)?;
 
+            if amount == 0 {
+                continue;
+            }
+
             royalties.xch.push(RoyaltyPayment {
                 nft_id: nft.launcher_id,
                 p2_puzzle_hash: nft.royalty_puzzle_hash,
@@ -161,6 +165,10 @@ pub fn calculate_royalties(
         for nft in nfts {
             let amount = calculate_nft_royalty(trade_price, nft.royalty_ten_thousandths)
                 .ok_or(WalletError::InvalidRoyaltyAmount)?;
+
+            if amount == 0 {
+                continue;
+            }
 
             royalties
                 .cats

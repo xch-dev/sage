@@ -35,9 +35,10 @@ export default function ImportWallet() {
           fetchState().then(() => {
             navigate('/wallet');
           });
+        } else {
+          setError(res.error.reason);
         }
-      })
-      .catch(setError);
+      });
   };
 
   return (
