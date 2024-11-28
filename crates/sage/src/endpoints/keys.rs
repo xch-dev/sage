@@ -37,7 +37,26 @@ impl Sage {
             self.switch_wallet().await?;
         }
 
-        self.delete_wallet_db(req.fingerprint)?;
+        let pool = self.connect_to_database(req.fingerprint).await?;
+
+        sqlx::query!(
+            "
+            DELETE FROM `coin_states`;
+            DELETE FROM `transactions`;
+            DELETE FROM `peaks`;
+            DELETE FROM `cats`;
+            DELETE FROM `future_did_names`;
+            DELETE FROM `collections`;
+            DELETE FROM `nft_data`;
+            DELETE FROM `nft_uris`;
+            "
+        )
+        .execute(&pool)
+        .await?;
+
+        if req.delete_offer_files {
+            sqlx::query!("DELETE FROM `offers`").execute(&pool).await?;
+        }
 
         if login {
             self.config.app.active_fingerprint = Some(req.fingerprint);

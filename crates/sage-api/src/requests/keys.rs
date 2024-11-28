@@ -20,6 +20,8 @@ pub struct LogoutResponse {}
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Type)]
 pub struct Resync {
     pub fingerprint: u32,
+    #[serde(default)]
+    pub delete_offer_files: bool,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Type)]

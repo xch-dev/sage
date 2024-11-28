@@ -33,9 +33,11 @@ import { useNavigate } from 'react-router-dom';
 import { commands, KeyInfo, SecretKeyInfo } from '../bindings';
 import Container from '../components/Container';
 import { loginAndUpdateState } from '../state';
+import { Switch } from '@/components/ui/switch';
 
 export default function Login() {
   const [keys, setKeys] = useState<KeyInfo[] | null>(null);
+  const [network, setNetwork] = useState<string | null>(null);
 
   const navigate = useNavigate();
 
@@ -43,6 +45,12 @@ export default function Login() {
     commands.getKeys({}).then((res) => {
       if (res.status === 'ok') {
         setKeys(res.data.keys);
+      }
+    });
+
+    commands.networkConfig().then((res) => {
+      if (res.status === 'ok') {
+        setNetwork(res.data.network_id);
       }
     });
   }, []);
@@ -68,12 +76,18 @@ export default function Login() {
             </div>
           </>
         )}
-      </div>{' '}
+      </div>
       {keys !== null ? (
         keys.length ? (
           <div className='grid md:grid-cols-2 lg:grid-cols-3 gap-4'>
             {keys.map((key, i) => (
-              <WalletItem key={i} info={key} keys={keys} setKeys={setKeys} />
+              <WalletItem
+                key={i}
+                network={network}
+                info={key}
+                keys={keys}
+                setKeys={setKeys}
+              />
             ))}
           </div>
         ) : (
@@ -99,30 +113,39 @@ function SkeletonWalletList() {
 }
 
 interface WalletItemProps {
+  network: string | null;
   info: KeyInfo;
   keys: KeyInfo[];
   setKeys: (keys: KeyInfo[]) => void;
 }
 
-function WalletItem({ info, keys, setKeys }: WalletItemProps) {
+function WalletItem({ network, info, keys, setKeys }: WalletItemProps) {
   const navigate = useNavigate();
 
-  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+  const [anchorEl, _setAnchorEl] = useState<HTMLElement | null>(null);
   const isMenuOpen = Boolean(anchorEl);
 
   const [isDeleteOpen, setDeleteOpen] = useState(false);
-  const [isRenameOpen, setRenameOpen] = useState(false);
-  const [isDetailsOpen, setDetailsOpen] = useState(false);
-  const [isResyncOpen, setResyncOpen] = useState(false);
-  const [newName, setNewName] = useState('');
 
+  const [isDetailsOpen, setDetailsOpen] = useState(false);
   const [secrets, setSecrets] = useState<SecretKeyInfo | null>(null);
 
+  const [isRenameOpen, setRenameOpen] = useState(false);
+  const [newName, setNewName] = useState('');
+
+  const [isResyncOpen, setResyncOpen] = useState(false);
+  const [deleteOffers, setDeleteOffers] = useState(false);
+
   const resyncSelf = () => {
-    commands.resync({ fingerprint: info.fingerprint }).then((res) => {
-      if (res.status === 'error') return;
-      setResyncOpen(false);
-    });
+    commands
+      .resync({
+        fingerprint: info.fingerprint,
+        delete_offer_files: deleteOffers,
+      })
+      .then((res) => {
+        if (res.status === 'error') return;
+        setResyncOpen(false);
+      });
   };
 
   const deleteSelf = () => {
@@ -224,7 +247,7 @@ function WalletItem({ info, keys, setKeys }: WalletItemProps) {
                   }}
                 >
                   <EraserIcon className='mr-2 h-4 w-4' />
-                  <span>Resync</span>
+                  <span>Resync ({network})</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   className='cursor-pointer text-red-600 focus:text-red-500'
@@ -264,11 +287,19 @@ function WalletItem({ info, keys, setKeys }: WalletItemProps) {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Resync Wallet</DialogTitle>
+            <DialogTitle>Resync on {network}</DialogTitle>
             <DialogDescription>
               Are you sure you want to resync this wallet's data? This will
-              remove custom names for tokens and profiles and redownload all of
-              the data from the network.
+              redownload data from the network which can take a while depending
+              on the size of the wallet.
+              <div className='flex items-center gap-2 my-2'>
+                <label htmlFor='deleteOffers'>Delete saved offer files</label>
+                <Switch
+                  id='deleteOffers'
+                  checked={deleteOffers}
+                  onCheckedChange={(value) => setDeleteOffers(value)}
+                />
+              </div>
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
