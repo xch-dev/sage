@@ -105,7 +105,7 @@ mod tests {
             )
             .await?;
         bob.transact(coin_spends).await?;
-        bob.wait_for_puzzles().await;
+        bob.wait_for_coins().await;
 
         let nft = nfts.remove(0);
 
@@ -191,7 +191,7 @@ mod tests {
             )
             .await?;
         alice.transact(coin_spends).await?;
-        alice.wait_for_puzzles().await;
+        alice.wait_for_coins().await;
 
         let nft = nfts.remove(0);
 
