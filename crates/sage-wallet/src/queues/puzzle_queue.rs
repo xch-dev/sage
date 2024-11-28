@@ -1,4 +1,4 @@
-use std::{sync::Arc, time::Duration};
+use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use chia::protocol::{Bytes32, CoinState};
 use futures_util::{stream::FuturesUnordered, StreamExt};
@@ -154,7 +154,7 @@ async fn fetch_puzzle(
     .await??;
 
     let minter_did = if let ChildKind::Nft { info, .. } = &info {
-        fetch_nft_did(peer, genesis_challenge, info.launcher_id).await?
+        fetch_nft_did(peer, genesis_challenge, info.launcher_id, &HashMap::new()).await?
     } else {
         None
     };

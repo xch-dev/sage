@@ -159,7 +159,7 @@ mod tests {
             )
             .await?;
         test.transact(coin_spends).await?;
-        test.wait_for_puzzles().await;
+        test.wait_for_coins().await;
 
         let nft = nfts.remove(0);
 

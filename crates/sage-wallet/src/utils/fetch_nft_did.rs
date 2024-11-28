@@ -1,8 +1,8 @@
-use std::time::Duration;
+use std::{collections::HashMap, time::Duration};
 
 use chia::{
     clvm_traits::{FromClvm, ToClvm},
-    protocol::Bytes32,
+    protocol::{Bytes32, CoinSpend},
     puzzles::{
         nft::{NftOwnershipLayerSolution, NftStateLayerSolution},
         singleton::SingletonSolution,
@@ -18,19 +18,26 @@ pub async fn fetch_nft_did(
     peer: &WalletPeer,
     genesis_challenge: Bytes32,
     launcher_id: Bytes32,
+    pending_coin_spends: &HashMap<Bytes32, CoinSpend>,
 ) -> Result<Option<Bytes32>, WalletError> {
     let mut did_id = None::<Bytes32>;
     let mut parent_id = launcher_id;
 
     for _ in 0..5 {
-        let Some(parent_spend) = timeout(
-            Duration::from_secs(15),
-            peer.fetch_optional_coin_spend(parent_id, genesis_challenge),
-        )
-        .await??
-        else {
-            break;
-        };
+        let (fetched, parent_spend) =
+            if let Some(coin_spend) = pending_coin_spends.get(&parent_id).cloned() {
+                (false, coin_spend)
+            } else {
+                let Some(parent_spend) = timeout(
+                    Duration::from_secs(15),
+                    peer.fetch_optional_coin_spend(parent_id, genesis_challenge),
+                )
+                .await??
+                else {
+                    break;
+                };
+                (true, parent_spend)
+            };
 
         let mut allocator = Allocator::new();
 
@@ -47,20 +54,31 @@ pub async fn fetch_nft_did(
 
         parent_id = parent_spend.coin.parent_coin_info;
 
-        sleep(Duration::from_secs(1)).await;
+        if fetched {
+            sleep(Duration::from_secs(1)).await;
+        }
     }
 
     if did_id.is_none() {
-        let child = timeout(Duration::from_secs(5), peer.fetch_child(launcher_id)).await??;
-        let spent_height = child.spent_height.ok_or(WalletError::PeerMisbehaved)?;
-        let (puzzle_reveal, solution) = peer
-            .fetch_puzzle_solution(child.coin.coin_id(), spent_height)
-            .await?;
+        let coin_spend = if let Some(coin_spend) = pending_coin_spends
+            .values()
+            .find(|cs| cs.coin.parent_coin_info == launcher_id)
+            .cloned()
+        {
+            coin_spend
+        } else {
+            let child = timeout(Duration::from_secs(5), peer.fetch_child(launcher_id)).await??;
+            let spent_height = child.spent_height.ok_or(WalletError::PeerMisbehaved)?;
+            let (puzzle_reveal, solution) = peer
+                .fetch_puzzle_solution(child.coin.coin_id(), spent_height)
+                .await?;
+            CoinSpend::new(child.coin, puzzle_reveal, solution)
+        };
 
         let mut allocator = Allocator::new();
 
-        let puzzle_reveal = puzzle_reveal.to_clvm(&mut allocator)?;
-        let solution = solution.to_clvm(&mut allocator)?;
+        let puzzle_reveal = coin_spend.puzzle_reveal.to_clvm(&mut allocator)?;
+        let solution = coin_spend.solution.to_clvm(&mut allocator)?;
         let puzzle = Puzzle::parse(&allocator, puzzle_reveal);
 
         if let Some((_nft_info, p2_puzzle)) = NftInfo::<HashedPtr>::parse(&allocator, puzzle)

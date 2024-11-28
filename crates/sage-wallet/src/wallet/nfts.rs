@@ -259,7 +259,7 @@ mod tests {
             )
             .await?;
         test.transact(coin_spends).await?;
-        test.wait_for_puzzles().await;
+        test.wait_for_coins().await;
 
         let puzzle_hash = test.wallet.p2_puzzle_hash(false, true).await?;
 
