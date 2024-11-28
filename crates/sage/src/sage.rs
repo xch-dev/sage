@@ -16,7 +16,7 @@ use sage_keychain::Keychain;
 use sage_wallet::{PeerState, SyncCommand, SyncEvent, SyncManager, SyncOptions, Timeouts, Wallet};
 use sqlx::{
     sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions},
-    ConnectOptions,
+    ConnectOptions, SqlitePool,
 };
 use tokio::sync::{mpsc, Mutex};
 use tracing::{error, info, Level};
@@ -231,19 +231,10 @@ impl Sage {
         };
 
         let intermediate_pk = master_to_wallet_unhardened_intermediate(&master_pk);
-        let path = self.wallet_db_path(fingerprint)?;
 
-        let pool = SqlitePoolOptions::new()
-            .connect_with(
-                SqliteConnectOptions::from_str(&format!("sqlite://{}?mode=rwc", path.display()))?
-                    .journal_mode(SqliteJournalMode::Wal)
-                    .log_statements(log::LevelFilter::Trace),
-            )
-            .await?;
-
-        sqlx::migrate!("../../migrations").run(&pool).await?;
-
+        let pool = self.connect_to_database(fingerprint).await?;
         let db = Database::new(pool);
+
         let wallet = Arc::new(Wallet::new(
             db.clone(),
             fingerprint,
@@ -363,12 +354,23 @@ impl Sage {
         Ok(amount)
     }
 
-    pub fn delete_wallet_db(&self, fingerprint: u32) -> Result<()> {
+    pub async fn connect_to_database(&self, fingerprint: u32) -> Result<SqlitePool> {
         let path = self.wallet_db_path(fingerprint)?;
-        Ok(fs::remove_file(path)?)
+
+        let pool = SqlitePoolOptions::new()
+            .connect_with(
+                SqliteConnectOptions::from_str(&format!("sqlite://{}?mode=rwc", path.display()))?
+                    .journal_mode(SqliteJournalMode::Wal)
+                    .log_statements(log::LevelFilter::Trace),
+            )
+            .await?;
+
+        sqlx::migrate!("../../migrations").run(&pool).await?;
+
+        Ok(pool)
     }
 
-    pub fn wallet_db_path(&self, fingerprint: u32) -> Result<PathBuf> {
+    fn wallet_db_path(&self, fingerprint: u32) -> Result<PathBuf> {
         let path = self.path.join("wallets").join(fingerprint.to_string());
         fs::create_dir_all(&path)?;
         let network_id = &self.config.network.network_id;
