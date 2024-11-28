@@ -16,6 +16,7 @@ import {
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useMemo } from 'react';
 import { Button } from './ui/button';
+import { CopyButton } from './CopyButton';
 
 export interface AddressListProps {
   addresses: string[];
@@ -45,6 +46,18 @@ export default function AddressList(props: AddressListProps) {
       header: 'Address',
       cell: (info) => (
         <div className='truncate'>{info.getValue() as string}</div>
+      ),
+      size: 140,
+    },
+    {
+      header: 'Actions',
+      cell: (info) => (
+        <div>
+          <CopyButton
+            value={info.row.original.address}
+            className='flex-shrink-0'
+          />
+        </div>
       ),
     },
   ];
@@ -85,9 +98,12 @@ export default function AddressList(props: AddressListProps) {
             <TableBody>
               {table.getRowModel().rows?.length ? (
                 table.getRowModel().rows.map((row) => (
-                  <TableRow key={row.id} className='h-[52px]'>
+                  <TableRow key={row.id} className='-inset-x-2/40px]'>
                     {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id}>
+                      <TableCell
+                        key={cell.id}
+                        style={{ maxWidth: `${cell.column.getSize()}px` }}
+                      >
                         {flexRender(
                           cell.column.columnDef.cell,
                           cell.getContext(),
