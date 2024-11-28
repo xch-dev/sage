@@ -24,7 +24,7 @@ import Nft from './pages/Nft';
 import { NftList } from './pages/NftList';
 import { Offers } from './pages/Offers';
 import PeerList from './pages/PeerList';
-import Receive from './pages/Receive';
+import Addresses from './pages/Addresses';
 import Send from './pages/Send';
 import Settings from './pages/Settings';
 import Token from './pages/Token';
@@ -58,7 +58,7 @@ const router = createHashRouter(
         <Route path='token/:asset_id' element={<Token />} />
         <Route path='issue-token' element={<IssueToken />} />
         <Route path='send/:asset_id' element={<Send />} />
-        <Route path='receive' element={<Receive />} />
+        <Route path='addresses' element={<Addresses />} />
       </Route>
       <Route path='/nfts' element={<Wallet />}>
         <Route path='' element={<NftList />} />
