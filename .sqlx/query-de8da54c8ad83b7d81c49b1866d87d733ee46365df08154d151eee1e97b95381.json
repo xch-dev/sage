@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM `offers`",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "de8da54c8ad83b7d81c49b1866d87d733ee46365df08154d151eee1e97b95381"
+}
