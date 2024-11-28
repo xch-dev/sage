@@ -15,8 +15,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  lint:
-    name: Lint
+  tests:
+    name: Tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -36,6 +36,9 @@ jobs:
 
       - name: Clippy
         run: cargo clippy --workspace --all-features --all-targets
+
+      - name: Test
+        run: cargo test --workspace --all-features
 
       - name: Unused dependencies
         run: |
