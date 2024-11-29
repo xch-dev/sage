@@ -72,7 +72,7 @@ routes!(
     get_keys: GetKeys = "/get_keys",
 
     get_sync_status await: GetSyncStatus = "/get_sync_status",
-    get_addresses await: GetAddresses = "/get_addresses",
+    get_derivations await: GetDerivations = "/get_derivations",
     get_xch_coins await: GetXchCoins = "/get_xch_coins",
     get_cat_coins await: GetCatCoins = "/get_cat_coins",
     get_cats await: GetCats = "/get_cats",

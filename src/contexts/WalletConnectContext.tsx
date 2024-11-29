@@ -32,16 +32,31 @@ const handleWalletConnectCommand = async (
   params: unknown,
 ) => {
   switch (command) {
+    case 'chip0002_chainId': {
+      const networkConfig = await commands.networkConfig();
+
+      if (networkConfig.status === 'error') {
+        throw new Error(networkConfig.error.reason);
+      }
+
+      return networkConfig.data.network_id;
+    }
+    case 'chip0002_connect': {
+      return true;
+    }
     case 'chip0002_getPublicKeys': {
       const { limit, offset } = parseCommandParameters(command, params)!;
-      return commands.getKey({}).then((res) => {
-        if (res.status === 'ok' && res.data.key) {
-          return walletConnectCommands[command].returnType.parse([
-            res.data.key.public_key,
-          ]);
-        }
-        return null;
+
+      const result = await commands.getDerivations({
+        limit: limit ?? 10,
+        offset: offset ?? 0,
       });
+
+      if (result.status === 'error') {
+        throw new Error(result.error.reason);
+      }
+
+      return result.data.derivations.map((derivation) => derivation.public_key);
     }
     default:
       throw new Error(`Unknown command: ${command}`);
@@ -139,10 +154,10 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
       console.log('active wallet', wallet);
 
       const {
-        id,
+        id: _id,
         params: {
           pairingTopic,
-          proposer: { metadata: proposerMetadata },
+          proposer: { metadata: _proposerMetadata },
           requiredNamespaces,
         },
       } = proposal;

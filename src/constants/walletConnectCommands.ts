@@ -25,6 +25,20 @@ enum MempoolInclusionStatus {
 
 // Convert the array into an object keyed by the `command`
 export const walletConnectCommands = {
+  chip0002_chainId: {
+    requiresConfirmation: false,
+    paramsType: z.object({}).optional(),
+    returnType: z.string(),
+  },
+  chip0002_connect: {
+    requiresConfirmation: false,
+    paramsType: z
+      .object({
+        eager: z.boolean().optional(),
+      })
+      .optional(),
+    returnType: z.boolean(),
+  },
   chip0002_getPublicKeys: {
     requiresConfirmation: false,
     paramsType: z

@@ -43,7 +43,7 @@ pub fn run() {
             commands::sign_coin_spends,
             commands::submit_transaction,
             commands::get_sync_status,
-            commands::get_addresses,
+            commands::get_derivations,
             commands::get_xch_coins,
             commands::get_cat_coins,
             commands::get_cats,

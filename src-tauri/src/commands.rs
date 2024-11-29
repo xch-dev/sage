@@ -288,11 +288,11 @@ pub async fn get_sync_status(
 
 #[command]
 #[specta]
-pub async fn get_addresses(
+pub async fn get_derivations(
     state: State<'_, AppState>,
-    req: GetAddresses,
-) -> Result<GetAddressesResponse> {
-    Ok(state.lock().await.get_addresses(req).await?)
+    req: GetDerivations,
+) -> Result<GetDerivationsResponse> {
+    Ok(state.lock().await.get_derivations(req).await?)
 }
 
 #[command]

@@ -221,9 +221,9 @@ async getSyncStatus(req: GetSyncStatus) : Promise<Result<GetSyncStatusResponse, 
     else return { status: "error", error: e  as any };
 }
 },
-async getAddresses(req: GetAddresses) : Promise<Result<GetAddressesResponse, Error>> {
+async getDerivations(req: GetDerivations) : Promise<Result<GetDerivationsResponse, Error>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("get_addresses", { req }) };
+    return { status: "ok", data: await TAURI_INVOKE("get_derivations", { req }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -537,19 +537,20 @@ export type DeleteKey = { fingerprint: number }
 export type DeleteKeyResponse = Record<string, never>
 export type DeleteOffer = { offer_id: string }
 export type DeleteOfferResponse = Record<string, never>
+export type DerivationRecord = { index: number; public_key: string; address: string }
 export type DidRecord = { launcher_id: string; name: string | null; visible: boolean; coin_id: string; address: string; amount: Amount; created_height: number | null; create_transaction_id: string | null }
 export type Error = { kind: ErrorKind; reason: string }
 export type ErrorKind = "wallet" | "api" | "not_found" | "unauthorized" | "internal"
 export type GenerateMnemonic = { use_24_words: boolean }
 export type GenerateMnemonicResponse = { mnemonic: string }
-export type GetAddresses = Record<string, never>
-export type GetAddressesResponse = { addresses: string[] }
 export type GetCat = { asset_id: string }
 export type GetCatCoins = { asset_id: string }
 export type GetCatCoinsResponse = { coins: CoinRecord[] }
 export type GetCatResponse = { cat: CatRecord | null }
 export type GetCats = Record<string, never>
 export type GetCatsResponse = { cats: CatRecord[] }
+export type GetDerivations = { offset: number; limit: number }
+export type GetDerivationsResponse = { derivations: DerivationRecord[] }
 export type GetDids = Record<string, never>
 export type GetDidsResponse = { dids: DidRecord[] }
 export type GetKey = { fingerprint?: number | null }

@@ -21,9 +21,11 @@ export default function Addresses() {
   console.log(addresses);
 
   const updateAddresses = () => {
-    commands.getAddresses({}).then((res) => {
+    commands.getDerivations({ offset: 0, limit: 1000000 }).then((res) => {
       if (res.status === 'error') return;
-      setAddresses(res.data.addresses);
+      setAddresses(
+        res.data.derivations.map((derivation) => derivation.address),
+      );
     });
   };
 
