@@ -37,8 +37,8 @@ impl Database {
         coin_spends(&self.pool, transaction_id).await
     }
 
-    pub async fn transactions_for_coin(&self, coin_id: Bytes32) -> Result<Vec<Bytes32>> {
-        transactions_for_coin(&self.pool, coin_id).await
+    pub async fn coin_transaction_id(&self, coin_id: Bytes32) -> Result<Option<Bytes32>> {
+        coin_transaction_id(&self.pool, coin_id).await
     }
 }
 
@@ -205,13 +205,13 @@ async fn transactions(conn: impl SqliteExecutor<'_>) -> Result<Vec<TransactionRo
         .collect()
 }
 
-async fn transactions_for_coin(
+async fn coin_transaction_id(
     conn: impl SqliteExecutor<'_>,
     coin_id: Bytes32,
-) -> Result<Vec<Bytes32>> {
+) -> Result<Option<Bytes32>> {
     let coin_id = coin_id.as_ref();
 
-    let rows = sqlx::query!(
+    sqlx::query!(
         "
         SELECT `transaction_id`
         FROM `transaction_spends`
@@ -219,12 +219,10 @@ async fn transactions_for_coin(
         ",
         coin_id
     )
-    .fetch_all(conn)
-    .await?;
-
-    rows.into_iter()
-        .map(|row| to_bytes32(&row.transaction_id))
-        .collect()
+    .fetch_optional(conn)
+    .await?
+    .map(|row| to_bytes32(&row.transaction_id))
+    .transpose()
 }
 
 async fn resubmittable_transactions(

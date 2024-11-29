@@ -12,4 +12,5 @@ pub struct CoinRecord {
     pub spent_height: Option<u32>,
     pub create_transaction_id: Option<String>,
     pub spend_transaction_id: Option<String>,
+    pub offer_id: Option<String>,
 }

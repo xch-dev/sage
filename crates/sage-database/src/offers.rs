@@ -44,6 +44,10 @@ impl Database {
     pub async fn offer_coin_ids(&self, offer_id: Bytes32) -> Result<Vec<Bytes32>> {
         offer_coin_ids(&self.pool, offer_id).await
     }
+
+    pub async fn coin_offer_id(&self, coin_id: Bytes32) -> Result<Option<Bytes32>> {
+        coin_offer_id(&self.pool, coin_id).await
+    }
 }
 
 impl DatabaseTx<'_> {
@@ -332,4 +336,21 @@ async fn offer_coin_ids(conn: impl SqliteExecutor<'_>, offer_id: Bytes32) -> Res
     .into_iter()
     .map(|row| to_bytes32(&row.coin_id))
     .collect()
+}
+
+async fn coin_offer_id(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Option<Bytes32>> {
+    let coin_id = coin_id.as_ref();
+
+    sqlx::query!(
+        "
+        SELECT `offer_id`
+        FROM `offered_coins`
+        WHERE `coin_id` = ?
+        ",
+        coin_id
+    )
+    .fetch_optional(conn)
+    .await?
+    .map(|row| to_bytes32(&row.offer_id))
+    .transpose()
 }
