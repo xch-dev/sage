@@ -518,3 +518,12 @@ pub async fn get_asset_coins(
 ) -> Result<GetAssetCoinsResponse> {
     Ok(state.lock().await.get_asset_coins(req).await?)
 }
+
+#[command]
+#[specta]
+pub async fn sign_message_with_public_key(
+    state: State<'_, AppState>,
+    req: SignMessageWithPublicKey,
+) -> Result<SignMessageWithPublicKeyResponse> {
+    Ok(state.lock().await.sign_message_with_public_key(req).await?)
+}

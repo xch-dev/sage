@@ -141,6 +141,17 @@ const handleWalletConnectCommand = async (
 
       return result.data.spend_bundle.aggregated_signature;
     }
+    case 'chip0002_signMessage': {
+      const req = parseCommandParameters(command, params)!;
+
+      const result = await commands.signMessageWithPublicKey(req);
+
+      if (result.status === 'error') {
+        throw new Error(result.error.reason);
+      }
+
+      return result.data.signature;
+    }
     default:
       throw new Error(`Unknown command: ${command}`);
   }
@@ -409,9 +420,16 @@ interface RequestDialogProps {
 function RequestDialog({ request, approve, reject }: RequestDialogProps) {
   const [summary, setSummary] = useState<TransactionSummary | null>(null);
 
+  const method = useMemo(
+    () => request.params.request.method as keyof typeof walletConnectCommands,
+    [request],
+  );
+
+  const params = useMemo(() => request.params.request.params, [request]);
+
   const coinSpends = useMemo(
     () =>
-      request.params.request.params.coinSpends.map((coinSpend: any) => {
+      params.coinSpends?.map((coinSpend: any) => {
         return {
           coin: {
             parent_coin_info: coinSpend.coin.parent_coin_info,
@@ -421,12 +439,12 @@ function RequestDialog({ request, approve, reject }: RequestDialogProps) {
           puzzle_reveal: coinSpend.puzzle_reveal,
           solution: coinSpend.solution,
         };
-      }),
-    [request],
+      }) ?? [],
+    [params],
   );
 
   useEffect(() => {
-    if (request.params.request.method !== 'chip0002_signCoinSpends') {
+    if (method !== 'chip0002_signCoinSpends') {
       return;
     }
 
@@ -440,7 +458,7 @@ function RequestDialog({ request, approve, reject }: RequestDialogProps) {
 
       setSummary(res.data.summary);
     });
-  }, [coinSpends, request, reject]);
+  }, [coinSpends, request, method, reject]);
 
   console.log(request, summary);
 
@@ -450,17 +468,29 @@ function RequestDialog({ request, approve, reject }: RequestDialogProps) {
       <DialogContent className='overflow-hidden'>
         <DialogHeader>
           <DialogTitle>WalletConnect Request</DialogTitle>
-          <DialogDescription>{request.params.request.method}</DialogDescription>
+          <DialogDescription>{method}</DialogDescription>
         </DialogHeader>
         <div className='max-h-[50vh] overflow-y-scroll'>
           {summary !== null ? (
             <AdvancedSummary summary={summary} />
+          ) : method === 'chip0002_signMessage' ? (
+            <div>
+              <div>Public Key</div>
+              <div className='text-sm text-muted-foreground break-all'>
+                {params.publicKey}
+              </div>
+
+              <div className='mt-3'>Message</div>
+              <div className='text-sm text-muted-foreground break-all'>
+                {params.message}
+              </div>
+            </div>
           ) : (
             <div>
               This is the raw request, since no summary has been displayed.
-              <div className='mt-2 rounded bg-neutral-950 p-4 whitespace-pre break-words text-wrap overflow-auto'>
+              <div className='mt-2 rounded bg-neutral-950 p-4 whitespace-pre break-words text-wrap'>
                 <code className='text-white text-xs'>
-                  {JSON.stringify(request.params.request.params, null, 2)}
+                  {JSON.stringify(params, null, 2)}
                 </code>
               </div>
             </div>

@@ -62,3 +62,16 @@ pub struct LineageProof {
     pub inner_puzzle_hash: Option<String>,
     pub amount: Option<u64>,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct SignMessageWithPublicKey {
+    pub message: String,
+    pub public_key: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct SignMessageWithPublicKeyResponse {
+    pub signature: String,
+}

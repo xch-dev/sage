@@ -1,14 +1,19 @@
 use chia::{
-    clvm_utils::CurriedProgram,
-    puzzles::{cat::CatArgs, standard::StandardArgs, Proof},
+    bls::{master_to_wallet_unhardened, sign},
+    clvm_utils::{CurriedProgram, ToTreeHash},
+    puzzles::{cat::CatArgs, standard::StandardArgs, DeriveSynthetic, Proof},
 };
 use chia_wallet_sdk::{Layer, SpendContext};
 use sage_api::wallet_connect::{
     AssetCoinType, Coin, FilterUnlockedCoins, FilterUnlockedCoinsResponse, GetAssetCoins,
-    GetAssetCoinsResponse, LineageProof, SpendableCoin,
+    GetAssetCoinsResponse, LineageProof, SignMessageWithPublicKey,
+    SignMessageWithPublicKeyResponse, SpendableCoin,
 };
 
-use crate::{parse_asset_id, parse_coin_id, parse_did_id, parse_nft_id, Error, Result, Sage};
+use crate::{
+    parse_asset_id, parse_coin_id, parse_did_id, parse_nft_id, parse_public_key, Error, Result,
+    Sage,
+};
 
 impl Sage {
     pub async fn filter_unlocked_coins(
@@ -327,5 +332,34 @@ impl Sage {
         }
 
         Ok(items)
+    }
+
+    pub async fn sign_message_with_public_key(
+        &self,
+        req: SignMessageWithPublicKey,
+    ) -> Result<SignMessageWithPublicKeyResponse> {
+        let wallet = self.wallet()?;
+
+        let public_key = parse_public_key(req.public_key)?;
+        let Some(index) = wallet.db.synthetic_key_index(public_key).await? else {
+            return Err(Error::InvalidKey);
+        };
+
+        let (_mnemonic, Some(master_sk)) =
+            self.keychain.extract_secrets(wallet.fingerprint, b"")?
+        else {
+            return Err(Error::NoSigningKey);
+        };
+
+        let secret_key = master_to_wallet_unhardened(&master_sk, index).derive_synthetic();
+
+        let signature = sign(
+            &secret_key,
+            ("Chia Signed Message", req.message).tree_hash(),
+        );
+
+        Ok(SignMessageWithPublicKeyResponse {
+            signature: hex::encode(signature.to_bytes()),
+        })
     }
 }

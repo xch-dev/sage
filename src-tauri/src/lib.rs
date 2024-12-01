@@ -81,6 +81,7 @@ pub fn run() {
             commands::remove_peer,
             commands::filter_unlocked_coins,
             commands::get_asset_coins,
+            commands::sign_message_with_public_key
         ])
         .events(collect_events![SyncEvent]);
 

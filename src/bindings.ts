@@ -524,6 +524,14 @@ async getAssetCoins(req: GetAssetCoins) : Promise<Result<SpendableCoin[], Error>
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
+},
+async signMessageWithPublicKey(req: SignMessageWithPublicKey) : Promise<Result<SignMessageWithPublicKeyResponse, Error>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("sign_message_with_public_key", { req }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 }
 }
 
@@ -666,6 +674,8 @@ export type SetTargetPeers = { target_peers: number }
 export type SetTargetPeersResponse = Record<string, never>
 export type SignCoinSpends = { coin_spends: CoinSpendJson[]; auto_submit?: boolean; partial?: boolean }
 export type SignCoinSpendsResponse = { spend_bundle: SpendBundleJson }
+export type SignMessageWithPublicKey = { message: string; publicKey: string }
+export type SignMessageWithPublicKeyResponse = { signature: string }
 export type SpendBundleJson = { coin_spends: CoinSpendJson[]; aggregated_signature: string }
 export type SpendableCoin = { coin: Coin; coinName: string; puzzle: string; confirmedBlockIndex: number; locked: boolean; lineageProof: LineageProof | null }
 export type SplitCat = { coin_ids: string[]; output_count: number; fee: Amount; auto_submit?: boolean }

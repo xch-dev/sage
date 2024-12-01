@@ -162,6 +162,9 @@ pub enum Error {
     #[error("Invalid signature: {0}")]
     InvalidSignature(String),
 
+    #[error("Invalid public key: {0}")]
+    InvalidPublicKey(String),
+
     #[error("Wallet is cold and cannot be used for signing")]
     NoSigningKey,
 
@@ -259,6 +262,7 @@ impl Error {
             | Self::InvalidOfferId(..)
             | Self::InvalidPercentage(..)
             | Self::InvalidSignature(..)
+            | Self::InvalidPublicKey(..)
             | Self::CoinSpent(..)
             | Self::Uri(..)
             | Self::IpAddrParse(..)
