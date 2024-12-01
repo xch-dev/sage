@@ -9,7 +9,7 @@ use chia::{
     clvm_traits::{FromClvmError, ToClvmError},
     protocol::Bytes32,
 };
-use chia_wallet_sdk::{AddressError, ClientError, OfferError};
+use chia_wallet_sdk::{AddressError, ClientError, DriverError, OfferError};
 use clvmr::reduction::EvalErr;
 use hex::FromHexError;
 use sage_api::ErrorKind;
@@ -41,6 +41,9 @@ pub enum Error {
 
     #[error("Client error: {0}")]
     Client(#[from] ClientError),
+
+    #[error("Driver error: {0}")]
+    Driver(#[from] DriverError),
 
     #[error("Offer error: {0}")]
     Offer(#[from] OfferError),
@@ -191,6 +194,9 @@ pub enum Error {
 
     #[error("CLVM eval error: {0}")]
     Eval(#[from] EvalErr),
+
+    #[error("Missing asset id")]
+    MissingAssetId,
 }
 
 impl Error {
@@ -224,7 +230,8 @@ impl Error {
             | Self::ToClvm(..)
             | Self::FromClvm(..)
             | Self::Bincode(..)
-            | Self::Eval(..) => ErrorKind::Internal,
+            | Self::Eval(..)
+            | Self::Driver(..) => ErrorKind::Internal,
             Self::UnknownFingerprint
             | Self::UnknownNetwork
             | Self::MissingCoin(..)
@@ -257,7 +264,8 @@ impl Error {
             | Self::IpAddrParse(..)
             | Self::Offer(..)
             | Self::NoPeers
-            | Self::CouldNotFetchNft(..) => ErrorKind::Api,
+            | Self::CouldNotFetchNft(..)
+            | Self::MissingAssetId => ErrorKind::Api,
         }
     }
 }

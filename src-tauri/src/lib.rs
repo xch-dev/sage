@@ -78,6 +78,8 @@ pub fn run() {
             commands::get_peers,
             commands::add_peer,
             commands::remove_peer,
+            commands::filter_unlocked_coins,
+            commands::get_asset_coins,
         ])
         .events(collect_events![SyncEvent]);
 

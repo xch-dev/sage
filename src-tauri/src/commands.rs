@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use chia_wallet_sdk::decode_address;
-use sage_api::*;
+use sage_api::{wallet_connect::*, *};
 use sage_config::{NetworkConfig, WalletConfig};
 use specta::specta;
 use tauri::{command, State};
@@ -490,4 +490,22 @@ pub async fn get_networks(
     req: GetNetworks,
 ) -> Result<GetNetworksResponse> {
     Ok(state.lock().await.get_networks(req)?)
+}
+
+#[command]
+#[specta]
+pub async fn filter_unlocked_coins(
+    state: State<'_, AppState>,
+    req: FilterUnlockedCoins,
+) -> Result<FilterUnlockedCoinsResponse> {
+    Ok(state.lock().await.filter_unlocked_coins(req).await?)
+}
+
+#[command]
+#[specta]
+pub async fn get_asset_coins(
+    state: State<'_, AppState>,
+    req: GetAssetCoins,
+) -> Result<GetAssetCoinsResponse> {
+    Ok(state.lock().await.get_asset_coins(req).await?)
 }
