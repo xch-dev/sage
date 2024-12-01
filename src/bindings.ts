@@ -205,6 +205,14 @@ async signCoinSpends(req: SignCoinSpends) : Promise<Result<SignCoinSpendsRespons
     else return { status: "error", error: e  as any };
 }
 },
+async viewCoinSpends(req: ViewCoinSpends) : Promise<Result<ViewCoinSpendsResponse, Error>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("view_coin_spends", { req }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async submitTransaction(req: SubmitTransaction) : Promise<Result<SubmitTransactionResponse, Error>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("submit_transaction", { req }) };
@@ -656,7 +664,7 @@ export type SetNetworkId = { network_id: string }
 export type SetNetworkIdResponse = Record<string, never>
 export type SetTargetPeers = { target_peers: number }
 export type SetTargetPeersResponse = Record<string, never>
-export type SignCoinSpends = { coin_spends: CoinSpendJson[]; auto_submit?: boolean }
+export type SignCoinSpends = { coin_spends: CoinSpendJson[]; auto_submit?: boolean; partial?: boolean }
 export type SignCoinSpendsResponse = { spend_bundle: SpendBundleJson }
 export type SpendBundleJson = { coin_spends: CoinSpendJson[]; aggregated_signature: string }
 export type SpendableCoin = { coin: Coin; coinName: string; puzzle: string; confirmedBlockIndex: number; locked: boolean; lineageProof: LineageProof | null }
@@ -680,6 +688,8 @@ export type UpdateDid = { did_id: string; name: string | null; visible: boolean 
 export type UpdateDidResponse = Record<string, never>
 export type UpdateNft = { nft_id: string; visible: boolean }
 export type UpdateNftResponse = Record<string, never>
+export type ViewCoinSpends = { coin_spends: CoinSpendJson[] }
+export type ViewCoinSpendsResponse = { summary: TransactionSummary }
 export type ViewOffer = { offer: string }
 export type ViewOfferResponse = { offer: OfferSummary }
 export type WalletConfig = { name: string; derive_automatically: boolean; derivation_batch_size: number }

@@ -99,6 +99,7 @@ routes!(
     assign_nfts_to_did await: AssignNftsToDid = "/assign_nfts_to_did",
     transfer_dids await: TransferDids = "/transfer_dids",
     sign_coin_spends await: SignCoinSpends = "/sign_coin_spends",
+    view_coin_spends await: ViewCoinSpends = "/view_coin_spends",
     submit_transaction await: SubmitTransaction = "/submit_transaction",
 
     make_offer await: MakeOffer = "/make_offer",

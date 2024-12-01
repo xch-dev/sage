@@ -1,4 +1,5 @@
-import { commands } from '@/bindings';
+import { commands, TransactionSummary } from '@/bindings';
+import { AdvancedSummary } from '@/components/ConfirmationDialog';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -19,11 +20,13 @@ import { useWallet } from '@/hooks/useWallet';
 import { getCurrentWindow, UserAttentionType } from '@tauri-apps/api/window';
 import { SignClient } from '@walletconnect/sign-client';
 import { SessionTypes, SignClientTypes } from '@walletconnect/types';
+import BigNumber from 'bignumber.js';
 import {
   createContext,
   ReactNode,
   useCallback,
   useEffect,
+  useMemo,
   useState,
 } from 'react';
 
@@ -58,6 +61,19 @@ const handleWalletConnectCommand = async (
 
       return result.data.derivations.map((derivation) => derivation.public_key);
     }
+    case 'chip0002_filterUnlockedCoins': {
+      const req = parseCommandParameters(command, params)!;
+
+      const result = await commands.filterUnlockedCoins({
+        coin_ids: req.coinNames,
+      });
+
+      if (result.status === 'error') {
+        throw new Error(result.error.reason);
+      }
+
+      return result.data;
+    }
     case 'chip0002_getAssetCoins': {
       const req = parseCommandParameters(command, params)!;
 
@@ -68,6 +84,62 @@ const handleWalletConnectCommand = async (
       }
 
       return result.data;
+    }
+    case 'chip0002_getAssetBalance': {
+      const req = parseCommandParameters(command, params)!;
+
+      const result = await commands.getAssetCoins({
+        ...req,
+        includedLocked: true,
+      });
+
+      if (result.status === 'error') {
+        throw new Error(result.error.reason);
+      }
+
+      let confirmed = BigNumber(0);
+      let spendable = BigNumber(0);
+      let spendableCoinCount = 0;
+
+      for (const record of result.data) {
+        confirmed = confirmed.plus(record.coin.amount);
+
+        if (!record.locked) {
+          spendable = spendable.plus(record.coin.amount);
+          spendableCoinCount += 1;
+        }
+      }
+
+      return {
+        confirmed: confirmed.toString(),
+        spendable: spendable.toString(),
+        spendableCoinCount,
+      };
+    }
+    case 'chip0002_signCoinSpends': {
+      const req = parseCommandParameters(command, params)!;
+
+      const result = await commands.signCoinSpends({
+        coin_spends: req.coinSpends.map((coinSpend) => {
+          return {
+            coin: {
+              parent_coin_info: coinSpend.coin.parent_coin_info,
+              puzzle_hash: coinSpend.coin.puzzle_hash,
+              amount: coinSpend.coin.amount.toString(),
+            },
+            puzzle_reveal: coinSpend.puzzle_reveal,
+            solution: coinSpend.solution,
+          };
+        }),
+        partial: req.partialSign,
+        auto_submit: false,
+      });
+
+      if (result.status === 'error') {
+        throw new Error(result.error.reason);
+      }
+
+      return result.data.spend_bundle.aggregated_signature;
     }
     default:
       throw new Error(`Unknown command: ${command}`);
@@ -229,17 +301,15 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
     }
 
     async function handleSessionRequest(request: SessionRequest) {
+      const method = request.params.request
+        .method as keyof typeof walletConnectCommands;
+
       console.log('session request', request);
-      console.log(
-        walletConnectCommands[
-          request.params.request.method as keyof typeof walletConnectCommands
-        ],
-      );
+      console.log(walletConnectCommands[method]);
 
       if (
-        walletConnectCommands[
-          request.params.request.method as keyof typeof walletConnectCommands
-        ]?.requiresConfirmation
+        method === 'chip0002_signCoinSpends' ||
+        method === 'chip0002_signMessage'
       ) {
         setPendingRequests((p: SessionRequest[]) => [...p, request]);
         await getCurrentWindow().requestUserAttention(
@@ -320,38 +390,89 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
     <WalletConnectContext.Provider value={{ pair, sessions, disconnect }}>
       {children}
       {pendingRequests.length > 0 && (
-        <Dialog
-          open={pendingRequests.length > 0}
-          onOpenChange={(open) => !open && rejectRequest(pendingRequests[0])}
-        >
-          <DialogTrigger>Open</DialogTrigger>
-          <DialogContent className='overflow-hidden'>
-            <DialogHeader>
-              <DialogTitle>WalletConnect Request</DialogTitle>
-              <DialogDescription>
-                {pendingRequests[0].params.request.method}
-              </DialogDescription>
-            </DialogHeader>
-            <div className='mt-2 rounded bg-neutral-950 p-4 whitespace-pre break-words text-wrap overflow-auto max-h-[50vh]'>
-              <code className='text-white text-xs'>
-                {JSON.stringify(
-                  pendingRequests[0].params.request.params,
-                  null,
-                  2,
-                )}
-              </code>
-            </div>
-            <DialogFooter>
-              <DialogClose asChild>
-                <Button variant='outline'>Reject</Button>
-              </DialogClose>
-              <Button onClick={() => approveRequest(pendingRequests[0])}>
-                Approve
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <RequestDialog
+          request={pendingRequests[0]}
+          approve={approveRequest}
+          reject={rejectRequest}
+        />
       )}
     </WalletConnectContext.Provider>
+  );
+}
+
+interface RequestDialogProps {
+  request: SessionRequest;
+  approve: (request: SessionRequest) => void;
+  reject: (request: SessionRequest) => void;
+}
+
+function RequestDialog({ request, approve, reject }: RequestDialogProps) {
+  const [summary, setSummary] = useState<TransactionSummary | null>(null);
+
+  const coinSpends = useMemo(
+    () =>
+      request.params.request.params.coinSpends.map((coinSpend: any) => {
+        return {
+          coin: {
+            parent_coin_info: coinSpend.coin.parent_coin_info,
+            puzzle_hash: coinSpend.coin.puzzle_hash,
+            amount: coinSpend.coin.amount.toString(),
+          },
+          puzzle_reveal: coinSpend.puzzle_reveal,
+          solution: coinSpend.solution,
+        };
+      }),
+    [request],
+  );
+
+  useEffect(() => {
+    if (request.params.request.method !== 'chip0002_signCoinSpends') {
+      return;
+    }
+
+    setSummary(null);
+
+    commands.viewCoinSpends({ coin_spends: coinSpends }).then((res) => {
+      if (res.status === 'error') {
+        reject(request);
+        return;
+      }
+
+      setSummary(res.data.summary);
+    });
+  }, [coinSpends, request, reject]);
+
+  console.log(request, summary);
+
+  return (
+    <Dialog open={true} onOpenChange={(open) => !open && reject(request)}>
+      <DialogTrigger>Open</DialogTrigger>
+      <DialogContent className='overflow-hidden'>
+        <DialogHeader>
+          <DialogTitle>WalletConnect Request</DialogTitle>
+          <DialogDescription>{request.params.request.method}</DialogDescription>
+        </DialogHeader>
+        <div className='max-h-[50vh] overflow-y-scroll'>
+          {summary !== null ? (
+            <AdvancedSummary summary={summary} />
+          ) : (
+            <div>
+              This is the raw request, since no summary has been displayed.
+              <div className='mt-2 rounded bg-neutral-950 p-4 whitespace-pre break-words text-wrap overflow-auto'>
+                <code className='text-white text-xs'>
+                  {JSON.stringify(request.params.request.params, null, 2)}
+                </code>
+              </div>
+            </div>
+          )}
+        </div>
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button variant='outline'>Reject</Button>
+          </DialogClose>
+          <Button onClick={() => approve(request)}>Approve</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

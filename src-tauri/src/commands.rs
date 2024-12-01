@@ -222,6 +222,15 @@ pub async fn sign_coin_spends(
 
 #[command]
 #[specta]
+pub async fn view_coin_spends(
+    state: State<'_, AppState>,
+    req: ViewCoinSpends,
+) -> Result<ViewCoinSpendsResponse> {
+    Ok(state.lock().await.view_coin_spends(req).await?)
+}
+
+#[command]
+#[specta]
 pub async fn submit_transaction(
     state: State<'_, AppState>,
     req: SubmitTransaction,

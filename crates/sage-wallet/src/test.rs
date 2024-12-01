@@ -144,7 +144,7 @@ impl TestWallet {
     pub async fn transact(&self, coin_spends: Vec<CoinSpend>) -> anyhow::Result<()> {
         let spend_bundle = self
             .wallet
-            .sign_transaction(coin_spends, &self.agg_sig, self.master_sk.clone())
+            .sign_transaction(coin_spends, &self.agg_sig, self.master_sk.clone(), false)
             .await?;
 
         self.push_bundle(spend_bundle).await?;

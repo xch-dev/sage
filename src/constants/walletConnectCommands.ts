@@ -26,12 +26,10 @@ enum MempoolInclusionStatus {
 // Convert the array into an object keyed by the `command`
 export const walletConnectCommands = {
   chip0002_chainId: {
-    requiresConfirmation: false,
     paramsType: z.object({}).optional(),
     returnType: z.string(),
   },
   chip0002_connect: {
-    requiresConfirmation: false,
     paramsType: z
       .object({
         eager: z.boolean().optional(),
@@ -40,7 +38,6 @@ export const walletConnectCommands = {
     returnType: z.boolean(),
   },
   chip0002_getPublicKeys: {
-    requiresConfirmation: false,
     paramsType: z
       .object({
         limit: z.number().optional(),
@@ -50,12 +47,10 @@ export const walletConnectCommands = {
     returnType: z.array(z.string()),
   },
   chip0002_filterUnlockedCoins: {
-    requiresConfirmation: false,
     paramsType: z.object({ coinNames: z.array(z.string()).min(1) }),
     returnType: z.array(z.string()),
   },
   chip0002_getAssetCoins: {
-    requiresConfirmation: false,
     paramsType: z.object({
       type: z.enum(['cat', 'nft', 'did']).nullable(),
       assetId: z.string().nullable(),
@@ -81,9 +76,8 @@ export const walletConnectCommands = {
     ),
   },
   chip0002_getAssetBalance: {
-    requiresConfirmation: false,
     paramsType: z.object({
-      type: z.string().nullable(),
+      type: z.enum(['cat', 'nft', 'did']).nullable(),
       assetId: z.string().nullable(),
     }),
     returnType: z.object({
@@ -93,15 +87,13 @@ export const walletConnectCommands = {
     }),
   },
   chip0002_signCoinSpends: {
-    requiresConfirmation: true,
     paramsType: z.object({
-      coinSpends: z.array(coinType),
+      coinSpends: z.array(coinSpendType),
       partialSign: z.boolean().optional(),
     }),
     returnType: z.string(),
   },
   chip0002_signMessage: {
-    requiresConfirmation: true,
     paramsType: z.object({
       message: z.string(),
       publicKey: z.string(),
@@ -109,7 +101,6 @@ export const walletConnectCommands = {
     returnType: z.string(),
   },
   chip0002_sendTransaction: {
-    requiresConfirmation: false,
     paramsType: z.object({ spendBundle: spendBundleType }),
     returnType: z.object({
       status: z
