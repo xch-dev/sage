@@ -58,6 +58,17 @@ const handleWalletConnectCommand = async (
 
       return result.data.derivations.map((derivation) => derivation.public_key);
     }
+    case 'chip0002_getAssetCoins': {
+      const req = parseCommandParameters(command, params)!;
+
+      const result = await commands.getAssetCoins(req);
+
+      if (result.status === 'error') {
+        throw new Error(result.error.reason);
+      }
+
+      return result.data;
+    }
     default:
       throw new Error(`Unknown command: ${command}`);
   }

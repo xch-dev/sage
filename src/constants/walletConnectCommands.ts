@@ -57,7 +57,7 @@ export const walletConnectCommands = {
   chip0002_getAssetCoins: {
     requiresConfirmation: false,
     paramsType: z.object({
-      type: z.string().nullable(),
+      type: z.enum(['cat', 'nft', 'did']).nullable(),
       assetId: z.string().nullable(),
       includedLocked: z.boolean().optional(),
       offset: z.number().optional(),
