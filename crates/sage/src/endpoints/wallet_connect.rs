@@ -1,18 +1,22 @@
 use chia::{
     bls::{master_to_wallet_unhardened, sign},
     clvm_utils::{CurriedProgram, ToTreeHash},
+    protocol::{Coin, CoinSpend, SpendBundle},
     puzzles::{cat::CatArgs, standard::StandardArgs, DeriveSynthetic, Proof},
 };
 use chia_wallet_sdk::{Layer, SpendContext};
 use sage_api::wallet_connect::{
-    AssetCoinType, Coin, FilterUnlockedCoins, FilterUnlockedCoinsResponse, GetAssetCoins,
-    GetAssetCoinsResponse, LineageProof, SignMessageWithPublicKey,
-    SignMessageWithPublicKeyResponse, SpendableCoin,
+    self, AssetCoinType, FilterUnlockedCoins, FilterUnlockedCoinsResponse, GetAssetCoins,
+    GetAssetCoinsResponse, LineageProof, SendTransactionImmediately,
+    SendTransactionImmediatelyResponse, SignMessageWithPublicKey, SignMessageWithPublicKeyResponse,
+    SpendableCoin,
 };
+use sage_wallet::{insert_transaction, submit_to_peers, Status, SyncCommand, Transaction};
+use tracing::{debug, info, warn};
 
 use crate::{
-    parse_asset_id, parse_coin_id, parse_did_id, parse_nft_id, parse_public_key, Error, Result,
-    Sage,
+    parse_asset_id, parse_coin_id, parse_did_id, parse_nft_id, parse_program, parse_public_key,
+    parse_puzzle_hash, parse_signature, Error, Result, Sage,
 };
 
 impl Sage {
@@ -93,7 +97,7 @@ impl Sage {
                         };
 
                         items.push(SpendableCoin {
-                            coin: Coin {
+                            coin: wallet_connect::Coin {
                                 parent_coin_info: hex::encode(cs.coin.parent_coin_info),
                                 puzzle_hash: hex::encode(cs.coin.puzzle_hash),
                                 amount: cs.coin.amount,
@@ -171,7 +175,7 @@ impl Sage {
                             did.info.into_layers(p2_puzzle).construct_puzzle(&mut ctx)?;
 
                         items.push(SpendableCoin {
-                            coin: Coin {
+                            coin: wallet_connect::Coin {
                                 parent_coin_info: hex::encode(cs.coin.parent_coin_info),
                                 puzzle_hash: hex::encode(cs.coin.puzzle_hash),
                                 amount: cs.coin.amount,
@@ -256,7 +260,7 @@ impl Sage {
                             nft.info.into_layers(p2_puzzle).construct_puzzle(&mut ctx)?;
 
                         items.push(SpendableCoin {
-                            coin: Coin {
+                            coin: wallet_connect::Coin {
                                 parent_coin_info: hex::encode(cs.coin.parent_coin_info),
                                 puzzle_hash: hex::encode(cs.coin.puzzle_hash),
                                 amount: cs.coin.amount,
@@ -317,7 +321,7 @@ impl Sage {
                 };
 
                 items.push(SpendableCoin {
-                    coin: Coin {
+                    coin: wallet_connect::Coin {
                         parent_coin_info: hex::encode(cs.coin.parent_coin_info),
                         puzzle_hash: hex::encode(cs.coin.puzzle_hash),
                         amount: cs.coin.amount,
@@ -362,4 +366,103 @@ impl Sage {
             signature: hex::encode(signature.to_bytes()),
         })
     }
+
+    pub async fn send_transaction_immediately(
+        &self,
+        req: SendTransactionImmediately,
+    ) -> Result<SendTransactionImmediatelyResponse> {
+        // TODO: Should this be the normal way of sending transactions?
+
+        let wallet = self.wallet()?;
+        let spend_bundle = rust_bundle(req.spend_bundle)?;
+        let peers = self.peer_state.lock().await.peers();
+
+        debug!("{spend_bundle:?}");
+
+        let transaction_id = spend_bundle.name();
+
+        match submit_to_peers(&peers, wallet.genesis_challenge, spend_bundle.clone()).await? {
+            Status::Success => {
+                info!("Transaction {transaction_id} has already been confirmed, not submitting again.");
+
+                Ok(SendTransactionImmediatelyResponse {
+                    status: 1,
+                    error: None,
+                })
+            }
+            Status::Pending => {
+                let peer = self
+                    .peer_state
+                    .lock()
+                    .await
+                    .acquire_peer()
+                    .ok_or(Error::NoPeers)?;
+
+                let subscriptions = insert_transaction(
+                    &wallet.db,
+                    &peer,
+                    wallet.genesis_challenge,
+                    spend_bundle.name(),
+                    Transaction::from_coin_spends(spend_bundle.coin_spends)?,
+                    spend_bundle.aggregated_signature,
+                )
+                .await?;
+
+                self.command_sender
+                    .send(SyncCommand::SubscribeCoins {
+                        coin_ids: subscriptions,
+                    })
+                    .await?;
+
+                info!("Successfully submitted and inserted transaction {transaction_id}");
+
+                Ok(SendTransactionImmediatelyResponse {
+                    status: 1,
+                    error: None,
+                })
+            }
+            Status::Failed(status, error) => {
+                warn!(
+                    "Transaction {transaction_id} failed with status {status} and error {error:?}"
+                );
+
+                Ok(SendTransactionImmediatelyResponse { status, error })
+            }
+            Status::Unknown => {
+                warn!("Transaction {transaction_id} failed with unknown status");
+
+                Ok(SendTransactionImmediatelyResponse {
+                    status: 3,
+                    error: None,
+                })
+            }
+        }
+    }
+}
+
+fn rust_bundle(spend_bundle: wallet_connect::SpendBundle) -> Result<SpendBundle> {
+    Ok(SpendBundle {
+        coin_spends: spend_bundle
+            .coin_spends
+            .into_iter()
+            .map(rust_spend)
+            .collect::<Result<_>>()?,
+        aggregated_signature: parse_signature(spend_bundle.aggregated_signature)?,
+    })
+}
+
+fn rust_spend(coin_spend: wallet_connect::CoinSpend) -> Result<CoinSpend> {
+    Ok(CoinSpend {
+        coin: rust_coin(coin_spend.coin)?,
+        puzzle_reveal: parse_program(coin_spend.puzzle_reveal)?,
+        solution: parse_program(coin_spend.solution)?,
+    })
+}
+
+fn rust_coin(coin: wallet_connect::Coin) -> Result<Coin> {
+    Ok(Coin {
+        parent_coin_info: parse_coin_id(coin.parent_coin_info)?,
+        puzzle_hash: parse_puzzle_hash(coin.puzzle_hash)?,
+        amount: coin.amount,
+    })
 }

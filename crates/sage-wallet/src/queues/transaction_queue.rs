@@ -7,11 +7,13 @@ use chia::protocol::{Bytes32, SpendBundle};
 use sage_database::Database;
 use tokio::{
     sync::{mpsc, Mutex},
-    time::{sleep, timeout},
+    time::sleep,
 };
 use tracing::{info, warn};
 
-use crate::{safely_remove_transaction, PeerState, SyncEvent, WalletError, WalletPeer};
+use crate::{
+    safely_remove_transaction, submit_to_peers, PeerState, Status, SyncEvent, WalletError,
+};
 
 #[derive(Debug)]
 pub struct TransactionQueue {
@@ -82,162 +84,59 @@ impl TransactionQueue {
                 return Ok(());
             }
 
-            info!(
-                "Broadcasting transaction id {}: {:?}",
-                transaction_id, spend_bundle
-            );
+            match submit_to_peers(&peers, self.genesis_challenge, spend_bundle).await? {
+                Status::Success => {
+                    info!("Transaction {transaction_id} confirmed, removing and confirming coins");
 
-            let mut mempool = false;
-            let mut resolved = false;
+                    let mut tx = self.db.tx().await?;
+                    tx.confirm_coins(transaction_id).await?;
+                    safely_remove_transaction(&mut tx, transaction_id).await?;
+                    tx.commit().await?;
 
-            for peer in peers {
-                let ip = peer.socket_addr().ip();
-                match submit_transaction(peer, spend_bundle.clone(), self.genesis_challenge).await?
-                {
-                    Status::Pending => {
-                        mempool = true;
-                    }
-                    Status::Success => {
-                        info!(
-                            "Transaction {transaction_id} confirmed, removing and confirming coins"
-                        );
-
-                        let mut tx = self.db.tx().await?;
-                        tx.confirm_coins(transaction_id).await?;
-                        safely_remove_transaction(&mut tx, transaction_id).await?;
-                        tx.commit().await?;
-
-                        resolved = true;
-                        break;
-                    }
-                    Status::Failed => {
-                        info!("Transaction {transaction_id} failed according to peer {ip}, but will check other peers");
-                    }
-                    Status::Unknown => {}
+                    self.sync_sender
+                        .send(SyncEvent::TransactionEnded {
+                            transaction_id,
+                            success: true,
+                        })
+                        .await
+                        .ok();
                 }
-            }
+                Status::Pending => {
+                    info!("Transaction inclusion in mempool successful, updating timestamp");
 
-            if resolved {
-                self.sync_sender
-                    .send(SyncEvent::TransactionEnded {
-                        transaction_id,
-                        success: true,
-                    })
-                    .await
-                    .ok();
-                continue;
-            }
+                    let timestamp = SystemTime::now()
+                        .duration_since(UNIX_EPOCH)?
+                        .as_secs()
+                        .try_into()
+                        .expect("timestamp exceeds i64");
 
-            if mempool {
-                info!("Transaction inclusion in mempool successful, updating timestamp");
+                    self.db
+                        .update_transaction_mempool_time(transaction_id, timestamp)
+                        .await?;
+                }
+                Status::Failed(status, error) => {
+                    info!(
+                        "Transaction inclusion in mempool failed for all peers with status {status} and error {error:?}, removing transaction"
+                    );
 
-                let timestamp = SystemTime::now()
-                    .duration_since(UNIX_EPOCH)?
-                    .as_secs()
-                    .try_into()
-                    .expect("timestamp exceeds i64");
+                    let mut tx = self.db.tx().await?;
+                    safely_remove_transaction(&mut tx, transaction_id).await?;
+                    tx.commit().await?;
 
-                self.db
-                    .update_transaction_mempool_time(transaction_id, timestamp)
-                    .await?;
-            } else {
-                info!(
-                    "Transaction inclusion in mempool failed for all peers, removing transaction"
-                );
-
-                let mut tx = self.db.tx().await?;
-                safely_remove_transaction(&mut tx, transaction_id).await?;
-                tx.commit().await?;
-
-                self.sync_sender
-                    .send(SyncEvent::TransactionEnded {
-                        transaction_id,
-                        success: false,
-                    })
-                    .await
-                    .ok();
+                    self.sync_sender
+                        .send(SyncEvent::TransactionEnded {
+                            transaction_id,
+                            success: false,
+                        })
+                        .await
+                        .ok();
+                }
+                Status::Unknown => {
+                    warn!("Transaction inclusion in mempool unknown, retrying later");
+                }
             }
         }
 
         Ok(())
     }
-}
-
-enum Status {
-    Pending,
-    Success,
-    Failed,
-    Unknown,
-}
-
-async fn submit_transaction(
-    peer: WalletPeer,
-    spend_bundle: SpendBundle,
-    genesis_challenge: Bytes32,
-) -> Result<Status, WalletError> {
-    let ack = match timeout(
-        Duration::from_secs(3),
-        peer.send_transaction(spend_bundle.clone()),
-    )
-    .await
-    {
-        Ok(Ok(ack)) => ack,
-        Err(_timeout) => {
-            warn!("Send transaction timed out for {}", peer.socket_addr());
-            return Ok(Status::Unknown);
-        }
-        Ok(Err(err)) => {
-            warn!(
-                "Send transaction failed for {}: {}",
-                peer.socket_addr(),
-                err
-            );
-            return Ok(Status::Unknown);
-        }
-    };
-
-    info!(
-        "Transaction sent to {} with ack {:?}",
-        peer.socket_addr(),
-        ack
-    );
-
-    if ack.error.is_none() {
-        return Ok(Status::Pending);
-    };
-
-    let coin_ids: Vec<Bytes32> = spend_bundle
-        .coin_spends
-        .iter()
-        .map(|cs| cs.coin.coin_id())
-        .collect();
-
-    let coin_states = match timeout(
-        Duration::from_secs(2),
-        peer.fetch_coins(coin_ids.clone(), genesis_challenge),
-    )
-    .await
-    {
-        Ok(Ok(coin_states)) => coin_states,
-        Err(_timeout) => {
-            warn!("Coin lookup timed out for {}", peer.socket_addr());
-            return Ok(Status::Unknown);
-        }
-        Ok(Err(err)) => {
-            warn!("Coin lookup failed for {}: {}", peer.socket_addr(), err);
-            return Ok(Status::Unknown);
-        }
-    };
-
-    if coin_states.iter().all(|cs| cs.spent_height.is_some())
-        && coin_ids
-            .into_iter()
-            .all(|coin_id| coin_states.iter().any(|cs| cs.coin.coin_id() == coin_id))
-    {
-        return Ok(Status::Success);
-    } else if coin_states.iter().any(|cs| cs.spent_height.is_some()) {
-        return Ok(Status::Failed);
-    }
-
-    Ok(Status::Failed)
 }

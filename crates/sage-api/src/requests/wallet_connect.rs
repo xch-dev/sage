@@ -75,3 +75,29 @@ pub struct SignMessageWithPublicKey {
 pub struct SignMessageWithPublicKeyResponse {
     pub signature: String,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct SendTransactionImmediately {
+    pub spend_bundle: SpendBundle,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct SendTransactionImmediatelyResponse {
+    pub status: u8,
+    pub error: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub struct CoinSpend {
+    pub coin: Coin,
+    pub puzzle_reveal: String,
+    pub solution: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub struct SpendBundle {
+    pub coin_spends: Vec<CoinSpend>,
+    pub aggregated_signature: String,
+}

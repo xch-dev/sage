@@ -532,6 +532,14 @@ async signMessageWithPublicKey(req: SignMessageWithPublicKey) : Promise<Result<S
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
+},
+async sendTransactionImmediately(req: SendTransactionImmediately) : Promise<Result<SendTransactionImmediatelyResponse, Error>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("send_transaction_immediately", { req }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 }
 }
 
@@ -563,6 +571,7 @@ export type CatRecord = { asset_id: string; name: string | null; ticker: string 
 export type Coin = { parent_coin_info: string; puzzle_hash: string; amount: number }
 export type CoinJson = { parent_coin_info: string; puzzle_hash: string; amount: Amount }
 export type CoinRecord = { coin_id: string; address: string; amount: Amount; created_height: number | null; spent_height: number | null; create_transaction_id: string | null; spend_transaction_id: string | null; offer_id: string | null }
+export type CoinSpend = { coin: Coin; puzzle_reveal: string; solution: string }
 export type CoinSpendJson = { coin: CoinJson; puzzle_reveal: string; solution: string }
 export type CombineCat = { coin_ids: string[]; fee: Amount; auto_submit?: boolean }
 export type CombineXch = { coin_ids: string[]; fee: Amount; auto_submit?: boolean }
@@ -661,6 +670,8 @@ export type Resync = { fingerprint: number; delete_offer_files?: boolean }
 export type ResyncResponse = Record<string, never>
 export type SecretKeyInfo = { mnemonic: string | null; secret_key: string }
 export type SendCat = { asset_id: string; address: string; amount: Amount; fee: Amount; auto_submit?: boolean }
+export type SendTransactionImmediately = { spend_bundle: SpendBundle }
+export type SendTransactionImmediatelyResponse = { status: number; error: string | null }
 export type SendXch = { address: string; amount: Amount; fee: Amount; auto_submit?: boolean }
 export type SetDerivationBatchSize = { fingerprint: number; derivation_batch_size: number }
 export type SetDerivationBatchSizeResponse = Record<string, never>
@@ -676,6 +687,7 @@ export type SignCoinSpends = { coin_spends: CoinSpendJson[]; auto_submit?: boole
 export type SignCoinSpendsResponse = { spend_bundle: SpendBundleJson }
 export type SignMessageWithPublicKey = { message: string; publicKey: string }
 export type SignMessageWithPublicKeyResponse = { signature: string }
+export type SpendBundle = { coin_spends: CoinSpend[]; aggregated_signature: string }
 export type SpendBundleJson = { coin_spends: CoinSpendJson[]; aggregated_signature: string }
 export type SpendableCoin = { coin: Coin; coinName: string; puzzle: string; confirmedBlockIndex: number; locked: boolean; lineageProof: LineageProof | null }
 export type SplitCat = { coin_ids: string[]; output_count: number; fee: Amount; auto_submit?: boolean }

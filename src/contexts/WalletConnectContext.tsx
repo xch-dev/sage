@@ -152,6 +152,19 @@ const handleWalletConnectCommand = async (
 
       return result.data.signature;
     }
+    case 'chip0002_sendTransaction': {
+      const req = parseCommandParameters(command, params)!;
+
+      const result = await commands.sendTransactionImmediately({
+        spend_bundle: req.spendBundle,
+      });
+
+      if (result.status === 'error') {
+        throw new Error(result.error.reason);
+      }
+
+      return result.data;
+    }
     default:
       throw new Error(`Unknown command: ${command}`);
   }

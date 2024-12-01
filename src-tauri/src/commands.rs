@@ -527,3 +527,12 @@ pub async fn sign_message_with_public_key(
 ) -> Result<SignMessageWithPublicKeyResponse> {
     Ok(state.lock().await.sign_message_with_public_key(req).await?)
 }
+
+#[command]
+#[specta]
+pub async fn send_transaction_immediately(
+    state: State<'_, AppState>,
+    req: SendTransactionImmediately,
+) -> Result<SendTransactionImmediatelyResponse> {
+    Ok(state.lock().await.send_transaction_immediately(req).await?)
+}
