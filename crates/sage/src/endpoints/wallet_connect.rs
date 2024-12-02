@@ -1,7 +1,7 @@
 use chia::{
     bls::{master_to_wallet_unhardened, sign},
     clvm_utils::{CurriedProgram, ToTreeHash},
-    protocol::{Coin, CoinSpend, SpendBundle},
+    protocol::{Bytes, Coin, CoinSpend, SpendBundle},
     puzzles::{cat::CatArgs, standard::StandardArgs, DeriveSynthetic, Proof},
 };
 use chia_wallet_sdk::{Layer, SpendContext};
@@ -357,9 +357,10 @@ impl Sage {
 
         let secret_key = master_to_wallet_unhardened(&master_sk, index).derive_synthetic();
 
+        let decoded_message = Bytes::from(hex::decode(&req.message)?);
         let signature = sign(
             &secret_key,
-            ("Chia Signed Message", req.message).tree_hash(),
+            ("Chia Signed Message", decoded_message).tree_hash(),
         );
 
         Ok(SignMessageWithPublicKeyResponse {
