@@ -23,6 +23,7 @@ import {
   FormMessage,
 } from './ui/form';
 import { Input } from './ui/input';
+import { TokenAmountInput } from './ui/masked-input';
 
 export interface FeeOnlyDialogProps {
   title: string;
@@ -74,7 +75,7 @@ export function FeeOnlyDialog({
                 <FormItem>
                   <FormLabel>Network Fee</FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <TokenAmountInput {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
