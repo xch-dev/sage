@@ -9,6 +9,8 @@ pub struct SendXch {
     pub amount: Amount,
     pub fee: Amount,
     #[serde(default)]
+    pub memos: Vec<String>,
+    #[serde(default)]
     pub auto_submit: bool,
 }
 

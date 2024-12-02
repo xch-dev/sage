@@ -1,5 +1,6 @@
-import { commands, TransactionSummary } from '@/bindings';
+import { Assets, commands, OfferSummary, TransactionSummary } from '@/bindings';
 import { AdvancedSummary } from '@/components/ConfirmationDialog';
+import { OfferCard } from '@/components/OfferCard';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -17,6 +18,7 @@ import {
 } from '@/constants/walletConnectCommands';
 import useInitialization from '@/hooks/useInitialization';
 import { useWallet } from '@/hooks/useWallet';
+import { useWalletState } from '@/state';
 import { getCurrentWindow, UserAttentionType } from '@tauri-apps/api/window';
 import { SignClient } from '@walletconnect/sign-client';
 import { SessionTypes, SignClientTypes } from '@walletconnect/types';
@@ -165,6 +167,92 @@ const handleWalletConnectCommand = async (
 
       return result.data;
     }
+    case 'chia_createOffer': {
+      const req = parseCommandParameters(command, params)!;
+      const state = useWalletState.getState();
+
+      const fee = BigNumber(req.fee ?? 0).div(
+        BigNumber(10).pow(state.sync.unit.decimals),
+      );
+
+      const defaultAssets = (): Assets => {
+        return {
+          xch: '0',
+          cats: [],
+          nfts: [],
+        };
+      };
+
+      const offerAssets = defaultAssets();
+      const requestAssets = defaultAssets();
+
+      for (const [from, to] of [
+        [req.offerAssets, offerAssets],
+        [req.requestAssets, requestAssets],
+      ] as const) {
+        for (const item of from) {
+          if (item.assetId.startsWith('nft')) {
+            to.nfts.push(item.assetId);
+          } else if (item.assetId === '') {
+            to.xch = BigNumber(to.xch)
+              .plus(
+                BigNumber(item.amount).div(
+                  BigNumber(10).pow(state.sync.unit.decimals),
+                ),
+              )
+              .toString();
+          } else {
+            const catAmount = BigNumber(item.amount).div(BigNumber(10).pow(3));
+            const found = to.cats.find((cat) => cat.asset_id === item.assetId);
+
+            if (found) {
+              found.amount = BigNumber(found.amount).plus(catAmount).toString();
+            } else {
+              to.cats.push({
+                asset_id: item.assetId,
+                amount: catAmount.toString(),
+              });
+            }
+          }
+        }
+      }
+
+      const result = await commands.makeOffer({
+        fee: fee.toString(),
+        offered_assets: offerAssets,
+        requested_assets: requestAssets,
+        expires_at_second: null,
+      });
+
+      if (result.status === 'error') {
+        throw new Error(result.error.reason);
+      }
+
+      return {
+        offer: result.data.offer,
+        id: result.data.offer_id,
+      };
+    }
+    case 'chia_takeOffer': {
+      const req = parseCommandParameters(command, params)!;
+      const state = useWalletState.getState();
+
+      const fee = BigNumber(req.fee ?? 0).div(
+        BigNumber(10).pow(state.sync.unit.decimals),
+      );
+
+      const result = await commands.takeOffer({
+        offer: req.offer,
+        fee: fee.toString(),
+        auto_submit: true,
+      });
+
+      if (result.status === 'error') {
+        throw new Error(result.error.reason);
+      }
+
+      return { id: result.data.transaction_id };
+    }
     default:
       throw new Error(`Unknown command: ${command}`);
   }
@@ -198,7 +286,7 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     SignClient.init({
-      projectId: '681ef0ed0dd8de01da5e02d3299bc59d',
+      projectId: '7a11dea2c7ab88dc4597d5d44eb79a18',
       // optional parameters
       relayUrl: 'wss://relay.walletconnect.org',
       metadata: {
@@ -331,10 +419,7 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
       console.log('session request', request);
       console.log(walletConnectCommands[method]);
 
-      if (
-        method === 'chip0002_signCoinSpends' ||
-        method === 'chip0002_signMessage'
-      ) {
+      if (walletConnectCommands[method].confirm) {
         setPendingRequests((p: SessionRequest[]) => [...p, request]);
         await getCurrentWindow().requestUserAttention(
           UserAttentionType.Critical,
@@ -432,6 +517,7 @@ interface RequestDialogProps {
 
 function RequestDialog({ request, approve, reject }: RequestDialogProps) {
   const [summary, setSummary] = useState<TransactionSummary | null>(null);
+  const [offer, setOffer] = useState<OfferSummary | null>(null);
 
   const method = useMemo(
     () => request.params.request.method as keyof typeof walletConnectCommands,
@@ -473,6 +559,23 @@ function RequestDialog({ request, approve, reject }: RequestDialogProps) {
     });
   }, [coinSpends, request, method, reject]);
 
+  useEffect(() => {
+    if (method !== 'chia_takeOffer') {
+      return;
+    }
+
+    setOffer(null);
+
+    commands.viewOffer({ offer: params.offer }).then((res) => {
+      if (res.status === 'error') {
+        reject(request);
+        return;
+      }
+
+      setOffer(res.data.offer);
+    });
+  }, [params.offer, request, method, reject]);
+
   console.log(request, summary);
 
   return (
@@ -486,6 +589,8 @@ function RequestDialog({ request, approve, reject }: RequestDialogProps) {
         <div className='max-h-[50vh] overflow-y-scroll'>
           {summary !== null ? (
             <AdvancedSummary summary={summary} />
+          ) : offer !== null ? (
+            <OfferCard summary={offer} />
           ) : method === 'chip0002_signMessage' ? (
             <div>
               <div>Public Key</div>

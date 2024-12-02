@@ -17,6 +17,13 @@ const spendBundleType = z.object({
   aggregated_signature: z.string(),
 });
 
+const safeAmount = z.number().or(z.string());
+
+const assetAmount = z.object({
+  assetId: z.string(),
+  amount: safeAmount,
+});
+
 enum MempoolInclusionStatus {
   SUCCESS = 1, // Transaction added to mempool
   PENDING = 2, // Transaction not yet added to mempool
@@ -28,6 +35,7 @@ export const walletConnectCommands = {
   chip0002_chainId: {
     paramsType: z.object({}).optional(),
     returnType: z.string(),
+    confirm: false,
   },
   chip0002_connect: {
     paramsType: z
@@ -36,6 +44,7 @@ export const walletConnectCommands = {
       })
       .optional(),
     returnType: z.boolean(),
+    confirm: false,
   },
   chip0002_getPublicKeys: {
     paramsType: z
@@ -45,10 +54,12 @@ export const walletConnectCommands = {
       })
       .optional(),
     returnType: z.array(z.string()),
+    confirm: false,
   },
   chip0002_filterUnlockedCoins: {
     paramsType: z.object({ coinNames: z.array(z.string()).min(1) }),
     returnType: z.array(z.string()),
+    confirm: false,
   },
   chip0002_getAssetCoins: {
     paramsType: z.object({
@@ -74,6 +85,7 @@ export const walletConnectCommands = {
           .nullable(),
       }),
     ),
+    confirm: false,
   },
   chip0002_getAssetBalance: {
     paramsType: z.object({
@@ -85,6 +97,7 @@ export const walletConnectCommands = {
       spendable: z.string(),
       spendableCoinCount: z.number(),
     }),
+    confirm: false,
   },
   chip0002_signCoinSpends: {
     paramsType: z.object({
@@ -92,6 +105,7 @@ export const walletConnectCommands = {
       partialSign: z.boolean().optional(),
     }),
     returnType: z.string(),
+    confirm: true,
   },
   chip0002_signMessage: {
     paramsType: z.object({
@@ -99,6 +113,7 @@ export const walletConnectCommands = {
       publicKey: z.string(),
     }),
     returnType: z.string(),
+    confirm: true,
   },
   chip0002_sendTransaction: {
     paramsType: z.object({ spendBundle: spendBundleType }),
@@ -108,6 +123,41 @@ export const walletConnectCommands = {
         .refine((val) => Object.values(MempoolInclusionStatus).includes(val)),
       error: z.string().nullable(),
     }),
+    confirm: false,
+  },
+  chia_transfer: {
+    paramsType: z.object({
+      to: z.string(),
+      amount: safeAmount,
+      memos: z.array(z.string()).optional(),
+      assetId: z.string(),
+    }),
+    returnType: z.object({
+      id: z.string(),
+    }),
+    confirm: true,
+  },
+  chia_takeOffer: {
+    paramsType: z.object({
+      offer: z.string(),
+      fee: safeAmount.optional(),
+    }),
+    returnType: z.object({
+      id: z.string(),
+    }),
+    confirm: true,
+  },
+  chia_createOffer: {
+    paramsType: z.object({
+      offerAssets: z.array(assetAmount),
+      requestAssets: z.array(assetAmount),
+      fee: safeAmount.optional(),
+    }),
+    returnType: z.object({
+      id: z.string(),
+      offer: z.string(),
+    }),
+    confirm: true,
   },
 } as const;
 

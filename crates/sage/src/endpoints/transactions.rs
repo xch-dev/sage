@@ -1,6 +1,9 @@
 use std::time::Duration;
 
-use chia::{protocol::CoinSpend, puzzles::nft::NftMetadata};
+use chia::{
+    protocol::{Bytes, CoinSpend},
+    puzzles::nft::NftMetadata,
+};
 use chia_wallet_sdk::MetadataUpdate;
 use sage_api::{
     AddNftUri, AssignNftsToDid, BulkMintNfts, CombineCat, CombineXch, CreateDid, IssueCat,
@@ -24,8 +27,14 @@ impl Sage {
         let amount = self.parse_amount(req.amount)?;
         let fee = self.parse_amount(req.fee)?;
 
+        let mut memos = Vec::new();
+
+        for memo in req.memos {
+            memos.push(Bytes::from(hex::decode(memo)?));
+        }
+
         let coin_spends = wallet
-            .send_xch(puzzle_hash, amount, fee, Vec::new(), false, true)
+            .send_xch(puzzle_hash, amount, fee, memos, false, true)
             .await?;
         self.transact(coin_spends, req.auto_submit).await
     }
