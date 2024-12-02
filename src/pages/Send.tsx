@@ -27,6 +27,7 @@ import {
 } from '../bindings';
 import Container from '../components/Container';
 import ErrorDialog from '../components/ErrorDialog';
+import { TokenAmountInput } from '@/components/ui/masked-input';
 
 export default function Send() {
   const { asset_id: assetId } = useParams();
@@ -109,9 +110,9 @@ export default function Send() {
     resolver: zodResolver(formSchema),
   });
 
-  const values = form.getValues();
-
   const onSubmit = () => {
+    const values = form.getValues();
+
     const command = isXch
       ? commands.sendXch
       : (req: SendXch) => {
@@ -128,6 +129,7 @@ export default function Send() {
         return;
       }
 
+      console.log(confirmation.data);
       setResponse(confirmation.data);
     });
   };
@@ -171,13 +173,7 @@ export default function Send() {
                     <FormLabel>Amount</FormLabel>
                     <FormControl>
                       <div className='relative'>
-                        <Input
-                          type='text'
-                          placeholder='0.00'
-                          {...field}
-                          className='pr-12'
-                        />
-
+                        <TokenAmountInput {...field} className='pr-12' />
                         <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
                           <span
                             className='text-gray-500 text-sm'
@@ -201,13 +197,7 @@ export default function Send() {
                     <FormLabel>Fee</FormLabel>
                     <FormControl>
                       <div className='relative'>
-                        <Input
-                          type='text'
-                          placeholder='0.00'
-                          {...field}
-                          className='pr-12'
-                        />
-
+                        <TokenAmountInput {...field} className='pr-12' />
                         <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
                           <span
                             className='text-gray-500 text-sm'

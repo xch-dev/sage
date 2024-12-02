@@ -31,6 +31,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from './ui/select';
+import { TokenAmountInput } from './ui/masked-input';
 
 export interface AssignNftDialogProps {
   title: string;
@@ -122,7 +123,7 @@ export function AssignNftDialog({
                 <FormItem>
                   <FormLabel>Network Fee</FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <TokenAmountInput {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

@@ -83,6 +83,8 @@ export default function ConfirmationDialog({
 
   const spent: Array<SpentCoin> = [];
   const created: Array<CreatedCoin> = [];
+  const fee = BigNumber(response?.summary.fee || 0);
+  const isHighFee = fee.isGreaterThan(0.001); // Adjust threshold as needed
 
   if (response) {
     for (const input of response.summary.inputs || []) {
@@ -277,6 +279,16 @@ export default function ConfirmationDialog({
                   </TabsTrigger>
                 </TabsList>
                 <TabsContent value='simple'>
+                  {isHighFee && !fee.isZero() && (
+                    <Alert variant='warning' className='mb-4'>
+                      <CircleAlert className='h-4 w-4' />
+                      <AlertTitle>High Transaction Fee</AlertTitle>
+                      <AlertDescription>
+                        Fee exceeds recommended maximum of 0.001{' '}
+                        {walletState.sync.unit.ticker}
+                      </AlertDescription>
+                    </Alert>
+                  )}
                   <Group label='Summary' icon={BadgePlus}>
                     <div className='flex flex-col gap-2'>
                       {!BigNumber(response?.summary.fee || 0).isZero() && (

@@ -23,6 +23,7 @@ import {
   FormMessage,
 } from './ui/form';
 import { Input } from './ui/input';
+import { TokenAmountInput } from './ui/masked-input';
 
 export interface TransferDialogProps {
   title: string;
@@ -89,7 +90,7 @@ export function TransferDialog({
                 <FormItem>
                   <FormLabel>Network Fee</FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <TokenAmountInput {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { TokenAmountInput } from '@/components/ui/masked-input';
 import { Switch } from '@/components/ui/switch';
 import { clearOffer, useOfferState, useWalletState } from '@/state';
 import {
@@ -433,7 +434,7 @@ function AssetSelector({ prefix, assets, setAssets }: AssetSelectorProps) {
                     setAssets({ ...assets });
                   }}
                 />
-                <Input
+                <TokenAmountInput
                   id={`${prefix}-cat-${i}-amount`}
                   className='border-l-0 z-10 rounded-l-none rounded-r-none w-[100px]'
                   placeholder='Amount'

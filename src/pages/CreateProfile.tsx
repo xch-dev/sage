@@ -20,6 +20,7 @@ import { commands, Error, TransactionResponse } from '../bindings';
 import Container from '../components/Container';
 import ErrorDialog from '../components/ErrorDialog';
 import { useWalletState } from '../state';
+import { TokenAmountInput } from '@/components/ui/masked-input';
 
 export default function CreateProfile() {
   const navigate = useNavigate();
@@ -81,12 +82,7 @@ export default function CreateProfile() {
                     <FormLabel>Network Fee</FormLabel>
                     <FormControl>
                       <div className='relative'>
-                        <Input
-                          type='text'
-                          placeholder='0.00'
-                          {...field}
-                          className='pr-12'
-                        />
+                        <TokenAmountInput {...field} className='pr-12' />
                         <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
                           <span className='text-gray-500 text-sm'>
                             {walletState.sync.unit.ticker}
