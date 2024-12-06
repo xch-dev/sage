@@ -10,11 +10,14 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import useInitialization from '@/hooks/useInitialization';
 import { useWallet } from '@/hooks/useWallet';
-import { walletConnectCommands } from '@/walletconnect/commands';
+import {
+  Params,
+  WalletConnectCommand,
+  walletConnectCommands,
+} from '@/walletconnect/commands';
 import { handleCommand } from '@/walletconnect/handler';
 import { getCurrentWindow, UserAttentionType } from '@tauri-apps/api/window';
 import { SignClient } from '@walletconnect/sign-client';
@@ -24,7 +27,6 @@ import {
   ReactNode,
   useCallback,
   useEffect,
-  useMemo,
   useState,
 } from 'react';
 
@@ -285,108 +287,185 @@ interface RequestDialogProps {
   reject: (request: SessionRequest) => void;
 }
 
-function RequestDialog({ request, approve, reject }: RequestDialogProps) {
+interface CommandDialogProps<T extends WalletConnectCommand> {
+  params: Params<T>;
+}
+
+function SignCoinSpendsDialog({
+  params,
+}: CommandDialogProps<'chip0002_signCoinSpends'>) {
   const [summary, setSummary] = useState<TransactionSummary | null>(null);
-  const [offer, setOffer] = useState<OfferSummary | null>(null);
-
-  const method = useMemo(
-    () => request.params.request.method as keyof typeof walletConnectCommands,
-    [request],
-  );
-
-  const params = useMemo(() => request.params.request.params, [request]);
-
-  const coinSpends = useMemo(
-    () =>
-      params.coinSpends?.map((coinSpend: any) => {
-        return {
-          coin: {
-            parent_coin_info: coinSpend.coin.parent_coin_info,
-            puzzle_hash: coinSpend.coin.puzzle_hash,
-            amount: coinSpend.coin.amount.toString(),
-          },
-          puzzle_reveal: coinSpend.puzzle_reveal,
-          solution: coinSpend.solution,
-        };
-      }) ?? [],
-    [params],
-  );
 
   useEffect(() => {
-    if (method !== 'chip0002_signCoinSpends') {
-      return;
-    }
-
-    setSummary(null);
+    const coinSpends = params.coinSpends.map((coinSpend) => ({
+      coin: {
+        parent_coin_info: coinSpend.coin.parent_coin_info,
+        puzzle_hash: coinSpend.coin.puzzle_hash,
+        amount: coinSpend.coin.amount.toString(),
+      },
+      puzzle_reveal: coinSpend.puzzle_reveal,
+      solution: coinSpend.solution,
+    }));
 
     commands.viewCoinSpends({ coin_spends: coinSpends }).then((res) => {
-      if (res.status === 'error') {
-        reject(request);
-        return;
+      if (res.status === 'ok') {
+        setSummary(res.data.summary);
       }
-
-      setSummary(res.data.summary);
     });
-  }, [coinSpends, request, method, reject]);
+  }, [params]);
+
+  return summary ? (
+    <AdvancedSummary summary={summary} />
+  ) : (
+    <div className='p-4 text-center'>Loading transaction summary...</div>
+  );
+}
+
+function SignMessageDialog({
+  params,
+}: CommandDialogProps<'chip0002_signMessage'>) {
+  return (
+    <div className='space-y-4 p-4'>
+      <div className='space-y-2'>
+        <div className='font-medium'>Public Key</div>
+        <div className='text-sm text-muted-foreground break-all font-mono bg-muted p-2 rounded'>
+          {params.publicKey}
+        </div>
+      </div>
+      <div className='space-y-2'>
+        <div className='font-medium'>Message</div>
+        <div className='text-sm text-muted-foreground break-all font-mono bg-muted p-2 rounded whitespace-pre-wrap'>
+          {params.message}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TakeOfferDialog({ params }: CommandDialogProps<'chia_takeOffer'>) {
+  const [offer, setOffer] = useState<OfferSummary | null>(null);
 
   useEffect(() => {
-    if (method !== 'chia_takeOffer') {
-      return;
-    }
-
-    setOffer(null);
-
     commands.viewOffer({ offer: params.offer }).then((res) => {
-      if (res.status === 'error') {
-        reject(request);
-        return;
+      if (res.status === 'ok') {
+        setOffer(res.data.offer);
       }
-
-      setOffer(res.data.offer);
     });
-  }, [params.offer, request, method, reject]);
+  }, [params]);
 
-  console.log(request, summary);
+  return offer ? (
+    <OfferCard summary={offer} />
+  ) : (
+    <div className='p-4 text-center'>Loading offer details...</div>
+  );
+}
+
+function CreateOfferDialog({ params }: CommandDialogProps<'chia_createOffer'>) {
+  return (
+    <div className='space-y-4 p-4'>
+      <div>
+        <div className='font-medium mb-2'>Offering</div>
+        <ul className='list-disc list-inside space-y-1'>
+          {params.offerAssets.map((asset, i) => (
+            <li key={i} className='text-sm'>
+              {asset.amount} {asset.assetId || 'XCH'}
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div>
+        <div className='font-medium mb-2'>Requesting</div>
+        <ul className='list-disc list-inside space-y-1'>
+          {params.requestAssets.map((asset, i) => (
+            <li key={i} className='text-sm'>
+              {asset.amount} {asset.assetId || 'XCH'}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+function DefaultCommandDialog({ params }: { params: unknown }) {
+  return (
+    <div className='p-4'>
+      <div className='text-sm text-muted-foreground'>Command parameters:</div>
+      <pre className='mt-2 rounded bg-muted p-4 overflow-auto'>
+        <code className='text-xs'>{JSON.stringify(params, null, 2)}</code>
+      </pre>
+    </div>
+  );
+}
+
+const COMMAND_COMPONENTS: {
+  [K in WalletConnectCommand]?: (props: CommandDialogProps<K>) => JSX.Element;
+} = {
+  chip0002_signCoinSpends: SignCoinSpendsDialog,
+  chip0002_signMessage: SignMessageDialog,
+  chia_takeOffer: TakeOfferDialog,
+  chia_createOffer: CreateOfferDialog,
+};
+
+const COMMAND_METADATA: {
+  [K in WalletConnectCommand]?: {
+    title: string;
+    description: string;
+  };
+} = {
+  chip0002_signCoinSpends: {
+    title: 'Sign Transaction',
+    description: 'Review and approve the transaction details below',
+  },
+  chip0002_signMessage: {
+    title: 'Sign Message',
+    description: 'Sign a message with your private key',
+  },
+  chia_takeOffer: {
+    title: 'Accept Offer',
+    description: 'Review and accept the offer',
+  },
+  chia_createOffer: {
+    title: 'Create Offer',
+    description: 'Review and create the offer',
+  },
+};
+
+function RequestDialog({ request, approve, reject }: RequestDialogProps) {
+  const method = request.params.request.method as WalletConnectCommand;
+  const params = request.params.request.params;
+  const commandInfo = walletConnectCommands[method];
+  const metadata = COMMAND_METADATA[method] ?? {
+    title: 'Confirm Action',
+    description: `Confirm ${method.replace(/_/g, ' ')}`,
+  };
+
+  if (!commandInfo.confirm) {
+    return null;
+  }
+
+  const CommandComponent = COMMAND_COMPONENTS[method] ?? DefaultCommandDialog;
+  const parsedParams = commandInfo.paramsType.parse(params);
 
   return (
     <Dialog open={true} onOpenChange={(open) => !open && reject(request)}>
-      <DialogTrigger>Open</DialogTrigger>
-      <DialogContent className='overflow-hidden'>
+      <DialogContent className='max-w-2xl'>
         <DialogHeader>
-          <DialogTitle>WalletConnect Request</DialogTitle>
-          <DialogDescription>{method}</DialogDescription>
+          <DialogTitle>{metadata.title}</DialogTitle>
+          <DialogDescription>{metadata.description}</DialogDescription>
         </DialogHeader>
-        <div className='max-h-[50vh] overflow-y-scroll'>
-          {summary !== null ? (
-            <AdvancedSummary summary={summary} />
-          ) : offer !== null ? (
-            <OfferCard summary={offer} />
-          ) : method === 'chip0002_signMessage' ? (
-            <div>
-              <div>Public Key</div>
-              <div className='text-sm text-muted-foreground break-all'>
-                {params.publicKey}
-              </div>
 
-              <div className='mt-3'>Message</div>
-              <div className='text-sm text-muted-foreground break-all'>
-                {params.message}
-              </div>
-            </div>
-          ) : (
-            <div>
-              This is the raw request, since no summary has been displayed.
-              <div className='mt-2 rounded bg-neutral-950 p-4 whitespace-pre break-words text-wrap'>
-                <code className='text-white text-xs'>
-                  {JSON.stringify(params, null, 2)}
-                </code>
-              </div>
-            </div>
+        <div className='max-h-[60vh] overflow-y-auto'>
+          {CommandComponent && (
+            <CommandComponent params={parsedParams as any} />
           )}
         </div>
-        <DialogFooter>
+
+        <DialogFooter className='sm:justify-between'>
           <DialogClose asChild>
-            <Button variant='outline'>Reject</Button>
+            <Button variant='outline' onClick={() => reject(request)}>
+              Reject
+            </Button>
           </DialogClose>
           <Button onClick={() => approve(request)}>Approve</Button>
         </DialogFooter>
