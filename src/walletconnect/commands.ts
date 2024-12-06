@@ -1,3 +1,4 @@
+import { EOF } from 'dns/promises';
 import { z } from 'zod';
 
 const coinType = z.object({
@@ -164,14 +165,17 @@ export const walletConnectCommands = {
 // Define a union of valid commands
 export type WalletConnectCommand = keyof typeof walletConnectCommands;
 
-type CommandConfig<C extends WalletConnectCommand> =
-  (typeof walletConnectCommands)[C];
+type Config<C extends WalletConnectCommand> = (typeof walletConnectCommands)[C];
+
+export type Params<C extends WalletConnectCommand> = z.infer<
+  Config<C>['paramsType']
+>;
 
 // Function to parse params based on the command
 export const parseCommand = <C extends WalletConnectCommand>(
   command: C,
   params: unknown,
-): z.infer<CommandConfig<C>['paramsType']> => {
+): z.infer<Config<C>['paramsType']> => {
   const commandInfo = walletConnectCommands[command];
   return commandInfo.paramsType.parse(params);
 };

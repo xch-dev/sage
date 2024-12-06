@@ -1,4 +1,4 @@
-import { Assets, commands, OfferSummary, TransactionSummary } from '@/bindings';
+import { commands, OfferSummary, TransactionSummary } from '@/bindings';
 import { AdvancedSummary } from '@/components/ConfirmationDialog';
 import { OfferCard } from '@/components/OfferCard';
 import { Button } from '@/components/ui/button';
@@ -12,17 +12,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import {
-  parseCommand as parseCommandParameters,
-  walletConnectCommands,
-} from '@/constants/walletConnectCommands';
 import useInitialization from '@/hooks/useInitialization';
 import { useWallet } from '@/hooks/useWallet';
-import { useWalletState } from '@/state';
+import { walletConnectCommands } from '@/walletconnect/commands';
+import { handleCommand } from '@/walletconnect/handler';
 import { getCurrentWindow, UserAttentionType } from '@tauri-apps/api/window';
 import { SignClient } from '@walletconnect/sign-client';
 import { SessionTypes, SignClientTypes } from '@walletconnect/types';
-import BigNumber from 'bignumber.js';
 import {
   createContext,
   ReactNode,
@@ -31,232 +27,6 @@ import {
   useMemo,
   useState,
 } from 'react';
-
-const handleWalletConnectCommand = async (
-  command: keyof typeof walletConnectCommands,
-  params: unknown,
-) => {
-  switch (command) {
-    case 'chip0002_chainId': {
-      const networkConfig = await commands.networkConfig();
-
-      if (networkConfig.status === 'error') {
-        throw new Error(networkConfig.error.reason);
-      }
-
-      return networkConfig.data.network_id;
-    }
-    case 'chip0002_connect': {
-      return true;
-    }
-    case 'chip0002_getPublicKeys': {
-      const { limit, offset } = parseCommandParameters(command, params)!;
-
-      const result = await commands.getDerivations({
-        limit: limit ?? 10,
-        offset: offset ?? 0,
-      });
-
-      if (result.status === 'error') {
-        throw new Error(result.error.reason);
-      }
-
-      return result.data.derivations.map((derivation) => derivation.public_key);
-    }
-    case 'chip0002_filterUnlockedCoins': {
-      const req = parseCommandParameters(command, params)!;
-
-      const result = await commands.filterUnlockedCoins({
-        coin_ids: req.coinNames,
-      });
-
-      if (result.status === 'error') {
-        throw new Error(result.error.reason);
-      }
-
-      return result.data;
-    }
-    case 'chip0002_getAssetCoins': {
-      const req = parseCommandParameters(command, params)!;
-
-      const result = await commands.getAssetCoins(req);
-
-      if (result.status === 'error') {
-        throw new Error(result.error.reason);
-      }
-
-      return result.data;
-    }
-    case 'chip0002_getAssetBalance': {
-      const req = parseCommandParameters(command, params)!;
-
-      const result = await commands.getAssetCoins({
-        ...req,
-        includedLocked: true,
-      });
-
-      if (result.status === 'error') {
-        throw new Error(result.error.reason);
-      }
-
-      let confirmed = BigNumber(0);
-      let spendable = BigNumber(0);
-      let spendableCoinCount = 0;
-
-      for (const record of result.data) {
-        confirmed = confirmed.plus(record.coin.amount);
-
-        if (!record.locked) {
-          spendable = spendable.plus(record.coin.amount);
-          spendableCoinCount += 1;
-        }
-      }
-
-      return {
-        confirmed: confirmed.toString(),
-        spendable: spendable.toString(),
-        spendableCoinCount,
-      };
-    }
-    case 'chip0002_signCoinSpends': {
-      const req = parseCommandParameters(command, params)!;
-
-      const result = await commands.signCoinSpends({
-        coin_spends: req.coinSpends.map((coinSpend) => {
-          return {
-            coin: {
-              parent_coin_info: coinSpend.coin.parent_coin_info,
-              puzzle_hash: coinSpend.coin.puzzle_hash,
-              amount: coinSpend.coin.amount.toString(),
-            },
-            puzzle_reveal: coinSpend.puzzle_reveal,
-            solution: coinSpend.solution,
-          };
-        }),
-        partial: req.partialSign,
-        auto_submit: false,
-      });
-
-      if (result.status === 'error') {
-        throw new Error(result.error.reason);
-      }
-
-      return result.data.spend_bundle.aggregated_signature;
-    }
-    case 'chip0002_signMessage': {
-      const req = parseCommandParameters(command, params)!;
-
-      const result = await commands.signMessageWithPublicKey(req);
-
-      if (result.status === 'error') {
-        throw new Error(result.error.reason);
-      }
-
-      return result.data.signature;
-    }
-    case 'chip0002_sendTransaction': {
-      const req = parseCommandParameters(command, params)!;
-
-      const result = await commands.sendTransactionImmediately({
-        spend_bundle: req.spendBundle,
-      });
-
-      if (result.status === 'error') {
-        throw new Error(result.error.reason);
-      }
-
-      return result.data;
-    }
-    case 'chia_createOffer': {
-      const req = parseCommandParameters(command, params)!;
-      const state = useWalletState.getState();
-
-      const fee = BigNumber(req.fee ?? 0).div(
-        BigNumber(10).pow(state.sync.unit.decimals),
-      );
-
-      const defaultAssets = (): Assets => {
-        return {
-          xch: '0',
-          cats: [],
-          nfts: [],
-        };
-      };
-
-      const offerAssets = defaultAssets();
-      const requestAssets = defaultAssets();
-
-      for (const [from, to] of [
-        [req.offerAssets, offerAssets],
-        [req.requestAssets, requestAssets],
-      ] as const) {
-        for (const item of from) {
-          if (item.assetId.startsWith('nft')) {
-            to.nfts.push(item.assetId);
-          } else if (item.assetId === '') {
-            to.xch = BigNumber(to.xch)
-              .plus(
-                BigNumber(item.amount).div(
-                  BigNumber(10).pow(state.sync.unit.decimals),
-                ),
-              )
-              .toString();
-          } else {
-            const catAmount = BigNumber(item.amount).div(BigNumber(10).pow(3));
-            const found = to.cats.find((cat) => cat.asset_id === item.assetId);
-
-            if (found) {
-              found.amount = BigNumber(found.amount).plus(catAmount).toString();
-            } else {
-              to.cats.push({
-                asset_id: item.assetId,
-                amount: catAmount.toString(),
-              });
-            }
-          }
-        }
-      }
-
-      const result = await commands.makeOffer({
-        fee: fee.toString(),
-        offered_assets: offerAssets,
-        requested_assets: requestAssets,
-        expires_at_second: null,
-      });
-
-      if (result.status === 'error') {
-        throw new Error(result.error.reason);
-      }
-
-      return {
-        offer: result.data.offer,
-        id: result.data.offer_id,
-      };
-    }
-    case 'chia_takeOffer': {
-      const req = parseCommandParameters(command, params)!;
-      const state = useWalletState.getState();
-
-      const fee = BigNumber(req.fee ?? 0).div(
-        BigNumber(10).pow(state.sync.unit.decimals),
-      );
-
-      const result = await commands.takeOffer({
-        offer: req.offer,
-        fee: fee.toString(),
-        auto_submit: true,
-      });
-
-      if (result.status === 'error') {
-        throw new Error(result.error.reason);
-      }
-
-      return { id: result.data.transaction_id };
-    }
-    default:
-      throw new Error(`Unknown command: ${command}`);
-  }
-};
 
 export interface WalletConnectContextType {
   sessions: any[];
@@ -307,7 +77,7 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
       if (!signClient) throw new Error('Sign client not initialized');
 
       try {
-        const result = await handleWalletConnectCommand(
+        const result = await handleCommand(
           request.params.request.method as keyof typeof walletConnectCommands,
           request.params.request.params,
         );
