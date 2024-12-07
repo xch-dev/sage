@@ -521,8 +521,8 @@ impl Sage {
             let asset_id = hex::encode(cat.asset_id);
 
             let record = OfferCat {
-                amount: Amount::from_mojos(cat.amount as u128, 3),
-                royalty: Amount::from_mojos(cat.royalty as u128, 3),
+                amount: Amount::u64(cat.amount),
+                royalty: Amount::u64(cat.royalty),
                 name: cat.name,
                 ticker: cat.ticker,
                 icon_url: cat.icon,
@@ -578,21 +578,21 @@ impl Sage {
             summary: OfferSummary {
                 maker: OfferAssets {
                     xch: OfferXch {
-                        amount: Amount::from_mojos(maker_xch_amount, self.network().precision),
-                        royalty: Amount::from_mojos(maker_xch_royalty, self.network().precision),
+                        amount: Amount::u128(maker_xch_amount),
+                        royalty: Amount::u128(maker_xch_royalty),
                     },
                     cats: maker_cats,
                     nfts: maker_nfts,
                 },
                 taker: OfferAssets {
                     xch: OfferXch {
-                        amount: Amount::from_mojos(taker_xch_amount, self.network().precision),
-                        royalty: Amount::from_mojos(taker_xch_royalty, self.network().precision),
+                        amount: Amount::u128(taker_xch_amount),
+                        royalty: Amount::u128(taker_xch_royalty),
                     },
                     cats: taker_cats,
                     nfts: taker_nfts,
                 },
-                fee: Amount::from_mojos(offer.fee as u128, self.network().precision),
+                fee: Amount::u64(offer.fee),
             },
         })
     }

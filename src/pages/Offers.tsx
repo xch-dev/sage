@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Textarea } from '@/components/ui/textarea';
 import { nftUri } from '@/lib/nftUri';
+import { toDecimal } from '@/lib/utils';
 import { isDefaultOffer, useOfferState, useWalletState } from '@/state';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 import BigNumber from 'bignumber.js';
@@ -280,7 +281,10 @@ function AssetPreview({ label, assets }: AssetPreviewProps) {
           <img src='https://icons.dexie.space/xch.webp' className='w-8 h-8' />
 
           <div className='text-sm text-muted-foreground truncate'>
-            {BigNumber(assets.xch.amount).plus(assets.xch.royalty).toString()}{' '}
+            {toDecimal(
+              BigNumber(assets.xch.amount).plus(assets.xch.royalty).toString(),
+              walletState.sync.unit.decimals,
+            )}{' '}
             {walletState.sync.unit.ticker}
           </div>
         </div>
@@ -290,7 +294,7 @@ function AssetPreview({ label, assets }: AssetPreviewProps) {
           <img src={cat.icon_url!} className='w-8 h-8' />
 
           <div className='text-sm text-muted-foreground truncate'>
-            {BigNumber(cat.amount).plus(cat.royalty).toString()}{' '}
+            {toDecimal(BigNumber(cat.amount).plus(cat.royalty).toString(), 3)}{' '}
             {cat.name ?? cat.ticker}
           </div>
         </div>

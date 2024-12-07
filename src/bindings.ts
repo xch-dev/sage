@@ -561,7 +561,7 @@ syncEvent: "sync-event"
 export type AddNftUri = { nft_id: string; uri: string; fee: Amount; kind: NftUriKind; auto_submit?: boolean }
 export type AddPeer = { ip: string; trusted: boolean }
 export type AddPeerResponse = Record<string, never>
-export type Amount = string
+export type Amount = string | number
 export type AssetCoinType = "cat" | "did" | "nft"
 export type Assets = { xch: Amount; cats: CatAmount[]; nfts: string[] }
 export type AssignNftsToDid = { nft_ids: string[]; did_id: string | null; fee: Amount; auto_submit?: boolean }

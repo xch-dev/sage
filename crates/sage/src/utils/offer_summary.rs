@@ -59,8 +59,8 @@ impl Sage {
 
         let mut maker = OfferAssets {
             xch: OfferXch {
-                amount: Amount::from_mojos(maker_amounts.xch as u128, self.unit.decimals),
-                royalty: Amount::from_mojos(maker_royalties.xch as u128, self.unit.decimals),
+                amount: Amount::u64(maker_amounts.xch),
+                royalty: Amount::u64(maker_royalties.xch),
             },
             cats: IndexMap::new(),
             nfts: IndexMap::new(),
@@ -72,11 +72,8 @@ impl Sage {
             maker.cats.insert(
                 hex::encode(asset_id),
                 OfferCat {
-                    amount: Amount::from_mojos(amount as u128, 3),
-                    royalty: Amount::from_mojos(
-                        maker_royalties.cats.get(&asset_id).copied().unwrap_or(0) as u128,
-                        3,
-                    ),
+                    amount: Amount::u64(amount),
+                    royalty: Amount::u64(maker_royalties.cats.get(&asset_id).copied().unwrap_or(0)),
                     name: cat.as_ref().and_then(|cat| cat.name.clone()),
                     ticker: cat.as_ref().and_then(|cat| cat.ticker.clone()),
                     icon_url: cat.as_ref().and_then(|cat| cat.icon.clone()),
@@ -140,8 +137,8 @@ impl Sage {
 
         let mut taker = OfferAssets {
             xch: OfferXch {
-                amount: Amount::from_mojos(taker_amounts.xch as u128, self.unit.decimals),
-                royalty: Amount::from_mojos(taker_royalties.xch as u128, self.unit.decimals),
+                amount: Amount::u64(taker_amounts.xch),
+                royalty: Amount::u64(taker_royalties.xch),
             },
             cats: IndexMap::new(),
             nfts: IndexMap::new(),
@@ -153,11 +150,8 @@ impl Sage {
             taker.cats.insert(
                 hex::encode(asset_id),
                 OfferCat {
-                    amount: Amount::from_mojos(amount as u128, 3),
-                    royalty: Amount::from_mojos(
-                        taker_royalties.cats.get(&asset_id).copied().unwrap_or(0) as u128,
-                        3,
-                    ),
+                    amount: Amount::u64(amount),
+                    royalty: Amount::u64(taker_royalties.cats.get(&asset_id).copied().unwrap_or(0)),
                     name: cat.as_ref().and_then(|cat| cat.name.clone()),
                     ticker: cat.as_ref().and_then(|cat| cat.ticker.clone()),
                     icon_url: cat.as_ref().and_then(|cat| cat.icon.clone()),
@@ -192,7 +186,7 @@ impl Sage {
         }
 
         Ok(OfferSummary {
-            fee: Amount::from_mojos(locked_coins.fee as u128, self.unit.decimals),
+            fee: Amount::u64(locked_coins.fee),
             maker,
             taker,
         })

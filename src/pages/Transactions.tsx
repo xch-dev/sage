@@ -11,6 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { toDecimal } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { ReloadIcon } from '@radix-ui/react-icons';
 import { FastForward, Info, MoreVerticalIcon } from 'lucide-react';
@@ -99,7 +100,9 @@ export function Transactions() {
               </CardHeader>
               <CardContent>
                 <div className='text-sm truncate'>
-                  With a fee of {transaction.fee} {walletState.sync.unit.ticker}
+                  With a fee of{' '}
+                  {toDecimal(transaction.fee, walletState.sync.unit.decimals)}{' '}
+                  {walletState.sync.unit.ticker}
                 </div>
               </CardContent>
             </Card>

@@ -14,7 +14,15 @@ export const amount = (decimals: number) =>
       );
 
       return mojos.isLessThanOrEqualTo(BigNumber('18446744073709551615'));
-    }, 'Values is too large');
+    }, 'Values is too large')
+
+    .transform((amount) => {
+      const mojos = BigNumber(amount || 0).multipliedBy(
+        BigNumber(10).pow(decimals),
+      );
+
+      return mojos.toString();
+    });
 
 export const positiveAmount = (decimals: number) =>
   amount(decimals).refine(

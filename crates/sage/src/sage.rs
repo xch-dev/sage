@@ -347,7 +347,7 @@ impl Sage {
 
     #[allow(clippy::needless_pass_by_value)]
     pub fn parse_amount(&self, input: Amount) -> Result<u64> {
-        let Some(amount) = input.to_mojos(self.unit.decimals) else {
+        let Some(amount) = input.to_u64() else {
             return Err(Error::InvalidCatAmount(input.to_string()));
         };
 
