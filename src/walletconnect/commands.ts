@@ -1,4 +1,3 @@
-import { EOF } from 'dns/promises';
 import { z } from 'zod';
 
 const coinType = z.object({

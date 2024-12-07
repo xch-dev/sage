@@ -20,7 +20,7 @@ import {
 } from '@/walletconnect/commands';
 import { handleCommand } from '@/walletconnect/handler';
 import { getCurrentWindow, UserAttentionType } from '@tauri-apps/api/window';
-import { SignClient } from '@walletconnect/sign-client';
+import SignClient from '@walletconnect/sign-client';
 import { SessionTypes, SignClientTypes } from '@walletconnect/types';
 import {
   createContext,
@@ -275,6 +275,7 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
           request={pendingRequests[0]}
           approve={approveRequest}
           reject={rejectRequest}
+          signClient={signClient}
         />
       )}
     </WalletConnectContext.Provider>
@@ -285,6 +286,7 @@ interface RequestDialogProps {
   request: SessionRequest;
   approve: (request: SessionRequest) => void;
   reject: (request: SessionRequest) => void;
+  signClient: InstanceType<typeof SignClient> | null;
 }
 
 interface CommandDialogProps<T extends WalletConnectCommand> {
@@ -431,7 +433,12 @@ const COMMAND_METADATA: {
   },
 };
 
-function RequestDialog({ request, approve, reject }: RequestDialogProps) {
+function RequestDialog({
+  request,
+  approve,
+  reject,
+  signClient,
+}: RequestDialogProps) {
   const method = request.params.request.method as WalletConnectCommand;
   const params = request.params.request.params;
   const commandInfo = walletConnectCommands[method];
@@ -439,6 +446,7 @@ function RequestDialog({ request, approve, reject }: RequestDialogProps) {
     title: 'Confirm Action',
     description: `Confirm ${method.replace(/_/g, ' ')}`,
   };
+  const peerMetadata = signClient?.session.get(request.topic)?.peer.metadata;
 
   if (!commandInfo.confirm) {
     return null;
@@ -451,6 +459,11 @@ function RequestDialog({ request, approve, reject }: RequestDialogProps) {
     <Dialog open={true} onOpenChange={(open) => !open && reject(request)}>
       <DialogContent className='max-w-2xl'>
         <DialogHeader>
+          {peerMetadata && (
+            <div className='text-sm text-muted-foreground mb-4'>
+              Request from {peerMetadata.name}
+            </div>
+          )}
           <DialogTitle>{metadata.title}</DialogTitle>
           <DialogDescription>{metadata.description}</DialogDescription>
         </DialogHeader>
