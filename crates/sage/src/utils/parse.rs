@@ -1,7 +1,7 @@
 #![allow(clippy::needless_pass_by_value)]
 
 use chia::{
-    bls::Signature,
+    bls::{PublicKey, Signature},
     protocol::{Bytes32, Program},
 };
 use chia_wallet_sdk::decode_address;
@@ -113,6 +113,20 @@ pub fn parse_signature(input: String) -> Result<Signature> {
         .map_err(|_| Error::InvalidSignature(input))?;
 
     Ok(Signature::from_bytes(&signature)?)
+}
+
+pub fn parse_public_key(input: String) -> Result<PublicKey> {
+    let stripped = if let Some(stripped) = input.strip_prefix("0x") {
+        stripped
+    } else {
+        &input
+    };
+
+    let public_key: [u8; 48] = hex::decode(stripped)?
+        .try_into()
+        .map_err(|_| Error::InvalidPublicKey(input))?;
+
+    Ok(PublicKey::from_bytes(&public_key)?)
 }
 
 pub fn parse_program(input: String) -> Result<Program> {

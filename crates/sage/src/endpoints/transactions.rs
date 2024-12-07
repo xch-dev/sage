@@ -1,11 +1,15 @@
 use std::time::Duration;
 
-use chia::{protocol::CoinSpend, puzzles::nft::NftMetadata};
+use chia::{
+    protocol::{Bytes, CoinSpend},
+    puzzles::nft::NftMetadata,
+};
 use chia_wallet_sdk::MetadataUpdate;
 use sage_api::{
     AddNftUri, AssignNftsToDid, BulkMintNfts, CombineCat, CombineXch, CreateDid, IssueCat,
     NftUriKind, SendCat, SendXch, SignCoinSpends, SignCoinSpendsResponse, SplitCat, SplitXch,
     SubmitTransaction, SubmitTransactionResponse, TransactionResponse, TransferDids, TransferNfts,
+    ViewCoinSpends, ViewCoinSpendsResponse,
 };
 use sage_database::CatRow;
 use sage_wallet::{fetch_uris, WalletNftMint};
@@ -23,8 +27,14 @@ impl Sage {
         let amount = self.parse_amount(req.amount)?;
         let fee = self.parse_amount(req.fee)?;
 
+        let mut memos = Vec::new();
+
+        for memo in req.memos {
+            memos.push(Bytes::from(hex::decode(memo)?));
+        }
+
         let coin_spends = wallet
-            .send_xch(puzzle_hash, amount, fee, Vec::new(), false, true)
+            .send_xch(puzzle_hash, amount, fee, memos, false, true)
             .await?;
         self.transact(coin_spends, req.auto_submit).await
     }
@@ -274,7 +284,7 @@ impl Sage {
             .into_iter()
             .map(rust_spend)
             .collect::<Result<Vec<_>>>()?;
-        let spend_bundle = self.sign(coin_spends).await?;
+        let spend_bundle = self.sign(coin_spends, req.partial).await?;
         let json_bundle = json_bundle(&spend_bundle);
 
         if req.auto_submit {
@@ -283,6 +293,20 @@ impl Sage {
 
         Ok(SignCoinSpendsResponse {
             spend_bundle: json_bundle,
+        })
+    }
+
+    pub async fn view_coin_spends(&self, req: ViewCoinSpends) -> Result<ViewCoinSpendsResponse> {
+        let coin_spends = req
+            .coin_spends
+            .into_iter()
+            .map(rust_spend)
+            .collect::<Result<Vec<_>>>()?;
+
+        Ok(ViewCoinSpendsResponse {
+            summary: self
+                .summarize(coin_spends, ConfirmationInfo::default())
+                .await?,
         })
     }
 
@@ -312,7 +336,7 @@ impl Sage {
         info: ConfirmationInfo,
     ) -> Result<TransactionResponse> {
         if auto_submit {
-            let spend_bundle = self.sign(coin_spends.clone()).await?;
+            let spend_bundle = self.sign(coin_spends.clone(), false).await?;
             self.submit(spend_bundle).await?;
         }
 

@@ -17,6 +17,14 @@ impl Database {
     pub async fn p2_coin_states(&self) -> Result<Vec<CoinStateRow>> {
         p2_coin_states(&self.pool).await
     }
+
+    pub async fn created_unspent_p2_coin_states(
+        &self,
+        limit: u32,
+        offset: u32,
+    ) -> Result<Vec<CoinStateRow>> {
+        created_unspent_p2_coin_states(&self.pool, limit, offset).await
+    }
 }
 
 impl<'a> DatabaseTx<'a> {
@@ -88,6 +96,30 @@ async fn p2_coin_states(conn: impl SqliteExecutor<'_>) -> Result<Vec<CoinStateRo
         FROM `coin_states`
         INNER JOIN `p2_coins` ON `coin_states`.`coin_id` = `p2_coins`.`coin_id`
         "
+    )
+    .fetch_all(conn)
+    .await?;
+
+    rows.into_iter().map(into_row).collect()
+}
+
+async fn created_unspent_p2_coin_states(
+    conn: impl SqliteExecutor<'_>,
+    limit: u32,
+    offset: u32,
+) -> Result<Vec<CoinStateRow>> {
+    let rows = sqlx::query_as!(
+        CoinStateSql,
+        "
+        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `spent_height`, `created_height`, `transaction_id`
+        FROM `coin_states`
+        INNER JOIN `p2_coins` ON `coin_states`.`coin_id` = `p2_coins`.`coin_id`
+        WHERE `spent_height` IS NULL
+        AND `created_height` IS NOT NULL
+        ORDER BY `created_height`, `coin_states`.`coin_id` LIMIT ? OFFSET ?
+        ",
+        limit,
+        offset
     )
     .fetch_all(conn)
     .await?;

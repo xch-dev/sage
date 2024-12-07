@@ -8,13 +8,14 @@ use chia_wallet_sdk::encode_address;
 use clvmr::Allocator;
 use hex_literal::hex;
 use sage_api::{
-    Amount, CatRecord, CoinRecord, DidRecord, GetAddresses, GetAddressesResponse, GetCat,
-    GetCatCoins, GetCatCoinsResponse, GetCatResponse, GetCats, GetCatsResponse, GetDids,
-    GetDidsResponse, GetNft, GetNftCollection, GetNftCollectionResponse, GetNftCollections,
-    GetNftCollectionsResponse, GetNftResponse, GetNftStatus, GetNftStatusResponse, GetNfts,
-    GetNftsResponse, GetPendingTransactions, GetPendingTransactionsResponse, GetSyncStatus,
-    GetSyncStatusResponse, GetXchCoins, GetXchCoinsResponse, NftCollectionRecord, NftInfo,
-    NftRecord, NftSortMode, PendingTransactionRecord,
+    Amount, CatRecord, CoinRecord, DerivationRecord, DidRecord, GetCat, GetCatCoins,
+    GetCatCoinsResponse, GetCatResponse, GetCats, GetCatsResponse, GetDerivations,
+    GetDerivationsResponse, GetDids, GetDidsResponse, GetNft, GetNftCollection,
+    GetNftCollectionResponse, GetNftCollections, GetNftCollectionsResponse, GetNftResponse,
+    GetNftStatus, GetNftStatusResponse, GetNfts, GetNftsResponse, GetPendingTransactions,
+    GetPendingTransactionsResponse, GetSyncStatus, GetSyncStatusResponse, GetXchCoins,
+    GetXchCoinsResponse, NftCollectionRecord, NftInfo, NftRecord, NftSortMode,
+    PendingTransactionRecord,
 };
 use sage_database::{NftData, NftRow};
 use sage_wallet::WalletError;
@@ -54,21 +55,27 @@ impl Sage {
         })
     }
 
-    pub async fn get_addresses(&self, _req: GetAddresses) -> Result<GetAddressesResponse> {
+    pub async fn get_derivations(&self, req: GetDerivations) -> Result<GetDerivationsResponse> {
         let wallet = self.wallet()?;
 
-        let puzzle_hashes = wallet.db.p2_puzzle_hashes_unhardened().await?;
-        let addresses = puzzle_hashes
+        let derivations = wallet
+            .db
+            .unhardened_derivations(req.limit, req.offset)
+            .await?
             .into_iter()
-            .map(|puzzle_hash| {
-                Ok(encode_address(
-                    puzzle_hash.to_bytes(),
-                    &self.network().address_prefix,
-                )?)
+            .map(|row| {
+                Ok(DerivationRecord {
+                    index: row.index,
+                    public_key: hex::encode(row.synthetic_key.to_bytes()),
+                    address: encode_address(
+                        row.p2_puzzle_hash.to_bytes(),
+                        &self.network().address_prefix,
+                    )?,
+                })
             })
             .collect::<Result<Vec<_>>>()?;
 
-        Ok(GetAddressesResponse { addresses })
+        Ok(GetDerivationsResponse { derivations })
     }
 
     pub async fn get_xch_coins(&self, _req: GetXchCoins) -> Result<GetXchCoinsResponse> {
@@ -83,11 +90,15 @@ impl Sage {
 
             let spend_transaction_id = wallet
                 .db
-                .transactions_for_coin(cs.coin.coin_id())
+                .coin_transaction_id(cs.coin.coin_id())
                 .await?
-                .into_iter()
-                .map(hex::encode)
-                .next();
+                .map(hex::encode);
+
+            let offer_id = wallet
+                .db
+                .coin_offer_id(cs.coin.coin_id())
+                .await?
+                .map(hex::encode);
 
             coins.push(CoinRecord {
                 coin_id: hex::encode(cs.coin.coin_id()),
@@ -100,6 +111,7 @@ impl Sage {
                 spent_height: cs.spent_height,
                 create_transaction_id: row.transaction_id.map(hex::encode),
                 spend_transaction_id,
+                offer_id,
             });
         }
 
@@ -119,11 +131,15 @@ impl Sage {
 
             let spend_transaction_id = wallet
                 .db
-                .transactions_for_coin(cs.coin.coin_id())
+                .coin_transaction_id(cs.coin.coin_id())
                 .await?
-                .into_iter()
-                .map(hex::encode)
-                .next();
+                .map(hex::encode);
+
+            let offer_id = wallet
+                .db
+                .coin_offer_id(cs.coin.coin_id())
+                .await?
+                .map(hex::encode);
 
             coins.push(CoinRecord {
                 coin_id: hex::encode(cs.coin.coin_id()),
@@ -136,6 +152,7 @@ impl Sage {
                 spent_height: cs.spent_height,
                 create_transaction_id: row.transaction_id.map(hex::encode),
                 spend_transaction_id,
+                offer_id,
             });
         }
 

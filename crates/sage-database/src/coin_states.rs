@@ -39,6 +39,10 @@ impl Database {
     pub async fn sync_coin(&self, coin_id: Bytes32, hint: Option<Bytes32>) -> Result<()> {
         sync_coin(&self.pool, coin_id, hint).await
     }
+
+    pub async fn is_coin_locked(&self, coin_id: Bytes32) -> Result<bool> {
+        is_coin_locked(&self.pool, coin_id).await
+    }
 }
 
 impl<'a> DatabaseTx<'a> {
@@ -344,6 +348,28 @@ async fn is_p2_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<b
         SELECT COUNT(*) AS `count`
         FROM `p2_coins`
         WHERE `coin_id` = ?
+        ",
+        coin_id
+    )
+    .fetch_one(conn)
+    .await?;
+
+    Ok(row.count > 0)
+}
+
+async fn is_coin_locked(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<bool> {
+    let coin_id = coin_id.as_ref();
+
+    let row = sqlx::query!(
+        "
+        SELECT COUNT(*) AS `count`
+        FROM `coin_states`
+        LEFT JOIN `transaction_spends` ON `coin_states`.`coin_id` = `transaction_spends`.`coin_id`
+        LEFT JOIN `offered_coins` ON `coin_states`.`coin_id` = `offered_coins`.`coin_id`
+        WHERE `coin_states`.`coin_id` = ?
+        AND `offer_id` IS NULL
+        AND `coin_states`.`transaction_id` IS NULL
+        AND `transaction_spends`.`transaction_id` IS NULL
         ",
         coin_id
     )

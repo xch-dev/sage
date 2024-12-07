@@ -6,8 +6,8 @@ use chia_wallet_sdk::{Nft, NftInfo};
 use sqlx::SqliteExecutor;
 
 use crate::{
-    into_row, to_bytes32, CollectionRow, CollectionSql, Database, DatabaseTx, FullNftCoinSql,
-    IntoRow, NftRow, NftSql, Result,
+    into_row, to_bytes32, CoinStateRow, CoinStateSql, CollectionRow, CollectionSql, Database,
+    DatabaseTx, FullNftCoinSql, IntoRow, NftRow, NftSql, Result,
 };
 
 #[derive(Debug, Clone)]
@@ -185,6 +185,25 @@ impl Database {
 
     pub async fn license_hash(&self, launcher_id: Bytes32) -> Result<Option<Bytes32>> {
         license_hash(&self.pool, launcher_id).await
+    }
+
+    pub async fn created_unspent_nft_coin_states(
+        &self,
+        limit: u32,
+        offset: u32,
+    ) -> Result<Vec<CoinStateRow>> {
+        created_unspent_nft_coin_states(&self.pool, limit, offset).await
+    }
+
+    pub async fn created_unspent_nft_coin_state(
+        &self,
+        launcher_id: Bytes32,
+    ) -> Result<Vec<CoinStateRow>> {
+        created_unspent_nft_coin_state(&self.pool, launcher_id).await
+    }
+
+    pub async fn nft_by_coin_id(&self, coin_id: Bytes32) -> Result<Option<Nft<Program>>> {
+        nft_by_coin_id(&self.pool, coin_id).await
     }
 }
 
@@ -1166,4 +1185,81 @@ async fn license_hash(
     };
 
     Ok(Some(to_bytes32(&license_hash)?))
+}
+
+async fn created_unspent_nft_coin_states(
+    conn: impl SqliteExecutor<'_>,
+    limit: u32,
+    offset: u32,
+) -> Result<Vec<CoinStateRow>> {
+    let rows = sqlx::query_as!(
+        CoinStateSql,
+        "
+        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `spent_height`, `created_height`, `transaction_id`
+        FROM `coin_states`
+        INNER JOIN `nft_coins` ON `coin_states`.coin_id = `nft_coins`.coin_id
+        WHERE `spent_height` IS NULL
+        AND `created_height` IS NOT NULL
+        ORDER BY `created_height`, `coin_states`.`coin_id` LIMIT ? OFFSET ?
+        ",
+        limit,
+        offset
+    )
+    .fetch_all(conn)
+    .await?;
+
+    rows.into_iter().map(into_row).collect()
+}
+
+async fn created_unspent_nft_coin_state(
+    conn: impl SqliteExecutor<'_>,
+    launcher_id: Bytes32,
+) -> Result<Vec<CoinStateRow>> {
+    let launcher_id = launcher_id.as_ref();
+
+    let rows = sqlx::query_as!(
+        CoinStateSql,
+        "
+        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `spent_height`, `created_height`, `transaction_id`
+        FROM `coin_states`
+        INNER JOIN `nft_coins` ON `coin_states`.coin_id = `nft_coins`.coin_id
+        WHERE `launcher_id` = ?
+        AND `spent_height` IS NULL
+        AND `created_height` IS NOT NULL
+        ",
+        launcher_id
+    )
+    .fetch_all(conn)
+    .await?;
+
+    rows.into_iter().map(into_row).collect()
+}
+
+async fn nft_by_coin_id(
+    conn: impl SqliteExecutor<'_>,
+    coin_id: Bytes32,
+) -> Result<Option<Nft<Program>>> {
+    let coin_id = coin_id.as_ref();
+
+    let Some(sql) = sqlx::query_as!(
+        FullNftCoinSql,
+        "
+        SELECT
+            `coin_states`.`parent_coin_id`, `coin_states`.`puzzle_hash`, `coin_states`.`amount`,
+            `parent_parent_coin_id`, `parent_inner_puzzle_hash`, `parent_amount`,
+            `launcher_id`, `metadata`, `metadata_updater_puzzle_hash`, `current_owner`,
+            `royalty_puzzle_hash`, `royalty_ten_thousandths`, `p2_puzzle_hash`
+        FROM `nft_coins`
+        INNER JOIN `coin_states` INDEXED BY `coin_height` ON `nft_coins`.`coin_id` = `coin_states`.`coin_id`
+        WHERE `coin_states`.`coin_id` = ?
+        ",
+        coin_id
+    )
+    .fetch_optional(conn)
+    .await?
+    else {
+        return Ok(None);
+    };
+
+    Ok(Some(sql.into_row()?))
 }

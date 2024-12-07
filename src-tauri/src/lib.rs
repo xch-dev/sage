@@ -41,9 +41,10 @@ pub fn run() {
             commands::add_nft_uri,
             commands::assign_nfts_to_did,
             commands::sign_coin_spends,
+            commands::view_coin_spends,
             commands::submit_transaction,
             commands::get_sync_status,
-            commands::get_addresses,
+            commands::get_derivations,
             commands::get_xch_coins,
             commands::get_cat_coins,
             commands::get_cats,
@@ -78,6 +79,10 @@ pub fn run() {
             commands::get_peers,
             commands::add_peer,
             commands::remove_peer,
+            commands::filter_unlocked_coins,
+            commands::get_asset_coins,
+            commands::sign_message_with_public_key,
+            commands::send_transaction_immediately,
         ])
         .events(collect_events![SyncEvent]);
 

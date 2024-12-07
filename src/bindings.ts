@@ -205,6 +205,14 @@ async signCoinSpends(req: SignCoinSpends) : Promise<Result<SignCoinSpendsRespons
     else return { status: "error", error: e  as any };
 }
 },
+async viewCoinSpends(req: ViewCoinSpends) : Promise<Result<ViewCoinSpendsResponse, Error>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("view_coin_spends", { req }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async submitTransaction(req: SubmitTransaction) : Promise<Result<SubmitTransactionResponse, Error>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("submit_transaction", { req }) };
@@ -221,9 +229,9 @@ async getSyncStatus(req: GetSyncStatus) : Promise<Result<GetSyncStatusResponse, 
     else return { status: "error", error: e  as any };
 }
 },
-async getAddresses(req: GetAddresses) : Promise<Result<GetAddressesResponse, Error>> {
+async getDerivations(req: GetDerivations) : Promise<Result<GetDerivationsResponse, Error>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("get_addresses", { req }) };
+    return { status: "ok", data: await TAURI_INVOKE("get_derivations", { req }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -500,6 +508,38 @@ async removePeer(req: RemovePeer) : Promise<Result<RemovePeerResponse, Error>> {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
+},
+async filterUnlockedCoins(req: FilterUnlockedCoins) : Promise<Result<FilterUnlockedCoinsResponse, Error>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("filter_unlocked_coins", { req }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async getAssetCoins(req: GetAssetCoins) : Promise<Result<SpendableCoin[], Error>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_asset_coins", { req }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async signMessageWithPublicKey(req: SignMessageWithPublicKey) : Promise<Result<SignMessageWithPublicKeyResponse, Error>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("sign_message_with_public_key", { req }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async sendTransactionImmediately(req: SendTransactionImmediately) : Promise<Result<SendTransactionImmediatelyResponse, Error>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("send_transaction_immediately", { req }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 }
 }
 
@@ -522,13 +562,16 @@ export type AddNftUri = { nft_id: string; uri: string; fee: Amount; kind: NftUri
 export type AddPeer = { ip: string; trusted: boolean }
 export type AddPeerResponse = Record<string, never>
 export type Amount = string
+export type AssetCoinType = "cat" | "did" | "nft"
 export type Assets = { xch: Amount; cats: CatAmount[]; nfts: string[] }
 export type AssignNftsToDid = { nft_ids: string[]; did_id: string | null; fee: Amount; auto_submit?: boolean }
 export type BulkMintNfts = { mints: NftMint[]; did_id: string; fee: Amount; auto_submit?: boolean }
 export type CatAmount = { asset_id: string; amount: Amount }
 export type CatRecord = { asset_id: string; name: string | null; ticker: string | null; description: string | null; icon_url: string | null; visible: boolean; balance: Amount }
+export type Coin = { parent_coin_info: string; puzzle_hash: string; amount: number }
 export type CoinJson = { parent_coin_info: string; puzzle_hash: string; amount: Amount }
-export type CoinRecord = { coin_id: string; address: string; amount: Amount; created_height: number | null; spent_height: number | null; create_transaction_id: string | null; spend_transaction_id: string | null }
+export type CoinRecord = { coin_id: string; address: string; amount: Amount; created_height: number | null; spent_height: number | null; create_transaction_id: string | null; spend_transaction_id: string | null; offer_id: string | null }
+export type CoinSpend = { coin: Coin; puzzle_reveal: string; solution: string }
 export type CoinSpendJson = { coin: CoinJson; puzzle_reveal: string; solution: string }
 export type CombineCat = { coin_ids: string[]; fee: Amount; auto_submit?: boolean }
 export type CombineXch = { coin_ids: string[]; fee: Amount; auto_submit?: boolean }
@@ -537,19 +580,23 @@ export type DeleteKey = { fingerprint: number }
 export type DeleteKeyResponse = Record<string, never>
 export type DeleteOffer = { offer_id: string }
 export type DeleteOfferResponse = Record<string, never>
+export type DerivationRecord = { index: number; public_key: string; address: string }
 export type DidRecord = { launcher_id: string; name: string | null; visible: boolean; coin_id: string; address: string; amount: Amount; created_height: number | null; create_transaction_id: string | null }
 export type Error = { kind: ErrorKind; reason: string }
 export type ErrorKind = "wallet" | "api" | "not_found" | "unauthorized" | "internal"
+export type FilterUnlockedCoins = { coin_ids: string[] }
+export type FilterUnlockedCoinsResponse = { coin_ids: string[] }
 export type GenerateMnemonic = { use_24_words: boolean }
 export type GenerateMnemonicResponse = { mnemonic: string }
-export type GetAddresses = Record<string, never>
-export type GetAddressesResponse = { addresses: string[] }
+export type GetAssetCoins = { type?: AssetCoinType | null; assetId?: string | null; includedLocked?: boolean | null; offset?: number | null; limit?: number | null }
 export type GetCat = { asset_id: string }
 export type GetCatCoins = { asset_id: string }
 export type GetCatCoinsResponse = { coins: CoinRecord[] }
 export type GetCatResponse = { cat: CatRecord | null }
 export type GetCats = Record<string, never>
 export type GetCatsResponse = { cats: CatRecord[] }
+export type GetDerivations = { offset: number; limit: number }
+export type GetDerivationsResponse = { derivations: DerivationRecord[] }
 export type GetDids = Record<string, never>
 export type GetDidsResponse = { dids: DidRecord[] }
 export type GetKey = { fingerprint?: number | null }
@@ -589,12 +636,13 @@ export type ImportOfferResponse = Record<string, never>
 export type IssueCat = { name: string; ticker: string; amount: Amount; fee: Amount; auto_submit?: boolean }
 export type KeyInfo = { name: string; fingerprint: number; public_key: string; kind: KeyKind; has_secrets: boolean }
 export type KeyKind = "bls"
+export type LineageProof = { parentName: string | null; innerPuzzleHash: string | null; amount: number | null }
 export type Login = { fingerprint: number }
 export type LoginResponse = Record<string, never>
 export type Logout = Record<string, never>
 export type LogoutResponse = Record<string, never>
 export type MakeOffer = { requested_assets: Assets; offered_assets: Assets; fee: Amount; expires_at_second: number | null }
-export type MakeOfferResponse = { offer: string }
+export type MakeOfferResponse = { offer: string; offer_id: string }
 export type Network = { default_port: number; ticker: string; address_prefix: string; precision: number; genesis_challenge: string; agg_sig_me: string; dns_introducers: string[] }
 export type NetworkConfig = { network_id: string; target_peers: number; discover_peers: boolean }
 export type NftCollectionRecord = { collection_id: string; did_id: string; metadata_collection_id: string; visible: boolean; name: string | null; icon: string | null; nfts: number; visible_nfts: number }
@@ -622,7 +670,9 @@ export type Resync = { fingerprint: number; delete_offer_files?: boolean }
 export type ResyncResponse = Record<string, never>
 export type SecretKeyInfo = { mnemonic: string | null; secret_key: string }
 export type SendCat = { asset_id: string; address: string; amount: Amount; fee: Amount; auto_submit?: boolean }
-export type SendXch = { address: string; amount: Amount; fee: Amount; auto_submit?: boolean }
+export type SendTransactionImmediately = { spend_bundle: SpendBundle }
+export type SendTransactionImmediatelyResponse = { status: number; error: string | null }
+export type SendXch = { address: string; amount: Amount; fee: Amount; memos?: string[]; auto_submit?: boolean }
 export type SetDerivationBatchSize = { fingerprint: number; derivation_batch_size: number }
 export type SetDerivationBatchSizeResponse = Record<string, never>
 export type SetDeriveAutomatically = { fingerprint: number; derive_automatically: boolean }
@@ -633,16 +683,20 @@ export type SetNetworkId = { network_id: string }
 export type SetNetworkIdResponse = Record<string, never>
 export type SetTargetPeers = { target_peers: number }
 export type SetTargetPeersResponse = Record<string, never>
-export type SignCoinSpends = { coin_spends: CoinSpendJson[]; auto_submit?: boolean }
+export type SignCoinSpends = { coin_spends: CoinSpendJson[]; auto_submit?: boolean; partial?: boolean }
 export type SignCoinSpendsResponse = { spend_bundle: SpendBundleJson }
+export type SignMessageWithPublicKey = { message: string; publicKey: string }
+export type SignMessageWithPublicKeyResponse = { signature: string }
+export type SpendBundle = { coin_spends: CoinSpend[]; aggregated_signature: string }
 export type SpendBundleJson = { coin_spends: CoinSpendJson[]; aggregated_signature: string }
+export type SpendableCoin = { coin: Coin; coinName: string; puzzle: string; confirmedBlockIndex: number; locked: boolean; lineageProof: LineageProof | null }
 export type SplitCat = { coin_ids: string[]; output_count: number; fee: Amount; auto_submit?: boolean }
 export type SplitXch = { coin_ids: string[]; output_count: number; fee: Amount; auto_submit?: boolean }
 export type SubmitTransaction = { spend_bundle: SpendBundleJson }
 export type SubmitTransactionResponse = Record<string, never>
 export type SyncEvent = { type: "start"; ip: string } | { type: "stop" } | { type: "subscribed" } | { type: "derivation" } | { type: "coin_state" } | { type: "puzzle_batch_synced" } | { type: "cat_info" } | { type: "did_info" } | { type: "nft_data" }
 export type TakeOffer = { offer: string; fee: Amount; auto_submit?: boolean }
-export type TakeOfferResponse = { summary: TransactionSummary; spend_bundle: SpendBundleJson }
+export type TakeOfferResponse = { summary: TransactionSummary; spend_bundle: SpendBundleJson; transaction_id: string }
 export type TransactionInput = ({ type: "unknown" } | { type: "xch" } | { type: "launcher" } | { type: "cat"; asset_id: string; name: string | null; ticker: string | null; icon_url: string | null } | { type: "did"; launcher_id: string; name: string | null } | { type: "nft"; launcher_id: string; image_data: string | null; image_mime_type: string | null; name: string | null }) & { coin_id: string; amount: Amount; address: string; outputs: TransactionOutput[] }
 export type TransactionOutput = { coin_id: string; amount: Amount; address: string; receiving: boolean; burning: boolean }
 export type TransactionResponse = { summary: TransactionSummary; coin_spends: CoinSpendJson[] }
@@ -656,6 +710,8 @@ export type UpdateDid = { did_id: string; name: string | null; visible: boolean 
 export type UpdateDidResponse = Record<string, never>
 export type UpdateNft = { nft_id: string; visible: boolean }
 export type UpdateNftResponse = Record<string, never>
+export type ViewCoinSpends = { coin_spends: CoinSpendJson[] }
+export type ViewCoinSpendsResponse = { summary: TransactionSummary }
 export type ViewOffer = { offer: string }
 export type ViewOfferResponse = { offer: OfferSummary }
 export type WalletConfig = { name: string; derive_automatically: boolean; derivation_batch_size: number }

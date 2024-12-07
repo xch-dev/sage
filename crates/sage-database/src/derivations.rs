@@ -1,11 +1,17 @@
 use chia::{bls::PublicKey, protocol::Bytes32};
 use sqlx::SqliteExecutor;
 
-use crate::{to_bytes, to_bytes32, Database, DatabaseTx, Result};
+use crate::{
+    into_row, to_bytes, to_bytes32, Database, DatabaseTx, DerivationRow, DerivationSql, Result,
+};
 
 impl Database {
-    pub async fn p2_puzzle_hashes_unhardened(&self) -> Result<Vec<Bytes32>> {
-        p2_puzzle_hashes_unhardened(&self.pool).await
+    pub async fn unhardened_derivations(
+        &self,
+        limit: u32,
+        offset: u32,
+    ) -> Result<Vec<DerivationRow>> {
+        unhardened_derivations(&self.pool, limit, offset).await
     }
 
     pub async fn p2_puzzle_hashes(&self) -> Result<Vec<Bytes32>> {
@@ -142,20 +148,27 @@ async fn p2_puzzle_hashes(conn: impl SqliteExecutor<'_>) -> Result<Vec<Bytes32>>
         .collect::<Result<_>>()
 }
 
-async fn p2_puzzle_hashes_unhardened(conn: impl SqliteExecutor<'_>) -> Result<Vec<Bytes32>> {
-    let rows = sqlx::query!(
+async fn unhardened_derivations(
+    conn: impl SqliteExecutor<'_>,
+    limit: u32,
+    offset: u32,
+) -> Result<Vec<DerivationRow>> {
+    sqlx::query_as!(
+        DerivationSql,
         "
-        SELECT `p2_puzzle_hash`
-        FROM `derivations`
+        SELECT * FROM `derivations`
         WHERE `hardened` = 0
         ORDER BY `index` ASC
-        "
+        LIMIT ? OFFSET ?
+        ",
+        limit,
+        offset
     )
     .fetch_all(conn)
-    .await?;
-    rows.into_iter()
-        .map(|row| to_bytes32(&row.p2_puzzle_hash))
-        .collect::<Result<_>>()
+    .await?
+    .into_iter()
+    .map(into_row)
+    .collect()
 }
 
 async fn synthetic_key(

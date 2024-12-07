@@ -17,6 +17,13 @@ const spendBundleType = z.object({
   aggregated_signature: z.string(),
 });
 
+const safeAmount = z.number().or(z.string());
+
+const assetAmount = z.object({
+  assetId: z.string(),
+  amount: safeAmount,
+});
+
 enum MempoolInclusionStatus {
   SUCCESS = 1, // Transaction added to mempool
   PENDING = 2, // Transaction not yet added to mempool
@@ -25,8 +32,21 @@ enum MempoolInclusionStatus {
 
 // Convert the array into an object keyed by the `command`
 export const walletConnectCommands = {
+  chip0002_chainId: {
+    paramsType: z.object({}).optional(),
+    returnType: z.string(),
+    confirm: false,
+  },
+  chip0002_connect: {
+    paramsType: z
+      .object({
+        eager: z.boolean().optional(),
+      })
+      .optional(),
+    returnType: z.boolean(),
+    confirm: false,
+  },
   chip0002_getPublicKeys: {
-    requiresConfirmation: false,
     paramsType: z
       .object({
         limit: z.number().optional(),
@@ -34,16 +54,16 @@ export const walletConnectCommands = {
       })
       .optional(),
     returnType: z.array(z.string()),
+    confirm: false,
   },
   chip0002_filterUnlockedCoins: {
-    requiresConfirmation: false,
     paramsType: z.object({ coinNames: z.array(z.string()).min(1) }),
     returnType: z.array(z.string()),
+    confirm: false,
   },
   chip0002_getAssetCoins: {
-    requiresConfirmation: false,
     paramsType: z.object({
-      type: z.string().nullable(),
+      type: z.enum(['cat', 'nft', 'did']).nullable(),
       assetId: z.string().nullable(),
       includedLocked: z.boolean().optional(),
       offset: z.number().optional(),
@@ -65,11 +85,11 @@ export const walletConnectCommands = {
           .nullable(),
       }),
     ),
+    confirm: false,
   },
   chip0002_getAssetBalance: {
-    requiresConfirmation: false,
     paramsType: z.object({
-      type: z.string().nullable(),
+      type: z.enum(['cat', 'nft', 'did']).nullable(),
       assetId: z.string().nullable(),
     }),
     returnType: z.object({
@@ -77,25 +97,25 @@ export const walletConnectCommands = {
       spendable: z.string(),
       spendableCoinCount: z.number(),
     }),
+    confirm: false,
   },
   chip0002_signCoinSpends: {
-    requiresConfirmation: true,
     paramsType: z.object({
-      coinSpends: z.array(coinType),
+      coinSpends: z.array(coinSpendType),
       partialSign: z.boolean().optional(),
     }),
     returnType: z.string(),
+    confirm: true,
   },
   chip0002_signMessage: {
-    requiresConfirmation: true,
     paramsType: z.object({
       message: z.string(),
       publicKey: z.string(),
     }),
     returnType: z.string(),
+    confirm: true,
   },
   chip0002_sendTransaction: {
-    requiresConfirmation: false,
     paramsType: z.object({ spendBundle: spendBundleType }),
     returnType: z.object({
       status: z
@@ -103,20 +123,58 @@ export const walletConnectCommands = {
         .refine((val) => Object.values(MempoolInclusionStatus).includes(val)),
       error: z.string().nullable(),
     }),
+    confirm: false,
+  },
+  chia_transfer: {
+    paramsType: z.object({
+      to: z.string(),
+      amount: safeAmount,
+      memos: z.array(z.string()).optional(),
+      assetId: z.string(),
+    }),
+    returnType: z.object({
+      id: z.string(),
+    }),
+    confirm: true,
+  },
+  chia_takeOffer: {
+    paramsType: z.object({
+      offer: z.string(),
+      fee: safeAmount.optional(),
+    }),
+    returnType: z.object({
+      id: z.string(),
+    }),
+    confirm: true,
+  },
+  chia_createOffer: {
+    paramsType: z.object({
+      offerAssets: z.array(assetAmount),
+      requestAssets: z.array(assetAmount),
+      fee: safeAmount.optional(),
+    }),
+    returnType: z.object({
+      id: z.string(),
+      offer: z.string(),
+    }),
+    confirm: true,
   },
 } as const;
 
 // Define a union of valid commands
 export type WalletConnectCommand = keyof typeof walletConnectCommands;
 
-type CommandConfig<C extends WalletConnectCommand> =
-  (typeof walletConnectCommands)[C];
+type Config<C extends WalletConnectCommand> = (typeof walletConnectCommands)[C];
+
+export type Params<C extends WalletConnectCommand> = z.infer<
+  Config<C>['paramsType']
+>;
 
 // Function to parse params based on the command
 export const parseCommand = <C extends WalletConnectCommand>(
   command: C,
   params: unknown,
-): z.infer<CommandConfig<C>['paramsType']> => {
+): z.infer<Config<C>['paramsType']> => {
   const commandInfo = walletConnectCommands[command];
   return commandInfo.paramsType.parse(params);
 };

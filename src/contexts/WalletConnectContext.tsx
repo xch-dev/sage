@@ -1,4 +1,6 @@
-import { commands } from '@/bindings';
+import { commands, OfferSummary, TransactionSummary } from '@/bindings';
+import { AdvancedSummary } from '@/components/ConfirmationDialog';
+import { OfferCard } from '@/components/OfferCard';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -8,16 +10,17 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
-import {
-  parseCommand as parseCommandParameters,
-  walletConnectCommands,
-} from '@/constants/walletConnectCommands';
 import useInitialization from '@/hooks/useInitialization';
 import { useWallet } from '@/hooks/useWallet';
+import {
+  Params,
+  WalletConnectCommand,
+  walletConnectCommands,
+} from '@/walletconnect/commands';
+import { handleCommand } from '@/walletconnect/handler';
 import { getCurrentWindow, UserAttentionType } from '@tauri-apps/api/window';
-import { SignClient } from '@walletconnect/sign-client';
+import SignClient from '@walletconnect/sign-client';
 import { SessionTypes, SignClientTypes } from '@walletconnect/types';
 import {
   createContext,
@@ -26,27 +29,6 @@ import {
   useEffect,
   useState,
 } from 'react';
-
-const handleWalletConnectCommand = async (
-  command: keyof typeof walletConnectCommands,
-  params: unknown,
-) => {
-  switch (command) {
-    case 'chip0002_getPublicKeys': {
-      const { limit, offset } = parseCommandParameters(command, params)!;
-      return commands.getKey({}).then((res) => {
-        if (res.status === 'ok' && res.data.key) {
-          return walletConnectCommands[command].returnType.parse([
-            res.data.key.public_key,
-          ]);
-        }
-        return null;
-      });
-    }
-    default:
-      throw new Error(`Unknown command: ${command}`);
-  }
-};
 
 export interface WalletConnectContextType {
   sessions: any[];
@@ -76,7 +58,7 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     SignClient.init({
-      projectId: '681ef0ed0dd8de01da5e02d3299bc59d',
+      projectId: '7a11dea2c7ab88dc4597d5d44eb79a18',
       // optional parameters
       relayUrl: 'wss://relay.walletconnect.org',
       metadata: {
@@ -97,7 +79,7 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
       if (!signClient) throw new Error('Sign client not initialized');
 
       try {
-        const result = await handleWalletConnectCommand(
+        const result = await handleCommand(
           request.params.request.method as keyof typeof walletConnectCommands,
           request.params.request.params,
         );
@@ -139,10 +121,10 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
       console.log('active wallet', wallet);
 
       const {
-        id,
+        id: _id,
         params: {
           pairingTopic,
-          proposer: { metadata: proposerMetadata },
+          proposer: { metadata: _proposerMetadata },
           requiredNamespaces,
         },
       } = proposal;
@@ -203,18 +185,13 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
     }
 
     async function handleSessionRequest(request: SessionRequest) {
-      console.log('session request', request);
-      console.log(
-        walletConnectCommands[
-          request.params.request.method as keyof typeof walletConnectCommands
-        ],
-      );
+      const method = request.params.request
+        .method as keyof typeof walletConnectCommands;
 
-      if (
-        walletConnectCommands[
-          request.params.request.method as keyof typeof walletConnectCommands
-        ]?.requiresConfirmation
-      ) {
+      console.log('session request', request);
+      console.log(walletConnectCommands[method]);
+
+      if (walletConnectCommands[method].confirm) {
         setPendingRequests((p: SessionRequest[]) => [...p, request]);
         await getCurrentWindow().requestUserAttention(
           UserAttentionType.Critical,
@@ -294,38 +271,218 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
     <WalletConnectContext.Provider value={{ pair, sessions, disconnect }}>
       {children}
       {pendingRequests.length > 0 && (
-        <Dialog
-          open={pendingRequests.length > 0}
-          onOpenChange={(open) => !open && rejectRequest(pendingRequests[0])}
-        >
-          <DialogTrigger>Open</DialogTrigger>
-          <DialogContent className='overflow-hidden'>
-            <DialogHeader>
-              <DialogTitle>WalletConnect Request</DialogTitle>
-              <DialogDescription>
-                {pendingRequests[0].params.request.method}
-              </DialogDescription>
-            </DialogHeader>
-            <div className='mt-2 rounded bg-neutral-950 p-4 whitespace-pre break-words text-wrap overflow-auto max-h-[50vh]'>
-              <code className='text-white text-xs'>
-                {JSON.stringify(
-                  pendingRequests[0].params.request.params,
-                  null,
-                  2,
-                )}
-              </code>
-            </div>
-            <DialogFooter>
-              <DialogClose asChild>
-                <Button variant='outline'>Reject</Button>
-              </DialogClose>
-              <Button onClick={() => approveRequest(pendingRequests[0])}>
-                Approve
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <RequestDialog
+          request={pendingRequests[0]}
+          approve={approveRequest}
+          reject={rejectRequest}
+          signClient={signClient}
+        />
       )}
     </WalletConnectContext.Provider>
+  );
+}
+
+interface RequestDialogProps {
+  request: SessionRequest;
+  approve: (request: SessionRequest) => void;
+  reject: (request: SessionRequest) => void;
+  signClient: InstanceType<typeof SignClient> | null;
+}
+
+interface CommandDialogProps<T extends WalletConnectCommand> {
+  params: Params<T>;
+}
+
+function SignCoinSpendsDialog({
+  params,
+}: CommandDialogProps<'chip0002_signCoinSpends'>) {
+  const [summary, setSummary] = useState<TransactionSummary | null>(null);
+
+  useEffect(() => {
+    const coinSpends = params.coinSpends.map((coinSpend) => ({
+      coin: {
+        parent_coin_info: coinSpend.coin.parent_coin_info,
+        puzzle_hash: coinSpend.coin.puzzle_hash,
+        amount: coinSpend.coin.amount.toString(),
+      },
+      puzzle_reveal: coinSpend.puzzle_reveal,
+      solution: coinSpend.solution,
+    }));
+
+    commands.viewCoinSpends({ coin_spends: coinSpends }).then((res) => {
+      if (res.status === 'ok') {
+        setSummary(res.data.summary);
+      }
+    });
+  }, [params]);
+
+  return summary ? (
+    <AdvancedSummary summary={summary} />
+  ) : (
+    <div className='p-4 text-center'>Loading transaction summary...</div>
+  );
+}
+
+function SignMessageDialog({
+  params,
+}: CommandDialogProps<'chip0002_signMessage'>) {
+  return (
+    <div className='space-y-4 p-4'>
+      <div className='space-y-2'>
+        <div className='font-medium'>Public Key</div>
+        <div className='text-sm text-muted-foreground break-all font-mono bg-muted p-2 rounded'>
+          {params.publicKey}
+        </div>
+      </div>
+      <div className='space-y-2'>
+        <div className='font-medium'>Message</div>
+        <div className='text-sm text-muted-foreground break-all font-mono bg-muted p-2 rounded whitespace-pre-wrap'>
+          {params.message}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TakeOfferDialog({ params }: CommandDialogProps<'chia_takeOffer'>) {
+  const [offer, setOffer] = useState<OfferSummary | null>(null);
+
+  useEffect(() => {
+    commands.viewOffer({ offer: params.offer }).then((res) => {
+      if (res.status === 'ok') {
+        setOffer(res.data.offer);
+      }
+    });
+  }, [params]);
+
+  return offer ? (
+    <OfferCard summary={offer} />
+  ) : (
+    <div className='p-4 text-center'>Loading offer details...</div>
+  );
+}
+
+function CreateOfferDialog({ params }: CommandDialogProps<'chia_createOffer'>) {
+  return (
+    <div className='space-y-4 p-4'>
+      <div>
+        <div className='font-medium mb-2'>Offering</div>
+        <ul className='list-disc list-inside space-y-1'>
+          {params.offerAssets.map((asset, i) => (
+            <li key={i} className='text-sm'>
+              {asset.amount} {asset.assetId || 'XCH'}
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div>
+        <div className='font-medium mb-2'>Requesting</div>
+        <ul className='list-disc list-inside space-y-1'>
+          {params.requestAssets.map((asset, i) => (
+            <li key={i} className='text-sm'>
+              {asset.amount} {asset.assetId || 'XCH'}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+function DefaultCommandDialog({ params }: { params: unknown }) {
+  return (
+    <div className='p-4'>
+      <div className='text-sm text-muted-foreground'>Command parameters:</div>
+      <pre className='mt-2 rounded bg-muted p-4 overflow-auto'>
+        <code className='text-xs'>{JSON.stringify(params, null, 2)}</code>
+      </pre>
+    </div>
+  );
+}
+
+const COMMAND_COMPONENTS: {
+  [K in WalletConnectCommand]?: (props: CommandDialogProps<K>) => JSX.Element;
+} = {
+  chip0002_signCoinSpends: SignCoinSpendsDialog,
+  chip0002_signMessage: SignMessageDialog,
+  chia_takeOffer: TakeOfferDialog,
+  chia_createOffer: CreateOfferDialog,
+};
+
+const COMMAND_METADATA: {
+  [K in WalletConnectCommand]?: {
+    title: string;
+    description: string;
+  };
+} = {
+  chip0002_signCoinSpends: {
+    title: 'Sign Transaction',
+    description: 'Review and approve the transaction details below',
+  },
+  chip0002_signMessage: {
+    title: 'Sign Message',
+    description: 'Sign a message with your private key',
+  },
+  chia_takeOffer: {
+    title: 'Accept Offer',
+    description: 'Review and accept the offer',
+  },
+  chia_createOffer: {
+    title: 'Create Offer',
+    description: 'Review and create the offer',
+  },
+};
+
+function RequestDialog({
+  request,
+  approve,
+  reject,
+  signClient,
+}: RequestDialogProps) {
+  const method = request.params.request.method as WalletConnectCommand;
+  const params = request.params.request.params;
+  const commandInfo = walletConnectCommands[method];
+  const metadata = COMMAND_METADATA[method] ?? {
+    title: 'Confirm Action',
+    description: `Confirm ${method.replace(/_/g, ' ')}`,
+  };
+  const peerMetadata = signClient?.session.get(request.topic)?.peer.metadata;
+
+  if (!commandInfo.confirm) {
+    return null;
+  }
+
+  const CommandComponent = COMMAND_COMPONENTS[method] ?? DefaultCommandDialog;
+  const parsedParams = commandInfo.paramsType.parse(params);
+
+  return (
+    <Dialog open={true} onOpenChange={(open) => !open && reject(request)}>
+      <DialogContent className='max-w-2xl'>
+        <DialogHeader>
+          {peerMetadata && (
+            <div className='text-sm text-muted-foreground mb-4'>
+              Request from {peerMetadata.name}
+            </div>
+          )}
+          <DialogTitle>{metadata.title}</DialogTitle>
+          <DialogDescription>{metadata.description}</DialogDescription>
+        </DialogHeader>
+
+        <div className='max-h-[60vh] overflow-y-auto'>
+          {CommandComponent && (
+            <CommandComponent params={parsedParams as any} />
+          )}
+        </div>
+
+        <DialogFooter className='sm:justify-between'>
+          <DialogClose asChild>
+            <Button variant='outline' onClick={() => reject(request)}>
+              Reject
+            </Button>
+          </DialogClose>
+          <Button onClick={() => approve(request)}>Approve</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

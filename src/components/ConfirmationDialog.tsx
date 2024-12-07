@@ -26,6 +26,8 @@ import {
   Error,
   TakeOfferResponse,
   TransactionResponse,
+  TransactionSummary,
+  Unit,
 } from '../bindings';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { Badge } from './ui/badge';
@@ -81,156 +83,9 @@ export default function ConfirmationDialog({
     close();
   };
 
-  const spent: Array<SpentCoin> = [];
-  const created: Array<CreatedCoin> = [];
-
-  if (response) {
-    for (const input of response.summary.inputs || []) {
-      if (input.type === 'xch') {
-        const ticker = walletState.sync.unit.ticker;
-
-        spent.push({
-          badge: 'Chia',
-          label: `${input.amount} ${ticker}`,
-          coinId: input.coin_id,
-          sort: 1,
-        });
-
-        for (const output of input.outputs) {
-          if (
-            response.summary.inputs.find((i) => i.coin_id === output.coin_id)
-          ) {
-            continue;
-          }
-
-          created.push({
-            badge: 'Chia',
-            label: `${output.amount} ${ticker}`,
-            address: output.burning
-              ? 'Permanently Burned'
-              : output.receiving
-                ? 'Change'
-                : output.address,
-            sort: 1,
-          });
-        }
-      }
-
-      if (input.type === 'cat') {
-        const ticker = input.ticker || 'CAT';
-
-        spent.push({
-          badge: `CAT ${input.name || input.asset_id}`,
-          label: `${input.amount} ${ticker}`,
-          coinId: input.coin_id,
-          sort: 2,
-        });
-
-        for (const output of input.outputs) {
-          if (
-            response.summary.inputs.find((i) => i.coin_id === output.coin_id)
-          ) {
-            continue;
-          }
-
-          created.push({
-            badge: `CAT ${input.name || input.asset_id}`,
-            label: `${output.amount} ${ticker}`,
-            address: output.burning
-              ? 'Permanently Burned'
-              : output.receiving
-                ? 'Change'
-                : output.address,
-            sort: 2,
-          });
-        }
-      }
-
-      if (input.type === 'did') {
-        if (
-          !response.summary.inputs
-            .map((i) => i.outputs)
-            .flat()
-            .find((o) => o.coin_id === input.coin_id)
-        ) {
-          spent.push({
-            badge: 'Profile',
-            label: input.name || 'Unnamed',
-            coinId: input.coin_id,
-            sort: 3,
-          });
-        }
-
-        for (const output of input.outputs) {
-          if (
-            response.summary.inputs.find((i) => i.coin_id === output.coin_id)
-          ) {
-            continue;
-          }
-
-          if (
-            BigNumber(output.amount)
-              .multipliedBy(BigNumber(10).pow(walletState.sync.unit.decimals))
-              .mod(2)
-              .isEqualTo(1)
-          ) {
-            created.push({
-              badge: 'Profile',
-              label: input.name || 'Unnamed',
-              address: output.burning
-                ? 'Permanently Burned'
-                : output.receiving
-                  ? 'You'
-                  : output.address,
-              sort: 3,
-            });
-          }
-        }
-      }
-
-      if (input.type === 'nft') {
-        if (
-          !response.summary.inputs
-            .map((i) => i.outputs)
-            .flat()
-            .find((o) => o.coin_id === input.coin_id)
-        ) {
-          spent.push({
-            badge: 'NFT',
-            label: input.name || 'Unknown',
-            coinId: input.coin_id,
-            sort: 4,
-          });
-        }
-
-        for (const output of input.outputs) {
-          if (
-            response.summary.inputs.find((i) => i.coin_id === output.coin_id)
-          ) {
-            continue;
-          }
-
-          if (
-            BigNumber(output.amount)
-              .multipliedBy(BigNumber(10).pow(walletState.sync.unit.decimals))
-              .mod(2)
-              .isEqualTo(1)
-          ) {
-            created.push({
-              badge: 'NFT',
-              label: input.name || 'Unknown',
-              address: output.burning
-                ? 'Permanently Burned'
-                : output.receiving
-                  ? 'You'
-                  : output.address,
-              sort: 4,
-            });
-          }
-        }
-      }
-    }
-  }
+  const { created } = response
+    ? calculateTransaction(walletState.sync.unit, response.summary)
+    : { created: [] };
 
   const json = JSON.stringify(
     response === null
@@ -301,49 +156,9 @@ export default function ConfirmationDialog({
                   </Group>
                 </TabsContent>
                 <TabsContent value='advanced'>
-                  <div className='flex flex-col gap-1.5'>
-                    <Group label='Spent Coins' icon={BadgeMinus}>
-                      <div className='flex flex-col gap-2'>
-                        {spent
-                          .sort((a, b) => a.sort - b.sort)
-                          .map((spent, i) => (
-                            <Item
-                              key={i}
-                              badge={spent.badge}
-                              label={spent.label}
-                              icon={BoxIcon}
-                              address={spent.coinId}
-                            />
-                          ))}
-                      </div>
-                    </Group>
-                    <Group label='Transaction Output' icon={BadgePlus}>
-                      <div className='flex flex-col gap-2'>
-                        {!BigNumber(response?.summary.fee || 0).isZero() && (
-                          <div className='flex flex-col gap-1 border-2 p-1.5 rounded-md'>
-                            <div className='flex items-center gap-2'>
-                              <Badge>Fee</Badge>
-                              <span>
-                                {response?.summary.fee}{' '}
-                                {walletState.sync.unit.ticker}
-                              </span>
-                            </div>
-                          </div>
-                        )}
-                        {created
-                          .sort((a, b) => a.sort - b.sort)
-                          .map((created, i) => (
-                            <Item
-                              key={i}
-                              badge={created.badge}
-                              label={created.label}
-                              icon={ForwardIcon}
-                              address={created.address}
-                            />
-                          ))}
-                      </div>
-                    </Group>
-                  </div>
+                  {response !== null && (
+                    <AdvancedSummary summary={response.summary} />
+                  )}
                 </TabsContent>
                 <TabsContent value='json'>
                   <Alert>
@@ -509,4 +324,213 @@ function Item({ badge, label, icon: Icon, address }: ItemProps) {
       )}
     </div>
   );
+}
+
+export interface AdvancedSummaryProps {
+  summary: TransactionSummary;
+}
+
+export function AdvancedSummary({ summary }: AdvancedSummaryProps) {
+  const walletState = useWalletState();
+
+  const { spent, created } = calculateTransaction(
+    walletState.sync.unit,
+    summary,
+  );
+
+  return (
+    <div className='flex flex-col gap-1.5'>
+      <Group label='Spent Coins' icon={BadgeMinus}>
+        <div className='flex flex-col gap-2'>
+          {spent
+            .sort((a, b) => a.sort - b.sort)
+            .map((spent, i) => (
+              <Item
+                key={i}
+                badge={spent.badge}
+                label={spent.label}
+                icon={BoxIcon}
+                address={spent.coinId}
+              />
+            ))}
+        </div>
+      </Group>
+      <Group label='Transaction Output' icon={BadgePlus}>
+        <div className='flex flex-col gap-2'>
+          {!BigNumber(summary.fee || 0).isZero() && (
+            <div className='flex flex-col gap-1 border-2 p-1.5 rounded-md'>
+              <div className='flex items-center gap-2'>
+                <Badge>Fee</Badge>
+                <span>
+                  {summary.fee} {walletState.sync.unit.ticker}
+                </span>
+              </div>
+            </div>
+          )}
+          {created
+            .sort((a, b) => a.sort - b.sort)
+            .map((created, i) => (
+              <Item
+                key={i}
+                badge={created.badge}
+                label={created.label}
+                icon={ForwardIcon}
+                address={created.address}
+              />
+            ))}
+        </div>
+      </Group>
+    </div>
+  );
+}
+
+interface CalculatedTransaction {
+  spent: SpentCoin[];
+  created: CreatedCoin[];
+}
+
+function calculateTransaction(
+  xch: Unit,
+  summary: TransactionSummary,
+): CalculatedTransaction {
+  const spent: SpentCoin[] = [];
+  const created: CreatedCoin[] = [];
+
+  for (const input of summary.inputs || []) {
+    if (input.type === 'xch') {
+      spent.push({
+        badge: 'Chia',
+        label: `${input.amount} ${xch.ticker}`,
+        coinId: input.coin_id,
+        sort: 1,
+      });
+
+      for (const output of input.outputs) {
+        if (summary.inputs.find((i) => i.coin_id === output.coin_id)) {
+          continue;
+        }
+
+        created.push({
+          badge: 'Chia',
+          label: `${output.amount} ${xch.ticker}`,
+          address: output.burning
+            ? 'Permanently Burned'
+            : output.receiving
+              ? 'Change'
+              : output.address,
+          sort: 1,
+        });
+      }
+    }
+
+    if (input.type === 'cat') {
+      const ticker = input.ticker || 'CAT';
+
+      spent.push({
+        badge: `CAT ${input.name || input.asset_id}`,
+        label: `${input.amount} ${ticker}`,
+        coinId: input.coin_id,
+        sort: 2,
+      });
+
+      for (const output of input.outputs) {
+        if (summary.inputs.find((i) => i.coin_id === output.coin_id)) {
+          continue;
+        }
+
+        created.push({
+          badge: `CAT ${input.name || input.asset_id}`,
+          label: `${output.amount} ${ticker}`,
+          address: output.burning
+            ? 'Permanently Burned'
+            : output.receiving
+              ? 'Change'
+              : output.address,
+          sort: 2,
+        });
+      }
+    }
+
+    if (input.type === 'did') {
+      if (
+        !summary.inputs
+          .map((i) => i.outputs)
+          .flat()
+          .find((o) => o.coin_id === input.coin_id)
+      ) {
+        spent.push({
+          badge: 'Profile',
+          label: input.name || 'Unnamed',
+          coinId: input.coin_id,
+          sort: 3,
+        });
+      }
+
+      for (const output of input.outputs) {
+        if (summary.inputs.find((i) => i.coin_id === output.coin_id)) {
+          continue;
+        }
+
+        if (
+          BigNumber(output.amount)
+            .multipliedBy(BigNumber(10).pow(xch.decimals))
+            .mod(2)
+            .isEqualTo(1)
+        ) {
+          created.push({
+            badge: 'Profile',
+            label: input.name || 'Unnamed',
+            address: output.burning
+              ? 'Permanently Burned'
+              : output.receiving
+                ? 'You'
+                : output.address,
+            sort: 3,
+          });
+        }
+      }
+    }
+
+    if (input.type === 'nft') {
+      if (
+        !summary.inputs
+          .map((i) => i.outputs)
+          .flat()
+          .find((o) => o.coin_id === input.coin_id)
+      ) {
+        spent.push({
+          badge: 'NFT',
+          label: input.name || 'Unknown',
+          coinId: input.coin_id,
+          sort: 4,
+        });
+      }
+
+      for (const output of input.outputs) {
+        if (summary.inputs.find((i) => i.coin_id === output.coin_id)) {
+          continue;
+        }
+
+        if (
+          BigNumber(output.amount)
+            .multipliedBy(BigNumber(10).pow(xch.decimals))
+            .mod(2)
+            .isEqualTo(1)
+        ) {
+          created.push({
+            badge: 'NFT',
+            label: input.name || 'Unknown',
+            address: output.burning
+              ? 'Permanently Burned'
+              : output.receiving
+                ? 'You'
+                : output.address,
+            sort: 4,
+          });
+        }
+      }
+    }
+  }
+
+  return { spent, created };
 }

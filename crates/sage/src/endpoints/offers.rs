@@ -112,6 +112,7 @@ impl Sage {
 
         Ok(MakeOfferResponse {
             offer: offer.encode()?,
+            offer_id: hex::encode(SpendBundle::from(offer).name()),
         })
     }
 
@@ -168,12 +169,14 @@ impl Sage {
         }
 
         let json_bundle = json_bundle(&spend_bundle);
+        let transaction_id = hex::encode(spend_bundle.name());
 
         Ok(TakeOfferResponse {
             summary: self
                 .summarize(spend_bundle.coin_spends, ConfirmationInfo::default())
                 .await?,
             spend_bundle: json_bundle,
+            transaction_id,
         })
     }
 

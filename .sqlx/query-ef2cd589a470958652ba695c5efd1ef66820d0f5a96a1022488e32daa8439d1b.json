@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT `offer_id`\n        FROM `offered_coins`\n        WHERE `coin_id` = ?\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "offer_id",
+        "ordinal": 0,
+        "type_info": "Blob"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "ef2cd589a470958652ba695c5efd1ef66820d0f5a96a1022488e32daa8439d1b"
+}
