@@ -75,7 +75,7 @@ pub fn parse_offer_id(input: String) -> Result<Bytes32> {
 
 pub fn parse_cat_amount(input: Amount) -> Result<u64> {
     let Some(amount) = input.to_u64() else {
-        return Err(Error::InvalidCatAmount(input.to_string()));
+        return Err(Error::InvalidAmount(input.to_string()));
     };
 
     Ok(amount)

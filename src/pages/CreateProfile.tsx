@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { amount } from '@/lib/formTypes';
+import { toMojos } from '@/lib/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -39,7 +40,13 @@ export default function CreateProfile() {
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
     commands
-      .createDid({ name: values.name, fee: values.fee?.toString() || '0' })
+      .createDid({
+        name: values.name,
+        fee: toMojos(
+          values.fee?.toString() || '0',
+          walletState.sync.unit.decimals,
+        ),
+      })
       .then((result) => {
         if (result.status === 'error') {
           console.error(result.error);
