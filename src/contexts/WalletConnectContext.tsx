@@ -13,6 +13,8 @@ import {
 } from '@/components/ui/dialog';
 import useInitialization from '@/hooks/useInitialization';
 import { useWallet } from '@/hooks/useWallet';
+import { toDecimal } from '@/lib/utils';
+import { useWalletState } from '@/state';
 import {
   Params,
   WalletConnectCommand,
@@ -363,6 +365,8 @@ function TakeOfferDialog({ params }: CommandDialogProps<'chia_takeOffer'>) {
 }
 
 function CreateOfferDialog({ params }: CommandDialogProps<'chia_createOffer'>) {
+  const walletState = useWalletState();
+
   return (
     <div className='space-y-4 p-4'>
       <div>
@@ -370,7 +374,11 @@ function CreateOfferDialog({ params }: CommandDialogProps<'chia_createOffer'>) {
         <ul className='list-disc list-inside space-y-1'>
           {params.offerAssets.map((asset, i) => (
             <li key={i} className='text-sm'>
-              {asset.amount} {asset.assetId || 'XCH'}
+              {toDecimal(
+                asset.amount,
+                asset.assetId === '' ? walletState.sync.unit.decimals : 3,
+              )}{' '}
+              {asset.assetId || 'XCH'}
             </li>
           ))}
         </ul>
@@ -380,7 +388,11 @@ function CreateOfferDialog({ params }: CommandDialogProps<'chia_createOffer'>) {
         <ul className='list-disc list-inside space-y-1'>
           {params.requestAssets.map((asset, i) => (
             <li key={i} className='text-sm'>
-              {asset.amount} {asset.assetId || 'XCH'}
+              {toDecimal(
+                asset.amount,
+                asset.assetId === '' ? walletState.sync.unit.decimals : 3,
+              )}{' '}
+              {asset.assetId || 'XCH'}
             </li>
           ))}
         </ul>

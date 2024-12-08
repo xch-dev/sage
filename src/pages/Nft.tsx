@@ -13,13 +13,16 @@ export default function Nft() {
 
   const [nft, setNft] = useState<NftInfo | null>(null);
 
-  const updateNft = () => {
-    commands.getNft({ nft_id: launcherId! }).then((res) => {
-      if (res.status === 'ok') {
-        setNft(res.data.nft);
-      }
-    });
-  };
+  const updateNft = useMemo(
+    () => () => {
+      commands.getNft({ nft_id: launcherId! }).then((res) => {
+        if (res.status === 'ok') {
+          setNft(res.data.nft);
+        }
+      });
+    },
+    [launcherId],
+  );
 
   useEffect(() => {
     updateNft();
@@ -38,7 +41,7 @@ export default function Nft() {
     return () => {
       unlisten.then((u) => u());
     };
-  }, []);
+  }, [updateNft]);
 
   const metadata = useMemo(() => {
     if (!nft || !nft.metadata) return {};
