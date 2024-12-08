@@ -4,7 +4,6 @@ use std::{
 };
 
 use base64::{prelude::BASE64_STANDARD, Engine};
-use bigdecimal::BigDecimal;
 use chia::{clvm_traits::FromClvm, protocol::SpendBundle, puzzles::nft::NftMetadata};
 use chia_wallet_sdk::{encode_address, AggSigConstants, Offer, SpendContext};
 use chrono::{Local, TimeZone};
@@ -546,9 +545,7 @@ impl Sage {
                     nft.royalty_puzzle_hash.into(),
                     &self.network().address_prefix,
                 )?,
-                royalty_percent: (BigDecimal::from(nft.royalty_ten_thousandths)
-                    / BigDecimal::from(10_000))
-                .to_string(),
+                royalty_ten_thousandths: nft.royalty_ten_thousandths,
                 name: nft.name,
                 image_data: nft.thumbnail.map(|data| BASE64_STANDARD.encode(data)),
                 image_mime_type: nft.thumbnail_mime_type,

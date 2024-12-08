@@ -93,7 +93,7 @@ pub struct NftMint {
     pub metadata_uris: Vec<String>,
     pub license_uris: Vec<String>,
     pub royalty_address: Option<String>,
-    pub royalty_percent: Amount,
+    pub royalty_ten_thousandths: u16,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]

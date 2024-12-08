@@ -1,5 +1,4 @@
 use base64::{prelude::BASE64_STANDARD, Engine};
-use bigdecimal::BigDecimal;
 use chia::{
     clvm_traits::{FromClvm, ToClvm},
     puzzles::nft::NftMetadata,
@@ -544,9 +543,7 @@ impl Sage {
                     nft.info.royalty_puzzle_hash.to_bytes(),
                     &self.network().address_prefix,
                 )?,
-                royalty_percent: (BigDecimal::from(nft.info.royalty_ten_thousandths)
-                    / BigDecimal::from(100))
-                .to_string(),
+                royalty_ten_thousandths: nft.info.royalty_ten_thousandths,
                 data_uris: metadata
                     .as_ref()
                     .map(|m| m.data_uris.clone())

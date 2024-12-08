@@ -193,7 +193,7 @@ function Assets({ assets }: AssetsProps) {
           <div className='flex gap-1.5 items-center text-sm text-muted-foreground truncate'>
             <span>
               <span className='text-neutral-600 dark:text-neutral-300'>
-                {nft.royalty_percent}% royalty to{' '}
+                {nft.royalty_ten_thousandths / 100}% royalty to{' '}
               </span>
               <span className='font-mono'>
                 {nft.royalty_address.slice(0, 10) +

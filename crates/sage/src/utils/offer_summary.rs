@@ -1,6 +1,5 @@
 use std::time::Duration;
 
-use bigdecimal::BigDecimal;
 use chia::{clvm_traits::FromClvm, puzzles::nft::NftMetadata};
 use chia_wallet_sdk::{encode_address, Offer, SpendContext};
 use indexmap::IndexMap;
@@ -124,9 +123,7 @@ impl Sage {
                     image_data: info.image_data,
                     image_mime_type: info.image_mime_type,
                     name: info.name,
-                    royalty_percent: (BigDecimal::from(nft.info.royalty_ten_thousandths)
-                        / BigDecimal::from(100))
-                    .to_string(),
+                    royalty_ten_thousandths: nft.info.royalty_ten_thousandths,
                     royalty_address: encode_address(
                         nft.info.royalty_puzzle_hash.into(),
                         &self.network().address_prefix,
@@ -174,9 +171,7 @@ impl Sage {
                     image_data: info.image_data,
                     image_mime_type: info.image_mime_type,
                     name: info.name,
-                    royalty_percent: (BigDecimal::from(nft.royalty_ten_thousandths)
-                        / BigDecimal::from(100))
-                    .to_string(),
+                    royalty_ten_thousandths: nft.royalty_ten_thousandths,
                     royalty_address: encode_address(
                         nft.royalty_puzzle_hash.into(),
                         &self.network().address_prefix,

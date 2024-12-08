@@ -204,7 +204,7 @@ export default function Nft() {
 
             <div>
               <h6 className='text-md font-bold'>
-                Royalties ({nft?.royalty_percent}%)
+                Royalties ({(nft?.royalty_ten_thousandths ?? 0) * 100}%)
               </h6>
               <div className='break-all text-sm'>{nft?.royalty_address}</div>
             </div>

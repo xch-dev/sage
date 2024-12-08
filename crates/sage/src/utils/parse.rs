@@ -81,14 +81,6 @@ pub fn parse_cat_amount(input: Amount) -> Result<u64> {
     Ok(amount)
 }
 
-pub fn parse_percent(input: Amount) -> Result<u16> {
-    let Some(royalty_ten_thousandths) = input.to_u16() else {
-        return Err(Error::InvalidPercentage(input.to_string()));
-    };
-
-    Ok(royalty_ten_thousandths)
-}
-
 pub fn parse_puzzle_hash(input: String) -> Result<Bytes32> {
     let stripped = if let Some(stripped) = input.strip_prefix("0x") {
         stripped

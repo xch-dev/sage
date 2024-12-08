@@ -21,7 +21,6 @@ import { useDids } from '@/hooks/useDids';
 import { amount } from '@/lib/formTypes';
 import { toMojos } from '@/lib/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
-import BigNumber from 'bignumber.js';
 import { LoaderCircleIcon } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -71,9 +70,7 @@ export default function MintNft() {
             edition_number: null,
             edition_total: null,
             royalty_address: values.royaltyAddress || null,
-            royalty_percent: BigNumber(values.royaltyPercent)
-              .times(100)
-              .toString(),
+            royalty_ten_thousandths: Number(values.royaltyPercent) * 100,
             data_uris: values.dataUris
               .split(',')
               .map((uri) => uri.trim())
