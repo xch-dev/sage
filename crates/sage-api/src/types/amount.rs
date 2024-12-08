@@ -1,55 +1,61 @@
 use std::fmt;
 
-use bigdecimal::BigDecimal;
-use num_traits::ToPrimitive;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
+pub const MAX_JS_SAFE_INTEGER: u64 = 9_007_199_254_740_991;
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
-pub struct Amount(BigDecimal);
+#[serde(untagged)]
+pub enum Amount {
+    String(String),
+    Number(u64),
+}
 
 impl Amount {
-    pub fn new(value: BigDecimal) -> Self {
-        Self(value)
-    }
-
-    pub fn from_mojos(mojos: u128, decimals: u8) -> Self {
-        Self(BigDecimal::from(mojos) / 10u64.pow(decimals.into()))
-    }
-
-    pub fn to_mojos_u128(&self, decimals: u8) -> Option<u128> {
-        let mojos = &self.0 * 10u64.pow(decimals.into());
-
-        if mojos.normalized().fractional_digit_count() > 0 {
-            return None;
+    pub fn u64(value: u64) -> Self {
+        if value > MAX_JS_SAFE_INTEGER {
+            Self::String(value.to_string())
+        } else {
+            Self::Number(value)
         }
-
-        mojos.to_u128()
     }
 
-    pub fn to_mojos(&self, decimals: u8) -> Option<u64> {
-        let mojos = &self.0 * 10u64.pow(decimals.into());
-
-        if mojos.normalized().fractional_digit_count() > 0 {
-            return None;
+    pub fn u128(value: u128) -> Self {
+        if value > u128::from(MAX_JS_SAFE_INTEGER) {
+            Self::String(value.to_string())
+        } else {
+            Self::Number(value as u64)
         }
-
-        mojos.to_u64()
     }
 
-    pub fn to_ten_thousandths(&self) -> Option<u16> {
-        let mojos = &self.0 * 100u16;
-
-        if mojos.normalized().fractional_digit_count() > 0 {
-            return None;
+    pub fn to_u64(&self) -> Option<u64> {
+        match self {
+            Self::String(value) => value.parse().ok(),
+            Self::Number(value) => Some(*value),
         }
+    }
 
-        mojos.to_u16()
+    pub fn to_u16(&self) -> Option<u16> {
+        match self {
+            Self::String(value) => value.parse().ok(),
+            Self::Number(value) => (*value).try_into().ok(),
+        }
+    }
+
+    pub fn to_u128(&self) -> Option<u128> {
+        match self {
+            Self::String(value) => value.parse().ok(),
+            Self::Number(value) => Some(*value as u128),
+        }
     }
 }
 
 impl fmt::Display for Amount {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.0)
+        match self {
+            Self::String(value) => write!(f, "{value}"),
+            Self::Number(value) => write!(f, "{value}"),
+        }
     }
 }

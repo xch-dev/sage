@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { amount, positiveAmount } from '@/lib/formTypes';
+import { toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useCallback, useEffect, useState } from 'react';
@@ -120,8 +121,11 @@ export default function Send() {
 
     command({
       address: values.address,
-      amount: values.amount.toString(),
-      fee: values.fee?.toString() || '0',
+      amount: toMojos(values.amount.toString(), asset?.decimals || 12),
+      fee: toMojos(
+        values.fee?.toString() || '0',
+        walletState.sync.unit.decimals,
+      ),
     }).then((confirmation) => {
       if (confirmation.status === 'error') {
         console.error(confirmation.error);

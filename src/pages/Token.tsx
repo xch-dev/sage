@@ -32,6 +32,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { usePrices } from '@/contexts/PriceContext';
 import { amount } from '@/lib/formTypes';
+import { toDecimal, toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { RowSelectionState } from '@tanstack/react-table';
@@ -67,23 +68,31 @@ export default function Token() {
   const [response, setResponse] = useState<TransactionResponse | null>(null);
   const [selectedCoins, setSelectedCoins] = useState<RowSelectionState>({});
 
+  const precision = useMemo(
+    () => (assetId === 'xch' ? walletState.sync.unit.decimals : 3),
+    [assetId, walletState.sync.unit.decimals],
+  );
+
   const balanceInUsd = useMemo(() => {
     if (!asset) return '0';
-    return getBalanceInUsd(asset.asset_id, asset.balance);
-  }, [asset, getBalanceInUsd]);
+    return getBalanceInUsd(asset.asset_id, toDecimal(asset.balance, precision));
+  }, [asset, precision, getBalanceInUsd]);
 
-  const updateCoins = () => {
-    const getCoins =
-      assetId === 'xch'
-        ? commands.getXchCoins({})
-        : commands.getCatCoins({ asset_id: assetId! });
+  const updateCoins = useMemo(
+    () => () => {
+      const getCoins =
+        assetId === 'xch'
+          ? commands.getXchCoins({})
+          : commands.getCatCoins({ asset_id: assetId! });
 
-    getCoins.then((res) => {
-      if (res.status === 'ok') {
-        setCoins(res.data.coins);
-      }
-    });
-  };
+      getCoins.then((res) => {
+        if (res.status === 'ok') {
+          setCoins(res.data.coins);
+        }
+      });
+    },
+    [assetId],
+  );
 
   useEffect(() => {
     updateCoins();
@@ -99,15 +108,18 @@ export default function Token() {
     return () => {
       unlisten.then((u) => u());
     };
-  }, []);
+  }, [updateCoins]);
 
-  const updateCat = () => {
-    commands.getCat({ asset_id: assetId! }).then((res) => {
-      if (res.status === 'ok') {
-        setAsset(res.data.cat);
-      }
-    });
-  };
+  const updateCat = useMemo(
+    () => () => {
+      commands.getCat({ asset_id: assetId! }).then((res) => {
+        if (res.status === 'ok') {
+          setAsset(res.data.cat);
+        }
+      });
+    },
+    [assetId],
+  );
 
   useEffect(() => {
     if (assetId === 'xch') {
@@ -139,7 +151,7 @@ export default function Token() {
         unlisten.then((u) => u());
       };
     }
-  }, [assetId, walletState.sync.balance]);
+  }, [assetId, updateCat, walletState.sync]);
 
   const redownload = () => {
     if (!assetId || assetId === 'xch') return;
@@ -200,7 +212,8 @@ export default function Token() {
               <div className='flex flex-row justify-between items-center space-y-0 space-x-2'>
                 <div className='flex text-xl sm:text-4xl font-medium font-mono truncate'>
                   <span className='truncate'>
-                    {asset?.balance ?? ' '}&nbsp;
+                    {toDecimal(asset?.balance ?? '0', precision)}
+                    &nbsp;
                   </span>
                   {asset?.ticker}
                 </div>
@@ -256,6 +269,7 @@ export default function Token() {
             </CardContent>
           </Card>
           <CoinCard
+            precision={precision}
             coins={coins}
             asset={asset}
             splitHandler={
@@ -347,6 +361,7 @@ export default function Token() {
 }
 
 interface CoinCardProps {
+  precision: number;
   coins: CoinRecord[];
   asset: CatRecord | null;
   splitHandler: typeof commands.splitXch | null;
@@ -357,6 +372,7 @@ interface CoinCardProps {
 }
 
 function CoinCard({
+  precision,
   coins,
   asset,
   splitHandler,
@@ -418,7 +434,10 @@ function CoinCard({
   });
 
   const onCombineSubmit = (values: z.infer<typeof combineFormSchema>) => {
-    combineHandler?.({ coin_ids: selectedCoinIds, fee: values.combineFee })
+    combineHandler?.({
+      coin_ids: selectedCoinIds,
+      fee: toMojos(values.combineFee, walletState.sync.unit.decimals),
+    })
       .then((result) => {
         setCombineOpen(false);
 
@@ -449,7 +468,7 @@ function CoinCard({
     splitHandler?.({
       coin_ids: selectedCoinIds,
       output_count: values.outputCount,
-      fee: values.splitFee,
+      fee: toMojos(values.splitFee, walletState.sync.unit.decimals),
     })
       .then((result) => {
         setSplitOpen(false);
@@ -468,6 +487,7 @@ function CoinCard({
       </CardHeader>
       <CardContent>
         <CoinList
+          precision={precision}
           coins={coins}
           selectedCoins={selectedCoins}
           setSelectedCoins={setSelectedCoins}

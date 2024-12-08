@@ -74,19 +74,11 @@ pub fn parse_offer_id(input: String) -> Result<Bytes32> {
 }
 
 pub fn parse_cat_amount(input: Amount) -> Result<u64> {
-    let Some(amount) = input.to_mojos(3) else {
-        return Err(Error::InvalidCatAmount(input.to_string()));
+    let Some(amount) = input.to_u64() else {
+        return Err(Error::InvalidAmount(input.to_string()));
     };
 
     Ok(amount)
-}
-
-pub fn parse_percent(input: Amount) -> Result<u16> {
-    let Some(royalty_ten_thousandths) = input.to_ten_thousandths() else {
-        return Err(Error::InvalidPercentage(input.to_string()));
-    };
-
-    Ok(royalty_ten_thousandths)
 }
 
 pub fn parse_puzzle_hash(input: String) -> Result<Bytes32> {

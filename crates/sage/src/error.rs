@@ -126,8 +126,8 @@ pub enum Error {
     #[error("Wrong address prefix: {0}")]
     AddressPrefix(String),
 
-    #[error("Invalid CAT amount: {0}")]
-    InvalidCatAmount(String),
+    #[error("Invalid amount: {0}")]
+    InvalidAmount(String),
 
     #[error("Invalid coin amount: {0}")]
     InvalidCoinAmount(String),
@@ -249,7 +249,7 @@ impl Error {
             | Self::TryFromInt(..)
             | Self::ParseInt(..)
             | Self::AddressPrefix(..)
-            | Self::InvalidCatAmount(..)
+            | Self::InvalidAmount(..)
             | Self::InvalidCoinAmount(..)
             | Self::Address(..)
             | Self::InvalidDidId(..)

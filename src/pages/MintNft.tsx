@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/select';
 import { useDids } from '@/hooks/useDids';
 import { amount } from '@/lib/formTypes';
+import { toMojos } from '@/lib/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { LoaderCircleIcon } from 'lucide-react';
 import { useState } from 'react';
@@ -59,14 +60,17 @@ export default function MintNft() {
 
     commands
       .bulkMintNfts({
-        fee: values.fee?.toString() || '0',
+        fee: toMojos(
+          values.fee?.toString() || '0',
+          walletState.sync.unit.decimals,
+        ),
         did_id: values.profile,
         mints: [
           {
             edition_number: null,
             edition_total: null,
             royalty_address: values.royaltyAddress || null,
-            royalty_percent: values.royaltyPercent,
+            royalty_ten_thousandths: Number(values.royaltyPercent) * 100,
             data_uris: values.dataUris
               .split(',')
               .map((uri) => uri.trim())

@@ -14,6 +14,7 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { usePrices } from '@/contexts/PriceContext';
 import { useTokenParams } from '@/hooks/useTokenParams';
+import { toDecimal } from '@/lib/utils';
 import { ArrowDown10, ArrowDownAz, Coins, InfoIcon } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -40,7 +41,7 @@ export function TokenList() {
     () =>
       cats.map((cat) => ({
         ...cat,
-        balanceInUsd: getBalanceInUsd(cat.asset_id, cat.balance),
+        balanceInUsd: getBalanceInUsd(cat.asset_id, toDecimal(cat.balance, 3)),
       })),
     [cats, getBalanceInUsd],
   );
@@ -156,10 +157,20 @@ export function TokenList() {
               </CardHeader>
               <CardContent>
                 <div className='text-2xl font-medium truncate'>
-                  {walletState.sync.balance}
+                  {toDecimal(
+                    walletState.sync.balance,
+                    walletState.sync.unit.decimals,
+                  )}
                 </div>
                 <div className='text-sm text-neutral-500'>
-                  ~${getBalanceInUsd('xch', walletState.sync.balance)}
+                  ~$
+                  {getBalanceInUsd(
+                    'xch',
+                    toDecimal(
+                      walletState.sync.balance,
+                      walletState.sync.unit.decimals,
+                    ),
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -184,7 +195,7 @@ export function TokenList() {
                 </CardHeader>
                 <CardContent>
                   <div className='text-2xl font-medium truncate'>
-                    {cat.balance} {cat.ticker ?? ''}
+                    {toDecimal(cat.balance, 3)} {cat.ticker ?? ''}
                   </div>
 
                   <div className='text-sm text-neutral-500'>

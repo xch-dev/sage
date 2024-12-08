@@ -15,6 +15,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { toMojos } from '@/lib/utils';
 import { clearOffer, useOfferState, useWalletState } from '@/state';
 import {
   HandCoins,
@@ -37,22 +38,31 @@ export function MakeOffer() {
     commands
       .makeOffer({
         offered_assets: {
-          xch: state.offered.xch || '0',
+          xch: toMojos(
+            (state.offered.xch || '0').toString(),
+            walletState.sync.unit.decimals,
+          ),
           cats: state.offered.cats.map((cat) => ({
             asset_id: cat.asset_id,
-            amount: cat.amount || '0',
+            amount: toMojos((cat.amount || '0').toString(), 3),
           })),
           nfts: state.offered.nfts,
         },
         requested_assets: {
-          xch: state.requested.xch || '0',
+          xch: toMojos(
+            (state.requested.xch || '0').toString(),
+            walletState.sync.unit.decimals,
+          ),
           cats: state.requested.cats.map((cat) => ({
             asset_id: cat.asset_id,
-            amount: cat.amount || '0',
+            amount: toMojos((cat.amount || '0').toString(), 3),
           })),
           nfts: state.requested.nfts,
         },
-        fee: state.fee || '0',
+        fee: toMojos(
+          (state.fee || '0').toString(),
+          walletState.sync.unit.decimals,
+        ),
         expires_at_second:
           state.expiration === null
             ? null

@@ -27,7 +27,7 @@ pub struct NftInfo {
     pub coin_id: String,
     pub address: String,
     pub royalty_address: String,
-    pub royalty_percent: String,
+    pub royalty_ten_thousandths: u16,
     pub data_uris: Vec<String>,
     pub data_hash: Option<String>,
     pub metadata_uris: Vec<String>,

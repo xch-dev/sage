@@ -1,5 +1,4 @@
 use base64::{prelude::BASE64_STANDARD, Engine};
-use bigdecimal::BigDecimal;
 use chia::{
     clvm_traits::{FromClvm, ToClvm},
     puzzles::nft::NftMetadata,
@@ -43,7 +42,7 @@ impl Sage {
             .transpose()?;
 
         Ok(GetSyncStatusResponse {
-            balance: Amount::from_mojos(balance, self.unit.decimals),
+            balance: Amount::u128(balance),
             unit: self.unit.clone(),
             total_coins,
             synced_coins,
@@ -106,7 +105,7 @@ impl Sage {
                     cs.coin.puzzle_hash.to_bytes(),
                     &self.network().address_prefix,
                 )?,
-                amount: Amount::from_mojos(cs.coin.amount as u128, self.unit.decimals),
+                amount: Amount::u64(cs.coin.amount),
                 created_height: cs.created_height,
                 spent_height: cs.spent_height,
                 create_transaction_id: row.transaction_id.map(hex::encode),
@@ -147,7 +146,7 @@ impl Sage {
                     cs.coin.puzzle_hash.to_bytes(),
                     &self.network().address_prefix,
                 )?,
-                amount: Amount::from_mojos(cs.coin.amount as u128, 3),
+                amount: Amount::u64(cs.coin.amount),
                 created_height: cs.created_height,
                 spent_height: cs.spent_height,
                 create_transaction_id: row.transaction_id.map(hex::encode),
@@ -175,7 +174,7 @@ impl Sage {
                 description: cat.description,
                 icon_url: cat.icon,
                 visible: cat.visible,
-                balance: Amount::from_mojos(balance, 3),
+                balance: Amount::u128(balance),
             });
         }
 
@@ -198,7 +197,7 @@ impl Sage {
                     description: cat.description,
                     icon_url: cat.icon,
                     visible: cat.visible,
-                    balance: Amount::from_mojos(balance, 3),
+                    balance: Amount::u128(balance),
                 })
             })
             .transpose()?;
@@ -225,7 +224,7 @@ impl Sage {
                     did.p2_puzzle_hash.to_bytes(),
                     &self.network().address_prefix,
                 )?,
-                amount: Amount::from_mojos(did.amount as u128, self.unit.decimals),
+                amount: Amount::u64(did.amount),
                 created_height: did.created_height,
                 create_transaction_id: did.transaction_id.map(hex::encode),
             });
@@ -248,7 +247,7 @@ impl Sage {
             .map(|tx| {
                 Result::Ok(PendingTransactionRecord {
                     transaction_id: hex::encode(tx.transaction_id),
-                    fee: Amount::from_mojos(tx.fee as u128, self.unit.decimals),
+                    fee: Amount::u64(tx.fee),
                     // TODO: Date format?
                     submitted_at: tx.submitted_at.map(|ts| ts.to_string()),
                 })
@@ -544,9 +543,7 @@ impl Sage {
                     nft.info.royalty_puzzle_hash.to_bytes(),
                     &self.network().address_prefix,
                 )?,
-                royalty_percent: (BigDecimal::from(nft.info.royalty_ten_thousandths)
-                    / BigDecimal::from(100))
-                .to_string(),
+                royalty_ten_thousandths: nft.info.royalty_ten_thousandths,
                 data_uris: metadata
                     .as_ref()
                     .map(|m| m.data_uris.clone())

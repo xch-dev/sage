@@ -16,8 +16,7 @@ use sage_wallet::{fetch_uris, WalletNftMint};
 
 use crate::{
     fetch_cats, fetch_coins, json_bundle, json_spend, parse_asset_id, parse_cat_amount,
-    parse_did_id, parse_nft_id, parse_percent, rust_bundle, rust_spend, ConfirmationInfo, Result,
-    Sage,
+    parse_did_id, parse_nft_id, rust_bundle, rust_spend, ConfirmationInfo, Result, Sage,
 };
 
 impl Sage {
@@ -143,7 +142,7 @@ impl Sage {
                 .map(|address| self.parse_address(address))
                 .transpose()?;
 
-            let royalty_ten_thousandths = parse_percent(item.royalty_percent)?;
+            let royalty_ten_thousandths = item.royalty_ten_thousandths;
 
             let data_hash = if item.data_uris.is_empty() {
                 None

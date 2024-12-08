@@ -54,7 +54,7 @@ export function NftList() {
             if (result.status === 'ok') {
               setNfts(result.data.nfts);
             } else {
-              throw new Error('Failed to get NFTs');
+              console.error('Failed to get NFTs', result.error);
             }
           });
       } else if (view === 'collection') {
@@ -68,7 +68,7 @@ export function NftList() {
             if (result.status === 'ok') {
               setCollections(result.data.collections);
             } else {
-              throw new Error('Failed to get NFT collections');
+              console.error('Failed to get NFT collections', result.error);
             }
           });
       }
@@ -77,7 +77,7 @@ export function NftList() {
   );
 
   useEffect(() => {
-    updateNfts(0);
+    updateNfts(1);
   }, [updateNfts]);
 
   useEffect(() => {

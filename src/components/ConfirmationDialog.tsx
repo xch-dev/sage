@@ -7,6 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { toDecimal } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 import BigNumber from 'bignumber.js';
@@ -137,7 +138,7 @@ export default function ConfirmationDialog({
                       {!BigNumber(response?.summary.fee || 0).isZero() && (
                         <Item
                           badge='Fee'
-                          label={`${response?.summary.fee} ${walletState.sync.unit.ticker}`}
+                          label={`${toDecimal(response?.summary.fee || '0', walletState.sync.unit.decimals)} ${walletState.sync.unit.ticker}`}
                         />
                       )}
                       {created
@@ -362,7 +363,8 @@ export function AdvancedSummary({ summary }: AdvancedSummaryProps) {
               <div className='flex items-center gap-2'>
                 <Badge>Fee</Badge>
                 <span>
-                  {summary.fee} {walletState.sync.unit.ticker}
+                  {toDecimal(summary.fee, walletState.sync.unit.decimals)}{' '}
+                  {walletState.sync.unit.ticker}
                 </span>
               </div>
             </div>
@@ -400,7 +402,7 @@ function calculateTransaction(
     if (input.type === 'xch') {
       spent.push({
         badge: 'Chia',
-        label: `${input.amount} ${xch.ticker}`,
+        label: `${toDecimal(input.amount, xch.decimals)} ${xch.ticker}`,
         coinId: input.coin_id,
         sort: 1,
       });
@@ -412,7 +414,7 @@ function calculateTransaction(
 
         created.push({
           badge: 'Chia',
-          label: `${output.amount} ${xch.ticker}`,
+          label: `${toDecimal(output.amount, xch.decimals)} ${xch.ticker}`,
           address: output.burning
             ? 'Permanently Burned'
             : output.receiving
@@ -428,7 +430,7 @@ function calculateTransaction(
 
       spent.push({
         badge: `CAT ${input.name || input.asset_id}`,
-        label: `${input.amount} ${ticker}`,
+        label: `${toDecimal(input.amount, 3)} ${ticker}`,
         coinId: input.coin_id,
         sort: 2,
       });
@@ -440,7 +442,7 @@ function calculateTransaction(
 
         created.push({
           badge: `CAT ${input.name || input.asset_id}`,
-          label: `${output.amount} ${ticker}`,
+          label: `${toDecimal(output.amount, 3)} ${ticker}`,
           address: output.burning
             ? 'Permanently Burned'
             : output.receiving
@@ -471,12 +473,7 @@ function calculateTransaction(
           continue;
         }
 
-        if (
-          BigNumber(output.amount)
-            .multipliedBy(BigNumber(10).pow(xch.decimals))
-            .mod(2)
-            .isEqualTo(1)
-        ) {
+        if (BigNumber(output.amount).mod(2).eq(1)) {
           created.push({
             badge: 'Profile',
             label: input.name || 'Unnamed',
@@ -511,12 +508,7 @@ function calculateTransaction(
           continue;
         }
 
-        if (
-          BigNumber(output.amount)
-            .multipliedBy(BigNumber(10).pow(xch.decimals))
-            .mod(2)
-            .isEqualTo(1)
-        ) {
+        if (BigNumber(output.amount).mod(2).isEqualTo(1)) {
           created.push({
             badge: 'NFT',
             label: input.name || 'Unknown',

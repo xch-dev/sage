@@ -6,10 +6,6 @@ import { Params } from '../commands';
 export async function handleCreateOffer(params: Params<'chia_createOffer'>) {
   const state = useWalletState.getState();
 
-  const fee = BigNumber(params.fee ?? 0).div(
-    BigNumber(10).pow(state.sync.unit.decimals),
-  );
-
   const defaultAssets = (): Assets => {
     return {
       xch: '0',
@@ -29,15 +25,9 @@ export async function handleCreateOffer(params: Params<'chia_createOffer'>) {
       if (item.assetId.startsWith('nft')) {
         to.nfts.push(item.assetId);
       } else if (item.assetId === '') {
-        to.xch = BigNumber(to.xch)
-          .plus(
-            BigNumber(item.amount).div(
-              BigNumber(10).pow(state.sync.unit.decimals),
-            ),
-          )
-          .toString();
+        to.xch = BigNumber(to.xch).plus(BigNumber(item.amount)).toString();
       } else {
-        const catAmount = BigNumber(item.amount).div(BigNumber(10).pow(3));
+        const catAmount = BigNumber(item.amount);
         const found = to.cats.find((cat) => cat.asset_id === item.assetId);
 
         if (found) {
@@ -53,7 +43,7 @@ export async function handleCreateOffer(params: Params<'chia_createOffer'>) {
   }
 
   const result = await commands.makeOffer({
-    fee: fee.toString(),
+    fee: params.fee ?? 0,
     offered_assets: offerAssets,
     requested_assets: requestAssets,
     expires_at_second: null,
@@ -70,15 +60,9 @@ export async function handleCreateOffer(params: Params<'chia_createOffer'>) {
 }
 
 export async function handleTakeOffer(params: Params<'chia_takeOffer'>) {
-  const state = useWalletState.getState();
-
-  const fee = BigNumber(params.fee ?? 0).div(
-    BigNumber(10).pow(state.sync.unit.decimals),
-  );
-
   const result = await commands.takeOffer({
     offer: params.offer,
-    fee: fee.toString(),
+    fee: params.fee ?? 0,
     auto_submit: true,
   });
 

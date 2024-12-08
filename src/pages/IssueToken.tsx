@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { amount, positiveAmount } from '@/lib/formTypes';
+import { toMojos } from '@/lib/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -44,8 +45,11 @@ export default function IssueToken() {
       .issueCat({
         name: values.name,
         ticker: values.ticker,
-        amount: values.amount.toString(),
-        fee: values.fee?.toString() || '0',
+        amount: toMojos(values.amount.toString(), 3),
+        fee: toMojos(
+          values.fee?.toString() || '0',
+          walletState.sync.unit.decimals,
+        ),
       })
       .then((result) => {
         if (result.status === 'error') {
