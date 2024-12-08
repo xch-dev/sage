@@ -1,7 +1,6 @@
-import { commands, Error, OfferSummary, TakeOfferResponse } from '@/bindings';
+import { commands, OfferSummary, TakeOfferResponse } from '@/bindings';
 import ConfirmationDialog from '@/components/ConfirmationDialog';
 import Container from '@/components/Container';
-import ErrorDialog from '@/components/ErrorDialog';
 import Header from '@/components/Header';
 import { OfferCard } from '@/components/OfferCard';
 import { Button } from '@/components/ui/button';
@@ -23,7 +22,6 @@ export function ViewOffer() {
 
   const [summary, setSummary] = useState<OfferSummary | null>(null);
   const [response, setResponse] = useState<TakeOfferResponse | null>(null);
-  const [error, setError] = useState<Error | null>(null);
   const [fee, setFee] = useState('');
 
   useEffect(() => {
@@ -97,14 +95,6 @@ export function ViewOffer() {
 
           <Button onClick={take}>Take Offer</Button>
         </div>
-
-        <ErrorDialog
-          error={error}
-          setError={(error) => {
-            setError(error);
-            if (error === null) navigate('/offers');
-          }}
-        />
       </Container>
 
       <ConfirmationDialog

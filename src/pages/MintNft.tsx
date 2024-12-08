@@ -27,9 +27,8 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import * as z from 'zod';
-import { commands, Error, TransactionResponse } from '../bindings';
+import { commands, TransactionResponse } from '../bindings';
 import Container from '../components/Container';
-import ErrorDialog from '../components/ErrorDialog';
 import { useWalletState } from '../state';
 
 export default function MintNft() {
@@ -39,7 +38,6 @@ export default function MintNft() {
   const { dids } = useDids();
   const { addError } = useErrors();
 
-  const [error, setError] = useState<Error | null>(null);
   const [pending, setPending] = useState(false);
   const [response, setResponse] = useState<TransactionResponse | null>(null);
 
@@ -273,7 +271,6 @@ export default function MintNft() {
         </Form>
       </Container>
 
-      <ErrorDialog error={error} setError={setError} />
       <ConfirmationDialog
         response={response}
         close={() => setResponse(null)}

@@ -22,13 +22,11 @@ import * as z from 'zod';
 import {
   CatRecord,
   commands,
-  Error,
   events,
   SendXch,
   TransactionResponse,
 } from '../bindings';
 import Container from '../components/Container';
-import ErrorDialog from '../components/ErrorDialog';
 
 export default function Send() {
   const { asset_id: assetId } = useParams();
@@ -42,7 +40,6 @@ export default function Send() {
   const [asset, setAsset] = useState<(CatRecord & { decimals: number }) | null>(
     null,
   );
-  const [error, setError] = useState<Error | null>(null);
   const [response, setResponse] = useState<TransactionResponse | null>(null);
 
   const updateCat = useCallback(
@@ -226,7 +223,6 @@ export default function Send() {
         </Form>
       </Container>
 
-      <ErrorDialog error={error} setError={setError} />
       <ConfirmationDialog
         response={response}
         close={() => setResponse(null)}

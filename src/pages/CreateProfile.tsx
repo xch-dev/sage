@@ -18,9 +18,8 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import * as z from 'zod';
-import { commands, Error, TransactionResponse } from '../bindings';
+import { commands, TransactionResponse } from '../bindings';
 import Container from '../components/Container';
-import ErrorDialog from '../components/ErrorDialog';
 import { useWalletState } from '../state';
 
 export default function CreateProfile() {
@@ -29,7 +28,6 @@ export default function CreateProfile() {
   const navigate = useNavigate();
   const walletState = useWalletState();
 
-  const [error, setError] = useState<Error | null>(null);
   const [response, setResponse] = useState<TransactionResponse | null>(null);
 
   const formSchema = z.object({
@@ -108,7 +106,6 @@ export default function CreateProfile() {
         </Form>
       </Container>
 
-      <ErrorDialog error={error} setError={setError} />
       <ConfirmationDialog
         response={response}
         close={() => setResponse(null)}
