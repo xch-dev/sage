@@ -166,7 +166,10 @@ export function TokenList() {
                   ~$
                   {getBalanceInUsd(
                     'xch',
-                    toDecimal(walletState.sync.balance, 3),
+                    toDecimal(
+                      walletState.sync.balance,
+                      walletState.sync.unit.decimals,
+                    ),
                   )}
                 </div>
               </CardContent>

@@ -32,7 +32,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { usePrices } from '@/contexts/PriceContext';
 import { amount } from '@/lib/formTypes';
-import { toDecimal } from '@/lib/utils';
+import { toDecimal, toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { RowSelectionState } from '@tanstack/react-table';
@@ -434,7 +434,10 @@ function CoinCard({
   });
 
   const onCombineSubmit = (values: z.infer<typeof combineFormSchema>) => {
-    combineHandler?.({ coin_ids: selectedCoinIds, fee: values.combineFee })
+    combineHandler?.({
+      coin_ids: selectedCoinIds,
+      fee: toMojos(values.combineFee, walletState.sync.unit.decimals),
+    })
       .then((result) => {
         setCombineOpen(false);
 
@@ -465,7 +468,7 @@ function CoinCard({
     splitHandler?.({
       coin_ids: selectedCoinIds,
       output_count: values.outputCount,
-      fee: values.splitFee,
+      fee: toMojos(values.splitFee, walletState.sync.unit.decimals),
     })
       .then((result) => {
         setSplitOpen(false);

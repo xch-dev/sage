@@ -6,6 +6,7 @@ import {
 } from '@/bindings';
 import { amount } from '@/lib/formTypes';
 import { nftUri } from '@/lib/nftUri';
+import { toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
@@ -103,7 +104,11 @@ export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
 
   const onTransferSubmit = (address: string, fee: string) => {
     commands
-      .transferNfts({ nft_ids: [nft.launcher_id], address, fee })
+      .transferNfts({
+        nft_ids: [nft.launcher_id],
+        address,
+        fee: toMojos(fee, walletState.sync.unit.decimals),
+      })
       .then((result) => {
         setTransferOpen(false);
         if (result.status === 'error') {
@@ -116,7 +121,11 @@ export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
 
   const onAssignSubmit = (profile: string, fee: string) => {
     commands
-      .assignNftsToDid({ nft_ids: [nft.launcher_id], did_id: profile, fee })
+      .assignNftsToDid({
+        nft_ids: [nft.launcher_id],
+        did_id: profile,
+        fee: toMojos(fee, walletState.sync.unit.decimals),
+      })
       .then((result) => {
         setAssignOpen(false);
         if (result.status === 'error') {
@@ -129,7 +138,11 @@ export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
 
   const onUnassignSubmit = (fee: string) => {
     commands
-      .assignNftsToDid({ nft_ids: [nft.launcher_id], did_id: null, fee })
+      .assignNftsToDid({
+        nft_ids: [nft.launcher_id],
+        did_id: null,
+        fee: toMojos(fee, walletState.sync.unit.decimals),
+      })
       .then((result) => {
         setUnassignOpen(false);
         if (result.status === 'error') {
@@ -164,7 +177,7 @@ export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
         nft_id: nft.launcher_id,
         uri: values.url,
         kind: values.kind as NftUriKind,
-        fee: values.fee,
+        fee: toMojos(values.fee, walletState.sync.unit.decimals),
       })
       .then((result) => {
         setAddUrlOpen(false);
@@ -181,7 +194,7 @@ export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
       .transferNfts({
         nft_ids: [nft.launcher_id],
         address: walletState.sync.burn_address,
-        fee,
+        fee: toMojos(fee, walletState.sync.unit.decimals),
       })
       .then((result) => {
         setBurnOpen(false);

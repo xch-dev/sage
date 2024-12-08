@@ -122,7 +122,10 @@ export default function Send() {
     command({
       address: values.address,
       amount: toMojos(values.amount.toString(), asset?.decimals || 12),
-      fee: toMojos(values.fee?.toString() || '0', asset?.decimals || 12),
+      fee: toMojos(
+        values.fee?.toString() || '0',
+        walletState.sync.unit.decimals,
+      ),
     }).then((confirmation) => {
       if (confirmation.status === 'error') {
         console.error(confirmation.error);

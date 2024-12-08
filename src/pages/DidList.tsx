@@ -26,6 +26,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useDids } from '@/hooks/useDids';
+import { toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import {
   EyeIcon,
@@ -149,7 +150,11 @@ function Profile({ did, updateDids }: ProfileProps) {
 
   const onTransferSubmit = (address: string, fee: string) => {
     commands
-      .transferDids({ did_ids: [did.launcher_id], address, fee })
+      .transferDids({
+        did_ids: [did.launcher_id],
+        address,
+        fee: toMojos(fee, walletState.sync.unit.decimals),
+      })
       .then((result) => {
         setTransferOpen(false);
         if (result.status === 'error') {
@@ -165,7 +170,7 @@ function Profile({ did, updateDids }: ProfileProps) {
       .transferDids({
         did_ids: [did.launcher_id],
         address: walletState.sync.burn_address,
-        fee,
+        fee: toMojos(fee, walletState.sync.unit.decimals),
       })
       .then((result) => {
         setBurnOpen(false);
