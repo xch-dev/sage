@@ -1,11 +1,8 @@
 import { Assets, commands } from '@/bindings';
-import { useWalletState } from '@/state';
 import { BigNumber } from 'bignumber.js';
 import { Params } from '../commands';
 
 export async function handleCreateOffer(params: Params<'chia_createOffer'>) {
-  const state = useWalletState.getState();
-
   const defaultAssets = (): Assets => {
     return {
       xch: '0',
@@ -42,33 +39,25 @@ export async function handleCreateOffer(params: Params<'chia_createOffer'>) {
     }
   }
 
-  const result = await commands.makeOffer({
+  const data = await commands.makeOffer({
     fee: params.fee ?? 0,
     offered_assets: offerAssets,
     requested_assets: requestAssets,
     expires_at_second: null,
   });
 
-  if (result.status === 'error') {
-    throw new Error(result.error.reason);
-  }
-
   return {
-    offer: result.data.offer,
-    id: result.data.offer_id,
+    offer: data.offer,
+    id: data.offer_id,
   };
 }
 
 export async function handleTakeOffer(params: Params<'chia_takeOffer'>) {
-  const result = await commands.takeOffer({
+  const data = await commands.takeOffer({
     offer: params.offer,
     fee: params.fee ?? 0,
     auto_submit: true,
   });
 
-  if (result.status === 'error') {
-    throw new Error(result.error.reason);
-  }
-
-  return { id: result.data.transaction_id };
+  return { id: data.transaction_id };
 }

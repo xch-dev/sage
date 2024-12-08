@@ -30,7 +30,8 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { usePrices } from '@/contexts/PriceContext';
+import { useErrors } from '@/hooks/useErrors';
+import { usePrices } from '@/hooks/usePrices';
 import { amount } from '@/lib/formTypes';
 import { toDecimal, toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
@@ -62,6 +63,7 @@ export default function Token() {
   const { getBalanceInUsd } = usePrices();
 
   const { asset_id: assetId } = useParams();
+  const { addError } = useErrors();
 
   const [asset, setAsset] = useState<CatRecord | null>(null);
   const [coins, setCoins] = useState<CoinRecord[]>([]);
@@ -85,13 +87,9 @@ export default function Token() {
           ? commands.getXchCoins({})
           : commands.getCatCoins({ asset_id: assetId! });
 
-      getCoins.then((res) => {
-        if (res.status === 'ok') {
-          setCoins(res.data.coins);
-        }
-      });
+      getCoins.then((res) => setCoins(res.coins)).catch(addError);
     },
-    [assetId],
+    [assetId, addError],
   );
 
   useEffect(() => {
@@ -112,13 +110,12 @@ export default function Token() {
 
   const updateCat = useMemo(
     () => () => {
-      commands.getCat({ asset_id: assetId! }).then((res) => {
-        if (res.status === 'ok') {
-          setAsset(res.data.cat);
-        }
-      });
+      commands
+        .getCat({ asset_id: assetId! })
+        .then((res) => setAsset(res.cat))
+        .catch(addError);
     },
-    [assetId],
+    [assetId, addError],
   );
 
   useEffect(() => {
@@ -156,22 +153,20 @@ export default function Token() {
   const redownload = () => {
     if (!assetId || assetId === 'xch') return;
 
-    commands.removeCat({ asset_id: assetId }).then((res) => {
-      if (res.status === 'ok') {
-        updateCat();
-      }
-    });
+    commands
+      .removeCat({ asset_id: assetId })
+      .then(() => updateCat())
+      .catch(addError);
   };
 
   const setVisibility = (visible: boolean) => {
     if (!asset || assetId === 'xch') return;
     asset.visible = visible;
 
-    commands.updateCat({ record: asset }).then((res) => {
-      if (res.status === 'ok') {
-        navigate('/wallet');
-      }
-    });
+    commands
+      .updateCat({ record: asset })
+      .then(() => navigate('/wallet'))
+      .catch(addError);
   };
 
   const [isEditOpen, setEditOpen] = useState(false);
@@ -184,13 +179,11 @@ export default function Token() {
     asset.name = newName;
     asset.ticker = newTicker;
 
-    commands.updateCat({ record: asset }).then((res) => {
-      if (res.status === 'ok') {
-        updateCat();
-      }
-    });
-
-    setEditOpen(false);
+    commands
+      .updateCat({ record: asset })
+      .then(() => updateCat())
+      .catch(addError)
+      .finally(() => setEditOpen(false));
   };
 
   return (
@@ -383,6 +376,8 @@ function CoinCard({
 }: CoinCardProps) {
   const walletState = useWalletState();
 
+  const { addError } = useErrors();
+
   const selectedCoinIds = useMemo(() => {
     return Object.keys(selectedCoins).filter((key) => selectedCoins[key]);
   }, [selectedCoins]);
@@ -438,14 +433,9 @@ function CoinCard({
       coin_ids: selectedCoinIds,
       fee: toMojos(values.combineFee, walletState.sync.unit.decimals),
     })
-      .then((result) => {
-        setCombineOpen(false);
-
-        if (result.status === 'ok') {
-          setResponse(result.data);
-        }
-      })
-      .catch((error) => console.log('Failed to combine coins', error));
+      .then(setResponse)
+      .catch(addError)
+      .finally(() => setCombineOpen(false));
   };
 
   const splitFormSchema = z.object({
@@ -470,14 +460,9 @@ function CoinCard({
       output_count: values.outputCount,
       fee: toMojos(values.splitFee, walletState.sync.unit.decimals),
     })
-      .then((result) => {
-        setSplitOpen(false);
-
-        if (result.status === 'ok') {
-          setResponse(result.data);
-        }
-      })
-      .catch((error) => console.log('Failed to split coins', error));
+      .then(setResponse)
+      .catch(addError)
+      .finally(() => setSplitOpen(false));
   };
 
   return (

@@ -1,7 +1,7 @@
 use app_state::{AppState, AppStateInner};
 use sage_api::SyncEvent;
 use tauri::Manager;
-use tauri_specta::{collect_commands, collect_events, Builder};
+use tauri_specta::{collect_commands, collect_events, Builder, ErrorHandlingMode};
 use tokio::sync::Mutex;
 
 mod app_state;
@@ -14,6 +14,7 @@ use specta_typescript::{BigIntExportBehavior, Typescript};
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let builder = Builder::<tauri::Wry>::new()
+        .error_handling(ErrorHandlingMode::Throw)
         // Then register them (separated by a comma)
         .commands(collect_commands![
             commands::initialize,

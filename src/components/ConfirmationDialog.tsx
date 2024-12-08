@@ -7,6 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { useErrors } from '@/hooks/useErrors';
 import { toDecimal } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
@@ -24,7 +25,6 @@ import {
 import { PropsWithChildren, useEffect, useState } from 'react';
 import {
   commands,
-  Error,
   TakeOfferResponse,
   TransactionResponse,
   TransactionSummary,
@@ -38,7 +38,6 @@ export interface ConfirmationDialogProps {
   response: TransactionResponse | TakeOfferResponse | null;
   close: () => void;
   onConfirm?: () => void;
-  onError?: (error: Error) => void;
 }
 
 interface SpentCoin {
@@ -59,15 +58,10 @@ export default function ConfirmationDialog({
   response,
   close,
   onConfirm,
-  onError,
 }: ConfirmationDialogProps) {
-  if (!onError) {
-    onError = (error) => {
-      console.error(error);
-    };
-  }
-
   const walletState = useWalletState();
+
+  const { addError } = useErrors();
 
   const [pending, setPending] = useState(false);
   const [signature, setSignature] = useState<string | null>(null);
@@ -184,15 +178,10 @@ export default function ConfirmationDialog({
                                 ? response.coin_spends
                                 : response.spend_bundle.coin_spends,
                         })
-                        .then((result) => {
-                          if (result.status === 'error') {
-                            onError?.(result.error);
-                          } else {
-                            setSignature(
-                              result.data.spend_bundle.aggregated_signature,
-                            );
-                          }
-                        });
+                        .then((data) =>
+                          setSignature(data.spend_bundle.aggregated_signature),
+                        )
+                        .catch(addError);
                     }}
                     disabled={!!signature}
                   >
@@ -236,37 +225,34 @@ export default function ConfirmationDialog({
                   response !== null &&
                   'coin_spends' in response
                 ) {
-                  const result = await commands.signCoinSpends({
-                    coin_spends: response!.coin_spends,
-                  });
-                  if (result.status === 'error') {
-                    reset();
-                    onError?.(result.error);
-                    return;
-                  }
-                  finalSignature =
-                    result.data.spend_bundle.aggregated_signature;
+                  const data = await commands
+                    .signCoinSpends({
+                      coin_spends: response!.coin_spends,
+                    })
+                    .catch(addError);
+
+                  if (!data) return reset();
+
+                  finalSignature = data.spend_bundle.aggregated_signature;
                 }
 
-                const result = await commands.submitTransaction({
-                  spend_bundle: {
-                    coin_spends:
-                      response === null
-                        ? []
-                        : 'coin_spends' in response
-                          ? response.coin_spends
-                          : response.spend_bundle.coin_spends,
-                    aggregated_signature: finalSignature!,
-                  },
-                });
+                const data = await commands
+                  .submitTransaction({
+                    spend_bundle: {
+                      coin_spends:
+                        response === null
+                          ? []
+                          : 'coin_spends' in response
+                            ? response.coin_spends
+                            : response.spend_bundle.coin_spends,
+                      aggregated_signature: finalSignature!,
+                    },
+                  })
+                  .catch(addError);
 
-                reset();
+                if (!data) return reset();
 
-                if (result.status === 'error') {
-                  onError?.(result.error);
-                } else {
-                  onConfirm?.();
-                }
+                onConfirm?.();
               })().finally(() => setPending(false));
             }}
             disabled={pending}

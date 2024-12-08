@@ -1,23 +1,18 @@
 import { commands } from '@/bindings';
 import { useCallback, useEffect, useState } from 'react';
+import { useErrors } from './useErrors';
 
 export default function useInitialization() {
+  const { addError } = useErrors();
+
   const [initialized, setInitialized] = useState(false);
 
   const onInitialize = useCallback(async () => {
-    try {
-      commands.initialize().then((result) => {
-        if (result.status === 'ok') {
-          setInitialized(true);
-        } else {
-          console.error(result.error);
-        }
-      });
-    } catch (err: unknown) {
-      console.error('Initialization failed', err);
-      alert(err);
-    }
-  }, []);
+    commands
+      .initialize()
+      .then(() => setInitialized(true))
+      .catch(addError);
+  }, [addError]);
 
   useEffect(() => {
     if (!initialized) {

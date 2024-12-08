@@ -5,7 +5,7 @@ import {
   getCoreRowModel,
   useReactTable,
 } from '@tanstack/react-table';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { commands, PeerRecord } from '../bindings';
 
 import { Button } from '@/components/ui/button';
@@ -39,6 +39,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Switch } from '@/components/ui/switch';
+import { useErrors } from '@/hooks/useErrors';
 import {
   BadgeCheckIcon,
   BadgeIcon,
@@ -47,6 +48,8 @@ import {
 } from 'lucide-react';
 
 export default function PeerList() {
+  const { addError } = useErrors();
+
   const [peers, setPeers] = useState<PeerRecord[] | null>(null);
   const [isAddOpen, setAddOpen] = useState(false);
   const [ip, setIp] = useState('');
@@ -108,13 +111,14 @@ export default function PeerList() {
     getCoreRowModel: getCoreRowModel(),
   });
 
-  const updatePeers = () => {
-    commands.getPeers({}).then((res) => {
-      if (res.status === 'ok') {
-        setPeers(res.data.peers);
-      }
-    });
-  };
+  const updatePeers = useCallback(
+    () =>
+      commands
+        .getPeers({})
+        .then((data) => setPeers(data.peers))
+        .catch(addError),
+    [addError],
+  );
 
   useEffect(() => {
     updatePeers();
@@ -124,7 +128,7 @@ export default function PeerList() {
     return () => {
       clearInterval(interval);
     };
-  }, []);
+  }, [updatePeers]);
 
   return (
     <Layout>
@@ -178,13 +182,14 @@ export default function PeerList() {
                     </Button>
                     <Button
                       onClick={() => {
-                        setAddOpen(false);
-                        commands.addPeer({ ip, trusted }).then((result) => {
-                          if (result.status === 'error') {
-                            console.error(result.error);
-                          }
-                        });
-                        setIp;
+                        commands
+                          .addPeer({ ip, trusted })
+                          .then(() => updatePeers())
+                          .catch(addError)
+                          .finally(() => {
+                            setIp('');
+                            setAddOpen(false);
+                          });
                       }}
                       autoFocus
                     >
@@ -289,12 +294,12 @@ export default function PeerList() {
                   peerToDelete &&
                     commands
                       .removePeer({ ip: peerToDelete.ip_addr, ban })
-                      .then((res) => {
-                        if (res.status === 'ok') {
-                          setPeerToDelete(null);
-                          updatePeers();
-                        }
-                      });
+                      .then(() => {
+                        setPeerToDelete(null);
+                        updatePeers();
+                      })
+                      .catch(addError)
+                      .finally(() => setPeerToDelete(null));
                 }}
                 autoFocus
               >

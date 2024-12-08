@@ -1,4 +1,5 @@
 import { commands, TransactionResponse } from '@/bindings';
+import { useErrors } from '@/hooks/useErrors';
 import { useWalletState } from '@/state';
 import {
   ChevronDown,
@@ -32,6 +33,8 @@ export function MultiSelectActions({
 }: MultiSelectActionsProps) {
   const walletState = useWalletState();
 
+  const { addError } = useErrors();
+
   const [transferOpen, setTransferOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
   const [unassignOpen, setUnassignOpen] = useState(false);
@@ -41,40 +44,25 @@ export function MultiSelectActions({
   const onTransferSubmit = (address: string, fee: string) => {
     commands
       .transferNfts({ nft_ids: selected, address, fee })
-      .then((result) => {
-        setTransferOpen(false);
-        if (result.status === 'error') {
-          console.error('Failed to transfer NFTs', result.error);
-        } else {
-          setResponse(result.data);
-        }
-      });
+      .then(setResponse)
+      .catch(addError)
+      .finally(() => setTransferOpen(false));
   };
 
   const onAssignSubmit = (profile: string, fee: string) => {
     commands
       .assignNftsToDid({ nft_ids: selected, did_id: profile, fee })
-      .then((result) => {
-        setAssignOpen(false);
-        if (result.status === 'error') {
-          console.error('Failed to assign NFT', result.error);
-        } else {
-          setResponse(result.data);
-        }
-      });
+      .then(setResponse)
+      .catch(addError)
+      .finally(() => setAssignOpen(false));
   };
 
   const onUnassignSubmit = (fee: string) => {
     commands
       .assignNftsToDid({ nft_ids: selected, did_id: null, fee })
-      .then((result) => {
-        setUnassignOpen(false);
-        if (result.status === 'error') {
-          console.error('Failed to unassign NFT', result.error);
-        } else {
-          setResponse(result.data);
-        }
-      });
+      .then(setResponse)
+      .catch(addError)
+      .finally(() => setUnassignOpen(false));
   };
 
   const onBurnSubmit = (fee: string) => {
@@ -84,14 +72,9 @@ export function MultiSelectActions({
         address: walletState.sync.burn_address,
         fee,
       })
-      .then((result) => {
-        setBurnOpen(false);
-        if (result.status === 'error') {
-          console.error('Failed to burn NFTs', result.error);
-        } else {
-          setResponse(result.data);
-        }
-      });
+      .then(setResponse)
+      .catch(addError)
+      .finally(() => setBurnOpen(false));
   };
 
   return (

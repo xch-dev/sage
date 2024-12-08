@@ -44,39 +44,28 @@ export async function fetchState() {
 }
 
 function updateCoins() {
-  commands.getXchCoins({}).then((coins) => {
-    if (coins.status === 'error') {
-      console.error(coins.error);
-      return;
-    }
-    useWalletState.setState({
-      coins: coins.data.coins,
-    });
-  });
+  commands
+    .getXchCoins({})
+    .then((data) =>
+      useWalletState.setState({
+        coins: data.coins,
+      }),
+    )
+    .catch((error) => console.error(error));
 }
 
 function updateSyncStatus() {
-  commands.getSyncStatus({}).then((sync) => {
-    if (sync.status === 'error') {
-      console.error(sync.error);
-      return;
-    }
-    useWalletState.setState({
-      sync: sync.data,
-    });
-  });
+  commands
+    .getSyncStatus({})
+    .then((sync) => useWalletState.setState({ sync }))
+    .catch((error) => console.error(error));
 }
 
 function updateNftStatus() {
-  commands.getNftStatus({}).then((nfts) => {
-    if (nfts.status === 'error') {
-      console.error(nfts.error);
-      return;
-    }
-    useWalletState.setState({
-      nfts: nfts.data,
-    });
-  });
+  commands
+    .getNftStatus({})
+    .then((nfts) => useWalletState.setState({ nfts }))
+    .catch((error) => console.error(error));
 }
 
 events.syncEvent.listen((event) => {

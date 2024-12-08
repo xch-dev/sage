@@ -15,6 +15,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { useErrors } from '@/hooks/useErrors';
 import { toMojos } from '@/lib/utils';
 import { clearOffer, useOfferState, useWalletState } from '@/state';
 import {
@@ -31,6 +32,8 @@ export function MakeOffer() {
   const state = useOfferState();
   const walletState = useWalletState();
   const navigate = useNavigate();
+
+  const { addError } = useErrors();
 
   const [offer, setOffer] = useState('');
 
@@ -71,13 +74,8 @@ export function MakeOffer() {
               Number(state.expiration.hours || '0') * 60 * 60 +
               Number(state.expiration.minutes || '0') * 60,
       })
-      .then((result) => {
-        if (result.status === 'error') {
-          console.error(result.error);
-        } else {
-          setOffer(result.data.offer);
-        }
-      });
+      .then((data) => setOffer(data.offer))
+      .catch(addError);
   };
 
   const invalid =
@@ -281,15 +279,14 @@ export function MakeOffer() {
             <DialogFooter>
               <Button
                 onClick={() => {
-                  commands.importOffer({ offer }).then((result) => {
-                    setOffer('');
-                    clearOffer();
-                    if (result.status === 'error') {
-                      console.error(result.error);
-                    } else {
+                  commands
+                    .importOffer({ offer })
+                    .then(() => {
+                      setOffer('');
+                      clearOffer();
                       navigate('/offers', { replace: true });
-                    }
-                  });
+                    })
+                    .catch(addError);
                 }}
               >
                 Save

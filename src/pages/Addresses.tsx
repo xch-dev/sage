@@ -8,26 +8,27 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { useEffect, useState } from 'react';
+import { useErrors } from '@/hooks/useErrors';
+import { useCallback, useEffect, useState } from 'react';
 import { commands, events } from '../bindings';
 import AddressList from '../components/AddressList';
 import { useWalletState } from '../state';
 
 export default function Addresses() {
+  const { addError } = useErrors();
+
   const walletState = useWalletState();
 
   const [addresses, setAddresses] = useState<string[]>([]);
 
-  console.log(addresses);
-
-  const updateAddresses = () => {
-    commands.getDerivations({ offset: 0, limit: 1000000 }).then((res) => {
-      if (res.status === 'error') return;
-      setAddresses(
-        res.data.derivations.map((derivation) => derivation.address),
-      );
-    });
-  };
+  const updateAddresses = useCallback(() => {
+    commands
+      .getDerivations({ offset: 0, limit: 1000000 })
+      .then((data) =>
+        setAddresses(data.derivations.map((derivation) => derivation.address)),
+      )
+      .catch(addError);
+  }, [addError]);
 
   useEffect(() => {
     updateAddresses();
@@ -41,7 +42,7 @@ export default function Addresses() {
     return () => {
       unlisten.then((u) => u());
     };
-  }, []);
+  }, [updateAddresses]);
 
   return (
     <>

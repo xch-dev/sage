@@ -11,6 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { useErrors } from '@/hooks/useErrors';
 import useInitialization from '@/hooks/useInitialization';
 import { useWallet } from '@/hooks/useWallet';
 import { toDecimal } from '@/lib/utils';
@@ -47,6 +48,7 @@ type SessionRequest = SignClientTypes.EventArguments['session_request'];
 export function WalletConnectProvider({ children }: { children: ReactNode }) {
   const initialized = useInitialization();
   const wallet = useWallet(initialized);
+  const { addError } = useErrors();
 
   const [signClient, setSignClient] = useState<Awaited<
     ReturnType<typeof SignClient.init>
@@ -148,12 +150,7 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
         throw new Error('Chain not supported');
       }
 
-      const networkConfig = await commands.networkConfig().then((network) => {
-        if (network.status === 'ok' && network.data) {
-          return network.data;
-        }
-        return null;
-      });
+      const networkConfig = await commands.networkConfig().catch(addError);
 
       if (!networkConfig) {
         throw new Error('Network config not found');
@@ -218,7 +215,7 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
       signClient.off('session_request', handleSessionRequest);
       signClient.off('session_delete', handleSessionDelete);
     };
-  }, [signClient, wallet, handleAndRespond, setPendingRequests]);
+  }, [signClient, wallet, handleAndRespond, setPendingRequests, addError]);
 
   const pair = async (uri: string) => {
     if (!signClient) throw new Error('Sign client not initialized');
@@ -299,6 +296,7 @@ function SignCoinSpendsDialog({
   params,
 }: CommandDialogProps<'chip0002_signCoinSpends'>) {
   const [summary, setSummary] = useState<TransactionSummary | null>(null);
+  const { addError } = useErrors();
 
   useEffect(() => {
     const coinSpends = params.coinSpends.map((coinSpend) => ({
@@ -311,12 +309,11 @@ function SignCoinSpendsDialog({
       solution: coinSpend.solution,
     }));
 
-    commands.viewCoinSpends({ coin_spends: coinSpends }).then((res) => {
-      if (res.status === 'ok') {
-        setSummary(res.data.summary);
-      }
-    });
-  }, [params]);
+    commands
+      .viewCoinSpends({ coin_spends: coinSpends })
+      .then((data) => setSummary(data.summary))
+      .catch(addError);
+  }, [params, addError]);
 
   return summary ? (
     <AdvancedSummary summary={summary} />
@@ -348,14 +345,14 @@ function SignMessageDialog({
 
 function TakeOfferDialog({ params }: CommandDialogProps<'chia_takeOffer'>) {
   const [offer, setOffer] = useState<OfferSummary | null>(null);
+  const { addError } = useErrors();
 
   useEffect(() => {
-    commands.viewOffer({ offer: params.offer }).then((res) => {
-      if (res.status === 'ok') {
-        setOffer(res.data.offer);
-      }
-    });
-  }, [params]);
+    commands
+      .viewOffer({ offer: params.offer })
+      .then((data) => setOffer(data.offer))
+      .catch(addError);
+  }, [params, addError]);
 
   return offer ? (
     <OfferCard summary={offer} />
