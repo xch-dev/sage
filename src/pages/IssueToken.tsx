@@ -10,6 +10,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { useErrors } from '@/hooks/useErrors';
 import { amount, positiveAmount } from '@/lib/formTypes';
 import { toMojos } from '@/lib/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -17,16 +18,16 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import * as z from 'zod';
-import { commands, Error, TransactionResponse } from '../bindings';
+import { commands, TransactionResponse } from '../bindings';
 import Container from '../components/Container';
-import ErrorDialog from '../components/ErrorDialog';
 import { useWalletState } from '../state';
 
 export default function IssueToken() {
   const navigate = useNavigate();
   const walletState = useWalletState();
 
-  const [error, setError] = useState<Error | null>(null);
+  const { addError } = useErrors();
+
   const [response, setResponse] = useState<TransactionResponse | null>(null);
 
   const formSchema = z.object({
@@ -51,14 +52,8 @@ export default function IssueToken() {
           walletState.sync.unit.decimals,
         ),
       })
-      .then((result) => {
-        if (result.status === 'error') {
-          console.error(result.error);
-          setError(result.error);
-        } else {
-          setResponse(result.data);
-        }
-      });
+      .then(setResponse)
+      .catch(addError);
   };
 
   return (
@@ -155,7 +150,6 @@ export default function IssueToken() {
         </Form>
       </Container>
 
-      <ErrorDialog error={error} setError={setError} />
       <ConfirmationDialog
         response={response}
         close={() => setResponse(null)}

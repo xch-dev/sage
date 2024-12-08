@@ -4,6 +4,7 @@ import {
   NftUriKind,
   TransactionResponse,
 } from '@/bindings';
+import { useErrors } from '@/hooks/useErrors';
 import { amount } from '@/lib/formTypes';
 import { nftUri } from '@/lib/nftUri';
 import { toMojos } from '@/lib/utils';
@@ -83,6 +84,8 @@ export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
   const walletState = useWalletState();
   const navigate = useNavigate();
 
+  const { addError } = useErrors();
+
   const [transferOpen, setTransferOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
   const [unassignOpen, setUnassignOpen] = useState(false);
@@ -93,13 +96,8 @@ export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
   const toggleVisibility = () => {
     commands
       .updateNft({ nft_id: nft.launcher_id, visible: !nft.visible })
-      .then((result) => {
-        if (result.status === 'ok') {
-          updateNfts();
-        } else {
-          throw new Error('Failed to toggle visibility for NFT');
-        }
-      });
+      .then(updateNfts)
+      .catch(addError);
   };
 
   const onTransferSubmit = (address: string, fee: string) => {
@@ -109,14 +107,9 @@ export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
         address,
         fee: toMojos(fee, walletState.sync.unit.decimals),
       })
-      .then((result) => {
-        setTransferOpen(false);
-        if (result.status === 'error') {
-          console.error('Failed to transfer NFT', result.error);
-        } else {
-          setResponse(result.data);
-        }
-      });
+      .then(setResponse)
+      .catch(addError)
+      .finally(() => setTransferOpen(false));
   };
 
   const onAssignSubmit = (profile: string, fee: string) => {
@@ -126,14 +119,9 @@ export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
         did_id: profile,
         fee: toMojos(fee, walletState.sync.unit.decimals),
       })
-      .then((result) => {
-        setAssignOpen(false);
-        if (result.status === 'error') {
-          console.error('Failed to assign NFT', result.error);
-        } else {
-          setResponse(result.data);
-        }
-      });
+      .then(setResponse)
+      .catch(addError)
+      .finally(() => setAssignOpen(false));
   };
 
   const onUnassignSubmit = (fee: string) => {
@@ -143,14 +131,9 @@ export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
         did_id: null,
         fee: toMojos(fee, walletState.sync.unit.decimals),
       })
-      .then((result) => {
-        setUnassignOpen(false);
-        if (result.status === 'error') {
-          console.error('Failed to unassign NFT', result.error);
-        } else {
-          setResponse(result.data);
-        }
-      });
+      .then(setResponse)
+      .catch(addError)
+      .finally(() => setUnassignOpen(false));
   };
 
   const addUrlFormSchema = z.object({
@@ -179,14 +162,9 @@ export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
         kind: values.kind as NftUriKind,
         fee: toMojos(values.fee, walletState.sync.unit.decimals),
       })
-      .then((result) => {
-        setAddUrlOpen(false);
-        if (result.status === 'error') {
-          console.error('Failed to add NFT URL', result.error);
-        } else {
-          setResponse(result.data);
-        }
-      });
+      .then(setResponse)
+      .catch(addError)
+      .finally(() => setAddUrlOpen(false));
   };
 
   const onBurnSubmit = (fee: string) => {
@@ -196,14 +174,9 @@ export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
         address: walletState.sync.burn_address,
         fee: toMojos(fee, walletState.sync.unit.decimals),
       })
-      .then((result) => {
-        setBurnOpen(false);
-        if (result.status === 'error') {
-          console.error('Failed to burn NFT', result.error);
-        } else {
-          setResponse(result.data);
-        }
-      });
+      .then(setResponse)
+      .catch(addError)
+      .finally(() => setBurnOpen(false));
   };
 
   return (

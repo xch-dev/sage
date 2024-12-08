@@ -12,11 +12,12 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Switch } from '@/components/ui/switch';
-import { usePrices } from '@/contexts/PriceContext';
+import { useErrors } from '@/hooks/useErrors';
+import { usePrices } from '@/hooks/usePrices';
 import { useTokenParams } from '@/hooks/useTokenParams';
 import { toDecimal } from '@/lib/utils';
 import { ArrowDown10, ArrowDownAz, Coins, InfoIcon } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { CatRecord, commands, events } from '../bindings';
 import { useWalletState } from '../state';
@@ -31,6 +32,7 @@ export function TokenList() {
   const walletState = useWalletState();
 
   const { getBalanceInUsd } = usePrices();
+  const { addError } = useErrors();
 
   const [params, setParams] = useTokenParams();
   const { view, showHidden } = params;
@@ -77,13 +79,14 @@ export function TokenList() {
   const visibleCats = sortedCats.filter((cat) => showHidden || cat.visible);
   const hasHiddenAssets = !!sortedCats.find((cat) => !cat.visible);
 
-  const updateCats = () => {
-    commands.getCats({}).then(async (result) => {
-      if (result.status === 'ok') {
-        setCats(result.data.cats);
-      }
-    });
-  };
+  const updateCats = useCallback(
+    () =>
+      commands
+        .getCats({})
+        .then((data) => setCats(data.cats))
+        .catch(addError),
+    [addError],
+  );
 
   useEffect(() => {
     updateCats();
@@ -103,7 +106,7 @@ export function TokenList() {
     return () => {
       unlisten.then((u) => u());
     };
-  }, []);
+  }, [updateCats]);
 
   return (
     <>

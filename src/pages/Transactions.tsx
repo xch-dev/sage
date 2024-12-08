@@ -11,29 +11,29 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useErrors } from '@/hooks/useErrors';
 import { toDecimal } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { ReloadIcon } from '@radix-ui/react-icons';
 import { FastForward, Info, MoreVerticalIcon } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { commands, PendingTransactionRecord } from '../bindings';
 
 export function Transactions() {
   const walletState = useWalletState();
 
+  const { addError } = useErrors();
+
   const [transactions, setTransactions] = useState<PendingTransactionRecord[]>(
     [],
   );
 
-  const updateTransactions = async () => {
-    return await commands.getPendingTransactions({}).then((result) => {
-      if (result.status === 'ok') {
-        setTransactions(result.data.transactions);
-      } else {
-        throw new Error('Failed to get pending transactions');
-      }
-    });
-  };
+  const updateTransactions = useCallback(async () => {
+    commands
+      .getPendingTransactions({})
+      .then((data) => setTransactions(data.transactions))
+      .catch(addError);
+  }, [addError]);
 
   useEffect(() => {
     updateTransactions();
@@ -45,7 +45,7 @@ export function Transactions() {
     return () => {
       clearInterval(interval);
     };
-  }, []);
+  }, [updateTransactions]);
 
   return (
     <>

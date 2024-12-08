@@ -6,11 +6,13 @@ import {
   RouterProvider,
 } from 'react-router-dom';
 import { useLocalStorage } from 'usehooks-ts';
+import { ErrorProvider } from './contexts/ErrorContext';
 import { PeerProvider } from './contexts/PeerContext';
 import { PriceProvider } from './contexts/PriceContext';
 import { WalletConnectProvider } from './contexts/WalletConnectContext';
 import useInitialization from './hooks/useInitialization';
 import { useWallet } from './hooks/useWallet';
+import Addresses from './pages/Addresses';
 import Collection from './pages/Collection';
 import CreateProfile from './pages/CreateProfile';
 import CreateWallet from './pages/CreateWallet';
@@ -24,7 +26,6 @@ import Nft from './pages/Nft';
 import { NftList } from './pages/NftList';
 import { Offers } from './pages/Offers';
 import PeerList from './pages/PeerList';
-import Addresses from './pages/Addresses';
 import Send from './pages/Send';
 import Settings from './pages/Settings';
 import Token from './pages/Token';
@@ -105,6 +106,16 @@ export default function App() {
     root.classList.add(dark ? 'dark' : 'light');
   }, [dark]);
 
+  return (
+    <DarkModeContext.Provider value={darkMode}>
+      <ErrorProvider>
+        <AppInner />
+      </ErrorProvider>
+    </DarkModeContext.Provider>
+  );
+}
+
+function AppInner() {
   const initialized = useInitialization();
   const wallet = useWallet(initialized);
 
@@ -115,16 +126,14 @@ export default function App() {
   }, [wallet]);
 
   return (
-    <DarkModeContext.Provider value={darkMode}>
-      {initialized && (
-        <PeerProvider>
-          <WalletConnectProvider>
-            <PriceProvider>
-              <RouterProvider router={router} />
-            </PriceProvider>
-          </WalletConnectProvider>
-        </PeerProvider>
-      )}
-    </DarkModeContext.Provider>
+    initialized && (
+      <PeerProvider>
+        <WalletConnectProvider>
+          <PriceProvider>
+            <RouterProvider router={router} />
+          </PriceProvider>
+        </WalletConnectProvider>
+      </PeerProvider>
+    )
   );
 }

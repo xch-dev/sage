@@ -18,6 +18,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Switch } from '@/components/ui/switch';
+import { useErrors } from '@/hooks/useErrors';
 import {
   EraserIcon,
   EyeIcon,
@@ -33,34 +35,33 @@ import { useNavigate } from 'react-router-dom';
 import { commands, KeyInfo, SecretKeyInfo } from '../bindings';
 import Container from '../components/Container';
 import { loginAndUpdateState } from '../state';
-import { Switch } from '@/components/ui/switch';
 
 export default function Login() {
+  const navigate = useNavigate();
+
+  const { addError } = useErrors();
+
   const [keys, setKeys] = useState<KeyInfo[] | null>(null);
   const [network, setNetwork] = useState<string | null>(null);
 
-  const navigate = useNavigate();
+  useEffect(() => {
+    commands
+      .getKeys({})
+      .then((data) => setKeys(data.keys))
+      .catch(addError);
+
+    commands
+      .networkConfig()
+      .then((data) => setNetwork(data.network_id))
+      .catch(addError);
+  }, [addError]);
 
   useEffect(() => {
-    commands.getKeys({}).then((res) => {
-      if (res.status === 'ok') {
-        setKeys(res.data.keys);
-      }
-    });
-
-    commands.networkConfig().then((res) => {
-      if (res.status === 'ok') {
-        setNetwork(res.data.network_id);
-      }
-    });
-  }, []);
-
-  useEffect(() => {
-    commands.getKey({}).then((res) => {
-      if (res.status === 'error' || !res.data.key) return;
-      navigate('/wallet');
-    });
-  }, [navigate]);
+    commands
+      .getKey({})
+      .then((data) => data.key !== null && navigate('/wallet'))
+      .catch(addError);
+  }, [navigate, addError]);
 
   return (
     <div className='flex-1 space-y-4 p-8 pt-6'>
@@ -122,6 +123,8 @@ interface WalletItemProps {
 function WalletItem({ network, info, keys, setKeys }: WalletItemProps) {
   const navigate = useNavigate();
 
+  const { addError } = useErrors();
+
   const [anchorEl, _setAnchorEl] = useState<HTMLElement | null>(null);
   const isMenuOpen = Boolean(anchorEl);
 
@@ -142,18 +145,18 @@ function WalletItem({ network, info, keys, setKeys }: WalletItemProps) {
         fingerprint: info.fingerprint,
         delete_offer_files: deleteOffers,
       })
-      .then((res) => {
-        if (res.status === 'error') return;
-        setResyncOpen(false);
-      });
+      .catch(addError)
+      .finally(() => setResyncOpen(false));
   };
 
   const deleteSelf = () => {
-    commands.deleteKey({ fingerprint: info.fingerprint }).then((res) => {
-      if (res.status === 'error') return;
-      setKeys(keys.filter((key) => key.fingerprint !== info.fingerprint));
-      setDeleteOpen(false);
-    });
+    commands
+      .deleteKey({ fingerprint: info.fingerprint })
+      .then(() =>
+        setKeys(keys.filter((key) => key.fingerprint !== info.fingerprint)),
+      )
+      .catch(addError)
+      .finally(() => setDeleteOpen(false));
   };
 
   const renameSelf = () => {
@@ -161,17 +164,17 @@ function WalletItem({ network, info, keys, setKeys }: WalletItemProps) {
 
     commands
       .renameKey({ fingerprint: info.fingerprint, name: newName })
-      .then((res) => {
-        if (res.status === 'error') return;
+      .then(() =>
         setKeys(
           keys.map((key) =>
             key.fingerprint === info.fingerprint
               ? { ...key, name: newName }
               : key,
           ),
-        );
-        setRenameOpen(false);
-      });
+        ),
+      )
+      .catch(addError)
+      .finally(() => setRenameOpen(false));
 
     setNewName('');
   };
@@ -190,11 +193,11 @@ function WalletItem({ network, info, keys, setKeys }: WalletItemProps) {
       return;
     }
 
-    commands.getSecretKey({ fingerprint: info.fingerprint }).then((res) => {
-      if (res.status === 'error') return;
-      setSecrets(res.data.secrets);
-    });
-  }, [isDetailsOpen, info.fingerprint]);
+    commands
+      .getSecretKey({ fingerprint: info.fingerprint })
+      .then((data) => data.secrets !== null && setSecrets(data.secrets))
+      .catch(addError);
+  }, [isDetailsOpen, info.fingerprint, addError]);
 
   return (
     <>

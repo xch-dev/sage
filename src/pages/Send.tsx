@@ -10,6 +10,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { useErrors } from '@/hooks/useErrors';
 import { amount, positiveAmount } from '@/lib/formTypes';
 import { toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
@@ -36,22 +37,22 @@ export default function Send() {
   const navigate = useNavigate();
   const walletState = useWalletState();
 
+  const { addError } = useErrors();
+
   const [asset, setAsset] = useState<(CatRecord & { decimals: number }) | null>(
     null,
   );
   const [error, setError] = useState<Error | null>(null);
   const [response, setResponse] = useState<TransactionResponse | null>(null);
 
-  const updateCat = useCallback(() => {
-    commands.getCat({ asset_id: assetId! }).then((result) => {
-      if (result.status === 'ok') {
-        setAsset({ ...result.data.cat!, decimals: 3 });
-      } else {
-        console.error(result.error);
-        setError(result.error);
-      }
-    });
-  }, [assetId]);
+  const updateCat = useCallback(
+    () =>
+      commands
+        .getCat({ asset_id: assetId! })
+        .then((data) => setAsset({ ...data.cat!, decimals: 3 }))
+        .catch(addError),
+    [assetId, addError],
+  );
 
   useEffect(() => {
     if (isXch) {
@@ -96,10 +97,7 @@ export default function Send() {
     address: z
       .string()
       .refine(
-        (address) =>
-          commands
-            .validateAddress(address)
-            .then((result) => result.status === 'ok' && result.data),
+        (address) => commands.validateAddress(address).catch(addError),
         'Invalid address',
       ),
     amount: positiveAmount(asset?.decimals || 12),
@@ -126,14 +124,9 @@ export default function Send() {
         values.fee?.toString() || '0',
         walletState.sync.unit.decimals,
       ),
-    }).then((confirmation) => {
-      if (confirmation.status === 'error') {
-        console.error(confirmation.error);
-        return;
-      }
-
-      setResponse(confirmation.data);
-    });
+    })
+      .then((confirmation) => setResponse(confirmation))
+      .catch(addError);
   };
 
   return (
@@ -238,10 +231,6 @@ export default function Send() {
         response={response}
         close={() => setResponse(null)}
         onConfirm={() => navigate(-1)}
-        onError={(error) => {
-          console.error(error);
-          setError(error);
-        }}
       />
     </>
   );

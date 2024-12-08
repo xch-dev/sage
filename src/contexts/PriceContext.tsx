@@ -3,16 +3,17 @@ import {
   createContext,
   ReactNode,
   useCallback,
-  useContext,
   useEffect,
   useState,
 } from 'react';
 
-interface PriceContextType {
+export interface PriceContextType {
   getBalanceInUsd: (assetId: string, balance: string) => string;
 }
 
-const PriceContext = createContext<PriceContextType | undefined>(undefined);
+export const PriceContext = createContext<PriceContextType | undefined>(
+  undefined,
+);
 
 export function PriceProvider({ children }: { children: ReactNode }) {
   const walletState = useWalletState();
@@ -81,12 +82,4 @@ export function PriceProvider({ children }: { children: ReactNode }) {
       {children}
     </PriceContext.Provider>
   );
-}
-
-export function usePrices() {
-  const context = useContext(PriceContext);
-  if (context === undefined) {
-    throw new Error('usePeers must be used within a PeerProvider');
-  }
-  return context;
 }

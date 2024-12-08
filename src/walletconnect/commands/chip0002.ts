@@ -3,13 +3,9 @@ import { BigNumber } from 'bignumber.js';
 import { Params } from '../commands';
 
 export async function handleChainId(_params: Params<'chip0002_chainId'>) {
-  const result = await commands.networkConfig();
+  const data = await commands.networkConfig();
 
-  if (result.status === 'error') {
-    throw new Error(result.error.reason);
-  }
-
-  return result.data.network_id;
+  return data.network_id;
 }
 
 export async function handleConnect(_params: Params<'chip0002_connect'>) {
@@ -21,61 +17,45 @@ export async function handleConnect(_params: Params<'chip0002_connect'>) {
 export async function handleGetPublicKeys(
   params: Params<'chip0002_getPublicKeys'>,
 ) {
-  const result = await commands.getDerivations({
+  const data = await commands.getDerivations({
     limit: params?.limit ?? 10,
     offset: params?.offset ?? 0,
   });
 
-  if (result.status === 'error') {
-    throw new Error(result.error.reason);
-  }
-
-  return result.data.derivations.map((derivation) => derivation.public_key);
+  return data.derivations.map((derivation) => derivation.public_key);
 }
 
 export async function handleFilterUnlockedCoins(
   params: Params<'chip0002_filterUnlockedCoins'>,
 ) {
-  const result = await commands.filterUnlockedCoins({
+  const data = await commands.filterUnlockedCoins({
     coin_ids: params.coinNames,
   });
 
-  if (result.status === 'error') {
-    throw new Error(result.error.reason);
-  }
-
-  return result.data;
+  return data;
 }
 
 export async function handleGetAssetCoins(
   params: Params<'chip0002_getAssetCoins'>,
 ) {
-  const result = await commands.getAssetCoins(params);
+  const data = await commands.getAssetCoins(params);
 
-  if (result.status === 'error') {
-    throw new Error(result.error.reason);
-  }
-
-  return result.data;
+  return data;
 }
 
 export async function handleGetAssetBalance(
   params: Params<'chip0002_getAssetBalance'>,
 ) {
-  const result = await commands.getAssetCoins({
+  const data = await commands.getAssetCoins({
     ...params,
     includedLocked: true,
   });
-
-  if (result.status === 'error') {
-    throw new Error(result.error.reason);
-  }
 
   let confirmed = BigNumber(0);
   let spendable = BigNumber(0);
   let spendableCoinCount = 0;
 
-  for (const record of result.data) {
+  for (const record of data) {
     confirmed = confirmed.plus(record.coin.amount);
 
     if (!record.locked) {
@@ -94,7 +74,7 @@ export async function handleGetAssetBalance(
 export async function handleSignCoinSpends(
   params: Params<'chip0002_signCoinSpends'>,
 ) {
-  const result = await commands.signCoinSpends({
+  const data = await commands.signCoinSpends({
     coin_spends: params.coinSpends.map((coinSpend) => {
       return {
         coin: {
@@ -110,35 +90,21 @@ export async function handleSignCoinSpends(
     auto_submit: false,
   });
 
-  if (result.status === 'error') {
-    throw new Error(result.error.reason);
-  }
-
-  return result.data.spend_bundle.aggregated_signature;
+  return data.spend_bundle.aggregated_signature;
 }
 
 export async function handleSignMessage(
   params: Params<'chip0002_signMessage'>,
 ) {
-  const result = await commands.signMessageWithPublicKey(params);
+  const data = await commands.signMessageWithPublicKey(params);
 
-  if (result.status === 'error') {
-    throw new Error(result.error.reason);
-  }
-
-  return result.data.signature;
+  return data.signature;
 }
 
 export async function handleSendTransaction(
   params: Params<'chip0002_sendTransaction'>,
 ) {
-  const result = await commands.sendTransactionImmediately({
+  return await commands.sendTransactionImmediately({
     spend_bundle: params.spendBundle,
   });
-
-  if (result.status === 'error') {
-    throw new Error(result.error.reason);
-  }
-
-  return result.data;
 }

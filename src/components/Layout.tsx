@@ -2,8 +2,8 @@ import { Cog, LogOut } from 'lucide-react';
 import { PropsWithChildren, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
-import { usePeers } from '@/contexts/PeerContext';
 import useInitialization from '@/hooks/useInitialization';
+import { usePeers } from '@/hooks/usePeers';
 import { useWallet } from '@/hooks/useWallet';
 import icon from '@/icon.png';
 import { logoutAndUpdateState, useWalletState } from '@/state';

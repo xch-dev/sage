@@ -7,6 +7,7 @@ import { OfferCard } from '@/components/OfferCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useErrors } from '@/hooks/useErrors';
 import { toDecimal, toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import BigNumber from 'bignumber.js';
@@ -15,6 +16,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 
 export function ViewOffer() {
   const { offer } = useParams();
+  const { addError } = useErrors();
 
   const walletState = useWalletState();
   const navigate = useNavigate();
@@ -27,45 +29,32 @@ export function ViewOffer() {
   useEffect(() => {
     if (!offer) return;
 
-    commands.viewOffer({ offer }).then((result) => {
-      if (result.status === 'error') {
-        setError(result.error);
-      } else {
-        setSummary(result.data.offer);
-      }
-    });
-  }, [offer]);
+    commands
+      .viewOffer({ offer })
+      .then((data) => setSummary(data.offer))
+      .catch(addError);
+  }, [offer, addError]);
 
   const importOffer = () => {
-    commands.importOffer({ offer: offer! }).then((result) => {
-      if (result.status === 'error') {
-        setError(result.error);
-      } else {
-        navigate('/offers');
-      }
-    });
+    commands
+      .importOffer({ offer: offer! })
+      .then(() => navigate('/offers'))
+      .catch(addError);
   };
 
   const take = () => {
-    commands.importOffer({ offer: offer! }).then((result) => {
-      if (result.status === 'error') {
-        setError(result.error);
-        return;
-      }
-
-      commands
-        .takeOffer({
-          offer: offer!,
-          fee: toMojos(fee || '0', walletState.sync.unit.decimals),
-        })
-        .then((result) => {
-          if (result.status === 'error') {
-            setError(result.error);
-          } else {
-            setResponse(result.data);
-          }
-        });
-    });
+    commands
+      .importOffer({ offer: offer! })
+      .then(() =>
+        commands
+          .takeOffer({
+            offer: offer!,
+            fee: toMojos(fee || '0', walletState.sync.unit.decimals),
+          })
+          .then((result) => setResponse(result))
+          .catch(addError),
+      )
+      .catch(addError);
   };
 
   return (

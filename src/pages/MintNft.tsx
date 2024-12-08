@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useDids } from '@/hooks/useDids';
+import { useErrors } from '@/hooks/useErrors';
 import { amount } from '@/lib/formTypes';
 import { toMojos } from '@/lib/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -36,6 +37,7 @@ export default function MintNft() {
   const walletState = useWalletState();
 
   const { dids } = useDids();
+  const { addError } = useErrors();
 
   const [error, setError] = useState<Error | null>(null);
   const [pending, setPending] = useState(false);
@@ -86,17 +88,9 @@ export default function MintNft() {
           },
         ],
       })
-      .then((result) => {
-        if (result.status === 'error') {
-          console.error(result.error);
-          setError(result.error);
-        } else {
-          setResponse(result.data);
-        }
-      })
-      .finally(() => {
-        setPending(false);
-      });
+      .then(setResponse)
+      .catch(addError)
+      .finally(() => setPending(false));
   };
 
   return (

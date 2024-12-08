@@ -10,6 +10,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { useErrors } from '@/hooks/useErrors';
 import { amount } from '@/lib/formTypes';
 import { toMojos } from '@/lib/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -23,6 +24,8 @@ import ErrorDialog from '../components/ErrorDialog';
 import { useWalletState } from '../state';
 
 export default function CreateProfile() {
+  const { addError } = useErrors();
+
   const navigate = useNavigate();
   const walletState = useWalletState();
 
@@ -47,15 +50,8 @@ export default function CreateProfile() {
           walletState.sync.unit.decimals,
         ),
       })
-      .then((result) => {
-        if (result.status === 'error') {
-          console.error(result.error);
-          setError(result.error);
-          return;
-        } else {
-          setResponse(result.data);
-        }
-      });
+      .then((data) => setResponse(data))
+      .catch(addError);
   };
 
   return (

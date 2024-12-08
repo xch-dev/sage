@@ -1,5 +1,4 @@
 import Header from '@/components/Header';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -12,9 +11,8 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { useErrors } from '@/hooks/useErrors';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { AlertCircle } from 'lucide-react';
-import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import * as z from 'zod';
@@ -25,20 +23,14 @@ import { fetchState } from '../state';
 export default function ImportWallet() {
   const navigate = useNavigate();
 
-  const [error, setError] = useState<string | null>(null);
+  const { addError } = useErrors();
 
   const submit = (values: z.infer<typeof formSchema>) => {
     commands
       .importKey({ name: values.walletName, key: values.walletKey })
-      .then((res) => {
-        if (res.status === 'ok') {
-          fetchState().then(() => {
-            navigate('/wallet');
-          });
-        } else {
-          setError(res.error.reason);
-        }
-      });
+      .then(fetchState)
+      .then(() => navigate('/wallet'))
+      .catch(addError);
   };
 
   return (
@@ -47,14 +39,6 @@ export default function ImportWallet() {
 
       <Container>
         <ImportForm onSubmit={submit} />
-
-        {error && (
-          <Alert variant='destructive'>
-            <AlertCircle className='h-4 w-4' />
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
       </Container>
     </>
   );

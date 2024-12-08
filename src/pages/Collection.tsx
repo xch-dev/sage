@@ -5,11 +5,13 @@ import { MultiSelectActions } from '@/components/MultiSelectActions';
 import { NftCard, NftCardList } from '@/components/NftCard';
 import { NftOptions } from '@/components/NftOptions';
 import { ReceiveAddress } from '@/components/ReceiveAddress';
+import { useErrors } from '@/hooks/useErrors';
 import { NftView, useNftParams } from '@/hooks/useNftParams';
 import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 
 export default function Collection() {
+  const { addError } = useErrors();
   const { collection_id: collectionId } = useParams();
 
   const [params, setParams] = useNftParams();
@@ -35,28 +37,18 @@ export default function Collection() {
           sort_mode: view,
           include_hidden: showHidden,
         })
-        .then((result) => {
-          if (result.status === 'ok') {
-            setNfts(result.data.nfts);
-          } else {
-            throw new Error('Failed to get NFTs');
-          }
-        });
+        .then((data) => setNfts(data.nfts))
+        .catch(addError);
 
       await commands
         .getNftCollection({
           collection_id:
             collectionId === 'No collection' ? null : (collectionId ?? null),
         })
-        .then((result) => {
-          if (result.status === 'ok') {
-            setCollection(result.data.collection);
-          } else {
-            throw new Error('Failed to get collection');
-          }
-        });
+        .then((data) => setCollection(data.collection))
+        .catch(addError);
     },
-    [collectionId, pageSize, showHidden, view],
+    [collectionId, pageSize, showHidden, view, addError],
   );
 
   useEffect(() => {

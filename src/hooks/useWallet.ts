@@ -1,20 +1,20 @@
 import { useEffect, useState } from 'react';
 import { commands, KeyInfo } from '../bindings';
+import { useErrors } from './useErrors';
 
 export function useWallet(initialized: boolean) {
+  const { addError } = useErrors();
+
   const [wallet, setWallet] = useState<KeyInfo | null>(null);
 
   useEffect(() => {
-    if (initialized) {
-      commands.getKey({}).then((wallet) => {
-        if (wallet.status === 'ok' && wallet.data) {
-          setWallet(wallet.data.key);
-        } else {
-          setWallet(null);
-        }
-      });
-    }
-  }, [initialized]);
+    if (!initialized) return;
+
+    commands
+      .getKey({})
+      .then((data) => setWallet(data.key))
+      .catch(addError);
+  }, [initialized, addError]);
 
   return wallet;
 }

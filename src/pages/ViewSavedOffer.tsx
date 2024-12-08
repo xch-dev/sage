@@ -3,13 +3,15 @@ import Container from '@/components/Container';
 import ErrorDialog from '@/components/ErrorDialog';
 import Header from '@/components/Header';
 import { OfferCard } from '@/components/OfferCard';
+import { useErrors } from '@/hooks/useErrors';
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 export function ViewSavedOffer() {
-  const { offer_id: offerId } = useParams();
-
   const navigate = useNavigate();
+
+  const { offer_id: offerId } = useParams();
+  const { addError } = useErrors();
 
   const [record, setRecord] = useState<OfferRecord | null>(null);
   const [error, setError] = useState<Error | null>(null);
@@ -17,14 +19,11 @@ export function ViewSavedOffer() {
   useEffect(() => {
     if (!offerId) return;
 
-    commands.getOffer({ offer_id: offerId }).then((result) => {
-      if (result.status === 'error') {
-        setError(result.error);
-      } else {
-        setRecord(result.data.offer);
-      }
-    });
-  }, [offerId]);
+    commands
+      .getOffer({ offer_id: offerId })
+      .then((data) => setRecord(data.offer))
+      .catch(addError);
+  }, [offerId, addError]);
 
   return (
     <>
