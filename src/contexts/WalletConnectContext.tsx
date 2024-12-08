@@ -80,11 +80,16 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
 
   const handleAndRespond = useCallback(
     async (request: SessionRequest) => {
-      if (!signClient) throw new Error('Sign client not initialized');
+      if (!signClient) {
+        console.error('Sign client not initialized');
+        return;
+      }
 
       try {
+        const method = request.params.request
+          .method as keyof typeof walletConnectCommands;
         const result = await handleCommand(
-          request.params.request.method as keyof typeof walletConnectCommands,
+          method,
           request.params.request.params,
         );
 
@@ -96,19 +101,26 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
             result: result,
           },
         });
-      } catch (e: any) {
-        console.error(e);
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : 'Request failed';
+        addError({ kind: 'walletconnect', reason: errorMessage });
+        console.error('WalletConnect request failed:', error);
+
         await signClient.respond({
           topic: request.topic,
           response: {
             id: request.id,
             jsonrpc: '2.0',
-            error: e.message,
+            error: {
+              code: 4001,
+              message: errorMessage,
+            },
           },
         });
       }
     },
-    [signClient],
+    [signClient, addError],
   );
 
   useEffect(() => {
@@ -119,84 +131,139 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
     async function handleSessionProposal(
       proposal: SignClientTypes.EventArguments['session_proposal'],
     ) {
-      if (!signClient) throw new Error('Sign client not initialized');
-
-      console.log('session proposal', proposal);
-      console.log('active wallet', wallet);
-
-      const {
-        id: _id,
-        params: {
-          pairingTopic,
-          proposer: { metadata: _proposerMetadata },
-          requiredNamespaces,
-        },
-      } = proposal;
-
-      if (!pairingTopic) {
-        throw new Error('Pairing topic not found');
+      if (!signClient) {
+        console.error('Sign client not initialized');
+        return;
       }
 
-      const requiredNamespace = requiredNamespaces.chia;
-      if (!requiredNamespace) {
-        throw new Error('Missing required chia namespace');
-      }
+      try {
+        console.log('session proposal', proposal);
+        console.log('active wallet', wallet);
 
-      const { chains, methods, events } = requiredNamespace;
-      const chain = chains?.find((item) =>
-        ['chia:testnet', 'chia:mainnet'].includes(item),
-      );
-      if (!chain) {
-        throw new Error('Chain not supported');
-      }
-
-      const networkConfig = await commands.networkConfig().catch(addError);
-
-      if (!networkConfig) {
-        throw new Error('Network config not found');
-      }
-
-      const network =
-        networkConfig.network_id === 'mainnet' ? 'mainnet' : 'testnet';
-
-      if (!wallet) {
-        throw new Error('No active wallet');
-      }
-
-      const account = `chia:${network}:${wallet.fingerprint}`;
-      const availableMethods = methods;
-      const availableEvents = events;
-
-      const { topic, acknowledged } = await signClient.approve({
-        id: proposal.id,
-        namespaces: {
-          chia: {
-            accounts: [account],
-            methods: availableMethods,
-            events: availableEvents,
+        const {
+          id: _id,
+          params: {
+            pairingTopic,
+            proposer: { metadata: _proposerMetadata },
+            requiredNamespaces,
           },
-        },
-      });
-      console.log('topic', topic);
+        } = proposal;
 
-      await acknowledged();
-      setSessions(signClient.session.getAll());
+        if (!pairingTopic) {
+          throw new Error('Pairing topic not found');
+        }
+
+        const requiredNamespace = requiredNamespaces.chia;
+        if (!requiredNamespace) {
+          throw new Error('Missing required chia namespace');
+        }
+
+        const { chains, methods, events } = requiredNamespace;
+        const chain = chains?.find((item) =>
+          ['chia:testnet', 'chia:mainnet'].includes(item),
+        );
+        if (!chain) {
+          throw new Error('Chain not supported');
+        }
+
+        const networkConfig = await commands.networkConfig().catch((e) => {
+          console.error('Failed to get network config:', e);
+          throw e;
+        });
+
+        if (!networkConfig) {
+          throw new Error('Network config not found');
+        }
+
+        const network =
+          networkConfig.network_id === 'mainnet' ? 'mainnet' : 'testnet';
+
+        if (!wallet) {
+          throw new Error('No active wallet');
+        }
+
+        const account = `chia:${network}:${wallet.fingerprint}`;
+        const availableMethods = methods;
+        const availableEvents = events;
+
+        const { topic, acknowledged } = await signClient.approve({
+          id: proposal.id,
+          namespaces: {
+            chia: {
+              accounts: [account],
+              methods: availableMethods,
+              events: availableEvents,
+            },
+          },
+        });
+        console.log('topic', topic);
+
+        await acknowledged();
+        setSessions(signClient.session.getAll());
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : 'Failed to connect';
+        addError({ kind: 'walletconnect', reason: errorMessage });
+        console.error('WalletConnect session proposal failed:', error);
+
+        await signClient.reject({
+          id: proposal.id,
+          reason: {
+            code: 4001,
+            message: errorMessage,
+          },
+        });
+      }
     }
 
     async function handleSessionRequest(request: SessionRequest) {
-      const method = request.params.request
-        .method as keyof typeof walletConnectCommands;
+      try {
+        const method = request.params.request
+          .method as keyof typeof walletConnectCommands;
 
-      console.log('session request', request);
-      console.log(walletConnectCommands[method]);
+        if (!walletConnectCommands[method]) {
+          throw new Error(`Unsupported method: ${method}`);
+        }
 
-      if (walletConnectCommands[method].confirm) {
-        setPendingRequests((p: SessionRequest[]) => [...p, request]);
-        await getCurrentWindow().requestUserAttention(
-          UserAttentionType.Critical,
-        );
-      } else {
-        await handleAndRespond(request);
+        // Validate parameters before showing any UI
+        try {
+          walletConnectCommands[method].paramsType.parse(
+            request.params.request.params,
+          );
+        } catch (error) {
+          console.error('Invalid parameters for method:', method, error);
+          throw new Error(
+            error instanceof Error
+              ? error.message
+              : `Invalid parameters for ${method}`,
+          );
+        }
+
+        if (walletConnectCommands[method].confirm) {
+          setPendingRequests((p: SessionRequest[]) => [...p, request]);
+          await getCurrentWindow().requestUserAttention(
+            UserAttentionType.Critical,
+          );
+        } else {
+          await handleAndRespond(request);
+        }
+      } catch (error) {
+        console.error('WalletConnect session request failed:', error);
+
+        if (signClient) {
+          await signClient.respond({
+            topic: request.topic,
+            response: {
+              id: request.id,
+              jsonrpc: '2.0',
+              error: {
+                code: 4001,
+                message:
+                  error instanceof Error ? error.message : 'Request failed',
+              },
+            },
+          });
+        }
       }
     }
 
@@ -218,21 +285,36 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
   }, [signClient, wallet, handleAndRespond, setPendingRequests, addError]);
 
   const pair = async (uri: string) => {
-    if (!signClient) throw new Error('Sign client not initialized');
+    if (!signClient) {
+      console.error('Sign client not initialized');
+      return;
+    }
 
-    await signClient.core.pairing.pair({
-      uri,
-    });
+    try {
+      await signClient.core.pairing.pair({ uri });
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Failed to pair';
+      addError({ kind: 'walletconnect', reason: errorMessage });
+      console.error('WalletConnect pairing failed:', error);
+    }
   };
 
   const disconnect = async (topic: string) => {
-    if (!signClient) throw new Error('Sign client not initialized');
+    if (!signClient) {
+      console.error('Sign client not initialized');
+      return;
+    }
 
-    await signClient.disconnect({
-      topic,
-      reason: { code: 1, message: 'User disconnected' },
-    });
-    setSessions(signClient.session.getAll());
+    try {
+      await signClient.disconnect({
+        topic,
+        reason: { code: 4001, message: 'User disconnected' },
+      });
+      setSessions(signClient.session.getAll());
+    } catch (error) {
+      console.error('WalletConnect disconnect failed:', error);
+    }
   };
 
   const approveRequest = async (request: SessionRequest) => {

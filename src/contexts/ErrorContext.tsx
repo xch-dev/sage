@@ -15,11 +15,16 @@ import {
   useRef,
   useState,
 } from 'react';
-import { type Error } from '../bindings';
+import { ErrorKind } from '../bindings';
+
+export interface CustomError {
+  kind: ErrorKind | 'walletconnect';
+  reason: string;
+}
 
 export interface ErrorContextType {
-  errors: Error[];
-  addError: (error: Error) => void;
+  errors: CustomError[];
+  addError: (error: CustomError) => void;
 }
 
 export const ErrorContext = createContext<ErrorContextType | undefined>(
@@ -27,7 +32,7 @@ export const ErrorContext = createContext<ErrorContextType | undefined>(
 );
 
 export function ErrorProvider({ children }: { children: ReactNode }) {
-  const [errors, setErrors] = useState<Error[]>([]);
+  const [errors, setErrors] = useState<CustomError[]>([]);
   const errorsRef = useRef(errors);
 
   useEffect(() => {
@@ -35,7 +40,7 @@ export function ErrorProvider({ children }: { children: ReactNode }) {
   }, [errors]);
 
   const addError = useMemo(
-    () => (error: Error) => setErrors([...errorsRef.current, error]),
+    () => (error: CustomError) => setErrors([...errorsRef.current, error]),
     [],
   );
 
@@ -54,8 +59,8 @@ export function ErrorProvider({ children }: { children: ReactNode }) {
 }
 
 export interface ErrorDialogProps {
-  error: Error | null;
-  setError: (error: Error | null) => void;
+  error: CustomError | null;
+  setError: (error: CustomError | null) => void;
 }
 
 export default function ErrorDialog({ error, setError }: ErrorDialogProps) {
@@ -80,6 +85,10 @@ export default function ErrorDialog({ error, setError }: ErrorDialogProps) {
 
     case 'wallet':
       kind = 'Wallet';
+      break;
+
+    case 'walletconnect':
+      kind = 'WalletConnect';
       break;
 
     default:
