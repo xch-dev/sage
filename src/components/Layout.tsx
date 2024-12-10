@@ -43,8 +43,9 @@ export default function Layout(props: PropsWithChildren<object>) {
               to='/wallet'
               className='flex items-center gap-2 font-semibold'
             >
-              <img src={icon} className='h-6 w-6' />
-              {wallet?.name}
+              <img src={icon} className='h-8 w-8' />
+              {/* {wallet?.name} */}
+              <span className='text-lg'>{wallet?.name}</span>
             </Link>
           </div>
           <div className='flex-1 flex flex-col justify-between pb-4'>
@@ -93,7 +94,7 @@ export default function Layout(props: PropsWithChildren<object>) {
           </div>
         </div>
       </div>
-      <div className='flex flex-col h-screen overflow-auto'>
+      <div className='flex flex-col h-screen overflow-hidden pt-[env(safe-area-inset-top)]'>
         {props.children}
       </div>
     </div>

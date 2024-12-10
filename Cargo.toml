@@ -64,6 +64,7 @@ base64 = "0.22.1"
 tauri = "2.1.1"
 tauri-plugin-clipboard-manager = "2.0.2"
 tauri-plugin-shell = "2.0.2"
+tauri-plugin-os = "2.0.0"
 tauri-build = "2.0.3"
 
 # Specta

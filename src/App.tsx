@@ -114,6 +114,12 @@ export default function App() {
     }
   }, [wallet]);
 
+  // return (
+  //   <div className='h-screen w-screen bg-red-300 flex flex-col'>
+  //     <div className='flex-grow-[0.99] bg-blue-400'></div>
+  //   </div>
+  // );
+
   return (
     <DarkModeContext.Provider value={darkMode}>
       {initialized && (

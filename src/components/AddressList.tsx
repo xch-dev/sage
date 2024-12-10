@@ -17,6 +17,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useMemo } from 'react';
 import { Button } from './ui/button';
 import { CopyButton } from './CopyButton';
+import { FormattedAddress } from './FormattedAddress';
 
 export interface AddressListProps {
   addresses: string[];
@@ -37,22 +38,28 @@ export default function AddressList(props: AddressListProps) {
 
   const columns: ColumnDef<AddressRow>[] = [
     {
-      accessorKey: 'id',
+      id: 'id',
+      accessorFn: (row) => row.id,
       header: () => <div className='text-center'>Index</div>,
-      cell: (info) => <div className='text-center'>{info.row.original.id}</div>,
+      cell: (info) => (
+        <div className='text-center w-14'>{info.row.original.id}</div>
+      ),
     },
     {
-      accessorKey: 'address',
+      id: 'address',
+      accessorFn: (row) => row.address,
       header: 'Address',
       cell: (info) => (
-        <div className='truncate'>{info.getValue() as string}</div>
+        <div className='w-full overflow-hidden'>
+          <FormattedAddress address={info.getValue() as string} />
+        </div>
       ),
-      size: 140,
     },
     {
-      header: 'Actions',
+      id: 'actions',
+      header: () => <div className='text-center'>Actions</div>,
       cell: (info) => (
-        <div>
+        <div className='w-16 text-center'>
           <CopyButton
             value={info.row.original.address}
             className='flex-shrink-0'
@@ -62,11 +69,19 @@ export default function AddressList(props: AddressListProps) {
     },
   ];
 
+  const defaultColumn: Partial<ColumnDef<AddressRow>> = {
+    minSize: 70,
+    size: 200,
+    maxSize: 1000,
+  };
+
   const table = useReactTable({
     data: rows,
     columns,
+    defaultColumn,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    columnResizeMode: 'onChange',
     initialState: {
       pagination: {
         pageSize: 10,
@@ -83,7 +98,19 @@ export default function AddressList(props: AddressListProps) {
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
                   {headerGroup.headers.map((header) => (
-                    <TableHead key={header.id}>
+                    <TableHead
+                      key={header.id}
+                      style={
+                        header.column.id === 'address'
+                          ? { maxWidth: 200 }
+                          : {
+                              width: header.column.getSize(),
+                            }
+                      }
+                      className={
+                        header.column.id === 'address' ? 'w-full' : undefined
+                      }
+                    >
                       {header.isPlaceholder
                         ? null
                         : flexRender(
@@ -98,11 +125,20 @@ export default function AddressList(props: AddressListProps) {
             <TableBody>
               {table.getRowModel().rows?.length ? (
                 table.getRowModel().rows.map((row) => (
-                  <TableRow key={row.id} className='-inset-x-2/40px]'>
+                  <TableRow key={row.id}>
                     {row.getVisibleCells().map((cell) => (
                       <TableCell
                         key={cell.id}
-                        style={{ maxWidth: `${cell.column.getSize()}px` }}
+                        style={
+                          cell.column.id === 'address'
+                            ? { maxWidth: 200 }
+                            : {
+                                width: cell.column.getSize(),
+                              }
+                        }
+                        className={
+                          cell.column.id === 'address' ? 'w-full' : undefined
+                        }
                       >
                         {flexRender(
                           cell.column.columnDef.cell,
