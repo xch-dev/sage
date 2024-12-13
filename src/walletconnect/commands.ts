@@ -24,6 +24,28 @@ const assetAmount = z.object({
   amount: safeAmount,
 });
 
+const nft = z.object({
+  launcherId: z.string(),
+  collectionId: z.string().nullable(),
+  collectionName: z.string().nullable(),
+  minterDid: z.string().nullable(),
+  ownerDid: z.string().nullable(),
+  name: z.string().nullable(),
+  createdHeight: z.number().nullable(),
+  coinId: z.string(),
+  address: z.string(),
+  royaltyAddress: z.string(),
+  royaltyTenThousandths: z.number(),
+  dataUris: z.array(z.string()),
+  dataHash: z.string().nullable(),
+  metadataUris: z.array(z.string()),
+  metadataHash: z.string().nullable(),
+  licenseUris: z.array(z.string()),
+  licenseHash: z.string().nullable(),
+  editionNumber: z.number().nullable(),
+  editionTotal: z.number().nullable(),
+});
+
 enum MempoolInclusionStatus {
   SUCCESS = 1, // Transaction added to mempool
   PENDING = 2, // Transaction not yet added to mempool
@@ -159,6 +181,28 @@ export const walletConnectCommands = {
     }),
     confirm: true,
   },
+  chia_getNfts: {
+    paramsType: z.object({
+      limit: z.number().optional(),
+      offset: z.number().optional(),
+      collectionId: z.string().optional(),
+    }),
+    returnType: z.object({
+      nfts: z.array(nft),
+    }),
+    confirm: false,
+  },
+  chia_send: {
+    paramsType: z.object({
+      assetId: z.string().optional(),
+      amount: safeAmount,
+      fee: safeAmount.optional(),
+      address: z.string(),
+      memos: z.array(z.string()).optional(),
+    }),
+    returnType: z.object({}),
+    confirm: true,
+  },
 } as const;
 
 // Define a union of valid commands
@@ -168,6 +212,10 @@ type Config<C extends WalletConnectCommand> = (typeof walletConnectCommands)[C];
 
 export type Params<C extends WalletConnectCommand> = z.infer<
   Config<C>['paramsType']
+>;
+
+export type Return<C extends WalletConnectCommand> = z.infer<
+  Config<C>['returnType']
 >;
 
 // Function to parse params based on the command

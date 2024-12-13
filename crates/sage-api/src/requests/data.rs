@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use specta::Type;
 
 use crate::{
-    Amount, CatRecord, CoinRecord, DerivationRecord, DidRecord, NftCollectionRecord, NftInfo,
+    Amount, CatRecord, CoinRecord, DerivationRecord, DidRecord, NftCollectionRecord, NftData,
     NftRecord, PendingTransactionRecord, Unit,
 };
 
@@ -143,5 +143,15 @@ pub struct GetNft {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub struct GetNftResponse {
-    pub nft: Option<NftInfo>,
+    pub nft: Option<NftRecord>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct GetNftData {
+    pub nft_id: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct GetNftDataResponse {
+    pub data: Option<NftData>,
 }

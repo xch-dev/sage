@@ -390,6 +390,15 @@ pub async fn get_nft(state: State<'_, AppState>, req: GetNft) -> Result<GetNftRe
 
 #[command]
 #[specta]
+pub async fn get_nft_data(
+    state: State<'_, AppState>,
+    req: GetNftData,
+) -> Result<GetNftDataResponse> {
+    Ok(state.lock().await.get_nft_data(req).await?)
+}
+
+#[command]
+#[specta]
 pub async fn remove_cat(state: State<'_, AppState>, req: RemoveCat) -> Result<RemoveCatResponse> {
     Ok(state.lock().await.remove_cat(req).await?)
 }

@@ -1,5 +1,6 @@
 import {
   commands,
+  NftData,
   NftRecord,
   NftUriKind,
   TransactionResponse,
@@ -23,7 +24,7 @@ import {
   UserRoundMinus,
   UserRoundPlus,
 } from 'lucide-react';
-import { PropsWithChildren, useState } from 'react';
+import { PropsWithChildren, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
@@ -87,12 +88,20 @@ export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
 
   const { addError } = useErrors();
 
+  const [data, setData] = useState<NftData | null>(null);
   const [transferOpen, setTransferOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
   const [unassignOpen, setUnassignOpen] = useState(false);
   const [addUrlOpen, setAddUrlOpen] = useState(false);
   const [burnOpen, setBurnOpen] = useState(false);
   const [response, setResponse] = useState<TransactionResponse | null>(null);
+
+  useEffect(() => {
+    commands
+      .getNftData({ nft_id: nft.launcher_id })
+      .then((response) => setData(response.data))
+      .catch(addError);
+  }, [nft.launcher_id, addError]);
 
   const toggleVisibility = () => {
     commands
@@ -199,7 +208,7 @@ export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
             width='150'
             height='150'
             className='h-auto w-auto object-cover transition-all group-hover:scale-105 aspect-square color-[transparent]'
-            src={nftUri(nft.data_mime_type, nft.data)}
+            src={nftUri(data?.mime_type ?? null, data?.blob ?? null)}
           />
 
           {selectionState !== null && (

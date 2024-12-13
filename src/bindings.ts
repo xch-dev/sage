@@ -122,6 +122,9 @@ async getNfts(req: GetNfts) : Promise<GetNftsResponse> {
 async getNft(req: GetNft) : Promise<GetNftResponse> {
     return await TAURI_INVOKE("get_nft", { req });
 },
+async getNftData(req: GetNftData) : Promise<GetNftDataResponse> {
+    return await TAURI_INVOKE("get_nft_data", { req });
+},
 async getPendingTransactions(req: GetPendingTransactions) : Promise<GetPendingTransactionsResponse> {
     return await TAURI_INVOKE("get_pending_transactions", { req });
 },
@@ -275,7 +278,9 @@ export type GetNftCollection = { collection_id: string | null }
 export type GetNftCollectionResponse = { collection: NftCollectionRecord | null }
 export type GetNftCollections = { offset: number; limit: number; include_hidden: boolean }
 export type GetNftCollectionsResponse = { collections: NftCollectionRecord[] }
-export type GetNftResponse = { nft: NftInfo | null }
+export type GetNftData = { nft_id: string }
+export type GetNftDataResponse = { data: NftData | null }
+export type GetNftResponse = { nft: NftRecord | null }
 export type GetNftStatus = Record<string, never>
 export type GetNftStatusResponse = { nfts: number; visible_nfts: number; collections: number; visible_collections: number }
 export type GetNfts = { collection_id: string | null; offset: number; limit: number; sort_mode: NftSortMode; include_hidden: boolean }
@@ -311,9 +316,9 @@ export type MakeOfferResponse = { offer: string; offer_id: string }
 export type Network = { default_port: number; ticker: string; address_prefix: string; precision: number; genesis_challenge: string; agg_sig_me: string; dns_introducers: string[] }
 export type NetworkConfig = { network_id: string; target_peers: number; discover_peers: boolean }
 export type NftCollectionRecord = { collection_id: string; did_id: string; metadata_collection_id: string; visible: boolean; name: string | null; icon: string | null; nfts: number; visible_nfts: number }
-export type NftInfo = { launcher_id: string; collection_id: string | null; collection_name: string | null; minter_did: string | null; owner_did: string | null; visible: boolean; coin_id: string; address: string; royalty_address: string; royalty_ten_thousandths: number; data_uris: string[]; data_hash: string | null; metadata_uris: string[]; metadata_hash: string | null; license_uris: string[]; license_hash: string | null; edition_number: number | null; edition_total: number | null; created_height: number | null; data: string | null; data_mime_type: string | null; metadata: string | null }
+export type NftData = { blob: string | null; mime_type: string | null; metadata_json: string | null }
 export type NftMint = { edition_number: number | null; edition_total: number | null; data_uris: string[]; metadata_uris: string[]; license_uris: string[]; royalty_address: string | null; royalty_ten_thousandths: number }
-export type NftRecord = { launcher_id: string; collection_id: string | null; collection_name: string | null; minter_did: string | null; owner_did: string | null; visible: boolean; sensitive_content: boolean; name: string | null; created_height: number | null; data_mime_type: string | null; data: string | null }
+export type NftRecord = { launcher_id: string; collection_id: string | null; collection_name: string | null; minter_did: string | null; owner_did: string | null; visible: boolean; sensitive_content: boolean; name: string | null; created_height: number | null; coin_id: string; address: string; royalty_address: string; royalty_ten_thousandths: number; data_uris: string[]; data_hash: string | null; metadata_uris: string[]; metadata_hash: string | null; license_uris: string[]; license_hash: string | null; edition_number: number | null; edition_total: number | null }
 export type NftSortMode = "name" | "recent"
 export type NftUriKind = "data" | "metadata" | "license"
 export type OfferAssets = { xch: OfferXch; cats: { [key in string]: OfferCat }; nfts: { [key in string]: OfferNft } }
@@ -334,7 +339,7 @@ export type RenameKeyResponse = Record<string, never>
 export type Resync = { fingerprint: number; delete_offer_files?: boolean }
 export type ResyncResponse = Record<string, never>
 export type SecretKeyInfo = { mnemonic: string | null; secret_key: string }
-export type SendCat = { asset_id: string; address: string; amount: Amount; fee: Amount; auto_submit?: boolean }
+export type SendCat = { asset_id: string; address: string; amount: Amount; fee: Amount; memos?: string[]; auto_submit?: boolean }
 export type SendTransactionImmediately = { spend_bundle: SpendBundle }
 export type SendTransactionImmediatelyResponse = { status: number; error: string | null }
 export type SendXch = { address: string; amount: Amount; fee: Amount; memos?: string[]; auto_submit?: boolean }

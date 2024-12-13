@@ -84,6 +84,7 @@ routes!(
     get_nft_collection await: GetNftCollection = "/get_nft_collection",
     get_nfts await: GetNfts = "/get_nfts",
     get_nft await: GetNft = "/get_nft",
+    get_nft_data await: GetNftData = "/get_nft_data",
 
     send_xch await: SendXch = "/send_xch",
     combine_xch await: CombineXch = "/combine_xch",
