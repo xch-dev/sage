@@ -7,13 +7,19 @@ import { nftUri } from '@/lib/nftUri';
 import { open } from '@tauri-apps/plugin-shell';
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { commands, events, NetworkConfig, NftData, NftInfo } from '../bindings';
+import {
+  commands,
+  events,
+  NetworkConfig,
+  NftData,
+  NftRecord,
+} from '../bindings';
 
 export default function Nft() {
   const { launcher_id: launcherId } = useParams();
   const { addError } = useErrors();
 
-  const [nft, setNft] = useState<NftInfo | null>(null);
+  const [nft, setNft] = useState<NftRecord | null>(null);
   const [data, setData] = useState<NftData | null>(null);
 
   const updateNft = useMemo(
@@ -208,7 +214,7 @@ export default function Nft() {
 
             <div>
               <h6 className='text-md font-bold'>
-                Royalties ({(nft?.royalty_ten_thousandths ?? 0) * 100}%)
+                Royalties ({(nft?.royalty_ten_thousandths ?? 0) / 100}%)
               </h6>
               <div className='break-all text-sm'>{nft?.royalty_address}</div>
             </div>
