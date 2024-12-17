@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from '@tauri-apps/api/core';
 
 export interface Insets {
   top: number;
@@ -8,5 +8,5 @@ export interface Insets {
 }
 
 export async function getInsets(): Promise<Insets> {
-  return await invoke("plugin:safe-area-insets|get_insets");
+  return await invoke('plugin:safe-area-insets|get_insets');
 }
