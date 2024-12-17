@@ -1,7 +1,7 @@
 [package]
 name = "tauri-plugin-safe-area-insets"
 version = "0.1.0"
-authors = [ "You" ]
+authors = [ "Ronald <ronald.goedeke@icloud.com>" ]
 description = ""
 edition = "2021"
 rust-version = "1.77.2"

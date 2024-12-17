@@ -355,7 +355,7 @@
 				CODE_SIGN_ENTITLEMENTS = "sage-tauri_iOS/sage-tauri_iOS.entitlements";
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = 5PSQ3NC8JP;
+				DEVELOPMENT_TEAM = NQJQRYZZG3;
 				ENABLE_BITCODE = NO;
 				"EXCLUDED_ARCHS[sdk=iphoneos*]" = "arm64-sim x86_64";
 				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = arm64;
@@ -472,7 +472,7 @@
 				CODE_SIGN_ENTITLEMENTS = "sage-tauri_iOS/sage-tauri_iOS.entitlements";
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = 5PSQ3NC8JP;
+				DEVELOPMENT_TEAM = NQJQRYZZG3;
 				ENABLE_BITCODE = NO;
 				"EXCLUDED_ARCHS[sdk=iphoneos*]" = "arm64-sim x86_64";
 				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = arm64;
