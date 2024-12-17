@@ -10,6 +10,7 @@ import { Button } from './ui/button';
 import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
 import useInitialization from '@/hooks/useInitialization';
 import { platform } from '@tauri-apps/plugin-os';
+import { useInsets } from '@/contexts/SafeAreaContext';
 
 export default function Header(
   props: PropsWithChildren<{
@@ -20,6 +21,7 @@ export default function Header(
 ) {
   const navigate = useNavigate();
   const location = useLocation();
+  const insets = useInsets();
 
   const initialized = useInitialization();
   const wallet = useWallet(initialized);
@@ -46,7 +48,7 @@ export default function Header(
   const isMobile = platform() === 'ios' || platform() === 'android';
 
   return (
-    <header className='flex items-center gap-4 px-4 md:px-6sticky top-0 bg-background z-10 pb-2 pt-2 '>
+    <header className='flex items-center gap-4 px-4 md:px-6sticky top-0 bg-background z-10 pb-2 pt-2'>
       <Sheet>
         {hasBackButton ? (
           <Button
@@ -70,7 +72,15 @@ export default function Header(
             </Button>
           </SheetTrigger>
         )}
-        <SheetContent side='left' isMobile={isMobile} className='flex flex-col'>
+        <SheetContent
+          side='left'
+          isMobile={isMobile}
+          className='flex flex-col'
+          style={{
+            paddingTop:
+              insets.top !== 0 ? `${insets.top}px` : 'env(safe-area-inset-top)',
+          }}
+        >
           <div className='flex h-14 items-center'>
             <Link
               to='/wallet'

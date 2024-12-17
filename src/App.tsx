@@ -34,6 +34,8 @@ import { ViewOffer } from './pages/ViewOffer';
 import { ViewSavedOffer } from './pages/ViewSavedOffer';
 import Wallet from './pages/Wallet';
 import { fetchState } from './state';
+import { getInsets } from 'tauri-plugin-safe-area-insets';
+import { SafeAreaProvider } from './contexts/SafeAreaContext';
 
 export interface DarkModeContext {
   toggle: () => void;
@@ -114,6 +116,10 @@ export default function App() {
     }
   }, [wallet]);
 
+  getInsets().then((insets) => {
+    console.log('Insets:', insets.top);
+  });
+
   // return (
   //   <div className='h-screen w-screen bg-red-300 flex flex-col'>
   //     <div className='flex-grow-[0.99] bg-blue-400'></div>
@@ -122,15 +128,17 @@ export default function App() {
 
   return (
     <DarkModeContext.Provider value={darkMode}>
-      {initialized && (
-        <PeerProvider>
-          <WalletConnectProvider>
-            <PriceProvider>
-              <RouterProvider router={router} />
-            </PriceProvider>
-          </WalletConnectProvider>
-        </PeerProvider>
-      )}
+      <SafeAreaProvider>
+        {initialized && (
+          <PeerProvider>
+            <WalletConnectProvider>
+              <PriceProvider>
+                <RouterProvider router={router} />
+              </PriceProvider>
+            </WalletConnectProvider>
+          </PeerProvider>
+        )}
+      </SafeAreaProvider>
     </DarkModeContext.Provider>
   );
 }

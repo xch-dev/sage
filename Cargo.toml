@@ -66,6 +66,7 @@ tauri-plugin-clipboard-manager = "2.0.2"
 tauri-plugin-shell = "2.0.2"
 tauri-plugin-os = "2.0.0"
 tauri-build = "2.0.3"
+tauri-plugin-safe-area-insets = { path = "./plugins/tauri-plugin-safe-area-insets" }
 
 # Specta
 specta = "2.0.0-rc.20"

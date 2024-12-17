@@ -4931,6 +4931,7 @@ dependencies = [
  "tauri-build",
  "tauri-plugin-clipboard-manager",
  "tauri-plugin-os",
+ "tauri-plugin-safe-area-insets",
  "tauri-plugin-shell",
  "tauri-specta",
  "tokio",
@@ -5991,6 +5992,16 @@ dependencies = [
  "tauri",
  "tauri-plugin",
  "thiserror 1.0.69",
+]
+
+[[package]]
+name = "tauri-plugin-safe-area-insets"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "tauri",
+ "tauri-plugin",
+ "thiserror 2.0.3",
 ]
 
 [[package]]

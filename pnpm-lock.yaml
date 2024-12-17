@@ -116,6 +116,9 @@ importers:
       tailwindcss-animate:
         specifier: ^1.0.7
         version: 1.0.7(tailwindcss@3.4.12)
+      tauri-plugin-safe-area-insets:
+        specifier: file:./plugins/tauri-plugin-safe-area-insets
+        version: tauri-plugin-safe-area-insets-api@file:plugins/tauri-plugin-safe-area-insets
       usehooks-ts:
         specifier: ^3.1.0
         version: 3.1.0(react@18.3.1)
@@ -2762,6 +2765,9 @@ packages:
     resolution: {integrity: sha512-Htf/gHj2+soPb9UayUNci/Ja3d8pTmu9ONTfh4QY8r3MATTZOzmv6UYWF7ZwikEIC8okpfqmGqrmDehua8mF8w==}
     engines: {node: '>=14.0.0'}
     hasBin: true
+
+  tauri-plugin-safe-area-insets-api@file:plugins/tauri-plugin-safe-area-insets:
+    resolution: {directory: plugins/tauri-plugin-safe-area-insets, type: directory}
 
   text-table@0.2.0:
     resolution: {integrity: sha512-N+8UisAXDGk8PFXP4HAzVR9nbfmVJ3zYLAWiTIoqC5v5isinhr+r5uaO8+7r3BMfuNIufIsA7RdpVgacC2cSpw==}
@@ -5756,6 +5762,10 @@ snapshots:
       sucrase: 3.35.0
     transitivePeerDependencies:
       - ts-node
+
+  tauri-plugin-safe-area-insets-api@file:plugins/tauri-plugin-safe-area-insets:
+    dependencies:
+      '@tauri-apps/api': 2.0.0-rc.4
 
   text-table@0.2.0: {}
 

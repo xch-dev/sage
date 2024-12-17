@@ -10,23 +10,5 @@ class MainActivity : TauriActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
-
-      val rootView = window.decorView
-      ViewCompat.setOnApplyWindowInsetsListener(rootView) { view, windowInsets ->
-        val systemBars = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
-        val gestureInsets = windowInsets.getInsets(WindowInsetsCompat.Type.systemGestures())
-
-        view.updatePadding(
-          gestureInsets.left,
-          gestureInsets.top,
-          gestureInsets.right,
-          gestureInsets.bottom
-        )
-
-        // You can access systemBars values here
-        println("Top: ${systemBars.top}, Bottom: ${systemBars.bottom}")
-
-        WindowInsetsCompat.CONSUMED
-      }
     }
 }
