@@ -46,7 +46,6 @@ export default function Layout(props: PropsWithChildren<object>) {
               className='flex items-center gap-2 font-semibold'
             >
               <img src={icon} className='h-8 w-8' />
-              {/* {wallet?.name} */}
               <span className='text-lg'>{wallet?.name}</span>
             </Link>
           </div>
