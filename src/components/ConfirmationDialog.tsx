@@ -81,6 +81,8 @@ export default function ConfirmationDialog({
   const { created } = response
     ? calculateTransaction(walletState.sync.unit, response.summary)
     : { created: [] };
+  const fee = BigNumber(response?.summary.fee || 0);
+  const isHighFee = fee.isGreaterThan(0.001); // Adjust threshold as needed
 
   const json = JSON.stringify(
     response === null
@@ -127,16 +129,16 @@ export default function ConfirmationDialog({
                   </TabsTrigger>
                 </TabsList>
                 <TabsContent value='simple'>
-                  {/* {isHighFee && !fee.isZero() && ( */}
-                  <Alert variant='warning' className='mb-4'>
-                    <CircleAlert className='h-4 w-4' />
-                    <AlertTitle>High Transaction Fee</AlertTitle>
-                    <AlertDescription>
-                      Fee exceeds recommended maximum of 0.001{' '}
-                      {walletState.sync.unit.ticker}
-                    </AlertDescription>
-                  </Alert>
-                  {/* )} */}
+                  {isHighFee && !fee.isZero() && (
+                    <Alert variant='warning' className='mb-4'>
+                      <CircleAlert className='h-4 w-4' />
+                      <AlertTitle>High Transaction Fee</AlertTitle>
+                      <AlertDescription>
+                        Fee exceeds recommended maximum of 0.001{' '}
+                        {walletState.sync.unit.ticker}
+                      </AlertDescription>
+                    </Alert>
+                  )}
                   <Group label='Summary' icon={BadgePlus}>
                     <div className='flex flex-col gap-2'>
                       {!BigNumber(response?.summary.fee || 0).isZero() && (

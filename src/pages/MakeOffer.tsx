@@ -274,7 +274,7 @@ export function MakeOffer() {
               <DialogDescription>
                 Copy the offer file below and send it to the intended recipient
                 or make it public to be accepted by anyone.
-                <CopyBox title='Offer File' content={offer} className='mt-2' />
+                <CopyBox title='Offer File' value={offer} className='mt-2' />
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>

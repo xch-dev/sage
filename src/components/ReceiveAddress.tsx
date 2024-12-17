@@ -62,7 +62,8 @@ export function ReceiveAddress({
       truncate={false}
       title='Receive Address'
       className={className}
-      content={formatAddress(receive_address, chars / 2)}
+      value={receive_address}
+      displayValue={formatAddress(receive_address, chars / 2)}
     />
   );
 }
