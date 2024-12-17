@@ -82,7 +82,7 @@ export default function ConfirmationDialog({
     ? calculateTransaction(walletState.sync.unit, response.summary)
     : { created: [] };
   const fee = BigNumber(response?.summary.fee || 0);
-  const isHighFee = fee.isGreaterThan(0.001); // Adjust threshold as needed
+  const isHighFee = fee.isGreaterThan(1000_000_000); // Adjust threshold as needed
 
   const json = JSON.stringify(
     response === null
