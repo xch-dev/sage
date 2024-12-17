@@ -134,6 +134,8 @@ impl OfferQueue {
                         .await
                         .ok();
                 }
+
+                break;
             }
         }
 

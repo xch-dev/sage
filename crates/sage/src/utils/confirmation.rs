@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
 use base64::{prelude::BASE64_STANDARD, Engine};
-use bigdecimal::BigDecimal;
 use chia::{
     protocol::{Bytes32, Coin, CoinSpend, SpendBundle},
     puzzles::nft::NftMetadata,
@@ -39,7 +38,6 @@ impl Sage {
 
         for input in transaction.inputs {
             let coin = input.coin_spend.coin;
-            let mut amount = Amount::from_mojos(coin.amount as u128, self.unit.decimals);
 
             let (kind, p2_puzzle_hash) = match input.kind {
                 CoinKind::Unknown => {
@@ -62,7 +60,6 @@ impl Sage {
                         ticker: cat.as_ref().and_then(|cat| cat.ticker.clone()),
                         icon_url: cat.as_ref().and_then(|cat| cat.icon.clone()),
                     };
-                    amount = Amount::from_mojos(coin.amount as u128, 3);
                     (kind, p2_puzzle_hash)
                 }
                 CoinKind::Did { info } => {
@@ -98,11 +95,6 @@ impl Sage {
             let mut outputs = Vec::new();
 
             for output in input.outputs {
-                let amount = match output.kind {
-                    ChildKind::Cat { .. } => Amount::from_mojos(output.coin.amount as u128, 3),
-                    _ => Amount::from_mojos(output.coin.amount as u128, self.unit.decimals),
-                };
-
                 let p2_puzzle_hash = match output.kind {
                     ChildKind::Unknown { hint } => hint.unwrap_or(output.coin.puzzle_hash),
                     ChildKind::Launcher => output.coin.puzzle_hash,
@@ -116,7 +108,7 @@ impl Sage {
 
                 outputs.push(TransactionOutput {
                     coin_id: hex::encode(output.coin.coin_id()),
-                    amount,
+                    amount: Amount::u64(output.coin.amount),
                     address,
                     receiving: wallet.db.is_p2_puzzle_hash(p2_puzzle_hash).await?,
                     burning: p2_puzzle_hash.to_bytes()
@@ -126,7 +118,7 @@ impl Sage {
 
             inputs.push(TransactionInput {
                 coin_id: hex::encode(coin.coin_id()),
-                amount,
+                amount: Amount::u64(coin.amount),
                 address,
                 kind,
                 outputs,
@@ -134,7 +126,7 @@ impl Sage {
         }
 
         Ok(TransactionSummary {
-            fee: Amount::from_mojos(transaction.fee as u128, self.unit.decimals),
+            fee: Amount::u64(transaction.fee),
             inputs,
         })
     }
@@ -207,7 +199,7 @@ pub fn json_coin(coin: &Coin) -> CoinJson {
     CoinJson {
         parent_coin_info: format!("0x{}", hex::encode(coin.parent_coin_info)),
         puzzle_hash: format!("0x{}", hex::encode(coin.puzzle_hash)),
-        amount: Amount::new(BigDecimal::from(coin.amount)),
+        amount: Amount::u64(coin.amount),
     }
 }
 
@@ -236,7 +228,7 @@ pub fn rust_coin(coin: CoinJson) -> Result<Coin> {
         puzzle_hash: parse_puzzle_hash(coin.puzzle_hash)?,
         amount: coin
             .amount
-            .to_mojos(0)
+            .to_u64()
             .ok_or(Error::InvalidCoinAmount(coin.amount.to_string()))?,
     })
 }

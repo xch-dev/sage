@@ -26,6 +26,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useDids } from '@/hooks/useDids';
+import { useErrors } from '@/hooks/useErrors';
+import { toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import {
   EyeIcon,
@@ -45,9 +47,9 @@ import { commands, DidRecord, TransactionResponse } from '../bindings';
 export function DidList() {
   const navigate = useNavigate();
 
-  const [showHidden, setShowHidden] = useState(false);
-
   const { dids, updateDids } = useDids();
+
+  const [showHidden, setShowHidden] = useState(false);
 
   const visibleDids = showHidden ? dids : dids.filter((did) => did.visible);
   const hasHiddenDids = dids.findIndex((did) => !did.visible) > -1;
@@ -108,6 +110,8 @@ interface ProfileProps {
 function Profile({ did, updateDids }: ProfileProps) {
   const walletState = useWalletState();
 
+  const { addError } = useErrors();
+
   const [name, setName] = useState('');
   const [renameOpen, setRenameOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
@@ -119,15 +123,11 @@ function Profile({ did, updateDids }: ProfileProps) {
 
     commands
       .updateDid({ did_id: did.launcher_id, name, visible: did.visible })
-      .then((result) => {
+      .then(updateDids)
+      .catch(addError)
+      .finally(() => {
         setRenameOpen(false);
-
-        if (result.status === 'ok') {
-          setName('');
-          updateDids();
-        } else {
-          throw new Error(`Failed to rename DID: ${result.error.reason}`);
-        }
+        setName('');
       });
   };
 
@@ -138,26 +138,20 @@ function Profile({ did, updateDids }: ProfileProps) {
         name: did.name,
         visible: !did.visible,
       })
-      .then((result) => {
-        if (result.status === 'ok') {
-          updateDids();
-        } else {
-          throw new Error('Failed to toggle visibility for DID');
-        }
-      });
+      .then(updateDids)
+      .catch(addError);
   };
 
   const onTransferSubmit = (address: string, fee: string) => {
     commands
-      .transferDids({ did_ids: [did.launcher_id], address, fee })
-      .then((result) => {
-        setTransferOpen(false);
-        if (result.status === 'error') {
-          console.error('Failed to transfer DID', result.error);
-        } else {
-          setResponse(result.data);
-        }
-      });
+      .transferDids({
+        did_ids: [did.launcher_id],
+        address,
+        fee: toMojos(fee, walletState.sync.unit.decimals),
+      })
+      .then(updateDids)
+      .catch(addError)
+      .finally(() => setTransferOpen(false));
   };
 
   const onBurnSubmit = (fee: string) => {
@@ -165,16 +159,11 @@ function Profile({ did, updateDids }: ProfileProps) {
       .transferDids({
         did_ids: [did.launcher_id],
         address: walletState.sync.burn_address,
-        fee,
+        fee: toMojos(fee, walletState.sync.unit.decimals),
       })
-      .then((result) => {
-        setBurnOpen(false);
-        if (result.status === 'error') {
-          console.error('Failed to burn DID', result.error);
-        } else {
-          setResponse(result.data);
-        }
-      });
+      .then(updateDids)
+      .catch(addError)
+      .finally(() => setBurnOpen(false));
   };
 
   return (

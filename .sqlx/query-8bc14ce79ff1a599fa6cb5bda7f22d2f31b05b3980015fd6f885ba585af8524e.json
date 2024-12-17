@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT * FROM `derivations`\n        WHERE `hardened` = 0\n        ORDER BY `index` ASC\n        LIMIT ? OFFSET ?\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "p2_puzzle_hash",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "index",
+        "ordinal": 1,
+        "type_info": "Integer"
+      },
+      {
+        "name": "hardened",
+        "ordinal": 2,
+        "type_info": "Bool"
+      },
+      {
+        "name": "synthetic_key",
+        "ordinal": 3,
+        "type_info": "Blob"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "8bc14ce79ff1a599fa6cb5bda7f22d2f31b05b3980015fd6f885ba585af8524e"
+}

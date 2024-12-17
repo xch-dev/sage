@@ -16,6 +16,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { TokenAmountInput } from '@/components/ui/masked-input';
 import { Switch } from '@/components/ui/switch';
+import { useErrors } from '@/hooks/useErrors';
+import { toMojos } from '@/lib/utils';
 import { clearOffer, useOfferState, useWalletState } from '@/state';
 import {
   HandCoins,
@@ -32,28 +34,39 @@ export function MakeOffer() {
   const walletState = useWalletState();
   const navigate = useNavigate();
 
+  const { addError } = useErrors();
+
   const [offer, setOffer] = useState('');
 
   const make = () => {
     commands
       .makeOffer({
         offered_assets: {
-          xch: state.offered.xch || '0',
+          xch: toMojos(
+            (state.offered.xch || '0').toString(),
+            walletState.sync.unit.decimals,
+          ),
           cats: state.offered.cats.map((cat) => ({
             asset_id: cat.asset_id,
-            amount: cat.amount || '0',
+            amount: toMojos((cat.amount || '0').toString(), 3),
           })),
           nfts: state.offered.nfts,
         },
         requested_assets: {
-          xch: state.requested.xch || '0',
+          xch: toMojos(
+            (state.requested.xch || '0').toString(),
+            walletState.sync.unit.decimals,
+          ),
           cats: state.requested.cats.map((cat) => ({
             asset_id: cat.asset_id,
-            amount: cat.amount || '0',
+            amount: toMojos((cat.amount || '0').toString(), 3),
           })),
           nfts: state.requested.nfts,
         },
-        fee: state.fee || '0',
+        fee: toMojos(
+          (state.fee || '0').toString(),
+          walletState.sync.unit.decimals,
+        ),
         expires_at_second:
           state.expiration === null
             ? null
@@ -62,13 +75,8 @@ export function MakeOffer() {
               Number(state.expiration.hours || '0') * 60 * 60 +
               Number(state.expiration.minutes || '0') * 60,
       })
-      .then((result) => {
-        if (result.status === 'error') {
-          console.error(result.error);
-        } else {
-          setOffer(result.data.offer);
-        }
-      });
+      .then((data) => setOffer(data.offer))
+      .catch(addError);
   };
 
   const invalid =
@@ -272,15 +280,14 @@ export function MakeOffer() {
             <DialogFooter>
               <Button
                 onClick={() => {
-                  commands.importOffer({ offer }).then((result) => {
-                    setOffer('');
-                    clearOffer();
-                    if (result.status === 'error') {
-                      console.error(result.error);
-                    } else {
+                  commands
+                    .importOffer({ offer })
+                    .then(() => {
+                      setOffer('');
+                      clearOffer();
                       navigate('/offers', { replace: true });
-                    }
-                  });
+                    })
+                    .catch(addError);
                 }}
               >
                 Save

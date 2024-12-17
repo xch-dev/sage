@@ -7,6 +7,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { useErrors } from '@/hooks/useErrors';
+import { toDecimal } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 import BigNumber from 'bignumber.js';
@@ -23,9 +25,10 @@ import {
 import { PropsWithChildren, useEffect, useState } from 'react';
 import {
   commands,
-  Error,
   TakeOfferResponse,
   TransactionResponse,
+  TransactionSummary,
+  Unit,
 } from '../bindings';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { Badge } from './ui/badge';
@@ -35,7 +38,6 @@ export interface ConfirmationDialogProps {
   response: TransactionResponse | TakeOfferResponse | null;
   close: () => void;
   onConfirm?: () => void;
-  onError?: (error: Error) => void;
 }
 
 interface SpentCoin {
@@ -56,15 +58,10 @@ export default function ConfirmationDialog({
   response,
   close,
   onConfirm,
-  onError,
 }: ConfirmationDialogProps) {
-  if (!onError) {
-    onError = (error) => {
-      console.error(error);
-    };
-  }
-
   const walletState = useWalletState();
+
+  const { addError } = useErrors();
 
   const [pending, setPending] = useState(false);
   const [signature, setSignature] = useState<string | null>(null);
@@ -81,158 +78,9 @@ export default function ConfirmationDialog({
     close();
   };
 
-  const spent: Array<SpentCoin> = [];
-  const created: Array<CreatedCoin> = [];
-  const fee = BigNumber(response?.summary.fee || 0);
-  const isHighFee = fee.isGreaterThan(0.001); // Adjust threshold as needed
-
-  if (response) {
-    for (const input of response.summary.inputs || []) {
-      if (input.type === 'xch') {
-        const ticker = walletState.sync.unit.ticker;
-
-        spent.push({
-          badge: 'Chia',
-          label: `${input.amount} ${ticker}`,
-          coinId: input.coin_id,
-          sort: 1,
-        });
-
-        for (const output of input.outputs) {
-          if (
-            response.summary.inputs.find((i) => i.coin_id === output.coin_id)
-          ) {
-            continue;
-          }
-
-          created.push({
-            badge: 'Chia',
-            label: `${output.amount} ${ticker}`,
-            address: output.burning
-              ? 'Permanently Burned'
-              : output.receiving
-                ? 'Change'
-                : output.address,
-            sort: 1,
-          });
-        }
-      }
-
-      if (input.type === 'cat') {
-        const ticker = input.ticker || 'CAT';
-
-        spent.push({
-          badge: `CAT ${input.name || input.asset_id}`,
-          label: `${input.amount} ${ticker}`,
-          coinId: input.coin_id,
-          sort: 2,
-        });
-
-        for (const output of input.outputs) {
-          if (
-            response.summary.inputs.find((i) => i.coin_id === output.coin_id)
-          ) {
-            continue;
-          }
-
-          created.push({
-            badge: `CAT ${input.name || input.asset_id}`,
-            label: `${output.amount} ${ticker}`,
-            address: output.burning
-              ? 'Permanently Burned'
-              : output.receiving
-                ? 'Change'
-                : output.address,
-            sort: 2,
-          });
-        }
-      }
-
-      if (input.type === 'did') {
-        if (
-          !response.summary.inputs
-            .map((i) => i.outputs)
-            .flat()
-            .find((o) => o.coin_id === input.coin_id)
-        ) {
-          spent.push({
-            badge: 'Profile',
-            label: input.name || 'Unnamed',
-            coinId: input.coin_id,
-            sort: 3,
-          });
-        }
-
-        for (const output of input.outputs) {
-          if (
-            response.summary.inputs.find((i) => i.coin_id === output.coin_id)
-          ) {
-            continue;
-          }
-
-          if (
-            BigNumber(output.amount)
-              .multipliedBy(BigNumber(10).pow(walletState.sync.unit.decimals))
-              .mod(2)
-              .isEqualTo(1)
-          ) {
-            created.push({
-              badge: 'Profile',
-              label: input.name || 'Unnamed',
-              address: output.burning
-                ? 'Permanently Burned'
-                : output.receiving
-                  ? 'You'
-                  : output.address,
-              sort: 3,
-            });
-          }
-        }
-      }
-
-      if (input.type === 'nft') {
-        if (
-          !response.summary.inputs
-            .map((i) => i.outputs)
-            .flat()
-            .find((o) => o.coin_id === input.coin_id)
-        ) {
-          spent.push({
-            badge: 'NFT',
-            label: input.name || 'Unknown',
-            coinId: input.coin_id,
-            sort: 4,
-          });
-        }
-
-        for (const output of input.outputs) {
-          if (
-            response.summary.inputs.find((i) => i.coin_id === output.coin_id)
-          ) {
-            continue;
-          }
-
-          if (
-            BigNumber(output.amount)
-              .multipliedBy(BigNumber(10).pow(walletState.sync.unit.decimals))
-              .mod(2)
-              .isEqualTo(1)
-          ) {
-            created.push({
-              badge: 'NFT',
-              label: input.name || 'Unknown',
-              address: output.burning
-                ? 'Permanently Burned'
-                : output.receiving
-                  ? 'You'
-                  : output.address,
-              sort: 4,
-            });
-          }
-        }
-      }
-    }
-  }
+  const { created } = response
+    ? calculateTransaction(walletState.sync.unit, response.summary)
+    : { created: [] };
 
   const json = JSON.stringify(
     response === null
@@ -279,22 +127,22 @@ export default function ConfirmationDialog({
                   </TabsTrigger>
                 </TabsList>
                 <TabsContent value='simple'>
-                  {isHighFee && !fee.isZero() && (
-                    <Alert variant='warning' className='mb-4'>
-                      <CircleAlert className='h-4 w-4' />
-                      <AlertTitle>High Transaction Fee</AlertTitle>
-                      <AlertDescription>
-                        Fee exceeds recommended maximum of 0.001{' '}
-                        {walletState.sync.unit.ticker}
-                      </AlertDescription>
-                    </Alert>
-                  )}
+                  {/* {isHighFee && !fee.isZero() && ( */}
+                  <Alert variant='warning' className='mb-4'>
+                    <CircleAlert className='h-4 w-4' />
+                    <AlertTitle>High Transaction Fee</AlertTitle>
+                    <AlertDescription>
+                      Fee exceeds recommended maximum of 0.001{' '}
+                      {walletState.sync.unit.ticker}
+                    </AlertDescription>
+                  </Alert>
+                  {/* )} */}
                   <Group label='Summary' icon={BadgePlus}>
                     <div className='flex flex-col gap-2'>
                       {!BigNumber(response?.summary.fee || 0).isZero() && (
                         <Item
                           badge='Fee'
-                          label={`${response?.summary.fee} ${walletState.sync.unit.ticker}`}
+                          label={`${toDecimal(response?.summary.fee || '0', walletState.sync.unit.decimals)} ${walletState.sync.unit.ticker}`}
                         />
                       )}
                       {created
@@ -313,49 +161,9 @@ export default function ConfirmationDialog({
                   </Group>
                 </TabsContent>
                 <TabsContent value='advanced'>
-                  <div className='flex flex-col gap-1.5'>
-                    <Group label='Spent Coins' icon={BadgeMinus}>
-                      <div className='flex flex-col gap-2'>
-                        {spent
-                          .sort((a, b) => a.sort - b.sort)
-                          .map((spent, i) => (
-                            <Item
-                              key={i}
-                              badge={spent.badge}
-                              label={spent.label}
-                              icon={BoxIcon}
-                              address={spent.coinId}
-                            />
-                          ))}
-                      </div>
-                    </Group>
-                    <Group label='Transaction Output' icon={BadgePlus}>
-                      <div className='flex flex-col gap-2'>
-                        {!BigNumber(response?.summary.fee || 0).isZero() && (
-                          <div className='flex flex-col gap-1 border-2 p-1.5 rounded-md'>
-                            <div className='flex items-center gap-2'>
-                              <Badge>Fee</Badge>
-                              <span>
-                                {response?.summary.fee}{' '}
-                                {walletState.sync.unit.ticker}
-                              </span>
-                            </div>
-                          </div>
-                        )}
-                        {created
-                          .sort((a, b) => a.sort - b.sort)
-                          .map((created, i) => (
-                            <Item
-                              key={i}
-                              badge={created.badge}
-                              label={created.label}
-                              icon={ForwardIcon}
-                              address={created.address}
-                            />
-                          ))}
-                      </div>
-                    </Group>
-                  </div>
+                  {response !== null && (
+                    <AdvancedSummary summary={response.summary} />
+                  )}
                 </TabsContent>
                 <TabsContent value='json'>
                   <Alert>
@@ -380,15 +188,10 @@ export default function ConfirmationDialog({
                                 ? response.coin_spends
                                 : response.spend_bundle.coin_spends,
                         })
-                        .then((result) => {
-                          if (result.status === 'error') {
-                            onError?.(result.error);
-                          } else {
-                            setSignature(
-                              result.data.spend_bundle.aggregated_signature,
-                            );
-                          }
-                        });
+                        .then((data) =>
+                          setSignature(data.spend_bundle.aggregated_signature),
+                        )
+                        .catch(addError);
                     }}
                     disabled={!!signature}
                   >
@@ -432,37 +235,34 @@ export default function ConfirmationDialog({
                   response !== null &&
                   'coin_spends' in response
                 ) {
-                  const result = await commands.signCoinSpends({
-                    coin_spends: response!.coin_spends,
-                  });
-                  if (result.status === 'error') {
-                    reset();
-                    onError?.(result.error);
-                    return;
-                  }
-                  finalSignature =
-                    result.data.spend_bundle.aggregated_signature;
+                  const data = await commands
+                    .signCoinSpends({
+                      coin_spends: response!.coin_spends,
+                    })
+                    .catch(addError);
+
+                  if (!data) return reset();
+
+                  finalSignature = data.spend_bundle.aggregated_signature;
                 }
 
-                const result = await commands.submitTransaction({
-                  spend_bundle: {
-                    coin_spends:
-                      response === null
-                        ? []
-                        : 'coin_spends' in response
-                          ? response.coin_spends
-                          : response.spend_bundle.coin_spends,
-                    aggregated_signature: finalSignature!,
-                  },
-                });
+                const data = await commands
+                  .submitTransaction({
+                    spend_bundle: {
+                      coin_spends:
+                        response === null
+                          ? []
+                          : 'coin_spends' in response
+                            ? response.coin_spends
+                            : response.spend_bundle.coin_spends,
+                      aggregated_signature: finalSignature!,
+                    },
+                  })
+                  .catch(addError);
 
-                reset();
+                if (!data) return reset();
 
-                if (result.status === 'error') {
-                  onError?.(result.error);
-                } else {
-                  onConfirm?.();
-                }
+                onConfirm?.();
               })().finally(() => setPending(false));
             }}
             disabled={pending}
@@ -521,4 +321,204 @@ function Item({ badge, label, icon: Icon, address }: ItemProps) {
       )}
     </div>
   );
+}
+
+export interface AdvancedSummaryProps {
+  summary: TransactionSummary;
+}
+
+export function AdvancedSummary({ summary }: AdvancedSummaryProps) {
+  const walletState = useWalletState();
+
+  const { spent, created } = calculateTransaction(
+    walletState.sync.unit,
+    summary,
+  );
+
+  return (
+    <div className='flex flex-col gap-1.5'>
+      <Group label='Spent Coins' icon={BadgeMinus}>
+        <div className='flex flex-col gap-2'>
+          {spent
+            .sort((a, b) => a.sort - b.sort)
+            .map((spent, i) => (
+              <Item
+                key={i}
+                badge={spent.badge}
+                label={spent.label}
+                icon={BoxIcon}
+                address={spent.coinId}
+              />
+            ))}
+        </div>
+      </Group>
+      <Group label='Transaction Output' icon={BadgePlus}>
+        <div className='flex flex-col gap-2'>
+          {!BigNumber(summary.fee || 0).isZero() && (
+            <div className='flex flex-col gap-1 border-2 p-1.5 rounded-md'>
+              <div className='flex items-center gap-2'>
+                <Badge>Fee</Badge>
+                <span>
+                  {toDecimal(summary.fee, walletState.sync.unit.decimals)}{' '}
+                  {walletState.sync.unit.ticker}
+                </span>
+              </div>
+            </div>
+          )}
+          {created
+            .sort((a, b) => a.sort - b.sort)
+            .map((created, i) => (
+              <Item
+                key={i}
+                badge={created.badge}
+                label={created.label}
+                icon={ForwardIcon}
+                address={created.address}
+              />
+            ))}
+        </div>
+      </Group>
+    </div>
+  );
+}
+
+interface CalculatedTransaction {
+  spent: SpentCoin[];
+  created: CreatedCoin[];
+}
+
+function calculateTransaction(
+  xch: Unit,
+  summary: TransactionSummary,
+): CalculatedTransaction {
+  const spent: SpentCoin[] = [];
+  const created: CreatedCoin[] = [];
+
+  for (const input of summary.inputs || []) {
+    if (input.type === 'xch') {
+      spent.push({
+        badge: 'Chia',
+        label: `${toDecimal(input.amount, xch.decimals)} ${xch.ticker}`,
+        coinId: input.coin_id,
+        sort: 1,
+      });
+
+      for (const output of input.outputs) {
+        if (summary.inputs.find((i) => i.coin_id === output.coin_id)) {
+          continue;
+        }
+
+        created.push({
+          badge: 'Chia',
+          label: `${toDecimal(output.amount, xch.decimals)} ${xch.ticker}`,
+          address: output.burning
+            ? 'Permanently Burned'
+            : output.receiving
+              ? 'Change'
+              : output.address,
+          sort: 1,
+        });
+      }
+    }
+
+    if (input.type === 'cat') {
+      const ticker = input.ticker || 'CAT';
+
+      spent.push({
+        badge: `CAT ${input.name || input.asset_id}`,
+        label: `${toDecimal(input.amount, 3)} ${ticker}`,
+        coinId: input.coin_id,
+        sort: 2,
+      });
+
+      for (const output of input.outputs) {
+        if (summary.inputs.find((i) => i.coin_id === output.coin_id)) {
+          continue;
+        }
+
+        created.push({
+          badge: `CAT ${input.name || input.asset_id}`,
+          label: `${toDecimal(output.amount, 3)} ${ticker}`,
+          address: output.burning
+            ? 'Permanently Burned'
+            : output.receiving
+              ? 'Change'
+              : output.address,
+          sort: 2,
+        });
+      }
+    }
+
+    if (input.type === 'did') {
+      if (
+        !summary.inputs
+          .map((i) => i.outputs)
+          .flat()
+          .find((o) => o.coin_id === input.coin_id)
+      ) {
+        spent.push({
+          badge: 'Profile',
+          label: input.name || 'Unnamed',
+          coinId: input.coin_id,
+          sort: 3,
+        });
+      }
+
+      for (const output of input.outputs) {
+        if (summary.inputs.find((i) => i.coin_id === output.coin_id)) {
+          continue;
+        }
+
+        if (BigNumber(output.amount).mod(2).eq(1)) {
+          created.push({
+            badge: 'Profile',
+            label: input.name || 'Unnamed',
+            address: output.burning
+              ? 'Permanently Burned'
+              : output.receiving
+                ? 'You'
+                : output.address,
+            sort: 3,
+          });
+        }
+      }
+    }
+
+    if (input.type === 'nft') {
+      if (
+        !summary.inputs
+          .map((i) => i.outputs)
+          .flat()
+          .find((o) => o.coin_id === input.coin_id)
+      ) {
+        spent.push({
+          badge: 'NFT',
+          label: input.name || 'Unknown',
+          coinId: input.coin_id,
+          sort: 4,
+        });
+      }
+
+      for (const output of input.outputs) {
+        if (summary.inputs.find((i) => i.coin_id === output.coin_id)) {
+          continue;
+        }
+
+        if (BigNumber(output.amount).mod(2).isEqualTo(1)) {
+          created.push({
+            badge: 'NFT',
+            label: input.name || 'Unknown',
+            address: output.burning
+              ? 'Permanently Burned'
+              : output.receiving
+                ? 'You'
+                : output.address,
+            sort: 4,
+          });
+        }
+      }
+    }
+  }
+
+  return { spent, created };
 }

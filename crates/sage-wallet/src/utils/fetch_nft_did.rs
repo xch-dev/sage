@@ -1,3 +1,4 @@
+use std::collections::hash_map::RandomState;
 use std::{collections::HashMap, time::Duration};
 
 use chia::{
@@ -18,7 +19,7 @@ pub async fn fetch_nft_did(
     peer: &WalletPeer,
     genesis_challenge: Bytes32,
     launcher_id: Bytes32,
-    pending_coin_spends: &HashMap<Bytes32, CoinSpend>,
+    pending_coin_spends: &HashMap<Bytes32, CoinSpend, RandomState>,
 ) -> Result<Option<Bytes32>, WalletError> {
     let mut did_id = None::<Bytes32>;
     let mut parent_id = launcher_id;

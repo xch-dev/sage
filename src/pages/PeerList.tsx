@@ -38,6 +38,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Switch } from '@/components/ui/switch';
+import { useErrors } from '@/hooks/useErrors';
 import {
   BadgeCheckIcon,
   BadgeIcon,
@@ -150,6 +151,8 @@ const MobileRow = ({
 };
 
 export default function PeerList() {
+  const { addError } = useErrors();
+
   const [peers, setPeers] = useState<PeerRecord[] | null>(null);
   const [rowSelection, setRowSelection] = useState({});
   const [isAddOpen, setAddOpen] = useState(false);
@@ -267,19 +270,23 @@ export default function PeerList() {
     });
   };
 
-  const updatePeers = () => {
-    commands.getPeers({}).then((res) => {
-      if (res.status === 'ok') {
-        setPeers(res.data.peers);
-      }
-    });
-  };
+  const updatePeers = useCallback(
+    () =>
+      commands
+        .getPeers({})
+        .then((data) => setPeers(data.peers))
+        .catch(addError),
+    [addError],
+  );
 
   useEffect(() => {
     updatePeers();
     const interval = setInterval(updatePeers, 1000);
-    return () => clearInterval(interval);
-  }, []);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [updatePeers]);
 
   return (
     <Layout>

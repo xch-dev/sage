@@ -1,7 +1,7 @@
 #![allow(clippy::needless_pass_by_value)]
 
 use chia::{
-    bls::Signature,
+    bls::{PublicKey, Signature},
     protocol::{Bytes32, Program},
 };
 use chia_wallet_sdk::decode_address;
@@ -74,19 +74,11 @@ pub fn parse_offer_id(input: String) -> Result<Bytes32> {
 }
 
 pub fn parse_cat_amount(input: Amount) -> Result<u64> {
-    let Some(amount) = input.to_mojos(3) else {
-        return Err(Error::InvalidCatAmount(input.to_string()));
+    let Some(amount) = input.to_u64() else {
+        return Err(Error::InvalidAmount(input.to_string()));
     };
 
     Ok(amount)
-}
-
-pub fn parse_percent(input: Amount) -> Result<u16> {
-    let Some(royalty_ten_thousandths) = input.to_ten_thousandths() else {
-        return Err(Error::InvalidPercentage(input.to_string()));
-    };
-
-    Ok(royalty_ten_thousandths)
 }
 
 pub fn parse_puzzle_hash(input: String) -> Result<Bytes32> {
@@ -113,6 +105,20 @@ pub fn parse_signature(input: String) -> Result<Signature> {
         .map_err(|_| Error::InvalidSignature(input))?;
 
     Ok(Signature::from_bytes(&signature)?)
+}
+
+pub fn parse_public_key(input: String) -> Result<PublicKey> {
+    let stripped = if let Some(stripped) = input.strip_prefix("0x") {
+        stripped
+    } else {
+        &input
+    };
+
+    let public_key: [u8; 48] = hex::decode(stripped)?
+        .try_into()
+        .map_err(|_| Error::InvalidPublicKey(input))?;
+
+    Ok(PublicKey::from_bytes(&public_key)?)
 }
 
 pub fn parse_program(input: String) -> Result<Program> {

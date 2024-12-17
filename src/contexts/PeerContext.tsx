@@ -1,45 +1,33 @@
-import {
-  createContext,
-  ReactNode,
-  useContext,
-  useEffect,
-  useState,
-} from 'react';
+import { createContext, ReactNode, useEffect, useState } from 'react';
 import { commands, PeerRecord } from '../bindings';
+import { useErrors } from '../hooks/useErrors';
 
-interface PeerContextType {
+export interface PeerContextType {
   peers: PeerRecord[] | null;
 }
 
-const PeerContext = createContext<PeerContextType | undefined>(undefined);
+export const PeerContext = createContext<PeerContextType | undefined>(
+  undefined,
+);
 
 export function PeerProvider({ children }: { children: ReactNode }) {
+  const { addError } = useErrors();
   const [peers, setPeers] = useState<PeerRecord[] | null>(null);
 
   useEffect(() => {
     const updatePeers = () => {
-      commands.getPeers({}).then((res) => {
-        if (res.status === 'ok') {
-          setPeers(res.data.peers);
-        }
-      });
+      commands
+        .getPeers({})
+        .then((data) => setPeers(data.peers))
+        .catch(addError);
     };
 
     updatePeers();
     const interval = setInterval(updatePeers, 5000);
-
     return () => clearInterval(interval);
-  }, []);
+  }, [addError]);
 
   return (
     <PeerContext.Provider value={{ peers }}>{children}</PeerContext.Provider>
   );
-}
-
-export function usePeers() {
-  const context = useContext(PeerContext);
-  if (context === undefined) {
-    throw new Error('usePeers must be used within a PeerProvider');
-  }
-  return context;
 }

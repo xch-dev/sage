@@ -29,7 +29,7 @@ impl Wallet {
         } = info;
 
         let spend_bundle = self
-            .sign_transaction(coin_spends, agg_sig_constants, master_sk)
+            .sign_transaction(coin_spends, agg_sig_constants, master_sk, false)
             .await?;
 
         Ok(builder.bundle(&mut ctx, spend_bundle)?)
@@ -47,7 +47,7 @@ impl Wallet {
         } = info;
 
         let spend_bundle = self
-            .sign_transaction(coin_spends, agg_sig_constants, master_sk)
+            .sign_transaction(coin_spends, agg_sig_constants, master_sk, false)
             .await?;
 
         Ok(builder.bundle(spend_bundle))
@@ -58,6 +58,7 @@ impl Wallet {
         coin_spends: Vec<CoinSpend>,
         agg_sig_constants: &AggSigConstants,
         master_sk: SecretKey,
+        partial: bool,
     ) -> Result<SpendBundle, WalletError> {
         let required_signatures = RequiredSignature::from_coin_spends(
             &mut Allocator::new(),
@@ -70,6 +71,9 @@ impl Wallet {
         for required in &required_signatures {
             let pk = required.public_key();
             let Some(index) = self.db.synthetic_key_index(pk).await? else {
+                if partial {
+                    continue;
+                }
                 return Err(WalletError::UnknownPublicKey);
             };
             indices.insert(pk, index);

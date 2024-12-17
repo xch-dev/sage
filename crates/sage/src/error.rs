@@ -9,7 +9,7 @@ use chia::{
     clvm_traits::{FromClvmError, ToClvmError},
     protocol::Bytes32,
 };
-use chia_wallet_sdk::{AddressError, ClientError, OfferError};
+use chia_wallet_sdk::{AddressError, ClientError, DriverError, OfferError};
 use clvmr::reduction::EvalErr;
 use hex::FromHexError;
 use sage_api::ErrorKind;
@@ -41,6 +41,9 @@ pub enum Error {
 
     #[error("Client error: {0}")]
     Client(#[from] ClientError),
+
+    #[error("Driver error: {0}")]
+    Driver(#[from] DriverError),
 
     #[error("Offer error: {0}")]
     Offer(#[from] OfferError),
@@ -123,8 +126,8 @@ pub enum Error {
     #[error("Wrong address prefix: {0}")]
     AddressPrefix(String),
 
-    #[error("Invalid CAT amount: {0}")]
-    InvalidCatAmount(String),
+    #[error("Invalid amount: {0}")]
+    InvalidAmount(String),
 
     #[error("Invalid coin amount: {0}")]
     InvalidCoinAmount(String),
@@ -159,6 +162,9 @@ pub enum Error {
     #[error("Invalid signature: {0}")]
     InvalidSignature(String),
 
+    #[error("Invalid public key: {0}")]
+    InvalidPublicKey(String),
+
     #[error("Wallet is cold and cannot be used for signing")]
     NoSigningKey,
 
@@ -191,6 +197,9 @@ pub enum Error {
 
     #[error("CLVM eval error: {0}")]
     Eval(#[from] EvalErr),
+
+    #[error("Missing asset id")]
+    MissingAssetId,
 }
 
 impl Error {
@@ -224,7 +233,8 @@ impl Error {
             | Self::ToClvm(..)
             | Self::FromClvm(..)
             | Self::Bincode(..)
-            | Self::Eval(..) => ErrorKind::Internal,
+            | Self::Eval(..)
+            | Self::Driver(..) => ErrorKind::Internal,
             Self::UnknownFingerprint
             | Self::UnknownNetwork
             | Self::MissingCoin(..)
@@ -239,7 +249,7 @@ impl Error {
             | Self::TryFromInt(..)
             | Self::ParseInt(..)
             | Self::AddressPrefix(..)
-            | Self::InvalidCatAmount(..)
+            | Self::InvalidAmount(..)
             | Self::InvalidCoinAmount(..)
             | Self::Address(..)
             | Self::InvalidDidId(..)
@@ -252,12 +262,14 @@ impl Error {
             | Self::InvalidOfferId(..)
             | Self::InvalidPercentage(..)
             | Self::InvalidSignature(..)
+            | Self::InvalidPublicKey(..)
             | Self::CoinSpent(..)
             | Self::Uri(..)
             | Self::IpAddrParse(..)
             | Self::Offer(..)
             | Self::NoPeers
-            | Self::CouldNotFetchNft(..) => ErrorKind::Api,
+            | Self::CouldNotFetchNft(..)
+            | Self::MissingAssetId => ErrorKind::Api,
         }
     }
 }

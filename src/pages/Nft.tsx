@@ -2,6 +2,7 @@ import Container from '@/components/Container';
 import { CopyBox } from '@/components/CopyBox';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
+import { useErrors } from '@/hooks/useErrors';
 import { nftUri } from '@/lib/nftUri';
 import { open } from '@tauri-apps/plugin-shell';
 import { useEffect, useMemo, useState } from 'react';
@@ -10,16 +11,19 @@ import { commands, events, NetworkConfig, NftInfo } from '../bindings';
 
 export default function Nft() {
   const { launcher_id: launcherId } = useParams();
+  const { addError } = useErrors();
 
   const [nft, setNft] = useState<NftInfo | null>(null);
 
-  const updateNft = () => {
-    commands.getNft({ nft_id: launcherId! }).then((res) => {
-      if (res.status === 'ok') {
-        setNft(res.data.nft);
-      }
-    });
-  };
+  const updateNft = useMemo(
+    () => () => {
+      commands
+        .getNft({ nft_id: launcherId! })
+        .then((data) => setNft(data.nft))
+        .catch(addError);
+    },
+    [launcherId, addError],
+  );
 
   useEffect(() => {
     updateNft();
@@ -38,7 +42,7 @@ export default function Nft() {
     return () => {
       unlisten.then((u) => u());
     };
-  }, []);
+  }, [updateNft]);
 
   const metadata = useMemo(() => {
     if (!nft || !nft.metadata) return {};
@@ -52,13 +56,8 @@ export default function Nft() {
   const [config, setConfig] = useState<NetworkConfig | null>(null);
 
   useEffect(() => {
-    commands.networkConfig().then((res) => {
-      if (res.status === 'error') {
-        return;
-      }
-      setConfig(res.data);
-    });
-  }, []);
+    commands.networkConfig().then(setConfig).catch(addError);
+  }, [addError]);
 
   return (
     <>
@@ -201,7 +200,7 @@ export default function Nft() {
 
             <div>
               <h6 className='text-md font-bold'>
-                Royalties ({nft?.royalty_percent}%)
+                Royalties ({(nft?.royalty_ten_thousandths ?? 0) * 100}%)
               </h6>
               <div className='break-all text-sm'>{nft?.royalty_address}</div>
             </div>

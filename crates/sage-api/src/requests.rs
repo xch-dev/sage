@@ -11,3 +11,5 @@ pub use keys::*;
 pub use offers::*;
 pub use settings::*;
 pub use transactions::*;
+
+pub mod wallet_connect;

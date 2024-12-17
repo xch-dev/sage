@@ -47,6 +47,15 @@ impl Database {
     pub async fn cat_coin_states(&self, asset_id: Bytes32) -> Result<Vec<CoinStateRow>> {
         cat_coin_states(&self.pool, asset_id).await
     }
+
+    pub async fn created_unspent_cat_coin_states(
+        &self,
+        asset_id: Bytes32,
+        limit: u32,
+        offset: u32,
+    ) -> Result<Vec<CoinStateRow>> {
+        created_unspent_cat_coin_states(&self.pool, asset_id, limit, offset).await
+    }
 }
 
 impl<'a> DatabaseTx<'a> {
@@ -281,6 +290,35 @@ async fn cat_coin_states(
         WHERE `asset_id` = ?
         ",
         asset_id
+    )
+    .fetch_all(conn)
+    .await?;
+
+    rows.into_iter().map(into_row).collect()
+}
+
+async fn created_unspent_cat_coin_states(
+    conn: impl SqliteExecutor<'_>,
+    asset_id: Bytes32,
+    limit: u32,
+    offset: u32,
+) -> Result<Vec<CoinStateRow>> {
+    let asset_id = asset_id.as_ref();
+
+    let rows = sqlx::query_as!(
+        CoinStateSql,
+        "
+        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `spent_height`, `created_height`, `transaction_id`
+        FROM `coin_states`
+        INNER JOIN `cat_coins` ON `coin_states`.coin_id = `cat_coins`.coin_id
+        WHERE `asset_id` = ?
+        AND `spent_height` IS NULL
+        AND `created_height` IS NOT NULL
+        ORDER BY `created_height`, `coin_states`.`coin_id` LIMIT ? OFFSET ?
+        ",
+        asset_id,
+        limit,
+        offset
     )
     .fetch_all(conn)
     .await?;

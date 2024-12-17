@@ -1,5 +1,4 @@
 import Header from '@/components/Header';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -22,9 +21,10 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { useErrors } from '@/hooks/useErrors';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
-import { AlertCircle, CopyIcon, RefreshCwIcon } from 'lucide-react';
+import { CopyIcon, RefreshCwIcon } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
@@ -36,10 +36,9 @@ import SafeAreaView from '@/components/SafeAreaView';
 import { useInsets } from '@/contexts/SafeAreaContext';
 
 export default function CreateWallet() {
-  const navigate = useNavigate();
-  const insets = useInsets();
+  const { addError } = useErrors();
 
-  const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   const submit = (values: z.infer<typeof formSchema>) => {
     commands
@@ -48,14 +47,9 @@ export default function CreateWallet() {
         key: values.mnemonic,
         save_secrets: values.saveMnemonic,
       })
-      .then((res) => {
-        if (res.status === 'ok') {
-          fetchState().then(() => {
-            navigate('/wallet');
-          });
-        }
-      })
-      .catch(setError);
+      .catch(addError)
+      .then(fetchState)
+      .then(() => navigate('/wallet'));
   };
 
   return (
@@ -63,14 +57,6 @@ export default function CreateWallet() {
       <Header title='Create Wallet' back={() => navigate('/')} />
       <Container>
         <CreateForm onSubmit={submit} />
-
-        {error && (
-          <Alert variant='destructive'>
-            <AlertCircle className='h-4 w-4' />
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
       </Container>
     </SafeAreaView>
   );
@@ -86,6 +72,8 @@ const formSchema = z.object({
 function CreateForm(props: {
   onSubmit: (values: z.infer<typeof formSchema>) => void;
 }) {
+  const { addError } = useErrors();
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
   });
@@ -93,12 +81,13 @@ function CreateForm(props: {
   const use24Words = form.watch('use24Words', true);
 
   const loadMnemonic = useCallback(() => {
-    commands.generateMnemonic({ use_24_words: use24Words }).then((res) => {
-      if (res.status === 'ok') {
-        form.setValue('mnemonic', res.data.mnemonic);
-      }
-    });
-  }, [form, use24Words]);
+    commands
+      .generateMnemonic({ use_24_words: use24Words })
+      .then((data) => {
+        form.setValue('mnemonic', data.mnemonic);
+      })
+      .catch(addError);
+  }, [form, use24Words, addError]);
 
   useEffect(() => {
     loadMnemonic();

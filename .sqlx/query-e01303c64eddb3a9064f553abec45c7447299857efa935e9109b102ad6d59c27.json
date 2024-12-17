@@ -1,0 +1,80 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT\n            cs.parent_coin_id, cs.puzzle_hash, cs.amount,\n            did.parent_parent_coin_id, did.parent_inner_puzzle_hash, did.parent_amount,\n            did.launcher_id, did.recovery_list_hash, did.num_verifications_required,\n            did.metadata, did.p2_puzzle_hash\n        FROM `coin_states` AS cs\n        INNER JOIN `did_coins` AS did ON cs.coin_id = did.coin_id\n        WHERE cs.coin_id = ?\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "parent_coin_id",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "puzzle_hash",
+        "ordinal": 1,
+        "type_info": "Blob"
+      },
+      {
+        "name": "amount",
+        "ordinal": 2,
+        "type_info": "Blob"
+      },
+      {
+        "name": "parent_parent_coin_id",
+        "ordinal": 3,
+        "type_info": "Blob"
+      },
+      {
+        "name": "parent_inner_puzzle_hash",
+        "ordinal": 4,
+        "type_info": "Blob"
+      },
+      {
+        "name": "parent_amount",
+        "ordinal": 5,
+        "type_info": "Blob"
+      },
+      {
+        "name": "launcher_id",
+        "ordinal": 6,
+        "type_info": "Blob"
+      },
+      {
+        "name": "recovery_list_hash",
+        "ordinal": 7,
+        "type_info": "Blob"
+      },
+      {
+        "name": "num_verifications_required",
+        "ordinal": 8,
+        "type_info": "Blob"
+      },
+      {
+        "name": "metadata",
+        "ordinal": 9,
+        "type_info": "Blob"
+      },
+      {
+        "name": "p2_puzzle_hash",
+        "ordinal": 10,
+        "type_info": "Blob"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "e01303c64eddb3a9064f553abec45c7447299857efa935e9109b102ad6d59c27"
+}

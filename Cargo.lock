@@ -478,7 +478,6 @@ dependencies = [
  "num-bigint",
  "num-integer",
  "num-traits",
- "serde",
 ]
 
 [[package]]
@@ -4808,7 +4807,6 @@ version = "0.8.1"
 dependencies = [
  "base64 0.22.1",
  "bech32",
- "bigdecimal",
  "bincode",
  "bip39",
  "chia",
@@ -4842,9 +4840,7 @@ dependencies = [
 name = "sage-api"
 version = "0.8.1"
 dependencies = [
- "bigdecimal",
  "indexmap 2.6.0",
- "num-traits",
  "once_cell",
  "sage-config",
  "serde",

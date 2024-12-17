@@ -10,15 +10,16 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { useErrors } from '@/hooks/useErrors';
 import { amount, positiveAmount } from '@/lib/formTypes';
+import { toMojos } from '@/lib/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import * as z from 'zod';
-import { commands, Error, TransactionResponse } from '../bindings';
+import { commands, TransactionResponse } from '../bindings';
 import Container from '../components/Container';
-import ErrorDialog from '../components/ErrorDialog';
 import { useWalletState } from '../state';
 import { TokenAmountInput } from '@/components/ui/masked-input';
 
@@ -26,7 +27,8 @@ export default function IssueToken() {
   const navigate = useNavigate();
   const walletState = useWalletState();
 
-  const [error, setError] = useState<Error | null>(null);
+  const { addError } = useErrors();
+
   const [response, setResponse] = useState<TransactionResponse | null>(null);
 
   const formSchema = z.object({
@@ -45,17 +47,14 @@ export default function IssueToken() {
       .issueCat({
         name: values.name,
         ticker: values.ticker,
-        amount: values.amount.toString(),
-        fee: values.fee?.toString() || '0',
+        amount: toMojos(values.amount.toString(), 3),
+        fee: toMojos(
+          values.fee?.toString() || '0',
+          walletState.sync.unit.decimals,
+        ),
       })
-      .then((result) => {
-        if (result.status === 'error') {
-          console.error(result.error);
-          setError(result.error);
-        } else {
-          setResponse(result.data);
-        }
-      });
+      .then(setResponse)
+      .catch(addError);
   };
 
   return (
@@ -142,7 +141,6 @@ export default function IssueToken() {
         </Form>
       </Container>
 
-      <ErrorDialog error={error} setError={setError} />
       <ConfirmationDialog
         response={response}
         close={() => setResponse(null)}

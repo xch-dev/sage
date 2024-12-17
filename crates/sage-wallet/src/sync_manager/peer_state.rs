@@ -80,11 +80,11 @@ impl PeerState {
     }
 
     pub fn ban(&mut self, ip: IpAddr, duration: Duration, message: &str) {
-        debug!("Banning peer {ip} ({duration:?}): {message}");
-
         if self.trusted_peers.contains(&ip) {
             return;
         }
+
+        debug!("Banning peer {ip} ({duration:?}): {message}");
 
         let start = SystemTime::now();
         let since_the_epoch = start

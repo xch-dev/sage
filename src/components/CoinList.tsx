@@ -6,6 +6,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { toDecimal } from '@/lib/utils';
 import {
   ColumnDef,
   flexRender,
@@ -17,7 +18,6 @@ import {
   SortingState,
   useReactTable,
 } from '@tanstack/react-table';
-import BigNumber from 'bignumber.js';
 import {
   ArrowDown,
   ArrowUp,
@@ -32,6 +32,7 @@ import { Button } from './ui/button';
 import { Checkbox } from './ui/checkbox';
 
 export interface CoinListProps {
+  precision: number;
   coins: CoinRecord[];
   selectedCoins: RowSelectionState;
   setSelectedCoins: React.Dispatch<React.SetStateAction<RowSelectionState>>;
@@ -116,7 +117,7 @@ export default function CoinList(props: CoinListProps) {
       },
       cell: (info) => (
         <span className='font-mono'>
-          {new BigNumber(info.getValue() as string).toString()}
+          {toDecimal(info.getValue() as string, props.precision)}
         </span>
       ),
     },

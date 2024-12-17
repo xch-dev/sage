@@ -4,3 +4,4 @@ mod keys;
 mod offers;
 mod settings;
 mod transactions;
+mod wallet_connect;

@@ -1,18 +1,18 @@
 import { commands, DidRecord, events } from '@/bindings';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { useErrors } from './useErrors';
 
 export function useDids() {
+  const { addError } = useErrors();
+
   const [dids, setDids] = useState<DidRecord[]>([]);
 
-  const updateDids = async () => {
-    return await commands.getDids({}).then((result) => {
-      if (result.status === 'ok') {
-        setDids(result.data.dids);
-      } else {
-        throw new Error('Failed to get DIDs');
-      }
-    });
-  };
+  const updateDids = useCallback(async () => {
+    return await commands
+      .getDids({})
+      .then((data) => setDids(data.dids))
+      .catch(addError);
+  }, [addError]);
 
   useEffect(() => {
     updateDids();
@@ -32,7 +32,7 @@ export function useDids() {
     return () => {
       unlisten.then((u) => u());
     };
-  }, []);
+  }, [updateDids]);
 
   return {
     dids: dids.sort((a, b) => {

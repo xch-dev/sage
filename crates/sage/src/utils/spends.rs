@@ -7,7 +7,11 @@ use crate::{Error, Result, Sage};
 use super::parse_genesis_challenge;
 
 impl Sage {
-    pub(crate) async fn sign(&self, coin_spends: Vec<CoinSpend>) -> Result<SpendBundle> {
+    pub(crate) async fn sign(
+        &self,
+        coin_spends: Vec<CoinSpend>,
+        partial: bool,
+    ) -> Result<SpendBundle> {
         let wallet = self.wallet()?;
 
         let (_mnemonic, Some(master_sk)) =
@@ -21,6 +25,7 @@ impl Sage {
                 coin_spends,
                 &AggSigConstants::new(parse_genesis_challenge(self.network().agg_sig_me.clone())?),
                 master_sk,
+                partial,
             )
             .await?;
 

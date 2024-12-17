@@ -13,6 +13,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useErrors } from '@/hooks/useErrors';
 import { useNftParams } from '@/hooks/useNftParams';
 import collectionImage from '@/images/collection.png';
 import { useWalletState } from '@/state';
@@ -30,6 +31,8 @@ import { commands, events, NftCollectionRecord, NftRecord } from '../bindings';
 export function NftList() {
   const navigate = useNavigate();
   const walletState = useWalletState();
+
+  const { addError } = useErrors();
 
   const [params, setParams] = useNftParams();
   const { pageSize, page, view, showHidden } = params;
@@ -50,13 +53,8 @@ export function NftList() {
             sort_mode: view,
             include_hidden: showHidden,
           })
-          .then((result) => {
-            if (result.status === 'ok') {
-              setNfts(result.data.nfts);
-            } else {
-              throw new Error('Failed to get NFTs');
-            }
-          });
+          .then((data) => setNfts(data.nfts))
+          .catch(addError);
       } else if (view === 'collection') {
         await commands
           .getNftCollections({
@@ -64,20 +62,15 @@ export function NftList() {
             limit: pageSize,
             include_hidden: showHidden,
           })
-          .then((result) => {
-            if (result.status === 'ok') {
-              setCollections(result.data.collections);
-            } else {
-              throw new Error('Failed to get NFT collections');
-            }
-          });
+          .then((data) => setCollections(data.collections))
+          .catch(addError);
       }
     },
-    [pageSize, showHidden, view],
+    [pageSize, showHidden, view, addError],
   );
 
   useEffect(() => {
-    updateNfts(0);
+    updateNfts(1);
   }, [updateNfts]);
 
   useEffect(() => {

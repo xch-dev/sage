@@ -19,7 +19,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Textarea } from '@/components/ui/textarea';
+import { useErrors } from '@/hooks/useErrors';
 import { nftUri } from '@/lib/nftUri';
+import { toDecimal } from '@/lib/utils';
 import { isDefaultOffer, useOfferState, useWalletState } from '@/state';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 import BigNumber from 'bignumber.js';
@@ -30,6 +32,8 @@ import { Link, useNavigate } from 'react-router-dom';
 export function Offers() {
   const navigate = useNavigate();
   const offerState = useOfferState();
+
+  const { addError } = useErrors();
 
   const [offerString, setOfferString] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -44,16 +48,14 @@ export function Offers() {
     [navigate],
   );
 
-  const updateOffers = () => {
-    commands.getOffers({}).then((result) => {
-      if (result.status === 'error') {
-        console.error(result.error);
-        return;
-      }
-
-      setOffers(result.data.offers);
-    });
-  };
+  const updateOffers = useCallback(
+    () =>
+      commands
+        .getOffers({})
+        .then((data) => setOffers(data.offers))
+        .catch(addError),
+    [addError],
+  );
 
   useEffect(() => {
     updateOffers();
@@ -67,7 +69,7 @@ export function Offers() {
     return () => {
       unlisten.then((u) => u());
     };
-  }, []);
+  }, [updateOffers]);
 
   useEffect(() => {
     const handlePaste = (e: ClipboardEvent) => {
@@ -157,6 +159,8 @@ interface OfferProps {
 }
 
 function Offer({ record, refresh }: OfferProps) {
+  const { addError } = useErrors();
+
   const [isDeleteOpen, setDeleteOpen] = useState(false);
 
   return (
@@ -241,16 +245,11 @@ function Offer({ record, refresh }: OfferProps) {
             </Button>
             <Button
               onClick={() => {
-                setDeleteOpen(false);
                 commands
                   .deleteOffer({ offer_id: record.offer_id })
-                  .then((result) => {
-                    if (result.status === 'error') {
-                      console.error(result.error);
-                      return;
-                    }
-                    refresh();
-                  });
+                  .then(() => refresh())
+                  .catch(addError)
+                  .finally(() => setDeleteOpen(false));
               }}
             >
               Delete
@@ -280,7 +279,10 @@ function AssetPreview({ label, assets }: AssetPreviewProps) {
           <img src='https://icons.dexie.space/xch.webp' className='w-8 h-8' />
 
           <div className='text-sm text-muted-foreground truncate'>
-            {BigNumber(assets.xch.amount).plus(assets.xch.royalty).toString()}{' '}
+            {toDecimal(
+              BigNumber(assets.xch.amount).plus(assets.xch.royalty).toString(),
+              walletState.sync.unit.decimals,
+            )}{' '}
             {walletState.sync.unit.ticker}
           </div>
         </div>
@@ -290,7 +292,7 @@ function AssetPreview({ label, assets }: AssetPreviewProps) {
           <img src={cat.icon_url!} className='w-8 h-8' />
 
           <div className='text-sm text-muted-foreground truncate'>
-            {BigNumber(cat.amount).plus(cat.royalty).toString()}{' '}
+            {toDecimal(BigNumber(cat.amount).plus(cat.royalty).toString(), 3)}{' '}
             {cat.name ?? cat.ticker}
           </div>
         </div>

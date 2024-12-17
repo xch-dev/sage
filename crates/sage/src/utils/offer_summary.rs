@@ -1,6 +1,5 @@
 use std::time::Duration;
 
-use bigdecimal::BigDecimal;
 use chia::{clvm_traits::FromClvm, puzzles::nft::NftMetadata};
 use chia_wallet_sdk::{encode_address, Offer, SpendContext};
 use indexmap::IndexMap;
@@ -59,8 +58,8 @@ impl Sage {
 
         let mut maker = OfferAssets {
             xch: OfferXch {
-                amount: Amount::from_mojos(maker_amounts.xch as u128, self.unit.decimals),
-                royalty: Amount::from_mojos(maker_royalties.xch as u128, self.unit.decimals),
+                amount: Amount::u64(maker_amounts.xch),
+                royalty: Amount::u64(maker_royalties.xch),
             },
             cats: IndexMap::new(),
             nfts: IndexMap::new(),
@@ -72,11 +71,8 @@ impl Sage {
             maker.cats.insert(
                 hex::encode(asset_id),
                 OfferCat {
-                    amount: Amount::from_mojos(amount as u128, 3),
-                    royalty: Amount::from_mojos(
-                        maker_royalties.cats.get(&asset_id).copied().unwrap_or(0) as u128,
-                        3,
-                    ),
+                    amount: Amount::u64(amount),
+                    royalty: Amount::u64(maker_royalties.cats.get(&asset_id).copied().unwrap_or(0)),
                     name: cat.as_ref().and_then(|cat| cat.name.clone()),
                     ticker: cat.as_ref().and_then(|cat| cat.ticker.clone()),
                     icon_url: cat.as_ref().and_then(|cat| cat.icon.clone()),
@@ -127,9 +123,7 @@ impl Sage {
                     image_data: info.image_data,
                     image_mime_type: info.image_mime_type,
                     name: info.name,
-                    royalty_percent: (BigDecimal::from(nft.info.royalty_ten_thousandths)
-                        / BigDecimal::from(100))
-                    .to_string(),
+                    royalty_ten_thousandths: nft.info.royalty_ten_thousandths,
                     royalty_address: encode_address(
                         nft.info.royalty_puzzle_hash.into(),
                         &self.network().address_prefix,
@@ -140,8 +134,8 @@ impl Sage {
 
         let mut taker = OfferAssets {
             xch: OfferXch {
-                amount: Amount::from_mojos(taker_amounts.xch as u128, self.unit.decimals),
-                royalty: Amount::from_mojos(taker_royalties.xch as u128, self.unit.decimals),
+                amount: Amount::u64(taker_amounts.xch),
+                royalty: Amount::u64(taker_royalties.xch),
             },
             cats: IndexMap::new(),
             nfts: IndexMap::new(),
@@ -153,11 +147,8 @@ impl Sage {
             taker.cats.insert(
                 hex::encode(asset_id),
                 OfferCat {
-                    amount: Amount::from_mojos(amount as u128, 3),
-                    royalty: Amount::from_mojos(
-                        taker_royalties.cats.get(&asset_id).copied().unwrap_or(0) as u128,
-                        3,
-                    ),
+                    amount: Amount::u64(amount),
+                    royalty: Amount::u64(taker_royalties.cats.get(&asset_id).copied().unwrap_or(0)),
                     name: cat.as_ref().and_then(|cat| cat.name.clone()),
                     ticker: cat.as_ref().and_then(|cat| cat.ticker.clone()),
                     icon_url: cat.as_ref().and_then(|cat| cat.icon.clone()),
@@ -180,9 +171,7 @@ impl Sage {
                     image_data: info.image_data,
                     image_mime_type: info.image_mime_type,
                     name: info.name,
-                    royalty_percent: (BigDecimal::from(nft.royalty_ten_thousandths)
-                        / BigDecimal::from(100))
-                    .to_string(),
+                    royalty_ten_thousandths: nft.royalty_ten_thousandths,
                     royalty_address: encode_address(
                         nft.royalty_puzzle_hash.into(),
                         &self.network().address_prefix,
@@ -192,7 +181,7 @@ impl Sage {
         }
 
         Ok(OfferSummary {
-            fee: Amount::from_mojos(locked_coins.fee as u128, self.unit.decimals),
+            fee: Amount::u64(locked_coins.fee),
             maker,
             taker,
         })

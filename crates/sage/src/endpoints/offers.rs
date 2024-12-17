@@ -4,7 +4,6 @@ use std::{
 };
 
 use base64::{prelude::BASE64_STANDARD, Engine};
-use bigdecimal::BigDecimal;
 use chia::{clvm_traits::FromClvm, protocol::SpendBundle, puzzles::nft::NftMetadata};
 use chia_wallet_sdk::{encode_address, AggSigConstants, Offer, SpendContext};
 use chrono::{Local, TimeZone};
@@ -112,6 +111,7 @@ impl Sage {
 
         Ok(MakeOfferResponse {
             offer: offer.encode()?,
+            offer_id: hex::encode(SpendBundle::from(offer).name()),
         })
     }
 
@@ -168,12 +168,14 @@ impl Sage {
         }
 
         let json_bundle = json_bundle(&spend_bundle);
+        let transaction_id = hex::encode(spend_bundle.name());
 
         Ok(TakeOfferResponse {
             summary: self
                 .summarize(spend_bundle.coin_spends, ConfirmationInfo::default())
                 .await?,
             spend_bundle: json_bundle,
+            transaction_id,
         })
     }
 
@@ -518,8 +520,8 @@ impl Sage {
             let asset_id = hex::encode(cat.asset_id);
 
             let record = OfferCat {
-                amount: Amount::from_mojos(cat.amount as u128, 3),
-                royalty: Amount::from_mojos(cat.royalty as u128, 3),
+                amount: Amount::u64(cat.amount),
+                royalty: Amount::u64(cat.royalty),
                 name: cat.name,
                 ticker: cat.ticker,
                 icon_url: cat.icon,
@@ -543,9 +545,7 @@ impl Sage {
                     nft.royalty_puzzle_hash.into(),
                     &self.network().address_prefix,
                 )?,
-                royalty_percent: (BigDecimal::from(nft.royalty_ten_thousandths)
-                    / BigDecimal::from(10_000))
-                .to_string(),
+                royalty_ten_thousandths: nft.royalty_ten_thousandths,
                 name: nft.name,
                 image_data: nft.thumbnail.map(|data| BASE64_STANDARD.encode(data)),
                 image_mime_type: nft.thumbnail_mime_type,
@@ -575,21 +575,21 @@ impl Sage {
             summary: OfferSummary {
                 maker: OfferAssets {
                     xch: OfferXch {
-                        amount: Amount::from_mojos(maker_xch_amount, self.network().precision),
-                        royalty: Amount::from_mojos(maker_xch_royalty, self.network().precision),
+                        amount: Amount::u128(maker_xch_amount),
+                        royalty: Amount::u128(maker_xch_royalty),
                     },
                     cats: maker_cats,
                     nfts: maker_nfts,
                 },
                 taker: OfferAssets {
                     xch: OfferXch {
-                        amount: Amount::from_mojos(taker_xch_amount, self.network().precision),
-                        royalty: Amount::from_mojos(taker_xch_royalty, self.network().precision),
+                        amount: Amount::u128(taker_xch_amount),
+                        royalty: Amount::u128(taker_xch_royalty),
                     },
                     cats: taker_cats,
                     nfts: taker_nfts,
                 },
-                fee: Amount::from_mojos(offer.fee as u128, self.network().precision),
+                fee: Amount::u64(offer.fee),
             },
         })
     }

@@ -9,6 +9,8 @@ pub struct SendXch {
     pub amount: Amount,
     pub fee: Amount,
     #[serde(default)]
+    pub memos: Vec<String>,
+    #[serde(default)]
     pub auto_submit: bool,
 }
 
@@ -91,7 +93,7 @@ pub struct NftMint {
     pub metadata_uris: Vec<String>,
     pub license_uris: Vec<String>,
     pub royalty_address: Option<String>,
-    pub royalty_percent: Amount,
+    pub royalty_ten_thousandths: u16,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
@@ -144,11 +146,23 @@ pub struct SignCoinSpends {
     pub coin_spends: Vec<CoinSpendJson>,
     #[serde(default)]
     pub auto_submit: bool,
+    #[serde(default)]
+    pub partial: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub struct SignCoinSpendsResponse {
     pub spend_bundle: SpendBundleJson,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct ViewCoinSpends {
+    pub coin_spends: Vec<CoinSpendJson>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct ViewCoinSpendsResponse {
+    pub summary: TransactionSummary,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]

@@ -7,7 +7,51 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Error } from '../bindings';
+import {
+  createContext,
+  ReactNode,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import { type Error } from '../bindings';
+
+export interface ErrorContextType {
+  errors: Error[];
+  addError: (error: Error) => void;
+}
+
+export const ErrorContext = createContext<ErrorContextType | undefined>(
+  undefined,
+);
+
+export function ErrorProvider({ children }: { children: ReactNode }) {
+  const [errors, setErrors] = useState<Error[]>([]);
+  const errorsRef = useRef(errors);
+
+  useEffect(() => {
+    errorsRef.current = errors;
+  }, [errors]);
+
+  const addError = useMemo(
+    () => (error: Error) => setErrors([...errorsRef.current, error]),
+    [],
+  );
+
+  return (
+    <ErrorContext.Provider value={{ errors, addError }}>
+      {children}
+
+      {errors.length > 0 && (
+        <ErrorDialog
+          error={errors[0]}
+          setError={() => setErrors(errors.slice(1))}
+        />
+      )}
+    </ErrorContext.Provider>
+  );
+}
 
 export interface ErrorDialogProps {
   error: Error | null;

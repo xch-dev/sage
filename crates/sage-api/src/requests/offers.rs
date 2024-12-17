@@ -27,6 +27,7 @@ pub struct CatAmount {
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub struct MakeOfferResponse {
     pub offer: String,
+    pub offer_id: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
@@ -41,6 +42,7 @@ pub struct TakeOffer {
 pub struct TakeOfferResponse {
     pub summary: TransactionSummary,
     pub spend_bundle: SpendBundleJson,
+    pub transaction_id: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]

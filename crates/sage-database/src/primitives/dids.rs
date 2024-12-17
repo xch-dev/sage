@@ -6,8 +6,8 @@ use chia_wallet_sdk::{Did, DidInfo};
 use sqlx::SqliteExecutor;
 
 use crate::{
-    into_row, Database, DatabaseTx, DidCoinInfo, DidCoinInfoSql, DidRow, DidSql, FullDidCoinSql,
-    IntoRow, Result,
+    into_row, CoinStateRow, CoinStateSql, Database, DatabaseTx, DidCoinInfo, DidCoinInfoSql,
+    DidRow, DidSql, FullDidCoinSql, IntoRow, Result,
 };
 
 impl Database {
@@ -37,6 +37,25 @@ impl Database {
 
     pub async fn set_future_did_name(&self, launcher_id: Bytes32, name: String) -> Result<()> {
         set_future_did_name(&self.pool, launcher_id, name).await
+    }
+
+    pub async fn created_unspent_did_coin_states(
+        &self,
+        limit: u32,
+        offset: u32,
+    ) -> Result<Vec<CoinStateRow>> {
+        created_unspent_did_coin_states(&self.pool, limit, offset).await
+    }
+
+    pub async fn created_unspent_did_coin_state(
+        &self,
+        launcher_id: Bytes32,
+    ) -> Result<Vec<CoinStateRow>> {
+        created_unspent_did_coin_state(&self.pool, launcher_id).await
+    }
+
+    pub async fn did_by_coin_id(&self, coin_id: Bytes32) -> Result<Option<Did<Program>>> {
+        did_by_coin_id(&self.pool, coin_id).await
     }
 }
 
@@ -337,4 +356,81 @@ async fn delete_future_did_name(conn: impl SqliteExecutor<'_>, launcher_id: Byte
     .await?;
 
     Ok(())
+}
+
+async fn created_unspent_did_coin_states(
+    conn: impl SqliteExecutor<'_>,
+    limit: u32,
+    offset: u32,
+) -> Result<Vec<CoinStateRow>> {
+    let rows = sqlx::query_as!(
+        CoinStateSql,
+        "
+        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `spent_height`, `created_height`, `transaction_id`
+        FROM `coin_states`
+        INNER JOIN `did_coins` ON `coin_states`.coin_id = `did_coins`.coin_id
+        WHERE `spent_height` IS NULL
+        AND `created_height` IS NOT NULL
+        ORDER BY `created_height`, `coin_states`.`coin_id` LIMIT ? OFFSET ?
+        ",
+        limit,
+        offset
+    )
+    .fetch_all(conn)
+    .await?;
+
+    rows.into_iter().map(into_row).collect()
+}
+
+async fn created_unspent_did_coin_state(
+    conn: impl SqliteExecutor<'_>,
+    launcher_id: Bytes32,
+) -> Result<Vec<CoinStateRow>> {
+    let launcher_id = launcher_id.as_ref();
+
+    let rows = sqlx::query_as!(
+        CoinStateSql,
+        "
+        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `spent_height`, `created_height`, `transaction_id`
+        FROM `did_coins`
+        INNER JOIN `coin_states` ON `coin_states`.coin_id = `did_coins`.coin_id
+        WHERE `launcher_id` = ?
+        AND `spent_height` IS NULL
+        AND `created_height` IS NOT NULL
+        ",
+        launcher_id,
+    )
+    .fetch_all(conn)
+    .await?;
+
+    rows.into_iter().map(into_row).collect()
+}
+
+async fn did_by_coin_id(
+    conn: impl SqliteExecutor<'_>,
+    coin_id: Bytes32,
+) -> Result<Option<Did<Program>>> {
+    let coin_id = coin_id.as_ref();
+
+    let Some(sql) = sqlx::query_as!(
+        FullDidCoinSql,
+        "
+        SELECT
+            cs.parent_coin_id, cs.puzzle_hash, cs.amount,
+            did.parent_parent_coin_id, did.parent_inner_puzzle_hash, did.parent_amount,
+            did.launcher_id, did.recovery_list_hash, did.num_verifications_required,
+            did.metadata, did.p2_puzzle_hash
+        FROM `coin_states` AS cs
+        INNER JOIN `did_coins` AS did ON cs.coin_id = did.coin_id
+        WHERE cs.coin_id = ?
+        ",
+        coin_id
+    )
+    .fetch_optional(conn)
+    .await?
+    else {
+        return Ok(None);
+    };
+
+    Ok(Some(sql.into_row()?))
 }

@@ -1,4 +1,5 @@
-import { usePeers } from '@/contexts/PeerContext';
+import useInitialization from '@/hooks/useInitialization';
+import { usePeers } from '@/hooks/usePeers';
 import { useWallet } from '@/hooks/useWallet';
 import icon from '@/icon.png';
 import { logoutAndUpdateState, useWalletState } from '@/state';
@@ -8,7 +9,6 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Nav } from './Nav';
 import { Button } from './ui/button';
 import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
-import useInitialization from '@/hooks/useInitialization';
 import { platform } from '@tauri-apps/plugin-os';
 import { useInsets } from '@/contexts/SafeAreaContext';
 

@@ -18,16 +18,17 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useDids } from '@/hooks/useDids';
+import { useErrors } from '@/hooks/useErrors';
 import { amount } from '@/lib/formTypes';
+import { toMojos } from '@/lib/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { LoaderCircleIcon } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import * as z from 'zod';
-import { commands, Error, TransactionResponse } from '../bindings';
+import { commands, TransactionResponse } from '../bindings';
 import Container from '../components/Container';
-import ErrorDialog from '../components/ErrorDialog';
 import { useWalletState } from '../state';
 
 export default function MintNft() {
@@ -35,8 +36,8 @@ export default function MintNft() {
   const walletState = useWalletState();
 
   const { dids } = useDids();
+  const { addError } = useErrors();
 
-  const [error, setError] = useState<Error | null>(null);
   const [pending, setPending] = useState(false);
   const [response, setResponse] = useState<TransactionResponse | null>(null);
 
@@ -59,14 +60,17 @@ export default function MintNft() {
 
     commands
       .bulkMintNfts({
-        fee: values.fee?.toString() || '0',
+        fee: toMojos(
+          values.fee?.toString() || '0',
+          walletState.sync.unit.decimals,
+        ),
         did_id: values.profile,
         mints: [
           {
             edition_number: null,
             edition_total: null,
             royalty_address: values.royaltyAddress || null,
-            royalty_percent: values.royaltyPercent,
+            royalty_ten_thousandths: Number(values.royaltyPercent) * 100,
             data_uris: values.dataUris
               .split(',')
               .map((uri) => uri.trim())
@@ -82,17 +86,9 @@ export default function MintNft() {
           },
         ],
       })
-      .then((result) => {
-        if (result.status === 'error') {
-          console.error(result.error);
-          setError(result.error);
-        } else {
-          setResponse(result.data);
-        }
-      })
-      .finally(() => {
-        setPending(false);
-      });
+      .then(setResponse)
+      .catch(addError)
+      .finally(() => setPending(false));
   };
 
   return (
@@ -275,7 +271,6 @@ export default function MintNft() {
         </Form>
       </Container>
 
-      <ErrorDialog error={error} setError={setError} />
       <ConfirmationDialog
         response={response}
         close={() => setResponse(null)}

@@ -1,5 +1,6 @@
 import { OfferAssets, OfferSummary } from '@/bindings';
 import { nftUri } from '@/lib/nftUri';
+import { toDecimal } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import BigNumber from 'bignumber.js';
 import { ArrowDownIcon, ArrowUpIcon } from 'lucide-react';
@@ -97,7 +98,10 @@ function Assets({ assets }: AssetsProps) {
             </Badge>
 
             <div className='text-sm font-medium'>
-              {BigNumber(amount).plus(assets.xch.royalty).toString()}{' '}
+              {toDecimal(
+                BigNumber(amount).plus(assets.xch.royalty).toString(),
+                walletState.sync.unit.decimals,
+              )}{' '}
               {walletState.sync.unit.ticker}
             </div>
           </div>
@@ -107,7 +111,8 @@ function Assets({ assets }: AssetsProps) {
               <Separator className='my-1' />
 
               <div className='text-sm text-muted-foreground truncate text-neutral-600 dark:text-neutral-300'>
-                Amount includes {assets.xch.royalty}{' '}
+                Amount includes{' '}
+                {toDecimal(assets.xch.royalty, walletState.sync.unit.decimals)}{' '}
                 {walletState.sync.unit.ticker} royalty
               </div>
             </>
@@ -124,7 +129,8 @@ function Assets({ assets }: AssetsProps) {
               </Badge>
             </div>
             <div className='text-sm font-medium whitespace-nowrap'>
-              {BigNumber(cat.amount).plus(cat.royalty).toString()} {cat.name}
+              {toDecimal(BigNumber(cat.amount).plus(cat.royalty).toString(), 3)}{' '}
+              {cat.name}
             </div>
           </div>
 
@@ -147,7 +153,8 @@ function Assets({ assets }: AssetsProps) {
               <Separator className='my-1' />
 
               <div className='text-sm text-muted-foreground truncate text-neutral-600 dark:text-neutral-300'>
-                Amount includes {cat.royalty} {cat.ticker ?? 'CAT'} royalty
+                Amount includes {toDecimal(cat.royalty, 3)}{' '}
+                {cat.ticker ?? 'CAT'} royalty
               </div>
             </>
           )}
@@ -186,7 +193,7 @@ function Assets({ assets }: AssetsProps) {
           <div className='flex gap-1.5 items-center text-sm text-muted-foreground truncate'>
             <span>
               <span className='text-neutral-600 dark:text-neutral-300'>
-                {nft.royalty_percent}% royalty to{' '}
+                {nft.royalty_ten_thousandths / 100}% royalty to{' '}
               </span>
               <span className='font-mono'>
                 {nft.royalty_address.slice(0, 10) +

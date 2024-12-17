@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { useErrors } from '@/hooks/useErrors';
 import useInitialization from '@/hooks/useInitialization';
 import { useWallet } from '@/hooks/useWallet';
 import { useWalletConnect } from '@/hooks/useWalletConnect';
@@ -144,6 +145,8 @@ function WalletConnectSettings() {
 }
 
 function NetworkSettings() {
+  const { addError } = useErrors();
+
   const [discoverPeers, setDiscoverPeers] = useState<boolean | null>(null);
   const [targetPeersText, setTargetPeers] = useState<string | null>(null);
   const [networkId, setNetworkId] = useState<string | null>(null);
@@ -158,20 +161,12 @@ function NetworkSettings() {
   const [config, setConfig] = useState<NetworkConfig | null>(null);
 
   useEffect(() => {
-    commands.networkConfig().then((res) => {
-      if (res.status === 'error') {
-        return;
-      }
-      setConfig(res.data);
-    });
-
-    commands.getNetworks({}).then((res) => {
-      if (res.status === 'error') {
-        return;
-      }
-      setNetworks(res.data.networks);
-    });
-  }, []);
+    commands.networkConfig().then(setConfig).catch(addError);
+    commands
+      .getNetworks({})
+      .then((data) => setNetworks(data.networks))
+      .catch(addError);
+  }, [addError]);
 
   return (
     <Card>
@@ -185,8 +180,10 @@ function NetworkSettings() {
               id='discover-peers'
               checked={discoverPeers ?? config?.discover_peers ?? true}
               onCheckedChange={(checked) => {
-                commands.setDiscoverPeers({ discover_peers: checked });
-                setDiscoverPeers(checked);
+                commands
+                  .setDiscoverPeers({ discover_peers: checked })
+                  .catch(addError)
+                  .finally(() => setDiscoverPeers(checked));
               }}
             />
             <Label htmlFor='discover-peers'>Discover peers automatically</Label>
@@ -208,7 +205,9 @@ function NetworkSettings() {
                   if (config) {
                     setConfig({ ...config, target_peers: targetPeers });
                   }
-                  commands.setTargetPeers({ target_peers: targetPeers });
+                  commands
+                    .setTargetPeers({ target_peers: targetPeers })
+                    .catch(addError);
                 }
               }}
             />
@@ -223,10 +222,13 @@ function NetworkSettings() {
                     setConfig({ ...config, network_id: networkId });
                   }
                   clearState();
-                  commands.setNetworkId({ network_id: networkId }).then(() => {
-                    fetchState();
-                  });
-                  setNetworkId(networkId);
+                  commands
+                    .setNetworkId({ network_id: networkId })
+                    .catch(addError)
+                    .finally(() => {
+                      fetchState();
+                      setNetworkId(networkId);
+                    });
                 }
               }}
             >
@@ -249,6 +251,8 @@ function NetworkSettings() {
 }
 
 function WalletSettings(props: { wallet: KeyInfo }) {
+  const { addError } = useErrors();
+
   const [name, setName] = useState(props.wallet.name);
   const [deriveAutomatically, setDeriveAutomatically] = useState<
     boolean | null
@@ -266,13 +270,11 @@ function WalletSettings(props: { wallet: KeyInfo }) {
   const [config, setConfig] = useState<WalletConfig | null>(null);
 
   useEffect(() => {
-    commands.walletConfig(props.wallet.fingerprint).then((res) => {
-      if (res.status === 'error') {
-        return;
-      }
-      setConfig(res.data);
-    });
-  }, [props.wallet.fingerprint]);
+    commands
+      .walletConfig(props.wallet.fingerprint)
+      .then(setConfig)
+      .catch(addError);
+  }, [props.wallet.fingerprint, addError]);
 
   return (
     <Card>
@@ -295,10 +297,12 @@ function WalletSettings(props: { wallet: KeyInfo }) {
                     setConfig({ ...config, name });
                   }
                   if (name)
-                    commands.renameKey({
-                      fingerprint: props.wallet.fingerprint,
-                      name,
-                    });
+                    commands
+                      .renameKey({
+                        fingerprint: props.wallet.fingerprint,
+                        name,
+                      })
+                      .catch(addError);
                 }
               }}
             />
@@ -310,11 +314,13 @@ function WalletSettings(props: { wallet: KeyInfo }) {
                 deriveAutomatically ?? config?.derive_automatically ?? true
               }
               onCheckedChange={(checked) => {
-                commands.setDeriveAutomatically({
-                  fingerprint: props.wallet.fingerprint,
-                  derive_automatically: checked,
-                });
-                setDeriveAutomatically(checked);
+                commands
+                  .setDeriveAutomatically({
+                    fingerprint: props.wallet.fingerprint,
+                    derive_automatically: checked,
+                  })
+                  .catch(addError)
+                  .finally(() => setDeriveAutomatically(checked));
               }}
             />
             <Label htmlFor='generate-addresses'>
@@ -342,10 +348,12 @@ function WalletSettings(props: { wallet: KeyInfo }) {
                       derivation_batch_size: derivationBatchSize,
                     });
                   }
-                  commands.setDerivationBatchSize({
-                    fingerprint: props.wallet.fingerprint,
-                    derivation_batch_size: derivationBatchSize,
-                  });
+                  commands
+                    .setDerivationBatchSize({
+                      fingerprint: props.wallet.fingerprint,
+                      derivation_batch_size: derivationBatchSize,
+                    })
+                    .catch(addError);
                 }
               }}
             />
