@@ -117,11 +117,11 @@ export function Offers() {
               <div className='flex gap-2'>
                 <DialogTrigger asChild>
                   <Button variant='outline' className='flex items-center gap-1'>
-                    View offer
+                    View Offer
                   </Button>
                 </DialogTrigger>
                 <Link to='/offers/make' replace={true}>
-                  <Button>Create offer</Button>
+                  <Button>Make Offer</Button>
                 </Link>
               </div>
             </div>

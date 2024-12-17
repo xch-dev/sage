@@ -1,6 +1,6 @@
 use chia::{
     bls::{master_to_wallet_unhardened, sign},
-    clvm_utils::{CurriedProgram, ToTreeHash},
+    clvm_utils::ToTreeHash,
     protocol::{Bytes, Coin, CoinSpend, SpendBundle},
     puzzles::{cat::CatArgs, standard::StandardArgs, DeriveSynthetic, Proof},
 };
@@ -87,14 +87,8 @@ impl Sage {
                         let synthetic_key = wallet.db.synthetic_key(cat.p2_puzzle_hash).await?;
 
                         let mut ctx = SpendContext::new();
-                        let p2_puzzle = CurriedProgram {
-                            program: ctx.standard_puzzle()?,
-                            args: StandardArgs::new(synthetic_key),
-                        };
-                        let cat_puzzle = CurriedProgram {
-                            program: ctx.cat_puzzle()?,
-                            args: CatArgs::new(cat.asset_id, p2_puzzle),
-                        };
+                        let p2_puzzle = ctx.curry(StandardArgs::new(synthetic_key))?;
+                        let cat_puzzle = ctx.curry(CatArgs::new(cat.asset_id, p2_puzzle))?;
 
                         items.push(SpendableCoin {
                             coin: wallet_connect::Coin {
@@ -167,10 +161,7 @@ impl Sage {
                             wallet.db.synthetic_key(did.info.p2_puzzle_hash).await?;
 
                         let mut ctx = SpendContext::new();
-                        let p2_puzzle = CurriedProgram {
-                            program: ctx.standard_puzzle()?,
-                            args: StandardArgs::new(synthetic_key),
-                        };
+                        let p2_puzzle = ctx.curry(StandardArgs::new(synthetic_key))?;
                         let did_puzzle =
                             did.info.into_layers(p2_puzzle).construct_puzzle(&mut ctx)?;
 
@@ -252,10 +243,7 @@ impl Sage {
                             wallet.db.synthetic_key(nft.info.p2_puzzle_hash).await?;
 
                         let mut ctx = SpendContext::new();
-                        let p2_puzzle = CurriedProgram {
-                            program: ctx.standard_puzzle()?,
-                            args: StandardArgs::new(synthetic_key),
-                        };
+                        let p2_puzzle = ctx.curry(StandardArgs::new(synthetic_key))?;
                         let nft_puzzle =
                             nft.info.into_layers(p2_puzzle).construct_puzzle(&mut ctx)?;
 
@@ -315,10 +303,7 @@ impl Sage {
                 let synthetic_key = wallet.db.synthetic_key(cs.coin.puzzle_hash).await?;
 
                 let mut ctx = SpendContext::new();
-                let puzzle = CurriedProgram {
-                    program: ctx.standard_puzzle()?,
-                    args: StandardArgs::new(synthetic_key),
-                };
+                let puzzle = ctx.curry(StandardArgs::new(synthetic_key))?;
 
                 items.push(SpendableCoin {
                     coin: wallet_connect::Coin {

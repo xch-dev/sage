@@ -10,6 +10,7 @@ mod did_assign;
 mod dids;
 mod nfts;
 mod offer;
+mod option;
 mod p2_coin_management;
 mod p2_send;
 mod p2_spends;
@@ -17,6 +18,7 @@ mod signing;
 
 pub use nfts::WalletNftMint;
 pub use offer::*;
+pub use option::*;
 
 #[derive(Debug)]
 pub struct Wallet {

@@ -113,7 +113,7 @@ impl Wallet {
                 .reserve_fee(fee);
 
             if change > 0 {
-                conditions = conditions.create_coin(change_puzzle_hash, change, Vec::new());
+                conditions = conditions.create_coin(change_puzzle_hash, change, None);
             }
 
             if let Some(did_coin_id) = did_coin_id {

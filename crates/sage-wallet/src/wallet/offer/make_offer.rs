@@ -1,9 +1,8 @@
 use chia::{
-    clvm_utils::CurriedProgram,
     protocol::{Bytes32, CoinSpend, Program},
     puzzles::{
         cat::CatArgs,
-        offer::{Memos, Payment, SETTLEMENT_PAYMENTS_PUZZLE_HASH},
+        offer::{Payment, SETTLEMENT_PAYMENTS_PUZZLE_HASH},
     },
 };
 use chia_wallet_sdk::{Conditions, Layer, NftInfo, OfferBuilder, Partial, SpendContext};
@@ -87,7 +86,6 @@ impl Wallet {
         let mut builder = OfferBuilder::new(maker_coins.nonce());
         let mut ctx = SpendContext::new();
         let settlement = ctx.settlement_payments_puzzle()?;
-        let cat = ctx.cat_puzzle()?;
 
         // Add requested XCH payments.
         if taker.xch > 0 {
@@ -97,23 +95,21 @@ impl Wallet {
                 vec![Payment::with_memos(
                     p2_puzzle_hash,
                     taker.xch,
-                    Memos(vec![p2_puzzle_hash.into()]),
+                    vec![p2_puzzle_hash.into()],
                 )],
             )?;
         }
 
         // Add requested CAT payments.
         for (&asset_id, &amount) in &taker.cats {
+            let cat_puzzle = ctx.curry(CatArgs::new(asset_id, settlement))?;
             builder = builder.request(
                 &mut ctx,
-                &CurriedProgram {
-                    program: cat,
-                    args: CatArgs::new(asset_id, settlement),
-                },
+                &cat_puzzle,
                 vec![Payment::with_memos(
                     p2_puzzle_hash,
                     amount,
-                    Memos(vec![p2_puzzle_hash.into()]),
+                    vec![p2_puzzle_hash.into()],
                 )],
             )?;
         }
@@ -138,7 +134,7 @@ impl Wallet {
                 vec![Payment::with_memos(
                     p2_puzzle_hash,
                     1,
-                    Memos(vec![p2_puzzle_hash.into()]),
+                    vec![p2_puzzle_hash.into()],
                 )],
             )?;
         }

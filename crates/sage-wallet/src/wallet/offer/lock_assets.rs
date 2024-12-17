@@ -3,8 +3,7 @@ use std::{collections::HashMap, mem};
 use chia::{
     protocol::{Bytes32, Coin},
     puzzles::offer::{
-        Memos, NotarizedPayment, Payment, SettlementPaymentsSolution,
-        SETTLEMENT_PAYMENTS_PUZZLE_HASH,
+        NotarizedPayment, Payment, SettlementPaymentsSolution, SETTLEMENT_PAYMENTS_PUZZLE_HASH,
     },
 };
 use chia_wallet_sdk::{
@@ -79,7 +78,7 @@ impl Wallet {
                 conditions = conditions.create_coin(
                     SETTLEMENT_PAYMENTS_PUZZLE_HASH.into(),
                     amounts.xch,
-                    Vec::new(),
+                    None,
                 );
 
                 locked.xch.push(Coin::new(
@@ -96,7 +95,7 @@ impl Wallet {
                 conditions = conditions.create_coin(
                     SETTLEMENT_PAYMENTS_PUZZLE_HASH.into(),
                     royalty_amount,
-                    Vec::new(),
+                    None,
                 );
 
                 let royalty_coin = Coin::new(
@@ -117,7 +116,7 @@ impl Wallet {
                                 payments: vec![Payment::with_memos(
                                     royalty.p2_puzzle_hash,
                                     royalty.amount,
-                                    Memos(vec![royalty.p2_puzzle_hash.into()]),
+                                    vec![royalty.p2_puzzle_hash.into()],
                                 )],
                             })
                             .collect(),
@@ -131,7 +130,7 @@ impl Wallet {
             let change = total_amount - amounts.xch - fee - royalties.xch_amount();
 
             if change > 0 {
-                conditions = conditions.create_coin(change_puzzle_hash, change, Vec::new());
+                conditions = conditions.create_coin(change_puzzle_hash, change, None);
             }
 
             if fee > 0 {
@@ -151,13 +150,15 @@ impl Wallet {
             let total_amount = cat_coins.iter().map(|cat| cat.coin.amount).sum::<u64>();
             let change = total_amount - amount - royalties.cat_amount(asset_id);
 
+            let settlement_hint = ctx.hint(SETTLEMENT_PAYMENTS_PUZZLE_HASH.into())?;
+
             let mut conditions = primary_conditions
                 .remove(&primary_cat.coin.coin_id())
                 .unwrap_or_default()
                 .create_coin(
                     SETTLEMENT_PAYMENTS_PUZZLE_HASH.into(),
                     amount,
-                    vec![Bytes32::from(SETTLEMENT_PAYMENTS_PUZZLE_HASH).into()],
+                    Some(settlement_hint),
                 );
 
             locked
@@ -167,11 +168,9 @@ impl Wallet {
                 .push(primary_cat.wrapped_child(SETTLEMENT_PAYMENTS_PUZZLE_HASH.into(), amount));
 
             if change > 0 {
-                conditions = conditions.create_coin(
-                    change_puzzle_hash,
-                    change,
-                    vec![change_puzzle_hash.into()],
-                );
+                let change_hint = ctx.hint(change_puzzle_hash)?;
+
+                conditions = conditions.create_coin(change_puzzle_hash, change, Some(change_hint));
             }
 
             // Handle royalties.
@@ -181,7 +180,7 @@ impl Wallet {
                 conditions = conditions.create_coin(
                     SETTLEMENT_PAYMENTS_PUZZLE_HASH.into(),
                     royalty_amount,
-                    vec![Bytes32::from(SETTLEMENT_PAYMENTS_PUZZLE_HASH).into()],
+                    Some(settlement_hint),
                 );
 
                 let royalty_cat = primary_cat
@@ -197,7 +196,7 @@ impl Wallet {
                                 payments: vec![Payment::with_memos(
                                     royalty.p2_puzzle_hash,
                                     royalty.amount,
-                                    Memos(vec![royalty.p2_puzzle_hash.into()]),
+                                    vec![royalty.p2_puzzle_hash.into()],
                                 )],
                             })
                             .collect(),

@@ -35,7 +35,7 @@ impl Wallet {
         }
 
         if change > 0 {
-            conditions = conditions.create_coin(p2_puzzle_hash, change, Vec::new());
+            conditions = conditions.create_coin(p2_puzzle_hash, change, None);
         }
 
         let mut ctx = SpendContext::new();
@@ -106,7 +106,7 @@ impl Wallet {
 
                     remaining_amount -= amount as u128;
 
-                    conditions = conditions.create_coin(derivation, amount, Vec::new());
+                    conditions = conditions.create_coin(derivation, amount, None);
 
                     remaining_count -= 1;
                 }
@@ -144,17 +144,13 @@ impl Wallet {
 
                     // If there is excess amount in this coin after the fee is paid, create a new output.
                     if consumed < coin.amount {
-                        Conditions::new().create_coin(
-                            puzzle_hash,
-                            coin.amount - consumed,
-                            Vec::new(),
-                        )
+                        Conditions::new().create_coin(puzzle_hash, coin.amount - consumed, None)
                     } else {
                         Conditions::new()
                     }
                 } else {
                     // Otherwise, just create a new output coin at the given puzzle hash.
-                    Conditions::new().create_coin(puzzle_hash, coin.amount, Vec::new())
+                    Conditions::new().create_coin(puzzle_hash, coin.amount, None)
                 };
 
                 // Ensure that there is a ring of assertions for all of the coins.

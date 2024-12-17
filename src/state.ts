@@ -19,6 +19,8 @@ export interface OfferState {
   requested: Assets;
   fee: string;
   expiration: OfferExpiration | null;
+  option: boolean;
+  did: string;
 }
 
 export interface OfferExpiration {
@@ -135,6 +137,8 @@ export function defaultOffer(): OfferState {
     },
     fee: '',
     expiration: null,
+    option: false,
+    did: '',
   };
 }
 

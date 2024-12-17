@@ -1,5 +1,5 @@
 use chia::protocol::{Bytes, Bytes32, CoinSpend};
-use chia_wallet_sdk::{Conditions, SpendContext};
+use chia_wallet_sdk::{Conditions, Memos, SpendContext};
 
 use crate::WalletError;
 
@@ -26,17 +26,21 @@ impl Wallet {
             .try_into()
             .expect("change amount overflow");
 
-        let mut conditions = Conditions::new().create_coin(puzzle_hash, amount, memos);
+        let mut ctx = SpendContext::new();
+
+        let mut conditions = Conditions::new().create_coin(
+            puzzle_hash,
+            amount,
+            Some(Memos::new(ctx.alloc(&memos)?)),
+        );
 
         if fee > 0 {
             conditions = conditions.reserve_fee(fee);
         }
 
         if change > 0 {
-            conditions = conditions.create_coin(change_puzzle_hash, change, Vec::new());
+            conditions = conditions.create_coin(change_puzzle_hash, change, None);
         }
-
-        let mut ctx = SpendContext::new();
 
         self.spend_p2_coins(&mut ctx, coins, conditions).await?;
 
