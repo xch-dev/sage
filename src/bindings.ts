@@ -149,6 +149,9 @@ async getOffer(req: GetOffer) : Promise<GetOfferResponse> {
 async deleteOffer(req: DeleteOffer) : Promise<DeleteOfferResponse> {
     return await TAURI_INVOKE("delete_offer", { req });
 },
+async mintOption(req: MintOption) : Promise<TransactionResponse> {
+    return await TAURI_INVOKE("mint_option", { req });
+},
 async networkConfig() : Promise<NetworkConfig> {
     return await TAURI_INVOKE("network_config");
 },
@@ -308,6 +311,7 @@ export type Logout = Record<string, never>
 export type LogoutResponse = Record<string, never>
 export type MakeOffer = { requested_assets: Assets; offered_assets: Assets; fee: Amount; expires_at_second: number | null }
 export type MakeOfferResponse = { offer: string; offer_id: string }
+export type MintOption = { requested_assets: Assets; offered_assets: Assets; fee: Amount; expires_at_second: number; did_id: string; auto_submit?: boolean }
 export type Network = { default_port: number; ticker: string; address_prefix: string; precision: number; genesis_challenge: string; agg_sig_me: string; dns_introducers: string[] }
 export type NetworkConfig = { network_id: string; target_peers: number; discover_peers: boolean }
 export type NftCollectionRecord = { collection_id: string; did_id: string; metadata_collection_id: string; visible: boolean; name: string | null; icon: string | null; nfts: number; visible_nfts: number }

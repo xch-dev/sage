@@ -1,4 +1,5 @@
-import { Assets, commands } from '@/bindings';
+import { Amount, Assets, commands, TransactionResponse } from '@/bindings';
+import ConfirmationDialog from '@/components/ConfirmationDialog';
 import Container from '@/components/Container';
 import { CopyBox } from '@/components/CopyBox';
 import Header from '@/components/Header';
@@ -15,7 +16,15 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { TokenAmountInput } from '@/components/ui/masked-input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { useDids } from '@/hooks/useDids';
 import { useErrors } from '@/hooks/useErrors';
 import { toMojos } from '@/lib/utils';
 import { clearOffer, useOfferState, useWalletState } from '@/state';
@@ -35,47 +44,77 @@ export function MakeOffer() {
   const navigate = useNavigate();
 
   const { addError } = useErrors();
+  const { dids } = useDids();
 
   const [offer, setOffer] = useState('');
+  const [response, setResponse] = useState<TransactionResponse | null>(null);
+
+  const offeredAssets = (): Assets => {
+    return {
+      xch: toMojos(
+        (state.offered.xch || '0').toString(),
+        walletState.sync.unit.decimals,
+      ),
+      cats: state.offered.cats.map((cat) => ({
+        asset_id: cat.asset_id,
+        amount: toMojos((cat.amount || '0').toString(), 3),
+      })),
+      nfts: state.offered.nfts,
+    };
+  };
+
+  const requestedAssets = (): Assets => {
+    return {
+      xch: toMojos(
+        (state.requested.xch || '0').toString(),
+        walletState.sync.unit.decimals,
+      ),
+      cats: state.requested.cats.map((cat) => ({
+        asset_id: cat.asset_id,
+        amount: toMojos((cat.amount || '0').toString(), 3),
+      })),
+      nfts: state.requested.nfts,
+    };
+  };
+
+  const calculateFee = (): Amount => {
+    return toMojos(
+      (state.fee || '0').toString(),
+      walletState.sync.unit.decimals,
+    );
+  };
+
+  const expiration = () => {
+    return state.expiration === null
+      ? null
+      : Math.ceil(Date.now() / 1000) +
+          Number(state.expiration.days || '0') * 24 * 60 * 60 +
+          Number(state.expiration.hours || '0') * 60 * 60 +
+          Number(state.expiration.minutes || '0') * 60;
+  };
 
   const make = () => {
     commands
       .makeOffer({
-        offered_assets: {
-          xch: toMojos(
-            (state.offered.xch || '0').toString(),
-            walletState.sync.unit.decimals,
-          ),
-          cats: state.offered.cats.map((cat) => ({
-            asset_id: cat.asset_id,
-            amount: toMojos((cat.amount || '0').toString(), 3),
-          })),
-          nfts: state.offered.nfts,
-        },
-        requested_assets: {
-          xch: toMojos(
-            (state.requested.xch || '0').toString(),
-            walletState.sync.unit.decimals,
-          ),
-          cats: state.requested.cats.map((cat) => ({
-            asset_id: cat.asset_id,
-            amount: toMojos((cat.amount || '0').toString(), 3),
-          })),
-          nfts: state.requested.nfts,
-        },
-        fee: toMojos(
-          (state.fee || '0').toString(),
-          walletState.sync.unit.decimals,
-        ),
-        expires_at_second:
-          state.expiration === null
-            ? null
-            : Math.ceil(Date.now() / 1000) +
-              Number(state.expiration.days || '0') * 24 * 60 * 60 +
-              Number(state.expiration.hours || '0') * 60 * 60 +
-              Number(state.expiration.minutes || '0') * 60,
+        offered_assets: offeredAssets(),
+        requested_assets: requestedAssets(),
+        fee: calculateFee(),
+        expires_at_second: expiration(),
       })
       .then((data) => setOffer(data.offer))
+      .catch(addError);
+  };
+
+  const mintOption = () => {
+    commands
+      .mintOption({
+        offered_assets: offeredAssets(),
+        requested_assets: requestedAssets(),
+        fee: calculateFee(),
+        expires_at_second: expiration()!,
+        did_id: state.did,
+      })
+      .then((data) => setResponse(data))
       .catch(addError);
   };
 
@@ -160,7 +199,65 @@ export function MakeOffer() {
 
             <div className='flex flex-col gap-2'>
               <div className='flex items-center gap-2'>
-                <label htmlFor='expiring'>Expiring offer</label>
+                <label htmlFor='expiring'>
+                  Mint option contract instead of offer
+                </label>
+                <Switch
+                  id='option'
+                  checked={state.option}
+                  onCheckedChange={(value) => {
+                    if (value) {
+                      useOfferState.setState({
+                        option: true,
+                        expiration: {
+                          days: '7',
+                          hours: '',
+                          minutes: '',
+                        },
+                      });
+                    } else {
+                      useOfferState.setState({
+                        option: false,
+                      });
+                    }
+                  }}
+                />
+              </div>
+            </div>
+
+            {state.option && (
+              <Select
+                value={state.did}
+                onValueChange={(value) =>
+                  useOfferState.setState({ did: value })
+                }
+              >
+                <SelectTrigger id='profile' aria-label='Select profile'>
+                  <SelectValue placeholder='Select profile' />
+                </SelectTrigger>
+                <SelectContent>
+                  {dids
+                    .filter((did) => did.visible)
+                    .map((did) => {
+                      return (
+                        <SelectItem
+                          key={did.launcher_id}
+                          value={did.launcher_id}
+                        >
+                          {did.name ??
+                            `${did.launcher_id.slice(0, 14)}...${did.launcher_id.slice(-4)}`}
+                        </SelectItem>
+                      );
+                    })}
+                </SelectContent>
+              </Select>
+            )}
+
+            <div className='flex flex-col gap-2'>
+              <div className='flex items-center gap-2'>
+                <label htmlFor='expiring'>
+                  {state.option ? 'Option expires in' : 'Offer expires in'}
+                </label>
                 <Switch
                   id='expiring'
                   checked={state.expiration !== null}
@@ -262,9 +359,16 @@ export function MakeOffer() {
           >
             Cancel Offer
           </Button>
-          <Button onClick={make} disabled={invalid}>
-            Create Offer
-          </Button>
+
+          {state.option ? (
+            <Button onClick={mintOption} disabled={invalid}>
+              Mint Option
+            </Button>
+          ) : (
+            <Button onClick={make} disabled={invalid}>
+              Make Offer
+            </Button>
+          )}
         </div>
 
         <Dialog open={!!offer} onOpenChange={() => setOffer('')}>
@@ -296,6 +400,12 @@ export function MakeOffer() {
           </DialogContent>
         </Dialog>
       </Container>
+
+      <ConfirmationDialog
+        response={response}
+        close={() => setResponse(null)}
+        onConfirm={() => navigate('/nfts')}
+      />
     </>
   );
 }

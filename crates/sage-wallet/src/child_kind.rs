@@ -3,7 +3,9 @@ use chia::{
     protocol::{Bytes32, Coin, Program},
     puzzles::{nft::NftMetadata, singleton::SINGLETON_LAUNCHER_PUZZLE_HASH, LineageProof, Proof},
 };
-use chia_wallet_sdk::{run_puzzle, Cat, Condition, Did, DidInfo, HashedPtr, Nft, NftInfo, Puzzle};
+use chia_wallet_sdk::{
+    run_puzzle, Cat, Condition, Did, DidInfo, HashedPtr, Memos, Nft, NftInfo, Puzzle,
+};
 use clvmr::{Allocator, NodePtr};
 use tracing::{debug_span, warn};
 
@@ -77,23 +79,22 @@ impl ChildKind {
             return Ok(Self::Launcher);
         }
 
-        let Some(mut create_coin) = conditions
+        let Some(create_coin) = conditions
             .into_iter()
             .filter_map(Condition::into_create_coin)
-            .find(|cond| {
-                cond.puzzle_hash == coin.puzzle_hash
-                    && cond.amount == coin.amount
-                    && !cond.memos.is_empty()
-                    && cond.memos[0].len() == 32
-            })
+            .find(|cond| cond.puzzle_hash == coin.puzzle_hash && cond.amount == coin.amount)
         else {
             return Ok(Self::Unknown { hint: None });
         };
 
-        let hint = Bytes32::try_from(create_coin.memos.remove(0).into_inner())
-            .expect("the hint is always 32 bytes, as checked above");
+        let hint = if let Some(memos) = create_coin.memos {
+            let memos = Memos::<(Bytes32, NodePtr)>::from_clvm(allocator, memos.value).ok();
+            memos.map(|memos| memos.value.0)
+        } else {
+            None
+        };
 
-        let unknown = Self::Unknown { hint: Some(hint) };
+        let unknown = Self::Unknown { hint };
 
         match Cat::parse_children(allocator, parent_coin, parent_puzzle, parent_solution) {
             // If there was an error parsing the CAT, we can exit early.

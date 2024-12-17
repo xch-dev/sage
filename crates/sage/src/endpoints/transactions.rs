@@ -319,7 +319,7 @@ impl Sage {
         Ok(SubmitTransactionResponse {})
     }
 
-    async fn transact(
+    pub(crate) async fn transact(
         &self,
         coin_spends: Vec<CoinSpend>,
         auto_submit: bool,

@@ -69,7 +69,11 @@ impl Wallet {
         let mut indices = HashMap::new();
 
         for required in &required_signatures {
-            let pk = required.public_key();
+            let RequiredSignature::Bls(required) = required else {
+                return Err(WalletError::UnknownPublicKey);
+            };
+
+            let pk = required.public_key;
             let Some(index) = self.db.synthetic_key_index(pk).await? else {
                 if partial {
                     continue;
@@ -92,8 +96,12 @@ impl Wallet {
         let mut aggregated_signature = Signature::default();
 
         for required in required_signatures {
-            let sk = secret_keys[&required.public_key()].clone();
-            aggregated_signature += &sign(&sk, required.final_message());
+            let RequiredSignature::Bls(required) = required else {
+                return Err(WalletError::UnknownPublicKey);
+            };
+
+            let sk = secret_keys[&required.public_key].clone();
+            aggregated_signature += &sign(&sk, required.message());
         }
 
         Ok(SpendBundle::new(coin_spends, aggregated_signature))

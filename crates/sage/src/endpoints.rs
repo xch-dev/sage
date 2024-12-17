@@ -2,6 +2,7 @@ mod actions;
 mod data;
 mod keys;
 mod offers;
+mod options;
 mod settings;
 mod transactions;
 mod wallet_connect;

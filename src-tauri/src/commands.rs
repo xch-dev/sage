@@ -288,6 +288,15 @@ pub async fn delete_offer(
 
 #[command]
 #[specta]
+pub async fn mint_option(
+    state: State<'_, AppState>,
+    req: MintOption,
+) -> Result<TransactionResponse> {
+    Ok(state.lock().await.mint_option(req).await?)
+}
+
+#[command]
+#[specta]
 pub async fn get_sync_status(
     state: State<'_, AppState>,
     req: GetSyncStatus,
