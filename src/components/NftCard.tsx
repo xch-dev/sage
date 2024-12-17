@@ -65,6 +65,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from './ui/select';
+import { TokenAmountInput } from './ui/masked-input';
 
 export interface NftProps {
   nft: NftRecord;
@@ -416,7 +417,7 @@ export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
                   <FormItem>
                     <FormLabel>Network Fee</FormLabel>
                     <FormControl>
-                      <Input {...field} />
+                      <TokenAmountInput {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

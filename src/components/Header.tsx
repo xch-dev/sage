@@ -9,6 +9,8 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Nav } from './Nav';
 import { Button } from './ui/button';
 import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
+import { platform } from '@tauri-apps/plugin-os';
+import { useInsets } from '@/contexts/SafeAreaContext';
 
 export default function Header(
   props: PropsWithChildren<{
@@ -19,6 +21,7 @@ export default function Header(
 ) {
   const navigate = useNavigate();
   const location = useLocation();
+  const insets = useInsets();
 
   const initialized = useInitialization();
   const wallet = useWallet(initialized);
@@ -42,9 +45,10 @@ export default function Header(
   };
 
   const hasBackButton = props.back || location.pathname.split('/').length > 2;
+  const isMobile = platform() === 'ios' || platform() === 'android';
 
   return (
-    <header className='flex items-center gap-4 px-4 md:px-6 pt-4 sticky top-0 bg-background z-10'>
+    <header className='flex items-center gap-4 px-4 md:px-6sticky top-0 bg-background z-10 pb-2 pt-2'>
       <Sheet>
         {hasBackButton ? (
           <Button
@@ -53,7 +57,7 @@ export default function Header(
             onClick={() => (props.back ? props.back() : navigate(-1))}
             className='md:hidden text-muted-foreground'
           >
-            <ChevronLeft className='h-5 w-5' />
+            <ChevronLeft className='h-5 w-5 pb' />
             <span className='sr-only'>Back</span>
           </Button>
         ) : (
@@ -68,14 +72,22 @@ export default function Header(
             </Button>
           </SheetTrigger>
         )}
-        <SheetContent side='left' className='flex flex-col'>
+        <SheetContent
+          side='left'
+          isMobile={isMobile}
+          className='flex flex-col'
+          style={{
+            paddingTop:
+              insets.top !== 0 ? `${insets.top}px` : 'env(safe-area-inset-top)',
+          }}
+        >
           <div className='flex h-14 items-center'>
             <Link
               to='/wallet'
               className='flex items-center gap-2 font-semibold'
             >
-              <img src={icon} className='h-6 w-6' alt='Wallet icon' />
-              <span>{wallet?.name}</span>
+              <img src={icon} className='h-8 w-8' alt='Wallet icon' />
+              <span className='text-lg'>{wallet?.name}</span>
             </Link>
           </div>
           <div className='-mx-2'>

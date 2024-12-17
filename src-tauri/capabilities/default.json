@@ -16,6 +16,7 @@
     "core:window:allow-request-user-attention",
     "clipboard-manager:default",
     "clipboard-manager:allow-write-text",
-    "shell:default"
+    "shell:default",
+    "safe-area-insets:default"
   ]
 }

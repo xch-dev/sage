@@ -8,9 +8,11 @@ import { useWallet } from '@/hooks/useWallet';
 import icon from '@/icon.png';
 import { logoutAndUpdateState, useWalletState } from '@/state';
 import { Nav } from './Nav';
+import { useInsets } from '@/contexts/SafeAreaContext';
 
 export default function Layout(props: PropsWithChildren<object>) {
   const navigate = useNavigate();
+  const insets = useInsets();
 
   const { peers } = usePeers();
 
@@ -43,8 +45,8 @@ export default function Layout(props: PropsWithChildren<object>) {
               to='/wallet'
               className='flex items-center gap-2 font-semibold'
             >
-              <img src={icon} className='h-6 w-6' />
-              {wallet?.name}
+              <img src={icon} className='h-8 w-8' />
+              <span className='text-lg'>{wallet?.name}</span>
             </Link>
           </div>
           <div className='flex-1 flex flex-col justify-between pb-4'>
@@ -93,7 +95,13 @@ export default function Layout(props: PropsWithChildren<object>) {
           </div>
         </div>
       </div>
-      <div className='flex flex-col h-screen overflow-auto'>
+      <div
+        className='flex flex-col h-screen overflow-hidden'
+        style={{
+          paddingTop:
+            insets.top !== 0 ? `${insets.top}px` : 'env(safe-area-inset-top)',
+        }}
+      >
         {props.children}
       </div>
     </div>

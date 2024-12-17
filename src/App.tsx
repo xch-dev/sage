@@ -35,6 +35,8 @@ import { ViewOffer } from './pages/ViewOffer';
 import { ViewSavedOffer } from './pages/ViewSavedOffer';
 import Wallet from './pages/Wallet';
 import { fetchState } from './state';
+import { getInsets } from 'tauri-plugin-safe-area-insets';
+import { SafeAreaProvider } from './contexts/SafeAreaContext';
 
 export interface DarkModeContext {
   toggle: () => void;
@@ -108,9 +110,11 @@ export default function App() {
 
   return (
     <DarkModeContext.Provider value={darkMode}>
-      <ErrorProvider>
-        <AppInner />
-      </ErrorProvider>
+      <SafeAreaProvider>
+        <ErrorProvider>
+          <AppInner />
+        </ErrorProvider>
+      </SafeAreaProvider>
     </DarkModeContext.Provider>
   );
 }

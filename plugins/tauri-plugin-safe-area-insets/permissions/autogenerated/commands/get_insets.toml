@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-get-insets"
+description = "Enables the get_insets command without any pre-configured scope."
+commands.allow = ["get_insets"]
+
+[[permission]]
+identifier = "deny-get-insets"
+description = "Denies the get_insets command without any pre-configured scope."
+commands.deny = ["get_insets"]

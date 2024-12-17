@@ -11,6 +11,16 @@ export function dbg<T>(value: T): T {
   return value;
 }
 
+export function formatAddress(address: string, chars: number = 8): string {
+  const cleanAddress = address.startsWith('0x') ? address.slice(2) : address;
+
+  if (chars * 2 >= cleanAddress.length) {
+    return address;
+  }
+
+  return `${cleanAddress.slice(0, chars)}...${cleanAddress.slice(-chars)}`;
+}
+
 export function toMojos(amount: string, decimals: number): string {
   return BigNumber(amount).multipliedBy(BigNumber(10).pow(decimals)).toString();
 }

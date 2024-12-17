@@ -69,7 +69,7 @@ export default function Nft() {
             src={nftUri(nft?.data_mime_type ?? null, nft?.data ?? null)}
             className='rounded-lg'
           />
-          <CopyBox title='Launcher Id' content={nft?.launcher_id ?? ''} />
+          <CopyBox title='Launcher Id' value={nft?.launcher_id ?? ''} />
         </div>
 
         <div className='my-4 grid grid-cols-1 md:grid-cols-2 gap-y-3 gap-x-10'>

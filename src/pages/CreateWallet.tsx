@@ -32,6 +32,8 @@ import * as z from 'zod';
 import { commands } from '../bindings';
 import Container from '../components/Container';
 import { fetchState } from '../state';
+import SafeAreaView from '@/components/SafeAreaView';
+import { useInsets } from '@/contexts/SafeAreaContext';
 
 export default function CreateWallet() {
   const { addError } = useErrors();
@@ -51,12 +53,12 @@ export default function CreateWallet() {
   };
 
   return (
-    <>
+    <SafeAreaView>
       <Header title='Create Wallet' back={() => navigate('/')} />
       <Container>
         <CreateForm onSubmit={submit} />
       </Container>
-    </>
+    </SafeAreaView>
   );
 }
 
@@ -111,7 +113,7 @@ function CreateForm(props: {
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(confirmAndSubmit)}
-        className='space-y-4 max-w-xl mx-auto py-4'
+        className='space-y-4 max-w-xl mx-auto py-0'
       >
         <FormField
           control={form.control}
