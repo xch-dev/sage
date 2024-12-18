@@ -31,13 +31,15 @@ impl Wallet {
         }
 
         if fee_change > 0 {
-            fee_conditions = fee_conditions.create_coin(p2_puzzle_hash, fee_change, Vec::new());
+            fee_conditions = fee_conditions.create_coin(p2_puzzle_hash, fee_change, None);
         }
 
         let mut ctx = SpendContext::new();
 
         self.spend_p2_coins(&mut ctx, fee_coins, fee_conditions)
             .await?;
+
+        let hint = ctx.hint(p2_puzzle_hash)?;
 
         self.spend_cat_coins(
             &mut ctx,
@@ -48,7 +50,7 @@ impl Wallet {
                         Conditions::new().create_coin(
                             p2_puzzle_hash,
                             cat_total.try_into().expect("output amount overflow"),
-                            vec![p2_puzzle_hash.into()],
+                            Some(hint),
                         ),
                     )
                 } else {
@@ -104,39 +106,40 @@ impl Wallet {
         }
 
         if fee_change > 0 {
-            fee_conditions = fee_conditions.create_coin(derivations[0], fee_change, Vec::new());
+            fee_conditions = fee_conditions.create_coin(derivations[0], fee_change, None);
         }
 
         self.spend_p2_coins(&mut ctx, fee_coins, fee_conditions)
             .await?;
 
-        self.spend_cat_coins(
-            &mut ctx,
-            cats.into_iter().map(|cat| {
-                let mut conditions = Conditions::new();
+        let mut cat_spends = Vec::new();
 
-                for &derivation in &derivations {
-                    if remaining_count == 0 {
-                        break;
-                    }
+        for cat in cats {
+            let mut conditions = Conditions::new();
 
-                    let amount: u64 = (max_individual_amount as u128)
-                        .min(remaining_amount)
-                        .try_into()
-                        .expect("output amount overflow");
-
-                    remaining_amount -= amount as u128;
-
-                    conditions =
-                        conditions.create_coin(derivation, amount, vec![derivation.into()]);
-
-                    remaining_count -= 1;
+            for &derivation in &derivations {
+                if remaining_count == 0 {
+                    break;
                 }
 
-                (cat, conditions)
-            }),
-        )
-        .await?;
+                let amount: u64 = (max_individual_amount as u128)
+                    .min(remaining_amount)
+                    .try_into()
+                    .expect("output amount overflow");
+
+                remaining_amount -= amount as u128;
+
+                let hint = ctx.hint(derivation)?;
+                conditions = conditions.create_coin(derivation, amount, Some(hint));
+
+                remaining_count -= 1;
+            }
+
+            cat_spends.push((cat, conditions));
+        }
+
+        self.spend_cat_coins(&mut ctx, cat_spends.into_iter())
+            .await?;
 
         Ok(ctx.take())
     }
