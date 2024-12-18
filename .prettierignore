@@ -3,3 +3,4 @@ src-tauri/target
 src-tauri/gen
 .sqlx/
 src/bindings.ts
+plugins/tauri-plugin-safe-area-insets/permissions
