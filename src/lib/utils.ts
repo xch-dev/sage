@@ -38,14 +38,14 @@ export interface AddressInfo {
 export function toAddress(puzzleHash: string, prefix: string): string {
   return bech32m.encode(
     prefix,
-    convertBits(fromHex(sanitizeHex(puzzleHash)), 8, 5, true),
+    bech32m.toWords(fromHex(sanitizeHex(puzzleHash))),
   );
 }
 
 export function addressInfo(address: string): AddressInfo {
   const { words, prefix } = bech32m.decode(address);
   return {
-    puzzleHash: toHex(convertBits(Uint8Array.from(words), 5, 8, false)),
+    puzzleHash: toHex(Uint8Array.from(bech32m.fromWords(words))),
     prefix,
   };
 }
@@ -61,34 +61,6 @@ function sanitizeHex(hex: string): string {
 
 function formatHex(hex: string): string {
   return /^0x/i.test(hex) ? hex : `0x${hex}`;
-}
-
-function convertBits(
-  bytes: Uint8Array,
-  from: number,
-  to: number,
-  pad: boolean,
-): Uint8Array {
-  let accumulate = 0;
-  let bits = 0;
-  const maxv = (1 << to) - 1;
-  const result = [];
-  for (const value of bytes) {
-    const b = value & 0xff;
-    if (b < 0 || b >> from > 0) throw new Error('Could not convert bits.');
-    accumulate = (accumulate << from) | b;
-    bits += from;
-    while (bits >= to) {
-      bits -= to;
-      result.push((accumulate >> bits) & maxv);
-    }
-  }
-  if (pad && bits > 0) {
-    result.push((accumulate << (to - bits)) & maxv);
-  } else if (bits >= from || ((accumulate << (to - bits)) & maxv) != 0) {
-    throw new Error('Could not convert bits.');
-  }
-  return Uint8Array.from(result);
 }
 
 const HEX_STRINGS = '0123456789abcdef';
