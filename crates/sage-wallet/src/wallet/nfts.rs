@@ -79,7 +79,7 @@ impl Wallet {
         }
 
         if change > 0 {
-            conditions = conditions.create_coin(p2_puzzle_hash, change, Vec::new());
+            conditions = conditions.create_coin(p2_puzzle_hash, change, None);
         }
 
         self.spend_p2_coins(&mut ctx, coins, conditions).await?;
@@ -159,7 +159,7 @@ impl Wallet {
                 .reserve_fee(fee);
 
             if change > 0 {
-                conditions = conditions.create_coin(change_puzzle_hash, change, Vec::new());
+                conditions = conditions.create_coin(change_puzzle_hash, change, None);
             }
 
             self.spend_p2_coins(&mut ctx, coins, conditions).await?;
@@ -216,7 +216,7 @@ impl Wallet {
                 .reserve_fee(fee);
 
             if change > 0 {
-                conditions = conditions.create_coin(p2_puzzle_hash, change, Vec::new());
+                conditions = conditions.create_coin(p2_puzzle_hash, change, None);
             }
 
             self.spend_p2_coins(&mut ctx, coins, conditions).await?;

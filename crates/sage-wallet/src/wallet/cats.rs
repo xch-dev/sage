@@ -31,11 +31,9 @@ impl Wallet {
 
         let mut ctx = SpendContext::new();
 
-        let eve_conditions = Conditions::new().create_coin(
-            p2_puzzle_hash,
-            amount,
-            vec![p2_puzzle_hash.to_vec().into()],
-        );
+        let hint = ctx.hint(p2_puzzle_hash)?;
+
+        let eve_conditions = Conditions::new().create_coin(p2_puzzle_hash, amount, Some(hint));
 
         let (mut conditions, eve) = match multi_issuance_key {
             Some(pk) => {
@@ -49,7 +47,7 @@ impl Wallet {
         }
 
         if change > 0 {
-            conditions = conditions.create_coin(p2_puzzle_hash, change, Vec::new());
+            conditions = conditions.create_coin(p2_puzzle_hash, change, None);
         }
 
         self.spend_p2_coins(&mut ctx, coins, conditions).await?;
@@ -65,7 +63,7 @@ impl Wallet {
         puzzle_hash: Bytes32,
         amount: u64,
         fee: u64,
-        mut memos: Vec<Bytes>,
+        memos: Vec<Bytes>,
         hardened: bool,
         reuse: bool,
     ) -> Result<Vec<CoinSpend>, WalletError> {
@@ -97,7 +95,7 @@ impl Wallet {
             conditions = conditions.reserve_fee(fee);
 
             if fee_change > 0 {
-                conditions = conditions.create_coin(change_puzzle_hash, fee_change, Vec::new());
+                conditions = conditions.create_coin(change_puzzle_hash, fee_change, None);
             }
         }
 
@@ -108,6 +106,11 @@ impl Wallet {
                 .await?;
         }
 
+        let mut output_memos = vec![puzzle_hash.into()];
+        output_memos.extend(memos);
+        let memos = ctx.memos(&output_memos)?;
+        let change_hint = ctx.hint(change_puzzle_hash)?;
+
         self.spend_cat_coins(
             &mut ctx,
             cats.into_iter().enumerate().map(|(i, cat)| {
@@ -115,18 +118,12 @@ impl Wallet {
                     return (cat, Conditions::new());
                 }
 
-                let mut output_memos = vec![puzzle_hash.into()];
-                output_memos.extend(mem::take(&mut memos));
-
                 let mut conditions =
-                    mem::take(&mut conditions).create_coin(puzzle_hash, amount, output_memos);
+                    mem::take(&mut conditions).create_coin(puzzle_hash, amount, Some(memos));
 
                 if cat_change > 0 {
-                    conditions = conditions.create_coin(
-                        change_puzzle_hash,
-                        cat_change,
-                        vec![change_puzzle_hash.into()],
-                    );
+                    conditions =
+                        conditions.create_coin(change_puzzle_hash, cat_change, Some(change_hint));
                 }
 
                 (cat, conditions)
