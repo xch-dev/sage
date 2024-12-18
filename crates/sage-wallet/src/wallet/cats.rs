@@ -2,7 +2,7 @@ use std::mem;
 
 use chia::{
     bls::PublicKey,
-    protocol::{Bytes32, CoinSpend},
+    protocol::{Bytes, Bytes32, CoinSpend},
 };
 use chia_wallet_sdk::{Cat, Conditions, SpendContext};
 
@@ -58,12 +58,14 @@ impl Wallet {
     }
 
     /// Sends the given amount of XCH to the given puzzle hash, minus the fee.
+    #[allow(clippy::too_many_arguments)]
     pub async fn send_cat(
         &self,
         asset_id: Bytes32,
         puzzle_hash: Bytes32,
         amount: u64,
         fee: u64,
+        mut memos: Vec<Bytes>,
         hardened: bool,
         reuse: bool,
     ) -> Result<Vec<CoinSpend>, WalletError> {
@@ -113,11 +115,11 @@ impl Wallet {
                     return (cat, Conditions::new());
                 }
 
-                let mut conditions = mem::take(&mut conditions).create_coin(
-                    puzzle_hash,
-                    amount,
-                    vec![puzzle_hash.into()],
-                );
+                let mut output_memos = vec![puzzle_hash.into()];
+                output_memos.extend(mem::take(&mut memos));
+
+                let mut conditions =
+                    mem::take(&mut conditions).create_coin(puzzle_hash, amount, output_memos);
 
                 if cat_change > 0 {
                     conditions = conditions.create_coin(
@@ -159,7 +161,7 @@ mod tests {
 
         let coin_spends = test
             .wallet
-            .send_cat(asset_id, test.puzzle_hash, 750, 0, false, true)
+            .send_cat(asset_id, test.puzzle_hash, 750, 0, Vec::new(), false, true)
             .await?;
         assert_eq!(coin_spends.len(), 1);
 
@@ -171,7 +173,15 @@ mod tests {
 
         let coin_spends = test
             .wallet
-            .send_cat(asset_id, test.puzzle_hash, 1000, 500, false, true)
+            .send_cat(
+                asset_id,
+                test.puzzle_hash,
+                1000,
+                500,
+                Vec::new(),
+                false,
+                true,
+            )
             .await?;
         assert_eq!(coin_spends.len(), 3);
 

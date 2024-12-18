@@ -7,13 +7,20 @@ import { nftUri } from '@/lib/nftUri';
 import { open } from '@tauri-apps/plugin-shell';
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { commands, events, NetworkConfig, NftInfo } from '../bindings';
+import {
+  commands,
+  events,
+  NetworkConfig,
+  NftData,
+  NftRecord,
+} from '../bindings';
 
 export default function Nft() {
   const { launcher_id: launcherId } = useParams();
   const { addError } = useErrors();
 
-  const [nft, setNft] = useState<NftInfo | null>(null);
+  const [nft, setNft] = useState<NftRecord | null>(null);
+  const [data, setData] = useState<NftData | null>(null);
 
   const updateNft = useMemo(
     () => () => {
@@ -44,14 +51,21 @@ export default function Nft() {
     };
   }, [updateNft]);
 
+  useEffect(() => {
+    commands
+      .getNftData({ nft_id: launcherId! })
+      .then((response) => setData(response.data))
+      .catch(addError);
+  }, [launcherId, addError]);
+
   const metadata = useMemo(() => {
-    if (!nft || !nft.metadata) return {};
+    if (!nft || !data?.metadata_json) return {};
     try {
-      return JSON.parse(nft.metadata) ?? {};
+      return JSON.parse(data.metadata_json) ?? {};
     } catch {
       return {};
     }
-  }, [nft]);
+  }, [data?.metadata_json, nft]);
 
   const [config, setConfig] = useState<NetworkConfig | null>(null);
 
@@ -61,12 +75,12 @@ export default function Nft() {
 
   return (
     <>
-      <Header title={metadata.name ?? 'Unknown NFT'} />
+      <Header title={nft?.name ?? 'Unknown NFT'} />
       <Container>
         <div className='flex flex-col gap-2 mx-auto sm:w-full md:w-[50%] max-w-[400px]'>
           <img
             alt='NFT image'
-            src={nftUri(nft?.data_mime_type ?? null, nft?.data ?? null)}
+            src={nftUri(data?.mime_type ?? null, data?.blob ?? null)}
             className='rounded-lg'
           />
           <CopyBox title='Launcher Id' value={nft?.launcher_id ?? ''} />
@@ -200,7 +214,7 @@ export default function Nft() {
 
             <div>
               <h6 className='text-md font-bold'>
-                Royalties ({(nft?.royalty_ten_thousandths ?? 0) * 100}%)
+                Royalties ({(nft?.royalty_ten_thousandths ?? 0) / 100}%)
               </h6>
               <div className='break-all text-sm'>{nft?.royalty_address}</div>
             </div>

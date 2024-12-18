@@ -39,6 +39,7 @@
     "@use-gesture/react": "^10.3.1",
     "@walletconnect/sign-client": "^2.17.2",
     "@walletconnect/types": "^2.17.2",
+    "bech32": "^2.0.0",
     "bignumber.js": "^9.1.2",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",

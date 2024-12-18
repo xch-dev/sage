@@ -10,6 +10,7 @@ import {
   handleSignCoinSpends,
   handleSignMessage,
 } from './commands/chip0002';
+import { handleGetNfts, handleSend } from './commands/high-level';
 import { handleCreateOffer, handleTakeOffer } from './commands/offers';
 
 export const handleCommand = async (
@@ -39,6 +40,10 @@ export const handleCommand = async (
       return await handleCreateOffer(parseCommand(command, params));
     case 'chia_takeOffer':
       return await handleTakeOffer(parseCommand(command, params));
+    case 'chia_getNfts':
+      return await handleGetNfts(parseCommand(command, params));
+    case 'chia_send':
+      return await handleSend(parseCommand(command, params));
     default:
       throw new Error(`Unknown command: ${command}`);
   }

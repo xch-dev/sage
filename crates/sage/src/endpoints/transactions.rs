@@ -107,8 +107,14 @@ impl Sage {
         let amount = parse_cat_amount(req.amount)?;
         let fee = self.parse_amount(req.fee)?;
 
+        let mut memos = Vec::new();
+
+        for memo in req.memos {
+            memos.push(Bytes::from(hex::decode(memo)?));
+        }
+
         let coin_spends = wallet
-            .send_cat(asset_id, puzzle_hash, amount, fee, false, true)
+            .send_cat(asset_id, puzzle_hash, amount, fee, memos, false, true)
             .await?;
         self.transact(coin_spends, req.auto_submit).await
     }
