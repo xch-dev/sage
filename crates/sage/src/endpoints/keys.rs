@@ -150,7 +150,7 @@ impl Sage {
     }
 
     pub fn rename_key(&mut self, req: RenameKey) -> Result<RenameKeyResponse> {
-        let config = self.try_wallet_config_mut(req.fingerprint)?;
+        let config = self.try_wallet_config_mut(req.fingerprint);
         config.name = req.name;
         self.save_config()?;
 

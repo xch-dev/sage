@@ -479,8 +479,8 @@ pub async fn set_network_id(
 #[command]
 #[specta]
 pub async fn wallet_config(state: State<'_, AppState>, fingerprint: u32) -> Result<WalletConfig> {
-    let state = state.lock().await;
-    Ok(state.try_wallet_config(fingerprint).cloned()?)
+    let mut state = state.lock().await;
+    Ok(state.try_wallet_config(fingerprint).clone())
 }
 
 #[command]

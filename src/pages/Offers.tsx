@@ -24,6 +24,7 @@ import { nftUri } from '@/lib/nftUri';
 import { toDecimal } from '@/lib/utils';
 import { isDefaultOffer, useOfferState, useWalletState } from '@/state';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
+import { platform } from '@tauri-apps/plugin-os';
 import BigNumber from 'bignumber.js';
 import { CopyIcon, HandCoins, MoreVertical, TrashIcon } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
@@ -111,7 +112,8 @@ export function Offers() {
                   Create a new offer to get started with peer-to-peer trading.
                 </p>
                 <p className='mt-1 text-sm text-muted-foreground'>
-                  You can also paste an offer using <kbd>Ctrl+V</kbd>.
+                  You can also paste an offer using{' '}
+                  <kbd>{platform() === 'macos' ? '⌘+V' : 'Ctrl+V'}</kbd>.
                 </p>
               </div>
               <div className='flex gap-2'>
