@@ -402,18 +402,18 @@ impl Sage {
         Ok(wallet.clone())
     }
 
-    pub fn try_wallet_config(&self, fingerprint: u32) -> Result<&WalletConfig> {
+    pub fn try_wallet_config(&mut self, fingerprint: u32) -> &WalletConfig {
         self.config
             .wallets
-            .get(&fingerprint.to_string())
-            .ok_or(Error::UnknownFingerprint)
+            .entry(fingerprint.to_string())
+            .or_default()
     }
 
-    pub fn try_wallet_config_mut(&mut self, fingerprint: u32) -> Result<&mut WalletConfig> {
+    pub fn try_wallet_config_mut(&mut self, fingerprint: u32) -> &mut WalletConfig {
         self.config
             .wallets
-            .get_mut(&fingerprint.to_string())
-            .ok_or(Error::UnknownFingerprint)
+            .entry(fingerprint.to_string())
+            .or_default()
     }
 
     pub fn wallet_config_mut(&mut self, fingerprint: u32) -> &mut WalletConfig {

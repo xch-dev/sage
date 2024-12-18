@@ -115,7 +115,7 @@ impl Sage {
         &mut self,
         req: SetDeriveAutomatically,
     ) -> Result<SetDeriveAutomaticallyResponse> {
-        let config = self.try_wallet_config_mut(req.fingerprint)?;
+        let config = self.try_wallet_config_mut(req.fingerprint);
 
         if config.derive_automatically != req.derive_automatically {
             config.derive_automatically = req.derive_automatically;
@@ -129,7 +129,7 @@ impl Sage {
         &mut self,
         req: SetDerivationBatchSize,
     ) -> Result<SetDerivationBatchSizeResponse> {
-        let config = self.try_wallet_config_mut(req.fingerprint)?;
+        let config = self.try_wallet_config_mut(req.fingerprint);
         config.derivation_batch_size = req.derivation_batch_size;
         self.save_config()?;
 
