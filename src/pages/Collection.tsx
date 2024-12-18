@@ -52,7 +52,7 @@ export default function Collection() {
   );
 
   useEffect(() => {
-    updateNfts(0);
+    updateNfts(1);
   }, [updateNfts]);
 
   useEffect(() => {
