@@ -102,12 +102,12 @@ function WalletConnectSettings() {
                 >
                   <div className='flex gap-2 items-center'>
                     <img
-                      src={session.peer.metadata.icons[0]}
-                      alt={session.peer.metadata.name}
+                      src={session.peer?.metadata?.icons?.[0] ?? ''}
+                      alt={session.peer?.metadata?.name ?? 'Unknown App'}
                       className='h-8 w-8'
                     />
                     <span className='text-sm font-medium'>
-                      {session.peer.metadata.name}
+                      {session.peer?.metadata?.name ?? 'Unknown App'}
                     </span>
                   </div>
                   <Button
