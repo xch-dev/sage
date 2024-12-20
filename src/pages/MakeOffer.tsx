@@ -400,8 +400,8 @@ function AssetSelector({
       )}
 
       {assets.nfts.length > 0 && (
-        <div className='flex flex-col gap-2 mt-4'>
-          <Label className='flex items-center gap-1'>
+        <div className='flex flex-col mt-4'>
+          <Label className='flex items-center gap-1 mb-2'>
             <ImageIcon className='h-4 w-4' />
             <span>NFTs</span>
           </Label>
@@ -417,9 +417,8 @@ function AssetSelector({
                 />
               ) : (
                 <Input
-                  id={`${prefix}-nft-${i}`}
-                  className='rounded-r-none z-10'
-                  placeholder='Enter launcher id'
+                  className='flex-grow rounded-r-none h-12 z-10'
+                  placeholder='Enter NFT ID'
                   value={nft}
                   onChange={(e) => {
                     assets.nfts[i] = e.target.value;
@@ -579,19 +578,24 @@ function NftSelector({ nftId, setNftId }: NftSelectorProps) {
             variant='outline'
             className='w-full justify-start rounded-r-none p-2 h-12'
           >
-            <div className='flex items-center gap-2 w-full'>
-              <img
-                src={
-                  selectedNft
-                    ? (nftThumbnails[selectedNft.launcher_id] ??
-                      defaultNftImage)
-                    : defaultNftImage
-                }
-                className='w-8 h-8 rounded object-cover'
-              />
-              <span className='flex-grow truncate text-left'>
-                {selectedNft?.name ?? 'Select NFT'}
-              </span>
+            <div className='flex items-center gap-2 w-full justify-between'>
+              <div className='flex items-center gap-2'>
+                <img
+                  src={
+                    selectedNft
+                      ? (nftThumbnails[selectedNft.launcher_id] ??
+                        defaultNftImage)
+                      : defaultNftImage
+                  }
+                  className='w-8 h-8 rounded object-cover'
+                />
+                <div className='flex flex-col truncate text-left'>
+                  <span>{selectedNft?.name ?? 'Select NFT'}</span>
+                  <span className='text-xs text-muted-foreground truncate'>
+                    {selectedNft?.launcher_id}
+                  </span>
+                </div>
+              </div>
               <ChevronDown className='h-4 w-4 opacity-50 mr-2' />
             </div>
           </Button>
