@@ -2,6 +2,8 @@ import { Assets, commands } from '@/bindings';
 import Container from '@/components/Container';
 import { CopyBox } from '@/components/CopyBox';
 import Header from '@/components/Header';
+import { NftSelector } from '@/components/selectors/NftSelector';
+import { TokenSelector } from '@/components/selectors/TokenSelector';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -104,6 +106,7 @@ export function MakeOffer() {
               </div>
 
               <AssetSelector
+                offering
                 prefix='offer'
                 assets={state.offered}
                 setAssets={(assets) =>
@@ -301,12 +304,18 @@ export function MakeOffer() {
 }
 
 interface AssetSelectorProps {
+  offering?: boolean;
   prefix: string;
   assets: Assets;
   setAssets: (value: Assets) => void;
 }
 
-function AssetSelector({ prefix, assets, setAssets }: AssetSelectorProps) {
+function AssetSelector({
+  offering,
+  prefix,
+  assets,
+  setAssets,
+}: AssetSelectorProps) {
   const [includeAmount, setIncludeAmount] = useState(!!assets.xch);
 
   return (
@@ -329,7 +338,7 @@ function AssetSelector({ prefix, assets, setAssets }: AssetSelectorProps) {
           onClick={() => {
             setAssets({
               ...assets,
-              nfts: ['', ...assets.nfts],
+              nfts: [...assets.nfts, ''],
             });
           }}
         >
@@ -342,7 +351,7 @@ function AssetSelector({ prefix, assets, setAssets }: AssetSelectorProps) {
           onClick={() => {
             setAssets({
               ...assets,
-              cats: [{ asset_id: '', amount: '' }, ...assets.cats],
+              cats: [...assets.cats, { asset_id: '', amount: '' }],
             });
           }}
         >
@@ -381,88 +390,89 @@ function AssetSelector({ prefix, assets, setAssets }: AssetSelectorProps) {
       )}
 
       {assets.nfts.length > 0 && (
-        <div className='flex flex-col gap-4 mt-4'>
+        <div className='flex flex-col mt-4'>
+          <Label className='flex items-center gap-1 mb-2'>
+            <ImageIcon className='h-4 w-4' />
+            <span>NFTs</span>
+          </Label>
           {assets.nfts.map((nft, i) => (
-            <div key={i} className='flex flex-col space-y-1.5'>
-              <Label
-                htmlFor={`${prefix}-nft-${i}`}
-                className='flex items-center gap-1'
-              >
-                <ImageIcon className='h-4 w-4' />
-                <span>NFT {i + 1}</span>
-              </Label>
-              <div className='flex'>
+            <div key={i} className='flex h-14 z-20'>
+              {offering === true ? (
+                <NftSelector
+                  value={nft}
+                  onChange={(nftId) => {
+                    assets.nfts[i] = nftId;
+                    setAssets({ ...assets });
+                  }}
+                  disabled={assets.nfts.filter((id) => id !== nft)}
+                  className='rounded-r-none'
+                />
+              ) : (
                 <Input
-                  id={`${prefix}-nft-${i}`}
-                  className='rounded-r-none z-10'
-                  placeholder='Enter launcher id'
+                  className='flex-grow rounded-r-none h-12 z-10'
+                  placeholder='Enter NFT id'
                   value={nft}
                   onChange={(e) => {
                     assets.nfts[i] = e.target.value;
                     setAssets({ ...assets });
                   }}
                 />
-                <Button
-                  variant='outline'
-                  size='icon'
-                  className='border-l-0 rounded-l-none flex-shrink-0 flex-grow-0'
-                  onClick={() => {
-                    assets.nfts.splice(i, 1);
-                    setAssets({ ...assets });
-                  }}
-                >
-                  <TrashIcon className='h-4 w-4' />
-                </Button>
-              </div>
+              )}
+              <Button
+                variant='outline'
+                className='border-l-0 rounded-l-none flex-shrink-0 flex-grow-0 h-12 px-3'
+                onClick={() => {
+                  assets.nfts.splice(i, 1);
+                  setAssets({ ...assets });
+                }}
+              >
+                <TrashIcon className='h-4 w-4' />
+              </Button>
             </div>
           ))}
         </div>
       )}
 
       {assets.cats.length > 0 && (
-        <div className='flex flex-col gap-4 mt-4'>
+        <div className='flex flex-col mt-4'>
+          <Label className='flex items-center gap-1 mb-2'>
+            <HandCoins className='h-4 w-4' />
+            <span>Tokens</span>
+          </Label>
           {assets.cats.map((cat, i) => (
-            <div key={i} className='flex flex-col space-y-1.5'>
-              <Label
-                htmlFor={`${prefix}-cat-${i}`}
-                className='flex items-center gap-1'
+            <div key={i} className='flex h-14'>
+              <TokenSelector
+                value={cat.asset_id}
+                onChange={(assetId) => {
+                  assets.cats[i].asset_id = assetId;
+                  setAssets({ ...assets });
+                }}
+                disabled={assets.cats
+                  .filter((amount) => amount.asset_id !== cat.asset_id)
+                  .map((amount) => amount.asset_id)}
+                className='rounded-r-none'
+                allowManualInput={!offering}
+              />
+              <TokenAmountInput
+                id={`${prefix}-cat-${i}-amount`}
+                className='border-l-0 z-10 rounded-l-none rounded-r-none w-[100px] h-12'
+                placeholder='Amount'
+                value={cat.amount}
+                onChange={(e) => {
+                  assets.cats[i].amount = e.target.value;
+                  setAssets({ ...assets });
+                }}
+              />
+              <Button
+                variant='outline'
+                className='border-l-0 rounded-l-none flex-shrink-0 flex-grow-0 h-12 px-3'
+                onClick={() => {
+                  assets.cats.splice(i, 1);
+                  setAssets({ ...assets });
+                }}
               >
-                <HandCoins className='h-4 w-4' />
-                <span>Token {i + 1}</span>
-              </Label>
-              <div className='flex'>
-                <Input
-                  id={`${prefix}-cat-${i}`}
-                  className='rounded-r-none z-10'
-                  placeholder='Enter asset id'
-                  value={cat.asset_id}
-                  onChange={(e) => {
-                    assets.cats[i].asset_id = e.target.value;
-                    setAssets({ ...assets });
-                  }}
-                />
-                <TokenAmountInput
-                  id={`${prefix}-cat-${i}-amount`}
-                  className='border-l-0 z-10 rounded-l-none rounded-r-none w-[100px]'
-                  placeholder='Amount'
-                  value={cat.amount}
-                  onChange={(e) => {
-                    assets.cats[i].amount = e.target.value;
-                    setAssets({ ...assets });
-                  }}
-                />
-                <Button
-                  variant='outline'
-                  size='icon'
-                  className='border-l-0 rounded-l-none flex-shrink-0 flex-grow-0'
-                  onClick={() => {
-                    assets.cats.splice(i, 1);
-                    setAssets({ ...assets });
-                  }}
-                >
-                  <TrashIcon className='h-4 w-4' />
-                </Button>
-              </div>
+                <TrashIcon className='h-4 w-4' />
+              </Button>
             </div>
           ))}
         </div>
