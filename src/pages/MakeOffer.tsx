@@ -441,30 +441,18 @@ function AssetSelector({
           </Label>
           {assets.cats.map((cat, i) => (
             <div key={i} className='flex h-14'>
-              {offering === true ? (
-                <TokenSelector
-                  value={cat.asset_id}
-                  onChange={(assetId) => {
-                    assets.cats[i].asset_id = assetId;
-                    setAssets({ ...assets });
-                  }}
-                  disabled={assets.cats
-                    .filter((amount) => amount.asset_id !== cat.asset_id)
-                    .map((amount) => amount.asset_id)}
-                  className='rounded-r-none'
-                />
-              ) : (
-                <Input
-                  id={`${prefix}-cat-${i}`}
-                  className='rounded-r-none z-10 h-12'
-                  placeholder='Enter asset id'
-                  value={cat.asset_id}
-                  onChange={(e) => {
-                    assets.cats[i].asset_id = e.target.value;
-                    setAssets({ ...assets });
-                  }}
-                />
-              )}
+              <TokenSelector
+                value={cat.asset_id}
+                onChange={(assetId) => {
+                  assets.cats[i].asset_id = assetId;
+                  setAssets({ ...assets });
+                }}
+                disabled={assets.cats
+                  .filter((amount) => amount.asset_id !== cat.asset_id)
+                  .map((amount) => amount.asset_id)}
+                className='rounded-r-none'
+                allowManualInput={!offering}
+              />
               <TokenAmountInput
                 id={`${prefix}-cat-${i}-amount`}
                 className='border-l-0 z-10 rounded-l-none rounded-r-none w-[100px] h-12'

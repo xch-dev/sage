@@ -21,6 +21,7 @@ export interface DropdownSelectorProps<T> extends PropsWithChildren {
   pageSize?: number;
   width?: string;
   className?: string;
+  manualInput?: React.ReactNode;
 }
 
 export function DropdownSelector<T>({
@@ -35,6 +36,7 @@ export function DropdownSelector<T>({
   width = 'w-[300px]',
   className,
   children,
+  manualInput,
 }: DropdownSelectorProps<T>) {
   const pages = Math.max(1, Math.ceil(totalItems / pageSize));
 
@@ -53,6 +55,12 @@ export function DropdownSelector<T>({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align='start' className={width}>
+          {manualInput && (
+            <>
+              <div className='p-2'>{manualInput}</div>
+              <DropdownMenuSeparator />
+            </>
+          )}
           {setPage && (
             <>
               <DropdownMenuLabel>

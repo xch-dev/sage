@@ -2,6 +2,7 @@ import { CatRecord, commands } from '@/bindings';
 import { useErrors } from '@/hooks/useErrors';
 import { useWalletState } from '@/state';
 import { useEffect, useState } from 'react';
+import { Input } from '../ui/input';
 import { DropdownSelector } from './DropdownSelector';
 
 export interface TokenSelectorProps {
@@ -9,6 +10,7 @@ export interface TokenSelectorProps {
   onChange: (value: string) => void;
   disabled?: string[];
   className?: string;
+  allowManualInput?: boolean;
 }
 
 export function TokenSelector({
@@ -16,6 +18,7 @@ export function TokenSelector({
   onChange,
   disabled = [],
   className,
+  allowManualInput = false,
 }: TokenSelectorProps) {
   const walletState = useWalletState();
   const { addError } = useErrors();
@@ -42,7 +45,7 @@ export function TokenSelector({
 
   return (
     <DropdownSelector
-      totalItems={walletState.nfts.visible_nfts}
+      totalItems={tokens.length}
       loadedItems={tokens}
       page={0}
       isDisabled={(token) => disabled.includes(token.asset_id)}
@@ -51,6 +54,28 @@ export function TokenSelector({
         setSelectedToken(token);
       }}
       className={className}
+      manualInput={
+        allowManualInput && (
+          <Input
+            placeholder='Enter asset id'
+            value={value || ''}
+            onChange={(e) => {
+              onChange(e.target.value);
+              setSelectedToken(
+                tokens.find((token) => token.asset_id === e.target.value) ?? {
+                  name: 'Unknown',
+                  asset_id: e.target.value,
+                  icon_url: null,
+                  balance: 0,
+                  ticker: null,
+                  description: null,
+                  visible: true,
+                },
+              );
+            }}
+          />
+        )
+      }
       renderItem={(token) => (
         <div className='flex items-center gap-2 w-full'>
           {token.icon_url && (
