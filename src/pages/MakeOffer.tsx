@@ -509,7 +509,7 @@ function NftSelector({ nftId, setNftId }: NftSelectorProps) {
     {},
   );
 
-  const pageSize = 20;
+  const pageSize = 8;
   const pages = Math.max(
     1,
     Math.ceil(walletState.nfts.visible_nfts / pageSize),
