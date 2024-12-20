@@ -571,15 +571,15 @@ function NftSelector({ nftId, setNftId }: NftSelectorProps) {
   const isNftSelected = (nftId: string) => assets.nfts.includes(nftId);
 
   return (
-    <div className='flex-grow'>
+    <div className='min-w-0 flex-grow'>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
             variant='outline'
             className='w-full justify-start rounded-r-none p-2 h-12'
           >
-            <div className='flex items-center gap-2 w-full justify-between'>
-              <div className='flex items-center gap-2'>
+            <div className='flex items-center gap-2 w-full justify-between min-w-0'>
+              <div className='flex items-center gap-2 min-w-0'>
                 <img
                   src={
                     selectedNft
@@ -589,7 +589,7 @@ function NftSelector({ nftId, setNftId }: NftSelectorProps) {
                   }
                   className='w-8 h-8 rounded object-cover'
                 />
-                <div className='flex flex-col truncate text-left max-w-[170px]'>
+                <div className='flex flex-col truncate text-left'>
                   <span className='truncate'>
                     {selectedNft?.name ?? 'Select NFT'}
                   </span>
@@ -598,7 +598,7 @@ function NftSelector({ nftId, setNftId }: NftSelectorProps) {
                   </span>
                 </div>
               </div>
-              <ChevronDown className='h-4 w-4 opacity-50 mr-2' />
+              <ChevronDown className='h-4 w-4 opacity-50 mr-2 flex-shrink-0' />
             </div>
           </Button>
         </DropdownMenuTrigger>
