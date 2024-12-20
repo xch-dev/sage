@@ -351,7 +351,7 @@ function AssetSelector({
           onClick={() => {
             setAssets({
               ...assets,
-              cats: [{ asset_id: '', amount: '' }, ...assets.cats],
+              cats: [...assets.cats, { asset_id: '', amount: '' }],
             });
           }}
         >
@@ -434,62 +434,57 @@ function AssetSelector({
       )}
 
       {assets.cats.length > 0 && (
-        <div className='flex flex-col gap-4 mt-4'>
+        <div className='flex flex-col mt-4'>
+          <Label className='flex items-center gap-1 mb-2'>
+            <HandCoins className='h-4 w-4' />
+            <span>Tokens</span>
+          </Label>
           {assets.cats.map((cat, i) => (
-            <div key={i} className='flex flex-col space-y-1.5'>
-              <Label
-                htmlFor={`${prefix}-cat-${i}`}
-                className='flex items-center gap-1'
-              >
-                <HandCoins className='h-4 w-4' />
-                <span>Token {i + 1}</span>
-              </Label>
-              <div className='flex'>
-                {offering === true ? (
-                  <TokenSelector
-                    value={cat.asset_id}
-                    onChange={(assetId) => {
-                      assets.cats[i].asset_id = assetId;
-                      setAssets({ ...assets });
-                    }}
-                    disabled={assets.cats
-                      .filter((_, idx) => idx !== i)
-                      .map((c) => c.asset_id)}
-                    className='rounded-r-none'
-                  />
-                ) : (
-                  <Input
-                    id={`${prefix}-cat-${i}`}
-                    className='rounded-r-none z-10 h-12'
-                    placeholder='Enter asset id'
-                    value={cat.asset_id}
-                    onChange={(e) => {
-                      assets.cats[i].asset_id = e.target.value;
-                      setAssets({ ...assets });
-                    }}
-                  />
-                )}
-                <TokenAmountInput
-                  id={`${prefix}-cat-${i}-amount`}
-                  className='border-l-0 z-10 rounded-l-none rounded-r-none w-[100px] h-12'
-                  placeholder='Amount'
-                  value={cat.amount}
+            <div key={i} className='flex h-14'>
+              {offering === true ? (
+                <TokenSelector
+                  value={cat.asset_id}
+                  onChange={(assetId) => {
+                    assets.cats[i].asset_id = assetId;
+                    setAssets({ ...assets });
+                  }}
+                  disabled={assets.cats
+                    .filter((amount) => amount.asset_id !== cat.asset_id)
+                    .map((amount) => amount.asset_id)}
+                  className='rounded-r-none'
+                />
+              ) : (
+                <Input
+                  id={`${prefix}-cat-${i}`}
+                  className='rounded-r-none z-10 h-12'
+                  placeholder='Enter asset id'
+                  value={cat.asset_id}
                   onChange={(e) => {
-                    assets.cats[i].amount = e.target.value;
+                    assets.cats[i].asset_id = e.target.value;
                     setAssets({ ...assets });
                   }}
                 />
-                <Button
-                  variant='outline'
-                  className='border-l-0 rounded-l-none flex-shrink-0 flex-grow-0 h-12 px-3'
-                  onClick={() => {
-                    assets.cats.splice(i, 1);
-                    setAssets({ ...assets });
-                  }}
-                >
-                  <TrashIcon className='h-4 w-4' />
-                </Button>
-              </div>
+              )}
+              <TokenAmountInput
+                id={`${prefix}-cat-${i}-amount`}
+                className='border-l-0 z-10 rounded-l-none rounded-r-none w-[100px] h-12'
+                placeholder='Amount'
+                value={cat.amount}
+                onChange={(e) => {
+                  assets.cats[i].amount = e.target.value;
+                  setAssets({ ...assets });
+                }}
+              />
+              <Button
+                variant='outline'
+                className='border-l-0 rounded-l-none flex-shrink-0 flex-grow-0 h-12 px-3'
+                onClick={() => {
+                  assets.cats.splice(i, 1);
+                  setAssets({ ...assets });
+                }}
+              >
+                <TrashIcon className='h-4 w-4' />
+              </Button>
             </div>
           ))}
         </div>

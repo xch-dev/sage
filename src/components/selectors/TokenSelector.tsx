@@ -1,6 +1,5 @@
 import { CatRecord, commands } from '@/bindings';
 import { useErrors } from '@/hooks/useErrors';
-import { nftUri } from '@/lib/nftUri';
 import { useWalletState } from '@/state';
 import { useEffect, useState } from 'react';
 import { DropdownSelector } from './DropdownSelector';
@@ -41,8 +40,6 @@ export function TokenSelector({
       .catch(addError);
   }, [addError, tokens.length, value, selectedToken]);
 
-  const defaultImage = nftUri(null, null);
-
   return (
     <DropdownSelector
       totalItems={walletState.nfts.visible_nfts}
@@ -56,11 +53,13 @@ export function TokenSelector({
       className={className}
       renderItem={(token) => (
         <div className='flex items-center gap-2 w-full'>
-          <img
-            src={token.icon_url ?? defaultImage}
-            className='w-10 h-10 rounded object-cover'
-            alt={token.name ?? 'Unknown'}
-          />
+          {token.icon_url && (
+            <img
+              src={token.icon_url}
+              className='w-10 h-10 rounded object-cover'
+              alt={token.name ?? 'Unknown'}
+            />
+          )}
           <div className='flex flex-col truncate'>
             <span className='flex-grow truncate'>{token.name}</span>
             <span className='text-xs text-muted-foreground truncate'>
@@ -71,14 +70,12 @@ export function TokenSelector({
       )}
     >
       <div className='flex items-center gap-2 min-w-0'>
-        <img
-          src={
-            selectedToken
-              ? (selectedToken.icon_url ?? defaultImage)
-              : defaultImage
-          }
-          className='w-8 h-8 rounded object-cover'
-        />
+        {selectedToken?.icon_url && (
+          <img
+            src={selectedToken.icon_url}
+            className='w-8 h-8 rounded object-cover'
+          />
+        )}
         <div className='flex flex-col truncate text-left'>
           <span className='truncate'>
             {selectedToken?.name ?? 'Select Token'}
