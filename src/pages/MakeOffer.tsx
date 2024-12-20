@@ -1,7 +1,8 @@
-import { Assets, commands, NftRecord } from '@/bindings';
+import { Assets, commands } from '@/bindings';
 import Container from '@/components/Container';
 import { CopyBox } from '@/components/CopyBox';
 import Header from '@/components/Header';
+import { NftSelector } from '@/components/selectors/NftSelector';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -12,33 +13,21 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { TokenAmountInput } from '@/components/ui/masked-input';
 import { Switch } from '@/components/ui/switch';
 import { useErrors } from '@/hooks/useErrors';
-import { nftUri } from '@/lib/nftUri';
 import { toMojos } from '@/lib/utils';
 import { clearOffer, useOfferState, useWalletState } from '@/state';
 import {
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
   HandCoins,
   Handshake,
   ImageIcon,
   PlusIcon,
   TrashIcon,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 export function MakeOffer() {
@@ -348,7 +337,7 @@ function AssetSelector({
           onClick={() => {
             setAssets({
               ...assets,
-              nfts: ['', ...assets.nfts],
+              nfts: [...assets.nfts, ''],
             });
           }}
         >
@@ -409,11 +398,12 @@ function AssetSelector({
             <div key={i} className='flex h-14 z-20'>
               {offering === true ? (
                 <NftSelector
-                  nftId={nft}
-                  setNftId={(nftId) => {
+                  initialNft={nft || null}
+                  onNftChange={(nftId) => {
                     assets.nfts[i] = nftId;
                     setAssets({ ...assets });
                   }}
+                  disabledNfts={assets.nfts}
                 />
               ) : (
                 <Input
@@ -490,189 +480,5 @@ function AssetSelector({
         </div>
       )}
     </>
-  );
-}
-
-interface NftSelectorProps {
-  nftId: string;
-  setNftId: (value: string) => void;
-}
-
-function NftSelector({ nftId, setNftId }: NftSelectorProps) {
-  const walletState = useWalletState();
-  const { addError } = useErrors();
-
-  const [page, setPage] = useState(0);
-  const [nfts, setNfts] = useState<NftRecord[]>([]);
-  const [selectedNft, setSelectedNft] = useState<NftRecord | null>(null);
-  const [nftThumbnails, setNftThumbnails] = useState<Record<string, string>>(
-    {},
-  );
-
-  const pageSize = 8;
-  const pages = Math.max(
-    1,
-    Math.ceil(walletState.nfts.visible_nfts / pageSize),
-  );
-
-  const assets = useOfferState((state) => state.offered);
-
-  useEffect(() => {
-    if (!nftId) {
-      setSelectedNft(null);
-      return;
-    }
-
-    commands
-      .getNft({ nft_id: nftId })
-      .then((data) => setSelectedNft(data.nft))
-      .catch(addError);
-  }, [nftId, addError]);
-
-  useEffect(() => {
-    commands
-      .getNfts({
-        offset: page * pageSize,
-        limit: pageSize,
-        include_hidden: false,
-        collection_id: 'all',
-        sort_mode: 'name',
-      })
-      .then((data) => setNfts(data.nfts))
-      .catch(addError);
-  }, [addError, page]);
-
-  useEffect(() => {
-    const nftsToFetch = [...nfts];
-    if (
-      selectedNft &&
-      !nfts.find((n) => n.launcher_id === selectedNft.launcher_id)
-    ) {
-      nftsToFetch.push(selectedNft);
-    }
-
-    Promise.all(
-      nftsToFetch.map((nft) =>
-        commands
-          .getNftData({ nft_id: nft.launcher_id })
-          .then((response) => [nft.launcher_id, response.data] as const),
-      ),
-    ).then((thumbnails) => {
-      const map: Record<string, string> = {};
-      thumbnails.forEach(([id, thumbnail]) => {
-        if (thumbnail !== null)
-          map[id] = nftUri(thumbnail.mime_type, thumbnail.blob);
-      });
-      setNftThumbnails(map);
-    });
-  }, [nfts, selectedNft]);
-
-  const defaultNftImage = nftUri(null, null);
-  const isNftSelected = (nftId: string) => assets.nfts.includes(nftId);
-
-  return (
-    <div className='min-w-0 flex-grow'>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant='outline'
-            className='w-full justify-start rounded-r-none p-2 h-12'
-          >
-            <div className='flex items-center gap-2 w-full justify-between min-w-0'>
-              <div className='flex items-center gap-2 min-w-0'>
-                <img
-                  src={
-                    selectedNft
-                      ? (nftThumbnails[selectedNft.launcher_id] ??
-                        defaultNftImage)
-                      : defaultNftImage
-                  }
-                  className='w-8 h-8 rounded object-cover'
-                />
-                <div className='flex flex-col truncate text-left'>
-                  <span className='truncate'>
-                    {selectedNft?.name ?? 'Select NFT'}
-                  </span>
-                  <span className='text-xs text-muted-foreground truncate'>
-                    {selectedNft?.launcher_id}
-                  </span>
-                </div>
-              </div>
-              <ChevronDown className='h-4 w-4 opacity-50 mr-2 flex-shrink-0' />
-            </div>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align='start' className='w-[300px]'>
-          <DropdownMenuLabel>
-            <div className='flex items-center justify-between'>
-              <span>
-                Page {page + 1} / {pages}
-              </span>
-              <div className='flex items-center gap-2'>
-                <Button
-                  variant='outline'
-                  size='icon'
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setPage(Math.max(0, page - 1));
-                  }}
-                  disabled={page === 0}
-                >
-                  <ChevronLeft className='h-4 w-4' />
-                </Button>
-                <Button
-                  variant='outline'
-                  size='icon'
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setPage(Math.min(pages - 1, page + 1));
-                  }}
-                  disabled={page === pages - 1}
-                >
-                  <ChevronRight className='h-4 w-4' />
-                </Button>
-              </div>
-            </div>
-          </DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <div className='max-h-[300px] overflow-y-auto'>
-            {nfts.length === 0 ? (
-              <div className='p-4 text-center text-sm text-muted-foreground'>
-                No NFTs available
-              </div>
-            ) : (
-              nfts.map((nft) => {
-                const isDisabled =
-                  isNftSelected(nft.launcher_id) && nft.launcher_id !== nftId;
-                return (
-                  <DropdownMenuItem
-                    key={nft.launcher_id}
-                    onClick={() => setNftId(nft.launcher_id)}
-                    disabled={isDisabled}
-                    className={
-                      isDisabled ? 'opacity-50 cursor-not-allowed' : ''
-                    }
-                  >
-                    <div className='flex items-center gap-2 w-full'>
-                      <img
-                        src={nftThumbnails[nft.launcher_id] ?? defaultNftImage}
-                        className='w-10 h-10 rounded object-cover'
-                        alt={nft.name ?? 'Unknown'}
-                      />
-                      <div className='flex flex-col truncate'>
-                        <span className='flex-grow truncate'>{nft.name}</span>
-                        <span className='text-xs text-muted-foreground truncate'>
-                          {nft.launcher_id}
-                        </span>
-                      </div>
-                    </div>
-                  </DropdownMenuItem>
-                );
-              })
-            )}
-          </div>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
   );
 }
