@@ -3,6 +3,7 @@ import Container from '@/components/Container';
 import { CopyBox } from '@/components/CopyBox';
 import Header from '@/components/Header';
 import { NftSelector } from '@/components/selectors/NftSelector';
+import { TokenSelector } from '@/components/selectors/TokenSelector';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -408,8 +409,8 @@ function AssetSelector({
                 />
               ) : (
                 <Input
-                  className='flex-grow rounded-r-none h-12'
-                  placeholder='Enter NFT ID'
+                  className='flex-grow rounded-r-none h-12 z-10'
+                  placeholder='Enter NFT id'
                   value={nft}
                   onChange={(e) => {
                     assets.nfts[i] = e.target.value;
@@ -444,19 +445,33 @@ function AssetSelector({
                 <span>Token {i + 1}</span>
               </Label>
               <div className='flex'>
-                <Input
-                  id={`${prefix}-cat-${i}`}
-                  className='rounded-r-none z-10'
-                  placeholder='Enter asset id'
-                  value={cat.asset_id}
-                  onChange={(e) => {
-                    assets.cats[i].asset_id = e.target.value;
-                    setAssets({ ...assets });
-                  }}
-                />
+                {offering === true ? (
+                  <TokenSelector
+                    value={cat.asset_id}
+                    onChange={(assetId) => {
+                      assets.cats[i].asset_id = assetId;
+                      setAssets({ ...assets });
+                    }}
+                    disabled={assets.cats
+                      .filter((_, idx) => idx !== i)
+                      .map((c) => c.asset_id)}
+                    className='rounded-r-none'
+                  />
+                ) : (
+                  <Input
+                    id={`${prefix}-cat-${i}`}
+                    className='rounded-r-none z-10 h-12'
+                    placeholder='Enter asset id'
+                    value={cat.asset_id}
+                    onChange={(e) => {
+                      assets.cats[i].asset_id = e.target.value;
+                      setAssets({ ...assets });
+                    }}
+                  />
+                )}
                 <TokenAmountInput
                   id={`${prefix}-cat-${i}-amount`}
-                  className='border-l-0 z-10 rounded-l-none rounded-r-none w-[100px]'
+                  className='border-l-0 z-10 rounded-l-none rounded-r-none w-[100px] h-12'
                   placeholder='Amount'
                   value={cat.amount}
                   onChange={(e) => {
@@ -466,8 +481,7 @@ function AssetSelector({
                 />
                 <Button
                   variant='outline'
-                  size='icon'
-                  className='border-l-0 rounded-l-none flex-shrink-0 flex-grow-0'
+                  className='border-l-0 rounded-l-none flex-shrink-0 flex-grow-0 h-12 px-3'
                   onClick={() => {
                     assets.cats.splice(i, 1);
                     setAssets({ ...assets });

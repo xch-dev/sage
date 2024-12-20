@@ -14,7 +14,7 @@ export interface DropdownSelectorProps<T> extends PropsWithChildren {
   totalItems: number;
   loadedItems: T[];
   page: number;
-  setPage: (page: number) => void;
+  setPage?: (page: number) => void;
   renderItem: (item: T) => React.ReactNode;
   onSelect: (item: T) => void;
   isDisabled?: (item: T) => boolean;
@@ -53,38 +53,42 @@ export function DropdownSelector<T>({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align='start' className={width}>
-          <DropdownMenuLabel>
-            <div className='flex items-center justify-between'>
-              <span>
-                Page {page + 1} / {pages}
-              </span>
-              <div className='flex items-center gap-2'>
-                <Button
-                  variant='outline'
-                  size='icon'
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setPage(Math.max(0, page - 1));
-                  }}
-                  disabled={page === 0}
-                >
-                  <ChevronLeft className='h-4 w-4' />
-                </Button>
-                <Button
-                  variant='outline'
-                  size='icon'
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setPage(Math.min(pages - 1, page + 1));
-                  }}
-                  disabled={page === pages - 1}
-                >
-                  <ChevronRight className='h-4 w-4' />
-                </Button>
-              </div>
-            </div>
-          </DropdownMenuLabel>
-          <DropdownMenuSeparator />
+          {setPage && (
+            <>
+              <DropdownMenuLabel>
+                <div className='flex items-center justify-between'>
+                  <span>
+                    Page {page + 1} / {pages}
+                  </span>
+                  <div className='flex items-center gap-2'>
+                    <Button
+                      variant='outline'
+                      size='icon'
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setPage(Math.max(0, page - 1));
+                      }}
+                      disabled={page === 0}
+                    >
+                      <ChevronLeft className='h-4 w-4' />
+                    </Button>
+                    <Button
+                      variant='outline'
+                      size='icon'
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setPage(Math.min(pages - 1, page + 1));
+                      }}
+                      disabled={page === pages - 1}
+                    >
+                      <ChevronRight className='h-4 w-4' />
+                    </Button>
+                  </div>
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+            </>
+          )}
           <div className='max-h-[300px] overflow-y-auto'>
             {loadedItems.length === 0 ? (
               <div className='p-4 text-center text-sm text-muted-foreground'>
