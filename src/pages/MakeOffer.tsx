@@ -398,16 +398,17 @@ function AssetSelector({
             <div key={i} className='flex h-14 z-20'>
               {offering === true ? (
                 <NftSelector
-                  initialNft={nft || null}
-                  onNftChange={(nftId) => {
+                  value={nft}
+                  onChange={(nftId) => {
                     assets.nfts[i] = nftId;
                     setAssets({ ...assets });
                   }}
-                  disabledNfts={assets.nfts}
+                  disabled={assets.nfts.filter((id) => id !== nft)}
+                  className='rounded-r-none'
                 />
               ) : (
                 <Input
-                  className='flex-grow rounded-r-none h-12 z-10'
+                  className='flex-grow rounded-r-none h-12'
                   placeholder='Enter NFT ID'
                   value={nft}
                   onChange={(e) => {

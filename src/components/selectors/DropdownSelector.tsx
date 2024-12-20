@@ -11,20 +11,32 @@ import {
 } from '../ui/dropdown-menu';
 
 export interface DropdownSelectorProps<T> extends PropsWithChildren {
-  pageSize?: number;
   totalItems: number;
   loadedItems: T[];
   page: number;
   setPage: (page: number) => void;
   renderItem: (item: T) => React.ReactNode;
   onSelect: (item: T) => void;
-  isDisabled: (item: T) => boolean;
+  isDisabled?: (item: T) => boolean;
+  pageSize?: number;
+  width?: string;
+  className?: string;
 }
 
-export function DropdownSelector<T>(props: DropdownSelectorProps<T>) {
-  const pageSize = props.pageSize ?? 8;
-  const pages = Math.max(1, Math.ceil(props.totalItems / pageSize));
-  const { page, setPage } = props;
+export function DropdownSelector<T>({
+  totalItems,
+  loadedItems,
+  page,
+  setPage,
+  renderItem,
+  onSelect,
+  isDisabled,
+  pageSize = 8,
+  width = 'w-[300px]',
+  className,
+  children,
+}: DropdownSelectorProps<T>) {
+  const pages = Math.max(1, Math.ceil(totalItems / pageSize));
 
   return (
     <div className='min-w-0 flex-grow'>
@@ -32,15 +44,15 @@ export function DropdownSelector<T>(props: DropdownSelectorProps<T>) {
         <DropdownMenuTrigger asChild>
           <Button
             variant='outline'
-            className='w-full justify-start rounded-r-none p-2 h-12'
+            className={`w-full justify-start p-2 h-12 ${className ?? ''}`}
           >
             <div className='flex items-center gap-2 w-full justify-between min-w-0'>
-              {props.children}
+              {children}
               <ChevronDown className='h-4 w-4 opacity-50 mr-2 flex-shrink-0' />
             </div>
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align='start' className='w-[300px]'>
+        <DropdownMenuContent align='start' className={width}>
           <DropdownMenuLabel>
             <div className='flex items-center justify-between'>
               <span>
@@ -74,24 +86,21 @@ export function DropdownSelector<T>(props: DropdownSelectorProps<T>) {
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
           <div className='max-h-[300px] overflow-y-auto'>
-            {props.loadedItems.length === 0 ? (
+            {loadedItems.length === 0 ? (
               <div className='p-4 text-center text-sm text-muted-foreground'>
                 No items available
               </div>
             ) : (
-              props.loadedItems.map((item, i) => {
-                const isDisabled = props.isDisabled(item);
-
+              loadedItems.map((item, i) => {
+                const disabled = isDisabled?.(item) ?? false;
                 return (
                   <DropdownMenuItem
                     key={i}
-                    onClick={() => props.onSelect(item)}
-                    disabled={isDisabled}
-                    className={
-                      isDisabled ? 'opacity-50 cursor-not-allowed' : ''
-                    }
+                    onClick={() => onSelect(item)}
+                    disabled={disabled}
+                    className={disabled ? 'opacity-50 cursor-not-allowed' : ''}
                   >
-                    {props.renderItem(item)}
+                    {renderItem(item)}
                   </DropdownMenuItem>
                 );
               })

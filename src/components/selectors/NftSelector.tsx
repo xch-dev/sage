@@ -6,22 +6,23 @@ import { useEffect, useState } from 'react';
 import { DropdownSelector } from './DropdownSelector';
 
 export interface NftSelectorProps {
-  initialNft: string | null;
-  onNftChange: (value: string) => void;
-  disabledNfts: string[];
+  value: string | null;
+  onChange: (value: string) => void;
+  disabled?: string[];
+  className?: string;
 }
 
 export function NftSelector({
-  initialNft,
-  onNftChange,
-  disabledNfts,
+  value,
+  onChange,
+  disabled = [],
+  className,
 }: NftSelectorProps) {
   const walletState = useWalletState();
   const { addError } = useErrors();
 
   const [page, setPage] = useState(0);
   const [nfts, setNfts] = useState<NftRecord[]>([]);
-  const [selectedNftId, setSelectedNftId] = useState<string | null>(initialNft);
   const [selectedNft, setSelectedNft] = useState<NftRecord | null>(null);
   const [nftThumbnails, setNftThumbnails] = useState<Record<string, string>>(
     {},
@@ -43,21 +44,20 @@ export function NftSelector({
   }, [addError, page]);
 
   useEffect(() => {
-    if (selectedNftId && selectedNft?.launcher_id !== selectedNftId) {
+    if (value && selectedNft?.launcher_id !== value) {
       commands
-        .getNft({ nft_id: selectedNftId })
+        .getNft({ nft_id: value })
         .then((data) => setSelectedNft(data.nft))
         .catch(addError);
+    } else if (!value) {
+      setSelectedNft(null);
     }
-  }, [selectedNftId, selectedNft?.launcher_id, addError]);
+  }, [value, selectedNft?.launcher_id, addError]);
 
   useEffect(() => {
     const nftsToFetch = [...nfts.map((nft) => nft.launcher_id)];
-    if (
-      selectedNftId &&
-      !nfts.find((nft) => nft.launcher_id === selectedNftId)
-    ) {
-      nftsToFetch.push(selectedNftId);
+    if (value && !nfts.find((nft) => nft.launcher_id === value)) {
+      nftsToFetch.push(value);
     }
 
     Promise.all(
@@ -74,23 +74,22 @@ export function NftSelector({
       });
       setNftThumbnails(map);
     });
-  }, [nfts, selectedNftId]);
+  }, [nfts, value]);
 
   const defaultNftImage = nftUri(null, null);
 
   return (
     <DropdownSelector
       totalItems={walletState.nfts.visible_nfts}
-      pageSize={pageSize}
+      loadedItems={nfts}
       page={page}
       setPage={setPage}
-      loadedItems={nfts}
-      isDisabled={(nft) => disabledNfts.includes(nft.launcher_id)}
+      isDisabled={(nft) => disabled.includes(nft.launcher_id)}
       onSelect={(nft) => {
-        onNftChange(nft.launcher_id);
-        setSelectedNftId(nft.launcher_id);
+        onChange(nft.launcher_id);
         setSelectedNft(nft);
       }}
+      className={className}
       renderItem={(nft) => (
         <div className='flex items-center gap-2 w-full'>
           <img
