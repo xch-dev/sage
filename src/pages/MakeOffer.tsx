@@ -406,7 +406,7 @@ function AssetSelector({
             <span>NFTs</span>
           </Label>
           {assets.nfts.map((nft, i) => (
-            <div key={i} className='flex h-14'>
+            <div key={i} className='flex h-14 z-20'>
               {offering === true ? (
                 <NftSelector
                   nftId={nft}
@@ -589,8 +589,10 @@ function NftSelector({ nftId, setNftId }: NftSelectorProps) {
                   }
                   className='w-8 h-8 rounded object-cover'
                 />
-                <div className='flex flex-col truncate text-left'>
-                  <span>{selectedNft?.name ?? 'Select NFT'}</span>
+                <div className='flex flex-col truncate text-left max-w-[170px]'>
+                  <span className='truncate'>
+                    {selectedNft?.name ?? 'Select NFT'}
+                  </span>
                   <span className='text-xs text-muted-foreground truncate'>
                     {selectedNft?.launcher_id}
                   </span>
@@ -657,10 +659,12 @@ function NftSelector({ nftId, setNftId }: NftSelectorProps) {
                         className='w-10 h-10 rounded object-cover'
                         alt={nft.name ?? 'Unknown'}
                       />
-                      <span className='flex-grow truncate'>
-                        {nft.name}
-                        {isDisabled && ' (Already in offer)'}
-                      </span>
+                      <div className='flex flex-col truncate'>
+                        <span className='flex-grow truncate'>{nft.name}</span>
+                        <span className='text-xs text-muted-foreground truncate'>
+                          {nft.launcher_id}
+                        </span>
+                      </div>
                     </div>
                   </DropdownMenuItem>
                 );
