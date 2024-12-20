@@ -400,46 +400,43 @@ function AssetSelector({
       )}
 
       {assets.nfts.length > 0 && (
-        <div className='flex flex-col gap-4 mt-4'>
+        <div className='flex flex-col gap-2 mt-4'>
+          <Label className='flex items-center gap-1'>
+            <ImageIcon className='h-4 w-4' />
+            <span>NFTs</span>
+          </Label>
           {assets.nfts.map((nft, i) => (
-            <div key={i} className='flex flex-col space-y-1.5'>
-              <Label className='flex items-center gap-1'>
-                <ImageIcon className='h-4 w-4' />
-                <span>NFT {i + 1}</span>
-              </Label>
-              <div className='flex'>
-                {offering === true ? (
-                  <NftSelector
-                    nftId={nft}
-                    setNftId={(nftId) => {
-                      assets.nfts[i] = nftId;
-                      setAssets({ ...assets });
-                    }}
-                  />
-                ) : (
-                  <Input
-                    id={`${prefix}-nft-${i}`}
-                    className='rounded-r-none z-10'
-                    placeholder='Enter launcher id'
-                    value={nft}
-                    onChange={(e) => {
-                      assets.nfts[i] = e.target.value;
-                      setAssets({ ...assets });
-                    }}
-                  />
-                )}
-                <Button
-                  variant='outline'
-                  size='icon'
-                  className='border-l-0 rounded-l-none flex-shrink-0 flex-grow-0'
-                  onClick={() => {
-                    assets.nfts.splice(i, 1);
+            <div key={i} className='flex h-14'>
+              {offering === true ? (
+                <NftSelector
+                  nftId={nft}
+                  setNftId={(nftId) => {
+                    assets.nfts[i] = nftId;
                     setAssets({ ...assets });
                   }}
-                >
-                  <TrashIcon className='h-4 w-4' />
-                </Button>
-              </div>
+                />
+              ) : (
+                <Input
+                  id={`${prefix}-nft-${i}`}
+                  className='rounded-r-none z-10'
+                  placeholder='Enter launcher id'
+                  value={nft}
+                  onChange={(e) => {
+                    assets.nfts[i] = e.target.value;
+                    setAssets({ ...assets });
+                  }}
+                />
+              )}
+              <Button
+                variant='outline'
+                className='border-l-0 rounded-l-none flex-shrink-0 flex-grow-0 h-12 px-3'
+                onClick={() => {
+                  assets.nfts.splice(i, 1);
+                  setAssets({ ...assets });
+                }}
+              >
+                <TrashIcon className='h-4 w-4' />
+              </Button>
             </div>
           ))}
         </div>
@@ -580,7 +577,7 @@ function NftSelector({ nftId, setNftId }: NftSelectorProps) {
         <DropdownMenuTrigger asChild>
           <Button
             variant='outline'
-            className='w-full justify-start rounded-r-none p-2'
+            className='w-full justify-start rounded-r-none p-2 h-12'
           >
             <div className='flex items-center gap-2 w-full'>
               <img
@@ -590,13 +587,12 @@ function NftSelector({ nftId, setNftId }: NftSelectorProps) {
                       defaultNftImage)
                     : defaultNftImage
                 }
-                className='w-6 h-6 rounded object-cover'
-                alt=''
+                className='w-8 h-8 rounded object-cover'
               />
               <span className='flex-grow truncate text-left'>
                 {selectedNft?.name ?? 'Select NFT'}
               </span>
-              <ChevronDown className='h-4 w-4 opacity-50' />
+              <ChevronDown className='h-4 w-4 opacity-50 mr-2' />
             </div>
           </Button>
         </DropdownMenuTrigger>
