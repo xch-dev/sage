@@ -35,6 +35,7 @@ import { useNavigate } from 'react-router-dom';
 import { commands, KeyInfo, SecretKeyInfo } from '../bindings';
 import Container from '../components/Container';
 import { loginAndUpdateState } from '../state';
+import SafeAreaView from '@/components/SafeAreaView';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -64,40 +65,42 @@ export default function Login() {
   }, [navigate, addError]);
 
   return (
-    <div className='flex-1 space-y-4 p-8 pt-6'>
-      <div className='flex items-center justify-between space-y-2'>
-        {(keys?.length ?? 0) > 0 && (
-          <>
-            <h2 className='text-3xl font-bold tracking-tight'>Wallets</h2>
-            <div className='flex items-center space-x-2'>
-              <Button variant='outline' onClick={() => navigate('/import')}>
-                Import
-              </Button>
-              <Button onClick={() => navigate('/create')}>Create</Button>
+    <SafeAreaView>
+      <div className='flex-1 space-y-4 p-8 pt-6'>
+        <div className='flex items-center justify-between space-y-2'>
+          {(keys?.length ?? 0) > 0 && (
+            <>
+              <h2 className='text-3xl font-bold tracking-tight'>Wallets</h2>
+              <div className='flex items-center space-x-2'>
+                <Button variant='outline' onClick={() => navigate('/import')}>
+                  Import
+                </Button>
+                <Button onClick={() => navigate('/create')}>Create</Button>
+              </div>
+            </>
+          )}
+        </div>
+        {keys !== null ? (
+          keys.length ? (
+            <div className='grid md:grid-cols-2 lg:grid-cols-3 gap-4'>
+              {keys.map((key, i) => (
+                <WalletItem
+                  key={i}
+                  network={network}
+                  info={key}
+                  keys={keys}
+                  setKeys={setKeys}
+                />
+              ))}
             </div>
-          </>
+          ) : (
+            <Welcome />
+          )
+        ) : (
+          <SkeletonWalletList />
         )}
       </div>
-      {keys !== null ? (
-        keys.length ? (
-          <div className='grid md:grid-cols-2 lg:grid-cols-3 gap-4'>
-            {keys.map((key, i) => (
-              <WalletItem
-                key={i}
-                network={network}
-                info={key}
-                keys={keys}
-                setKeys={setKeys}
-              />
-            ))}
-          </div>
-        ) : (
-          <Welcome />
-        )
-      ) : (
-        <SkeletonWalletList />
-      )}
-    </div>
+    </SafeAreaView>
   );
 }
 

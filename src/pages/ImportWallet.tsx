@@ -19,6 +19,7 @@ import * as z from 'zod';
 import { commands } from '../bindings';
 import Container from '../components/Container';
 import { fetchState } from '../state';
+import SafeAreaView from '@/components/SafeAreaView';
 
 export default function ImportWallet() {
   const navigate = useNavigate();
@@ -34,13 +35,13 @@ export default function ImportWallet() {
   };
 
   return (
-    <>
+    <SafeAreaView>
       <Header title='Import Wallet' back={() => navigate('/')} />
 
       <Container>
         <ImportForm onSubmit={submit} />
       </Container>
-    </>
+    </SafeAreaView>
   );
 }
 
