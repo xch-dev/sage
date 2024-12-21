@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        INSERT INTO `offer_nfts` (\n            `offer_id`, `requested`, `launcher_id`,\n            `royalty_puzzle_hash`, `royalty_ten_thousandths`,\n            `name`, `thumbnail`, `thumbnail_mime_type`\n        )\n        VALUES (?, ?, ?, ?, ?, ?, ?, ?)\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 8
+    },
+    "nullable": []
+  },
+  "hash": "37bd891013a2e43f4daaf084b0b21f535e373a878e2a8acc8a15e17cf66e1dea"
+}

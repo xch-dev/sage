@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        INSERT INTO `offer_cats` (\n            `offer_id`, `requested`, `asset_id`,\n            `amount`, `royalty`, `name`, `ticker`, `icon`\n        )\n        VALUES (?, ?, ?, ?, ?, ?, ?, ?)\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 8
+    },
+    "nullable": []
+  },
+  "hash": "a93526d49ab50f772b1c359d3ab88ef45570143ed28f265d76c6e17efdd12dce"
+}
