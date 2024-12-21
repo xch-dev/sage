@@ -130,7 +130,7 @@ function Assets({ assets }: AssetsProps) {
             </div>
             <div className='text-sm font-medium whitespace-nowrap'>
               {toDecimal(BigNumber(cat.amount).plus(cat.royalty).toString(), 3)}{' '}
-              {cat.name}
+              {cat.name ?? cat.ticker ?? 'Unknown'}
             </div>
           </div>
 

@@ -380,6 +380,10 @@ function AssetSelector({
               size='icon'
               className='border-l-0 rounded-l-none flex-shrink-0 flex-grow-0'
               onClick={() => {
+                setAssets({
+                  ...assets,
+                  xch: '0',
+                });
                 setIncludeAmount(false);
               }}
             >
