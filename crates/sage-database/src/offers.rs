@@ -136,7 +136,7 @@ async fn insert_offer_xch(conn: impl SqliteExecutor<'_>, row: OfferXchRow) -> Re
 
     sqlx::query!(
         "
-        INSERT OR IGNORE INTO `offer_xch` (
+        INSERT INTO `offer_xch` (
             `offer_id`, `requested`, `amount`, `royalty`
         )
         VALUES (?, ?, ?, ?)
@@ -159,7 +159,7 @@ async fn insert_offer_nft(conn: impl SqliteExecutor<'_>, row: OfferNftRow) -> Re
 
     sqlx::query!(
         "
-        INSERT OR IGNORE INTO `offer_nfts` (
+        INSERT INTO `offer_nfts` (
             `offer_id`, `requested`, `launcher_id`,
             `royalty_puzzle_hash`, `royalty_ten_thousandths`,
             `name`, `thumbnail`, `thumbnail_mime_type`
@@ -191,7 +191,7 @@ async fn insert_offer_cat(conn: impl SqliteExecutor<'_>, row: OfferCatRow) -> Re
 
     sqlx::query!(
         "
-        INSERT OR IGNORE INTO `offer_cats` (
+        INSERT INTO `offer_cats` (
             `offer_id`, `requested`, `asset_id`,
             `amount`, `royalty`, `name`, `ticker`, `icon`
         )
