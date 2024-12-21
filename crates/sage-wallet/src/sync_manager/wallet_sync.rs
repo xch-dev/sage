@@ -30,13 +30,6 @@ pub async fn sync_wallet(
     coin_ids.extend(wallet.db.unspent_did_coin_ids().await?);
     coin_ids.extend(wallet.db.unspent_cat_coin_ids().await?);
 
-    let p2_puzzle_hashes = wallet.db.p2_puzzle_hashes().await?;
-
-    let (start_height, start_header_hash) = wallet.db.latest_peak().await?.map_or_else(
-        || (None, wallet.genesis_challenge),
-        |(peak, header_hash)| (Some(peak), header_hash),
-    );
-
     sync_coin_ids(
         &wallet,
         &peer,
@@ -45,6 +38,13 @@ pub async fn sync_wallet(
         sync_sender.clone(),
     )
     .await?;
+
+    let p2_puzzle_hashes = wallet.db.p2_puzzle_hashes().await?;
+
+    let (start_height, start_header_hash) = wallet.db.latest_peak().await?.map_or_else(
+        || (None, wallet.genesis_challenge),
+        |(peak, header_hash)| (Some(peak), header_hash),
+    );
 
     let mut derive_more = p2_puzzle_hashes.is_empty();
 
