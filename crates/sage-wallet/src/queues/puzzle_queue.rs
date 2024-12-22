@@ -55,29 +55,35 @@ impl PuzzleQueue {
             return Ok(());
         }
 
-        let coin_states = self.db.unsynced_coin_states(peers.len()).await?;
+        let coin_states = self.db.unsynced_coin_states(peers.len() * 5).await?;
 
         if coin_states.is_empty() {
             return Ok(());
         }
 
-        debug!(
-            "Syncing a batch of {} coins",
-            coin_states.len().min(peers.len())
-        );
+        debug!("Syncing a batch of {} coins", coin_states.len());
 
         let mut futures = FuturesUnordered::new();
 
-        for (peer, coin_state) in peers.into_iter().zip(coin_states.into_iter()) {
-            let db = self.db.clone();
-            let genesis_challenge = self.genesis_challenge;
-            let addr = peer.socket_addr();
-            let coin_id = coin_state.coin.coin_id();
+        let mut coin_states_iter = coin_states.into_iter();
 
-            futures.push(async move {
-                let result = fetch_puzzle(&peer, &db, genesis_challenge, coin_state).await;
-                (addr, coin_id, result)
-            });
+        for peer in peers {
+            for _ in 0..5 {
+                let Some(coin_state) = coin_states_iter.next() else {
+                    break;
+                };
+
+                let db = self.db.clone();
+                let genesis_challenge = self.genesis_challenge;
+                let addr = peer.socket_addr();
+                let coin_id = coin_state.coin.coin_id();
+                let peer = peer.clone();
+
+                futures.push(async move {
+                    let result = fetch_puzzle(&peer, &db, genesis_challenge, coin_state).await;
+                    (addr, coin_id, result)
+                });
+            }
         }
 
         let mut subscriptions = Vec::new();

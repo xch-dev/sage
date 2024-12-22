@@ -15,7 +15,7 @@ use sage_database::Database;
 use sage_keychain::Keychain;
 use sage_wallet::{PeerState, SyncCommand, SyncEvent, SyncManager, SyncOptions, Timeouts, Wallet};
 use sqlx::{
-    sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions},
+    sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous},
     ConnectOptions, SqlitePool,
 };
 use tokio::sync::{mpsc, Mutex};
@@ -361,7 +361,9 @@ impl Sage {
             .connect_with(
                 SqliteConnectOptions::from_str(&format!("sqlite://{}?mode=rwc", path.display()))?
                     .journal_mode(SqliteJournalMode::Wal)
-                    .log_statements(log::LevelFilter::Trace),
+                    .log_statements(log::LevelFilter::Trace)
+                    .synchronous(SqliteSynchronous::Normal)
+                    .busy_timeout(Duration::from_secs(60)),
             )
             .await?;
 

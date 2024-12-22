@@ -1,4 +1,7 @@
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    time::{Duration, Instant},
+};
 
 use chia::{
     bls::Signature,
@@ -8,21 +11,37 @@ use sage_database::{CatRow, Database, DatabaseTx, DidRow, NftRow};
 
 use crate::{compute_nft_info, fetch_nft_did, ChildKind, Transaction, WalletError, WalletPeer};
 
+#[derive(Debug, Default, Clone, Copy)]
+pub struct UpsertCounters {
+    pub is_p2: Duration,
+    pub insert_coin_state: Duration,
+    pub update_coin_state: Duration,
+    pub insert_p2_coin: Duration,
+    pub update_created_puzzle: Duration,
+    pub delete_puzzle: Duration,
+}
+
 pub async fn upsert_coin(
     tx: &mut DatabaseTx<'_>,
     coin_state: CoinState,
     transaction_id: Option<Bytes32>,
+    counters: &mut UpsertCounters,
 ) -> Result<(), WalletError> {
     let coin_id = coin_state.coin.coin_id();
 
     // Check if the coin is plain XCH, rather than an asset that wraps the p2 puzzle hash.
+    let start = Instant::now();
     let is_p2 = tx.is_p2_puzzle_hash(coin_state.coin.puzzle_hash).await?;
-
+    counters.is_p2 += start.elapsed();
     // If the coin is XCH, there's no reason to sync the puzzle.
+
+    let start = Instant::now();
     tx.insert_coin_state(coin_state, is_p2, transaction_id)
         .await?;
+    counters.insert_coin_state += start.elapsed();
 
     // If the coin already existed, instead of replacing it we will just update it.
+    let start = Instant::now();
     tx.update_coin_state(
         coin_id,
         coin_state.created_height,
@@ -30,12 +49,17 @@ pub async fn upsert_coin(
         transaction_id,
     )
     .await?;
+    counters.update_coin_state += start.elapsed();
 
     // This allows querying for XCH coins without joining on the derivations table.
     if is_p2 {
+        let start = Instant::now();
         tx.insert_p2_coin(coin_id).await?;
+        counters.insert_p2_coin += start.elapsed();
     } else {
+        let start = Instant::now();
         update_created_puzzle(tx, coin_state).await?;
+        counters.update_created_puzzle += start.elapsed();
     }
 
     Ok(())
@@ -205,16 +229,8 @@ pub async fn insert_puzzle(
 }
 
 pub async fn delete_puzzle(tx: &mut DatabaseTx<'_>, coin_id: Bytes32) -> Result<(), WalletError> {
-    if let Some(mut row) = tx.did_row_by_coin(coin_id).await? {
-        row.is_owned = false;
-        tx.insert_did(row).await?;
-    }
-
-    if let Some(mut row) = tx.nft_row_by_coin(coin_id).await? {
-        row.is_owned = false;
-        tx.insert_nft(row).await?;
-    }
-
+    tx.set_did_not_owned(coin_id).await?;
+    tx.set_nft_not_owned(coin_id).await?;
     Ok(())
 }
 
@@ -224,15 +240,11 @@ pub async fn update_created_puzzle(
 ) -> Result<(), WalletError> {
     let coin_id = coin_state.coin.coin_id();
 
-    if let Some(mut row) = tx.did_row_by_coin(coin_id).await? {
-        row.created_height = coin_state.created_height;
-        tx.insert_did(row).await?;
-    }
+    tx.set_did_created_height(coin_id, coin_state.created_height)
+        .await?;
 
-    if let Some(mut row) = tx.nft_row_by_coin(coin_id).await? {
-        row.created_height = coin_state.created_height;
-        tx.insert_nft(row).await?;
-    }
+    tx.set_nft_created_height(coin_id, coin_state.created_height)
+        .await?;
 
     Ok(())
 }
