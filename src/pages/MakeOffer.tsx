@@ -1,4 +1,4 @@
-import { Assets, commands } from '@/bindings';
+import { Assets, commands, NetworkConfig } from '@/bindings';
 import Container from '@/components/Container';
 import { CopyBox } from '@/components/CopyBox';
 import Header from '@/components/Header';
@@ -19,16 +19,19 @@ import { Label } from '@/components/ui/label';
 import { TokenAmountInput } from '@/components/ui/masked-input';
 import { Switch } from '@/components/ui/switch';
 import { useErrors } from '@/hooks/useErrors';
+import { uploadToDexie, uploadToMintGarden } from '@/lib/offerUpload';
 import { toMojos } from '@/lib/utils';
 import { clearOffer, useOfferState, useWalletState } from '@/state';
+import { open } from '@tauri-apps/plugin-shell';
 import {
   HandCoins,
   Handshake,
   ImageIcon,
+  LoaderCircleIcon,
   PlusIcon,
   TrashIcon,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 export function MakeOffer() {
@@ -39,47 +42,76 @@ export function MakeOffer() {
   const { addError } = useErrors();
 
   const [offer, setOffer] = useState('');
+  const [pending, setPending] = useState(false);
+  const [dexieLink, setDexieLink] = useState('');
+  const [mintGardenLink, setMintGardenLink] = useState('');
+  const [canUploadToMintGarden, setCanUploadToMintGarden] = useState(false);
 
-  const make = () => {
-    commands
-      .makeOffer({
-        offered_assets: {
-          xch: toMojos(
-            (state.offered.xch || '0').toString(),
-            walletState.sync.unit.decimals,
-          ),
-          cats: state.offered.cats.map((cat) => ({
-            asset_id: cat.asset_id,
-            amount: toMojos((cat.amount || '0').toString(), 3),
-          })),
-          nfts: state.offered.nfts,
-        },
-        requested_assets: {
-          xch: toMojos(
-            (state.requested.xch || '0').toString(),
-            walletState.sync.unit.decimals,
-          ),
-          cats: state.requested.cats.map((cat) => ({
-            asset_id: cat.asset_id,
-            amount: toMojos((cat.amount || '0').toString(), 3),
-          })),
-          nfts: state.requested.nfts,
-        },
-        fee: toMojos(
-          (state.fee || '0').toString(),
+  const [config, setConfig] = useState<NetworkConfig | null>(null);
+  const network = config?.network_id ?? 'mainnet';
+
+  useEffect(() => {
+    commands.networkConfig().then((config) => setConfig(config));
+  }, []);
+
+  useEffect(() => {
+    setDexieLink('');
+    setMintGardenLink('');
+  }, [offer]);
+
+  const handleMake = async () => {
+    setPending(true);
+
+    const mintgardenSupported =
+      (state.offered.xch === '0' || !state.offered.xch) &&
+      state.offered.cats.length === 0 &&
+      state.offered.nfts.length === 1;
+
+    const data = await commands.makeOffer({
+      offered_assets: {
+        xch: toMojos(
+          (state.offered.xch || '0').toString(),
           walletState.sync.unit.decimals,
         ),
-        expires_at_second:
-          state.expiration === null
-            ? null
-            : Math.ceil(Date.now() / 1000) +
-              Number(state.expiration.days || '0') * 24 * 60 * 60 +
-              Number(state.expiration.hours || '0') * 60 * 60 +
-              Number(state.expiration.minutes || '0') * 60,
-      })
-      .then((data) => setOffer(data.offer))
-      .catch(addError);
+        cats: state.offered.cats.map((cat) => ({
+          asset_id: cat.asset_id,
+          amount: toMojos((cat.amount || '0').toString(), 3),
+        })),
+        nfts: state.offered.nfts,
+      },
+      requested_assets: {
+        xch: toMojos(
+          (state.requested.xch || '0').toString(),
+          walletState.sync.unit.decimals,
+        ),
+        cats: state.requested.cats.map((cat) => ({
+          asset_id: cat.asset_id,
+          amount: toMojos((cat.amount || '0').toString(), 3),
+        })),
+        nfts: state.requested.nfts,
+      },
+      fee: toMojos(
+        (state.fee || '0').toString(),
+        walletState.sync.unit.decimals,
+      ),
+      expires_at_second:
+        state.expiration === null
+          ? null
+          : Math.ceil(Date.now() / 1000) +
+            Number(state.expiration.days || '0') * 24 * 60 * 60 +
+            Number(state.expiration.hours || '0') * 60 * 60 +
+            Number(state.expiration.minutes || '0') * 60,
+    });
+
+    await commands.importOffer({ offer: data.offer });
+
+    clearOffer();
+    setOffer(data.offer);
+    setPending(false);
+    setCanUploadToMintGarden(mintgardenSupported);
   };
+
+  const make = () => handleMake().catch(addError);
 
   const invalid =
     state.expiration !== null &&
@@ -265,35 +297,88 @@ export function MakeOffer() {
           >
             Cancel Offer
           </Button>
-          <Button onClick={make} disabled={invalid}>
-            Create Offer
+          <Button disabled={invalid || pending} onClick={make}>
+            {pending && (
+              <LoaderCircleIcon className='mr-2 h-4 w-4 animate-spin' />
+            )}
+            {pending ? 'Creating Offer' : 'Create Offer'}
           </Button>
         </div>
 
         <Dialog open={!!offer} onOpenChange={() => setOffer('')}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Offer Details</DialogTitle>
+              <DialogTitle>Offer Created</DialogTitle>
               <DialogDescription>
-                Copy the offer file below and send it to the intended recipient
+                The offer has been created and imported successfully. You can
+                copy the offer file below and send it to the intended recipient
                 or make it public to be accepted by anyone.
                 <CopyBox title='Offer File' value={offer} className='mt-2' />
+                {(network === 'mainnet' || network === 'testnet11') && (
+                  <div className='flex flex-col gap-2 mt-2'>
+                    <div className='grid grid-cols-2 gap-2'>
+                      <Button
+                        variant='outline'
+                        className='text-neutral-800 dark:text-neutral-200'
+                        onClick={() => {
+                          if (dexieLink) return open(dexieLink);
+                          uploadToDexie(offer, network === 'testnet11')
+                            .then(setDexieLink)
+                            .catch((error) =>
+                              addError({
+                                kind: 'upload',
+                                reason: `${error}`,
+                              }),
+                            );
+                        }}
+                      >
+                        <img
+                          src='https://raw.githubusercontent.com/dexie-space/dexie-kit/refs/heads/main/svg/duck.svg'
+                          className='h-4 w-4 mr-2'
+                          alt='Dexie logo'
+                        />
+                        {dexieLink ? 'Dexie Link' : 'Upload to Dexie'}
+                      </Button>
+
+                      {canUploadToMintGarden && (
+                        <Button
+                          variant='outline'
+                          className='text-neutral-800 dark:text-neutral-200'
+                          onClick={() => {
+                            if (mintGardenLink) return open(mintGardenLink);
+                            uploadToMintGarden(offer, network === 'testnet11')
+                              .then(setMintGardenLink)
+                              .catch((error) =>
+                                addError({
+                                  kind: 'upload',
+                                  reason: `${error}`,
+                                }),
+                              );
+                          }}
+                        >
+                          <img
+                            src='https://mintgarden.io/mint-logo.svg'
+                            className='h-4 w-4 mr-2'
+                            alt='MintGarden logo'
+                          />
+                          {mintGardenLink
+                            ? 'MintGarden Link'
+                            : 'Upload to MintGarden'}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                )}
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
               <Button
                 onClick={() => {
-                  commands
-                    .importOffer({ offer })
-                    .then(() => {
-                      setOffer('');
-                      clearOffer();
-                      navigate('/offers', { replace: true });
-                    })
-                    .catch(addError);
+                  setOffer('');
+                  navigate('/offers', { replace: true });
                 }}
               >
-                Save
+                Ok
               </Button>
             </DialogFooter>
           </DialogContent>
