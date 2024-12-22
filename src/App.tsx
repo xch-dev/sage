@@ -37,6 +37,8 @@ import Wallet from './pages/Wallet';
 import { fetchState } from './state';
 import { getInsets } from 'tauri-plugin-safe-area-insets';
 import { SafeAreaProvider } from './contexts/SafeAreaContext';
+import { i18n } from '@lingui/core';
+import { I18nProvider } from '@lingui/react';
 
 export interface DarkModeContext {
   toggle: () => void;
@@ -109,13 +111,15 @@ export default function App() {
   }, [dark]);
 
   return (
-    <DarkModeContext.Provider value={darkMode}>
-      <SafeAreaProvider>
-        <ErrorProvider>
-          <AppInner />
-        </ErrorProvider>
-      </SafeAreaProvider>
-    </DarkModeContext.Provider>
+    <I18nProvider i18n={i18n}>
+      <DarkModeContext.Provider value={darkMode}>
+        <SafeAreaProvider>
+          <ErrorProvider>
+            <AppInner />
+          </ErrorProvider>
+        </SafeAreaProvider>
+      </DarkModeContext.Provider>
+    </I18nProvider>
   );
 }
 

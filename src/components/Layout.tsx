@@ -1,6 +1,8 @@
 import { Cog, LogOut } from 'lucide-react';
 import { PropsWithChildren, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { Plural, Trans } from '@lingui/react/macro';
+import { t } from '@lingui/core/macro';
 
 import useInitialization from '@/hooks/useInitialization';
 import { usePeers } from '@/hooks/usePeers';
@@ -45,7 +47,7 @@ export default function Layout(props: PropsWithChildren<object>) {
               to='/wallet'
               className='flex items-center gap-2 font-semibold'
             >
-              <img src={icon} className='h-8 w-8' />
+              <img src={icon} className='h-8 w-8' alt={t`Wallet icon`} />
               <span className='text-lg'>{wallet?.name}</span>
             </Link>
           </div>
@@ -58,6 +60,7 @@ export default function Layout(props: PropsWithChildren<object>) {
               <Link
                 to='/peers'
                 className='flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary'
+                aria-label={t`Network status`}
               >
                 <span
                   className={
@@ -65,31 +68,39 @@ export default function Layout(props: PropsWithChildren<object>) {
                     ' ' +
                     (isSynced ? 'bg-emerald-600' : 'bg-yellow-600')
                   }
+                  aria-hidden='true'
                 ></span>
                 {isSynced ? (
                   <>
-                    {peers?.length} peers
+                    <Plural
+                      value={peers?.length || 0}
+                      one={'# peer'}
+                      other={'# peers'}
+                    />{' '}
                     {peerMaxHeight
-                      ? ` at peak ${peerMaxHeight}`
-                      : ' connecting...'}
+                      ? t`at peak ${peerMaxHeight}`
+                      : t`connecting...`}
                   </>
                 ) : (
-                  `Syncing ${walletState.sync.synced_coins} / ${walletState.sync.total_coins}`
+                  <Trans>
+                    Syncing {walletState.sync.synced_coins} /{' '}
+                    {walletState.sync.total_coins}
+                  </Trans>
                 )}
               </Link>
               <Link
                 to={'/settings'}
                 className='flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary'
               >
-                <Cog className='h-4 w-4' />
-                Settings
+                <Cog className='h-4 w-4' aria-hidden='true' />
+                <Trans>Settings</Trans>
               </Link>
               <button
                 onClick={logout}
                 className='flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary'
               >
-                <LogOut className='h-4 w-4' />
-                Logout
+                <LogOut className='h-4 w-4' aria-hidden='true' />
+                <Trans>Logout</Trans>
               </button>
             </nav>
           </div>

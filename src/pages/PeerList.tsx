@@ -49,6 +49,8 @@ import {
 import { animated, useSpring } from '@react-spring/web';
 import { useDrag } from '@use-gesture/react';
 import { useLongPress } from '@/hooks/useLongPress';
+import { Plural, Trans } from '@lingui/react/macro';
+import { t } from '@lingui/core/macro';
 
 const MobileRow = ({
   peer,
@@ -137,11 +139,15 @@ const MobileRow = ({
 
         <div className='mt-3 grid grid-cols-2 gap-2 text-sm text-muted-foreground'>
           <div className='flex items-center space-x-2'>
-            <span className='text-gray-500'>Height:</span>
+            <span className='text-gray-500'>
+              <Trans>Height:</Trans>
+            </span>
             <span>{peer.peak_height.toLocaleString()}</span>
           </div>
           <div className='flex items-center justify-end space-x-2'>
-            <span className='text-gray-500'>Port:</span>
+            <span className='text-gray-500'>
+              <Trans>Port:</Trans>
+            </span>
             <span>{peer.port}</span>
           </div>
         </div>
@@ -190,19 +196,23 @@ export default function PeerList() {
     },
     {
       accessorKey: 'ip_addr',
-      header: 'IP Address',
+      header: t`IP Address`,
     },
     {
       accessorKey: 'port',
-      header: 'Port',
+      header: t`Port`,
     },
     {
       accessorKey: 'peak_height',
-      header: 'Peak Height',
+      header: t`Peak Height`,
     },
     {
       accessorKey: 'trusted',
-      header: () => <div className='text-center'>Trusted</div>,
+      header: () => (
+        <div className='text-center'>
+          <Trans>Trusted</Trans>
+        </div>
+      ),
       cell: ({ row }) => (
         <div className='flex items-center justify-center'>
           {row.original.trusted ? (
@@ -215,7 +225,11 @@ export default function PeerList() {
     },
     {
       id: 'actions',
-      header: () => <div className='text-center'>Actions</div>,
+      header: () => (
+        <div className='text-center'>
+          <Trans>Actions</Trans>
+        </div>
+      ),
       cell: ({ row }) => (
         <div className='text-center'>
           <Button
@@ -290,15 +304,19 @@ export default function PeerList() {
 
   return (
     <Layout>
-      <Header title='Peer List' />
+      <Header title={<Trans>Peer List</Trans>} />
       <Container className='max-w-2xl'>
         <Card className='rounded-md border'>
           <CardHeader>
             <div className='flex justify-between items-center'>
               <CardTitle className='flex-1'>
-                {selectionMode
-                  ? `Selected ${selectedPeers.size} of ${peers?.length ?? 0} peers`
-                  : `Connected to ${peers?.length ?? 0} peers`}
+                {selectionMode ? (
+                  <Trans>
+                    Selected {selectedPeers.size} of {peers?.length ?? 0} peers
+                  </Trans>
+                ) : (
+                  <Trans>Connected to {peers?.length ?? 0} peers</Trans>
+                )}
               </CardTitle>
               {selectionMode ? (
                 <div className='flex space-x-2'>
@@ -309,7 +327,7 @@ export default function PeerList() {
                       setSelectedPeers(new Set());
                     }}
                   >
-                    Cancel
+                    <Trans>Cancel</Trans>
                   </Button>
                   <Button
                     variant='destructive'
@@ -324,24 +342,33 @@ export default function PeerList() {
                     }}
                     disabled={selectedPeers.size === 0}
                   >
-                    Delete ({selectedPeers.size})
+                    <Trans>Delete ({selectedPeers.size})</Trans>
                   </Button>
                 </div>
               ) : (
                 <Dialog open={isAddOpen} onOpenChange={setAddOpen}>
                   <DialogTrigger asChild>
-                    <Button variant='outline'>Add Peer</Button>
+                    <Button variant='outline'>
+                      <Trans>Add Peer</Trans>
+                    </Button>
                   </DialogTrigger>
                   <DialogContent className='sm:max-w-[425px]'>
                     <DialogHeader>
-                      <DialogTitle>Add new peer</DialogTitle>
+                      <DialogTitle>
+                        <Trans>Add new peer</Trans>
+                      </DialogTitle>
                       <DialogDescription>
-                        Enter the IP address of the peer you want to connect to.
+                        <Trans>
+                          Enter the IP address of the peer you want to connect
+                          to.
+                        </Trans>
                       </DialogDescription>
                     </DialogHeader>
                     <div className='grid gap-4 py-4'>
                       <div className='flex flex-col space-y-1.5'>
-                        <Label htmlFor='ip'>IP Address</Label>
+                        <Label htmlFor='ip'>
+                          <Trans>IP Address</Trans>
+                        </Label>
                         <Input
                           id='ip'
                           value={ip}
@@ -354,13 +381,15 @@ export default function PeerList() {
                           checked={trusted}
                           onCheckedChange={(checked) => setTrusted(checked)}
                         />
-                        <Label htmlFor='trusted'>Trusted peer</Label>
+                        <Label htmlFor='trusted'>
+                          <Trans>Trusted peer</Trans>
+                        </Label>
                         <Popover>
                           <PopoverTrigger>
                             <HelpCircleIcon className='h-4 w-4 text-muted-foreground' />
                           </PopoverTrigger>
                           <PopoverContent className='text-sm'>
-                            Prevents the peer from being banned.
+                            <Trans>Prevents the peer from being banned.</Trans>
                           </PopoverContent>
                         </Popover>
                       </div>
@@ -370,7 +399,7 @@ export default function PeerList() {
                         variant='outline'
                         onClick={() => setAddOpen(false)}
                       >
-                        Cancel
+                        <Trans>Cancel</Trans>
                       </Button>
                       <Button
                         onClick={() => {
@@ -384,7 +413,7 @@ export default function PeerList() {
                         }}
                         autoFocus
                       >
-                        Connect
+                        <Trans>Connect</Trans>
                       </Button>
                     </DialogFooter>
                   </DialogContent>
@@ -457,7 +486,7 @@ export default function PeerList() {
                         colSpan={columns.length}
                         className='h-24 text-center'
                       >
-                        No results.
+                        <Trans>No results.</Trans>
                       </TableCell>
                     </TableRow>
                   )}
@@ -472,30 +501,44 @@ export default function PeerList() {
         >
           <DialogContent>
             <DialogTitle>
-              {peerToDelete?.length === 1
-                ? 'Are you sure you want to remove the peer?'
-                : `Are you sure you want to remove ${peerToDelete?.length} peers?`}
+              {peerToDelete?.length === 1 ? (
+                <Trans>Are you sure you want to remove the peer?</Trans>
+              ) : (
+                <Trans>
+                  Are you sure you want to remove {peerToDelete?.length} peers?
+                </Trans>
+              )}
             </DialogTitle>
             <DialogDescription>
-              This will remove the peer{peerToDelete?.length === 1 ? '' : 's'}{' '}
-              from your connections. If you are currently syncing against{' '}
-              {peerToDelete?.length === 1 ? 'this peer' : 'these peers'},{' '}
-              {peerToDelete?.length === 1 ? 'a new one' : 'new ones'} will be
-              used to replace {peerToDelete?.length === 1 ? 'it' : 'them'}.
+              <Plural
+                value={peerToDelete?.length || 0}
+                one={`This will remove the peer from your connection. If you are currently syncing against this peer, a new one will be used to replace it.`}
+                other={`This will remove # peers from your connection. If you are currently syncing against these peers, new ones will be used to replace them.`}
+              />
             </DialogDescription>
             <div className='flex items-center space-x-2'>
               <Switch id='ban' checked={ban} onCheckedChange={setBan} />
               <Label htmlFor='ban'>
-                Ban peer{peerToDelete?.length === 1 ? '' : 's'} temporarily
+                <Plural
+                  value={peerToDelete?.length || 0}
+                  one={'Ban peer temporarily'}
+                  other={'Ban peers temporarily'}
+                />
               </Label>
               <Popover>
                 <PopoverTrigger>
                   <HelpCircleIcon className='h-4 w-4 text-muted-foreground' />
                 </PopoverTrigger>
                 <PopoverContent className='text-sm'>
-                  Will temporarily prevent the peer
-                  {peerToDelete?.length === 1 ? '' : 's'} from being connected
-                  to.
+                  <Plural
+                    value={peerToDelete?.length || 0}
+                    one={
+                      'Will temporarily prevent the peer from being connected to.'
+                    }
+                    other={
+                      'Will temporarily prevent the peers from being connected to.'
+                    }
+                  />
                 </PopoverContent>
               </Popover>
             </div>
@@ -505,7 +548,7 @@ export default function PeerList() {
                 variant='secondary'
                 onClick={() => setPeerToDelete(null)}
               >
-                Cancel
+                <Trans>Cancel</Trans>
               </Button>
               <Button
                 onClick={() => {
@@ -523,7 +566,11 @@ export default function PeerList() {
                 }}
                 autoFocus
               >
-                Remove {peerToDelete?.length === 1 ? 'Peer' : 'Peers'}
+                <Plural
+                  value={peerToDelete?.length || 0}
+                  one={'Remove Peer'}
+                  other={'Remove Peers'}
+                />
               </Button>
             </DialogFooter>
           </DialogContent>

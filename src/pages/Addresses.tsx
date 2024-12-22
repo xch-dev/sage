@@ -13,12 +13,12 @@ import { useCallback, useEffect, useState } from 'react';
 import { commands, events } from '../bindings';
 import AddressList from '../components/AddressList';
 import { useWalletState } from '../state';
+import { Trans } from '@lingui/react/macro';
+import { t } from '@lingui/core/macro';
 
 export default function Addresses() {
   const { addError } = useErrors();
-
   const walletState = useWalletState();
-
   const [addresses, setAddresses] = useState<string[]>([]);
 
   const updateAddresses = useCallback(() => {
@@ -46,15 +46,19 @@ export default function Addresses() {
 
   return (
     <>
-      <Header title={`Receive ${walletState.sync.unit.ticker}`} />
+      <Header title={t`Receive ${walletState.sync.unit.ticker}`} />
 
       <Container className='flex flex-col gap-4 max-w-screen-lg'>
         <Card>
           <CardHeader>
-            <CardTitle className='text-lg font-medium'>Fresh Address</CardTitle>
+            <CardTitle className='text-lg font-medium'>
+              <Trans>Fresh Address</Trans>
+            </CardTitle>
             <CardDescription>
-              The wallet generates a new address after each transaction. Old
-              ones stay valid.
+              <Trans>
+                The wallet generates a new address after each transaction. Old
+                ones stay valid.
+              </Trans>
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -63,7 +67,9 @@ export default function Addresses() {
         </Card>
         <Card className='max-w-full'>
           <CardHeader>
-            <CardTitle className='text-lg font-medium'>All Addresses</CardTitle>
+            <CardTitle className='text-lg font-medium'>
+              <Trans>All Addresses</Trans>
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <AddressList addresses={addresses} />

@@ -28,6 +28,8 @@ import {
 } from '../bindings';
 import Container from '../components/Container';
 import { TokenAmountInput } from '@/components/ui/masked-input';
+import { Trans } from '@lingui/react/macro';
+import { t } from '@lingui/core/macro';
 
 export default function Send() {
   const { asset_id: assetId } = useParams();
@@ -96,7 +98,7 @@ export default function Send() {
       .string()
       .refine(
         (address) => commands.validateAddress(address).catch(addError),
-        'Invalid address',
+        t`Invalid address`,
       ),
     amount: positiveAmount(asset?.decimals || 12),
     fee: amount(walletState.sync.unit.decimals).optional(),
@@ -130,7 +132,7 @@ export default function Send() {
   return (
     <>
       <Header
-        title={`Send ${asset?.ticker || 'unknown asset'}`}
+        title={t`Send ${asset?.ticker || t`unknown asset`}`}
         back={() => navigate(-1)}
       />
 
@@ -142,13 +144,15 @@ export default function Send() {
               name='address'
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Address</FormLabel>
+                  <FormLabel>
+                    <Trans>Address</Trans>
+                  </FormLabel>
                   <FormControl>
                     <Input
                       autoCorrect='off'
                       autoCapitalize='off'
                       autoComplete='off'
-                      placeholder='Enter address'
+                      placeholder={t`Enter address`}
                       {...field}
                     />
                   </FormControl>
@@ -163,7 +167,9 @@ export default function Send() {
                 name='amount'
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Amount</FormLabel>
+                    <FormLabel>
+                      <Trans>Amount</Trans>
+                    </FormLabel>
                     <FormControl>
                       <div className='relative'>
                         <TokenAmountInput {...field} className='pr-12' />
@@ -187,7 +193,9 @@ export default function Send() {
                 name='fee'
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Fee</FormLabel>
+                    <FormLabel>
+                      <Trans>Fee</Trans>
+                    </FormLabel>
                     <FormControl>
                       <div className='relative'>
                         <TokenAmountInput {...field} className='pr-12' />
@@ -207,7 +215,9 @@ export default function Send() {
               />
             </div>
 
-            <Button type='submit'>Send {asset?.ticker}</Button>
+            <Button type='submit'>
+              <Trans>Send {asset?.ticker}</Trans>
+            </Button>
           </form>
         </Form>
       </Container>

@@ -14,6 +14,8 @@ import {
   NftData,
   NftRecord,
 } from '../bindings';
+import { Trans } from '@lingui/react/macro';
+import { t } from '@lingui/core/macro';
 
 export default function Nft() {
   const { launcher_id: launcherId } = useParams();
@@ -75,7 +77,7 @@ export default function Nft() {
 
   return (
     <>
-      <Header title={nft?.name ?? 'Unknown NFT'} />
+      <Header title={nft?.name ?? t`Unknown NFT`} />
       <Container>
         <div className='flex flex-col gap-2 mx-auto sm:w-full md:w-[50%] max-w-[400px]'>
           <img
@@ -83,21 +85,25 @@ export default function Nft() {
             src={nftUri(data?.mime_type ?? null, data?.blob ?? null)}
             className='rounded-lg'
           />
-          <CopyBox title='Launcher Id' value={nft?.launcher_id ?? ''} />
+          <CopyBox title={t`Launcher Id`} value={nft?.launcher_id ?? ''} />
         </div>
 
         <div className='my-4 grid grid-cols-1 md:grid-cols-2 gap-y-3 gap-x-10'>
           <div className='flex flex-col gap-3'>
             {metadata.description && (
               <div>
-                <h6 className='text-md font-bold'>Description</h6>
+                <h6 className='text-md font-bold'>
+                  <Trans>Description</Trans>
+                </h6>
                 <div className='break-all text-sm'>{metadata.description}</div>
               </div>
             )}
 
             {nft?.collection_name && (
               <div>
-                <h6 className='text-md font-bold'>Collection Name</h6>
+                <h6 className='text-md font-bold'>
+                  <Trans>Collection Name</Trans>
+                </h6>
                 <div className='break-all text-sm cursor-pointer'>
                   {nft.collection_name}
                 </div>
@@ -106,7 +112,9 @@ export default function Nft() {
 
             {(metadata.attributes?.length ?? 0) > 0 && (
               <div className='flex flex-col gap-1'>
-                <h6 className='text-md font-bold'>Attributes</h6>
+                <h6 className='text-md font-bold'>
+                  <Trans>Attributes</Trans>
+                </h6>
                 <div className='grid grid-cols-2 gap-2'>
                   {metadata.attributes.map((attr: any, i: number) => (
                     <div key={i} className='px-2 py-1 border-2 rounded-lg'>
@@ -122,7 +130,9 @@ export default function Nft() {
 
             {(nft?.data_uris.length || null) && (
               <div>
-                <h6 className='text-md font-bold'>Data URIs</h6>
+                <h6 className='text-md font-bold'>
+                  <Trans>Data URIs</Trans>
+                </h6>
                 {nft!.data_uris.map((uri, i) => (
                   <div
                     key={i}
@@ -137,7 +147,9 @@ export default function Nft() {
 
             {(nft?.metadata_uris.length || null) && (
               <div>
-                <h6 className='text-md font-bold'>Metadata URIs</h6>
+                <h6 className='text-md font-bold'>
+                  <Trans>Metadata URIs</Trans>
+                </h6>
                 {nft!.metadata_uris.map((uri, i) => (
                   <div
                     key={i}
@@ -152,7 +164,9 @@ export default function Nft() {
 
             {(nft?.license_uris.length || null) && (
               <div>
-                <h6 className='text-md font-bold'>License URIs</h6>
+                <h6 className='text-md font-bold'>
+                  <Trans>License URIs</Trans>
+                </h6>
                 {nft!.license_uris.map((uri, i) => (
                   <div
                     key={i}
@@ -167,21 +181,27 @@ export default function Nft() {
 
             {nft?.data_hash && (
               <div>
-                <h6 className='text-md font-bold'>Data Hash</h6>
+                <h6 className='text-md font-bold'>
+                  <Trans>Data Hash</Trans>
+                </h6>
                 <div className='break-all text-sm'>{nft.data_hash}</div>
               </div>
             )}
 
             {nft?.metadata_hash && (
               <div>
-                <h6 className='text-md font-bold'>Metadata Hash</h6>
+                <h6 className='text-md font-bold'>
+                  <Trans>Metadata Hash</Trans>
+                </h6>
                 <div className='break-all text-sm'>{nft.metadata_hash}</div>
               </div>
             )}
 
             {nft?.license_hash && (
               <div>
-                <h6 className='text-md font-bold'>License Hash</h6>
+                <h6 className='text-md font-bold'>
+                  <Trans>License Hash</Trans>
+                </h6>
                 <div className='break-all text-sm'>{nft.license_hash}</div>
               </div>
             )}
@@ -189,38 +209,50 @@ export default function Nft() {
 
           <div className='flex flex-col gap-3'>
             <div>
-              <h6 className='text-md font-bold'>Minter DID</h6>
+              <h6 className='text-md font-bold'>
+                <Trans>Minter DID</Trans>
+              </h6>
               <div className='break-all text-sm'>
-                {nft?.minter_did ?? 'None'}
+                {nft?.minter_did ?? <Trans>None</Trans>}
               </div>
             </div>
 
             <div>
-              <h6 className='text-md font-bold'>Owner DID</h6>
+              <h6 className='text-md font-bold'>
+                <Trans>Owner DID</Trans>
+              </h6>
               <div className='break-all text-sm'>
-                {nft?.owner_did ?? 'None'}
+                {nft?.owner_did ?? <Trans>None</Trans>}
               </div>
             </div>
 
             <div>
-              <h6 className='text-md font-bold'>Address</h6>
+              <h6 className='text-md font-bold'>
+                <Trans>Address</Trans>
+              </h6>
               <div className='break-all text-sm'>{nft?.address}</div>
             </div>
 
             <div>
-              <h6 className='text-md font-bold'>Coin Id</h6>
+              <h6 className='text-md font-bold'>
+                <Trans>Coin Id</Trans>
+              </h6>
               <div className='break-all text-sm'>{nft?.coin_id}</div>
             </div>
 
             <div>
               <h6 className='text-md font-bold'>
-                Royalties ({(nft?.royalty_ten_thousandths ?? 0) / 100}%)
+                <Trans>
+                  Royalties ({(nft?.royalty_ten_thousandths ?? 0) / 100}%)
+                </Trans>
               </h6>
               <div className='break-all text-sm'>{nft?.royalty_address}</div>
             </div>
 
             <div className='flex flex-col gap-1'>
-              <h6 className='text-md font-bold'>External Links</h6>
+              <h6 className='text-md font-bold'>
+                <Trans>External Links</Trans>
+              </h6>
 
               <Button
                 variant='outline'

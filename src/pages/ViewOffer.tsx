@@ -12,6 +12,8 @@ import { useWalletState } from '@/state';
 import BigNumber from 'bignumber.js';
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { Trans } from '@lingui/react/macro';
+import { t } from '@lingui/core/macro';
 
 export function ViewOffer() {
   const { offer } = useParams();
@@ -63,7 +65,9 @@ export function ViewOffer() {
         {summary && (
           <OfferCard summary={summary}>
             <div className='flex flex-col space-y-1.5'>
-              <Label htmlFor='fee'>Network Fee</Label>
+              <Label htmlFor='fee'>
+                <Trans>Network Fee</Trans>
+              </Label>
               <Input
                 id='fee'
                 type='text'
@@ -81,7 +85,7 @@ export function ViewOffer() {
 
               <span className='text-xs text-muted-foreground'>
                 {BigNumber(summary?.fee ?? '0').isGreaterThan(0)
-                  ? `This does not include a fee of ${toDecimal(summary!.fee, walletState.sync.unit.decimals)} which was already added by the maker.`
+                  ? t`This does not include a fee of ${toDecimal(summary!.fee, walletState.sync.unit.decimals)} which was already added by the maker.`
                   : ''}
               </span>
             </div>
@@ -90,10 +94,12 @@ export function ViewOffer() {
 
         <div className='mt-4 flex gap-2'>
           <Button variant='outline' onClick={importOffer}>
-            Save Offer
+            <Trans>Save Offer</Trans>
           </Button>
 
-          <Button onClick={take}>Take Offer</Button>
+          <Button onClick={take}>
+            <Trans>Take Offer</Trans>
+          </Button>
         </div>
       </Container>
 

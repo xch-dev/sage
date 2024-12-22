@@ -5,6 +5,8 @@ import BigNumber from 'bignumber.js';
 import { PropsWithChildren } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
+import { Trans } from '@lingui/react/macro';
+import { t } from '@lingui/core/macro';
 import { Button } from './ui/button';
 import {
   Dialog,
@@ -44,7 +46,7 @@ export function FeeOnlyDialog({
   const schema = z.object({
     fee: amount(walletState.sync.unit.decimals).refine(
       (amount) => BigNumber(walletState.sync.balance).gte(amount || 0),
-      'Not enough funds to cover the fee',
+      t`Not enough funds to cover the fee`,
     ),
   });
 
@@ -73,9 +75,15 @@ export function FeeOnlyDialog({
               name='fee'
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Network Fee</FormLabel>
+                  <FormLabel>
+                    <Trans>Network Fee</Trans>
+                  </FormLabel>
                   <FormControl>
-                    <TokenAmountInput {...field} />
+                    <TokenAmountInput
+                      {...field}
+                      placeholder={t`Enter network fee`}
+                      aria-label={t`Network fee amount`}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -87,9 +95,11 @@ export function FeeOnlyDialog({
                 variant='outline'
                 onClick={() => setOpen(false)}
               >
-                Cancel
+                <Trans>Cancel</Trans>
               </Button>
-              <Button type='submit'>Transfer</Button>
+              <Button type='submit'>
+                <Trans>Transfer</Trans>
+              </Button>
             </DialogFooter>
           </form>
         </Form>

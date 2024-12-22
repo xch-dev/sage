@@ -22,17 +22,17 @@ import { commands, TransactionResponse } from '../bindings';
 import Container from '../components/Container';
 import { useWalletState } from '../state';
 import { TokenAmountInput } from '@/components/ui/masked-input';
+import { Trans } from '@lingui/react/macro';
+import { t } from '@lingui/core/macro';
 
 export default function CreateProfile() {
   const { addError } = useErrors();
-
   const navigate = useNavigate();
   const walletState = useWalletState();
-
   const [response, setResponse] = useState<TransactionResponse | null>(null);
 
   const formSchema = z.object({
-    name: z.string().min(1, 'Name is required'),
+    name: z.string().min(1, t`Name is required`),
     fee: amount(walletState.sync.unit.decimals).optional(),
   });
 
@@ -55,7 +55,7 @@ export default function CreateProfile() {
 
   return (
     <>
-      <Header title='Create Profile' />
+      <Header title={t`Create Profile`} />
 
       <Container className='max-w-xl'>
         <Form {...form}>
@@ -65,9 +65,11 @@ export default function CreateProfile() {
               name='name'
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Name</FormLabel>
+                  <FormLabel>
+                    <Trans>Name</Trans>
+                  </FormLabel>
                   <FormControl>
-                    <Input placeholder='Display name' {...field} />
+                    <Input placeholder={t`Display name`} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -80,7 +82,9 @@ export default function CreateProfile() {
                 name='fee'
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Network Fee</FormLabel>
+                    <FormLabel>
+                      <Trans>Network Fee</Trans>
+                    </FormLabel>
                     <FormControl>
                       <div className='relative'>
                         <TokenAmountInput {...field} className='pr-12' />
@@ -97,7 +101,9 @@ export default function CreateProfile() {
               />
             </div>
 
-            <Button type='submit'>Create Profile</Button>
+            <Button type='submit'>
+              <Trans>Create Profile</Trans>
+            </Button>
           </form>
         </Form>
       </Container>

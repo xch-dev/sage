@@ -43,12 +43,12 @@ import {
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { commands, DidRecord, TransactionResponse } from '../bindings';
+import { Trans } from '@lingui/react/macro';
+import { t } from '@lingui/core/macro';
 
 export function DidList() {
   const navigate = useNavigate();
-
   const { dids, updateDids } = useDids();
-
   const [showHidden, setShowHidden] = useState(false);
 
   const visibleDids = showHidden ? dids : dids.filter((did) => did.visible);
@@ -56,17 +56,20 @@ export function DidList() {
 
   return (
     <>
-      <Header title='Profiles'>
+      <Header title={t`Profiles`}>
         <ReceiveAddress />
       </Header>
       <Container>
         <Button onClick={() => navigate('/dids/create')}>
-          <UserPlusIcon className='h-4 w-4 mr-2' /> Create Profile
+          <UserPlusIcon className='h-4 w-4 mr-2' />
+          <Trans>Create Profile</Trans>
         </Button>
 
         {hasHiddenDids && (
           <div className='flex items-center gap-2 my-4'>
-            <label htmlFor='viewHidden'>View hidden</label>
+            <label htmlFor='viewHidden'>
+              <Trans>View hidden</Trans>
+            </label>
             <Switch
               id='viewHidden'
               checked={showHidden}
@@ -78,24 +81,23 @@ export function DidList() {
         {dids.length === 0 && (
           <Alert className='mt-4'>
             <UserRoundPlus className='h-4 w-4' />
-            <AlertTitle>Create a profile?</AlertTitle>
+            <AlertTitle>
+              <Trans>Create a profile?</Trans>
+            </AlertTitle>
             <AlertDescription>
-              You do not currently have any {dids.length > 0 ? 'visible ' : ''}
-              DID profiles. Would you like to create one?
+              <Trans>
+                You do not currently have any{' '}
+                {dids.length > 0 ? 'visible ' : ''} DID profiles. Would you like
+                to create one?
+              </Trans>
             </AlertDescription>
           </Alert>
         )}
 
         <div className='mt-4 grid gap-4 md:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'>
-          {visibleDids.map((did) => {
-            return (
-              <Profile
-                key={did.launcher_id}
-                did={did}
-                updateDids={updateDids}
-              />
-            );
-          })}
+          {visibleDids.map((did) => (
+            <Profile key={did.launcher_id} did={did} updateDids={updateDids} />
+          ))}
         </div>
       </Container>
     </>
@@ -109,9 +111,7 @@ interface ProfileProps {
 
 function Profile({ did, updateDids }: ProfileProps) {
   const walletState = useWalletState();
-
   const { addError } = useErrors();
-
   const [name, setName] = useState('');
   const [renameOpen, setRenameOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
@@ -175,7 +175,7 @@ function Profile({ did, updateDids }: ProfileProps) {
         <CardHeader className='-mt-2 flex flex-row items-center justify-between space-y-0 pb-2 pr-2 space-x-2'>
           <CardTitle className='text-md font-medium truncate flex items-center'>
             <UserIcon className='mr-2 h-4 w-4' />
-            {did.name ?? 'Untitled Profile'}
+            {did.name ?? t`Untitled Profile`}
           </CardTitle>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -193,7 +193,9 @@ function Profile({ did, updateDids }: ProfileProps) {
                   }}
                 >
                   <SendIcon className='mr-2 h-4 w-4' />
-                  <span>Transfer</span>
+                  <span>
+                    <Trans>Transfer</Trans>
+                  </span>
                 </DropdownMenuItem>
 
                 <DropdownMenuItem
@@ -204,7 +206,9 @@ function Profile({ did, updateDids }: ProfileProps) {
                   }}
                 >
                   <Flame className='mr-2 h-4 w-4' />
-                  <span>Burn</span>
+                  <span>
+                    <Trans>Burn</Trans>
+                  </span>
                 </DropdownMenuItem>
 
                 <DropdownMenuItem
@@ -215,7 +219,9 @@ function Profile({ did, updateDids }: ProfileProps) {
                   }}
                 >
                   <PenIcon className='mr-2 h-4 w-4' />
-                  <span>Rename</span>
+                  <span>
+                    <Trans>Rename</Trans>
+                  </span>
                 </DropdownMenuItem>
 
                 <DropdownMenuItem
@@ -230,7 +236,7 @@ function Profile({ did, updateDids }: ProfileProps) {
                   ) : (
                     <EyeIcon className='mr-2 h-4 w-4' />
                   )}
-                  <span>{did.visible ? 'Hide' : 'Show'}</span>
+                  <span>{did.visible ? t`Hide` : t`Show`}</span>
                 </DropdownMenuItem>
               </DropdownMenuGroup>
             </DropdownMenuContent>
@@ -247,17 +253,21 @@ function Profile({ did, updateDids }: ProfileProps) {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Rename Profile</DialogTitle>
+            <DialogTitle>
+              <Trans>Rename Profile</Trans>
+            </DialogTitle>
             <DialogDescription>
-              Enter the new display name for this profile.
+              <Trans>Enter the new display name for this profile.</Trans>
             </DialogDescription>
           </DialogHeader>
           <div className='grid w-full items-center gap-4'>
             <div className='flex flex-col space-y-1.5'>
-              <Label htmlFor='name'>Name</Label>
+              <Label htmlFor='name'>
+                <Trans>Name</Trans>
+              </Label>
               <Input
                 id='name'
-                placeholder='Profile name'
+                placeholder={t`Profile name`}
                 value={name}
                 onChange={(event) => setName(event.target.value)}
                 onKeyDown={(event) => {
@@ -277,32 +287,34 @@ function Profile({ did, updateDids }: ProfileProps) {
                 setName('');
               }}
             >
-              Cancel
+              <Trans>Cancel</Trans>
             </Button>
             <Button onClick={rename} disabled={!name}>
-              Rename
+              <Trans>Rename</Trans>
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       <TransferDialog
-        title='Transfer Profile'
+        title={t`Transfer Profile`}
         open={transferOpen}
         setOpen={setTransferOpen}
         onSubmit={onTransferSubmit}
       >
-        This will send the profile to the provided address.
+        <Trans>This will send the profile to the provided address.</Trans>
       </TransferDialog>
 
       <FeeOnlyDialog
-        title='Burn Profile'
+        title={t`Burn Profile`}
         open={burnOpen}
         setOpen={setBurnOpen}
         onSubmit={onBurnSubmit}
       >
-        This will permanently delete the profile by sending it to the burn
-        address.
+        <Trans>
+          This will permanently delete the profile by sending it to the burn
+          address.
+        </Trans>
       </FeeOnlyDialog>
 
       <ConfirmationDialog

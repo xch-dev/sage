@@ -15,6 +15,8 @@ import {
 } from '@tanstack/react-table';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useMemo } from 'react';
+import { Trans } from '@lingui/react/macro';
+import { t } from '@lingui/core/macro';
 import { Button } from './ui/button';
 import { CopyButton } from './CopyButton';
 import { FormattedAddress } from './FormattedAddress';
@@ -40,7 +42,11 @@ export default function AddressList(props: AddressListProps) {
     {
       id: 'id',
       accessorFn: (row) => row.id,
-      header: () => <div className='text-center'>Index</div>,
+      header: () => (
+        <div className='text-center'>
+          <Trans>Index</Trans>
+        </div>
+      ),
       cell: (info) => (
         <div className='text-center w-14'>{info.row.original.id}</div>
       ),
@@ -48,7 +54,7 @@ export default function AddressList(props: AddressListProps) {
     {
       id: 'address',
       accessorFn: (row) => row.address,
-      header: 'Address',
+      header: () => <Trans>Address</Trans>,
       cell: (info) => (
         <div className='w-full overflow-hidden'>
           <FormattedAddress address={info.getValue() as string} />
@@ -57,7 +63,11 @@ export default function AddressList(props: AddressListProps) {
     },
     {
       id: 'actions',
-      header: () => <div className='text-center'>Actions</div>,
+      header: () => (
+        <div className='text-center'>
+          <Trans>Actions</Trans>
+        </div>
+      ),
       cell: (info) => (
         <div className='w-16 text-center'>
           <CopyButton
@@ -154,7 +164,7 @@ export default function AddressList(props: AddressListProps) {
                     colSpan={columns.length}
                     className='h-24 text-center'
                   >
-                    No results.
+                    <Trans>No results.</Trans>
                   </TableCell>
                 </TableRow>
               )}
@@ -168,16 +178,18 @@ export default function AddressList(props: AddressListProps) {
           size='sm'
           onClick={() => table.previousPage()}
           disabled={!table.getCanPreviousPage()}
+          aria-label={t`Previous page`}
         >
-          <ChevronLeft className='h-4 w-4' />
+          <ChevronLeft className='h-4 w-4' aria-hidden='true' />
         </Button>
         <Button
           variant='outline'
           size='sm'
           onClick={() => table.nextPage()}
           disabled={!table.getCanNextPage()}
+          aria-label={t`Next page`}
         >
-          <ChevronRight className='h-4 w-4' />
+          <ChevronRight className='h-4 w-4' aria-hidden='true' />
         </Button>
       </div>
     </div>

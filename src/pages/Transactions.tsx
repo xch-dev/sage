@@ -18,6 +18,8 @@ import { ReloadIcon } from '@radix-ui/react-icons';
 import { FastForward, Info, MoreVerticalIcon } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { commands, PendingTransactionRecord } from '../bindings';
+import { Trans } from '@lingui/react/macro';
+import { t } from '@lingui/core/macro';
 
 export function Transactions() {
   const walletState = useWalletState();
@@ -49,16 +51,20 @@ export function Transactions() {
 
   return (
     <>
-      <Header title='Transactions'>
+      <Header title={t`Transactions`}>
         <ReceiveAddress />
       </Header>
       <Container>
         <Alert className='mb-4'>
           <Info className='h-4 w-4' />
-          <AlertTitle>Note</AlertTitle>
+          <AlertTitle>
+            <Trans>Note</Trans>
+          </AlertTitle>
           <AlertDescription>
-            This only shows transactions initiated by this app that are
-            currently pending in the mempool.
+            <Trans>
+              This only shows transactions initiated by this app that are
+              currently pending in the mempool.
+            </Trans>
           </AlertDescription>
         </Alert>
         {transactions.map((transaction, i) => {
@@ -66,7 +72,9 @@ export function Transactions() {
             <Card key={i}>
               <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
                 <CardTitle className='text-2xl font-medium'>
-                  Transaction {transaction.transaction_id.slice(0, 16)}
+                  <Trans>
+                    Transaction {transaction.transaction_id.slice(0, 16)}
+                  </Trans>
                 </CardTitle>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild className='-mr-2.5'>
@@ -83,7 +91,9 @@ export function Transactions() {
                         }}
                       >
                         <ReloadIcon className='mr-2 h-4 w-4' />
-                        <span>Resubmit</span>
+                        <span>
+                          <Trans>Resubmit</Trans>
+                        </span>
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         className='cursor-pointer'
@@ -92,7 +102,9 @@ export function Transactions() {
                         }}
                       >
                         <FastForward className='mr-2 h-4 w-4' />
-                        <span>Increase Fee</span>
+                        <span>
+                          <Trans>Increase Fee</Trans>
+                        </span>
                       </DropdownMenuItem>
                     </DropdownMenuGroup>
                   </DropdownMenuContent>
@@ -100,7 +112,7 @@ export function Transactions() {
               </CardHeader>
               <CardContent>
                 <div className='text-sm truncate'>
-                  With a fee of{' '}
+                  <Trans>With a fee of</Trans>{' '}
                   {toDecimal(transaction.fee, walletState.sync.unit.decimals)}{' '}
                   {walletState.sync.unit.ticker}
                 </div>

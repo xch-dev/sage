@@ -33,6 +33,8 @@ import {
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { Badge } from './ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { Trans } from '@lingui/react/macro';
+import { t } from '@lingui/core/macro';
 
 export interface ConfirmationDialogProps {
   response: TransactionResponse | TakeOfferResponse | null;
@@ -113,42 +115,48 @@ export default function ConfirmationDialog({
     <Dialog open={!!response} onOpenChange={reset}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Confirm transaction?</DialogTitle>
+          <DialogTitle>
+            <Trans>Confirm transaction?</Trans>
+          </DialogTitle>
           <DialogDescription>
             <div className='max-h-[360px] overflow-y-scroll'>
               <Tabs defaultValue='simple' className='mt-2'>
                 <TabsList className='w-full'>
                   <TabsTrigger value='simple' className='flex-grow'>
-                    Summary
+                    <Trans>Summary</Trans>
                   </TabsTrigger>
                   <TabsTrigger value='advanced' className='flex-grow'>
-                    Advanced
+                    <Trans>Advanced</Trans>
                   </TabsTrigger>
                   <TabsTrigger value='json' className='flex-grow'>
-                    JSON
+                    <Trans>JSON</Trans>
                   </TabsTrigger>
                 </TabsList>
                 <TabsContent value='simple'>
                   {isHighFee && !fee.isZero() && (
                     <Alert variant='warning' className='mb-4'>
                       <CircleAlert className='h-4 w-4' />
-                      <AlertTitle>High Transaction Fee</AlertTitle>
+                      <AlertTitle>
+                        <Trans>High Transaction Fee</Trans>
+                      </AlertTitle>
                       <AlertDescription>
-                        Fee exceeds recommended maximum of 0.001{' '}
-                        {walletState.sync.unit.ticker}
+                        <Trans>
+                          Fee exceeds recommended maximum of 0.001{' '}
+                          {walletState.sync.unit.ticker}
+                        </Trans>
                       </AlertDescription>
                     </Alert>
                   )}
-                  <Group label='Summary' icon={BadgePlus}>
+                  <Group label={t`Summary`} icon={BadgePlus}>
                     <div className='flex flex-col gap-2'>
                       {!BigNumber(response?.summary.fee || 0).isZero() && (
                         <Item
-                          badge='Fee'
+                          badge={t`Fee`}
                           label={`${toDecimal(response?.summary.fee || '0', walletState.sync.unit.decimals)} ${walletState.sync.unit.ticker}`}
                         />
                       )}
                       {created
-                        .filter((created) => created.address !== 'Change')
+                        .filter((created) => created.address !== t`Change`)
                         .sort((a, b) => a.sort - b.sort)
                         .map((created, i) => (
                           <Item
@@ -170,11 +178,15 @@ export default function ConfirmationDialog({
                 <TabsContent value='json'>
                   <Alert>
                     <CircleAlert className='h-4 w-4' />
-                    <AlertTitle>Warning</AlertTitle>
+                    <AlertTitle>
+                      <Trans>Warning</Trans>
+                    </AlertTitle>
                     <AlertDescription>
-                      This is the raw JSON spend bundle for this transaction. If
-                      you sign it, the transaction can be submitted to the
-                      mempool externally.
+                      <Trans>
+                        This is the raw JSON spend bundle for this transaction.
+                        If you sign it, the transaction can be submitted to the
+                        mempool externally.
+                      </Trans>
                     </AlertDescription>
                   </Alert>
 
@@ -197,7 +209,11 @@ export default function ConfirmationDialog({
                     }}
                     disabled={!!signature}
                   >
-                    {signature ? 'Transaction Signed' : 'Sign Transaction'}
+                    {signature ? (
+                      <Trans>Transaction Signed</Trans>
+                    ) : (
+                      <Trans>Sign Transaction</Trans>
+                    )}
                   </Button>
 
                   <div className='relative mt-2 p-2 break-all rounded-md bg-neutral-100 dark:bg-neutral-900 whitespace-pre-wrap'>
@@ -223,7 +239,7 @@ export default function ConfirmationDialog({
         </DialogHeader>
         <DialogFooter>
           <Button variant='ghost' onClick={reset}>
-            Cancel
+            <Trans>Cancel</Trans>
           </Button>
           <Button
             onClick={() => {
@@ -272,7 +288,7 @@ export default function ConfirmationDialog({
             {pending && (
               <LoaderCircleIcon className='mr-2 h-4 w-4 animate-spin' />
             )}
-            {pending ? 'Submitting' : 'Submit'}
+            {pending ? <Trans>Submitting</Trans> : <Trans>Submit</Trans>}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -339,7 +355,7 @@ export function AdvancedSummary({ summary }: AdvancedSummaryProps) {
 
   return (
     <div className='flex flex-col gap-1.5'>
-      <Group label='Spent Coins' icon={BadgeMinus}>
+      <Group label={t`Spent Coins`} icon={BadgeMinus}>
         <div className='flex flex-col gap-2'>
           {spent
             .sort((a, b) => a.sort - b.sort)
@@ -354,12 +370,14 @@ export function AdvancedSummary({ summary }: AdvancedSummaryProps) {
             ))}
         </div>
       </Group>
-      <Group label='Transaction Output' icon={BadgePlus}>
+      <Group label={t`Transaction Output`} icon={BadgePlus}>
         <div className='flex flex-col gap-2'>
           {!BigNumber(summary.fee || 0).isZero() && (
             <div className='flex flex-col gap-1 border-2 p-1.5 rounded-md'>
               <div className='flex items-center gap-2'>
-                <Badge>Fee</Badge>
+                <Badge>
+                  <Trans>Fee</Trans>
+                </Badge>
                 <span>
                   {toDecimal(summary.fee, walletState.sync.unit.decimals)}{' '}
                   {walletState.sync.unit.ticker}
@@ -414,9 +432,9 @@ function calculateTransaction(
           badge: 'Chia',
           label: `${toDecimal(output.amount, xch.decimals)} ${xch.ticker}`,
           address: output.burning
-            ? 'Permanently Burned'
+            ? t`Permanently Burned`
             : output.receiving
-              ? 'Change'
+              ? t`You`
               : output.address,
           sort: 1,
         });
@@ -442,9 +460,9 @@ function calculateTransaction(
           badge: `CAT ${input.name || input.asset_id}`,
           label: `${toDecimal(output.amount, 3)} ${ticker}`,
           address: output.burning
-            ? 'Permanently Burned'
+            ? t`Permanently Burned`
             : output.receiving
-              ? 'Change'
+              ? t`You`
               : output.address,
           sort: 2,
         });
@@ -459,8 +477,8 @@ function calculateTransaction(
           .find((o) => o.coin_id === input.coin_id)
       ) {
         spent.push({
-          badge: 'Profile',
-          label: input.name || 'Unnamed',
+          badge: t`Profile`,
+          label: input.name || t`Unnamed`,
           coinId: input.coin_id,
           sort: 3,
         });
@@ -473,12 +491,12 @@ function calculateTransaction(
 
         if (BigNumber(output.amount).mod(2).eq(1)) {
           created.push({
-            badge: 'Profile',
-            label: input.name || 'Unnamed',
+            badge: t`Profile`,
+            label: input.name || t`Unnamed`,
             address: output.burning
-              ? 'Permanently Burned'
+              ? t`Permanently Burned`
               : output.receiving
-                ? 'You'
+                ? t`You`
                 : output.address,
             sort: 3,
           });
@@ -495,7 +513,7 @@ function calculateTransaction(
       ) {
         spent.push({
           badge: 'NFT',
-          label: input.name || 'Unknown',
+          label: input.name || t`Unknown`,
           coinId: input.coin_id,
           sort: 4,
         });
@@ -509,11 +527,11 @@ function calculateTransaction(
         if (BigNumber(output.amount).mod(2).isEqualTo(1)) {
           created.push({
             badge: 'NFT',
-            label: input.name || 'Unknown',
+            label: input.name || t`Unknown`,
             address: output.burning
-              ? 'Permanently Burned'
+              ? t`Permanently Burned`
               : output.receiving
-                ? 'You'
+                ? t`You`
                 : output.address,
             sort: 4,
           });

@@ -34,10 +34,11 @@ import Container from '../components/Container';
 import { fetchState } from '../state';
 import SafeAreaView from '@/components/SafeAreaView';
 import { useInsets } from '@/contexts/SafeAreaContext';
+import { Trans } from '@lingui/react/macro';
+import { t } from '@lingui/core/macro';
 
 export default function CreateWallet() {
   const { addError } = useErrors();
-
   const navigate = useNavigate();
 
   const submit = (values: z.infer<typeof formSchema>) => {
@@ -54,7 +55,7 @@ export default function CreateWallet() {
 
   return (
     <SafeAreaView>
-      <Header title='Create Wallet' back={() => navigate('/')} />
+      <Header title={t`Create Wallet`} back={() => navigate('/')} />
       <Container>
         <CreateForm onSubmit={submit} />
       </Container>
@@ -120,7 +121,9 @@ function CreateForm(props: {
           name='walletName'
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Wallet Name</FormLabel>
+              <FormLabel>
+                <Trans>Wallet Name</Trans>
+              </FormLabel>
               <FormControl>
                 <Input placeholder='' required {...field} />
               </FormControl>
@@ -136,10 +139,14 @@ function CreateForm(props: {
           render={({ field }) => (
             <FormItem className='flex flex-row items-center justify-between rounded-lg border p-4 gap-2'>
               <label htmlFor='use24Words' className='space-y-0.5'>
-                <FormLabel>Use 24 words</FormLabel>
+                <FormLabel>
+                  <Trans>Use 24 words</Trans>
+                </FormLabel>
                 <FormDescription>
-                  While 12 word mnemonics are sufficiently hard to crack, you
-                  can choose to use 24 instead to increase security.
+                  <Trans>
+                    While 12 word mnemonics are sufficiently hard to crack, you
+                    can choose to use 24 instead to increase security.
+                  </Trans>
                 </FormDescription>
               </label>
               <FormControl>
@@ -160,11 +167,15 @@ function CreateForm(props: {
           render={({ field }) => (
             <FormItem className='flex flex-row items-center justify-between rounded-lg border p-4 gap-2'>
               <label htmlFor='saveMnemonic' className='space-y-0.5'>
-                <FormLabel>Save mnemonic</FormLabel>
+                <FormLabel>
+                  <Trans>Save mnemonic</Trans>
+                </FormLabel>
                 <FormDescription>
-                  By disabling this you are creating a cold wallet, with no
-                  ability to sign transactions. The mnemonic will need to be
-                  saved elsewhere.
+                  <Trans>
+                    By disabling this you are creating a cold wallet, with no
+                    ability to sign transactions. The mnemonic will need to be
+                    saved elsewhere.
+                  </Trans>
                 </FormDescription>
               </label>
               <FormControl>
@@ -180,7 +191,9 @@ function CreateForm(props: {
 
         <div className='mt-3'>
           <div className='flex justify-between items-center mb-2'>
-            <Label>Mnemonic</Label>
+            <Label>
+              <Trans>Mnemonic</Trans>
+            </Label>
             <div>
               <Button
                 type='button'
@@ -216,21 +229,27 @@ function CreateForm(props: {
           </div>
         </div>
 
-        <Button type='submit'>Submit</Button>
+        <Button type='submit'>
+          <Trans>Submit</Trans>
+        </Button>
       </form>
       <Dialog open={isConfirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Did you save your mnemonic?</DialogTitle>
+            <DialogTitle>
+              <Trans>Did you save your mnemonic?</Trans>
+            </DialogTitle>
             <DialogDescription>
-              Make sure you have saved your mnemonic. You will not be able to
-              access it later, since it will not be saved in the wallet. You
-              will also not be able to make transactions with this wallet.
+              <Trans>
+                Make sure you have saved your mnemonic. You will not be able to
+                access it later, since it will not be saved in the wallet. You
+                will also not be able to make transactions with this wallet.
+              </Trans>
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant='outline' onClick={() => setConfirmOpen(false)}>
-              Cancel
+              <Trans>Cancel</Trans>
             </Button>
             <Button
               onClick={() => {
@@ -238,7 +257,7 @@ function CreateForm(props: {
                 props.onSubmit(form.getValues());
               }}
             >
-              Confirm
+              <Trans>Confirm</Trans>
             </Button>
           </DialogFooter>
         </DialogContent>

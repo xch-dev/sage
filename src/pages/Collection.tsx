@@ -9,6 +9,8 @@ import { useErrors } from '@/hooks/useErrors';
 import { NftView, useNftParams } from '@/hooks/useNftParams';
 import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { Trans } from '@lingui/react/macro';
+import { t } from '@lingui/core/macro';
 
 export default function Collection() {
   const { addError } = useErrors();
@@ -87,7 +89,7 @@ export default function Collection() {
 
   return (
     <>
-      <Header title={`${collection?.name ?? 'Unknown'} NFTs`}>
+      <Header title={`${collection?.name ?? t`Unknown`} NFTs`}>
         <ReceiveAddress />
       </Header>
 

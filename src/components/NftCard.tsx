@@ -67,6 +67,8 @@ import {
   SelectValue,
 } from './ui/select';
 import { TokenAmountInput } from './ui/masked-input';
+import { t } from '@lingui/core/macro';
+import { Trans } from '@lingui/react/macro';
 
 export interface NftProps {
   nft: NftRecord;
@@ -147,11 +149,11 @@ export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
   };
 
   const addUrlFormSchema = z.object({
-    url: z.string().min(1, 'URL is required'),
-    kind: z.string().min(1, 'Kind is required'),
+    url: z.string().min(1, t`URL is required`),
+    kind: z.string().min(1, t`Kind is required`),
     fee: amount(walletState.sync.unit.decimals).refine(
       (amount) => BigNumber(walletState.sync.balance).gte(amount || 0),
-      'Not enough funds to cover the fee',
+      t`Not enough funds to cover the fee`,
     ),
   });
 
@@ -192,7 +194,7 @@ export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
   return (
     <>
       <div
-        className={`cursor-pointer group${`${!nft.visible ? ' opacity-50 grayscale' : !nft.created_height ? ' pulsate-opacity' : ''}`}`}
+        className={`cursor-pointer group${!nft.visible ? ' opacity-50 grayscale' : !nft.created_height ? ' pulsate-opacity' : ''}`}
         onClick={() => {
           if (selectionState === null) {
             navigate(`/nfts/${nft.launcher_id}`);
@@ -203,7 +205,7 @@ export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
       >
         <div className='overflow-hidden rounded-t-lg relative'>
           <img
-            alt={nft.name ?? 'Unnamed'}
+            alt={nft.name ?? t`Unnamed`}
             loading='lazy'
             width='150'
             height='150'
@@ -218,19 +220,19 @@ export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
             />
           )}
         </div>
-        <div className=' border border-neutral-200 bg-white text-neutral-950 shadow dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-50 text-md flex items-center justify-between rounded-b-lg p-2 pl-3'>
+        <div className='border border-neutral-200 bg-white text-neutral-950 shadow dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-50 text-md flex items-center justify-between rounded-b-lg p-2 pl-3'>
           <span className='truncate'>
             <span className='font-medium leading-none truncate'>
-              {nft.name ?? 'Unnamed'}
+              {nft.name ?? t`Unnamed`}
             </span>
             <p className='text-xs text-muted-foreground truncate'>
-              {nft.collection_name ?? 'No collection'}
+              {nft.collection_name ?? t`No collection`}
             </p>
           </span>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant='ghost' size='icon'>
+              <Button variant='ghost' size='icon' aria-label={t`NFT options`}>
                 <MoreVertical className='h-5 w-5' />
               </Button>
             </DropdownMenuTrigger>
@@ -245,7 +247,9 @@ export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
                   disabled={!nft.created_height}
                 >
                   <SendIcon className='mr-2 h-4 w-4' />
-                  <span>Transfer</span>
+                  <span>
+                    <Trans>Transfer</Trans>
+                  </span>
                 </DropdownMenuItem>
 
                 <DropdownMenuItem
@@ -258,9 +262,11 @@ export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
                 >
                   <UserRoundPlus className='mr-2 h-4 w-4' />
                   <span>
-                    {nft.owner_did === null
-                      ? 'Assign Profile'
-                      : 'Reassign Profile'}
+                    {nft.owner_did === null ? (
+                      <Trans>Assign Profile</Trans>
+                    ) : (
+                      <Trans>Reassign Profile</Trans>
+                    )}
                   </span>
                 </DropdownMenuItem>
 
@@ -274,7 +280,9 @@ export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
                     disabled={!nft.created_height}
                   >
                     <UserRoundMinus className='mr-2 h-4 w-4' />
-                    <span>Unassign Profile</span>
+                    <span>
+                      <Trans>Unassign Profile</Trans>
+                    </span>
                   </DropdownMenuItem>
                 )}
 
@@ -288,7 +296,9 @@ export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
                   disabled={!nft.created_height}
                 >
                   <LinkIcon className='mr-2 h-4 w-4' />
-                  <span>Add URL</span>
+                  <span>
+                    <Trans>Add URL</Trans>
+                  </span>
                 </DropdownMenuItem>
 
                 <DropdownMenuItem
@@ -300,7 +310,9 @@ export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
                   disabled={!nft.created_height}
                 >
                   <Flame className='mr-2 h-4 w-4' />
-                  <span>Burn</span>
+                  <span>
+                    <Trans>Burn</Trans>
+                  </span>
                 </DropdownMenuItem>
 
                 <DropdownMenuSeparator />
@@ -317,7 +329,9 @@ export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
                   ) : (
                     <EyeIcon className='mr-2 h-4 w-4' />
                   )}
-                  <span>{nft.visible ? 'Hide' : 'Show'}</span>
+                  <span>
+                    {nft.visible ? <Trans>Hide</Trans> : <Trans>Show</Trans>}
+                  </span>
                 </DropdownMenuItem>
 
                 <DropdownMenuItem
@@ -328,7 +342,9 @@ export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
                   }}
                 >
                   <Copy className='mr-2 h-4 w-4' />
-                  <span>Copy ID</span>
+                  <span>
+                    <Trans>Copy ID</Trans>
+                  </span>
                 </DropdownMenuItem>
               </DropdownMenuGroup>
             </DropdownMenuContent>
@@ -337,40 +353,44 @@ export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
       </div>
 
       <TransferDialog
-        title='Transfer NFT'
+        title={t`Transfer NFT`}
         open={transferOpen}
         setOpen={setTransferOpen}
         onSubmit={onTransferSubmit}
       >
-        This will send the NFT to the provided address.
+        <Trans>This will send the NFT to the provided address.</Trans>
       </TransferDialog>
 
       <AssignNftDialog
-        title='Assign Profile'
+        title={t`Assign Profile`}
         open={assignOpen}
         setOpen={setAssignOpen}
         onSubmit={onAssignSubmit}
       >
-        This will assign the NFT to the selected profile.
+        <Trans>This will assign the NFT to the selected profile.</Trans>
       </AssignNftDialog>
 
       <FeeOnlyDialog
-        title='Unassign Profile'
+        title={t`Unassign Profile`}
         open={unassignOpen}
         setOpen={setUnassignOpen}
         onSubmit={onUnassignSubmit}
       >
-        This will unassign the NFT from its profile.
+        <Trans>This will unassign the NFT from its profile.</Trans>
       </FeeOnlyDialog>
 
       <Dialog open={addUrlOpen} onOpenChange={setAddUrlOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add NFT URL</DialogTitle>
+            <DialogTitle>
+              <Trans>Add NFT URL</Trans>
+            </DialogTitle>
             <DialogDescription>
-              This will add an additional URL to the NFT. It is not possible to
-              remove URLs later, so be careful with this and try to use
-              permanent URLs if possible.
+              <Trans>
+                This will add an additional URL to the NFT. It is not possible
+                to remove URLs later, so be careful with this and try to use
+                permanent URLs if possible.
+              </Trans>
             </DialogDescription>
           </DialogHeader>
           <Form {...addUrlForm}>
@@ -383,9 +403,11 @@ export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
                 name='url'
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>URL</FormLabel>
+                    <FormLabel>
+                      <Trans>URL</Trans>
+                    </FormLabel>
                     <FormControl>
-                      <Input {...field} />
+                      <Input {...field} placeholder={t`Enter URL`} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -397,20 +419,28 @@ export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
                 name='kind'
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Kind</FormLabel>
+                    <FormLabel>
+                      <Trans>Kind</Trans>
+                    </FormLabel>
                     <FormControl>
                       <Select
                         name={field.name}
                         value={field.value}
                         onValueChange={field.onChange}
                       >
-                        <SelectTrigger id='kind' aria-label='Select kind'>
-                          <SelectValue placeholder='Select kind' />
+                        <SelectTrigger id='kind' aria-label={t`Select kind`}>
+                          <SelectValue placeholder={t`Select kind`} />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value='data'>Data</SelectItem>
-                          <SelectItem value='metadata'>Metadata</SelectItem>
-                          <SelectItem value='license'>License</SelectItem>
+                          <SelectItem value='data'>
+                            <Trans>Data</Trans>
+                          </SelectItem>
+                          <SelectItem value='metadata'>
+                            <Trans>Metadata</Trans>
+                          </SelectItem>
+                          <SelectItem value='license'>
+                            <Trans>License</Trans>
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                     </FormControl>
@@ -424,7 +454,9 @@ export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
                 name='fee'
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Network Fee</FormLabel>
+                    <FormLabel>
+                      <Trans>Network Fee</Trans>
+                    </FormLabel>
                     <FormControl>
                       <TokenAmountInput {...field} />
                     </FormControl>
@@ -439,9 +471,11 @@ export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
                   variant='outline'
                   onClick={() => setAddUrlOpen(false)}
                 >
-                  Cancel
+                  <Trans>Cancel</Trans>
                 </Button>
-                <Button type='submit'>Add URL</Button>
+                <Button type='submit'>
+                  <Trans>Add URL</Trans>
+                </Button>
               </DialogFooter>
             </form>
           </Form>
@@ -449,12 +483,15 @@ export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
       </Dialog>
 
       <FeeOnlyDialog
-        title='Burn NFT'
+        title={t`Burn NFT`}
         open={burnOpen}
         setOpen={setBurnOpen}
         onSubmit={onBurnSubmit}
       >
-        This will permanently delete the NFT by sending it to the burn address.
+        <Trans>
+          This will permanently delete the NFT by sending it to the burn
+          address.
+        </Trans>
       </FeeOnlyDialog>
 
       <ConfirmationDialog

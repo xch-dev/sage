@@ -28,6 +28,8 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Trans } from '@lingui/react/macro';
+import { t } from '@lingui/core/macro';
 
 export function MakeOffer() {
   const state = useOfferState();
@@ -87,7 +89,7 @@ export function MakeOffer() {
 
   return (
     <>
-      <Header title='New Offer' />
+      <Header title={t`New Offer`} />
 
       <Container>
         <div className='grid grid-cols-1 lg:grid-cols-2 gap-4 max-w-screen-lg'>
@@ -95,12 +97,12 @@ export function MakeOffer() {
             <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2 pr-2 space-x-2'>
               <CardTitle className='text-md font-medium truncate flex items-center'>
                 <HandCoins className='mr-2 h-4 w-4' />
-                Offered
+                <Trans>Offered</Trans>
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className='text-sm text-muted-foreground'>
-                Add the assets you are offering.
+                <Trans>Add the assets you are offering.</Trans>
               </div>
 
               <AssetSelector
@@ -117,12 +119,12 @@ export function MakeOffer() {
             <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2 pr-2 space-x-2'>
               <CardTitle className='text-md font-medium truncate flex items-center'>
                 <Handshake className='mr-2 h-4 w-4' />
-                Requested
+                <Trans>Requested</Trans>
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className='text-sm text-muted-foreground'>
-                Add the assets you are requesting.
+                <Trans>Add the assets you are requesting.</Trans>
               </div>
 
               <AssetSelector
@@ -137,19 +139,20 @@ export function MakeOffer() {
 
           <div className='flex flex-col gap-4'>
             <div className='flex flex-col space-y-1.5'>
-              <Label htmlFor='fee'>Network Fee</Label>
+              <Label htmlFor='fee'>
+                <Trans>Network Fee</Trans>
+              </Label>
               <div className='relative'>
                 <Input
                   id='fee'
                   type='text'
-                  placeholder='0.00'
+                  placeholder={'0.00'}
                   className='pr-12'
                   value={state.fee}
                   onChange={(e) =>
                     useOfferState.setState({ fee: e.target.value })
                   }
                 />
-
                 <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
                   <span className='text-gray-500 text-sm' id='price-currency'>
                     {walletState.sync.unit.ticker}
@@ -160,23 +163,19 @@ export function MakeOffer() {
 
             <div className='flex flex-col gap-2'>
               <div className='flex items-center gap-2'>
-                <label htmlFor='expiring'>Expiring offer</label>
+                <label htmlFor='expiring'>
+                  <Trans>Expiring offer</Trans>
+                </label>
                 <Switch
                   id='expiring'
                   checked={state.expiration !== null}
                   onCheckedChange={(value) => {
                     if (value) {
                       useOfferState.setState({
-                        expiration: {
-                          days: '1',
-                          hours: '',
-                          minutes: '',
-                        },
+                        expiration: { days: '1', hours: '', minutes: '' },
                       });
                     } else {
-                      useOfferState.setState({
-                        expiration: null,
-                      });
+                      useOfferState.setState({ expiration: null });
                     }
                   }}
                 />
@@ -191,7 +190,6 @@ export function MakeOffer() {
                       placeholder='0'
                       onChange={(e) => {
                         if (state.expiration === null) return;
-
                         useOfferState.setState({
                           expiration: {
                             ...state.expiration,
@@ -201,7 +199,9 @@ export function MakeOffer() {
                       }}
                     />
                     <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
-                      <span className='text-gray-500 text-sm'>Days</span>
+                      <span className='text-gray-500 text-sm'>
+                        <Trans>Days</Trans>
+                      </span>
                     </div>
                   </div>
 
@@ -212,7 +212,6 @@ export function MakeOffer() {
                       placeholder='0'
                       onChange={(e) => {
                         if (state.expiration === null) return;
-
                         useOfferState.setState({
                           expiration: {
                             ...state.expiration,
@@ -222,7 +221,9 @@ export function MakeOffer() {
                       }}
                     />
                     <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
-                      <span className='text-gray-500 text-sm'>Hours</span>
+                      <span className='text-gray-500 text-sm'>
+                        <Trans>Hours</Trans>
+                      </span>
                     </div>
                   </div>
 
@@ -233,7 +234,6 @@ export function MakeOffer() {
                       placeholder='0'
                       onChange={(e) => {
                         if (state.expiration === null) return;
-
                         useOfferState.setState({
                           expiration: {
                             ...state.expiration,
@@ -243,7 +243,9 @@ export function MakeOffer() {
                       }}
                     />
                     <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
-                      <span className='text-gray-500 text-sm'>Minutes</span>
+                      <span className='text-gray-500 text-sm'>
+                        <Trans>Minutes</Trans>
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -260,21 +262,25 @@ export function MakeOffer() {
               navigate('/offers', { replace: true });
             }}
           >
-            Cancel Offer
+            <Trans>Cancel Offer</Trans>
           </Button>
           <Button onClick={make} disabled={invalid}>
-            Create Offer
+            <Trans>Create Offer</Trans>
           </Button>
         </div>
 
         <Dialog open={!!offer} onOpenChange={() => setOffer('')}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Offer Details</DialogTitle>
+              <DialogTitle>
+                <Trans>Offer Details</Trans>
+              </DialogTitle>
               <DialogDescription>
-                Copy the offer file below and send it to the intended recipient
-                or make it public to be accepted by anyone.
-                <CopyBox title='Offer File' value={offer} className='mt-2' />
+                <Trans>
+                  Copy the offer file below and send it to the intended
+                  recipient or make it public to be accepted by anyone.
+                </Trans>
+                <CopyBox title={t`Offer File`} value={offer} className='mt-2' />
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
@@ -290,7 +296,7 @@ export function MakeOffer() {
                     .catch(addError);
                 }}
               >
-                Save
+                <Trans>Save</Trans>
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -316,9 +322,7 @@ function AssetSelector({ prefix, assets, setAssets }: AssetSelectorProps) {
           variant='outline'
           className='flex-grow'
           disabled={includeAmount}
-          onClick={() => {
-            setIncludeAmount(true);
-          }}
+          onClick={() => setIncludeAmount(true)}
         >
           <PlusIcon className='mr-0.5 h-3 w-3' />
           XCH
@@ -333,9 +337,8 @@ function AssetSelector({ prefix, assets, setAssets }: AssetSelectorProps) {
             });
           }}
         >
-          <PlusIcon className='mr-0.5 h-3 w-3' /> NFT
+          <PlusIcon className='mr-0.5 h-3 w-3' /> <Trans>NFT</Trans>
         </Button>
-
         <Button
           variant='outline'
           className='flex-grow'
@@ -346,7 +349,7 @@ function AssetSelector({ prefix, assets, setAssets }: AssetSelectorProps) {
             });
           }}
         >
-          <PlusIcon className='mr-0.5 h-3 w-3' /> Token
+          <PlusIcon className='mr-0.5 h-3 w-3' /> <Trans>Token</Trans>
         </Button>
       </div>
 
@@ -357,22 +360,15 @@ function AssetSelector({ prefix, assets, setAssets }: AssetSelectorProps) {
             <Input
               id={`${prefix}-amount`}
               className='rounded-r-none z-10'
-              placeholder='Enter amount'
+              placeholder={t`Enter amount`}
               value={assets.xch}
-              onChange={(e) =>
-                setAssets({
-                  ...assets,
-                  xch: e.target.value,
-                })
-              }
+              onChange={(e) => setAssets({ ...assets, xch: e.target.value })}
             />
             <Button
               variant='outline'
               size='icon'
               className='border-l-0 rounded-l-none flex-shrink-0 flex-grow-0'
-              onClick={() => {
-                setIncludeAmount(false);
-              }}
+              onClick={() => setIncludeAmount(false)}
             >
               <TrashIcon className='h-4 w-4' />
             </Button>
@@ -389,13 +385,15 @@ function AssetSelector({ prefix, assets, setAssets }: AssetSelectorProps) {
                 className='flex items-center gap-1'
               >
                 <ImageIcon className='h-4 w-4' />
-                <span>NFT {i + 1}</span>
+                <span>
+                  <Trans>NFT</Trans> {i + 1}
+                </span>
               </Label>
               <div className='flex'>
                 <Input
                   id={`${prefix}-nft-${i}`}
                   className='rounded-r-none z-10'
-                  placeholder='Enter launcher id'
+                  placeholder={t`Enter launcher id`}
                   value={nft}
                   onChange={(e) => {
                     assets.nfts[i] = e.target.value;
@@ -428,13 +426,15 @@ function AssetSelector({ prefix, assets, setAssets }: AssetSelectorProps) {
                 className='flex items-center gap-1'
               >
                 <HandCoins className='h-4 w-4' />
-                <span>Token {i + 1}</span>
+                <span>
+                  <Trans>Token</Trans> {i + 1}
+                </span>
               </Label>
               <div className='flex'>
                 <Input
                   id={`${prefix}-cat-${i}`}
                   className='rounded-r-none z-10'
-                  placeholder='Enter asset id'
+                  placeholder={t`Enter asset id`}
                   value={cat.asset_id}
                   onChange={(e) => {
                     assets.cats[i].asset_id = e.target.value;
@@ -444,7 +444,7 @@ function AssetSelector({ prefix, assets, setAssets }: AssetSelectorProps) {
                 <TokenAmountInput
                   id={`${prefix}-cat-${i}-amount`}
                   className='border-l-0 z-10 rounded-l-none rounded-r-none w-[100px]'
-                  placeholder='Amount'
+                  placeholder={t`Amount`}
                   value={cat.amount}
                   onChange={(e) => {
                     assets.cats[i].amount = e.target.value;

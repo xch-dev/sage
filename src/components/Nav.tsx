@@ -7,29 +7,30 @@ import {
 } from 'lucide-react';
 import { PropsWithChildren } from 'react';
 import { Link } from 'react-router-dom';
+import { Trans } from '@lingui/react/macro';
 
 export function Nav() {
   return (
     <nav className='grid gap-1 text-md font-medium'>
       <NavLink url={'/wallet'}>
         <WalletIcon className='h-4 w-4' />
-        Wallet
+        <Trans>Wallet</Trans>
       </NavLink>
       <NavLink url={'/nfts'}>
         <Images className='h-4 w-4' />
-        NFTs
+        <Trans>NFTs</Trans>
       </NavLink>
       <NavLink url={'/dids'}>
         <SquareUserRound className='h-4 w-4' />
-        Profiles
+        <Trans>Profiles</Trans>
       </NavLink>
       <NavLink url={'/offers'}>
         <ArrowLeftRight className='h-4 w-4' />
-        Offers
+        <Trans>Offers</Trans>
       </NavLink>
       <NavLink url={'/wallet/addresses'}>
         <BookUser className='h-4 w-4' />
-        Addresses
+        <Trans>Addresses</Trans>
       </NavLink>
     </nav>
   );

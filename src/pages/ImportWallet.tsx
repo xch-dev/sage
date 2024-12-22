@@ -20,10 +20,11 @@ import { commands } from '../bindings';
 import Container from '../components/Container';
 import { fetchState } from '../state';
 import SafeAreaView from '@/components/SafeAreaView';
+import { Trans } from '@lingui/react/macro';
+import { t } from '@lingui/core/macro';
 
 export default function ImportWallet() {
   const navigate = useNavigate();
-
   const { addError } = useErrors();
 
   const submit = (values: z.infer<typeof formSchema>) => {
@@ -36,8 +37,7 @@ export default function ImportWallet() {
 
   return (
     <SafeAreaView>
-      <Header title='Import Wallet' back={() => navigate('/')} />
-
+      <Header title={t`Import Wallet`} back={() => navigate('/')} />
       <Container>
         <ImportForm onSubmit={submit} />
       </Container>
@@ -53,7 +53,6 @@ const formSchema = z.object({
 function ImportForm(props: {
   onSubmit: (values: z.infer<typeof formSchema>) => void;
 }) {
-  // Insert constants here
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
   });
@@ -69,11 +68,12 @@ function ImportForm(props: {
           name='walletName'
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Wallet Name</FormLabel>
+              <FormLabel>
+                <Trans>Wallet Name</Trans>
+              </FormLabel>
               <FormControl>
                 <Input required {...field} />
               </FormControl>
-
               <FormMessage />
             </FormItem>
           )}
@@ -84,19 +84,25 @@ function ImportForm(props: {
           name='walletKey'
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Wallet Key</FormLabel>
+              <FormLabel>
+                <Trans>Wallet Key</Trans>
+              </FormLabel>
               <FormControl>
                 <Textarea className='resize-none' {...field} />
               </FormControl>
               <FormDescription>
-                Enter your mnemonic, private key, or public key below. If it's a
-                public key, it will be imported as a read-only cold wallet.
+                <Trans>
+                  Enter your mnemonic, private key, or public key below. If it's
+                  a public key, it will be imported as a read-only cold wallet.
+                </Trans>
               </FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
-        <Button type='submit'>Import Wallet</Button>
+        <Button type='submit'>
+          <Trans>Import Wallet</Trans>
+        </Button>
       </form>
     </Form>
   );
