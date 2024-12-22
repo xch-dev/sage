@@ -4939,6 +4939,7 @@ version = "0.8.2"
 dependencies = [
  "aws-lc-rs",
  "chia-wallet-sdk",
+ "glob",
  "sage",
  "sage-api",
  "sage-config",
