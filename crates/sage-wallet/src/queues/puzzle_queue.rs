@@ -96,17 +96,23 @@ impl PuzzleQueue {
                     }
                 }
                 Err(error) => {
-                    // TODO: Not all errors should result in this exact behavior.
                     debug!(
                         "Failed to lookup puzzle of {} from peer {}: {}",
                         coin_id, addr, error
                     );
 
-                    self.state.lock().await.ban(
-                        addr.ip(),
-                        Duration::from_secs(300),
-                        "failed puzzle lookup",
-                    );
+                    if matches!(
+                        error,
+                        WalletError::Elapsed(..)
+                            | WalletError::PeerMisbehaved
+                            | WalletError::Client(..)
+                    ) {
+                        self.state.lock().await.ban(
+                            addr.ip(),
+                            Duration::from_secs(300),
+                            "failed puzzle lookup",
+                        );
+                    }
                 }
             }
         }
