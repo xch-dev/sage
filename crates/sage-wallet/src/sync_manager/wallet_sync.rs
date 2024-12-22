@@ -1,4 +1,7 @@
-use std::{sync::Arc, time::Duration};
+use std::{
+    sync::Arc,
+    time::{Duration, Instant},
+};
 
 use chia::{
     bls::DerivableKey,
@@ -13,7 +16,7 @@ use tokio::{
 };
 use tracing::{debug, info, warn};
 
-use crate::{delete_puzzle, upsert_coin, Wallet, WalletError, WalletPeer};
+use crate::{delete_puzzle, upsert_coin, UpsertCounters, Wallet, WalletError, WalletPeer};
 
 use super::{PeerState, SyncEvent};
 
@@ -30,13 +33,6 @@ pub async fn sync_wallet(
     coin_ids.extend(wallet.db.unspent_did_coin_ids().await?);
     coin_ids.extend(wallet.db.unspent_cat_coin_ids().await?);
 
-    let p2_puzzle_hashes = wallet.db.p2_puzzle_hashes().await?;
-
-    let (start_height, start_header_hash) = wallet.db.latest_peak().await?.map_or_else(
-        || (None, wallet.genesis_challenge),
-        |(peak, header_hash)| (Some(peak), header_hash),
-    );
-
     sync_coin_ids(
         &wallet,
         &peer,
@@ -45,6 +41,13 @@ pub async fn sync_wallet(
         sync_sender.clone(),
     )
     .await?;
+
+    let p2_puzzle_hashes = wallet.db.p2_puzzle_hashes().await?;
+
+    let (start_height, start_header_hash) = wallet.db.latest_peak().await?.map_or_else(
+        || (None, wallet.genesis_challenge),
+        |(peak, header_hash)| (Some(peak), header_hash),
+    );
 
     let mut derive_more = p2_puzzle_hashes.is_empty();
 
@@ -217,14 +220,37 @@ pub async fn incremental_sync(
     derive_automatically: bool,
     sync_sender: &mpsc::Sender<SyncEvent>,
 ) -> Result<(), WalletError> {
-    let mut tx = wallet.db.tx().await?;
+    let mut batch_index = 0;
 
-    for &coin_state in &coin_states {
-        upsert_coin(&mut tx, coin_state, None).await?;
+    for batch in coin_states.chunks(10000) {
+        batch_index += 1;
 
-        if coin_state.spent_height.is_some() {
-            delete_puzzle(&mut tx, coin_state.coin.coin_id()).await?;
+        let mut tx = wallet.db.tx().await?;
+
+        let start = Instant::now();
+
+        let mut counters = UpsertCounters::default();
+
+        for &coin_state in batch {
+            upsert_coin(&mut tx, coin_state, None, &mut counters).await?;
+
+            if coin_state.spent_height.is_some() {
+                let start = Instant::now();
+                delete_puzzle(&mut tx, coin_state.coin.coin_id()).await?;
+                counters.delete_puzzle += start.elapsed();
+            }
         }
+
+        tx.commit().await?;
+
+        debug!(
+            "Upserted {} coins in batch #{batch_index} in {:?}, with counters {:?}",
+            batch.len(),
+            start.elapsed(),
+            counters
+        );
+
+        sleep(Duration::from_secs(5)).await;
     }
 
     sync_sender
@@ -233,6 +259,8 @@ pub async fn incremental_sync(
         .ok();
 
     let mut derived = false;
+
+    let mut tx = wallet.db.tx().await?;
 
     let mut next_index = tx.derivation_index(false).await?;
 

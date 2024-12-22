@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE `dids` SET `created_height` = ? WHERE `coin_id` = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "ee307ddbdd1ededf7d89140b631763945ae6ce871d40d7c6f627379ea7c80e14"
+}
