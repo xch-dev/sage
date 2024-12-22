@@ -284,7 +284,7 @@ async fn cat_coin_states(
     let rows = sqlx::query_as!(
         CoinStateSql,
         "
-        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `spent_height`, `created_height`, `transaction_id`
+        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `spent_height`, `created_height`, `transaction_id`, `kind`
         FROM `cat_coins` INDEXED BY `cat_asset_id`
         INNER JOIN `coin_states` ON `coin_states`.coin_id = `cat_coins`.coin_id
         WHERE `asset_id` = ?
@@ -308,7 +308,7 @@ async fn created_unspent_cat_coin_states(
     let rows = sqlx::query_as!(
         CoinStateSql,
         "
-        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `spent_height`, `created_height`, `transaction_id`
+        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `spent_height`, `created_height`, `transaction_id`, `kind`
         FROM `coin_states`
         INNER JOIN `cat_coins` ON `coin_states`.coin_id = `cat_coins`.coin_id
         WHERE `asset_id` = ?

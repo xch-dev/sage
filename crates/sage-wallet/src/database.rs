@@ -7,7 +7,7 @@ use chia::{
     bls::Signature,
     protocol::{Bytes32, CoinState},
 };
-use sage_database::{CatRow, Database, DatabaseTx, DidRow, NftRow};
+use sage_database::{CatRow, CoinKind, Database, DatabaseTx, DidRow, NftRow};
 
 use crate::{compute_nft_info, fetch_nft_did, ChildKind, Transaction, WalletError, WalletPeer};
 
@@ -80,7 +80,8 @@ pub async fn insert_puzzle(
             lineage_proof,
             p2_puzzle_hash,
         } => {
-            tx.sync_coin(coin_id, Some(p2_puzzle_hash)).await?;
+            tx.sync_coin(coin_id, Some(p2_puzzle_hash), CoinKind::Cat)
+                .await?;
             tx.insert_cat(CatRow {
                 asset_id,
                 name: None,
@@ -100,7 +101,8 @@ pub async fn insert_puzzle(
         } => {
             let launcher_id = info.launcher_id;
 
-            tx.sync_coin(coin_id, Some(info.p2_puzzle_hash)).await?;
+            tx.sync_coin(coin_id, Some(info.p2_puzzle_hash), CoinKind::Did)
+                .await?;
             tx.insert_did_coin(coin_id, lineage_proof, info).await?;
 
             if coin_state.spent_height.is_some() {
@@ -142,7 +144,8 @@ pub async fn insert_puzzle(
             let launcher_id = info.launcher_id;
             let owner_did = info.current_owner;
 
-            tx.sync_coin(coin_id, Some(info.p2_puzzle_hash)).await?;
+            tx.sync_coin(coin_id, Some(info.p2_puzzle_hash), CoinKind::Nft)
+                .await?;
 
             tx.insert_nft_coin(
                 coin_id,
@@ -319,7 +322,17 @@ pub async fn insert_transaction(
 
             tx.insert_coin_state(coin_state, true, Some(transaction_id))
                 .await?;
-            tx.sync_coin(coin_id, Some(p2_puzzle_hash)).await?;
+            tx.sync_coin(
+                coin_id,
+                Some(p2_puzzle_hash),
+                match output.kind {
+                    ChildKind::Unknown { .. } | ChildKind::Launcher => CoinKind::Unknown,
+                    ChildKind::Cat { .. } => CoinKind::Cat,
+                    ChildKind::Did { .. } => CoinKind::Did,
+                    ChildKind::Nft { .. } => CoinKind::Nft,
+                },
+            )
+            .await?;
 
             if output.kind.subscribe() {
                 subscriptions.push(coin_id);

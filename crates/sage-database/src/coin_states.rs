@@ -1,7 +1,12 @@
+use std::cmp::Reverse;
+
 use chia::protocol::{Bytes32, CoinState};
 use sqlx::SqliteExecutor;
 
-use crate::{to_bytes32, CoinStateSql, Database, DatabaseTx, IntoRow, Result};
+use crate::{
+    into_row, to_bytes32, CoinKind, CoinStateRow, CoinStateSql, Database, DatabaseTx, IntoRow,
+    Result,
+};
 
 impl Database {
     pub async fn unsynced_coin_states(&self, limit: usize) -> Result<Vec<CoinState>> {
@@ -36,12 +41,32 @@ impl Database {
         synced_coin_count(&self.pool).await
     }
 
-    pub async fn sync_coin(&self, coin_id: Bytes32, hint: Option<Bytes32>) -> Result<()> {
-        sync_coin(&self.pool, coin_id, hint).await
+    pub async fn sync_coin(
+        &self,
+        coin_id: Bytes32,
+        hint: Option<Bytes32>,
+        kind: CoinKind,
+    ) -> Result<()> {
+        sync_coin(&self.pool, coin_id, hint, kind).await
     }
 
     pub async fn is_coin_locked(&self, coin_id: Bytes32) -> Result<bool> {
         is_coin_locked(&self.pool, coin_id).await
+    }
+
+    pub async fn get_block_heights(&self) -> Result<Vec<u32>> {
+        get_block_heights(&self.pool).await
+    }
+
+    pub async fn get_coin_states_by_created_height(
+        &self,
+        height: u32,
+    ) -> Result<Vec<CoinStateRow>> {
+        get_coin_states_by_created_height(&self.pool, height).await
+    }
+
+    pub async fn get_coin_states_by_spent_height(&self, height: u32) -> Result<Vec<CoinStateRow>> {
+        get_coin_states_by_spent_height(&self.pool, height).await
     }
 }
 
@@ -72,8 +97,13 @@ impl<'a> DatabaseTx<'a> {
         .await
     }
 
-    pub async fn sync_coin(&mut self, coin_id: Bytes32, hint: Option<Bytes32>) -> Result<()> {
-        sync_coin(&mut *self.tx, coin_id, hint).await
+    pub async fn sync_coin(
+        &mut self,
+        coin_id: Bytes32,
+        hint: Option<Bytes32>,
+        kind: CoinKind,
+    ) -> Result<()> {
+        sync_coin(&mut *self.tx, coin_id, hint, kind).await
     }
 
     pub async fn unsync_coin(&mut self, coin_id: Bytes32) -> Result<()> {
@@ -179,7 +209,7 @@ async fn unsynced_coin_states(
     let rows = sqlx::query_as!(
         CoinStateSql,
         "
-        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `created_height`, `spent_height`, `transaction_id`
+        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `created_height`, `spent_height`, `transaction_id`, `kind`
         FROM `coin_states`
         WHERE `synced` = 0 AND `created_height` IS NOT NULL
         ORDER BY `spent_height` ASC
@@ -198,15 +228,18 @@ async fn sync_coin(
     conn: impl SqliteExecutor<'_>,
     coin_id: Bytes32,
     hint: Option<Bytes32>,
+    kind: CoinKind,
 ) -> Result<()> {
     let coin_id = coin_id.as_ref();
+    let kind = kind as u32;
     let hint = hint.as_deref();
 
     sqlx::query!(
         "
-        UPDATE `coin_states` SET `synced` = 1, `hint` = ? WHERE `coin_id` = ?
+        UPDATE `coin_states` SET `synced` = 1, `hint` = ?, `kind` = ? WHERE `coin_id` = ?
         ",
         hint,
+        kind,
         coin_id
     )
     .execute(conn)
@@ -274,7 +307,7 @@ async fn coin_state(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<O
     let Some(sql) = sqlx::query_as!(
         CoinStateSql,
         "
-        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `created_height`, `spent_height`, `transaction_id`
+        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `created_height`, `spent_height`, `transaction_id`, `kind`
         FROM `coin_states`
         WHERE `coin_id` = ?
         ",
@@ -345,8 +378,8 @@ async fn is_p2_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<b
 
     let row = sqlx::query!(
         "
-        SELECT COUNT(*) AS `count`
-        FROM `p2_coins`
+        SELECT `kind`
+        FROM `coin_states`
         WHERE `coin_id` = ?
         ",
         coin_id
@@ -354,7 +387,7 @@ async fn is_p2_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<b
     .fetch_one(conn)
     .await?;
 
-    Ok(row.count > 0)
+    Ok(row.kind == 1)
 }
 
 async fn is_coin_locked(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<bool> {
@@ -377,4 +410,71 @@ async fn is_coin_locked(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Resu
     .await?;
 
     Ok(row.count > 0)
+}
+
+async fn get_block_heights(conn: impl SqliteExecutor<'_>) -> Result<Vec<u32>> {
+    let rows = sqlx::query!(
+        "
+        SELECT DISTINCT height FROM (
+            SELECT created_height as height FROM coin_states INDEXED BY `coin_created`
+            WHERE created_height IS NOT NULL
+            UNION ALL
+            SELECT spent_height as height FROM coin_states INDEXED BY `coin_spent`
+            WHERE spent_height IS NOT NULL
+        )
+        GROUP BY height
+        "
+    )
+    .fetch_all(conn)
+    .await?;
+
+    let mut heights = Vec::with_capacity(rows.len());
+
+    for row in rows {
+        if let Some(height) = row.height {
+            heights.push(height.try_into()?);
+        }
+    }
+
+    heights.sort_by_key(|height| Reverse(*height));
+
+    Ok(heights)
+}
+
+async fn get_coin_states_by_created_height(
+    conn: impl SqliteExecutor<'_>,
+    height: u32,
+) -> Result<Vec<CoinStateRow>> {
+    let rows = sqlx::query_as!(
+        CoinStateSql,
+        "
+        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `created_height`, `spent_height`, `transaction_id`, `kind`
+        FROM `coin_states` INDEXED BY `coin_created`
+        WHERE `created_height` = ?
+        ",
+        height
+    )
+    .fetch_all(conn)
+    .await?;
+
+    rows.into_iter().map(into_row).collect()
+}
+
+async fn get_coin_states_by_spent_height(
+    conn: impl SqliteExecutor<'_>,
+    height: u32,
+) -> Result<Vec<CoinStateRow>> {
+    let rows = sqlx::query_as!(
+        CoinStateSql,
+        "
+        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `created_height`, `spent_height`, `transaction_id`, `kind`
+        FROM `coin_states` INDEXED BY `coin_spent`
+        WHERE `spent_height` = ?
+        ",
+        height
+    )
+    .fetch_all(conn)
+    .await?;
+
+    rows.into_iter().map(into_row).collect()
 }

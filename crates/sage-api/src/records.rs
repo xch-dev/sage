@@ -8,6 +8,7 @@ mod offer;
 mod offer_summary;
 mod peer;
 mod pending_transaction;
+mod transaction;
 mod transaction_summary;
 
 pub use cat::*;
@@ -20,4 +21,5 @@ pub use offer::*;
 pub use offer_summary::*;
 pub use peer::*;
 pub use pending_transaction::*;
+pub use transaction::*;
 pub use transaction_summary::*;
