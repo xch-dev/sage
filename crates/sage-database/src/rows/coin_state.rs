@@ -11,6 +11,7 @@ pub(crate) struct CoinStateSql {
     pub spent_height: Option<i64>,
     pub created_height: Option<i64>,
     pub transaction_id: Option<Vec<u8>>,
+    pub kind: i64,
 }
 
 pub(crate) struct CoinSql {
@@ -19,10 +20,32 @@ pub(crate) struct CoinSql {
     pub amount: Vec<u8>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum CoinKind {
+    Unknown,
+    Xch,
+    Cat,
+    Nft,
+    Did,
+}
+
+impl CoinKind {
+    pub fn from_i64(value: i64) -> Self {
+        match value {
+            1 => Self::Xch,
+            2 => Self::Cat,
+            3 => Self::Nft,
+            4 => Self::Did,
+            _ => Self::Unknown,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 pub struct CoinStateRow {
     pub coin_state: CoinState,
     pub transaction_id: Option<Bytes32>,
+    pub kind: CoinKind,
 }
 
 impl IntoRow for CoinStateSql {
@@ -40,6 +63,7 @@ impl IntoRow for CoinStateSql {
                 created_height: self.created_height.map(TryInto::try_into).transpose()?,
             },
             transaction_id: self.transaction_id.as_deref().map(to_bytes32).transpose()?,
+            kind: CoinKind::from_i64(self.kind),
         })
     }
 }

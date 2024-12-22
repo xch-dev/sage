@@ -1207,7 +1207,7 @@ async fn created_unspent_nft_coin_states(
     let rows = sqlx::query_as!(
         CoinStateSql,
         "
-        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `spent_height`, `created_height`, `transaction_id`
+        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `spent_height`, `created_height`, `transaction_id`, `kind`
         FROM `coin_states`
         INNER JOIN `nft_coins` ON `coin_states`.coin_id = `nft_coins`.coin_id
         WHERE `spent_height` IS NULL
@@ -1232,7 +1232,7 @@ async fn created_unspent_nft_coin_state(
     let rows = sqlx::query_as!(
         CoinStateSql,
         "
-        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `spent_height`, `created_height`, `transaction_id`
+        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `spent_height`, `created_height`, `transaction_id`, `kind`
         FROM `coin_states`
         INNER JOIN `nft_coins` ON `coin_states`.coin_id = `nft_coins`.coin_id
         WHERE `launcher_id` = ?

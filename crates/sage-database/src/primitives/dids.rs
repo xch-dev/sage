@@ -409,7 +409,7 @@ async fn created_unspent_did_coin_states(
     let rows = sqlx::query_as!(
         CoinStateSql,
         "
-        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `spent_height`, `created_height`, `transaction_id`
+        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `spent_height`, `created_height`, `transaction_id`, `kind`
         FROM `coin_states`
         INNER JOIN `did_coins` ON `coin_states`.coin_id = `did_coins`.coin_id
         WHERE `spent_height` IS NULL
@@ -434,7 +434,7 @@ async fn created_unspent_did_coin_state(
     let rows = sqlx::query_as!(
         CoinStateSql,
         "
-        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `spent_height`, `created_height`, `transaction_id`
+        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `spent_height`, `created_height`, `transaction_id`, `kind`
         FROM `did_coins`
         INNER JOIN `coin_states` ON `coin_states`.coin_id = `did_coins`.coin_id
         WHERE `launcher_id` = ?

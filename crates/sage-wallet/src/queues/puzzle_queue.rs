@@ -2,7 +2,7 @@ use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use chia::protocol::{Bytes32, CoinState};
 use futures_util::{stream::FuturesUnordered, StreamExt};
-use sage_database::Database;
+use sage_database::{CoinKind, Database};
 use tokio::{
     sync::{mpsc, Mutex},
     task::spawn_blocking,
@@ -141,7 +141,8 @@ async fn fetch_puzzle(
     coin_state: CoinState,
 ) -> Result<bool, WalletError> {
     if db.is_p2_puzzle_hash(coin_state.coin.puzzle_hash).await? {
-        db.sync_coin(coin_state.coin.coin_id(), None).await?;
+        db.sync_coin(coin_state.coin.coin_id(), None, CoinKind::Xch)
+            .await?;
         warn!(
             "Could {} should already be synced, but isn't",
             coin_state.coin.coin_id()
