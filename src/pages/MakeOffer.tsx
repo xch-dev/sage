@@ -19,6 +19,7 @@ import { Label } from '@/components/ui/label';
 import { TokenAmountInput } from '@/components/ui/masked-input';
 import { Switch } from '@/components/ui/switch';
 import { useErrors } from '@/hooks/useErrors';
+import { uploadToDexie, uploadToMintGarden } from '@/lib/offerUpload';
 import { toMojos } from '@/lib/utils';
 import { clearOffer, useOfferState, useWalletState } from '@/state';
 import { open } from '@tauri-apps/plugin-shell';
@@ -111,46 +112,6 @@ export function MakeOffer() {
   };
 
   const make = () => handleMake().catch(addError);
-
-  const uploadDexie = () => {
-    fetch(
-      `https://${network === 'mainnet' ? 'api' : 'api-testnet'}.dexie.space/v1/offers`,
-      {
-        method: 'POST',
-        body: JSON.stringify({ offer }),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      },
-    )
-      .then((res) => res.json())
-      .then((data) => {
-        console.log(data);
-        setDexieLink(
-          `https://${network === 'mainnet' ? '' : 'testnet.'}dexie.space/offers/${data.id}`,
-        );
-      });
-  };
-
-  const uploadMintGarden = () => {
-    fetch(
-      `https://${network === 'mainnet' ? 'api' : 'api.testnet'}.mintgarden.io/offer`,
-      {
-        method: 'POST',
-        body: JSON.stringify({ offer }),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      },
-    )
-      .then((res) => res.json())
-      .then((data) => {
-        console.log(data);
-        setMintGardenLink(
-          `https://${network === 'mainnet' ? '' : 'testnet.'}mintgarden.io/offers/${data.offer.id}`,
-        );
-      });
-  };
 
   const invalid =
     state.expiration !== null &&
@@ -361,7 +322,14 @@ export function MakeOffer() {
                         className='text-neutral-800 dark:text-neutral-200'
                         onClick={() => {
                           if (dexieLink) return open(dexieLink);
-                          uploadDexie();
+                          uploadToDexie(offer, network === 'testnet11')
+                            .then(setDexieLink)
+                            .catch((error) =>
+                              addError({
+                                kind: 'upload',
+                                reason: `${error}`,
+                              }),
+                            );
                         }}
                       >
                         <img
@@ -378,7 +346,14 @@ export function MakeOffer() {
                           className='text-neutral-800 dark:text-neutral-200'
                           onClick={() => {
                             if (mintGardenLink) return open(mintGardenLink);
-                            uploadMintGarden();
+                            uploadToMintGarden(offer, network === 'testnet11')
+                              .then(setMintGardenLink)
+                              .catch((error) =>
+                                addError({
+                                  kind: 'upload',
+                                  reason: `${error}`,
+                                }),
+                              );
                           }}
                         >
                           <img
