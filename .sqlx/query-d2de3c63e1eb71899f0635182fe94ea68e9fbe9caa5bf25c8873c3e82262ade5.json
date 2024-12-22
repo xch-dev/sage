@@ -1,10 +1,10 @@
 {
   "db_name": "SQLite",
-  "query": "\n        SELECT COUNT(*) AS `count`\n        FROM `p2_coins`\n        WHERE `coin_id` = ?\n        ",
+  "query": "\n        SELECT `kind`\n        FROM `coin_states`\n        WHERE `coin_id` = ?\n        ",
   "describe": {
     "columns": [
       {
-        "name": "count",
+        "name": "kind",
         "ordinal": 0,
         "type_info": "Integer"
       }
@@ -16,5 +16,5 @@
       false
     ]
   },
-  "hash": "5c8780401ea7fd6853c75c07bdafed8b9f51bdb4fda19c73e2c8d8c48a7262ca"
+  "hash": "d2de3c63e1eb71899f0635182fe94ea68e9fbe9caa5bf25c8873c3e82262ade5"
 }

@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `spent_height`, `created_height`, `transaction_id`\n        FROM `did_coins`\n        INNER JOIN `coin_states` ON `coin_states`.coin_id = `did_coins`.coin_id\n        WHERE `launcher_id` = ?\n        AND `spent_height` IS NULL\n        AND `created_height` IS NOT NULL\n        ",
+  "query": "\n        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `spent_height`, `created_height`, `transaction_id`, `kind`\n        FROM `coin_states`\n        WHERE `spent_height` IS NULL\n        AND `created_height` IS NOT NULL\n        AND `kind` = 1\n        ORDER BY `created_height`, `coin_states`.`coin_id` LIMIT ? OFFSET ?\n        ",
   "describe": {
     "columns": [
       {
@@ -32,10 +32,15 @@
         "name": "transaction_id",
         "ordinal": 5,
         "type_info": "Blob"
+      },
+      {
+        "name": "kind",
+        "ordinal": 6,
+        "type_info": "Integer"
       }
     ],
     "parameters": {
-      "Right": 1
+      "Right": 2
     },
     "nullable": [
       false,
@@ -43,8 +48,9 @@
       false,
       true,
       true,
-      true
+      true,
+      false
     ]
   },
-  "hash": "0abd29e0cb343d6e2ff6f70ca82d8de7f92ce17c3eb4f8e37f9bc138eba5ea6f"
+  "hash": "8bc0f86f64bd3c1777698091cf638fee9876a7631c78ef362f0db3cc14f604f7"
 }
