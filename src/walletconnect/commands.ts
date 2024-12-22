@@ -147,18 +147,6 @@ export const walletConnectCommands = {
     }),
     confirm: false,
   },
-  chia_transfer: {
-    paramsType: z.object({
-      to: z.string(),
-      amount: safeAmount,
-      memos: z.array(z.string()).optional(),
-      assetId: z.string(),
-    }),
-    returnType: z.object({
-      id: z.string(),
-    }),
-    confirm: true,
-  },
   chia_takeOffer: {
     paramsType: z.object({
       offer: z.string(),
@@ -202,6 +190,13 @@ export const walletConnectCommands = {
     }),
     returnType: z.object({}),
     confirm: true,
+  },
+  chia_getAddress: {
+    paramsType: z.object({}),
+    returnType: z.object({
+      address: z.string(),
+    }),
+    confirm: false,
   },
 } as const;
 

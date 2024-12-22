@@ -480,6 +480,44 @@ function CreateOfferDialog({ params }: CommandDialogProps<'chia_createOffer'>) {
   );
 }
 
+function SendDialog({ params }: CommandDialogProps<'chia_send'>) {
+  const walletState = useWalletState();
+
+  return (
+    <div className='space-y-2'>
+      <div>
+        <div className='font-medium'>Address</div>
+        <div className='text-sm truncate text-muted-foreground'>
+          {params.address}
+        </div>
+      </div>
+      <div>
+        <div className='font-medium'>Amount</div>
+        <div className='text-sm text-muted-foreground'>
+          {toDecimal(
+            params.amount,
+            params.assetId ? 3 : walletState.sync.unit.decimals,
+          )}{' '}
+          {params.assetId ? 'CAT' : walletState.sync.unit.ticker}
+        </div>
+      </div>
+      <div>
+        <div className='font-medium'>Fee</div>
+        <div className='text-sm text-muted-foreground'>
+          {toDecimal(params.fee || 0, walletState.sync.unit.decimals)}{' '}
+          {walletState.sync.unit.ticker}
+        </div>
+      </div>
+      {params.assetId && (
+        <div>
+          <div className='font-medium'>Asset Id</div>
+          <div className='text-sm text-muted-foreground'>{params.assetId}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function DefaultCommandDialog({ params }: { params: unknown }) {
   return (
     <div className='p-4'>
@@ -498,6 +536,7 @@ const COMMAND_COMPONENTS: {
   chip0002_signMessage: SignMessageDialog,
   chia_takeOffer: TakeOfferDialog,
   chia_createOffer: CreateOfferDialog,
+  chia_send: SendDialog,
 };
 
 const COMMAND_METADATA: {
@@ -534,8 +573,8 @@ function RequestDialog({
   const params = request.params.request.params;
   const commandInfo = walletConnectCommands[method];
   const metadata = COMMAND_METADATA[method] ?? {
-    title: 'Confirm Action',
-    description: `Confirm ${method.replace(/_/g, ' ')}`,
+    title: 'WalletConnect Request',
+    description: `Would you like to authorize the "${method.split('_').slice(1).join(' ')}" request?`,
   };
   const peerMetadata = signClient?.session.get(request.topic)?.peer.metadata;
 
@@ -552,14 +591,14 @@ function RequestDialog({
         <DialogHeader>
           {peerMetadata && (
             <div className='text-sm text-muted-foreground mb-4'>
-              Request from {peerMetadata.name}
+              From {peerMetadata.name}
             </div>
           )}
           <DialogTitle>{metadata.title}</DialogTitle>
           <DialogDescription>{metadata.description}</DialogDescription>
         </DialogHeader>
 
-        <div className='max-h-[60vh] overflow-y-auto'>
+        <div className='max-h-[60vh] overflow-y-auto mb-2'>
           {CommandComponent && (
             <CommandComponent params={parsedParams as any} />
           )}
