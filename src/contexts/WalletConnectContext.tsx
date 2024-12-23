@@ -476,6 +476,13 @@ function CreateOfferDialog({ params }: CommandDialogProps<'chia_createOffer'>) {
           ))}
         </ul>
       </div>
+      <div>
+        <div className='font-medium'>Fee</div>
+        <div className='text-sm text-muted-foreground'>
+          {toDecimal(params.fee || 0, walletState.sync.unit.decimals)}{' '}
+          {walletState.sync.unit.ticker}
+        </div>
+      </div>
     </div>
   );
 }
@@ -604,7 +611,7 @@ function RequestDialog({
           )}
         </div>
 
-        <DialogFooter className='sm:justify-between'>
+        <DialogFooter>
           <DialogClose asChild>
             <Button variant='outline' onClick={() => reject(request)}>
               Reject
