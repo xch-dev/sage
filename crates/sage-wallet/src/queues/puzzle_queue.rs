@@ -2,7 +2,7 @@ use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use chia::protocol::{Bytes32, CoinState};
 use futures_util::{stream::FuturesUnordered, StreamExt};
-use sage_database::Database;
+use sage_database::{CoinKind, Database};
 use tokio::{
     sync::{mpsc, Mutex},
     task::spawn_blocking,
@@ -55,29 +55,35 @@ impl PuzzleQueue {
             return Ok(());
         }
 
-        let coin_states = self.db.unsynced_coin_states(peers.len()).await?;
+        let coin_states = self.db.unsynced_coin_states(peers.len() * 5).await?;
 
         if coin_states.is_empty() {
             return Ok(());
         }
 
-        debug!(
-            "Syncing a batch of {} coins",
-            coin_states.len().min(peers.len())
-        );
+        debug!("Syncing a batch of {} coins", coin_states.len());
 
         let mut futures = FuturesUnordered::new();
 
-        for (peer, coin_state) in peers.into_iter().zip(coin_states.into_iter()) {
-            let db = self.db.clone();
-            let genesis_challenge = self.genesis_challenge;
-            let addr = peer.socket_addr();
-            let coin_id = coin_state.coin.coin_id();
+        let mut coin_states_iter = coin_states.into_iter();
 
-            futures.push(async move {
-                let result = fetch_puzzle(&peer, &db, genesis_challenge, coin_state).await;
-                (addr, coin_id, result)
-            });
+        for peer in peers {
+            for _ in 0..5 {
+                let Some(coin_state) = coin_states_iter.next() else {
+                    break;
+                };
+
+                let db = self.db.clone();
+                let genesis_challenge = self.genesis_challenge;
+                let addr = peer.socket_addr();
+                let coin_id = coin_state.coin.coin_id();
+                let peer = peer.clone();
+
+                futures.push(async move {
+                    let result = fetch_puzzle(&peer, &db, genesis_challenge, coin_state).await;
+                    (addr, coin_id, result)
+                });
+            }
         }
 
         let mut subscriptions = Vec::new();
@@ -90,17 +96,23 @@ impl PuzzleQueue {
                     }
                 }
                 Err(error) => {
-                    // TODO: Not all errors should result in this exact behavior.
                     debug!(
                         "Failed to lookup puzzle of {} from peer {}: {}",
                         coin_id, addr, error
                     );
 
-                    self.state.lock().await.ban(
-                        addr.ip(),
-                        Duration::from_secs(300),
-                        "failed puzzle lookup",
-                    );
+                    if matches!(
+                        error,
+                        WalletError::Elapsed(..)
+                            | WalletError::PeerMisbehaved
+                            | WalletError::Client(..)
+                    ) {
+                        self.state.lock().await.ban(
+                            addr.ip(),
+                            Duration::from_secs(300),
+                            "failed puzzle lookup",
+                        );
+                    }
                 }
             }
         }
@@ -129,7 +141,8 @@ async fn fetch_puzzle(
     coin_state: CoinState,
 ) -> Result<bool, WalletError> {
     if db.is_p2_puzzle_hash(coin_state.coin.puzzle_hash).await? {
-        db.sync_coin(coin_state.coin.coin_id(), None).await?;
+        db.sync_coin(coin_state.coin.coin_id(), None, CoinKind::Xch)
+            .await?;
         warn!(
             "Could {} should already be synced, but isn't",
             coin_state.coin.coin_id()

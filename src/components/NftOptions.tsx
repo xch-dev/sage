@@ -4,7 +4,7 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   Clock2,
-  CopyCheck,
+  CopyPlus,
   EyeIcon,
   EyeOff,
   Images,
@@ -73,7 +73,7 @@ export function NftOptions({
             onClick={() => setMultiSelect(!multiSelect)}
             aria-label={t`Toggle multi-select`}
           >
-            <CopyCheck
+            <CopyPlus
               className={`h-4 w-4 ${multiSelect ? 'text-green-600 dark:text-green-400' : ''}`}
             />
           </Button>

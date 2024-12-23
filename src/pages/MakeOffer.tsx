@@ -1,7 +1,9 @@
-import { Assets, commands } from '@/bindings';
+import { Assets, commands, NetworkConfig } from '@/bindings';
 import Container from '@/components/Container';
 import { CopyBox } from '@/components/CopyBox';
 import Header from '@/components/Header';
+import { NftSelector } from '@/components/selectors/NftSelector';
+import { TokenSelector } from '@/components/selectors/TokenSelector';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -17,16 +19,19 @@ import { Label } from '@/components/ui/label';
 import { TokenAmountInput } from '@/components/ui/masked-input';
 import { Switch } from '@/components/ui/switch';
 import { useErrors } from '@/hooks/useErrors';
+import { uploadToDexie, uploadToMintGarden } from '@/lib/offerUpload';
 import { toMojos } from '@/lib/utils';
 import { clearOffer, useOfferState, useWalletState } from '@/state';
+import { open } from '@tauri-apps/plugin-shell';
 import {
   HandCoins,
   Handshake,
   ImageIcon,
+  LoaderCircleIcon,
   PlusIcon,
   TrashIcon,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Trans } from '@lingui/react/macro';
 import { t } from '@lingui/core/macro';
@@ -39,47 +44,76 @@ export function MakeOffer() {
   const { addError } = useErrors();
 
   const [offer, setOffer] = useState('');
+  const [pending, setPending] = useState(false);
+  const [dexieLink, setDexieLink] = useState('');
+  const [mintGardenLink, setMintGardenLink] = useState('');
+  const [canUploadToMintGarden, setCanUploadToMintGarden] = useState(false);
 
-  const make = () => {
-    commands
-      .makeOffer({
-        offered_assets: {
-          xch: toMojos(
-            (state.offered.xch || '0').toString(),
-            walletState.sync.unit.decimals,
-          ),
-          cats: state.offered.cats.map((cat) => ({
-            asset_id: cat.asset_id,
-            amount: toMojos((cat.amount || '0').toString(), 3),
-          })),
-          nfts: state.offered.nfts,
-        },
-        requested_assets: {
-          xch: toMojos(
-            (state.requested.xch || '0').toString(),
-            walletState.sync.unit.decimals,
-          ),
-          cats: state.requested.cats.map((cat) => ({
-            asset_id: cat.asset_id,
-            amount: toMojos((cat.amount || '0').toString(), 3),
-          })),
-          nfts: state.requested.nfts,
-        },
-        fee: toMojos(
-          (state.fee || '0').toString(),
+  const [config, setConfig] = useState<NetworkConfig | null>(null);
+  const network = config?.network_id ?? 'mainnet';
+
+  useEffect(() => {
+    commands.networkConfig().then((config) => setConfig(config));
+  }, []);
+
+  useEffect(() => {
+    setDexieLink('');
+    setMintGardenLink('');
+  }, [offer]);
+
+  const handleMake = async () => {
+    setPending(true);
+
+    const mintgardenSupported =
+      (state.offered.xch === '0' || !state.offered.xch) &&
+      state.offered.cats.length === 0 &&
+      state.offered.nfts.length === 1;
+
+    const data = await commands.makeOffer({
+      offered_assets: {
+        xch: toMojos(
+          (state.offered.xch || '0').toString(),
           walletState.sync.unit.decimals,
         ),
-        expires_at_second:
-          state.expiration === null
-            ? null
-            : Math.ceil(Date.now() / 1000) +
-              Number(state.expiration.days || '0') * 24 * 60 * 60 +
-              Number(state.expiration.hours || '0') * 60 * 60 +
-              Number(state.expiration.minutes || '0') * 60,
-      })
-      .then((data) => setOffer(data.offer))
-      .catch(addError);
+        cats: state.offered.cats.map((cat) => ({
+          asset_id: cat.asset_id,
+          amount: toMojos((cat.amount || '0').toString(), 3),
+        })),
+        nfts: state.offered.nfts,
+      },
+      requested_assets: {
+        xch: toMojos(
+          (state.requested.xch || '0').toString(),
+          walletState.sync.unit.decimals,
+        ),
+        cats: state.requested.cats.map((cat) => ({
+          asset_id: cat.asset_id,
+          amount: toMojos((cat.amount || '0').toString(), 3),
+        })),
+        nfts: state.requested.nfts,
+      },
+      fee: toMojos(
+        (state.fee || '0').toString(),
+        walletState.sync.unit.decimals,
+      ),
+      expires_at_second:
+        state.expiration === null
+          ? null
+          : Math.ceil(Date.now() / 1000) +
+            Number(state.expiration.days || '0') * 24 * 60 * 60 +
+            Number(state.expiration.hours || '0') * 60 * 60 +
+            Number(state.expiration.minutes || '0') * 60,
+    });
+
+    await commands.importOffer({ offer: data.offer });
+
+    clearOffer();
+    setOffer(data.offer);
+    setPending(false);
+    setCanUploadToMintGarden(mintgardenSupported);
   };
+
+  const make = () => handleMake().catch(addError);
 
   const invalid =
     state.expiration !== null &&
@@ -106,6 +140,7 @@ export function MakeOffer() {
               </div>
 
               <AssetSelector
+                offering
                 prefix='offer'
                 assets={state.offered}
                 setAssets={(assets) =>
@@ -264,8 +299,11 @@ export function MakeOffer() {
           >
             <Trans>Cancel Offer</Trans>
           </Button>
-          <Button onClick={make} disabled={invalid}>
-            <Trans>Create Offer</Trans>
+          <Button disabled={invalid || pending} onClick={make}>
+            {pending && (
+              <LoaderCircleIcon className='mr-2 h-4 w-4 animate-spin' />
+            )}
+            {pending ? t`Creating Offer` : t`Create Offer`}
           </Button>
         </div>
 
@@ -273,30 +311,81 @@ export function MakeOffer() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>
-                <Trans>Offer Details</Trans>
+                <Trans>Offer Created </Trans>
               </DialogTitle>
               <DialogDescription>
                 <Trans>
-                  Copy the offer file below and send it to the intended
-                  recipient or make it public to be accepted by anyone.
+                  {' '}
+                  The offer has been created and imported successfully. You can
+                  copy the offer file below and send it to the intended
+                  recipient or make it public to be accepted by anyone.{' '}
                 </Trans>
-                <CopyBox title={t`Offer File`} value={offer} className='mt-2' />
+                <CopyBox title='Offer File' value={offer} className='mt-2' />
+                {(network === 'mainnet' || network === 'testnet11') && (
+                  <div className='flex flex-col gap-2 mt-2'>
+                    <div className='grid grid-cols-2 gap-2'>
+                      <Button
+                        variant='outline'
+                        className='text-neutral-800 dark:text-neutral-200'
+                        onClick={() => {
+                          if (dexieLink) return open(dexieLink);
+                          uploadToDexie(offer, network === 'testnet11')
+                            .then(setDexieLink)
+                            .catch((error) =>
+                              addError({
+                                kind: 'upload',
+                                reason: `${error}`,
+                              }),
+                            );
+                        }}
+                      >
+                        <img
+                          src='https://raw.githubusercontent.com/dexie-space/dexie-kit/refs/heads/main/svg/duck.svg'
+                          className='h-4 w-4 mr-2'
+                          alt='Dexie logo'
+                        />
+                        {dexieLink ? t`Dexie Link` : t`Upload to Dexie`}
+                      </Button>
+
+                      {canUploadToMintGarden && (
+                        <Button
+                          variant='outline'
+                          className='text-neutral-800 dark:text-neutral-200'
+                          onClick={() => {
+                            if (mintGardenLink) return open(mintGardenLink);
+                            uploadToMintGarden(offer, network === 'testnet11')
+                              .then(setMintGardenLink)
+                              .catch((error) =>
+                                addError({
+                                  kind: 'upload',
+                                  reason: `${error}`,
+                                }),
+                              );
+                          }}
+                        >
+                          <img
+                            src='https://mintgarden.io/mint-logo.svg'
+                            className='h-4 w-4 mr-2'
+                            alt='MintGarden logo'
+                          />
+                          {mintGardenLink
+                            ? t`MintGarden Link`
+                            : t`Upload to MintGarden`}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                )}
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
               <Button
                 onClick={() => {
-                  commands
-                    .importOffer({ offer })
-                    .then(() => {
-                      setOffer('');
-                      clearOffer();
-                      navigate('/offers', { replace: true });
-                    })
-                    .catch(addError);
+                  setOffer('');
+                  navigate('/offers', { replace: true });
                 }}
               >
-                <Trans>Save</Trans>
+                <Trans>Ok</Trans>
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -307,12 +396,18 @@ export function MakeOffer() {
 }
 
 interface AssetSelectorProps {
+  offering?: boolean;
   prefix: string;
   assets: Assets;
   setAssets: (value: Assets) => void;
 }
 
-function AssetSelector({ prefix, assets, setAssets }: AssetSelectorProps) {
+function AssetSelector({
+  offering,
+  prefix,
+  assets,
+  setAssets,
+}: AssetSelectorProps) {
   const [includeAmount, setIncludeAmount] = useState(!!assets.xch);
 
   return (
@@ -333,7 +428,7 @@ function AssetSelector({ prefix, assets, setAssets }: AssetSelectorProps) {
           onClick={() => {
             setAssets({
               ...assets,
-              nfts: ['', ...assets.nfts],
+              nfts: [...assets.nfts, ''],
             });
           }}
         >
@@ -345,7 +440,7 @@ function AssetSelector({ prefix, assets, setAssets }: AssetSelectorProps) {
           onClick={() => {
             setAssets({
               ...assets,
-              cats: [{ asset_id: '', amount: '' }, ...assets.cats],
+              cats: [...assets.cats, { asset_id: '', amount: '' }],
             });
           }}
         >
@@ -368,7 +463,13 @@ function AssetSelector({ prefix, assets, setAssets }: AssetSelectorProps) {
               variant='outline'
               size='icon'
               className='border-l-0 rounded-l-none flex-shrink-0 flex-grow-0'
-              onClick={() => setIncludeAmount(false)}
+              onClick={() => {
+                setAssets({
+                  ...assets,
+                  xch: '0',
+                });
+                setIncludeAmount(false);
+              }}
             >
               <TrashIcon className='h-4 w-4' />
             </Button>
@@ -377,92 +478,89 @@ function AssetSelector({ prefix, assets, setAssets }: AssetSelectorProps) {
       )}
 
       {assets.nfts.length > 0 && (
-        <div className='flex flex-col gap-4 mt-4'>
+        <div className='flex flex-col mt-4'>
+          <Label className='flex items-center gap-1 mb-2'>
+            <ImageIcon className='h-4 w-4' />
+            <span>NFTs</span>
+          </Label>
           {assets.nfts.map((nft, i) => (
-            <div key={i} className='flex flex-col space-y-1.5'>
-              <Label
-                htmlFor={`${prefix}-nft-${i}`}
-                className='flex items-center gap-1'
-              >
-                <ImageIcon className='h-4 w-4' />
-                <span>
-                  <Trans>NFT</Trans> {i + 1}
-                </span>
-              </Label>
-              <div className='flex'>
+            <div key={i} className='flex h-14 z-20'>
+              {offering === true ? (
+                <NftSelector
+                  value={nft}
+                  onChange={(nftId) => {
+                    assets.nfts[i] = nftId;
+                    setAssets({ ...assets });
+                  }}
+                  disabled={assets.nfts.filter((id) => id !== nft)}
+                  className='rounded-r-none'
+                />
+              ) : (
                 <Input
-                  id={`${prefix}-nft-${i}`}
-                  className='rounded-r-none z-10'
-                  placeholder={t`Enter launcher id`}
+                  className='flex-grow rounded-r-none h-12 z-10'
+                  placeholder='Enter NFT id'
                   value={nft}
                   onChange={(e) => {
                     assets.nfts[i] = e.target.value;
                     setAssets({ ...assets });
                   }}
                 />
-                <Button
-                  variant='outline'
-                  size='icon'
-                  className='border-l-0 rounded-l-none flex-shrink-0 flex-grow-0'
-                  onClick={() => {
-                    assets.nfts.splice(i, 1);
-                    setAssets({ ...assets });
-                  }}
-                >
-                  <TrashIcon className='h-4 w-4' />
-                </Button>
-              </div>
+              )}
+              <Button
+                variant='outline'
+                className='border-l-0 rounded-l-none flex-shrink-0 flex-grow-0 h-12 px-3'
+                onClick={() => {
+                  assets.nfts.splice(i, 1);
+                  setAssets({ ...assets });
+                }}
+              >
+                <TrashIcon className='h-4 w-4' />
+              </Button>
             </div>
           ))}
         </div>
       )}
 
       {assets.cats.length > 0 && (
-        <div className='flex flex-col gap-4 mt-4'>
+        <div className='flex flex-col mt-4'>
+          <Label className='flex items-center gap-1 mb-2'>
+            <HandCoins className='h-4 w-4' />
+            <span>Tokens</span>
+          </Label>
           {assets.cats.map((cat, i) => (
-            <div key={i} className='flex flex-col space-y-1.5'>
-              <Label
-                htmlFor={`${prefix}-cat-${i}`}
-                className='flex items-center gap-1'
+            <div key={i} className='flex h-14'>
+              <TokenSelector
+                value={cat.asset_id}
+                onChange={(assetId) => {
+                  assets.cats[i].asset_id = assetId;
+                  setAssets({ ...assets });
+                }}
+                disabled={assets.cats
+                  .filter((amount) => amount.asset_id !== cat.asset_id)
+                  .map((amount) => amount.asset_id)}
+                className='rounded-r-none'
+                allowManualInput={!offering}
+              />
+              <TokenAmountInput
+                id={`${prefix}-cat-${i}-amount`}
+                className='border-l-0 z-10 rounded-l-none rounded-r-none w-[100px] h-12'
+                placeholder={t`Amount`}
+                value={cat.amount}
+                onChange={(e) => {
+                  assets.cats[i].amount = e.target.value;
+                  setAssets({ ...assets });
+                }}
+              />
+              <Button
+                variant='outline'
+                className='border-l-0 rounded-l-none flex-shrink-0 flex-grow-0 h-12 px-3'
+                onClick={() => {
+                  assets.cats.splice(i, 1);
+                  setAssets({ ...assets });
+                }}
               >
-                <HandCoins className='h-4 w-4' />
-                <span>
-                  <Trans>Token</Trans> {i + 1}
-                </span>
-              </Label>
-              <div className='flex'>
-                <Input
-                  id={`${prefix}-cat-${i}`}
-                  className='rounded-r-none z-10'
-                  placeholder={t`Enter asset id`}
-                  value={cat.asset_id}
-                  onChange={(e) => {
-                    assets.cats[i].asset_id = e.target.value;
-                    setAssets({ ...assets });
-                  }}
-                />
-                <TokenAmountInput
-                  id={`${prefix}-cat-${i}-amount`}
-                  className='border-l-0 z-10 rounded-l-none rounded-r-none w-[100px]'
-                  placeholder={t`Amount`}
-                  value={cat.amount}
-                  onChange={(e) => {
-                    assets.cats[i].amount = e.target.value;
-                    setAssets({ ...assets });
-                  }}
-                />
-                <Button
-                  variant='outline'
-                  size='icon'
-                  className='border-l-0 rounded-l-none flex-shrink-0 flex-grow-0'
-                  onClick={() => {
-                    assets.cats.splice(i, 1);
-                    setAssets({ ...assets });
-                  }}
-                >
-                  <TrashIcon className='h-4 w-4' />
-                </Button>
-              </div>
+                <TrashIcon className='h-4 w-4' />
+              </Button>
             </div>
           ))}
         </div>

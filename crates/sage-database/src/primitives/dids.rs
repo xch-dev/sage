@@ -88,6 +88,18 @@ impl<'a> DatabaseTx<'a> {
     pub async fn did_row_by_coin(&mut self, coin_id: Bytes32) -> Result<Option<DidRow>> {
         did_row_by_coin(&mut *self.tx, coin_id).await
     }
+
+    pub async fn set_did_not_owned(&mut self, coin_id: Bytes32) -> Result<()> {
+        set_did_not_owned(&mut *self.tx, coin_id).await
+    }
+
+    pub async fn set_did_created_height(
+        &mut self,
+        coin_id: Bytes32,
+        height: Option<u32>,
+    ) -> Result<()> {
+        set_did_created_height(&mut *self.tx, coin_id, height).await
+    }
 }
 
 async fn insert_did(conn: impl SqliteExecutor<'_>, row: DidRow) -> Result<()> {
@@ -222,6 +234,37 @@ async fn did_row_by_coin(
     .await?
     .map(into_row)
     .transpose()
+}
+
+async fn set_did_not_owned(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<()> {
+    let coin_id = coin_id.as_ref();
+
+    sqlx::query!(
+        "UPDATE `dids` SET `is_owned` = 0 WHERE `coin_id` = ?",
+        coin_id
+    )
+    .execute(conn)
+    .await?;
+
+    Ok(())
+}
+
+async fn set_did_created_height(
+    conn: impl SqliteExecutor<'_>,
+    coin_id: Bytes32,
+    height: Option<u32>,
+) -> Result<()> {
+    let coin_id = coin_id.as_ref();
+
+    sqlx::query!(
+        "UPDATE `dids` SET `created_height` = ? WHERE `coin_id` = ?",
+        height,
+        coin_id
+    )
+    .execute(conn)
+    .await?;
+
+    Ok(())
 }
 
 async fn did_coin_info(
@@ -366,7 +409,7 @@ async fn created_unspent_did_coin_states(
     let rows = sqlx::query_as!(
         CoinStateSql,
         "
-        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `spent_height`, `created_height`, `transaction_id`
+        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `spent_height`, `created_height`, `transaction_id`, `kind`
         FROM `coin_states`
         INNER JOIN `did_coins` ON `coin_states`.coin_id = `did_coins`.coin_id
         WHERE `spent_height` IS NULL
@@ -391,7 +434,7 @@ async fn created_unspent_did_coin_state(
     let rows = sqlx::query_as!(
         CoinStateSql,
         "
-        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `spent_height`, `created_height`, `transaction_id`
+        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `spent_height`, `created_height`, `transaction_id`, `kind`
         FROM `did_coins`
         INNER JOIN `coin_states` ON `coin_states`.coin_id = `did_coins`.coin_id
         WHERE `launcher_id` = ?

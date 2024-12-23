@@ -12,8 +12,8 @@ pub struct NetworkConfig {
 impl Default for NetworkConfig {
     fn default() -> Self {
         Self {
-            network_id: "testnet11".to_string(),
-            target_peers: 3,
+            network_id: "mainnet".to_string(),
+            target_peers: 5,
             discover_peers: true,
         }
     }

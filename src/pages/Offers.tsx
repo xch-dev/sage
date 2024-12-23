@@ -321,7 +321,7 @@ function AssetPreview({ label, assets }: AssetPreviewProps) {
 
           <div className='text-sm text-muted-foreground truncate'>
             {toDecimal(BigNumber(cat.amount).plus(cat.royalty).toString(), 3)}{' '}
-            {cat.name ?? cat.ticker}
+            {cat.name ?? cat.ticker ?? 'Unknown'}
           </div>
         </div>
       ))}
@@ -333,7 +333,7 @@ function AssetPreview({ label, assets }: AssetPreviewProps) {
           />
 
           <div className='text-sm text-muted-foreground truncate'>
-            {nft.name}
+            {nft.name ?? 'Unknown'}
           </div>
         </div>
       ))}

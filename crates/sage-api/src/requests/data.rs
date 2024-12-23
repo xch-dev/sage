@@ -3,7 +3,7 @@ use specta::Type;
 
 use crate::{
     Amount, CatRecord, CoinRecord, DerivationRecord, DidRecord, NftCollectionRecord, NftData,
-    NftRecord, PendingTransactionRecord, Unit,
+    NftRecord, PendingTransactionRecord, TransactionRecord, Unit,
 };
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Type)]
@@ -80,6 +80,18 @@ pub struct GetPendingTransactions {}
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub struct GetPendingTransactionsResponse {
     pub transactions: Vec<PendingTransactionRecord>,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Type)]
+pub struct GetTransactions {
+    pub offset: u32,
+    pub limit: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct GetTransactionsResponse {
+    pub transactions: Vec<TransactionRecord>,
+    pub total: u32,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Type)]

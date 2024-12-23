@@ -1,4 +1,5 @@
 import { commands } from '@/bindings';
+import { useWalletState } from '@/state';
 import { Params, Return } from '../commands';
 
 export async function handleGetNfts(
@@ -64,4 +65,12 @@ export async function handleSend(
   }
 
   return {};
+}
+
+export async function handleGetAddress(
+  _params: Params<'chia_getAddress'>,
+): Promise<Return<'chia_getAddress'>> {
+  return {
+    address: useWalletState.getState().sync.receive_address,
+  };
 }

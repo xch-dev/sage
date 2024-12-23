@@ -1,6 +1,6 @@
 [package]
 name = "sage-tauri"
-version = "0.8.2"
+version = "0.8.3"
 description = "A next generation Chia wallet."
 authors = ["Rigidity <me@rigidnetwork.com>"]
 license = "Apache-2.0"
@@ -39,6 +39,7 @@ aws-lc-rs = { version = "1", features = ["bindgen"] }
 
 [build-dependencies]
 tauri-build = { workspace = true, features = [] }
+glob = { workspace = true }
 
 [package.metadata.cargo-machete]
 ignored = ["serde_json", "aws-lc-rs"]
