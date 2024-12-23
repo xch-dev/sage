@@ -384,6 +384,7 @@ function CoinCard({
   setSelectedCoins,
 }: CoinCardProps) {
   const walletState = useWalletState();
+  const ticker = asset?.ticker;
 
   const { addError } = useErrors();
 
@@ -517,7 +518,7 @@ function CoinCard({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              <Trans>Combine {asset?.ticker}</Trans>
+              <Trans>Combine {ticker}</Trans>
             </DialogTitle>
             <DialogDescription>
               <Trans>
@@ -566,7 +567,7 @@ function CoinCard({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              <Trans>Split {asset?.ticker}</Trans>
+              <Trans>Split {ticker}</Trans>
             </DialogTitle>
             <DialogDescription>
               <Trans>This will split all of the selected coins.</Trans>

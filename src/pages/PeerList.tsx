@@ -169,6 +169,10 @@ export default function PeerList() {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedPeers, setSelectedPeers] = useState(new Set());
 
+  const totalPeersCount = peers?.length ?? 0;
+  const selectedPeersCount = selectedPeers.size;
+  const peersToDeleteCount = peerToDelete?.length ?? 0;
+
   const isMobile = platform() === 'ios' || platform() === 'android';
 
   const columns: ColumnDef<PeerRecord>[] = [
@@ -312,10 +316,10 @@ export default function PeerList() {
               <CardTitle className='flex-1'>
                 {selectionMode ? (
                   <Trans>
-                    Selected {selectedPeers.size} of {peers?.length ?? 0} peers
+                    Selected {selectedPeersCount} of {totalPeersCount} peers
                   </Trans>
                 ) : (
-                  <Trans>Connected to {peers?.length ?? 0} peers</Trans>
+                  <Trans>Connected to {totalPeersCount} peers</Trans>
                 )}
               </CardTitle>
               {selectionMode ? (
@@ -342,7 +346,7 @@ export default function PeerList() {
                     }}
                     disabled={selectedPeers.size === 0}
                   >
-                    <Trans>Delete ({selectedPeers.size})</Trans>
+                    <Trans>Delete {selectedPeersCount}</Trans>
                   </Button>
                 </div>
               ) : (
@@ -505,13 +509,13 @@ export default function PeerList() {
                 <Trans>Are you sure you want to remove the peer?</Trans>
               ) : (
                 <Trans>
-                  Are you sure you want to remove {peerToDelete?.length} peers?
+                  Are you sure you want to remove {peersToDeleteCount} peers?
                 </Trans>
               )}
             </DialogTitle>
             <DialogDescription>
               <Plural
-                value={peerToDelete?.length || 0}
+                value={peersToDeleteCount}
                 one={`This will remove the peer from your connection. If you are currently syncing against this peer, a new one will be used to replace it.`}
                 other={`This will remove # peers from your connection. If you are currently syncing against these peers, new ones will be used to replace them.`}
               />
@@ -520,7 +524,7 @@ export default function PeerList() {
               <Switch id='ban' checked={ban} onCheckedChange={setBan} />
               <Label htmlFor='ban'>
                 <Plural
-                  value={peerToDelete?.length || 0}
+                  value={peersToDeleteCount}
                   one={'Ban peer temporarily'}
                   other={'Ban peers temporarily'}
                 />
@@ -531,7 +535,7 @@ export default function PeerList() {
                 </PopoverTrigger>
                 <PopoverContent className='text-sm'>
                   <Plural
-                    value={peerToDelete?.length || 0}
+                    value={peersToDeleteCount}
                     one={
                       'Will temporarily prevent the peer from being connected to.'
                     }
@@ -567,7 +571,7 @@ export default function PeerList() {
                 autoFocus
               >
                 <Plural
-                  value={peerToDelete?.length || 0}
+                  value={peersToDeleteCount}
                   one={'Remove Peer'}
                   other={'Remove Peers'}
                 />

@@ -43,12 +43,13 @@ import {
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { commands, DidRecord, TransactionResponse } from '../bindings';
-import { Trans } from '@lingui/react/macro';
+import { Plural, Trans } from '@lingui/react/macro';
 import { t } from '@lingui/core/macro';
 
 export function DidList() {
   const navigate = useNavigate();
   const { dids, updateDids } = useDids();
+  const didsCount = dids.length;
   const [showHidden, setShowHidden] = useState(false);
 
   const visibleDids = showHidden ? dids : dids.filter((did) => did.visible);
@@ -85,11 +86,11 @@ export function DidList() {
               <Trans>Create a profile?</Trans>
             </AlertTitle>
             <AlertDescription>
-              <Trans>
-                You do not currently have any{' '}
-                {dids.length > 0 ? 'visible ' : ''} DID profiles. Would you like
-                to create one?
-              </Trans>
+              <Plural
+                value={dids.length}
+                one='You do not currently have any DID profile. Would you like to create one?'
+                other='You do not currently have any DID profiles. Would you like to create one?'
+              />
             </AlertDescription>
           </Alert>
         )}

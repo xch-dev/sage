@@ -26,6 +26,8 @@ export function ViewOffer() {
   const [response, setResponse] = useState<TakeOfferResponse | null>(null);
   const [fee, setFee] = useState('');
 
+  const makerFee = toDecimal(summary!.fee, walletState.sync.unit.decimals);
+
   useEffect(() => {
     if (!offer) return;
 
@@ -85,7 +87,7 @@ export function ViewOffer() {
 
               <span className='text-xs text-muted-foreground'>
                 {BigNumber(summary?.fee ?? '0').isGreaterThan(0)
-                  ? t`This does not include a fee of ${toDecimal(summary!.fee, walletState.sync.unit.decimals)} which was already added by the maker.`
+                  ? t`This does not include a fee of ${makerFee} which was already added by the maker.`
                   : ''}
               </span>
             </div>

@@ -19,6 +19,8 @@ import { t } from '@lingui/core/macro';
 export default function Addresses() {
   const { addError } = useErrors();
   const walletState = useWalletState();
+  const ticker = walletState.sync.unit.ticker;
+
   const [addresses, setAddresses] = useState<string[]>([]);
 
   const updateAddresses = useCallback(() => {
@@ -46,7 +48,7 @@ export default function Addresses() {
 
   return (
     <>
-      <Header title={t`Receive ${walletState.sync.unit.ticker}`} />
+      <Header title={t`Receive ${ticker}`} />
 
       <Container className='flex flex-col gap-4 max-w-screen-lg'>
         <Card>

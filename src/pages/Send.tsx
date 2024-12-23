@@ -45,6 +45,8 @@ export default function Send() {
   );
   const [response, setResponse] = useState<TransactionResponse | null>(null);
 
+  const ticker = asset?.ticker || t`unknown asset`;
+
   const updateCat = useCallback(
     () =>
       commands
@@ -131,10 +133,7 @@ export default function Send() {
 
   return (
     <>
-      <Header
-        title={t`Send ${asset?.ticker || t`unknown asset`}`}
-        back={() => navigate(-1)}
-      />
+      <Header title={t`Send ${ticker}`} back={() => navigate(-1)} />
 
       <Container className='max-w-xl'>
         <Form {...form}>
@@ -216,7 +215,7 @@ export default function Send() {
             </div>
 
             <Button type='submit'>
-              <Trans>Send {asset?.ticker}</Trans>
+              <Trans>Send {ticker}</Trans>
             </Button>
           </form>
         </Form>

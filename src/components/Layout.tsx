@@ -19,6 +19,8 @@ export default function Layout(props: PropsWithChildren<object>) {
   const { peers } = usePeers();
 
   const walletState = useWalletState();
+  const syncedCoins = walletState.sync.synced_coins;
+  const totalCoins = walletState.sync.total_coins;
   const isSynced = useMemo(
     () => walletState.sync.synced_coins === walletState.sync.total_coins,
     [walletState.sync.synced_coins, walletState.sync.total_coins],
@@ -83,8 +85,7 @@ export default function Layout(props: PropsWithChildren<object>) {
                   </>
                 ) : (
                   <Trans>
-                    Syncing {walletState.sync.synced_coins} /{' '}
-                    {walletState.sync.total_coins}
+                    Syncing {syncedCoins} / {totalCoins}
                   </Trans>
                 )}
               </Link>

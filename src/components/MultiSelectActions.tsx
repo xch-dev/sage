@@ -35,6 +35,7 @@ export function MultiSelectActions({
 }: MultiSelectActionsProps) {
   const walletState = useWalletState();
   const { addError } = useErrors();
+  const selectedCount = selected.length;
 
   const [transferOpen, setTransferOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
@@ -82,7 +83,7 @@ export function MultiSelectActions({
     <>
       <div className='absolute flex justify-between items-center gap-3 bottom-6 w-60 px-5 p-3 rounded-lg shadow-md shadow-black/20 left-1/2 -translate-x-1/2 bg-white border border-neutral-200 dark:border-neutral-800 dark:bg-neutral-900'>
         <span className='flex-shrink-0 text-neutral-900 dark:text-white'>
-          <Trans>{selected.length} selected</Trans>
+          <Trans>{selectedCount} selected</Trans>
         </span>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -156,7 +157,7 @@ export function MultiSelectActions({
         onSubmit={onTransferSubmit}
       >
         <Trans>
-          This will bulk transfer {selected.length} NFTs to another wallet. Are
+          This will bulk transfer {selectedCount} NFTs to another wallet. Are
           you sure you want to proceed?
         </Trans>
       </TransferDialog>
@@ -186,7 +187,7 @@ export function MultiSelectActions({
         onSubmit={onBurnSubmit}
       >
         <Trans>
-          This will bulk burn {selected.length} NFTs. This cannot be undone. Are
+          This will bulk burn {selectedCount} NFTs. This cannot be undone. Are
           you sure you want to proceed?
         </Trans>
       </FeeOnlyDialog>

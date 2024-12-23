@@ -120,10 +120,8 @@ export function Offers() {
                   </Trans>
                 </p>
                 <p className='mt-1 text-sm text-muted-foreground'>
-                  <Trans>
-                    You can also paste an offer using{' '}
-                    <kbd>{platform() === 'macos' ? '⌘+V' : 'Ctrl+V'}</kbd>.
-                  </Trans>
+                  <Trans>You can also paste an offer using</Trans>
+                  <kbd>{platform() === 'macos' ? '⌘+V' : 'Ctrl+V'}</kbd>.
                 </p>
               </div>
               <div className='flex gap-2'>

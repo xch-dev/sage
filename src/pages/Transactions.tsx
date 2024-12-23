@@ -127,6 +127,10 @@ function Transaction({ transaction }: TransactionProps) {
   const cats: Record<string, TransactionCat> = {};
   const nfts: Record<string, TransactionNft> = {};
 
+  const transactionHeight = transaction.height;
+  const transactionSpentLength = transaction.spent.length;
+  const transactionCreatedLength = transaction.created.length;
+
   console.log(transaction);
 
   for (const [coins, add] of [
@@ -179,11 +183,11 @@ function Transaction({ transaction }: TransactionProps) {
         <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
           <div className='flex flex-col gap-2'>
             <div>
-              <Trans>Block #{transaction.height}</Trans>
+              <Trans>Block #{transactionHeight}</Trans>
             </div>
             <div className='text-sm text-muted-foreground truncate'>
-              <Trans>{transaction.spent.length} coins spent,</Trans>{' '}
-              <Trans>{transaction.created.length} created</Trans>
+              <Trans>{transactionSpentLength} coins spent,</Trans>{' '}
+              <Trans>{transactionCreatedLength} created</Trans>
             </div>
           </div>
           <AssetPreview label={t`Sent`} assets={assets} />

@@ -24,6 +24,8 @@ export default function Nft() {
   const [nft, setNft] = useState<NftRecord | null>(null);
   const [data, setData] = useState<NftData | null>(null);
 
+  const royaltyPercentage = nft?.royalty_ten_thousandths ?? 0 / 100;
+
   const updateNft = useMemo(
     () => () => {
       commands
@@ -242,9 +244,7 @@ export default function Nft() {
 
             <div>
               <h6 className='text-md font-bold'>
-                <Trans>
-                  Royalties ({(nft?.royalty_ten_thousandths ?? 0) / 100}%)
-                </Trans>
+                <Trans>Royalties {royaltyPercentage}%</Trans>
               </h6>
               <div className='break-all text-sm'>{nft?.royalty_address}</div>
             </div>

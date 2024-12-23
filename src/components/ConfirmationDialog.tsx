@@ -62,6 +62,7 @@ export default function ConfirmationDialog({
   onConfirm,
 }: ConfirmationDialogProps) {
   const walletState = useWalletState();
+  const ticker = walletState.sync.unit.ticker;
 
   const { addError } = useErrors();
 
@@ -141,8 +142,7 @@ export default function ConfirmationDialog({
                       </AlertTitle>
                       <AlertDescription>
                         <Trans>
-                          Fee exceeds recommended maximum of 0.001{' '}
-                          {walletState.sync.unit.ticker}
+                          Fee exceeds recommended maximum of 0.001 {ticker}
                         </Trans>
                       </AlertDescription>
                     </Alert>
