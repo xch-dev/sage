@@ -187,11 +187,8 @@ impl Sage {
 
         let (sync_manager, command_sender, receiver) = SyncManager::new(
             SyncOptions {
-                target_peers: if self.config.network.discover_peers {
-                    self.config.network.target_peers as usize
-                } else {
-                    0
-                },
+                target_peers: self.config.network.target_peers.try_into()?,
+                discover_peers: self.config.network.discover_peers,
                 max_peer_age_seconds: 3600 * 8,
                 dns_batch_size: 10,
                 connection_batch_size: 30,
