@@ -90,7 +90,7 @@ export function DropdownSelector<T>({
               </DropdownMenuLabel>
             )}
             {manualInput && <div className='p-2'>{manualInput}</div>}
-            {!!setPage || (manualInput && <DropdownMenuSeparator />)}
+            {(!!setPage || manualInput) && <DropdownMenuSeparator />}
           </>
           <div className='max-h-[260px] overflow-y-auto'>
             {loadedItems.length === 0 ? (
