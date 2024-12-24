@@ -33,8 +33,8 @@ pub async fn upsert_coin(
     let start = Instant::now();
     let is_p2 = tx.is_p2_puzzle_hash(coin_state.coin.puzzle_hash).await?;
     counters.is_p2 += start.elapsed();
-    // If the coin is XCH, there's no reason to sync the puzzle.
 
+    // If the coin is XCH, there's no reason to sync the puzzle.
     let start = Instant::now();
     tx.insert_coin_state(coin_state, is_p2, transaction_id)
         .await?;
