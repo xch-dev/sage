@@ -1,3 +1,4 @@
+import SafeAreaView from '@/components/SafeAreaView';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -35,7 +36,6 @@ import { useNavigate } from 'react-router-dom';
 import { commands, KeyInfo, SecretKeyInfo } from '../bindings';
 import Container from '../components/Container';
 import { loginAndUpdateState } from '../state';
-import SafeAreaView from '@/components/SafeAreaView';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -66,7 +66,7 @@ export default function Login() {
 
   return (
     <SafeAreaView>
-      <div className='flex-1 space-y-4 p-8 pt-6'>
+      <div className='flex-1 space-y-4 p-8 pt-6 overflow-y-scroll'>
         <div className='flex items-center justify-between space-y-2'>
           {(keys?.length ?? 0) > 0 && (
             <>

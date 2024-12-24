@@ -2,13 +2,13 @@ import { Cog, LogOut } from 'lucide-react';
 import { PropsWithChildren, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
+import { useInsets } from '@/contexts/SafeAreaContext';
 import useInitialization from '@/hooks/useInitialization';
 import { usePeers } from '@/hooks/usePeers';
 import { useWallet } from '@/hooks/useWallet';
 import icon from '@/icon.png';
 import { logoutAndUpdateState, useWalletState } from '@/state';
 import { Nav } from './Nav';
-import { useInsets } from '@/contexts/SafeAreaContext';
 
 export default function Layout(props: PropsWithChildren<object>) {
   const navigate = useNavigate();
