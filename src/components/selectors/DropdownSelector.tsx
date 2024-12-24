@@ -55,14 +55,8 @@ export function DropdownSelector<T>({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align='start' className={width}>
-          {manualInput && (
-            <>
-              <div className='p-2'>{manualInput}</div>
-              <DropdownMenuSeparator />
-            </>
-          )}
-          {setPage && (
-            <>
+          <>
+            {!!setPage && (
               <DropdownMenuLabel>
                 <div className='flex items-center justify-between'>
                   <span>
@@ -94,10 +88,11 @@ export function DropdownSelector<T>({
                   </div>
                 </div>
               </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-            </>
-          )}
-          <div className='max-h-[300px] overflow-y-auto'>
+            )}
+            {manualInput && <div className='p-2'>{manualInput}</div>}
+            {(!!setPage || manualInput) && <DropdownMenuSeparator />}
+          </>
+          <div className='max-h-[260px] overflow-y-auto'>
             {loadedItems.length === 0 ? (
               <div className='p-4 text-center text-sm text-muted-foreground'>
                 No items available

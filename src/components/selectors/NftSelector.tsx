@@ -1,8 +1,10 @@
 import { commands, NftRecord } from '@/bindings';
 import { useErrors } from '@/hooks/useErrors';
 import { nftUri } from '@/lib/nftUri';
+import { addressInfo } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { useEffect, useState } from 'react';
+import { Input } from '../ui/input';
 import { DropdownSelector } from './DropdownSelector';
 
 export interface NftSelectorProps {
@@ -45,6 +47,14 @@ export function NftSelector({
 
   useEffect(() => {
     if (value && selectedNft?.launcher_id !== value) {
+      try {
+        if (addressInfo(value).puzzleHash.length !== 64) {
+          return setSelectedNft(null);
+        }
+      } catch {
+        return setSelectedNft(null);
+      }
+
       commands
         .getNft({ nft_id: value })
         .then((data) => setSelectedNft(data.nft))
@@ -57,7 +67,13 @@ export function NftSelector({
   useEffect(() => {
     const nftsToFetch = [...nfts.map((nft) => nft.launcher_id)];
     if (value && !nfts.find((nft) => nft.launcher_id === value)) {
-      nftsToFetch.push(value);
+      try {
+        if (addressInfo(value).puzzleHash.length === 64) {
+          nftsToFetch.push(value);
+        }
+      } catch {
+        // The checksum failed
+      }
     }
 
     Promise.all(
@@ -90,6 +106,18 @@ export function NftSelector({
         setSelectedNft(nft);
       }}
       className={className}
+      manualInput={
+        <Input
+          placeholder='Enter NFT id'
+          value={value || ''}
+          onChange={(e) => {
+            onChange(e.target.value);
+            setSelectedNft(
+              nfts.find((nft) => nft.launcher_id === e.target.value) ?? null,
+            );
+          }}
+        />
+      }
       renderItem={(nft) => (
         <div className='flex items-center gap-2 w-full'>
           <img
