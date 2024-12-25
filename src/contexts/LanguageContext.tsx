@@ -1,15 +1,24 @@
 import { loadCatalog } from '@/i18n';
 import { createContext, useContext, useState, ReactNode } from 'react';
 
+const SUPPORTED_LANGUAGES = ['en-US', 'de-DE'] as const;
+export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
 export interface LanguageContextType {
-  locale: string;
-  changeLanguage: (newLocale: string) => Promise<void>;
+  locale: SupportedLanguage;
+  changeLanguage: (newLocale: SupportedLanguage) => Promise<void>;
 }
 
 export const LanguageContext = createContext<LanguageContextType>({
-  locale: '',
+  locale: 'en-US',
   changeLanguage: async () => {},
 });
+
+export const getBrowserLanguage = (): SupportedLanguage => {
+  const browserLang = navigator.language;
+  return SUPPORTED_LANGUAGES.includes(browserLang as SupportedLanguage)
+    ? (browserLang as SupportedLanguage)
+    : 'en-US';
+};
 
 export function LanguageProvider({
   children,
@@ -17,10 +26,10 @@ export function LanguageProvider({
   setLocale,
 }: {
   children: ReactNode;
-  locale: string;
-  setLocale: (locale: string) => void;
+  locale: SupportedLanguage;
+  setLocale: (locale: SupportedLanguage) => void;
 }) {
-  const changeLanguage = async (newLocale: string) => {
+  const changeLanguage = async (newLocale: SupportedLanguage) => {
     await loadCatalog(newLocale);
     setLocale(newLocale);
   };
@@ -35,38 +44,3 @@ export function LanguageProvider({
 export function useLanguage() {
   return useContext(LanguageContext);
 }
-// import { loadCatalog } from '@/i18n';
-// import { createContext, useContext, useState, ReactNode } from 'react';
-// import { useLocalStorage } from 'usehooks-ts';
-
-// interface LanguageContextType {
-//   locale: string;
-//   changeLanguage: (newLocale: string) => Promise<void>;
-// }
-
-// const LanguageContext = createContext<LanguageContextType | undefined>(
-//   undefined,
-// );
-
-// export function LanguageProvider({ children }: { children: ReactNode }) {
-//   const [locale, setLocale] = useLocalStorage('locale', 'en-US');
-
-//   const changeLanguage = async (newLocale: string) => {
-//     await loadCatalog(newLocale);
-//     setLocale(newLocale);
-//   };
-
-//   return (
-//     <LanguageContext.Provider value={{ locale, changeLanguage }}>
-//       {children}
-//     </LanguageContext.Provider>
-//   );
-// }
-
-// export function useLanguage() {
-//   const context = useContext(LanguageContext);
-//   if (!context) {
-//     throw new Error('useLanguage must be used within a LanguageProvider');
-//   }
-//   return context;
-// }

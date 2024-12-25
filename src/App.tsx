@@ -39,7 +39,12 @@ import { getInsets } from 'tauri-plugin-safe-area-insets';
 import { SafeAreaProvider } from './contexts/SafeAreaContext';
 import { i18n } from '@lingui/core';
 import { I18nProvider } from '@lingui/react';
-import { LanguageProvider, useLanguage } from './contexts/LanguageContext';
+import {
+  getBrowserLanguage,
+  LanguageProvider,
+  SupportedLanguage,
+  useLanguage,
+} from './contexts/LanguageContext';
 import { loadCatalog } from './i18n';
 
 export interface DarkModeContext {
@@ -96,7 +101,10 @@ const router = createHashRouter(
 
 export default function App() {
   const [dark, setDark] = useLocalStorage('dark', false);
-  const [locale, setLocale] = useLocalStorage('locale', 'en-US');
+  const [locale, setLocale] = useLocalStorage<SupportedLanguage>(
+    'locale',
+    getBrowserLanguage,
+  );
 
   const darkMode = useMemo<DarkModeContext>(
     () => ({
