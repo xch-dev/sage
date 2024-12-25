@@ -132,11 +132,7 @@ async fn start_rpc(path: PathBuf) -> Result<()> {
     let mut app = Sage::new(&path);
     let mut receiver = app.initialize().await?;
 
-    tokio::spawn(async move {
-        while let Some(message) = receiver.recv().await {
-            println!("{message:?}");
-        }
-    });
+    tokio::spawn(async move { while let Some(_message) = receiver.recv().await {} });
 
     let addr: SocketAddr = ([127, 0, 0, 1], app.config.rpc.server_port).into();
     info!("RPC server is listening at {addr}");
