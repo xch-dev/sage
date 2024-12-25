@@ -220,47 +220,30 @@ pub async fn incremental_sync(
     derive_automatically: bool,
     sync_sender: &mpsc::Sender<SyncEvent>,
 ) -> Result<(), WalletError> {
-    let mut batch_index = 0;
+    let mut tx = wallet.db.tx().await?;
 
-    for batch in coin_states.chunks(10000) {
-        batch_index += 1;
+    let start = Instant::now();
 
-        let mut tx = wallet.db.tx().await?;
+    let mut counters = UpsertCounters::default();
 
-        let start = Instant::now();
+    for &coin_state in &coin_states {
+        upsert_coin(&mut tx, coin_state, None, &mut counters).await?;
 
-        let mut counters = UpsertCounters::default();
-
-        for &coin_state in batch {
-            upsert_coin(&mut tx, coin_state, None, &mut counters).await?;
-
-            if coin_state.spent_height.is_some() {
-                let start = Instant::now();
-                delete_puzzle(&mut tx, coin_state.coin.coin_id()).await?;
-                counters.delete_puzzle += start.elapsed();
-            }
+        if coin_state.spent_height.is_some() {
+            let start = Instant::now();
+            delete_puzzle(&mut tx, coin_state.coin.coin_id()).await?;
+            counters.delete_puzzle += start.elapsed();
         }
-
-        tx.commit().await?;
-
-        debug!(
-            "Upserted {} coins in batch #{batch_index} in {:?}, with counters {:?}",
-            batch.len(),
-            start.elapsed(),
-            counters
-        );
-
-        sleep(Duration::from_secs(5)).await;
     }
 
-    sync_sender
-        .send(SyncEvent::CoinsUpdated { coin_states })
-        .await
-        .ok();
+    debug!(
+        "Upserted {} coins in {:?}, with counters {:?}",
+        coin_states.len(),
+        start.elapsed(),
+        counters
+    );
 
     let mut derived = false;
-
-    let mut tx = wallet.db.tx().await?;
 
     let mut next_index = tx.derivation_index(false).await?;
 
@@ -281,6 +264,11 @@ pub async fn incremental_sync(
     }
 
     tx.commit().await?;
+
+    sync_sender
+        .send(SyncEvent::CoinsUpdated { coin_states })
+        .await
+        .ok();
 
     if derived {
         sync_sender
