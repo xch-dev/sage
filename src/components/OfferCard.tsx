@@ -110,7 +110,7 @@ function Assets({ assets }: AssetsProps) {
             <>
               <Separator className='my-1' />
               <div className='text-sm text-muted-foreground truncate text-neutral-600 dark:text-neutral-300'>
-                <Trans>Amount includes </Trans>{' '}
+                <Trans>Amount includes</Trans>{' '}
                 {toDecimal(assets.xch.royalty, walletState.sync.unit.decimals)}{' '}
                 {walletState.sync.unit.ticker} <Trans>royalty</Trans>
               </div>

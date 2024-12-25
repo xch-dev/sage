@@ -26,8 +26,8 @@ export function Nav() {
         <Trans>Profiles</Trans>
       </NavLink>
       <NavLink url={'/offers'}>
-      <RouteIcon className='h-4 w-4' />
-      <Trans>Offers</Trans>
+        <RouteIcon className='h-4 w-4' />
+        <Trans>Offers</Trans>
       </NavLink>
       <NavLink url={'/wallet/addresses'}>
         <BookUser className='h-4 w-4' />
@@ -35,7 +35,7 @@ export function Nav() {
       </NavLink>
       <NavLink url={'/transactions'}>
         <ArrowLeftRight className='h-4 w-4' />
-        Transactions
+        <Trans>Transactions</Trans>
       </NavLink>
     </nav>
   );

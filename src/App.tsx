@@ -1,4 +1,4 @@
-import { createContext, useEffect, useMemo } from 'react';
+import { createContext, useEffect, useMemo, useState } from 'react';
 import {
   createHashRouter,
   createRoutesFromElements,
@@ -39,6 +39,8 @@ import { getInsets } from 'tauri-plugin-safe-area-insets';
 import { SafeAreaProvider } from './contexts/SafeAreaContext';
 import { i18n } from '@lingui/core';
 import { I18nProvider } from '@lingui/react';
+import { LanguageProvider, useLanguage } from './contexts/LanguageContext';
+import { loadCatalog } from './i18n';
 
 export interface DarkModeContext {
   toggle: () => void;
@@ -94,6 +96,7 @@ const router = createHashRouter(
 
 export default function App() {
   const [dark, setDark] = useLocalStorage('dark', false);
+  const [locale, setLocale] = useLocalStorage('locale', 'en-US');
 
   const darkMode = useMemo<DarkModeContext>(
     () => ({
@@ -111,7 +114,7 @@ export default function App() {
   }, [dark]);
 
   return (
-    <I18nProvider i18n={i18n}>
+    <LanguageProvider locale={locale} setLocale={setLocale}>
       <DarkModeContext.Provider value={darkMode}>
         <SafeAreaProvider>
           <ErrorProvider>
@@ -119,13 +122,23 @@ export default function App() {
           </ErrorProvider>
         </SafeAreaProvider>
       </DarkModeContext.Provider>
-    </I18nProvider>
+    </LanguageProvider>
   );
 }
 
 function AppInner() {
   const initialized = useInitialization();
+  const { locale } = useLanguage();
   const wallet = useWallet(initialized);
+  const [isLocaleInitialized, setIsLocaleInitialized] = useState(false);
+
+  useEffect(() => {
+    const initLocale = async () => {
+      await loadCatalog(locale);
+      setIsLocaleInitialized(true);
+    };
+    initLocale();
+  }, []);
 
   useEffect(() => {
     if (wallet !== null) {
@@ -134,14 +147,17 @@ function AppInner() {
   }, [wallet]);
 
   return (
-    initialized && (
-      <PeerProvider>
-        <WalletConnectProvider>
-          <PriceProvider>
-            <RouterProvider router={router} />
-          </PriceProvider>
-        </WalletConnectProvider>
-      </PeerProvider>
+    initialized &&
+    isLocaleInitialized && (
+      <I18nProvider i18n={i18n}>
+        <PeerProvider>
+          <WalletConnectProvider>
+            <PriceProvider>
+              <RouterProvider router={router} />
+            </PriceProvider>
+          </WalletConnectProvider>
+        </PeerProvider>
+      </I18nProvider>
     )
   );
 }

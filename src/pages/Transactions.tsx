@@ -128,8 +128,8 @@ function Transaction({ transaction }: TransactionProps) {
   const nfts: Record<string, TransactionNft> = {};
 
   const transactionHeight = transaction.height;
-  const transactionSpentLength = transaction.spent.length;
-  const transactionCreatedLength = transaction.created.length;
+  const transactionSpentCount = transaction.spent.length;
+  const transactionCreatedCount = transaction.created.length;
 
   console.log(transaction);
 
@@ -186,8 +186,8 @@ function Transaction({ transaction }: TransactionProps) {
               <Trans>Block #{transactionHeight}</Trans>
             </div>
             <div className='text-sm text-muted-foreground truncate'>
-              <Trans>{transactionSpentLength} coins spent,</Trans>{' '}
-              <Trans>{transactionCreatedLength} created</Trans>
+              <Trans>{transactionSpentCount} coins spent,</Trans>{' '}
+              <Trans>{transactionCreatedCount} created</Trans>
             </div>
           </div>
           <AssetPreview label={t`Sent`} assets={assets} />

@@ -29,6 +29,7 @@ export default function Header(
   const wallet = useWallet(initialized);
 
   const { peers } = usePeers();
+  const peerCount = peers?.length || 0;
 
   const walletState = useWalletState();
   const syncedCoins = walletState.sync.synced_coins;
@@ -121,11 +122,7 @@ export default function Header(
               ></span>
               {isSynced ? (
                 <>
-                  <Plural
-                    value={peers?.length || 0}
-                    one={'# peer'}
-                    other={'# peers'}
-                  />{' '}
+                  <Plural value={peerCount} one={'# peer'} other={'# peers'} />{' '}
                   {peerMaxHeight
                     ? t`at peak ${peerMaxHeight}`
                     : t`connecting...`}

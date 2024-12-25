@@ -311,14 +311,13 @@ export function MakeOffer() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>
-                <Trans>Offer Created </Trans>
+                <Trans>Offer Created</Trans>
               </DialogTitle>
               <DialogDescription>
                 <Trans>
-                  {' '}
                   The offer has been created and imported successfully. You can
                   copy the offer file below and send it to the intended
-                  recipient or make it public to be accepted by anyone.{' '}
+                  recipient or make it public to be accepted by anyone.
                 </Trans>
                 <CopyBox title='Offer File' value={offer} className='mt-2' />
                 {(network === 'mainnet' || network === 'testnet11') && (

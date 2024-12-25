@@ -18,6 +18,8 @@ export default function Layout(props: PropsWithChildren<object>) {
 
   const { peers } = usePeers();
 
+  const peerCount = peers?.length || 0;
+
   const walletState = useWalletState();
   const syncedCoins = walletState.sync.synced_coins;
   const totalCoins = walletState.sync.total_coins;
@@ -75,7 +77,7 @@ export default function Layout(props: PropsWithChildren<object>) {
                 {isSynced ? (
                   <>
                     <Plural
-                      value={peers?.length || 0}
+                      value={peerCount}
                       one={'# peer'}
                       other={'# peers'}
                     />{' '}

@@ -30,6 +30,8 @@ import {
 import { isValidU32 } from '../validation';
 import { Trans } from '@lingui/react/macro';
 import { t } from '@lingui/core/macro';
+import { loadCatalog } from '@/i18n';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function Settings() {
   const initialized = useInitialization();
@@ -52,6 +54,7 @@ export default function Settings() {
 
 function GlobalSettings() {
   const { dark, setDark } = useContext(DarkModeContext);
+  const { locale, changeLanguage } = useLanguage();
 
   return (
     <Card>
@@ -60,7 +63,7 @@ function GlobalSettings() {
           <Trans>Global</Trans>
         </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className='space-y-4'>
         <div className='grid gap-6'>
           <div className='flex items-center space-x-2'>
             <Switch
@@ -72,6 +75,20 @@ function GlobalSettings() {
               <Trans>Dark Mode</Trans>
             </Label>
           </div>
+        </div>
+        <div className='grid gap-3'>
+          <Label htmlFor='language'>
+            <Trans>Language</Trans>
+          </Label>
+          <Select value={locale} onValueChange={changeLanguage}>
+            <SelectTrigger id='language'>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value='en-US'>English</SelectItem>
+              <SelectItem value='de-DE'>Deutsch</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </CardContent>
     </Card>

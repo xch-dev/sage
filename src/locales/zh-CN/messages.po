@@ -1,23 +1,25 @@
 msgid ""
 msgstr ""
-"POT-Creation-Date: 2024-12-23 19:37-0300\n"
+"POT-Creation-Date: 2024-12-25 09:50-0300\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: @lingui/cli\n"
 "Language: zh-CN\n"
-
-#: src/pages/MakeOffer.tsx:317
-msgid " The offer has been created and imported successfully. You can copy the offer file below and send it to the intended recipient or make it public to be accepted by anyone. "
-msgstr ""
-
-#: src/components/Layout.tsx:77
-#: src/components/Header.tsx:124
-msgid "{0, plural, one {# peer} other {# peers}}"
-msgstr ""
+"Project-Id-Version: \n"
+"Report-Msgid-Bugs-To: \n"
+"PO-Revision-Date: \n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Plural-Forms: \n"
 
 #: src/pages/DidList.tsx:89
-msgid "{0, plural, one {You do not currently have any DID profile. Would you like to create one?} other {You do not currently have any DID profiles. Would you like to create one?}}"
+msgid "{didsCount, plural, one {You do not currently have any DID profile. Would you like to create one?} other {You do not currently have any DID profiles. Would you like to create one?}}"
+msgstr ""
+
+#: src/components/Layout.tsx:79
+#: src/components/Header.tsx:125
+msgid "{peerCount, plural, one {# peer} other {# peers}}"
 msgstr ""
 
 #: src/pages/PeerList.tsx:526
@@ -41,11 +43,11 @@ msgid "{selectedCount} selected"
 msgstr ""
 
 #: src/pages/Transactions.tsx:190
-msgid "{transactionCreatedLength} created"
+msgid "{transactionCreatedCount} created"
 msgstr ""
 
 #: src/pages/Transactions.tsx:189
-msgid "{transactionSpentLength} coins spent,"
+msgid "{transactionSpentCount} coins spent,"
 msgstr ""
 
 #: src/pages/PeerList.tsx:234
@@ -86,7 +88,7 @@ msgstr ""
 msgid "Address"
 msgstr ""
 
-#: src/pages/Settings.tsx:354
+#: src/pages/Settings.tsx:388
 msgid "Address Batch Size"
 msgstr ""
 
@@ -107,18 +109,15 @@ msgid "All Addresses"
 msgstr ""
 
 #: src/pages/Send.tsx:170
-#: src/pages/MakeOffer.tsx:547
+#: src/pages/MakeOffer.tsx:546
 #: src/pages/IssueToken.tsx:108
 #: src/components/CoinList.tsx:109
 msgid "Amount"
 msgstr ""
 
+#: src/components/OfferCard.tsx:113
 #: src/components/OfferCard.tsx:158
 msgid "Amount includes"
-msgstr ""
-
-#: src/components/OfferCard.tsx:113
-msgid "Amount includes "
 msgstr ""
 
 #: src/pages/Login.tsx:356
@@ -151,8 +150,8 @@ msgstr ""
 msgid "Assign Profile"
 msgstr ""
 
-#: src/components/Layout.tsx:83
-#: src/components/Header.tsx:130
+#: src/components/Layout.tsx:85
+#: src/components/Header.tsx:127
 msgid "at peak {peerMaxHeight}"
 msgstr ""
 
@@ -160,9 +159,9 @@ msgstr ""
 msgid "Attributes"
 msgstr ""
 
-#: src/components/Header.tsx:64
-#: src/components/Header.tsx:68
-#: src/components/Header.tsx:166
+#: src/components/Header.tsx:65
+#: src/components/Header.tsx:69
+#: src/components/Header.tsx:163
 msgid "Back"
 msgstr ""
 
@@ -285,7 +284,7 @@ msgstr ""
 msgid "Confirmed"
 msgstr ""
 
-#: src/pages/Settings.tsx:145
+#: src/pages/Settings.tsx:179
 #: src/pages/PeerList.tsx:420
 msgid "Connect"
 msgstr ""
@@ -294,8 +293,8 @@ msgstr ""
 msgid "Connected to {totalPeersCount} peers"
 msgstr ""
 
-#: src/components/Layout.tsx:84
-#: src/components/Header.tsx:131
+#: src/components/Layout.tsx:86
+#: src/components/Header.tsx:128
 msgid "connecting..."
 msgstr ""
 
@@ -343,7 +342,7 @@ msgstr ""
 msgid "Currency Symbol"
 msgstr ""
 
-#: src/pages/Settings.tsx:72
+#: src/pages/Settings.tsx:92
 msgid "Dark Mode"
 msgstr ""
 
@@ -394,7 +393,7 @@ msgstr ""
 msgid "Details"
 msgstr ""
 
-#: src/pages/MakeOffer.tsx:347
+#: src/pages/MakeOffer.tsx:346
 msgid "Dexie Link"
 msgstr ""
 
@@ -402,11 +401,11 @@ msgstr ""
 msgid "Did you save your mnemonic?"
 msgstr ""
 
-#: src/pages/Settings.tsx:126
+#: src/pages/Settings.tsx:160
 msgid "Disconnect"
 msgstr ""
 
-#: src/pages/Settings.tsx:202
+#: src/pages/Settings.tsx:236
 msgid "Discover peers automatically"
 msgstr ""
 
@@ -433,7 +432,7 @@ msgstr ""
 msgid "Enter address"
 msgstr ""
 
-#: src/pages/MakeOffer.tsx:458
+#: src/pages/MakeOffer.tsx:457
 msgid "Enter amount"
 msgstr ""
 
@@ -510,15 +509,15 @@ msgstr ""
 msgid "Fresh Address"
 msgstr ""
 
-#: src/pages/Settings.tsx:349
+#: src/pages/Settings.tsx:383
 msgid "Generate addresses automatically"
 msgstr ""
 
-#: src/pages/Settings.tsx:60
+#: src/pages/Settings.tsx:80
 msgid "Global"
 msgstr ""
 
-#: src/components/Header.tsx:99
+#: src/components/Header.tsx:100
 msgid "Go to wallet"
 msgstr ""
 
@@ -590,6 +589,10 @@ msgstr ""
 msgid "Kind is required"
 msgstr ""
 
+#: src/pages/Settings.tsx:98
+msgid "Language"
+msgstr ""
+
 #: src/pages/Nft.tsx:90
 msgid "Launcher Id"
 msgstr ""
@@ -614,8 +617,8 @@ msgstr ""
 msgid "Login"
 msgstr ""
 
-#: src/components/Layout.tsx:104
-#: src/components/Header.tsx:151
+#: src/components/Layout.tsx:106
+#: src/components/Header.tsx:148
 msgid "Logout"
 msgstr ""
 
@@ -660,7 +663,7 @@ msgstr ""
 msgid "Minter DID"
 msgstr ""
 
-#: src/pages/MakeOffer.tsx:372
+#: src/pages/MakeOffer.tsx:371
 msgid "MintGarden Link"
 msgstr ""
 
@@ -693,7 +696,7 @@ msgstr ""
 msgid "Name of your wallet"
 msgstr ""
 
-#: src/pages/Settings.tsx:185
+#: src/pages/Settings.tsx:219
 msgid "Network"
 msgstr ""
 
@@ -715,12 +718,12 @@ msgstr ""
 msgid "Network fee amount"
 msgstr ""
 
-#: src/pages/Settings.tsx:233
+#: src/pages/Settings.tsx:267
 msgid "Network ID"
 msgstr ""
 
-#: src/components/Layout.tsx:65
-#: src/components/Header.tsx:112
+#: src/components/Layout.tsx:67
+#: src/components/Header.tsx:113
 msgid "Network status"
 msgstr ""
 
@@ -734,7 +737,7 @@ msgstr ""
 msgid "Next page"
 msgstr ""
 
-#: src/pages/MakeOffer.tsx:435
+#: src/pages/MakeOffer.tsx:434
 #: src/components/OfferCard.tsx:172
 msgid "NFT"
 msgstr ""
@@ -752,7 +755,7 @@ msgstr ""
 msgid "NFTs"
 msgstr ""
 
-#: src/pages/Settings.tsx:132
+#: src/pages/Settings.tsx:166
 msgid "No active sessions"
 msgstr ""
 
@@ -788,7 +791,7 @@ msgid "Note"
 msgstr ""
 
 #: src/pages/MakeOffer.tsx:314
-msgid "Offer Created "
+msgid "Offer Created"
 msgstr ""
 
 #: src/pages/Offers.tsx:207
@@ -801,7 +804,7 @@ msgstr ""
 msgid "Offers"
 msgstr ""
 
-#: src/pages/MakeOffer.tsx:388
+#: src/pages/MakeOffer.tsx:387
 msgid "Ok"
 msgstr ""
 
@@ -813,7 +816,7 @@ msgstr ""
 msgid "Owner DID"
 msgstr ""
 
-#: src/pages/Settings.tsx:141
+#: src/pages/Settings.tsx:175
 msgid "Paste WalletConnect URI"
 msgstr ""
 
@@ -999,7 +1002,7 @@ msgstr ""
 msgid "Select kind"
 msgstr ""
 
-#: src/pages/Settings.tsx:254
+#: src/pages/Settings.tsx:288
 msgid "Select network"
 msgstr ""
 
@@ -1031,9 +1034,9 @@ msgstr ""
 msgid "Sent"
 msgstr ""
 
-#: src/pages/Settings.tsx:40
-#: src/components/Layout.tsx:97
-#: src/components/Header.tsx:144
+#: src/pages/Settings.tsx:41
+#: src/components/Layout.tsx:99
+#: src/components/Header.tsx:141
 msgid "Settings"
 msgstr ""
 
@@ -1104,8 +1107,8 @@ msgstr ""
 msgid "Summary"
 msgstr ""
 
-#: src/components/Layout.tsx:87
-#: src/components/Header.tsx:134
+#: src/components/Layout.tsx:89
+#: src/components/Header.tsx:131
 msgid "Syncing {syncedCoins} / {totalCoins}"
 msgstr ""
 
@@ -1121,7 +1124,7 @@ msgstr ""
 msgid "Taken"
 msgstr ""
 
-#: src/pages/Settings.tsx:207
+#: src/pages/Settings.tsx:241
 msgid "Target Peers"
 msgstr ""
 
@@ -1131,6 +1134,10 @@ msgstr ""
 
 #: src/components/OfferCard.tsx:34
 msgid "The assets you have to pay to fulfill the offer."
+msgstr ""
+
+#: src/pages/MakeOffer.tsx:317
+msgid "The offer has been created and imported successfully. You can copy the offer file below and send it to the intended recipient or make it public to be accepted by anyone."
 msgstr ""
 
 #: src/pages/Addresses.tsx:60
@@ -1226,12 +1233,12 @@ msgstr ""
 msgid "Toggle multi-select"
 msgstr ""
 
-#: src/components/Header.tsx:77
-#: src/components/Header.tsx:81
+#: src/components/Header.tsx:78
+#: src/components/Header.tsx:82
 msgid "Toggle navigation menu"
 msgstr ""
 
-#: src/pages/MakeOffer.tsx:447
+#: src/pages/MakeOffer.tsx:446
 msgid "Token"
 msgstr ""
 
@@ -1244,6 +1251,7 @@ msgid "Transaction Signed"
 msgstr ""
 
 #: src/pages/Transactions.tsx:71
+#: src/components/Nav.tsx:38
 msgid "Transactions"
 msgstr ""
 
@@ -1286,8 +1294,8 @@ msgstr ""
 msgid "Unknown"
 msgstr ""
 
-#: src/pages/Settings.tsx:114
-#: src/pages/Settings.tsx:118
+#: src/pages/Settings.tsx:148
+#: src/pages/Settings.tsx:152
 msgid "Unknown App"
 msgstr ""
 
@@ -1323,11 +1331,11 @@ msgstr ""
 msgid "Untitled Profile"
 msgstr ""
 
-#: src/pages/MakeOffer.tsx:347
+#: src/pages/MakeOffer.tsx:346
 msgid "Upload to Dexie"
 msgstr ""
 
-#: src/pages/MakeOffer.tsx:373
+#: src/pages/MakeOffer.tsx:372
 msgid "Upload to MintGarden"
 msgstr ""
 
@@ -1353,7 +1361,7 @@ msgstr ""
 msgid "View Offer"
 msgstr ""
 
-#: src/pages/Settings.tsx:301
+#: src/pages/Settings.tsx:335
 #: src/pages/Login.tsx:483
 #: src/components/Nav.tsx:18
 msgid "Wallet"
@@ -1363,8 +1371,8 @@ msgstr ""
 msgid "Wallet Details"
 msgstr ""
 
-#: src/components/Layout.tsx:52
-#: src/components/Header.tsx:101
+#: src/components/Layout.tsx:54
+#: src/components/Header.tsx:102
 msgid "Wallet icon"
 msgstr ""
 
@@ -1372,14 +1380,14 @@ msgstr ""
 msgid "Wallet Key"
 msgstr ""
 
-#: src/pages/Settings.tsx:308
+#: src/pages/Settings.tsx:342
 #: src/pages/Login.tsx:390
 #: src/pages/ImportWallet.tsx:72
 #: src/pages/CreateWallet.tsx:125
 msgid "Wallet Name"
 msgstr ""
 
-#: src/pages/Settings.tsx:99
+#: src/pages/Settings.tsx:133
 msgid "WalletConnect"
 msgstr ""
 

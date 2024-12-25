@@ -79,7 +79,7 @@ export function DidList() {
           </div>
         )}
 
-        {dids.length === 0 && (
+        {didsCount === 0 && (
           <Alert className='mt-4'>
             <UserRoundPlus className='h-4 w-4' />
             <AlertTitle>
@@ -87,7 +87,7 @@ export function DidList() {
             </AlertTitle>
             <AlertDescription>
               <Plural
-                value={dids.length}
+                value={didsCount}
                 one='You do not currently have any DID profile. Would you like to create one?'
                 other='You do not currently have any DID profiles. Would you like to create one?'
               />
