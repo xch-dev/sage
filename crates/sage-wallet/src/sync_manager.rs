@@ -205,6 +205,7 @@ impl SyncManager {
                     Duration::from_secs(3),
                     info.peer.subscribe_coins(
                         mem::take(&mut self.pending_coin_subscriptions),
+                        None,
                         self.network.genesis_challenge,
                     ),
                 )

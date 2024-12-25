@@ -28,6 +28,13 @@ pub async fn sync_wallet(
 ) -> Result<(), WalletError> {
     info!("Starting sync against peer {}", peer.socket_addr());
 
+    let p2_puzzle_hashes = wallet.db.p2_puzzle_hashes().await?;
+
+    let (start_height, start_header_hash) = wallet.db.latest_peak().await?.map_or_else(
+        || (None, wallet.genesis_challenge),
+        |(peak, header_hash)| (Some(peak), header_hash),
+    );
+
     let mut coin_ids = Vec::new();
     coin_ids.extend(wallet.db.unspent_nft_coin_ids().await?);
     coin_ids.extend(wallet.db.unspent_did_coin_ids().await?);
@@ -36,18 +43,12 @@ pub async fn sync_wallet(
     sync_coin_ids(
         &wallet,
         &peer,
-        wallet.genesis_challenge,
+        start_height,
+        start_header_hash,
         coin_ids,
         sync_sender.clone(),
     )
     .await?;
-
-    let p2_puzzle_hashes = wallet.db.p2_puzzle_hashes().await?;
-
-    let (start_height, start_header_hash) = wallet.db.latest_peak().await?.map_or_else(
-        || (None, wallet.genesis_challenge),
-        |(peak, header_hash)| (Some(peak), header_hash),
-    );
 
     let mut derive_more = p2_puzzle_hashes.is_empty();
 
@@ -134,7 +135,8 @@ pub async fn sync_wallet(
 async fn sync_coin_ids(
     wallet: &Wallet,
     peer: &WalletPeer,
-    genesis_challenge: Bytes32,
+    start_height: Option<u32>,
+    start_header_hash: Bytes32,
     coin_ids: Vec<Bytes32>,
     sync_sender: mpsc::Sender<SyncEvent>,
 ) -> Result<(), WalletError> {
@@ -151,7 +153,7 @@ async fn sync_coin_ids(
 
         let coin_states = timeout(
             Duration::from_secs(10),
-            peer.subscribe_coins(coin_ids.to_vec(), genesis_challenge),
+            peer.subscribe_coins(coin_ids.to_vec(), start_height, start_header_hash),
         )
         .await??;
 
