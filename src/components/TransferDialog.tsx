@@ -24,6 +24,8 @@ import {
 } from './ui/form';
 import { Input } from './ui/input';
 import { TokenAmountInput } from './ui/masked-input';
+import { AddressInput } from './AddressInput';
+import { isValidXchName, resolveXchName } from '@/utils/namesdao';
 
 export interface TransferDialogProps {
   title: string;
@@ -42,7 +44,16 @@ export function TransferDialog({
   const walletState = useWalletState();
 
   const schema = z.object({
-    address: z.string().min(1, 'Address is required'),
+    address: z.string().min(1, 'Address is required').refine(
+      async (address) => {
+        if (isValidXchName(address)) {
+          const resolved = await resolveXchName(address);
+          return !!resolved;
+        }
+        return true;
+      },
+      'Invalid .xch name',
+    ),
     fee: amount(walletState.sync.unit.decimals).refine(
       (amount) => BigNumber(walletState.sync.balance).gte(amount || 0),
       'Not enough funds to cover the fee',
@@ -51,14 +62,22 @@ export function TransferDialog({
 
   const form = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
-    defaultValues: {
-      address: '',
-      fee: '0',
-    },
   });
 
-  const handler = (values: z.infer<typeof schema>) => {
-    onSubmit(values.address, values.fee);
+  const handleSubmit = async (values: z.infer<typeof schema>) => {
+    let targetAddress = values.address;
+
+    // Resolve .xch name if needed
+    if (isValidXchName(targetAddress)) {
+      const resolved = await resolveXchName(targetAddress);
+      if (!resolved) {
+        form.setError('address', { message: 'Failed to resolve .xch name' });
+        return;
+      }
+      targetAddress = resolved;
+    }
+
+    onSubmit(targetAddress, values.fee?.toString() || '0');
   };
 
   return (
@@ -69,7 +88,7 @@ export function TransferDialog({
           <DialogDescription>{children}</DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handler)} className='space-y-4'>
+          <form onSubmit={form.handleSubmit(handleSubmit)} className='space-y-4'>
             <FormField
               control={form.control}
               name='address'
@@ -77,7 +96,13 @@ export function TransferDialog({
                 <FormItem>
                   <FormLabel>Address</FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <AddressInput
+                      autoCorrect='off'
+                      autoCapitalize='off'
+                      autoComplete='off'
+                      placeholder='Enter address or .xch name'
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

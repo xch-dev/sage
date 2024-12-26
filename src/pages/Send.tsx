@@ -28,6 +28,8 @@ import {
 } from '../bindings';
 import Container from '../components/Container';
 import { TokenAmountInput } from '@/components/ui/masked-input';
+import { AddressInput } from '@/components/AddressInput';
+import { isValidXchName, resolveXchName } from '@/utils/namesdao';
 
 export default function Send() {
   const { asset_id: assetId } = useParams();
@@ -95,8 +97,17 @@ export default function Send() {
     address: z
       .string()
       .refine(
-        (address) => commands.validateAddress(address).catch(addError),
-        'Invalid address',
+        async (address) => {
+          // If it's a .xch name, try to resolve it
+          if (isValidXchName(address)) {
+            const resolved = await resolveXchName(address);
+            if (!resolved) return false;
+            return commands.validateAddress(resolved).catch(addError);
+          }
+          // Otherwise validate as a regular address
+          return commands.validateAddress(address).catch(addError);
+        },
+        'Invalid address or .xch name',
       ),
     amount: positiveAmount(asset?.decimals || 12),
     fee: amount(walletState.sync.unit.decimals).optional(),
@@ -106,8 +117,19 @@ export default function Send() {
     resolver: zodResolver(formSchema),
   });
 
-  const onSubmit = () => {
+  const onSubmit = async () => {
     const values = form.getValues();
+    let targetAddress = values.address;
+
+    // Resolve .xch name if needed
+    if (isValidXchName(targetAddress)) {
+      const resolved = await resolveXchName(targetAddress);
+      if (!resolved) {
+        addError(new Error('Failed to resolve .xch name'));
+        return;
+      }
+      targetAddress = resolved;
+    }
 
     const command = isXch
       ? commands.sendXch
@@ -116,7 +138,7 @@ export default function Send() {
         };
 
     command({
-      address: values.address,
+      address: targetAddress,
       amount: toMojos(values.amount.toString(), asset?.decimals || 12),
       fee: toMojos(
         values.fee?.toString() || '0',
@@ -144,11 +166,11 @@ export default function Send() {
                 <FormItem>
                   <FormLabel>Address</FormLabel>
                   <FormControl>
-                    <Input
+                    <AddressInput
                       autoCorrect='off'
                       autoCapitalize='off'
                       autoComplete='off'
-                      placeholder='Enter address'
+                      placeholder='Enter address or .xch name'
                       {...field}
                     />
                   </FormControl>
