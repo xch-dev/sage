@@ -21,10 +21,7 @@ pub async fn submit_to_peers(
 ) -> Result<Status, WalletError> {
     let transaction_id = spend_bundle.name();
 
-    info!(
-        "Broadcasting transaction id {}: {:?}",
-        transaction_id, spend_bundle
-    );
+    info!("Checking transaction id {}", transaction_id);
 
     let mut mempool = false;
     let mut status = 0;
@@ -60,37 +57,6 @@ pub async fn submit_transaction(
     spend_bundle: SpendBundle,
     genesis_challenge: Bytes32,
 ) -> Result<Status, WalletError> {
-    let ack = match timeout(
-        Duration::from_secs(3),
-        peer.send_transaction(spend_bundle.clone()),
-    )
-    .await
-    {
-        Ok(Ok(ack)) => ack,
-        Err(_timeout) => {
-            warn!("Send transaction timed out for {}", peer.socket_addr());
-            return Ok(Status::Unknown);
-        }
-        Ok(Err(err)) => {
-            warn!(
-                "Send transaction failed for {}: {}",
-                peer.socket_addr(),
-                err
-            );
-            return Ok(Status::Unknown);
-        }
-    };
-
-    info!(
-        "Transaction sent to {} with ack {:?}",
-        peer.socket_addr(),
-        ack
-    );
-
-    if ack.status == 1 {
-        return Ok(Status::Pending);
-    };
-
     let coin_ids: Vec<Bytes32> = spend_bundle
         .coin_spends
         .iter()
@@ -124,5 +90,38 @@ pub async fn submit_transaction(
         return Ok(Status::Failed(3, None));
     }
 
-    Ok(Status::Failed(3, None))
+    info!("Submitting transaction to {}", peer.socket_addr());
+
+    let ack = match timeout(
+        Duration::from_secs(3),
+        peer.send_transaction(spend_bundle.clone()),
+    )
+    .await
+    {
+        Ok(Ok(ack)) => ack,
+        Err(_timeout) => {
+            warn!("Send transaction timed out for {}", peer.socket_addr());
+            return Ok(Status::Unknown);
+        }
+        Ok(Err(err)) => {
+            warn!(
+                "Send transaction failed for {}: {}",
+                peer.socket_addr(),
+                err
+            );
+            return Ok(Status::Unknown);
+        }
+    };
+
+    info!(
+        "Transaction response received from {} with ack {:?}",
+        peer.socket_addr(),
+        ack
+    );
+
+    if ack.status == 1 {
+        return Ok(Status::Pending);
+    };
+
+    Ok(Status::Failed(ack.status, ack.error))
 }

@@ -64,11 +64,7 @@ impl Sage {
             self.config.network.discover_peers = req.discover_peers;
             self.save_config()?;
             self.command_sender
-                .send(SyncCommand::SetTargetPeers(if req.discover_peers {
-                    self.config.network.target_peers as usize
-                } else {
-                    0
-                }))
+                .send(SyncCommand::SetDiscoverPeers(req.discover_peers))
                 .await?;
         }
 

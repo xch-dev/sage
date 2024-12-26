@@ -265,6 +265,7 @@ export default function ConfirmationDialog({
                 if (!data) return reset();
 
                 onConfirm?.();
+                reset();
               })().finally(() => setPending(false));
             }}
             disabled={pending}

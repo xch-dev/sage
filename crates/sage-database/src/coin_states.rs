@@ -114,7 +114,7 @@ impl<'a> DatabaseTx<'a> {
         remove_coin_transaction_id(&mut *self.tx, coin_id).await
     }
 
-    pub async fn is_p2_coin(&mut self, coin_id: Bytes32) -> Result<bool> {
+    pub async fn is_p2_coin(&mut self, coin_id: Bytes32) -> Result<Option<bool>> {
         is_p2_coin(&mut *self.tx, coin_id).await
     }
 }
@@ -373,7 +373,7 @@ async fn unspent_cat_coin_ids(conn: impl SqliteExecutor<'_>) -> Result<Vec<Bytes
         .collect()
 }
 
-async fn is_p2_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<bool> {
+async fn is_p2_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Option<bool>> {
     let coin_id = coin_id.as_ref();
 
     let row = sqlx::query!(
@@ -384,10 +384,10 @@ async fn is_p2_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<b
         ",
         coin_id
     )
-    .fetch_one(conn)
+    .fetch_optional(conn)
     .await?;
 
-    Ok(row.kind == 1)
+    Ok(row.map(|row| row.kind == 1))
 }
 
 async fn is_coin_locked(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<bool> {

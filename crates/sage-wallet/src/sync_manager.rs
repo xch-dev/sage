@@ -186,6 +186,9 @@ impl SyncManager {
                 SyncCommand::SetTargetPeers(target_peers) => {
                     self.options.target_peers = target_peers;
                 }
+                SyncCommand::SetDiscoverPeers(discover_peers) => {
+                    self.options.discover_peers = discover_peers;
+                }
             }
         }
     }
@@ -202,6 +205,7 @@ impl SyncManager {
                     Duration::from_secs(3),
                     info.peer.subscribe_coins(
                         mem::take(&mut self.pending_coin_subscriptions),
+                        None,
                         self.network.genesis_challenge,
                     ),
                 )
@@ -311,7 +315,7 @@ impl SyncManager {
     async fn update(&mut self) {
         let peer_count = self.state.lock().await.peer_count();
 
-        if peer_count < self.options.target_peers {
+        if peer_count < self.options.target_peers && self.options.discover_peers {
             if peer_count > 0 {
                 if !self.peer_discovery().await {
                     self.dns_discovery().await;

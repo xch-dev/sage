@@ -153,11 +153,12 @@ impl WalletPeer {
     pub async fn subscribe_coins(
         &self,
         coin_ids: Vec<Bytes32>,
-        genesis_challenge: Bytes32,
+        previous_height: Option<u32>,
+        header_hash: Bytes32,
     ) -> Result<Vec<CoinState>, WalletError> {
         let response = self
             .peer
-            .request_coin_state(coin_ids, None, genesis_challenge, true)
+            .request_coin_state(coin_ids, previous_height, header_hash, true)
             .await?
             .map_err(|error| match error.reason {
                 RejectStateReason::ExceededSubscriptionLimit => {
