@@ -68,7 +68,7 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
       metadata: {
         name: 'Sage Wallet',
         description: 'Sage Wallet',
-        url: 'https://sagewallet.com',
+        url: 'https://sagewallet.net',
         icons: [
           'https://github.com/xch-dev/sage/blob/main/src-tauri/icons/icon.png?raw=true',
         ],
