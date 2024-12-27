@@ -155,10 +155,24 @@ impl Wallet {
                 .count(),
         )?;
 
+        let taker_royalties = calculate_royalties(
+            &taker_amounts,
+            &maker_coins
+                .nfts
+                .values()
+                .map(|nft| NftRoyaltyInfo {
+                    launcher_id: nft.info.launcher_id,
+                    royalty_puzzle_hash: nft.info.royalty_puzzle_hash,
+                    royalty_ten_thousandths: nft.info.royalty_ten_thousandths,
+                })
+                .collect::<Vec<_>>(),
+        )?;
+
         let (assertions, builder) = builder.finish();
         let mut extra_conditions = Conditions::new()
             .extend(assertions)
-            .extend(maker_royalties.assertions());
+            .extend(maker_royalties.assertions())
+            .extend(taker_royalties.assertions());
 
         if let Some(expires_at) = expires_at {
             extra_conditions = extra_conditions.assert_before_seconds_absolute(expires_at);
