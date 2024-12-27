@@ -132,6 +132,11 @@ pub fn calculate_royalties(
     amounts: &OfferAmounts,
     nfts: &[NftRoyaltyInfo],
 ) -> Result<Royalties, WalletError> {
+    let royalty_nfts = nfts
+        .iter()
+        .filter(|nft| nft.royalty_ten_thousandths > 0)
+        .count();
+
     let mut royalties = Royalties::default();
 
     if nfts.is_empty() {
@@ -139,10 +144,14 @@ pub fn calculate_royalties(
     }
 
     if amounts.xch > 0 {
-        let trade_price = calculate_nft_trace_price(amounts.xch, nfts.len())
+        let trade_price = calculate_nft_trace_price(amounts.xch, royalty_nfts)
             .ok_or(WalletError::InvalidTradePrice)?;
 
         for nft in nfts {
+            if nft.royalty_ten_thousandths == 0 {
+                continue;
+            }
+
             let amount = calculate_nft_royalty(trade_price, nft.royalty_ten_thousandths)
                 .ok_or(WalletError::InvalidRoyaltyAmount)?;
 
@@ -159,10 +168,14 @@ pub fn calculate_royalties(
     }
 
     for (&asset_id, &amount) in &amounts.cats {
-        let trade_price =
-            calculate_nft_trace_price(amount, nfts.len()).ok_or(WalletError::InvalidTradePrice)?;
+        let trade_price = calculate_nft_trace_price(amount, royalty_nfts)
+            .ok_or(WalletError::InvalidTradePrice)?;
 
         for nft in nfts {
+            if nft.royalty_ten_thousandths == 0 {
+                continue;
+            }
+
             let amount = calculate_nft_royalty(trade_price, nft.royalty_ten_thousandths)
                 .ok_or(WalletError::InvalidRoyaltyAmount)?;
 

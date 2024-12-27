@@ -146,7 +146,14 @@ impl Wallet {
             cats: taker.cats,
         };
 
-        let trade_prices = calculate_trade_prices(&taker_amounts, maker.nfts.len())?;
+        let trade_prices = calculate_trade_prices(
+            &taker_amounts,
+            maker_coins
+                .nfts
+                .values()
+                .filter(|nft| nft.info.royalty_ten_thousandths > 0)
+                .count(),
+        )?;
 
         let (assertions, builder) = builder.finish();
         let mut extra_conditions = Conditions::new()
