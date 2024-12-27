@@ -32,19 +32,6 @@ impl Wallet {
         let requested_payments = parse_offer_payments(&mut ctx, &mut builder)?;
         let taker_amounts = requested_payments.amounts();
 
-        let maker_royalties = calculate_royalties(
-            &maker_amounts,
-            &requested_payments
-                .nfts
-                .values()
-                .map(|(nft, _)| NftRoyaltyInfo {
-                    launcher_id: nft.launcher_id,
-                    royalty_puzzle_hash: nft.royalty_puzzle_hash,
-                    royalty_ten_thousandths: nft.royalty_ten_thousandths,
-                })
-                .collect::<Vec<_>>(),
-        )?;
-
         let taker_royalties = calculate_royalties(
             &taker_amounts,
             &locked_coins
@@ -86,8 +73,7 @@ impl Wallet {
 
         let extra_conditions = Conditions::new()
             .extend(assertions)
-            .extend(taker_royalties.assertions())
-            .extend(maker_royalties.assertions());
+            .extend(taker_royalties.assertions());
 
         // Spend the assets.
         let payment_coins = self

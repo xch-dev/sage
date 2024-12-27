@@ -135,9 +135,10 @@ impl Wallet {
                         outputs.push(royalty_coin);
                     }
 
-                    // TODO: This is a hack to make the puzzle non-conflicting, maybe there's a better amount or method
-                    let non_conflicting_amount =
-                        outputs.iter().map(|output| output.amount).sum::<u64>() + 1;
+                    let remaining_amount = remaining_royalties
+                        .iter()
+                        .map(|royalty| royalty.amount)
+                        .sum::<u64>();
 
                     if !remaining_royalties.is_empty() {
                         notarized_payments.push(NotarizedPayment {
@@ -145,7 +146,7 @@ impl Wallet {
                             nonce: Bytes32::default(),
                             payments: vec![Payment::new(
                                 SETTLEMENT_PAYMENTS_PUZZLE_HASH.into(),
-                                non_conflicting_amount,
+                                remaining_amount,
                             )],
                         });
                     }
@@ -161,7 +162,7 @@ impl Wallet {
                     parent_royalty_coin = Coin::new(
                         parent_royalty_coin.coin_id(),
                         SETTLEMENT_PAYMENTS_PUZZLE_HASH.into(),
-                        non_conflicting_amount,
+                        remaining_amount,
                     );
                 }
             }
@@ -257,9 +258,10 @@ impl Wallet {
                         outputs.push(royalty_cat.coin);
                     }
 
-                    // TODO: This is a hack to make the puzzle non-conflicting, maybe there's a better amount or method
-                    let non_conflicting_amount =
-                        outputs.iter().map(|output| output.amount).sum::<u64>() + 1;
+                    let remaining_amount = remaining_royalties
+                        .iter()
+                        .map(|royalty| royalty.amount)
+                        .sum::<u64>();
 
                     if !remaining_royalties.is_empty() {
                         notarized_payments.push(NotarizedPayment {
@@ -267,7 +269,7 @@ impl Wallet {
                             nonce: Bytes32::default(),
                             payments: vec![Payment::new(
                                 SETTLEMENT_PAYMENTS_PUZZLE_HASH.into(),
-                                non_conflicting_amount,
+                                remaining_amount,
                             )],
                         });
                     }
@@ -277,10 +279,8 @@ impl Wallet {
 
                     cat_spends.push(CatSpend::new(parent_royalty_cat, inner_spend));
 
-                    parent_royalty_cat = parent_royalty_cat.wrapped_child(
-                        SETTLEMENT_PAYMENTS_PUZZLE_HASH.into(),
-                        non_conflicting_amount,
-                    );
+                    parent_royalty_cat = parent_royalty_cat
+                        .wrapped_child(SETTLEMENT_PAYMENTS_PUZZLE_HASH.into(), remaining_amount);
                 }
 
                 Cat::spend_all(ctx, &cat_spends)?;
