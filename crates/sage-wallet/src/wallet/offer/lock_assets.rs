@@ -307,7 +307,16 @@ impl Wallet {
                 .remove(&nft.coin.coin_id())
                 .unwrap_or_default();
 
-            let nft = nft.lock_settlement(ctx, &p2, trade_prices.clone(), conditions)?;
+            let nft = nft.lock_settlement(
+                ctx,
+                &p2,
+                if nft.info.royalty_ten_thousandths > 0 {
+                    trade_prices.clone()
+                } else {
+                    Vec::new()
+                },
+                conditions,
+            )?;
 
             locked.nfts.insert(nft.info.launcher_id, nft);
         }
