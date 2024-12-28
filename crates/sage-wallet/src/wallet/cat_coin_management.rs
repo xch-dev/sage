@@ -160,3 +160,45 @@ impl Wallet {
         Ok(ctx.take())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use test_log::test;
+
+    use crate::TestWallet;
+
+    #[test(tokio::test)]
+    async fn test_cat_coin_management() -> anyhow::Result<()> {
+        let mut test = TestWallet::new(100).await?;
+
+        let (coin_spends, asset_id) = test.wallet.issue_cat(100, 0, None, false, true).await?;
+        test.transact(coin_spends).await?;
+        test.wait_for_coins().await;
+
+        let mut cats = test.wallet.db.spendable_cat_coins(asset_id).await?;
+        assert_eq!(test.wallet.db.cat_balance(asset_id).await?, 100);
+        assert_eq!(cats.len(), 1);
+
+        let cat = test.wallet.db.cat_coin(cats.remove(0).coin.coin_id()).await?.expect("missing cat");
+        let coin_spends = test.wallet.split_cat(vec![cat], 2, 0, false, true).await?;
+        test.transact(coin_spends).await?;
+        test.wait_for_coins().await;
+
+        let cats = test.wallet.db.spendable_cat_coins(asset_id).await?;
+        assert_eq!(test.wallet.db.cat_balance(asset_id).await?, 100);
+        assert_eq!(cats.len(), 2);
+
+        let mut cat_coins = Vec::with_capacity(cats.len());
+        for cat in cats {
+            cat_coins.push(test.wallet.db.cat_coin(cat.coin.coin_id()).await?.expect("missing cat"));
+        }
+        let coin_spends = test.wallet.combine_cat(cat_coins, 0, false, true).await?;
+        test.transact(coin_spends).await?;
+        test.wait_for_coins().await;
+
+        assert_eq!(test.wallet.db.cat_balance(asset_id).await?, 100);
+        assert_eq!(test.wallet.db.spendable_cat_coins(asset_id).await?.len(), 1);
+
+        Ok(())
+    }
+}
