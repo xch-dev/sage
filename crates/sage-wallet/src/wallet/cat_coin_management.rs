@@ -14,30 +14,38 @@ impl Wallet {
         hardened: bool,
         reuse: bool,
     ) -> Result<Vec<CoinSpend>, WalletError> {
-        let fee_coins = self.select_p2_coins(fee as u128).await?;
-        let fee_total: u128 = fee_coins.iter().map(|coin| coin.amount as u128).sum();
+        let fee_coins = if fee > 0 {
+            self.select_p2_coins(fee as u128).await?
+        } else {
+            Vec::new()
+        };
         let cat_total: u128 = cats.iter().map(|cat| cat.coin.amount as u128).sum();
 
         let p2_puzzle_hash = self.p2_puzzle_hash(hardened, reuse).await?;
 
-        let fee_change: u64 = (fee_total - fee as u128)
-            .try_into()
-            .expect("change amount overflow");
-
-        let mut fee_conditions = Conditions::new().assert_concurrent_spend(cats[0].coin.coin_id());
-
-        if fee > 0 {
-            fee_conditions = fee_conditions.reserve_fee(fee);
-        }
-
-        if fee_change > 0 {
-            fee_conditions = fee_conditions.create_coin(p2_puzzle_hash, fee_change, None);
-        }
-
         let mut ctx = SpendContext::new();
 
-        self.spend_p2_coins(&mut ctx, fee_coins, fee_conditions)
-            .await?;
+        if !fee_coins.is_empty() {
+            let fee_total: u128 = fee_coins.iter().map(|coin| coin.amount as u128).sum();
+
+            let fee_change: u64 = (fee_total - fee as u128)
+                .try_into()
+                .expect("change amount overflow");
+
+            let mut fee_conditions =
+                Conditions::new().assert_concurrent_spend(cats[0].coin.coin_id());
+
+            if fee > 0 {
+                fee_conditions = fee_conditions.reserve_fee(fee);
+            }
+
+            if fee_change > 0 {
+                fee_conditions = fee_conditions.create_coin(p2_puzzle_hash, fee_change, None);
+            }
+
+            self.spend_p2_coins(&mut ctx, fee_coins, fee_conditions)
+                .await?;
+        }
 
         let hint = ctx.hint(p2_puzzle_hash)?;
 
@@ -72,8 +80,11 @@ impl Wallet {
         hardened: bool,
         reuse: bool,
     ) -> Result<Vec<CoinSpend>, WalletError> {
-        let fee_coins = self.select_p2_coins(fee as u128).await?;
-        let fee_total: u128 = fee_coins.iter().map(|coin| coin.amount as u128).sum();
+        let fee_coins = if fee > 0 {
+            self.select_p2_coins(fee as u128).await?
+        } else {
+            Vec::new()
+        };
         let cat_total: u128 = cats.iter().map(|cat| cat.coin.amount as u128).sum();
 
         let mut remaining_count = output_count;
@@ -95,22 +106,27 @@ impl Wallet {
 
         let mut ctx = SpendContext::new();
 
-        let fee_change: u64 = (fee_total - fee as u128)
-            .try_into()
-            .expect("change amount overflow");
+        if !fee_coins.is_empty() {
+            let fee_total: u128 = fee_coins.iter().map(|coin| coin.amount as u128).sum();
 
-        let mut fee_conditions = Conditions::new().assert_concurrent_spend(cats[0].coin.coin_id());
+            let fee_change: u64 = (fee_total - fee as u128)
+                .try_into()
+                .expect("change amount overflow");
 
-        if fee > 0 {
-            fee_conditions = fee_conditions.reserve_fee(fee);
+            let mut fee_conditions =
+                Conditions::new().assert_concurrent_spend(cats[0].coin.coin_id());
+
+            if fee > 0 {
+                fee_conditions = fee_conditions.reserve_fee(fee);
+            }
+
+            if fee_change > 0 {
+                fee_conditions = fee_conditions.create_coin(derivations[0], fee_change, None);
+            }
+
+            self.spend_p2_coins(&mut ctx, fee_coins, fee_conditions)
+                .await?;
         }
-
-        if fee_change > 0 {
-            fee_conditions = fee_conditions.create_coin(derivations[0], fee_change, None);
-        }
-
-        self.spend_p2_coins(&mut ctx, fee_coins, fee_conditions)
-            .await?;
 
         let mut cat_spends = Vec::new();
 

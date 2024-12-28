@@ -72,10 +72,6 @@ impl Wallet {
         } else {
             Vec::new()
         };
-        let fee_selected: u128 = fee_coins.iter().map(|coin| coin.amount as u128).sum();
-        let fee_change: u64 = (fee_selected - fee as u128)
-            .try_into()
-            .expect("fee change overflow");
 
         let cats = self.select_cat_coins(asset_id, amount as u128).await?;
         let cat_selected: u128 = cats.iter().map(|cat| cat.coin.amount as u128).sum();
@@ -92,6 +88,11 @@ impl Wallet {
         };
 
         if fee > 0 {
+            let fee_selected: u128 = fee_coins.iter().map(|coin| coin.amount as u128).sum();
+            let fee_change: u64 = (fee_selected - fee as u128)
+                .try_into()
+                .expect("fee change overflow");
+
             conditions = conditions.reserve_fee(fee);
 
             if fee_change > 0 {
