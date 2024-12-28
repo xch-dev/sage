@@ -45,17 +45,26 @@ pub fn unlock_assets(
     }
 
     for coins in locked.cats.into_values() {
-        for cat in coins {
+        let mut cat_spends = Vec::new();
+        let total_amount = coins.iter().map(|cat| cat.coin.amount).sum::<u64>();
+
+        for (i, cat) in coins.into_iter().enumerate() {
             let notarized_payment = NotarizedPayment {
                 nonce,
-                payments: vec![Payment::with_memos(
-                    p2_puzzle_hash,
-                    cat.coin.amount,
-                    vec![p2_puzzle_hash.into()],
-                )],
+                payments: if i == 0 {
+                    vec![Payment::with_memos(
+                        p2_puzzle_hash,
+                        total_amount,
+                        vec![p2_puzzle_hash.into()],
+                    )]
+                } else {
+                    Vec::new()
+                },
             };
 
-            assertions.push(payment_assertion(cat.coin.puzzle_hash, &notarized_payment));
+            if i == 0 {
+                assertions.push(payment_assertion(cat.coin.puzzle_hash, &notarized_payment));
+            }
 
             let inner_spend = SettlementLayer.construct_spend(
                 ctx,
@@ -64,8 +73,10 @@ pub fn unlock_assets(
                 },
             )?;
 
-            Cat::spend_all(ctx, &[CatSpend::new(cat, inner_spend)])?;
+            cat_spends.push(CatSpend::new(cat, inner_spend));
         }
+
+        Cat::spend_all(ctx, &cat_spends)?;
     }
 
     for nft in locked.nfts.into_values() {
