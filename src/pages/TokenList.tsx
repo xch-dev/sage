@@ -16,7 +16,7 @@ import { useErrors } from '@/hooks/useErrors';
 import { usePrices } from '@/hooks/usePrices';
 import { useTokenParams } from '@/hooks/useTokenParams';
 import { toDecimal } from '@/lib/utils';
-import { ArrowDown10, ArrowDownAz, Coins, InfoIcon } from 'lucide-react';
+import { ArrowDown10, ArrowDownAz, Coins, InfoIcon, Clock } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { CatRecord, commands, events } from '../bindings';
@@ -24,7 +24,7 @@ import { useWalletState } from '../state';
 
 enum TokenView {
   Name = 'name',
-  Balance = 'balance',
+  Balance = 'balance'
 }
 
 export function TokenList() {
@@ -41,39 +41,45 @@ export function TokenList() {
 
   const catsWithBalanceInUsd = useMemo(
     () =>
-      cats.map((cat) => ({
-        ...cat,
-        balanceInUsd: getBalanceInUsd(cat.asset_id, toDecimal(cat.balance, 3)),
-      })),
+      cats.map((cat) => {
+        const balance = Number(toDecimal(cat.balance, 3));
+        const usdValue = parseFloat(getBalanceInUsd(cat.asset_id, balance.toString()));
+        
+        console.log('Token processing:', {
+          name: cat.name,
+          balance,
+          usdValue,
+          rawBalance: cat.balance,
+          rawUsdValue: getBalanceInUsd(cat.asset_id, balance.toString())
+        });
+        
+        return {
+          ...cat,
+          balanceInUsd: usdValue,
+          sortValue: usdValue > 0 ? usdValue : Number.MIN_SAFE_INTEGER
+        };
+      }),
     [cats, getBalanceInUsd],
   );
 
   const sortedCats = catsWithBalanceInUsd.sort((a, b) => {
-    if (a.visible && !b.visible) {
-      return -1;
-    }
-
-    if (!a.visible && b.visible) {
-      return 1;
-    }
-
-    if (!a[view] && b[view]) {
-      return -1;
-    }
-
-    if (a[view] && !b[view]) {
-      return 1;
-    }
-
-    if (!a[view] && !b[view]) {
-      return 0;
-    }
+    if (a.visible && !b.visible) return -1;
+    if (!a.visible && b.visible) return 1;
 
     if (view === TokenView.Balance) {
-      return Number(b.balanceInUsd) - Number(a.balanceInUsd);
+      if (a.balanceInUsd === 0 && b.balanceInUsd === 0) {
+        return Number(toDecimal(b.balance, 3)) - Number(toDecimal(a.balance, 3));
+      }
+      return b.sortValue - a.sortValue;
     }
 
-    return a.name!.localeCompare(b.name!);
+    const aName = a.name || 'Unknown CAT';
+    const bName = b.name || 'Unknown CAT';
+    
+    if (aName === 'Unknown CAT' && bName !== 'Unknown CAT') return 1;
+    if (bName === 'Unknown CAT' && aName !== 'Unknown CAT') return -1;
+    
+    return aName.localeCompare(bName);
   });
 
   const visibleCats = sortedCats.filter((cat) => showHidden || cat.visible);
