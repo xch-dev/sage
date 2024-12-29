@@ -30,13 +30,10 @@ enum TokenView {
 export function TokenList() {
   const navigate = useNavigate();
   const walletState = useWalletState();
-
   const { getBalanceInUsd } = usePrices();
   const { addError } = useErrors();
-
   const [params, setParams] = useTokenParams();
   const { view, showHidden } = params;
-
   const [cats, setCats] = useState<CatRecord[]>([]);
 
   const catsWithBalanceInUsd = useMemo(
@@ -44,19 +41,10 @@ export function TokenList() {
       cats.map((cat) => {
         const balance = Number(toDecimal(cat.balance, 3));
         const usdValue = parseFloat(getBalanceInUsd(cat.asset_id, balance.toString()));
-        
-        console.log('Token processing:', {
-          name: cat.name,
-          balance,
-          usdValue,
-          rawBalance: cat.balance,
-          rawUsdValue: getBalanceInUsd(cat.asset_id, balance.toString())
-        });
-        
         return {
           ...cat,
           balanceInUsd: usdValue,
-          sortValue: usdValue > 0 ? usdValue : Number.MIN_SAFE_INTEGER
+          sortValue: usdValue
         };
       }),
     [cats, getBalanceInUsd],
@@ -157,7 +145,6 @@ export function TokenList() {
             <Card className='transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900'>
               <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
                 <CardTitle className='text-md font-medium'>Chia</CardTitle>
-
                 <img
                   alt={`XCH logo`}
                   className='h-6 w-6'
@@ -193,7 +180,6 @@ export function TokenList() {
                   <CardTitle className='text-md font-medium truncate'>
                     {cat.name || 'Unknown CAT'}
                   </CardTitle>
-
                   {cat.icon_url && (
                     <img
                       alt={`${cat.asset_id} logo`}
@@ -206,7 +192,6 @@ export function TokenList() {
                   <div className='text-2xl font-medium truncate'>
                     {toDecimal(cat.balance, 3)} {cat.ticker ?? ''}
                   </div>
-
                   <div className='text-sm text-neutral-500'>
                     ~${cat.balanceInUsd}
                   </div>
