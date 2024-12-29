@@ -12,14 +12,16 @@ import { useWalletState } from '@/state';
 import BigNumber from 'bignumber.js';
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { Loading } from '@/components/ui/loading';
 
 export function ViewOffer() {
   const { offer } = useParams();
   const { addError } = useErrors();
-
   const walletState = useWalletState();
   const navigate = useNavigate();
 
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadingStatus, setLoadingStatus] = useState('Initializing...');
   const [summary, setSummary] = useState<OfferSummary | null>(null);
   const [response, setResponse] = useState<TakeOfferResponse | null>(null);
   const [fee, setFee] = useState('');
@@ -27,10 +29,28 @@ export function ViewOffer() {
   useEffect(() => {
     if (!offer) return;
 
-    commands
-      .viewOffer({ offer })
-      .then((data) => setSummary(data.offer))
-      .catch(addError);
+    const loadOffer = async () => {
+      try {
+        setIsLoading(true);
+        setLoadingStatus('Decoding offer...');
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        setLoadingStatus('Fetching offer details...');
+        const data = await commands.viewOffer({ offer });
+
+        setLoadingStatus('Processing offer data...');
+        await new Promise(resolve => setTimeout(resolve, 300));
+
+        setSummary(data.offer);
+      } catch (error) {
+        setLoadingStatus('Error loading offer');
+        addError(error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadOffer();
   }, [offer, addError]);
 
   const importOffer = () => {
@@ -40,19 +60,16 @@ export function ViewOffer() {
       .catch(addError);
   };
 
-  const take = () => {
-    commands
-      .importOffer({ offer: offer! })
-      .then(() =>
-        commands
-          .takeOffer({
-            offer: offer!,
-            fee: toMojos(fee || '0', walletState.sync.unit.decimals),
-          })
-          .then((result) => setResponse(result))
-          .catch(addError),
-      )
-      .catch(addError);
+  const take = async () => {
+    try {
+      const result = await commands.takeOffer({
+        offer: offer!,
+        fee: toMojos(fee || '0', walletState.sync.unit.decimals),
+      });
+      setResponse(result);
+    } catch (error) {
+      addError(error);
+    }
   };
 
   return (
@@ -60,41 +77,33 @@ export function ViewOffer() {
       <Header title='View Offer' />
 
       <Container>
-        {summary && (
-          <OfferCard summary={summary}>
-            <div className='flex flex-col space-y-1.5'>
-              <Label htmlFor='fee'>Network Fee</Label>
-              <Input
-                id='fee'
-                type='text'
-                placeholder='0.00'
-                className='pr-12'
-                value={fee}
-                onChange={(e) => setFee(e.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') {
-                    event.preventDefault();
-                    take();
-                  }
-                }}
-              />
+        {isLoading ? (
+          <Loading className="my-8" text={loadingStatus} />
+        ) : summary && (
+          <>
+            <OfferCard summary={summary}>
+              <div className='flex flex-col space-y-1.5'>
+                <Label htmlFor='fee'>Network Fee</Label>
+                <Input
+                  id='fee'
+                  type='text'
+                  placeholder='0.00'
+                  className='pr-12'
+                  value={fee}
+                  onChange={(e) => setFee(e.target.value)}
+                />
+              </div>
+            </OfferCard>
 
-              <span className='text-xs text-muted-foreground'>
-                {BigNumber(summary?.fee ?? '0').isGreaterThan(0)
-                  ? `This does not include a fee of ${toDecimal(summary!.fee, walletState.sync.unit.decimals)} which was already added by the maker.`
-                  : ''}
-              </span>
+            <div className='mt-4 flex gap-2'>
+              <Button variant='outline' onClick={importOffer}>
+                Save Offer
+              </Button>
+
+              <Button onClick={take}>Take Offer</Button>
             </div>
-          </OfferCard>
+          </>
         )}
-
-        <div className='mt-4 flex gap-2'>
-          <Button variant='outline' onClick={importOffer}>
-            Save Offer
-          </Button>
-
-          <Button onClick={take}>Take Offer</Button>
-        </div>
       </Container>
 
       <ConfirmationDialog
