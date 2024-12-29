@@ -17,6 +17,10 @@ impl Database {
         coin_state(&self.pool, coin_id).await
     }
 
+    pub async fn full_coin_state(&self, coin_id: Bytes32) -> Result<Option<CoinStateRow>> {
+        full_coin_state(&self.pool, coin_id).await
+    }
+
     pub async fn unspent_nft_coin_ids(&self) -> Result<Vec<Bytes32>> {
         unspent_nft_coin_ids(&self.pool).await
     }
@@ -477,4 +481,27 @@ async fn get_coin_states_by_spent_height(
     .await?;
 
     rows.into_iter().map(into_row).collect()
+}
+
+async fn full_coin_state(
+    conn: impl SqliteExecutor<'_>,
+    coin_id: Bytes32,
+) -> Result<Option<CoinStateRow>> {
+    let coin_id = coin_id.as_ref();
+
+    let Some(sql) = sqlx::query_as!(
+        CoinStateSql,
+        "
+        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `created_height`, `spent_height`, `transaction_id`, `kind`
+        FROM `coin_states` WHERE `coin_id` = ?
+        ",
+        coin_id
+    )
+    .fetch_optional(conn)
+    .await?
+    else {
+        return Ok(None);
+    };
+
+    Ok(Some(sql.into_row()?))
 }

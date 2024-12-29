@@ -155,6 +155,9 @@ async getOffer(req: GetOffer) : Promise<GetOfferResponse> {
 async deleteOffer(req: DeleteOffer) : Promise<DeleteOfferResponse> {
     return await TAURI_INVOKE("delete_offer", { req });
 },
+async cancelOffer(req: CancelOffer) : Promise<TransactionResponse> {
+    return await TAURI_INVOKE("cancel_offer", { req });
+},
 async networkConfig() : Promise<NetworkConfig> {
     return await TAURI_INVOKE("network_config");
 },
@@ -237,6 +240,7 @@ export type AssetCoinType = "cat" | "did" | "nft"
 export type Assets = { xch: Amount; cats: CatAmount[]; nfts: string[] }
 export type AssignNftsToDid = { nft_ids: string[]; did_id: string | null; fee: Amount; auto_submit?: boolean }
 export type BulkMintNfts = { mints: NftMint[]; did_id: string; fee: Amount; auto_submit?: boolean }
+export type CancelOffer = { offer_id: string; fee: Amount; auto_submit?: boolean }
 export type CatAmount = { asset_id: string; amount: Amount }
 export type CatRecord = { asset_id: string; name: string | null; ticker: string | null; description: string | null; icon_url: string | null; visible: boolean; balance: Amount }
 export type Coin = { parent_coin_info: string; puzzle_hash: string; amount: number }

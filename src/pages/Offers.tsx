@@ -1,4 +1,11 @@
-import { commands, events, OfferAssets, OfferRecord } from '@/bindings';
+import {
+  commands,
+  events,
+  OfferAssets,
+  OfferRecord,
+  TransactionResponse,
+} from '@/bindings';
+import ConfirmationDialog from '@/components/ConfirmationDialog';
 import Container from '@/components/Container';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
@@ -18,17 +25,36 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { TokenAmountInput } from '@/components/ui/masked-input';
 import { Textarea } from '@/components/ui/textarea';
 import { useErrors } from '@/hooks/useErrors';
+import { amount } from '@/lib/formTypes';
 import { nftUri } from '@/lib/nftUri';
-import { toDecimal } from '@/lib/utils';
+import { toDecimal, toMojos } from '@/lib/utils';
 import { isDefaultOffer, useOfferState, useWalletState } from '@/state';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 import { platform } from '@tauri-apps/plugin-os';
 import BigNumber from 'bignumber.js';
-import { CopyIcon, HandCoins, MoreVertical, TrashIcon } from 'lucide-react';
+import {
+  CircleOff,
+  CopyIcon,
+  HandCoins,
+  MoreVertical,
+  TrashIcon,
+} from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
+import { z } from 'zod';
 
 export function Offers() {
   const navigate = useNavigate();
@@ -161,9 +187,40 @@ interface OfferProps {
 }
 
 function Offer({ record, refresh }: OfferProps) {
+  const walletState = useWalletState();
+
   const { addError } = useErrors();
 
   const [isDeleteOpen, setDeleteOpen] = useState(false);
+  const [isCancelOpen, setCancelOpen] = useState(false);
+  const [fee, setFee] = useState<string>('');
+
+  const cancelSchema = z.object({
+    fee: amount(walletState.sync.unit.decimals).refine(
+      (amount) => BigNumber(walletState.sync.balance).gte(amount || 0),
+      'Not enough funds to cover the fee',
+    ),
+  });
+
+  const cancelForm = useForm<z.infer<typeof cancelSchema>>({
+    resolver: zodResolver(cancelSchema),
+    defaultValues: {
+      fee: '0',
+    },
+  });
+
+  const cancelHandler = (values: z.infer<typeof cancelSchema>) => {
+    commands
+      .cancelOffer({
+        offer_id: record.offer_id,
+        fee: toMojos(values.fee, walletState.sync.unit.decimals),
+      })
+      .then((response) => setResponse(response))
+      .catch(addError)
+      .finally(() => setCancelOpen(false));
+  };
+
+  const [response, setResponse] = useState<TransactionResponse | null>(null);
 
   return (
     <>
@@ -225,6 +282,18 @@ function Offer({ record, refresh }: OfferProps) {
                   <TrashIcon className='mr-2 h-4 w-4' />
                   <span>Delete</span>
                 </DropdownMenuItem>
+
+                <DropdownMenuItem
+                  className='cursor-pointer'
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setCancelOpen(true);
+                  }}
+                  disabled={record.status !== 'active'}
+                >
+                  <CircleOff className='mr-2 h-4 w-4' />
+                  <span>Cancel</span>
+                </DropdownMenuItem>
               </DropdownMenuGroup>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -259,6 +328,50 @@ function Offer({ record, refresh }: OfferProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={isCancelOpen} onOpenChange={setCancelOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cancel offer?</DialogTitle>
+            <DialogDescription>
+              This will cancel the offer on-chain with a transaction, preventing
+              it from being taken even if someone has the original offer file.
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...cancelForm}>
+            <form
+              onSubmit={cancelForm.handleSubmit(cancelHandler)}
+              className='space-y-4'
+            >
+              <FormField
+                control={cancelForm.control}
+                name='fee'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Network Fee</FormLabel>
+                    <FormControl>
+                      <TokenAmountInput {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter className='gap-2'>
+                <Button
+                  type='button'
+                  variant='outline'
+                  onClick={() => setCancelOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button type='submit'>Submit</Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      <ConfirmationDialog response={response} close={() => setResponse(null)} />
     </>
   );
 }

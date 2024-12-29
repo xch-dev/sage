@@ -111,6 +111,7 @@ routes!(
     get_offers await: GetOffers = "/get_offers",
     get_offer await: GetOffer = "/get_offer",
     delete_offer await: DeleteOffer = "/delete_offer",
+    cancel_offer await: CancelOffer = "/cancel_offer",
 
     get_peers await: GetPeers = "/get_peers",
     remove_peer await: RemovePeer = "/remove_peer",

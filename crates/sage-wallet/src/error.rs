@@ -84,6 +84,9 @@ pub enum WalletError {
     #[error("Missing NFT with id {0}")]
     MissingNft(Bytes32),
 
+    #[error("Uncancellable offer")]
+    UncancellableOffer,
+
     #[error("Invalid trade price")]
     InvalidTradePrice,
 

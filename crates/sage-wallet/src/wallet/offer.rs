@@ -1,3 +1,4 @@
+mod cancel_offer;
 mod lock_assets;
 mod make_offer;
 mod offer_coins;
