@@ -1,6 +1,9 @@
 import ConfirmationDialog from '@/components/ConfirmationDialog';
+import Container from '@/components/Container';
 import Header from '@/components/Header';
+import { TokenAmountInput } from '@/components/ui/masked-input';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import {
   Form,
   FormControl,
@@ -12,35 +15,24 @@ import {
 import { Input } from '@/components/ui/input';
 import { useErrors } from '@/hooks/useErrors';
 import { amount, positiveAmount } from '@/lib/formTypes';
-import { toMojos } from '@/lib/utils';
+import { toDecimal, toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { zodResolver } from '@hookform/resolvers/zod';
+import BigNumber from 'bignumber.js';
 import { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router-dom';
 import * as z from 'zod';
-import {
-  CatRecord,
-  commands,
-  events,
-  SendXch,
-  TransactionResponse,
-} from '../bindings';
-import Container from '../components/Container';
-import { TokenAmountInput } from '@/components/ui/masked-input';
+import { CatRecord, commands, events, SendXch, TransactionResponse } from '../bindings';
 
 export default function Send() {
   const { asset_id: assetId } = useParams();
   const isXch = assetId === 'xch';
-
   const navigate = useNavigate();
   const walletState = useWalletState();
-
   const { addError } = useErrors();
 
-  const [asset, setAsset] = useState<(CatRecord & { decimals: number }) | null>(
-    null,
-  );
+  const [asset, setAsset] = useState<(CatRecord & { decimals: number }) | null>(null);
   const [response, setResponse] = useState<TransactionResponse | null>(null);
 
   const updateCat = useCallback(
@@ -69,7 +61,6 @@ export default function Send() {
 
       const unlisten = events.syncEvent.listen((event) => {
         const type = event.payload.type;
-
         if (
           type === 'coin_state' ||
           type === 'puzzle_batch_synced' ||
@@ -98,7 +89,10 @@ export default function Send() {
         (address) => commands.validateAddress(address).catch(addError),
         'Invalid address',
       ),
-    amount: positiveAmount(asset?.decimals || 12),
+    amount: positiveAmount(asset?.decimals || 12).refine(
+      (amount) => asset ? BigNumber(amount).lte(toDecimal(asset.balance, asset.decimals)) : true,
+      'Amount exceeds balance'
+    ),
     fee: amount(walletState.sync.unit.decimals).optional(),
   });
 
@@ -135,6 +129,17 @@ export default function Send() {
       />
 
       <Container className='max-w-xl'>
+        {asset && (
+          <Card className='mb-6'>
+            <CardContent className='pt-6'>
+              <div className='text-sm text-muted-foreground'>Available Balance</div>
+              <div className='text-2xl font-medium mt-1'>
+                {toDecimal(asset.balance, asset.decimals)} {asset.ticker}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-4'>
             <FormField
@@ -168,10 +173,7 @@ export default function Send() {
                       <div className='relative'>
                         <TokenAmountInput {...field} className='pr-12' />
                         <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
-                          <span
-                            className='text-gray-500 text-sm'
-                            id='price-currency'
-                          >
+                          <span className='text-gray-500 text-sm' id='price-currency'>
                             {asset?.ticker}
                           </span>
                         </div>
@@ -192,10 +194,7 @@ export default function Send() {
                       <div className='relative'>
                         <TokenAmountInput {...field} className='pr-12' />
                         <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
-                          <span
-                            className='text-gray-500 text-sm'
-                            id='price-currency'
-                          >
+                          <span className='text-gray-500 text-sm' id='price-currency'>
                             {walletState.sync.unit.ticker}
                           </span>
                         </div>
