@@ -78,7 +78,9 @@ impl Wallet {
             conditions = conditions.create_coin(p2_puzzle_hash, change, None);
         }
 
-        self.spend_p2_coins(&mut ctx, xch_coins, conditions).await?;
+        if !xch_coins.is_empty() {
+            self.spend_p2_coins(&mut ctx, xch_coins, conditions).await?;
+        }
 
         match row.kind {
             CoinKind::Xch => {}
