@@ -18,8 +18,8 @@ use sage_api::{
 use sage_database::{OfferCatRow, OfferNftRow, OfferRow, OfferStatus, OfferXchRow};
 use sage_wallet::{
     calculate_royalties, fetch_nft_offer_details, insert_transaction, lookup_from_uris_with_hash,
-    parse_locked_coins, parse_offer_payments, MakerSide, NftRoyaltyInfo, SyncCommand, TakerSide,
-    Transaction, Wallet,
+    parse_locked_coins, parse_offer_payments, try_lookup_cat, FetchedCatDetails, MakerSide,
+    NftRoyaltyInfo, SyncCommand, TakerSide, Transaction, Wallet,
 };
 use tracing::{debug, warn};
 
@@ -253,19 +253,27 @@ impl Sage {
         let mut nft_rows = Vec::new();
 
         for (asset_id, amount) in maker_amounts.cats {
-            let info = wallet.db.cat(asset_id).await?;
-            let name = info.as_ref().and_then(|info| info.name.clone());
-            let ticker = info.as_ref().and_then(|info| info.ticker.clone());
-            let icon = info.as_ref().and_then(|info| info.icon.clone());
+            let cat = wallet.db.cat(asset_id).await?;
+
+            let details = if let Some(cat) = cat {
+                FetchedCatDetails {
+                    name: cat.name,
+                    ticker: cat.ticker,
+                    description: cat.description,
+                    icon_url: cat.icon,
+                }
+            } else {
+                try_lookup_cat(asset_id, self.config.network.network_id != "mainnet").await
+            };
 
             cat_rows.push(OfferCatRow {
                 offer_id,
                 requested: false,
                 asset_id,
                 amount,
-                name: name.clone(),
-                ticker: ticker.clone(),
-                icon: icon.clone(),
+                name: details.name,
+                ticker: details.ticker,
+                icon: details.icon_url,
                 royalty: maker_royalties.cats.get(&asset_id).copied().unwrap_or(0),
             });
         }
@@ -330,19 +338,27 @@ impl Sage {
         }
 
         for (asset_id, amount) in taker_amounts.cats {
-            let info = wallet.db.cat(asset_id).await?;
-            let name = info.as_ref().and_then(|info| info.name.clone());
-            let ticker = info.as_ref().and_then(|info| info.ticker.clone());
-            let icon = info.as_ref().and_then(|info| info.icon.clone());
+            let cat = wallet.db.cat(asset_id).await?;
+
+            let details = if let Some(cat) = cat {
+                FetchedCatDetails {
+                    name: cat.name,
+                    ticker: cat.ticker,
+                    description: cat.description,
+                    icon_url: cat.icon,
+                }
+            } else {
+                try_lookup_cat(asset_id, self.config.network.network_id != "mainnet").await
+            };
 
             cat_rows.push(OfferCatRow {
                 offer_id,
                 requested: true,
                 asset_id,
                 amount,
-                name: name.clone(),
-                ticker: ticker.clone(),
-                icon: icon.clone(),
+                name: details.name,
+                ticker: details.ticker,
+                icon: details.icon_url,
                 royalty: taker_royalties.cats.get(&asset_id).copied().unwrap_or(0),
             });
         }

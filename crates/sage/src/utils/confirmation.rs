@@ -12,7 +12,9 @@ use sage_api::{
     TransactionOutput, TransactionSummary,
 };
 use sage_database::Database;
-use sage_wallet::{compute_nft_info, ChildKind, CoinKind, Data, Transaction};
+use sage_wallet::{
+    compute_nft_info, try_lookup_cat, ChildKind, CoinKind, Data, FetchedCatDetails, Transaction,
+};
 
 use crate::{Error, Result, Sage};
 
@@ -54,11 +56,23 @@ impl Sage {
                     p2_puzzle_hash,
                 } => {
                     let cat = wallet.db.cat(asset_id).await?;
+
+                    let details = if let Some(cat) = cat {
+                        FetchedCatDetails {
+                            name: cat.name,
+                            ticker: cat.ticker,
+                            description: cat.description,
+                            icon_url: cat.icon,
+                        }
+                    } else {
+                        try_lookup_cat(asset_id, self.config.network.network_id != "mainnet").await
+                    };
+
                     let kind = AssetKind::Cat {
                         asset_id: hex::encode(asset_id),
-                        name: cat.as_ref().and_then(|cat| cat.name.clone()),
-                        ticker: cat.as_ref().and_then(|cat| cat.ticker.clone()),
-                        icon_url: cat.as_ref().and_then(|cat| cat.icon.clone()),
+                        name: details.name,
+                        ticker: details.ticker,
+                        icon_url: details.icon_url,
                     };
                     (kind, p2_puzzle_hash)
                 }
