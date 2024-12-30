@@ -1,9 +1,4 @@
-import {
-  commands,
-  OfferSummary,
-  TakeOfferResponse,
-  CustomError,
-} from '@/bindings';
+import { commands, OfferSummary, TakeOfferResponse } from '@/bindings';
 import ConfirmationDialog from '@/components/ConfirmationDialog';
 import Container from '@/components/Container';
 import Header from '@/components/Header';
@@ -44,9 +39,9 @@ export function ViewOffer() {
 
         setLoadingStatus('Processing offer data...');
         setSummary(data.offer);
-      } catch (error) {
+      } catch (error: any) {
         setLoadingStatus('Error loading offer');
-        addError(error as CustomError);
+        addError(error);
       } finally {
         setIsLoading(false);
       }
@@ -69,8 +64,8 @@ export function ViewOffer() {
         fee: toMojos(fee || '0', walletState.sync.unit.decimals),
       });
       setResponse(result);
-    } catch (error) {
-      addError(error as CustomError);
+    } catch (error: any) {
+      addError(error);
     }
   };
 
