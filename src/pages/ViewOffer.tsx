@@ -12,7 +12,7 @@ import { useWalletState } from '@/state';
 import BigNumber from 'bignumber.js';
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Loading } from '@/components/ui/loading';
+import { Loading } from '@/components/Loading';
 
 export function ViewOffer() {
   const { offer } = useParams();
@@ -33,14 +33,11 @@ export function ViewOffer() {
       try {
         setIsLoading(true);
         setLoadingStatus('Decoding offer...');
-        await new Promise(resolve => setTimeout(resolve, 500));
 
         setLoadingStatus('Fetching offer details...');
         const data = await commands.viewOffer({ offer });
 
         setLoadingStatus('Processing offer data...');
-        await new Promise(resolve => setTimeout(resolve, 300));
-
         setSummary(data.offer);
       } catch (error) {
         setLoadingStatus('Error loading offer');
@@ -78,31 +75,33 @@ export function ViewOffer() {
 
       <Container>
         {isLoading ? (
-          <Loading className="my-8" text={loadingStatus} />
-        ) : summary && (
-          <>
-            <OfferCard summary={summary}>
-              <div className='flex flex-col space-y-1.5'>
-                <Label htmlFor='fee'>Network Fee</Label>
-                <Input
-                  id='fee'
-                  type='text'
-                  placeholder='0.00'
-                  className='pr-12'
-                  value={fee}
-                  onChange={(e) => setFee(e.target.value)}
-                />
+          <Loading className='my-8' text={loadingStatus} />
+        ) : (
+          summary && (
+            <>
+              <OfferCard summary={summary}>
+                <div className='flex flex-col space-y-1.5'>
+                  <Label htmlFor='fee'>Network Fee</Label>
+                  <Input
+                    id='fee'
+                    type='text'
+                    placeholder='0.00'
+                    className='pr-12'
+                    value={fee}
+                    onChange={(e) => setFee(e.target.value)}
+                  />
+                </div>
+              </OfferCard>
+
+              <div className='mt-4 flex gap-2'>
+                <Button variant='outline' onClick={importOffer}>
+                  Save Offer
+                </Button>
+
+                <Button onClick={take}>Take Offer</Button>
               </div>
-            </OfferCard>
-
-            <div className='mt-4 flex gap-2'>
-              <Button variant='outline' onClick={importOffer}>
-                Save Offer
-              </Button>
-
-              <Button onClick={take}>Take Offer</Button>
-            </div>
-          </>
+            </>
+          )
         )}
       </Container>
 
