@@ -46,6 +46,22 @@ impl LockedCoins {
 
         OfferAmounts { xch, cats }
     }
+
+    pub fn coins(&self) -> Vec<Coin> {
+        let mut coins = self.xch.clone();
+
+        for (_, cats) in &self.cats {
+            for cat in cats {
+                coins.push(cat.coin);
+            }
+        }
+
+        for (_, nft) in &self.nfts {
+            coins.push(nft.coin);
+        }
+
+        coins
+    }
 }
 
 #[derive(Debug, Clone)]
