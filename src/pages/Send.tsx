@@ -23,7 +23,13 @@ import { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router-dom';
 import * as z from 'zod';
-import { CatRecord, commands, events, SendXch, TransactionResponse } from '../bindings';
+import {
+  CatRecord,
+  commands,
+  events,
+  SendXch,
+  TransactionResponse,
+} from '../bindings';
 
 export default function Send() {
   const { asset_id: assetId } = useParams();
@@ -32,7 +38,9 @@ export default function Send() {
   const walletState = useWalletState();
   const { addError } = useErrors();
 
-  const [asset, setAsset] = useState<(CatRecord & { decimals: number }) | null>(null);
+  const [asset, setAsset] = useState<(CatRecord & { decimals: number }) | null>(
+    null,
+  );
   const [response, setResponse] = useState<TransactionResponse | null>(null);
 
   const updateCat = useCallback(
@@ -90,8 +98,11 @@ export default function Send() {
         'Invalid address',
       ),
     amount: positiveAmount(asset?.decimals || 12).refine(
-      (amount) => asset ? BigNumber(amount).lte(toDecimal(asset.balance, asset.decimals)) : true,
-      'Amount exceeds balance'
+      (amount) =>
+        asset
+          ? BigNumber(amount).lte(toDecimal(asset.balance, asset.decimals))
+          : true,
+      'Amount exceeds balance',
     ),
     fee: amount(walletState.sync.unit.decimals).optional(),
   });
@@ -132,7 +143,9 @@ export default function Send() {
         {asset && (
           <Card className='mb-6'>
             <CardContent className='pt-6'>
-              <div className='text-sm text-muted-foreground'>Available Balance</div>
+              <div className='text-sm text-muted-foreground'>
+                Available Balance
+              </div>
               <div className='text-2xl font-medium mt-1'>
                 {toDecimal(asset.balance, asset.decimals)} {asset.ticker}
               </div>
@@ -173,7 +186,10 @@ export default function Send() {
                       <div className='relative'>
                         <TokenAmountInput {...field} className='pr-12' />
                         <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
-                          <span className='text-gray-500 text-sm' id='price-currency'>
+                          <span
+                            className='text-gray-500 text-sm'
+                            id='price-currency'
+                          >
                             {asset?.ticker}
                           </span>
                         </div>
@@ -194,7 +210,10 @@ export default function Send() {
                       <div className='relative'>
                         <TokenAmountInput {...field} className='pr-12' />
                         <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
-                          <span className='text-gray-500 text-sm' id='price-currency'>
+                          <span
+                            className='text-gray-500 text-sm'
+                            id='price-currency'
+                          >
                             {walletState.sync.unit.ticker}
                           </span>
                         </div>

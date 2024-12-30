@@ -24,7 +24,7 @@ import { useWalletState } from '../state';
 
 enum TokenView {
   Name = 'name',
-  Balance = 'balance'
+  Balance = 'balance',
 }
 
 export function TokenList() {
@@ -40,11 +40,13 @@ export function TokenList() {
     () =>
       cats.map((cat) => {
         const balance = Number(toDecimal(cat.balance, 3));
-        const usdValue = parseFloat(getBalanceInUsd(cat.asset_id, balance.toString()));
+        const usdValue = parseFloat(
+          getBalanceInUsd(cat.asset_id, balance.toString()),
+        );
         return {
           ...cat,
           balanceInUsd: usdValue,
-          sortValue: usdValue
+          sortValue: usdValue,
         };
       }),
     [cats, getBalanceInUsd],
@@ -56,17 +58,19 @@ export function TokenList() {
 
     if (view === TokenView.Balance) {
       if (a.balanceInUsd === 0 && b.balanceInUsd === 0) {
-        return Number(toDecimal(b.balance, 3)) - Number(toDecimal(a.balance, 3));
+        return (
+          Number(toDecimal(b.balance, 3)) - Number(toDecimal(a.balance, 3))
+        );
       }
       return b.sortValue - a.sortValue;
     }
 
     const aName = a.name || 'Unknown CAT';
     const bName = b.name || 'Unknown CAT';
-    
+
     if (aName === 'Unknown CAT' && bName !== 'Unknown CAT') return 1;
     if (bName === 'Unknown CAT' && aName !== 'Unknown CAT') return -1;
-    
+
     return aName.localeCompare(bName);
   });
 
