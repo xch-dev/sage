@@ -1,4 +1,9 @@
-import { commands, OfferSummary, TakeOfferResponse } from '@/bindings';
+import {
+  commands,
+  OfferSummary,
+  TakeOfferResponse,
+  CustomError,
+} from '@/bindings';
 import ConfirmationDialog from '@/components/ConfirmationDialog';
 import Container from '@/components/Container';
 import Header from '@/components/Header';
@@ -41,7 +46,7 @@ export function ViewOffer() {
         setSummary(data.offer);
       } catch (error) {
         setLoadingStatus('Error loading offer');
-        addError(error);
+        addError(error as CustomError);
       } finally {
         setIsLoading(false);
       }
@@ -65,7 +70,7 @@ export function ViewOffer() {
       });
       setResponse(result);
     } catch (error) {
-      addError(error);
+      addError(error as CustomError);
     }
   };
 
