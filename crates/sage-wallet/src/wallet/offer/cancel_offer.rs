@@ -111,7 +111,7 @@ impl Wallet {
                 let synthetic_key = self.db.synthetic_key(did.info.p2_puzzle_hash).await?;
                 let p2 = StandardLayer::new(synthetic_key);
 
-                let _did = did.update(&mut ctx, &p2, Conditions::new())?;
+                let _did = did.transfer(&mut ctx, &p2, p2_puzzle_hash, Conditions::new())?;
             }
             CoinKind::Nft => {
                 let Some(nft) = self.db.nft_by_coin_id(coin_state.coin.coin_id()).await? else {
