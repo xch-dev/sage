@@ -16,7 +16,7 @@ import { useErrors } from '@/hooks/useErrors';
 import { usePrices } from '@/hooks/usePrices';
 import { useTokenParams } from '@/hooks/useTokenParams';
 import { toDecimal } from '@/lib/utils';
-import { ArrowDown10, ArrowDownAz, Coins, InfoIcon } from 'lucide-react';
+import { ArrowDown10, ArrowDownAz, Coins, InfoIcon, Clock } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { CatRecord, commands, events } from '../bindings';
@@ -30,50 +30,48 @@ enum TokenView {
 export function TokenList() {
   const navigate = useNavigate();
   const walletState = useWalletState();
-
   const { getBalanceInUsd } = usePrices();
   const { addError } = useErrors();
-
   const [params, setParams] = useTokenParams();
   const { view, showHidden } = params;
-
   const [cats, setCats] = useState<CatRecord[]>([]);
 
   const catsWithBalanceInUsd = useMemo(
     () =>
-      cats.map((cat) => ({
-        ...cat,
-        balanceInUsd: getBalanceInUsd(cat.asset_id, toDecimal(cat.balance, 3)),
-      })),
+      cats.map((cat) => {
+        const balance = Number(toDecimal(cat.balance, 3));
+        const usdValue = parseFloat(
+          getBalanceInUsd(cat.asset_id, balance.toString()),
+        );
+        return {
+          ...cat,
+          balanceInUsd: usdValue,
+          sortValue: usdValue,
+        };
+      }),
     [cats, getBalanceInUsd],
   );
 
   const sortedCats = catsWithBalanceInUsd.sort((a, b) => {
-    if (a.visible && !b.visible) {
-      return -1;
-    }
-
-    if (!a.visible && b.visible) {
-      return 1;
-    }
-
-    if (!a[view] && b[view]) {
-      return -1;
-    }
-
-    if (a[view] && !b[view]) {
-      return 1;
-    }
-
-    if (!a[view] && !b[view]) {
-      return 0;
-    }
+    if (a.visible && !b.visible) return -1;
+    if (!a.visible && b.visible) return 1;
 
     if (view === TokenView.Balance) {
-      return Number(b.balanceInUsd) - Number(a.balanceInUsd);
+      if (a.balanceInUsd === 0 && b.balanceInUsd === 0) {
+        return (
+          Number(toDecimal(b.balance, 3)) - Number(toDecimal(a.balance, 3))
+        );
+      }
+      return b.sortValue - a.sortValue;
     }
 
-    return a.name!.localeCompare(b.name!);
+    const aName = a.name || 'Unknown CAT';
+    const bName = b.name || 'Unknown CAT';
+
+    if (aName === 'Unknown CAT' && bName !== 'Unknown CAT') return 1;
+    if (bName === 'Unknown CAT' && aName !== 'Unknown CAT') return -1;
+
+    return aName.localeCompare(bName);
   });
 
   const visibleCats = sortedCats.filter((cat) => showHidden || cat.visible);
@@ -151,7 +149,6 @@ export function TokenList() {
             <Card className='transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900'>
               <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
                 <CardTitle className='text-md font-medium'>Chia</CardTitle>
-
                 <img
                   alt={`XCH logo`}
                   className='h-6 w-6'
@@ -187,7 +184,6 @@ export function TokenList() {
                   <CardTitle className='text-md font-medium truncate'>
                     {cat.name || 'Unknown CAT'}
                   </CardTitle>
-
                   {cat.icon_url && (
                     <img
                       alt={`${cat.asset_id} logo`}
@@ -200,7 +196,6 @@ export function TokenList() {
                   <div className='text-2xl font-medium truncate'>
                     {toDecimal(cat.balance, 3)} {cat.ticker ?? ''}
                   </div>
-
                   <div className='text-sm text-neutral-500'>
                     ~${cat.balanceInUsd}
                   </div>
