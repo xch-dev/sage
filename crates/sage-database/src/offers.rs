@@ -41,10 +41,6 @@ impl Database {
         update_offer_status(&self.pool, offer_id, status).await
     }
 
-    pub async fn offer_coin_ids(&self, offer_id: Bytes32) -> Result<Vec<Bytes32>> {
-        offer_coin_ids(&self.pool, offer_id).await
-    }
-
     pub async fn coin_offer_id(&self, coin_id: Bytes32) -> Result<Option<Bytes32>> {
         coin_offer_id(&self.pool, coin_id).await
     }
@@ -322,20 +318,6 @@ async fn update_offer_status(
     .await?;
 
     Ok(())
-}
-
-async fn offer_coin_ids(conn: impl SqliteExecutor<'_>, offer_id: Bytes32) -> Result<Vec<Bytes32>> {
-    let offer_id = offer_id.as_ref();
-
-    sqlx::query!(
-        "SELECT `coin_id` FROM `offered_coins` WHERE `offer_id` = ?",
-        offer_id
-    )
-    .fetch_all(conn)
-    .await?
-    .into_iter()
-    .map(|row| to_bytes32(&row.coin_id))
-    .collect()
 }
 
 async fn coin_offer_id(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Option<Bytes32>> {

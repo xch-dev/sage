@@ -179,7 +179,12 @@ mod tests {
         assert_eq!(test.wallet.db.cat_balance(asset_id).await?, 100);
         assert_eq!(cats.len(), 1);
 
-        let cat = test.wallet.db.cat_coin(cats.remove(0).coin.coin_id()).await?.expect("missing cat");
+        let cat = test
+            .wallet
+            .db
+            .cat_coin(cats.remove(0).coin.coin_id())
+            .await?
+            .expect("missing cat");
         let coin_spends = test.wallet.split_cat(vec![cat], 2, 0, false, true).await?;
         test.transact(coin_spends).await?;
         test.wait_for_coins().await;
@@ -190,7 +195,13 @@ mod tests {
 
         let mut cat_coins = Vec::with_capacity(cats.len());
         for cat in cats {
-            cat_coins.push(test.wallet.db.cat_coin(cat.coin.coin_id()).await?.expect("missing cat"));
+            cat_coins.push(
+                test.wallet
+                    .db
+                    .cat_coin(cat.coin.coin_id())
+                    .await?
+                    .expect("missing cat"),
+            );
         }
         let coin_spends = test.wallet.combine_cat(cat_coins, 0, false, true).await?;
         test.transact(coin_spends).await?;
