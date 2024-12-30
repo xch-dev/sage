@@ -66,12 +66,24 @@ impl TransactionQueue {
             return Ok(());
         }
 
-        info!("Submitting the following transactions: {rows:?}");
-
         for (transaction_id, aggregated_signature) in rows {
             let coin_spends = self.db.coin_spends(transaction_id).await?;
             spend_bundles.push(SpendBundle::new(coin_spends, aggregated_signature));
         }
+
+        info!(
+            "Submitting the following transactions: {:?}",
+            spend_bundles
+                .iter()
+                .map(|sb| (
+                    sb.name(),
+                    sb.coin_spends
+                        .iter()
+                        .map(|cs| cs.coin.coin_id())
+                        .collect::<Vec<_>>()
+                ))
+                .collect::<Vec<_>>()
+        );
 
         for spend_bundle in spend_bundles {
             sleep(Duration::from_secs(1)).await;
@@ -113,6 +125,11 @@ impl TransactionQueue {
                     self.db
                         .update_transaction_mempool_time(transaction_id, timestamp)
                         .await?;
+
+                    self.sync_sender
+                        .send(SyncEvent::TransactionUpdated { transaction_id })
+                        .await
+                        .ok();
                 }
                 Status::Failed(status, error) => {
                     info!(
