@@ -2,17 +2,16 @@ import { commands, OfferSummary, TakeOfferResponse } from '@/bindings';
 import ConfirmationDialog from '@/components/ConfirmationDialog';
 import Container from '@/components/Container';
 import Header from '@/components/Header';
+import { Loading } from '@/components/Loading';
 import { OfferCard } from '@/components/OfferCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useErrors } from '@/hooks/useErrors';
-import { toDecimal, toMojos } from '@/lib/utils';
+import { toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
-import BigNumber from 'bignumber.js';
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Loading } from '@/components/Loading';
 
 export function ViewOffer() {
   const { offer } = useParams();
@@ -30,21 +29,17 @@ export function ViewOffer() {
     if (!offer) return;
 
     const loadOffer = async () => {
-      try {
-        setIsLoading(true);
-        setLoadingStatus('Decoding offer...');
+      setIsLoading(true);
+      setLoadingStatus('Fetching offer details...');
 
-        setLoadingStatus('Fetching offer details...');
-        const data = await commands.viewOffer({ offer });
-
-        setLoadingStatus('Processing offer data...');
-        setSummary(data.offer);
-      } catch (error: any) {
-        setLoadingStatus('Error loading offer');
-        addError(error);
-      } finally {
-        setIsLoading(false);
-      }
+      commands
+        .viewOffer({ offer })
+        .then((data) => {
+          setSummary(data.offer);
+          setLoadingStatus('Processing offer data...');
+        })
+        .catch(addError)
+        .finally(() => setIsLoading(false));
     };
 
     loadOffer();
@@ -58,15 +53,13 @@ export function ViewOffer() {
   };
 
   const take = async () => {
-    try {
-      const result = await commands.takeOffer({
+    await commands
+      .takeOffer({
         offer: offer!,
         fee: toMojos(fee || '0', walletState.sync.unit.decimals),
-      });
-      setResponse(result);
-    } catch (error: any) {
-      addError(error);
-    }
+      })
+      .then((result) => setResponse(result))
+      .catch(addError);
   };
 
   return (
