@@ -89,6 +89,12 @@ export function ViewOffer() {
                     className='pr-12'
                     value={fee}
                     onChange={(e) => setFee(e.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault();
+                        take();
+                      }
+                    }}
                   />
                 </div>
               </OfferCard>
