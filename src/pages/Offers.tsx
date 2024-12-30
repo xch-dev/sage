@@ -1,13 +1,8 @@
-import {
-  commands,
-  events,
-  OfferAssets,
-  OfferRecord,
-  TransactionResponse,
-} from '@/bindings';
+import { commands, events, OfferRecord, TransactionResponse } from '@/bindings';
 import ConfirmationDialog from '@/components/ConfirmationDialog';
 import Container from '@/components/Container';
 import Header from '@/components/Header';
+import { OfferSummaryCard } from '@/components/OfferSummaryCard';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -37,8 +32,7 @@ import { TokenAmountInput } from '@/components/ui/masked-input';
 import { Textarea } from '@/components/ui/textarea';
 import { useErrors } from '@/hooks/useErrors';
 import { amount } from '@/lib/formTypes';
-import { nftUri } from '@/lib/nftUri';
-import { toDecimal, toMojos } from '@/lib/utils';
+import { toMojos } from '@/lib/utils';
 import { isDefaultOffer, useOfferState, useWalletState } from '@/state';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
@@ -49,6 +43,7 @@ import {
   CopyIcon,
   HandCoins,
   MoreVertical,
+  Tags,
   TrashIcon,
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
@@ -224,80 +219,71 @@ function Offer({ record, refresh }: OfferProps) {
 
   return (
     <>
-      <Link
-        to={`/offers/view_saved/${record.offer_id.trim()}`}
-        className='block p-4 rounded-sm bg-neutral-100 dark:bg-neutral-900'
-      >
-        <div className='flex justify-between'>
-          <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
-            <div className='flex flex-col gap-1'>
-              <div>
-                {record.status === 'active'
-                  ? 'Pending'
-                  : record.status === 'completed'
-                    ? 'Taken'
-                    : record.status === 'cancelled'
-                      ? 'Cancelled'
-                      : 'Expired'}
-              </div>
-              <div className='text-muted-foreground text-sm'>
-                {record.creation_date}
-              </div>
-            </div>
-
-            <AssetPreview label='Offered' assets={record.summary.maker} />
-            <AssetPreview label='Requested' assets={record.summary.taker} />
-          </div>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant='ghost'
-                size='icon'
-                className='-mr-1.5 flex-shrink-0'
-              >
-                <MoreVertical className='h-5 w-5' />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align='end'>
-              <DropdownMenuGroup>
-                <DropdownMenuItem
-                  className='cursor-pointer'
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    writeText(record.offer);
-                  }}
+      <Link to={`/offers/view_saved/${record.offer_id.trim()}`}>
+        <OfferSummaryCard
+          record={record}
+          content={
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant='ghost'
+                  size='icon'
+                  className='-mr-1.5 flex-shrink-0'
                 >
-                  <CopyIcon className='mr-2 h-4 w-4' />
-                  <span>Copy</span>
-                </DropdownMenuItem>
+                  <MoreVertical className='h-5 w-5' />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align='end'>
+                <DropdownMenuGroup>
+                  <DropdownMenuItem
+                    className='cursor-pointer'
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      writeText(record.offer);
+                    }}
+                  >
+                    <CopyIcon className='mr-2 h-4 w-4' />
+                    <span>Copy</span>
+                  </DropdownMenuItem>
 
-                <DropdownMenuItem
-                  className='cursor-pointer'
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setDeleteOpen(true);
-                  }}
-                >
-                  <TrashIcon className='mr-2 h-4 w-4' />
-                  <span>Delete</span>
-                </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className='cursor-pointer'
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDeleteOpen(true);
+                    }}
+                  >
+                    <TrashIcon className='mr-2 h-4 w-4' />
+                    <span>Delete</span>
+                  </DropdownMenuItem>
 
-                <DropdownMenuItem
-                  className='cursor-pointer'
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setCancelOpen(true);
-                  }}
-                  disabled={record.status !== 'active'}
-                >
-                  <CircleOff className='mr-2 h-4 w-4' />
-                  <span>Cancel</span>
-                </DropdownMenuItem>
-              </DropdownMenuGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+                  <DropdownMenuItem
+                    className='cursor-pointer'
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCancelOpen(true);
+                    }}
+                    disabled={record.status !== 'active'}
+                  >
+                    <CircleOff className='mr-2 h-4 w-4' />
+                    <span>Cancel</span>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem
+                    className='cursor-pointer'
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      writeText(record.offer_id);
+                    }}
+                  >
+                    <Tags className='mr-2 h-4 w-4' />
+                    <span>Copy ID</span>
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          }
+        />
       </Link>
 
       <Dialog open={isDeleteOpen} onOpenChange={setDeleteOpen}>
@@ -373,57 +359,5 @@ function Offer({ record, refresh }: OfferProps) {
 
       <ConfirmationDialog response={response} close={() => setResponse(null)} />
     </>
-  );
-}
-
-interface AssetPreviewProps {
-  label: string;
-  assets: OfferAssets;
-}
-
-function AssetPreview({ label, assets }: AssetPreviewProps) {
-  const walletState = useWalletState();
-
-  return (
-    <div className='flex flex-col gap-1 w-[125px] lg:w-[200px] xl:w-[300px]'>
-      <div>{label}</div>
-      {BigNumber(assets.xch.amount)
-        .plus(assets.xch.royalty)
-        .isGreaterThan(0) && (
-        <div className='flex items-center gap-2'>
-          <img src='https://icons.dexie.space/xch.webp' className='w-8 h-8' />
-
-          <div className='text-sm text-muted-foreground truncate'>
-            {toDecimal(
-              BigNumber(assets.xch.amount).plus(assets.xch.royalty).toString(),
-              walletState.sync.unit.decimals,
-            )}{' '}
-            {walletState.sync.unit.ticker}
-          </div>
-        </div>
-      )}
-      {Object.entries(assets.cats).map(([_assetId, cat]) => (
-        <div className='flex items-center gap-2'>
-          <img src={cat.icon_url!} className='w-8 h-8' />
-
-          <div className='text-sm text-muted-foreground truncate'>
-            {toDecimal(BigNumber(cat.amount).plus(cat.royalty).toString(), 3)}{' '}
-            {cat.name ?? cat.ticker ?? 'Unknown'}
-          </div>
-        </div>
-      ))}
-      {Object.entries(assets.nfts).map(([_nftId, nft]) => (
-        <div className='flex items-center gap-2'>
-          <img
-            src={nftUri(nft.image_mime_type, nft.image_data)}
-            className='w-8 h-8'
-          />
-
-          <div className='text-sm text-muted-foreground truncate'>
-            {nft.name ?? 'Unknown'}
-          </div>
-        </div>
-      ))}
-    </div>
   );
 }

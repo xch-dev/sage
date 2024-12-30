@@ -169,6 +169,14 @@ export const walletConnectCommands = {
     }),
     confirm: true,
   },
+  chia_cancelOffer: {
+    paramsType: z.object({
+      id: z.string(),
+      fee: safeAmount.optional(),
+    }),
+    returnType: z.object({}),
+    confirm: true,
+  },
   chia_getNfts: {
     paramsType: z.object({
       limit: z.number().optional(),
