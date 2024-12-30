@@ -267,10 +267,7 @@ pub async fn incremental_sync(
 
     tx.commit().await?;
 
-    sync_sender
-        .send(SyncEvent::CoinsUpdated { coin_states })
-        .await
-        .ok();
+    sync_sender.send(SyncEvent::CoinsUpdated).await.ok();
 
     if derived {
         sync_sender
