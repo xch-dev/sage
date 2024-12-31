@@ -17,6 +17,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
+import { Trans } from '@lingui/react/macro';
+import { t } from '@lingui/core/macro';
 
 export interface NftOptionsProps {
   totalPages: number;
@@ -45,6 +47,7 @@ export function NftOptions({
           size='icon'
           onClick={() => setParams({ page: Math.max(page - 1, 1) })}
           disabled={page === 1}
+          aria-label={t`Previous page`}
         >
           <ChevronLeftIcon className='h-4 w-4' />
         </Button>
@@ -56,6 +59,7 @@ export function NftOptions({
           size='icon'
           onClick={() => setParams({ page: Math.min(page + 1, totalPages) })}
           disabled={page === totalPages}
+          aria-label={t`Next page`}
         >
           <ChevronRightIcon className='h-4 w-4' />
         </Button>
@@ -67,6 +71,7 @@ export function NftOptions({
             variant='outline'
             size='icon'
             onClick={() => setMultiSelect(!multiSelect)}
+            aria-label={t`Toggle multi-select`}
           >
             <CopyPlus
               className={`h-4 w-4 ${multiSelect ? 'text-green-600 dark:text-green-400' : ''}`}
@@ -78,6 +83,7 @@ export function NftOptions({
           variant='outline'
           size='icon'
           onClick={() => setParams({ showHidden: !showHidden })}
+          aria-label={t`Toggle hidden NFTs`}
         >
           {showHidden ? (
             <EyeIcon className='h-4 w-4' />
@@ -88,7 +94,7 @@ export function NftOptions({
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant='outline' size='icon'>
+            <Button variant='outline' size='icon' aria-label={t`Sort options`}>
               {view === 'name' ? (
                 <ArrowDownAz className='h-4 w-4' />
               ) : view === 'recent' ? (
@@ -112,7 +118,9 @@ export function NftOptions({
                 }}
               >
                 <ArrowDownAz className='mr-2 h-4 w-4' />
-                <span>Sort Alphabetically</span>
+                <span>
+                  <Trans>Sort Alphabetically</Trans>
+                </span>
               </DropdownMenuItem>
 
               <DropdownMenuItem
@@ -126,7 +134,9 @@ export function NftOptions({
                 }}
               >
                 <Clock2 className='mr-2 h-4 w-4' />
-                <span>Sort Recent</span>
+                <span>
+                  <Trans>Sort Recent</Trans>
+                </span>
               </DropdownMenuItem>
 
               {!isCollection && (
@@ -141,7 +151,9 @@ export function NftOptions({
                   }}
                 >
                   <Images className='mr-2 h-4 w-4' />
-                  <span>Group Collections</span>
+                  <span>
+                    <Trans>Group Collections</Trans>
+                  </span>
                 </DropdownMenuItem>
               )}
             </DropdownMenuGroup>

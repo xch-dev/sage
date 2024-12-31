@@ -30,19 +30,19 @@ import * as z from 'zod';
 import { commands, TransactionResponse } from '../bindings';
 import Container from '../components/Container';
 import { useWalletState } from '../state';
+import { Trans } from '@lingui/react/macro';
+import { t } from '@lingui/core/macro';
 
 export default function MintNft() {
   const navigate = useNavigate();
   const walletState = useWalletState();
-
   const { dids } = useDids();
   const { addError } = useErrors();
-
   const [pending, setPending] = useState(false);
   const [response, setResponse] = useState<TransactionResponse | null>(null);
 
   const formSchema = z.object({
-    profile: z.string().min(1, 'Profile is required'),
+    profile: z.string().min(1, t`Profile is required`),
     fee: amount(walletState.sync.unit.decimals).optional(),
     royaltyAddress: z.string().optional(),
     royaltyPercent: amount(2),
@@ -93,7 +93,7 @@ export default function MintNft() {
 
   return (
     <>
-      <Header title='Mint NFT' />
+      <Header title={t`Mint NFT`} />
 
       <Container className='max-w-xl'>
         <Form {...form}>
@@ -103,26 +103,29 @@ export default function MintNft() {
               name='profile'
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Profile</FormLabel>
+                  <FormLabel>
+                    <Trans>Profile</Trans>
+                  </FormLabel>
                   <FormControl>
                     <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger id='profile' aria-label='Select profile'>
-                        <SelectValue placeholder='Select profile' />
+                      <SelectTrigger
+                        id='profile'
+                        aria-label={t`Select profile`}
+                      >
+                        <SelectValue placeholder={t`Select profile`} />
                       </SelectTrigger>
                       <SelectContent>
                         {dids
                           .filter((did) => did.visible)
-                          .map((did) => {
-                            return (
-                              <SelectItem
-                                key={did.launcher_id}
-                                value={did.launcher_id}
-                              >
-                                {did.name ??
-                                  `${did.launcher_id.slice(0, 14)}...${did.launcher_id.slice(-4)}`}
-                              </SelectItem>
-                            );
-                          })}
+                          .map((did) => (
+                            <SelectItem
+                              key={did.launcher_id}
+                              value={did.launcher_id}
+                            >
+                              {did.name ??
+                                `${did.launcher_id.slice(0, 14)}...${did.launcher_id.slice(-4)}`}
+                            </SelectItem>
+                          ))}
                       </SelectContent>
                     </Select>
                   </FormControl>
@@ -136,11 +139,13 @@ export default function MintNft() {
               name='dataUris'
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Data URLs</FormLabel>
+                  <FormLabel>
+                    <Trans>Data URLs</Trans>
+                  </FormLabel>
                   <FormControl>
                     <Input
                       type='text'
-                      placeholder='Enter comma separated URLs'
+                      placeholder={t`Enter comma separated URLs`}
                       {...field}
                       className='pr-12'
                     />
@@ -155,11 +160,13 @@ export default function MintNft() {
               name='metadataUris'
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Metadata URLs</FormLabel>
+                  <FormLabel>
+                    <Trans>Metadata URLs</Trans>
+                  </FormLabel>
                   <FormControl>
                     <Input
                       type='text'
-                      placeholder='Enter comma separated URLs'
+                      placeholder={t`Enter comma separated URLs`}
                       {...field}
                       className='pr-12'
                     />
@@ -174,11 +181,13 @@ export default function MintNft() {
               name='licenseUris'
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>License URLs</FormLabel>
+                  <FormLabel>
+                    <Trans>License URLs</Trans>
+                  </FormLabel>
                   <FormControl>
                     <Input
                       type='text'
-                      placeholder='Enter comma separated URLs'
+                      placeholder={t`Enter comma separated URLs`}
                       {...field}
                       className='pr-12'
                     />
@@ -193,11 +202,13 @@ export default function MintNft() {
               name='royaltyAddress'
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Royalty Address</FormLabel>
+                  <FormLabel>
+                    <Trans>Royalty Address</Trans>
+                  </FormLabel>
                   <FormControl>
                     <Input
                       type='text'
-                      placeholder='Enter address'
+                      placeholder={t`Enter address`}
                       {...field}
                       className='pr-12'
                     />
@@ -213,12 +224,14 @@ export default function MintNft() {
                 name='royaltyPercent'
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Royalty Percent</FormLabel>
+                    <FormLabel>
+                      <Trans>Royalty Percent</Trans>
+                    </FormLabel>
                     <FormControl>
                       <div className='relative'>
                         <Input
                           type='text'
-                          placeholder='Enter percent'
+                          placeholder={t`Enter percent`}
                           {...field}
                           className='pr-12'
                         />
@@ -239,12 +252,14 @@ export default function MintNft() {
                 name='fee'
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Network Fee</FormLabel>
+                    <FormLabel>
+                      <Trans>Network Fee</Trans>
+                    </FormLabel>
                     <FormControl>
                       <div className='relative'>
                         <Input
                           type='text'
-                          placeholder='0.00'
+                          placeholder={'0.00'}
                           {...field}
                           className='pr-12'
                         />
@@ -265,7 +280,7 @@ export default function MintNft() {
               {pending && (
                 <LoaderCircleIcon className='mr-2 h-4 w-4 animate-spin' />
               )}
-              {pending ? 'Minting' : 'Mint'} NFT
+              {pending ? <Trans>Minting</Trans> : <Trans>Mint</Trans>} NFT
             </Button>
           </form>
         </Form>

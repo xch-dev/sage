@@ -6,6 +6,8 @@ import { logoutAndUpdateState, useWalletState } from '@/state';
 import { ChevronLeft, Cog, LogOut, Menu } from 'lucide-react';
 import { PropsWithChildren, ReactNode, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Plural, Trans } from '@lingui/react/macro';
+import { t } from '@lingui/core/macro';
 import { Nav } from './Nav';
 import { Button } from './ui/button';
 import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
@@ -25,9 +27,13 @@ export default function Header(
 
   const initialized = useInitialization();
   const wallet = useWallet(initialized);
+
   const { peers } = usePeers();
+  const peerCount = peers?.length || 0;
 
   const walletState = useWalletState();
+  const syncedCoins = walletState.sync.synced_coins;
+  const totalCoins = walletState.sync.total_coins;
   const isSynced = useMemo(
     () => walletState.sync.synced_coins === walletState.sync.total_coins,
     [walletState.sync.synced_coins, walletState.sync.total_coins],
@@ -48,7 +54,7 @@ export default function Header(
   const isMobile = platform() === 'ios' || platform() === 'android';
 
   return (
-    <header className='flex items-center gap-4 px-4 md:px-6sticky top-0 bg-background z-10 pb-2 pt-2'>
+    <header className='flex items-center gap-4 px-4 md:px-6 sticky top-0 bg-background z-10 pb-2 pt-2'>
       <Sheet>
         {hasBackButton ? (
           <Button
@@ -56,9 +62,12 @@ export default function Header(
             size='icon'
             onClick={() => (props.back ? props.back() : navigate(-1))}
             className='md:hidden text-muted-foreground'
+            aria-label={t`Back`}
           >
-            <ChevronLeft className='h-5 w-5 pb' />
-            <span className='sr-only'>Back</span>
+            <ChevronLeft className='h-5 w-5 pb' aria-hidden='true' />
+            <span className='sr-only'>
+              <Trans>Back</Trans>
+            </span>
           </Button>
         ) : (
           <SheetTrigger asChild>
@@ -66,9 +75,12 @@ export default function Header(
               variant='outline'
               size='icon'
               className='shrink-0 md:hidden'
+              aria-label={t`Toggle navigation menu`}
             >
-              <Menu className='h-5 w-5' />
-              <span className='sr-only'>Toggle navigation menu</span>
+              <Menu className='h-5 w-5' aria-hidden='true' />
+              <span className='sr-only'>
+                <Trans>Toggle navigation menu</Trans>
+              </span>
             </Button>
           </SheetTrigger>
         )}
@@ -85,8 +97,9 @@ export default function Header(
             <Link
               to='/wallet'
               className='flex items-center gap-2 font-semibold'
+              aria-label={t`Go to wallet`}
             >
-              <img src={icon} className='h-8 w-8' alt='Wallet icon' />
+              <img src={icon} className='h-8 w-8' alt={t`Wallet icon`} />
               <span className='text-lg'>{wallet?.name}</span>
             </Link>
           </div>
@@ -97,6 +110,7 @@ export default function Header(
             <Link
               to='/peers'
               className='mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground'
+              aria-label={t`Network status`}
             >
               <span
                 className={
@@ -104,31 +118,34 @@ export default function Header(
                   ' ' +
                   (isSynced ? 'bg-emerald-600' : 'bg-yellow-600')
                 }
+                aria-hidden='true'
               ></span>
               {isSynced ? (
                 <>
-                  {peers?.length} peers
+                  <Plural value={peerCount} one={'# peer'} other={'# peers'} />{' '}
                   {peerMaxHeight
-                    ? ` at peak ${peerMaxHeight}`
-                    : ' connecting...'}
+                    ? t`at peak ${peerMaxHeight}`
+                    : t`connecting...`}
                 </>
               ) : (
-                `Syncing ${walletState.sync.synced_coins} / ${walletState.sync.total_coins}`
+                <Trans>
+                  Syncing {syncedCoins} / {totalCoins}
+                </Trans>
               )}
             </Link>
             <Link
               to='/settings'
               className='mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground'
             >
-              <Cog className='h-4 w-4' />
-              Settings
+              <Cog className='h-4 w-4' aria-hidden='true' />
+              <Trans>Settings</Trans>
             </Link>
             <button
               onClick={logout}
               className='mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground'
             >
-              <LogOut className='h-4 w-4' />
-              Logout
+              <LogOut className='h-4 w-4' aria-hidden='true' />
+              <Trans>Logout</Trans>
             </button>
           </nav>
         </SheetContent>
@@ -142,8 +159,8 @@ export default function Header(
               onClick={() => (props.back ? props.back() : navigate(-1))}
               className='hidden md:flex px-0 text-muted-foreground'
             >
-              <ChevronLeft className='h-4 w-4 mr-1' />
-              Back
+              <ChevronLeft className='h-4 w-4 mr-1' aria-hidden='true' />
+              <Trans>Back</Trans>
             </Button>
           </>
         ) : (

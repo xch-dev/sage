@@ -22,18 +22,18 @@ import { commands, TransactionResponse } from '../bindings';
 import Container from '../components/Container';
 import { useWalletState } from '../state';
 import { TokenAmountInput } from '@/components/ui/masked-input';
+import { Trans } from '@lingui/react/macro';
+import { t } from '@lingui/core/macro';
 
 export default function IssueToken() {
   const navigate = useNavigate();
   const walletState = useWalletState();
-
   const { addError } = useErrors();
-
   const [response, setResponse] = useState<TransactionResponse | null>(null);
 
   const formSchema = z.object({
-    name: z.string().min(1, 'Name is required'),
-    ticker: z.string().min(1, 'Ticker is required'),
+    name: z.string().min(1, t`Name is required`),
+    ticker: z.string().min(1, t`Ticker is required`),
     amount: positiveAmount(3),
     fee: amount(walletState.sync.unit.decimals).optional(),
   });
@@ -59,7 +59,7 @@ export default function IssueToken() {
 
   return (
     <>
-      <Header title='Issue Token' />
+      <Header title={t`Issue Token`} />
 
       <Container className='max-w-xl'>
         <Form {...form}>
@@ -70,9 +70,11 @@ export default function IssueToken() {
                 name='name'
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Name</FormLabel>
+                    <FormLabel>
+                      <Trans>Name</Trans>
+                    </FormLabel>
                     <FormControl>
-                      <Input placeholder='Display name' {...field} />
+                      <Input placeholder={t`Display name`} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -84,9 +86,11 @@ export default function IssueToken() {
                 name='ticker'
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Ticker</FormLabel>
+                    <FormLabel>
+                      <Trans>Ticker</Trans>
+                    </FormLabel>
                     <FormControl>
-                      <Input placeholder='Currency symbol' {...field} />
+                      <Input placeholder={t`Currency Symbol`} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -100,7 +104,9 @@ export default function IssueToken() {
                 name='amount'
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Amount</FormLabel>
+                    <FormLabel>
+                      <Trans>Amount</Trans>
+                    </FormLabel>
                     <FormControl>
                       <div className='relative'>
                         <TokenAmountInput {...field} className='pr-12' />
@@ -119,7 +125,9 @@ export default function IssueToken() {
                 name='fee'
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Fee</FormLabel>
+                    <FormLabel>
+                      <Trans>Fee</Trans>
+                    </FormLabel>
                     <FormControl>
                       <div className='relative'>
                         <TokenAmountInput {...field} className='pr-12' />
@@ -136,7 +144,9 @@ export default function IssueToken() {
               />
             </div>
 
-            <Button type='submit'>Issue Token</Button>
+            <Button type='submit'>
+              <Trans>Issue Token</Trans>
+            </Button>
           </form>
         </Form>
       </Container>

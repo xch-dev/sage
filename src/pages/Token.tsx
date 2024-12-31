@@ -56,6 +56,8 @@ import {
   events,
   TransactionResponse,
 } from '../bindings';
+import { Trans } from '@lingui/react/macro';
+import { t } from '@lingui/core/macro';
 
 export default function Token() {
   const navigate = useNavigate();
@@ -191,7 +193,7 @@ export default function Token() {
       <Header
         title={
           <span>
-            {asset ? (asset.name ?? 'Unknown asset') : ''}{' '}
+            {asset ? (asset.name ?? t`Unknown asset`) : ''}{' '}
             {asset?.asset_id !== 'xch' && (
               <CopyButton value={asset?.asset_id ?? ''} />
             )}
@@ -228,12 +230,13 @@ export default function Token() {
               <div className='flex gap-2 mt-2 flex-wrap'>
                 <Link to={`/wallet/send/${assetId}`}>
                   <Button>
-                    <Send className='mr-2 h-4 w-4' /> Send
+                    <Send className='mr-2 h-4 w-4' /> <Trans>Send</Trans>
                   </Button>
                 </Link>
                 <Link to='/wallet/addresses'>
                   <Button variant={'outline'}>
-                    <HandHelping className='mr-2 h-4 w-4' /> Receive
+                    <HandHelping className='mr-2 h-4 w-4' />{' '}
+                    <Trans>Receive</Trans>
                   </Button>
                 </Link>
                 {asset && assetId !== 'xch' && (
@@ -245,15 +248,15 @@ export default function Token() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
                       <DropdownMenuItem onClick={() => setEditOpen(true)}>
-                        Edit
+                        <Trans>Edit</Trans>
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={redownload}>
-                        Refresh Info
+                        <Trans>Refresh Info</Trans>
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => setVisibility(!asset.visible)}
                       >
-                        {asset.visible ? 'Hide' : 'Show'} Asset
+                        {asset.visible ? t`Hide` : t`Show`} {t`Asset`}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -286,14 +289,18 @@ export default function Token() {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit Token Details</DialogTitle>
+            <DialogTitle>
+              <Trans>Edit Token Details</Trans>
+            </DialogTitle>
             <DialogDescription>
-              Enter the new display details for this token
+              <Trans>Enter the new display details for this token</Trans>
             </DialogDescription>
           </DialogHeader>
           <div className='grid w-full items-center gap-4'>
             <div className='flex flex-col space-y-1.5'>
-              <Label htmlFor='name'>Name</Label>
+              <Label htmlFor='name'>
+                <Trans>Name</Trans>
+              </Label>
               <Input
                 id='name'
                 placeholder='Name of this token'
@@ -310,7 +317,9 @@ export default function Token() {
           </div>
           <div className='grid w-full items-center gap-4'>
             <div className='flex flex-col space-y-1.5'>
-              <Label htmlFor='ticker'>Ticker</Label>
+              <Label htmlFor='ticker'>
+                <Trans>Ticker</Trans>
+              </Label>
               <Input
                 id='ticker'
                 placeholder='Ticker for this token'
@@ -335,10 +344,10 @@ export default function Token() {
                 setNewTicker('');
               }}
             >
-              Cancel
+              <Trans>Cancel</Trans>
             </Button>
             <Button onClick={edit} disabled={!newName || !newTicker}>
-              Rename
+              <Trans>Rename</Trans>
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -375,6 +384,7 @@ function CoinCard({
   setSelectedCoins,
 }: CoinCardProps) {
   const walletState = useWalletState();
+  const ticker = asset?.ticker;
 
   const { addError } = useErrors();
 
@@ -468,7 +478,9 @@ function CoinCard({
   return (
     <Card className='max-w-full overflow-auto'>
       <CardHeader>
-        <CardTitle className='text-lg font-medium'>Coins</CardTitle>
+        <CardTitle className='text-lg font-medium'>
+          <Trans>Coins</Trans>
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <CoinList
@@ -484,7 +496,7 @@ function CoinCard({
                   disabled={!canSplit}
                   onClick={() => setSplitOpen(true)}
                 >
-                  <SplitIcon className='mr-2 h-4 w-4' /> Split
+                  <SplitIcon className='mr-2 h-4 w-4' /> <Trans>Split</Trans>
                 </Button>
               )}
               {combineHandler && (
@@ -494,7 +506,7 @@ function CoinCard({
                   onClick={() => setCombineOpen(true)}
                 >
                   <MergeIcon className='mr-2 h-4 w-4' />
-                  Combine
+                  <Trans>Combine</Trans>
                 </Button>
               )}
             </>
@@ -505,9 +517,13 @@ function CoinCard({
       <Dialog open={isCombineOpen} onOpenChange={setCombineOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Combine {asset?.ticker}</DialogTitle>
+            <DialogTitle>
+              <Trans>Combine {ticker}</Trans>
+            </DialogTitle>
             <DialogDescription>
-              This will combine all of the selected coins into one.
+              <Trans>
+                This will combine all of the selected coins into one.
+              </Trans>
             </DialogDescription>
           </DialogHeader>
           <Form {...combineForm}>
@@ -520,7 +536,9 @@ function CoinCard({
                 name='combineFee'
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Network Fee</FormLabel>
+                    <FormLabel>
+                      <Trans>Network Fee</Trans>
+                    </FormLabel>
                     <FormControl>
                       <Input {...field} />
                     </FormControl>
@@ -534,9 +552,11 @@ function CoinCard({
                   variant='outline'
                   onClick={() => setCombineOpen(false)}
                 >
-                  Cancel
+                  <Trans>Cancel</Trans>
                 </Button>
-                <Button type='submit'>Combine</Button>
+                <Button type='submit'>
+                  <Trans>Combine</Trans>
+                </Button>
               </DialogFooter>
             </form>
           </Form>
@@ -546,9 +566,11 @@ function CoinCard({
       <Dialog open={isSplitOpen} onOpenChange={setSplitOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Split {asset?.ticker}</DialogTitle>
+            <DialogTitle>
+              <Trans>Split {ticker}</Trans>
+            </DialogTitle>
             <DialogDescription>
-              This will split all of the selected coins.
+              <Trans>This will split all of the selected coins.</Trans>
             </DialogDescription>
           </DialogHeader>
           <Form {...splitForm}>
@@ -561,7 +583,9 @@ function CoinCard({
                 name='outputCount'
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Output Count</FormLabel>
+                    <FormLabel>
+                      <Trans>Output Count</Trans>
+                    </FormLabel>
                     <FormControl>
                       <Input
                         type='number'
@@ -580,7 +604,9 @@ function CoinCard({
                 name='splitFee'
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Network Fee</FormLabel>
+                    <FormLabel>
+                      <Trans>Network Fee</Trans>
+                    </FormLabel>
                     <FormControl>
                       <Input {...field} />
                     </FormControl>
@@ -594,9 +620,11 @@ function CoinCard({
                   variant='outline'
                   onClick={() => setSplitOpen(false)}
                 >
-                  Cancel
+                  <Trans>Cancel</Trans>
                 </Button>
-                <Button type='submit'>Split</Button>
+                <Button type='submit'>
+                  <Trans>Split</Trans>
+                </Button>
               </DialogFooter>
             </form>
           </Form>

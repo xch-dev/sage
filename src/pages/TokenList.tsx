@@ -21,6 +21,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { CatRecord, commands, events } from '../bindings';
 import { useWalletState } from '../state';
+import { Trans } from '@lingui/react/macro';
 
 enum TokenView {
   Name = 'name',
@@ -108,7 +109,7 @@ export function TokenList() {
 
   return (
     <>
-      <Header title='Assets'>
+      <Header title={<Trans>Assets</Trans>}>
         <div className='flex items-center gap-2'>
           <TokenSortDropdown
             view={view}
@@ -119,23 +120,29 @@ export function TokenList() {
       </Header>
       <Container>
         <Button onClick={() => navigate('/wallet/issue-token')}>
-          <Coins className='h-4 w-4 mr-2' /> Issue Token
+          <Coins className='h-4 w-4 mr-2' /> <Trans>Issue Token</Trans>
         </Button>
 
         {walletState.sync.synced_coins < walletState.sync.total_coins && (
           <Alert className='mt-4 mb-4'>
             <InfoIcon className='h-4 w-4' />
-            <AlertTitle>Syncing in progress...</AlertTitle>
+            <AlertTitle>
+              <Trans>Syncing in progress...</Trans>
+            </AlertTitle>
             <AlertDescription>
-              The wallet is still syncing. Balances may not be accurate until it
-              completes.
+              <Trans>
+                The wallet is still syncing. Balances may not be accurate until
+                it completes.
+              </Trans>
             </AlertDescription>
           </Alert>
         )}
 
         {hasHiddenAssets && (
           <div className='flex items-center gap-2 my-4'>
-            <label htmlFor='viewHidden'>View hidden</label>
+            <label htmlFor='viewHidden'>
+              <Trans>View hidden</Trans>
+            </label>
             <Switch
               id='viewHidden'
               checked={showHidden}
@@ -238,7 +245,9 @@ function TokenSortDropdown({
             }}
           >
             <ArrowDownAz className='mr-2 h-4 w-4' />
-            <span>Sort Alphabetically</span>
+            <span>
+              <Trans>Sort Alphabetically</Trans>
+            </span>
           </DropdownMenuItem>
 
           <DropdownMenuItem
@@ -249,7 +258,9 @@ function TokenSortDropdown({
             }}
           >
             <ArrowDown10 className='mr-2 h-4 w-4' />
-            <span>Sort by Balance</span>
+            <span>
+              <Trans>Sort by Balance</Trans>
+            </span>
           </DropdownMenuItem>
         </DropdownMenuGroup>
       </DropdownMenuContent>

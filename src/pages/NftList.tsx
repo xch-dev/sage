@@ -27,6 +27,8 @@ import {
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { commands, events, NftCollectionRecord, NftRecord } from '../bindings';
+import { Trans } from '@lingui/react/macro';
+import { t } from '@lingui/core/macro';
 
 export function NftList() {
   const navigate = useNavigate();
@@ -108,21 +110,25 @@ export function NftList() {
 
   return (
     <>
-      <Header title='NFTs'>
+      <Header title={<Trans>NFTs</Trans>}>
         <ReceiveAddress />
       </Header>
 
       <Container>
         <Button onClick={() => navigate('/nfts/mint')}>
-          <ImagePlusIcon className='h-4 w-4 mr-2' /> Mint NFT
+          <ImagePlusIcon className='h-4 w-4 mr-2' /> <Trans>Mint NFT</Trans>
         </Button>
 
         {walletState.nfts.nfts === 0 ? (
           <Alert className='mt-4'>
             <Image className='h-4 w-4' />
-            <AlertTitle>Mint an NFT?</AlertTitle>
+            <AlertTitle>
+              <Trans>Mint an NFT?</Trans>
+            </AlertTitle>
             <AlertDescription>
-              You do not currently have any NFTs. Would you like to mint one?
+              <Trans>
+                You do not currently have any NFTs. Would you like to mint one?
+              </Trans>
             </AlertDescription>
           </Alert>
         ) : (
@@ -224,7 +230,7 @@ function Collection({ col }: CollectionProps) {
       >
         <div className='overflow-hidden rounded-t-lg relative'>
           <img
-            alt={col.name ?? 'Unnamed'}
+            alt={col.name ?? t`Unnamed`}
             loading='lazy'
             width='150'
             height='150'
@@ -235,7 +241,7 @@ function Collection({ col }: CollectionProps) {
         <div className='border-t bg-white text-neutral-950 shadow  dark:bg-neutral-900 dark:text-neutral-50 text-md flex items-center justify-between rounded-b-lg p-2 pl-3'>
           <span className='truncate'>
             <span className='font-medium leading-none truncate'>
-              {col.name ?? 'Unnamed'}
+              {col.name ?? <Trans>Unnamed</Trans>}
             </span>
             {col.collection_id && (
               <p className='text-xs text-muted-foreground truncate'>
@@ -264,7 +270,7 @@ function Collection({ col }: CollectionProps) {
                   ) : (
                     <EyeIcon className='mr-2 h-4 w-4' />
                   )}
-                  <span>{col.visible ? 'Hide' : 'Show'}</span>
+                  <span>{col.visible ? t`Hide` : t`Show`}</span>
                 </DropdownMenuItem>
               </DropdownMenuGroup>
             </DropdownMenuContent>

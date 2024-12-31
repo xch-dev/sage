@@ -24,6 +24,8 @@ import {
 } from './ui/form';
 import { Input } from './ui/input';
 import { TokenAmountInput } from './ui/masked-input';
+import { Trans } from '@lingui/react/macro';
+import { t } from '@lingui/core/macro';
 
 export interface TransferDialogProps {
   title: string;
@@ -42,10 +44,10 @@ export function TransferDialog({
   const walletState = useWalletState();
 
   const schema = z.object({
-    address: z.string().min(1, 'Address is required'),
+    address: z.string().min(1, t`Address is required`),
     fee: amount(walletState.sync.unit.decimals).refine(
       (amount) => BigNumber(walletState.sync.balance).gte(amount || 0),
-      'Not enough funds to cover the fee',
+      t`Not enough funds to cover the fee`,
     ),
   });
 
@@ -75,9 +77,11 @@ export function TransferDialog({
               name='address'
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Address</FormLabel>
+                  <FormLabel>
+                    <Trans>Address</Trans>
+                  </FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <Input {...field} placeholder={t`Enter address`} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -88,9 +92,14 @@ export function TransferDialog({
               name='fee'
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Network Fee</FormLabel>
+                  <FormLabel>
+                    <Trans>Network Fee</Trans>
+                  </FormLabel>
                   <FormControl>
-                    <TokenAmountInput {...field} />
+                    <TokenAmountInput
+                      {...field}
+                      placeholder={t`Enter fee amount`}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -102,9 +111,11 @@ export function TransferDialog({
                 variant='outline'
                 onClick={() => setOpen(false)}
               >
-                Cancel
+                <Trans>Cancel</Trans>
               </Button>
-              <Button type='submit'>Transfer</Button>
+              <Button type='submit'>
+                <Trans>Transfer</Trans>
+              </Button>
             </DialogFooter>
           </form>
         </Form>

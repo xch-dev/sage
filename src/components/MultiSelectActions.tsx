@@ -10,6 +10,8 @@ import {
   UserRoundPlus,
 } from 'lucide-react';
 import { useState } from 'react';
+import { Trans } from '@lingui/react/macro';
+import { t } from '@lingui/core/macro';
 import { AssignNftDialog } from './AssignNftDialog';
 import ConfirmationDialog from './ConfirmationDialog';
 import { FeeOnlyDialog } from './FeeOnlyDialog';
@@ -33,8 +35,8 @@ export function MultiSelectActions({
   onConfirm,
 }: MultiSelectActionsProps) {
   const walletState = useWalletState();
-
   const { addError } = useErrors();
+  const selectedCount = selected.length;
 
   const [transferOpen, setTransferOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
@@ -94,12 +96,12 @@ export function MultiSelectActions({
     <>
       <div className='absolute flex justify-between items-center gap-3 bottom-6 w-60 px-5 p-3 rounded-lg shadow-md shadow-black/20 left-1/2 -translate-x-1/2 bg-white border border-neutral-200 dark:border-neutral-800 dark:bg-neutral-900'>
         <span className='flex-shrink-0 text-neutral-900 dark:text-white'>
-          {selected.length} selected
+          <Trans>{selectedCount} selected</Trans>
         </span>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button className='flex items-center gap-1'>
-              Actions
+              <Trans>Actions</Trans>
               <ChevronDown className='h-5 w-5' />
             </Button>
           </DropdownMenuTrigger>
@@ -113,7 +115,9 @@ export function MultiSelectActions({
                 }}
               >
                 <SendIcon className='mr-2 h-4 w-4' />
-                <span>Transfer</span>
+                <span>
+                  <Trans>Transfer</Trans>
+                </span>
               </DropdownMenuItem>
 
               <DropdownMenuItem
@@ -124,7 +128,9 @@ export function MultiSelectActions({
                 }}
               >
                 <UserRoundPlus className='mr-2 h-4 w-4' />
-                <span>Assign Profile</span>
+                <span>
+                  <Trans>Assign Profile</Trans>
+                </span>
               </DropdownMenuItem>
 
               <DropdownMenuItem
@@ -135,7 +141,9 @@ export function MultiSelectActions({
                 }}
               >
                 <UserRoundMinus className='mr-2 h-4 w-4' />
-                <span>Unassign Profile</span>
+                <span>
+                  <Trans>Unassign Profile</Trans>
+                </span>
               </DropdownMenuItem>
 
               <DropdownMenuItem
@@ -146,7 +154,9 @@ export function MultiSelectActions({
                 }}
               >
                 <Flame className='mr-2 h-4 w-4' />
-                <span>Burn</span>
+                <span>
+                  <Trans>Burn</Trans>
+                </span>
               </DropdownMenuItem>
             </DropdownMenuGroup>
           </DropdownMenuContent>
@@ -154,41 +164,45 @@ export function MultiSelectActions({
       </div>
 
       <TransferDialog
-        title='Bulk Transfer NFTs'
+        title={t`Bulk Transfer NFTs`}
         open={transferOpen}
         setOpen={setTransferOpen}
         onSubmit={onTransferSubmit}
       >
-        This will bulk transfer {selected.length} NFTs to another wallet. Are
-        you sure you want to proceed?
+        <Trans>
+          This will bulk transfer {selectedCount} NFTs to another wallet. Are
+          you sure you want to proceed?
+        </Trans>
       </TransferDialog>
 
       <AssignNftDialog
-        title='Bulk Assign Profile'
+        title={t`Bulk Assign Profile`}
         open={assignOpen}
         setOpen={setAssignOpen}
         onSubmit={onAssignSubmit}
       >
-        This will bulk assign the NFTs to the selected profile.
+        <Trans>This will bulk assign the NFTs to the selected profile.</Trans>
       </AssignNftDialog>
 
       <FeeOnlyDialog
-        title='Bulk Unassign Profile'
+        title={t`Bulk Unassign Profile`}
         open={unassignOpen}
         setOpen={setUnassignOpen}
         onSubmit={onUnassignSubmit}
       >
-        This will bulk unassign the NFTs from their profiles.
+        <Trans>This will bulk unassign the NFTs from their profiles.</Trans>
       </FeeOnlyDialog>
 
       <FeeOnlyDialog
-        title='Bulk Burn NFTs'
+        title={t`Bulk Burn NFTs`}
         open={burnOpen}
         setOpen={setBurnOpen}
         onSubmit={onBurnSubmit}
       >
-        This will bulk burn {selected.length} NFTs. This cannot be undone. Are
-        you sure you want to proceed?
+        <Trans>
+          This will bulk burn {selectedCount} NFTs. This cannot be undone. Are
+          you sure you want to proceed?
+        </Trans>
       </FeeOnlyDialog>
 
       <ConfirmationDialog

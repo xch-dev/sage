@@ -27,6 +27,8 @@ import {
   FilterXIcon,
 } from 'lucide-react';
 import { useState } from 'react';
+import { Trans } from '@lingui/react/macro';
+import { t } from '@lingui/core/macro';
 import { CoinRecord } from '../bindings';
 import { Button } from './ui/button';
 import { Checkbox } from './ui/checkbox';
@@ -56,7 +58,7 @@ export default function CoinList(props: CoinListProps) {
             (table.getIsSomePageRowsSelected() && 'indeterminate')
           }
           onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-          aria-label='Select all'
+          aria-label={t`Select all coins`}
         />
       ),
       cell: ({ row }) => (
@@ -64,7 +66,7 @@ export default function CoinList(props: CoinListProps) {
           className='mx-2'
           checked={row.getIsSelected()}
           onCheckedChange={(value) => row.toggleSelected(!!value)}
-          aria-label='Select row'
+          aria-label={t`Select coin row`}
         />
       ),
       enableSorting: false,
@@ -79,11 +81,11 @@ export default function CoinList(props: CoinListProps) {
             variant='link'
             onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
           >
-            Coin
+            <Trans>Coin</Trans>
             {column.getIsSorted() === 'asc' ? (
-              <ArrowUp className='ml-2 h-4 w-4' />
+              <ArrowUp className='ml-2 h-4 w-4' aria-hidden='true' />
             ) : column.getIsSorted() === 'desc' ? (
-              <ArrowDown className='ml-2 h-4 w-4' />
+              <ArrowDown className='ml-2 h-4 w-4' aria-hidden='true' />
             ) : (
               <span className='ml-2 w-4 h-4' />
             )}
@@ -104,11 +106,11 @@ export default function CoinList(props: CoinListProps) {
             variant='link'
             onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
           >
-            Amount
+            <Trans>Amount</Trans>
             {column.getIsSorted() === 'asc' ? (
-              <ArrowUp className='ml-2 h-4 w-4' />
+              <ArrowUp className='ml-2 h-4 w-4' aria-hidden='true' />
             ) : column.getIsSorted() === 'desc' ? (
-              <ArrowDown className='ml-2 h-4 w-4' />
+              <ArrowDown className='ml-2 h-4 w-4' aria-hidden='true' />
             ) : (
               <span className='ml-2 w-4 h-4' />
             )}
@@ -157,11 +159,11 @@ export default function CoinList(props: CoinListProps) {
             variant='link'
             onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
           >
-            Confirmed
+            <Trans>Confirmed</Trans>
             {column.getIsSorted() === 'asc' ? (
-              <ArrowUp className='ml-2 h-4 w-4' />
+              <ArrowUp className='ml-2 h-4 w-4' aria-hidden='true' />
             ) : column.getIsSorted() === 'desc' ? (
-              <ArrowDown className='ml-2 h-4 w-4' />
+              <ArrowDown className='ml-2 h-4 w-4' aria-hidden='true' />
             ) : (
               <span className='ml-2 w-4 h-4' />
             )}
@@ -171,7 +173,7 @@ export default function CoinList(props: CoinListProps) {
       cell: ({ row }) => (
         <div className='truncate overflow-hidden'>
           {row.original.created_height ??
-            (row.original.create_transaction_id ? 'Pending...' : '')}
+            (row.original.create_transaction_id ? t`Pending...` : '')}
         </div>
       ),
     },
@@ -196,11 +198,11 @@ export default function CoinList(props: CoinListProps) {
                 column.toggleSorting(column.getIsSorted() === 'asc')
               }
             >
-              Spent
+              <Trans>Spent</Trans>
               {column.getIsSorted() === 'asc' ? (
-                <ArrowUp className='ml-2 h-4 w-4' />
+                <ArrowUp className='ml-2 h-4 w-4' aria-hidden='true' />
               ) : column.getIsSorted() === 'desc' ? (
-                <ArrowDown className='ml-2 h-4 w-4' />
+                <ArrowDown className='ml-2 h-4 w-4' aria-hidden='true' />
               ) : (
                 <span className='ml-2 w-4 h-4' />
               )}
@@ -211,13 +213,16 @@ export default function CoinList(props: CoinListProps) {
               className='text-foreground'
               onClick={() => {
                 setShowUnspentOnly(!showUnspentOnly);
-                column.setFilterValue(showUnspentOnly ? 'Unspent' : '');
+                column.setFilterValue(showUnspentOnly ? t`Unspent` : '');
               }}
+              aria-label={
+                showUnspentOnly ? t`Show all coins` : t`Show unspent coins only`
+              }
             >
               {showUnspentOnly ? (
-                <FilterIcon className='h-4 w-4' />
+                <FilterIcon className='h-4 w-4' aria-hidden='true' />
               ) : (
-                <FilterXIcon className='h-4 w-4' />
+                <FilterXIcon className='h-4 w-4' aria-hidden='true' />
               )}
             </Button>
           </div>
@@ -225,7 +230,7 @@ export default function CoinList(props: CoinListProps) {
       },
       filterFn: (row, _, filterValue) => {
         return (
-          filterValue === 'Unspent' &&
+          filterValue === t`Unspent` &&
           !row.original.spend_transaction_id &&
           !row.original.spent_height
         );
@@ -233,7 +238,7 @@ export default function CoinList(props: CoinListProps) {
       cell: ({ row }) => (
         <div className='truncate overflow-hidden'>
           {row.original.spent_height ??
-            (row.original.spend_transaction_id ? 'Pending...' : '')}
+            (row.original.spend_transaction_id ? t`Pending...` : '')}
         </div>
       ),
     },
@@ -260,7 +265,7 @@ export default function CoinList(props: CoinListProps) {
       columnFilters: [
         {
           id: 'spent_height',
-          value: 'Unspent',
+          value: t`Unspent`,
         },
       ],
     },
@@ -323,7 +328,7 @@ export default function CoinList(props: CoinListProps) {
                   colSpan={columns.length}
                   className='h-24 text-center'
                 >
-                  No results.
+                  <Trans>No results.</Trans>
                 </TableCell>
               </TableRow>
             )}
@@ -339,16 +344,18 @@ export default function CoinList(props: CoinListProps) {
               size='icon'
               onClick={() => table.previousPage()}
               disabled={!table.getCanPreviousPage()}
+              aria-label={t`Previous page`}
             >
-              <ChevronLeft className='h-4 w-4' />
+              <ChevronLeft className='h-4 w-4' aria-hidden='true' />
             </Button>
             <Button
               variant='outline'
               size='icon'
               onClick={() => table.nextPage()}
               disabled={!table.getCanNextPage()}
+              aria-label={t`Next page`}
             >
-              <ChevronRight className='h-4 w-4' />
+              <ChevronRight className='h-4 w-4' aria-hidden='true' />
             </Button>
           </div>
         </div>

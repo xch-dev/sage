@@ -36,12 +36,12 @@ import { useNavigate } from 'react-router-dom';
 import { commands, KeyInfo, SecretKeyInfo } from '../bindings';
 import Container from '../components/Container';
 import { loginAndUpdateState } from '../state';
+import { Trans } from '@lingui/react/macro';
+import { t } from '@lingui/core/macro';
 
 export default function Login() {
   const navigate = useNavigate();
-
   const { addError } = useErrors();
-
   const [keys, setKeys] = useState<KeyInfo[] | null>(null);
   const [network, setNetwork] = useState<string | null>(null);
 
@@ -70,12 +70,16 @@ export default function Login() {
         <div className='flex items-center justify-between space-y-2'>
           {(keys?.length ?? 0) > 0 && (
             <>
-              <h2 className='text-3xl font-bold tracking-tight'>Wallets</h2>
+              <h2 className='text-3xl font-bold tracking-tight'>
+                <Trans>Wallets</Trans>
+              </h2>
               <div className='flex items-center space-x-2'>
                 <Button variant='outline' onClick={() => navigate('/import')}>
-                  Import
+                  <Trans>Import</Trans>
                 </Button>
-                <Button onClick={() => navigate('/create')}>Create</Button>
+                <Button onClick={() => navigate('/create')}>
+                  <Trans>Create</Trans>
+                </Button>
               </div>
             </>
           )}
@@ -223,7 +227,9 @@ function WalletItem({ network, info, keys, setKeys }: WalletItemProps) {
                   }}
                 >
                   <LogInIcon className='mr-2 h-4 w-4' />
-                  <span>Login</span>
+                  <span>
+                    <Trans>Login</Trans>
+                  </span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   className='cursor-pointer'
@@ -233,7 +239,9 @@ function WalletItem({ network, info, keys, setKeys }: WalletItemProps) {
                   }}
                 >
                   <EyeIcon className='mr-2 h-4 w-4' />
-                  <span>Details</span>
+                  <span>
+                    <Trans>Details</Trans>
+                  </span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   className='cursor-pointer'
@@ -243,7 +251,9 @@ function WalletItem({ network, info, keys, setKeys }: WalletItemProps) {
                   }}
                 >
                   <PenIcon className='mr-2 h-4 w-4' />
-                  <span>Rename</span>
+                  <span>
+                    <Trans>Rename</Trans>
+                  </span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   className='cursor-pointer text-red-600 focus:text-red-500'
@@ -253,7 +263,9 @@ function WalletItem({ network, info, keys, setKeys }: WalletItemProps) {
                   }}
                 >
                   <EraserIcon className='mr-2 h-4 w-4' />
-                  <span>Resync ({network})</span>
+                  <span>
+                    <Trans>Resync ({network})</Trans>
+                  </span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   className='cursor-pointer text-red-600 focus:text-red-500'
@@ -263,7 +275,9 @@ function WalletItem({ network, info, keys, setKeys }: WalletItemProps) {
                   }}
                 >
                   <TrashIcon className='mr-2 h-4 w-4' />
-                  <span>Delete</span>
+                  <span>
+                    <Trans>Delete</Trans>
+                  </span>
                 </DropdownMenuItem>
               </DropdownMenuGroup>
             </DropdownMenuContent>
@@ -275,12 +289,16 @@ function WalletItem({ network, info, keys, setKeys }: WalletItemProps) {
             {info.has_secrets ? (
               <div className='inline-flex gap-0.5 items-center rounded-full border px-2 py-1.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80'>
                 <FlameIcon className='h-4 w-4 pb-0.5' />
-                <span>Hot Wallet</span>
+                <span>
+                  <Trans>Hot Wallet</Trans>
+                </span>
               </div>
             ) : (
               <div className='inline-flex gap-0.5 items-center rounded-full border px-2 py-1.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80'>
                 <SnowflakeIcon className='h-4 w-4 pb-0.5' />
-                <span>Cold Wallet</span>
+                <span>
+                  <Trans>Cold Wallet</Trans>
+                </span>
               </div>
             )}
           </div>
@@ -293,13 +311,19 @@ function WalletItem({ network, info, keys, setKeys }: WalletItemProps) {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Resync on {network}</DialogTitle>
+            <DialogTitle>
+              <Trans>Resync on {network}</Trans>
+            </DialogTitle>
             <DialogDescription>
-              Are you sure you want to resync this wallet's data? This will
-              redownload data from the network which can take a while depending
-              on the size of the wallet.
+              <Trans>
+                Are you sure you want to resync this wallet's data? This will
+                re-download data from the network which can take a while
+                depending on the size of the wallet.
+              </Trans>
               <div className='flex items-center gap-2 my-2'>
-                <label htmlFor='deleteOffers'>Delete saved offer files</label>
+                <label htmlFor='deleteOffers'>
+                  <Trans>Delete saved offer files</Trans>
+                </label>
                 <Switch
                   id='deleteOffers'
                   checked={deleteOffers}
@@ -310,10 +334,10 @@ function WalletItem({ network, info, keys, setKeys }: WalletItemProps) {
           </DialogHeader>
           <DialogFooter>
             <Button variant='outline' onClick={() => setResyncOpen(false)}>
-              Cancel
+              <Trans>Cancel</Trans>
             </Button>
             <Button variant='destructive' onClick={resyncSelf} autoFocus>
-              Resync
+              <Trans>Resync</Trans>
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -325,19 +349,23 @@ function WalletItem({ network, info, keys, setKeys }: WalletItemProps) {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Permanently Delete</DialogTitle>
+            <DialogTitle>
+              <Trans>Permanently Delete</Trans>
+            </DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete this wallet? This cannot be
-              undone, and all funds will be lost unless you have saved your
-              mnemonic phrase.
+              <Trans>
+                Are you sure you want to delete this wallet? This cannot be
+                undone, and all funds will be lost unless you have saved your
+                mnemonic phrase.
+              </Trans>
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant='outline' onClick={() => setDeleteOpen(false)}>
-              Cancel
+              <Trans>Cancel</Trans>
             </Button>
             <Button variant='destructive' onClick={deleteSelf} autoFocus>
-              Delete
+              <Trans>Delete</Trans>
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -349,17 +377,21 @@ function WalletItem({ network, info, keys, setKeys }: WalletItemProps) {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Rename Wallet</DialogTitle>
+            <DialogTitle>
+              <Trans>Rename Wallet</Trans>
+            </DialogTitle>
             <DialogDescription>
-              Enter the new display name for this wallet.
+              <Trans>Enter the new display name for this wallet.</Trans>
             </DialogDescription>
           </DialogHeader>
           <div className='grid w-full items-center gap-4'>
             <div className='flex flex-col space-y-1.5'>
-              <Label htmlFor='name'>Wallet Name</Label>
+              <Label htmlFor='name'>
+                <Trans>Wallet Name</Trans>
+              </Label>
               <Input
                 id='name'
-                placeholder='Name of your wallet'
+                placeholder={t`Name of your wallet`}
                 value={newName}
                 onChange={(event) => setNewName(event.target.value)}
                 onKeyDown={(event) => {
@@ -380,10 +412,10 @@ function WalletItem({ network, info, keys, setKeys }: WalletItemProps) {
                 setNewName('');
               }}
             >
-              Cancel
+              <Trans>Cancel</Trans>
             </Button>
             <Button onClick={renameSelf} disabled={!newName}>
-              Rename
+              <Trans>Rename</Trans>
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -395,11 +427,15 @@ function WalletItem({ network, info, keys, setKeys }: WalletItemProps) {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Wallet Details</DialogTitle>
+            <DialogTitle>
+              <Trans>Wallet Details</Trans>
+            </DialogTitle>
           </DialogHeader>
           <div className='space-y-4'>
             <div>
-              <h3 className='font-semibold'>Public Key</h3>
+              <h3 className='font-semibold'>
+                <Trans>Public Key</Trans>
+              </h3>
               <p className='break-all text-sm text-muted-foreground'>
                 {info.public_key}
               </p>
@@ -407,14 +443,18 @@ function WalletItem({ network, info, keys, setKeys }: WalletItemProps) {
             {secrets && (
               <>
                 <div>
-                  <h3 className='font-semibold'>Secret Key</h3>
+                  <h3 className='font-semibold'>
+                    <Trans>Secret Key</Trans>
+                  </h3>
                   <p className='break-all text-sm text-muted-foreground'>
                     {secrets.secret_key}
                   </p>
                 </div>
                 {secrets.mnemonic && (
                   <div>
-                    <h3 className='font-semibold'>Mnemonic</h3>
+                    <h3 className='font-semibold'>
+                      <Trans>Mnemonic</Trans>
+                    </h3>
                     <p className='break-words text-sm text-muted-foreground'>
                       {secrets.mnemonic}
                     </p>
@@ -424,7 +464,9 @@ function WalletItem({ network, info, keys, setKeys }: WalletItemProps) {
             )}
           </div>
           <DialogFooter>
-            <Button onClick={() => setDetailsOpen(false)}>Done</Button>
+            <Button onClick={() => setDetailsOpen(false)}>
+              <Trans>Done</Trans>
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -437,18 +479,24 @@ function Welcome() {
 
   return (
     <Container>
-      <div className='text-center text-6xl'>Sage Wallet</div>
+      <div className='text-center text-6xl'>
+        Sage <Trans>Wallet</Trans>
+      </div>
 
       <div className='text-center mt-4'>
-        There aren't any wallets to log into yet. To get started, create a new
-        wallet or import an existing one.
+        <Trans>
+          There aren't any wallets to log into yet. To get started, create a new
+          wallet or import an existing one.
+        </Trans>
       </div>
 
       <div className='flex justify-center gap-4 mt-6'>
         <Button variant='outline' onClick={() => navigate('/import')}>
-          Import Wallet
+          <Trans>Import Wallet</Trans>
         </Button>
-        <Button onClick={() => navigate('/create')}>Create Wallet</Button>
+        <Button onClick={() => navigate('/create')}>
+          <Trans>Create Wallet</Trans>
+        </Button>
       </div>
     </Container>
   );

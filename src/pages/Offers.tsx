@@ -49,6 +49,8 @@ import {
 import { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
+import { Trans } from '@lingui/react/macro';
+import { t } from '@lingui/core/macro';
 import { z } from 'zod';
 
 export function Offers() {
@@ -119,7 +121,7 @@ export function Offers() {
   return (
     <>
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <Header title='Offers' />
+        <Header title={<Trans>Offers</Trans>} />
 
         <Container>
           <div className='flex flex-col gap-10'>
@@ -127,24 +129,32 @@ export function Offers() {
               <HandCoins className='h-12 w-12 text-muted-foreground' />
               <div>
                 <h2 className='text-lg font-semibold'>
-                  {offers.length > 0 ? 'Manage offers' : 'No offers yet'}
+                  {offers.length > 0 ? (
+                    <Trans>Manage offers</Trans>
+                  ) : (
+                    <Trans>No offers yet</Trans>
+                  )}
                 </h2>
                 <p className='mt-2 text-sm text-muted-foreground'>
-                  Create a new offer to get started with peer-to-peer trading.
+                  <Trans>
+                    Create a new offer to get started with peer-to-peer trading.
+                  </Trans>
                 </p>
                 <p className='mt-1 text-sm text-muted-foreground'>
-                  You can also paste an offer using{' '}
+                  <Trans>You can also paste an offer using</Trans>
                   <kbd>{platform() === 'macos' ? '⌘+V' : 'Ctrl+V'}</kbd>.
                 </p>
               </div>
               <div className='flex gap-2'>
                 <DialogTrigger asChild>
                   <Button variant='outline' className='flex items-center gap-1'>
-                    View offer
+                    <Trans>View Offer</Trans>
                   </Button>
                 </DialogTrigger>
                 <Link to='/offers/make' replace={true}>
-                  <Button>Create offer</Button>
+                  <Button>
+                    <Trans>Create Offer</Trans>
+                  </Button>
                 </Link>
               </div>
             </div>
@@ -159,16 +169,20 @@ export function Offers() {
 
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Enter Offer String</DialogTitle>
+            <DialogTitle>
+              <Trans>Enter Offer String</Trans>
+            </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleViewOffer} className='flex flex-col gap-4'>
             <Textarea
-              placeholder='Paste your offer string here...'
+              placeholder={t`Paste your offer string here...`}
               value={offerString}
               onChange={(e) => setOfferString(e.target.value)}
               className='min-h-[200px] font-mono text-xs'
             />
-            <Button type='submit'>View Offer</Button>
+            <Button type='submit'>
+              <Trans>View Offer</Trans>
+            </Button>
           </form>
         </DialogContent>
       </Dialog>
@@ -243,7 +257,9 @@ function Offer({ record, refresh }: OfferProps) {
                     }}
                   >
                     <CopyIcon className='mr-2 h-4 w-4' />
-                    <span>Copy</span>
+                    <span>
+                      <Trans>Copy</Trans>
+                    </span>
                   </DropdownMenuItem>
 
                   <DropdownMenuItem
@@ -254,7 +270,9 @@ function Offer({ record, refresh }: OfferProps) {
                     }}
                   >
                     <TrashIcon className='mr-2 h-4 w-4' />
-                    <span>Delete</span>
+                    <span>
+                      <Trans>Delete</Trans>
+                    </span>
                   </DropdownMenuItem>
 
                   <DropdownMenuItem
@@ -266,7 +284,7 @@ function Offer({ record, refresh }: OfferProps) {
                     disabled={record.status !== 'active'}
                   >
                     <CircleOff className='mr-2 h-4 w-4' />
-                    <span>Cancel</span>
+                    <Trans>Cancel</Trans>
                   </DropdownMenuItem>
 
                   <DropdownMenuItem
@@ -277,7 +295,9 @@ function Offer({ record, refresh }: OfferProps) {
                     }}
                   >
                     <Tags className='mr-2 h-4 w-4' />
-                    <span>Copy ID</span>
+                    <span>
+                      <Trans>Copy ID</Trans>
+                    </span>
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
               </DropdownMenuContent>
@@ -289,16 +309,20 @@ function Offer({ record, refresh }: OfferProps) {
       <Dialog open={isDeleteOpen} onOpenChange={setDeleteOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete offer record?</DialogTitle>
+            <DialogTitle>
+              <Trans>Delete offer record?</Trans>
+            </DialogTitle>
             <DialogDescription>
-              This will delete the offer from the wallet, but if it's shared
-              externally it can still be accepted. The only way to truly cancel
-              a public offer is by spending one or more of its coins.
+              <Trans>
+                This will delete the offer from the wallet, but if it's shared
+                externally it can still be accepted. The only way to truly
+                cancel a public offer is by spending one or more of its coins.
+              </Trans>
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant='outline' onClick={() => setDeleteOpen(false)}>
-              Cancel
+              <Trans>Cancel</Trans>
             </Button>
             <Button
               onClick={() => {
@@ -309,7 +333,7 @@ function Offer({ record, refresh }: OfferProps) {
                   .finally(() => setDeleteOpen(false));
               }}
             >
-              Delete
+              <Trans>Delete</Trans>
             </Button>
           </DialogFooter>
         </DialogContent>

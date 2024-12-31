@@ -12,6 +12,8 @@ import { toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { Trans } from '@lingui/react/macro';
+import { t } from '@lingui/core/macro';
 
 export function ViewOffer() {
   const { offer } = useParams();
@@ -20,7 +22,7 @@ export function ViewOffer() {
   const navigate = useNavigate();
 
   const [isLoading, setIsLoading] = useState(true);
-  const [loadingStatus, setLoadingStatus] = useState('Initializing...');
+  const [loadingStatus, setLoadingStatus] = useState(t`Initializing...`);
   const [summary, setSummary] = useState<OfferSummary | null>(null);
   const [response, setResponse] = useState<TakeOfferResponse | null>(null);
   const [fee, setFee] = useState('');
@@ -30,13 +32,13 @@ export function ViewOffer() {
 
     const loadOffer = async () => {
       setIsLoading(true);
-      setLoadingStatus('Fetching offer details...');
+      setLoadingStatus(t`Fetching offer details...`);
 
       commands
         .viewOffer({ offer })
         .then((data) => {
           setSummary(data.offer);
-          setLoadingStatus('Processing offer data...');
+          setLoadingStatus(t`Processing offer data...`);
         })
         .catch(addError)
         .finally(() => setIsLoading(false));
@@ -74,7 +76,9 @@ export function ViewOffer() {
             <>
               <OfferCard summary={summary}>
                 <div className='flex flex-col space-y-1.5'>
-                  <Label htmlFor='fee'>Network Fee</Label>
+                  <Label htmlFor='fee'>
+                    <Trans>Network Fee</Trans>
+                  </Label>
                   <Input
                     id='fee'
                     type='text'
@@ -94,10 +98,12 @@ export function ViewOffer() {
 
               <div className='mt-4 flex gap-2'>
                 <Button variant='outline' onClick={importOffer}>
-                  Save Offer
+                  <Trans>Save Offer</Trans>
                 </Button>
 
-                <Button onClick={take}>Take Offer</Button>
+                <Button onClick={take}>
+                  <Trans>Take Offer </Trans>
+                </Button>
               </div>
             </>
           )

@@ -6,6 +6,8 @@ import BigNumber from 'bignumber.js';
 import { PropsWithChildren } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
+import { Trans } from '@lingui/react/macro';
+import { t } from '@lingui/core/macro';
 import { Button } from './ui/button';
 import {
   Dialog,
@@ -48,14 +50,13 @@ export function AssignNftDialog({
   children,
 }: PropsWithChildren<AssignNftDialogProps>) {
   const walletState = useWalletState();
-
   const { dids } = useDids();
 
   const schema = z.object({
-    profile: z.string().min(1, 'Profile is required'),
+    profile: z.string().min(1, t`Profile is required`),
     fee: amount(walletState.sync.unit.decimals).refine(
       (amount) => BigNumber(walletState.sync.balance).gte(amount || 0),
-      'Not enough funds to cover the fee',
+      t`Not enough funds to cover the fee`,
     ),
   });
 
@@ -88,11 +89,16 @@ export function AssignNftDialog({
               name='profile'
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Profile</FormLabel>
+                  <FormLabel>
+                    <Trans>Profile</Trans>
+                  </FormLabel>
                   <FormControl>
                     <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger id='profile' aria-label='Select profile'>
-                        <SelectValue placeholder='Select profile' />
+                      <SelectTrigger
+                        id='profile'
+                        aria-label={t`Select profile`}
+                      >
+                        <SelectValue placeholder={t`Select profile`} />
                       </SelectTrigger>
                       <SelectContent className='max-w-[var(--radix-select-trigger-width)]'>
                         {dids
@@ -121,9 +127,14 @@ export function AssignNftDialog({
               name='fee'
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Network Fee</FormLabel>
+                  <FormLabel>
+                    <Trans>Network Fee</Trans>
+                  </FormLabel>
                   <FormControl>
-                    <TokenAmountInput {...field} />
+                    <TokenAmountInput
+                      {...field}
+                      aria-label={t`Network fee amount`}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -135,9 +146,11 @@ export function AssignNftDialog({
                 variant='outline'
                 onClick={() => setOpen(false)}
               >
-                Cancel
+                <Trans>Cancel</Trans>
               </Button>
-              <Button type='submit'>Transfer</Button>
+              <Button type='submit'>
+                <Trans>Transfer</Trans>
+              </Button>
             </DialogFooter>
           </form>
         </Form>

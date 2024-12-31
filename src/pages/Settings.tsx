@@ -28,6 +28,10 @@ import {
   WalletConfig,
 } from '../bindings';
 import { isValidU32 } from '../validation';
+import { Trans } from '@lingui/react/macro';
+import { t } from '@lingui/core/macro';
+import { loadCatalog } from '@/i18n';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function Settings() {
   const initialized = useInitialization();
@@ -35,7 +39,7 @@ export default function Settings() {
 
   return (
     <Layout>
-      <Header title='Settings' />
+      <Header title={t`Settings`} />
       <Container className='max-w-2xl'>
         <div className='flex flex-col gap-4'>
           <WalletConnectSettings />
@@ -50,13 +54,16 @@ export default function Settings() {
 
 function GlobalSettings() {
   const { dark, setDark } = useContext(DarkModeContext);
+  const { locale, changeLanguage } = useLanguage();
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Global</CardTitle>
+        <CardTitle>
+          <Trans>Global</Trans>
+        </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className='space-y-4'>
         <div className='grid gap-6'>
           <div className='flex items-center space-x-2'>
             <Switch
@@ -64,8 +71,24 @@ function GlobalSettings() {
               checked={dark}
               onCheckedChange={(checked) => setDark(checked)}
             />
-            <Label htmlFor='dark-mode'>Dark Mode</Label>
+            <Label htmlFor='dark-mode'>
+              <Trans>Dark Mode</Trans>
+            </Label>
           </div>
+        </div>
+        <div className='grid gap-3'>
+          <Label htmlFor='language'>
+            <Trans>Language</Trans>
+          </Label>
+          <Select value={locale} onValueChange={changeLanguage}>
+            <SelectTrigger id='language'>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value='en-US'>English</SelectItem>
+              <SelectItem value='de-DE'>Deutsch</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </CardContent>
     </Card>
@@ -89,7 +112,9 @@ function WalletConnectSettings() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>WalletConnect</CardTitle>
+        <CardTitle>
+          <Trans>WalletConnect</Trans>
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <div className='grid gap-6'>
@@ -103,11 +128,11 @@ function WalletConnectSettings() {
                   <div className='flex gap-2 items-center'>
                     <img
                       src={session.peer?.metadata?.icons?.[0] ?? ''}
-                      alt={session.peer?.metadata?.name ?? 'Unknown App'}
+                      alt={session.peer?.metadata?.name ?? t`Unknown App`}
                       className='h-8 w-8'
                     />
                     <span className='text-sm font-medium'>
-                      {session.peer?.metadata?.name ?? 'Unknown App'}
+                      {session.peer?.metadata?.name ?? t`Unknown App`}
                     </span>
                   </div>
                   <Button
@@ -115,13 +140,13 @@ function WalletConnectSettings() {
                     size='sm'
                     onClick={() => disconnect(session.topic)}
                   >
-                    Disconnect
+                    <Trans>Disconnect</Trans>
                   </Button>
                 </div>
               ))}
               {sessions.length === 0 && (
                 <span className='text-sm text-gray-500'>
-                  No active sessions
+                  <Trans>No active sessions</Trans>
                 </span>
               )}
             </div>
@@ -130,10 +155,12 @@ function WalletConnectSettings() {
                 <Input
                   id='wc-uri'
                   type='text'
-                  placeholder='Paste WalletConnect URI'
+                  placeholder={t`Paste WalletConnect URI`}
                   onChange={(e) => setUri(e.target.value)}
                 />
-                <Button onClick={handlePair}>Connect</Button>
+                <Button onClick={handlePair}>
+                  <Trans>Connect</Trans>
+                </Button>
               </div>
               {error && <span className='text-sm text-red-500'>{error}</span>}
             </div>
@@ -171,7 +198,9 @@ function NetworkSettings() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Network</CardTitle>
+        <CardTitle>
+          <Trans>Network</Trans>
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <div className='grid gap-6'>
@@ -186,10 +215,14 @@ function NetworkSettings() {
                   .finally(() => setDiscoverPeers(checked));
               }}
             />
-            <Label htmlFor='discover-peers'>Discover peers automatically</Label>
+            <Label htmlFor='discover-peers'>
+              <Trans>Discover peers automatically</Trans>
+            </Label>
           </div>
           <div className='grid gap-3'>
-            <Label htmlFor='target-peers'>Target Peers</Label>
+            <Label htmlFor='target-peers'>
+              <Trans>Target Peers</Trans>
+            </Label>
             <Input
               id='target-peers'
               type='number'
@@ -213,7 +246,9 @@ function NetworkSettings() {
             />
           </div>
           <div className='grid gap-3'>
-            <Label htmlFor='network'>Network ID</Label>
+            <Label htmlFor='network'>
+              <Trans>Network ID</Trans>
+            </Label>
             <Select
               value={networkId ?? config?.network_id ?? 'mainnet'}
               onValueChange={(networkId) => {
@@ -233,7 +268,7 @@ function NetworkSettings() {
               }}
             >
               <SelectTrigger id='network' aria-label='Select network'>
-                <SelectValue placeholder='Select network' />
+                <SelectValue placeholder={<Trans>Select network</Trans>} />
               </SelectTrigger>
               <SelectContent>
                 {Object.keys(networks).map((networkId, i) => (
@@ -279,12 +314,16 @@ function WalletSettings(props: { wallet: KeyInfo }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Wallet</CardTitle>
+        <CardTitle>
+          <Trans>Wallet</Trans>
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <div className='grid gap-6'>
           <div className='grid gap-3'>
-            <Label htmlFor='walletName'>Wallet Name</Label>
+            <Label htmlFor='walletName'>
+              <Trans>Wallet Name</Trans>
+            </Label>
             <Input
               id='walletName'
               type='text'
@@ -324,11 +363,13 @@ function WalletSettings(props: { wallet: KeyInfo }) {
               }}
             />
             <Label htmlFor='generate-addresses'>
-              Generate addresses automatically
+              <Trans>Generate addresses automatically</Trans>
             </Label>
           </div>
           <div className='grid gap-3'>
-            <Label htmlFor='address-batch-size'>Address Batch Size</Label>
+            <Label htmlFor='address-batch-size'>
+              <Trans>Address Batch Size</Trans>
+            </Label>
             <Input
               id='address-batch-size'
               type='number'

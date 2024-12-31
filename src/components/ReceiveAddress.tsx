@@ -2,6 +2,7 @@ import { useWalletState } from '@/state';
 import { CopyBox } from './CopyBox';
 import { formatAddress } from '@/lib/utils';
 import { useEffect, useRef, useState } from 'react';
+import { t } from '@lingui/core/macro';
 
 function getTextWidth(text: string, element: HTMLElement | null) {
   const canvas = document.createElement('canvas');
@@ -60,7 +61,7 @@ export function ReceiveAddress({
     <CopyBox
       inputRef={ref}
       truncate={false}
-      title='Receive Address'
+      title={t`Receive Address`}
       className={className}
       value={receive_address}
       displayValue={formatAddress(receive_address, chars / 2)}

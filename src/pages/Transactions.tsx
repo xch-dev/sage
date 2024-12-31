@@ -10,12 +10,14 @@ import { useWalletState } from '@/state';
 import BigNumber from 'bignumber.js';
 import { ChevronLeft, ChevronRight, Info } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
+import { t } from '@lingui/core/macro';
 import {
   commands,
   events,
   PendingTransactionRecord,
   TransactionRecord,
 } from '../bindings';
+import { Trans } from '@lingui/react/macro';
 
 export function Transactions() {
   const walletState = useWalletState();
@@ -66,16 +68,18 @@ export function Transactions() {
 
   return (
     <>
-      <Header title='Transactions'>
+      <Header title={t`Transactions`}>
         <ReceiveAddress />
       </Header>
       <Container>
         {transactions.length === 0 && (
           <Alert className='mb-4'>
             <Info className='h-4 w-4' />
-            <AlertTitle>Note</AlertTitle>
+            <AlertTitle>
+              <Trans>Note</Trans>
+            </AlertTitle>
             <AlertDescription>
-              You have not made any transactions yet.
+              <Trans>You have not made any transactions yet.</Trans>
             </AlertDescription>
           </Alert>
         )}
@@ -122,6 +126,10 @@ function Transaction({ transaction }: TransactionProps) {
   let xch = BigNumber(0);
   const cats: Record<string, TransactionCat> = {};
   const nfts: Record<string, TransactionNft> = {};
+
+  const transactionHeight = transaction.height;
+  const transactionSpentCount = transaction.spent.length;
+  const transactionCreatedCount = transaction.created.length;
 
   console.log(transaction);
 
@@ -174,14 +182,16 @@ function Transaction({ transaction }: TransactionProps) {
       <div className='flex justify-between'>
         <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
           <div className='flex flex-col gap-2'>
-            <div>Block #{transaction.height}</div>
+            <div>
+              <Trans>Block #{transactionHeight}</Trans>
+            </div>
             <div className='text-sm text-muted-foreground truncate'>
-              {transaction.spent.length} coins spent,{' '}
-              {transaction.created.length} created
+              <Trans>{transactionSpentCount} coins spent,</Trans>{' '}
+              <Trans>{transactionCreatedCount} created</Trans>
             </div>
           </div>
-          <AssetPreview label='Sent' assets={assets} />
-          <AssetPreview label='Received' assets={assets} created />
+          <AssetPreview label={t`Sent`} assets={assets} />
+          <AssetPreview label={t`Received`} assets={assets} created />
         </div>
       </div>
     </div>
@@ -234,7 +244,9 @@ function AssetPreview({ label, assets, created }: AssetPreviewProps) {
       <div>{label}</div>
 
       {!showXch && filteredCats.length === 0 && filteredNfts.length === 0 && (
-        <div className='text-sm text-muted-foreground truncate'>None</div>
+        <div className='text-sm text-muted-foreground truncate'>
+          <Trans>None</Trans>
+        </div>
       )}
 
       {showXch && (
@@ -256,7 +268,7 @@ function AssetPreview({ label, assets, created }: AssetPreviewProps) {
 
           <div className='text-sm text-muted-foreground truncate'>
             {toDecimal(cat.amount.abs().toString(), 3)}{' '}
-            {cat.name ?? cat.ticker ?? 'Unknown'}
+            {cat.name ?? cat.ticker ?? t`Unknown`}
           </div>
         </div>
       ))}
@@ -268,7 +280,7 @@ function AssetPreview({ label, assets, created }: AssetPreviewProps) {
           />
 
           <div className='text-sm text-muted-foreground truncate'>
-            {nft.name ?? 'Unknown'}
+            {nft.name ?? t`Unknown`}
           </div>
         </div>
       ))}
