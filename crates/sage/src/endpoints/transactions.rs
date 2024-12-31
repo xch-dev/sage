@@ -6,10 +6,10 @@ use chia::{
 };
 use chia_wallet_sdk::MetadataUpdate;
 use sage_api::{
-    AddNftUri, AssignNftsToDid, BulkMintNfts, CombineCat, CombineXch, CreateDid, IssueCat,
-    NftUriKind, SendCat, SendXch, SignCoinSpends, SignCoinSpendsResponse, SplitCat, SplitXch,
-    SubmitTransaction, SubmitTransactionResponse, TransactionResponse, TransferDids, TransferNfts,
-    ViewCoinSpends, ViewCoinSpendsResponse,
+    AddNftUri, AssignNftsToDid, BulkMintNfts, BulkSendCat, BulkSendXch, CombineCat, CombineXch,
+    CreateDid, IssueCat, NftUriKind, SendCat, SendXch, SignCoinSpends, SignCoinSpendsResponse,
+    SplitCat, SplitXch, SubmitTransaction, SubmitTransactionResponse, TransactionResponse,
+    TransferDids, TransferNfts, ViewCoinSpends, ViewCoinSpendsResponse,
 };
 use sage_database::CatRow;
 use sage_wallet::{fetch_uris, WalletNftMint};
@@ -33,8 +33,31 @@ impl Sage {
         }
 
         let coin_spends = wallet
-            .send_xch(puzzle_hash, amount, fee, memos, false, true)
+            .send_xch(vec![(puzzle_hash, amount)], fee, memos, false, true)
             .await?;
+        self.transact(coin_spends, req.auto_submit).await
+    }
+
+    pub async fn bulk_send_xch(&self, req: BulkSendXch) -> Result<TransactionResponse> {
+        let wallet = self.wallet()?;
+
+        let amount = self.parse_amount(req.amount)?;
+
+        let mut amounts = Vec::with_capacity(req.addresses.len());
+
+        for address in req.addresses {
+            amounts.push((self.parse_address(address)?, amount));
+        }
+
+        let fee = self.parse_amount(req.fee)?;
+
+        let mut memos = Vec::new();
+
+        for memo in req.memos {
+            memos.push(Bytes::from(hex::decode(memo)?));
+        }
+
+        let coin_spends = wallet.send_xch(amounts, fee, memos, false, true).await?;
         self.transact(coin_spends, req.auto_submit).await
     }
 
@@ -114,7 +137,40 @@ impl Sage {
         }
 
         let coin_spends = wallet
-            .send_cat(asset_id, puzzle_hash, amount, fee, memos, false, true)
+            .send_cat(
+                asset_id,
+                vec![(puzzle_hash, amount)],
+                fee,
+                memos,
+                false,
+                true,
+            )
+            .await?;
+        self.transact(coin_spends, req.auto_submit).await
+    }
+
+    pub async fn bulk_send_cat(&self, req: BulkSendCat) -> Result<TransactionResponse> {
+        let wallet = self.wallet()?;
+        let asset_id = parse_asset_id(req.asset_id)?;
+
+        let amount = parse_cat_amount(req.amount)?;
+
+        let mut amounts = Vec::with_capacity(req.addresses.len());
+
+        for address in req.addresses {
+            amounts.push((self.parse_address(address)?, amount));
+        }
+
+        let fee = self.parse_amount(req.fee)?;
+
+        let mut memos = Vec::new();
+
+        for memo in req.memos {
+            memos.push(Bytes::from(hex::decode(memo)?));
+        }
+
+        let coin_spends = wallet
+            .send_cat(asset_id, amounts, fee, memos, false, true)
             .await?;
         self.transact(coin_spends, req.auto_submit).await
     }

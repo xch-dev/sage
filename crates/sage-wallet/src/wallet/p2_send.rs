@@ -9,14 +9,15 @@ impl Wallet {
     /// Sends the given amount of XCH to the given puzzle hash, minus the fee.
     pub async fn send_xch(
         &self,
-        puzzle_hash: Bytes32,
-        amount: u64,
+        amounts: Vec<(Bytes32, u64)>,
         fee: u64,
         memos: Vec<Bytes>,
         hardened: bool,
         reuse: bool,
     ) -> Result<Vec<CoinSpend>, WalletError> {
-        let total = amount as u128 + fee as u128;
+        let combined_amount = amounts.iter().map(|(_, amount)| amount).sum::<u64>();
+
+        let total = combined_amount as u128 + fee as u128;
         let coins = self.select_p2_coins(total).await?;
         let selected: u128 = coins.iter().map(|coin| coin.amount as u128).sum();
 
@@ -28,11 +29,12 @@ impl Wallet {
 
         let mut ctx = SpendContext::new();
 
-        let mut conditions = Conditions::new().create_coin(
-            puzzle_hash,
-            amount,
-            Some(Memos::new(ctx.alloc(&memos)?)),
-        );
+        let mut conditions = Conditions::new();
+
+        for (puzzle_hash, amount) in amounts {
+            conditions =
+                conditions.create_coin(puzzle_hash, amount, Some(Memos::new(ctx.alloc(&memos)?)));
+        }
 
         if fee > 0 {
             conditions = conditions.reserve_fee(fee);
@@ -60,7 +62,7 @@ mod tests {
 
         let coin_spends = test
             .wallet
-            .send_xch(test.puzzle_hash, 1000, 0, Vec::new(), false, true)
+            .send_xch(vec![(test.puzzle_hash, 1000)], 0, Vec::new(), false, true)
             .await?;
 
         assert_eq!(coin_spends.len(), 1);
@@ -80,7 +82,7 @@ mod tests {
 
         let coin_spends = test
             .wallet
-            .send_xch(test.puzzle_hash, 250, 250, Vec::new(), false, true)
+            .send_xch(vec![(test.puzzle_hash, 250)], 250, Vec::new(), false, true)
             .await?;
 
         assert_eq!(coin_spends.len(), 1);

@@ -60,8 +60,7 @@ impl Wallet {
     pub async fn send_cat(
         &self,
         asset_id: Bytes32,
-        puzzle_hash: Bytes32,
-        amount: u64,
+        amounts: Vec<(Bytes32, u64)>,
         fee: u64,
         memos: Vec<Bytes>,
         hardened: bool,
@@ -73,9 +72,13 @@ impl Wallet {
             Vec::new()
         };
 
-        let cats = self.select_cat_coins(asset_id, amount as u128).await?;
+        let combined_amount = amounts.iter().map(|(_, amount)| amount).sum::<u64>();
+
+        let cats = self
+            .select_cat_coins(asset_id, combined_amount as u128)
+            .await?;
         let cat_selected: u128 = cats.iter().map(|cat| cat.coin.amount as u128).sum();
-        let cat_change: u64 = (cat_selected - amount as u128)
+        let cat_change: u64 = (cat_selected - combined_amount as u128)
             .try_into()
             .expect("change amount overflow");
 
@@ -107,9 +110,13 @@ impl Wallet {
                 .await?;
         }
 
-        let mut output_memos = vec![puzzle_hash.into()];
-        output_memos.extend(memos);
-        let memos = ctx.memos(&output_memos)?;
+        for (puzzle_hash, amount) in amounts {
+            let mut output_memos = vec![puzzle_hash.into()];
+            output_memos.extend(memos.clone());
+            let memos = ctx.memos(&output_memos)?;
+            conditions = conditions.create_coin(puzzle_hash, amount, Some(memos));
+        }
+
         let change_hint = ctx.hint(change_puzzle_hash)?;
 
         self.spend_cat_coins(
@@ -119,8 +126,7 @@ impl Wallet {
                     return (cat, Conditions::new());
                 }
 
-                let mut conditions =
-                    mem::take(&mut conditions).create_coin(puzzle_hash, amount, Some(memos));
+                let mut conditions = mem::take(&mut conditions);
 
                 if cat_change > 0 {
                     conditions =
@@ -159,7 +165,14 @@ mod tests {
 
         let coin_spends = test
             .wallet
-            .send_cat(asset_id, test.puzzle_hash, 750, 0, Vec::new(), false, true)
+            .send_cat(
+                asset_id,
+                vec![(test.puzzle_hash, 750)],
+                0,
+                Vec::new(),
+                false,
+                true,
+            )
             .await?;
         assert_eq!(coin_spends.len(), 1);
 
@@ -173,8 +186,7 @@ mod tests {
             .wallet
             .send_cat(
                 asset_id,
-                test.puzzle_hash,
-                1000,
+                vec![(test.puzzle_hash, 1000)],
                 500,
                 Vec::new(),
                 false,

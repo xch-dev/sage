@@ -1,7 +1,6 @@
 import ConfirmationDialog from '@/components/ConfirmationDialog';
 import Container from '@/components/Container';
 import Header from '@/components/Header';
-import { TokenAmountInput } from '@/components/ui/masked-input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
@@ -13,11 +12,17 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { TokenAmountInput } from '@/components/ui/masked-input';
+import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
 import { useErrors } from '@/hooks/useErrors';
 import { amount, positiveAmount } from '@/lib/formTypes';
 import { toDecimal, toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { t } from '@lingui/core/macro';
+import { Trans } from '@lingui/react/macro';
 import BigNumber from 'bignumber.js';
 import { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -30,8 +35,6 @@ import {
   SendXch,
   TransactionResponse,
 } from '../bindings';
-import { Trans } from '@lingui/react/macro';
-import { t } from '@lingui/core/macro';
 
 export default function Send() {
   const { asset_id: assetId } = useParams();
@@ -45,7 +48,9 @@ export default function Send() {
   );
   const [response, setResponse] = useState<TransactionResponse | null>(null);
 
-  const ticker = asset?.ticker || t`unknown asset`;
+  const [bulk, setBulk] = useState(false);
+
+  const ticker = asset?.ticker || 'CAT';
 
   const updateCat = useCallback(
     () =>
@@ -94,12 +99,29 @@ export default function Send() {
     walletState.sync.unit.ticker,
   ]);
 
+  const addressList = (value: string) => {
+    if (bulk) {
+      return value
+        .trim()
+        .split(/\s*,\s*|\s+/)
+        .map((line) => line.trim())
+        .filter(Boolean);
+    } else {
+      return [value.trim()];
+    }
+  };
+
   const formSchema = z.object({
     address: z
       .string()
       .refine(
-        (address) => commands.validateAddress(address).catch(addError),
-        t`Invalid address`,
+        (address) =>
+          Promise.all(
+            addressList(address).map((address) =>
+              commands.validateAddress(address).catch(addError),
+            ),
+          ).then((values) => values.every(Boolean)),
+        bulk ? t`Invalid addresses` : t`Invalid address`,
       ),
     amount: positiveAmount(asset?.decimals || 12).refine(
       (amount) =>
@@ -119,9 +141,26 @@ export default function Send() {
     const values = form.getValues();
 
     const command = isXch
-      ? commands.sendXch
+      ? bulk
+        ? (req: SendXch) => {
+            return commands.bulkSendXch({
+              addresses: [...new Set(addressList(req.address))],
+              amount: req.amount,
+              fee: req.fee,
+            });
+          }
+        : commands.sendXch
       : (req: SendXch) => {
-          return commands.sendCat({ asset_id: assetId!, ...req });
+          if (bulk) {
+            return commands.bulkSendCat({
+              asset_id: assetId!,
+              addresses: [...new Set(addressList(req.address))],
+              amount: req.amount,
+              fee: req.fee,
+            });
+          } else {
+            return commands.sendCat({ asset_id: assetId!, ...req });
+          }
         };
 
     command({
@@ -154,6 +193,13 @@ export default function Send() {
           </Card>
         )}
 
+        <div className='flex items-center gap-2 mb-4'>
+          <Label htmlFor='bulk'>
+            <Trans>Send in bulk (airdrop)</Trans>
+          </Label>
+          <Switch id='bulk' checked={bulk} onCheckedChange={setBulk} />
+        </div>
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-4'>
             <FormField
@@ -165,13 +211,23 @@ export default function Send() {
                     <Trans>Address</Trans>
                   </FormLabel>
                   <FormControl>
-                    <Input
-                      autoCorrect='off'
-                      autoCapitalize='off'
-                      autoComplete='off'
-                      placeholder={t`Enter address`}
-                      {...field}
-                    />
+                    {bulk ? (
+                      <Textarea
+                        autoCorrect='off'
+                        autoCapitalize='off'
+                        autoComplete='off'
+                        placeholder={t`Enter multiple distinct addresses`}
+                        {...field}
+                      />
+                    ) : (
+                      <Input
+                        autoCorrect='off'
+                        autoCapitalize='off'
+                        autoComplete='off'
+                        placeholder={t`Enter address`}
+                        {...field}
+                      />
+                    )}
                   </FormControl>
                   <FormMessage />
                 </FormItem>
