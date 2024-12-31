@@ -120,6 +120,15 @@ pub async fn send_xch(state: State<'_, AppState>, req: SendXch) -> Result<Transa
 
 #[command]
 #[specta]
+pub async fn bulk_send_xch(
+    state: State<'_, AppState>,
+    req: BulkSendXch,
+) -> Result<TransactionResponse> {
+    Ok(state.lock().await.bulk_send_xch(req).await?)
+}
+
+#[command]
+#[specta]
 pub async fn combine_xch(
     state: State<'_, AppState>,
     req: CombineXch,
@@ -158,6 +167,15 @@ pub async fn issue_cat(state: State<'_, AppState>, req: IssueCat) -> Result<Tran
 #[specta]
 pub async fn send_cat(state: State<'_, AppState>, req: SendCat) -> Result<TransactionResponse> {
     Ok(state.lock().await.send_cat(req).await?)
+}
+
+#[command]
+#[specta]
+pub async fn bulk_send_cat(
+    state: State<'_, AppState>,
+    req: BulkSendCat,
+) -> Result<TransactionResponse> {
+    Ok(state.lock().await.bulk_send_cat(req).await?)
 }
 
 #[command]

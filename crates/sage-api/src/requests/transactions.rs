@@ -15,6 +15,17 @@ pub struct SendXch {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct BulkSendXch {
+    pub addresses: Vec<String>,
+    pub amount: Amount,
+    pub fee: Amount,
+    #[serde(default)]
+    pub memos: Vec<String>,
+    #[serde(default)]
+    pub auto_submit: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub struct CombineXch {
     pub coin_ids: Vec<String>,
     pub fee: Amount,
@@ -62,6 +73,18 @@ pub struct IssueCat {
 pub struct SendCat {
     pub asset_id: String,
     pub address: String,
+    pub amount: Amount,
+    pub fee: Amount,
+    #[serde(default)]
+    pub memos: Vec<String>,
+    #[serde(default)]
+    pub auto_submit: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct BulkSendCat {
+    pub asset_id: String,
+    pub addresses: Vec<String>,
     pub amount: Amount,
     pub fee: Amount,
     #[serde(default)]
@@ -182,12 +205,14 @@ pub struct TransactionResponse {
 }
 
 pub type SendXchResponse = TransactionResponse;
+pub type BulkSendXchResponse = TransactionResponse;
 pub type CombineXchResponse = TransactionResponse;
 pub type SplitXchResponse = TransactionResponse;
 pub type CombineCatResponse = TransactionResponse;
 pub type SplitCatResponse = TransactionResponse;
 pub type IssueCatResponse = TransactionResponse;
 pub type SendCatResponse = TransactionResponse;
+pub type BulkSendCatResponse = TransactionResponse;
 pub type CreateDidResponse = TransactionResponse;
 pub type BulkMintNftsResponse = TransactionResponse;
 pub type TransferNftsResponse = TransactionResponse;

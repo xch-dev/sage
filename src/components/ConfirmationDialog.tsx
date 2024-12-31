@@ -10,6 +10,8 @@ import {
 import { useErrors } from '@/hooks/useErrors';
 import { toDecimal } from '@/lib/utils';
 import { useWalletState } from '@/state';
+import { t } from '@lingui/core/macro';
+import { Trans } from '@lingui/react/macro';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 import BigNumber from 'bignumber.js';
 import {
@@ -33,8 +35,6 @@ import {
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { Badge } from './ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { Trans } from '@lingui/react/macro';
-import { t } from '@lingui/core/macro';
 
 export interface ConfirmationDialogProps {
   response: TransactionResponse | TakeOfferResponse | null;
@@ -135,7 +135,7 @@ export default function ConfirmationDialog({
                 </TabsList>
                 <TabsContent value='simple'>
                   {isHighFee && !fee.isZero() && (
-                    <Alert variant='warning' className='mb-4'>
+                    <Alert variant='warning' className='my-3'>
                       <CircleAlert className='h-4 w-4' />
                       <AlertTitle>
                         <Trans>High Transaction Fee</Trans>
