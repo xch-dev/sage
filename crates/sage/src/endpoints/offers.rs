@@ -10,10 +10,10 @@ use chrono::{Local, TimeZone};
 use clvmr::Allocator;
 use indexmap::IndexMap;
 use sage_api::{
-    Amount, CatAmount, DeleteOffer, DeleteOfferResponse, GetOffer, GetOfferResponse, GetOffers,
-    GetOffersResponse, ImportOffer, ImportOfferResponse, MakeOffer, MakeOfferResponse, OfferAssets,
-    OfferCat, OfferNft, OfferRecord, OfferRecordStatus, OfferSummary, OfferXch, TakeOffer,
-    TakeOfferResponse, ViewOffer, ViewOfferResponse,
+    Amount, CancelOffer, CancelOfferResponse, CatAmount, DeleteOffer, DeleteOfferResponse,
+    GetOffer, GetOfferResponse, GetOffers, GetOffersResponse, ImportOffer, ImportOfferResponse,
+    MakeOffer, MakeOfferResponse, OfferAssets, OfferCat, OfferNft, OfferRecord, OfferRecordStatus,
+    OfferSummary, OfferXch, TakeOffer, TakeOfferResponse, ViewOffer, ViewOfferResponse,
 };
 use sage_database::{OfferCatRow, OfferNftRow, OfferRow, OfferStatus, OfferXchRow};
 use sage_wallet::{
@@ -189,6 +189,12 @@ impl Sage {
         let wallet = self.wallet()?;
         let offer = Offer::decode(&req.offer)?;
         let spend_bundle: SpendBundle = offer.clone().into();
+        let offer_id = spend_bundle.name();
+
+        if wallet.db.get_offer(offer_id).await?.is_some() {
+            return Ok(ImportOfferResponse {});
+        }
+
         let peer = self.peer_state.lock().await.acquire_peer();
 
         let mut allocator = Allocator::new();
@@ -242,8 +248,6 @@ impl Sage {
                 .collect::<Vec<_>>(),
         )?
         .amounts();
-
-        let offer_id = spend_bundle.name();
 
         let mut cat_rows = Vec::new();
         let mut nft_rows = Vec::new();
@@ -592,5 +596,20 @@ impl Sage {
                 fee: Amount::u64(offer.fee),
             },
         })
+    }
+
+    pub async fn cancel_offer(&self, req: CancelOffer) -> Result<CancelOfferResponse> {
+        let wallet = self.wallet()?;
+        let offer_id = parse_offer_id(req.offer_id)?;
+        let fee = self.parse_amount(req.fee)?;
+
+        let Some(row) = wallet.db.get_offer(offer_id).await? else {
+            return Err(Error::MissingOffer(offer_id));
+        };
+
+        let offer = Offer::decode(&row.encoded_offer)?;
+        let coin_spends = wallet.cancel_offer(offer, fee, false, true).await?;
+
+        self.transact(coin_spends, req.auto_submit).await
     }
 }

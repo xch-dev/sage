@@ -1,6 +1,5 @@
 import { CatRecord, commands } from '@/bindings';
 import { useErrors } from '@/hooks/useErrors';
-import { useWalletState } from '@/state';
 import { useEffect, useState } from 'react';
 import { Input } from '../ui/input';
 import { DropdownSelector } from './DropdownSelector';
@@ -10,7 +9,6 @@ export interface TokenSelectorProps {
   onChange: (value: string) => void;
   disabled?: string[];
   className?: string;
-  allowManualInput?: boolean;
 }
 
 export function TokenSelector({
@@ -18,9 +16,7 @@ export function TokenSelector({
   onChange,
   disabled = [],
   className,
-  allowManualInput = false,
 }: TokenSelectorProps) {
-  const walletState = useWalletState();
   const { addError } = useErrors();
 
   const [tokens, setTokens] = useState<CatRecord[]>([]);
@@ -55,26 +51,24 @@ export function TokenSelector({
       }}
       className={className}
       manualInput={
-        allowManualInput && (
-          <Input
-            placeholder='Enter asset id'
-            value={value || ''}
-            onChange={(e) => {
-              onChange(e.target.value);
-              setSelectedToken(
-                tokens.find((token) => token.asset_id === e.target.value) ?? {
-                  name: 'Unknown',
-                  asset_id: e.target.value,
-                  icon_url: null,
-                  balance: 0,
-                  ticker: null,
-                  description: null,
-                  visible: true,
-                },
-              );
-            }}
-          />
-        )
+        <Input
+          placeholder='Enter asset id'
+          value={value || ''}
+          onChange={(e) => {
+            onChange(e.target.value);
+            setSelectedToken(
+              tokens.find((token) => token.asset_id === e.target.value) ?? {
+                name: 'Unknown',
+                asset_id: e.target.value,
+                icon_url: null,
+                balance: 0,
+                ticker: null,
+                description: null,
+                visible: true,
+              },
+            );
+          }}
+        />
       }
       renderItem={(token) => (
         <div className='flex items-center gap-2 w-full'>

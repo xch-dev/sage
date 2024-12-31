@@ -62,7 +62,14 @@ impl Wallet {
             unlock_assets(&mut ctx, locked_coins, taker_coins.nonce(), p2_puzzle_hash)?;
 
         // Calculate trade prices for the maker side.
-        let trade_prices = calculate_trade_prices(&maker_amounts, requested_payments.nfts.len())?;
+        let trade_prices = calculate_trade_prices(
+            &maker_amounts,
+            requested_payments
+                .nfts
+                .values()
+                .filter(|(nft, _)| nft.royalty_ten_thousandths > 0)
+                .count(),
+        )?;
 
         let extra_conditions = Conditions::new()
             .extend(assertions)

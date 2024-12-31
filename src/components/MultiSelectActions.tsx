@@ -1,5 +1,6 @@
 import { commands, TransactionResponse } from '@/bindings';
 import { useErrors } from '@/hooks/useErrors';
+import { toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import {
   ChevronDown,
@@ -45,7 +46,11 @@ export function MultiSelectActions({
 
   const onTransferSubmit = (address: string, fee: string) => {
     commands
-      .transferNfts({ nft_ids: selected, address, fee })
+      .transferNfts({
+        nft_ids: selected,
+        address,
+        fee: toMojos(fee, walletState.sync.unit.decimals),
+      })
       .then(setResponse)
       .catch(addError)
       .finally(() => setTransferOpen(false));
@@ -53,7 +58,11 @@ export function MultiSelectActions({
 
   const onAssignSubmit = (profile: string, fee: string) => {
     commands
-      .assignNftsToDid({ nft_ids: selected, did_id: profile, fee })
+      .assignNftsToDid({
+        nft_ids: selected,
+        did_id: profile,
+        fee: toMojos(fee, walletState.sync.unit.decimals),
+      })
       .then(setResponse)
       .catch(addError)
       .finally(() => setAssignOpen(false));
@@ -61,7 +70,11 @@ export function MultiSelectActions({
 
   const onUnassignSubmit = (fee: string) => {
     commands
-      .assignNftsToDid({ nft_ids: selected, did_id: null, fee })
+      .assignNftsToDid({
+        nft_ids: selected,
+        did_id: null,
+        fee: toMojos(fee, walletState.sync.unit.decimals),
+      })
       .then(setResponse)
       .catch(addError)
       .finally(() => setUnassignOpen(false));
@@ -72,7 +85,7 @@ export function MultiSelectActions({
       .transferNfts({
         nft_ids: selected,
         address: walletState.sync.burn_address,
-        fee,
+        fee: toMojos(fee, walletState.sync.unit.decimals),
       })
       .then(setResponse)
       .catch(addError)

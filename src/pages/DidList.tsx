@@ -150,7 +150,7 @@ function Profile({ did, updateDids }: ProfileProps) {
         address,
         fee: toMojos(fee, walletState.sync.unit.decimals),
       })
-      .then(updateDids)
+      .then(setResponse)
       .catch(addError)
       .finally(() => setTransferOpen(false));
   };
@@ -162,7 +162,7 @@ function Profile({ did, updateDids }: ProfileProps) {
         address: walletState.sync.burn_address,
         fee: toMojos(fee, walletState.sync.unit.decimals),
       })
-      .then(updateDids)
+      .then(setResponse)
       .catch(addError)
       .finally(() => setBurnOpen(false));
   };

@@ -129,9 +129,14 @@ export default function CoinList(props: CoinListProps) {
         const addSpend = 1_000_000_000;
         const addCreate = 2_000_000_000;
 
+        const aPending =
+          !!rowA.original.spend_transaction_id && !rowA.original.spent_height;
+        const bPending =
+          !!rowB.original.spend_transaction_id && !rowB.original.spent_height;
+
         const a =
           (rowA.original.created_height ?? 0) +
-          (rowA.original.spend_transaction_id
+          (aPending
             ? addSpend
             : rowA.original.create_transaction_id
               ? addCreate
@@ -139,7 +144,7 @@ export default function CoinList(props: CoinListProps) {
 
         const b =
           (rowB.original.created_height ?? 0) +
-          (rowB.original.spend_transaction_id
+          (bPending
             ? addSpend
             : rowB.original.create_transaction_id
               ? addCreate
@@ -302,7 +307,8 @@ export default function CoinList(props: CoinListProps) {
                       }}
                       className={
                         'h-12' +
-                        (row.original.spend_transaction_id ||
+                        ((row.original.spend_transaction_id &&
+                          !row.original.spent_height) ||
                         row.original.create_transaction_id
                           ? ' pulsate-opacity'
                           : '')

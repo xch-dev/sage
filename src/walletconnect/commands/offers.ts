@@ -61,3 +61,13 @@ export async function handleTakeOffer(params: Params<'chia_takeOffer'>) {
 
   return { id: data.transaction_id };
 }
+
+export async function handleCancelOffer(params: Params<'chia_cancelOffer'>) {
+  await commands.cancelOffer({
+    offer_id: params.id,
+    fee: params.fee ?? 0,
+    auto_submit: true,
+  });
+
+  return {};
+}

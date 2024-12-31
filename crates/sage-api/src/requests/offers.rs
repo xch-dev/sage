@@ -3,6 +3,8 @@ use specta::Type;
 
 use crate::{Amount, OfferRecord, OfferSummary, SpendBundleJson, TransactionSummary};
 
+use super::TransactionResponse;
+
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub struct MakeOffer {
     pub requested_assets: Assets,
@@ -88,3 +90,13 @@ pub struct DeleteOffer {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Type)]
 pub struct DeleteOfferResponse {}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct CancelOffer {
+    pub offer_id: String,
+    pub fee: Amount,
+    #[serde(default)]
+    pub auto_submit: bool,
+}
+
+pub type CancelOfferResponse = TransactionResponse;

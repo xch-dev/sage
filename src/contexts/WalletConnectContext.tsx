@@ -1,6 +1,12 @@
-import { commands, OfferSummary, TransactionSummary } from '@/bindings';
+import {
+  commands,
+  OfferRecord,
+  OfferSummary,
+  TransactionSummary,
+} from '@/bindings';
 import { AdvancedSummary } from '@/components/ConfirmationDialog';
 import { OfferCard } from '@/components/OfferCard';
+import { OfferSummaryCard } from '@/components/OfferSummaryCard';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -68,7 +74,7 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
       metadata: {
         name: 'Sage Wallet',
         description: 'Sage Wallet',
-        url: 'https://sagewallet.com',
+        url: 'https://sagewallet.net',
         icons: [
           'https://github.com/xch-dev/sage/blob/main/src-tauri/icons/icon.png?raw=true',
         ],
@@ -487,6 +493,39 @@ function CreateOfferDialog({ params }: CommandDialogProps<'chia_createOffer'>) {
   );
 }
 
+function CancelOfferDialog({ params }: CommandDialogProps<'chia_cancelOffer'>) {
+  const walletState = useWalletState();
+
+  const [record, setRecord] = useState<OfferRecord | null>(null);
+  const { addError } = useErrors();
+
+  useEffect(() => {
+    commands
+      .getOffer({ offer_id: params.id })
+      .then((data) => setRecord(data.offer))
+      .catch(addError);
+  }, [params, addError]);
+
+  return (
+    <div className='space-y-2'>
+      <div className='font-medium'>Offer ID</div>
+      <div className='text-sm text-muted-foreground'>{params.id}</div>
+
+      <div className='font-medium'>Fee</div>
+      <div className='text-sm text-muted-foreground'>
+        {toDecimal(params.fee || 0, walletState.sync.unit.decimals)}{' '}
+        {walletState.sync.unit.ticker}
+      </div>
+
+      {record && (
+        <div className='border rounded-md'>
+          <OfferSummaryCard record={record} content={null} />
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SendDialog({ params }: CommandDialogProps<'chia_send'>) {
   const walletState = useWalletState();
 
@@ -543,6 +582,7 @@ const COMMAND_COMPONENTS: {
   chip0002_signMessage: SignMessageDialog,
   chia_takeOffer: TakeOfferDialog,
   chia_createOffer: CreateOfferDialog,
+  chia_cancelOffer: CancelOfferDialog,
   chia_send: SendDialog,
 };
 
@@ -567,6 +607,10 @@ const COMMAND_METADATA: {
   chia_createOffer: {
     title: 'Create Offer',
     description: 'Review and create the offer',
+  },
+  chia_cancelOffer: {
+    title: 'Cancel Offer',
+    description: 'Review and cancel the offer',
   },
 };
 

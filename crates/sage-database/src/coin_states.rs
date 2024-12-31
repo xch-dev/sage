@@ -17,6 +17,10 @@ impl Database {
         coin_state(&self.pool, coin_id).await
     }
 
+    pub async fn full_coin_state(&self, coin_id: Bytes32) -> Result<Option<CoinStateRow>> {
+        full_coin_state(&self.pool, coin_id).await
+    }
+
     pub async fn unspent_nft_coin_ids(&self) -> Result<Vec<Bytes32>> {
         unspent_nft_coin_ids(&self.pool).await
     }
@@ -114,7 +118,7 @@ impl<'a> DatabaseTx<'a> {
         remove_coin_transaction_id(&mut *self.tx, coin_id).await
     }
 
-    pub async fn is_p2_coin(&mut self, coin_id: Bytes32) -> Result<bool> {
+    pub async fn is_p2_coin(&mut self, coin_id: Bytes32) -> Result<Option<bool>> {
         is_p2_coin(&mut *self.tx, coin_id).await
     }
 }
@@ -373,7 +377,7 @@ async fn unspent_cat_coin_ids(conn: impl SqliteExecutor<'_>) -> Result<Vec<Bytes
         .collect()
 }
 
-async fn is_p2_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<bool> {
+async fn is_p2_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Option<bool>> {
     let coin_id = coin_id.as_ref();
 
     let row = sqlx::query!(
@@ -384,10 +388,10 @@ async fn is_p2_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<b
         ",
         coin_id
     )
-    .fetch_one(conn)
+    .fetch_optional(conn)
     .await?;
 
-    Ok(row.kind == 1)
+    Ok(row.map(|row| row.kind == 1))
 }
 
 async fn is_coin_locked(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<bool> {
@@ -477,4 +481,27 @@ async fn get_coin_states_by_spent_height(
     .await?;
 
     rows.into_iter().map(into_row).collect()
+}
+
+async fn full_coin_state(
+    conn: impl SqliteExecutor<'_>,
+    coin_id: Bytes32,
+) -> Result<Option<CoinStateRow>> {
+    let coin_id = coin_id.as_ref();
+
+    let Some(sql) = sqlx::query_as!(
+        CoinStateSql,
+        "
+        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `created_height`, `spent_height`, `transaction_id`, `kind`
+        FROM `coin_states` WHERE `coin_id` = ?
+        ",
+        coin_id
+    )
+    .fetch_optional(conn)
+    .await?
+    else {
+        return Ok(None);
+    };
+
+    Ok(Some(sql.into_row()?))
 }

@@ -1,9 +1,9 @@
 use std::net::IpAddr;
 
-use chia::protocol::{Bytes32, CoinState};
+use chia::protocol::Bytes32;
 use sage_database::OfferStatus;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SyncEvent {
     Start(IpAddr),
     Stop,
@@ -11,8 +11,9 @@ pub enum SyncEvent {
     DerivationIndex {
         next_index: u32,
     },
-    CoinsUpdated {
-        coin_states: Vec<CoinState>,
+    CoinsUpdated,
+    TransactionUpdated {
+        transaction_id: Bytes32,
     },
     TransactionEnded {
         transaction_id: Bytes32,

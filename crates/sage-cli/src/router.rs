@@ -111,6 +111,7 @@ routes!(
     get_offers await: GetOffers = "/get_offers",
     get_offer await: GetOffer = "/get_offer",
     delete_offer await: DeleteOffer = "/delete_offer",
+    cancel_offer await: CancelOffer = "/cancel_offer",
 
     get_peers await: GetPeers = "/get_peers",
     remove_peer await: RemovePeer = "/remove_peer",
@@ -132,11 +133,7 @@ async fn start_rpc(path: PathBuf) -> Result<()> {
     let mut app = Sage::new(&path);
     let mut receiver = app.initialize().await?;
 
-    tokio::spawn(async move {
-        while let Some(message) = receiver.recv().await {
-            println!("{message:?}");
-        }
-    });
+    tokio::spawn(async move { while let Some(_message) = receiver.recv().await {} });
 
     let addr: SocketAddr = ([127, 0, 0, 1], app.config.rpc.server_port).into();
     info!("RPC server is listening at {addr}");

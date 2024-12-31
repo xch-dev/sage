@@ -1,6 +1,8 @@
-import { commands, events, OfferAssets, OfferRecord } from '@/bindings';
+import { commands, events, OfferRecord, TransactionResponse } from '@/bindings';
+import ConfirmationDialog from '@/components/ConfirmationDialog';
 import Container from '@/components/Container';
 import Header from '@/components/Header';
+import { OfferSummaryCard } from '@/components/OfferSummaryCard';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -18,19 +20,38 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { TokenAmountInput } from '@/components/ui/masked-input';
 import { Textarea } from '@/components/ui/textarea';
 import { useErrors } from '@/hooks/useErrors';
-import { nftUri } from '@/lib/nftUri';
-import { toDecimal } from '@/lib/utils';
+import { amount } from '@/lib/formTypes';
+import { toMojos } from '@/lib/utils';
 import { isDefaultOffer, useOfferState, useWalletState } from '@/state';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 import { platform } from '@tauri-apps/plugin-os';
 import BigNumber from 'bignumber.js';
-import { CopyIcon, HandCoins, MoreVertical, TrashIcon } from 'lucide-react';
+import {
+  CircleOff,
+  CopyIcon,
+  HandCoins,
+  MoreVertical,
+  Tags,
+  TrashIcon,
+} from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
 import { Trans } from '@lingui/react/macro';
 import { t } from '@lingui/core/macro';
+import { z } from 'zod';
 
 export function Offers() {
   const navigate = useNavigate();
@@ -175,80 +196,114 @@ interface OfferProps {
 }
 
 function Offer({ record, refresh }: OfferProps) {
+  const walletState = useWalletState();
+
   const { addError } = useErrors();
 
   const [isDeleteOpen, setDeleteOpen] = useState(false);
+  const [isCancelOpen, setCancelOpen] = useState(false);
+  const [fee, setFee] = useState<string>('');
+
+  const cancelSchema = z.object({
+    fee: amount(walletState.sync.unit.decimals).refine(
+      (amount) => BigNumber(walletState.sync.balance).gte(amount || 0),
+      'Not enough funds to cover the fee',
+    ),
+  });
+
+  const cancelForm = useForm<z.infer<typeof cancelSchema>>({
+    resolver: zodResolver(cancelSchema),
+    defaultValues: {
+      fee: '0',
+    },
+  });
+
+  const cancelHandler = (values: z.infer<typeof cancelSchema>) => {
+    commands
+      .cancelOffer({
+        offer_id: record.offer_id,
+        fee: toMojos(values.fee, walletState.sync.unit.decimals),
+      })
+      .then((response) => setResponse(response))
+      .catch(addError)
+      .finally(() => setCancelOpen(false));
+  };
+
+  const [response, setResponse] = useState<TransactionResponse | null>(null);
 
   return (
     <>
-      <Link
-        to={`/offers/view_saved/${record.offer_id.trim()}`}
-        className='block p-4 rounded-sm bg-neutral-100 dark:bg-neutral-900'
-      >
-        <div className='flex justify-between'>
-          <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
-            <div className='flex flex-col gap-1'>
-              <div>
-                {record.status === 'active' ? (
-                  <Trans>Pending</Trans>
-                ) : record.status === 'completed' ? (
-                  <Trans>Taken</Trans>
-                ) : record.status === 'cancelled' ? (
-                  <Trans>Cancelled</Trans>
-                ) : (
-                  <Trans>Expired</Trans>
-                )}
-              </div>
-              <div className='text-muted-foreground text-sm'>
-                {record.creation_date}
-              </div>
-            </div>
-
-            <AssetPreview label={t`Offered`} assets={record.summary.maker} />
-            <AssetPreview label={t`Requested`} assets={record.summary.taker} />
-          </div>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant='ghost'
-                size='icon'
-                className='-mr-1.5 flex-shrink-0'
-              >
-                <MoreVertical className='h-5 w-5' />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align='end'>
-              <DropdownMenuGroup>
-                <DropdownMenuItem
-                  className='cursor-pointer'
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    writeText(record.offer);
-                  }}
+      <Link to={`/offers/view_saved/${record.offer_id.trim()}`}>
+        <OfferSummaryCard
+          record={record}
+          content={
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant='ghost'
+                  size='icon'
+                  className='-mr-1.5 flex-shrink-0'
                 >
-                  <CopyIcon className='mr-2 h-4 w-4' />
-                  <span>
-                    <Trans>Copy</Trans>
-                  </span>
-                </DropdownMenuItem>
+                  <MoreVertical className='h-5 w-5' />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align='end'>
+                <DropdownMenuGroup>
+                  <DropdownMenuItem
+                    className='cursor-pointer'
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      writeText(record.offer);
+                    }}
+                  >
+                    <CopyIcon className='mr-2 h-4 w-4' />
+                    <span>
+                      <Trans>Copy</Trans>
+                    </span>
+                  </DropdownMenuItem>
 
-                <DropdownMenuItem
-                  className='cursor-pointer'
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setDeleteOpen(true);
-                  }}
-                >
-                  <TrashIcon className='mr-2 h-4 w-4' />
-                  <span>
-                    <Trans>Delete</Trans>
-                  </span>
-                </DropdownMenuItem>
-              </DropdownMenuGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+                  <DropdownMenuItem
+                    className='cursor-pointer'
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDeleteOpen(true);
+                    }}
+                  >
+                    <TrashIcon className='mr-2 h-4 w-4' />
+                    <span>
+                      <Trans>Delete</Trans>
+                    </span>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem
+                    className='cursor-pointer'
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCancelOpen(true);
+                    }}
+                    disabled={record.status !== 'active'}
+                  >
+                    <CircleOff className='mr-2 h-4 w-4' />
+                    <Trans>Cancel</Trans>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem
+                    className='cursor-pointer'
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      writeText(record.offer_id);
+                    }}
+                  >
+                    <Tags className='mr-2 h-4 w-4' />
+                    <span>
+                      <Trans>Copy ID</Trans>
+                    </span>
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          }
+        />
       </Link>
 
       <Dialog open={isDeleteOpen} onOpenChange={setDeleteOpen}>
@@ -283,58 +338,50 @@ function Offer({ record, refresh }: OfferProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={isCancelOpen} onOpenChange={setCancelOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cancel offer?</DialogTitle>
+            <DialogDescription>
+              This will cancel the offer on-chain with a transaction, preventing
+              it from being taken even if someone has the original offer file.
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...cancelForm}>
+            <form
+              onSubmit={cancelForm.handleSubmit(cancelHandler)}
+              className='space-y-4'
+            >
+              <FormField
+                control={cancelForm.control}
+                name='fee'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Network Fee</FormLabel>
+                    <FormControl>
+                      <TokenAmountInput {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter className='gap-2'>
+                <Button
+                  type='button'
+                  variant='outline'
+                  onClick={() => setCancelOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button type='submit'>Submit</Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      <ConfirmationDialog response={response} close={() => setResponse(null)} />
     </>
-  );
-}
-
-interface AssetPreviewProps {
-  label: string;
-  assets: OfferAssets;
-}
-
-function AssetPreview({ label, assets }: AssetPreviewProps) {
-  const walletState = useWalletState();
-
-  return (
-    <div className='flex flex-col gap-1 w-[125px] lg:w-[200px] xl:w-[300px]'>
-      <div>{label}</div>
-      {BigNumber(assets.xch.amount)
-        .plus(assets.xch.royalty)
-        .isGreaterThan(0) && (
-        <div className='flex items-center gap-2'>
-          <img src='https://icons.dexie.space/xch.webp' className='w-8 h-8' />
-
-          <div className='text-sm text-muted-foreground truncate'>
-            {toDecimal(
-              BigNumber(assets.xch.amount).plus(assets.xch.royalty).toString(),
-              walletState.sync.unit.decimals,
-            )}{' '}
-            {walletState.sync.unit.ticker}
-          </div>
-        </div>
-      )}
-      {Object.entries(assets.cats).map(([_assetId, cat]) => (
-        <div className='flex items-center gap-2'>
-          <img src={cat.icon_url!} className='w-8 h-8' />
-
-          <div className='text-sm text-muted-foreground truncate'>
-            {toDecimal(BigNumber(cat.amount).plus(cat.royalty).toString(), 3)}{' '}
-            {cat.name ?? cat.ticker ?? 'Unknown'}
-          </div>
-        </div>
-      ))}
-      {Object.entries(assets.nfts).map(([_nftId, nft]) => (
-        <div className='flex items-center gap-2'>
-          <img
-            src={nftUri(nft.image_mime_type, nft.image_data)}
-            className='w-8 h-8'
-          />
-
-          <div className='text-sm text-muted-foreground truncate'>
-            {nft.name ?? 'Unknown'}
-          </div>
-        </div>
-      ))}
-    </div>
   );
 }

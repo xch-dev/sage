@@ -20,7 +20,7 @@ pub(crate) struct CoinSql {
     pub amount: Vec<u8>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum CoinKind {
     Unknown,
     Xch,

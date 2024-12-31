@@ -31,7 +31,7 @@ impl Wallet {
             return Err(WalletError::MissingDid(did_id));
         };
 
-        let total_amount = fee as u128 + 1;
+        let total_amount = fee as u128 + mints.len() as u128;
         let coins = self.select_p2_coins(total_amount).await?;
         let selected: u128 = coins.iter().map(|coin| coin.amount as u128).sum();
 

@@ -15,7 +15,11 @@ import {
   handleGetNfts,
   handleSend,
 } from './commands/high-level';
-import { handleCreateOffer, handleTakeOffer } from './commands/offers';
+import {
+  handleCancelOffer,
+  handleCreateOffer,
+  handleTakeOffer,
+} from './commands/offers';
 
 export const handleCommand = async (
   command: WalletConnectCommand,
@@ -44,6 +48,8 @@ export const handleCommand = async (
       return await handleCreateOffer(parseCommand(command, params));
     case 'chia_takeOffer':
       return await handleTakeOffer(parseCommand(command, params));
+    case 'chia_cancelOffer':
+      return await handleCancelOffer(parseCommand(command, params));
     case 'chia_getNfts':
       return await handleGetNfts(parseCommand(command, params));
     case 'chia_send':

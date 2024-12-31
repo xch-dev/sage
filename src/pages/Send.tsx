@@ -1,6 +1,9 @@
 import ConfirmationDialog from '@/components/ConfirmationDialog';
+import Container from '@/components/Container';
 import Header from '@/components/Header';
+import { TokenAmountInput } from '@/components/ui/masked-input';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import {
   Form,
   FormControl,
@@ -12,9 +15,10 @@ import {
 import { Input } from '@/components/ui/input';
 import { useErrors } from '@/hooks/useErrors';
 import { amount, positiveAmount } from '@/lib/formTypes';
-import { toMojos } from '@/lib/utils';
+import { toDecimal, toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { zodResolver } from '@hookform/resolvers/zod';
+import BigNumber from 'bignumber.js';
 import { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -26,18 +30,14 @@ import {
   SendXch,
   TransactionResponse,
 } from '../bindings';
-import Container from '../components/Container';
-import { TokenAmountInput } from '@/components/ui/masked-input';
 import { Trans } from '@lingui/react/macro';
 import { t } from '@lingui/core/macro';
 
 export default function Send() {
   const { asset_id: assetId } = useParams();
   const isXch = assetId === 'xch';
-
   const navigate = useNavigate();
   const walletState = useWalletState();
-
   const { addError } = useErrors();
 
   const [asset, setAsset] = useState<(CatRecord & { decimals: number }) | null>(
@@ -73,7 +73,6 @@ export default function Send() {
 
       const unlisten = events.syncEvent.listen((event) => {
         const type = event.payload.type;
-
         if (
           type === 'coin_state' ||
           type === 'puzzle_batch_synced' ||
@@ -102,7 +101,13 @@ export default function Send() {
         (address) => commands.validateAddress(address).catch(addError),
         t`Invalid address`,
       ),
-    amount: positiveAmount(asset?.decimals || 12),
+    amount: positiveAmount(asset?.decimals || 12).refine(
+      (amount) =>
+        asset
+          ? BigNumber(amount).lte(toDecimal(asset.balance, asset.decimals))
+          : true,
+      'Amount exceeds balance',
+    ),
     fee: amount(walletState.sync.unit.decimals).optional(),
   });
 
@@ -136,6 +141,19 @@ export default function Send() {
       <Header title={t`Send ${ticker}`} back={() => navigate(-1)} />
 
       <Container className='max-w-xl'>
+        {asset && (
+          <Card className='mb-6'>
+            <CardContent className='pt-6'>
+              <div className='text-sm text-muted-foreground'>
+                Available Balance
+              </div>
+              <div className='text-2xl font-medium mt-1'>
+                {toDecimal(asset.balance, asset.decimals)} {asset.ticker}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-4'>
             <FormField

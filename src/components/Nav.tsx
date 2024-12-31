@@ -49,7 +49,7 @@ function NavLink({ url, children }: PropsWithChildren<NavLinkProps>) {
   return (
     <Link
       to={url}
-      className='flex items-center gap-3 rounded-lg px-3 py-1.5 text-muted-foreground transition-all hover:text-primary text-xl md:text-base'
+      className='flex items-center gap-3 rounded-lg px-3 py-1.5 text-muted-foreground transition-all hover:text-primary text-lg md:text-base'
     >
       {children}
     </Link>

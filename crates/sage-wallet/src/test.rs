@@ -90,6 +90,7 @@ impl TestWallet {
         let (mut sync_manager, sender, events) = SyncManager::new(
             SyncOptions {
                 target_peers: 0,
+                discover_peers: false,
                 dns_batch_size: 0,
                 connection_batch_size: 0,
                 max_peer_age_seconds: 0,

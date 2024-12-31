@@ -1,6 +1,6 @@
 [package]
 name = "sage-tauri"
-version = "0.8.3"
+version = "0.8.6"
 description = "A next generation Chia wallet."
 authors = ["Rigidity <me@rigidnetwork.com>"]
 license = "Apache-2.0"

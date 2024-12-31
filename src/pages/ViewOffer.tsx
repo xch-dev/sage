@@ -2,14 +2,14 @@ import { commands, OfferSummary, TakeOfferResponse } from '@/bindings';
 import ConfirmationDialog from '@/components/ConfirmationDialog';
 import Container from '@/components/Container';
 import Header from '@/components/Header';
+import { Loading } from '@/components/Loading';
 import { OfferCard } from '@/components/OfferCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useErrors } from '@/hooks/useErrors';
-import { toDecimal, toMojos } from '@/lib/utils';
+import { toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
-import BigNumber from 'bignumber.js';
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Trans } from '@lingui/react/macro';
@@ -18,23 +18,33 @@ import { t } from '@lingui/core/macro';
 export function ViewOffer() {
   const { offer } = useParams();
   const { addError } = useErrors();
-
   const walletState = useWalletState();
   const navigate = useNavigate();
 
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadingStatus, setLoadingStatus] = useState(t`Initializing...`);
   const [summary, setSummary] = useState<OfferSummary | null>(null);
   const [response, setResponse] = useState<TakeOfferResponse | null>(null);
   const [fee, setFee] = useState('');
 
-  const makerFee = toDecimal(summary!.fee, walletState.sync.unit.decimals);
-
   useEffect(() => {
     if (!offer) return;
 
-    commands
-      .viewOffer({ offer })
-      .then((data) => setSummary(data.offer))
-      .catch(addError);
+    const loadOffer = async () => {
+      setIsLoading(true);
+      setLoadingStatus(t`Fetching offer details...`);
+
+      commands
+        .viewOffer({ offer })
+        .then((data) => {
+          setSummary(data.offer);
+          setLoadingStatus(t`Processing offer data...`);
+        })
+        .catch(addError)
+        .finally(() => setIsLoading(false));
+    };
+
+    loadOffer();
   }, [offer, addError]);
 
   const importOffer = () => {
@@ -44,18 +54,13 @@ export function ViewOffer() {
       .catch(addError);
   };
 
-  const take = () => {
-    commands
-      .importOffer({ offer: offer! })
-      .then(() =>
-        commands
-          .takeOffer({
-            offer: offer!,
-            fee: toMojos(fee || '0', walletState.sync.unit.decimals),
-          })
-          .then((result) => setResponse(result))
-          .catch(addError),
-      )
+  const take = async () => {
+    await commands
+      .takeOffer({
+        offer: offer!,
+        fee: toMojos(fee || '0', walletState.sync.unit.decimals),
+      })
+      .then((result) => setResponse(result))
       .catch(addError);
   };
 
@@ -64,45 +69,45 @@ export function ViewOffer() {
       <Header title='View Offer' />
 
       <Container>
-        {summary && (
-          <OfferCard summary={summary}>
-            <div className='flex flex-col space-y-1.5'>
-              <Label htmlFor='fee'>
-                <Trans>Network Fee</Trans>
-              </Label>
-              <Input
-                id='fee'
-                type='text'
-                placeholder='0.00'
-                className='pr-12'
-                value={fee}
-                onChange={(e) => setFee(e.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') {
-                    event.preventDefault();
-                    take();
-                  }
-                }}
-              />
+        {isLoading ? (
+          <Loading className='my-8' text={loadingStatus} />
+        ) : (
+          summary && (
+            <>
+              <OfferCard summary={summary}>
+                <div className='flex flex-col space-y-1.5'>
+                  <Label htmlFor='fee'>
+                    <Trans>Network Fee</Trans>
+                  </Label>
+                  <Input
+                    id='fee'
+                    type='text'
+                    placeholder='0.00'
+                    className='pr-12'
+                    value={fee}
+                    onChange={(e) => setFee(e.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault();
+                        take();
+                      }
+                    }}
+                  />
+                </div>
+              </OfferCard>
 
-              <span className='text-xs text-muted-foreground'>
-                {BigNumber(summary?.fee ?? '0').isGreaterThan(0)
-                  ? t`This does not include a fee of ${makerFee} which was already added by the maker.`
-                  : ''}
-              </span>
-            </div>
-          </OfferCard>
+              <div className='mt-4 flex gap-2'>
+                <Button variant='outline' onClick={importOffer}>
+                  <Trans>Save Offer</Trans>
+                </Button>
+
+                <Button onClick={take}>
+                  <Trans>Take Offer </Trans>
+                </Button>
+              </div>
+            </>
+          )
         )}
-
-        <div className='mt-4 flex gap-2'>
-          <Button variant='outline' onClick={importOffer}>
-            <Trans>Save Offer</Trans>
-          </Button>
-
-          <Button onClick={take}>
-            <Trans>Take Offer</Trans>
-          </Button>
-        </div>
       </Container>
 
       <ConfirmationDialog

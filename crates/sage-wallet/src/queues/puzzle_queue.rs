@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::Arc, time::Duration};
 
-use chia::protocol::{Bytes32, CoinState};
+use chia::protocol::{Bytes32, Coin};
 use futures_util::{stream::FuturesUnordered, StreamExt};
 use sage_database::{CoinKind, Database};
 use tokio::{
@@ -76,21 +76,47 @@ impl PuzzleQueue {
                 let db = self.db.clone();
                 let genesis_challenge = self.genesis_challenge;
                 let addr = peer.socket_addr();
-                let coin_id = coin_state.coin.coin_id();
                 let peer = peer.clone();
 
+                if db.is_p2_puzzle_hash(coin_state.coin.puzzle_hash).await? {
+                    db.sync_coin(coin_state.coin.coin_id(), None, CoinKind::Xch)
+                        .await?;
+                    warn!(
+                        "Could {} should already be synced, but isn't",
+                        coin_state.coin.coin_id()
+                    );
+                    continue;
+                }
+
                 futures.push(async move {
-                    let result = fetch_puzzle(&peer, &db, genesis_challenge, coin_state).await;
-                    (addr, coin_id, result)
+                    let result = fetch_puzzle(&peer, genesis_challenge, coin_state.coin).await;
+                    (addr, coin_state, result)
                 });
             }
         }
 
         let mut subscriptions = Vec::new();
 
-        while let Some((addr, coin_id, result)) = futures.next().await {
+        while let Some((addr, coin_state, result)) = futures.next().await {
+            let coin_id = coin_state.coin.coin_id();
+
             match result {
-                Ok(subscribe) => {
+                Ok((info, minter_did)) => {
+                    let subscribe = info.subscribe();
+
+                    let remove = match info.p2_puzzle_hash() {
+                        Some(p2_puzzle_hash) => !self.db.is_p2_puzzle_hash(p2_puzzle_hash).await?,
+                        None => true,
+                    };
+
+                    if remove {
+                        self.db.delete_coin_state(coin_state.coin.coin_id()).await?;
+                    } else {
+                        let mut tx = self.db.tx().await?;
+                        insert_puzzle(&mut tx, coin_state, info, minter_did).await?;
+                        tx.commit().await?;
+                    }
+
                     if subscribe {
                         subscriptions.push(coin_id);
                     }
@@ -136,23 +162,12 @@ impl PuzzleQueue {
 /// Fetches info for a coin's puzzle and inserts it into the database.
 async fn fetch_puzzle(
     peer: &WalletPeer,
-    db: &Database,
     genesis_challenge: Bytes32,
-    coin_state: CoinState,
-) -> Result<bool, WalletError> {
-    if db.is_p2_puzzle_hash(coin_state.coin.puzzle_hash).await? {
-        db.sync_coin(coin_state.coin.coin_id(), None, CoinKind::Xch)
-            .await?;
-        warn!(
-            "Could {} should already be synced, but isn't",
-            coin_state.coin.coin_id()
-        );
-        return Ok(false);
-    }
-
+    coin: Coin,
+) -> Result<(ChildKind, Option<Bytes32>), WalletError> {
     let parent_spend = timeout(
         Duration::from_secs(15),
-        peer.fetch_coin_spend(coin_state.coin.parent_coin_info, genesis_challenge),
+        peer.fetch_coin_spend(coin.parent_coin_info, genesis_challenge),
     )
     .await??;
 
@@ -161,7 +176,7 @@ async fn fetch_puzzle(
             parent_spend.coin,
             &parent_spend.puzzle_reveal,
             &parent_spend.solution,
-            coin_state.coin,
+            coin,
         )
     })
     .await??;
@@ -172,20 +187,5 @@ async fn fetch_puzzle(
         None
     };
 
-    let subscribe = info.subscribe();
-
-    let remove = match info.p2_puzzle_hash() {
-        Some(p2_puzzle_hash) => !db.is_p2_puzzle_hash(p2_puzzle_hash).await?,
-        None => true,
-    };
-
-    if remove {
-        db.delete_coin_state(coin_state.coin.coin_id()).await?;
-    } else {
-        let mut tx = db.tx().await?;
-        insert_puzzle(&mut tx, coin_state, info, minter_did).await?;
-        tx.commit().await?;
-    }
-
-    Ok(subscribe)
+    Ok((info, minter_did))
 }

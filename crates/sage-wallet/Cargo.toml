@@ -1,6 +1,6 @@
 [package]
 name = "sage-wallet"
-version = "0.8.3"
+version = "0.8.6"
 edition = "2021"
 license = "Apache-2.0"
 description = "The driver code and sync logic for Sage wallet."

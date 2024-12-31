@@ -538,7 +538,6 @@ function AssetSelector({
                   .filter((amount) => amount.asset_id !== cat.asset_id)
                   .map((amount) => amount.asset_id)}
                 className='rounded-r-none'
-                allowManualInput={!offering}
               />
               <TokenAmountInput
                 id={`${prefix}-cat-${i}-amount`}
