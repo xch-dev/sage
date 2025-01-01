@@ -24,7 +24,6 @@ impl Sage {
                 .map(|info| PeerRecord {
                     ip_addr: info.0.socket_addr().ip().to_string(),
                     port: info.0.socket_addr().port(),
-                    trusted: false,
                     peak_height: info.1,
                 })
                 .collect(),
@@ -49,7 +48,6 @@ impl Sage {
         self.command_sender
             .send(SyncCommand::ConnectPeer {
                 ip: req.ip.parse()?,
-                trusted: req.trusted,
             })
             .await?;
 

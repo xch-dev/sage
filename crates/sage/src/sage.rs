@@ -293,10 +293,7 @@ impl Sage {
             }
 
             self.command_sender
-                .send(SyncCommand::ConnectPeer {
-                    ip,
-                    trusted: peers.trusted.contains(&ip),
-                })
+                .send(SyncCommand::ConnectPeer { ip })
                 .await?;
         }
 
@@ -319,10 +316,6 @@ impl Sage {
 
         for (&ip, &ban) in state.banned_peers() {
             peers.banned.insert(ip, ban);
-        }
-
-        for &ip in state.trusted_peers() {
-            peers.trusted.insert(ip);
         }
 
         let peer_path = peer_dir.join(format!("{}.bin", self.config.network.network_id));

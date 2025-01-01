@@ -20,7 +20,6 @@ pub enum SyncCommand {
     },
     ConnectPeer {
         ip: IpAddr,
-        trusted: bool,
     },
     SubscribeCoins {
         coin_ids: Vec<Bytes32>,

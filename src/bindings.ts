@@ -242,7 +242,7 @@ syncEvent: "sync-event"
 /** user-defined types **/
 
 export type AddNftUri = { nft_id: string; uri: string; fee: Amount; kind: NftUriKind; auto_submit?: boolean }
-export type AddPeer = { ip: string; trusted: boolean }
+export type AddPeer = { ip: string }
 export type AddPeerResponse = Record<string, never>
 export type AddressKind = "own" | "burn" | "launcher" | "offer" | "external" | "unknown"
 export type Amount = string | number
@@ -351,7 +351,7 @@ export type OfferRecord = { offer_id: string; offer: string; status: OfferRecord
 export type OfferRecordStatus = "active" | "completed" | "cancelled" | "expired"
 export type OfferSummary = { fee: Amount; maker: OfferAssets; taker: OfferAssets }
 export type OfferXch = { amount: Amount; royalty: Amount }
-export type PeerRecord = { ip_addr: string; port: number; trusted: boolean; peak_height: number }
+export type PeerRecord = { ip_addr: string; port: number; peak_height: number }
 export type PendingTransactionRecord = { transaction_id: string; fee: Amount; submitted_at: string | null }
 export type RemoveCat = { asset_id: string }
 export type RemoveCatResponse = Record<string, never>

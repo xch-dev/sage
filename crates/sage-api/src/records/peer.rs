@@ -5,6 +5,5 @@ use specta::Type;
 pub struct PeerRecord {
     pub ip_addr: String,
     pub port: u16,
-    pub trusted: bool,
     pub peak_height: u32,
 }
