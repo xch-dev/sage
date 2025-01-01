@@ -1,28 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { commands, PeerRecord } from '../bindings';
-import { platform } from '@tauri-apps/plugin-os';
-import {
-  ColumnDef,
-  flexRender,
-  getCoreRowModel,
-  useReactTable,
-} from '@tanstack/react-table';
-import Header from '@/components/Header';
 import Container from '@/components/Container';
+import Header from '@/components/Header';
 import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import {
   Dialog,
   DialogContent,
@@ -32,13 +13,35 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Switch } from '@/components/ui/switch';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { useErrors } from '@/hooks/useErrors';
+import { useLongPress } from '@/hooks/useLongPress';
+import { t } from '@lingui/core/macro';
+import { Plural, Trans } from '@lingui/react/macro';
+import { animated, useSpring } from '@react-spring/web';
+import {
+  ColumnDef,
+  flexRender,
+  getCoreRowModel,
+  useReactTable,
+} from '@tanstack/react-table';
+import { platform } from '@tauri-apps/plugin-os';
+import { useDrag } from '@use-gesture/react';
 import {
   BadgeCheckIcon,
   BadgeIcon,
@@ -46,11 +49,8 @@ import {
   HelpCircleIcon,
   Trash2Icon,
 } from 'lucide-react';
-import { animated, useSpring } from '@react-spring/web';
-import { useDrag } from '@use-gesture/react';
-import { useLongPress } from '@/hooks/useLongPress';
-import { Plural, Trans } from '@lingui/react/macro';
-import { t } from '@lingui/core/macro';
+import { useCallback, useEffect, useState } from 'react';
+import { commands, PeerRecord } from '../bindings';
 
 const MobileRow = ({
   peer,
@@ -208,7 +208,7 @@ export default function PeerList() {
     },
     {
       accessorKey: 'peak_height',
-      header: t`Peak Height`,
+      header: t`Height`,
     },
     {
       accessorKey: 'trusted',
