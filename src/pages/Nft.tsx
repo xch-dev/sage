@@ -4,6 +4,8 @@ import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { useErrors } from '@/hooks/useErrors';
 import { nftUri } from '@/lib/nftUri';
+import { t } from '@lingui/core/macro';
+import { Trans } from '@lingui/react/macro';
 import { open } from '@tauri-apps/plugin-shell';
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
@@ -14,8 +16,6 @@ import {
   NftData,
   NftRecord,
 } from '../bindings';
-import { Trans } from '@lingui/react/macro';
-import { t } from '@lingui/core/macro';
 
 export default function Nft() {
   const { launcher_id: launcherId } = useParams();
@@ -24,7 +24,7 @@ export default function Nft() {
   const [nft, setNft] = useState<NftRecord | null>(null);
   const [data, setData] = useState<NftData | null>(null);
 
-  const royaltyPercentage = nft?.royalty_ten_thousandths ?? 0 / 100;
+  const royaltyPercentage = (nft?.royalty_ten_thousandths ?? 0) / 100;
 
   const updateNft = useMemo(
     () => () => {

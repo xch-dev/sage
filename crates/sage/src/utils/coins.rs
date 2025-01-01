@@ -1,10 +1,14 @@
 use chia::protocol::{Bytes32, Coin};
 use chia_wallet_sdk::Cat;
+use hex_literal::hex;
 use sage_wallet::Wallet;
 
 use crate::{Error, Result};
 
 use super::parse_coin_id;
+
+pub const BURN_PUZZLE_HASH: [u8; 32] =
+    hex!("000000000000000000000000000000000000000000000000000000000000dead");
 
 pub async fn fetch_coins(wallet: &Wallet, coin_ids: Vec<String>) -> Result<Vec<Coin>> {
     let coin_ids = coin_ids

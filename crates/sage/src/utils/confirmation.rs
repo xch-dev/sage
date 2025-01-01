@@ -6,7 +6,6 @@ use chia::{
     puzzles::nft::NftMetadata,
 };
 use chia_wallet_sdk::encode_address;
-use hex_literal::hex;
 use sage_api::{
     Amount, AssetKind, CoinJson, CoinSpendJson, SpendBundleJson, TransactionInput,
     TransactionOutput, TransactionSummary,
@@ -16,7 +15,7 @@ use sage_wallet::{compute_nft_info, ChildKind, CoinKind, Data, Transaction};
 
 use crate::{Error, Result, Sage};
 
-use super::{parse_coin_id, parse_program, parse_puzzle_hash, parse_signature};
+use super::{parse_coin_id, parse_program, parse_puzzle_hash, parse_signature, BURN_PUZZLE_HASH};
 
 #[derive(Debug, Default)]
 pub struct ConfirmationInfo {
@@ -111,8 +110,7 @@ impl Sage {
                     amount: Amount::u64(output.coin.amount),
                     address,
                     receiving: wallet.db.is_p2_puzzle_hash(p2_puzzle_hash).await?,
-                    burning: p2_puzzle_hash.to_bytes()
-                        == hex!("000000000000000000000000000000000000000000000000000000000000dead"),
+                    burning: p2_puzzle_hash.to_bytes() == BURN_PUZZLE_HASH,
                 });
             }
 

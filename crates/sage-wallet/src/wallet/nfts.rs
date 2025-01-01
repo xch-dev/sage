@@ -287,6 +287,14 @@ mod tests {
             test.wait_for_coins().await;
         }
 
+        let nft = test
+            .wallet
+            .db
+            .nft_row(nft.info.launcher_id)
+            .await?
+            .expect("missing nft");
+        assert_eq!(nft.owner_did, Some(did.info.launcher_id));
+
         Ok(())
     }
 }

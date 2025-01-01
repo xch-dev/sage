@@ -80,6 +80,7 @@ routes!(
     get_dids await: GetDids = "/get_dids",
     get_pending_transactions await: GetPendingTransactions = "/get_pending_transactions",
     get_transactions await: GetTransactions = "/get_transactions",
+    get_transaction await: GetTransaction = "/get_transaction",
     get_nft_status await: GetNftStatus = "/get_nft_status",
     get_nft_collections await: GetNftCollections = "/get_nft_collections",
     get_nft_collection await: GetNftCollection = "/get_nft_collection",

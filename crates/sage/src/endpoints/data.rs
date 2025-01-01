@@ -1,27 +1,30 @@
 use base64::{prelude::BASE64_STANDARD, Engine};
 use chia::{
     clvm_traits::{FromClvm, ToClvm},
-    protocol::Program,
-    puzzles::nft::NftMetadata,
+    protocol::{Bytes32, Program},
+    puzzles::{
+        nft::NftMetadata, offer::SETTLEMENT_PAYMENTS_PUZZLE_HASH,
+        singleton::SINGLETON_LAUNCHER_PUZZLE_HASH,
+    },
 };
 use chia_wallet_sdk::{encode_address, Nft};
 use clvmr::Allocator;
 use hex_literal::hex;
 use sage_api::{
-    Amount, AssetKind, CatRecord, CoinRecord, DerivationRecord, DidRecord, GetCat, GetCatCoins,
-    GetCatCoinsResponse, GetCatResponse, GetCats, GetCatsResponse, GetDerivations,
+    AddressKind, Amount, AssetKind, CatRecord, CoinRecord, DerivationRecord, DidRecord, GetCat,
+    GetCatCoins, GetCatCoinsResponse, GetCatResponse, GetCats, GetCatsResponse, GetDerivations,
     GetDerivationsResponse, GetDids, GetDidsResponse, GetNft, GetNftCollection,
     GetNftCollectionResponse, GetNftCollections, GetNftCollectionsResponse, GetNftData,
     GetNftDataResponse, GetNftResponse, GetNftStatus, GetNftStatusResponse, GetNfts,
     GetNftsResponse, GetPendingTransactions, GetPendingTransactionsResponse, GetSyncStatus,
-    GetSyncStatusResponse, GetTransactions, GetTransactionsResponse, GetXchCoins,
-    GetXchCoinsResponse, NftCollectionRecord, NftData, NftRecord, NftSortMode,
-    PendingTransactionRecord, TransactionCoin, TransactionRecord,
+    GetSyncStatusResponse, GetTransaction, GetTransactionResponse, GetTransactions,
+    GetTransactionsResponse, GetXchCoins, GetXchCoinsResponse, NftCollectionRecord, NftData,
+    NftRecord, NftSortMode, PendingTransactionRecord, TransactionCoin, TransactionRecord,
 };
 use sage_database::{CoinKind, CoinStateRow, Database, NftRow};
 use sage_wallet::WalletError;
 
-use crate::{parse_asset_id, parse_collection_id, parse_nft_id, Result, Sage};
+use crate::{parse_asset_id, parse_collection_id, parse_nft_id, Result, Sage, BURN_PUZZLE_HASH};
 
 impl Sage {
     pub async fn get_sync_status(&self, _req: GetSyncStatus) -> Result<GetSyncStatusResponse> {
@@ -271,31 +274,20 @@ impl Sage {
             .skip(req.offset.try_into()?)
             .take(req.limit.try_into()?)
         {
-            let spent_rows = wallet.db.get_coin_states_by_spent_height(height).await?;
-            let created_rows = wallet.db.get_coin_states_by_created_height(height).await?;
-
-            let mut spent = Vec::new();
-            let mut created = Vec::new();
-
-            for row in spent_rows {
-                spent.push(self.transaction_coin(&wallet.db, row).await?);
-            }
-
-            for row in created_rows {
-                created.push(self.transaction_coin(&wallet.db, row).await?);
-            }
-
-            transactions.push(TransactionRecord {
-                height,
-                spent,
-                created,
-            });
+            let transaction = self.transaction_record(&wallet.db, height).await?;
+            transactions.push(transaction);
         }
 
         Ok(GetTransactionsResponse {
             transactions,
             total: heights.len().try_into()?,
         })
+    }
+
+    pub async fn get_transaction(&self, req: GetTransaction) -> Result<GetTransactionResponse> {
+        let wallet = self.wallet()?;
+        let transaction = self.transaction_record(&wallet.db, req.height).await?;
+        Ok(GetTransactionResponse { transaction })
     }
 
     pub async fn get_nft_status(&self, _req: GetNftStatus) -> Result<GetNftStatusResponse> {
@@ -734,6 +726,12 @@ impl Sage {
             }
         };
 
+        let address_kind = if let Some(p2_puzzle_hash) = p2_puzzle_hash {
+            self.address_kind(db, p2_puzzle_hash).await?
+        } else {
+            AddressKind::Unknown
+        };
+
         Ok(TransactionCoin {
             coin_id: hex::encode(coin_id),
             address: p2_puzzle_hash
@@ -741,8 +739,47 @@ impl Sage {
                     encode_address(p2_puzzle_hash.to_bytes(), &self.network().address_prefix)
                 })
                 .transpose()?,
+            address_kind,
             amount: Amount::u64(coin.coin_state.coin.amount),
             kind,
+        })
+    }
+
+    async fn transaction_record(&self, db: &Database, height: u32) -> Result<TransactionRecord> {
+        let spent_rows = db.get_coin_states_by_spent_height(height).await?;
+        let created_rows = db.get_coin_states_by_created_height(height).await?;
+
+        let mut spent = Vec::new();
+        let mut created = Vec::new();
+
+        for row in spent_rows {
+            spent.push(self.transaction_coin(db, row).await?);
+        }
+
+        for row in created_rows {
+            created.push(self.transaction_coin(db, row).await?);
+        }
+
+        Ok(TransactionRecord {
+            height,
+            spent,
+            created,
+        })
+    }
+
+    async fn address_kind(&self, db: &Database, p2_puzzle_hash: Bytes32) -> Result<AddressKind> {
+        if p2_puzzle_hash == BURN_PUZZLE_HASH.into() {
+            return Ok(AddressKind::Burn);
+        } else if p2_puzzle_hash == SINGLETON_LAUNCHER_PUZZLE_HASH.into() {
+            return Ok(AddressKind::Launcher);
+        } else if p2_puzzle_hash == SETTLEMENT_PAYMENTS_PUZZLE_HASH.into() {
+            return Ok(AddressKind::Offer);
+        }
+
+        Ok(if db.is_p2_puzzle_hash(p2_puzzle_hash).await? {
+            AddressKind::Own
+        } else {
+            AddressKind::External
         })
     }
 }
