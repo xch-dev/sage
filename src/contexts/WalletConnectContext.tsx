@@ -36,6 +36,7 @@ import {
   ReactNode,
   useCallback,
   useEffect,
+  useMemo,
   useState,
 } from 'react';
 
@@ -634,7 +635,10 @@ function RequestDialog({
   }
 
   const CommandComponent = COMMAND_COMPONENTS[method] ?? DefaultCommandDialog;
-  const parsedParams = commandInfo.paramsType.parse(params);
+  const parsedParams = useMemo(
+    () => commandInfo.paramsType.parse(params),
+    [params, commandInfo],
+  );
 
   return (
     <Dialog open={true} onOpenChange={(open) => !open && reject(request)}>
