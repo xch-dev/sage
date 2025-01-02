@@ -13,11 +13,14 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useErrors } from '@/hooks/useErrors';
 import useInitialization from '@/hooks/useInitialization';
 import { useWallet } from '@/hooks/useWallet';
 import { useWalletConnect } from '@/hooks/useWalletConnect';
 import { clearState, fetchState } from '@/state';
+import { t } from '@lingui/core/macro';
+import { Trans } from '@lingui/react/macro';
 import { useContext, useEffect, useState } from 'react';
 import { DarkModeContext } from '../App';
 import {
@@ -28,10 +31,6 @@ import {
   WalletConfig,
 } from '../bindings';
 import { isValidU32 } from '../validation';
-import { Trans } from '@lingui/react/macro';
-import { t } from '@lingui/core/macro';
-import { loadCatalog } from '@/i18n';
-import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function Settings() {
   const initialized = useInitialization();
@@ -87,6 +86,7 @@ function GlobalSettings() {
             <SelectContent>
               <SelectItem value='en-US'>English</SelectItem>
               <SelectItem value='de-DE'>Deutsch</SelectItem>
+              <SelectItem value='zh-CN'>Chinese</SelectItem>
             </SelectContent>
           </Select>
         </div>
