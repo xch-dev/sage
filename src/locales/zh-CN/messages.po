@@ -31,7 +31,7 @@ msgstr "{peersToDeleteCount, plural, one {移除节点} other {移除节点}}"
 
 #: src/pages/PeerList.tsx:517
 msgid "{peersToDeleteCount, plural, one {This will remove the peer from your connection. If you are currently syncing against this peer, a new one will be used to replace it.} other {This will remove # peers from your connection. If you are currently syncing against these peers, new ones will be used to replace them.}}"
-msgstr "{peersToDeleteCount, plural, one {这将移除与该节点的连接. 如果当前正通过此节点进行同步, 将会使用一个新的节点来替换它.} other {这将移除与该节点的连接. 如果当前正通过此节点进行同步, 将会使用一个新的节点来替换它.}}"
+msgstr "{peersToDeleteCount, plural, one {这将移除与该节点的连接. 如果当前正通过此节点进行同步, 将会使用一个新的节点来替换它.} other {这将移除与多个节点的连接。如果当前正在通过这些节点同步，将会使用新的节点替换它们.}}"
 
 #: src/pages/PeerList.tsx:537
 msgid "{peersToDeleteCount, plural, one {Will temporarily prevent the peer from being connected to.} other {Will temporarily prevent the peers from being connected to.}}"
