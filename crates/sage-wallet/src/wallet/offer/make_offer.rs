@@ -22,15 +22,16 @@ pub struct UnsignedMakeOffer {
     pub builder: OfferBuilder<Partial>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Default, Clone)]
 pub struct MakerSide {
     pub xch: u64,
     pub cats: IndexMap<Bytes32, u64>,
     pub nfts: Vec<Bytes32>,
     pub fee: u64,
+    pub p2_puzzle_hash: Option<Bytes32>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Default, Clone)]
 pub struct TakerSide {
     pub xch: u64,
     pub cats: IndexMap<Bytes32, u64>,
@@ -81,7 +82,9 @@ impl Wallet {
         let maker_coins = self
             .fetch_offer_coins(&total_amounts, maker.nfts.clone())
             .await?;
-        let p2_puzzle_hash = self.p2_puzzle_hash(hardened, reuse).await?;
+
+        let change_puzzle_hash = self.p2_puzzle_hash(hardened, reuse).await?;
+        let p2_puzzle_hash = maker.p2_puzzle_hash.unwrap_or(change_puzzle_hash);
 
         let mut builder = OfferBuilder::new(maker_coins.nonce());
         let mut ctx = SpendContext::new();
@@ -173,7 +176,7 @@ impl Wallet {
                 royalties: maker_royalties,
                 trade_prices,
                 fee: maker.fee,
-                change_puzzle_hash: p2_puzzle_hash,
+                change_puzzle_hash,
                 extra_conditions,
             },
         )

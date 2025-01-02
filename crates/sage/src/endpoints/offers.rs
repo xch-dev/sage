@@ -76,6 +76,11 @@ impl Sage {
 
         let fee = self.parse_amount(req.fee)?;
 
+        let p2_puzzle_hash = req
+            .receive_address
+            .map(|address| self.parse_address(address))
+            .transpose()?;
+
         let unsigned = wallet
             .make_offer(
                 MakerSide {
@@ -83,6 +88,7 @@ impl Sage {
                     cats: offered_cats,
                     nfts: offered_nfts,
                     fee,
+                    p2_puzzle_hash,
                 },
                 TakerSide {
                     xch: requested_xch,

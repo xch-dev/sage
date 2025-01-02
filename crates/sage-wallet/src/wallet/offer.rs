@@ -23,7 +23,7 @@ mod tests {
         puzzles::nft::NftMetadata,
     };
     use clvmr::Allocator;
-    use indexmap::{indexmap, IndexMap};
+    use indexmap::indexmap;
     use test_log::test;
 
     use crate::{MakerSide, RequestedNft, TakerSide, TestWallet, WalletNftMint};
@@ -44,14 +44,12 @@ mod tests {
             .make_offer(
                 MakerSide {
                     xch: 750,
-                    cats: IndexMap::new(),
-                    nfts: Vec::new(),
                     fee: 250,
+                    ..Default::default()
                 },
                 TakerSide {
-                    xch: 0,
                     cats: indexmap! { asset_id => 1000 },
-                    nfts: IndexMap::new(),
+                    ..Default::default()
                 },
                 None,
                 false,
@@ -120,13 +118,9 @@ mod tests {
             .make_offer(
                 MakerSide {
                     xch: 1000,
-                    cats: IndexMap::new(),
-                    nfts: Vec::new(),
-                    fee: 0,
+                    ..Default::default()
                 },
                 TakerSide {
-                    xch: 0,
-                    cats: IndexMap::new(),
                     nfts: indexmap! {
                         nft.info.launcher_id => RequestedNft {
                             metadata,
@@ -135,6 +129,7 @@ mod tests {
                             royalty_ten_thousandths: nft.info.royalty_ten_thousandths,
                         },
                     },
+                    ..Default::default()
                 },
                 None,
                 false,
@@ -201,15 +196,12 @@ mod tests {
             .wallet
             .make_offer(
                 MakerSide {
-                    xch: 0,
-                    cats: IndexMap::new(),
                     nfts: vec![nft.info.launcher_id],
-                    fee: 0,
+                    ..Default::default()
                 },
                 TakerSide {
                     xch: 1000,
-                    cats: IndexMap::new(),
-                    nfts: IndexMap::new(),
+                    ..Default::default()
                 },
                 None,
                 false,
@@ -284,18 +276,15 @@ mod tests {
             .wallet
             .make_offer(
                 MakerSide {
-                    xch: 0,
-                    cats: IndexMap::new(),
                     nfts: vec![
                         nft_id_first.info.launcher_id,
                         nft_id_second.info.launcher_id,
                     ],
-                    fee: 0,
+                    ..Default::default()
                 },
                 TakerSide {
                     xch: 1000,
-                    cats: IndexMap::new(),
-                    nfts: IndexMap::new(),
+                    ..Default::default()
                 },
                 None,
                 false,
@@ -385,18 +374,15 @@ mod tests {
             .wallet
             .make_offer(
                 MakerSide {
-                    xch: 0,
-                    cats: IndexMap::new(),
                     nfts: vec![
                         nft_id_first.info.launcher_id,
                         nft_id_second.info.launcher_id,
                     ],
-                    fee: 0,
+                    ..Default::default()
                 },
                 TakerSide {
-                    xch: 0,
                     cats: indexmap! { asset_id => 1000 },
-                    nfts: IndexMap::new(),
+                    ..Default::default()
                 },
                 None,
                 false,
@@ -481,18 +467,15 @@ mod tests {
             .wallet
             .make_offer(
                 MakerSide {
-                    xch: 0,
-                    cats: IndexMap::new(),
                     nfts: vec![
                         nft_id_first.info.launcher_id,
                         nft_id_second.info.launcher_id,
                     ],
-                    fee: 0,
+                    ..Default::default()
                 },
                 TakerSide {
                     xch: 1000,
-                    cats: IndexMap::new(),
-                    nfts: IndexMap::new(),
+                    ..Default::default()
                 },
                 None,
                 false,
