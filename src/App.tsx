@@ -1,3 +1,5 @@
+import { i18n } from '@lingui/core';
+import { I18nProvider } from '@lingui/react';
 import { createContext, useEffect, useMemo, useState } from 'react';
 import {
   createHashRouter,
@@ -7,11 +9,19 @@ import {
 } from 'react-router-dom';
 import { useLocalStorage } from 'usehooks-ts';
 import { ErrorProvider } from './contexts/ErrorContext';
+import {
+  getBrowserLanguage,
+  LanguageProvider,
+  SupportedLanguage,
+  useLanguage,
+} from './contexts/LanguageContext';
 import { PeerProvider } from './contexts/PeerContext';
 import { PriceProvider } from './contexts/PriceContext';
+import { SafeAreaProvider } from './contexts/SafeAreaContext';
 import { WalletConnectProvider } from './contexts/WalletConnectContext';
 import useInitialization from './hooks/useInitialization';
 import { useWallet } from './hooks/useWallet';
+import { loadCatalog } from './i18n';
 import Addresses from './pages/Addresses';
 import Collection from './pages/Collection';
 import CreateProfile from './pages/CreateProfile';
@@ -30,22 +40,12 @@ import Send from './pages/Send';
 import Settings from './pages/Settings';
 import Token from './pages/Token';
 import { TokenList } from './pages/TokenList';
+import Transaction from './pages/Transaction';
 import { Transactions } from './pages/Transactions';
 import { ViewOffer } from './pages/ViewOffer';
 import { ViewSavedOffer } from './pages/ViewSavedOffer';
 import Wallet from './pages/Wallet';
 import { fetchState } from './state';
-import { getInsets } from 'tauri-plugin-safe-area-insets';
-import { SafeAreaProvider } from './contexts/SafeAreaContext';
-import { i18n } from '@lingui/core';
-import { I18nProvider } from '@lingui/react';
-import {
-  getBrowserLanguage,
-  LanguageProvider,
-  SupportedLanguage,
-  useLanguage,
-} from './contexts/LanguageContext';
-import { loadCatalog } from './i18n';
 
 export interface DarkModeContext {
   toggle: () => void;
@@ -86,6 +86,7 @@ const router = createHashRouter(
       </Route>
       <Route path='/transactions' element={<Wallet />}>
         <Route path='' element={<Transactions />} />
+        <Route path=':height' element={<Transaction />} />
       </Route>
       <Route path='/offers' element={<Wallet />}>
         <Route path='' element={<Offers />} />

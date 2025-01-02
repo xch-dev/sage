@@ -1,5 +1,5 @@
 use std::{
-    collections::{HashMap, HashSet},
+    collections::HashMap,
     net::IpAddr,
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
@@ -29,14 +29,12 @@ impl Drop for PeerInfo {
 pub struct PeerState {
     peers: HashMap<IpAddr, PeerInfo>,
     banned_peers: HashMap<IpAddr, u64>,
-    trusted_peers: HashSet<IpAddr>,
 }
 
 impl PeerState {
     pub fn reset(&mut self) {
         self.peers.clear();
         self.banned_peers.clear();
-        self.trusted_peers.clear();
     }
 
     pub fn peak(&self) -> Option<(u32, Bytes32)> {
@@ -80,10 +78,6 @@ impl PeerState {
     }
 
     pub fn ban(&mut self, ip: IpAddr, duration: Duration, message: &str) {
-        if self.trusted_peers.contains(&ip) {
-            return;
-        }
-
         debug!("Banning peer {ip} ({duration:?}): {message}");
 
         let start = SystemTime::now();
@@ -111,11 +105,6 @@ impl PeerState {
         })
     }
 
-    pub fn trust(&mut self, ip: IpAddr) {
-        self.trusted_peers.insert(ip);
-        self.banned_peers.remove(&ip);
-    }
-
     pub fn update_peak(&mut self, ip: IpAddr, height: u32, header_hash: Bytes32) {
         if let Some(peer) = self.peers.get_mut(&ip) {
             peer.claimed_peak = height;
@@ -133,10 +122,6 @@ impl PeerState {
 
     pub(super) fn add_peer(&mut self, state: PeerInfo) {
         self.peers.insert(state.peer.socket_addr().ip(), state);
-    }
-
-    pub fn trusted_peers(&self) -> &HashSet<IpAddr> {
-        &self.trusted_peers
     }
 
     pub fn banned_peers(&mut self) -> &HashMap<IpAddr, u64> {

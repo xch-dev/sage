@@ -165,11 +165,7 @@ impl SyncManager {
                         );
                     }
                 }
-                SyncCommand::ConnectPeer { ip, trusted } => {
-                    if trusted {
-                        self.state.lock().await.trust(ip);
-                    }
-
+                SyncCommand::ConnectPeer { ip } => {
                     self.connect_batch(&[SocketAddr::new(ip, self.network.default_port)], true)
                         .await;
                 }

@@ -25,7 +25,6 @@ pub struct RemovePeerResponse {}
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub struct AddPeer {
     pub ip: String,
-    pub trusted: bool,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Type)]

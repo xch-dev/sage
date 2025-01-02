@@ -95,6 +95,16 @@ pub struct GetTransactionsResponse {
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Type)]
+pub struct GetTransaction {
+    pub height: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct GetTransactionResponse {
+    pub transaction: TransactionRecord,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Type)]
 pub struct GetNftStatus {}
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Type)]

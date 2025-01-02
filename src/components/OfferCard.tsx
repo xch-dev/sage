@@ -2,6 +2,8 @@ import { OfferAssets, OfferSummary } from '@/bindings';
 import { nftUri } from '@/lib/nftUri';
 import { toDecimal } from '@/lib/utils';
 import { useWalletState } from '@/state';
+import { t } from '@lingui/core/macro';
+import { Trans } from '@lingui/react/macro';
 import BigNumber from 'bignumber.js';
 import { ArrowDownIcon, ArrowUpIcon } from 'lucide-react';
 import { PropsWithChildren } from 'react';
@@ -9,8 +11,6 @@ import { CopyButton } from './CopyButton';
 import { Badge } from './ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Separator } from './ui/separator';
-import { Trans } from '@lingui/react/macro';
-import { t } from '@lingui/core/macro';
 
 export interface OfferCardProps {
   summary: OfferSummary;
@@ -124,7 +124,7 @@ function Assets({ assets }: AssetsProps) {
           <div className='overflow-hidden flex items-center gap-2'>
             <div className='truncate flex items-center gap-2'>
               <Badge className='max-w-[100px] bg-blue-600 text-white dark:bg-blue-600 dark:text-white'>
-                <span className='truncate'>{cat.ticker ?? t`CAT`}</span>
+                <span className='truncate'>{cat.ticker ?? 'CAT'}</span>
               </Badge>
             </div>
             <div className='text-sm font-medium whitespace-nowrap'>

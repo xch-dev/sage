@@ -42,13 +42,7 @@ import {
 } from '@tanstack/react-table';
 import { platform } from '@tauri-apps/plugin-os';
 import { useDrag } from '@use-gesture/react';
-import {
-  BadgeCheckIcon,
-  BadgeIcon,
-  BanIcon,
-  HelpCircleIcon,
-  Trash2Icon,
-} from 'lucide-react';
+import { BanIcon, HelpCircleIcon, Trash2Icon } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { commands, PeerRecord } from '../bindings';
 
@@ -130,11 +124,6 @@ const MobileRow = ({
             />
           )}
           <span className='font-medium flex-1'>{peer.ip_addr}</span>
-          {peer.trusted ? (
-            <BadgeCheckIcon className='h-5 w-5 text-blue-500' />
-          ) : (
-            <BadgeIcon className='h-5 w-5 text-gray-400' />
-          )}
         </div>
 
         <div className='mt-3 grid grid-cols-2 gap-2 text-sm text-muted-foreground'>
@@ -163,7 +152,6 @@ export default function PeerList() {
   const [rowSelection, setRowSelection] = useState({});
   const [isAddOpen, setAddOpen] = useState(false);
   const [ip, setIp] = useState('');
-  const [trusted, setTrusted] = useState(true);
   const [ban, setBan] = useState(false);
   const [peerToDelete, setPeerToDelete] = useState<PeerRecord[] | null>(null);
   const [selectionMode, setSelectionMode] = useState(false);
@@ -209,23 +197,6 @@ export default function PeerList() {
     {
       accessorKey: 'peak_height',
       header: t`Height`,
-    },
-    {
-      accessorKey: 'trusted',
-      header: () => (
-        <div className='text-center'>
-          <Trans>Trusted</Trans>
-        </div>
-      ),
-      cell: ({ row }) => (
-        <div className='flex items-center justify-center'>
-          {row.original.trusted ? (
-            <BadgeCheckIcon className='h-4 w-4' />
-          ) : (
-            <BadgeIcon className='h-4 w-4 text-muted-foreground' />
-          )}
-        </div>
-      ),
     },
     {
       id: 'actions',
@@ -379,24 +350,6 @@ export default function PeerList() {
                           onChange={(e) => setIp(e.target.value)}
                         />
                       </div>
-                      <div className='flex items-center space-x-2'>
-                        <Switch
-                          id='trusted'
-                          checked={trusted}
-                          onCheckedChange={(checked) => setTrusted(checked)}
-                        />
-                        <Label htmlFor='trusted'>
-                          <Trans>Trusted peer</Trans>
-                        </Label>
-                        <Popover>
-                          <PopoverTrigger>
-                            <HelpCircleIcon className='h-4 w-4 text-muted-foreground' />
-                          </PopoverTrigger>
-                          <PopoverContent className='text-sm'>
-                            <Trans>Prevents the peer from being banned.</Trans>
-                          </PopoverContent>
-                        </Popover>
-                      </div>
                     </div>
                     <DialogFooter>
                       <Button
@@ -408,7 +361,7 @@ export default function PeerList() {
                       <Button
                         onClick={() => {
                           setAddOpen(false);
-                          commands.addPeer({ ip, trusted }).then((result) => {
+                          commands.addPeer({ ip }).then((result) => {
                             if (result.status === 'error') {
                               console.error(result.error);
                             }

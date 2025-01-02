@@ -7,27 +7,30 @@ import { useErrors } from '@/hooks/useErrors';
 import { nftUri } from '@/lib/nftUri';
 import { toDecimal } from '@/lib/utils';
 import { useWalletState } from '@/state';
+import { t } from '@lingui/core/macro';
+import { Trans } from '@lingui/react/macro';
+import { open } from '@tauri-apps/plugin-shell';
 import BigNumber from 'bignumber.js';
 import { ChevronLeft, ChevronRight, Info } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
-import { t } from '@lingui/core/macro';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   commands,
   events,
   PendingTransactionRecord,
   TransactionRecord,
 } from '../bindings';
-import { Trans } from '@lingui/react/macro';
 
 export function Transactions() {
-  const walletState = useWalletState();
-
   const { addError } = useErrors();
+
+  const [params, setParams] = useSearchParams();
+  const page = parseInt(params.get('page') ?? '1');
+  const setPage = (page: number) => setParams({ page: page.toString() });
 
   // TODO: Show pending transactions
   const [_pending, setPending] = useState<PendingTransactionRecord[]>([]);
   const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
-  const [page, setPage] = useState(0);
   const [total, setTotal] = useState(0);
 
   const pageSize = 8;
@@ -39,7 +42,7 @@ export function Transactions() {
       .catch(addError);
 
     commands
-      .getTransactions({ offset: page * pageSize, limit: pageSize })
+      .getTransactions({ offset: (page - 1) * pageSize, limit: pageSize })
       .then((data) => {
         setTransactions(data.transactions);
         setTotal(Math.max(1, Math.ceil(data.total / pageSize)));
@@ -88,19 +91,19 @@ export function Transactions() {
           <Button
             variant='outline'
             size='icon'
-            onClick={() => setPage(Math.max(0, page - 1))}
-            disabled={page === 0}
+            onClick={() => setPage(Math.max(1, page - 1))}
+            disabled={page === 1}
           >
             <ChevronLeft className='w-4 h-4' />
           </Button>
           <span className='text-sm'>
-            {page + 1}/{total}
+            {page}/{total}
           </span>
           <Button
             variant='outline'
             size='icon'
-            onClick={() => setPage(Math.min(total - 1, page + 1))}
-            disabled={page === total - 1}
+            onClick={() => setPage(Math.min(total, page + 1))}
+            disabled={page === total}
           >
             <ChevronRight className='w-4 h-4' />
           </Button>
@@ -130,8 +133,6 @@ function Transaction({ transaction }: TransactionProps) {
   const transactionHeight = transaction.height;
   const transactionSpentCount = transaction.spent.length;
   const transactionCreatedCount = transaction.created.length;
-
-  console.log(transaction);
 
   for (const [coins, add] of [
     [transaction.created, true],
@@ -178,23 +179,34 @@ function Transaction({ transaction }: TransactionProps) {
   const assets = { xch, cats, nfts };
 
   return (
-    <div className='flex items-center gap-2 p-4 rounded-sm bg-neutral-100 dark:bg-neutral-900'>
+    <Link
+      to={`/transactions/${transactionHeight}`}
+      className='flex items-center gap-2 p-4 rounded-sm bg-neutral-100 dark:bg-neutral-900'
+    >
       <div className='flex justify-between'>
         <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
-          <div className='flex flex-col gap-2'>
-            <div>
+          <div className='flex flex-col gap-1'>
+            <div
+              className='text-blue-700 dark:text-blue-300 cursor-pointer'
+              onClick={(event) => {
+                event.preventDefault();
+                open(`https://spacescan.io/block/${transactionHeight}`);
+              }}
+            >
               <Trans>Block #{transactionHeight}</Trans>
             </div>
-            <div className='text-sm text-muted-foreground truncate'>
-              <Trans>{transactionSpentCount} coins spent,</Trans>{' '}
-              <Trans>{transactionCreatedCount} created</Trans>
+            <div className='text-sm text-muted-foreground md:w-[120px]'>
+              <Trans>
+                {transactionSpentCount} inputs, {transactionCreatedCount}{' '}
+                outputs
+              </Trans>
             </div>
           </div>
           <AssetPreview label={t`Sent`} assets={assets} />
           <AssetPreview label={t`Received`} assets={assets} created />
         </div>
       </div>
-    </div>
+    </Link>
   );
 }
 
@@ -232,7 +244,7 @@ function AssetPreview({ label, assets, created }: AssetPreviewProps) {
     (assets.xch.isLessThan(0) && !created);
 
   const filteredCats = Object.entries(assets.cats).filter(
-    ([_, cat]) => cat.amount.isLessThan(0) || created,
+    ([_, cat]) => cat.amount.isLessThan(0) === !created,
   );
 
   const filteredNfts = Object.entries(assets.nfts).filter(
@@ -240,7 +252,7 @@ function AssetPreview({ label, assets, created }: AssetPreviewProps) {
   );
 
   return (
-    <div className='flex flex-col gap-1 w-[125px] lg:w-[200px] xl:w-[300px]'>
+    <div className='flex flex-col gap-1 md:w-[150px] lg:w-[200px] xl:w-[300px]'>
       <div>{label}</div>
 
       {!showXch && filteredCats.length === 0 && filteredNfts.length === 0 && (
@@ -253,12 +265,12 @@ function AssetPreview({ label, assets, created }: AssetPreviewProps) {
         <div className='flex items-center gap-2'>
           <img src='https://icons.dexie.space/xch.webp' className='w-8 h-8' />
 
-          <div className='text-sm text-muted-foreground truncate'>
+          <div className='text-sm text-muted-foreground break-all'>
             {toDecimal(
               assets.xch.abs().toString(),
               walletState.sync.unit.decimals,
             )}{' '}
-            {walletState.sync.unit.ticker}
+            <span className='break-normal'>{walletState.sync.unit.ticker}</span>
           </div>
         </div>
       )}
@@ -266,9 +278,11 @@ function AssetPreview({ label, assets, created }: AssetPreviewProps) {
         <div className='flex items-center gap-2'>
           <img src={cat.icon_url!} className='w-8 h-8' />
 
-          <div className='text-sm text-muted-foreground truncate'>
+          <div className='text-sm text-muted-foreground break-all'>
             {toDecimal(cat.amount.abs().toString(), 3)}{' '}
-            {cat.name ?? cat.ticker ?? t`Unknown`}
+            <span className='break-normal'>
+              {cat.ticker ?? cat.name ?? 'CAT'}
+            </span>
           </div>
         </div>
       ))}
@@ -279,7 +293,7 @@ function AssetPreview({ label, assets, created }: AssetPreviewProps) {
             className='w-8 h-8'
           />
 
-          <div className='text-sm text-muted-foreground truncate'>
+          <div className='text-sm text-muted-foreground'>
             {nft.name ?? t`Unknown`}
           </div>
         </div>
