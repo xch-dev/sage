@@ -6,7 +6,7 @@ use indexmap::IndexMap;
 use sage_api::{Amount, OfferAssets, OfferCat, OfferNft, OfferSummary, OfferXch};
 use sage_wallet::{
     calculate_royalties, lookup_from_uris_with_hash, parse_locked_coins, parse_offer_payments,
-    NftRoyaltyInfo,
+    try_lookup_cat, FetchedCatDetails, NftRoyaltyInfo,
 };
 
 use crate::{Result, Sage};
@@ -68,14 +68,25 @@ impl Sage {
         for (asset_id, amount) in maker_amounts.cats {
             let cat = wallet.db.cat(asset_id).await?;
 
+            let details = if let Some(cat) = cat {
+                FetchedCatDetails {
+                    name: cat.name,
+                    ticker: cat.ticker,
+                    description: cat.description,
+                    icon_url: cat.icon,
+                }
+            } else {
+                try_lookup_cat(asset_id, self.config.network.network_id != "mainnet").await
+            };
+
             maker.cats.insert(
                 hex::encode(asset_id),
                 OfferCat {
                     amount: Amount::u64(amount),
                     royalty: Amount::u64(maker_royalties.cats.get(&asset_id).copied().unwrap_or(0)),
-                    name: cat.as_ref().and_then(|cat| cat.name.clone()),
-                    ticker: cat.as_ref().and_then(|cat| cat.ticker.clone()),
-                    icon_url: cat.as_ref().and_then(|cat| cat.icon.clone()),
+                    name: details.name,
+                    ticker: details.ticker,
+                    icon_url: details.icon_url,
                 },
             );
         }
@@ -144,14 +155,25 @@ impl Sage {
         for (asset_id, amount) in taker_amounts.cats {
             let cat = wallet.db.cat(asset_id).await?;
 
+            let details = if let Some(cat) = cat {
+                FetchedCatDetails {
+                    name: cat.name,
+                    ticker: cat.ticker,
+                    description: cat.description,
+                    icon_url: cat.icon,
+                }
+            } else {
+                try_lookup_cat(asset_id, self.config.network.network_id != "mainnet").await
+            };
+
             taker.cats.insert(
                 hex::encode(asset_id),
                 OfferCat {
                     amount: Amount::u64(amount),
                     royalty: Amount::u64(taker_royalties.cats.get(&asset_id).copied().unwrap_or(0)),
-                    name: cat.as_ref().and_then(|cat| cat.name.clone()),
-                    ticker: cat.as_ref().and_then(|cat| cat.ticker.clone()),
-                    icon_url: cat.as_ref().and_then(|cat| cat.icon.clone()),
+                    name: details.name,
+                    ticker: details.ticker,
+                    icon_url: details.icon_url,
                 },
             );
         }
