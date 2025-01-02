@@ -10,6 +10,9 @@ pub struct MakeOffer {
     pub requested_assets: Assets,
     pub offered_assets: Assets,
     pub fee: Amount,
+    #[serde(default)]
+    pub receive_address: Option<String>,
+    #[serde(default)]
     pub expires_at_second: Option<u64>,
 }
 
