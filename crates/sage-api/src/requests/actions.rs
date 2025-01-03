@@ -37,3 +37,12 @@ pub struct UpdateNft {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Type)]
 pub struct UpdateNftResponse {}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Type)]
+pub struct IncreaseDerivationIndex {
+    pub hardened: bool,
+    pub index: u32,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Type)]
+pub struct IncreaseDerivationIndexResponse {}

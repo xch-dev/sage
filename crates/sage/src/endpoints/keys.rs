@@ -1,7 +1,13 @@
 use std::{fs, str::FromStr};
 
 use bip39::Mnemonic;
-use chia::bls::{PublicKey, SecretKey};
+use chia::{
+    bls::{
+        master_to_wallet_hardened_intermediate, master_to_wallet_unhardened_intermediate,
+        DerivableKey, PublicKey, SecretKey,
+    },
+    puzzles::{standard::StandardArgs, DeriveSynthetic},
+};
 use itertools::Itertools;
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
@@ -11,6 +17,7 @@ use sage_api::{
     ImportKeyResponse, KeyInfo, KeyKind, Login, LoginResponse, Logout, LogoutResponse, RenameKey,
     RenameKeyResponse, Resync, ResyncResponse, SecretKeyInfo,
 };
+use sage_database::Database;
 
 use crate::{Error, Result, Sage};
 
@@ -58,6 +65,18 @@ impl Sage {
             sqlx::query!("DELETE FROM `offers`").execute(&pool).await?;
         }
 
+        if req.delete_unhardened_derivations {
+            sqlx::query!("DELETE FROM `derivations` WHERE `hardened` = 0")
+                .execute(&pool)
+                .await?;
+        }
+
+        if req.delete_hardened_derivations {
+            sqlx::query!("DELETE FROM `derivations` WHERE `hardened` = 1")
+                .execute(&pool)
+                .await?;
+        }
+
         if login {
             self.config.app.active_fingerprint = Some(req.fingerprint);
             self.save_config()?;
@@ -88,30 +107,36 @@ impl Sage {
             key_hex = &key_hex[2..];
         }
 
-        let fingerprint = if let Ok(bytes) = hex::decode(key_hex) {
+        let (fingerprint, master_sk, master_pk) = if let Ok(bytes) = hex::decode(key_hex) {
             if let Ok(master_pk) = bytes.clone().try_into() {
                 let master_pk = PublicKey::from_bytes(&master_pk)?;
-                self.keychain.add_public_key(&master_pk)?
+                let fingerprint = self.keychain.add_public_key(&master_pk)?;
+                (fingerprint, None, master_pk)
             } else if let Ok(master_sk) = bytes.try_into() {
                 let master_sk = SecretKey::from_bytes(&master_sk)?;
+                let master_pk = master_sk.public_key();
 
-                if req.save_secrets {
+                let fingerprint = if req.save_secrets {
                     self.keychain.add_secret_key(&master_sk, b"")?
                 } else {
-                    self.keychain.add_public_key(&master_sk.public_key())?
-                }
+                    self.keychain.add_public_key(&master_pk)?
+                };
+
+                (fingerprint, Some(master_sk), master_pk)
             } else {
                 return Err(Error::InvalidKey);
             }
         } else {
             let mnemonic = Mnemonic::from_str(&req.key)?;
-
-            if req.save_secrets {
+            let master_sk = SecretKey::from_seed(&mnemonic.to_seed(""));
+            let master_pk = master_sk.public_key();
+            let fingerprint = if req.save_secrets {
                 self.keychain.add_mnemonic(&mnemonic, b"")?
             } else {
-                let master_sk = SecretKey::from_seed(&mnemonic.to_seed(""));
-                self.keychain.add_public_key(&master_sk.public_key())?
-            }
+                self.keychain.add_public_key(&master_pk)?
+            };
+
+            (fingerprint, Some(master_sk), master_pk)
         };
 
         let config = self.wallet_config_mut(fingerprint);
@@ -120,6 +145,38 @@ impl Sage {
 
         self.save_keychain()?;
         self.save_config()?;
+
+        let pool = self.connect_to_database(fingerprint).await?;
+        let db = Database::new(pool);
+
+        let mut tx = db.tx().await?;
+
+        let intermediate_unhardened_pk = master_to_wallet_unhardened_intermediate(&master_pk);
+
+        for index in 0..req.derivation_index {
+            let synthetic_key = intermediate_unhardened_pk
+                .derive_unhardened(index)
+                .derive_synthetic();
+            let p2_puzzle_hash = StandardArgs::curry_tree_hash(synthetic_key).into();
+            tx.insert_derivation(p2_puzzle_hash, index, false, synthetic_key)
+                .await?;
+        }
+
+        if let Some(master_sk) = master_sk {
+            let intermediate_hardened_sk = master_to_wallet_hardened_intermediate(&master_sk);
+
+            for index in 0..req.derivation_index {
+                let synthetic_key = intermediate_hardened_sk
+                    .derive_hardened(index)
+                    .derive_synthetic()
+                    .public_key();
+                let p2_puzzle_hash = StandardArgs::curry_tree_hash(synthetic_key).into();
+                tx.insert_derivation(p2_puzzle_hash, index, true, synthetic_key)
+                    .await?;
+            }
+        }
+
+        tx.commit().await?;
 
         if req.login {
             self.switch_wallet().await?;

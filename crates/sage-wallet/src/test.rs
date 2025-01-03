@@ -1,7 +1,10 @@
 use std::{sync::Arc, time::Duration};
 
 use chia::{
-    bls::{master_to_wallet_unhardened_intermediate, DerivableKey, SecretKey},
+    bls::{
+        master_to_wallet_hardened, master_to_wallet_hardened_intermediate,
+        master_to_wallet_unhardened_intermediate, DerivableKey, SecretKey,
+    },
     protocol::{Bytes32, CoinSpend, SpendBundle},
     puzzles::{standard::StandardArgs, DeriveSynthetic},
 };
@@ -34,6 +37,7 @@ pub struct TestWallet {
     pub wallet: Arc<Wallet>,
     pub master_sk: SecretKey,
     pub puzzle_hash: Bytes32,
+    pub hardened_puzzle_hash: Bytes32,
     pub sender: Sender<SyncCommand>,
     pub events: Receiver<SyncEvent>,
     pub index: u32,
@@ -72,8 +76,30 @@ impl TestWallet {
         let intermediate_pk = master_to_wallet_unhardened_intermediate(&pk);
         let genesis_challenge = TESTNET11_CONSTANTS.genesis_challenge;
 
+        let intermediate_hardened_sk = master_to_wallet_hardened_intermediate(&sk);
+
+        let mut tx = db.tx().await?;
+
+        for index in 0..100 {
+            let synthetic_key = intermediate_hardened_sk
+                .derive_hardened(index)
+                .derive_synthetic()
+                .public_key();
+            let p2_puzzle_hash = StandardArgs::curry_tree_hash(synthetic_key).into();
+            tx.insert_derivation(p2_puzzle_hash, index, true, synthetic_key)
+                .await?;
+        }
+
+        tx.commit().await?;
+
         let puzzle_hash =
             StandardArgs::curry_tree_hash(intermediate_pk.derive_unhardened(0).derive_synthetic());
+
+        let hardened_puzzle_hash = StandardArgs::curry_tree_hash(
+            master_to_wallet_hardened(&sk, 0)
+                .derive_synthetic()
+                .public_key(),
+        );
 
         if balance > 0 {
             sim.mint_coin(puzzle_hash.into(), balance).await;
@@ -129,6 +155,7 @@ impl TestWallet {
             wallet,
             master_sk: sk,
             puzzle_hash: puzzle_hash.into(),
+            hardened_puzzle_hash: hardened_puzzle_hash.into(),
             sender,
             events,
             index: key_index,

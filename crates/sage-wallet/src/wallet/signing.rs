@@ -2,8 +2,8 @@ use std::collections::HashMap;
 
 use chia::{
     bls::{
-        master_to_wallet_unhardened_intermediate, sign, DerivableKey, PublicKey, SecretKey,
-        Signature,
+        master_to_wallet_hardened_intermediate, master_to_wallet_unhardened_intermediate, sign,
+        DerivableKey, PublicKey, SecretKey, Signature,
     },
     protocol::{CoinSpend, SpendBundle},
     puzzles::DeriveSynthetic,
@@ -73,21 +73,28 @@ impl Wallet {
                 return Err(WalletError::SecpNotSupported);
             };
             let pk = required.public_key;
-            let Some(index) = self.db.synthetic_key_index(pk).await? else {
+            let Some(info) = self.db.synthetic_key_info(pk).await? else {
                 if partial {
                     continue;
                 }
                 return Err(WalletError::UnknownPublicKey);
             };
-            indices.insert(pk, index);
+            indices.insert(pk, info);
         }
 
-        let intermediate_sk = master_to_wallet_unhardened_intermediate(&master_sk);
+        let unhardened_intermediate_sk = master_to_wallet_unhardened_intermediate(&master_sk);
+        let hardened_intermediate_sk = master_to_wallet_hardened_intermediate(&master_sk);
 
         let secret_keys: HashMap<PublicKey, SecretKey> = indices
             .iter()
-            .map(|(pk, index)| {
-                let sk = intermediate_sk.derive_unhardened(*index).derive_synthetic();
+            .map(|(pk, info)| {
+                let sk = if info.hardened {
+                    hardened_intermediate_sk.derive_hardened(info.index)
+                } else {
+                    unhardened_intermediate_sk.derive_unhardened(info.index)
+                }
+                .derive_synthetic();
+
                 (*pk, sk)
             })
             .collect();

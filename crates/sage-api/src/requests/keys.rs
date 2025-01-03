@@ -22,6 +22,10 @@ pub struct Resync {
     pub fingerprint: u32,
     #[serde(default)]
     pub delete_offer_files: bool,
+    #[serde(default)]
+    pub delete_unhardened_derivations: bool,
+    #[serde(default)]
+    pub delete_hardened_derivations: bool,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Type)]
@@ -41,6 +45,8 @@ pub struct GenerateMnemonicResponse {
 pub struct ImportKey {
     pub name: String,
     pub key: String,
+    #[serde(default)]
+    pub derivation_index: u32,
     #[serde(default = "yes")]
     pub save_secrets: bool,
     #[serde(default = "yes")]

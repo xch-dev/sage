@@ -3,15 +3,10 @@ use std::{
     time::{Duration, Instant},
 };
 
-use chia::{
-    bls::DerivableKey,
-    protocol::{Bytes32, CoinState, CoinStateFilters},
-    puzzles::{standard::StandardArgs, DeriveSynthetic},
-};
-use rayon::iter::{IntoParallelIterator, ParallelIterator};
+use chia::protocol::{Bytes32, CoinState, CoinStateFilters};
+use sage_database::DatabaseTx;
 use tokio::{
     sync::{mpsc, Mutex},
-    task::spawn_blocking,
     time::{sleep, timeout},
 };
 use tracing::{debug, info, warn};
@@ -50,10 +45,8 @@ pub async fn sync_wallet(
     )
     .await?;
 
-    let mut derive_more = p2_puzzle_hashes.is_empty();
-
     for batch in p2_puzzle_hashes.chunks(500) {
-        derive_more |= sync_puzzle_hashes(
+        sync_puzzle_hashes(
             &wallet,
             &peer,
             start_height,
@@ -64,49 +57,25 @@ pub async fn sync_wallet(
         .await?;
     }
 
-    let mut start_index = p2_puzzle_hashes.len() as u32;
-
-    while derive_more {
-        derive_more = false;
-
-        let intermediate_pk = wallet.intermediate_pk;
-
-        let new_derivations = spawn_blocking(move || {
-            (start_index..start_index + 500)
-                .into_par_iter()
-                .map(|index| {
-                    let synthetic_key = intermediate_pk.derive_unhardened(index).derive_synthetic();
-                    let p2_puzzle_hash =
-                        Bytes32::from(StandardArgs::curry_tree_hash(synthetic_key));
-                    (index, synthetic_key, p2_puzzle_hash)
-                })
-                .collect::<Vec<_>>()
-        })
-        .await?;
-
-        let p2_puzzle_hashes: Vec<Bytes32> = new_derivations
-            .iter()
-            .map(|(_, _, p2_puzzle_hash)| *p2_puzzle_hash)
-            .collect();
-
-        start_index += new_derivations.len() as u32;
-
+    loop {
         let mut tx = wallet.db.tx().await?;
-        for (index, synthetic_key, p2_puzzle_hash) in new_derivations {
-            tx.insert_derivation(p2_puzzle_hash, index, false, synthetic_key)
-                .await?;
-        }
+        let derivations = auto_insert_unhardened_derivations(&wallet, &mut tx).await?;
+        let next_index = tx.derivation_index(false).await?;
         tx.commit().await?;
 
+        if derivations.is_empty() {
+            break;
+        }
+
+        info!("Inserted {} derivations", derivations.len());
+
         sync_sender
-            .send(SyncEvent::DerivationIndex {
-                next_index: start_index,
-            })
+            .send(SyncEvent::DerivationIndex { next_index })
             .await
             .ok();
 
-        for batch in p2_puzzle_hashes.chunks(500) {
-            derive_more |= sync_puzzle_hashes(
+        for batch in derivations.chunks(500) {
+            sync_puzzle_hashes(
                 &wallet,
                 &peer,
                 None,
@@ -174,10 +143,9 @@ async fn sync_puzzle_hashes(
     start_header_hash: Bytes32,
     puzzle_hashes: &[Bytes32],
     sync_sender: mpsc::Sender<SyncEvent>,
-) -> Result<bool, WalletError> {
+) -> Result<(), WalletError> {
     let mut prev_height = start_height;
     let mut prev_header_hash = start_header_hash;
-    let mut found_coins = false;
 
     loop {
         debug!(
@@ -201,7 +169,6 @@ async fn sync_puzzle_hashes(
         debug!("Received {} coin states", data.coin_states.len());
 
         if !data.coin_states.is_empty() {
-            found_coins = true;
             incremental_sync(wallet, data.coin_states, true, &sync_sender).await?;
         }
 
@@ -213,7 +180,7 @@ async fn sync_puzzle_hashes(
         }
     }
 
-    Ok(found_coins)
+    Ok(())
 }
 
 pub async fn incremental_sync(
@@ -247,23 +214,13 @@ pub async fn incremental_sync(
 
     let mut derived = false;
 
-    let mut next_index = tx.derivation_index(false).await?;
-
     if derive_automatically {
-        let max_index = tx
-            .max_used_derivation_index(false)
+        derived = !auto_insert_unhardened_derivations(wallet, &mut tx)
             .await?
-            .map_or(0, |index| index + 1);
-
-        while next_index < max_index + 500 {
-            wallet
-                .insert_unhardened_derivations(&mut tx, next_index..next_index + 500)
-                .await?;
-
-            derived = true;
-            next_index += 500;
-        }
+            .is_empty();
     }
+
+    let next_index = tx.derivation_index(false).await?;
 
     tx.commit().await?;
 
@@ -277,4 +234,29 @@ pub async fn incremental_sync(
     }
 
     Ok(())
+}
+
+async fn auto_insert_unhardened_derivations(
+    wallet: &Wallet,
+    tx: &mut DatabaseTx<'_>,
+) -> Result<Vec<Bytes32>, WalletError> {
+    let mut derivations = Vec::new();
+    let mut next_index = tx.derivation_index(false).await?;
+
+    let max_index = tx
+        .max_used_derivation_index(false)
+        .await?
+        .map_or(0, |index| index + 1);
+
+    while next_index < max_index + 500 {
+        derivations.extend(
+            wallet
+                .insert_unhardened_derivations(tx, next_index..next_index + 500)
+                .await?,
+        );
+
+        next_index += 500;
+    }
+
+    Ok(derivations)
 }

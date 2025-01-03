@@ -203,6 +203,9 @@ async updateDid(req: UpdateDid) : Promise<UpdateDidResponse> {
 async updateNft(req: UpdateNft) : Promise<UpdateNftResponse> {
     return await TAURI_INVOKE("update_nft", { req });
 },
+async increaseDerivationIndex(req: IncreaseDerivationIndex) : Promise<IncreaseDerivationIndexResponse> {
+    return await TAURI_INVOKE("increase_derivation_index", { req });
+},
 async getPeers(req: GetPeers) : Promise<GetPeersResponse> {
     return await TAURI_INVOKE("get_peers", { req });
 },
@@ -282,7 +285,7 @@ export type GetCatCoinsResponse = { coins: CoinRecord[] }
 export type GetCatResponse = { cat: CatRecord | null }
 export type GetCats = Record<string, never>
 export type GetCatsResponse = { cats: CatRecord[] }
-export type GetDerivations = { offset: number; limit: number }
+export type GetDerivations = { hardened?: boolean; offset: number; limit: number }
 export type GetDerivationsResponse = { derivations: DerivationRecord[] }
 export type GetDids = Record<string, never>
 export type GetDidsResponse = { dids: DidRecord[] }
@@ -322,10 +325,12 @@ export type GetTransactions = { offset: number; limit: number }
 export type GetTransactionsResponse = { transactions: TransactionRecord[]; total: number }
 export type GetXchCoins = Record<string, never>
 export type GetXchCoinsResponse = { coins: CoinRecord[] }
-export type ImportKey = { name: string; key: string; save_secrets?: boolean; login?: boolean }
+export type ImportKey = { name: string; key: string; derivation_index?: number; save_secrets?: boolean; login?: boolean }
 export type ImportKeyResponse = { fingerprint: number }
 export type ImportOffer = { offer: string }
 export type ImportOfferResponse = Record<string, never>
+export type IncreaseDerivationIndex = { hardened: boolean; index: number }
+export type IncreaseDerivationIndexResponse = Record<string, never>
 export type IssueCat = { name: string; ticker: string; amount: Amount; fee: Amount; auto_submit?: boolean }
 export type KeyInfo = { name: string; fingerprint: number; public_key: string; kind: KeyKind; has_secrets: boolean }
 export type KeyKind = "bls"
@@ -359,7 +364,7 @@ export type RemovePeer = { ip: string; ban: boolean }
 export type RemovePeerResponse = Record<string, never>
 export type RenameKey = { fingerprint: number; name: string }
 export type RenameKeyResponse = Record<string, never>
-export type Resync = { fingerprint: number; delete_offer_files?: boolean }
+export type Resync = { fingerprint: number; delete_offer_files?: boolean; delete_unhardened_derivations?: boolean; delete_hardened_derivations?: boolean }
 export type ResyncResponse = Record<string, never>
 export type SecretKeyInfo = { mnemonic: string | null; secret_key: string }
 export type SendCat = { asset_id: string; address: string; amount: Amount; fee: Amount; memos?: string[]; auto_submit?: boolean }

@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n        SELECT * FROM `derivations`\n        WHERE `hardened` = 0\n        ORDER BY `index` ASC\n        LIMIT ? OFFSET ?\n        ",
+  "query": "\n        SELECT * FROM `derivations`\n        WHERE `hardened` = ?\n        ORDER BY `index` ASC\n        LIMIT ? OFFSET ?\n        ",
   "describe": {
     "columns": [
       {
@@ -25,7 +25,7 @@
       }
     ],
     "parameters": {
-      "Right": 2
+      "Right": 3
     },
     "nullable": [
       false,
@@ -34,5 +34,5 @@
       false
     ]
   },
-  "hash": "8bc14ce79ff1a599fa6cb5bda7f22d2f31b05b3980015fd6f885ba585af8524e"
+  "hash": "9a831561a6da3332d62751a0e0657ea986ab761fe442df4e343fe8dc55ac7ad2"
 }
