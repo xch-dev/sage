@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT `index`, `hardened`\n        FROM `derivations`\n        WHERE `synthetic_key` = ?\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "index",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "hardened",
+        "ordinal": 1,
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "72c9608d6e6a3deefc13e74e367861d96ec5e166b3375a365f6938a43aff5c11"
+}
