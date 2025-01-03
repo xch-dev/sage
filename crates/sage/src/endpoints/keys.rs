@@ -17,7 +17,6 @@ use sage_api::{
     ImportKeyResponse, KeyInfo, KeyKind, Login, LoginResponse, Logout, LogoutResponse, RenameKey,
     RenameKeyResponse, Resync, ResyncResponse, SecretKeyInfo,
 };
-use sage_config::WalletConfig;
 use sage_database::Database;
 
 use crate::{Error, Result, Sage};
@@ -153,9 +152,8 @@ impl Sage {
         let mut tx = db.tx().await?;
 
         let intermediate_unhardened_pk = master_to_wallet_unhardened_intermediate(&master_pk);
-        let batch_size = WalletConfig::default().derivation_batch_size;
 
-        for index in 0..batch_size {
+        for index in 0..req.derivation_index {
             let synthetic_key = intermediate_unhardened_pk
                 .derive_unhardened(index)
                 .derive_synthetic();
@@ -167,7 +165,7 @@ impl Sage {
         if let Some(master_sk) = master_sk {
             let intermediate_hardened_sk = master_to_wallet_hardened_intermediate(&master_sk);
 
-            for index in 0..batch_size {
+            for index in 0..req.derivation_index {
                 let synthetic_key = intermediate_hardened_sk
                     .derive_hardened(index)
                     .derive_synthetic()

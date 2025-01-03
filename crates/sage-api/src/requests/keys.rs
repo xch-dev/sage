@@ -45,6 +45,8 @@ pub struct GenerateMnemonicResponse {
 pub struct ImportKey {
     pub name: String,
     pub key: String,
+    #[serde(default)]
+    pub derivation_index: u32,
     #[serde(default = "yes")]
     pub save_secrets: bool,
     #[serde(default = "yes")]
