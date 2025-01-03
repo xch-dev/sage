@@ -11,6 +11,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { useErrors } from '@/hooks/useErrors';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -30,6 +31,7 @@ export default function ImportWallet() {
 
   const { addError } = useErrors();
 
+  const [advanced, setAdvanced] = useState(false);
   const [pending, setPending] = useState(false);
 
   const formSchema = z.object({
@@ -118,29 +120,42 @@ export default function ImportWallet() {
               )}
             />
 
-            <FormField
-              control={form.control}
-              name='addresses'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>
-                    <Trans>Initial Addresses</Trans>
-                  </FormLabel>
-                  <FormControl>
-                    <Input required {...field} />
-                  </FormControl>
-                  <FormDescription>
-                    <Trans>
-                      The initial derivation index to sync to (both hardened and
-                      unhardened keys). This is primarily applicable to legacy
-                      wallets with either hardened keys or gaps in addresses
-                      used.
-                    </Trans>
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className='flex items-center gap-2 my-4'>
+              <label htmlFor='advanced'>
+                <Trans>Advanced options</Trans>
+              </label>
+              <Switch
+                id='advanced'
+                checked={advanced}
+                onCheckedChange={(value) => setAdvanced(value)}
+              />
+            </div>
+
+            {advanced && (
+              <FormField
+                control={form.control}
+                name='addresses'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      <Trans>Initial Addresses</Trans>
+                    </FormLabel>
+                    <FormControl>
+                      <Input required {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      <Trans>
+                        The initial derivation index to sync to (both hardened
+                        and unhardened keys). This is primarily applicable to
+                        legacy wallets with either hardened keys or gaps in
+                        addresses used.
+                      </Trans>
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             <Button type='submit' disabled={pending || !form.formState.isValid}>
               {pending && (
