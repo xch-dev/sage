@@ -21,6 +21,8 @@ import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { useErrors } from '@/hooks/useErrors';
+import { t } from '@lingui/core/macro';
+import { Trans } from '@lingui/react/macro';
 import {
   EraserIcon,
   EyeIcon,
@@ -36,8 +38,6 @@ import { useNavigate } from 'react-router-dom';
 import { commands, KeyInfo, SecretKeyInfo } from '../bindings';
 import Container from '../components/Container';
 import { loginAndUpdateState } from '../state';
-import { Trans } from '@lingui/react/macro';
-import { t } from '@lingui/core/macro';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -145,12 +145,16 @@ function WalletItem({ network, info, keys, setKeys }: WalletItemProps) {
 
   const [isResyncOpen, setResyncOpen] = useState(false);
   const [deleteOffers, setDeleteOffers] = useState(false);
+  const [deleteUnhardened, setDeleteUnhardened] = useState(false);
+  const [deleteHardened, setDeleteHardened] = useState(false);
 
   const resyncSelf = () => {
     commands
       .resync({
         fingerprint: info.fingerprint,
         delete_offer_files: deleteOffers,
+        delete_unhardened_derivations: deleteUnhardened,
+        delete_hardened_derivations: deleteHardened,
       })
       .catch(addError)
       .finally(() => setResyncOpen(false));
@@ -328,6 +332,26 @@ function WalletItem({ network, info, keys, setKeys }: WalletItemProps) {
                   id='deleteOffers'
                   checked={deleteOffers}
                   onCheckedChange={(value) => setDeleteOffers(value)}
+                />
+              </div>
+              <div className='flex items-center gap-2 my-2'>
+                <label htmlFor='deleteUnhardened'>
+                  <Trans>Delete unhardened addresses</Trans>
+                </label>
+                <Switch
+                  id='deleteUnhardened'
+                  checked={deleteUnhardened}
+                  onCheckedChange={(value) => setDeleteUnhardened(value)}
+                />
+              </div>
+              <div className='flex items-center gap-2 my-2'>
+                <label htmlFor='deleteHardened'>
+                  <Trans>Delete hardened addresses</Trans>
+                </label>
+                <Switch
+                  id='deleteHardened'
+                  checked={deleteHardened}
+                  onCheckedChange={(value) => setDeleteHardened(value)}
                 />
               </div>
             </DialogDescription>

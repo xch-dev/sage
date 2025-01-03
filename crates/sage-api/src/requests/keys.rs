@@ -22,6 +22,10 @@ pub struct Resync {
     pub fingerprint: u32,
     #[serde(default)]
     pub delete_offer_files: bool,
+    #[serde(default)]
+    pub delete_unhardened_derivations: bool,
+    #[serde(default)]
+    pub delete_hardened_derivations: bool,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Type)]

@@ -468,6 +468,15 @@ pub async fn update_nft(state: State<'_, AppState>, req: UpdateNft) -> Result<Up
 
 #[command]
 #[specta]
+pub async fn increase_derivation_index(
+    state: State<'_, AppState>,
+    req: IncreaseDerivationIndex,
+) -> Result<IncreaseDerivationIndexResponse> {
+    Ok(state.lock().await.increase_derivation_index(req).await?)
+}
+
+#[command]
+#[specta]
 pub async fn get_peers(state: State<'_, AppState>, req: GetPeers) -> Result<GetPeersResponse> {
     Ok(state.lock().await.get_peers(req).await?)
 }

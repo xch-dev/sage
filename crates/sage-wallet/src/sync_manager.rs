@@ -6,7 +6,9 @@ use std::{
 };
 
 use chia::{
-    protocol::{Bytes32, CoinStateUpdate, Message, NewPeakWallet, ProtocolMessageTypes},
+    protocol::{
+        Bytes32, CoinStateFilters, CoinStateUpdate, Message, NewPeakWallet, ProtocolMessageTypes,
+    },
     traits::Streamable,
 };
 use chia_wallet_sdk::{ClientError, Connector, Network, MAINNET_CONSTANTS, TESTNET11_CONSTANTS};
@@ -53,6 +55,7 @@ pub struct SyncManager {
     transaction_queue_task: Option<JoinHandle<Result<(), WalletError>>>,
     offer_queue_task: Option<JoinHandle<Result<(), WalletError>>>,
     pending_coin_subscriptions: Vec<Bytes32>,
+    pending_puzzle_subscriptions: Vec<Bytes32>,
 }
 
 impl fmt::Debug for SyncManager {
@@ -124,6 +127,7 @@ impl SyncManager {
             transaction_queue_task: None,
             offer_queue_task: None,
             pending_coin_subscriptions: Vec::new(),
+            pending_puzzle_subscriptions: Vec::new(),
         };
 
         (manager, command_sender, event_receiver)
@@ -172,6 +176,9 @@ impl SyncManager {
                 SyncCommand::SubscribeCoins { coin_ids } => {
                     self.pending_coin_subscriptions.extend(coin_ids);
                 }
+                SyncCommand::SubscribePuzzles { puzzle_hashes } => {
+                    self.pending_puzzle_subscriptions.extend(puzzle_hashes);
+                }
                 SyncCommand::ConnectionClosed(ip) => {
                     self.state
                         .lock()
@@ -190,24 +197,43 @@ impl SyncManager {
     }
 
     async fn subscribe(&mut self) {
-        if self.pending_coin_subscriptions.is_empty() {
+        if self.pending_coin_subscriptions.is_empty()
+            && self.pending_puzzle_subscriptions.is_empty()
+        {
             return;
         }
 
         if let InitialWalletSync::Subscribed(ip) = self.initial_wallet_sync {
             if let Some(info) = self.state.lock().await.peer(ip) {
-                // TODO: Handle cases
-                timeout(
-                    Duration::from_secs(3),
-                    info.peer.subscribe_coins(
-                        mem::take(&mut self.pending_coin_subscriptions),
-                        None,
-                        self.network.genesis_challenge,
-                    ),
-                )
-                .await
-                .map(Result::ok)
-                .ok();
+                if !self.pending_coin_subscriptions.is_empty() {
+                    // TODO: Handle cases
+                    timeout(
+                        Duration::from_secs(3),
+                        info.peer.subscribe_coins(
+                            mem::take(&mut self.pending_coin_subscriptions),
+                            None,
+                            self.network.genesis_challenge,
+                        ),
+                    )
+                    .await
+                    .map(Result::ok)
+                    .ok();
+                }
+
+                if !self.pending_puzzle_subscriptions.is_empty() {
+                    timeout(
+                        Duration::from_secs(15),
+                        info.peer.subscribe_puzzles(
+                            mem::take(&mut self.pending_puzzle_subscriptions),
+                            None,
+                            self.network.genesis_challenge,
+                            CoinStateFilters::new(true, true, true, 0),
+                        ),
+                    )
+                    .await
+                    .map(Result::ok)
+                    .ok();
+                }
             }
         }
     }

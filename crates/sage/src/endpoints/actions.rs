@@ -1,8 +1,13 @@
+use chia::{
+    bls::master_to_wallet_hardened_intermediate,
+    puzzles::{standard::StandardArgs, DeriveSynthetic},
+};
 use sage_api::{
-    RemoveCat, RemoveCatResponse, UpdateCat, UpdateCatResponse, UpdateDid, UpdateDidResponse,
-    UpdateNft, UpdateNftResponse,
+    IncreaseDerivationIndex, IncreaseDerivationIndexResponse, RemoveCat, RemoveCatResponse,
+    UpdateCat, UpdateCatResponse, UpdateDid, UpdateDidResponse, UpdateNft, UpdateNftResponse,
 };
 use sage_database::{CatRow, DidRow};
+use sage_wallet::SyncCommand;
 
 use crate::{parse_asset_id, parse_did_id, parse_nft_id, Error, Result, Sage};
 
@@ -68,5 +73,65 @@ impl Sage {
         wallet.db.set_nft_visible(nft_id, req.visible).await?;
 
         Ok(UpdateNftResponse {})
+    }
+
+    pub async fn increase_derivation_index(
+        &self,
+        req: IncreaseDerivationIndex,
+    ) -> Result<IncreaseDerivationIndexResponse> {
+        let wallet = self.wallet()?;
+
+        let derivations = if req.hardened {
+            let (_mnemonic, Some(master_sk)) =
+                self.keychain.extract_secrets(wallet.fingerprint, b"")?
+            else {
+                return Err(Error::NoSigningKey);
+            };
+
+            let mut tx = wallet.db.tx().await?;
+
+            let start = tx.derivation_index(true).await?;
+            let intermediate_sk = master_to_wallet_hardened_intermediate(&master_sk);
+
+            let mut derivations = Vec::new();
+
+            for index in start..req.index {
+                let synthetic_key = intermediate_sk
+                    .derive_hardened(index)
+                    .derive_synthetic()
+                    .public_key();
+
+                let p2_puzzle_hash = StandardArgs::curry_tree_hash(synthetic_key).into();
+
+                tx.insert_derivation(p2_puzzle_hash, index, true, synthetic_key)
+                    .await?;
+
+                derivations.push(p2_puzzle_hash);
+            }
+
+            tx.commit().await?;
+
+            derivations
+        } else {
+            let mut tx = wallet.db.tx().await?;
+
+            let start = tx.derivation_index(false).await?;
+
+            let derivations = wallet
+                .insert_unhardened_derivations(&mut tx, start..req.index)
+                .await?;
+
+            tx.commit().await?;
+
+            derivations
+        };
+
+        self.command_sender
+            .send(SyncCommand::SubscribePuzzles {
+                puzzle_hashes: derivations,
+            })
+            .await?;
+
+        Ok(IncreaseDerivationIndexResponse {})
     }
 }

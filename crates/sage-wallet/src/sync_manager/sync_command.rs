@@ -24,6 +24,9 @@ pub enum SyncCommand {
     SubscribeCoins {
         coin_ids: Vec<Bytes32>,
     },
+    SubscribePuzzles {
+        puzzle_hashes: Vec<Bytes32>,
+    },
     ConnectionClosed(IpAddr),
     SetTargetPeers(usize),
     SetDiscoverPeers(bool),

@@ -66,6 +66,18 @@ impl Sage {
             sqlx::query!("DELETE FROM `offers`").execute(&pool).await?;
         }
 
+        if req.delete_unhardened_derivations {
+            sqlx::query!("DELETE FROM `derivations` WHERE `hardened` = 0")
+                .execute(&pool)
+                .await?;
+        }
+
+        if req.delete_hardened_derivations {
+            sqlx::query!("DELETE FROM `derivations` WHERE `hardened` = 1")
+                .execute(&pool)
+                .await?;
+        }
+
         if login {
             self.config.app.active_fingerprint = Some(req.fingerprint);
             self.save_config()?;
