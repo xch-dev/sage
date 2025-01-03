@@ -64,7 +64,7 @@ impl Sage {
 
         let derivations = wallet
             .db
-            .unhardened_derivations(req.limit, req.offset)
+            .derivations(false, req.limit, req.offset)
             .await?
             .into_iter()
             .map(|row| {

@@ -5,13 +5,20 @@ use crate::{
     into_row, to_bytes, to_bytes32, Database, DatabaseTx, DerivationRow, DerivationSql, Result,
 };
 
+#[derive(Debug, Clone, Copy)]
+pub struct SyntheticKeyInfo {
+    pub index: u32,
+    pub hardened: bool,
+}
+
 impl Database {
-    pub async fn unhardened_derivations(
+    pub async fn derivations(
         &self,
+        hardened: bool,
         limit: u32,
         offset: u32,
     ) -> Result<Vec<DerivationRow>> {
-        unhardened_derivations(&self.pool, limit, offset).await
+        derivations(&self.pool, hardened, limit, offset).await
     }
 
     pub async fn p2_puzzle_hashes(&self) -> Result<Vec<Bytes32>> {
@@ -22,8 +29,11 @@ impl Database {
         synthetic_key(&self.pool, p2_puzzle_hash).await
     }
 
-    pub async fn synthetic_key_index(&self, synthetic_key: PublicKey) -> Result<Option<u32>> {
-        synthetic_key_index(&self.pool, synthetic_key).await
+    pub async fn synthetic_key_info(
+        &self,
+        synthetic_key: PublicKey,
+    ) -> Result<Option<SyntheticKeyInfo>> {
+        synthetic_key_info(&self.pool, synthetic_key).await
     }
 
     pub async fn is_p2_puzzle_hash(&self, p2_puzzle_hash: Bytes32) -> Result<bool> {
@@ -148,8 +158,9 @@ async fn p2_puzzle_hashes(conn: impl SqliteExecutor<'_>) -> Result<Vec<Bytes32>>
         .collect::<Result<_>>()
 }
 
-async fn unhardened_derivations(
+async fn derivations(
     conn: impl SqliteExecutor<'_>,
+    hardened: bool,
     limit: u32,
     offset: u32,
 ) -> Result<Vec<DerivationRow>> {
@@ -157,10 +168,11 @@ async fn unhardened_derivations(
         DerivationSql,
         "
         SELECT * FROM `derivations`
-        WHERE `hardened` = 0
+        WHERE `hardened` = ?
         ORDER BY `index` ASC
         LIMIT ? OFFSET ?
         ",
+        hardened,
         limit,
         offset
     )
@@ -190,25 +202,30 @@ async fn synthetic_key(
     Ok(PublicKey::from_bytes(&to_bytes(bytes)?)?)
 }
 
-async fn synthetic_key_index(
+async fn synthetic_key_info(
     conn: impl SqliteExecutor<'_>,
     synthetic_key: PublicKey,
-) -> Result<Option<u32>> {
+) -> Result<Option<SyntheticKeyInfo>> {
     let synthetic_key = synthetic_key.to_bytes();
     let synthetic_key_ref = synthetic_key.as_ref();
-    Ok(sqlx::query!(
+
+    sqlx::query!(
         "
-        SELECT `index`
+        SELECT `index`, `hardened`
         FROM `derivations`
         WHERE `synthetic_key` = ?
-        AND `hardened` = 0
         ",
         synthetic_key_ref
     )
     .fetch_optional(conn)
     .await?
-    .map(|row| row.index.try_into())
-    .transpose()?)
+    .map(|row| {
+        Ok(SyntheticKeyInfo {
+            index: row.index.try_into()?,
+            hardened: row.hardened,
+        })
+    })
+    .transpose()
 }
 
 async fn p2_puzzle_hash(

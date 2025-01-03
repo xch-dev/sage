@@ -1,5 +1,5 @@
 use chia::{
-    bls::{master_to_wallet_unhardened, sign},
+    bls::{master_to_wallet_hardened, master_to_wallet_unhardened, sign},
     clvm_utils::ToTreeHash,
     protocol::{Bytes, Coin, CoinSpend, SpendBundle},
     puzzles::{cat::CatArgs, standard::StandardArgs, DeriveSynthetic, Proof},
@@ -330,7 +330,7 @@ impl Sage {
         let wallet = self.wallet()?;
 
         let public_key = parse_public_key(req.public_key)?;
-        let Some(index) = wallet.db.synthetic_key_index(public_key).await? else {
+        let Some(info) = wallet.db.synthetic_key_info(public_key).await? else {
             return Err(Error::InvalidKey);
         };
 
@@ -340,7 +340,12 @@ impl Sage {
             return Err(Error::NoSigningKey);
         };
 
-        let secret_key = master_to_wallet_unhardened(&master_sk, index).derive_synthetic();
+        let secret_key = if info.hardened {
+            master_to_wallet_hardened(&master_sk, info.index)
+        } else {
+            master_to_wallet_unhardened(&master_sk, info.index)
+        }
+        .derive_synthetic();
 
         let decoded_message = Bytes::from(hex::decode(&req.message)?);
         let signature = sign(
