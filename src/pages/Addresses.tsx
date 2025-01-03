@@ -1,6 +1,7 @@
 import Container from '@/components/Container';
 import Header from '@/components/Header';
 import { ReceiveAddress } from '@/components/ReceiveAddress';
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
@@ -8,29 +9,31 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { Switch } from '@/components/ui/switch';
 import { useErrors } from '@/hooks/useErrors';
+import { t } from '@lingui/core/macro';
+import { Trans } from '@lingui/react/macro';
 import { useCallback, useEffect, useState } from 'react';
 import { commands, events } from '../bindings';
 import AddressList from '../components/AddressList';
 import { useWalletState } from '../state';
-import { Trans } from '@lingui/react/macro';
-import { t } from '@lingui/core/macro';
 
 export default function Addresses() {
   const { addError } = useErrors();
   const walletState = useWalletState();
   const ticker = walletState.sync.unit.ticker;
 
+  const [hardened, setHardened] = useState(false);
   const [addresses, setAddresses] = useState<string[]>([]);
 
   const updateAddresses = useCallback(() => {
     commands
-      .getDerivations({ offset: 0, limit: 1000000 })
+      .getDerivations({ offset: 0, limit: 1000000, hardened })
       .then((data) =>
         setAddresses(data.derivations.map((derivation) => derivation.address)),
       )
       .catch(addError);
-  }, [addError]);
+  }, [addError, hardened]);
 
   useEffect(() => {
     updateAddresses();
@@ -45,6 +48,8 @@ export default function Addresses() {
       unlisten.then((u) => u());
     };
   }, [updateAddresses]);
+
+  const derivationIndex = addresses.length;
 
   return (
     <>
@@ -74,6 +79,24 @@ export default function Addresses() {
             </CardTitle>
           </CardHeader>
           <CardContent>
+            <div className='flex items-center gap-2'>
+              <label htmlFor='viewHidden'>
+                <Trans>Hardened addresses</Trans>
+              </label>
+              <Switch
+                id='hardened'
+                checked={hardened}
+                onCheckedChange={(value) => setHardened(value)}
+              />
+            </div>
+
+            <div className='my-4 flex items-center gap-2'>
+              <Trans>The current derivation index is {derivationIndex}</Trans>
+              <Button variant='secondary' size='sm'>
+                <Trans>Increase</Trans>
+              </Button>
+            </div>
+
             <AddressList addresses={addresses} />
           </CardContent>
         </Card>

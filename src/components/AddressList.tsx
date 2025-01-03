@@ -6,6 +6,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { t } from '@lingui/core/macro';
+import { Trans } from '@lingui/react/macro';
 import {
   ColumnDef,
   flexRender,
@@ -15,11 +17,9 @@ import {
 } from '@tanstack/react-table';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useMemo } from 'react';
-import { Trans } from '@lingui/react/macro';
-import { t } from '@lingui/core/macro';
-import { Button } from './ui/button';
 import { CopyButton } from './CopyButton';
 import { FormattedAddress } from './FormattedAddress';
+import { Button } from './ui/button';
 
 export interface AddressListProps {
   addresses: string[];
@@ -94,15 +94,15 @@ export default function AddressList(props: AddressListProps) {
     columnResizeMode: 'onChange',
     initialState: {
       pagination: {
-        pageSize: 10,
+        pageSize: 100,
       },
     },
   });
 
   return (
-    <div className='flex flex-col h-full'>
+    <div className='flex flex-col'>
       <div className='flex-shrink overflow-auto'>
-        <div className='rounded-md border'>
+        <div className='rounded-md border h-[350px] overflow-y-scroll'>
           <Table>
             <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (

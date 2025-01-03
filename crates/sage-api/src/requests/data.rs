@@ -8,6 +8,8 @@ use crate::{
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Type)]
 pub struct GetDerivations {
+    #[serde(default)]
+    pub hardened: bool,
     pub offset: u32,
     pub limit: u32,
 }
