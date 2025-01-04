@@ -4807,6 +4807,7 @@ dependencies = [
  "rand 0.8.5",
  "rand_chacha 0.3.1",
  "sage-api",
+ "sage-assets",
  "sage-config",
  "sage-database",
  "sage-keychain",
@@ -4838,9 +4839,17 @@ dependencies = [
 name = "sage-assets"
 version = "0.8.6"
 dependencies = [
+ "chia",
+ "clvmr",
+ "futures-lite",
+ "futures-util",
  "num-bigint",
+ "reqwest",
  "serde",
  "serde_json",
+ "thiserror 1.0.69",
+ "tokio",
+ "tracing",
  "uuid",
 ]
 

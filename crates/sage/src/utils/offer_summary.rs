@@ -4,10 +4,8 @@ use chia::{clvm_traits::FromClvm, puzzles::nft::NftMetadata};
 use chia_wallet_sdk::{encode_address, Offer, SpendContext};
 use indexmap::IndexMap;
 use sage_api::{Amount, OfferAssets, OfferCat, OfferNft, OfferSummary, OfferXch};
-use sage_wallet::{
-    calculate_royalties, lookup_from_uris_with_hash, parse_locked_coins, parse_offer_payments,
-    NftRoyaltyInfo,
-};
+use sage_assets::lookup_from_uris_with_hash;
+use sage_wallet::{calculate_royalties, parse_locked_coins, parse_offer_payments, NftRoyaltyInfo};
 
 use crate::{Result, Sage};
 

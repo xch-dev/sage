@@ -2,11 +2,12 @@ use std::time::Duration;
 
 use futures_lite::StreamExt;
 use futures_util::stream::FuturesUnordered;
+use sage_assets::fetch_uri;
 use sage_database::{Database, NftData};
 use tokio::{sync::mpsc, time::sleep};
 use tracing::{debug, info};
 
-use crate::{compute_nft_info, fetch_uri, SyncEvent, WalletError};
+use crate::{compute_nft_info, SyncEvent, WalletError};
 
 #[derive(Debug)]
 pub struct NftUriQueue {

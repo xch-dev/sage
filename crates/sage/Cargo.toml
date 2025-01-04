@@ -20,6 +20,7 @@ sage-database = { workspace = true }
 sage-config = { workspace = true }
 sage-keychain = { workspace = true }
 sage-wallet = { workspace = true }
+sage-assets = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true, features = ["env-filter"] }
 tracing-appender = { workspace = true }

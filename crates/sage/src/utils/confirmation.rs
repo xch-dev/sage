@@ -10,8 +10,9 @@ use sage_api::{
     Amount, AssetKind, CoinJson, CoinSpendJson, SpendBundleJson, TransactionInput,
     TransactionOutput, TransactionSummary,
 };
+use sage_assets::Data;
 use sage_database::Database;
-use sage_wallet::{compute_nft_info, ChildKind, CoinKind, Data, Transaction};
+use sage_wallet::{compute_nft_info, ChildKind, CoinKind, Transaction};
 
 use crate::{Error, Result, Sage};
 

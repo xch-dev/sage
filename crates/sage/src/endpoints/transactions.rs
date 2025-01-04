@@ -11,8 +11,9 @@ use sage_api::{
     SplitCat, SplitXch, SubmitTransaction, SubmitTransactionResponse, TransactionResponse,
     TransferDids, TransferNfts, ViewCoinSpends, ViewCoinSpendsResponse,
 };
+use sage_assets::fetch_uris;
 use sage_database::CatRow;
-use sage_wallet::{fetch_uris, WalletNftMint};
+use sage_wallet::WalletNftMint;
 
 use crate::{
     fetch_cats, fetch_coins, json_bundle, json_spend, parse_asset_id, parse_cat_amount,
