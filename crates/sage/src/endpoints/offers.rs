@@ -15,12 +15,13 @@ use sage_api::{
     MakeOffer, MakeOfferResponse, OfferAssets, OfferCat, OfferNft, OfferRecord, OfferRecordStatus,
     OfferSummary, OfferXch, TakeOffer, TakeOfferResponse, ViewOffer, ViewOfferResponse,
 };
+use sage_assets::fetch_uris_with_hash;
 use sage_database::{OfferCatRow, OfferNftRow, OfferRow, OfferStatus, OfferXchRow};
 use sage_wallet::{
-    calculate_royalties, fetch_nft_offer_details, insert_transaction, lookup_from_uris_with_hash,
-    parse_locked_coins, parse_offer_payments, MakerSide, NftRoyaltyInfo, SyncCommand, TakerSide,
-    Transaction, Wallet,
+    calculate_royalties, fetch_nft_offer_details, insert_transaction, parse_locked_coins,
+    parse_offer_payments, MakerSide, NftRoyaltyInfo, SyncCommand, TakerSide, Transaction, Wallet,
 };
+use tokio::time::timeout;
 use tracing::{debug, warn};
 
 use crate::{
@@ -283,11 +284,9 @@ impl Sage {
                 let mut confirmation_info = ConfirmationInfo::default();
 
                 if let Some(hash) = metadata.data_hash {
-                    if let Some(data) = lookup_from_uris_with_hash(
-                        metadata.data_uris.clone(),
+                    if let Ok(Some(data)) = timeout(
                         Duration::from_secs(10),
-                        Duration::from_secs(5),
-                        hash,
+                        fetch_uris_with_hash(metadata.data_uris.clone(), hash),
                     )
                     .await
                     {
@@ -296,11 +295,9 @@ impl Sage {
                 }
 
                 if let Some(hash) = metadata.metadata_hash {
-                    if let Some(data) = lookup_from_uris_with_hash(
-                        metadata.metadata_uris.clone(),
+                    if let Ok(Some(data)) = timeout(
                         Duration::from_secs(10),
-                        Duration::from_secs(5),
-                        hash,
+                        fetch_uris_with_hash(metadata.metadata_uris.clone(), hash),
                     )
                     .await
                     {
@@ -308,12 +305,7 @@ impl Sage {
                     }
                 }
 
-                extract_nft_data(
-                    Some(&wallet.db),
-                    Some(metadata),
-                    &ConfirmationInfo::default(),
-                )
-                .await?
+                extract_nft_data(Some(&wallet.db), Some(metadata), &confirmation_info).await?
             } else {
                 ExtractedNftData::default()
             };
@@ -359,11 +351,9 @@ impl Sage {
                     let mut confirmation_info = ConfirmationInfo::default();
 
                     if let Some(hash) = metadata.data_hash {
-                        if let Some(data) = lookup_from_uris_with_hash(
-                            metadata.data_uris.clone(),
+                        if let Ok(Some(data)) = timeout(
                             Duration::from_secs(10),
-                            Duration::from_secs(5),
-                            hash,
+                            fetch_uris_with_hash(metadata.data_uris.clone(), hash),
                         )
                         .await
                         {
@@ -372,11 +362,9 @@ impl Sage {
                     }
 
                     if let Some(hash) = metadata.metadata_hash {
-                        if let Some(data) = lookup_from_uris_with_hash(
-                            metadata.metadata_uris.clone(),
+                        if let Ok(Some(data)) = timeout(
                             Duration::from_secs(10),
-                            Duration::from_secs(5),
-                            hash,
+                            fetch_uris_with_hash(metadata.metadata_uris.clone(), hash),
                         )
                         .await
                         {
@@ -384,12 +372,7 @@ impl Sage {
                         }
                     }
 
-                    extract_nft_data(
-                        Some(&wallet.db),
-                        Some(metadata),
-                        &ConfirmationInfo::default(),
-                    )
-                    .await?
+                    extract_nft_data(Some(&wallet.db), Some(metadata), &confirmation_info).await?
                 } else {
                     ExtractedNftData::default()
                 };

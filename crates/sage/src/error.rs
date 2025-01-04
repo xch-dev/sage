@@ -13,12 +13,13 @@ use chia_wallet_sdk::{AddressError, ClientError, DriverError, OfferError};
 use clvmr::reduction::EvalErr;
 use hex::FromHexError;
 use sage_api::ErrorKind;
+use sage_assets::UriError;
 use sage_database::DatabaseError;
 use sage_keychain::KeychainError;
-use sage_wallet::{SyncCommand, UriError, WalletError};
+use sage_wallet::{SyncCommand, WalletError};
 use sqlx::migrate::MigrateError;
 use thiserror::Error;
-use tokio::sync::mpsc::error::SendError;
+use tokio::{sync::mpsc::error::SendError, time::error::Elapsed};
 use tracing::{metadata::ParseLevelError, subscriber::SetGlobalDefaultError};
 use tracing_appender::rolling::InitError;
 use tracing_subscriber::util::TryInitError;
@@ -200,6 +201,9 @@ pub enum Error {
 
     #[error("Missing asset id")]
     MissingAssetId,
+
+    #[error("Timeout")]
+    Timeout(#[from] Elapsed),
 }
 
 impl Error {
@@ -234,7 +238,8 @@ impl Error {
             | Self::FromClvm(..)
             | Self::Bincode(..)
             | Self::Eval(..)
-            | Self::Driver(..) => ErrorKind::Internal,
+            | Self::Driver(..)
+            | Self::Timeout(..) => ErrorKind::Internal,
             Self::UnknownFingerprint
             | Self::UnknownNetwork
             | Self::MissingCoin(..)

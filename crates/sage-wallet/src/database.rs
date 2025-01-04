@@ -179,26 +179,34 @@ pub async fn insert_puzzle(
                 row.is_owned = true;
             }
 
-            let metadata_blob = if let Some(metadata_hash) = metadata_hash {
-                tx.fetch_nft_data(metadata_hash)
-                    .await?
-                    .map(|data| data.blob)
+            let metadata_row = if let Some(metadata_hash) = metadata_hash {
+                tx.fetch_nft_data(metadata_hash).await?
             } else {
                 None
             };
 
-            let computed_info = compute_nft_info(minter_did, metadata_blob.as_deref());
+            let computed_info = compute_nft_info(
+                minter_did,
+                metadata_row.as_ref().map(|data| data.blob.as_slice()),
+            );
 
             row.coin_id = coin_id;
-            row.sensitive_content = computed_info.sensitive_content;
-            row.name = computed_info.name;
-            row.collection_id = computed_info
-                .collection
-                .as_ref()
-                .map(|col| col.collection_id);
 
-            if let Some(collection) = computed_info.collection {
-                tx.insert_collection(collection).await?;
+            row.sensitive_content |= computed_info.sensitive_content;
+
+            if row.name.is_none() {
+                row.name = computed_info.name;
+            }
+
+            if row.collection_id.is_none() && metadata_row.is_some_and(|data| data.hash_matches) {
+                row.collection_id = computed_info
+                    .collection
+                    .as_ref()
+                    .map(|col| col.collection_id);
+
+                if let Some(collection) = computed_info.collection {
+                    tx.insert_collection(collection).await?;
+                }
             }
 
             row.owner_did = owner_did;

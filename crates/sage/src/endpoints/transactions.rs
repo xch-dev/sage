@@ -11,8 +11,10 @@ use sage_api::{
     SplitCat, SplitXch, SubmitTransaction, SubmitTransactionResponse, TransactionResponse,
     TransferDids, TransferNfts, ViewCoinSpends, ViewCoinSpendsResponse,
 };
+use sage_assets::fetch_uris_without_hash;
 use sage_database::CatRow;
-use sage_wallet::{fetch_uris, WalletNftMint};
+use sage_wallet::WalletNftMint;
+use tokio::time::timeout;
 
 use crate::{
     fetch_cats, fetch_coins, json_bundle, json_spend, parse_asset_id, parse_cat_amount,
@@ -209,12 +211,11 @@ impl Sage {
             let data_hash = if item.data_uris.is_empty() {
                 None
             } else {
-                let data = fetch_uris(
-                    item.data_uris.clone(),
-                    Duration::from_secs(15),
-                    Duration::from_secs(5),
+                let data = timeout(
+                    Duration::from_secs(10),
+                    fetch_uris_without_hash(item.data_uris.clone()),
                 )
-                .await?;
+                .await??;
 
                 let hash = data.hash;
                 info.nft_data.insert(hash, data);
@@ -225,12 +226,11 @@ impl Sage {
             let metadata_hash = if item.metadata_uris.is_empty() {
                 None
             } else {
-                let metadata = fetch_uris(
-                    item.metadata_uris.clone(),
-                    Duration::from_secs(15),
-                    Duration::from_secs(15),
+                let metadata = timeout(
+                    Duration::from_secs(10),
+                    fetch_uris_without_hash(item.metadata_uris.clone()),
                 )
-                .await?;
+                .await??;
 
                 let hash = metadata.hash;
                 info.nft_data.insert(hash, metadata);
@@ -241,12 +241,11 @@ impl Sage {
             let license_hash = if item.license_uris.is_empty() {
                 None
             } else {
-                let data = fetch_uris(
-                    item.license_uris.clone(),
-                    Duration::from_secs(15),
-                    Duration::from_secs(15),
+                let data = timeout(
+                    Duration::from_secs(10),
+                    fetch_uris_without_hash(item.license_uris.clone()),
                 )
-                .await?;
+                .await??;
 
                 let hash = data.hash;
                 info.nft_data.insert(hash, data);

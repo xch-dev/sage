@@ -4,10 +4,9 @@ use chia::{clvm_traits::FromClvm, puzzles::nft::NftMetadata};
 use chia_wallet_sdk::{encode_address, Offer, SpendContext};
 use indexmap::IndexMap;
 use sage_api::{Amount, OfferAssets, OfferCat, OfferNft, OfferSummary, OfferXch};
-use sage_wallet::{
-    calculate_royalties, lookup_from_uris_with_hash, parse_locked_coins, parse_offer_payments,
-    NftRoyaltyInfo,
-};
+use sage_assets::fetch_uris_with_hash;
+use sage_wallet::{calculate_royalties, parse_locked_coins, parse_offer_payments, NftRoyaltyInfo};
+use tokio::time::timeout;
 
 use crate::{Result, Sage};
 
@@ -87,11 +86,9 @@ impl Sage {
                 let mut confirmation_info = ConfirmationInfo::default();
 
                 if let Some(hash) = metadata.data_hash {
-                    if let Some(data) = lookup_from_uris_with_hash(
-                        metadata.data_uris.clone(),
+                    if let Ok(Some(data)) = timeout(
                         Duration::from_secs(10),
-                        Duration::from_secs(5),
-                        hash,
+                        fetch_uris_with_hash(metadata.data_uris.clone(), hash),
                     )
                     .await
                     {
@@ -100,11 +97,9 @@ impl Sage {
                 }
 
                 if let Some(hash) = metadata.metadata_hash {
-                    if let Some(data) = lookup_from_uris_with_hash(
-                        metadata.metadata_uris.clone(),
+                    if let Ok(Some(data)) = timeout(
                         Duration::from_secs(10),
-                        Duration::from_secs(5),
-                        hash,
+                        fetch_uris_with_hash(metadata.metadata_uris.clone(), hash),
                     )
                     .await
                     {
