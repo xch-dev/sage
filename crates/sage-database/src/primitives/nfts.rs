@@ -14,6 +14,7 @@ use crate::{
 pub struct NftData {
     pub blob: Vec<u8>,
     pub mime_type: String,
+    pub hash_matches: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -233,8 +234,13 @@ impl<'a> DatabaseTx<'a> {
         insert_nft_uri(&mut *self.tx, uri, hash).await
     }
 
-    pub async fn set_nft_uri_checked(&mut self, uri: String, hash: Bytes32) -> Result<()> {
-        set_nft_uri_checked(&mut *self.tx, uri, hash).await
+    pub async fn set_nft_uri_checked(
+        &mut self,
+        uri: String,
+        hash: Bytes32,
+        hash_matches: Option<bool>,
+    ) -> Result<()> {
+        set_nft_uri_checked(&mut *self.tx, uri, hash, hash_matches).await
     }
 
     pub async fn insert_nft_data(&mut self, hash: Bytes32, nft_data: NftData) -> Result<()> {
@@ -515,10 +521,11 @@ async fn insert_nft_uri(conn: impl SqliteExecutor<'_>, uri: String, hash: Bytes3
     let hash = hash.as_ref();
 
     sqlx::query!(
-        "INSERT OR IGNORE INTO `nft_uris` (`hash`, `uri`, `checked`) VALUES (?, ?, ?)",
+        "INSERT OR IGNORE INTO `nft_uris` (`hash`, `uri`, `checked`, `hash_matches`) VALUES (?, ?, ?, ?)",
         hash,
         uri,
-        false
+        false,
+        None::<bool>
     )
     .execute(conn)
     .await?;
@@ -550,11 +557,13 @@ async fn set_nft_uri_checked(
     conn: impl SqliteExecutor<'_>,
     uri: String,
     hash: Bytes32,
+    hash_matches: Option<bool>,
 ) -> Result<()> {
     let hash = hash.as_ref();
 
     sqlx::query!(
-        "UPDATE `nft_uris` SET `checked` = 1 WHERE `hash` = ? AND `uri` = ?",
+        "UPDATE `nft_uris` SET `checked` = 1, `hash_matches` = ? WHERE `hash` = ? AND `uri` = ?",
+        hash_matches,
         hash,
         uri
     )
@@ -574,10 +583,11 @@ async fn insert_nft_data(
     let mime_type = nft_data.mime_type;
 
     sqlx::query!(
-        "INSERT OR IGNORE INTO `nft_data` (`hash`, `data`, `mime_type`) VALUES (?, ?, ?)",
+        "REPLACE INTO `nft_data` (`hash`, `data`, `mime_type`, `hash_matches`) VALUES (?, ?, ?, ?)",
         hash,
         data,
-        mime_type
+        mime_type,
+        nft_data.hash_matches
     )
     .execute(conn)
     .await?;
@@ -589,7 +599,7 @@ async fn fetch_nft_data(conn: impl SqliteExecutor<'_>, hash: Bytes32) -> Result<
     let hash = hash.as_ref();
 
     let row = sqlx::query!(
-        "SELECT `data`, `mime_type` FROM `nft_data` WHERE `hash` = ?",
+        "SELECT `data`, `mime_type`, `hash_matches` FROM `nft_data` WHERE `hash` = ?",
         hash
     )
     .fetch_optional(conn)
@@ -598,6 +608,7 @@ async fn fetch_nft_data(conn: impl SqliteExecutor<'_>, hash: Bytes32) -> Result<
     Ok(row.map(|row| NftData {
         blob: row.data,
         mime_type: row.mime_type,
+        hash_matches: row.hash_matches,
     }))
 }
 

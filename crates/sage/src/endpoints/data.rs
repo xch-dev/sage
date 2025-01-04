@@ -559,10 +559,16 @@ impl Sage {
             None
         };
 
+        let hash_matches = data.as_ref().is_some_and(|data| data.hash_matches);
+        let metadata_hash_matches = offchain_metadata
+            .as_ref()
+            .is_some_and(|offchain_metadata| offchain_metadata.hash_matches);
+
         Ok(GetNftDataResponse {
             data: Some(NftData {
                 blob: data.as_ref().map(|data| BASE64_STANDARD.encode(&data.blob)),
                 mime_type: data.map(|data| data.mime_type),
+                hash_matches,
                 metadata_json: offchain_metadata.and_then(|offchain_metadata| {
                     if offchain_metadata.mime_type == "application/json" {
                         String::from_utf8(offchain_metadata.blob).ok()
@@ -570,6 +576,7 @@ impl Sage {
                         None
                     }
                 }),
+                metadata_hash_matches,
             }),
         })
     }

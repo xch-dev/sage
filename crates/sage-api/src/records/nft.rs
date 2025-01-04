@@ -30,5 +30,7 @@ pub struct NftRecord {
 pub struct NftData {
     pub blob: Option<String>,
     pub mime_type: Option<String>,
+    pub hash_matches: bool,
     pub metadata_json: Option<String>,
+    pub metadata_hash_matches: bool,
 }
