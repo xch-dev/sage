@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT `data`, `mime_type` FROM `nft_data` WHERE `hash` = ?",
+  "query": "SELECT `data`, `mime_type`, `hash_matches` FROM `nft_data` WHERE `hash` = ?",
   "describe": {
     "columns": [
       {
@@ -12,6 +12,11 @@
         "name": "mime_type",
         "ordinal": 1,
         "type_info": "Text"
+      },
+      {
+        "name": "hash_matches",
+        "ordinal": 2,
+        "type_info": "Bool"
       }
     ],
     "parameters": {
@@ -19,8 +24,9 @@
     },
     "nullable": [
       false,
+      false,
       false
     ]
   },
-  "hash": "71e2feb9073cc2c2331fbbde12b9889b4b7bc480d7b892cf5d14f24ca717a7f0"
+  "hash": "e402dbc527157d8d32ee0a0093e2f1c3b5f2f0e95a392b57752bae69421f0514"
 }

@@ -31,6 +31,7 @@ impl Chip0007Metadata {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(untagged)]
 pub enum SensitiveContent {
     Flag(bool),
     Items(Vec<String>),
@@ -45,6 +46,7 @@ pub struct NftAttribute {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(untagged)]
 pub enum AttributeValue {
     Integer(BigInt),
     String(String),
