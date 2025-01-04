@@ -1,0 +1,21 @@
+[package]
+name = "sage-assets"
+version = "0.8.6"
+edition = "2021"
+license = "Apache-2.0"
+description = "Fetches non-critical data from various APIs for use in Sage wallet."
+authors = ["Rigidity <me@rigidnetwork.com>"]
+homepage = "https://github.com/rigidity/sage"
+repository = "https://github.com/rigidity/sage"
+readme = { workspace = true }
+keywords = { workspace = true }
+categories = { workspace = true }
+
+[lints]
+workspace = true
+
+[dependencies]
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+num-bigint = { workspace = true, features = ["serde"] }
+uuid = { workspace = true, features = ["serde"] }
