@@ -3500,6 +3500,7 @@ checksum = "a5e44f723f1133c9deac646763579fdb3ac745e418f2a7af9cd0c431da1f20b9"
 dependencies = [
  "num-integer",
  "num-traits",
+ "serde",
 ]
 
 [[package]]
@@ -4834,6 +4835,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "sage-assets"
+version = "0.8.6"
+dependencies = [
+ "num-bigint",
+ "serde",
+ "serde_json",
+ "uuid",
+]
+
+[[package]]
 name = "sage-cli"
 version = "0.8.6"
 dependencies = [
@@ -4933,6 +4944,7 @@ dependencies = [
  "indexmap 2.6.0",
  "itertools 0.13.0",
  "reqwest",
+ "sage-assets",
  "sage-database",
  "serde",
  "serde_json",
