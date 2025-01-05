@@ -403,8 +403,9 @@ async fn is_coin_locked(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Resu
         FROM `coin_states`
         LEFT JOIN `transaction_spends` ON `coin_states`.`coin_id` = `transaction_spends`.`coin_id`
         LEFT JOIN `offered_coins` ON `coin_states`.`coin_id` = `offered_coins`.`coin_id`
+        LEFT JOIN `offers` ON `offered_coins`.`offer_id` = `offers`.`offer_id`
         WHERE `coin_states`.`coin_id` = ?
-        AND `offer_id` IS NULL
+        AND (`offers`.`offer_id` IS NULL OR `offers`.`status` > 0)
         AND `coin_states`.`transaction_id` IS NULL
         AND `transaction_spends`.`transaction_id` IS NULL
         ",
