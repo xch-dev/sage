@@ -180,10 +180,7 @@ impl SyncManager {
                     self.pending_puzzle_subscriptions.extend(puzzle_hashes);
                 }
                 SyncCommand::ConnectionClosed(ip) => {
-                    self.state
-                        .lock()
-                        .await
-                        .ban(ip, Duration::from_secs(300), "peer disconnected");
+                    self.state.lock().await.remove_peer(ip);
                     debug!("Peer {ip} disconnected");
                 }
                 SyncCommand::SetTargetPeers(target_peers) => {

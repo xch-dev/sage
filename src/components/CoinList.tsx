@@ -7,6 +7,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { toDecimal } from '@/lib/utils';
+import { t } from '@lingui/core/macro';
+import { Trans } from '@lingui/react/macro';
 import {
   ColumnDef,
   flexRender,
@@ -27,8 +29,6 @@ import {
   FilterXIcon,
 } from 'lucide-react';
 import { useState } from 'react';
-import { Trans } from '@lingui/react/macro';
-import { t } from '@lingui/core/macro';
 import { CoinRecord } from '../bindings';
 import { Button } from './ui/button';
 import { Checkbox } from './ui/checkbox';
@@ -182,10 +182,12 @@ export default function CoinList(props: CoinListProps) {
       sortingFn: (rowA, rowB) => {
         const a =
           (rowA.original.spent_height ?? 0) +
-          (rowA.original.spend_transaction_id ? 10000000 : 0);
+          (rowA.original.spend_transaction_id ? 10000000 : 0) +
+          (rowA.original.offer_id ? 20000000 : 0);
         const b =
           (rowB.original.spent_height ?? 0) +
-          (rowB.original.spend_transaction_id ? 10000000 : 0);
+          (rowB.original.spend_transaction_id ? 10000000 : 0) +
+          (rowB.original.offer_id ? 20000000 : 0);
         return a < b ? -1 : a > b ? 1 : 0;
       },
       header: ({ column }) => {
@@ -214,6 +216,12 @@ export default function CoinList(props: CoinListProps) {
               onClick={() => {
                 setShowUnspentOnly(!showUnspentOnly);
                 column.setFilterValue(showUnspentOnly ? t`Unspent` : '');
+
+                if (!showUnspentOnly) {
+                  setSorting([{ id: 'spent_height', desc: true }]);
+                } else {
+                  setSorting([{ id: 'created_height', desc: true }]);
+                }
               }}
               aria-label={
                 showUnspentOnly ? t`Show all coins` : t`Show unspent coins only`
@@ -232,13 +240,18 @@ export default function CoinList(props: CoinListProps) {
         return (
           filterValue === t`Unspent` &&
           !row.original.spend_transaction_id &&
-          !row.original.spent_height
+          !row.original.spent_height &&
+          !row.original.offer_id
         );
       },
       cell: ({ row }) => (
         <div className='truncate overflow-hidden'>
           {row.original.spent_height ??
-            (row.original.spend_transaction_id ? t`Pending...` : '')}
+            (row.original.spend_transaction_id
+              ? t`Pending...`
+              : row.original.offer_id
+                ? t`Offered...`
+                : '')}
         </div>
       ),
     },
@@ -311,7 +324,9 @@ export default function CoinList(props: CoinListProps) {
                           !row.original.spent_height) ||
                         row.original.create_transaction_id
                           ? ' pulsate-opacity'
-                          : '')
+                          : row.original.offer_id
+                            ? ' pulsate-opacity'
+                            : '')
                       }
                     >
                       {flexRender(
