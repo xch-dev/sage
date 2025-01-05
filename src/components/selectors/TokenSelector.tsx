@@ -39,10 +39,12 @@ export function TokenSelector({
       .catch(addError);
   }, [addError, tokens.length, value, selectedToken]);
 
+  const filteredTokens = tokens.filter((token) => token.visible);
+
   return (
     <DropdownSelector
-      totalItems={tokens.length}
-      loadedItems={tokens}
+      totalItems={filteredTokens.length}
+      loadedItems={filteredTokens}
       page={0}
       isDisabled={(token) => disabled.includes(token.asset_id)}
       onSelect={(token) => {
