@@ -2,16 +2,10 @@ import { commands, TransactionResponse } from '@/bindings';
 import { useErrors } from '@/hooks/useErrors';
 import { toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
-import {
-  ChevronDown,
-  Flame,
-  SendIcon,
-  UserRoundMinus,
-  UserRoundPlus,
-} from 'lucide-react';
-import { useState } from 'react';
-import { Trans } from '@lingui/react/macro';
 import { t } from '@lingui/core/macro';
+import { Trans } from '@lingui/react/macro';
+import { ChevronDown, Flame, SendIcon, UserRoundPlus } from 'lucide-react';
+import { useState } from 'react';
 import { AssignNftDialog } from './AssignNftDialog';
 import ConfirmationDialog from './ConfirmationDialog';
 import { FeeOnlyDialog } from './FeeOnlyDialog';
@@ -40,7 +34,6 @@ export function MultiSelectActions({
 
   const [transferOpen, setTransferOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
-  const [unassignOpen, setUnassignOpen] = useState(false);
   const [burnOpen, setBurnOpen] = useState(false);
   const [response, setResponse] = useState<TransactionResponse | null>(null);
 
@@ -56,7 +49,7 @@ export function MultiSelectActions({
       .finally(() => setTransferOpen(false));
   };
 
-  const onAssignSubmit = (profile: string, fee: string) => {
+  const onAssignSubmit = (profile: string | null, fee: string) => {
     commands
       .assignNftsToDid({
         nft_ids: selected,
@@ -66,18 +59,6 @@ export function MultiSelectActions({
       .then(setResponse)
       .catch(addError)
       .finally(() => setAssignOpen(false));
-  };
-
-  const onUnassignSubmit = (fee: string) => {
-    commands
-      .assignNftsToDid({
-        nft_ids: selected,
-        did_id: null,
-        fee: toMojos(fee, walletState.sync.unit.decimals),
-      })
-      .then(setResponse)
-      .catch(addError)
-      .finally(() => setUnassignOpen(false));
   };
 
   const onBurnSubmit = (fee: string) => {
@@ -129,20 +110,7 @@ export function MultiSelectActions({
               >
                 <UserRoundPlus className='mr-2 h-4 w-4' />
                 <span>
-                  <Trans>Assign Profile</Trans>
-                </span>
-              </DropdownMenuItem>
-
-              <DropdownMenuItem
-                className='cursor-pointer'
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setUnassignOpen(true);
-                }}
-              >
-                <UserRoundMinus className='mr-2 h-4 w-4' />
-                <span>
-                  <Trans>Unassign Profile</Trans>
+                  <Trans>Edit Profile</Trans>
                 </span>
               </DropdownMenuItem>
 
@@ -176,22 +144,13 @@ export function MultiSelectActions({
       </TransferDialog>
 
       <AssignNftDialog
-        title={t`Bulk Assign Profile`}
+        title={t`Assign Profile`}
         open={assignOpen}
         setOpen={setAssignOpen}
         onSubmit={onAssignSubmit}
       >
         <Trans>This will bulk assign the NFTs to the selected profile.</Trans>
       </AssignNftDialog>
-
-      <FeeOnlyDialog
-        title={t`Bulk Unassign Profile`}
-        open={unassignOpen}
-        setOpen={setUnassignOpen}
-        onSubmit={onUnassignSubmit}
-      >
-        <Trans>This will bulk unassign the NFTs from their profiles.</Trans>
-      </FeeOnlyDialog>
 
       <FeeOnlyDialog
         title={t`Bulk Burn NFTs`}
