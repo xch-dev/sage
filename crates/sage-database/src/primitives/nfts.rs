@@ -23,6 +23,28 @@ pub struct NftUri {
     pub uri: String,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum NftSortMode {
+    Recent,
+    Name,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum NftGroup {
+    Collection(Bytes32),
+    Did(Bytes32),
+    NoCollection,
+    NoDid,
+}
+
+#[derive(Debug, Clone)]
+pub struct NftSearchParams {
+    pub sort_mode: NftSortMode,
+    pub include_hidden: bool,
+    pub group: Option<NftGroup>,
+    pub name: Option<String>,
+}
+
 impl Database {
     pub async fn unchecked_nft_uris(&self, limit: u32) -> Result<Vec<NftUri>> {
         unchecked_nft_uris(&self.pool, limit).await
@@ -40,6 +62,19 @@ impl Database {
         fetch_nft_data(&self.pool, hash).await
     }
 
+    pub async fn search_nfts(
+        &self,
+        params: NftSearchParams,
+        limit: u32,
+        offset: u32,
+    ) -> Result<Vec<NftRow>> {
+        search_nfts(&self.pool, params, limit, offset).await
+    }
+
+    pub async fn search_nft_count(&self, params: NftSearchParams) -> Result<u32> {
+        search_nft_count(&self.pool, params).await
+    }
+
     pub async fn collection(&self, collection_id: Bytes32) -> Result<CollectionRow> {
         collection(&self.pool, collection_id).await
     }
@@ -50,106 +85,6 @@ impl Database {
 
     pub async fn visible_collection_count(&self) -> Result<u32> {
         visible_collection_count(&self.pool).await
-    }
-
-    pub async fn nfts_visible_named(&self, limit: u32, offset: u32) -> Result<Vec<NftRow>> {
-        nfts_visible_named(&self.pool, limit, offset).await
-    }
-
-    pub async fn nfts_visible_recent(&self, limit: u32, offset: u32) -> Result<Vec<NftRow>> {
-        nfts_visible_recent(&self.pool, limit, offset).await
-    }
-
-    pub async fn nfts_named(&self, limit: u32, offset: u32) -> Result<Vec<NftRow>> {
-        nfts_named(&self.pool, limit, offset).await
-    }
-
-    pub async fn nfts_recent(&self, limit: u32, offset: u32) -> Result<Vec<NftRow>> {
-        nfts_recent(&self.pool, limit, offset).await
-    }
-
-    pub async fn nft_count(&self) -> Result<u32> {
-        nft_count(&self.pool).await
-    }
-
-    pub async fn visible_nft_count(&self) -> Result<u32> {
-        visible_nft_count(&self.pool).await
-    }
-
-    pub async fn collection_nfts_visible_named(
-        &self,
-        collection_id: Bytes32,
-        limit: u32,
-        offset: u32,
-    ) -> Result<Vec<NftRow>> {
-        collection_nfts_visible_named(&self.pool, collection_id, limit, offset).await
-    }
-
-    pub async fn collection_nfts_visible_recent(
-        &self,
-        collection_id: Bytes32,
-        limit: u32,
-        offset: u32,
-    ) -> Result<Vec<NftRow>> {
-        collection_nfts_visible_recent(&self.pool, collection_id, limit, offset).await
-    }
-
-    pub async fn collection_nfts_named(
-        &self,
-        collection_id: Bytes32,
-        limit: u32,
-        offset: u32,
-    ) -> Result<Vec<NftRow>> {
-        collection_nfts_named(&self.pool, collection_id, limit, offset).await
-    }
-
-    pub async fn collection_nfts_recent(
-        &self,
-        collection_id: Bytes32,
-        limit: u32,
-        offset: u32,
-    ) -> Result<Vec<NftRow>> {
-        collection_nfts_recent(&self.pool, collection_id, limit, offset).await
-    }
-
-    pub async fn no_collection_nfts_visible_named(
-        &self,
-        limit: u32,
-        offset: u32,
-    ) -> Result<Vec<NftRow>> {
-        no_collection_nfts_visible_named(&self.pool, limit, offset).await
-    }
-
-    pub async fn no_collection_nfts_visible_recent(
-        &self,
-        limit: u32,
-        offset: u32,
-    ) -> Result<Vec<NftRow>> {
-        no_collection_nfts_visible_recent(&self.pool, limit, offset).await
-    }
-
-    pub async fn no_collection_nfts_named(&self, limit: u32, offset: u32) -> Result<Vec<NftRow>> {
-        no_collection_nfts_named(&self.pool, limit, offset).await
-    }
-
-    pub async fn no_collection_nfts_recent(&self, limit: u32, offset: u32) -> Result<Vec<NftRow>> {
-        no_collection_nfts_recent(&self.pool, limit, offset).await
-    }
-
-    pub async fn collection_nft_count(&self, collection_id: Bytes32) -> Result<u32> {
-        collection_nft_count(&self.pool, collection_id).await
-    }
-
-    pub async fn collection_visible_nft_count(&self, collection_id: Bytes32) -> Result<u32> {
-        collection_visible_nft_count(&self.pool, collection_id).await
-    }
-
-    pub async fn no_collection_nft_count(&self) -> Result<u32> {
-        no_collection_nft_count(&self.pool).await
-    }
-
-    pub async fn no_collection_visible_nft_count(&self) -> Result<u32> {
-        no_collection_visible_nft_count(&self.pool).await
     }
 
     pub async fn collections_visible_named(
@@ -790,6 +725,19 @@ async fn nfts_by_metadata_hash(
     .collect()
 }
 
+async fn search_nfts(
+    conn: impl SqliteExecutor<'_>,
+    params: NftSearchParams,
+    limit: u32,
+    offset: u32,
+) -> Result<Vec<NftRow>> {
+    // THIS IS WHERE NEW CODE SHOULD BE ADDED
+    todo!()
+}
+
+/*
+THIS IS OLD CODE THAT NEEDS TO BE REPLACED
+
 async fn nfts_visible_named(
     conn: impl SqliteExecutor<'_>,
     limit: u32,
@@ -1076,7 +1024,7 @@ async fn no_collection_nfts_recent(
     .into_iter()
     .map(into_row)
     .collect()
-}
+} */
 
 async fn insert_nft_coin(
     conn: impl SqliteExecutor<'_>,
