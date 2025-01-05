@@ -33,7 +33,7 @@ export function useNftParams(): [NftParams, SetNftParams] {
 
   const pageSize = parseInt(params.get('pageSize') ?? '12');
   const page = parseInt(params.get('page') ?? '1');
-  const view = parseView(params.get('view') ?? 'name');
+  const view = parseView(params.get('view') ?? 'recent');
   const showHidden = (params.get('showHidden') ?? 'false') === 'true';
 
   const updateParams = ({

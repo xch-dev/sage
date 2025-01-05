@@ -3,7 +3,7 @@ import { CopyBox } from '@/components/CopyBox';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { useErrors } from '@/hooks/useErrors';
-import { nftUri } from '@/lib/nftUri';
+import { isImage, nftUri } from '@/lib/nftUri';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { open } from '@tauri-apps/plugin-shell';
@@ -82,11 +82,19 @@ export default function Nft() {
       <Header title={nft?.name ?? t`Unknown NFT`} />
       <Container>
         <div className='flex flex-col gap-2 mx-auto sm:w-full md:w-[50%] max-w-[400px]'>
-          <img
-            alt='NFT image'
-            src={nftUri(data?.mime_type ?? null, data?.blob ?? null)}
-            className='rounded-lg'
-          />
+          {isImage(data?.mime_type ?? null) ? (
+            <img
+              alt='NFT image'
+              src={nftUri(data?.mime_type ?? null, data?.blob ?? null)}
+              className='rounded-lg'
+            />
+          ) : (
+            <video
+              src={nftUri(data?.mime_type ?? null, data?.blob ?? null)}
+              className='rounded-lg'
+              controls
+            />
+          )}
           <CopyBox title={t`Launcher Id`} value={nft?.launcher_id ?? ''} />
         </div>
 
