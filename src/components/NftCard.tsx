@@ -11,6 +11,8 @@ import { nftUri } from '@/lib/nftUri';
 import { toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { t } from '@lingui/core/macro';
+import { Trans } from '@lingui/react/macro';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 import BigNumber from 'bignumber.js';
 import {
@@ -21,7 +23,6 @@ import {
   LinkIcon,
   MoreVertical,
   SendIcon,
-  UserRoundMinus,
   UserRoundPlus,
 } from 'lucide-react';
 import { PropsWithChildren, useEffect, useState } from 'react';
@@ -59,6 +60,7 @@ import {
   FormMessage,
 } from './ui/form';
 import { Input } from './ui/input';
+import { TokenAmountInput } from './ui/masked-input';
 import {
   Select,
   SelectContent,
@@ -66,9 +68,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from './ui/select';
-import { TokenAmountInput } from './ui/masked-input';
-import { t } from '@lingui/core/macro';
-import { Trans } from '@lingui/react/macro';
 
 export interface NftProps {
   nft: NftRecord;
@@ -93,7 +92,6 @@ export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
   const [data, setData] = useState<NftData | null>(null);
   const [transferOpen, setTransferOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
-  const [unassignOpen, setUnassignOpen] = useState(false);
   const [addUrlOpen, setAddUrlOpen] = useState(false);
   const [burnOpen, setBurnOpen] = useState(false);
   const [response, setResponse] = useState<TransactionResponse | null>(null);
@@ -124,7 +122,7 @@ export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
       .finally(() => setTransferOpen(false));
   };
 
-  const onAssignSubmit = (profile: string, fee: string) => {
+  const onAssignSubmit = (profile: string | null, fee: string) => {
     commands
       .assignNftsToDid({
         nft_ids: [nft.launcher_id],
@@ -134,18 +132,6 @@ export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
       .then(setResponse)
       .catch(addError)
       .finally(() => setAssignOpen(false));
-  };
-
-  const onUnassignSubmit = (fee: string) => {
-    commands
-      .assignNftsToDid({
-        nft_ids: [nft.launcher_id],
-        did_id: null,
-        fee: toMojos(fee, walletState.sync.unit.decimals),
-      })
-      .then(setResponse)
-      .catch(addError)
-      .finally(() => setUnassignOpen(false));
   };
 
   const addUrlFormSchema = z.object({
@@ -265,26 +251,10 @@ export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
                     {nft.owner_did === null ? (
                       <Trans>Assign Profile</Trans>
                     ) : (
-                      <Trans>Reassign Profile</Trans>
+                      <Trans>Edit Profile</Trans>
                     )}
                   </span>
                 </DropdownMenuItem>
-
-                {nft.owner_did !== null && (
-                  <DropdownMenuItem
-                    className='cursor-pointer'
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setUnassignOpen(true);
-                    }}
-                    disabled={!nft.created_height}
-                  >
-                    <UserRoundMinus className='mr-2 h-4 w-4' />
-                    <span>
-                      <Trans>Unassign Profile</Trans>
-                    </span>
-                  </DropdownMenuItem>
-                )}
 
                 <DropdownMenuItem
                   className='cursor-pointer'
@@ -369,15 +339,6 @@ export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
       >
         <Trans>This will assign the NFT to the selected profile.</Trans>
       </AssignNftDialog>
-
-      <FeeOnlyDialog
-        title={t`Unassign Profile`}
-        open={unassignOpen}
-        setOpen={setUnassignOpen}
-        onSubmit={onUnassignSubmit}
-      >
-        <Trans>This will unassign the NFT from its profile.</Trans>
-      </FeeOnlyDialog>
 
       <Dialog open={addUrlOpen} onOpenChange={setAddUrlOpen}>
         <DialogContent>

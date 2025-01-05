@@ -2,12 +2,12 @@ import { useDids } from '@/hooks/useDids';
 import { amount } from '@/lib/formTypes';
 import { useWalletState } from '@/state';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { t } from '@lingui/core/macro';
+import { Trans } from '@lingui/react/macro';
 import BigNumber from 'bignumber.js';
 import { PropsWithChildren } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { Trans } from '@lingui/react/macro';
-import { t } from '@lingui/core/macro';
 import { Button } from './ui/button';
 import {
   Dialog,
@@ -25,7 +25,7 @@ import {
   FormLabel,
   FormMessage,
 } from './ui/form';
-import { Input } from './ui/input';
+import { TokenAmountInput } from './ui/masked-input';
 import {
   Select,
   SelectContent,
@@ -33,13 +33,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from './ui/select';
-import { TokenAmountInput } from './ui/masked-input';
 
 export interface AssignNftDialogProps {
   title: string;
   open: boolean;
   setOpen: (open: boolean) => void;
-  onSubmit: (profile: string, fee: string) => void;
+  onSubmit: (profile: string | null, fee: string) => void;
 }
 
 export function AssignNftDialog({
@@ -69,7 +68,7 @@ export function AssignNftDialog({
   });
 
   const handler = (values: z.infer<typeof schema>) => {
-    onSubmit(values.profile, values.fee);
+    onSubmit(values.profile === 'none' ? null : values.profile, values.fee);
   };
 
   return (
@@ -101,6 +100,9 @@ export function AssignNftDialog({
                         <SelectValue placeholder={t`Select profile`} />
                       </SelectTrigger>
                       <SelectContent className='max-w-[var(--radix-select-trigger-width)]'>
+                        <SelectItem key='none' value='none'>
+                          <Trans>None</Trans>
+                        </SelectItem>
                         {dids
                           .filter((did) => did.visible)
                           .map((did) => {
