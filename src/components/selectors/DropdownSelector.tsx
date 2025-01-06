@@ -11,7 +11,6 @@ import {
 } from '../ui/dropdown-menu';
 
 export interface DropdownSelectorProps<T> extends PropsWithChildren {
-  totalItems: number;
   loadedItems: T[];
   page: number;
   setPage?: (page: number) => void;
@@ -25,7 +24,6 @@ export interface DropdownSelectorProps<T> extends PropsWithChildren {
 }
 
 export function DropdownSelector<T>({
-  totalItems,
   loadedItems,
   page,
   setPage,
@@ -38,8 +36,6 @@ export function DropdownSelector<T>({
   children,
   manualInput,
 }: DropdownSelectorProps<T>) {
-  const pages = Math.max(1, Math.ceil(totalItems / pageSize));
-
   return (
     <div className='min-w-0 flex-grow'>
       <DropdownMenu>
@@ -59,9 +55,7 @@ export function DropdownSelector<T>({
             {!!setPage && (
               <DropdownMenuLabel>
                 <div className='flex items-center justify-between'>
-                  <span>
-                    Page {page + 1} / {pages}
-                  </span>
+                  <span>Page {page + 1}</span>
                   <div className='flex items-center gap-2'>
                     <Button
                       variant='outline'
@@ -79,9 +73,9 @@ export function DropdownSelector<T>({
                       size='icon'
                       onClick={(e) => {
                         e.preventDefault();
-                        setPage(Math.min(pages - 1, page + 1));
+                        if (loadedItems.length < pageSize) return;
+                        setPage(page + 1);
                       }}
-                      disabled={page === pages - 1}
                     >
                       <ChevronRight className='h-4 w-4' />
                     </Button>

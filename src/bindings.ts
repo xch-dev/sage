@@ -113,9 +113,6 @@ async getCat(req: GetCat) : Promise<GetCatResponse> {
 async getDids(req: GetDids) : Promise<GetDidsResponse> {
     return await TAURI_INVOKE("get_dids", { req });
 },
-async getNftStatus(req: GetNftStatus) : Promise<GetNftStatusResponse> {
-    return await TAURI_INVOKE("get_nft_status", { req });
-},
 async getNftCollections(req: GetNftCollections) : Promise<GetNftCollectionsResponse> {
     return await TAURI_INVOKE("get_nft_collections", { req });
 },
@@ -303,9 +300,7 @@ export type GetNftCollectionsResponse = { collections: NftCollectionRecord[] }
 export type GetNftData = { nft_id: string }
 export type GetNftDataResponse = { data: NftData | null }
 export type GetNftResponse = { nft: NftRecord | null }
-export type GetNftStatus = Record<string, never>
-export type GetNftStatusResponse = { nfts: number; visible_nfts: number; collections: number; visible_collections: number }
-export type GetNfts = { collection_id: string | null; offset: number; limit: number; sort_mode: NftSortMode; include_hidden: boolean }
+export type GetNfts = { collection_id: string | null; did_id: string | null; name: string | null; offset: number; limit: number; sort_mode: NftSortMode; include_hidden: boolean }
 export type GetNftsResponse = { nfts: NftRecord[] }
 export type GetOffer = { offer_id: string }
 export type GetOfferResponse = { offer: OfferRecord }
@@ -343,7 +338,7 @@ export type MakeOffer = { requested_assets: Assets; offered_assets: Assets; fee:
 export type MakeOfferResponse = { offer: string; offer_id: string }
 export type Network = { default_port: number; ticker: string; address_prefix: string; precision: number; genesis_challenge: string; agg_sig_me: string; dns_introducers: string[] }
 export type NetworkConfig = { network_id: string; target_peers: number; discover_peers: boolean }
-export type NftCollectionRecord = { collection_id: string; did_id: string; metadata_collection_id: string; visible: boolean; name: string | null; icon: string | null; nfts: number; visible_nfts: number }
+export type NftCollectionRecord = { collection_id: string; did_id: string; metadata_collection_id: string; visible: boolean; name: string | null; icon: string | null }
 export type NftData = { blob: string | null; mime_type: string | null; hash_matches: boolean; metadata_json: string | null; metadata_hash_matches: boolean }
 export type NftMint = { edition_number: number | null; edition_total: number | null; data_uris: string[]; metadata_uris: string[]; license_uris: string[]; royalty_address: string | null; royalty_ten_thousandths: number }
 export type NftRecord = { launcher_id: string; collection_id: string | null; collection_name: string | null; minter_did: string | null; owner_did: string | null; visible: boolean; sensitive_content: boolean; name: string | null; created_height: number | null; coin_id: string; address: string; royalty_address: string; royalty_ten_thousandths: number; data_uris: string[]; data_hash: string | null; metadata_uris: string[]; metadata_hash: string | null; license_uris: string[]; license_hash: string | null; edition_number: number | null; edition_total: number | null }

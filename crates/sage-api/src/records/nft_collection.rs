@@ -9,6 +9,4 @@ pub struct NftCollectionRecord {
     pub visible: bool,
     pub name: Option<String>,
     pub icon: Option<String>,
-    pub nfts: u32,
-    pub visible_nfts: u32,
 }
