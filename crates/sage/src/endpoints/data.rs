@@ -19,9 +19,12 @@ use sage_api::{
     GetNftsResponse, GetPendingTransactions, GetPendingTransactionsResponse, GetSyncStatus,
     GetSyncStatusResponse, GetTransaction, GetTransactionResponse, GetTransactions,
     GetTransactionsResponse, GetXchCoins, GetXchCoinsResponse, NftCollectionRecord, NftData,
-    NftRecord, NftSortMode, PendingTransactionRecord, TransactionCoin, TransactionRecord,
+    NftRecord, NftSortMode as ApiNftSortMode, PendingTransactionRecord, TransactionCoin,
+    TransactionRecord,
 };
-use sage_database::{CoinKind, CoinStateRow, Database, NftRow};
+use sage_database::{
+    CoinKind, CoinStateRow, Database, NftGroup, NftRow, NftSearchParams, NftSortMode,
+};
 use sage_wallet::WalletError;
 
 use crate::{parse_asset_id, parse_collection_id, parse_nft_id, Result, Sage, BURN_PUZZLE_HASH};
@@ -293,9 +296,27 @@ impl Sage {
     pub async fn get_nft_status(&self, _req: GetNftStatus) -> Result<GetNftStatusResponse> {
         let wallet = self.wallet()?;
 
-        let nfts = wallet.db.nft_count().await?;
+        let nfts = wallet
+            .db
+            .search_nft_count(NftSearchParams {
+                sort_mode: NftSortMode::Recent,
+                include_hidden: true,
+                group: None,
+                name: None,
+            })
+            .await?;
+
+        let visible_nfts = wallet
+            .db
+            .search_nft_count(NftSearchParams {
+                sort_mode: NftSortMode::Recent,
+                include_hidden: false,
+                group: None,
+                name: None,
+            })
+            .await?;
+
         let collections = wallet.db.collection_count().await?;
-        let visible_nfts = wallet.db.visible_nft_count().await?;
         let visible_collections = wallet.db.visible_collection_count().await?;
 
         Ok(GetNftStatusResponse {
@@ -324,10 +345,24 @@ impl Sage {
         };
 
         for col in collections {
-            let total = wallet.db.collection_nft_count(col.collection_id).await?;
+            let total = wallet
+                .db
+                .search_nft_count(NftSearchParams {
+                    sort_mode: NftSortMode::Recent,
+                    include_hidden: true,
+                    group: Some(NftGroup::Collection(col.collection_id)),
+                    name: None,
+                })
+                .await?;
+
             let total_visible = wallet
                 .db
-                .collection_visible_nft_count(col.collection_id)
+                .search_nft_count(NftSearchParams {
+                    sort_mode: NftSortMode::Recent,
+                    include_hidden: false,
+                    group: Some(NftGroup::Collection(col.collection_id)),
+                    name: None,
+                })
                 .await?;
 
             records.push(NftCollectionRecord {
@@ -354,6 +389,7 @@ impl Sage {
         let wallet = self.wallet()?;
 
         let collection_id = req.collection_id.map(parse_collection_id).transpose()?;
+        let group = collection_id.map(NftGroup::Collection);
 
         let collection = if let Some(collection_id) = collection_id {
             Some(wallet.db.collection(collection_id).await?)
@@ -361,20 +397,25 @@ impl Sage {
             None
         };
 
-        let total = if let Some(collection_id) = collection_id {
-            wallet.db.collection_nft_count(collection_id).await?
-        } else {
-            wallet.db.no_collection_nft_count().await?
-        };
+        let total = wallet
+            .db
+            .search_nft_count(NftSearchParams {
+                sort_mode: NftSortMode::Recent,
+                include_hidden: true,
+                group,
+                name: None,
+            })
+            .await?;
 
-        let total_visible = if let Some(collection_id) = collection_id {
-            wallet
-                .db
-                .collection_visible_nft_count(collection_id)
-                .await?
-        } else {
-            wallet.db.no_collection_visible_nft_count().await?
-        };
+        let total_visible = wallet
+            .db
+            .search_nft_count(NftSearchParams {
+                sort_mode: NftSortMode::Recent,
+                include_hidden: false,
+                group,
+                name: None,
+            })
+            .await?;
 
         let record = if let Some(collection) = collection {
             NftCollectionRecord {
@@ -407,101 +448,46 @@ impl Sage {
 
     pub async fn get_nfts(&self, req: GetNfts) -> Result<GetNftsResponse> {
         let wallet = self.wallet()?;
-
         let mut records = Vec::new();
 
-        if req.collection_id.as_deref() == Some("all") {
-            let nfts = match (req.sort_mode, req.include_hidden) {
-                (NftSortMode::Name, true) => wallet.db.nfts_named(req.limit, req.offset).await?,
-                (NftSortMode::Name, false) => {
-                    wallet.db.nfts_visible_named(req.limit, req.offset).await?
-                }
-                (NftSortMode::Recent, true) => wallet.db.nfts_recent(req.limit, req.offset).await?,
-                (NftSortMode::Recent, false) => {
-                    wallet.db.nfts_visible_recent(req.limit, req.offset).await?
-                }
-            };
-
-            for nft_row in nfts {
-                let Some(nft) = wallet.db.nft(nft_row.launcher_id).await? else {
-                    continue;
-                };
-
-                let collection_name = if let Some(collection_id) = nft_row.collection_id {
-                    wallet.db.collection_name(collection_id).await?
-                } else {
-                    None
-                };
-
-                records.push(self.nft_record(nft_row, nft, collection_name)?);
-            }
+        let group = if req.collection_id.as_deref() == Some("all") {
+            None
         } else {
-            let collection_id = req.collection_id.map(parse_collection_id).transpose()?;
+            req.collection_id
+                .map(parse_collection_id)
+                .transpose()?
+                .map(NftGroup::Collection)
+        };
 
-            let nfts = match (req.sort_mode, req.include_hidden, collection_id) {
-                (NftSortMode::Name, true, Some(collection_id)) => {
-                    wallet
-                        .db
-                        .collection_nfts_named(collection_id, req.limit, req.offset)
-                        .await?
-                }
-                (NftSortMode::Name, false, Some(collection_id)) => {
-                    wallet
-                        .db
-                        .collection_nfts_visible_named(collection_id, req.limit, req.offset)
-                        .await?
-                }
-                (NftSortMode::Recent, true, Some(collection_id)) => {
-                    wallet
-                        .db
-                        .collection_nfts_recent(collection_id, req.limit, req.offset)
-                        .await?
-                }
-                (NftSortMode::Recent, false, Some(collection_id)) => {
-                    wallet
-                        .db
-                        .collection_nfts_visible_recent(collection_id, req.limit, req.offset)
-                        .await?
-                }
-                (NftSortMode::Name, true, None) => {
-                    wallet
-                        .db
-                        .no_collection_nfts_named(req.limit, req.offset)
-                        .await?
-                }
-                (NftSortMode::Name, false, None) => {
-                    wallet
-                        .db
-                        .no_collection_nfts_visible_named(req.limit, req.offset)
-                        .await?
-                }
-                (NftSortMode::Recent, true, None) => {
-                    wallet
-                        .db
-                        .no_collection_nfts_recent(req.limit, req.offset)
-                        .await?
-                }
-                (NftSortMode::Recent, false, None) => {
-                    wallet
-                        .db
-                        .no_collection_nfts_visible_recent(req.limit, req.offset)
-                        .await?
-                }
+        let nfts = wallet
+            .db
+            .search_nfts(
+                NftSearchParams {
+                    sort_mode: match req.sort_mode {
+                        ApiNftSortMode::Recent => NftSortMode::Recent,
+                        ApiNftSortMode::Name => NftSortMode::Name,
+                    },
+                    include_hidden: req.include_hidden,
+                    group,
+                    name: None,
+                },
+                req.limit,
+                req.offset,
+            )
+            .await?;
+
+        for nft_row in nfts {
+            let Some(nft) = wallet.db.nft(nft_row.launcher_id).await? else {
+                continue;
             };
 
-            for nft_row in nfts {
-                let Some(nft) = wallet.db.nft(nft_row.launcher_id).await? else {
-                    continue;
-                };
+            let collection_name = if let Some(collection_id) = nft_row.collection_id {
+                wallet.db.collection_name(collection_id).await?
+            } else {
+                None
+            };
 
-                let collection_name = if let Some(collection_id) = nft_row.collection_id {
-                    wallet.db.collection_name(collection_id).await?
-                } else {
-                    None
-                };
-
-                records.push(self.nft_record(nft_row, nft, collection_name)?);
-            }
+            records.push(self.nft_record(nft_row, nft, collection_name)?);
         }
 
         Ok(GetNftsResponse { nfts: records })

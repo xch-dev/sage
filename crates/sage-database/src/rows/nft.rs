@@ -1,4 +1,5 @@
 use chia::protocol::Bytes32;
+use sqlx::{sqlite::SqliteRow, FromRow, Row};
 
 use crate::{to_bytes32, DatabaseError};
 
@@ -19,6 +20,26 @@ pub(crate) struct NftSql {
     pub metadata_hash: Option<Vec<u8>>,
     pub is_named: Option<bool>,
     pub is_pending: Option<bool>,
+}
+
+impl FromRow<'_, SqliteRow> for NftSql {
+    fn from_row(row: &SqliteRow) -> Result<Self, sqlx::Error> {
+        Ok(NftSql {
+            launcher_id: row.try_get("launcher_id")?,
+            coin_id: row.try_get("coin_id")?,
+            collection_id: row.try_get("collection_id")?,
+            minter_did: row.try_get("minter_did")?,
+            owner_did: row.try_get("owner_did")?,
+            visible: row.try_get("visible")?,
+            sensitive_content: row.try_get("sensitive_content")?,
+            name: row.try_get("name")?,
+            is_owned: row.try_get("is_owned")?,
+            created_height: row.try_get("created_height")?,
+            metadata_hash: row.try_get("metadata_hash")?,
+            is_named: row.try_get("is_named")?,
+            is_pending: row.try_get("is_pending")?,
+        })
+    }
 }
 
 #[derive(Debug, Clone)]
