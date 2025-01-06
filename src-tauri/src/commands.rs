@@ -396,15 +396,6 @@ pub async fn get_transaction(
 
 #[command]
 #[specta]
-pub async fn get_nft_status(
-    state: State<'_, AppState>,
-    req: GetNftStatus,
-) -> Result<GetNftStatusResponse> {
-    Ok(state.lock().await.get_nft_status(req).await?)
-}
-
-#[command]
-#[specta]
 pub async fn get_nft_collections(
     state: State<'_, AppState>,
     req: GetNftCollections,

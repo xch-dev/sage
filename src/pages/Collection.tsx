@@ -7,17 +7,16 @@ import { NftOptions } from '@/components/NftOptions';
 import { ReceiveAddress } from '@/components/ReceiveAddress';
 import { useErrors } from '@/hooks/useErrors';
 import { NftView, useNftParams } from '@/hooks/useNftParams';
+import { t } from '@lingui/core/macro';
 import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Trans } from '@lingui/react/macro';
-import { t } from '@lingui/core/macro';
 
 export default function Collection() {
   const { addError } = useErrors();
   const { collection_id: collectionId } = useParams();
 
   const [params, setParams] = useNftParams();
-  const { pageSize, page, view, showHidden } = params;
+  const { pageSize, page, view, showHidden, query } = params;
 
   const [collection, setCollection] = useState<NftCollectionRecord | null>(
     null,
@@ -25,32 +24,42 @@ export default function Collection() {
   const [nfts, setNfts] = useState<NftRecord[]>([]);
   const [multiSelect, setMultiSelect] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   const updateNfts = useCallback(
     async (page: number) => {
       if (view === NftView.Collection) return;
 
-      await commands
-        .getNfts({
-          collection_id:
-            collectionId === 'No collection' ? null : (collectionId ?? null),
-          offset: (page - 1) * pageSize,
-          limit: pageSize,
-          sort_mode: view,
-          include_hidden: showHidden,
-        })
-        .then((data) => setNfts(data.nfts))
-        .catch(addError);
+      setIsLoading(true);
+      try {
+        await commands
+          .getNfts({
+            collection_id:
+              collectionId === 'No collection'
+                ? 'none'
+                : (collectionId ?? null),
+            did_id: null,
+            name: query || null,
+            offset: (page - 1) * pageSize,
+            limit: pageSize,
+            sort_mode: view,
+            include_hidden: showHidden,
+          })
+          .then((data) => setNfts(data.nfts))
+          .catch(addError);
 
-      await commands
-        .getNftCollection({
-          collection_id:
-            collectionId === 'No collection' ? null : (collectionId ?? null),
-        })
-        .then((data) => setCollection(data.collection))
-        .catch(addError);
+        await commands
+          .getNftCollection({
+            collection_id:
+              collectionId === 'No collection' ? null : (collectionId ?? null),
+          })
+          .then((data) => setCollection(data.collection))
+          .catch(addError);
+      } finally {
+        setIsLoading(false);
+      }
     },
-    [collectionId, pageSize, showHidden, view, addError],
+    [collectionId, pageSize, showHidden, view, query, addError],
   );
 
   useEffect(() => {
@@ -79,14 +88,6 @@ export default function Collection() {
     updateNfts(page);
   }, [updateNfts, page]);
 
-  const totalPages = Math.max(
-    1,
-    Math.ceil(
-      ((showHidden ? collection?.nfts : collection?.visible_nfts) ?? 0) /
-        pageSize,
-    ),
-  );
-
   return (
     <>
       <Header title={`${collection?.name ?? t`Unknown`} NFTs`}>
@@ -96,7 +97,6 @@ export default function Collection() {
       <Container>
         <NftOptions
           isCollection
-          totalPages={totalPages}
           params={params}
           setParams={setParams}
           multiSelect={multiSelect}
@@ -104,6 +104,7 @@ export default function Collection() {
             setMultiSelect(value);
             setSelected([]);
           }}
+          isLoading={isLoading}
         />
 
         <NftCardList>

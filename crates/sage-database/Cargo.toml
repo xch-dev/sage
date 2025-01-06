@@ -19,3 +19,4 @@ chia = { workspace = true }
 chia-wallet-sdk = { workspace = true }
 sqlx = { workspace = true, features = ["sqlite"] }
 thiserror = { workspace = true }
+tracing = { workspace = true }

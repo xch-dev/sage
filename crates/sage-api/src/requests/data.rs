@@ -107,17 +107,6 @@ pub struct GetTransactionResponse {
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Type)]
-pub struct GetNftStatus {}
-
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, Type)]
-pub struct GetNftStatusResponse {
-    pub nfts: u32,
-    pub visible_nfts: u32,
-    pub collections: u32,
-    pub visible_collections: u32,
-}
-
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, Type)]
 pub struct GetNftCollections {
     pub offset: u32,
     pub limit: u32,
@@ -142,6 +131,8 @@ pub struct GetNftCollectionResponse {
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub struct GetNfts {
     pub collection_id: Option<String>,
+    pub did_id: Option<String>,
+    pub name: Option<String>,
     pub offset: u32,
     pub limit: u32,
     pub sort_mode: NftSortMode,
