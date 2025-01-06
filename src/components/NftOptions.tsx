@@ -29,6 +29,7 @@ export interface NftOptionsProps {
   setMultiSelect: (value: boolean) => void;
   className?: string;
   isLoading?: boolean;
+  canLoadMore: boolean;
 }
 
 export function NftOptions({
@@ -39,6 +40,7 @@ export function NftOptions({
   setMultiSelect,
   className,
   isLoading,
+  canLoadMore,
 }: NftOptionsProps) {
   return (
     <div className={`flex flex-col gap-4 ${className}`}>
@@ -71,7 +73,11 @@ export function NftOptions({
           <Button
             variant='outline'
             size='icon'
-            onClick={() => !isLoading && setParams({ page: page + 1 })}
+            onClick={() => {
+              if (!canLoadMore) return;
+
+              if (!isLoading) setParams({ page: page + 1 });
+            }}
             aria-disabled={isLoading}
             aria-label={t`Next page`}
           >

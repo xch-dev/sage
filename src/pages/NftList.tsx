@@ -117,6 +117,7 @@ export function NftList() {
           }}
           className='mt-4'
           isLoading={isLoading}
+          canLoadMore={nfts.length === pageSize}
         />
 
         <NftCardList>

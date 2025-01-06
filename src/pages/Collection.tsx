@@ -105,6 +105,7 @@ export default function Collection() {
             setSelected([]);
           }}
           isLoading={isLoading}
+          canLoadMore={nfts.length === pageSize}
         />
 
         <NftCardList>
