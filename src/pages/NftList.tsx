@@ -4,7 +4,6 @@ import { MultiSelectActions } from '@/components/MultiSelectActions';
 import { NftCard, NftCardList } from '@/components/NftCard';
 import { NftOptions } from '@/components/NftOptions';
 import { ReceiveAddress } from '@/components/ReceiveAddress';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -18,13 +17,7 @@ import { useNftParams } from '@/hooks/useNftParams';
 import collectionImage from '@/images/collection.png';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import {
-  EyeIcon,
-  EyeOff,
-  Image,
-  ImagePlusIcon,
-  MoreVerticalIcon,
-} from 'lucide-react';
+import { EyeIcon, EyeOff, ImagePlusIcon, MoreVerticalIcon } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { commands, events, NftCollectionRecord, NftRecord } from '../bindings';
@@ -114,31 +107,17 @@ export function NftList() {
           <ImagePlusIcon className='h-4 w-4 mr-2' /> <Trans>Mint NFT</Trans>
         </Button>
 
-        {page === 1 && nfts.length === 0 ? (
-          <Alert className='mt-4'>
-            <Image className='h-4 w-4' />
-            <AlertTitle>
-              <Trans>Mint an NFT?</Trans>
-            </AlertTitle>
-            <AlertDescription>
-              <Trans>
-                You do not currently have any NFTs. Would you like to mint one?
-              </Trans>
-            </AlertDescription>
-          </Alert>
-        ) : (
-          <NftOptions
-            params={params}
-            setParams={setParams}
-            multiSelect={multiSelect}
-            setMultiSelect={(value) => {
-              setMultiSelect(value);
-              setSelected([]);
-            }}
-            className='mt-4'
-            isLoading={isLoading}
-          />
-        )}
+        <NftOptions
+          params={params}
+          setParams={setParams}
+          multiSelect={multiSelect}
+          setMultiSelect={(value) => {
+            setMultiSelect(value);
+            setSelected([]);
+          }}
+          className='mt-4'
+          isLoading={isLoading}
+        />
 
         <NftCardList>
           {view === 'collection' ? (

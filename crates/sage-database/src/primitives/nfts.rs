@@ -4,7 +4,6 @@ use chia::{
 };
 use chia_wallet_sdk::{Nft, NftInfo};
 use sqlx::SqliteExecutor;
-use tracing::debug;
 
 use crate::{
     into_row, to_bytes32, CoinStateRow, CoinStateSql, CollectionRow, CollectionSql, Database,
@@ -725,8 +724,6 @@ async fn search_nfts(
             "#
         )
     };
-
-    debug!("Query: {}", query);
 
     // Execute query with bindings
     let mut query = sqlx::query_as::<_, NftSql>(&query);

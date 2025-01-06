@@ -89,7 +89,7 @@ export function defaultState(): WalletState {
     sync: {
       receive_address: 'Unknown',
       burn_address: 'Unknown',
-      balance: 'Syncing',
+      balance: '0',
       unit: {
         ticker: 'XCH',
         decimals: 12,

@@ -4906,7 +4906,6 @@ dependencies = [
  "chia-wallet-sdk",
  "sqlx",
  "thiserror 1.0.69",
- "tracing",
 ]
 
 [[package]]
