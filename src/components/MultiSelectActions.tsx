@@ -1,10 +1,16 @@
 import { commands, TransactionResponse } from '@/bindings';
 import { useErrors } from '@/hooks/useErrors';
 import { toMojos } from '@/lib/utils';
-import { useWalletState } from '@/state';
+import { useOfferState, useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import { ChevronDown, Flame, SendIcon, UserRoundPlus } from 'lucide-react';
+import {
+  ChevronDown,
+  Flame,
+  HandCoins,
+  SendIcon,
+  UserRoundPlus,
+} from 'lucide-react';
 import { useState } from 'react';
 import { AssignNftDialog } from './AssignNftDialog';
 import ConfirmationDialog from './ConfirmationDialog';
@@ -16,6 +22,7 @@ import {
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
 
@@ -29,7 +36,10 @@ export function MultiSelectActions({
   onConfirm,
 }: MultiSelectActionsProps) {
   const walletState = useWalletState();
+  const offerState = useOfferState();
+
   const { addError } = useErrors();
+
   const selectedCount = selected.length;
 
   const [transferOpen, setTransferOpen] = useState(false);
@@ -124,6 +134,39 @@ export function MultiSelectActions({
                 <Flame className='mr-2 h-4 w-4' />
                 <span>
                   <Trans>Burn</Trans>
+                </span>
+              </DropdownMenuItem>
+
+              <DropdownMenuSeparator />
+
+              <DropdownMenuItem
+                className='cursor-pointer'
+                onClick={(e) => {
+                  e.stopPropagation();
+
+                  const newNfts = [...offerState.offered.nfts];
+
+                  for (const item of selected) {
+                    if (newNfts.includes(item)) {
+                      continue;
+                    }
+
+                    newNfts.push(item);
+                  }
+
+                  useOfferState.setState({
+                    offered: {
+                      ...offerState.offered,
+                      nfts: newNfts,
+                    },
+                  });
+
+                  onConfirm();
+                }}
+              >
+                <HandCoins className='mr-2 h-4 w-4' />
+                <span>
+                  <Trans>Add to Offer</Trans>
                 </span>
               </DropdownMenuItem>
             </DropdownMenuGroup>
