@@ -22,33 +22,30 @@ CREATE INDEX `nft_did_recent` ON `nfts` (
 -- Create FTS5 virtual table for name searching
 CREATE VIRTUAL TABLE `nft_name_fts` USING fts5(
     name,
-    launcher_id UNINDEXED,  -- We store but don't index these columns
-    content='nfts',
-    content_rowid='rowid'
+    nft_rowid UNINDEXED,  -- Store the nfts table rowid explicitly
+    launcher_id UNINDEXED
 );
 
 -- Populate FTS table with existing NFT names
-INSERT INTO nft_name_fts(rowid, name, launcher_id)
-SELECT rowid, name, launcher_id
+INSERT INTO nft_name_fts(name, nft_rowid, launcher_id)
+SELECT name, rowid, launcher_id
 FROM nfts
-WHERE name IS NOT NULL;
+WHERE name IS NOT NULL AND name != '';
 
--- Create triggers to keep FTS table in sync
+-- Modified triggers with additional safety checks
 CREATE TRIGGER nfts_ai AFTER INSERT ON nfts BEGIN
-  INSERT INTO nft_name_fts(rowid, name, launcher_id)
-  SELECT NEW.rowid, NEW.name, NEW.launcher_id
-  WHERE NEW.name IS NOT NULL;
+  INSERT INTO nft_name_fts(name, nft_rowid, launcher_id)
+  SELECT NEW.name, NEW.rowid, NEW.launcher_id
+  WHERE NEW.name IS NOT NULL AND NEW.name != '';
 END;
 
 CREATE TRIGGER nfts_ad AFTER DELETE ON nfts BEGIN
-  INSERT INTO nft_name_fts(nft_name_fts, rowid, name, launcher_id)
-  VALUES('delete', OLD.rowid, OLD.name, OLD.launcher_id);
+  DELETE FROM nft_name_fts WHERE nft_rowid = OLD.rowid;
 END;
 
 CREATE TRIGGER nfts_au AFTER UPDATE ON nfts BEGIN
-  INSERT INTO nft_name_fts(nft_name_fts, rowid, name, launcher_id)
-  VALUES('delete', OLD.rowid, OLD.name, OLD.launcher_id);
-  INSERT INTO nft_name_fts(rowid, name, launcher_id)
-  SELECT NEW.rowid, NEW.name, NEW.launcher_id
-  WHERE NEW.name IS NOT NULL;
+  DELETE FROM nft_name_fts WHERE nft_rowid = OLD.rowid;
+  INSERT INTO nft_name_fts(name, nft_rowid, launcher_id)
+  SELECT NEW.name, NEW.rowid, NEW.launcher_id
+  WHERE NEW.name IS NOT NULL AND NEW.name != '';
 END; 
