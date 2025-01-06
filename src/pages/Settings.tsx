@@ -21,6 +21,7 @@ import { useWalletConnect } from '@/hooks/useWalletConnect';
 import { clearState, fetchState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
+import { getVersion } from '@tauri-apps/api/app';
 import { useContext, useEffect, useState } from 'react';
 import { DarkModeContext } from '../App';
 import {
@@ -36,11 +37,18 @@ export default function Settings() {
   const initialized = useInitialization();
   const wallet = useWallet(initialized);
 
+  const [version, setVersion] = useState<string | null>(null);
+
+  useEffect(() => {
+    getVersion().then(setVersion);
+  }, []);
+
   return (
     <Layout>
       <Header title={t`Settings`} />
       <Container className='max-w-2xl'>
-        <div className='flex flex-col gap-4'>
+        <Trans>Version {version}</Trans>
+        <div className='flex flex-col gap-4 mt-2'>
           <WalletConnectSettings />
           <GlobalSettings />
           <NetworkSettings />
