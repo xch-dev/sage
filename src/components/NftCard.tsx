@@ -9,7 +9,7 @@ import { useErrors } from '@/hooks/useErrors';
 import { amount } from '@/lib/formTypes';
 import { nftUri } from '@/lib/nftUri';
 import { toMojos } from '@/lib/utils';
-import { useWalletState } from '@/state';
+import { useOfferState, useWalletState } from '@/state';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -20,6 +20,7 @@ import {
   EyeIcon,
   EyeOff,
   Flame,
+  HandCoins,
   LinkIcon,
   MoreVertical,
   SendIcon,
@@ -85,6 +86,7 @@ export function NftCardList({ children }: PropsWithChildren) {
 
 export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
   const walletState = useWalletState();
+  const offerState = useOfferState();
   const navigate = useNavigate();
 
   const { addError } = useErrors();
@@ -286,6 +288,35 @@ export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
                 </DropdownMenuItem>
 
                 <DropdownMenuSeparator />
+
+                <DropdownMenuItem
+                  className='cursor-pointer'
+                  onClick={(e) => {
+                    e.stopPropagation();
+
+                    const newNfts = [...offerState.offered.nfts];
+
+                    newNfts.push(nft.launcher_id);
+
+                    useOfferState.setState({
+                      offered: {
+                        ...offerState.offered,
+                        nfts: newNfts,
+                      },
+                    });
+                  }}
+                  disabled={
+                    !nft.created_height ||
+                    offerState.offered.nfts.findIndex(
+                      (nftId) => nftId === nft.launcher_id,
+                    ) !== -1
+                  }
+                >
+                  <HandCoins className='mr-2 h-4 w-4' />
+                  <span>
+                    <Trans>Add to Offer</Trans>
+                  </span>
+                </DropdownMenuItem>
 
                 <DropdownMenuItem
                   className='cursor-pointer'
