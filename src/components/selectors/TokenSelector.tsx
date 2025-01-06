@@ -43,7 +43,6 @@ export function TokenSelector({
 
   return (
     <DropdownSelector
-      totalItems={filteredTokens.length}
       loadedItems={filteredTokens}
       page={0}
       isDisabled={(token) => disabled.includes(token.asset_id)}

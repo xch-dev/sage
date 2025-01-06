@@ -2,8 +2,7 @@ import { commands, NftRecord } from '@/bindings';
 import { useErrors } from '@/hooks/useErrors';
 import { nftUri } from '@/lib/nftUri';
 import { addressInfo } from '@/lib/utils';
-import { useWalletState } from '@/state';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Input } from '../ui/input';
 import { DropdownSelector } from './DropdownSelector';
 
@@ -20,7 +19,6 @@ export function NftSelector({
   disabled = [],
   className,
 }: NftSelectorProps) {
-  const walletState = useWalletState();
   const { addError } = useErrors();
 
   const [page, setPage] = useState(0);
@@ -32,26 +30,38 @@ export function NftSelector({
 
   const pageSize = 8;
 
+  const isValidNftId = useMemo(() => {
+    let isValidNftId = true;
+
+    try {
+      if (addressInfo(value || '').puzzleHash.length !== 64) {
+        isValidNftId = false;
+      }
+    } catch {
+      isValidNftId = false;
+    }
+
+    return isValidNftId;
+  }, [value]);
+
   useEffect(() => {
     commands
       .getNfts({
+        collection_id: null,
+        did_id: null,
+        name: isValidNftId ? null : value || null,
         offset: page * pageSize,
         limit: pageSize,
         include_hidden: false,
-        collection_id: 'all',
         sort_mode: 'name',
       })
       .then((data) => setNfts(data.nfts))
       .catch(addError);
-  }, [addError, page]);
+  }, [addError, page, isValidNftId, value]);
 
   useEffect(() => {
     if (value && selectedNft?.launcher_id !== value) {
-      try {
-        if (addressInfo(value).puzzleHash.length !== 64) {
-          return setSelectedNft(null);
-        }
-      } catch {
+      if (!isValidNftId) {
         return setSelectedNft(null);
       }
 
@@ -62,7 +72,7 @@ export function NftSelector({
     } else if (!value) {
       setSelectedNft(null);
     }
-  }, [value, selectedNft?.launcher_id, addError]);
+  }, [value, selectedNft?.launcher_id, isValidNftId, addError]);
 
   useEffect(() => {
     const nftsToFetch = [...nfts.map((nft) => nft.launcher_id)];
@@ -96,7 +106,6 @@ export function NftSelector({
 
   return (
     <DropdownSelector
-      totalItems={walletState.nfts.visible_nfts}
       loadedItems={nfts}
       page={page}
       setPage={setPage}
@@ -108,7 +117,7 @@ export function NftSelector({
       className={className}
       manualInput={
         <Input
-          placeholder='Enter NFT id'
+          placeholder='Enter NFT'
           value={value || ''}
           onChange={(e) => {
             onChange(e.target.value);
