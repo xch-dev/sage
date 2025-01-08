@@ -23,8 +23,7 @@
       "allow": [
         { "url": "https://*.tauri.app" },
         { "url": "https://icons.dexie.space/*.webp" }
-      ],
-      "deny": [{ "url": "https://private.tauri.app" }]
+      ]
     }
   ]
 }

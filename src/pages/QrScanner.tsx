@@ -7,6 +7,45 @@ import { useNavigationStore } from '@/state';
 import { Trans } from '@lingui/react/macro';
 import { t } from '@lingui/core/macro';
 
+const fetchDexieOffer = async (id: string): Promise<string | null> => {
+  try {
+    const response = await fetch(`https://api.dexie.space/v1/offers/${id}`);
+    const data = await response.json();
+
+    if (data.success && data.offer?.offer) {
+      return data.offer.offer;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+};
+
+const isValidHostname = (url: string, expectedHostname: string) => {
+  try {
+    const parsedUrl = new URL(url);
+    return parsedUrl.hostname === expectedHostname;
+  } catch {
+    return false;
+  }
+};
+
+const extractDexieOfferId = (url: string) => {
+  try {
+    const parsedUrl = new URL(url);
+    const segments = parsedUrl.pathname.split('/');
+    const lastSegment = segments[segments.length - 1];
+
+    if (segments.includes('offers') && lastSegment) {
+      return lastSegment;
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+};
+
 export default function QRScanner() {
   const navigate = useNavigate();
   const { state } = useLocation();
@@ -16,9 +55,22 @@ export default function QRScanner() {
   const handleScanSuccess = useCallback(
     (content: string) => {
       if (returnPath.startsWith('/offers')) {
-        navigate(`/offers/view/${encodeURIComponent(content.trim())}`, {
-          replace: true,
-        });
+        if (isValidHostname(content, 'dexie.space')) {
+          const offerId = extractDexieOfferId(content);
+          if (offerId) {
+            fetchDexieOffer(offerId).then((data) => {
+              if (data) {
+                navigate(`/offers/view/${encodeURIComponent(data.trim())}`, {
+                  replace: true,
+                });
+              }
+            });
+          }
+        } else {
+          navigate(`/offers/view/${encodeURIComponent(content.trim())}`, {
+            replace: true,
+          });
+        }
       } else {
         setReturnValue(returnPath, { status: 'success', data: content });
         navigate(-1);
