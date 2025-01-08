@@ -61,6 +61,7 @@ import {
 // import { t } from '@lingui/core/macro';
 import StyledQRCode from '@/components/StyledQrCode';
 import { fetch } from '@tauri-apps/plugin-http';
+import { CopyButton } from '@/components/CopyButton';
 interface QRCodeDialogProps {
   isOpen: boolean;
   onClose: (open: boolean) => void;
@@ -84,7 +85,7 @@ const getImageDataUrl = async (url: string) => {
   }
 };
 
-const CopyButton = ({ receive_address }: { receive_address: string }) => {
+const QRCodeCopyButton = ({ receive_address }: { receive_address: string }) => {
   const [copySuccess, setCopySuccess] = useState(false);
 
   const handleCopy = async () => {
@@ -165,7 +166,7 @@ const QRCodeDialog = ({
               {receive_address}
             </span>
             <div className='pt-8 w-full'>
-              <CopyButton receive_address={receive_address} />
+              <QRCodeCopyButton receive_address={receive_address} />
             </div>
           </div>
         </div>
