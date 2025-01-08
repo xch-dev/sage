@@ -4,7 +4,6 @@ import { MultiSelectActions } from '@/components/MultiSelectActions';
 import { NftCard, NftCardList } from '@/components/NftCard';
 import { NftOptions } from '@/components/NftOptions';
 import { ReceiveAddress } from '@/components/ReceiveAddress';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -16,59 +15,59 @@ import {
 import { useErrors } from '@/hooks/useErrors';
 import { useNftParams } from '@/hooks/useNftParams';
 import collectionImage from '@/images/collection.png';
-import { useWalletState } from '@/state';
-import {
-  EyeIcon,
-  EyeOff,
-  Image,
-  ImagePlusIcon,
-  MoreVerticalIcon,
-} from 'lucide-react';
+import { t } from '@lingui/core/macro';
+import { Trans } from '@lingui/react/macro';
+import { EyeIcon, EyeOff, ImagePlusIcon, MoreVerticalIcon } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { commands, events, NftCollectionRecord, NftRecord } from '../bindings';
-import { Trans } from '@lingui/react/macro';
-import { t } from '@lingui/core/macro';
 
 export function NftList() {
   const navigate = useNavigate();
-  const walletState = useWalletState();
 
   const { addError } = useErrors();
 
   const [params, setParams] = useNftParams();
-  const { pageSize, page, view, showHidden } = params;
+  const { pageSize, page, view, showHidden, query } = params;
 
   const [nfts, setNfts] = useState<NftRecord[]>([]);
   const [collections, setCollections] = useState<NftCollectionRecord[]>([]);
   const [multiSelect, setMultiSelect] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   const updateNfts = useCallback(
     async (page: number) => {
-      if (view === 'name' || view === 'recent') {
-        return await commands
-          .getNfts({
-            collection_id: 'all',
-            offset: (page - 1) * pageSize,
-            limit: pageSize,
-            sort_mode: view,
-            include_hidden: showHidden,
-          })
-          .then((data) => setNfts(data.nfts))
-          .catch(addError);
-      } else if (view === 'collection') {
-        await commands
-          .getNftCollections({
-            offset: (page - 1) * pageSize,
-            limit: pageSize,
-            include_hidden: showHidden,
-          })
-          .then((data) => setCollections(data.collections))
-          .catch(addError);
+      setIsLoading(true);
+      try {
+        if (view === 'name' || view === 'recent') {
+          await commands
+            .getNfts({
+              collection_id: null,
+              did_id: null,
+              name: query || null,
+              offset: (page - 1) * pageSize,
+              limit: pageSize,
+              sort_mode: view,
+              include_hidden: showHidden,
+            })
+            .then((data) => setNfts(data.nfts))
+            .catch(addError);
+        } else if (view === 'collection') {
+          await commands
+            .getNftCollections({
+              offset: (page - 1) * pageSize,
+              limit: pageSize,
+              include_hidden: showHidden,
+            })
+            .then((data) => setCollections(data.collections))
+            .catch(addError);
+        }
+      } finally {
+        setIsLoading(false);
       }
     },
-    [pageSize, showHidden, view, addError],
+    [pageSize, showHidden, view, query, addError],
   );
 
   useEffect(() => {
@@ -97,17 +96,6 @@ export function NftList() {
     updateNfts(page);
   }, [updateNfts, page]);
 
-  const totalPages = Math.max(
-    1,
-    Math.ceil(
-      (view === 'collection'
-        ? walletState.nfts.visible_collections
-        : showHidden
-          ? walletState.nfts.nfts
-          : walletState.nfts.visible_nfts) / pageSize,
-    ),
-  );
-
   return (
     <>
       <Header title={<Trans>NFTs</Trans>}>
@@ -119,31 +107,18 @@ export function NftList() {
           <ImagePlusIcon className='h-4 w-4 mr-2' /> <Trans>Mint NFT</Trans>
         </Button>
 
-        {walletState.nfts.nfts === 0 ? (
-          <Alert className='mt-4'>
-            <Image className='h-4 w-4' />
-            <AlertTitle>
-              <Trans>Mint an NFT?</Trans>
-            </AlertTitle>
-            <AlertDescription>
-              <Trans>
-                You do not currently have any NFTs. Would you like to mint one?
-              </Trans>
-            </AlertDescription>
-          </Alert>
-        ) : (
-          <NftOptions
-            totalPages={totalPages}
-            params={params}
-            setParams={setParams}
-            multiSelect={multiSelect}
-            setMultiSelect={(value) => {
-              setMultiSelect(value);
-              setSelected([]);
-            }}
-            className='mt-4'
-          />
-        )}
+        <NftOptions
+          params={params}
+          setParams={setParams}
+          multiSelect={multiSelect}
+          setMultiSelect={(value) => {
+            setMultiSelect(value);
+            setSelected([]);
+          }}
+          className='mt-4'
+          isLoading={isLoading}
+          canLoadMore={nfts.length === pageSize}
+        />
 
         <NftCardList>
           {view === 'collection' ? (
@@ -155,7 +130,7 @@ export function NftList() {
                   updateNfts={() => updateNfts(page)}
                 />
               ))}
-              {page === totalPages && (
+              {nfts.length < pageSize && (
                 <Collection
                   col={{
                     name: 'Uncategorized NFTs',
@@ -164,9 +139,6 @@ export function NftList() {
                     metadata_collection_id: 'Uncategorized',
                     collection_id: 'No collection',
                     visible: true,
-                    // TODO: Fix
-                    nfts: 0,
-                    visible_nfts: 0,
                   }}
                   updateNfts={() => updateNfts(page)}
                 />

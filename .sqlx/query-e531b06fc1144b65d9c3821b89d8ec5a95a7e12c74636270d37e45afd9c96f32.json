@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT COUNT(*) AS `count`\n        FROM `coin_states`\n        LEFT JOIN `transaction_spends` ON `coin_states`.`coin_id` = `transaction_spends`.`coin_id`\n        LEFT JOIN `offered_coins` ON `coin_states`.`coin_id` = `offered_coins`.`coin_id`\n        LEFT JOIN `offers` ON `offered_coins`.`offer_id` = `offers`.`offer_id`\n        WHERE `coin_states`.`coin_id` = ?\n        AND (`offers`.`offer_id` IS NULL OR `offers`.`status` > 0)\n        AND `coin_states`.`transaction_id` IS NULL\n        AND `transaction_spends`.`transaction_id` IS NULL\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "count",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "e531b06fc1144b65d9c3821b89d8ec5a95a7e12c74636270d37e45afd9c96f32"
+}

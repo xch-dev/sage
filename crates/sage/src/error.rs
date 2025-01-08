@@ -166,6 +166,9 @@ pub enum Error {
     #[error("Invalid public key: {0}")]
     InvalidPublicKey(String),
 
+    #[error("Cannot specify both collection and DID")]
+    InvalidGroup,
+
     #[error("Wallet is cold and cannot be used for signing")]
     NoSigningKey,
 
@@ -274,7 +277,8 @@ impl Error {
             | Self::Offer(..)
             | Self::NoPeers
             | Self::CouldNotFetchNft(..)
-            | Self::MissingAssetId => ErrorKind::Api,
+            | Self::MissingAssetId
+            | Self::InvalidGroup => ErrorKind::Api,
         }
     }
 }

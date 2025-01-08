@@ -5,6 +5,7 @@ export interface NftParams {
   page: number;
   view: NftView;
   showHidden: boolean;
+  query: string;
 }
 
 export enum NftView {
@@ -33,14 +34,16 @@ export function useNftParams(): [NftParams, SetNftParams] {
 
   const pageSize = parseInt(params.get('pageSize') ?? '12');
   const page = parseInt(params.get('page') ?? '1');
-  const view = parseView(params.get('view') ?? 'name');
+  const view = parseView(params.get('view') ?? 'recent');
   const showHidden = (params.get('showHidden') ?? 'false') === 'true';
+  const query = params.get('query') ?? '';
 
   const updateParams = ({
     pageSize,
     page,
     view,
     showHidden,
+    query,
   }: Partial<NftParams>) => {
     setParams(
       (prev) => {
@@ -62,11 +65,15 @@ export function useNftParams(): [NftParams, SetNftParams] {
           next.set('showHidden', showHidden.toString());
         }
 
+        if (query !== undefined) {
+          next.set('query', query);
+        }
+
         return next;
       },
       { replace: true },
     );
   };
 
-  return [{ pageSize, page, view, showHidden }, updateParams];
+  return [{ pageSize, page, view, showHidden, query }, updateParams];
 }

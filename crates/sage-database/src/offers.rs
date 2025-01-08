@@ -325,9 +325,9 @@ async fn coin_offer_id(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Resul
 
     sqlx::query!(
         "
-        SELECT `offer_id`
-        FROM `offered_coins`
-        WHERE `coin_id` = ?
+        SELECT `offered_coins`.`offer_id` FROM `offered_coins`
+        INNER JOIN `offers` ON `offered_coins`.`offer_id` = `offers`.`offer_id`
+        WHERE `coin_id` = ? AND `offers`.`status` = 0
         ",
         coin_id
     )

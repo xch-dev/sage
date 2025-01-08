@@ -169,7 +169,7 @@ impl SyncManager {
                         if self.check_peer_count().await {
                             return true;
                         }
-                    } else {
+                    } else if !force {
                         self.state.lock().await.ban(
                             socket_addr.ip(),
                             Duration::from_secs(60 * 10),
@@ -179,19 +179,23 @@ impl SyncManager {
                 }
                 Ok(Err(error)) => {
                     debug!("Failed to connect to peer {socket_addr}: {error}");
-                    self.state.lock().await.ban(
-                        socket_addr.ip(),
-                        Duration::from_secs(60 * 10),
-                        "failed to connect",
-                    );
+                    if !force {
+                        self.state.lock().await.ban(
+                            socket_addr.ip(),
+                            Duration::from_secs(60 * 10),
+                            "failed to connect",
+                        );
+                    }
                 }
                 Err(_timeout) => {
                     debug!("Connection to peer {socket_addr} timed out");
-                    self.state.lock().await.ban(
-                        socket_addr.ip(),
-                        Duration::from_secs(60 * 10),
-                        "connection timed out",
-                    );
+                    if !force {
+                        self.state.lock().await.ban(
+                            socket_addr.ip(),
+                            Duration::from_secs(60 * 10),
+                            "connection timed out",
+                        );
+                    }
                 }
             }
         }

@@ -36,6 +36,8 @@ import { amount } from '@/lib/formTypes';
 import { toDecimal, toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { t } from '@lingui/core/macro';
+import { Trans } from '@lingui/react/macro';
 import { RowSelectionState } from '@tanstack/react-table';
 import BigNumber from 'bignumber.js';
 import {
@@ -56,8 +58,8 @@ import {
   events,
   TransactionResponse,
 } from '../bindings';
-import { Trans } from '@lingui/react/macro';
-import { t } from '@lingui/core/macro';
+// import { Trans, t } from '@lingui/react/macro';
+// import { t } from '@lingui/core/macro';
 import StyledQRCode from '@/components/StyledQrCode';
 import { fetch } from '@tauri-apps/plugin-http';
 interface QRCodeDialogProps {
@@ -311,7 +313,7 @@ export default function Token() {
         }
       />
       <Container>
-        <div className='flex flex-col gap-8 max-w-screen-lg'>
+        <div className='flex flex-col gap-4 max-w-screen-lg'>
           <Card>
             <CardHeader className='flex flex-col pb-2'>
               <div className='flex flex-row justify-between items-center space-y-0 space-x-2'>

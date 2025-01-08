@@ -4,13 +4,11 @@ import {
   CoinRecord,
   commands,
   events,
-  GetNftStatusResponse,
   GetSyncStatusResponse,
 } from './bindings';
 
 export interface WalletState {
   sync: GetSyncStatusResponse;
-  nfts: GetNftStatusResponse;
   coins: CoinRecord[];
 }
 
@@ -58,7 +56,7 @@ export function clearOffer() {
 }
 
 export async function fetchState() {
-  await Promise.all([updateCoins(), updateSyncStatus(), updateNftStatus()]);
+  await Promise.all([updateCoins(), updateSyncStatus()]);
 }
 
 function updateCoins() {
@@ -79,29 +77,17 @@ function updateSyncStatus() {
     .catch((error) => console.error(error));
 }
 
-function updateNftStatus() {
-  commands
-    .getNftStatus({})
-    .then((nfts) => useWalletState.setState({ nfts }))
-    .catch((error) => console.error(error));
-}
-
 events.syncEvent.listen((event) => {
   switch (event.payload.type) {
     case 'coin_state':
       updateCoins();
       updateSyncStatus();
-      updateNftStatus();
       break;
     case 'derivation':
       updateSyncStatus();
       break;
     case 'puzzle_batch_synced':
       updateSyncStatus();
-      updateNftStatus();
-      break;
-    case 'nft_data':
-      updateNftStatus();
       break;
   }
 });
@@ -121,19 +107,13 @@ export function defaultState(): WalletState {
     sync: {
       receive_address: 'Unknown',
       burn_address: 'Unknown',
-      balance: 'Syncing',
+      balance: '0',
       unit: {
         ticker: 'XCH',
         decimals: 12,
       },
       total_coins: 0,
       synced_coins: 0,
-    },
-    nfts: {
-      nfts: 0,
-      visible_nfts: 0,
-      collections: 0,
-      visible_collections: 0,
     },
     coins: [],
   };

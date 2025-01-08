@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n        SELECT\n            `coin_states`.`parent_coin_id`, `coin_states`.`puzzle_hash`, `coin_states`.`amount`,\n            `parent_parent_coin_id`, `parent_inner_puzzle_hash`, `parent_amount`,\n            `launcher_id`, `metadata`, `metadata_updater_puzzle_hash`, `current_owner`,\n            `royalty_puzzle_hash`, `royalty_ten_thousandths`, `p2_puzzle_hash`\n        FROM `nft_coins`\n        INNER JOIN `coin_states` INDEXED BY `coin_height` ON `nft_coins`.`coin_id` = `coin_states`.`coin_id`\n        LEFT JOIN `transaction_spends` ON `coin_states`.`coin_id` = `transaction_spends`.`coin_id`\n        WHERE `launcher_id` = ?\n        AND `spent_height` IS NULL\n        AND `transaction_spends`.`transaction_id` IS NULL\n        ",
+  "query": "\n        SELECT\n            `coin_states`.`parent_coin_id`, `coin_states`.`puzzle_hash`, `coin_states`.`amount`,\n            `parent_parent_coin_id`, `parent_inner_puzzle_hash`, `parent_amount`,\n            `launcher_id`, `metadata`, `metadata_updater_puzzle_hash`, `current_owner`,\n            `royalty_puzzle_hash`, `royalty_ten_thousandths`, `p2_puzzle_hash`\n        FROM `nft_coins` INDEXED BY `nft_launcher_id`\n        INNER JOIN `coin_states` ON `nft_coins`.`coin_id` = `coin_states`.`coin_id`\n        LEFT JOIN `transaction_spends` ON `coin_states`.`coin_id` = `transaction_spends`.`coin_id`\n        WHERE `launcher_id` = ?\n        AND `spent_height` IS NULL\n        AND `transaction_spends`.`transaction_id` IS NULL\n        ",
   "describe": {
     "columns": [
       {
@@ -88,5 +88,5 @@
       false
     ]
   },
-  "hash": "698d8b6ac1efd117a366920a9d1954cc9e4b4fed669abb1d308d4f21a4460a0b"
+  "hash": "05bdd19eb31d4052f22f55021108733659fa1b636259c3aa36e10a823404c5fa"
 }

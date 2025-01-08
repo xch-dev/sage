@@ -23,6 +23,28 @@ pub struct NftUri {
     pub uri: String,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum NftSortMode {
+    Recent,
+    Name,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum NftGroup {
+    Collection(Bytes32),
+    Did(Bytes32),
+    NoCollection,
+    NoDid,
+}
+
+#[derive(Debug, Clone)]
+pub struct NftSearchParams {
+    pub sort_mode: NftSortMode,
+    pub include_hidden: bool,
+    pub group: Option<NftGroup>,
+    pub name: Option<String>,
+}
+
 impl Database {
     pub async fn unchecked_nft_uris(&self, limit: u32) -> Result<Vec<NftUri>> {
         unchecked_nft_uris(&self.pool, limit).await
@@ -40,6 +62,15 @@ impl Database {
         fetch_nft_data(&self.pool, hash).await
     }
 
+    pub async fn search_nfts(
+        &self,
+        params: NftSearchParams,
+        limit: u32,
+        offset: u32,
+    ) -> Result<Vec<NftRow>> {
+        search_nfts(&self.pool, params, limit, offset).await
+    }
+
     pub async fn collection(&self, collection_id: Bytes32) -> Result<CollectionRow> {
         collection(&self.pool, collection_id).await
     }
@@ -50,106 +81,6 @@ impl Database {
 
     pub async fn visible_collection_count(&self) -> Result<u32> {
         visible_collection_count(&self.pool).await
-    }
-
-    pub async fn nfts_visible_named(&self, limit: u32, offset: u32) -> Result<Vec<NftRow>> {
-        nfts_visible_named(&self.pool, limit, offset).await
-    }
-
-    pub async fn nfts_visible_recent(&self, limit: u32, offset: u32) -> Result<Vec<NftRow>> {
-        nfts_visible_recent(&self.pool, limit, offset).await
-    }
-
-    pub async fn nfts_named(&self, limit: u32, offset: u32) -> Result<Vec<NftRow>> {
-        nfts_named(&self.pool, limit, offset).await
-    }
-
-    pub async fn nfts_recent(&self, limit: u32, offset: u32) -> Result<Vec<NftRow>> {
-        nfts_recent(&self.pool, limit, offset).await
-    }
-
-    pub async fn nft_count(&self) -> Result<u32> {
-        nft_count(&self.pool).await
-    }
-
-    pub async fn visible_nft_count(&self) -> Result<u32> {
-        visible_nft_count(&self.pool).await
-    }
-
-    pub async fn collection_nfts_visible_named(
-        &self,
-        collection_id: Bytes32,
-        limit: u32,
-        offset: u32,
-    ) -> Result<Vec<NftRow>> {
-        collection_nfts_visible_named(&self.pool, collection_id, limit, offset).await
-    }
-
-    pub async fn collection_nfts_visible_recent(
-        &self,
-        collection_id: Bytes32,
-        limit: u32,
-        offset: u32,
-    ) -> Result<Vec<NftRow>> {
-        collection_nfts_visible_recent(&self.pool, collection_id, limit, offset).await
-    }
-
-    pub async fn collection_nfts_named(
-        &self,
-        collection_id: Bytes32,
-        limit: u32,
-        offset: u32,
-    ) -> Result<Vec<NftRow>> {
-        collection_nfts_named(&self.pool, collection_id, limit, offset).await
-    }
-
-    pub async fn collection_nfts_recent(
-        &self,
-        collection_id: Bytes32,
-        limit: u32,
-        offset: u32,
-    ) -> Result<Vec<NftRow>> {
-        collection_nfts_recent(&self.pool, collection_id, limit, offset).await
-    }
-
-    pub async fn no_collection_nfts_visible_named(
-        &self,
-        limit: u32,
-        offset: u32,
-    ) -> Result<Vec<NftRow>> {
-        no_collection_nfts_visible_named(&self.pool, limit, offset).await
-    }
-
-    pub async fn no_collection_nfts_visible_recent(
-        &self,
-        limit: u32,
-        offset: u32,
-    ) -> Result<Vec<NftRow>> {
-        no_collection_nfts_visible_recent(&self.pool, limit, offset).await
-    }
-
-    pub async fn no_collection_nfts_named(&self, limit: u32, offset: u32) -> Result<Vec<NftRow>> {
-        no_collection_nfts_named(&self.pool, limit, offset).await
-    }
-
-    pub async fn no_collection_nfts_recent(&self, limit: u32, offset: u32) -> Result<Vec<NftRow>> {
-        no_collection_nfts_recent(&self.pool, limit, offset).await
-    }
-
-    pub async fn collection_nft_count(&self, collection_id: Bytes32) -> Result<u32> {
-        collection_nft_count(&self.pool, collection_id).await
-    }
-
-    pub async fn collection_visible_nft_count(&self, collection_id: Bytes32) -> Result<u32> {
-        collection_visible_nft_count(&self.pool, collection_id).await
-    }
-
-    pub async fn no_collection_nft_count(&self) -> Result<u32> {
-        no_collection_nft_count(&self.pool).await
-    }
-
-    pub async fn no_collection_visible_nft_count(&self) -> Result<u32> {
-        no_collection_visible_nft_count(&self.pool).await
     }
 
     pub async fn collections_visible_named(
@@ -427,96 +358,6 @@ async fn visible_collection_count(conn: impl SqliteExecutor<'_>) -> Result<u32> 
     Ok(row.count.try_into()?)
 }
 
-async fn nft_count(conn: impl SqliteExecutor<'_>) -> Result<u32> {
-    let row = sqlx::query!(
-        "
-        SELECT COUNT(*) AS `count` FROM `nfts`
-        WHERE `is_owned` = 1 AND `visible` = 1
-        "
-    )
-    .fetch_one(conn)
-    .await?;
-
-    Ok(row.count.try_into()?)
-}
-
-async fn visible_nft_count(conn: impl SqliteExecutor<'_>) -> Result<u32> {
-    let row = sqlx::query!(
-        "
-        SELECT COUNT(*) AS `count` FROM `nfts`
-        WHERE `is_owned` = 1 AND `visible` = 1
-        "
-    )
-    .fetch_one(conn)
-    .await?;
-
-    Ok(row.count.try_into()?)
-}
-
-async fn collection_nft_count(
-    conn: impl SqliteExecutor<'_>,
-    collection_id: Bytes32,
-) -> Result<u32> {
-    let collection_id = collection_id.as_ref();
-
-    let row = sqlx::query!(
-        "
-        SELECT COUNT(*) AS `count` FROM `nfts` INDEXED BY `nft_col_recent`
-        WHERE `is_owned` = 1 AND `collection_id` = ? AND `visible` = 1
-        ",
-        collection_id
-    )
-    .fetch_one(conn)
-    .await?;
-
-    Ok(row.count.try_into()?)
-}
-
-async fn collection_visible_nft_count(
-    conn: impl SqliteExecutor<'_>,
-    collection_id: Bytes32,
-) -> Result<u32> {
-    let collection_id = collection_id.as_ref();
-
-    let row = sqlx::query!(
-        "
-        SELECT COUNT(*) AS `count` FROM `nfts` INDEXED BY `nft_col_recent`
-        WHERE `is_owned` = 1 AND `collection_id` = ? AND `visible` = 1
-        ",
-        collection_id
-    )
-    .fetch_one(conn)
-    .await?;
-
-    Ok(row.count.try_into()?)
-}
-
-async fn no_collection_nft_count(conn: impl SqliteExecutor<'_>) -> Result<u32> {
-    let row = sqlx::query!(
-        "
-        SELECT COUNT(*) AS `count` FROM `nfts` INDEXED BY `nft_col_recent`
-        WHERE `is_owned` = 1 AND `collection_id` IS NULL AND `visible` = 1
-        "
-    )
-    .fetch_one(conn)
-    .await?;
-
-    Ok(row.count.try_into()?)
-}
-
-async fn no_collection_visible_nft_count(conn: impl SqliteExecutor<'_>) -> Result<u32> {
-    let row = sqlx::query!(
-        "
-        SELECT COUNT(*) AS `count` FROM `nfts` INDEXED BY `nft_col_recent`
-        WHERE `is_owned` = 1 AND `collection_id` IS NULL AND `visible` = 1
-        "
-    )
-    .fetch_one(conn)
-    .await?;
-
-    Ok(row.count.try_into()?)
-}
-
 async fn insert_nft_uri(conn: impl SqliteExecutor<'_>, uri: String, hash: Bytes32) -> Result<()> {
     let hash = hash.as_ref();
 
@@ -751,8 +592,8 @@ async fn nft(conn: impl SqliteExecutor<'_>, launcher_id: Bytes32) -> Result<Opti
             `parent_parent_coin_id`, `parent_inner_puzzle_hash`, `parent_amount`,
             `launcher_id`, `metadata`, `metadata_updater_puzzle_hash`, `current_owner`,
             `royalty_puzzle_hash`, `royalty_ten_thousandths`, `p2_puzzle_hash`
-        FROM `nft_coins`
-        INNER JOIN `coin_states` INDEXED BY `coin_height` ON `nft_coins`.`coin_id` = `coin_states`.`coin_id`
+        FROM `nft_coins` INDEXED BY `nft_launcher_id`
+        INNER JOIN `coin_states` ON `nft_coins`.`coin_id` = `coin_states`.`coin_id`
         LEFT JOIN `transaction_spends` ON `coin_states`.`coin_id` = `transaction_spends`.`coin_id`
         WHERE `launcher_id` = ?
         AND `spent_height` IS NULL
@@ -790,292 +631,119 @@ async fn nfts_by_metadata_hash(
     .collect()
 }
 
-async fn nfts_visible_named(
+fn escape_fts_query(query: &str) -> String {
+    // First escape backslashes by doubling them
+    // Then escape quotes by doubling them
+    // Finally wrap in quotes to treat as literal string
+    let escaped = query.replace('\\', "\\\\").replace('"', "\"\"");
+    format!("\"{escaped}\"")
+}
+
+async fn search_nfts(
     conn: impl SqliteExecutor<'_>,
+    params: NftSearchParams,
     limit: u32,
     offset: u32,
 ) -> Result<Vec<NftRow>> {
-    sqlx::query_as!(
-        NftSql,
-        "
-        SELECT * FROM `nfts` INDEXED BY `nft_name`
-        WHERE `is_owned` = 1 AND `visible` = 1
-        ORDER BY `is_pending` DESC, `is_named` DESC, `name` ASC, `launcher_id` ASC
-        LIMIT ? OFFSET ?
-        ",
-        limit,
-        offset
-    )
-    .fetch_all(conn)
-    .await?
-    .into_iter()
-    .map(into_row)
-    .collect()
-}
+    let mut conditions = vec!["is_owned = 1"];
 
-async fn nfts_visible_recent(
-    conn: impl SqliteExecutor<'_>,
-    limit: u32,
-    offset: u32,
-) -> Result<Vec<NftRow>> {
-    sqlx::query_as!(
-        NftSql,
-        "
-        SELECT * FROM `nfts` INDEXED BY `nft_recent`
-        WHERE `is_owned` = 1 AND `visible` = 1
-        ORDER BY `is_pending` DESC, `created_height` DESC, `launcher_id` ASC
-        LIMIT ? OFFSET ?
-        ",
-        limit,
-        offset
-    )
-    .fetch_all(conn)
-    .await?
-    .into_iter()
-    .map(into_row)
-    .collect()
-}
+    // Group filtering (Collection/DID)
+    match params.group {
+        Some(NftGroup::Collection(_)) => conditions.push("collection_id = ?"),
+        Some(NftGroup::Did(_)) => conditions.push("minter_did = ?"),
+        Some(NftGroup::NoCollection) => conditions.push("collection_id IS NULL"),
+        Some(NftGroup::NoDid) => conditions.push("minter_did IS NULL"),
+        None => {}
+    }
 
-async fn nfts_named(conn: impl SqliteExecutor<'_>, limit: u32, offset: u32) -> Result<Vec<NftRow>> {
-    sqlx::query_as!(
-        NftSql,
-        "
-        SELECT * FROM `nfts` INDEXED BY `nft_name`
-        WHERE `is_owned` = 1
-        ORDER BY `visible` DESC, `is_pending` DESC, `is_named` DESC, `name` ASC, `launcher_id` ASC
-        LIMIT ? OFFSET ?
-        ",
-        limit,
-        offset
-    )
-    .fetch_all(conn)
-    .await?
-    .into_iter()
-    .map(into_row)
-    .collect()
-}
+    // Visibility condition
+    if !params.include_hidden {
+        conditions.push("visible = 1");
+    }
 
-async fn nfts_recent(
-    conn: impl SqliteExecutor<'_>,
-    limit: u32,
-    offset: u32,
-) -> Result<Vec<NftRow>> {
-    sqlx::query_as!(
-        NftSql,
-        "
-        SELECT * FROM `nfts` INDEXED BY `nft_recent`
-        WHERE `is_owned` = 1
-        ORDER BY `visible` DESC, `is_pending` DESC, `created_height` DESC, `launcher_id` ASC
-        LIMIT ? OFFSET ?
-        ",
-        limit,
-        offset
-    )
-    .fetch_all(conn)
-    .await?
-    .into_iter()
-    .map(into_row)
-    .collect()
-}
+    // Build base conditions
+    let where_clause = conditions.join(" AND ");
 
-async fn collection_nfts_visible_named(
-    conn: impl SqliteExecutor<'_>,
-    collection_id: Bytes32,
-    limit: u32,
-    offset: u32,
-) -> Result<Vec<NftRow>> {
-    let collection_id = collection_id.as_ref();
+    // Common parts
+    let order_by = format!(
+        r#"ORDER BY {visible_order}
+                 is_pending DESC,
+                 {sort_order},
+                 launcher_id ASC
+        LIMIT ? OFFSET ?"#,
+        visible_order = if params.include_hidden {
+            "visible DESC,"
+        } else {
+            ""
+        },
+        sort_order = match params.sort_mode {
+            NftSortMode::Recent => "created_height DESC",
+            NftSortMode::Name => "is_named DESC, name ASC",
+        }
+    );
 
-    sqlx::query_as!(
-        NftSql,
-        "
-        SELECT * FROM `nfts` INDEXED BY `nft_col_name`
-        WHERE `is_owned` = 1 AND `collection_id` = ? AND `visible` = 1
-        ORDER BY `is_pending` DESC, `is_named` DESC, `name` ASC, `launcher_id` ASC
-        LIMIT ? OFFSET ?
-        ",
-        collection_id,
-        limit,
-        offset
-    )
-    .fetch_all(conn)
-    .await?
-    .into_iter()
-    .map(into_row)
-    .collect()
-}
+    // Choose index based on sort mode and group type
+    let index = match (params.sort_mode, &params.group) {
+        // Collection grouping
+        (NftSortMode::Name, Some(NftGroup::Collection(_))) => "nft_col_name",
+        (NftSortMode::Recent, Some(NftGroup::Collection(_))) => "nft_col_recent",
 
-async fn collection_nfts_visible_recent(
-    conn: impl SqliteExecutor<'_>,
-    collection_id: Bytes32,
-    limit: u32,
-    offset: u32,
-) -> Result<Vec<NftRow>> {
-    let collection_id = collection_id.as_ref();
+        // DID grouping
+        (NftSortMode::Name, Some(NftGroup::Did(_))) => "nft_did_name",
+        (NftSortMode::Recent, Some(NftGroup::Did(_))) => "nft_did_recent",
 
-    sqlx::query_as!(
-        NftSql,
-        "
-        SELECT * FROM `nfts` INDEXED BY `nft_col_recent`
-        WHERE `is_owned` = 1 AND `collection_id` = ? AND `visible` = 1
-        ORDER BY `is_pending` DESC, `created_height` DESC, `launcher_id` ASC
-        LIMIT ? OFFSET ?
-        ",
-        collection_id,
-        limit,
-        offset
-    )
-    .fetch_all(conn)
-    .await?
-    .into_iter()
-    .map(into_row)
-    .collect()
-}
+        // Global sorting
+        (NftSortMode::Name, _) => "nft_name",
+        (NftSortMode::Recent, _) => "nft_recent",
+    };
 
-async fn collection_nfts_named(
-    conn: impl SqliteExecutor<'_>,
-    collection_id: Bytes32,
-    limit: u32,
-    offset: u32,
-) -> Result<Vec<NftRow>> {
-    let collection_id = collection_id.as_ref();
+    // Construct query based on whether we're doing a name search
+    let query = if params.name.is_some() {
+        format!(
+            r#"
+            WITH matched_names AS (
+                SELECT launcher_id 
+                FROM nft_name_fts 
+                WHERE name MATCH ? || '*'
+                ORDER BY rank
+            )
+            SELECT nfts.* 
+            FROM nfts INDEXED BY {index}
+            INNER JOIN matched_names ON nfts.launcher_id = matched_names.launcher_id
+            WHERE {where_clause}
+            {order_by}
+            "#
+        )
+    } else {
+        format!(
+            r#"
+            SELECT * 
+            FROM nfts INDEXED BY {index}
+            WHERE {where_clause}
+            {order_by}
+            "#
+        )
+    };
 
-    sqlx::query_as!(
-        NftSql,
-        "
-        SELECT * FROM `nfts` INDEXED BY `nft_col_name`
-        WHERE `is_owned` = 1 AND `collection_id` = ?
-        ORDER BY `visible` DESC, `is_pending` DESC, `is_named` DESC, `name` ASC, `launcher_id` ASC
-        LIMIT ? OFFSET ?
-        ",
-        collection_id,
-        limit,
-        offset
-    )
-    .fetch_all(conn)
-    .await?
-    .into_iter()
-    .map(into_row)
-    .collect()
-}
+    // Execute query with bindings
+    let mut query = sqlx::query_as::<_, NftSql>(&query);
 
-async fn collection_nfts_recent(
-    conn: impl SqliteExecutor<'_>,
-    collection_id: Bytes32,
-    limit: u32,
-    offset: u32,
-) -> Result<Vec<NftRow>> {
-    let collection_id = collection_id.as_ref();
+    // Bind name search if present
+    if let Some(name_search) = params.name {
+        query = query.bind(escape_fts_query(&name_search));
+    }
 
-    sqlx::query_as!(
-        NftSql,
-        "
-        SELECT * FROM `nfts` INDEXED BY `nft_col_recent`
-        WHERE `is_owned` = 1 AND `collection_id` = ?
-        ORDER BY `visible` DESC, `is_pending` DESC, `created_height` DESC, `launcher_id` ASC
-        LIMIT ? OFFSET ?
-        ",
-        collection_id,
-        limit,
-        offset
-    )
-    .fetch_all(conn)
-    .await?
-    .into_iter()
-    .map(into_row)
-    .collect()
-}
+    // Bind group parameters if present
+    if let Some(NftGroup::Collection(id) | NftGroup::Did(id)) = &params.group {
+        query = query.bind(id.as_ref());
+    }
 
-async fn no_collection_nfts_visible_named(
-    conn: impl SqliteExecutor<'_>,
-    limit: u32,
-    offset: u32,
-) -> Result<Vec<NftRow>> {
-    sqlx::query_as!(
-        NftSql,
-        "
-        SELECT * FROM `nfts` INDEXED BY `nft_col_name`
-        WHERE `is_owned` = 1 AND `collection_id` IS NULL AND `visible` = 1
-        ORDER BY `is_pending` DESC, `is_named` DESC, `name` ASC, `launcher_id` ASC
-        LIMIT ? OFFSET ?
-        ",
-        limit,
-        offset
-    )
-    .fetch_all(conn)
-    .await?
-    .into_iter()
-    .map(into_row)
-    .collect()
-}
+    // Limit and offset
+    query = query.bind(limit);
+    query = query.bind(offset);
 
-async fn no_collection_nfts_visible_recent(
-    conn: impl SqliteExecutor<'_>,
-    limit: u32,
-    offset: u32,
-) -> Result<Vec<NftRow>> {
-    sqlx::query_as!(
-        NftSql,
-        "
-        SELECT * FROM `nfts` INDEXED BY `nft_col_recent`
-        WHERE `is_owned` = 1 AND `collection_id` IS NULL AND `visible` = 1
-        ORDER BY `is_pending` DESC, `created_height` DESC, `launcher_id` ASC
-        LIMIT ? OFFSET ?
-        ",
-        limit,
-        offset
-    )
-    .fetch_all(conn)
-    .await?
-    .into_iter()
-    .map(into_row)
-    .collect()
-}
-
-async fn no_collection_nfts_named(
-    conn: impl SqliteExecutor<'_>,
-    limit: u32,
-    offset: u32,
-) -> Result<Vec<NftRow>> {
-    sqlx::query_as!(
-        NftSql,
-        "
-        SELECT * FROM `nfts` INDEXED BY `nft_col_name`
-        WHERE `is_owned` = 1 AND `collection_id` IS NULL
-        ORDER BY `visible` DESC, `is_pending` DESC, `is_named` DESC, `name` ASC, `launcher_id` ASC
-        LIMIT ? OFFSET ?
-        ",
-        limit,
-        offset
-    )
-    .fetch_all(conn)
-    .await?
-    .into_iter()
-    .map(into_row)
-    .collect()
-}
-
-async fn no_collection_nfts_recent(
-    conn: impl SqliteExecutor<'_>,
-    limit: u32,
-    offset: u32,
-) -> Result<Vec<NftRow>> {
-    sqlx::query_as!(
-        NftSql,
-        "
-        SELECT * FROM `nfts` INDEXED BY `nft_col_recent`
-        WHERE `is_owned` = 1 AND `collection_id` IS NULL
-        ORDER BY `visible` DESC, `is_pending` DESC, `created_height` DESC, `launcher_id` ASC
-        LIMIT ? OFFSET ?
-        ",
-        limit,
-        offset
-    )
-    .fetch_all(conn)
-    .await?
-    .into_iter()
-    .map(into_row)
-    .collect()
+    let rows = query.fetch_all(conn).await?;
+    rows.into_iter().map(into_row).collect()
 }
 
 async fn insert_nft_coin(
