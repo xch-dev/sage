@@ -351,7 +351,6 @@ export default function Token() {
                     <Send className='mr-2 h-4 w-4' /> <Trans>Send</Trans>
                   </Button>
                 </Link>
-                {/* <Link to='/wallet/addresses'> */}
                 <Button
                   variant={'outline'}
                   onClick={() => setReceiveOpen(true)}
@@ -359,7 +358,6 @@ export default function Token() {
                   <HandHelping className='mr-2 h-4 w-4' />
                   <Trans>Receive</Trans>
                 </Button>
-                {/* </Link> */}
                 {asset && assetId !== 'xch' && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
