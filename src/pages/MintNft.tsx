@@ -23,15 +23,22 @@ import { amount } from '@/lib/formTypes';
 import { toMojos } from '@/lib/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { LoaderCircleIcon } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import * as z from 'zod';
 import { commands, TransactionResponse } from '../bindings';
 import Container from '../components/Container';
-import { useWalletState } from '../state';
+import { useNavigationStore, useWalletState } from '../state';
 import { Trans } from '@lingui/react/macro';
 import { t } from '@lingui/core/macro';
+import { PasteInput } from '@/components/PasteInput';
+import { platform } from '@tauri-apps/plugin-os';
+import {
+  openAppSettings,
+  requestPermissions,
+} from '@tauri-apps/plugin-barcode-scanner';
+import { readText } from '@tauri-apps/plugin-clipboard-manager';
 
 export default function MintNft() {
   const navigate = useNavigate();
@@ -40,6 +47,8 @@ export default function MintNft() {
   const { addError } = useErrors();
   const [pending, setPending] = useState(false);
   const [response, setResponse] = useState<TransactionResponse | null>(null);
+  const { returnValues, setReturnValue } = useNavigationStore();
+  const isMobile = platform() === 'ios' || platform() === 'android';
 
   const formSchema = z.object({
     profile: z.string().min(1, t`Profile is required`),
@@ -54,6 +63,16 @@ export default function MintNft() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
   });
+
+  useEffect(() => {
+    const returnValue = returnValues[location.pathname];
+    if (!returnValue) return;
+
+    if (returnValue.status === 'success' && returnValue?.data) {
+      form.setValue('royaltyAddress', returnValue.data);
+      setReturnValue(location.pathname, { status: 'completed' });
+    }
+  }, [returnValues, form]);
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
     setPending(true);
@@ -206,11 +225,37 @@ export default function MintNft() {
                     <Trans>Royalty Address</Trans>
                   </FormLabel>
                   <FormControl>
-                    <Input
+                    <PasteInput
                       type='text'
                       placeholder={t`Enter address`}
                       {...field}
-                      className='pr-12'
+                      // className='pr-12'
+                      onEndIconClick={async () => {
+                        if (isMobile) {
+                          const permissionState = await requestPermissions();
+                          if (permissionState === 'denied') {
+                            await openAppSettings();
+                          } else if (permissionState === 'granted') {
+                            navigate('/scan', {
+                              state: {
+                                returnTo: location.pathname,
+                              }, // Use location.pathname
+                            });
+                          }
+                        } else {
+                          try {
+                            const clipboardText = await readText();
+                            if (clipboardText) {
+                              field.onChange(clipboardText);
+                            }
+                          } catch (error) {
+                            console.error(
+                              'Failed to paste from clipboard:',
+                              error,
+                            );
+                          }
+                        }
+                      }}
                     />
                   </FormControl>
                   <FormMessage />

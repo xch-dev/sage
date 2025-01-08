@@ -16,7 +16,15 @@
     "core:window:allow-request-user-attention",
     "clipboard-manager:default",
     "clipboard-manager:allow-write-text",
+    "clipboard-manager:allow-read-text",
     "shell:default",
-    "safe-area-insets:default"
+    {
+      "identifier": "http:default",
+      "allow": [
+        { "url": "https://*.tauri.app" },
+        { "url": "https://icons.dexie.space/*.webp" }
+      ],
+      "deny": [{ "url": "https://private.tauri.app" }]
+    }
   ]
 }

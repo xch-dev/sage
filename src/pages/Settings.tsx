@@ -1,6 +1,7 @@
 import Container from '@/components/Container';
 import Header from '@/components/Header';
 import Layout from '@/components/Layout';
+// import { PasteInput } from '@/components/PasteInput';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -18,7 +19,7 @@ import { useErrors } from '@/hooks/useErrors';
 import useInitialization from '@/hooks/useInitialization';
 import { useWallet } from '@/hooks/useWallet';
 import { useWalletConnect } from '@/hooks/useWalletConnect';
-import { clearState, fetchState } from '@/state';
+import { clearState, fetchState, useNavigationStore } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { useContext, useEffect, useState } from 'react';
@@ -31,6 +32,14 @@ import {
   WalletConfig,
 } from '../bindings';
 import { isValidU32 } from '../validation';
+import { PasteInput } from '@/components/PasteInput';
+import { platform } from '@tauri-apps/plugin-os';
+import {
+  openAppSettings,
+  requestPermissions,
+} from '@tauri-apps/plugin-barcode-scanner';
+import { useNavigate } from 'react-router-dom';
+import { readText } from '@tauri-apps/plugin-clipboard-manager';
 
 export default function Settings() {
   const initialized = useInitialization();
@@ -96,15 +105,31 @@ function GlobalSettings() {
 }
 
 function WalletConnectSettings() {
-  const { pair, sessions, disconnect } = useWalletConnect();
+  const { pair, sessions, disconnect, connecting } = useWalletConnect();
   const [uri, setUri] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
+  const isMobile = platform() === 'ios' || platform() === 'android';
+  const navigate = useNavigate();
+  const { returnValues, setReturnValue } = useNavigationStore();
+
+  useEffect(() => {
+    const returnValue = returnValues[location.pathname];
+    if (!returnValue) return;
+
+    if (returnValue.status === 'success' && returnValue?.data) {
+      setUri(returnValue.data);
+      setReturnValue(location.pathname, { status: 'completed' });
+    }
+  }, [returnValues]);
 
   const handlePair = async () => {
     try {
       setError(null);
+      console.log('connecting ');
       await pair(uri);
+      setUri('');
     } catch (err) {
+      console.log('called');
       setError(err instanceof Error ? err.message : 'Failed to connect');
     }
   };
@@ -120,7 +145,7 @@ function WalletConnectSettings() {
         <div className='grid gap-6'>
           <div className='flex flex-col gap-4'>
             <div className='flex flex-col gap-2'>
-              {sessions.map((session: any) => (
+              {sessions.map((session) => (
                 <div
                   key={session.topic}
                   className='flex items-center justify-between gap-1'
@@ -150,18 +175,48 @@ function WalletConnectSettings() {
                 </span>
               )}
             </div>
+
             <div className='flex flex-col gap-2'>
               <div className='flex gap-2'>
-                <Input
-                  id='wc-uri'
-                  type='text'
+                <PasteInput
+                  value={uri}
                   placeholder={t`Paste WalletConnect URI`}
                   onChange={(e) => setUri(e.target.value)}
+                  onEndIconClick={async () => {
+                    if (isMobile) {
+                      const permissionState = await requestPermissions();
+                      if (permissionState === 'denied') {
+                        await openAppSettings();
+                      } else if (permissionState === 'granted') {
+                        navigate('/scan', {
+                          state: {
+                            returnTo: location.pathname,
+                          }, // Use location.pathname
+                        });
+                      }
+                    } else {
+                      try {
+                        const clipboardText = await readText();
+                        if (clipboardText) {
+                          setUri(clipboardText);
+                        }
+                      } catch (error) {
+                        console.error('Failed to paste from clipboard:', error);
+                      }
+                    }
+                  }}
+                  disabled={connecting}
                 />
-                <Button onClick={handlePair}>
-                  <Trans>Connect</Trans>
+
+                <Button onClick={handlePair} disabled={connecting}>
+                  {connecting ? (
+                    <Trans>Connecting...</Trans>
+                  ) : (
+                    <Trans>Connect</Trans>
+                  )}
                 </Button>
               </div>
+
               {error && <span className='text-sm text-red-500'>{error}</span>}
             </div>
           </div>

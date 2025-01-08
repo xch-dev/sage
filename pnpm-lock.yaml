@@ -71,9 +71,15 @@ importers:
       '@tauri-apps/api':
         specifier: 2.0.0-rc.4
         version: 2.0.0-rc.4
+      '@tauri-apps/plugin-barcode-scanner':
+        specifier: ^2.0.0-rc
+        version: 2.2.0
       '@tauri-apps/plugin-clipboard-manager':
         specifier: 2.0.0-rc.1
         version: 2.0.0-rc.1
+      '@tauri-apps/plugin-http':
+        specifier: ^2.0.0-rc
+        version: 2.2.0
       '@tauri-apps/plugin-os':
         specifier: ^2.0.0
         version: 2.0.0
@@ -104,6 +110,9 @@ importers:
       lucide-react:
         specifier: ^0.445.0
         version: 0.445.0(react@18.3.1)
+      qr-code-styling:
+        specifier: ^1.9.0
+        version: 1.9.0
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -126,8 +135,8 @@ importers:
         specifier: ^1.0.7
         version: 1.0.7(tailwindcss@3.4.12)
       tauri-plugin-safe-area-insets:
-        specifier: file:./plugins/tauri-plugin-safe-area-insets
-        version: tauri-plugin-safe-area-insets-api@file:plugins/tauri-plugin-safe-area-insets
+        specifier: ^0.1.0
+        version: 0.1.0
       usehooks-ts:
         specifier: ^3.1.0
         version: 3.1.0(react@18.3.1)
@@ -1617,8 +1626,14 @@ packages:
     engines: {node: '>= 10'}
     hasBin: true
 
+  '@tauri-apps/plugin-barcode-scanner@2.2.0':
+    resolution: {integrity: sha512-16AgAjNZGS790KXTW2oq7K0YKUCxLmlDlizN7+pBvIcZzdR3kYzHSST/CYSXkAkYRParyHmE2nMsMvqJFAHKbA==}
+
   '@tauri-apps/plugin-clipboard-manager@2.0.0-rc.1':
     resolution: {integrity: sha512-hFgUABMmQuVGKwHb8PR9fuqfk0WRkedbWUt/ZV5sL4Q6kLrsp3JYJvtzVPeMYdeBvMqHl8WXNxAc/zwSld2h9w==}
+
+  '@tauri-apps/plugin-http@2.2.0':
+    resolution: {integrity: sha512-ZY6sIHhgu8hcu6BkkegoiOEbvOsQFSVcK8J7l+g9RNHrkhl5uzpNIytR4R/H50fj7gyG80DJvrXDx/LBo7Easw==}
 
   '@tauri-apps/plugin-os@2.0.0':
     resolution: {integrity: sha512-M7hG/nNyQYTJxVG/UhTKhp9mpXriwWzrs9mqDreB8mIgqA3ek5nHLdwRZJWhkKjZrnDT4v9CpA9BhYeplTlAiA==}
@@ -2983,6 +2998,13 @@ packages:
     resolution: {integrity: sha512-vYt7UD1U9Wg6138shLtLOvdAu+8DsC/ilFtEVHcH+wydcSpNE20AfSOduf6MkRFahL5FY7X1oU7nKVZFtfq8Fg==}
     engines: {node: '>=6'}
 
+  qr-code-styling@1.9.0:
+    resolution: {integrity: sha512-YwPf9iCQ4XESEDfErIqHtmGOE3EwFm7SMpRzwmjDnanH+JjaxMhAmWERJeJola20Bq4+zwWPid97qFtb+Ct5dw==}
+    engines: {node: '>=18.18.0'}
+
+  qrcode-generator@1.4.4:
+    resolution: {integrity: sha512-HM7yY8O2ilqhmULxGMpcHSF1EhJJ9yBj8gvDEuZ6M+KGJ0YY2hKpnXvRD+hZPLrDVck3ExIGhmPtSdcjC+guuw==}
+
   query-string@7.1.3:
     resolution: {integrity: sha512-hh2WYhq4fi8+b+/2Kg9CEge4fDPvHS534aOOvOZeQ3+Vf2mCFsaFBYj0i+iXcAq6I9Vzp5fjMFBlONvayDC1qg==}
     engines: {node: '>=6'}
@@ -3276,8 +3298,8 @@ packages:
     engines: {node: '>=14.0.0'}
     hasBin: true
 
-  tauri-plugin-safe-area-insets-api@file:plugins/tauri-plugin-safe-area-insets:
-    resolution: {directory: plugins/tauri-plugin-safe-area-insets, type: directory}
+  tauri-plugin-safe-area-insets@0.1.0:
+    resolution: {integrity: sha512-NhtxSQdU7+laTJiO4WZFlTB1CBzRlNE5EuHflGAGXS55fiwOkkaWztfNishFQO+eZtb9i5jLHX3Yho48lnqcRQ==}
 
   text-table@0.2.0:
     resolution: {integrity: sha512-N+8UisAXDGk8PFXP4HAzVR9nbfmVJ3zYLAWiTIoqC5v5isinhr+r5uaO8+7r3BMfuNIufIsA7RdpVgacC2cSpw==}
@@ -5014,9 +5036,17 @@ snapshots:
       '@tauri-apps/cli-win32-ia32-msvc': 2.0.0-rc.10
       '@tauri-apps/cli-win32-x64-msvc': 2.0.0-rc.10
 
+  '@tauri-apps/plugin-barcode-scanner@2.2.0':
+    dependencies:
+      '@tauri-apps/api': 2.0.2
+
   '@tauri-apps/plugin-clipboard-manager@2.0.0-rc.1':
     dependencies:
       '@tauri-apps/api': 2.0.0-rc.4
+
+  '@tauri-apps/plugin-http@2.2.0':
+    dependencies:
+      '@tauri-apps/api': 2.0.2
 
   '@tauri-apps/plugin-os@2.0.0':
     dependencies:
@@ -6577,6 +6607,12 @@ snapshots:
 
   punycode@2.3.1: {}
 
+  qr-code-styling@1.9.0:
+    dependencies:
+      qrcode-generator: 1.4.4
+
+  qrcode-generator@1.4.4: {}
+
   query-string@7.1.3:
     dependencies:
       decode-uri-component: 0.2.2
@@ -6873,7 +6909,7 @@ snapshots:
     transitivePeerDependencies:
       - ts-node
 
-  tauri-plugin-safe-area-insets-api@file:plugins/tauri-plugin-safe-area-insets:
+  tauri-plugin-safe-area-insets@0.1.0:
     dependencies:
       '@tauri-apps/api': 2.0.0-rc.4
 

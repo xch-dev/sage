@@ -104,12 +104,23 @@ pub fn run() {
         .expect("Failed to export TypeScript bindings");
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_http::init())
+        // .plugin(tauri_plugin_barcode_scanner::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_clipboard_manager::init())
-        .plugin(tauri_plugin_safe_area_insets::init())
+        // .plugin(tauri_plugin_safe_area_insets::init())
         .plugin(tauri_plugin_os::init())
         .invoke_handler(builder.invoke_handler())
         .setup(move |app| {
+            #[cfg(mobile)]
+            {
+                app.handle().plugin(tauri_plugin_barcode_scanner::init())?;
+            }
+
+            #[cfg(mobile)]
+            {
+                app.handle().plugin(tauri_plugin_safe_area_insets::init())?;
+            }
             builder.mount_events(app);
             let app_handle = app.handle().clone();
             let path = app.path().app_data_dir()?;

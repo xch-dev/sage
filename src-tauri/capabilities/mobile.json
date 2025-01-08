@@ -1,0 +1,6 @@
+{
+  "identifier": "mobile-capability",
+  "windows": ["main"],
+  "platforms": ["android", "iOS"],
+  "permissions": ["barcode-scanner:default", "safe-area-insets:default"]
+}

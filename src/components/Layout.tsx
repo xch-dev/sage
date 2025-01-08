@@ -12,7 +12,11 @@ import icon from '@/icon.png';
 import { logoutAndUpdateState, useWalletState } from '@/state';
 import { Nav } from './Nav';
 
-export default function Layout(props: PropsWithChildren<object>) {
+type LayoutProps = PropsWithChildren<object> & {
+  transparentBackground?: boolean;
+};
+
+export default function Layout(props: LayoutProps) {
   const navigate = useNavigate();
   const insets = useInsets();
 
@@ -110,12 +114,17 @@ export default function Layout(props: PropsWithChildren<object>) {
         </div>
       </div>
       <div
-        className='flex flex-col h-screen overflow-hidden'
-        style={{
-          paddingTop:
-            insets.top !== 0 ? `${insets.top}px` : 'env(safe-area-inset-top)',
-        }}
+        className={`flex flex-col h-screen overflow-hidden ${
+          props.transparentBackground ? 'bg-transparent' : 'bg-background'
+        }`}
       >
+        <div
+          className='bg-background'
+          style={{
+            height:
+              insets.top !== 0 ? `${insets.top}px` : 'env(safe-area-inset-top)',
+          }}
+        />
         {props.children}
       </div>
     </div>

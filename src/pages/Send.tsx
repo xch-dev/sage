@@ -19,7 +19,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useErrors } from '@/hooks/useErrors';
 import { amount, positiveAmount } from '@/lib/formTypes';
 import { toDecimal, toMojos } from '@/lib/utils';
-import { useWalletState } from '@/state';
+import { useNavigationStore, useWalletState } from '@/state';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -35,6 +35,14 @@ import {
   SendXch,
   TransactionResponse,
 } from '../bindings';
+import { PasteInput } from '@/components/PasteInput';
+import { QRProvider } from '@/contexts/QrCodeContext';
+import { platform } from '@tauri-apps/plugin-os';
+import {
+  openAppSettings,
+  requestPermissions,
+} from '@tauri-apps/plugin-barcode-scanner';
+import { readText } from '@tauri-apps/plugin-clipboard-manager';
 
 export default function Send() {
   const { asset_id: assetId } = useParams();
@@ -42,6 +50,8 @@ export default function Send() {
   const navigate = useNavigate();
   const walletState = useWalletState();
   const { addError } = useErrors();
+  const isMobile = platform() === 'ios' || platform() === 'android';
+  const { returnValues, setReturnValue } = useNavigationStore();
 
   const [asset, setAsset] = useState<(CatRecord & { decimals: number }) | null>(
     null,
@@ -137,6 +147,16 @@ export default function Send() {
     resolver: zodResolver(formSchema),
   });
 
+  useEffect(() => {
+    const returnValue = returnValues[location.pathname];
+    if (!returnValue) return;
+
+    if (returnValue.status === 'success' && returnValue?.data) {
+      form.setValue('address', returnValue.data);
+      setReturnValue(location.pathname, { status: 'completed' });
+    }
+  }, [returnValues, form]);
+
   const onSubmit = () => {
     const values = form.getValues();
 
@@ -220,11 +240,37 @@ export default function Send() {
                         {...field}
                       />
                     ) : (
-                      <Input
+                      <PasteInput
                         autoCorrect='off'
                         autoCapitalize='off'
                         autoComplete='off'
                         placeholder={t`Enter address`}
+                        onEndIconClick={async () => {
+                          if (isMobile) {
+                            const permissionState = await requestPermissions();
+                            if (permissionState === 'denied') {
+                              await openAppSettings();
+                            } else if (permissionState === 'granted') {
+                              navigate('/scan', {
+                                state: {
+                                  returnTo: location.pathname,
+                                }, // Use location.pathname
+                              });
+                            }
+                          } else {
+                            try {
+                              const clipboardText = await readText();
+                              if (clipboardText) {
+                                field.onChange(clipboardText);
+                              }
+                            } catch (error) {
+                              console.error(
+                                'Failed to paste from clipboard:',
+                                error,
+                              );
+                            }
+                          }
+                        }}
                         {...field}
                       />
                     )}

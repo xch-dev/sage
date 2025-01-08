@@ -46,6 +46,8 @@ import { ViewOffer } from './pages/ViewOffer';
 import { ViewSavedOffer } from './pages/ViewSavedOffer';
 import Wallet from './pages/Wallet';
 import { fetchState } from './state';
+import QRScanner from './pages/QrScanner';
+import { QRProvider } from './contexts/QrCodeContext';
 
 export interface DarkModeContext {
   toggle: () => void;
@@ -95,6 +97,7 @@ const router = createHashRouter(
         <Route path='view_saved/:offer_id' element={<ViewSavedOffer />} />
       </Route>
       <Route path='/settings' element={<Settings />} />
+      <Route path='/scan' element={<QRScanner />} />
       <Route path='/peers' element={<PeerList />} />
     </>,
   ),
