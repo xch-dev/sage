@@ -33,16 +33,24 @@ import {
   WalletConfig,
 } from '../bindings';
 import { isValidU32 } from '../validation';
+import { getVersion } from '@tauri-apps/api/app';
 
 export default function Settings() {
   const initialized = useInitialization();
   const wallet = useWallet(initialized);
 
+  const [version, setVersion] = useState<string | null>(null);
+
+  useEffect(() => {
+    getVersion().then(setVersion);
+  }, []);
+
   return (
     <Layout>
       <Header title={t`Settings`} />
       <Container className='max-w-2xl'>
-        <div className='flex flex-col gap-4'>
+        <Trans>Version {version}</Trans>
+        <div className='flex flex-col gap-4 mt-2'>
           <WalletConnectSettings />
           <GlobalSettings />
           <NetworkSettings />
@@ -108,11 +116,9 @@ function WalletConnectSettings() {
   const handlePair = async () => {
     try {
       setError(null);
-      console.log('connecting ');
       await pair(uri);
       setUri('');
     } catch (err) {
-      console.log('called');
       setError(err instanceof Error ? err.message : 'Failed to connect');
     }
   };
