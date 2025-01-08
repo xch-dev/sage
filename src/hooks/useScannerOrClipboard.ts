@@ -1,55 +1,52 @@
-import { useCallback } from 'react';
 import { platform } from '@tauri-apps/plugin-os';
 import {
   openAppSettings,
   requestPermissions,
 } from '@tauri-apps/plugin-barcode-scanner';
 import { readText } from '@tauri-apps/plugin-clipboard-manager';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useNavigationStore } from '@/state';
+import { useEffect } from 'react';
 
-export function usePasteScanner(
-  returnPath: string,
-  onChange?: (value: string) => void,
-) {
+export function useScannerOrClipboard(onScanResult: (text: string) => void) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { returnValues, setReturnValue } = useNavigationStore();
   const isMobile = platform() === 'ios' || platform() === 'android';
 
-  const handlePasteScan = useCallback(async () => {
+  useEffect(() => {
+    const returnValue = returnValues[location.pathname];
+    if (!returnValue) return;
+
+    if (returnValue.status === 'success' && returnValue?.data) {
+      onScanResult(returnValue.data);
+      setReturnValue(location.pathname, { status: 'completed' });
+    }
+  }, [returnValues, onScanResult, location.pathname, setReturnValue]);
+
+  const handleScanOrPaste = async () => {
     if (isMobile) {
       const permissionState = await requestPermissions();
       if (permissionState === 'denied') {
         await openAppSettings();
       } else if (permissionState === 'granted') {
         navigate('/scan', {
-          state: { returnTo: returnPath },
+          state: {
+            returnTo: location.pathname,
+          },
         });
       }
     } else {
       try {
         const clipboardText = await readText();
-        if (clipboardText && onChange) {
-          onChange(clipboardText);
+        if (clipboardText) {
+          onScanResult(clipboardText);
         }
       } catch (error) {
         console.error('Failed to paste from clipboard:', error);
       }
     }
-  }, [isMobile, navigate, returnPath, onChange]);
-
-  // Check for scanned value
-  if (
-    returnValues[returnPath]?.status === 'success' &&
-    returnValues[returnPath]?.data &&
-    onChange
-  ) {
-    onChange(returnValues[returnPath].data);
-    setReturnValue(returnPath, { status: 'completed' });
-  }
-
-  return {
-    handlePasteScan,
-    isMobile,
   };
+
+  return { handleScanOrPaste, isMobile };
 }

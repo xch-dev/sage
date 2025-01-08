@@ -1,6 +1,7 @@
 import ConfirmationDialog from '@/components/ConfirmationDialog';
 import Container from '@/components/Container';
 import Header from '@/components/Header';
+import { PasteInput } from '@/components/PasteInput';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
@@ -11,15 +12,15 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { TokenAmountInput } from '@/components/ui/masked-input';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { useErrors } from '@/hooks/useErrors';
+import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
 import { amount, positiveAmount } from '@/lib/formTypes';
 import { toDecimal, toMojos } from '@/lib/utils';
-import { useNavigationStore, useWalletState } from '@/state';
+import { useWalletState } from '@/state';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -35,14 +36,6 @@ import {
   SendXch,
   TransactionResponse,
 } from '../bindings';
-import { PasteInput } from '@/components/PasteInput';
-import { QRProvider } from '@/contexts/QrCodeContext';
-import { platform } from '@tauri-apps/plugin-os';
-import {
-  openAppSettings,
-  requestPermissions,
-} from '@tauri-apps/plugin-barcode-scanner';
-import { readText } from '@tauri-apps/plugin-clipboard-manager';
 
 export default function Send() {
   const { asset_id: assetId } = useParams();
@@ -50,8 +43,6 @@ export default function Send() {
   const navigate = useNavigate();
   const walletState = useWalletState();
   const { addError } = useErrors();
-  const isMobile = platform() === 'ios' || platform() === 'android';
-  const { returnValues, setReturnValue } = useNavigationStore();
 
   const [asset, setAsset] = useState<(CatRecord & { decimals: number }) | null>(
     null,
@@ -147,15 +138,9 @@ export default function Send() {
     resolver: zodResolver(formSchema),
   });
 
-  useEffect(() => {
-    const returnValue = returnValues[location.pathname];
-    if (!returnValue) return;
-
-    if (returnValue.status === 'success' && returnValue?.data) {
-      form.setValue('address', returnValue.data);
-      setReturnValue(location.pathname, { status: 'completed' });
-    }
-  }, [returnValues, form]);
+  const { handleScanOrPaste } = useScannerOrClipboard((scanResValue) => {
+    form.setValue('address', scanResValue);
+  });
 
   const onSubmit = () => {
     const values = form.getValues();
@@ -245,32 +230,33 @@ export default function Send() {
                         autoCapitalize='off'
                         autoComplete='off'
                         placeholder={t`Enter address`}
-                        onEndIconClick={async () => {
-                          if (isMobile) {
-                            const permissionState = await requestPermissions();
-                            if (permissionState === 'denied') {
-                              await openAppSettings();
-                            } else if (permissionState === 'granted') {
-                              navigate('/scan', {
-                                state: {
-                                  returnTo: location.pathname,
-                                }, // Use location.pathname
-                              });
-                            }
-                          } else {
-                            try {
-                              const clipboardText = await readText();
-                              if (clipboardText) {
-                                field.onChange(clipboardText);
-                              }
-                            } catch (error) {
-                              console.error(
-                                'Failed to paste from clipboard:',
-                                error,
-                              );
-                            }
-                          }
-                        }}
+                        onEndIconClick={handleScanOrPaste}
+                        // onEndIconClick={async () => {
+                        //   if (isMobile) {
+                        //     const permissionState = await requestPermissions();
+                        //     if (permissionState === 'denied') {
+                        //       await openAppSettings();
+                        //     } else if (permissionState === 'granted') {
+                        //       navigate('/scan', {
+                        //         state: {
+                        //           returnTo: location.pathname,
+                        //         }, // Use location.pathname
+                        //       });
+                        //     }
+                        //   } else {
+                        //     try {
+                        //       const clipboardText = await readText();
+                        //       if (clipboardText) {
+                        //         field.onChange(clipboardText);
+                        //       }
+                        //     } catch (error) {
+                        //       console.error(
+                        //         'Failed to paste from clipboard:',
+                        //         error,
+                        //       );
+                        //     }
+                        //   }
+                        // }}
                         {...field}
                       />
                     )}

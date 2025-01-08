@@ -39,6 +39,7 @@ import {
   requestPermissions,
 } from '@tauri-apps/plugin-barcode-scanner';
 import { readText } from '@tauri-apps/plugin-clipboard-manager';
+import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
 
 export default function MintNft() {
   const navigate = useNavigate();
@@ -64,15 +65,9 @@ export default function MintNft() {
     resolver: zodResolver(formSchema),
   });
 
-  useEffect(() => {
-    const returnValue = returnValues[location.pathname];
-    if (!returnValue) return;
-
-    if (returnValue.status === 'success' && returnValue?.data) {
-      form.setValue('royaltyAddress', returnValue.data);
-      setReturnValue(location.pathname, { status: 'completed' });
-    }
-  }, [returnValues, form]);
+  const { handleScanOrPaste } = useScannerOrClipboard((scanResValue) => {
+    form.setValue('royaltyAddress', scanResValue);
+  });
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
     setPending(true);
@@ -229,33 +224,7 @@ export default function MintNft() {
                       type='text'
                       placeholder={t`Enter address`}
                       {...field}
-                      // className='pr-12'
-                      onEndIconClick={async () => {
-                        if (isMobile) {
-                          const permissionState = await requestPermissions();
-                          if (permissionState === 'denied') {
-                            await openAppSettings();
-                          } else if (permissionState === 'granted') {
-                            navigate('/scan', {
-                              state: {
-                                returnTo: location.pathname,
-                              }, // Use location.pathname
-                            });
-                          }
-                        } else {
-                          try {
-                            const clipboardText = await readText();
-                            if (clipboardText) {
-                              field.onChange(clipboardText);
-                            }
-                          } catch (error) {
-                            console.error(
-                              'Failed to paste from clipboard:',
-                              error,
-                            );
-                          }
-                        }
-                      }}
+                      onEndIconClick={handleScanOrPaste}
                     />
                   </FormControl>
                   <FormMessage />

@@ -22,7 +22,6 @@ import { useWalletConnect } from '@/hooks/useWalletConnect';
 import { clearState, fetchState, useNavigationStore } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import { getVersion } from '@tauri-apps/api/app';
 import { useContext, useEffect, useState } from 'react';
 import { DarkModeContext } from '../App';
 import {
@@ -41,23 +40,17 @@ import {
 } from '@tauri-apps/plugin-barcode-scanner';
 import { useNavigate } from 'react-router-dom';
 import { readText } from '@tauri-apps/plugin-clipboard-manager';
+import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
 
 export default function Settings() {
   const initialized = useInitialization();
   const wallet = useWallet(initialized);
 
-  const [version, setVersion] = useState<string | null>(null);
-
-  useEffect(() => {
-    getVersion().then(setVersion);
-  }, []);
-
   return (
     <Layout>
       <Header title={t`Settings`} />
       <Container className='max-w-2xl'>
-        <Trans>Version {version}</Trans>
-        <div className='flex flex-col gap-4 mt-2'>
+        <div className='flex flex-col gap-4'>
           <WalletConnectSettings />
           <GlobalSettings />
           <NetworkSettings />
@@ -116,19 +109,9 @@ function WalletConnectSettings() {
   const { pair, sessions, disconnect, connecting } = useWalletConnect();
   const [uri, setUri] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
-  const isMobile = platform() === 'ios' || platform() === 'android';
-  const navigate = useNavigate();
-  const { returnValues, setReturnValue } = useNavigationStore();
-
-  useEffect(() => {
-    const returnValue = returnValues[location.pathname];
-    if (!returnValue) return;
-
-    if (returnValue.status === 'success' && returnValue?.data) {
-      setUri(returnValue.data);
-      setReturnValue(location.pathname, { status: 'completed' });
-    }
-  }, [returnValues]);
+  const { handleScanOrPaste } = useScannerOrClipboard((scanResValue) => {
+    setUri(scanResValue);
+  });
 
   const handlePair = async () => {
     try {
@@ -190,29 +173,7 @@ function WalletConnectSettings() {
                   value={uri}
                   placeholder={t`Paste WalletConnect URI`}
                   onChange={(e) => setUri(e.target.value)}
-                  onEndIconClick={async () => {
-                    if (isMobile) {
-                      const permissionState = await requestPermissions();
-                      if (permissionState === 'denied') {
-                        await openAppSettings();
-                      } else if (permissionState === 'granted') {
-                        navigate('/scan', {
-                          state: {
-                            returnTo: location.pathname,
-                          }, // Use location.pathname
-                        });
-                      }
-                    } else {
-                      try {
-                        const clipboardText = await readText();
-                        if (clipboardText) {
-                          setUri(clipboardText);
-                        }
-                      } catch (error) {
-                        console.error('Failed to paste from clipboard:', error);
-                      }
-                    }
-                  }}
+                  onEndIconClick={handleScanOrPaste}
                   disabled={connecting}
                 />
 

@@ -4,6 +4,8 @@ import Layout from '@/components/Layout';
 import Header from '@/components/Header';
 import { useEffect, useCallback } from 'react';
 import { useNavigationStore } from '@/state';
+import { Trans } from '@lingui/react/macro';
+import { t } from '@lingui/core/macro';
 
 export default function QRScanner() {
   const navigate = useNavigate();
@@ -11,23 +13,16 @@ export default function QRScanner() {
   const returnPath = state?.returnTo || '/';
   const { setReturnValue } = useNavigationStore();
 
-  // Handle successful scan
   const handleScanSuccess = useCallback(
     (content: string) => {
       if (returnPath.startsWith('/offers')) {
-        // For offers, navigate directly to the offer view
         navigate(`/offers/view/${encodeURIComponent(content.trim())}`, {
           replace: true,
         });
       } else {
         console.log('Scanned content:', content);
         setReturnValue(returnPath, { status: 'success', data: content });
-        // For other components, maintain existing behavior
         navigate(-1);
-        // navigate(returnPath, {
-        //   replace: true,
-        //   state: { scannedUri: content },
-        // });
       }
     },
     [navigate, returnPath, setReturnValue],
@@ -66,7 +61,7 @@ export default function QRScanner() {
 
   return (
     <Layout transparentBackground={true}>
-      <Header title='Scan QR Code' back={cancelScan} />
+      <Header title={t`Scan QR Code`} back={cancelScan} />
       <div className='relative w-full h-full bg-transparent'>
         <div className='absolute inset-0 bg-black bg-opacity-0'>
           <div className='absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2'>
@@ -77,7 +72,7 @@ export default function QRScanner() {
               <div className='absolute bottom-0 right-0 w-8 h-8 border-r-4 border-b-4 border-white' />
             </div>
             <p className='text-white text-center mt-8'>
-              Position the QR code within the frame
+              <Trans>Position the QR code within the frame</Trans>
             </p>
           </div>
         </div>

@@ -1,7 +1,7 @@
 import { cn } from '@/lib/utils';
 import { platform } from '@tauri-apps/plugin-os';
 import { ClipboardPasteIcon, ScanIcon } from 'lucide-react';
-import { forwardRef } from 'react';
+import { forwardRef, useEffect } from 'react';
 import { Input, InputProps } from './ui/input';
 
 export interface PasteInputProps extends InputProps {
