@@ -26,18 +26,18 @@ android {
         versionName = tauriProperties.getProperty("tauri.android.versionName", "1.0")
     }
     signingConfigs {
-        // create("release") {
-        //     val keystorePropertiesFile = rootProject.file("keystore.properties")
-        //     val keystoreProperties = Properties()
-        //     if (keystorePropertiesFile.exists()) {
-        //         keystoreProperties.load(FileInputStream(keystorePropertiesFile))
-        //     }
+        create("release") {
+            val keystorePropertiesFile = rootProject.file("keystore.properties")
+            val keystoreProperties = Properties()
+            if (keystorePropertiesFile.exists()) {
+                keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+            }
 
-        //     keyAlias = keystoreProperties["keyAlias"] as String
-        //     keyPassword = keystoreProperties["password"] as String
-        //     storeFile = file(keystoreProperties["storeFile"] as String)
-        //     storePassword = keystoreProperties["password"] as String
-        // }
+            keyAlias = keystoreProperties["keyAlias"] as String
+            keyPassword = keystoreProperties["password"] as String
+            storeFile = file(keystoreProperties["storeFile"] as String)
+            storePassword = keystoreProperties["password"] as String
+        }
     }
     buildTypes {
         getByName("debug") {
@@ -51,15 +51,15 @@ android {
                 jniLibs.keepDebugSymbols.add("*/x86_64/*.so")
             }
         }
-        // getByName("release") {
-        //     signingConfig = signingConfigs.getByName("release")
-        //     isMinifyEnabled = true
-        //     proguardFiles(
-        //         *fileTree(".") { include("**/*.pro") }
-        //             .plus(getDefaultProguardFile("proguard-android-optimize.txt"))
-        //             .toList().toTypedArray()
-        //     )
-        // }
+        getByName("release") {
+            signingConfig = signingConfigs.getByName("release")
+            isMinifyEnabled = true
+            proguardFiles(
+                *fileTree(".") { include("**/*.pro") }
+                    .plus(getDefaultProguardFile("proguard-android-optimize.txt"))
+                    .toList().toTypedArray()
+            )
+        }
     }
     kotlinOptions {
         jvmTarget = "1.8"

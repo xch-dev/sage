@@ -3,7 +3,6 @@ import { PropsWithChildren } from 'react';
 
 export default function SafeAreaView(props: PropsWithChildren<object>) {
   const insets = useInsets();
-  console.log(insets.top);
 
   return (
     <div

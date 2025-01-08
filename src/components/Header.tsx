@@ -172,8 +172,7 @@ export default function Header(
             {props.title}
           </h1>
           <div className='hidden md:block'>{props.children}</div>
-          {/* {props.mobileActionItems && isMobile && props.mobileActionItems} */}
-          {props.mobileActionItems && props.mobileActionItems}
+          {props.mobileActionItems && isMobile && props.mobileActionItems}
         </div>
       </div>
     </header>

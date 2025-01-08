@@ -53,6 +53,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Trans } from '@lingui/react/macro';
 import { t } from '@lingui/core/macro';
 import { z } from 'zod';
+import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
 
 export function Offers() {
   const navigate = useNavigate();
@@ -64,7 +65,6 @@ export function Offers() {
   const [offerString, setOfferString] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [offers, setOffers] = useState<OfferRecord[]>([]);
-  const [res, setRes] = useState();
 
   const viewOffer = useCallback(
     (offer: string) => {
@@ -74,6 +74,10 @@ export function Offers() {
     },
     [navigate],
   );
+
+  const { handleScanOrPaste } = useScannerOrClipboard((scanResValue) => {
+    viewOffer(scanResValue);
+  });
 
   const updateOffers = useCallback(
     () =>
@@ -116,16 +120,6 @@ export function Offers() {
     }
   }, [navigate, offerState]);
 
-  useEffect(() => {
-    // Handle scanned value when returning from scanner
-    // console.log('herllo', location.state?.scannedUri);
-    if (location.state?.scannedUri) {
-      viewOffer(location.state.scannedUri);
-      // Clean up state
-      // navigate(location.pathname, { replace: true, state: {} });
-    }
-  }, [location, navigate]);
-
   const handleViewOffer = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     viewOffer(offerString);
@@ -137,15 +131,7 @@ export function Offers() {
         <Header
           title={<Trans>Offers</Trans>}
           mobileActionItems={
-            <Button
-              size='icon'
-              variant='ghost'
-              onClick={() => {
-                navigate('/scan', {
-                  state: { returnTo: location.pathname }, // Use location.pathname
-                });
-              }}
-            >
+            <Button size='icon' variant='ghost' onClick={handleScanOrPaste}>
               <ScanIcon className='h-5 w-5 ' />
             </Button>
           }

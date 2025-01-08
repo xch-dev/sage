@@ -1,7 +1,7 @@
 import Container from '@/components/Container';
 import Header from '@/components/Header';
 import Layout from '@/components/Layout';
-// import { PasteInput } from '@/components/PasteInput';
+import { PasteInput } from '@/components/PasteInput';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -17,9 +17,10 @@ import { Switch } from '@/components/ui/switch';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useErrors } from '@/hooks/useErrors';
 import useInitialization from '@/hooks/useInitialization';
+import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
 import { useWallet } from '@/hooks/useWallet';
 import { useWalletConnect } from '@/hooks/useWalletConnect';
-import { clearState, fetchState, useNavigationStore } from '@/state';
+import { clearState, fetchState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { useContext, useEffect, useState } from 'react';
@@ -32,15 +33,6 @@ import {
   WalletConfig,
 } from '../bindings';
 import { isValidU32 } from '../validation';
-import { PasteInput } from '@/components/PasteInput';
-import { platform } from '@tauri-apps/plugin-os';
-import {
-  openAppSettings,
-  requestPermissions,
-} from '@tauri-apps/plugin-barcode-scanner';
-import { useNavigate } from 'react-router-dom';
-import { readText } from '@tauri-apps/plugin-clipboard-manager';
-import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
 
 export default function Settings() {
   const initialized = useInitialization();

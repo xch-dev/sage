@@ -47,7 +47,6 @@ import { ViewSavedOffer } from './pages/ViewSavedOffer';
 import Wallet from './pages/Wallet';
 import { fetchState } from './state';
 import QRScanner from './pages/QrScanner';
-import { QRProvider } from './contexts/QrCodeContext';
 
 export interface DarkModeContext {
   toggle: () => void;

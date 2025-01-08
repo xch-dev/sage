@@ -44,7 +44,7 @@ export interface WalletConnectContextType {
   sessions: SessionTypes.Struct[];
   pair: (uri: string) => Promise<void>;
   disconnect: (topic: string) => Promise<void>;
-  connecting: boolean; // Added connecting state
+  connecting: boolean;
 }
 
 export const WalletConnectContext = createContext<
@@ -63,7 +63,7 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
   > | null>(null);
   const [sessions, setSessions] = useState<SessionTypes.Struct[]>([]);
   const [pendingRequests, setPendingRequests] = useState<SessionRequest[]>([]);
-  const [connecting, setConnecting] = useState(false); // Added connecting state
+  const [connecting, setConnecting] = useState(false);
 
   console.log('provider');
   console.log('sessions', signClient?.session.getAll());
@@ -207,13 +207,13 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
 
         await acknowledged();
         setSessions(signClient.session.getAll());
-        setConnecting(false); // Connection complete
+        setConnecting(false);
       } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : 'Failed to connect';
         addError({ kind: 'walletconnect', reason: errorMessage });
         console.error('WalletConnect session proposal failed:', error);
-        setConnecting(false); // Connection failed
+        setConnecting(false);
 
         await signClient.reject({
           id: proposal.id,
@@ -299,14 +299,14 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      setConnecting(true); // Start connecting
+      setConnecting(true);
       await signClient.core.pairing.pair({ uri });
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Failed to pair';
       addError({ kind: 'walletconnect', reason: errorMessage });
       console.error('WalletConnect pairing failed:', error);
-      setConnecting(false); // Connection failed
+      setConnecting(false);
     }
   };
 

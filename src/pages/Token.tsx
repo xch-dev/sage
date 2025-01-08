@@ -46,7 +46,7 @@ import {
   Send,
   SplitIcon,
 } from 'lucide-react';
-import { MouseEventHandler, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import * as z from 'zod';
@@ -57,11 +57,9 @@ import {
   events,
   TransactionResponse,
 } from '../bindings';
-// import { Trans, t } from '@lingui/react/macro';
-// import { t } from '@lingui/core/macro';
+import { CopyButton } from '@/components/CopyButton';
 import StyledQRCode from '@/components/StyledQrCode';
 import { fetch } from '@tauri-apps/plugin-http';
-import { CopyButton } from '@/components/CopyButton';
 interface QRCodeDialogProps {
   isOpen: boolean;
   onClose: (open: boolean) => void;
@@ -471,65 +469,12 @@ export default function Token() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
       <QRCodeDialog
         isOpen={isReceiveOpen}
         onClose={setReceiveOpen}
         asset={asset}
         receive_address={receive_address}
       />
-
-      {/* <Dialog open={isReceiveOpen} onOpenChange={setReceiveOpen}>
-        <DialogContent className='sm:max-w-md'>
-          <DialogHeader>
-            <DialogTitle>
-              <Trans>Receive {asset?.ticker}</Trans>
-            </DialogTitle>
-            <DialogDescription>
-              <Trans>Use this address to receive {asset?.name}</Trans>
-            </DialogDescription>
-          </DialogHeader>
-          <div className='flex flex-col gap-4 items-center'>
-            <StyledQRCode
-              data={receive_address}
-              cornersSquareOptions={{
-                type: 'extra-rounded',
-              }}
-              dotsOptions={{
-                type: 'rounded',
-                color: '#000000',
-                // gradient: {
-                //   type: 'linear',
-                //   rotation: 45,
-                //   colorStops: [
-                //     { offset: 0, color: '#4267b2' },
-                //     { offset: 1, color: '#00ff00' },
-                //   ],
-                // },
-              }}
-              backgroundOptions={
-                {
-                  // round: 10,
-                  // color: '#e9ebee',
-                }
-              }
-              image='https://icons.dexie.space/xch.webp'
-              imageOptions={{
-                hideBackgroundDots: true,
-                imageSize: 0.4,
-                margin: 20,
-                saveAsBlob: true,
-              }}
-            />
-          </div>
-          <DialogFooter className='sm:justify-start'>
-            <Button variant='secondary' onClick={() => setReceiveOpen(false)}>
-              <Trans>Close</Trans>
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog> */}
-
       <ConfirmationDialog
         response={response}
         close={() => setResponse(null)}
