@@ -1,5 +1,6 @@
 import ConfirmationDialog from '@/components/ConfirmationDialog';
 import Header from '@/components/Header';
+import { PasteInput } from '@/components/PasteInput';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -19,27 +20,20 @@ import {
 } from '@/components/ui/select';
 import { useDids } from '@/hooks/useDids';
 import { useErrors } from '@/hooks/useErrors';
+import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
 import { amount } from '@/lib/formTypes';
 import { toMojos } from '@/lib/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { t } from '@lingui/core/macro';
+import { Trans } from '@lingui/react/macro';
 import { LoaderCircleIcon } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import * as z from 'zod';
 import { commands, TransactionResponse } from '../bindings';
 import Container from '../components/Container';
-import { useNavigationStore, useWalletState } from '../state';
-import { Trans } from '@lingui/react/macro';
-import { t } from '@lingui/core/macro';
-import { PasteInput } from '@/components/PasteInput';
-import { platform } from '@tauri-apps/plugin-os';
-import {
-  openAppSettings,
-  requestPermissions,
-} from '@tauri-apps/plugin-barcode-scanner';
-import { readText } from '@tauri-apps/plugin-clipboard-manager';
-import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
+import { useWalletState } from '../state';
 
 export default function MintNft() {
   const navigate = useNavigate();
@@ -48,8 +42,6 @@ export default function MintNft() {
   const { addError } = useErrors();
   const [pending, setPending] = useState(false);
   const [response, setResponse] = useState<TransactionResponse | null>(null);
-  const { returnValues, setReturnValue } = useNavigationStore();
-  const isMobile = platform() === 'ios' || platform() === 'android';
 
   const formSchema = z.object({
     profile: z.string().min(1, t`Profile is required`),

@@ -231,32 +231,6 @@ export default function Send() {
                         autoComplete='off'
                         placeholder={t`Enter address`}
                         onEndIconClick={handleScanOrPaste}
-                        // onEndIconClick={async () => {
-                        //   if (isMobile) {
-                        //     const permissionState = await requestPermissions();
-                        //     if (permissionState === 'denied') {
-                        //       await openAppSettings();
-                        //     } else if (permissionState === 'granted') {
-                        //       navigate('/scan', {
-                        //         state: {
-                        //           returnTo: location.pathname,
-                        //         }, // Use location.pathname
-                        //       });
-                        //     }
-                        //   } else {
-                        //     try {
-                        //       const clipboardText = await readText();
-                        //       if (clipboardText) {
-                        //         field.onChange(clipboardText);
-                        //       }
-                        //     } catch (error) {
-                        //       console.error(
-                        //         'Failed to paste from clipboard:',
-                        //         error,
-                        //       );
-                        //     }
-                        //   }
-                        // }}
                         {...field}
                       />
                     )}

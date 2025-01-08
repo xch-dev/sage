@@ -1,7 +1,6 @@
 import CoinList from '@/components/CoinList';
 import ConfirmationDialog from '@/components/ConfirmationDialog';
 import Container from '@/components/Container';
-import { CopyButton } from '@/components/CopyButton';
 import Header from '@/components/Header';
 import { ReceiveAddress } from '@/components/ReceiveAddress';
 import { Button } from '@/components/ui/button';
@@ -85,26 +84,8 @@ const getImageDataUrl = async (url: string) => {
   }
 };
 
-const QRCodeDialog = ({
-  isOpen,
-  onClose,
-  asset,
-  receive_address,
-}: QRCodeDialogProps) => {
-  const [imageDataUrl, setImageDataUrl] = useState<string | undefined>(
-    undefined,
-  );
+const CopyButton = ({ receive_address }: { receive_address: string }) => {
   const [copySuccess, setCopySuccess] = useState(false);
-
-  useEffect(() => {
-    if (asset?.icon_url) {
-      getImageDataUrl(asset.icon_url)
-        .then((dataUrl) => setImageDataUrl(dataUrl as string))
-        .catch((error) => {
-          console.error('Failed to load image:', error);
-        });
-    }
-  }, [asset?.icon_url]);
 
   const handleCopy = async () => {
     try {
@@ -115,6 +96,37 @@ const QRCodeDialog = ({
       console.error('Failed to copy text:', err);
     }
   };
+
+  return (
+    <Button
+      size='lg'
+      variant='secondary'
+      onClick={handleCopy}
+      className='w-full'
+    >
+      {copySuccess ? <Trans>Copied!</Trans> : <Trans>Copy</Trans>}
+    </Button>
+  );
+};
+
+const QRCodeDialog = ({
+  isOpen,
+  onClose,
+  asset,
+  receive_address,
+}: QRCodeDialogProps) => {
+  const [imageDataUrl, setImageDataUrl] = useState<string | undefined>(
+    undefined,
+  );
+  useEffect(() => {
+    if (asset?.icon_url) {
+      getImageDataUrl(asset.icon_url)
+        .then((dataUrl) => setImageDataUrl(dataUrl as string))
+        .catch((error) => {
+          console.error('Failed to load image:', error);
+        });
+    }
+  }, [asset?.icon_url]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -153,14 +165,7 @@ const QRCodeDialog = ({
               {receive_address}
             </span>
             <div className='pt-8 w-full'>
-              <Button
-                size='lg'
-                variant='secondary'
-                onClick={handleCopy}
-                className='w-full'
-              >
-                {copySuccess ? <Trans>Copied!</Trans> : <Trans>Copy</Trans>}
-              </Button>
+              <CopyButton receive_address={receive_address} />
             </div>
           </div>
         </div>

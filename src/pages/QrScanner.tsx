@@ -20,7 +20,6 @@ export default function QRScanner() {
           replace: true,
         });
       } else {
-        console.log('Scanned content:', content);
         setReturnValue(returnPath, { status: 'success', data: content });
         navigate(-1);
       }
