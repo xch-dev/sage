@@ -94,7 +94,7 @@ export default function Header(
               insets.top !== 0 ? `${insets.top}px` : 'env(safe-area-inset-top)',
           }}
         >
-          <div className='flex h-14 items-center'>
+          <div className='flex h-14 items-center '>
             <Link
               to='/wallet'
               className='flex items-center gap-2 font-semibold'

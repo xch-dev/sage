@@ -48,8 +48,8 @@ export default function Layout(props: LayoutProps) {
 
   return (
     <div className='grid h-screen w-screen md:grid-cols-[250px_1fr]'>
-      <div className='hidden border-r bg-muted/40 md:block overflow-y-auto'>
-        <div className='flex h-full max-h-screen flex-col gap-2'>
+      <div className='hidden border-r bg-background  md:block overflow-y-auto'>
+        <div className='flex h-full max-h-screen flex-col gap-2 bg-muted/40'>
           <div className='flex h-14 items-center pt-2 px-5'>
             <Link
               to='/wallet'
