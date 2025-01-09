@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 export interface TokenParams {
   view: TokenView;
   showHidden: boolean;
+  showZeroBalance: boolean;
 }
 
 export enum TokenView {
@@ -28,8 +29,9 @@ export function useTokenParams(): [TokenParams, SetTokenParams] {
 
   const view = parseView(params.get('view') ?? 'name');
   const showHidden = (params.get('showHidden') ?? 'false') === 'true';
+  const showZeroBalance = (params.get('showZeroBalance') ?? 'true') === 'true';
 
-  const updateParams = ({ view, showHidden }: Partial<TokenParams>) => {
+  const updateParams = ({ view, showHidden, showZeroBalance }: Partial<TokenParams>) => {
     setParams(
       (prev) => {
         const next = new URLSearchParams(prev);
@@ -42,11 +44,15 @@ export function useTokenParams(): [TokenParams, SetTokenParams] {
           next.set('showHidden', showHidden.toString());
         }
 
+        if (showZeroBalance !== undefined) {
+          next.set('showZeroBalance', showZeroBalance.toString());
+        }
+
         return next;
       },
       { replace: true },
     );
   };
 
-  return [{ view, showHidden }, updateParams];
+  return [{ view, showHidden, showZeroBalance }, updateParams];
 }
