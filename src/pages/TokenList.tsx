@@ -163,7 +163,9 @@ export function TokenList() {
             <Switch
               id='showZeroBalance'
               checked={showZeroBalance}
-              onCheckedChange={(value) => setParams({ showZeroBalance: value })}
+              onCheckedChange={(value) => {
+                setParams({ showZeroBalance: value });
+              }}
             />
           </div>
         </div>
