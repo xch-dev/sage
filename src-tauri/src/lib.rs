@@ -102,8 +102,14 @@ pub fn run() {
         )
         .expect("Failed to export TypeScript bindings");
 
-    tauri::Builder::default()
-        .plugin(tauri_plugin_window_state::Builder::new().build())
+    let mut tauri_builder = tauri::Builder::default();
+
+    #[cfg(not(any(target_os = "android", target_os = "ios")))]
+    {
+        tauri_builder = tauri_builder.plugin(tauri_plugin_window_state::Builder::new().build());
+    }
+
+    tauri_builder
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_safe_area_insets::init())

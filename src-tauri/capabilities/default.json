@@ -17,7 +17,6 @@
     "clipboard-manager:default",
     "clipboard-manager:allow-write-text",
     "shell:default",
-    "safe-area-insets:default",
-    "window-state:default"
+    "safe-area-insets:default"
   ]
 }
