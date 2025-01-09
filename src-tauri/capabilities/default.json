@@ -22,7 +22,9 @@
       "identifier": "http:default",
       "allow": [
         { "url": "https://*.tauri.app" },
-        { "url": "https://icons.dexie.space/*.webp" }
+        { "url": "https://icons.dexie.space/*.webp" },
+        { "url": "https://offerco.de/api/v1/*" },
+        { "url": "https://api.dexie.space/v1/*" }
       ]
     }
   ]

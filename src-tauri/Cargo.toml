@@ -42,7 +42,7 @@ tauri-build = { workspace = true, features = [] }
 glob = { workspace = true }
 
 [target.'cfg(any(target_os = "android", target_os = "ios"))'.dependencies]
-tauri-plugin-barcode-scanner = "2.0.0-rc"
+tauri-plugin-barcode-scanner = { path = "../plugins/barcode-scanner" }
 tauri-plugin-safe-area-insets = "0.1.0"
 
 [package.metadata.cargo-machete]

@@ -37,7 +37,7 @@
     "@react-spring/web": "^9.7.5",
     "@tanstack/react-table": "^8.20.5",
     "@tauri-apps/api": "2.0.0-rc.4",
-    "@tauri-apps/plugin-barcode-scanner": "^2.0.0-rc",
+    "@tauri-apps/plugin-barcode-scanner": "file:./plugins/barcode-scanner",
     "@tauri-apps/plugin-clipboard-manager": "2.0.0-rc.1",
     "@tauri-apps/plugin-http": "^2.0.0-rc",
     "@tauri-apps/plugin-os": "^2.0.0",
