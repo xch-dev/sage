@@ -36,9 +36,15 @@ export function useTokenParams(): [TokenParams, SetTokenParams] {
 
   const view = parseView(params.get('view') ?? 'name');
   const showHidden = (params.get('showHidden') ?? 'false') === 'true';
-  const showZeroBalance = (params.get('showZeroBalance') ?? initialShowZeroBalance().toString()) === 'true';
+  const showZeroBalance =
+    (params.get('showZeroBalance') ?? initialShowZeroBalance().toString()) ===
+    'true';
 
-  const updateParams = ({ view, showHidden, showZeroBalance }: Partial<TokenParams>) => {
+  const updateParams = ({
+    view,
+    showHidden,
+    showZeroBalance,
+  }: Partial<TokenParams>) => {
     setParams(
       (prev) => {
         const next = new URLSearchParams(prev);
@@ -53,7 +59,10 @@ export function useTokenParams(): [TokenParams, SetTokenParams] {
 
         if (showZeroBalance !== undefined) {
           next.set('showZeroBalance', showZeroBalance.toString());
-          localStorage.setItem(ZERO_BALANCE_STORAGE_KEY, showZeroBalance.toString());
+          localStorage.setItem(
+            ZERO_BALANCE_STORAGE_KEY,
+            showZeroBalance.toString(),
+          );
         }
 
         return next;

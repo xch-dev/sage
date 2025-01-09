@@ -16,7 +16,14 @@ import { useErrors } from '@/hooks/useErrors';
 import { usePrices } from '@/hooks/usePrices';
 import { useTokenParams } from '@/hooks/useTokenParams';
 import { toDecimal } from '@/lib/utils';
-import { ArrowDown10, ArrowDownAz, Coins, InfoIcon, Clock, CircleDollarSign, CircleSlash } from 'lucide-react';
+import {
+  ArrowDown10,
+  ArrowDownAz,
+  Coins,
+  InfoIcon,
+  CircleDollarSign,
+  CircleSlash,
+} from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { CatRecord, commands, events } from '../bindings';
@@ -77,9 +84,9 @@ export function TokenList() {
   });
 
   const visibleCats = sortedCats.filter(
-    (cat) => 
-      (showHidden || cat.visible) && 
-      (showZeroBalance || Number(toDecimal(cat.balance, 3)) > 0)
+    (cat) =>
+      (showHidden || cat.visible) &&
+      (showZeroBalance || Number(toDecimal(cat.balance, 3)) > 0),
   );
   const hasHiddenAssets = !!sortedCats.find((cat) => !cat.visible);
 
@@ -125,7 +132,9 @@ export function TokenList() {
             size='icon'
             onClick={() => setParams({ showZeroBalance: !showZeroBalance })}
             className={!showZeroBalance ? 'text-muted-foreground' : ''}
-            title={showZeroBalance ? t`Hide zero balances` : t`Show zero balances`}
+            title={
+              showZeroBalance ? t`Hide zero balances` : t`Show zero balances`
+            }
           >
             {showZeroBalance ? (
               <CircleDollarSign className='h-4 w-4' />
