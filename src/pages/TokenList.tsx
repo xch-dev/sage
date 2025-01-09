@@ -16,12 +16,13 @@ import { useErrors } from '@/hooks/useErrors';
 import { usePrices } from '@/hooks/usePrices';
 import { useTokenParams } from '@/hooks/useTokenParams';
 import { toDecimal } from '@/lib/utils';
-import { ArrowDown10, ArrowDownAz, Coins, InfoIcon, Clock } from 'lucide-react';
+import { ArrowDown10, ArrowDownAz, Coins, InfoIcon, Clock, CircleDollarSign, CircleSlash } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { CatRecord, commands, events } from '../bindings';
 import { useWalletState } from '../state';
 import { Trans } from '@lingui/react/macro';
+import { t } from '@lingui/core/macro';
 
 enum TokenView {
   Name = 'name',
@@ -119,6 +120,19 @@ export function TokenList() {
             view={view}
             setView={(view) => setParams({ view })}
           />
+          <Button
+            variant='outline'
+            size='icon'
+            onClick={() => setParams({ showZeroBalance: !showZeroBalance })}
+            className={!showZeroBalance ? 'text-muted-foreground' : ''}
+            title={showZeroBalance ? t`Hide zero balances` : t`Show zero balances`}
+          >
+            {showZeroBalance ? (
+              <CircleDollarSign className='h-4 w-4' />
+            ) : (
+              <CircleSlash className='h-4 w-4' />
+            )}
+          </Button>
           <ReceiveAddress />
         </div>
       </Header>
@@ -155,19 +169,6 @@ export function TokenList() {
               />
             </div>
           )}
-          
-          <div className='flex items-center gap-2'>
-            <label htmlFor='showZeroBalance'>
-              <Trans>Show zero balances</Trans>
-            </label>
-            <Switch
-              id='showZeroBalance'
-              checked={showZeroBalance}
-              onCheckedChange={(value) => {
-                setParams({ showZeroBalance: value });
-              }}
-            />
-          </div>
         </div>
 
         <div className='mt-4 grid gap-2 md:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'>

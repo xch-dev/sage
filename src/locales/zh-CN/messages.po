@@ -16,3 +16,7 @@ msgstr ""
 #: src/pages/TokenList.tsx:144
 msgid "Show zero balances"
 msgstr "显示零余额"
+
+#: src/pages/TokenList.tsx:145
+msgid "Hide zero balances"
+msgstr "隐藏零余额"
