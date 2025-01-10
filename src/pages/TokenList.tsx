@@ -16,7 +16,7 @@ import { useErrors } from '@/hooks/useErrors';
 import { usePrices } from '@/hooks/usePrices';
 import { useTokenParams } from '@/hooks/useTokenParams';
 import { toDecimal } from '@/lib/utils';
-import { ArrowDown10, ArrowDownAz, Coins, InfoIcon, XIcon } from 'lucide-react';
+import { ArrowDown10, ArrowDownAz, Coins, InfoIcon, SearchIcon, XIcon } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { CatRecord, commands, events } from '../bindings';
@@ -137,12 +137,14 @@ export function TokenList() {
 
         <div className='flex items-center justify-between gap-2 mt-4'>
           <div className='relative flex-1'>
-            <Input
-              value={params.search}
-              onChange={(e) => setParams({ search: e.target.value })}
-              className='w-full pr-8'
-              placeholder={t`Search tokens...`}
-            />
+            <div className='relative'>
+              <SearchIcon className='absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
+              <Input
+                value={params.search}
+                onChange={(e) => setParams({ search: e.target.value })}
+                className='w-full pl-8 pr-8'
+              />
+            </div>
             {params.search && (
               <Button
                 variant='ghost'
