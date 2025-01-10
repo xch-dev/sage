@@ -44,8 +44,9 @@ export function useTokenParams(): [TokenParams, SetTokenParams] {
 
   const updateParams = ({
     view,
-    showHidden, search,
+    showHidden,
     showZeroBalance,
+    search,
   }: Partial<TokenParams>) => {
     setParams(
       (prev) => {

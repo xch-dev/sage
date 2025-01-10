@@ -23,6 +23,8 @@ import {
   InfoIcon,
   CircleDollarSign,
   CircleSlash,
+  SearchIcon,
+  XIcon,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -89,6 +91,10 @@ export function TokenList() {
       return false;
     }
 
+    if (!showZeroBalance && Number(toDecimal(cat.balance, 3)) === 0) {
+      return false;
+    }
+
     if (params.search) {
       const searchTerm = params.search.toLowerCase();
       const name = (cat.name || 'Unknown CAT').toLowerCase();
@@ -99,11 +105,6 @@ export function TokenList() {
     return true;
   });
 
-  const visibleCats = sortedCats.filter(
-    (cat) =>
-      (showHidden || cat.visible) &&
-      (showZeroBalance || Number(toDecimal(cat.balance, 3)) > 0),
-  );
   const hasHiddenAssets = !!sortedCats.find((cat) => !cat.visible);
 
   const updateCats = useCallback(
@@ -172,6 +173,21 @@ export function TokenList() {
             view={view}
             setView={(view) => setParams({ view })}
           />
+          <Button
+            variant='outline'
+            size='icon'
+            onClick={() => setParams({ showZeroBalance: !showZeroBalance })}
+            className={!showZeroBalance ? 'text-muted-foreground' : ''}
+            title={
+              showZeroBalance ? t`Hide zero balances` : t`Show zero balances`
+            }
+          >
+            {showZeroBalance ? (
+              <CircleDollarSign className='h-4 w-4' />
+            ) : (
+              <CircleSlash className='h-4 w-4' />
+            )}
+          </Button>
         </div>
 
         {walletState.sync.synced_coins < walletState.sync.total_coins && (

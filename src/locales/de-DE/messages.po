@@ -153,7 +153,7 @@ msgstr "Sind Sie sicher, dass Sie die Daten vom Wallet erneut synchronisieren m�
 msgid "Asset"
 msgstr "Asset"
 
-#: src/pages/TokenList.tsx:112
+#: src/pages/TokenList.tsx:141
 msgid "Assets"
 msgstr "Assets"
 
@@ -613,7 +613,7 @@ msgstr "Höhe:"
 msgid "Hide"
 msgstr "Verstecken"
 
-#: src/pages/TokenList.tsx:136
+#: src/pages/TokenList.tsx:182
 msgid "Hide zero balances"
 msgstr ""
 
@@ -680,7 +680,7 @@ msgstr ""
 msgid "IP Address"
 msgstr "IP Addresse"
 
-#: src/pages/TokenList.tsx:123
+#: src/pages/TokenList.tsx:148
 #: src/pages/IssueToken.tsx:62
 #: src/pages/IssueToken.tsx:148
 msgid "Issue Token"
@@ -1183,7 +1183,7 @@ msgstr "Alle Coins anzeigen"
 msgid "Show unspent coins only"
 msgstr "Nur nicht ausgegebene Coins anzeigen"
 
-#: src/pages/TokenList.tsx:136
+#: src/pages/TokenList.tsx:182
 msgid "Show zero balances"
 msgstr ""
 
@@ -1191,12 +1191,12 @@ msgstr ""
 msgid "Sign Transaction"
 msgstr "Transaktion signieren"
 
-#: src/pages/TokenList.tsx:249
+#: src/pages/TokenList.tsx:318
 #: src/components/NftOptions.tsx:146
 msgid "Sort Alphabetically"
 msgstr "Alphabetisch sortieren"
 
-#: src/pages/TokenList.tsx:262
+#: src/pages/TokenList.tsx:331
 msgid "Sort by Balance"
 msgstr "Nach Guthaben sortieren"
 
@@ -1244,7 +1244,7 @@ msgstr "Zusammenfassung"
 msgid "Syncing {syncedCoins} / {totalCoins}"
 msgstr "{syncedCoins} / {totalCoins} synchronisieren"
 
-#: src/pages/TokenList.tsx:130
+#: src/pages/TokenList.tsx:197
 msgid "Syncing in progress..."
 msgstr "Synchronisierung läuft..."
 
@@ -1284,7 +1284,7 @@ msgstr "Das Offer wurde erfolgreich erstellt und importiert. Sie können die Off
 msgid "The wallet generates a new address after each transaction. Old ones stay valid."
 msgstr "Die Wallet generiert nach jeder Transaktion eine neue Adresse. Die alten bleiben gültig."
 
-#: src/pages/TokenList.tsx:133
+#: src/pages/TokenList.tsx:200
 msgid "The wallet is still syncing. Balances may not be accurate until it completes."
 msgstr "Die Wallet synchronisiert noch. Der Guthaben ist möglicherweise nicht korrekt, bis der Vorgang abgeschlossen ist."
 
@@ -1495,7 +1495,7 @@ msgstr "Verwenden Sie 24 Wörter"
 msgid "Version {version}"
 msgstr ""
 
-#: src/pages/TokenList.tsx:144
+#: src/pages/TokenList.tsx:212
 #: src/pages/DidList.tsx:72
 msgid "View hidden"
 msgstr "Versteckte anzeigen"
