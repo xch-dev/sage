@@ -21,8 +21,8 @@ import {
   ArrowDownAz,
   Coins,
   InfoIcon,
-  SearchIcon,
-  XIcon,
+  CircleDollarSign,
+  CircleSlash,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -30,6 +30,7 @@ import { CatRecord, commands, events } from '../bindings';
 import { useWalletState } from '../state';
 import { Trans } from '@lingui/react/macro';
 import { Input } from '@/components/ui/input';
+import { t } from '@lingui/core/macro';
 
 enum TokenView {
   Name = 'name',
@@ -42,7 +43,7 @@ export function TokenList() {
   const { getBalanceInUsd } = usePrices();
   const { addError } = useErrors();
   const [params, setParams] = useTokenParams();
-  const { view, showHidden } = params;
+  const { view, showHidden, showZeroBalance } = params;
   const [cats, setCats] = useState<CatRecord[]>([]);
 
   const catsWithBalanceInUsd = useMemo(
@@ -98,6 +99,11 @@ export function TokenList() {
     return true;
   });
 
+  const visibleCats = sortedCats.filter(
+    (cat) =>
+      (showHidden || cat.visible) &&
+      (showZeroBalance || Number(toDecimal(cat.balance, 3)) > 0),
+  );
   const hasHiddenAssets = !!sortedCats.find((cat) => !cat.visible);
 
   const updateCats = useCallback(
@@ -183,18 +189,20 @@ export function TokenList() {
           </Alert>
         )}
 
-        {hasHiddenAssets && (
-          <div className='flex items-center gap-2 my-4'>
-            <label htmlFor='viewHidden'>
-              <Trans>View hidden</Trans>
-            </label>
-            <Switch
-              id='viewHidden'
-              checked={showHidden}
-              onCheckedChange={(value) => setParams({ showHidden: value })}
-            />
-          </div>
-        )}
+        <div className='flex items-center gap-4 my-4'>
+          {hasHiddenAssets && (
+            <div className='flex items-center gap-2'>
+              <label htmlFor='viewHidden'>
+                <Trans>View hidden</Trans>
+              </label>
+              <Switch
+                id='viewHidden'
+                checked={showHidden}
+                onCheckedChange={(value) => setParams({ showHidden: value })}
+              />
+            </div>
+          )}
+        </div>
 
         <div className='mt-4 grid gap-2 md:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'>
           <Link to={`/wallet/token/xch`}>

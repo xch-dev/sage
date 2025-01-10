@@ -1,9 +1,12 @@
 import { useSearchParams } from 'react-router-dom';
 
+const ZERO_BALANCE_STORAGE_KEY = 'sage-wallet-show-zero-balance';
+
 export interface TokenParams {
   view: TokenView;
   showHidden: boolean;
   search: string;
+  showZeroBalance: boolean;
 }
 
 export enum TokenView {
@@ -27,11 +30,23 @@ export type SetTokenParams = (params: Partial<TokenParams>) => void;
 export function useTokenParams(): [TokenParams, SetTokenParams] {
   const [params, setParams] = useSearchParams();
 
+  const initialShowZeroBalance = () => {
+    const stored = localStorage.getItem(ZERO_BALANCE_STORAGE_KEY);
+    return stored === null ? false : stored === 'true';
+  };
+
   const view = parseView(params.get('view') ?? 'name');
   const showHidden = (params.get('showHidden') ?? 'false') === 'true';
+  const showZeroBalance =
+    (params.get('showZeroBalance') ?? initialShowZeroBalance().toString()) ===
+    'true';
   const search = params.get('search') ?? '';
 
-  const updateParams = ({ view, showHidden, search }: Partial<TokenParams>) => {
+  const updateParams = ({
+    view,
+    showHidden, search,
+    showZeroBalance,
+  }: Partial<TokenParams>) => {
     setParams(
       (prev) => {
         const next = new URLSearchParams(prev);
@@ -42,6 +57,14 @@ export function useTokenParams(): [TokenParams, SetTokenParams] {
 
         if (showHidden !== undefined) {
           next.set('showHidden', showHidden.toString());
+        }
+
+        if (showZeroBalance !== undefined) {
+          next.set('showZeroBalance', showZeroBalance.toString());
+          localStorage.setItem(
+            ZERO_BALANCE_STORAGE_KEY,
+            showZeroBalance.toString(),
+          );
         }
 
         if (search !== undefined) {
@@ -58,5 +81,5 @@ export function useTokenParams(): [TokenParams, SetTokenParams] {
     );
   };
 
-  return [{ view, showHidden, search }, updateParams];
+  return [{ view, showHidden, showZeroBalance, search }, updateParams];
 }
