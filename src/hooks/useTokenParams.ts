@@ -31,7 +31,7 @@ export function useTokenParams(): [TokenParams, SetTokenParams] {
 
   const initialShowZeroBalance = () => {
     const stored = localStorage.getItem(ZERO_BALANCE_STORAGE_KEY);
-    return stored === null ? true : stored === 'true';
+    return stored === null ? false : stored === 'true';
   };
 
   const view = parseView(params.get('view') ?? 'name');
