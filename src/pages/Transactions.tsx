@@ -20,6 +20,13 @@ import {
   PendingTransactionRecord,
   TransactionRecord,
 } from '../bindings';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination';
 
 export function Transactions() {
   const { addError } = useErrors();
@@ -87,27 +94,29 @@ export function Transactions() {
           </Alert>
         )}
 
-        <div className='flex items-center gap-4'>
-          <Button
-            variant='outline'
-            size='icon'
-            onClick={() => setPage(Math.max(1, page - 1))}
-            disabled={page === 1}
-          >
-            <ChevronLeft className='w-4 h-4' />
-          </Button>
-          <span className='text-sm'>
-            {page}/{total}
-          </span>
-          <Button
-            variant='outline'
-            size='icon'
-            onClick={() => setPage(Math.min(total, page + 1))}
-            disabled={page === total}
-          >
-            <ChevronRight className='w-4 h-4' />
-          </Button>
-        </div>
+        <Pagination className='w-auto mx-0 items-center justify-start'>
+          <PaginationContent className='gap-4'>
+            <PaginationItem>
+              <PaginationPrevious
+                onClick={() => setPage(Math.max(1, page - 1))}
+                disabled={page === 1}
+              />
+            </PaginationItem>
+
+            <PaginationItem>
+              <span className='text-sm'>
+                {page}/{total}
+              </span>
+            </PaginationItem>
+
+            <PaginationItem>
+              <PaginationNext
+                onClick={() => setPage(Math.min(total, page + 1))}
+                disabled={page === total}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
 
         {transactions.length > 0 && (
           <div className='flex flex-col gap-2 mt-2'>
