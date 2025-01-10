@@ -50,7 +50,7 @@ msgstr "已选择 {selectedCount}"
 #~ msgid "{transactionSpentCount} coins spent,"
 #~ msgstr "已花费硬币 {transactionSpentCount},"
 
-#: src/pages/Transactions.tsx:199
+#: src/pages/Transactions.tsx:196
 msgid "{transactionSpentCount} inputs, {transactionCreatedCount} outputs"
 msgstr ""
 
@@ -178,7 +178,7 @@ msgstr "属性"
 msgid "Back"
 msgstr "返回"
 
-#: src/pages/Transactions.tsx:196
+#: src/pages/Transactions.tsx:193
 msgid "Block #{transactionHeight}"
 msgstr "区块 #{transactionHeight}"
 
@@ -880,7 +880,7 @@ msgstr "还没有报价"
 msgid "No results."
 msgstr "无结果."
 
-#: src/pages/Transactions.tsx:260
+#: src/pages/Transactions.tsx:257
 #: src/pages/Nft.tsx:226
 #: src/pages/Nft.tsx:235
 #: src/components/AssignNftDialog.tsx:104
@@ -894,7 +894,7 @@ msgstr "无"
 msgid "Not enough funds to cover the fee"
 msgstr "余额不足以支付手续费"
 
-#: src/pages/Transactions.tsx:82
+#: src/pages/Transactions.tsx:84
 msgid "Note"
 msgstr "备注"
 
@@ -926,6 +926,14 @@ msgstr "转出数量"
 #: src/pages/Nft.tsx:232
 msgid "Owner DID"
 msgstr "拥有者DID"
+
+#: src/components/Pagination.tsx:50
+msgid "Page"
+msgstr ""
+
+#: src/components/Pagination.tsx:83
+msgid "Page size"
+msgstr ""
 
 #: src/pages/Settings.tsx:166
 msgid "Paste WalletConnect URI"
@@ -1025,7 +1033,7 @@ msgstr "接收 {ticker}"
 msgid "Receive Address"
 msgstr "接收地址"
 
-#: src/pages/Transactions.tsx:206
+#: src/pages/Transactions.tsx:203
 msgid "Received"
 msgstr "收到"
 
@@ -1151,7 +1159,7 @@ msgstr ""
 msgid "Sending"
 msgstr "发送中"
 
-#: src/pages/Transactions.tsx:205
+#: src/pages/Transactions.tsx:202
 msgid "Sent"
 msgstr "已发送"
 
@@ -1380,7 +1388,7 @@ msgstr "转出交易"
 msgid "Transaction Signed"
 msgstr "已签名交易"
 
-#: src/pages/Transactions.tsx:74
+#: src/pages/Transactions.tsx:76
 #: src/components/Nav.tsx:38
 msgid "Transactions"
 msgstr "交易"
@@ -1415,7 +1423,7 @@ msgstr "转移个人资料"
 #~ msgid "Unassign Profile"
 #~ msgstr "取消分配个人资料"
 
-#: src/pages/Transactions.tsx:297
+#: src/pages/Transactions.tsx:294
 #: src/pages/Transaction.tsx:149
 #: src/pages/Collection.tsx:93
 #: src/components/ConfirmationDialog.tsx:517
@@ -1551,6 +1559,6 @@ msgstr "也可以粘贴报价通过"
 #~ msgid "You do not currently have any NFTs. Would you like to mint one?"
 #~ msgstr "当前没有任何NFT. 想要铸造一个吗?"
 
-#: src/pages/Transactions.tsx:85
+#: src/pages/Transactions.tsx:87
 msgid "You have not made any transactions yet."
 msgstr "尚未进行任何交易."

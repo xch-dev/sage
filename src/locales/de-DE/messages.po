@@ -50,7 +50,7 @@ msgstr "{selectedCount} ausgewählt"
 #~ msgid "{transactionSpentCount} coins spent,"
 #~ msgstr "{transactionSpentCount} ausgegebene Coins,"
 
-#: src/pages/Transactions.tsx:199
+#: src/pages/Transactions.tsx:196
 msgid "{transactionSpentCount} inputs, {transactionCreatedCount} outputs"
 msgstr ""
 
@@ -178,7 +178,7 @@ msgstr "Attribute"
 msgid "Back"
 msgstr "Zurück"
 
-#: src/pages/Transactions.tsx:196
+#: src/pages/Transactions.tsx:193
 msgid "Block #{transactionHeight}"
 msgstr "Block #{transactionHeight}"
 
@@ -882,7 +882,7 @@ msgstr "Keine Offers vorhanden"
 msgid "No results."
 msgstr "Keine Ergebnisse."
 
-#: src/pages/Transactions.tsx:260
+#: src/pages/Transactions.tsx:257
 #: src/pages/Nft.tsx:226
 #: src/pages/Nft.tsx:235
 #: src/components/AssignNftDialog.tsx:104
@@ -896,7 +896,7 @@ msgstr "Nichts"
 msgid "Not enough funds to cover the fee"
 msgstr "Nicht genügend Guthaben, um die Gebühr zu decken"
 
-#: src/pages/Transactions.tsx:82
+#: src/pages/Transactions.tsx:84
 msgid "Note"
 msgstr "Notiz"
 
@@ -928,6 +928,14 @@ msgstr "Output Anzahl"
 #: src/pages/Nft.tsx:232
 msgid "Owner DID"
 msgstr "Besitzer DID"
+
+#: src/components/Pagination.tsx:50
+msgid "Page"
+msgstr ""
+
+#: src/components/Pagination.tsx:83
+msgid "Page size"
+msgstr ""
 
 #: src/pages/Settings.tsx:166
 msgid "Paste WalletConnect URI"
@@ -1028,7 +1036,7 @@ msgstr "{ticker} empfangen"
 msgid "Receive Address"
 msgstr "Empfangsadresse"
 
-#: src/pages/Transactions.tsx:206
+#: src/pages/Transactions.tsx:203
 msgid "Received"
 msgstr "Erhalten"
 
@@ -1154,7 +1162,7 @@ msgstr ""
 msgid "Sending"
 msgstr "wird gesendet"
 
-#: src/pages/Transactions.tsx:205
+#: src/pages/Transactions.tsx:202
 msgid "Sent"
 msgstr "Gesendet"
 
@@ -1386,7 +1394,7 @@ msgstr "Transaktionsausgabe"
 msgid "Transaction Signed"
 msgstr "Signierte Transaktion"
 
-#: src/pages/Transactions.tsx:74
+#: src/pages/Transactions.tsx:76
 #: src/components/Nav.tsx:38
 msgid "Transactions"
 msgstr "Transaktionen"
@@ -1422,7 +1430,7 @@ msgstr "Profil transferieren"
 #~ msgid "Unassign Profile"
 #~ msgstr "Profil nicht mehr zuweisen"
 
-#: src/pages/Transactions.tsx:297
+#: src/pages/Transactions.tsx:294
 #: src/pages/Transaction.tsx:149
 #: src/pages/Collection.tsx:93
 #: src/components/ConfirmationDialog.tsx:517
@@ -1558,6 +1566,6 @@ msgstr "Sie können auch ein Angebot einfügen mit"
 #~ msgid "You do not currently have any NFTs. Would you like to mint one?"
 #~ msgstr "Sie haben derzeit keine NFTs. Möchten Sie eines minten?"
 
-#: src/pages/Transactions.tsx:85
+#: src/pages/Transactions.tsx:87
 msgid "You have not made any transactions yet."
 msgstr "Sie haben noch keine Transaktionen durchgeführt."
