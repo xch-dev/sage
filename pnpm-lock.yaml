@@ -23,6 +23,9 @@ importers:
       '@lingui/core':
         specifier: ^5.1.2
         version: 5.1.2(@lingui/babel-plugin-lingui-macro@5.1.2(babel-plugin-macros@3.1.0)(typescript@5.5.4))(babel-plugin-macros@3.1.0)
+      '@lingui/macro':
+        specifier: ^5.1.2
+        version: 5.1.2(@lingui/babel-plugin-lingui-macro@5.1.2(babel-plugin-macros@3.1.0)(typescript@5.5.4))(babel-plugin-macros@3.1.0)(react@18.3.1)
       '@lingui/react':
         specifier: ^5.1.2
         version: 5.1.2(@lingui/babel-plugin-lingui-macro@5.1.2(babel-plugin-macros@3.1.0)(typescript@5.5.4))(babel-plugin-macros@3.1.0)(react@18.3.1)
@@ -691,6 +694,18 @@ packages:
   '@lingui/format-po@5.1.2':
     resolution: {integrity: sha512-fkhAeBnOqceY5CJrtyRN5oBq3/6X2IpIKS+6yzwyWUzmJ5XmW2cwF2xtrcBwEekvtKzyuUZz7Dqc9gM02epSqA==}
     engines: {node: '>=20.0.0'}
+
+  '@lingui/macro@5.1.2':
+    resolution: {integrity: sha512-R6HV7XmiskkI/85JCjAtQuBPRu5AB57lOJdJE6xs2qBaeRu70v0BalTn4wyG5+r0JSkDI4gakWaXKW2KpWN6fQ==}
+    engines: {node: '>=20.0.0'}
+    peerDependencies:
+      '@lingui/babel-plugin-lingui-macro': 5.1.2
+      babel-plugin-macros: 2 || 3
+    peerDependenciesMeta:
+      '@lingui/babel-plugin-lingui-macro':
+        optional: true
+      babel-plugin-macros:
+        optional: true
 
   '@lingui/message-utils@5.1.2':
     resolution: {integrity: sha512-P/N0yBy2MuC726EaGPGiOafc/0RafHiwkvZJdFKjm1/XOMWrFZDPFXTuxguVQ3HQsRi5eUIPaboU4uRX4GepPg==}
@@ -4183,6 +4198,16 @@ snapshots:
       pofile: 1.1.4
     transitivePeerDependencies:
       - typescript
+
+  '@lingui/macro@5.1.2(@lingui/babel-plugin-lingui-macro@5.1.2(babel-plugin-macros@3.1.0)(typescript@5.5.4))(babel-plugin-macros@3.1.0)(react@18.3.1)':
+    dependencies:
+      '@lingui/core': 5.1.2(@lingui/babel-plugin-lingui-macro@5.1.2(babel-plugin-macros@3.1.0)(typescript@5.5.4))(babel-plugin-macros@3.1.0)
+      '@lingui/react': 5.1.2(@lingui/babel-plugin-lingui-macro@5.1.2(babel-plugin-macros@3.1.0)(typescript@5.5.4))(babel-plugin-macros@3.1.0)(react@18.3.1)
+    optionalDependencies:
+      '@lingui/babel-plugin-lingui-macro': 5.1.2(babel-plugin-macros@3.1.0)(typescript@5.5.4)
+      babel-plugin-macros: 3.1.0
+    transitivePeerDependencies:
+      - react
 
   '@lingui/message-utils@5.1.2':
     dependencies:
