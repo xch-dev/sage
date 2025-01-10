@@ -1,6 +1,7 @@
 import { useSearchParams } from 'react-router-dom';
 
 const ZERO_BALANCE_STORAGE_KEY = 'sage-wallet-show-zero-balance';
+const TOKEN_SORT_STORAGE_KEY = 'sage-wallet-token-sort';
 
 export interface TokenParams {
   view: TokenView;
@@ -35,7 +36,12 @@ export function useTokenParams(): [TokenParams, SetTokenParams] {
     return stored === null ? false : stored === 'true';
   };
 
-  const view = parseView(params.get('view') ?? 'name');
+  const initialTokenView = () => {
+    const stored = localStorage.getItem(TOKEN_SORT_STORAGE_KEY);
+    return stored === null ? TokenView.Name : (stored as TokenView);
+  };
+
+  const view = parseView(params.get('view') ?? initialTokenView());
   const showHidden = (params.get('showHidden') ?? 'false') === 'true';
   const showZeroBalance =
     (params.get('showZeroBalance') ?? initialShowZeroBalance().toString()) ===
@@ -54,6 +60,7 @@ export function useTokenParams(): [TokenParams, SetTokenParams] {
 
         if (view !== undefined) {
           next.set('view', view);
+          localStorage.setItem(TOKEN_SORT_STORAGE_KEY, view);
         }
 
         if (showHidden !== undefined) {
