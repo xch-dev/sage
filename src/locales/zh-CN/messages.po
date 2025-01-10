@@ -153,7 +153,7 @@ msgstr "确定要重新同步此钱包的数据吗? 这将从网络重新下载�
 msgid "Asset"
 msgstr "资产"
 
-#: src/pages/TokenList.tsx:128
+#: src/pages/TokenList.tsx:135
 msgid "Assets"
 msgstr "资产"
 
@@ -674,7 +674,7 @@ msgstr ""
 msgid "IP Address"
 msgstr "IP地址"
 
-#: src/pages/TokenList.tsx:135
+#: src/pages/TokenList.tsx:142
 #: src/pages/IssueToken.tsx:62
 #: src/pages/IssueToken.tsx:148
 msgid "Issue Token"
@@ -1099,8 +1099,8 @@ msgid "Search NFTs..."
 msgstr ""
 
 #: src/pages/TokenList.tsx:144
-msgid "Search tokens..."
-msgstr ""
+#~ msgid "Search tokens..."
+#~ msgstr ""
 
 #: src/pages/Login.tsx:471
 msgid "Secret Key"
@@ -1180,12 +1180,12 @@ msgstr "仅显示未花费硬币"
 msgid "Sign Transaction"
 msgstr "签署交易"
 
-#: src/pages/TokenList.tsx:286
+#: src/pages/TokenList.tsx:295
 #: src/components/NftOptions.tsx:146
 msgid "Sort Alphabetically"
 msgstr "按字母顺序排序"
 
-#: src/pages/TokenList.tsx:299
+#: src/pages/TokenList.tsx:308
 msgid "Sort by Balance"
 msgstr "按余额排序"
 
@@ -1233,7 +1233,7 @@ msgstr "摘要"
 msgid "Syncing {syncedCoins} / {totalCoins}"
 msgstr "正在同步 {syncedCoins} / {totalCoins}"
 
-#: src/pages/TokenList.tsx:167
+#: src/pages/TokenList.tsx:176
 msgid "Syncing in progress..."
 msgstr "同步进行中..."
 
@@ -1271,7 +1271,7 @@ msgstr "该报价已成功创建并导入. 可以复制下面的报价文件并�
 msgid "The wallet generates a new address after each transaction. Old ones stay valid."
 msgstr "钱包在每次交易后会生成一个新的地址, 旧地址仍然有效."
 
-#: src/pages/TokenList.tsx:170
+#: src/pages/TokenList.tsx:179
 msgid "The wallet is still syncing. Balances may not be accurate until it completes."
 msgstr "钱包仍在同步中. 同步完成之前, 余额可能不准确."
 
@@ -1480,7 +1480,7 @@ msgstr "使用24词"
 msgid "Version {version}"
 msgstr ""
 
-#: src/pages/TokenList.tsx:181
+#: src/pages/TokenList.tsx:190
 #: src/pages/DidList.tsx:72
 msgid "View hidden"
 msgstr "查看已隐藏的"

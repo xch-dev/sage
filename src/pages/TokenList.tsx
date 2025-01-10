@@ -16,13 +16,19 @@ import { useErrors } from '@/hooks/useErrors';
 import { usePrices } from '@/hooks/usePrices';
 import { useTokenParams } from '@/hooks/useTokenParams';
 import { toDecimal } from '@/lib/utils';
-import { ArrowDown10, ArrowDownAz, Coins, InfoIcon, SearchIcon, XIcon } from 'lucide-react';
+import {
+  ArrowDown10,
+  ArrowDownAz,
+  Coins,
+  InfoIcon,
+  SearchIcon,
+  XIcon,
+} from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { CatRecord, commands, events } from '../bindings';
 import { useWalletState } from '../state';
 import { Trans } from '@lingui/react/macro';
-import { t } from '@lingui/core/macro';
 import { Input } from '@/components/ui/input';
 
 enum TokenView {
