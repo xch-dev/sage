@@ -153,7 +153,7 @@ msgstr "Are you sure you want to resync this wallet's data? This will re-downloa
 msgid "Asset"
 msgstr "Asset"
 
-#: src/pages/TokenList.tsx:112
+#: src/pages/TokenList.tsx:128
 msgid "Assets"
 msgstr "Assets"
 
@@ -676,7 +676,7 @@ msgstr "Invalid addresses"
 msgid "IP Address"
 msgstr "IP Address"
 
-#: src/pages/TokenList.tsx:123
+#: src/pages/TokenList.tsx:135
 #: src/pages/IssueToken.tsx:62
 #: src/pages/IssueToken.tsx:148
 msgid "Issue Token"
@@ -1101,6 +1101,10 @@ msgstr "Save Offer"
 msgid "Search NFTs..."
 msgstr "Search NFTs..."
 
+#: src/pages/TokenList.tsx:144
+msgid "Search tokens..."
+msgstr "Search tokens..."
+
 #: src/pages/Login.tsx:471
 msgid "Secret Key"
 msgstr "Secret Key"
@@ -1179,12 +1183,12 @@ msgstr "Show unspent coins only"
 msgid "Sign Transaction"
 msgstr "Sign Transaction"
 
-#: src/pages/TokenList.tsx:249
+#: src/pages/TokenList.tsx:286
 #: src/components/NftOptions.tsx:146
 msgid "Sort Alphabetically"
 msgstr "Sort Alphabetically"
 
-#: src/pages/TokenList.tsx:262
+#: src/pages/TokenList.tsx:299
 msgid "Sort by Balance"
 msgstr "Sort by Balance"
 
@@ -1232,7 +1236,7 @@ msgstr "Summary"
 msgid "Syncing {syncedCoins} / {totalCoins}"
 msgstr "Syncing {syncedCoins} / {totalCoins}"
 
-#: src/pages/TokenList.tsx:130
+#: src/pages/TokenList.tsx:167
 msgid "Syncing in progress..."
 msgstr "Syncing in progress..."
 
@@ -1272,7 +1276,7 @@ msgstr "The offer has been created and imported successfully. You can copy the o
 msgid "The wallet generates a new address after each transaction. Old ones stay valid."
 msgstr "The wallet generates a new address after each transaction. Old ones stay valid."
 
-#: src/pages/TokenList.tsx:133
+#: src/pages/TokenList.tsx:170
 msgid "The wallet is still syncing. Balances may not be accurate until it completes."
 msgstr "The wallet is still syncing. Balances may not be accurate until it completes."
 
@@ -1483,7 +1487,7 @@ msgstr "Use 24 words"
 msgid "Version {version}"
 msgstr "Version {version}"
 
-#: src/pages/TokenList.tsx:144
+#: src/pages/TokenList.tsx:181
 #: src/pages/DidList.tsx:72
 msgid "View hidden"
 msgstr "View hidden"

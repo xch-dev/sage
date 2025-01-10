@@ -16,12 +16,14 @@ import { useErrors } from '@/hooks/useErrors';
 import { usePrices } from '@/hooks/usePrices';
 import { useTokenParams } from '@/hooks/useTokenParams';
 import { toDecimal } from '@/lib/utils';
-import { ArrowDown10, ArrowDownAz, Coins, InfoIcon, Clock } from 'lucide-react';
+import { ArrowDown10, ArrowDownAz, Coins, InfoIcon, XIcon } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { CatRecord, commands, events } from '../bindings';
 import { useWalletState } from '../state';
 import { Trans } from '@lingui/react/macro';
+import { t } from '@lingui/core/macro';
+import { Input } from '@/components/ui/input';
 
 enum TokenView {
   Name = 'name',
@@ -75,7 +77,21 @@ export function TokenList() {
     return aName.localeCompare(bName);
   });
 
-  const visibleCats = sortedCats.filter((cat) => showHidden || cat.visible);
+  const filteredCats = sortedCats.filter((cat) => {
+    if (!showHidden && !cat.visible) {
+      return false;
+    }
+
+    if (params.search) {
+      const searchTerm = params.search.toLowerCase();
+      const name = (cat.name || 'Unknown CAT').toLowerCase();
+      const ticker = (cat.ticker || '').toLowerCase();
+      return name.includes(searchTerm) || ticker.includes(searchTerm);
+    }
+
+    return true;
+  });
+
   const hasHiddenAssets = !!sortedCats.find((cat) => !cat.visible);
 
   const updateCats = useCallback(
@@ -111,10 +127,6 @@ export function TokenList() {
     <>
       <Header title={<Trans>Assets</Trans>}>
         <div className='flex items-center gap-2'>
-          <TokenSortDropdown
-            view={view}
-            setView={(view) => setParams({ view })}
-          />
           <ReceiveAddress />
         </div>
       </Header>
@@ -122,6 +134,31 @@ export function TokenList() {
         <Button onClick={() => navigate('/wallet/issue-token')}>
           <Coins className='h-4 w-4 mr-2' /> <Trans>Issue Token</Trans>
         </Button>
+
+        <div className='flex items-center justify-between gap-2 mt-4'>
+          <div className='relative flex-1'>
+            <Input
+              value={params.search}
+              onChange={(e) => setParams({ search: e.target.value })}
+              className='w-full pr-8'
+              placeholder={t`Search tokens...`}
+            />
+            {params.search && (
+              <Button
+                variant='ghost'
+                size='icon'
+                className='absolute right-0 top-0 h-full px-2 hover:bg-transparent'
+                onClick={() => setParams({ search: '' })}
+              >
+                <XIcon className='h-4 w-4' />
+              </Button>
+            )}
+          </div>
+          <TokenSortDropdown
+            view={view}
+            setView={(view) => setParams({ view })}
+          />
+        </div>
 
         {walletState.sync.synced_coins < walletState.sync.total_coins && (
           <Alert className='mt-4 mb-4'>
@@ -182,7 +219,7 @@ export function TokenList() {
               </CardContent>
             </Card>
           </Link>
-          {visibleCats.map((cat) => (
+          {filteredCats.map((cat) => (
             <Link key={cat.asset_id} to={`/wallet/token/${cat.asset_id}`}>
               <Card
                 className={`transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900 ${!cat.visible ? 'opacity-50 grayscale' : ''}`}

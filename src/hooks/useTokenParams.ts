@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 export interface TokenParams {
   view: TokenView;
   showHidden: boolean;
+  search: string;
 }
 
 export enum TokenView {
@@ -28,8 +29,9 @@ export function useTokenParams(): [TokenParams, SetTokenParams] {
 
   const view = parseView(params.get('view') ?? 'name');
   const showHidden = (params.get('showHidden') ?? 'false') === 'true';
+  const search = params.get('search') ?? '';
 
-  const updateParams = ({ view, showHidden }: Partial<TokenParams>) => {
+  const updateParams = ({ view, showHidden, search }: Partial<TokenParams>) => {
     setParams(
       (prev) => {
         const next = new URLSearchParams(prev);
@@ -42,11 +44,19 @@ export function useTokenParams(): [TokenParams, SetTokenParams] {
           next.set('showHidden', showHidden.toString());
         }
 
+        if (search !== undefined) {
+          if (search) {
+            next.set('search', search);
+          } else {
+            next.delete('search');
+          }
+        }
+
         return next;
       },
       { replace: true },
     );
   };
 
-  return [{ view, showHidden }, updateParams];
+  return [{ view, showHidden, search }, updateParams];
 }
