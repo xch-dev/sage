@@ -71,26 +71,24 @@ export const Pagination = ({
         </Button>
       </div>
 
-      <div className='flex items-center gap-2'>
-        <Select
-          onValueChange={(value) => {
-            setPage(1);
-            onPageSizeChange(parseInt(value));
-          }}
-          defaultValue={pageSize.toString()}
-          value={pageSize.toString()}
-        >
-          <SelectTrigger className='w-min'>{pageSize}</SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              <SelectItem value='8'>8</SelectItem>
-              <SelectItem value='16'>16</SelectItem>
-              <SelectItem value='32'>32</SelectItem>
-              <SelectItem value='64'>64</SelectItem>
-            </SelectGroup>
-          </SelectContent>
-        </Select>
-      </div>
+      <Select
+        onValueChange={(value) => {
+          setPage(1);
+          onPageSizeChange(parseInt(value));
+        }}
+        defaultValue={pageSize.toString()}
+        value={pageSize.toString()}
+      >
+        <SelectTrigger className='w-min'>{pageSize}</SelectTrigger>
+        <SelectContent>
+          <SelectGroup>
+            <SelectItem value='8'>8</SelectItem>
+            <SelectItem value='16'>16</SelectItem>
+            <SelectItem value='32'>32</SelectItem>
+            <SelectItem value='64'>64</SelectItem>
+          </SelectGroup>
+        </SelectContent>
+      </Select>
     </div>
   );
 };
