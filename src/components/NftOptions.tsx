@@ -64,6 +64,7 @@ export function NftOptions({
             }
             aria-disabled={page === 1 || isLoading}
             aria-label={t`Previous page`}
+            title={t`Previous page`}
           >
             <ChevronLeftIcon className='h-4 w-4' />
           </Button>
@@ -80,6 +81,7 @@ export function NftOptions({
             }}
             aria-disabled={isLoading}
             aria-label={t`Next page`}
+            title={t`Next page`}
           >
             <ChevronRightIcon className='h-4 w-4' />
           </Button>
@@ -92,6 +94,7 @@ export function NftOptions({
               size='icon'
               onClick={() => setMultiSelect(!multiSelect)}
               aria-label={t`Toggle multi-select`}
+              title={t`Toggle multi-select`}
             >
               <CopyPlus
                 className={`h-4 w-4 ${multiSelect ? 'text-green-600 dark:text-green-400' : ''}`}
@@ -104,6 +107,7 @@ export function NftOptions({
             size='icon'
             onClick={() => setParams({ showHidden: !showHidden })}
             aria-label={t`Toggle hidden NFTs`}
+            title={t`Toggle hidden NFTs`}
           >
             {showHidden ? (
               <EyeIcon className='h-4 w-4' />
@@ -118,6 +122,7 @@ export function NftOptions({
                 variant='outline'
                 size='icon'
                 aria-label={t`Sort options`}
+                title={t`Sort options`}
               >
                 {view === 'name' ? (
                   <ArrowDownAz className='h-4 w-4' />
