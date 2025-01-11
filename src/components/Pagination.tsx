@@ -13,7 +13,7 @@ import { ChevronRightIcon, ChevronLeftIcon } from '@radix-ui/react-icons';
 type PaginationProps = {
   page: number;
   total: number;
-  setPage: (page: number) => void;
+  onPageChange: (page: number) => void;
   pageSize: number;
   onPageSizeChange: (pageSize: number) => void;
 };
@@ -21,7 +21,7 @@ type PaginationProps = {
 export const Pagination = ({
   page,
   total,
-  setPage,
+  onPageChange,
   pageSize,
   onPageSizeChange,
 }: PaginationProps) => {
@@ -35,19 +35,20 @@ export const Pagination = ({
         <Button
           size='icon'
           variant='outline'
-          onClick={() => setPage(Math.max(1, page - 1))}
+          onClick={() => onPageChange(Math.max(1, page - 1))}
           disabled={isFirstPage}
+          title={t`Previous page`}
         >
           <ChevronLeftIcon className='h-4 w-4' />
         </Button>
 
         <Select
-          onValueChange={(value) => setPage(parseInt(value))}
+          onValueChange={(value) => onPageChange(parseInt(value))}
           defaultValue={page.toString()}
           value={page.toString()}
           disabled={totalPages === 1}
         >
-          <SelectTrigger className='w-min text-sm'>
+          <SelectTrigger className='w-min text-sm' title={t`Page`}>
             <SelectValue placeholder={t`Page`}>
               {page}/{totalPages}
             </SelectValue>
@@ -64,8 +65,9 @@ export const Pagination = ({
         <Button
           size='icon'
           variant='outline'
-          onClick={() => setPage(Math.min(totalPages, page + 1))}
+          onClick={() => onPageChange(Math.min(totalPages, page + 1))}
           disabled={isLastPage}
+          title={t`Next page`}
         >
           <ChevronRightIcon className='h-4 w-4' />
         </Button>
@@ -73,13 +75,15 @@ export const Pagination = ({
 
       <Select
         onValueChange={(value) => {
-          setPage(1);
+          onPageChange(1);
           onPageSizeChange(parseInt(value));
         }}
         defaultValue={pageSize.toString()}
         value={pageSize.toString()}
       >
-        <SelectTrigger className='w-min'>{pageSize}</SelectTrigger>
+        <SelectTrigger className='w-min' title={t`Page size`}>
+          {pageSize}
+        </SelectTrigger>
         <SelectContent>
           <SelectGroup>
             <SelectItem value='8'>8</SelectItem>

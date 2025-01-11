@@ -90,9 +90,9 @@ export function Transactions() {
         )}
 
         <Pagination
-          page={page}
           total={total}
-          setPage={setPage}
+          page={page}
+          onPageChange={setPage}
           pageSize={pageSize}
           onPageSizeChange={setPageSize}
         />
@@ -106,9 +106,9 @@ export function Transactions() {
         )}
         {total > pageSize && (
           <Pagination
-            page={page}
             total={total}
-            setPage={setPage}
+            page={page}
+            onPageChange={setPage}
             pageSize={pageSize}
             onPageSizeChange={setPageSize}
           />
