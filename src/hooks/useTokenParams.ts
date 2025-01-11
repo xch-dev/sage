@@ -1,4 +1,5 @@
 import { useSearchParams } from 'react-router-dom';
+import { useLocalStorage } from 'usehooks-ts';
 
 const ZERO_BALANCE_STORAGE_KEY = 'sage-wallet-show-zero-balance';
 const TOKEN_SORT_STORAGE_KEY = 'sage-wallet-token-sort';
@@ -31,21 +32,20 @@ export type SetTokenParams = (params: Partial<TokenParams>) => void;
 export function useTokenParams(): [TokenParams, SetTokenParams] {
   const [params, setParams] = useSearchParams();
 
-  const initialShowZeroBalance = () => {
-    const stored = localStorage.getItem(ZERO_BALANCE_STORAGE_KEY);
-    return stored === null ? false : stored === 'true';
-  };
+  const [storedShowZeroBalance, setStoredShowZeroBalance] = useLocalStorage<boolean>(
+    ZERO_BALANCE_STORAGE_KEY,
+    false
+  );
 
-  const initialTokenView = () => {
-    const stored = localStorage.getItem(TOKEN_SORT_STORAGE_KEY);
-    return stored === null ? TokenView.Name : (stored as TokenView);
-  };
+  const [storedTokenView, setStoredTokenView] = useLocalStorage<TokenView>(
+    TOKEN_SORT_STORAGE_KEY,
+    TokenView.Name
+  );
 
-  const view = parseView(params.get('view') ?? initialTokenView());
+  const view = parseView(params.get('view') ?? storedTokenView);
   const showHidden = (params.get('showHidden') ?? 'false') === 'true';
   const showZeroBalance =
-    (params.get('showZeroBalance') ?? initialShowZeroBalance().toString()) ===
-    'true';
+    (params.get('showZeroBalance') ?? storedShowZeroBalance.toString()) === 'true';
   const search = params.get('search') ?? '';
 
   const updateParams = ({
@@ -60,7 +60,7 @@ export function useTokenParams(): [TokenParams, SetTokenParams] {
 
         if (view !== undefined) {
           next.set('view', view);
-          localStorage.setItem(TOKEN_SORT_STORAGE_KEY, view);
+          setStoredTokenView(view);
         }
 
         if (showHidden !== undefined) {
@@ -69,10 +69,7 @@ export function useTokenParams(): [TokenParams, SetTokenParams] {
 
         if (showZeroBalance !== undefined) {
           next.set('showZeroBalance', showZeroBalance.toString());
-          localStorage.setItem(
-            ZERO_BALANCE_STORAGE_KEY,
-            showZeroBalance.toString(),
-          );
+          setStoredShowZeroBalance(showZeroBalance);
         }
 
         if (search !== undefined) {
