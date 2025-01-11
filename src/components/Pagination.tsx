@@ -80,9 +80,7 @@ export const Pagination = ({
             defaultValue={pageSize.toString()}
             value={pageSize.toString()}
           >
-            <SelectTrigger className='w-min'>
-              <SelectValue placeholder={t`Page size`} />
-            </SelectTrigger>
+            <SelectTrigger className='w-min'>{pageSize}</SelectTrigger>
             <SelectContent>
               <SelectGroup>
                 <SelectItem value='8'>8</SelectItem>
