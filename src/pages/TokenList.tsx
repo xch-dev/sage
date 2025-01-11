@@ -154,6 +154,8 @@ export function TokenList() {
               <SearchIcon className='absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
               <Input
                 value={params.search}
+                aria-label={t`Search for a token`}
+                title={t`Search for a token`}
                 onChange={(e) => setParams({ search: e.target.value })}
                 className='w-full pl-8 pr-8'
               />
@@ -162,6 +164,8 @@ export function TokenList() {
               <Button
                 variant='ghost'
                 size='icon'
+                title={t`Clear search`}
+                aria-label={t`Clear search`}
                 className='absolute right-0 top-0 h-full px-2 hover:bg-transparent'
                 onClick={() => setParams({ search: '' })}
               >
@@ -178,6 +182,9 @@ export function TokenList() {
             size='icon'
             onClick={() => setParams({ showZeroBalance: !showZeroBalance })}
             className={!showZeroBalance ? 'text-muted-foreground' : ''}
+            aria-label={
+              showZeroBalance ? t`Hide zero balances` : t`Show zero balances`
+            }
             title={
               showZeroBalance ? t`Hide zero balances` : t`Show zero balances`
             }

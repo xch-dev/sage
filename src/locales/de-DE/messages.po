@@ -258,6 +258,11 @@ msgstr "CAT Symbol"
 msgid "Change"
 msgstr "Ändern"
 
+#: src/pages/TokenList.tsx:167
+#: src/pages/TokenList.tsx:168
+msgid "Clear search"
+msgstr ""
+
 #: src/components/CoinList.tsx:84
 msgid "Coin"
 msgstr "Coin"
@@ -613,7 +618,8 @@ msgstr "Höhe:"
 msgid "Hide"
 msgstr "Verstecken"
 
-#: src/pages/TokenList.tsx:182
+#: src/pages/TokenList.tsx:186
+#: src/pages/TokenList.tsx:189
 msgid "Hide zero balances"
 msgstr ""
 
@@ -1101,6 +1107,11 @@ msgstr "Mnemonic speichern"
 msgid "Save Offer"
 msgstr "Offer speichern"
 
+#: src/pages/TokenList.tsx:157
+#: src/pages/TokenList.tsx:158
+msgid "Search for a token"
+msgstr ""
+
 #: src/components/NftOptions.tsx:49
 msgid "Search NFTs..."
 msgstr ""
@@ -1183,7 +1194,8 @@ msgstr "Alle Coins anzeigen"
 msgid "Show unspent coins only"
 msgstr "Nur nicht ausgegebene Coins anzeigen"
 
-#: src/pages/TokenList.tsx:182
+#: src/pages/TokenList.tsx:186
+#: src/pages/TokenList.tsx:189
 msgid "Show zero balances"
 msgstr ""
 
@@ -1191,16 +1203,16 @@ msgstr ""
 msgid "Sign Transaction"
 msgstr "Transaktion signieren"
 
-#: src/pages/TokenList.tsx:318
+#: src/pages/TokenList.tsx:325
 #: src/components/NftOptions.tsx:146
 msgid "Sort Alphabetically"
 msgstr "Alphabetisch sortieren"
 
-#: src/pages/TokenList.tsx:331
+#: src/pages/TokenList.tsx:338
 msgid "Sort by Balance"
 msgstr "Nach Guthaben sortieren"
 
-#: src/pages/TokenList.tsx:298
+#: src/pages/TokenList.tsx:305
 #: src/components/NftOptions.tsx:120
 msgid "Sort options"
 msgstr "Sortieroptionen"
@@ -1245,7 +1257,7 @@ msgstr "Zusammenfassung"
 msgid "Syncing {syncedCoins} / {totalCoins}"
 msgstr "{syncedCoins} / {totalCoins} synchronisieren"
 
-#: src/pages/TokenList.tsx:197
+#: src/pages/TokenList.tsx:204
 msgid "Syncing in progress..."
 msgstr "Synchronisierung läuft..."
 
@@ -1285,7 +1297,7 @@ msgstr "Das Offer wurde erfolgreich erstellt und importiert. Sie können die Off
 msgid "The wallet generates a new address after each transaction. Old ones stay valid."
 msgstr "Die Wallet generiert nach jeder Transaktion eine neue Adresse. Die alten bleiben gültig."
 
-#: src/pages/TokenList.tsx:200
+#: src/pages/TokenList.tsx:207
 msgid "The wallet is still syncing. Balances may not be accurate until it completes."
 msgstr "Die Wallet synchronisiert noch. Der Guthaben ist möglicherweise nicht korrekt, bis der Vorgang abgeschlossen ist."
 
@@ -1496,7 +1508,7 @@ msgstr "Verwenden Sie 24 Wörter"
 msgid "Version {version}"
 msgstr ""
 
-#: src/pages/TokenList.tsx:212
+#: src/pages/TokenList.tsx:219
 #: src/pages/DidList.tsx:72
 msgid "View hidden"
 msgstr "Versteckte anzeigen"
