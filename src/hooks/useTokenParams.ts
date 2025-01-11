@@ -32,20 +32,19 @@ export type SetTokenParams = (params: Partial<TokenParams>) => void;
 export function useTokenParams(): [TokenParams, SetTokenParams] {
   const [params, setParams] = useSearchParams();
 
-  const [storedShowZeroBalance, setStoredShowZeroBalance] = useLocalStorage<boolean>(
-    ZERO_BALANCE_STORAGE_KEY,
-    false
-  );
+  const [storedShowZeroBalance, setStoredShowZeroBalance] =
+    useLocalStorage<boolean>(ZERO_BALANCE_STORAGE_KEY, false);
 
   const [storedTokenView, setStoredTokenView] = useLocalStorage<TokenView>(
     TOKEN_SORT_STORAGE_KEY,
-    TokenView.Name
+    TokenView.Name,
   );
 
   const view = parseView(params.get('view') ?? storedTokenView);
   const showHidden = (params.get('showHidden') ?? 'false') === 'true';
   const showZeroBalance =
-    (params.get('showZeroBalance') ?? storedShowZeroBalance.toString()) === 'true';
+    (params.get('showZeroBalance') ?? storedShowZeroBalance.toString()) ===
+    'true';
   const search = params.get('search') ?? '';
 
   const updateParams = ({
