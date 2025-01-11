@@ -1200,6 +1200,7 @@ msgstr "Sort Alphabetically"
 msgid "Sort by Balance"
 msgstr "Sort by Balance"
 
+#: src/pages/TokenList.tsx:298
 #: src/components/NftOptions.tsx:120
 msgid "Sort options"
 msgstr "Sort options"

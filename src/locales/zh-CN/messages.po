@@ -1197,6 +1197,7 @@ msgstr "按字母顺序排序"
 msgid "Sort by Balance"
 msgstr "按余额排序"
 
+#: src/pages/TokenList.tsx:298
 #: src/components/NftOptions.tsx:120
 msgid "Sort options"
 msgstr "排序选项"

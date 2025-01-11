@@ -295,7 +295,7 @@ function TokenSortDropdown({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant='outline' size='icon'>
+        <Button variant='outline' size='icon' title={t`Sort options`}>
           {view === TokenView.Balance ? (
             <ArrowDown10 className='h-4 w-4' />
           ) : (
