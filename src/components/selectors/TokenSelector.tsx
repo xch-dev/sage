@@ -94,6 +94,11 @@ export function TokenSelector({
           <img
             src={selectedToken.icon_url}
             className='w-8 h-8 rounded object-cover'
+            alt={
+              selectedToken?.name
+                ? `Image of ${selectedToken.name}`
+                : 'No token name'
+            }
           />
         )}
         <div className='flex flex-col truncate text-left'>
