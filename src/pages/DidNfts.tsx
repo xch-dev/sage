@@ -1,4 +1,4 @@
-import { commands, events, NftCollectionRecord, NftRecord } from '@/bindings';
+import { commands, events, NftRecord } from '@/bindings';
 import Container from '@/components/Container';
 import Header from '@/components/Header';
 import { MultiSelectActions } from '@/components/MultiSelectActions';
@@ -11,16 +11,13 @@ import { t } from '@lingui/core/macro';
 import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 
-export default function Collection() {
+export default function DidNfts() {
   const { addError } = useErrors();
-  const { collection_id: collectionId } = useParams();
+  const { did_id: didId } = useParams();
 
   const [params, setParams] = useNftParams();
   const { pageSize, page, view, showHidden, query } = params;
 
-  const [collection, setCollection] = useState<NftCollectionRecord | null>(
-    null,
-  );
   const [nfts, setNfts] = useState<NftRecord[]>([]);
   const [multiSelect, setMultiSelect] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
@@ -28,17 +25,14 @@ export default function Collection() {
 
   const updateNfts = useCallback(
     async (page: number) => {
-      if (view === NftView.Collection) return;
+      if (view === NftView.Collection || view === NftView.Did) return;
 
       setIsLoading(true);
       try {
         await commands
           .getNfts({
-            collection_id:
-              collectionId === 'No collection'
-                ? 'none'
-                : (collectionId ?? null),
-            did_id: null,
+            collection_id: null,
+            did_id: didId === 'No did' ? 'none' : (didId ?? null),
             name: query || null,
             offset: (page - 1) * pageSize,
             limit: pageSize,
@@ -47,19 +41,11 @@ export default function Collection() {
           })
           .then((data) => setNfts(data.nfts))
           .catch(addError);
-
-        await commands
-          .getNftCollection({
-            collection_id:
-              collectionId === 'No collection' ? null : (collectionId ?? null),
-          })
-          .then((data) => setCollection(data.collection))
-          .catch(addError);
       } finally {
         setIsLoading(false);
       }
     },
-    [collectionId, pageSize, showHidden, view, query, addError],
+    [didId, pageSize, showHidden, view, query, addError],
   );
 
   useEffect(() => {
@@ -90,7 +76,7 @@ export default function Collection() {
 
   return (
     <>
-      <Header title={`${collection?.name ?? t`Unknown`} NFTs`}>
+      <Header title={didId === 'No did' ? t`Unassigned NFTs` : t`Profile NFTs`}>
         <ReceiveAddress />
       </Header>
 
@@ -149,4 +135,4 @@ export default function Collection() {
       )}
     </>
   );
-}
+} 

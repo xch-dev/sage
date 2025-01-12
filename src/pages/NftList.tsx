@@ -15,12 +15,13 @@ import {
 import { useErrors } from '@/hooks/useErrors';
 import { useNftParams } from '@/hooks/useNftParams';
 import collectionImage from '@/images/collection.png';
+import profileImage from '@/images/profile.png';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { EyeIcon, EyeOff, ImagePlusIcon, MoreVerticalIcon } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { commands, events, NftCollectionRecord, NftRecord } from '../bindings';
+import { commands, events, NftCollectionRecord, NftRecord, DidRecord } from '../bindings';
 
 export function NftList() {
   const navigate = useNavigate();
@@ -32,6 +33,7 @@ export function NftList() {
 
   const [nfts, setNfts] = useState<NftRecord[]>([]);
   const [collections, setCollections] = useState<NftCollectionRecord[]>([]);
+  const [dids, setDids] = useState<DidRecord[]>([]);
   const [multiSelect, setMultiSelect] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -61,6 +63,11 @@ export function NftList() {
               include_hidden: showHidden,
             })
             .then((data) => setCollections(data.collections))
+            .catch(addError);
+        } else if (view === 'did') {
+          await commands
+            .getDids({})
+            .then((data) => setDids(data.dids))
             .catch(addError);
         }
       } finally {
@@ -143,6 +150,25 @@ export function NftList() {
                   updateNfts={() => updateNfts(page)}
                 />
               )}
+            </>
+          ) : view === 'did' ? (
+            <>
+              {dids.map((did, i) => (
+                <DidGroup did={did} key={i} updateNfts={() => updateNfts(page)} />
+              ))}
+              <DidGroup
+                did={{
+                  name: 'Unassigned NFTs',
+                  launcher_id: 'No did',
+                  visible: true,
+                  coin_id: 'No coin',
+                  address: 'no address',
+                  amount: 0,
+                  created_height: 0,
+                  create_transaction_id: 'No transaction',
+                }}
+                updateNfts={() => updateNfts(page)}
+              />
             </>
           ) : (
             nfts.map((nft, i) => (
@@ -250,5 +276,40 @@ function Collection({ col }: CollectionProps) {
         </div>
       </Link>
     </>
+  );
+}
+
+interface DidGroupProps {
+  did: DidRecord;
+  updateNfts: () => void;
+}
+
+function DidGroup({ did }: DidGroupProps) {
+  return (
+    <Link
+      to={`/dids/${did.launcher_id}/nfts`}
+      className={`group${did.visible ? ' opacity-50 grayscale' : ''} border border-neutral-200 rounded-lg dark:border-neutral-800`}
+    >
+      <div className='overflow-hidden rounded-t-lg relative'>
+        <img
+          alt={did.name ?? t`Unnamed`}
+          loading='lazy'
+          width='150'
+          height='150'
+          className='h-auto w-auto object-cover transition-all group-hover:scale-105 aspect-square color-[transparent]'
+          src={profileImage}
+        />
+      </div>
+      <div className='border-t bg-white text-neutral-950 shadow dark:bg-neutral-900 dark:text-neutral-50 text-md flex items-center justify-between rounded-b-lg p-2 pl-3'>
+        <span className='truncate'>
+          <span className='font-medium leading-none truncate'>
+            {did.name ?? <Trans>Unnamed Profile</Trans>}
+          </span>
+          <p className='text-xs text-muted-foreground truncate'>
+            {did.launcher_id}
+          </p>
+        </span>
+      </div>
+    </Link>
   );
 }

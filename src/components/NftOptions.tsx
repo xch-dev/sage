@@ -10,6 +10,7 @@ import {
   EyeIcon,
   EyeOff,
   Images,
+  UserIcon,
 } from 'lucide-react';
 import { Button } from './ui/button';
 import {
@@ -181,7 +182,25 @@ export function NftOptions({
                   >
                     <Images className='mr-2 h-4 w-4' />
                     <span>
-                      <Trans>Group Collections</Trans>
+                      <Trans>Group by Collections</Trans>
+                    </span>
+                  </DropdownMenuItem>
+                )}
+
+                {!isCollection && (
+                  <DropdownMenuItem
+                    className='cursor-pointer'
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setParams({
+                        page: 1,
+                        view: NftView.Did,
+                      });
+                    }}
+                  >
+                    <UserIcon className='mr-2 h-4 w-4' />
+                    <span>
+                      <Trans>Group by Owners</Trans>
                     </span>
                   </DropdownMenuItem>
                 )}

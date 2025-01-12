@@ -46,6 +46,7 @@ import { ViewOffer } from './pages/ViewOffer';
 import { ViewSavedOffer } from './pages/ViewSavedOffer';
 import Wallet from './pages/Wallet';
 import { fetchState } from './state';
+import DidNfts from './pages/DidNfts';
 
 export interface DarkModeContext {
   toggle: () => void;
@@ -96,6 +97,7 @@ const router = createHashRouter(
       </Route>
       <Route path='/settings' element={<Settings />} />
       <Route path='/peers' element={<PeerList />} />
+      <Route path='/dids/:did_id/nfts' element={<DidNfts />} />
     </>,
   ),
 );

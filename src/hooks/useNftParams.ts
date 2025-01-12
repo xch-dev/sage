@@ -8,6 +8,7 @@ export enum NftView {
   Name = 'name',
   Recent = 'recent',
   Collection = 'collection',
+  Did = 'did'
 }
 
 export interface NftParams {
@@ -28,6 +29,8 @@ function parseView(view: string | null): NftView {
       return NftView.Recent;
     case 'collection':
       return NftView.Collection;
+    case 'did':
+      return NftView.Did;
     default:
       return NftView.Name;
   }
