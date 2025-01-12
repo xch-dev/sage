@@ -3,6 +3,7 @@ import { useLocalStorage } from 'usehooks-ts';
 
 const NFT_VIEW_STORAGE_KEY = 'sage-wallet-nft-view';
 const NFT_HIDDEN_STORAGE_KEY = 'sage-wallet-nft-hidden';
+const NFT_GROUP_STORAGE_KEY = 'sage-wallet-nft-group';
 
 export enum NftView {
   Name = 'name',
@@ -54,6 +55,10 @@ export function useNftParams(): [NftParams, SetNftParams] {
     NFT_VIEW_STORAGE_KEY,
     NftSortMode.Name,
   );
+  const [storedGroup, setStoredGroup] = useLocalStorage<NftGroupMode>(
+    NFT_GROUP_STORAGE_KEY,
+    NftGroupMode.None,
+  );
   const [storedShowHidden, setStoredShowHidden] = useLocalStorage<boolean>(
     NFT_HIDDEN_STORAGE_KEY,
     false,
@@ -62,7 +67,7 @@ export function useNftParams(): [NftParams, SetNftParams] {
   const pageSize = parseInt(params.get('pageSize') ?? '12');
   const page = parseInt(params.get('page') ?? '1');
   const sort = (params.get('sort') as NftSortMode) ?? storedSort;
-  const group = (params.get('group') as NftGroupMode) ?? NftGroupMode.None;
+  const group = (params.get('group') as NftGroupMode) ?? storedGroup;
   const showHidden =
     (params.get('showHidden') ?? storedShowHidden.toString()) === 'true';
   const query = params.get('query');
@@ -89,6 +94,7 @@ export function useNftParams(): [NftParams, SetNftParams] {
 
         if (group !== undefined) {
           next.set('group', group);
+          setStoredGroup(group);
         }
 
         if (showHidden !== undefined) {

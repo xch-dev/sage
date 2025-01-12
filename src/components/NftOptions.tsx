@@ -115,17 +115,72 @@ export function NftOptions({
 
         <div className='flex gap-2 items-center'>
           {group === NftGroupMode.None && (
-            <Button
-              variant='outline'
-              size='icon'
-              onClick={() => setMultiSelect(!multiSelect)}
-              aria-label={t`Toggle multi-select`}
-              title={t`Toggle multi-select`}
-            >
-              <CopyPlus
-                className={`h-4 w-4 ${multiSelect ? 'text-green-600 dark:text-green-400' : ''}`}
-              />
-            </Button>
+            <>
+              <Button
+                variant='outline'
+                size='icon'
+                onClick={() => setMultiSelect(!multiSelect)}
+                aria-label={t`Toggle multi-select`}
+                title={t`Toggle multi-select`}
+              >
+                <CopyPlus
+                  className={`h-4 w-4 ${multiSelect ? 'text-green-600 dark:text-green-400' : ''}`}
+                />
+              </Button>
+              
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant='outline'
+                    size='icon'
+                    aria-label={t`Sort options`}
+                    title={t`Sort options`}
+                  >
+                    {sort === NftSortMode.Name ? (
+                      <ArrowDownAz className='h-4 w-4' />
+                    ) : (
+                      <Clock2 className='h-4 w-4' />
+                    )}
+                  </Button>
+                </DropdownMenuTrigger>
+
+                <DropdownMenuContent align='end'>
+                  <DropdownMenuGroup>
+                    <DropdownMenuItem
+                      className='cursor-pointer'
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setParams({
+                          page: 1,
+                          sort: NftSortMode.Name,
+                        });
+                      }}
+                    >
+                      <ArrowDownAz className='mr-2 h-4 w-4' />
+                      <span>
+                        <Trans>Sort Alphabetically</Trans>
+                      </span>
+                    </DropdownMenuItem>
+
+                    <DropdownMenuItem
+                      className='cursor-pointer'
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setParams({
+                          page: 1,
+                          sort: NftSortMode.Recent,
+                        });
+                      }}
+                    >
+                      <Clock2 className='mr-2 h-4 w-4' />
+                      <span>
+                        <Trans>Sort Recent</Trans>
+                      </span>
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
           )}
 
           <Button
@@ -141,59 +196,6 @@ export function NftOptions({
               <EyeOff className='h-4 w-4' />
             )}
           </Button>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant='outline'
-                size='icon'
-                aria-label={t`Sort options`}
-                title={t`Sort options`}
-              >
-                {sort === NftSortMode.Name ? (
-                  <ArrowDownAz className='h-4 w-4' />
-                ) : (
-                  <Clock2 className='h-4 w-4' />
-                )}
-              </Button>
-            </DropdownMenuTrigger>
-
-            <DropdownMenuContent align='end'>
-              <DropdownMenuGroup>
-                <DropdownMenuItem
-                  className='cursor-pointer'
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setParams({
-                      page: 1,
-                      sort: NftSortMode.Name,
-                    });
-                  }}
-                >
-                  <ArrowDownAz className='mr-2 h-4 w-4' />
-                  <span>
-                    <Trans>Sort Alphabetically</Trans>
-                  </span>
-                </DropdownMenuItem>
-
-                <DropdownMenuItem
-                  className='cursor-pointer'
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setParams({
-                      page: 1,
-                      sort: NftSortMode.Recent,
-                    });
-                  }}
-                >
-                  <Clock2 className='mr-2 h-4 w-4' />
-                  <span>
-                    <Trans>Sort Recent</Trans>
-                  </span>
-                </DropdownMenuItem>
-              </DropdownMenuGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
 
           {!isCollection && (
             <DropdownMenu>
