@@ -1,12 +1,8 @@
 import { useSearchParams } from 'react-router-dom';
+import { useLocalStorage } from 'usehooks-ts';
 
-export interface NftParams {
-  pageSize: number;
-  page: number;
-  view: NftView;
-  showHidden: boolean;
-  query: string;
-}
+const NFT_VIEW_STORAGE_KEY = 'sage-wallet-nft-view';
+const NFT_HIDDEN_STORAGE_KEY = 'sage-wallet-nft-hidden';
 
 export enum NftView {
   Name = 'name',
@@ -14,7 +10,17 @@ export enum NftView {
   Collection = 'collection',
 }
 
-export function parseView(view: string): NftView {
+export interface NftParams {
+  pageSize: number;
+  page: number;
+  view: NftView;
+  showHidden: boolean;
+  query?: string;
+}
+
+export type SetNftParams = (params: Partial<NftParams>) => void;
+
+function parseView(view: string | null): NftView {
   switch (view) {
     case 'name':
       return NftView.Name;
@@ -27,16 +33,22 @@ export function parseView(view: string): NftView {
   }
 }
 
-export type SetNftParams = (params: Partial<NftParams>) => void;
-
 export function useNftParams(): [NftParams, SetNftParams] {
   const [params, setParams] = useSearchParams();
+  const [storedView, setStoredView] = useLocalStorage<NftView>(
+    NFT_VIEW_STORAGE_KEY,
+    NftView.Name
+  );
+  const [storedShowHidden, setStoredShowHidden] = useLocalStorage<boolean>(
+    NFT_HIDDEN_STORAGE_KEY,
+    false
+  );
 
   const pageSize = parseInt(params.get('pageSize') ?? '12');
   const page = parseInt(params.get('page') ?? '1');
-  const view = parseView(params.get('view') ?? 'recent');
-  const showHidden = (params.get('showHidden') ?? 'false') === 'true';
-  const query = params.get('query') ?? '';
+  const view = parseView(params.get('view') ?? storedView);
+  const showHidden = (params.get('showHidden') ?? storedShowHidden.toString()) === 'true';
+  const query = params.get('query') ?? undefined;
 
   const updateParams = ({
     pageSize,
@@ -59,14 +71,20 @@ export function useNftParams(): [NftParams, SetNftParams] {
 
         if (view !== undefined) {
           next.set('view', view);
+          setStoredView(view);
         }
 
         if (showHidden !== undefined) {
           next.set('showHidden', showHidden.toString());
+          setStoredShowHidden(showHidden);
         }
 
         if (query !== undefined) {
-          next.set('query', query);
+          if (query) {
+            next.set('query', query);
+          } else {
+            next.delete('query');
+          }
         }
 
         return next;
