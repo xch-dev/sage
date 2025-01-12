@@ -16,7 +16,7 @@ export async function uploadToDexie(
   const data = await response.json();
   console.log(data);
 
-  return `https://${testnet ? 'testnet.' : ''}dexie.space/offers/${data.id}`;
+  return dexieLink(data.id, testnet);
 }
 
 export async function uploadToMintGarden(
@@ -37,5 +37,13 @@ export async function uploadToMintGarden(
   const data = await response.json();
   console.log(data);
 
-  return `https://${testnet ? 'testnet.' : ''}mintgarden.io/offers/${data.offer.id}`;
+  return mintGardenLink(data.offer.id, testnet);
+}
+
+export function dexieLink(offerId: string, testnet: boolean) {
+  return `https://${testnet ? 'testnet.' : ''}dexie.space/offers/${offerId}`;
+}
+
+export function mintGardenLink(offerId: string, testnet: boolean) {
+  return `https://${testnet ? 'testnet.' : ''}mintgarden.io/offers/${offerId}`;
 }
