@@ -1,10 +1,13 @@
 import { useSearchParams } from 'react-router-dom';
+import { useLocalStorage } from 'usehooks-ts';
 
 const ZERO_BALANCE_STORAGE_KEY = 'sage-wallet-show-zero-balance';
+const TOKEN_SORT_STORAGE_KEY = 'sage-wallet-token-sort';
 
 export interface TokenParams {
   view: TokenView;
   showHidden: boolean;
+  search: string;
   showZeroBalance: boolean;
 }
 
@@ -29,21 +32,26 @@ export type SetTokenParams = (params: Partial<TokenParams>) => void;
 export function useTokenParams(): [TokenParams, SetTokenParams] {
   const [params, setParams] = useSearchParams();
 
-  const initialShowZeroBalance = () => {
-    const stored = localStorage.getItem(ZERO_BALANCE_STORAGE_KEY);
-    return stored === null ? false : stored === 'true';
-  };
+  const [storedShowZeroBalance, setStoredShowZeroBalance] =
+    useLocalStorage<boolean>(ZERO_BALANCE_STORAGE_KEY, false);
 
-  const view = parseView(params.get('view') ?? 'name');
+  const [storedTokenView, setStoredTokenView] = useLocalStorage<TokenView>(
+    TOKEN_SORT_STORAGE_KEY,
+    TokenView.Name,
+  );
+
+  const view = parseView(params.get('view') ?? storedTokenView);
   const showHidden = (params.get('showHidden') ?? 'false') === 'true';
   const showZeroBalance =
-    (params.get('showZeroBalance') ?? initialShowZeroBalance().toString()) ===
+    (params.get('showZeroBalance') ?? storedShowZeroBalance.toString()) ===
     'true';
+  const search = params.get('search') ?? '';
 
   const updateParams = ({
     view,
     showHidden,
     showZeroBalance,
+    search,
   }: Partial<TokenParams>) => {
     setParams(
       (prev) => {
@@ -51,6 +59,7 @@ export function useTokenParams(): [TokenParams, SetTokenParams] {
 
         if (view !== undefined) {
           next.set('view', view);
+          setStoredTokenView(view);
         }
 
         if (showHidden !== undefined) {
@@ -59,10 +68,15 @@ export function useTokenParams(): [TokenParams, SetTokenParams] {
 
         if (showZeroBalance !== undefined) {
           next.set('showZeroBalance', showZeroBalance.toString());
-          localStorage.setItem(
-            ZERO_BALANCE_STORAGE_KEY,
-            showZeroBalance.toString(),
-          );
+          setStoredShowZeroBalance(showZeroBalance);
+        }
+
+        if (search !== undefined) {
+          if (search) {
+            next.set('search', search);
+          } else {
+            next.delete('search');
+          }
         }
 
         return next;
@@ -71,5 +85,5 @@ export function useTokenParams(): [TokenParams, SetTokenParams] {
     );
   };
 
-  return [{ view, showHidden, showZeroBalance }, updateParams];
+  return [{ view, showHidden, showZeroBalance, search }, updateParams];
 }
