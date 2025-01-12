@@ -1,5 +1,4 @@
 use std::time::Duration;
-use tracing::debug;
 
 use chia::{clvm_traits::FromClvm, puzzles::nft::NftMetadata};
 use chia_wallet_sdk::{encode_address, Offer, SpendContext};
@@ -15,30 +14,17 @@ use super::{extract_nft_data, ConfirmationInfo, ExtractedNftData};
 
 impl Sage {
     pub(crate) async fn summarize_offer(&self, offer: Offer) -> Result<OfferSummary> {
-        debug!("Starting offer summary");
         let wallet = self.wallet()?;
-        debug!("Got wallet");
 
         let mut ctx = SpendContext::new();
-        debug!("Created spend context");
 
         let offer = offer.parse(&mut ctx.allocator)?;
-        debug!("Parsed offer");
-
         let (locked_coins, _original_coin_ids) = parse_locked_coins(&mut ctx.allocator, &offer)?;
-        debug!("Parsed locked coins");
-
         let maker_amounts = locked_coins.amounts();
-        debug!("Got maker amounts");
 
         let mut builder = offer.take();
-        debug!("Got offer builder");
-
         let requested_payments = parse_offer_payments(&mut ctx, &mut builder)?;
-        debug!("Parsed offer payments");
-
         let taker_amounts = requested_payments.amounts();
-        debug!("Got taker amounts");
 
         let maker_royalties = calculate_royalties(
             &maker_amounts,
@@ -52,7 +38,6 @@ impl Sage {
                 })
                 .collect::<Vec<_>>(),
         )?;
-        debug!("Calculated maker royalties");
 
         let taker_royalties = calculate_royalties(
             &taker_amounts,
@@ -66,11 +51,9 @@ impl Sage {
                 })
                 .collect::<Vec<_>>(),
         )?;
-        debug!("Calculated taker royalties");
 
         let maker_royalties = maker_royalties.amounts();
         let taker_royalties = taker_royalties.amounts();
-        debug!("Got royalty amounts");
 
         let mut maker = OfferAssets {
             xch: OfferXch {
@@ -80,10 +63,8 @@ impl Sage {
             cats: IndexMap::new(),
             nfts: IndexMap::new(),
         };
-        debug!("Created maker assets");
 
         for (asset_id, amount) in maker_amounts.cats {
-            debug!("Processing maker CAT: {}", hex::encode(asset_id));
             let cat = wallet.db.cat(asset_id).await?;
 
             maker.cats.insert(
@@ -97,18 +78,14 @@ impl Sage {
                 },
             );
         }
-        debug!("Processed maker CATs");
 
         for (launcher_id, nft) in locked_coins.nfts {
-            debug!("Processing maker NFT: {}", hex::encode(launcher_id));
             let info = if let Ok(metadata) =
                 NftMetadata::from_clvm(&ctx.allocator, nft.info.metadata.ptr())
             {
-                debug!("Parsed NFT metadata");
                 let mut confirmation_info = ConfirmationInfo::default();
 
                 if let Some(hash) = metadata.data_hash {
-                    debug!("Fetching NFT data hash: {}", hex::encode(hash));
                     if let Ok(Some(data)) = timeout(
                         Duration::from_secs(10),
                         fetch_uris_with_hash(metadata.data_uris.clone(), hash),
@@ -120,7 +97,6 @@ impl Sage {
                 }
 
                 if let Some(hash) = metadata.metadata_hash {
-                    debug!("Fetching NFT metadata hash: {}", hex::encode(hash));
                     if let Ok(Some(data)) = timeout(
                         Duration::from_secs(10),
                         fetch_uris_with_hash(metadata.metadata_uris.clone(), hash),
@@ -133,7 +109,6 @@ impl Sage {
 
                 extract_nft_data(Some(&wallet.db), Some(metadata), &confirmation_info).await?
             } else {
-                debug!("Failed to parse NFT metadata, using default");
                 ExtractedNftData::default()
             };
 
@@ -151,7 +126,6 @@ impl Sage {
                 },
             );
         }
-        debug!("Processed maker NFTs");
 
         let mut taker = OfferAssets {
             xch: OfferXch {
@@ -161,10 +135,8 @@ impl Sage {
             cats: IndexMap::new(),
             nfts: IndexMap::new(),
         };
-        debug!("Created taker assets");
 
         for (asset_id, amount) in taker_amounts.cats {
-            debug!("Processing taker CAT: {}", hex::encode(asset_id));
             let cat = wallet.db.cat(asset_id).await?;
 
             taker.cats.insert(
@@ -178,10 +150,8 @@ impl Sage {
                 },
             );
         }
-        debug!("Processed taker CATs");
 
         for (launcher_id, (nft, _payments)) in requested_payments.nfts {
-            debug!("Processing taker NFT: {}", hex::encode(launcher_id));
             let metadata = NftMetadata::from_clvm(&ctx.allocator, nft.metadata.ptr())?;
             let info = extract_nft_data(
                 Some(&wallet.db),
@@ -204,7 +174,6 @@ impl Sage {
                 },
             );
         }
-        debug!("Processed taker NFTs");
 
         Ok(OfferSummary {
             fee: Amount::u64(locked_coins.fee),
