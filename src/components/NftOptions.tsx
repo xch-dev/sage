@@ -1,4 +1,9 @@
-import { NftParams, NftView, SetNftParams } from '@/hooks/useNftParams';
+import {
+  NftParams,
+  NftSortMode,
+  NftGroupMode,
+  SetNftParams,
+} from '@/hooks/useNftParams';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import {
@@ -11,6 +16,9 @@ import {
   EyeOff,
   Images,
   UserIcon,
+  SearchIcon,
+  XIcon,
+  LayoutGrid,
 } from 'lucide-react';
 import { Button } from './ui/button';
 import {
@@ -35,7 +43,7 @@ export interface NftOptionsProps {
 
 export function NftOptions({
   isCollection,
-  params: { page, view, showHidden, query },
+  params: { page, sort, group, showHidden, query },
   setParams,
   multiSelect,
   setMultiSelect,
@@ -45,13 +53,30 @@ export function NftOptions({
 }: NftOptionsProps) {
   return (
     <div className={`flex flex-col gap-4 ${className}`}>
-      <Input
-        type='search'
-        placeholder={t`Search NFTs...`}
-        value={query ?? ''}
-        onChange={(e) => setParams({ query: e.target.value, page: 1 })}
-        className='w-full'
-      />
+      <div className='relative flex-1'>
+        <div className='relative'>
+          <SearchIcon className='absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
+          <Input
+            value={query ?? ''}
+            aria-label={t`Search NFTs`}
+            title={t`Search NFTs`}
+            onChange={(e) => setParams({ query: e.target.value, page: 1 })}
+            className='w-full pl-8 pr-8'
+          />
+        </div>
+        {query && (
+          <Button
+            variant='ghost'
+            size='icon'
+            title={t`Clear search`}
+            aria-label={t`Clear search`}
+            className='absolute right-0 top-0 h-full px-2 hover:bg-transparent'
+            onClick={() => setParams({ query: '', page: 1 })}
+          >
+            <XIcon className='h-4 w-4' />
+          </Button>
+        )}
+      </div>
 
       <div className='flex items-center justify-between'>
         <div className='flex gap-3 items-center'>
@@ -89,7 +114,7 @@ export function NftOptions({
         </div>
 
         <div className='flex gap-2 items-center'>
-          {view !== NftView.Collection && (
+          {group === NftGroupMode.None && (
             <Button
               variant='outline'
               size='icon'
@@ -125,12 +150,10 @@ export function NftOptions({
                 aria-label={t`Sort options`}
                 title={t`Sort options`}
               >
-                {view === 'name' ? (
+                {sort === NftSortMode.Name ? (
                   <ArrowDownAz className='h-4 w-4' />
-                ) : view === 'recent' ? (
-                  <Clock2 className='h-4 w-4' />
                 ) : (
-                  <Images className='h-4 w-4' />
+                  <Clock2 className='h-4 w-4' />
                 )}
               </Button>
             </DropdownMenuTrigger>
@@ -143,7 +166,7 @@ export function NftOptions({
                     e.stopPropagation();
                     setParams({
                       page: 1,
-                      view: NftView.Name,
+                      sort: NftSortMode.Name,
                     });
                   }}
                 >
@@ -159,7 +182,7 @@ export function NftOptions({
                     e.stopPropagation();
                     setParams({
                       page: 1,
-                      view: NftView.Recent,
+                      sort: NftSortMode.Recent,
                     });
                   }}
                 >
@@ -168,15 +191,54 @@ export function NftOptions({
                     <Trans>Sort Recent</Trans>
                   </span>
                 </DropdownMenuItem>
+              </DropdownMenuGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-                {!isCollection && (
+          {!isCollection && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant='outline'
+                  size='icon'
+                  aria-label={t`Group options`}
+                  title={t`Group options`}
+                >
+                  {group === NftGroupMode.Collection ? (
+                    <Images className='h-4 w-4' />
+                  ) : group === NftGroupMode.Did ? (
+                    <UserIcon className='h-4 w-4' />
+                  ) : (
+                    <LayoutGrid className='h-4 w-4' />
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+
+              <DropdownMenuContent align='end'>
+                <DropdownMenuGroup>
                   <DropdownMenuItem
                     className='cursor-pointer'
                     onClick={(e) => {
                       e.stopPropagation();
                       setParams({
                         page: 1,
-                        view: NftView.Collection,
+                        group: NftGroupMode.None,
+                      });
+                    }}
+                  >
+                    <LayoutGrid className='mr-2 h-4 w-4' />
+                    <span>
+                      <Trans>No Grouping</Trans>
+                    </span>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem
+                    className='cursor-pointer'
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setParams({
+                        page: 1,
+                        group: NftGroupMode.Collection,
                       });
                     }}
                   >
@@ -185,16 +247,14 @@ export function NftOptions({
                       <Trans>Group by Collections</Trans>
                     </span>
                   </DropdownMenuItem>
-                )}
 
-                {!isCollection && (
                   <DropdownMenuItem
                     className='cursor-pointer'
                     onClick={(e) => {
                       e.stopPropagation();
                       setParams({
                         page: 1,
-                        view: NftView.Did,
+                        group: NftGroupMode.Did,
                       });
                     }}
                   >
@@ -203,10 +263,10 @@ export function NftOptions({
                       <Trans>Group by Owners</Trans>
                     </span>
                   </DropdownMenuItem>
-                )}
-              </DropdownMenuGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                </DropdownMenuGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
       </div>
     </div>

@@ -13,7 +13,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useErrors } from '@/hooks/useErrors';
-import { useNftParams } from '@/hooks/useNftParams';
+import { useNftParams, NftGroupMode } from '@/hooks/useNftParams';
 import collectionImage from '@/images/collection.png';
 import profileImage from '@/images/profile.png';
 import { t } from '@lingui/core/macro';
@@ -21,7 +21,13 @@ import { Trans } from '@lingui/react/macro';
 import { EyeIcon, EyeOff, ImagePlusIcon, MoreVerticalIcon } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { commands, events, NftCollectionRecord, NftRecord, DidRecord } from '../bindings';
+import {
+  commands,
+  events,
+  NftCollectionRecord,
+  NftRecord,
+  DidRecord,
+} from '../bindings';
 
 export function NftList() {
   const navigate = useNavigate();
@@ -29,7 +35,7 @@ export function NftList() {
   const { addError } = useErrors();
 
   const [params, setParams] = useNftParams();
-  const { pageSize, page, view, showHidden, query } = params;
+  const { pageSize, page, sort, group, showHidden, query } = params;
 
   const [nfts, setNfts] = useState<NftRecord[]>([]);
   const [collections, setCollections] = useState<NftCollectionRecord[]>([]);
@@ -42,7 +48,7 @@ export function NftList() {
     async (page: number) => {
       setIsLoading(true);
       try {
-        if (view === 'name' || view === 'recent') {
+        if (group === NftGroupMode.None) {
           await commands
             .getNfts({
               collection_id: null,
@@ -50,12 +56,12 @@ export function NftList() {
               name: query || null,
               offset: (page - 1) * pageSize,
               limit: pageSize,
-              sort_mode: view,
+              sort_mode: sort,
               include_hidden: showHidden,
             })
             .then((data) => setNfts(data.nfts))
             .catch(addError);
-        } else if (view === 'collection') {
+        } else if (group === NftGroupMode.Collection) {
           await commands
             .getNftCollections({
               offset: (page - 1) * pageSize,
@@ -64,7 +70,7 @@ export function NftList() {
             })
             .then((data) => setCollections(data.collections))
             .catch(addError);
-        } else if (view === 'did') {
+        } else if (group === NftGroupMode.Did) {
           await commands
             .getDids({})
             .then((data) => setDids(data.dids))
@@ -74,7 +80,7 @@ export function NftList() {
         setIsLoading(false);
       }
     },
-    [pageSize, showHidden, view, query, addError],
+    [pageSize, showHidden, sort, group, query, addError],
   );
 
   useEffect(() => {
@@ -128,7 +134,7 @@ export function NftList() {
         />
 
         <NftCardList>
-          {view === 'collection' ? (
+          {group === NftGroupMode.Collection ? (
             <>
               {collections.map((col, i) => (
                 <Collection
@@ -151,10 +157,14 @@ export function NftList() {
                 />
               )}
             </>
-          ) : view === 'did' ? (
+          ) : group === NftGroupMode.Did ? (
             <>
               {dids.map((did, i) => (
-                <DidGroup did={did} key={i} updateNfts={() => updateNfts(page)} />
+                <DidGroup
+                  did={did}
+                  key={i}
+                  updateNfts={() => updateNfts(page)}
+                />
               ))}
               <DidGroup
                 did={{

@@ -8,15 +8,27 @@ export enum NftView {
   Name = 'name',
   Recent = 'recent',
   Collection = 'collection',
-  Did = 'did'
+  Did = 'did',
+}
+
+export enum NftSortMode {
+  Name = 'name',
+  Recent = 'recent',
+}
+
+export enum NftGroupMode {
+  None = 'none',
+  Collection = 'collection',
+  Did = 'did',
 }
 
 export interface NftParams {
   pageSize: number;
   page: number;
-  view: NftView;
+  sort: NftSortMode;
+  group: NftGroupMode;
   showHidden: boolean;
-  query?: string;
+  query: string | null;
 }
 
 export type SetNftParams = (params: Partial<NftParams>) => void;
@@ -38,25 +50,27 @@ function parseView(view: string | null): NftView {
 
 export function useNftParams(): [NftParams, SetNftParams] {
   const [params, setParams] = useSearchParams();
-  const [storedView, setStoredView] = useLocalStorage<NftView>(
+  const [storedSort, setStoredSort] = useLocalStorage<NftSortMode>(
     NFT_VIEW_STORAGE_KEY,
-    NftView.Name
+    NftSortMode.Name,
   );
   const [storedShowHidden, setStoredShowHidden] = useLocalStorage<boolean>(
     NFT_HIDDEN_STORAGE_KEY,
-    false
+    false,
   );
 
   const pageSize = parseInt(params.get('pageSize') ?? '12');
   const page = parseInt(params.get('page') ?? '1');
-  const view = parseView(params.get('view') ?? storedView);
-  const showHidden = (params.get('showHidden') ?? storedShowHidden.toString()) === 'true';
-  const query = params.get('query') ?? undefined;
+  const sort = (params.get('sort') as NftSortMode) ?? storedSort;
+  const group = (params.get('group') as NftGroupMode) ?? NftGroupMode.None;
+  const showHidden =
+    (params.get('showHidden') ?? storedShowHidden.toString()) === 'true';
+  const query = params.get('query');
 
   const updateParams = ({
-    pageSize,
     page,
-    view,
+    sort,
+    group,
     showHidden,
     query,
   }: Partial<NftParams>) => {
@@ -64,17 +78,17 @@ export function useNftParams(): [NftParams, SetNftParams] {
       (prev) => {
         const next = new URLSearchParams(prev);
 
-        if (pageSize !== undefined) {
-          next.set('pageSize', pageSize.toString());
-        }
-
         if (page !== undefined) {
           next.set('page', page.toString());
         }
 
-        if (view !== undefined) {
-          next.set('view', view);
-          setStoredView(view);
+        if (sort !== undefined) {
+          next.set('sort', sort);
+          setStoredSort(sort);
+        }
+
+        if (group !== undefined) {
+          next.set('group', group);
         }
 
         if (showHidden !== undefined) {
@@ -96,5 +110,5 @@ export function useNftParams(): [NftParams, SetNftParams] {
     );
   };
 
-  return [{ pageSize, page, view, showHidden, query }, updateParams];
+  return [{ pageSize, page, sort, group, showHidden, query }, updateParams];
 }

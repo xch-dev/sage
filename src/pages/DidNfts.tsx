@@ -36,7 +36,10 @@ export default function DidNfts() {
             name: query || null,
             offset: (page - 1) * pageSize,
             limit: pageSize,
-            sort_mode: (view === NftView.Name || view === NftView.Recent) ? view : NftView.Name,
+            sort_mode:
+              view === NftView.Name || view === NftView.Recent
+                ? view
+                : NftView.Name,
             include_hidden: showHidden,
           })
           .then((data) => setNfts(data.nfts))
@@ -135,4 +138,4 @@ export default function DidNfts() {
       )}
     </>
   );
-} 
+}
