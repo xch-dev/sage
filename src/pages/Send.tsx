@@ -35,6 +35,7 @@ import {
   SendXch,
   TransactionResponse,
 } from '../bindings';
+import { Buffer } from 'buffer';
 
 export default function Send() {
   const { asset_id: assetId } = useParams();
@@ -140,7 +141,9 @@ export default function Send() {
 
   const onSubmit = () => {
     const values = form.getValues();
-    const memos = values.memo ? [values.memo] : [];
+    const memos = values.memo 
+      ? [Buffer.from(values.memo, 'utf8').toString('hex')] 
+      : [];
 
     const command = isXch
       ? bulk
@@ -154,16 +157,16 @@ export default function Send() {
           }
         : (req: SendXch) => commands.sendXch({ ...req, memos })
       : (req: SendXch) => {
+          // not sending memos with CATS
           if (bulk) {
             return commands.bulkSendCat({
               asset_id: assetId!,
               addresses: [...new Set(addressList(req.address))],
               amount: req.amount,
               fee: req.fee,
-              memos,
             });
           } else {
-            return commands.sendCat({ asset_id: assetId!, ...req, memos });
+            return commands.sendCat({ asset_id: assetId!, ...req });
           }
         };
 
@@ -291,27 +294,29 @@ export default function Send() {
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name='memo'
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      <Trans>Memo (optional)</Trans>
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        autoCorrect='off'
-                        autoCapitalize='off'
-                        autoComplete='off'
-                        placeholder={t`Enter memo`}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {isXch && (
+                <FormField
+                  control={form.control}
+                  name='memo'
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        <Trans>Memo (optional)</Trans>
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          autoCorrect='off'
+                          autoCapitalize='off'
+                          autoComplete='off'
+                          placeholder={t`Enter memo`}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
             </div>
 
             <Button type='submit'>
