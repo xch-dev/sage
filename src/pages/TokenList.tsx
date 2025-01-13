@@ -33,6 +33,7 @@ import { useWalletState } from '../state';
 import { Trans } from '@lingui/react/macro';
 import { Input } from '@/components/ui/input';
 import { t } from '@lingui/core/macro';
+import { NumberFormat } from '@/components/i18n';
 
 enum TokenView {
   Name = 'name',
@@ -240,20 +241,29 @@ export function TokenList() {
               </CardHeader>
               <CardContent>
                 <div className='text-2xl font-medium truncate'>
-                  {toDecimal(
-                    walletState.sync.balance,
-                    walletState.sync.unit.decimals,
-                  )}
-                </div>
-                <div className='text-sm text-neutral-500'>
-                  ~$
-                  {getBalanceInUsd(
-                    'xch',
-                    toDecimal(
+                  <NumberFormat
+                    value={toDecimal(
                       walletState.sync.balance,
                       walletState.sync.unit.decimals,
-                    ),
-                  )}
+                    )}
+                    minimumFractionDigits={0}
+                    maximumFractionDigits={walletState.sync.unit.decimals}
+                  />
+                </div>
+                <div className='text-sm text-neutral-500'>
+                  <NumberFormat
+                    value={getBalanceInUsd(
+                      'xch',
+                      toDecimal(
+                        walletState.sync.balance,
+                        walletState.sync.unit.decimals,
+                      ),
+                    )}
+                    style='currency'
+                    currency='USD'
+                    minimumFractionDigits={2}
+                    maximumFractionDigits={2}
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -277,10 +287,21 @@ export function TokenList() {
                 </CardHeader>
                 <CardContent>
                   <div className='text-2xl font-medium truncate'>
-                    {toDecimal(cat.balance, 3)} {cat.ticker ?? ''}
+                    <NumberFormat
+                      value={toDecimal(cat.balance, 3)}
+                      minimumFractionDigits={0}
+                      maximumFractionDigits={3}
+                    />{' '}
+                    {cat.ticker ?? ''}
                   </div>
                   <div className='text-sm text-neutral-500'>
-                    ~${cat.balanceInUsd}
+                    <NumberFormat
+                      value={cat.balanceInUsd}
+                      style='currency'
+                      currency='USD'
+                      minimumFractionDigits={2}
+                      maximumFractionDigits={2}
+                    />
                   </div>
                 </CardContent>
               </Card>

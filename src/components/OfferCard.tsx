@@ -11,6 +11,7 @@ import { CopyButton } from './CopyButton';
 import { Badge } from './ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Separator } from './ui/separator';
+import { NumberFormat } from '@/components/i18n';
 
 export interface OfferCardProps {
   summary: OfferSummary;
@@ -98,10 +99,14 @@ function Assets({ assets }: AssetsProps) {
             </Badge>
 
             <div className='text-sm font-medium'>
-              {toDecimal(
-                BigNumber(amount).plus(assets.xch.royalty).toString(),
-                walletState.sync.unit.decimals,
-              )}{' '}
+              <NumberFormat
+                value={toDecimal(
+                  BigNumber(amount).plus(assets.xch.royalty).toString(),
+                  walletState.sync.unit.decimals,
+                )}
+                minimumFractionDigits={0}
+                maximumFractionDigits={walletState.sync.unit.decimals}
+              />{' '}
               {walletState.sync.unit.ticker}
             </div>
           </div>
@@ -111,7 +116,14 @@ function Assets({ assets }: AssetsProps) {
               <Separator className='my-1' />
               <div className='text-sm text-muted-foreground truncate text-neutral-600 dark:text-neutral-300'>
                 <Trans>Amount includes</Trans>{' '}
-                {toDecimal(assets.xch.royalty, walletState.sync.unit.decimals)}{' '}
+                <NumberFormat
+                  value={toDecimal(
+                    assets.xch.royalty,
+                    walletState.sync.unit.decimals,
+                  )}
+                  minimumFractionDigits={0}
+                  maximumFractionDigits={walletState.sync.unit.decimals}
+                />{' '}
                 {walletState.sync.unit.ticker} <Trans>royalty</Trans>
               </div>
             </>
@@ -128,8 +140,15 @@ function Assets({ assets }: AssetsProps) {
               </Badge>
             </div>
             <div className='text-sm font-medium whitespace-nowrap'>
-              {toDecimal(BigNumber(cat.amount).plus(cat.royalty).toString(), 3)}{' '}
-              {cat.name ?? cat.ticker ?? 'Unknown'}
+              <NumberFormat
+                value={toDecimal(
+                  BigNumber(cat.amount).plus(cat.royalty).toString(),
+                  3,
+                )}
+                minimumFractionDigits={0}
+                maximumFractionDigits={3}
+              />{' '}
+              {cat.name ?? cat.ticker ?? t`Unknown`}
             </div>
           </div>
 
@@ -155,7 +174,12 @@ function Assets({ assets }: AssetsProps) {
             <>
               <Separator className='my-1' />
               <div className='text-sm text-muted-foreground truncate text-neutral-600 dark:text-neutral-300'>
-                <Trans>Amount includes</Trans> {toDecimal(cat.royalty, 3)}{' '}
+                <Trans>Amount includes</Trans>{' '}
+                <NumberFormat
+                  value={toDecimal(cat.royalty, 3)}
+                  minimumFractionDigits={0}
+                  maximumFractionDigits={3}
+                />{' '}
                 {cat.ticker ?? 'CAT'} <Trans>royalty</Trans>
               </div>
             </>

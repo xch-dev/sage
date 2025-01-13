@@ -5,6 +5,7 @@ import { addressInfo } from '@/lib/utils';
 import { useEffect, useMemo, useState } from 'react';
 import { Input } from '../ui/input';
 import { DropdownSelector } from './DropdownSelector';
+import { t } from '@lingui/core/macro';
 
 export interface NftSelectorProps {
   value: string | null;
@@ -132,7 +133,7 @@ export function NftSelector({
           <img
             src={nftThumbnails[nft.launcher_id] ?? defaultNftImage}
             className='w-10 h-10 rounded object-cover'
-            alt={nft.name ?? 'Unknown'}
+            alt={nft.name ?? t`Unknown`}
           />
           <div className='flex flex-col truncate'>
             <span className='flex-grow truncate'>{nft.name}</span>
@@ -145,6 +146,7 @@ export function NftSelector({
     >
       <div className='flex items-center gap-2 min-w-0'>
         <img
+          alt={selectedNft?.name ?? t`Select NFT`}
           src={
             selectedNft
               ? (nftThumbnails[selectedNft.launcher_id] ?? defaultNftImage)

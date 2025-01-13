@@ -58,6 +58,7 @@ import {
   events,
   TransactionResponse,
 } from '../bindings';
+import { NumberFormat } from '../components/i18n';
 
 export default function Token() {
   const navigate = useNavigate();
@@ -207,7 +208,11 @@ export default function Token() {
               <div className='flex flex-row justify-between items-center space-y-0 space-x-2'>
                 <div className='flex text-xl sm:text-4xl font-medium font-mono truncate'>
                   <span className='truncate'>
-                    {toDecimal(asset?.balance ?? '0', precision)}
+                    <NumberFormat
+                      value={toDecimal(asset?.balance ?? '0', precision)}
+                      minimumFractionDigits={0}
+                      maximumFractionDigits={precision}
+                    />
                     &nbsp;
                   </span>
                   {asset?.ticker}
@@ -221,7 +226,13 @@ export default function Token() {
                 </div>
               </div>
               <div className='text-sm text-muted-foreground'>
-                ~${balanceInUsd}
+                <NumberFormat
+                  value={balanceInUsd}
+                  style='currency'
+                  currency='USD'
+                  minimumFractionDigits={2}
+                  maximumFractionDigits={2}
+                />
               </div>
             </CardHeader>
             <CardContent className='flex flex-col gap-2'>

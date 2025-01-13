@@ -32,6 +32,7 @@ import { useState } from 'react';
 import { CoinRecord } from '../bindings';
 import { Button } from './ui/button';
 import { Checkbox } from './ui/checkbox';
+import { NumberFormat } from './i18n';
 
 export interface CoinListProps {
   precision: number;
@@ -119,7 +120,11 @@ export default function CoinList(props: CoinListProps) {
       },
       cell: (info) => (
         <span className='font-mono'>
-          {toDecimal(info.getValue() as string, props.precision)}
+          <NumberFormat
+            value={toDecimal(info.getValue() as string, props.precision)}
+            minimumFractionDigits={0}
+            maximumFractionDigits={props.precision}
+          />
         </span>
       ),
     },
