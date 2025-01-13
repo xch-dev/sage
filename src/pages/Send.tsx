@@ -141,8 +141,8 @@ export default function Send() {
 
   const onSubmit = () => {
     const values = form.getValues();
-    const memos = values.memo 
-      ? [Buffer.from(values.memo, 'utf8').toString('hex')] 
+    const memos = values.memo
+      ? [Buffer.from(values.memo, 'utf8').toString('hex')]
       : [];
 
     const command = isXch
