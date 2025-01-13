@@ -6,7 +6,7 @@ import { NftCard, NftCardList } from '@/components/NftCard';
 import { NftOptions } from '@/components/NftOptions';
 import { ReceiveAddress } from '@/components/ReceiveAddress';
 import { useErrors } from '@/hooks/useErrors';
-import { NftView, useNftParams } from '@/hooks/useNftParams';
+import { NftView, NftGroupMode, useNftParams } from '@/hooks/useNftParams';
 import { t } from '@lingui/core/macro';
 import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
@@ -16,7 +16,7 @@ export default function Collection() {
   const { collection_id: collectionId } = useParams();
 
   const [params, setParams] = useNftParams();
-  const { pageSize, page, view, showHidden, query } = params;
+  const { pageSize, page, sort, group, showHidden, query } = params;
 
   const [collection, setCollection] = useState<NftCollectionRecord | null>(
     null,
@@ -28,7 +28,7 @@ export default function Collection() {
 
   const updateNfts = useCallback(
     async (page: number) => {
-      if (view === NftView.Collection) return;
+      if (group === NftGroupMode.Collection) return;
 
       setIsLoading(true);
       try {
@@ -42,10 +42,7 @@ export default function Collection() {
             name: query || null,
             offset: (page - 1) * pageSize,
             limit: pageSize,
-            sort_mode:
-              view === NftView.Name || view === NftView.Recent
-                ? view
-                : NftView.Name,
+            sort_mode: sort,
             include_hidden: showHidden,
           })
           .then((data) => setNfts(data.nfts))
@@ -62,7 +59,7 @@ export default function Collection() {
         setIsLoading(false);
       }
     },
-    [collectionId, pageSize, showHidden, view, query, addError],
+    [collectionId, pageSize, showHidden, sort, query, addError],
   );
 
   useEffect(() => {

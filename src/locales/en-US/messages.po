@@ -222,8 +222,8 @@ msgstr "By disabling this you are creating a cold wallet, with no ability to sig
 #: src/pages/PeerList.tsx:305
 #: src/pages/PeerList.tsx:359
 #: src/pages/PeerList.tsx:508
-#: src/pages/Offers.tsx:287
-#: src/pages/Offers.tsx:325
+#: src/pages/Offers.tsx:302
+#: src/pages/Offers.tsx:363
 #: src/pages/Login.tsx:361
 #: src/pages/Login.tsx:389
 #: src/pages/Login.tsx:439
@@ -260,6 +260,8 @@ msgstr "Change"
 
 #: src/pages/TokenList.tsx:167
 #: src/pages/TokenList.tsx:168
+#: src/components/NftOptions.tsx:71
+#: src/components/NftOptions.tsx:72
 msgid "Clear search"
 msgstr "Clear search"
 
@@ -322,11 +324,11 @@ msgstr "Connected to {totalPeersCount} peers"
 msgid "connecting..."
 msgstr "connecting..."
 
-#: src/pages/Offers.tsx:261
+#: src/pages/Offers.tsx:276
 msgid "Copy"
 msgstr "Copy"
 
-#: src/pages/Offers.tsx:299
+#: src/pages/Offers.tsx:316
 #: src/components/NftCard.tsx:347
 msgid "Copy ID"
 msgstr "Copy ID"
@@ -335,7 +337,7 @@ msgstr "Copy ID"
 msgid "Create"
 msgstr "Create"
 
-#: src/pages/Offers.tsx:139
+#: src/pages/Offers.tsx:148
 msgid "Create a new offer to get started with peer-to-peer trading."
 msgstr "Create a new offer to get started with peer-to-peer trading."
 
@@ -343,7 +345,7 @@ msgstr "Create a new offer to get started with peer-to-peer trading."
 msgid "Create a profile?"
 msgstr "Create a profile?"
 
-#: src/pages/Offers.tsx:156
+#: src/pages/Offers.tsx:165
 #: src/pages/MakeOffer.tsx:306
 msgid "Create Offer"
 msgstr "Create Offer"
@@ -391,8 +393,8 @@ msgstr "Data URLs"
 msgid "Days"
 msgstr "Days"
 
-#: src/pages/Offers.tsx:274
-#: src/pages/Offers.tsx:336
+#: src/pages/Offers.tsx:289
+#: src/pages/Offers.tsx:374
 #: src/pages/Login.tsx:283
 #: src/pages/Login.tsx:392
 msgid "Delete"
@@ -406,7 +408,7 @@ msgstr "Delete {selectedPeersCount}"
 msgid "Delete hardened addresses"
 msgstr "Delete hardened addresses"
 
-#: src/pages/Offers.tsx:313
+#: src/pages/Offers.tsx:351
 msgid "Delete offer record?"
 msgstr "Delete offer record?"
 
@@ -437,6 +439,10 @@ msgstr "Description"
 #: src/pages/Login.tsx:247
 msgid "Details"
 msgstr "Details"
+
+#: src/pages/Offers.tsx:336
+msgid "Dexie"
+msgstr "Dexie"
 
 #: src/pages/MakeOffer.tsx:346
 msgid "Dexie Link"
@@ -508,7 +514,7 @@ msgstr "Enter multiple distinct addresses"
 msgid "Enter network fee"
 msgstr "Enter network fee"
 
-#: src/pages/Offers.tsx:173
+#: src/pages/Offers.tsx:182
 msgid "Enter Offer String"
 msgstr "Enter Offer String"
 
@@ -595,9 +601,22 @@ msgstr "Global"
 msgid "Go to wallet"
 msgstr "Go to wallet"
 
+#: src/components/NftOptions.tsx:249
+msgid "Group by Collections"
+msgstr "Group by Collections"
+
+#: src/components/NftOptions.tsx:265
+msgid "Group by Owners"
+msgstr "Group by Owners"
+
 #: src/components/NftOptions.tsx:179
-msgid "Group Collections"
-msgstr "Group Collections"
+#~ msgid "Group Collections"
+#~ msgstr "Group Collections"
+
+#: src/components/NftOptions.tsx:206
+#: src/components/NftOptions.tsx:207
+msgid "Group options"
+msgstr "Group options"
 
 #: src/pages/Addresses.tsx:144
 msgid "Hardened addresses"
@@ -612,7 +631,7 @@ msgid "Height:"
 msgstr "Height:"
 
 #: src/pages/Token.tsx:259
-#: src/pages/NftList.tsx:245
+#: src/pages/NftList.tsx:281
 #: src/pages/DidList.tsx:240
 #: src/components/NftCard.tsx:334
 msgid "Hide"
@@ -741,7 +760,7 @@ msgstr "Logout"
 msgid "Make sure you have saved your mnemonic. You will not be able to access it later, since it will not be saved in the wallet. You will also not be able to make transactions with this wallet."
 msgstr "Make sure you have saved your mnemonic. You will not be able to access it later, since it will not be saved in the wallet. You will also not be able to make transactions with this wallet."
 
-#: src/pages/Offers.tsx:133
+#: src/pages/Offers.tsx:142
 msgid "Manage offers"
 msgstr "Manage offers"
 
@@ -769,7 +788,7 @@ msgstr "Mint"
 #~ msgid "Mint an NFT?"
 #~ msgstr "Mint an NFT?"
 
-#: src/pages/NftList.tsx:107
+#: src/pages/NftList.tsx:120
 #: src/pages/MintNft.tsx:96
 msgid "Mint NFT"
 msgstr "Mint NFT"
@@ -846,7 +865,8 @@ msgstr "Network status"
 msgid "New Offer"
 msgstr "New Offer"
 
-#: src/components/NftOptions.tsx:82
+#: src/components/NftOptions.tsx:109
+#: src/components/NftOptions.tsx:110
 #: src/components/CoinList.tsx:371
 #: src/components/AddressList.tsx:190
 msgid "Next page"
@@ -865,7 +885,7 @@ msgstr "NFT options"
 msgid "NFT preview"
 msgstr "NFT preview"
 
-#: src/pages/NftList.tsx:101
+#: src/pages/NftList.tsx:114
 #: src/components/Nav.tsx:22
 msgid "NFTs"
 msgstr "NFTs"
@@ -878,7 +898,11 @@ msgstr "No active sessions"
 msgid "No collection"
 msgstr "No collection"
 
-#: src/pages/Offers.tsx:135
+#: src/components/NftOptions.tsx:233
+msgid "No Grouping"
+msgstr "No Grouping"
+
+#: src/pages/Offers.tsx:144
 msgid "No offers yet"
 msgstr "No offers yet"
 
@@ -918,7 +942,7 @@ msgstr "Offered"
 msgid "Offered..."
 msgstr "Offered..."
 
-#: src/pages/Offers.tsx:124
+#: src/pages/Offers.tsx:133
 #: src/components/Nav.tsx:30
 msgid "Offers"
 msgstr "Offers"
@@ -939,7 +963,7 @@ msgstr "Owner DID"
 msgid "Paste WalletConnect URI"
 msgstr "Paste WalletConnect URI"
 
-#: src/pages/Offers.tsx:178
+#: src/pages/Offers.tsx:187
 msgid "Paste your offer string here..."
 msgstr "Paste your offer string here..."
 
@@ -983,7 +1007,8 @@ msgstr "Port:"
 #~ msgid "Prevents the peer from being banned."
 #~ msgstr "Prevents the peer from being banned."
 
-#: src/components/NftOptions.tsx:66
+#: src/components/NftOptions.tsx:92
+#: src/components/NftOptions.tsx:93
 #: src/components/CoinList.tsx:362
 #: src/components/AddressList.tsx:181
 msgid "Previous page"
@@ -1008,6 +1033,10 @@ msgstr "Profile is required"
 #: src/pages/DidList.tsx:271
 msgid "Profile name"
 msgstr "Profile name"
+
+#: src/pages/DidNfts.tsx:79
+msgid "Profile NFTs"
+msgstr "Profile NFTs"
 
 #: src/pages/DidList.tsx:60
 #: src/components/Nav.tsx:26
@@ -1112,9 +1141,14 @@ msgstr "Save Offer"
 msgid "Search for a token"
 msgstr "Search for a token"
 
+#: src/components/NftOptions.tsx:61
+#: src/components/NftOptions.tsx:62
+msgid "Search NFTs"
+msgstr "Search NFTs"
+
 #: src/components/NftOptions.tsx:49
-msgid "Search NFTs..."
-msgstr "Search NFTs..."
+#~ msgid "Search NFTs..."
+#~ msgstr "Search NFTs..."
 
 #: src/pages/TokenList.tsx:144
 #~ msgid "Search tokens..."
@@ -1180,7 +1214,7 @@ msgid "Settings"
 msgstr "Settings"
 
 #: src/pages/Token.tsx:259
-#: src/pages/NftList.tsx:245
+#: src/pages/NftList.tsx:281
 #: src/pages/DidList.tsx:240
 #: src/components/NftCard.tsx:334
 msgid "Show"
@@ -1204,7 +1238,7 @@ msgid "Sign Transaction"
 msgstr "Sign Transaction"
 
 #: src/pages/TokenList.tsx:325
-#: src/components/NftOptions.tsx:146
+#: src/components/NftOptions.tsx:161
 msgid "Sort Alphabetically"
 msgstr "Sort Alphabetically"
 
@@ -1213,11 +1247,12 @@ msgid "Sort by Balance"
 msgstr "Sort by Balance"
 
 #: src/pages/TokenList.tsx:305
-#: src/components/NftOptions.tsx:120
+#: src/components/NftOptions.tsx:136
+#: src/components/NftOptions.tsx:137
 msgid "Sort options"
 msgstr "Sort options"
 
-#: src/components/NftOptions.tsx:162
+#: src/components/NftOptions.tsx:177
 msgid "Sort Recent"
 msgstr "Sort Recent"
 
@@ -1341,7 +1376,7 @@ msgstr "This will bulk transfer {selectedCount} NFTs to another wallet. Are you 
 msgid "This will combine all of the selected coins into one."
 msgstr "This will combine all of the selected coins into one."
 
-#: src/pages/Offers.tsx:316
+#: src/pages/Offers.tsx:354
 msgid "This will delete the offer from the wallet, but if it's shared externally it can still be accepted. The only way to truly cancel a public offer is by spending one or more of its coins."
 msgstr "This will delete the offer from the wallet, but if it's shared externally it can still be accepted. The only way to truly cancel a public offer is by spending one or more of its coins."
 
@@ -1378,11 +1413,13 @@ msgstr "Ticker"
 msgid "Ticker is required"
 msgstr "Ticker is required"
 
-#: src/components/NftOptions.tsx:106
+#: src/components/NftOptions.tsx:190
+#: src/components/NftOptions.tsx:191
 msgid "Toggle hidden NFTs"
 msgstr "Toggle hidden NFTs"
 
-#: src/components/NftOptions.tsx:94
+#: src/components/NftOptions.tsx:123
+#: src/components/NftOptions.tsx:124
 msgid "Toggle multi-select"
 msgstr "Toggle multi-select"
 
@@ -1439,6 +1476,10 @@ msgstr "Transfer Profile"
 #~ msgid "Unassign Profile"
 #~ msgstr "Unassign Profile"
 
+#: src/pages/DidNfts.tsx:79
+msgid "Unassigned NFTs"
+msgstr "Unassigned NFTs"
+
 #: src/pages/Transactions.tsx:297
 #: src/pages/Transaction.tsx:149
 #: src/pages/Collection.tsx:93
@@ -1464,8 +1505,9 @@ msgstr "Unknown asset"
 msgid "Unknown NFT"
 msgstr "Unknown NFT"
 
-#: src/pages/NftList.tsx:205
-#: src/pages/NftList.tsx:216
+#: src/pages/NftList.tsx:241
+#: src/pages/NftList.tsx:252
+#: src/pages/NftList.tsx:305
 #: src/components/OfferCard.tsx:177
 #: src/components/NftCard.tsx:196
 #: src/components/NftCard.tsx:214
@@ -1473,6 +1515,10 @@ msgstr "Unknown NFT"
 #: src/components/ConfirmationDialog.tsx:496
 msgid "Unnamed"
 msgstr "Unnamed"
+
+#: src/pages/NftList.tsx:316
+msgid "Unnamed Profile"
+msgstr "Unnamed Profile"
 
 #: src/components/CoinList.tsx:218
 #: src/components/CoinList.tsx:241
@@ -1513,8 +1559,8 @@ msgstr "Version {version}"
 msgid "View hidden"
 msgstr "View hidden"
 
-#: src/pages/Offers.tsx:151
-#: src/pages/Offers.tsx:184
+#: src/pages/Offers.tsx:160
+#: src/pages/Offers.tsx:193
 msgid "View Offer"
 msgstr "View Offer"
 
@@ -1567,7 +1613,7 @@ msgstr "While 12 word mnemonics are sufficiently hard to crack, you can choose t
 msgid "You"
 msgstr "You"
 
-#: src/pages/Offers.tsx:144
+#: src/pages/Offers.tsx:153
 msgid "You can also paste an offer using"
 msgstr "You can also paste an offer using"
 

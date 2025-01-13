@@ -127,7 +127,7 @@ export function NftOptions({
                   className={`h-4 w-4 ${multiSelect ? 'text-green-600 dark:text-green-400' : ''}`}
                 />
               </Button>
-              
+
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
