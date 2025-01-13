@@ -131,6 +131,7 @@ export default function Send() {
       'Amount exceeds balance',
     ),
     fee: amount(walletState.sync.unit.decimals).optional(),
+    memo: z.string().optional(),
   });
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -139,6 +140,7 @@ export default function Send() {
 
   const onSubmit = () => {
     const values = form.getValues();
+    const memos = values.memo ? [values.memo] : [];
 
     const command = isXch
       ? bulk
@@ -147,9 +149,10 @@ export default function Send() {
               addresses: [...new Set(addressList(req.address))],
               amount: req.amount,
               fee: req.fee,
+              memos,
             });
           }
-        : commands.sendXch
+        : (req: SendXch) => commands.sendXch({ ...req, memos })
       : (req: SendXch) => {
           if (bulk) {
             return commands.bulkSendCat({
@@ -157,9 +160,10 @@ export default function Send() {
               addresses: [...new Set(addressList(req.address))],
               amount: req.amount,
               fee: req.fee,
+              memos,
             });
           } else {
-            return commands.sendCat({ asset_id: assetId!, ...req });
+            return commands.sendCat({ asset_id: assetId!, ...req, memos });
           }
         };
 
@@ -281,6 +285,28 @@ export default function Send() {
                           </span>
                         </div>
                       </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name='memo'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      <Trans>Memo (optional)</Trans>
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        autoCorrect='off'
+                        autoCapitalize='off'
+                        autoComplete='off'
+                        placeholder={t`Enter memo`}
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
