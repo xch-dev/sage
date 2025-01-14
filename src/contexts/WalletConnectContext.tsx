@@ -20,7 +20,7 @@ import {
 import { useErrors } from '@/hooks/useErrors';
 import useInitialization from '@/hooks/useInitialization';
 import { useWallet } from '@/hooks/useWallet';
-import { toDecimal } from '@/lib/utils';
+import { fromMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import {
   Params,
@@ -39,6 +39,7 @@ import {
   useMemo,
   useState,
 } from 'react';
+import { formatNumber } from '../i18n';
 
 export interface WalletConnectContextType {
   sessions: any[];
@@ -451,10 +452,14 @@ function CreateOfferDialog({ params }: CommandDialogProps<'chia_createOffer'>) {
         <ul className='list-disc list-inside space-y-1'>
           {params.offerAssets.map((asset, i) => (
             <li key={i} className='text-sm'>
-              {toDecimal(
-                asset.amount,
-                asset.assetId === '' ? walletState.sync.unit.decimals : 3,
-              )}{' '}
+              {formatNumber({
+                value: fromMojos(
+                  asset.amount,
+                  asset.assetId === '' ? walletState.sync.unit.decimals : 3
+                ),
+                minimumFractionDigits: 0,
+                maximumFractionDigits: asset.assetId === '' ? walletState.sync.unit.decimals : 3,
+              })}{' '}
               {asset.assetId || 'XCH'}
             </li>
           ))}
@@ -465,10 +470,14 @@ function CreateOfferDialog({ params }: CommandDialogProps<'chia_createOffer'>) {
         <ul className='list-disc list-inside space-y-1'>
           {params.requestAssets.map((asset, i) => (
             <li key={i} className='text-sm'>
-              {toDecimal(
-                asset.amount,
-                asset.assetId === '' ? walletState.sync.unit.decimals : 3,
-              )}{' '}
+              {formatNumber({
+                value: fromMojos(
+                  asset.amount,
+                  asset.assetId === '' ? walletState.sync.unit.decimals : 3
+                ),
+                minimumFractionDigits: 0,
+                maximumFractionDigits: asset.assetId === '' ? walletState.sync.unit.decimals : 3,
+              })}{' '}
               {asset.assetId || 'XCH'}
             </li>
           ))}
@@ -477,7 +486,11 @@ function CreateOfferDialog({ params }: CommandDialogProps<'chia_createOffer'>) {
       <div>
         <div className='font-medium'>Fee</div>
         <div className='text-sm text-muted-foreground'>
-          {toDecimal(params.fee || 0, walletState.sync.unit.decimals)}{' '}
+          {formatNumber({
+            value: fromMojos(params.fee || 0, walletState.sync.unit.decimals),
+            minimumFractionDigits: 0,
+            maximumFractionDigits: walletState.sync.unit.decimals,
+          })}{' '}
           {walletState.sync.unit.ticker}
         </div>
       </div>
@@ -505,7 +518,11 @@ function CancelOfferDialog({ params }: CommandDialogProps<'chia_cancelOffer'>) {
 
       <div className='font-medium'>Fee</div>
       <div className='text-sm text-muted-foreground'>
-        {toDecimal(params.fee || 0, walletState.sync.unit.decimals)}{' '}
+        {formatNumber({
+          value: fromMojos(params.fee || 0, walletState.sync.unit.decimals),
+          minimumFractionDigits: 0,
+          maximumFractionDigits: walletState.sync.unit.decimals,
+        })}{' '}
         {walletState.sync.unit.ticker}
       </div>
 
@@ -532,17 +549,25 @@ function SendDialog({ params }: CommandDialogProps<'chia_send'>) {
       <div>
         <div className='font-medium'>Amount</div>
         <div className='text-sm text-muted-foreground'>
-          {toDecimal(
-            params.amount,
-            params.assetId ? 3 : walletState.sync.unit.decimals,
-          )}{' '}
+          {formatNumber({
+            value: fromMojos(
+              params.amount,
+              params.assetId ? 3 : walletState.sync.unit.decimals
+            ),
+            minimumFractionDigits: 0,
+            maximumFractionDigits: params.assetId ? 3 : walletState.sync.unit.decimals,
+          })}{' '}
           {params.assetId ? 'CAT' : walletState.sync.unit.ticker}
         </div>
       </div>
       <div>
         <div className='font-medium'>Fee</div>
         <div className='text-sm text-muted-foreground'>
-          {toDecimal(params.fee || 0, walletState.sync.unit.decimals)}{' '}
+          {formatNumber({
+            value: fromMojos(params.fee || 0, walletState.sync.unit.decimals),
+            minimumFractionDigits: 0,
+            maximumFractionDigits: walletState.sync.unit.decimals,
+          })}{' '}
           {walletState.sync.unit.ticker}
         </div>
       </div>
