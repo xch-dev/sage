@@ -1,5 +1,7 @@
+import BigNumber from 'bignumber.js';
+
 interface NumberFormatProps {
-  value: string | number;
+  value: string | number | BigNumber;
   style?: 'decimal' | 'currency' | 'percent';
   currency?: string;
   minimumFractionDigits?: number;
@@ -13,17 +15,31 @@ export function NumberFormat({
   minimumFractionDigits,
   maximumFractionDigits,
 }: NumberFormatProps) {
-  const number = typeof value === 'string' ? parseFloat(value) : value;
-  if (isNaN(number)) return null;
+  let numberValue: number;
 
-  return (
-    <>
-      {number.toLocaleString(navigator.language, {
-        style,
-        currency,
-        minimumFractionDigits,
-        maximumFractionDigits,
-      })}
-    </>
-  );
+  if (value instanceof BigNumber) {
+    numberValue = value.toNumber();
+  } else if (typeof value === 'string') {
+    numberValue = parseFloat(value);
+  } else {
+    numberValue = value;
+  }
+
+  if (isNaN(numberValue)) return null;
+
+  try {
+    return (
+      <>
+        {numberValue.toLocaleString(navigator.language, {
+          style,
+          currency,
+          minimumFractionDigits,
+          maximumFractionDigits,
+        })}
+      </>
+    );
+  } catch (e) {
+    // Fallback if toLocaleString fails
+    return <>{numberValue.toString()}</>;
+  }
 }

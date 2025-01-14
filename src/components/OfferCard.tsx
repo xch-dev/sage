@@ -1,6 +1,6 @@
 import { OfferAssets, OfferSummary } from '@/bindings';
 import { nftUri } from '@/lib/nftUri';
-import { toDecimal } from '@/lib/utils';
+import { fromMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -100,8 +100,8 @@ function Assets({ assets }: AssetsProps) {
 
             <div className='text-sm font-medium'>
               <NumberFormat
-                value={toDecimal(
-                  BigNumber(amount).plus(assets.xch.royalty).toString(),
+                value={fromMojos(
+                  BigNumber(amount).plus(assets.xch.royalty),
                   walletState.sync.unit.decimals,
                 )}
                 minimumFractionDigits={0}
@@ -117,7 +117,7 @@ function Assets({ assets }: AssetsProps) {
               <div className='text-sm text-muted-foreground truncate text-neutral-600 dark:text-neutral-300'>
                 <Trans>Amount includes</Trans>{' '}
                 <NumberFormat
-                  value={toDecimal(
+                  value={fromMojos(
                     assets.xch.royalty,
                     walletState.sync.unit.decimals,
                   )}
@@ -141,10 +141,7 @@ function Assets({ assets }: AssetsProps) {
             </div>
             <div className='text-sm font-medium whitespace-nowrap'>
               <NumberFormat
-                value={toDecimal(
-                  BigNumber(cat.amount).plus(cat.royalty).toString(),
-                  3,
-                )}
+                value={fromMojos(BigNumber(cat.amount).plus(cat.royalty), 3)}
                 minimumFractionDigits={0}
                 maximumFractionDigits={3}
               />{' '}
@@ -176,7 +173,7 @@ function Assets({ assets }: AssetsProps) {
               <div className='text-sm text-muted-foreground truncate text-neutral-600 dark:text-neutral-300'>
                 <Trans>Amount includes</Trans>{' '}
                 <NumberFormat
-                  value={toDecimal(cat.royalty, 3)}
+                  value={fromMojos(cat.royalty, 3)}
                   minimumFractionDigits={0}
                   maximumFractionDigits={3}
                 />{' '}

@@ -8,7 +8,6 @@ import Container from '@/components/Container';
 import Header from '@/components/Header';
 import { Card } from '@/components/ui/card';
 import { nftUri } from '@/lib/nftUri';
-import { toDecimal } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -16,7 +15,7 @@ import { open } from '@tauri-apps/plugin-shell';
 import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { NumberFormat } from '@/components/i18n';
-
+import { fromMojos } from '@/lib/utils';
 export default function Transaction() {
   const { height } = useParams();
 
@@ -121,7 +120,7 @@ function TransactionCoinKind({ coin }: TransactionCoinKindProps) {
 
           <div className='text-md text-neutral-700 dark:text-neutral-300 break-all'>
             <NumberFormat
-              value={toDecimal(coin.amount, walletState.sync.unit.decimals)}
+              value={fromMojos(coin.amount, walletState.sync.unit.decimals)}
               minimumFractionDigits={0}
               maximumFractionDigits={walletState.sync.unit.decimals}
             />{' '}
@@ -142,7 +141,7 @@ function TransactionCoinKind({ coin }: TransactionCoinKindProps) {
           <div className='flex flex-col'>
             <div className='text-md text-neutral-700 dark:text-neutral-300 break-all'>
               <NumberFormat
-                value={toDecimal(coin.amount, 3)}
+                value={fromMojos(coin.amount, 3)}
                 minimumFractionDigits={0}
                 maximumFractionDigits={3}
               />{' '}

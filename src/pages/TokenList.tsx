@@ -34,6 +34,7 @@ import { Trans } from '@lingui/react/macro';
 import { Input } from '@/components/ui/input';
 import { t } from '@lingui/core/macro';
 import { NumberFormat } from '@/components/i18n';
+import { fromMojos } from '@/lib/utils';
 
 enum TokenView {
   Name = 'name',
@@ -242,7 +243,7 @@ export function TokenList() {
               <CardContent>
                 <div className='text-2xl font-medium truncate'>
                   <NumberFormat
-                    value={toDecimal(
+                    value={fromMojos(
                       walletState.sync.balance,
                       walletState.sync.unit.decimals,
                     )}
@@ -288,7 +289,7 @@ export function TokenList() {
                 <CardContent>
                   <div className='text-2xl font-medium truncate'>
                     <NumberFormat
-                      value={toDecimal(cat.balance, 3)}
+                      value={fromMojos(cat.balance, 3)}
                       minimumFractionDigits={0}
                       maximumFractionDigits={3}
                     />{' '}

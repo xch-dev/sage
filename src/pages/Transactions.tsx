@@ -5,7 +5,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { useErrors } from '@/hooks/useErrors';
 import { nftUri } from '@/lib/nftUri';
-import { toDecimal } from '@/lib/utils';
+import { fromMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -272,8 +272,8 @@ function AssetPreview({ label, assets, created }: AssetPreviewProps) {
 
           <div className='text-sm text-muted-foreground break-all'>
             <NumberFormat
-              value={toDecimal(
-                assets.xch.abs().toString(),
+              value={fromMojos(
+                assets.xch.abs(),
                 walletState.sync.unit.decimals,
               )}
               minimumFractionDigits={0}
@@ -293,7 +293,7 @@ function AssetPreview({ label, assets, created }: AssetPreviewProps) {
 
           <div className='text-sm text-muted-foreground break-all'>
             <NumberFormat
-              value={toDecimal(cat.amount.abs().toString(), 3)}
+              value={fromMojos(cat.amount.abs(), 3)}
               minimumFractionDigits={0}
               maximumFractionDigits={3}
             />{' '}

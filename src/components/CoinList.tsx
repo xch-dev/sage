@@ -6,7 +6,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { toDecimal } from '@/lib/utils';
+import { fromMojos } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import {
@@ -121,7 +121,7 @@ export default function CoinList(props: CoinListProps) {
       cell: (info) => (
         <span className='font-mono'>
           <NumberFormat
-            value={toDecimal(info.getValue() as string, props.precision)}
+            value={fromMojos(info.getValue() as string, props.precision)}
             minimumFractionDigits={0}
             maximumFractionDigits={props.precision}
           />

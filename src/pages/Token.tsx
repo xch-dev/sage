@@ -59,7 +59,7 @@ import {
   TransactionResponse,
 } from '../bindings';
 import { NumberFormat } from '../components/i18n';
-
+import { fromMojos } from '@/lib/utils';
 export default function Token() {
   const navigate = useNavigate();
   const walletState = useWalletState();
@@ -209,7 +209,7 @@ export default function Token() {
                 <div className='flex text-xl sm:text-4xl font-medium font-mono truncate'>
                   <span className='truncate'>
                     <NumberFormat
-                      value={toDecimal(asset?.balance ?? '0', precision)}
+                      value={fromMojos(asset?.balance ?? 0, precision)}
                       minimumFractionDigits={0}
                       maximumFractionDigits={precision}
                     />

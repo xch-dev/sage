@@ -1,6 +1,6 @@
 import { OfferAssets, OfferRecord } from '@/bindings';
 import { nftUri } from '@/lib/nftUri';
-import { toDecimal } from '@/lib/utils';
+import { fromMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import BigNumber from 'bignumber.js';
 import { t } from '@lingui/core/macro';
@@ -64,10 +64,8 @@ function AssetPreview({ label, assets }: AssetPreviewProps) {
 
           <div className='text-sm text-muted-foreground truncate'>
             <NumberFormat
-              value={toDecimal(
-                BigNumber(assets.xch.amount)
-                  .plus(assets.xch.royalty)
-                  .toString(),
+              value={fromMojos(
+                BigNumber(assets.xch.amount).plus(assets.xch.royalty),
                 walletState.sync.unit.decimals,
               )}
               minimumFractionDigits={0}
@@ -87,10 +85,7 @@ function AssetPreview({ label, assets }: AssetPreviewProps) {
 
           <div className='text-sm text-muted-foreground truncate'>
             <NumberFormat
-              value={toDecimal(
-                BigNumber(cat.amount).plus(cat.royalty).toString(),
-                3,
-              )}
+              value={fromMojos(BigNumber(cat.amount).plus(cat.royalty), 3)}
               minimumFractionDigits={0}
               maximumFractionDigits={3}
             />{' '}

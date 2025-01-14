@@ -90,7 +90,7 @@ msgstr ""
 msgid "Add URL"
 msgstr "添加网址"
 
-#: src/pages/Send.tsx:211
+#: src/pages/Send.tsx:217
 #: src/pages/Nft.tsx:241
 #: src/components/TransferDialog.tsx:81
 #: src/components/AddressList.tsx:57
@@ -121,7 +121,7 @@ msgstr ""
 msgid "All Addresses"
 msgstr "所有地址"
 
-#: src/pages/Send.tsx:244
+#: src/pages/Send.tsx:250
 #: src/pages/MakeOffer.tsx:545
 #: src/pages/IssueToken.tsx:108
 #: src/components/CoinList.tsx:110
@@ -129,7 +129,7 @@ msgid "Amount"
 msgstr "金额"
 
 #: src/components/OfferCard.tsx:118
-#: src/components/OfferCard.tsx:171
+#: src/components/OfferCard.tsx:174
 msgid "Amount includes"
 msgstr "金额包括"
 
@@ -153,7 +153,7 @@ msgstr "确定要重新同步此钱包的数据吗? 这将从网络重新下载�
 msgid "Asset"
 msgstr "资产"
 
-#: src/pages/TokenList.tsx:142
+#: src/pages/TokenList.tsx:143
 msgid "Assets"
 msgstr "资产"
 
@@ -249,7 +249,7 @@ msgstr "取消报价"
 #~ msgid "CAT"
 #~ msgstr "CAT"
 
-#: src/components/OfferCard.tsx:156
+#: src/components/OfferCard.tsx:159
 msgid "CAT icon"
 msgstr "CAT硬币"
 
@@ -257,8 +257,8 @@ msgstr "CAT硬币"
 msgid "Change"
 msgstr "修改"
 
-#: src/pages/TokenList.tsx:168
 #: src/pages/TokenList.tsx:169
+#: src/pages/TokenList.tsx:170
 msgid "Clear search"
 msgstr ""
 
@@ -270,7 +270,7 @@ msgstr "硬币"
 msgid "Coin Id"
 msgstr "硬币Id"
 
-#: src/pages/Transaction.tsx:98
+#: src/pages/Transaction.tsx:97
 msgid "Coin with id {coinId}"
 msgstr ""
 
@@ -479,7 +479,7 @@ msgstr ""
 msgid "Edit Token Details"
 msgstr "编辑代币详情"
 
-#: src/pages/Send.tsx:227
+#: src/pages/Send.tsx:233
 #: src/pages/MintNft.tsx:211
 #: src/components/TransferDialog.tsx:84
 msgid "Enter address"
@@ -503,7 +503,7 @@ msgstr ""
 msgid "Enter fee amount"
 msgstr "输入手续费金额"
 
-#: src/pages/Send.tsx:219
+#: src/pages/Send.tsx:225
 msgid "Enter multiple distinct addresses"
 msgstr ""
 
@@ -558,7 +558,7 @@ msgstr "包含有效期的报价"
 msgid "External Links"
 msgstr "外部链接"
 
-#: src/pages/Send.tsx:270
+#: src/pages/Send.tsx:276
 #: src/pages/IssueToken.tsx:129
 #: src/components/ConfirmationDialog.tsx:154
 #: src/components/ConfirmationDialog.tsx:380
@@ -620,8 +620,8 @@ msgstr "高度:"
 msgid "Hide"
 msgstr "隐藏"
 
-#: src/pages/TokenList.tsx:187
-#: src/pages/TokenList.tsx:190
+#: src/pages/TokenList.tsx:188
+#: src/pages/TokenList.tsx:191
 msgid "Hide zero balances"
 msgstr ""
 
@@ -675,11 +675,11 @@ msgstr ""
 msgid "Initializing..."
 msgstr "正在初始化..."
 
-#: src/pages/Send.tsx:124
+#: src/pages/Send.tsx:125
 msgid "Invalid address"
 msgstr "无效地址"
 
-#: src/pages/Send.tsx:124
+#: src/pages/Send.tsx:125
 msgid "Invalid addresses"
 msgstr ""
 
@@ -688,7 +688,7 @@ msgstr ""
 msgid "IP Address"
 msgstr "IP地址"
 
-#: src/pages/TokenList.tsx:149
+#: src/pages/TokenList.tsx:150
 #: src/pages/IssueToken.tsx:62
 #: src/pages/IssueToken.tsx:148
 msgid "Issue Token"
@@ -855,7 +855,7 @@ msgid "Next page"
 msgstr "下一页"
 
 #: src/pages/MakeOffer.tsx:434
-#: src/components/OfferCard.tsx:190
+#: src/components/OfferCard.tsx:193
 msgid "NFT"
 msgstr "NFT"
 
@@ -863,7 +863,7 @@ msgstr "NFT"
 msgid "NFT options"
 msgstr "NFT选项"
 
-#: src/components/OfferCard.tsx:204
+#: src/components/OfferCard.tsx:207
 msgid "NFT preview"
 msgstr "NFT预览"
 
@@ -1083,8 +1083,8 @@ msgstr "在 {network} 上重新同步"
 msgid "Royalties {royaltyPercentage}%"
 msgstr "版税 {royaltyPercentage}%"
 
-#: src/components/OfferCard.tsx:124
-#: src/components/OfferCard.tsx:177
+#: src/components/OfferCard.tsx:127
+#: src/components/OfferCard.tsx:180
 msgid "royalty"
 msgstr "版税"
 
@@ -1096,7 +1096,7 @@ msgstr "版税地址"
 msgid "Royalty Percent"
 msgstr "税率"
 
-#: src/components/OfferCard.tsx:219
+#: src/components/OfferCard.tsx:222
 msgid "royalty to"
 msgstr "版税支付给"
 
@@ -1108,8 +1108,8 @@ msgstr "保存助记词"
 msgid "Save Offer"
 msgstr "保存报价"
 
-#: src/pages/TokenList.tsx:158
 #: src/pages/TokenList.tsx:159
+#: src/pages/TokenList.tsx:160
 msgid "Search for a token"
 msgstr ""
 
@@ -1161,12 +1161,12 @@ msgstr "已选择 {selectedPeersCount} / {totalPeersCount} 个节点"
 msgid "Send"
 msgstr "发送"
 
-#: src/pages/Send.tsx:180
-#: src/pages/Send.tsx:292
+#: src/pages/Send.tsx:181
+#: src/pages/Send.tsx:298
 msgid "Send {ticker}"
 msgstr "发送 {ticker}"
 
-#: src/pages/Send.tsx:198
+#: src/pages/Send.tsx:204
 msgid "Send in bulk (airdrop)"
 msgstr ""
 
@@ -1199,8 +1199,8 @@ msgstr "显示所有硬币"
 msgid "Show unspent coins only"
 msgstr "仅显示未花费硬币"
 
-#: src/pages/TokenList.tsx:187
-#: src/pages/TokenList.tsx:190
+#: src/pages/TokenList.tsx:188
+#: src/pages/TokenList.tsx:191
 msgid "Show zero balances"
 msgstr ""
 
@@ -1208,16 +1208,16 @@ msgstr ""
 msgid "Sign Transaction"
 msgstr "签署交易"
 
-#: src/pages/TokenList.tsx:345
+#: src/pages/TokenList.tsx:344
 #: src/components/NftOptions.tsx:146
 msgid "Sort Alphabetically"
 msgstr "按字母顺序排序"
 
-#: src/pages/TokenList.tsx:358
+#: src/pages/TokenList.tsx:357
 msgid "Sort by Balance"
 msgstr "按余额排序"
 
-#: src/pages/TokenList.tsx:325
+#: src/pages/TokenList.tsx:324
 #: src/components/NftOptions.tsx:120
 msgid "Sort options"
 msgstr "排序选项"
@@ -1262,7 +1262,7 @@ msgstr "摘要"
 msgid "Syncing {syncedCoins} / {totalCoins}"
 msgstr "正在同步 {syncedCoins} / {totalCoins}"
 
-#: src/pages/TokenList.tsx:205
+#: src/pages/TokenList.tsx:206
 msgid "Syncing in progress..."
 msgstr "同步进行中..."
 
@@ -1300,7 +1300,7 @@ msgstr "该报价已成功创建并导入. 可以复制下面的报价文件并�
 msgid "The wallet generates a new address after each transaction. Old ones stay valid."
 msgstr "钱包在每次交易后会生成一个新的地址, 旧地址仍然有效."
 
-#: src/pages/TokenList.tsx:208
+#: src/pages/TokenList.tsx:209
 msgid "The wallet is still syncing. Balances may not be accurate until it completes."
 msgstr "钱包仍在同步中. 同步完成之前, 余额可能不准确."
 
@@ -1440,18 +1440,18 @@ msgstr "转移个人资料"
 #~ msgid "Unassign Profile"
 #~ msgstr "取消分配个人资料"
 
-#: src/pages/Transactions.tsx:281
-#: src/pages/Transactions.tsx:300
-#: src/pages/Transactions.tsx:304
-#: src/pages/Transaction.tsx:132
-#: src/pages/Transaction.tsx:153
-#: src/pages/Transaction.tsx:159
+#: src/pages/Transactions.tsx:286
+#: src/pages/Transactions.tsx:308
+#: src/pages/Transactions.tsx:312
+#: src/pages/Transaction.tsx:136
+#: src/pages/Transaction.tsx:160
+#: src/pages/Transaction.tsx:166
 #: src/pages/Collection.tsx:93
-#: src/components/OfferSummaryCard.tsx:76
-#: src/components/OfferSummaryCard.tsx:84
-#: src/components/OfferSummaryCard.tsx:91
-#: src/components/OfferSummaryCard.tsx:97
-#: src/components/OfferCard.tsx:145
+#: src/components/OfferSummaryCard.tsx:81
+#: src/components/OfferSummaryCard.tsx:92
+#: src/components/OfferSummaryCard.tsx:99
+#: src/components/OfferSummaryCard.tsx:105
+#: src/components/OfferCard.tsx:148
 #: src/components/ConfirmationDialog.tsx:517
 #: src/components/ConfirmationDialog.tsx:531
 #: src/components/selectors/TokenSelector.tsx:81
@@ -1479,7 +1479,7 @@ msgstr "未知NFT"
 
 #: src/pages/NftList.tsx:205
 #: src/pages/NftList.tsx:216
-#: src/components/OfferCard.tsx:195
+#: src/components/OfferCard.tsx:198
 #: src/components/NftCard.tsx:196
 #: src/components/NftCard.tsx:214
 #: src/components/ConfirmationDialog.tsx:482
@@ -1521,7 +1521,7 @@ msgstr "使用24词"
 msgid "Version {version}"
 msgstr ""
 
-#: src/pages/TokenList.tsx:220
+#: src/pages/TokenList.tsx:221
 #: src/pages/DidList.tsx:72
 msgid "View hidden"
 msgstr "查看已隐藏的"
@@ -1573,9 +1573,9 @@ msgstr "警告"
 msgid "While 12 word mnemonics are sufficiently hard to crack, you can choose to use 24 instead to increase security."
 msgstr "虽然12个助记词单词已经足够安全, 仍然可以选择使用24个单词来进一步增强安全性."
 
-#: src/pages/Transactions.tsx:267
+#: src/pages/Transactions.tsx:268
 #: src/pages/Transaction.tsx:116
-#: src/components/OfferSummaryCard.tsx:59
+#: src/components/OfferSummaryCard.tsx:60
 msgid "XCH"
 msgstr ""
 
