@@ -455,10 +455,11 @@ function CreateOfferDialog({ params }: CommandDialogProps<'chia_createOffer'>) {
               {formatNumber({
                 value: fromMojos(
                   asset.amount,
-                  asset.assetId === '' ? walletState.sync.unit.decimals : 3
+                  asset.assetId === '' ? walletState.sync.unit.decimals : 3,
                 ),
                 minimumFractionDigits: 0,
-                maximumFractionDigits: asset.assetId === '' ? walletState.sync.unit.decimals : 3,
+                maximumFractionDigits:
+                  asset.assetId === '' ? walletState.sync.unit.decimals : 3,
               })}{' '}
               {asset.assetId || 'XCH'}
             </li>
@@ -473,10 +474,11 @@ function CreateOfferDialog({ params }: CommandDialogProps<'chia_createOffer'>) {
               {formatNumber({
                 value: fromMojos(
                   asset.amount,
-                  asset.assetId === '' ? walletState.sync.unit.decimals : 3
+                  asset.assetId === '' ? walletState.sync.unit.decimals : 3,
                 ),
                 minimumFractionDigits: 0,
-                maximumFractionDigits: asset.assetId === '' ? walletState.sync.unit.decimals : 3,
+                maximumFractionDigits:
+                  asset.assetId === '' ? walletState.sync.unit.decimals : 3,
               })}{' '}
               {asset.assetId || 'XCH'}
             </li>
@@ -552,10 +554,12 @@ function SendDialog({ params }: CommandDialogProps<'chia_send'>) {
           {formatNumber({
             value: fromMojos(
               params.amount,
-              params.assetId ? 3 : walletState.sync.unit.decimals
+              params.assetId ? 3 : walletState.sync.unit.decimals,
             ),
             minimumFractionDigits: 0,
-            maximumFractionDigits: params.assetId ? 3 : walletState.sync.unit.decimals,
+            maximumFractionDigits: params.assetId
+              ? 3
+              : walletState.sync.unit.decimals,
           })}{' '}
           {params.assetId ? 'CAT' : walletState.sync.unit.ticker}
         </div>
