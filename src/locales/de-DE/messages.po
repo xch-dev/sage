@@ -109,7 +109,7 @@ msgstr "Adresse ist erforderlich"
 msgid "Addresses"
 msgstr "Adressen"
 
-#: src/components/ConfirmationDialog.tsx:130
+#: src/components/ConfirmationDialog.tsx:132
 msgid "Advanced"
 msgstr "Erweitert"
 
@@ -233,7 +233,7 @@ msgstr "Wenn Sie diese Funktion deaktivieren, erstellen Sie ein Cold Wallet, in 
 #: src/components/TransferDialog.tsx:114
 #: src/components/NftCard.tsx:466
 #: src/components/FeeOnlyDialog.tsx:98
-#: src/components/ConfirmationDialog.tsx:242
+#: src/components/ConfirmationDialog.tsx:252
 #: src/components/AssignNftDialog.tsx:151
 msgid "Cancel"
 msgstr "Abbrechen"
@@ -254,7 +254,7 @@ msgstr "Offer Abbrechen"
 msgid "CAT icon"
 msgstr "CAT Symbol"
 
-#: src/components/ConfirmationDialog.tsx:159
+#: src/components/ConfirmationDialog.tsx:169
 msgid "Change"
 msgstr "Ändern"
 
@@ -300,7 +300,7 @@ msgstr "{ticker} zusammenfügen"
 msgid "Confirm"
 msgstr "Bestätigen"
 
-#: src/components/ConfirmationDialog.tsx:120
+#: src/components/ConfirmationDialog.tsx:122
 msgid "Confirm transaction?"
 msgstr "Transaktion bestätigen?"
 
@@ -562,12 +562,12 @@ msgstr "Externe Links"
 
 #: src/pages/Send.tsx:276
 #: src/pages/IssueToken.tsx:129
-#: src/components/ConfirmationDialog.tsx:154
-#: src/components/ConfirmationDialog.tsx:380
+#: src/components/ConfirmationDialog.tsx:156
+#: src/components/ConfirmationDialog.tsx:390
 msgid "Fee"
 msgstr "Gebühr"
 
-#: src/components/ConfirmationDialog.tsx:144
+#: src/components/ConfirmationDialog.tsx:146
 msgid "Fee exceeds recommended maximum of 0.001 {ticker}"
 msgstr "Gebühr übersteigt das empfohlene Maximum von 0.001 {ticker}"
 
@@ -627,7 +627,7 @@ msgstr "Verstecken"
 msgid "Hide zero balances"
 msgstr ""
 
-#: src/components/ConfirmationDialog.tsx:141
+#: src/components/ConfirmationDialog.tsx:143
 msgid "High Transaction Fee"
 msgstr "Hohe Transaktionsgebühr"
 
@@ -696,7 +696,7 @@ msgstr "IP Addresse"
 msgid "Issue Token"
 msgstr "Token ausgeben"
 
-#: src/components/ConfirmationDialog.tsx:133
+#: src/components/ConfirmationDialog.tsx:135
 msgid "JSON"
 msgstr "JSON"
 
@@ -964,10 +964,10 @@ msgstr "Peer Liste"
 msgid "Pending..."
 msgstr "Ausstehend..."
 
-#: src/components/ConfirmationDialog.tsx:436
-#: src/components/ConfirmationDialog.tsx:464
-#: src/components/ConfirmationDialog.tsx:498
-#: src/components/ConfirmationDialog.tsx:533
+#: src/components/ConfirmationDialog.tsx:454
+#: src/components/ConfirmationDialog.tsx:490
+#: src/components/ConfirmationDialog.tsx:524
+#: src/components/ConfirmationDialog.tsx:559
 msgid "Permanently Burned"
 msgstr "Permanent verbrannt"
 
@@ -998,8 +998,8 @@ msgid "Processing offer data..."
 msgstr "Verarbeitet die Offer-Daten..."
 
 #: src/pages/MintNft.tsx:107
-#: src/components/ConfirmationDialog.tsx:481
-#: src/components/ConfirmationDialog.tsx:495
+#: src/components/ConfirmationDialog.tsx:507
+#: src/components/ConfirmationDialog.tsx:521
 #: src/components/AssignNftDialog.tsx:92
 msgid "Profile"
 msgstr "Profil"
@@ -1207,20 +1207,20 @@ msgstr "Nur nicht ausgegebene Coins anzeigen"
 msgid "Show zero balances"
 msgstr ""
 
-#: src/components/ConfirmationDialog.tsx:215
+#: src/components/ConfirmationDialog.tsx:225
 msgid "Sign Transaction"
 msgstr "Transaktion signieren"
 
-#: src/pages/TokenList.tsx:344
+#: src/pages/TokenList.tsx:347
 #: src/components/NftOptions.tsx:146
 msgid "Sort Alphabetically"
 msgstr "Alphabetisch sortieren"
 
-#: src/pages/TokenList.tsx:357
+#: src/pages/TokenList.tsx:360
 msgid "Sort by Balance"
 msgstr "Nach Guthaben sortieren"
 
-#: src/pages/TokenList.tsx:324
+#: src/pages/TokenList.tsx:327
 #: src/components/NftOptions.tsx:120
 msgid "Sort options"
 msgstr "Sortieroptionen"
@@ -1233,7 +1233,7 @@ msgstr "Nach Neuestem sortieren"
 msgid "Spent"
 msgstr "Ausgegeben"
 
-#: src/components/ConfirmationDialog.tsx:359
+#: src/components/ConfirmationDialog.tsx:369
 msgid "Spent Coins"
 msgstr "Ausgegebene Coins"
 
@@ -1247,16 +1247,16 @@ msgid "Split {ticker}"
 msgstr "{ticker} splitten"
 
 #: src/pages/CreateWallet.tsx:233
-#: src/components/ConfirmationDialog.tsx:292
+#: src/components/ConfirmationDialog.tsx:302
 msgid "Submit"
 msgstr "Senden"
 
-#: src/components/ConfirmationDialog.tsx:292
+#: src/components/ConfirmationDialog.tsx:302
 msgid "Submitting"
 msgstr "Wird gesendet"
 
-#: src/components/ConfirmationDialog.tsx:127
-#: src/components/ConfirmationDialog.tsx:150
+#: src/components/ConfirmationDialog.tsx:129
+#: src/components/ConfirmationDialog.tsx:152
 msgid "Summary"
 msgstr "Zusammenfassung"
 
@@ -1317,7 +1317,7 @@ msgstr "Es gibt noch keine Wallets, in die Sie sich einloggen können. Um loszul
 #~ msgid "This does not include a fee of {makerFee} which was already added by the maker."
 #~ msgstr "Dies beinhaltet keine Gebühr von {makerFee}, die bereits vom Maker hinzugefügt wurde."
 
-#: src/components/ConfirmationDialog.tsx:185
+#: src/components/ConfirmationDialog.tsx:195
 msgid "This is the raw JSON spend bundle for this transaction. If you sign it, the transaction can be submitted to the mempool externally."
 msgstr "Dies ist das Roh-JSON-Spendenbündel für diese Transaktion. Wenn Sie es signieren, kann die Transaktion extern an den Mempool übermittelt werden."
 
@@ -1403,11 +1403,11 @@ msgstr "Navigationsmenü umschalten"
 msgid "Token"
 msgstr "Token"
 
-#: src/components/ConfirmationDialog.tsx:374
+#: src/components/ConfirmationDialog.tsx:384
 msgid "Transaction Output"
 msgstr "Transaktionsausgabe"
 
-#: src/components/ConfirmationDialog.tsx:213
+#: src/components/ConfirmationDialog.tsx:223
 msgid "Transaction Signed"
 msgstr "Signierte Transaktion"
 
@@ -1447,9 +1447,9 @@ msgstr "Profil transferieren"
 #~ msgid "Unassign Profile"
 #~ msgstr "Profil nicht mehr zuweisen"
 
-#: src/pages/Transactions.tsx:286
-#: src/pages/Transactions.tsx:308
-#: src/pages/Transactions.tsx:312
+#: src/pages/Transactions.tsx:289
+#: src/pages/Transactions.tsx:311
+#: src/pages/Transactions.tsx:315
 #: src/pages/Transaction.tsx:136
 #: src/pages/Transaction.tsx:160
 #: src/pages/Transaction.tsx:166
@@ -1459,8 +1459,8 @@ msgstr "Profil transferieren"
 #: src/components/OfferSummaryCard.tsx:99
 #: src/components/OfferSummaryCard.tsx:105
 #: src/components/OfferCard.tsx:148
-#: src/components/ConfirmationDialog.tsx:517
-#: src/components/ConfirmationDialog.tsx:531
+#: src/components/ConfirmationDialog.tsx:543
+#: src/components/ConfirmationDialog.tsx:557
 #: src/components/selectors/TokenSelector.tsx:81
 #: src/components/selectors/TokenSelector.tsx:96
 #: src/components/selectors/NftSelector.tsx:136
@@ -1489,8 +1489,8 @@ msgstr "Unbekanntes NFT"
 #: src/components/OfferCard.tsx:198
 #: src/components/NftCard.tsx:196
 #: src/components/NftCard.tsx:214
-#: src/components/ConfirmationDialog.tsx:482
-#: src/components/ConfirmationDialog.tsx:496
+#: src/components/ConfirmationDialog.tsx:508
+#: src/components/ConfirmationDialog.tsx:522
 msgid "Unnamed"
 msgstr "Unbenannt"
 
@@ -1572,7 +1572,7 @@ msgstr "WalletConnect"
 msgid "Wallets"
 msgstr "Wallets"
 
-#: src/components/ConfirmationDialog.tsx:182
+#: src/components/ConfirmationDialog.tsx:192
 msgid "Warning"
 msgstr "Warnung"
 
@@ -1586,10 +1586,10 @@ msgstr "Obwohl 12-Wort-Mnemonics ausreichend schwer zu knacken sind, können Sie
 msgid "XCH"
 msgstr ""
 
-#: src/components/ConfirmationDialog.tsx:438
-#: src/components/ConfirmationDialog.tsx:466
-#: src/components/ConfirmationDialog.tsx:500
-#: src/components/ConfirmationDialog.tsx:535
+#: src/components/ConfirmationDialog.tsx:456
+#: src/components/ConfirmationDialog.tsx:492
+#: src/components/ConfirmationDialog.tsx:526
+#: src/components/ConfirmationDialog.tsx:561
 msgid "You"
 msgstr "Sie"
 

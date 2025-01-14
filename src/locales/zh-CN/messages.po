@@ -109,7 +109,7 @@ msgstr "需提供地址"
 msgid "Addresses"
 msgstr "地址"
 
-#: src/components/ConfirmationDialog.tsx:130
+#: src/components/ConfirmationDialog.tsx:132
 msgid "Advanced"
 msgstr "高级"
 
@@ -233,7 +233,7 @@ msgstr "禁用此功能后, 将创建一个冷钱包, 该钱包无法签署交�
 #: src/components/TransferDialog.tsx:114
 #: src/components/NftCard.tsx:466
 #: src/components/FeeOnlyDialog.tsx:98
-#: src/components/ConfirmationDialog.tsx:242
+#: src/components/ConfirmationDialog.tsx:252
 #: src/components/AssignNftDialog.tsx:151
 msgid "Cancel"
 msgstr "取消"
@@ -253,7 +253,7 @@ msgstr "取消报价"
 msgid "CAT icon"
 msgstr "CAT硬币"
 
-#: src/components/ConfirmationDialog.tsx:159
+#: src/components/ConfirmationDialog.tsx:169
 msgid "Change"
 msgstr "修改"
 
@@ -299,7 +299,7 @@ msgstr "合并 {ticker}"
 msgid "Confirm"
 msgstr "确认"
 
-#: src/components/ConfirmationDialog.tsx:120
+#: src/components/ConfirmationDialog.tsx:122
 msgid "Confirm transaction?"
 msgstr "确认交易?"
 
@@ -560,12 +560,12 @@ msgstr "外部链接"
 
 #: src/pages/Send.tsx:276
 #: src/pages/IssueToken.tsx:129
-#: src/components/ConfirmationDialog.tsx:154
-#: src/components/ConfirmationDialog.tsx:380
+#: src/components/ConfirmationDialog.tsx:156
+#: src/components/ConfirmationDialog.tsx:390
 msgid "Fee"
 msgstr "手续费"
 
-#: src/components/ConfirmationDialog.tsx:144
+#: src/components/ConfirmationDialog.tsx:146
 msgid "Fee exceeds recommended maximum of 0.001 {ticker}"
 msgstr "费用超过推荐的最大值 0.001 {ticker}"
 
@@ -625,7 +625,7 @@ msgstr "隐藏"
 msgid "Hide zero balances"
 msgstr ""
 
-#: src/components/ConfirmationDialog.tsx:141
+#: src/components/ConfirmationDialog.tsx:143
 msgid "High Transaction Fee"
 msgstr "高交易手续费"
 
@@ -694,7 +694,7 @@ msgstr "IP地址"
 msgid "Issue Token"
 msgstr "发行代币"
 
-#: src/components/ConfirmationDialog.tsx:133
+#: src/components/ConfirmationDialog.tsx:135
 msgid "JSON"
 msgstr "JSON"
 
@@ -961,10 +961,10 @@ msgstr "节点列表"
 msgid "Pending..."
 msgstr "处理中..."
 
-#: src/components/ConfirmationDialog.tsx:436
-#: src/components/ConfirmationDialog.tsx:464
-#: src/components/ConfirmationDialog.tsx:498
-#: src/components/ConfirmationDialog.tsx:533
+#: src/components/ConfirmationDialog.tsx:454
+#: src/components/ConfirmationDialog.tsx:490
+#: src/components/ConfirmationDialog.tsx:524
+#: src/components/ConfirmationDialog.tsx:559
 msgid "Permanently Burned"
 msgstr "永久销毁"
 
@@ -995,8 +995,8 @@ msgid "Processing offer data..."
 msgstr "正在处理报价数据..."
 
 #: src/pages/MintNft.tsx:107
-#: src/components/ConfirmationDialog.tsx:481
-#: src/components/ConfirmationDialog.tsx:495
+#: src/components/ConfirmationDialog.tsx:507
+#: src/components/ConfirmationDialog.tsx:521
 #: src/components/AssignNftDialog.tsx:92
 msgid "Profile"
 msgstr "个人资料"
@@ -1204,20 +1204,20 @@ msgstr "仅显示未花费硬币"
 msgid "Show zero balances"
 msgstr ""
 
-#: src/components/ConfirmationDialog.tsx:215
+#: src/components/ConfirmationDialog.tsx:225
 msgid "Sign Transaction"
 msgstr "签署交易"
 
-#: src/pages/TokenList.tsx:344
+#: src/pages/TokenList.tsx:347
 #: src/components/NftOptions.tsx:146
 msgid "Sort Alphabetically"
 msgstr "按字母顺序排序"
 
-#: src/pages/TokenList.tsx:357
+#: src/pages/TokenList.tsx:360
 msgid "Sort by Balance"
 msgstr "按余额排序"
 
-#: src/pages/TokenList.tsx:324
+#: src/pages/TokenList.tsx:327
 #: src/components/NftOptions.tsx:120
 msgid "Sort options"
 msgstr "排序选项"
@@ -1230,7 +1230,7 @@ msgstr "按最近排序"
 msgid "Spent"
 msgstr "已经花费"
 
-#: src/components/ConfirmationDialog.tsx:359
+#: src/components/ConfirmationDialog.tsx:369
 msgid "Spent Coins"
 msgstr "已花费硬币"
 
@@ -1244,16 +1244,16 @@ msgid "Split {ticker}"
 msgstr "拆分 {ticker}"
 
 #: src/pages/CreateWallet.tsx:233
-#: src/components/ConfirmationDialog.tsx:292
+#: src/components/ConfirmationDialog.tsx:302
 msgid "Submit"
 msgstr "提交"
 
-#: src/components/ConfirmationDialog.tsx:292
+#: src/components/ConfirmationDialog.tsx:302
 msgid "Submitting"
 msgstr "正在提交"
 
-#: src/components/ConfirmationDialog.tsx:127
-#: src/components/ConfirmationDialog.tsx:150
+#: src/components/ConfirmationDialog.tsx:129
+#: src/components/ConfirmationDialog.tsx:152
 msgid "Summary"
 msgstr "摘要"
 
@@ -1311,7 +1311,7 @@ msgstr "目前没有可登录的钱包. 要开始, 请创建一个新钱包或�
 #~ msgid "This does not include a fee of {makerFee} which was already added by the maker."
 #~ msgstr "这不包括已由创建者添加的手续费 {makerFee}."
 
-#: src/components/ConfirmationDialog.tsx:185
+#: src/components/ConfirmationDialog.tsx:195
 msgid "This is the raw JSON spend bundle for this transaction. If you sign it, the transaction can be submitted to the mempool externally."
 msgstr "这是该交易的原始 JSON 支出捆绑包. 如果签署它, 交易可以通过外部提交到内存池."
 
@@ -1397,11 +1397,11 @@ msgstr "切换导航菜单"
 msgid "Token"
 msgstr "代币"
 
-#: src/components/ConfirmationDialog.tsx:374
+#: src/components/ConfirmationDialog.tsx:384
 msgid "Transaction Output"
 msgstr "转出交易"
 
-#: src/components/ConfirmationDialog.tsx:213
+#: src/components/ConfirmationDialog.tsx:223
 msgid "Transaction Signed"
 msgstr "已签名交易"
 
@@ -1440,9 +1440,9 @@ msgstr "转移个人资料"
 #~ msgid "Unassign Profile"
 #~ msgstr "取消分配个人资料"
 
-#: src/pages/Transactions.tsx:286
-#: src/pages/Transactions.tsx:308
-#: src/pages/Transactions.tsx:312
+#: src/pages/Transactions.tsx:289
+#: src/pages/Transactions.tsx:311
+#: src/pages/Transactions.tsx:315
 #: src/pages/Transaction.tsx:136
 #: src/pages/Transaction.tsx:160
 #: src/pages/Transaction.tsx:166
@@ -1452,8 +1452,8 @@ msgstr "转移个人资料"
 #: src/components/OfferSummaryCard.tsx:99
 #: src/components/OfferSummaryCard.tsx:105
 #: src/components/OfferCard.tsx:148
-#: src/components/ConfirmationDialog.tsx:517
-#: src/components/ConfirmationDialog.tsx:531
+#: src/components/ConfirmationDialog.tsx:543
+#: src/components/ConfirmationDialog.tsx:557
 #: src/components/selectors/TokenSelector.tsx:81
 #: src/components/selectors/TokenSelector.tsx:96
 #: src/components/selectors/NftSelector.tsx:136
@@ -1482,8 +1482,8 @@ msgstr "未知NFT"
 #: src/components/OfferCard.tsx:198
 #: src/components/NftCard.tsx:196
 #: src/components/NftCard.tsx:214
-#: src/components/ConfirmationDialog.tsx:482
-#: src/components/ConfirmationDialog.tsx:496
+#: src/components/ConfirmationDialog.tsx:508
+#: src/components/ConfirmationDialog.tsx:522
 msgid "Unnamed"
 msgstr "未命名"
 
@@ -1565,7 +1565,7 @@ msgstr "WalletConnect"
 msgid "Wallets"
 msgstr "钱包"
 
-#: src/components/ConfirmationDialog.tsx:182
+#: src/components/ConfirmationDialog.tsx:192
 msgid "Warning"
 msgstr "警告"
 
@@ -1579,10 +1579,10 @@ msgstr "虽然12个助记词单词已经足够安全, 仍然可以选择使用24
 msgid "XCH"
 msgstr ""
 
-#: src/components/ConfirmationDialog.tsx:438
-#: src/components/ConfirmationDialog.tsx:466
-#: src/components/ConfirmationDialog.tsx:500
-#: src/components/ConfirmationDialog.tsx:535
+#: src/components/ConfirmationDialog.tsx:456
+#: src/components/ConfirmationDialog.tsx:492
+#: src/components/ConfirmationDialog.tsx:526
+#: src/components/ConfirmationDialog.tsx:561
 msgid "You"
 msgstr "我"
 

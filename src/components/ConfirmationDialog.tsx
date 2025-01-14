@@ -8,7 +8,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useErrors } from '@/hooks/useErrors';
-import { toDecimal } from '@/lib/utils';
+import { toDecimal, fromMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -35,6 +35,8 @@ import {
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { Badge } from './ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { NumberFormat } from './i18n';
+import { formatNumber } from '../i18n';
 
 export interface ConfirmationDialogProps {
   response: TransactionResponse | TakeOfferResponse | null;
@@ -152,7 +154,15 @@ export default function ConfirmationDialog({
                       {!BigNumber(response?.summary.fee || 0).isZero() && (
                         <Item
                           badge={t`Fee`}
-                          label={`${toDecimal(response?.summary.fee || '0', walletState.sync.unit.decimals)} ${walletState.sync.unit.ticker}`}
+                          label={`${formatNumber({
+                            value: fromMojos(
+                              response?.summary.fee || '0',
+                              walletState.sync.unit.decimals,
+                            ),
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits:
+                              walletState.sync.unit.decimals,
+                          })} ${walletState.sync.unit.ticker}`}
                         />
                       )}
                       {created
@@ -419,7 +429,11 @@ function calculateTransaction(
     if (input.type === 'xch') {
       spent.push({
         badge: 'Chia',
-        label: `${toDecimal(input.amount, xch.decimals)} ${xch.ticker}`,
+        label: `${formatNumber({
+          value: fromMojos(input.amount, xch.decimals),
+          minimumFractionDigits: 0,
+          maximumFractionDigits: xch.decimals,
+        })} ${xch.ticker}`,
         coinId: input.coin_id,
         sort: 1,
       });
@@ -431,7 +445,11 @@ function calculateTransaction(
 
         created.push({
           badge: 'Chia',
-          label: `${toDecimal(output.amount, xch.decimals)} ${xch.ticker}`,
+          label: `${formatNumber({
+            value: fromMojos(output.amount, xch.decimals),
+            minimumFractionDigits: 0,
+            maximumFractionDigits: xch.decimals,
+          })} ${xch.ticker}`,
           address: output.burning
             ? t`Permanently Burned`
             : output.receiving
@@ -447,7 +465,11 @@ function calculateTransaction(
 
       spent.push({
         badge: `CAT ${input.name || input.asset_id}`,
-        label: `${toDecimal(input.amount, 3)} ${ticker}`,
+        label: `${formatNumber({
+          value: fromMojos(input.amount, 3),
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 3,
+        })} ${ticker}`,
         coinId: input.coin_id,
         sort: 2,
       });
@@ -459,7 +481,11 @@ function calculateTransaction(
 
         created.push({
           badge: `CAT ${input.name || input.asset_id}`,
-          label: `${toDecimal(output.amount, 3)} ${ticker}`,
+          label: `${formatNumber({
+            value: fromMojos(output.amount, 3),
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 3,
+          })} ${ticker}`,
           address: output.burning
             ? t`Permanently Burned`
             : output.receiving
