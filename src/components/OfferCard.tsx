@@ -11,7 +11,7 @@ import { CopyButton } from './CopyButton';
 import { Badge } from './ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Separator } from './ui/separator';
-import { NumberFormat } from '@/components/i18n';
+import { NumberFormat } from '@/components/NumberFormat';
 
 export interface OfferCardProps {
   summary: OfferSummary;

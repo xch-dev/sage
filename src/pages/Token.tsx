@@ -58,7 +58,7 @@ import {
   events,
   TransactionResponse,
 } from '../bindings';
-import { NumberFormat } from '../components/i18n';
+import { NumberFormat } from '../components/NumberFormat';
 import { fromMojos } from '@/lib/utils';
 export default function Token() {
   const navigate = useNavigate();

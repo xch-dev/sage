@@ -32,7 +32,7 @@ import { useState } from 'react';
 import { CoinRecord } from '../bindings';
 import { Button } from './ui/button';
 import { Checkbox } from './ui/checkbox';
-import { NumberFormat } from './i18n';
+import { NumberFormat } from './NumberFormat';
 
 export interface CoinListProps {
   precision: number;

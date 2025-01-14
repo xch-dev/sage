@@ -14,7 +14,7 @@ import { Trans } from '@lingui/react/macro';
 import { open } from '@tauri-apps/plugin-shell';
 import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { NumberFormat } from '@/components/i18n';
+import { NumberFormat } from '@/components/NumberFormat';
 import { fromMojos } from '@/lib/utils';
 export default function Transaction() {
   const { height } = useParams();

@@ -20,7 +20,7 @@ import {
   PendingTransactionRecord,
   TransactionRecord,
 } from '../bindings';
-import { NumberFormat } from '@/components/i18n';
+import { NumberFormat } from '@/components/NumberFormat';
 
 export function Transactions() {
   const { addError } = useErrors();

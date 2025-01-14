@@ -4,7 +4,7 @@ import { fromMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import BigNumber from 'bignumber.js';
 import { t } from '@lingui/core/macro';
-import { NumberFormat } from '@/components/i18n';
+import { NumberFormat } from '@/components/NumberFormat';
 
 export interface OfferSummaryCardProps {
   record: OfferRecord;

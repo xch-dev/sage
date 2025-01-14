@@ -33,7 +33,7 @@ import { useWalletState } from '../state';
 import { Trans } from '@lingui/react/macro';
 import { Input } from '@/components/ui/input';
 import { t } from '@lingui/core/macro';
-import { NumberFormat } from '@/components/i18n';
+import { NumberFormat } from '@/components/NumberFormat';
 import { fromMojos } from '@/lib/utils';
 
 enum TokenView {

@@ -35,7 +35,7 @@ import {
   SendXch,
   TransactionResponse,
 } from '../bindings';
-import { NumberFormat } from '@/components/i18n';
+import { NumberFormat } from '@/components/NumberFormat';
 
 export default function Send() {
   const { asset_id: assetId } = useParams();

@@ -35,7 +35,7 @@ import {
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { Badge } from './ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { NumberFormat } from './i18n';
+import { NumberFormat } from './NumberFormat';
 import { formatNumber } from '../i18n';
 
 export interface ConfirmationDialogProps {
