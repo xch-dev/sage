@@ -91,8 +91,12 @@ export default function Header(
           className='flex flex-col'
           style={{
             paddingTop:
-              insets.top !== 0 ? `${insets.top}px` : 'env(safe-area-inset-top)',
-            paddingBottom: insets.bottom ? `${insets.bottom + 16}` : 0,
+              insets.top !== 0
+                ? `${insets.top + 8}px`
+                : 'env(safe-area-inset-top)',
+            paddingBottom: insets.bottom
+              ? `${insets.bottom + 16}px`
+              : 'env(safe-area-inset-bottom)',
           }}
         >
           <div className='flex h-14 items-center '>
@@ -144,7 +148,7 @@ export default function Header(
             </Link>
             <button
               onClick={logout}
-              className='mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground'
+              className='mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground outline-none'
             >
               <LogOut className='h-4 w-4' aria-hidden='true' />
               <Trans>Logout</Trans>

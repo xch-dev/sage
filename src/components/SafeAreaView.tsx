@@ -9,8 +9,10 @@ export default function SafeAreaView(props: PropsWithChildren<object>) {
       className='flex flex-col h-screen overflow-hidden bg-background '
       style={{
         paddingTop:
-          insets.top !== 0 ? `${insets.top}` : 'env(safe-area-inset-top)',
-        paddingBottom: insets.bottom ? `${insets.bottom}` : 0,
+          insets.top !== 0 ? `${insets.top + 8}px` : 'env(safe-area-inset-top)',
+        paddingBottom: insets.bottom
+          ? `${insets.bottom}px`
+          : 'env(safe-area-inset-bottom)',
       }}
     >
       {props.children}

@@ -118,14 +118,18 @@ export default function Layout(props: LayoutProps) {
           props.transparentBackground ? 'bg-transparent' : 'bg-background'
         }`}
         style={{
-          paddingBottom: insets.bottom ? `${insets.bottom}` : 0,
+          paddingBottom: insets.bottom
+            ? `${insets.bottom}px`
+            : 'env(safe-area-inset-bottom)',
         }}
       >
         <div
           className='bg-background'
           style={{
             height:
-              insets.top !== 0 ? `${insets.top}px` : 'env(safe-area-inset-top)',
+              insets.top !== 0
+                ? `${insets.top + 16}px`
+                : 'env(safe-area-inset-top)',
           }}
         />
         {props.children}
