@@ -18,7 +18,7 @@ msgid "{didsCount, plural, one {You do not currently have any DID profile. Would
 msgstr "{didsCount, plural, one {当前还没有任何DID. 立即创建一个?} other {当前还没有任何DID. 立即创建一个?}}"
 
 #: src/components/Layout.tsx:83
-#: src/components/Header.tsx:126
+#: src/components/Header.tsx:131
 msgid "{peerCount, plural, one {# peer} other {# peers}}"
 msgstr "{peerCount, plural, one {# 节点} other {# 节点}}"
 
@@ -164,7 +164,7 @@ msgid "Assign Profile"
 msgstr "分配个人资料"
 
 #: src/components/Layout.tsx:89
-#: src/components/Header.tsx:128
+#: src/components/Header.tsx:133
 msgid "at peak {peerMaxHeight}"
 msgstr "于高度 {peerMaxHeight}"
 
@@ -174,7 +174,7 @@ msgstr "属性"
 
 #: src/components/Header.tsx:66
 #: src/components/Header.tsx:70
-#: src/components/Header.tsx:164
+#: src/components/Header.tsx:169
 msgid "Back"
 msgstr "返回"
 
@@ -222,8 +222,8 @@ msgstr "禁用此功能后, 将创建一个冷钱包, 该钱包无法签署交�
 #: src/pages/PeerList.tsx:305
 #: src/pages/PeerList.tsx:359
 #: src/pages/PeerList.tsx:508
-#: src/pages/Offers.tsx:300
-#: src/pages/Offers.tsx:338
+#: src/pages/Offers.tsx:314
+#: src/pages/Offers.tsx:375
 #: src/pages/Login.tsx:361
 #: src/pages/Login.tsx:389
 #: src/pages/Login.tsx:439
@@ -317,7 +317,7 @@ msgid "Connected to {totalPeersCount} peers"
 msgstr "已连接到 {totalPeersCount} 个节点"
 
 #: src/components/Layout.tsx:90
-#: src/components/Header.tsx:129
+#: src/components/Header.tsx:134
 msgid "connecting..."
 msgstr "连接中..."
 
@@ -330,11 +330,11 @@ msgid "Copied!"
 msgstr ""
 
 #: src/pages/Token.tsx:106
-#: src/pages/Offers.tsx:274
+#: src/pages/Offers.tsx:288
 msgid "Copy"
 msgstr "复制"
 
-#: src/pages/Offers.tsx:312
+#: src/pages/Offers.tsx:328
 #: src/components/NftCard.tsx:347
 msgid "Copy ID"
 msgstr "复制ID"
@@ -343,7 +343,7 @@ msgstr "复制ID"
 msgid "Create"
 msgstr "创建"
 
-#: src/pages/Offers.tsx:152
+#: src/pages/Offers.tsx:160
 msgid "Create a new offer to get started with peer-to-peer trading."
 msgstr "创建一个新报价以开始点对点交易."
 
@@ -351,7 +351,7 @@ msgstr "创建一个新报价以开始点对点交易."
 msgid "Create a profile?"
 msgstr "创建个人资料?"
 
-#: src/pages/Offers.tsx:169
+#: src/pages/Offers.tsx:177
 #: src/pages/MakeOffer.tsx:306
 msgid "Create Offer"
 msgstr "创建报价"
@@ -399,8 +399,8 @@ msgstr "数据URL"
 msgid "Days"
 msgstr "天"
 
-#: src/pages/Offers.tsx:287
-#: src/pages/Offers.tsx:349
+#: src/pages/Offers.tsx:301
+#: src/pages/Offers.tsx:386
 #: src/pages/Login.tsx:283
 #: src/pages/Login.tsx:392
 msgid "Delete"
@@ -414,7 +414,7 @@ msgstr "删除 {selectedPeersCount}"
 msgid "Delete hardened addresses"
 msgstr ""
 
-#: src/pages/Offers.tsx:326
+#: src/pages/Offers.tsx:363
 msgid "Delete offer record?"
 msgstr "删除报价记录?"
 
@@ -445,6 +445,10 @@ msgstr "描述"
 #: src/pages/Login.tsx:247
 msgid "Details"
 msgstr "详情"
+
+#: src/pages/Offers.tsx:348
+msgid "Dexie"
+msgstr ""
 
 #: src/pages/MakeOffer.tsx:346
 msgid "Dexie Link"
@@ -516,7 +520,7 @@ msgstr ""
 msgid "Enter network fee"
 msgstr "输入网络手续费"
 
-#: src/pages/Offers.tsx:186
+#: src/pages/Offers.tsx:194
 msgid "Enter Offer String"
 msgstr "输入报价文本"
 
@@ -574,7 +578,7 @@ msgstr "手续费"
 msgid "Fee exceeds recommended maximum of 0.001 {ticker}"
 msgstr "费用超过推荐的最大值 0.001 {ticker}"
 
-#: src/pages/ViewOffer.tsx:35
+#: src/pages/ViewOffer.tsx:130
 msgid "Fetching offer details..."
 msgstr "正在获取报价详情..."
 
@@ -598,7 +602,7 @@ msgstr ""
 msgid "Global"
 msgstr "全局"
 
-#: src/components/Header.tsx:101
+#: src/components/Header.tsx:106
 msgid "Go to wallet"
 msgstr "前往钱包"
 
@@ -676,7 +680,7 @@ msgstr "索引"
 msgid "Initial Addresses"
 msgstr ""
 
-#: src/pages/ViewOffer.tsx:25
+#: src/pages/ViewOffer.tsx:120
 msgid "Initializing..."
 msgstr "正在初始化..."
 
@@ -740,7 +744,7 @@ msgid "Login"
 msgstr "登录"
 
 #: src/components/Layout.tsx:110
-#: src/components/Header.tsx:149
+#: src/components/Header.tsx:154
 msgid "Logout"
 msgstr "退出"
 
@@ -748,7 +752,7 @@ msgstr "退出"
 msgid "Make sure you have saved your mnemonic. You will not be able to access it later, since it will not be saved in the wallet. You will also not be able to make transactions with this wallet."
 msgstr "请确保已保存助记词. 以后无法访问它, 因为它不会保存在钱包中. 也无法使用此钱包进行交易."
 
-#: src/pages/Offers.tsx:146
+#: src/pages/Offers.tsx:154
 msgid "Manage offers"
 msgstr "管理报价"
 
@@ -822,7 +826,7 @@ msgstr "钱包名称"
 msgid "Network"
 msgstr "网络"
 
-#: src/pages/ViewOffer.tsx:80
+#: src/pages/ViewOffer.tsx:187
 #: src/pages/Token.tsx:662
 #: src/pages/Token.tsx:730
 #: src/pages/MintNft.tsx:262
@@ -845,7 +849,7 @@ msgid "Network ID"
 msgstr "网络ID"
 
 #: src/components/Layout.tsx:71
-#: src/components/Header.tsx:114
+#: src/components/Header.tsx:119
 msgid "Network status"
 msgstr "网络状态"
 
@@ -885,7 +889,7 @@ msgstr "没有活跃的会话"
 msgid "No collection"
 msgstr "无集合"
 
-#: src/pages/Offers.tsx:148
+#: src/pages/Offers.tsx:156
 msgid "No offers yet"
 msgstr "还没有报价"
 
@@ -925,7 +929,7 @@ msgstr "提供"
 msgid "Offered..."
 msgstr ""
 
-#: src/pages/Offers.tsx:132
+#: src/pages/Offers.tsx:140
 #: src/components/Nav.tsx:30
 msgid "Offers"
 msgstr "报价"
@@ -946,7 +950,7 @@ msgstr "拥有者DID"
 msgid "Paste WalletConnect URI"
 msgstr "粘贴WalletConnect URI"
 
-#: src/pages/Offers.tsx:191
+#: src/pages/Offers.tsx:199
 msgid "Paste your offer string here..."
 msgstr "在这里粘贴报价文本..."
 
@@ -999,7 +1003,7 @@ msgstr ""
 msgid "Previous page"
 msgstr "上一页"
 
-#: src/pages/ViewOffer.tsx:41
+#: src/pages/ViewOffer.tsx:136
 msgid "Processing offer data..."
 msgstr "正在处理报价数据..."
 
@@ -1117,12 +1121,14 @@ msgstr "版税支付给"
 msgid "Save mnemonic"
 msgstr "保存助记词"
 
-#: src/pages/ViewOffer.tsx:101
+#: src/pages/ViewOffer.tsx:208
 msgid "Save Offer"
 msgstr "保存报价"
 
 #: src/pages/QrScanner.tsx:63
 msgid "Scan QR Code"
+msgstr ""
+
 #: src/pages/TokenList.tsx:157
 #: src/pages/TokenList.tsx:158
 msgid "Search for a token"
@@ -1191,7 +1197,7 @@ msgstr "已发送"
 
 #: src/pages/Settings.tsx:50
 #: src/components/Layout.tsx:103
-#: src/components/Header.tsx:142
+#: src/components/Header.tsx:147
 msgid "Settings"
 msgstr "设置"
 
@@ -1269,7 +1275,7 @@ msgid "Summary"
 msgstr "摘要"
 
 #: src/components/Layout.tsx:93
-#: src/components/Header.tsx:132
+#: src/components/Header.tsx:137
 msgid "Syncing {syncedCoins} / {totalCoins}"
 msgstr "正在同步 {syncedCoins} / {totalCoins}"
 
@@ -1277,12 +1283,13 @@ msgstr "正在同步 {syncedCoins} / {totalCoins}"
 msgid "Syncing in progress..."
 msgstr "同步进行中..."
 
-#~ msgid "Take Offer"
-#~ msgstr "接受报价"
+#: src/pages/ViewOffer.tsx:212
+msgid "Take Offer"
+msgstr "接受报价"
 
 #: src/pages/ViewOffer.tsx:105
-msgid "Take Offer "
-msgstr "接受报价 "
+#~ msgid "Take Offer "
+#~ msgstr "接受报价 "
 
 #~ msgid "Taken"
 #~ msgstr "接受"
@@ -1354,7 +1361,7 @@ msgstr "这将批量转移 {selectedCount} 个 NFT 到另一个钱包. 确定要
 msgid "This will combine all of the selected coins into one."
 msgstr "这将把所有选中的币合并为一个."
 
-#: src/pages/Offers.tsx:329
+#: src/pages/Offers.tsx:366
 msgid "This will delete the offer from the wallet, but if it's shared externally it can still be accepted. The only way to truly cancel a public offer is by spending one or more of its coins."
 msgstr "这将从钱包中删除该报价, 但如果已被外部共享, 仍然可以被接受. 真正取消公共报价的唯一方式是花费其中一个或多个币."
 
@@ -1529,8 +1536,8 @@ msgstr ""
 msgid "View hidden"
 msgstr "查看已隐藏的"
 
-#: src/pages/Offers.tsx:164
-#: src/pages/Offers.tsx:197
+#: src/pages/Offers.tsx:172
+#: src/pages/Offers.tsx:205
 msgid "View Offer"
 msgstr "查看报价"
 
@@ -1545,7 +1552,7 @@ msgid "Wallet Details"
 msgstr "钱包详情"
 
 #: src/components/Layout.tsx:58
-#: src/components/Header.tsx:103
+#: src/components/Header.tsx:108
 msgid "Wallet icon"
 msgstr "钱包硬币"
 
@@ -1583,7 +1590,7 @@ msgstr "虽然12个助记词单词已经足够安全, 仍然可以选择使用24
 msgid "You"
 msgstr "我"
 
-#: src/pages/Offers.tsx:157
+#: src/pages/Offers.tsx:165
 msgid "You can also paste an offer using"
 msgstr "也可以粘贴报价通过"
 

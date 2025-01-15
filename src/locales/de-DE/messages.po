@@ -18,7 +18,7 @@ msgid "{didsCount, plural, one {You do not currently have any DID profile. Would
 msgstr "{didsCount, plural, one {Sie haben derzeit noch kein DID-Profil. Möchten Sie eines erstellen?} other {Sie haben derzeit noch keine DID Profile. Möchten Sie eines erstellen?}}"
 
 #: src/components/Layout.tsx:83
-#: src/components/Header.tsx:126
+#: src/components/Header.tsx:131
 msgid "{peerCount, plural, one {# peer} other {# peers}}"
 msgstr ""
 
@@ -164,7 +164,7 @@ msgid "Assign Profile"
 msgstr "Profil zuweisen"
 
 #: src/components/Layout.tsx:89
-#: src/components/Header.tsx:128
+#: src/components/Header.tsx:133
 msgid "at peak {peerMaxHeight}"
 msgstr "bei Höchststand {peerMaxHeight}"
 
@@ -174,7 +174,7 @@ msgstr "Attribute"
 
 #: src/components/Header.tsx:66
 #: src/components/Header.tsx:70
-#: src/components/Header.tsx:164
+#: src/components/Header.tsx:169
 msgid "Back"
 msgstr "Zurück"
 
@@ -222,8 +222,8 @@ msgstr "Wenn Sie diese Funktion deaktivieren, erstellen Sie ein Cold Wallet, in 
 #: src/pages/PeerList.tsx:305
 #: src/pages/PeerList.tsx:359
 #: src/pages/PeerList.tsx:508
-#: src/pages/Offers.tsx:300
-#: src/pages/Offers.tsx:338
+#: src/pages/Offers.tsx:314
+#: src/pages/Offers.tsx:375
 #: src/pages/Login.tsx:361
 #: src/pages/Login.tsx:389
 #: src/pages/Login.tsx:439
@@ -318,7 +318,7 @@ msgid "Connected to {totalPeersCount} peers"
 msgstr "Verbunden mit {totalPeersCount} Peers"
 
 #: src/components/Layout.tsx:90
-#: src/components/Header.tsx:129
+#: src/components/Header.tsx:134
 msgid "connecting..."
 msgstr "verbinden..."
 
@@ -331,11 +331,11 @@ msgid "Copied!"
 msgstr ""
 
 #: src/pages/Token.tsx:106
-#: src/pages/Offers.tsx:274
+#: src/pages/Offers.tsx:288
 msgid "Copy"
 msgstr "Kopieren"
 
-#: src/pages/Offers.tsx:312
+#: src/pages/Offers.tsx:328
 #: src/components/NftCard.tsx:347
 msgid "Copy ID"
 msgstr "ID Kopieren"
@@ -344,7 +344,7 @@ msgstr "ID Kopieren"
 msgid "Create"
 msgstr "Erstellen"
 
-#: src/pages/Offers.tsx:152
+#: src/pages/Offers.tsx:160
 msgid "Create a new offer to get started with peer-to-peer trading."
 msgstr "Erstellen Sie ein neues Offer, um mit dem Peer-to-Peer-Handel zu beginnen."
 
@@ -352,7 +352,7 @@ msgstr "Erstellen Sie ein neues Offer, um mit dem Peer-to-Peer-Handel zu beginne
 msgid "Create a profile?"
 msgstr "Ein Profil erstellen?"
 
-#: src/pages/Offers.tsx:169
+#: src/pages/Offers.tsx:177
 #: src/pages/MakeOffer.tsx:306
 msgid "Create Offer"
 msgstr "Offer Erstellen"
@@ -400,8 +400,8 @@ msgstr "Daten URLs"
 msgid "Days"
 msgstr "Tage"
 
-#: src/pages/Offers.tsx:287
-#: src/pages/Offers.tsx:349
+#: src/pages/Offers.tsx:301
+#: src/pages/Offers.tsx:386
 #: src/pages/Login.tsx:283
 #: src/pages/Login.tsx:392
 msgid "Delete"
@@ -415,7 +415,7 @@ msgstr "{selectedPeersCount} Löschen"
 msgid "Delete hardened addresses"
 msgstr ""
 
-#: src/pages/Offers.tsx:326
+#: src/pages/Offers.tsx:363
 msgid "Delete offer record?"
 msgstr ""
 
@@ -446,6 +446,10 @@ msgstr "Beschreibung"
 #: src/pages/Login.tsx:247
 msgid "Details"
 msgstr "Details"
+
+#: src/pages/Offers.tsx:348
+msgid "Dexie"
+msgstr ""
 
 #: src/pages/MakeOffer.tsx:346
 msgid "Dexie Link"
@@ -517,7 +521,7 @@ msgstr ""
 msgid "Enter network fee"
 msgstr "Netzwerkgebühr eingeben"
 
-#: src/pages/Offers.tsx:186
+#: src/pages/Offers.tsx:194
 msgid "Enter Offer String"
 msgstr "Offer Text Eingeben"
 
@@ -576,7 +580,7 @@ msgstr "Gebühr"
 msgid "Fee exceeds recommended maximum of 0.001 {ticker}"
 msgstr "Gebühr übersteigt das empfohlene Maximum von 0.001 {ticker}"
 
-#: src/pages/ViewOffer.tsx:35
+#: src/pages/ViewOffer.tsx:130
 msgid "Fetching offer details..."
 msgstr ""
 
@@ -600,7 +604,7 @@ msgstr ""
 msgid "Global"
 msgstr "Global"
 
-#: src/components/Header.tsx:101
+#: src/components/Header.tsx:106
 msgid "Go to wallet"
 msgstr "Zum Wallet gehen"
 
@@ -678,7 +682,7 @@ msgstr "Index"
 msgid "Initial Addresses"
 msgstr ""
 
-#: src/pages/ViewOffer.tsx:25
+#: src/pages/ViewOffer.tsx:120
 msgid "Initializing..."
 msgstr ""
 
@@ -742,7 +746,7 @@ msgid "Login"
 msgstr "Anmelden"
 
 #: src/components/Layout.tsx:110
-#: src/components/Header.tsx:149
+#: src/components/Header.tsx:154
 msgid "Logout"
 msgstr "Abmelden"
 
@@ -750,7 +754,7 @@ msgstr "Abmelden"
 msgid "Make sure you have saved your mnemonic. You will not be able to access it later, since it will not be saved in the wallet. You will also not be able to make transactions with this wallet."
 msgstr " Stellen Sie sicher, dass Sie Ihre Mnemonic gespeichert haben. Sie können später nicht darauf zugreifen, da sie nicht im Wallet gespeichert wird. Sie können auch keine Transaktionen mit diesem Wallet durchführen."
 
-#: src/pages/Offers.tsx:146
+#: src/pages/Offers.tsx:154
 msgid "Manage offers"
 msgstr "Offers verwalten"
 
@@ -824,7 +828,7 @@ msgstr "Name Ihres Wallets"
 msgid "Network"
 msgstr "Netzwerk"
 
-#: src/pages/ViewOffer.tsx:80
+#: src/pages/ViewOffer.tsx:187
 #: src/pages/Token.tsx:662
 #: src/pages/Token.tsx:730
 #: src/pages/MintNft.tsx:262
@@ -847,7 +851,7 @@ msgid "Network ID"
 msgstr "Netzwerk ID"
 
 #: src/components/Layout.tsx:71
-#: src/components/Header.tsx:114
+#: src/components/Header.tsx:119
 msgid "Network status"
 msgstr "Netzwerkstatus"
 
@@ -887,7 +891,7 @@ msgstr "Keine aktiven Sessions"
 msgid "No collection"
 msgstr "Keine Kollektion"
 
-#: src/pages/Offers.tsx:148
+#: src/pages/Offers.tsx:156
 msgid "No offers yet"
 msgstr "Keine Offers vorhanden"
 
@@ -927,7 +931,7 @@ msgstr "Offeriert"
 msgid "Offered..."
 msgstr ""
 
-#: src/pages/Offers.tsx:132
+#: src/pages/Offers.tsx:140
 #: src/components/Nav.tsx:30
 msgid "Offers"
 msgstr "Offers"
@@ -948,7 +952,7 @@ msgstr "Besitzer DID"
 msgid "Paste WalletConnect URI"
 msgstr "WalletConnect URI einfügen"
 
-#: src/pages/Offers.tsx:191
+#: src/pages/Offers.tsx:199
 msgid "Paste your offer string here..."
 msgstr "Offer-Text hier einfügen..."
 
@@ -1002,7 +1006,7 @@ msgstr ""
 msgid "Previous page"
 msgstr "Vorherige Seite"
 
-#: src/pages/ViewOffer.tsx:41
+#: src/pages/ViewOffer.tsx:136
 msgid "Processing offer data..."
 msgstr "Verarbeitet die Offer-Daten..."
 
@@ -1120,12 +1124,14 @@ msgstr "royalty zu"
 msgid "Save mnemonic"
 msgstr "Mnemonic speichern"
 
-#: src/pages/ViewOffer.tsx:101
+#: src/pages/ViewOffer.tsx:208
 msgid "Save Offer"
 msgstr "Offer speichern"
 
 #: src/pages/QrScanner.tsx:63
 msgid "Scan QR Code"
+msgstr ""
+
 #: src/pages/TokenList.tsx:157
 #: src/pages/TokenList.tsx:158
 msgid "Search for a token"
@@ -1194,7 +1200,7 @@ msgstr "Gesendet"
 
 #: src/pages/Settings.tsx:50
 #: src/components/Layout.tsx:103
-#: src/components/Header.tsx:142
+#: src/components/Header.tsx:147
 msgid "Settings"
 msgstr "Einstellungen"
 
@@ -1272,7 +1278,7 @@ msgid "Summary"
 msgstr "Zusammenfassung"
 
 #: src/components/Layout.tsx:93
-#: src/components/Header.tsx:132
+#: src/components/Header.tsx:137
 msgid "Syncing {syncedCoins} / {totalCoins}"
 msgstr "{syncedCoins} / {totalCoins} synchronisieren"
 
@@ -1280,13 +1286,13 @@ msgstr "{syncedCoins} / {totalCoins} synchronisieren"
 msgid "Syncing in progress..."
 msgstr "Synchronisierung läuft..."
 
-#: src/pages/ViewOffer.tsx:103
-#~ msgid "Take Offer"
-#~ msgstr "Offer nehmen"
+#: src/pages/ViewOffer.tsx:212
+msgid "Take Offer"
+msgstr "Offer nehmen"
 
 #: src/pages/ViewOffer.tsx:105
-msgid "Take Offer "
-msgstr "Offer Nehmen"
+#~ msgid "Take Offer "
+#~ msgstr "Offer Nehmen"
 
 #: src/pages/Offers.tsx:195
 #~ msgid "Taken"
@@ -1360,7 +1366,7 @@ msgstr "Dadurch werden {selectedCount} NFTs in ein anderes Wallet übertragen. S
 msgid "This will combine all of the selected coins into one."
 msgstr "Dadurch werden alle ausgewählten Coins zu einem einzigen kombiniert."
 
-#: src/pages/Offers.tsx:329
+#: src/pages/Offers.tsx:366
 msgid "This will delete the offer from the wallet, but if it's shared externally it can still be accepted. The only way to truly cancel a public offer is by spending one or more of its coins."
 msgstr "Dadurch wird das Offer aus dem Wallet gelöscht, aber wenn es extern geteilt wird, kann es immer noch akzeptiert werden. Der einzige Weg, ein öffentliches Angebot wirklich zu stornieren, besteht darin, einen oder mehrere seiner Coins auszugeben."
 
@@ -1536,8 +1542,8 @@ msgstr ""
 msgid "View hidden"
 msgstr "Versteckte anzeigen"
 
-#: src/pages/Offers.tsx:164
-#: src/pages/Offers.tsx:197
+#: src/pages/Offers.tsx:172
+#: src/pages/Offers.tsx:205
 msgid "View Offer"
 msgstr "Offer anzeigen"
 
@@ -1552,7 +1558,7 @@ msgid "Wallet Details"
 msgstr "Wallet Details"
 
 #: src/components/Layout.tsx:58
-#: src/components/Header.tsx:103
+#: src/components/Header.tsx:108
 msgid "Wallet icon"
 msgstr "Wallet Symbol"
 
@@ -1590,7 +1596,7 @@ msgstr "Obwohl 12-Wort-Mnemonics ausreichend schwer zu knacken sind, können Sie
 msgid "You"
 msgstr "Sie"
 
-#: src/pages/Offers.tsx:157
+#: src/pages/Offers.tsx:165
 msgid "You can also paste an offer using"
 msgstr "Sie können auch ein Angebot einfügen mit"
 
