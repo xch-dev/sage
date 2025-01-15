@@ -18,6 +18,8 @@ import {
 } from '@/components/ui/tooltip';
 import { useLocalStorage } from 'usehooks-ts';
 
+const SIDEBAR_COLLAPSED_STORAGE_KEY = 'sage-wallet-sidebar-collapsed';
+
 export default function Layout(props: PropsWithChildren<object>) {
   const navigate = useNavigate();
   const insets = useInsets();
@@ -42,8 +44,8 @@ export default function Layout(props: PropsWithChildren<object>) {
   const initialized = useInitialization();
   const wallet = useWallet(initialized);
 
-  const [isCollapsed, setIsCollapsed] = useLocalStorage(
-    'sidebar-collapsed',
+  const [isCollapsed, setIsCollapsed] = useLocalStorage<boolean>(
+    SIDEBAR_COLLAPSED_STORAGE_KEY,
     false,
   );
 
