@@ -117,6 +117,9 @@ export default function Layout(props: LayoutProps) {
         className={`flex flex-col h-screen overflow-hidden ${
           props.transparentBackground ? 'bg-transparent' : 'bg-background'
         }`}
+        style={{
+          paddingBottom: insets.bottom ? `${insets.bottom}` : 0,
+        }}
       >
         <div
           className='bg-background'

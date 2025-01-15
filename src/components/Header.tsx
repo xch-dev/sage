@@ -92,6 +92,7 @@ export default function Header(
           style={{
             paddingTop:
               insets.top !== 0 ? `${insets.top}px` : 'env(safe-area-inset-top)',
+            paddingBottom: insets.bottom ? `${insets.bottom + 16}` : 0,
           }}
         >
           <div className='flex h-14 items-center '>
