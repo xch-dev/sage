@@ -1,8 +1,14 @@
 import { useSearchParams } from 'react-router-dom';
+import { useLocalStorage } from 'usehooks-ts';
+
+const ZERO_BALANCE_STORAGE_KEY = 'sage-wallet-show-zero-balance';
+const TOKEN_SORT_STORAGE_KEY = 'sage-wallet-token-sort';
 
 export interface TokenParams {
   view: TokenView;
   showHidden: boolean;
+  search: string;
+  showZeroBalance: boolean;
 }
 
 export enum TokenView {
@@ -26,20 +32,51 @@ export type SetTokenParams = (params: Partial<TokenParams>) => void;
 export function useTokenParams(): [TokenParams, SetTokenParams] {
   const [params, setParams] = useSearchParams();
 
-  const view = parseView(params.get('view') ?? 'name');
-  const showHidden = (params.get('showHidden') ?? 'false') === 'true';
+  const [storedShowZeroBalance, setStoredShowZeroBalance] =
+    useLocalStorage<boolean>(ZERO_BALANCE_STORAGE_KEY, false);
 
-  const updateParams = ({ view, showHidden }: Partial<TokenParams>) => {
+  const [storedTokenView, setStoredTokenView] = useLocalStorage<TokenView>(
+    TOKEN_SORT_STORAGE_KEY,
+    TokenView.Name,
+  );
+
+  const view = parseView(params.get('view') ?? storedTokenView);
+  const showHidden = (params.get('showHidden') ?? 'false') === 'true';
+  const showZeroBalance =
+    (params.get('showZeroBalance') ?? storedShowZeroBalance.toString()) ===
+    'true';
+  const search = params.get('search') ?? '';
+
+  const updateParams = ({
+    view,
+    showHidden,
+    showZeroBalance,
+    search,
+  }: Partial<TokenParams>) => {
     setParams(
       (prev) => {
         const next = new URLSearchParams(prev);
 
         if (view !== undefined) {
           next.set('view', view);
+          setStoredTokenView(view);
         }
 
         if (showHidden !== undefined) {
           next.set('showHidden', showHidden.toString());
+        }
+
+        if (showZeroBalance !== undefined) {
+          next.set('showZeroBalance', showZeroBalance.toString());
+          setStoredShowZeroBalance(showZeroBalance);
+        }
+
+        if (search !== undefined) {
+          if (search) {
+            next.set('search', search);
+          } else {
+            next.delete('search');
+          }
         }
 
         return next;
@@ -48,5 +85,5 @@ export function useTokenParams(): [TokenParams, SetTokenParams] {
     );
   };
 
-  return [{ view, showHidden }, updateParams];
+  return [{ view, showHidden, showZeroBalance, search }, updateParams];
 }

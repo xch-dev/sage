@@ -1,4 +1,10 @@
-import { commands, events, OfferRecord, TransactionResponse } from '@/bindings';
+import {
+  commands,
+  events,
+  NetworkConfig,
+  OfferRecord,
+  TransactionResponse,
+} from '@/bindings';
 import ConfirmationDialog from '@/components/ConfirmationDialog';
 import Container from '@/components/Container';
 import Header from '@/components/Header';
@@ -18,6 +24,7 @@ import {
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -32,11 +39,15 @@ import { TokenAmountInput } from '@/components/ui/masked-input';
 import { Textarea } from '@/components/ui/textarea';
 import { useErrors } from '@/hooks/useErrors';
 import { amount } from '@/lib/formTypes';
+import { dexieLink } from '@/lib/offerUpload';
 import { toMojos } from '@/lib/utils';
 import { isDefaultOffer, useOfferState, useWalletState } from '@/state';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { t } from '@lingui/core/macro';
+import { Trans } from '@lingui/react/macro';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 import { platform } from '@tauri-apps/plugin-os';
+import { open } from '@tauri-apps/plugin-shell';
 import BigNumber from 'bignumber.js';
 import {
   CircleOff,
@@ -49,15 +60,12 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Trans } from '@lingui/react/macro';
-import { t } from '@lingui/core/macro';
+import { Link, useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
 
 export function Offers() {
   const navigate = useNavigate();
-  const location = useLocation();
   const offerState = useOfferState();
 
   const { addError } = useErrors();
@@ -215,7 +223,13 @@ function Offer({ record, refresh }: OfferProps) {
 
   const [isDeleteOpen, setDeleteOpen] = useState(false);
   const [isCancelOpen, setCancelOpen] = useState(false);
-  const [fee, setFee] = useState<string>('');
+
+  const [config, setConfig] = useState<NetworkConfig | null>(null);
+  const network = config?.network_id ?? 'mainnet';
+
+  useEffect(() => {
+    commands.networkConfig().then((config) => setConfig(config));
+  }, []);
 
   const cancelSchema = z.object({
     fee: amount(walletState.sync.unit.decimals).refine(
@@ -300,6 +314,8 @@ function Offer({ record, refresh }: OfferProps) {
                     <Trans>Cancel</Trans>
                   </DropdownMenuItem>
 
+                  <DropdownMenuSeparator />
+
                   <DropdownMenuItem
                     className='cursor-pointer'
                     onClick={(e) => {
@@ -312,6 +328,27 @@ function Offer({ record, refresh }: OfferProps) {
                       <Trans>Copy ID</Trans>
                     </span>
                   </DropdownMenuItem>
+
+                  {(network === 'mainnet' || network === 'testnet11') && (
+                    <DropdownMenuItem
+                      className='cursor-pointer'
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        open(
+                          dexieLink(record.offer_id, network === 'testnet11'),
+                        );
+                      }}
+                    >
+                      <img
+                        src='https://raw.githubusercontent.com/dexie-space/dexie-kit/refs/heads/main/svg/duck.svg'
+                        className='h-4 w-4 mr-2'
+                        alt='Dexie logo'
+                      />
+                      <span>
+                        <Trans>Dexie</Trans>
+                      </span>
+                    </DropdownMenuItem>
+                  )}
                 </DropdownMenuGroup>
               </DropdownMenuContent>
             </DropdownMenu>

@@ -65,9 +65,6 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
   const [pendingRequests, setPendingRequests] = useState<SessionRequest[]>([]);
   const [connecting, setConnecting] = useState(false);
 
-  console.log('provider');
-  console.log('sessions', signClient?.session.getAll());
-
   useEffect(() => {
     SignClient.init({
       projectId: '7a11dea2c7ab88dc4597d5d44eb79a18',
@@ -144,9 +141,6 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
       }
 
       try {
-        console.log('session proposal', proposal);
-        console.log('active wallet', wallet);
-
         const {
           id: _id,
           params: {
@@ -203,7 +197,6 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
             },
           },
         });
-        console.log('topic', topic);
 
         await acknowledged();
         setSessions(signClient.session.getAll());
@@ -278,7 +271,6 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
     async function handleSessionDelete() {
       if (!signClient) throw new Error('Sign client not initialized');
 
-      console.log('session deleted');
       setSessions(signClient.session.getAll());
     }
 
@@ -634,15 +626,16 @@ function RequestDialog({
   };
   const peerMetadata = signClient?.session.get(request.topic)?.peer.metadata;
 
-  if (!commandInfo.confirm) {
-    return null;
-  }
-
   const CommandComponent = COMMAND_COMPONENTS[method] ?? DefaultCommandDialog;
+
   const parsedParams = useMemo(
     () => commandInfo.paramsType.parse(params),
     [params, commandInfo],
   );
+
+  if (!commandInfo.confirm) {
+    return null;
+  }
 
   return (
     <Dialog open={true} onOpenChange={(open) => !open && reject(request)}>

@@ -16,12 +16,23 @@ import { useErrors } from '@/hooks/useErrors';
 import { usePrices } from '@/hooks/usePrices';
 import { useTokenParams } from '@/hooks/useTokenParams';
 import { toDecimal } from '@/lib/utils';
-import { ArrowDown10, ArrowDownAz, Coins, InfoIcon, Clock } from 'lucide-react';
+import {
+  ArrowDown10,
+  ArrowDownAz,
+  Coins,
+  InfoIcon,
+  CircleDollarSign,
+  CircleSlash,
+  SearchIcon,
+  XIcon,
+} from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { CatRecord, commands, events } from '../bindings';
 import { useWalletState } from '../state';
 import { Trans } from '@lingui/react/macro';
+import { Input } from '@/components/ui/input';
+import { t } from '@lingui/core/macro';
 
 enum TokenView {
   Name = 'name',
@@ -34,7 +45,7 @@ export function TokenList() {
   const { getBalanceInUsd } = usePrices();
   const { addError } = useErrors();
   const [params, setParams] = useTokenParams();
-  const { view, showHidden } = params;
+  const { view, showHidden, showZeroBalance } = params;
   const [cats, setCats] = useState<CatRecord[]>([]);
 
   const catsWithBalanceInUsd = useMemo(
@@ -75,7 +86,25 @@ export function TokenList() {
     return aName.localeCompare(bName);
   });
 
-  const visibleCats = sortedCats.filter((cat) => showHidden || cat.visible);
+  const filteredCats = sortedCats.filter((cat) => {
+    if (!showHidden && !cat.visible) {
+      return false;
+    }
+
+    if (!showZeroBalance && Number(toDecimal(cat.balance, 3)) === 0) {
+      return false;
+    }
+
+    if (params.search) {
+      const searchTerm = params.search.toLowerCase();
+      const name = (cat.name || 'Unknown CAT').toLowerCase();
+      const ticker = (cat.ticker || '').toLowerCase();
+      return name.includes(searchTerm) || ticker.includes(searchTerm);
+    }
+
+    return true;
+  });
+
   const hasHiddenAssets = !!sortedCats.find((cat) => !cat.visible);
 
   const updateCats = useCallback(
@@ -111,10 +140,6 @@ export function TokenList() {
     <>
       <Header title={<Trans>Assets</Trans>}>
         <div className='flex items-center gap-2'>
-          <TokenSortDropdown
-            view={view}
-            setView={(view) => setParams({ view })}
-          />
           <ReceiveAddress />
         </div>
       </Header>
@@ -122,6 +147,55 @@ export function TokenList() {
         <Button onClick={() => navigate('/wallet/issue-token')}>
           <Coins className='h-4 w-4 mr-2' /> <Trans>Issue Token</Trans>
         </Button>
+
+        <div className='flex items-center justify-between gap-2 mt-4'>
+          <div className='relative flex-1'>
+            <div className='relative'>
+              <SearchIcon className='absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
+              <Input
+                value={params.search}
+                aria-label={t`Search for a token`}
+                title={t`Search for a token`}
+                onChange={(e) => setParams({ search: e.target.value })}
+                className='w-full pl-8 pr-8'
+              />
+            </div>
+            {params.search && (
+              <Button
+                variant='ghost'
+                size='icon'
+                title={t`Clear search`}
+                aria-label={t`Clear search`}
+                className='absolute right-0 top-0 h-full px-2 hover:bg-transparent'
+                onClick={() => setParams({ search: '' })}
+              >
+                <XIcon className='h-4 w-4' />
+              </Button>
+            )}
+          </div>
+          <TokenSortDropdown
+            view={view}
+            setView={(view) => setParams({ view })}
+          />
+          <Button
+            variant='outline'
+            size='icon'
+            onClick={() => setParams({ showZeroBalance: !showZeroBalance })}
+            className={!showZeroBalance ? 'text-muted-foreground' : ''}
+            aria-label={
+              showZeroBalance ? t`Hide zero balances` : t`Show zero balances`
+            }
+            title={
+              showZeroBalance ? t`Hide zero balances` : t`Show zero balances`
+            }
+          >
+            {showZeroBalance ? (
+              <CircleDollarSign className='h-4 w-4' />
+            ) : (
+              <CircleSlash className='h-4 w-4' />
+            )}
+          </Button>
+        </div>
 
         {walletState.sync.synced_coins < walletState.sync.total_coins && (
           <Alert className='mt-4 mb-4'>
@@ -138,18 +212,20 @@ export function TokenList() {
           </Alert>
         )}
 
-        {hasHiddenAssets && (
-          <div className='flex items-center gap-2 my-4'>
-            <label htmlFor='viewHidden'>
-              <Trans>View hidden</Trans>
-            </label>
-            <Switch
-              id='viewHidden'
-              checked={showHidden}
-              onCheckedChange={(value) => setParams({ showHidden: value })}
-            />
-          </div>
-        )}
+        <div className='flex items-center gap-4 my-4'>
+          {hasHiddenAssets && (
+            <div className='flex items-center gap-2'>
+              <label htmlFor='viewHidden'>
+                <Trans>View hidden</Trans>
+              </label>
+              <Switch
+                id='viewHidden'
+                checked={showHidden}
+                onCheckedChange={(value) => setParams({ showHidden: value })}
+              />
+            </div>
+          )}
+        </div>
 
         <div className='mt-4 grid gap-2 md:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'>
           <Link to={`/wallet/token/xch`}>
@@ -182,7 +258,7 @@ export function TokenList() {
               </CardContent>
             </Card>
           </Link>
-          {visibleCats.map((cat) => (
+          {filteredCats.map((cat) => (
             <Link key={cat.asset_id} to={`/wallet/token/${cat.asset_id}`}>
               <Card
                 className={`transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900 ${!cat.visible ? 'opacity-50 grayscale' : ''}`}
@@ -226,7 +302,7 @@ function TokenSortDropdown({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant='outline' size='icon'>
+        <Button variant='outline' size='icon' title={t`Sort options`}>
           {view === TokenView.Balance ? (
             <ArrowDown10 className='h-4 w-4' />
           ) : (

@@ -139,7 +139,7 @@ pub fn calculate_royalties(
 
     let mut royalties = Royalties::default();
 
-    if nfts.is_empty() {
+    if royalty_nfts == 0 {
         return Ok(royalties);
     }
 

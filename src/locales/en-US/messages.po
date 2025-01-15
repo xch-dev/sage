@@ -153,7 +153,7 @@ msgstr "Are you sure you want to resync this wallet's data? This will re-downloa
 msgid "Asset"
 msgstr "Asset"
 
-#: src/pages/TokenList.tsx:112
+#: src/pages/TokenList.tsx:141
 msgid "Assets"
 msgstr "Assets"
 
@@ -257,6 +257,11 @@ msgstr "CAT icon"
 #: src/components/ConfirmationDialog.tsx:159
 msgid "Change"
 msgstr "Change"
+
+#: src/pages/TokenList.tsx:167
+#: src/pages/TokenList.tsx:168
+msgid "Clear search"
+msgstr "Clear search"
 
 #: src/components/CoinList.tsx:84
 msgid "Coin"
@@ -622,6 +627,11 @@ msgstr "Height:"
 msgid "Hide"
 msgstr "Hide"
 
+#: src/pages/TokenList.tsx:186
+#: src/pages/TokenList.tsx:189
+msgid "Hide zero balances"
+msgstr "Hide zero balances"
+
 #: src/components/ConfirmationDialog.tsx:141
 msgid "High Transaction Fee"
 msgstr "High Transaction Fee"
@@ -685,7 +695,7 @@ msgstr "Invalid addresses"
 msgid "IP Address"
 msgstr "IP Address"
 
-#: src/pages/TokenList.tsx:123
+#: src/pages/TokenList.tsx:148
 #: src/pages/IssueToken.tsx:62
 #: src/pages/IssueToken.tsx:148
 msgid "Issue Token"
@@ -1117,10 +1127,18 @@ msgstr "Save Offer"
 #: src/pages/QrScanner.tsx:63
 msgid "Scan QR Code"
 msgstr "Scan QR Code"
+#: src/pages/TokenList.tsx:157
+#: src/pages/TokenList.tsx:158
+msgid "Search for a token"
+msgstr "Search for a token"
 
 #: src/components/NftOptions.tsx:49
 msgid "Search NFTs..."
 msgstr "Search NFTs..."
+
+#: src/pages/TokenList.tsx:144
+#~ msgid "Search tokens..."
+#~ msgstr "Search tokens..."
 
 #: src/pages/Login.tsx:471
 msgid "Secret Key"
@@ -1196,19 +1214,25 @@ msgstr "Show all coins"
 msgid "Show unspent coins only"
 msgstr "Show unspent coins only"
 
+#: src/pages/TokenList.tsx:186
+#: src/pages/TokenList.tsx:189
+msgid "Show zero balances"
+msgstr "Show zero balances"
+
 #: src/components/ConfirmationDialog.tsx:215
 msgid "Sign Transaction"
 msgstr "Sign Transaction"
 
-#: src/pages/TokenList.tsx:249
+#: src/pages/TokenList.tsx:325
 #: src/components/NftOptions.tsx:146
 msgid "Sort Alphabetically"
 msgstr "Sort Alphabetically"
 
-#: src/pages/TokenList.tsx:262
+#: src/pages/TokenList.tsx:338
 msgid "Sort by Balance"
 msgstr "Sort by Balance"
 
+#: src/pages/TokenList.tsx:305
 #: src/components/NftOptions.tsx:120
 msgid "Sort options"
 msgstr "Sort options"
@@ -1253,7 +1277,7 @@ msgstr "Summary"
 msgid "Syncing {syncedCoins} / {totalCoins}"
 msgstr "Syncing {syncedCoins} / {totalCoins}"
 
-#: src/pages/TokenList.tsx:130
+#: src/pages/TokenList.tsx:204
 msgid "Syncing in progress..."
 msgstr "Syncing in progress..."
 
@@ -1293,7 +1317,7 @@ msgstr "The offer has been created and imported successfully. You can copy the o
 msgid "The wallet generates a new address after each transaction. Old ones stay valid."
 msgstr "The wallet generates a new address after each transaction. Old ones stay valid."
 
-#: src/pages/TokenList.tsx:133
+#: src/pages/TokenList.tsx:207
 msgid "The wallet is still syncing. Balances may not be accurate until it completes."
 msgstr "The wallet is still syncing. Balances may not be accurate until it completes."
 
@@ -1508,7 +1532,7 @@ msgstr "Use this address to receive {0}"
 msgid "Version {version}"
 msgstr "Version {version}"
 
-#: src/pages/TokenList.tsx:144
+#: src/pages/TokenList.tsx:219
 #: src/pages/DidList.tsx:72
 msgid "View hidden"
 msgstr "View hidden"
