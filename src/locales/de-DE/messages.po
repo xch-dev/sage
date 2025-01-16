@@ -90,7 +90,7 @@ msgstr ""
 msgid "Add URL"
 msgstr "URL hinzufügen"
 
-#: src/pages/Send.tsx:218
+#: src/pages/Send.tsx:220
 #: src/pages/Nft.tsx:241
 #: src/components/TransferDialog.tsx:81
 #: src/components/AddressList.tsx:57
@@ -121,7 +121,7 @@ msgstr ""
 msgid "All Addresses"
 msgstr "Alle Adressen"
 
-#: src/pages/Send.tsx:251
+#: src/pages/Send.tsx:253
 #: src/pages/MakeOffer.tsx:545
 #: src/pages/IssueToken.tsx:108
 #: src/components/CoinList.tsx:109
@@ -222,8 +222,8 @@ msgstr "Wenn Sie diese Funktion deaktivieren, erstellen Sie ein Cold Wallet, in 
 #: src/pages/PeerList.tsx:305
 #: src/pages/PeerList.tsx:359
 #: src/pages/PeerList.tsx:508
-#: src/pages/Offers.tsx:287
-#: src/pages/Offers.tsx:325
+#: src/pages/Offers.tsx:302
+#: src/pages/Offers.tsx:363
 #: src/pages/Login.tsx:361
 #: src/pages/Login.tsx:389
 #: src/pages/Login.tsx:439
@@ -322,11 +322,11 @@ msgstr "Verbunden mit {totalPeersCount} Peers"
 msgid "connecting..."
 msgstr "verbinden..."
 
-#: src/pages/Offers.tsx:261
+#: src/pages/Offers.tsx:276
 msgid "Copy"
 msgstr "Kopieren"
 
-#: src/pages/Offers.tsx:299
+#: src/pages/Offers.tsx:316
 #: src/components/NftCard.tsx:347
 msgid "Copy ID"
 msgstr "ID Kopieren"
@@ -335,7 +335,7 @@ msgstr "ID Kopieren"
 msgid "Create"
 msgstr "Erstellen"
 
-#: src/pages/Offers.tsx:139
+#: src/pages/Offers.tsx:148
 msgid "Create a new offer to get started with peer-to-peer trading."
 msgstr "Erstellen Sie ein neues Offer, um mit dem Peer-to-Peer-Handel zu beginnen."
 
@@ -343,7 +343,7 @@ msgstr "Erstellen Sie ein neues Offer, um mit dem Peer-to-Peer-Handel zu beginne
 msgid "Create a profile?"
 msgstr "Ein Profil erstellen?"
 
-#: src/pages/Offers.tsx:156
+#: src/pages/Offers.tsx:165
 #: src/pages/MakeOffer.tsx:306
 msgid "Create Offer"
 msgstr "Offer Erstellen"
@@ -391,8 +391,8 @@ msgstr "Daten URLs"
 msgid "Days"
 msgstr "Tage"
 
-#: src/pages/Offers.tsx:274
-#: src/pages/Offers.tsx:336
+#: src/pages/Offers.tsx:289
+#: src/pages/Offers.tsx:374
 #: src/pages/Login.tsx:283
 #: src/pages/Login.tsx:392
 msgid "Delete"
@@ -406,7 +406,7 @@ msgstr "{selectedPeersCount} Löschen"
 msgid "Delete hardened addresses"
 msgstr ""
 
-#: src/pages/Offers.tsx:313
+#: src/pages/Offers.tsx:351
 msgid "Delete offer record?"
 msgstr ""
 
@@ -437,6 +437,10 @@ msgstr "Beschreibung"
 #: src/pages/Login.tsx:247
 msgid "Details"
 msgstr "Details"
+
+#: src/pages/Offers.tsx:336
+msgid "Dexie"
+msgstr ""
 
 #: src/pages/MakeOffer.tsx:346
 msgid "Dexie Link"
@@ -476,7 +480,7 @@ msgstr ""
 msgid "Edit Token Details"
 msgstr "Token Details Bearbeiten"
 
-#: src/pages/Send.tsx:234
+#: src/pages/Send.tsx:236
 #: src/pages/MintNft.tsx:211
 #: src/components/TransferDialog.tsx:84
 msgid "Enter address"
@@ -500,11 +504,11 @@ msgstr ""
 msgid "Enter fee amount"
 msgstr "Gebührenbetrag eingeben"
 
-#: src/pages/Send.tsx:311
+#: src/pages/Send.tsx:313
 msgid "Enter memo"
 msgstr ""
 
-#: src/pages/Send.tsx:226
+#: src/pages/Send.tsx:228
 msgid "Enter multiple distinct addresses"
 msgstr ""
 
@@ -512,7 +516,7 @@ msgstr ""
 msgid "Enter network fee"
 msgstr "Netzwerkgebühr eingeben"
 
-#: src/pages/Offers.tsx:173
+#: src/pages/Offers.tsx:182
 msgid "Enter Offer String"
 msgstr "Offer Text Eingeben"
 
@@ -560,7 +564,7 @@ msgstr "Auslaufendes Offer"
 msgid "External Links"
 msgstr "Externe Links"
 
-#: src/pages/Send.tsx:277
+#: src/pages/Send.tsx:279
 #: src/pages/IssueToken.tsx:129
 #: src/components/ConfirmationDialog.tsx:154
 #: src/components/ConfirmationDialog.tsx:380
@@ -677,11 +681,11 @@ msgstr ""
 msgid "Initializing..."
 msgstr ""
 
-#: src/pages/Send.tsx:125
+#: src/pages/Send.tsx:129
 msgid "Invalid address"
 msgstr "Ungültige Adresse"
 
-#: src/pages/Send.tsx:125
+#: src/pages/Send.tsx:129
 msgid "Invalid addresses"
 msgstr ""
 
@@ -745,11 +749,11 @@ msgstr "Abmelden"
 msgid "Make sure you have saved your mnemonic. You will not be able to access it later, since it will not be saved in the wallet. You will also not be able to make transactions with this wallet."
 msgstr " Stellen Sie sicher, dass Sie Ihre Mnemonic gespeichert haben. Sie können später nicht darauf zugreifen, da sie nicht im Wallet gespeichert wird. Sie können auch keine Transaktionen mit diesem Wallet durchführen."
 
-#: src/pages/Offers.tsx:133
+#: src/pages/Offers.tsx:142
 msgid "Manage offers"
 msgstr "Offers verwalten"
 
-#: src/pages/Send.tsx:304
+#: src/pages/Send.tsx:306
 msgid "Memo (optional)"
 msgstr ""
 
@@ -886,7 +890,7 @@ msgstr "Keine aktiven Sessions"
 msgid "No collection"
 msgstr "Keine Kollektion"
 
-#: src/pages/Offers.tsx:135
+#: src/pages/Offers.tsx:144
 msgid "No offers yet"
 msgstr "Keine Offers vorhanden"
 
@@ -926,7 +930,7 @@ msgstr "Offeriert"
 msgid "Offered..."
 msgstr ""
 
-#: src/pages/Offers.tsx:124
+#: src/pages/Offers.tsx:133
 #: src/components/Nav.tsx:30
 msgid "Offers"
 msgstr "Offers"
@@ -947,7 +951,7 @@ msgstr "Besitzer DID"
 msgid "Paste WalletConnect URI"
 msgstr "WalletConnect URI einfügen"
 
-#: src/pages/Offers.tsx:178
+#: src/pages/Offers.tsx:187
 msgid "Paste your offer string here..."
 msgstr "Offer-Text hier einfügen..."
 
@@ -1164,12 +1168,12 @@ msgstr "{selectedPeersCount} von {totalPeersCount} Peers ausgewählt"
 msgid "Send"
 msgstr "Senden"
 
-#: src/pages/Send.tsx:187
-#: src/pages/Send.tsx:323
+#: src/pages/Send.tsx:189
+#: src/pages/Send.tsx:325
 msgid "Send {ticker}"
 msgstr "{ticker} senden"
 
-#: src/pages/Send.tsx:205
+#: src/pages/Send.tsx:207
 msgid "Send in bulk (airdrop)"
 msgstr ""
 
@@ -1349,7 +1353,7 @@ msgstr "Dadurch werden {selectedCount} NFTs in ein anderes Wallet übertragen. S
 msgid "This will combine all of the selected coins into one."
 msgstr "Dadurch werden alle ausgewählten Coins zu einem einzigen kombiniert."
 
-#: src/pages/Offers.tsx:316
+#: src/pages/Offers.tsx:354
 msgid "This will delete the offer from the wallet, but if it's shared externally it can still be accepted. The only way to truly cancel a public offer is by spending one or more of its coins."
 msgstr "Dadurch wird das Offer aus dem Wallet gelöscht, aber wenn es extern geteilt wird, kann es immer noch akzeptiert werden. Der einzige Weg, ein öffentliches Angebot wirklich zu stornieren, besteht darin, einen oder mehrere seiner Coins auszugeben."
 
@@ -1521,8 +1525,8 @@ msgstr ""
 msgid "View hidden"
 msgstr "Versteckte anzeigen"
 
-#: src/pages/Offers.tsx:151
-#: src/pages/Offers.tsx:184
+#: src/pages/Offers.tsx:160
+#: src/pages/Offers.tsx:193
 msgid "View Offer"
 msgstr "Offer anzeigen"
 
@@ -1575,7 +1579,7 @@ msgstr "Obwohl 12-Wort-Mnemonics ausreichend schwer zu knacken sind, können Sie
 msgid "You"
 msgstr "Sie"
 
-#: src/pages/Offers.tsx:144
+#: src/pages/Offers.tsx:153
 msgid "You can also paste an offer using"
 msgstr "Sie können auch ein Angebot einfügen mit"
 

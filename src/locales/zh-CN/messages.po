@@ -90,7 +90,7 @@ msgstr ""
 msgid "Add URL"
 msgstr "添加网址"
 
-#: src/pages/Send.tsx:218
+#: src/pages/Send.tsx:220
 #: src/pages/Nft.tsx:241
 #: src/components/TransferDialog.tsx:81
 #: src/components/AddressList.tsx:57
@@ -121,7 +121,7 @@ msgstr ""
 msgid "All Addresses"
 msgstr "所有地址"
 
-#: src/pages/Send.tsx:251
+#: src/pages/Send.tsx:253
 #: src/pages/MakeOffer.tsx:545
 #: src/pages/IssueToken.tsx:108
 #: src/components/CoinList.tsx:109
@@ -222,8 +222,8 @@ msgstr "禁用此功能后, 将创建一个冷钱包, 该钱包无法签署交�
 #: src/pages/PeerList.tsx:305
 #: src/pages/PeerList.tsx:359
 #: src/pages/PeerList.tsx:508
-#: src/pages/Offers.tsx:287
-#: src/pages/Offers.tsx:325
+#: src/pages/Offers.tsx:302
+#: src/pages/Offers.tsx:363
 #: src/pages/Login.tsx:361
 #: src/pages/Login.tsx:389
 #: src/pages/Login.tsx:439
@@ -321,11 +321,11 @@ msgstr "已连接到 {totalPeersCount} 个节点"
 msgid "connecting..."
 msgstr "连接中..."
 
-#: src/pages/Offers.tsx:261
+#: src/pages/Offers.tsx:276
 msgid "Copy"
 msgstr "复制"
 
-#: src/pages/Offers.tsx:299
+#: src/pages/Offers.tsx:316
 #: src/components/NftCard.tsx:347
 msgid "Copy ID"
 msgstr "复制ID"
@@ -334,7 +334,7 @@ msgstr "复制ID"
 msgid "Create"
 msgstr "创建"
 
-#: src/pages/Offers.tsx:139
+#: src/pages/Offers.tsx:148
 msgid "Create a new offer to get started with peer-to-peer trading."
 msgstr "创建一个新报价以开始点对点交易."
 
@@ -342,7 +342,7 @@ msgstr "创建一个新报价以开始点对点交易."
 msgid "Create a profile?"
 msgstr "创建个人资料?"
 
-#: src/pages/Offers.tsx:156
+#: src/pages/Offers.tsx:165
 #: src/pages/MakeOffer.tsx:306
 msgid "Create Offer"
 msgstr "创建报价"
@@ -390,8 +390,8 @@ msgstr "数据URL"
 msgid "Days"
 msgstr "天"
 
-#: src/pages/Offers.tsx:274
-#: src/pages/Offers.tsx:336
+#: src/pages/Offers.tsx:289
+#: src/pages/Offers.tsx:374
 #: src/pages/Login.tsx:283
 #: src/pages/Login.tsx:392
 msgid "Delete"
@@ -405,7 +405,7 @@ msgstr "删除 {selectedPeersCount}"
 msgid "Delete hardened addresses"
 msgstr ""
 
-#: src/pages/Offers.tsx:313
+#: src/pages/Offers.tsx:351
 msgid "Delete offer record?"
 msgstr "删除报价记录?"
 
@@ -436,6 +436,10 @@ msgstr "描述"
 #: src/pages/Login.tsx:247
 msgid "Details"
 msgstr "详情"
+
+#: src/pages/Offers.tsx:336
+msgid "Dexie"
+msgstr ""
 
 #: src/pages/MakeOffer.tsx:346
 msgid "Dexie Link"
@@ -475,7 +479,7 @@ msgstr ""
 msgid "Edit Token Details"
 msgstr "编辑代币详情"
 
-#: src/pages/Send.tsx:234
+#: src/pages/Send.tsx:236
 #: src/pages/MintNft.tsx:211
 #: src/components/TransferDialog.tsx:84
 msgid "Enter address"
@@ -499,11 +503,11 @@ msgstr ""
 msgid "Enter fee amount"
 msgstr "输入手续费金额"
 
-#: src/pages/Send.tsx:311
+#: src/pages/Send.tsx:313
 msgid "Enter memo"
 msgstr ""
 
-#: src/pages/Send.tsx:226
+#: src/pages/Send.tsx:228
 msgid "Enter multiple distinct addresses"
 msgstr ""
 
@@ -511,7 +515,7 @@ msgstr ""
 msgid "Enter network fee"
 msgstr "输入网络手续费"
 
-#: src/pages/Offers.tsx:173
+#: src/pages/Offers.tsx:182
 msgid "Enter Offer String"
 msgstr "输入报价文本"
 
@@ -558,7 +562,7 @@ msgstr "包含有效期的报价"
 msgid "External Links"
 msgstr "外部链接"
 
-#: src/pages/Send.tsx:277
+#: src/pages/Send.tsx:279
 #: src/pages/IssueToken.tsx:129
 #: src/components/ConfirmationDialog.tsx:154
 #: src/components/ConfirmationDialog.tsx:380
@@ -675,11 +679,11 @@ msgstr ""
 msgid "Initializing..."
 msgstr "正在初始化..."
 
-#: src/pages/Send.tsx:125
+#: src/pages/Send.tsx:129
 msgid "Invalid address"
 msgstr "无效地址"
 
-#: src/pages/Send.tsx:125
+#: src/pages/Send.tsx:129
 msgid "Invalid addresses"
 msgstr ""
 
@@ -743,11 +747,11 @@ msgstr "退出"
 msgid "Make sure you have saved your mnemonic. You will not be able to access it later, since it will not be saved in the wallet. You will also not be able to make transactions with this wallet."
 msgstr "请确保已保存助记词. 以后无法访问它, 因为它不会保存在钱包中. 也无法使用此钱包进行交易."
 
-#: src/pages/Offers.tsx:133
+#: src/pages/Offers.tsx:142
 msgid "Manage offers"
 msgstr "管理报价"
 
-#: src/pages/Send.tsx:304
+#: src/pages/Send.tsx:306
 msgid "Memo (optional)"
 msgstr ""
 
@@ -884,7 +888,7 @@ msgstr "没有活跃的会话"
 msgid "No collection"
 msgstr "无集合"
 
-#: src/pages/Offers.tsx:135
+#: src/pages/Offers.tsx:144
 msgid "No offers yet"
 msgstr "还没有报价"
 
@@ -924,7 +928,7 @@ msgstr "提供"
 msgid "Offered..."
 msgstr ""
 
-#: src/pages/Offers.tsx:124
+#: src/pages/Offers.tsx:133
 #: src/components/Nav.tsx:30
 msgid "Offers"
 msgstr "报价"
@@ -945,7 +949,7 @@ msgstr "拥有者DID"
 msgid "Paste WalletConnect URI"
 msgstr "粘贴WalletConnect URI"
 
-#: src/pages/Offers.tsx:178
+#: src/pages/Offers.tsx:187
 msgid "Paste your offer string here..."
 msgstr "在这里粘贴报价文本..."
 
@@ -1161,12 +1165,12 @@ msgstr "已选择 {selectedPeersCount} / {totalPeersCount} 个节点"
 msgid "Send"
 msgstr "发送"
 
-#: src/pages/Send.tsx:187
-#: src/pages/Send.tsx:323
+#: src/pages/Send.tsx:189
+#: src/pages/Send.tsx:325
 msgid "Send {ticker}"
 msgstr "发送 {ticker}"
 
-#: src/pages/Send.tsx:205
+#: src/pages/Send.tsx:207
 msgid "Send in bulk (airdrop)"
 msgstr ""
 
@@ -1343,7 +1347,7 @@ msgstr "这将批量转移 {selectedCount} 个 NFT 到另一个钱包. 确定要
 msgid "This will combine all of the selected coins into one."
 msgstr "这将把所有选中的币合并为一个."
 
-#: src/pages/Offers.tsx:316
+#: src/pages/Offers.tsx:354
 msgid "This will delete the offer from the wallet, but if it's shared externally it can still be accepted. The only way to truly cancel a public offer is by spending one or more of its coins."
 msgstr "这将从钱包中删除该报价, 但如果已被外部共享, 仍然可以被接受. 真正取消公共报价的唯一方式是花费其中一个或多个币."
 
@@ -1514,8 +1518,8 @@ msgstr ""
 msgid "View hidden"
 msgstr "查看已隐藏的"
 
-#: src/pages/Offers.tsx:151
-#: src/pages/Offers.tsx:184
+#: src/pages/Offers.tsx:160
+#: src/pages/Offers.tsx:193
 msgid "View Offer"
 msgstr "查看报价"
 
@@ -1568,7 +1572,7 @@ msgstr "虽然12个助记词单词已经足够安全, 仍然可以选择使用24
 msgid "You"
 msgstr "我"
 
-#: src/pages/Offers.tsx:144
+#: src/pages/Offers.tsx:153
 msgid "You can also paste an offer using"
 msgstr "也可以粘贴报价通过"
 

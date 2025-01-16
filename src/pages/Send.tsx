@@ -35,7 +35,11 @@ import {
   SendXch,
   TransactionResponse,
 } from '../bindings';
-import { Buffer } from 'buffer';
+import { toHex } from '@/lib/utils';
+
+function stringToUint8Array(str: string): Uint8Array {
+  return new TextEncoder().encode(str);
+}
 
 export default function Send() {
   const { asset_id: assetId } = useParams();
@@ -141,9 +145,7 @@ export default function Send() {
 
   const onSubmit = () => {
     const values = form.getValues();
-    const memos = values.memo
-      ? [Buffer.from(values.memo, 'utf8').toString('hex')]
-      : [];
+    const memos = values.memo ? [toHex(stringToUint8Array(values.memo))] : [];
 
     const command = isXch
       ? bulk
