@@ -20,6 +20,7 @@ import {
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
@@ -29,7 +30,10 @@ import { useDids } from '@/hooks/useDids';
 import { useErrors } from '@/hooks/useErrors';
 import { toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
+import { t } from '@lingui/core/macro';
+import { Plural, Trans } from '@lingui/react/macro';
 import {
+  ActivityIcon,
   EyeIcon,
   EyeOff,
   Flame,
@@ -43,8 +47,6 @@ import {
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { commands, DidRecord, TransactionResponse } from '../bindings';
-import { Plural, Trans } from '@lingui/react/macro';
-import { t } from '@lingui/core/macro';
 
 export function DidList() {
   const navigate = useNavigate();
@@ -111,13 +113,17 @@ interface ProfileProps {
 }
 
 function Profile({ did, updateDids }: ProfileProps) {
-  const walletState = useWalletState();
   const { addError } = useErrors();
+
+  const walletState = useWalletState();
+
   const [name, setName] = useState('');
+  const [response, setResponse] = useState<TransactionResponse | null>(null);
+
   const [renameOpen, setRenameOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
   const [burnOpen, setBurnOpen] = useState(false);
-  const [response, setResponse] = useState<TransactionResponse | null>(null);
+  const [normalizeOpen, setNormalizeOpen] = useState(false);
 
   const rename = () => {
     if (!name) return;
@@ -167,6 +173,17 @@ function Profile({ did, updateDids }: ProfileProps) {
       .finally(() => setBurnOpen(false));
   };
 
+  const onNormalizeSubmit = (fee: string) => {
+    commands
+      .normalizeDids({
+        did_ids: [did.launcher_id],
+        fee: toMojos(fee, walletState.sync.unit.decimals),
+      })
+      .then(setResponse)
+      .catch(addError)
+      .finally(() => setNormalizeOpen(false));
+  };
+
   return (
     <>
       <Card
@@ -199,6 +216,21 @@ function Profile({ did, updateDids }: ProfileProps) {
                   </span>
                 </DropdownMenuItem>
 
+                {did.recovery_hash === null && (
+                  <DropdownMenuItem
+                    className='cursor-pointer'
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setNormalizeOpen(true);
+                    }}
+                  >
+                    <ActivityIcon className='mr-2 h-4 w-4' />
+                    <span>
+                      <Trans>Normalize</Trans>
+                    </span>
+                  </DropdownMenuItem>
+                )}
+
                 <DropdownMenuItem
                   className='cursor-pointer'
                   onClick={(e) => {
@@ -211,6 +243,8 @@ function Profile({ did, updateDids }: ProfileProps) {
                     <Trans>Burn</Trans>
                   </span>
                 </DropdownMenuItem>
+
+                <DropdownMenuSeparator />
 
                 <DropdownMenuItem
                   className='cursor-pointer'
@@ -315,6 +349,18 @@ function Profile({ did, updateDids }: ProfileProps) {
         <Trans>
           This will permanently delete the profile by sending it to the burn
           address.
+        </Trans>
+      </FeeOnlyDialog>
+
+      <FeeOnlyDialog
+        title={t`Normalize Profile`}
+        open={normalizeOpen}
+        setOpen={setNormalizeOpen}
+        onSubmit={onNormalizeSubmit}
+      >
+        <Trans>
+          This will modify the profile's recovery info to be compatible with the
+          Chia reference wallet.
         </Trans>
       </FeeOnlyDialog>
 

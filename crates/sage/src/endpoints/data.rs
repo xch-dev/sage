@@ -235,6 +235,7 @@ impl Sage {
                     &self.network().address_prefix,
                 )?,
                 amount: Amount::u64(did.amount),
+                recovery_hash: did.recovery_list_hash.map(hex::encode),
                 created_height: did.created_height,
                 create_transaction_id: did.transaction_id.map(hex::encode),
             });
