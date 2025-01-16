@@ -13,11 +13,15 @@ msgstr ""
 "Language-Team: \n"
 "Plural-Forms: \n"
 
+#: src/components/Layout.tsx:128
+msgid "(connecting...)"
+msgstr "(connecting...)"
+
 #: src/pages/DidList.tsx:89
 msgid "{didsCount, plural, one {You do not currently have any DID profile. Would you like to create one?} other {You do not currently have any DID profiles. Would you like to create one?}}"
 msgstr "{didsCount, plural, one {You do not currently have any DID profile. Would you like to create one?} other {You do not currently have any DID profiles. Would you like to create one?}}"
 
-#: src/components/Layout.tsx:79
+#: src/components/Layout.tsx:74
 #: src/components/Header.tsx:125
 msgid "{peerCount, plural, one {# peer} other {# peers}}"
 msgstr "{peerCount, plural, one {# peer} other {# peers}}"
@@ -105,7 +109,8 @@ msgstr "Address Batch Size"
 msgid "Address is required"
 msgstr "Address is required"
 
-#: src/components/Nav.tsx:34
+#: src/components/Nav.tsx:60
+#: src/components/Nav.tsx:63
 msgid "Addresses"
 msgstr "Addresses"
 
@@ -163,7 +168,8 @@ msgstr "Assets"
 msgid "Assign Profile"
 msgstr "Assign Profile"
 
-#: src/components/Layout.tsx:85
+#: src/components/Layout.tsx:75
+#: src/components/Layout.tsx:126
 #: src/components/Header.tsx:127
 msgid "at peak {peerMaxHeight}"
 msgstr "at peak {peerMaxHeight}"
@@ -283,6 +289,11 @@ msgstr "Coins"
 msgid "Cold Wallet"
 msgstr "Cold Wallet"
 
+#: src/components/Layout.tsx:217
+#: src/components/Layout.tsx:228
+msgid "Collapse sidebar"
+msgstr "Collapse sidebar"
+
 #: src/pages/Nft.tsx:115
 msgid "Collection Name"
 msgstr "Collection Name"
@@ -313,11 +324,15 @@ msgstr "Confirmed"
 msgid "Connect"
 msgstr "Connect"
 
+#: src/components/Layout.tsx:119
+#~ msgid "Connected to {peerCount}"
+#~ msgstr "Connected to {peerCount}"
+
 #: src/pages/PeerList.tsx:293
 msgid "Connected to {totalPeersCount} peers"
 msgstr "Connected to {totalPeersCount} peers"
 
-#: src/components/Layout.tsx:86
+#: src/components/Layout.tsx:75
 #: src/components/Header.tsx:128
 msgid "connecting..."
 msgstr "connecting..."
@@ -548,6 +563,11 @@ msgstr "Enter your mnemonic, private key, or public key above. If it's a public 
 #~ msgid "Enter your mnemonic, private key, or public key below. If it's a public key, it will be imported as a read-only cold wallet."
 #~ msgstr "Enter your mnemonic, private key, or public key below. If it's a public key, it will be imported as a read-only cold wallet."
 
+#: src/components/Layout.tsx:217
+#: src/components/Layout.tsx:228
+msgid "Expand sidebar"
+msgstr "Expand sidebar"
+
 #: src/pages/Offers.tsx:199
 #~ msgid "Expired"
 #~ msgstr "Expired"
@@ -736,7 +756,10 @@ msgstr "License URLs"
 msgid "Login"
 msgstr "Login"
 
-#: src/components/Layout.tsx:106
+#: src/components/Layout.tsx:93
+#: src/components/Layout.tsx:97
+#: src/components/Layout.tsx:158
+#: src/components/Layout.tsx:165
 #: src/components/Header.tsx:148
 msgid "Logout"
 msgstr "Logout"
@@ -841,7 +864,8 @@ msgstr "Network fee amount"
 msgid "Network ID"
 msgstr "Network ID"
 
-#: src/components/Layout.tsx:67
+#: src/components/Layout.tsx:61
+#: src/components/Layout.tsx:109
 #: src/components/Header.tsx:113
 msgid "Network status"
 msgstr "Network status"
@@ -870,7 +894,8 @@ msgid "NFT preview"
 msgstr "NFT preview"
 
 #: src/pages/NftList.tsx:101
-#: src/components/Nav.tsx:22
+#: src/components/Nav.tsx:36
+#: src/components/Nav.tsx:39
 msgid "NFTs"
 msgstr "NFTs"
 
@@ -923,7 +948,8 @@ msgid "Offered..."
 msgstr "Offered..."
 
 #: src/pages/Offers.tsx:133
-#: src/components/Nav.tsx:30
+#: src/components/Nav.tsx:52
+#: src/components/Nav.tsx:55
 msgid "Offers"
 msgstr "Offers"
 
@@ -951,9 +977,17 @@ msgstr "Paste your offer string here..."
 #~ msgid "Peak Height"
 #~ msgstr "Peak Height"
 
+#: src/components/Layout.tsx:124
+msgid "peer"
+msgstr "peer"
+
 #: src/pages/PeerList.tsx:282
 msgid "Peer List"
 msgstr "Peer List"
+
+#: src/components/Layout.tsx:124
+msgid "peers"
+msgstr "peers"
 
 #: src/pages/Offers.tsx:193
 #~ msgid "Pending"
@@ -1014,7 +1048,8 @@ msgid "Profile name"
 msgstr "Profile name"
 
 #: src/pages/DidList.tsx:60
-#: src/components/Nav.tsx:26
+#: src/components/Nav.tsx:44
+#: src/components/Nav.tsx:47
 msgid "Profiles"
 msgstr "Profiles"
 
@@ -1182,7 +1217,8 @@ msgid "Sent"
 msgstr "Sent"
 
 #: src/pages/Settings.tsx:48
-#: src/components/Layout.tsx:99
+#: src/components/Layout.tsx:88
+#: src/components/Layout.tsx:149
 #: src/components/Header.tsx:141
 msgid "Settings"
 msgstr "Settings"
@@ -1260,7 +1296,8 @@ msgstr "Submitting"
 msgid "Summary"
 msgstr "Summary"
 
-#: src/components/Layout.tsx:89
+#: src/components/Layout.tsx:78
+#: src/components/Layout.tsx:132
 #: src/components/Header.tsx:131
 msgid "Syncing {syncedCoins} / {totalCoins}"
 msgstr "Syncing {syncedCoins} / {totalCoins}"
@@ -1411,8 +1448,9 @@ msgstr "Transaction Output"
 msgid "Transaction Signed"
 msgstr "Transaction Signed"
 
-#: src/pages/Transactions.tsx:75
-#: src/components/Nav.tsx:38
+#: src/pages/Transactions.tsx:74
+#: src/components/Nav.tsx:68
+#: src/components/Nav.tsx:71
 msgid "Transactions"
 msgstr "Transactions"
 
@@ -1540,7 +1578,9 @@ msgstr "View Offer"
 
 #: src/pages/Settings.tsx:326
 #: src/pages/Login.tsx:507
-#: src/components/Nav.tsx:18
+#: src/components/Nav.tsx:28
+#: src/components/Nav.tsx:31
+#: src/components/Layout.tsx:193
 msgid "Wallet"
 msgstr "Wallet"
 
@@ -1548,7 +1588,8 @@ msgstr "Wallet"
 msgid "Wallet Details"
 msgstr "Wallet Details"
 
-#: src/components/Layout.tsx:54
+#: src/components/Layout.tsx:175
+#: src/components/Layout.tsx:190
 #: src/components/Header.tsx:102
 msgid "Wallet icon"
 msgstr "Wallet icon"
