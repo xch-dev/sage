@@ -13,6 +13,10 @@ msgstr ""
 "Plural-Forms: \n"
 "X-Generator: Poedit 3.5\n"
 
+#: src/components/Layout.tsx:128
+msgid "(connecting...)"
+msgstr ""
+
 #: src/pages/DidList.tsx:89
 msgid "{didsCount, plural, one {You do not currently have any DID profile. Would you like to create one?} other {You do not currently have any DID profiles. Would you like to create one?}}"
 msgstr "{didsCount, plural, one {当前还没有任何DID. 立即创建一个?} other {当前还没有任何DID. 立即创建一个?}}"
@@ -105,7 +109,8 @@ msgstr "地址数量"
 msgid "Address is required"
 msgstr "需提供地址"
 
-#: src/components/Nav.tsx:34
+#: src/components/Nav.tsx:60
+#: src/components/Nav.tsx:63
 msgid "Addresses"
 msgstr "地址"
 
@@ -282,6 +287,11 @@ msgstr "硬币"
 msgid "Cold Wallet"
 msgstr "冷钱包"
 
+#: src/components/Layout.tsx:217
+#: src/components/Layout.tsx:228
+msgid "Collapse sidebar"
+msgstr ""
+
 #: src/pages/Nft.tsx:115
 msgid "Collection Name"
 msgstr "集合名称"
@@ -311,6 +321,10 @@ msgstr "已确认"
 #: src/pages/PeerList.tsx:373
 msgid "Connect"
 msgstr "连接"
+
+#: src/components/Layout.tsx:119
+#~ msgid "Connected to {peerCount}"
+#~ msgstr ""
 
 #: src/pages/PeerList.tsx:293
 msgid "Connected to {totalPeersCount} peers"
@@ -555,6 +569,11 @@ msgstr ""
 #: src/pages/ImportWallet.tsx:94
 #~ msgid "Enter your mnemonic, private key, or public key below. If it's a public key, it will be imported as a read-only cold wallet."
 #~ msgstr "请输入助记词、私钥或公钥. 如果是公钥, 它将作为只读冷钱包导入."
+
+#: src/components/Layout.tsx:217
+#: src/components/Layout.tsx:228
+msgid "Expand sidebar"
+msgstr ""
 
 #~ msgid "Expired"
 #~ msgstr "已过期"
@@ -877,7 +896,8 @@ msgid "NFT preview"
 msgstr "NFT预览"
 
 #: src/pages/NftList.tsx:101
-#: src/components/Nav.tsx:22
+#: src/components/Nav.tsx:36
+#: src/components/Nav.tsx:39
 msgid "NFTs"
 msgstr "NFT"
 
@@ -958,9 +978,17 @@ msgstr "在这里粘贴报价文本..."
 #~ msgid "Peak Height"
 #~ msgstr "最高高度"
 
+#: src/components/Layout.tsx:124
+msgid "peer"
+msgstr ""
+
 #: src/pages/PeerList.tsx:282
 msgid "Peer List"
 msgstr "节点列表"
+
+#: src/components/Layout.tsx:124
+msgid "peers"
+msgstr ""
 
 #~ msgid "Pending"
 #~ msgstr "处理中"
@@ -1024,7 +1052,8 @@ msgid "Profile name"
 msgstr "个人资料名称"
 
 #: src/pages/DidList.tsx:60
-#: src/components/Nav.tsx:26
+#: src/components/Nav.tsx:44
+#: src/components/Nav.tsx:47
 msgid "Profiles"
 msgstr "个人资料"
 
@@ -1424,7 +1453,8 @@ msgid "Transaction Signed"
 msgstr "已签名交易"
 
 #: src/pages/Transactions.tsx:74
-#: src/components/Nav.tsx:38
+#: src/components/Nav.tsx:68
+#: src/components/Nav.tsx:71
 msgid "Transactions"
 msgstr "交易"
 
@@ -1543,7 +1573,9 @@ msgstr "查看报价"
 
 #: src/pages/Settings.tsx:340
 #: src/pages/Login.tsx:507
-#: src/components/Nav.tsx:18
+#: src/components/Nav.tsx:28
+#: src/components/Nav.tsx:31
+#: src/components/Layout.tsx:193
 msgid "Wallet"
 msgstr "钱包"
 
