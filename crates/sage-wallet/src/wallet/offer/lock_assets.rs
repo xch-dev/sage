@@ -9,7 +9,7 @@ use chia_wallet_sdk::{Conditions, HashedPtr, SpendContext, StandardLayer, TradeP
 use crate::{Wallet, WalletError};
 
 use super::{
-    make_royalty_payments, LockedCoins, OfferAmounts, OfferCoins, Royalties, RoyaltyOrigin,
+    make_royalty_payments, LockedCoins, OfferAmounts, OfferCoins, PaymentOrigin, Royalties,
 };
 
 #[derive(Debug, Clone)]
@@ -93,7 +93,7 @@ impl Wallet {
                     ctx,
                     royalty_amount,
                     royalties.xch.clone(),
-                    RoyaltyOrigin::Xch(primary_xch_coin),
+                    PaymentOrigin::Xch(primary_xch_coin),
                 )?);
             }
 
@@ -151,7 +151,7 @@ impl Wallet {
                     ctx,
                     royalty_amount,
                     royalties.cats[&asset_id].clone(),
-                    RoyaltyOrigin::Cat(primary_cat),
+                    PaymentOrigin::Cat(primary_cat),
                 )?);
             }
 

@@ -1,5 +1,3 @@
-use std::mem;
-
 use chia::{
     protocol::Bytes32,
     puzzles::offer::{NotarizedPayment, Payment, SettlementPaymentsSolution},
@@ -8,10 +6,11 @@ use chia_wallet_sdk::{
     payment_assertion, AssertPuzzleAnnouncement, Cat, CatSpend, Layer, SettlementLayer,
     SpendContext,
 };
+use indexmap::IndexMap;
 
 use crate::WalletError;
 
-use super::{LockedCoins, RequestedPayments};
+use super::{make_offer_payments, LockedCoins, PaymentOrigin, RequestedPayments};
 
 pub fn unlock_assets(
     ctx: &mut SpendContext,
@@ -102,26 +101,49 @@ pub fn complete_requested_payments(
     locked: LockedCoins,
     mut requested: RequestedPayments,
 ) -> Result<(), WalletError> {
-    for coin in locked.xch {
-        let coin_spend = SettlementLayer.construct_coin_spend(
+    if !locked.xch.is_empty() {
+        let mut payments = IndexMap::<Bytes32, Vec<Payment>>::new();
+
+        for notarized_payment in requested.xch {
+            for payment in notarized_payment.payments {
+                payments
+                    .entry(notarized_payment.nonce)
+                    .or_default()
+                    .push(payment);
+            }
+        }
+
+        make_offer_payments(
             ctx,
-            coin,
-            SettlementPaymentsSolution {
-                notarized_payments: mem::take(&mut requested.xch),
-            },
+            payments,
+            PaymentOrigin::Xch(locked.xch[0]),
+            locked.xch[1..]
+                .iter()
+                .copied()
+                .map(PaymentOrigin::Xch)
+                .collect(),
         )?;
-        ctx.insert(coin_spend);
     }
 
-    for coins in locked.cats.into_values() {
-        for cat in coins {
-            let inner_spend = SettlementLayer.construct_spend(
+    for (asset_id, coins) in locked.cats {
+        if !coins.is_empty() {
+            let mut payments = IndexMap::<Bytes32, Vec<Payment>>::new();
+
+            for notarized_payment in requested.cats[&asset_id].clone() {
+                for payment in notarized_payment.payments {
+                    payments
+                        .entry(notarized_payment.nonce)
+                        .or_default()
+                        .push(payment);
+                }
+            }
+
+            make_offer_payments(
                 ctx,
-                SettlementPaymentsSolution {
-                    notarized_payments: mem::take(&mut requested.cats[&cat.asset_id]),
-                },
+                payments,
+                PaymentOrigin::Cat(coins[0]),
+                coins[1..].iter().copied().map(PaymentOrigin::Cat).collect(),
             )?;
-            Cat::spend_all(ctx, &[CatSpend::new(cat, inner_spend)])?;
         }
     }
 
