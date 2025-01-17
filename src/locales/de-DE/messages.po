@@ -51,8 +51,8 @@ msgid "{selectedCount} selected"
 msgstr "{selectedCount} ausgewählt"
 
 #: src/components/Nav.tsx:137
-msgid "{syncedCoins} / {totalCoins} coins synced"
-msgstr ""
+#~ msgid "{syncedCoins} / {totalCoins} coins synced"
+#~ msgstr ""
 
 #: src/pages/Transactions.tsx:190
 #~ msgid "{transactionCreatedCount} created"
@@ -338,7 +338,7 @@ msgstr "Verbinden"
 msgid "Connected to {totalPeersCount} peers"
 msgstr "Verbunden mit {totalPeersCount} Peers"
 
-#: src/components/Nav.tsx:134
+#: src/components/Nav.tsx:136
 msgid "connecting..."
 msgstr "verbinden..."
 
@@ -775,7 +775,7 @@ msgstr "Lizenz URLs"
 msgid "Login"
 msgstr "Anmelden"
 
-#: src/components/Nav.tsx:168
+#: src/components/Nav.tsx:170
 msgid "Logout"
 msgstr "Abmelden"
 
@@ -1001,7 +1001,7 @@ msgstr "Offer-Text hier einfügen..."
 #~ msgid "Peak Height"
 #~ msgstr "Höchststand"
 
-#: src/components/Nav.tsx:129
+#: src/components/Nav.tsx:131
 msgid "peer"
 msgstr ""
 
@@ -1009,7 +1009,7 @@ msgstr ""
 msgid "Peer List"
 msgstr "Peer Liste"
 
-#: src/components/Nav.tsx:129
+#: src/components/Nav.tsx:131
 msgid "peers"
 msgstr ""
 
@@ -1248,7 +1248,7 @@ msgid "Sent"
 msgstr "Gesendet"
 
 #: src/pages/Settings.tsx:50
-#: src/components/Nav.tsx:160
+#: src/components/Nav.tsx:162
 msgid "Settings"
 msgstr "Einstellungen"
 
@@ -1325,18 +1325,17 @@ msgstr "Wird gesendet"
 msgid "Summary"
 msgstr "Zusammenfassung"
 
-#: src/components/Nav.tsx:132
+#: src/components/Nav.tsx:134
 msgid "synced to peak {peerMaxHeight}"
 msgstr ""
 
 #: src/components/Nav.tsx:124
-msgid "Syncing"
-msgstr ""
+#~ msgid "Syncing"
+#~ msgstr ""
 
-#: src/components/Layout.tsx:93
-#: src/components/Header.tsx:137
-#~ msgid "Syncing {syncedCoins} / {totalCoins}"
-#~ msgstr "{syncedCoins} / {totalCoins} synchronisieren"
+#: src/components/Nav.tsx:124
+msgid "Syncing {syncedCoins} / {totalCoins}"
+msgstr "{syncedCoins} / {totalCoins} synchronisieren"
 
 #: src/pages/TokenList.tsx:210
 msgid "Syncing in progress..."
@@ -1654,6 +1653,10 @@ msgstr "Warnung"
 #: src/pages/CreateWallet.tsx:146
 msgid "While 12 word mnemonics are sufficiently hard to crack, you can choose to use 24 instead to increase security."
 msgstr "Obwohl 12-Wort-Mnemonics ausreichend schwer zu knacken sind, können Sie sich entscheiden, stattdessen 24 zu verwenden, um die Sicherheit zu erhöhen."
+
+#: src/components/Nav.tsx:139
+msgid "with {syncedCoins} / {totalCoins} coins synced"
+msgstr ""
 
 #: src/pages/TokenList.tsx:242
 msgid "XCH logo"

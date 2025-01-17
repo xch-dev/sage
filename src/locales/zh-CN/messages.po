@@ -51,8 +51,8 @@ msgid "{selectedCount} selected"
 msgstr "已选择 {selectedCount}"
 
 #: src/components/Nav.tsx:137
-msgid "{syncedCoins} / {totalCoins} coins synced"
-msgstr ""
+#~ msgid "{syncedCoins} / {totalCoins} coins synced"
+#~ msgstr ""
 
 #: src/pages/Transactions.tsx:190
 #~ msgid "{transactionCreatedCount} created"
@@ -337,7 +337,7 @@ msgstr "连接"
 msgid "Connected to {totalPeersCount} peers"
 msgstr "已连接到 {totalPeersCount} 个节点"
 
-#: src/components/Nav.tsx:134
+#: src/components/Nav.tsx:136
 msgid "connecting..."
 msgstr "连接中..."
 
@@ -773,7 +773,7 @@ msgstr "许可证网址"
 msgid "Login"
 msgstr "登录"
 
-#: src/components/Nav.tsx:168
+#: src/components/Nav.tsx:170
 msgid "Logout"
 msgstr "退出"
 
@@ -999,7 +999,7 @@ msgstr "在这里粘贴报价文本..."
 #~ msgid "Peak Height"
 #~ msgstr "最高高度"
 
-#: src/components/Nav.tsx:129
+#: src/components/Nav.tsx:131
 msgid "peer"
 msgstr ""
 
@@ -1007,7 +1007,7 @@ msgstr ""
 msgid "Peer List"
 msgstr "节点列表"
 
-#: src/components/Nav.tsx:129
+#: src/components/Nav.tsx:131
 msgid "peers"
 msgstr ""
 
@@ -1245,7 +1245,7 @@ msgid "Sent"
 msgstr "已发送"
 
 #: src/pages/Settings.tsx:50
-#: src/components/Nav.tsx:160
+#: src/components/Nav.tsx:162
 msgid "Settings"
 msgstr "设置"
 
@@ -1322,18 +1322,17 @@ msgstr "正在提交"
 msgid "Summary"
 msgstr "摘要"
 
-#: src/components/Nav.tsx:132
+#: src/components/Nav.tsx:134
 msgid "synced to peak {peerMaxHeight}"
 msgstr ""
 
 #: src/components/Nav.tsx:124
-msgid "Syncing"
-msgstr ""
+#~ msgid "Syncing"
+#~ msgstr ""
 
-#: src/components/Layout.tsx:93
-#: src/components/Header.tsx:137
-#~ msgid "Syncing {syncedCoins} / {totalCoins}"
-#~ msgstr "正在同步 {syncedCoins} / {totalCoins}"
+#: src/components/Nav.tsx:124
+msgid "Syncing {syncedCoins} / {totalCoins}"
+msgstr "正在同步 {syncedCoins} / {totalCoins}"
 
 #: src/pages/TokenList.tsx:210
 msgid "Syncing in progress..."
@@ -1648,6 +1647,10 @@ msgstr "警告"
 #: src/pages/CreateWallet.tsx:146
 msgid "While 12 word mnemonics are sufficiently hard to crack, you can choose to use 24 instead to increase security."
 msgstr "虽然12个助记词单词已经足够安全, 仍然可以选择使用24个单词来进一步增强安全性."
+
+#: src/components/Nav.tsx:139
+msgid "with {syncedCoins} / {totalCoins} coins synced"
+msgstr ""
 
 #: src/pages/TokenList.tsx:242
 msgid "XCH logo"

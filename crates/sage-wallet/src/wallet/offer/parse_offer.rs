@@ -72,6 +72,12 @@ pub struct RequestedPayments {
 }
 
 impl RequestedPayments {
+    pub fn is_empty(&self) -> bool {
+        self.xch.is_empty()
+            && !self.cats.values().any(|cat| !cat.is_empty())
+            && self.nfts.is_empty()
+    }
+
     pub fn amounts(&self) -> OfferAmounts {
         let mut xch = 0;
 
