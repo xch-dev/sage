@@ -1,10 +1,10 @@
 use chia::{
-    protocol::Bytes32,
+    protocol::{Bytes32, Coin},
     puzzles::offer::{NotarizedPayment, Payment, SettlementPaymentsSolution},
 };
 use chia_wallet_sdk::{
-    payment_assertion, AssertPuzzleAnnouncement, Cat, CatSpend, Layer, SettlementLayer,
-    SpendContext,
+    payment_assertion, AssertPuzzleAnnouncement, Cat, CatSpend, HashedPtr, Layer, Nft,
+    SettlementLayer, SpendContext,
 };
 use indexmap::IndexMap;
 
@@ -12,25 +12,60 @@ use crate::WalletError;
 
 use super::{make_offer_payments, LockedCoins, PaymentOrigin, RequestedPayments};
 
+#[derive(Debug, Clone)]
+pub struct Unlock {
+    pub assertions: Vec<AssertPuzzleAnnouncement>,
+    pub single_sided_coin: Option<SingleSidedIntermediary>,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum SingleSidedIntermediary {
+    Xch(Coin),
+    Cat(Cat),
+    Nft(Nft<HashedPtr>),
+}
+
 pub fn unlock_assets(
     ctx: &mut SpendContext,
     locked: LockedCoins,
     nonce: Bytes32,
     p2_puzzle_hash: Bytes32,
-) -> Result<Vec<AssertPuzzleAnnouncement>, WalletError> {
+    single_sided: bool,
+) -> Result<Unlock, WalletError> {
     let mut assertions = Vec::new();
+    let mut intermediary = None;
 
-    for coin in locked.xch {
+    let total_xch_amount = locked.xch.iter().map(|coin| coin.amount).sum::<u64>();
+
+    for (i, coin) in locked.xch.into_iter().enumerate() {
+        if coin.amount == 0 {
+            continue;
+        }
+
+        if single_sided && intermediary.is_none() {
+            intermediary = Some(SingleSidedIntermediary::Xch(Coin::new(
+                coin.coin_id(),
+                p2_puzzle_hash,
+                total_xch_amount,
+            )));
+        }
+
         let notarized_payment = NotarizedPayment {
             nonce,
-            payments: vec![Payment::with_memos(
-                p2_puzzle_hash,
-                coin.amount,
-                vec![p2_puzzle_hash.into()],
-            )],
+            payments: if i == 0 {
+                vec![Payment::with_memos(
+                    p2_puzzle_hash,
+                    total_xch_amount,
+                    vec![p2_puzzle_hash.into()],
+                )]
+            } else {
+                Vec::new()
+            },
         };
 
-        assertions.push(payment_assertion(coin.puzzle_hash, &notarized_payment));
+        if i == 0 {
+            assertions.push(payment_assertion(coin.puzzle_hash, &notarized_payment));
+        }
 
         let coin_spend = SettlementLayer.construct_coin_spend(
             ctx,
@@ -48,6 +83,16 @@ pub fn unlock_assets(
         let total_amount = coins.iter().map(|cat| cat.coin.amount).sum::<u64>();
 
         for (i, cat) in coins.into_iter().enumerate() {
+            if cat.coin.amount == 0 {
+                continue;
+            }
+
+            if single_sided && intermediary.is_none() {
+                intermediary = Some(SingleSidedIntermediary::Cat(
+                    cat.wrapped_child(p2_puzzle_hash, total_amount),
+                ));
+            }
+
             let notarized_payment = NotarizedPayment {
                 nonce,
                 payments: if i == 0 {
@@ -79,6 +124,14 @@ pub fn unlock_assets(
     }
 
     for nft in locked.nfts.into_values() {
+        if single_sided && intermediary.is_none() {
+            intermediary = Some(SingleSidedIntermediary::Nft(nft.wrapped_child(
+                p2_puzzle_hash,
+                None,
+                nft.info.metadata,
+            )));
+        }
+
         let notarized_payment = NotarizedPayment {
             nonce,
             payments: vec![Payment::with_memos(
@@ -93,7 +146,10 @@ pub fn unlock_assets(
         let _nft = nft.unlock_settlement(ctx, vec![notarized_payment])?;
     }
 
-    Ok(assertions)
+    Ok(Unlock {
+        assertions,
+        single_sided_coin: intermediary,
+    })
 }
 
 pub fn complete_requested_payments(

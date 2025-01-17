@@ -35,6 +35,11 @@ import { CatRecord, commands, events } from '../bindings';
 import { useWalletState } from '../state';
 import { NumberFormat } from '@/components/NumberFormat';
 import { fromMojos } from '@/lib/utils';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 enum TokenView {
   Name = 'name',
@@ -236,7 +241,7 @@ export function TokenList() {
               <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
                 <CardTitle className='text-md font-medium'>Chia</CardTitle>
                 <img
-                  alt={`XCH logo`}
+                  alt={t`XCH logo`}
                   className='h-6 w-6'
                   src='https://icons.dexie.space/xch.webp'
                 />
@@ -277,7 +282,7 @@ export function TokenList() {
               >
                 <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2 space-x-2'>
                   <CardTitle className='text-md font-medium truncate'>
-                    {cat.name || 'Unknown CAT'}
+                    {cat.name || t`Unknown CAT`}
                   </CardTitle>
                   {cat.icon_url && (
                     <img
@@ -304,6 +309,27 @@ export function TokenList() {
                       minimumFractionDigits={2}
                       maximumFractionDigits={2}
                     />
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div>~${cat.balanceInUsd}</div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <span>
+                          1 {cat.ticker ?? 'CAT'}{' '}
+                          {Number(
+                            cat.balanceInUsd /
+                              Number(toDecimal(cat.balance, 3)),
+                          ) < 0.01
+                            ? ' < 0.01¢'
+                            : Number(
+                                  cat.balanceInUsd /
+                                    Number(toDecimal(cat.balance, 3)),
+                                ) < 0.01
+                              ? ` = ${((cat.balanceInUsd / Number(toDecimal(cat.balance, 3))) * 100).toFixed(2)}¢`
+                              : ` = $${(cat.balanceInUsd / Number(toDecimal(cat.balance, 3))).toFixed(2)}`}
+                        </span>
+                      </TooltipContent>
+                    </Tooltip>
                   </div>
                 </CardContent>
               </Card>
