@@ -41,6 +41,7 @@ pub fn run() {
             commands::bulk_mint_nfts,
             commands::transfer_nfts,
             commands::transfer_dids,
+            commands::normalize_dids,
             commands::add_nft_uri,
             commands::assign_nfts_to_did,
             commands::sign_coin_spends,

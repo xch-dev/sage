@@ -51,8 +51,6 @@ export function NftList() {
         if (group === NftGroupMode.None) {
           await commands
             .getNfts({
-              collection_id: null,
-              did_id: null,
               name: query || null,
               offset: (page - 1) * pageSize,
               limit: pageSize,

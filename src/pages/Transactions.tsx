@@ -110,7 +110,7 @@ export function Transactions() {
         </div>
 
         {transactions.length > 0 && (
-          <div className='flex flex-col gap-2 mt-2'>
+          <div className='flex flex-col gap-2 mt-4'>
             {transactions.map((transaction, i) => {
               return <Transaction key={i} transaction={transaction} />;
             })}

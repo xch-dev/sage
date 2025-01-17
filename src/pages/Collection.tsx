@@ -38,7 +38,6 @@ export default function Collection() {
               collectionId === 'No collection'
                 ? 'none'
                 : (collectionId ?? null),
-            did_id: null,
             name: query || null,
             offset: (page - 1) * pageSize,
             limit: pageSize,

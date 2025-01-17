@@ -102,6 +102,7 @@ routes!(
     add_nft_uri await: AddNftUri = "/add_nft_uri",
     assign_nfts_to_did await: AssignNftsToDid = "/assign_nfts_to_did",
     transfer_dids await: TransferDids = "/transfer_dids",
+    normalize_dids await: NormalizeDids = "/normalize_dids",
     sign_coin_spends await: SignCoinSpends = "/sign_coin_spends",
     view_coin_spends await: ViewCoinSpends = "/view_coin_spends",
     submit_transaction await: SubmitTransaction = "/submit_transaction",

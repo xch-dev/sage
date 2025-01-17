@@ -130,8 +130,13 @@ pub struct GetNftCollectionResponse {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub struct GetNfts {
+    #[serde(default)]
     pub collection_id: Option<String>,
-    pub did_id: Option<String>,
+    #[serde(default)]
+    pub minter_did_id: Option<String>,
+    #[serde(default)]
+    pub owner_did_id: Option<String>,
+    #[serde(default)]
     pub name: Option<String>,
     pub offset: u32,
     pub limit: u32,

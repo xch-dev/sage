@@ -231,6 +231,15 @@ pub async fn transfer_dids(
 
 #[command]
 #[specta]
+pub async fn normalize_dids(
+    state: State<'_, AppState>,
+    req: NormalizeDids,
+) -> Result<TransactionResponse> {
+    Ok(state.lock().await.normalize_dids(req).await?)
+}
+
+#[command]
+#[specta]
 pub async fn sign_coin_spends(
     state: State<'_, AppState>,
     req: SignCoinSpends,
