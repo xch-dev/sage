@@ -42,9 +42,10 @@ import {
 import { formatNumber } from '../i18n';
 
 export interface WalletConnectContextType {
-  sessions: any[];
+  sessions: SessionTypes.Struct[];
   pair: (uri: string) => Promise<void>;
   disconnect: (topic: string) => Promise<void>;
+  connecting: boolean;
 }
 
 export const WalletConnectContext = createContext<
@@ -63,11 +64,11 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
   > | null>(null);
   const [sessions, setSessions] = useState<SessionTypes.Struct[]>([]);
   const [pendingRequests, setPendingRequests] = useState<SessionRequest[]>([]);
+  const [connecting, setConnecting] = useState(false);
 
   useEffect(() => {
     SignClient.init({
       projectId: '7a11dea2c7ab88dc4597d5d44eb79a18',
-      // optional parameters
       relayUrl: 'wss://relay.walletconnect.org',
       metadata: {
         name: 'Sage Wallet',
@@ -200,11 +201,13 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
 
         await acknowledged();
         setSessions(signClient.session.getAll());
+        setConnecting(false);
       } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : 'Failed to connect';
         addError({ kind: 'walletconnect', reason: errorMessage });
         console.error('WalletConnect session proposal failed:', error);
+        setConnecting(false);
 
         await signClient.reject({
           id: proposal.id,
@@ -225,7 +228,6 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
           throw new Error(`Unsupported method: ${method}`);
         }
 
-        // Validate parameters before showing any UI
         try {
           walletConnectCommands[method].paramsType.parse(
             request.params.request.params,
@@ -290,12 +292,14 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
     }
 
     try {
+      setConnecting(true);
       await signClient.core.pairing.pair({ uri });
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Failed to pair';
       addError({ kind: 'walletconnect', reason: errorMessage });
       console.error('WalletConnect pairing failed:', error);
+      setConnecting(false);
     }
   };
 
@@ -348,7 +352,9 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <WalletConnectContext.Provider value={{ pair, sessions, disconnect }}>
+    <WalletConnectContext.Provider
+      value={{ pair, sessions, disconnect, connecting }}
+    >
       {children}
       {pendingRequests.length > 0 && (
         <RequestDialog
@@ -502,7 +508,6 @@ function CreateOfferDialog({ params }: CommandDialogProps<'chia_createOffer'>) {
 
 function CancelOfferDialog({ params }: CommandDialogProps<'chia_cancelOffer'>) {
   const walletState = useWalletState();
-
   const [record, setRecord] = useState<OfferRecord | null>(null);
   const { addError } = useErrors();
 
@@ -514,7 +519,7 @@ function CancelOfferDialog({ params }: CommandDialogProps<'chia_cancelOffer'>) {
   }, [params, addError]);
 
   return (
-    <div className='space-y-2'>
+    <div className='space-y-2 p-4'>
       <div className='font-medium'>Offer ID</div>
       <div className='text-sm text-muted-foreground'>{params.id}</div>
 
@@ -541,7 +546,7 @@ function SendDialog({ params }: CommandDialogProps<'chia_send'>) {
   const walletState = useWalletState();
 
   return (
-    <div className='space-y-2'>
+    <div className='space-y-2 p-4'>
       <div>
         <div className='font-medium'>Address</div>
         <div className='text-sm truncate text-muted-foreground'>

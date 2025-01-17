@@ -1,7 +1,6 @@
 import CoinList from '@/components/CoinList';
 import ConfirmationDialog from '@/components/ConfirmationDialog';
 import Container from '@/components/Container';
-import { CopyButton } from '@/components/CopyButton';
 import Header from '@/components/Header';
 import { ReceiveAddress } from '@/components/ReceiveAddress';
 import { Button } from '@/components/ui/button';
@@ -60,6 +59,122 @@ import {
 } from '../bindings';
 import { NumberFormat } from '../components/NumberFormat';
 import { fromMojos } from '@/lib/utils';
+import { CopyButton } from '@/components/CopyButton';
+import StyledQRCode from '@/components/StyledQrCode';
+import { fetch } from '@tauri-apps/plugin-http';
+interface QRCodeDialogProps {
+  isOpen: boolean;
+  onClose: (open: boolean) => void;
+  asset: CatRecord | null;
+  receive_address: string;
+}
+
+const getImageDataUrl = async (url: string) => {
+  try {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  } catch (error) {
+    console.error('Failed to load image:', error);
+    return null;
+  }
+};
+
+const QRCodeCopyButton = ({ receive_address }: { receive_address: string }) => {
+  const [copySuccess, setCopySuccess] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(receive_address);
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000); // Reset after 2 seconds
+    } catch (err) {
+      console.error('Failed to copy text:', err);
+    }
+  };
+
+  return (
+    <Button
+      size='lg'
+      variant='secondary'
+      onClick={handleCopy}
+      className='w-full'
+    >
+      {copySuccess ? <Trans>Copied!</Trans> : <Trans>Copy</Trans>}
+    </Button>
+  );
+};
+
+const QRCodeDialog = ({
+  isOpen,
+  onClose,
+  asset,
+  receive_address,
+}: QRCodeDialogProps) => {
+  const [imageDataUrl, setImageDataUrl] = useState<string | undefined>(
+    undefined,
+  );
+  useEffect(() => {
+    if (asset?.icon_url) {
+      getImageDataUrl(asset.icon_url)
+        .then((dataUrl) => setImageDataUrl(dataUrl as string))
+        .catch((error) => {
+          console.error('Failed to load image:', error);
+        });
+    }
+  }, [asset?.icon_url]);
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className='sm:max-w-md'>
+        <DialogHeader>
+          <DialogTitle>
+            <Trans>Receive {asset?.ticker}</Trans>
+          </DialogTitle>
+          <DialogDescription>
+            <Trans>Use this address to receive {asset?.name}</Trans>
+          </DialogDescription>
+        </DialogHeader>
+        <div className='flex'>
+          <div className='flex flex-col items-center justify-center'>
+            <div className='py-4'>
+              <StyledQRCode
+                data={receive_address}
+                cornersSquareOptions={{
+                  type: 'extra-rounded',
+                }}
+                dotsOptions={{
+                  type: 'rounded',
+                  color: '#000000',
+                }}
+                backgroundOptions={{}}
+                image={imageDataUrl}
+                imageOptions={{
+                  hideBackgroundDots: true,
+                  imageSize: 0.4,
+                  margin: 5,
+                  saveAsBlob: true,
+                }}
+              />
+            </div>
+            <span className='text-center break-words break-all'>
+              {receive_address}
+            </span>
+            <div className='pt-8 w-full'>
+              <QRCodeCopyButton receive_address={receive_address} />
+            </div>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 export default function Token() {
   const navigate = useNavigate();
   const walletState = useWalletState();
@@ -72,6 +187,7 @@ export default function Token() {
   const [coins, setCoins] = useState<CoinRecord[]>([]);
   const [response, setResponse] = useState<TransactionResponse | null>(null);
   const [selectedCoins, setSelectedCoins] = useState<RowSelectionState>({});
+  const { receive_address } = walletState.sync;
 
   const precision = useMemo(
     () => (assetId === 'xch' ? walletState.sync.unit.decimals : 3),
@@ -175,6 +291,7 @@ export default function Token() {
   const [isEditOpen, setEditOpen] = useState(false);
   const [newName, setNewName] = useState('');
   const [newTicker, setNewTicker] = useState('');
+  const [isReceiveOpen, setReceiveOpen] = useState(false);
 
   const edit = () => {
     if (!newName || !newTicker || !asset) return;
@@ -244,12 +361,13 @@ export default function Token() {
                     <Send className='mr-2 h-4 w-4' /> <Trans>Send</Trans>
                   </Button>
                 </Link>
-                <Link to='/wallet/addresses'>
-                  <Button variant={'outline'}>
-                    <HandHelping className='mr-2 h-4 w-4' />{' '}
-                    <Trans>Receive</Trans>
-                  </Button>
-                </Link>
+                <Button
+                  variant={'outline'}
+                  onClick={() => setReceiveOpen(true)}
+                >
+                  <HandHelping className='mr-2 h-4 w-4' />
+                  <Trans>Receive</Trans>
+                </Button>
                 {asset && assetId !== 'xch' && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -363,7 +481,12 @@ export default function Token() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
+      <QRCodeDialog
+        isOpen={isReceiveOpen}
+        onClose={setReceiveOpen}
+        asset={asset}
+        receive_address={receive_address}
+      />
       <ConfirmationDialog
         response={response}
         close={() => setResponse(null)}
