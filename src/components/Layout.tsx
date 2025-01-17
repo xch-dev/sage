@@ -1,22 +1,21 @@
-import { Cog, LogOut, PanelLeftClose, PanelLeft } from 'lucide-react';
-import { PropsWithChildren, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Plural, Trans } from '@lingui/react/macro';
-import { t } from '@lingui/core/macro';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useInsets } from '@/contexts/SafeAreaContext';
 import useInitialization from '@/hooks/useInitialization';
 import { usePeers } from '@/hooks/usePeers';
 import { useWallet } from '@/hooks/useWallet';
 import icon from '@/icon.png';
 import { logoutAndUpdateState, useWalletState } from '@/state';
-import { Nav } from './Nav';
-import { TooltipProvider } from '@/components/ui/tooltip';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { t } from '@lingui/core/macro';
+import { PanelLeft, PanelLeftClose } from 'lucide-react';
+import { PropsWithChildren, useMemo } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useLocalStorage } from 'usehooks-ts';
+import { BottomNav, TopNav } from './Nav';
 
 const SIDEBAR_COLLAPSED_STORAGE_KEY = 'sage-wallet-sidebar-collapsed';
 
@@ -54,123 +53,6 @@ export default function Layout(props: PropsWithChildren<object>) {
       navigate('/');
     });
   };
-
-  const bottomNav = (
-    <>
-      <Link
-        to='/peers'
-        className='flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary'
-        aria-label={t`Network status`}
-      >
-        <span
-          className={
-            'inline-flex h-3 w-3 m-0.5 rounded-full' +
-            ' ' +
-            (isSynced ? 'bg-emerald-600' : 'bg-yellow-600')
-          }
-          aria-hidden='true'
-        ></span>
-        {!isCollapsed &&
-          (isSynced ? (
-            <>
-              <Plural value={peerCount} one={'# peer'} other={'# peers'} />{' '}
-              {peerMaxHeight ? t`at peak ${peerMaxHeight}` : t`connecting...`}
-            </>
-          ) : (
-            <Trans>
-              Syncing {syncedCoins} / {totalCoins}
-            </Trans>
-          ))}
-      </Link>
-      <Link
-        to={'/settings'}
-        className='flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary'
-      >
-        <Cog className='h-4 w-4' aria-hidden='true' />
-        {!isCollapsed && <Trans>Settings</Trans>}
-      </Link>
-      <button
-        type='button'
-        onClick={logout}
-        aria-label={t`Logout`}
-        className='flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary'
-      >
-        <LogOut className='h-4 w-4' aria-hidden='true' />
-        {!isCollapsed && <Trans>Logout</Trans>}
-      </button>
-    </>
-  );
-
-  const bottomNavWithTooltips = isCollapsed ? (
-    <>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Link
-            to='/peers'
-            className='flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary'
-            aria-label={t`Network status`}
-          >
-            <span
-              className={
-                'inline-flex h-3 w-3 m-0.5 rounded-full' +
-                ' ' +
-                (isSynced ? 'bg-emerald-600' : 'bg-yellow-600')
-              }
-              aria-hidden='true'
-            ></span>
-          </Link>
-        </TooltipTrigger>
-        <TooltipContent side='right'>
-          {isSynced ? (
-            <>
-              {peerCount} {peerCount === 1 ? t`peer` : t`peers`}{' '}
-              {peerMaxHeight ? (
-                <Trans>at peak {peerMaxHeight}</Trans>
-              ) : (
-                <Trans>(connecting...)</Trans>
-              )}
-            </>
-          ) : (
-            <Trans>
-              Syncing {syncedCoins} / {totalCoins}
-            </Trans>
-          )}
-        </TooltipContent>
-      </Tooltip>
-
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Link
-            to={'/settings'}
-            className='flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary'
-          >
-            <Cog className='h-4 w-4' aria-hidden='true' />
-          </Link>
-        </TooltipTrigger>
-        <TooltipContent side='right'>
-          <Trans>Settings</Trans>
-        </TooltipContent>
-      </Tooltip>
-
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <button
-            type='button'
-            onClick={logout}
-            aria-label={t`Logout`}
-            className='flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary'
-          >
-            <LogOut className='h-4 w-4' aria-hidden='true' />
-          </button>
-        </TooltipTrigger>
-        <TooltipContent side='right'>
-          <Trans>Logout</Trans>
-        </TooltipContent>
-      </Tooltip>
-    </>
-  ) : (
-    bottomNav
-  );
 
   const walletIcon = (
     <Link to='/wallet' className='flex items-center gap-2 font-semibold'>
@@ -233,21 +115,21 @@ export default function Layout(props: PropsWithChildren<object>) {
             </div>
 
             <div className='flex-1 flex flex-col justify-between pb-4'>
-              <nav
+              <div
                 className={`grid items-start px-3 text-sm font-medium ${
-                  isCollapsed ? 'px-2' : 'px-3'
+                  isCollapsed ? 'justify-center' : 'px-3'
                 }`}
               >
-                <Nav isCollapsed={isCollapsed} />
-              </nav>
+                <TopNav isCollapsed={isCollapsed} />
+              </div>
 
-              <nav
+              <div
                 className={`grid text-sm font-medium ${
-                  isCollapsed ? 'px-2' : 'px-3'
+                  isCollapsed ? 'justify-center' : 'px-3'
                 }`}
               >
-                {bottomNavWithTooltips}
-              </nav>
+                <BottomNav isCollapsed={isCollapsed} />
+              </div>
             </div>
           </div>
         </div>
