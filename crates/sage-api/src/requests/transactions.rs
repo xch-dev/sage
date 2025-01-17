@@ -167,6 +167,14 @@ pub struct TransferDids {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct NormalizeDids {
+    pub did_ids: Vec<String>,
+    pub fee: Amount,
+    #[serde(default)]
+    pub auto_submit: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub struct SignCoinSpends {
     pub coin_spends: Vec<CoinSpendJson>,
     #[serde(default)]
@@ -219,3 +227,4 @@ pub type TransferNftsResponse = TransactionResponse;
 pub type AddNftUriResponse = TransactionResponse;
 pub type AssignNftsToDidResponse = TransactionResponse;
 pub type TransferDidsResponse = TransactionResponse;
+pub type NormalizeDidsResponse = TransactionResponse;

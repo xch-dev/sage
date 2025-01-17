@@ -7,9 +7,9 @@ use chia::{
 use chia_wallet_sdk::MetadataUpdate;
 use sage_api::{
     AddNftUri, AssignNftsToDid, BulkMintNfts, BulkSendCat, BulkSendXch, CombineCat, CombineXch,
-    CreateDid, IssueCat, NftUriKind, SendCat, SendXch, SignCoinSpends, SignCoinSpendsResponse,
-    SplitCat, SplitXch, SubmitTransaction, SubmitTransactionResponse, TransactionResponse,
-    TransferDids, TransferNfts, ViewCoinSpends, ViewCoinSpendsResponse,
+    CreateDid, IssueCat, NftUriKind, NormalizeDids, SendCat, SendXch, SignCoinSpends,
+    SignCoinSpendsResponse, SplitCat, SplitXch, SubmitTransaction, SubmitTransactionResponse,
+    TransactionResponse, TransferDids, TransferNfts, ViewCoinSpends, ViewCoinSpendsResponse,
 };
 use sage_assets::fetch_uris_without_hash;
 use sage_database::CatRow;
@@ -335,6 +335,19 @@ impl Sage {
         let coin_spends = wallet
             .transfer_dids(did_ids, puzzle_hash, fee, false, true)
             .await?;
+        self.transact(coin_spends, req.auto_submit).await
+    }
+
+    pub async fn normalize_dids(&self, req: NormalizeDids) -> Result<TransactionResponse> {
+        let wallet = self.wallet()?;
+        let did_ids = req
+            .did_ids
+            .into_iter()
+            .map(parse_did_id)
+            .collect::<Result<Vec<_>>>()?;
+        let fee = self.parse_amount(req.fee)?;
+
+        let coin_spends = wallet.normalize_dids(did_ids, fee, false, true).await?;
         self.transact(coin_spends, req.auto_submit).await
     }
 

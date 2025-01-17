@@ -48,8 +48,6 @@ export function NftSelector({
   useEffect(() => {
     commands
       .getNfts({
-        collection_id: null,
-        did_id: null,
         name: isValidNftId ? null : value || null,
         offset: page * pageSize,
         limit: pageSize,

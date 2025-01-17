@@ -277,7 +277,8 @@ async fn did_coin_info(
         DidCoinInfoSql,
         "
         SELECT
-            `did_coins`.`coin_id`, `amount`, `p2_puzzle_hash`, `created_height`, `transaction_id`
+            `did_coins`.`coin_id`, `amount`, `p2_puzzle_hash`,
+            `recovery_list_hash`, `created_height`, `transaction_id`
         FROM `did_coins`
         INNER JOIN `coin_states` ON `coin_states`.coin_id = `did_coins`.coin_id
         WHERE `did_coins`.`coin_id` = ?
