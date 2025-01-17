@@ -165,7 +165,7 @@ msgstr "Are you sure you want to resync this wallet's data? This will re-downloa
 msgid "Asset"
 msgstr "Asset"
 
-#: src/pages/TokenList.tsx:141
+#: src/pages/TokenList.tsx:146
 msgid "Assets"
 msgstr "Assets"
 
@@ -270,8 +270,8 @@ msgstr "CAT icon"
 msgid "Change"
 msgstr "Change"
 
-#: src/pages/TokenList.tsx:168
-#: src/pages/TokenList.tsx:169
+#: src/pages/TokenList.tsx:173
+#: src/pages/TokenList.tsx:174
 msgid "Clear search"
 msgstr "Clear search"
 
@@ -661,8 +661,8 @@ msgstr "Height:"
 msgid "Hide"
 msgstr "Hide"
 
-#: src/pages/TokenList.tsx:187
-#: src/pages/TokenList.tsx:190
+#: src/pages/TokenList.tsx:192
+#: src/pages/TokenList.tsx:195
 msgid "Hide zero balances"
 msgstr "Hide zero balances"
 
@@ -729,7 +729,7 @@ msgstr "Invalid addresses"
 msgid "IP Address"
 msgstr "IP Address"
 
-#: src/pages/TokenList.tsx:148
+#: src/pages/TokenList.tsx:153
 #: src/pages/IssueToken.tsx:62
 #: src/pages/IssueToken.tsx:148
 msgid "Issue Token"
@@ -1190,7 +1190,7 @@ msgstr "Search for a token"
 msgid "Search NFTs..."
 msgstr "Search NFTs..."
 
-#: src/pages/TokenList.tsx:159
+#: src/pages/TokenList.tsx:164
 msgid "Search tokens..."
 msgstr "Search tokens..."
 
@@ -1267,8 +1267,8 @@ msgstr "Show all coins"
 msgid "Show unspent coins only"
 msgstr "Show unspent coins only"
 
-#: src/pages/TokenList.tsx:187
-#: src/pages/TokenList.tsx:190
+#: src/pages/TokenList.tsx:192
+#: src/pages/TokenList.tsx:195
 msgid "Show zero balances"
 msgstr "Show zero balances"
 
@@ -1276,16 +1276,16 @@ msgstr "Show zero balances"
 msgid "Sign Transaction"
 msgstr "Sign Transaction"
 
-#: src/pages/TokenList.tsx:326
+#: src/pages/TokenList.tsx:346
 #: src/components/NftOptions.tsx:146
 msgid "Sort Alphabetically"
 msgstr "Sort Alphabetically"
 
-#: src/pages/TokenList.tsx:339
+#: src/pages/TokenList.tsx:359
 msgid "Sort by Balance"
 msgstr "Sort by Balance"
 
-#: src/pages/TokenList.tsx:306
+#: src/pages/TokenList.tsx:326
 #: src/components/NftOptions.tsx:120
 msgid "Sort options"
 msgstr "Sort options"
@@ -1338,7 +1338,7 @@ msgstr "Syncing"
 #~ msgid "Syncing {syncedCoins} / {totalCoins}"
 #~ msgstr "Syncing {syncedCoins} / {totalCoins}"
 
-#: src/pages/TokenList.tsx:205
+#: src/pages/TokenList.tsx:210
 msgid "Syncing in progress..."
 msgstr "Syncing in progress..."
 
@@ -1378,7 +1378,7 @@ msgstr "The offer has been created and imported successfully. You can copy the o
 msgid "The wallet generates a new address after each transaction. Old ones stay valid."
 msgstr "The wallet generates a new address after each transaction. Old ones stay valid."
 
-#: src/pages/TokenList.tsx:208
+#: src/pages/TokenList.tsx:213
 msgid "The wallet is still syncing. Balances may not be accurate until it completes."
 msgstr "The wallet is still syncing. Balances may not be accurate until it completes."
 
@@ -1545,6 +1545,10 @@ msgstr "Unknown App"
 msgid "Unknown asset"
 msgstr "Unknown asset"
 
+#: src/pages/TokenList.tsx:274
+msgid "Unknown CAT"
+msgstr "Unknown CAT"
+
 #: src/pages/Nft.tsx:82
 msgid "Unknown NFT"
 msgstr "Unknown NFT"
@@ -1597,7 +1601,7 @@ msgstr "Use this address to receive {0}"
 msgid "Version {version}"
 msgstr "Version {version}"
 
-#: src/pages/TokenList.tsx:220
+#: src/pages/TokenList.tsx:225
 #: src/pages/DidList.tsx:74
 msgid "View hidden"
 msgstr "View hidden"
@@ -1650,6 +1654,10 @@ msgstr "Warning"
 #: src/pages/CreateWallet.tsx:146
 msgid "While 12 word mnemonics are sufficiently hard to crack, you can choose to use 24 instead to increase security."
 msgstr "While 12 word mnemonics are sufficiently hard to crack, you can choose to use 24 instead to increase security."
+
+#: src/pages/TokenList.tsx:242
+msgid "XCH logo"
+msgstr "XCH logo"
 
 #: src/components/ConfirmationDialog.tsx:438
 #: src/components/ConfirmationDialog.tsx:466
