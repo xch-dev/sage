@@ -9,8 +9,6 @@ export async function handleGetNfts(
     limit: params.limit ?? 10,
     offset: params.offset ?? 0,
     collection_id: params.collectionId ?? null,
-    did_id: null,
-    name: null,
     // TODO: Add sort mode and include hidden to WalletConnect API?
     // Not adding for now to leave it open in the future to decide.
     sort_mode: 'name',

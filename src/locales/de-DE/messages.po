@@ -640,7 +640,7 @@ msgid "Height:"
 msgstr "Höhe:"
 
 #: src/pages/Token.tsx:259
-#: src/pages/NftList.tsx:245
+#: src/pages/NftList.tsx:243
 #: src/pages/DidList.tsx:274
 #: src/components/NftCard.tsx:334
 msgid "Hide"
@@ -804,7 +804,7 @@ msgstr "Mint"
 #~ msgid "Mint an NFT?"
 #~ msgstr "NFT minten?"
 
-#: src/pages/NftList.tsx:107
+#: src/pages/NftList.tsx:105
 #: src/pages/MintNft.tsx:96
 msgid "Mint NFT"
 msgstr "NFT Minten"
@@ -901,7 +901,7 @@ msgstr "NFT optionen"
 msgid "NFT preview"
 msgstr "NFT Vorschau"
 
-#: src/pages/NftList.tsx:101
+#: src/pages/NftList.tsx:99
 #: src/components/Nav.tsx:36
 #: src/components/Nav.tsx:39
 msgid "NFTs"
@@ -1236,7 +1236,7 @@ msgid "Settings"
 msgstr "Einstellungen"
 
 #: src/pages/Token.tsx:259
-#: src/pages/NftList.tsx:245
+#: src/pages/NftList.tsx:243
 #: src/pages/DidList.tsx:274
 #: src/components/NftCard.tsx:334
 msgid "Show"
@@ -1503,7 +1503,7 @@ msgstr "Profil transferieren"
 
 #: src/pages/Transactions.tsx:297
 #: src/pages/Transaction.tsx:149
-#: src/pages/Collection.tsx:93
+#: src/pages/Collection.tsx:92
 #: src/components/ConfirmationDialog.tsx:517
 #: src/components/ConfirmationDialog.tsx:531
 msgid "Unknown"
@@ -1526,8 +1526,8 @@ msgstr "Unbekanntes Asset"
 msgid "Unknown NFT"
 msgstr "Unbekanntes NFT"
 
-#: src/pages/NftList.tsx:205
-#: src/pages/NftList.tsx:216
+#: src/pages/NftList.tsx:203
+#: src/pages/NftList.tsx:214
 #: src/components/OfferCard.tsx:177
 #: src/components/NftCard.tsx:196
 #: src/components/NftCard.tsx:214
