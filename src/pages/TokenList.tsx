@@ -296,8 +296,8 @@ export function TokenList() {
                           {Number(
                             cat.balanceInUsd /
                               Number(toDecimal(cat.balance, 3)),
-                          ) < 0.009
-                            ? ' < 0.00¢'
+                          ) < 0.01
+                            ? ' < 0.01¢'
                             : Number(
                                   cat.balanceInUsd /
                                     Number(toDecimal(cat.balance, 3)),
