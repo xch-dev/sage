@@ -41,6 +41,7 @@ pub fn run() {
             commands::bulk_mint_nfts,
             commands::transfer_nfts,
             commands::transfer_dids,
+            commands::normalize_dids,
             commands::add_nft_uri,
             commands::assign_nfts_to_did,
             commands::sign_coin_spends,
@@ -102,7 +103,7 @@ pub fn run() {
         )
         .expect("Failed to export TypeScript bindings");
 
-    let mut tauri_builder = tauri::Builder::default();
+    let mut tauri_builder = tauri::Builder::default().plugin(tauri_plugin_http::init());
 
     #[cfg(not(any(target_os = "android", target_os = "ios")))]
     {

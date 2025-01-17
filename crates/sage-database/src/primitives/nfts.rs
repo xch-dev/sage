@@ -32,9 +32,11 @@ pub enum NftSortMode {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum NftGroup {
     Collection(Bytes32),
-    Did(Bytes32),
     NoCollection,
-    NoDid,
+    MinterDid(Bytes32),
+    NoMinterDid,
+    OwnerDid(Bytes32),
+    NoOwnerDid,
 }
 
 #[derive(Debug, Clone)]
@@ -650,9 +652,11 @@ async fn search_nfts(
     // Group filtering (Collection/DID)
     match params.group {
         Some(NftGroup::Collection(_)) => conditions.push("collection_id = ?"),
-        Some(NftGroup::Did(_)) => conditions.push("minter_did = ?"),
         Some(NftGroup::NoCollection) => conditions.push("collection_id IS NULL"),
-        Some(NftGroup::NoDid) => conditions.push("minter_did IS NULL"),
+        Some(NftGroup::MinterDid(_)) => conditions.push("minter_did = ?"),
+        Some(NftGroup::NoMinterDid) => conditions.push("minter_did IS NULL"),
+        Some(NftGroup::OwnerDid(_)) => conditions.push("owner_did = ?"),
+        Some(NftGroup::NoOwnerDid) => conditions.push("owner_did IS NULL"),
         None => {}
     }
 
@@ -685,16 +689,32 @@ async fn search_nfts(
     // Choose index based on sort mode and group type
     let index = match (params.sort_mode, &params.group) {
         // Collection grouping
-        (NftSortMode::Name, Some(NftGroup::Collection(_))) => "nft_col_name",
-        (NftSortMode::Recent, Some(NftGroup::Collection(_))) => "nft_col_recent",
+        (NftSortMode::Name, Some(NftGroup::Collection(_) | NftGroup::NoCollection)) => {
+            "nft_col_name"
+        }
+        (NftSortMode::Recent, Some(NftGroup::Collection(_) | NftGroup::NoCollection)) => {
+            "nft_col_recent"
+        }
 
-        // DID grouping
-        (NftSortMode::Name, Some(NftGroup::Did(_))) => "nft_did_name",
-        (NftSortMode::Recent, Some(NftGroup::Did(_))) => "nft_did_recent",
+        // Minter DID grouping
+        (NftSortMode::Name, Some(NftGroup::MinterDid(_) | NftGroup::NoMinterDid)) => {
+            "nft_minter_did_name"
+        }
+        (NftSortMode::Recent, Some(NftGroup::MinterDid(_) | NftGroup::NoMinterDid)) => {
+            "nft_minter_did_recent"
+        }
+
+        // Owner DID grouping
+        (NftSortMode::Name, Some(NftGroup::OwnerDid(_) | NftGroup::NoOwnerDid)) => {
+            "nft_owner_did_name"
+        }
+        (NftSortMode::Recent, Some(NftGroup::OwnerDid(_) | NftGroup::NoOwnerDid)) => {
+            "nft_owner_did_recent"
+        }
 
         // Global sorting
-        (NftSortMode::Name, _) => "nft_name",
-        (NftSortMode::Recent, _) => "nft_recent",
+        (NftSortMode::Name, None) => "nft_name",
+        (NftSortMode::Recent, None) => "nft_recent",
     };
 
     // Construct query based on whether we're doing a name search
@@ -734,7 +754,7 @@ async fn search_nfts(
     }
 
     // Bind group parameters if present
-    if let Some(NftGroup::Collection(id) | NftGroup::Did(id)) = &params.group {
+    if let Some(NftGroup::Collection(id) | NftGroup::MinterDid(id)) = &params.group {
         query = query.bind(id.as_ref());
     }
 

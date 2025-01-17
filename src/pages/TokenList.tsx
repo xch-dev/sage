@@ -11,18 +11,21 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { useErrors } from '@/hooks/useErrors';
 import { usePrices } from '@/hooks/usePrices';
 import { useTokenParams } from '@/hooks/useTokenParams';
 import { toDecimal } from '@/lib/utils';
+import { t } from '@lingui/core/macro';
+import { Trans } from '@lingui/react/macro';
 import {
   ArrowDown10,
   ArrowDownAz,
-  Coins,
-  InfoIcon,
   CircleDollarSign,
   CircleSlash,
+  Coins,
+  InfoIcon,
   SearchIcon,
   XIcon,
 } from 'lucide-react';
@@ -30,9 +33,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { CatRecord, commands, events } from '../bindings';
 import { useWalletState } from '../state';
-import { Trans } from '@lingui/react/macro';
-import { Input } from '@/components/ui/input';
-import { t } from '@lingui/core/macro';
 
 enum TokenView {
   Name = 'name',
@@ -156,6 +156,7 @@ export function TokenList() {
                 value={params.search}
                 aria-label={t`Search for a token`}
                 title={t`Search for a token`}
+                placeholder={t`Search tokens...`}
                 onChange={(e) => setParams({ search: e.target.value })}
                 className='w-full pl-8 pr-8'
               />

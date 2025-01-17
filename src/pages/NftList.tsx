@@ -43,8 +43,6 @@ export function NftList() {
         if (view === 'name' || view === 'recent') {
           await commands
             .getNfts({
-              collection_id: null,
-              did_id: null,
               name: query || null,
               offset: (page - 1) * pageSize,
               limit: pageSize,

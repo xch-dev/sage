@@ -1,57 +1,216 @@
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { usePeers } from '@/hooks/usePeers';
+import { logoutAndUpdateState, useWalletState } from '@/state';
+import { t } from '@lingui/core/macro';
+import { Trans } from '@lingui/react/macro';
+import {
   ArrowLeftRight,
   BookUser,
+  Cog,
   Images,
-  RouteIcon,
+  LogOut,
+  MonitorCheck,
+  MonitorCog,
+  ShoppingCart,
   SquareUserRound,
   WalletIcon,
 } from 'lucide-react';
-import { PropsWithChildren } from 'react';
-import { Link } from 'react-router-dom';
-import { Trans } from '@lingui/react/macro';
+import { PropsWithChildren, useMemo } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Separator } from './ui/separator';
 
-export function Nav() {
+interface NavProps {
+  isCollapsed?: boolean;
+}
+
+export function TopNav({ isCollapsed }: NavProps) {
+  const className = isCollapsed ? 'h-5 w-5' : 'h-4 w-4';
+
   return (
-    <nav className='grid gap-1 font-medium'>
-      <NavLink url={'/wallet'}>
-        <WalletIcon className='h-4 w-4' />
-        <Trans>Wallet</Trans>
+    <nav className={`grid font-medium ${isCollapsed ? 'gap-2' : 'gap-1'}`}>
+      <Separator className='mb-3' />
+      <NavLink
+        url={'/wallet'}
+        isCollapsed={isCollapsed}
+        message={<Trans>Wallet</Trans>}
+      >
+        <WalletIcon className={className} />
       </NavLink>
-      <NavLink url={'/nfts'}>
-        <Images className='h-4 w-4' />
-        <Trans>NFTs</Trans>
+      <NavLink
+        url={'/nfts'}
+        isCollapsed={isCollapsed}
+        message={<Trans>NFTs</Trans>}
+      >
+        <Images className={className} />
       </NavLink>
-      <NavLink url={'/dids'}>
-        <SquareUserRound className='h-4 w-4' />
-        <Trans>Profiles</Trans>
+      <NavLink
+        url={'/dids'}
+        isCollapsed={isCollapsed}
+        message={<Trans>Profiles</Trans>}
+      >
+        <SquareUserRound className={className} />
       </NavLink>
-      <NavLink url={'/offers'}>
-        <RouteIcon className='h-4 w-4' />
-        <Trans>Offers</Trans>
+      <NavLink
+        url={'/offers'}
+        isCollapsed={isCollapsed}
+        message={<Trans>Offers</Trans>}
+      >
+        <ShoppingCart className={className} />
       </NavLink>
-      <NavLink url={'/wallet/addresses'}>
-        <BookUser className='h-4 w-4' />
-        <Trans>Addresses</Trans>
+      <NavLink
+        url={'/wallet/addresses'}
+        isCollapsed={isCollapsed}
+        message={<Trans>Addresses</Trans>}
+      >
+        <BookUser className={className} />
       </NavLink>
-      <NavLink url={'/transactions'}>
-        <ArrowLeftRight className='h-4 w-4' />
-        <Trans>Transactions</Trans>
+      <NavLink
+        url={'/transactions'}
+        isCollapsed={isCollapsed}
+        message={<Trans>Transactions</Trans>}
+      >
+        <ArrowLeftRight className={className} />
       </NavLink>
     </nav>
   );
 }
 
-interface NavLinkProps {
-  url: string;
+export function BottomNav({ isCollapsed }: NavProps) {
+  const navigate = useNavigate();
+
+  const { peers } = usePeers();
+  const peerCount = peers?.length || 0;
+
+  const walletState = useWalletState();
+  const syncedCoins = walletState.sync.synced_coins;
+  const totalCoins = walletState.sync.total_coins;
+  const isSynced = useMemo(
+    () => walletState.sync.synced_coins === walletState.sync.total_coins,
+    [walletState.sync.synced_coins, walletState.sync.total_coins],
+  );
+
+  const peerMaxHeight =
+    peers?.reduce((max, peer) => {
+      return Math.max(max, peer.peak_height);
+    }, 0) || 0;
+
+  const logout = () => {
+    logoutAndUpdateState().then(() => {
+      navigate('/');
+    });
+  };
+
+  const className = isCollapsed ? 'h-5 w-5' : 'h-4 w-4';
+
+  return (
+    <nav>
+      <NavLink
+        url={'/peers'}
+        isCollapsed={isCollapsed}
+        message={
+          isSynced ? (
+            <>
+              {peerMaxHeight ? (
+                <Trans>{peerCount} peers synced</Trans>
+              ) : (
+                <Trans>Connecting...</Trans>
+              )}
+            </>
+          ) : (
+            <Trans>Syncing</Trans>
+          )
+        }
+        customTooltip={
+          <>
+            {peerCount} {peerCount === 1 ? t`peer` : t`peers`}{' '}
+            {isSynced ? (
+              peerMaxHeight ? (
+                <Trans>synced to peak {peerMaxHeight}</Trans>
+              ) : (
+                <Trans>connecting...</Trans>
+              )
+            ) : (
+              <Trans>
+                {syncedCoins} / {totalCoins} coins synced
+              </Trans>
+            )}
+          </>
+        }
+      >
+        {isSynced ? (
+          <MonitorCheck
+            className={`${className} text-emerald-600`}
+            aria-hidden='true'
+          />
+        ) : (
+          <MonitorCog
+            className={`${className} text-yellow-600`}
+            aria-hidden='true'
+          />
+        )}
+      </NavLink>
+
+      <NavLink
+        url={'/settings'}
+        isCollapsed={isCollapsed}
+        message={<Trans>Settings</Trans>}
+      >
+        <Cog className={className} aria-hidden='true' />
+      </NavLink>
+
+      <NavLink
+        url={logout}
+        isCollapsed={isCollapsed}
+        message={<Trans>Logout</Trans>}
+      >
+        <LogOut className={className} aria-hidden='true' />
+      </NavLink>
+    </nav>
+  );
 }
 
-function NavLink({ url, children }: PropsWithChildren<NavLinkProps>) {
-  return (
-    <Link
-      to={url}
-      className='flex items-center gap-3 rounded-lg px-3 py-1.5 text-muted-foreground transition-all hover:text-primary text-lg md:text-base'
-    >
-      {children}
-    </Link>
-  );
+interface NavLinkProps extends PropsWithChildren {
+  url: string | (() => void);
+  isCollapsed?: boolean;
+  message: React.ReactNode;
+  customTooltip?: React.ReactNode;
+}
+
+function NavLink({
+  url,
+  children,
+  isCollapsed,
+  message,
+  customTooltip,
+}: NavLinkProps) {
+  const className = `flex items-center gap-3 rounded-lg py-1.5 text-muted-foreground transition-all hover:text-primary ${
+    isCollapsed ? 'justify-center' : 'px-3'
+  } text-lg md:text-base`;
+
+  const link =
+    typeof url === 'string' ? (
+      <Link to={url} className={className}>
+        {children}
+        {!isCollapsed && message}
+      </Link>
+    ) : (
+      <button type='button' onClick={url} className={className}>
+        {children}
+        {!isCollapsed && message}
+      </button>
+    );
+  if (isCollapsed || customTooltip) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>{link}</TooltipTrigger>
+        <TooltipContent side='right'>{customTooltip || message}</TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  return link;
 }
