@@ -680,4 +680,116 @@ mod tests {
 
         Ok(())
     }
+
+    #[test(tokio::test)]
+    async fn test_offer_cat_single_sided() -> anyhow::Result<()> {
+        let mut alice = TestWallet::new(1000).await?;
+        let mut bob = alice.next(0).await?;
+
+        let (coin_spends, asset_id) = alice.wallet.issue_cat(1000, 0, None, false, true).await?;
+        alice.transact(coin_spends).await?;
+        alice.wait_for_coins().await;
+
+        // Create offer
+        let offer = alice
+            .wallet
+            .make_offer(
+                MakerSide {
+                    cats: indexmap! { asset_id => 1000 },
+                    ..Default::default()
+                },
+                TakerSide::default(),
+                None,
+                false,
+                true,
+            )
+            .await?;
+        let offer = alice
+            .wallet
+            .sign_make_offer(offer, &alice.agg_sig, alice.master_sk.clone())
+            .await?;
+
+        // Take offer
+        let offer = bob.wallet.take_offer(offer, 0, false, true).await?;
+        let spend_bundle = bob
+            .wallet
+            .sign_take_offer(offer, &bob.agg_sig, bob.master_sk.clone())
+            .await?;
+        bob.push_bundle(spend_bundle).await?;
+
+        // We need to wait for both wallets to sync in this case
+        bob.wait_for_coins().await;
+
+        // Check balances
+        assert_eq!(bob.wallet.db.cat_balance(asset_id).await?, 1000);
+
+        Ok(())
+    }
+
+    #[test(tokio::test)]
+    async fn test_offer_nft_single_sided() -> anyhow::Result<()> {
+        let mut alice = TestWallet::new(2).await?;
+        let mut bob = alice.next(0).await?;
+
+        let (coin_spends, did) = alice.wallet.create_did(0, false, true).await?;
+        alice.transact(coin_spends).await?;
+        alice.wait_for_coins().await;
+
+        let (coin_spends, mut nfts, _did) = alice
+            .wallet
+            .bulk_mint_nfts(
+                0,
+                did.info.launcher_id,
+                vec![WalletNftMint {
+                    metadata: NftMetadata::default(),
+                    royalty_puzzle_hash: Some(Bytes32::default()),
+                    royalty_ten_thousandths: 300,
+                }],
+                false,
+                true,
+            )
+            .await?;
+        alice.transact(coin_spends).await?;
+        alice.wait_for_coins().await;
+
+        let nft = nfts.remove(0);
+
+        // Create offer
+        let offer = alice
+            .wallet
+            .make_offer(
+                MakerSide {
+                    nfts: vec![nft.info.launcher_id],
+                    ..Default::default()
+                },
+                TakerSide::default(),
+                None,
+                false,
+                true,
+            )
+            .await?;
+        let offer = alice
+            .wallet
+            .sign_make_offer(offer, &alice.agg_sig, alice.master_sk.clone())
+            .await?;
+
+        // Take offer
+        let offer = bob.wallet.take_offer(offer, 0, false, true).await?;
+        let spend_bundle = bob
+            .wallet
+            .sign_take_offer(offer, &bob.agg_sig, bob.master_sk.clone())
+            .await?;
+        bob.push_bundle(spend_bundle).await?;
+
+        // We need to wait for both wallets to sync in this case
+        bob.wait_for_coins().await;
+
+        // Check balances
+        assert_ne!(
+            bob.wallet.db.spendable_nft(nft.info.launcher_id).await?,
+            None
+        );
+
+        Ok(())
+    }
 }
