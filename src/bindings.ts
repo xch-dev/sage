@@ -77,6 +77,9 @@ async transferNfts(req: TransferNfts) : Promise<TransactionResponse> {
 async transferDids(req: TransferDids) : Promise<TransactionResponse> {
     return await TAURI_INVOKE("transfer_dids", { req });
 },
+async normalizeDids(req: NormalizeDids) : Promise<TransactionResponse> {
+    return await TAURI_INVOKE("normalize_dids", { req });
+},
 async addNftUri(req: AddNftUri) : Promise<TransactionResponse> {
     return await TAURI_INVOKE("add_nft_uri", { req });
 },
@@ -268,7 +271,7 @@ export type DeleteKeyResponse = Record<string, never>
 export type DeleteOffer = { offer_id: string }
 export type DeleteOfferResponse = Record<string, never>
 export type DerivationRecord = { index: number; public_key: string; address: string }
-export type DidRecord = { launcher_id: string; name: string | null; visible: boolean; coin_id: string; address: string; amount: Amount; created_height: number | null; create_transaction_id: string | null }
+export type DidRecord = { launcher_id: string; name: string | null; visible: boolean; coin_id: string; address: string; amount: Amount; recovery_hash: string | null; created_height: number | null; create_transaction_id: string | null }
 export type Error = { kind: ErrorKind; reason: string }
 export type ErrorKind = "wallet" | "api" | "not_found" | "unauthorized" | "internal"
 export type FilterUnlockedCoins = { coin_ids: string[] }
@@ -344,6 +347,7 @@ export type NftMint = { edition_number: number | null; edition_total: number | n
 export type NftRecord = { launcher_id: string; collection_id: string | null; collection_name: string | null; minter_did: string | null; owner_did: string | null; visible: boolean; sensitive_content: boolean; name: string | null; created_height: number | null; coin_id: string; address: string; royalty_address: string; royalty_ten_thousandths: number; data_uris: string[]; data_hash: string | null; metadata_uris: string[]; metadata_hash: string | null; license_uris: string[]; license_hash: string | null; edition_number: number | null; edition_total: number | null }
 export type NftSortMode = "name" | "recent"
 export type NftUriKind = "data" | "metadata" | "license"
+export type NormalizeDids = { did_ids: string[]; fee: Amount; auto_submit?: boolean }
 export type OfferAssets = { xch: OfferXch; cats: { [key in string]: OfferCat }; nfts: { [key in string]: OfferNft } }
 export type OfferCat = { amount: Amount; royalty: Amount; name: string | null; ticker: string | null; icon_url: string | null }
 export type OfferNft = { image_data: string | null; image_mime_type: string | null; name: string | null; royalty_ten_thousandths: number; royalty_address: string }

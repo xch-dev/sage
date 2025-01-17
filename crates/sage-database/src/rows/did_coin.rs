@@ -26,6 +26,7 @@ pub(crate) struct DidCoinInfoSql {
     pub coin_id: Vec<u8>,
     pub amount: Vec<u8>,
     pub p2_puzzle_hash: Vec<u8>,
+    pub recovery_list_hash: Option<Vec<u8>>,
     pub created_height: Option<i64>,
     pub transaction_id: Option<Vec<u8>>,
 }
@@ -35,6 +36,7 @@ pub struct DidCoinInfo {
     pub coin_id: Bytes32,
     pub amount: u64,
     pub p2_puzzle_hash: Bytes32,
+    pub recovery_list_hash: Option<Bytes32>,
     pub created_height: Option<u32>,
     pub transaction_id: Option<Bytes32>,
 }
@@ -77,6 +79,11 @@ impl IntoRow for DidCoinInfoSql {
             coin_id: to_bytes32(&self.coin_id)?,
             amount: to_u64(&self.amount)?,
             p2_puzzle_hash: to_bytes32(&self.p2_puzzle_hash)?,
+            recovery_list_hash: self
+                .recovery_list_hash
+                .as_deref()
+                .map(to_bytes32)
+                .transpose()?,
             created_height: self.created_height.map(TryInto::try_into).transpose()?,
             transaction_id: self.transaction_id.as_deref().map(to_bytes32).transpose()?,
         })
