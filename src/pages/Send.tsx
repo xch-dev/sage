@@ -37,6 +37,7 @@ import {
   TransactionResponse,
 } from '../bindings';
 import { toHex } from '@/lib/utils';
+import { Input } from '@/components/ui/input';
 
 function stringToUint8Array(str: string): Uint8Array {
   return new TextEncoder().encode(str);
