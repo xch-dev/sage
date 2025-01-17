@@ -102,7 +102,7 @@ msgstr ""
 msgid "Add URL"
 msgstr "添加网址"
 
-#: src/pages/Send.tsx:225
+#: src/pages/Send.tsx:226
 #: src/pages/Nft.tsx:241
 #: src/components/TransferDialog.tsx:81
 #: src/components/AddressList.tsx:57
@@ -133,7 +133,7 @@ msgstr ""
 msgid "All Addresses"
 msgstr "所有地址"
 
-#: src/pages/Send.tsx:259
+#: src/pages/Send.tsx:260
 #: src/pages/MakeOffer.tsx:545
 #: src/pages/IssueToken.tsx:108
 #: src/components/CoinList.tsx:109
@@ -294,8 +294,8 @@ msgstr "硬币"
 msgid "Cold Wallet"
 msgstr "冷钱包"
 
-#: src/components/Layout.tsx:80
-#: src/components/Layout.tsx:91
+#: src/components/Layout.tsx:79
+#: src/components/Layout.tsx:90
 msgid "Collapse sidebar"
 msgstr ""
 
@@ -509,7 +509,7 @@ msgstr ""
 msgid "Edit Token Details"
 msgstr "编辑代币详情"
 
-#: src/pages/Send.tsx:241
+#: src/pages/Send.tsx:242
 #: src/pages/MintNft.tsx:217
 #: src/components/TransferDialog.tsx:84
 msgid "Enter address"
@@ -533,11 +533,11 @@ msgstr ""
 msgid "Enter fee amount"
 msgstr "输入手续费金额"
 
-#: src/pages/Send.tsx:319
+#: src/pages/Send.tsx:320
 msgid "Enter memo"
 msgstr ""
 
-#: src/pages/Send.tsx:233
+#: src/pages/Send.tsx:234
 msgid "Enter multiple distinct addresses"
 msgstr ""
 
@@ -581,8 +581,8 @@ msgstr ""
 #~ msgid "Enter your mnemonic, private key, or public key below. If it's a public key, it will be imported as a read-only cold wallet."
 #~ msgstr "请输入助记词、私钥或公钥. 如果是公钥, 它将作为只读冷钱包导入."
 
-#: src/components/Layout.tsx:80
-#: src/components/Layout.tsx:91
+#: src/components/Layout.tsx:79
+#: src/components/Layout.tsx:90
 msgid "Expand sidebar"
 msgstr ""
 
@@ -597,7 +597,7 @@ msgstr "包含有效期的报价"
 msgid "External Links"
 msgstr "外部链接"
 
-#: src/pages/Send.tsx:285
+#: src/pages/Send.tsx:286
 #: src/pages/IssueToken.tsx:129
 #: src/components/ConfirmationDialog.tsx:154
 #: src/components/ConfirmationDialog.tsx:380
@@ -608,7 +608,7 @@ msgstr "手续费"
 msgid "Fee exceeds recommended maximum of 0.001 {ticker}"
 msgstr "费用超过推荐的最大值 0.001 {ticker}"
 
-#: src/pages/ViewOffer.tsx:129
+#: src/pages/ViewOffer.tsx:130
 msgid "Fetching offer details..."
 msgstr "正在获取报价详情..."
 
@@ -710,15 +710,15 @@ msgstr "索引"
 msgid "Initial Addresses"
 msgstr ""
 
-#: src/pages/ViewOffer.tsx:119
+#: src/pages/ViewOffer.tsx:120
 msgid "Initializing..."
 msgstr "正在初始化..."
 
-#: src/pages/Send.tsx:130
+#: src/pages/Send.tsx:131
 msgid "Invalid address"
 msgstr "无效地址"
 
-#: src/pages/Send.tsx:130
+#: src/pages/Send.tsx:131
 msgid "Invalid addresses"
 msgstr ""
 
@@ -785,7 +785,7 @@ msgstr "请确保已保存助记词. 以后无法访问它, 因为它不会保�
 msgid "Manage offers"
 msgstr "管理报价"
 
-#: src/pages/Send.tsx:312
+#: src/pages/Send.tsx:313
 msgid "Memo (optional)"
 msgstr ""
 
@@ -859,7 +859,7 @@ msgstr "钱包名称"
 msgid "Network"
 msgstr "网络"
 
-#: src/pages/ViewOffer.tsx:186
+#: src/pages/ViewOffer.tsx:187
 #: src/pages/Token.tsx:662
 #: src/pages/Token.tsx:730
 #: src/pages/MintNft.tsx:262
@@ -1052,7 +1052,7 @@ msgstr ""
 msgid "Previous page"
 msgstr "上一页"
 
-#: src/pages/ViewOffer.tsx:135
+#: src/pages/ViewOffer.tsx:136
 msgid "Processing offer data..."
 msgstr "正在处理报价数据..."
 
@@ -1170,7 +1170,7 @@ msgstr "版税支付给"
 msgid "Save mnemonic"
 msgstr "保存助记词"
 
-#: src/pages/ViewOffer.tsx:207
+#: src/pages/ViewOffer.tsx:208
 msgid "Save Offer"
 msgstr "保存报价"
 
@@ -1178,8 +1178,8 @@ msgstr "保存报价"
 msgid "Scan QR Code"
 msgstr ""
 
-#: src/pages/TokenList.tsx:157
-#: src/pages/TokenList.tsx:158
+#: src/pages/TokenList.tsx:162
+#: src/pages/TokenList.tsx:163
 msgid "Search for a token"
 msgstr ""
 
@@ -1227,12 +1227,12 @@ msgstr "已选择 {selectedPeersCount} / {totalPeersCount} 个节点"
 msgid "Send"
 msgstr "发送"
 
-#: src/pages/Send.tsx:194
-#: src/pages/Send.tsx:331
+#: src/pages/Send.tsx:195
+#: src/pages/Send.tsx:332
 msgid "Send {ticker}"
 msgstr "发送 {ticker}"
 
-#: src/pages/Send.tsx:212
+#: src/pages/Send.tsx:213
 msgid "Send in bulk (airdrop)"
 msgstr ""
 
@@ -1273,16 +1273,16 @@ msgstr ""
 msgid "Sign Transaction"
 msgstr "签署交易"
 
-#: src/pages/TokenList.tsx:346
+#: src/pages/TokenList.tsx:351
 #: src/components/NftOptions.tsx:146
 msgid "Sort Alphabetically"
 msgstr "按字母顺序排序"
 
-#: src/pages/TokenList.tsx:359
+#: src/pages/TokenList.tsx:364
 msgid "Sort by Balance"
 msgstr "按余额排序"
 
-#: src/pages/TokenList.tsx:326
+#: src/pages/TokenList.tsx:331
 #: src/components/NftOptions.tsx:120
 msgid "Sort options"
 msgstr "排序选项"
@@ -1339,7 +1339,7 @@ msgstr ""
 msgid "Syncing in progress..."
 msgstr "同步进行中..."
 
-#: src/pages/ViewOffer.tsx:211
+#: src/pages/ViewOffer.tsx:212
 msgid "Take Offer"
 msgstr "接受报价"
 
@@ -1608,7 +1608,7 @@ msgstr "查看报价"
 #: src/pages/Settings.tsx:340
 #: src/pages/Login.tsx:507
 #: src/components/Nav.tsx:39
-#: src/components/Layout.tsx:56
+#: src/components/Layout.tsx:55
 msgid "Wallet"
 msgstr "钱包"
 
@@ -1616,8 +1616,8 @@ msgstr "钱包"
 msgid "Wallet Details"
 msgstr "钱包详情"
 
-#: src/components/Layout.tsx:38
-#: src/components/Layout.tsx:53
+#: src/components/Layout.tsx:37
+#: src/components/Layout.tsx:52
 #: src/components/Header.tsx:84
 msgid "Wallet icon"
 msgstr "钱包硬币"
