@@ -4,6 +4,11 @@
 
 html {
   overscroll-behavior: none;
+  background-color: transparent;
+}
+
+body {
+  background-color: transparent;
 }
 
 @layer base {

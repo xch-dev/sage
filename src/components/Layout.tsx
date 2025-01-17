@@ -17,7 +17,11 @@ import { BottomNav, TopNav } from './Nav';
 
 const SIDEBAR_COLLAPSED_STORAGE_KEY = 'sage-wallet-sidebar-collapsed';
 
-export default function Layout(props: PropsWithChildren<object>) {
+type LayoutProps = PropsWithChildren<object> & {
+  transparentBackground?: boolean;
+};
+
+export default function Layout(props: LayoutProps) {
   const navigate = useNavigate();
   const insets = useInsets();
 
@@ -109,12 +113,24 @@ export default function Layout(props: PropsWithChildren<object>) {
           </div>
         </div>
         <div
-          className='flex flex-col h-screen overflow-hidden'
+          className={`flex flex-col h-screen overflow-hidden ${
+            props.transparentBackground ? 'bg-transparent' : 'bg-background'
+          }`}
           style={{
-            paddingTop:
-              insets.top !== 0 ? `${insets.top}px` : 'env(safe-area-inset-top)',
+            paddingBottom: insets.bottom
+              ? `${insets.bottom}px`
+              : 'env(safe-area-inset-bottom)',
           }}
         >
+          <div
+            className='bg-background'
+            style={{
+              height:
+                insets.top !== 0
+                  ? `${insets.top + 8}px`
+                  : 'env(safe-area-inset-top)',
+            }}
+          />
           {props.children}
         </div>
       </div>
