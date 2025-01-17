@@ -1,14 +1,12 @@
 import { useInsets } from '@/contexts/SafeAreaContext';
 import useInitialization from '@/hooks/useInitialization';
-import { usePeers } from '@/hooks/usePeers';
 import { useWallet } from '@/hooks/useWallet';
 import icon from '@/icon.png';
-import { logoutAndUpdateState, useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { platform } from '@tauri-apps/plugin-os';
 import { ChevronLeft, Menu } from 'lucide-react';
-import { PropsWithChildren, ReactNode, useMemo } from 'react';
+import { PropsWithChildren, ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { BottomNav, TopNav } from './Nav';
 import { Button } from './ui/button';
@@ -27,28 +25,6 @@ export default function Header(
 
   const initialized = useInitialization();
   const wallet = useWallet(initialized);
-
-  const { peers } = usePeers();
-  const peerCount = peers?.length || 0;
-
-  const walletState = useWalletState();
-  const syncedCoins = walletState.sync.synced_coins;
-  const totalCoins = walletState.sync.total_coins;
-  const isSynced = useMemo(
-    () => walletState.sync.synced_coins === walletState.sync.total_coins,
-    [walletState.sync.synced_coins, walletState.sync.total_coins],
-  );
-
-  const peerMaxHeight =
-    peers?.reduce((max, peer) => {
-      return Math.max(max, peer.peak_height);
-    }, 0) || 0;
-
-  const logout = () => {
-    logoutAndUpdateState().then(() => {
-      navigate('/');
-    });
-  };
 
   const hasBackButton = props.back || location.pathname.split('/').length > 2;
   const isMobile = platform() === 'ios' || platform() === 'android';

@@ -6,13 +6,11 @@ import {
 } from '@/components/ui/tooltip';
 import { useInsets } from '@/contexts/SafeAreaContext';
 import useInitialization from '@/hooks/useInitialization';
-import { usePeers } from '@/hooks/usePeers';
 import { useWallet } from '@/hooks/useWallet';
 import icon from '@/icon.png';
-import { logoutAndUpdateState, useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { PanelLeft, PanelLeftClose } from 'lucide-react';
-import { PropsWithChildren, useMemo } from 'react';
+import { PropsWithChildren } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useLocalStorage } from 'usehooks-ts';
 import { BottomNav, TopNav } from './Nav';
@@ -23,23 +21,6 @@ export default function Layout(props: PropsWithChildren<object>) {
   const navigate = useNavigate();
   const insets = useInsets();
 
-  const { peers } = usePeers();
-
-  const peerCount = peers?.length || 0;
-
-  const walletState = useWalletState();
-  const syncedCoins = walletState.sync.synced_coins;
-  const totalCoins = walletState.sync.total_coins;
-  const isSynced = useMemo(
-    () => walletState.sync.synced_coins === walletState.sync.total_coins,
-    [walletState.sync.synced_coins, walletState.sync.total_coins],
-  );
-
-  const peerMaxHeight =
-    peers?.reduce((max, peer) => {
-      return Math.max(max, peer.peak_height);
-    }, 0) || 0;
-
   const initialized = useInitialization();
   const wallet = useWallet(initialized);
 
@@ -47,12 +28,6 @@ export default function Layout(props: PropsWithChildren<object>) {
     SIDEBAR_COLLAPSED_STORAGE_KEY,
     false,
   );
-
-  const logout = () => {
-    logoutAndUpdateState().then(() => {
-      navigate('/');
-    });
-  };
 
   const walletIcon = (
     <Link to='/wallet' className='flex items-center gap-2 font-semibold'>
