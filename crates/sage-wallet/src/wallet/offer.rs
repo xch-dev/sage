@@ -639,4 +639,45 @@ mod tests {
 
         Ok(())
     }
+
+    #[test(tokio::test)]
+    async fn test_offer_xch_single_sided() -> anyhow::Result<()> {
+        let alice = TestWallet::new(1000).await?;
+        let mut bob = alice.next(0).await?;
+
+        // Create offer
+        let offer = alice
+            .wallet
+            .make_offer(
+                MakerSide {
+                    xch: 1000,
+                    ..Default::default()
+                },
+                TakerSide::default(),
+                None,
+                false,
+                true,
+            )
+            .await?;
+        let offer = alice
+            .wallet
+            .sign_make_offer(offer, &alice.agg_sig, alice.master_sk.clone())
+            .await?;
+
+        // Take offer
+        let offer = bob.wallet.take_offer(offer, 0, false, true).await?;
+        let spend_bundle = bob
+            .wallet
+            .sign_take_offer(offer, &bob.agg_sig, bob.master_sk.clone())
+            .await?;
+        bob.push_bundle(spend_bundle).await?;
+
+        // We need to wait for both wallets to sync in this case
+        bob.wait_for_coins().await;
+
+        // Check balances
+        assert_eq!(bob.wallet.db.balance().await?, 1000);
+
+        Ok(())
+    }
 }
