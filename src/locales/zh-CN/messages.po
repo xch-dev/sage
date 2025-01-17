@@ -14,8 +14,8 @@ msgstr ""
 "X-Generator: Poedit 3.5\n"
 
 #: src/components/Nav.tsx:138
-msgid "(connecting...)"
-msgstr ""
+#~ msgid "(connecting...)"
+#~ msgstr ""
 
 #: src/pages/DidList.tsx:91
 msgid "{didsCount, plural, one {You do not currently have any DID profile. Would you like to create one?} other {You do not currently have any DID profiles. Would you like to create one?}}"
@@ -26,7 +26,7 @@ msgstr "{didsCount, plural, one {当前还没有任何DID. 立即创建一个?} 
 #~ msgid "{peerCount, plural, one {# peer} other {# peers}}"
 #~ msgstr "{peerCount, plural, one {# 节点} other {# 节点}}"
 
-#: src/components/Nav.tsx:188
+#: src/components/Nav.tsx:118
 msgid "{peerCount} peers synced"
 msgstr ""
 
@@ -50,7 +50,7 @@ msgstr "{peersToDeleteCount, plural, one {将暂时阻止与该节点的连接.}
 msgid "{selectedCount} selected"
 msgstr "已选择 {selectedCount}"
 
-#: src/components/Nav.tsx:207
+#: src/components/Nav.tsx:137
 msgid "{syncedCoins} / {totalCoins} coins synced"
 msgstr ""
 
@@ -176,8 +176,8 @@ msgid "Assign Profile"
 msgstr "分配个人资料"
 
 #: src/components/Nav.tsx:136
-msgid "at peak {peerMaxHeight}"
-msgstr "于高度 {peerMaxHeight}"
+#~ msgid "at peak {peerMaxHeight}"
+#~ msgstr "于高度 {peerMaxHeight}"
 
 #: src/pages/Nft.tsx:126
 msgid "Attributes"
@@ -336,11 +336,11 @@ msgstr "连接"
 msgid "Connected to {totalPeersCount} peers"
 msgstr "已连接到 {totalPeersCount} 个节点"
 
-#: src/components/Nav.tsx:204
+#: src/components/Nav.tsx:134
 msgid "connecting..."
 msgstr "连接中..."
 
-#: src/components/Nav.tsx:190
+#: src/components/Nav.tsx:120
 msgid "Connecting..."
 msgstr ""
 
@@ -767,8 +767,6 @@ msgid "Login"
 msgstr "登录"
 
 #: src/components/Nav.tsx:168
-#: src/components/Nav.tsx:175
-#: src/components/Nav.tsx:235
 msgid "Logout"
 msgstr "退出"
 
@@ -877,8 +875,8 @@ msgid "Network ID"
 msgstr "网络ID"
 
 #: src/components/Nav.tsx:116
-msgid "Network status"
-msgstr "网络状态"
+#~ msgid "Network status"
+#~ msgstr "网络状态"
 
 #: src/pages/MakeOffer.tsx:126
 msgid "New Offer"
@@ -993,8 +991,7 @@ msgstr "在这里粘贴报价文本..."
 #~ msgid "Peak Height"
 #~ msgstr "最高高度"
 
-#: src/components/Nav.tsx:134
-#: src/components/Nav.tsx:199
+#: src/components/Nav.tsx:129
 msgid "peer"
 msgstr ""
 
@@ -1002,8 +999,7 @@ msgstr ""
 msgid "Peer List"
 msgstr "节点列表"
 
-#: src/components/Nav.tsx:134
-#: src/components/Nav.tsx:199
+#: src/components/Nav.tsx:129
 msgid "peers"
 msgstr ""
 
@@ -1229,8 +1225,7 @@ msgid "Sent"
 msgstr "已发送"
 
 #: src/pages/Settings.tsx:48
-#: src/components/Nav.tsx:159
-#: src/components/Nav.tsx:230
+#: src/components/Nav.tsx:160
 msgid "Settings"
 msgstr "设置"
 
@@ -1307,17 +1302,17 @@ msgstr "正在提交"
 msgid "Summary"
 msgstr "摘要"
 
-#: src/components/Nav.tsx:202
+#: src/components/Nav.tsx:132
 msgid "synced to peak {peerMaxHeight}"
 msgstr ""
 
-#: src/components/Nav.tsx:194
+#: src/components/Nav.tsx:124
 msgid "Syncing"
 msgstr ""
 
 #: src/components/Nav.tsx:142
-msgid "Syncing {syncedCoins} / {totalCoins}"
-msgstr "正在同步 {syncedCoins} / {totalCoins}"
+#~ msgid "Syncing {syncedCoins} / {totalCoins}"
+#~ msgstr "正在同步 {syncedCoins} / {totalCoins}"
 
 #: src/pages/TokenList.tsx:205
 msgid "Syncing in progress..."

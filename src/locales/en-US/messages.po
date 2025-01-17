@@ -14,8 +14,8 @@ msgstr ""
 "Plural-Forms: \n"
 
 #: src/components/Nav.tsx:138
-msgid "(connecting...)"
-msgstr "(connecting...)"
+#~ msgid "(connecting...)"
+#~ msgstr "(connecting...)"
 
 #: src/pages/DidList.tsx:91
 msgid "{didsCount, plural, one {You do not currently have any DID profile. Would you like to create one?} other {You do not currently have any DID profiles. Would you like to create one?}}"
@@ -26,7 +26,7 @@ msgstr "{didsCount, plural, one {You do not currently have any DID profile. Woul
 #~ msgid "{peerCount, plural, one {# peer} other {# peers}}"
 #~ msgstr "{peerCount, plural, one {# peer} other {# peers}}"
 
-#: src/components/Nav.tsx:188
+#: src/components/Nav.tsx:118
 msgid "{peerCount} peers synced"
 msgstr "{peerCount} peers synced"
 
@@ -50,7 +50,7 @@ msgstr "{peersToDeleteCount, plural, one {Will temporarily prevent the peer from
 msgid "{selectedCount} selected"
 msgstr "{selectedCount} selected"
 
-#: src/components/Nav.tsx:207
+#: src/components/Nav.tsx:137
 msgid "{syncedCoins} / {totalCoins} coins synced"
 msgstr "{syncedCoins} / {totalCoins} coins synced"
 
@@ -176,8 +176,8 @@ msgid "Assign Profile"
 msgstr "Assign Profile"
 
 #: src/components/Nav.tsx:136
-msgid "at peak {peerMaxHeight}"
-msgstr "at peak {peerMaxHeight}"
+#~ msgid "at peak {peerMaxHeight}"
+#~ msgstr "at peak {peerMaxHeight}"
 
 #: src/pages/Nft.tsx:126
 msgid "Attributes"
@@ -337,11 +337,11 @@ msgstr "Connect"
 msgid "Connected to {totalPeersCount} peers"
 msgstr "Connected to {totalPeersCount} peers"
 
-#: src/components/Nav.tsx:204
+#: src/components/Nav.tsx:134
 msgid "connecting..."
 msgstr "connecting..."
 
-#: src/components/Nav.tsx:190
+#: src/components/Nav.tsx:120
 msgid "Connecting..."
 msgstr "Connecting..."
 
@@ -769,8 +769,6 @@ msgid "Login"
 msgstr "Login"
 
 #: src/components/Nav.tsx:168
-#: src/components/Nav.tsx:175
-#: src/components/Nav.tsx:235
 msgid "Logout"
 msgstr "Logout"
 
@@ -879,8 +877,8 @@ msgid "Network ID"
 msgstr "Network ID"
 
 #: src/components/Nav.tsx:116
-msgid "Network status"
-msgstr "Network status"
+#~ msgid "Network status"
+#~ msgstr "Network status"
 
 #: src/pages/MakeOffer.tsx:126
 msgid "New Offer"
@@ -995,8 +993,7 @@ msgstr "Paste your offer string here..."
 #~ msgid "Peak Height"
 #~ msgstr "Peak Height"
 
-#: src/components/Nav.tsx:134
-#: src/components/Nav.tsx:199
+#: src/components/Nav.tsx:129
 msgid "peer"
 msgstr "peer"
 
@@ -1004,8 +1001,7 @@ msgstr "peer"
 msgid "Peer List"
 msgstr "Peer List"
 
-#: src/components/Nav.tsx:134
-#: src/components/Nav.tsx:199
+#: src/components/Nav.tsx:129
 msgid "peers"
 msgstr "peers"
 
@@ -1232,8 +1228,7 @@ msgid "Sent"
 msgstr "Sent"
 
 #: src/pages/Settings.tsx:48
-#: src/components/Nav.tsx:159
-#: src/components/Nav.tsx:230
+#: src/components/Nav.tsx:160
 msgid "Settings"
 msgstr "Settings"
 
@@ -1310,17 +1305,17 @@ msgstr "Submitting"
 msgid "Summary"
 msgstr "Summary"
 
-#: src/components/Nav.tsx:202
+#: src/components/Nav.tsx:132
 msgid "synced to peak {peerMaxHeight}"
 msgstr "synced to peak {peerMaxHeight}"
 
-#: src/components/Nav.tsx:194
+#: src/components/Nav.tsx:124
 msgid "Syncing"
 msgstr "Syncing"
 
 #: src/components/Nav.tsx:142
-msgid "Syncing {syncedCoins} / {totalCoins}"
-msgstr "Syncing {syncedCoins} / {totalCoins}"
+#~ msgid "Syncing {syncedCoins} / {totalCoins}"
+#~ msgstr "Syncing {syncedCoins} / {totalCoins}"
 
 #: src/pages/TokenList.tsx:205
 msgid "Syncing in progress..."
