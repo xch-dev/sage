@@ -270,6 +270,8 @@ msgstr "修改"
 
 #: src/pages/TokenList.tsx:168
 #: src/pages/TokenList.tsx:169
+#: src/components/NftOptions.tsx:71
+#: src/components/NftOptions.tsx:72
 msgid "Clear search"
 msgstr ""
 
@@ -659,7 +661,7 @@ msgid "Height:"
 msgstr "高度:"
 
 #: src/pages/Token.tsx:259
-#: src/pages/NftList.tsx:243
+#: src/pages/NftList.tsx:279
 #: src/pages/DidList.tsx:274
 #: src/components/NftCard.tsx:334
 msgid "Hide"
@@ -819,7 +821,7 @@ msgstr "铸造"
 #~ msgid "Mint an NFT?"
 #~ msgstr "铸造NFT?"
 
-#: src/pages/NftList.tsx:105
+#: src/pages/NftList.tsx:118
 #: src/pages/MintNft.tsx:96
 msgid "Mint NFT"
 msgstr "铸造NFT"
@@ -915,7 +917,7 @@ msgstr "NFT选项"
 msgid "NFT preview"
 msgstr "NFT预览"
 
-#: src/pages/NftList.tsx:99
+#: src/pages/NftList.tsx:112
 #: src/components/Nav.tsx:46
 msgid "NFTs"
 msgstr "NFT"
@@ -927,6 +929,10 @@ msgstr "没有活跃的会话"
 #: src/components/NftCard.tsx:217
 msgid "No collection"
 msgstr "无集合"
+
+#: src/components/NftOptions.tsx:233
+msgid "No Grouping"
+msgstr ""
 
 #: src/pages/Offers.tsx:144
 msgid "No offers yet"
@@ -1074,6 +1080,10 @@ msgstr "需提供个人资料"
 #: src/pages/DidList.tsx:305
 msgid "Profile name"
 msgstr "个人资料名称"
+
+#: src/pages/DidNfts.tsx:80
+msgid "Profile NFTs"
+msgstr ""
 
 #: src/pages/DidList.tsx:62
 #: src/components/Nav.tsx:53
@@ -1246,7 +1256,7 @@ msgid "Settings"
 msgstr "设置"
 
 #: src/pages/Token.tsx:259
-#: src/pages/NftList.tsx:243
+#: src/pages/NftList.tsx:279
 #: src/pages/DidList.tsx:274
 #: src/components/NftCard.tsx:334
 msgid "Show"
@@ -1270,7 +1280,7 @@ msgid "Sign Transaction"
 msgstr "签署交易"
 
 #: src/pages/TokenList.tsx:326
-#: src/components/NftOptions.tsx:146
+#: src/components/NftOptions.tsx:161
 msgid "Sort Alphabetically"
 msgstr "按字母顺序排序"
 
@@ -1279,7 +1289,8 @@ msgid "Sort by Balance"
 msgstr "按余额排序"
 
 #: src/pages/TokenList.tsx:306
-#: src/components/NftOptions.tsx:120
+#: src/components/NftOptions.tsx:136
+#: src/components/NftOptions.tsx:137
 msgid "Sort options"
 msgstr "排序选项"
 
@@ -1514,7 +1525,7 @@ msgstr "转移个人资料"
 #~ msgid "Unassign Profile"
 #~ msgstr "取消分配个人资料"
 
-#: src/pages/DidNfts.tsx:79
+#: src/pages/DidNfts.tsx:80
 msgid "Unassigned NFTs"
 msgstr ""
 
@@ -1543,8 +1554,9 @@ msgstr "未知资产"
 msgid "Unknown NFT"
 msgstr "未知NFT"
 
-#: src/pages/NftList.tsx:203
-#: src/pages/NftList.tsx:214
+#: src/pages/NftList.tsx:239
+#: src/pages/NftList.tsx:250
+#: src/pages/NftList.tsx:303
 #: src/components/OfferCard.tsx:177
 #: src/components/NftCard.tsx:196
 #: src/components/NftCard.tsx:214
@@ -1553,7 +1565,7 @@ msgstr "未知NFT"
 msgid "Unnamed"
 msgstr "未命名"
 
-#: src/pages/NftList.tsx:316
+#: src/pages/NftList.tsx:314
 msgid "Unnamed Profile"
 msgstr ""
 

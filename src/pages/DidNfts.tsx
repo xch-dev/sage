@@ -33,7 +33,7 @@ export default function DidNfts() {
         await commands
           .getNfts({
             collection_id: null,
-            did_id: didId === 'No did' ? 'none' : (didId ?? null),
+            minter_did_id: didId === 'No did' ? 'none' : (didId ?? null),
             name: query || null,
             offset: (page - 1) * pageSize,
             limit: pageSize,

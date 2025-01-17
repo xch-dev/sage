@@ -174,6 +174,7 @@ export function NftList() {
                   amount: 0,
                   created_height: 0,
                   create_transaction_id: 'No transaction',
+                  recovery_hash: '',
                 }}
                 updateNfts={() => updateNfts(page)}
               />

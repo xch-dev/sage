@@ -271,6 +271,8 @@ msgstr "Ändern"
 
 #: src/pages/TokenList.tsx:168
 #: src/pages/TokenList.tsx:169
+#: src/components/NftOptions.tsx:71
+#: src/components/NftOptions.tsx:72
 msgid "Clear search"
 msgstr ""
 
@@ -661,7 +663,7 @@ msgid "Height:"
 msgstr "Höhe:"
 
 #: src/pages/Token.tsx:259
-#: src/pages/NftList.tsx:243
+#: src/pages/NftList.tsx:279
 #: src/pages/DidList.tsx:274
 #: src/components/NftCard.tsx:334
 msgid "Hide"
@@ -821,7 +823,7 @@ msgstr "Mint"
 #~ msgid "Mint an NFT?"
 #~ msgstr "NFT minten?"
 
-#: src/pages/NftList.tsx:105
+#: src/pages/NftList.tsx:118
 #: src/pages/MintNft.tsx:96
 msgid "Mint NFT"
 msgstr "NFT Minten"
@@ -917,7 +919,7 @@ msgstr "NFT optionen"
 msgid "NFT preview"
 msgstr "NFT Vorschau"
 
-#: src/pages/NftList.tsx:99
+#: src/pages/NftList.tsx:112
 #: src/components/Nav.tsx:46
 msgid "NFTs"
 msgstr "NFTs"
@@ -929,6 +931,10 @@ msgstr "Keine aktiven Sessions"
 #: src/components/NftCard.tsx:217
 msgid "No collection"
 msgstr "Keine Kollektion"
+
+#: src/components/NftOptions.tsx:233
+msgid "No Grouping"
+msgstr ""
 
 #: src/pages/Offers.tsx:144
 msgid "No offers yet"
@@ -1077,6 +1083,10 @@ msgstr "Profil ist erforderlich"
 #: src/pages/DidList.tsx:305
 msgid "Profile name"
 msgstr "Profilname"
+
+#: src/pages/DidNfts.tsx:80
+msgid "Profile NFTs"
+msgstr ""
 
 #: src/pages/DidList.tsx:62
 #: src/components/Nav.tsx:53
@@ -1249,7 +1259,7 @@ msgid "Settings"
 msgstr "Einstellungen"
 
 #: src/pages/Token.tsx:259
-#: src/pages/NftList.tsx:243
+#: src/pages/NftList.tsx:279
 #: src/pages/DidList.tsx:274
 #: src/components/NftCard.tsx:334
 msgid "Show"
@@ -1273,7 +1283,7 @@ msgid "Sign Transaction"
 msgstr "Transaktion signieren"
 
 #: src/pages/TokenList.tsx:326
-#: src/components/NftOptions.tsx:146
+#: src/components/NftOptions.tsx:161
 msgid "Sort Alphabetically"
 msgstr "Alphabetisch sortieren"
 
@@ -1282,7 +1292,8 @@ msgid "Sort by Balance"
 msgstr "Nach Guthaben sortieren"
 
 #: src/pages/TokenList.tsx:306
-#: src/components/NftOptions.tsx:120
+#: src/components/NftOptions.tsx:136
+#: src/components/NftOptions.tsx:137
 msgid "Sort options"
 msgstr "Sortieroptionen"
 
@@ -1521,7 +1532,7 @@ msgstr "Profil transferieren"
 #~ msgid "Unassign Profile"
 #~ msgstr "Profil nicht mehr zuweisen"
 
-#: src/pages/DidNfts.tsx:79
+#: src/pages/DidNfts.tsx:80
 msgid "Unassigned NFTs"
 msgstr ""
 
@@ -1550,8 +1561,9 @@ msgstr "Unbekanntes Asset"
 msgid "Unknown NFT"
 msgstr "Unbekanntes NFT"
 
-#: src/pages/NftList.tsx:203
-#: src/pages/NftList.tsx:214
+#: src/pages/NftList.tsx:239
+#: src/pages/NftList.tsx:250
+#: src/pages/NftList.tsx:303
 #: src/components/OfferCard.tsx:177
 #: src/components/NftCard.tsx:196
 #: src/components/NftCard.tsx:214
@@ -1560,7 +1572,7 @@ msgstr "Unbekanntes NFT"
 msgid "Unnamed"
 msgstr "Unbenannt"
 
-#: src/pages/NftList.tsx:316
+#: src/pages/NftList.tsx:314
 msgid "Unnamed Profile"
 msgstr ""
 
