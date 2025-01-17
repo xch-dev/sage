@@ -94,7 +94,7 @@ msgstr "Add to Offer"
 msgid "Add URL"
 msgstr "Add URL"
 
-#: src/pages/Send.tsx:220
+#: src/pages/Send.tsx:226
 #: src/pages/Nft.tsx:241
 #: src/components/TransferDialog.tsx:81
 #: src/components/AddressList.tsx:57
@@ -126,7 +126,7 @@ msgstr "Advanced options"
 msgid "All Addresses"
 msgstr "All Addresses"
 
-#: src/pages/Send.tsx:253
+#: src/pages/Send.tsx:259
 #: src/pages/MakeOffer.tsx:545
 #: src/pages/IssueToken.tsx:108
 #: src/components/CoinList.tsx:110
@@ -495,7 +495,7 @@ msgstr "Edit Profile"
 msgid "Edit Token Details"
 msgstr "Edit Token Details"
 
-#: src/pages/Send.tsx:236
+#: src/pages/Send.tsx:242
 #: src/pages/MintNft.tsx:211
 #: src/components/TransferDialog.tsx:84
 msgid "Enter address"
@@ -519,11 +519,11 @@ msgstr "Enter derivation index"
 msgid "Enter fee amount"
 msgstr "Enter fee amount"
 
-#: src/pages/Send.tsx:313
+#: src/pages/Send.tsx:319
 msgid "Enter memo"
 msgstr "Enter memo"
 
-#: src/pages/Send.tsx:228
+#: src/pages/Send.tsx:234
 msgid "Enter multiple distinct addresses"
 msgstr "Enter multiple distinct addresses"
 
@@ -584,7 +584,7 @@ msgstr "Expiring offer"
 msgid "External Links"
 msgstr "External Links"
 
-#: src/pages/Send.tsx:279
+#: src/pages/Send.tsx:285
 #: src/pages/IssueToken.tsx:129
 #: src/components/ConfirmationDialog.tsx:156
 #: src/components/ConfirmationDialog.tsx:390
@@ -639,7 +639,7 @@ msgstr "Height"
 msgid "Height:"
 msgstr "Height:"
 
-#: src/pages/Token.tsx:259
+#: src/pages/Token.tsx:270
 #: src/pages/NftList.tsx:243
 #: src/pages/DidList.tsx:274
 #: src/components/NftCard.tsx:334
@@ -701,11 +701,11 @@ msgstr "Initial Addresses"
 msgid "Initializing..."
 msgstr "Initializing..."
 
-#: src/pages/Send.tsx:129
+#: src/pages/Send.tsx:130
 msgid "Invalid address"
 msgstr "Invalid address"
 
-#: src/pages/Send.tsx:129
+#: src/pages/Send.tsx:130
 msgid "Invalid addresses"
 msgstr "Invalid addresses"
 
@@ -776,7 +776,7 @@ msgstr "Make sure you have saved your mnemonic. You will not be able to access i
 msgid "Manage offers"
 msgstr "Manage offers"
 
-#: src/pages/Send.tsx:306
+#: src/pages/Send.tsx:312
 msgid "Memo (optional)"
 msgstr "Memo (optional)"
 
@@ -1196,7 +1196,7 @@ msgstr "Select kind"
 msgid "Select network"
 msgstr "Select network"
 
-#: src/components/selectors/NftSelector.tsx:149
+#: src/components/selectors/NftSelector.tsx:147
 msgid "Select NFT"
 msgstr "Select NFT"
 
@@ -1215,12 +1215,12 @@ msgstr "Selected {selectedPeersCount} of {totalPeersCount} peers"
 msgid "Send"
 msgstr "Send"
 
-#: src/pages/Send.tsx:189
-#: src/pages/Send.tsx:325
+#: src/pages/Send.tsx:190
+#: src/pages/Send.tsx:331
 msgid "Send {ticker}"
 msgstr "Send {ticker}"
 
-#: src/pages/Send.tsx:207
+#: src/pages/Send.tsx:213
 msgid "Send in bulk (airdrop)"
 msgstr "Send in bulk (airdrop)"
 
@@ -1239,7 +1239,7 @@ msgstr "Sent"
 msgid "Settings"
 msgstr "Settings"
 
-#: src/pages/Token.tsx:259
+#: src/pages/Token.tsx:270
 #: src/pages/NftList.tsx:243
 #: src/pages/DidList.tsx:274
 #: src/components/NftCard.tsx:334
@@ -1468,7 +1468,7 @@ msgstr "Transaction Output"
 msgid "Transaction Signed"
 msgstr "Transaction Signed"
 
-#: src/pages/Transactions.tsx:74
+#: src/pages/Transactions.tsx:75
 #: src/components/Nav.tsx:68
 #: src/components/Nav.tsx:71
 msgid "Transactions"
@@ -1505,11 +1505,23 @@ msgstr "Transfer Profile"
 #~ msgid "Unassign Profile"
 #~ msgstr "Unassign Profile"
 
-#: src/pages/Transactions.tsx:297
-#: src/pages/Transaction.tsx:149
+#: src/pages/Transactions.tsx:289
+#: src/pages/Transactions.tsx:311
+#: src/pages/Transactions.tsx:315
+#: src/pages/Transaction.tsx:136
+#: src/pages/Transaction.tsx:160
+#: src/pages/Transaction.tsx:166
 #: src/pages/Collection.tsx:92
-#: src/components/ConfirmationDialog.tsx:517
-#: src/components/ConfirmationDialog.tsx:531
+#: src/components/OfferSummaryCard.tsx:81
+#: src/components/OfferSummaryCard.tsx:92
+#: src/components/OfferSummaryCard.tsx:99
+#: src/components/OfferSummaryCard.tsx:105
+#: src/components/OfferCard.tsx:148
+#: src/components/ConfirmationDialog.tsx:543
+#: src/components/ConfirmationDialog.tsx:557
+#: src/components/selectors/TokenSelector.tsx:81
+#: src/components/selectors/TokenSelector.tsx:96
+#: src/components/selectors/NftSelector.tsx:134
 msgid "Unknown"
 msgstr "Unknown"
 
@@ -1532,7 +1544,7 @@ msgstr "Unknown NFT"
 
 #: src/pages/NftList.tsx:203
 #: src/pages/NftList.tsx:214
-#: src/components/OfferCard.tsx:177
+#: src/components/OfferCard.tsx:198
 #: src/components/NftCard.tsx:196
 #: src/components/NftCard.tsx:214
 #: src/components/ConfirmationDialog.tsx:508
@@ -1574,7 +1586,7 @@ msgstr "Use 24 words"
 msgid "Version {version}"
 msgstr "Version {version}"
 
-#: src/pages/TokenList.tsx:219
+#: src/pages/TokenList.tsx:221
 #: src/pages/DidList.tsx:74
 msgid "View hidden"
 msgstr "View hidden"
