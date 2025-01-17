@@ -94,7 +94,7 @@ msgstr "Add to Offer"
 msgid "Add URL"
 msgstr "Add URL"
 
-#: src/pages/Send.tsx:211
+#: src/pages/Send.tsx:220
 #: src/pages/Nft.tsx:241
 #: src/components/TransferDialog.tsx:81
 #: src/components/AddressList.tsx:57
@@ -126,7 +126,7 @@ msgstr "Advanced options"
 msgid "All Addresses"
 msgstr "All Addresses"
 
-#: src/pages/Send.tsx:244
+#: src/pages/Send.tsx:253
 #: src/pages/MakeOffer.tsx:545
 #: src/pages/IssueToken.tsx:108
 #: src/components/CoinList.tsx:109
@@ -495,7 +495,7 @@ msgstr "Edit Profile"
 msgid "Edit Token Details"
 msgstr "Edit Token Details"
 
-#: src/pages/Send.tsx:227
+#: src/pages/Send.tsx:236
 #: src/pages/MintNft.tsx:211
 #: src/components/TransferDialog.tsx:84
 msgid "Enter address"
@@ -519,7 +519,11 @@ msgstr "Enter derivation index"
 msgid "Enter fee amount"
 msgstr "Enter fee amount"
 
-#: src/pages/Send.tsx:219
+#: src/pages/Send.tsx:313
+msgid "Enter memo"
+msgstr "Enter memo"
+
+#: src/pages/Send.tsx:228
 msgid "Enter multiple distinct addresses"
 msgstr "Enter multiple distinct addresses"
 
@@ -580,7 +584,7 @@ msgstr "Expiring offer"
 msgid "External Links"
 msgstr "External Links"
 
-#: src/pages/Send.tsx:270
+#: src/pages/Send.tsx:279
 #: src/pages/IssueToken.tsx:129
 #: src/components/ConfirmationDialog.tsx:154
 #: src/components/ConfirmationDialog.tsx:380
@@ -697,11 +701,11 @@ msgstr "Initial Addresses"
 msgid "Initializing..."
 msgstr "Initializing..."
 
-#: src/pages/Send.tsx:124
+#: src/pages/Send.tsx:129
 msgid "Invalid address"
 msgstr "Invalid address"
 
-#: src/pages/Send.tsx:124
+#: src/pages/Send.tsx:129
 msgid "Invalid addresses"
 msgstr "Invalid addresses"
 
@@ -771,6 +775,10 @@ msgstr "Make sure you have saved your mnemonic. You will not be able to access i
 #: src/pages/Offers.tsx:142
 msgid "Manage offers"
 msgstr "Manage offers"
+
+#: src/pages/Send.tsx:306
+msgid "Memo (optional)"
+msgstr "Memo (optional)"
 
 #: src/components/NftCard.tsx:431
 msgid "Metadata"
@@ -1195,12 +1203,12 @@ msgstr "Selected {selectedPeersCount} of {totalPeersCount} peers"
 msgid "Send"
 msgstr "Send"
 
-#: src/pages/Send.tsx:180
-#: src/pages/Send.tsx:292
+#: src/pages/Send.tsx:189
+#: src/pages/Send.tsx:325
 msgid "Send {ticker}"
 msgstr "Send {ticker}"
 
-#: src/pages/Send.tsx:198
+#: src/pages/Send.tsx:207
 msgid "Send in bulk (airdrop)"
 msgstr "Send in bulk (airdrop)"
 

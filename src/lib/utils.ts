@@ -89,7 +89,7 @@ const MAP_HEX: Record<string, number> = {
   F: 15,
 };
 
-function toHex(bytes: Uint8Array): string {
+export function toHex(bytes: Uint8Array): string {
   return Array.from(bytes)
     .map((b) => HEX_STRINGS[b >> 4] + HEX_STRINGS[b & 15])
     .join('');
