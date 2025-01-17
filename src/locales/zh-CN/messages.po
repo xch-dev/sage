@@ -638,7 +638,7 @@ msgid "Height:"
 msgstr "高度:"
 
 #: src/pages/Token.tsx:259
-#: src/pages/NftList.tsx:245
+#: src/pages/NftList.tsx:243
 #: src/pages/DidList.tsx:274
 #: src/components/NftCard.tsx:334
 msgid "Hide"
@@ -802,7 +802,7 @@ msgstr "铸造"
 #~ msgid "Mint an NFT?"
 #~ msgstr "铸造NFT?"
 
-#: src/pages/NftList.tsx:107
+#: src/pages/NftList.tsx:105
 #: src/pages/MintNft.tsx:96
 msgid "Mint NFT"
 msgstr "铸造NFT"
@@ -899,7 +899,7 @@ msgstr "NFT选项"
 msgid "NFT preview"
 msgstr "NFT预览"
 
-#: src/pages/NftList.tsx:101
+#: src/pages/NftList.tsx:99
 #: src/components/Nav.tsx:36
 #: src/components/Nav.tsx:39
 msgid "NFTs"
@@ -1233,7 +1233,7 @@ msgid "Settings"
 msgstr "设置"
 
 #: src/pages/Token.tsx:259
-#: src/pages/NftList.tsx:245
+#: src/pages/NftList.tsx:243
 #: src/pages/DidList.tsx:274
 #: src/components/NftCard.tsx:334
 msgid "Show"
@@ -1496,7 +1496,7 @@ msgstr "转移个人资料"
 
 #: src/pages/Transactions.tsx:297
 #: src/pages/Transaction.tsx:149
-#: src/pages/Collection.tsx:93
+#: src/pages/Collection.tsx:92
 #: src/components/ConfirmationDialog.tsx:517
 #: src/components/ConfirmationDialog.tsx:531
 msgid "Unknown"
@@ -1519,8 +1519,8 @@ msgstr "未知资产"
 msgid "Unknown NFT"
 msgstr "未知NFT"
 
-#: src/pages/NftList.tsx:205
-#: src/pages/NftList.tsx:216
+#: src/pages/NftList.tsx:203
+#: src/pages/NftList.tsx:214
 #: src/components/OfferCard.tsx:177
 #: src/components/NftCard.tsx:196
 #: src/components/NftCard.tsx:214
