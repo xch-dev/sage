@@ -183,9 +183,9 @@ msgstr "分配个人资料"
 msgid "Attributes"
 msgstr "属性"
 
-#: src/components/Header.tsx:65
-#: src/components/Header.tsx:69
-#: src/components/Header.tsx:124
+#: src/components/Header.tsx:41
+#: src/components/Header.tsx:45
+#: src/components/Header.tsx:100
 msgid "Back"
 msgstr "返回"
 
@@ -293,8 +293,8 @@ msgstr "硬币"
 msgid "Cold Wallet"
 msgstr "冷钱包"
 
-#: src/components/Layout.tsx:101
-#: src/components/Layout.tsx:112
+#: src/components/Layout.tsx:76
+#: src/components/Layout.tsx:87
 msgid "Collapse sidebar"
 msgstr ""
 
@@ -574,8 +574,8 @@ msgstr ""
 #~ msgid "Enter your mnemonic, private key, or public key below. If it's a public key, it will be imported as a read-only cold wallet."
 #~ msgstr "请输入助记词、私钥或公钥. 如果是公钥, 它将作为只读冷钱包导入."
 
-#: src/components/Layout.tsx:101
-#: src/components/Layout.tsx:112
+#: src/components/Layout.tsx:76
+#: src/components/Layout.tsx:87
 msgid "Expand sidebar"
 msgstr ""
 
@@ -625,7 +625,7 @@ msgstr ""
 msgid "Global"
 msgstr "全局"
 
-#: src/components/Header.tsx:100
+#: src/components/Header.tsx:76
 msgid "Go to wallet"
 msgstr "前往钱包"
 
@@ -1444,8 +1444,8 @@ msgstr "切换隐藏的NFT"
 msgid "Toggle multi-select"
 msgstr "切换多重选择"
 
-#: src/components/Header.tsx:78
-#: src/components/Header.tsx:82
+#: src/components/Header.tsx:54
+#: src/components/Header.tsx:58
 msgid "Toggle navigation menu"
 msgstr "切换导航菜单"
 
@@ -1578,7 +1578,7 @@ msgstr "查看报价"
 #: src/pages/Settings.tsx:326
 #: src/pages/Login.tsx:507
 #: src/components/Nav.tsx:39
-#: src/components/Layout.tsx:77
+#: src/components/Layout.tsx:52
 msgid "Wallet"
 msgstr "钱包"
 
@@ -1586,9 +1586,9 @@ msgstr "钱包"
 msgid "Wallet Details"
 msgstr "钱包详情"
 
-#: src/components/Layout.tsx:59
-#: src/components/Layout.tsx:74
-#: src/components/Header.tsx:102
+#: src/components/Layout.tsx:34
+#: src/components/Layout.tsx:49
+#: src/components/Header.tsx:78
 msgid "Wallet icon"
 msgstr "钱包硬币"
 

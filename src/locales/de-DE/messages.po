@@ -183,9 +183,9 @@ msgstr "Profil zuweisen"
 msgid "Attributes"
 msgstr "Attribute"
 
-#: src/components/Header.tsx:65
-#: src/components/Header.tsx:69
-#: src/components/Header.tsx:124
+#: src/components/Header.tsx:41
+#: src/components/Header.tsx:45
+#: src/components/Header.tsx:100
 msgid "Back"
 msgstr "Zurück"
 
@@ -294,8 +294,8 @@ msgstr "Coins"
 msgid "Cold Wallet"
 msgstr "Cold Wallet"
 
-#: src/components/Layout.tsx:101
-#: src/components/Layout.tsx:112
+#: src/components/Layout.tsx:76
+#: src/components/Layout.tsx:87
 msgid "Collapse sidebar"
 msgstr ""
 
@@ -575,8 +575,8 @@ msgstr ""
 #~ msgid "Enter your mnemonic, private key, or public key below. If it's a public key, it will be imported as a read-only cold wallet."
 #~ msgstr "Geben Sie unten Ihre Mnemonic, Ihren Private Key oder Ihren Public Key ein. Wenn es sich um einen Public Key handelt, wird er als schreibgeschütztes Cold Wallet importiert."
 
-#: src/components/Layout.tsx:101
-#: src/components/Layout.tsx:112
+#: src/components/Layout.tsx:76
+#: src/components/Layout.tsx:87
 msgid "Expand sidebar"
 msgstr ""
 
@@ -627,7 +627,7 @@ msgstr ""
 msgid "Global"
 msgstr "Global"
 
-#: src/components/Header.tsx:100
+#: src/components/Header.tsx:76
 msgid "Go to wallet"
 msgstr "Zum Wallet gehen"
 
@@ -1450,8 +1450,8 @@ msgstr "Versteckte NFTs umschalten"
 msgid "Toggle multi-select"
 msgstr "Mehrfachauswahl umschalten"
 
-#: src/components/Header.tsx:78
-#: src/components/Header.tsx:82
+#: src/components/Header.tsx:54
+#: src/components/Header.tsx:58
 msgid "Toggle navigation menu"
 msgstr "Navigationsmenü umschalten"
 
@@ -1585,7 +1585,7 @@ msgstr "Offer anzeigen"
 #: src/pages/Settings.tsx:326
 #: src/pages/Login.tsx:507
 #: src/components/Nav.tsx:39
-#: src/components/Layout.tsx:77
+#: src/components/Layout.tsx:52
 msgid "Wallet"
 msgstr "Wallet"
 
@@ -1593,9 +1593,9 @@ msgstr "Wallet"
 msgid "Wallet Details"
 msgstr "Wallet Details"
 
-#: src/components/Layout.tsx:59
-#: src/components/Layout.tsx:74
-#: src/components/Header.tsx:102
+#: src/components/Layout.tsx:34
+#: src/components/Layout.tsx:49
+#: src/components/Header.tsx:78
 msgid "Wallet icon"
 msgstr "Wallet Symbol"
 
