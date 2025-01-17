@@ -165,7 +165,7 @@ msgstr "确定要重新同步此钱包的数据吗? 这将从网络重新下载�
 msgid "Asset"
 msgstr "资产"
 
-#: src/pages/TokenList.tsx:141
+#: src/pages/TokenList.tsx:146
 msgid "Assets"
 msgstr "资产"
 
@@ -269,8 +269,8 @@ msgstr "CAT硬币"
 msgid "Change"
 msgstr "修改"
 
-#: src/pages/TokenList.tsx:168
-#: src/pages/TokenList.tsx:169
+#: src/pages/TokenList.tsx:173
+#: src/pages/TokenList.tsx:174
 msgid "Clear search"
 msgstr ""
 
@@ -294,8 +294,8 @@ msgstr "硬币"
 msgid "Cold Wallet"
 msgstr "冷钱包"
 
-#: src/components/Layout.tsx:80
-#: src/components/Layout.tsx:91
+#: src/components/Layout.tsx:79
+#: src/components/Layout.tsx:90
 msgid "Collapse sidebar"
 msgstr ""
 
@@ -581,8 +581,8 @@ msgstr ""
 #~ msgid "Enter your mnemonic, private key, or public key below. If it's a public key, it will be imported as a read-only cold wallet."
 #~ msgstr "请输入助记词、私钥或公钥. 如果是公钥, 它将作为只读冷钱包导入."
 
-#: src/components/Layout.tsx:80
-#: src/components/Layout.tsx:91
+#: src/components/Layout.tsx:79
+#: src/components/Layout.tsx:90
 msgid "Expand sidebar"
 msgstr ""
 
@@ -659,8 +659,8 @@ msgstr "高度:"
 msgid "Hide"
 msgstr "隐藏"
 
-#: src/pages/TokenList.tsx:187
-#: src/pages/TokenList.tsx:190
+#: src/pages/TokenList.tsx:192
+#: src/pages/TokenList.tsx:195
 msgid "Hide zero balances"
 msgstr ""
 
@@ -727,7 +727,7 @@ msgstr ""
 msgid "IP Address"
 msgstr "IP地址"
 
-#: src/pages/TokenList.tsx:148
+#: src/pages/TokenList.tsx:153
 #: src/pages/IssueToken.tsx:62
 #: src/pages/IssueToken.tsx:148
 msgid "Issue Token"
@@ -1178,8 +1178,8 @@ msgstr "保存报价"
 msgid "Scan QR Code"
 msgstr ""
 
-#: src/pages/TokenList.tsx:157
-#: src/pages/TokenList.tsx:158
+#: src/pages/TokenList.tsx:162
+#: src/pages/TokenList.tsx:163
 msgid "Search for a token"
 msgstr ""
 
@@ -1187,7 +1187,7 @@ msgstr ""
 msgid "Search NFTs..."
 msgstr ""
 
-#: src/pages/TokenList.tsx:159
+#: src/pages/TokenList.tsx:164
 msgid "Search tokens..."
 msgstr ""
 
@@ -1264,8 +1264,8 @@ msgstr "显示所有硬币"
 msgid "Show unspent coins only"
 msgstr "仅显示未花费硬币"
 
-#: src/pages/TokenList.tsx:187
-#: src/pages/TokenList.tsx:190
+#: src/pages/TokenList.tsx:192
+#: src/pages/TokenList.tsx:195
 msgid "Show zero balances"
 msgstr ""
 
@@ -1273,16 +1273,16 @@ msgstr ""
 msgid "Sign Transaction"
 msgstr "签署交易"
 
-#: src/pages/TokenList.tsx:326
+#: src/pages/TokenList.tsx:351
 #: src/components/NftOptions.tsx:146
 msgid "Sort Alphabetically"
 msgstr "按字母顺序排序"
 
-#: src/pages/TokenList.tsx:339
+#: src/pages/TokenList.tsx:364
 msgid "Sort by Balance"
 msgstr "按余额排序"
 
-#: src/pages/TokenList.tsx:306
+#: src/pages/TokenList.tsx:331
 #: src/components/NftOptions.tsx:120
 msgid "Sort options"
 msgstr "排序选项"
@@ -1334,7 +1334,7 @@ msgstr ""
 msgid "Syncing {syncedCoins} / {totalCoins}"
 msgstr "正在同步 {syncedCoins} / {totalCoins}"
 
-#: src/pages/TokenList.tsx:205
+#: src/pages/TokenList.tsx:210
 msgid "Syncing in progress..."
 msgstr "同步进行中..."
 
@@ -1373,7 +1373,7 @@ msgstr "该报价已成功创建并导入. 可以复制下面的报价文件并�
 msgid "The wallet generates a new address after each transaction. Old ones stay valid."
 msgstr "钱包在每次交易后会生成一个新的地址, 旧地址仍然有效."
 
-#: src/pages/TokenList.tsx:208
+#: src/pages/TokenList.tsx:213
 msgid "The wallet is still syncing. Balances may not be accurate until it completes."
 msgstr "钱包仍在同步中. 同步完成之前, 余额可能不准确."
 
@@ -1538,6 +1538,10 @@ msgstr "未知App"
 msgid "Unknown asset"
 msgstr "未知资产"
 
+#: src/pages/TokenList.tsx:274
+msgid "Unknown CAT"
+msgstr ""
+
 #: src/pages/Nft.tsx:82
 msgid "Unknown NFT"
 msgstr "未知NFT"
@@ -1590,7 +1594,7 @@ msgstr ""
 msgid "Version {version}"
 msgstr ""
 
-#: src/pages/TokenList.tsx:220
+#: src/pages/TokenList.tsx:225
 #: src/pages/DidList.tsx:74
 msgid "View hidden"
 msgstr "查看已隐藏的"
@@ -1603,7 +1607,7 @@ msgstr "查看报价"
 #: src/pages/Settings.tsx:340
 #: src/pages/Login.tsx:507
 #: src/components/Nav.tsx:39
-#: src/components/Layout.tsx:56
+#: src/components/Layout.tsx:55
 msgid "Wallet"
 msgstr "钱包"
 
@@ -1611,8 +1615,8 @@ msgstr "钱包"
 msgid "Wallet Details"
 msgstr "钱包详情"
 
-#: src/components/Layout.tsx:38
-#: src/components/Layout.tsx:53
+#: src/components/Layout.tsx:37
+#: src/components/Layout.tsx:52
 #: src/components/Header.tsx:84
 msgid "Wallet icon"
 msgstr "钱包硬币"
@@ -1646,6 +1650,10 @@ msgstr "虽然12个助记词单词已经足够安全, 仍然可以选择使用24
 
 #: src/components/Nav.tsx:139
 msgid "with {syncedCoins} / {totalCoins} coins synced"
+msgstr ""
+
+#: src/pages/TokenList.tsx:242
+msgid "XCH logo"
 msgstr ""
 
 #: src/components/ConfirmationDialog.tsx:438
