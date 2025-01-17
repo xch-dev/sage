@@ -102,7 +102,7 @@ msgstr ""
 msgid "Add URL"
 msgstr "URL hinzufügen"
 
-#: src/pages/Send.tsx:225
+#: src/pages/Send.tsx:226
 #: src/pages/Nft.tsx:241
 #: src/components/TransferDialog.tsx:81
 #: src/components/AddressList.tsx:57
@@ -133,7 +133,7 @@ msgstr ""
 msgid "All Addresses"
 msgstr "Alle Adressen"
 
-#: src/pages/Send.tsx:259
+#: src/pages/Send.tsx:260
 #: src/pages/MakeOffer.tsx:545
 #: src/pages/IssueToken.tsx:108
 #: src/components/CoinList.tsx:109
@@ -295,8 +295,8 @@ msgstr "Coins"
 msgid "Cold Wallet"
 msgstr "Cold Wallet"
 
-#: src/components/Layout.tsx:80
-#: src/components/Layout.tsx:91
+#: src/components/Layout.tsx:79
+#: src/components/Layout.tsx:90
 msgid "Collapse sidebar"
 msgstr ""
 
@@ -510,7 +510,7 @@ msgstr ""
 msgid "Edit Token Details"
 msgstr "Token Details Bearbeiten"
 
-#: src/pages/Send.tsx:241
+#: src/pages/Send.tsx:242
 #: src/pages/MintNft.tsx:217
 #: src/components/TransferDialog.tsx:84
 msgid "Enter address"
@@ -534,11 +534,11 @@ msgstr ""
 msgid "Enter fee amount"
 msgstr "Gebührenbetrag eingeben"
 
-#: src/pages/Send.tsx:319
+#: src/pages/Send.tsx:320
 msgid "Enter memo"
 msgstr ""
 
-#: src/pages/Send.tsx:233
+#: src/pages/Send.tsx:234
 msgid "Enter multiple distinct addresses"
 msgstr ""
 
@@ -582,8 +582,8 @@ msgstr ""
 #~ msgid "Enter your mnemonic, private key, or public key below. If it's a public key, it will be imported as a read-only cold wallet."
 #~ msgstr "Geben Sie unten Ihre Mnemonic, Ihren Private Key oder Ihren Public Key ein. Wenn es sich um einen Public Key handelt, wird er als schreibgeschütztes Cold Wallet importiert."
 
-#: src/components/Layout.tsx:80
-#: src/components/Layout.tsx:91
+#: src/components/Layout.tsx:79
+#: src/components/Layout.tsx:90
 msgid "Expand sidebar"
 msgstr ""
 
@@ -599,7 +599,7 @@ msgstr "Auslaufendes Offer"
 msgid "External Links"
 msgstr "Externe Links"
 
-#: src/pages/Send.tsx:285
+#: src/pages/Send.tsx:286
 #: src/pages/IssueToken.tsx:129
 #: src/components/ConfirmationDialog.tsx:154
 #: src/components/ConfirmationDialog.tsx:380
@@ -610,7 +610,7 @@ msgstr "Gebühr"
 msgid "Fee exceeds recommended maximum of 0.001 {ticker}"
 msgstr "Gebühr übersteigt das empfohlene Maximum von 0.001 {ticker}"
 
-#: src/pages/ViewOffer.tsx:129
+#: src/pages/ViewOffer.tsx:130
 msgid "Fetching offer details..."
 msgstr ""
 
@@ -712,15 +712,15 @@ msgstr "Index"
 msgid "Initial Addresses"
 msgstr ""
 
-#: src/pages/ViewOffer.tsx:119
+#: src/pages/ViewOffer.tsx:120
 msgid "Initializing..."
 msgstr ""
 
-#: src/pages/Send.tsx:130
+#: src/pages/Send.tsx:131
 msgid "Invalid address"
 msgstr "Ungültige Adresse"
 
-#: src/pages/Send.tsx:130
+#: src/pages/Send.tsx:131
 msgid "Invalid addresses"
 msgstr ""
 
@@ -787,7 +787,7 @@ msgstr " Stellen Sie sicher, dass Sie Ihre Mnemonic gespeichert haben. Sie könn
 msgid "Manage offers"
 msgstr "Offers verwalten"
 
-#: src/pages/Send.tsx:312
+#: src/pages/Send.tsx:313
 msgid "Memo (optional)"
 msgstr ""
 
@@ -861,7 +861,7 @@ msgstr "Name Ihres Wallets"
 msgid "Network"
 msgstr "Netzwerk"
 
-#: src/pages/ViewOffer.tsx:186
+#: src/pages/ViewOffer.tsx:187
 #: src/pages/Token.tsx:662
 #: src/pages/Token.tsx:730
 #: src/pages/MintNft.tsx:262
@@ -1055,7 +1055,7 @@ msgstr ""
 msgid "Previous page"
 msgstr "Vorherige Seite"
 
-#: src/pages/ViewOffer.tsx:135
+#: src/pages/ViewOffer.tsx:136
 msgid "Processing offer data..."
 msgstr "Verarbeitet die Offer-Daten..."
 
@@ -1173,7 +1173,7 @@ msgstr "royalty zu"
 msgid "Save mnemonic"
 msgstr "Mnemonic speichern"
 
-#: src/pages/ViewOffer.tsx:207
+#: src/pages/ViewOffer.tsx:208
 msgid "Save Offer"
 msgstr "Offer speichern"
 
@@ -1181,8 +1181,8 @@ msgstr "Offer speichern"
 msgid "Scan QR Code"
 msgstr ""
 
-#: src/pages/TokenList.tsx:157
-#: src/pages/TokenList.tsx:158
+#: src/pages/TokenList.tsx:162
+#: src/pages/TokenList.tsx:163
 msgid "Search for a token"
 msgstr ""
 
@@ -1230,12 +1230,12 @@ msgstr "{selectedPeersCount} von {totalPeersCount} Peers ausgewählt"
 msgid "Send"
 msgstr "Senden"
 
-#: src/pages/Send.tsx:194
-#: src/pages/Send.tsx:331
+#: src/pages/Send.tsx:195
+#: src/pages/Send.tsx:332
 msgid "Send {ticker}"
 msgstr "{ticker} senden"
 
-#: src/pages/Send.tsx:212
+#: src/pages/Send.tsx:213
 msgid "Send in bulk (airdrop)"
 msgstr ""
 
@@ -1276,16 +1276,16 @@ msgstr ""
 msgid "Sign Transaction"
 msgstr "Transaktion signieren"
 
-#: src/pages/TokenList.tsx:346
+#: src/pages/TokenList.tsx:351
 #: src/components/NftOptions.tsx:146
 msgid "Sort Alphabetically"
 msgstr "Alphabetisch sortieren"
 
-#: src/pages/TokenList.tsx:359
+#: src/pages/TokenList.tsx:364
 msgid "Sort by Balance"
 msgstr "Nach Guthaben sortieren"
 
-#: src/pages/TokenList.tsx:326
+#: src/pages/TokenList.tsx:331
 #: src/components/NftOptions.tsx:120
 msgid "Sort options"
 msgstr "Sortieroptionen"
@@ -1342,7 +1342,7 @@ msgstr ""
 msgid "Syncing in progress..."
 msgstr "Synchronisierung läuft..."
 
-#: src/pages/ViewOffer.tsx:211
+#: src/pages/ViewOffer.tsx:212
 msgid "Take Offer"
 msgstr "Offer nehmen"
 
@@ -1614,7 +1614,7 @@ msgstr "Offer anzeigen"
 #: src/pages/Settings.tsx:340
 #: src/pages/Login.tsx:507
 #: src/components/Nav.tsx:39
-#: src/components/Layout.tsx:56
+#: src/components/Layout.tsx:55
 msgid "Wallet"
 msgstr "Wallet"
 
@@ -1622,8 +1622,8 @@ msgstr "Wallet"
 msgid "Wallet Details"
 msgstr "Wallet Details"
 
-#: src/components/Layout.tsx:38
-#: src/components/Layout.tsx:53
+#: src/components/Layout.tsx:37
+#: src/components/Layout.tsx:52
 #: src/components/Header.tsx:84
 msgid "Wallet icon"
 msgstr "Wallet Symbol"
