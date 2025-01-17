@@ -94,7 +94,7 @@ msgstr ""
 msgid "Add URL"
 msgstr "URL hinzufügen"
 
-#: src/pages/Send.tsx:226
+#: src/pages/Send.tsx:220
 #: src/pages/Nft.tsx:241
 #: src/components/TransferDialog.tsx:81
 #: src/components/AddressList.tsx:57
@@ -126,7 +126,7 @@ msgstr ""
 msgid "All Addresses"
 msgstr "Alle Adressen"
 
-#: src/pages/Send.tsx:259
+#: src/pages/Send.tsx:253
 #: src/pages/MakeOffer.tsx:545
 #: src/pages/IssueToken.tsx:108
 #: src/components/CoinList.tsx:110
@@ -495,7 +495,7 @@ msgstr ""
 msgid "Edit Token Details"
 msgstr "Token Details Bearbeiten"
 
-#: src/pages/Send.tsx:242
+#: src/pages/Send.tsx:236
 #: src/pages/MintNft.tsx:211
 #: src/components/TransferDialog.tsx:84
 msgid "Enter address"
@@ -519,11 +519,11 @@ msgstr ""
 msgid "Enter fee amount"
 msgstr "Gebührenbetrag eingeben"
 
-#: src/pages/Send.tsx:319
+#: src/pages/Send.tsx:313
 msgid "Enter memo"
 msgstr ""
 
-#: src/pages/Send.tsx:234
+#: src/pages/Send.tsx:228
 msgid "Enter multiple distinct addresses"
 msgstr ""
 
@@ -584,7 +584,7 @@ msgstr "Auslaufendes Offer"
 msgid "External Links"
 msgstr "Externe Links"
 
-#: src/pages/Send.tsx:285
+#: src/pages/Send.tsx:279
 #: src/pages/IssueToken.tsx:129
 #: src/components/ConfirmationDialog.tsx:156
 #: src/components/ConfirmationDialog.tsx:390
@@ -639,7 +639,7 @@ msgstr ""
 msgid "Height:"
 msgstr "Höhe:"
 
-#: src/pages/Token.tsx:270
+#: src/pages/Token.tsx:259
 #: src/pages/NftList.tsx:243
 #: src/pages/DidList.tsx:274
 #: src/components/NftCard.tsx:334
@@ -701,11 +701,11 @@ msgstr ""
 msgid "Initializing..."
 msgstr ""
 
-#: src/pages/Send.tsx:130
+#: src/pages/Send.tsx:129
 msgid "Invalid address"
 msgstr "Ungültige Adresse"
 
-#: src/pages/Send.tsx:130
+#: src/pages/Send.tsx:129
 msgid "Invalid addresses"
 msgstr ""
 
@@ -776,7 +776,7 @@ msgstr " Stellen Sie sicher, dass Sie Ihre Mnemonic gespeichert haben. Sie könn
 msgid "Manage offers"
 msgstr "Offers verwalten"
 
-#: src/pages/Send.tsx:312
+#: src/pages/Send.tsx:306
 msgid "Memo (optional)"
 msgstr ""
 
@@ -1196,7 +1196,7 @@ msgstr "Sorte auswählen"
 msgid "Select network"
 msgstr "Netzwerk auswählen"
 
-#: src/components/selectors/NftSelector.tsx:147
+#: src/components/selectors/NftSelector.tsx:149
 msgid "Select NFT"
 msgstr ""
 
@@ -1215,12 +1215,12 @@ msgstr "{selectedPeersCount} von {totalPeersCount} Peers ausgewählt"
 msgid "Send"
 msgstr "Senden"
 
-#: src/pages/Send.tsx:190
-#: src/pages/Send.tsx:331
+#: src/pages/Send.tsx:189
+#: src/pages/Send.tsx:325
 msgid "Send {ticker}"
 msgstr "{ticker} senden"
 
-#: src/pages/Send.tsx:213
+#: src/pages/Send.tsx:207
 msgid "Send in bulk (airdrop)"
 msgstr ""
 
@@ -1239,7 +1239,7 @@ msgstr "Gesendet"
 msgid "Settings"
 msgstr "Einstellungen"
 
-#: src/pages/Token.tsx:270
+#: src/pages/Token.tsx:259
 #: src/pages/NftList.tsx:243
 #: src/pages/DidList.tsx:274
 #: src/components/NftCard.tsx:334
@@ -1468,7 +1468,7 @@ msgstr "Transaktionsausgabe"
 msgid "Transaction Signed"
 msgstr "Signierte Transaktion"
 
-#: src/pages/Transactions.tsx:75
+#: src/pages/Transactions.tsx:74
 #: src/components/Nav.tsx:68
 #: src/components/Nav.tsx:71
 msgid "Transactions"
@@ -1505,23 +1505,11 @@ msgstr "Profil transferieren"
 #~ msgid "Unassign Profile"
 #~ msgstr "Profil nicht mehr zuweisen"
 
-#: src/pages/Transactions.tsx:289
-#: src/pages/Transactions.tsx:311
-#: src/pages/Transactions.tsx:315
-#: src/pages/Transaction.tsx:136
-#: src/pages/Transaction.tsx:160
-#: src/pages/Transaction.tsx:166
+#: src/pages/Transactions.tsx:297
+#: src/pages/Transaction.tsx:149
 #: src/pages/Collection.tsx:92
-#: src/components/OfferSummaryCard.tsx:81
-#: src/components/OfferSummaryCard.tsx:92
-#: src/components/OfferSummaryCard.tsx:99
-#: src/components/OfferSummaryCard.tsx:105
-#: src/components/OfferCard.tsx:148
-#: src/components/ConfirmationDialog.tsx:543
-#: src/components/ConfirmationDialog.tsx:557
-#: src/components/selectors/TokenSelector.tsx:81
-#: src/components/selectors/TokenSelector.tsx:96
-#: src/components/selectors/NftSelector.tsx:134
+#: src/components/ConfirmationDialog.tsx:517
+#: src/components/ConfirmationDialog.tsx:531
 msgid "Unknown"
 msgstr "Unbekannt"
 
@@ -1544,7 +1532,7 @@ msgstr "Unbekanntes NFT"
 
 #: src/pages/NftList.tsx:203
 #: src/pages/NftList.tsx:214
-#: src/components/OfferCard.tsx:198
+#: src/components/OfferCard.tsx:177
 #: src/components/NftCard.tsx:196
 #: src/components/NftCard.tsx:214
 #: src/components/ConfirmationDialog.tsx:508
@@ -1586,7 +1574,7 @@ msgstr "Verwenden Sie 24 Wörter"
 msgid "Version {version}"
 msgstr ""
 
-#: src/pages/TokenList.tsx:221
+#: src/pages/TokenList.tsx:219
 #: src/pages/DidList.tsx:74
 msgid "View hidden"
 msgstr "Versteckte anzeigen"
