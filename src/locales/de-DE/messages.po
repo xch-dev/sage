@@ -165,7 +165,7 @@ msgstr "Sind Sie sicher, dass Sie die Daten vom Wallet erneut synchronisieren m�
 msgid "Asset"
 msgstr "Asset"
 
-#: src/pages/TokenList.tsx:141
+#: src/pages/TokenList.tsx:146
 msgid "Assets"
 msgstr "Assets"
 
@@ -269,8 +269,8 @@ msgstr "CAT Symbol"
 msgid "Change"
 msgstr "Ändern"
 
-#: src/pages/TokenList.tsx:168
-#: src/pages/TokenList.tsx:169
+#: src/pages/TokenList.tsx:173
+#: src/pages/TokenList.tsx:174
 msgid "Clear search"
 msgstr ""
 
@@ -654,8 +654,8 @@ msgstr "Höhe:"
 msgid "Hide"
 msgstr "Verstecken"
 
-#: src/pages/TokenList.tsx:187
-#: src/pages/TokenList.tsx:190
+#: src/pages/TokenList.tsx:192
+#: src/pages/TokenList.tsx:195
 msgid "Hide zero balances"
 msgstr ""
 
@@ -722,7 +722,7 @@ msgstr ""
 msgid "IP Address"
 msgstr "IP Addresse"
 
-#: src/pages/TokenList.tsx:148
+#: src/pages/TokenList.tsx:153
 #: src/pages/IssueToken.tsx:62
 #: src/pages/IssueToken.tsx:148
 msgid "Issue Token"
@@ -1161,8 +1161,8 @@ msgstr "Mnemonic speichern"
 msgid "Save Offer"
 msgstr "Offer speichern"
 
-#: src/pages/TokenList.tsx:157
-#: src/pages/TokenList.tsx:158
+#: src/pages/TokenList.tsx:162
+#: src/pages/TokenList.tsx:163
 msgid "Search for a token"
 msgstr ""
 
@@ -1170,7 +1170,7 @@ msgstr ""
 msgid "Search NFTs..."
 msgstr ""
 
-#: src/pages/TokenList.tsx:159
+#: src/pages/TokenList.tsx:164
 msgid "Search tokens..."
 msgstr ""
 
@@ -1247,8 +1247,8 @@ msgstr "Alle Coins anzeigen"
 msgid "Show unspent coins only"
 msgstr "Nur nicht ausgegebene Coins anzeigen"
 
-#: src/pages/TokenList.tsx:187
-#: src/pages/TokenList.tsx:190
+#: src/pages/TokenList.tsx:192
+#: src/pages/TokenList.tsx:195
 msgid "Show zero balances"
 msgstr ""
 
@@ -1256,16 +1256,16 @@ msgstr ""
 msgid "Sign Transaction"
 msgstr "Transaktion signieren"
 
-#: src/pages/TokenList.tsx:326
+#: src/pages/TokenList.tsx:346
 #: src/components/NftOptions.tsx:146
 msgid "Sort Alphabetically"
 msgstr "Alphabetisch sortieren"
 
-#: src/pages/TokenList.tsx:339
+#: src/pages/TokenList.tsx:359
 msgid "Sort by Balance"
 msgstr "Nach Guthaben sortieren"
 
-#: src/pages/TokenList.tsx:306
+#: src/pages/TokenList.tsx:326
 #: src/components/NftOptions.tsx:120
 msgid "Sort options"
 msgstr "Sortieroptionen"
@@ -1317,7 +1317,7 @@ msgstr ""
 #~ msgid "Syncing {syncedCoins} / {totalCoins}"
 #~ msgstr "{syncedCoins} / {totalCoins} synchronisieren"
 
-#: src/pages/TokenList.tsx:205
+#: src/pages/TokenList.tsx:210
 msgid "Syncing in progress..."
 msgstr "Synchronisierung läuft..."
 
@@ -1357,7 +1357,7 @@ msgstr "Das Offer wurde erfolgreich erstellt und importiert. Sie können die Off
 msgid "The wallet generates a new address after each transaction. Old ones stay valid."
 msgstr "Die Wallet generiert nach jeder Transaktion eine neue Adresse. Die alten bleiben gültig."
 
-#: src/pages/TokenList.tsx:208
+#: src/pages/TokenList.tsx:213
 msgid "The wallet is still syncing. Balances may not be accurate until it completes."
 msgstr "Die Wallet synchronisiert noch. Der Guthaben ist möglicherweise nicht korrekt, bis der Vorgang abgeschlossen ist."
 
@@ -1524,6 +1524,10 @@ msgstr "Unbekannte App"
 msgid "Unknown asset"
 msgstr "Unbekanntes Asset"
 
+#: src/pages/TokenList.tsx:274
+msgid "Unknown CAT"
+msgstr ""
+
 #: src/pages/Nft.tsx:82
 msgid "Unknown NFT"
 msgstr "Unbekanntes NFT"
@@ -1572,7 +1576,7 @@ msgstr "Verwenden Sie 24 Wörter"
 msgid "Version {version}"
 msgstr ""
 
-#: src/pages/TokenList.tsx:220
+#: src/pages/TokenList.tsx:225
 #: src/pages/DidList.tsx:74
 msgid "View hidden"
 msgstr "Versteckte anzeigen"
@@ -1625,6 +1629,10 @@ msgstr "Warnung"
 #: src/pages/CreateWallet.tsx:146
 msgid "While 12 word mnemonics are sufficiently hard to crack, you can choose to use 24 instead to increase security."
 msgstr "Obwohl 12-Wort-Mnemonics ausreichend schwer zu knacken sind, können Sie sich entscheiden, stattdessen 24 zu verwenden, um die Sicherheit zu erhöhen."
+
+#: src/pages/TokenList.tsx:242
+msgid "XCH logo"
+msgstr ""
 
 #: src/components/ConfirmationDialog.tsx:438
 #: src/components/ConfirmationDialog.tsx:466
