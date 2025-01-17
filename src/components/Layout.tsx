@@ -11,7 +11,7 @@ import icon from '@/icon.png';
 import { t } from '@lingui/core/macro';
 import { PanelLeft, PanelLeftClose } from 'lucide-react';
 import { PropsWithChildren } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useLocalStorage } from 'usehooks-ts';
 import { BottomNav, TopNav } from './Nav';
 
@@ -22,7 +22,6 @@ type LayoutProps = PropsWithChildren<object> & {
 };
 
 export default function Layout(props: LayoutProps) {
-  const navigate = useNavigate();
   const insets = useInsets();
 
   const initialized = useInitialization();
@@ -61,7 +60,7 @@ export default function Layout(props: LayoutProps) {
 
   return (
     <TooltipProvider>
-      <div className='grid h-screen w-screen md:grid-cols-[auto_1fr]'>
+      <div className='bg-background grid h-screen w-screen md:grid-cols-[auto_1fr]'>
         <div
           className={`hidden border-r bg-muted/40 md:flex flex-col transition-all duration-300 ${
             isCollapsed ? 'w-[60px]' : 'w-[250px]'
