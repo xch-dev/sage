@@ -1,3 +1,4 @@
+mod aggregate_offer;
 mod cancel_offer;
 mod lock_assets;
 mod make_offer;
@@ -8,6 +9,7 @@ mod royalties;
 mod take_offer;
 mod unlock_assets;
 
+pub use aggregate_offer::*;
 pub use lock_assets::*;
 pub use make_offer::*;
 pub use offer_coins::*;
