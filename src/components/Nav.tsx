@@ -106,77 +106,7 @@ export function BottomNav({ isCollapsed }: NavProps) {
 
   const className = isCollapsed ? 'h-5 w-5' : 'h-4 w-4';
 
-  return isCollapsed ? (
-    <nav>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Link
-            to='/peers'
-            className={`flex items-center gap-3 rounded-lg py-2 text-muted-foreground transition-all hover:text-primary ${isCollapsed ? 'justify-center' : 'px-3'}`}
-            aria-label={t`Network status`}
-          >
-            {isSynced ? (
-              <MonitorCheck
-                className={`${className} text-emerald-600`}
-                aria-hidden='true'
-              />
-            ) : (
-              <MonitorCog
-                className={`${className} text-yellow-600`}
-                aria-hidden='true'
-              />
-            )}
-          </Link>
-        </TooltipTrigger>
-        <TooltipContent side='right'>
-          {isSynced ? (
-            <>
-              {peerCount} {peerCount === 1 ? t`peer` : t`peers`}{' '}
-              {peerMaxHeight ? (
-                <Trans>at peak {peerMaxHeight}</Trans>
-              ) : (
-                <Trans>(connecting...)</Trans>
-              )}
-            </>
-          ) : (
-            <Trans>
-              Syncing {syncedCoins} / {totalCoins}
-            </Trans>
-          )}
-        </TooltipContent>
-      </Tooltip>
-
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Link
-            to={'/settings'}
-            className={`flex items-center gap-3 rounded-lg py-2 text-muted-foreground transition-all hover:text-primary ${isCollapsed ? 'justify-center' : 'px-3'}`}
-          >
-            <Cog className={className} aria-hidden='true' />
-          </Link>
-        </TooltipTrigger>
-        <TooltipContent side='right'>
-          <Trans>Settings</Trans>
-        </TooltipContent>
-      </Tooltip>
-
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <button
-            type='button'
-            onClick={logout}
-            aria-label={t`Logout`}
-            className={`flex items-center gap-3 rounded-lg py-2 text-muted-foreground transition-all hover:text-primary ${isCollapsed ? 'justify-center' : 'px-3'}`}
-          >
-            <LogOut className={className} aria-hidden='true' />
-          </button>
-        </TooltipTrigger>
-        <TooltipContent side='right'>
-          <Trans>Logout</Trans>
-        </TooltipContent>
-      </Tooltip>
-    </nav>
-  ) : (
+  return (
     <nav>
       <NavLink
         url={'/peers'}
@@ -232,7 +162,11 @@ export function BottomNav({ isCollapsed }: NavProps) {
         <Cog className={className} aria-hidden='true' />
       </NavLink>
 
-      <NavLink url={logout} message={<Trans>Logout</Trans>}>
+      <NavLink
+        url={logout}
+        isCollapsed={isCollapsed}
+        message={<Trans>Logout</Trans>}
+      >
         <LogOut className={className} aria-hidden='true' />
       </NavLink>
     </nav>
