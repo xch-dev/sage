@@ -28,6 +28,11 @@ import {
   NftRecord,
   DidRecord,
 } from '../bindings';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 export function NftList() {
   const navigate = useNavigate();
@@ -52,7 +57,7 @@ export function NftList() {
     async (page: number) => {
       setIsLoading(true);
       try {
-        if (collectionId || ownerDid || group === NftGroupMode.None) {
+        if (collectionId || ownerDid || minterDid || group === NftGroupMode.None) {
           const params = {
             name: query || null,
             collection_id: collectionId ?? null,
@@ -78,8 +83,7 @@ export function NftList() {
             });
             setCollection(collectionResponse.collection);
           }
-
-          if (ownerDid) {
+          else if (ownerDid) {
             const didResponse = await commands.getDids({});
             const foundDid = didResponse.dids.find(
               (did) => did.launcher_id === ownerDid,
@@ -99,13 +103,14 @@ export function NftList() {
             );
           } else if (minterDid) {
             const didResponse = await commands.getDids({});
+            console.log('minter DIDs response:', didResponse);
             const foundDid = didResponse.dids.find(
               (did) => did.launcher_id === minterDid,
             );
             setOwner(
               foundDid || {
-                name: 'Unknown Minter',
-                launcher_id: 'No did',
+                name: minterDid,
+                launcher_id: minterDid,
                 visible: true,
                 coin_id: 'No coin',
                 address: 'no address',
@@ -222,15 +227,32 @@ export function NftList() {
     <>
       <Header
         title={
-          collectionId ? (
-            (collection?.name ?? t`Unknown Collection`)
-          ) : ownerDid ? (
-            (owner?.name ?? t`Unknown Profile`)
-          ) : minterDid ? (
-            (owner?.name ?? t`Unknown Creator`)
-          ) : (
-            <Trans>NFTs</Trans>
-          )
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="truncate max-w-[300px]">
+                {collectionId ? (
+                  (collection?.name ?? t`Unknown Collection`)
+                ) : ownerDid ? (
+                  (owner?.name ?? t`Unknown Profile`)
+                ) : minterDid ? (
+                  (owner?.name ?? t`Unknown Creator`)
+                ) : (
+                  <Trans>NFTs</Trans>
+                )}
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              {collectionId ? (
+                (collection?.name ?? t`Unknown Collection`)
+              ) : ownerDid ? (
+                (owner?.name ?? t`Unknown Profile`)
+              ) : minterDid ? (
+                (owner?.name ?? t`Unknown Creator`)
+              ) : (
+                <Trans>NFTs</Trans>
+              )}
+            </TooltipContent>
+          </Tooltip>
         }
       >
         <ReceiveAddress />
