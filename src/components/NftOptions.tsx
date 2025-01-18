@@ -29,6 +29,7 @@ import {
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
 import { Input } from './ui/input';
+import { useParams } from 'react-router-dom';
 
 export interface NftOptionsProps {
   isCollection?: boolean;
@@ -51,6 +52,10 @@ export function NftOptions({
   isLoading,
   canLoadMore,
 }: NftOptionsProps) {
+  // Get URL parameters to check if we're in a filtered view
+  const { collection_id, owner_did, minter_did } = useParams();
+  const isFilteredView = Boolean(collection_id || owner_did || minter_did);
+
   return (
     <div className={`flex flex-col gap-4 ${className}`}>
       <div className='relative flex-1'>
@@ -197,7 +202,7 @@ export function NftOptions({
             )}
           </Button>
 
-          {!isCollection && (
+          {!isCollection && !isFilteredView && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
