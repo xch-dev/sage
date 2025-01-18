@@ -129,6 +129,12 @@ export function NftList() {
     };
   }, [updateNfts, page]);
 
+  // Add this effect to reset multi-select when route changes
+  useEffect(() => {
+    setMultiSelect(false);
+    setSelected([]);
+  }, [collectionId, ownerDid, group]);
+
   return (
     <>
       <Header 
