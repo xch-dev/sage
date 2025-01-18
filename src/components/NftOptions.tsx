@@ -19,6 +19,7 @@ import {
   SearchIcon,
   XIcon,
   LayoutGrid,
+  ArrowLeftIcon,
 } from 'lucide-react';
 import { Button } from './ui/button';
 import {
@@ -29,7 +30,7 @@ import {
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
 import { Input } from './ui/input';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 
 export interface NftOptionsProps {
   isCollection?: boolean;
@@ -54,7 +55,17 @@ export function NftOptions({
 }: NftOptionsProps) {
   // Get URL parameters to check if we're in a filtered view
   const { collection_id, owner_did, minter_did } = useParams();
+  const navigate = useNavigate();
   const isFilteredView = Boolean(collection_id || owner_did || minter_did);
+
+  const handleBack = () => {
+    if (collection_id) {
+      setParams({ group: NftGroupMode.Collection, page: 1 });
+    } else if (owner_did) {
+      setParams({ group: NftGroupMode.OwnerDid, page: 1 });
+    }
+    navigate('/nfts');
+  };
 
   return (
     <div className={`flex flex-col gap-4 ${className}`}>
@@ -119,6 +130,18 @@ export function NftOptions({
         </div>
 
         <div className='flex gap-2 items-center'>
+          {isFilteredView && (
+            <Button
+              variant='outline'
+              size='icon'
+              onClick={handleBack}
+              aria-label={t`Back to groups`}
+              title={t`Back to groups`}
+            >
+              <ArrowLeftIcon className='h-4 w-4' />
+            </Button>
+          )}
+
           {(group === NftGroupMode.None || isFilteredView) && (
             <>
               <Button

@@ -18,7 +18,7 @@ import collectionImage from '@/images/collection.png';
 import profileImage from '@/images/profile.png';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import { EyeIcon, EyeOff, ImagePlusIcon, MoreVerticalIcon } from 'lucide-react';
+import { EyeIcon, EyeOff, ImagePlusIcon, MoreVerticalIcon, UserIcon } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
@@ -363,15 +363,8 @@ function DidGroup({ did }: DidGroupProps) {
       to={`/nfts/owners/${did.launcher_id}`}
       className={`group${!did.visible ? ' opacity-50 grayscale' : ''} border border-neutral-200 rounded-lg dark:border-neutral-800`}
     >
-      <div className='overflow-hidden rounded-t-lg relative'>
-        <img
-          alt={did.name ?? t`Unnamed`}
-          loading='lazy'
-          width='150'
-          height='150'
-          className='h-auto w-auto object-cover transition-all group-hover:scale-105 aspect-square color-[transparent]'
-          src={profileImage}
-        />
+      <div className='overflow-hidden rounded-t-lg relative bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center aspect-square'>
+        <UserIcon className='h-12 w-12 text-neutral-400 dark:text-neutral-600' />
       </div>
       <div className='border-t bg-white text-neutral-950 shadow dark:bg-neutral-900 dark:text-neutral-50 text-md flex items-center justify-between rounded-b-lg p-2 pl-3'>
         <span className='truncate'>
