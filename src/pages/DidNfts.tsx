@@ -25,7 +25,7 @@ export default function DidNfts() {
 
   const updateNfts = useCallback(
     async (page: number) => {
-      if (group === NftGroupMode.Collection || group === NftGroupMode.Did)
+      if (group === NftGroupMode.Collection || group === NftGroupMode.OwnerDid)
         return;
 
       setIsLoading(true);

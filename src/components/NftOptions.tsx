@@ -208,7 +208,7 @@ export function NftOptions({
                 >
                   {group === NftGroupMode.Collection ? (
                     <Images className='h-4 w-4' />
-                  ) : group === NftGroupMode.Did ? (
+                  ) : group === NftGroupMode.OwnerDid ? (
                     <UserIcon className='h-4 w-4' />
                   ) : (
                     <LayoutGrid className='h-4 w-4' />
@@ -256,7 +256,7 @@ export function NftOptions({
                       e.stopPropagation();
                       setParams({
                         page: 1,
-                        group: NftGroupMode.Did,
+                        group: NftGroupMode.OwnerDid,
                       });
                     }}
                   >

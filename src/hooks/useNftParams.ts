@@ -20,7 +20,8 @@ export enum NftSortMode {
 export enum NftGroupMode {
   None = 'none',
   Collection = 'collection',
-  Did = 'did',
+  OwnerDid = 'owner_did',
+  MinterDid = 'minter_did',
 }
 
 export interface NftParams {
@@ -33,21 +34,6 @@ export interface NftParams {
 }
 
 export type SetNftParams = (params: Partial<NftParams>) => void;
-
-function parseView(view: string | null): NftView {
-  switch (view) {
-    case 'name':
-      return NftView.Name;
-    case 'recent':
-      return NftView.Recent;
-    case 'collection':
-      return NftView.Collection;
-    case 'did':
-      return NftView.Did;
-    default:
-      return NftView.Name;
-  }
-}
 
 export function useNftParams(): [NftParams, SetNftParams] {
   const [params, setParams] = useSearchParams();

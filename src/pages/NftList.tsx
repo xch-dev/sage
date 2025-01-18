@@ -83,7 +83,7 @@ export function NftList() {
             })
             .then((data) => setCollections(data.collections))
             .catch(addError);
-        } else if (group === NftGroupMode.Did) {
+        } else if (group === NftGroupMode.OwnerDid) {
           await commands
             .getDids({})
             .then((data) => setDids(data.dids))
@@ -185,7 +185,7 @@ export function NftList() {
                 />
               )}
             </>
-          ) : (!collectionId && !ownerDid && group === NftGroupMode.Did) ? (
+          ) : (!collectionId && !ownerDid && group === NftGroupMode.OwnerDid) ? (
             <>
               {dids.map((did, i) => (
                 <DidGroup
