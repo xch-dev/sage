@@ -26,19 +26,15 @@ export function formatNumber({
   minimumFractionDigits,
   maximumFractionDigits,
 }: NumberFormatProps): string {
-  let numberValue: number;
-
-  if (value instanceof BigNumber) {
-    numberValue = value.toNumber();
-  } else if (typeof value === 'string') {
-    numberValue = parseFloat(value);
-  } else {
-    numberValue = value;
-  }
-
-  if (isNaN(numberValue)) return '';
+  if (value == null) return '';
 
   try {
+    const bigNumberValue = new BigNumber(value);
+    if (bigNumberValue.isNaN()) return '';
+    if (bigNumberValue.isGreaterThan(Number.MAX_SAFE_INTEGER)) return value.toString();
+
+    const numberValue = bigNumberValue.toNumber();
+
     return numberValue.toLocaleString(navigator.language, {
       style,
       currency,
@@ -47,6 +43,6 @@ export function formatNumber({
     });
   } catch (e) {
     // Fallback if toLocaleString fails
-    return numberValue.toString();
+    return value.toString();
   }
 }
