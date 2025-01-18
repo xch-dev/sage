@@ -97,8 +97,19 @@ export function NftList() {
   );
 
   useEffect(() => {
+    // Clear NFTs when view parameters change
+    setNfts([]);
+    setCollection(null);
     updateNfts(1);
   }, [updateNfts, collectionId, ownerDid]);
+
+  useEffect(() => {
+    // Clear NFTs when group changes
+    setNfts([]);
+    setCollections([]);
+    setDids([]);
+    setCollection(null);
+  }, [group]);
 
   useEffect(() => {
     const unlisten = events.syncEvent.listen((event) => {
