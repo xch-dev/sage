@@ -11,14 +11,17 @@ import icon from '@/icon.png';
 import { t } from '@lingui/core/macro';
 import { PanelLeft, PanelLeftClose } from 'lucide-react';
 import { PropsWithChildren } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useLocalStorage } from 'usehooks-ts';
 import { BottomNav, TopNav } from './Nav';
 
 const SIDEBAR_COLLAPSED_STORAGE_KEY = 'sage-wallet-sidebar-collapsed';
 
-export default function Layout(props: PropsWithChildren<object>) {
-  const navigate = useNavigate();
+type LayoutProps = PropsWithChildren<object> & {
+  transparentBackground?: boolean;
+};
+
+export default function Layout(props: LayoutProps) {
   const insets = useInsets();
 
   const initialized = useInitialization();
@@ -57,7 +60,7 @@ export default function Layout(props: PropsWithChildren<object>) {
 
   return (
     <TooltipProvider>
-      <div className='grid h-screen w-screen md:grid-cols-[auto_1fr]'>
+      <div className='bg-background grid h-screen w-screen md:grid-cols-[auto_1fr]'>
         <div
           className={`hidden border-r bg-muted/40 md:flex flex-col transition-all duration-300 ${
             isCollapsed ? 'w-[60px]' : 'w-[250px]'
@@ -109,12 +112,24 @@ export default function Layout(props: PropsWithChildren<object>) {
           </div>
         </div>
         <div
-          className='flex flex-col h-screen overflow-hidden'
+          className={`flex flex-col h-screen overflow-hidden ${
+            props.transparentBackground ? 'bg-transparent' : 'bg-background'
+          }`}
           style={{
-            paddingTop:
-              insets.top !== 0 ? `${insets.top}px` : 'env(safe-area-inset-top)',
+            paddingBottom: insets.bottom
+              ? `${insets.bottom}px`
+              : 'env(safe-area-inset-bottom)',
           }}
         >
+          <div
+            className='bg-background'
+            style={{
+              height:
+                insets.top !== 0
+                  ? `${insets.top + 8}px`
+                  : 'env(safe-area-inset-top)',
+            }}
+          />
           {props.children}
         </div>
       </div>

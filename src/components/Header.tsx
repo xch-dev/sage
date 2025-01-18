@@ -16,6 +16,7 @@ export default function Header(
   props: PropsWithChildren<{
     title: string | ReactNode;
     back?: () => void;
+    mobileActionItems?: ReactNode;
     children?: ReactNode;
   }>,
 ) {
@@ -66,10 +67,15 @@ export default function Header(
           className='flex flex-col'
           style={{
             paddingTop:
-              insets.top !== 0 ? `${insets.top}px` : 'env(safe-area-inset-top)',
+              insets.top !== 0
+                ? `${insets.top + 8}px`
+                : 'env(safe-area-inset-top)',
+            paddingBottom: insets.bottom
+              ? `${insets.bottom + 16}px`
+              : 'env(safe-area-inset-bottom)',
           }}
         >
-          <div className='flex h-14 items-center'>
+          <div className='flex h-14 items-center '>
             <Link
               to='/wallet'
               className='flex items-center gap-2 font-semibold'
@@ -108,6 +114,7 @@ export default function Header(
             {props.title}
           </h1>
           <div className='hidden md:block'>{props.children}</div>
+          {props.mobileActionItems && isMobile && props.mobileActionItems}
         </div>
       </div>
     </header>

@@ -1,5 +1,8 @@
 use chia::protocol::CoinSpend;
-use chia_wallet_sdk::{Conditions, Offer, OfferBuilder, SpendContext, Take};
+use chia_wallet_sdk::{
+    Cat, CatSpend, Conditions, Offer, OfferBuilder, SpendContext, SpendWithConditions,
+    StandardLayer, Take,
+};
 use indexmap::IndexMap;
 
 use crate::{
@@ -7,6 +10,8 @@ use crate::{
     parse_offer_payments, unlock_assets, NftRoyaltyInfo, OfferAmounts, OfferSpend, Wallet,
     WalletError,
 };
+
+use super::SingleSidedIntermediary;
 
 #[derive(Debug)]
 pub struct UnsignedTakeOffer {
@@ -58,8 +63,13 @@ impl Wallet {
             )
             .await?;
         let p2_puzzle_hash = self.p2_puzzle_hash(hardened, reuse).await?;
-        let assertions =
-            unlock_assets(&mut ctx, locked_coins, taker_coins.nonce(), p2_puzzle_hash)?;
+        let unlock = unlock_assets(
+            &mut ctx,
+            locked_coins,
+            taker_coins.nonce(),
+            p2_puzzle_hash,
+            requested_payments.is_empty(),
+        )?;
 
         // Calculate trade prices for the maker side.
         let trade_prices = calculate_trade_prices(
@@ -72,26 +82,60 @@ impl Wallet {
         )?;
 
         let extra_conditions = Conditions::new()
-            .extend(assertions)
+            .extend(unlock.assertions)
             .extend(taker_royalties.assertions());
 
-        // Spend the assets.
-        let payment_coins = self
-            .lock_assets(
-                &mut ctx,
-                OfferSpend {
-                    amounts: taker_amounts,
-                    coins: taker_coins,
-                    royalties: taker_royalties,
-                    trade_prices,
-                    fee,
-                    change_puzzle_hash: p2_puzzle_hash,
-                    extra_conditions,
-                },
-            )
-            .await?;
+        if let Some(coin) = unlock.single_sided_coin {
+            // Protect single-sided offers from being taken by a different party.
+            let synthetic_key = self.db.synthetic_key(p2_puzzle_hash).await?;
+            let p2 = StandardLayer::new(synthetic_key);
 
-        complete_requested_payments(&mut ctx, payment_coins, requested_payments)?;
+            match coin {
+                SingleSidedIntermediary::Xch(coin) => {
+                    p2.spend(
+                        &mut ctx,
+                        coin,
+                        extra_conditions.create_coin(p2_puzzle_hash, coin.amount, None),
+                    )?;
+                }
+                SingleSidedIntermediary::Cat(cat) => {
+                    let hint = ctx.hint(p2_puzzle_hash)?;
+                    let cat_spend = CatSpend::new(
+                        cat,
+                        p2.spend_with_conditions(
+                            &mut ctx,
+                            extra_conditions.create_coin(
+                                p2_puzzle_hash,
+                                cat.coin.amount,
+                                Some(hint),
+                            ),
+                        )?,
+                    );
+                    Cat::spend_all(&mut ctx, &[cat_spend])?;
+                }
+                SingleSidedIntermediary::Nft(nft) => {
+                    let _nft = nft.transfer(&mut ctx, &p2, p2_puzzle_hash, extra_conditions)?;
+                }
+            }
+        } else {
+            // Spend the assets.
+            let payment_coins = self
+                .lock_assets(
+                    &mut ctx,
+                    OfferSpend {
+                        amounts: taker_amounts,
+                        coins: taker_coins,
+                        royalties: taker_royalties,
+                        trade_prices,
+                        fee,
+                        change_puzzle_hash: p2_puzzle_hash,
+                        extra_conditions,
+                    },
+                )
+                .await?;
+
+            complete_requested_payments(&mut ctx, payment_coins, requested_payments)?;
+        }
 
         let coin_spends = ctx.take();
 

@@ -31,7 +31,7 @@ export function TopNav({ isCollapsed }: NavProps) {
   const className = isCollapsed ? 'h-5 w-5' : 'h-4 w-4';
 
   return (
-    <nav className={`grid font-medium ${isCollapsed ? 'gap-2' : 'gap-1'}`}>
+    <nav className={`grid font-medium ${isCollapsed ? 'gap-2' : ''}`}>
       <Separator className='mb-3' />
       <NavLink
         url={'/wallet'}
@@ -107,7 +107,7 @@ export function BottomNav({ isCollapsed }: NavProps) {
   const className = isCollapsed ? 'h-5 w-5' : 'h-4 w-4';
 
   return (
-    <nav>
+    <nav className={`grid font-medium ${isCollapsed ? 'gap-2' : ''}`}>
       <NavLink
         url={'/peers'}
         isCollapsed={isCollapsed}
@@ -121,7 +121,9 @@ export function BottomNav({ isCollapsed }: NavProps) {
               )}
             </>
           ) : (
-            <Trans>Syncing</Trans>
+            <Trans>
+              Syncing {syncedCoins} / {totalCoins}
+            </Trans>
           )
         }
         customTooltip={
@@ -135,13 +137,13 @@ export function BottomNav({ isCollapsed }: NavProps) {
               )
             ) : (
               <Trans>
-                {syncedCoins} / {totalCoins} coins synced
+                with {syncedCoins} / {totalCoins} coins synced
               </Trans>
             )}
           </>
         }
       >
-        {isSynced ? (
+        {isSynced && peerMaxHeight > 0 ? (
           <MonitorCheck
             className={`${className} text-emerald-600`}
             aria-hidden='true'

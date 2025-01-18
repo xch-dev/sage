@@ -25,8 +25,26 @@ export interface OfferExpiration {
   minutes: string;
 }
 
+export interface ReturnValue {
+  status: 'success' | 'completed' | 'cancelled';
+  data?: string;
+}
+
+export interface NavigationStore {
+  returnValues: Record<string, ReturnValue>;
+  setReturnValue: (pageId: string, value: ReturnValue) => void;
+}
+
 export const useWalletState = create<WalletState>()(() => defaultState());
 export const useOfferState = create<OfferState>()(() => defaultOffer());
+
+export const useNavigationStore = create<NavigationStore>((set) => ({
+  returnValues: {},
+  setReturnValue: (pageId, value) =>
+    set((state) => ({
+      returnValues: { ...state.returnValues, [pageId]: value },
+    })),
+}));
 
 export function clearState() {
   useWalletState.setState(defaultState());
