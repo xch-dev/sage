@@ -31,7 +31,8 @@ export function formatNumber({
   try {
     const bigNumberValue = new BigNumber(value);
     if (bigNumberValue.isNaN()) return '';
-    if (bigNumberValue.isGreaterThan(Number.MAX_SAFE_INTEGER)) return value.toString();
+    if (bigNumberValue.isGreaterThan(Number.MAX_SAFE_INTEGER))
+      return value.toString();
 
     const numberValue = bigNumberValue.toNumber();
 

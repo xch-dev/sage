@@ -49,7 +49,7 @@ enum TokenView {
 export function TokenList() {
   const navigate = useNavigate();
   const walletState = useWalletState();
-  const { getBalanceInUsd } = usePrices();
+  const { getBalanceInUsd, getPriceInUsd } = usePrices();
   const { addError } = useErrors();
   const [params, setParams] = useTokenParams();
   const { view, showHidden, showZeroBalance } = params;
@@ -62,6 +62,7 @@ export function TokenList() {
         const usdValue = parseFloat(
           getBalanceInUsd(cat.asset_id, balance.toString()),
         );
+
         return {
           ...cat,
           balanceInUsd: usdValue,
@@ -258,19 +259,29 @@ export function TokenList() {
                   />
                 </div>
                 <div className='text-sm text-neutral-500'>
-                  <NumberFormat
-                    value={getBalanceInUsd(
-                      'xch',
-                      toDecimal(
-                        walletState.sync.balance,
-                        walletState.sync.unit.decimals,
-                      ),
-                    )}
-                    style='currency'
-                    currency='USD'
-                    minimumFractionDigits={2}
-                    maximumFractionDigits={2}
-                  />
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div>
+                        ~
+                        <NumberFormat
+                          value={getBalanceInUsd(
+                            'xch',
+                            toDecimal(
+                              walletState.sync.balance,
+                              walletState.sync.unit.decimals,
+                            ),
+                          )}
+                          style='currency'
+                          currency='USD'
+                          minimumFractionDigits={2}
+                          maximumFractionDigits={2}
+                        />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <span>1 XCH = ${getPriceInUsd('xch')}</span>
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
               </CardContent>
             </Card>
@@ -302,31 +313,30 @@ export function TokenList() {
                     {cat.ticker ?? ''}
                   </div>
                   <div className='text-sm text-neutral-500'>
-                    <NumberFormat
-                      value={cat.balanceInUsd}
-                      style='currency'
-                      currency='USD'
-                      minimumFractionDigits={2}
-                      maximumFractionDigits={2}
-                    />
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <div>~${cat.balanceInUsd}</div>
+                        <div>
+                          ~
+                          <NumberFormat
+                            value={cat.balanceInUsd}
+                            style='currency'
+                            currency='USD'
+                            minimumFractionDigits={2}
+                            maximumFractionDigits={2}
+                          />
+                        </div>
                       </TooltipTrigger>
                       <TooltipContent>
                         <span>
                           1 {cat.ticker ?? 'CAT'}{' '}
-                          {Number(
-                            cat.balanceInUsd /
-                              Number(toDecimal(cat.balance, 3)),
-                          ) < 0.01
-                            ? ' < 0.01¢'
-                            : Number(
-                                  cat.balanceInUsd /
-                                    Number(toDecimal(cat.balance, 3)),
-                                ) < 0.01
-                              ? ` = ${((cat.balanceInUsd / Number(toDecimal(cat.balance, 3))) * 100).toFixed(2)}¢`
-                              : ` = $${(cat.balanceInUsd / Number(toDecimal(cat.balance, 3))).toFixed(2)}`}
+                          {(() => {
+                            const price = getPriceInUsd(cat.asset_id);
+                            return price < 0.01 // prices less than a penny
+                              ? ' < 0.01¢'
+                              : price < 1 // prices less than a dollar
+                                ? ` = ${(price * 100).toFixed(2)}¢`
+                                : ` = $${new Number(price).toFixed(2)}`;
+                          })()}
                         </span>
                       </TooltipContent>
                     </Tooltip>
