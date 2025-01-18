@@ -120,32 +120,76 @@ export function NftOptions({
 
         <div className='flex gap-2 items-center'>
           {(group === NftGroupMode.None || isFilteredView) && (
-            <Button
-              variant='outline'
-              size='icon'
-              onClick={() => setMultiSelect(!multiSelect)}
-              aria-label={t`Toggle multi-select`}
-              title={t`Toggle multi-select`}
-            >
-              <CopyPlus
-                className={`h-4 w-4 ${multiSelect ? 'text-green-600 dark:text-green-400' : ''}`}
-              />
-            </Button>
-          )}
+            <>
+              <Button
+                variant='outline'
+                size='icon'
+                onClick={() => setMultiSelect(!multiSelect)}
+                aria-label={t`Toggle multi-select`}
+                title={t`Toggle multi-select`}
+              >
+                <CopyPlus
+                  className={`h-4 w-4 ${multiSelect ? 'text-green-600 dark:text-green-400' : ''}`}
+                />
+              </Button>
+              <Button
+                variant='outline'
+                size='icon'
+                onClick={() => setParams({ showHidden: !showHidden })}
+                aria-label={t`Toggle hidden NFTs`}
+                title={t`Toggle hidden NFTs`}
+              >
+                {showHidden ? (
+                  <EyeIcon className='h-4 w-4' />
+                ) : (
+                  <EyeOff className='h-4 w-4' />
+                )}
+              </Button>
 
-          <Button
-            variant='outline'
-            size='icon'
-            onClick={() => setParams({ showHidden: !showHidden })}
-            aria-label={t`Toggle hidden NFTs`}
-            title={t`Toggle hidden NFTs`}
-          >
-            {showHidden ? (
-              <EyeIcon className='h-4 w-4' />
-            ) : (
-              <EyeOff className='h-4 w-4' />
-            )}
-          </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant='outline'
+                    size='icon'
+                    aria-label={t`Sort options`}
+                    title={t`Sort options`}
+                  >
+                    {sort === NftSortMode.Name ? (
+                      <ArrowDownAz className='h-4 w-4' />
+                    ) : (
+                      <Clock2 className='h-4 w-4' />
+                    )}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align='end'>
+                  <DropdownMenuGroup>
+                    <DropdownMenuItem
+                      className='cursor-pointer'
+                      onClick={() =>
+                        setParams({ sort: NftSortMode.Name, page: 1 })
+                      }
+                    >
+                      <ArrowDownAz className='mr-2 h-4 w-4' />
+                      <span>
+                        <Trans>Name</Trans>
+                      </span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className='cursor-pointer'
+                      onClick={() =>
+                        setParams({ sort: NftSortMode.Recent, page: 1 })
+                      }
+                    >
+                      <Clock2 className='mr-2 h-4 w-4' />
+                      <span>
+                        <Trans>Recent</Trans>
+                      </span>
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
+          )}
 
           {!isCollection && !isFilteredView && (
             <DropdownMenu>

@@ -40,39 +40,60 @@ export function NftList() {
   const [nfts, setNfts] = useState<NftRecord[]>([]);
   const [collections, setCollections] = useState<NftCollectionRecord[]>([]);
   const [dids, setDids] = useState<DidRecord[]>([]);
-  const [collection, setCollection] = useState<NftCollectionRecord | null>(null);
+  const [owner, setOwner] = useState<DidRecord | null>(null);
+  const [collection, setCollection] = useState<NftCollectionRecord | null>(
+    null,
+  );
   const [multiSelect, setMultiSelect] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const updateNfts = useCallback(
     async (page: number) => {
-      console.log('updateNfts called with:', { page, collectionId, group });
-      
       setIsLoading(true);
       try {
         if (collectionId || ownerDid || group === NftGroupMode.None) {
           const params = {
             name: query || null,
             collection_id: collectionId ?? null,
-            owner_did_id: ownerDid ?? null,
+            owner_did_id: ownerDid === 'No did' ? null : (ownerDid ?? null),
             offset: (page - 1) * pageSize,
             limit: pageSize,
             sort_mode: sort,
             include_hidden: showHidden,
           };
-          console.log('getNfts params:', params);
-          
+
+          console.log('Fetching NFTs with params:', params);
           const response = await commands.getNfts(params);
-          console.log('getNfts response:', response);
+          console.log('NFTs response:', response);
           setNfts(response.nfts);
 
           if (collectionId) {
             const collectionResponse = await commands.getNftCollection({
-              collection_id: collectionId === 'No collection' ? null : collectionId,
+              collection_id:
+                collectionId === 'No collection' ? null : collectionId,
             });
-            console.log('collection response:', collectionResponse);
             setCollection(collectionResponse.collection);
+          }
+
+          if (ownerDid) {
+            const didResponse = await commands.getDids({});
+            const foundDid = didResponse.dids.find(
+              (did) => did.launcher_id === ownerDid,
+            );
+            setOwner(
+              foundDid || {
+                name: 'Unassigned NFTs',
+                launcher_id: 'No did',
+                visible: true,
+                coin_id: 'No coin',
+                address: 'no address',
+                amount: 0,
+                created_height: 0,
+                create_transaction_id: 'No transaction',
+                recovery_hash: '',
+              },
+            );
           }
         } else if (group === NftGroupMode.Collection) {
           await commands
@@ -89,27 +110,32 @@ export function NftList() {
             .then((data) => setDids(data.dids))
             .catch(addError);
         }
+      } catch (error: any) {
+        console.error('Error fetching NFTs:', error);
+        addError(error);
       } finally {
         setIsLoading(false);
       }
     },
-    [pageSize, showHidden, sort, group, query, collectionId, ownerDid, addError],
+    [
+      pageSize,
+      showHidden,
+      sort,
+      group,
+      query,
+      collectionId,
+      ownerDid,
+      addError,
+    ],
   );
 
   useEffect(() => {
     // Clear NFTs when view parameters change
     setNfts([]);
     setCollection(null);
+    setOwner(null);
     updateNfts(1);
   }, [updateNfts, collectionId, ownerDid]);
-
-  useEffect(() => {
-    // Clear NFTs when group changes
-    setNfts([]);
-    setCollections([]);
-    setDids([]);
-    setCollection(null);
-  }, [group]);
 
   useEffect(() => {
     const unlisten = events.syncEvent.listen((event) => {
@@ -137,13 +163,15 @@ export function NftList() {
 
   return (
     <>
-      <Header 
+      <Header
         title={
-          collectionId 
-            ? collection?.name ?? t`Unknown Collection`
-            : ownerDid
-            ? ownerDid === 'No did' ? t`Unassigned NFTs` : t`Profile NFTs`
-            : <Trans>NFTs</Trans>
+          collectionId ? (
+            (collection?.name ?? t`Unknown Collection`)
+          ) : ownerDid ? (
+            (owner?.name ?? t`Unknown Profile`)
+          ) : (
+            <Trans>NFTs</Trans>
+          )
         }
       >
         <ReceiveAddress />
@@ -168,7 +196,7 @@ export function NftList() {
         />
 
         <NftCardList>
-          {(!collectionId && !ownerDid && group === NftGroupMode.Collection) ? (
+          {!collectionId && !ownerDid && group === NftGroupMode.Collection ? (
             <>
               {collections.map((col, i) => (
                 <Collection
@@ -191,7 +219,7 @@ export function NftList() {
                 />
               )}
             </>
-          ) : (!collectionId && !ownerDid && group === NftGroupMode.OwnerDid) ? (
+          ) : !collectionId && !ownerDid && group === NftGroupMode.OwnerDid ? (
             <>
               {dids.map((did, i) => (
                 <DidGroup
@@ -333,7 +361,7 @@ function DidGroup({ did }: DidGroupProps) {
   return (
     <Link
       to={`/nfts/owners/${did.launcher_id}`}
-      className={`group${did.visible ? ' opacity-50 grayscale' : ''} border border-neutral-200 rounded-lg dark:border-neutral-800`}
+      className={`group${!did.visible ? ' opacity-50 grayscale' : ''} border border-neutral-200 rounded-lg dark:border-neutral-800`}
     >
       <div className='overflow-hidden rounded-t-lg relative'>
         <img

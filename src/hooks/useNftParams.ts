@@ -1,9 +1,10 @@
 import { useSearchParams } from 'react-router-dom';
 import { useLocalStorage } from 'usehooks-ts';
+import { useCallback, useMemo } from 'react';
 
-const NFT_VIEW_STORAGE_KEY = 'sage-wallet-nft-view';
 const NFT_HIDDEN_STORAGE_KEY = 'sage-wallet-nft-hidden';
 const NFT_GROUP_STORAGE_KEY = 'sage-wallet-nft-group';
+const NFT_SORT_STORAGE_KEY = 'sage-wallet-nft-sort';
 
 export enum NftView {
   Name = 'name',
@@ -36,71 +37,60 @@ export interface NftParams {
 export type SetNftParams = (params: Partial<NftParams>) => void;
 
 export function useNftParams(): [NftParams, SetNftParams] {
-  const [params, setParams] = useSearchParams();
-  const [storedSort, setStoredSort] = useLocalStorage<NftSortMode>(
-    NFT_VIEW_STORAGE_KEY,
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [view, setView] = useLocalStorage<NftSortMode>(
+    NFT_SORT_STORAGE_KEY,
     NftSortMode.Name,
   );
-  const [storedGroup, setStoredGroup] = useLocalStorage<NftGroupMode>(
-    NFT_GROUP_STORAGE_KEY,
-    NftGroupMode.None,
-  );
-  const [storedShowHidden, setStoredShowHidden] = useLocalStorage<boolean>(
+  const [showHidden, setShowHidden] = useLocalStorage<boolean>(
     NFT_HIDDEN_STORAGE_KEY,
     false,
   );
+  const [group, setGroup] = useLocalStorage<NftGroupMode>(
+    NFT_GROUP_STORAGE_KEY,
+    NftGroupMode.None,
+  );
 
-  const pageSize = parseInt(params.get('pageSize') ?? '12');
-  const page = parseInt(params.get('page') ?? '1');
-  const sort = (params.get('sort') as NftSortMode) ?? storedSort;
-  const group = (params.get('group') as NftGroupMode) ?? storedGroup;
-  const showHidden =
-    (params.get('showHidden') ?? storedShowHidden.toString()) === 'true';
-  const query = params.get('query');
+  const params = useMemo(
+    () => ({
+      pageSize: 24,
+      page: Number(searchParams.get('page') || 1),
+      sort: view,
+      group,
+      showHidden,
+      query: searchParams.get('query'),
+    }),
+    [searchParams, view, group, showHidden],
+  );
 
-  const updateParams = ({
-    page,
-    sort,
-    group,
-    showHidden,
-    query,
-  }: Partial<NftParams>) => {
-    setParams(
-      (prev) => {
-        const next = new URLSearchParams(prev);
+  const setParams = useCallback(
+    (newParams: Partial<NftParams>) => {
+      const updatedParams = { ...params, ...newParams };
 
-        if (page !== undefined) {
-          next.set('page', page.toString());
-        }
+      if (newParams.sort !== undefined) {
+        setView(newParams.sort);
+      }
 
-        if (sort !== undefined) {
-          next.set('sort', sort);
-          setStoredSort(sort);
-        }
+      if (newParams.showHidden !== undefined) {
+        setShowHidden(newParams.showHidden);
+      }
 
-        if (group !== undefined) {
-          next.set('group', group);
-          setStoredGroup(group);
-        }
+      if (newParams.group !== undefined) {
+        setGroup(newParams.group);
+      }
 
-        if (showHidden !== undefined) {
-          next.set('showHidden', showHidden.toString());
-          setStoredShowHidden(showHidden);
-        }
+      setSearchParams(
+        {
+          ...(updatedParams.page > 1 && {
+            page: updatedParams.page.toString(),
+          }),
+          ...(updatedParams.query && { query: updatedParams.query }),
+        },
+        { replace: true },
+      );
+    },
+    [params, setSearchParams, setView, setShowHidden, setGroup],
+  );
 
-        if (query !== undefined) {
-          if (query) {
-            next.set('query', query);
-          } else {
-            next.delete('query');
-          }
-        }
-
-        return next;
-      },
-      { replace: true },
-    );
-  };
-
-  return [{ pageSize, page, sort, group, showHidden, query }, updateParams];
+  return [params, setParams];
 }
