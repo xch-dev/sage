@@ -231,6 +231,9 @@ export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
             <p className='text-xs text-muted-foreground truncate'>
               {nft.collection_name ?? t`No collection`}
             </p>
+            <p className='text-xs text-muted-foreground truncate'>
+              DEBUG {nft.owner_did ?? t`No owner`}
+            </p>
           </span>
 
           <DropdownMenu>

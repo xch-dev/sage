@@ -66,6 +66,8 @@ export function NftList() {
           console.log('Fetching NFTs with params:', params);
           const response = await commands.getNfts(params);
           console.log('NFTs response:', response);
+          console.log('NFTs owner_dids:', response.nfts.map(nft => nft.owner_did));
+          
           setNfts(response.nfts);
 
           if (collectionId) {
