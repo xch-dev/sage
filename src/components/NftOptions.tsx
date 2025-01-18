@@ -20,6 +20,7 @@ import {
   XIcon,
   LayoutGrid,
   ArrowLeftIcon,
+  Paintbrush,
 } from 'lucide-react';
 import { Button } from './ui/button';
 import {
@@ -63,6 +64,8 @@ export function NftOptions({
       setParams({ group: NftGroupMode.Collection, page: 1 });
     } else if (owner_did) {
       setParams({ group: NftGroupMode.OwnerDid, page: 1 });
+    } else if (minter_did) {
+      setParams({ group: NftGroupMode.MinterDid, page: 1 });
     }
     navigate('/nfts');
   };
@@ -227,6 +230,8 @@ export function NftOptions({
                     <Images className='h-4 w-4' />
                   ) : group === NftGroupMode.OwnerDid ? (
                     <UserIcon className='h-4 w-4' />
+                  ) : group === NftGroupMode.MinterDid ? (
+                    <Paintbrush className='h-4 w-4' />
                   ) : (
                     <LayoutGrid className='h-4 w-4' />
                   )}
@@ -280,6 +285,22 @@ export function NftOptions({
                     <UserIcon className='mr-2 h-4 w-4' />
                     <span>
                       <Trans>Group by Owners</Trans>
+                    </span>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem
+                    className='cursor-pointer'
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setParams({
+                        page: 1,
+                        group: NftGroupMode.MinterDid,
+                      });
+                    }}
+                  >
+                    <Paintbrush className='mr-2 h-4 w-4' />
+                    <span>
+                      <Trans>Group by Minters</Trans>
                     </span>
                   </DropdownMenuItem>
                 </DropdownMenuGroup>

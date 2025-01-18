@@ -18,7 +18,7 @@ import collectionImage from '@/images/collection.png';
 import profileImage from '@/images/profile.png';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import { EyeIcon, EyeOff, ImagePlusIcon, MoreVerticalIcon, UserIcon } from 'lucide-react';
+import { EyeIcon, EyeOff, ImagePlusIcon, MoreVerticalIcon, UserIcon, Paintbrush } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
@@ -31,7 +31,7 @@ import {
 
 export function NftList() {
   const navigate = useNavigate();
-  const { collection_id: collectionId, owner_did: ownerDid } = useParams();
+  const { collection_id: collectionId, owner_did: ownerDid, minter_did: minterDid } = useParams();
   const { addError } = useErrors();
 
   const [params, setParams] = useNftParams();
@@ -57,6 +57,7 @@ export function NftList() {
             name: query || null,
             collection_id: collectionId ?? null,
             owner_did_id: ownerDid === 'No did' ? null : (ownerDid ?? null),
+            minter_did_id: minterDid === 'No did' ? null : (minterDid ?? null),
             offset: (page - 1) * pageSize,
             limit: pageSize,
             sort_mode: sort,
@@ -96,6 +97,24 @@ export function NftList() {
                 recovery_hash: '',
               },
             );
+          } else if (minterDid) {
+            const didResponse = await commands.getDids({});
+            const foundDid = didResponse.dids.find(
+              (did) => did.launcher_id === minterDid,
+            );
+            setOwner(
+              foundDid || {
+                name: 'Unknown Minter',
+                launcher_id: 'No did',
+                visible: true,
+                coin_id: 'No coin',
+                address: 'no address',
+                amount: 0,
+                created_height: 0,
+                create_transaction_id: 'No transaction',
+                recovery_hash: '',
+              },
+            );
           }
         } else if (group === NftGroupMode.Collection) {
           await commands
@@ -111,6 +130,41 @@ export function NftList() {
             .getDids({})
             .then((data) => setDids(data.dids))
             .catch(addError);
+        } else if (group === NftGroupMode.MinterDid) {
+          // Get all NFTs to find unique minter DIDs
+          const allNftsResponse = await commands.getNfts({
+            name: query || null,
+            collection_id: null,
+            owner_did_id: null,
+            minter_did_id: null,
+            offset: 0,
+            limit: 1000, // Large enough to get all NFTs
+            sort_mode: sort,
+            include_hidden: showHidden,
+          });
+
+          // Create unique set of minter DIDs
+          const uniqueMinterDids = new Set<string>();
+          allNftsResponse.nfts.forEach(nft => {
+            if (nft.minter_did) {
+              uniqueMinterDids.add(nft.minter_did);
+            }
+          });
+
+          // Convert minter DIDs to DidRecord format
+          const minterDids: DidRecord[] = Array.from(uniqueMinterDids).map(did => ({
+            name: `Creator ${did.slice(0, 16)}...`,
+            launcher_id: did,
+            visible: true,
+            coin_id: 'No coin',
+            address: 'no address',
+            amount: 0,
+            created_height: 0,
+            create_transaction_id: 'No transaction',
+            recovery_hash: '',
+          }));
+
+          setDids(minterDids);
         }
       } catch (error: any) {
         console.error('Error fetching NFTs:', error);
@@ -127,6 +181,7 @@ export function NftList() {
       query,
       collectionId,
       ownerDid,
+      minterDid,
       addError,
     ],
   );
@@ -137,7 +192,7 @@ export function NftList() {
     setCollection(null);
     setOwner(null);
     updateNfts(1);
-  }, [updateNfts, collectionId, ownerDid]);
+  }, [updateNfts, collectionId, ownerDid, minterDid]);
 
   useEffect(() => {
     const unlisten = events.syncEvent.listen((event) => {
@@ -171,6 +226,8 @@ export function NftList() {
             (collection?.name ?? t`Unknown Collection`)
           ) : ownerDid ? (
             (owner?.name ?? t`Unknown Profile`)
+          ) : minterDid ? (
+            (owner?.name ?? t`Unknown Creator`)
           ) : (
             <Trans>NFTs</Trans>
           )
@@ -198,7 +255,7 @@ export function NftList() {
         />
 
         <NftCardList>
-          {!collectionId && !ownerDid && group === NftGroupMode.Collection ? (
+          {!collectionId && !ownerDid && !minterDid && group === NftGroupMode.Collection ? (
             <>
               {collections.map((col, i) => (
                 <Collection
@@ -221,13 +278,15 @@ export function NftList() {
                 />
               )}
             </>
-          ) : !collectionId && !ownerDid && group === NftGroupMode.OwnerDid ? (
+          ) : !collectionId && !ownerDid && !minterDid && 
+             (group === NftGroupMode.OwnerDid || group === NftGroupMode.MinterDid) ? (
             <>
               {dids.map((did, i) => (
                 <DidGroup
                   did={did}
                   key={i}
                   updateNfts={() => updateNfts(page)}
+                  groupMode={group}
                 />
               ))}
               <DidGroup
@@ -243,6 +302,7 @@ export function NftList() {
                   recovery_hash: '',
                 }}
                 updateNfts={() => updateNfts(page)}
+                groupMode={group}
               />
             </>
           ) : (
@@ -357,21 +417,34 @@ function Collection({ col }: CollectionProps) {
 interface DidGroupProps {
   did: DidRecord;
   updateNfts: () => void;
+  groupMode: NftGroupMode;
 }
 
-function DidGroup({ did }: DidGroupProps) {
+function DidGroup({ did, groupMode }: DidGroupProps) {
+  const linkPath = groupMode === NftGroupMode.OwnerDid 
+    ? `/nfts/owners/${did.launcher_id}`
+    : `/nfts/minters/${did.launcher_id}`;
+
+  const defaultName = groupMode === NftGroupMode.OwnerDid
+    ? <Trans>Unnamed Profile</Trans>
+    : <Trans>Unnamed Creator</Trans>;
+
   return (
     <Link
-      to={`/nfts/owners/${did.launcher_id}`}
+      to={linkPath}
       className={`group${!did.visible ? ' opacity-50 grayscale' : ''} border border-neutral-200 rounded-lg dark:border-neutral-800`}
     >
       <div className='overflow-hidden rounded-t-lg relative bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center aspect-square'>
-        <UserIcon className='h-12 w-12 text-neutral-400 dark:text-neutral-600' />
+        {groupMode === NftGroupMode.OwnerDid ? (
+          <UserIcon className='h-12 w-12 text-neutral-400 dark:text-neutral-600' />
+        ) : (
+          <Paintbrush className='h-12 w-12 text-neutral-400 dark:text-neutral-600' />
+        )}
       </div>
       <div className='border-t bg-white text-neutral-950 shadow dark:bg-neutral-900 dark:text-neutral-50 text-md flex items-center justify-between rounded-b-lg p-2 pl-3'>
         <span className='truncate'>
           <span className='font-medium leading-none truncate'>
-            {did.name ?? <Trans>Unnamed Profile</Trans>}
+            {did.name ?? defaultName}
           </span>
           <p className='text-xs text-muted-foreground truncate'>
             {did.launcher_id}
