@@ -23,7 +23,6 @@ import useInitialization from './hooks/useInitialization';
 import { useWallet } from './hooks/useWallet';
 import { loadCatalog } from './i18n';
 import Addresses from './pages/Addresses';
-import Collection from './pages/Collection';
 import CreateProfile from './pages/CreateProfile';
 import CreateWallet from './pages/CreateWallet';
 import { DidList } from './pages/DidList';
@@ -77,10 +76,10 @@ const router = createHashRouter(
       <Route path='/nfts' element={<Wallet />}>
         <Route path='' element={<NftList />} />
         <Route path=':launcher_id' element={<Nft />} />
+        <Route path='collections/:collection_id' element={<NftList />} />
+        <Route path='owners/:owner_did' element={<NftList />} />
+        <Route path='minters/:minter_did' element={<NftList />} />
         <Route path='mint' element={<MintNft />} />
-      </Route>
-      <Route path='/collections' element={<Wallet />}>
-        <Route path=':collection_id' element={<Collection />} />
       </Route>
       <Route path='/dids' element={<Wallet />}>
         <Route path='' element={<DidList />} />

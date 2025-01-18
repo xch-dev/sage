@@ -20,7 +20,7 @@ import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { EyeIcon, EyeOff, ImagePlusIcon, MoreVerticalIcon } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   commands,
   events,
@@ -31,7 +31,7 @@ import {
 
 export function NftList() {
   const navigate = useNavigate();
-
+  const { collection_id: collectionId, owner_did: ownerDid } = useParams();
   const { addError } = useErrors();
 
   const [params, setParams] = useNftParams();
@@ -40,25 +40,40 @@ export function NftList() {
   const [nfts, setNfts] = useState<NftRecord[]>([]);
   const [collections, setCollections] = useState<NftCollectionRecord[]>([]);
   const [dids, setDids] = useState<DidRecord[]>([]);
+  const [collection, setCollection] = useState<NftCollectionRecord | null>(null);
   const [multiSelect, setMultiSelect] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const updateNfts = useCallback(
     async (page: number) => {
+      console.log('updateNfts called with:', { page, collectionId, group });
+      
       setIsLoading(true);
       try {
-        if (group === NftGroupMode.None) {
-          await commands
-            .getNfts({
-              name: query || null,
-              offset: (page - 1) * pageSize,
-              limit: pageSize,
-              sort_mode: sort,
-              include_hidden: showHidden,
-            })
-            .then((data) => setNfts(data.nfts))
-            .catch(addError);
+        if (collectionId || ownerDid || group === NftGroupMode.None) {
+          const params = {
+            name: query || null,
+            collection_id: collectionId ?? null,
+            owner_did_id: ownerDid ?? null,
+            offset: (page - 1) * pageSize,
+            limit: pageSize,
+            sort_mode: sort,
+            include_hidden: showHidden,
+          };
+          console.log('getNfts params:', params);
+          
+          const response = await commands.getNfts(params);
+          console.log('getNfts response:', response);
+          setNfts(response.nfts);
+
+          if (collectionId) {
+            const collectionResponse = await commands.getNftCollection({
+              collection_id: collectionId === 'No collection' ? null : collectionId,
+            });
+            console.log('collection response:', collectionResponse);
+            setCollection(collectionResponse.collection);
+          }
         } else if (group === NftGroupMode.Collection) {
           await commands
             .getNftCollections({
@@ -78,12 +93,12 @@ export function NftList() {
         setIsLoading(false);
       }
     },
-    [pageSize, showHidden, sort, group, query, addError],
+    [pageSize, showHidden, sort, group, query, collectionId, ownerDid, addError],
   );
 
   useEffect(() => {
     updateNfts(1);
-  }, [updateNfts]);
+  }, [updateNfts, collectionId, ownerDid]);
 
   useEffect(() => {
     const unlisten = events.syncEvent.listen((event) => {
@@ -103,13 +118,17 @@ export function NftList() {
     };
   }, [updateNfts, page]);
 
-  useEffect(() => {
-    updateNfts(page);
-  }, [updateNfts, page]);
-
   return (
     <>
-      <Header title={<Trans>NFTs</Trans>}>
+      <Header 
+        title={
+          collectionId 
+            ? collection?.name ?? t`Unknown Collection`
+            : ownerDid
+            ? ownerDid === 'No did' ? t`Unassigned NFTs` : t`Profile NFTs`
+            : <Trans>NFTs</Trans>
+        }
+      >
         <ReceiveAddress />
       </Header>
 
@@ -132,7 +151,7 @@ export function NftList() {
         />
 
         <NftCardList>
-          {group === NftGroupMode.Collection ? (
+          {(!collectionId && !ownerDid && group === NftGroupMode.Collection) ? (
             <>
               {collections.map((col, i) => (
                 <Collection
@@ -155,7 +174,7 @@ export function NftList() {
                 />
               )}
             </>
-          ) : group === NftGroupMode.Did ? (
+          ) : (!collectionId && !ownerDid && group === NftGroupMode.Did) ? (
             <>
               {dids.map((did, i) => (
                 <DidGroup
@@ -232,7 +251,7 @@ function Collection({ col }: CollectionProps) {
   return (
     <>
       <Link
-        to={`/collections/${col.collection_id}`}
+        to={`/nfts/collections/${col.collection_id}`}
         className={`group${`${!col.visible ? ' opacity-50 grayscale' : ''}`} border border-neutral-200 rounded-lg dark:border-neutral-800`}
       >
         <div className='overflow-hidden rounded-t-lg relative'>
@@ -248,7 +267,7 @@ function Collection({ col }: CollectionProps) {
         <div className='border-t bg-white text-neutral-950 shadow  dark:bg-neutral-900 dark:text-neutral-50 text-md flex items-center justify-between rounded-b-lg p-2 pl-3'>
           <span className='truncate'>
             <span className='font-medium leading-none truncate'>
-              {col.name ?? <Trans>Unnamed</Trans>}
+              {col.name ?? t`Unnamed`}
             </span>
             {col.collection_id && (
               <p className='text-xs text-muted-foreground truncate'>
@@ -296,7 +315,7 @@ interface DidGroupProps {
 function DidGroup({ did }: DidGroupProps) {
   return (
     <Link
-      to={`/dids/${did.launcher_id}/nfts`}
+      to={`/nfts/owners/${did.launcher_id}`}
       className={`group${did.visible ? ' opacity-50 grayscale' : ''} border border-neutral-200 rounded-lg dark:border-neutral-800`}
     >
       <div className='overflow-hidden rounded-t-lg relative'>
