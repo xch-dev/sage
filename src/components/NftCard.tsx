@@ -69,6 +69,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from './ui/select';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from './ui/tooltip';
 
 export interface NftProps {
   nft: NftRecord;
@@ -192,14 +198,23 @@ export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
         }}
       >
         <div className='overflow-hidden rounded-t-lg relative'>
-          <img
-            alt={nft.name ?? t`Unnamed`}
-            loading='lazy'
-            width='150'
-            height='150'
-            className='h-auto w-auto object-cover transition-all group-hover:scale-105 aspect-square color-[transparent]'
-            src={nftUri(data?.mime_type ?? null, data?.blob ?? null)}
-          />
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <img
+                  alt={nft.name ?? t`Unnamed`}
+                  loading='lazy'
+                  width='150'
+                  height='150'
+                  className='h-auto w-auto object-cover transition-all group-hover:scale-105 aspect-square color-[transparent]'
+                  src={nftUri(data?.mime_type ?? null, data?.blob ?? null)}
+                />
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{nft.name ?? t`Unnamed`}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
 
           {selectionState !== null && (
             <Checkbox
