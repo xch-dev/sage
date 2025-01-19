@@ -15,7 +15,6 @@ import {
 import { useErrors } from '@/hooks/useErrors';
 import { useNftParams, NftGroupMode } from '@/hooks/useNftParams';
 import collectionImage from '@/images/collection.png';
-import profileImage from '@/images/profile.png';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { EyeIcon, EyeOff, ImagePlusIcon, MoreVerticalIcon, UserIcon, Paintbrush } from 'lucide-react';
@@ -102,13 +101,8 @@ export function NftList() {
               },
             );
           } else if (minterDid) {
-            const didResponse = await commands.getDids({});
-            console.log('minter DIDs response:', didResponse);
-            const foundDid = didResponse.dids.find(
-              (did) => did.launcher_id === minterDid,
-            );
             setOwner(
-              foundDid || {
+              {
                 name: minterDid,
                 launcher_id: minterDid,
                 visible: true,
