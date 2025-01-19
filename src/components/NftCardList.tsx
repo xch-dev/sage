@@ -3,7 +3,13 @@ import { NftGroupCard } from '@/components/NftGroupCard';
 import { NftGroupMode } from '@/hooks/useNftParams';
 import { t } from '@lingui/core/macro';
 import { ReactNode } from 'react';
-import { NftCollectionRecord, NftRecord, DidRecord, commands, Error } from '../bindings';
+import {
+  NftCollectionRecord,
+  NftRecord,
+  DidRecord,
+  commands,
+  Error,
+} from '../bindings';
 
 interface NftCardListProps {
   collectionId?: string;
@@ -41,7 +47,12 @@ export function NftCardList({
   children,
 }: NftCardListProps) {
   const renderContent = () => {
-    if (!collectionId && !ownerDid && !minterDid && group === NftGroupMode.Collection) {
+    if (
+      !collectionId &&
+      !ownerDid &&
+      !minterDid &&
+      group === NftGroupMode.Collection
+    ) {
       return (
         <>
           {collections.map((col, i) => (
@@ -136,7 +147,9 @@ export function NftCardList({
                   if (value && !selected.includes(nft.launcher_id)) {
                     setSelected?.([...selected, nft.launcher_id]);
                   } else if (!value && selected.includes(nft.launcher_id)) {
-                    setSelected?.(selected.filter((id) => id !== nft.launcher_id));
+                    setSelected?.(
+                      selected.filter((id) => id !== nft.launcher_id),
+                    );
                   }
                 },
               ]
@@ -146,8 +159,10 @@ export function NftCardList({
     ));
   };
 
-  return <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6 mb-2">
-    {renderContent()}
-    {children}
-  </div>;
+  return (
+    <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6 mb-2'>
+      {renderContent()}
+      {children}
+    </div>
+  );
 }
