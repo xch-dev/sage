@@ -57,9 +57,7 @@ export function NftOptions({
   const { collection_id, owner_did, minter_did } = useParams();
   const navigate = useNavigate();
   const isFilteredView = Boolean(collection_id || owner_did || minter_did);
-
-  const showSearch = group === NftGroupMode.None || isFilteredView;
-
+  const allowSearch = group === NftGroupMode.None || isFilteredView;
   const handleBack = () => {
     if (collection_id) {
       setParams({ group: NftGroupMode.Collection, page: 1 });
@@ -73,32 +71,32 @@ export function NftOptions({
 
   return (
     <div className={`flex flex-col gap-4 ${className}`}>
-      {showSearch && (
-        <div className='relative flex-1'>
-          <div className='relative'>
-            <SearchIcon className='absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
-            <Input
-              value={query ?? ''}
-              aria-label={t`Search NFTs by name`}
-              title={t`Search NFTs by name`}
-              onChange={(e) => setParams({ query: e.target.value, page: 1 })}
-              className='w-full pl-8 pr-8'
-            />
-          </div>
-          {query && (
-            <Button
-              variant='ghost'
-              size='icon'
-              title={t`Clear search`}
-              aria-label={t`Clear search`}
-              className='absolute right-0 top-0 h-full px-2 hover:bg-transparent'
-              onClick={() => setParams({ query: '', page: 1 })}
-            >
-              <XIcon className='h-4 w-4' />
-            </Button>
-          )}
+      <div className='relative flex-1'>
+        <div className='relative'>
+          <SearchIcon className='absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
+          <Input
+            value={query ?? ''}
+            aria-label={t`Search NFTs by name`}
+            title={t`Search NFTs by name`}
+            onChange={(e) => setParams({ query: e.target.value, page: 1 })}
+            className='w-full pl-8 pr-8'
+            disabled={!allowSearch}
+          />
         </div>
-      )}
+        {query && (
+          <Button
+            variant='ghost'
+            size='icon'
+            title={t`Clear search`}
+            aria-label={t`Clear search`}
+            className='absolute right-0 top-0 h-full px-2 hover:bg-transparent'
+            onClick={() => setParams({ query: '', page: 1 })}
+            disabled={!allowSearch}
+          >
+            <XIcon className='h-4 w-4' />
+          </Button>
+        )}
+      </div>
 
       <div className='flex items-center justify-between'>
         <div className='flex gap-3 items-center'>
@@ -266,6 +264,7 @@ export function NftOptions({
                       setParams({
                         page: 1,
                         group: NftGroupMode.Collection,
+                        query: '',
                       });
                     }}
                   >
@@ -282,6 +281,7 @@ export function NftOptions({
                       setParams({
                         page: 1,
                         group: NftGroupMode.OwnerDid,
+                        query: '',
                       });
                     }}
                   >
@@ -298,6 +298,7 @@ export function NftOptions({
                       setParams({
                         page: 1,
                         group: NftGroupMode.MinterDid,
+                        query: '',
                       });
                     }}
                   >

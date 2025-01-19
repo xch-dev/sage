@@ -76,7 +76,7 @@ export function NftList() {
           const params = {
             name: query || null,
             collection_id: collectionId ?? null,
-            owner_did_id: ownerDid === 'No did' ? "none"  : (ownerDid ?? null ),
+            owner_did_id: ownerDid === 'No did' ? 'none' : (ownerDid ?? null),
             minter_did_id: minterDid ?? null,
             offset: (page - 1) * pageSize,
             limit: pageSize,
@@ -84,14 +84,7 @@ export function NftList() {
             include_hidden: showHidden,
           };
 
-          console.log('Fetching NFTs with params:', params);
           const response = await commands.getNfts(params);
-          console.log('NFTs response:', response);
-          console.log(
-            'NFTs owner_dids:',
-            response.nfts.map((nft) => nft.owner_did),
-          );
-
           setNfts(response.nfts);
 
           if (collectionId) {
@@ -111,7 +104,7 @@ export function NftList() {
                 launcher_id: 'No did',
                 visible: true,
                 coin_id: 'No coin',
-                address: 'no address',
+                address: 'No address',
                 amount: 0,
                 created_height: 0,
                 create_transaction_id: 'No transaction',
@@ -124,7 +117,7 @@ export function NftList() {
               launcher_id: minterDid,
               visible: true,
               coin_id: 'No coin',
-              address: 'no address',
+              address: 'No address',
               amount: 0,
               created_height: 0,
               create_transaction_id: 'No transaction',
@@ -147,14 +140,13 @@ export function NftList() {
             .catch(addError);
         } else if (group === NftGroupMode.MinterDid) {
           const uniqueMinterDids = await commands.getMinterDidIds({});
-          console.log('Unique minter DIDs:', uniqueMinterDids);
           const minterDids: DidRecord[] = uniqueMinterDids.did_ids.map(
             (did) => ({
               name: `Creator ${did.slice(0, 16)}...`,
               launcher_id: did,
               visible: true,
               coin_id: 'No coin',
-              address: 'no address',
+              address: 'No address',
               amount: 0,
               created_height: 0,
               create_transaction_id: 'No transaction',
@@ -221,11 +213,23 @@ export function NftList() {
       return nfts.length === pageSize;
     } else if (group === NftGroupMode.Collection) {
       return collections.length === pageSize;
-    } else if (group === NftGroupMode.OwnerDid || group === NftGroupMode.MinterDid) {
+    } else if (
+      group === NftGroupMode.OwnerDid ||
+      group === NftGroupMode.MinterDid
+    ) {
       return dids.length === pageSize;
     }
     return false;
-  }, [collectionId, ownerDid, minterDid, group, nfts.length, collections.length, dids.length, pageSize]);
+  }, [
+    collectionId,
+    ownerDid,
+    minterDid,
+    group,
+    nfts.length,
+    collections.length,
+    dids.length,
+    pageSize,
+  ]);
 
   return (
     <>
@@ -330,7 +334,7 @@ export function NftList() {
                   launcher_id: 'No did',
                   visible: true,
                   coin_id: 'No coin',
-                  address: 'no address',
+                  address: 'No address',
                   amount: 0,
                   created_height: 0,
                   create_transaction_id: 'No transaction',
@@ -468,7 +472,7 @@ function DidGroup({ did, groupMode, updateNfts, page }: DidGroupProps) {
     groupMode === NftGroupMode.OwnerDid ? (
       <Trans>Untitled Profile</Trans>
     ) : (
-      <Trans>Unnamed Creator</Trans>
+      <Trans>Unknown Creator</Trans>
     );
 
   return (
