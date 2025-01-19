@@ -73,7 +73,7 @@ export function NftGroupCard({
     return groupMode === NftGroupMode.OwnerDid ? (
       <Trans>Untitled Profile</Trans>
     ) : (
-      <Trans>Unknown Creator</Trans>
+      <Trans>Unknown Minter</Trans>
     );
   };
 

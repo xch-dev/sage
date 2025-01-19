@@ -26,6 +26,41 @@ import {
 } from '@/components/ui/tooltip';
 import { NftGroupCard } from '@/components/NftGroupCard';
 
+function getGroupTitle(params: {
+  collectionId?: string | null;
+  collection?: NftCollectionRecord | null;
+  ownerDid?: string | null;
+  owner?: DidRecord | null;
+  minterDid?: string | null;
+  group?: NftGroupMode;
+}) {
+  const { collectionId, collection, ownerDid, owner, minterDid, group } =
+    params;
+
+  if (collectionId) {
+    if (collection?.name === 'Uncategorized') return t`No Collection`;
+    return collection?.name ?? t`No Collection`;
+  }
+  if (ownerDid) {
+    return owner?.name ?? t`Untitled Profile`;
+  }
+  if (minterDid) {
+    if (minterDid === 'No did') return t`Unknown Minter`;
+    return minterDid;
+  }
+
+  switch (group) {
+    case NftGroupMode.Collection:
+      return t`Collections`;
+    case NftGroupMode.OwnerDid:
+      return t`Owner Profiles`;
+    case NftGroupMode.MinterDid:
+      return t`Minters`;
+    default:
+      return t`NFTs`;
+  }
+}
+
 export function NftList() {
   const navigate = useNavigate();
   const {
@@ -64,9 +99,13 @@ export function NftList() {
           // - null means all nfts for the given group
           const params = {
             name: query || null,
-            collection_id: collectionId === 'No collection' ? 'none' : (collectionId ?? null),
+            collection_id:
+              collectionId === 'No collection'
+                ? 'none'
+                : (collectionId ?? null),
             owner_did_id: ownerDid === 'No did' ? 'none' : (ownerDid ?? null),
-            minter_did_id: minterDid === 'No did' ? 'none' : (minterDid ?? null),
+            minter_did_id:
+              minterDid === 'No did' ? 'none' : (minterDid ?? null),
             offset: (page - 1) * pageSize,
             limit: pageSize,
             sort_mode: sort,
@@ -227,27 +266,25 @@ export function NftList() {
           <Tooltip>
             <TooltipTrigger asChild>
               <div className='truncate max-w-[300px]'>
-                {collectionId ? (
-                  (collection?.name ?? t`Unknown Collection`)
-                ) : ownerDid ? (
-                  (owner?.name ?? t`Untitled Profile`)
-                ) : minterDid ? (
-                  (owner?.name ?? t`Unknown Creator`)
-                ) : (
-                  <Trans>NFTs</Trans>
-                )}
+                {getGroupTitle({
+                  collectionId,
+                  collection,
+                  ownerDid,
+                  owner,
+                  minterDid,
+                  group,
+                })}
               </div>
             </TooltipTrigger>
             <TooltipContent>
-              {collectionId ? (
-                (collection?.name ?? t`Unknown Collection`)
-              ) : ownerDid ? (
-                (owner?.name ?? t`Untitled Profile`)
-              ) : minterDid ? (
-                (owner?.name ?? t`Unknown Creator`)
-              ) : (
-                <Trans>NFTs</Trans>
-              )}
+              {getGroupTitle({
+                collectionId,
+                collection,
+                ownerDid,
+                owner,
+                minterDid,
+                group,
+              })}
             </TooltipContent>
           </Tooltip>
         }
@@ -301,10 +338,10 @@ export function NftList() {
                 <NftGroupCard
                   type='collection'
                   item={{
-                    name: 'Uncategorized NFTs',
+                    name: t`No Collection`,
                     icon: '',
                     did_id: 'Miscellaneous',
-                    metadata_collection_id: 'Uncategorized',
+                    metadata_collection_id: 'Uncategorized NFTs',
                     collection_id: 'No collection',
                     visible: true,
                   }}
@@ -333,7 +370,7 @@ export function NftList() {
                 type='did'
                 groupMode={group}
                 item={{
-                  name: 'Unassigned NFTs',
+                  name: group === NftGroupMode.OwnerDid ? t`Unassigned NFTs` : t`Unknown Minter`,
                   launcher_id: 'No did',
                   visible: true,
                   coin_id: 'No coin',
