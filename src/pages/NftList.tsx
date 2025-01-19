@@ -5,7 +5,6 @@ import { NftCard, NftCardList } from '@/components/NftCard';
 import { NftOptions } from '@/components/NftOptions';
 import { ReceiveAddress } from '@/components/ReceiveAddress';
 import { Button } from '@/components/ui/button';
-
 import { useErrors } from '@/hooks/useErrors';
 import { useNftParams, NftGroupMode } from '@/hooks/useNftParams';
 import { t } from '@lingui/core/macro';
@@ -25,7 +24,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { NftGroupCard } from '../components/NftGroupCard';
+import { NftGroupCard } from '@/components/NftGroupCard';
 
 export function NftList() {
   const navigate = useNavigate();

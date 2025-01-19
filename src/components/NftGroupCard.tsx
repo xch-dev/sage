@@ -19,6 +19,7 @@ import {
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
 import collectionImage from '@/images/collection.png';
+import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 
 interface NftGroupCardProps {
   type: 'collection' | 'did';
@@ -38,7 +39,7 @@ export function NftGroupCard({
   onToggleVisibility,
 }: NftGroupCardProps) {
   const isCollection = type === 'collection';
-
+  const allowToggleVisibility = false; //isCollection && onToggleVisibility; // not implemented yet
   // Type guards to help TypeScript narrow the types
   const isDidRecord = (
     item: NftCollectionRecord | DidRecord,
@@ -86,68 +87,80 @@ export function NftGroupCard({
   };
 
   return (
-    <div onClick={() => updateNfts(page)}>
-      <Link
-        to={getLinkPath()}
-        className={`group${!item.visible ? ' opacity-50 grayscale' : ''} border border-neutral-200 rounded-lg dark:border-neutral-800`}
-      >
-        <div className='overflow-hidden rounded-t-lg relative'>
-          {isCollection ? (
-            <img
-              alt={item.name ?? t`Unnamed`}
-              loading='lazy'
-              width='150'
-              height='150'
-              className='h-auto w-auto object-cover transition-all group-hover:scale-105 aspect-square color-[transparent]'
-              src={collectionImage}
-            />
-          ) : (
-            <div className='bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center aspect-square'>
-              {groupMode === NftGroupMode.OwnerDid ? (
-                <UserIcon className='h-12 w-12 text-neutral-400 dark:text-neutral-600' />
-              ) : (
-                <Paintbrush className='h-12 w-12 text-neutral-400 dark:text-neutral-600' />
-              )}
-            </div>
-          )}
-        </div>
-        <div className='border-t bg-white text-neutral-950 shadow dark:bg-neutral-900 dark:text-neutral-50 text-md flex items-center justify-between rounded-b-lg p-2 pl-3'>
-          <span className='truncate'>
-            <span className='font-medium leading-none truncate'>
-              {item.name ?? getDefaultName()}
-            </span>
-            <p className='text-xs text-muted-foreground truncate'>{getId()}</p>
+    <div
+      onClick={() => updateNfts(page)}
+      className='cursor-pointer group border border-neutral-200 dark:border-neutral-800 rounded-lg'
+    >
+      <div className='overflow-hidden rounded-t-lg relative'>
+        {isCollection ? (
+          <img
+            alt={item.name ?? t`Unnamed`}
+            loading='lazy'
+            width='150'
+            height='150'
+            className='h-auto w-auto object-cover transition-all group-hover:scale-105 aspect-square color-[transparent]'
+            src={collectionImage}
+          />
+        ) : (
+          <div className='bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center aspect-square'>
+            {groupMode === NftGroupMode.OwnerDid ? (
+              <UserIcon className='h-12 w-12 text-neutral-400 dark:text-neutral-600' />
+            ) : (
+              <Paintbrush className='h-12 w-12 text-neutral-400 dark:text-neutral-600' />
+            )}
+          </div>
+        )}
+      </div>
+      <div className='border-t border-neutral-200 bg-white text-neutral-950 shadow dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-50 text-md flex items-center justify-between rounded-b-lg p-2 pl-3'>
+        <span className='truncate'>
+          <span className='font-medium leading-none truncate block'>
+            {item.name ?? getDefaultName()}
           </span>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <p className='text-xs text-muted-foreground truncate'>
+                {getId()}
+              </p>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{getId()}</p>
+            </TooltipContent>
+          </Tooltip>
+        </span>
 
-          {isCollection && onToggleVisibility && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant='ghost' size='icon'>
-                  <MoreVerticalIcon className='h-5 w-5' />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align='end'>
-                <DropdownMenuGroup>
-                  <DropdownMenuItem
-                    className='cursor-pointer'
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onToggleVisibility();
-                    }}
-                  >
-                    {item.visible ? (
-                      <EyeOff className='mr-2 h-4 w-4' />
-                    ) : (
-                      <EyeIcon className='mr-2 h-4 w-4' />
-                    )}
-                    <span>{item.visible ? t`Hide` : t`Show`}</span>
-                  </DropdownMenuItem>
-                </DropdownMenuGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-        </div>
-      </Link>
+        {allowToggleVisibility && onToggleVisibility && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant='ghost'
+                size='icon'
+                onClick={(e) => e.stopPropagation()}
+                aria-label={t`NFT options`}
+              >
+                <MoreVerticalIcon className='h-5 w-5' />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align='end'>
+              <DropdownMenuGroup>
+                <DropdownMenuItem
+                  className='cursor-pointer'
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleVisibility();
+                  }}
+                >
+                  {item.visible ? (
+                    <EyeOff className='mr-2 h-4 w-4' />
+                  ) : (
+                    <EyeIcon className='mr-2 h-4 w-4' />
+                  )}
+                  <span>{item.visible ? t`Hide` : t`Show`}</span>
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+      </div>
     </div>
   );
 }
