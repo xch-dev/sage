@@ -44,7 +44,7 @@ export function NftList() {
   useEffect(() => {
     setMultiSelect(false);
     setSelected([]);
-  }, [collectionId, ownerDid, group]);
+  }, [collectionId, ownerDid, minterDid, group]);
 
   const canLoadMore = useCallback(() => {
     if (collectionId || ownerDid || minterDid || group === NftGroupMode.None) {

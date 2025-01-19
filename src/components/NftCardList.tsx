@@ -2,7 +2,7 @@ import { NftCard } from '@/components/NftCard';
 import { NftGroupCard } from '@/components/NftGroupCard';
 import { NftGroupMode } from '@/hooks/useNftParams';
 import { t } from '@lingui/core/macro';
-import { ReactNode } from 'react';
+import { ReactNode, useCallback } from 'react';
 import {
   NftCollectionRecord,
   NftRecord,
@@ -24,7 +24,7 @@ interface NftCardListProps {
   page: number;
   multiSelect?: boolean;
   selected?: string[];
-  setSelected?: (selected: string[]) => void;
+  setSelected?: React.Dispatch<React.SetStateAction<string[]>>;
   addError?: (error: Error) => void;
   children?: ReactNode;
 }
@@ -46,6 +46,26 @@ export function NftCardList({
   addError,
   children,
 }: NftCardListProps) {
+  const handleSelection = useCallback(
+    (id: string) => {
+      if (!multiSelect || !setSelected) return;
+
+      setSelected((prev: string[]) => {
+        const newSelected = [...prev];
+        const index = newSelected.indexOf(id);
+
+        if (index === -1) {
+          newSelected.push(id);
+        } else {
+          newSelected.splice(index, 1);
+        }
+
+        return newSelected;
+      });
+    },
+    [multiSelect, setSelected],
+  );
+
   const renderContent = () => {
     if (
       !collectionId &&
@@ -143,15 +163,7 @@ export function NftCardList({
           multiSelect
             ? [
                 selected.includes(nft.launcher_id),
-                (value) => {
-                  if (value && !selected.includes(nft.launcher_id)) {
-                    setSelected?.([...selected, nft.launcher_id]);
-                  } else if (!value && selected.includes(nft.launcher_id)) {
-                    setSelected?.(
-                      selected.filter((id) => id !== nft.launcher_id),
-                    );
-                  }
-                },
+                () => handleSelection(nft.launcher_id),
               ]
             : null
         }
