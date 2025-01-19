@@ -225,12 +225,31 @@ export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
         </div>
         <div className='border border-neutral-200 bg-white text-neutral-950 shadow dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-50 text-md flex items-center justify-between rounded-b-lg p-2 pl-3'>
           <span className='truncate'>
-            <span className='font-medium leading-none truncate'>
-              {nft.name ?? t`Unnamed`}
-            </span>
-            <p className='text-xs text-muted-foreground truncate'>
-              {nft.collection_name ?? t`No collection`}
-            </p>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className='font-medium leading-none truncate block'>
+                    {nft.name ?? t`Unnamed`}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{nft.name ?? t`Unnamed`}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <p className='text-xs text-muted-foreground truncate'>
+                    {nft.collection_name ?? t`No collection`}
+                  </p>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{nft.collection_name ?? t`No collection`}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </span>
 
           <DropdownMenu>
