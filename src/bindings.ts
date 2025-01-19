@@ -116,6 +116,9 @@ async getCat(req: GetCat) : Promise<GetCatResponse> {
 async getDids(req: GetDids) : Promise<GetDidsResponse> {
     return await TAURI_INVOKE("get_dids", { req });
 },
+async getMinterDidIds(req: GetMinterDidIds) : Promise<GetMinterDidIdsResponse> {
+    return await TAURI_INVOKE("get_minter_did_ids", { req });
+},
 async getNftCollections(req: GetNftCollections) : Promise<GetNftCollectionsResponse> {
     return await TAURI_INVOKE("get_nft_collections", { req });
 },
@@ -293,6 +296,8 @@ export type GetKey = { fingerprint?: number | null }
 export type GetKeyResponse = { key: KeyInfo | null }
 export type GetKeys = Record<string, never>
 export type GetKeysResponse = { keys: KeyInfo[] }
+export type GetMinterDidIds = Record<string, never>
+export type GetMinterDidIdsResponse = { did_ids: string[] }
 export type GetNetworks = Record<string, never>
 export type GetNetworksResponse = { networks: { [key in string]: Network } }
 export type GetNft = { nft_id: string }

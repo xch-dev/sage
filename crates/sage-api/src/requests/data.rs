@@ -77,6 +77,14 @@ pub struct GetDidsResponse {
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Type)]
+pub struct GetMinterDidIds {}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct GetMinterDidIdsResponse {
+    pub did_ids: Vec<String>,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Type)]
 pub struct GetPendingTransactions {}
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
