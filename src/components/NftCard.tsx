@@ -26,7 +26,7 @@ import {
   SendIcon,
   UserRoundPlus,
 } from 'lucide-react';
-import { PropsWithChildren, useEffect, useState } from 'react';
+import { useEffect, useState, memo } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
@@ -82,15 +82,17 @@ export interface NftProps {
   selectionState: [boolean, (value: boolean) => void] | null;
 }
 
-export function NftCardList({ children }: PropsWithChildren) {
-  return (
-    <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mt-6 mb-2 p-0.5'>
-      {children}
-    </div>
-  );
+interface NftCardProps {
+  nft: NftRecord;
+  updateNfts: () => void;
+  selectionState: [boolean, (value: boolean) => void] | null;
 }
 
-export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
+const NftCardComponent = ({
+  nft,
+  updateNfts,
+  selectionState,
+}: NftCardProps) => {
   const walletState = useWalletState();
   const offerState = useOfferState();
   const navigate = useNavigate();
@@ -527,4 +529,13 @@ export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
       />
     </>
   );
-}
+};
+
+export const NftCard = memo(NftCardComponent, (prevProps, nextProps) => {
+  // Only re-render if these props change
+  return (
+    prevProps.nft.launcher_id === nextProps.nft.launcher_id &&
+    prevProps.nft.visible === nextProps.nft.visible &&
+    prevProps.selectionState?.[0] === nextProps.selectionState?.[0]
+  );
+});

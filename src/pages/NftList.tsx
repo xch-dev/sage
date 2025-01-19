@@ -1,13 +1,13 @@
 import Container from '@/components/Container';
 import Header from '@/components/Header';
 import { MultiSelectActions } from '@/components/MultiSelectActions';
-import { NftCard, NftCardList } from '@/components/NftCard';
+import { NftPageTitle } from '@/components/NftPageTitle';
+import { NftCardList } from '@/components/NftCardList';
 import { NftOptions } from '@/components/NftOptions';
 import { ReceiveAddress } from '@/components/ReceiveAddress';
 import { Button } from '@/components/ui/button';
 import { useErrors } from '@/hooks/useErrors';
 import { useNftParams, NftGroupMode } from '@/hooks/useNftParams';
-import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { ImagePlusIcon } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
@@ -19,46 +19,20 @@ import {
   NftRecord,
   DidRecord,
 } from '../bindings';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-import { NftGroupCard } from '@/components/NftGroupCard';
 
-function getGroupTitle(params: {
-  collectionId?: string | null;
-  collection?: NftCollectionRecord | null;
-  ownerDid?: string | null;
-  owner?: DidRecord | null;
-  minterDid?: string | null;
-  group?: NftGroupMode;
-}) {
-  const { collectionId, collection, ownerDid, owner, minterDid, group } =
-    params;
-
-  if (collectionId) {
-    if (collection?.name === 'Uncategorized') return t`No Collection`;
-    return collection?.name ?? t`No Collection`;
-  }
-  if (ownerDid) {
-    return owner?.name ?? t`Untitled Profile`;
-  }
-  if (minterDid) {
-    if (minterDid === 'No did') return t`Unknown Minter`;
-    return minterDid;
-  }
-
-  switch (group) {
-    case NftGroupMode.Collection:
-      return t`Collections`;
-    case NftGroupMode.OwnerDid:
-      return t`Owner Profiles`;
-    case NftGroupMode.MinterDid:
-      return t`Minters`;
-    default:
-      return t`NFTs`;
-  }
+// Add this helper function before the NftList component
+function createDefaultDidRecord(name: string, launcherId: string): DidRecord {
+  return {
+    name,
+    launcher_id: launcherId,
+    visible: true,
+    coin_id: 'No coin',
+    address: 'No address',
+    amount: 0,
+    created_height: 0,
+    create_transaction_id: 'No transaction',
+    recovery_hash: '',
+  };
 }
 
 export function NftList() {
@@ -69,10 +43,8 @@ export function NftList() {
     minter_did: minterDid,
   } = useParams();
   const { addError } = useErrors();
-
   const [params, setParams] = useNftParams();
-  const { pageSize, page, sort, group, showHidden, query } = params;
-
+  const { pageSize, sort, group, showHidden, query } = params;
   const [nfts, setNfts] = useState<NftRecord[]>([]);
   const [collections, setCollections] = useState<NftCollectionRecord[]>([]);
   const [dids, setDids] = useState<DidRecord[]>([]);
@@ -127,62 +99,45 @@ export function NftList() {
               (did) => did.launcher_id === ownerDid,
             );
             setOwner(
-              foundDid || {
-                name: 'Unassigned NFTs',
-                launcher_id: 'No did',
-                visible: true,
-                coin_id: 'No coin',
-                address: 'No address',
-                amount: 0,
-                created_height: 0,
-                create_transaction_id: 'No transaction',
-                recovery_hash: '',
-              },
+              foundDid || createDefaultDidRecord('Unassigned NFTs', 'No did')
             );
           } else if (minterDid) {
-            setOwner({
-              name: minterDid,
-              launcher_id: minterDid,
-              visible: true,
-              coin_id: 'No coin',
-              address: 'No address',
-              amount: 0,
-              created_height: 0,
-              create_transaction_id: 'No transaction',
-              recovery_hash: '',
-            });
+            setOwner(createDefaultDidRecord(minterDid, minterDid));
           }
         } else if (group === NftGroupMode.Collection) {
-          await commands
-            .getNftCollections({
+          try {
+            const response = await commands.getNftCollections({
               offset: (page - 1) * pageSize,
               limit: pageSize,
               include_hidden: showHidden,
-            })
-            .then((data) => setCollections(data.collections))
-            .catch(addError);
+            });
+            setCollections(response.collections);
+          } catch (error: any) {
+            setCollections([]);
+            addError(error);
+          }
         } else if (group === NftGroupMode.OwnerDid) {
-          await commands
-            .getDids({})
-            .then((data) => setDids(data.dids))
-            .catch(addError);
+          try {
+            const response = await commands.getDids({});
+            setDids(response.dids);
+          } catch (error: any) {
+            setDids([]);
+            addError(error);
+          }
         } else if (group === NftGroupMode.MinterDid) {
-          const uniqueMinterDids = await commands.getMinterDidIds({});
-          const minterDids: DidRecord[] = uniqueMinterDids.did_ids.map(
-            (did) => ({
-              name: `${did.replace('did:chia:', '').slice(0, 16)}...`,
-              launcher_id: did,
-              visible: true,
-              coin_id: 'No coin',
-              address: 'No address',
-              amount: 0,
-              created_height: 0,
-              create_transaction_id: 'No transaction',
-              recovery_hash: '',
-            }),
-          );
-
-          setDids(minterDids);
+          try {
+            const uniqueMinterDids = await commands.getMinterDidIds({});
+            const minterDids: DidRecord[] = uniqueMinterDids.did_ids.map(
+              (did) => createDefaultDidRecord(
+                `${did.replace('did:chia:', '').slice(0, 16)}...`,
+                did
+              )
+            );
+            setDids(minterDids);
+          } catch (error: any) {
+            setDids([]);
+            addError(error);
+          }
         }
       } catch (error: any) {
         console.error('Error fetching NFTs:', error);
@@ -205,8 +160,10 @@ export function NftList() {
   );
 
   useEffect(() => {
-    // Clear NFTs when view parameters change
+    // Clear all state when view parameters change
     setNfts([]);
+    setCollections([]);
+    setDids([]);
     setCollection(null);
     setOwner(null);
     updateNfts(params.page);
@@ -263,30 +220,14 @@ export function NftList() {
     <>
       <Header
         title={
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className='truncate max-w-[300px]'>
-                {getGroupTitle({
-                  collectionId,
-                  collection,
-                  ownerDid,
-                  owner,
-                  minterDid,
-                  group,
-                })}
-              </div>
-            </TooltipTrigger>
-            <TooltipContent>
-              {getGroupTitle({
-                collectionId,
-                collection,
-                ownerDid,
-                owner,
-                minterDid,
-                group,
-              })}
-            </TooltipContent>
-          </Tooltip>
+          <NftPageTitle
+            collectionId={collectionId}
+            collection={collection}
+            ownerDid={ownerDid}
+            owner={owner}
+            minterDid={minterDid}
+            group={group}
+          />
         }
       >
         <ReceiveAddress />
@@ -294,7 +235,7 @@ export function NftList() {
 
       <Container>
         <Button onClick={() => navigate('/nfts/mint')}>
-          <ImagePlusIcon className='h-4 w-4 mr-2' /> <Trans>Mint NFT</Trans>
+          <ImagePlusIcon className='h-4 w-4 mr-2' aria-hidden={true} /> <Trans>Mint NFT</Trans>
         </Button>
 
         <NftOptions
@@ -310,109 +251,22 @@ export function NftList() {
           canLoadMore={canLoadMore()}
         />
 
-        <NftCardList>
-          {!collectionId &&
-          !ownerDid &&
-          !minterDid &&
-          group === NftGroupMode.Collection ? (
-            <>
-              {collections.map((col, i) => (
-                <NftGroupCard
-                  key={i}
-                  type='collection'
-                  item={col}
-                  updateNfts={updateNfts}
-                  page={params.page}
-                  onToggleVisibility={() => {
-                    commands
-                      .updateNft({
-                        nft_id: col.collection_id,
-                        visible: !col.visible,
-                      })
-                      .then(() => updateNfts(params.page))
-                      .catch(addError);
-                  }}
-                />
-              ))}
-              {nfts.length < pageSize && (
-                <NftGroupCard
-                  type='collection'
-                  item={{
-                    name: t`No Collection`,
-                    icon: '',
-                    did_id: 'Miscellaneous',
-                    metadata_collection_id: 'Uncategorized NFTs',
-                    collection_id: 'No collection',
-                    visible: true,
-                  }}
-                  updateNfts={updateNfts}
-                  page={params.page}
-                />
-              )}
-            </>
-          ) : !collectionId &&
-            !ownerDid &&
-            !minterDid &&
-            (group === NftGroupMode.OwnerDid ||
-              group === NftGroupMode.MinterDid) ? (
-            <>
-              {dids.map((did, i) => (
-                <NftGroupCard
-                  key={i}
-                  type='did'
-                  groupMode={group}
-                  item={did}
-                  updateNfts={updateNfts}
-                  page={params.page}
-                />
-              ))}
-              <NftGroupCard
-                type='did'
-                groupMode={group}
-                item={{
-                  name: group === NftGroupMode.OwnerDid ? t`Unassigned NFTs` : t`Unknown Minter`,
-                  launcher_id: 'No did',
-                  visible: true,
-                  coin_id: 'No coin',
-                  address: 'No address',
-                  amount: 0,
-                  created_height: 0,
-                  create_transaction_id: 'No transaction',
-                  recovery_hash: '',
-                }}
-                updateNfts={updateNfts}
-                page={params.page}
-              />
-            </>
-          ) : (
-            nfts.map((nft, i) => (
-              <NftCard
-                nft={nft}
-                key={i}
-                updateNfts={() => updateNfts(params.page)}
-                selectionState={
-                  multiSelect
-                    ? [
-                        selected.includes(nft.launcher_id),
-                        (value) => {
-                          if (value && !selected.includes(nft.launcher_id)) {
-                            setSelected([...selected, nft.launcher_id]);
-                          } else if (
-                            !value &&
-                            selected.includes(nft.launcher_id)
-                          ) {
-                            setSelected(
-                              selected.filter((id) => id !== nft.launcher_id),
-                            );
-                          }
-                        },
-                      ]
-                    : null
-                }
-              />
-            ))
-          )}
-        </NftCardList>
+        <NftCardList
+          collectionId={collectionId}
+          ownerDid={ownerDid}
+          minterDid={minterDid}
+          group={group}
+          nfts={nfts}
+          collections={collections}
+          dids={dids}
+          pageSize={pageSize}
+          updateNfts={updateNfts}
+          page={params.page}
+          multiSelect={multiSelect}
+          selected={selected}
+          setSelected={setSelected}
+          addError={addError}
+        />
       </Container>
 
       {selected.length > 0 && (

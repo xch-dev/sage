@@ -93,25 +93,23 @@ export function NftGroupCard({
 
   if (error) {
     return (
-      <div 
-        className="border border-red-200 dark:border-red-800 rounded-lg p-4"
-        role="alert"
+      <div
+        className='border border-red-200 dark:border-red-800 rounded-lg p-4'
+        role='alert'
       >
-        <p className="text-red-600 dark:text-red-400">
-          {error.message}
-        </p>
+        <p className='text-red-600 dark:text-red-400'>{error.message}</p>
       </div>
     );
   }
 
   if (isLoading) {
     return (
-      <div 
-        className="border border-neutral-200 dark:border-neutral-800 rounded-lg p-4 animate-pulse"
+      <div
+        className='border border-neutral-200 dark:border-neutral-800 rounded-lg p-4 animate-pulse'
         aria-label={isCollection ? t`Loading collection` : t`Loading profile`}
       >
-        <div className="aspect-square bg-neutral-100 dark:bg-neutral-800 rounded-t-lg" />
-        <div className="h-6 bg-neutral-100 dark:bg-neutral-800 rounded mt-4" />
+        <div className='aspect-square bg-neutral-100 dark:bg-neutral-800 rounded-t-lg' />
+        <div className='h-6 bg-neutral-100 dark:bg-neutral-800 rounded mt-4' />
       </div>
     );
   }
@@ -129,16 +127,19 @@ export function NftGroupCard({
           navigate(getLinkPath());
         }
       }}
-      role="button"
+      role='button'
       tabIndex={0}
       className='cursor-pointer group border border-neutral-200 dark:border-neutral-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary'
-      aria-label={isCollection 
-        ? `Collection ${item.name || t`Unnamed`}`
-        : groupMode === NftGroupMode.OwnerDid 
-          ? `Profile ${item.name || t`Untitled Profile`}`
-          : `Minter ${item.name || t`Unknown Minter`}`
+      aria-label={
+        isCollection
+          ? `Collection ${item.name || t`Unnamed`}`
+          : groupMode === NftGroupMode.OwnerDid
+            ? `Profile ${item.name || t`Untitled Profile`}`
+            : `Minter ${item.name || t`Unknown Minter`}`
       }
-      aria-current={window.location.pathname === getLinkPath() ? 'page' : undefined}
+      aria-current={
+        window.location.pathname === getLinkPath() ? 'page' : undefined
+      }
     >
       <div className='overflow-hidden rounded-t-lg relative'>
         {isCollection ? (
@@ -151,14 +152,20 @@ export function NftGroupCard({
             src={collectionImage}
           />
         ) : (
-          <div 
+          <div
             className='bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center aspect-square'
-            aria-hidden="true"
+            aria-hidden='true'
           >
             {groupMode === NftGroupMode.OwnerDid ? (
-              <UserIcon className='h-12 w-12 text-neutral-400 dark:text-neutral-600' aria-hidden="true"/>
+              <UserIcon
+                className='h-12 w-12 text-neutral-400 dark:text-neutral-600'
+                aria-hidden='true'
+              />
             ) : (
-              <Paintbrush className='h-12 w-12 text-neutral-400 dark:text-neutral-600' aria-hidden="true"/>
+              <Paintbrush
+                className='h-12 w-12 text-neutral-400 dark:text-neutral-600'
+                aria-hidden='true'
+              />
             )}
           </div>
         )}
@@ -187,10 +194,12 @@ export function NftGroupCard({
                 variant='ghost'
                 size='icon'
                 onClick={(e) => e.stopPropagation()}
-                aria-label={item.visible ? t`Hide collection` : t`Show collection`}
-                aria-expanded="false"
+                aria-label={
+                  item.visible ? t`Hide collection` : t`Show collection`
+                }
+                aria-expanded='false'
               >
-                <MoreVerticalIcon className='h-5 w-5' aria-hidden="true"/>
+                <MoreVerticalIcon className='h-5 w-5' aria-hidden='true' />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align='end'>
@@ -203,9 +212,9 @@ export function NftGroupCard({
                   }}
                 >
                   {item.visible ? (
-                    <EyeOff className='mr-2 h-4 w-4' aria-hidden="true"/>
+                    <EyeOff className='mr-2 h-4 w-4' aria-hidden='true' />
                   ) : (
-                    <EyeIcon className='mr-2 h-4 w-4' aria-hidden="true"/>
+                    <EyeIcon className='mr-2 h-4 w-4' aria-hidden='true' />
                   )}
                   <span>{item.visible ? t`Hide` : t`Show`}</span>
                 </DropdownMenuItem>
