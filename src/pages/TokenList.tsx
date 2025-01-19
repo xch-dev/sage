@@ -11,18 +11,21 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { useErrors } from '@/hooks/useErrors';
 import { usePrices } from '@/hooks/usePrices';
 import { useTokenParams } from '@/hooks/useTokenParams';
 import { toDecimal } from '@/lib/utils';
+import { t } from '@lingui/core/macro';
+import { Trans } from '@lingui/react/macro';
 import {
   ArrowDown10,
   ArrowDownAz,
-  Coins,
-  InfoIcon,
   CircleDollarSign,
   CircleSlash,
+  Coins,
+  InfoIcon,
   SearchIcon,
   XIcon,
 } from 'lucide-react';
@@ -30,9 +33,11 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { CatRecord, commands, events } from '../bindings';
 import { useWalletState } from '../state';
-import { Trans } from '@lingui/react/macro';
-import { Input } from '@/components/ui/input';
-import { t } from '@lingui/core/macro';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 enum TokenView {
   Name = 'name',
@@ -156,6 +161,7 @@ export function TokenList() {
                 value={params.search}
                 aria-label={t`Search for a token`}
                 title={t`Search for a token`}
+                placeholder={t`Search tokens...`}
                 onChange={(e) => setParams({ search: e.target.value })}
                 className='w-full pl-8 pr-8'
               />
@@ -233,7 +239,7 @@ export function TokenList() {
               <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
                 <CardTitle className='text-md font-medium'>Chia</CardTitle>
                 <img
-                  alt={`XCH logo`}
+                  alt={t`XCH logo`}
                   className='h-6 w-6'
                   src='https://icons.dexie.space/xch.webp'
                 />
@@ -265,7 +271,7 @@ export function TokenList() {
               >
                 <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2 space-x-2'>
                   <CardTitle className='text-md font-medium truncate'>
-                    {cat.name || 'Unknown CAT'}
+                    {cat.name || t`Unknown CAT`}
                   </CardTitle>
                   {cat.icon_url && (
                     <img
@@ -280,7 +286,27 @@ export function TokenList() {
                     {toDecimal(cat.balance, 3)} {cat.ticker ?? ''}
                   </div>
                   <div className='text-sm text-neutral-500'>
-                    ~${cat.balanceInUsd}
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div>~${cat.balanceInUsd}</div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <span>
+                          1 {cat.ticker ?? 'CAT'}{' '}
+                          {Number(
+                            cat.balanceInUsd /
+                              Number(toDecimal(cat.balance, 3)),
+                          ) < 0.01
+                            ? ' < 0.01¢'
+                            : Number(
+                                  cat.balanceInUsd /
+                                    Number(toDecimal(cat.balance, 3)),
+                                ) < 0.01
+                              ? ` = ${((cat.balanceInUsd / Number(toDecimal(cat.balance, 3))) * 100).toFixed(2)}¢`
+                              : ` = $${(cat.balanceInUsd / Number(toDecimal(cat.balance, 3))).toFixed(2)}`}
+                        </span>
+                      </TooltipContent>
+                    </Tooltip>
                   </div>
                 </CardContent>
               </Card>

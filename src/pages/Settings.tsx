@@ -1,6 +1,7 @@
 import Container from '@/components/Container';
 import Header from '@/components/Header';
 import Layout from '@/components/Layout';
+import { PasteInput } from '@/components/PasteInput';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -16,12 +17,12 @@ import { Switch } from '@/components/ui/switch';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useErrors } from '@/hooks/useErrors';
 import useInitialization from '@/hooks/useInitialization';
+import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
 import { useWallet } from '@/hooks/useWallet';
 import { useWalletConnect } from '@/hooks/useWalletConnect';
 import { clearState, fetchState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import { getVersion } from '@tauri-apps/api/app';
 import { useContext, useEffect, useState } from 'react';
 import { DarkModeContext } from '../App';
 import {
@@ -32,6 +33,7 @@ import {
   WalletConfig,
 } from '../bindings';
 import { isValidU32 } from '../validation';
+import { getVersion } from '@tauri-apps/api/app';
 
 export default function Settings() {
   const initialized = useInitialization();
@@ -104,14 +106,18 @@ function GlobalSettings() {
 }
 
 function WalletConnectSettings() {
-  const { pair, sessions, disconnect } = useWalletConnect();
+  const { pair, sessions, disconnect, connecting } = useWalletConnect();
   const [uri, setUri] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
+  const { handleScanOrPaste } = useScannerOrClipboard((scanResValue) => {
+    setUri(scanResValue);
+  });
 
   const handlePair = async () => {
     try {
       setError(null);
       await pair(uri);
+      setUri('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to connect');
     }
@@ -128,7 +134,7 @@ function WalletConnectSettings() {
         <div className='grid gap-6'>
           <div className='flex flex-col gap-4'>
             <div className='flex flex-col gap-2'>
-              {sessions.map((session: any) => (
+              {sessions.map((session) => (
                 <div
                   key={session.topic}
                   className='flex items-center justify-between gap-1'
@@ -158,18 +164,26 @@ function WalletConnectSettings() {
                 </span>
               )}
             </div>
+
             <div className='flex flex-col gap-2'>
               <div className='flex gap-2'>
-                <Input
-                  id='wc-uri'
-                  type='text'
+                <PasteInput
+                  value={uri}
                   placeholder={t`Paste WalletConnect URI`}
                   onChange={(e) => setUri(e.target.value)}
+                  onEndIconClick={handleScanOrPaste}
+                  disabled={connecting}
                 />
-                <Button onClick={handlePair}>
-                  <Trans>Connect</Trans>
+
+                <Button onClick={handlePair} disabled={connecting}>
+                  {connecting ? (
+                    <Trans>Connecting...</Trans>
+                  ) : (
+                    <Trans>Connect</Trans>
+                  )}
                 </Button>
               </div>
+
               {error && <span className='text-sm text-red-500'>{error}</span>}
             </div>
           </div>

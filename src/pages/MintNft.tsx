@@ -1,5 +1,6 @@
 import ConfirmationDialog from '@/components/ConfirmationDialog';
 import Header from '@/components/Header';
+import { PasteInput } from '@/components/PasteInput';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -19,9 +20,12 @@ import {
 } from '@/components/ui/select';
 import { useDids } from '@/hooks/useDids';
 import { useErrors } from '@/hooks/useErrors';
+import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
 import { amount } from '@/lib/formTypes';
 import { toMojos } from '@/lib/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { t } from '@lingui/core/macro';
+import { Trans } from '@lingui/react/macro';
 import { LoaderCircleIcon } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -30,8 +34,6 @@ import * as z from 'zod';
 import { commands, TransactionResponse } from '../bindings';
 import Container from '../components/Container';
 import { useWalletState } from '../state';
-import { Trans } from '@lingui/react/macro';
-import { t } from '@lingui/core/macro';
 
 export default function MintNft() {
   const navigate = useNavigate();
@@ -53,6 +55,10 @@ export default function MintNft() {
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
+  });
+
+  const { handleScanOrPaste } = useScannerOrClipboard((scanResValue) => {
+    form.setValue('royaltyAddress', scanResValue);
   });
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
@@ -206,11 +212,11 @@ export default function MintNft() {
                     <Trans>Royalty Address</Trans>
                   </FormLabel>
                   <FormControl>
-                    <Input
+                    <PasteInput
                       type='text'
                       placeholder={t`Enter address`}
                       {...field}
-                      className='pr-12'
+                      onEndIconClick={handleScanOrPaste}
                     />
                   </FormControl>
                   <FormMessage />

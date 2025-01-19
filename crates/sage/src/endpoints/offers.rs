@@ -4,11 +4,7 @@ use std::{
 };
 
 use base64::{prelude::BASE64_STANDARD, Engine};
-use chia::{
-    clvm_traits::FromClvm,
-    protocol::{Bytes32, SpendBundle},
-    puzzles::nft::NftMetadata,
-};
+use chia::{clvm_traits::FromClvm, protocol::SpendBundle, puzzles::nft::NftMetadata};
 use chia_wallet_sdk::{encode_address, AggSigConstants, Offer, SpendContext};
 use chrono::{Local, TimeZone};
 use clvmr::Allocator;
@@ -23,7 +19,8 @@ use sage_assets::fetch_uris_with_hash;
 use sage_database::{OfferCatRow, OfferNftRow, OfferRow, OfferStatus, OfferXchRow};
 use sage_wallet::{
     calculate_royalties, fetch_nft_offer_details, insert_transaction, parse_locked_coins,
-    parse_offer_payments, MakerSide, NftRoyaltyInfo, SyncCommand, TakerSide, Transaction, Wallet,
+    parse_offer_payments, sort_offer, MakerSide, NftRoyaltyInfo, SyncCommand, TakerSide,
+    Transaction, Wallet,
 };
 use tokio::time::timeout;
 use tracing::{debug, warn};
@@ -198,25 +195,8 @@ impl Sage {
 
     pub async fn import_offer(&self, req: ImportOffer) -> Result<ImportOfferResponse> {
         let wallet = self.wallet()?;
-        let offer = Offer::decode(&req.offer)?;
+        let offer = sort_offer(Offer::decode(&req.offer)?);
         let spend_bundle: SpendBundle = offer.clone().into();
-
-        let mut offered_coin_spends = Vec::new();
-        let mut requested_coin_spends = Vec::new();
-
-        for coin_spend in spend_bundle.coin_spends {
-            if coin_spend.coin.parent_coin_info == Bytes32::default() {
-                requested_coin_spends.push(coin_spend);
-            } else {
-                offered_coin_spends.push(coin_spend);
-            }
-        }
-
-        let spend_bundle = SpendBundle::new(
-            [requested_coin_spends, offered_coin_spends].concat(),
-            spend_bundle.aggregated_signature,
-        );
-
         let offer_id = spend_bundle.name();
 
         if wallet.db.get_offer(offer_id).await?.is_some() {

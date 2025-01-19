@@ -1,6 +1,7 @@
 import ConfirmationDialog from '@/components/ConfirmationDialog';
 import Container from '@/components/Container';
 import Header from '@/components/Header';
+import { PasteInput } from '@/components/PasteInput';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
@@ -11,12 +12,12 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { TokenAmountInput } from '@/components/ui/masked-input';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { useErrors } from '@/hooks/useErrors';
+import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
 import { amount, positiveAmount } from '@/lib/formTypes';
 import { toDecimal, toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
@@ -35,6 +36,12 @@ import {
   SendXch,
   TransactionResponse,
 } from '../bindings';
+import { toHex } from '@/lib/utils';
+import { Input } from '@/components/ui/input';
+
+function stringToUint8Array(str: string): Uint8Array {
+  return new TextEncoder().encode(str);
+}
 
 export default function Send() {
   const { asset_id: assetId } = useParams();
@@ -131,14 +138,20 @@ export default function Send() {
       'Amount exceeds balance',
     ),
     fee: amount(walletState.sync.unit.decimals).optional(),
+    memo: z.string().optional(),
   });
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
   });
 
+  const { handleScanOrPaste } = useScannerOrClipboard((scanResValue) => {
+    form.setValue('address', scanResValue);
+  });
+
   const onSubmit = () => {
     const values = form.getValues();
+    const memos = values.memo ? [toHex(stringToUint8Array(values.memo))] : [];
 
     const command = isXch
       ? bulk
@@ -147,10 +160,12 @@ export default function Send() {
               addresses: [...new Set(addressList(req.address))],
               amount: req.amount,
               fee: req.fee,
+              memos,
             });
           }
-        : commands.sendXch
+        : (req: SendXch) => commands.sendXch({ ...req, memos })
       : (req: SendXch) => {
+          // not sending memos with CATS
           if (bulk) {
             return commands.bulkSendCat({
               asset_id: assetId!,
@@ -220,11 +235,12 @@ export default function Send() {
                         {...field}
                       />
                     ) : (
-                      <Input
+                      <PasteInput
                         autoCorrect='off'
                         autoCapitalize='off'
                         autoComplete='off'
                         placeholder={t`Enter address`}
+                        onEndIconClick={handleScanOrPaste}
                         {...field}
                       />
                     )}
@@ -286,6 +302,30 @@ export default function Send() {
                   </FormItem>
                 )}
               />
+
+              {isXch && (
+                <FormField
+                  control={form.control}
+                  name='memo'
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        <Trans>Memo (optional)</Trans>
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          autoCorrect='off'
+                          autoCapitalize='off'
+                          autoComplete='off'
+                          placeholder={t`Enter memo`}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
             </div>
 
             <Button type='submit'>

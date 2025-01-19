@@ -54,6 +54,7 @@ import {
   CopyIcon,
   HandCoins,
   MoreVertical,
+  ScanIcon,
   Tags,
   TrashIcon,
 } from 'lucide-react';
@@ -61,6 +62,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
 import { z } from 'zod';
+import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
 
 export function Offers() {
   const navigate = useNavigate();
@@ -80,6 +82,10 @@ export function Offers() {
     },
     [navigate],
   );
+
+  const { handleScanOrPaste } = useScannerOrClipboard((scanResValue) => {
+    viewOffer(scanResValue);
+  });
 
   const updateOffers = useCallback(
     () =>
@@ -130,8 +136,14 @@ export function Offers() {
   return (
     <>
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <Header title={<Trans>Offers</Trans>} />
-
+        <Header
+          title={<Trans>Offers</Trans>}
+          mobileActionItems={
+            <Button size='icon' variant='ghost' onClick={handleScanOrPaste}>
+              <ScanIcon className='h-5 w-5 ' />
+            </Button>
+          }
+        />
         <Container>
           <div className='flex flex-col gap-10'>
             <div className='flex flex-col items-center justify-center pt-10 text-center gap-4'>
@@ -150,7 +162,7 @@ export function Offers() {
                   </Trans>
                 </p>
                 <p className='mt-1 text-sm text-muted-foreground'>
-                  <Trans>You can also paste an offer using</Trans>
+                  <Trans>You can also paste an offer using</Trans>{' '}
                   <kbd>{platform() === 'macos' ? '⌘+V' : 'Ctrl+V'}</kbd>.
                 </p>
               </div>

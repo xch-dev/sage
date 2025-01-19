@@ -1,23 +1,22 @@
+import { useInsets } from '@/contexts/SafeAreaContext';
 import useInitialization from '@/hooks/useInitialization';
-import { usePeers } from '@/hooks/usePeers';
 import { useWallet } from '@/hooks/useWallet';
 import icon from '@/icon.png';
-import { logoutAndUpdateState, useWalletState } from '@/state';
-import { ChevronLeft, Cog, LogOut, Menu } from 'lucide-react';
-import { PropsWithChildren, ReactNode, useMemo } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Plural, Trans } from '@lingui/react/macro';
 import { t } from '@lingui/core/macro';
-import { Nav } from './Nav';
+import { Trans } from '@lingui/react/macro';
+import { platform } from '@tauri-apps/plugin-os';
+import { ChevronLeft, Menu } from 'lucide-react';
+import { PropsWithChildren, ReactNode } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { BottomNav, TopNav } from './Nav';
 import { Button } from './ui/button';
 import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
-import { platform } from '@tauri-apps/plugin-os';
-import { useInsets } from '@/contexts/SafeAreaContext';
 
 export default function Header(
   props: PropsWithChildren<{
     title: string | ReactNode;
     back?: () => void;
+    mobileActionItems?: ReactNode;
     children?: ReactNode;
   }>,
 ) {
@@ -27,28 +26,6 @@ export default function Header(
 
   const initialized = useInitialization();
   const wallet = useWallet(initialized);
-
-  const { peers } = usePeers();
-  const peerCount = peers?.length || 0;
-
-  const walletState = useWalletState();
-  const syncedCoins = walletState.sync.synced_coins;
-  const totalCoins = walletState.sync.total_coins;
-  const isSynced = useMemo(
-    () => walletState.sync.synced_coins === walletState.sync.total_coins,
-    [walletState.sync.synced_coins, walletState.sync.total_coins],
-  );
-
-  const peerMaxHeight =
-    peers?.reduce((max, peer) => {
-      return Math.max(max, peer.peak_height);
-    }, 0) || 0;
-
-  const logout = () => {
-    logoutAndUpdateState().then(() => {
-      navigate('/');
-    });
-  };
 
   const hasBackButton = props.back || location.pathname.split('/').length > 2;
   const isMobile = platform() === 'ios' || platform() === 'android';
@@ -90,10 +67,15 @@ export default function Header(
           className='flex flex-col'
           style={{
             paddingTop:
-              insets.top !== 0 ? `${insets.top}px` : 'env(safe-area-inset-top)',
+              insets.top !== 0
+                ? `${insets.top + 8}px`
+                : 'env(safe-area-inset-top)',
+            paddingBottom: insets.bottom
+              ? `${insets.bottom + 16}px`
+              : 'env(safe-area-inset-bottom)',
           }}
         >
-          <div className='flex h-14 items-center'>
+          <div className='flex h-14 items-center '>
             <Link
               to='/wallet'
               className='flex items-center gap-2 font-semibold'
@@ -104,50 +86,11 @@ export default function Header(
             </Link>
           </div>
           <div className='-mx-2'>
-            <Nav />
+            <TopNav />
           </div>
-          <nav className='mt-auto grid gap-1 text-md font-medium'>
-            <Link
-              to='/peers'
-              className='mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground'
-              aria-label={t`Network status`}
-            >
-              <span
-                className={
-                  'inline-flex h-3 w-3 m-0.5 rounded-full' +
-                  ' ' +
-                  (isSynced ? 'bg-emerald-600' : 'bg-yellow-600')
-                }
-                aria-hidden='true'
-              ></span>
-              {isSynced ? (
-                <>
-                  <Plural value={peerCount} one={'# peer'} other={'# peers'} />{' '}
-                  {peerMaxHeight
-                    ? t`at peak ${peerMaxHeight}`
-                    : t`connecting...`}
-                </>
-              ) : (
-                <Trans>
-                  Syncing {syncedCoins} / {totalCoins}
-                </Trans>
-              )}
-            </Link>
-            <Link
-              to='/settings'
-              className='mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground'
-            >
-              <Cog className='h-4 w-4' aria-hidden='true' />
-              <Trans>Settings</Trans>
-            </Link>
-            <button
-              onClick={logout}
-              className='mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground'
-            >
-              <LogOut className='h-4 w-4' aria-hidden='true' />
-              <Trans>Logout</Trans>
-            </button>
-          </nav>
+          <div className='mt-auto grid gap-1 text-md font-medium'>
+            <BottomNav />
+          </div>
         </SheetContent>
       </Sheet>
       <div className='flex-1 md:mt-2 flex items-center md:block'>
@@ -171,6 +114,7 @@ export default function Header(
             {props.title}
           </h1>
           <div className='hidden md:block'>{props.children}</div>
+          {props.mobileActionItems && isMobile && props.mobileActionItems}
         </div>
       </div>
     </header>

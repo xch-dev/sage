@@ -235,6 +235,7 @@ impl Sage {
                     &self.network().address_prefix,
                 )?,
                 amount: Amount::u64(did.amount),
+                recovery_hash: did.recovery_list_hash.map(hex::encode),
                 created_height: did.created_height,
                 create_transaction_id: did.transaction_id.map(hex::encode),
             });
@@ -372,11 +373,8 @@ impl Sage {
 
         let mut records = Vec::new();
 
-        let group = match (&req.collection_id, &req.did_id) {
-            (Some(_collection_id), Some(_did_id)) => {
-                return Err(Error::InvalidGroup);
-            }
-            (Some(collection_id), None) => {
+        let group = match (&req.collection_id, &req.minter_did_id, &req.owner_did_id) {
+            (Some(collection_id), None, None) => {
                 if collection_id == "none" {
                     Some(NftGroup::NoCollection)
                 } else {
@@ -385,14 +383,22 @@ impl Sage {
                     )?))
                 }
             }
-            (None, Some(did_id)) => {
-                if did_id == "none" {
-                    Some(NftGroup::NoDid)
+            (None, Some(minter_did_id), None) => {
+                if minter_did_id == "none" {
+                    Some(NftGroup::NoMinterDid)
                 } else {
-                    Some(NftGroup::Did(parse_did_id(did_id.clone())?))
+                    Some(NftGroup::MinterDid(parse_did_id(minter_did_id.clone())?))
                 }
             }
-            (None, None) => None,
+            (None, None, Some(owner_did_id)) => {
+                if owner_did_id == "none" {
+                    Some(NftGroup::NoOwnerDid)
+                } else {
+                    Some(NftGroup::OwnerDid(parse_did_id(owner_did_id.clone())?))
+                }
+            }
+            (None, None, None) => None,
+            _ => return Err(Error::InvalidGroup),
         };
 
         let params = NftSearchParams {
