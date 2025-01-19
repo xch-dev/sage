@@ -768,7 +768,10 @@ async fn search_nfts(
     }
 
     // Bind group parameters if present
-    if let Some(NftGroup::Collection(id) | NftGroup::MinterDid(id)) = &params.group {
+    //if let Some(NftGroup::Collection(id) | NftGroup::MinterDid(id)) = &params.group {
+    if let Some(NftGroup::Collection(id) | NftGroup::MinterDid(id) | NftGroup::OwnerDid(id)) =
+        &params.group
+    {    
         query = query.bind(id.as_ref());
     }
 
