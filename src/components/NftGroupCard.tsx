@@ -9,7 +9,7 @@ import {
   UserIcon,
   Paintbrush,
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Button } from './ui/button';
 import {
   DropdownMenu,
@@ -38,6 +38,7 @@ export function NftGroupCard({
   page,
   onToggleVisibility,
 }: NftGroupCardProps) {
+  const navigate = useNavigate();
   const isCollection = type === 'collection';
   const allowToggleVisibility = false; //isCollection && onToggleVisibility; // not implemented yet
   // Type guards to help TypeScript narrow the types
@@ -88,7 +89,10 @@ export function NftGroupCard({
 
   return (
     <div
-      onClick={() => updateNfts(page)}
+      onClick={() => {
+        updateNfts(page);
+        navigate(getLinkPath());
+      }}
       className='cursor-pointer group border border-neutral-200 dark:border-neutral-800 rounded-lg'
     >
       <div className='overflow-hidden rounded-t-lg relative'>

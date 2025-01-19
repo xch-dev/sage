@@ -59,11 +59,14 @@ export function NftList() {
           minterDid ||
           group === NftGroupMode.None
         ) {
+          // the queries in rust differentiate 'none' from null
+          // - 'none' means unassigned nfts
+          // - null means all nfts for the given group
           const params = {
             name: query || null,
-            collection_id: collectionId ?? null,
+            collection_id: collectionId === 'No collection' ? 'none' : (collectionId ?? null),
             owner_did_id: ownerDid === 'No did' ? 'none' : (ownerDid ?? null),
-            minter_did_id: minterDid ?? null,
+            minter_did_id: minterDid === 'No did' ? 'none' : (minterDid ?? null),
             offset: (page - 1) * pageSize,
             limit: pageSize,
             sort_mode: sort,
