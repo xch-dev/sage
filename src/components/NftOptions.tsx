@@ -78,6 +78,7 @@ export function NftOptions({
             value={query ?? ''}
             aria-label={t`Search NFTs by name`}
             title={t`Search NFTs by name`}
+            placeholder={t`Search NFTs by name`}
             onChange={(e) => setParams({ query: e.target.value, page: 1 })}
             className='w-full pl-8 pr-8'
             disabled={!allowSearch}
