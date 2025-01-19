@@ -77,7 +77,7 @@ export function NftList() {
             name: query || null,
             collection_id: collectionId ?? null,
             owner_did_id: ownerDid === 'No did' ? "none"  : (ownerDid ?? null ),
-            minter_did_id: minterDid,
+            minter_did_id: minterDid ?? null,
             offset: (page - 1) * pageSize,
             limit: pageSize,
             sort_mode: sort,
@@ -237,7 +237,7 @@ export function NftList() {
                 {collectionId ? (
                   (collection?.name ?? t`Unknown Collection`)
                 ) : ownerDid ? (
-                  (owner?.name ?? t`Unknown Profile`)
+                  (owner?.name ?? t`Untitled Profile`)
                 ) : minterDid ? (
                   (owner?.name ?? t`Unknown Creator`)
                 ) : (
@@ -249,7 +249,7 @@ export function NftList() {
               {collectionId ? (
                 (collection?.name ?? t`Unknown Collection`)
               ) : ownerDid ? (
-                (owner?.name ?? t`Unknown Profile`)
+                (owner?.name ?? t`Untitled Profile`)
               ) : minterDid ? (
                 (owner?.name ?? t`Unknown Creator`)
               ) : (
@@ -466,7 +466,7 @@ function DidGroup({ did, groupMode, updateNfts, page }: DidGroupProps) {
 
   const defaultName =
     groupMode === NftGroupMode.OwnerDid ? (
-      <Trans>Unnamed Profile</Trans>
+      <Trans>Untitled Profile</Trans>
     ) : (
       <Trans>Unnamed Creator</Trans>
     );
