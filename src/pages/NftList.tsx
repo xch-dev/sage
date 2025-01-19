@@ -76,8 +76,8 @@ export function NftList() {
           const params = {
             name: query || null,
             collection_id: collectionId ?? null,
-            owner_did_id: ownerDid === 'No did' ? null : (ownerDid ?? null),
-            minter_did_id: minterDid === 'No did' ? null : (minterDid ?? null),
+            owner_did_id: ownerDid === 'No did' ? "none"  : (ownerDid ?? null ),
+            minter_did_id: minterDid,
             offset: (page - 1) * pageSize,
             limit: pageSize,
             sort_mode: sort,
@@ -181,7 +181,6 @@ export function NftList() {
       ownerDid,
       minterDid,
       addError,
-      params.page,
     ],
   );
 
@@ -191,7 +190,7 @@ export function NftList() {
     setCollection(null);
     setOwner(null);
     updateNfts(params.page);
-  }, [updateNfts, collectionId, ownerDid, minterDid]);
+  }, [updateNfts, collectionId, ownerDid, minterDid, params.page]);
 
   useEffect(() => {
     const unlisten = events.syncEvent.listen((event) => {
@@ -291,7 +290,8 @@ export function NftList() {
                 <Collection
                   col={col}
                   key={i}
-                  updateNfts={() => updateNfts(params.page)}
+                  updateNfts={updateNfts}
+                  page={params.page}
                 />
               ))}
               {nfts.length < pageSize && (
@@ -304,7 +304,8 @@ export function NftList() {
                     collection_id: 'No collection',
                     visible: true,
                   }}
-                  updateNfts={() => updateNfts(params.page)}
+                  updateNfts={updateNfts}
+                  page={params.page}
                 />
               )}
             </>
@@ -318,8 +319,9 @@ export function NftList() {
                 <DidGroup
                   did={did}
                   key={i}
-                  updateNfts={() => updateNfts(params.page)}
+                  updateNfts={updateNfts}
                   groupMode={group}
+                  page={params.page}
                 />
               ))}
               <DidGroup
@@ -334,8 +336,9 @@ export function NftList() {
                   create_transaction_id: 'No transaction',
                   recovery_hash: '',
                 }}
-                updateNfts={() => updateNfts(params.page)}
+                updateNfts={updateNfts}
                 groupMode={group}
+                page={params.page}
               />
             </>
           ) : (
@@ -384,16 +387,16 @@ export function NftList() {
 
 interface CollectionProps {
   col: NftCollectionRecord;
-  updateNfts: () => void;
+  updateNfts: (page: number) => void;
+  page: number;
 }
 
-function Collection({ col, updateNfts }: CollectionProps) {
+function Collection({ col, updateNfts, page }: CollectionProps) {
   return (
-    <>
+    <div onClick={() => updateNfts(page)}>
       <Link
         to={`/nfts/collections/${col.collection_id}`}
         className={`group${`${!col.visible ? ' opacity-50 grayscale' : ''}`} border border-neutral-200 rounded-lg dark:border-neutral-800`}
-        updateNfts={() => updateNfts(params.page)}
       >
         <div className='overflow-hidden rounded-t-lg relative'>
           <img
@@ -444,17 +447,18 @@ function Collection({ col, updateNfts }: CollectionProps) {
           </DropdownMenu>
         </div>
       </Link>
-    </>
+    </div>
   );
 }
 
 interface DidGroupProps {
   did: DidRecord;
-  updateNfts: () => void;
+  updateNfts: (page: number) => void;
   groupMode: NftGroupMode;
+  page: number;
 }
 
-function DidGroup({ did, groupMode, updateNfts }: DidGroupProps) {
+function DidGroup({ did, groupMode, updateNfts, page }: DidGroupProps) {
   const linkPath =
     groupMode === NftGroupMode.OwnerDid
       ? `/nfts/owners/${did.launcher_id}`
@@ -468,28 +472,29 @@ function DidGroup({ did, groupMode, updateNfts }: DidGroupProps) {
     );
 
   return (
-    <Link
-      to={linkPath}
-      className={`group${!did.visible ? ' opacity-50 grayscale' : ''} border border-neutral-200 rounded-lg dark:border-neutral-800`}
-      updateNfts={() => updateNfts(params.page)}
-    >
-      <div className='overflow-hidden rounded-t-lg relative bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center aspect-square'>
-        {groupMode === NftGroupMode.OwnerDid ? (
-          <UserIcon className='h-12 w-12 text-neutral-400 dark:text-neutral-600' />
-        ) : (
-          <Paintbrush className='h-12 w-12 text-neutral-400 dark:text-neutral-600' />
-        )}
-      </div>
-      <div className='border-t bg-white text-neutral-950 shadow dark:bg-neutral-900 dark:text-neutral-50 text-md flex items-center justify-between rounded-b-lg p-2 pl-3'>
-        <span className='truncate'>
-          <span className='font-medium leading-none truncate'>
-            {did.name ?? defaultName}
+    <div onClick={() => updateNfts(page)}>
+      <Link
+        to={linkPath}
+        className={`group${!did.visible ? ' opacity-50 grayscale' : ''} border border-neutral-200 rounded-lg dark:border-neutral-800`}
+      >
+        <div className='overflow-hidden rounded-t-lg relative bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center aspect-square'>
+          {groupMode === NftGroupMode.OwnerDid ? (
+            <UserIcon className='h-12 w-12 text-neutral-400 dark:text-neutral-600' />
+          ) : (
+            <Paintbrush className='h-12 w-12 text-neutral-400 dark:text-neutral-600' />
+          )}
+        </div>
+        <div className='border-t bg-white text-neutral-950 shadow dark:bg-neutral-900 dark:text-neutral-50 text-md flex items-center justify-between rounded-b-lg p-2 pl-3'>
+          <span className='truncate'>
+            <span className='font-medium leading-none truncate'>
+              {did.name ?? defaultName}
+            </span>
+            <p className='text-xs text-muted-foreground truncate'>
+              {did.launcher_id}
+            </p>
           </span>
-          <p className='text-xs text-muted-foreground truncate'>
-            {did.launcher_id}
-          </p>
-        </span>
-      </div>
-    </Link>
+        </div>
+      </Link>
+    </div>
   );
 }
