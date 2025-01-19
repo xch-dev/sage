@@ -5,28 +5,14 @@ import { NftCard, NftCardList } from '@/components/NftCard';
 import { NftOptions } from '@/components/NftOptions';
 import { ReceiveAddress } from '@/components/ReceiveAddress';
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+
 import { useErrors } from '@/hooks/useErrors';
 import { useNftParams, NftGroupMode } from '@/hooks/useNftParams';
-import collectionImage from '@/images/collection.png';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import {
-  EyeIcon,
-  EyeOff,
-  ImagePlusIcon,
-  MoreVerticalIcon,
-  UserIcon,
-  Paintbrush,
-} from 'lucide-react';
+import { ImagePlusIcon } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
   commands,
   events,
@@ -39,6 +25,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { NftGroupCard } from '../components/NftGroupCard';
 
 export function NftList() {
   const navigate = useNavigate();
@@ -142,7 +129,7 @@ export function NftList() {
           const uniqueMinterDids = await commands.getMinterDidIds({});
           const minterDids: DidRecord[] = uniqueMinterDids.did_ids.map(
             (did) => ({
-              name: `Creator ${did.slice(0, 16)}...`,
+              name: `${did.replace('did:chia:', '').slice(0, 16)}...`,
               launcher_id: did,
               visible: true,
               coin_id: 'No coin',
@@ -291,16 +278,27 @@ export function NftList() {
           group === NftGroupMode.Collection ? (
             <>
               {collections.map((col, i) => (
-                <Collection
-                  col={col}
+                <NftGroupCard
                   key={i}
+                  type='collection'
+                  item={col}
                   updateNfts={updateNfts}
                   page={params.page}
+                  onToggleVisibility={() => {
+                    commands
+                      .updateNft({
+                        nft_id: col.collection_id,
+                        visible: !col.visible,
+                      })
+                      .then(() => updateNfts(params.page))
+                      .catch(addError);
+                  }}
                 />
               ))}
               {nfts.length < pageSize && (
-                <Collection
-                  col={{
+                <NftGroupCard
+                  type='collection'
+                  item={{
                     name: 'Uncategorized NFTs',
                     icon: '',
                     did_id: 'Miscellaneous',
@@ -320,16 +318,19 @@ export function NftList() {
               group === NftGroupMode.MinterDid) ? (
             <>
               {dids.map((did, i) => (
-                <DidGroup
-                  did={did}
+                <NftGroupCard
                   key={i}
-                  updateNfts={updateNfts}
+                  type='did'
                   groupMode={group}
+                  item={did}
+                  updateNfts={updateNfts}
                   page={params.page}
                 />
               ))}
-              <DidGroup
-                did={{
+              <NftGroupCard
+                type='did'
+                groupMode={group}
+                item={{
                   name: 'Unassigned NFTs',
                   launcher_id: 'No did',
                   visible: true,
@@ -341,7 +342,6 @@ export function NftList() {
                   recovery_hash: '',
                 }}
                 updateNfts={updateNfts}
-                groupMode={group}
                 page={params.page}
               />
             </>
@@ -386,119 +386,5 @@ export function NftList() {
         />
       )}
     </>
-  );
-}
-
-interface CollectionProps {
-  col: NftCollectionRecord;
-  updateNfts: (page: number) => void;
-  page: number;
-}
-
-function Collection({ col, updateNfts, page }: CollectionProps) {
-  return (
-    <div onClick={() => updateNfts(page)}>
-      <Link
-        to={`/nfts/collections/${col.collection_id}`}
-        className={`group${`${!col.visible ? ' opacity-50 grayscale' : ''}`} border border-neutral-200 rounded-lg dark:border-neutral-800`}
-      >
-        <div className='overflow-hidden rounded-t-lg relative'>
-          <img
-            alt={col.name ?? t`Unnamed`}
-            loading='lazy'
-            width='150'
-            height='150'
-            className='h-auto w-auto object-cover transition-all group-hover:scale-105 aspect-square color-[transparent]'
-            src={collectionImage}
-          />
-        </div>
-        <div className='border-t bg-white text-neutral-950 shadow  dark:bg-neutral-900 dark:text-neutral-50 text-md flex items-center justify-between rounded-b-lg p-2 pl-3'>
-          <span className='truncate'>
-            <span className='font-medium leading-none truncate'>
-              {col.name ?? t`Unnamed`}
-            </span>
-            {col.collection_id && (
-              <p className='text-xs text-muted-foreground truncate'>
-                {col.collection_id}
-              </p>
-            )}
-          </span>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant='ghost' size='icon'>
-                <MoreVerticalIcon className='h-5 w-5' />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align='end'>
-              <DropdownMenuGroup>
-                <DropdownMenuItem
-                  className='cursor-pointer'
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    // toggleVisibility();
-                  }}
-                >
-                  {col.visible ? (
-                    <EyeOff className='mr-2 h-4 w-4' />
-                  ) : (
-                    <EyeIcon className='mr-2 h-4 w-4' />
-                  )}
-                  <span>{col.visible ? t`Hide` : t`Show`}</span>
-                </DropdownMenuItem>
-              </DropdownMenuGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </Link>
-    </div>
-  );
-}
-
-interface DidGroupProps {
-  did: DidRecord;
-  updateNfts: (page: number) => void;
-  groupMode: NftGroupMode;
-  page: number;
-}
-
-function DidGroup({ did, groupMode, updateNfts, page }: DidGroupProps) {
-  const linkPath =
-    groupMode === NftGroupMode.OwnerDid
-      ? `/nfts/owners/${did.launcher_id}`
-      : `/nfts/minters/${did.launcher_id}`;
-
-  const defaultName =
-    groupMode === NftGroupMode.OwnerDid ? (
-      <Trans>Untitled Profile</Trans>
-    ) : (
-      <Trans>Unknown Creator</Trans>
-    );
-
-  return (
-    <div onClick={() => updateNfts(page)}>
-      <Link
-        to={linkPath}
-        className={`group${!did.visible ? ' opacity-50 grayscale' : ''} border border-neutral-200 rounded-lg dark:border-neutral-800`}
-      >
-        <div className='overflow-hidden rounded-t-lg relative bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center aspect-square'>
-          {groupMode === NftGroupMode.OwnerDid ? (
-            <UserIcon className='h-12 w-12 text-neutral-400 dark:text-neutral-600' />
-          ) : (
-            <Paintbrush className='h-12 w-12 text-neutral-400 dark:text-neutral-600' />
-          )}
-        </div>
-        <div className='border-t bg-white text-neutral-950 shadow dark:bg-neutral-900 dark:text-neutral-50 text-md flex items-center justify-between rounded-b-lg p-2 pl-3'>
-          <span className='truncate'>
-            <span className='font-medium leading-none truncate'>
-              {did.name ?? defaultName}
-            </span>
-            <p className='text-xs text-muted-foreground truncate'>
-              {did.launcher_id}
-            </p>
-          </span>
-        </div>
-      </Link>
-    </div>
   );
 }

@@ -237,7 +237,7 @@ export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
-            
+
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
