@@ -146,10 +146,8 @@ export function NftList() {
             .then((data) => setDids(data.dids))
             .catch(addError);
         } else if (group === NftGroupMode.MinterDid) {
-          // Create unique set of minter DIDs
           const uniqueMinterDids = await commands.getMinterDidIds({});
           console.log('Unique minter DIDs:', uniqueMinterDids);
-          // Convert minter DID IDs to DidRecord format
           const minterDids: DidRecord[] = uniqueMinterDids.did_ids.map(
             (did) => ({
               name: `Creator ${did.slice(0, 16)}...`,
@@ -183,6 +181,7 @@ export function NftList() {
       ownerDid,
       minterDid,
       addError,
+      params.page,
     ],
   );
 
@@ -191,7 +190,7 @@ export function NftList() {
     setNfts([]);
     setCollection(null);
     setOwner(null);
-    updateNfts(1);
+    updateNfts(params.page);
   }, [updateNfts, collectionId, ownerDid, minterDid]);
 
   useEffect(() => {
@@ -203,20 +202,31 @@ export function NftList() {
         type === 'puzzle_batch_synced' ||
         type === 'nft_data'
       ) {
-        updateNfts(page);
+        updateNfts(params.page);
       }
     });
 
     return () => {
       unlisten.then((u) => u());
     };
-  }, [updateNfts, page]);
+  }, [updateNfts, params.page]);
 
   // Add this effect to reset multi-select when route changes
   useEffect(() => {
     setMultiSelect(false);
     setSelected([]);
   }, [collectionId, ownerDid, group]);
+
+  const canLoadMore = useCallback(() => {
+    if (collectionId || ownerDid || minterDid || group === NftGroupMode.None) {
+      return nfts.length === pageSize;
+    } else if (group === NftGroupMode.Collection) {
+      return collections.length === pageSize;
+    } else if (group === NftGroupMode.OwnerDid || group === NftGroupMode.MinterDid) {
+      return dids.length === pageSize;
+    }
+    return false;
+  }, [collectionId, ownerDid, minterDid, group, nfts.length, collections.length, dids.length, pageSize]);
 
   return (
     <>
@@ -268,7 +278,7 @@ export function NftList() {
           }}
           className='mt-4'
           isLoading={isLoading}
-          canLoadMore={nfts.length === pageSize}
+          canLoadMore={canLoadMore()}
         />
 
         <NftCardList>
@@ -281,7 +291,7 @@ export function NftList() {
                 <Collection
                   col={col}
                   key={i}
-                  updateNfts={() => updateNfts(page)}
+                  updateNfts={() => updateNfts(params.page)}
                 />
               ))}
               {nfts.length < pageSize && (
@@ -294,7 +304,7 @@ export function NftList() {
                     collection_id: 'No collection',
                     visible: true,
                   }}
-                  updateNfts={() => updateNfts(page)}
+                  updateNfts={() => updateNfts(params.page)}
                 />
               )}
             </>
@@ -308,7 +318,7 @@ export function NftList() {
                 <DidGroup
                   did={did}
                   key={i}
-                  updateNfts={() => updateNfts(page)}
+                  updateNfts={() => updateNfts(params.page)}
                   groupMode={group}
                 />
               ))}
@@ -324,7 +334,7 @@ export function NftList() {
                   create_transaction_id: 'No transaction',
                   recovery_hash: '',
                 }}
-                updateNfts={() => updateNfts(page)}
+                updateNfts={() => updateNfts(params.page)}
                 groupMode={group}
               />
             </>
@@ -333,7 +343,7 @@ export function NftList() {
               <NftCard
                 nft={nft}
                 key={i}
-                updateNfts={() => updateNfts(page)}
+                updateNfts={() => updateNfts(params.page)}
                 selectionState={
                   multiSelect
                     ? [
@@ -377,12 +387,13 @@ interface CollectionProps {
   updateNfts: () => void;
 }
 
-function Collection({ col }: CollectionProps) {
+function Collection({ col, updateNfts }: CollectionProps) {
   return (
     <>
       <Link
         to={`/nfts/collections/${col.collection_id}`}
         className={`group${`${!col.visible ? ' opacity-50 grayscale' : ''}`} border border-neutral-200 rounded-lg dark:border-neutral-800`}
+        updateNfts={() => updateNfts(params.page)}
       >
         <div className='overflow-hidden rounded-t-lg relative'>
           <img
@@ -443,7 +454,7 @@ interface DidGroupProps {
   groupMode: NftGroupMode;
 }
 
-function DidGroup({ did, groupMode }: DidGroupProps) {
+function DidGroup({ did, groupMode, updateNfts }: DidGroupProps) {
   const linkPath =
     groupMode === NftGroupMode.OwnerDid
       ? `/nfts/owners/${did.launcher_id}`
@@ -460,6 +471,7 @@ function DidGroup({ did, groupMode }: DidGroupProps) {
     <Link
       to={linkPath}
       className={`group${!did.visible ? ' opacity-50 grayscale' : ''} border border-neutral-200 rounded-lg dark:border-neutral-800`}
+      updateNfts={() => updateNfts(params.page)}
     >
       <div className='overflow-hidden rounded-t-lg relative bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center aspect-square'>
         {groupMode === NftGroupMode.OwnerDid ? (
