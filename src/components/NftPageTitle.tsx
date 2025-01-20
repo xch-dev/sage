@@ -4,6 +4,7 @@ import { NftGroupMode } from '@/hooks/useNftParams';
 import {
   Tooltip,
   TooltipContent,
+  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 
@@ -48,11 +49,17 @@ export function NftPageTitle(props: NftPageTitleProps) {
   const title = getGroupTitle(props);
 
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <div className='truncate max-w-[300px]'>{title}</div>
-      </TooltipTrigger>
-      <TooltipContent>{title}</TooltipContent>
-    </Tooltip>
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <h1 className='truncate max-w-[300px]' aria-label={title}>
+            {title}
+          </h1>
+        </TooltipTrigger>
+        <TooltipContent role='tooltip' aria-label={t`Full title: ${title}`}>
+          {title}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }

@@ -69,11 +69,33 @@ export function NftOptions({
     navigate('/nfts');
   };
 
+  // For sort button
+  const sortMode = sort === NftSortMode.Name ? 'name' : 'recent';
+  const sortLabel = t`Sort options: currently sorted by ${sortMode}`;
+
+  // For group button
+  const groupMode =
+    group === NftGroupMode.Collection
+      ? 'collections'
+      : group === NftGroupMode.OwnerDid
+        ? 'owners'
+        : group === NftGroupMode.MinterDid
+          ? 'minters'
+          : 'no grouping';
+  const groupLabel = t`Group options: currently grouped by ${groupMode}`;
+
   return (
-    <div className={`flex flex-col gap-4 ${className}`}>
-      <div className='relative flex-1'>
+    <div
+      className={`flex flex-col gap-4 ${className}`}
+      role='toolbar'
+      aria-label={t`NFT filtering and sorting options`}
+    >
+      <div className='relative flex-1' role='search'>
         <div className='relative'>
-          <SearchIcon className='absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
+          <SearchIcon
+            className='absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground'
+            aria-hidden='true'
+          />
           <Input
             value={query ?? ''}
             aria-label={t`Search NFTs by name`}
@@ -82,6 +104,7 @@ export function NftOptions({
             onChange={(e) => setParams({ query: e.target.value, page: 1 })}
             className='w-full pl-8 pr-8'
             disabled={!allowSearch}
+            aria-disabled={!allowSearch}
           />
         </div>
         {query && (
@@ -94,13 +117,17 @@ export function NftOptions({
             onClick={() => setParams({ query: '', page: 1 })}
             disabled={!allowSearch}
           >
-            <XIcon className='h-4 w-4' />
+            <XIcon className='h-4 w-4' aria-hidden='true' />
           </Button>
         )}
       </div>
 
       <div className='flex items-center justify-between'>
-        <div className='flex gap-3 items-center'>
+        <div
+          className='flex gap-3 items-center'
+          role='navigation'
+          aria-label={t`Pagination`}
+        >
           <Button
             variant='outline'
             size='icon'
@@ -109,32 +136,39 @@ export function NftOptions({
               page > 1 &&
               setParams({ page: Math.max(page - 1, 1) })
             }
-            aria-disabled={page === 1 || isLoading}
+            disabled={page === 1 || isLoading}
             aria-label={t`Previous page`}
             title={t`Previous page`}
           >
-            <ChevronLeftIcon className='h-4 w-4' />
+            <ChevronLeftIcon className='h-4 w-4' aria-hidden='true' />
           </Button>
-          <p className='text-sm text-muted-foreground font-medium w-[70px] text-center'>
-            Page {page}
+          <p
+            className='text-sm text-muted-foreground font-medium w-[70px] text-center'
+            aria-live='polite'
+            aria-atomic='true'
+          >
+            <Trans>Page {page}</Trans>
           </p>
           <Button
             variant='outline'
             size='icon'
             onClick={() => {
               if (!canLoadMore) return;
-
               if (!isLoading) setParams({ page: page + 1 });
             }}
-            aria-disabled={isLoading}
+            disabled={!canLoadMore || isLoading}
             aria-label={t`Next page`}
             title={t`Next page`}
           >
-            <ChevronRightIcon className='h-4 w-4' />
+            <ChevronRightIcon className='h-4 w-4' aria-hidden='true' />
           </Button>
         </div>
 
-        <div className='flex gap-2 items-center'>
+        <div
+          className='flex gap-2 items-center'
+          role='toolbar'
+          aria-label={t`NFT view options`}
+        >
           {isFilteredView && (
             <Button
               variant='outline'
@@ -143,7 +177,7 @@ export function NftOptions({
               aria-label={t`Back to groups`}
               title={t`Back to groups`}
             >
-              <ArrowLeftIcon className='h-4 w-4' />
+              <ArrowLeftIcon className='h-4 w-4' aria-hidden='true' />
             </Button>
           )}
 
@@ -158,19 +192,24 @@ export function NftOptions({
               >
                 <CopyPlus
                   className={`h-4 w-4 ${multiSelect ? 'text-green-600 dark:text-green-400' : ''}`}
+                  aria-hidden='true'
                 />
               </Button>
+
               <Button
                 variant='outline'
                 size='icon'
                 onClick={() => setParams({ showHidden: !showHidden })}
-                aria-label={t`Toggle hidden NFTs`}
-                title={t`Toggle hidden NFTs`}
+                aria-label={
+                  showHidden ? t`Hide hidden NFTs` : t`Show hidden NFTs`
+                }
+                aria-pressed={showHidden}
+                title={showHidden ? t`Hide hidden NFTs` : t`Show hidden NFTs`}
               >
                 {showHidden ? (
-                  <EyeIcon className='h-4 w-4' />
+                  <EyeIcon className='h-4 w-4' aria-hidden='true' />
                 ) : (
-                  <EyeOff className='h-4 w-4' />
+                  <EyeOff className='h-4 w-4' aria-hidden='true' />
                 )}
               </Button>
 
@@ -179,13 +218,13 @@ export function NftOptions({
                   <Button
                     variant='outline'
                     size='icon'
-                    aria-label={t`Sort options`}
-                    title={t`Sort options`}
+                    aria-label={sortLabel}
+                    title={sortLabel}
                   >
                     {sort === NftSortMode.Name ? (
-                      <ArrowDownAz className='h-4 w-4' />
+                      <ArrowDownAz className='h-4 w-4' aria-hidden='true' />
                     ) : (
-                      <Clock2 className='h-4 w-4' />
+                      <Clock2 className='h-4 w-4' aria-hidden='true' />
                     )}
                   </Button>
                 </DropdownMenuTrigger>
@@ -196,8 +235,12 @@ export function NftOptions({
                       onClick={() =>
                         setParams({ sort: NftSortMode.Name, page: 1 })
                       }
+                      aria-label={t`Sort by name`}
                     >
-                      <ArrowDownAz className='mr-2 h-4 w-4' />
+                      <ArrowDownAz
+                        className='mr-2 h-4 w-4'
+                        aria-hidden='true'
+                      />
                       <span>
                         <Trans>Name</Trans>
                       </span>
@@ -207,8 +250,9 @@ export function NftOptions({
                       onClick={() =>
                         setParams({ sort: NftSortMode.Recent, page: 1 })
                       }
+                      aria-label={t`Sort by recent`}
                     >
-                      <Clock2 className='mr-2 h-4 w-4' />
+                      <Clock2 className='mr-2 h-4 w-4' aria-hidden='true' />
                       <span>
                         <Trans>Recent</Trans>
                       </span>
@@ -225,17 +269,17 @@ export function NftOptions({
                 <Button
                   variant='outline'
                   size='icon'
-                  aria-label={t`Group options`}
-                  title={t`Group options`}
+                  aria-label={groupLabel}
+                  title={groupLabel}
                 >
                   {group === NftGroupMode.Collection ? (
-                    <Images className='h-4 w-4' />
+                    <Images className='h-4 w-4' aria-hidden='true' />
                   ) : group === NftGroupMode.OwnerDid ? (
-                    <UserIcon className='h-4 w-4' />
+                    <UserIcon className='h-4 w-4' aria-hidden='true' />
                   ) : group === NftGroupMode.MinterDid ? (
-                    <Paintbrush className='h-4 w-4' />
+                    <Paintbrush className='h-4 w-4' aria-hidden='true' />
                   ) : (
-                    <LayoutGrid className='h-4 w-4' />
+                    <LayoutGrid className='h-4 w-4' aria-hidden='true' />
                   )}
                 </Button>
               </DropdownMenuTrigger>
@@ -251,8 +295,9 @@ export function NftOptions({
                         group: NftGroupMode.None,
                       });
                     }}
+                    aria-label={t`No Grouping`}
                   >
-                    <LayoutGrid className='mr-2 h-4 w-4' />
+                    <LayoutGrid className='mr-2 h-4 w-4' aria-hidden='true' />
                     <span>
                       <Trans>No Grouping</Trans>
                     </span>
@@ -268,8 +313,9 @@ export function NftOptions({
                         query: '',
                       });
                     }}
+                    aria-label={t`Group by Collections`}
                   >
-                    <Images className='mr-2 h-4 w-4' />
+                    <Images className='mr-2 h-4 w-4' aria-hidden='true' />
                     <span>
                       <Trans>Group by Collections</Trans>
                     </span>
@@ -285,8 +331,9 @@ export function NftOptions({
                         query: '',
                       });
                     }}
+                    aria-label={t`Group by Owners`}
                   >
-                    <UserIcon className='mr-2 h-4 w-4' />
+                    <UserIcon className='mr-2 h-4 w-4' aria-hidden='true' />
                     <span>
                       <Trans>Group by Owners</Trans>
                     </span>
@@ -302,8 +349,9 @@ export function NftOptions({
                         query: '',
                       });
                     }}
+                    aria-label={t`Group by Minters`}
                   >
-                    <Paintbrush className='mr-2 h-4 w-4' />
+                    <Paintbrush className='mr-2 h-4 w-4' aria-hidden='true' />
                     <span>
                       <Trans>Group by Minters</Trans>
                     </span>

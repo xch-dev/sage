@@ -13,6 +13,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useNftData } from '@/hooks/useNftData';
 import { useErrors } from '@/hooks/useErrors';
+import { t } from '@lingui/core/macro';
 
 export function NftList() {
   const navigate = useNavigate();
@@ -26,7 +27,6 @@ export function NftList() {
   const [multiSelect, setMultiSelect] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const { addError } = useErrors();
-
   const { nfts, collections, dids, owner, collection, isLoading, updateNfts } =
     useNftData({
       pageSize,
@@ -87,8 +87,11 @@ export function NftList() {
       </Header>
 
       <Container>
-        <Button onClick={() => navigate('/nfts/mint')}>
-          <ImagePlusIcon className='h-4 w-4 mr-2' aria-hidden={true} />{' '}
+        <Button
+          onClick={() => navigate('/nfts/mint')}
+          aria-label={t`Create new NFT`}
+        >
+          <ImagePlusIcon className='h-4 w-4 mr-2' aria-hidden='true' />
           <Trans>Mint NFT</Trans>
         </Button>
 
@@ -103,24 +106,27 @@ export function NftList() {
           className='mt-4'
           isLoading={isLoading}
           canLoadMore={canLoadMore()}
+          aria-live='polite'
         />
 
-        <NftCardList
-          collectionId={collectionId}
-          ownerDid={ownerDid}
-          minterDid={minterDid}
-          group={group}
-          nfts={nfts}
-          collections={collections}
-          dids={dids}
-          pageSize={pageSize}
-          updateNfts={updateNfts}
-          page={params.page}
-          multiSelect={multiSelect}
-          selected={selected}
-          setSelected={setSelected}
-          addError={addError}
-        />
+        <main aria-label={t`NFT Collection`} aria-busy={isLoading}>
+          <NftCardList
+            collectionId={collectionId}
+            ownerDid={ownerDid}
+            minterDid={minterDid}
+            group={group}
+            nfts={nfts}
+            collections={collections}
+            dids={dids}
+            pageSize={pageSize}
+            updateNfts={updateNfts}
+            page={params.page}
+            multiSelect={multiSelect}
+            selected={selected}
+            setSelected={setSelected}
+            addError={addError}
+          />
+        </main>
       </Container>
 
       {selected.length > 0 && (
@@ -130,6 +136,7 @@ export function NftList() {
             setSelected([]);
             setMultiSelect(false);
           }}
+          aria-label={t`Actions for selected NFTs`}
         />
       )}
     </>

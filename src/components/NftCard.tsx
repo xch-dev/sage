@@ -199,13 +199,26 @@ const NftCardComponent = ({
             selectionState[1](!selectionState[0]);
           }
         }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            if (selectionState === null) {
+              navigate(`/nfts/${nft.launcher_id}`);
+            } else {
+              selectionState[1](!selectionState[0]);
+            }
+          }
+        }}
+        role='button'
+        tabIndex={0}
+        aria-label={nft.name ? `NFT: ${nft.name}` : t`Unnamed NFT`}
       >
         <div className='overflow-hidden rounded-t-lg relative'>
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
                 <img
-                  alt={nft.name ?? t`Unnamed`}
+                  alt={nft.name ?? t`NFT artwork for unnamed NFT`}
                   loading='lazy'
                   width='150'
                   height='150'
@@ -378,7 +391,9 @@ const NftCardComponent = ({
                   onClick={(e) => {
                     e.stopPropagation();
                     writeText(nft.launcher_id);
+                    toast.success(t`NFT ID copied to clipboard`);
                   }}
+                  aria-label={t`Copy NFT ID to clipboard`}
                 >
                   <Copy className='mr-2 h-4 w-4' />
                   <span>

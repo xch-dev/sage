@@ -19,7 +19,12 @@ import {
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
 import collectionImage from '@/images/collection.png';
-import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from './ui/tooltip';
 
 interface NftGroupCardProps {
   type: 'collection' | 'did';
@@ -172,19 +177,34 @@ export function NftGroupCard({
       </div>
       <div className='border-t border-neutral-200 bg-white text-neutral-950 shadow dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-50 text-md flex items-center justify-between rounded-b-lg p-2 pl-3'>
         <span className='truncate'>
-          <h3 className='font-medium leading-none truncate block'>
-            {item.name ?? getDefaultName()}
-          </h3>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <p className='text-xs text-muted-foreground truncate'>
-                {getId()}
-              </p>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>{getId()}</p>
-            </TooltipContent>
-          </Tooltip>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <h3 className='font-medium leading-none truncate block'>
+                  {item.name ?? getDefaultName()}
+                </h3>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{item.name ?? getDefaultName()}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <p
+                  className='text-xs text-muted-foreground truncate'
+                  aria-label={`ID: ${getId()}`}
+                >
+                  {getId()}
+                </p>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{getId()}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </span>
 
         {allowToggleVisibility && onToggleVisibility && (
