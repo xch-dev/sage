@@ -78,7 +78,7 @@ routes!(
     get_cats await: GetCats = "/get_cats",
     get_cat await: GetCat = "/get_cat",
     get_dids await: GetDids = "/get_dids",
-    // get_minter_did_ids await: GetMinterDidIds = "/get_minter_did_ids",
+    get_minter_did_ids await: GetMinterDidIds = "/get_minter_did_ids",
     get_pending_transactions await: GetPendingTransactions = "/get_pending_transactions",
     get_transactions await: GetTransactions = "/get_transactions",
     get_transaction await: GetTransaction = "/get_transaction",
