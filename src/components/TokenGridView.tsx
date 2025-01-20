@@ -28,7 +28,12 @@ export function TokenGridView({
       <Link to={`/wallet/token/xch`}>
         <Card className='transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900'>
           <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-            <CardTitle className='text-md font-medium'>Chia</CardTitle>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <CardTitle className='text-md font-medium'>Chia</CardTitle>
+              </TooltipTrigger>
+              <TooltipContent>Chia</TooltipContent>
+            </Tooltip>
             <img
               alt={t`XCH logo`}
               className='h-6 w-6'
@@ -51,9 +56,16 @@ export function TokenGridView({
             className={`transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900 ${!cat.visible ? 'opacity-50 grayscale' : ''}`}
           >
             <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2 space-x-2'>
-              <CardTitle className='text-md font-medium truncate'>
-                {cat.name || t`Unknown CAT`}
-              </CardTitle>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <CardTitle className='text-md font-medium truncate'>
+                    {cat.name || t`Unknown CAT`}
+                  </CardTitle>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {cat.name || t`Unknown CAT`}
+                </TooltipContent>
+              </Tooltip>
               {cat.icon_url && (
                 <img
                   alt={`${cat.asset_id} logo`}
