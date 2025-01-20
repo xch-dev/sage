@@ -93,7 +93,6 @@ export function TokenSelector({
       <div className='flex items-center gap-2 min-w-0'>
         {selectedToken?.icon_url && (
           <img
-            alt={selectedToken.name ?? t`Unknown`}
             src={selectedToken.icon_url}
             className='w-8 h-8 rounded object-cover'
             alt={

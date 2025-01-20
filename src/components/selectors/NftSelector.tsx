@@ -144,7 +144,6 @@ export function NftSelector({
     >
       <div className='flex items-center gap-2 min-w-0'>
         <img
-          alt={selectedNft?.name ?? t`Select NFT`}
           src={
             selectedNft
               ? (nftThumbnails[selectedNft.launcher_id] ?? defaultNftImage)
