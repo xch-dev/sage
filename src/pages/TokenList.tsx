@@ -233,7 +233,7 @@ export function TokenList() {
           )}
         </div>
 
-        <div className='mt-4 grid gap-2 md:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'>
+        <div className='mt-4 grid gap-2 md:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 3xl:grid-cols-6'>
           <Link to={`/wallet/token/xch`}>
             <Card className='transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900'>
               <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
