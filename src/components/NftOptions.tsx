@@ -21,6 +21,7 @@ import {
   LayoutGrid,
   ArrowLeftIcon,
   Paintbrush,
+  LibraryBigIcon,
 } from 'lucide-react';
 import { Button } from './ui/button';
 import {
@@ -273,7 +274,7 @@ export function NftOptions({
                   title={groupLabel}
                 >
                   {group === NftGroupMode.Collection ? (
-                    <Images className='h-4 w-4' aria-hidden='true' />
+                    <LibraryBigIcon className='h-4 w-4' aria-hidden='true' />
                   ) : group === NftGroupMode.OwnerDid ? (
                     <UserIcon className='h-4 w-4' aria-hidden='true' />
                   ) : group === NftGroupMode.MinterDid ? (
@@ -315,7 +316,10 @@ export function NftOptions({
                     }}
                     aria-label={t`Group by Collections`}
                   >
-                    <Images className='mr-2 h-4 w-4' aria-hidden='true' />
+                    <LibraryBigIcon
+                      className='mr-2 h-4 w-4'
+                      aria-hidden='true'
+                    />
                     <span>
                       <Trans>Group by Collections</Trans>
                     </span>
