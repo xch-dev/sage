@@ -22,6 +22,16 @@ export function formatAddress(address: string, chars: number = 8): string {
   return `${cleanAddress.slice(0, chars)}...${cleanAddress.slice(-chars)}`;
 }
 
+export function formatUsdPrice(price: number): string {
+  if (price < 0.01) {
+    return '< 0.01¢';
+  } else if (price < 1) {
+    return `${(price * 100).toFixed(2)}¢`;
+  } else {
+    return `$${price.toFixed(2)}`;
+  }
+}
+
 export function toMojos(amount: string, decimals: number): string {
   return BigNumber(amount).multipliedBy(BigNumber(10).pow(decimals)).toString();
 }

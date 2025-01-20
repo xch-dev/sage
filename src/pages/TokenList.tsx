@@ -3,7 +3,6 @@ import Header from '@/components/Header';
 import { ReceiveAddress } from '@/components/ReceiveAddress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,16 +29,13 @@ import {
   XIcon,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { CatRecord, commands, events } from '../bindings';
 import { useWalletState } from '../state';
-import { NumberFormat } from '@/components/NumberFormat';
-import { fromMojos } from '@/lib/utils';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { useLocalStorage } from 'usehooks-ts';
+import { TokenListView } from '@/components/TokenListView';
+import { TokenGridView } from '@/components/TokenGridView';
+import { ViewToggle, ViewMode } from '@/components/ViewToggle';
 
 enum TokenView {
   Name = 'name',
@@ -54,6 +50,10 @@ export function TokenList() {
   const [params, setParams] = useTokenParams();
   const { view, showHidden, showZeroBalance } = params;
   const [cats, setCats] = useState<CatRecord[]>([]);
+  const [viewMode, setViewMode] = useLocalStorage<ViewMode>(
+    'token-view-mode',
+    'grid',
+  );
 
   const catsWithBalanceInUsd = useMemo(
     () =>
@@ -67,9 +67,10 @@ export function TokenList() {
           ...cat,
           balanceInUsd: usdValue,
           sortValue: usdValue,
+          priceInUsd: getPriceInUsd(cat.asset_id),
         };
       }),
-    [cats, getBalanceInUsd],
+    [cats, getBalanceInUsd, getPriceInUsd],
   );
 
   const sortedCats = catsWithBalanceInUsd.sort((a, b) => {
@@ -77,12 +78,10 @@ export function TokenList() {
     if (!a.visible && b.visible) return 1;
 
     if (view === TokenView.Balance) {
-      if (a.balanceInUsd === 0 && b.balanceInUsd === 0) {
-        return (
-          Number(toDecimal(b.balance, 3)) - Number(toDecimal(a.balance, 3))
-        );
+      if (a.balanceInUsd !== b.balanceInUsd) {
+        return b.balanceInUsd - a.balanceInUsd;
       }
-      return b.sortValue - a.sortValue;
+      return Number(toDecimal(b.balance, 3)) - Number(toDecimal(a.balance, 3));
     }
 
     const aName = a.name || 'Unknown CAT';
@@ -152,18 +151,29 @@ export function TokenList() {
         </div>
       </Header>
       <Container>
-        <Button onClick={() => navigate('/wallet/issue-token')}>
-          <Coins className='h-4 w-4 mr-2' /> <Trans>Issue Token</Trans>
+        <Button
+          onClick={() => navigate('/wallet/issue-token')}
+          aria-label={t`Issue new token`}
+        >
+          <Coins className='h-4 w-4 mr-2' aria-hidden='true' />
+          <Trans>Issue Token</Trans>
         </Button>
 
-        <div className='flex items-center justify-between gap-2 mt-4'>
+        <div
+          className='flex items-center justify-between gap-2 mt-4'
+          role='search'
+          aria-label={t`Token search and filters`}
+        >
           <div className='relative flex-1'>
             <div className='relative'>
-              <SearchIcon className='absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
+              <SearchIcon
+                className='absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground'
+                aria-hidden='true'
+              />
               <Input
+                type='search'
                 value={params.search}
-                aria-label={t`Search for a token`}
-                title={t`Search for a token`}
+                aria-label={t`Search tokens`}
                 placeholder={t`Search tokens...`}
                 onChange={(e) => setParams({ search: e.target.value })}
                 className='w-full pl-8 pr-8'
@@ -178,37 +188,45 @@ export function TokenList() {
                 className='absolute right-0 top-0 h-full px-2 hover:bg-transparent'
                 onClick={() => setParams({ search: '' })}
               >
-                <XIcon className='h-4 w-4' />
+                <XIcon className='h-4 w-4' aria-hidden='true' />
               </Button>
             )}
           </div>
-          <TokenSortDropdown
-            view={view}
-            setView={(view) => setParams({ view })}
-          />
-          <Button
-            variant='outline'
-            size='icon'
-            onClick={() => setParams({ showZeroBalance: !showZeroBalance })}
-            className={!showZeroBalance ? 'text-muted-foreground' : ''}
-            aria-label={
-              showZeroBalance ? t`Hide zero balances` : t`Show zero balances`
-            }
-            title={
-              showZeroBalance ? t`Hide zero balances` : t`Show zero balances`
-            }
+
+          <div
+            className='flex items-center gap-2'
+            role='toolbar'
+            aria-label={t`View options`}
           >
-            {showZeroBalance ? (
-              <CircleDollarSign className='h-4 w-4' />
-            ) : (
-              <CircleSlash className='h-4 w-4' />
-            )}
-          </Button>
+            <ViewToggle view={viewMode} onChange={setViewMode} />
+            <TokenSortDropdown
+              view={view}
+              setView={(view) => setParams({ view })}
+            />
+            <Button
+              variant='outline'
+              size='icon'
+              onClick={() => setParams({ showZeroBalance: !showZeroBalance })}
+              className={!showZeroBalance ? 'text-muted-foreground' : ''}
+              aria-label={
+                showZeroBalance ? t`Hide zero balances` : t`Show zero balances`
+              }
+              title={
+                showZeroBalance ? t`Hide zero balances` : t`Show zero balances`
+              }
+            >
+              {showZeroBalance ? (
+                <CircleDollarSign className='h-4 w-4' aria-hidden='true' />
+              ) : (
+                <CircleSlash className='h-4 w-4' aria-hidden='true' />
+              )}
+            </Button>
+          </div>
         </div>
 
         {walletState.sync.synced_coins < walletState.sync.total_coins && (
-          <Alert className='mt-4 mb-4'>
-            <InfoIcon className='h-4 w-4' />
+          <Alert className='mt-4 mb-4' role='status'>
+            <InfoIcon className='h-4 w-4' aria-hidden='true' />
             <AlertTitle>
               <Trans>Syncing in progress...</Trans>
             </AlertTitle>
@@ -224,128 +242,56 @@ export function TokenList() {
         <div className='flex items-center gap-4 my-4'>
           {hasHiddenAssets && (
             <div className='flex items-center gap-2'>
-              <label htmlFor='viewHidden'>
-                <Trans>View hidden</Trans>
-              </label>
               <Switch
                 id='viewHidden'
                 checked={showHidden}
                 onCheckedChange={(value) => setParams({ showHidden: value })}
+                aria-label={
+                  showHidden ? t`Hide hidden tokens` : t`Show hidden tokens`
+                }
               />
+              <label htmlFor='viewHidden'>
+                <Trans>View hidden</Trans>
+              </label>
             </div>
           )}
         </div>
 
-        <div className='mt-4 grid gap-2 md:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 3xl:grid-cols-6'>
-          <Link to={`/wallet/token/xch`}>
-            <Card className='transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900'>
-              <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-                <CardTitle className='text-md font-medium'>Chia</CardTitle>
-                <img
-                  alt={t`XCH logo`}
-                  className='h-6 w-6'
-                  src='https://icons.dexie.space/xch.webp'
-                />
-              </CardHeader>
-              <CardContent>
-                <div className='text-2xl font-medium truncate'>
-                  <NumberFormat
-                    value={fromMojos(
-                      walletState.sync.balance,
-                      walletState.sync.unit.decimals,
-                    )}
-                    minimumFractionDigits={0}
-                    maximumFractionDigits={walletState.sync.unit.decimals}
-                  />
-                </div>
-                <div className='text-sm text-neutral-500'>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div>
-                        ~
-                        <NumberFormat
-                          value={getBalanceInUsd(
-                            'xch',
-                            toDecimal(
-                              walletState.sync.balance,
-                              walletState.sync.unit.decimals,
-                            ),
-                          )}
-                          style='currency'
-                          currency='USD'
-                          minimumFractionDigits={2}
-                          maximumFractionDigits={2}
-                        />
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <span>1 XCH = ${getPriceInUsd('xch')}</span>
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-          {filteredCats.map((cat) => (
-            <Link key={cat.asset_id} to={`/wallet/token/${cat.asset_id}`}>
-              <Card
-                className={`transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900 ${!cat.visible ? 'opacity-50 grayscale' : ''}`}
-              >
-                <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2 space-x-2'>
-                  <CardTitle className='text-md font-medium truncate'>
-                    {cat.name || t`Unknown CAT`}
-                  </CardTitle>
-                  {cat.icon_url && (
-                    <img
-                      alt={`${cat.asset_id} logo`}
-                      className='h-6 w-6'
-                      src={cat.icon_url}
-                    />
-                  )}
-                </CardHeader>
-                <CardContent>
-                  <div className='text-2xl font-medium truncate'>
-                    <NumberFormat
-                      value={fromMojos(cat.balance, 3)}
-                      minimumFractionDigits={0}
-                      maximumFractionDigits={3}
-                    />{' '}
-                    {cat.ticker ?? ''}
-                  </div>
-                  <div className='text-sm text-neutral-500'>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div>
-                          ~
-                          <NumberFormat
-                            value={cat.balanceInUsd}
-                            style='currency'
-                            currency='USD'
-                            minimumFractionDigits={2}
-                            maximumFractionDigits={2}
-                          />
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <span>
-                          1 {cat.ticker ?? 'CAT'}{' '}
-                          {(() => {
-                            const price = getPriceInUsd(cat.asset_id);
-                            return price < 0.01 // prices less than a penny
-                              ? ' < 0.01¢'
-                              : price < 1 // prices less than a dollar
-                                ? ` = ${(price * 100).toFixed(2)}¢`
-                                : ` = $${new Number(price).toFixed(2)}`;
-                          })()}
-                        </span>
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
-        </div>
+        {viewMode === 'grid' ? (
+          <TokenGridView
+            cats={filteredCats}
+            xchBalance={walletState.sync.balance.toString()}
+            xchDecimals={walletState.sync.unit.decimals}
+            xchPrice={getPriceInUsd('xch')}
+            xchBalanceUsd={Number(
+              getBalanceInUsd(
+                'xch',
+                toDecimal(
+                  walletState.sync.balance,
+                  walletState.sync.unit.decimals,
+                ),
+              ),
+            )}
+          />
+        ) : (
+          <div className='mt-4'>
+            <TokenListView
+              cats={filteredCats}
+              xchBalance={walletState.sync.balance.toString()}
+              xchDecimals={walletState.sync.unit.decimals}
+              xchPrice={getPriceInUsd('xch')}
+              xchBalanceUsd={Number(
+                getBalanceInUsd(
+                  'xch',
+                  toDecimal(
+                    walletState.sync.balance,
+                    walletState.sync.unit.decimals,
+                  ),
+                ),
+              )}
+            />
+          </div>
+        )}
       </Container>
     </>
   );
