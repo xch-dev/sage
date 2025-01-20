@@ -39,13 +39,13 @@ export function TokenListView({
             <TableHead scope='col'>
               <Trans>Symbol</Trans>
             </TableHead>
-            <TableHead scope='col' className='text-right'>
+            <TableHead scope='col' className='text-right '>
               <Trans>Balance</Trans>
             </TableHead>
-            <TableHead scope='col' className='text-right'>
+            <TableHead scope='col' className='text-right hidden md:table-cell'>
               <Trans>Balance (USD)</Trans>
             </TableHead>
-            <TableHead scope='col' className='text-right'>
+            <TableHead scope='col' className='text-right hidden md:table-cell'>
               <Trans>Price (USD)</Trans>
             </TableHead>
           </TableRow>
@@ -70,13 +70,13 @@ export function TokenListView({
               </Link>
             </TableCell>
             <TableCell>XCH</TableCell>
-            <TableCell className='text-right'>
+            <TableCell className='text-right '>
               <NumberFormat
                 value={toDecimal(xchBalance, xchDecimals)}
                 maximumFractionDigits={xchDecimals}
               />
             </TableCell>
-            <TableCell className='text-right'>
+            <TableCell className='text-right hidden md:table-cell'>
               <span className='sr-only'>USD Value: </span>
               <NumberFormat
                 value={xchBalanceUsd}
@@ -85,7 +85,7 @@ export function TokenListView({
                 maximumFractionDigits={2}
               />
             </TableCell>
-            <TableCell className='text-right'>
+            <TableCell className='text-right hidden md:table-cell'>
               <span className='sr-only'>Price per token: </span>
               <NumberFormat
                 value={xchPrice}
@@ -122,13 +122,13 @@ export function TokenListView({
                 </Link>
               </TableCell>
               <TableCell>{cat.ticker || '-'}</TableCell>
-              <TableCell className='text-right'>
+              <TableCell className='text-right '>
                 <NumberFormat
                   value={toDecimal(cat.balance, 3)}
                   maximumFractionDigits={3}
                 />
               </TableCell>
-              <TableCell className='text-right'>
+              <TableCell className='text-right hidden md:table-cell'>
                 <span className='sr-only'>USD Value: </span>
                 <NumberFormat
                   value={cat.balanceInUsd}
@@ -137,7 +137,7 @@ export function TokenListView({
                   maximumFractionDigits={2}
                 />
               </TableCell>
-              <TableCell className='text-right'>
+              <TableCell className='text-right hidden md:table-cell'>
                 <span className='sr-only'>Price per token: </span>
                 {formatUsdPrice(cat.priceInUsd)}
               </TableCell>
