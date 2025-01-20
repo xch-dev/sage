@@ -1,7 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Trans } from '@lingui/react/macro';
 import { CatRecord } from '../bindings';
-import { toDecimal } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Tooltip,
@@ -9,22 +8,25 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { t } from '@lingui/core/macro';
+import { NumberFormat } from '@/components/NumberFormat';
+import { formatUsdPrice, fromMojos } from '@/lib/utils';
+import { TokenViewProps } from '@/types/TokenViewProps';
 
-interface TokenGridViewProps {
-  cats: Array<CatRecord & { balanceInUsd: number; sortValue: number }>;
-  xchBalance: string;
-  xchDecimals: number;
-  getBalanceInUsd: (assetId: string, balance: string) => string;
-}
+type TokenGridViewProps = TokenViewProps;
 
 export function TokenGridView({
   cats,
   xchBalance,
   xchDecimals,
-  getBalanceInUsd,
+  xchBalanceUsd,
+  xchPrice,
 }: TokenGridViewProps) {
   return (
-    <div role="region" aria-label={t`Token Grid`} className='mt-4 grid gap-2 md:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 3xl:grid-cols-6'>
+    <div
+      role='region'
+      aria-label={t`Token Grid`}
+      className='mt-4 grid gap-2 md:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 3xl:grid-cols-6'
+    >
       <Link to={`/wallet/token/xch`}>
         <Card className='transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900'>
           <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
@@ -36,19 +38,37 @@ export function TokenGridView({
             </Tooltip>
             <img
               alt={t`Token logo`}
-              aria-hidden="true"
+              aria-hidden='true'
               className='h-6 w-6'
               src='https://icons.dexie.space/xch.webp'
             />
           </CardHeader>
           <CardContent>
             <div className='text-2xl font-medium truncate'>
-              <span className="sr-only">Balance: </span>
-              {toDecimal(xchBalance, xchDecimals)}
+              <NumberFormat
+                value={fromMojos(xchBalance, xchDecimals)}
+                minimumFractionDigits={0}
+                maximumFractionDigits={xchDecimals}
+              />
             </div>
             <div className='text-sm text-neutral-500'>
-              <span className="sr-only">USD Value: </span>
-              ~${getBalanceInUsd('xch', toDecimal(xchBalance, xchDecimals))}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div>
+                    ~
+                    <NumberFormat
+                      value={xchBalanceUsd}
+                      style='currency'
+                      currency='USD'
+                      minimumFractionDigits={2}
+                      maximumFractionDigits={2}
+                    />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <span>1 XCH = ${xchPrice}</span>
+                </TooltipContent>
+              </Tooltip>
             </div>
           </CardContent>
         </Card>
@@ -72,7 +92,7 @@ export function TokenGridView({
               {cat.icon_url && (
                 <img
                   alt={t`Token logo`}
-                  aria-hidden="true"
+                  aria-hidden='true'
                   className='h-6 w-6'
                   src={cat.icon_url}
                 />
@@ -80,31 +100,30 @@ export function TokenGridView({
             </CardHeader>
             <CardContent>
               <div className='text-2xl font-medium truncate'>
-                <span className="sr-only">Balance: </span>
-                {toDecimal(cat.balance, 3)} {cat.ticker ?? ''}
+                <NumberFormat
+                  value={fromMojos(cat.balance, 3)}
+                  minimumFractionDigits={0}
+                  maximumFractionDigits={3}
+                />{' '}
+                {cat.ticker ?? ''}
               </div>
               <div className='text-sm text-neutral-500'>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <div>
-                      <span className="sr-only">USD Value: </span>
-                      ~${cat.balanceInUsd}
+                      ~
+                      <NumberFormat
+                        value={cat.balanceInUsd}
+                        style='currency'
+                        currency='USD'
+                        minimumFractionDigits={2}
+                        maximumFractionDigits={2}
+                      />
                     </div>
                   </TooltipTrigger>
                   <TooltipContent>
                     <span>
-                      1 {cat.ticker ?? 'CAT'}{' '}
-                      {Number(
-                        cat.balanceInUsd /
-                          Number(toDecimal(cat.balance, 3)),
-                      ) < 0.01
-                        ? ' < 0.01¢'
-                        : Number(
-                              cat.balanceInUsd /
-                                Number(toDecimal(cat.balance, 3)),
-                            ) < 0.01
-                          ? ` = ${((cat.balanceInUsd / Number(toDecimal(cat.balance, 3))) * 100).toFixed(2)}¢`
-                          : ` = $${(cat.balanceInUsd / Number(toDecimal(cat.balance, 3))).toFixed(2)}`}
+                      1 {cat.ticker ?? 'CAT'} {formatUsdPrice(cat.priceInUsd)}
                     </span>
                   </TooltipContent>
                 </Tooltip>
@@ -115,4 +134,4 @@ export function TokenGridView({
       ))}
     </div>
   );
-} 
+}

@@ -12,18 +12,18 @@ interface ViewToggleProps {
 export function ViewToggle({ view, onChange }: ViewToggleProps) {
   return (
     <Button
-      variant="outline"
-      size="icon"
+      variant='outline'
+      size='icon'
       onClick={() => onChange(view === 'grid' ? 'list' : 'grid')}
       title={view === 'grid' ? t`Switch to list view` : t`Switch to grid view`}
     >
       {view === 'grid' ? (
-        <ListIcon className="h-4 w-4" />
+        <ListIcon className='h-4 w-4' aria-hidden='true' />
       ) : (
-        <LayoutGrid className="h-4 w-4" />
+        <LayoutGrid className='h-4 w-4' aria-hidden='true' />
       )}
     </Button>
   );
 }
 
-export type { ViewMode }; 
+export type { ViewMode };

@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Trans } from '@lingui/react/macro';
 import { CatRecord } from '../bindings';
-import { toDecimal } from '@/lib/utils';
+import { formatUsdPrice, toDecimal } from '@/lib/utils';
 import {
   Table,
   TableBody,
@@ -11,30 +11,43 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { t } from '@lingui/core/macro';
-interface TokenListViewProps {
-  cats: Array<CatRecord & { balanceInUsd: number; sortValue: number }>;
-  xchBalance: string;
-  xchDecimals: number;
-  getBalanceInUsd: (assetId: string, balance: string) => string;
-}
+import { NumberFormat } from '@/components/NumberFormat';
+import { TokenViewProps } from '@/types/TokenViewProps';
 
-export function TokenListView({ 
-  cats, 
-  xchBalance, 
-  xchDecimals, 
-  getBalanceInUsd 
+type TokenListViewProps = TokenViewProps;
+
+export function TokenListView({
+  cats,
+  xchBalance,
+  xchDecimals,
+  xchBalanceUsd,
+  xchPrice,
 }: TokenListViewProps) {
   return (
-    <div role="region" aria-label={t`Token List`}>
+    <div role='region' aria-label={t`Token List`}>
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead scope="col"></TableHead>
-            <TableHead scope="col"><Trans>Name</Trans></TableHead>
-            <TableHead scope="col"><Trans>Symbol</Trans></TableHead>
-            <TableHead scope="col" className="text-right"><Trans>Balance</Trans></TableHead>
-            <TableHead scope="col" className="text-right"><Trans>Value (USD)</Trans></TableHead>
-            <TableHead scope="col" className="text-right"><Trans>Price</Trans></TableHead>
+            <TableHead scope='col'>
+              <span className='sr-only'>
+                <Trans>Token Icon</Trans>
+              </span>
+            </TableHead>
+            <TableHead scope='col'>
+              <Trans>Name</Trans>
+            </TableHead>
+            <TableHead scope='col'>
+              <Trans>Symbol</Trans>
+            </TableHead>
+            <TableHead scope='col' className='text-right'>
+              <Trans>Balance</Trans>
+            </TableHead>
+            <TableHead scope='col' className='text-right'>
+              <Trans>Balance (USD)</Trans>
+            </TableHead>
+            <TableHead scope='col' className='text-right'>
+              <Trans>Price (USD)</Trans>
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -42,27 +55,44 @@ export function TokenListView({
             <TableCell>
               <img
                 alt={t`XCH logo`}
-                aria-hidden="true"
+                aria-hidden='true'
                 className='h-6 w-6'
                 src='https://icons.dexie.space/xch.webp'
               />
             </TableCell>
             <TableCell>
-              <Link to="/wallet/token/xch" className="hover:underline">
+              <Link
+                to='/wallet/token/xch'
+                className='hover:underline'
+                aria-label={t`View Chia token details`}
+              >
                 Chia
               </Link>
             </TableCell>
             <TableCell>XCH</TableCell>
-            <TableCell className="text-right">
-              {toDecimal(xchBalance, xchDecimals)}
+            <TableCell className='text-right'>
+              <NumberFormat
+                value={toDecimal(xchBalance, xchDecimals)}
+                maximumFractionDigits={xchDecimals}
+              />
             </TableCell>
-            <TableCell className="text-right">
-              <span className="sr-only">USD Value: </span>
-              ${getBalanceInUsd('xch', toDecimal(xchBalance, xchDecimals))}
+            <TableCell className='text-right'>
+              <span className='sr-only'>USD Value: </span>
+              <NumberFormat
+                value={xchBalanceUsd}
+                style='currency'
+                currency='USD'
+                maximumFractionDigits={2}
+              />
             </TableCell>
-            <TableCell className="text-right">
-              <span className="sr-only">Price per token: </span>
-              ${Number(getBalanceInUsd('xch', '1')).toFixed(2)}
+            <TableCell className='text-right'>
+              <span className='sr-only'>Price per token: </span>
+              <NumberFormat
+                value={xchPrice}
+                style='currency'
+                currency='USD'
+                maximumFractionDigits={2}
+              />
             </TableCell>
           </TableRow>
           {cats.map((cat) => (
@@ -71,33 +101,45 @@ export function TokenListView({
                 {cat.icon_url && (
                   <img
                     alt={t`Token logo`}
-                    aria-hidden="true"
+                    aria-hidden='true'
                     className='h-6 w-6'
                     src={cat.icon_url}
                   />
                 )}
               </TableCell>
               <TableCell>
-                <Link 
+                <Link
                   to={`/wallet/token/${cat.asset_id}`}
-                  className="hover:underline"
+                  className='hover:underline'
+                  aria-label={(() => {
+                    const name = cat.name;
+                    return name
+                      ? t`View ${name} token details`
+                      : t`View Unknown CAT token details`;
+                  })()}
                 >
                   {cat.name || <Trans>Unknown CAT</Trans>}
                 </Link>
               </TableCell>
               <TableCell>{cat.ticker || '-'}</TableCell>
-              <TableCell className="text-right">
-                {toDecimal(cat.balance, 3)}
+              <TableCell className='text-right'>
+                <NumberFormat
+                  value={toDecimal(cat.balance, 3)}
+                  maximumFractionDigits={3}
+                />
               </TableCell>
-              <TableCell className="text-right">
-                <span className="sr-only">USD Value: </span>
-                ${cat.balanceInUsd.toFixed(2)}
+              <TableCell className='text-right'>
+                <span className='sr-only'>USD Value: </span>
+                <NumberFormat
+                  value={cat.balanceInUsd}
+                  style='currency'
+                  currency='USD'
+                  maximumFractionDigits={2}
+                />
               </TableCell>
-              <TableCell className="text-right">
-                <span className="sr-only">Price per token: </span>
-                {Number(cat.balance) > 0
-                  ? `$${(cat.balanceInUsd / Number(toDecimal(cat.balance, 3))).toFixed(2)}`
-                  : '-'}
+              <TableCell className='text-right'>
+                <span className='sr-only'>Price per token: </span>
+                {formatUsdPrice(cat.priceInUsd)}
               </TableCell>
             </TableRow>
           ))}
@@ -105,4 +147,4 @@ export function TokenListView({
       </Table>
     </div>
   );
-} 
+}
