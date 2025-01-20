@@ -19,7 +19,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useErrors } from '@/hooks/useErrors';
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
 import { amount, positiveAmount } from '@/lib/formTypes';
-import { toDecimal, toMojos } from '@/lib/utils';
+import { fromMojos, toDecimal, toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from '@lingui/core/macro';
@@ -36,6 +36,7 @@ import {
   SendXch,
   TransactionResponse,
 } from '../bindings';
+import { NumberFormat } from '@/components/NumberFormat';
 import { toHex } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 
@@ -202,7 +203,12 @@ export default function Send() {
                 Available Balance
               </div>
               <div className='text-2xl font-medium mt-1'>
-                {toDecimal(asset.balance, asset.decimals)} {asset.ticker}
+                <NumberFormat
+                  value={fromMojos(asset.balance, asset.decimals)}
+                  minimumFractionDigits={0}
+                  maximumFractionDigits={asset.decimals}
+                />{' '}
+                {asset.ticker}
               </div>
             </CardContent>
           </Card>

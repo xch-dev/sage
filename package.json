@@ -59,6 +59,7 @@
     "react-hook-form": "^7.53.0",
     "react-imask": "^7.6.1",
     "react-router-dom": "^6.26.0",
+    "react-toastify": "^11.0.3",
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7",
     "tauri-plugin-safe-area-insets": "^0.1.0",

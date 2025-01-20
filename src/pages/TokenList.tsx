@@ -33,6 +33,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { CatRecord, commands, events } from '../bindings';
 import { useWalletState } from '../state';
+import { NumberFormat } from '@/components/NumberFormat';
+import { fromMojos } from '@/lib/utils';
 import {
   Tooltip,
   TooltipContent,
@@ -47,7 +49,7 @@ enum TokenView {
 export function TokenList() {
   const navigate = useNavigate();
   const walletState = useWalletState();
-  const { getBalanceInUsd } = usePrices();
+  const { getBalanceInUsd, getPriceInUsd } = usePrices();
   const { addError } = useErrors();
   const [params, setParams] = useTokenParams();
   const { view, showHidden, showZeroBalance } = params;
@@ -60,6 +62,7 @@ export function TokenList() {
         const usdValue = parseFloat(
           getBalanceInUsd(cat.asset_id, balance.toString()),
         );
+
         return {
           ...cat,
           balanceInUsd: usdValue,
@@ -233,7 +236,7 @@ export function TokenList() {
           )}
         </div>
 
-        <div className='mt-4 grid gap-2 md:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'>
+        <div className='mt-4 grid gap-2 md:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 3xl:grid-cols-6'>
           <Link to={`/wallet/token/xch`}>
             <Card className='transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900'>
               <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
@@ -246,20 +249,39 @@ export function TokenList() {
               </CardHeader>
               <CardContent>
                 <div className='text-2xl font-medium truncate'>
-                  {toDecimal(
-                    walletState.sync.balance,
-                    walletState.sync.unit.decimals,
-                  )}
-                </div>
-                <div className='text-sm text-neutral-500'>
-                  ~$
-                  {getBalanceInUsd(
-                    'xch',
-                    toDecimal(
+                  <NumberFormat
+                    value={fromMojos(
                       walletState.sync.balance,
                       walletState.sync.unit.decimals,
-                    ),
-                  )}
+                    )}
+                    minimumFractionDigits={0}
+                    maximumFractionDigits={walletState.sync.unit.decimals}
+                  />
+                </div>
+                <div className='text-sm text-neutral-500'>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div>
+                        ~
+                        <NumberFormat
+                          value={getBalanceInUsd(
+                            'xch',
+                            toDecimal(
+                              walletState.sync.balance,
+                              walletState.sync.unit.decimals,
+                            ),
+                          )}
+                          style='currency'
+                          currency='USD'
+                          minimumFractionDigits={2}
+                          maximumFractionDigits={2}
+                        />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <span>1 XCH = ${getPriceInUsd('xch')}</span>
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
               </CardContent>
             </Card>
@@ -283,27 +305,38 @@ export function TokenList() {
                 </CardHeader>
                 <CardContent>
                   <div className='text-2xl font-medium truncate'>
-                    {toDecimal(cat.balance, 3)} {cat.ticker ?? ''}
+                    <NumberFormat
+                      value={fromMojos(cat.balance, 3)}
+                      minimumFractionDigits={0}
+                      maximumFractionDigits={3}
+                    />{' '}
+                    {cat.ticker ?? ''}
                   </div>
                   <div className='text-sm text-neutral-500'>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <div>~${cat.balanceInUsd}</div>
+                        <div>
+                          ~
+                          <NumberFormat
+                            value={cat.balanceInUsd}
+                            style='currency'
+                            currency='USD'
+                            minimumFractionDigits={2}
+                            maximumFractionDigits={2}
+                          />
+                        </div>
                       </TooltipTrigger>
                       <TooltipContent>
                         <span>
                           1 {cat.ticker ?? 'CAT'}{' '}
-                          {Number(
-                            cat.balanceInUsd /
-                              Number(toDecimal(cat.balance, 3)),
-                          ) < 0.01
-                            ? ' < 0.01¢'
-                            : Number(
-                                  cat.balanceInUsd /
-                                    Number(toDecimal(cat.balance, 3)),
-                                ) < 0.01
-                              ? ` = ${((cat.balanceInUsd / Number(toDecimal(cat.balance, 3))) * 100).toFixed(2)}¢`
-                              : ` = $${(cat.balanceInUsd / Number(toDecimal(cat.balance, 3))).toFixed(2)}`}
+                          {(() => {
+                            const price = getPriceInUsd(cat.asset_id);
+                            return price < 0.01 // prices less than a penny
+                              ? ' < 0.01¢'
+                              : price < 1 // prices less than a dollar
+                                ? ` = ${(price * 100).toFixed(2)}¢`
+                                : ` = $${new Number(price).toFixed(2)}`;
+                          })()}
                         </span>
                       </TooltipContent>
                     </Tooltip>

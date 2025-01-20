@@ -3,6 +3,7 @@ import { useErrors } from '@/hooks/useErrors';
 import { useEffect, useState } from 'react';
 import { Input } from '../ui/input';
 import { DropdownSelector } from './DropdownSelector';
+import { t } from '@lingui/core/macro';
 
 export interface TokenSelectorProps {
   value: string | null;
@@ -77,7 +78,7 @@ export function TokenSelector({
             <img
               src={token.icon_url}
               className='w-10 h-10 rounded object-cover'
-              alt={token.name ?? 'Unknown'}
+              alt={token.name ?? t`Unknown`}
             />
           )}
           <div className='flex flex-col truncate'>
@@ -94,6 +95,11 @@ export function TokenSelector({
           <img
             src={selectedToken.icon_url}
             className='w-8 h-8 rounded object-cover'
+            alt={
+              selectedToken?.name
+                ? `Image of ${selectedToken.name}`
+                : 'No token name'
+            }
           />
         )}
         <div className='flex flex-col truncate text-left'>

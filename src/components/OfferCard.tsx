@@ -1,6 +1,6 @@
 import { OfferAssets, OfferSummary } from '@/bindings';
 import { nftUri } from '@/lib/nftUri';
-import { toDecimal } from '@/lib/utils';
+import { fromMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -11,6 +11,7 @@ import { CopyButton } from './CopyButton';
 import { Badge } from './ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Separator } from './ui/separator';
+import { NumberFormat } from '@/components/NumberFormat';
 
 export interface OfferCardProps {
   summary: OfferSummary;
@@ -98,10 +99,14 @@ function Assets({ assets }: AssetsProps) {
             </Badge>
 
             <div className='text-sm font-medium'>
-              {toDecimal(
-                BigNumber(amount).plus(assets.xch.royalty).toString(),
-                walletState.sync.unit.decimals,
-              )}{' '}
+              <NumberFormat
+                value={fromMojos(
+                  BigNumber(amount).plus(assets.xch.royalty),
+                  walletState.sync.unit.decimals,
+                )}
+                minimumFractionDigits={0}
+                maximumFractionDigits={walletState.sync.unit.decimals}
+              />{' '}
               {walletState.sync.unit.ticker}
             </div>
           </div>
@@ -111,7 +116,14 @@ function Assets({ assets }: AssetsProps) {
               <Separator className='my-1' />
               <div className='text-sm text-muted-foreground truncate text-neutral-600 dark:text-neutral-300'>
                 <Trans>Amount includes</Trans>{' '}
-                {toDecimal(assets.xch.royalty, walletState.sync.unit.decimals)}{' '}
+                <NumberFormat
+                  value={fromMojos(
+                    assets.xch.royalty,
+                    walletState.sync.unit.decimals,
+                  )}
+                  minimumFractionDigits={0}
+                  maximumFractionDigits={walletState.sync.unit.decimals}
+                />{' '}
                 {walletState.sync.unit.ticker} <Trans>royalty</Trans>
               </div>
             </>
@@ -128,8 +140,12 @@ function Assets({ assets }: AssetsProps) {
               </Badge>
             </div>
             <div className='text-sm font-medium whitespace-nowrap'>
-              {toDecimal(BigNumber(cat.amount).plus(cat.royalty).toString(), 3)}{' '}
-              {cat.name ?? cat.ticker ?? 'Unknown'}
+              <NumberFormat
+                value={fromMojos(BigNumber(cat.amount).plus(cat.royalty), 3)}
+                minimumFractionDigits={0}
+                maximumFractionDigits={3}
+              />{' '}
+              {cat.name ?? cat.ticker ?? t`Unknown`}
             </div>
           </div>
 
@@ -155,7 +171,12 @@ function Assets({ assets }: AssetsProps) {
             <>
               <Separator className='my-1' />
               <div className='text-sm text-muted-foreground truncate text-neutral-600 dark:text-neutral-300'>
-                <Trans>Amount includes</Trans> {toDecimal(cat.royalty, 3)}{' '}
+                <Trans>Amount includes</Trans>{' '}
+                <NumberFormat
+                  value={fromMojos(cat.royalty, 3)}
+                  minimumFractionDigits={0}
+                  maximumFractionDigits={3}
+                />{' '}
                 {cat.ticker ?? 'CAT'} <Trans>royalty</Trans>
               </div>
             </>
