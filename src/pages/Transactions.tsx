@@ -5,7 +5,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { useErrors } from '@/hooks/useErrors';
 import { nftUri } from '@/lib/nftUri';
-import { toDecimal } from '@/lib/utils';
+import { fromMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -20,6 +20,7 @@ import {
   PendingTransactionRecord,
   TransactionRecord,
 } from '../bindings';
+import { NumberFormat } from '@/components/NumberFormat';
 
 export function Transactions() {
   const { addError } = useErrors();
@@ -263,23 +264,39 @@ function AssetPreview({ label, assets, created }: AssetPreviewProps) {
 
       {showXch && (
         <div className='flex items-center gap-2'>
-          <img src='https://icons.dexie.space/xch.webp' className='w-8 h-8' />
+          <img
+            alt={t`XCH`}
+            src='https://icons.dexie.space/xch.webp'
+            className='w-8 h-8'
+          />
 
           <div className='text-sm text-muted-foreground break-all'>
-            {toDecimal(
-              assets.xch.abs().toString(),
-              walletState.sync.unit.decimals,
-            )}{' '}
+            <NumberFormat
+              value={fromMojos(
+                assets.xch.abs(),
+                walletState.sync.unit.decimals,
+              )}
+              minimumFractionDigits={0}
+              maximumFractionDigits={walletState.sync.unit.decimals}
+            />{' '}
             <span className='break-normal'>{walletState.sync.unit.ticker}</span>
           </div>
         </div>
       )}
       {filteredCats.map(([_, cat]) => (
         <div className='flex items-center gap-2'>
-          <img src={cat.icon_url!} className='w-8 h-8' />
+          <img
+            alt={cat.name ?? t`Unknown`}
+            src={cat.icon_url!}
+            className='w-8 h-8'
+          />
 
           <div className='text-sm text-muted-foreground break-all'>
-            {toDecimal(cat.amount.abs().toString(), 3)}{' '}
+            <NumberFormat
+              value={fromMojos(cat.amount.abs(), 3)}
+              minimumFractionDigits={0}
+              maximumFractionDigits={3}
+            />{' '}
             <span className='break-normal'>
               {cat.ticker ?? cat.name ?? 'CAT'}
             </span>
@@ -291,6 +308,7 @@ function AssetPreview({ label, assets, created }: AssetPreviewProps) {
           <img
             src={nftUri(nft.image_mime_type, nft.image_data)}
             className='w-8 h-8'
+            alt={nft.name ?? t`Unknown`}
           />
 
           <div className='text-sm text-muted-foreground'>

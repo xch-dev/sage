@@ -1,8 +1,10 @@
 import { OfferAssets, OfferRecord } from '@/bindings';
 import { nftUri } from '@/lib/nftUri';
-import { toDecimal } from '@/lib/utils';
+import { fromMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import BigNumber from 'bignumber.js';
+import { t } from '@lingui/core/macro';
+import { NumberFormat } from '@/components/NumberFormat';
 
 export interface OfferSummaryCardProps {
   record: OfferRecord;
@@ -54,36 +56,53 @@ function AssetPreview({ label, assets }: AssetPreviewProps) {
         .plus(assets.xch.royalty)
         .isGreaterThan(0) && (
         <div className='flex items-center gap-2'>
-          <img src='https://icons.dexie.space/xch.webp' className='w-8 h-8' />
+          <img
+            alt={t`XCH`}
+            src='https://icons.dexie.space/xch.webp'
+            className='w-8 h-8'
+          />
 
           <div className='text-sm text-muted-foreground truncate'>
-            {toDecimal(
-              BigNumber(assets.xch.amount).plus(assets.xch.royalty).toString(),
-              walletState.sync.unit.decimals,
-            )}{' '}
+            <NumberFormat
+              value={fromMojos(
+                BigNumber(assets.xch.amount).plus(assets.xch.royalty),
+                walletState.sync.unit.decimals,
+              )}
+              minimumFractionDigits={0}
+              maximumFractionDigits={walletState.sync.unit.decimals}
+            />{' '}
             {walletState.sync.unit.ticker}
           </div>
         </div>
       )}
       {Object.entries(assets.cats).map(([_assetId, cat]) => (
         <div className='flex items-center gap-2'>
-          <img src={cat.icon_url!} className='w-8 h-8' />
+          <img
+            alt={cat.name ?? cat.ticker ?? t`Unknown`}
+            src={cat.icon_url!}
+            className='w-8 h-8'
+          />
 
           <div className='text-sm text-muted-foreground truncate'>
-            {toDecimal(BigNumber(cat.amount).plus(cat.royalty).toString(), 3)}{' '}
-            {cat.name ?? cat.ticker ?? 'Unknown'}
+            <NumberFormat
+              value={fromMojos(BigNumber(cat.amount).plus(cat.royalty), 3)}
+              minimumFractionDigits={0}
+              maximumFractionDigits={3}
+            />{' '}
+            {cat.name ?? cat.ticker ?? t`Unknown`}
           </div>
         </div>
       ))}
       {Object.entries(assets.nfts).map(([_nftId, nft]) => (
         <div className='flex items-center gap-2'>
           <img
+            alt={nft.name ?? t`Unknown`}
             src={nftUri(nft.image_mime_type, nft.image_data)}
             className='w-8 h-8'
           />
 
           <div className='text-sm text-muted-foreground truncate'>
-            {nft.name ?? 'Unknown'}
+            {nft.name ?? t`Unknown`}
           </div>
         </div>
       ))}

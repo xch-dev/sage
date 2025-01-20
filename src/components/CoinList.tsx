@@ -6,7 +6,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { toDecimal } from '@/lib/utils';
+import { fromMojos } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import {
@@ -32,6 +32,7 @@ import { useState } from 'react';
 import { CoinRecord } from '../bindings';
 import { Button } from './ui/button';
 import { Checkbox } from './ui/checkbox';
+import { NumberFormat } from './NumberFormat';
 
 export interface CoinListProps {
   precision: number;
@@ -119,7 +120,11 @@ export default function CoinList(props: CoinListProps) {
       },
       cell: (info) => (
         <span className='font-mono'>
-          {toDecimal(info.getValue() as string, props.precision)}
+          <NumberFormat
+            value={fromMojos(info.getValue() as string, props.precision)}
+            minimumFractionDigits={0}
+            maximumFractionDigits={props.precision}
+          />
         </span>
       ),
     },

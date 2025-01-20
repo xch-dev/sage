@@ -47,7 +47,7 @@ enum TokenView {
 export function TokenList() {
   const navigate = useNavigate();
   const walletState = useWalletState();
-  const { getBalanceInUsd } = usePrices();
+  const { getBalanceInUsd, getPriceInUsd } = usePrices();
   const { addError } = useErrors();
   const [params, setParams] = useTokenParams();
   const { view, showHidden, showZeroBalance } = params;
@@ -61,6 +61,7 @@ export function TokenList() {
         const usdValue = parseFloat(
           getBalanceInUsd(cat.asset_id, balance.toString()),
         );
+
         return {
           ...cat,
           balanceInUsd: usdValue,
