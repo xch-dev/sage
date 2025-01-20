@@ -8,6 +8,7 @@ import {
   MoreVerticalIcon,
   UserIcon,
   Paintbrush,
+  LibraryBig,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from './ui/button';
@@ -148,14 +149,15 @@ export function NftGroupCard({
     >
       <div className='overflow-hidden rounded-t-lg relative'>
         {isCollection ? (
-          <img
-            alt={item.name ?? t`Unnamed Collection`}
-            loading='lazy'
-            width='150'
-            height='150'
-            className='h-auto w-auto object-cover transition-all group-hover:scale-105 aspect-square color-[transparent]'
-            src={collectionImage}
-          />
+          <div
+            className='bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center aspect-square'
+            aria-hidden='true'
+          >
+            <LibraryBig
+              className='h-12 w-12 text-neutral-400 dark:text-neutral-600'
+              aria-hidden='true'
+            />
+          </div>
         ) : (
           <div
             className='bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center aspect-square'
