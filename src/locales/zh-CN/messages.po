@@ -62,7 +62,7 @@ msgstr "已选择 {selectedCount}"
 #~ msgid "{transactionSpentCount} coins spent,"
 #~ msgstr "已花费硬币 {transactionSpentCount},"
 
-#: src/pages/Transactions.tsx:200
+#: src/pages/Transactions.tsx:197
 msgid "{transactionSpentCount} inputs, {transactionCreatedCount} outputs"
 msgstr ""
 
@@ -190,7 +190,7 @@ msgstr "属性"
 msgid "Back"
 msgstr "返回"
 
-#: src/pages/Transactions.tsx:197
+#: src/pages/Transactions.tsx:194
 msgid "Block #{transactionHeight}"
 msgstr "区块 #{transactionHeight}"
 
@@ -903,6 +903,7 @@ msgstr "网络ID"
 msgid "New Offer"
 msgstr "新报价"
 
+#: src/components/Pagination.tsx:70
 #: src/components/NftOptions.tsx:109
 #: src/components/NftOptions.tsx:110
 #: src/components/CoinList.tsx:371
@@ -946,7 +947,7 @@ msgstr "还没有报价"
 msgid "No results."
 msgstr "无结果."
 
-#: src/pages/Transactions.tsx:261
+#: src/pages/Transactions.tsx:258
 #: src/pages/Nft.tsx:226
 #: src/pages/Nft.tsx:235
 #: src/components/AssignNftDialog.tsx:104
@@ -968,7 +969,7 @@ msgstr ""
 msgid "Not enough funds to cover the fee"
 msgstr "余额不足以支付手续费"
 
-#: src/pages/Transactions.tsx:83
+#: src/pages/Transactions.tsx:85
 msgid "Note"
 msgstr "备注"
 
@@ -1000,6 +1001,15 @@ msgstr "转出数量"
 #: src/pages/Nft.tsx:232
 msgid "Owner DID"
 msgstr "拥有者DID"
+
+#: src/components/Pagination.tsx:51
+#: src/components/Pagination.tsx:52
+msgid "Page"
+msgstr ""
+
+#: src/components/Pagination.tsx:84
+msgid "Page size"
+msgstr ""
 
 #: src/pages/Settings.tsx:172
 msgid "Paste WalletConnect URI"
@@ -1060,6 +1070,7 @@ msgstr ""
 #~ msgid "Prevents the peer from being banned."
 #~ msgstr "防止该节点被封禁."
 
+#: src/components/Pagination.tsx:40
 #: src/components/NftOptions.tsx:92
 #: src/components/NftOptions.tsx:93
 #: src/components/CoinList.tsx:362
@@ -1120,7 +1131,7 @@ msgstr "接收 {ticker}"
 msgid "Receive Address"
 msgstr "接收地址"
 
-#: src/pages/Transactions.tsx:207
+#: src/pages/Transactions.tsx:204
 msgid "Received"
 msgstr "收到"
 
@@ -1260,7 +1271,7 @@ msgstr ""
 msgid "Sending"
 msgstr "发送中"
 
-#: src/pages/Transactions.tsx:206
+#: src/pages/Transactions.tsx:203
 msgid "Sent"
 msgstr "已发送"
 
@@ -1504,7 +1515,7 @@ msgstr "转出交易"
 msgid "Transaction Signed"
 msgstr "已签名交易"
 
-#: src/pages/Transactions.tsx:75
+#: src/pages/Transactions.tsx:77
 #: src/components/Nav.tsx:74
 msgid "Transactions"
 msgstr "交易"
@@ -1543,7 +1554,7 @@ msgstr "转移个人资料"
 msgid "Unassigned NFTs"
 msgstr ""
 
-#: src/pages/Transactions.tsx:297
+#: src/pages/Transactions.tsx:294
 #: src/pages/Transaction.tsx:149
 #: src/pages/Collection.tsx:92
 #: src/components/OfferSummaryCard.tsx:81
@@ -1710,6 +1721,6 @@ msgstr "也可以粘贴报价通过"
 #~ msgid "You do not currently have any NFTs. Would you like to mint one?"
 #~ msgstr "当前没有任何NFT. 想要铸造一个吗?"
 
-#: src/pages/Transactions.tsx:86
+#: src/pages/Transactions.tsx:88
 msgid "You have not made any transactions yet."
 msgstr "尚未进行任何交易."

@@ -2,7 +2,6 @@ import Container from '@/components/Container';
 import Header from '@/components/Header';
 import { ReceiveAddress } from '@/components/ReceiveAddress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
 import { useErrors } from '@/hooks/useErrors';
 import { nftUri } from '@/lib/nftUri';
 import { fromMojos } from '@/lib/utils';
@@ -11,7 +10,7 @@ import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { open } from '@tauri-apps/plugin-shell';
 import BigNumber from 'bignumber.js';
-import { ChevronLeft, ChevronRight, Info } from 'lucide-react';
+import { Info } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
@@ -22,6 +21,9 @@ import {
 } from '../bindings';
 import { NumberFormat } from '@/components/NumberFormat';
 
+import { Pagination } from '@/components/Pagination';
+import { useLocalStorage } from 'usehooks-ts';
+
 export function Transactions() {
   const { addError } = useErrors();
 
@@ -29,12 +31,12 @@ export function Transactions() {
   const page = parseInt(params.get('page') ?? '1');
   const setPage = (page: number) => setParams({ page: page.toString() });
 
+  const [pageSize, setPageSize] = useLocalStorage('transactionsPageSize', 8);
+
   // TODO: Show pending transactions
   const [_pending, setPending] = useState<PendingTransactionRecord[]>([]);
   const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
   const [total, setTotal] = useState(0);
-
-  const pageSize = 8;
 
   const updateTransactions = useCallback(async () => {
     commands
@@ -46,10 +48,10 @@ export function Transactions() {
       .getTransactions({ offset: (page - 1) * pageSize, limit: pageSize })
       .then((data) => {
         setTransactions(data.transactions);
-        setTotal(Math.max(1, Math.ceil(data.total / pageSize)));
+        setTotal(data.total);
       })
       .catch(addError);
-  }, [addError, page]);
+  }, [addError, page, pageSize]);
 
   useEffect(() => {
     updateTransactions();
@@ -88,34 +90,29 @@ export function Transactions() {
           </Alert>
         )}
 
-        <div className='flex items-center gap-4'>
-          <Button
-            variant='outline'
-            size='icon'
-            onClick={() => setPage(Math.max(1, page - 1))}
-            disabled={page === 1}
-          >
-            <ChevronLeft className='w-4 h-4' />
-          </Button>
-          <span className='text-sm'>
-            {page}/{total}
-          </span>
-          <Button
-            variant='outline'
-            size='icon'
-            onClick={() => setPage(Math.min(total, page + 1))}
-            disabled={page === total}
-          >
-            <ChevronRight className='w-4 h-4' />
-          </Button>
-        </div>
+        <Pagination
+          total={total}
+          page={page}
+          onPageChange={setPage}
+          pageSize={pageSize}
+          onPageSizeChange={setPageSize}
+        />
 
         {transactions.length > 0 && (
-          <div className='flex flex-col gap-2 mt-4'>
+          <div className='flex flex-col gap-2 my-4'>
             {transactions.map((transaction, i) => {
               return <Transaction key={i} transaction={transaction} />;
             })}
           </div>
+        )}
+        {total > pageSize && (
+          <Pagination
+            total={total}
+            page={page}
+            onPageChange={setPage}
+            pageSize={pageSize}
+            onPageSizeChange={setPageSize}
+          />
         )}
       </Container>
     </>
