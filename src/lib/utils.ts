@@ -27,7 +27,14 @@ export function toMojos(amount: string, decimals: number): string {
 }
 
 export function toDecimal(amount: string | number, decimals: number): string {
-  return BigNumber(amount).dividedBy(BigNumber(10).pow(decimals)).toString();
+  return fromMojos(amount, decimals).toString();
+}
+
+export function fromMojos(
+  amount: string | number | BigNumber,
+  decimals: number,
+): BigNumber {
+  return BigNumber(amount).dividedBy(BigNumber(10).pow(decimals));
 }
 
 export interface AddressInfo {

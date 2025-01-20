@@ -9,6 +9,7 @@ import {
 
 export interface PriceContextType {
   getBalanceInUsd: (assetId: string, balance: string) => string;
+  getPriceInUsd: (assetId: string) => number;
 }
 
 export const PriceContext = createContext<PriceContextType | undefined>(
@@ -63,6 +64,16 @@ export function PriceProvider({ children }: { children: ReactNode }) {
     }
   }, [walletState.sync.unit.ticker]);
 
+  const getPriceInUsd = useCallback(
+    (assetId: string) => {
+      if (assetId === 'xch') {
+        return xchUsdPrice;
+      }
+      return (catPrices[assetId] || 0) * xchUsdPrice;
+    },
+    [xchUsdPrice, catPrices],
+  );
+
   const getBalanceInUsd = useCallback(
     (assetId: string, balance: string) => {
       if (assetId === 'xch') {
@@ -78,7 +89,7 @@ export function PriceProvider({ children }: { children: ReactNode }) {
   );
 
   return (
-    <PriceContext.Provider value={{ getBalanceInUsd }}>
+    <PriceContext.Provider value={{ getBalanceInUsd, getPriceInUsd }}>
       {children}
     </PriceContext.Provider>
   );

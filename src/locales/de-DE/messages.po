@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "POT-Creation-Date: 2024-12-25 09:50-0300\n"
-"MIME-Version: 1.0\n"
+"MIME-Version: 1.0\n"Í
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: @lingui/cli\n"
@@ -62,7 +62,7 @@ msgstr "{selectedCount} ausgewählt"
 #~ msgid "{transactionSpentCount} coins spent,"
 #~ msgstr "{transactionSpentCount} ausgegebene Coins,"
 
-#: src/pages/Transactions.tsx:199
+#: src/pages/Transactions.tsx:200
 msgid "{transactionSpentCount} inputs, {transactionCreatedCount} outputs"
 msgstr ""
 
@@ -121,7 +121,7 @@ msgstr "Adresse ist erforderlich"
 msgid "Addresses"
 msgstr "Adressen"
 
-#: src/components/ConfirmationDialog.tsx:130
+#: src/components/ConfirmationDialog.tsx:132
 msgid "Advanced"
 msgstr "Erweitert"
 
@@ -136,12 +136,12 @@ msgstr "Alle Adressen"
 #: src/pages/Send.tsx:260
 #: src/pages/MakeOffer.tsx:545
 #: src/pages/IssueToken.tsx:108
-#: src/components/CoinList.tsx:109
+#: src/components/CoinList.tsx:110
 msgid "Amount"
 msgstr "Betrag"
 
-#: src/components/OfferCard.tsx:113
-#: src/components/OfferCard.tsx:158
+#: src/components/OfferCard.tsx:118
+#: src/components/OfferCard.tsx:174
 msgid "Amount includes"
 msgstr "Der Betrag enthält"
 
@@ -190,7 +190,7 @@ msgstr "Attribute"
 msgid "Back"
 msgstr "Zurück"
 
-#: src/pages/Transactions.tsx:196
+#: src/pages/Transactions.tsx:197
 msgid "Block #{transactionHeight}"
 msgstr "Block #{transactionHeight}"
 
@@ -245,7 +245,7 @@ msgstr "Wenn Sie diese Funktion deaktivieren, erstellen Sie ein Cold Wallet, in 
 #: src/components/TransferDialog.tsx:114
 #: src/components/NftCard.tsx:466
 #: src/components/FeeOnlyDialog.tsx:98
-#: src/components/ConfirmationDialog.tsx:242
+#: src/components/ConfirmationDialog.tsx:252
 #: src/components/AssignNftDialog.tsx:151
 msgid "Cancel"
 msgstr "Abbrechen"
@@ -262,11 +262,11 @@ msgstr "Offer Abbrechen"
 #~ msgid "CAT"
 #~ msgstr "CAT"
 
-#: src/components/OfferCard.tsx:143
+#: src/components/OfferCard.tsx:159
 msgid "CAT icon"
 msgstr "CAT Symbol"
 
-#: src/components/ConfirmationDialog.tsx:159
+#: src/components/ConfirmationDialog.tsx:169
 msgid "Change"
 msgstr "Ändern"
 
@@ -275,7 +275,7 @@ msgstr "Ändern"
 msgid "Clear search"
 msgstr ""
 
-#: src/components/CoinList.tsx:84
+#: src/components/CoinList.tsx:85
 msgid "Coin"
 msgstr "Coin"
 
@@ -317,11 +317,11 @@ msgstr "{ticker} zusammenfügen"
 msgid "Confirm"
 msgstr "Bestätigen"
 
-#: src/components/ConfirmationDialog.tsx:120
+#: src/components/ConfirmationDialog.tsx:122
 msgid "Confirm transaction?"
 msgstr "Transaktion bestätigen?"
 
-#: src/components/CoinList.tsx:162
+#: src/components/CoinList.tsx:167
 msgid "Confirmed"
 msgstr "Bestätigen"
 
@@ -601,12 +601,12 @@ msgstr "Externe Links"
 
 #: src/pages/Send.tsx:286
 #: src/pages/IssueToken.tsx:129
-#: src/components/ConfirmationDialog.tsx:154
-#: src/components/ConfirmationDialog.tsx:380
+#: src/components/ConfirmationDialog.tsx:156
+#: src/components/ConfirmationDialog.tsx:390
 msgid "Fee"
 msgstr "Gebühr"
 
-#: src/components/ConfirmationDialog.tsx:144
+#: src/components/ConfirmationDialog.tsx:146
 msgid "Fee exceeds recommended maximum of 0.001 {ticker}"
 msgstr "Gebühr übersteigt das empfohlene Maximum von 0.001 {ticker}"
 
@@ -679,7 +679,7 @@ msgstr "Verstecken"
 msgid "Hide zero balances"
 msgstr ""
 
-#: src/components/ConfirmationDialog.tsx:141
+#: src/components/ConfirmationDialog.tsx:143
 msgid "High Transaction Fee"
 msgstr "Hohe Transaktionsgebühr"
 
@@ -748,7 +748,7 @@ msgstr "IP Addresse"
 msgid "Issue Token"
 msgstr "Token ausgeben"
 
-#: src/components/ConfirmationDialog.tsx:133
+#: src/components/ConfirmationDialog.tsx:135
 msgid "JSON"
 msgstr "JSON"
 
@@ -913,7 +913,7 @@ msgid "Next page"
 msgstr "Nächste Seite"
 
 #: src/pages/MakeOffer.tsx:434
-#: src/components/OfferCard.tsx:172
+#: src/components/OfferCard.tsx:193
 msgid "NFT"
 msgstr "NFT"
 
@@ -921,7 +921,7 @@ msgstr "NFT"
 msgid "NFT options"
 msgstr "NFT optionen"
 
-#: src/components/OfferCard.tsx:186
+#: src/components/OfferCard.tsx:207
 msgid "NFT preview"
 msgstr "NFT Vorschau"
 
@@ -943,12 +943,12 @@ msgid "No offers yet"
 msgstr "Keine Offers vorhanden"
 
 #: src/pages/PeerList.tsx:446
-#: src/components/CoinList.tsx:346
+#: src/components/CoinList.tsx:351
 #: src/components/AddressList.tsx:167
 msgid "No results."
 msgstr "Keine Ergebnisse."
 
-#: src/pages/Transactions.tsx:260
+#: src/pages/Transactions.tsx:261
 #: src/pages/Nft.tsx:226
 #: src/pages/Nft.tsx:235
 #: src/components/AssignNftDialog.tsx:104
@@ -970,7 +970,7 @@ msgstr ""
 msgid "Not enough funds to cover the fee"
 msgstr "Nicht genügend Guthaben, um die Gebühr zu decken"
 
-#: src/pages/Transactions.tsx:82
+#: src/pages/Transactions.tsx:83
 msgid "Note"
 msgstr "Notiz"
 
@@ -982,7 +982,7 @@ msgstr "Offer Erstellt"
 msgid "Offered"
 msgstr "Offeriert"
 
-#: src/components/CoinList.tsx:253
+#: src/components/CoinList.tsx:258
 msgid "Offered..."
 msgstr ""
 
@@ -1031,15 +1031,15 @@ msgstr ""
 #~ msgid "Pending"
 #~ msgstr "Ausstehend"
 
-#: src/components/CoinList.tsx:176
-#: src/components/CoinList.tsx:251
+#: src/components/CoinList.tsx:181
+#: src/components/CoinList.tsx:256
 msgid "Pending..."
 msgstr "Ausstehend..."
 
-#: src/components/ConfirmationDialog.tsx:436
-#: src/components/ConfirmationDialog.tsx:464
-#: src/components/ConfirmationDialog.tsx:498
-#: src/components/ConfirmationDialog.tsx:533
+#: src/components/ConfirmationDialog.tsx:454
+#: src/components/ConfirmationDialog.tsx:490
+#: src/components/ConfirmationDialog.tsx:524
+#: src/components/ConfirmationDialog.tsx:559
 msgid "Permanently Burned"
 msgstr "Permanent verbrannt"
 
@@ -1123,11 +1123,11 @@ msgstr "{ticker} empfangen"
 msgid "Receive Address"
 msgstr "Empfangsadresse"
 
-#: src/pages/Transactions.tsx:206
+#: src/pages/Transactions.tsx:207
 msgid "Received"
 msgstr "Erhalten"
 
-#: src/components/OfferCard.tsx:50
+#: src/components/OfferCard.tsx:51
 msgid "Receiving"
 msgstr "Erhaltet"
 
@@ -1171,8 +1171,8 @@ msgstr "{network} neu synchronisieren"
 msgid "Royalties {royaltyPercentage}%"
 msgstr "Lizenzgebühren {royaltyPercentage}%"
 
-#: src/components/OfferCard.tsx:115
-#: src/components/OfferCard.tsx:159
+#: src/components/OfferCard.tsx:127
+#: src/components/OfferCard.tsx:180
 msgid "royalty"
 msgstr "royalty"
 
@@ -1184,7 +1184,7 @@ msgstr "Royalty Addresse"
 msgid "Royalty Percent"
 msgstr "Royalty Prozent"
 
-#: src/components/OfferCard.tsx:201
+#: src/components/OfferCard.tsx:222
 msgid "royalty to"
 msgstr "royalty zu"
 
@@ -1218,11 +1218,11 @@ msgstr ""
 msgid "Secret Key"
 msgstr "Secret Key"
 
-#: src/components/CoinList.tsx:61
+#: src/components/CoinList.tsx:62
 msgid "Select all coins"
 msgstr "Alle Coins auswählen"
 
-#: src/components/CoinList.tsx:69
+#: src/components/CoinList.tsx:70
 msgid "Select coin row"
 msgstr "Coin-Reihe auswählen"
 
@@ -1259,11 +1259,11 @@ msgstr "{ticker} senden"
 msgid "Send in bulk (airdrop)"
 msgstr ""
 
-#: src/components/OfferCard.tsx:29
+#: src/components/OfferCard.tsx:30
 msgid "Sending"
 msgstr "wird gesendet"
 
-#: src/pages/Transactions.tsx:205
+#: src/pages/Transactions.tsx:206
 msgid "Sent"
 msgstr "Gesendet"
 
@@ -1279,11 +1279,11 @@ msgstr "Einstellungen"
 msgid "Show"
 msgstr "Anzeigen"
 
-#: src/components/CoinList.tsx:227
+#: src/components/CoinList.tsx:232
 msgid "Show all coins"
 msgstr "Alle Coins anzeigen"
 
-#: src/components/CoinList.tsx:227
+#: src/components/CoinList.tsx:232
 msgid "Show unspent coins only"
 msgstr "Nur nicht ausgegebene Coins anzeigen"
 
@@ -1292,7 +1292,7 @@ msgstr "Nur nicht ausgegebene Coins anzeigen"
 msgid "Show zero balances"
 msgstr ""
 
-#: src/components/ConfirmationDialog.tsx:215
+#: src/components/ConfirmationDialog.tsx:225
 msgid "Sign Transaction"
 msgstr "Transaktion signieren"
 
@@ -1314,11 +1314,11 @@ msgstr "Sortieroptionen"
 msgid "Sort Recent"
 msgstr "Nach Neuestem sortieren"
 
-#: src/components/CoinList.tsx:203
+#: src/components/CoinList.tsx:208
 msgid "Spent"
 msgstr "Ausgegeben"
 
-#: src/components/ConfirmationDialog.tsx:359
+#: src/components/ConfirmationDialog.tsx:369
 msgid "Spent Coins"
 msgstr "Ausgegebene Coins"
 
@@ -1332,16 +1332,16 @@ msgid "Split {ticker}"
 msgstr "{ticker} splitten"
 
 #: src/pages/CreateWallet.tsx:233
-#: src/components/ConfirmationDialog.tsx:292
+#: src/components/ConfirmationDialog.tsx:302
 msgid "Submit"
 msgstr "Senden"
 
-#: src/components/ConfirmationDialog.tsx:292
+#: src/components/ConfirmationDialog.tsx:302
 msgid "Submitting"
 msgstr "Wird gesendet"
 
-#: src/components/ConfirmationDialog.tsx:127
-#: src/components/ConfirmationDialog.tsx:150
+#: src/components/ConfirmationDialog.tsx:129
+#: src/components/ConfirmationDialog.tsx:152
 msgid "Summary"
 msgstr "Zusammenfassung"
 
@@ -1377,11 +1377,11 @@ msgstr "Offer nehmen"
 msgid "Target Peers"
 msgstr "Ziel-Peers"
 
-#: src/components/OfferCard.tsx:55
+#: src/components/OfferCard.tsx:56
 msgid "The assets being given to you in the offer."
 msgstr "Die Assets, werden Ihnen in ein Offer angeboten."
 
-#: src/components/OfferCard.tsx:34
+#: src/components/OfferCard.tsx:35
 msgid "The assets you have to pay to fulfill the offer."
 msgstr "Die Assets, die Sie bezahlen müssen, um das Offer zu erfüllen."
 
@@ -1409,7 +1409,7 @@ msgstr "Es gibt noch keine Wallets, in die Sie sich einloggen können. Um loszul
 #~ msgid "This does not include a fee of {makerFee} which was already added by the maker."
 #~ msgstr "Dies beinhaltet keine Gebühr von {makerFee}, die bereits vom Maker hinzugefügt wurde."
 
-#: src/components/ConfirmationDialog.tsx:185
+#: src/components/ConfirmationDialog.tsx:195
 msgid "This is the raw JSON spend bundle for this transaction. If you sign it, the transaction can be submitted to the mempool externally."
 msgstr "Dies ist das Roh-JSON-Spendenbündel für diese Transaktion. Wenn Sie es signieren, kann die Transaktion extern an den Mempool übermittelt werden."
 
@@ -1501,15 +1501,15 @@ msgstr "Navigationsmenü umschalten"
 msgid "Token"
 msgstr "Token"
 
-#: src/components/ConfirmationDialog.tsx:374
+#: src/components/ConfirmationDialog.tsx:384
 msgid "Transaction Output"
 msgstr "Transaktionsausgabe"
 
-#: src/components/ConfirmationDialog.tsx:213
+#: src/components/ConfirmationDialog.tsx:223
 msgid "Transaction Signed"
 msgstr "Signierte Transaktion"
 
-#: src/pages/Transactions.tsx:74
+#: src/pages/Transactions.tsx:75
 #: src/components/Nav.tsx:74
 msgid "Transactions"
 msgstr "Transaktionen"
@@ -1552,8 +1552,16 @@ msgstr ""
 #: src/pages/Transactions.tsx:297
 #: src/pages/Transaction.tsx:149
 #: src/pages/Collection.tsx:92
-#: src/components/ConfirmationDialog.tsx:517
-#: src/components/ConfirmationDialog.tsx:531
+#: src/components/OfferSummaryCard.tsx:81
+#: src/components/OfferSummaryCard.tsx:92
+#: src/components/OfferSummaryCard.tsx:99
+#: src/components/OfferSummaryCard.tsx:105
+#: src/components/OfferCard.tsx:148
+#: src/components/ConfirmationDialog.tsx:543
+#: src/components/ConfirmationDialog.tsx:557
+#: src/components/selectors/TokenSelector.tsx:81
+#: src/components/selectors/TokenSelector.tsx:96
+#: src/components/selectors/NftSelector.tsx:134
 msgid "Unknown"
 msgstr "Unbekannt"
 
@@ -1584,8 +1592,8 @@ msgstr "Unbekanntes NFT"
 #: src/components/OfferCard.tsx:177
 #: src/components/NftCard.tsx:196
 #: src/components/NftCard.tsx:214
-#: src/components/ConfirmationDialog.tsx:482
-#: src/components/ConfirmationDialog.tsx:496
+#: src/components/ConfirmationDialog.tsx:508
+#: src/components/ConfirmationDialog.tsx:522
 msgid "Unnamed"
 msgstr "Unbenannt"
 
@@ -1677,7 +1685,7 @@ msgstr "WalletConnect"
 msgid "Wallets"
 msgstr "Wallets"
 
-#: src/components/ConfirmationDialog.tsx:182
+#: src/components/ConfirmationDialog.tsx:192
 msgid "Warning"
 msgstr "Warnung"
 
@@ -1708,6 +1716,6 @@ msgstr "Sie können auch ein Angebot einfügen mit"
 #~ msgid "You do not currently have any NFTs. Would you like to mint one?"
 #~ msgstr "Sie haben derzeit keine NFTs. Möchten Sie eines minten?"
 
-#: src/pages/Transactions.tsx:85
+#: src/pages/Transactions.tsx:86
 msgid "You have not made any transactions yet."
 msgstr "Sie haben noch keine Transaktionen durchgeführt."

@@ -8,14 +8,14 @@ import Container from '@/components/Container';
 import Header from '@/components/Header';
 import { Card } from '@/components/ui/card';
 import { nftUri } from '@/lib/nftUri';
-import { toDecimal } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { open } from '@tauri-apps/plugin-shell';
 import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-
+import { NumberFormat } from '@/components/NumberFormat';
+import { fromMojos } from '@/lib/utils';
 export default function Transaction() {
   const { height } = useParams();
 
@@ -112,10 +112,18 @@ function TransactionCoinKind({ coin }: TransactionCoinKindProps) {
     case 'xch': {
       return (
         <div className='flex items-center gap-2'>
-          <img src='https://icons.dexie.space/xch.webp' className='w-8 h-8' />
+          <img
+            alt={t`XCH`}
+            src='https://icons.dexie.space/xch.webp'
+            className='w-8 h-8'
+          />
 
           <div className='text-md text-neutral-700 dark:text-neutral-300 break-all'>
-            {toDecimal(coin.amount, walletState.sync.unit.decimals)}{' '}
+            <NumberFormat
+              value={fromMojos(coin.amount, walletState.sync.unit.decimals)}
+              minimumFractionDigits={0}
+              maximumFractionDigits={walletState.sync.unit.decimals}
+            />{' '}
             <span className='break-normal'>{walletState.sync.unit.ticker}</span>
           </div>
         </div>
@@ -124,11 +132,19 @@ function TransactionCoinKind({ coin }: TransactionCoinKindProps) {
     case 'cat': {
       return (
         <div className='flex items-center gap-2'>
-          <img src={coin.icon_url!} className='w-8 h-8' />
+          <img
+            alt={coin.name ?? t`Unknown`}
+            src={coin.icon_url!}
+            className='w-8 h-8'
+          />
 
           <div className='flex flex-col'>
             <div className='text-md text-neutral-700 dark:text-neutral-300 break-all'>
-              {toDecimal(coin.amount, 3)}{' '}
+              <NumberFormat
+                value={fromMojos(coin.amount, 3)}
+                minimumFractionDigits={0}
+                maximumFractionDigits={3}
+              />{' '}
               <span className='break-normal'>
                 {coin.ticker ?? coin.name ?? 'CAT'}
               </span>
@@ -141,6 +157,7 @@ function TransactionCoinKind({ coin }: TransactionCoinKindProps) {
       return (
         <div className='flex items-center gap-2'>
           <img
+            alt={coin.name ?? t`Unknown`}
             src={nftUri(coin.image_mime_type, coin.image_data)}
             className='w-8 h-8'
           />
