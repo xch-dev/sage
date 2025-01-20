@@ -24,7 +24,7 @@ export function TokenGridView({
   getBalanceInUsd,
 }: TokenGridViewProps) {
   return (
-    <div className='mt-4 grid gap-2 md:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 3xl:grid-cols-6'>
+    <div role="region" aria-label={t`Token Grid`} className='mt-4 grid gap-2 md:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 3xl:grid-cols-6'>
       <Link to={`/wallet/token/xch`}>
         <Card className='transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900'>
           <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
@@ -35,16 +35,19 @@ export function TokenGridView({
               <TooltipContent>Chia</TooltipContent>
             </Tooltip>
             <img
-              alt={t`XCH logo`}
+              alt={t`Token logo`}
+              aria-hidden="true"
               className='h-6 w-6'
               src='https://icons.dexie.space/xch.webp'
             />
           </CardHeader>
           <CardContent>
             <div className='text-2xl font-medium truncate'>
+              <span className="sr-only">Balance: </span>
               {toDecimal(xchBalance, xchDecimals)}
             </div>
             <div className='text-sm text-neutral-500'>
+              <span className="sr-only">USD Value: </span>
               ~${getBalanceInUsd('xch', toDecimal(xchBalance, xchDecimals))}
             </div>
           </CardContent>
@@ -59,16 +62,17 @@ export function TokenGridView({
               <Tooltip>
                 <TooltipTrigger asChild>
                   <CardTitle className='text-md font-medium truncate'>
-                    {cat.name || t`Unknown CAT`}
+                    {cat.name || <Trans>Unknown CAT</Trans>}
                   </CardTitle>
                 </TooltipTrigger>
                 <TooltipContent>
-                  {cat.name || t`Unknown CAT`}
+                  {cat.name || <Trans>Unknown CAT</Trans>}
                 </TooltipContent>
               </Tooltip>
               {cat.icon_url && (
                 <img
-                  alt={`${cat.asset_id} logo`}
+                  alt={t`Token logo`}
+                  aria-hidden="true"
                   className='h-6 w-6'
                   src={cat.icon_url}
                 />
@@ -76,12 +80,16 @@ export function TokenGridView({
             </CardHeader>
             <CardContent>
               <div className='text-2xl font-medium truncate'>
+                <span className="sr-only">Balance: </span>
                 {toDecimal(cat.balance, 3)} {cat.ticker ?? ''}
               </div>
               <div className='text-sm text-neutral-500'>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <div>~${cat.balanceInUsd}</div>
+                    <div>
+                      <span className="sr-only">USD Value: </span>
+                      ~${cat.balanceInUsd}
+                    </div>
                   </TooltipTrigger>
                   <TooltipContent>
                     <span>

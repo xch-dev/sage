@@ -37,13 +37,12 @@ import { useWalletState } from '../state';
 import { useLocalStorage } from 'usehooks-ts';
 import { TokenListView } from '@/components/TokenListView';
 import { TokenGridView } from '@/components/TokenGridView';
+import { ViewToggle, ViewMode } from '@/components/ViewToggle';
 
 enum TokenView {
   Name = 'name',
   Balance = 'balance',
 }
-
-type ViewMode = 'grid' | 'list';
 
 export function TokenList() {
   const navigate = useNavigate();
@@ -309,28 +308,5 @@ function TokenSortDropdown({
         </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
-  );
-}
-
-function ViewToggle({ 
-  view, 
-  onChange 
-}: { 
-  view: ViewMode; 
-  onChange: (view: ViewMode) => void;
-}) {
-  return (
-    <Button
-      variant="outline"
-      size="icon"
-      onClick={() => onChange(view === 'grid' ? 'list' : 'grid')}
-      title={view === 'grid' ? t`Switch to list view` : t`Switch to grid view`}
-    >
-      {view === 'grid' ? (
-        <ListIcon className="h-4 w-4" />
-      ) : (
-        <LayoutGrid className="h-4 w-4" />
-      )}
-    </Button>
   );
 }
