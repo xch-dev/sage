@@ -3,7 +3,6 @@ import Header from '@/components/Header';
 import { ReceiveAddress } from '@/components/ReceiveAddress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,21 +27,23 @@ import {
   InfoIcon,
   SearchIcon,
   XIcon,
+  LayoutGrid,
+  List as ListIcon,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { CatRecord, commands, events } from '../bindings';
 import { useWalletState } from '../state';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { useLocalStorage } from 'usehooks-ts';
+import { TokenListView } from '@/components/TokenListView';
+import { TokenGridView } from '@/components/TokenGridView';
 
 enum TokenView {
   Name = 'name',
   Balance = 'balance',
 }
+
+type ViewMode = 'grid' | 'list';
 
 export function TokenList() {
   const navigate = useNavigate();
@@ -52,6 +53,7 @@ export function TokenList() {
   const [params, setParams] = useTokenParams();
   const { view, showHidden, showZeroBalance } = params;
   const [cats, setCats] = useState<CatRecord[]>([]);
+  const [viewMode, setViewMode] = useLocalStorage<ViewMode>('token-view-mode', 'grid');
 
   const catsWithBalanceInUsd = useMemo(
     () =>
@@ -179,28 +181,31 @@ export function TokenList() {
               </Button>
             )}
           </div>
-          <TokenSortDropdown
-            view={view}
-            setView={(view) => setParams({ view })}
-          />
-          <Button
-            variant='outline'
-            size='icon'
-            onClick={() => setParams({ showZeroBalance: !showZeroBalance })}
-            className={!showZeroBalance ? 'text-muted-foreground' : ''}
-            aria-label={
-              showZeroBalance ? t`Hide zero balances` : t`Show zero balances`
-            }
-            title={
-              showZeroBalance ? t`Hide zero balances` : t`Show zero balances`
-            }
-          >
-            {showZeroBalance ? (
-              <CircleDollarSign className='h-4 w-4' />
-            ) : (
-              <CircleSlash className='h-4 w-4' />
-            )}
-          </Button>
+          <div className="flex items-center gap-2">
+            <ViewToggle view={viewMode} onChange={setViewMode} />
+            <TokenSortDropdown
+              view={view}
+              setView={(view) => setParams({ view })}
+            />
+            <Button
+              variant='outline'
+              size='icon'
+              onClick={() => setParams({ showZeroBalance: !showZeroBalance })}
+              className={!showZeroBalance ? 'text-muted-foreground' : ''}
+              aria-label={
+                showZeroBalance ? t`Hide zero balances` : t`Show zero balances`
+              }
+              title={
+                showZeroBalance ? t`Hide zero balances` : t`Show zero balances`
+              }
+            >
+              {showZeroBalance ? (
+                <CircleDollarSign className='h-4 w-4' />
+              ) : (
+                <CircleSlash className='h-4 w-4' />
+              )}
+            </Button>
+          </div>
         </div>
 
         {walletState.sync.synced_coins < walletState.sync.total_coins && (
@@ -233,86 +238,23 @@ export function TokenList() {
           )}
         </div>
 
-        <div className='mt-4 grid gap-2 md:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 3xl:grid-cols-6'>
-          <Link to={`/wallet/token/xch`}>
-            <Card className='transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900'>
-              <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-                <CardTitle className='text-md font-medium'>Chia</CardTitle>
-                <img
-                  alt={t`XCH logo`}
-                  className='h-6 w-6'
-                  src='https://icons.dexie.space/xch.webp'
-                />
-              </CardHeader>
-              <CardContent>
-                <div className='text-2xl font-medium truncate'>
-                  {toDecimal(
-                    walletState.sync.balance,
-                    walletState.sync.unit.decimals,
-                  )}
-                </div>
-                <div className='text-sm text-neutral-500'>
-                  ~$
-                  {getBalanceInUsd(
-                    'xch',
-                    toDecimal(
-                      walletState.sync.balance,
-                      walletState.sync.unit.decimals,
-                    ),
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-          {filteredCats.map((cat) => (
-            <Link key={cat.asset_id} to={`/wallet/token/${cat.asset_id}`}>
-              <Card
-                className={`transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900 ${!cat.visible ? 'opacity-50 grayscale' : ''}`}
-              >
-                <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2 space-x-2'>
-                  <CardTitle className='text-md font-medium truncate'>
-                    {cat.name || t`Unknown CAT`}
-                  </CardTitle>
-                  {cat.icon_url && (
-                    <img
-                      alt={`${cat.asset_id} logo`}
-                      className='h-6 w-6'
-                      src={cat.icon_url}
-                    />
-                  )}
-                </CardHeader>
-                <CardContent>
-                  <div className='text-2xl font-medium truncate'>
-                    {toDecimal(cat.balance, 3)} {cat.ticker ?? ''}
-                  </div>
-                  <div className='text-sm text-neutral-500'>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div>~${cat.balanceInUsd}</div>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <span>
-                          1 {cat.ticker ?? 'CAT'}{' '}
-                          {Number(
-                            cat.balanceInUsd /
-                              Number(toDecimal(cat.balance, 3)),
-                          ) < 0.01
-                            ? ' < 0.01¢'
-                            : Number(
-                                  cat.balanceInUsd /
-                                    Number(toDecimal(cat.balance, 3)),
-                                ) < 0.01
-                              ? ` = ${((cat.balanceInUsd / Number(toDecimal(cat.balance, 3))) * 100).toFixed(2)}¢`
-                              : ` = $${(cat.balanceInUsd / Number(toDecimal(cat.balance, 3))).toFixed(2)}`}
-                        </span>
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
-        </div>
+        {viewMode === 'grid' ? (
+          <TokenGridView
+            cats={filteredCats}
+            xchBalance={walletState.sync.balance.toString()}
+            xchDecimals={walletState.sync.unit.decimals}
+            getBalanceInUsd={getBalanceInUsd}
+          />
+        ) : (
+          <div className="mt-4">
+            <TokenListView
+              cats={filteredCats}
+              xchBalance={walletState.sync.balance.toString()}
+              xchDecimals={walletState.sync.unit.decimals}
+              getBalanceInUsd={getBalanceInUsd}
+            />
+          </div>
+        )}
       </Container>
     </>
   );
@@ -367,5 +309,28 @@ function TokenSortDropdown({
         </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+}
+
+function ViewToggle({ 
+  view, 
+  onChange 
+}: { 
+  view: ViewMode; 
+  onChange: (view: ViewMode) => void;
+}) {
+  return (
+    <Button
+      variant="outline"
+      size="icon"
+      onClick={() => onChange(view === 'grid' ? 'list' : 'grid')}
+      title={view === 'grid' ? t`Switch to list view` : t`Switch to grid view`}
+    >
+      {view === 'grid' ? (
+        <ListIcon className="h-4 w-4" />
+      ) : (
+        <LayoutGrid className="h-4 w-4" />
+      )}
+    </Button>
   );
 }
