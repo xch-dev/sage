@@ -54,6 +54,7 @@ pub fn run() {
             commands::get_cats,
             commands::get_cat,
             commands::get_dids,
+            commands::get_minter_did_ids,
             commands::get_nft_collections,
             commands::get_nft_collection,
             commands::get_nfts,

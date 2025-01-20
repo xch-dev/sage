@@ -638,9 +638,22 @@ msgstr "Global"
 msgid "Go to wallet"
 msgstr "Zum Wallet gehen"
 
+#: src/components/NftOptions.tsx:249
+msgid "Group by Collections"
+msgstr ""
+
+#: src/components/NftOptions.tsx:265
+msgid "Group by Owners"
+msgstr ""
+
 #: src/components/NftOptions.tsx:179
-msgid "Group Collections"
-msgstr "Kollektionen gruppieren"
+#~ msgid "Group Collections"
+#~ msgstr "Kollektionen gruppieren"
+
+#: src/components/NftOptions.tsx:206
+#: src/components/NftOptions.tsx:207
+msgid "Group options"
+msgstr ""
 
 #: src/pages/Addresses.tsx:144
 msgid "Hardened addresses"
@@ -892,8 +905,9 @@ msgstr "Netzwerk ID"
 msgid "New Offer"
 msgstr "Neuer Offer"
 
-#: src/components/NftOptions.tsx:82
-#: src/components/CoinList.tsx:376
+#: src/components/NftOptions.tsx:109
+#: src/components/NftOptions.tsx:110
+#: src/components/CoinList.tsx:371
 #: src/components/AddressList.tsx:190
 msgid "Next page"
 msgstr "Nächste Seite"
@@ -911,7 +925,7 @@ msgstr "NFT optionen"
 msgid "NFT preview"
 msgstr "NFT Vorschau"
 
-#: src/pages/NftList.tsx:99
+#: src/pages/NftList.tsx:112
 #: src/components/Nav.tsx:46
 msgid "NFTs"
 msgstr "NFTs"
@@ -1049,8 +1063,9 @@ msgstr ""
 #~ msgid "Prevents the peer from being banned."
 #~ msgstr "Verhindert, dass der Peer verboten wird."
 
-#: src/components/NftOptions.tsx:66
-#: src/components/CoinList.tsx:367
+#: src/components/NftOptions.tsx:92
+#: src/components/NftOptions.tsx:93
+#: src/components/CoinList.tsx:362
 #: src/components/AddressList.tsx:181
 msgid "Previous page"
 msgstr "Vorherige Seite"
@@ -1074,6 +1089,10 @@ msgstr "Profil ist erforderlich"
 #: src/pages/DidList.tsx:305
 msgid "Profile name"
 msgstr "Profilname"
+
+#: src/pages/DidNfts.tsx:80
+msgid "Profile NFTs"
+msgstr ""
 
 #: src/pages/DidList.tsx:62
 #: src/components/Nav.tsx:53
@@ -1186,8 +1205,9 @@ msgstr ""
 msgid "Search for a token"
 msgstr ""
 
-#: src/components/NftOptions.tsx:49
-msgid "Search NFTs..."
+#: src/components/NftOptions.tsx:61
+#: src/components/NftOptions.tsx:62
+msgid "Search NFTs"
 msgstr ""
 
 #: src/pages/TokenList.tsx:164
@@ -1290,7 +1310,7 @@ msgstr "Nach Guthaben sortieren"
 msgid "Sort options"
 msgstr "Sortieroptionen"
 
-#: src/components/NftOptions.tsx:162
+#: src/components/NftOptions.tsx:177
 msgid "Sort Recent"
 msgstr "Nach Neuestem sortieren"
 
@@ -1462,11 +1482,13 @@ msgstr "Ticker"
 msgid "Ticker is required"
 msgstr "Ticker ist erforderlich"
 
-#: src/components/NftOptions.tsx:106
+#: src/components/NftOptions.tsx:190
+#: src/components/NftOptions.tsx:191
 msgid "Toggle hidden NFTs"
 msgstr "Versteckte NFTs umschalten"
 
-#: src/components/NftOptions.tsx:94
+#: src/components/NftOptions.tsx:123
+#: src/components/NftOptions.tsx:124
 msgid "Toggle multi-select"
 msgstr "Mehrfachauswahl umschalten"
 
@@ -1523,12 +1545,12 @@ msgstr "Profil transferieren"
 #~ msgid "Unassign Profile"
 #~ msgstr "Profil nicht mehr zuweisen"
 
-#: src/pages/Transactions.tsx:289
-#: src/pages/Transactions.tsx:311
-#: src/pages/Transactions.tsx:315
-#: src/pages/Transaction.tsx:136
-#: src/pages/Transaction.tsx:160
-#: src/pages/Transaction.tsx:166
+#: src/pages/DidNfts.tsx:80
+msgid "Unassigned NFTs"
+msgstr ""
+
+#: src/pages/Transactions.tsx:297
+#: src/pages/Transaction.tsx:149
 #: src/pages/Collection.tsx:92
 #: src/components/OfferSummaryCard.tsx:81
 #: src/components/OfferSummaryCard.tsx:92
@@ -1564,9 +1586,10 @@ msgstr ""
 msgid "Unknown NFT"
 msgstr "Unbekanntes NFT"
 
-#: src/pages/NftList.tsx:203
-#: src/pages/NftList.tsx:214
-#: src/components/OfferCard.tsx:198
+#: src/pages/NftList.tsx:239
+#: src/pages/NftList.tsx:250
+#: src/pages/NftList.tsx:303
+#: src/components/OfferCard.tsx:177
 #: src/components/NftCard.tsx:196
 #: src/components/NftCard.tsx:214
 #: src/components/ConfirmationDialog.tsx:508
@@ -1574,9 +1597,13 @@ msgstr "Unbekanntes NFT"
 msgid "Unnamed"
 msgstr "Unbenannt"
 
-#: src/components/CoinList.tsx:223
-#: src/components/CoinList.tsx:246
-#: src/components/CoinList.tsx:286
+#: src/pages/NftList.tsx:314
+msgid "Unnamed Profile"
+msgstr ""
+
+#: src/components/CoinList.tsx:218
+#: src/components/CoinList.tsx:241
+#: src/components/CoinList.tsx:281
 msgid "Unspent"
 msgstr "Nicht ausgegeben"
 

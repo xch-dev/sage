@@ -23,7 +23,6 @@ import useInitialization from './hooks/useInitialization';
 import { useWallet } from './hooks/useWallet';
 import { loadCatalog } from './i18n';
 import Addresses from './pages/Addresses';
-import Collection from './pages/Collection';
 import CreateProfile from './pages/CreateProfile';
 import CreateWallet from './pages/CreateWallet';
 import { DidList } from './pages/DidList';
@@ -47,6 +46,9 @@ import { ViewSavedOffer } from './pages/ViewSavedOffer';
 import Wallet from './pages/Wallet';
 import { fetchState } from './state';
 import QRScanner from './pages/QrScanner';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import { Slide } from 'react-toastify';
 
 export interface DarkModeContext {
   toggle: () => void;
@@ -76,10 +78,10 @@ const router = createHashRouter(
       <Route path='/nfts' element={<Wallet />}>
         <Route path='' element={<NftList />} />
         <Route path=':launcher_id' element={<Nft />} />
+        <Route path='collections/:collection_id' element={<NftList />} />
+        <Route path='owners/:owner_did' element={<NftList />} />
+        <Route path='minters/:minter_did' element={<NftList />} />
         <Route path='mint' element={<MintNft />} />
-      </Route>
-      <Route path='/collections' element={<Wallet />}>
-        <Route path=':collection_id' element={<Collection />} />
       </Route>
       <Route path='/dids' element={<Wallet />}>
         <Route path='' element={<DidList />} />
@@ -133,6 +135,25 @@ export default function App() {
           </ErrorProvider>
         </SafeAreaProvider>
       </DarkModeContext.Provider>
+      <ToastContainer
+        position='bottom-right'
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme={dark ? 'dark' : 'light'}
+        transition={Slide}
+        style={
+          {
+            '--toastify-toast-transition-timing': 'ease',
+            '--toastify-toast-transition-duration': '750ms',
+          } as React.CSSProperties
+        }
+      />
     </LanguageProvider>
   );
 }

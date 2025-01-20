@@ -1,79 +1,96 @@
 import { useSearchParams } from 'react-router-dom';
+import { useLocalStorage } from 'usehooks-ts';
+import { useCallback, useMemo } from 'react';
 
-export interface NftParams {
-  pageSize: number;
-  page: number;
-  view: NftView;
-  showHidden: boolean;
-  query: string;
-}
+const NFT_HIDDEN_STORAGE_KEY = 'sage-wallet-nft-hidden';
+const NFT_GROUP_STORAGE_KEY = 'sage-wallet-nft-group';
+const NFT_SORT_STORAGE_KEY = 'sage-wallet-nft-sort';
 
 export enum NftView {
   Name = 'name',
   Recent = 'recent',
   Collection = 'collection',
+  Did = 'did',
 }
 
-export function parseView(view: string): NftView {
-  switch (view) {
-    case 'name':
-      return NftView.Name;
-    case 'recent':
-      return NftView.Recent;
-    case 'collection':
-      return NftView.Collection;
-    default:
-      return NftView.Name;
-  }
+export enum NftSortMode {
+  Name = 'name',
+  Recent = 'recent',
+}
+
+export enum NftGroupMode {
+  None = 'none',
+  Collection = 'collection',
+  OwnerDid = 'owner_did',
+  MinterDid = 'minter_did',
+}
+
+export interface NftParams {
+  pageSize: number;
+  page: number;
+  sort: NftSortMode;
+  group: NftGroupMode;
+  showHidden: boolean;
+  query: string | null;
 }
 
 export type SetNftParams = (params: Partial<NftParams>) => void;
 
 export function useNftParams(): [NftParams, SetNftParams] {
-  const [params, setParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [view, setView] = useLocalStorage<NftSortMode>(
+    NFT_SORT_STORAGE_KEY,
+    NftSortMode.Name,
+  );
+  const [showHidden, setShowHidden] = useLocalStorage<boolean>(
+    NFT_HIDDEN_STORAGE_KEY,
+    false,
+  );
+  const [group, setGroup] = useLocalStorage<NftGroupMode>(
+    NFT_GROUP_STORAGE_KEY,
+    NftGroupMode.None,
+  );
 
-  const pageSize = parseInt(params.get('pageSize') ?? '12');
-  const page = parseInt(params.get('page') ?? '1');
-  const view = parseView(params.get('view') ?? 'recent');
-  const showHidden = (params.get('showHidden') ?? 'false') === 'true';
-  const query = params.get('query') ?? '';
+  const params = useMemo(
+    () => ({
+      pageSize: 24,
+      page: Number(searchParams.get('page') || 1),
+      sort: view,
+      group,
+      showHidden,
+      query: searchParams.get('query'),
+    }),
+    [searchParams, view, group, showHidden],
+  );
 
-  const updateParams = ({
-    pageSize,
-    page,
-    view,
-    showHidden,
-    query,
-  }: Partial<NftParams>) => {
-    setParams(
-      (prev) => {
-        const next = new URLSearchParams(prev);
+  const setParams = useCallback(
+    (newParams: Partial<NftParams>) => {
+      const updatedParams = { ...params, ...newParams };
 
-        if (pageSize !== undefined) {
-          next.set('pageSize', pageSize.toString());
-        }
+      if (newParams.sort !== undefined) {
+        setView(newParams.sort);
+      }
 
-        if (page !== undefined) {
-          next.set('page', page.toString());
-        }
+      if (newParams.showHidden !== undefined) {
+        setShowHidden(newParams.showHidden);
+      }
 
-        if (view !== undefined) {
-          next.set('view', view);
-        }
+      if (newParams.group !== undefined) {
+        setGroup(newParams.group);
+      }
 
-        if (showHidden !== undefined) {
-          next.set('showHidden', showHidden.toString());
-        }
+      setSearchParams(
+        {
+          ...(updatedParams.page > 1 && {
+            page: updatedParams.page.toString(),
+          }),
+          ...(updatedParams.query && { query: updatedParams.query }),
+        },
+        { replace: true },
+      );
+    },
+    [params, setSearchParams, setView, setShowHidden, setGroup],
+  );
 
-        if (query !== undefined) {
-          next.set('query', query);
-        }
-
-        return next;
-      },
-      { replace: true },
-    );
-  };
-
-  return [{ pageSize, page, view, showHidden, query }, updateParams];
+  return [params, setParams];
 }

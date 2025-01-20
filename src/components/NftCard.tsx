@@ -26,7 +26,7 @@ import {
   SendIcon,
   UserRoundPlus,
 } from 'lucide-react';
-import { PropsWithChildren, useEffect, useState } from 'react';
+import { useEffect, useState, memo } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
@@ -69,6 +69,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from './ui/select';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from './ui/tooltip';
+import { toast } from 'react-toastify';
 
 export interface NftProps {
   nft: NftRecord;
@@ -76,15 +83,17 @@ export interface NftProps {
   selectionState: [boolean, (value: boolean) => void] | null;
 }
 
-export function NftCardList({ children }: PropsWithChildren) {
-  return (
-    <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mt-6 mb-2'>
-      {children}
-    </div>
-  );
+interface NftCardProps {
+  nft: NftRecord;
+  updateNfts: () => void;
+  selectionState: [boolean, (value: boolean) => void] | null;
 }
 
-export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
+const NftCardComponent = ({
+  nft,
+  updateNfts,
+  selectionState,
+}: NftCardProps) => {
   const walletState = useWalletState();
   const offerState = useOfferState();
   const navigate = useNavigate();
@@ -190,16 +199,38 @@ export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
             selectionState[1](!selectionState[0]);
           }
         }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            if (selectionState === null) {
+              navigate(`/nfts/${nft.launcher_id}`);
+            } else {
+              selectionState[1](!selectionState[0]);
+            }
+          }
+        }}
+        role='button'
+        tabIndex={0}
+        aria-label={nft.name ? `NFT: ${nft.name}` : t`Unnamed NFT`}
       >
         <div className='overflow-hidden rounded-t-lg relative'>
-          <img
-            alt={nft.name ?? t`Unnamed`}
-            loading='lazy'
-            width='150'
-            height='150'
-            className='h-auto w-auto object-cover transition-all group-hover:scale-105 aspect-square color-[transparent]'
-            src={nftUri(data?.mime_type ?? null, data?.blob ?? null)}
-          />
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <img
+                  alt={nft.name ?? t`NFT artwork for unnamed NFT`}
+                  loading='lazy'
+                  width='150'
+                  height='150'
+                  className='h-auto w-auto object-cover transition-all group-hover:scale-105 aspect-square color-[transparent]'
+                  src={nftUri(data?.mime_type ?? null, data?.blob ?? null)}
+                />
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{nft.name ?? t`Unnamed`}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
 
           {selectionState !== null && (
             <Checkbox
@@ -210,12 +241,31 @@ export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
         </div>
         <div className='border border-neutral-200 bg-white text-neutral-950 shadow dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-50 text-md flex items-center justify-between rounded-b-lg p-2 pl-3'>
           <span className='truncate'>
-            <span className='font-medium leading-none truncate'>
-              {nft.name ?? t`Unnamed`}
-            </span>
-            <p className='text-xs text-muted-foreground truncate'>
-              {nft.collection_name ?? t`No collection`}
-            </p>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className='font-medium leading-none truncate block'>
+                    {nft.name ?? t`Unnamed`}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{nft.name ?? t`Unnamed`}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <p className='text-xs text-muted-foreground truncate'>
+                    {nft.collection_name ?? t`No collection`}
+                  </p>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{nft.collection_name ?? t`No collection`}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </span>
 
           <DropdownMenu>
@@ -295,7 +345,6 @@ export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
                     e.stopPropagation();
 
                     const newNfts = [...offerState.offered.nfts];
-
                     newNfts.push(nft.launcher_id);
 
                     useOfferState.setState({
@@ -304,6 +353,8 @@ export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
                         nfts: newNfts,
                       },
                     });
+
+                    toast.success(t`Added NFT to offer`);
                   }}
                   disabled={
                     !nft.created_height ||
@@ -340,7 +391,9 @@ export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
                   onClick={(e) => {
                     e.stopPropagation();
                     writeText(nft.launcher_id);
+                    toast.success(t`NFT ID copied to clipboard`);
                   }}
+                  aria-label={t`Copy NFT ID to clipboard`}
                 >
                   <Copy className='mr-2 h-4 w-4' />
                   <span>
@@ -493,4 +546,13 @@ export function NftCard({ nft, updateNfts, selectionState }: NftProps) {
       />
     </>
   );
-}
+};
+
+export const NftCard = memo(NftCardComponent, (prevProps, nextProps) => {
+  // Only re-render if these props change
+  return (
+    prevProps.nft.launcher_id === nextProps.nft.launcher_id &&
+    prevProps.nft.visible === nextProps.nft.visible &&
+    prevProps.selectionState?.[0] === nextProps.selectionState?.[0]
+  );
+});
