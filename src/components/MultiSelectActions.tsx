@@ -25,6 +25,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
+import { toast } from 'react-toastify';
 
 export interface MultiSelectActionsProps {
   selected: string[];
@@ -145,6 +146,7 @@ export function MultiSelectActions({
                   e.stopPropagation();
 
                   const newNfts = [...offerState.offered.nfts];
+                  let addedCount = 0;
 
                   for (const item of selected) {
                     if (newNfts.includes(item)) {
@@ -152,6 +154,7 @@ export function MultiSelectActions({
                     }
 
                     newNfts.push(item);
+                    addedCount++;
                   }
 
                   useOfferState.setState({
@@ -160,6 +163,12 @@ export function MultiSelectActions({
                       nfts: newNfts,
                     },
                   });
+
+                  toast.success(
+                    addedCount > 0
+                      ? t`Added ${addedCount} ` + (addedCount === 1 ? t`NFT` : t`NFTs`) + t` to offer`
+                      : t`Selected NFTs are already in the offer`
+                  );
 
                   onConfirm();
                 }}

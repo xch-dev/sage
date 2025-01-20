@@ -75,6 +75,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from './ui/tooltip';
+import { toast } from 'react-toastify';
 
 export interface NftProps {
   nft: NftRecord;
@@ -331,7 +332,6 @@ const NftCardComponent = ({
                     e.stopPropagation();
 
                     const newNfts = [...offerState.offered.nfts];
-
                     newNfts.push(nft.launcher_id);
 
                     useOfferState.setState({
@@ -340,6 +340,8 @@ const NftCardComponent = ({
                         nfts: newNfts,
                       },
                     });
+
+                    toast.success(t`Added NFT to offer`);
                   }}
                   disabled={
                     !nft.created_height ||

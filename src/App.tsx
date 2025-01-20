@@ -46,6 +46,9 @@ import { ViewSavedOffer } from './pages/ViewSavedOffer';
 import Wallet from './pages/Wallet';
 import { fetchState } from './state';
 import QRScanner from './pages/QrScanner';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import { Slide } from 'react-toastify';
 
 export interface DarkModeContext {
   toggle: () => void;
@@ -132,6 +135,23 @@ export default function App() {
           </ErrorProvider>
         </SafeAreaProvider>
       </DarkModeContext.Provider>
+      <ToastContainer
+        position="bottom-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="dark"
+        transition={Slide}
+        style={{
+          "--toastify-toast-transition-timing": "ease",
+          "--toastify-toast-transition-duration": "750ms"
+        } as React.CSSProperties}
+      />
     </LanguageProvider>
   );
 }
