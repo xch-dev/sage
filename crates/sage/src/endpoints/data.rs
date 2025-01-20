@@ -13,13 +13,14 @@ use hex_literal::hex;
 use sage_api::{
     AddressKind, Amount, AssetKind, CatRecord, CoinRecord, DerivationRecord, DidRecord, GetCat,
     GetCatCoins, GetCatCoinsResponse, GetCatResponse, GetCats, GetCatsResponse, GetDerivations,
-    GetDerivationsResponse, GetDids, GetDidsResponse, GetNft, GetNftCollection,
-    GetNftCollectionResponse, GetNftCollections, GetNftCollectionsResponse, GetNftData,
-    GetNftDataResponse, GetNftResponse, GetNfts, GetNftsResponse, GetPendingTransactions,
-    GetPendingTransactionsResponse, GetSyncStatus, GetSyncStatusResponse, GetTransaction,
-    GetTransactionResponse, GetTransactions, GetTransactionsResponse, GetXchCoins,
-    GetXchCoinsResponse, NftCollectionRecord, NftData, NftRecord, NftSortMode as ApiNftSortMode,
-    PendingTransactionRecord, TransactionCoin, TransactionRecord,
+    GetDerivationsResponse, GetDids, GetDidsResponse, GetMinterDidIds, GetMinterDidIdsResponse,
+    GetNft, GetNftCollection, GetNftCollectionResponse, GetNftCollections,
+    GetNftCollectionsResponse, GetNftData, GetNftDataResponse, GetNftResponse, GetNfts,
+    GetNftsResponse, GetPendingTransactions, GetPendingTransactionsResponse, GetSyncStatus,
+    GetSyncStatusResponse, GetTransaction, GetTransactionResponse, GetTransactions,
+    GetTransactionsResponse, GetXchCoins, GetXchCoinsResponse, NftCollectionRecord, NftData,
+    NftRecord, NftSortMode as ApiNftSortMode, PendingTransactionRecord, TransactionCoin,
+    TransactionRecord,
 };
 use sage_database::{
     CoinKind, CoinStateRow, Database, NftGroup, NftRow, NftSearchParams, NftSortMode,
@@ -242,6 +243,24 @@ impl Sage {
         }
 
         Ok(GetDidsResponse { dids })
+    }
+
+    pub async fn get_minter_did_ids(
+        &self,
+        _req: GetMinterDidIds,
+    ) -> Result<GetMinterDidIdsResponse> {
+        let wallet = self.wallet()?;
+
+        let did_ids = wallet
+            .db
+            .distinct_minter_dids()
+            .await?
+            .into_iter()
+            .filter_map(|did| did.map(|d| encode_address(d.to_bytes(), "did:chia:").ok()))
+            .flatten()
+            .collect();
+
+        Ok(GetMinterDidIdsResponse { did_ids })
     }
 
     pub async fn get_pending_transactions(

@@ -64,6 +64,10 @@ impl Database {
         fetch_nft_data(&self.pool, hash).await
     }
 
+    pub async fn distinct_minter_dids(&self) -> Result<Vec<Option<Bytes32>>> {
+        distinct_minter_dids(&self.pool).await
+    }
+
     pub async fn search_nfts(
         &self,
         params: NftSearchParams,
@@ -438,6 +442,16 @@ async fn insert_nft_data(
     Ok(())
 }
 
+async fn distinct_minter_dids(conn: impl SqliteExecutor<'_>) -> Result<Vec<Option<Bytes32>>> {
+    let rows = sqlx::query!("SELECT DISTINCT minter_did FROM nfts WHERE minter_did IS NOT NULL")
+        .fetch_all(conn)
+        .await?;
+
+    rows.into_iter()
+        .map(|row| row.minter_did.map(|bytes| to_bytes32(&bytes)).transpose())
+        .collect()
+}
+
 async fn fetch_nft_data(conn: impl SqliteExecutor<'_>, hash: Bytes32) -> Result<Option<NftData>> {
     let hash = hash.as_ref();
 
@@ -754,7 +768,10 @@ async fn search_nfts(
     }
 
     // Bind group parameters if present
-    if let Some(NftGroup::Collection(id) | NftGroup::MinterDid(id)) = &params.group {
+    //if let Some(NftGroup::Collection(id) | NftGroup::MinterDid(id)) = &params.group {
+    if let Some(NftGroup::Collection(id) | NftGroup::MinterDid(id) | NftGroup::OwnerDid(id)) =
+        &params.group
+    {
         query = query.bind(id.as_ref());
     }
 

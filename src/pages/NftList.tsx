@@ -1,108 +1,98 @@
 import Container from '@/components/Container';
 import Header from '@/components/Header';
 import { MultiSelectActions } from '@/components/MultiSelectActions';
-import { NftCard, NftCardList } from '@/components/NftCard';
+import { NftPageTitle } from '@/components/NftPageTitle';
+import { NftCardList } from '@/components/NftCardList';
 import { NftOptions } from '@/components/NftOptions';
 import { ReceiveAddress } from '@/components/ReceiveAddress';
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { useErrors } from '@/hooks/useErrors';
-import { useNftParams } from '@/hooks/useNftParams';
-import collectionImage from '@/images/collection.png';
-import { t } from '@lingui/core/macro';
+import { useNftParams, NftGroupMode } from '@/hooks/useNftParams';
 import { Trans } from '@lingui/react/macro';
-import { EyeIcon, EyeOff, ImagePlusIcon, MoreVerticalIcon } from 'lucide-react';
+import { ImagePlusIcon } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { commands, events, NftCollectionRecord, NftRecord } from '../bindings';
+import { useNavigate, useParams } from 'react-router-dom';
+import { useNftData } from '@/hooks/useNftData';
+import { useErrors } from '@/hooks/useErrors';
+import { t } from '@lingui/core/macro';
 
 export function NftList() {
   const navigate = useNavigate();
-
-  const { addError } = useErrors();
-
+  const {
+    collection_id: collectionId,
+    owner_did: ownerDid,
+    minter_did: minterDid,
+  } = useParams();
   const [params, setParams] = useNftParams();
-  const { pageSize, page, view, showHidden, query } = params;
-
-  const [nfts, setNfts] = useState<NftRecord[]>([]);
-  const [collections, setCollections] = useState<NftCollectionRecord[]>([]);
+  const { pageSize, sort, group, showHidden, query } = params;
   const [multiSelect, setMultiSelect] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-
-  const updateNfts = useCallback(
-    async (page: number) => {
-      setIsLoading(true);
-      try {
-        if (view === 'name' || view === 'recent') {
-          await commands
-            .getNfts({
-              name: query || null,
-              offset: (page - 1) * pageSize,
-              limit: pageSize,
-              sort_mode: view,
-              include_hidden: showHidden,
-            })
-            .then((data) => setNfts(data.nfts))
-            .catch(addError);
-        } else if (view === 'collection') {
-          await commands
-            .getNftCollections({
-              offset: (page - 1) * pageSize,
-              limit: pageSize,
-              include_hidden: showHidden,
-            })
-            .then((data) => setCollections(data.collections))
-            .catch(addError);
-        }
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [pageSize, showHidden, view, query, addError],
-  );
-
-  useEffect(() => {
-    updateNfts(1);
-  }, [updateNfts]);
-
-  useEffect(() => {
-    const unlisten = events.syncEvent.listen((event) => {
-      const type = event.payload.type;
-
-      if (
-        type === 'coin_state' ||
-        type === 'puzzle_batch_synced' ||
-        type === 'nft_data'
-      ) {
-        updateNfts(page);
-      }
+  const { addError } = useErrors();
+  const { nfts, collections, dids, owner, collection, isLoading, updateNfts } =
+    useNftData({
+      pageSize,
+      sort,
+      group,
+      showHidden,
+      query,
+      collectionId,
+      ownerDid,
+      minterDid,
+      page: params.page,
     });
 
-    return () => {
-      unlisten.then((u) => u());
-    };
-  }, [updateNfts, page]);
-
+  // Reset multi-select when route changes
   useEffect(() => {
-    updateNfts(page);
-  }, [updateNfts, page]);
+    setMultiSelect(false);
+    setSelected([]);
+  }, [collectionId, ownerDid, minterDid, group]);
+
+  const canLoadMore = useCallback(() => {
+    if (collectionId || ownerDid || minterDid || group === NftGroupMode.None) {
+      return nfts.length === pageSize;
+    } else if (group === NftGroupMode.Collection) {
+      return collections.length === pageSize;
+    } else if (
+      group === NftGroupMode.OwnerDid ||
+      group === NftGroupMode.MinterDid
+    ) {
+      return dids.length === pageSize;
+    }
+    return false;
+  }, [
+    collectionId,
+    ownerDid,
+    minterDid,
+    group,
+    nfts.length,
+    collections.length,
+    dids.length,
+    pageSize,
+  ]);
 
   return (
     <>
-      <Header title={<Trans>NFTs</Trans>}>
+      <Header
+        title={
+          <NftPageTitle
+            collectionId={collectionId}
+            collection={collection}
+            ownerDid={ownerDid}
+            owner={owner}
+            minterDid={minterDid}
+            group={group}
+          />
+        }
+      >
         <ReceiveAddress />
       </Header>
 
       <Container>
-        <Button onClick={() => navigate('/nfts/mint')}>
-          <ImagePlusIcon className='h-4 w-4 mr-2' /> <Trans>Mint NFT</Trans>
+        <Button
+          onClick={() => navigate('/nfts/mint')}
+          aria-label={t`Create new NFT`}
+        >
+          <ImagePlusIcon className='h-4 w-4 mr-2' aria-hidden='true' />
+          <Trans>Mint NFT</Trans>
         </Button>
 
         <NftOptions
@@ -115,62 +105,28 @@ export function NftList() {
           }}
           className='mt-4'
           isLoading={isLoading}
-          canLoadMore={nfts.length === pageSize}
+          canLoadMore={canLoadMore()}
+          aria-live='polite'
         />
 
-        <NftCardList>
-          {view === 'collection' ? (
-            <>
-              {collections.map((col, i) => (
-                <Collection
-                  col={col}
-                  key={i}
-                  updateNfts={() => updateNfts(page)}
-                />
-              ))}
-              {nfts.length < pageSize && (
-                <Collection
-                  col={{
-                    name: 'Uncategorized NFTs',
-                    icon: '',
-                    did_id: 'Miscellaneous',
-                    metadata_collection_id: 'Uncategorized',
-                    collection_id: 'No collection',
-                    visible: true,
-                  }}
-                  updateNfts={() => updateNfts(page)}
-                />
-              )}
-            </>
-          ) : (
-            nfts.map((nft, i) => (
-              <NftCard
-                nft={nft}
-                key={i}
-                updateNfts={() => updateNfts(page)}
-                selectionState={
-                  multiSelect
-                    ? [
-                        selected.includes(nft.launcher_id),
-                        (value) => {
-                          if (value && !selected.includes(nft.launcher_id)) {
-                            setSelected([...selected, nft.launcher_id]);
-                          } else if (
-                            !value &&
-                            selected.includes(nft.launcher_id)
-                          ) {
-                            setSelected(
-                              selected.filter((id) => id !== nft.launcher_id),
-                            );
-                          }
-                        },
-                      ]
-                    : null
-                }
-              />
-            ))
-          )}
-        </NftCardList>
+        <main aria-label={t`NFT Collection`} aria-busy={isLoading}>
+          <NftCardList
+            collectionId={collectionId}
+            ownerDid={ownerDid}
+            minterDid={minterDid}
+            group={group}
+            nfts={nfts}
+            collections={collections}
+            dids={dids}
+            pageSize={pageSize}
+            updateNfts={updateNfts}
+            page={params.page}
+            multiSelect={multiSelect}
+            selected={selected}
+            setSelected={setSelected}
+            addError={addError}
+          />
+        </main>
       </Container>
 
       {selected.length > 0 && (
@@ -180,73 +136,9 @@ export function NftList() {
             setSelected([]);
             setMultiSelect(false);
           }}
+          aria-label={t`Actions for selected NFTs`}
         />
       )}
-    </>
-  );
-}
-
-interface CollectionProps {
-  col: NftCollectionRecord;
-  updateNfts: () => void;
-}
-
-function Collection({ col }: CollectionProps) {
-  return (
-    <>
-      <Link
-        to={`/collections/${col.collection_id}`}
-        className={`group${`${!col.visible ? ' opacity-50 grayscale' : ''}`} border border-neutral-200 rounded-lg dark:border-neutral-800`}
-      >
-        <div className='overflow-hidden rounded-t-lg relative'>
-          <img
-            alt={col.name ?? t`Unnamed`}
-            loading='lazy'
-            width='150'
-            height='150'
-            className='h-auto w-auto object-cover transition-all group-hover:scale-105 aspect-square color-[transparent]'
-            src={collectionImage}
-          />
-        </div>
-        <div className='border-t bg-white text-neutral-950 shadow  dark:bg-neutral-900 dark:text-neutral-50 text-md flex items-center justify-between rounded-b-lg p-2 pl-3'>
-          <span className='truncate'>
-            <span className='font-medium leading-none truncate'>
-              {col.name ?? <Trans>Unnamed</Trans>}
-            </span>
-            {col.collection_id && (
-              <p className='text-xs text-muted-foreground truncate'>
-                {col.collection_id}
-              </p>
-            )}
-          </span>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant='ghost' size='icon'>
-                <MoreVerticalIcon className='h-5 w-5' />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align='end'>
-              <DropdownMenuGroup>
-                <DropdownMenuItem
-                  className='cursor-pointer'
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    // toggleVisibility();
-                  }}
-                >
-                  {col.visible ? (
-                    <EyeOff className='mr-2 h-4 w-4' />
-                  ) : (
-                    <EyeIcon className='mr-2 h-4 w-4' />
-                  )}
-                  <span>{col.visible ? t`Hide` : t`Show`}</span>
-                </DropdownMenuItem>
-              </DropdownMenuGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </Link>
     </>
   );
 }

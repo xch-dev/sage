@@ -148,6 +148,9 @@ export function NftSelector({
               ? (nftThumbnails[selectedNft.launcher_id] ?? defaultNftImage)
               : defaultNftImage
           }
+          alt={
+            selectedNft?.name ? `Image of ${selectedNft.name}` : 'No NFT name'
+          }
           className='w-8 h-8 rounded object-cover'
         />
         <div className='flex flex-col truncate text-left'>

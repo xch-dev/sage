@@ -378,6 +378,15 @@ pub async fn get_dids(state: State<'_, AppState>, req: GetDids) -> Result<GetDid
 
 #[command]
 #[specta]
+pub async fn get_minter_did_ids(
+    state: State<'_, AppState>,
+    req: GetMinterDidIds,
+) -> Result<GetMinterDidIdsResponse> {
+    Ok(state.lock().await.get_minter_did_ids(req).await?)
+}
+
+#[command]
+#[specta]
 pub async fn get_pending_transactions(
     state: State<'_, AppState>,
     req: GetPendingTransactions,
