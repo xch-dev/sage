@@ -136,7 +136,7 @@ export default function App() {
         </SafeAreaProvider>
       </DarkModeContext.Provider>
       <ToastContainer
-        position="bottom-right"
+        position='bottom-right'
         autoClose={5000}
         hideProgressBar={false}
         newestOnTop={false}
@@ -145,12 +145,14 @@ export default function App() {
         pauseOnFocusLoss
         draggable
         pauseOnHover
-        theme="dark"
+        theme={dark ? 'dark' : 'light'}
         transition={Slide}
-        style={{
-          "--toastify-toast-transition-timing": "ease",
-          "--toastify-toast-transition-duration": "750ms"
-        } as React.CSSProperties}
+        style={
+          {
+            '--toastify-toast-transition-timing': 'ease',
+            '--toastify-toast-transition-duration': '750ms',
+          } as React.CSSProperties
+        }
       />
     </LanguageProvider>
   );

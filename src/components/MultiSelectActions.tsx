@@ -164,11 +164,12 @@ export function MultiSelectActions({
                     },
                   });
 
-                  toast.success(
+                  const nfts = addedCount === 1 ? t`NFT` : t`NFTs`;
+                  const message =
                     addedCount > 0
-                      ? t`Added ${addedCount} ` + (addedCount === 1 ? t`NFT` : t`NFTs`) + t` to offer`
-                      : t`Selected NFTs are already in the offer`
-                  );
+                      ? t`Added ${addedCount} ${nfts} to offer`
+                      : t`Selected NFTs are already in the offer`;
+                  toast.success(message);
 
                   onConfirm();
                 }}
