@@ -23,12 +23,14 @@ import {
   HandCoins,
   LinkIcon,
   MoreVertical,
+  RefreshCcw,
   SendIcon,
   UserRoundPlus,
 } from 'lucide-react';
-import { useEffect, useState, memo } from 'react';
+import { memo, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import { z } from 'zod';
 import { AssignNftDialog } from './AssignNftDialog';
 import ConfirmationDialog from './ConfirmationDialog';
@@ -75,7 +77,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from './ui/tooltip';
-import { toast } from 'react-toastify';
 
 export interface NftProps {
   nft: NftRecord;
@@ -366,6 +367,24 @@ const NftCardComponent = ({
                   <HandCoins className='mr-2 h-4 w-4' />
                   <span>
                     <Trans>Add to Offer</Trans>
+                  </span>
+                </DropdownMenuItem>
+
+                <DropdownMenuItem
+                  className='cursor-pointer'
+                  onClick={(e) => {
+                    e.stopPropagation();
+
+                    commands
+                      .redownloadNft({ nft_id: nft.launcher_id })
+                      .catch(addError);
+
+                    toast.success(t`Redownloading NFT data`);
+                  }}
+                >
+                  <RefreshCcw className='mr-2 h-4 w-4' />
+                  <span>
+                    <Trans>Redownload</Trans>
                   </span>
                 </DropdownMenuItem>
 

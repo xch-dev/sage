@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   commands,
+  DidRecord,
   events,
   NftCollectionRecord,
   NftRecord,
-  DidRecord,
 } from '../bindings';
 import { useErrors } from './useErrors';
 import { NftGroupMode, NftSortMode } from './useNftParams';

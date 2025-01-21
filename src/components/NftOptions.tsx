@@ -1,28 +1,28 @@
 import {
+  NftGroupMode,
   NftParams,
   NftSortMode,
-  NftGroupMode,
   SetNftParams,
 } from '@/hooks/useNftParams';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import {
   ArrowDownAz,
+  ArrowLeftIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   Clock2,
   CopyPlus,
   EyeIcon,
   EyeOff,
-  Images,
-  UserIcon,
-  SearchIcon,
-  XIcon,
   LayoutGrid,
-  ArrowLeftIcon,
-  Paintbrush,
   LibraryBigIcon,
+  Paintbrush,
+  SearchIcon,
+  UserIcon,
+  XIcon,
 } from 'lucide-react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from './ui/button';
 import {
   DropdownMenu,
@@ -32,7 +32,6 @@ import {
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
 import { Input } from './ui/input';
-import { useParams, useNavigate } from 'react-router-dom';
 
 export interface NftOptionsProps {
   isCollection?: boolean;
@@ -99,9 +98,9 @@ export function NftOptions({
           />
           <Input
             value={query ?? ''}
-            aria-label={t`Search NFTs by name`}
-            title={t`Search NFTs by name`}
-            placeholder={t`Search NFTs by name`}
+            aria-label={t`Search NFTs by name...`}
+            title={t`Search NFTs by name...`}
+            placeholder={t`Search NFTs by name...`}
             onChange={(e) => setParams({ query: e.target.value, page: 1 })}
             className='w-full pl-8 pr-8'
             disabled={!allowSearch}

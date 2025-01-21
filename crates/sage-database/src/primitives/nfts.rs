@@ -180,6 +180,14 @@ impl<'a> DatabaseTx<'a> {
         set_nft_uri_checked(&mut *self.tx, uri, hash, hash_matches).await
     }
 
+    pub async fn set_nft_uri_unchecked(&mut self, uri: String) -> Result<()> {
+        set_nft_uri_unchecked(&mut *self.tx, uri).await
+    }
+
+    pub async fn delete_nft_data(&mut self, hash: Bytes32) -> Result<()> {
+        delete_nft_data(&mut *self.tx, hash).await
+    }
+
     pub async fn insert_nft_data(&mut self, hash: Bytes32, nft_data: NftData) -> Result<()> {
         insert_nft_data(&mut *self.tx, hash, nft_data).await
     }
@@ -420,6 +428,14 @@ async fn set_nft_uri_checked(
     Ok(())
 }
 
+async fn set_nft_uri_unchecked(conn: impl SqliteExecutor<'_>, uri: String) -> Result<()> {
+    sqlx::query!("UPDATE `nft_uris` SET `checked` = 0 WHERE `uri` = ?", uri)
+        .execute(conn)
+        .await?;
+
+    Ok(())
+}
+
 async fn insert_nft_data(
     conn: impl SqliteExecutor<'_>,
     hash: Bytes32,
@@ -438,6 +454,16 @@ async fn insert_nft_data(
     )
     .execute(conn)
     .await?;
+
+    Ok(())
+}
+
+async fn delete_nft_data(conn: impl SqliteExecutor<'_>, hash: Bytes32) -> Result<()> {
+    let hash = hash.as_ref();
+
+    sqlx::query!("DELETE FROM `nft_data` WHERE `hash` = ?", hash)
+        .execute(conn)
+        .await?;
 
     Ok(())
 }

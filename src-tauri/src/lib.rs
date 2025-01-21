@@ -84,6 +84,7 @@ pub fn run() {
             commands::remove_cat,
             commands::update_did,
             commands::update_nft,
+            commands::redownload_nft,
             commands::increase_derivation_index,
             commands::get_peers,
             commands::add_peer,
