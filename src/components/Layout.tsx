@@ -60,13 +60,13 @@ export default function Layout(props: LayoutProps) {
 
   return (
     <TooltipProvider>
-      <div className='bg-background grid h-screen w-screen md:grid-cols-[auto_1fr]'>
+      <div className='grid h-screen w-screen md:grid-cols-[auto_1fr]'>
         <div
           className={`hidden border-r bg-muted/40 md:flex flex-col transition-all duration-300 ${
             isCollapsed ? 'w-[60px]' : 'w-[250px]'
           }`}
         >
-          <div className='flex h-full max-h-screen flex-col gap-2'>
+          <div className='bg-background flex h-full max-h-screen flex-col gap-2'>
             <div className='flex h-14 items-center pt-2 px-5 justify-between'>
               {walletIconWithTooltip}
               <Tooltip>
