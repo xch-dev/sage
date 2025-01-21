@@ -10,17 +10,18 @@ use chrono::{Local, TimeZone};
 use clvmr::Allocator;
 use indexmap::IndexMap;
 use sage_api::{
-    Amount, CancelOffer, CancelOfferResponse, CatAmount, DeleteOffer, DeleteOfferResponse,
-    GetOffer, GetOfferResponse, GetOffers, GetOffersResponse, ImportOffer, ImportOfferResponse,
-    MakeOffer, MakeOfferResponse, OfferAssets, OfferCat, OfferNft, OfferRecord, OfferRecordStatus,
-    OfferSummary, OfferXch, TakeOffer, TakeOfferResponse, ViewOffer, ViewOfferResponse,
+    Amount, CancelOffer, CancelOfferResponse, CatAmount, CombineOffers, CombineOffersResponse,
+    DeleteOffer, DeleteOfferResponse, GetOffer, GetOfferResponse, GetOffers, GetOffersResponse,
+    ImportOffer, ImportOfferResponse, MakeOffer, MakeOfferResponse, OfferAssets, OfferCat,
+    OfferNft, OfferRecord, OfferRecordStatus, OfferSummary, OfferXch, TakeOffer, TakeOfferResponse,
+    ViewOffer, ViewOfferResponse,
 };
 use sage_assets::fetch_uris_with_hash;
 use sage_database::{OfferCatRow, OfferNftRow, OfferRow, OfferStatus, OfferXchRow};
 use sage_wallet::{
-    calculate_royalties, fetch_nft_offer_details, insert_transaction, parse_locked_coins,
-    parse_offer_payments, sort_offer, MakerSide, NftRoyaltyInfo, SyncCommand, TakerSide,
-    Transaction, Wallet,
+    aggregate_offers, calculate_royalties, fetch_nft_offer_details, insert_transaction,
+    parse_locked_coins, parse_offer_payments, sort_offer, MakerSide, NftRoyaltyInfo, SyncCommand,
+    TakerSide, Transaction, Wallet,
 };
 use tokio::time::timeout;
 use tracing::{debug, warn};
@@ -448,6 +449,18 @@ impl Sage {
         tx.commit().await?;
 
         Ok(ImportOfferResponse {})
+    }
+
+    pub fn combine_offers(&self, req: CombineOffers) -> Result<CombineOffersResponse> {
+        let offers = req
+            .offers
+            .iter()
+            .map(|offer| Ok(Offer::decode(offer)?))
+            .collect::<Result<Vec<_>>>()?;
+
+        Ok(CombineOffersResponse {
+            offer: aggregate_offers(offers).encode()?,
+        })
     }
 
     pub async fn get_offers(&self, _req: GetOffers) -> Result<GetOffersResponse> {

@@ -279,6 +279,15 @@ pub async fn take_offer(state: State<'_, AppState>, req: TakeOffer) -> Result<Ta
 
 #[command]
 #[specta]
+pub async fn combine_offers(
+    state: State<'_, AppState>,
+    req: CombineOffers,
+) -> Result<CombineOffersResponse> {
+    Ok(state.lock().await.combine_offers(req)?)
+}
+
+#[command]
+#[specta]
 pub async fn view_offer(state: State<'_, AppState>, req: ViewOffer) -> Result<ViewOfferResponse> {
     Ok(state.lock().await.view_offer(req).await?)
 }

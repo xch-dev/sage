@@ -152,6 +152,9 @@ async makeOffer(req: MakeOffer) : Promise<MakeOfferResponse> {
 async takeOffer(req: TakeOffer) : Promise<TakeOfferResponse> {
     return await TAURI_INVOKE("take_offer", { req });
 },
+async combineOffers(req: CombineOffers) : Promise<CombineOffersResponse> {
+    return await TAURI_INVOKE("combine_offers", { req });
+},
 async viewOffer(req: ViewOffer) : Promise<ViewOfferResponse> {
     return await TAURI_INVOKE("view_offer", { req });
 },
@@ -270,6 +273,8 @@ export type CoinRecord = { coin_id: string; address: string; amount: Amount; cre
 export type CoinSpend = { coin: Coin; puzzle_reveal: string; solution: string }
 export type CoinSpendJson = { coin: CoinJson; puzzle_reveal: string; solution: string }
 export type CombineCat = { coin_ids: string[]; fee: Amount; auto_submit?: boolean }
+export type CombineOffers = { offers: string[] }
+export type CombineOffersResponse = { offer: string }
 export type CombineXch = { coin_ids: string[]; fee: Amount; auto_submit?: boolean }
 export type CreateDid = { name: string; fee: Amount; auto_submit?: boolean }
 export type DeleteKey = { fingerprint: number }
