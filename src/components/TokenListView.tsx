@@ -1,7 +1,4 @@
-import { Link } from 'react-router-dom';
-import { Trans } from '@lingui/react/macro';
-import { CatRecord } from '../bindings';
-import { formatUsdPrice, toDecimal } from '@/lib/utils';
+import { NumberFormat } from '@/components/NumberFormat';
 import {
   Table,
   TableBody,
@@ -10,9 +7,11 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { t } from '@lingui/core/macro';
-import { NumberFormat } from '@/components/NumberFormat';
+import { formatUsdPrice, toDecimal } from '@/lib/utils';
 import { TokenViewProps } from '@/types/TokenViewProps';
+import { t } from '@lingui/core/macro';
+import { Trans } from '@lingui/react/macro';
+import { Link } from 'react-router-dom';
 
 type TokenListViewProps = TokenViewProps;
 
@@ -28,18 +27,18 @@ export function TokenListView({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead scope='col'>
+            <TableHead scope='col' className='w-[40px] min-w-[40px]'>
               <span className='sr-only'>
                 <Trans>Token Icon</Trans>
               </span>
             </TableHead>
-            <TableHead scope='col'>
+            <TableHead scope='col' className='w-[120px]'>
               <Trans>Name</Trans>
             </TableHead>
-            <TableHead scope='col'>
+            <TableHead scope='col' className='hidden sm:table-cell'>
               <Trans>Symbol</Trans>
             </TableHead>
-            <TableHead scope='col' className='text-right '>
+            <TableHead scope='col' className='text-right w-[100px]'>
               <Trans>Balance</Trans>
             </TableHead>
             <TableHead scope='col' className='text-right hidden md:table-cell'>
@@ -52,7 +51,7 @@ export function TokenListView({
         </TableHeader>
         <TableBody>
           <TableRow>
-            <TableCell>
+            <TableCell className='w-[40px] min-w-[40px]'>
               <img
                 alt={t`XCH logo`}
                 aria-hidden='true'
@@ -60,7 +59,7 @@ export function TokenListView({
                 src='https://icons.dexie.space/xch.webp'
               />
             </TableCell>
-            <TableCell>
+            <TableCell className='max-w-[120px] truncate'>
               <Link
                 to='/wallet/token/xch'
                 className='hover:underline'
@@ -69,7 +68,7 @@ export function TokenListView({
                 Chia
               </Link>
             </TableCell>
-            <TableCell>XCH</TableCell>
+            <TableCell className='hidden sm:table-cell'>XCH</TableCell>
             <TableCell className='text-right '>
               <NumberFormat
                 value={toDecimal(xchBalance, xchDecimals)}
@@ -97,7 +96,7 @@ export function TokenListView({
           </TableRow>
           {cats.map((cat) => (
             <TableRow key={cat.asset_id}>
-              <TableCell>
+              <TableCell className='w-[40px] min-w-[40px]'>
                 {cat.icon_url && (
                   <img
                     alt={t`Token logo`}
@@ -107,7 +106,7 @@ export function TokenListView({
                   />
                 )}
               </TableCell>
-              <TableCell>
+              <TableCell className='max-w-[120px] truncate'>
                 <Link
                   to={`/wallet/token/${cat.asset_id}`}
                   className='hover:underline'
@@ -121,7 +120,9 @@ export function TokenListView({
                   {cat.name || <Trans>Unknown CAT</Trans>}
                 </Link>
               </TableCell>
-              <TableCell>{cat.ticker || '-'}</TableCell>
+              <TableCell className='hidden sm:table-cell'>
+                {cat.ticker || '-'}
+              </TableCell>
               <TableCell className='text-right '>
                 <NumberFormat
                   value={toDecimal(cat.balance, 3)}
