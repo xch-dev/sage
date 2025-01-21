@@ -1,10 +1,13 @@
 use chia::{
     bls::master_to_wallet_hardened_intermediate,
-    puzzles::{standard::StandardArgs, DeriveSynthetic},
+    clvm_traits::{FromClvm, ToClvm},
+    puzzles::{nft::NftMetadata, standard::StandardArgs, DeriveSynthetic},
 };
+use clvmr::Allocator;
 use sage_api::{
-    IncreaseDerivationIndex, IncreaseDerivationIndexResponse, RemoveCat, RemoveCatResponse,
-    UpdateCat, UpdateCatResponse, UpdateDid, UpdateDidResponse, UpdateNft, UpdateNftResponse,
+    IncreaseDerivationIndex, IncreaseDerivationIndexResponse, RedownloadNft, RedownloadNftResponse,
+    RemoveCat, RemoveCatResponse, UpdateCat, UpdateCatResponse, UpdateDid, UpdateDidResponse,
+    UpdateNft, UpdateNftResponse,
 };
 use sage_database::{CatRow, DidRow};
 use sage_wallet::SyncCommand;
@@ -73,6 +76,54 @@ impl Sage {
         wallet.db.set_nft_visible(nft_id, req.visible).await?;
 
         Ok(UpdateNftResponse {})
+    }
+
+    pub async fn redownload_nft(&self, req: RedownloadNft) -> Result<RedownloadNftResponse> {
+        let wallet = self.wallet()?;
+
+        let nft_id = parse_nft_id(req.nft_id)?;
+
+        let Some(nft) = wallet.db.nft(nft_id).await? else {
+            return Err(Error::MissingNft(nft_id));
+        };
+
+        let mut allocator = Allocator::new();
+        let metadata = nft
+            .info
+            .metadata
+            .to_clvm(&mut allocator)
+            .ok()
+            .and_then(|ptr| NftMetadata::from_clvm(&allocator, ptr).ok());
+
+        if let Some(metadata) = metadata {
+            let mut tx = wallet.db.tx().await?;
+
+            for uri in [
+                metadata.data_uris,
+                metadata.metadata_uris,
+                metadata.license_uris,
+            ]
+            .concat()
+            {
+                tx.set_nft_uri_unchecked(uri).await?;
+            }
+
+            if let Some(hash) = metadata.data_hash {
+                tx.delete_nft_data(hash).await?;
+            }
+
+            if let Some(hash) = metadata.metadata_hash {
+                tx.delete_nft_data(hash).await?;
+            }
+
+            if let Some(hash) = metadata.license_hash {
+                tx.delete_nft_data(hash).await?;
+            }
+
+            tx.commit().await?;
+        }
+
+        Ok(RedownloadNftResponse {})
     }
 
     pub async fn increase_derivation_index(

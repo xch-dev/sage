@@ -477,6 +477,15 @@ pub async fn update_nft(state: State<'_, AppState>, req: UpdateNft) -> Result<Up
 
 #[command]
 #[specta]
+pub async fn redownload_nft(
+    state: State<'_, AppState>,
+    req: RedownloadNft,
+) -> Result<RedownloadNftResponse> {
+    Ok(state.lock().await.redownload_nft(req).await?)
+}
+
+#[command]
+#[specta]
 pub async fn increase_derivation_index(
     state: State<'_, AppState>,
     req: IncreaseDerivationIndex,

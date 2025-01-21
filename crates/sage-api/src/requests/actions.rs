@@ -38,6 +38,14 @@ pub struct UpdateNft {
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Type)]
 pub struct UpdateNftResponse {}
 
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct RedownloadNft {
+    pub nft_id: String,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Type)]
+pub struct RedownloadNftResponse {}
+
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Type)]
 pub struct IncreaseDerivationIndex {
     pub hardened: bool,

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE `nft_uris` SET `checked` = 0 WHERE `uri` = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "d033d94daf4703a65deb9d902aa3014828efe2982d8631aabcaf2508a345216c"
+}

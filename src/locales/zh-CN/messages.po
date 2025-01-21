@@ -88,7 +88,7 @@ msgstr ""
 msgid "Add new peer"
 msgstr "添加新节点"
 
-#: src/components/NftCard.tsx:431
+#: src/components/NftCard.tsx:450
 msgid "Add NFT URL"
 msgstr "添加NFT网址"
 
@@ -104,13 +104,13 @@ msgstr "添加提供的资产."
 msgid "Add the assets you are requesting."
 msgstr "添加请求的资产."
 
-#: src/components/NftCard.tsx:368
+#: src/components/NftCard.tsx:369
 #: src/components/MultiSelectActions.tsx:187
 msgid "Add to Offer"
 msgstr ""
 
-#: src/components/NftCard.tsx:322
-#: src/components/NftCard.tsx:522
+#: src/components/NftCard.tsx:323
+#: src/components/NftCard.tsx:541
 msgid "Add URL"
 msgstr "添加网址"
 
@@ -118,7 +118,7 @@ msgstr "添加网址"
 msgid "Added {addedCount} {nfts} to offer"
 msgstr ""
 
-#: src/components/NftCard.tsx:357
+#: src/components/NftCard.tsx:358
 msgid "Added NFT to offer"
 msgstr ""
 
@@ -189,8 +189,8 @@ msgstr "资产"
 msgid "Assets"
 msgstr "资产"
 
-#: src/components/NftCard.tsx:304
-#: src/components/NftCard.tsx:419
+#: src/components/NftCard.tsx:305
+#: src/components/NftCard.tsx:438
 #: src/components/MultiSelectActions.tsx:211
 msgid "Assign Profile"
 msgstr "分配个人资料"
@@ -244,7 +244,7 @@ msgstr "批量转移NFT"
 #~ msgstr "批量解除分配个人资料"
 
 #: src/pages/DidList.tsx:243
-#: src/components/NftCard.tsx:336
+#: src/components/NftCard.tsx:337
 #: src/components/MultiSelectActions.tsx:144
 msgid "Burn"
 msgstr "销毁"
@@ -253,7 +253,7 @@ msgstr "销毁"
 msgid "Burn {selectedCount} selected NFTs"
 msgstr ""
 
-#: src/components/NftCard.tsx:531
+#: src/components/NftCard.tsx:550
 msgid "Burn NFT"
 msgstr "销毁NFT"
 
@@ -280,7 +280,7 @@ msgstr "禁用此功能后, 将创建一个冷钱包, 该钱包无法签署交�
 #: src/pages/CreateWallet.tsx:252
 #: src/pages/Addresses.tsx:209
 #: src/components/TransferDialog.tsx:114
-#: src/components/NftCard.tsx:519
+#: src/components/NftCard.tsx:538
 #: src/components/FeeOnlyDialog.tsx:98
 #: src/components/ConfirmationDialog.tsx:252
 #: src/components/AssignNftDialog.tsx:151
@@ -399,11 +399,11 @@ msgid "Copy"
 msgstr "复制"
 
 #: src/pages/Offers.tsx:328
-#: src/components/NftCard.tsx:400
+#: src/components/NftCard.tsx:419
 msgid "Copy ID"
 msgstr "复制ID"
 
-#: src/components/NftCard.tsx:396
+#: src/components/NftCard.tsx:415
 msgid "Copy NFT ID to clipboard"
 msgstr ""
 
@@ -451,7 +451,7 @@ msgstr "货币符号"
 msgid "Dark Mode"
 msgstr "深色模式"
 
-#: src/components/NftCard.tsx:481
+#: src/components/NftCard.tsx:500
 msgid "Data"
 msgstr "数据"
 
@@ -551,7 +551,7 @@ msgstr "确定"
 msgid "Edit"
 msgstr "编辑"
 
-#: src/components/NftCard.tsx:306
+#: src/components/NftCard.tsx:307
 #: src/components/MultiSelectActions.tsx:130
 msgid "Edit Profile"
 msgstr ""
@@ -624,7 +624,7 @@ msgstr "输入此个人资料的新显示名称."
 msgid "Enter the new display name for this wallet."
 msgstr "输入此钱包的新显示名称."
 
-#: src/components/NftCard.tsx:455
+#: src/components/NftCard.tsx:474
 msgid "Enter URL"
 msgstr "输入网址"
 
@@ -738,7 +738,7 @@ msgstr "高度:"
 #: src/pages/Token.tsx:388
 #: src/pages/DidList.tsx:274
 #: src/components/NftGroupCard.tsx:241
-#: src/components/NftCard.tsx:385
+#: src/components/NftCard.tsx:404
 msgid "Hide"
 msgstr "隐藏"
 
@@ -837,11 +837,11 @@ msgstr "发行代币"
 msgid "JSON"
 msgstr "JSON"
 
-#: src/components/NftCard.tsx:468
+#: src/components/NftCard.tsx:487
 msgid "Kind"
 msgstr "类型"
 
-#: src/components/NftCard.tsx:150
+#: src/components/NftCard.tsx:151
 msgid "Kind is required"
 msgstr "需提供类型"
 
@@ -853,7 +853,7 @@ msgstr "语言"
 msgid "Launcher Id"
 msgstr "启动器Id"
 
-#: src/components/NftCard.tsx:487
+#: src/components/NftCard.tsx:506
 msgid "License"
 msgstr "许可证"
 
@@ -897,7 +897,7 @@ msgstr "管理报价"
 msgid "Memo (optional)"
 msgstr ""
 
-#: src/components/NftCard.tsx:484
+#: src/components/NftCard.tsx:503
 msgid "Metadata"
 msgstr "元数据"
 
@@ -980,7 +980,7 @@ msgstr "网络"
 #: src/pages/MakeOffer.tsx:178
 #: src/pages/CreateProfile.tsx:86
 #: src/components/TransferDialog.tsx:96
-#: src/components/NftCard.tsx:503
+#: src/components/NftCard.tsx:522
 #: src/components/FeeOnlyDialog.tsx:79
 #: src/components/AssignNftDialog.tsx:133
 msgid "Network Fee"
@@ -1018,7 +1018,7 @@ msgstr "下一页"
 msgid "NFT"
 msgstr "NFT"
 
-#: src/components/NftCard.tsx:221
+#: src/components/NftCard.tsx:222
 msgid "NFT artwork for unnamed NFT"
 msgstr ""
 
@@ -1034,11 +1034,11 @@ msgstr ""
 msgid "NFT Gallery"
 msgstr ""
 
-#: src/components/NftCard.tsx:394
+#: src/components/NftCard.tsx:413
 msgid "NFT ID copied to clipboard"
 msgstr ""
 
-#: src/components/NftCard.tsx:273
+#: src/components/NftCard.tsx:274
 msgid "NFT options"
 msgstr "NFT选项"
 
@@ -1060,8 +1060,8 @@ msgstr "NFT"
 msgid "No active sessions"
 msgstr "没有活跃的会话"
 
-#: src/components/NftCard.tsx:261
-#: src/components/NftCard.tsx:265
+#: src/components/NftCard.tsx:262
+#: src/components/NftCard.tsx:266
 msgid "No collection"
 msgstr "无集合"
 
@@ -1102,7 +1102,7 @@ msgid "Normalize Profile"
 msgstr ""
 
 #: src/components/TransferDialog.tsx:50
-#: src/components/NftCard.tsx:153
+#: src/components/NftCard.tsx:154
 #: src/components/FeeOnlyDialog.tsx:49
 #: src/components/AssignNftDialog.tsx:58
 msgid "Not enough funds to cover the fee"
@@ -1298,6 +1298,14 @@ msgstr "正在接收"
 msgid "Recent"
 msgstr ""
 
+#: src/components/NftCard.tsx:387
+msgid "Redownload"
+msgstr ""
+
+#: src/components/NftCard.tsx:382
+msgid "Redownloading NFT data"
+msgstr ""
+
 #: src/pages/Token.tsx:383
 msgid "Refresh Info"
 msgstr "刷新信息"
@@ -1403,8 +1411,8 @@ msgstr "选择所有硬币"
 msgid "Select coin row"
 msgstr "选择硬币行"
 
-#: src/components/NftCard.tsx:476
-#: src/components/NftCard.tsx:477
+#: src/components/NftCard.tsx:495
+#: src/components/NftCard.tsx:496
 msgid "Select kind"
 msgstr "选择种类"
 
@@ -1460,7 +1468,7 @@ msgstr "设置"
 #: src/pages/Token.tsx:388
 #: src/pages/DidList.tsx:274
 #: src/components/NftGroupCard.tsx:241
-#: src/components/NftCard.tsx:385
+#: src/components/NftCard.tsx:404
 msgid "Show"
 msgstr "显示"
 
@@ -1631,11 +1639,11 @@ msgstr "目前没有可登录的钱包. 要开始, 请创建一个新钱包或�
 msgid "This is the raw JSON spend bundle for this transaction. If you sign it, the transaction can be submitted to the mempool externally."
 msgstr "这是该交易的原始 JSON 支出捆绑包. 如果签署它, 交易可以通过外部提交到内存池."
 
-#: src/components/NftCard.tsx:434
+#: src/components/NftCard.tsx:453
 msgid "This will add an additional URL to the NFT. It is not possible to remove URLs later, so be careful with this and try to use permanent URLs if possible."
 msgstr "这将为 NFT 添加一个额外的 URL. 以后无法删除 URL, 因此请小心操作, 如果可能的话, 尽量使用永久性的 URL."
 
-#: src/components/NftCard.tsx:424
+#: src/components/NftCard.tsx:443
 msgid "This will assign the NFT to the selected profile."
 msgstr "这将把 NFT 分配给选定的个人资料."
 
@@ -1667,7 +1675,7 @@ msgstr "这将从钱包中删除该报价, 但如果已被外部共享, 仍然�
 msgid "This will modify the profile's recovery info to be compatible with the Chia reference wallet."
 msgstr ""
 
-#: src/components/NftCard.tsx:536
+#: src/components/NftCard.tsx:555
 msgid "This will permanently delete the NFT by sending it to the burn address."
 msgstr "这将通过把 NFT 发送到销毁地址来永久删除它."
 
@@ -1675,7 +1683,7 @@ msgstr "这将通过把 NFT 发送到销毁地址来永久删除它."
 msgid "This will permanently delete the profile by sending it to the burn address."
 msgstr "这将通过把个人资料发送到销毁地址来永久删除它."
 
-#: src/components/NftCard.tsx:415
+#: src/components/NftCard.tsx:434
 msgid "This will send the NFT to the provided address."
 msgstr "这将把NFT发送到提供的地址."
 
@@ -1756,7 +1764,7 @@ msgstr "交易"
 
 #: src/pages/DidList.tsx:215
 #: src/components/TransferDialog.tsx:117
-#: src/components/NftCard.tsx:289
+#: src/components/NftCard.tsx:290
 #: src/components/MultiSelectActions.tsx:116
 #: src/components/FeeOnlyDialog.tsx:101
 #: src/components/AssignNftDialog.tsx:154
@@ -1767,7 +1775,7 @@ msgstr "转移"
 msgid "Transfer {selectedCount} selected NFTs"
 msgstr ""
 
-#: src/components/NftCard.tsx:410
+#: src/components/NftCard.tsx:429
 msgid "Transfer NFT"
 msgstr "转移NFT"
 
@@ -1843,15 +1851,15 @@ msgstr "未知NFT"
 #: src/components/OfferCard.tsx:198
 #: src/components/NftGroupCard.tsx:81
 #: src/components/NftGroupCard.tsx:141
-#: src/components/NftCard.tsx:230
-#: src/components/NftCard.tsx:248
-#: src/components/NftCard.tsx:252
+#: src/components/NftCard.tsx:231
+#: src/components/NftCard.tsx:249
+#: src/components/NftCard.tsx:253
 #: src/components/ConfirmationDialog.tsx:508
 #: src/components/ConfirmationDialog.tsx:522
 msgid "Unnamed"
 msgstr "未命名"
 
-#: src/components/NftCard.tsx:214
+#: src/components/NftCard.tsx:215
 msgid "Unnamed NFT"
 msgstr ""
 
@@ -1880,11 +1888,11 @@ msgstr "提交到Dexie"
 msgid "Upload to MintGarden"
 msgstr "提交到MintGarden"
 
-#: src/components/NftCard.tsx:452
+#: src/components/NftCard.tsx:471
 msgid "URL"
 msgstr "网址"
 
-#: src/components/NftCard.tsx:149
+#: src/components/NftCard.tsx:150
 msgid "URL is required"
 msgstr "需提供网址"
 

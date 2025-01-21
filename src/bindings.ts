@@ -206,6 +206,9 @@ async updateDid(req: UpdateDid) : Promise<UpdateDidResponse> {
 async updateNft(req: UpdateNft) : Promise<UpdateNftResponse> {
     return await TAURI_INVOKE("update_nft", { req });
 },
+async redownloadNft(req: RedownloadNft) : Promise<RedownloadNftResponse> {
+    return await TAURI_INVOKE("redownload_nft", { req });
+},
 async increaseDerivationIndex(req: IncreaseDerivationIndex) : Promise<IncreaseDerivationIndexResponse> {
     return await TAURI_INVOKE("increase_derivation_index", { req });
 },
@@ -362,6 +365,8 @@ export type OfferSummary = { fee: Amount; maker: OfferAssets; taker: OfferAssets
 export type OfferXch = { amount: Amount; royalty: Amount }
 export type PeerRecord = { ip_addr: string; port: number; peak_height: number }
 export type PendingTransactionRecord = { transaction_id: string; fee: Amount; submitted_at: string | null }
+export type RedownloadNft = { nft_id: string }
+export type RedownloadNftResponse = Record<string, never>
 export type RemoveCat = { asset_id: string }
 export type RemoveCatResponse = Record<string, never>
 export type RemovePeer = { ip: string; ban: boolean }

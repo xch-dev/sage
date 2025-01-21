@@ -88,7 +88,7 @@ msgstr ""
 msgid "Add new peer"
 msgstr "Neuen Peer hinzufügen"
 
-#: src/components/NftCard.tsx:431
+#: src/components/NftCard.tsx:450
 msgid "Add NFT URL"
 msgstr "NFT-URL hinzufügen"
 
@@ -104,13 +104,13 @@ msgstr "Fügen Sie die von Ihnen angebotenen Assets hinzu."
 msgid "Add the assets you are requesting."
 msgstr "Fügen Sie die angeforderten Assets hinzu."
 
-#: src/components/NftCard.tsx:368
+#: src/components/NftCard.tsx:369
 #: src/components/MultiSelectActions.tsx:187
 msgid "Add to Offer"
 msgstr ""
 
-#: src/components/NftCard.tsx:322
-#: src/components/NftCard.tsx:522
+#: src/components/NftCard.tsx:323
+#: src/components/NftCard.tsx:541
 msgid "Add URL"
 msgstr "URL hinzufügen"
 
@@ -118,7 +118,7 @@ msgstr "URL hinzufügen"
 msgid "Added {addedCount} {nfts} to offer"
 msgstr ""
 
-#: src/components/NftCard.tsx:357
+#: src/components/NftCard.tsx:358
 msgid "Added NFT to offer"
 msgstr ""
 
@@ -189,8 +189,8 @@ msgstr "Asset"
 msgid "Assets"
 msgstr "Assets"
 
-#: src/components/NftCard.tsx:304
-#: src/components/NftCard.tsx:419
+#: src/components/NftCard.tsx:305
+#: src/components/NftCard.tsx:438
 #: src/components/MultiSelectActions.tsx:211
 msgid "Assign Profile"
 msgstr "Profil zuweisen"
@@ -244,7 +244,7 @@ msgstr "Massentransfer NFTs"
 #~ msgstr "Massenaufhebung der Profilzuordnung"
 
 #: src/pages/DidList.tsx:243
-#: src/components/NftCard.tsx:336
+#: src/components/NftCard.tsx:337
 #: src/components/MultiSelectActions.tsx:144
 msgid "Burn"
 msgstr "Verbrennung"
@@ -253,7 +253,7 @@ msgstr "Verbrennung"
 msgid "Burn {selectedCount} selected NFTs"
 msgstr ""
 
-#: src/components/NftCard.tsx:531
+#: src/components/NftCard.tsx:550
 msgid "Burn NFT"
 msgstr "NFT verbrennen"
 
@@ -280,7 +280,7 @@ msgstr "Wenn Sie diese Funktion deaktivieren, erstellen Sie ein Cold Wallet, in 
 #: src/pages/CreateWallet.tsx:252
 #: src/pages/Addresses.tsx:209
 #: src/components/TransferDialog.tsx:114
-#: src/components/NftCard.tsx:519
+#: src/components/NftCard.tsx:538
 #: src/components/FeeOnlyDialog.tsx:98
 #: src/components/ConfirmationDialog.tsx:252
 #: src/components/AssignNftDialog.tsx:151
@@ -400,11 +400,11 @@ msgid "Copy"
 msgstr "Kopieren"
 
 #: src/pages/Offers.tsx:328
-#: src/components/NftCard.tsx:400
+#: src/components/NftCard.tsx:419
 msgid "Copy ID"
 msgstr "ID Kopieren"
 
-#: src/components/NftCard.tsx:396
+#: src/components/NftCard.tsx:415
 msgid "Copy NFT ID to clipboard"
 msgstr ""
 
@@ -452,7 +452,7 @@ msgstr "Währungssymbol"
 msgid "Dark Mode"
 msgstr "Dunkler Modus"
 
-#: src/components/NftCard.tsx:481
+#: src/components/NftCard.tsx:500
 msgid "Data"
 msgstr "Daten"
 
@@ -552,7 +552,7 @@ msgstr "Fertig"
 msgid "Edit"
 msgstr "Bearbeiten"
 
-#: src/components/NftCard.tsx:306
+#: src/components/NftCard.tsx:307
 #: src/components/MultiSelectActions.tsx:130
 msgid "Edit Profile"
 msgstr ""
@@ -625,7 +625,7 @@ msgstr "Geben Sie den neuen Anzeigenamen für dieses Profil ein."
 msgid "Enter the new display name for this wallet."
 msgstr "Geben Sie den neuen Anzeigenamen für den Wallet ein"
 
-#: src/components/NftCard.tsx:455
+#: src/components/NftCard.tsx:474
 msgid "Enter URL"
 msgstr "URL Eingeben"
 
@@ -740,7 +740,7 @@ msgstr "Höhe:"
 #: src/pages/Token.tsx:388
 #: src/pages/DidList.tsx:274
 #: src/components/NftGroupCard.tsx:241
-#: src/components/NftCard.tsx:385
+#: src/components/NftCard.tsx:404
 msgid "Hide"
 msgstr "Verstecken"
 
@@ -839,11 +839,11 @@ msgstr "Token ausgeben"
 msgid "JSON"
 msgstr "JSON"
 
-#: src/components/NftCard.tsx:468
+#: src/components/NftCard.tsx:487
 msgid "Kind"
 msgstr "Sorte"
 
-#: src/components/NftCard.tsx:150
+#: src/components/NftCard.tsx:151
 msgid "Kind is required"
 msgstr "Sorte ist erforderlich"
 
@@ -855,7 +855,7 @@ msgstr "Sprache"
 msgid "Launcher Id"
 msgstr "Launcher Id"
 
-#: src/components/NftCard.tsx:487
+#: src/components/NftCard.tsx:506
 msgid "License"
 msgstr "Lizenz"
 
@@ -899,7 +899,7 @@ msgstr "Offers verwalten"
 msgid "Memo (optional)"
 msgstr ""
 
-#: src/components/NftCard.tsx:484
+#: src/components/NftCard.tsx:503
 msgid "Metadata"
 msgstr "Metadaten"
 
@@ -982,7 +982,7 @@ msgstr "Netzwerk"
 #: src/pages/MakeOffer.tsx:178
 #: src/pages/CreateProfile.tsx:86
 #: src/components/TransferDialog.tsx:96
-#: src/components/NftCard.tsx:503
+#: src/components/NftCard.tsx:522
 #: src/components/FeeOnlyDialog.tsx:79
 #: src/components/AssignNftDialog.tsx:133
 msgid "Network Fee"
@@ -1020,7 +1020,7 @@ msgstr "Nächste Seite"
 msgid "NFT"
 msgstr "NFT"
 
-#: src/components/NftCard.tsx:221
+#: src/components/NftCard.tsx:222
 msgid "NFT artwork for unnamed NFT"
 msgstr ""
 
@@ -1036,11 +1036,11 @@ msgstr ""
 msgid "NFT Gallery"
 msgstr ""
 
-#: src/components/NftCard.tsx:394
+#: src/components/NftCard.tsx:413
 msgid "NFT ID copied to clipboard"
 msgstr ""
 
-#: src/components/NftCard.tsx:273
+#: src/components/NftCard.tsx:274
 msgid "NFT options"
 msgstr "NFT optionen"
 
@@ -1062,8 +1062,8 @@ msgstr "NFTs"
 msgid "No active sessions"
 msgstr "Keine aktiven Sessions"
 
-#: src/components/NftCard.tsx:261
-#: src/components/NftCard.tsx:265
+#: src/components/NftCard.tsx:262
+#: src/components/NftCard.tsx:266
 msgid "No collection"
 msgstr "Keine Kollektion"
 
@@ -1104,7 +1104,7 @@ msgid "Normalize Profile"
 msgstr ""
 
 #: src/components/TransferDialog.tsx:50
-#: src/components/NftCard.tsx:153
+#: src/components/NftCard.tsx:154
 #: src/components/FeeOnlyDialog.tsx:49
 #: src/components/AssignNftDialog.tsx:58
 msgid "Not enough funds to cover the fee"
@@ -1301,6 +1301,14 @@ msgstr "Erhaltet"
 msgid "Recent"
 msgstr ""
 
+#: src/components/NftCard.tsx:387
+msgid "Redownload"
+msgstr ""
+
+#: src/components/NftCard.tsx:382
+msgid "Redownloading NFT data"
+msgstr ""
+
 #: src/pages/Token.tsx:383
 msgid "Refresh Info"
 msgstr "Info aktualisieren"
@@ -1406,8 +1414,8 @@ msgstr "Alle Coins auswählen"
 msgid "Select coin row"
 msgstr "Coin-Reihe auswählen"
 
-#: src/components/NftCard.tsx:476
-#: src/components/NftCard.tsx:477
+#: src/components/NftCard.tsx:495
+#: src/components/NftCard.tsx:496
 msgid "Select kind"
 msgstr "Sorte auswählen"
 
@@ -1463,7 +1471,7 @@ msgstr "Einstellungen"
 #: src/pages/Token.tsx:388
 #: src/pages/DidList.tsx:274
 #: src/components/NftGroupCard.tsx:241
-#: src/components/NftCard.tsx:385
+#: src/components/NftCard.tsx:404
 msgid "Show"
 msgstr "Anzeigen"
 
@@ -1636,11 +1644,11 @@ msgstr "Es gibt noch keine Wallets, in die Sie sich einloggen können. Um loszul
 msgid "This is the raw JSON spend bundle for this transaction. If you sign it, the transaction can be submitted to the mempool externally."
 msgstr "Dies ist das Roh-JSON-Spendenbündel für diese Transaktion. Wenn Sie es signieren, kann die Transaktion extern an den Mempool übermittelt werden."
 
-#: src/components/NftCard.tsx:434
+#: src/components/NftCard.tsx:453
 msgid "This will add an additional URL to the NFT. It is not possible to remove URLs later, so be careful with this and try to use permanent URLs if possible."
 msgstr "Dadurch wird eine zusätzliche URL zum NFT hinzugefügt. Es ist nicht möglich, URLs später zu entfernen, seien Sie also vorsichtig und versuchen Sie, permanente URLs zu verwenden, wenn möglich."
 
-#: src/components/NftCard.tsx:424
+#: src/components/NftCard.tsx:443
 msgid "This will assign the NFT to the selected profile."
 msgstr "Dadurch wird das NFT dem ausgewählten Profil zugewiesen."
 
@@ -1672,7 +1680,7 @@ msgstr "Dadurch wird das Offer aus dem Wallet gelöscht, aber wenn es extern get
 msgid "This will modify the profile's recovery info to be compatible with the Chia reference wallet."
 msgstr ""
 
-#: src/components/NftCard.tsx:536
+#: src/components/NftCard.tsx:555
 msgid "This will permanently delete the NFT by sending it to the burn address."
 msgstr "Dadurch wird das NFT dauerhaft gelöscht, indem es an die Burn-Adresse gesendet wird."
 
@@ -1680,7 +1688,7 @@ msgstr "Dadurch wird das NFT dauerhaft gelöscht, indem es an die Burn-Adresse g
 msgid "This will permanently delete the profile by sending it to the burn address."
 msgstr "Dadurch wird das Profil dauerhaft gelöscht, indem es an die Burn-Adresse gesendet wird."
 
-#: src/components/NftCard.tsx:415
+#: src/components/NftCard.tsx:434
 msgid "This will send the NFT to the provided address."
 msgstr "Dadurch wird das NFT an die angegebene Adresse gesendet."
 
@@ -1761,7 +1769,7 @@ msgstr "Transaktionen"
 
 #: src/pages/DidList.tsx:215
 #: src/components/TransferDialog.tsx:117
-#: src/components/NftCard.tsx:289
+#: src/components/NftCard.tsx:290
 #: src/components/MultiSelectActions.tsx:116
 #: src/components/FeeOnlyDialog.tsx:101
 #: src/components/AssignNftDialog.tsx:154
@@ -1772,7 +1780,7 @@ msgstr "Transferieren"
 msgid "Transfer {selectedCount} selected NFTs"
 msgstr ""
 
-#: src/components/NftCard.tsx:410
+#: src/components/NftCard.tsx:429
 msgid "Transfer NFT"
 msgstr "NFT transferieren"
 
@@ -1849,15 +1857,15 @@ msgstr "Unbekanntes NFT"
 #: src/components/OfferCard.tsx:198
 #: src/components/NftGroupCard.tsx:81
 #: src/components/NftGroupCard.tsx:141
-#: src/components/NftCard.tsx:230
-#: src/components/NftCard.tsx:248
-#: src/components/NftCard.tsx:252
+#: src/components/NftCard.tsx:231
+#: src/components/NftCard.tsx:249
+#: src/components/NftCard.tsx:253
 #: src/components/ConfirmationDialog.tsx:508
 #: src/components/ConfirmationDialog.tsx:522
 msgid "Unnamed"
 msgstr "Unbenannt"
 
-#: src/components/NftCard.tsx:214
+#: src/components/NftCard.tsx:215
 msgid "Unnamed NFT"
 msgstr ""
 
@@ -1886,11 +1894,11 @@ msgstr "Zu Dexie hochladen"
 msgid "Upload to MintGarden"
 msgstr "Zu MintGarden hochladen"
 
-#: src/components/NftCard.tsx:452
+#: src/components/NftCard.tsx:471
 msgid "URL"
 msgstr "URL"
 
-#: src/components/NftCard.tsx:149
+#: src/components/NftCard.tsx:150
 msgid "URL is required"
 msgstr "URL ist erforderlich"
 

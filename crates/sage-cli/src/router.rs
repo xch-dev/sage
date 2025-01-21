@@ -131,6 +131,7 @@ routes!(
     update_cat await: UpdateCat = "/update_cat",
     update_did await: UpdateDid = "/update_did",
     update_nft await: UpdateNft = "/update_nft",
+    redownload_nft await: RedownloadNft = "/redownload_nft",
     increase_derivation_index await: IncreaseDerivationIndex = "/increase_derivation_index",
 );
 
