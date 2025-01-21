@@ -66,6 +66,7 @@ pub fn run() {
             commands::validate_address,
             commands::make_offer,
             commands::take_offer,
+            commands::combine_offers,
             commands::view_offer,
             commands::import_offer,
             commands::get_offers,

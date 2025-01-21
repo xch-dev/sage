@@ -51,6 +51,16 @@ pub struct TakeOfferResponse {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct CombineOffers {
+    pub offers: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct CombineOffersResponse {
+    pub offer: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub struct ViewOffer {
     pub offer: String,
 }
