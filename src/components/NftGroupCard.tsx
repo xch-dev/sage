@@ -1,14 +1,14 @@
-import { NftCollectionRecord, DidRecord } from '@/bindings';
+import { DidRecord, NftCollectionRecord } from '@/bindings';
 import { NftGroupMode } from '@/hooks/useNftParams';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import {
   EyeIcon,
   EyeOff,
-  MoreVerticalIcon,
-  UserIcon,
-  Paintbrush,
   LibraryBig,
+  MoreVerticalIcon,
+  Paintbrush,
+  UserIcon,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from './ui/button';
@@ -19,7 +19,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
-import collectionImage from '@/images/collection.png';
 import {
   Tooltip,
   TooltipContent,
