@@ -28,6 +28,7 @@ import {
   walletConnectCommands,
 } from '@/walletconnect/commands';
 import { handleCommand } from '@/walletconnect/handler';
+import { platform } from '@tauri-apps/plugin-os';
 import { getCurrentWindow, UserAttentionType } from '@tauri-apps/api/window';
 import SignClient from '@walletconnect/sign-client';
 import { SessionTypes, SignClientTypes } from '@walletconnect/types';
@@ -243,9 +244,12 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
 
         if (walletConnectCommands[method].confirm) {
           setPendingRequests((p: SessionRequest[]) => [...p, request]);
-          await getCurrentWindow().requestUserAttention(
-            UserAttentionType.Critical,
-          );
+          const os = platform();
+          if (os === 'macos' || os === 'windows') {
+            await getCurrentWindow().requestUserAttention(
+              UserAttentionType.Critical,
+            );
+          }
         } else {
           await handleAndRespond(request);
         }
