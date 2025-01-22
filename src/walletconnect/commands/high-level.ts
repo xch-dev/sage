@@ -74,3 +74,9 @@ export async function handleGetAddress(
     address: useWalletState.getState().sync.receive_address,
   };
 }
+
+export async function handleSignMessageByAddress(
+  params: Params<'chia_signMessageByAddress'>,
+) {
+  return await commands.signMessageByAddress(params);
+}

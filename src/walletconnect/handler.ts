@@ -14,6 +14,7 @@ import {
   handleGetAddress,
   handleGetNfts,
   handleSend,
+  handleSignMessageByAddress,
 } from './commands/high-level';
 import {
   handleCancelOffer,
@@ -56,6 +57,8 @@ export const handleCommand = async (
       return await handleSend(parseCommand(command, params));
     case 'chia_getAddress':
       return await handleGetAddress(parseCommand(command, params));
+    case 'chia_signMessageByAddress':
+      return await handleSignMessageByAddress(parseCommand(command, params));
     default:
       throw new Error(`Unknown command: ${command}`);
   }
