@@ -5,6 +5,7 @@ import { Trans } from '@lingui/react/macro';
 import {
   EyeIcon,
   EyeOff,
+  Icon,
   LibraryBig,
   MoreVerticalIcon,
   Paintbrush,
@@ -152,10 +153,19 @@ export function NftGroupCard({
             className='bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center aspect-square'
             aria-hidden='true'
           >
+            {item?.icon ? (
+              <img
+                src={item.icon}
+                alt=''
+                className='object-cover h-full w-full'
+              />
+            ) : (
             <LibraryBig
               className='h-12 w-12 text-neutral-400 dark:text-neutral-600'
               aria-hidden='true'
             />
+            )}
+
           </div>
         ) : (
           <div
