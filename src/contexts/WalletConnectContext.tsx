@@ -108,7 +108,11 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
         });
       } catch (error) {
         const errorMessage =
-          error instanceof Error ? error.message : 'Request failed';
+          error instanceof Error
+            ? error.message
+            : typeof error === 'object' && error !== null && 'reason' in error
+              ? (error.reason as string)
+              : 'Request failed';
         addError({ kind: 'walletconnect', reason: errorMessage });
         console.error('WalletConnect request failed:', error);
 
