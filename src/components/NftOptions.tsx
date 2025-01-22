@@ -182,205 +182,183 @@ export function NftOptions({
             </Button>
           )}
 
-          {(group === NftGroupMode.None || isFilteredView) && (
-            <>
-              <Button
-                variant='outline'
-                size='icon'
-                onClick={() => setMultiSelect(!multiSelect)}
-                aria-label={t`Toggle multi-select`}
-                title={t`Toggle multi-select`}
-              >
-                <CopyPlus
-                  className={`h-4 w-4 ${multiSelect ? 'text-green-600 dark:text-green-400' : ''}`}
-                  aria-hidden='true'
-                />
-              </Button>
+          <Button
+            variant='outline'
+            size='icon'
+            onClick={() => setMultiSelect(!multiSelect)}
+            aria-label={t`Toggle multi-select`}
+            title={t`Toggle multi-select`}
+            disabled={!(group === NftGroupMode.None || isFilteredView)}
+          >
+            <CopyPlus
+              className={`h-4 w-4 ${multiSelect ? 'text-green-600 dark:text-green-400' : ''}`}
+              aria-hidden='true'
+            />
+          </Button>
 
+          <Button
+            variant='outline'
+            size='icon'
+            onClick={() => setParams({ showHidden: !showHidden })}
+            aria-label={showHidden ? t`Hide hidden items` : t`Show hidden items`}
+            title={showHidden ? t`Hide hidden items` : t`Show hidden items`}
+            disabled={!(group === NftGroupMode.None || isFilteredView || group === NftGroupMode.Collection)}
+          >
+            {showHidden ? (
+              <EyeIcon className='h-4 w-4' aria-hidden='true' />
+            ) : (
+              <EyeOff className='h-4 w-4' aria-hidden='true' />
+            )}
+          </Button>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
               <Button
                 variant='outline'
                 size='icon'
-                onClick={() => setParams({ showHidden: !showHidden })}
-                aria-label={
-                  showHidden ? t`Hide hidden items` : t`Show hidden items`
-                }
-                title={showHidden ? t`Hide hidden items` : t`Show hidden items`}
+                aria-label={sortLabel}
+                title={sortLabel}
+                disabled={!(group === NftGroupMode.None || isFilteredView)}
               >
-                {showHidden ? (
-                  <EyeIcon className='h-4 w-4' aria-hidden='true' />
+                {sort === NftSortMode.Name ? (
+                  <ArrowDownAz className='h-4 w-4' aria-hidden='true' />
                 ) : (
-                  <EyeOff className='h-4 w-4' aria-hidden='true' />
+                  <Clock2 className='h-4 w-4' aria-hidden='true' />
                 )}
               </Button>
-
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant='outline'
-                    size='icon'
-                    aria-label={sortLabel}
-                    title={sortLabel}
-                  >
-                    {sort === NftSortMode.Name ? (
-                      <ArrowDownAz className='h-4 w-4' aria-hidden='true' />
-                    ) : (
-                      <Clock2 className='h-4 w-4' aria-hidden='true' />
-                    )}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align='end'>
-                  <DropdownMenuGroup>
-                    <DropdownMenuItem
-                      className='cursor-pointer'
-                      onClick={() =>
-                        setParams({ sort: NftSortMode.Name, page: 1 })
-                      }
-                      aria-label={t`Sort by name`}
-                    >
-                      <ArrowDownAz
-                        className='mr-2 h-4 w-4'
-                        aria-hidden='true'
-                      />
-                      <span>
-                        <Trans>Name</Trans>
-                      </span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className='cursor-pointer'
-                      onClick={() =>
-                        setParams({ sort: NftSortMode.Recent, page: 1 })
-                      }
-                      aria-label={t`Sort by recent`}
-                    >
-                      <Clock2 className='mr-2 h-4 w-4' aria-hidden='true' />
-                      <span>
-                        <Trans>Recent</Trans>
-                      </span>
-                    </DropdownMenuItem>
-                  </DropdownMenuGroup>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </>
-          )}
-
-          {!isCollection && !isFilteredView && (
-            <>
-              {group === NftGroupMode.Collection && (
-                <Button
-                  variant='outline'
-                  size='icon'
-                  onClick={() => setParams({ showHidden: !showHidden })}
-                  aria-label={showHidden ? t`Hide hidden items` : t`Show hidden items`}
-                  title={showHidden ? t`Hide hidden items` : t`Show hidden items`}
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align='end'>
+              <DropdownMenuGroup>
+                <DropdownMenuItem
+                  className='cursor-pointer'
+                  onClick={() =>
+                    setParams({ sort: NftSortMode.Name, page: 1 })
+                  }
+                  aria-label={t`Sort by name`}
                 >
-                  {showHidden ? (
-                    <EyeIcon className='h-4 w-4' aria-hidden='true' />
-                  ) : (
-                    <EyeOff className='h-4 w-4' aria-hidden='true' />
-                  )}
-                </Button>
-              )}
+                  <ArrowDownAz
+                    className='mr-2 h-4 w-4'
+                    aria-hidden='true'
+                  />
+                  <span>
+                    <Trans>Name</Trans>
+                  </span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className='cursor-pointer'
+                  onClick={() =>
+                    setParams({ sort: NftSortMode.Recent, page: 1 })
+                  }
+                  aria-label={t`Sort by recent`}
+                >
+                  <Clock2 className='mr-2 h-4 w-4' aria-hidden='true' />
+                  <span>
+                    <Trans>Recent</Trans>
+                  </span>
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant='outline'
-                    size='icon'
-                    aria-label={groupLabel}
-                    title={groupLabel}
-                  >
-                    {group === NftGroupMode.Collection ? (
-                      <LibraryBigIcon className='h-4 w-4' aria-hidden='true' />
-                    ) : group === NftGroupMode.OwnerDid ? (
-                      <UserIcon className='h-4 w-4' aria-hidden='true' />
-                    ) : group === NftGroupMode.MinterDid ? (
-                      <Paintbrush className='h-4 w-4' aria-hidden='true' />
-                    ) : (
-                      <LayoutGrid className='h-4 w-4' aria-hidden='true' />
-                    )}
-                  </Button>
-                </DropdownMenuTrigger>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant='outline'
+                size='icon'
+                aria-label={groupLabel}
+                title={groupLabel}
+                disabled={isCollection || isFilteredView}
+              >
+                {group === NftGroupMode.Collection ? (
+                  <LibraryBigIcon className='h-4 w-4' aria-hidden='true' />
+                ) : group === NftGroupMode.OwnerDid ? (
+                  <UserIcon className='h-4 w-4' aria-hidden='true' />
+                ) : group === NftGroupMode.MinterDid ? (
+                  <Paintbrush className='h-4 w-4' aria-hidden='true' />
+                ) : (
+                  <LayoutGrid className='h-4 w-4' aria-hidden='true' />
+                )}
+              </Button>
+            </DropdownMenuTrigger>
 
-                <DropdownMenuContent align='end'>
-                  <DropdownMenuGroup>
-                    <DropdownMenuItem
-                      className='cursor-pointer'
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setParams({
-                          page: 1,
-                          group: NftGroupMode.None,
-                        });
-                      }}
-                      aria-label={t`No Grouping`}
-                    >
-                      <LayoutGrid className='mr-2 h-4 w-4' aria-hidden='true' />
-                      <span>
-                        <Trans>No Grouping</Trans>
-                      </span>
-                    </DropdownMenuItem>
+            <DropdownMenuContent align='end'>
+              <DropdownMenuGroup>
+                <DropdownMenuItem
+                  className='cursor-pointer'
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setParams({
+                      page: 1,
+                      group: NftGroupMode.None,
+                    });
+                  }}
+                  aria-label={t`No Grouping`}
+                >
+                  <LayoutGrid className='mr-2 h-4 w-4' aria-hidden='true' />
+                  <span>
+                    <Trans>No Grouping</Trans>
+                  </span>
+                </DropdownMenuItem>
 
-                    <DropdownMenuItem
-                      className='cursor-pointer'
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setParams({
-                          page: 1,
-                          group: NftGroupMode.Collection,
-                          query: '',
-                        });
-                      }}
-                      aria-label={t`Group by Collections`}
-                    >
-                      <LibraryBigIcon
-                        className='mr-2 h-4 w-4'
-                        aria-hidden='true'
-                      />
-                      <span>
-                        <Trans>Group by Collections</Trans>
-                      </span>
-                    </DropdownMenuItem>
+                <DropdownMenuItem
+                  className='cursor-pointer'
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setParams({
+                      page: 1,
+                      group: NftGroupMode.Collection,
+                      query: '',
+                    });
+                  }}
+                  aria-label={t`Group by Collections`}
+                >
+                  <LibraryBigIcon
+                    className='mr-2 h-4 w-4'
+                    aria-hidden='true'
+                  />
+                  <span>
+                    <Trans>Group by Collections</Trans>
+                  </span>
+                </DropdownMenuItem>
 
-                    <DropdownMenuItem
-                      className='cursor-pointer'
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setParams({
-                          page: 1,
-                          group: NftGroupMode.OwnerDid,
-                          query: '',
-                        });
-                      }}
-                      aria-label={t`Group by Owners`}
-                    >
-                      <UserIcon className='mr-2 h-4 w-4' aria-hidden='true' />
-                      <span>
-                        <Trans>Group by Owners</Trans>
-                      </span>
-                    </DropdownMenuItem>
+                <DropdownMenuItem
+                  className='cursor-pointer'
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setParams({
+                      page: 1,
+                      group: NftGroupMode.OwnerDid,
+                      query: '',
+                    });
+                  }}
+                  aria-label={t`Group by Owners`}
+                >
+                  <UserIcon className='mr-2 h-4 w-4' aria-hidden='true' />
+                  <span>
+                    <Trans>Group by Owners</Trans>
+                  </span>
+                </DropdownMenuItem>
 
-                    <DropdownMenuItem
-                      className='cursor-pointer'
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setParams({
-                          page: 1,
-                          group: NftGroupMode.MinterDid,
-                          query: '',
-                        });
-                      }}
-                      aria-label={t`Group by Minters`}
-                    >
-                      <Paintbrush className='mr-2 h-4 w-4' aria-hidden='true' />
-                      <span>
-                        <Trans>Group by Minters</Trans>
-                      </span>
-                    </DropdownMenuItem>
-                  </DropdownMenuGroup>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </>
-          )}
+                <DropdownMenuItem
+                  className='cursor-pointer'
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setParams({
+                      page: 1,
+                      group: NftGroupMode.MinterDid,
+                      query: '',
+                    });
+                  }}
+                  aria-label={t`Group by Minters`}
+                >
+                  <Paintbrush className='mr-2 h-4 w-4' aria-hidden='true' />
+                  <span>
+                    <Trans>Group by Minters</Trans>
+                  </span>
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </div>
