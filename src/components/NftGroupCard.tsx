@@ -3,14 +3,14 @@ import { NftGroupMode } from '@/hooks/useNftParams';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import {
-  EyeIcon,
-  EyeOff,
-  Icon,
-  icons,
   LibraryBig,
-  MoreVerticalIcon,
   Paintbrush,
   UserIcon,
+  Copy,
+  MoreVertical,
+  ExternalLink,
+  EyeIcon,
+  EyeOff,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from './ui/button';
@@ -27,6 +27,9 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from './ui/tooltip';
+import { writeText } from '@tauri-apps/plugin-clipboard-manager';
+import { toast } from 'react-toastify';
+import { open } from '@tauri-apps/plugin-shell';
 
 interface NftGroupCardProps {
   type: 'collection' | 'did';
@@ -37,6 +40,7 @@ interface NftGroupCardProps {
   onToggleVisibility?: () => void;
   isLoading?: boolean;
   error?: Error;
+  showHidden?: boolean;
 }
 
 export function NftGroupCard({
@@ -45,13 +49,13 @@ export function NftGroupCard({
   item,
   updateNfts,
   page,
-  onToggleVisibility,
+  onToggleVisibility = () => {},
   isLoading,
   error,
+  showHidden,
 }: NftGroupCardProps) {
   const navigate = useNavigate();
   const isCollection = type === 'collection';
-  const allowToggleVisibility = false; //isCollection && onToggleVisibility; // not implemented yet
   // Type guards to help TypeScript narrow the types
   const isDidRecord = (
     item: NftCollectionRecord | DidRecord,
@@ -79,7 +83,7 @@ export function NftGroupCard({
 
   const getDefaultName = () => {
     if (isCollection) {
-      return t`Unnamed`;
+      return t`Unnamed Collection`;
     }
     return groupMode === NftGroupMode.OwnerDid ? (
       <Trans>Untitled Profile</Trans>
@@ -136,7 +140,9 @@ export function NftGroupCard({
       }}
       role='button'
       tabIndex={0}
-      className='cursor-pointer group border border-neutral-200 dark:border-neutral-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary'
+      className={`cursor-pointer group border border-neutral-200 dark:border-neutral-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary${
+        !item.visible ? ' opacity-50 grayscale' : ''
+      }`}
       aria-label={
         isCollection
           ? `Collection ${item.name || t`Unnamed`}`
@@ -154,20 +160,22 @@ export function NftGroupCard({
             className='bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center aspect-square'
             aria-hidden='true'
           >
-            {item?.icon ? (
+            {isCollectionRecord(item) && item.icon ? (
               <img
                 src={item.icon}
-                alt={t`Icon for ${item.name}`}
+                alt={(() => {
+                  const name = item.name || '';
+                  return t`Icon for ${name}`;
+                })()}
                 className='object-cover h-full w-full'
                 aria-hidden='true'
               />
             ) : (
-            <LibraryBig
-              className='h-12 w-12 text-neutral-400 dark:text-neutral-600'
-              aria-hidden='true'
-            />
+              <LibraryBig
+                className='h-12 w-12 text-neutral-400 dark:text-neutral-600'
+                aria-hidden='true'
+              />
             )}
-
           </div>
         ) : (
           <div
@@ -220,41 +228,84 @@ export function NftGroupCard({
           </TooltipProvider>
         </span>
 
-        {allowToggleVisibility && onToggleVisibility && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant='ghost'
-                size='icon'
-                onClick={(e) => e.stopPropagation()}
-                aria-label={
-                  item.visible ? t`Hide collection` : t`Show collection`
-                }
-                aria-expanded='false'
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant='ghost'
+              size='icon'
+              aria-label={t`Options`}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <MoreVertical className='h-5 w-5' />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align='end'>
+            <DropdownMenuGroup>
+              {isCollection && (
+                <>
+                  <DropdownMenuItem
+                    className='cursor-pointer'
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      open(`https://mintgarden.io/collections/${getId()}`);
+                    }}
+                    aria-label={t`View on Mintgarden`}
+                  >
+                    <ExternalLink className='mr-2 h-4 w-4' />
+                    <span>
+                      <Trans>View on Mintgarden</Trans>
+                    </span>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem
+                    className='cursor-pointer'
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onToggleVisibility();
+                    }}
+                  >
+                    {item.visible ? (
+                      <>
+                        <EyeOff className='mr-2 h-4 w-4' />
+                        <span>
+                          <Trans>Hide</Trans>
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <EyeIcon className='mr-2 h-4 w-4' />
+                        <span>
+                          <Trans>Show</Trans>
+                        </span>
+                      </>
+                    )}
+                  </DropdownMenuItem>
+                </>
+              )}
+
+              <DropdownMenuItem
+                className='cursor-pointer'
+                onClick={(e) => {
+                  e.stopPropagation();
+                  writeText(getId());
+                  toast.success(
+                    isCollection
+                      ? t`Collection ID copied to clipboard`
+                      : groupMode === NftGroupMode.OwnerDid
+                        ? t`Profile ID copied to clipboard`
+                        : t`Minter ID copied to clipboard`,
+                  );
+                }}
+                aria-label={t`Copy ID to clipboard`}
               >
-                <MoreVerticalIcon className='h-5 w-5' aria-hidden='true' />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align='end'>
-              <DropdownMenuGroup>
-                <DropdownMenuItem
-                  className='cursor-pointer'
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onToggleVisibility();
-                  }}
-                >
-                  {item.visible ? (
-                    <EyeOff className='mr-2 h-4 w-4' aria-hidden='true' />
-                  ) : (
-                    <EyeIcon className='mr-2 h-4 w-4' aria-hidden='true' />
-                  )}
-                  <span>{item.visible ? t`Hide` : t`Show`}</span>
-                </DropdownMenuItem>
-              </DropdownMenuGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
+                <Copy className='mr-2 h-4 w-4' />
+                <span>
+                  <Trans>Copy ID</Trans>
+                </span>
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </div>
   );
