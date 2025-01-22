@@ -6,6 +6,7 @@ import {
   EyeIcon,
   EyeOff,
   Icon,
+  icons,
   LibraryBig,
   MoreVerticalIcon,
   Paintbrush,
@@ -156,8 +157,9 @@ export function NftGroupCard({
             {item?.icon ? (
               <img
                 src={item.icon}
-                alt=''
+                alt={t`Icon for ${item.name}`}
                 className='object-cover h-full w-full'
+                aria-hidden='true'
               />
             ) : (
             <LibraryBig
