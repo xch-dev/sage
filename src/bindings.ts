@@ -233,6 +233,9 @@ async getAssetCoins(req: GetAssetCoins) : Promise<SpendableCoin[]> {
 async signMessageWithPublicKey(req: SignMessageWithPublicKey) : Promise<SignMessageWithPublicKeyResponse> {
     return await TAURI_INVOKE("sign_message_with_public_key", { req });
 },
+async signMessageByAddress(req: SignMessageByAddress) : Promise<SignMessageByAddressResponse> {
+    return await TAURI_INVOKE("sign_message_by_address", { req });
+},
 async sendTransactionImmediately(req: SendTransactionImmediately) : Promise<SendTransactionImmediatelyResponse> {
     return await TAURI_INVOKE("send_transaction_immediately", { req });
 }
@@ -397,6 +400,8 @@ export type SetTargetPeers = { target_peers: number }
 export type SetTargetPeersResponse = Record<string, never>
 export type SignCoinSpends = { coin_spends: CoinSpendJson[]; auto_submit?: boolean; partial?: boolean }
 export type SignCoinSpendsResponse = { spend_bundle: SpendBundleJson }
+export type SignMessageByAddress = { message: string; address: string }
+export type SignMessageByAddressResponse = { publicKey: string; signature: string }
 export type SignMessageWithPublicKey = { message: string; publicKey: string }
 export type SignMessageWithPublicKeyResponse = { signature: string }
 export type SpendBundle = { coin_spends: CoinSpend[]; aggregated_signature: string }

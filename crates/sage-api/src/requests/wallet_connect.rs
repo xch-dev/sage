@@ -101,3 +101,17 @@ pub struct SpendBundle {
     pub coin_spends: Vec<CoinSpend>,
     pub aggregated_signature: String,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct SignMessageByAddress {
+    pub message: String,
+    pub address: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct SignMessageByAddressResponse {
+    pub public_key: String,
+    pub signature: String,
+}

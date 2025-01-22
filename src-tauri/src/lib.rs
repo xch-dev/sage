@@ -93,6 +93,7 @@ pub fn run() {
             commands::filter_unlocked_coins,
             commands::get_asset_coins,
             commands::sign_message_with_public_key,
+            commands::sign_message_by_address,
             commands::send_transaction_immediately,
         ])
         .events(collect_events![SyncEvent]);
