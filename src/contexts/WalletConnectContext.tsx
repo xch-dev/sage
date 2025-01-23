@@ -245,7 +245,7 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
         if (walletConnectCommands[method].confirm) {
           setPendingRequests((p: SessionRequest[]) => [...p, request]);
           const os = platform();
-          if (os === 'macos' || os === 'windows') {
+          if (os === 'macos' || os === 'windows' || os === 'linux') {
             await getCurrentWindow().requestUserAttention(
               UserAttentionType.Critical,
             );
