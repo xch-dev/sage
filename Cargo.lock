@@ -4964,8 +4964,10 @@ version = "0.9.3"
 dependencies = [
  "chia",
  "chia-wallet-sdk",
+ "hex",
  "sqlx",
  "thiserror 1.0.69",
+ "tracing",
 ]
 
 [[package]]
@@ -5023,6 +5025,8 @@ dependencies = [
  "clvmr",
  "futures-lite",
  "futures-util",
+ "hex",
+ "hex-literal",
  "indexmap 2.6.0",
  "itertools 0.13.0",
  "reqwest",

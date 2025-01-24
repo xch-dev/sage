@@ -357,7 +357,10 @@ impl Sage {
         let collection_id = req.collection_id.map(parse_collection_id).transpose()?;
 
         let collection = if let Some(collection_id) = collection_id {
-            Some(wallet.db.collection(collection_id).await?)
+            let Some(collection) = wallet.db.collection(collection_id).await? else {
+                return Ok(GetNftCollectionResponse { collection: None });
+            };
+            Some(collection)
         } else {
             None
         };
