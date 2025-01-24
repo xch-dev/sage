@@ -42,6 +42,7 @@ pub async fn sync_wallet(
         start_header_hash,
         coin_ids,
         sync_sender.clone(),
+        false,
     )
     .await?;
 
@@ -108,6 +109,7 @@ async fn sync_coin_ids(
     start_header_hash: Bytes32,
     coin_ids: Vec<Bytes32>,
     sync_sender: mpsc::Sender<SyncEvent>,
+    only_send_event_if_spent: bool,
 ) -> Result<(), WalletError> {
     for (i, coin_ids) in coin_ids.chunks(10000).enumerate() {
         if i != 0 {
@@ -128,7 +130,10 @@ async fn sync_coin_ids(
 
         debug!("Received {} coin states", coin_states.len());
 
-        if !coin_states.is_empty() {
+        if coin_states
+            .iter()
+            .any(|cs| cs.spent_height.is_some() || !only_send_event_if_spent)
+        {
             incremental_sync(wallet, coin_states, true, &sync_sender).await?;
         }
     }
@@ -228,7 +233,9 @@ pub async fn incremental_sync(
 
     tx.commit().await?;
 
-    sync_sender.send(SyncEvent::CoinsUpdated).await.ok();
+    if !coin_states.is_empty() {
+        sync_sender.send(SyncEvent::CoinsUpdated).await.ok();
+    }
 
     if derived {
         sync_sender
@@ -279,6 +286,7 @@ pub async fn add_new_subscriptions(
         wallet.genesis_challenge,
         coin_ids,
         sync_sender.clone(),
+        true,
     )
     .await?;
 
