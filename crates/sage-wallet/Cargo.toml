@@ -29,9 +29,11 @@ futures-lite = { workspace = true }
 reqwest = { workspace = true, default-features = false, features = ["http2", "rustls-tls-webpki-roots", "json"] }
 serde = { workspace = true, features = ["derive"] }
 indexmap = { workspace = true }
+hex = { workspace = true }
 
 [dev-dependencies]
 anyhow = { workspace = true }
 sqlx = { workspace = true, features = ["runtime-tokio"] }
 test-log = { workspace = true, features = ["trace"] }
 tokio = { workspace = true }
+hex-literal = { workspace = true }
