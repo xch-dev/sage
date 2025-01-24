@@ -144,6 +144,10 @@ async fn sync_puzzle_hashes(
     puzzle_hashes: &[Bytes32],
     sync_sender: mpsc::Sender<SyncEvent>,
 ) -> Result<(), WalletError> {
+    if puzzle_hashes.is_empty() {
+        return Ok(());
+    }
+
     let mut prev_height = start_height;
     let mut prev_header_hash = start_header_hash;
 
@@ -259,4 +263,34 @@ async fn auto_insert_unhardened_derivations(
     }
 
     Ok(derivations)
+}
+
+pub async fn add_new_subscriptions(
+    wallet: &Wallet,
+    peer: &WalletPeer,
+    coin_ids: Vec<Bytes32>,
+    puzzle_hashes: Vec<Bytes32>,
+    sync_sender: mpsc::Sender<SyncEvent>,
+) -> Result<(), WalletError> {
+    sync_coin_ids(
+        wallet,
+        peer,
+        None,
+        wallet.genesis_challenge,
+        coin_ids,
+        sync_sender.clone(),
+    )
+    .await?;
+
+    sync_puzzle_hashes(
+        wallet,
+        peer,
+        None,
+        wallet.genesis_challenge,
+        &puzzle_hashes,
+        sync_sender,
+    )
+    .await?;
+
+    Ok(())
 }
