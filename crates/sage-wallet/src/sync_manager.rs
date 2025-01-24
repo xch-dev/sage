@@ -6,9 +6,7 @@ use std::{
 };
 
 use chia::{
-    protocol::{
-        Bytes32, CoinStateFilters, CoinStateUpdate, Message, NewPeakWallet, ProtocolMessageTypes,
-    },
+    protocol::{Bytes32, CoinStateUpdate, Message, NewPeakWallet, ProtocolMessageTypes},
     traits::Streamable,
 };
 use chia_wallet_sdk::{ClientError, Connector, Network, MAINNET_CONSTANTS, TESTNET11_CONSTANTS};
@@ -20,7 +18,7 @@ use tokio::{
     time::{sleep, timeout},
 };
 use tracing::{debug, info, warn};
-use wallet_sync::{incremental_sync, sync_wallet};
+use wallet_sync::{add_new_subscriptions, incremental_sync, sync_wallet};
 
 use crate::{
     CatQueue, NftUriQueue, OfferQueue, PuzzleQueue, TransactionQueue, Wallet, WalletError,
@@ -202,34 +200,23 @@ impl SyncManager {
 
         if let InitialWalletSync::Subscribed(ip) = self.initial_wallet_sync {
             if let Some(info) = self.state.lock().await.peer(ip) {
-                if !self.pending_coin_subscriptions.is_empty() {
-                    // TODO: Handle cases
-                    timeout(
-                        Duration::from_secs(3),
-                        info.peer.subscribe_coins(
-                            mem::take(&mut self.pending_coin_subscriptions),
-                            None,
-                            self.network.genesis_challenge,
-                        ),
+                if let Some(wallet) = self.wallet.as_ref() {
+                    if let Err(error) = add_new_subscriptions(
+                        wallet,
+                        &info.peer,
+                        mem::take(&mut self.pending_coin_subscriptions),
+                        mem::take(&mut self.pending_puzzle_subscriptions),
+                        self.event_sender.clone(),
                     )
                     .await
-                    .map(Result::ok)
-                    .ok();
-                }
-
-                if !self.pending_puzzle_subscriptions.is_empty() {
-                    timeout(
-                        Duration::from_secs(15),
-                        info.peer.subscribe_puzzles(
-                            mem::take(&mut self.pending_puzzle_subscriptions),
-                            None,
-                            self.network.genesis_challenge,
-                            CoinStateFilters::new(true, true, true, 0),
-                        ),
-                    )
-                    .await
-                    .map(Result::ok)
-                    .ok();
+                    {
+                        warn!("Failed to add new subscriptions: {error}");
+                        self.state.lock().await.ban(
+                            ip,
+                            Duration::from_secs(300),
+                            "failed to add new subscriptions",
+                        );
+                    }
                 }
             }
         }
