@@ -199,9 +199,17 @@ export function NftOptions({
             variant='outline'
             size='icon'
             onClick={() => setParams({ showHidden: !showHidden })}
-            aria-label={showHidden ? t`Hide hidden items` : t`Show hidden items`}
+            aria-label={
+              showHidden ? t`Hide hidden items` : t`Show hidden items`
+            }
             title={showHidden ? t`Hide hidden items` : t`Show hidden items`}
-            disabled={!(group === NftGroupMode.None || isFilteredView || group === NftGroupMode.Collection)}
+            disabled={
+              !(
+                group === NftGroupMode.None ||
+                isFilteredView ||
+                group === NftGroupMode.Collection
+              )
+            }
           >
             {showHidden ? (
               <EyeIcon className='h-4 w-4' aria-hidden='true' />
@@ -230,15 +238,10 @@ export function NftOptions({
               <DropdownMenuGroup>
                 <DropdownMenuItem
                   className='cursor-pointer'
-                  onClick={() =>
-                    setParams({ sort: NftSortMode.Name, page: 1 })
-                  }
+                  onClick={() => setParams({ sort: NftSortMode.Name, page: 1 })}
                   aria-label={t`Sort by name`}
                 >
-                  <ArrowDownAz
-                    className='mr-2 h-4 w-4'
-                    aria-hidden='true'
-                  />
+                  <ArrowDownAz className='mr-2 h-4 w-4' aria-hidden='true' />
                   <span>
                     <Trans>Name</Trans>
                   </span>
@@ -311,10 +314,7 @@ export function NftOptions({
                   }}
                   aria-label={t`Group by Collections`}
                 >
-                  <LibraryBigIcon
-                    className='mr-2 h-4 w-4'
-                    aria-hidden='true'
-                  />
+                  <LibraryBigIcon className='mr-2 h-4 w-4' aria-hidden='true' />
                   <span>
                     <Trans>Group by Collections</Trans>
                   </span>

@@ -52,7 +52,6 @@ export function NftGroupCard({
   onToggleVisibility = () => {},
   isLoading,
   error,
-  showHidden,
 }: NftGroupCardProps) {
   const navigate = useNavigate();
   const isCollection = type === 'collection';
@@ -140,8 +139,8 @@ export function NftGroupCard({
       }}
       role='button'
       tabIndex={0}
-      className={`cursor-pointer group border border-neutral-200 dark:border-neutral-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary${
-        !item.visible ? ' opacity-50 grayscale' : ''
+      className={`cursor-pointer group border border-neutral-200 dark:border-neutral-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary ${
+        isCollection && !item.visible ? 'opacity-50' : ''
       }`}
       aria-label={
         isCollection
@@ -250,6 +249,7 @@ export function NftGroupCard({
                       open(`https://mintgarden.io/collections/${getId()}`);
                     }}
                     aria-label={t`View on Mintgarden`}
+                    disabled={true}
                   >
                     <ExternalLink className='mr-2 h-4 w-4' />
                     <span>
