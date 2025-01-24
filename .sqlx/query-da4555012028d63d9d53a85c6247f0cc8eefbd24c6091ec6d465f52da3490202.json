@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE `nfts` SET `collection_id` = ? WHERE `collection_id` = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "da4555012028d63d9d53a85c6247f0cc8eefbd24c6091ec6d465f52da3490202"
+}

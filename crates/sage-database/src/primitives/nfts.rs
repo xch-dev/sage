@@ -263,6 +263,22 @@ impl<'a> DatabaseTx<'a> {
     pub async fn collection_ids(&mut self) -> Result<Vec<Bytes32>> {
         collection_ids(&mut *self.tx).await
     }
+
+    pub async fn update_nft_collection_ids(
+        &mut self,
+        collection_id: Bytes32,
+        new_collection_id: Bytes32,
+    ) -> Result<()> {
+        update_nft_collection_ids(&mut *self.tx, collection_id, new_collection_id).await
+    }
+
+    pub async fn update_collection_id(
+        &mut self,
+        collection_id: Bytes32,
+        new_collection_id: Bytes32,
+    ) -> Result<()> {
+        update_collection_id(&mut *self.tx, collection_id, new_collection_id).await
+    }
 }
 
 async fn insert_collection(conn: impl SqliteExecutor<'_>, row: CollectionRow) -> Result<()> {
@@ -342,10 +358,10 @@ async fn collection_name(
         "SELECT `name` FROM `collections` WHERE `collection_id` = ?",
         collection_id
     )
-    .fetch_one(conn)
+    .fetch_optional(conn)
     .await?;
 
-    Ok(row.name)
+    Ok(row.and_then(|row| row.name))
 }
 
 async fn collection(
@@ -1143,4 +1159,42 @@ async fn collection_ids(conn: impl SqliteExecutor<'_>) -> Result<Vec<Bytes32>> {
         .into_iter()
         .map(|row| to_bytes32(&row))
         .collect()
+}
+
+async fn update_collection_id(
+    conn: impl SqliteExecutor<'_>,
+    collection_id: Bytes32,
+    new_collection_id: Bytes32,
+) -> Result<()> {
+    let collection_id = collection_id.as_ref();
+    let new_collection_id = new_collection_id.as_ref();
+
+    sqlx::query!(
+        "UPDATE `collections` SET `collection_id` = ? WHERE `collection_id` = ?",
+        new_collection_id,
+        collection_id
+    )
+    .execute(conn)
+    .await?;
+
+    Ok(())
+}
+
+async fn update_nft_collection_ids(
+    conn: impl SqliteExecutor<'_>,
+    collection_id: Bytes32,
+    new_collection_id: Bytes32,
+) -> Result<()> {
+    let collection_id = collection_id.as_ref();
+    let new_collection_id = new_collection_id.as_ref();
+
+    sqlx::query!(
+        "UPDATE `nfts` SET `collection_id` = ? WHERE `collection_id` = ?",
+        new_collection_id,
+        collection_id
+    )
+    .execute(conn)
+    .await?;
+
+    Ok(())
 }

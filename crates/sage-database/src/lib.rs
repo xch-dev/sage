@@ -59,18 +59,11 @@ impl Database {
 
                 debug!("Migrating collection {collection_id} to {new_collection_id}");
 
-                tx.update_collection(
-                    collection_id,
-                    CollectionRow {
-                        collection_id: new_collection_id,
-                        did_id: collection.did_id,
-                        metadata_collection_id: collection.metadata_collection_id,
-                        visible: collection.visible,
-                        name: collection.name,
-                        icon: collection.icon,
-                    },
-                )
-                .await?;
+                tx.update_collection_id(collection_id, new_collection_id)
+                    .await?;
+
+                tx.update_nft_collection_ids(collection_id, new_collection_id)
+                    .await?;
             }
 
             tx.set_rust_migration_version(1).await?;
