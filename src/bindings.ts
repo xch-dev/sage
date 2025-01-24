@@ -209,6 +209,9 @@ async updateDid(req: UpdateDid) : Promise<UpdateDidResponse> {
 async updateNft(req: UpdateNft) : Promise<UpdateNftResponse> {
     return await TAURI_INVOKE("update_nft", { req });
 },
+async updateNftCollection(req: UpdateNftCollection) : Promise<UpdateNftCollectionResponse> {
+    return await TAURI_INVOKE("update_nft_collection", { req });
+},
 async redownloadNft(req: RedownloadNft) : Promise<RedownloadNftResponse> {
     return await TAURI_INVOKE("redownload_nft", { req });
 },
@@ -428,6 +431,8 @@ export type UpdateCatResponse = Record<string, never>
 export type UpdateDid = { did_id: string; name: string | null; visible: boolean }
 export type UpdateDidResponse = Record<string, never>
 export type UpdateNft = { nft_id: string; visible: boolean }
+export type UpdateNftCollection = { collection_id: string; visible: boolean }
+export type UpdateNftCollectionResponse = Record<string, never>
 export type UpdateNftResponse = Record<string, never>
 export type ViewCoinSpends = { coin_spends: CoinSpendJson[] }
 export type ViewCoinSpendsResponse = { summary: TransactionSummary }
