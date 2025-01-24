@@ -93,7 +93,7 @@ export function NftCardList({
               }}
             />
           ))}
-          {nfts.length < pageSize && (
+          {collections.length < pageSize && (
             <NftGroupCard
               type='collection'
               item={{
