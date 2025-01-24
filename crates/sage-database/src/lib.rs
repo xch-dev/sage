@@ -9,6 +9,7 @@ mod utils;
 
 pub use primitives::*;
 pub use rows::*;
+use tracing::info;
 pub use transactions::*;
 
 pub(crate) use utils::*;
@@ -32,6 +33,45 @@ impl Database {
         let tx = self.pool.begin().await?;
         Ok(DatabaseTx::new(tx))
     }
+
+    pub async fn run_rust_migrations(&self) -> Result<()> {
+        let mut tx = self.tx().await?;
+
+        let version = tx.rust_migration_version().await?;
+
+        info!("The current Sage migration version is {version}");
+
+        if version == 0 {
+            info!("Migrating to version 1 (fixed collection id calculation)");
+
+            for collection_id in tx.collection_ids().await? {
+                let collection = tx
+                    .collection(collection_id)
+                    .await?
+                    .expect("collection not found");
+
+                tx.update_collection(
+                    collection_id,
+                    CollectionRow {
+                        collection_id: calculate_collection_id(
+                            collection.did_id,
+                            &collection.metadata_collection_id,
+                        ),
+                        did_id: collection.did_id,
+                        metadata_collection_id: collection.metadata_collection_id,
+                        visible: collection.visible,
+                        name: collection.name,
+                        icon: collection.icon,
+                    },
+                )
+                .await?;
+            }
+
+            tx.set_rust_migration_version(1).await?;
+        }
+
+        Ok(())
+    }
 }
 
 #[derive(Debug)]
@@ -50,6 +90,22 @@ impl<'a> DatabaseTx<'a> {
 
     pub async fn rollback(self) -> Result<()> {
         Ok(self.tx.rollback().await?)
+    }
+
+    pub async fn rust_migration_version(&mut self) -> Result<i64> {
+        let row = sqlx::query_scalar!("SELECT `version` FROM `rust_migrations` LIMIT 1")
+            .fetch_one(&mut *self.tx)
+            .await?;
+
+        Ok(row)
+    }
+
+    pub async fn set_rust_migration_version(&mut self, version: i64) -> Result<()> {
+        sqlx::query!("UPDATE `rust_migrations` SET `version` = ?", version)
+            .execute(&mut *self.tx)
+            .await?;
+
+        Ok(())
     }
 }
 

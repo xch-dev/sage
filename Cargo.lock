@@ -4964,8 +4964,10 @@ version = "0.9.3"
 dependencies = [
  "chia",
  "chia-wallet-sdk",
+ "hex",
  "sqlx",
  "thiserror 1.0.69",
+ "tracing",
 ]
 
 [[package]]
