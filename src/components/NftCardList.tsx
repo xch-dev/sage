@@ -84,8 +84,8 @@ export function NftCardList({
               page={page}
               onToggleVisibility={() => {
                 commands
-                  .updateNft({
-                    nft_id: col.collection_id,
+                  .updateNftCollection({
+                    collection_id: col.collection_id,
                     visible: !col.visible,
                   })
                   .then(() => updateNfts(page))
@@ -93,7 +93,7 @@ export function NftCardList({
               }}
             />
           ))}
-          {nfts.length < pageSize && (
+          {collections.length < pageSize && (
             <NftGroupCard
               type='collection'
               item={{
@@ -104,6 +104,7 @@ export function NftCardList({
                 collection_id: 'No collection',
                 visible: true,
               }}
+              canToggleVisibility={false}
               updateNfts={updateNfts}
               page={page}
             />

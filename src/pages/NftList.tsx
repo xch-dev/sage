@@ -8,7 +8,7 @@ import { ReceiveAddress } from '@/components/ReceiveAddress';
 import { Button } from '@/components/ui/button';
 import { useNftParams, NftGroupMode } from '@/hooks/useNftParams';
 import { Trans } from '@lingui/react/macro';
-import { ImagePlusIcon } from 'lucide-react';
+import { ImagePlusIcon, EyeIcon } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useNftData } from '@/hooks/useNftData';
