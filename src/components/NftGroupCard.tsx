@@ -40,7 +40,7 @@ interface NftGroupCardProps {
   onToggleVisibility?: () => void;
   isLoading?: boolean;
   error?: Error;
-  showHidden?: boolean;
+  canToggleVisibility?: boolean;
 }
 
 export function NftGroupCard({
@@ -52,6 +52,7 @@ export function NftGroupCard({
   onToggleVisibility = () => {},
   isLoading,
   error,
+  canToggleVisibility = true,
 }: NftGroupCardProps) {
   const navigate = useNavigate();
   const isCollection = type === 'collection';
@@ -249,7 +250,6 @@ export function NftGroupCard({
                       open(`https://mintgarden.io/collections/${getId()}`);
                     }}
                     aria-label={t`View on Mintgarden`}
-                    disabled={true}
                   >
                     <ExternalLink className='mr-2 h-4 w-4' />
                     <span>
@@ -263,6 +263,7 @@ export function NftGroupCard({
                       e.stopPropagation();
                       onToggleVisibility();
                     }}
+                    disabled={!canToggleVisibility}
                   >
                     {item.visible ? (
                       <>
