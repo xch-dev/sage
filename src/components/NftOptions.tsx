@@ -32,7 +32,6 @@ import {
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
 import { Input } from './ui/input';
-import { cn } from '@/lib/utils';
 
 export interface NftOptionsProps {
   isCollection?: boolean;
