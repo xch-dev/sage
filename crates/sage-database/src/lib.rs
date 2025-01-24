@@ -9,7 +9,6 @@ mod utils;
 
 pub use primitives::*;
 pub use rows::*;
-use tracing::info;
 pub use transactions::*;
 
 pub(crate) use utils::*;
@@ -18,6 +17,7 @@ use std::num::TryFromIntError;
 
 use sqlx::{Sqlite, SqlitePool, Transaction};
 use thiserror::Error;
+use tracing::{debug, info};
 
 #[derive(Debug, Clone)]
 pub struct Database {
@@ -41,7 +41,7 @@ impl Database {
 
         info!("The current Sage migration version is {version}");
 
-        if version == 0 {
+        if version < 1 {
             info!("Migrating to version 1 (fixed collection id calculation)");
 
             for collection_id in tx.collection_ids().await? {
@@ -50,13 +50,19 @@ impl Database {
                     .await?
                     .expect("collection not found");
 
+                let new_collection_id =
+                    calculate_collection_id(collection.did_id, &collection.metadata_collection_id);
+
+                if collection_id == new_collection_id {
+                    continue;
+                }
+
+                debug!("Migrating collection {collection_id} to {new_collection_id}");
+
                 tx.update_collection(
                     collection_id,
                     CollectionRow {
-                        collection_id: calculate_collection_id(
-                            collection.did_id,
-                            &collection.metadata_collection_id,
-                        ),
+                        collection_id: new_collection_id,
                         did_id: collection.did_id,
                         metadata_collection_id: collection.metadata_collection_id,
                         visible: collection.visible,
@@ -69,6 +75,8 @@ impl Database {
 
             tx.set_rust_migration_version(1).await?;
         }
+
+        tx.commit().await?;
 
         Ok(())
     }
