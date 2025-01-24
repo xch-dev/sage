@@ -8,8 +8,8 @@ use chia_wallet_sdk::{Layer, SpendContext};
 use sage_api::wallet_connect::{
     self, AssetCoinType, FilterUnlockedCoins, FilterUnlockedCoinsResponse, GetAssetCoins,
     GetAssetCoinsResponse, LineageProof, SendTransactionImmediately,
-    SendTransactionImmediatelyResponse, SignMessageWithPublicKey, SignMessageWithPublicKeyResponse,
-    SpendableCoin,
+    SendTransactionImmediatelyResponse, SignMessageByAddress, SignMessageByAddressResponse,
+    SignMessageWithPublicKey, SignMessageWithPublicKeyResponse, SpendableCoin,
 };
 use sage_wallet::{insert_transaction, submit_to_peers, Status, SyncCommand, Transaction};
 use tracing::{debug, info, warn};
@@ -354,6 +354,44 @@ impl Sage {
         );
 
         Ok(SignMessageWithPublicKeyResponse {
+            signature: hex::encode(signature.to_bytes()),
+        })
+    }
+
+    pub async fn sign_message_by_address(
+        &self,
+        req: SignMessageByAddress,
+    ) -> Result<SignMessageByAddressResponse> {
+        let wallet = self.wallet()?;
+
+        let p2_puzzle_hash = self.parse_address(req.address)?;
+        let public_key = wallet.db.synthetic_key(p2_puzzle_hash).await?;
+
+        let Some(info) = wallet.db.synthetic_key_info(public_key).await? else {
+            return Err(Error::InvalidKey);
+        };
+
+        let (_mnemonic, Some(master_sk)) =
+            self.keychain.extract_secrets(wallet.fingerprint, b"")?
+        else {
+            return Err(Error::NoSigningKey);
+        };
+
+        let secret_key = if info.hardened {
+            master_to_wallet_hardened(&master_sk, info.index)
+        } else {
+            master_to_wallet_unhardened(&master_sk, info.index)
+        }
+        .derive_synthetic();
+
+        let decoded_message = Bytes::from(hex::decode(&req.message)?);
+        let signature = sign(
+            &secret_key,
+            ("Chia Signed Message", decoded_message).tree_hash(),
+        );
+
+        Ok(SignMessageByAddressResponse {
+            public_key: hex::encode(public_key.to_bytes()),
             signature: hex::encode(signature.to_bytes()),
         })
     }

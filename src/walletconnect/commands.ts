@@ -206,6 +206,17 @@ export const walletConnectCommands = {
     }),
     confirm: false,
   },
+  chia_signMessageByAddress: {
+    paramsType: z.object({
+      message: z.string(),
+      address: z.string(),
+    }),
+    returnType: z.object({
+      publicKey: z.string(),
+      signature: z.string(),
+    }),
+    confirm: true,
+  },
 } as const;
 
 // Define a union of valid commands

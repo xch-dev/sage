@@ -620,6 +620,15 @@ pub async fn sign_message_with_public_key(
 
 #[command]
 #[specta]
+pub async fn sign_message_by_address(
+    state: State<'_, AppState>,
+    req: SignMessageByAddress,
+) -> Result<SignMessageByAddressResponse> {
+    Ok(state.lock().await.sign_message_by_address(req).await?)
+}
+
+#[command]
+#[specta]
 pub async fn send_transaction_immediately(
     state: State<'_, AppState>,
     req: SendTransactionImmediately,

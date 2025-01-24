@@ -28,6 +28,7 @@ import {
   walletConnectCommands,
 } from '@/walletconnect/commands';
 import { handleCommand } from '@/walletconnect/handler';
+import { platform } from '@tauri-apps/plugin-os';
 import { getCurrentWindow, UserAttentionType } from '@tauri-apps/api/window';
 import SignClient from '@walletconnect/sign-client';
 import { SessionTypes, SignClientTypes } from '@walletconnect/types';
@@ -108,7 +109,11 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
         });
       } catch (error) {
         const errorMessage =
-          error instanceof Error ? error.message : 'Request failed';
+          error instanceof Error
+            ? error.message
+            : typeof error === 'object' && error !== null && 'reason' in error
+              ? (error.reason as string)
+              : 'Request failed';
         addError({ kind: 'walletconnect', reason: errorMessage });
         console.error('WalletConnect request failed:', error);
 
@@ -243,9 +248,12 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
 
         if (walletConnectCommands[method].confirm) {
           setPendingRequests((p: SessionRequest[]) => [...p, request]);
-          await getCurrentWindow().requestUserAttention(
-            UserAttentionType.Critical,
-          );
+          const os = platform();
+          if (os === 'macos' || os === 'windows' || os === 'linux') {
+            await getCurrentWindow().requestUserAttention(
+              UserAttentionType.Critical,
+            );
+          }
         } else {
           await handleAndRespond(request);
         }
@@ -590,6 +598,27 @@ function SendDialog({ params }: CommandDialogProps<'chia_send'>) {
   );
 }
 
+function SignMessageByAddressDialog({
+  params,
+}: CommandDialogProps<'chia_signMessageByAddress'>) {
+  return (
+    <div className='space-y-4 p-4'>
+      <div className='space-y-2'>
+        <div className='font-medium'>Address</div>
+        <div className='text-sm text-muted-foreground break-all font-mono bg-muted p-2 rounded'>
+          {params.address}
+        </div>
+      </div>
+      <div className='space-y-2'>
+        <div className='font-medium'>Message</div>
+        <div className='text-sm text-muted-foreground break-all font-mono bg-muted p-2 rounded whitespace-pre-wrap'>
+          {params.message}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function DefaultCommandDialog({ params }: { params: unknown }) {
   return (
     <div className='p-4'>
@@ -610,6 +639,7 @@ const COMMAND_COMPONENTS: {
   chia_createOffer: CreateOfferDialog,
   chia_cancelOffer: CancelOfferDialog,
   chia_send: SendDialog,
+  chia_signMessageByAddress: SignMessageByAddressDialog,
 };
 
 const COMMAND_METADATA: {
@@ -637,6 +667,10 @@ const COMMAND_METADATA: {
   chia_cancelOffer: {
     title: 'Cancel Offer',
     description: 'Review and cancel the offer',
+  },
+  chia_signMessageByAddress: {
+    title: 'Sign Message',
+    description: "Sign a message with your address's private key",
   },
 };
 
