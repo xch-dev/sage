@@ -4859,7 +4859,7 @@ checksum = "f3cb5ba0dc43242ce17de99c180e96db90b235b8a9fdc9543c96d2209116bd9f"
 
 [[package]]
 name = "sage"
-version = "0.9.3"
+version = "0.9.4"
 dependencies = [
  "base64 0.22.1",
  "bech32",
@@ -4895,7 +4895,7 @@ dependencies = [
 
 [[package]]
 name = "sage-api"
-version = "0.9.3"
+version = "0.9.4"
 dependencies = [
  "indexmap 2.6.0",
  "once_cell",
@@ -4907,7 +4907,7 @@ dependencies = [
 
 [[package]]
 name = "sage-assets"
-version = "0.9.3"
+version = "0.9.4"
 dependencies = [
  "chia",
  "clvmr",
@@ -4925,7 +4925,7 @@ dependencies = [
 
 [[package]]
 name = "sage-cli"
-version = "0.9.3"
+version = "0.9.4"
 dependencies = [
  "anyhow",
  "axum",
@@ -4948,7 +4948,7 @@ dependencies = [
 
 [[package]]
 name = "sage-config"
-version = "0.9.3"
+version = "0.9.4"
 dependencies = [
  "chia-wallet-sdk",
  "hex",
@@ -4960,7 +4960,7 @@ dependencies = [
 
 [[package]]
 name = "sage-database"
-version = "0.9.3"
+version = "0.9.4"
 dependencies = [
  "chia",
  "chia-wallet-sdk",
@@ -4972,7 +4972,7 @@ dependencies = [
 
 [[package]]
 name = "sage-keychain"
-version = "0.9.3"
+version = "0.9.4"
 dependencies = [
  "aes-gcm",
  "argon2",
@@ -4988,7 +4988,7 @@ dependencies = [
 
 [[package]]
 name = "sage-tauri"
-version = "0.9.3"
+version = "0.9.4"
 dependencies = [
  "aws-lc-rs",
  "chia-wallet-sdk",
@@ -5017,7 +5017,7 @@ dependencies = [
 
 [[package]]
 name = "sage-wallet"
-version = "0.9.3"
+version = "0.9.4"
 dependencies = [
  "anyhow",
  "chia",
