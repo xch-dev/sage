@@ -339,6 +339,10 @@ msgstr "Cold Wallet"
 msgid "Collapse sidebar"
 msgstr "Collapse sidebar"
 
+#: src/components/NftGroupCard.tsx:294
+msgid "Collection ID copied to clipboard"
+msgstr "Collection ID copied to clipboard"
+
 #: src/pages/Nft.tsx:115
 msgid "Collection Name"
 msgstr "Collection Name"
@@ -400,9 +404,14 @@ msgid "Copy"
 msgstr "Copy"
 
 #: src/pages/Offers.tsx:328
+#: src/components/NftGroupCard.tsx:304
 #: src/components/NftCard.tsx:419
 msgid "Copy ID"
 msgstr "Copy ID"
+
+#: src/components/NftGroupCard.tsx:300
+msgid "Copy ID to clipboard"
+msgstr "Copy ID to clipboard"
 
 #: src/components/NftCard.tsx:415
 msgid "Copy NFT ID to clipboard"
@@ -697,18 +706,18 @@ msgstr "Global"
 msgid "Go to wallet"
 msgstr "Go to wallet"
 
-#: src/components/NftOptions.tsx:316
-#: src/components/NftOptions.tsx:323
+#: src/components/NftOptions.tsx:315
+#: src/components/NftOptions.tsx:319
 msgid "Group by Collections"
 msgstr "Group by Collections"
 
+#: src/components/NftOptions.tsx:351
 #: src/components/NftOptions.tsx:355
-#: src/components/NftOptions.tsx:359
 msgid "Group by Minters"
 msgstr "Group by Minters"
 
+#: src/components/NftOptions.tsx:333
 #: src/components/NftOptions.tsx:337
-#: src/components/NftOptions.tsx:341
 msgid "Group by Owners"
 msgstr "Group by Owners"
 
@@ -739,19 +748,24 @@ msgstr "Height:"
 
 #: src/pages/Token.tsx:388
 #: src/pages/DidList.tsx:274
-#: src/components/NftGroupCard.tsx:241
+#: src/components/NftGroupCard.tsx:272
 #: src/components/NftCard.tsx:404
 msgid "Hide"
 msgstr "Hide"
 
 #: src/components/NftGroupCard.tsx:220
-msgid "Hide collection"
-msgstr "Hide collection"
+#~ msgid "Hide collection"
+#~ msgstr "Hide collection"
+
+#: src/components/NftOptions.tsx:203
+#: src/components/NftOptions.tsx:205
+msgid "Hide hidden items"
+msgstr "Hide hidden items"
 
 #: src/components/NftOptions.tsx:204
 #: src/components/NftOptions.tsx:207
-msgid "Hide hidden NFTs"
-msgstr "Hide hidden NFTs"
+#~ msgid "Hide hidden NFTs"
+#~ msgstr "Hide hidden NFTs"
 
 #: src/pages/TokenList.tsx:250
 msgid "Hide hidden tokens"
@@ -773,6 +787,10 @@ msgstr "Hot Wallet"
 #: src/pages/MakeOffer.tsx:260
 msgid "Hours"
 msgstr "Hours"
+
+#: src/components/NftGroupCard.tsx:168
+msgid "Icon for {name}"
+msgstr "Icon for {name}"
 
 #: src/pages/Login.tsx:78
 #: src/pages/ImportWallet.tsx:164
@@ -871,11 +889,11 @@ msgstr "License URIs"
 msgid "License URLs"
 msgstr "License URLs"
 
-#: src/components/NftGroupCard.tsx:115
+#: src/components/NftGroupCard.tsx:120
 msgid "Loading collection"
 msgstr "Loading collection"
 
-#: src/components/NftGroupCard.tsx:115
+#: src/components/NftGroupCard.tsx:120
 msgid "Loading profile"
 msgstr "Loading profile"
 
@@ -932,6 +950,10 @@ msgstr "Mint NFT"
 msgid "Minter DID"
 msgstr "Minter DID"
 
+#: src/components/NftGroupCard.tsx:297
+msgid "Minter ID copied to clipboard"
+msgstr "Minter ID copied to clipboard"
+
 #: src/components/NftPageTitle.tsx:42
 msgid "Minters"
 msgstr "Minters"
@@ -958,7 +980,7 @@ msgstr "Mnemonic"
 #: src/pages/DidList.tsx:301
 #: src/pages/CreateProfile.tsx:69
 #: src/components/TokenListView.tsx:36
-#: src/components/NftOptions.tsx:245
+#: src/components/NftOptions.tsx:246
 msgid "Name"
 msgstr "Name"
 
@@ -1032,7 +1054,7 @@ msgstr "NFT Collection"
 msgid "NFT filtering and sorting options"
 msgstr "NFT filtering and sorting options"
 
-#: src/components/NftCardList.tsx:178
+#: src/components/NftCardList.tsx:179
 msgid "NFT Gallery"
 msgstr "NFT Gallery"
 
@@ -1073,8 +1095,8 @@ msgstr "No collection"
 msgid "No Collection"
 msgstr "No Collection"
 
-#: src/components/NftOptions.tsx:298
-#: src/components/NftOptions.tsx:302
+#: src/components/NftOptions.tsx:297
+#: src/components/NftOptions.tsx:301
 msgid "No Grouping"
 msgstr "No Grouping"
 
@@ -1134,6 +1156,10 @@ msgstr "Offers"
 #: src/pages/MakeOffer.tsx:387
 msgid "Ok"
 msgstr "Ok"
+
+#: src/components/NftGroupCard.tsx:236
+msgid "Options"
+msgstr "Options"
 
 #: src/pages/Token.tsx:721
 msgid "Output Count"
@@ -1247,6 +1273,10 @@ msgstr "Processing offer data..."
 msgid "Profile"
 msgstr "Profile"
 
+#: src/components/NftGroupCard.tsx:296
+msgid "Profile ID copied to clipboard"
+msgstr "Profile ID copied to clipboard"
+
 #: src/pages/MintNft.tsx:47
 #: src/components/AssignNftDialog.tsx:55
 msgid "Profile is required"
@@ -1297,7 +1327,7 @@ msgstr "Received"
 msgid "Receiving"
 msgstr "Receiving"
 
-#: src/components/NftOptions.tsx:257
+#: src/components/NftOptions.tsx:258
 msgid "Recent"
 msgstr "Recent"
 
@@ -1474,7 +1504,7 @@ msgstr "Settings"
 
 #: src/pages/Token.tsx:388
 #: src/pages/DidList.tsx:274
-#: src/components/NftGroupCard.tsx:241
+#: src/components/NftGroupCard.tsx:279
 #: src/components/NftCard.tsx:404
 msgid "Show"
 msgstr "Show"
@@ -1484,13 +1514,18 @@ msgid "Show all coins"
 msgstr "Show all coins"
 
 #: src/components/NftGroupCard.tsx:220
-msgid "Show collection"
-msgstr "Show collection"
+#~ msgid "Show collection"
+#~ msgstr "Show collection"
+
+#: src/components/NftOptions.tsx:203
+#: src/components/NftOptions.tsx:205
+msgid "Show hidden items"
+msgstr "Show hidden items"
 
 #: src/components/NftOptions.tsx:204
 #: src/components/NftOptions.tsx:207
-msgid "Show hidden NFTs"
-msgstr "Show hidden NFTs"
+#~ msgid "Show hidden NFTs"
+#~ msgstr "Show hidden NFTs"
 
 #: src/pages/TokenList.tsx:250
 msgid "Show hidden tokens"
@@ -1517,11 +1552,11 @@ msgstr "Sort Alphabetically"
 msgid "Sort by Balance"
 msgstr "Sort by Balance"
 
-#: src/components/NftOptions.tsx:238
+#: src/components/NftOptions.tsx:242
 msgid "Sort by name"
 msgstr "Sort by name"
 
-#: src/components/NftOptions.tsx:253
+#: src/components/NftOptions.tsx:254
 msgid "Sort by recent"
 msgstr "Sort by recent"
 
@@ -1722,8 +1757,8 @@ msgstr "Ticker is required"
 #~ msgid "Toggle hidden NFTs"
 #~ msgstr "Toggle hidden NFTs"
 
-#: src/components/NftOptions.tsx:190
-#: src/components/NftOptions.tsx:191
+#: src/components/NftOptions.tsx:188
+#: src/components/NftOptions.tsx:189
 msgid "Toggle multi-select"
 msgstr "Toggle multi-select"
 
@@ -1806,7 +1841,7 @@ msgstr "Transfer Profile"
 #~ msgid "Unassign Profile"
 #~ msgstr "Unassign Profile"
 
-#: src/components/NftCardList.tsx:139
+#: src/components/NftCardList.tsx:140
 msgid "Unassigned NFTs"
 msgstr "Unassigned NFTs"
 
@@ -1848,9 +1883,9 @@ msgid "Unknown CAT"
 msgstr "Unknown CAT"
 
 #: src/components/NftPageTitle.tsx:32
-#: src/components/NftGroupCard.tsx:86
-#: src/components/NftGroupCard.tsx:144
-#: src/components/NftCardList.tsx:140
+#: src/components/NftGroupCard.tsx:91
+#: src/components/NftGroupCard.tsx:151
+#: src/components/NftCardList.tsx:141
 msgid "Unknown Minter"
 msgstr "Unknown Minter"
 
@@ -1859,8 +1894,7 @@ msgid "Unknown NFT"
 msgstr "Unknown NFT"
 
 #: src/components/OfferCard.tsx:198
-#: src/components/NftGroupCard.tsx:81
-#: src/components/NftGroupCard.tsx:141
+#: src/components/NftGroupCard.tsx:148
 #: src/components/NftCard.tsx:231
 #: src/components/NftCard.tsx:249
 #: src/components/NftCard.tsx:253
@@ -1868,6 +1902,10 @@ msgstr "Unknown NFT"
 #: src/components/ConfirmationDialog.tsx:522
 msgid "Unnamed"
 msgstr "Unnamed"
+
+#: src/components/NftGroupCard.tsx:86
+msgid "Unnamed Collection"
+msgstr "Unnamed Collection"
 
 #: src/components/NftCard.tsx:215
 msgid "Unnamed NFT"
@@ -1885,8 +1923,8 @@ msgstr "Unspent"
 
 #: src/pages/DidList.tsx:196
 #: src/components/NftPageTitle.tsx:29
-#: src/components/NftGroupCard.tsx:84
-#: src/components/NftGroupCard.tsx:143
+#: src/components/NftGroupCard.tsx:89
+#: src/components/NftGroupCard.tsx:150
 msgid "Untitled Profile"
 msgstr "Untitled Profile"
 
@@ -1935,6 +1973,11 @@ msgstr "View hidden"
 #: src/pages/Offers.tsx:205
 msgid "View Offer"
 msgstr "View Offer"
+
+#: src/components/NftGroupCard.tsx:252
+#: src/components/NftGroupCard.tsx:256
+msgid "View on Mintgarden"
+msgstr "View on Mintgarden"
 
 #: src/pages/TokenList.tsx:199
 msgid "View options"

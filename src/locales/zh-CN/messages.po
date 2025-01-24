@@ -338,6 +338,10 @@ msgstr "冷钱包"
 msgid "Collapse sidebar"
 msgstr ""
 
+#: src/components/NftGroupCard.tsx:294
+msgid "Collection ID copied to clipboard"
+msgstr ""
+
 #: src/pages/Nft.tsx:115
 msgid "Collection Name"
 msgstr "集合名称"
@@ -399,9 +403,14 @@ msgid "Copy"
 msgstr "复制"
 
 #: src/pages/Offers.tsx:328
+#: src/components/NftGroupCard.tsx:304
 #: src/components/NftCard.tsx:419
 msgid "Copy ID"
 msgstr "复制ID"
+
+#: src/components/NftGroupCard.tsx:300
+msgid "Copy ID to clipboard"
+msgstr ""
 
 #: src/components/NftCard.tsx:415
 msgid "Copy NFT ID to clipboard"
@@ -695,18 +704,18 @@ msgstr "全局"
 msgid "Go to wallet"
 msgstr "前往钱包"
 
-#: src/components/NftOptions.tsx:316
-#: src/components/NftOptions.tsx:323
+#: src/components/NftOptions.tsx:315
+#: src/components/NftOptions.tsx:319
 msgid "Group by Collections"
 msgstr ""
 
+#: src/components/NftOptions.tsx:351
 #: src/components/NftOptions.tsx:355
-#: src/components/NftOptions.tsx:359
 msgid "Group by Minters"
 msgstr ""
 
+#: src/components/NftOptions.tsx:333
 #: src/components/NftOptions.tsx:337
-#: src/components/NftOptions.tsx:341
 msgid "Group by Owners"
 msgstr ""
 
@@ -737,19 +746,24 @@ msgstr "高度:"
 
 #: src/pages/Token.tsx:388
 #: src/pages/DidList.tsx:274
-#: src/components/NftGroupCard.tsx:241
+#: src/components/NftGroupCard.tsx:272
 #: src/components/NftCard.tsx:404
 msgid "Hide"
 msgstr "隐藏"
 
 #: src/components/NftGroupCard.tsx:220
-msgid "Hide collection"
+#~ msgid "Hide collection"
+#~ msgstr ""
+
+#: src/components/NftOptions.tsx:203
+#: src/components/NftOptions.tsx:205
+msgid "Hide hidden items"
 msgstr ""
 
 #: src/components/NftOptions.tsx:204
 #: src/components/NftOptions.tsx:207
-msgid "Hide hidden NFTs"
-msgstr ""
+#~ msgid "Hide hidden NFTs"
+#~ msgstr ""
 
 #: src/pages/TokenList.tsx:250
 msgid "Hide hidden tokens"
@@ -771,6 +785,10 @@ msgstr "热钱包"
 #: src/pages/MakeOffer.tsx:260
 msgid "Hours"
 msgstr "小时"
+
+#: src/components/NftGroupCard.tsx:168
+msgid "Icon for {name}"
+msgstr ""
 
 #: src/pages/Login.tsx:78
 #: src/pages/ImportWallet.tsx:164
@@ -869,11 +887,11 @@ msgstr "许可证网址"
 msgid "License URLs"
 msgstr "许可证网址"
 
-#: src/components/NftGroupCard.tsx:115
+#: src/components/NftGroupCard.tsx:120
 msgid "Loading collection"
 msgstr ""
 
-#: src/components/NftGroupCard.tsx:115
+#: src/components/NftGroupCard.tsx:120
 msgid "Loading profile"
 msgstr ""
 
@@ -930,6 +948,10 @@ msgstr "铸造NFT"
 msgid "Minter DID"
 msgstr "铸造者DID"
 
+#: src/components/NftGroupCard.tsx:297
+msgid "Minter ID copied to clipboard"
+msgstr ""
+
 #: src/components/NftPageTitle.tsx:42
 msgid "Minters"
 msgstr ""
@@ -956,7 +978,7 @@ msgstr "助记词"
 #: src/pages/DidList.tsx:301
 #: src/pages/CreateProfile.tsx:69
 #: src/components/TokenListView.tsx:36
-#: src/components/NftOptions.tsx:245
+#: src/components/NftOptions.tsx:246
 msgid "Name"
 msgstr "名称"
 
@@ -1030,7 +1052,7 @@ msgstr ""
 msgid "NFT filtering and sorting options"
 msgstr ""
 
-#: src/components/NftCardList.tsx:178
+#: src/components/NftCardList.tsx:179
 msgid "NFT Gallery"
 msgstr ""
 
@@ -1071,8 +1093,8 @@ msgstr "无集合"
 msgid "No Collection"
 msgstr ""
 
-#: src/components/NftOptions.tsx:298
-#: src/components/NftOptions.tsx:302
+#: src/components/NftOptions.tsx:297
+#: src/components/NftOptions.tsx:301
 msgid "No Grouping"
 msgstr ""
 
@@ -1132,6 +1154,10 @@ msgstr "报价"
 #: src/pages/MakeOffer.tsx:387
 msgid "Ok"
 msgstr "Ok"
+
+#: src/components/NftGroupCard.tsx:236
+msgid "Options"
+msgstr ""
 
 #: src/pages/Token.tsx:721
 msgid "Output Count"
@@ -1244,6 +1270,10 @@ msgstr "正在处理报价数据..."
 msgid "Profile"
 msgstr "个人资料"
 
+#: src/components/NftGroupCard.tsx:296
+msgid "Profile ID copied to clipboard"
+msgstr ""
+
 #: src/pages/MintNft.tsx:47
 #: src/components/AssignNftDialog.tsx:55
 msgid "Profile is required"
@@ -1294,7 +1324,7 @@ msgstr "收到"
 msgid "Receiving"
 msgstr "正在接收"
 
-#: src/components/NftOptions.tsx:257
+#: src/components/NftOptions.tsx:258
 msgid "Recent"
 msgstr ""
 
@@ -1467,7 +1497,7 @@ msgstr "设置"
 
 #: src/pages/Token.tsx:388
 #: src/pages/DidList.tsx:274
-#: src/components/NftGroupCard.tsx:241
+#: src/components/NftGroupCard.tsx:279
 #: src/components/NftCard.tsx:404
 msgid "Show"
 msgstr "显示"
@@ -1477,13 +1507,18 @@ msgid "Show all coins"
 msgstr "显示所有硬币"
 
 #: src/components/NftGroupCard.tsx:220
-msgid "Show collection"
+#~ msgid "Show collection"
+#~ msgstr ""
+
+#: src/components/NftOptions.tsx:203
+#: src/components/NftOptions.tsx:205
+msgid "Show hidden items"
 msgstr ""
 
 #: src/components/NftOptions.tsx:204
 #: src/components/NftOptions.tsx:207
-msgid "Show hidden NFTs"
-msgstr ""
+#~ msgid "Show hidden NFTs"
+#~ msgstr ""
 
 #: src/pages/TokenList.tsx:250
 msgid "Show hidden tokens"
@@ -1510,11 +1545,11 @@ msgstr "按字母顺序排序"
 msgid "Sort by Balance"
 msgstr "按余额排序"
 
-#: src/components/NftOptions.tsx:238
+#: src/components/NftOptions.tsx:242
 msgid "Sort by name"
 msgstr ""
 
-#: src/components/NftOptions.tsx:253
+#: src/components/NftOptions.tsx:254
 msgid "Sort by recent"
 msgstr ""
 
@@ -1713,8 +1748,8 @@ msgstr "需提供简称"
 #~ msgid "Toggle hidden NFTs"
 #~ msgstr "切换隐藏的NFT"
 
-#: src/components/NftOptions.tsx:190
-#: src/components/NftOptions.tsx:191
+#: src/components/NftOptions.tsx:188
+#: src/components/NftOptions.tsx:189
 msgid "Toggle multi-select"
 msgstr "切换多重选择"
 
@@ -1796,7 +1831,7 @@ msgstr "转移个人资料"
 #~ msgid "Unassign Profile"
 #~ msgstr "取消分配个人资料"
 
-#: src/components/NftCardList.tsx:139
+#: src/components/NftCardList.tsx:140
 msgid "Unassigned NFTs"
 msgstr ""
 
@@ -1838,9 +1873,9 @@ msgid "Unknown CAT"
 msgstr ""
 
 #: src/components/NftPageTitle.tsx:32
-#: src/components/NftGroupCard.tsx:86
-#: src/components/NftGroupCard.tsx:144
-#: src/components/NftCardList.tsx:140
+#: src/components/NftGroupCard.tsx:91
+#: src/components/NftGroupCard.tsx:151
+#: src/components/NftCardList.tsx:141
 msgid "Unknown Minter"
 msgstr ""
 
@@ -1849,8 +1884,7 @@ msgid "Unknown NFT"
 msgstr "未知NFT"
 
 #: src/components/OfferCard.tsx:198
-#: src/components/NftGroupCard.tsx:81
-#: src/components/NftGroupCard.tsx:141
+#: src/components/NftGroupCard.tsx:148
 #: src/components/NftCard.tsx:231
 #: src/components/NftCard.tsx:249
 #: src/components/NftCard.tsx:253
@@ -1858,6 +1892,10 @@ msgstr "未知NFT"
 #: src/components/ConfirmationDialog.tsx:522
 msgid "Unnamed"
 msgstr "未命名"
+
+#: src/components/NftGroupCard.tsx:86
+msgid "Unnamed Collection"
+msgstr ""
 
 #: src/components/NftCard.tsx:215
 msgid "Unnamed NFT"
@@ -1875,8 +1913,8 @@ msgstr "未花费"
 
 #: src/pages/DidList.tsx:196
 #: src/components/NftPageTitle.tsx:29
-#: src/components/NftGroupCard.tsx:84
-#: src/components/NftGroupCard.tsx:143
+#: src/components/NftGroupCard.tsx:89
+#: src/components/NftGroupCard.tsx:150
 msgid "Untitled Profile"
 msgstr "未命名个人资料"
 
@@ -1925,6 +1963,11 @@ msgstr "查看已隐藏的"
 #: src/pages/Offers.tsx:205
 msgid "View Offer"
 msgstr "查看报价"
+
+#: src/components/NftGroupCard.tsx:252
+#: src/components/NftGroupCard.tsx:256
+msgid "View on Mintgarden"
+msgstr ""
 
 #: src/pages/TokenList.tsx:199
 msgid "View options"
