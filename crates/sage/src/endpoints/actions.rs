@@ -7,12 +7,12 @@ use clvmr::Allocator;
 use sage_api::{
     IncreaseDerivationIndex, IncreaseDerivationIndexResponse, RedownloadNft, RedownloadNftResponse,
     RemoveCat, RemoveCatResponse, UpdateCat, UpdateCatResponse, UpdateDid, UpdateDidResponse,
-    UpdateNft, UpdateNftResponse,
+    UpdateNft, UpdateNftCollection, UpdateNftCollectionResponse, UpdateNftResponse,
 };
 use sage_database::{CatRow, DidRow};
 use sage_wallet::SyncCommand;
 
-use crate::{parse_asset_id, parse_did_id, parse_nft_id, Error, Result, Sage};
+use crate::{parse_asset_id, parse_collection_id, parse_did_id, parse_nft_id, Error, Result, Sage};
 
 impl Sage {
     pub async fn remove_cat(&self, req: RemoveCat) -> Result<RemoveCatResponse> {
@@ -76,6 +76,21 @@ impl Sage {
         wallet.db.set_nft_visible(nft_id, req.visible).await?;
 
         Ok(UpdateNftResponse {})
+    }
+
+    pub async fn update_nft_collection(
+        &self,
+        req: UpdateNftCollection,
+    ) -> Result<UpdateNftCollectionResponse> {
+        let wallet = self.wallet()?;
+
+        let collection_id = parse_collection_id(req.collection_id)?;
+        wallet
+            .db
+            .set_collection_visible(collection_id, req.visible)
+            .await?;
+
+        Ok(UpdateNftCollectionResponse {})
     }
 
     pub async fn redownload_nft(&self, req: RedownloadNft) -> Result<RedownloadNftResponse> {

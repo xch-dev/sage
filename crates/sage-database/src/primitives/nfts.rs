@@ -77,7 +77,7 @@ impl Database {
         search_nfts(&self.pool, params, limit, offset).await
     }
 
-    pub async fn collection(&self, collection_id: Bytes32) -> Result<CollectionRow> {
+    pub async fn collection(&self, collection_id: Bytes32) -> Result<Option<CollectionRow>> {
         collection(&self.pool, collection_id).await
     }
 
@@ -142,6 +142,14 @@ impl Database {
 
     pub async fn nft_by_coin_id(&self, coin_id: Bytes32) -> Result<Option<Nft<Program>>> {
         nft_by_coin_id(&self.pool, coin_id).await
+    }
+
+    pub async fn set_collection_visible(
+        &self,
+        collection_id: Bytes32,
+        visible: bool,
+    ) -> Result<()> {
+        set_collection_visible(&self.pool, collection_id, visible).await
     }
 }
 
@@ -216,8 +224,16 @@ impl<'a> DatabaseTx<'a> {
         nft(&mut *self.tx, launcher_id).await
     }
 
+    pub async fn collection(&mut self, collection_id: Bytes32) -> Result<Option<CollectionRow>> {
+        collection(&mut *self.tx, collection_id).await
+    }
+
     pub async fn insert_collection(&mut self, row: CollectionRow) -> Result<()> {
         insert_collection(&mut *self.tx, row).await
+    }
+
+    pub async fn update_collection(&mut self, row: CollectionRow) -> Result<()> {
+        update_collection(&mut *self.tx, row).await
     }
 
     pub async fn set_nft_not_owned(&mut self, coin_id: Bytes32) -> Result<()> {
@@ -234,6 +250,37 @@ impl<'a> DatabaseTx<'a> {
 }
 
 async fn insert_collection(conn: impl SqliteExecutor<'_>, row: CollectionRow) -> Result<()> {
+    let collection_id = row.collection_id.as_ref();
+    let did_id = row.did_id.as_ref();
+    let name = row.name.as_deref();
+    let icon = row.icon.as_deref();
+
+    sqlx::query!(
+        "
+        INSERT OR IGNORE INTO `collections` (
+            `collection_id`,
+            `did_id`,
+            `metadata_collection_id`,
+            `visible`,
+            `name`,
+            `icon`
+        )
+        VALUES (?, ?, ?, ?, ?, ?)
+        ",
+        collection_id,
+        did_id,
+        row.metadata_collection_id,
+        row.visible,
+        name,
+        icon
+    )
+    .execute(conn)
+    .await?;
+
+    Ok(())
+}
+
+async fn update_collection(conn: impl SqliteExecutor<'_>, row: CollectionRow) -> Result<()> {
     let collection_id = row.collection_id.as_ref();
     let did_id = row.did_id.as_ref();
     let name = row.name.as_deref();
@@ -283,7 +330,7 @@ async fn collection_name(
 async fn collection(
     conn: impl SqliteExecutor<'_>,
     collection_id: Bytes32,
-) -> Result<CollectionRow> {
+) -> Result<Option<CollectionRow>> {
     let collection_id = collection_id.as_ref();
 
     sqlx::query_as!(
@@ -294,9 +341,10 @@ async fn collection(
         ",
         collection_id
     )
-    .fetch_one(conn)
+    .fetch_optional(conn)
     .await?
-    .into_row()
+    .map(into_row)
+    .transpose()
 }
 
 async fn collections_visible_named(
@@ -582,6 +630,24 @@ async fn set_nft_visible(
         "UPDATE `nfts` SET `visible` = ? WHERE `launcher_id` = ?",
         visible,
         launcher_id
+    )
+    .execute(conn)
+    .await?;
+
+    Ok(())
+}
+
+async fn set_collection_visible(
+    conn: impl SqliteExecutor<'_>,
+    collection_id: Bytes32,
+    visible: bool,
+) -> Result<()> {
+    let collection_id = collection_id.as_ref();
+
+    sqlx::query!(
+        "UPDATE `collections` SET `visible` = ? WHERE `collection_id` = ?",
+        visible,
+        collection_id
     )
     .execute(conn)
     .await?;

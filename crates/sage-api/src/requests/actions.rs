@@ -39,6 +39,15 @@ pub struct UpdateNft {
 pub struct UpdateNftResponse {}
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct UpdateNftCollection {
+    pub collection_id: String,
+    pub visible: bool,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Type)]
+pub struct UpdateNftCollectionResponse {}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub struct RedownloadNft {
     pub nft_id: String,
 }
