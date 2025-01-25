@@ -34,7 +34,7 @@ export function TopNav({ isCollapsed }: NavProps) {
     <nav className={`grid font-medium ${isCollapsed ? 'gap-2' : ''}`} 
          role="navigation" 
          aria-label={t`Main navigation`}>
-      <Separator className='mb-3' />
+      <Separator className='mb-3' role="presentation" />
       <NavLink
         url={'/wallet'}
         isCollapsed={isCollapsed}
@@ -227,7 +227,13 @@ function NavLink({
     return (
       <Tooltip>
         <TooltipTrigger asChild>{link}</TooltipTrigger>
-        <TooltipContent side='right' role="tooltip">{customTooltip || message}</TooltipContent>
+        <TooltipContent 
+          side='right' 
+          role="tooltip"
+          aria-live="polite"
+        >
+          {customTooltip || message}
+        </TooltipContent>
       </Tooltip>
     );
   }

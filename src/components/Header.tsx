@@ -31,7 +31,10 @@ export default function Header(
   const isMobile = platform() === 'ios' || platform() === 'android';
 
   return (
-    <header className='flex items-center gap-4 px-4 md:px-6 sticky top-0 bg-background z-10 pb-2 pt-2'>
+    <header 
+      className='flex items-center gap-4 px-4 md:px-6 sticky top-0 bg-background z-10 pb-2 pt-2'
+      role="banner"
+    >
       <Sheet>
         {hasBackButton ? (
           <Button
@@ -42,9 +45,6 @@ export default function Header(
             aria-label={t`Back`}
           >
             <ChevronLeft className='h-5 w-5 pb' aria-hidden='true' />
-            <span className='sr-only'>
-              <Trans>Back</Trans>
-            </span>
           </Button>
         ) : (
           <SheetTrigger asChild>
@@ -53,11 +53,10 @@ export default function Header(
               size='icon'
               className='shrink-0 md:hidden'
               aria-label={t`Toggle navigation menu`}
+              aria-expanded="false"
+              aria-haspopup="dialog"
             >
               <Menu className='h-5 w-5' aria-hidden='true' />
-              <span className='sr-only'>
-                <Trans>Toggle navigation menu</Trans>
-              </span>
             </Button>
           </SheetTrigger>
         )}
@@ -65,6 +64,8 @@ export default function Header(
           side='left'
           isMobile={isMobile}
           className='flex flex-col'
+          role="dialog"
+          aria-label={t`Navigation menu`}
           style={{
             paddingTop:
               insets.top !== 0
