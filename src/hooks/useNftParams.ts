@@ -5,6 +5,7 @@ import { useCallback, useMemo } from 'react';
 const NFT_HIDDEN_STORAGE_KEY = 'sage-wallet-nft-hidden';
 const NFT_GROUP_STORAGE_KEY = 'sage-wallet-nft-group';
 const NFT_SORT_STORAGE_KEY = 'sage-wallet-nft-sort';
+const NFT_PAGE_SIZE_STORAGE_KEY = 'sage-wallet-nft-page-size';
 
 export enum NftView {
   Name = 'name',
@@ -50,17 +51,21 @@ export function useNftParams(): [NftParams, SetNftParams] {
     NFT_GROUP_STORAGE_KEY,
     NftGroupMode.None,
   );
+  const [pageSize, setPageSize] = useLocalStorage<number>(
+    NFT_PAGE_SIZE_STORAGE_KEY,
+    24
+  );
 
   const params = useMemo(
     () => ({
-      pageSize: 24,
+      pageSize,
       page: Number(searchParams.get('page') || 1),
       sort: view,
       group,
       showHidden,
       query: searchParams.get('query'),
     }),
-    [searchParams, view, group, showHidden],
+    [searchParams, view, group, showHidden, pageSize],
   );
 
   const setParams = useCallback(
@@ -79,6 +84,10 @@ export function useNftParams(): [NftParams, SetNftParams] {
         setGroup(newParams.group);
       }
 
+      if (newParams.pageSize !== undefined) {
+        setPageSize(newParams.pageSize);
+      }
+
       setSearchParams(
         {
           ...(updatedParams.page > 1 && {
@@ -89,7 +98,7 @@ export function useNftParams(): [NftParams, SetNftParams] {
         { replace: true },
       );
     },
-    [params, setSearchParams, setView, setShowHidden, setGroup],
+    [params, setSearchParams, setView, setShowHidden, setGroup, setPageSize],
   );
 
   return [params, setParams];

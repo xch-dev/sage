@@ -9,8 +9,6 @@ import { Trans } from '@lingui/react/macro';
 import {
   ArrowDownAz,
   ArrowLeftIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
   Clock2,
   CopyPlus,
   EyeIcon,
@@ -43,17 +41,17 @@ export interface NftOptionsProps {
   className?: string;
   isLoading?: boolean;
   canLoadMore: boolean;
+  total: number;
 }
 
 export function NftOptions({
   isCollection,
-  params: { page, sort, group, showHidden, query },
+  params: { page, sort, group, showHidden, query, pageSize },
   setParams,
   multiSelect,
   setMultiSelect,
   className,
-  isLoading,
-  canLoadMore,
+  total,
 }: NftOptionsProps) {
   const { collection_id, owner_did, minter_did } = useParams();
   const navigate = useNavigate();
@@ -126,10 +124,10 @@ export function NftOptions({
       <div className='flex items-center justify-between'>
         <Pagination
           page={page}
-          total={canLoadMore ? (page + 1) * 8 : page * 8}
-          pageSize={8}
+          total={total}
+          pageSize={pageSize}
           onPageChange={(newPage) => setParams({ page: newPage })}
-          onPageSizeChange={() => {}}
+          onPageSizeChange={(newSize) => setParams({ pageSize: newSize, page: 1 })}
         />
 
         <div

@@ -27,7 +27,7 @@ export function NftList() {
   const [multiSelect, setMultiSelect] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const { addError } = useErrors();
-  const { nfts, collections, dids, owner, collection, isLoading, updateNfts } =
+  const { nfts, collections, dids, owner, collection, isLoading, updateNfts, total } =
     useNftData({
       pageSize,
       sort,
@@ -105,6 +105,7 @@ export function NftList() {
           }}
           className='mt-4'
           isLoading={isLoading}
+          total={total}
           canLoadMore={canLoadMore()}
           aria-live='polite'
         />

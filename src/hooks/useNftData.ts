@@ -28,6 +28,7 @@ interface NftDataState {
   owner: DidRecord | null;
   collection: NftCollectionRecord | null;
   isLoading: boolean;
+  total: number;
 }
 
 // Helper function moved from NftList
@@ -54,6 +55,7 @@ export function useNftData(params: NftDataParams) {
     owner: null,
     collection: null,
     isLoading: false,
+    total: 0,
   });
 
   const updateNfts = useCallback(
@@ -88,6 +90,7 @@ export function useNftData(params: NftDataParams) {
 
           const updates: Partial<NftDataState> = {
             nfts: response.nfts,
+            total: response.total,
           };
 
           if (params.collectionId) {

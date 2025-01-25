@@ -433,6 +433,8 @@ impl Sage {
             name: req.name,
         };
 
+        let total = wallet.db.count_nfts(params.clone()).await?;
+
         let nfts = wallet
             .db
             .search_nfts(params.clone(), req.limit, req.offset)
@@ -452,7 +454,10 @@ impl Sage {
             records.push(self.nft_record(nft_row, nft, collection_name)?);
         }
 
-        Ok(GetNftsResponse { nfts: records })
+        Ok(GetNftsResponse { 
+            nfts: records,
+            total: total.try_into().unwrap_or(0),
+        })
     }
 
     pub async fn get_nft(&self, req: GetNft) -> Result<GetNftResponse> {
