@@ -31,14 +31,19 @@ export function TopNav({ isCollapsed }: NavProps) {
   const className = isCollapsed ? 'h-5 w-5' : 'h-4 w-4';
 
   return (
-    <nav className={`grid font-medium ${isCollapsed ? 'gap-2' : ''}`}>
-      <Separator className='mb-3' />
+    <nav
+      className={`grid font-medium ${isCollapsed ? 'gap-2' : ''}`}
+      role='navigation'
+      aria-label={t`Main navigation`}
+    >
+      <Separator className='mb-3' role='presentation' />
       <NavLink
         url={'/wallet'}
         isCollapsed={isCollapsed}
         message={<Trans>Wallet</Trans>}
+        ariaCurrent='page'
       >
-        <WalletIcon className={className} />
+        <WalletIcon className={className} aria-hidden='true' />
       </NavLink>
       <NavLink
         url={'/nfts'}
@@ -107,7 +112,11 @@ export function BottomNav({ isCollapsed }: NavProps) {
   const className = isCollapsed ? 'h-5 w-5' : 'h-4 w-4';
 
   return (
-    <nav className={`grid font-medium ${isCollapsed ? 'gap-2' : ''}`}>
+    <nav
+      className={`grid font-medium ${isCollapsed ? 'gap-2' : ''}`}
+      role='navigation'
+      aria-label={t`Secondary navigation`}
+    >
       <NavLink
         url={'/peers'}
         isCollapsed={isCollapsed}
@@ -180,6 +189,7 @@ interface NavLinkProps extends PropsWithChildren {
   isCollapsed?: boolean;
   message: React.ReactNode;
   customTooltip?: React.ReactNode;
+  ariaCurrent?: 'page' | 'step' | 'location' | 'date' | 'time' | true | false;
 }
 
 function NavLink({
@@ -188,6 +198,7 @@ function NavLink({
   isCollapsed,
   message,
   customTooltip,
+  ariaCurrent,
 }: NavLinkProps) {
   const className = `flex items-center gap-3 rounded-lg py-1.5 text-muted-foreground transition-all hover:text-primary ${
     isCollapsed ? 'justify-center' : 'px-3'
@@ -195,21 +206,34 @@ function NavLink({
 
   const link =
     typeof url === 'string' ? (
-      <Link to={url} className={className}>
+      <Link
+        to={url}
+        className={className}
+        aria-current={ariaCurrent}
+        aria-label={isCollapsed ? message?.toString() : undefined}
+      >
         {children}
         {!isCollapsed && message}
       </Link>
     ) : (
-      <button type='button' onClick={url} className={className}>
+      <button
+        type='button'
+        onClick={url}
+        className={className}
+        aria-label={isCollapsed ? message?.toString() : undefined}
+      >
         {children}
         {!isCollapsed && message}
       </button>
     );
+
   if (isCollapsed || customTooltip) {
     return (
       <Tooltip>
         <TooltipTrigger asChild>{link}</TooltipTrigger>
-        <TooltipContent side='right'>{customTooltip || message}</TooltipContent>
+        <TooltipContent side='right' role='tooltip' aria-live='polite'>
+          {customTooltip || message}
+        </TooltipContent>
       </Tooltip>
     );
   }
