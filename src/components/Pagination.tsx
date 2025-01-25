@@ -19,6 +19,7 @@ type PaginationProps = {
   onPageChange: (page: number) => void;
   pageSize: number;
   onPageSizeChange: (pageSize: number) => void;
+  pageSizeOptions?: number[];
 };
 
 export const Pagination = ({
@@ -29,6 +30,7 @@ export const Pagination = ({
   onPageChange,
   pageSize,
   onPageSizeChange,
+  pageSizeOptions = [8, 16, 32, 64],
 }: PaginationProps) => {
   const totalPages = total
     ? Math.max(1, Math.ceil(total / pageSize))
@@ -102,15 +104,20 @@ export const Pagination = ({
         defaultValue={pageSize.toString()}
         value={pageSize.toString()}
       >
-        <SelectTrigger className='w-min' title={t`Page size`}>
+        <SelectTrigger 
+          className='w-min' 
+          title={t`Items per page`}
+          aria-label={t`Select number of items per page`}
+        >
           {pageSize}
         </SelectTrigger>
         <SelectContent>
           <SelectGroup>
-            <SelectItem value='8'>8</SelectItem>
-            <SelectItem value='16'>16</SelectItem>
-            <SelectItem value='32'>32</SelectItem>
-            <SelectItem value='64'>64</SelectItem>
+            {pageSizeOptions.map((size) => (
+              <SelectItem key={size} value={size.toString()}>
+                {size}
+              </SelectItem>
+            ))}
           </SelectGroup>
         </SelectContent>
       </Select>
