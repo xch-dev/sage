@@ -31,17 +31,19 @@ export function TopNav({ isCollapsed }: NavProps) {
   const className = isCollapsed ? 'h-5 w-5' : 'h-4 w-4';
 
   return (
-    <nav className={`grid font-medium ${isCollapsed ? 'gap-2' : ''}`} 
-         role="navigation" 
-         aria-label={t`Main navigation`}>
-      <Separator className='mb-3' role="presentation" />
+    <nav
+      className={`grid font-medium ${isCollapsed ? 'gap-2' : ''}`}
+      role='navigation'
+      aria-label={t`Main navigation`}
+    >
+      <Separator className='mb-3' role='presentation' />
       <NavLink
         url={'/wallet'}
         isCollapsed={isCollapsed}
         message={<Trans>Wallet</Trans>}
-        ariaCurrent="page"
+        ariaCurrent='page'
       >
-        <WalletIcon className={className} aria-hidden="true" />
+        <WalletIcon className={className} aria-hidden='true' />
       </NavLink>
       <NavLink
         url={'/nfts'}
@@ -110,9 +112,11 @@ export function BottomNav({ isCollapsed }: NavProps) {
   const className = isCollapsed ? 'h-5 w-5' : 'h-4 w-4';
 
   return (
-    <nav className={`grid font-medium ${isCollapsed ? 'gap-2' : ''}`}
-         role="navigation" 
-         aria-label={t`Secondary navigation`}>
+    <nav
+      className={`grid font-medium ${isCollapsed ? 'gap-2' : ''}`}
+      role='navigation'
+      aria-label={t`Secondary navigation`}
+    >
       <NavLink
         url={'/peers'}
         isCollapsed={isCollapsed}
@@ -202,8 +206,8 @@ function NavLink({
 
   const link =
     typeof url === 'string' ? (
-      <Link 
-        to={url} 
+      <Link
+        to={url}
         className={className}
         aria-current={ariaCurrent}
         aria-label={isCollapsed ? message?.toString() : undefined}
@@ -212,9 +216,9 @@ function NavLink({
         {!isCollapsed && message}
       </Link>
     ) : (
-      <button 
-        type='button' 
-        onClick={url} 
+      <button
+        type='button'
+        onClick={url}
         className={className}
         aria-label={isCollapsed ? message?.toString() : undefined}
       >
@@ -227,11 +231,7 @@ function NavLink({
     return (
       <Tooltip>
         <TooltipTrigger asChild>{link}</TooltipTrigger>
-        <TooltipContent 
-          side='right' 
-          role="tooltip"
-          aria-live="polite"
-        >
+        <TooltipContent side='right' role='tooltip' aria-live='polite'>
           {customTooltip || message}
         </TooltipContent>
       </Tooltip>

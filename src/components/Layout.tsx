@@ -65,7 +65,7 @@ export default function Layout(props: LayoutProps) {
           className={`hidden border-r bg-muted/40 md:flex flex-col transition-all duration-300 ${
             isCollapsed ? 'w-[60px]' : 'w-[250px]'
           }`}
-          role="complementary"
+          role='complementary'
           aria-label={t`Sidebar navigation`}
         >
           <div className='bg-background flex h-full max-h-screen flex-col gap-2'>
@@ -83,13 +83,13 @@ export default function Layout(props: LayoutProps) {
                     aria-expanded={!isCollapsed}
                   >
                     {isCollapsed ? (
-                      <PanelLeft className='h-5 w-5' aria-hidden="true" />
+                      <PanelLeft className='h-5 w-5' aria-hidden='true' />
                     ) : (
-                      <PanelLeftClose className='h-5 w-5' aria-hidden="true" />
+                      <PanelLeftClose className='h-5 w-5' aria-hidden='true' />
                     )}
                   </button>
                 </TooltipTrigger>
-                <TooltipContent side='right' role="tooltip">
+                <TooltipContent side='right' role='tooltip'>
                   {isCollapsed ? t`Expand sidebar` : t`Collapse sidebar`}
                 </TooltipContent>
               </Tooltip>

@@ -31,9 +31,9 @@ export default function Header(
   const isMobile = platform() === 'ios' || platform() === 'android';
 
   return (
-    <header 
+    <header
       className='flex items-center gap-4 px-4 md:px-6 sticky top-0 bg-background z-10 pb-2 pt-2'
-      role="banner"
+      role='banner'
     >
       <Sheet>
         {hasBackButton ? (
@@ -53,8 +53,8 @@ export default function Header(
               size='icon'
               className='shrink-0 md:hidden'
               aria-label={t`Toggle navigation menu`}
-              aria-expanded="false"
-              aria-haspopup="dialog"
+              aria-expanded='false'
+              aria-haspopup='dialog'
             >
               <Menu className='h-5 w-5' aria-hidden='true' />
             </Button>
@@ -64,7 +64,7 @@ export default function Header(
           side='left'
           isMobile={isMobile}
           className='flex flex-col'
-          role="dialog"
+          role='dialog'
           aria-label={t`Navigation menu`}
           style={{
             paddingTop:
@@ -89,7 +89,9 @@ export default function Header(
           <div className='-mx-2'>
             <TopNav />
           </div>
-          <div className={`mt-auto grid gap-1 text-md font-medium ${!isMobile ? 'pb-4' : ''}`}>
+          <div
+            className={`mt-auto grid gap-1 text-md font-medium ${!isMobile ? 'pb-4' : ''}`}
+          >
             <BottomNav />
           </div>
         </SheetContent>
