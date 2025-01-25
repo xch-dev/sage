@@ -88,7 +88,7 @@ export default function Header(
           <div className='-mx-2'>
             <TopNav />
           </div>
-          <div className='mt-auto grid gap-1 text-md font-medium'>
+          <div className={`mt-auto grid gap-1 text-md font-medium ${!isMobile ? 'pb-4' : ''}`}>
             <BottomNav />
           </div>
         </SheetContent>

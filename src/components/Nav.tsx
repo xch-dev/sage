@@ -110,7 +110,7 @@ export function BottomNav({ isCollapsed }: NavProps) {
   const className = isCollapsed ? 'h-5 w-5' : 'h-4 w-4';
 
   return (
-    <nav className={`grid font-medium ${isCollapsed ? 'gap-2' : ''} pb-4`}
+    <nav className={`grid font-medium ${isCollapsed ? 'gap-2' : ''}`}
          role="navigation" 
          aria-label={t`Secondary navigation`}>
       <NavLink
