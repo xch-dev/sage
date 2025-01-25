@@ -128,6 +128,7 @@ export function NftOptions({
           pageSize={pageSize}
           onPageChange={(newPage) => setParams({ page: newPage })}
           onPageSizeChange={(newSize) => setParams({ pageSize: newSize, page: 1 })}
+          pageSizeOptions={[24, 48, 72, 96]}
         />
 
         <div

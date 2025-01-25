@@ -41,7 +41,11 @@ export const Pagination = ({
     : !canLoadMore || isLoading;
 
   return (
-    <div className='flex justify-between gap-2'>
+    <nav 
+      role="navigation" 
+      aria-label={t`Pagination`}
+      className='flex justify-between gap-2'
+    >
       <div className='flex items-center justify-start gap-3'>
         <Button
           size='icon'
@@ -51,9 +55,10 @@ export const Pagination = ({
             onPageChange(Math.max(1, page - 1));
           }}
           disabled={isFirstPage}
-          title={t`Previous page`}
+          aria-label={t`Go to previous page`}
+          aria-disabled={isFirstPage}
         >
-          <ChevronLeftIcon className='h-4 w-4' />
+          <ChevronLeftIcon className='h-4 w-4' aria-hidden="true" />
         </Button>
 
         {totalPages ? (
@@ -62,22 +67,34 @@ export const Pagination = ({
             defaultValue={page.toString()}
             value={page.toString()}
             disabled={totalPages === 1}
+            aria-label={t`Select page number`}
           >
-            <SelectTrigger className='w-min text-sm' title={t`Page`}>
-              <SelectValue placeholder={t`Page`}>
+            <SelectTrigger 
+              className='w-min text-sm'
+              aria-label={t`Current page ${page} of ${totalPages}`}
+            >
+              <SelectValue>
                 {page} / {totalPages}
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {Array.from({ length: totalPages }, (_, i) => (
-                <SelectItem key={i} value={(i + 1).toString()}>
+                <SelectItem 
+                  key={i} 
+                  value={(i + 1).toString()}
+                  aria-label={t`Go to page ${i + 1}`}
+                >
                   {i + 1}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         ) : (
-          <div className='text-sm text-muted-foreground font-medium  text-center'>
+          <div 
+            className='text-sm text-muted-foreground font-medium text-center'
+            aria-live="polite"
+            aria-atomic="true"
+          >
             <Trans>Page {page}</Trans>
           </div>
         )}
@@ -90,37 +107,50 @@ export const Pagination = ({
             onPageChange(Math.min(totalPages ?? Infinity, page + 1));
           }}
           disabled={isLastPage}
-          title={t`Next page`}
+          aria-label={t`Go to next page`}
+          aria-disabled={isLastPage}
         >
-          <ChevronRightIcon className='h-4 w-4' />
+          <ChevronRightIcon className='h-4 w-4' aria-hidden="true" />
         </Button>
       </div>
 
-      <Select
-        onValueChange={(value) => {
-          onPageChange(1);
-          onPageSizeChange(parseInt(value));
-        }}
-        defaultValue={pageSize.toString()}
-        value={pageSize.toString()}
-      >
-        <SelectTrigger 
-          className='w-min' 
-          title={t`Items per page`}
-          aria-label={t`Select number of items per page`}
+      <div className="flex items-center gap-2">
+        <label 
+          id="items-per-page-label" 
+          className="sr-only"
         >
-          {pageSize}
-        </SelectTrigger>
-        <SelectContent>
-          <SelectGroup>
-            {pageSizeOptions.map((size) => (
-              <SelectItem key={size} value={size.toString()}>
-                {size}
-              </SelectItem>
-            ))}
-          </SelectGroup>
-        </SelectContent>
-      </Select>
-    </div>
+          <Trans>Items per page</Trans>
+        </label>
+        <Select
+          onValueChange={(value) => {
+            onPageChange(1);
+            onPageSizeChange(parseInt(value));
+          }}
+          defaultValue={pageSize.toString()}
+          value={pageSize.toString()}
+          aria-labelledby="items-per-page-label"
+        >
+          <SelectTrigger 
+            className='w-min'
+            aria-label={t`${pageSize} items per page`}
+          >
+            {pageSize}
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              {pageSizeOptions.map((size) => (
+                <SelectItem 
+                  key={size} 
+                  value={size.toString()}
+                  aria-label={t`Show ${size} items per page`}
+                >
+                  {size}
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          </SelectContent>
+        </Select>
+      </div>
+    </nav>
   );
 };

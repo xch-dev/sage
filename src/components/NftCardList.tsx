@@ -174,7 +174,7 @@ export function NftCardList({
 
   return (
     <div
-      className='grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-6 gap-2 md:gap-4 mt-6 mb-2'
+      className='grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-8 2xl:grid-cols-16 gap-2 md:gap-4 mt-6 mb-2'
       role='grid'
       aria-label={t`NFT Gallery`}
     >
