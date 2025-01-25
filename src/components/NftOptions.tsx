@@ -32,6 +32,7 @@ import {
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
 import { Input } from './ui/input';
+import { Pagination } from './Pagination';
 
 export interface NftOptionsProps {
   isCollection?: boolean;
@@ -123,46 +124,13 @@ export function NftOptions({
       </div>
 
       <div className='flex items-center justify-between'>
-        <div
-          className='flex gap-3 items-center'
-          role='navigation'
-          aria-label={t`Pagination`}
-        >
-          <Button
-            variant='outline'
-            size='icon'
-            onClick={() =>
-              !isLoading &&
-              page > 1 &&
-              setParams({ page: Math.max(page - 1, 1) })
-            }
-            disabled={page === 1 || isLoading}
-            aria-label={t`Previous page`}
-            title={t`Previous page`}
-          >
-            <ChevronLeftIcon className='h-4 w-4' aria-hidden='true' />
-          </Button>
-          <p
-            className='text-sm text-muted-foreground font-medium w-[70px] text-center'
-            aria-live='polite'
-            aria-atomic='true'
-          >
-            <Trans>Page {page}</Trans>
-          </p>
-          <Button
-            variant='outline'
-            size='icon'
-            onClick={() => {
-              if (!canLoadMore) return;
-              if (!isLoading) setParams({ page: page + 1 });
-            }}
-            disabled={!canLoadMore || isLoading}
-            aria-label={t`Next page`}
-            title={t`Next page`}
-          >
-            <ChevronRightIcon className='h-4 w-4' aria-hidden='true' />
-          </Button>
-        </div>
+        <Pagination
+          page={page}
+          total={canLoadMore ? (page + 1) * 8 : page * 8}
+          pageSize={8}
+          onPageChange={(newPage) => setParams({ page: newPage })}
+          onPageSizeChange={() => {}}
+        />
 
         <div
           className='flex gap-2 items-center'
