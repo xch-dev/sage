@@ -195,7 +195,11 @@ const NftCardComponent = ({
     <>
       <div
         className={`cursor-pointer group${
-          !nft.visible ? ' opacity-50 grayscale' : !nft.created_height ? ' pulsate-opacity' : ''
+          !nft.visible
+            ? ' opacity-50 grayscale'
+            : !nft.created_height
+              ? ' pulsate-opacity'
+              : ''
         }`}
         onClick={() => {
           if (selectionState === null) {
@@ -247,7 +251,7 @@ const NftCardComponent = ({
             />
           )}
         </div>
-        <div 
+        <div
           className='border border-neutral-200 bg-white text-neutral-950 shadow dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-50 text-md flex items-center justify-between rounded-b-lg p-2 pl-3'
           role='group'
           aria-label={t`NFT details`}
@@ -282,9 +286,9 @@ const NftCardComponent = ({
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button 
-                variant='ghost' 
-                size='icon' 
+              <Button
+                variant='ghost'
+                size='icon'
                 aria-label={t`Options for ${nftName}`}
                 onClick={(e) => e.stopPropagation()}
               >
@@ -303,7 +307,9 @@ const NftCardComponent = ({
                   aria-label={t`Transfer ${nftName}`}
                 >
                   <SendIcon className='mr-2 h-4 w-4' aria-hidden='true' />
-                  <span><Trans>Transfer</Trans></span>
+                  <span>
+                    <Trans>Transfer</Trans>
+                  </span>
                 </DropdownMenuItem>
 
                 <DropdownMenuItem
@@ -313,7 +319,9 @@ const NftCardComponent = ({
                     setAssignOpen(true);
                   }}
                   disabled={!nft.created_height}
-                  aria-label={nft.owner_did === null ? t`Assign profile` : t`Edit profile`}
+                  aria-label={
+                    nft.owner_did === null ? t`Assign profile` : t`Edit profile`
+                  }
                 >
                   <UserRoundPlus className='mr-2 h-4 w-4' aria-hidden='true' />
                   <span>
@@ -414,7 +422,9 @@ const NftCardComponent = ({
                     e.stopPropagation();
                     toggleVisibility();
                   }}
-                  aria-label={nft.visible ? t`Hide ${nftName}` : t`Show ${nftName}`}
+                  aria-label={
+                    nft.visible ? t`Hide ${nftName}` : t`Show ${nftName}`
+                  }
                 >
                   {nft.visible ? (
                     <EyeOff className='mr-2 h-4 w-4' aria-hidden='true' />

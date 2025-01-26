@@ -122,8 +122,14 @@ export function NftGroupCard({
         aria-busy='true'
         aria-label={isCollection ? t`Loading collection` : t`Loading profile`}
       >
-        <div className='aspect-square bg-neutral-100 dark:bg-neutral-800 rounded-t-lg' aria-hidden='true' />
-        <div className='h-6 bg-neutral-100 dark:bg-neutral-800 rounded mt-4' aria-hidden='true' />
+        <div
+          className='aspect-square bg-neutral-100 dark:bg-neutral-800 rounded-t-lg'
+          aria-hidden='true'
+        />
+        <div
+          className='h-6 bg-neutral-100 dark:bg-neutral-800 rounded mt-4'
+          aria-hidden='true'
+        />
       </div>
     );
   }
@@ -268,7 +274,9 @@ export function NftGroupCard({
                       onToggleVisibility();
                     }}
                     disabled={!canToggleVisibility}
-                    aria-label={item.visible ? t`Hide ${cardName}` : t`Show ${cardName}`}
+                    aria-label={
+                      item.visible ? t`Hide ${cardName}` : t`Show ${cardName}`
+                    }
                   >
                     {item.visible ? (
                       <>
