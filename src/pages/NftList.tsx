@@ -30,7 +30,8 @@ export function NftList() {
   const {
     nfts,
     collections,
-    dids,
+    ownerDids,
+    minterDids,
     owner,
     collection,
     isLoading,
@@ -59,11 +60,10 @@ export function NftList() {
       return nfts.length === pageSize;
     } else if (group === NftGroupMode.Collection) {
       return collections.length === pageSize;
-    } else if (
-      group === NftGroupMode.OwnerDid ||
-      group === NftGroupMode.MinterDid
-    ) {
-      return dids.length === pageSize;
+    } else if (group === NftGroupMode.OwnerDid) {
+      return ownerDids.length === pageSize;
+    } else if (group === NftGroupMode.MinterDid) {
+      return minterDids.length === pageSize;
     }
     return false;
   }, [
@@ -73,7 +73,8 @@ export function NftList() {
     group,
     nfts.length,
     collections.length,
-    dids.length,
+    ownerDids.length,
+    minterDids.length,
     pageSize,
   ]);
 
@@ -126,7 +127,8 @@ export function NftList() {
             group={group}
             nfts={nfts}
             collections={collections}
-            dids={dids}
+            ownerDids={ownerDids}
+            minterDids={minterDids}
             pageSize={pageSize}
             updateNfts={updateNfts}
             page={params.page}

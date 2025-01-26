@@ -51,7 +51,9 @@ export function NftOptions({
   multiSelect,
   setMultiSelect,
   className,
+  isLoading,
   total,
+  canLoadMore,
 }: NftOptionsProps) {
   const { collection_id, owner_did, minter_did } = useParams();
   const navigate = useNavigate();
@@ -132,6 +134,8 @@ export function NftOptions({
           }
           pageSizeOptions={[24, 48, 72, 96]}
           compact={true}
+          canLoadMore={canLoadMore}
+          isLoading={isLoading}
         />
 
         <div

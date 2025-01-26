@@ -24,11 +24,15 @@ interface NftDataParams {
 interface NftDataState {
   nfts: NftRecord[];
   collections: NftCollectionRecord[];
-  dids: DidRecord[];
+  ownerDids: DidRecord[];
+  minterDids: DidRecord[];
   owner: DidRecord | null;
   collection: NftCollectionRecord | null;
   isLoading: boolean;
-  total: number;
+  nftTotal: number;
+  collectionTotal: number;
+  ownerDidsTotal: number;
+  minterDidsTotal: number;
 }
 
 // Helper function moved from NftList
@@ -51,11 +55,15 @@ export function useNftData(params: NftDataParams) {
   const [state, setState] = useState<NftDataState>({
     nfts: [],
     collections: [],
-    dids: [],
+    ownerDids: [],
+    minterDids: [],
     owner: null,
     collection: null,
     isLoading: false,
-    total: 0,
+    nftTotal: 0,
+    collectionTotal: 0,
+    ownerDidsTotal: 0,
+    minterDidsTotal: 0,
   });
 
   const updateNfts = useCallback(
@@ -90,7 +98,7 @@ export function useNftData(params: NftDataParams) {
 
           const updates: Partial<NftDataState> = {
             nfts: response.nfts,
-            total: response.total,
+            nftTotal: response.total,
           };
 
           if (params.collectionId) {
@@ -126,17 +134,30 @@ export function useNftData(params: NftDataParams) {
             setState((prev) => ({
               ...prev,
               collections: response.collections,
+              collectionTotal: response.total,
             }));
           } catch (error: any) {
-            setState((prev) => ({ ...prev, collections: [] }));
+            setState((prev) => ({
+              ...prev,
+              collections: [],
+              collectionTotal: 0,
+            }));
             addError(error);
           }
         } else if (params.group === NftGroupMode.OwnerDid) {
           try {
             const response = await commands.getDids({});
-            setState((prev) => ({ ...prev, dids: response.dids }));
+            setState((prev) => ({
+              ...prev,
+              ownerDids: response.dids,
+              ownerDidsTotal: response.dids.length,
+            }));
           } catch (error: any) {
-            setState((prev) => ({ ...prev, dids: [] }));
+            setState((prev) => ({
+              ...prev,
+              ownerDids: [],
+              ownerDidsTotal: 0,
+            }));
             addError(error);
           }
         } else if (params.group === NftGroupMode.MinterDid) {
@@ -149,9 +170,17 @@ export function useNftData(params: NftDataParams) {
                   did,
                 ),
             );
-            setState((prev) => ({ ...prev, dids: minterDids }));
+            setState((prev) => ({
+              ...prev,
+              minterDids,
+              minterDidsTotal: minterDids.length,
+            }));
           } catch (error: any) {
-            setState((prev) => ({ ...prev, dids: [] }));
+            setState((prev) => ({
+              ...prev,
+              minterDids: [],
+              minterDidsTotal: 0,
+            }));
             addError(error);
           }
         }
@@ -181,7 +210,8 @@ export function useNftData(params: NftDataParams) {
       ...prev,
       nfts: [],
       collections: [],
-      dids: [],
+      ownerDids: [],
+      minterDids: [],
       collection: null,
       owner: null,
     }));
@@ -212,8 +242,38 @@ export function useNftData(params: NftDataParams) {
     };
   }, [updateNfts, params.page]);
 
+  // Helper function to get the correct total based on current view
+  const getTotal = useCallback(() => {
+    if (params.collectionId || params.ownerDid || params.minterDid || params.group === NftGroupMode.None) {
+      return state.nftTotal;
+    } else if (params.group === NftGroupMode.Collection) {
+      return state.collectionTotal;
+    } else if (params.group === NftGroupMode.OwnerDid) {
+      return state.ownerDidsTotal;
+    } else if (params.group === NftGroupMode.MinterDid) {
+      return state.minterDidsTotal;
+    }
+    return 0;
+  }, [
+    params.collectionId,
+    params.ownerDid,
+    params.minterDid,
+    params.group,
+    state.nftTotal,
+    state.collectionTotal,
+    state.ownerDidsTotal,
+    state.minterDidsTotal,
+  ]);
+
   return {
-    ...state,
+    nfts: state.nfts,
+    collections: state.collections,
+    ownerDids: state.ownerDids,
+    minterDids: state.minterDids,
+    owner: state.owner,
+    collection: state.collection,
+    isLoading: state.isLoading,
+    total: getTotal(),
     updateNfts,
   };
 }
