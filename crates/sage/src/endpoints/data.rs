@@ -247,20 +247,22 @@ impl Sage {
 
     pub async fn get_minter_did_ids(
         &self,
-        _req: GetMinterDidIds,
+        req: GetMinterDidIds,
     ) -> Result<GetMinterDidIdsResponse> {
         let wallet = self.wallet()?;
 
         let did_ids = wallet
             .db
-            .distinct_minter_dids()
+            .distinct_minter_dids(req.limit, req.offset)
             .await?
             .into_iter()
             .filter_map(|did| did.map(|d| encode_address(d.to_bytes(), "did:chia:").ok()))
             .flatten()
             .collect();
 
-        Ok(GetMinterDidIdsResponse { did_ids })
+        let total = wallet.db.count_distinct_minter_dids().await?.try_into().unwrap();
+
+        Ok(GetMinterDidIdsResponse { did_ids, total })
     }
 
     pub async fn get_pending_transactions(
