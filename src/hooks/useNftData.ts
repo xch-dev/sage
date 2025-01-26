@@ -166,17 +166,25 @@ export function useNftData(params: NftDataParams) {
               limit: params.pageSize,
               offset: (page - 1) * params.pageSize,
             });
-            const minterDids: DidRecord[] = uniqueMinterDids.did_ids.map(
-              (did) =>
-                createDefaultDidRecord(
-                  `${did.replace('did:chia:', '').slice(0, 16)}...`,
-                  did,
-                ),
+
+            const minterDids: DidRecord[] = uniqueMinterDids.did_ids.map((did) =>
+              createDefaultDidRecord(
+                `${did.replace('did:chia:', '').slice(0, 16)}...`,
+                did,
+              )
             );
+
+            // Add Unknown Minter to the end of the list if we're on the last page
+            if (minterDids.length < params.pageSize && page === Math.ceil((uniqueMinterDids.total + 1) / params.pageSize)) {
+              minterDids.push(
+                createDefaultDidRecord('Unknown Minter', 'No did')
+              );
+            }
+
             setState((prev) => ({
               ...prev,
               minterDids,
-              minterDidsTotal: uniqueMinterDids.total,
+              minterDidsTotal: uniqueMinterDids.total + 1, // Add 1 for Unknown Minter
             }));
           } catch (error: any) {
             setState((prev) => ({
