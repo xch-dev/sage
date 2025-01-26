@@ -131,10 +131,26 @@ export function useNftData(params: NftDataParams) {
               limit: params.pageSize,
               include_hidden: params.showHidden,
             });
+
+            const collections = response.collections;
+
+            // Add No Collection to the end if we're on the last page and there's room
+            if (collections.length < params.pageSize &&
+              page === Math.ceil((response.total + 1) / params.pageSize)) {
+              collections.push({
+                name: 'No Collection',
+                icon: '',
+                did_id: 'Miscellaneous',
+                metadata_collection_id: 'Uncategorized NFTs',
+                collection_id: 'No collection',
+                visible: true,
+              });
+            }
+
             setState((prev) => ({
               ...prev,
-              collections: response.collections,
-              collectionTotal: response.total,
+              collections,
+              collectionTotal: response.total + 1, // Add 1 for No Collection
             }));
           } catch (error: any) {
             setState((prev) => ({

@@ -95,22 +95,6 @@ export function NftCardList({
               }}
             />
           ))}
-          {collections.length < pageSize && (
-            <NftGroupCard
-              type='collection'
-              item={{
-                name: t`No Collection`,
-                icon: '',
-                did_id: 'Miscellaneous',
-                metadata_collection_id: 'Uncategorized NFTs',
-                collection_id: 'No collection',
-                visible: true,
-              }}
-              canToggleVisibility={false}
-              updateNfts={updateNfts}
-              page={page}
-            />
-          )}
         </>
       );
     }
