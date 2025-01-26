@@ -189,10 +189,14 @@ const NftCardComponent = ({
       .finally(() => setBurnOpen(false));
   };
 
+  const nftName = nft.name ?? t`Unnamed NFT`;
+
   return (
     <>
       <div
-        className={`cursor-pointer group${!nft.visible ? ' opacity-50 grayscale' : !nft.created_height ? ' pulsate-opacity' : ''}`}
+        className={`cursor-pointer group${
+          !nft.visible ? ' opacity-50 grayscale' : !nft.created_height ? ' pulsate-opacity' : ''
+        }`}
         onClick={() => {
           if (selectionState === null) {
             navigate(`/nfts/${nft.launcher_id}`);
@@ -210,16 +214,18 @@ const NftCardComponent = ({
             }
           }
         }}
-        role='button'
+        role='article'
         tabIndex={0}
-        aria-label={nft.name ? `NFT: ${nft.name}` : t`Unnamed NFT`}
+        aria-label={nftName}
+        aria-disabled={!nft.created_height}
+        aria-selected={selectionState?.[0]}
       >
         <div className='overflow-hidden rounded-t-lg relative'>
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
                 <img
-                  alt={nft.name ?? t`NFT artwork for unnamed NFT`}
+                  alt={t`NFT artwork for ${nftName}`}
                   loading='lazy'
                   width='150'
                   height='150'
@@ -228,7 +234,7 @@ const NftCardComponent = ({
                 />
               </TooltipTrigger>
               <TooltipContent>
-                <p>{nft.name ?? t`Unnamed`}</p>
+                <p>{nftName}</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -237,20 +243,25 @@ const NftCardComponent = ({
             <Checkbox
               checked={selectionState[0]}
               className='absolute top-2 right-2 w-5 h-5'
+              aria-label={selectionState[0] ? t`Deselect NFT` : t`Select NFT`}
             />
           )}
         </div>
-        <div className='border border-neutral-200 bg-white text-neutral-950 shadow dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-50 text-md flex items-center justify-between rounded-b-lg p-2 pl-3'>
+        <div 
+          className='border border-neutral-200 bg-white text-neutral-950 shadow dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-50 text-md flex items-center justify-between rounded-b-lg p-2 pl-3'
+          role='group'
+          aria-label={t`NFT details`}
+        >
           <span className='truncate'>
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <span className='font-medium leading-none truncate block'>
-                    {nft.name ?? t`Unnamed`}
-                  </span>
+                  <h3 className='font-medium leading-none truncate block'>
+                    {nftName}
+                  </h3>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>{nft.name ?? t`Unnamed`}</p>
+                  <p>{nftName}</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -271,8 +282,13 @@ const NftCardComponent = ({
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant='ghost' size='icon' aria-label={t`NFT options`}>
-                <MoreVertical className='h-5 w-5' />
+              <Button 
+                variant='ghost' 
+                size='icon' 
+                aria-label={t`Options for ${nftName}`}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <MoreVertical className='h-5 w-5' aria-hidden='true' />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align='end'>
@@ -284,11 +300,10 @@ const NftCardComponent = ({
                     setTransferOpen(true);
                   }}
                   disabled={!nft.created_height}
+                  aria-label={t`Transfer ${nftName}`}
                 >
-                  <SendIcon className='mr-2 h-4 w-4' />
-                  <span>
-                    <Trans>Transfer</Trans>
-                  </span>
+                  <SendIcon className='mr-2 h-4 w-4' aria-hidden='true' />
+                  <span><Trans>Transfer</Trans></span>
                 </DropdownMenuItem>
 
                 <DropdownMenuItem
@@ -298,8 +313,9 @@ const NftCardComponent = ({
                     setAssignOpen(true);
                   }}
                   disabled={!nft.created_height}
+                  aria-label={nft.owner_did === null ? t`Assign profile` : t`Edit profile`}
                 >
-                  <UserRoundPlus className='mr-2 h-4 w-4' />
+                  <UserRoundPlus className='mr-2 h-4 w-4' aria-hidden='true' />
                   <span>
                     {nft.owner_did === null ? (
                       <Trans>Assign Profile</Trans>
@@ -317,8 +333,9 @@ const NftCardComponent = ({
                     setAddUrlOpen(true);
                   }}
                   disabled={!nft.created_height}
+                  aria-label={t`Add URL to ${nftName}`}
                 >
-                  <LinkIcon className='mr-2 h-4 w-4' />
+                  <LinkIcon className='mr-2 h-4 w-4' aria-hidden='true' />
                   <span>
                     <Trans>Add URL</Trans>
                   </span>
@@ -331,8 +348,9 @@ const NftCardComponent = ({
                     setBurnOpen(true);
                   }}
                   disabled={!nft.created_height}
+                  aria-label={t`Burn ${nftName}`}
                 >
-                  <Flame className='mr-2 h-4 w-4' />
+                  <Flame className='mr-2 h-4 w-4' aria-hidden='true' />
                   <span>
                     <Trans>Burn</Trans>
                   </span>
@@ -363,8 +381,9 @@ const NftCardComponent = ({
                       (nftId) => nftId === nft.launcher_id,
                     ) !== -1
                   }
+                  aria-label={t`Add ${nftName} to offer`}
                 >
-                  <HandCoins className='mr-2 h-4 w-4' />
+                  <HandCoins className='mr-2 h-4 w-4' aria-hidden='true' />
                   <span>
                     <Trans>Add to Offer</Trans>
                   </span>
@@ -379,10 +398,11 @@ const NftCardComponent = ({
                       .redownloadNft({ nft_id: nft.launcher_id })
                       .catch(addError);
 
-                    toast.success(t`Redownloading NFT data`);
+                    toast.success(t`Re-downloading NFT data`);
                   }}
+                  aria-label={t`Redownload ${nftName}`}
                 >
-                  <RefreshCcw className='mr-2 h-4 w-4' />
+                  <RefreshCcw className='mr-2 h-4 w-4' aria-hidden='true' />
                   <span>
                     <Trans>Redownload</Trans>
                   </span>
@@ -394,11 +414,12 @@ const NftCardComponent = ({
                     e.stopPropagation();
                     toggleVisibility();
                   }}
+                  aria-label={nft.visible ? t`Hide ${nftName}` : t`Show ${nftName}`}
                 >
                   {nft.visible ? (
-                    <EyeOff className='mr-2 h-4 w-4' />
+                    <EyeOff className='mr-2 h-4 w-4' aria-hidden='true' />
                   ) : (
-                    <EyeIcon className='mr-2 h-4 w-4' />
+                    <EyeIcon className='mr-2 h-4 w-4' aria-hidden='true' />
                   )}
                   <span>
                     {nft.visible ? <Trans>Hide</Trans> : <Trans>Show</Trans>}
@@ -414,7 +435,7 @@ const NftCardComponent = ({
                   }}
                   aria-label={t`Copy NFT ID to clipboard`}
                 >
-                  <Copy className='mr-2 h-4 w-4' />
+                  <Copy className='mr-2 h-4 w-4' aria-hidden='true' />
                   <span>
                     <Trans>Copy ID</Trans>
                   </span>
@@ -430,6 +451,7 @@ const NftCardComponent = ({
         open={transferOpen}
         setOpen={setTransferOpen}
         onSubmit={onTransferSubmit}
+        aria-label={t`Transfer ${nftName}`}
       >
         <Trans>This will send the NFT to the provided address.</Trans>
       </TransferDialog>
@@ -439,6 +461,7 @@ const NftCardComponent = ({
         open={assignOpen}
         setOpen={setAssignOpen}
         onSubmit={onAssignSubmit}
+        aria-label={t`Assign profile for ${nftName}`}
       >
         <Trans>This will assign the NFT to the selected profile.</Trans>
       </AssignNftDialog>
