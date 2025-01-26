@@ -260,10 +260,7 @@ impl Sage {
             .flatten()
             .collect();
 
-        let total = wallet
-            .db
-            .count_distinct_minter_dids()
-            .await?;
+        let total = wallet.db.count_distinct_minter_dids().await?;
 
         Ok(GetMinterDidIdsResponse { did_ids, total })
     }
