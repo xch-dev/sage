@@ -53,7 +53,7 @@ export function useNftParams(): [NftParams, SetNftParams] {
   );
   const [pageSize, setPageSize] = useLocalStorage<number>(
     NFT_PAGE_SIZE_STORAGE_KEY,
-    24
+    24,
   );
 
   const params = useMemo(

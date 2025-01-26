@@ -124,6 +124,7 @@ pub struct GetNftCollections {
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub struct GetNftCollectionsResponse {
     pub collections: Vec<NftCollectionRecord>,
+    pub total: u32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]

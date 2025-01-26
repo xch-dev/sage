@@ -343,8 +343,11 @@ impl Sage {
             });
         }
 
+        let total = wallet.db.count_collections(req.include_hidden).await?;
+
         Ok(GetNftCollectionsResponse {
             collections: records,
+            total: total.try_into()?,
         })
     }
 
@@ -454,7 +457,7 @@ impl Sage {
             records.push(self.nft_record(nft_row, nft, collection_name)?);
         }
 
-        Ok(GetNftsResponse { 
+        Ok(GetNftsResponse {
             nfts: records,
             total: total.try_into().unwrap_or(0),
         })

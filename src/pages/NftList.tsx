@@ -27,18 +27,26 @@ export function NftList() {
   const [multiSelect, setMultiSelect] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const { addError } = useErrors();
-  const { nfts, collections, dids, owner, collection, isLoading, updateNfts, total } =
-    useNftData({
-      pageSize,
-      sort,
-      group,
-      showHidden,
-      query,
-      collectionId,
-      ownerDid,
-      minterDid,
-      page: params.page,
-    });
+  const {
+    nfts,
+    collections,
+    dids,
+    owner,
+    collection,
+    isLoading,
+    updateNfts,
+    total,
+  } = useNftData({
+    pageSize,
+    sort,
+    group,
+    showHidden,
+    query,
+    collectionId,
+    ownerDid,
+    minterDid,
+    page: params.page,
+  });
 
   // Reset multi-select when route changes
   useEffect(() => {

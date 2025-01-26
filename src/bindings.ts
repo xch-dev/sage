@@ -5,252 +5,252 @@
 
 
 export const commands = {
-async initialize() : Promise<null> {
-    return await TAURI_INVOKE("initialize");
-},
-async login(req: Login) : Promise<LoginResponse> {
-    return await TAURI_INVOKE("login", { req });
-},
-async logout(req: Logout) : Promise<LogoutResponse> {
-    return await TAURI_INVOKE("logout", { req });
-},
-async resync(req: Resync) : Promise<ResyncResponse> {
-    return await TAURI_INVOKE("resync", { req });
-},
-async generateMnemonic(req: GenerateMnemonic) : Promise<GenerateMnemonicResponse> {
-    return await TAURI_INVOKE("generate_mnemonic", { req });
-},
-async importKey(req: ImportKey) : Promise<ImportKeyResponse> {
-    return await TAURI_INVOKE("import_key", { req });
-},
-async deleteKey(req: DeleteKey) : Promise<DeleteKeyResponse> {
-    return await TAURI_INVOKE("delete_key", { req });
-},
-async renameKey(req: RenameKey) : Promise<RenameKeyResponse> {
-    return await TAURI_INVOKE("rename_key", { req });
-},
-async getKeys(req: GetKeys) : Promise<GetKeysResponse> {
-    return await TAURI_INVOKE("get_keys", { req });
-},
-async getKey(req: GetKey) : Promise<GetKeyResponse> {
-    return await TAURI_INVOKE("get_key", { req });
-},
-async getSecretKey(req: GetSecretKey) : Promise<GetSecretKeyResponse> {
-    return await TAURI_INVOKE("get_secret_key", { req });
-},
-async sendXch(req: SendXch) : Promise<TransactionResponse> {
-    return await TAURI_INVOKE("send_xch", { req });
-},
-async bulkSendXch(req: BulkSendXch) : Promise<TransactionResponse> {
-    return await TAURI_INVOKE("bulk_send_xch", { req });
-},
-async combineXch(req: CombineXch) : Promise<TransactionResponse> {
-    return await TAURI_INVOKE("combine_xch", { req });
-},
-async splitXch(req: SplitXch) : Promise<TransactionResponse> {
-    return await TAURI_INVOKE("split_xch", { req });
-},
-async sendCat(req: SendCat) : Promise<TransactionResponse> {
-    return await TAURI_INVOKE("send_cat", { req });
-},
-async bulkSendCat(req: BulkSendCat) : Promise<TransactionResponse> {
-    return await TAURI_INVOKE("bulk_send_cat", { req });
-},
-async combineCat(req: CombineCat) : Promise<TransactionResponse> {
-    return await TAURI_INVOKE("combine_cat", { req });
-},
-async splitCat(req: SplitCat) : Promise<TransactionResponse> {
-    return await TAURI_INVOKE("split_cat", { req });
-},
-async issueCat(req: IssueCat) : Promise<TransactionResponse> {
-    return await TAURI_INVOKE("issue_cat", { req });
-},
-async createDid(req: CreateDid) : Promise<TransactionResponse> {
-    return await TAURI_INVOKE("create_did", { req });
-},
-async bulkMintNfts(req: BulkMintNfts) : Promise<TransactionResponse> {
-    return await TAURI_INVOKE("bulk_mint_nfts", { req });
-},
-async transferNfts(req: TransferNfts) : Promise<TransactionResponse> {
-    return await TAURI_INVOKE("transfer_nfts", { req });
-},
-async transferDids(req: TransferDids) : Promise<TransactionResponse> {
-    return await TAURI_INVOKE("transfer_dids", { req });
-},
-async normalizeDids(req: NormalizeDids) : Promise<TransactionResponse> {
-    return await TAURI_INVOKE("normalize_dids", { req });
-},
-async addNftUri(req: AddNftUri) : Promise<TransactionResponse> {
-    return await TAURI_INVOKE("add_nft_uri", { req });
-},
-async assignNftsToDid(req: AssignNftsToDid) : Promise<TransactionResponse> {
-    return await TAURI_INVOKE("assign_nfts_to_did", { req });
-},
-async signCoinSpends(req: SignCoinSpends) : Promise<SignCoinSpendsResponse> {
-    return await TAURI_INVOKE("sign_coin_spends", { req });
-},
-async viewCoinSpends(req: ViewCoinSpends) : Promise<ViewCoinSpendsResponse> {
-    return await TAURI_INVOKE("view_coin_spends", { req });
-},
-async submitTransaction(req: SubmitTransaction) : Promise<SubmitTransactionResponse> {
-    return await TAURI_INVOKE("submit_transaction", { req });
-},
-async getSyncStatus(req: GetSyncStatus) : Promise<GetSyncStatusResponse> {
-    return await TAURI_INVOKE("get_sync_status", { req });
-},
-async getDerivations(req: GetDerivations) : Promise<GetDerivationsResponse> {
-    return await TAURI_INVOKE("get_derivations", { req });
-},
-async getXchCoins(req: GetXchCoins) : Promise<GetXchCoinsResponse> {
-    return await TAURI_INVOKE("get_xch_coins", { req });
-},
-async getCatCoins(req: GetCatCoins) : Promise<GetCatCoinsResponse> {
-    return await TAURI_INVOKE("get_cat_coins", { req });
-},
-async getCats(req: GetCats) : Promise<GetCatsResponse> {
-    return await TAURI_INVOKE("get_cats", { req });
-},
-async getCat(req: GetCat) : Promise<GetCatResponse> {
-    return await TAURI_INVOKE("get_cat", { req });
-},
-async getDids(req: GetDids) : Promise<GetDidsResponse> {
-    return await TAURI_INVOKE("get_dids", { req });
-},
-async getMinterDidIds(req: GetMinterDidIds) : Promise<GetMinterDidIdsResponse> {
-    return await TAURI_INVOKE("get_minter_did_ids", { req });
-},
-async getNftCollections(req: GetNftCollections) : Promise<GetNftCollectionsResponse> {
-    return await TAURI_INVOKE("get_nft_collections", { req });
-},
-async getNftCollection(req: GetNftCollection) : Promise<GetNftCollectionResponse> {
-    return await TAURI_INVOKE("get_nft_collection", { req });
-},
-async getNfts(req: GetNfts) : Promise<GetNftsResponse> {
-    return await TAURI_INVOKE("get_nfts", { req });
-},
-async getNft(req: GetNft) : Promise<GetNftResponse> {
-    return await TAURI_INVOKE("get_nft", { req });
-},
-async getNftData(req: GetNftData) : Promise<GetNftDataResponse> {
-    return await TAURI_INVOKE("get_nft_data", { req });
-},
-async getPendingTransactions(req: GetPendingTransactions) : Promise<GetPendingTransactionsResponse> {
-    return await TAURI_INVOKE("get_pending_transactions", { req });
-},
-async getTransactions(req: GetTransactions) : Promise<GetTransactionsResponse> {
-    return await TAURI_INVOKE("get_transactions", { req });
-},
-async getTransaction(req: GetTransaction) : Promise<GetTransactionResponse> {
-    return await TAURI_INVOKE("get_transaction", { req });
-},
-async validateAddress(address: string) : Promise<boolean> {
-    return await TAURI_INVOKE("validate_address", { address });
-},
-async makeOffer(req: MakeOffer) : Promise<MakeOfferResponse> {
-    return await TAURI_INVOKE("make_offer", { req });
-},
-async takeOffer(req: TakeOffer) : Promise<TakeOfferResponse> {
-    return await TAURI_INVOKE("take_offer", { req });
-},
-async combineOffers(req: CombineOffers) : Promise<CombineOffersResponse> {
-    return await TAURI_INVOKE("combine_offers", { req });
-},
-async viewOffer(req: ViewOffer) : Promise<ViewOfferResponse> {
-    return await TAURI_INVOKE("view_offer", { req });
-},
-async importOffer(req: ImportOffer) : Promise<ImportOfferResponse> {
-    return await TAURI_INVOKE("import_offer", { req });
-},
-async getOffers(req: GetOffers) : Promise<GetOffersResponse> {
-    return await TAURI_INVOKE("get_offers", { req });
-},
-async getOffer(req: GetOffer) : Promise<GetOfferResponse> {
-    return await TAURI_INVOKE("get_offer", { req });
-},
-async deleteOffer(req: DeleteOffer) : Promise<DeleteOfferResponse> {
-    return await TAURI_INVOKE("delete_offer", { req });
-},
-async cancelOffer(req: CancelOffer) : Promise<TransactionResponse> {
-    return await TAURI_INVOKE("cancel_offer", { req });
-},
-async networkConfig() : Promise<NetworkConfig> {
-    return await TAURI_INVOKE("network_config");
-},
-async setDiscoverPeers(req: SetDiscoverPeers) : Promise<SetDiscoverPeersResponse> {
-    return await TAURI_INVOKE("set_discover_peers", { req });
-},
-async setTargetPeers(req: SetTargetPeers) : Promise<SetTargetPeersResponse> {
-    return await TAURI_INVOKE("set_target_peers", { req });
-},
-async setNetworkId(req: SetNetworkId) : Promise<SetNetworkIdResponse> {
-    return await TAURI_INVOKE("set_network_id", { req });
-},
-async walletConfig(fingerprint: number) : Promise<WalletConfig> {
-    return await TAURI_INVOKE("wallet_config", { fingerprint });
-},
-async setDeriveAutomatically(req: SetDeriveAutomatically) : Promise<SetDeriveAutomaticallyResponse> {
-    return await TAURI_INVOKE("set_derive_automatically", { req });
-},
-async setDerivationBatchSize(req: SetDerivationBatchSize) : Promise<SetDerivationBatchSizeResponse> {
-    return await TAURI_INVOKE("set_derivation_batch_size", { req });
-},
-async getNetworks(req: GetNetworks) : Promise<GetNetworksResponse> {
-    return await TAURI_INVOKE("get_networks", { req });
-},
-async updateCat(req: UpdateCat) : Promise<UpdateCatResponse> {
-    return await TAURI_INVOKE("update_cat", { req });
-},
-async removeCat(req: RemoveCat) : Promise<RemoveCatResponse> {
-    return await TAURI_INVOKE("remove_cat", { req });
-},
-async updateDid(req: UpdateDid) : Promise<UpdateDidResponse> {
-    return await TAURI_INVOKE("update_did", { req });
-},
-async updateNft(req: UpdateNft) : Promise<UpdateNftResponse> {
-    return await TAURI_INVOKE("update_nft", { req });
-},
-async updateNftCollection(req: UpdateNftCollection) : Promise<UpdateNftCollectionResponse> {
-    return await TAURI_INVOKE("update_nft_collection", { req });
-},
-async redownloadNft(req: RedownloadNft) : Promise<RedownloadNftResponse> {
-    return await TAURI_INVOKE("redownload_nft", { req });
-},
-async increaseDerivationIndex(req: IncreaseDerivationIndex) : Promise<IncreaseDerivationIndexResponse> {
-    return await TAURI_INVOKE("increase_derivation_index", { req });
-},
-async getPeers(req: GetPeers) : Promise<GetPeersResponse> {
-    return await TAURI_INVOKE("get_peers", { req });
-},
-async addPeer(req: AddPeer) : Promise<AddPeerResponse> {
-    return await TAURI_INVOKE("add_peer", { req });
-},
-async removePeer(req: RemovePeer) : Promise<RemovePeerResponse> {
-    return await TAURI_INVOKE("remove_peer", { req });
-},
-async filterUnlockedCoins(req: FilterUnlockedCoins) : Promise<FilterUnlockedCoinsResponse> {
-    return await TAURI_INVOKE("filter_unlocked_coins", { req });
-},
-async getAssetCoins(req: GetAssetCoins) : Promise<SpendableCoin[]> {
-    return await TAURI_INVOKE("get_asset_coins", { req });
-},
-async signMessageWithPublicKey(req: SignMessageWithPublicKey) : Promise<SignMessageWithPublicKeyResponse> {
-    return await TAURI_INVOKE("sign_message_with_public_key", { req });
-},
-async signMessageByAddress(req: SignMessageByAddress) : Promise<SignMessageByAddressResponse> {
-    return await TAURI_INVOKE("sign_message_by_address", { req });
-},
-async sendTransactionImmediately(req: SendTransactionImmediately) : Promise<SendTransactionImmediatelyResponse> {
-    return await TAURI_INVOKE("send_transaction_immediately", { req });
-}
+    async initialize(): Promise<null> {
+        return await TAURI_INVOKE("initialize");
+    },
+    async login(req: Login): Promise<LoginResponse> {
+        return await TAURI_INVOKE("login", { req });
+    },
+    async logout(req: Logout): Promise<LogoutResponse> {
+        return await TAURI_INVOKE("logout", { req });
+    },
+    async resync(req: Resync): Promise<ResyncResponse> {
+        return await TAURI_INVOKE("resync", { req });
+    },
+    async generateMnemonic(req: GenerateMnemonic): Promise<GenerateMnemonicResponse> {
+        return await TAURI_INVOKE("generate_mnemonic", { req });
+    },
+    async importKey(req: ImportKey): Promise<ImportKeyResponse> {
+        return await TAURI_INVOKE("import_key", { req });
+    },
+    async deleteKey(req: DeleteKey): Promise<DeleteKeyResponse> {
+        return await TAURI_INVOKE("delete_key", { req });
+    },
+    async renameKey(req: RenameKey): Promise<RenameKeyResponse> {
+        return await TAURI_INVOKE("rename_key", { req });
+    },
+    async getKeys(req: GetKeys): Promise<GetKeysResponse> {
+        return await TAURI_INVOKE("get_keys", { req });
+    },
+    async getKey(req: GetKey): Promise<GetKeyResponse> {
+        return await TAURI_INVOKE("get_key", { req });
+    },
+    async getSecretKey(req: GetSecretKey): Promise<GetSecretKeyResponse> {
+        return await TAURI_INVOKE("get_secret_key", { req });
+    },
+    async sendXch(req: SendXch): Promise<TransactionResponse> {
+        return await TAURI_INVOKE("send_xch", { req });
+    },
+    async bulkSendXch(req: BulkSendXch): Promise<TransactionResponse> {
+        return await TAURI_INVOKE("bulk_send_xch", { req });
+    },
+    async combineXch(req: CombineXch): Promise<TransactionResponse> {
+        return await TAURI_INVOKE("combine_xch", { req });
+    },
+    async splitXch(req: SplitXch): Promise<TransactionResponse> {
+        return await TAURI_INVOKE("split_xch", { req });
+    },
+    async sendCat(req: SendCat): Promise<TransactionResponse> {
+        return await TAURI_INVOKE("send_cat", { req });
+    },
+    async bulkSendCat(req: BulkSendCat): Promise<TransactionResponse> {
+        return await TAURI_INVOKE("bulk_send_cat", { req });
+    },
+    async combineCat(req: CombineCat): Promise<TransactionResponse> {
+        return await TAURI_INVOKE("combine_cat", { req });
+    },
+    async splitCat(req: SplitCat): Promise<TransactionResponse> {
+        return await TAURI_INVOKE("split_cat", { req });
+    },
+    async issueCat(req: IssueCat): Promise<TransactionResponse> {
+        return await TAURI_INVOKE("issue_cat", { req });
+    },
+    async createDid(req: CreateDid): Promise<TransactionResponse> {
+        return await TAURI_INVOKE("create_did", { req });
+    },
+    async bulkMintNfts(req: BulkMintNfts): Promise<TransactionResponse> {
+        return await TAURI_INVOKE("bulk_mint_nfts", { req });
+    },
+    async transferNfts(req: TransferNfts): Promise<TransactionResponse> {
+        return await TAURI_INVOKE("transfer_nfts", { req });
+    },
+    async transferDids(req: TransferDids): Promise<TransactionResponse> {
+        return await TAURI_INVOKE("transfer_dids", { req });
+    },
+    async normalizeDids(req: NormalizeDids): Promise<TransactionResponse> {
+        return await TAURI_INVOKE("normalize_dids", { req });
+    },
+    async addNftUri(req: AddNftUri): Promise<TransactionResponse> {
+        return await TAURI_INVOKE("add_nft_uri", { req });
+    },
+    async assignNftsToDid(req: AssignNftsToDid): Promise<TransactionResponse> {
+        return await TAURI_INVOKE("assign_nfts_to_did", { req });
+    },
+    async signCoinSpends(req: SignCoinSpends): Promise<SignCoinSpendsResponse> {
+        return await TAURI_INVOKE("sign_coin_spends", { req });
+    },
+    async viewCoinSpends(req: ViewCoinSpends): Promise<ViewCoinSpendsResponse> {
+        return await TAURI_INVOKE("view_coin_spends", { req });
+    },
+    async submitTransaction(req: SubmitTransaction): Promise<SubmitTransactionResponse> {
+        return await TAURI_INVOKE("submit_transaction", { req });
+    },
+    async getSyncStatus(req: GetSyncStatus): Promise<GetSyncStatusResponse> {
+        return await TAURI_INVOKE("get_sync_status", { req });
+    },
+    async getDerivations(req: GetDerivations): Promise<GetDerivationsResponse> {
+        return await TAURI_INVOKE("get_derivations", { req });
+    },
+    async getXchCoins(req: GetXchCoins): Promise<GetXchCoinsResponse> {
+        return await TAURI_INVOKE("get_xch_coins", { req });
+    },
+    async getCatCoins(req: GetCatCoins): Promise<GetCatCoinsResponse> {
+        return await TAURI_INVOKE("get_cat_coins", { req });
+    },
+    async getCats(req: GetCats): Promise<GetCatsResponse> {
+        return await TAURI_INVOKE("get_cats", { req });
+    },
+    async getCat(req: GetCat): Promise<GetCatResponse> {
+        return await TAURI_INVOKE("get_cat", { req });
+    },
+    async getDids(req: GetDids): Promise<GetDidsResponse> {
+        return await TAURI_INVOKE("get_dids", { req });
+    },
+    async getMinterDidIds(req: GetMinterDidIds): Promise<GetMinterDidIdsResponse> {
+        return await TAURI_INVOKE("get_minter_did_ids", { req });
+    },
+    async getNftCollections(req: GetNftCollections): Promise<GetNftCollectionsResponse> {
+        return await TAURI_INVOKE("get_nft_collections", { req });
+    },
+    async getNftCollection(req: GetNftCollection): Promise<GetNftCollectionResponse> {
+        return await TAURI_INVOKE("get_nft_collection", { req });
+    },
+    async getNfts(req: GetNfts): Promise<GetNftsResponse> {
+        return await TAURI_INVOKE("get_nfts", { req });
+    },
+    async getNft(req: GetNft): Promise<GetNftResponse> {
+        return await TAURI_INVOKE("get_nft", { req });
+    },
+    async getNftData(req: GetNftData): Promise<GetNftDataResponse> {
+        return await TAURI_INVOKE("get_nft_data", { req });
+    },
+    async getPendingTransactions(req: GetPendingTransactions): Promise<GetPendingTransactionsResponse> {
+        return await TAURI_INVOKE("get_pending_transactions", { req });
+    },
+    async getTransactions(req: GetTransactions): Promise<GetTransactionsResponse> {
+        return await TAURI_INVOKE("get_transactions", { req });
+    },
+    async getTransaction(req: GetTransaction): Promise<GetTransactionResponse> {
+        return await TAURI_INVOKE("get_transaction", { req });
+    },
+    async validateAddress(address: string): Promise<boolean> {
+        return await TAURI_INVOKE("validate_address", { address });
+    },
+    async makeOffer(req: MakeOffer): Promise<MakeOfferResponse> {
+        return await TAURI_INVOKE("make_offer", { req });
+    },
+    async takeOffer(req: TakeOffer): Promise<TakeOfferResponse> {
+        return await TAURI_INVOKE("take_offer", { req });
+    },
+    async combineOffers(req: CombineOffers): Promise<CombineOffersResponse> {
+        return await TAURI_INVOKE("combine_offers", { req });
+    },
+    async viewOffer(req: ViewOffer): Promise<ViewOfferResponse> {
+        return await TAURI_INVOKE("view_offer", { req });
+    },
+    async importOffer(req: ImportOffer): Promise<ImportOfferResponse> {
+        return await TAURI_INVOKE("import_offer", { req });
+    },
+    async getOffers(req: GetOffers): Promise<GetOffersResponse> {
+        return await TAURI_INVOKE("get_offers", { req });
+    },
+    async getOffer(req: GetOffer): Promise<GetOfferResponse> {
+        return await TAURI_INVOKE("get_offer", { req });
+    },
+    async deleteOffer(req: DeleteOffer): Promise<DeleteOfferResponse> {
+        return await TAURI_INVOKE("delete_offer", { req });
+    },
+    async cancelOffer(req: CancelOffer): Promise<TransactionResponse> {
+        return await TAURI_INVOKE("cancel_offer", { req });
+    },
+    async networkConfig(): Promise<NetworkConfig> {
+        return await TAURI_INVOKE("network_config");
+    },
+    async setDiscoverPeers(req: SetDiscoverPeers): Promise<SetDiscoverPeersResponse> {
+        return await TAURI_INVOKE("set_discover_peers", { req });
+    },
+    async setTargetPeers(req: SetTargetPeers): Promise<SetTargetPeersResponse> {
+        return await TAURI_INVOKE("set_target_peers", { req });
+    },
+    async setNetworkId(req: SetNetworkId): Promise<SetNetworkIdResponse> {
+        return await TAURI_INVOKE("set_network_id", { req });
+    },
+    async walletConfig(fingerprint: number): Promise<WalletConfig> {
+        return await TAURI_INVOKE("wallet_config", { fingerprint });
+    },
+    async setDeriveAutomatically(req: SetDeriveAutomatically): Promise<SetDeriveAutomaticallyResponse> {
+        return await TAURI_INVOKE("set_derive_automatically", { req });
+    },
+    async setDerivationBatchSize(req: SetDerivationBatchSize): Promise<SetDerivationBatchSizeResponse> {
+        return await TAURI_INVOKE("set_derivation_batch_size", { req });
+    },
+    async getNetworks(req: GetNetworks): Promise<GetNetworksResponse> {
+        return await TAURI_INVOKE("get_networks", { req });
+    },
+    async updateCat(req: UpdateCat): Promise<UpdateCatResponse> {
+        return await TAURI_INVOKE("update_cat", { req });
+    },
+    async removeCat(req: RemoveCat): Promise<RemoveCatResponse> {
+        return await TAURI_INVOKE("remove_cat", { req });
+    },
+    async updateDid(req: UpdateDid): Promise<UpdateDidResponse> {
+        return await TAURI_INVOKE("update_did", { req });
+    },
+    async updateNft(req: UpdateNft): Promise<UpdateNftResponse> {
+        return await TAURI_INVOKE("update_nft", { req });
+    },
+    async updateNftCollection(req: UpdateNftCollection): Promise<UpdateNftCollectionResponse> {
+        return await TAURI_INVOKE("update_nft_collection", { req });
+    },
+    async redownloadNft(req: RedownloadNft): Promise<RedownloadNftResponse> {
+        return await TAURI_INVOKE("redownload_nft", { req });
+    },
+    async increaseDerivationIndex(req: IncreaseDerivationIndex): Promise<IncreaseDerivationIndexResponse> {
+        return await TAURI_INVOKE("increase_derivation_index", { req });
+    },
+    async getPeers(req: GetPeers): Promise<GetPeersResponse> {
+        return await TAURI_INVOKE("get_peers", { req });
+    },
+    async addPeer(req: AddPeer): Promise<AddPeerResponse> {
+        return await TAURI_INVOKE("add_peer", { req });
+    },
+    async removePeer(req: RemovePeer): Promise<RemovePeerResponse> {
+        return await TAURI_INVOKE("remove_peer", { req });
+    },
+    async filterUnlockedCoins(req: FilterUnlockedCoins): Promise<FilterUnlockedCoinsResponse> {
+        return await TAURI_INVOKE("filter_unlocked_coins", { req });
+    },
+    async getAssetCoins(req: GetAssetCoins): Promise<SpendableCoin[]> {
+        return await TAURI_INVOKE("get_asset_coins", { req });
+    },
+    async signMessageWithPublicKey(req: SignMessageWithPublicKey): Promise<SignMessageWithPublicKeyResponse> {
+        return await TAURI_INVOKE("sign_message_with_public_key", { req });
+    },
+    async signMessageByAddress(req: SignMessageByAddress): Promise<SignMessageByAddressResponse> {
+        return await TAURI_INVOKE("sign_message_by_address", { req });
+    },
+    async sendTransactionImmediately(req: SendTransactionImmediately): Promise<SendTransactionImmediatelyResponse> {
+        return await TAURI_INVOKE("send_transaction_immediately", { req });
+    }
 }
 
 /** user-defined events **/
 
 
 export const events = __makeEvents__<{
-syncEvent: SyncEvent
+    syncEvent: SyncEvent
 }>({
-syncEvent: "sync-event"
+    syncEvent: "sync-event"
 })
 
 /** user-defined constants **/
@@ -318,7 +318,7 @@ export type GetNft = { nft_id: string }
 export type GetNftCollection = { collection_id: string | null }
 export type GetNftCollectionResponse = { collection: NftCollectionRecord | null }
 export type GetNftCollections = { offset: number; limit: number; include_hidden: boolean }
-export type GetNftCollectionsResponse = { collections: NftCollectionRecord[] }
+export type GetNftCollectionsResponse = { collections: NftCollectionRecord[], total: number }
 export type GetNftData = { nft_id: string }
 export type GetNftDataResponse = { data: NftData | null }
 export type GetNftResponse = { nft: NftRecord | null }
@@ -443,59 +443,59 @@ export type WalletConfig = { name: string; derive_automatically: boolean; deriva
 /** tauri-specta globals **/
 
 import {
-	invoke as TAURI_INVOKE,
-	Channel as TAURI_CHANNEL,
+    invoke as TAURI_INVOKE,
+    Channel as TAURI_CHANNEL,
 } from "@tauri-apps/api/core";
 import * as TAURI_API_EVENT from "@tauri-apps/api/event";
 import { type WebviewWindow as __WebviewWindow__ } from "@tauri-apps/api/webviewWindow";
 
 type __EventObj__<T> = {
-	listen: (
-		cb: TAURI_API_EVENT.EventCallback<T>,
-	) => ReturnType<typeof TAURI_API_EVENT.listen<T>>;
-	once: (
-		cb: TAURI_API_EVENT.EventCallback<T>,
-	) => ReturnType<typeof TAURI_API_EVENT.once<T>>;
-	emit: null extends T
-		? (payload?: T) => ReturnType<typeof TAURI_API_EVENT.emit>
-		: (payload: T) => ReturnType<typeof TAURI_API_EVENT.emit>;
+    listen: (
+        cb: TAURI_API_EVENT.EventCallback<T>,
+    ) => ReturnType<typeof TAURI_API_EVENT.listen<T>>;
+    once: (
+        cb: TAURI_API_EVENT.EventCallback<T>,
+    ) => ReturnType<typeof TAURI_API_EVENT.once<T>>;
+    emit: null extends T
+    ? (payload?: T) => ReturnType<typeof TAURI_API_EVENT.emit>
+    : (payload: T) => ReturnType<typeof TAURI_API_EVENT.emit>;
 };
 
 export type Result<T, E> =
-	| { status: "ok"; data: T }
-	| { status: "error"; error: E };
+    | { status: "ok"; data: T }
+    | { status: "error"; error: E };
 
 function __makeEvents__<T extends Record<string, any>>(
-	mappings: Record<keyof T, string>,
+    mappings: Record<keyof T, string>,
 ) {
-	return new Proxy(
-		{} as unknown as {
-			[K in keyof T]: __EventObj__<T[K]> & {
-				(handle: __WebviewWindow__): __EventObj__<T[K]>;
-			};
-		},
-		{
-			get: (_, event) => {
-				const name = mappings[event as keyof T];
+    return new Proxy(
+        {} as unknown as {
+            [K in keyof T]: __EventObj__<T[K]> & {
+                (handle: __WebviewWindow__): __EventObj__<T[K]>;
+            };
+        },
+        {
+            get: (_, event) => {
+                const name = mappings[event as keyof T];
 
-				return new Proxy((() => {}) as any, {
-					apply: (_, __, [window]: [__WebviewWindow__]) => ({
-						listen: (arg: any) => window.listen(name, arg),
-						once: (arg: any) => window.once(name, arg),
-						emit: (arg: any) => window.emit(name, arg),
-					}),
-					get: (_, command: keyof __EventObj__<any>) => {
-						switch (command) {
-							case "listen":
-								return (arg: any) => TAURI_API_EVENT.listen(name, arg);
-							case "once":
-								return (arg: any) => TAURI_API_EVENT.once(name, arg);
-							case "emit":
-								return (arg: any) => TAURI_API_EVENT.emit(name, arg);
-						}
-					},
-				});
-			},
-		},
-	);
+                return new Proxy((() => { }) as any, {
+                    apply: (_, __, [window]: [__WebviewWindow__]) => ({
+                        listen: (arg: any) => window.listen(name, arg),
+                        once: (arg: any) => window.once(name, arg),
+                        emit: (arg: any) => window.emit(name, arg),
+                    }),
+                    get: (_, command: keyof __EventObj__<any>) => {
+                        switch (command) {
+                            case "listen":
+                                return (arg: any) => TAURI_API_EVENT.listen(name, arg);
+                            case "once":
+                                return (arg: any) => TAURI_API_EVENT.once(name, arg);
+                            case "emit":
+                                return (arg: any) => TAURI_API_EVENT.emit(name, arg);
+                        }
+                    },
+                });
+            },
+        },
+    );
 }

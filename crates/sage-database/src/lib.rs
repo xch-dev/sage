@@ -77,9 +77,9 @@ impl Database {
     /// Count NFTs matching the given search parameters
     pub async fn count_nfts(&self, params: NftSearchParams) -> Result<u32> {
         let mut query_builder = sqlx::QueryBuilder::new("SELECT COUNT(*) FROM nfts ");
-        
+
         let where_builder = query_builder.push(" WHERE 1=1 ");
-        
+
         if !params.include_hidden {
             where_builder.push(" AND visible = 1");
         }
@@ -121,6 +121,21 @@ impl Database {
             .await?;
 
         Ok(count.try_into()?)
+    }
+
+    /// Count collections, optionally including hidden ones
+    pub async fn count_collections(&self, include_hidden: bool) -> Result<i64> {
+        let count: i64 = if include_hidden {
+            sqlx::query_scalar!("SELECT COUNT(*) FROM collections")
+                .fetch_one(&self.pool)
+                .await?
+        } else {
+            sqlx::query_scalar!("SELECT COUNT(*) FROM collections WHERE visible = 1")
+                .fetch_one(&self.pool)
+                .await?
+        };
+
+        Ok(count)
     }
 }
 

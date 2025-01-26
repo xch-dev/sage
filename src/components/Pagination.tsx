@@ -43,12 +43,14 @@ export const Pagination = ({
     : !canLoadMore || isLoading;
 
   return (
-    <nav 
-      role="navigation" 
+    <nav
+      role='navigation'
       aria-label={t`Pagination`}
       className='flex justify-between gap-2'
     >
-      <div className={`flex items-center justify-start ${compact ? 'gap-1 md:gap-3' : 'gap-3'}`}>
+      <div
+        className={`flex items-center justify-start ${compact ? 'gap-1 md:gap-3' : 'gap-3'}`}
+      >
         <Button
           size='icon'
           variant='outline'
@@ -60,7 +62,7 @@ export const Pagination = ({
           aria-label={t`Go to previous page`}
           aria-disabled={isFirstPage}
         >
-          <ChevronLeftIcon className='h-4 w-4' aria-hidden="true" />
+          <ChevronLeftIcon className='h-4 w-4' aria-hidden='true' />
         </Button>
 
         {totalPages ? (
@@ -71,7 +73,7 @@ export const Pagination = ({
             disabled={totalPages === 1}
             aria-label={t`Select page number`}
           >
-            <SelectTrigger 
+            <SelectTrigger
               className='w-min text-sm'
               aria-label={t`Current page ${page} of ${totalPages}`}
             >
@@ -81,8 +83,8 @@ export const Pagination = ({
             </SelectTrigger>
             <SelectContent>
               {Array.from({ length: totalPages }, (_, i) => (
-                <SelectItem 
-                  key={i} 
+                <SelectItem
+                  key={i}
                   value={(i + 1).toString()}
                   aria-label={t`Go to page ${i + 1}`}
                 >
@@ -92,10 +94,10 @@ export const Pagination = ({
             </SelectContent>
           </Select>
         ) : (
-          <div 
+          <div
             className='text-sm text-muted-foreground font-medium text-center'
-            aria-live="polite"
-            aria-atomic="true"
+            aria-live='polite'
+            aria-atomic='true'
           >
             <Trans>Page {page}</Trans>
           </div>
@@ -112,15 +114,14 @@ export const Pagination = ({
           aria-label={t`Go to next page`}
           aria-disabled={isLastPage}
         >
-          <ChevronRightIcon className='h-4 w-4' aria-hidden="true" />
+          <ChevronRightIcon className='h-4 w-4' aria-hidden='true' />
         </Button>
       </div>
 
-      <div className={`${compact ? 'hidden md:flex' : 'flex'} items-center gap-2`}>
-        <label 
-          id="items-per-page-label" 
-          className="sr-only"
-        >
+      <div
+        className={`${compact ? 'hidden md:flex' : 'flex'} items-center gap-2`}
+      >
+        <label id='items-per-page-label' className='sr-only'>
           <Trans>Items per page</Trans>
         </label>
         <Select
@@ -130,9 +131,9 @@ export const Pagination = ({
           }}
           defaultValue={pageSize.toString()}
           value={pageSize.toString()}
-          aria-labelledby="items-per-page-label"
+          aria-labelledby='items-per-page-label'
         >
-          <SelectTrigger 
+          <SelectTrigger
             className='w-min'
             aria-label={t`${pageSize} items per page`}
           >
@@ -141,8 +142,8 @@ export const Pagination = ({
           <SelectContent>
             <SelectGroup>
               {pageSizeOptions.map((size) => (
-                <SelectItem 
-                  key={size} 
+                <SelectItem
+                  key={size}
                   value={size.toString()}
                   aria-label={t`Show ${size} items per page`}
                 >
