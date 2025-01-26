@@ -147,10 +147,20 @@ export function useNftData(params: NftDataParams) {
         } else if (params.group === NftGroupMode.OwnerDid) {
           try {
             const response = await commands.getDids({});
+            const ownerDids = response.dids;
+
+            // Add Unassigned NFTs to the end if there's room on the last page
+            if (ownerDids.length < params.pageSize &&
+              page === Math.ceil((ownerDids.length + 1) / params.pageSize)) {
+              ownerDids.push(
+                createDefaultDidRecord('Unassigned NFTs', 'No did')
+              );
+            }
+
             setState((prev) => ({
               ...prev,
-              ownerDids: response.dids,
-              ownerDidsTotal: response.dids.length,
+              ownerDids,
+              ownerDidsTotal: response.dids.length + 1, // Add 1 for Unassigned NFTs
             }));
           } catch (error: any) {
             setState((prev) => ({

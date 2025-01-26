@@ -133,23 +133,6 @@ export function NftCardList({
               page={page}
             />
           ))}
-          <NftGroupCard
-            type='did'
-            groupMode={group}
-            item={{
-              name: t`Unassigned NFTs`,
-              launcher_id: 'No did',
-              visible: true,
-              coin_id: 'No coin',
-              address: 'No address',
-              amount: 0,
-              created_height: 0,
-              create_transaction_id: 'No transaction',
-              recovery_hash: '',
-            }}
-            updateNfts={updateNfts}
-            page={page}
-          />
         </>
       );
     }
