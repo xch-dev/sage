@@ -77,9 +77,10 @@ pub struct GetDidsResponse {
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Type)]
-pub struct GetMinterDidIds {    
+pub struct GetMinterDidIds {
     pub offset: u32,
-    pub limit: u32,}
+    pub limit: u32,
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub struct GetMinterDidIdsResponse {

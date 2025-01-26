@@ -72,7 +72,11 @@ impl Database {
         fetch_nft_data(&self.pool, hash).await
     }
 
-    pub async fn distinct_minter_dids(&self, limit: u32, offset: u32) -> Result<Vec<Option<Bytes32>>> {
+    pub async fn distinct_minter_dids(
+        &self,
+        limit: u32,
+        offset: u32,
+    ) -> Result<Vec<Option<Bytes32>>> {
         distinct_minter_dids(&self.pool, limit, offset).await
     }
 

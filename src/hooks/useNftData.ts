@@ -162,7 +162,10 @@ export function useNftData(params: NftDataParams) {
           }
         } else if (params.group === NftGroupMode.MinterDid) {
           try {
-            const uniqueMinterDids = await commands.getMinterDidIds({});
+            const uniqueMinterDids = await commands.getMinterDidIds({
+              limit: params.pageSize,
+              offset: (page - 1) * params.pageSize,
+            });
             const minterDids: DidRecord[] = uniqueMinterDids.did_ids.map(
               (did) =>
                 createDefaultDidRecord(
@@ -173,7 +176,7 @@ export function useNftData(params: NftDataParams) {
             setState((prev) => ({
               ...prev,
               minterDids,
-              minterDidsTotal: minterDids.length,
+              minterDidsTotal: uniqueMinterDids.total,
             }));
           } catch (error: any) {
             setState((prev) => ({
@@ -244,7 +247,12 @@ export function useNftData(params: NftDataParams) {
 
   // Helper function to get the correct total based on current view
   const getTotal = useCallback(() => {
-    if (params.collectionId || params.ownerDid || params.minterDid || params.group === NftGroupMode.None) {
+    if (
+      params.collectionId ||
+      params.ownerDid ||
+      params.minterDid ||
+      params.group === NftGroupMode.None
+    ) {
       return state.nftTotal;
     } else if (params.group === NftGroupMode.Collection) {
       return state.collectionTotal;
