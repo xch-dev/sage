@@ -247,20 +247,22 @@ impl Sage {
 
     pub async fn get_minter_did_ids(
         &self,
-        _req: GetMinterDidIds,
+        req: GetMinterDidIds,
     ) -> Result<GetMinterDidIdsResponse> {
         let wallet = self.wallet()?;
 
         let did_ids = wallet
             .db
-            .distinct_minter_dids()
+            .distinct_minter_dids(req.limit, req.offset)
             .await?
             .into_iter()
             .filter_map(|did| did.map(|d| encode_address(d.to_bytes(), "did:chia:").ok()))
             .flatten()
             .collect();
 
-        Ok(GetMinterDidIdsResponse { did_ids })
+        let total = wallet.db.count_distinct_minter_dids().await?;
+
+        Ok(GetMinterDidIdsResponse { did_ids, total })
     }
 
     pub async fn get_pending_transactions(
@@ -343,8 +345,11 @@ impl Sage {
             });
         }
 
+        let total = wallet.db.count_collections(req.include_hidden).await?;
+
         Ok(GetNftCollectionsResponse {
             collections: records,
+            total: total.try_into()?,
         })
     }
 
@@ -433,6 +438,8 @@ impl Sage {
             name: req.name,
         };
 
+        let total = wallet.db.count_nfts(params.clone()).await?;
+
         let nfts = wallet
             .db
             .search_nfts(params.clone(), req.limit, req.offset)
@@ -452,7 +459,10 @@ impl Sage {
             records.push(self.nft_record(nft_row, nft, collection_name)?);
         }
 
-        Ok(GetNftsResponse { nfts: records })
+        Ok(GetNftsResponse {
+            nfts: records,
+            total,
+        })
     }
 
     pub async fn get_nft(&self, req: GetNft) -> Result<GetNftResponse> {

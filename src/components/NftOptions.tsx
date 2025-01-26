@@ -9,8 +9,6 @@ import { Trans } from '@lingui/react/macro';
 import {
   ArrowDownAz,
   ArrowLeftIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
   Clock2,
   CopyPlus,
   EyeIcon,
@@ -32,6 +30,7 @@ import {
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
 import { Input } from './ui/input';
+import { Pagination } from './Pagination';
 
 export interface NftOptionsProps {
   isCollection?: boolean;
@@ -42,16 +41,18 @@ export interface NftOptionsProps {
   className?: string;
   isLoading?: boolean;
   canLoadMore: boolean;
+  total: number;
 }
 
 export function NftOptions({
   isCollection,
-  params: { page, sort, group, showHidden, query },
+  params: { page, sort, group, showHidden, query, pageSize },
   setParams,
   multiSelect,
   setMultiSelect,
   className,
   isLoading,
+  total,
   canLoadMore,
 }: NftOptionsProps) {
   const { collection_id, owner_did, minter_did } = useParams();
@@ -123,46 +124,19 @@ export function NftOptions({
       </div>
 
       <div className='flex items-center justify-between'>
-        <div
-          className='flex gap-3 items-center'
-          role='navigation'
-          aria-label={t`Pagination`}
-        >
-          <Button
-            variant='outline'
-            size='icon'
-            onClick={() =>
-              !isLoading &&
-              page > 1 &&
-              setParams({ page: Math.max(page - 1, 1) })
-            }
-            disabled={page === 1 || isLoading}
-            aria-label={t`Previous page`}
-            title={t`Previous page`}
-          >
-            <ChevronLeftIcon className='h-4 w-4' aria-hidden='true' />
-          </Button>
-          <p
-            className='text-sm text-muted-foreground font-medium w-[70px] text-center'
-            aria-live='polite'
-            aria-atomic='true'
-          >
-            <Trans>Page {page}</Trans>
-          </p>
-          <Button
-            variant='outline'
-            size='icon'
-            onClick={() => {
-              if (!canLoadMore) return;
-              if (!isLoading) setParams({ page: page + 1 });
-            }}
-            disabled={!canLoadMore || isLoading}
-            aria-label={t`Next page`}
-            title={t`Next page`}
-          >
-            <ChevronRightIcon className='h-4 w-4' aria-hidden='true' />
-          </Button>
-        </div>
+        <Pagination
+          page={page}
+          total={total}
+          pageSize={pageSize}
+          onPageChange={(newPage) => setParams({ page: newPage })}
+          onPageSizeChange={(newSize) =>
+            setParams({ pageSize: newSize, page: 1 })
+          }
+          pageSizeOptions={[24, 48, 72, 96]}
+          compact={true}
+          canLoadMore={canLoadMore}
+          isLoading={isLoading}
+        />
 
         <div
           className='flex gap-2 items-center'

@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT DISTINCT minter_did FROM nfts WHERE minter_did IS NOT NULL",
+  "query": "SELECT DISTINCT minter_did FROM nfts WHERE minter_did IS NOT NULL LIMIT ? OFFSET ?",
   "describe": {
     "columns": [
       {
@@ -10,11 +10,11 @@
       }
     ],
     "parameters": {
-      "Right": 0
+      "Right": 2
     },
     "nullable": [
       true
     ]
   },
-  "hash": "05d7a87d04e669dc8ed1a1152be390d5abfdd0cf202744c65597aec1f2f03ff1"
+  "hash": "5b6d550ac0af955f9da59a01757d04d928aecd7be94dc77f4b583fc0d52d4e0e"
 }

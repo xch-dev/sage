@@ -18,8 +18,8 @@ interface NftCardListProps {
   group?: NftGroupMode;
   nfts: NftRecord[];
   collections: NftCollectionRecord[];
-  dids: DidRecord[];
-  pageSize: number;
+  ownerDids: DidRecord[];
+  minterDids: DidRecord[];
   updateNfts: (page: number) => void;
   page: number;
   multiSelect?: boolean;
@@ -36,8 +36,8 @@ export function NftCardList({
   group,
   nfts,
   collections,
-  dids,
-  pageSize,
+  ownerDids,
+  minterDids,
   updateNfts,
   page,
   multiSelect = false,
@@ -82,6 +82,7 @@ export function NftCardList({
               item={col}
               updateNfts={updateNfts}
               page={page}
+              canToggleVisibility={col.collection_id !== 'No collection'}
               onToggleVisibility={() => {
                 commands
                   .updateNftCollection({
@@ -93,22 +94,6 @@ export function NftCardList({
               }}
             />
           ))}
-          {collections.length < pageSize && (
-            <NftGroupCard
-              type='collection'
-              item={{
-                name: t`No Collection`,
-                icon: '',
-                did_id: 'Miscellaneous',
-                metadata_collection_id: 'Uncategorized NFTs',
-                collection_id: 'No collection',
-                visible: true,
-              }}
-              canToggleVisibility={false}
-              updateNfts={updateNfts}
-              page={page}
-            />
-          )}
         </>
       );
     }
@@ -117,11 +102,11 @@ export function NftCardList({
       !collectionId &&
       !ownerDid &&
       !minterDid &&
-      (group === NftGroupMode.OwnerDid || group === NftGroupMode.MinterDid)
+      group === NftGroupMode.OwnerDid
     ) {
       return (
         <>
-          {dids.map((did, i) => (
+          {ownerDids.map((did, i) => (
             <NftGroupCard
               key={i}
               type='did'
@@ -129,28 +114,32 @@ export function NftCardList({
               item={did}
               updateNfts={updateNfts}
               page={page}
+              canToggleVisibility={false}
             />
           ))}
-          <NftGroupCard
-            type='did'
-            groupMode={group}
-            item={{
-              name:
-                group === NftGroupMode.OwnerDid
-                  ? t`Unassigned NFTs`
-                  : t`Unknown Minter`,
-              launcher_id: 'No did',
-              visible: true,
-              coin_id: 'No coin',
-              address: 'No address',
-              amount: 0,
-              created_height: 0,
-              create_transaction_id: 'No transaction',
-              recovery_hash: '',
-            }}
-            updateNfts={updateNfts}
-            page={page}
-          />
+        </>
+      );
+    }
+
+    if (
+      !collectionId &&
+      !ownerDid &&
+      !minterDid &&
+      group === NftGroupMode.MinterDid
+    ) {
+      return (
+        <>
+          {minterDids.map((did, i) => (
+            <NftGroupCard
+              key={i}
+              type='did'
+              groupMode={group}
+              item={did}
+              updateNfts={updateNfts}
+              page={page}
+              canToggleVisibility={false}
+            />
+          ))}
         </>
       );
     }
@@ -174,7 +163,7 @@ export function NftCardList({
 
   return (
     <div
-      className='grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-6 gap-2 md:gap-4 mt-6 mb-2'
+      className='grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-8 gap-2 md:gap-4 mt-6 mb-2'
       role='grid'
       aria-label={t`NFT Gallery`}
     >
