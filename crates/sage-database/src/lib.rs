@@ -76,52 +76,49 @@ impl Database {
 
     /// Count NFTs matching the given search parameters
     pub async fn count_nfts(&self, params: NftSearchParams) -> Result<u32> {
-        let mut conditions = Vec::new();
-        let mut args = Vec::new();
-
+        let mut query_builder = sqlx::QueryBuilder::new("SELECT COUNT(*) FROM nfts ");
+        
+        let where_builder = query_builder.push(" WHERE 1=1 ");
+        
         if !params.include_hidden {
-            conditions.push("visible = 1");
+            where_builder.push(" AND visible = 1");
         }
 
         if let Some(group) = params.group {
             match group {
                 NftGroup::Collection(id) => {
-                    conditions.push("collection_id = ?");
-                    args.push(id.to_string());
+                    where_builder.push(" AND collection_id = ");
+                    where_builder.push_bind(id.to_string());
                 }
-                NftGroup::NoCollection => conditions.push("collection_id IS NULL"),
+                NftGroup::NoCollection => {
+                    where_builder.push(" AND collection_id IS NULL");
+                }
                 NftGroup::MinterDid(did) => {
-                    conditions.push("minter_did = ?");
-                    args.push(did.to_string());
+                    where_builder.push(" AND minter_did = ");
+                    where_builder.push_bind(did.to_string());
                 }
-                NftGroup::NoMinterDid => conditions.push("minter_did IS NULL"),
+                NftGroup::NoMinterDid => {
+                    where_builder.push(" AND minter_did IS NULL");
+                }
                 NftGroup::OwnerDid(did) => {
-                    conditions.push("owner_did = ?");
-                    args.push(did.to_string());
+                    where_builder.push(" AND owner_did = ");
+                    where_builder.push_bind(did.to_string());
                 }
-                NftGroup::NoOwnerDid => conditions.push("owner_did IS NULL"),
+                NftGroup::NoOwnerDid => {
+                    where_builder.push(" AND owner_did IS NULL");
+                }
             }
         }
 
         if let Some(name) = params.name {
-            conditions.push("name LIKE ?");
-            args.push(format!("%{}%", name));
+            where_builder.push(" AND name LIKE ");
+            where_builder.push_bind(format!("%{}%", name));
         }
 
-        let where_clause = if conditions.is_empty() {
-            String::new()
-        } else {
-            format!("WHERE {}", conditions.join(" AND "))
-        };
-
-        let query = format!("SELECT COUNT(*) FROM nfts {}", where_clause);
-
-        let mut query = sqlx::query_scalar(&query);
-        for arg in args {
-            query = query.bind(arg);
-        }
-
-        let count: i64 = query.fetch_one(&self.pool).await?;
+        let count: i64 = query_builder
+            .build_query_scalar()
+            .fetch_one(&self.pool)
+            .await?;
 
         Ok(count.try_into()?)
     }
