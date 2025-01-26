@@ -20,7 +20,6 @@ interface NftCardListProps {
   collections: NftCollectionRecord[];
   ownerDids: DidRecord[];
   minterDids: DidRecord[];
-  pageSize: number;
   updateNfts: (page: number) => void;
   page: number;
   multiSelect?: boolean;
@@ -39,7 +38,6 @@ export function NftCardList({
   collections,
   ownerDids,
   minterDids,
-  pageSize,
   updateNfts,
   page,
   multiSelect = false,
@@ -84,6 +82,7 @@ export function NftCardList({
               item={col}
               updateNfts={updateNfts}
               page={page}
+              canToggleVisibility={col.collection_id !== 'No collection'}
               onToggleVisibility={() => {
                 commands
                   .updateNftCollection({
@@ -115,6 +114,7 @@ export function NftCardList({
               item={did}
               updateNfts={updateNfts}
               page={page}
+              canToggleVisibility={false}
             />
           ))}
         </>
@@ -137,6 +137,7 @@ export function NftCardList({
               item={did}
               updateNfts={updateNfts}
               page={page}
+              canToggleVisibility={false}
             />
           ))}
         </>

@@ -135,8 +135,10 @@ export function useNftData(params: NftDataParams) {
             const collections = response.collections;
 
             // Add No Collection to the end if we're on the last page and there's room
-            if (collections.length < params.pageSize &&
-              page === Math.ceil((response.total + 1) / params.pageSize)) {
+            if (
+              collections.length < params.pageSize &&
+              page === Math.ceil((response.total + 1) / params.pageSize)
+            ) {
               collections.push({
                 name: 'No Collection',
                 icon: '',
@@ -166,10 +168,12 @@ export function useNftData(params: NftDataParams) {
             const ownerDids = response.dids;
 
             // Add Unassigned NFTs to the end if there's room on the last page
-            if (ownerDids.length < params.pageSize &&
-              page === Math.ceil((ownerDids.length + 1) / params.pageSize)) {
+            if (
+              ownerDids.length < params.pageSize &&
+              page === Math.ceil((ownerDids.length + 1) / params.pageSize)
+            ) {
               ownerDids.push(
-                createDefaultDidRecord('Unassigned NFTs', 'No did')
+                createDefaultDidRecord('Unassigned NFTs', 'No did'),
               );
             }
 
@@ -193,17 +197,21 @@ export function useNftData(params: NftDataParams) {
               offset: (page - 1) * params.pageSize,
             });
 
-            const minterDids: DidRecord[] = uniqueMinterDids.did_ids.map((did) =>
-              createDefaultDidRecord(
-                `${did.replace('did:chia:', '').slice(0, 16)}...`,
-                did,
-              )
+            const minterDids: DidRecord[] = uniqueMinterDids.did_ids.map(
+              (did) =>
+                createDefaultDidRecord(
+                  `${did.replace('did:chia:', '').slice(0, 16)}...`,
+                  did,
+                ),
             );
 
             // Add Unknown Minter to the end of the list if we're on the last page
-            if (minterDids.length < params.pageSize && page === Math.ceil((uniqueMinterDids.total + 1) / params.pageSize)) {
+            if (
+              minterDids.length < params.pageSize &&
+              page === Math.ceil((uniqueMinterDids.total + 1) / params.pageSize)
+            ) {
               minterDids.push(
-                createDefaultDidRecord('Unknown Minter', 'No did')
+                createDefaultDidRecord('Unknown Minter', 'No did'),
               );
             }
 

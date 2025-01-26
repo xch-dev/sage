@@ -56,6 +56,9 @@ export function NftList() {
   }, [collectionId, ownerDid, minterDid, group]);
 
   const canLoadMore = useCallback(() => {
+    // If we're grouping by collection, or filtering by collection,owner,
+    // or minter, use the total number of nfts in the current page
+    // otherwise use the appropriate grouping list length
     if (collectionId || ownerDid || minterDid || group === NftGroupMode.None) {
       return nfts.length === pageSize;
     } else if (group === NftGroupMode.Collection) {
@@ -129,7 +132,6 @@ export function NftList() {
             collections={collections}
             ownerDids={ownerDids}
             minterDids={minterDids}
-            pageSize={pageSize}
             updateNfts={updateNfts}
             page={params.page}
             multiSelect={multiSelect}
