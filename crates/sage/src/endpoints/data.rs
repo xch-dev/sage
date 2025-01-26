@@ -263,9 +263,7 @@ impl Sage {
         let total = wallet
             .db
             .count_distinct_minter_dids()
-            .await?
-            .try_into()
-            .unwrap();
+            .await?;
 
         Ok(GetMinterDidIdsResponse { did_ids, total })
     }
@@ -466,7 +464,7 @@ impl Sage {
 
         Ok(GetNftsResponse {
             nfts: records,
-            total: total.try_into().unwrap_or(0),
+            total,
         })
     }
 
