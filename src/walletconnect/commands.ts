@@ -219,7 +219,9 @@ export const walletConnectCommands = {
       nfts: z.array(nftMint),
       fee: safeAmount.optional(),
     }),
-    returnType: z.object({}),
+    returnType: z.object({
+      nftIds: z.array(z.string()),
+    }),
     confirm: true,
   },
   chia_getAddress: {

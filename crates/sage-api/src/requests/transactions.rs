@@ -111,6 +111,13 @@ pub struct BulkMintNfts {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct BulkMintNftsResponse {
+    pub nft_ids: Vec<String>,
+    pub summary: TransactionSummary,
+    pub coin_spends: Vec<CoinSpendJson>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub struct NftMint {
     #[serde(default)]
     pub address: Option<String>,
@@ -237,7 +244,6 @@ pub type IssueCatResponse = TransactionResponse;
 pub type SendCatResponse = TransactionResponse;
 pub type BulkSendCatResponse = TransactionResponse;
 pub type CreateDidResponse = TransactionResponse;
-pub type BulkMintNftsResponse = TransactionResponse;
 pub type TransferNftsResponse = TransactionResponse;
 pub type AddNftUriResponse = TransactionResponse;
 pub type AssignNftsToDidResponse = TransactionResponse;

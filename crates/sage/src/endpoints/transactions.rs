@@ -4,12 +4,13 @@ use chia::{
     protocol::{Bytes, CoinSpend},
     puzzles::nft::NftMetadata,
 };
-use chia_wallet_sdk::MetadataUpdate;
+use chia_wallet_sdk::{encode_address, MetadataUpdate};
 use sage_api::{
-    AddNftUri, AssignNftsToDid, BulkMintNfts, BulkSendCat, BulkSendXch, CombineCat, CombineXch,
-    CreateDid, IssueCat, NftUriKind, NormalizeDids, SendCat, SendXch, SignCoinSpends,
-    SignCoinSpendsResponse, SplitCat, SplitXch, SubmitTransaction, SubmitTransactionResponse,
-    TransactionResponse, TransferDids, TransferNfts, ViewCoinSpends, ViewCoinSpendsResponse,
+    AddNftUri, AssignNftsToDid, BulkMintNfts, BulkMintNftsResponse, BulkSendCat, BulkSendXch,
+    CombineCat, CombineXch, CreateDid, IssueCat, NftUriKind, NormalizeDids, SendCat, SendXch,
+    SignCoinSpends, SignCoinSpendsResponse, SplitCat, SplitXch, SubmitTransaction,
+    SubmitTransactionResponse, TransactionResponse, TransferDids, TransferNfts, ViewCoinSpends,
+    ViewCoinSpendsResponse,
 };
 use sage_assets::fetch_uris_without_hash;
 use sage_database::CatRow;
@@ -193,7 +194,7 @@ impl Sage {
         self.transact_with(coin_spends, req.auto_submit, info).await
     }
 
-    pub async fn bulk_mint_nfts(&self, req: BulkMintNfts) -> Result<TransactionResponse> {
+    pub async fn bulk_mint_nfts(&self, req: BulkMintNfts) -> Result<BulkMintNftsResponse> {
         let wallet = self.wallet()?;
         let fee = self.parse_amount(req.fee)?;
         let did_id = parse_did_id(req.did_id)?;
@@ -283,10 +284,25 @@ impl Sage {
             });
         }
 
-        let (coin_spends, _nfts, _did) = wallet
+        let (coin_spends, nfts, _did) = wallet
             .bulk_mint_nfts(fee, did_id, mints, false, true)
             .await?;
-        self.transact_with(coin_spends, req.auto_submit, info).await
+
+        let mut nft_ids = Vec::with_capacity(nfts.len());
+
+        for nft in nfts {
+            nft_ids.push(encode_address(nft.info.launcher_id.to_bytes(), "nft")?);
+        }
+
+        let response = self
+            .transact_with(coin_spends, req.auto_submit, info)
+            .await?;
+
+        Ok(BulkMintNftsResponse {
+            nft_ids,
+            summary: response.summary,
+            coin_spends: response.coin_spends,
+        })
     }
 
     pub async fn transfer_nfts(&self, req: TransferNfts) -> Result<TransactionResponse> {

@@ -81,8 +81,10 @@ export async function handleSignMessageByAddress(
   return await commands.signMessageByAddress(params);
 }
 
-export async function handleBulkMintNfts(params: Params<'chia_bulkMintNfts'>) {
-  await commands.bulkMintNfts({
+export async function handleBulkMintNfts(
+  params: Params<'chia_bulkMintNfts'>,
+): Promise<Return<'chia_bulkMintNfts'>> {
+  const response = await commands.bulkMintNfts({
     did_id: params.did,
     fee: params.fee ?? 0,
     auto_submit: true,
@@ -119,5 +121,7 @@ export async function handleBulkMintNfts(params: Params<'chia_bulkMintNfts'>) {
     }),
   });
 
-  return {};
+  return {
+    nftIds: response.nft_ids,
+  };
 }

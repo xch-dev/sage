@@ -68,7 +68,7 @@ async issueCat(req: IssueCat) : Promise<TransactionResponse> {
 async createDid(req: CreateDid) : Promise<TransactionResponse> {
     return await TAURI_INVOKE("create_did", { req });
 },
-async bulkMintNfts(req: BulkMintNfts) : Promise<TransactionResponse> {
+async bulkMintNfts(req: BulkMintNfts) : Promise<BulkMintNftsResponse> {
     return await TAURI_INVOKE("bulk_mint_nfts", { req });
 },
 async transferNfts(req: TransferNfts) : Promise<TransactionResponse> {
@@ -268,6 +268,7 @@ export type AssetCoinType = "cat" | "did" | "nft"
 export type Assets = { xch: Amount; cats: CatAmount[]; nfts: string[] }
 export type AssignNftsToDid = { nft_ids: string[]; did_id: string | null; fee: Amount; auto_submit?: boolean }
 export type BulkMintNfts = { mints: NftMint[]; did_id: string; fee: Amount; auto_submit?: boolean }
+export type BulkMintNftsResponse = { nft_ids: string[]; summary: TransactionSummary; coin_spends: CoinSpendJson[] }
 export type BulkSendCat = { asset_id: string; addresses: string[]; amount: Amount; fee: Amount; memos?: string[]; auto_submit?: boolean }
 export type BulkSendXch = { addresses: string[]; amount: Amount; fee: Amount; memos?: string[]; auto_submit?: boolean }
 export type CancelOffer = { offer_id: string; fee: Amount; auto_submit?: boolean }
