@@ -112,12 +112,27 @@ pub struct BulkMintNfts {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub struct NftMint {
+    #[serde(default)]
+    pub address: Option<String>,
+    #[serde(default)]
     pub edition_number: Option<u32>,
+    #[serde(default)]
     pub edition_total: Option<u32>,
+    #[serde(default)]
+    pub data_hash: Option<String>,
+    #[serde(default)]
     pub data_uris: Vec<String>,
+    #[serde(default)]
+    pub metadata_hash: Option<String>,
+    #[serde(default)]
     pub metadata_uris: Vec<String>,
+    #[serde(default)]
+    pub license_hash: Option<String>,
+    #[serde(default)]
     pub license_uris: Vec<String>,
+    #[serde(default)]
     pub royalty_address: Option<String>,
+    #[serde(default)]
     pub royalty_ten_thousandths: u16,
 }
 

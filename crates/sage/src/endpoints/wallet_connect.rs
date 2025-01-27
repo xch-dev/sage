@@ -15,8 +15,8 @@ use sage_wallet::{insert_transaction, submit_to_peers, Status, SyncCommand, Tran
 use tracing::{debug, info, warn};
 
 use crate::{
-    parse_asset_id, parse_coin_id, parse_did_id, parse_nft_id, parse_program, parse_public_key,
-    parse_puzzle_hash, parse_signature, Error, Result, Sage,
+    parse_asset_id, parse_coin_id, parse_did_id, parse_hash, parse_nft_id, parse_program,
+    parse_public_key, parse_signature, Error, Result, Sage,
 };
 
 impl Sage {
@@ -491,7 +491,7 @@ fn rust_spend(coin_spend: wallet_connect::CoinSpend) -> Result<CoinSpend> {
 fn rust_coin(coin: wallet_connect::Coin) -> Result<Coin> {
     Ok(Coin {
         parent_coin_info: parse_coin_id(coin.parent_coin_info)?,
-        puzzle_hash: parse_puzzle_hash(coin.puzzle_hash)?,
+        puzzle_hash: parse_hash(coin.puzzle_hash)?,
         amount: coin.amount,
     })
 }

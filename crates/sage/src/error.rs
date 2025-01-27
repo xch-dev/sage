@@ -136,8 +136,8 @@ pub enum Error {
     #[error("Invalid genesis id: {0}")]
     InvalidGenesisChallenge(String),
 
-    #[error("Invalid puzzle hash: {0}")]
-    InvalidPuzzleHash(String),
+    #[error("Invalid hash: {0}")]
+    InvalidHash(String),
 
     #[error("Invalid coin id: {0}")]
     InvalidCoinId(String),
@@ -265,7 +265,7 @@ impl Error {
             | Self::InvalidCollectionId(..)
             | Self::InvalidGenesisChallenge(..)
             | Self::InvalidCoinId(..)
-            | Self::InvalidPuzzleHash(..)
+            | Self::InvalidHash(..)
             | Self::InvalidAssetId(..)
             | Self::InvalidOfferId(..)
             | Self::InvalidPercentage(..)

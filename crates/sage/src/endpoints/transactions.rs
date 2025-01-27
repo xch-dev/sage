@@ -18,7 +18,8 @@ use tokio::time::timeout;
 
 use crate::{
     fetch_cats, fetch_coins, json_bundle, json_spend, parse_asset_id, parse_cat_amount,
-    parse_did_id, parse_nft_id, rust_bundle, rust_spend, ConfirmationInfo, Result, Sage,
+    parse_did_id, parse_hash, parse_nft_id, rust_bundle, rust_spend, ConfirmationInfo, Result,
+    Sage,
 };
 
 impl Sage {
@@ -208,7 +209,9 @@ impl Sage {
 
             let royalty_ten_thousandths = item.royalty_ten_thousandths;
 
-            let data_hash = if item.data_uris.is_empty() {
+            let data_hash = if let Some(data_hash) = item.data_hash {
+                Some(parse_hash(data_hash)?)
+            } else if item.data_uris.is_empty() {
                 None
             } else {
                 let data = timeout(
@@ -223,7 +226,9 @@ impl Sage {
                 Some(hash)
             };
 
-            let metadata_hash = if item.metadata_uris.is_empty() {
+            let metadata_hash = if let Some(metadata_hash) = item.metadata_hash {
+                Some(parse_hash(metadata_hash)?)
+            } else if item.metadata_uris.is_empty() {
                 None
             } else {
                 let metadata = timeout(
@@ -238,7 +243,9 @@ impl Sage {
                 Some(hash)
             };
 
-            let license_hash = if item.license_uris.is_empty() {
+            let license_hash = if let Some(license_hash) = item.license_hash {
+                Some(parse_hash(license_hash)?)
+            } else if item.license_uris.is_empty() {
                 None
             } else {
                 let data = timeout(
@@ -253,6 +260,12 @@ impl Sage {
                 Some(hash)
             };
 
+            let p2_puzzle_hash = if let Some(address) = item.address {
+                Some(self.parse_address(address)?)
+            } else {
+                None
+            };
+
             mints.push(WalletNftMint {
                 metadata: NftMetadata {
                     edition_number: item.edition_number.map_or(1, Into::into),
@@ -264,6 +277,7 @@ impl Sage {
                     license_uris: item.license_uris,
                     license_hash,
                 },
+                p2_puzzle_hash,
                 royalty_puzzle_hash,
                 royalty_ten_thousandths,
             });
