@@ -68,7 +68,7 @@ async issueCat(req: IssueCat) : Promise<TransactionResponse> {
 async createDid(req: CreateDid) : Promise<TransactionResponse> {
     return await TAURI_INVOKE("create_did", { req });
 },
-async bulkMintNfts(req: BulkMintNfts) : Promise<TransactionResponse> {
+async bulkMintNfts(req: BulkMintNfts) : Promise<BulkMintNftsResponse> {
     return await TAURI_INVOKE("bulk_mint_nfts", { req });
 },
 async transferNfts(req: TransferNfts) : Promise<TransactionResponse> {
@@ -268,6 +268,7 @@ export type AssetCoinType = "cat" | "did" | "nft"
 export type Assets = { xch: Amount; cats: CatAmount[]; nfts: string[] }
 export type AssignNftsToDid = { nft_ids: string[]; did_id: string | null; fee: Amount; auto_submit?: boolean }
 export type BulkMintNfts = { mints: NftMint[]; did_id: string; fee: Amount; auto_submit?: boolean }
+export type BulkMintNftsResponse = { nft_ids: string[]; summary: TransactionSummary; coin_spends: CoinSpendJson[] }
 export type BulkSendCat = { asset_id: string; addresses: string[]; amount: Amount; fee: Amount; memos?: string[]; auto_submit?: boolean }
 export type BulkSendXch = { addresses: string[]; amount: Amount; fee: Amount; memos?: string[]; auto_submit?: boolean }
 export type CancelOffer = { offer_id: string; fee: Amount; auto_submit?: boolean }
@@ -362,7 +363,7 @@ export type Network = { default_port: number; ticker: string; address_prefix: st
 export type NetworkConfig = { network_id: string; target_peers: number; discover_peers: boolean }
 export type NftCollectionRecord = { collection_id: string; did_id: string; metadata_collection_id: string; visible: boolean; name: string | null; icon: string | null }
 export type NftData = { blob: string | null; mime_type: string | null; hash_matches: boolean; metadata_json: string | null; metadata_hash_matches: boolean }
-export type NftMint = { edition_number: number | null; edition_total: number | null; data_uris: string[]; metadata_uris: string[]; license_uris: string[]; royalty_address: string | null; royalty_ten_thousandths: number }
+export type NftMint = { address?: string | null; edition_number?: number | null; edition_total?: number | null; data_hash?: string | null; data_uris?: string[]; metadata_hash?: string | null; metadata_uris?: string[]; license_hash?: string | null; license_uris?: string[]; royalty_address?: string | null; royalty_ten_thousandths?: number }
 export type NftRecord = { launcher_id: string; collection_id: string | null; collection_name: string | null; minter_did: string | null; owner_did: string | null; visible: boolean; sensitive_content: boolean; name: string | null; created_height: number | null; coin_id: string; address: string; royalty_address: string; royalty_ten_thousandths: number; data_uris: string[]; data_hash: string | null; metadata_uris: string[]; metadata_hash: string | null; license_uris: string[]; license_hash: string | null; edition_number: number | null; edition_total: number | null }
 export type NftSortMode = "name" | "recent"
 export type NftUriKind = "data" | "metadata" | "license"

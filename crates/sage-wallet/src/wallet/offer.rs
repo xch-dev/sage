@@ -102,6 +102,7 @@ mod tests {
                 did.info.launcher_id,
                 vec![WalletNftMint {
                     metadata: NftMetadata::default(),
+                    p2_puzzle_hash: None,
                     royalty_puzzle_hash: Some(Bytes32::default()),
                     royalty_ten_thousandths: 300,
                 }],
@@ -185,6 +186,7 @@ mod tests {
                 did.info.launcher_id,
                 vec![WalletNftMint {
                     metadata: NftMetadata::default(),
+                    p2_puzzle_hash: None,
                     royalty_puzzle_hash: Some(Bytes32::default()),
                     royalty_ten_thousandths: 300,
                 }],
@@ -258,11 +260,13 @@ mod tests {
                 vec![
                     WalletNftMint {
                         metadata: NftMetadata::default(),
+                        p2_puzzle_hash: None,
                         royalty_puzzle_hash: Some(Bytes32::default()),
                         royalty_ten_thousandths: 300,
                     },
                     WalletNftMint {
                         metadata: NftMetadata::default(),
+                        p2_puzzle_hash: None,
                         royalty_puzzle_hash: Some(Bytes32::default()),
                         royalty_ten_thousandths: 300,
                     },
@@ -351,11 +355,13 @@ mod tests {
                 vec![
                     WalletNftMint {
                         metadata: NftMetadata::default(),
+                        p2_puzzle_hash: None,
                         royalty_puzzle_hash: Some(Bytes32::default()),
                         royalty_ten_thousandths: 300,
                     },
                     WalletNftMint {
                         metadata: NftMetadata::default(),
+                        p2_puzzle_hash: None,
                         royalty_puzzle_hash: Some(Bytes32::default()),
                         royalty_ten_thousandths: 300,
                     },
@@ -449,11 +455,13 @@ mod tests {
                 vec![
                     WalletNftMint {
                         metadata: NftMetadata::default(),
+                        p2_puzzle_hash: None,
                         royalty_puzzle_hash: Some(Bytes32::default()),
                         royalty_ten_thousandths: 300,
                     },
                     WalletNftMint {
                         metadata: NftMetadata::default(),
+                        p2_puzzle_hash: None,
                         royalty_puzzle_hash: Some(Bytes32::default()),
                         royalty_ten_thousandths: 0,
                     },
@@ -542,11 +550,13 @@ mod tests {
                 vec![
                     WalletNftMint {
                         metadata: NftMetadata::default(),
+                        p2_puzzle_hash: None,
                         royalty_puzzle_hash: Some(Bytes32::default()),
                         royalty_ten_thousandths: 300,
                     },
                     WalletNftMint {
                         metadata: NftMetadata::default(),
+                        p2_puzzle_hash: None,
                         royalty_puzzle_hash: Some(Bytes32::default()),
                         royalty_ten_thousandths: 300,
                     },
@@ -742,6 +752,7 @@ mod tests {
                 did.info.launcher_id,
                 vec![WalletNftMint {
                     metadata: NftMetadata::default(),
+                    p2_puzzle_hash: None,
                     royalty_puzzle_hash: Some(Bytes32::default()),
                     royalty_ten_thousandths: 300,
                 }],

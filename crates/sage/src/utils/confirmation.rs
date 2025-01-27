@@ -16,7 +16,7 @@ use sage_wallet::{compute_nft_info, ChildKind, CoinKind, Transaction};
 
 use crate::{Error, Result, Sage};
 
-use super::{parse_coin_id, parse_program, parse_puzzle_hash, parse_signature, BURN_PUZZLE_HASH};
+use super::{parse_coin_id, parse_hash, parse_program, parse_signature, BURN_PUZZLE_HASH};
 
 #[derive(Debug, Default)]
 pub struct ConfirmationInfo {
@@ -224,7 +224,7 @@ pub fn rust_spend(coin_spend: CoinSpendJson) -> Result<CoinSpend> {
 pub fn rust_coin(coin: CoinJson) -> Result<Coin> {
     Ok(Coin {
         parent_coin_info: parse_coin_id(coin.parent_coin_info)?,
-        puzzle_hash: parse_puzzle_hash(coin.puzzle_hash)?,
+        puzzle_hash: parse_hash(coin.puzzle_hash)?,
         amount: coin
             .amount
             .to_u64()

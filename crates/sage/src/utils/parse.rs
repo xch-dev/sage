@@ -81,7 +81,7 @@ pub fn parse_cat_amount(input: Amount) -> Result<u64> {
     Ok(amount)
 }
 
-pub fn parse_puzzle_hash(input: String) -> Result<Bytes32> {
+pub fn parse_hash(input: String) -> Result<Bytes32> {
     let stripped = if let Some(stripped) = input.strip_prefix("0x") {
         stripped
     } else {
@@ -90,7 +90,7 @@ pub fn parse_puzzle_hash(input: String) -> Result<Bytes32> {
 
     hex::decode(stripped)?
         .try_into()
-        .map_err(|_| Error::InvalidPuzzleHash(input))
+        .map_err(|_| Error::InvalidHash(input))
 }
 
 pub fn parse_signature(input: String) -> Result<Signature> {

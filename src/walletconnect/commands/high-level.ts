@@ -80,3 +80,48 @@ export async function handleSignMessageByAddress(
 ) {
   return await commands.signMessageByAddress(params);
 }
+
+export async function handleBulkMintNfts(
+  params: Params<'chia_bulkMintNfts'>,
+): Promise<Return<'chia_bulkMintNfts'>> {
+  const response = await commands.bulkMintNfts({
+    did_id: params.did,
+    fee: params.fee ?? 0,
+    auto_submit: true,
+    mints: params.nfts.map((nft) => {
+      if (nft.dataUris?.length && !nft.dataHash) {
+        throw new Error('Data hash is required if data uris are provided');
+      }
+
+      if (nft.metadataUris?.length && !nft.metadataHash) {
+        throw new Error(
+          'Metadata hash is required if metadata uris are provided',
+        );
+      }
+
+      if (nft.licenseUris?.length && !nft.licenseHash) {
+        throw new Error(
+          'License hash is required if license uris are provided',
+        );
+      }
+
+      return {
+        address: nft.address,
+        data_hash: nft.dataHash,
+        metadata_hash: nft.metadataHash,
+        license_hash: nft.licenseHash,
+        data_uris: nft.dataUris,
+        metadata_uris: nft.metadataUris,
+        license_uris: nft.licenseUris,
+        royalty_address: nft.royaltyAddress,
+        royalty_ten_thousandths: nft.royaltyTenThousandths,
+        edition_number: nft.editionNumber,
+        edition_total: nft.editionTotal,
+      };
+    }),
+  });
+
+  return {
+    nftIds: response.nft_ids,
+  };
+}
