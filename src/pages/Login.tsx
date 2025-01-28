@@ -66,7 +66,7 @@ export default function Login() {
 
   return (
     <SafeAreaView>
-      <div className='flex-1 space-y-4 px-4 overflow-y-scroll'>
+      <div className='flex-1 space-y-4 px-4 overflow-y-scroll pt-4'>
         <div className='flex items-center justify-between space-y-2'>
           {(keys?.length ?? 0) > 0 && (
             <>
