@@ -54,9 +54,11 @@ export default function Transaction() {
       <Container>
         <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
           {(transaction?.spent.length ?? 0) > 0 && (
-            <Card className='p-4 space-y-2'>
-              <div className='text-xl font-medium'>Sent</div>
-              <div className='space-y-2'>
+            <Card className='p-6'>
+              <div className='text-xl font-medium mb-4'>
+                <Trans>Sent</Trans>
+              </div>
+              <div className='space-y-4'>
                 {transaction?.spent.map((coin, i) => (
                   <TransactionCoin key={i} coin={coin} />
                 ))}
@@ -64,9 +66,11 @@ export default function Transaction() {
             </Card>
           )}
           {(transaction?.created.length ?? 0) > 0 && (
-            <Card className='p-4 space-y-2'>
-              <div className='text-xl font-medium'>Received</div>
-              <div className='space-y-2'>
+            <Card className='p-6'>
+              <div className='text-xl font-medium mb-4'>
+                <Trans>Received</Trans>
+              </div>
+              <div className='space-y-4'>
                 {transaction?.created.map((coin, i) => (
                   <TransactionCoin key={i} coin={coin} />
                 ))}
@@ -88,11 +92,11 @@ function TransactionCoin({ coin }: TransactionCoinProps) {
 
   return (
     <div
-      className='p-2 rounded-md bg-neutral-100 dark:bg-neutral-800 cursor-pointer'
+      className='rounded-xl border border-neutral-200 bg-white text-neutral-950 shadow dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-50 p-4 cursor-pointer'
       onClick={() => open(`https://spacescan.io/coin/0x${coin.coin_id}`)}
     >
       <TransactionCoinKind coin={coin} />
-      <div className='flex items-center gap-1'>
+      <div className='flex items-center gap-1 mt-2'>
         <div className='text-sm text-muted-foreground truncate'>
           <Trans>Coin with id {coinId}</Trans>
         </div>
