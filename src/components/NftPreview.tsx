@@ -64,16 +64,20 @@ export function NftPreview({
       const scale = Math.min(
         baseScale,
         baseScale * columnScale,
-        baseScale * rowScale * heightAdjustment, // Apply height adjustment here
+        baseScale * rowScale * heightAdjustment,
       );
 
-      el.style.fontSize = `min(${scale / containerColumns}vw, ${scale / containerRows}vh)`;
+      // Use container dimensions instead of viewport units
+      const containerWidth = compact ? 400 : 900;
+      const containerHeight = compact ? 400 : 900;
+
+      el.style.fontSize = `min(${(scale * containerWidth) / (100 * containerColumns)}px, ${(scale * containerHeight) / (100 * containerRows)}px)`;
       el.style.opacity = '1';
 
       // Special case for very short content
       if (contentColumns <= 4 && contentRows <= 4) {
-        const singleCharScale = compact ? 45 : 400; // Adjust these values
-        el.style.fontSize = `min(${singleCharScale / containerColumns}vw, ${singleCharScale / containerRows}vh)`;
+        const singleCharScale = compact ? 140 : 500;
+        el.style.fontSize = `min(${(singleCharScale * containerWidth) / (100 * containerColumns)}px, ${(singleCharScale * containerHeight) / (100 * containerRows)}px)`;
       }
 
       console.log('Content Analysis:', {
@@ -90,6 +94,7 @@ export function NftPreview({
         rowScale: rowScale,
         heightAdjustment,
         finalScale: scale,
+        containerDims: { containerWidth, containerHeight },
       });
     }
   }, [data?.mime_type, compact]);
