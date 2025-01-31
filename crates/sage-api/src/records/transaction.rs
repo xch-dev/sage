@@ -1,16 +1,17 @@
 use serde::{Deserialize, Serialize};
-use specta::Type;
 
 use crate::{AddressKind, Amount, AssetKind};
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct TransactionRecord {
     pub height: u32,
     pub spent: Vec<TransactionCoin>,
     pub created: Vec<TransactionCoin>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct TransactionCoin {
     pub coin_id: String,
     pub amount: Amount,

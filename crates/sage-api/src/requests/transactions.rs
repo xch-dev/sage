@@ -1,9 +1,9 @@
 use serde::{Deserialize, Serialize};
-use specta::Type;
 
 use crate::{Amount, CoinSpendJson, SpendBundleJson, TransactionSummary};
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct SendXch {
     pub address: String,
     pub amount: Amount,
@@ -14,7 +14,8 @@ pub struct SendXch {
     pub auto_submit: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct BulkSendXch {
     pub addresses: Vec<String>,
     pub amount: Amount,
@@ -25,7 +26,8 @@ pub struct BulkSendXch {
     pub auto_submit: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct CombineXch {
     pub coin_ids: Vec<String>,
     pub fee: Amount,
@@ -33,7 +35,8 @@ pub struct CombineXch {
     pub auto_submit: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct SplitXch {
     pub coin_ids: Vec<String>,
     pub output_count: u32,
@@ -42,7 +45,8 @@ pub struct SplitXch {
     pub auto_submit: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct CombineCat {
     pub coin_ids: Vec<String>,
     pub fee: Amount,
@@ -50,7 +54,8 @@ pub struct CombineCat {
     pub auto_submit: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct SplitCat {
     pub coin_ids: Vec<String>,
     pub output_count: u32,
@@ -59,7 +64,8 @@ pub struct SplitCat {
     pub auto_submit: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct IssueCat {
     pub name: String,
     pub ticker: String,
@@ -69,7 +75,8 @@ pub struct IssueCat {
     pub auto_submit: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct SendCat {
     pub asset_id: String,
     pub address: String,
@@ -81,7 +88,8 @@ pub struct SendCat {
     pub auto_submit: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct BulkSendCat {
     pub asset_id: String,
     pub addresses: Vec<String>,
@@ -93,7 +101,8 @@ pub struct BulkSendCat {
     pub auto_submit: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct CreateDid {
     pub name: String,
     pub fee: Amount,
@@ -101,7 +110,8 @@ pub struct CreateDid {
     pub auto_submit: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct BulkMintNfts {
     pub mints: Vec<NftMint>,
     pub did_id: String,
@@ -110,14 +120,16 @@ pub struct BulkMintNfts {
     pub auto_submit: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct BulkMintNftsResponse {
     pub nft_ids: Vec<String>,
     pub summary: TransactionSummary,
     pub coin_spends: Vec<CoinSpendJson>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct NftMint {
     #[serde(default)]
     pub address: Option<String>,
@@ -143,7 +155,8 @@ pub struct NftMint {
     pub royalty_ten_thousandths: u16,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct TransferNfts {
     pub nft_ids: Vec<String>,
     pub address: String,
@@ -152,7 +165,8 @@ pub struct TransferNfts {
     pub auto_submit: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct AddNftUri {
     pub nft_id: String,
     pub uri: String,
@@ -162,7 +176,8 @@ pub struct AddNftUri {
     pub auto_submit: bool,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[serde(rename_all = "snake_case")]
 pub enum NftUriKind {
     Data,
@@ -170,7 +185,8 @@ pub enum NftUriKind {
     License,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct AssignNftsToDid {
     pub nft_ids: Vec<String>,
     pub did_id: Option<String>,
@@ -179,7 +195,8 @@ pub struct AssignNftsToDid {
     pub auto_submit: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct TransferDids {
     pub did_ids: Vec<String>,
     pub address: String,
@@ -188,7 +205,8 @@ pub struct TransferDids {
     pub auto_submit: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct NormalizeDids {
     pub did_ids: Vec<String>,
     pub fee: Amount,
@@ -196,7 +214,8 @@ pub struct NormalizeDids {
     pub auto_submit: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct SignCoinSpends {
     pub coin_spends: Vec<CoinSpendJson>,
     #[serde(default)]
@@ -205,30 +224,36 @@ pub struct SignCoinSpends {
     pub partial: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct SignCoinSpendsResponse {
     pub spend_bundle: SpendBundleJson,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct ViewCoinSpends {
     pub coin_spends: Vec<CoinSpendJson>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct ViewCoinSpendsResponse {
     pub summary: TransactionSummary,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct SubmitTransaction {
     pub spend_bundle: SpendBundleJson,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct SubmitTransactionResponse {}
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct TransactionResponse {
     pub summary: TransactionSummary,
     pub coin_spends: Vec<CoinSpendJson>,

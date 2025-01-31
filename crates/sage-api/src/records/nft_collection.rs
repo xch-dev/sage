@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
-use specta::Type;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct NftCollectionRecord {
     pub collection_id: String,
     pub did_id: String,
