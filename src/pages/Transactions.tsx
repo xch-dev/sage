@@ -23,6 +23,8 @@ import { NumberFormat } from '@/components/NumberFormat';
 
 import { Pagination } from '@/components/Pagination';
 import { useLocalStorage } from 'usehooks-ts';
+import { ViewToggle, ViewMode } from '@/components/ViewToggle';
+import { TransactionTableView } from '../components/TransactionTableView';
 
 export function Transactions() {
   const { addError } = useErrors();
@@ -32,6 +34,7 @@ export function Transactions() {
   const setPage = (page: number) => setParams({ page: page.toString() });
 
   const [pageSize, setPageSize] = useLocalStorage('transactionsPageSize', 8);
+  const [view, setView] = useLocalStorage<ViewMode>('transactionsView', 'list');
 
   // TODO: Show pending transactions
   const [_pending, setPending] = useState<PendingTransactionRecord[]>([]);
@@ -90,22 +93,7 @@ export function Transactions() {
           </Alert>
         )}
 
-        <Pagination
-          total={total}
-          page={page}
-          onPageChange={setPage}
-          pageSize={pageSize}
-          onPageSizeChange={setPageSize}
-        />
-
-        {transactions.length > 0 && (
-          <div className='flex flex-col gap-2 my-4'>
-            {transactions.map((transaction, i) => {
-              return <Transaction key={i} transaction={transaction} />;
-            })}
-          </div>
-        )}
-        {total > pageSize && (
+        <div className='flex items-center justify-between mb-4'>
           <Pagination
             total={total}
             page={page}
@@ -113,6 +101,32 @@ export function Transactions() {
             pageSize={pageSize}
             onPageSizeChange={setPageSize}
           />
+          <ViewToggle view={view} onChange={setView} />
+        </div>
+
+        {view === 'list' ? (
+          <div className='space-y-4'>
+            {transactions.map((transaction) => (
+              <Transaction
+                key={transaction.height}
+                transaction={transaction}
+              />
+            ))}
+          </div>
+        ) : (
+          <TransactionTableView transactions={transactions} />
+        )}
+
+        {total > pageSize && (
+          <div className='mt-4'>
+            <Pagination
+              total={total}
+              page={page}
+              onPageChange={setPage}
+              pageSize={pageSize}
+              onPageSizeChange={setPageSize}
+            />
+          </div>
         )}
       </Container>
     </>
