@@ -80,6 +80,7 @@ export function NftPreview({
         el.style.fontSize = `min(${(singleCharScale * containerWidth) / (100 * containerColumns)}px, ${(singleCharScale * containerHeight) / (100 * containerRows)}px)`;
       }
 
+      /*
       console.log('Content Analysis:', {
         type: isJson(data?.mime_type) ? 'JSON' : 'Text',
         compact,
@@ -95,7 +96,7 @@ export function NftPreview({
         heightAdjustment,
         finalScale: scale,
         containerDims: { containerWidth, containerHeight },
-      });
+      });*/
     }
   }, [data?.mime_type, compact]);
 
