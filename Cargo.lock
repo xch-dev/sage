@@ -4909,12 +4909,14 @@ dependencies = [
 name = "sage-assets"
 version = "0.9.3"
 dependencies = [
+ "base64 0.21.7",
  "chia",
  "clvmr",
  "futures-lite",
  "futures-util",
  "mime-sniffer",
  "num-bigint",
+ "percent-encoding",
  "reqwest",
  "serde",
  "serde_json",

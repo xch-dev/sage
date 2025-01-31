@@ -3,7 +3,7 @@ import { CopyBox } from '@/components/CopyBox';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { useErrors } from '@/hooks/useErrors';
-import { isImage, nftUri } from '@/lib/nftUri';
+import { isImage, isVideo, isText, isJson, nftUri } from '@/lib/nftUri';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { open } from '@tauri-apps/plugin-shell';
@@ -77,24 +77,89 @@ export default function Nft() {
     commands.networkConfig().then(setConfig).catch(addError);
   }, [addError]);
 
+  // New function to render NFT content based on mime type
+  const renderNftContent = () => {
+    const uri = nftUri(data?.mime_type ?? null, data?.blob ?? null);
+
+    if (isJson(data?.mime_type ?? null)) {
+      try {
+        // Parse and format JSON
+        const jsonObj = JSON.parse(uri);
+        const formattedJson = JSON.stringify(jsonObj, null, 2);
+        
+        return (
+          <div className='relative overflow-auto'>
+            <pre
+              className='m-0 p-4 whitespace-pre-wrap break-words font-mono text-left'
+              style={{
+                lineHeight: 1.4,
+                fontSize: '14px',
+                maxHeight: '80vh',
+                backgroundColor: 'white',
+                border: '1px solid #eee',
+                borderRadius: '4px'
+              }}
+            >
+              {formattedJson}
+            </pre>
+          </div>
+        );
+      } catch {
+        // If JSON parsing fails, show raw text
+        return (
+          <div className='relative overflow-auto'>
+            <pre className='m-0 p-4 whitespace-pre-wrap break-words font-mono text-left'>
+              {uri}
+            </pre>
+          </div>
+        );
+      }
+    }
+
+    if (isText(data?.mime_type ?? null)) {
+      return (
+        <div className='relative grid h-full place-items-center overflow-hidden'>
+          <pre
+            className='m-0 p-[0.1em] whitespace-pre-wrap break-words text-center font-sans'
+            style={{
+              width: '400px',
+              height: '400px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+            ref={(el) => {
+              if (el) {
+                const { width, height } = el.getBoundingClientRect();
+                const columns = width / 16;
+                const rows = height / 16;
+                el.style.fontSize = `min(${550 / columns}vw, ${550 / rows}vh)`;
+              }
+            }}
+          >
+            {uri}
+          </pre>
+        </div>
+      );
+    }
+
+    if (isVideo(data?.mime_type ?? null)) {
+      return <video src={uri} className='rounded-lg' controls />;
+    }
+
+    if (isImage(data?.mime_type ?? null)) {
+      return <img alt='NFT image' src={uri} className='rounded-lg' />;
+    }
+
+    return null;
+  };
+
   return (
     <>
       <Header title={nft?.name ?? t`Unknown NFT`} />
       <Container>
         <div className='flex flex-col gap-2 mx-auto sm:w-full md:w-[50%] max-w-[400px]'>
-          {isImage(data?.mime_type ?? null) ? (
-            <img
-              alt='NFT image'
-              src={nftUri(data?.mime_type ?? null, data?.blob ?? null)}
-              className='rounded-lg'
-            />
-          ) : (
-            <video
-              src={nftUri(data?.mime_type ?? null, data?.blob ?? null)}
-              className='rounded-lg'
-              controls
-            />
-          )}
+          {renderNftContent()}
           <CopyBox title={t`Launcher Id`} value={nft?.launcher_id ?? ''} />
         </div>
 

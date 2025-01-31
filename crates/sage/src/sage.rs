@@ -367,6 +367,7 @@ impl Sage {
         fs::create_dir_all(&path)?;
         let network_id = &self.config.network.network_id;
         let path = path.join(format!("{network_id}.sqlite"));
+        info!("Database path: {}", path.display());
         Ok(path)
     }
 

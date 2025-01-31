@@ -27,3 +27,5 @@ futures-util = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }
 mime-sniffer = { workspace = true }
+base64 = "0.21"
+percent-encoding = "2.3"
