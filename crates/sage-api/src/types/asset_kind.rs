@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
-use specta::Type;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum AssetKind {
     Unknown,

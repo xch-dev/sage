@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
-use specta::Type;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct NftRecord {
     pub launcher_id: String,
     pub collection_id: Option<String>,
@@ -26,7 +26,8 @@ pub struct NftRecord {
     pub edition_total: Option<u32>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct NftData {
     pub blob: Option<String>,
     pub mime_type: Option<String>,
