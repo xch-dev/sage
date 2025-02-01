@@ -105,12 +105,13 @@ export function Transactions() {
         </div>
 
         {view === 'list' ? (
-          <div className='space-y-4'>
+          <div
+            className='space-y-4'
+            role='list'
+            aria-label={t`Transaction history`}
+          >
             {transactions.map((transaction) => (
-              <Transaction
-                key={transaction.height}
-                transaction={transaction}
-              />
+              <Transaction key={transaction.height} transaction={transaction} />
             ))}
           </div>
         ) : (
@@ -194,6 +195,8 @@ function Transaction({ transaction }: TransactionProps) {
     <Link
       to={`/transactions/${transactionHeight}`}
       className='flex items-center gap-2 p-4 rounded-sm bg-neutral-100 dark:bg-neutral-900'
+      role='listitem'
+      aria-label={t`Transaction at block ` + transactionHeight}
     >
       <div className='flex justify-between'>
         <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
@@ -203,6 +206,17 @@ function Transaction({ transaction }: TransactionProps) {
               onClick={(event) => {
                 event.preventDefault();
                 open(`https://spacescan.io/block/${transactionHeight}`);
+              }}
+              role='button'
+              aria-label={
+                t`View block ` + transactionHeight + t` on Spacescan.io`
+              }
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  open(`https://spacescan.io/block/${transactionHeight}`);
+                }
               }}
             >
               <Trans>Block #{transactionHeight}</Trans>

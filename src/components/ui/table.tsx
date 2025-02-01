@@ -10,6 +10,7 @@ const Table = React.forwardRef<
     <table
       ref={ref}
       className={cn('w-full caption-bottom text-sm', className)}
+      role='table'
       {...props}
     />
   </div>
@@ -20,7 +21,12 @@ const TableHeader = React.forwardRef<
   HTMLTableSectionElement,
   React.HTMLAttributes<HTMLTableSectionElement>
 >(({ className, ...props }, ref) => (
-  <thead ref={ref} className={cn('[&_tr]:border-b', className)} {...props} />
+  <thead
+    ref={ref}
+    className={cn('[&_tr]:border-b', className)}
+    role='rowgroup'
+    {...props}
+  />
 ));
 TableHeader.displayName = 'TableHeader';
 
@@ -31,6 +37,7 @@ const TableBody = React.forwardRef<
   <tbody
     ref={ref}
     className={cn('[&_tr:last-child]:border-0', className)}
+    role='rowgroup'
     {...props}
   />
 ));
@@ -61,6 +68,7 @@ const TableRow = React.forwardRef<
       'border-b transition-colors hover:bg-neutral-100/50 data-[state=selected]:bg-neutral-100 dark:hover:bg-neutral-800/50 dark:data-[state=selected]:bg-neutral-800',
       className,
     )}
+    role='row'
     {...props}
   />
 ));
@@ -113,11 +121,11 @@ TableCaption.displayName = 'TableCaption';
 
 export {
   Table,
+  TableHeader,
   TableBody,
-  TableCaption,
-  TableCell,
   TableFooter,
   TableHead,
-  TableHeader,
   TableRow,
+  TableCell,
+  TableCaption,
 };
