@@ -115,7 +115,21 @@ export function Transactions() {
             ))}
           </div>
         ) : (
-          <TransactionTableView transactions={transactions} />
+          <TransactionTableView 
+            transactions={transactions} 
+            onSortingChange={(ascending) => {
+              commands.getTransactionsEx({ 
+                offset: (page - 1) * pageSize, 
+                limit: pageSize,
+                ascending 
+              })
+              .then((data) => {
+                setTransactions(data.transactions);
+                setTotal(data.total);
+              })
+              .catch(addError);
+            }}
+          />
         )}
 
         {total > pageSize && (

@@ -2,12 +2,18 @@ import { TransactionRecord } from '../bindings';
 import { DataTable } from '@/components/ui/data-table';
 import { columns } from './TransactionColumns';
 import { cn } from '@/lib/utils';
+import { SortingState } from '@tanstack/react-table';
+import { useState } from 'react';
 
 export function TransactionTableView({
   transactions,
+  onSortingChange,
 }: {
   transactions: TransactionRecord[];
+  onSortingChange?: (ascending: boolean) => void;
 }) {
+  const [sorting, setSorting] = useState<SortingState>([]);
+
   const flattenedTransactions = transactions.flatMap((transaction) => {
     const created = transaction.created.map((coin) => ({
       ...coin,
@@ -32,8 +38,19 @@ export function TransactionTableView({
   return (
     <DataTable 
       columns={columns} 
-      data={flattenedTransactions} 
-      // Pass the group information to be used for styling
+      data={flattenedTransactions}
+      onSortingChange={(updatedSort) => {
+        setSorting(updatedSort);
+        if (typeof updatedSort === 'function') {
+          const newSort = updatedSort([]);
+          if (newSort.length > 0 && newSort[0].id === 'transactionHeight') {
+            onSortingChange?.(newSort[0].desc === false);
+          }
+        } else if (updatedSort.length > 0 && updatedSort[0].id === 'transactionHeight') {
+          onSortingChange?.(updatedSort[0].desc === false);
+        }
+      }}
+      state={{ sorting }}
       getRowStyles={(row) => ({
         className: cn(
           'transition-colors',

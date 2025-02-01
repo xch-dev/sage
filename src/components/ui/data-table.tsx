@@ -8,6 +8,7 @@ import {
   SortingState,
   useReactTable,
   Row,
+  OnChangeFn,
 } from '@tanstack/react-table';
 
 import {
@@ -25,32 +26,27 @@ import { Trans } from '@lingui/react/macro';
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
+  state?: {
+    sorting?: SortingState;
+  };
+  onSortingChange?: OnChangeFn<SortingState>;
   getRowStyles?: (row: Row<TData>) => { className?: string };
 }
 
 export function DataTable<TData, TValue>({
   columns,
   data,
+  state,
+  onSortingChange,
   getRowStyles,
 }: DataTableProps<TData, TValue>) {
-  const [sorting, setSorting] = React.useState<SortingState>([
-    {
-      id: 'transactionHeight',
-      desc: true,
-    },
-  ]);
-
   const table = useReactTable({
     data,
     columns,
+    state,
+    onSortingChange,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    onSortingChange: setSorting,
-    state: {
-      sorting,
-    },
-    // Ensure only one sort at a time
-    enableMultiSort: false,
   });
 
   return (
