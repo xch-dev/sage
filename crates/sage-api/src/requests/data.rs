@@ -102,6 +102,7 @@ pub struct GetTransactions {
 pub struct GetTransactionsEx {
     pub offset: u32,
     pub limit: u32,
+    pub ascending: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]

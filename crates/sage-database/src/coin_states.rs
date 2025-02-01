@@ -2,6 +2,7 @@ use std::cmp::Reverse;
 
 use chia::protocol::{Bytes32, CoinState};
 use sqlx::SqliteExecutor;
+use sqlx::Row;
 
 use crate::{
     into_row, to_bytes32, CoinKind, CoinStateRow, CoinStateSql, Database, DatabaseTx, IntoRow,
@@ -58,8 +59,8 @@ impl Database {
         is_coin_locked(&self.pool, coin_id).await
     }
 
-    pub async fn get_block_heights_ex(&self, offset: u32, limit: u32) -> Result<Vec<u32>> {
-        get_block_heights_ex(&self.pool, offset, limit).await
+    pub async fn get_block_heights_ex(&self, offset: u32, limit: u32, asc: bool) -> Result<Vec<u32>> {
+        get_block_heights_ex(&self.pool, offset, limit, asc).await
     }
 
     pub async fn get_block_heights(&self) -> Result<Vec<u32>> {
@@ -425,10 +426,9 @@ async fn get_block_heights_ex(
     conn: impl SqliteExecutor<'_>,
     offset: u32,
     limit: u32,
+    asc: bool,
 ) -> Result<Vec<u32>> {
-    tracing::debug!(?offset, ?limit, "getting block heights with pagination");
-    
-    let rows = sqlx::query!(
+    let mut query = sqlx::QueryBuilder::new(
         "WITH height_list AS (
             SELECT DISTINCT height FROM (
                 SELECT created_height as height FROM coin_states INDEXED BY `coin_created`
@@ -438,7 +438,6 @@ async fn get_block_heights_ex(
                 WHERE spent_height IS NOT NULL
             )
         ),
-
         coin_heights AS (
             SELECT * FROM (
                 SELECT spent_height as height, coin_id, parent_coin_id, puzzle_hash, amount, 
@@ -454,30 +453,27 @@ async fn get_block_heights_ex(
                 WHERE created_height IN (SELECT height FROM height_list)
             )
         )
-
         SELECT distinct coin_heights.height
         FROM coin_heights LEFT JOIN cat_coins ON coin_heights.coin_id = cat_coins.coin_id
             LEFT JOIN cats ON cat_coins.asset_id = cats.asset_id
             LEFT JOIN did_coins on coin_heights.coin_id = did_coins.coin_id
             LEFT JOIN nft_coins on coin_heights.coin_id = nft_coins.coin_id
-        ORDER BY height DESC
-        LIMIT ?
-        OFFSET ?
-        ",
-        limit,
-        offset
-    )
-    .fetch_all(conn)
-    .await?;
+        ORDER BY height ");
+    
+    query.push(if asc { "ASC" } else { "DESC" })
+        .push(" LIMIT ? OFFSET ?");
+
+    let built_query = query.build();
+    let rows = built_query.bind(limit).bind(offset)
+        .fetch_all(conn)
+        .await?;
 
     let mut heights = Vec::with_capacity(rows.len());
-
     for row in rows {
-        if let Some(height) = row.height {
+        if let Some(height) = row.get::<Option<i64>, _>(0) {
             heights.push(height.try_into()?);
         }
     }
-
     Ok(heights)
 }
 
