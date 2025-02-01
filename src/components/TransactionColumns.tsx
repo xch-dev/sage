@@ -20,6 +20,7 @@ export interface FlattenedTransaction {
   transactionHeight: number;
   type: string;
   ticker?: string | null;
+  icon_url?: string | null;
   amount: string;
   address: string | null;
   coin_id: string;
@@ -36,16 +37,17 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
     sortDescFirst: true,
     sortUndefined: 1,
     meta: {
-      serverSort: true
+      serverSort: true,
     },
     cell: ({ row, table }) => {
       // Get all rows data
       const rows = table.options.data as FlattenedTransaction[];
-      
+
       // Check if this is the first row for this transaction height
-      const isFirstInGroup = rows.findIndex(
-        tx => tx.transactionHeight === row.original.transactionHeight
-      ) === rows.indexOf(row.original);
+      const isFirstInGroup =
+        rows.findIndex(
+          (tx) => tx.transactionHeight === row.original.transactionHeight,
+        ) === rows.indexOf(row.original);
 
       // Only show block number for first row in group
       return isFirstInGroup ? (
@@ -57,6 +59,33 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
           {row.getValue('transactionHeight')}
         </Link>
       ) : null;
+    },
+  },
+  {
+    id: 'icon',
+    enableSorting: false,
+    header: () => null,
+    cell: ({ row }) => {
+      const type = row.getValue('type') as string;
+      const ticker = row.original.ticker;
+
+      return (
+        <div className='w-6 h-6'>
+          {type === 'xch' ? (
+            <img
+              alt='XCH'
+              src='https://icons.dexie.space/xch.webp'
+              aria-hidden='true'
+            />
+          ) : type === 'cat' && row.original.icon_url ? (
+            <img
+              alt={ticker ?? 'CAT'}
+              src={row.original.icon_url}
+              aria-hidden='true'
+            />
+          ) : null}
+        </div>
+      );
     },
   },
   {

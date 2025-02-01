@@ -52,7 +52,7 @@ export function DataTable<TData, TValue>({
 
   return (
     <div>
-      <div className="text-sm text-muted-foreground mb-2">
+      <div className='text-sm text-muted-foreground mb-2'>
         <Trans>Showing {data.length} coins</Trans>
       </div>
       <div className='rounded-md border'>
@@ -83,7 +83,10 @@ export function DataTable<TData, TValue>({
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id} role='cell'>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext(),
+                      )}
                     </TableCell>
                   ))}
                 </TableRow>

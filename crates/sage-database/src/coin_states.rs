@@ -1,8 +1,8 @@
 use std::cmp::Reverse;
 
 use chia::protocol::{Bytes32, CoinState};
-use sqlx::SqliteExecutor;
 use sqlx::Row;
+use sqlx::SqliteExecutor;
 
 use crate::{
     into_row, to_bytes32, CoinKind, CoinStateRow, CoinStateSql, Database, DatabaseTx, IntoRow,
@@ -59,8 +59,15 @@ impl Database {
         is_coin_locked(&self.pool, coin_id).await
     }
 
-    pub async fn get_block_heights_ex(&self, offset: u32, limit: u32, asc: bool) -> Result<Vec<u32>> {
-        get_block_heights_ex(&self.pool, offset, limit, asc).await
+    pub async fn get_block_heights_ex(
+        &self,
+        offset: u32,
+        limit: u32,
+        asc: bool,
+        find_column: Option<String>,
+        find_value: Option<String>,
+    ) -> Result<Vec<u32>> {
+        get_block_heights_ex(&self.pool, offset, limit, asc, find_column, find_value).await
     }
 
     pub async fn get_block_heights(&self) -> Result<Vec<u32>> {
@@ -427,44 +434,45 @@ async fn get_block_heights_ex(
     offset: u32,
     limit: u32,
     asc: bool,
+    find_column: Option<String>,
+    find_value: Option<String>,
 ) -> Result<Vec<u32>> {
     let mut query = sqlx::QueryBuilder::new(
-        "WITH height_list AS (
-            SELECT DISTINCT height FROM (
-                SELECT created_height as height FROM coin_states INDEXED BY `coin_created`
+        "
+        WITH heights AS (
+            SELECT DISTINCT height, coin_id FROM (
+                SELECT created_height as height, coin_id FROM coin_states INDEXED BY `coin_created`
                 WHERE created_height IS NOT NULL
                 UNION
-                SELECT spent_height as height FROM coin_states INDEXED BY `coin_spent`
+                SELECT spent_height as height, coin_id FROM coin_states INDEXED BY `coin_spent`
                 WHERE spent_height IS NOT NULL
-            )
-        ),
-        coin_heights AS (
-            SELECT * FROM (
-                SELECT spent_height as height, coin_id, parent_coin_id, puzzle_hash, amount, 
-                    created_height, spent_height, transaction_id, kind
-                FROM coin_states INDEXED BY `coin_spent`
-                WHERE spent_height IN (SELECT height FROM height_list)                
-                UNION ALL                
-                SELECT created_height as height, coin_id, parent_coin_id, puzzle_hash, amount, 
-                    created_height, spent_height, transaction_id, kind
-                FROM coin_states INDEXED BY `coin_created`
-                WHERE created_height IN (SELECT height FROM height_list)
-            )
+            )   
         )
-        SELECT distinct coin_heights.height
-        FROM coin_heights LEFT JOIN cat_coins ON coin_heights.coin_id = cat_coins.coin_id
-            LEFT JOIN cats ON cat_coins.asset_id = cats.asset_id
-            LEFT JOIN did_coins on coin_heights.coin_id = did_coins.coin_id
-            LEFT JOIN nft_coins on coin_heights.coin_id = nft_coins.coin_id
-        ORDER BY height ");
-    
-    query.push(if asc { "ASC" } else { "DESC" })
+        SELECT distinct heights.height
+            FROM heights
+                LEFT JOIN cat_coins ON heights.coin_id = cat_coins.coin_id
+                LEFT JOIN cats ON cat_coins.asset_id = cats.asset_id
+                LEFT JOIN did_coins on heights.coin_id = did_coins.coin_id
+                LEFT JOIN nft_coins on heights.coin_id = nft_coins.coin_id
+            WHERE 1=1
+        ",
+    );
+
+    if let (Some(column), Some(value)) = (&find_column, &find_value) {
+        query
+            .push(" AND ")
+            .push(column)
+            .push(" = ")
+            .push_bind(value);
+    }
+
+    query
+        .push(" ORDER BY height ")
+        .push(if asc { "ASC" } else { "DESC" })
         .push(" LIMIT ? OFFSET ?");
 
     let built_query = query.build();
-    let rows = built_query.bind(limit).bind(offset)
-        .fetch_all(conn)
-        .await?;
+    let rows = built_query.bind(limit).bind(offset).fetch_all(conn).await?;
 
     let mut heights = Vec::with_capacity(rows.len());
     for row in rows {

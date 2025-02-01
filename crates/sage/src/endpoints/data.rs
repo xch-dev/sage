@@ -296,7 +296,16 @@ impl Sage {
         let mut transactions = Vec::new();
         let all_heights = wallet.db.get_block_heights().await?;
 
-        let heights = wallet.db.get_block_heights_ex(req.offset, req.limit, req.ascending).await?;
+        let heights = wallet
+            .db
+            .get_block_heights_ex(
+                req.offset,
+                req.limit,
+                req.ascending,
+                req.find_column,
+                req.find_value,
+            )
+            .await?;
         for &height in heights.iter() {
             let transaction = self.transaction_record(&wallet.db, height).await?;
             transactions.push(transaction);

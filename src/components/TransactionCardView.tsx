@@ -1,148 +1,58 @@
-import Container from '@/components/Container';
-import Header from '@/components/Header';
-import { ReceiveAddress } from '@/components/ReceiveAddress';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { useErrors } from '@/hooks/useErrors';
-import { nftUri } from '@/lib/nftUri';
-import { fromMojos } from '@/lib/utils';
-import { useWalletState } from '@/state';
-import { t } from '@lingui/core/macro';
-import { Trans } from '@lingui/react/macro';
+import { Link } from 'react-router-dom';
 import { open } from '@tauri-apps/plugin-shell';
 import BigNumber from 'bignumber.js';
 import { Info } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
-import {
-  commands,
-  events,
-  PendingTransactionRecord,
-  TransactionRecord,
-} from '../bindings';
+import { t } from '@lingui/core/macro';
+import { Trans } from '@lingui/react/macro';
+import { TransactionRecord } from '../bindings';
 import { NumberFormat } from '@/components/NumberFormat';
+import { useWalletState } from '@/state';
+import { fromMojos } from '@/lib/utils';
+import { nftUri } from '@/lib/nftUri';
 
-import { Pagination } from '@/components/Pagination';
-import { useLocalStorage } from 'usehooks-ts';
-import { ViewToggle, ViewMode } from '@/components/ViewToggle';
-import { TransactionTableView } from '../components/TransactionTableView';
-import { TransactionCardView } from '../components/TransactionCardView';
+interface TransactionCardViewProps {
+  transactions: TransactionRecord[];
+}
 
-export function Transactions() {
-  const { addError } = useErrors();
-
-  const [params, setParams] = useSearchParams();
-  const page = parseInt(params.get('page') ?? '1');
-  const setPage = (page: number) => setParams({ page: page.toString() });
-
-  const [pageSize, setPageSize] = useLocalStorage('transactionsPageSize', 8);
-  const [view, setView] = useLocalStorage<ViewMode>('transactionsView', 'list');
-  const [ascending, setAscending] = useState(true);
-
-  // TODO: Show pending transactions
-  const [_pending, setPending] = useState<PendingTransactionRecord[]>([]);
-  const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
-  const [total, setTotal] = useState(0);
-
-  const updateTransactions = useCallback(async () => {
-    commands
-      .getPendingTransactions({})
-      .then((data) => setPending(data.transactions))
-      .catch(addError);
-    
-    commands
-      .getTransactionsEx({
-        offset: (page - 1) * pageSize,
-        limit: pageSize,
-        ascending,
-        find_column: 'cats.ticker',
-        find_value: 'HOA',
-      })
-      .then((data) => {
-        setTransactions(data.transactions);
-        setTotal(data.total);
-      })
-      .catch(addError);
-  }, [addError, page, pageSize, ascending]);
-
-  useEffect(() => {
-    updateTransactions();
-
-    const unlisten = events.syncEvent.listen((data) => {
-      switch (data.payload.type) {
-        case 'coin_state':
-        case 'cat_info':
-        case 'did_info':
-        case 'nft_data':
-        case 'puzzle_batch_synced':
-          updateTransactions();
-      }
-    });
-
-    return () => {
-      unlisten.then((u) => u());
-    };
-  }, [updateTransactions]);
-
-  const handleSortingChange = (newAscending: boolean) => {
-    setAscending(newAscending);
-  };
-
+export function TransactionCardView({ transactions }: TransactionCardViewProps) {
   return (
-    <>
-      <Header title={t`Transactions`}>
-        <ReceiveAddress />
-      </Header>
-      <Container>
-        {transactions.length === 0 && (
-          <Alert className='mb-4'>
-            <Info className='h-4 w-4' />
-            <AlertTitle>
-              <Trans>Note</Trans>
-            </AlertTitle>
-            <AlertDescription>
-              <Trans>You have not made any transactions yet.</Trans>
-            </AlertDescription>
-          </Alert>
-        )}
-
-        <div className='flex items-center justify-between mb-4'>
-          <Pagination
-            total={total}
-            page={page}
-            onPageChange={setPage}
-            pageSize={pageSize}
-            onPageSizeChange={setPageSize}
-          />
-          <ViewToggle view={view} onChange={setView} />
-        </div>
-
-        {view === 'list' ? (
-          <TransactionCardView transactions={transactions} />
-        ) : (
-          <TransactionTableView
-            transactions={transactions}
-            onSortingChange={handleSortingChange}
-          />
-        )}
-
-        {total > pageSize && (
-          <div className='mt-4'>
-            <Pagination
-              total={total}
-              page={page}
-              onPageChange={setPage}
-              pageSize={pageSize}
-              onPageSizeChange={setPageSize}
-            />
-          </div>
-        )}
-      </Container>
-    </>
+    <div className='space-y-4' role='list' aria-label={t`Transaction history`}>
+      {transactions.map((transaction) => (
+        <Transaction key={transaction.height} transaction={transaction} />
+      ))}
+    </div>
   );
 }
 
+// Move existing Transaction component and related interfaces here
 interface TransactionProps {
   transaction: TransactionRecord;
+}
+
+interface TransactionCat {
+  amount: BigNumber;
+  name: string | null;
+  ticker: string | null;
+  icon_url: string | null;
+}
+
+interface TransactionNft {
+  name: string | null;
+  image_mime_type: string | null;
+  image_data: string | null;
+  exists: boolean;
+}
+
+interface TransactionAssets {
+  xch: BigNumber;
+  cats: Record<string, TransactionCat>;
+  nfts: Record<string, TransactionNft>;
+}
+
+interface AssetPreviewProps {
+  label: string;
+  assets: TransactionAssets;
+  created?: boolean;
 }
 
 function Transaction({ transaction }: TransactionProps) {
@@ -215,9 +125,7 @@ function Transaction({ transaction }: TransactionProps) {
                 open(`https://spacescan.io/block/${transactionHeight}`);
               }}
               role='button'
-              aria-label={
-                t`View block ` + transactionHeight + t` on Spacescan.io`
-              }
+              aria-label={t`View block ` + transactionHeight + t` on Spacescan.io`}
               tabIndex={0}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
@@ -230,8 +138,7 @@ function Transaction({ transaction }: TransactionProps) {
             </div>
             <div className='text-sm text-muted-foreground md:w-[120px]'>
               <Trans>
-                {transactionSpentCount} inputs, {transactionCreatedCount}{' '}
-                outputs
+                {transactionSpentCount} inputs, {transactionCreatedCount} outputs
               </Trans>
             </div>
           </div>
@@ -241,32 +148,6 @@ function Transaction({ transaction }: TransactionProps) {
       </div>
     </Link>
   );
-}
-
-interface TransactionCat {
-  amount: BigNumber;
-  name: string | null;
-  ticker: string | null;
-  icon_url: string | null;
-}
-
-interface TransactionNft {
-  name: string | null;
-  image_mime_type: string | null;
-  image_data: string | null;
-  exists: boolean;
-}
-
-interface TransactionAssets {
-  xch: BigNumber;
-  cats: Record<string, TransactionCat>;
-  nfts: Record<string, TransactionNft>;
-}
-
-interface AssetPreviewProps {
-  label: string;
-  assets: TransactionAssets;
-  created?: boolean;
 }
 
 function AssetPreview({ label, assets, created }: AssetPreviewProps) {
@@ -350,4 +231,4 @@ function AssetPreview({ label, assets, created }: AssetPreviewProps) {
       ))}
     </div>
   );
-}
+} 

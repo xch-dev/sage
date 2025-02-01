@@ -98,11 +98,13 @@ pub struct GetTransactions {
     pub limit: u32,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub struct GetTransactionsEx {
     pub offset: u32,
     pub limit: u32,
     pub ascending: bool,
+    pub find_column: Option<String>,
+    pub find_value: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
