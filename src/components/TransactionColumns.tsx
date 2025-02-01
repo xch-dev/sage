@@ -64,7 +64,7 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title={t`Ticker`} />
     ),
-    enableSorting: true,
+    enableSorting: false,
     cell: ({ row }) => {
       const type = row.getValue('type') as string;
       return type === 'xch'
@@ -79,7 +79,7 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title={t`Amount`} />
     ),
-    enableSorting: true,
+    enableSorting: false,
     cell: ({ row }) => {
       const amount = row.getValue('amount') as string;
       const isPositive = amount.startsWith('+');
@@ -101,7 +101,7 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title={t`Address`} />
     ),
-    enableSorting: true,
+    enableSorting: false,
     cell: ({ row }) => (
       <div className='font-mono text-sm'>
         {row.getValue<string | null>('address')?.slice(0, 15)}...

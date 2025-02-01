@@ -443,10 +443,8 @@ async fn get_block_heights_ex(
                 SELECT spent_height as height, coin_id, parent_coin_id, puzzle_hash, amount, 
                     created_height, spent_height, transaction_id, kind
                 FROM coin_states INDEXED BY `coin_spent`
-                WHERE spent_height IN (SELECT height FROM height_list)
-                
-                UNION ALL
-                
+                WHERE spent_height IN (SELECT height FROM height_list)                
+                UNION ALL                
                 SELECT created_height as height, coin_id, parent_coin_id, puzzle_hash, amount, 
                     created_height, spent_height, transaction_id, kind
                 FROM coin_states INDEXED BY `coin_created`
