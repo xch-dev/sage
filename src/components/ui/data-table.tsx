@@ -7,6 +7,7 @@ import {
   getSortedRowModel,
   SortingState,
   useReactTable,
+  Row,
 } from '@tanstack/react-table';
 
 import {
@@ -20,14 +21,17 @@ import {
 
 import React from 'react';
 import { Trans } from '@lingui/react/macro';
+
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
+  getRowStyles?: (row: Row<TData>) => { className?: string };
 }
 
 export function DataTable<TData, TValue>({
   columns,
   data,
+  getRowStyles,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([
     {
@@ -74,6 +78,7 @@ export function DataTable<TData, TValue>({
               <TableRow
                 key={row.id}
                 data-state={row.getIsSelected() && 'selected'}
+                className={getRowStyles?.(row)?.className}
               >
                 {row.getVisibleCells().map((cell) => (
                   <TableCell key={cell.id} role='cell'>

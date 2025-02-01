@@ -32,15 +32,26 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
       <DataTableColumnHeader column={column} title={t`Block #`} />
     ),
     enableSorting: true,
-    cell: ({ row }) => (
-      <Link
-        to={`/transactions/${row.getValue('transactionHeight')}`}
-        className='hover:underline'
-        onClick={(e) => e.stopPropagation()}
-      >
-        #{row.getValue('transactionHeight')}
-      </Link>
-    ),
+    cell: ({ row, table }) => {
+      // Get all rows data
+      const rows = table.options.data as FlattenedTransaction[];
+      
+      // Check if this is the first row for this transaction height
+      const isFirstInGroup = rows.findIndex(
+        tx => tx.transactionHeight === row.original.transactionHeight
+      ) === rows.indexOf(row.original);
+
+      // Only show block number for first row in group
+      return isFirstInGroup ? (
+        <Link
+          to={`/transactions/${row.getValue('transactionHeight')}`}
+          className='hover:underline'
+          onClick={(e) => e.stopPropagation()}
+        >
+          {row.getValue('transactionHeight')}
+        </Link>
+      ) : null;
+    },
   },
   {
     accessorKey: 'type',
@@ -102,7 +113,7 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
           <DropdownMenuTrigger asChild>
             <Button
               variant='ghost'
-              className='h-8 w-8 p-0'
+              className='h-6 w-6 p-0'
               aria-label='Open actions menu'
             >
               <span className='sr-only'>Open menu</span>
