@@ -20,9 +20,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 
-import React from 'react';
 import { Trans } from '@lingui/react/macro';
-import { t } from '@lingui/core/macro';
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -52,9 +50,6 @@ export function DataTable<TData, TValue>({
 
   return (
     <div>
-      <div className='text-sm text-muted-foreground mb-2'>
-        <Trans>Showing {data.length} coins</Trans>
-      </div>
       <div className='rounded-md border'>
         <Table aria-label='Transactions table'>
           <TableHeader>
@@ -105,6 +100,9 @@ export function DataTable<TData, TValue>({
           </TableBody>
         </Table>
       </div>
+      <div className='text-sm text-muted-foreground mb-2'>
+        <Trans>Showing {data.length} coins</Trans>
+      </div>      
     </div>
   );
 }
