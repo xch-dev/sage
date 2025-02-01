@@ -113,7 +113,7 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
       const amount = row.getValue('amount') as string;
       const isPositive = amount.startsWith('+');
       return (
-        <div className='text-right w-[80px]'>
+        <div className='text-right w-full'>
           <span className={isPositive ? 'text-green-600' : 'text-red-600'}>
             <NumberFormat
               value={fromMojos(amount, 12)}

@@ -302,7 +302,6 @@ impl Sage {
                 req.offset,
                 req.limit,
                 req.ascending,
-                req.find_column,
                 req.find_value,
             )
             .await?;

@@ -1,7 +1,6 @@
 import { Link } from 'react-router-dom';
 import { open } from '@tauri-apps/plugin-shell';
 import BigNumber from 'bignumber.js';
-import { Info } from 'lucide-react';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { TransactionRecord } from '../bindings';

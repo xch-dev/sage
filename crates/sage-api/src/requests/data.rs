@@ -103,7 +103,6 @@ pub struct GetTransactionsEx {
     pub offset: u32,
     pub limit: u32,
     pub ascending: bool,
-    pub find_column: Option<String>,
     pub find_value: Option<String>,
 }
 

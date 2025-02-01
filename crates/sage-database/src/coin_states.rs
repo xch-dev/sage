@@ -64,10 +64,9 @@ impl Database {
         offset: u32,
         limit: u32,
         asc: bool,
-        find_column: Option<String>,
         find_value: Option<String>,
     ) -> Result<Vec<u32>> {
-        get_block_heights_ex(&self.pool, offset, limit, asc, find_column, find_value).await
+        get_block_heights_ex(&self.pool, offset, limit, asc, find_value).await
     }
 
     pub async fn get_block_heights(&self) -> Result<Vec<u32>> {
@@ -434,7 +433,6 @@ async fn get_block_heights_ex(
     offset: u32,
     limit: u32,
     asc: bool,
-    find_column: Option<String>,
     find_value: Option<String>,
 ) -> Result<Vec<u32>> {
     let mut query = sqlx::QueryBuilder::new(
@@ -458,12 +456,13 @@ async fn get_block_heights_ex(
         ",
     );
 
-    if let (Some(column), Some(value)) = (&find_column, &find_value) {
+    if let Some(value) = &find_value {
         query
-            .push(" AND ")
-            .push(column)
-            .push(" = ")
-            .push_bind(value);
+            .push(" AND (cats.ticker LIKE ")
+            .push_bind(format!("%{}%", value))
+            .push(" OR cats.name LIKE ")
+            .push_bind(format!("%{}%", value))
+            .push(")");
     }
 
     query
