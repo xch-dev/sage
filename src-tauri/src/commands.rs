@@ -414,6 +414,15 @@ pub async fn get_transactions(
 
 #[command]
 #[specta]
+pub async fn get_transactions_ex(
+    state: State<'_, AppState>,
+    req: GetTransactionsEx,
+) -> Result<GetTransactionsExResponse> {
+    Ok(state.lock().await.get_transactions_ex(req).await?)
+}
+
+#[command]
+#[specta]
 pub async fn get_transaction(
     state: State<'_, AppState>,
     req: GetTransaction,

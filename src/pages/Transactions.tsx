@@ -46,7 +46,7 @@ export function Transactions() {
       .getPendingTransactions({})
       .then((data) => setPending(data.transactions))
       .catch(addError);
-
+    console.log('getTransactionsEx', (page - 1) * pageSize, pageSize);
     commands
       .getTransactions({ offset: (page - 1) * pageSize, limit: pageSize })
       .then((data) => {

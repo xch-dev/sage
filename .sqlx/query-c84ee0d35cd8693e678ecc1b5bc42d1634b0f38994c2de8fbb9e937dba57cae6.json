@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "WITH height_list AS (\n            SELECT DISTINCT height FROM (\n                SELECT created_height as height FROM coin_states INDEXED BY `coin_created`\n                WHERE created_height IS NOT NULL\n                UNION\n                SELECT spent_height as height FROM coin_states INDEXED BY `coin_spent`\n                WHERE spent_height IS NOT NULL\n            )\n        ),\n\n        coin_heights AS (\n            SELECT * FROM (\n                SELECT spent_height as height, coin_id, parent_coin_id, puzzle_hash, amount, \n                    created_height, spent_height, transaction_id, kind\n                FROM coin_states INDEXED BY `coin_spent`\n                WHERE spent_height IN (SELECT height FROM height_list)\n                \n                UNION ALL\n                \n                SELECT created_height as height, coin_id, parent_coin_id, puzzle_hash, amount, \n                    created_height, spent_height, transaction_id, kind\n                FROM coin_states INDEXED BY `coin_created`\n                WHERE created_height IN (SELECT height FROM height_list)\n            )\n        )\n\n        SELECT distinct coin_heights.height\n            FROM \n            coin_heights LEFT JOIN cat_coins ON coin_heights.coin_id = cat_coins.coin_id\n                LEFT JOIN cats ON cat_coins.asset_id = cats.asset_id\n                LEFT JOIN did_coins on coin_heights.coin_id = did_coins.coin_id\n                LEFT JOIN nft_coins on coin_heights.coin_id = nft_coins.coin_id\n\n        ORDER BY height DESC\n\n        LIMIT ?\n        OFFSET ?\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "height",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "c84ee0d35cd8693e678ecc1b5bc42d1634b0f38994c2de8fbb9e937dba57cae6"
+}
