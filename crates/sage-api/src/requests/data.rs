@@ -92,14 +92,8 @@ pub struct GetPendingTransactionsResponse {
     pub transactions: Vec<PendingTransactionRecord>,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, Type)]
-pub struct GetTransactions {
-    pub offset: u32,
-    pub limit: u32,
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
-pub struct GetTransactionsEx {
+pub struct GetTransactions {
     pub offset: u32,
     pub limit: u32,
     pub ascending: bool,
@@ -108,12 +102,6 @@ pub struct GetTransactionsEx {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub struct GetTransactionsResponse {
-    pub transactions: Vec<TransactionRecord>,
-    pub total: u32,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
-pub struct GetTransactionsExResponse {
     pub transactions: Vec<TransactionRecord>,
     pub total: u32,
 }

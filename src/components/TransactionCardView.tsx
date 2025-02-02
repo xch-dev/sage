@@ -13,7 +13,9 @@ interface TransactionCardViewProps {
   transactions: TransactionRecord[];
 }
 
-export function TransactionCardView({ transactions }: TransactionCardViewProps) {
+export function TransactionCardView({
+  transactions,
+}: TransactionCardViewProps) {
   return (
     <div className='space-y-4' role='list' aria-label={t`Transaction history`}>
       {transactions.map((transaction) => (
@@ -124,7 +126,9 @@ function Transaction({ transaction }: TransactionProps) {
                 open(`https://spacescan.io/block/${transactionHeight}`);
               }}
               role='button'
-              aria-label={t`View block ` + transactionHeight + t` on Spacescan.io`}
+              aria-label={
+                t`View block ` + transactionHeight + t` on Spacescan.io`
+              }
               tabIndex={0}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
@@ -137,7 +141,8 @@ function Transaction({ transaction }: TransactionProps) {
             </div>
             <div className='text-sm text-muted-foreground md:w-[120px]'>
               <Trans>
-                {transactionSpentCount} inputs, {transactionCreatedCount} outputs
+                {transactionSpentCount} inputs, {transactionCreatedCount}{' '}
+                outputs
               </Trans>
             </div>
           </div>
@@ -230,4 +235,4 @@ function AssetPreview({ label, assets, created }: AssetPreviewProps) {
       ))}
     </div>
   );
-} 
+}

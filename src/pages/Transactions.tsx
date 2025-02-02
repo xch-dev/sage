@@ -29,7 +29,8 @@ export function Transactions() {
   const [params, setParams] = useSearchParams();
   const page = parseInt(params.get('page') ?? '1');
   const search = params.get('search') ?? '';
-  const setPage = (page: number) => setParams({ ...Object.fromEntries(params), page: page.toString() });
+  const setPage = (page: number) =>
+    setParams({ ...Object.fromEntries(params), page: page.toString() });
 
   const [pageSize, setPageSize] = useLocalStorage('transactionsPageSize', 8);
   const [view, setView] = useLocalStorage<ViewMode>('transactionsView', 'list');
@@ -45,9 +46,9 @@ export function Transactions() {
       .getPendingTransactions({})
       .then((data) => setPending(data.transactions))
       .catch(addError);
-    
+
     commands
-      .getTransactionsEx({
+      .getTransactions({
         offset: (page - 1) * pageSize,
         limit: pageSize,
         ascending,

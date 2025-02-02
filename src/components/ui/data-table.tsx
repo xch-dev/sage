@@ -102,7 +102,7 @@ export function DataTable<TData, TValue>({
       </div>
       <div className='text-sm text-muted-foreground mb-2'>
         <Trans>Showing {data.length} coins</Trans>
-      </div>      
+      </div>
     </div>
   );
 }

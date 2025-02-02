@@ -59,18 +59,14 @@ impl Database {
         is_coin_locked(&self.pool, coin_id).await
     }
 
-    pub async fn get_block_heights_ex(
+    pub async fn get_block_heights(
         &self,
         offset: u32,
         limit: u32,
         asc: bool,
         find_value: Option<String>,
-    ) -> Result<Vec<u32>> {
-        get_block_heights_ex(&self.pool, offset, limit, asc, find_value).await
-    }
-
-    pub async fn get_block_heights(&self) -> Result<Vec<u32>> {
-        get_block_heights(&self.pool).await
+    ) -> Result<(Vec<u32>, u32)> {
+        get_block_heights(&self.pool, offset, limit, asc, find_value).await
     }
 
     pub async fn get_coin_states_by_created_height(
@@ -428,13 +424,13 @@ async fn is_coin_locked(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Resu
     Ok(row.count > 0)
 }
 
-async fn get_block_heights_ex(
+async fn get_block_heights(
     conn: impl SqliteExecutor<'_>,
     offset: u32,
     limit: u32,
     asc: bool,
     find_value: Option<String>,
-) -> Result<Vec<u32>> {
+) -> Result<(Vec<u32>, u32)> {
     let mut query = sqlx::QueryBuilder::new(
         "
         WITH heights AS (
@@ -445,15 +441,16 @@ async fn get_block_heights_ex(
                 SELECT spent_height as height, coin_id, kind FROM coin_states INDEXED BY `coin_spent`
                 WHERE spent_height IS NOT NULL
             )   
-        )
-        SELECT distinct heights.height
+        ),
+        filtered_heights AS (
+            SELECT distinct heights.height
             FROM heights
                 LEFT JOIN cat_coins ON heights.coin_id = cat_coins.coin_id
                 LEFT JOIN cats ON cat_coins.asset_id = cats.asset_id
                 LEFT JOIN did_coins on heights.coin_id = did_coins.coin_id
                 LEFT JOIN nft_coins on heights.coin_id = nft_coins.coin_id
             WHERE 1=1
-        ",
+        "
     );
 
     if let Some(value) = &find_value {
@@ -466,11 +463,11 @@ async fn get_block_heights_ex(
         };
 
         query.push(" AND (");
-        
+
         if should_filter_xch {
             query.push("heights.kind = 2 OR ");
         }
-        
+
         query
             .push("cats.ticker LIKE ")
             .push_bind(format!("%{}%", value))
@@ -479,50 +476,36 @@ async fn get_block_heights_ex(
             .push(")");
     }
 
-    query
-        .push(" ORDER BY height ")
-        .push(if asc { "ASC" } else { "DESC" })
-        .push(" LIMIT ? OFFSET ?");
+    query.push(")");
+
+    // Select both the paginated results and the total count
+    query.push(
+        "
+        SELECT height, (SELECT COUNT(*) FROM filtered_heights) as total_count 
+        FROM filtered_heights 
+        ORDER BY height ",
+    );
+
+    query.push(if asc { "ASC" } else { "DESC" });
+    query.push(" LIMIT ? OFFSET ?");
 
     let built_query = query.build();
     let rows = built_query.bind(limit).bind(offset).fetch_all(conn).await?;
 
     let mut heights = Vec::with_capacity(rows.len());
+    let mut total_count = 0;
+
     for row in rows {
         if let Some(height) = row.get::<Option<i64>, _>(0) {
             heights.push(height.try_into()?);
         }
-    }
-    Ok(heights)
-}
-
-async fn get_block_heights(conn: impl SqliteExecutor<'_>) -> Result<Vec<u32>> {
-    let rows = sqlx::query!(
-        "
-        SELECT DISTINCT height FROM (
-            SELECT created_height as height FROM coin_states INDEXED BY `coin_created`
-            WHERE created_height IS NOT NULL
-            UNION ALL
-            SELECT spent_height as height FROM coin_states INDEXED BY `coin_spent`
-            WHERE spent_height IS NOT NULL
-        )
-        GROUP BY height
-        "
-    )
-    .fetch_all(conn)
-    .await?;
-
-    let mut heights = Vec::with_capacity(rows.len());
-
-    for row in rows {
-        if let Some(height) = row.height {
-            heights.push(height.try_into()?);
+        // Get the total count from the first row (it will be the same in all rows)
+        if total_count == 0 {
+            total_count = row.get::<i64, _>(1).try_into()?;
         }
     }
 
-    heights.sort_by_key(|height| Reverse(*height));
-
-    Ok(heights)
+    Ok((heights, total_count))
 }
 
 async fn get_coin_states_by_created_height(

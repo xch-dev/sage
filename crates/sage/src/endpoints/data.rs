@@ -18,9 +18,9 @@ use sage_api::{
     GetNftCollectionsResponse, GetNftData, GetNftDataResponse, GetNftResponse, GetNfts,
     GetNftsResponse, GetPendingTransactions, GetPendingTransactionsResponse, GetSyncStatus,
     GetSyncStatusResponse, GetTransaction, GetTransactionResponse, GetTransactions,
-    GetTransactionsEx, GetTransactionsExResponse, GetTransactionsResponse, GetXchCoins,
-    GetXchCoinsResponse, NftCollectionRecord, NftData, NftRecord, NftSortMode as ApiNftSortMode,
-    PendingTransactionRecord, TransactionCoin, TransactionRecord,
+    GetTransactionsResponse, GetXchCoins, GetXchCoinsResponse, NftCollectionRecord, NftData,
+    NftRecord, NftSortMode as ApiNftSortMode, PendingTransactionRecord, TransactionCoin,
+    TransactionRecord,
 };
 use sage_database::{
     CoinKind, CoinStateRow, Database, NftGroup, NftRow, NftSearchParams, NftSortMode,
@@ -287,54 +287,23 @@ impl Sage {
         Ok(GetPendingTransactionsResponse { transactions })
     }
 
-    pub async fn get_transactions_ex(
-        &self,
-        req: GetTransactionsEx,
-    ) -> Result<GetTransactionsExResponse> {
-        let wallet = self.wallet()?;
-
-        let mut transactions = Vec::new();
-        let all_heights = wallet.db.get_block_heights().await?;
-
-        let heights = wallet
-            .db
-            .get_block_heights_ex(
-                req.offset,
-                req.limit,
-                req.ascending,
-                req.find_value,
-            )
-            .await?;
-        for &height in heights.iter() {
-            let transaction = self.transaction_record(&wallet.db, height).await?;
-            transactions.push(transaction);
-        }
-
-        Ok(GetTransactionsExResponse {
-            transactions,
-            total: all_heights.len().try_into()?,
-        })
-    }
-
     pub async fn get_transactions(&self, req: GetTransactions) -> Result<GetTransactionsResponse> {
         let wallet = self.wallet()?;
 
         let mut transactions = Vec::new();
 
-        let heights = wallet.db.get_block_heights().await?;
-
-        for &height in heights
-            .iter()
-            .skip(req.offset.try_into()?)
-            .take(req.limit.try_into()?)
-        {
+        let (heights, total) = wallet
+            .db
+            .get_block_heights(req.offset, req.limit, req.ascending, req.find_value)
+            .await?;
+        for height in heights {
             let transaction = self.transaction_record(&wallet.db, height).await?;
             transactions.push(transaction);
         }
 
         Ok(GetTransactionsResponse {
             transactions,
-            total: heights.len().try_into()?,
+            total,
         })
     }
 

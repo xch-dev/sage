@@ -53,7 +53,7 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
       return isFirstInGroup ? (
         <Link
           to={`/transactions/${row.getValue('transactionHeight')}`}
-          className='hover:underline'
+          className='hover:underline text-sm md:text-base'
           onClick={(e) => e.stopPropagation()}
         >
           {row.getValue('transactionHeight')}
@@ -70,7 +70,7 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
       const ticker = row.original.ticker;
 
       return (
-        <div className='w-6 h-6'>
+        <div className='w-4 h-4 md:w-6 md:h-6'>
           {type === 'xch' ? (
             <img
               alt='XCH'
@@ -96,24 +96,30 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
     enableSorting: false,
     cell: ({ row }) => {
       const type = row.getValue('type') as string;
-      return type === 'xch'
-        ? 'XCH'
-        : type === 'cat'
-          ? (row.original.ticker ?? 'CAT')
-          : type.toUpperCase();
+      return (
+        <div className='text-sm md:text-base'>
+          {type === 'xch'
+            ? 'XCH'
+            : type === 'cat'
+              ? (row.original.ticker ?? 'CAT')
+              : type.toUpperCase()}
+        </div>
+      );
     },
   },
   {
     accessorKey: 'amount',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={t`Amount`} />
+      <div className='w-[120px] md:w-[150px] text-right'>
+        <DataTableColumnHeader column={column} title={t`Amount`} />
+      </div>
     ),
     enableSorting: false,
     cell: ({ row }) => {
       const amount = row.getValue('amount') as string;
       const isPositive = amount.startsWith('+');
       return (
-        <div className='text-right w-full'>
+        <div className='w-[120px] md:w-[150px] text-right text-sm md:text-base'>
           <span className={isPositive ? 'text-green-600' : 'text-red-600'}>
             <NumberFormat
               value={fromMojos(amount, 12)}
@@ -128,11 +134,13 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
   {
     accessorKey: 'address',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={t`Address`} />
+      <div className='hidden md:block'>
+        <DataTableColumnHeader column={column} title={t`Address`} />
+      </div>
     ),
     enableSorting: false,
     cell: ({ row }) => (
-      <div className='font-mono text-sm'>
+      <div className='hidden md:block font-mono text-sm'>
         {row.getValue<string | null>('address')?.slice(0, 15)}...
       </div>
     ),
@@ -152,7 +160,10 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
               aria-label='Open actions menu'
             >
               <span className='sr-only'>Open menu</span>
-              <MoreHorizontal className='h-4 w-4' aria-hidden='true' />
+              <MoreHorizontal
+                className='h-3 w-3 md:h-4 md:w-4'
+                aria-hidden='true'
+              />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align='end'>

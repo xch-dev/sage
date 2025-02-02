@@ -140,9 +140,6 @@ async getPendingTransactions(req: GetPendingTransactions) : Promise<GetPendingTr
 async getTransactions(req: GetTransactions) : Promise<GetTransactionsResponse> {
     return await TAURI_INVOKE("get_transactions", { req });
 },
-async getTransactionsEx(req: GetTransactionsEx) : Promise<GetTransactionsExResponse> {
-    return await TAURI_INVOKE("get_transactions_ex", { req });
-},
 async getTransaction(req: GetTransaction) : Promise<GetTransactionResponse> {
     return await TAURI_INVOKE("get_transaction", { req });
 },
@@ -342,9 +339,7 @@ export type GetSyncStatus = Record<string, never>
 export type GetSyncStatusResponse = { balance: Amount; unit: Unit; synced_coins: number; total_coins: number; receive_address: string; burn_address: string }
 export type GetTransaction = { height: number }
 export type GetTransactionResponse = { transaction: TransactionRecord }
-export type GetTransactions = { offset: number; limit: number }
-export type GetTransactionsEx = { offset: number; limit: number; ascending: boolean; find_value: string | null }
-export type GetTransactionsExResponse = { transactions: TransactionRecord[]; total: number }
+export type GetTransactions = { offset: number; limit: number; ascending: boolean; find_value: string | null }
 export type GetTransactionsResponse = { transactions: TransactionRecord[]; total: number }
 export type GetXchCoins = Record<string, never>
 export type GetXchCoinsResponse = { coins: CoinRecord[] }
