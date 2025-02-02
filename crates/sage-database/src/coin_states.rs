@@ -431,28 +431,33 @@ async fn get_block_heights(
 ) -> Result<(Vec<u32>, u32)> {
     let mut query = sqlx::QueryBuilder::new(
         "
-        WITH heights AS (
-            SELECT DISTINCT height, coin_id, kind FROM (
-                SELECT created_height as height, coin_id, kind FROM coin_states INDEXED BY `coin_created`
-                WHERE created_height IS NOT NULL
-                UNION
-                SELECT spent_height as height, coin_id, kind FROM coin_states INDEXED BY `coin_spent`
-                WHERE spent_height IS NOT NULL
-            )   
+        WITH filtered_coins AS (
+            SELECT cs.coin_id, cs.kind, 
+                   cats.ticker,
+                   cats.name,
+                   created_height as height
+            FROM coin_states cs
+            LEFT JOIN cat_coins ON cs.coin_id = cat_coins.coin_id
+            LEFT JOIN cats ON cat_coins.asset_id = cats.asset_id
+            WHERE created_height IS NOT NULL
+            UNION ALL
+            SELECT cs.coin_id, cs.kind,
+                   cats.ticker,
+                   cats.name,
+                   spent_height as height
+            FROM coin_states cs
+            LEFT JOIN cat_coins ON cs.coin_id = cat_coins.coin_id
+            LEFT JOIN cats ON cat_coins.asset_id = cats.asset_id
+            WHERE spent_height IS NOT NULL
         ),
         filtered_heights AS (
-            SELECT distinct heights.height
-            FROM heights
-                LEFT JOIN cat_coins ON heights.coin_id = cat_coins.coin_id
-                LEFT JOIN cats ON cat_coins.asset_id = cats.asset_id
-                LEFT JOIN did_coins on heights.coin_id = did_coins.coin_id
-                LEFT JOIN nft_coins on heights.coin_id = nft_coins.coin_id
+            SELECT DISTINCT height
+            FROM filtered_coins
             WHERE 1=1
         "
     );
 
     if let Some(value) = &find_value {
-        // this part handles searching for XCH somewhat similar to a LIKE query
         let should_filter_xch = if value.len() <= 3 {
             let value_lower = value.to_lowercase();
             value_lower == "x" || value_lower == "xc" || value_lower == "xch"
@@ -463,13 +468,13 @@ async fn get_block_heights(
         query.push(" AND (");
 
         if should_filter_xch {
-            query.push("heights.kind = 2 OR ");
+            query.push("kind = 2 OR ");
         }
 
         query
-            .push("cats.ticker LIKE ")
+            .push("ticker LIKE ")
             .push_bind(format!("%{}%", value))
-            .push(" OR cats.name LIKE ")
+            .push(" OR name LIKE ")
             .push_bind(format!("%{}%", value))
             .push(")");
     }
