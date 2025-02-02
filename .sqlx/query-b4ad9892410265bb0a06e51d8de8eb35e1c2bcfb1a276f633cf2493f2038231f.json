@@ -1,10 +1,10 @@
 {
   "db_name": "SQLite",
-  "query": "\n        SELECT COUNT(*) AS `count` FROM `collections`\n        WHERE `visible` = 1\n        ",
+  "query": "SELECT COUNT(*) FROM collections",
   "describe": {
     "columns": [
       {
-        "name": "count",
+        "name": "COUNT(*)",
         "ordinal": 0,
         "type_info": "Integer"
       }
@@ -16,5 +16,5 @@
       false
     ]
   },
-  "hash": "fd9f732f3a7ed809b9d4c2ededebdeeb3765c89c9fc78576f447c646c46f445c"
+  "hash": "b4ad9892410265bb0a06e51d8de8eb35e1c2bcfb1a276f633cf2493f2038231f"
 }

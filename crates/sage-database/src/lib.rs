@@ -73,6 +73,21 @@ impl Database {
 
         Ok(())
     }
+
+    /// Count collections, optionally including hidden ones
+    pub async fn count_collections(&self, include_hidden: bool) -> Result<i64> {
+        let count: i64 = if include_hidden {
+            sqlx::query_scalar!("SELECT COUNT(*) FROM collections")
+                .fetch_one(&self.pool)
+                .await?
+        } else {
+            sqlx::query_scalar!("SELECT COUNT(*) FROM collections WHERE visible = 1")
+                .fetch_one(&self.pool)
+                .await?
+        };
+
+        Ok(count)
+    }
 }
 
 #[derive(Debug)]

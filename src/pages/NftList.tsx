@@ -27,18 +27,27 @@ export function NftList() {
   const [multiSelect, setMultiSelect] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const { addError } = useErrors();
-  const { nfts, collections, dids, owner, collection, isLoading, updateNfts } =
-    useNftData({
-      pageSize,
-      sort,
-      group,
-      showHidden,
-      query,
-      collectionId,
-      ownerDid,
-      minterDid,
-      page: params.page,
-    });
+  const {
+    nfts,
+    collections,
+    ownerDids,
+    minterDids,
+    owner,
+    collection,
+    isLoading,
+    updateNfts,
+    total,
+  } = useNftData({
+    pageSize,
+    sort,
+    group,
+    showHidden,
+    query,
+    collectionId,
+    ownerDid,
+    minterDid,
+    page: params.page,
+  });
 
   // Reset multi-select when route changes
   useEffect(() => {
@@ -47,15 +56,17 @@ export function NftList() {
   }, [collectionId, ownerDid, minterDid, group]);
 
   const canLoadMore = useCallback(() => {
+    // If we're grouping by collection, or filtering by collection,owner,
+    // or minter, use the total number of nfts in the current page
+    // otherwise use the appropriate grouping list length
     if (collectionId || ownerDid || minterDid || group === NftGroupMode.None) {
       return nfts.length === pageSize;
     } else if (group === NftGroupMode.Collection) {
       return collections.length === pageSize;
-    } else if (
-      group === NftGroupMode.OwnerDid ||
-      group === NftGroupMode.MinterDid
-    ) {
-      return dids.length === pageSize;
+    } else if (group === NftGroupMode.OwnerDid) {
+      return ownerDids.length === pageSize;
+    } else if (group === NftGroupMode.MinterDid) {
+      return minterDids.length === pageSize;
     }
     return false;
   }, [
@@ -65,7 +76,8 @@ export function NftList() {
     group,
     nfts.length,
     collections.length,
-    dids.length,
+    ownerDids.length,
+    minterDids.length,
     pageSize,
   ]);
 
@@ -105,6 +117,7 @@ export function NftList() {
           }}
           className='mt-4'
           isLoading={isLoading}
+          total={total}
           canLoadMore={canLoadMore()}
           aria-live='polite'
         />
@@ -117,14 +130,15 @@ export function NftList() {
             group={group}
             nfts={nfts}
             collections={collections}
-            dids={dids}
-            pageSize={pageSize}
+            ownerDids={ownerDids}
+            minterDids={minterDids}
             updateNfts={updateNfts}
             page={params.page}
             multiSelect={multiSelect}
             selected={selected}
             setSelected={setSelected}
             addError={addError}
+            cardSize={params.cardSize}
           />
         </main>
       </Container>

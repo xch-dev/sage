@@ -107,6 +107,7 @@ export function NftGroupCard({
       <div
         className='border border-red-200 dark:border-red-800 rounded-lg p-4'
         role='alert'
+        aria-live='polite'
       >
         <p className='text-red-600 dark:text-red-400'>{error.message}</p>
       </div>
@@ -117,13 +118,24 @@ export function NftGroupCard({
     return (
       <div
         className='border border-neutral-200 dark:border-neutral-800 rounded-lg p-4 animate-pulse'
+        role='status'
+        aria-busy='true'
         aria-label={isCollection ? t`Loading collection` : t`Loading profile`}
       >
-        <div className='aspect-square bg-neutral-100 dark:bg-neutral-800 rounded-t-lg' />
-        <div className='h-6 bg-neutral-100 dark:bg-neutral-800 rounded mt-4' />
+        <div
+          className='aspect-square bg-neutral-100 dark:bg-neutral-800 rounded-t-lg'
+          aria-hidden='true'
+        />
+        <div
+          className='h-6 bg-neutral-100 dark:bg-neutral-800 rounded mt-4'
+          aria-hidden='true'
+        />
       </div>
     );
   }
+
+  const cardName = item.name || getDefaultName();
+  const cardId = getId();
 
   return (
     <div
@@ -138,23 +150,21 @@ export function NftGroupCard({
           navigate(getLinkPath());
         }
       }}
-      role='button'
+      role='article'
       tabIndex={0}
       className={`cursor-pointer group border border-neutral-200 dark:border-neutral-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary ${
         isCollection && !item.visible ? 'opacity-50' : ''
       }`}
       aria-label={
         isCollection
-          ? `Collection ${item.name || t`Unnamed`}`
+          ? t`Collection ${cardName}`
           : groupMode === NftGroupMode.OwnerDid
-            ? `Profile ${item.name || t`Untitled Profile`}`
-            : `Minter ${item.name || t`Unknown Minter`}`
+            ? t`Profile ${cardName}`
+            : t`Minter ${cardName}`
       }
-      aria-current={
-        window.location.pathname === getLinkPath() ? 'page' : undefined
-      }
+      aria-current={window.location.pathname === getLinkPath()}
     >
-      <div className='overflow-hidden rounded-t-lg relative'>
+      <div className='overflow-hidden rounded-t-lg relative' aria-hidden='true'>
         {isCollection ? (
           <div
             className='bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center aspect-square'
@@ -202,11 +212,11 @@ export function NftGroupCard({
             <Tooltip>
               <TooltipTrigger asChild>
                 <h3 className='font-medium leading-none truncate block'>
-                  {item.name ?? getDefaultName()}
+                  {cardName}
                 </h3>
               </TooltipTrigger>
               <TooltipContent>
-                <p>{item.name ?? getDefaultName()}</p>
+                <p>{cardName}</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -216,13 +226,13 @@ export function NftGroupCard({
               <TooltipTrigger asChild>
                 <p
                   className='text-xs text-muted-foreground truncate'
-                  aria-label={`ID: ${getId()}`}
+                  aria-label={t`ID: ${cardId}`}
                 >
-                  {getId()}
+                  {cardId}
                 </p>
               </TooltipTrigger>
               <TooltipContent>
-                <p>{getId()}</p>
+                <p>{cardId}</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -233,10 +243,10 @@ export function NftGroupCard({
             <Button
               variant='ghost'
               size='icon'
-              aria-label={t`Options`}
+              aria-label={t`Options for ${cardName}`}
               onClick={(e) => e.stopPropagation()}
             >
-              <MoreVertical className='h-5 w-5' />
+              <MoreVertical className='h-5 w-5' aria-hidden='true' />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align='end'>
@@ -247,11 +257,11 @@ export function NftGroupCard({
                     className='cursor-pointer'
                     onClick={(e) => {
                       e.stopPropagation();
-                      open(`https://mintgarden.io/collections/${getId()}`);
+                      open(`https://mintgarden.io/collections/${cardId}`);
                     }}
-                    aria-label={t`View on Mintgarden`}
+                    aria-label={t`View ${cardName} on Mintgarden`}
                   >
-                    <ExternalLink className='mr-2 h-4 w-4' />
+                    <ExternalLink className='mr-2 h-4 w-4' aria-hidden='true' />
                     <span>
                       <Trans>View on Mintgarden</Trans>
                     </span>
@@ -264,17 +274,20 @@ export function NftGroupCard({
                       onToggleVisibility();
                     }}
                     disabled={!canToggleVisibility}
+                    aria-label={
+                      item.visible ? t`Hide ${cardName}` : t`Show ${cardName}`
+                    }
                   >
                     {item.visible ? (
                       <>
-                        <EyeOff className='mr-2 h-4 w-4' />
+                        <EyeOff className='mr-2 h-4 w-4' aria-hidden='true' />
                         <span>
                           <Trans>Hide</Trans>
                         </span>
                       </>
                     ) : (
                       <>
-                        <EyeIcon className='mr-2 h-4 w-4' />
+                        <EyeIcon className='mr-2 h-4 w-4' aria-hidden='true' />
                         <span>
                           <Trans>Show</Trans>
                         </span>
@@ -288,7 +301,7 @@ export function NftGroupCard({
                 className='cursor-pointer'
                 onClick={(e) => {
                   e.stopPropagation();
-                  writeText(getId());
+                  writeText(cardId);
                   toast.success(
                     isCollection
                       ? t`Collection ID copied to clipboard`
@@ -297,9 +310,9 @@ export function NftGroupCard({
                         : t`Minter ID copied to clipboard`,
                   );
                 }}
-                aria-label={t`Copy ID to clipboard`}
+                aria-label={t`Copy ${cardName} ID to clipboard`}
               >
-                <Copy className='mr-2 h-4 w-4' />
+                <Copy className='mr-2 h-4 w-4' aria-hidden='true' />
                 <span>
                   <Trans>Copy ID</Trans>
                 </span>
