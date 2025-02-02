@@ -1,9 +1,9 @@
 use serde::{Deserialize, Serialize};
-use specta::Type;
 
 use crate::Amount;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct CatRecord {
     pub asset_id: String,
     pub name: Option<String>,

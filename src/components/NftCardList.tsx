@@ -155,10 +155,10 @@ export function NftCardList({
       );
     }
 
-    return nfts.map((nft, i) => (
+    return nfts.map((nft) => (
       <NftCard
         nft={nft}
-        key={i}
+        key={nft.coin_id}
         updateNfts={() => updateNfts(page)}
         selectionState={
           multiSelect
