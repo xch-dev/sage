@@ -2,10 +2,11 @@ import Container from '@/components/Container';
 import Header from '@/components/Header';
 import { ReceiveAddress } from '@/components/ReceiveAddress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Input } from '@/components/ui/input';
 import { useErrors } from '@/hooks/useErrors';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import { Info } from 'lucide-react';
+import { Info, SearchIcon, XIcon } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
@@ -20,17 +21,19 @@ import { useLocalStorage } from 'usehooks-ts';
 import { ViewToggle, ViewMode } from '@/components/ViewToggle';
 import { TransactionTableView } from '../components/TransactionTableView';
 import { TransactionCardView } from '../components/TransactionCardView';
+import { Button } from '@/components/ui/button';
 
 export function Transactions() {
   const { addError } = useErrors();
 
   const [params, setParams] = useSearchParams();
   const page = parseInt(params.get('page') ?? '1');
-  const setPage = (page: number) => setParams({ page: page.toString() });
+  const search = params.get('search') ?? '';
+  const setPage = (page: number) => setParams({ ...Object.fromEntries(params), page: page.toString() });
 
   const [pageSize, setPageSize] = useLocalStorage('transactionsPageSize', 8);
   const [view, setView] = useLocalStorage<ViewMode>('transactionsView', 'list');
-  const [ascending, setAscending] = useState(true);
+  const [ascending, setAscending] = useState(false);
 
   // TODO: Show pending transactions
   const [_pending, setPending] = useState<PendingTransactionRecord[]>([]);
@@ -48,14 +51,14 @@ export function Transactions() {
         offset: (page - 1) * pageSize,
         limit: pageSize,
         ascending,
-        find_value: 'HOA',
+        find_value: search || null,
       })
       .then((data) => {
         setTransactions(data.transactions);
         setTotal(data.total);
       })
       .catch(addError);
-  }, [addError, page, pageSize, ascending]);
+  }, [addError, page, pageSize, ascending, search]);
 
   useEffect(() => {
     updateTransactions();
@@ -80,6 +83,10 @@ export function Transactions() {
     setAscending(newAscending);
   };
 
+  const handleSearch = (value: string) => {
+    setParams({ ...Object.fromEntries(params), search: value, page: '1' });
+  };
+
   return (
     <>
       <Header title={t`Transactions`}>
@@ -98,15 +105,46 @@ export function Transactions() {
           </Alert>
         )}
 
-        <div className='flex items-center justify-between mb-4'>
-          <Pagination
-            total={total}
-            page={page}
-            onPageChange={setPage}
-            pageSize={pageSize}
-            onPageSizeChange={setPageSize}
-          />
-          <ViewToggle view={view} onChange={setView} />
+        <div className='space-y-4 mb-4'>
+          <div className='flex items-center gap-2'>
+            <div className='relative flex-1'>
+              <SearchIcon
+                className='absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground'
+                aria-hidden='true'
+              />
+              <Input
+                type='search'
+                value={search}
+                aria-label={t`Search transactions`}
+                placeholder={t`Search transactions...`}
+                onChange={(e) => handleSearch(e.target.value)}
+                className='w-full pl-8 pr-8'
+              />
+              {search && (
+                <Button
+                  variant='ghost'
+                  size='icon'
+                  title={t`Clear search`}
+                  aria-label={t`Clear search`}
+                  className='absolute right-0 top-0 h-full px-2 hover:bg-transparent'
+                  onClick={() => handleSearch('')}
+                >
+                  <XIcon className='h-4 w-4' aria-hidden='true' />
+                </Button>
+              )}
+            </div>
+            <ViewToggle view={view} onChange={setView} />
+          </div>
+
+          <div className='flex'>
+            <Pagination
+              total={total}
+              page={page}
+              onPageChange={setPage}
+              pageSize={pageSize}
+              onPageSizeChange={setPageSize}
+            />
+          </div>
         </div>
 
         {view === 'list' ? (
@@ -117,7 +155,6 @@ export function Transactions() {
             onSortingChange={handleSortingChange}
           />
         )}
-
       </Container>
     </>
   );

@@ -438,11 +438,11 @@ async fn get_block_heights_ex(
     let mut query = sqlx::QueryBuilder::new(
         "
         WITH heights AS (
-            SELECT DISTINCT height, coin_id FROM (
-                SELECT created_height as height, coin_id FROM coin_states INDEXED BY `coin_created`
+            SELECT DISTINCT height, coin_id, kind FROM (
+                SELECT created_height as height, coin_id, kind FROM coin_states INDEXED BY `coin_created`
                 WHERE created_height IS NOT NULL
                 UNION
-                SELECT spent_height as height, coin_id FROM coin_states INDEXED BY `coin_spent`
+                SELECT spent_height as height, coin_id, kind FROM coin_states INDEXED BY `coin_spent`
                 WHERE spent_height IS NOT NULL
             )   
         )
@@ -457,8 +457,22 @@ async fn get_block_heights_ex(
     );
 
     if let Some(value) = &find_value {
+        // this part handles searching for XCH somewhat similar to a LIKE query
+        let should_filter_xch = if value.len() <= 3 {
+            let value_lower = value.to_lowercase();
+            value_lower == "x" || value_lower == "xc" || value_lower == "xch"
+        } else {
+            false
+        };
+
+        query.push(" AND (");
+        
+        if should_filter_xch {
+            query.push("heights.kind = 2 OR ");
+        }
+        
         query
-            .push(" AND (cats.ticker LIKE ")
+            .push("cats.ticker LIKE ")
             .push_bind(format!("%{}%", value))
             .push(" OR cats.name LIKE ")
             .push_bind(format!("%{}%", value))

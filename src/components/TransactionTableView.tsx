@@ -61,11 +61,9 @@ export function TransactionTableView({
       getRowStyles={(row) => ({
         className: cn(
           'transition-colors',
-          // Make background colors more distinct between groups
-          isEvenGroup.get(row.original.transactionHeight)
-            ? 'bg-neutral-100 dark:bg-neutral-800'
-            : 'bg-white dark:bg-neutral-950',
-          // Add more prominent top border and padding to first row in each group
+          // Remove alternating colors, keep only base colors
+          'bg-white dark:bg-neutral-950',
+          // Keep the group separator styling
           flattenedTransactions.findIndex(
             (tx) =>
               tx.transactionHeight === row.original.transactionHeight &&
