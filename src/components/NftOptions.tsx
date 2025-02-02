@@ -3,6 +3,7 @@ import {
   NftParams,
   NftSortMode,
   SetNftParams,
+  CardSize,
 } from '@/hooks/useNftParams';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -19,6 +20,9 @@ import {
   SearchIcon,
   UserIcon,
   XIcon,
+  Maximize2,
+  Minimize2,
+  Settings2,
 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from './ui/button';
@@ -71,10 +75,6 @@ export function NftOptions({
     navigate('/nfts');
   };
 
-  // For sort button
-  const sortMode = sort === NftSortMode.Name ? 'name' : 'recent';
-  const sortLabel = t`Sort options: currently sorted by ${sortMode}`;
-
   // For group button
   const groupMode =
     group === NftGroupMode.Collection
@@ -85,6 +85,9 @@ export function NftOptions({
           ? 'minters'
           : 'no grouping';
   const groupLabel = t`Group options: currently grouped by ${groupMode}`;
+
+  // Add view options label
+  const viewLabel = t`View options`;
 
   return (
     <div
@@ -170,72 +173,93 @@ export function NftOptions({
             />
           </Button>
 
-          <Button
-            variant='outline'
-            size='icon'
-            onClick={() => setParams({ showHidden: !showHidden })}
-            aria-label={
-              showHidden ? t`Hide hidden items` : t`Show hidden items`
-            }
-            title={showHidden ? t`Hide hidden items` : t`Show hidden items`}
-            disabled={
-              !(
-                group === NftGroupMode.None ||
-                isFilteredView ||
-                group === NftGroupMode.Collection
-              )
-            }
-          >
-            {showHidden ? (
-              <EyeIcon className='h-4 w-4' aria-hidden='true' />
-            ) : (
-              <EyeOff className='h-4 w-4' aria-hidden='true' />
-            )}
-          </Button>
-
-          <CardSizeToggle
-            size={cardSize}
-            onChange={(newSize) => setParams({ cardSize: newSize })}
-          />
-
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 variant='outline'
                 size='icon'
-                aria-label={sortLabel}
-                title={sortLabel}
-                disabled={!(group === NftGroupMode.None || isFilteredView)}
+                aria-label={viewLabel}
+                title={viewLabel}
               >
-                {sort === NftSortMode.Name ? (
-                  <ArrowDownAz className='h-4 w-4' aria-hidden='true' />
-                ) : (
-                  <Clock2 className='h-4 w-4' aria-hidden='true' />
-                )}
+                <Settings2 className='h-4 w-4' aria-hidden='true' />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align='end'>
               <DropdownMenuGroup>
                 <DropdownMenuItem
                   className='cursor-pointer'
-                  onClick={() => setParams({ sort: NftSortMode.Name, page: 1 })}
-                  aria-label={t`Sort by name`}
+                  onClick={() => setParams({ cardSize: cardSize === CardSize.Large ? CardSize.Small : CardSize.Large })}
+                  aria-label={
+                    cardSize === CardSize.Large
+                      ? t`Switch to small card size`
+                      : t`Switch to large card size`
+                  }
                 >
-                  <ArrowDownAz className='mr-2 h-4 w-4' aria-hidden='true' />
+                  {cardSize === CardSize.Large ? (
+                    <Minimize2 className='mr-2 h-4 w-4' aria-hidden='true' />
+                  ) : (
+                    <Maximize2 className='mr-2 h-4 w-4' aria-hidden='true' />
+                  )}
                   <span>
-                    <Trans>Name</Trans>
+                    {cardSize === CardSize.Large ? (
+                      <Trans>Small Cards</Trans>
+                    ) : (
+                      <Trans>Large Cards</Trans>
+                    )}
+                  </span>
+                </DropdownMenuItem>
+
+                <DropdownMenuItem
+                  className='cursor-pointer'
+                  onClick={() => setParams({ showHidden: !showHidden })}
+                  disabled={
+                    !(
+                      group === NftGroupMode.None ||
+                      isFilteredView ||
+                      group === NftGroupMode.Collection
+                    )
+                  }
+                  aria-label={
+                    showHidden ? t`Hide hidden items` : t`Show hidden items`
+                  }
+                >
+                  {showHidden ? (
+                    <EyeOff className='mr-2 h-4 w-4' aria-hidden='true' />
+                  ) : (
+                    <EyeIcon className='mr-2 h-4 w-4' aria-hidden='true' />
+                  )}
+                  <span>
+                    {showHidden ? (
+                      <Trans>Hide Hidden Items</Trans>
+                    ) : (
+                      <Trans>Show Hidden Items</Trans>
+                    )}
                   </span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   className='cursor-pointer'
-                  onClick={() =>
-                    setParams({ sort: NftSortMode.Recent, page: 1 })
+                  onClick={() => setParams({ 
+                    sort: sort === NftSortMode.Name ? NftSortMode.Recent : NftSortMode.Name, 
+                    page: 1 
+                  })}
+                  disabled={!(group === NftGroupMode.None || isFilteredView)}
+                  aria-label={
+                    sort === NftSortMode.Name 
+                      ? t`Switch to sort by recent` 
+                      : t`Switch to sort by name`
                   }
-                  aria-label={t`Sort by recent`}
                 >
-                  <Clock2 className='mr-2 h-4 w-4' aria-hidden='true' />
+                  {sort === NftSortMode.Name ? (
+                    <Clock2 className='mr-2 h-4 w-4' aria-hidden='true' />
+                  ) : (
+                    <ArrowDownAz className='mr-2 h-4 w-4' aria-hidden='true' />
+                  )}
                   <span>
-                    <Trans>Recent</Trans>
+                    {sort === NftSortMode.Name ? (
+                      <Trans>Sort by Recent</Trans>
+                    ) : (
+                      <Trans>Sort by Name</Trans>
+                    )}
                   </span>
                 </DropdownMenuItem>
               </DropdownMenuGroup>
