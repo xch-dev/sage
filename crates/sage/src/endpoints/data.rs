@@ -322,10 +322,9 @@ impl Sage {
         req: GetNftCollections,
     ) -> Result<GetNftCollectionsResponse> {
         let wallet = self.wallet()?;
+        let include_hidden = req.include_hidden;
 
-        let mut records = Vec::new();
-
-        let collections = if req.include_hidden {
+        let (collections, total) = if include_hidden {
             wallet.db.collections_named(req.limit, req.offset).await?
         } else {
             wallet
@@ -334,22 +333,23 @@ impl Sage {
                 .await?
         };
 
-        for col in collections {
-            records.push(NftCollectionRecord {
-                collection_id: encode_address(col.collection_id.to_bytes(), "col")?,
-                did_id: encode_address(col.did_id.to_bytes(), "did:chia:")?,
-                metadata_collection_id: col.metadata_collection_id,
-                visible: col.visible,
-                name: col.name,
-                icon: col.icon,
-            });
-        }
-
-        let total = wallet.db.count_collections(req.include_hidden).await?;
+        let records = collections
+            .into_iter()
+            .map(|row| {
+                Ok(NftCollectionRecord {
+                    collection_id: encode_address(row.collection_id.to_bytes(), "col")?,
+                    did_id: encode_address(row.did_id.to_bytes(), "did:chia:")?,
+                    metadata_collection_id: row.metadata_collection_id,
+                    name: row.name,
+                    icon: row.icon,
+                    visible: row.visible,
+                })
+            })
+            .collect::<Result<Vec<_>>>()?;
 
         Ok(GetNftCollectionsResponse {
             collections: records,
-            total: total.try_into()?,
+            total,
         })
     }
 

@@ -55,6 +55,17 @@ struct NftSearchRow {
     total_count: i32,
 }
 
+#[derive(sqlx::FromRow)]
+struct CollectionSearchSql {
+    collection_id: Vec<u8>,
+    did_id: Vec<u8>,
+    metadata_collection_id: String,
+    visible: bool,
+    name: Option<String>,
+    icon: Option<String>,
+    total_count: i64,
+}
+
 pub fn calculate_collection_id(did_id: Bytes32, json_collection_id: &str) -> Bytes32 {
     let mut hasher = Sha256::new();
     hasher.update(hex::encode(did_id));
@@ -100,23 +111,19 @@ impl Database {
         collection(&self.pool, collection_id).await
     }
 
-    pub async fn collection_count(&self) -> Result<u32> {
-        collection_count(&self.pool).await
-    }
-
-    pub async fn visible_collection_count(&self) -> Result<u32> {
-        visible_collection_count(&self.pool).await
-    }
-
     pub async fn collections_visible_named(
         &self,
         limit: u32,
         offset: u32,
-    ) -> Result<Vec<CollectionRow>> {
+    ) -> Result<(Vec<CollectionRow>, u32)> {
         collections_visible_named(&self.pool, limit, offset).await
     }
 
-    pub async fn collections_named(&self, limit: u32, offset: u32) -> Result<Vec<CollectionRow>> {
+    pub async fn collections_named(
+        &self,
+        limit: u32,
+        offset: u32,
+    ) -> Result<(Vec<CollectionRow>, u32)> {
         collections_named(&self.pool, limit, offset).await
     }
 
@@ -399,73 +406,89 @@ async fn collections_visible_named(
     conn: impl SqliteExecutor<'_>,
     limit: u32,
     offset: u32,
-) -> Result<Vec<CollectionRow>> {
-    sqlx::query_as!(
-        CollectionSql,
-        "
-        SELECT `collection_id`, `did_id`, `metadata_collection_id`, `visible`, `name`, `icon`
-        FROM `collections` INDEXED BY `col_name`
-        WHERE `visible` = 1
-        ORDER BY `is_named` DESC, `name` ASC, `collection_id` ASC
+) -> Result<(Vec<CollectionRow>, u32)> {
+    let rows = sqlx::query_as!(
+        CollectionSearchSql,
+        r#"
+        SELECT 
+            collection_id, 
+            did_id, 
+            metadata_collection_id, 
+            visible, 
+            name, 
+            icon,
+            COUNT(*) OVER() as total_count
+        FROM collections INDEXED BY col_name
+        WHERE visible = 1
+        ORDER BY name IS NOT NULL DESC, name ASC, collection_id ASC
         LIMIT ? OFFSET ?
-        ",
+        "#,
         limit,
         offset
     )
     .fetch_all(conn)
-    .await?
-    .into_iter()
-    .map(into_row)
-    .collect()
+    .await?;
+
+    let total = rows.first().map(|r| r.total_count as u32).unwrap_or(0);
+    let collections = rows
+        .into_iter()
+        .map(|row| {
+            into_row(CollectionSql {
+                collection_id: row.collection_id,
+                did_id: row.did_id,
+                metadata_collection_id: row.metadata_collection_id,
+                visible: row.visible,
+                name: row.name,
+                icon: row.icon,
+            })
+        })
+        .collect::<Result<Vec<_>>>()?;
+
+    Ok((collections, total))
 }
 
 async fn collections_named(
     conn: impl SqliteExecutor<'_>,
     limit: u32,
     offset: u32,
-) -> Result<Vec<CollectionRow>> {
-    sqlx::query_as!(
-        CollectionSql,
-        "
-        SELECT `collection_id`, `did_id`, `metadata_collection_id`, `visible`, `name`, `icon`
-        FROM `collections` INDEXED BY `col_name`
-        ORDER BY `visible` DESC, `is_named` DESC, `name` ASC, `collection_id` ASC
+) -> Result<(Vec<CollectionRow>, u32)> {
+    let rows = sqlx::query_as!(
+        CollectionSearchSql,
+        r#"
+        SELECT 
+            collection_id, 
+            did_id, 
+            metadata_collection_id, 
+            visible, 
+            name, 
+            icon,
+            COUNT(*) OVER() as total_count
+        FROM collections INDEXED BY col_name
+        ORDER BY visible DESC, is_named DESC, name ASC, collection_id ASC
         LIMIT ? OFFSET ?
-        ",
+        "#,
         limit,
         offset
     )
     .fetch_all(conn)
-    .await?
-    .into_iter()
-    .map(into_row)
-    .collect()
-}
-
-async fn collection_count(conn: impl SqliteExecutor<'_>) -> Result<u32> {
-    let row = sqlx::query!(
-        "
-        SELECT COUNT(*) AS `count` FROM `collections`
-        WHERE `visible` = 1
-        "
-    )
-    .fetch_one(conn)
     .await?;
 
-    Ok(row.count.try_into()?)
-}
+    let total = rows.first().map(|r| r.total_count as u32).unwrap_or(0);
+    let collections = rows
+        .into_iter()
+        .map(|row| {
+            into_row(CollectionSql {
+                collection_id: row.collection_id,
+                did_id: row.did_id,
+                metadata_collection_id: row.metadata_collection_id,
+                visible: row.visible,
+                name: row.name,
+                icon: row.icon,
+            })
+        })
+        .collect::<Result<Vec<_>>>()?;
 
-async fn visible_collection_count(conn: impl SqliteExecutor<'_>) -> Result<u32> {
-    let row = sqlx::query!(
-        "
-        SELECT COUNT(*) AS `count` FROM `collections`
-        WHERE `visible` = 1
-        "
-    )
-    .fetch_one(conn)
-    .await?;
-
-    Ok(row.count.try_into()?)
+    Ok((collections, total))
 }
 
 async fn insert_nft_uri(conn: impl SqliteExecutor<'_>, uri: String, hash: Bytes32) -> Result<()> {
