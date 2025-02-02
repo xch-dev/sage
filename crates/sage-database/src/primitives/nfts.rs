@@ -113,11 +113,11 @@ impl Database {
         limit: u32,
         offset: u32,
     ) -> Result<Vec<CollectionRow>> {
-        collections_visible_named(&self.pool, offset, limit).await
+        collections_visible_named(&self.pool, limit, offset).await
     }
 
     pub async fn collections_named(&self, limit: u32, offset: u32) -> Result<Vec<CollectionRow>> {
-        collections_named(&self.pool, offset, limit).await
+        collections_named(&self.pool, limit, offset).await
     }
 
     pub async fn nft_row(&self, launcher_id: Bytes32) -> Result<Option<NftRow>> {
@@ -397,8 +397,8 @@ async fn collection(
 
 async fn collections_visible_named(
     conn: impl SqliteExecutor<'_>,
-    offset: u32,
     limit: u32,
+    offset: u32,
 ) -> Result<Vec<CollectionRow>> {
     sqlx::query_as!(
         CollectionSql,
@@ -421,8 +421,8 @@ async fn collections_visible_named(
 
 async fn collections_named(
     conn: impl SqliteExecutor<'_>,
-    offset: u32,
     limit: u32,
+    offset: u32,
 ) -> Result<Vec<CollectionRow>> {
     sqlx::query_as!(
         CollectionSql,
