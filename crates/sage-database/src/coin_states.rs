@@ -1,5 +1,3 @@
-use std::cmp::Reverse;
-
 use chia::protocol::{Bytes32, CoinState};
 use sqlx::Row;
 use sqlx::SqliteExecutor;
