@@ -438,12 +438,7 @@ impl Sage {
             name: req.name,
         };
 
-        let total = wallet.db.count_nfts(params.clone()).await?;
-
-        let nfts = wallet
-            .db
-            .search_nfts(params.clone(), req.limit, req.offset)
-            .await?;
+        let (nfts, total) = wallet.db.search_nfts(params, req.limit, req.offset).await?;
 
         for nft_row in nfts {
             let Some(nft) = wallet.db.nft(nft_row.launcher_id).await? else {

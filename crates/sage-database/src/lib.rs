@@ -74,55 +74,6 @@ impl Database {
         Ok(())
     }
 
-    /// Count NFTs matching the given search parameters
-    pub async fn count_nfts(&self, params: NftSearchParams) -> Result<u32> {
-        let mut query_builder = sqlx::QueryBuilder::new("SELECT COUNT(*) FROM nfts ");
-
-        let where_builder = query_builder.push(" WHERE 1=1 ");
-
-        if !params.include_hidden {
-            where_builder.push(" AND visible = 1");
-        }
-
-        if let Some(group) = params.group {
-            match group {
-                NftGroup::Collection(id) => {
-                    where_builder.push(" AND collection_id = ");
-                    where_builder.push_bind(id.to_string());
-                }
-                NftGroup::NoCollection => {
-                    where_builder.push(" AND collection_id IS NULL");
-                }
-                NftGroup::MinterDid(did) => {
-                    where_builder.push(" AND minter_did = ");
-                    where_builder.push_bind(did.to_string());
-                }
-                NftGroup::NoMinterDid => {
-                    where_builder.push(" AND minter_did IS NULL");
-                }
-                NftGroup::OwnerDid(did) => {
-                    where_builder.push(" AND owner_did = ");
-                    where_builder.push_bind(did.to_string());
-                }
-                NftGroup::NoOwnerDid => {
-                    where_builder.push(" AND owner_did IS NULL");
-                }
-            }
-        }
-
-        if let Some(name) = params.name {
-            where_builder.push(" AND name LIKE ");
-            where_builder.push_bind(format!("%{}%", name));
-        }
-
-        let count: i64 = query_builder
-            .build_query_scalar()
-            .fetch_one(&self.pool)
-            .await?;
-
-        Ok(count.try_into()?)
-    }
-
     /// Count collections, optionally including hidden ones
     pub async fn count_collections(&self, include_hidden: bool) -> Result<i64> {
         let count: i64 = if include_hidden {

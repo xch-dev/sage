@@ -48,6 +48,13 @@ pub struct NftSearchParams {
     pub name: Option<String>,
 }
 
+#[derive(sqlx::FromRow)]
+struct NftSearchRow {
+    #[sqlx(flatten)]
+    nft: NftSql,
+    total_count: i32,
+}
+
 pub fn calculate_collection_id(did_id: Bytes32, json_collection_id: &str) -> Bytes32 {
     let mut hasher = Sha256::new();
     hasher.update(hex::encode(did_id));
@@ -85,7 +92,7 @@ impl Database {
         params: NftSearchParams,
         limit: u32,
         offset: u32,
-    ) -> Result<Vec<NftRow>> {
+    ) -> Result<(Vec<NftRow>, u32)> {
         search_nfts(&self.pool, params, limit, offset).await
     }
 
@@ -815,7 +822,7 @@ async fn search_nfts(
     params: NftSearchParams,
     limit: u32,
     offset: u32,
-) -> Result<Vec<NftRow>> {
+) -> Result<(Vec<NftRow>, u32)> {
     let mut conditions = vec!["is_owned = 1"];
 
     // Group filtering (Collection/DID)
@@ -896,7 +903,7 @@ async fn search_nfts(
                 WHERE name MATCH ? || '*'
                 ORDER BY rank
             )
-            SELECT nfts.* 
+            SELECT nfts.*, COUNT(*) OVER() as total_count 
             FROM nfts INDEXED BY {index}
             INNER JOIN matched_names ON nfts.launcher_id = matched_names.launcher_id
             WHERE {where_clause}
@@ -906,7 +913,7 @@ async fn search_nfts(
     } else {
         format!(
             r#"
-            SELECT * 
+            SELECT *, COUNT(*) OVER() as total_count
             FROM nfts INDEXED BY {index}
             WHERE {where_clause}
             {order_by}
@@ -915,7 +922,7 @@ async fn search_nfts(
     };
 
     // Execute query with bindings
-    let mut query = sqlx::query_as::<_, NftSql>(&query);
+    let mut query = sqlx::query_as::<_, NftSearchRow>(&query);
 
     // Bind name search if present
     if let Some(name_search) = params.name {
@@ -935,7 +942,13 @@ async fn search_nfts(
     query = query.bind(offset);
 
     let rows = query.fetch_all(conn).await?;
-    rows.into_iter().map(into_row).collect()
+    let total_count = rows.first().map(|row| row.total_count as u32).unwrap_or(0);
+    let nfts = rows
+        .into_iter()
+        .map(|row| into_row(row.nft))
+        .collect::<Result<Vec<_>>>()?;
+
+    Ok((nfts, total_count))
 }
 
 async fn insert_nft_coin(
