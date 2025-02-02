@@ -89,7 +89,8 @@ pub struct GetDidsResponse {
     pub dids: Vec<DidRecord>,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct GetMinterDidIds {
     pub offset: u32,
     pub limit: u32,
