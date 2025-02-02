@@ -486,7 +486,7 @@ async fn get_block_heights(
     // Select both the paginated results and the total count
     query.push(
         "
-        SELECT height, (SELECT COUNT(*) FROM filtered_heights) as total_count 
+        SELECT height, COUNT(*) OVER() as total_count
         FROM filtered_heights 
         ORDER BY height ",
     );
