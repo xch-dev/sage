@@ -31,6 +31,7 @@ import {
 } from './ui/dropdown-menu';
 import { Input } from './ui/input';
 import { Pagination } from './Pagination';
+import { CardSizeToggle } from './CardSizeToggle';
 
 export interface NftOptionsProps {
   isCollection?: boolean;
@@ -46,7 +47,7 @@ export interface NftOptionsProps {
 
 export function NftOptions({
   isCollection,
-  params: { page, sort, group, showHidden, query, pageSize },
+  params: { page, sort, group, showHidden, query, pageSize, cardSize },
   setParams,
   multiSelect,
   setMultiSelect,
@@ -191,6 +192,11 @@ export function NftOptions({
               <EyeOff className='h-4 w-4' aria-hidden='true' />
             )}
           </Button>
+
+          <CardSizeToggle
+            size={cardSize}
+            onChange={(newSize) => setParams({ cardSize: newSize })}
+          />
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

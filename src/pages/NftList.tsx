@@ -138,6 +138,7 @@ export function NftList() {
             selected={selected}
             setSelected={setSelected}
             addError={addError}
+            cardSize={params.cardSize}
           />
         </main>
       </Container>

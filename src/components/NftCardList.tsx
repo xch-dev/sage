@@ -1,6 +1,6 @@
 import { NftCard } from '@/components/NftCard';
 import { NftGroupCard } from '@/components/NftGroupCard';
-import { NftGroupMode } from '@/hooks/useNftParams';
+import { NftGroupMode, CardSize } from '@/hooks/useNftParams';
 import { t } from '@lingui/core/macro';
 import { ReactNode, useCallback } from 'react';
 import {
@@ -27,6 +27,7 @@ interface NftCardListProps {
   setSelected?: React.Dispatch<React.SetStateAction<string[]>>;
   addError?: (error: Error) => void;
   children?: ReactNode;
+  cardSize?: CardSize;
 }
 
 export function NftCardList({
@@ -45,6 +46,7 @@ export function NftCardList({
   setSelected,
   addError,
   children,
+  cardSize = CardSize.Large,
 }: NftCardListProps) {
   const handleSelection = useCallback(
     (id: string) => {
@@ -163,7 +165,11 @@ export function NftCardList({
 
   return (
     <div
-      className='grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-8 gap-2 md:gap-4 mt-6 mb-2'
+      className={`grid gap-2 md:gap-4 mt-6 mb-2 ${
+        cardSize === CardSize.Large
+          ? 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-8'
+          : 'grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 2xl:grid-cols-12'
+      }`}
       role='grid'
       aria-label={t`NFT Gallery`}
     >
