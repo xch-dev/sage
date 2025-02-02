@@ -114,7 +114,15 @@ export function useNftParams(): [NftParams, SetNftParams] {
         { replace: true },
       );
     },
-    [params, setSearchParams, setView, setShowHidden, setGroup, setPageSize, setCardSize],
+    [
+      params,
+      setSearchParams,
+      setView,
+      setShowHidden,
+      setGroup,
+      setPageSize,
+      setCardSize,
+    ],
   );
 
   return [params, setParams];

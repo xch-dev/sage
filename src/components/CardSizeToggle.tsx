@@ -34,4 +34,4 @@ export function CardSizeToggle({ size, onChange }: CardSizeToggleProps) {
       )}
     </Button>
   );
-} 
+}

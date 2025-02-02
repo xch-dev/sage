@@ -188,7 +188,14 @@ export function NftOptions({
               <DropdownMenuGroup>
                 <DropdownMenuItem
                   className='cursor-pointer'
-                  onClick={() => setParams({ cardSize: cardSize === CardSize.Large ? CardSize.Small : CardSize.Large })}
+                  onClick={() =>
+                    setParams({
+                      cardSize:
+                        cardSize === CardSize.Large
+                          ? CardSize.Small
+                          : CardSize.Large,
+                    })
+                  }
                   aria-label={
                     cardSize === CardSize.Large
                       ? t`Switch to small card size`
@@ -238,14 +245,19 @@ export function NftOptions({
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   className='cursor-pointer'
-                  onClick={() => setParams({ 
-                    sort: sort === NftSortMode.Name ? NftSortMode.Recent : NftSortMode.Name, 
-                    page: 1 
-                  })}
+                  onClick={() =>
+                    setParams({
+                      sort:
+                        sort === NftSortMode.Name
+                          ? NftSortMode.Recent
+                          : NftSortMode.Name,
+                      page: 1,
+                    })
+                  }
                   disabled={!(group === NftGroupMode.None || isFilteredView)}
                   aria-label={
-                    sort === NftSortMode.Name 
-                      ? t`Switch to sort by recent` 
+                    sort === NftSortMode.Name
+                      ? t`Switch to sort by recent`
                       : t`Switch to sort by name`
                   }
                 >
