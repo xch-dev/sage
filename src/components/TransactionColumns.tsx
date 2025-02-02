@@ -64,7 +64,7 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
   {
     id: 'icon',
     enableSorting: false,
-    header: () => null,
+    header: () => <span className='sr-only'>{t`Asset Icon`}</span>,
     cell: ({ row }) => {
       const type = row.getValue('type') as string;
       const ticker = row.original.ticker;
@@ -72,17 +72,23 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
       return (
         <div className='w-4 h-4 md:w-6 md:h-6'>
           {type === 'xch' ? (
-            <img
-              alt='XCH'
-              src='https://icons.dexie.space/xch.webp'
-              aria-hidden='true'
-            />
+            <>
+              <img
+                alt='XCH'
+                src='https://icons.dexie.space/xch.webp'
+                aria-hidden='true'
+              />
+              <span className='sr-only'>XCH</span>
+            </>
           ) : type === 'cat' && row.original.icon_url ? (
-            <img
-              alt={ticker ?? 'CAT'}
-              src={row.original.icon_url}
-              aria-hidden='true'
-            />
+            <>
+              <img
+                alt={ticker ?? 'CAT'}
+                src={row.original.icon_url}
+                aria-hidden='true'
+              />
+              <span className='sr-only'>{ticker ?? 'CAT'}</span>
+            </>
           ) : null}
         </div>
       );
@@ -157,9 +163,9 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
             <Button
               variant='ghost'
               className='h-6 w-6 p-0'
-              aria-label='Open actions menu'
+              aria-label={t`Open actions menu`}
             >
-              <span className='sr-only'>Open menu</span>
+              <span className='sr-only'>{t`Open menu`}</span>
               <MoreHorizontal
                 className='h-3 w-3 md:h-4 md:w-4'
                 aria-hidden='true'

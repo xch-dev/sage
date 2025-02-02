@@ -19,7 +19,11 @@ export function TransactionCardView({
   return (
     <div className='space-y-4' role='list' aria-label={t`Transaction history`}>
       {transactions.map((transaction) => (
-        <Transaction key={transaction.height} transaction={transaction} />
+        <Transaction 
+          key={transaction.height} 
+          transaction={transaction} 
+        />
+
       ))}
     </div>
   );

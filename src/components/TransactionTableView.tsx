@@ -4,6 +4,7 @@ import { columns } from './TransactionColumns';
 import { cn } from '@/lib/utils';
 import { SortingState } from '@tanstack/react-table';
 import { useState } from 'react';
+import { t } from '@lingui/core/macro';
 
 export function TransactionTableView({
   transactions,
@@ -43,9 +44,11 @@ export function TransactionTableView({
     <DataTable
       columns={columns}
       data={flattenedTransactions}
+      aria-label={t`Transaction history`}
       onSortingChange={(updatedSort) => {
         setSorting(updatedSort);
         if (typeof updatedSort === 'function') {
+
           const newSort = updatedSort([]);
           if (newSort.length > 0 && newSort[0].id === 'transactionHeight') {
             onSortingChange?.(newSort[0].desc === false);

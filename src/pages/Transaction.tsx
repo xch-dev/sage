@@ -50,7 +50,7 @@ export default function Transaction() {
 
   return (
     <>
-      <Header title={`Transaction #${height}`} />
+      <Header title={t`Transaction #${height}`} />
       <Container>
         <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
           {(transaction?.spent.length ?? 0) > 0 && (
@@ -94,6 +94,14 @@ function TransactionCoin({ coin }: TransactionCoinProps) {
     <div
       className='rounded-xl border border-neutral-200 bg-white text-neutral-950 shadow dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-50 p-4 cursor-pointer'
       onClick={() => open(`https://spacescan.io/coin/0x${coin.coin_id}`)}
+      aria-label={t`View coin ${coinId} on Spacescan.io`}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          open(`https://spacescan.io/coin/0x${coin.coin_id}`);
+        }
+      }}
     >
       <TransactionCoinKind coin={coin} />
       <div className='flex items-center gap-1 mt-2'>
