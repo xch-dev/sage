@@ -251,16 +251,16 @@ impl Sage {
     ) -> Result<GetMinterDidIdsResponse> {
         let wallet = self.wallet()?;
 
-        let did_ids = wallet
+        let (dids, total) = wallet
             .db
             .distinct_minter_dids(req.limit, req.offset)
-            .await?
+            .await?;
+
+        let did_ids = dids
             .into_iter()
             .filter_map(|did| did.map(|d| encode_address(d.to_bytes(), "did:chia:").ok()))
             .flatten()
             .collect();
-
-        let total = wallet.db.count_distinct_minter_dids().await?;
 
         Ok(GetMinterDidIdsResponse { did_ids, total })
     }

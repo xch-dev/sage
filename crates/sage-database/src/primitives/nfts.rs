@@ -83,7 +83,7 @@ impl Database {
         &self,
         limit: u32,
         offset: u32,
-    ) -> Result<Vec<Option<Bytes32>>> {
+    ) -> Result<(Vec<Option<Bytes32>>, u32)> {
         distinct_minter_dids(&self.pool, limit, offset).await
     }
 
@@ -169,10 +169,6 @@ impl Database {
         visible: bool,
     ) -> Result<()> {
         set_collection_visible(&self.pool, collection_id, visible).await
-    }
-
-    pub async fn count_distinct_minter_dids(&self) -> Result<u32> {
-        count_distinct_minter_dids(&self.pool).await
     }
 }
 
@@ -572,28 +568,33 @@ async fn distinct_minter_dids(
     conn: impl SqliteExecutor<'_>,
     limit: u32,
     offset: u32,
-) -> Result<Vec<Option<Bytes32>>> {
+) -> Result<(Vec<Option<Bytes32>>, u32)> {
     let rows = sqlx::query!(
-        "SELECT DISTINCT minter_did FROM nfts WHERE minter_did IS NOT NULL LIMIT ? OFFSET ?",
+        r#"
+        WITH distinct_dids AS (
+            SELECT DISTINCT minter_did 
+            FROM nfts 
+            WHERE minter_did IS NOT NULL
+        )
+        SELECT 
+            minter_did,
+            COUNT(*) OVER() AS total_count
+        FROM distinct_dids
+        LIMIT ? OFFSET ?
+        "#,
         limit,
         offset
     )
     .fetch_all(conn)
     .await?;
 
-    rows.into_iter()
+    let total_count = rows.first().map(|row| row.total_count as u32).unwrap_or(0);
+    let dids = rows
+        .into_iter()
         .map(|row| row.minter_did.map(|bytes| to_bytes32(&bytes)).transpose())
-        .collect()
-}
+        .collect::<Result<Vec<_>>>()?;
 
-async fn count_distinct_minter_dids(conn: impl SqliteExecutor<'_>) -> Result<u32> {
-    let row = sqlx::query!(
-        "SELECT COUNT(DISTINCT minter_did) as count FROM nfts WHERE minter_did IS NOT NULL"
-    )
-    .fetch_one(conn)
-    .await?;
-
-    Ok(row.count.try_into()?)
+    Ok((dids, total_count))
 }
 
 async fn fetch_nft_data(conn: impl SqliteExecutor<'_>, hash: Bytes32) -> Result<Option<NftData>> {
