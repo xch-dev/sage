@@ -38,6 +38,9 @@ import { useNavigate } from 'react-router-dom';
 import { commands, KeyInfo, SecretKeyInfo } from '../bindings';
 import Container from '../components/Container';
 import { loginAndUpdateState } from '../state';
+import { platform } from '@tauri-apps/plugin-os';
+
+const isMobile = platform() === 'ios' || platform() === 'android';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -66,7 +69,11 @@ export default function Login() {
 
   return (
     <SafeAreaView>
-      <div className='flex-1 space-y-4 px-4 overflow-y-scroll'>
+      <div
+        className={`flex-1 space-y-4 px-4 overflow-y-scroll ${
+          !isMobile ? 'pt-4' : ''
+        }`}
+      >
         <div className='flex items-center justify-between space-y-2'>
           {(keys?.length ?? 0) > 0 && (
             <>
