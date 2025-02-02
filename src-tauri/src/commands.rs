@@ -189,7 +189,7 @@ pub async fn create_did(state: State<'_, AppState>, req: CreateDid) -> Result<Tr
 pub async fn bulk_mint_nfts(
     state: State<'_, AppState>,
     req: BulkMintNfts,
-) -> Result<TransactionResponse> {
+) -> Result<BulkMintNftsResponse> {
     Ok(state.lock().await.bulk_mint_nfts(req).await?)
 }
 

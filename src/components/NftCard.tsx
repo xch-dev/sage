@@ -604,7 +604,9 @@ export const NftCard = memo(NftCardComponent, (prevProps, nextProps) => {
   // Only re-render if these props change
   return (
     prevProps.nft.launcher_id === nextProps.nft.launcher_id &&
+    prevProps.nft.created_height === nextProps.nft.created_height &&
     prevProps.nft.visible === nextProps.nft.visible &&
-    prevProps.selectionState?.[0] === nextProps.selectionState?.[0]
+    prevProps.selectionState?.[0] === nextProps.selectionState?.[0] &&
+    prevProps.nft.coin_id === nextProps.nft.coin_id
   );
 });

@@ -4,12 +4,13 @@ use chia::{
     protocol::{Bytes, CoinSpend},
     puzzles::nft::NftMetadata,
 };
-use chia_wallet_sdk::MetadataUpdate;
+use chia_wallet_sdk::{encode_address, MetadataUpdate};
 use sage_api::{
-    AddNftUri, AssignNftsToDid, BulkMintNfts, BulkSendCat, BulkSendXch, CombineCat, CombineXch,
-    CreateDid, IssueCat, NftUriKind, NormalizeDids, SendCat, SendXch, SignCoinSpends,
-    SignCoinSpendsResponse, SplitCat, SplitXch, SubmitTransaction, SubmitTransactionResponse,
-    TransactionResponse, TransferDids, TransferNfts, ViewCoinSpends, ViewCoinSpendsResponse,
+    AddNftUri, AssignNftsToDid, BulkMintNfts, BulkMintNftsResponse, BulkSendCat, BulkSendXch,
+    CombineCat, CombineXch, CreateDid, IssueCat, NftUriKind, NormalizeDids, SendCat, SendXch,
+    SignCoinSpends, SignCoinSpendsResponse, SplitCat, SplitXch, SubmitTransaction,
+    SubmitTransactionResponse, TransactionResponse, TransferDids, TransferNfts, ViewCoinSpends,
+    ViewCoinSpendsResponse,
 };
 use sage_assets::fetch_uris_without_hash;
 use sage_database::CatRow;
@@ -18,7 +19,8 @@ use tokio::time::timeout;
 
 use crate::{
     fetch_cats, fetch_coins, json_bundle, json_spend, parse_asset_id, parse_cat_amount,
-    parse_did_id, parse_nft_id, rust_bundle, rust_spend, ConfirmationInfo, Result, Sage,
+    parse_did_id, parse_hash, parse_nft_id, rust_bundle, rust_spend, ConfirmationInfo, Result,
+    Sage,
 };
 
 impl Sage {
@@ -192,7 +194,7 @@ impl Sage {
         self.transact_with(coin_spends, req.auto_submit, info).await
     }
 
-    pub async fn bulk_mint_nfts(&self, req: BulkMintNfts) -> Result<TransactionResponse> {
+    pub async fn bulk_mint_nfts(&self, req: BulkMintNfts) -> Result<BulkMintNftsResponse> {
         let wallet = self.wallet()?;
         let fee = self.parse_amount(req.fee)?;
         let did_id = parse_did_id(req.did_id)?;
@@ -208,7 +210,9 @@ impl Sage {
 
             let royalty_ten_thousandths = item.royalty_ten_thousandths;
 
-            let data_hash = if item.data_uris.is_empty() {
+            let data_hash = if let Some(data_hash) = item.data_hash {
+                Some(parse_hash(data_hash)?)
+            } else if item.data_uris.is_empty() {
                 None
             } else {
                 let data = timeout(
@@ -223,7 +227,9 @@ impl Sage {
                 Some(hash)
             };
 
-            let metadata_hash = if item.metadata_uris.is_empty() {
+            let metadata_hash = if let Some(metadata_hash) = item.metadata_hash {
+                Some(parse_hash(metadata_hash)?)
+            } else if item.metadata_uris.is_empty() {
                 None
             } else {
                 let metadata = timeout(
@@ -238,7 +244,9 @@ impl Sage {
                 Some(hash)
             };
 
-            let license_hash = if item.license_uris.is_empty() {
+            let license_hash = if let Some(license_hash) = item.license_hash {
+                Some(parse_hash(license_hash)?)
+            } else if item.license_uris.is_empty() {
                 None
             } else {
                 let data = timeout(
@@ -253,6 +261,12 @@ impl Sage {
                 Some(hash)
             };
 
+            let p2_puzzle_hash = if let Some(address) = item.address {
+                Some(self.parse_address(address)?)
+            } else {
+                None
+            };
+
             mints.push(WalletNftMint {
                 metadata: NftMetadata {
                     edition_number: item.edition_number.map_or(1, Into::into),
@@ -264,15 +278,31 @@ impl Sage {
                     license_uris: item.license_uris,
                     license_hash,
                 },
+                p2_puzzle_hash,
                 royalty_puzzle_hash,
                 royalty_ten_thousandths,
             });
         }
 
-        let (coin_spends, _nfts, _did) = wallet
+        let (coin_spends, nfts, _did) = wallet
             .bulk_mint_nfts(fee, did_id, mints, false, true)
             .await?;
-        self.transact_with(coin_spends, req.auto_submit, info).await
+
+        let mut nft_ids = Vec::with_capacity(nfts.len());
+
+        for nft in nfts {
+            nft_ids.push(encode_address(nft.info.launcher_id.to_bytes(), "nft")?);
+        }
+
+        let response = self
+            .transact_with(coin_spends, req.auto_submit, info)
+            .await?;
+
+        Ok(BulkMintNftsResponse {
+            nft_ids,
+            summary: response.summary,
+            coin_spends: response.coin_spends,
+        })
     }
 
     pub async fn transfer_nfts(&self, req: TransferNfts) -> Result<TransactionResponse> {

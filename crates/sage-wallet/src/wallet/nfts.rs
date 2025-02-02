@@ -14,6 +14,7 @@ use super::Wallet;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WalletNftMint {
     pub metadata: NftMetadata,
+    pub p2_puzzle_hash: Option<Bytes32>,
     pub royalty_puzzle_hash: Option<Bytes32>,
     pub royalty_ten_thousandths: u16,
 }
@@ -58,7 +59,7 @@ impl Wallet {
                 metadata_updater_puzzle_hash: NFT_METADATA_UPDATER_PUZZLE_HASH.into(),
                 royalty_puzzle_hash: mint.royalty_puzzle_hash.unwrap_or(p2_puzzle_hash),
                 royalty_ten_thousandths: mint.royalty_ten_thousandths,
-                p2_puzzle_hash,
+                p2_puzzle_hash: mint.p2_puzzle_hash.unwrap_or(p2_puzzle_hash),
                 owner: Some(DidOwner::from_did_info(&did.info)),
             };
 
@@ -257,6 +258,7 @@ mod tests {
                 did.info.launcher_id,
                 vec![WalletNftMint {
                     metadata: NftMetadata::default(),
+                    p2_puzzle_hash: None,
                     royalty_puzzle_hash: Some(Bytes32::default()),
                     royalty_ten_thousandths: 300,
                 }],
@@ -319,6 +321,7 @@ mod tests {
                 did.info.launcher_id,
                 vec![WalletNftMint {
                     metadata: NftMetadata::default(),
+                    p2_puzzle_hash: None,
                     royalty_puzzle_hash: Some(Bytes32::default()),
                     royalty_ten_thousandths: 300,
                 }],
@@ -371,6 +374,7 @@ mod tests {
                 alice_did.info.launcher_id,
                 vec![WalletNftMint {
                     metadata: NftMetadata::default(),
+                    p2_puzzle_hash: None,
                     royalty_puzzle_hash: Some(Bytes32::default()),
                     royalty_ten_thousandths: 300,
                 }],

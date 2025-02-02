@@ -1,11 +1,11 @@
 use std::fmt;
 
 use serde::{Deserialize, Serialize};
-use specta::Type;
 
 pub const MAX_JS_SAFE_INTEGER: u64 = 9_007_199_254_740_991;
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[serde(untagged)]
 pub enum Amount {
     String(String),

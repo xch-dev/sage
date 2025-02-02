@@ -11,6 +11,7 @@ import {
   handleSignMessage,
 } from './commands/chip0002';
 import {
+  handleBulkMintNfts,
   handleGetAddress,
   handleGetNfts,
   handleSend,
@@ -59,6 +60,8 @@ export const handleCommand = async (
       return await handleGetAddress(parseCommand(command, params));
     case 'chia_signMessageByAddress':
       return await handleSignMessageByAddress(parseCommand(command, params));
+    case 'chia_bulkMintNfts':
+      return await handleBulkMintNfts(parseCommand(command, params));
     default:
       throw new Error(`Unknown command: ${command}`);
   }

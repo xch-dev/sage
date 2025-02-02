@@ -46,6 +46,20 @@ const nft = z.object({
   editionTotal: z.number().nullable(),
 });
 
+const nftMint = z.object({
+  address: z.string().optional(),
+  royaltyAddress: z.string().optional(),
+  royaltyTenThousandths: z.number().optional(),
+  dataUris: z.array(z.string()).optional(),
+  dataHash: z.string().optional(),
+  metadataUris: z.array(z.string()).optional(),
+  metadataHash: z.string().optional(),
+  licenseUris: z.array(z.string()).optional(),
+  licenseHash: z.string().optional(),
+  editionNumber: z.number().optional(),
+  editionTotal: z.number().optional(),
+});
+
 enum MempoolInclusionStatus {
   SUCCESS = 1, // Transaction added to mempool
   PENDING = 2, // Transaction not yet added to mempool
@@ -197,6 +211,17 @@ export const walletConnectCommands = {
       memos: z.array(z.string()).optional(),
     }),
     returnType: z.object({}),
+    confirm: true,
+  },
+  chia_bulkMintNfts: {
+    paramsType: z.object({
+      did: z.string(),
+      nfts: z.array(nftMint),
+      fee: safeAmount.optional(),
+    }),
+    returnType: z.object({
+      nftIds: z.array(z.string()),
+    }),
     confirm: true,
   },
   chia_getAddress: {
