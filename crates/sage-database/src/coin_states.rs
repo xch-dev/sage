@@ -458,6 +458,7 @@ async fn get_block_heights(
     );
 
     if let Some(value) = &find_value {
+        // Check if searching for XCH (matches "x", "xc", or "xch")
         let should_filter_xch = if value.len() <= 3 {
             let value_lower = value.to_lowercase();
             value_lower == "x" || value_lower == "xc" || value_lower == "xch"
@@ -468,7 +469,8 @@ async fn get_block_heights(
         query.push(" AND (");
 
         if should_filter_xch {
-            query.push("kind = 2 OR ");
+            // XCH coins have kind = 1 (standard P2 coins)
+            query.push("kind = 1 OR ");
         }
 
         query
