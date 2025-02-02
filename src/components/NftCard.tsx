@@ -35,6 +35,7 @@ import { z } from 'zod';
 import { AssignNftDialog } from './AssignNftDialog';
 import ConfirmationDialog from './ConfirmationDialog';
 import { FeeOnlyDialog } from './FeeOnlyDialog';
+import { NftPreview } from './NftPreview';
 import { TransferDialog } from './TransferDialog';
 import { Button } from './ui/button';
 import { Checkbox } from './ui/checkbox';
@@ -218,13 +219,11 @@ const NftCardComponent = ({
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <img
-                  alt={nft.name ?? t`NFT artwork for unnamed NFT`}
-                  loading='lazy'
-                  width='150'
-                  height='150'
-                  className='h-auto w-auto object-cover transition-all group-hover:scale-105 aspect-square color-[transparent]'
-                  src={nftUri(data?.mime_type ?? null, data?.blob ?? null)}
+                <NftPreview
+                  data={data}
+                  name={nft.name}
+                  compact={true}
+                  className="rounded-lg"
                 />
               </TooltipTrigger>
               <TooltipContent>

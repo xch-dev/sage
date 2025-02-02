@@ -6,6 +6,10 @@ use mime_sniffer::MimeTypeSniffer;
 use reqwest::header::CONTENT_TYPE;
 use thiserror::Error;
 use tracing::debug;
+use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
+use percent_encoding::percent_decode;
+
+const MAX_TEXT_SIZE: usize = 10 * 1024 * 1024; // 10MB limit for text content
 
 #[derive(Debug, Clone)]
 pub struct Data {
@@ -30,10 +34,40 @@ pub enum UriError {
 
     #[error("No URIs provided")]
     NoUris,
+
+    #[error("Invalid data URI format")]
+    InvalidDataUri,
+
+    #[error("Base64 decode error: {0}")]
+    Base64DecodeError(#[from] base64::DecodeError),
+
+    #[error("Text content too large")]
+    TextContentTooLarge,
+
+    #[error("Invalid UTF-8 encoding")]
+    InvalidUtf8Encoding,
+}
+
+fn validate_text_content(content: &[u8]) -> Result<(), UriError> {
+    // Check size limit
+    if content.len() > MAX_TEXT_SIZE {
+        return Err(UriError::TextContentTooLarge);
+    }
+
+    // Validate UTF-8
+    String::from_utf8(content.to_vec())
+        .map_err(|_| UriError::InvalidUtf8Encoding)?;
+
+    Ok(())
 }
 
 pub async fn fetch_uri(uri: String) -> Result<Data, UriError> {
-    let response = reqwest::get(uri).await?;
+    // Check if it's a data URI
+    if uri.starts_with("data:") {
+        return parse_data_uri(&uri);
+    }
+
+    let response = reqwest::get(&uri).await?;
 
     let mime_type = match response.headers().get(CONTENT_TYPE) {
         Some(header) => Some(
@@ -56,6 +90,60 @@ pub async fn fetch_uri(uri: String) -> Result<Data, UriError> {
             .to_string()
     };
 
+    // Validate text content if mime type is text/plain
+    if mime_type == "text/plain" {
+        validate_text_content(&blob)?;
+    }
+
+    let mut hasher = Sha256::new();
+    hasher.update(&blob);
+    let hash = Bytes32::new(hasher.finalize());
+
+    Ok(Data {
+        blob,
+        mime_type,
+        hash,
+    })
+}
+
+fn parse_data_uri(uri: &str) -> Result<Data, UriError> {
+    // Remove "data:" prefix
+    let content = uri.strip_prefix("data:").ok_or(UriError::InvalidDataUri)?;
+
+    // Split into metadata and data parts
+    let parts: Vec<&str> = content.split(',').collect();
+    if parts.len() != 2 {
+        return Err(UriError::InvalidDataUri);
+    }
+
+    let (metadata, data) = (parts[0], parts[1]);
+
+    // Parse mime type and encoding
+    let (mime_type, is_base64) = if metadata.ends_with(";base64") {
+        (metadata[..metadata.len() - 7].to_string(), true)
+    } else {
+        (metadata.to_string(), false)
+    };
+
+    // Decode the data
+    let blob = if is_base64 {
+        BASE64.decode(data)?
+    } else {
+        // For non-base64, handle percent encoding
+        percent_decode(data.as_bytes())
+            .decode_utf8()
+            .map_err(|_| UriError::InvalidDataUri)?
+            .to_string()
+            .as_bytes()
+            .to_vec()
+    };
+
+    // Validate text content if mime type is text/plain
+    if mime_type == "text/plain" {
+        validate_text_content(&blob)?;
+    }
+
+    // Calculate hash
     let mut hasher = Sha256::new();
     hasher.update(&blob);
     let hash = Bytes32::new(hasher.finalize());

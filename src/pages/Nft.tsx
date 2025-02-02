@@ -2,8 +2,9 @@ import Container from '@/components/Container';
 import { CopyBox } from '@/components/CopyBox';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
+import { NftPreview } from '@/components/NftPreview';
 import { useErrors } from '@/hooks/useErrors';
-import { isImage, nftUri } from '@/lib/nftUri';
+import { isImage, isVideo, isText, isJson, nftUri } from '@/lib/nftUri';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { open } from '@tauri-apps/plugin-shell';
@@ -63,7 +64,8 @@ export default function Nft() {
   }, [launcherId, addError]);
 
   const metadata = useMemo(() => {
-    if (!nft || !data?.metadata_json) return {};
+    //if (!nft || !data?.metadata_json) return {};
+    if (!data?.metadata_json) return {};
     try {
       return JSON.parse(data.metadata_json) ?? {};
     } catch {
@@ -77,24 +79,22 @@ export default function Nft() {
     commands.networkConfig().then(setConfig).catch(addError);
   }, [addError]);
 
+  // New function to render NFT content based on mime type
+  const renderNftContent = () => (
+    <div className="w-full max-w-4xl mx-auto">
+      <NftPreview 
+        data={data}
+        name={nft?.name}
+      />
+    </div>
+  );
+
   return (
     <>
       <Header title={nft?.name ?? t`Unknown NFT`} />
       <Container>
         <div className='flex flex-col gap-2 mx-auto sm:w-full md:w-[50%] max-w-[400px]'>
-          {isImage(data?.mime_type ?? null) ? (
-            <img
-              alt='NFT image'
-              src={nftUri(data?.mime_type ?? null, data?.blob ?? null)}
-              className='rounded-lg'
-            />
-          ) : (
-            <video
-              src={nftUri(data?.mime_type ?? null, data?.blob ?? null)}
-              className='rounded-lg'
-              controls
-            />
-          )}
+          {renderNftContent()}
           <CopyBox title={t`Launcher Id`} value={nft?.launcher_id ?? ''} />
         </div>
 
