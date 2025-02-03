@@ -128,7 +128,7 @@ export function TokenOptions({
                 ) : (
                   <Eye className='mr-2 h-4 w-4' aria-hidden='true' />
                 )}
-                {showHiddenCats ? t`Hide Hidden Tokens` : t`Show Hidden Tokens`}
+                {showHiddenCats ? t`Conceal Hidden Tokens` : t`Reveal Hidden Tokens`}
               </DropdownMenuItem>
               <DropdownMenuItem
                 className='cursor-pointer'

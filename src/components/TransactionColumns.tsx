@@ -15,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { toast } from 'react-toastify';
+import { useWalletState } from '@/state';
 
 export interface FlattenedTransaction {
   transactionHeight: number;
@@ -24,6 +25,28 @@ export interface FlattenedTransaction {
   amount: string;
   address: string | null;
   coin_id: string;
+}
+
+function AmountCell({ amount, type }: { amount: string; type: string }) {
+  const walletState = useWalletState();
+  const isPositive = amount.startsWith('+');
+  const decimals = type === 'cat' ? 3 : walletState.sync.unit.decimals;
+  const sign = isPositive ? 'received' : 'sent';
+
+  return (
+    <div className='text-right whitespace-nowrap'>
+      <span 
+        className={isPositive ? 'text-green-600' : 'text-red-600'}
+        aria-label={`${sign} ${fromMojos(amount, decimals)} ${type === 'xch' ? 'XCH' : type === 'cat' ? 'CAT' : type}`}
+      >
+        <NumberFormat
+          value={fromMojos(amount, decimals)}
+          minimumFractionDigits={0}
+          maximumFractionDigits={decimals}
+        />
+      </span>
+    </div>
+  );
 }
 
 export const columns: ColumnDef<FlattenedTransaction>[] = [
@@ -47,7 +70,7 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
       return isFirstInGroup ? (
         <Link
           to={`/transactions/${row.getValue('transactionHeight')}`}
-          className='hover:underline text-sm md:text-base'
+          className='hover:underline'
           onClick={(e) => e.stopPropagation()}
         >
           {row.getValue('transactionHeight')}
@@ -62,27 +85,22 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
     cell: ({ row }) => {
       const type = row.getValue('type') as string;
       const ticker = row.original.ticker;
+      const assetName = type === 'xch' ? 'XCH' : ticker ?? 'CAT';
 
       return (
-        <div className='w-4 h-4 md:w-6 md:h-6'>
+        <div className='w-6 h-6' role="img" aria-label={`${assetName} icon`}>
           {type === 'xch' ? (
-            <>
-              <img
-                alt='XCH'
-                src='https://icons.dexie.space/xch.webp'
-                aria-hidden='true'
-              />
-              <span className='sr-only'>XCH</span>
-            </>
+            <img
+              alt=""  // Decorative image since we have aria-label on parent
+              src='https://icons.dexie.space/xch.webp'
+              aria-hidden='true'
+            />
           ) : type === 'cat' && row.original.icon_url ? (
-            <>
-              <img
-                alt={ticker ?? 'CAT'}
-                src={row.original.icon_url}
-                aria-hidden='true'
-              />
-              <span className='sr-only'>{ticker ?? 'CAT'}</span>
-            </>
+            <img
+              alt="" // Decorative image since we have aria-label on parent
+              src={row.original.icon_url}
+              aria-hidden='true'
+            />
           ) : null}
         </div>
       );
@@ -97,7 +115,7 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
     cell: ({ row }) => {
       const type = row.getValue('type') as string;
       return (
-        <div className='text-sm md:text-base'>
+        <div>
           {type === 'xch'
             ? 'XCH'
             : type === 'cat'
@@ -110,26 +128,17 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
   {
     accessorKey: 'amount',
     header: ({ column }) => (
-      <div className='w-[120px] md:w-[150px] text-right'>
+      <div className='text-right'>
         <DataTableColumnHeader column={column} title={t`Amount`} />
       </div>
     ),
     enableSorting: false,
-    cell: ({ row }) => {
-      const amount = row.getValue('amount') as string;
-      const isPositive = amount.startsWith('+');
-      return (
-        <div className='w-[120px] md:w-[150px] text-right text-sm md:text-base'>
-          <span className={isPositive ? 'text-green-600' : 'text-red-600'}>
-            <NumberFormat
-              value={fromMojos(amount, 12)}
-              minimumFractionDigits={0}
-              maximumFractionDigits={12}
-            />
-          </span>
-        </div>
-      );
-    },
+    cell: ({ row }) => (
+      <AmountCell 
+        amount={row.getValue('amount')} 
+        type={row.getValue('type')} 
+      />
+    ),
   },
   {
     accessorKey: 'address',
@@ -140,7 +149,7 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
     ),
     enableSorting: false,
     cell: ({ row }) => (
-      <div className='hidden md:block font-mono text-sm'>
+      <div className='hidden md:block font-mono'>
         {row.getValue<string | null>('address')?.slice(0, 15)}...
       </div>
     ),
@@ -160,10 +169,7 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
               aria-label={t`Open actions menu`}
             >
               <span className='sr-only'>{t`Open menu`}</span>
-              <MoreHorizontal
-                className='h-3 w-3 md:h-4 md:w-4'
-                aria-hidden='true'
-              />
+              <MoreHorizontal className='h-4 w-4' aria-hidden='true' />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align='end'>
