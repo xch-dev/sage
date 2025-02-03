@@ -12,14 +12,14 @@ export function dbg<T>(value: T): T {
   return value;
 }
 
-export function formatAddress(address: string, chars: number = 8): string {
+export function formatAddress(address: string, chars: number = 8, trailingChars: number = chars): string {
   const cleanAddress = address.startsWith('0x') ? address.slice(2) : address;
 
-  if (chars * 2 >= cleanAddress.length) {
+  if (chars + trailingChars >= cleanAddress.length) {
     return address;
   }
 
-  return `${cleanAddress.slice(0, chars)}...${cleanAddress.slice(-chars)}`;
+  return `${cleanAddress.slice(0, chars)}...${cleanAddress.slice(-trailingChars)}`;
 }
 
 export function formatUsdPrice(price: number): string {

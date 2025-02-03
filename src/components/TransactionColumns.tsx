@@ -123,7 +123,7 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
     enableSorting: false,
     cell: ({ row }) => (
       <div className='hidden md:block font-mono'>
-        {formatAddress(row.getValue<string | null>('address') || '')}
+        {formatAddress(row.getValue<string | null>('address') || '', 7, 4)}
       </div>
     ),
   },
