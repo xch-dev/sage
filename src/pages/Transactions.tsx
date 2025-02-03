@@ -19,29 +19,18 @@ import { ViewMode } from '@/components/ViewToggle';
 import { TransactionTableView } from '../components/TransactionTableView';
 import { TransactionCardView } from '../components/TransactionCardView';
 import { TransactionOptions } from '@/components/TransactionOptions';
+import { useTransactionsParams } from '@/hooks/useTransactionsParams';
 
 export function Transactions() {
   const { addError } = useErrors();
+  const [params, setParams] = useTransactionsParams();
+  const { page, pageSize, viewMode, search, ascending } = params;
 
-  const [params, setParams] = useSearchParams();
-  const page = parseInt(params.get('page') ?? '1');
-  const search = params.get('search') ?? '';
-  const setPage = (page: number) =>
-    setParams({ ...Object.fromEntries(params), page: page.toString() });
-
-  const [pageSize, setPageSize] = useLocalStorage('transactionsPageSize', 8);
-  const [view, setView] = useLocalStorage<ViewMode>('transactionsView', 'list');
-  const [ascending, setAscending] = useState(false);
-
-  // TODO: Show pending transactions
+  // Remove redundant state
   const [_pending, setPending] = useState<PendingTransactionRecord[]>([]);
   const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
-  const [total, setTotal] = useState(0);
-
-  const [query, setQuery] = useState('');
   const [totalTransactions, setTotalTransactions] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
-  const [hasMoreTransactions, setHasMoreTransactions] = useState(true);
 
   const updateTransactions = useCallback(async () => {
     commands
@@ -58,7 +47,6 @@ export function Transactions() {
       })
       .then((data) => {
         setTransactions(data.transactions);
-        setTotal(data.total);
         setTotalTransactions(data.total);
       })
       .catch(addError);
@@ -83,14 +71,6 @@ export function Transactions() {
     };
   }, [updateTransactions]);
 
-  const handleSortingChange = (newAscending: boolean) => {
-    setAscending(newAscending);
-  };
-
-  const handleSearch = (value: string) => {
-    setParams({ ...Object.fromEntries(params), search: value, page: '1' });
-  };
-
   return (
     <>
       <Header title={t`Transactions`}>
@@ -110,28 +90,19 @@ export function Transactions() {
         )}
 
         <TransactionOptions
-          query={query}
-          setQuery={setQuery}
-          page={page}
-          setPage={setPage}
-          pageSize={pageSize}
-          setPageSize={setPageSize}
+          params={params}
+          onParamsChange={setParams}
           total={totalTransactions}
           isLoading={isLoading}
-          view={view}
-          setView={setView}
-          ascending={ascending}
-          setAscending={setAscending}
-          handleSearch={handleSearch}
           className="mb-4"
         />
 
-        {view === 'list' ? (
+        {viewMode === 'list' ? (
           <TransactionCardView transactions={transactions} />
         ) : (
           <TransactionTableView
             transactions={transactions}
-            onSortingChange={handleSortingChange}
+            onSortingChange={(value) => setParams({ ascending: value })}
           />
         )}
       </Container>

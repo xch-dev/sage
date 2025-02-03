@@ -10,40 +10,25 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
+import { TransactionParams, SetTransactionParams } from '@/hooks/useTransactionsParams';
 
 interface TransactionOptionsProps {
-  query: string;
-  setQuery: (query: string) => void;
-  page: number;
-  setPage: (page: number) => void;
-  pageSize: number;
-  setPageSize: (pageSize: number) => void;
+  params: TransactionParams;
+  onParamsChange: SetTransactionParams;
   total: number;
   isLoading?: boolean;
-  view: ViewMode;
-  setView: (view: ViewMode) => void;
-  ascending: boolean;
-  setAscending: (ascending: boolean) => void;
   className?: string;
-  handleSearch: (value: string) => void;
 }
 
 export function TransactionOptions({
-  query,
-  setQuery,
-  page,
-  setPage,
-  pageSize,
-  setPageSize,
+  params,
+  onParamsChange,
   total,
   isLoading,
-  view,
-  setView,
-  ascending,
-  setAscending,
   className,
-  handleSearch,
 }: TransactionOptionsProps) {
+  const { search, page, pageSize, viewMode, ascending } = params;
+  
   return (
     <div 
       className={`flex flex-col gap-4 ${className}`}
@@ -57,28 +42,22 @@ export function TransactionOptions({
             aria-hidden="true"
           />
           <Input
-            value={query}
+            value={search}
             aria-label={t`Search transactions...`}
             title={t`Search transactions...`}
             placeholder={t`Search transactions...`}
-            onChange={(e) => {
-              setQuery(e.target.value);
-              handleSearch(e.target.value);
-            }}
+            onChange={(e) => onParamsChange({ search: e.target.value })}
             className="w-full pl-8 pr-8"
           />
         </div>
-        {query && (
+        {search && (
           <Button
             variant="ghost"
             size="icon"
             title={t`Clear search`}
             aria-label={t`Clear search`}
             className="absolute right-0 top-0 h-full px-2 hover:bg-transparent"
-            onClick={() => {
-              setQuery('');
-              handleSearch('');
-            }}
+            onClick={() => onParamsChange({ search: '' })}
           >
             <XIcon className="h-4 w-4" aria-hidden="true" />
           </Button>
@@ -90,9 +69,9 @@ export function TransactionOptions({
           page={page}
           total={total}
           pageSize={pageSize}
-          onPageChange={setPage}
-          onPageSizeChange={setPageSize}
-          pageSizeOptions={[10, 20, 30, 40, 50]}
+          onPageChange={(newPage) => onParamsChange({ page: newPage })}
+          onPageSizeChange={(newSize) => onParamsChange({ pageSize: newSize })}
+          pageSizeOptions={[10, 25, 50, 100]}
           compact={true}
           isLoading={isLoading}
         />
@@ -111,7 +90,7 @@ export function TransactionOptions({
             <DropdownMenuContent align="end">
               <DropdownMenuItem
                 className="cursor-pointer"
-                onClick={() => setAscending(!ascending)}
+                onClick={() => onParamsChange({ ascending: !ascending })}
               >
                 {ascending ? (
                   <ArrowDownAz className="mr-2 h-4 w-4" aria-hidden="true" />
@@ -122,7 +101,7 @@ export function TransactionOptions({
               </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>
-                            <ViewToggle view={view} onChange={setView} />
+                            <ViewToggle view={viewMode} onChange={(newView) => onParamsChange({ viewMode: newView })} />
 
         </div>
       </div>
