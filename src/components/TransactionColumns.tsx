@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { toast } from 'react-toastify';
 import { AmountCell } from './AmountCell';
-
+import { formatAddress } from '../lib/utils'
 export interface FlattenedTransaction {
   transactionHeight: number;
   type: string;
@@ -123,7 +123,7 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
     enableSorting: false,
     cell: ({ row }) => (
       <div className='hidden md:block font-mono'>
-        {row.getValue<string | null>('address')?.slice(0, 15)}...
+        {formatAddress(row.getValue<string | null>('address') || '')}
       </div>
     ),
   },
