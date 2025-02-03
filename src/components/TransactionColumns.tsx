@@ -32,13 +32,7 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title={t`Block #`} />
     ),
-    enableSorting: true,
-    sortingFn: 'basic',
-    sortDescFirst: true,
-    sortUndefined: 1,
-    meta: {
-      serverSort: true,
-    },
+    enableSorting: false,
     cell: ({ row, table }) => {
       // Get all rows data
       const rows = table.options.data as FlattenedTransaction[];

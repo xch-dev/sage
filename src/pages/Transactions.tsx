@@ -2,11 +2,10 @@ import Container from '@/components/Container';
 import Header from '@/components/Header';
 import { ReceiveAddress } from '@/components/ReceiveAddress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Input } from '@/components/ui/input';
 import { useErrors } from '@/hooks/useErrors';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import { Info, SearchIcon, XIcon } from 'lucide-react';
+import { Info, } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
@@ -15,13 +14,11 @@ import {
   PendingTransactionRecord,
   TransactionRecord,
 } from '../bindings';
-
-import { Pagination } from '@/components/Pagination';
 import { useLocalStorage } from 'usehooks-ts';
-import { ViewToggle, ViewMode } from '@/components/ViewToggle';
+import { ViewMode } from '@/components/ViewToggle';
 import { TransactionTableView } from '../components/TransactionTableView';
 import { TransactionCardView } from '../components/TransactionCardView';
-import { Button } from '@/components/ui/button';
+import { TransactionOptions } from '@/components/TransactionOptions';
 
 export function Transactions() {
   const { addError } = useErrors();
@@ -41,6 +38,11 @@ export function Transactions() {
   const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
   const [total, setTotal] = useState(0);
 
+  const [query, setQuery] = useState('');
+  const [totalTransactions, setTotalTransactions] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const [hasMoreTransactions, setHasMoreTransactions] = useState(true);
+
   const updateTransactions = useCallback(async () => {
     commands
       .getPendingTransactions({})
@@ -57,6 +59,7 @@ export function Transactions() {
       .then((data) => {
         setTransactions(data.transactions);
         setTotal(data.total);
+        setTotalTransactions(data.total);
       })
       .catch(addError);
   }, [addError, page, pageSize, ascending, search]);
@@ -106,47 +109,22 @@ export function Transactions() {
           </Alert>
         )}
 
-        <div className='space-y-4 mb-4'>
-          <div className='flex items-center gap-2'>
-            <div className='relative flex-1'>
-              <SearchIcon
-                className='absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground'
-                aria-hidden='true'
-              />
-              <Input
-                type='search'
-                value={search}
-                aria-label={t`Search transactions`}
-                placeholder={t`Search transactions...`}
-                onChange={(e) => handleSearch(e.target.value)}
-                className='w-full pl-8 pr-8'
-              />
-              {search && (
-                <Button
-                  variant='ghost'
-                  size='icon'
-                  title={t`Clear search`}
-                  aria-label={t`Clear search`}
-                  className='absolute right-0 top-0 h-full px-2 hover:bg-transparent'
-                  onClick={() => handleSearch('')}
-                >
-                  <XIcon className='h-4 w-4' aria-hidden='true' />
-                </Button>
-              )}
-            </div>
-            <ViewToggle view={view} onChange={setView} />
-          </div>
-
-          <div className='flex'>
-            <Pagination
-              total={total}
-              page={page}
-              onPageChange={setPage}
-              pageSize={pageSize}
-              onPageSizeChange={setPageSize}
-            />
-          </div>
-        </div>
+        <TransactionOptions
+          query={query}
+          setQuery={setQuery}
+          page={page}
+          setPage={setPage}
+          pageSize={pageSize}
+          setPageSize={setPageSize}
+          total={totalTransactions}
+          isLoading={isLoading}
+          view={view}
+          setView={setView}
+          ascending={ascending}
+          setAscending={setAscending}
+          handleSearch={handleSearch}
+          className="mb-4"
+        />
 
         {view === 'list' ? (
           <TransactionCardView transactions={transactions} />

@@ -1,29 +1,32 @@
 import { useSearchParams } from 'react-router-dom';
 import { useLocalStorage } from 'usehooks-ts';
+import { ViewMode } from '@/components/ViewToggle';
 
 const ZERO_BALANCE_STORAGE_KEY = 'sage-wallet-show-zero-balance';
 const TOKEN_SORT_STORAGE_KEY = 'sage-wallet-token-sort';
+const TOKEN_VIEW_MODE_STORAGE_KEY = 'sage-wallet-token-view-mode';
 
 export interface TokenParams {
-  view: TokenView;
+  viewMode: ViewMode;
+  sortMode: TokenSortMode;
   showHidden: boolean;
   search: string;
   showZeroBalance: boolean;
 }
 
-export enum TokenView {
+export enum TokenSortMode {
   Name = 'name',
   Balance = 'balance',
 }
 
-export function parseView(view: string): TokenView {
+export function parseSortMode(view: string): TokenSortMode {
   switch (view) {
     case 'name':
-      return TokenView.Name;
+      return TokenSortMode.Name;
     case 'balance':
-      return TokenView.Balance;
+      return TokenSortMode.Balance;
     default:
-      return TokenView.Name;
+      return TokenSortMode.Name;
   }
 }
 
@@ -35,32 +38,42 @@ export function useTokenParams(): [TokenParams, SetTokenParams] {
   const [storedShowZeroBalance, setStoredShowZeroBalance] =
     useLocalStorage<boolean>(ZERO_BALANCE_STORAGE_KEY, false);
 
-  const [storedTokenView, setStoredTokenView] = useLocalStorage<TokenView>(
+  const [storedTokenView, setStoredTokenView] = useLocalStorage<TokenSortMode>(
     TOKEN_SORT_STORAGE_KEY,
-    TokenView.Name,
+    TokenSortMode.Name,
   );
 
-  const view = parseView(params.get('view') ?? storedTokenView);
+  const [storedViewMode, setStoredViewMode] = useLocalStorage<ViewMode>(
+    TOKEN_VIEW_MODE_STORAGE_KEY,
+    'grid'
+  );
+
+  const sortMode = parseSortMode(params.get('sortMode') ?? storedTokenView);
   const showHidden = (params.get('showHidden') ?? 'false') === 'true';
   const showZeroBalance =
     (params.get('showZeroBalance') ?? storedShowZeroBalance.toString()) ===
+
     'true';
   const search = params.get('search') ?? '';
 
+  const viewMode = params.get('viewMode') as ViewMode ?? storedViewMode;
+
   const updateParams = ({
-    view,
+    sortMode,
     showHidden,
     showZeroBalance,
     search,
+    viewMode,
   }: Partial<TokenParams>) => {
     setParams(
       (prev) => {
         const next = new URLSearchParams(prev);
 
-        if (view !== undefined) {
-          next.set('view', view);
-          setStoredTokenView(view);
+        if (sortMode !== undefined) {
+          next.set('sortMode', sortMode);
+          setStoredTokenView(sortMode);
         }
+
 
         if (showHidden !== undefined) {
           next.set('showHidden', showHidden.toString());
@@ -79,11 +92,22 @@ export function useTokenParams(): [TokenParams, SetTokenParams] {
           }
         }
 
+        if (viewMode !== undefined) {
+          next.set('viewMode', viewMode);
+          setStoredViewMode(viewMode);
+        }
+
         return next;
       },
       { replace: true },
     );
   };
 
-  return [{ view, showHidden, showZeroBalance, search }, updateParams];
+  return [{
+    viewMode,
+    sortMode,
+    showHidden,
+    showZeroBalance,
+    search
+  }, updateParams];
 }
