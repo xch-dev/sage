@@ -9,23 +9,25 @@ import useInitialization from '@/hooks/useInitialization';
 import { useWallet } from '@/hooks/useWallet';
 import icon from '@/icon.png';
 import { t } from '@lingui/core/macro';
-import { PanelLeft, PanelLeftClose } from 'lucide-react';
+import { PanelLeft, PanelLeftClose, ArrowLeft } from 'lucide-react';
 import { PropsWithChildren } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useLocalStorage } from 'usehooks-ts';
 import { BottomNav, TopNav } from './Nav';
+import { KeyInfo } from '@/bindings';
 
 const SIDEBAR_COLLAPSED_STORAGE_KEY = 'sage-wallet-sidebar-collapsed';
 
 type LayoutProps = PropsWithChildren<object> & {
   transparentBackground?: boolean;
+  wallet?: KeyInfo;
 };
 
-export default function Layout(props: LayoutProps) {
+export function FullLayout(props: LayoutProps) {
+  const { wallet } = props;
   const insets = useInsets();
-
-  const initialized = useInitialization();
-  const wallet = useWallet(initialized);
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const [isCollapsed, setIsCollapsed] = useLocalStorage<boolean>(
     SIDEBAR_COLLAPSED_STORAGE_KEY,
@@ -144,4 +146,47 @@ export default function Layout(props: LayoutProps) {
       </div>
     </TooltipProvider>
   );
+}
+
+function MinimalLayout(props: LayoutProps) {
+  const insets = useInsets();
+  const navigate = useNavigate();
+
+  return (
+    <div className='flex flex-col h-screen w-screen'>
+      <div
+        className={`flex flex-col h-screen overflow-hidden ${
+          props.transparentBackground ? 'bg-transparent' : 'bg-background'
+        }`}
+        style={{
+          paddingBottom: insets.bottom
+            ? `${insets.bottom}px`
+            : 'env(safe-area-inset-bottom)',
+        }}
+      >
+        <div
+          className='bg-background'
+          style={{
+            height:
+              insets.top !== 0
+                ? `${insets.top + 8}px`
+                : 'env(safe-area-inset-top)',
+          }}
+        />
+        {props.children}
+      </div>
+    </div>
+  );
+}
+
+export default function Layout(props: LayoutProps) {
+  const initialized = useInitialization();
+  const wallet = useWallet(initialized);
+  const location = useLocation();
+
+  if (!wallet && location.pathname === '/settings') {
+    return <MinimalLayout {...props} />;
+  }
+
+  return <FullLayout {...props} wallet={wallet || undefined} />;
 }

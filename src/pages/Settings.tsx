@@ -34,12 +34,13 @@ import {
 } from '../bindings';
 import { isValidU32 } from '../validation';
 import { getVersion } from '@tauri-apps/api/app';
+import { useNavigate } from 'react-router-dom';
 
 export default function Settings() {
   const initialized = useInitialization();
   const wallet = useWallet(initialized);
-
   const [version, setVersion] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     getVersion().then(setVersion);
@@ -47,7 +48,7 @@ export default function Settings() {
 
   return (
     <Layout>
-      <Header title={t`Settings`} />
+      <Header title={t`Settings`} back={() => navigate('/')}/>
       <Container className='max-w-2xl'>
         <Trans>Version {version}</Trans>
         <div className='flex flex-col gap-4 mt-2'>

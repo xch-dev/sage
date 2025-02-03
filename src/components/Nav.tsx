@@ -22,15 +22,12 @@ import {
 import { PropsWithChildren, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Separator } from './ui/separator';
-import { useWallet } from '@/hooks/useWallet';
-import useInitialization from '@/hooks/useInitialization';
 
 interface NavProps {
   isCollapsed?: boolean;
 }
 
 export function TopNav({ isCollapsed }: NavProps) {
-  const wallet = useWallet(useInitialization());
   const className = isCollapsed ? 'h-5 w-5' : 'h-4 w-4';
 
   return (
@@ -44,7 +41,7 @@ export function TopNav({ isCollapsed }: NavProps) {
         url={'/wallet'}
         isCollapsed={isCollapsed}
         message={<Trans>Wallet</Trans>}
-        disabled={!wallet}
+        ariaCurrent='page'
       >
         <WalletIcon className={className} aria-hidden='true' />
       </NavLink>
@@ -52,7 +49,6 @@ export function TopNav({ isCollapsed }: NavProps) {
         url={'/nfts'}
         isCollapsed={isCollapsed}
         message={<Trans>NFTs</Trans>}
-        disabled={!wallet}
       >
         <Images className={className} />
       </NavLink>
@@ -60,7 +56,6 @@ export function TopNav({ isCollapsed }: NavProps) {
         url={'/dids'}
         isCollapsed={isCollapsed}
         message={<Trans>Profiles</Trans>}
-        disabled={!wallet}
       >
         <SquareUserRound className={className} />
       </NavLink>
@@ -68,7 +63,6 @@ export function TopNav({ isCollapsed }: NavProps) {
         url={'/offers'}
         isCollapsed={isCollapsed}
         message={<Trans>Offers</Trans>}
-        disabled={!wallet}
       >
         <ShoppingCart className={className} />
       </NavLink>
@@ -76,7 +70,6 @@ export function TopNav({ isCollapsed }: NavProps) {
         url={'/wallet/addresses'}
         isCollapsed={isCollapsed}
         message={<Trans>Addresses</Trans>}
-        disabled={!wallet}
       >
         <BookUser className={className} />
       </NavLink>
@@ -84,7 +77,6 @@ export function TopNav({ isCollapsed }: NavProps) {
         url={'/transactions'}
         isCollapsed={isCollapsed}
         message={<Trans>Transactions</Trans>}
-        disabled={!wallet}
       >
         <ArrowLeftRight className={className} />
       </NavLink>
@@ -93,8 +85,6 @@ export function TopNav({ isCollapsed }: NavProps) {
 }
 
 export function BottomNav({ isCollapsed }: NavProps) {
-  const wallet = useWallet(useInitialization());
-  const className = isCollapsed ? 'h-5 w-5' : 'h-4 w-4';
   const navigate = useNavigate();
 
   const { peers } = usePeers();
@@ -119,6 +109,8 @@ export function BottomNav({ isCollapsed }: NavProps) {
     });
   };
 
+  const className = isCollapsed ? 'h-5 w-5' : 'h-4 w-4';
+
   return (
     <nav
       className={`grid font-medium ${isCollapsed ? 'gap-2' : ''}`}
@@ -128,11 +120,8 @@ export function BottomNav({ isCollapsed }: NavProps) {
       <NavLink
         url={'/peers'}
         isCollapsed={isCollapsed}
-        disabled={!wallet}
         message={
-          !wallet ? (
-            <Trans>Not logged in</Trans>
-          ) : isSynced ? (
+          isSynced ? (
             <>
               {peerMaxHeight ? (
                 <Trans>{peerCount} peers synced</Trans>
@@ -201,7 +190,6 @@ interface NavLinkProps extends PropsWithChildren {
   message: React.ReactNode;
   customTooltip?: React.ReactNode;
   ariaCurrent?: 'page' | 'step' | 'location' | 'date' | 'time' | true | false;
-  disabled?: boolean;
 }
 
 function NavLink({
@@ -211,11 +199,10 @@ function NavLink({
   message,
   customTooltip,
   ariaCurrent,
-  disabled,
 }: NavLinkProps) {
   const className = `flex items-center gap-3 rounded-lg py-1.5 text-muted-foreground transition-all hover:text-primary ${
     isCollapsed ? 'justify-center' : 'px-3'
-  } text-lg md:text-base ${disabled ? 'opacity-50 pointer-events-none' : ''}`;
+  } text-lg md:text-base`;
 
   const link =
     typeof url === 'string' ? (
