@@ -24,8 +24,10 @@ export const columns: ColumnDef<TokenRecord>[] = [
     header: () => <span className='sr-only'>{t`Token Icon`}</span>,
     cell: ({ row }) => {
       const record = row.original;
-      const iconUrl = record.isXch ? 'https://icons.dexie.space/xch.webp' : record.icon_url;
-      
+      const iconUrl = record.isXch
+        ? 'https://icons.dexie.space/xch.webp'
+        : record.icon_url;
+
       return iconUrl ? (
         <div className='w-[40px] min-w-[40px]'>
           <img
@@ -43,13 +45,17 @@ export const columns: ColumnDef<TokenRecord>[] = [
     header: () => <Trans>Name</Trans>,
     cell: ({ row }) => {
       const record = row.original;
-      const name = record.isXch ? 'Chia' : record.name || <Trans>Unknown CAT</Trans>;
-      const path = record.isXch ? '/wallet/token/xch' : `/wallet/token/${record.asset_id}`;
+      const name = record.isXch
+        ? 'Chia'
+        : record.name || <Trans>Unknown CAT</Trans>;
+      const path = record.isXch
+        ? '/wallet/token/xch'
+        : `/wallet/token/${record.asset_id}`;
       const ariaLabel = record.isXch
         ? t`View Chia token details`
         : record.name
-        ? t`View ${record.name} token details`
-        : t`View Unknown CAT token details`;
+          ? t`View ${record.name} token details`
+          : t`View Unknown CAT token details`;
 
       return (
         <div className='max-w-[120px] truncate'>
@@ -125,4 +131,4 @@ export const columns: ColumnDef<TokenRecord>[] = [
       </div>
     ),
   },
-]; 
+];

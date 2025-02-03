@@ -139,7 +139,9 @@ export function TokenList() {
           sortMode={sortMode}
           setSortMode={(value) => setParams({ sortMode: value })}
           showZeroBalanceTokens={showZeroBalanceTokens}
-          setShowZeroBalanceTokens={(value) => setParams({ showZeroBalanceTokens: value })}
+          setShowZeroBalanceTokens={(value) =>
+            setParams({ showZeroBalanceTokens: value })
+          }
           showHiddenCats={showHiddenCats}
           setShowHiddenCats={(value) => setParams({ showHiddenCats: value })}
           handleSearch={(value) => {

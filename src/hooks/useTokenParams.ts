@@ -54,10 +54,11 @@ export function useTokenParams(): [TokenParams, SetTokenParams] {
 
   const sortMode = parseSortMode(params.get('sortMode') ?? storedTokenView);
   const showZeroBalanceTokens =
-    (params.get('showZeroBalanceTokens') ?? storedShowZeroBalance.toString()) ===
-    'true';
+    (params.get('showZeroBalanceTokens') ??
+      storedShowZeroBalance.toString()) === 'true';
   const showHiddenCats =
-    (params.get('showHiddenCats') ?? storedShowHiddenCats.toString()) === 'true';
+    (params.get('showHiddenCats') ?? storedShowHiddenCats.toString()) ===
+    'true';
   const search = params.get('search') ?? '';
 
   const viewMode = (params.get('viewMode') as ViewMode) ?? storedViewMode;

@@ -47,7 +47,7 @@ export function TokenListView({
         aria-label={t`Token list`}
         getRowStyles={(row) => ({
           className: cn(
-            !row.original.visible && !row.original.isXch && 'opacity-50'
+            !row.original.visible && !row.original.isXch && 'opacity-50',
           ),
         })}
       />

@@ -114,7 +114,9 @@ export function TokenOptions({
                 ) : (
                   <FilterX className='mr-2 h-4 w-4' aria-hidden='true' />
                 )}
-                {showZeroBalances ? t`Hide Zero Balance Tokens` : t`Show Zero Balance Tokens`}
+                {showZeroBalances
+                  ? t`Hide Zero Balance Tokens`
+                  : t`Show Zero Balance Tokens`}
               </DropdownMenuItem>
 
               <DropdownMenuItem
@@ -146,7 +148,7 @@ export function TokenOptions({
                 {sortMode === TokenSortMode.Name
                   ? t`Sort by Balance (USD)`
                   : t`Sort by Name`}
-              </DropdownMenuItem>              
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
           <ViewToggle view={viewMode} onChange={setViewMode} />
