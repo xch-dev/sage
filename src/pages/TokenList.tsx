@@ -10,10 +10,7 @@ import { useTokenParams } from '@/hooks/useTokenParams';
 import { toDecimal } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import {
-  Coins,
-  InfoIcon,
-} from 'lucide-react';
+import { Coins, InfoIcon } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CatRecord, commands, events } from '../bindings';
@@ -22,7 +19,6 @@ import { TokenListView } from '@/components/TokenListView';
 import { TokenGridView } from '@/components/TokenGridView';
 import { TokenOptions } from '@/components/TokenOptions';
 import { TokenSortMode } from '@/hooks/useTokenParams';
-import { ViewMode } from '@/components/ViewToggle';
 
 export function TokenList() {
   const navigate = useNavigate();
@@ -30,7 +26,7 @@ export function TokenList() {
   const { getBalanceInUsd, getPriceInUsd } = usePrices();
   const { addError } = useErrors();
   const [params, setParams] = useTokenParams();
-  const { viewMode, sortMode, showHidden, showZeroBalance, search } = params;
+  const { viewMode, sortMode, showHidden, showZeroBalance } = params;
   const [cats, setCats] = useState<CatRecord[]>([]);
 
   const catsWithBalanceInUsd = useMemo(
@@ -61,7 +57,6 @@ export function TokenList() {
       }
       return Number(toDecimal(b.balance, 3)) - Number(toDecimal(a.balance, 3));
     }
-
 
     const aName = a.name || 'Unknown CAT';
     const bName = b.name || 'Unknown CAT';
@@ -133,7 +128,7 @@ export function TokenList() {
         <Button
           onClick={() => navigate('/wallet/issue-token')}
           aria-label={t`Issue new token`}
-          className="mb-4"
+          className='mb-4'
         >
           <Coins className='h-4 w-4 mr-2' aria-hidden='true' />
           <Trans>Issue Token</Trans>
@@ -148,11 +143,10 @@ export function TokenList() {
           setSortMode={(value) => setParams({ sortMode: value })}
           showHidden={showHidden}
           setShowHidden={(value) => setParams({ showHidden: value })}
-
           handleSearch={(value) => {
             setParams({ search: value });
           }}
-          className="mb-4"
+          className='mb-4'
         />
 
         {walletState.sync.synced_coins < walletState.sync.total_coins && (
@@ -195,8 +189,6 @@ export function TokenList() {
             xchDecimals={walletState.sync.unit.decimals}
             xchPrice={getPriceInUsd('xch')}
             xchBalanceUsd={Number(
-
-
               getBalanceInUsd(
                 'xch',
                 toDecimal(

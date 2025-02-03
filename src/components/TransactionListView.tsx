@@ -6,7 +6,7 @@ import { SortingState } from '@tanstack/react-table';
 import { useState } from 'react';
 import { t } from '@lingui/core/macro';
 
-export function TransactionTableView({
+export function TransactionListView({
   transactions,
   onSortingChange,
 }: {
@@ -48,7 +48,6 @@ export function TransactionTableView({
       onSortingChange={(updatedSort) => {
         setSorting(updatedSort);
         if (typeof updatedSort === 'function') {
-
           const newSort = updatedSort([]);
           if (newSort.length > 0 && newSort[0].id === 'transactionHeight') {
             onSortingChange?.(newSort[0].desc === false);

@@ -454,7 +454,7 @@ async fn get_block_heights(
             SELECT DISTINCT height
             FROM filtered_coins
             WHERE 1=1
-        "
+        ",
     );
 
     if let Some(value) = &find_value {

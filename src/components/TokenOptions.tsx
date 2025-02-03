@@ -1,5 +1,13 @@
 import { t } from '@lingui/core/macro';
-import { ArrowDownAz, ArrowUpAz, EyeIcon, EyeOff, SearchIcon, Settings2, XIcon } from 'lucide-react';
+import {
+  ArrowDownAz,
+  ArrowUpAz,
+  EyeIcon,
+  EyeOff,
+  SearchIcon,
+  Settings2,
+  XIcon,
+} from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { ViewToggle, ViewMode } from './ViewToggle';
@@ -37,17 +45,17 @@ export function TokenOptions({
   className,
 }: TokenOptionsProps) {
   return (
-    <div 
+    <div
       className={`flex flex-col gap-4 ${className}`}
-      role="toolbar"
+      role='toolbar'
       aria-label={t`Token filtering and sorting options`}
     >
-      <div className="flex items-center gap-4">
-        <div className="relative flex-1" role="search">
-          <div className="relative">
+      <div className='flex items-center gap-4'>
+        <div className='relative flex-1' role='search'>
+          <div className='relative'>
             <SearchIcon
-              className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
-              aria-hidden="true"
+              className='absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground'
+              aria-hidden='true'
             />
             <Input
               value={query}
@@ -58,60 +66,68 @@ export function TokenOptions({
                 setQuery(e.target.value);
                 handleSearch(e.target.value);
               }}
-              className="w-full pl-8 pr-8"
+              className='w-full pl-8 pr-8'
             />
           </div>
           {query && (
             <Button
-              variant="ghost"
-              size="icon"
+              variant='ghost'
+              size='icon'
               title={t`Clear search`}
               aria-label={t`Clear search`}
-              className="absolute right-0 top-0 h-full px-2 hover:bg-transparent"
+              className='absolute right-0 top-0 h-full px-2 hover:bg-transparent'
               onClick={() => {
                 setQuery('');
                 handleSearch('');
               }}
             >
-              <XIcon className="h-4 w-4" aria-hidden="true" />
+              <XIcon className='h-4 w-4' aria-hidden='true' />
             </Button>
           )}
         </div>
 
-        <div className="flex gap-2">
+        <div className='flex gap-2'>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
-                variant="outline"
-                size="icon"
+                variant='outline'
+                size='icon'
                 aria-label={t`View options`}
                 title={t`View options`}
               >
-                <Settings2 className="h-4 w-4" aria-hidden="true" />
+                <Settings2 className='h-4 w-4' aria-hidden='true' />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align='end'>
               <DropdownMenuItem
-                className="cursor-pointer"
+                className='cursor-pointer'
                 onClick={() => setShowHidden(!showHidden)}
               >
                 {showHidden ? (
-                  <EyeOff className="mr-2 h-4 w-4" aria-hidden="true" />
+                  <EyeOff className='mr-2 h-4 w-4' aria-hidden='true' />
                 ) : (
-                  <EyeIcon className="mr-2 h-4 w-4" aria-hidden="true" />
+                  <EyeIcon className='mr-2 h-4 w-4' aria-hidden='true' />
                 )}
                 {showHidden ? t`Hide Hidden Tokens` : t`Show Hidden Tokens`}
               </DropdownMenuItem>
               <DropdownMenuItem
-                className="cursor-pointer"
-                onClick={() => setSortMode(sortMode === TokenSortMode.Name ? TokenSortMode.Balance : TokenSortMode.Name)}
+                className='cursor-pointer'
+                onClick={() =>
+                  setSortMode(
+                    sortMode === TokenSortMode.Name
+                      ? TokenSortMode.Balance
+                      : TokenSortMode.Name,
+                  )
+                }
               >
                 {sortMode === TokenSortMode.Name ? (
-                  <ArrowDownAz className="mr-2 h-4 w-4" aria-hidden="true" />
+                  <ArrowDownAz className='mr-2 h-4 w-4' aria-hidden='true' />
                 ) : (
-                  <ArrowUpAz className="mr-2 h-4 w-4" aria-hidden="true" />
+                  <ArrowUpAz className='mr-2 h-4 w-4' aria-hidden='true' />
                 )}
-                {sortMode === TokenSortMode.Name ? t`Sort by Balance` : t`Sort by Name`}
+                {sortMode === TokenSortMode.Name
+                  ? t`Sort by Balance`
+                  : t`Sort by Name`}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -120,4 +136,4 @@ export function TokenOptions({
       </div>
     </div>
   );
-} 
+}

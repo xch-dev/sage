@@ -45,18 +45,17 @@ export function useTokenParams(): [TokenParams, SetTokenParams] {
 
   const [storedViewMode, setStoredViewMode] = useLocalStorage<ViewMode>(
     TOKEN_VIEW_MODE_STORAGE_KEY,
-    'grid'
+    'grid',
   );
 
   const sortMode = parseSortMode(params.get('sortMode') ?? storedTokenView);
   const showHidden = (params.get('showHidden') ?? 'false') === 'true';
   const showZeroBalance =
     (params.get('showZeroBalance') ?? storedShowZeroBalance.toString()) ===
-
     'true';
   const search = params.get('search') ?? '';
 
-  const viewMode = params.get('viewMode') as ViewMode ?? storedViewMode;
+  const viewMode = (params.get('viewMode') as ViewMode) ?? storedViewMode;
 
   const updateParams = ({
     sortMode,
@@ -73,7 +72,6 @@ export function useTokenParams(): [TokenParams, SetTokenParams] {
           next.set('sortMode', sortMode);
           setStoredTokenView(sortMode);
         }
-
 
         if (showHidden !== undefined) {
           next.set('showHidden', showHidden.toString());
@@ -103,11 +101,14 @@ export function useTokenParams(): [TokenParams, SetTokenParams] {
     );
   };
 
-  return [{
-    viewMode,
-    sortMode,
-    showHidden,
-    showZeroBalance,
-    search
-  }, updateParams];
+  return [
+    {
+      viewMode,
+      sortMode,
+      showHidden,
+      showZeroBalance,
+      search,
+    },
+    updateParams,
+  ];
 }

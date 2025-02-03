@@ -5,19 +5,16 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useErrors } from '@/hooks/useErrors';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import { Info, } from 'lucide-react';
+import { Info } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import {
   commands,
   events,
   PendingTransactionRecord,
   TransactionRecord,
 } from '../bindings';
-import { useLocalStorage } from 'usehooks-ts';
-import { ViewMode } from '@/components/ViewToggle';
-import { TransactionTableView } from '../components/TransactionTableView';
-import { TransactionCardView } from '../components/TransactionCardView';
+import { TransactionListView } from '@/components/TransactionListView';
+import { TransactionCardView } from '@/components/TransactionCardView';
 import { TransactionOptions } from '@/components/TransactionOptions';
 import { useTransactionsParams } from '@/hooks/useTransactionsParams';
 
@@ -25,12 +22,10 @@ export function Transactions() {
   const { addError } = useErrors();
   const [params, setParams] = useTransactionsParams();
   const { page, pageSize, viewMode, search, ascending } = params;
-
-  // Remove redundant state
   const [_pending, setPending] = useState<PendingTransactionRecord[]>([]);
   const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
   const [totalTransactions, setTotalTransactions] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading] = useState(false);
 
   const updateTransactions = useCallback(async () => {
     commands
@@ -94,13 +89,13 @@ export function Transactions() {
           onParamsChange={setParams}
           total={totalTransactions}
           isLoading={isLoading}
-          className="mb-4"
+          className='mb-4'
         />
 
         {viewMode === 'list' ? (
           <TransactionCardView transactions={transactions} />
         ) : (
-          <TransactionTableView
+          <TransactionListView
             transactions={transactions}
             onSortingChange={(value) => setParams({ ascending: value })}
           />

@@ -16,6 +16,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { NumberFormat } from '@/components/NumberFormat';
 import { fromMojos } from '@/lib/utils';
+
 export default function Transaction() {
   const { height } = useParams();
 
@@ -95,7 +96,7 @@ function TransactionCoin({ coin }: TransactionCoinProps) {
       className='rounded-xl border border-neutral-200 bg-white text-neutral-950 shadow dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-50 p-4 cursor-pointer'
       onClick={() => open(`https://spacescan.io/coin/0x${coin.coin_id}`)}
       aria-label={t`View coin ${coinId} on Spacescan.io`}
-      role="button"
+      role='button'
       tabIndex={0}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
