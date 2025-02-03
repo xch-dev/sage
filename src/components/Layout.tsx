@@ -33,14 +33,17 @@ export default function Layout(props: LayoutProps) {
   );
 
   const walletIcon = (
-    <Link to='/wallet' className='flex items-center gap-2 font-semibold'>
+    <Link 
+      to='/wallet' 
+      className={`flex items-center gap-2 font-semibold ${!wallet ? 'opacity-50 pointer-events-none' : ''}`}
+    >
       <img src={icon} className='h-8 w-8' alt={t`Wallet icon`} />
       <span
         className={`text-lg transition-opacity duration-300 ${
           isCollapsed ? 'opacity-0 hidden' : 'opacity-100'
         }`}
       >
-        {wallet?.name}
+        {wallet?.name ?? t`Wallet`}
       </span>
     </Link>
   );
@@ -48,7 +51,10 @@ export default function Layout(props: LayoutProps) {
   const walletIconWithTooltip = isCollapsed ? (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Link to='/wallet' className='flex items-center gap-2 font-semibold'>
+        <Link 
+          to='/wallet' 
+          className={`flex items-center gap-2 font-semibold ${!wallet ? 'opacity-50 pointer-events-none' : ''}`}
+        >
           <img src={icon} className='h-8 w-8' alt={t`Wallet icon`} />
         </Link>
       </TooltipTrigger>
