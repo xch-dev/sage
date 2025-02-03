@@ -3,7 +3,6 @@ import Header from '@/components/Header';
 import { ReceiveAddress } from '@/components/ReceiveAddress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
 import { useErrors } from '@/hooks/useErrors';
 import { usePrices } from '@/hooks/usePrices';
 import { useTokenParams } from '@/hooks/useTokenParams';
@@ -68,7 +67,7 @@ export function TokenList() {
   });
 
   const filteredCats = sortedCats.filter((cat) => {
-    if (!showZeroBalanceTokens   && Number(toDecimal(cat.balance, 3)) === 0) {
+    if (!showZeroBalanceTokens && Number(toDecimal(cat.balance, 3)) === 0) {
       return false;
     }
 
@@ -81,8 +80,6 @@ export function TokenList() {
 
     return true;
   });
-
-  const hasHiddenAssets = !!sortedCats.find((cat) => !cat.visible);
 
   const updateCats = useCallback(
     () =>

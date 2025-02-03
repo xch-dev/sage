@@ -126,7 +126,7 @@ export function TokenOptions({
                   <ArrowUpAz className='mr-2 h-4 w-4' aria-hidden='true' />
                 )}
                 {sortMode === TokenSortMode.Name
-                  ? t`Sort by Balance`
+                  ? t`Sort by Balance (USD)`
                   : t`Sort by Name`}
               </DropdownMenuItem>
             </DropdownMenuContent>
