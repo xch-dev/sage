@@ -2,11 +2,13 @@ import { t } from '@lingui/core/macro';
 import {
   ArrowDownAz,
   ArrowUpAz,
-  EyeIcon,
   EyeOff,
   SearchIcon,
   Settings2,
   XIcon,
+  Filter,
+  FilterX,
+  Eye,
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -29,6 +31,8 @@ interface TokenOptionsProps {
   showZeroBalanceTokens: boolean;
   setShowZeroBalanceTokens: (show: boolean) => void;
   handleSearch: (value: string) => void;
+  showHiddenCats: boolean;
+  setShowHiddenCats: (show: boolean) => void;
   className?: string;
 }
 
@@ -42,6 +46,8 @@ export function TokenOptions({
   showZeroBalanceTokens: showZeroBalances,
   setShowZeroBalanceTokens: setShowZeroBalances,
   handleSearch,
+  showHiddenCats,
+  setShowHiddenCats,
   className,
 }: TokenOptionsProps) {
   return (
@@ -104,11 +110,23 @@ export function TokenOptions({
                 onClick={() => setShowZeroBalances(!showZeroBalances)}
               >
                 {showZeroBalances ? (
-                  <EyeOff className='mr-2 h-4 w-4' aria-hidden='true' />
+                  <Filter className='mr-2 h-4 w-4' aria-hidden='true' />
                 ) : (
-                  <EyeIcon className='mr-2 h-4 w-4' aria-hidden='true' />
+                  <FilterX className='mr-2 h-4 w-4' aria-hidden='true' />
                 )}
                 {showZeroBalances ? t`Hide Zero Balance Tokens` : t`Show Zero Balance Tokens`}
+              </DropdownMenuItem>
+
+              <DropdownMenuItem
+                className='cursor-pointer'
+                onClick={() => setShowHiddenCats(!showHiddenCats)}
+              >
+                {showHiddenCats ? (
+                  <EyeOff className='mr-2 h-4 w-4' aria-hidden='true' />
+                ) : (
+                  <Eye className='mr-2 h-4 w-4' aria-hidden='true' />
+                )}
+                {showHiddenCats ? t`Hide Hidden Tokens` : t`Show Hidden Tokens`}
               </DropdownMenuItem>
               <DropdownMenuItem
                 className='cursor-pointer'
@@ -128,7 +146,7 @@ export function TokenOptions({
                 {sortMode === TokenSortMode.Name
                   ? t`Sort by Balance (USD)`
                   : t`Sort by Name`}
-              </DropdownMenuItem>
+              </DropdownMenuItem>              
             </DropdownMenuContent>
           </DropdownMenu>
           <ViewToggle view={viewMode} onChange={setViewMode} />

@@ -5,11 +5,13 @@ import { ViewMode } from '@/components/ViewToggle';
 const ZERO_BALANCE_STORAGE_KEY = 'sage-wallet-show-zero-balance';
 const TOKEN_SORT_STORAGE_KEY = 'sage-wallet-token-sort';
 const TOKEN_VIEW_MODE_STORAGE_KEY = 'sage-wallet-token-view-mode';
+const HIDDEN_CATS_STORAGE_KEY = 'sage-wallet-show-hidden-cats';
 
 export interface TokenParams {
   viewMode: ViewMode;
   sortMode: TokenSortMode;
   showZeroBalanceTokens: boolean;
+  showHiddenCats: boolean;
   search: string;
 }
 
@@ -47,10 +49,15 @@ export function useTokenParams(): [TokenParams, SetTokenParams] {
     'grid',
   );
 
+  const [storedShowHiddenCats, setStoredShowHiddenCats] =
+    useLocalStorage<boolean>(HIDDEN_CATS_STORAGE_KEY, false);
+
   const sortMode = parseSortMode(params.get('sortMode') ?? storedTokenView);
   const showZeroBalanceTokens =
     (params.get('showZeroBalanceTokens') ?? storedShowZeroBalance.toString()) ===
     'true';
+  const showHiddenCats =
+    (params.get('showHiddenCats') ?? storedShowHiddenCats.toString()) === 'true';
   const search = params.get('search') ?? '';
 
   const viewMode = (params.get('viewMode') as ViewMode) ?? storedViewMode;
@@ -58,6 +65,7 @@ export function useTokenParams(): [TokenParams, SetTokenParams] {
   const updateParams = ({
     sortMode,
     showZeroBalanceTokens,
+    showHiddenCats,
     search,
     viewMode,
   }: Partial<TokenParams>) => {
@@ -73,6 +81,11 @@ export function useTokenParams(): [TokenParams, SetTokenParams] {
         if (showZeroBalanceTokens !== undefined) {
           next.set('showZeroBalanceTokens', showZeroBalanceTokens.toString());
           setStoredShowZeroBalance(showZeroBalanceTokens);
+        }
+
+        if (showHiddenCats !== undefined) {
+          next.set('showHiddenCats', showHiddenCats.toString());
+          setStoredShowHiddenCats(showHiddenCats);
         }
 
         if (search !== undefined) {
@@ -99,6 +112,7 @@ export function useTokenParams(): [TokenParams, SetTokenParams] {
       viewMode,
       sortMode,
       showZeroBalanceTokens,
+      showHiddenCats,
       search,
     },
     updateParams,

@@ -15,6 +15,7 @@ export interface TokenRecord {
   priceInUsd: number;
   decimals: number;
   isXch?: boolean;
+  visible?: boolean;
 }
 
 export const columns: ColumnDef<TokenRecord>[] = [
@@ -61,7 +62,11 @@ export const columns: ColumnDef<TokenRecord>[] = [
   },
   {
     accessorKey: 'ticker',
-    header: () => <Trans>Symbol</Trans>,
+    header: () => (
+      <div className='hidden sm:block'>
+        <Trans>Symbol</Trans>
+      </div>
+    ),
     cell: ({ row }) => {
       const record = row.original;
       const ticker = record.isXch ? 'XCH' : record.ticker || '-';

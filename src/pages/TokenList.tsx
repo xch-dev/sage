@@ -25,7 +25,7 @@ export function TokenList() {
   const { getBalanceInUsd, getPriceInUsd } = usePrices();
   const { addError } = useErrors();
   const [params, setParams] = useTokenParams();
-  const { viewMode, sortMode, showZeroBalanceTokens } = params;
+  const { viewMode, sortMode, showZeroBalanceTokens, showHiddenCats } = params;
   const [cats, setCats] = useState<CatRecord[]>([]);
 
   const catsWithBalanceInUsd = useMemo(
@@ -67,6 +67,10 @@ export function TokenList() {
   });
 
   const filteredCats = sortedCats.filter((cat) => {
+    if (!showHiddenCats && !cat.visible) {
+      return false;
+    }
+
     if (!showZeroBalanceTokens && Number(toDecimal(cat.balance, 3)) === 0) {
       return false;
     }
@@ -136,6 +140,8 @@ export function TokenList() {
           setSortMode={(value) => setParams({ sortMode: value })}
           showZeroBalanceTokens={showZeroBalanceTokens}
           setShowZeroBalanceTokens={(value) => setParams({ showZeroBalanceTokens: value })}
+          showHiddenCats={showHiddenCats}
+          setShowHiddenCats={(value) => setParams({ showHiddenCats: value })}
           handleSearch={(value) => {
             setParams({ search: value });
           }}

@@ -2,6 +2,7 @@ import { DataTable } from '@/components/ui/data-table';
 import { TokenViewProps } from '@/types/TokenViewProps';
 import { columns, TokenRecord } from './TokenColumns';
 import { t } from '@lingui/core/macro';
+import { cn } from '@/lib/utils';
 
 type TokenListViewProps = TokenViewProps;
 
@@ -34,6 +35,7 @@ export function TokenListView({
       priceInUsd: cat.priceInUsd,
       decimals: 3,
       isXch: false,
+      visible: cat.visible,
     })),
   ];
 
@@ -43,6 +45,11 @@ export function TokenListView({
         columns={columns}
         data={tokens}
         aria-label={t`Token list`}
+        getRowStyles={(row) => ({
+          className: cn(
+            !row.original.visible && !row.original.isXch && 'opacity-50'
+          ),
+        })}
       />
     </div>
   );
