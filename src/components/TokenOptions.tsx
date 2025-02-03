@@ -26,8 +26,8 @@ interface TokenOptionsProps {
   setViewMode: (view: ViewMode) => void;
   sortMode: TokenSortMode;
   setSortMode: (mode: TokenSortMode) => void;
-  showHidden: boolean;
-  setShowHidden: (show: boolean) => void;
+  showZeroBalanceTokens: boolean;
+  setShowZeroBalanceTokens: (show: boolean) => void;
   handleSearch: (value: string) => void;
   className?: string;
 }
@@ -39,8 +39,8 @@ export function TokenOptions({
   setViewMode,
   sortMode,
   setSortMode,
-  showHidden,
-  setShowHidden,
+  showZeroBalanceTokens: showZeroBalances,
+  setShowZeroBalanceTokens: setShowZeroBalances,
   handleSearch,
   className,
 }: TokenOptionsProps) {
@@ -101,14 +101,14 @@ export function TokenOptions({
             <DropdownMenuContent align='end'>
               <DropdownMenuItem
                 className='cursor-pointer'
-                onClick={() => setShowHidden(!showHidden)}
+                onClick={() => setShowZeroBalances(!showZeroBalances)}
               >
-                {showHidden ? (
+                {showZeroBalances ? (
                   <EyeOff className='mr-2 h-4 w-4' aria-hidden='true' />
                 ) : (
                   <EyeIcon className='mr-2 h-4 w-4' aria-hidden='true' />
                 )}
-                {showHidden ? t`Hide Hidden Tokens` : t`Show Hidden Tokens`}
+                {showZeroBalances ? t`Hide Zero Balance Tokens` : t`Show Zero Balance Tokens`}
               </DropdownMenuItem>
               <DropdownMenuItem
                 className='cursor-pointer'

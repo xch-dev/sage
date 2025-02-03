@@ -9,9 +9,8 @@ const TOKEN_VIEW_MODE_STORAGE_KEY = 'sage-wallet-token-view-mode';
 export interface TokenParams {
   viewMode: ViewMode;
   sortMode: TokenSortMode;
-  showHidden: boolean;
+  showZeroBalanceTokens: boolean;
   search: string;
-  showZeroBalance: boolean;
 }
 
 export enum TokenSortMode {
@@ -49,9 +48,8 @@ export function useTokenParams(): [TokenParams, SetTokenParams] {
   );
 
   const sortMode = parseSortMode(params.get('sortMode') ?? storedTokenView);
-  const showHidden = (params.get('showHidden') ?? 'false') === 'true';
-  const showZeroBalance =
-    (params.get('showZeroBalance') ?? storedShowZeroBalance.toString()) ===
+  const showZeroBalanceTokens =
+    (params.get('showZeroBalanceTokens') ?? storedShowZeroBalance.toString()) ===
     'true';
   const search = params.get('search') ?? '';
 
@@ -59,8 +57,7 @@ export function useTokenParams(): [TokenParams, SetTokenParams] {
 
   const updateParams = ({
     sortMode,
-    showHidden,
-    showZeroBalance,
+    showZeroBalanceTokens,
     search,
     viewMode,
   }: Partial<TokenParams>) => {
@@ -73,13 +70,9 @@ export function useTokenParams(): [TokenParams, SetTokenParams] {
           setStoredTokenView(sortMode);
         }
 
-        if (showHidden !== undefined) {
-          next.set('showHidden', showHidden.toString());
-        }
-
-        if (showZeroBalance !== undefined) {
-          next.set('showZeroBalance', showZeroBalance.toString());
-          setStoredShowZeroBalance(showZeroBalance);
+        if (showZeroBalanceTokens !== undefined) {
+          next.set('showZeroBalanceTokens', showZeroBalanceTokens.toString());
+          setStoredShowZeroBalance(showZeroBalanceTokens);
         }
 
         if (search !== undefined) {
@@ -105,8 +98,7 @@ export function useTokenParams(): [TokenParams, SetTokenParams] {
     {
       viewMode,
       sortMode,
-      showHidden,
-      showZeroBalance,
+      showZeroBalanceTokens,
       search,
     },
     updateParams,

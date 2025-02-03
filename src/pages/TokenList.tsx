@@ -26,7 +26,7 @@ export function TokenList() {
   const { getBalanceInUsd, getPriceInUsd } = usePrices();
   const { addError } = useErrors();
   const [params, setParams] = useTokenParams();
-  const { viewMode, sortMode, showHidden, showZeroBalance } = params;
+  const { viewMode, sortMode, showZeroBalanceTokens } = params;
   const [cats, setCats] = useState<CatRecord[]>([]);
 
   const catsWithBalanceInUsd = useMemo(
@@ -68,11 +68,7 @@ export function TokenList() {
   });
 
   const filteredCats = sortedCats.filter((cat) => {
-    if (!showHidden && !cat.visible) {
-      return false;
-    }
-
-    if (!showZeroBalance && Number(toDecimal(cat.balance, 3)) === 0) {
+    if (!showZeroBalanceTokens   && Number(toDecimal(cat.balance, 3)) === 0) {
       return false;
     }
 
@@ -141,8 +137,8 @@ export function TokenList() {
           setViewMode={(value) => setParams({ viewMode: value })}
           sortMode={sortMode}
           setSortMode={(value) => setParams({ sortMode: value })}
-          showHidden={showHidden}
-          setShowHidden={(value) => setParams({ showHidden: value })}
+          showZeroBalanceTokens={showZeroBalanceTokens}
+          setShowZeroBalanceTokens={(value) => setParams({ showZeroBalanceTokens: value })}
           handleSearch={(value) => {
             setParams({ search: value });
           }}
@@ -163,24 +159,6 @@ export function TokenList() {
             </AlertDescription>
           </Alert>
         )}
-
-        <div className='flex items-center gap-4 my-4'>
-          {hasHiddenAssets && (
-            <div className='flex items-center gap-2'>
-              <Switch
-                id='viewHidden'
-                checked={showHidden}
-                onCheckedChange={(value) => setParams({ showHidden: value })}
-                aria-label={
-                  showHidden ? t`Hide hidden tokens` : t`Show hidden tokens`
-                }
-              />
-              <label htmlFor='viewHidden'>
-                <Trans>View hidden</Trans>
-              </label>
-            </div>
-          )}
-        </div>
 
         {viewMode === 'grid' ? (
           <TokenGridView
