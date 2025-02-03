@@ -24,10 +24,15 @@ interface NftDataParams {
 interface NftDataState {
   nfts: NftRecord[];
   collections: NftCollectionRecord[];
-  dids: DidRecord[];
+  ownerDids: DidRecord[];
+  minterDids: DidRecord[];
   owner: DidRecord | null;
   collection: NftCollectionRecord | null;
   isLoading: boolean;
+  nftTotal: number;
+  collectionTotal: number;
+  ownerDidsTotal: number;
+  minterDidsTotal: number;
 }
 
 // Helper function moved from NftList
@@ -50,10 +55,15 @@ export function useNftData(params: NftDataParams) {
   const [state, setState] = useState<NftDataState>({
     nfts: [],
     collections: [],
-    dids: [],
+    ownerDids: [],
+    minterDids: [],
     owner: null,
     collection: null,
     isLoading: false,
+    nftTotal: 0,
+    collectionTotal: 0,
+    ownerDidsTotal: 0,
+    minterDidsTotal: 0,
   });
 
   const updateNfts = useCallback(
@@ -88,6 +98,7 @@ export function useNftData(params: NftDataParams) {
 
           const updates: Partial<NftDataState> = {
             nfts: response.nfts,
+            nftTotal: response.total,
           };
 
           if (params.collectionId) {
@@ -120,25 +131,72 @@ export function useNftData(params: NftDataParams) {
               limit: params.pageSize,
               include_hidden: params.showHidden,
             });
+
+            const collections = response.collections;
+
+            // Add No Collection to the end if we're on the last page and there's room
+            if (
+              collections.length < params.pageSize &&
+              page === Math.ceil((response.total + 1) / params.pageSize)
+            ) {
+              collections.push({
+                name: 'No Collection',
+                icon: '',
+                did_id: 'Miscellaneous',
+                metadata_collection_id: 'Uncategorized NFTs',
+                collection_id: 'No collection',
+                visible: true,
+              });
+            }
+
             setState((prev) => ({
               ...prev,
-              collections: response.collections,
+              collections,
+              collectionTotal: response.total + 1, // Add 1 for No Collection
             }));
           } catch (error: any) {
-            setState((prev) => ({ ...prev, collections: [] }));
+            setState((prev) => ({
+              ...prev,
+              collections: [],
+              collectionTotal: 0,
+            }));
             addError(error);
           }
         } else if (params.group === NftGroupMode.OwnerDid) {
           try {
             const response = await commands.getDids({});
-            setState((prev) => ({ ...prev, dids: response.dids }));
+            const ownerDids = response.dids;
+
+            // Add Unassigned NFTs to the end if there's room on the last page
+            if (
+              ownerDids.length < params.pageSize &&
+              page === Math.ceil((ownerDids.length + 1) / params.pageSize)
+            ) {
+              ownerDids.push(
+                createDefaultDidRecord('Unassigned NFTs', 'No did'),
+              );
+            }
+
+            setState((prev) => ({
+              ...prev,
+              ownerDids,
+              ownerDidsTotal: response.dids.length + 1, // Add 1 for Unassigned NFTs
+            }));
           } catch (error: any) {
-            setState((prev) => ({ ...prev, dids: [] }));
+            setState((prev) => ({
+              ...prev,
+              ownerDids: [],
+              ownerDidsTotal: 0,
+            }));
             addError(error);
           }
         } else if (params.group === NftGroupMode.MinterDid) {
           try {
-            const uniqueMinterDids = await commands.getMinterDidIds({});
+            const uniqueMinterDids = await commands.getMinterDidIds({
+              limit: params.pageSize,
+              offset: (page - 1) * params.pageSize,
+            });
+
             const minterDids: DidRecord[] = uniqueMinterDids.did_ids.map(
               (did) =>
                 createDefaultDidRecord(
@@ -146,9 +204,28 @@ export function useNftData(params: NftDataParams) {
                   did,
                 ),
             );
-            setState((prev) => ({ ...prev, dids: minterDids }));
+
+            // Add Unknown Minter to the end of the list if we're on the last page
+            if (
+              minterDids.length < params.pageSize &&
+              page === Math.ceil((uniqueMinterDids.total + 1) / params.pageSize)
+            ) {
+              minterDids.push(
+                createDefaultDidRecord('Unknown Minter', 'No did'),
+              );
+            }
+
+            setState((prev) => ({
+              ...prev,
+              minterDids,
+              minterDidsTotal: uniqueMinterDids.total + 1, // Add 1 for Unknown Minter
+            }));
           } catch (error: any) {
-            setState((prev) => ({ ...prev, dids: [] }));
+            setState((prev) => ({
+              ...prev,
+              minterDids: [],
+              minterDidsTotal: 0,
+            }));
             addError(error);
           }
         }
@@ -178,7 +255,8 @@ export function useNftData(params: NftDataParams) {
       ...prev,
       nfts: [],
       collections: [],
-      dids: [],
+      ownerDids: [],
+      minterDids: [],
       collection: null,
       owner: null,
     }));
@@ -209,8 +287,43 @@ export function useNftData(params: NftDataParams) {
     };
   }, [updateNfts, params.page]);
 
+  // Helper function to get the correct total based on current view
+  const getTotal = useCallback(() => {
+    if (
+      params.collectionId ||
+      params.ownerDid ||
+      params.minterDid ||
+      params.group === NftGroupMode.None
+    ) {
+      return state.nftTotal;
+    } else if (params.group === NftGroupMode.Collection) {
+      return state.collectionTotal;
+    } else if (params.group === NftGroupMode.OwnerDid) {
+      return state.ownerDidsTotal;
+    } else if (params.group === NftGroupMode.MinterDid) {
+      return state.minterDidsTotal;
+    }
+    return 0;
+  }, [
+    params.collectionId,
+    params.ownerDid,
+    params.minterDid,
+    params.group,
+    state.nftTotal,
+    state.collectionTotal,
+    state.ownerDidsTotal,
+    state.minterDidsTotal,
+  ]);
+
   return {
-    ...state,
+    nfts: state.nfts,
+    collections: state.collections,
+    ownerDids: state.ownerDids,
+    minterDids: state.minterDids,
+    owner: state.owner,
+    collection: state.collection,
+    isLoading: state.isLoading,
+    total: getTotal(),
     updateNfts,
   };
 }

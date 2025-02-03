@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n        SELECT `collection_id`, `did_id`, `metadata_collection_id`, `visible`, `name`, `icon`\n        FROM `collections` INDEXED BY `col_name`\n        ORDER BY `visible` DESC, `is_named` DESC, `name` ASC, `collection_id` ASC\n        LIMIT ? OFFSET ?\n        ",
+  "query": "\n        SELECT \n            collection_id, \n            did_id, \n            metadata_collection_id, \n            visible, \n            name, \n            icon,\n            COUNT(*) OVER() as total_count\n        FROM collections INDEXED BY col_name\n        WHERE visible = 1\n        ORDER BY name IS NOT NULL DESC, name ASC, collection_id ASC\n        LIMIT ? OFFSET ?\n        ",
   "describe": {
     "columns": [
       {
@@ -32,6 +32,11 @@
         "name": "icon",
         "ordinal": 5,
         "type_info": "Text"
+      },
+      {
+        "name": "total_count",
+        "ordinal": 6,
+        "type_info": "Integer"
       }
     ],
     "parameters": {
@@ -43,8 +48,9 @@
       false,
       false,
       true,
-      true
+      true,
+      false
     ]
   },
-  "hash": "0df4d6f44db6d5a751b180496df02a627dc5d84bec1519e0779dc61c13ab0a26"
+  "hash": "dbfe6794b0d552111c01cec93995a4af753cbee36b430767e372debb5df15ce4"
 }

@@ -48,6 +48,24 @@ pub struct NftSearchParams {
     pub name: Option<String>,
 }
 
+#[derive(sqlx::FromRow)]
+struct NftSearchRow {
+    #[sqlx(flatten)]
+    nft: NftSql,
+    total_count: i32,
+}
+
+#[derive(sqlx::FromRow)]
+struct CollectionSearchSql {
+    collection_id: Vec<u8>,
+    did_id: Vec<u8>,
+    metadata_collection_id: String,
+    visible: bool,
+    name: Option<String>,
+    icon: Option<String>,
+    total_count: i64,
+}
+
 pub fn calculate_collection_id(did_id: Bytes32, json_collection_id: &str) -> Bytes32 {
     let mut hasher = Sha256::new();
     hasher.update(hex::encode(did_id));
@@ -72,8 +90,12 @@ impl Database {
         fetch_nft_data(&self.pool, hash).await
     }
 
-    pub async fn distinct_minter_dids(&self) -> Result<Vec<Option<Bytes32>>> {
-        distinct_minter_dids(&self.pool).await
+    pub async fn distinct_minter_dids(
+        &self,
+        limit: u32,
+        offset: u32,
+    ) -> Result<(Vec<Option<Bytes32>>, u32)> {
+        distinct_minter_dids(&self.pool, limit, offset).await
     }
 
     pub async fn search_nfts(
@@ -81,7 +103,7 @@ impl Database {
         params: NftSearchParams,
         limit: u32,
         offset: u32,
-    ) -> Result<Vec<NftRow>> {
+    ) -> Result<(Vec<NftRow>, u32)> {
         search_nfts(&self.pool, params, limit, offset).await
     }
 
@@ -89,24 +111,20 @@ impl Database {
         collection(&self.pool, collection_id).await
     }
 
-    pub async fn collection_count(&self) -> Result<u32> {
-        collection_count(&self.pool).await
-    }
-
-    pub async fn visible_collection_count(&self) -> Result<u32> {
-        visible_collection_count(&self.pool).await
-    }
-
     pub async fn collections_visible_named(
         &self,
         limit: u32,
         offset: u32,
-    ) -> Result<Vec<CollectionRow>> {
-        collections_visible_named(&self.pool, offset, limit).await
+    ) -> Result<(Vec<CollectionRow>, u32)> {
+        collections_visible_named(&self.pool, limit, offset).await
     }
 
-    pub async fn collections_named(&self, limit: u32, offset: u32) -> Result<Vec<CollectionRow>> {
-        collections_named(&self.pool, offset, limit).await
+    pub async fn collections_named(
+        &self,
+        limit: u32,
+        offset: u32,
+    ) -> Result<(Vec<CollectionRow>, u32)> {
+        collections_named(&self.pool, limit, offset).await
     }
 
     pub async fn nft_row(&self, launcher_id: Bytes32) -> Result<Option<NftRow>> {
@@ -386,75 +404,91 @@ async fn collection(
 
 async fn collections_visible_named(
     conn: impl SqliteExecutor<'_>,
-    offset: u32,
     limit: u32,
-) -> Result<Vec<CollectionRow>> {
-    sqlx::query_as!(
-        CollectionSql,
-        "
-        SELECT `collection_id`, `did_id`, `metadata_collection_id`, `visible`, `name`, `icon`
-        FROM `collections` INDEXED BY `col_name`
-        WHERE `visible` = 1
-        ORDER BY `is_named` DESC, `name` ASC, `collection_id` ASC
+    offset: u32,
+) -> Result<(Vec<CollectionRow>, u32)> {
+    let rows = sqlx::query_as!(
+        CollectionSearchSql,
+        r#"
+        SELECT 
+            collection_id, 
+            did_id, 
+            metadata_collection_id, 
+            visible, 
+            name, 
+            icon,
+            COUNT(*) OVER() as total_count
+        FROM collections INDEXED BY col_name
+        WHERE visible = 1
+        ORDER BY name IS NOT NULL DESC, name ASC, collection_id ASC
         LIMIT ? OFFSET ?
-        ",
+        "#,
         limit,
         offset
     )
     .fetch_all(conn)
-    .await?
-    .into_iter()
-    .map(into_row)
-    .collect()
+    .await?;
+
+    let total = rows.first().map(|r| r.total_count as u32).unwrap_or(0);
+    let collections = rows
+        .into_iter()
+        .map(|row| {
+            into_row(CollectionSql {
+                collection_id: row.collection_id,
+                did_id: row.did_id,
+                metadata_collection_id: row.metadata_collection_id,
+                visible: row.visible,
+                name: row.name,
+                icon: row.icon,
+            })
+        })
+        .collect::<Result<Vec<_>>>()?;
+
+    Ok((collections, total))
 }
 
 async fn collections_named(
     conn: impl SqliteExecutor<'_>,
-    offset: u32,
     limit: u32,
-) -> Result<Vec<CollectionRow>> {
-    sqlx::query_as!(
-        CollectionSql,
-        "
-        SELECT `collection_id`, `did_id`, `metadata_collection_id`, `visible`, `name`, `icon`
-        FROM `collections` INDEXED BY `col_name`
-        ORDER BY `visible` DESC, `is_named` DESC, `name` ASC, `collection_id` ASC
+    offset: u32,
+) -> Result<(Vec<CollectionRow>, u32)> {
+    let rows = sqlx::query_as!(
+        CollectionSearchSql,
+        r#"
+        SELECT 
+            collection_id, 
+            did_id, 
+            metadata_collection_id, 
+            visible, 
+            name, 
+            icon,
+            COUNT(*) OVER() as total_count
+        FROM collections INDEXED BY col_name
+        ORDER BY visible DESC, is_named DESC, name ASC, collection_id ASC
         LIMIT ? OFFSET ?
-        ",
+        "#,
         limit,
         offset
     )
     .fetch_all(conn)
-    .await?
-    .into_iter()
-    .map(into_row)
-    .collect()
-}
-
-async fn collection_count(conn: impl SqliteExecutor<'_>) -> Result<u32> {
-    let row = sqlx::query!(
-        "
-        SELECT COUNT(*) AS `count` FROM `collections`
-        WHERE `visible` = 1
-        "
-    )
-    .fetch_one(conn)
     .await?;
 
-    Ok(row.count.try_into()?)
-}
+    let total = rows.first().map(|r| r.total_count as u32).unwrap_or(0);
+    let collections = rows
+        .into_iter()
+        .map(|row| {
+            into_row(CollectionSql {
+                collection_id: row.collection_id,
+                did_id: row.did_id,
+                metadata_collection_id: row.metadata_collection_id,
+                visible: row.visible,
+                name: row.name,
+                icon: row.icon,
+            })
+        })
+        .collect::<Result<Vec<_>>>()?;
 
-async fn visible_collection_count(conn: impl SqliteExecutor<'_>) -> Result<u32> {
-    let row = sqlx::query!(
-        "
-        SELECT COUNT(*) AS `count` FROM `collections`
-        WHERE `visible` = 1
-        "
-    )
-    .fetch_one(conn)
-    .await?;
-
-    Ok(row.count.try_into()?)
+    Ok((collections, total))
 }
 
 async fn insert_nft_uri(conn: impl SqliteExecutor<'_>, uri: String, hash: Bytes32) -> Result<()> {
@@ -553,14 +587,37 @@ async fn delete_nft_data(conn: impl SqliteExecutor<'_>, hash: Bytes32) -> Result
     Ok(())
 }
 
-async fn distinct_minter_dids(conn: impl SqliteExecutor<'_>) -> Result<Vec<Option<Bytes32>>> {
-    let rows = sqlx::query!("SELECT DISTINCT minter_did FROM nfts WHERE minter_did IS NOT NULL")
-        .fetch_all(conn)
-        .await?;
+async fn distinct_minter_dids(
+    conn: impl SqliteExecutor<'_>,
+    limit: u32,
+    offset: u32,
+) -> Result<(Vec<Option<Bytes32>>, u32)> {
+    let rows = sqlx::query!(
+        r#"
+        WITH distinct_dids AS (
+            SELECT DISTINCT minter_did 
+            FROM nfts 
+            WHERE minter_did IS NOT NULL
+        )
+        SELECT 
+            minter_did,
+            COUNT(*) OVER() AS total_count
+        FROM distinct_dids
+        LIMIT ? OFFSET ?
+        "#,
+        limit,
+        offset
+    )
+    .fetch_all(conn)
+    .await?;
 
-    rows.into_iter()
+    let total_count = rows.first().map(|row| row.total_count as u32).unwrap_or(0);
+    let dids = rows
+        .into_iter()
         .map(|row| row.minter_did.map(|bytes| to_bytes32(&bytes)).transpose())
-        .collect()
+        .collect::<Result<Vec<_>>>()?;
+
+    Ok((dids, total_count))
 }
 
 async fn fetch_nft_data(conn: impl SqliteExecutor<'_>, hash: Bytes32) -> Result<Option<NftData>> {
@@ -789,7 +846,7 @@ async fn search_nfts(
     params: NftSearchParams,
     limit: u32,
     offset: u32,
-) -> Result<Vec<NftRow>> {
+) -> Result<(Vec<NftRow>, u32)> {
     let mut conditions = vec!["is_owned = 1"];
 
     // Group filtering (Collection/DID)
@@ -870,7 +927,7 @@ async fn search_nfts(
                 WHERE name MATCH ? || '*'
                 ORDER BY rank
             )
-            SELECT nfts.* 
+            SELECT nfts.*, COUNT(*) OVER() as total_count 
             FROM nfts INDEXED BY {index}
             INNER JOIN matched_names ON nfts.launcher_id = matched_names.launcher_id
             WHERE {where_clause}
@@ -880,7 +937,7 @@ async fn search_nfts(
     } else {
         format!(
             r#"
-            SELECT * 
+            SELECT *, COUNT(*) OVER() as total_count
             FROM nfts INDEXED BY {index}
             WHERE {where_clause}
             {order_by}
@@ -889,7 +946,7 @@ async fn search_nfts(
     };
 
     // Execute query with bindings
-    let mut query = sqlx::query_as::<_, NftSql>(&query);
+    let mut query = sqlx::query_as::<_, NftSearchRow>(&query);
 
     // Bind name search if present
     if let Some(name_search) = params.name {
@@ -909,7 +966,13 @@ async fn search_nfts(
     query = query.bind(offset);
 
     let rows = query.fetch_all(conn).await?;
-    rows.into_iter().map(into_row).collect()
+    let total_count = rows.first().map(|row| row.total_count as u32).unwrap_or(0);
+    let nfts = rows
+        .into_iter()
+        .map(|row| into_row(row.nft))
+        .collect::<Result<Vec<_>>>()?;
+
+    Ok((nfts, total_count))
 }
 
 async fn insert_nft_coin(

@@ -91,12 +91,16 @@ pub struct GetDidsResponse {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
-pub struct GetMinterDidIds {}
+pub struct GetMinterDidIds {
+    pub offset: u32,
+    pub limit: u32,
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct GetMinterDidIdsResponse {
     pub did_ids: Vec<String>,
+    pub total: u32,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -149,6 +153,7 @@ pub struct GetNftCollections {
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct GetNftCollectionsResponse {
     pub collections: Vec<NftCollectionRecord>,
+    pub total: u32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -184,6 +189,7 @@ pub struct GetNfts {
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct GetNftsResponse {
     pub nfts: Vec<NftRecord>,
+    pub total: u32,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]

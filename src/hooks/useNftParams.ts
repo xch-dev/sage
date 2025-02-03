@@ -5,6 +5,8 @@ import { useCallback, useMemo } from 'react';
 const NFT_HIDDEN_STORAGE_KEY = 'sage-wallet-nft-hidden';
 const NFT_GROUP_STORAGE_KEY = 'sage-wallet-nft-group';
 const NFT_SORT_STORAGE_KEY = 'sage-wallet-nft-sort';
+const NFT_PAGE_SIZE_STORAGE_KEY = 'sage-wallet-nft-page-size';
+const NFT_CARD_SIZE_STORAGE_KEY = 'sage-wallet-nft-card-size';
 
 export enum NftView {
   Name = 'name',
@@ -25,6 +27,11 @@ export enum NftGroupMode {
   MinterDid = 'minter_did',
 }
 
+export enum CardSize {
+  Large = 'large',
+  Small = 'small',
+}
+
 export interface NftParams {
   pageSize: number;
   page: number;
@@ -32,6 +39,7 @@ export interface NftParams {
   group: NftGroupMode;
   showHidden: boolean;
   query: string | null;
+  cardSize: CardSize;
 }
 
 export type SetNftParams = (params: Partial<NftParams>) => void;
@@ -50,17 +58,26 @@ export function useNftParams(): [NftParams, SetNftParams] {
     NFT_GROUP_STORAGE_KEY,
     NftGroupMode.None,
   );
+  const [pageSize, setPageSize] = useLocalStorage<number>(
+    NFT_PAGE_SIZE_STORAGE_KEY,
+    24,
+  );
+  const [cardSize, setCardSize] = useLocalStorage<CardSize>(
+    NFT_CARD_SIZE_STORAGE_KEY,
+    CardSize.Large,
+  );
 
   const params = useMemo(
     () => ({
-      pageSize: 24,
+      pageSize,
       page: Number(searchParams.get('page') || 1),
       sort: view,
       group,
       showHidden,
       query: searchParams.get('query'),
+      cardSize,
     }),
-    [searchParams, view, group, showHidden],
+    [searchParams, view, group, showHidden, pageSize, cardSize],
   );
 
   const setParams = useCallback(
@@ -79,6 +96,14 @@ export function useNftParams(): [NftParams, SetNftParams] {
         setGroup(newParams.group);
       }
 
+      if (newParams.pageSize !== undefined) {
+        setPageSize(newParams.pageSize);
+      }
+
+      if (newParams.cardSize !== undefined) {
+        setCardSize(newParams.cardSize);
+      }
+
       setSearchParams(
         {
           ...(updatedParams.page > 1 && {
@@ -89,7 +114,15 @@ export function useNftParams(): [NftParams, SetNftParams] {
         { replace: true },
       );
     },
-    [params, setSearchParams, setView, setShowHidden, setGroup],
+    [
+      params,
+      setSearchParams,
+      setView,
+      setShowHidden,
+      setGroup,
+      setPageSize,
+      setCardSize,
+    ],
   );
 
   return [params, setParams];

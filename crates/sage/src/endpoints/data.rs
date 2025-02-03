@@ -247,20 +247,22 @@ impl Sage {
 
     pub async fn get_minter_did_ids(
         &self,
-        _req: GetMinterDidIds,
+        req: GetMinterDidIds,
     ) -> Result<GetMinterDidIdsResponse> {
         let wallet = self.wallet()?;
 
-        let did_ids = wallet
+        let (dids, total) = wallet
             .db
-            .distinct_minter_dids()
-            .await?
+            .distinct_minter_dids(req.limit, req.offset)
+            .await?;
+
+        let did_ids = dids
             .into_iter()
             .filter_map(|did| did.map(|d| encode_address(d.to_bytes(), "did:chia:").ok()))
             .flatten()
             .collect();
 
-        Ok(GetMinterDidIdsResponse { did_ids })
+        Ok(GetMinterDidIdsResponse { did_ids, total })
     }
 
     pub async fn get_pending_transactions(
@@ -318,10 +320,9 @@ impl Sage {
         req: GetNftCollections,
     ) -> Result<GetNftCollectionsResponse> {
         let wallet = self.wallet()?;
+        let include_hidden = req.include_hidden;
 
-        let mut records = Vec::new();
-
-        let collections = if req.include_hidden {
+        let (collections, total) = if include_hidden {
             wallet.db.collections_named(req.limit, req.offset).await?
         } else {
             wallet
@@ -330,19 +331,23 @@ impl Sage {
                 .await?
         };
 
-        for col in collections {
-            records.push(NftCollectionRecord {
-                collection_id: encode_address(col.collection_id.to_bytes(), "col")?,
-                did_id: encode_address(col.did_id.to_bytes(), "did:chia:")?,
-                metadata_collection_id: col.metadata_collection_id,
-                visible: col.visible,
-                name: col.name,
-                icon: col.icon,
-            });
-        }
+        let records = collections
+            .into_iter()
+            .map(|row| {
+                Ok(NftCollectionRecord {
+                    collection_id: encode_address(row.collection_id.to_bytes(), "col")?,
+                    did_id: encode_address(row.did_id.to_bytes(), "did:chia:")?,
+                    metadata_collection_id: row.metadata_collection_id,
+                    name: row.name,
+                    icon: row.icon,
+                    visible: row.visible,
+                })
+            })
+            .collect::<Result<Vec<_>>>()?;
 
         Ok(GetNftCollectionsResponse {
             collections: records,
+            total,
         })
     }
 
@@ -431,10 +436,7 @@ impl Sage {
             name: req.name,
         };
 
-        let nfts = wallet
-            .db
-            .search_nfts(params.clone(), req.limit, req.offset)
-            .await?;
+        let (nfts, total) = wallet.db.search_nfts(params, req.limit, req.offset).await?;
 
         for nft_row in nfts {
             let Some(nft) = wallet.db.nft(nft_row.launcher_id).await? else {
@@ -450,7 +452,10 @@ impl Sage {
             records.push(self.nft_record(nft_row, nft, collection_name)?);
         }
 
-        Ok(GetNftsResponse { nfts: records })
+        Ok(GetNftsResponse {
+            nfts: records,
+            total,
+        })
     }
 
     pub async fn get_nft(&self, req: GetNft) -> Result<GetNftResponse> {
