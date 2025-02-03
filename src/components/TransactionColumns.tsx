@@ -3,8 +3,6 @@
 import { ColumnDef } from '@tanstack/react-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { t } from '@lingui/core/macro';
-import { NumberFormat } from './NumberFormat';
-import { fromMojos } from '@/lib/utils';
 import { Link } from 'react-router-dom';
 import { MoreHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -15,7 +13,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { toast } from 'react-toastify';
-import { useWalletState } from '@/state';
+import { AmountCell } from './AmountCell';
 
 export interface FlattenedTransaction {
   transactionHeight: number;
@@ -25,28 +23,6 @@ export interface FlattenedTransaction {
   amount: string;
   address: string | null;
   coin_id: string;
-}
-
-function AmountCell({ amount, type }: { amount: string; type: string }) {
-  const walletState = useWalletState();
-  const isPositive = amount.startsWith('+');
-  const decimals = type === 'cat' ? 3 : walletState.sync.unit.decimals;
-  const sign = isPositive ? 'received' : 'sent';
-
-  return (
-    <div className='text-right whitespace-nowrap'>
-      <span 
-        className={isPositive ? 'text-green-600' : 'text-red-600'}
-        aria-label={`${sign} ${fromMojos(amount, decimals)} ${type === 'xch' ? 'XCH' : type === 'cat' ? 'CAT' : type}`}
-      >
-        <NumberFormat
-          value={fromMojos(amount, decimals)}
-          minimumFractionDigits={0}
-          maximumFractionDigits={decimals}
-        />
-      </span>
-    </div>
-  );
 }
 
 export const columns: ColumnDef<FlattenedTransaction>[] = [
@@ -85,19 +61,19 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
     cell: ({ row }) => {
       const type = row.getValue('type') as string;
       const ticker = row.original.ticker;
-      const assetName = type === 'xch' ? 'XCH' : ticker ?? 'CAT';
+      const assetName = type === 'xch' ? 'XCH' : (ticker ?? 'CAT');
 
       return (
-        <div className='w-6 h-6' role="img" aria-label={`${assetName} icon`}>
+        <div className='w-6 h-6' role='img' aria-label={`${assetName} icon`}>
           {type === 'xch' ? (
             <img
-              alt=""  // Decorative image since we have aria-label on parent
+              alt='' // Decorative image since we have aria-label on parent
               src='https://icons.dexie.space/xch.webp'
               aria-hidden='true'
             />
           ) : type === 'cat' && row.original.icon_url ? (
             <img
-              alt="" // Decorative image since we have aria-label on parent
+              alt='' // Decorative image since we have aria-label on parent
               src={row.original.icon_url}
               aria-hidden='true'
             />
@@ -134,10 +110,7 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
     ),
     enableSorting: false,
     cell: ({ row }) => (
-      <AmountCell 
-        amount={row.getValue('amount')} 
-        type={row.getValue('type')} 
-      />
+      <AmountCell amount={row.getValue('amount')} type={row.getValue('type')} />
     ),
   },
   {

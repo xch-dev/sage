@@ -33,7 +33,7 @@ export function TransactionListView({
   });
 
   return (
-    <div role="region" aria-label={t`Transaction history table`}>
+    <div role='region' aria-label={t`Transaction history table`}>
       <DataTable
         columns={columns}
         data={flattenedTransactions}
@@ -61,8 +61,7 @@ export function TransactionListView({
               (tx) =>
                 tx.transactionHeight === row.original.transactionHeight &&
                 tx.coin_id === row.original.coin_id,
-            ) === 0 &&
-              'border-t border-neutral-200 dark:border-neutral-700',
+            ) === 0 && 'border-t border-neutral-200 dark:border-neutral-700',
           ),
         })}
       />
