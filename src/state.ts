@@ -5,6 +5,7 @@ import {
   commands,
   events,
   GetSyncStatusResponse,
+  KeyInfo,
 } from './bindings';
 
 export interface WalletState {
@@ -35,9 +36,8 @@ export interface NavigationStore {
   setReturnValue: (pageId: string, value: ReturnValue) => void;
 }
 
-export const useWalletState = create<WalletState>()(() => defaultState());
-export const useOfferState = create<OfferState>()(() => defaultOffer());
-
+export const useWalletState = create<WalletState>(() => defaultState());
+export const useOfferState = create<OfferState>(() => defaultOffer());
 export const useNavigationStore = create<NavigationStore>((set) => ({
   returnValues: {},
   setReturnValue: (pageId, value) =>
@@ -97,8 +97,18 @@ export async function loginAndUpdateState(fingerprint: number): Promise<void> {
   await fetchState();
 }
 
+// Create a separate function to handle wallet state updates
+let setWalletState: ((wallet: KeyInfo | null) => void) | null = null;
+
+export function initializeWalletState(setter: (wallet: KeyInfo | null) => void) {
+  setWalletState = setter;
+}
+
 export async function logoutAndUpdateState(): Promise<void> {
   clearState();
+  if (setWalletState) {
+    setWalletState(null);
+  }
   await commands.logout({});
 }
 

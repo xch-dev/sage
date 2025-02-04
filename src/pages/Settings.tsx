@@ -16,9 +16,8 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useErrors } from '@/hooks/useErrors';
-import useInitialization from '@/hooks/useInitialization';
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
-import { useWallet } from '@/hooks/useWallet';
+import { useWallet } from '@/contexts/WalletContext';
 import { useWalletConnect } from '@/hooks/useWalletConnect';
 import { clearState, fetchState } from '@/state';
 import { t } from '@lingui/core/macro';
@@ -37,8 +36,7 @@ import { getVersion } from '@tauri-apps/api/app';
 import { useNavigate } from 'react-router-dom';
 
 export default function Settings() {
-  const initialized = useInitialization();
-  const wallet = useWallet(initialized);
+  const { wallet } = useWallet();
   const [version, setVersion] = useState<string | null>(null);
   const navigate = useNavigate();
 

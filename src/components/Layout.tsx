@@ -5,8 +5,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { useInsets } from '@/contexts/SafeAreaContext';
-import useInitialization from '@/hooks/useInitialization';
-import { useWallet } from '@/hooks/useWallet';
+import { useWallet } from '@/contexts/WalletContext';
 import icon from '@/icon.png';
 import { t } from '@lingui/core/macro';
 import { PanelLeft, PanelLeftClose } from 'lucide-react';
@@ -168,8 +167,7 @@ function MinimalLayout(props: LayoutProps) {
 }
 
 export default function Layout(props: LayoutProps) {
-  const initialized = useInitialization();
-  const wallet = useWallet(initialized);
+  const { wallet } = useWallet();
   const location = useLocation();
 
   if (!wallet && location.pathname === '/settings') {

@@ -1,6 +1,5 @@
 import { useInsets } from '@/contexts/SafeAreaContext';
-import useInitialization from '@/hooks/useInitialization';
-import { useWallet } from '@/hooks/useWallet';
+import { useWallet } from '@/contexts/WalletContext';
 import icon from '@/icon.png';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -24,8 +23,7 @@ export default function Header(
   const location = useLocation();
   const insets = useInsets();
 
-  const initialized = useInitialization();
-  const wallet = useWallet(initialized);
+  const { wallet } = useWallet();
 
   const hasBackButton = props.back || location.pathname.split('/').length > 2;
   const isMobile = platform() === 'ios' || platform() === 'android';
