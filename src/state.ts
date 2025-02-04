@@ -100,7 +100,9 @@ export async function loginAndUpdateState(fingerprint: number): Promise<void> {
 // Create a separate function to handle wallet state updates
 let setWalletState: ((wallet: KeyInfo | null) => void) | null = null;
 
-export function initializeWalletState(setter: (wallet: KeyInfo | null) => void) {
+export function initializeWalletState(
+  setter: (wallet: KeyInfo | null) => void,
+) {
   setWalletState = setter;
 }
 

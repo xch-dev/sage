@@ -103,7 +103,7 @@ function TransactionCoin({ coin }: TransactionCoinProps) {
           open(`https://spacescan.io/coin/0x${coin.coin_id}`);
         }
       }}
-    >      
+    >
       <TransactionCoinKind coin={coin} />
       <div className='flex items-center gap-1 mt-2'>
         <div className='text-sm text-muted-foreground truncate'>
