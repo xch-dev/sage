@@ -103,7 +103,7 @@ function TransactionCoin({ coin }: TransactionCoinProps) {
           open(`https://spacescan.io/coin/0x${coin.coin_id}`);
         }
       }}
-    >
+    >      
       <TransactionCoinKind coin={coin} />
       <div className='flex items-center gap-1 mt-2'>
         <div className='text-sm text-muted-foreground truncate'>
@@ -129,6 +129,7 @@ function TransactionCoinKind({ coin }: TransactionCoinKindProps) {
             alt={t`XCH`}
             src='https://icons.dexie.space/xch.webp'
             className='w-8 h-8'
+            aria-hidden={true}
           />
 
           <div className='text-md text-neutral-700 dark:text-neutral-300 break-all'>
@@ -149,6 +150,7 @@ function TransactionCoinKind({ coin }: TransactionCoinKindProps) {
             alt={coin.name ?? t`Unknown`}
             src={coin.icon_url!}
             className='w-8 h-8'
+            aria-hidden={true}
           />
 
           <div className='flex flex-col'>
@@ -173,6 +175,7 @@ function TransactionCoinKind({ coin }: TransactionCoinKindProps) {
             alt={coin.name ?? t`Unknown`}
             src={nftUri(coin.image_mime_type, coin.image_data)}
             className='w-8 h-8'
+            aria-label={coin.name ?? t`Unknown`}
           />
 
           <div className='text-md text-neutral-700 dark:text-neutral-300'>
@@ -183,5 +186,5 @@ function TransactionCoinKind({ coin }: TransactionCoinKindProps) {
     }
   }
 
-  return <div>{coin.coin_id}</div>;
+  return <div className='break-all'>{coin.coin_id}</div>;
 }
