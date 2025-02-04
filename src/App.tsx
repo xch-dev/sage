@@ -45,9 +45,8 @@ import { ViewOffer } from './pages/ViewOffer';
 import { ViewSavedOffer } from './pages/ViewSavedOffer';
 import Wallet from './pages/Wallet';
 import QRScanner from './pages/QrScanner';
-import { ToastContainer } from 'react-toastify';
+import { ToastContainer, Slide } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { Slide } from 'react-toastify';
 
 export interface DarkModeContext {
   toggle: () => void;
