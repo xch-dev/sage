@@ -9,9 +9,9 @@ import useInitialization from '@/hooks/useInitialization';
 import { useWallet } from '@/hooks/useWallet';
 import icon from '@/icon.png';
 import { t } from '@lingui/core/macro';
-import { PanelLeft, PanelLeftClose, ArrowLeft } from 'lucide-react';
+import { PanelLeft, PanelLeftClose } from 'lucide-react';
 import { PropsWithChildren } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useLocalStorage } from 'usehooks-ts';
 import { BottomNav, TopNav } from './Nav';
 import { KeyInfo } from '@/bindings';
@@ -26,8 +26,6 @@ type LayoutProps = PropsWithChildren<object> & {
 export function FullLayout(props: LayoutProps) {
   const { wallet } = props;
   const insets = useInsets();
-  const location = useLocation();
-  const navigate = useNavigate();
 
   const [isCollapsed, setIsCollapsed] = useLocalStorage<boolean>(
     SIDEBAR_COLLAPSED_STORAGE_KEY,
@@ -35,8 +33,8 @@ export function FullLayout(props: LayoutProps) {
   );
 
   const walletIcon = (
-    <Link 
-      to='/wallet' 
+    <Link
+      to='/wallet'
       className={`flex items-center gap-2 font-semibold ${!wallet ? 'opacity-50 pointer-events-none' : ''}`}
     >
       <img src={icon} className='h-8 w-8' alt={t`Wallet icon`} />
@@ -53,8 +51,8 @@ export function FullLayout(props: LayoutProps) {
   const walletIconWithTooltip = isCollapsed ? (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Link 
-          to='/wallet' 
+        <Link
+          to='/wallet'
           className={`flex items-center gap-2 font-semibold ${!wallet ? 'opacity-50 pointer-events-none' : ''}`}
         >
           <img src={icon} className='h-8 w-8' alt={t`Wallet icon`} />
@@ -150,7 +148,6 @@ export function FullLayout(props: LayoutProps) {
 
 function MinimalLayout(props: LayoutProps) {
   const insets = useInsets();
-  const navigate = useNavigate();
 
   return (
     <div className='flex flex-col h-screen w-screen'>
@@ -164,15 +161,6 @@ function MinimalLayout(props: LayoutProps) {
             : 'env(safe-area-inset-bottom)',
         }}
       >
-        <div
-          className='bg-background'
-          style={{
-            height:
-              insets.top !== 0
-                ? `${insets.top + 8}px`
-                : 'env(safe-area-inset-top)',
-          }}
-        />
         {props.children}
       </div>
     </div>

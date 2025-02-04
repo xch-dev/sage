@@ -48,7 +48,10 @@ export default function Settings() {
 
   return (
     <Layout>
-      <Header title={t`Settings`} back={() => navigate('/')}/>
+      <Header
+        title={t`Settings`}
+        back={!wallet ? () => navigate('/') : undefined}
+      />
       <Container className='max-w-2xl'>
         <Trans>Version {version}</Trans>
         <div className='flex flex-col gap-4 mt-2'>

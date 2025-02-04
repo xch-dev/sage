@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { toast } from 'react-toastify';
 import { AmountCell } from './AmountCell';
-import { formatAddress } from '../lib/utils'
+import { formatAddress } from '../lib/utils';
 export interface FlattenedTransaction {
   transactionHeight: number;
   type: string;
