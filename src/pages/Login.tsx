@@ -76,7 +76,7 @@ export default function Login() {
         }`}
       >
         <div className='flex items-center justify-between space-y-2'>
-          {(keys?.length ?? 0) > 0 ? (
+          {(keys?.length ?? 0) > 0 && (
             <>
               <h2 className='text-3xl font-bold tracking-tight'>
                 <Trans>Wallets</Trans>
@@ -97,16 +97,6 @@ export default function Login() {
                 </Button>
               </div>
             </>
-          ) : (
-            <div className='flex w-full justify-end'>
-              <Button
-                variant='ghost'
-                size='icon'
-                onClick={() => navigate('/settings')}
-              >
-                <CogIcon className='h-5 w-5' aria-hidden='true' />
-              </Button>
-            </div>
           )}
         </div>
         {keys !== null ? (
