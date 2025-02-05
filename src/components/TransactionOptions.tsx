@@ -9,7 +9,6 @@ import {
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Pagination } from './Pagination';
-import { ViewToggle } from './ViewToggle';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,7 +35,7 @@ export function TransactionOptions({
   isLoading,
   className,
 }: TransactionOptionsProps) {
-  const { search, page, pageSize, viewMode, ascending } = params;
+  const { search, page, pageSize, ascending } = params;
 
   return (
     <div
@@ -110,10 +109,6 @@ export function TransactionOptions({
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <ViewToggle
-            view={viewMode}
-            onChange={(newView) => onParamsChange({ viewMode: newView })}
-          />
         </div>
       </div>
     </div>

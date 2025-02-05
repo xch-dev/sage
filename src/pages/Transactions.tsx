@@ -14,14 +14,13 @@ import {
   TransactionRecord,
 } from '../bindings';
 import { TransactionListView } from '@/components/TransactionListView';
-import { TransactionCardView } from '@/components/TransactionCardView';
 import { TransactionOptions } from '@/components/TransactionOptions';
 import { useTransactionsParams } from '@/hooks/useTransactionsParams';
 
 export function Transactions() {
   const { addError } = useErrors();
   const [params, setParams] = useTransactionsParams();
-  const { page, pageSize, viewMode, search, ascending } = params;
+  const { page, pageSize, search, ascending } = params;
   const [_pending, setPending] = useState<PendingTransactionRecord[]>([]);
   const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
   const [totalTransactions, setTotalTransactions] = useState(0);
@@ -92,14 +91,10 @@ export function Transactions() {
           className='mb-4'
         />
 
-        {viewMode === 'list' ? (
-          <TransactionCardView transactions={transactions} />
-        ) : (
-          <TransactionListView
-            transactions={transactions}
-            onSortingChange={(value) => setParams({ ascending: value })}
-          />
-        )}
+        <TransactionListView
+          transactions={transactions}
+          onSortingChange={(value) => setParams({ ascending: value })}
+        />
       </Container>
     </>
   );

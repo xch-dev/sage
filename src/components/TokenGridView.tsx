@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom';
 import { Trans } from '@lingui/react/macro';
-import { CatRecord } from '../bindings';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Tooltip,
