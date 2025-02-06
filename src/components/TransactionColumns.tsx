@@ -15,6 +15,7 @@ import {
 import { toast } from 'react-toastify';
 import { AmountCell } from './AmountCell';
 import { formatAddress } from '../lib/utils';
+
 export interface FlattenedTransaction {
   transactionHeight: number;
   type: string;
@@ -23,6 +24,7 @@ export interface FlattenedTransaction {
   amount: string;
   address: string | null;
   coin_id: string;
+  displayName: string;
 }
 
 export const columns: ColumnDef<FlattenedTransaction>[] = [
@@ -65,15 +67,8 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
 
       return (
         <div className='w-6 h-6' role='img' aria-label={`${assetName} icon`}>
-          {type === 'xch' ? (
+          {row.original.icon_url ? (
             <img
-              alt='' // Decorative image since we have aria-label on parent
-              src='https://icons.dexie.space/xch.webp'
-              aria-hidden='true'
-            />
-          ) : type === 'cat' && row.original.icon_url ? (
-            <img
-              alt='' // Decorative image since we have aria-label on parent
               src={row.original.icon_url}
               aria-hidden='true'
             />
@@ -92,11 +87,7 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
       const type = row.getValue('type') as string;
       return (
         <div>
-          {type === 'xch'
-            ? 'XCH'
-            : type === 'cat'
-              ? (row.original.ticker ?? 'CAT')
-              : type.toUpperCase()}
+          {row.original.displayName}
         </div>
       );
     },

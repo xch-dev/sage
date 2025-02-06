@@ -1,10 +1,36 @@
-import { TransactionRecord } from '../bindings';
+import { TransactionCoin, TransactionRecord } from '../bindings';
 import { DataTable } from '@/components/ui/data-table';
 import { columns } from './TransactionColumns';
 import { cn } from '@/lib/utils';
 import { SortingState } from '@tanstack/react-table';
 import { useState } from 'react';
 import { t } from '@lingui/core/macro';
+
+function getDisplayName(coin: TransactionCoin) {
+  switch (coin.type) {
+    case 'xch':
+      return 'XCH';
+    case 'cat':
+      return coin.ticker ?? 'CAT';
+    case 'did':
+      return coin.name ?? 'DID';
+    case 'nft':
+      return coin.name ?? 'NFT';
+    default:
+      return coin.type.toUpperCase();
+  }
+}
+
+function getIconUrl(coin: TransactionCoin) {
+  switch (coin.type) {
+    case 'xch':
+      return 'https://icons.dexie.space/xch.webp';
+    case 'cat':
+      return coin.icon_url;
+    default:
+      return null;
+  }
+}
 
 export function TransactionListView({
   transactions,
@@ -18,15 +44,18 @@ export function TransactionListView({
   const flattenedTransactions = transactions.flatMap((transaction) => {
     const created = transaction.created.map((coin) => ({
       ...coin,
-      ticker: coin?.type === 'cat' ? coin?.name : null,
+      displayName: getDisplayName(coin),
       amount: `+${coin.amount.toString()}`,
       transactionHeight: transaction.height,
+      icon_url: getIconUrl(coin),
     }));
 
     const spent = transaction.spent.map((coin) => ({
       ...coin,
+      displayName: getDisplayName(coin),
       amount: `-${coin.amount.toString()}`,
       transactionHeight: transaction.height,
+      icon_url: getIconUrl(coin),
     }));
 
     return [...created, ...spent];
