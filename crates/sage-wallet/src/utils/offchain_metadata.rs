@@ -1,6 +1,7 @@
 use chia::protocol::Bytes32;
 use sage_assets::{Chip0007Metadata, Collection};
 use sage_database::{calculate_collection_id, CollectionRow};
+use tracing::warn;
 
 #[derive(Debug, Default, Clone)]
 pub struct ComputedNftInfo {
@@ -10,7 +11,17 @@ pub struct ComputedNftInfo {
 }
 
 pub fn compute_nft_info(did_id: Option<Bytes32>, blob: Option<&[u8]>) -> ComputedNftInfo {
-    let Some(json) = blob.and_then(|blob| Chip0007Metadata::from_bytes(blob).ok()) else {
+    let Some(json) = blob.and_then(|blob| {
+        Chip0007Metadata::from_bytes(blob)
+            .map_err(|error| {
+                warn!(
+                    "Error parsing offchain metadata: {error}, {}",
+                    String::from_utf8_lossy(blob)
+                );
+                error
+            })
+            .ok()
+    }) else {
         return ComputedNftInfo::default();
     };
 
