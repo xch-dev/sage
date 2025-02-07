@@ -50,6 +50,7 @@ sage-database = { path = "./crates/sage-database" }
 sage-keychain = { path = "./crates/sage-keychain" }
 sage-wallet = { path = "./crates/sage-wallet" }
 sage-assets = { path = "./crates/sage-assets" }
+utoipa = { version = "4.2.0", features = ["yaml"] }
 
 # Serialization
 serde = "1.0.204"

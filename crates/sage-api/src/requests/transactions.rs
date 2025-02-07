@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 
 use crate::{Amount, CoinSpendJson, SpendBundleJson, TransactionSummary};
 
@@ -236,23 +237,7 @@ pub struct ViewCoinSpends {
     pub coin_spends: Vec<CoinSpendJson>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(feature = "tauri", derive(specta::Type))]
-pub struct ViewCoinSpendsResponse {
-    pub summary: TransactionSummary,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(feature = "tauri", derive(specta::Type))]
-pub struct SubmitTransaction {
-    pub spend_bundle: SpendBundleJson,
-}
-
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-#[cfg_attr(feature = "tauri", derive(specta::Type))]
-pub struct SubmitTransactionResponse {}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct TransactionResponse {
     pub summary: TransactionSummary,
@@ -274,3 +259,19 @@ pub type AddNftUriResponse = TransactionResponse;
 pub type AssignNftsToDidResponse = TransactionResponse;
 pub type TransferDidsResponse = TransactionResponse;
 pub type NormalizeDidsResponse = TransactionResponse;
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct ViewCoinSpendsResponse {
+    pub summary: TransactionSummary,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct SubmitTransaction {
+    pub spend_bundle: SpendBundleJson,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, ToSchema)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct SubmitTransactionResponse {}

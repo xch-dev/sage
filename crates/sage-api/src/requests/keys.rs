@@ -1,26 +1,27 @@
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 
 use crate::{KeyInfo, SecretKeyInfo};
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, ToSchema)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct Login {
     pub fingerprint: u32,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, ToSchema)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct LoginResponse {}
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, ToSchema)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct Logout {}
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, ToSchema)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct LogoutResponse {}
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, ToSchema)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct Resync {
     pub fingerprint: u32,
@@ -32,23 +33,23 @@ pub struct Resync {
     pub delete_hardened_derivations: bool,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, ToSchema)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct ResyncResponse {}
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, ToSchema)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct GenerateMnemonic {
     pub use_24_words: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct GenerateMnemonicResponse {
     pub mnemonic: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct ImportKey {
     pub name: String,
@@ -65,63 +66,63 @@ fn yes() -> bool {
     true
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, ToSchema)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct ImportKeyResponse {
     pub fingerprint: u32,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, ToSchema)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct DeleteKey {
     pub fingerprint: u32,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, ToSchema)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct DeleteKeyResponse {}
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct RenameKey {
     pub fingerprint: u32,
     pub name: String,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, ToSchema)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct RenameKeyResponse {}
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, ToSchema)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct GetKeys {}
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct GetKeysResponse {
     pub keys: Vec<KeyInfo>,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, ToSchema)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct GetKey {
     #[serde(default)]
     pub fingerprint: Option<u32>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct GetKeyResponse {
     pub key: Option<KeyInfo>,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, ToSchema)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct GetSecretKey {
     pub fingerprint: u32,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct GetSecretKeyResponse {
     pub secrets: Option<SecretKeyInfo>,

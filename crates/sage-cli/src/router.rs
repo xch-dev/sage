@@ -11,8 +11,8 @@ use anyhow::{bail, Result};
 use axum::{
     extract::State,
     http::StatusCode,
-    response::{IntoResponse, Response},
-    routing::post,
+    response::{Html, IntoResponse, Response},
+    routing::{get, post},
     Json, Router,
 };
 use axum_server::tls_rustls::RustlsConfig;
@@ -20,11 +20,13 @@ use clap::Parser;
 use paste::paste;
 use reqwest::{Client, Identity};
 use sage::Sage;
+use sage_api::ApiDoc;
 use sage_api::ErrorKind;
 use sage_config::Config;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use tokio::sync::Mutex;
 use tracing::info;
+use utoipa::OpenApi;
 
 use crate::{app_state::AppState, tls::load_rustls_config};
 
@@ -37,6 +39,8 @@ macro_rules! routes {
         pub fn api_router() -> Router<AppState> {
             Router::new()
                 $( .route($url, post($route)) )*
+                .route("/docs/openapi.json", get(serve_openapi))
+                .route("/docs", get(serve_swagger_ui))
         }
 
         #[derive(Debug, Parser)]
@@ -248,4 +252,34 @@ where
             (status, error.to_string()).into_response()
         }
     }
+}
+
+async fn serve_openapi() -> impl IntoResponse {
+    Json(ApiDoc::openapi().to_json().unwrap())
+}
+
+async fn serve_swagger_ui() -> Html<String> {
+    Html(format!(
+        r#"
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Sage API Documentation</title>
+            <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui.css">
+            <script src="https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui-bundle.js"></script>
+        </head>
+        <body>
+            <div id="swagger-ui"></div>
+            <script>
+                window.onload = () => {{
+                    window.ui = SwaggerUIBundle({{
+                        url: '/docs/openapi.json',
+                        dom_id: '#swagger-ui',
+                    }});
+                }};
+            </script>
+        </body>
+        </html>
+        "#
+    ))
 }

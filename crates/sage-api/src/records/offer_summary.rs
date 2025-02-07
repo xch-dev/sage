@@ -1,9 +1,10 @@
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 
 use crate::Amount;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct OfferSummary {
     pub fee: Amount,
@@ -11,7 +12,7 @@ pub struct OfferSummary {
     pub taker: OfferAssets,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct OfferAssets {
     pub xch: OfferXch,
@@ -19,14 +20,14 @@ pub struct OfferAssets {
     pub nfts: IndexMap<String, OfferNft>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct OfferXch {
     pub amount: Amount,
     pub royalty: Amount,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct OfferCat {
     pub amount: Amount,
@@ -36,7 +37,7 @@ pub struct OfferCat {
     pub icon_url: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct OfferNft {
     pub image_data: Option<String>,
