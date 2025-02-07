@@ -20,7 +20,6 @@ clvmr = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 num-bigint = { workspace = true, features = ["serde"] }
-uuid = { workspace = true, features = ["serde"] }
 reqwest = { workspace = true }
 futures-lite = { workspace = true }
 futures-util = { workspace = true }
