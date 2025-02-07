@@ -13,9 +13,9 @@ function getDisplayName(coin: TransactionCoin) {
     case 'cat':
       return coin.ticker ?? 'CAT';
     case 'did':
-      return coin.name ?? 'DID';
+      return coin.name ? `DID: ${coin.name}` : 'DID';
     case 'nft':
-      return coin.name ?? 'NFT';
+      return coin.name ? `NFT: ${coin.name}` : 'NFT';
     default:
       return coin.type.toUpperCase();
   }

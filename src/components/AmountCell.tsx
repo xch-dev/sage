@@ -20,11 +20,15 @@ export function AmountCell({ amount, type }: AmountCellProps) {
         className={isPositive ? 'text-green-600' : 'text-red-600'}
         aria-label={`${sign} ${fromMojos(amount, decimals)} ${typeLower === 'xch' ? 'XCH' : typeLower === 'cat' ? 'CAT' : type}`}
       >
-        <NumberFormat
-          value={fromMojos(amount, decimals)}
-          minimumFractionDigits={0}
-          maximumFractionDigits={decimals}
-        />
+        {typeLower === 'nft' || typeLower === 'did' ? (
+          <span>{sign}</span>
+        ) : (
+          <NumberFormat
+            value={fromMojos(amount, decimals)}
+            minimumFractionDigits={0}
+            maximumFractionDigits={decimals}
+          />
+        )}
       </span>
     </div>
   );
