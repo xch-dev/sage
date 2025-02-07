@@ -68,10 +68,7 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
       return (
         <div className='w-6 h-6' role='img' aria-label={`${assetName} icon`}>
           {row.original.icon_url ? (
-            <img
-              src={row.original.icon_url}
-              aria-hidden='true'
-            />
+            <img src={row.original.icon_url} aria-hidden='true' />
           ) : null}
         </div>
       );
@@ -84,12 +81,7 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
     ),
     enableSorting: false,
     cell: ({ row }) => {
-      const type = row.getValue('type') as string;
-      return (
-        <div>
-          {row.original.displayName}
-        </div>
-      );
+      return <div>{row.original.displayName}</div>;
     },
   },
   {
