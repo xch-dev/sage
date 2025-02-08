@@ -222,8 +222,11 @@ export default function SyncStatus() {
           open={!!peerToDelete}
           onOpenChange={(open) => !open && setPeerToDelete(null)}
         >
-          <DialogContent>
-            <DialogTitle>
+          <DialogContent 
+            aria-labelledby="delete-dialog-title"
+            aria-describedby="delete-dialog-desc"
+          >
+            <DialogTitle id="delete-dialog-title">
               {peerToDelete?.length === 1 ? (
                 <Trans>Are you sure you want to remove the peer?</Trans>
               ) : (
@@ -232,7 +235,7 @@ export default function SyncStatus() {
                 </Trans>
               )}
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription id="delete-dialog-desc">
               <Plural
                 value={peersToDeleteCount}
                 one={`This will remove the peer from your connection. If you are currently syncing against this peer, a new one will be used to replace it.`}

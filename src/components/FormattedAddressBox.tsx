@@ -18,12 +18,14 @@ export function FormattedAddressBox({
   maxChars = 62,
   address,
   title,
+  labelId,
 }: {
   className?: string;
   minChars?: number;
   maxChars?: number;
   address: string;
   title?: string;
+  labelId?: string;
 }) {
   const ref = useRef<HTMLInputElement>(null);
   const [chars, setChars] = useState(8);
@@ -67,6 +69,8 @@ export function FormattedAddressBox({
       className={className}
       value={address}
       displayValue={formatAddress(address, chars / 2)}
+      aria-labelledby={labelId}
+      aria-readonly="true"
     />
   );
 } 

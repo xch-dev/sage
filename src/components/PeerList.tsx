@@ -21,6 +21,7 @@ import { platform } from '@tauri-apps/plugin-os';
 import { useDrag } from '@use-gesture/react';
 import { BanIcon, Trash2Icon } from 'lucide-react';
 import { PeerRecord } from '../bindings';
+import { t } from '@lingui/core/macro';
 
 interface PeerListProps {
   peers: PeerRecord[] | null;
@@ -127,6 +128,14 @@ const MobileRow = ({
           </div>
         </div>
       </animated.div>
+
+      <Button 
+        onClick={handleDelete}
+        aria-label={t`Delete peer ${peer.ip_addr}`}
+        className="sr-only"
+      >
+        <Trans>Delete peer</Trans>
+      </Button>
     </div>
   );
 };
@@ -153,7 +162,7 @@ export default function PeerList({
             (table.getIsSomePageRowsSelected() && 'indeterminate')
           }
           onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-          aria-label='Select all'
+          aria-label={t`Select all peers`}
         />
       ),
       cell: ({ row }) => (
@@ -161,7 +170,7 @@ export default function PeerList({
           className='mx-2'
           checked={row.getIsSelected()}
           onCheckedChange={(value) => row.toggleSelected(!!value)}
-          aria-label='Select row'
+          aria-label={t`Select peer ${row.original.ip_addr}`}
         />
       ),
     },
@@ -229,7 +238,7 @@ export default function PeerList({
       ))}
     </div>
   ) : (
-    <Table>
+    <Table role="grid" aria-label={t`Peer List`}>
       <TableHeader>
         {table.getHeaderGroups().map((headerGroup) => (
           <TableRow key={headerGroup.id}>
