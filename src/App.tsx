@@ -34,7 +34,7 @@ import MintNft from './pages/MintNft';
 import Nft from './pages/Nft';
 import { NftList } from './pages/NftList';
 import { Offers } from './pages/Offers';
-import PeerList from './pages/PeerList';
+import PeerList from './pages/SyncStatus';
 import Send from './pages/Send';
 import Settings from './pages/Settings';
 import Token from './pages/Token';
