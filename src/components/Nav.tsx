@@ -3,7 +3,6 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { usePeers } from '@/hooks/usePeers';
 import { logoutAndUpdateState, useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -86,10 +85,6 @@ export function TopNav({ isCollapsed }: NavProps) {
 
 export function BottomNav({ isCollapsed }: NavProps) {
   const navigate = useNavigate();
-
-  const { peers } = usePeers();
-  const peerCount = peers?.length || 0;
-
   const walletState = useWalletState();
   const syncedCoins = walletState.sync.synced_coins;
   const totalCoins = walletState.sync.total_coins;
@@ -97,11 +92,8 @@ export function BottomNav({ isCollapsed }: NavProps) {
     () => walletState.sync.synced_coins === walletState.sync.total_coins,
     [walletState.sync.synced_coins, walletState.sync.total_coins],
   );
-
-  const peerMaxHeight =
-    peers?.reduce((max, peer) => {
-      return Math.max(max, peer.peak_height);
-    }, 0) || 0;
+  const peerCount = walletState.sync.peer_count;
+  const peerMaxHeight = walletState.sync.peer_max_height;
 
   const logout = () => {
     logoutAndUpdateState().then(() => {

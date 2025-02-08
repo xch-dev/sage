@@ -114,6 +114,8 @@ export function defaultState(): WalletState {
       },
       total_coins: 0,
       synced_coins: 0,
+      peer_count: 0,
+      peer_max_height: 0,
     },
     coins: [],
   };

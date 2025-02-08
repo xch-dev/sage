@@ -52,6 +52,11 @@ impl Sage {
             })
             .transpose()?;
 
+        let peer_state = self.peer_state.lock().await;
+        let peers = peer_state.peers_with_heights();
+        let peer_count = peers.len();
+        let peer_max_height = peers.iter().map(|(_, height)| *height).max().unwrap_or(0);
+
         Ok(GetSyncStatusResponse {
             balance: Amount::u128(balance),
             unit: self.unit.clone(),
@@ -62,6 +67,8 @@ impl Sage {
                 hex!("000000000000000000000000000000000000000000000000000000000000dead"),
                 &self.network().address_prefix,
             )?,
+            peer_count: peer_count.try_into().unwrap(),
+            peer_max_height,
         })
     }
 

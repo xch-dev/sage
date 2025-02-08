@@ -33,6 +33,8 @@ pub struct GetSyncStatusResponse {
     pub total_coins: u32,
     pub receive_address: String,
     pub burn_address: String,
+    pub peer_count: u32,
+    pub peer_max_height: u32,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
