@@ -27,8 +27,9 @@ import { HelpCircleIcon, Trash2Icon } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { commands, PeerRecord } from '../bindings';
 import PeerList from '@/components/PeerList';
+import { SyncCard } from '@/components/SyncCard';
 
-export default function PeerListPage() {
+export default function SyncStatus() {
   const { addError } = useErrors();
 
   const [peers, setPeers] = useState<PeerRecord[] | null>(null);
@@ -95,8 +96,9 @@ export default function PeerListPage() {
 
   return (
     <Layout>
-      <Header title={<Trans>Peer List</Trans>} />
-      <Container className='max-w-2xl'>
+      <Header title={<Trans>Sync Status</Trans>} />
+      <Container className='max-w-2xl space-y-4'>
+        <SyncCard />
         <Card className='rounded-md border'>
           <CardHeader>
             <div className='flex justify-between items-center'>
