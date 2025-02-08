@@ -1,8 +1,7 @@
-use std::{num::NonZeroUsize, str::FromStr};
+use std::str::FromStr;
 
 use num_bigint::BigInt;
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
 /// Pertains to [CHIP-0007](https://github.com/Chia-Network/chips/blob/main/CHIPs/chip-0007.md) off-chain metadata for NFTs.
 /// The `data` field in the spec is ommitted as it's not useful for wallet implementations at this time.
@@ -14,8 +13,6 @@ pub struct Chip0007Metadata {
     pub description: String,
     pub minting_tool: Option<String>,
     pub sensitive_content: Option<SensitiveContent>,
-    pub series_number: Option<NonZeroUsize>,
-    pub series_total: Option<NonZeroUsize>,
     pub attributes: Option<Vec<NftAttribute>>,
     pub collection: Option<Collection>,
 }
@@ -48,13 +45,14 @@ pub struct NftAttribute {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum AttributeValue {
-    Integer(BigInt),
+    Int(i64),
+    BigInt(BigInt),
     String(String),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Collection {
-    pub id: Uuid,
+    pub id: String,
     pub name: String,
     pub attributes: Option<Vec<CollectionAttribute>>,
 }
@@ -88,7 +86,7 @@ impl AttributeValue {
     pub fn as_str(&self) -> Option<&str> {
         match self {
             AttributeValue::String(value) => Some(value),
-            AttributeValue::Integer(..) => None,
+            AttributeValue::Int(..) | AttributeValue::BigInt(..) => None,
         }
     }
 }
