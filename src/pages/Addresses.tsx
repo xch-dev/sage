@@ -50,7 +50,9 @@ export default function Addresses() {
   const [deriveOpen, setDeriveOpen] = useState(false);
   const [pending, setPending] = useState(false);
   const [addressToCheck, setAddressToCheck] = useState('');
-  const [checkStatus, setCheckStatus] = useState<'idle' | 'valid' | 'invalid'>('idle');
+  const [checkStatus, setCheckStatus] = useState<'idle' | 'valid' | 'invalid'>(
+    'idle',
+  );
 
   const updateAddresses = useCallback(() => {
     commands
@@ -157,35 +159,61 @@ export default function Addresses() {
               <Trans>Check Address</Trans>
             </CardTitle>
             <CardDescription>
-              <Trans>
-                Check if an address is owned by this wallet.
-              </Trans>
+              <Trans>Check if an address is owned by this wallet.</Trans>
             </CardDescription>
           </CardHeader>
-          <CardContent className="flex gap-2">
+          <CardContent className='flex gap-2'>
             <Input
               placeholder={t`Enter address`}
-              aria-label={t`Address`}
+              aria-label={t`Address to check`}
               value={addressToCheck}
               onChange={(e) => {
                 setAddressToCheck(e.target.value);
                 setCheckStatus('idle');
               }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && addressToCheck) {
+                  handleCheckAddress();
+                }
+              }}
+              aria-describedby='checkAddressDescription'
             />
             <Button
-              variant={checkStatus === 'idle' ? 'secondary' : checkStatus === 'valid' ? 'success' : 'destructive'}
+              variant='secondary'
               size='sm'
               onClick={handleCheckAddress}
               disabled={!addressToCheck}
+              style={{
+                ...(checkStatus === 'valid' && {
+                  backgroundColor: '#16a34a',
+                  color: 'white',
+                }),
+                ...(checkStatus === 'invalid' && {
+                  backgroundColor: '#dc2626',
+                  color: 'white',
+                }),
+              }}
+              aria-live='polite'
+              aria-label={
+                checkStatus === 'idle'
+                  ? t`Check address`
+                  : checkStatus === 'valid'
+                    ? t`Address is valid`
+                    : t`Address is invalid`
+              }
+              className='w-10'
             >
               {checkStatus === 'idle' ? (
-                <Trans>Check</Trans>
+                <CheckIcon className='h-4 w-4' aria-hidden='true' />
               ) : checkStatus === 'valid' ? (
-                <CheckIcon className="h-4 w-4" aria-label={t`Address belongs to your wallet`} />
+                <CheckIcon className='h-4 w-4' aria-hidden='true' />
               ) : (
-                <XCircleIcon className="h-4 w-4" aria-label={t`Address not found in your wallet`} />
+                <XCircleIcon className='h-4 w-4' aria-hidden='true' />
               )}
             </Button>
+            <div id='checkAddressDescription' className='sr-only'>
+              <Trans>Press Enter to check the address after typing</Trans>
+            </div>
           </CardContent>
         </Card>
         <Card className='max-w-full'>
