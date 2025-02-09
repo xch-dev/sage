@@ -81,15 +81,6 @@ export function TransactionListView({
           }
         }}
         state={{ sorting }}
-        getRowStyles={(row) => ({
-          className: cn(
-            flattenedTransactions.findIndex(
-              (tx) =>
-                tx.transactionHeight === row.original.transactionHeight &&
-                tx.coin_id === row.original.coin_id,
-            ) === 0 && 'border-t border-neutral-200 dark:border-neutral-700',
-          ),
-        })}
       />
     </div>
   );
