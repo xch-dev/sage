@@ -429,7 +429,7 @@ async fn collections_visible_named(
     .fetch_all(conn)
     .await?;
 
-    let total = rows.first().map(|r| r.total_count as u32).unwrap_or(0);
+    let total = rows.first().map_or(0, |r| r.total_count as u32);
     let collections = rows
         .into_iter()
         .map(|row| {
@@ -473,7 +473,7 @@ async fn collections_named(
     .fetch_all(conn)
     .await?;
 
-    let total = rows.first().map(|r| r.total_count as u32).unwrap_or(0);
+    let total = rows.first().map_or(0, |r| r.total_count as u32);
     let collections = rows
         .into_iter()
         .map(|row| {
@@ -611,7 +611,7 @@ async fn distinct_minter_dids(
     .fetch_all(conn)
     .await?;
 
-    let total_count = rows.first().map(|row| row.total_count as u32).unwrap_or(0);
+    let total_count = rows.first().map_or(0, |row| row.total_count as u32);
     let dids = rows
         .into_iter()
         .map(|row| row.minter_did.map(|bytes| to_bytes32(&bytes)).transpose())
@@ -966,7 +966,7 @@ async fn search_nfts(
     query = query.bind(offset);
 
     let rows = query.fetch_all(conn).await?;
-    let total_count = rows.first().map(|row| row.total_count as u32).unwrap_or(0);
+    let total_count = rows.first().map_or(0, |row| row.total_count as u32);
     let nfts = rows
         .into_iter()
         .map(|row| into_row(row.nft))
