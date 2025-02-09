@@ -28,50 +28,42 @@ export function NftSelector({
   const [nftThumbnails, setNftThumbnails] = useState<Record<string, string>>(
     {},
   );
+  const [searchTerm, setSearchTerm] = useState('');
 
   const pageSize = 8;
 
   const isValidNftId = useMemo(() => {
-    let isValidNftId = true;
-
-    try {
-      if (addressInfo(value || '').puzzleHash.length !== 64) {
-        isValidNftId = false;
-      }
-    } catch {
-      isValidNftId = false;
-    }
-
-    return isValidNftId;
-  }, [value]);
+    // NFT ID format: nft followed by 59 alphanumeric characters
+    return /^nft[a-zA-Z0-9]{59}$/.test(searchTerm);
+  }, [searchTerm]);
 
   useEffect(() => {
     commands
       .getNfts({
-        name: isValidNftId ? null : value || null,
+        name: searchTerm && !isValidNftId ? searchTerm : null,
         offset: page * pageSize,
         limit: pageSize,
         include_hidden: false,
         sort_mode: 'name',
+        collection_id: null,
+        owner_did_id: null,
+        minter_did_id: null,
       })
       .then((data) => setNfts(data.nfts))
       .catch(addError);
-  }, [addError, page, isValidNftId, value]);
+  }, [addError, page, searchTerm, isValidNftId]);
 
   useEffect(() => {
-    if (value && selectedNft?.launcher_id !== value) {
-      if (!isValidNftId) {
-        return setSelectedNft(null);
-      }
-
+    if (isValidNftId) {
       commands
-        .getNft({ nft_id: value })
-        .then((data) => setSelectedNft(data.nft))
+        .getNft({ nft_id: searchTerm })
+        .then((data) => {
+          setSelectedNft(data.nft);
+          onChange(searchTerm);
+        })
         .catch(addError);
-    } else if (!value) {
-      setSelectedNft(null);
     }
-  }, [value, selectedNft?.launcher_id, isValidNftId, addError]);
+  }, [isValidNftId, searchTerm, onChange, addError]);
 
   useEffect(() => {
     const nftsToFetch = [...nfts.map((nft) => nft.launcher_id)];
@@ -112,17 +104,20 @@ export function NftSelector({
       onSelect={(nft) => {
         onChange(nft.launcher_id);
         setSelectedNft(nft);
+        setSearchTerm('');
       }}
       className={className}
       manualInput={
         <Input
-          placeholder='Enter NFT'
-          value={value || ''}
+          placeholder={t`Search by name or enter NFT ID`}
+          value={searchTerm}
           onChange={(e) => {
-            onChange(e.target.value);
-            setSelectedNft(
-              nfts.find((nft) => nft.launcher_id === e.target.value) ?? null,
-            );
+            const newValue = e.target.value;
+            setSearchTerm(newValue);
+
+            if (/^nft[a-zA-Z0-9]{59}$/.test(newValue)) {
+              onChange(newValue);
+            }
           }}
         />
       }
@@ -131,11 +126,17 @@ export function NftSelector({
           <img
             src={nftThumbnails[nft.launcher_id] ?? defaultNftImage}
             className='w-10 h-10 rounded object-cover'
-            alt={nft.name ?? t`Unknown`}
+            alt=''
+            aria-hidden='true'
           />
           <div className='flex flex-col truncate'>
-            <span className='flex-grow truncate'>{nft.name}</span>
-            <span className='text-xs text-muted-foreground truncate'>
+            <span className='flex-grow truncate' role='text'>
+              {nft.name}
+            </span>
+            <span
+              className='text-xs text-muted-foreground truncate'
+              aria-label='NFT ID'
+            >
               {nft.launcher_id}
             </span>
           </div>
@@ -149,14 +150,18 @@ export function NftSelector({
               ? (nftThumbnails[selectedNft.launcher_id] ?? defaultNftImage)
               : defaultNftImage
           }
-          alt={
-            selectedNft?.name ? `Image of ${selectedNft.name}` : 'No NFT name'
-          }
+          alt=''
+          aria-hidden='true'
           className='w-8 h-8 rounded object-cover'
         />
         <div className='flex flex-col truncate text-left'>
-          <span className='truncate'>{selectedNft?.name ?? 'Select NFT'}</span>
-          <span className='text-xs text-muted-foreground truncate'>
+          <span className='truncate' role='text'>
+            {selectedNft?.name ?? t`Select NFT`}
+          </span>
+          <span
+            className='text-xs text-muted-foreground truncate'
+            aria-label='NFT ID'
+          >
             {selectedNft?.launcher_id}
           </span>
         </div>

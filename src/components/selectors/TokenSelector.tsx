@@ -45,19 +45,18 @@ export function TokenSelector({
   const filteredTokens = tokens.filter((token) => {
     if (!token.visible) return false;
     if (!searchTerm) return true;
-    
+
     // Check if search term is a valid asset ID format (64 hex characters)
     const isAssetIdFormat = /^[a-fA-F0-9]{64}$/.test(searchTerm);
-    
+
     if (isAssetIdFormat) {
       return token.asset_id.toLowerCase() === searchTerm.toLowerCase();
     }
-    
+
     // Search by name and ticker
     return (
       token.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      token.ticker?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      token.asset_id.toLowerCase().includes(searchTerm.toLowerCase())
+      token.ticker?.toLowerCase().includes(searchTerm.toLowerCase())
     );
   });
 
@@ -79,7 +78,7 @@ export function TokenSelector({
           onChange={(e) => {
             const newValue = e.target.value;
             setSearchTerm(newValue);
-            
+
             if (/^[a-fA-F0-9]{64}$/.test(newValue)) {
               onChange(newValue);
               setSelectedToken(
@@ -103,15 +102,19 @@ export function TokenSelector({
             <img
               src={token.icon_url}
               className='w-10 h-10 rounded object-cover'
-              alt={token.name ?? t`Unknown`}
+              alt={token.name ?? t`Unknown token`}
+              aria-hidden='true'
             />
           )}
           <div className='flex flex-col truncate'>
-            <span className='flex-grow truncate'>
+            <span className='flex-grow truncate' role='text'>
               {token.name}
               {token.ticker && ` (${token.ticker})`}
             </span>
-            <span className='text-xs text-muted-foreground truncate'>
+            <span
+              className='text-xs text-muted-foreground truncate'
+              aria-label='Asset ID'
+            >
               {token.asset_id}
             </span>
           </div>
