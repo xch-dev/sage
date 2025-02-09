@@ -122,7 +122,6 @@ export const Pagination = ({
         </label>
         <Select
           onValueChange={(value) => {
-            onPageChange(1);
             onPageSizeChange(parseInt(value));
           }}
           defaultValue={pageSize.toString()}
