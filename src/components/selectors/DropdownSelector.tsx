@@ -136,7 +136,9 @@ export function DropdownSelector<T>({
     
     const handleInput = () => {
       if (page !== 0) {
-        setPage(0);
+        setTimeout(() => {
+          setPage(0);
+        }, 0);
       }
     };
 
