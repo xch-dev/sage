@@ -1,7 +1,8 @@
 import { KeyInfo, commands } from '@/bindings';
 import { useErrors } from '@/hooks/useErrors';
 import { createContext, useContext, useEffect, useState } from 'react';
-import { initializeWalletState } from '@/state';
+import { initializeWalletState, fetchState } from '@/state';
+import { CustomError } from '@/contexts/ErrorContext';
 
 interface WalletContextType {
   wallet: KeyInfo | null;
@@ -17,11 +18,18 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   const { addError } = useErrors();
 
   useEffect(() => {
-    initializeWalletState(setWallet);
-    commands
-      .getKey({})
-      .then((data) => setWallet(data.key))
-      .catch(addError);
+    const init = async () => {
+      try {
+        initializeWalletState(setWallet);
+        const data = await commands.getKey({});
+        setWallet(data.key);
+        await fetchState();
+      } catch (error) {
+        addError(error as CustomError);
+      }
+    };
+    
+    init();
   }, [addError]);
 
   return (

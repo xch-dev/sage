@@ -58,6 +58,10 @@ export function ReceiveAddress({
     return () => observer.disconnect();
   }, [receive_address, minChars, maxChars]);
 
+  if (!receive_address || receive_address === 'Unknown') {
+    return <div className={className}>Connecting to wallet...</div>;
+  }
+
   return (
     <CopyBox
       inputRef={ref}
