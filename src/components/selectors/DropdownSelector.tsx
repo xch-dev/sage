@@ -60,19 +60,21 @@ export function DropdownSelector<T>({
           break;
         case 'ArrowDown':
           event.preventDefault();
-          setSelectedIndex(prev => 
-            prev < loadedItems.length - 1 ? prev + 1 : prev
+          setSelectedIndex((prev) =>
+            prev < loadedItems.length - 1 ? prev + 1 : prev,
           );
           break;
         case 'ArrowUp':
           event.preventDefault();
-          setSelectedIndex(prev => (prev > 0 ? prev - 1 : prev));
+          setSelectedIndex((prev) => (prev > 0 ? prev - 1 : prev));
           break;
         case 'Enter':
           event.preventDefault();
           if (document.activeElement === inputRef.current) {
             // If Enter is pressed while input has focus, select first non-disabled item
-            const firstValidIndex = loadedItems.findIndex(item => !isDisabled?.(item));
+            const firstValidIndex = loadedItems.findIndex(
+              (item) => !isDisabled?.(item),
+            );
             if (firstValidIndex >= 0) {
               onSelect(loadedItems[firstValidIndex]);
               setIsOpen(false);
@@ -206,7 +208,7 @@ export function DropdownSelector<T>({
             {(!!setPage || manualInput) && <hr className='my-2' />}
           </div>
 
-          <div 
+          <div
             className='max-h-[260px] overflow-y-auto'
             ref={listRef}
             tabIndex={0}
@@ -222,7 +224,7 @@ export function DropdownSelector<T>({
                 return (
                   <div
                     key={i}
-                    ref={el => (optionsRef.current[i] = el)}
+                    ref={(el) => (optionsRef.current[i] = el)}
                     onClick={() => {
                       if (!disabled) {
                         onSelect(item);
@@ -236,8 +238,8 @@ export function DropdownSelector<T>({
                       disabled
                         ? 'opacity-50 cursor-not-allowed'
                         : i === selectedIndex
-                        ? 'bg-accent'
-                        : 'hover:bg-accent'
+                          ? 'bg-accent'
+                          : 'hover:bg-accent'
                     }`}
                   >
                     {renderItem(item)}

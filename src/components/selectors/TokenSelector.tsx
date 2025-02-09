@@ -131,6 +131,7 @@ export function TokenSelector({
                 ? `Image of ${selectedToken.name}`
                 : 'No token name'
             }
+            aria-hidden='true'
           />
         )}
         <div className='flex flex-col truncate text-left'>
