@@ -31,23 +31,26 @@ import { useErrors } from '@/hooks/useErrors';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import { LoaderCircleIcon } from 'lucide-react';
+import { LoaderCircleIcon, CheckIcon, XCircleIcon } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { commands, events } from '../bindings';
 import AddressList from '../components/AddressList';
 import { useWalletState } from '../state';
+import { toast } from 'react-toastify';
+import { CustomError } from '@/contexts/ErrorContext';
 
 export default function Addresses() {
   const { addError } = useErrors();
   const walletState = useWalletState();
   const ticker = walletState.sync.unit.ticker;
-
   const [hardened, setHardened] = useState(false);
   const [addresses, setAddresses] = useState<string[]>([]);
   const [deriveOpen, setDeriveOpen] = useState(false);
   const [pending, setPending] = useState(false);
+  const [addressToCheck, setAddressToCheck] = useState('');
+  const [checkStatus, setCheckStatus] = useState<'idle' | 'valid' | 'invalid'>('idle');
 
   const updateAddresses = useCallback(() => {
     commands
@@ -111,6 +114,22 @@ export default function Addresses() {
       .finally(() => setPending(false));
   };
 
+  const handleCheckAddress = async () => {
+    try {
+      // TODO: Replace with actual backend call
+      const result = await commands.checkAddress({ address: addressToCheck });
+      setCheckStatus(result.valid ? 'valid' : 'invalid');
+      if (result.valid) {
+        toast.success(t`Address belongs to your wallet`);
+      } else {
+        toast.error(t`Address not found in your wallet`);
+      }
+    } catch (error) {
+      addError(error as CustomError);
+      setCheckStatus('idle');
+    }
+  };
+
   return (
     <>
       <Header title={t`Receive ${ticker}`} />
@@ -130,6 +149,43 @@ export default function Addresses() {
           </CardHeader>
           <CardContent>
             <ReceiveAddress />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className='text-lg font-medium'>
+              <Trans>Check Address</Trans>
+            </CardTitle>
+            <CardDescription>
+              <Trans>
+                Check if an address is owned by this wallet.
+              </Trans>
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex gap-2">
+            <Input
+              placeholder={t`Enter address`}
+              aria-label={t`Address`}
+              value={addressToCheck}
+              onChange={(e) => {
+                setAddressToCheck(e.target.value);
+                setCheckStatus('idle');
+              }}
+            />
+            <Button
+              variant={checkStatus === 'idle' ? 'secondary' : checkStatus === 'valid' ? 'success' : 'destructive'}
+              size='sm'
+              onClick={handleCheckAddress}
+              disabled={!addressToCheck}
+            >
+              {checkStatus === 'idle' ? (
+                <Trans>Check</Trans>
+              ) : checkStatus === 'valid' ? (
+                <CheckIcon className="h-4 w-4" aria-label={t`Address belongs to your wallet`} />
+              ) : (
+                <XCircleIcon className="h-4 w-4" aria-label={t`Address not found in your wallet`} />
+              )}
+            </Button>
           </CardContent>
         </Card>
         <Card className='max-w-full'>

@@ -7,7 +7,7 @@ use chia::{
         singleton::SINGLETON_LAUNCHER_PUZZLE_HASH,
     },
 };
-use chia_wallet_sdk::{encode_address, Nft};
+use chia_wallet_sdk::{encode_address, decode_address, Nft};
 use clvmr::Allocator;
 use hex_literal::hex;
 use sage_api::{
@@ -20,7 +20,7 @@ use sage_api::{
     GetSyncStatusResponse, GetTransaction, GetTransactionResponse, GetTransactions,
     GetTransactionsResponse, GetXchCoins, GetXchCoinsResponse, NftCollectionRecord, NftData,
     NftRecord, NftSortMode as ApiNftSortMode, PendingTransactionRecord, TransactionCoin,
-    TransactionRecord,
+    TransactionRecord, CheckAddress, CheckAddressResponse,
 };
 use sage_database::{
     CoinKind, CoinStateRow, Database, NftGroup, NftRow, NftSearchParams, NftSortMode,
@@ -63,6 +63,18 @@ impl Sage {
                 &self.network().address_prefix,
             )?,
         })
+    }
+
+    pub async fn check_address(&self, req: CheckAddress) -> Result<CheckAddressResponse> {
+        let wallet = self.wallet()?;
+
+        let Some((puzzle_hash, _prefix)) = decode_address(&req.address).ok() else {
+            return Ok(CheckAddressResponse { valid: false });
+        };
+
+        let is_valid = wallet.db.is_p2_puzzle_hash(puzzle_hash.into()).await?;
+
+        Ok(CheckAddressResponse { valid: is_valid })
     }
 
     pub async fn get_derivations(&self, req: GetDerivations) -> Result<GetDerivationsResponse> {

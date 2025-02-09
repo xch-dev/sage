@@ -98,6 +98,9 @@ async submitTransaction(req: SubmitTransaction) : Promise<SubmitTransactionRespo
 async getSyncStatus(req: GetSyncStatus) : Promise<GetSyncStatusResponse> {
     return await TAURI_INVOKE("get_sync_status", { req });
 },
+async checkAddress(req: CheckAddress) : Promise<CheckAddressResponse> {
+    return await TAURI_INVOKE("check_address", { req });
+},
 async getDerivations(req: GetDerivations) : Promise<GetDerivationsResponse> {
     return await TAURI_INVOKE("get_derivations", { req });
 },
@@ -274,6 +277,8 @@ export type BulkSendXch = { addresses: string[]; amount: Amount; fee: Amount; me
 export type CancelOffer = { offer_id: string; fee: Amount; auto_submit?: boolean }
 export type CatAmount = { asset_id: string; amount: Amount }
 export type CatRecord = { asset_id: string; name: string | null; ticker: string | null; description: string | null; icon_url: string | null; visible: boolean; balance: Amount }
+export type CheckAddress = { address: string }
+export type CheckAddressResponse = { valid: boolean }
 export type Coin = { parent_coin_info: string; puzzle_hash: string; amount: number }
 export type CoinJson = { parent_coin_info: string; puzzle_hash: string; amount: Amount }
 export type CoinRecord = { coin_id: string; address: string; amount: Amount; created_height: number | null; spent_height: number | null; create_transaction_id: string | null; spend_transaction_id: string | null; offer_id: string | null }
