@@ -1,14 +1,6 @@
 import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
-import { PropsWithChildren } from 'react';
+import { PropsWithChildren, useState } from 'react';
 import { Button } from '../ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '../ui/dropdown-menu';
 
 export interface DropdownSelectorProps<T> extends PropsWithChildren {
   loadedItems: T[];
@@ -36,56 +28,59 @@ export function DropdownSelector<T>({
   children,
   manualInput,
 }: DropdownSelectorProps<T>) {
+  const [isOpen, setIsOpen] = useState(false);
+
   return (
-    <div className='min-w-0 flex-grow'>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant='outline'
-            className={`w-full justify-start p-2 h-12 ${className ?? ''}`}
-          >
-            <div className='flex items-center gap-2 w-full justify-between min-w-0'>
-              {children}
-              <ChevronDown className='h-4 w-4 opacity-50 mr-2 flex-shrink-0' />
-            </div>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align='start' className={width}>
-          <>
+    <div className='min-w-0 flex-grow relative'>
+      <Button
+        variant='outline'
+        className={`w-full justify-start p-2 h-12 ${className ?? ''}`}
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <div className='flex items-center gap-2 w-full justify-between min-w-0'>
+          {children}
+          <ChevronDown className='h-4 w-4 opacity-50 mr-2 flex-shrink-0' />
+        </div>
+      </Button>
+
+      {isOpen && (
+        <div
+          className={`absolute z-50 mt-2 ${width} bg-background border rounded-md shadow-lg`}
+        >
+          <div className='p-2 space-y-2'>
             {!!setPage && (
-              <DropdownMenuLabel>
-                <div className='flex items-center justify-between'>
-                  <span>Page {page + 1}</span>
-                  <div className='flex items-center gap-2'>
-                    <Button
-                      variant='outline'
-                      size='icon'
-                      onClick={(e) => {
-                        e.preventDefault();
-                        setPage(Math.max(0, page - 1));
-                      }}
-                      disabled={page === 0}
-                    >
-                      <ChevronLeft className='h-4 w-4' />
-                    </Button>
-                    <Button
-                      variant='outline'
-                      size='icon'
-                      onClick={(e) => {
-                        e.preventDefault();
-                        if (loadedItems.length < pageSize) return;
-                        setPage(page + 1);
-                      }}
-                    >
-                      <ChevronRight className='h-4 w-4' />
-                    </Button>
-                  </div>
+              <div className='flex items-center justify-between'>
+                <span>Page {page + 1}</span>
+                <div className='flex items-center gap-2'>
+                  <Button
+                    variant='outline'
+                    size='icon'
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setPage(Math.max(0, page - 1));
+                    }}
+                    disabled={page === 0}
+                  >
+                    <ChevronLeft className='h-4 w-4' />
+                  </Button>
+                  <Button
+                    variant='outline'
+                    size='icon'
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (loadedItems.length < pageSize) return;
+                      setPage(page + 1);
+                    }}
+                  >
+                    <ChevronRight className='h-4 w-4' />
+                  </Button>
                 </div>
-              </DropdownMenuLabel>
+              </div>
             )}
-            {manualInput && <div className='p-2'>{manualInput}</div>}
-            {(!!setPage || manualInput) && <DropdownMenuSeparator />}
-          </>
+            {manualInput}
+            {(!!setPage || manualInput) && <hr className='my-2' />}
+          </div>
+
           <div className='max-h-[260px] overflow-y-auto'>
             {loadedItems.length === 0 ? (
               <div className='p-4 text-center text-sm text-muted-foreground'>
@@ -95,20 +90,28 @@ export function DropdownSelector<T>({
               loadedItems.map((item, i) => {
                 const disabled = isDisabled?.(item) ?? false;
                 return (
-                  <DropdownMenuItem
+                  <div
                     key={i}
-                    onClick={() => onSelect(item)}
-                    disabled={disabled}
-                    className={disabled ? 'opacity-50 cursor-not-allowed' : ''}
+                    onClick={() => {
+                      if (!disabled) {
+                        onSelect(item);
+                        setIsOpen(false);
+                      }
+                    }}
+                    className={`px-2 py-1.5 text-sm rounded-sm cursor-pointer ${
+                      disabled
+                        ? 'opacity-50 cursor-not-allowed'
+                        : 'hover:bg-accent'
+                    }`}
                   >
                     {renderItem(item)}
-                  </DropdownMenuItem>
+                  </div>
                 );
               })
             )}
           </div>
-        </DropdownMenuContent>
-      </DropdownMenu>
+        </div>
+      )}
     </div>
   );
 }
