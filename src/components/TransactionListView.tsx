@@ -83,9 +83,6 @@ export function TransactionListView({
         state={{ sorting }}
         getRowStyles={(row) => ({
           className: cn(
-            'transition-colors text-sm',
-            'bg-white dark:bg-neutral-950',
-            'focus:outline-none focus:ring-2 focus:ring-blue-500',
             flattenedTransactions.findIndex(
               (tx) =>
                 tx.transactionHeight === row.original.transactionHeight &&
