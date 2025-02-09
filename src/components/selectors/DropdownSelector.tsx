@@ -29,8 +29,16 @@ export function DropdownSelector<T>({
   manualInput,
 }: DropdownSelectorProps<T>) {
   const [isOpen, setIsOpen] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const optionsRef = useRef<(HTMLDivElement | null)[]>([]);
+
+  // Reset selected index when items change
+  useEffect(() => {
+    setSelectedIndex(-1);
+  }, [loadedItems]);
 
   // Handle click outside and escape key
   useEffect(() => {
@@ -44,21 +52,65 @@ export function DropdownSelector<T>({
     }
 
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        setIsOpen(false);
+      if (!isOpen) return;
+
+      switch (event.key) {
+        case 'Escape':
+          setIsOpen(false);
+          break;
+        case 'ArrowDown':
+          event.preventDefault();
+          setSelectedIndex(prev => 
+            prev < loadedItems.length - 1 ? prev + 1 : prev
+          );
+          break;
+        case 'ArrowUp':
+          event.preventDefault();
+          setSelectedIndex(prev => (prev > 0 ? prev - 1 : prev));
+          break;
+        case 'Enter':
+          event.preventDefault();
+          if (selectedIndex >= 0 && selectedIndex < loadedItems.length) {
+            const item = loadedItems[selectedIndex];
+            if (!isDisabled?.(item)) {
+              onSelect(item);
+              setIsOpen(false);
+              setSelectedIndex(-1);
+            }
+          }
+          break;
+        case 'Tab':
+          if (event.shiftKey) {
+            // Allow shift+tab to move focus backwards
+            return;
+          }
+          // If we're on the input, let the next tab go to the list
+          if (document.activeElement === inputRef.current) {
+            event.preventDefault();
+            listRef.current?.focus();
+            setSelectedIndex(0);
+          }
+          break;
       }
     }
 
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      document.addEventListener('keydown', handleKeyDown);
-    }
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isOpen]);
+  }, [isOpen, loadedItems, selectedIndex, onSelect, isDisabled]);
+
+  // Scroll selected item into view
+  useEffect(() => {
+    if (selectedIndex >= 0 && optionsRef.current[selectedIndex]) {
+      optionsRef.current[selectedIndex]?.scrollIntoView({
+        block: 'nearest',
+      });
+    }
+  }, [selectedIndex]);
 
   // Focus input when dropdown opens
   useEffect(() => {
@@ -131,7 +183,6 @@ export function DropdownSelector<T>({
             {manualInput && (
               <div
                 ref={(el) => {
-                  // Get the input element from the manualInput content
                   if (el) {
                     const input = el.querySelector('input');
                     if (input) {
@@ -146,7 +197,12 @@ export function DropdownSelector<T>({
             {(!!setPage || manualInput) && <hr className='my-2' />}
           </div>
 
-          <div className='max-h-[260px] overflow-y-auto'>
+          <div 
+            className='max-h-[260px] overflow-y-auto'
+            ref={listRef}
+            tabIndex={0}
+            role='listbox'
+          >
             {loadedItems.length === 0 ? (
               <div className='p-4 text-center text-sm text-muted-foreground'>
                 No items available
@@ -157,6 +213,7 @@ export function DropdownSelector<T>({
                 return (
                   <div
                     key={i}
+                    ref={el => (optionsRef.current[i] = el)}
                     onClick={() => {
                       if (!disabled) {
                         onSelect(item);
@@ -164,11 +221,13 @@ export function DropdownSelector<T>({
                       }
                     }}
                     role='option'
-                    aria-selected={false}
+                    aria-selected={i === selectedIndex}
                     aria-disabled={disabled}
                     className={`px-2 py-1.5 text-sm rounded-sm cursor-pointer ${
                       disabled
                         ? 'opacity-50 cursor-not-allowed'
+                        : i === selectedIndex
+                        ? 'bg-accent'
                         : 'hover:bg-accent'
                     }`}
                   >
