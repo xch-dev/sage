@@ -70,21 +70,21 @@ export function DropdownSelector<T>({
           break;
         case 'Enter':
           event.preventDefault();
-          if (document.activeElement === inputRef.current) {
-            // If Enter is pressed while input has focus, select first non-disabled item
+          if (selectedIndex >= 0 && selectedIndex < loadedItems.length) {
+            // If an item is selected, use that
+            const item = loadedItems[selectedIndex];
+            if (!isDisabled?.(item)) {
+              onSelect(item);
+              setIsOpen(false);
+              setSelectedIndex(-1);
+            }
+          } else {
+            // If no item is selected, use the first non-disabled item
             const firstValidIndex = loadedItems.findIndex(
               (item) => !isDisabled?.(item),
             );
             if (firstValidIndex >= 0) {
               onSelect(loadedItems[firstValidIndex]);
-              setIsOpen(false);
-              setSelectedIndex(-1);
-            }
-          } else if (selectedIndex >= 0 && selectedIndex < loadedItems.length) {
-            // If Enter is pressed while an item is selected
-            const item = loadedItems[selectedIndex];
-            if (!isDisabled?.(item)) {
-              onSelect(item);
               setIsOpen(false);
               setSelectedIndex(-1);
             }
