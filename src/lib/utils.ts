@@ -72,6 +72,22 @@ export function puzzleHash(address: string): string {
   return info.puzzleHash;
 }
 
+export function isValidAddress(address: string, prefix: string): boolean {
+  if (!address.startsWith(prefix)) {
+    return false;
+  }
+
+  try {
+    return addressInfo(address).puzzleHash.length === 64;
+  } catch (error) {
+    return false;
+  }
+}
+
+export function isValidAssetId(assetId: string): boolean {
+  return /^asset[a-zA-Z0-9]{59}$/.test(assetId);
+}
+
 function sanitizeHex(hex: string): string {
   return hex.replace(/0x/i, '');
 }

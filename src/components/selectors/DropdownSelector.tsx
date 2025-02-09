@@ -133,7 +133,7 @@ export function DropdownSelector<T>({
   // Add new effect to handle search text changes
   useEffect(() => {
     if (!setPage || !inputRef.current) return;
-    
+
     const handleInput = () => {
       if (page !== 0) {
         setTimeout(() => {

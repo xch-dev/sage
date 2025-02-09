@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Input } from '../ui/input';
 import { DropdownSelector } from './DropdownSelector';
 import { t } from '@lingui/core/macro';
+import { isValidAddress } from '@/lib/utils';
 
 export interface NftSelectorProps {
   value: string | null;
@@ -33,8 +34,7 @@ export function NftSelector({
   const pageSize = 8;
 
   const isValidNftId = useMemo(() => {
-    // NFT ID format: nft followed by 59 alphanumeric characters
-    return /^nft[a-zA-Z0-9]{59}$/.test(searchTerm);
+    return isValidAddress(searchTerm, 'nft');
   }, [searchTerm]);
 
   useEffect(() => {
@@ -115,7 +115,7 @@ export function NftSelector({
             const newValue = e.target.value;
             setSearchTerm(newValue);
 
-            if (/^nft[a-zA-Z0-9]{59}$/.test(newValue)) {
+            if (isValidAddress(newValue, 'nft')) {
               onChange(newValue);
             }
           }}

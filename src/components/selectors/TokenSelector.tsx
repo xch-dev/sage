@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Input } from '../ui/input';
 import { DropdownSelector } from './DropdownSelector';
 import { t } from '@lingui/core/macro';
+import { isValidAssetId } from '@/lib/utils';
 
 export interface TokenSelectorProps {
   value: string | null;
@@ -46,10 +47,7 @@ export function TokenSelector({
     if (!token.visible) return false;
     if (!searchTerm) return true;
 
-    // Check if search term is a valid asset ID format (64 hex characters)
-    const isAssetIdFormat = /^[a-fA-F0-9]{64}$/.test(searchTerm);
-
-    if (isAssetIdFormat) {
+    if (isValidAssetId(searchTerm)) {
       return token.asset_id.toLowerCase() === searchTerm.toLowerCase();
     }
 
