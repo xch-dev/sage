@@ -72,6 +72,19 @@ export function puzzleHash(address: string): string {
   return info.puzzleHash;
 }
 
+export function isValidAddress(address: string, prefix: string): boolean {
+  try {
+    const info = addressInfo(address);
+    return info.puzzleHash.length === 64 && info.prefix === prefix;
+  } catch (error) {
+    return false;
+  }
+}
+
+export function isValidAssetId(assetId: string): boolean {
+  return /^[a-fA-F0-9]{64}$/.test(assetId);
+}
+
 function sanitizeHex(hex: string): string {
   return hex.replace(/0x/i, '');
 }

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Input } from '../ui/input';
 import { DropdownSelector } from './DropdownSelector';
 import { t } from '@lingui/core/macro';
+import { isValidAssetId } from '@/lib/utils';
 
 export interface TokenSelectorProps {
   value: string | null;
@@ -22,6 +23,7 @@ export function TokenSelector({
 
   const [tokens, setTokens] = useState<CatRecord[]>([]);
   const [selectedToken, setSelectedToken] = useState<CatRecord | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     commands
@@ -40,7 +42,21 @@ export function TokenSelector({
       .catch(addError);
   }, [addError, tokens.length, value, selectedToken]);
 
-  const filteredTokens = tokens.filter((token) => token.visible);
+  // Filter tokens based on search term or show all if it's a valid asset ID
+  const filteredTokens = tokens.filter((token) => {
+    if (!token.visible) return false;
+    if (!searchTerm) return true;
+
+    if (isValidAssetId(searchTerm)) {
+      return token.asset_id.toLowerCase() === searchTerm.toLowerCase();
+    }
+
+    // Search by name and ticker
+    return (
+      token.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      token.ticker?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  });
 
   return (
     <DropdownSelector
@@ -50,25 +66,31 @@ export function TokenSelector({
       onSelect={(token) => {
         onChange(token.asset_id);
         setSelectedToken(token);
+        setSearchTerm('');
       }}
       className={className}
       manualInput={
         <Input
-          placeholder='Enter asset id'
-          value={value || ''}
+          placeholder={t`Search or enter asset id`}
+          value={searchTerm}
           onChange={(e) => {
-            onChange(e.target.value);
-            setSelectedToken(
-              tokens.find((token) => token.asset_id === e.target.value) ?? {
-                name: 'Unknown',
-                asset_id: e.target.value,
-                icon_url: null,
-                balance: 0,
-                ticker: null,
-                description: null,
-                visible: true,
-              },
-            );
+            const newValue = e.target.value;
+            setSearchTerm(newValue);
+
+            if (/^[a-fA-F0-9]{64}$/.test(newValue)) {
+              onChange(newValue);
+              setSelectedToken(
+                tokens.find((token) => token.asset_id === newValue) ?? {
+                  name: 'Unknown',
+                  asset_id: newValue,
+                  icon_url: null,
+                  balance: 0,
+                  ticker: null,
+                  description: null,
+                  visible: true,
+                },
+              );
+            }
           }}
         />
       }
@@ -78,12 +100,19 @@ export function TokenSelector({
             <img
               src={token.icon_url}
               className='w-10 h-10 rounded object-cover'
-              alt={token.name ?? t`Unknown`}
+              alt={token.name ?? t`Unknown token`}
+              aria-hidden='true'
             />
           )}
           <div className='flex flex-col truncate'>
-            <span className='flex-grow truncate'>{token.name}</span>
-            <span className='text-xs text-muted-foreground truncate'>
+            <span className='flex-grow truncate' role='text'>
+              {token.name}
+              {token.ticker && ` (${token.ticker})`}
+            </span>
+            <span
+              className='text-xs text-muted-foreground truncate'
+              aria-label='Asset ID'
+            >
               {token.asset_id}
             </span>
           </div>
@@ -100,11 +129,13 @@ export function TokenSelector({
                 ? `Image of ${selectedToken.name}`
                 : 'No token name'
             }
+            aria-hidden='true'
           />
         )}
         <div className='flex flex-col truncate text-left'>
           <span className='truncate'>
-            {selectedToken?.name ?? 'Select Token'}
+            {selectedToken?.name ?? t`Select Token`}
+            {selectedToken?.ticker && ` (${selectedToken.ticker})`}
           </span>
           <span className='text-xs text-muted-foreground truncate'>
             {selectedToken?.asset_id}
