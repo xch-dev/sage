@@ -49,7 +49,7 @@ export const Pagination = ({
       className='flex justify-between gap-2'
     >
       <div
-        className={`flex items-center justify-start ${compact ? 'gap-1 md:gap-3' : 'gap-3'}`}
+        className={`flex items-center justify-start gap-2`}
       >
         <Button
           size='icon'
@@ -119,7 +119,7 @@ export const Pagination = ({
       </div>
 
       <div
-        className={`${compact ? 'hidden md:flex' : 'flex'} items-center gap-2`}
+        className='flex items-center gap-2'
       >
         <label id='items-per-page-label' className='sr-only'>
           <Trans>Items per page</Trans>
