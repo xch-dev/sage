@@ -130,6 +130,22 @@ export function DropdownSelector<T>({
     }
   }, [isOpen]);
 
+  // Add new effect to handle search text changes
+  useEffect(() => {
+    if (!setPage || !inputRef.current) return;
+    
+    const handleInput = () => {
+      if (page !== 0) {
+        setPage(0);
+      }
+    };
+
+    inputRef.current.addEventListener('input', handleInput);
+    return () => {
+      inputRef.current?.removeEventListener('input', handleInput);
+    };
+  }, [setPage, page, inputRef]);
+
   return (
     <div
       className='min-w-0 flex-grow relative'
@@ -169,7 +185,9 @@ export function DropdownSelector<T>({
                     size='icon'
                     onClick={(e) => {
                       e.preventDefault();
+                      e.stopPropagation();
                       setPage(Math.max(0, page - 1));
+                      inputRef.current?.focus();
                     }}
                     disabled={page === 0}
                     aria-label='Previous page'
@@ -181,8 +199,10 @@ export function DropdownSelector<T>({
                     size='icon'
                     onClick={(e) => {
                       e.preventDefault();
+                      e.stopPropagation();
                       if (loadedItems.length < pageSize) return;
                       setPage(page + 1);
+                      inputRef.current?.focus();
                     }}
                     aria-label='Next page'
                   >
