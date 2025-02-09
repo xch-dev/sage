@@ -28,7 +28,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
         addError(error as CustomError);
       }
     };
-    
+
     init();
   }, [addError]);
 
