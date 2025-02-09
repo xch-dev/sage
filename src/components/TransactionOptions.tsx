@@ -78,7 +78,7 @@ export function TransactionOptions({
           total={total}
           pageSize={pageSize}
           onPageChange={(newPage) => onParamsChange({ page: newPage })}
-          onPageSizeChange={(newSize) => onParamsChange({ pageSize: newSize })}
+          onPageSizeChange={(newSize) => onParamsChange({ pageSize: newSize, page: 1 })}
           pageSizeOptions={[10, 25, 50, 100]}
           compact={true}
           isLoading={isLoading}
