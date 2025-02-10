@@ -14,6 +14,8 @@ pub struct MakeOffer {
     pub receive_address: Option<String>,
     #[serde(default)]
     pub expires_at_second: Option<u64>,
+    #[serde(default = "yes")]
+    pub auto_import: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -45,6 +47,8 @@ pub struct TakeOffer {
     pub fee: Amount,
     #[serde(default)]
     pub auto_submit: bool,
+    #[serde(default = "yes")]
+    pub auto_import: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -131,3 +135,7 @@ pub struct CancelOffer {
 }
 
 pub type CancelOfferResponse = TransactionResponse;
+
+fn yes() -> bool {
+    true
+}

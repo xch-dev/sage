@@ -118,8 +118,17 @@ impl Sage {
             )
             .await?;
 
+        let encoded_offer = offer.encode()?;
+
+        if req.auto_import {
+            self.import_offer(ImportOffer {
+                offer: encoded_offer.clone(),
+            })
+            .await?;
+        }
+
         Ok(MakeOfferResponse {
-            offer: offer.encode()?,
+            offer: encoded_offer,
             offer_id: hex::encode(SpendBundle::from(offer).name()),
         })
     }
@@ -178,6 +187,10 @@ impl Sage {
 
         let json_bundle = json_bundle(&spend_bundle);
         let transaction_id = hex::encode(spend_bundle.name());
+
+        if req.auto_import {
+            self.import_offer(ImportOffer { offer: req.offer }).await?;
+        }
 
         Ok(TakeOfferResponse {
             summary: self
