@@ -17,7 +17,7 @@ msgstr ""
 #~ msgid "(connecting...)"
 #~ msgstr ""
 
-#: src/pages/DidList.tsx:91
+#: src/pages/DidList.tsx:94
 msgid "{didsCount, plural, one {You do not currently have any DID profile. Would you like to create one?} other {You do not currently have any DID profiles. Would you like to create one?}}"
 msgstr "{didsCount, plural, one {Sie haben derzeit noch kein DID-Profil. Möchten Sie eines erstellen?} other {Sie haben derzeit noch keine DID Profile. Möchten Sie eines erstellen?}}"
 
@@ -282,7 +282,7 @@ msgstr "Massentransfer NFTs"
 #~ msgid "Bulk Unassign Profile"
 #~ msgstr "Massenaufhebung der Profilzuordnung"
 
-#: src/pages/DidList.tsx:243
+#: src/pages/DidList.tsx:246
 #: src/components/NftCard.tsx:363
 #: src/components/MultiSelectActions.tsx:144
 msgid "Burn"
@@ -300,7 +300,7 @@ msgstr ""
 msgid "Burn NFT"
 msgstr "NFT verbrennen"
 
-#: src/pages/DidList.tsx:344
+#: src/pages/DidList.tsx:361
 msgid "Burn Profile"
 msgstr "Profil verbrennen"
 
@@ -319,7 +319,7 @@ msgstr "Wenn Sie diese Funktion deaktivieren, erstellen Sie ein Cold Wallet, in 
 #: src/pages/Login.tsx:368
 #: src/pages/Login.tsx:396
 #: src/pages/Login.tsx:446
-#: src/pages/DidList.tsx:325
+#: src/pages/DidList.tsx:342
 #: src/pages/CreateWallet.tsx:252
 #: src/pages/Addresses.tsx:293
 #: src/components/TransferDialog.tsx:114
@@ -467,6 +467,7 @@ msgid "Copy {cardName} ID to clipboard"
 msgstr ""
 
 #: src/pages/Offers.tsx:328
+#: src/pages/DidList.tsx:262
 #: src/components/NftGroupCard.tsx:317
 #: src/components/NftCard.tsx:450
 msgid "Copy ID"
@@ -488,7 +489,7 @@ msgstr "Erstellen"
 msgid "Create a new offer to get started with peer-to-peer trading."
 msgstr "Erstellen Sie ein neues Offer, um mit dem Peer-to-Peer-Handel zu beginnen."
 
-#: src/pages/DidList.tsx:88
+#: src/pages/DidList.tsx:91
 msgid "Create a profile?"
 msgstr "Ein Profil erstellen?"
 
@@ -501,7 +502,7 @@ msgstr ""
 msgid "Create Offer"
 msgstr "Offer Erstellen"
 
-#: src/pages/DidList.tsx:68
+#: src/pages/DidList.tsx:71
 #: src/pages/CreateProfile.tsx:58
 #: src/pages/CreateProfile.tsx:105
 msgid "Create Profile"
@@ -607,6 +608,10 @@ msgstr ""
 msgid "Dexie Link"
 msgstr "Dexie Link"
 
+#: src/pages/DidList.tsx:257
+msgid "DID ID copied to clipboard"
+msgstr ""
+
 #: src/pages/CreateWallet.tsx:240
 msgid "Did you save your mnemonic?"
 msgstr "Haben Sie Ihre Mnemonic gespeichert?"
@@ -702,7 +707,7 @@ msgstr "IP-Adresse des Peers eingeben, mit dem Sie sich verbinden möchten."
 msgid "Enter the new display details for this token"
 msgstr "Display-Details für neues Token eingeben"
 
-#: src/pages/DidList.tsx:295
+#: src/pages/DidList.tsx:312
 msgid "Enter the new display name for this profile."
 msgstr "Geben Sie den neuen Anzeigenamen für dieses Profil ein."
 
@@ -835,7 +840,7 @@ msgid "Height:"
 msgstr "Höhe:"
 
 #: src/pages/Token.tsx:388
-#: src/pages/DidList.tsx:274
+#: src/pages/DidList.tsx:291
 #: src/components/NftGroupCard.tsx:285
 #: src/components/NftCard.tsx:435
 msgid "Hide"
@@ -1096,7 +1101,7 @@ msgstr "Mnemonic"
 
 #: src/pages/Token.tsx:431
 #: src/pages/IssueToken.tsx:74
-#: src/pages/DidList.tsx:301
+#: src/pages/DidList.tsx:318
 #: src/pages/CreateProfile.tsx:69
 #: src/components/TokenListView.tsx:36
 msgid "Name"
@@ -1243,11 +1248,11 @@ msgstr "Keine Ergebnisse."
 msgid "None"
 msgstr "Nichts"
 
-#: src/pages/DidList.tsx:229
+#: src/pages/DidList.tsx:232
 msgid "Normalize"
 msgstr ""
 
-#: src/pages/DidList.tsx:356
+#: src/pages/DidList.tsx:373
 msgid "Normalize Profile"
 msgstr ""
 
@@ -1421,7 +1426,7 @@ msgstr ""
 msgid "Profile is required"
 msgstr "Profil ist erforderlich"
 
-#: src/pages/DidList.tsx:305
+#: src/pages/DidList.tsx:322
 msgid "Profile name"
 msgstr "Profilname"
 
@@ -1429,7 +1434,7 @@ msgstr "Profilname"
 #~ msgid "Profile NFTs"
 #~ msgstr ""
 
-#: src/pages/DidList.tsx:62
+#: src/pages/DidList.tsx:65
 #: src/components/Nav.tsx:58
 msgid "Profiles"
 msgstr "Profile"
@@ -1493,12 +1498,12 @@ msgstr "Info aktualisieren"
 #: src/pages/Token.tsx:479
 #: src/pages/Login.tsx:266
 #: src/pages/Login.tsx:449
-#: src/pages/DidList.tsx:258
-#: src/pages/DidList.tsx:328
+#: src/pages/DidList.tsx:275
+#: src/pages/DidList.tsx:345
 msgid "Rename"
 msgstr "Umbenennen"
 
-#: src/pages/DidList.tsx:292
+#: src/pages/DidList.tsx:309
 msgid "Rename Profile"
 msgstr "Profil umbenennen"
 
@@ -1671,7 +1676,7 @@ msgid "Settings"
 msgstr "Einstellungen"
 
 #: src/pages/Token.tsx:388
-#: src/pages/DidList.tsx:274
+#: src/pages/DidList.tsx:291
 #: src/components/NftGroupCard.tsx:292
 #: src/components/NftCard.tsx:435
 msgid "Show"
@@ -1934,7 +1939,7 @@ msgstr "Dadurch werden alle ausgewählten Coins zu einem einzigen kombiniert."
 msgid "This will delete the offer from the wallet, but if it's shared externally it can still be accepted. The only way to truly cancel a public offer is by spending one or more of its coins."
 msgstr "Dadurch wird das Offer aus dem Wallet gelöscht, aber wenn es extern geteilt wird, kann es immer noch akzeptiert werden. Der einzige Weg, ein öffentliches Angebot wirklich zu stornieren, besteht darin, einen oder mehrere seiner Coins auszugeben."
 
-#: src/pages/DidList.tsx:361
+#: src/pages/DidList.tsx:378
 msgid "This will modify the profile's recovery info to be compatible with the Chia reference wallet."
 msgstr ""
 
@@ -1942,7 +1947,7 @@ msgstr ""
 msgid "This will permanently delete the NFT by sending it to the burn address."
 msgstr "Dadurch wird das NFT dauerhaft gelöscht, indem es an die Burn-Adresse gesendet wird."
 
-#: src/pages/DidList.tsx:349
+#: src/pages/DidList.tsx:366
 msgid "This will permanently delete the profile by sending it to the burn address."
 msgstr "Dadurch wird das Profil dauerhaft gelöscht, indem es an die Burn-Adresse gesendet wird."
 
@@ -1950,7 +1955,7 @@ msgstr "Dadurch wird das Profil dauerhaft gelöscht, indem es an die Burn-Adress
 msgid "This will send the NFT to the provided address."
 msgstr "Dadurch wird das NFT an die angegebene Adresse gesendet."
 
-#: src/pages/DidList.tsx:340
+#: src/pages/DidList.tsx:357
 msgid "This will send the profile to the provided address."
 msgstr "Dadurch wird das Profil an die angegebene Adresse gesendet."
 
@@ -2024,7 +2029,7 @@ msgstr "Signierte Transaktion"
 msgid "Transactions"
 msgstr "Transaktionen"
 
-#: src/pages/DidList.tsx:215
+#: src/pages/DidList.tsx:218
 #: src/components/TransferDialog.tsx:117
 #: src/components/NftCard.tsx:311
 #: src/components/MultiSelectActions.tsx:116
@@ -2046,7 +2051,7 @@ msgstr ""
 msgid "Transfer NFT"
 msgstr "NFT transferieren"
 
-#: src/pages/DidList.tsx:335
+#: src/pages/DidList.tsx:352
 msgid "Transfer Profile"
 msgstr "Profil transferieren"
 
@@ -2140,7 +2145,7 @@ msgstr ""
 msgid "Unspent"
 msgstr "Nicht ausgegeben"
 
-#: src/pages/DidList.tsx:196
+#: src/pages/DidList.tsx:199
 #: src/components/NftPageTitle.tsx:29
 #: src/components/NftGroupCard.tsx:89
 msgid "Untitled Profile"
@@ -2187,7 +2192,7 @@ msgid "View Chia token details"
 msgstr ""
 
 #: src/pages/TokenList.tsx:254
-#: src/pages/DidList.tsx:74
+#: src/pages/DidList.tsx:77
 msgid "View hidden"
 msgstr "Versteckte anzeigen"
 

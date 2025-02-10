@@ -17,7 +17,7 @@ msgstr ""
 #~ msgid "(connecting...)"
 #~ msgstr ""
 
-#: src/pages/DidList.tsx:91
+#: src/pages/DidList.tsx:94
 msgid "{didsCount, plural, one {You do not currently have any DID profile. Would you like to create one?} other {You do not currently have any DID profiles. Would you like to create one?}}"
 msgstr "{didsCount, plural, one {当前还没有任何DID. 立即创建一个?} other {当前还没有任何DID. 立即创建一个?}}"
 
@@ -282,7 +282,7 @@ msgstr "批量转移NFT"
 #~ msgid "Bulk Unassign Profile"
 #~ msgstr "批量解除分配个人资料"
 
-#: src/pages/DidList.tsx:243
+#: src/pages/DidList.tsx:246
 #: src/components/NftCard.tsx:363
 #: src/components/MultiSelectActions.tsx:144
 msgid "Burn"
@@ -300,7 +300,7 @@ msgstr ""
 msgid "Burn NFT"
 msgstr "销毁NFT"
 
-#: src/pages/DidList.tsx:344
+#: src/pages/DidList.tsx:361
 msgid "Burn Profile"
 msgstr "销毁个人资料"
 
@@ -319,7 +319,7 @@ msgstr "禁用此功能后, 将创建一个冷钱包, 该钱包无法签署交�
 #: src/pages/Login.tsx:368
 #: src/pages/Login.tsx:396
 #: src/pages/Login.tsx:446
-#: src/pages/DidList.tsx:325
+#: src/pages/DidList.tsx:342
 #: src/pages/CreateWallet.tsx:252
 #: src/pages/Addresses.tsx:293
 #: src/components/TransferDialog.tsx:114
@@ -466,6 +466,7 @@ msgid "Copy {cardName} ID to clipboard"
 msgstr ""
 
 #: src/pages/Offers.tsx:328
+#: src/pages/DidList.tsx:262
 #: src/components/NftGroupCard.tsx:317
 #: src/components/NftCard.tsx:450
 msgid "Copy ID"
@@ -487,7 +488,7 @@ msgstr "创建"
 msgid "Create a new offer to get started with peer-to-peer trading."
 msgstr "创建一个新报价以开始点对点交易."
 
-#: src/pages/DidList.tsx:88
+#: src/pages/DidList.tsx:91
 msgid "Create a profile?"
 msgstr "创建个人资料?"
 
@@ -500,7 +501,7 @@ msgstr ""
 msgid "Create Offer"
 msgstr "创建报价"
 
-#: src/pages/DidList.tsx:68
+#: src/pages/DidList.tsx:71
 #: src/pages/CreateProfile.tsx:58
 #: src/pages/CreateProfile.tsx:105
 msgid "Create Profile"
@@ -606,6 +607,10 @@ msgstr ""
 msgid "Dexie Link"
 msgstr "Dexie链接"
 
+#: src/pages/DidList.tsx:257
+msgid "DID ID copied to clipboard"
+msgstr ""
+
 #: src/pages/CreateWallet.tsx:240
 msgid "Did you save your mnemonic?"
 msgstr "已保存好助记词?"
@@ -701,7 +706,7 @@ msgstr "输入想连接的节点 IP 地址."
 msgid "Enter the new display details for this token"
 msgstr "输入此代币的新显示详情"
 
-#: src/pages/DidList.tsx:295
+#: src/pages/DidList.tsx:312
 msgid "Enter the new display name for this profile."
 msgstr "输入此个人资料的新显示名称."
 
@@ -833,7 +838,7 @@ msgid "Height:"
 msgstr "高度:"
 
 #: src/pages/Token.tsx:388
-#: src/pages/DidList.tsx:274
+#: src/pages/DidList.tsx:291
 #: src/components/NftGroupCard.tsx:285
 #: src/components/NftCard.tsx:435
 msgid "Hide"
@@ -1094,7 +1099,7 @@ msgstr "助记词"
 
 #: src/pages/Token.tsx:431
 #: src/pages/IssueToken.tsx:74
-#: src/pages/DidList.tsx:301
+#: src/pages/DidList.tsx:318
 #: src/pages/CreateProfile.tsx:69
 #: src/components/TokenListView.tsx:36
 msgid "Name"
@@ -1241,11 +1246,11 @@ msgstr "无结果."
 msgid "None"
 msgstr "无"
 
-#: src/pages/DidList.tsx:229
+#: src/pages/DidList.tsx:232
 msgid "Normalize"
 msgstr ""
 
-#: src/pages/DidList.tsx:356
+#: src/pages/DidList.tsx:373
 msgid "Normalize Profile"
 msgstr ""
 
@@ -1418,7 +1423,7 @@ msgstr ""
 msgid "Profile is required"
 msgstr "需提供个人资料"
 
-#: src/pages/DidList.tsx:305
+#: src/pages/DidList.tsx:322
 msgid "Profile name"
 msgstr "个人资料名称"
 
@@ -1426,7 +1431,7 @@ msgstr "个人资料名称"
 #~ msgid "Profile NFTs"
 #~ msgstr ""
 
-#: src/pages/DidList.tsx:62
+#: src/pages/DidList.tsx:65
 #: src/components/Nav.tsx:58
 msgid "Profiles"
 msgstr "个人资料"
@@ -1490,12 +1495,12 @@ msgstr "刷新信息"
 #: src/pages/Token.tsx:479
 #: src/pages/Login.tsx:266
 #: src/pages/Login.tsx:449
-#: src/pages/DidList.tsx:258
-#: src/pages/DidList.tsx:328
+#: src/pages/DidList.tsx:275
+#: src/pages/DidList.tsx:345
 msgid "Rename"
 msgstr "重命名"
 
-#: src/pages/DidList.tsx:292
+#: src/pages/DidList.tsx:309
 msgid "Rename Profile"
 msgstr "重命名个人资料"
 
@@ -1668,7 +1673,7 @@ msgid "Settings"
 msgstr "设置"
 
 #: src/pages/Token.tsx:388
-#: src/pages/DidList.tsx:274
+#: src/pages/DidList.tsx:291
 #: src/components/NftGroupCard.tsx:292
 #: src/components/NftCard.tsx:435
 msgid "Show"
@@ -1929,7 +1934,7 @@ msgstr "这将把所有选中的币合并为一个."
 msgid "This will delete the offer from the wallet, but if it's shared externally it can still be accepted. The only way to truly cancel a public offer is by spending one or more of its coins."
 msgstr "这将从钱包中删除该报价, 但如果已被外部共享, 仍然可以被接受. 真正取消公共报价的唯一方式是花费其中一个或多个币."
 
-#: src/pages/DidList.tsx:361
+#: src/pages/DidList.tsx:378
 msgid "This will modify the profile's recovery info to be compatible with the Chia reference wallet."
 msgstr ""
 
@@ -1937,7 +1942,7 @@ msgstr ""
 msgid "This will permanently delete the NFT by sending it to the burn address."
 msgstr "这将通过把 NFT 发送到销毁地址来永久删除它."
 
-#: src/pages/DidList.tsx:349
+#: src/pages/DidList.tsx:366
 msgid "This will permanently delete the profile by sending it to the burn address."
 msgstr "这将通过把个人资料发送到销毁地址来永久删除它."
 
@@ -1945,7 +1950,7 @@ msgstr "这将通过把个人资料发送到销毁地址来永久删除它."
 msgid "This will send the NFT to the provided address."
 msgstr "这将把NFT发送到提供的地址."
 
-#: src/pages/DidList.tsx:340
+#: src/pages/DidList.tsx:357
 msgid "This will send the profile to the provided address."
 msgstr "这将把个人资料发送到提供的地址."
 
@@ -2019,7 +2024,7 @@ msgstr "已签名交易"
 msgid "Transactions"
 msgstr "交易"
 
-#: src/pages/DidList.tsx:215
+#: src/pages/DidList.tsx:218
 #: src/components/TransferDialog.tsx:117
 #: src/components/NftCard.tsx:311
 #: src/components/MultiSelectActions.tsx:116
@@ -2041,7 +2046,7 @@ msgstr ""
 msgid "Transfer NFT"
 msgstr "转移NFT"
 
-#: src/pages/DidList.tsx:335
+#: src/pages/DidList.tsx:352
 msgid "Transfer Profile"
 msgstr "转移个人资料"
 
@@ -2134,7 +2139,7 @@ msgstr ""
 msgid "Unspent"
 msgstr "未花费"
 
-#: src/pages/DidList.tsx:196
+#: src/pages/DidList.tsx:199
 #: src/components/NftPageTitle.tsx:29
 #: src/components/NftGroupCard.tsx:89
 msgid "Untitled Profile"
@@ -2181,7 +2186,7 @@ msgid "View Chia token details"
 msgstr ""
 
 #: src/pages/TokenList.tsx:254
-#: src/pages/DidList.tsx:74
+#: src/pages/DidList.tsx:77
 msgid "View hidden"
 msgstr "查看已隐藏的"
 
