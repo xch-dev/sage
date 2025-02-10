@@ -22,6 +22,8 @@ import { useErrors } from '@/hooks/useErrors';
 import { uploadToDexie, uploadToMintGarden } from '@/lib/offerUpload';
 import { toMojos } from '@/lib/utils';
 import { clearOffer, useOfferState, useWalletState } from '@/state';
+import { t } from '@lingui/core/macro';
+import { Trans } from '@lingui/react/macro';
 import { open } from '@tauri-apps/plugin-shell';
 import {
   HandCoins,
@@ -33,8 +35,6 @@ import {
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trans } from '@lingui/react/macro';
-import { t } from '@lingui/core/macro';
 
 export function MakeOffer() {
   const state = useOfferState();
@@ -104,8 +104,6 @@ export function MakeOffer() {
             Number(state.expiration.hours || '0') * 60 * 60 +
             Number(state.expiration.minutes || '0') * 60,
     });
-
-    await commands.importOffer({ offer: data.offer });
 
     clearOffer();
     setOffer(data.offer);
