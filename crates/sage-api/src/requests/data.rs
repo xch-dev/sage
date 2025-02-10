@@ -5,6 +5,18 @@ use crate::{
     NftRecord, PendingTransactionRecord, TransactionRecord, Unit,
 };
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct CheckAddress {
+    pub address: String,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct CheckAddressResponse {
+    pub valid: bool,
+}
+
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct GetDerivations {

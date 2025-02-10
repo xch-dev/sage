@@ -342,6 +342,15 @@ pub async fn get_sync_status(
 
 #[command]
 #[specta]
+pub async fn check_address(
+    state: State<'_, AppState>,
+    req: CheckAddress,
+) -> Result<CheckAddressResponse> {
+    Ok(state.lock().await.check_address(req).await?)
+}
+
+#[command]
+#[specta]
 pub async fn get_derivations(
     state: State<'_, AppState>,
     req: GetDerivations,
