@@ -75,3 +75,14 @@ RUST_LOG=debug,sqlx=off cargo t -p sage-wallet
 The `sqlx=off` portion gets rid of noisy log spam from SQLx.
 
 Most of the tests for the underlying coin spend implementations live in the Wallet SDK repo.
+
+### Before Release
+
+The following things have to be done before a new release is published:
+
+1. Bump the version of all crates
+2. Bump the versions in `src-tauri/gen/apple/sage-tauri_iOS/Info.plist`
+3. Run `pnpm prettier` to format the code
+4. Run `pnpm extract` to extract new translations
+5. Create a new tagged release
+6. Upload to TestFlight and the Google Play Store

@@ -32,8 +32,10 @@ import { toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Plural, Trans } from '@lingui/react/macro';
+import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 import {
   ActivityIcon,
+  Copy,
   EyeIcon,
   EyeOff,
   Flame,
@@ -46,6 +48,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import { commands, DidRecord, TransactionResponse } from '../bindings';
 
 export function DidList() {
@@ -245,6 +248,20 @@ function Profile({ did, updateDids }: ProfileProps) {
                 </DropdownMenuItem>
 
                 <DropdownMenuSeparator />
+
+                <DropdownMenuItem
+                  className='cursor-pointer'
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    writeText(did.launcher_id);
+                    toast.success(t`DID ID copied to clipboard`);
+                  }}
+                >
+                  <Copy className='mr-2 h-4 w-4' />
+                  <span>
+                    <Trans>Copy ID</Trans>
+                  </span>
+                </DropdownMenuItem>
 
                 <DropdownMenuItem
                   className='cursor-pointer'
