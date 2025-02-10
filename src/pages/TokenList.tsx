@@ -18,6 +18,8 @@ import { TokenListView } from '@/components/TokenListView';
 import { TokenGridView } from '@/components/TokenGridView';
 import { TokenOptions } from '@/components/TokenOptions';
 import { TokenSortMode } from '@/hooks/useTokenParams';
+import { TokenRecord } from '@/types/TokenViewProps';
+import { toast } from 'react-toastify';
 
 export function TokenList() {
   const navigate = useNavigate();
@@ -114,6 +116,33 @@ export function TokenList() {
     };
   }, [updateCats]);
 
+  const tokenActionHandlers = {
+    onEdit: (asset: TokenRecord) => {
+      navigate(`/wallet/token/${asset.asset_id}`);
+    },
+    onRefreshInfo: (assetId: string) => {
+      if (assetId === 'xch') return;
+      commands
+        .removeCat({ asset_id: assetId })
+        .then(() => {
+          updateCats();
+          toast.success(t`Refreshing token info...`);
+        })
+        .catch(addError);
+    },
+    onToggleVisibility: (asset: TokenRecord) => {
+      if (asset.asset_id === 'xch') return;
+      const updatedCat = cats.find((cat) => cat.asset_id === asset.asset_id);
+      if (!updatedCat) return;
+
+      updatedCat.visible = !updatedCat.visible;
+      commands
+        .updateCat({ record: updatedCat })
+        .then(() => updateCats())
+        .catch(addError);
+    },
+  };
+
   return (
     <>
       <Header title={<Trans>Assets</Trans>}>
@@ -180,6 +209,7 @@ export function TokenList() {
                 ),
               ),
             )}
+            actionHandlers={tokenActionHandlers}
           />
         ) : (
           <div className='mt-4'>
@@ -197,6 +227,7 @@ export function TokenList() {
                   ),
                 ),
               )}
+              actionHandlers={tokenActionHandlers}
             />
           </div>
         )}

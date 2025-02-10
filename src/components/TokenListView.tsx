@@ -1,10 +1,13 @@
 import { DataTable } from '@/components/ui/data-table';
 import { TokenViewProps } from '@/types/TokenViewProps';
-import { columns, TokenRecord } from './TokenColumns';
+import { columns, TokenActionHandlers } from './TokenColumns';
+import { TokenRecord } from '@/types/TokenViewProps';
 import { t } from '@lingui/core/macro';
 import { cn } from '@/lib/utils';
 
-type TokenListViewProps = TokenViewProps;
+type TokenListViewProps = TokenViewProps & {
+  actionHandlers?: TokenActionHandlers;
+};
 
 export function TokenListView({
   cats,
@@ -12,6 +15,7 @@ export function TokenListView({
   xchDecimals,
   xchBalanceUsd,
   xchPrice,
+  actionHandlers,
 }: TokenListViewProps) {
   const tokens: TokenRecord[] = [
     {
@@ -42,7 +46,7 @@ export function TokenListView({
   return (
     <div role='region' aria-label={t`Token List`}>
       <DataTable
-        columns={columns}
+        columns={columns(actionHandlers)}
         data={tokens}
         aria-label={t`Token list`}
         getRowStyles={(row) => ({

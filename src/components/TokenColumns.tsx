@@ -4,21 +4,26 @@ import { Trans } from '@lingui/react/macro';
 import { Link } from 'react-router-dom';
 import { NumberFormat } from './NumberFormat';
 import { toDecimal, formatUsdPrice } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { MoreHorizontal } from 'lucide-react';
+import { toast } from 'react-toastify';
+import { TokenRecord } from '@/types/TokenViewProps';
 
-export interface TokenRecord {
-  asset_id: string;
-  name: string | null;
-  ticker: string | null;
-  icon_url: string | null;
-  balance: number | string;
-  balanceInUsd: number;
-  priceInUsd: number;
-  decimals: number;
-  isXch?: boolean;
-  visible?: boolean;
+// Add new interface for token action handlers
+export interface TokenActionHandlers {
+  onRefreshInfo?: (assetId: string) => void;
+  onToggleVisibility?: (asset: TokenRecord) => void;
 }
 
-export const columns: ColumnDef<TokenRecord>[] = [
+export const columns = (
+  actionHandlers?: TokenActionHandlers,
+): ColumnDef<TokenRecord>[] => [
   {
     id: 'icon',
     header: () => <span className='sr-only'>{t`Token Icon`}</span>,
@@ -130,5 +135,67 @@ export const columns: ColumnDef<TokenRecord>[] = [
         {formatUsdPrice(row.original.priceInUsd)}
       </div>
     ),
+  },
+  {
+    id: 'actions',
+    enableSorting: false,
+    cell: ({ row }) => {
+      const record = row.original;
+      const balance = toDecimal(record.balance, record.decimals);
+
+      return (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant='ghost'
+              className='h-6 w-6 p-0'
+              aria-label={t`Open actions menu`}
+            >
+              <span className='sr-only'>{t`Open menu`}</span>
+              <MoreHorizontal className='h-4 w-4' aria-hidden='true' />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align='end'>
+            {!record.isXch && (
+              <>
+                {actionHandlers?.onRefreshInfo && (
+                  <DropdownMenuItem
+                    onClick={() =>
+                      actionHandlers.onRefreshInfo?.(record.asset_id)
+                    }
+                  >
+                    <Trans>Refresh Info</Trans>
+                  </DropdownMenuItem>
+                )}
+                {actionHandlers?.onToggleVisibility && (
+                  <DropdownMenuItem
+                    onClick={() => actionHandlers.onToggleVisibility?.(record)}
+                  >
+                    {record.visible ? <Trans>Hide</Trans> : <Trans>Show</Trans>}{' '}
+                    <Trans>Asset</Trans>
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem
+                  onClick={() => {
+                    navigator.clipboard.writeText(record.asset_id);
+                    toast.success(t`Asset ID copied to clipboard`);
+                  }}
+                >
+                  <Trans>Copy Asset ID</Trans>
+                </DropdownMenuItem>
+              </>
+            )}
+            <DropdownMenuItem
+              onClick={() => {
+                navigator.clipboard.writeText(balance.toString());
+                toast.success(t`Balance copied to clipboard`);
+              }}
+            >
+              <Trans>Copy Balance</Trans>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      );
+    },
   },
 ];
