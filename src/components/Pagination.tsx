@@ -48,9 +48,7 @@ export const Pagination = ({
       aria-label={t`Pagination`}
       className='flex justify-between gap-2'
     >
-      <div
-        className={`flex items-center justify-start ${compact ? 'gap-1 md:gap-3' : 'gap-3'}`}
-      >
+      <div className={`flex items-center justify-start gap-2`}>
         <Button
           size='icon'
           variant='outline'
@@ -118,15 +116,12 @@ export const Pagination = ({
         </Button>
       </div>
 
-      <div
-        className={`${compact ? 'hidden md:flex' : 'flex'} items-center gap-2`}
-      >
+      <div className='flex items-center gap-2'>
         <label id='items-per-page-label' className='sr-only'>
           <Trans>Items per page</Trans>
         </label>
         <Select
           onValueChange={(value) => {
-            onPageChange(1);
             onPageSizeChange(parseInt(value));
           }}
           defaultValue={pageSize.toString()}

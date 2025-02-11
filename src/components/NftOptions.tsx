@@ -237,9 +237,9 @@ export function NftOptions({
                   )}
                   <span>
                     {showHidden ? (
-                      <Trans>Hide Hidden Items</Trans>
+                      <Trans>Conceal Hidden Items</Trans>
                     ) : (
-                      <Trans>Show Hidden Items</Trans>
+                      <Trans>Reveal Hidden Items</Trans>
                     )}
                   </span>
                 </DropdownMenuItem>
