@@ -542,7 +542,13 @@ function AssetSelector({
                 className='border-l-0 z-10 rounded-l-none rounded-r-none w-[100px] h-12'
                 placeholder={t`Amount`}
                 value={cat.amount}
+                onBlur={(e) => {
+                  console.log('onBlur CAT' + e.target.value);
+                  assets.cats[i].amount = e.target.value;
+                  setAssets({ ...assets });
+                }}
                 onChange={(e) => {
+                  console.log('onChange CAT' + e.target.value);
                   assets.cats[i].amount = e.target.value;
                   setAssets({ ...assets });
                 }}
