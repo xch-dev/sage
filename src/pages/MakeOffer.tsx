@@ -176,12 +176,15 @@ export function MakeOffer() {
                 <Trans>Network Fee</Trans>
               </Label>
               <div className='relative'>
-                <Input
+                <TokenAmountInput
                   id='fee'
                   type='text'
                   placeholder={'0.00'}
                   className='pr-12'
                   value={state.fee}
+                  onBlur={(e) =>
+                    useOfferState.setState({ fee: e.target.value })
+                  }
                   onChange={(e) =>
                     useOfferState.setState({ fee: e.target.value })
                   }
@@ -449,11 +452,12 @@ function AssetSelector({
         <div className='mt-4 flex flex-col space-y-1.5'>
           <Label htmlFor={`${prefix}-amount`}>XCH</Label>
           <div className='flex'>
-            <Input
+            <TokenAmountInput
               id={`${prefix}-amount`}
               className='rounded-r-none z-10'
               placeholder={t`Enter amount`}
               value={assets.xch}
+              onBlur={(e) => setAssets({ ...assets, xch: e.target.value })}
               onChange={(e) => setAssets({ ...assets, xch: e.target.value })}
             />
             <Button
