@@ -1,30 +1,20 @@
 import * as React from 'react';
 import { Input, InputProps } from './input';
-import { NumericFormat } from 'react-number-format';
+import { NumericFormat, NumericFormatProps } from 'react-number-format';
 
-interface MaskedInputProps extends InputProps {
+interface MaskedInputProps extends NumericFormatProps<InputProps> {
   inputRef?: React.Ref<HTMLInputElement>;
-  onValueChange?: (values: { floatValue?: number }) => void;
-  allowLeadingZeros?: boolean;
-  allowDecimal?: boolean;
-  allowNegative?: boolean;
-  allowThousands?: boolean;
-  allowLeadingZeroScale?: boolean;
-  allowDecimalScale?: boolean;
-  allowLeadingZeroWidth?: boolean;
-  allowLeadingZeroWidthScale?: boolean;
-  type?: 'text';
-  decimalScale?: number;
 }
 
 const MaskedInput = React.forwardRef<HTMLInputElement, MaskedInputProps>(
-  ({ inputRef, type = 'text', onValueChange, ...props }, ref) => (
+  ({ inputRef, type = 'text', onValueChange, value, ...props }, ref) => (
     <NumericFormat
       onValueChange={onValueChange}
       customInput={Input}
       getInputRef={inputRef || ref}
       displayType='input'
       type={type}
+      value={value}
       {...props}
     />
   ),
@@ -44,15 +34,9 @@ const TokenAmountInput = React.forwardRef<HTMLInputElement, XchInputProps>(
       {...props}
       type='text'
       inputRef={ref}
-      decimalScale={12}
+      decimalScale={decimals}
       allowLeadingZeros={false}
-      allowDecimal={true}
       allowNegative={false}
-      allowThousands={true}
-      allowLeadingZeroScale={false}
-      allowDecimalScale={true}
-      allowLeadingZeroWidth={false}
-      allowLeadingZeroWidthScale={false}
     />
   ),
 );
