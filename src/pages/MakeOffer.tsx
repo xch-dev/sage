@@ -183,7 +183,9 @@ export function MakeOffer() {
                   className='pr-12'
                   value={state.fee}
                   onValueChange={(values) => {
-                    useOfferState.setState({ fee: values.floatValue?.toString() ?? '' })
+                    useOfferState.setState({
+                      fee: values.floatValue?.toString() ?? '',
+                    });
                   }}
                 />
                 <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
@@ -455,7 +457,10 @@ function AssetSelector({
               placeholder={t`Enter amount`}
               value={assets.xch}
               onValueChange={(values) => {
-                setAssets({ ...assets, xch: values.floatValue?.toString() ?? '' });
+                setAssets({
+                  ...assets,
+                  xch: values.floatValue?.toString() ?? '',
+                });
               }}
             />
             <Button

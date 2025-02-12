@@ -13,21 +13,21 @@ interface MaskedInputProps extends InputProps {
   allowDecimalScale?: boolean;
   allowLeadingZeroWidth?: boolean;
   allowLeadingZeroWidthScale?: boolean;
-  type?: "text";
+  type?: 'text';
   decimalScale?: number;
 }
 
 const MaskedInput = React.forwardRef<HTMLInputElement, MaskedInputProps>(
-  ({ inputRef, type = "text", onValueChange, ...props }, ref) => (
+  ({ inputRef, type = 'text', onValueChange, ...props }, ref) => (
     <NumericFormat
       onValueChange={onValueChange}
       customInput={Input}
       getInputRef={inputRef || ref}
-      displayType="input"
+      displayType='input'
       type={type}
       {...props}
     />
-  )
+  ),
 );
 
 MaskedInput.displayName = 'MaskedInput';
@@ -42,7 +42,7 @@ const TokenAmountInput = React.forwardRef<HTMLInputElement, XchInputProps>(
     <MaskedInput
       placeholder='0.00'
       {...props}
-      type="text"
+      type='text'
       inputRef={ref}
       decimalScale={12}
       allowLeadingZeros={false}
