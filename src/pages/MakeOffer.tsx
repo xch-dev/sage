@@ -182,12 +182,9 @@ export function MakeOffer() {
                   placeholder={'0.00'}
                   className='pr-12'
                   value={state.fee}
-                  onBlur={(e) =>
-                    useOfferState.setState({ fee: e.target.value })
-                  }
-                  onChange={(e) =>
-                    useOfferState.setState({ fee: e.target.value })
-                  }
+                  onValueChange={(values) => {
+                    useOfferState.setState({ fee: values.floatValue?.toString() ?? '' })
+                  }}
                 />
                 <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
                   <span className='text-gray-500 text-sm' id='price-currency'>
@@ -457,8 +454,9 @@ function AssetSelector({
               className='rounded-r-none z-10'
               placeholder={t`Enter amount`}
               value={assets.xch}
-              onBlur={(e) => setAssets({ ...assets, xch: e.target.value })}
-              onChange={(e) => setAssets({ ...assets, xch: e.target.value })}
+              onValueChange={(values) => {
+                setAssets({ ...assets, xch: values.floatValue?.toString() ?? '' });
+              }}
             />
             <Button
               variant='outline'
@@ -546,12 +544,8 @@ function AssetSelector({
                 className='border-l-0 z-10 rounded-l-none rounded-r-none w-[100px] h-12'
                 placeholder={t`Amount`}
                 value={cat.amount}
-                onBlur={(e) => {
-                  assets.cats[i].amount = e.target.value;
-                  setAssets({ ...assets });
-                }}
-                onChange={(e) => {
-                  assets.cats[i].amount = e.target.value;
+                onValueChange={(values) => {
+                  assets.cats[i].amount = values.floatValue?.toString() ?? '';
                   setAssets({ ...assets });
                 }}
               />
