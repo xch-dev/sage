@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useErrors } from '@/hooks/useErrors';
 import { usePrices } from '@/hooks/usePrices';
 import { useTokenParams } from '@/hooks/useTokenParams';
-import { toDecimal } from '@/lib/utils';
+import { toDecimal, isValidAssetId } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { Coins, InfoIcon } from 'lucide-react';
@@ -78,6 +78,10 @@ export function TokenList() {
     }
 
     if (params.search) {
+      if (isValidAssetId(params.search)) {
+        return cat.asset_id.toLowerCase() === params.search.toLowerCase();
+      }
+
       const searchTerm = params.search.toLowerCase();
       const name = (cat.name || 'Unknown CAT').toLowerCase();
       const ticker = (cat.ticker || '').toLowerCase();
