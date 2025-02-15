@@ -95,10 +95,10 @@ export function FullLayout(props: LayoutProps) {
                   </button>
                 </TooltipTrigger>
                 <TooltipContent side='right' role='tooltip'>
-                  {isCollapsed 
-                    ? wallet?.name 
+                  {isCollapsed
+                    ? wallet?.name
                       ? t`Expand sidebar - ${wallet.name}`
-                      : t`Expand sidebar` 
+                      : t`Expand sidebar`
                     : t`Collapse sidebar`}
                 </TooltipContent>
               </Tooltip>
