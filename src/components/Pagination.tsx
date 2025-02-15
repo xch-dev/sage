@@ -116,39 +116,41 @@ export const Pagination = ({
         </Button>
       </div>
 
-      <div className='flex items-center gap-2'>
-        <label id='items-per-page-label' className='sr-only'>
-          <Trans>Items per page</Trans>
-        </label>
-        <Select
-          onValueChange={(value) => {
-            onPageSizeChange(parseInt(value));
-          }}
-          defaultValue={pageSize.toString()}
-          value={pageSize.toString()}
-          aria-labelledby='items-per-page-label'
-        >
-          <SelectTrigger
-            className='w-min'
-            aria-label={t`${pageSize} items per page`}
+      {!compact && (
+        <div className='flex items-center gap-2'>
+          <label id='items-per-page-label' className='sr-only'>
+            <Trans>Items per page</Trans>
+          </label>
+          <Select
+            onValueChange={(value) => {
+              onPageSizeChange(parseInt(value));
+            }}
+            defaultValue={pageSize.toString()}
+            value={pageSize.toString()}
+            aria-labelledby='items-per-page-label'
           >
-            {pageSize}
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              {pageSizeOptions.map((size) => (
-                <SelectItem
-                  key={size}
-                  value={size.toString()}
-                  aria-label={t`Show ${size} items per page`}
-                >
-                  {size}
-                </SelectItem>
-              ))}
-            </SelectGroup>
-          </SelectContent>
-        </Select>
-      </div>
+            <SelectTrigger
+              className='w-min'
+              aria-label={t`${pageSize} items per page`}
+            >
+              {pageSize}
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                {pageSizeOptions.map((size) => (
+                  <SelectItem
+                    key={size}
+                    value={size.toString()}
+                    aria-label={t`Show ${size} items per page`}
+                  >
+                    {size}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </div>
+      )}
     </nav>
   );
 };
