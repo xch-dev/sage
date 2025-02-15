@@ -17,6 +17,7 @@ import {
   NftData,
   NftRecord,
 } from '../bindings';
+import { toast } from 'react-toastify';
 
 export default function Nft() {
   const { launcher_id: launcherId } = useParams();
@@ -94,7 +95,11 @@ export default function Nft() {
               controls
             />
           )}
-          <CopyBox title={t`Launcher Id`} value={nft?.launcher_id ?? ''} />
+          <CopyBox
+            title={t`Launcher Id`}
+            value={nft?.launcher_id ?? ''}
+            onCopy={() => toast.success(t`Launcher Id copied to clipboard`)}
+          />
         </div>
 
         <div className='my-4 grid grid-cols-1 md:grid-cols-2 gap-y-3 gap-x-10'>

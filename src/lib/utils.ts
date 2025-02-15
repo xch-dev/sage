@@ -90,7 +90,9 @@ export function isValidUrl(str: string) {
     const url = new URL(str);
     // since this is used for nft links, we don't want to allow file: or localhost
     // to prevent links to local resources
-    return url.protocol !== 'file:' && url.hostname.toLowerCase() !== 'localhost';
+    return (
+      url.protocol !== 'file:' && url.hostname.toLowerCase() !== 'localhost'
+    );
   } catch {
     return false;
   }
