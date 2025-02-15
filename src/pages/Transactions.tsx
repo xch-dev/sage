@@ -29,6 +29,7 @@ export function Transactions() {
   const [isLoading] = useState(false);
   const optionsRef = useRef<HTMLDivElement>(null);
   const [isOptionsVisible, setIsOptionsVisible] = useState(true);
+  const listRef = useRef<HTMLDivElement>(null);
 
   useIntersectionObserver(optionsRef, ([entry]) => {
     setIsOptionsVisible(entry.isIntersecting);
@@ -79,7 +80,10 @@ export function Transactions() {
         page={page}
         total={totalTransactions}
         pageSize={pageSize}
-        onPageChange={(newPage) => setParams({ page: newPage })}
+        onPageChange={(newPage) => {
+          setParams({ page: newPage });
+          listRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }}
         onPageSizeChange={(newSize) =>
           setParams({ pageSize: newSize, page: 1 })
         }
@@ -125,10 +129,14 @@ export function Transactions() {
           />
         </div>
 
-        <TransactionListView
-          transactions={transactions}
-          onSortingChange={(value) => setParams({ ascending: value })}
-        />
+        <div ref={listRef}>
+          <TransactionListView
+            transactions={transactions}
+            onSortingChange={(value) =>
+              setParams({ ascending: value, page: 1 })
+            }
+          />
+        </div>
       </Container>
     </>
   );
