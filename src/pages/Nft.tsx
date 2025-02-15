@@ -20,10 +20,8 @@ import {
 export default function Nft() {
   const { launcher_id: launcherId } = useParams();
   const { addError } = useErrors();
-
   const [nft, setNft] = useState<NftRecord | null>(null);
   const [data, setData] = useState<NftData | null>(null);
-
   const royaltyPercentage = (nft?.royalty_ten_thousandths ?? 0) / 100;
 
   const updateNft = useMemo(
@@ -131,7 +129,7 @@ export default function Nft() {
                       <h6 className='text-sm font-semibold'>
                         {attr.trait_type}
                       </h6>
-                      <div className='text-sm'>{attr.value}</div>
+                      <div className='text-sm break-all'>{attr.value}</div>
                     </div>
                   ))}
                 </div>
