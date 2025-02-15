@@ -13,6 +13,11 @@ import { Button } from './ui/button';
 import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
 import { motion, AnimatePresence } from 'framer-motion';
 
+const headerPaginationVariants = {
+  enter: { opacity: 1, x: 0 },
+  exit: { opacity: 0, x: -20, transition: { duration: 0.15 } },
+};
+
 export default function Header(
   props: PropsWithChildren<{
     title: string | ReactNode;
@@ -121,14 +126,13 @@ export default function Header(
             <h1 className='text-xl font-bold tracking-tight md:text-3xl'>
               {props.title}
             </h1>
-            <AnimatePresence>
+            <AnimatePresence mode='wait'>
               {props.paginationControls && (
                 <motion.div
                   initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  transition={{ duration: 0.2 }}
-                  className="ml-4"
+                  animate={headerPaginationVariants.enter}
+                  exit={headerPaginationVariants.exit}
+                  className='ml-4'
                 >
                   {props.paginationControls}
                 </motion.div>

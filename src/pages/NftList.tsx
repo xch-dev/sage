@@ -8,7 +8,7 @@ import { ReceiveAddress } from '@/components/ReceiveAddress';
 import { Button } from '@/components/ui/button';
 import { useNftParams, NftGroupMode } from '@/hooks/useNftParams';
 import { Trans } from '@lingui/react/macro';
-import { ImagePlusIcon, EyeIcon } from 'lucide-react';
+import { ImagePlusIcon } from 'lucide-react';
 import { useCallback, useEffect, useState, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useNftData } from '@/hooks/useNftData';
@@ -53,7 +53,7 @@ export function NftList() {
 
   const optionsRef = useRef<HTMLDivElement>(null);
   const [isOptionsVisible, setIsOptionsVisible] = useState(true);
-  
+
   useIntersectionObserver(optionsRef, ([entry]) => {
     setIsOptionsVisible(entry.isIntersecting);
   });
@@ -90,21 +90,24 @@ export function NftList() {
     pageSize,
   ]);
 
-  const renderPagination = useCallback((compact: boolean = false) => (
-    <Pagination
-      page={params.page}
-      total={total}
-      pageSize={params.pageSize}
-      onPageChange={(newPage) => setParams({ page: newPage })}
-      onPageSizeChange={(newSize) =>
-        setParams({ pageSize: newSize, page: 1 })
-      }
-      pageSizeOptions={[24, 48, 72, 96]}
-      compact={compact}
-      canLoadMore={canLoadMore()}
-      isLoading={isLoading}
-    />
-  ), [params.page, params.pageSize, total, setParams, canLoadMore, isLoading]);
+  const renderPagination = useCallback(
+    (compact: boolean = false) => (
+      <Pagination
+        page={params.page}
+        total={total}
+        pageSize={params.pageSize}
+        onPageChange={(newPage) => setParams({ page: newPage })}
+        onPageSizeChange={(newSize) =>
+          setParams({ pageSize: newSize, page: 1 })
+        }
+        pageSizeOptions={[24, 48, 72, 96]}
+        compact={compact}
+        canLoadMore={canLoadMore()}
+        isLoading={isLoading}
+      />
+    ),
+    [params.page, params.pageSize, total, setParams, canLoadMore, isLoading],
+  );
 
   return (
     <>
@@ -119,7 +122,9 @@ export function NftList() {
             group={group}
           />
         }
-        paginationControls={!isOptionsVisible ? renderPagination(true) : undefined}
+        paginationControls={
+          !isOptionsVisible ? renderPagination(true) : undefined
+        }
       >
         <ReceiveAddress />
       </Header>
