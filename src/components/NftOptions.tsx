@@ -36,6 +36,7 @@ import {
 import { Input } from './ui/input';
 import { Pagination } from './Pagination';
 import { CardSizeToggle } from './CardSizeToggle';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export interface NftOptionsProps {
   isCollection?: boolean;
@@ -47,18 +48,22 @@ export interface NftOptionsProps {
   isLoading?: boolean;
   canLoadMore: boolean;
   total: number;
+  renderPagination: () => React.ReactNode;
 }
+
+const optionsPaginationVariants = {
+  enter: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: 20, transition: { duration: 0.15 } },
+};
 
 export function NftOptions({
   isCollection,
-  params: { page, sort, group, showHidden, query, pageSize, cardSize },
+  params: { sort, group, showHidden, query, cardSize },
   setParams,
   multiSelect,
   setMultiSelect,
   className,
-  isLoading,
-  total,
-  canLoadMore,
+  renderPagination,
 }: NftOptionsProps) {
   const { collection_id, owner_did, minter_did } = useParams();
   const navigate = useNavigate();
@@ -128,19 +133,16 @@ export function NftOptions({
       </div>
 
       <div className='flex items-center justify-between'>
-        <Pagination
-          page={page}
-          total={total}
-          pageSize={pageSize}
-          onPageChange={(newPage) => setParams({ page: newPage })}
-          onPageSizeChange={(newSize) =>
-            setParams({ pageSize: newSize, page: 1 })
-          }
-          pageSizeOptions={[24, 48, 72, 96]}
-          compact={true}
-          canLoadMore={canLoadMore}
-          isLoading={isLoading}
-        />
+        <AnimatePresence mode='wait'>
+          <motion.div
+            key='pagination'
+            initial={{ opacity: 0, y: 20 }}
+            animate={optionsPaginationVariants.enter}
+            exit={optionsPaginationVariants.exit}
+          >
+            {renderPagination()}
+          </motion.div>
+        </AnimatePresence>
 
         <div
           className='flex gap-2 items-center'
