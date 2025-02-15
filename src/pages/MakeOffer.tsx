@@ -83,7 +83,7 @@ export function MakeOffer() {
         },
       });
     }
-  }, [defaultOfferExpiry]);
+  }, [defaultOfferExpiry, state.expiration]);
 
   const handleMake = async () => {
     setPending(true);
