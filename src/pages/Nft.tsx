@@ -4,6 +4,7 @@ import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { useErrors } from '@/hooks/useErrors';
 import { isImage, nftUri } from '@/lib/nftUri';
+import { isValidUrl } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { open } from '@tauri-apps/plugin-shell';
@@ -129,7 +130,16 @@ export default function Nft() {
                       <h6 className='text-sm font-semibold'>
                         {attr.trait_type}
                       </h6>
-                      <div className='text-sm break-all'>{attr.value}</div>
+                      {isValidUrl(attr.value) ? (
+                        <div
+                          onClick={() => open(attr.value)}
+                          className='text-sm break-all text-blue-700 dark:text-blue-300 cursor-pointer hover:underline'
+                        >
+                          {attr.value}
+                        </div>
+                      ) : (
+                        <div className='text-sm break-all'>{attr.value}</div>
+                      )}
                     </div>
                   ))}
                 </div>

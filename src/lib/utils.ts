@@ -85,6 +85,17 @@ export function isValidAddress(address: string, prefix: string): boolean {
   }
 }
 
+export function isValidUrl(str: string) {
+  try {
+    const url = new URL(str);
+    // since this is used for nft links, we don't want to allow file: or localhost
+    // to prevent links to local resources
+    return url.protocol !== 'file:' && url.hostname.toLowerCase() !== 'localhost';
+  } catch {
+    return false;
+  }
+}
+
 export function isValidAssetId(assetId: string): boolean {
   return /^[a-fA-F0-9]{64}$/.test(assetId);
 }
