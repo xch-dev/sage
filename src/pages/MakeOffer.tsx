@@ -35,6 +35,8 @@ import {
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useLocalStorage } from 'usehooks-ts';
+import { DefaultOfferExpiry } from './Settings';
 
 export function MakeOffer() {
   const state = useOfferState();
@@ -52,6 +54,16 @@ export function MakeOffer() {
   const [config, setConfig] = useState<NetworkConfig | null>(null);
   const network = config?.network_id ?? 'mainnet';
 
+  const [defaultOfferExpiry] = useLocalStorage<DefaultOfferExpiry>(
+    'default-offer-expiry',
+    {
+      enabled: false,
+      days: '1',
+      hours: '',
+      minutes: '',
+    },
+  );
+
   useEffect(() => {
     commands.networkConfig().then((config) => setConfig(config));
   }, []);
@@ -60,6 +72,18 @@ export function MakeOffer() {
     setDexieLink('');
     setMintGardenLink('');
   }, [offer]);
+
+  useEffect(() => {
+    if (defaultOfferExpiry.enabled && state.expiration === null) {
+      useOfferState.setState({
+        expiration: {
+          days: defaultOfferExpiry.days,
+          hours: defaultOfferExpiry.hours,
+          minutes: defaultOfferExpiry.minutes,
+        },
+      });
+    }
+  }, [defaultOfferExpiry]);
 
   const handleMake = async () => {
     setPending(true);
