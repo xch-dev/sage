@@ -47,6 +47,7 @@ export interface NftOptionsProps {
   isLoading?: boolean;
   canLoadMore: boolean;
   total: number;
+  renderPagination: () => React.ReactNode;
 }
 
 export function NftOptions({
@@ -59,6 +60,7 @@ export function NftOptions({
   isLoading,
   total,
   canLoadMore,
+  renderPagination,
 }: NftOptionsProps) {
   const { collection_id, owner_did, minter_did } = useParams();
   const navigate = useNavigate();
@@ -128,19 +130,7 @@ export function NftOptions({
       </div>
 
       <div className='flex items-center justify-between'>
-        <Pagination
-          page={page}
-          total={total}
-          pageSize={pageSize}
-          onPageChange={(newPage) => setParams({ page: newPage })}
-          onPageSizeChange={(newSize) =>
-            setParams({ pageSize: newSize, page: 1 })
-          }
-          pageSizeOptions={[24, 48, 72, 96]}
-          compact={true}
-          canLoadMore={canLoadMore}
-          isLoading={isLoading}
-        />
+        {renderPagination()}
 
         <div
           className='flex gap-2 items-center'

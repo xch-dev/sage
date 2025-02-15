@@ -11,6 +11,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { BottomNav, TopNav } from './Nav';
 import { Button } from './ui/button';
 import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Header(
   props: PropsWithChildren<{
@@ -18,6 +19,7 @@ export default function Header(
     back?: () => void;
     mobileActionItems?: ReactNode;
     children?: ReactNode;
+    paginationControls?: ReactNode;
   }>,
 ) {
   const navigate = useNavigate();
@@ -115,11 +117,28 @@ export default function Header(
           <div className='md:h-8'></div>
         )}
         <div className='flex-1 flex justify-between items-center gap-4 md:h-9 md:my-2'>
-          <h1 className='text-xl font-bold tracking-tight md:text-3xl'>
-            {props.title}
-          </h1>
-          <div className='hidden md:block'>{props.children}</div>
-          {props.mobileActionItems && isMobile && props.mobileActionItems}
+          <div className='flex items-center gap-4'>
+            <h1 className='text-xl font-bold tracking-tight md:text-3xl'>
+              {props.title}
+            </h1>
+            <AnimatePresence>
+              {props.paginationControls && (
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.2 }}
+                  className="ml-4"
+                >
+                  {props.paginationControls}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+          <div className='flex items-center gap-2'>
+            <div className='hidden md:block'>{props.children}</div>
+            {props.mobileActionItems && isMobile && props.mobileActionItems}
+          </div>
         </div>
       </div>
     </header>
