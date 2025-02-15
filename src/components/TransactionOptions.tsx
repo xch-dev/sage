@@ -19,6 +19,12 @@ import {
   TransactionParams,
   SetTransactionParams,
 } from '@/hooks/useTransactionsParams';
+import { motion, AnimatePresence } from 'framer-motion';
+
+const optionsPaginationVariants = {
+  enter: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: 20, transition: { duration: 0.15 } },
+};
 
 interface TransactionOptionsProps {
   params: TransactionParams;
@@ -26,6 +32,7 @@ interface TransactionOptionsProps {
   total: number;
   isLoading?: boolean;
   className?: string;
+  renderPagination: () => React.ReactNode;
 }
 
 export function TransactionOptions({
@@ -34,6 +41,7 @@ export function TransactionOptions({
   total,
   isLoading,
   className,
+  renderPagination,
 }: TransactionOptionsProps) {
   const { search, page, pageSize, ascending } = params;
 
@@ -73,18 +81,16 @@ export function TransactionOptions({
       </div>
 
       <div className='flex items-center justify-between'>
-        <Pagination
-          page={page}
-          total={total}
-          pageSize={pageSize}
-          onPageChange={(newPage) => onParamsChange({ page: newPage })}
-          onPageSizeChange={(newSize) =>
-            onParamsChange({ pageSize: newSize, page: 1 })
-          }
-          pageSizeOptions={[10, 25, 50, 100]}
-          compact={true}
-          isLoading={isLoading}
-        />
+        <AnimatePresence mode='wait'>
+          <motion.div
+            key='pagination'
+            initial={{ opacity: 0, y: 20 }}
+            animate={optionsPaginationVariants.enter}
+            exit={optionsPaginationVariants.exit}
+          >
+            {renderPagination()}
+          </motion.div>
+        </AnimatePresence>
         <div className='flex gap-2'>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

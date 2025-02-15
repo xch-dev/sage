@@ -6,7 +6,7 @@ import { useErrors } from '@/hooks/useErrors';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { Info } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import {
   commands,
   events,
@@ -16,6 +16,8 @@ import {
 import { TransactionListView } from '@/components/TransactionListView';
 import { TransactionOptions } from '@/components/TransactionOptions';
 import { useTransactionsParams } from '@/hooks/useTransactionsParams';
+import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
+import { Pagination } from '@/components/Pagination';
 
 export function Transactions() {
   const { addError } = useErrors();
@@ -25,6 +27,12 @@ export function Transactions() {
   const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
   const [totalTransactions, setTotalTransactions] = useState(0);
   const [isLoading] = useState(false);
+  const optionsRef = useRef<HTMLDivElement>(null);
+  const [isOptionsVisible, setIsOptionsVisible] = useState(true);
+
+  useIntersectionObserver(optionsRef, ([entry]) => {
+    setIsOptionsVisible(entry.isIntersecting);
+  });
 
   const updateTransactions = useCallback(async () => {
     commands
@@ -65,9 +73,32 @@ export function Transactions() {
     };
   }, [updateTransactions]);
 
+  const renderPagination = useCallback(
+    (compact: boolean = false) => (
+      <Pagination
+        page={page}
+        total={totalTransactions}
+        pageSize={pageSize}
+        onPageChange={(newPage) => setParams({ page: newPage })}
+        onPageSizeChange={(newSize) =>
+          setParams({ pageSize: newSize, page: 1 })
+        }
+        pageSizeOptions={[10, 25, 50, 100]}
+        compact={compact}
+        isLoading={isLoading}
+      />
+    ),
+    [page, pageSize, totalTransactions, setParams, isLoading],
+  );
+
   return (
     <>
-      <Header title={t`Transactions`}>
+      <Header
+        title={t`Transactions`}
+        paginationControls={
+          !isOptionsVisible ? renderPagination(true) : undefined
+        }
+      >
         <ReceiveAddress />
       </Header>
       <Container>
@@ -83,13 +114,16 @@ export function Transactions() {
           </Alert>
         )}
 
-        <TransactionOptions
-          params={params}
-          onParamsChange={setParams}
-          total={totalTransactions}
-          isLoading={isLoading}
-          className='mb-4'
-        />
+        <div ref={optionsRef}>
+          <TransactionOptions
+            params={params}
+            onParamsChange={setParams}
+            total={totalTransactions}
+            isLoading={isLoading}
+            className='mb-4'
+            renderPagination={() => renderPagination(false)}
+          />
+        </div>
 
         <TransactionListView
           transactions={transactions}
