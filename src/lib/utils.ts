@@ -138,3 +138,8 @@ function fromHex(hex: string): Uint8Array {
   }
   return i === bytes.length ? bytes : bytes.slice(0, i);
 }
+
+export function decodeHexMessage(hexMessage: string): string {
+  const hex = hexMessage.startsWith('0x') ? hexMessage.slice(2) : hexMessage;
+  return new TextDecoder().decode(fromHex(hex));
+}
