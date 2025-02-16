@@ -88,10 +88,12 @@ export function isValidAddress(address: string, prefix: string): boolean {
 export function isValidUrl(str: string) {
   try {
     const url = new URL(str);
-    // since this is used for nft links, we don't want to allow file: or localhost
-    // to prevent links to local resources
+    // since this is used for nft links, we don't want to allow file:, localhost,
+    // or 127.0.0.1 to prevent links to local resources
     return (
-      url.protocol !== 'file:' && url.hostname.toLowerCase() !== 'localhost'
+      url.protocol.toLowerCase() !== 'file:' &&
+      url.hostname.toLowerCase() !== 'localhost' &&
+      url.hostname !== '127.0.0.1'
     );
   } catch {
     return false;
