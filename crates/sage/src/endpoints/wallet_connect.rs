@@ -347,7 +347,11 @@ impl Sage {
         }
         .derive_synthetic();
 
-        let decoded_message = Bytes::from(hex::decode(&req.message)?);
+        let decoded_message = if let Ok(decoded) = hex::decode(&req.message) {
+            Bytes::from(decoded)
+        } else {
+            Bytes::from(req.message.as_bytes())
+        };
         let signature = sign(
             &secret_key,
             ("Chia Signed Message", decoded_message).tree_hash(),
@@ -384,7 +388,11 @@ impl Sage {
         }
         .derive_synthetic();
 
-        let decoded_message = Bytes::from(hex::decode(&req.message)?);
+        let decoded_message = if let Ok(decoded) = hex::decode(&req.message) {
+            Bytes::from(decoded)
+        } else {
+            Bytes::from(req.message.as_bytes())
+        };
         let signature = sign(
             &secret_key,
             ("Chia Signed Message", decoded_message).tree_hash(),

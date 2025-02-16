@@ -20,7 +20,7 @@ import {
 import { useErrors } from '@/hooks/useErrors';
 import useInitialization from '@/hooks/useInitialization';
 import { useWallet } from '@/hooks/useWallet';
-import { fromMojos } from '@/lib/utils';
+import { fromMojos, decodeHexMessage } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import {
   Params,
@@ -41,6 +41,7 @@ import {
   useState,
 } from 'react';
 import { formatNumber } from '../i18n';
+import { Switch } from '@/components/ui/switch';
 
 export interface WalletConnectContextType {
   sessions: SessionTypes.Struct[];
@@ -420,6 +421,14 @@ function SignCoinSpendsDialog({
 function SignMessageDialog({
   params,
 }: CommandDialogProps<'chip0002_signMessage'>) {
+  const isHex = /^[0-9a-fA-F]*$/.test(params.message);
+  const [showHex, setShowHex] = useState(false);
+  const message = isHex
+    ? showHex
+      ? params.message
+      : decodeHexMessage(params.message)
+    : params.message;
+
   return (
     <div className='space-y-4 p-4'>
       <div className='space-y-2'>
@@ -429,9 +438,17 @@ function SignMessageDialog({
         </div>
       </div>
       <div className='space-y-2'>
-        <div className='font-medium'>Message</div>
+        <div className='flex items-center justify-between gap-2'>
+          <div className='font-medium'>Message</div>
+          {isHex && (
+            <div className='flex items-center gap-2'>
+              <span className='text-sm text-muted-foreground'>Show hex</span>
+              <Switch checked={showHex} onCheckedChange={setShowHex} />
+            </div>
+          )}
+        </div>
         <div className='text-sm text-muted-foreground break-all font-mono bg-muted p-2 rounded whitespace-pre-wrap'>
-          {params.message}
+          {message}
         </div>
       </div>
     </div>
@@ -601,6 +618,14 @@ function SendDialog({ params }: CommandDialogProps<'chia_send'>) {
 function SignMessageByAddressDialog({
   params,
 }: CommandDialogProps<'chia_signMessageByAddress'>) {
+  const isHex = /^[0-9a-fA-F]*$/.test(params.message);
+  const [showHex, setShowHex] = useState(false);
+  const message = isHex
+    ? showHex
+      ? params.message
+      : decodeHexMessage(params.message)
+    : params.message;
+
   return (
     <div className='space-y-4 p-4'>
       <div className='space-y-2'>
@@ -610,9 +635,17 @@ function SignMessageByAddressDialog({
         </div>
       </div>
       <div className='space-y-2'>
-        <div className='font-medium'>Message</div>
+        <div className='flex items-center justify-between gap-2'>
+          <div className='font-medium'>Message</div>
+          {isHex && (
+            <div className='flex items-center gap-2'>
+              <span className='text-sm text-muted-foreground'>Show hex</span>
+              <Switch checked={showHex} onCheckedChange={setShowHex} />
+            </div>
+          )}
+        </div>
         <div className='text-sm text-muted-foreground break-all font-mono bg-muted p-2 rounded whitespace-pre-wrap'>
-          {params.message}
+          {message}
         </div>
       </div>
     </div>
