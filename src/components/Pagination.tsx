@@ -149,6 +149,15 @@ export const Pagination = ({
               </SelectGroup>
             </SelectContent>
           </Select>
+
+          {total && total > 0 ? (
+            <span
+              className='hidden sm:inline-block text-sm text-muted-foreground'
+              aria-label={t`Total items: ${total}`}
+            >
+              <Trans>Total: {total}</Trans>
+            </span>
+          ) : null}
         </div>
       )}
     </nav>
