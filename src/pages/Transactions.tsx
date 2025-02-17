@@ -41,6 +41,18 @@ export function Transactions() {
       .then((data) => setPending(data.transactions))
       .catch(addError);
 
+    // if the search term might be a block height, try to get the block
+    // and add it to the list of transactions
+    const searchHeight = search ? parseInt(search, 10) : null;
+    const isValidHeight =
+      searchHeight !== null && !isNaN(searchHeight) && searchHeight >= 0;
+
+    let specificBlock: TransactionRecord[] = [];
+    if (isValidHeight) {
+      const block = await commands.getTransaction({ height: searchHeight });
+      specificBlock = [block.transaction];
+    }
+
     commands
       .getTransactions({
         offset: (page - 1) * pageSize,
@@ -49,8 +61,9 @@ export function Transactions() {
         find_value: search || null,
       })
       .then((data) => {
-        setTransactions(data.transactions);
-        setTotalTransactions(data.total);
+        const combinedTransactions = [...specificBlock, ...data.transactions];
+        setTransactions(combinedTransactions);
+        setTotalTransactions(data.total + specificBlock.length);
       })
       .catch(addError);
   }, [addError, page, pageSize, ascending, search]);
