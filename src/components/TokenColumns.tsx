@@ -11,9 +11,18 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal } from 'lucide-react';
+import {
+  MoreHorizontal,
+  RefreshCw,
+  Eye,
+  EyeOff,
+  Copy,
+  ExternalLink,
+  Coins,
+} from 'lucide-react';
 import { toast } from 'react-toastify';
 import { TokenRecord } from '@/types/TokenViewProps';
+import { open } from '@tauri-apps/plugin-shell';
 
 // Add new interface for token action handlers
 export interface TokenActionHandlers {
@@ -164,6 +173,7 @@ export const columns = (
                       actionHandlers.onRefreshInfo?.(record.asset_id)
                     }
                   >
+                    <RefreshCw className='mr-2 h-4 w-4' aria-hidden='true' />
                     <Trans>Refresh Info</Trans>
                   </DropdownMenuItem>
                 )}
@@ -171,16 +181,35 @@ export const columns = (
                   <DropdownMenuItem
                     onClick={() => actionHandlers.onToggleVisibility?.(record)}
                   >
+                    {record.visible ? (
+                      <EyeOff className='mr-2 h-4 w-4' aria-hidden='true' />
+                    ) : (
+                      <Eye className='mr-2 h-4 w-4' aria-hidden='true' />
+                    )}
                     {record.visible ? <Trans>Hide</Trans> : <Trans>Show</Trans>}{' '}
                     <Trans>Asset</Trans>
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuItem
                   onClick={() => {
+                    open(
+                      `https://dexie.space/offers/XCH/${record.asset_id}`,
+                    ).catch((error) => {
+                      console.error('Failed to open dexie.space:', error);
+                      toast.error(t`Failed to open dexie.space`);
+                    });
+                  }}
+                >
+                  <ExternalLink className='mr-2 h-4 w-4' aria-hidden='true' />
+                  <Trans>View on dexie</Trans>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
                     navigator.clipboard.writeText(record.asset_id);
                     toast.success(t`Asset ID copied to clipboard`);
                   }}
                 >
+                  <Copy className='mr-2 h-4 w-4' aria-hidden='true' />
                   <Trans>Copy Asset ID</Trans>
                 </DropdownMenuItem>
               </>
@@ -191,6 +220,7 @@ export const columns = (
                 toast.success(t`Balance copied to clipboard`);
               }}
             >
+              <Coins className='mr-2 h-4 w-4' aria-hidden='true' />
               <Trans>Copy Balance</Trans>
             </DropdownMenuItem>
           </DropdownMenuContent>

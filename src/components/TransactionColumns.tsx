@@ -3,8 +3,9 @@
 import { ColumnDef } from '@tanstack/react-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { t } from '@lingui/core/macro';
+import { Trans } from '@lingui/react/macro';
 import { Link } from 'react-router-dom';
-import { MoreHorizontal } from 'lucide-react';
+import { MoreHorizontal, Copy, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -135,7 +136,8 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
                 toast.success(t`Amount copied to clipboard`);
               }}
             >
-              Copy amount
+              <Copy className='mr-2 h-4 w-4' aria-hidden='true' />
+              <Trans>Copy amount</Trans>
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => {
@@ -143,7 +145,8 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
                 toast.success(t`Address copied to clipboard`);
               }}
             >
-              Copy address
+              <Wallet className='mr-2 h-4 w-4' aria-hidden='true' />
+              <Trans>Copy address</Trans>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

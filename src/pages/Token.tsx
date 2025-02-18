@@ -45,6 +45,11 @@ import {
   MoreHorizontalIcon,
   Send,
   SplitIcon,
+  ExternalLink,
+  Pencil,
+  RefreshCw,
+  EyeOff,
+  Eye,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -62,6 +67,9 @@ import { fromMojos } from '@/lib/utils';
 import { CopyButton } from '@/components/CopyButton';
 import StyledQRCode from '@/components/StyledQrCode';
 import { fetch } from '@tauri-apps/plugin-http';
+import { open } from '@tauri-apps/plugin-shell';
+import { toast } from 'react-toastify';
+
 interface QRCodeDialogProps {
   isOpen: boolean;
   onClose: (open: boolean) => void;
@@ -377,15 +385,41 @@ export default function Token() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
                       <DropdownMenuItem onClick={() => setEditOpen(true)}>
+                        <Pencil className='mr-2 h-4 w-4' aria-hidden='true' />
                         <Trans>Edit</Trans>
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={redownload}>
+                        <RefreshCw
+                          className='mr-2 h-4 w-4'
+                          aria-hidden='true'
+                        />
                         <Trans>Refresh Info</Trans>
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => setVisibility(!asset.visible)}
                       >
+                        {asset.visible ? (
+                          <EyeOff className='mr-2 h-4 w-4' aria-hidden='true' />
+                        ) : (
+                          <Eye className='mr-2 h-4 w-4' aria-hidden='true' />
+                        )}
                         {asset.visible ? t`Hide` : t`Show`} {t`Asset`}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => {
+                          open(
+                            `https://dexie.space/offers/XCH/${asset.asset_id}`,
+                          ).catch((error) => {
+                            console.error('Failed to open dexie.space:', error);
+                            toast.error(t`Failed to open dexie.space`);
+                          });
+                        }}
+                      >
+                        <ExternalLink
+                          className='mr-2 h-4 w-4'
+                          aria-hidden='true'
+                        />
+                        <Trans>View on dexie</Trans>
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
