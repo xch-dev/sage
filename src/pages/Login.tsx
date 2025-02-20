@@ -32,6 +32,7 @@ import {
   PenIcon,
   SnowflakeIcon,
   TrashIcon,
+  CogIcon,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -39,6 +40,7 @@ import { commands, KeyInfo, SecretKeyInfo } from '../bindings';
 import Container from '../components/Container';
 import { loginAndUpdateState } from '../state';
 import { platform } from '@tauri-apps/plugin-os';
+import { useWallet } from '../contexts/WalletContext';
 
 const isMobile = platform() === 'ios' || platform() === 'android';
 
@@ -47,6 +49,7 @@ export default function Login() {
   const { addError } = useErrors();
   const [keys, setKeys] = useState<KeyInfo[] | null>(null);
   const [network, setNetwork] = useState<string | null>(null);
+  const { setWallet } = useWallet();
 
   useEffect(() => {
     commands
@@ -81,6 +84,13 @@ export default function Login() {
                 <Trans>Wallets</Trans>
               </h2>
               <div className='flex items-center space-x-2'>
+                <Button
+                  variant='ghost'
+                  size='icon'
+                  onClick={() => navigate('/settings')}
+                >
+                  <CogIcon className='h-5 w-5' aria-hidden='true' />
+                </Button>
                 <Button variant='outline' onClick={() => navigate('/import')}>
                   <Trans>Import</Trans>
                 </Button>
@@ -136,8 +146,8 @@ interface WalletItemProps {
 
 function WalletItem({ network, info, keys, setKeys }: WalletItemProps) {
   const navigate = useNavigate();
-
   const { addError } = useErrors();
+  const { setWallet } = useWallet();
 
   const [anchorEl, _setAnchorEl] = useState<HTMLElement | null>(null);
   const isMenuOpen = Boolean(anchorEl);
@@ -201,7 +211,11 @@ function WalletItem({ network, info, keys, setKeys }: WalletItemProps) {
     if (isMenuOpen && !explicit) return;
 
     loginAndUpdateState(info.fingerprint).then(() => {
-      navigate('/wallet');
+      commands
+        .getKey({})
+        .then((data) => setWallet(data.key))
+        .then(() => navigate('/wallet'))
+        .catch(addError);
     });
   };
 

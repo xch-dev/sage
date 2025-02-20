@@ -20,6 +20,7 @@ import { useMemo } from 'react';
 import { CopyButton } from './CopyButton';
 import { FormattedAddress } from './FormattedAddress';
 import { Button } from './ui/button';
+import { toast } from 'react-toastify';
 
 export interface AddressListProps {
   addresses: string[];
@@ -73,6 +74,9 @@ export default function AddressList(props: AddressListProps) {
           <CopyButton
             value={info.row.original.address}
             className='flex-shrink-0'
+            onCopy={() => {
+              toast.success(t`Address copied to clipboard`);
+            }}
           />
         </div>
       ),
