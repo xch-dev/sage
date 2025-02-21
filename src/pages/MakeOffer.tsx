@@ -43,6 +43,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { usePrices } from '@/hooks/usePrices';
 
 export function MakeOffer() {
   const state = useOfferState();
@@ -410,8 +411,10 @@ function AssetSelector({
   assets,
   setAssets,
 }: AssetSelectorProps) {
+  const state = useOfferState();
   const [includeAmount, setIncludeAmount] = useState(!!assets.xch);
   const [tokens, setTokens] = useState<CatRecord[]>([]);
+  const { getPriceInUsd } = usePrices();
 
   useEffect(() => {
     if (!offering) return;
@@ -420,6 +423,15 @@ function AssetSelector({
       .then((data) => setTokens(data.cats))
       .catch(console.error);
   }, [offering]);
+
+  const calculateXchEquivalent = (catAmount: string, assetId: string) => {
+    const catPriceInUsd = getPriceInUsd(assetId);
+    const xchPriceInUsd = getPriceInUsd('xch');
+
+    if (!xchPriceInUsd || !catPriceInUsd) return '0';
+
+    return ((Number(catAmount) * catPriceInUsd) / xchPriceInUsd).toFixed(9);
+  };
 
   return (
     <>
@@ -470,6 +482,33 @@ function AssetSelector({
               value={assets.xch}
               onChange={(e) => setAssets({ ...assets, xch: e.target.value })}
             />
+            {!offering &&
+              state.offered.cats.length === 1 &&
+              state.offered.cats[0].amount && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant='outline'
+                        className='border-l-0 rounded-l-none flex-grow-0'
+                        onClick={() => {
+                          const cat = state.offered.cats[0];
+                          const xchAmount = calculateXchEquivalent(
+                            cat.amount.toString(),
+                            cat.asset_id,
+                          );
+                          setAssets({ ...assets, xch: xchAmount });
+                        }}
+                      >
+                        <ArrowUpToLine className='h-4 w-4 rotate-90' />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <Trans>Convert to XCH at current price</Trans>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
             <Button
               variant='outline'
               size='icon'
