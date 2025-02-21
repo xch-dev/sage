@@ -34,6 +34,14 @@ import {
 } from '../bindings';
 import { isValidU32 } from '../validation';
 import { getVersion } from '@tauri-apps/api/app';
+import { useDefaultOfferExpiry } from '@/hooks/useDefaultOfferExpiry';
+
+export interface DefaultOfferExpiry {
+  enabled: boolean;
+  days: string;
+  hours: string;
+  minutes: string;
+}
 
 export default function Settings() {
   const initialized = useInitialization();
@@ -64,6 +72,8 @@ export default function Settings() {
 function GlobalSettings() {
   const { dark, setDark } = useContext(DarkModeContext);
   const { locale, changeLanguage } = useLanguage();
+
+  const { expiry, setExpiry } = useDefaultOfferExpiry();
 
   return (
     <Card>
@@ -99,6 +109,87 @@ function GlobalSettings() {
               <SelectItem value='zh-CN'>Chinese</SelectItem>
             </SelectContent>
           </Select>
+        </div>
+        <div className='grid gap-3'>
+          <div className='flex flex-col gap-2'>
+            <div className='flex items-center gap-2'>
+              <label htmlFor='default-offer-expiry'>
+                <Trans>Default Offer Expiry</Trans>
+              </label>
+              <Switch
+                id='default-offer-expiry'
+                checked={expiry.enabled}
+                onCheckedChange={(checked) => {
+                  setExpiry({
+                    ...expiry,
+                    enabled: checked,
+                    days: checked ? '1' : '',
+                  });
+                }}
+              />
+            </div>
+
+            {expiry.enabled && (
+              <div className='flex gap-2'>
+                <div className='relative'>
+                  <Input
+                    className='pr-12'
+                    value={expiry.days}
+                    placeholder='0'
+                    onChange={(e) => {
+                      setExpiry({
+                        ...expiry,
+                        days: e.target.value,
+                      });
+                    }}
+                  />
+                  <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
+                    <span className='text-gray-500 text-sm'>
+                      <Trans>Days</Trans>
+                    </span>
+                  </div>
+                </div>
+
+                <div className='relative'>
+                  <Input
+                    className='pr-12'
+                    value={expiry.hours}
+                    placeholder='0'
+                    onChange={(e) => {
+                      setExpiry({
+                        ...expiry,
+                        hours: e.target.value,
+                      });
+                    }}
+                  />
+                  <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
+                    <span className='text-gray-500 text-sm'>
+                      <Trans>Hours</Trans>
+                    </span>
+                  </div>
+                </div>
+
+                <div className='relative'>
+                  <Input
+                    className='pr-12'
+                    value={expiry.minutes}
+                    placeholder='0'
+                    onChange={(e) => {
+                      setExpiry({
+                        ...expiry,
+                        minutes: e.target.value,
+                      });
+                    }}
+                  />
+                  <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
+                    <span className='text-gray-500 text-sm'>
+                      <Trans>Minutes</Trans>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>
