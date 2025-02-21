@@ -32,23 +32,28 @@ import {
   LoaderCircleIcon,
   PlusIcon,
   TrashIcon,
+  ArrowUpToLine,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { CatRecord } from '../bindings';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 export function MakeOffer() {
   const state = useOfferState();
   const walletState = useWalletState();
   const navigate = useNavigate();
-
   const { addError } = useErrors();
-
   const [offer, setOffer] = useState('');
   const [pending, setPending] = useState(false);
   const [dexieLink, setDexieLink] = useState('');
   const [mintGardenLink, setMintGardenLink] = useState('');
   const [canUploadToMintGarden, setCanUploadToMintGarden] = useState(false);
-
   const [config, setConfig] = useState<NetworkConfig | null>(null);
   const network = config?.network_id ?? 'mainnet';
 
@@ -406,6 +411,15 @@ function AssetSelector({
   setAssets,
 }: AssetSelectorProps) {
   const [includeAmount, setIncludeAmount] = useState(!!assets.xch);
+  const [tokens, setTokens] = useState<CatRecord[]>([]);
+
+  useEffect(() => {
+    if (!offering) return;
+    commands
+      .getCats({})
+      .then((data) => setTokens(data.cats))
+      .catch(console.error);
+  }, [offering]);
 
   return (
     <>
@@ -538,26 +552,56 @@ function AssetSelector({
                 className='rounded-r-none'
                 hideZeroBalance={offering === true}
               />
-              <TokenAmountInput
-                id={`${prefix}-cat-${i}-amount`}
-                className='border-l-0 z-10 rounded-l-none rounded-r-none w-[100px] h-12'
-                placeholder={t`Amount`}
-                value={cat.amount}
-                onChange={(e) => {
-                  assets.cats[i].amount = e.target.value;
-                  setAssets({ ...assets });
-                }}
-              />
-              <Button
-                variant='outline'
-                className='border-l-0 rounded-l-none flex-shrink-0 flex-grow-0 h-12 px-3'
-                onClick={() => {
-                  assets.cats.splice(i, 1);
-                  setAssets({ ...assets });
-                }}
-              >
-                <TrashIcon className='h-4 w-4' />
-              </Button>
+              <div className='flex flex-grow-0'>
+                <TokenAmountInput
+                  id={`${prefix}-cat-${i}-amount`}
+                  className='border-l-0 z-10 rounded-l-none rounded-r-none w-[100px] h-12'
+                  placeholder={t`Amount`}
+                  value={cat.amount}
+                  onChange={(e) => {
+                    assets.cats[i].amount = e.target.value;
+                    setAssets({ ...assets });
+                  }}
+                />
+                {offering && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant='outline'
+                          className='border-l-0 rounded-none h-12 px-2 text-xs'
+                          onClick={() => {
+                            const token = tokens.find(
+                              (t) => t.asset_id === cat.asset_id,
+                            );
+                            if (token) {
+                              assets.cats[i].amount = (
+                                Number(token.balance) / 1000
+                              ).toString();
+                              setAssets({ ...assets });
+                            }
+                          }}
+                        >
+                          <ArrowUpToLine className='h-3 w-3 mr-1' />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <Trans>Use maximum balance</Trans>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+                <Button
+                  variant='outline'
+                  className='border-l-0 rounded-l-none flex-shrink-0 flex-grow-0 h-12 px-3'
+                  onClick={() => {
+                    assets.cats.splice(i, 1);
+                    setAssets({ ...assets });
+                  }}
+                >
+                  <TrashIcon className='h-4 w-4' />
+                </Button>
+              </div>
             </div>
           ))}
         </div>
