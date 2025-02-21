@@ -35,8 +35,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useLocalStorage } from 'usehooks-ts';
-import { DefaultOfferExpiry } from './Settings';
+import { useDefaultOfferExpiry } from '@/hooks/useDefaultOfferExpiry';
 
 export function MakeOffer() {
   const state = useOfferState();
@@ -54,15 +53,7 @@ export function MakeOffer() {
   const [config, setConfig] = useState<NetworkConfig | null>(null);
   const network = config?.network_id ?? 'mainnet';
 
-  const [defaultOfferExpiry] = useLocalStorage<DefaultOfferExpiry>(
-    'default-offer-expiry',
-    {
-      enabled: false,
-      days: '1',
-      hours: '',
-      minutes: '',
-    },
-  );
+  const { expiry, getTotalSeconds } = useDefaultOfferExpiry();
 
   useEffect(() => {
     commands.networkConfig().then((config) => setConfig(config));
@@ -74,16 +65,16 @@ export function MakeOffer() {
   }, [offer]);
 
   useEffect(() => {
-    if (defaultOfferExpiry.enabled && state.expiration === null) {
+    if (expiry.enabled && state.expiration === null) {
       useOfferState.setState({
         expiration: {
-          days: defaultOfferExpiry.days,
-          hours: defaultOfferExpiry.hours,
-          minutes: defaultOfferExpiry.minutes,
+          days: expiry.days.toString(),
+          hours: expiry.hours.toString(),
+          minutes: expiry.minutes.toString(),
         },
       });
     }
-  }, [defaultOfferExpiry, state.expiration]);
+  }, [expiry, state.expiration]);
 
   const handleMake = async () => {
     setPending(true);
@@ -123,10 +114,7 @@ export function MakeOffer() {
       expires_at_second:
         state.expiration === null
           ? null
-          : Math.ceil(Date.now() / 1000) +
-            Number(state.expiration.days || '0') * 24 * 60 * 60 +
-            Number(state.expiration.hours || '0') * 60 * 60 +
-            Number(state.expiration.minutes || '0') * 60,
+          : Math.ceil(Date.now() / 1000) + (getTotalSeconds() ?? 0),
     });
 
     clearOffer();

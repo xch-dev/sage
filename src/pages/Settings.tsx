@@ -34,7 +34,7 @@ import {
 } from '../bindings';
 import { isValidU32 } from '../validation';
 import { getVersion } from '@tauri-apps/api/app';
-import { useLocalStorage } from 'usehooks-ts';
+import { useDefaultOfferExpiry } from '@/hooks/useDefaultOfferExpiry';
 
 export interface DefaultOfferExpiry {
   enabled: boolean;
@@ -73,13 +73,7 @@ function GlobalSettings() {
   const { dark, setDark } = useContext(DarkModeContext);
   const { locale, changeLanguage } = useLanguage();
 
-  const [defaultOfferExpiry, setDefaultOfferExpiry] =
-    useLocalStorage<DefaultOfferExpiry>('default-offer-expiry', {
-      enabled: false,
-      days: '1',
-      hours: '',
-      minutes: '',
-    });
+  const { expiry, setExpiry } = useDefaultOfferExpiry();
 
   return (
     <Card>
@@ -124,10 +118,10 @@ function GlobalSettings() {
               </label>
               <Switch
                 id='default-offer-expiry'
-                checked={defaultOfferExpiry.enabled}
+                checked={expiry.enabled}
                 onCheckedChange={(checked) => {
-                  setDefaultOfferExpiry({
-                    ...defaultOfferExpiry,
+                  setExpiry({
+                    ...expiry,
                     enabled: checked,
                     days: checked ? '1' : '',
                   });
@@ -135,16 +129,16 @@ function GlobalSettings() {
               />
             </div>
 
-            {defaultOfferExpiry.enabled && (
+            {expiry.enabled && (
               <div className='flex gap-2'>
                 <div className='relative'>
                   <Input
                     className='pr-12'
-                    value={defaultOfferExpiry.days}
+                    value={expiry.days}
                     placeholder='0'
                     onChange={(e) => {
-                      setDefaultOfferExpiry({
-                        ...defaultOfferExpiry,
+                      setExpiry({
+                        ...expiry,
                         days: e.target.value,
                       });
                     }}
@@ -159,11 +153,11 @@ function GlobalSettings() {
                 <div className='relative'>
                   <Input
                     className='pr-12'
-                    value={defaultOfferExpiry.hours}
+                    value={expiry.hours}
                     placeholder='0'
                     onChange={(e) => {
-                      setDefaultOfferExpiry({
-                        ...defaultOfferExpiry,
+                      setExpiry({
+                        ...expiry,
                         hours: e.target.value,
                       });
                     }}
@@ -178,11 +172,11 @@ function GlobalSettings() {
                 <div className='relative'>
                   <Input
                     className='pr-12'
-                    value={defaultOfferExpiry.minutes}
+                    value={expiry.minutes}
                     placeholder='0'
                     onChange={(e) => {
-                      setDefaultOfferExpiry({
-                        ...defaultOfferExpiry,
+                      setExpiry({
+                        ...expiry,
                         minutes: e.target.value,
                       });
                     }}
