@@ -414,7 +414,7 @@ function AssetSelector({
   const state = useOfferState();
   const [includeAmount, setIncludeAmount] = useState(!!assets.xch);
   const [tokens, setTokens] = useState<CatRecord[]>([]);
-  const { getPriceInUsd } = usePrices();
+  const { getCatAskPriceInXch } = usePrices();
 
   useEffect(() => {
     if (!offering) return;
@@ -425,12 +425,9 @@ function AssetSelector({
   }, [offering]);
 
   const calculateXchEquivalent = (catAmount: string, assetId: string) => {
-    const catPriceInUsd = getPriceInUsd(assetId);
-    const xchPriceInUsd = getPriceInUsd('xch');
-
-    if (!xchPriceInUsd || !catPriceInUsd) return '0';
-
-    return ((Number(catAmount) * catPriceInUsd) / xchPriceInUsd).toFixed(9);
+    const catPriceInXch = getCatAskPriceInXch(assetId);
+    if (catPriceInXch === null) return '0';
+    return (Number(catAmount) * catPriceInXch).toFixed(9);
   };
 
   return (
@@ -504,7 +501,7 @@ function AssetSelector({
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <Trans>Convert to XCH at current price</Trans>
+                      <Trans>Convert to XCH at current asking price</Trans>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
