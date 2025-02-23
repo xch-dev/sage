@@ -487,7 +487,8 @@ function AssetSelector({
                     <TooltipTrigger asChild>
                       <Button
                         variant='outline'
-                        className='border-l-0 rounded-l-none flex-grow-0'
+                        size='icon'
+                        className='border-l-0 rounded-none flex-shrink-0'
                         onClick={() => {
                           const cat = state.offered.cats[0];
                           const xchAmount = calculateXchEquivalent(
@@ -509,7 +510,7 @@ function AssetSelector({
             <Button
               variant='outline'
               size='icon'
-              className='border-l-0 rounded-l-none flex-shrink-0 flex-grow-0'
+              className='border-l-0 rounded-l-none flex-shrink-0'
               onClick={() => {
                 setAssets({
                   ...assets,
