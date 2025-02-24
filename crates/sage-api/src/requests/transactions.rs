@@ -37,6 +37,16 @@ pub struct CombineXch {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct AutoCombineXch {
+    pub max_coins: u32,
+    pub max_coin_amount: Option<Amount>,
+    pub fee: Amount,
+    #[serde(default)]
+    pub auto_submit: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct SplitXch {
     pub coin_ids: Vec<String>,
     pub output_count: u32,
@@ -49,6 +59,17 @@ pub struct SplitXch {
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct CombineCat {
     pub coin_ids: Vec<String>,
+    pub fee: Amount,
+    #[serde(default)]
+    pub auto_submit: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct AutoCombineCat {
+    pub asset_id: String,
+    pub max_coins: u32,
+    pub max_coin_amount: Option<Amount>,
     pub fee: Amount,
     #[serde(default)]
     pub auto_submit: bool,
@@ -262,8 +283,10 @@ pub struct TransactionResponse {
 pub type SendXchResponse = TransactionResponse;
 pub type BulkSendXchResponse = TransactionResponse;
 pub type CombineXchResponse = TransactionResponse;
+pub type AutoCombineXchResponse = TransactionResponse;
 pub type SplitXchResponse = TransactionResponse;
 pub type CombineCatResponse = TransactionResponse;
+pub type AutoCombineCatResponse = TransactionResponse;
 pub type SplitCatResponse = TransactionResponse;
 pub type IssueCatResponse = TransactionResponse;
 pub type SendCatResponse = TransactionResponse;
