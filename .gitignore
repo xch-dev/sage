@@ -27,3 +27,4 @@ dist-ssr
 target
 /.env
 /test.sqlite*
+/crates/sage-wallet/src/queues/misc/*
