@@ -13,8 +13,8 @@ impl Database {
         find_spent_timestamp_null(&self.pool).await
     }
     //from blockinfo get unix_time based on height
-    pub async fn get_timestamp_blockinfo(&self, height: u32) -> Result<i64> {
-        get_timestamp_blockinfo(&self.pool, height).await
+    pub async fn check_blockinfo(&self, height: u32) -> Result<i64> {
+        check_blockinfo(&self.pool, height).await
     }
     //insert created timestamp into coin_states
     pub async fn insert_created_timestamp(&self, height: u32, timestamp: u32) -> Result<u32> {
@@ -83,7 +83,7 @@ async fn find_spent_timestamp_null(conn: impl SqliteExecutor<'_>) -> Result<Opti
 }
 
 //from blockinfo get unix_time based on height fix me gneale 20250223
-async fn get_timestamp_blockinfo(conn: impl SqliteExecutor<'_>, height: u32) -> Result<i64> {
+async fn check_blockinfo(conn: impl SqliteExecutor<'_>, height: u32) -> Result<i64> {
     let row = sqlx::query!(
         "
             SELECT `unix_time`
@@ -97,8 +97,7 @@ async fn get_timestamp_blockinfo(conn: impl SqliteExecutor<'_>, height: u32) -> 
 
     Ok(row.unix_time)
 }
-
-//update created timestamp into coin_states
+//todo: change fx name from insert to update gdn 202502026
 async fn insert_created_timestamp(
     conn: impl SqliteExecutor<'_>,
     height: u32,
@@ -113,13 +112,12 @@ async fn insert_created_timestamp(
         timestamp,
         height
     )
-    .execute(conn) // Execute the query
-    .await?; // Await the execution to complete
+    .execute(conn)
+    .await?;
 
     Ok(timestamp)
 }
-
-//update spent timestamp into coin_states
+//todo: change fx name from insert to update gdn 202502026
 async fn insert_spent_timestamp(
     conn: impl SqliteExecutor<'_>,
     height: u32,
@@ -134,10 +132,9 @@ async fn insert_spent_timestamp(
         timestamp,
         height
     )
-    .execute(conn) // Execute the query
-    .await?; // Await the execution to complete
+    .execute(conn)
+    .await?;
 
-    // Return the timestamp after the update attempt
     Ok(timestamp)
 }
 
