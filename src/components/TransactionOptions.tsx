@@ -8,7 +8,6 @@ import {
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
-import { Pagination } from './Pagination';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,12 +37,10 @@ interface TransactionOptionsProps {
 export function TransactionOptions({
   params,
   onParamsChange,
-  total,
-  isLoading,
   className,
   renderPagination,
 }: TransactionOptionsProps) {
-  const { search, page, pageSize, ascending } = params;
+  const { search, ascending } = params;
 
   return (
     <div
