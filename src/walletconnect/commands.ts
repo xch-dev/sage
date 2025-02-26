@@ -147,6 +147,7 @@ export const walletConnectCommands = {
     paramsType: z.object({
       message: z.string(),
       publicKey: z.string(),
+      hex: z.boolean().optional().default(true),
     }),
     returnType: z.string(),
     confirm: true,
@@ -235,6 +236,7 @@ export const walletConnectCommands = {
     paramsType: z.object({
       message: z.string(),
       address: z.string(),
+      hex: z.boolean().optional().default(true),
     }),
     returnType: z.object({
       publicKey: z.string(),

@@ -347,8 +347,8 @@ impl Sage {
         }
         .derive_synthetic();
 
-        let decoded_message = if let Ok(decoded) = hex::decode(&req.message) {
-            Bytes::from(decoded)
+        let decoded_message = if req.hex {
+            Bytes::from(hex::decode(&req.message)?)
         } else {
             Bytes::from(req.message.as_bytes())
         };
@@ -388,8 +388,8 @@ impl Sage {
         }
         .derive_synthetic();
 
-        let decoded_message = if let Ok(decoded) = hex::decode(&req.message) {
-            Bytes::from(decoded)
+        let decoded_message = if req.hex {
+            Bytes::from(hex::decode(&req.message)?)
         } else {
             Bytes::from(req.message.as_bytes())
         };

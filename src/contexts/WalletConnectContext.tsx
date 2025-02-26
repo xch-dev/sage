@@ -418,17 +418,44 @@ function SignCoinSpendsDialog({
   );
 }
 
-function SignMessageDialog({
-  params,
-}: CommandDialogProps<'chip0002_signMessage'>) {
-  const isHex = /^[0-9a-fA-F]*$/.test(params.message);
+function MessageToSign(params: { message: string; hex: boolean }) {
   const [showHex, setShowHex] = useState(false);
-  const message = isHex
+  const message = params.hex
     ? showHex
       ? params.message
       : decodeHexMessage(params.message)
     : params.message;
 
+  return (
+    <div className='space-y-2'>
+      <div className='flex items-center justify-between gap-2 flex-wrap'>
+        <div className='font-medium'>
+          Message{' '}
+          {params.hex && !showHex && (
+            <span className='text-xs text-muted-foreground ml-1'>
+              (Decoded)
+            </span>
+          )}
+        </div>
+        {params.hex && (
+          <div className='flex items-center gap-2'>
+            <span className='text-sm text-muted-foreground whitespace-nowrap'>
+              Show hex
+            </span>
+            <Switch checked={showHex} onCheckedChange={setShowHex} />
+          </div>
+        )}
+      </div>
+      <div className='text-sm text-muted-foreground break-all font-mono bg-muted p-2 rounded whitespace-pre-wrap'>
+        {message}
+      </div>
+    </div>
+  );
+}
+
+function SignMessageDialog({
+  params,
+}: CommandDialogProps<'chip0002_signMessage'>) {
   return (
     <div className='space-y-4 p-4'>
       <div className='space-y-2'>
@@ -437,20 +464,23 @@ function SignMessageDialog({
           {params.publicKey}
         </div>
       </div>
+      <MessageToSign message={params.message} hex={params.hex} />
+    </div>
+  );
+}
+
+function SignMessageByAddressDialog({
+  params,
+}: CommandDialogProps<'chia_signMessageByAddress'>) {
+  return (
+    <div className='space-y-4 p-4'>
       <div className='space-y-2'>
-        <div className='flex items-center justify-between gap-2'>
-          <div className='font-medium'>Message</div>
-          {isHex && (
-            <div className='flex items-center gap-2'>
-              <span className='text-sm text-muted-foreground'>Show hex</span>
-              <Switch checked={showHex} onCheckedChange={setShowHex} />
-            </div>
-          )}
-        </div>
-        <div className='text-sm text-muted-foreground break-all font-mono bg-muted p-2 rounded whitespace-pre-wrap'>
-          {message}
+        <div className='font-medium'>Address</div>
+        <div className='text-sm text-muted-foreground break-all font-mono bg-muted p-2 rounded'>
+          {params.address}
         </div>
       </div>
+      <MessageToSign message={params.message} hex={params.hex} />
     </div>
   );
 }
@@ -611,43 +641,6 @@ function SendDialog({ params }: CommandDialogProps<'chia_send'>) {
           <div className='text-sm text-muted-foreground'>{params.assetId}</div>
         </div>
       )}
-    </div>
-  );
-}
-
-function SignMessageByAddressDialog({
-  params,
-}: CommandDialogProps<'chia_signMessageByAddress'>) {
-  const isHex = /^[0-9a-fA-F]*$/.test(params.message);
-  const [showHex, setShowHex] = useState(false);
-  const message = isHex
-    ? showHex
-      ? params.message
-      : decodeHexMessage(params.message)
-    : params.message;
-
-  return (
-    <div className='space-y-4 p-4'>
-      <div className='space-y-2'>
-        <div className='font-medium'>Address</div>
-        <div className='text-sm text-muted-foreground break-all font-mono bg-muted p-2 rounded'>
-          {params.address}
-        </div>
-      </div>
-      <div className='space-y-2'>
-        <div className='flex items-center justify-between gap-2'>
-          <div className='font-medium'>Message</div>
-          {isHex && (
-            <div className='flex items-center gap-2'>
-              <span className='text-sm text-muted-foreground'>Show hex</span>
-              <Switch checked={showHex} onCheckedChange={setShowHex} />
-            </div>
-          )}
-        </div>
-        <div className='text-sm text-muted-foreground break-all font-mono bg-muted p-2 rounded whitespace-pre-wrap'>
-          {message}
-        </div>
-      </div>
     </div>
   );
 }
