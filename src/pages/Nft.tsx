@@ -4,6 +4,7 @@ import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { useErrors } from '@/hooks/useErrors';
 import { isImage, nftUri } from '@/lib/nftUri';
+import { isValidUrl } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { open } from '@tauri-apps/plugin-shell';
@@ -16,14 +17,13 @@ import {
   NftData,
   NftRecord,
 } from '../bindings';
+import { toast } from 'react-toastify';
 
 export default function Nft() {
   const { launcher_id: launcherId } = useParams();
   const { addError } = useErrors();
-
   const [nft, setNft] = useState<NftRecord | null>(null);
   const [data, setData] = useState<NftData | null>(null);
-
   const royaltyPercentage = (nft?.royalty_ten_thousandths ?? 0) / 100;
 
   const updateNft = useMemo(
@@ -95,7 +95,11 @@ export default function Nft() {
               controls
             />
           )}
-          <CopyBox title={t`Launcher Id`} value={nft?.launcher_id ?? ''} />
+          <CopyBox
+            title={t`Launcher Id`}
+            value={nft?.launcher_id ?? ''}
+            onCopy={() => toast.success(t`Launcher Id copied to clipboard`)}
+          />
         </div>
 
         <div className='my-4 grid grid-cols-1 md:grid-cols-2 gap-y-3 gap-x-10'>
@@ -131,7 +135,16 @@ export default function Nft() {
                       <h6 className='text-sm font-semibold'>
                         {attr.trait_type}
                       </h6>
-                      <div className='text-sm'>{attr.value}</div>
+                      {isValidUrl(attr.value) ? (
+                        <div
+                          onClick={() => open(attr.value)}
+                          className='text-sm break-all text-blue-700 dark:text-blue-300 cursor-pointer hover:underline'
+                        >
+                          {attr.value}
+                        </div>
+                      ) : (
+                        <div className='text-sm break-all'>{attr.value}</div>
+                      )}
                     </div>
                   ))}
                 </div>

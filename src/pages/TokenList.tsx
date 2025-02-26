@@ -3,44 +3,23 @@ import Header from '@/components/Header';
 import { ReceiveAddress } from '@/components/ReceiveAddress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Input } from '@/components/ui/input';
-import { Switch } from '@/components/ui/switch';
 import { useErrors } from '@/hooks/useErrors';
 import { usePrices } from '@/hooks/usePrices';
 import { useTokenParams } from '@/hooks/useTokenParams';
-import { toDecimal } from '@/lib/utils';
+import { toDecimal, isValidAssetId } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import {
-  ArrowDown10,
-  ArrowDownAz,
-  CircleDollarSign,
-  CircleSlash,
-  Coins,
-  InfoIcon,
-  SearchIcon,
-  XIcon,
-} from 'lucide-react';
+import { Coins, InfoIcon } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CatRecord, commands, events } from '../bindings';
 import { useWalletState } from '../state';
-import { useLocalStorage } from 'usehooks-ts';
 import { TokenListView } from '@/components/TokenListView';
 import { TokenGridView } from '@/components/TokenGridView';
-import { ViewToggle, ViewMode } from '@/components/ViewToggle';
-
-enum TokenView {
-  Name = 'name',
-  Balance = 'balance',
-}
+import { TokenOptions } from '@/components/TokenOptions';
+import { TokenSortMode } from '@/hooks/useTokenParams';
+import { TokenRecord } from '@/types/TokenViewProps';
+import { toast } from 'react-toastify';
 
 export function TokenList() {
   const navigate = useNavigate();
@@ -48,12 +27,8 @@ export function TokenList() {
   const { getBalanceInUsd, getPriceInUsd } = usePrices();
   const { addError } = useErrors();
   const [params, setParams] = useTokenParams();
-  const { view, showHidden, showZeroBalance } = params;
+  const { viewMode, sortMode, showZeroBalanceTokens, showHiddenCats } = params;
   const [cats, setCats] = useState<CatRecord[]>([]);
-  const [viewMode, setViewMode] = useLocalStorage<ViewMode>(
-    'token-view-mode',
-    'grid',
-  );
 
   const catsWithBalanceInUsd = useMemo(
     () =>
@@ -77,7 +52,7 @@ export function TokenList() {
     if (a.visible && !b.visible) return -1;
     if (!a.visible && b.visible) return 1;
 
-    if (view === TokenView.Balance) {
+    if (sortMode === TokenSortMode.Balance) {
       if (a.balanceInUsd !== b.balanceInUsd) {
         return b.balanceInUsd - a.balanceInUsd;
       }
@@ -94,15 +69,19 @@ export function TokenList() {
   });
 
   const filteredCats = sortedCats.filter((cat) => {
-    if (!showHidden && !cat.visible) {
+    if (!showHiddenCats && !cat.visible) {
       return false;
     }
 
-    if (!showZeroBalance && Number(toDecimal(cat.balance, 3)) === 0) {
+    if (!showZeroBalanceTokens && Number(toDecimal(cat.balance, 3)) === 0) {
       return false;
     }
 
     if (params.search) {
+      if (isValidAssetId(params.search)) {
+        return cat.asset_id.toLowerCase() === params.search.toLowerCase();
+      }
+
       const searchTerm = params.search.toLowerCase();
       const name = (cat.name || 'Unknown CAT').toLowerCase();
       const ticker = (cat.ticker || '').toLowerCase();
@@ -111,8 +90,6 @@ export function TokenList() {
 
     return true;
   });
-
-  const hasHiddenAssets = !!sortedCats.find((cat) => !cat.visible);
 
   const updateCats = useCallback(
     () =>
@@ -143,6 +120,33 @@ export function TokenList() {
     };
   }, [updateCats]);
 
+  const tokenActionHandlers = {
+    onEdit: (asset: TokenRecord) => {
+      navigate(`/wallet/token/${asset.asset_id}`);
+    },
+    onRefreshInfo: (assetId: string) => {
+      if (assetId === 'xch') return;
+      commands
+        .removeCat({ asset_id: assetId })
+        .then(() => {
+          updateCats();
+          toast.success(t`Refreshing token info...`);
+        })
+        .catch(addError);
+    },
+    onToggleVisibility: (asset: TokenRecord) => {
+      if (asset.asset_id === 'xch') return;
+      const updatedCat = cats.find((cat) => cat.asset_id === asset.asset_id);
+      if (!updatedCat) return;
+
+      updatedCat.visible = !updatedCat.visible;
+      commands
+        .updateCat({ record: updatedCat })
+        .then(() => updateCats())
+        .catch(addError);
+    },
+  };
+
   return (
     <>
       <Header title={<Trans>Assets</Trans>}>
@@ -154,75 +158,30 @@ export function TokenList() {
         <Button
           onClick={() => navigate('/wallet/issue-token')}
           aria-label={t`Issue new token`}
+          className='mb-4'
         >
           <Coins className='h-4 w-4 mr-2' aria-hidden='true' />
           <Trans>Issue Token</Trans>
         </Button>
 
-        <div
-          className='flex items-center justify-between gap-2 mt-4'
-          role='search'
-          aria-label={t`Token search and filters`}
-        >
-          <div className='relative flex-1'>
-            <div className='relative'>
-              <SearchIcon
-                className='absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground'
-                aria-hidden='true'
-              />
-              <Input
-                type='search'
-                value={params.search}
-                aria-label={t`Search tokens`}
-                placeholder={t`Search tokens...`}
-                onChange={(e) => setParams({ search: e.target.value })}
-                className='w-full pl-8 pr-8'
-              />
-            </div>
-            {params.search && (
-              <Button
-                variant='ghost'
-                size='icon'
-                title={t`Clear search`}
-                aria-label={t`Clear search`}
-                className='absolute right-0 top-0 h-full px-2 hover:bg-transparent'
-                onClick={() => setParams({ search: '' })}
-              >
-                <XIcon className='h-4 w-4' aria-hidden='true' />
-              </Button>
-            )}
-          </div>
-
-          <div
-            className='flex items-center gap-2'
-            role='toolbar'
-            aria-label={t`View options`}
-          >
-            <ViewToggle view={viewMode} onChange={setViewMode} />
-            <TokenSortDropdown
-              view={view}
-              setView={(view) => setParams({ view })}
-            />
-            <Button
-              variant='outline'
-              size='icon'
-              onClick={() => setParams({ showZeroBalance: !showZeroBalance })}
-              className={!showZeroBalance ? 'text-muted-foreground' : ''}
-              aria-label={
-                showZeroBalance ? t`Hide zero balances` : t`Show zero balances`
-              }
-              title={
-                showZeroBalance ? t`Hide zero balances` : t`Show zero balances`
-              }
-            >
-              {showZeroBalance ? (
-                <CircleDollarSign className='h-4 w-4' aria-hidden='true' />
-              ) : (
-                <CircleSlash className='h-4 w-4' aria-hidden='true' />
-              )}
-            </Button>
-          </div>
-        </div>
+        <TokenOptions
+          query={params.search}
+          setQuery={(value) => setParams({ search: value })}
+          viewMode={viewMode}
+          setViewMode={(value) => setParams({ viewMode: value })}
+          sortMode={sortMode}
+          setSortMode={(value) => setParams({ sortMode: value })}
+          showZeroBalanceTokens={showZeroBalanceTokens}
+          setShowZeroBalanceTokens={(value) =>
+            setParams({ showZeroBalanceTokens: value })
+          }
+          showHiddenCats={showHiddenCats}
+          setShowHiddenCats={(value) => setParams({ showHiddenCats: value })}
+          handleSearch={(value) => {
+            setParams({ search: value });
+          }}
+          className='mb-4'
+        />
 
         {walletState.sync.synced_coins < walletState.sync.total_coins && (
           <Alert className='mt-4 mb-4' role='status'>
@@ -239,24 +198,6 @@ export function TokenList() {
           </Alert>
         )}
 
-        <div className='flex items-center gap-4 my-4'>
-          {hasHiddenAssets && (
-            <div className='flex items-center gap-2'>
-              <Switch
-                id='viewHidden'
-                checked={showHidden}
-                onCheckedChange={(value) => setParams({ showHidden: value })}
-                aria-label={
-                  showHidden ? t`Hide hidden tokens` : t`Show hidden tokens`
-                }
-              />
-              <label htmlFor='viewHidden'>
-                <Trans>View hidden</Trans>
-              </label>
-            </div>
-          )}
-        </div>
-
         {viewMode === 'grid' ? (
           <TokenGridView
             cats={filteredCats}
@@ -272,6 +213,7 @@ export function TokenList() {
                 ),
               ),
             )}
+            actionHandlers={tokenActionHandlers}
           />
         ) : (
           <div className='mt-4'>
@@ -289,62 +231,11 @@ export function TokenList() {
                   ),
                 ),
               )}
+              actionHandlers={tokenActionHandlers}
             />
           </div>
         )}
       </Container>
     </>
-  );
-}
-
-function TokenSortDropdown({
-  view,
-  setView,
-}: {
-  view: TokenView;
-  setView: (view: TokenView) => void;
-}) {
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant='outline' size='icon' title={t`Sort options`}>
-          {view === TokenView.Balance ? (
-            <ArrowDown10 className='h-4 w-4' />
-          ) : (
-            <ArrowDownAz className='h-4 w-4' />
-          )}
-        </Button>
-      </DropdownMenuTrigger>
-
-      <DropdownMenuContent align='end'>
-        <DropdownMenuGroup>
-          <DropdownMenuItem
-            className='cursor-pointer'
-            onClick={(e) => {
-              e.stopPropagation();
-              setView(TokenView.Name);
-            }}
-          >
-            <ArrowDownAz className='mr-2 h-4 w-4' />
-            <span>
-              <Trans>Sort Alphabetically</Trans>
-            </span>
-          </DropdownMenuItem>
-
-          <DropdownMenuItem
-            className='cursor-pointer'
-            onClick={(e) => {
-              e.stopPropagation();
-              setView(TokenView.Balance);
-            }}
-          >
-            <ArrowDown10 className='mr-2 h-4 w-4' />
-            <span>
-              <Trans>Sort by Balance</Trans>
-            </span>
-          </DropdownMenuItem>
-        </DropdownMenuGroup>
-      </DropdownMenuContent>
-    </DropdownMenu>
   );
 }

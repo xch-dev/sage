@@ -18,8 +18,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useErrors } from '@/hooks/useErrors';
-import useInitialization from '@/hooks/useInitialization';
-import { useWallet } from '@/hooks/useWallet';
+import { useWallet } from '@/contexts/WalletContext';
 import { fromMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import {
@@ -56,8 +55,7 @@ export const WalletConnectContext = createContext<
 type SessionRequest = SignClientTypes.EventArguments['session_request'];
 
 export function WalletConnectProvider({ children }: { children: ReactNode }) {
-  const initialized = useInitialization();
-  const wallet = useWallet(initialized);
+  const { wallet } = useWallet();
   const { addError } = useErrors();
 
   const [signClient, setSignClient] = useState<Awaited<
