@@ -41,6 +41,7 @@ used_underscore_binding = "allow"
 unwrap_used = "warn"
 wildcard_imports = "allow"
 cast_possible_truncation = "allow"
+cast_sign_loss = "allow"
 
 [workspace.dependencies]
 sage = { path = "./crates/sage" }
