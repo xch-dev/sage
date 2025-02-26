@@ -2,7 +2,7 @@ use app_state::{AppState, AppStateInner};
 use sage_api::SyncEvent;
 use tauri::Manager;
 use tauri_specta::{collect_commands, collect_events, Builder, ErrorHandlingMode};
-use tokio::sync::Mutex;
+use tokio::sync::RwLock;
 
 mod app_state;
 mod commands;
@@ -137,7 +137,7 @@ pub fn run() {
             let app_handle = app.handle().clone();
             let path = app.path().app_data_dir()?;
             let inner = AppStateInner::new(app_handle, &path);
-            let app_state = AppState::new(Mutex::new(inner));
+            let app_state = AppState::new(RwLock::new(inner));
             app.manage(app_state);
             Ok(())
         })
