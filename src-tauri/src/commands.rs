@@ -115,7 +115,7 @@ pub async fn validate_address(state: State<'_, AppState>, address: String) -> Re
 #[command]
 #[specta]
 pub async fn send_xch(state: State<'_, AppState>, req: SendXch) -> Result<TransactionResponse> {
-    Ok(state.read().await.send_xch(req).await?)
+    Ok(state.write().await.send_xch(req).await?)
 }
 
 #[command]
@@ -124,7 +124,7 @@ pub async fn bulk_send_xch(
     state: State<'_, AppState>,
     req: BulkSendXch,
 ) -> Result<TransactionResponse> {
-    Ok(state.read().await.bulk_send_xch(req).await?)
+    Ok(state.write().await.bulk_send_xch(req).await?)
 }
 
 #[command]
@@ -133,7 +133,7 @@ pub async fn combine_xch(
     state: State<'_, AppState>,
     req: CombineXch,
 ) -> Result<TransactionResponse> {
-    Ok(state.read().await.combine_xch(req).await?)
+    Ok(state.write().await.combine_xch(req).await?)
 }
 
 #[command]
@@ -142,13 +142,13 @@ pub async fn auto_combine_xch(
     state: State<'_, AppState>,
     req: AutoCombineXch,
 ) -> Result<TransactionResponse> {
-    Ok(state.read().await.auto_combine_xch(req).await?)
+    Ok(state.write().await.auto_combine_xch(req).await?)
 }
 
 #[command]
 #[specta]
 pub async fn split_xch(state: State<'_, AppState>, req: SplitXch) -> Result<TransactionResponse> {
-    Ok(state.read().await.split_xch(req).await?)
+    Ok(state.write().await.split_xch(req).await?)
 }
 
 #[command]
@@ -157,7 +157,7 @@ pub async fn combine_cat(
     state: State<'_, AppState>,
     req: CombineCat,
 ) -> Result<TransactionResponse> {
-    Ok(state.read().await.combine_cat(req).await?)
+    Ok(state.write().await.combine_cat(req).await?)
 }
 
 #[command]
@@ -166,25 +166,25 @@ pub async fn auto_combine_cat(
     state: State<'_, AppState>,
     req: AutoCombineCat,
 ) -> Result<TransactionResponse> {
-    Ok(state.read().await.auto_combine_cat(req).await?)
+    Ok(state.write().await.auto_combine_cat(req).await?)
 }
 
 #[command]
 #[specta]
 pub async fn split_cat(state: State<'_, AppState>, req: SplitCat) -> Result<TransactionResponse> {
-    Ok(state.read().await.split_cat(req).await?)
+    Ok(state.write().await.split_cat(req).await?)
 }
 
 #[command]
 #[specta]
 pub async fn issue_cat(state: State<'_, AppState>, req: IssueCat) -> Result<TransactionResponse> {
-    Ok(state.read().await.issue_cat(req).await?)
+    Ok(state.write().await.issue_cat(req).await?)
 }
 
 #[command]
 #[specta]
 pub async fn send_cat(state: State<'_, AppState>, req: SendCat) -> Result<TransactionResponse> {
-    Ok(state.read().await.send_cat(req).await?)
+    Ok(state.write().await.send_cat(req).await?)
 }
 
 #[command]
@@ -193,13 +193,13 @@ pub async fn bulk_send_cat(
     state: State<'_, AppState>,
     req: BulkSendCat,
 ) -> Result<TransactionResponse> {
-    Ok(state.read().await.bulk_send_cat(req).await?)
+    Ok(state.write().await.bulk_send_cat(req).await?)
 }
 
 #[command]
 #[specta]
 pub async fn create_did(state: State<'_, AppState>, req: CreateDid) -> Result<TransactionResponse> {
-    Ok(state.read().await.create_did(req).await?)
+    Ok(state.write().await.create_did(req).await?)
 }
 
 #[command]
@@ -208,7 +208,7 @@ pub async fn bulk_mint_nfts(
     state: State<'_, AppState>,
     req: BulkMintNfts,
 ) -> Result<BulkMintNftsResponse> {
-    Ok(state.read().await.bulk_mint_nfts(req).await?)
+    Ok(state.write().await.bulk_mint_nfts(req).await?)
 }
 
 #[command]
@@ -217,7 +217,7 @@ pub async fn transfer_nfts(
     state: State<'_, AppState>,
     req: TransferNfts,
 ) -> Result<TransactionResponse> {
-    Ok(state.read().await.transfer_nfts(req).await?)
+    Ok(state.write().await.transfer_nfts(req).await?)
 }
 
 #[command]
@@ -226,7 +226,7 @@ pub async fn add_nft_uri(
     state: State<'_, AppState>,
     req: AddNftUri,
 ) -> Result<TransactionResponse> {
-    Ok(state.read().await.add_nft_uri(req).await?)
+    Ok(state.write().await.add_nft_uri(req).await?)
 }
 
 #[command]
@@ -235,7 +235,7 @@ pub async fn assign_nfts_to_did(
     state: State<'_, AppState>,
     req: AssignNftsToDid,
 ) -> Result<TransactionResponse> {
-    Ok(state.read().await.assign_nfts_to_did(req).await?)
+    Ok(state.write().await.assign_nfts_to_did(req).await?)
 }
 
 #[command]
@@ -244,7 +244,7 @@ pub async fn transfer_dids(
     state: State<'_, AppState>,
     req: TransferDids,
 ) -> Result<TransactionResponse> {
-    Ok(state.read().await.transfer_dids(req).await?)
+    Ok(state.write().await.transfer_dids(req).await?)
 }
 
 #[command]
@@ -253,7 +253,7 @@ pub async fn normalize_dids(
     state: State<'_, AppState>,
     req: NormalizeDids,
 ) -> Result<TransactionResponse> {
-    Ok(state.read().await.normalize_dids(req).await?)
+    Ok(state.write().await.normalize_dids(req).await?)
 }
 
 #[command]
@@ -280,19 +280,19 @@ pub async fn submit_transaction(
     state: State<'_, AppState>,
     req: SubmitTransaction,
 ) -> Result<SubmitTransactionResponse> {
-    Ok(state.read().await.submit_transaction(req).await?)
+    Ok(state.write().await.submit_transaction(req).await?)
 }
 
 #[command]
 #[specta]
 pub async fn make_offer(state: State<'_, AppState>, req: MakeOffer) -> Result<MakeOfferResponse> {
-    Ok(state.read().await.make_offer(req).await?)
+    Ok(state.write().await.make_offer(req).await?)
 }
 
 #[command]
 #[specta]
 pub async fn take_offer(state: State<'_, AppState>, req: TakeOffer) -> Result<TakeOfferResponse> {
-    Ok(state.read().await.take_offer(req).await?)
+    Ok(state.write().await.take_offer(req).await?)
 }
 
 #[command]
@@ -316,7 +316,7 @@ pub async fn import_offer(
     state: State<'_, AppState>,
     req: ImportOffer,
 ) -> Result<ImportOfferResponse> {
-    Ok(state.read().await.import_offer(req).await?)
+    Ok(state.write().await.import_offer(req).await?)
 }
 
 #[command]
@@ -337,7 +337,7 @@ pub async fn delete_offer(
     state: State<'_, AppState>,
     req: DeleteOffer,
 ) -> Result<DeleteOfferResponse> {
-    Ok(state.read().await.delete_offer(req).await?)
+    Ok(state.write().await.delete_offer(req).await?)
 }
 
 #[command]
@@ -346,7 +346,7 @@ pub async fn cancel_offer(
     state: State<'_, AppState>,
     req: CancelOffer,
 ) -> Result<CancelOfferResponse> {
-    Ok(state.read().await.cancel_offer(req).await?)
+    Ok(state.write().await.cancel_offer(req).await?)
 }
 
 #[command]
@@ -490,25 +490,25 @@ pub async fn get_nft_data(
 #[command]
 #[specta]
 pub async fn remove_cat(state: State<'_, AppState>, req: RemoveCat) -> Result<RemoveCatResponse> {
-    Ok(state.read().await.remove_cat(req).await?)
+    Ok(state.write().await.remove_cat(req).await?)
 }
 
 #[command]
 #[specta]
 pub async fn update_cat(state: State<'_, AppState>, req: UpdateCat) -> Result<UpdateCatResponse> {
-    Ok(state.read().await.update_cat(req).await?)
+    Ok(state.write().await.update_cat(req).await?)
 }
 
 #[command]
 #[specta]
 pub async fn update_did(state: State<'_, AppState>, req: UpdateDid) -> Result<UpdateDidResponse> {
-    Ok(state.read().await.update_did(req).await?)
+    Ok(state.write().await.update_did(req).await?)
 }
 
 #[command]
 #[specta]
 pub async fn update_nft(state: State<'_, AppState>, req: UpdateNft) -> Result<UpdateNftResponse> {
-    Ok(state.read().await.update_nft(req).await?)
+    Ok(state.write().await.update_nft(req).await?)
 }
 
 #[command]
@@ -517,7 +517,7 @@ pub async fn update_nft_collection(
     state: State<'_, AppState>,
     req: UpdateNftCollection,
 ) -> Result<UpdateNftCollectionResponse> {
-    Ok(state.read().await.update_nft_collection(req).await?)
+    Ok(state.write().await.update_nft_collection(req).await?)
 }
 
 #[command]
@@ -535,7 +535,7 @@ pub async fn increase_derivation_index(
     state: State<'_, AppState>,
     req: IncreaseDerivationIndex,
 ) -> Result<IncreaseDerivationIndexResponse> {
-    Ok(state.read().await.increase_derivation_index(req).await?)
+    Ok(state.write().await.increase_derivation_index(req).await?)
 }
 
 #[command]
@@ -550,7 +550,7 @@ pub async fn remove_peer(
     state: State<'_, AppState>,
     req: RemovePeer,
 ) -> Result<RemovePeerResponse> {
-    Ok(state.read().await.remove_peer(req).await?)
+    Ok(state.write().await.remove_peer(req).await?)
 }
 
 #[command]
@@ -651,7 +651,11 @@ pub async fn sign_message_with_public_key(
     state: State<'_, AppState>,
     req: SignMessageWithPublicKey,
 ) -> Result<SignMessageWithPublicKeyResponse> {
-    Ok(state.read().await.sign_message_with_public_key(req).await?)
+    Ok(state
+        .write()
+        .await
+        .sign_message_with_public_key(req)
+        .await?)
 }
 
 #[command]
@@ -660,7 +664,7 @@ pub async fn sign_message_by_address(
     state: State<'_, AppState>,
     req: SignMessageByAddress,
 ) -> Result<SignMessageByAddressResponse> {
-    Ok(state.read().await.sign_message_by_address(req).await?)
+    Ok(state.write().await.sign_message_by_address(req).await?)
 }
 
 #[command]
@@ -669,5 +673,9 @@ pub async fn send_transaction_immediately(
     state: State<'_, AppState>,
     req: SendTransactionImmediately,
 ) -> Result<SendTransactionImmediatelyResponse> {
-    Ok(state.read().await.send_transaction_immediately(req).await?)
+    Ok(state
+        .write()
+        .await
+        .send_transaction_immediately(req)
+        .await?)
 }
