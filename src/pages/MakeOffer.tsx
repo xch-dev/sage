@@ -188,15 +188,17 @@ export function MakeOffer() {
                 <Trans>Network Fee</Trans>
               </Label>
               <div className='relative'>
-                <Input
+                <TokenAmountInput
                   id='fee'
                   type='text'
                   placeholder={'0.00'}
                   className='pr-12'
                   value={state.fee}
-                  onChange={(e) =>
-                    useOfferState.setState({ fee: e.target.value })
-                  }
+                  onValueChange={(values) => {
+                    useOfferState.setState({
+                      fee: values.floatValue?.toString() ?? '',
+                    });
+                  }}
                 />
                 <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
                   <span className='text-gray-500 text-sm' id='price-currency'>
@@ -461,12 +463,17 @@ function AssetSelector({
         <div className='mt-4 flex flex-col space-y-1.5'>
           <Label htmlFor={`${prefix}-amount`}>XCH</Label>
           <div className='flex'>
-            <Input
+            <TokenAmountInput
               id={`${prefix}-amount`}
               className='rounded-r-none z-10'
               placeholder={t`Enter amount`}
               value={assets.xch}
-              onChange={(e) => setAssets({ ...assets, xch: e.target.value })}
+              onValueChange={(values) => {
+                setAssets({
+                  ...assets,
+                  xch: values.floatValue?.toString() ?? '',
+                });
+              }}
             />
             <Button
               variant='outline'
@@ -554,8 +561,8 @@ function AssetSelector({
                 className='border-l-0 z-10 rounded-l-none rounded-r-none w-[100px] h-12'
                 placeholder={t`Amount`}
                 value={cat.amount}
-                onChange={(e) => {
-                  assets.cats[i].amount = e.target.value;
+                onValueChange={(values) => {
+                  assets.cats[i].amount = values.floatValue?.toString() ?? '';
                   setAssets({ ...assets });
                 }}
               />
