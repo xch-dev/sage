@@ -138,6 +138,15 @@ pub async fn combine_xch(
 
 #[command]
 #[specta]
+pub async fn auto_combine_xch(
+    state: State<'_, AppState>,
+    req: AutoCombineXch,
+) -> Result<TransactionResponse> {
+    Ok(state.lock().await.auto_combine_xch(req).await?)
+}
+
+#[command]
+#[specta]
 pub async fn split_xch(state: State<'_, AppState>, req: SplitXch) -> Result<TransactionResponse> {
     Ok(state.lock().await.split_xch(req).await?)
 }
@@ -149,6 +158,15 @@ pub async fn combine_cat(
     req: CombineCat,
 ) -> Result<TransactionResponse> {
     Ok(state.lock().await.combine_cat(req).await?)
+}
+
+#[command]
+#[specta]
+pub async fn auto_combine_cat(
+    state: State<'_, AppState>,
+    req: AutoCombineCat,
+) -> Result<TransactionResponse> {
+    Ok(state.lock().await.auto_combine_cat(req).await?)
 }
 
 #[command]

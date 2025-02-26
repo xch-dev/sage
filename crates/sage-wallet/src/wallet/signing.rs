@@ -105,7 +105,9 @@ impl Wallet {
             let RequiredSignature::Bls(required) = required else {
                 return Err(WalletError::SecpNotSupported);
             };
-            let sk = secret_keys[&required.public_key].clone();
+            let Some(sk) = secret_keys.get(&required.public_key).cloned() else {
+                continue;
+            };
             aggregated_signature += &sign(&sk, required.message());
         }
 

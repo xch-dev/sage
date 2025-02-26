@@ -82,7 +82,7 @@ impl PuzzleQueue {
                     db.sync_coin(coin_state.coin.coin_id(), None, CoinKind::Xch)
                         .await?;
                     warn!(
-                        "Could {} should already be synced, but isn't",
+                        "Coin {} should already be synced, but isn't",
                         coin_state.coin.coin_id()
                     );
                     continue;
