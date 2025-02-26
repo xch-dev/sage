@@ -95,17 +95,21 @@ export function Transactions() {
         pageSize={pageSize}
         onPageChange={(newPage) => {
           setParams({ page: newPage });
-          listRef.current?.scrollIntoView({
-            behavior: 'smooth',
-            block: 'start',
-          });
+          if (compact) {
+            listRef.current?.scrollIntoView({
+              behavior: 'smooth',
+              block: 'start',
+            });
+          }
         }}
         onPageSizeChange={(newSize) => {
           setParams({ pageSize: newSize, page: 1 });
-          listRef.current?.scrollIntoView({
-            behavior: 'smooth',
-            block: 'start',
-          });
+          if (compact) {
+            listRef.current?.scrollIntoView({
+              behavior: 'smooth',
+              block: 'start',
+            });
+          }
         }}
         pageSizeOptions={[10, 25, 50]}
         compact={compact}
