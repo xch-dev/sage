@@ -8,11 +8,11 @@ use sage::Sage;
 use sage_api::SyncEvent as ApiEvent;
 use sage_wallet::SyncEvent;
 use tauri::{AppHandle, Emitter};
-use tokio::sync::Mutex;
+use tokio::sync::RwLock;
 
 use crate::error::Result;
 
-pub type AppState = Arc<Mutex<AppStateInner>>;
+pub type AppState = Arc<RwLock<AppStateInner>>;
 
 pub struct AppStateInner {
     pub app_handle: AppHandle,
