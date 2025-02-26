@@ -1,13 +1,7 @@
-//use std::cmp::Reverse;
-
-//use chia::protocol::{Bytes32, CoinState};
 use sqlx::SqliteExecutor;
 
-use crate::{
-    into_row, to_bytes32, CoinKind, CoinStateRow, CoinStateSql, Database, DatabaseTx, IntoRow,
-    Result,
-};
-use std::error::Error;
+use crate::{Database, DatabaseTx, Result};
+//use std::error::Error;
 
 impl Database {
     //find null created_unixtime in coin_states

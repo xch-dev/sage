@@ -1,7 +1,7 @@
-use crate::wallet_peer::WalletPeer; // Import WalletPeer from wallet_peer module
+use crate::wallet_peer::WalletPeer;
 use crate::{PeerState, WalletError};
 
-use sage_database::Database; // Import the Database type from sage_database crate
+use sage_database::Database;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::{sync::Mutex, time::sleep};
@@ -30,21 +30,20 @@ impl BlockTimeQueue {
 
     async fn process_batch(&mut self) -> Result<(), WalletError> {
         let cts_null_ht = self.db.find_created_timestamp_null().await?;
+        //first look for created height timestamp nulls
         if let Some(cts_null_ht) = cts_null_ht {
-            // If Some(i64) is returned, log or print the value //look in blockinfo and then chia blokchain
             println!(
                 "Found created timestamp (null) with height: {}",
                 cts_null_ht
             );
-            //do something
             let cts_null_ht_u32: u32 = cts_null_ht as u32;
             let check_blockinfo = self.db.get_timestamp_blockinfo(cts_null_ht_u32).await;
-            //this is to handle an error in the case of zero rows. not ideal imo gdn 20250225
+            //this is to handle an error in the case of zero rows. not ideal since designed to encounter zero rows often gdn 20250225
             match check_blockinfo {
                 Ok(unix_time) => {
                     // If the value is found, use the unix_time
                     println!(
-                        "Found unix_time for height {}: {}",
+                        "Found blockinfo unix_time for height {}: {}",
                         cts_null_ht_u32, unix_time
                     );
                     // Do something with unix_time (maybe update coin_states)
@@ -66,9 +65,6 @@ impl BlockTimeQueue {
                             info!("Timestamp from blockchain source: {}", timestamp);
                             let timestamp_u32: u32 = timestamp as u32;
                             //update coininfo and coinstates in two places gdn 20250225
-                            // Call update_coinstates method here
-                            // self.update_coinstates(height, timestamp_u32).await?;
-                            // Ok(())
                             if let Err(e) = self.update_coinstates(height, timestamp_u32).await {
                                 error!("Failed to update coinstates: {:?}", e);
                                 return Err(e); // Return error if update fails
@@ -85,15 +81,58 @@ impl BlockTimeQueue {
                     }
                 }
             }
-            // Match on the Result from get_timestamp_blockinfo
+        //second move on to looking for spent timestamp nulls
         } else {
-            // If None is returned, log or print that no result was found //move on to looking for spent timestamp nulls
             println!("No created timestamp (null) found. Looking for spent timestamp(null).");
-            // Check for spent timestamp if no created timestamp is found
-            let sts_null = self.db.find_spent_timestamp_null().await?;
-            if let Some(sts_null) = sts_null {
-                println!("Found spent timestamp (null) with height: {}", sts_null);
+            let sts_null_ht = self.db.find_spent_timestamp_null().await?;
+            if let Some(sts_null_ht) = sts_null_ht {
+                println!("Found spent timestamp (null) with height: {}", sts_null_ht);
                 //do something else
+                let sts_null_ht_u32: u32 = sts_null_ht as u32;
+                let check_blockinfo = self.db.get_timestamp_blockinfo(sts_null_ht_u32).await;
+                match check_blockinfo {
+                    Ok(unix_time) => {
+                        // If the value is found, use the unix_time
+                        println!(
+                            "Found blockinfo unix_time for height {}: {}",
+                            sts_null_ht_u32, unix_time
+                        );
+                        // Do something with unix_time (maybe update coin_states)
+                    }
+                    Err(e) => {
+                        // Handle the error case where no row in block_info found
+                        println!(
+                            "Error fetching unix_time for height {}: {}",
+                            sts_null_ht_u32, e
+                        );
+                        //look on Chia blockchain if possible through an error
+                        let Some(peer) = self.state.lock().await.acquire_peer() else {
+                            return Ok(());
+                        };
+
+                        let height = sts_null_ht_u32;
+                        match fetch_block_timestamp(&peer, height).await {
+                            Ok(Some(timestamp)) => {
+                                info!("Timestamp from blockchain source: {}", timestamp);
+                                let timestamp_u32: u32 = timestamp as u32;
+                                //update coininfo and coinstates in two places gdn 20250225
+                                if let Err(e) = self.update_coinstates(height, timestamp_u32).await
+                                {
+                                    error!("Failed to update coinstates: {:?}", e);
+                                    return Err(e); // Return error if update fails
+                                }
+                            }
+                            Ok(None) => {
+                                error!("No timestamp found for block {}", height);
+                                return Err(WalletError::PeerMisbehaved); // Return an error directly
+                            }
+                            Err(e) => {
+                                error!("Failed to fetch block {} timestamp: {:?}", height, e);
+                                return Err(e); // Propagate the error directly
+                            }
+                        }
+                    }
+                }
             } else {
                 println!("No spent timestamp (null) found. ***End Batch***");
                 //exit gracefully here
