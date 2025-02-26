@@ -419,7 +419,7 @@ function SignCoinSpendsDialog({
 }
 
 function MessageToSign(params: { message: string; hex: boolean }) {
-  const [showHex, setShowHex] = useState(false);
+  const [showHex, setShowHex] = useState(true);
   const message = params.hex
     ? showHex
       ? params.message
