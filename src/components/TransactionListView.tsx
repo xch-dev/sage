@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { t } from '@lingui/core/macro';
 import { Loading } from './Loading';
 import { motion } from 'framer-motion';
+import { nftUri } from '@/lib/nftUri';
 
 function getDisplayName(coin: TransactionCoin) {
   switch (coin.type) {
@@ -28,6 +29,8 @@ function getIconUrl(coin: TransactionCoin) {
       return 'https://icons.dexie.space/xch.webp';
     case 'cat':
       return coin.icon_url;
+    case 'nft':
+      return nftUri(coin.image_mime_type, coin.image_data);
     default:
       return null;
   }
