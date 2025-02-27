@@ -74,7 +74,7 @@ impl Database {
     }
 }
 
-impl<'a> DatabaseTx<'a> {
+impl DatabaseTx<'_> {
     pub async fn insert_coin_state(
         &mut self,
         coin_state: CoinState,

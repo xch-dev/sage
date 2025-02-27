@@ -66,7 +66,7 @@ fn convert(
         TokenTree::Group(group) => {
             let mut stream = group.stream().into_iter().peekable();
 
-            let repeat = stream.peek().map_or(false, |token| {
+            let repeat = stream.peek().is_some_and(|token| {
                 if let TokenTree::Ident(ident) = &token {
                     ident.to_string() == "repeat" && group.delimiter() == Delimiter::Parenthesis
                 } else {

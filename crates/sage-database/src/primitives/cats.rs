@@ -58,7 +58,7 @@ impl Database {
     }
 }
 
-impl<'a> DatabaseTx<'a> {
+impl DatabaseTx<'_> {
     pub async fn insert_cat(&mut self, row: CatRow) -> Result<()> {
         insert_cat(&mut *self.tx, row).await
     }
