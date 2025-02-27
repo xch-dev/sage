@@ -69,7 +69,11 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
       return (
         <div className='w-6 h-6' role='img' aria-label={`${assetName} icon`}>
           {row.original.icon_url ? (
-            <img src={row.original.icon_url} aria-hidden='true' />
+            <img
+              src={row.original.icon_url}
+              aria-hidden='true'
+              loading='lazy'
+            />
           ) : null}
         </div>
       );

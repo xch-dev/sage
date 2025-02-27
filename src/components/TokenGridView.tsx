@@ -136,6 +136,7 @@ export function TokenGridView({
               aria-hidden='true'
               className='h-6 w-6'
               src='https://icons.dexie.space/xch.webp'
+              loading='lazy'
             />
           </CardHeader>
           <CardContent className='flex flex-col gap-1'>

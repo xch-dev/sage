@@ -137,15 +137,18 @@ const QRCodeDialog = ({
     }
   }, [asset?.icon_url]);
 
+  const ticker = asset?.ticker || '';
+  const name = asset?.name || '';
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className='sm:max-w-md'>
         <DialogHeader>
           <DialogTitle>
-            <Trans>Receive {asset?.ticker}</Trans>
+            <Trans>Receive {ticker}</Trans>
           </DialogTitle>
           <DialogDescription>
-            <Trans>Use this address to receive {asset?.name}</Trans>
+            <Trans>Use this address to receive {name}</Trans>
           </DialogDescription>
         </DialogHeader>
         <div className='flex'>

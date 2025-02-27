@@ -1,7 +1,6 @@
 import { TransactionCoin, TransactionRecord } from '../bindings';
 import { DataTable } from '@/components/ui/data-table';
 import { columns } from './TransactionColumns';
-import { cn } from '@/lib/utils';
 import { SortingState } from '@tanstack/react-table';
 import { useState } from 'react';
 import { t } from '@lingui/core/macro';
