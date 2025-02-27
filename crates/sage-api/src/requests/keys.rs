@@ -30,7 +30,6 @@ pub struct Resync {
     pub delete_unhardened_derivations: bool,
     #[serde(default)]
     pub delete_hardened_derivations: bool,
-    //added gdn 20250227
     #[serde(default)]
     pub delete_blockinfo: bool,
 }

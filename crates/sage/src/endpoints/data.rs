@@ -720,6 +720,8 @@ impl Sage {
     async fn transaction_record(&self, db: &Database, height: u32) -> Result<TransactionRecord> {
         let spent_rows = db.get_coin_states_by_spent_height(height).await?;
         let created_rows = db.get_coin_states_by_created_height(height).await?;
+        let timestamp_i64 = db.check_blockinfo(height).await?;
+        let timestamp: u32 = timestamp_i64 as u32;
 
         let mut spent = Vec::new();
         let mut created = Vec::new();
@@ -734,6 +736,7 @@ impl Sage {
 
         Ok(TransactionRecord {
             height,
+            timestamp,
             spent,
             created,
         })

@@ -76,7 +76,6 @@ impl Sage {
                 .execute(&pool)
                 .await?;
         }
-        //added gdn 20250227
         if req.delete_blockinfo {
             sqlx::query!("DELETE FROM `blockinfo`")
                 .execute(&pool)

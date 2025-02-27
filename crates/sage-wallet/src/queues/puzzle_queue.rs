@@ -8,8 +8,7 @@ use tokio::{
     task::spawn_blocking,
     time::{sleep, timeout},
 };
-//changed added info for learning puproses gdn 20250227
-use tracing::{debug, info, warn};
+use tracing::{debug, warn};
 
 use crate::{
     database::insert_puzzle, fetch_nft_did, ChildKind, PeerState, SyncCommand, SyncEvent,
@@ -61,9 +60,8 @@ impl PuzzleQueue {
         if coin_states.is_empty() {
             return Ok(());
         }
-        //changed for learning purposes gdn 20250227
-        //debug!("Syncing a batch of {} coins", coin_states.len());
-        info!("Syncing a batch of {} coins", coin_states.len());
+
+        debug!("Syncing a batch of {} coins", coin_states.len());
 
         let mut futures = FuturesUnordered::new();
 

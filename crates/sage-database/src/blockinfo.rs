@@ -43,7 +43,7 @@ impl<'a> DatabaseTx<'a> {
 
 async fn find_created_timestamp_null(conn: impl SqliteExecutor<'_>) -> Result<Option<i64>> {
     let row = sqlx::query!(
-        //start with most recent block height since these should be most interesting to end user
+        //begin with most recent block height since these should be most interesting to end user
         "
             SELECT `created_height`
             FROM `coin_states`
@@ -62,7 +62,7 @@ async fn find_created_timestamp_null(conn: impl SqliteExecutor<'_>) -> Result<Op
 
 async fn find_spent_timestamp_null(conn: impl SqliteExecutor<'_>) -> Result<Option<i64>> {
     let row = sqlx::query!(
-        //start with most recent block height since these should be most interesting to end user
+        //begin with most recent block height since these should be most interesting to end user
         "
             SELECT `spent_height`
             FROM `coin_states`
@@ -93,7 +93,7 @@ async fn check_blockinfo(conn: impl SqliteExecutor<'_>, height: u32) -> Result<i
 
     Ok(row.unix_time)
 }
-//todo: change fx name from insert to update gdn 202502026
+
 async fn update_created_timestamp(
     conn: impl SqliteExecutor<'_>,
     height: u32,
@@ -113,7 +113,7 @@ async fn update_created_timestamp(
 
     Ok(timestamp)
 }
-//todo: change fx name from insert to update gdn 202502026
+
 async fn update_spent_timestamp(
     conn: impl SqliteExecutor<'_>,
     height: u32,
