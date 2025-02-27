@@ -6,8 +6,25 @@ use quote::quote;
 
 #[proc_macro]
 pub fn impl_endpoints(input: TokenStream) -> TokenStream {
-    let endpoints: IndexMap<String, bool> =
+    generate(&input, false)
+}
+
+#[proc_macro]
+pub fn impl_endpoints_tauri(input: TokenStream) -> TokenStream {
+    generate(&input, true)
+}
+
+fn generate(input: &TokenStream, tauri: bool) -> TokenStream {
+    let mut endpoints: IndexMap<String, bool> =
         serde_json::from_str(include_str!("../../endpoints.json")).expect("Invalid endpoint file");
+
+    if tauri {
+        let tauri_endpoints: IndexMap<String, bool> =
+            serde_json::from_str(include_str!("../../endpoints-tauri.json"))
+                .expect("Invalid endpoint file");
+
+        endpoints.extend(tauri_endpoints);
+    }
 
     let mut output = proc_macro2::TokenStream::new();
 

@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use chia_wallet_sdk::decode_address;
 use sage_api::{wallet_connect::*, *};
-use sage_api_macro::impl_endpoints;
+use sage_api_macro::impl_endpoints_tauri;
 use sage_config::{NetworkConfig, WalletConfig};
 use specta::specta;
 use tauri::{command, State};
@@ -37,7 +37,7 @@ pub async fn initialize(state: State<'_, AppState>) -> Result<()> {
     Ok(())
 }
 
-impl_endpoints! {
+impl_endpoints_tauri! {
     (repeat
         #[command]
         #[specta]
@@ -60,58 +60,11 @@ pub async fn validate_address(state: State<'_, AppState>, address: String) -> Re
 #[command]
 #[specta]
 pub async fn network_config(state: State<'_, AppState>) -> Result<NetworkConfig> {
-    let state = state.lock().await;
-    Ok(state.config.network.clone())
+    Ok(state.lock().await.config.network.clone())
 }
 
 #[command]
 #[specta]
 pub async fn wallet_config(state: State<'_, AppState>, fingerprint: u32) -> Result<WalletConfig> {
-    let mut state = state.lock().await;
-    Ok(state.try_wallet_config(fingerprint).clone())
-}
-
-#[command]
-#[specta]
-pub async fn filter_unlocked_coins(
-    state: State<'_, AppState>,
-    req: FilterUnlockedCoins,
-) -> Result<FilterUnlockedCoinsResponse> {
-    Ok(state.lock().await.filter_unlocked_coins(req).await?)
-}
-
-#[command]
-#[specta]
-pub async fn get_asset_coins(
-    state: State<'_, AppState>,
-    req: GetAssetCoins,
-) -> Result<GetAssetCoinsResponse> {
-    Ok(state.lock().await.get_asset_coins(req).await?)
-}
-
-#[command]
-#[specta]
-pub async fn sign_message_with_public_key(
-    state: State<'_, AppState>,
-    req: SignMessageWithPublicKey,
-) -> Result<SignMessageWithPublicKeyResponse> {
-    Ok(state.lock().await.sign_message_with_public_key(req).await?)
-}
-
-#[command]
-#[specta]
-pub async fn sign_message_by_address(
-    state: State<'_, AppState>,
-    req: SignMessageByAddress,
-) -> Result<SignMessageByAddressResponse> {
-    Ok(state.lock().await.sign_message_by_address(req).await?)
-}
-
-#[command]
-#[specta]
-pub async fn send_transaction_immediately(
-    state: State<'_, AppState>,
-    req: SendTransactionImmediately,
-) -> Result<SendTransactionImmediatelyResponse> {
-    Ok(state.lock().await.send_transaction_immediately(req).await?)
+    Ok(state.lock().await.try_wallet_config(fingerprint).clone())
 }
