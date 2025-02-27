@@ -1,7 +1,6 @@
 use crate::wallet_peer::WalletPeer;
 use crate::{PeerState, WalletError};
 
-use core::time;
 use sage_database::Database;
 use std::sync::Arc;
 use std::time::Duration;
@@ -31,7 +30,7 @@ impl BlockTimeQueue {
 
     async fn process_batch(&mut self) -> Result<(), WalletError> {
         let cts_null_ht = self.db.find_created_timestamp_null().await?;
-        //look for created height timestamp nulls
+        //look for created height timestamp nulls first. highest to lowest.
         if let Some(cts_null_ht) = cts_null_ht {
             println!(
                 "Found created timestamp (null) with height: {}",
@@ -68,7 +67,7 @@ impl BlockTimeQueue {
             Ok(unix_time) => {
                 // If the value is found, use the unix_time
                 println!(
-                    "******Found blockinfo unix_time for height {}: {}*******",
+                    "******Found blockinfo for height {}: {}*******",
                     height, unix_time
                 );
                 // Do something with unix_time (maybe update coin_states)
@@ -113,23 +112,31 @@ impl BlockTimeQueue {
         Ok(())
     }
     //
+    async fn insert_blockinfo(&self, height: u32, timestamp_u32: u32) -> Result<(), WalletError> {
+        // Insert the timestamp and height into blockinfo
+        self.db
+            .insert_timestamp_height(height, timestamp_u32)
+            .await?;
+        info!("Blockinfo insert height and timestamp query attempted...");
+        Ok(())
+    }
     async fn update_coinstates(&self, height: u32, timestamp_u32: u32) -> Result<(), WalletError> {
-        // Call the insert_created_timestamp function
-        let insert_created = self
+        // Call the update_created_timestamp function
+        let update_created = self
             .db
-            .insert_created_timestamp(height, timestamp_u32)
+            .update_created_timestamp(height, timestamp_u32)
             .await?;
         info!(
             "Created timestamp update query attempted... {}",
-            insert_created
+            update_created
         );
 
-        // Call the insert_spent_timestamp function
-        let insert_spent = self
+        // Call the update_spent_timestamp function
+        let update_spent = self
             .db
-            .insert_spent_timestamp(height, timestamp_u32)
+            .update_spent_timestamp(height, timestamp_u32)
             .await?;
-        info!("Spent timestamp insert query attempted... {}", insert_spent);
+        info!("Spent timestamp update query attempted... {}", update_spent);
 
         // Log success for both operations
         info!(
@@ -137,12 +144,8 @@ impl BlockTimeQueue {
             height, timestamp_u32
         );
 
-        //move to it's own fx and rename insert_blockinfo
-        //call insert timestamp and height into blockinfo //build me gdn 20250225******************
-        self.db
-            .insert_timestamp_height(height, timestamp_u32)
-            .await?;
-        info!("Blockinfo insert height and timestamp query attempted...",);
+        // Call insert_blockinfo to handle blockinfo insert
+        self.insert_blockinfo(height, timestamp_u32).await?;
 
         Ok(())
     }

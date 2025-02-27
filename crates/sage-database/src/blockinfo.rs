@@ -17,12 +17,12 @@ impl Database {
         check_blockinfo(&self.pool, height).await
     }
     //insert created timestamp into coin_states
-    pub async fn insert_created_timestamp(&self, height: u32, timestamp: u32) -> Result<u32> {
-        insert_created_timestamp(&self.pool, height, timestamp).await
+    pub async fn update_created_timestamp(&self, height: u32, timestamp: u32) -> Result<u32> {
+        update_created_timestamp(&self.pool, height, timestamp).await
     }
     //insert spent timestamp into coin_states
-    pub async fn insert_spent_timestamp(&self, height: u32, timestamp: u32) -> Result<u32> {
-        insert_spent_timestamp(&self.pool, height, timestamp).await
+    pub async fn update_spent_timestamp(&self, height: u32, timestamp: u32) -> Result<u32> {
+        update_spent_timestamp(&self.pool, height, timestamp).await
     }
     //insert timestamp and height into blockinfo
     pub async fn insert_timestamp_height(&self, height: u32, timestamp: u32) -> Result<()> {
@@ -39,10 +39,6 @@ impl<'a> DatabaseTx<'a> {
     pub async fn find_spent_timestamp_null(&mut self) -> Result<Option<i64>> {
         find_spent_timestamp_null(&mut *self.tx).await
     }
-    //find spent_unixtime null in coin_states
-    //pub async fn get_timestamp_blockinfo(&mut self, height: u32) -> Result<i64> {
-    //    get_timestamp_blockinfo(&mut *self.tx, height).await
-    //}
 }
 
 async fn find_created_timestamp_null(conn: impl SqliteExecutor<'_>) -> Result<Option<i64>> {
@@ -98,7 +94,7 @@ async fn check_blockinfo(conn: impl SqliteExecutor<'_>, height: u32) -> Result<i
     Ok(row.unix_time)
 }
 //todo: change fx name from insert to update gdn 202502026
-async fn insert_created_timestamp(
+async fn update_created_timestamp(
     conn: impl SqliteExecutor<'_>,
     height: u32,
     timestamp: u32,
@@ -118,7 +114,7 @@ async fn insert_created_timestamp(
     Ok(timestamp)
 }
 //todo: change fx name from insert to update gdn 202502026
-async fn insert_spent_timestamp(
+async fn update_spent_timestamp(
     conn: impl SqliteExecutor<'_>,
     height: u32,
     timestamp: u32,
