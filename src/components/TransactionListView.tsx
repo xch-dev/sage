@@ -4,6 +4,8 @@ import { columns } from './TransactionColumns';
 import { SortingState } from '@tanstack/react-table';
 import { useState } from 'react';
 import { t } from '@lingui/core/macro';
+import { Loading } from './Loading';
+import { motion } from 'framer-motion';
 
 function getDisplayName(coin: TransactionCoin) {
   switch (coin.type) {
@@ -34,9 +36,11 @@ function getIconUrl(coin: TransactionCoin) {
 export function TransactionListView({
   transactions,
   onSortingChange,
+  isLoading = false,
 }: {
   transactions: TransactionRecord[];
   onSortingChange?: (ascending: boolean) => void;
+  isLoading?: boolean;
 }) {
   const [sorting, setSorting] = useState<SortingState>([]);
 
@@ -61,26 +65,38 @@ export function TransactionListView({
   });
 
   return (
-    <div role='region' aria-label={t`Transaction history table`}>
-      <DataTable
-        columns={columns}
-        data={flattenedTransactions}
-        onSortingChange={(updatedSort) => {
-          setSorting(updatedSort);
-          if (typeof updatedSort === 'function') {
-            const newSort = updatedSort([]);
-            if (newSort.length > 0 && newSort[0].id === 'transactionHeight') {
-              onSortingChange?.(newSort[0].desc === false);
+    <motion.div
+      role='region'
+      aria-label={t`Transaction history table`}
+      initial={{ opacity: 0.6 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.3 }}
+    >
+      {isLoading ? (
+        <div className='flex justify-center items-center py-12'>
+          <Loading size={40} text={t`Loading transactions...`} />
+        </div>
+      ) : (
+        <DataTable
+          columns={columns}
+          data={flattenedTransactions}
+          onSortingChange={(updatedSort) => {
+            setSorting(updatedSort);
+            if (typeof updatedSort === 'function') {
+              const newSort = updatedSort([]);
+              if (newSort.length > 0 && newSort[0].id === 'transactionHeight') {
+                onSortingChange?.(newSort[0].desc === false);
+              }
+            } else if (
+              updatedSort.length > 0 &&
+              updatedSort[0].id === 'transactionHeight'
+            ) {
+              onSortingChange?.(updatedSort[0].desc === false);
             }
-          } else if (
-            updatedSort.length > 0 &&
-            updatedSort[0].id === 'transactionHeight'
-          ) {
-            onSortingChange?.(updatedSort[0].desc === false);
-          }
-        }}
-        state={{ sorting }}
-      />
-    </div>
+          }}
+          state={{ sorting }}
+        />
+      )}
+    </motion.div>
   );
 }
