@@ -32,7 +32,7 @@ impl BlockTimeQueue {
         let cts_null_ht = self.db.find_created_timestamp_null().await?;
         //look for created height timestamp nulls first. highest to lowest.
         if let Some(cts_null_ht) = cts_null_ht {
-            println!(
+            info!(
                 "Found created timestamp (null) with height: {}",
                 cts_null_ht
             );
@@ -41,16 +41,16 @@ impl BlockTimeQueue {
             self.fetch_and_process_blockinfo(cts_null_ht_u32).await?;
         //move on to looking for spent timestamp nulls
         } else {
-            println!("Looking for spent timestamp(null).");
+            info!("Looking for spent timestamp(null).");
             //block_info to blockchain function with spent as input
             let sts_null_ht = self.db.find_spent_timestamp_null().await?;
             //first look for created height timestamp nulls
             if let Some(sts_null_ht) = sts_null_ht {
-                println!("Found spent timestamp (null) with height: {}", sts_null_ht);
+                info!("Found spent timestamp (null) with height: {}", sts_null_ht);
                 let sts_null_ht_u32: u32 = sts_null_ht as u32;
                 self.fetch_and_process_blockinfo(sts_null_ht_u32).await?;
             } else {
-                println!("No spent timestamp (null) found. ***End Batch***");
+                info!("No spent timestamp (null) found. ***End Batch***");
                 //exit gracefully here
             }
         }
@@ -66,7 +66,7 @@ impl BlockTimeQueue {
         match check_blockinfo {
             Ok(unix_time) => {
                 // If the value is found, use the unix_time
-                println!(
+                info!(
                     "******Found blockinfo for height {}: {}*******",
                     height, unix_time
                 );
@@ -80,7 +80,7 @@ impl BlockTimeQueue {
             }
             Err(e) => {
                 // Handle the error case where no row in block_info found
-                println!("Error must go to blockchain for height {}: {}", height, e);
+                info!("Error must go to blockchain for height {}: {}", height, e);
                 // Try to fetch the timestamp from the blockchain
                 let Some(peer) = self.state.lock().await.acquire_peer() else {
                     return Ok(()); // If no peer is available, return early
