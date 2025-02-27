@@ -4,7 +4,7 @@ keywords = ["chia", "wallet", "blockchain", "crypto"]
 categories = ["cryptography::cryptocurrencies"]
 
 [workspace]
-members = ["src-tauri", "crates/*"]
+members = ["src-tauri", "crates/*", "crates/sage-api/macro"]
 resolver = "2"
 
 [workspace.lints.rust]
@@ -46,11 +46,14 @@ cast_sign_loss = "allow"
 [workspace.dependencies]
 sage = { path = "./crates/sage" }
 sage-api = { path = "./crates/sage-api" }
+sage-api-macro = { path = "./crates/sage-api/macro" }
+sage-client = { path = "./crates/sage-client" }
 sage-config = { path = "./crates/sage-config" }
 sage-database = { path = "./crates/sage-database" }
 sage-keychain = { path = "./crates/sage-keychain" }
 sage-wallet = { path = "./crates/sage-wallet" }
 sage-assets = { path = "./crates/sage-assets" }
+sage-rpc = { path = "./crates/sage-rpc" }
 
 # Serialization
 serde = "1.0.204"
@@ -107,6 +110,11 @@ chrono = "0.4.38"
 glob = "0.3.1"
 num-bigint = "0.4.6"
 mime-sniffer = "0.1.3"
+
+# Macros
+convert_case = "0.8.0"
+quote = "1.0.38"
+proc-macro2 = "1.0.93"
 
 # Tracing
 tracing = "0.1.40"
