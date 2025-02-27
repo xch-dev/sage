@@ -1,8 +1,8 @@
+import { t } from '@lingui/core/macro';
 import * as React from 'react';
-import { Input, InputProps } from './input';
 import { NumericFormat, NumericFormatProps } from 'react-number-format';
 import { toast } from 'react-toastify';
-import { t } from '@lingui/core/macro';
+import { Input, InputProps } from './input';
 
 interface MaskedInputProps extends NumericFormatProps<InputProps> {
   inputRef?: React.Ref<HTMLInputElement>;
@@ -17,7 +17,7 @@ const MaskedInput = React.forwardRef<HTMLInputElement, MaskedInputProps>(
       displayType='input'
       type={type}
       value={value}
-      onPaste={(e) => {
+      onPaste={(e: React.ClipboardEvent<HTMLInputElement>) => {
         const pastedText = e.clipboardData.getData('text');
         if (!isLocaleNumber(pastedText)) {
           e.preventDefault();
