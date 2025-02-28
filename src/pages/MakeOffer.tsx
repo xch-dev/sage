@@ -53,7 +53,7 @@ export function MakeOffer() {
   const [config, setConfig] = useState<NetworkConfig | null>(null);
   const network = config?.network_id ?? 'mainnet';
 
-  const { expiry, getTotalSeconds } = useDefaultOfferExpiry();
+  const { expiry, getTotalSeconds, setExpiry } = useDefaultOfferExpiry();
 
   useEffect(() => {
     commands.networkConfig().then((config) => setConfig(config));
@@ -223,6 +223,10 @@ export function MakeOffer() {
                       });
                     } else {
                       useOfferState.setState({ expiration: null });
+                      if (expiry.enabled) {
+                        const tempExpiry = { ...expiry, enabled: false };
+                        setExpiry(tempExpiry);
+                      }
                     }
                   }}
                 />
