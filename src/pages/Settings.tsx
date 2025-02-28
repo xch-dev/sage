@@ -25,6 +25,7 @@ import { clearState, fetchState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { getVersion } from '@tauri-apps/api/app';
+import { platform } from '@tauri-apps/plugin-os';
 import { useContext, useEffect, useState } from 'react';
 import { DarkModeContext } from '../App';
 import {
@@ -53,6 +54,8 @@ export default function Settings() {
     getVersion().then(setVersion);
   }, []);
 
+  const isMobile = platform() === 'ios' || platform() === 'android';
+
   return (
     <Layout>
       <Header title={t`Settings`} />
@@ -62,7 +65,7 @@ export default function Settings() {
           <WalletConnectSettings />
           <GlobalSettings />
           <NetworkSettings />
-          <RpcSettings />
+          {!isMobile && <RpcSettings />}
           {wallet && <WalletSettings wallet={wallet} />}
         </div>
       </Container>
