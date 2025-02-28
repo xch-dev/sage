@@ -5056,6 +5056,7 @@ dependencies = [
  "tauri-plugin-barcode-scanner",
  "tauri-plugin-clipboard-manager",
  "tauri-plugin-http",
+ "tauri-plugin-nfc",
  "tauri-plugin-os",
  "tauri-plugin-safe-area-insets",
  "tauri-plugin-shell",
@@ -6181,6 +6182,21 @@ dependencies = [
  "tokio",
  "url",
  "urlpattern",
+]
+
+[[package]]
+name = "tauri-plugin-nfc"
+version = "2.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "87e2585d6db543f77ba5031f42832d7ebb5e59672b9ddc2e8a888ef888fac4f5"
+dependencies = [
+ "log",
+ "serde",
+ "serde_json",
+ "serde_repr",
+ "tauri",
+ "tauri-plugin",
+ "thiserror 2.0.3",
 ]
 
 [[package]]

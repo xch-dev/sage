@@ -26,6 +26,7 @@ import { clearState, fetchState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { getVersion } from '@tauri-apps/api/app';
+import { isAvailable } from '@tauri-apps/plugin-nfc';
 import { platform } from '@tauri-apps/plugin-os';
 import { useContext, useEffect, useState } from 'react';
 import { DarkModeContext } from '../App';
@@ -50,18 +51,22 @@ export default function Settings() {
   const wallet = useWallet(initialized);
 
   const [version, setVersion] = useState<string | null>(null);
+  const [isNfcEnabled, setIsNfcEnabled] = useState(false);
+
+  const isMobile = platform() === 'ios' || platform() === 'android';
 
   useEffect(() => {
     getVersion().then(setVersion);
-  }, []);
 
-  const isMobile = platform() === 'ios' || platform() === 'android';
+    if (isMobile) isAvailable().then(setIsNfcEnabled);
+  }, [isMobile]);
 
   return (
     <Layout>
       <Header title={t`Settings`} />
       <Container className='max-w-2xl'>
         <Trans>Version {version}</Trans>
+        {isNfcEnabled && <Trans>NFC is enabled</Trans>}
         <div className='flex flex-col gap-4 mt-2'>
           <WalletConnectSettings />
           <GlobalSettings />

@@ -138,12 +138,10 @@ pub fn run() {
             #[cfg(mobile)]
             {
                 app.handle().plugin(tauri_plugin_barcode_scanner::init())?;
+                app.handle().plugin(tauri_plugin_safe_area_insets::init())?;
+                app.handle().plugin(tauri_plugin_nfc::init())?;
             }
 
-            #[cfg(mobile)]
-            {
-                app.handle().plugin(tauri_plugin_safe_area_insets::init())?;
-            }
             builder.mount_events(app);
             let path = app.path().app_data_dir()?;
             let app_state = AppState::new(Mutex::new(Sage::new(&path)));
