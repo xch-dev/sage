@@ -78,4 +78,35 @@ const TokenAmountInput = React.forwardRef<HTMLInputElement, XchInputProps>(
 
 TokenAmountInput.displayName = 'TokenAmountInput';
 
-export { MaskedInput, TokenAmountInput };
+// Integer input that only accepts positive integers
+interface IntegerInputProps extends MaskedInputProps {
+  min?: number;
+  max?: number;
+}
+
+const IntegerInput = React.forwardRef<HTMLInputElement, IntegerInputProps>(
+  ({ min = 0, max, ...props }, ref) => (
+    <MaskedInput
+      placeholder='0'
+      {...props}
+      type='text'
+      inputRef={ref}
+      decimalScale={0}
+      allowLeadingZeros={false}
+      allowNegative={false}
+      isAllowed={(values) => {
+        const { floatValue } = values;
+        if (floatValue === undefined) return true;
+
+        if (min !== undefined && floatValue < min) return false;
+        if (max !== undefined && floatValue > max) return false;
+
+        return true;
+      }}
+    />
+  ),
+);
+
+IntegerInput.displayName = 'IntegerInput';
+
+export { MaskedInput, TokenAmountInput, IntegerInput };

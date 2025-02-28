@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { IntegerInput } from '@/components/ui/masked-input';
 import {
   Select,
   SelectContent,
@@ -136,14 +137,15 @@ function GlobalSettings() {
             {expiry.enabled && (
               <div className='flex gap-2'>
                 <div className='relative'>
-                  <Input
+                  <IntegerInput
                     className='pr-12'
                     value={expiry.days}
                     placeholder='0'
-                    onChange={(e) => {
+                    min={0}
+                    onValueChange={(values) => {
                       setExpiry({
                         ...expiry,
-                        days: e.target.value,
+                        days: values.value,
                       });
                     }}
                   />
@@ -155,14 +157,15 @@ function GlobalSettings() {
                 </div>
 
                 <div className='relative'>
-                  <Input
+                  <IntegerInput
                     className='pr-12'
                     value={expiry.hours}
                     placeholder='0'
-                    onChange={(e) => {
+                    min={0}
+                    onValueChange={(values) => {
                       setExpiry({
                         ...expiry,
-                        hours: e.target.value,
+                        hours: values.value,
                       });
                     }}
                   />
@@ -174,14 +177,15 @@ function GlobalSettings() {
                 </div>
 
                 <div className='relative'>
-                  <Input
+                  <IntegerInput
                     className='pr-12'
                     value={expiry.minutes}
                     placeholder='0'
-                    onChange={(e) => {
+                    min={0}
+                    onValueChange={(values) => {
                       setExpiry({
                         ...expiry,
-                        minutes: e.target.value,
+                        minutes: values.value,
                       });
                     }}
                   />
