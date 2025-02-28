@@ -43,6 +43,6 @@ export function useDefaultOfferExpiry() {
 
   return {
     expiry: validatedExpiry,
-    setExpiry: setValidatedExpiry
+    setExpiry: setValidatedExpiry,
   };
 }
