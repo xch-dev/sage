@@ -66,13 +66,20 @@ export function MakeOffer() {
 
   useEffect(() => {
     if (expiry.enabled && state.expiration === null) {
-      useOfferState.setState({
-        expiration: {
-          days: expiry.days.toString(),
-          hours: expiry.hours.toString(),
-          minutes: expiry.minutes.toString(),
-        },
-      });
+      const isAllZero =
+        (parseInt(expiry.days) || 0) === 0 &&
+        (parseInt(expiry.hours) || 0) === 0 &&
+        (parseInt(expiry.minutes) || 0) === 0;
+
+      if (!isAllZero) {
+        useOfferState.setState({
+          expiration: {
+            days: expiry.days.toString(),
+            hours: expiry.hours.toString(),
+            minutes: expiry.minutes.toString(),
+          },
+        });
+      }
     }
   }, [expiry, state.expiration]);
 
@@ -129,7 +136,10 @@ export function MakeOffer() {
     state.expiration !== null &&
     (isNaN(Number(state.expiration.days)) ||
       isNaN(Number(state.expiration.hours)) ||
-      isNaN(Number(state.expiration.minutes)));
+      isNaN(Number(state.expiration.minutes)) ||
+      ((parseInt(state.expiration.days) || 0) === 0 &&
+        (parseInt(state.expiration.hours) || 0) === 0 &&
+        (parseInt(state.expiration.minutes) || 0) === 0));
 
   return (
     <>
