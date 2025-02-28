@@ -11,7 +11,7 @@ pub struct RpcConfig {
 impl Default for RpcConfig {
     fn default() -> Self {
         Self {
-            run_on_startup: cfg!(all(not(target_os = "android"), not(target_os = "ios"))),
+            run_on_startup: false,
             server_port: 9257,
         }
     }
