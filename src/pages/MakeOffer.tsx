@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { TokenAmountInput } from '@/components/ui/masked-input';
+import { IntegerInput, TokenAmountInput } from '@/components/ui/masked-input';
 import { Switch } from '@/components/ui/switch';
 import { useErrors } from '@/hooks/useErrors';
 import { uploadToDexie, uploadToMintGarden } from '@/lib/offerUpload';
@@ -156,12 +156,9 @@ export function MakeOffer() {
 
   const invalid =
     state.expiration !== null &&
-    (isNaN(Number(state.expiration.days)) ||
-      isNaN(Number(state.expiration.hours)) ||
-      isNaN(Number(state.expiration.minutes)) ||
-      ((parseInt(state.expiration.days) || 0) === 0 &&
-        (parseInt(state.expiration.hours) || 0) === 0 &&
-        (parseInt(state.expiration.minutes) || 0) === 0));
+    (parseInt(state.expiration.days) || 0) === 0 &&
+    (parseInt(state.expiration.hours) || 0) === 0 &&
+    (parseInt(state.expiration.minutes) || 0) === 0;
 
   return (
     <>
@@ -267,16 +264,17 @@ export function MakeOffer() {
               {state.expiration !== null && (
                 <div className='flex gap-2'>
                   <div className='relative'>
-                    <Input
+                    <IntegerInput
                       className='pr-12'
                       value={state.expiration.days}
                       placeholder='0'
-                      onChange={(e) => {
+                      min={0}
+                      onValueChange={(values) => {
                         if (state.expiration === null) return;
                         useOfferState.setState({
                           expiration: {
                             ...state.expiration,
-                            days: e.target.value,
+                            days: values.value,
                           },
                         });
                       }}
@@ -289,16 +287,17 @@ export function MakeOffer() {
                   </div>
 
                   <div className='relative'>
-                    <Input
+                    <IntegerInput
                       className='pr-12'
                       value={state.expiration.hours}
                       placeholder='0'
-                      onChange={(e) => {
+                      min={0}
+                      onValueChange={(values) => {
                         if (state.expiration === null) return;
                         useOfferState.setState({
                           expiration: {
                             ...state.expiration,
-                            hours: e.target.value,
+                            hours: values.value,
                           },
                         });
                       }}
@@ -311,16 +310,17 @@ export function MakeOffer() {
                   </div>
 
                   <div className='relative'>
-                    <Input
+                    <IntegerInput
                       className='pr-12'
                       value={state.expiration.minutes}
                       placeholder='0'
-                      onChange={(e) => {
+                      min={0}
+                      onValueChange={(values) => {
                         if (state.expiration === null) return;
                         useOfferState.setState({
                           expiration: {
                             ...state.expiration,
-                            minutes: e.target.value,
+                            minutes: values.value,
                           },
                         });
                       }}

@@ -41,22 +41,8 @@ export function useDefaultOfferExpiry() {
     setExpiry(validateExpiry(newExpiry));
   };
 
-  // Calculate total seconds
-  const getTotalSeconds = (): number | null => {
-    if (!validatedExpiry.enabled) return null;
-
-    // the || operates on the result of parseInt, so if parseInt returns NaN,
-    // it will return 1 etc. because NaN is falsy
-    const days = parseInt(validatedExpiry.days) || 1;
-    const hours = parseInt(validatedExpiry.hours) || 0;
-    const minutes = parseInt(validatedExpiry.minutes) || 0;
-
-    return days * 24 * 60 * 60 + hours * 60 * 60 + minutes * 60;
-  };
-
   return {
     expiry: validatedExpiry,
-    setExpiry: setValidatedExpiry,
-    getTotalSeconds,
+    setExpiry: setValidatedExpiry
   };
 }
