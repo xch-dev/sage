@@ -64,7 +64,7 @@ impl NftUriQueue {
 
                     let existing = tx.fetch_nft_data(item.hash).await?;
 
-                    if existing.as_ref().map_or(true, |data| !data.hash_matches) {
+                    if existing.as_ref().is_none_or(|data| !data.hash_matches) {
                         tx.insert_nft_data(
                             item.hash,
                             NftData {

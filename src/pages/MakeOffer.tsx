@@ -44,6 +44,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { usePrices } from '@/hooks/usePrices';
+import { useDefaultOfferExpiry } from '@/hooks/useDefaultOfferExpiry';
 
 export function MakeOffer() {
   const state = useOfferState();
@@ -58,6 +59,8 @@ export function MakeOffer() {
   const [config, setConfig] = useState<NetworkConfig | null>(null);
   const network = config?.network_id ?? 'mainnet';
 
+  const { expiry, getTotalSeconds } = useDefaultOfferExpiry();
+
   useEffect(() => {
     commands.networkConfig().then((config) => setConfig(config));
   }, []);
@@ -66,6 +69,18 @@ export function MakeOffer() {
     setDexieLink('');
     setMintGardenLink('');
   }, [offer]);
+
+  useEffect(() => {
+    if (expiry.enabled && state.expiration === null) {
+      useOfferState.setState({
+        expiration: {
+          days: expiry.days.toString(),
+          hours: expiry.hours.toString(),
+          minutes: expiry.minutes.toString(),
+        },
+      });
+    }
+  }, [expiry, state.expiration]);
 
   const handleMake = async () => {
     setPending(true);
@@ -105,10 +120,7 @@ export function MakeOffer() {
       expires_at_second:
         state.expiration === null
           ? null
-          : Math.ceil(Date.now() / 1000) +
-            Number(state.expiration.days || '0') * 24 * 60 * 60 +
-            Number(state.expiration.hours || '0') * 60 * 60 +
-            Number(state.expiration.minutes || '0') * 60,
+          : Math.ceil(Date.now() / 1000) + (getTotalSeconds() ?? 0),
     });
 
     clearOffer();
@@ -182,15 +194,17 @@ export function MakeOffer() {
                 <Trans>Network Fee</Trans>
               </Label>
               <div className='relative'>
-                <Input
+                <TokenAmountInput
                   id='fee'
                   type='text'
                   placeholder={'0.00'}
                   className='pr-12'
                   value={state.fee}
-                  onChange={(e) =>
-                    useOfferState.setState({ fee: e.target.value })
-                  }
+                  onValueChange={(values) => {
+                    useOfferState.setState({
+                      fee: values.floatValue?.toString() ?? '',
+                    });
+                  }}
                 />
                 <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
                   <span className='text-gray-500 text-sm' id='price-currency'>
@@ -472,12 +486,17 @@ function AssetSelector({
         <div className='mt-4 flex flex-col space-y-1.5'>
           <Label htmlFor={`${prefix}-amount`}>XCH</Label>
           <div className='flex'>
-            <Input
+            <TokenAmountInput
               id={`${prefix}-amount`}
               className='rounded-r-none z-10'
               placeholder={t`Enter amount`}
               value={assets.xch}
-              onChange={(e) => setAssets({ ...assets, xch: e.target.value })}
+              onValueChange={(values) => {
+                setAssets({
+                  ...assets,
+                  xch: values.floatValue?.toString() ?? '',
+                });
+              }}
             />
             {!offering &&
               state.offered.cats.length === 1 &&
