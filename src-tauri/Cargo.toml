@@ -20,6 +20,7 @@ sage-api = { workspace = true, features = ["tauri"] }
 sage-api-macro = { workspace = true }
 sage-config = { workspace = true }
 sage-wallet = { workspace = true }
+sage-rpc = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 tauri = { workspace = true, features = [] }
 tauri-specta = { workspace = true, features = ["derive", "typescript"] }
@@ -32,6 +33,8 @@ tauri-plugin-shell = { workspace = true }
 tauri-plugin-os = { workspace = true }
 serde_json = { workspace = true, features = ["arbitrary_precision"] }
 tracing = { workspace = true }
+anyhow = { workspace = true }
+rustls = { workspace = true }
 
 # This is to ensure that the bindgen feature is enabled for the aws-lc-rs crate.
 # https://aws.github.io/aws-lc-rs/platform_support.html#tested-platforms
