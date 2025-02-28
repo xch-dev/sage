@@ -94,27 +94,27 @@ export function Transactions() {
     };
   }, [updateTransactions]);
 
-  const handlePageChange = (newPage: number) => {
+  const handlePageChange = useCallback((newPage: number, compact?: boolean) => {
     setIsPaginationLoading(true);
     setParams({ page: newPage });
-    if (listRef.current) {
-      listRef.current.scrollIntoView({
+    if (compact) {
+      listRef.current?.scrollIntoView({
         behavior: 'smooth',
         block: 'start',
       });
     }
-  };
+  }, [setParams]);
 
-  const handlePageSizeChange = (newSize: number) => {
+  const handlePageSizeChange = useCallback((newSize: number, compact?: boolean) => {
     setIsPaginationLoading(true);
     setParams({ pageSize: newSize, page: 1 });
-    if (listRef.current) {
-      listRef.current.scrollIntoView({
+    if (compact) {
+        listRef.current?.scrollIntoView({
         behavior: 'smooth',
         block: 'start',
       });
     }
-  };
+  }, [setParams]);
 
   const renderPagination = useCallback(
     (compact: boolean = false) => (
@@ -122,14 +122,14 @@ export function Transactions() {
         page={page}
         total={totalTransactions}
         pageSize={pageSize}
-        onPageChange={handlePageChange}
-        onPageSizeChange={handlePageSizeChange}
+        onPageChange={(newPage) => handlePageChange(newPage, compact)}
+        onPageSizeChange={(newSize) => handlePageSizeChange(newSize, compact)}
         pageSizeOptions={[10, 25, 50]}
         compact={compact}
         isLoading={isLoading || isPaginationLoading}
       />
     ),
-    [page, pageSize, totalTransactions, isLoading, isPaginationLoading],
+    [page, pageSize, totalTransactions, isLoading, isPaginationLoading, handlePageChange, handlePageSizeChange],
   );
 
   return (
