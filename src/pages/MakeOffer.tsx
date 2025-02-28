@@ -33,7 +33,7 @@ import {
   PlusIcon,
   TrashIcon,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDefaultOfferExpiry } from '@/hooks/useDefaultOfferExpiry';
 
@@ -53,7 +53,11 @@ export function MakeOffer() {
   const [config, setConfig] = useState<NetworkConfig | null>(null);
   const network = config?.network_id ?? 'mainnet';
 
-  const { expiry, getTotalSeconds, setExpiry } = useDefaultOfferExpiry();
+  const { expiry } = useDefaultOfferExpiry();
+
+  // Use refs to store initial values that won't trigger re-renders
+  const initialExpiryRef = useRef(expiry);
+  const initialStateRef = useRef(state);
 
   useEffect(() => {
     commands.networkConfig().then((config) => setConfig(config));
@@ -64,24 +68,28 @@ export function MakeOffer() {
     setMintGardenLink('');
   }, [offer]);
 
+  // Only run once when component mounts
   useEffect(() => {
-    if (expiry.enabled && state.expiration === null) {
+    const initialExpiry = initialExpiryRef.current;
+    const initialState = initialStateRef.current;
+
+    if (initialExpiry.enabled && initialState.expiration === null) {
       const isAllZero =
-        (parseInt(expiry.days) || 0) === 0 &&
-        (parseInt(expiry.hours) || 0) === 0 &&
-        (parseInt(expiry.minutes) || 0) === 0;
+        (parseInt(initialExpiry.days) || 0) === 0 &&
+        (parseInt(initialExpiry.hours) || 0) === 0 &&
+        (parseInt(initialExpiry.minutes) || 0) === 0;
 
       if (!isAllZero) {
         useOfferState.setState({
           expiration: {
-            days: expiry.days.toString(),
-            hours: expiry.hours.toString(),
-            minutes: expiry.minutes.toString(),
+            days: initialExpiry.days.toString(),
+            hours: initialExpiry.hours.toString(),
+            minutes: initialExpiry.minutes.toString(),
           },
         });
       }
     }
-  }, [expiry, state.expiration]);
+  }, []);
 
   const handleMake = async () => {
     setPending(true);
@@ -90,6 +98,23 @@ export function MakeOffer() {
       (state.offered.xch === '0' || !state.offered.xch) &&
       state.offered.cats.length === 0 &&
       state.offered.nfts.length === 1;
+
+    let expiresAtSecond = null;
+    if (state.expiration !== null) {
+      const days = parseInt(state.expiration.days) || 0;
+      const hours = parseInt(state.expiration.hours) || 0;
+      const minutes = parseInt(state.expiration.minutes) || 0;
+      const totalSeconds = days * 24 * 60 * 60 + hours * 60 * 60 + minutes * 60;
+      if (totalSeconds <= 0) {
+        addError({
+          kind: 'invalid',
+          reason: t`Expiration must be at least 1 second in the future`,
+        });
+        setPending(false);
+        return;
+      }
+      expiresAtSecond = Math.ceil(Date.now() / 1000) + totalSeconds;
+    }
 
     const data = await commands.makeOffer({
       offered_assets: {
@@ -118,10 +143,7 @@ export function MakeOffer() {
         (state.fee || '0').toString(),
         walletState.sync.unit.decimals,
       ),
-      expires_at_second:
-        state.expiration === null
-          ? null
-          : Math.ceil(Date.now() / 1000) + (getTotalSeconds() ?? 0),
+      expires_at_second: expiresAtSecond,
     });
 
     clearOffer();
@@ -229,14 +251,14 @@ export function MakeOffer() {
                   onCheckedChange={(value) => {
                     if (value) {
                       useOfferState.setState({
-                        expiration: { days: '1', hours: '', minutes: '' },
+                        expiration: {
+                          days: initialExpiryRef.current.days.toString(),
+                          hours: initialExpiryRef.current.hours.toString(),
+                          minutes: initialExpiryRef.current.minutes.toString(),
+                        },
                       });
                     } else {
                       useOfferState.setState({ expiration: null });
-                      if (expiry.enabled) {
-                        const tempExpiry = { ...expiry, enabled: false };
-                        setExpiry(tempExpiry);
-                      }
                     }
                   }}
                 />
