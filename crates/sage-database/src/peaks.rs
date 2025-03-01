@@ -13,7 +13,7 @@ impl Database {
     }
 }
 
-impl<'a> DatabaseTx<'a> {
+impl DatabaseTx<'_> {
     pub async fn latest_peak(&mut self) -> Result<Option<(u32, Bytes32)>> {
         latest_peak(&mut *self.tx).await
     }

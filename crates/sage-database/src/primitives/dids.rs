@@ -59,7 +59,7 @@ impl Database {
     }
 }
 
-impl<'a> DatabaseTx<'a> {
+impl DatabaseTx<'_> {
     pub async fn insert_did(&mut self, row: DidRow) -> Result<()> {
         insert_did(&mut *self.tx, row).await
     }

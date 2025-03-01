@@ -42,7 +42,7 @@ impl Database {
     }
 }
 
-impl<'a> DatabaseTx<'a> {
+impl DatabaseTx<'_> {
     pub async fn insert_pending_transaction(
         &mut self,
         transaction_id: Bytes32,

@@ -1,8 +1,8 @@
+import { t } from '@lingui/core/macro';
 import * as React from 'react';
-import { Input, InputProps } from './input';
 import { NumericFormat, NumericFormatProps } from 'react-number-format';
 import { toast } from 'react-toastify';
-import { t } from '@lingui/core/macro';
+import { Input, InputProps } from './input';
 
 interface MaskedInputProps extends NumericFormatProps<InputProps> {
   inputRef?: React.Ref<HTMLInputElement>;
@@ -17,7 +17,7 @@ const MaskedInput = React.forwardRef<HTMLInputElement, MaskedInputProps>(
       displayType='input'
       type={type}
       value={value}
-      onPaste={(e) => {
+      onPaste={(e: React.ClipboardEvent<HTMLInputElement>) => {
         const pastedText = e.clipboardData.getData('text');
         if (!isLocaleNumber(pastedText)) {
           e.preventDefault();
@@ -78,4 +78,35 @@ const TokenAmountInput = React.forwardRef<HTMLInputElement, XchInputProps>(
 
 TokenAmountInput.displayName = 'TokenAmountInput';
 
-export { MaskedInput, TokenAmountInput };
+// Integer input that only accepts positive integers
+interface IntegerInputProps extends MaskedInputProps {
+  min?: number;
+  max?: number;
+}
+
+const IntegerInput = React.forwardRef<HTMLInputElement, IntegerInputProps>(
+  ({ min = 0, max, ...props }, ref) => (
+    <MaskedInput
+      placeholder='0'
+      {...props}
+      type='text'
+      inputRef={ref}
+      decimalScale={0}
+      allowLeadingZeros={false}
+      allowNegative={false}
+      isAllowed={(values) => {
+        const { floatValue } = values;
+        if (floatValue === undefined) return true;
+
+        if (min !== undefined && floatValue < min) return false;
+        if (max !== undefined && floatValue > max) return false;
+
+        return true;
+      }}
+    />
+  ),
+);
+
+IntegerInput.displayName = 'IntegerInput';
+
+export { MaskedInput, TokenAmountInput, IntegerInput };
