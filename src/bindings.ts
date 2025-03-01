@@ -250,6 +250,21 @@ async signMessageByAddress(req: SignMessageByAddress) : Promise<SignMessageByAdd
 },
 async sendTransactionImmediately(req: SendTransactionImmediately) : Promise<SendTransactionImmediatelyResponse> {
     return await TAURI_INVOKE("send_transaction_immediately", { req });
+},
+async isRpcRunning() : Promise<boolean> {
+    return await TAURI_INVOKE("is_rpc_running");
+},
+async startRpcServer() : Promise<null> {
+    return await TAURI_INVOKE("start_rpc_server");
+},
+async stopRpcServer() : Promise<null> {
+    return await TAURI_INVOKE("stop_rpc_server");
+},
+async getRpcRunOnStartup() : Promise<boolean> {
+    return await TAURI_INVOKE("get_rpc_run_on_startup");
+},
+async setRpcRunOnStartup(runOnStartup: boolean) : Promise<null> {
+    return await TAURI_INVOKE("set_rpc_run_on_startup", { runOnStartup });
 }
 }
 

@@ -1,0 +1,7 @@
+{
+  "filter_unlocked_coins": true,
+  "get_asset_coins": true,
+  "sign_message_with_public_key": true,
+  "sign_message_by_address": true,
+  "send_transaction_immediately": true
+}
