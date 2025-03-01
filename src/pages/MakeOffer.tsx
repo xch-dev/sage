@@ -231,7 +231,7 @@ export function MakeOffer() {
                   value={state.fee}
                   onValueChange={(values) => {
                     useOfferState.setState({
-                      fee: values.floatValue?.toString() ?? '',
+                      fee: values.floatValue ?? 0.0,
                     });
                   }}
                 />
@@ -474,10 +474,10 @@ function AssetSelector({
       .catch(console.error);
   }, [offering]);
 
-  const calculateXchEquivalent = (catAmount: string, assetId: string) => {
+  const calculateXchEquivalent = (catAmount: number, assetId: string) => {
     const catPriceInXch = getCatAskPriceInXch(assetId);
     if (catPriceInXch === null) return '0';
-    return (Number(catAmount) * catPriceInXch).toFixed(9);
+    return (catAmount * catPriceInXch).toFixed(9);
   };
 
   return (
@@ -530,7 +530,7 @@ function AssetSelector({
               onValueChange={(values) => {
                 setAssets({
                   ...assets,
-                  xch: values.floatValue?.toString() ?? '',
+                  xch: Number(values.floatValue),
                 });
               }}
             />
@@ -547,7 +547,7 @@ function AssetSelector({
                         onClick={() => {
                           const cat = state.offered.cats[0];
                           const xchAmount = calculateXchEquivalent(
-                            cat.amount.toString(),
+                            Number(cat.amount),
                             cat.asset_id,
                           );
                           setAssets({ ...assets, xch: xchAmount });
