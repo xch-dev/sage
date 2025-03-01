@@ -128,6 +128,7 @@ export function NftSelector({
             className='w-10 h-10 rounded object-cover'
             alt=''
             aria-hidden='true'
+            loading='lazy'
           />
           <div className='flex flex-col truncate'>
             <span className='flex-grow truncate' role='text'>
@@ -150,6 +151,7 @@ export function NftSelector({
               ? (nftThumbnails[selectedNft.launcher_id] ?? defaultNftImage)
               : defaultNftImage
           }
+          loading='lazy'
           alt=''
           aria-hidden='true'
           className='w-8 h-8 rounded object-cover'

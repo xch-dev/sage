@@ -18,9 +18,8 @@ import { Switch } from '@/components/ui/switch';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useDefaultOfferExpiry } from '@/hooks/useDefaultOfferExpiry';
 import { useErrors } from '@/hooks/useErrors';
-import useInitialization from '@/hooks/useInitialization';
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
-import { useWallet } from '@/hooks/useWallet';
+import { useWallet } from '@/contexts/WalletContext';
 import { useWalletConnect } from '@/hooks/useWalletConnect';
 import { clearState, fetchState } from '@/state';
 import { t } from '@lingui/core/macro';
@@ -37,6 +36,7 @@ import {
   WalletConfig,
 } from '../bindings';
 import { isValidU32 } from '../validation';
+import { useNavigate } from 'react-router-dom';
 
 export interface DefaultOfferExpiry {
   enabled: boolean;
@@ -46,10 +46,9 @@ export interface DefaultOfferExpiry {
 }
 
 export default function Settings() {
-  const initialized = useInitialization();
-  const wallet = useWallet(initialized);
-
+  const { wallet } = useWallet();
   const [version, setVersion] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     getVersion().then(setVersion);
@@ -59,7 +58,10 @@ export default function Settings() {
 
   return (
     <Layout>
-      <Header title={t`Settings`} />
+      <Header
+        title={t`Settings`}
+        back={!wallet ? () => navigate('/') : undefined}
+      />
       <Container className='max-w-2xl'>
         <Trans>Version {version}</Trans>
         <div className='flex flex-col gap-4 mt-2'>

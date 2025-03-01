@@ -33,7 +33,6 @@ import { commands } from '../bindings';
 import Container from '../components/Container';
 import { fetchState } from '../state';
 import SafeAreaView from '@/components/SafeAreaView';
-import { useInsets } from '@/contexts/SafeAreaContext';
 import { Trans } from '@lingui/react/macro';
 import { t } from '@lingui/core/macro';
 
