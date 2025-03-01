@@ -30,6 +30,8 @@ pub struct Resync {
     pub delete_unhardened_derivations: bool,
     #[serde(default)]
     pub delete_hardened_derivations: bool,
+    #[serde(default)]
+    pub delete_blockinfo: bool,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
