@@ -1,5 +1,5 @@
-use std::time::Duration;
 use std::collections::HashMap;
+use std::time::Duration;
 
 use chia::{clvm_traits::FromClvm, puzzles::nft::NftMetadata};
 use chia_wallet_sdk::{encode_address, Offer, SpendContext};
@@ -11,8 +11,8 @@ use sage_wallet::{calculate_royalties, parse_locked_coins, parse_offer_payments,
 use tokio::time::timeout;
 use tracing::warn;
 
-use crate::{Result, Sage, parse_genesis_challenge};
 use crate::utils::offer_status::{lookup_coin_creation, offer_expiration};
+use crate::{parse_genesis_challenge, Result, Sage};
 
 use super::{extract_nft_data, ConfirmationInfo, ExtractedNftData};
 
