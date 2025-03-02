@@ -9,6 +9,8 @@ pub struct OfferSummary {
     pub fee: Amount,
     pub maker: OfferAssets,
     pub taker: OfferAssets,
+    pub expiration_height: Option<u32>,
+    pub expiration_timestamp: Option<u64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -39,6 +39,13 @@ import {
 import { NumberFormat } from '@/components/NumberFormat';
 import { toHex } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { ArrowUpToLine } from 'lucide-react';
 
 function stringToUint8Array(str: string): Uint8Array {
   return new TextEncoder().encode(str);
@@ -266,9 +273,42 @@ export default function Send() {
                       <Trans>Amount</Trans>
                     </FormLabel>
                     <FormControl>
-                      <div className='relative'>
-                        <TokenAmountInput {...field} className='pr-12' />
-                        <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
+                      <div className='relative flex'>
+                        <TokenAmountInput
+                          {...field}
+                          className='pr-12 rounded-r-none z-10'
+                        />
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant='outline'
+                                size='icon'
+                                type='button'
+                                className='border-l-0 rounded-l-none flex-shrink-0'
+                                onClick={() => {
+                                  if (asset) {
+                                    const maxAmount = fromMojos(
+                                      asset.balance,
+                                      asset.decimals,
+                                    );
+                                    form.setValue(
+                                      'amount',
+                                      maxAmount.toString(),
+                                      { shouldValidate: true },
+                                    );
+                                  }
+                                }}
+                              >
+                                <ArrowUpToLine className='h-4 w-4' />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <Trans>Use maximum balance</Trans>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        <div className='pointer-events-none absolute inset-y-0 right-12 flex items-center pr-3'>
                           <span
                             className='text-gray-500 text-sm'
                             id='price-currency'

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import {
+  Amount,
   Assets,
   CoinRecord,
   commands,
@@ -15,7 +16,7 @@ export interface WalletState {
 export interface OfferState {
   offered: Assets;
   requested: Assets;
-  fee: string;
+  fee: Amount;
   expiration: OfferExpiration | null;
 }
 
