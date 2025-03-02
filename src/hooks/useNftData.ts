@@ -8,6 +8,7 @@ import {
 } from '../bindings';
 import { useErrors } from './useErrors';
 import { NftGroupMode, NftSortMode } from './useNftParams';
+import { isValidAddress } from '@/lib/utils';
 
 interface NftDataParams {
   pageSize: number;
@@ -94,11 +95,21 @@ export function useNftData(params: NftDataParams) {
             include_hidden: params.showHidden,
           };
 
-          const response = await commands.getNfts(queryParams);
+          let nfts: NftRecord[] = [];
+          let total: number = 0;
+          if (params.query && isValidAddress(params.query, 'nft')) {
+            const response = await commands.getNft({ nft_id: params.query });
+            nfts = response.nft ? [response.nft] : [];
+            total = nfts.length;
+          } else {
+            const response = await commands.getNfts(queryParams);
+            nfts = response.nfts;
+            total = response.total;
+          }
 
           const updates: Partial<NftDataState> = {
-            nfts: response.nfts,
-            nftTotal: response.total,
+            nfts,
+            nftTotal: total,
           };
 
           if (params.collectionId) {

@@ -5,27 +5,26 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { useInsets } from '@/contexts/SafeAreaContext';
-import useInitialization from '@/hooks/useInitialization';
-import { useWallet } from '@/hooks/useWallet';
+import { useWallet } from '@/contexts/WalletContext';
 import icon from '@/icon.png';
 import { t } from '@lingui/core/macro';
 import { PanelLeft, PanelLeftClose } from 'lucide-react';
 import { PropsWithChildren } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useLocalStorage } from 'usehooks-ts';
 import { BottomNav, TopNav } from './Nav';
+import { KeyInfo } from '@/bindings';
 
 const SIDEBAR_COLLAPSED_STORAGE_KEY = 'sage-wallet-sidebar-collapsed';
 
 type LayoutProps = PropsWithChildren<object> & {
   transparentBackground?: boolean;
+  wallet?: KeyInfo;
 };
 
-export default function Layout(props: LayoutProps) {
+export function FullLayout(props: LayoutProps) {
+  const { wallet } = props;
   const insets = useInsets();
-
-  const initialized = useInitialization();
-  const wallet = useWallet(initialized);
 
   const [isCollapsed, setIsCollapsed] = useLocalStorage<boolean>(
     SIDEBAR_COLLAPSED_STORAGE_KEY,
@@ -33,14 +32,17 @@ export default function Layout(props: LayoutProps) {
   );
 
   const walletIcon = (
-    <Link to='/wallet' className='flex items-center gap-2 font-semibold'>
+    <Link
+      to='/wallet'
+      className={`flex items-center gap-2 font-semibold ${!wallet ? 'opacity-50 pointer-events-none' : ''}`}
+    >
       <img src={icon} className='h-8 w-8' alt={t`Wallet icon`} />
       <span
         className={`text-lg transition-opacity duration-300 ${
           isCollapsed ? 'opacity-0 hidden' : 'opacity-100'
         }`}
       >
-        {wallet?.name}
+        {wallet?.name ?? t`Wallet`}
       </span>
     </Link>
   );
@@ -48,7 +50,10 @@ export default function Layout(props: LayoutProps) {
   const walletIconWithTooltip = isCollapsed ? (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Link to='/wallet' className='flex items-center gap-2 font-semibold'>
+        <Link
+          to='/wallet'
+          className={`flex items-center gap-2 font-semibold ${!wallet ? 'opacity-50 pointer-events-none' : ''}`}
+        >
           <img src={icon} className='h-8 w-8' alt={t`Wallet icon`} />
         </Link>
       </TooltipTrigger>
@@ -90,7 +95,11 @@ export default function Layout(props: LayoutProps) {
                   </button>
                 </TooltipTrigger>
                 <TooltipContent side='right' role='tooltip'>
-                  {isCollapsed ? t`Expand sidebar` : t`Collapse sidebar`}
+                  {isCollapsed
+                    ? wallet?.name
+                      ? t`Expand sidebar - ${wallet.name}`
+                      : t`Expand sidebar`
+                    : t`Collapse sidebar`}
                 </TooltipContent>
               </Tooltip>
             </div>
@@ -138,4 +147,36 @@ export default function Layout(props: LayoutProps) {
       </div>
     </TooltipProvider>
   );
+}
+
+function MinimalLayout(props: LayoutProps) {
+  const insets = useInsets();
+
+  return (
+    <div className='flex flex-col h-screen w-screen'>
+      <div
+        className={`flex flex-col h-screen overflow-hidden ${
+          props.transparentBackground ? 'bg-transparent' : 'bg-background'
+        }`}
+        style={{
+          paddingBottom: insets.bottom
+            ? `${insets.bottom}px`
+            : 'env(safe-area-inset-bottom)',
+        }}
+      >
+        {props.children}
+      </div>
+    </div>
+  );
+}
+
+export default function Layout(props: LayoutProps) {
+  const { wallet } = useWallet();
+  const location = useLocation();
+
+  if (!wallet && location.pathname === '/settings') {
+    return <MinimalLayout {...props} />;
+  }
+
+  return <FullLayout {...props} wallet={wallet || undefined} />;
 }

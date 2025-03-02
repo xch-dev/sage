@@ -16,11 +16,10 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useWallet } from '@/contexts/WalletContext';
 import { useDefaultOfferExpiry } from '@/hooks/useDefaultOfferExpiry';
 import { useErrors } from '@/hooks/useErrors';
-import useInitialization from '@/hooks/useInitialization';
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
-import { useWallet } from '@/hooks/useWallet';
 import { useWalletConnect } from '@/hooks/useWalletConnect';
 import { clearState, fetchState } from '@/state';
 import { t } from '@lingui/core/macro';
@@ -29,6 +28,7 @@ import { getVersion } from '@tauri-apps/api/app';
 import { isAvailable, scan } from '@tauri-apps/plugin-nfc';
 import { platform } from '@tauri-apps/plugin-os';
 import { useContext, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { DarkModeContext } from '../App';
 import {
   commands,
@@ -47,13 +47,12 @@ export interface DefaultOfferExpiry {
 }
 
 export default function Settings() {
-  const initialized = useInitialization();
-  const wallet = useWallet(initialized);
-
+  const { wallet } = useWallet();
   const [version, setVersion] = useState<string | null>(null);
   const [isNfcEnabled, setIsNfcEnabled] = useState(false);
 
   const isMobile = platform() === 'ios' || platform() === 'android';
+  const navigate = useNavigate();
 
   useEffect(() => {
     getVersion().then(setVersion);
@@ -65,7 +64,10 @@ export default function Settings() {
 
   return (
     <Layout>
-      <Header title={t`Settings`} />
+      <Header
+        title={t`Settings`}
+        back={!wallet ? () => navigate('/') : undefined}
+      />
       <Container className='max-w-2xl'>
         <Trans>Version {version}</Trans>
         {isNfcEnabled && (
