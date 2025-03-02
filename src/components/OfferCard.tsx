@@ -98,19 +98,36 @@ export function OfferCard({
             )}
           </div>
           <Separator className='my-1' />
-          <div className='flex flex-col gap-2'>
-            <div className='text-sm font-medium'>
-              <Trans>Maker Fee</Trans>
-            </div>
-            <div className='text-sm'>
-              <NumberFormat
-                value={fromMojos(summary.fee, walletState.sync.unit.decimals)}
-                minimumFractionDigits={0}
-                maximumFractionDigits={walletState.sync.unit.decimals}
-              />{' '}
-              {walletState.sync.unit.ticker}
-            </div>
-          </div>{' '}
+          <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+            <div className='flex flex-col gap-2'>
+              <div className='text-sm font-medium'>
+                <Trans>Maker Fee</Trans>
+              </div>
+              <div className='text-sm'>
+                <NumberFormat
+                  value={fromMojos(summary.fee, walletState.sync.unit.decimals)}
+                  minimumFractionDigits={0}
+                  maximumFractionDigits={walletState.sync.unit.decimals}
+                />{' '}
+                {walletState.sync.unit.ticker}
+              </div>
+            </div>{' '}
+            {(summary.expiration_date || summary.expiration_height) && (
+              <div className='flex flex-col gap-2'>
+                <div className='text-sm font-medium'>
+                  <Trans>Expires</Trans>
+                </div>
+                {summary.expiration_date && (
+                  <div className='text-sm'>{summary.expiration_date}</div>
+                )}
+                {summary.expiration_height && (
+                  <div className='text-sm text-muted-foreground'>
+                    <Trans>Block:</Trans> {summary.expiration_height}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
 

@@ -610,6 +610,15 @@ impl Sage {
                     nfts: taker_nfts,
                 },
                 fee: Amount::u64(offer.fee),
+                expiration_height: offer.expiration_height,
+                expiration_timestamp: offer.expiration_timestamp,
+                expiration_date: offer.expiration_timestamp.map(|timestamp| {
+                    Local
+                        .timestamp_opt(timestamp.try_into().unwrap_or(0), 0)
+                        .unwrap()
+                        .format("%b %d, %Y %r")
+                        .to_string()
+                }),
             },
         })
     }

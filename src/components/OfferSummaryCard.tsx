@@ -29,6 +29,16 @@ export function OfferSummaryCard({ record, content }: OfferSummaryCardProps) {
             <div className='text-muted-foreground text-sm'>
               {record.creation_date}
             </div>
+            {record.summary?.expiration_date && (
+              <div className='text-muted-foreground text-sm'>
+                <span>Expires: {record.summary.expiration_date}</span>
+              </div>
+            )}
+            {record.summary?.expiration_height && (
+              <div className='text-muted-foreground text-sm'>
+                <span>Block: {record.summary.expiration_height}</span>
+              </div>
+            )}
           </div>
 
           <AssetPreview label='Offered' assets={record.summary.maker} />
