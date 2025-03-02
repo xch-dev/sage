@@ -1,18 +1,36 @@
-import { OfferAssets, OfferRecord, OfferSummary } from '@/bindings';
+import { OfferAssets, OfferSummary, GetCat } from '@/bindings';
 import { nftUri } from '@/lib/nftUri';
 import { fromMojos, unixTimestampToDate } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import BigNumber from 'bignumber.js';
-import { ArrowDownIcon, ArrowUpIcon, InfoIcon } from 'lucide-react';
-import { PropsWithChildren } from 'react';
+import {
+  ArrowDownIcon,
+  ArrowUpIcon,
+  InfoIcon,
+  CheckCircleIcon,
+  XCircleIcon,
+} from 'lucide-react';
+import { PropsWithChildren, useState, useEffect } from 'react';
 import { CopyButton } from './CopyButton';
 import { Badge } from './ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Separator } from './ui/separator';
 import { NumberFormat } from '@/components/NumberFormat';
 import { cn } from '@/lib/utils';
+import { commands } from '@/bindings';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from './ui/tooltip';
+
+// Interface to track CAT presence in wallet
+interface CatPresence {
+  [assetId: string]: boolean;
+}
 
 export interface OfferCardProps {
   summary: OfferSummary;
@@ -27,6 +45,30 @@ export function OfferCard({
   children,
 }: PropsWithChildren<OfferCardProps>) {
   const walletState = useWalletState();
+  // State to track which CATs are present in the wallet
+  const [catPresence, setCatPresence] = useState<CatPresence>({});
+
+  // Check if CATs in the receiving section are present in the wallet
+  useEffect(() => {
+    const checkCatPresence = async () => {
+      const presence: CatPresence = {};
+
+      // Check each CAT in the maker section (receiving)
+      for (const assetId of Object.keys(summary.maker.cats)) {
+        try {
+          const response = await commands.getCat({ asset_id: assetId });
+          presence[assetId] = !!response.cat; // true if cat exists, false otherwise
+        } catch (error) {
+          console.error(`Error checking CAT presence for ${assetId}:`, error);
+          presence[assetId] = false;
+        }
+      }
+
+      setCatPresence(presence);
+    };
+
+    checkCatPresence();
+  }, [summary.maker.cats]);
 
   const getStatusStyles = (status: string) => {
     switch (status.toLowerCase()) {
@@ -187,6 +229,7 @@ export function OfferCard({
                   nfts: {},
                 }
               }
+              catPresence={catPresence}
             />
           </CardContent>
         </Card>
@@ -197,9 +240,10 @@ export function OfferCard({
 
 interface AssetsProps {
   assets: OfferAssets;
+  catPresence?: CatPresence;
 }
 
-function Assets({ assets }: AssetsProps) {
+function Assets({ assets, catPresence = {} }: AssetsProps) {
   const walletState = useWalletState();
   const amount = BigNumber(assets.xch.amount);
 
@@ -269,6 +313,32 @@ function Assets({ assets }: AssetsProps) {
               />{' '}
               {cat.name ?? cat.ticker ?? t`Unknown`}
             </div>
+
+            {/* CAT presence indicator - only show for receiving CATs */}
+            {catPresence && assetId in catPresence && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>
+                    {catPresence[assetId] ? (
+                      <CheckCircleIcon className='h-4 w-4 text-green-500' />
+                    ) : (
+                      <XCircleIcon className='h-4 w-4 text-amber-500' />
+                    )}
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {catPresence[assetId] ? (
+                      <p>
+                        <Trans>This CAT is already in your wallet</Trans>
+                      </p>
+                    ) : (
+                      <p>
+                        <Trans>This CAT is not in your wallet yet</Trans>
+                      </p>
+                    )}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
           </div>
 
           <Separator className='my-1' />
