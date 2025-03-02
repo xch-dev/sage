@@ -611,7 +611,7 @@ impl Sage {
                 },
                 fee: Amount::u64(offer.fee),
                 expiration_height: offer.expiration_height,
-                expiration_timestamp: offer.expiration_timestamp
+                expiration_timestamp: offer.expiration_timestamp,
             },
         })
     }
