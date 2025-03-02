@@ -1,29 +1,33 @@
 import { useSearchParams } from 'react-router-dom';
 import { useLocalStorage } from 'usehooks-ts';
+import { ViewMode } from '@/components/ViewToggle';
 
 const ZERO_BALANCE_STORAGE_KEY = 'sage-wallet-show-zero-balance';
 const TOKEN_SORT_STORAGE_KEY = 'sage-wallet-token-sort';
+const TOKEN_VIEW_MODE_STORAGE_KEY = 'sage-wallet-token-view-mode';
+const HIDDEN_CATS_STORAGE_KEY = 'sage-wallet-show-hidden-cats';
 
 export interface TokenParams {
-  view: TokenView;
-  showHidden: boolean;
+  viewMode: ViewMode;
+  sortMode: TokenSortMode;
+  showZeroBalanceTokens: boolean;
+  showHiddenCats: boolean;
   search: string;
-  showZeroBalance: boolean;
 }
 
-export enum TokenView {
+export enum TokenSortMode {
   Name = 'name',
   Balance = 'balance',
 }
 
-export function parseView(view: string): TokenView {
+export function parseSortMode(view: string): TokenSortMode {
   switch (view) {
     case 'name':
-      return TokenView.Name;
+      return TokenSortMode.Name;
     case 'balance':
-      return TokenView.Balance;
+      return TokenSortMode.Balance;
     default:
-      return TokenView.Name;
+      return TokenSortMode.Name;
   }
 }
 
@@ -35,40 +39,54 @@ export function useTokenParams(): [TokenParams, SetTokenParams] {
   const [storedShowZeroBalance, setStoredShowZeroBalance] =
     useLocalStorage<boolean>(ZERO_BALANCE_STORAGE_KEY, false);
 
-  const [storedTokenView, setStoredTokenView] = useLocalStorage<TokenView>(
+  const [storedTokenView, setStoredTokenView] = useLocalStorage<TokenSortMode>(
     TOKEN_SORT_STORAGE_KEY,
-    TokenView.Name,
+    TokenSortMode.Name,
   );
 
-  const view = parseView(params.get('view') ?? storedTokenView);
-  const showHidden = (params.get('showHidden') ?? 'false') === 'true';
-  const showZeroBalance =
-    (params.get('showZeroBalance') ?? storedShowZeroBalance.toString()) ===
+  const [storedViewMode, setStoredViewMode] = useLocalStorage<ViewMode>(
+    TOKEN_VIEW_MODE_STORAGE_KEY,
+    'grid',
+  );
+
+  const [storedShowHiddenCats, setStoredShowHiddenCats] =
+    useLocalStorage<boolean>(HIDDEN_CATS_STORAGE_KEY, false);
+
+  const sortMode = parseSortMode(params.get('sortMode') ?? storedTokenView);
+  const showZeroBalanceTokens =
+    (params.get('showZeroBalanceTokens') ??
+      storedShowZeroBalance.toString()) === 'true';
+  const showHiddenCats =
+    (params.get('showHiddenCats') ?? storedShowHiddenCats.toString()) ===
     'true';
   const search = params.get('search') ?? '';
 
+  const viewMode = (params.get('viewMode') as ViewMode) ?? storedViewMode;
+
   const updateParams = ({
-    view,
-    showHidden,
-    showZeroBalance,
+    sortMode,
+    showZeroBalanceTokens,
+    showHiddenCats,
     search,
+    viewMode,
   }: Partial<TokenParams>) => {
     setParams(
       (prev) => {
         const next = new URLSearchParams(prev);
 
-        if (view !== undefined) {
-          next.set('view', view);
-          setStoredTokenView(view);
+        if (sortMode !== undefined) {
+          next.set('sortMode', sortMode);
+          setStoredTokenView(sortMode);
         }
 
-        if (showHidden !== undefined) {
-          next.set('showHidden', showHidden.toString());
+        if (showZeroBalanceTokens !== undefined) {
+          next.set('showZeroBalanceTokens', showZeroBalanceTokens.toString());
+          setStoredShowZeroBalance(showZeroBalanceTokens);
         }
 
-        if (showZeroBalance !== undefined) {
-          next.set('showZeroBalance', showZeroBalance.toString());
-          setStoredShowZeroBalance(showZeroBalance);
+        if (showHiddenCats !== undefined) {
+          next.set('showHiddenCats', showHiddenCats.toString());
+          setStoredShowHiddenCats(showHiddenCats);
         }
 
         if (search !== undefined) {
@@ -79,11 +97,25 @@ export function useTokenParams(): [TokenParams, SetTokenParams] {
           }
         }
 
+        if (viewMode !== undefined) {
+          next.set('viewMode', viewMode);
+          setStoredViewMode(viewMode);
+        }
+
         return next;
       },
       { replace: true },
     );
   };
 
-  return [{ view, showHidden, showZeroBalance, search }, updateParams];
+  return [
+    {
+      viewMode,
+      sortMode,
+      showZeroBalanceTokens,
+      showHiddenCats,
+      search,
+    },
+    updateParams,
+  ];
 }

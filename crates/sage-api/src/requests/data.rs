@@ -125,11 +125,13 @@ pub struct GetPendingTransactionsResponse {
     pub transactions: Vec<PendingTransactionRecord>,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct GetTransactions {
     pub offset: u32,
     pub limit: u32,
+    pub ascending: bool,
+    pub find_value: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

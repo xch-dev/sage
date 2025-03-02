@@ -3,6 +3,7 @@ import { CopyBox } from './CopyBox';
 import { formatAddress } from '@/lib/utils';
 import { useEffect, useRef, useState } from 'react';
 import { t } from '@lingui/core/macro';
+import { toast } from 'react-toastify';
 
 function getTextWidth(text: string, element: HTMLElement | null) {
   const canvas = document.createElement('canvas');
@@ -57,6 +58,10 @@ export function ReceiveAddress({
     return () => observer.disconnect();
   }, [receive_address, minChars, maxChars]);
 
+  if (!receive_address || receive_address === 'Unknown') {
+    return <div className={className}>Connecting to wallet...</div>;
+  }
+
   return (
     <CopyBox
       inputRef={ref}
@@ -65,6 +70,9 @@ export function ReceiveAddress({
       className={className}
       value={receive_address}
       displayValue={formatAddress(receive_address, chars / 2)}
+      onCopy={() => {
+        toast.success(t`Address copied to clipboard`);
+      }}
     />
   );
 }
