@@ -1,6 +1,6 @@
 import { OfferAssets, OfferRecord, OfferSummary } from '@/bindings';
 import { nftUri } from '@/lib/nftUri';
-import { fromMojos } from '@/lib/utils';
+import { fromMojos, unixTimestampToDate } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -112,13 +112,13 @@ export function OfferCard({
                 {walletState.sync.unit.ticker}
               </div>
             </div>{' '}
-            {(summary.expiration_date || summary.expiration_height) && (
+            {(summary.expiration_timestamp || summary.expiration_height) && (
               <div className='flex flex-col gap-2'>
                 <div className='text-sm font-medium'>
                   <Trans>Expires</Trans>
                 </div>
-                {summary.expiration_date && (
-                  <div className='text-sm'>{summary.expiration_date}</div>
+                {summary.expiration_timestamp && (
+                  <div className='text-sm'>{unixTimestampToDate(summary.expiration_timestamp).toLocaleString()}</div>
                 )}
                 {summary.expiration_height && (
                   <div className='text-sm text-muted-foreground'>

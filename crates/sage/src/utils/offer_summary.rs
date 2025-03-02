@@ -3,7 +3,6 @@ use std::time::Duration;
 
 use chia::{clvm_traits::FromClvm, puzzles::nft::NftMetadata};
 use chia_wallet_sdk::{encode_address, Offer, SpendContext};
-use chrono::{Local, TimeZone};
 use indexmap::IndexMap;
 use sage_api::{Amount, OfferAssets, OfferCat, OfferNft, OfferSummary, OfferXch};
 use sage_assets::fetch_uris_with_hash;
@@ -200,13 +199,6 @@ impl Sage {
             taker,
             expiration_height: status.expiration_height,
             expiration_timestamp: status.expiration_timestamp,
-            expiration_date: status.expiration_timestamp.map(|timestamp| {
-                Local
-                    .timestamp_opt(timestamp.try_into().unwrap_or(0), 0)
-                    .unwrap()
-                    .format("%b %d, %Y %r")
-                    .to_string()
-            }),
         })
     }
 }
