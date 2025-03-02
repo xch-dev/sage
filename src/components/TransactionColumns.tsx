@@ -1,0 +1,160 @@
+'use client';
+
+import { ColumnDef } from '@tanstack/react-table';
+import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
+import { t } from '@lingui/core/macro';
+import { Trans } from '@lingui/react/macro';
+import { Link } from 'react-router-dom';
+import { MoreHorizontal, Copy, Wallet } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { toast } from 'react-toastify';
+import { AmountCell } from './AmountCell';
+import { formatAddress } from '../lib/utils';
+
+export interface FlattenedTransaction {
+  transactionHeight: number;
+  type: string;
+  ticker?: string | null;
+  icon_url?: string | null;
+  amount: string;
+  address: string | null;
+  coin_id: string;
+  displayName: string;
+}
+
+export const columns: ColumnDef<FlattenedTransaction>[] = [
+  {
+    accessorKey: 'transactionHeight',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title={t`Block #`} />
+    ),
+    enableSorting: false,
+    cell: ({ row, table }) => {
+      // Get all rows data
+      const rows = table.options.data as FlattenedTransaction[];
+
+      // Check if this is the first row for this transaction height
+      const isFirstInGroup =
+        rows.findIndex(
+          (tx) => tx.transactionHeight === row.original.transactionHeight,
+        ) === rows.indexOf(row.original);
+
+      // Only show block number for first row in group
+      return isFirstInGroup ? (
+        <Link
+          to={`/transactions/${row.getValue('transactionHeight')}`}
+          className='hover:underline'
+          onClick={(e) => e.stopPropagation()}
+        >
+          {row.getValue('transactionHeight')}
+        </Link>
+      ) : null;
+    },
+  },
+  {
+    id: 'icon',
+    enableSorting: false,
+    header: () => <span className='sr-only'>{t`Asset Icon`}</span>,
+    cell: ({ row }) => {
+      const type = row.getValue('type') as string;
+      const ticker = row.original.ticker;
+      const assetName = type === 'xch' ? 'XCH' : (ticker ?? 'CAT');
+
+      return (
+        <div className='w-6 h-6' role='img' aria-label={`${assetName} icon`}>
+          {row.original.icon_url ? (
+            <img
+              src={row.original.icon_url}
+              aria-hidden='true'
+              loading='lazy'
+            />
+          ) : null}
+        </div>
+      );
+    },
+  },
+  {
+    accessorKey: 'type',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title={t`Ticker`} />
+    ),
+    enableSorting: false,
+    cell: ({ row }) => {
+      return <div>{row.original.displayName}</div>;
+    },
+  },
+  {
+    accessorKey: 'amount',
+    header: ({ column }) => (
+      <div className='text-right'>
+        <DataTableColumnHeader column={column} title={t`Amount`} />
+      </div>
+    ),
+    enableSorting: false,
+    cell: ({ row }) => (
+      <AmountCell amount={row.getValue('amount')} type={row.getValue('type')} />
+    ),
+  },
+  {
+    accessorKey: 'address',
+    header: ({ column }) => (
+      <div className='hidden md:block'>
+        <DataTableColumnHeader column={column} title={t`Address`} />
+      </div>
+    ),
+    enableSorting: false,
+    cell: ({ row }) => (
+      <div className='hidden md:block font-mono'>
+        {formatAddress(row.getValue<string | null>('address') || '', 7, 4)}
+      </div>
+    ),
+  },
+  {
+    id: 'actions',
+    enableSorting: false,
+    cell: ({ row }) => {
+      const txCoin = row.original;
+
+      return (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant='ghost'
+              className='h-6 w-6 p-0'
+              aria-label={t`Open actions menu`}
+            >
+              <span className='sr-only'>{t`Open menu`}</span>
+              <MoreHorizontal className='h-4 w-4' aria-hidden='true' />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align='end'>
+            <DropdownMenuItem
+              onClick={() => {
+                navigator.clipboard.writeText(txCoin.amount ?? '');
+                toast.success(t`Amount copied to clipboard`);
+              }}
+            >
+              <Copy className='mr-2 h-4 w-4' aria-hidden='true' />
+              <Trans>Copy amount</Trans>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => {
+                navigator.clipboard.writeText(txCoin.address ?? '');
+                toast.success(t`Address copied to clipboard`);
+              }}
+            >
+              <Wallet className='mr-2 h-4 w-4' aria-hidden='true' />
+              <Trans>Copy address</Trans>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      );
+    },
+  },
+];

@@ -22,14 +22,18 @@ export function unixTimestampToDate(timestamp: number): Date {
   return new Date(timestamp * 1000);
 }
 
-export function formatAddress(address: string, chars: number = 8): string {
+export function formatAddress(
+  address: string,
+  chars: number = 8,
+  trailingChars: number = chars,
+): string {
   const cleanAddress = address.startsWith('0x') ? address.slice(2) : address;
 
-  if (chars * 2 >= cleanAddress.length) {
+  if (chars + trailingChars >= cleanAddress.length) {
     return address;
   }
 
-  return `${cleanAddress.slice(0, chars)}...${cleanAddress.slice(-chars)}`;
+  return `${cleanAddress.slice(0, chars)}...${cleanAddress.slice(-trailingChars)}`;
 }
 
 export function formatUsdPrice(price: number): string {
@@ -87,6 +91,21 @@ export function isValidAddress(address: string, prefix: string): boolean {
     const info = addressInfo(address);
     return info.puzzleHash.length === 64 && info.prefix === prefix;
   } catch (error) {
+    return false;
+  }
+}
+
+export function isValidUrl(str: string) {
+  try {
+    const url = new URL(str);
+    // since this is used for nft links, we don't want to allow file:, localhost,
+    // or 127.0.0.1 to prevent links to local resources
+    return (
+      url.protocol.toLowerCase() !== 'file:' &&
+      url.hostname.toLowerCase() !== 'localhost' &&
+      url.hostname !== '127.0.0.1'
+    );
+  } catch {
     return false;
   }
 }

@@ -105,6 +105,7 @@ export function TokenSelector({
               className='w-10 h-10 rounded object-cover'
               alt={token.name ?? t`Unknown token`}
               aria-hidden='true'
+              loading='lazy'
             />
           )}
           <div className='flex flex-col truncate'>
@@ -132,6 +133,7 @@ export function TokenSelector({
                 ? `Image of ${selectedToken.name}`
                 : 'No token name'
             }
+            loading='lazy'
             aria-hidden='true'
           />
         )}
