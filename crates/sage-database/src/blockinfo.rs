@@ -4,82 +4,87 @@ use crate::{Database, DatabaseTx, Result};
 //use std::error::Error;
 
 impl Database {
-    //find null created_unixtime in coin_states
-    pub async fn find_created_timestamp_null(&self) -> Result<Option<i64>> {
-        find_created_timestamp_null(&self.pool).await
+    pub async fn find_created_timestamp_null(&self, limit: u32) -> Result<Vec<u32>> {
+        find_created_timestamp_null(&self.pool, limit).await
     }
-    //find null created_unixtime in coin_states
-    pub async fn find_spent_timestamp_null(&self) -> Result<Option<i64>> {
-        find_spent_timestamp_null(&self.pool).await
+
+    pub async fn find_spent_timestamp_null(&self, limit: u32) -> Result<Vec<u32>> {
+        find_spent_timestamp_null(&self.pool, limit).await
     }
-    //from blockinfo get unix_time based on height
-    pub async fn check_blockinfo(&self, height: u32) -> Result<i64> {
+
+    pub async fn check_blockinfo(&self, height: u32) -> Result<Option<i64>> {
         check_blockinfo(&self.pool, height).await
     }
-    //insert created timestamp into coin_states
-    pub async fn update_created_timestamp(&self, height: u32, timestamp: u32) -> Result<u32> {
+
+    pub async fn update_created_timestamp(&self, height: u32, timestamp: i64) -> Result<()> {
         update_created_timestamp(&self.pool, height, timestamp).await
     }
-    //insert spent timestamp into coin_states
-    pub async fn update_spent_timestamp(&self, height: u32, timestamp: u32) -> Result<u32> {
+
+    pub async fn update_spent_timestamp(&self, height: u32, timestamp: i64) -> Result<()> {
         update_spent_timestamp(&self.pool, height, timestamp).await
     }
-    //insert timestamp and height into blockinfo
-    pub async fn insert_timestamp_height(&self, height: u32, timestamp: u32) -> Result<()> {
+
+    pub async fn insert_timestamp_height(&self, height: u32, timestamp: i64) -> Result<()> {
         insert_timestamp_height(&self.pool, height, timestamp).await
     }
 }
 
 impl<'a> DatabaseTx<'a> {
-    //find created_unixtime null in coin_states
-    pub async fn find_created_timestamp_null(&mut self) -> Result<Option<i64>> {
-        find_created_timestamp_null(&mut *self.tx).await
+    pub async fn find_created_timestamp_null(&mut self, limit: u32) -> Result<Vec<u32>> {
+        find_created_timestamp_null(&mut *self.tx, limit).await
     }
-    //find spent_unixtime null in coin_states
-    pub async fn find_spent_timestamp_null(&mut self) -> Result<Option<i64>> {
-        find_spent_timestamp_null(&mut *self.tx).await
+
+    pub async fn find_spent_timestamp_null(&mut self, limit: u32) -> Result<Vec<u32>> {
+        find_spent_timestamp_null(&mut *self.tx, limit).await
     }
 }
 
-async fn find_created_timestamp_null(conn: impl SqliteExecutor<'_>) -> Result<Option<i64>> {
+async fn find_created_timestamp_null(
+    conn: impl SqliteExecutor<'_>,
+    limit: u32,
+) -> Result<Vec<u32>> {
     let row = sqlx::query!(
-        //begin with most recent block height since these should be most interesting to end user
         "
             SELECT `created_height`
             FROM `coin_states`
             WHERE `created_unixtime` IS NULL
+            AND `created_height` IS NOT NULL
             ORDER BY `created_height` DESC 
-            LIMIT 1;
-
+            LIMIT ?;
         ",
+        limit
     )
-    .fetch_optional(conn)
+    .fetch_all(conn)
     .await?;
 
-    // Use and_then to handle Option<Option<i64>> and return Option<i64>
-    Ok(row.and_then(|r| r.created_height))
+    row.into_iter()
+        .filter_map(|r| r.created_height)
+        .map(|height| Ok(height.try_into()?))
+        .collect::<Result<Vec<_>>>()
 }
 
-async fn find_spent_timestamp_null(conn: impl SqliteExecutor<'_>) -> Result<Option<i64>> {
+async fn find_spent_timestamp_null(conn: impl SqliteExecutor<'_>, limit: u32) -> Result<Vec<u32>> {
     let row = sqlx::query!(
-        //begin with most recent block height since these should be most interesting to end user
         "
             SELECT `spent_height`
             FROM `coin_states`
             WHERE `spent_unixtime` IS NULL
             AND `spent_height` IS NOT NULL
             ORDER BY `spent_height` DESC 
-            LIMIT 1;            
+            LIMIT ?;
         ",
+        limit
     )
-    .fetch_optional(conn)
+    .fetch_all(conn)
     .await?;
 
-    Ok(row.and_then(|r| r.spent_height))
+    row.into_iter()
+        .filter_map(|r| r.spent_height)
+        .map(|height| Ok(height.try_into()?))
+        .collect::<Result<Vec<_>>>()
 }
 
-//from blockinfo get unix_time based on height fix me gneale 20250223
-async fn check_blockinfo(conn: impl SqliteExecutor<'_>, height: u32) -> Result<i64> {
+async fn check_blockinfo(conn: impl SqliteExecutor<'_>, height: u32) -> Result<Option<i64>> {
     let row = sqlx::query!(
         "
             SELECT `unix_time`
@@ -88,17 +93,17 @@ async fn check_blockinfo(conn: impl SqliteExecutor<'_>, height: u32) -> Result<i
         ",
         height
     )
-    .fetch_one(conn)
+    .fetch_optional(conn)
     .await?;
 
-    Ok(row.unix_time)
+    Ok(row.map(|r| r.unix_time))
 }
 
 async fn update_created_timestamp(
     conn: impl SqliteExecutor<'_>,
     height: u32,
-    timestamp: u32,
-) -> Result<u32> {
+    timestamp: i64,
+) -> Result<()> {
     sqlx::query!(
         "
         UPDATE OR IGNORE `coin_states`
@@ -111,14 +116,14 @@ async fn update_created_timestamp(
     .execute(conn)
     .await?;
 
-    Ok(timestamp)
+    Ok(())
 }
 
 async fn update_spent_timestamp(
     conn: impl SqliteExecutor<'_>,
     height: u32,
-    timestamp: u32,
-) -> Result<u32> {
+    timestamp: i64,
+) -> Result<()> {
     sqlx::query!(
         "
         UPDATE OR IGNORE `coin_states`
@@ -131,14 +136,13 @@ async fn update_spent_timestamp(
     .execute(conn)
     .await?;
 
-    Ok(timestamp)
+    Ok(())
 }
 
-//
 async fn insert_timestamp_height(
     conn: impl SqliteExecutor<'_>,
     height: u32,
-    unix_timestamp: u32,
+    unix_timestamp: i64,
 ) -> Result<()> {
     sqlx::query!(
         "

@@ -22,6 +22,7 @@ pub struct LogoutResponse {}
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[allow(clippy::struct_excessive_bools)]
 pub struct Resync {
     pub fingerprint: u32,
     #[serde(default)]
