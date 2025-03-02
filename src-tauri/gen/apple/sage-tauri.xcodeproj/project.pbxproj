@@ -10,6 +10,8 @@
 		01F19EE188458C3FBC0FAC1C /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F5E5720FDE8B96D681CBAED /* QuartzCore.framework */; };
 		08123E47E36510857B843AC0 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 164E2E350268ED2A04513FEE /* UIKit.framework */; };
 		1ACB1DFBDEB0809BFDA2C513 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 1CDD10E891CE5538614601C2 /* LaunchScreen.storyboard */; };
+		2802CB262D728610009D1A91 /* CoreNFC.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2802CB252D728610009D1A91 /* CoreNFC.framework */; };
+		2802CB282D728753009D1A91 /* libswiftCoreNFC.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 2802CB272D72868F009D1A91 /* libswiftCoreNFC.tbd */; };
 		4935DEBDC84053B71A354C40 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9B47ECAF54C86639AF69E484 /* Metal.framework */; };
 		719111851834D6EE97A0113E /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1A61E0D1642C6570A5101E3A /* CoreGraphics.framework */; };
 		79D4CDB9EB3D4A13BA84481F /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BCDAEB1DE5FD02983C866661 /* MetalKit.framework */; };
@@ -31,6 +33,8 @@
 		1F9E557ADA88D73B10BF473F /* libapp.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libapp.a; sourceTree = "<group>"; };
 		2095E574A265BCC2EA05F42F /* app_state.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = app_state.rs; sourceTree = "<group>"; };
 		2304A1988156A19CBDF4A717 /* main.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = main.rs; sourceTree = "<group>"; };
+		2802CB252D728610009D1A91 /* CoreNFC.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreNFC.framework; path = System/Library/Frameworks/CoreNFC.framework; sourceTree = SDKROOT; };
+		2802CB272D72868F009D1A91 /* libswiftCoreNFC.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libswiftCoreNFC.tbd; path = usr/lib/swift/libswiftCoreNFC.tbd; sourceTree = SDKROOT; };
 		32D9D63B1548E841957A1E32 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		4A3D52136706249F106003A2 /* main.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = main.mm; sourceTree = "<group>"; };
 		4F5E5720FDE8B96D681CBAED /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
@@ -61,6 +65,8 @@
 			files = (
 				FEF377FC1FC81BF2E0E465DF /* libapp.a in Frameworks */,
 				719111851834D6EE97A0113E /* CoreGraphics.framework in Frameworks */,
+				2802CB262D728610009D1A91 /* CoreNFC.framework in Frameworks */,
+				2802CB282D728753009D1A91 /* libswiftCoreNFC.tbd in Frameworks */,
 				4935DEBDC84053B71A354C40 /* Metal.framework in Frameworks */,
 				79D4CDB9EB3D4A13BA84481F /* MetalKit.framework in Frameworks */,
 				01F19EE188458C3FBC0FAC1C /* QuartzCore.framework in Frameworks */,
@@ -132,6 +138,8 @@
 		7F61207D768263745DF88A25 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				2802CB272D72868F009D1A91 /* libswiftCoreNFC.tbd */,
+				2802CB252D728610009D1A91 /* CoreNFC.framework */,
 				1A61E0D1642C6570A5101E3A /* CoreGraphics.framework */,
 				1F9E557ADA88D73B10BF473F /* libapp.a */,
 				9B47ECAF54C86639AF69E484 /* Metal.framework */,
@@ -367,6 +375,11 @@
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
+					/usr/lib/swift,
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SDKROOT)/usr/lib/swift",
 				);
 				"LIBRARY_SEARCH_PATHS[arch=arm64-sim]" = (
 					"$(inherited)",
@@ -484,6 +497,11 @@
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
+					/usr/lib/swift,
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SDKROOT)/usr/lib/swift",
 				);
 				"LIBRARY_SEARCH_PATHS[arch=arm64-sim]" = (
 					"$(inherited)",
