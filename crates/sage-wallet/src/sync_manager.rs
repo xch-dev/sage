@@ -21,7 +21,8 @@ use tracing::{debug, info, warn};
 use wallet_sync::{add_new_subscriptions, incremental_sync, sync_wallet};
 
 use crate::{
-    CatQueue, NftUriQueue, OfferQueue, PuzzleQueue, TransactionQueue, Wallet, WalletError,
+    BlockTimeQueue, CatQueue, NftUriQueue, OfferQueue, PuzzleQueue, TransactionQueue, Wallet,
+    WalletError,
 };
 
 mod options;
@@ -52,6 +53,7 @@ pub struct SyncManager {
     nft_uri_queue_task: Option<JoinHandle<Result<(), WalletError>>>,
     transaction_queue_task: Option<JoinHandle<Result<(), WalletError>>>,
     offer_queue_task: Option<JoinHandle<Result<(), WalletError>>>,
+    blocktime_queue_task: Option<JoinHandle<Result<(), WalletError>>>,
     pending_coin_subscriptions: Vec<Bytes32>,
     pending_puzzle_subscriptions: Vec<Bytes32>,
 }
@@ -93,6 +95,9 @@ impl Drop for SyncManager {
         if let Some(task) = &mut self.offer_queue_task {
             task.abort();
         }
+        if let Some(task) = &mut self.blocktime_queue_task {
+            task.abort();
+        }
     }
 }
 
@@ -124,6 +129,7 @@ impl SyncManager {
             nft_uri_queue_task: None,
             transaction_queue_task: None,
             offer_queue_task: None,
+            blocktime_queue_task: None,
             pending_coin_subscriptions: Vec::new(),
             pending_puzzle_subscriptions: Vec::new(),
         };
@@ -241,6 +247,9 @@ impl SyncManager {
             task.abort();
         }
         if let Some(task) = &mut self.offer_queue_task.take() {
+            task.abort();
+        }
+        if let Some(task) = &mut self.blocktime_queue_task.take() {
             task.abort();
         }
     }
@@ -432,12 +441,21 @@ impl SyncManager {
                 );
                 self.offer_queue_task = Some(task);
             }
+
+            if self.blocktime_queue_task.is_none() {
+                let task = tokio::spawn(
+                    BlockTimeQueue::new(wallet.db.clone(), self.state.clone())
+                        .start(self.options.timeouts.blocktime_delay),
+                );
+                self.blocktime_queue_task = Some(task);
+            }
         } else {
             self.puzzle_lookup_task = None;
             self.cat_queue_task = None;
             self.nft_uri_queue_task = None;
             self.transaction_queue_task = None;
             self.offer_queue_task = None;
+            self.blocktime_queue_task = None;
         }
     }
 
@@ -536,6 +554,23 @@ impl SyncManager {
                 }
                 Some(Ok(Ok(()))) => {
                     self.offer_queue_task = None;
+                }
+                None => {}
+            }
+        }
+
+        if let Some(task) = &mut self.blocktime_queue_task {
+            match poll_once(task).await {
+                Some(Err(error)) => {
+                    warn!("Blocktime queue failed with panic: {error}");
+                    self.blocktime_queue_task = None;
+                }
+                Some(Ok(Err(error))) => {
+                    warn!("Blocktime queue failed with error: {error}");
+                    self.blocktime_queue_task = None;
+                }
+                Some(Ok(Ok(()))) => {
+                    self.blocktime_queue_task = None;
                 }
                 None => {}
             }

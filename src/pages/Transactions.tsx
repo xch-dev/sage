@@ -1,5 +1,6 @@
 import Container from '@/components/Container';
 import Header from '@/components/Header';
+import { NumberFormat } from '@/components/NumberFormat';
 import { ReceiveAddress } from '@/components/ReceiveAddress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useErrors } from '@/hooks/useErrors';
@@ -19,7 +20,6 @@ import {
   PendingTransactionRecord,
   TransactionRecord,
 } from '../bindings';
-import { NumberFormat } from '@/components/NumberFormat';
 
 import { Pagination } from '@/components/Pagination';
 import { useLocalStorage } from 'usehooks-ts';
@@ -129,6 +129,12 @@ function Transaction({ transaction }: TransactionProps) {
   const nfts: Record<string, TransactionNft> = {};
 
   const transactionHeight = transaction.height;
+  const transactionDate = transaction.timestamp
+    ? new Date(transaction.timestamp * 1000).toLocaleDateString()
+    : null;
+  const transactionTime = transaction.timestamp
+    ? new Date(transaction.timestamp * 1000).toLocaleTimeString()
+    : null;
   const transactionSpentCount = transaction.spent.length;
   const transactionCreatedCount = transaction.created.length;
 
@@ -193,6 +199,16 @@ function Transaction({ transaction }: TransactionProps) {
             >
               <Trans>Block #{transactionHeight}</Trans>
             </div>
+            {transactionDate && (
+              <div className='text-sm text-muted-foreground md:w-[120px]'>
+                {transactionDate}
+              </div>
+            )}
+            {transactionTime && (
+              <div className='text-sm text-muted-foreground md:w-[120px]'>
+                {transactionTime}
+              </div>
+            )}
             <div className='text-sm text-muted-foreground md:w-[120px]'>
               <Trans>
                 {transactionSpentCount} inputs, {transactionCreatedCount}{' '}
