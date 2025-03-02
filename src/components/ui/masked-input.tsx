@@ -63,14 +63,14 @@ interface XchInputProps extends MaskedInputProps {
 }
 
 const TokenAmountInput = React.forwardRef<HTMLInputElement, XchInputProps>(
-  ({ decimals = 12, ...props }, ref) => (
+  ({ decimals = 24, ...props }, ref) => (
     <MaskedInput
       placeholder='0.00'
       {...props}
       type='text'
       inputRef={ref}
       decimalScale={decimals}
-      allowLeadingZeros={false}
+      allowLeadingZeros={true}
       allowNegative={false}
     />
   ),

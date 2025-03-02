@@ -7,9 +7,16 @@ import {
   useState,
 } from 'react';
 
+// Add an interface for the price data structure
+interface CatPriceData {
+  lastPrice: number | null;
+  askPrice: number | null;
+}
+
 export interface PriceContextType {
   getBalanceInUsd: (assetId: string, balance: string) => string;
   getPriceInUsd: (assetId: string) => number;
+  getCatAskPriceInXch: (assetId: string) => number | null;
 }
 
 export const PriceContext = createContext<PriceContextType | undefined>(
@@ -18,9 +25,8 @@ export const PriceContext = createContext<PriceContextType | undefined>(
 
 export function PriceProvider({ children }: { children: ReactNode }) {
   const walletState = useWalletState();
-
   const [xchUsdPrice, setChiaPrice] = useState<number>(0);
-  const [catPrices, setCatPrices] = useState<Record<string, number>>({});
+  const [catPrices, setCatPrices] = useState<Record<string, CatPriceData>>({});
 
   useEffect(() => {
     const fetchCatPrices = () =>
@@ -28,8 +34,11 @@ export function PriceProvider({ children }: { children: ReactNode }) {
         .then((res) => res.json())
         .then((data) => {
           const tickers = data.tickers.reduce(
-            (acc: Record<string, string>, ticker: any) => {
-              acc[ticker.base_id] = ticker.last_price || 0;
+            (acc: Record<string, CatPriceData>, ticker: any) => {
+              acc[ticker.base_id] = {
+                lastPrice: ticker.last_price ? Number(ticker.last_price) : null,
+                askPrice: ticker.ask ? Number(ticker.ask) : null,
+              };
               return acc;
             },
             {},
@@ -69,7 +78,9 @@ export function PriceProvider({ children }: { children: ReactNode }) {
       if (assetId === 'xch') {
         return xchUsdPrice;
       }
-      return (catPrices[assetId] || 0) * xchUsdPrice;
+      const priceData = catPrices[assetId];
+      const xchPrice = priceData?.lastPrice ?? 0;
+      return xchPrice * xchUsdPrice;
     },
     [xchUsdPrice, catPrices],
   );
@@ -79,17 +90,25 @@ export function PriceProvider({ children }: { children: ReactNode }) {
       if (assetId === 'xch') {
         return (Number(balance) * xchUsdPrice).toFixed(2);
       }
-      return (
-        Number(balance) *
-        (catPrices[assetId] || 0) *
-        xchUsdPrice
-      ).toFixed(2);
+      const priceData = catPrices[assetId];
+      const xchPrice = priceData?.lastPrice ?? 0;
+      return (Number(balance) * xchPrice * xchUsdPrice).toFixed(2);
     },
     [xchUsdPrice, catPrices],
   );
 
+  const getCatAskPriceInXch = useCallback(
+    (assetId: string) => {
+      const priceData = catPrices[assetId];
+      return priceData?.askPrice ?? null;
+    },
+    [catPrices],
+  );
+
   return (
-    <PriceContext.Provider value={{ getBalanceInUsd, getPriceInUsd }}>
+    <PriceContext.Provider
+      value={{ getBalanceInUsd, getPriceInUsd, getCatAskPriceInXch }}
+    >
       {children}
     </PriceContext.Provider>
   );

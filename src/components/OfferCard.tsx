@@ -1,83 +1,249 @@
-import { OfferAssets, OfferSummary } from '@/bindings';
+import { OfferAssets, OfferSummary, GetCat } from '@/bindings';
 import { nftUri } from '@/lib/nftUri';
-import { fromMojos } from '@/lib/utils';
+import { fromMojos, unixTimestampToDate } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import BigNumber from 'bignumber.js';
-import { ArrowDownIcon, ArrowUpIcon } from 'lucide-react';
-import { PropsWithChildren } from 'react';
+import {
+  ArrowDownIcon,
+  ArrowUpIcon,
+  InfoIcon,
+  CheckCircleIcon,
+  XCircleIcon,
+} from 'lucide-react';
+import { PropsWithChildren, useState, useEffect } from 'react';
 import { CopyButton } from './CopyButton';
 import { Badge } from './ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Separator } from './ui/separator';
 import { NumberFormat } from '@/components/NumberFormat';
+import { cn } from '@/lib/utils';
+import { commands } from '@/bindings';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from './ui/tooltip';
+
+// Interface to track CAT presence in wallet
+interface CatPresence {
+  [assetId: string]: boolean;
+}
 
 export interface OfferCardProps {
   summary: OfferSummary;
+  status?: string;
+  creation_date?: string;
 }
 
 export function OfferCard({
   summary,
+  status,
+  creation_date,
   children,
 }: PropsWithChildren<OfferCardProps>) {
+  const walletState = useWalletState();
+  // State to track which CATs are present in the wallet
+  const [catPresence, setCatPresence] = useState<CatPresence>({});
+
+  // Check if CATs in the receiving section are present in the wallet
+  useEffect(() => {
+    const checkCatPresence = async () => {
+      const presence: CatPresence = {};
+
+      // Check each CAT in the maker section (receiving)
+      for (const assetId of Object.keys(summary.maker.cats)) {
+        try {
+          const response = await commands.getCat({ asset_id: assetId });
+          presence[assetId] = !!response.cat; // true if cat exists, false otherwise
+        } catch (error) {
+          console.error(`Error checking CAT presence for ${assetId}:`, error);
+          presence[assetId] = false;
+        }
+      }
+
+      setCatPresence(presence);
+    };
+
+    checkCatPresence();
+  }, [summary.maker.cats]);
+
+  const getStatusStyles = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'active':
+        return 'text-green-600 dark:text-green-500';
+      case 'completed':
+        return 'text-blue-600 dark:text-blue-500';
+      case 'cancelled':
+        return 'text-amber-600 dark:text-amber-500';
+      case 'expired':
+        return 'text-red-600 dark:text-red-500';
+      default:
+        return '';
+    }
+  };
+
+  const getStatusDotColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'active':
+        return 'bg-green-500';
+      case 'completed':
+        return 'bg-blue-500';
+      case 'cancelled':
+        return 'bg-amber-500';
+      case 'expired':
+        return 'bg-red-500';
+      default:
+        return 'bg-gray-500';
+    }
+  };
+
   return (
-    <div className='grid grid-cols-1 lg:grid-cols-2 gap-4 max-w-screen-lg'>
+    <div className='flex flex-col gap-4 max-w-screen-lg'>
       <Card>
         <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2 pr-2 space-x-2'>
           <CardTitle className='text-md font-medium truncate flex items-center'>
-            <ArrowUpIcon className='mr-2 h-4 w-4' />
-            <Trans>Sending</Trans>
+            <InfoIcon className='mr-2 h-4 w-4' />
+            <Trans>Details</Trans>
           </CardTitle>
         </CardHeader>
         <CardContent className='flex flex-col'>
-          <div className='text-sm text-muted-foreground'>
-            <Trans>The assets you have to pay to fulfill the offer.</Trans>
+          <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+            {status && (
+              <div className='flex flex-col gap-2'>
+                <div className='text-sm font-medium'>
+                  <Trans>Status</Trans>
+                </div>
+                <div className='flex items-center gap-1.5'>
+                  <div
+                    className={cn(
+                      'w-2 h-2 rounded-full',
+                      getStatusDotColor(status),
+                    )}
+                  />
+                  <div className={cn('text-sm', getStatusStyles(status))}>
+                    {status === 'active'
+                      ? 'Pending'
+                      : status === 'completed'
+                        ? 'Taken'
+                        : status === 'cancelled'
+                          ? 'Cancelled'
+                          : 'Expired'}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {creation_date && (
+              <div className='flex flex-col gap-2'>
+                <div className='text-sm font-medium'>
+                  <Trans>Created</Trans>
+                </div>
+                <div className='text-sm'>
+                  {new Date(creation_date).toLocaleString()}
+                </div>
+              </div>
+            )}
           </div>
-
-          <Separator className='my-4' />
-
-          <div className='flex flex-col gap-4'>
-            <Assets assets={summary.taker} />
-            {children}
+          <Separator className='my-1' />
+          <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+            <div className='flex flex-col gap-2'>
+              <div className='text-sm font-medium'>
+                <Trans>Maker Fee</Trans>
+              </div>
+              <div className='text-sm'>
+                <NumberFormat
+                  value={fromMojos(summary.fee, walletState.sync.unit.decimals)}
+                  minimumFractionDigits={0}
+                  maximumFractionDigits={walletState.sync.unit.decimals}
+                />{' '}
+                {walletState.sync.unit.ticker}
+              </div>
+            </div>{' '}
+            {(summary.expiration_timestamp || summary.expiration_height) && (
+              <div className='flex flex-col gap-2'>
+                <div className='text-sm font-medium'>
+                  <Trans>Expires</Trans>
+                </div>
+                {summary.expiration_timestamp && (
+                  <div className='text-sm'>
+                    {unixTimestampToDate(
+                      summary.expiration_timestamp,
+                    ).toLocaleString()}
+                  </div>
+                )}
+                {summary.expiration_height && (
+                  <div className='text-sm text-muted-foreground'>
+                    <Trans>Block:</Trans> {summary.expiration_height}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2 pr-2 space-x-2'>
-          <CardTitle className='text-md font-medium truncate flex items-center'>
-            <ArrowDownIcon className='mr-2 h-4 w-4' />
-            <Trans>Receiving</Trans>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className='flex flex-col'>
-          <div className='text-sm text-muted-foreground'>
-            <Trans>The assets being given to you in the offer.</Trans>
-          </div>
+      <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
+        <Card>
+          <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2 pr-2 space-x-2'>
+            <CardTitle className='text-md font-medium truncate flex items-center'>
+              <ArrowUpIcon className='mr-2 h-4 w-4' />
+              <Trans>Sending</Trans>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className='flex flex-col'>
+            <div className='text-sm text-muted-foreground'>
+              <Trans>The assets you have to pay to fulfill the offer.</Trans>
+            </div>
 
-          <Separator className='my-4' />
+            <Separator className='my-4' />
 
-          <Assets
-            assets={
-              summary?.maker ?? {
-                xch: { amount: '0', royalty: '0' },
-                cats: {},
-                nfts: {},
+            <div className='flex flex-col gap-4'>
+              <Assets assets={summary.taker} />
+              {children}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2 pr-2 space-x-2'>
+            <CardTitle className='text-md font-medium truncate flex items-center'>
+              <ArrowDownIcon className='mr-2 h-4 w-4' />
+              <Trans>Receiving</Trans>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className='flex flex-col'>
+            <div className='text-sm text-muted-foreground'>
+              <Trans>The assets being given to you in the offer.</Trans>
+            </div>
+
+            <Separator className='my-4' />
+
+            <Assets
+              assets={
+                summary?.maker ?? {
+                  xch: { amount: '0', royalty: '0' },
+                  cats: {},
+                  nfts: {},
+                }
               }
-            }
-          />
-        </CardContent>
-      </Card>
+              catPresence={catPresence}
+            />
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
 
 interface AssetsProps {
   assets: OfferAssets;
+  catPresence?: CatPresence;
 }
 
-function Assets({ assets }: AssetsProps) {
+function Assets({ assets, catPresence = {} }: AssetsProps) {
   const walletState = useWalletState();
   const amount = BigNumber(assets.xch.amount);
 
@@ -147,6 +313,32 @@ function Assets({ assets }: AssetsProps) {
               />{' '}
               {cat.name ?? cat.ticker ?? t`Unknown`}
             </div>
+
+            {/* CAT presence indicator - only show for receiving CATs */}
+            {catPresence && assetId in catPresence && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>
+                    {catPresence[assetId] ? (
+                      <CheckCircleIcon className='h-4 w-4 text-green-500' />
+                    ) : (
+                      <XCircleIcon className='h-4 w-4 text-amber-500' />
+                    )}
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {catPresence[assetId] ? (
+                      <p>
+                        <Trans>This CAT is already in your wallet</Trans>
+                      </p>
+                    ) : (
+                      <p>
+                        <Trans>This CAT is not in your wallet yet</Trans>
+                      </p>
+                    )}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
           </div>
 
           <Separator className='my-1' />

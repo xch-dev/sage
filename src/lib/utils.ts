@@ -12,6 +12,16 @@ export function dbg<T>(value: T): T {
   return value;
 }
 
+/**
+ * Converts a Unix epoch timestamp to a Date object in UTC
+ * @param timestamp Unix timestamp in seconds
+ * @returns Date object in UTC
+ */
+export function unixTimestampToDate(timestamp: number): Date {
+  // Convert seconds to milliseconds
+  return new Date(timestamp * 1000);
+}
+
 export function formatAddress(
   address: string,
   chars: number = 8,
