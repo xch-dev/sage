@@ -82,7 +82,13 @@ export function OfferCard({
                     )}
                   />
                   <div className={cn('text-sm', getStatusStyles(status))}>
-                    {status}
+                    {status === 'active'
+                      ? 'Pending'
+                      : status === 'completed'
+                        ? 'Taken'
+                        : status === 'cancelled'
+                          ? 'Cancelled'
+                          : 'Expired'}
                   </div>
                 </div>
               </div>
@@ -93,7 +99,9 @@ export function OfferCard({
                 <div className='text-sm font-medium'>
                   <Trans>Created</Trans>
                 </div>
-                <div className='text-sm'>{creation_date}</div>
+                <div className='text-sm'>
+                  {new Date(creation_date).toLocaleString()}
+                </div>
               </div>
             )}
           </div>
@@ -118,7 +126,11 @@ export function OfferCard({
                   <Trans>Expires</Trans>
                 </div>
                 {summary.expiration_timestamp && (
-                  <div className='text-sm'>{unixTimestampToDate(summary.expiration_timestamp).toLocaleString()}</div>
+                  <div className='text-sm'>
+                    {unixTimestampToDate(
+                      summary.expiration_timestamp,
+                    ).toLocaleString()}
+                  </div>
                 )}
                 {summary.expiration_height && (
                   <div className='text-sm text-muted-foreground'>
