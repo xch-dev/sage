@@ -432,23 +432,37 @@ async fn get_block_heights(
     let mut query = sqlx::QueryBuilder::new(
         "
         WITH filtered_coins AS (
-            SELECT cs.coin_id, cs.kind, 
-                   cats.ticker,
-                   cats.name,
-                   created_height as height
+            SELECT cs.coin_id,  
+                cs.kind, 
+                cats.ticker,
+                cats.name as cat_name,
+                dids.name as did_name,
+                nfts.name as nft_name,
+                cs.created_height as height
             FROM coin_states cs
-            LEFT JOIN cat_coins ON cs.coin_id = cat_coins.coin_id
-            LEFT JOIN cats ON cat_coins.asset_id = cats.asset_id
-            WHERE created_height IS NOT NULL
+                LEFT JOIN cat_coins ON cs.coin_id = cat_coins.coin_id
+                LEFT JOIN cats ON cat_coins.asset_id = cats.asset_id
+                LEFT JOIN did_coins ON cs.coin_id = did_coins.coin_id
+                LEFT JOIN dids ON did_coins.coin_id = dids.coin_id
+                LEFT JOIN nft_coins ON cs.coin_id = nft_coins.coin_id
+                LEFT JOIN nfts ON nft_coins.coin_id = nfts.coin_id
+            WHERE cs.created_height IS NOT NULL
             UNION ALL
-            SELECT cs.coin_id, cs.kind,
-                   cats.ticker,
-                   cats.name,
-                   spent_height as height
+            SELECT cs.coin_id, 
+                cs.kind,
+                cats.ticker,
+                cats.name as cat_name,
+                dids.name as did_name,
+                nfts.name as nft_name,
+                cs.spent_height as height
             FROM coin_states cs
-            LEFT JOIN cat_coins ON cs.coin_id = cat_coins.coin_id
-            LEFT JOIN cats ON cat_coins.asset_id = cats.asset_id
-            WHERE spent_height IS NOT NULL
+                LEFT JOIN cat_coins ON cs.coin_id = cat_coins.coin_id
+                LEFT JOIN cats ON cat_coins.asset_id = cats.asset_id
+                LEFT JOIN did_coins ON cs.coin_id = did_coins.coin_id
+                LEFT JOIN dids ON did_coins.coin_id = dids.coin_id
+                LEFT JOIN nft_coins ON cs.coin_id = nft_coins.coin_id
+                LEFT JOIN nfts ON nft_coins.coin_id = nfts.coin_id
+            WHERE cs.spent_height IS NOT NULL
         ),
         filtered_heights AS (
             SELECT DISTINCT height
@@ -476,7 +490,11 @@ async fn get_block_heights(
         query
             .push("ticker LIKE ")
             .push_bind(format!("%{}%", value))
-            .push(" OR name LIKE ")
+            .push(" OR cat_name LIKE ")
+            .push_bind(format!("%{}%", value))
+            .push(" OR did_name LIKE ")
+            .push_bind(format!("%{}%", value))
+            .push(" OR nft_name LIKE ")
             .push_bind(format!("%{}%", value))
             .push(")");
     }
