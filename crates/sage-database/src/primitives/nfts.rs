@@ -857,41 +857,41 @@ async fn search_nfts(
         FROM nfts
         WHERE 1=1 
         AND is_owned = 1
-        "
+        ",
     );
-    
+
     // Add visibility condition if not including hidden NFTs
     if !params.include_hidden {
         query.push(" AND visible = 1");
     }
-    
+
     // Add group filtering (Collection/DID)
     if let Some(group) = &params.group {
         match group {
             NftGroup::Collection(id) => {
                 query.push(" AND collection_id = ");
                 query.push_bind(id.as_ref());
-            },
+            }
             NftGroup::NoCollection => {
                 query.push(" AND collection_id IS NULL");
-            },
+            }
             NftGroup::MinterDid(id) => {
                 query.push(" AND minter_did = ");
                 query.push_bind(id.as_ref());
-            },
+            }
             NftGroup::NoMinterDid => {
                 query.push(" AND minter_did IS NULL");
-            },
+            }
             NftGroup::OwnerDid(id) => {
                 query.push(" AND owner_did = ");
                 query.push_bind(id.as_ref());
-            },
+            }
             NftGroup::NoOwnerDid => {
                 query.push(" AND owner_did IS NULL");
-            },
+            }
         }
     }
-    
+
     // Add name search if present
     if let Some(name_search) = &params.name {
         query.push(" AND name LIKE ");
@@ -900,25 +900,25 @@ async fn search_nfts(
 
     // Add ORDER BY clause based on sort_mode
     query.push(" ORDER BY ");
-    
+
     // Add visible DESC to sort order if including hidden NFTs
     if params.include_hidden {
         query.push("visible DESC, ");
     }
-    
+
     match params.sort_mode {
         NftSortMode::Recent => {
             query.push("is_pending DESC, created_height DESC, launcher_id ASC");
-        },
+        }
         NftSortMode::Name => {
             query.push("is_pending DESC, is_named DESC, name ASC, launcher_id ASC");
         }
     }
 
     query.push(" LIMIT ? OFFSET ?");
-    
+
     let query = query.build_query_as::<NftSearchRow>();
-    
+
     // Bind limit and offset
     let query = query.bind(limit).bind(offset);
 
