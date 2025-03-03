@@ -44,7 +44,7 @@ export function TransactionOptions({
 }: TransactionOptionsProps) {
   const { search, ascending } = params;
   const [searchValue, setSearchValue] = useState(search);
-  const debouncedSearch = useDebounce(searchValue);
+  const debouncedSearch = useDebounce(searchValue, 400);
 
   useEffect(() => {
     setSearchValue(search);

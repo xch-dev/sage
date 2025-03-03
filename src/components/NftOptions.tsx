@@ -34,8 +34,6 @@ import {
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
 import { Input } from './ui/input';
-import { Pagination } from './Pagination';
-import { CardSizeToggle } from './CardSizeToggle';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useDebounce } from '@/hooks/useDebounce';
@@ -72,7 +70,7 @@ export function NftOptions({
   const isFilteredView = Boolean(collection_id || owner_did || minter_did);
   const allowSearch = group === NftGroupMode.None || isFilteredView;
   const [searchValue, setSearchValue] = useState(query ?? '');
-  const debouncedSearch = useDebounce(searchValue);
+  const debouncedSearch = useDebounce(searchValue, 400);
   const prevSearchRef = useRef(query);
 
   useEffect(() => {
