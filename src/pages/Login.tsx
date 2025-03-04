@@ -72,8 +72,8 @@ export default function Login() {
   return (
     <SafeAreaView>
       <div
-        className={`flex-1 space-y-4 px-4 m-2 overflow-y-scroll ${
-          !isMobile ? 'py-2' : ''
+        className={`flex-1 space-y-4 px-4 overflow-y-scroll ${
+          isMobile ? '' : 'py-2 m-2'
         }`}
       >
         <div className='flex items-center justify-between space-y-2'>
@@ -108,12 +108,12 @@ export default function Login() {
                 {
                   accessorKey: 'name',
                   header: () => (
-                    <div className='text-sm font-semibold'>
+                    <div className='text-sm font-semibold pl-1'>
                       <Trans>Name</Trans>
                     </div>
                   ),
                   cell: ({ row }) => (
-                    <div className='text-base font-medium'>
+                    <div className='text-base font-medium pl-1'>
                       {row.original.name}
                     </div>
                   ),

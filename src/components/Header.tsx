@@ -75,6 +75,7 @@ export default function Header(
           role='dialog'
           aria-label={t`Navigation menu`}
           style={{
+            marginLeft: '-8px',
             paddingTop:
               insets.top !== 0
                 ? `${insets.top + 8}px`
@@ -84,7 +85,7 @@ export default function Header(
               : 'env(safe-area-inset-bottom)',
           }}
         >
-          <div className='flex h-14 items-center '>
+          <div className='mt-4'>
             <Link
               to='/wallet'
               className='flex items-center gap-2 font-semibold'
@@ -94,9 +95,7 @@ export default function Header(
               <span className='text-lg'>{wallet?.name}</span>
             </Link>
           </div>
-          <div className='-mx-2'>
-            <TopNav />
-          </div>
+          <TopNav />
           <div
             className={`mt-auto grid gap-1 text-md font-medium ${!isMobile ? 'pb-4' : ''}`}
           >
