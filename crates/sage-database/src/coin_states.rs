@@ -475,9 +475,9 @@ async fn get_block_heights(
 
         query
             .push("ticker LIKE ")
-            .push_bind(format!("%{}%", value))
+            .push_bind(format!("%{value}%"))
             .push(" OR name LIKE ")
-            .push_bind(format!("%{}%", value))
+            .push_bind(format!("%{value}%"))
             .push(")");
     }
 
