@@ -92,7 +92,7 @@ If you add or change queries run this command to generate new sqlx SQL files:
 cargo sqlx prepare --workspace
 ```
 
-Schema changes, including new indices, go into the `migrations` folder as SQL DDL scripts. 
+Schema changes, including new indices, go into the `migrations` folder as SQL DDL scripts.
 
 ### Testing
 
