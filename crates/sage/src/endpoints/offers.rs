@@ -610,6 +610,8 @@ impl Sage {
                     nfts: taker_nfts,
                 },
                 fee: Amount::u64(offer.fee),
+                expiration_height: offer.expiration_height,
+                expiration_timestamp: offer.expiration_timestamp,
             },
         })
     }

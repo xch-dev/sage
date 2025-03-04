@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::time::Duration;
 
 use chia::{clvm_traits::FromClvm, puzzles::nft::NftMetadata};
@@ -7,8 +8,10 @@ use sage_api::{Amount, OfferAssets, OfferCat, OfferNft, OfferSummary, OfferXch};
 use sage_assets::fetch_uris_with_hash;
 use sage_wallet::{calculate_royalties, parse_locked_coins, parse_offer_payments, NftRoyaltyInfo};
 use tokio::time::timeout;
+use tracing::warn;
 
-use crate::{Result, Sage};
+use crate::utils::offer_status::{lookup_coin_creation, offer_expiration};
+use crate::{parse_genesis_challenge, Result, Sage};
 
 use super::{extract_nft_data, ConfirmationInfo, ExtractedNftData};
 
@@ -18,11 +21,26 @@ impl Sage {
 
         let mut ctx = SpendContext::new();
 
-        let offer = offer.parse(&mut ctx.allocator)?;
-        let (locked_coins, _original_coin_ids) = parse_locked_coins(&mut ctx.allocator, &offer)?;
+        let parsed_offer = offer.parse(&mut ctx.allocator)?;
+        let (locked_coins, coin_ids) = parse_locked_coins(&mut ctx.allocator, &parsed_offer)?;
         let maker_amounts = locked_coins.amounts();
 
-        let mut builder = offer.take();
+        // Get expiration information
+        let peer = self.peer_state.lock().await.acquire_peer();
+        let status = if let Some(peer) = peer {
+            let coin_creation = lookup_coin_creation(
+                &peer,
+                coin_ids.clone(),
+                parse_genesis_challenge(self.network().genesis_challenge.clone())?,
+            )
+            .await?;
+            offer_expiration(&mut ctx.allocator, &parsed_offer, &coin_creation)?
+        } else {
+            warn!("No peers available to fetch coin creation information, so skipping for now");
+            offer_expiration(&mut ctx.allocator, &parsed_offer, &HashMap::new())?
+        };
+
+        let mut builder = parsed_offer.take();
         let requested_payments = parse_offer_payments(&mut ctx, &mut builder)?;
         let taker_amounts = requested_payments.amounts();
 
@@ -179,6 +197,8 @@ impl Sage {
             fee: Amount::u64(locked_coins.fee),
             maker,
             taker,
+            expiration_height: status.expiration_height,
+            expiration_timestamp: status.expiration_timestamp,
         })
     }
 }
