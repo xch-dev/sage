@@ -29,6 +29,7 @@ import { isAvailable, scan } from '@tauri-apps/plugin-nfc';
 import { platform } from '@tauri-apps/plugin-os';
 import { useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ping } from 'tauri-plugin-nfc-debug-api';
 import { DarkModeContext } from '../App';
 import {
   commands,
@@ -76,12 +77,22 @@ export default function Settings() {
 
             <Button
               onClick={() =>
-                scan({ type: 'tag' }, { keepSessionAlive: true })
+                scan({ type: 'ndef' }, { keepSessionAlive: true })
                   .then((res) => setResult(JSON.stringify(res)))
                   .catch((error) => setResult(JSON.stringify(error)))
               }
             >
               Scan
+            </Button>
+
+            <Button
+              onClick={() =>
+                ping('Hello, world!')
+                  .then((res) => setResult(JSON.stringify(res)))
+                  .catch((error) => setResult(JSON.stringify(error)))
+              }
+            >
+              Debug
             </Button>
 
             {result && <pre>{result}</pre>}

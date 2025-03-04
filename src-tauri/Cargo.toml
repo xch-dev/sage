@@ -35,23 +35,24 @@ serde_json = { workspace = true, features = ["arbitrary_precision"] }
 tracing = { workspace = true }
 anyhow = { workspace = true }
 rustls = { workspace = true }
+tauri-plugin-nfc-debug = { path = "../tauri-plugin-nfc-debug" }
 
 # This is to ensure that the bindgen feature is enabled for the aws-lc-rs crate.
 # https://aws.github.io/aws-lc-rs/platform_support.html#tested-platforms
-aws-lc-rs = { version = "1", features = ["bindgen"] }
-tauri-plugin-http = "2.0.0-rc"
+aws-lc-rs = { workspace = true, features = ["bindgen"] }
+tauri-plugin-http = { workspace = true }
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
-tauri-plugin-window-state = "2.0.0-rc"
+tauri-plugin-window-state = { workspace = true }
 
 [build-dependencies]
 tauri-build = { workspace = true, features = [] }
 glob = { workspace = true }
 
 [target.'cfg(any(target_os = "android", target_os = "ios"))'.dependencies]
-tauri-plugin-barcode-scanner = "2.0.0-rc"
-tauri-plugin-nfc = "2.0.0-rc"
-tauri-plugin-safe-area-insets = "0.1.0"
+tauri-plugin-barcode-scanner = { workspace = true }
+tauri-plugin-safe-area-insets = { workspace = true }
+tauri-plugin-nfc = { workspace = true }
 
 [package.metadata.cargo-machete]
 ignored = ["serde_json", "aws-lc-rs"]
