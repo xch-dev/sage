@@ -58,7 +58,7 @@ const optionsPaginationVariants = {
 
 export function NftOptions({
   isCollection,
-  params: { sort, group, showHidden, query, cardSize, page },
+  params: { sort, group, showHidden, query, cardSize },
   setParams,
   multiSelect,
   setMultiSelect,
