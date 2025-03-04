@@ -1,6 +1,6 @@
 import SafeAreaView from '@/components/SafeAreaView';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { DataTable } from '@/components/ui/data-table';
 import {
   Dialog,
   DialogContent,
@@ -21,26 +21,25 @@ import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { useErrors } from '@/hooks/useErrors';
+import { cn } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
+import { platform } from '@tauri-apps/plugin-os';
 import {
+  CogIcon,
   EraserIcon,
   EyeIcon,
-  FlameIcon,
   LogInIcon,
   MoreVerticalIcon,
   PenIcon,
-  SnowflakeIcon,
   TrashIcon,
-  CogIcon,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { commands, KeyInfo, SecretKeyInfo } from '../bindings';
 import Container from '../components/Container';
-import { loginAndUpdateState } from '../state';
-import { platform } from '@tauri-apps/plugin-os';
 import { useWallet } from '../contexts/WalletContext';
+import { loginAndUpdateState } from '../state';
 
 const isMobile = platform() === 'ios' || platform() === 'android';
 
@@ -73,8 +72,8 @@ export default function Login() {
   return (
     <SafeAreaView>
       <div
-        className={`flex-1 space-y-4 px-4 overflow-y-scroll ${
-          !isMobile ? 'pt-4' : ''
+        className={`flex-1 space-y-4 px-4 m-2 overflow-y-scroll ${
+          !isMobile ? 'py-2' : ''
         }`}
       >
         <div className='flex items-center justify-between space-y-2'>
@@ -101,19 +100,95 @@ export default function Login() {
             </>
           )}
         </div>
+
         {keys !== null ? (
           keys.length ? (
-            <div className='grid md:grid-cols-2 lg:grid-cols-3 gap-4'>
-              {keys.map((key, i) => (
-                <WalletItem
-                  key={i}
-                  network={network}
-                  info={key}
-                  keys={keys}
-                  setKeys={setKeys}
-                />
-              ))}
-            </div>
+            <DataTable
+              columns={[
+                {
+                  accessorKey: 'name',
+                  header: () => (
+                    <div className='text-sm font-semibold'>
+                      <Trans>Name</Trans>
+                    </div>
+                  ),
+                  cell: ({ row }) => (
+                    <div className='text-base font-medium'>
+                      {row.original.name}
+                    </div>
+                  ),
+                },
+                {
+                  accessorKey: 'fingerprint',
+                  header: () => (
+                    <div className='text-sm font-semibold text-right'>
+                      <Trans>Fingerprint</Trans>
+                    </div>
+                  ),
+                  cell: ({ row }) => (
+                    <div className='text-sm font-medium text-right text-muted-foreground'>
+                      {row.original.fingerprint}
+                    </div>
+                  ),
+                },
+                {
+                  accessorKey: 'kind',
+                  header: () => (
+                    <div className='text-sm font-semibold text-center'>
+                      <Trans>Type</Trans>
+                    </div>
+                  ),
+                  cell: ({ row }) => (
+                    <div className='text-center'>
+                      <span
+                        className={cn(
+                          'rounded-md px-3 py-1.5 text-sm font-medium',
+                          row.original.has_secrets
+                            ? 'bg-rose-50 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400'
+                            : 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+                        )}
+                      >
+                        {row.original.has_secrets ? 'Hot' : 'Cold'}
+                      </span>
+                    </div>
+                  ),
+                },
+                {
+                  accessorKey: 'actions',
+                  header: () => (
+                    <div className='text-sm font-semibold text-right pr-4'>
+                      <Trans>Actions</Trans>
+                    </div>
+                  ),
+                  cell: ({ row }) => (
+                    <div className='text-right pr-2'>
+                      <WalletItem
+                        network={network}
+                        info={row.original}
+                        keys={keys ?? []}
+                        setKeys={setKeys}
+                      />
+                    </div>
+                  ),
+                },
+              ]}
+              data={keys ?? []}
+              getRowStyles={(row) => ({
+                className: cn(
+                  'cursor-pointer transition-colors hover:bg-muted/50',
+                  'relative overflow-hidden h-12',
+                ),
+                onClick: () => {
+                  loginAndUpdateState(row.original.fingerprint).then(() => {
+                    commands
+                      .getKey({})
+                      .then((data) => setWallet(data.key))
+                      .then(() => navigate('/wallet'))
+                      .catch(addError);
+                  });
+                },
+              })}
+            />
           ) : (
             <Welcome />
           )
@@ -233,102 +308,77 @@ function WalletItem({ network, info, keys, setKeys }: WalletItemProps) {
 
   return (
     <>
-      <Card onClick={() => loginSelf(false)} className='cursor-pointer'>
-        <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-          <CardTitle className='text-2xl'>{info.name}</CardTitle>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild className='-mr-2.5'>
-              <Button variant='ghost' size='icon'>
-                <MoreVerticalIcon className='h-5 w-5' />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align='end'>
-              <DropdownMenuGroup>
-                <DropdownMenuItem
-                  className='cursor-pointer'
-                  onClick={(e) => {
-                    loginSelf(false);
-                    e.stopPropagation();
-                  }}
-                >
-                  <LogInIcon className='mr-2 h-4 w-4' />
-                  <span>
-                    <Trans>Login</Trans>
-                  </span>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  className='cursor-pointer'
-                  onClick={(e) => {
-                    setDetailsOpen(true);
-                    e.stopPropagation();
-                  }}
-                >
-                  <EyeIcon className='mr-2 h-4 w-4' />
-                  <span>
-                    <Trans>Details</Trans>
-                  </span>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  className='cursor-pointer'
-                  onClick={(e) => {
-                    setRenameOpen(true);
-                    e.stopPropagation();
-                  }}
-                >
-                  <PenIcon className='mr-2 h-4 w-4' />
-                  <span>
-                    <Trans>Rename</Trans>
-                  </span>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  className='cursor-pointer text-red-600 focus:text-red-500'
-                  onClick={(e) => {
-                    setResyncOpen(true);
-                    e.stopPropagation();
-                  }}
-                >
-                  <EraserIcon className='mr-2 h-4 w-4' />
-                  <span>
-                    <Trans>Resync ({network})</Trans>
-                  </span>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  className='cursor-pointer text-red-600 focus:text-red-500'
-                  onClick={(e) => {
-                    setDeleteOpen(true);
-                    e.stopPropagation();
-                  }}
-                >
-                  <TrashIcon className='mr-2 h-4 w-4' />
-                  <span>
-                    <Trans>Delete</Trans>
-                  </span>
-                </DropdownMenuItem>
-              </DropdownMenuGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </CardHeader>
-        <CardContent>
-          <div className='flex items-center mt-1 justify-between'>
-            <span className='text-muted-foreground'>{info.fingerprint}</span>
-            {info.has_secrets ? (
-              <div className='inline-flex gap-0.5 items-center rounded-full border px-2 py-1.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80'>
-                <FlameIcon className='h-4 w-4 pb-0.5' />
-                <span>
-                  <Trans>Hot Wallet</Trans>
-                </span>
-              </div>
-            ) : (
-              <div className='inline-flex gap-0.5 items-center rounded-full border px-2 py-1.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80'>
-                <SnowflakeIcon className='h-4 w-4 pb-0.5' />
-                <span>
-                  <Trans>Cold Wallet</Trans>
-                </span>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild className='-mr-2.5'>
+          <Button variant='ghost' size='icon'>
+            <MoreVerticalIcon className='h-5 w-5' />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align='end'>
+          <DropdownMenuGroup>
+            <DropdownMenuItem
+              className='cursor-pointer'
+              onClick={(e) => {
+                e.stopPropagation();
+                loginSelf(false);
+              }}
+            >
+              <LogInIcon className='mr-2 h-4 w-4' />
+              <span>
+                <Trans>Login</Trans>
+              </span>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className='cursor-pointer'
+              onClick={(e) => {
+                e.stopPropagation();
+                setDetailsOpen(true);
+              }}
+            >
+              <EyeIcon className='mr-2 h-4 w-4' />
+              <span>
+                <Trans>Details</Trans>
+              </span>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className='cursor-pointer'
+              onClick={(e) => {
+                e.stopPropagation();
+                setRenameOpen(true);
+              }}
+            >
+              <PenIcon className='mr-2 h-4 w-4' />
+              <span>
+                <Trans>Rename</Trans>
+              </span>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className='cursor-pointer text-red-600 focus:text-red-500'
+              onClick={(e) => {
+                e.stopPropagation();
+                setResyncOpen(true);
+              }}
+            >
+              <EraserIcon className='mr-2 h-4 w-4' />
+              <span>
+                <Trans>Resync ({network})</Trans>
+              </span>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className='cursor-pointer text-red-600 focus:text-red-500'
+              onClick={(e) => {
+                e.stopPropagation();
+                setDeleteOpen(true);
+              }}
+            >
+              <TrashIcon className='mr-2 h-4 w-4' />
+              <span>
+                <Trans>Delete</Trans>
+              </span>
+            </DropdownMenuItem>
+          </DropdownMenuGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
 
       <Dialog
         open={isResyncOpen}
@@ -468,9 +518,9 @@ function WalletItem({ network, info, keys, setKeys }: WalletItemProps) {
 
       <Dialog
         open={isDetailsOpen}
-        onOpenChange={(open) => !open && setDetailsOpen(false)}
+        onOpenChange={(open) => setDetailsOpen(open)}
       >
-        <DialogContent>
+        <DialogContent onClick={(e) => e.stopPropagation()}>
           <DialogHeader>
             <DialogTitle>
               <Trans>Wallet Details</Trans>
