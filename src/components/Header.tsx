@@ -4,13 +4,13 @@ import icon from '@/icon.png';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { platform } from '@tauri-apps/plugin-os';
+import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronLeft, Menu } from 'lucide-react';
 import { PropsWithChildren, ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { BottomNav, TopNav } from './Nav';
 import { Button } from './ui/button';
 import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
-import { motion, AnimatePresence } from 'framer-motion';
 
 const headerPaginationVariants = {
   enter: { opacity: 1, x: 0 },
@@ -24,6 +24,7 @@ export default function Header(
     mobileActionItems?: ReactNode;
     children?: ReactNode;
     paginationControls?: ReactNode;
+    alwaysShowChildren?: boolean;
   }>,
 ) {
   const navigate = useNavigate();
@@ -38,7 +39,7 @@ export default function Header(
   return (
     <header
       className={`flex items-center gap-4 px-4 md:px-6 sticky top-0 bg-background z-10 ${
-        !isMobile ? 'pt-4' : 'pb-2 pt-2'
+        !isMobile ? 'pt-2' : 'pb-2 pt-2'
       }`}
       role='banner'
     >
@@ -74,6 +75,7 @@ export default function Header(
           role='dialog'
           aria-label={t`Navigation menu`}
           style={{
+            marginLeft: '-8px',
             paddingTop:
               insets.top !== 0
                 ? `${insets.top + 8}px`
@@ -83,7 +85,7 @@ export default function Header(
               : 'env(safe-area-inset-bottom)',
           }}
         >
-          <div className='flex h-14 items-center '>
+          <div className='mt-4'>
             <Link
               to='/wallet'
               className='flex items-center gap-2 font-semibold'
@@ -93,9 +95,7 @@ export default function Header(
               <span className='text-lg'>{wallet?.name}</span>
             </Link>
           </div>
-          <div className='-mx-2'>
-            <TopNav />
-          </div>
+          <TopNav />
           <div
             className={`mt-auto grid gap-1 text-md font-medium ${!isMobile ? 'pb-4' : ''}`}
           >
@@ -103,23 +103,19 @@ export default function Header(
           </div>
         </SheetContent>
       </Sheet>
-      <div className='flex-1 md:mt-2 flex items-center md:block'>
-        {hasBackButton ? (
-          <>
-            <Button
-              variant='link'
-              size='sm'
-              onClick={() => (props.back ? props.back() : navigate(-1))}
-              className='hidden md:flex px-0 text-muted-foreground'
-            >
-              <ChevronLeft className='h-4 w-4 mr-1' aria-hidden='true' />
-              <Trans>Back</Trans>
-            </Button>
-          </>
-        ) : (
-          <div className='md:h-8'></div>
-        )}
-        <div className='flex-1 flex justify-between items-center gap-4 md:h-9 md:my-2'>
+      <div className='flex-1 md:mt-1 flex items-center md:block'>
+        <div className={`${!hasBackButton ? 'invisible' : ''}`}>
+          <Button
+            variant='link'
+            size='sm'
+            onClick={() => (props.back ? props.back() : navigate(-1))}
+            className='hidden md:flex px-0 text-muted-foreground'
+          >
+            <ChevronLeft className='h-4 w-4 mr-1' aria-hidden='true' />
+            <Trans>Back</Trans>
+          </Button>
+        </div>
+        <div className='flex-1 flex justify-between items-center gap-4 md:h-8 md:my-1'>
           <div className='flex items-center gap-4'>
             <h1 className='text-xl font-bold tracking-tight md:text-3xl'>
               {props.title}
@@ -138,7 +134,9 @@ export default function Header(
             </AnimatePresence>
           </div>
           <div className='flex items-center gap-2'>
-            <div className='hidden md:block'>{props.children}</div>
+            <div className={props.alwaysShowChildren ? '' : 'hidden md:block'}>
+              {props.children}
+            </div>
             {props.mobileActionItems && isMobile && props.mobileActionItems}
           </div>
         </div>
