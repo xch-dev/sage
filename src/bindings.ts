@@ -47,6 +47,9 @@ async bulkSendXch(req: BulkSendXch) : Promise<TransactionResponse> {
 async combineXch(req: CombineXch) : Promise<TransactionResponse> {
     return await TAURI_INVOKE("combine_xch", { req });
 },
+async autoCombineXch(req: AutoCombineXch) : Promise<TransactionResponse> {
+    return await TAURI_INVOKE("auto_combine_xch", { req });
+},
 async splitXch(req: SplitXch) : Promise<TransactionResponse> {
     return await TAURI_INVOKE("split_xch", { req });
 },
@@ -58,6 +61,9 @@ async bulkSendCat(req: BulkSendCat) : Promise<TransactionResponse> {
 },
 async combineCat(req: CombineCat) : Promise<TransactionResponse> {
     return await TAURI_INVOKE("combine_cat", { req });
+},
+async autoCombineCat(req: AutoCombineCat) : Promise<TransactionResponse> {
+    return await TAURI_INVOKE("auto_combine_cat", { req });
 },
 async splitCat(req: SplitCat) : Promise<TransactionResponse> {
     return await TAURI_INVOKE("split_cat", { req });
@@ -244,6 +250,21 @@ async signMessageByAddress(req: SignMessageByAddress) : Promise<SignMessageByAdd
 },
 async sendTransactionImmediately(req: SendTransactionImmediately) : Promise<SendTransactionImmediatelyResponse> {
     return await TAURI_INVOKE("send_transaction_immediately", { req });
+},
+async isRpcRunning() : Promise<boolean> {
+    return await TAURI_INVOKE("is_rpc_running");
+},
+async startRpcServer() : Promise<null> {
+    return await TAURI_INVOKE("start_rpc_server");
+},
+async stopRpcServer() : Promise<null> {
+    return await TAURI_INVOKE("stop_rpc_server");
+},
+async getRpcRunOnStartup() : Promise<boolean> {
+    return await TAURI_INVOKE("get_rpc_run_on_startup");
+},
+async setRpcRunOnStartup(runOnStartup: boolean) : Promise<null> {
+    return await TAURI_INVOKE("set_rpc_run_on_startup", { runOnStartup });
 }
 }
 
@@ -270,6 +291,8 @@ export type Amount = string | number
 export type AssetCoinType = "cat" | "did" | "nft"
 export type Assets = { xch: Amount; cats: CatAmount[]; nfts: string[] }
 export type AssignNftsToDid = { nft_ids: string[]; did_id: string | null; fee: Amount; auto_submit?: boolean }
+export type AutoCombineCat = { asset_id: string; max_coins: number; max_coin_amount: Amount | null; fee: Amount; auto_submit?: boolean }
+export type AutoCombineXch = { max_coins: number; max_coin_amount: Amount | null; fee: Amount; auto_submit?: boolean }
 export type BulkMintNfts = { mints: NftMint[]; did_id: string; fee: Amount; auto_submit?: boolean }
 export type BulkMintNftsResponse = { nft_ids: string[]; summary: TransactionSummary; coin_spends: CoinSpendJson[] }
 export type BulkSendCat = { asset_id: string; addresses: string[]; amount: Amount; fee: Amount; memos?: string[]; auto_submit?: boolean }
@@ -344,7 +367,7 @@ export type GetSyncStatus = Record<string, never>
 export type GetSyncStatusResponse = { balance: Amount; unit: Unit; synced_coins: number; total_coins: number; receive_address: string; burn_address: string }
 export type GetTransaction = { height: number }
 export type GetTransactionResponse = { transaction: TransactionRecord }
-export type GetTransactions = { offset: number; limit: number }
+export type GetTransactions = { offset: number; limit: number; ascending: boolean; find_value: string | null }
 export type GetTransactionsResponse = { transactions: TransactionRecord[]; total: number }
 export type GetXchCoins = Record<string, never>
 export type GetXchCoinsResponse = { coins: CoinRecord[] }

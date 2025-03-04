@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { IntegerInput } from '@/components/ui/masked-input';
 import {
   Select,
   SelectContent,
@@ -15,14 +16,16 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useDefaultOfferExpiry } from '@/hooks/useDefaultOfferExpiry';
 import { useErrors } from '@/hooks/useErrors';
-import useInitialization from '@/hooks/useInitialization';
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
-import { useWallet } from '@/hooks/useWallet';
+import { useWallet } from '@/contexts/WalletContext';
 import { useWalletConnect } from '@/hooks/useWalletConnect';
 import { clearState, fetchState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
+import { getVersion } from '@tauri-apps/api/app';
+import { platform } from '@tauri-apps/plugin-os';
 import { useContext, useEffect, useState } from 'react';
 import { DarkModeContext } from '../App';
 import {
@@ -33,27 +36,39 @@ import {
   WalletConfig,
 } from '../bindings';
 import { isValidU32 } from '../validation';
-import { getVersion } from '@tauri-apps/api/app';
+import { useNavigate } from 'react-router-dom';
+
+export interface DefaultOfferExpiry {
+  enabled: boolean;
+  days: string;
+  hours: string;
+  minutes: string;
+}
 
 export default function Settings() {
-  const initialized = useInitialization();
-  const wallet = useWallet(initialized);
-
+  const { wallet } = useWallet();
   const [version, setVersion] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     getVersion().then(setVersion);
   }, []);
 
+  const isMobile = platform() === 'ios' || platform() === 'android';
+
   return (
     <Layout>
-      <Header title={t`Settings`} />
+      <Header
+        title={t`Settings`}
+        back={!wallet ? () => navigate('/') : undefined}
+      />
       <Container className='max-w-2xl'>
         <Trans>Version {version}</Trans>
         <div className='flex flex-col gap-4 mt-2'>
           <WalletConnectSettings />
           <GlobalSettings />
           <NetworkSettings />
+          {!isMobile && <RpcSettings />}
           {wallet && <WalletSettings wallet={wallet} />}
         </div>
       </Container>
@@ -64,6 +79,8 @@ export default function Settings() {
 function GlobalSettings() {
   const { dark, setDark } = useContext(DarkModeContext);
   const { locale, changeLanguage } = useLanguage();
+
+  const { expiry, setExpiry } = useDefaultOfferExpiry();
 
   return (
     <Card>
@@ -99,6 +116,90 @@ function GlobalSettings() {
               <SelectItem value='zh-CN'>Chinese</SelectItem>
             </SelectContent>
           </Select>
+        </div>
+        <div className='grid gap-3'>
+          <div className='flex flex-col gap-2'>
+            <div className='flex items-center gap-2'>
+              <label htmlFor='default-offer-expiry'>
+                <Trans>Default Offer Expiry</Trans>
+              </label>
+              <Switch
+                id='default-offer-expiry'
+                checked={expiry.enabled}
+                onCheckedChange={(checked) => {
+                  setExpiry({
+                    ...expiry,
+                    enabled: checked,
+                    days: checked ? '1' : '',
+                  });
+                }}
+              />
+            </div>
+
+            {expiry.enabled && (
+              <div className='flex gap-2'>
+                <div className='relative'>
+                  <IntegerInput
+                    className='pr-12'
+                    value={expiry.days}
+                    placeholder='0'
+                    min={0}
+                    onValueChange={(values) => {
+                      setExpiry({
+                        ...expiry,
+                        days: values.value,
+                      });
+                    }}
+                  />
+                  <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
+                    <span className='text-gray-500 text-sm'>
+                      <Trans>Days</Trans>
+                    </span>
+                  </div>
+                </div>
+
+                <div className='relative'>
+                  <IntegerInput
+                    className='pr-12'
+                    value={expiry.hours}
+                    placeholder='0'
+                    min={0}
+                    onValueChange={(values) => {
+                      setExpiry({
+                        ...expiry,
+                        hours: values.value,
+                      });
+                    }}
+                  />
+                  <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
+                    <span className='text-gray-500 text-sm'>
+                      <Trans>Hours</Trans>
+                    </span>
+                  </div>
+                </div>
+
+                <div className='relative'>
+                  <IntegerInput
+                    className='pr-12'
+                    value={expiry.minutes}
+                    placeholder='0'
+                    min={0}
+                    onValueChange={(values) => {
+                      setExpiry({
+                        ...expiry,
+                        minutes: values.value,
+                      });
+                    }}
+                  />
+                  <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
+                    <span className='text-gray-500 text-sm'>
+                      <Trans>Minutes</Trans>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>
@@ -300,6 +401,92 @@ function NetworkSettings() {
                 ))}
               </SelectContent>
             </Select>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function RpcSettings() {
+  const { addError } = useErrors();
+
+  const [isRunning, setIsRunning] = useState(false);
+  const [runOnStartup, setRunOnStartup] = useState(false);
+
+  useEffect(() => {
+    // Get initial state
+    Promise.all([commands.isRpcRunning(), commands.getRpcRunOnStartup()])
+      .then(([running, startup]) => {
+        setIsRunning(running);
+        setRunOnStartup(startup);
+      })
+      .catch(addError);
+
+    // Poll RPC status
+    const interval = setInterval(() => {
+      commands.isRpcRunning().then(setIsRunning).catch(addError);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [addError]);
+
+  const start = () => {
+    commands
+      .startRpcServer()
+      .catch(addError)
+      .then(() => setIsRunning(true));
+  };
+
+  const stop = () => {
+    commands
+      .stopRpcServer()
+      .catch(addError)
+      .then(() => setIsRunning(false));
+  };
+
+  const toggleRunOnStartup = (checked: boolean) => {
+    commands
+      .setRpcRunOnStartup(checked)
+      .catch(addError)
+      .then(() => setRunOnStartup(checked));
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>
+          <Trans>RPC Server</Trans>
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className='grid gap-4'>
+          <div className='flex items-center justify-between'>
+            <div className='flex items-center gap-2'>
+              <div
+                className={`h-2 w-2 rounded-full ${isRunning ? 'bg-green-500' : 'bg-red-500'}`}
+              />
+              <span>
+                {isRunning ? <Trans>Running</Trans> : <Trans>Stopped</Trans>}
+              </span>
+            </div>
+            <Button
+              variant={isRunning ? 'destructive' : 'default'}
+              onClick={isRunning ? stop : start}
+            >
+              {isRunning ? <Trans>Stop</Trans> : <Trans>Start</Trans>}
+            </Button>
+          </div>
+
+          <div className='flex items-center space-x-2'>
+            <Switch
+              id='run-on-startup'
+              checked={runOnStartup}
+              onCheckedChange={toggleRunOnStartup}
+            />
+            <Label htmlFor='run-on-startup'>
+              <Trans>Run on startup</Trans>
+            </Label>
           </div>
         </div>
       </CardContent>

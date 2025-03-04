@@ -41,7 +41,7 @@ impl Database {
     }
 }
 
-impl<'a> DatabaseTx<'a> {
+impl DatabaseTx<'_> {
     pub async fn insert_derivation(
         &mut self,
         p2_puzzle_hash: Bytes32,

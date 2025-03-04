@@ -1,4 +1,6 @@
-use app_state::{AppState, AppStateInner};
+use app_state::{AppState, Initialized, RpcTask};
+use rustls::crypto::aws_lc_rs::default_provider;
+use sage::Sage;
 use sage_api::SyncEvent;
 use tauri::Manager;
 use tauri_specta::{collect_commands, collect_events, Builder, ErrorHandlingMode};
@@ -13,6 +15,10 @@ use specta_typescript::{BigIntExportBehavior, Typescript};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    default_provider()
+        .install_default()
+        .expect("could not install AWS LC provider");
+
     let builder = Builder::<tauri::Wry>::new()
         .error_handling(ErrorHandlingMode::Throw)
         // Then register them (separated by a comma)
@@ -31,10 +37,12 @@ pub fn run() {
             commands::send_xch,
             commands::bulk_send_xch,
             commands::combine_xch,
+            commands::auto_combine_xch,
             commands::split_xch,
             commands::send_cat,
             commands::bulk_send_cat,
             commands::combine_cat,
+            commands::auto_combine_cat,
             commands::split_cat,
             commands::issue_cat,
             commands::create_did,
@@ -97,6 +105,11 @@ pub fn run() {
             commands::sign_message_with_public_key,
             commands::sign_message_by_address,
             commands::send_transaction_immediately,
+            commands::is_rpc_running,
+            commands::start_rpc_server,
+            commands::stop_rpc_server,
+            commands::get_rpc_run_on_startup,
+            commands::set_rpc_run_on_startup,
         ])
         .events(collect_events![SyncEvent]);
 
@@ -132,10 +145,10 @@ pub fn run() {
                 app.handle().plugin(tauri_plugin_safe_area_insets::init())?;
             }
             builder.mount_events(app);
-            let app_handle = app.handle().clone();
             let path = app.path().app_data_dir()?;
-            let inner = AppStateInner::new(app_handle, &path);
-            let app_state = AppState::new(Mutex::new(inner));
+            let app_state = AppState::new(Mutex::new(Sage::new(&path)));
+            app.manage(Initialized(Mutex::new(false)));
+            app.manage(RpcTask(Mutex::new(None)));
             app.manage(app_state);
             Ok(())
         })

@@ -1,6 +1,5 @@
-use std::cmp::Reverse;
-
 use chia::protocol::{Bytes32, CoinState};
+use sqlx::Row;
 use sqlx::SqliteExecutor;
 
 use crate::{
@@ -58,8 +57,14 @@ impl Database {
         is_coin_locked(&self.pool, coin_id).await
     }
 
-    pub async fn get_block_heights(&self) -> Result<Vec<u32>> {
-        get_block_heights(&self.pool).await
+    pub async fn get_block_heights(
+        &self,
+        offset: u32,
+        limit: u32,
+        asc: bool,
+        find_value: Option<String>,
+    ) -> Result<(Vec<u32>, u32)> {
+        get_block_heights(&self.pool, offset, limit, asc, find_value).await
     }
 
     pub async fn get_coin_states_by_created_height(
@@ -74,7 +79,7 @@ impl Database {
     }
 }
 
-impl<'a> DatabaseTx<'a> {
+impl DatabaseTx<'_> {
     pub async fn insert_coin_state(
         &mut self,
         coin_state: CoinState,
@@ -417,33 +422,95 @@ async fn is_coin_locked(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Resu
     Ok(row.count > 0)
 }
 
-async fn get_block_heights(conn: impl SqliteExecutor<'_>) -> Result<Vec<u32>> {
-    let rows = sqlx::query!(
+async fn get_block_heights(
+    conn: impl SqliteExecutor<'_>,
+    offset: u32,
+    limit: u32,
+    asc: bool,
+    find_value: Option<String>,
+) -> Result<(Vec<u32>, u32)> {
+    let mut query = sqlx::QueryBuilder::new(
         "
-        SELECT DISTINCT height FROM (
-            SELECT created_height as height FROM coin_states INDEXED BY `coin_created`
+        WITH filtered_coins AS (
+            SELECT cs.coin_id, cs.kind, 
+                   cats.ticker,
+                   cats.name,
+                   created_height as height
+            FROM coin_states cs
+            LEFT JOIN cat_coins ON cs.coin_id = cat_coins.coin_id
+            LEFT JOIN cats ON cat_coins.asset_id = cats.asset_id
             WHERE created_height IS NOT NULL
             UNION ALL
-            SELECT spent_height as height FROM coin_states INDEXED BY `coin_spent`
+            SELECT cs.coin_id, cs.kind,
+                   cats.ticker,
+                   cats.name,
+                   spent_height as height
+            FROM coin_states cs
+            LEFT JOIN cat_coins ON cs.coin_id = cat_coins.coin_id
+            LEFT JOIN cats ON cat_coins.asset_id = cats.asset_id
             WHERE spent_height IS NOT NULL
-        )
-        GROUP BY height
+        ),
+        filtered_heights AS (
+            SELECT DISTINCT height
+            FROM filtered_coins
+            WHERE 1=1
+        ",
+    );
+
+    if let Some(value) = &find_value {
+        // Check if searching for XCH (matches "x", "xc", or "xch")
+        let should_filter_xch = if value.len() <= 3 {
+            let value_lower = value.to_lowercase();
+            value_lower == "x" || value_lower == "xc" || value_lower == "xch"
+        } else {
+            false
+        };
+
+        query.push(" AND (");
+
+        if should_filter_xch {
+            // XCH coins have kind = 1 (standard P2 coins)
+            query.push("kind = 1 OR ");
+        }
+
+        query
+            .push("ticker LIKE ")
+            .push_bind(format!("%{}%", value))
+            .push(" OR name LIKE ")
+            .push_bind(format!("%{}%", value))
+            .push(")");
+    }
+
+    query.push(")");
+
+    // Select both the paginated results and the total count
+    query.push(
         "
-    )
-    .fetch_all(conn)
-    .await?;
+        SELECT height, COUNT(*) OVER() as total_count
+        FROM filtered_heights 
+        ORDER BY height ",
+    );
+
+    query.push(if asc { "ASC" } else { "DESC" });
+    query.push(" LIMIT ? OFFSET ?");
+
+    let built_query = query.build();
+    let rows = built_query.bind(limit).bind(offset).fetch_all(conn).await?;
 
     let mut heights = Vec::with_capacity(rows.len());
+    let mut total_count = 0;
 
     for row in rows {
-        if let Some(height) = row.height {
+        if let Some(height) = row.get::<Option<i64>, _>(0) {
             heights.push(height.try_into()?);
+        }
+        // Get the total count from the first row (it will be the same in all rows)
+        if total_count == 0 {
+            total_count = row.get::<i64, _>(1).try_into()?;
         }
     }
 
-    heights.sort_by_key(|height| Reverse(*height));
-
-    Ok(heights)
+    Ok((heights, total_count))
 }
 
 async fn get_coin_states_by_created_height(

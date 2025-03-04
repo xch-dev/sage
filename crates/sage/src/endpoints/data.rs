@@ -306,20 +306,18 @@ impl Sage {
 
         let mut transactions = Vec::new();
 
-        let heights = wallet.db.get_block_heights().await?;
-
-        for &height in heights
-            .iter()
-            .skip(req.offset.try_into()?)
-            .take(req.limit.try_into()?)
-        {
+        let (heights, total) = wallet
+            .db
+            .get_block_heights(req.offset, req.limit, req.ascending, req.find_value)
+            .await?;
+        for height in heights {
             let transaction = self.transaction_record(&wallet.db, height).await?;
             transactions.push(transaction);
         }
 
         Ok(GetTransactionsResponse {
             transactions,
-            total: heights.len().try_into()?,
+            total,
         })
     }
 

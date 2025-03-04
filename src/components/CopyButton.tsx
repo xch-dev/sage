@@ -3,14 +3,21 @@ import { CopyCheckIcon, CopyIcon } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from './ui/button';
 
-export function CopyButton(props: { value: string; className?: string }) {
+interface CopyButtonProps {
+  value: string;
+  className?: string;
+  onCopy?: () => void;
+}
+
+export function CopyButton({ value, className, onCopy }: CopyButtonProps) {
   const [copied, setCopied] = useState(false);
 
   const copyAddress = () => {
-    writeText(props.value);
+    writeText(value);
 
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+    onCopy?.();
   };
 
   return (
@@ -18,7 +25,7 @@ export function CopyButton(props: { value: string; className?: string }) {
       size='icon'
       variant='ghost'
       onClick={copyAddress}
-      className={props.className}
+      className={className}
     >
       {copied ? (
         <CopyCheckIcon className='h-5 w-5 text-emerald-500' />

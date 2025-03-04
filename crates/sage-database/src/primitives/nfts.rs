@@ -179,7 +179,7 @@ impl Database {
     }
 }
 
-impl<'a> DatabaseTx<'a> {
+impl DatabaseTx<'_> {
     pub async fn insert_nft_coin(
         &mut self,
         coin_id: Bytes32,
@@ -872,11 +872,11 @@ async fn search_nfts(
 
     // Common parts
     let order_by = format!(
-        r#"ORDER BY {visible_order}
+        r"ORDER BY {visible_order}
                  is_pending DESC,
                  {sort_order},
                  launcher_id ASC
-        LIMIT ? OFFSET ?"#,
+        LIMIT ? OFFSET ?",
         visible_order = if params.include_hidden {
             "visible DESC,"
         } else {
@@ -922,7 +922,7 @@ async fn search_nfts(
     // Construct query based on whether we're doing a name search
     let query = if params.name.is_some() {
         format!(
-            r#"
+            r"
             WITH matched_names AS (
                 SELECT launcher_id 
                 FROM nft_name_fts 
@@ -934,16 +934,16 @@ async fn search_nfts(
             INNER JOIN matched_names ON nfts.launcher_id = matched_names.launcher_id
             WHERE {where_clause}
             {order_by}
-            "#
+            "
         )
     } else {
         format!(
-            r#"
+            r"
             SELECT *, COUNT(*) OVER() as total_count
             FROM nfts INDEXED BY {index}
             WHERE {where_clause}
             {order_by}
-            "#
+            "
         )
     };
 

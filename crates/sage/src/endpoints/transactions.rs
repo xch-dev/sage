@@ -5,12 +5,13 @@ use chia::{
     puzzles::nft::NftMetadata,
 };
 use chia_wallet_sdk::{encode_address, MetadataUpdate};
+use itertools::Itertools;
 use sage_api::{
-    AddNftUri, AssignNftsToDid, BulkMintNfts, BulkMintNftsResponse, BulkSendCat, BulkSendXch,
-    CombineCat, CombineXch, CreateDid, IssueCat, NftUriKind, NormalizeDids, SendCat, SendXch,
-    SignCoinSpends, SignCoinSpendsResponse, SplitCat, SplitXch, SubmitTransaction,
-    SubmitTransactionResponse, TransactionResponse, TransferDids, TransferNfts, ViewCoinSpends,
-    ViewCoinSpendsResponse,
+    AddNftUri, AssignNftsToDid, AutoCombineCat, AutoCombineXch, BulkMintNfts, BulkMintNftsResponse,
+    BulkSendCat, BulkSendXch, CombineCat, CombineXch, CreateDid, IssueCat, NftUriKind,
+    NormalizeDids, SendCat, SendXch, SignCoinSpends, SignCoinSpendsResponse, SplitCat, SplitXch,
+    SubmitTransaction, SubmitTransactionResponse, TransactionResponse, TransferDids, TransferNfts,
+    ViewCoinSpends, ViewCoinSpendsResponse,
 };
 use sage_assets::fetch_uris_without_hash;
 use sage_database::CatRow;
@@ -19,8 +20,8 @@ use tokio::time::timeout;
 
 use crate::{
     fetch_cats, fetch_coins, json_bundle, json_spend, parse_asset_id, parse_cat_amount,
-    parse_did_id, parse_hash, parse_nft_id, rust_bundle, rust_spend, ConfirmationInfo, Result,
-    Sage,
+    parse_did_id, parse_hash, parse_nft_id, rust_bundle, rust_spend, ConfirmationInfo, Error,
+    Result, Sage,
 };
 
 impl Sage {
@@ -74,6 +75,34 @@ impl Sage {
         self.transact(coin_spends, req.auto_submit).await
     }
 
+    pub async fn auto_combine_xch(&self, req: AutoCombineXch) -> Result<TransactionResponse> {
+        let wallet = self.wallet()?;
+        let fee = self.parse_amount(req.fee)?;
+
+        let max_amount = req
+            .max_coin_amount
+            .map(|amount| self.parse_amount(amount))
+            .transpose()?;
+
+        let coins = wallet
+            .db
+            .spendable_coins()
+            .await?
+            .into_iter()
+            .filter(|coin| {
+                let Some(max_amount) = max_amount else {
+                    return true;
+                };
+                coin.amount <= max_amount
+            })
+            .sorted_by_key(|coin| coin.amount)
+            .take(req.max_coins as usize)
+            .collect_vec();
+
+        let coin_spends = wallet.combine_xch(coins, fee, false, true).await?;
+        self.transact(coin_spends, req.auto_submit).await
+    }
+
     pub async fn split_xch(&self, req: SplitXch) -> Result<TransactionResponse> {
         let wallet = self.wallet()?;
         let fee = self.parse_amount(req.fee)?;
@@ -89,6 +118,45 @@ impl Sage {
         let wallet = self.wallet()?;
         let fee = self.parse_amount(req.fee)?;
         let cats = fetch_cats(&wallet, req.coin_ids).await?;
+
+        let coin_spends = wallet.combine_cat(cats, fee, false, true).await?;
+        self.transact(coin_spends, req.auto_submit).await
+    }
+
+    pub async fn auto_combine_cat(&self, req: AutoCombineCat) -> Result<TransactionResponse> {
+        let wallet = self.wallet()?;
+        let fee = self.parse_amount(req.fee)?;
+
+        let asset_id = parse_asset_id(req.asset_id)?;
+
+        let max_amount = req
+            .max_coin_amount
+            .map(|amount| self.parse_amount(amount))
+            .transpose()?;
+
+        let rows = wallet
+            .db
+            .spendable_cat_coins(asset_id)
+            .await?
+            .into_iter()
+            .filter(|cat| {
+                let Some(max_amount) = max_amount else {
+                    return true;
+                };
+                cat.coin.amount <= max_amount
+            })
+            .sorted_by_key(|cat| cat.coin.amount)
+            .take(req.max_coins as usize)
+            .collect_vec();
+
+        let mut cats = Vec::with_capacity(rows.len());
+
+        for row in rows {
+            let Some(cat) = wallet.db.cat_coin(row.coin.coin_id()).await? else {
+                return Err(Error::MissingCatCoin(row.coin.coin_id()));
+            };
+            cats.push(cat);
+        }
 
         let coin_spends = wallet.combine_cat(cats, fee, false, true).await?;
         self.transact(coin_spends, req.auto_submit).await

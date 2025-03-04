@@ -27,7 +27,7 @@ impl Database {
     }
 }
 
-impl<'a> DatabaseTx<'a> {
+impl DatabaseTx<'_> {
     pub async fn insert_p2_coin(&mut self, coin_id: Bytes32) -> Result<()> {
         insert_p2_coin(&mut *self.tx, coin_id).await
     }

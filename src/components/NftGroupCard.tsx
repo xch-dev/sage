@@ -179,6 +179,7 @@ export function NftGroupCard({
                 })()}
                 className='object-cover h-full w-full'
                 aria-hidden='true'
+                loading='lazy'
               />
             ) : (
               <LibraryBig

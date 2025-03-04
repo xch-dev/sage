@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { TokenAmountInput } from '@/components/ui/masked-input';
+import { IntegerInput, TokenAmountInput } from '@/components/ui/masked-input';
 import { Switch } from '@/components/ui/switch';
 import { useErrors } from '@/hooks/useErrors';
 import { uploadToDexie, uploadToMintGarden } from '@/lib/offerUpload';
@@ -33,8 +33,9 @@ import {
   PlusIcon,
   TrashIcon,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useDefaultOfferExpiry } from '@/hooks/useDefaultOfferExpiry';
 
 export function MakeOffer() {
   const state = useOfferState();
@@ -52,6 +53,12 @@ export function MakeOffer() {
   const [config, setConfig] = useState<NetworkConfig | null>(null);
   const network = config?.network_id ?? 'mainnet';
 
+  const { expiry } = useDefaultOfferExpiry();
+
+  // Use refs to store initial values that won't trigger re-renders
+  const initialExpiryRef = useRef(expiry);
+  const initialStateRef = useRef(state);
+
   useEffect(() => {
     commands.networkConfig().then((config) => setConfig(config));
   }, []);
@@ -61,6 +68,29 @@ export function MakeOffer() {
     setMintGardenLink('');
   }, [offer]);
 
+  // Only run once when component mounts
+  useEffect(() => {
+    const initialExpiry = initialExpiryRef.current;
+    const initialState = initialStateRef.current;
+
+    if (initialExpiry.enabled && initialState.expiration === null) {
+      const isAllZero =
+        (parseInt(initialExpiry.days) || 0) === 0 &&
+        (parseInt(initialExpiry.hours) || 0) === 0 &&
+        (parseInt(initialExpiry.minutes) || 0) === 0;
+
+      if (!isAllZero) {
+        useOfferState.setState({
+          expiration: {
+            days: initialExpiry.days.toString(),
+            hours: initialExpiry.hours.toString(),
+            minutes: initialExpiry.minutes.toString(),
+          },
+        });
+      }
+    }
+  }, []);
+
   const handleMake = async () => {
     setPending(true);
 
@@ -68,6 +98,23 @@ export function MakeOffer() {
       (state.offered.xch === '0' || !state.offered.xch) &&
       state.offered.cats.length === 0 &&
       state.offered.nfts.length === 1;
+
+    let expiresAtSecond = null;
+    if (state.expiration !== null) {
+      const days = parseInt(state.expiration.days) || 0;
+      const hours = parseInt(state.expiration.hours) || 0;
+      const minutes = parseInt(state.expiration.minutes) || 0;
+      const totalSeconds = days * 24 * 60 * 60 + hours * 60 * 60 + minutes * 60;
+      if (totalSeconds <= 0) {
+        addError({
+          kind: 'invalid',
+          reason: t`Expiration must be at least 1 second in the future`,
+        });
+        setPending(false);
+        return;
+      }
+      expiresAtSecond = Math.ceil(Date.now() / 1000) + totalSeconds;
+    }
 
     const data = await commands.makeOffer({
       offered_assets: {
@@ -96,13 +143,7 @@ export function MakeOffer() {
         (state.fee || '0').toString(),
         walletState.sync.unit.decimals,
       ),
-      expires_at_second:
-        state.expiration === null
-          ? null
-          : Math.ceil(Date.now() / 1000) +
-            Number(state.expiration.days || '0') * 24 * 60 * 60 +
-            Number(state.expiration.hours || '0') * 60 * 60 +
-            Number(state.expiration.minutes || '0') * 60,
+      expires_at_second: expiresAtSecond,
     });
 
     clearOffer();
@@ -115,9 +156,9 @@ export function MakeOffer() {
 
   const invalid =
     state.expiration !== null &&
-    (isNaN(Number(state.expiration.days)) ||
-      isNaN(Number(state.expiration.hours)) ||
-      isNaN(Number(state.expiration.minutes)));
+    (parseInt(state.expiration.days) || 0) === 0 &&
+    (parseInt(state.expiration.hours) || 0) === 0 &&
+    (parseInt(state.expiration.minutes) || 0) === 0;
 
   return (
     <>
@@ -176,15 +217,17 @@ export function MakeOffer() {
                 <Trans>Network Fee</Trans>
               </Label>
               <div className='relative'>
-                <Input
+                <TokenAmountInput
                   id='fee'
                   type='text'
                   placeholder={'0.00'}
                   className='pr-12'
                   value={state.fee}
-                  onChange={(e) =>
-                    useOfferState.setState({ fee: e.target.value })
-                  }
+                  onValueChange={(values) => {
+                    useOfferState.setState({
+                      fee: values.floatValue?.toString() ?? '',
+                    });
+                  }}
                 />
                 <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
                   <span className='text-gray-500 text-sm' id='price-currency'>
@@ -205,7 +248,11 @@ export function MakeOffer() {
                   onCheckedChange={(value) => {
                     if (value) {
                       useOfferState.setState({
-                        expiration: { days: '1', hours: '', minutes: '' },
+                        expiration: {
+                          days: initialExpiryRef.current.days.toString(),
+                          hours: initialExpiryRef.current.hours.toString(),
+                          minutes: initialExpiryRef.current.minutes.toString(),
+                        },
                       });
                     } else {
                       useOfferState.setState({ expiration: null });
@@ -217,16 +264,17 @@ export function MakeOffer() {
               {state.expiration !== null && (
                 <div className='flex gap-2'>
                   <div className='relative'>
-                    <Input
+                    <IntegerInput
                       className='pr-12'
                       value={state.expiration.days}
                       placeholder='0'
-                      onChange={(e) => {
+                      min={0}
+                      onValueChange={(values) => {
                         if (state.expiration === null) return;
                         useOfferState.setState({
                           expiration: {
                             ...state.expiration,
-                            days: e.target.value,
+                            days: values.value,
                           },
                         });
                       }}
@@ -239,16 +287,17 @@ export function MakeOffer() {
                   </div>
 
                   <div className='relative'>
-                    <Input
+                    <IntegerInput
                       className='pr-12'
                       value={state.expiration.hours}
                       placeholder='0'
-                      onChange={(e) => {
+                      min={0}
+                      onValueChange={(values) => {
                         if (state.expiration === null) return;
                         useOfferState.setState({
                           expiration: {
                             ...state.expiration,
-                            hours: e.target.value,
+                            hours: values.value,
                           },
                         });
                       }}
@@ -261,16 +310,17 @@ export function MakeOffer() {
                   </div>
 
                   <div className='relative'>
-                    <Input
+                    <IntegerInput
                       className='pr-12'
                       value={state.expiration.minutes}
                       placeholder='0'
-                      onChange={(e) => {
+                      min={0}
+                      onValueChange={(values) => {
                         if (state.expiration === null) return;
                         useOfferState.setState({
                           expiration: {
                             ...state.expiration,
-                            minutes: e.target.value,
+                            minutes: values.value,
                           },
                         });
                       }}
@@ -449,12 +499,17 @@ function AssetSelector({
         <div className='mt-4 flex flex-col space-y-1.5'>
           <Label htmlFor={`${prefix}-amount`}>XCH</Label>
           <div className='flex'>
-            <Input
+            <TokenAmountInput
               id={`${prefix}-amount`}
               className='rounded-r-none z-10'
               placeholder={t`Enter amount`}
               value={assets.xch}
-              onChange={(e) => setAssets({ ...assets, xch: e.target.value })}
+              onValueChange={(values) => {
+                setAssets({
+                  ...assets,
+                  xch: values.floatValue?.toString() ?? '',
+                });
+              }}
             />
             <Button
               variant='outline'
@@ -542,8 +597,8 @@ function AssetSelector({
                 className='border-l-0 z-10 rounded-l-none rounded-r-none w-[100px] h-12'
                 placeholder={t`Amount`}
                 value={cat.amount}
-                onChange={(e) => {
-                  assets.cats[i].amount = e.target.value;
+                onValueChange={(values) => {
+                  assets.cats[i].amount = values.floatValue?.toString() ?? '';
                   setAssets({ ...assets });
                 }}
               />
