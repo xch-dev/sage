@@ -67,6 +67,27 @@ export function TransactionListView({
     return [...created, ...spent];
   });
 
+  // Function to determine if a row is the first in a transaction group
+  const getRowStyles = (row: any) => {
+    const currentHeight = row.original.transactionHeight;
+    const rowIndex = flattenedTransactions.indexOf(row.original);
+
+    // If it's not the first row, check if the previous row has a different transaction height
+    if (rowIndex > 0) {
+      const prevHeight = flattenedTransactions[rowIndex - 1].transactionHeight;
+
+      // If this row has a different height than the previous one, it's the start of a new transaction group
+      if (currentHeight !== prevHeight) {
+        return {
+          className:
+            'border-t-2 border-t-neutral-300 dark:border-t-neutral-700',
+        };
+      }
+    }
+
+    return {};
+  };
+
   return (
     <motion.div
       role='region'
@@ -83,6 +104,7 @@ export function TransactionListView({
         <DataTable
           columns={columns}
           data={flattenedTransactions}
+          getRowStyles={getRowStyles}
           onSortingChange={(updatedSort) => {
             setSorting(updatedSort);
             if (typeof updatedSort === 'function') {
