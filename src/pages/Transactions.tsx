@@ -20,6 +20,7 @@ import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
 import { Pagination } from '@/components/Pagination';
 import { Loading } from '@/components/Loading';
 import { motion, AnimatePresence } from 'framer-motion';
+import { isValidAssetId, isValidAddress } from '@/lib/utils';
 
 export function Transactions() {
   const { addError } = useErrors();
@@ -57,23 +58,53 @@ export function Transactions() {
         specificBlock = [block.transaction];
       }
 
+      // Check if the search term is an asset_id, NFT ID, or DID ID
+      let itemIdTransactions: TransactionRecord[] = [];
+      let itemIdTotal = 0;
+
+      if (search) {
+        if (
+          isValidAssetId(search) ||
+          isValidAddress(search, 'nft') ||
+          isValidAddress(search, 'did:chia:')
+        ) {
+          const itemIdResult = await commands.getTransactionsByItemId({
+            offset: (page - 1) * pageSize,
+            limit: pageSize,
+            ascending,
+            id: search,
+          });
+          itemIdTransactions = itemIdResult.transactions;
+          itemIdTotal = itemIdResult.total;
+        }
+      }
+
+      let regularTransactions: TransactionRecord[] = [];
+      let regularTotal = 0;
+
       const result = await commands.getTransactions({
         offset: (page - 1) * pageSize,
         limit: pageSize,
         ascending,
         find_value: search || null,
       });
+      regularTransactions = result.transactions;
+      regularTotal = result.total;
 
-      const combinedTransactions = [...specificBlock, ...result.transactions];
+      const combinedTransactions = [
+        ...specificBlock,
+        ...itemIdTransactions,
+        ...regularTransactions,
+      ];
       setTransactions(combinedTransactions);
-      setTotalTransactions(result.total + specificBlock.length);
+      setTotalTransactions(regularTotal + specificBlock.length + itemIdTotal);
     } catch (error) {
       addError(error as any);
     } finally {
       setIsLoading(false);
       setIsPaginationLoading(false);
     }
-  }, [addError, page, pageSize, ascending, search, summarized]);
+  }, [search, page, pageSize, ascending, addError]);
 
   useEffect(() => {
     updateTransactions();

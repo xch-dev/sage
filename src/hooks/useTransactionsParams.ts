@@ -1,6 +1,5 @@
 import { useSearchParams } from 'react-router-dom';
 import { useLocalStorage } from 'usehooks-ts';
-import { ViewMode } from '@/components/ViewToggle';
 
 const TRANSACTION_PAGE_SIZE_STORAGE_KEY = 'sage-wallet-transaction-page-size';
 const TRANSACTION_SORT_MODE_STORAGE_KEY = 'sage-wallet-transaction-sort-mode';
