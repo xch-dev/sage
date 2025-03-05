@@ -24,7 +24,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 export function Transactions() {
   const { addError } = useErrors();
   const [params, setParams] = useTransactionsParams();
-  const { page, pageSize, search, ascending } = params;
+  const { page, pageSize, search, ascending, summarized } = params;
   const [_pending, setPending] = useState<PendingTransactionRecord[]>([]);
   const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
   const [totalTransactions, setTotalTransactions] = useState(0);
@@ -73,7 +73,7 @@ export function Transactions() {
       setIsLoading(false);
       setIsPaginationLoading(false);
     }
-  }, [addError, page, pageSize, ascending, search]);
+  }, [addError, page, pageSize, ascending, search, summarized]);
 
   useEffect(() => {
     updateTransactions();
@@ -94,27 +94,33 @@ export function Transactions() {
     };
   }, [updateTransactions]);
 
-  const handlePageChange = useCallback((newPage: number, compact?: boolean) => {
-    setIsPaginationLoading(true);
-    setParams({ page: newPage });
-    if (compact) {
-      listRef.current?.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start',
-      });
-    }
-  }, [setParams]);
-
-  const handlePageSizeChange = useCallback((newSize: number, compact?: boolean) => {
-    setIsPaginationLoading(true);
-    setParams({ pageSize: newSize, page: 1 });
-    if (compact) {
+  const handlePageChange = useCallback(
+    (newPage: number, compact?: boolean) => {
+      setIsPaginationLoading(true);
+      setParams({ page: newPage });
+      if (compact) {
         listRef.current?.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start',
-      });
-    }
-  }, [setParams]);
+          behavior: 'smooth',
+          block: 'start',
+        });
+      }
+    },
+    [setParams],
+  );
+
+  const handlePageSizeChange = useCallback(
+    (newSize: number, compact?: boolean) => {
+      setIsPaginationLoading(true);
+      setParams({ pageSize: newSize, page: 1 });
+      if (compact) {
+        listRef.current?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+        });
+      }
+    },
+    [setParams],
+  );
 
   const renderPagination = useCallback(
     (compact: boolean = false) => (
@@ -129,7 +135,15 @@ export function Transactions() {
         isLoading={isLoading || isPaginationLoading}
       />
     ),
-    [page, pageSize, totalTransactions, isLoading, isPaginationLoading, handlePageChange, handlePageSizeChange],
+    [
+      page,
+      pageSize,
+      totalTransactions,
+      isLoading,
+      isPaginationLoading,
+      handlePageChange,
+      handlePageSizeChange,
+    ],
   );
 
   return (
@@ -161,7 +175,8 @@ export function Transactions() {
             onParamsChange={(newParams) => {
               if (
                 newParams.page !== params.page ||
-                newParams.pageSize !== params.pageSize
+                newParams.pageSize !== params.pageSize ||
+                newParams.summarized !== params.summarized
               ) {
                 setIsPaginationLoading(true);
               }
@@ -196,6 +211,7 @@ export function Transactions() {
               setParams({ ascending: value, page: 1 });
             }}
             isLoading={isLoading && !isPaginationLoading}
+            summarized={summarized}
           />
         </div>
       </Container>

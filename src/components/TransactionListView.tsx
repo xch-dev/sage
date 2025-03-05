@@ -7,6 +7,7 @@ import { t } from '@lingui/core/macro';
 import { Loading } from './Loading';
 import { motion } from 'framer-motion';
 import { nftUri } from '@/lib/nftUri';
+import { FlattenedTransaction } from './TransactionColumns';
 
 function getDisplayName(coin: TransactionCoin) {
   switch (coin.type) {
@@ -40,10 +41,12 @@ export function TransactionListView({
   transactions,
   onSortingChange,
   isLoading = false,
+  summarized = true,
 }: {
   transactions: TransactionRecord[];
   onSortingChange?: (ascending: boolean) => void;
   isLoading?: boolean;
+  summarized?: boolean;
 }) {
   const [sorting, setSorting] = useState<SortingState>([]);
 
@@ -64,7 +67,79 @@ export function TransactionListView({
       icon_url: getIconUrl(coin),
     }));
 
-    return [...created, ...spent];
+    if (!summarized) {
+      return [...created, ...spent];
+    }
+
+    // For summarized view, group by coin type and net the amounts
+    const coinGroups = new Map<string, Array<(typeof created)[0]>>();
+
+    // Group created coins by type and ticker
+    created.forEach((coin) => {
+      // Use type as the key for grouping, add displayName for uniqueness
+      const key = `${coin.type}_${coin.displayName}`;
+      if (!coinGroups.has(key)) {
+        coinGroups.set(key, []);
+      }
+      const group = coinGroups.get(key);
+      if (group) {
+        group.push(coin);
+      }
+    });
+
+    // Group spent coins by type and ticker
+    spent.forEach((coin) => {
+      // Use type as the key for grouping, add displayName for uniqueness
+      const key = `${coin.type}_${coin.displayName}`;
+      if (!coinGroups.has(key)) {
+        coinGroups.set(key, []);
+      }
+      const group = coinGroups.get(key);
+      if (group) {
+        group.push(coin);
+      }
+    });
+
+    // Net amounts for each group
+    const summarizedCoins: Array<(typeof created)[0]> = [];
+
+    coinGroups.forEach((coins, key) => {
+      // Skip if there's only one coin and it's not worth summarizing
+      if (coins.length === 1) {
+        summarizedCoins.push(coins[0]);
+        return;
+      }
+
+      // Calculate net amount
+      let netAmount = BigInt(0);
+      coins.forEach((coin) => {
+        const amountStr = coin.amount.replace(/[+]/g, '').replace(/-/g, '');
+        const amount = BigInt(amountStr);
+        if (coin.amount.startsWith('+')) {
+          netAmount += amount;
+        } else {
+          netAmount -= amount;
+        }
+      });
+
+      // Create a summarized coin
+      const baseCoin = coins[0];
+      const netAmountStr =
+        netAmount > 0
+          ? `+${netAmount.toString()}`
+          : netAmount < 0
+            ? `-${(-netAmount).toString()}`
+            : '0';
+
+      summarizedCoins.push({
+        ...baseCoin,
+        amount: netAmountStr,
+        // Use the first coin's ID as a representative
+        coin_id: `${baseCoin.coin_id}_summarized`,
+      });
+    });
+
+    return summarizedCoins;
   });
 
   // Function to determine if a row is the first in a transaction group

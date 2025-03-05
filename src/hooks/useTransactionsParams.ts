@@ -4,12 +4,14 @@ import { ViewMode } from '@/components/ViewToggle';
 
 const TRANSACTION_PAGE_SIZE_STORAGE_KEY = 'sage-wallet-transaction-page-size';
 const TRANSACTION_SORT_MODE_STORAGE_KEY = 'sage-wallet-transaction-sort-mode';
+const TRANSACTION_VIEW_MODE_STORAGE_KEY = 'sage-wallet-transaction-view-mode';
 
 export interface TransactionParams {
   page: number;
   pageSize: number;
   search: string;
   ascending: boolean;
+  summarized: boolean;
 }
 
 export type SetTransactionParams = (params: Partial<TransactionParams>) => void;
@@ -30,6 +32,11 @@ export function useTransactionsParams(): [
     10,
   );
 
+  const [storedViewMode, setStoredViewMode] = useLocalStorage<boolean>(
+    TRANSACTION_VIEW_MODE_STORAGE_KEY,
+    true, // Default to summarized view
+  );
+
   const page = parseInt(params.get('page') ?? '1');
   const search = params.get('search') ?? '';
   const ascending = params.get('ascending')
@@ -38,12 +45,16 @@ export function useTransactionsParams(): [
   const pageSize = parseInt(
     params.get('pageSize') ?? storedPageSize.toString(),
   );
+  const summarized = params.get('summarized')
+    ? params.get('summarized') === 'true'
+    : storedViewMode;
 
   const updateParams = ({
     page,
     pageSize,
     search,
     ascending,
+    summarized,
   }: Partial<TransactionParams>) => {
     setParams(
       (prev) => {
@@ -71,6 +82,11 @@ export function useTransactionsParams(): [
           setStoredSortMode(ascending);
         }
 
+        if (summarized !== undefined) {
+          next.set('summarized', summarized.toString());
+          setStoredViewMode(summarized);
+        }
+
         return next;
       },
       { replace: true },
@@ -83,6 +99,7 @@ export function useTransactionsParams(): [
       pageSize,
       search,
       ascending,
+      summarized,
     },
     updateParams,
   ];

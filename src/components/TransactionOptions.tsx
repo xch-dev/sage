@@ -5,6 +5,8 @@ import {
   SearchIcon,
   Settings2,
   XIcon,
+  ListFilter,
+  List,
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -12,6 +14,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
 import {
@@ -40,7 +43,7 @@ export function TransactionOptions({
   className,
   renderPagination,
 }: TransactionOptionsProps) {
-  const { search, ascending } = params;
+  const { search, ascending, summarized } = params;
 
   return (
     <div
@@ -111,6 +114,18 @@ export function TransactionOptions({
                   <ArrowUpAz className='mr-2 h-4 w-4' aria-hidden='true' />
                 )}
                 {ascending ? t`Sort Descending` : t`Sort Ascending`}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className='cursor-pointer'
+                onClick={() => onParamsChange({ summarized: !summarized })}
+              >
+                {summarized ? (
+                  <ListFilter className='mr-2 h-4 w-4' aria-hidden='true' />
+                ) : (
+                  <List className='mr-2 h-4 w-4' aria-hidden='true' />
+                )}
+                {summarized ? t`Detailed View` : t`Summarized View`}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
