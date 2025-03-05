@@ -125,6 +125,17 @@ export function Transactions() {
     };
   }, [updateTransactions]);
 
+  // Add a new useEffect to handle summarized view toggle
+  useEffect(() => {
+    // This effect only handles the loading state for summarized view toggle
+    // It doesn't need to fetch new data, just update the UI state
+    if (isPaginationLoading && !isLoading) {
+      // If we're in pagination loading state but not in the main loading state,
+      // it might be due to a summarized view toggle, so clear the loading state
+      setIsPaginationLoading(false);
+    }
+  }, [summarized, isPaginationLoading, isLoading]);
+
   const handlePageChange = useCallback(
     (newPage: number, compact?: boolean) => {
       setIsPaginationLoading(true);
