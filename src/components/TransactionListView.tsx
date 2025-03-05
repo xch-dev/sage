@@ -112,24 +112,41 @@ export function TransactionListView({
 
       // Calculate net amount
       let netAmount = BigInt(0);
+      let hasSent = false;
+      let hasReceived = false;
+      const isNftOrDid = coins.some(
+        (coin) =>
+          coin.type.toLowerCase() === 'nft' ||
+          coin.type.toLowerCase() === 'did',
+      );
+
       coins.forEach((coin) => {
         const amountStr = coin.amount.replace(/[+]/g, '').replace(/-/g, '');
         const amount = BigInt(amountStr);
         if (coin.amount.startsWith('+')) {
           netAmount += amount;
+          hasReceived = true;
         } else {
           netAmount -= amount;
+          hasSent = true;
         }
       });
 
       // Create a summarized coin
       const baseCoin = coins[0];
-      const netAmountStr =
-        netAmount > 0
-          ? `+${netAmount.toString()}`
-          : netAmount < 0
-            ? `-${(-netAmount).toString()}`
-            : '0';
+
+      // Special handling for NFT and DID transactions with both sent and received coins
+      let netAmountStr;
+      if (isNftOrDid && hasSent && hasReceived) {
+        netAmountStr = 'edited';
+      } else {
+        netAmountStr =
+          netAmount > 0
+            ? `+${netAmount.toString()}`
+            : netAmount < 0
+              ? `-${(-netAmount).toString()}`
+              : '0';
+      }
 
       summarizedCoins.push({
         ...baseCoin,
