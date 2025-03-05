@@ -37,7 +37,7 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
     enableSorting: false,
     size: 80,
     meta: {
-      className: 'w-[80px] min-w-[80px]',
+      className: 'w-[55px] min-w-[55px] md:w-[80px] md:min-w-[80px]',
     },
     cell: ({ row, table }) => {
       // Get all rows data
@@ -66,7 +66,7 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
     enableSorting: false,
     size: 48,
     meta: {
-      className: 'w-[48px] min-w-[48px]',
+      className: 'w-[40px] min-w-[40px] md:w-[48px] md:min-w-[48px]',
     },
     header: () => <span className='sr-only'>{t`Asset Icon`}</span>,
     cell: ({ row }) => {
@@ -95,10 +95,10 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
     enableSorting: false,
     size: 120,
     meta: {
-      className: 'w-[120px] min-w-[120px]',
+      className: 'w-[70px] min-w-[70px] md:w-[120px] md:min-w-[120px]',
     },
     cell: ({ row }) => {
-      return <div>{row.original.displayName}</div>;
+      return <div className='truncate'>{row.original.displayName}</div>;
     },
   },
   {
@@ -111,7 +111,7 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
     enableSorting: false,
     size: 120,
     meta: {
-      className: 'w-[120px] min-w-[120px]',
+      className: 'w-[85px] min-w-[85px] md:w-[120px] md:min-w-[120px]',
     },
     cell: ({ row }) => (
       <AmountCell amount={row.getValue('amount')} type={row.getValue('type')} />
@@ -140,7 +140,7 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
     enableSorting: false,
     size: 50,
     meta: {
-      className: 'w-[50px] min-w-[50px]',
+      className: 'w-[40px] min-w-[40px] md:w-[50px] md:min-w-[50px]',
     },
     cell: ({ row }) => {
       const txCoin = row.original;
