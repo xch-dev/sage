@@ -35,6 +35,10 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
       <DataTableColumnHeader column={column} title={t`Block #`} />
     ),
     enableSorting: false,
+    size: 80,
+    meta: {
+      className: 'w-[80px] min-w-[80px]',
+    },
     cell: ({ row, table }) => {
       // Get all rows data
       const rows = table.options.data as FlattenedTransaction[];
@@ -60,6 +64,10 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
   {
     id: 'icon',
     enableSorting: false,
+    size: 48,
+    meta: {
+      className: 'w-[48px] min-w-[48px]',
+    },
     header: () => <span className='sr-only'>{t`Asset Icon`}</span>,
     cell: ({ row }) => {
       const type = row.getValue('type') as string;
@@ -85,6 +93,10 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
       <DataTableColumnHeader column={column} title={t`Ticker`} />
     ),
     enableSorting: false,
+    size: 120,
+    meta: {
+      className: 'w-[120px] min-w-[120px]',
+    },
     cell: ({ row }) => {
       return <div>{row.original.displayName}</div>;
     },
@@ -97,6 +109,10 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
       </div>
     ),
     enableSorting: false,
+    size: 120,
+    meta: {
+      className: 'w-[120px] min-w-[120px]',
+    },
     cell: ({ row }) => (
       <AmountCell amount={row.getValue('amount')} type={row.getValue('type')} />
     ),
@@ -109,6 +125,10 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
       </div>
     ),
     enableSorting: false,
+    size: 200,
+    meta: {
+      className: 'hidden md:table-cell w-full md:w-[200px] md:min-w-[200px]',
+    },
     cell: ({ row }) => (
       <div className='hidden md:block font-mono'>
         {formatAddress(row.getValue<string | null>('address') || '', 7, 4)}
@@ -118,6 +138,10 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
   {
     id: 'actions',
     enableSorting: false,
+    size: 50,
+    meta: {
+      className: 'w-[50px] min-w-[50px]',
+    },
     cell: ({ row }) => {
       const txCoin = row.original;
 
