@@ -15,7 +15,9 @@ import { open } from '@tauri-apps/plugin-shell';
 import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { NumberFormat } from '@/components/NumberFormat';
-import { fromMojos } from '@/lib/utils';
+import { fromMojos, formatAddress } from '@/lib/utils';
+import { CopyButton } from '@/components/CopyButton';
+import { toast } from 'react-toastify';
 
 export default function Transaction() {
   const { height } = useParams();
@@ -92,24 +94,27 @@ function TransactionCoin({ coin }: TransactionCoinProps) {
   const coinId = coin.coin_id;
 
   return (
-    <div
-      className='rounded-xl border border-neutral-200 bg-white text-neutral-950 shadow dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-50 p-4 cursor-pointer'
-      onClick={() => open(`https://spacescan.io/coin/0x${coin.coin_id}`)}
-      aria-label={t`View coin ${coinId} on Spacescan.io`}
-      role='button'
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          open(`https://spacescan.io/coin/0x${coin.coin_id}`);
-        }
-      }}
-    >
-      <TransactionCoinKind coin={coin} />
-      <div className='flex items-center gap-1 mt-2'>
-        <div className='text-sm text-muted-foreground truncate'>
-          <Trans>Coin with id {coinId}</Trans>
+    <div className='rounded-xl border border-neutral-200 bg-white text-neutral-950 shadow dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-50 p-4'>
+      <div
+        className='cursor-pointer'
+        onClick={() => open(`https://spacescan.io/coin/0x${coin.coin_id}`)}
+        aria-label={t`View coin ${coinId} on Spacescan.io`}
+        role='button'
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            open(`https://spacescan.io/coin/0x${coin.coin_id}`);
+          }
+        }}
+      >
+        <TransactionCoinKind coin={coin} />
+        <div className='flex items-center gap-1 mt-2'>
+          <div className='text-sm text-muted-foreground truncate'>
+            <Trans>Coin with id {coinId}</Trans>
+          </div>
         </div>
       </div>
+      {coin.type !== 'xch' && <TransactionCoinId coin={coin} />}
     </div>
   );
 }
@@ -187,4 +192,52 @@ function TransactionCoinKind({ coin }: TransactionCoinKindProps) {
   }
 
   return <div className='break-all'>{coin.coin_id}</div>;
+}
+
+interface TransactionCoinIdProps {
+  coin: TransactionCoin;
+}
+
+function TransactionCoinId({ coin }: TransactionCoinIdProps) {
+  let id = '';
+  let label = '';
+  let toastMessage = '';
+
+  switch (coin.type) {
+    case 'cat':
+      id = coin.asset_id;
+      label = t`Asset ID`;
+      toastMessage = t`Asset ID copied to clipboard`;
+      break;
+    case 'nft':
+      id = coin.launcher_id;
+      label = t`Launcher ID`;
+      toastMessage = t`Launcher ID copied to clipboard`;
+      break;
+    case 'did':
+      id = coin.launcher_id;
+      label = t`Launcher ID`;
+      toastMessage = t`Launcher ID copied to clipboard`;
+      break;
+    default:
+      return null;
+  }
+
+  const handleCopyClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+  };
+
+  const handleCopy = () => {
+    toast.success(toastMessage);
+  };
+
+  return (
+    <div className='flex items-center gap-2 mt-2 text-sm text-muted-foreground'>
+      <span>{label}:</span>
+      <span className='font-mono'>{formatAddress(id, 6, 6)}</span>
+      <div onClick={handleCopyClick}>
+        <CopyButton value={id} className='h-6 w-6 p-0' onCopy={handleCopy} />
+      </div>
+    </div>
+  );
 }
