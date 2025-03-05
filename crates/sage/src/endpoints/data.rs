@@ -18,9 +18,9 @@ use sage_api::{
     GetNftCollections, GetNftCollectionsResponse, GetNftData, GetNftDataResponse, GetNftResponse,
     GetNfts, GetNftsResponse, GetPendingTransactions, GetPendingTransactionsResponse,
     GetSyncStatus, GetSyncStatusResponse, GetTransaction, GetTransactionResponse, GetTransactions,
-    GetTransactionsResponse, GetXchCoins, GetXchCoinsResponse, NftCollectionRecord, NftData,
-    NftRecord, NftSortMode as ApiNftSortMode, PendingTransactionRecord, TransactionCoin,
-    TransactionRecord,
+    GetTransactionsByItemId, GetTransactionsByItemIdResponse, GetTransactionsResponse, GetXchCoins,
+    GetXchCoinsResponse, NftCollectionRecord, NftData, NftRecord, NftSortMode as ApiNftSortMode,
+    PendingTransactionRecord, TransactionCoin, TransactionRecord,
 };
 use sage_database::{
     CoinKind, CoinStateRow, Database, NftGroup, NftRow, NftSearchParams, NftSortMode,
@@ -315,7 +315,36 @@ impl Sage {
             transactions.push(transaction);
         }
 
+        // Note: The actual summarization logic will be implemented later
+        // For now, we're just passing the parameter through
+
         Ok(GetTransactionsResponse {
+            transactions,
+            total,
+        })
+    }
+
+    pub async fn get_transactions_by_item_id(
+        &self,
+        req: GetTransactionsByItemId,
+    ) -> Result<GetTransactionsByItemIdResponse> {
+        let wallet = self.wallet()?;
+
+        let mut transactions = Vec::new();
+
+        let (heights, total) = wallet
+            .db
+            .get_block_heights_by_item_id(req.offset, req.limit, req.ascending, req.id)
+            .await?;
+        for height in heights {
+            let transaction = self.transaction_record(&wallet.db, height).await?;
+            transactions.push(transaction);
+        }
+
+        // Note: The actual summarization logic will be implemented later
+        // For now, we're just passing the parameter through
+
+        Ok(GetTransactionsByItemIdResponse {
             transactions,
             total,
         })

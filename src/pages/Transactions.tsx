@@ -20,11 +20,12 @@ import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
 import { Pagination } from '@/components/Pagination';
 import { Loading } from '@/components/Loading';
 import { motion, AnimatePresence } from 'framer-motion';
+import { isValidAssetId, isValidAddress } from '@/lib/utils';
 
 export function Transactions() {
   const { addError } = useErrors();
   const [params, setParams] = useTransactionsParams();
-  const { page, pageSize, search, ascending } = params;
+  const { page, pageSize, search, ascending, summarized } = params;
   const [_pending, setPending] = useState<PendingTransactionRecord[]>([]);
   const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
   const [totalTransactions, setTotalTransactions] = useState(0);
@@ -57,23 +58,53 @@ export function Transactions() {
         specificBlock = [block.transaction];
       }
 
+      // Check if the search term is an asset_id, NFT ID, or DID ID
+      let itemIdTransactions: TransactionRecord[] = [];
+      let itemIdTotal = 0;
+
+      if (search) {
+        if (
+          isValidAssetId(search) ||
+          isValidAddress(search, 'nft') ||
+          isValidAddress(search, 'did:chia:')
+        ) {
+          const itemIdResult = await commands.getTransactionsByItemId({
+            offset: (page - 1) * pageSize,
+            limit: pageSize,
+            ascending,
+            id: search,
+          });
+          itemIdTransactions = itemIdResult.transactions;
+          itemIdTotal = itemIdResult.total;
+        }
+      }
+
+      let regularTransactions: TransactionRecord[] = [];
+      let regularTotal = 0;
+
       const result = await commands.getTransactions({
         offset: (page - 1) * pageSize,
         limit: pageSize,
         ascending,
         find_value: search || null,
       });
+      regularTransactions = result.transactions;
+      regularTotal = result.total;
 
-      const combinedTransactions = [...specificBlock, ...result.transactions];
+      const combinedTransactions = [
+        ...specificBlock,
+        ...itemIdTransactions,
+        ...regularTransactions,
+      ];
       setTransactions(combinedTransactions);
-      setTotalTransactions(result.total + specificBlock.length);
+      setTotalTransactions(regularTotal + specificBlock.length + itemIdTotal);
     } catch (error) {
       addError(error as any);
     } finally {
       setIsLoading(false);
       setIsPaginationLoading(false);
     }
-  }, [addError, page, pageSize, ascending, search]);
+  }, [search, page, pageSize, ascending, addError]);
 
   useEffect(() => {
     updateTransactions();
@@ -94,27 +125,44 @@ export function Transactions() {
     };
   }, [updateTransactions]);
 
-  const handlePageChange = useCallback((newPage: number, compact?: boolean) => {
-    setIsPaginationLoading(true);
-    setParams({ page: newPage });
-    if (compact) {
-      listRef.current?.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start',
-      });
+  // Add a new useEffect to handle summarized view toggle
+  useEffect(() => {
+    // This effect only handles the loading state for summarized view toggle
+    // It doesn't need to fetch new data, just update the UI state
+    if (isPaginationLoading && !isLoading) {
+      // If we're in pagination loading state but not in the main loading state,
+      // it might be due to a summarized view toggle, so clear the loading state
+      setIsPaginationLoading(false);
     }
-  }, [setParams]);
+  }, [summarized, isPaginationLoading, isLoading]);
 
-  const handlePageSizeChange = useCallback((newSize: number, compact?: boolean) => {
-    setIsPaginationLoading(true);
-    setParams({ pageSize: newSize, page: 1 });
-    if (compact) {
+  const handlePageChange = useCallback(
+    (newPage: number, compact?: boolean) => {
+      setIsPaginationLoading(true);
+      setParams({ page: newPage });
+      if (compact) {
         listRef.current?.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start',
-      });
-    }
-  }, [setParams]);
+          behavior: 'smooth',
+          block: 'start',
+        });
+      }
+    },
+    [setParams],
+  );
+
+  const handlePageSizeChange = useCallback(
+    (newSize: number, compact?: boolean) => {
+      setIsPaginationLoading(true);
+      setParams({ pageSize: newSize, page: 1 });
+      if (compact) {
+        listRef.current?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+        });
+      }
+    },
+    [setParams],
+  );
 
   const renderPagination = useCallback(
     (compact: boolean = false) => (
@@ -129,7 +177,15 @@ export function Transactions() {
         isLoading={isLoading || isPaginationLoading}
       />
     ),
-    [page, pageSize, totalTransactions, isLoading, isPaginationLoading, handlePageChange, handlePageSizeChange],
+    [
+      page,
+      pageSize,
+      totalTransactions,
+      isLoading,
+      isPaginationLoading,
+      handlePageChange,
+      handlePageSizeChange,
+    ],
   );
 
   return (
@@ -161,7 +217,8 @@ export function Transactions() {
             onParamsChange={(newParams) => {
               if (
                 newParams.page !== params.page ||
-                newParams.pageSize !== params.pageSize
+                newParams.pageSize !== params.pageSize ||
+                newParams.summarized !== params.summarized
               ) {
                 setIsPaginationLoading(true);
               }
@@ -196,6 +253,7 @@ export function Transactions() {
               setParams({ ascending: value, page: 1 });
             }}
             isLoading={isLoading && !isPaginationLoading}
+            summarized={summarized}
           />
         </div>
       </Container>

@@ -14,7 +14,7 @@ const Table = React.forwardRef<
   >
     <table
       ref={ref}
-      className={cn('w-full caption-bottom text-sm', className)}
+      className={cn('w-full caption-bottom text-sm table-fixed', className)}
       role='table'
       aria-label={t`Data table`}
       {...props}
@@ -102,7 +102,7 @@ const TableCell = React.forwardRef<
   <td
     ref={ref}
     className={cn(
-      'py-1 px-1 md:px-2 align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]',
+      'py-1 px-1 md:px-2 align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px] overflow-hidden',
       className,
     )}
     {...props}
