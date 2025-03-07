@@ -103,7 +103,7 @@ export default function Login() {
         </div>
         {keys !== null ? (
           keys.length ? (
-            <div className='grid md:grid-cols-2 lg:grid-cols-3 gap-3'>
+            <div className='grid sm:grid-cols-2 md:grid-cols-3 gap-3'>
               {keys.map((key, i) => (
                 <WalletItem
                   key={i}
@@ -127,7 +127,7 @@ export default function Login() {
 
 function SkeletonWalletList() {
   return (
-    <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 m-4'>
+    <div className='grid sm:grid-cols-2 md:grid-cols-3 gap-3 m-4'>
       {Array.from({ length: 3 }).map((_, i) => (
         <div key={i} className='w-full'>
           <Skeleton className='h-[100px] w-full' />
@@ -234,7 +234,7 @@ function WalletItem({ network, info, keys, setKeys }: WalletItemProps) {
   return (
     <>
       <Card onClick={() => loginSelf(false)} className='cursor-pointer'>
-        <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
+        <CardHeader className='flex flex-row items-center justify-between p-5 pt-4 pb-2'>
           <CardTitle className='text-2xl'>{info.name}</CardTitle>
           <DropdownMenu>
             <DropdownMenuTrigger asChild className='-mr-2.5'>
@@ -308,18 +308,18 @@ function WalletItem({ network, info, keys, setKeys }: WalletItemProps) {
             </DropdownMenuContent>
           </DropdownMenu>
         </CardHeader>
-        <CardContent>
+        <CardContent className='p-0 px-5 pb-5'>
           <div className='flex items-center justify-between'>
             <span className='text-muted-foreground'>{info.fingerprint}</span>
             {info.has_secrets ? (
-              <div className='inline-flex gap-1 items-center rounded-full px-3 py-1.5 text-xs bg-rose-900'>
+              <div className='inline-flex gap-1 items-center rounded-full px-3 py-1.5 text-xs dark:bg-neutral-800'>
                 <FlameIcon className='h-4 w-4' />
                 <span>
                   <Trans>Hot</Trans>
                 </span>
               </div>
             ) : (
-              <div className='inline-flex gap-1 items-center rounded-full px-3 py-1.5 text-xs bg-sky-800'>
+              <div className='inline-flex gap-1 items-center rounded-full px-3 py-1.5 text-xs dark:bg-neutral-800'>
                 <SnowflakeIcon className='h-4 w-4' />
                 <span>
                   <Trans>Cold</Trans>
