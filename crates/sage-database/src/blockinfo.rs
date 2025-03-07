@@ -29,7 +29,7 @@ impl Database {
     }
 }
 
-impl<'a> DatabaseTx<'a> {
+impl DatabaseTx<'_> {
     pub async fn find_created_timestamp_null(&mut self, limit: u32) -> Result<Vec<u32>> {
         find_created_timestamp_null(&mut *self.tx, limit).await
     }
