@@ -76,6 +76,11 @@ impl Sage {
                 .execute(&pool)
                 .await?;
         }
+        if req.delete_blockinfo {
+            sqlx::query!("DELETE FROM `blockinfo`")
+                .execute(&pool)
+                .await?;
+        }
 
         if login {
             self.config.app.active_fingerprint = Some(req.fingerprint);

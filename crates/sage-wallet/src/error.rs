@@ -1,4 +1,4 @@
-use std::time::SystemTimeError;
+use std::{num::TryFromIntError, time::SystemTimeError};
 
 use chia::{
     clvm_traits::{FromClvmError, ToClvmError},
@@ -104,4 +104,7 @@ pub enum WalletError {
 
     #[error("Empty bulk transfer")]
     EmptyBulkTransfer,
+
+    #[error("Try from int error: {0}")]
+    TryFromInt(#[from] TryFromIntError),
 }

@@ -6,6 +6,7 @@ use crate::{AddressKind, Amount, AssetKind};
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct TransactionRecord {
     pub height: u32,
+    pub timestamp: Option<u32>,
     pub spent: Vec<TransactionCoin>,
     pub created: Vec<TransactionCoin>,
 }
