@@ -9,7 +9,11 @@ use chia::{
     clvm_traits::{FromClvmError, ToClvmError},
     protocol::Bytes32,
 };
-use chia_wallet_sdk::{AddressError, ClientError, DriverError, OfferError};
+use chia_wallet_sdk::{
+    client::ClientError,
+    driver::{DriverError, OfferError},
+    utils::AddressError,
+};
 use clvmr::reduction::EvalErr;
 use hex::FromHexError;
 use sage_api::ErrorKind;

@@ -91,7 +91,7 @@ impl Sage {
         self.command_sender
             .send(SyncCommand::SwitchNetwork {
                 network_id: req.network_id,
-                network: chia_wallet_sdk::Network {
+                network: chia_wallet_sdk::client::Network {
                     default_port: network.default_port,
                     genesis_challenge: parse_genesis_challenge(network.genesis_challenge.clone())?,
                     dns_introducers: network.dns_introducers.clone(),

@@ -1,7 +1,7 @@
 use std::ops::Add;
 
 use chia::protocol::{Bytes32, Coin, Program};
-use chia_wallet_sdk::{Cat, Nft, Offer};
+use chia_wallet_sdk::driver::{Cat, Nft, Offer};
 use indexmap::IndexMap;
 
 use crate::{Wallet, WalletError};

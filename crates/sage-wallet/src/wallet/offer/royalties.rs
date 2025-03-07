@@ -2,12 +2,13 @@ use chia::{
     protocol::Bytes32,
     puzzles::{
         cat::CatArgs,
-        offer::{NotarizedPayment, Payment, SETTLEMENT_PAYMENTS_PUZZLE_HASH},
+        offer::{NotarizedPayment, Payment},
     },
 };
+use chia_puzzles::SETTLEMENT_PAYMENT_HASH;
 use chia_wallet_sdk::{
-    calculate_nft_royalty, calculate_nft_trace_price, payment_assertion, AssertPuzzleAnnouncement,
-    TradePrice,
+    driver::{calculate_nft_royalty, calculate_nft_trace_price, payment_assertion},
+    prelude::{AssertPuzzleAnnouncement, TradePrice},
 };
 use indexmap::IndexMap;
 
@@ -50,7 +51,7 @@ impl Royalties {
 
         for royalty in &self.xch {
             assertions.push(payment_assertion(
-                SETTLEMENT_PAYMENTS_PUZZLE_HASH.into(),
+                SETTLEMENT_PAYMENT_HASH.into(),
                 &royalty.notarized_payment(),
             ));
         }
@@ -58,7 +59,7 @@ impl Royalties {
         for (&asset_id, royalties) in &self.cats {
             for royalty in royalties {
                 assertions.push(payment_assertion(
-                    CatArgs::curry_tree_hash(asset_id, SETTLEMENT_PAYMENTS_PUZZLE_HASH).into(),
+                    CatArgs::curry_tree_hash(asset_id, SETTLEMENT_PAYMENT_HASH.into()).into(),
                     &royalty.notarized_payment(),
                 ));
             }
@@ -111,7 +112,7 @@ pub fn calculate_trade_prices(
 
         trade_prices.push(TradePrice {
             amount,
-            puzzle_hash: SETTLEMENT_PAYMENTS_PUZZLE_HASH.into(),
+            puzzle_hash: SETTLEMENT_PAYMENT_HASH.into(),
         });
     }
 
@@ -121,7 +122,7 @@ pub fn calculate_trade_prices(
 
         trade_prices.push(TradePrice {
             amount,
-            puzzle_hash: CatArgs::curry_tree_hash(asset_id, SETTLEMENT_PAYMENTS_PUZZLE_HASH).into(),
+            puzzle_hash: CatArgs::curry_tree_hash(asset_id, SETTLEMENT_PAYMENT_HASH.into()).into(),
         });
     }
 

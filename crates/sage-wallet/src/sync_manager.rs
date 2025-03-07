@@ -9,7 +9,10 @@ use chia::{
     protocol::{Bytes32, CoinStateUpdate, Message, NewPeakWallet, ProtocolMessageTypes},
     traits::Streamable,
 };
-use chia_wallet_sdk::{ClientError, Connector, Network, MAINNET_CONSTANTS, TESTNET11_CONSTANTS};
+use chia_wallet_sdk::{
+    client::{ClientError, Connector, Network},
+    types::{MAINNET_CONSTANTS, TESTNET11_CONSTANTS},
+};
 use futures_lite::future::poll_once;
 use itertools::Itertools;
 use tokio::{

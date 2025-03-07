@@ -5,7 +5,7 @@ use chia::protocol::{
     RequestBlockHeader, RespondBlockHeader, RespondPeers, RespondPuzzleState, SpendBundle,
     TransactionAck,
 };
-use chia_wallet_sdk::Peer;
+use chia_wallet_sdk::client::Peer;
 
 use crate::WalletError;
 

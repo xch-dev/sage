@@ -1,4 +1,4 @@
-use chia_wallet_sdk::{MAINNET_CONSTANTS, TESTNET11_CONSTANTS};
+use chia_wallet_sdk::types::{MAINNET_CONSTANTS, TESTNET11_CONSTANTS};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use specta::Type;

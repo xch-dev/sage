@@ -5,7 +5,7 @@ use chia::{
     protocol::{Bytes32, Coin, CoinSpend, SpendBundle},
     puzzles::nft::NftMetadata,
 };
-use chia_wallet_sdk::encode_address;
+use chia_wallet_sdk::utils::Address;
 use sage_api::{
     Amount, AssetKind, CoinJson, CoinSpendJson, SpendBundleJson, TransactionInput,
     TransactionOutput, TransactionSummary,
@@ -70,7 +70,8 @@ impl Sage {
                     };
 
                     let kind = AssetKind::Did {
-                        launcher_id: encode_address(info.launcher_id.into(), "did:chia:")?,
+                        launcher_id: Address::new(info.launcher_id, "did:chia:".to_string())
+                            .encode()?,
                         name,
                     };
 
@@ -80,7 +81,7 @@ impl Sage {
                     let extracted = extract_nft_data(Some(&wallet.db), metadata, &cache).await?;
 
                     let kind = AssetKind::Nft {
-                        launcher_id: encode_address(info.launcher_id.into(), "nft")?,
+                        launcher_id: Address::new(info.launcher_id, "nft".to_string()).encode()?,
                         image_data: extracted.image_data,
                         image_mime_type: extracted.image_mime_type,
                         name: extracted.name,
@@ -90,7 +91,8 @@ impl Sage {
                 }
             };
 
-            let address = encode_address(p2_puzzle_hash.into(), &self.network().address_prefix)?;
+            let address =
+                Address::new(p2_puzzle_hash, self.network().address_prefix.clone()).encode()?;
 
             let mut outputs = Vec::new();
 
@@ -104,7 +106,7 @@ impl Sage {
                 };
 
                 let address =
-                    encode_address(p2_puzzle_hash.into(), &self.network().address_prefix)?;
+                    Address::new(p2_puzzle_hash, self.network().address_prefix.clone()).encode()?;
 
                 outputs.push(TransactionOutput {
                     coin_id: hex::encode(output.coin.coin_id()),

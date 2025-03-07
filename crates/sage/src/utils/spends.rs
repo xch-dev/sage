@@ -1,5 +1,5 @@
 use chia::protocol::{CoinSpend, SpendBundle};
-use chia_wallet_sdk::AggSigConstants;
+use chia_wallet_sdk::signer::AggSigConstants;
 use sage_wallet::{insert_transaction, SyncCommand, Transaction};
 
 use crate::{Error, Result, Sage};

@@ -1,8 +1,11 @@
 use std::collections::HashMap;
 use std::time::Duration;
 
-use chia::{clvm_traits::FromClvm, puzzles::nft::NftMetadata};
-use chia_wallet_sdk::{encode_address, Offer, SpendContext};
+use chia::puzzles::nft::NftMetadata;
+use chia_wallet_sdk::{
+    driver::{Offer, SpendContext},
+    utils::Address,
+};
 use indexmap::IndexMap;
 use sage_api::{Amount, OfferAssets, OfferCat, OfferNft, OfferSummary, OfferXch};
 use sage_assets::fetch_uris_with_hash;
@@ -21,8 +24,8 @@ impl Sage {
 
         let mut ctx = SpendContext::new();
 
-        let parsed_offer = offer.parse(&mut ctx.allocator)?;
-        let (locked_coins, coin_ids) = parse_locked_coins(&mut ctx.allocator, &parsed_offer)?;
+        let parsed_offer = offer.parse(&mut ctx)?;
+        let (locked_coins, coin_ids) = parse_locked_coins(&mut ctx, &parsed_offer)?;
         let maker_amounts = locked_coins.amounts();
 
         // Get expiration information
@@ -34,10 +37,10 @@ impl Sage {
                 parse_genesis_challenge(self.network().genesis_challenge.clone())?,
             )
             .await?;
-            offer_expiration(&mut ctx.allocator, &parsed_offer, &coin_creation)?
+            offer_expiration(&mut ctx, &parsed_offer, &coin_creation)?
         } else {
             warn!("No peers available to fetch coin creation information, so skipping for now");
-            offer_expiration(&mut ctx.allocator, &parsed_offer, &HashMap::new())?
+            offer_expiration(&mut ctx, &parsed_offer, &HashMap::new())?
         };
 
         let mut builder = parsed_offer.take();
@@ -98,9 +101,7 @@ impl Sage {
         }
 
         for (launcher_id, nft) in locked_coins.nfts {
-            let info = if let Ok(metadata) =
-                NftMetadata::from_clvm(&ctx.allocator, nft.info.metadata.ptr())
-            {
+            let info = if let Ok(metadata) = ctx.extract::<NftMetadata>(nft.info.metadata.ptr()) {
                 let mut confirmation_info = ConfirmationInfo::default();
 
                 if let Some(hash) = metadata.data_hash {
@@ -131,16 +132,17 @@ impl Sage {
             };
 
             maker.nfts.insert(
-                encode_address(launcher_id.to_bytes(), "nft")?,
+                Address::new(launcher_id, "nft".to_string()).encode()?,
                 OfferNft {
                     image_data: info.image_data,
                     image_mime_type: info.image_mime_type,
                     name: info.name,
                     royalty_ten_thousandths: nft.info.royalty_ten_thousandths,
-                    royalty_address: encode_address(
-                        nft.info.royalty_puzzle_hash.into(),
-                        &self.network().address_prefix,
-                    )?,
+                    royalty_address: Address::new(
+                        nft.info.royalty_puzzle_hash,
+                        self.network().address_prefix.clone(),
+                    )
+                    .encode()?,
                 },
             );
         }
@@ -170,7 +172,7 @@ impl Sage {
         }
 
         for (launcher_id, (nft, _payments)) in requested_payments.nfts {
-            let metadata = NftMetadata::from_clvm(&ctx.allocator, nft.metadata.ptr())?;
+            let metadata = ctx.extract::<NftMetadata>(nft.metadata.ptr())?;
             let info = extract_nft_data(
                 Some(&wallet.db),
                 Some(metadata),
@@ -179,16 +181,17 @@ impl Sage {
             .await?;
 
             taker.nfts.insert(
-                encode_address(launcher_id.to_bytes(), "nft")?,
+                Address::new(launcher_id, "nft".to_string()).encode()?,
                 OfferNft {
                     image_data: info.image_data,
                     image_mime_type: info.image_mime_type,
                     name: info.name,
                     royalty_ten_thousandths: nft.royalty_ten_thousandths,
-                    royalty_address: encode_address(
-                        nft.royalty_puzzle_hash.into(),
-                        &self.network().address_prefix,
-                    )?,
+                    royalty_address: Address::new(
+                        nft.royalty_puzzle_hash,
+                        self.network().address_prefix.clone(),
+                    )
+                    .encode()?,
                 },
             );
         }

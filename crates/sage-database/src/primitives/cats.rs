@@ -1,5 +1,5 @@
 use chia::{protocol::Bytes32, puzzles::LineageProof};
-use chia_wallet_sdk::Cat;
+use chia_wallet_sdk::driver::Cat;
 use sqlx::SqliteExecutor;
 
 use crate::{
