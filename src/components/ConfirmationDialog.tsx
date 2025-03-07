@@ -18,11 +18,17 @@ import {
   BadgeMinus,
   BadgePlus,
   BoxIcon,
-  CircleAlert,
   CopyCheckIcon,
   CopyIcon,
   ForwardIcon,
   LoaderCircleIcon,
+  ArrowUpIcon,
+  ArrowDownIcon,
+  CodeIcon,
+  InfoIcon,
+  AlertCircleIcon,
+  CheckCircleIcon,
+  MessageSquareTextIcon,
 } from 'lucide-react';
 import { PropsWithChildren, useEffect, useState } from 'react';
 import {
@@ -35,13 +41,17 @@ import {
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { Badge } from './ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { NumberFormat } from './NumberFormat';
 import { formatNumber } from '../i18n';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Separator } from './ui/separator';
+import { CopyButton } from './CopyButton';
+import { toast } from 'react-toastify';
 
 export interface ConfirmationDialogProps {
   response: TransactionResponse | TakeOfferResponse | null;
   close: () => void;
   onConfirm?: () => void;
+  memo?: string;
 }
 
 interface SpentCoin {
@@ -62,6 +72,7 @@ export default function ConfirmationDialog({
   response,
   close,
   onConfirm,
+  memo,
 }: ConfirmationDialogProps) {
   const walletState = useWalletState();
   const ticker = walletState.sync.unit.ticker;
@@ -70,6 +81,8 @@ export default function ConfirmationDialog({
 
   const [pending, setPending] = useState(false);
   const [signature, setSignature] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<string>('details');
+  const [jsonCopied, setJsonCopied] = useState(false);
 
   useEffect(() => {
     if (response !== null && 'spend_bundle' in response) {
@@ -83,9 +96,9 @@ export default function ConfirmationDialog({
     close();
   };
 
-  const { created } = response
+  const { spent, created } = response
     ? calculateTransaction(walletState.sync.unit, response.summary)
-    : { created: [] };
+    : { spent: [], created: [] };
   const fee = BigNumber(response?.summary.fee || 0);
   const isHighFee = fee.isGreaterThan(1000_000_000); // Adjust threshold as needed
 
@@ -97,157 +110,388 @@ export default function ConfirmationDialog({
             coin_spends: response.coin_spends,
             aggregated_signature:
               signature ||
-              '0xc00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000',
+              '0xc000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000',
           }
         : response.spend_bundle,
     null,
     2,
   ).replace(/"amount": "(.*?)"/g, '"amount": $1');
-  // TODO: Fix the above hack
-
-  const [jsonCopied, setJsonCopied] = useState(false);
 
   const copyJson = () => {
     writeText(json);
-
     setJsonCopied(true);
     setTimeout(() => setJsonCopied(false), 2000);
+    toast.success(t`JSON copied to clipboard`);
   };
+
+  // Get recipient addresses (excluding change)
+  const recipients = created
+    .filter(
+      (item) =>
+        item.address !== t`Change` &&
+        item.address !== t`You` &&
+        item.address !== t`Permanently Burned`,
+    )
+    .map((item) => item.address)
+    .filter((address, index, self) => self.indexOf(address) === index);
 
   return (
     <Dialog open={!!response} onOpenChange={reset}>
-      <DialogContent>
+      <DialogContent className='max-w-[90vw] md:max-w-[500px] overflow-hidden'>
         <DialogHeader>
-          <DialogTitle>
-            <Trans>Confirm transaction?</Trans>
+          <DialogTitle className='text-xl font-semibold'>
+            <Trans>Confirm Transaction</Trans>
           </DialogTitle>
           <DialogDescription>
-            <div className='max-h-[360px] overflow-y-scroll'>
-              <Tabs defaultValue='simple' className='mt-2'>
-                <TabsList className='w-full'>
-                  <TabsTrigger value='simple' className='flex-grow'>
-                    <Trans>Summary</Trans>
-                  </TabsTrigger>
-                  <TabsTrigger value='advanced' className='flex-grow'>
-                    <Trans>Advanced</Trans>
-                  </TabsTrigger>
-                  <TabsTrigger value='json' className='flex-grow'>
-                    <Trans>JSON</Trans>
-                  </TabsTrigger>
-                </TabsList>
-                <TabsContent value='simple'>
-                  {isHighFee && !fee.isZero() && (
-                    <Alert variant='warning' className='my-3'>
-                      <CircleAlert className='h-4 w-4' />
-                      <AlertTitle>
-                        <Trans>High Transaction Fee</Trans>
-                      </AlertTitle>
-                      <AlertDescription>
-                        <Trans>
-                          Fee exceeds recommended maximum of 0.001 {ticker}
-                        </Trans>
-                      </AlertDescription>
-                    </Alert>
-                  )}
-                  <Group label={t`Summary`} icon={BadgePlus}>
-                    <div className='flex flex-col gap-2'>
-                      {!BigNumber(response?.summary.fee || 0).isZero() && (
-                        <Item
-                          badge={t`Fee`}
-                          label={`${formatNumber({
-                            value: fromMojos(
-                              response?.summary.fee || '0',
-                              walletState.sync.unit.decimals,
-                            ),
-                            minimumFractionDigits: 0,
-                            maximumFractionDigits:
-                              walletState.sync.unit.decimals,
-                          })} ${walletState.sync.unit.ticker}`}
-                        />
-                      )}
-                      {created
-                        .filter((created) => created.address !== t`Change`)
-                        .sort((a, b) => a.sort - b.sort)
-                        .map((created, i) => (
-                          <Item
-                            key={i}
-                            badge={created.badge}
-                            label={created.label}
-                            icon={ForwardIcon}
-                            address={created.address}
-                          />
-                        ))}
-                    </div>
-                  </Group>
-                </TabsContent>
-                <TabsContent value='advanced'>
-                  {response !== null && (
-                    <AdvancedSummary summary={response.summary} />
-                  )}
-                </TabsContent>
-                <TabsContent value='json'>
-                  <Alert>
-                    <CircleAlert className='h-4 w-4' />
-                    <AlertTitle>
-                      <Trans>Warning</Trans>
-                    </AlertTitle>
-                    <AlertDescription>
-                      <Trans>
-                        This is the raw JSON spend bundle for this transaction.
-                        If you sign it, the transaction can be submitted to the
-                        mempool externally.
-                      </Trans>
-                    </AlertDescription>
-                  </Alert>
-
-                  <Button
-                    className='mt-2'
-                    onClick={() => {
-                      commands
-                        .signCoinSpends({
-                          coin_spends:
-                            response === null
-                              ? []
-                              : 'coin_spends' in response
-                                ? response.coin_spends
-                                : response.spend_bundle.coin_spends,
-                        })
-                        .then((data) =>
-                          setSignature(data.spend_bundle.aggregated_signature),
-                        )
-                        .catch(addError);
-                    }}
-                    disabled={!!signature}
-                  >
-                    {signature ? (
-                      <Trans>Transaction Signed</Trans>
-                    ) : (
-                      <Trans>Sign Transaction</Trans>
-                    )}
-                  </Button>
-
-                  <div className='relative mt-2 p-2 break-all rounded-md bg-neutral-100 dark:bg-neutral-900 whitespace-pre-wrap'>
-                    {json}
-
-                    <Button
-                      size='icon'
-                      variant='ghost'
-                      className='absolute top-2 right-2 -ml-px inline-flex items-center gap-x-1.5 rounded-md px-3 py-2 text-sm font-semibold ring-1 ring-inset ring-neutral-200 dark:ring-neutral-800 hover:bg-gray-50'
-                      onClick={copyJson}
-                    >
-                      {jsonCopied ? (
-                        <CopyCheckIcon className='-ml-0.5 h-5 w-5 text-emerald-500' />
-                      ) : (
-                        <CopyIcon className='-ml-0.5 h-5 w-5 text-muted-foreground' />
-                      )}
-                    </Button>
-                  </div>
-                </TabsContent>
-              </Tabs>
+            <div className='text-sm text-muted-foreground'>
+              <Trans>
+                Please review the transaction details before submitting.
+              </Trans>
             </div>
           </DialogDescription>
         </DialogHeader>
-        <DialogFooter>
+
+        <div className='space-y-4'>
+          {/* Transaction Summary Card */}
+          <Card>
+            <CardHeader className='pb-2'>
+              <CardTitle className='text-lg font-medium'>
+                <Trans>Transaction Summary</Trans>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className='space-y-4'>
+              {/* High Fee Warning */}
+              {isHighFee && !fee.isZero() && (
+                <Alert variant='warning' className='mb-3'>
+                  <AlertCircleIcon className='h-4 w-4' />
+                  <AlertTitle>
+                    <Trans>High Transaction Fee</Trans>
+                  </AlertTitle>
+                  <AlertDescription>
+                    <Trans>
+                      Fee exceeds recommended maximum of 0.001 {ticker}
+                    </Trans>
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {/* Fee Display */}
+              <div className='grid grid-cols-1 gap-4'>
+                <div className='flex flex-col space-y-1'>
+                  <span className='text-sm text-muted-foreground'>
+                    <Trans>Transaction Fee</Trans>
+                  </span>
+                  <span className='text-xl font-semibold'>
+                    {fee.isZero() ? (
+                      <span className='text-muted-foreground'>-</span>
+                    ) : (
+                      <>
+                        {formatNumber({
+                          value: fromMojos(fee, walletState.sync.unit.decimals),
+                          minimumFractionDigits: 0,
+                          maximumFractionDigits: walletState.sync.unit.decimals,
+                        })}{' '}
+                        {ticker}
+                      </>
+                    )}
+                  </span>
+                </div>
+              </div>
+
+              {/* Memo Display - only show if memo is provided */}
+              {memo && (
+                <div className='pt-2'>
+                  <h3 className='text-sm font-medium mb-2 flex items-center'>
+                    <MessageSquareTextIcon className='h-4 w-4 mr-1' />
+                    <Trans>Memo</Trans>
+                  </h3>
+                  <div className='space-y-2'>
+                    <div className='flex items-start gap-2 text-sm border rounded-md p-2 bg-neutral-50 dark:bg-neutral-900'>
+                      <div className='break-words whitespace-pre-wrap w-full'>
+                        {memo}
+                      </div>
+                      <CopyButton
+                        value={memo}
+                        className='h-4 w-4 shrink-0 ml-auto'
+                        onCopy={() =>
+                          toast.success(t`Memo copied to clipboard`)
+                        }
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Recipient Summary */}
+              <div className='pt-2'>
+                <h3 className='text-sm font-medium mb-2'>
+                  <Trans>Recipient</Trans>
+                  {recipients.length > 1 ? 's' : ''}
+                </h3>
+                <div className='space-y-2'>
+                  {recipients.length === 0 ? (
+                    <div className='text-sm text-muted-foreground'>
+                      <Trans>No external recipients</Trans>
+                    </div>
+                  ) : (
+                    recipients.map((address, i) => (
+                      <div
+                        key={i}
+                        className='flex items-center gap-2 text-sm border rounded-md p-2 w-full overflow-hidden'
+                      >
+                        <ForwardIcon className='h-4 w-4 text-blue-500 shrink-0' />
+                        <div className='truncate max-w-[200px]'>{address}</div>
+                        <CopyButton
+                          value={address}
+                          className='h-4 w-4 shrink-0 ml-auto'
+                          onCopy={() =>
+                            toast.success(t`Address copied to clipboard`)
+                          }
+                        />
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Tabs for Details and JSON */}
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className='w-full'
+          >
+            <TabsList className='grid w-full grid-cols-2'>
+              <TabsTrigger value='details'>
+                <InfoIcon className='h-4 w-4 mr-2' />
+                <Trans>Details</Trans>
+              </TabsTrigger>
+              <TabsTrigger value='json'>
+                <CodeIcon className='h-4 w-4 mr-2' />
+                <Trans>JSON</Trans>
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent
+              value='details'
+              className='max-h-[300px] overflow-y-auto space-y-4 pt-4'
+            >
+              {/* Assets Being Sent */}
+              <div>
+                <h3 className='text-sm font-semibold mb-2 flex items-center'>
+                  <ArrowUpIcon className='h-4 w-4 mr-1' />
+                  <Trans>Assets Being Sent</Trans>
+                </h3>
+                <div className='space-y-2'>
+                  {created
+                    .filter(
+                      (item) =>
+                        item.address !== t`Change` && item.address !== t`You`,
+                    )
+                    .sort((a, b) => a.sort - b.sort)
+                    .map((item, i) => (
+                      <div
+                        key={i}
+                        className='flex flex-col gap-1.5 rounded-md border p-3'
+                      >
+                        <div className='flex items-center justify-between'>
+                          <Badge className='max-w-[100px]'>
+                            <span className='truncate'>{item.badge}</span>
+                          </Badge>
+                          <div className='text-sm font-medium'>
+                            {item.label}
+                          </div>
+                        </div>
+
+                        <Separator className='my-2' />
+
+                        <div className='flex items-center gap-2 w-full overflow-hidden'>
+                          <div className='text-sm font-medium text-muted-foreground shrink-0'>
+                            <Trans>To:</Trans>
+                          </div>
+                          <div className='flex items-center gap-1.5 min-w-0 w-full'>
+                            <ForwardIcon className='w-4 h-4 text-blue-500 shrink-0' />
+                            <div className='text-sm truncate max-w-[180px]'>
+                              {item.address}
+                            </div>
+                            {item.address !== t`Permanently Burned` && (
+                              <CopyButton
+                                value={item.address}
+                                className='w-4 h-4 shrink-0 ml-auto'
+                                onCopy={() =>
+                                  toast.success(t`Address copied to clipboard`)
+                                }
+                              />
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+
+                  {created.filter(
+                    (item) =>
+                      item.address !== t`Change` && item.address !== t`You`,
+                  ).length === 0 && (
+                    <div className='text-sm text-muted-foreground p-3 border rounded-md'>
+                      <Trans>
+                        No assets being sent to external recipients.
+                      </Trans>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Coins Being Spent */}
+              <div>
+                <h3 className='text-sm font-semibold mb-2 flex items-center'>
+                  <BoxIcon className='h-4 w-4 mr-1' />
+                  <Trans>Coins Being Spent</Trans>
+                </h3>
+                <div className='space-y-2'>
+                  {spent.length === 0 ? (
+                    <div className='text-sm text-muted-foreground p-3 border rounded-md'>
+                      <Trans>No coins being spent.</Trans>
+                    </div>
+                  ) : (
+                    spent
+                      .sort((a, b) => a.sort - b.sort)
+                      .map((item, i) => (
+                        <div
+                          key={i}
+                          className='flex flex-wrap items-center gap-2 text-sm border rounded-md p-2'
+                        >
+                          <Badge className='shrink-0'>{item.badge}</Badge>
+                          <div className='font-medium shrink-0'>
+                            {item.label}
+                          </div>
+                          <div className='text-muted-foreground truncate font-mono text-xs w-full mt-1 flex items-center'>
+                            <span className='truncate'>
+                              {item.coinId.slice(0, 6) +
+                                '...' +
+                                item.coinId.slice(-6)}
+                            </span>
+                            <CopyButton
+                              value={item.coinId}
+                              className='h-4 w-4 shrink-0 ml-auto'
+                              onCopy={() =>
+                                toast.success(t`Coin ID copied to clipboard`)
+                              }
+                            />
+                          </div>
+                        </div>
+                      ))
+                  )}
+                </div>
+              </div>
+
+              {/* Change Outputs */}
+              {created.some((item) => item.address === t`Change`) && (
+                <div>
+                  <h3 className='text-sm font-semibold mb-2 flex items-center'>
+                    <ArrowDownIcon className='h-4 w-4 mr-1' />
+                    <Trans>Change</Trans>
+                  </h3>
+                  <div className='space-y-2'>
+                    {created
+                      .filter((item) => item.address === t`Change`)
+                      .sort((a, b) => a.sort - b.sort)
+                      .map((item, i) => (
+                        <div
+                          key={i}
+                          className='flex items-center gap-2 text-sm border rounded-md p-2'
+                        >
+                          <Badge className='shrink-0'>{item.badge}</Badge>
+                          <div className='font-medium truncate'>
+                            {item.label}
+                          </div>
+                          <div className='text-muted-foreground ml-auto shrink-0'>
+                            <Trans>Returning</Trans>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent
+              value='json'
+              className='max-h-[300px] overflow-y-auto space-y-4 pt-4'
+            >
+              <Alert variant='warning'>
+                <AlertCircleIcon className='h-4 w-4' />
+                <AlertTitle>
+                  <Trans>Advanced Feature</Trans>
+                </AlertTitle>
+                <AlertDescription>
+                  <Trans>
+                    This is the raw JSON spend bundle for this transaction. If
+                    you sign it, the transaction can be submitted to the mempool
+                    externally.
+                  </Trans>
+                </AlertDescription>
+              </Alert>
+
+              <div className='flex items-center gap-2'>
+                <Button
+                  size='sm'
+                  onClick={() => {
+                    commands
+                      .signCoinSpends({
+                        coin_spends:
+                          response === null
+                            ? []
+                            : 'coin_spends' in response
+                              ? response.coin_spends
+                              : response.spend_bundle.coin_spends,
+                      })
+                      .then((data) => {
+                        setSignature(data.spend_bundle.aggregated_signature);
+                        toast.success(t`Transaction signed successfully`);
+                      })
+                      .catch(addError);
+                  }}
+                  disabled={!!signature}
+                >
+                  {signature ? (
+                    <>
+                      <CheckCircleIcon className='h-4 w-4 mr-1' />
+                      <Trans>Signed</Trans>
+                    </>
+                  ) : (
+                    <Trans>Sign Transaction</Trans>
+                  )}
+                </Button>
+
+                <Button
+                  variant='outline'
+                  size='sm'
+                  onClick={copyJson}
+                  className='flex items-center gap-1'
+                >
+                  {jsonCopied ? (
+                    <>
+                      <CopyCheckIcon className='h-4 w-4 text-emerald-500' />
+                      <Trans>Copied</Trans>
+                    </>
+                  ) : (
+                    <>
+                      <CopyIcon className='h-4 w-4' />
+                      <Trans>Copy JSON</Trans>
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              <div className='relative p-3 break-all rounded-md bg-neutral-100 dark:bg-neutral-900 whitespace-pre-wrap text-xs font-mono overflow-auto max-h-[200px]'>
+                {json}
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
+
+        <DialogFooter className='pt-2'>
           <Button variant='ghost' onClick={reset}>
             <Trans>Cancel</Trans>
           </Button>
@@ -290,6 +534,7 @@ export default function ConfirmationDialog({
 
                 if (!data) return reset();
 
+                toast.success(t`Transaction submitted successfully`);
                 onConfirm?.();
                 reset();
               })().finally(() => setPending(false));
@@ -307,51 +552,7 @@ export default function ConfirmationDialog({
   );
 }
 
-interface GroupProps {
-  label: string;
-  icon: typeof BadgeMinus;
-}
-
-function Group({ label, icon: Icon, children }: PropsWithChildren<GroupProps>) {
-  return (
-    <div className='flex flex-col gap-2 w-full font-medium text-left text-neutral-900 dark:text-neutral-200 bg-neutral-100 dark:bg-neutral-900 p-2 rounded-md'>
-      <div className='flex items-center gap-2 text-lg'>
-        <Icon className='w-6 h-6' />
-        <span>{label}</span>
-      </div>
-      <div>{children}</div>
-    </div>
-  );
-}
-
-interface ItemProps {
-  badge: string;
-  label: string;
-  icon?: typeof BadgeMinus;
-  address?: string;
-}
-
-function Item({ badge, label, icon: Icon, address }: ItemProps) {
-  return (
-    <div className='flex flex-col gap-1 border-2 p-1.5 rounded-md'>
-      <div className='flex items-center gap-2'>
-        <Badge className='max-w-[100px]'>
-          <span className='truncate'>{badge}</span>
-        </Badge>
-        <span>{label}</span>
-      </div>
-      {Icon && (
-        <div className='flex items-center gap-1'>
-          <Icon className='w-4 h-4' />
-          <div className='w-[250px] truncate text-neutral-600 dark:text-neutral-400'>
-            {address}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
+// Export AdvancedSummary for use in WalletConnectContext
 export interface AdvancedSummaryProps {
   summary: TransactionSummary;
 }
@@ -366,22 +567,44 @@ export function AdvancedSummary({ summary }: AdvancedSummaryProps) {
 
   return (
     <div className='flex flex-col gap-1.5'>
-      <Group label={t`Spent Coins`} icon={BadgeMinus}>
+      <div className='flex flex-col gap-2 w-full font-medium text-left text-neutral-900 dark:text-neutral-200 bg-neutral-100 dark:bg-neutral-900 p-2 rounded-md'>
+        <div className='flex items-center gap-2 text-lg'>
+          <BadgeMinus className='w-6 h-6' />
+          <span>
+            <Trans>Spent Coins</Trans>
+          </span>
+        </div>
         <div className='flex flex-col gap-2'>
           {spent
             .sort((a, b) => a.sort - b.sort)
             .map((spent, i) => (
-              <Item
+              <div
                 key={i}
-                badge={spent.badge}
-                label={spent.label}
-                icon={BoxIcon}
-                address={spent.coinId}
-              />
+                className='flex flex-col gap-1 border-2 p-1.5 rounded-md'
+              >
+                <div className='flex items-center gap-2'>
+                  <Badge className='max-w-[100px]'>
+                    <span className='truncate'>{spent.badge}</span>
+                  </Badge>
+                  <span>{spent.label}</span>
+                </div>
+                <div className='flex items-center gap-1'>
+                  <BoxIcon className='w-4 h-4' />
+                  <div className='truncate text-neutral-600 dark:text-neutral-400'>
+                    {spent.coinId}
+                  </div>
+                </div>
+              </div>
             ))}
         </div>
-      </Group>
-      <Group label={t`Transaction Output`} icon={BadgePlus}>
+      </div>
+      <div className='flex flex-col gap-2 w-full font-medium text-left text-neutral-900 dark:text-neutral-200 bg-neutral-100 dark:bg-neutral-900 p-2 rounded-md'>
+        <div className='flex items-center gap-2 text-lg'>
+          <BadgePlus className='w-6 h-6' />
+          <span>
+            <Trans>Transaction Output</Trans>
+          </span>
+        </div>
         <div className='flex flex-col gap-2'>
           {!BigNumber(summary.fee || 0).isZero() && (
             <div className='flex flex-col gap-1 border-2 p-1.5 rounded-md'>
@@ -399,16 +622,26 @@ export function AdvancedSummary({ summary }: AdvancedSummaryProps) {
           {created
             .sort((a, b) => a.sort - b.sort)
             .map((created, i) => (
-              <Item
+              <div
                 key={i}
-                badge={created.badge}
-                label={created.label}
-                icon={ForwardIcon}
-                address={created.address}
-              />
+                className='flex flex-col gap-1 border-2 p-1.5 rounded-md'
+              >
+                <div className='flex items-center gap-2'>
+                  <Badge className='max-w-[100px]'>
+                    <span className='truncate'>{created.badge}</span>
+                  </Badge>
+                  <span>{created.label}</span>
+                </div>
+                <div className='flex items-center gap-1'>
+                  <ForwardIcon className='w-4 h-4' />
+                  <div className='truncate text-neutral-600 dark:text-neutral-400'>
+                    {created.address}
+                  </div>
+                </div>
+              </div>
             ))}
         </div>
-      </Group>
+      </div>
     </div>
   );
 }
@@ -526,41 +759,6 @@ function calculateTransaction(
                 ? t`You`
                 : output.address,
             sort: 3,
-          });
-        }
-      }
-    }
-
-    if (input.type === 'nft') {
-      if (
-        !summary.inputs
-          .map((i) => i.outputs)
-          .flat()
-          .find((o) => o.coin_id === input.coin_id)
-      ) {
-        spent.push({
-          badge: 'NFT',
-          label: input.name || t`Unknown`,
-          coinId: input.coin_id,
-          sort: 4,
-        });
-      }
-
-      for (const output of input.outputs) {
-        if (summary.inputs.find((i) => i.coin_id === output.coin_id)) {
-          continue;
-        }
-
-        if (BigNumber(output.amount).mod(2).isEqualTo(1)) {
-          created.push({
-            badge: 'NFT',
-            label: input.name || t`Unknown`,
-            address: output.burning
-              ? t`Permanently Burned`
-              : output.receiving
-                ? t`You`
-                : output.address,
-            sort: 4,
           });
         }
       }

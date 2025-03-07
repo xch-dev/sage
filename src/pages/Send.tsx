@@ -55,6 +55,7 @@ export default function Send() {
     null,
   );
   const [response, setResponse] = useState<TransactionResponse | null>(null);
+  const [currentMemo, setCurrentMemo] = useState<string | undefined>(undefined);
 
   const [bulk, setBulk] = useState(false);
 
@@ -153,6 +154,9 @@ export default function Send() {
   const onSubmit = () => {
     const values = form.getValues();
     const memos = values.memo ? [toHex(stringToUint8Array(values.memo))] : [];
+
+    // Store the memo for the confirmation dialog
+    setCurrentMemo(values.memo);
 
     const command = isXch
       ? bulk
@@ -345,6 +349,7 @@ export default function Send() {
         response={response}
         close={() => setResponse(null)}
         onConfirm={() => navigate(-1)}
+        memo={currentMemo}
       />
     </>
   );
