@@ -897,7 +897,7 @@ async fn search_nfts(
     // Add name search if present
     if let Some(name_search) = &params.name {
         query.push(" AND name LIKE ");
-        query.push_bind(format!("%{}%", name_search));
+        query.push_bind(format!("%{name_search}%"));
     }
 
     // Add ORDER BY clause based on sort_mode
