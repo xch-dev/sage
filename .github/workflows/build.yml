@@ -113,6 +113,10 @@ jobs:
           choco install nasm
           echo "C:\Program Files\NASM" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
+      - name: Install OpenSSL on Android
+        if: matrix.platform_name == 'Android'
+        run: brew install openssl
+
       - name: Install Android NDK
         uses: nttld/setup-ndk@v1
         id: setup-ndk

@@ -5112,7 +5112,6 @@ name = "sage-assets"
 version = "0.9.6"
 dependencies = [
  "chia",
- "clvmr",
  "futures-lite",
  "futures-util",
  "mime-sniffer",
