@@ -1,4 +1,6 @@
 use chia::protocol::{Bytes32, CoinState};
+use chia_wallet_sdk;
+use hex;
 use sqlx::Row;
 use sqlx::SqliteExecutor;
 
@@ -65,6 +67,16 @@ impl Database {
         find_value: Option<String>,
     ) -> Result<(Vec<u32>, u32)> {
         get_block_heights(&self.pool, offset, limit, asc, find_value).await
+    }
+
+    pub async fn get_block_heights_by_item_id(
+        &self,
+        offset: u32,
+        limit: u32,
+        asc: bool,
+        id: Option<String>,
+    ) -> Result<(Vec<u32>, u32)> {
+        get_block_heights_by_item_id(&self.pool, offset, limit, asc, id).await
     }
 
     pub async fn get_coin_states_by_created_height(
@@ -496,6 +508,121 @@ async fn get_block_heights(
             .push_bind(format!("%{}%", value))
             .push(" OR nft_name LIKE ")
             .push_bind(format!("%{}%", value))
+            .push(")");
+    }
+
+    query.push(")");
+
+    // Select both the paginated results and the total count
+    query.push(
+        "
+        SELECT height, COUNT(*) OVER() as total_count
+        FROM filtered_heights 
+        ORDER BY height ",
+    );
+
+    query.push(if asc { "ASC" } else { "DESC" });
+    query.push(" LIMIT ? OFFSET ?");
+
+    let built_query = query.build();
+    let rows = built_query.bind(limit).bind(offset).fetch_all(conn).await?;
+
+    let mut heights = Vec::with_capacity(rows.len());
+    let mut total_count = 0;
+
+    for row in rows {
+        if let Some(height) = row.get::<Option<i64>, _>(0) {
+            heights.push(height.try_into()?);
+        }
+        // Get the total count from the first row (it will be the same in all rows)
+        if total_count == 0 {
+            total_count = row.get::<i64, _>(1).try_into()?;
+        }
+    }
+
+    Ok((heights, total_count))
+}
+
+async fn get_block_heights_by_item_id(
+    conn: impl SqliteExecutor<'_>,
+    offset: u32,
+    limit: u32,
+    asc: bool,
+    id: Option<String>,
+) -> Result<(Vec<u32>, u32)> {
+    // Early return with empty results if ID is provided but not valid
+    let id_bytes = if let Some(value) = &id {
+        // First try to decode as a bech32m address (NFT ID, DID ID, etc.)
+        if value.starts_with("nft") || value.starts_with("did:chia:") {
+            match chia_wallet_sdk::decode_address(value) {
+                Ok((launcher_id, _prefix)) => Some(launcher_id.to_vec()),
+                Err(_) => return Ok((Vec::new(), 0)), // Invalid bech32m address
+            }
+        } else {
+            // If not a bech32m address, try to decode as a hex string
+            // Strip 0x prefix if present
+            let stripped = value.strip_prefix("0x").unwrap_or(value);
+
+            // Try to decode the hex string to bytes
+            match hex::decode(stripped) {
+                Ok(bytes) if bytes.len() == 32 => Some(bytes),
+                _ => return Ok((Vec::new(), 0)), // Return empty results for invalid ID
+            }
+        }
+    } else {
+        None
+    };
+
+    // if all of these joins are too slow we can use the id type to execute 3 different queries
+    // (cat, nft, and did) for now performs well so am preferring simplicity over performance
+    let mut query = sqlx::QueryBuilder::new(
+        "
+        WITH filtered_coins AS (
+            SELECT cs.coin_id,  
+                cs.kind, 
+                cats.asset_id,
+                dids.launcher_id as did_launcher_id,
+                nfts.launcher_id as nft_launcher_id,
+                cs.created_height as height
+            FROM coin_states cs
+                LEFT JOIN cat_coins ON cs.coin_id = cat_coins.coin_id
+                LEFT JOIN cats ON cat_coins.asset_id = cats.asset_id
+                LEFT JOIN did_coins ON cs.coin_id = did_coins.coin_id
+                LEFT JOIN dids ON did_coins.coin_id = dids.coin_id
+                LEFT JOIN nft_coins ON cs.coin_id = nft_coins.coin_id
+                LEFT JOIN nfts ON nft_coins.coin_id = nfts.coin_id
+            WHERE cs.created_height IS NOT NULL
+            UNION ALL
+            SELECT cs.coin_id, 
+                cs.kind,
+                cats.asset_id,
+                dids.launcher_id as did_launcher_id,
+                nfts.launcher_id as nft_launcher_id,
+                cs.spent_height as height
+            FROM coin_states cs
+                LEFT JOIN cat_coins ON cs.coin_id = cat_coins.coin_id
+                LEFT JOIN cats ON cat_coins.asset_id = cats.asset_id
+                LEFT JOIN did_coins ON cs.coin_id = did_coins.coin_id
+                LEFT JOIN dids ON did_coins.coin_id = dids.coin_id
+                LEFT JOIN nft_coins ON cs.coin_id = nft_coins.coin_id
+                LEFT JOIN nfts ON nft_coins.coin_id = nfts.coin_id
+            WHERE cs.spent_height IS NOT NULL
+        ),
+        filtered_heights AS (
+            SELECT DISTINCT height
+            FROM filtered_coins
+            WHERE 1=1
+        ",
+    );
+
+    if let Some(bytes) = id_bytes {
+        query
+            .push(" AND (asset_id = ")
+            .push_bind(bytes.clone())
+            .push(" OR did_launcher_id = ")
+            .push_bind(bytes.clone())
+            .push(" OR nft_launcher_id = ")
+            .push_bind(bytes)
             .push(")");
     }
 
