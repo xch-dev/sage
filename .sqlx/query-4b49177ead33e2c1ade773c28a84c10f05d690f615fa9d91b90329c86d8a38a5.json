@@ -1,0 +1,56 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT\n            cs.`parent_coin_id`, cs.`puzzle_hash`, cs.`amount`, `p2_puzzle_hash`,\n            `parent_parent_coin_id`, `parent_inner_puzzle_hash`, `parent_amount`\n        FROM `cat_coins` INDEXED BY `cat_asset_id`\n        INNER JOIN `coin_states` AS cs ON `cat_coins`.`coin_id` = cs.`coin_id`\n        LEFT JOIN `transaction_spends` ON cs.`coin_id` = `transaction_spends`.`coin_id`\n        LEFT JOIN `offered_coins` ON cs.`coin_id` = `offered_coins`.`coin_id`\n        LEFT JOIN `offers` ON `offered_coins`.`offer_id` = `offers`.`offer_id`\n        WHERE `cat_coins`.`asset_id` = ?\n        AND cs.`spent_height` IS NULL\n        AND `transaction_spends`.`coin_id` IS NULL\n        AND (`offered_coins`.`coin_id` IS NULL OR `offers`.`status` > 0)\n        AND cs.`transaction_id` IS NULL\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "parent_coin_id",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "puzzle_hash",
+        "ordinal": 1,
+        "type_info": "Blob"
+      },
+      {
+        "name": "amount",
+        "ordinal": 2,
+        "type_info": "Blob"
+      },
+      {
+        "name": "p2_puzzle_hash",
+        "ordinal": 3,
+        "type_info": "Blob"
+      },
+      {
+        "name": "parent_parent_coin_id",
+        "ordinal": 4,
+        "type_info": "Blob"
+      },
+      {
+        "name": "parent_inner_puzzle_hash",
+        "ordinal": 5,
+        "type_info": "Blob"
+      },
+      {
+        "name": "parent_amount",
+        "ordinal": 6,
+        "type_info": "Blob"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "4b49177ead33e2c1ade773c28a84c10f05d690f615fa9d91b90329c86d8a38a5"
+}

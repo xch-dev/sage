@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        UPDATE OR IGNORE `coin_states`\n        SET `created_unixtime` = ?\n        WHERE `created_height` = ?\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "d5d05aafad60309b27bb7e7ac9392b8c2e486aa26262d82f2c0ce89fdd19d70b"
+}

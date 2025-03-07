@@ -1,0 +1,56 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT * FROM `offers` INDEXED BY `offer_status` WHERE `status` = 0",
+  "describe": {
+    "columns": [
+      {
+        "name": "offer_id",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "encoded_offer",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "expiration_height",
+        "ordinal": 2,
+        "type_info": "Integer"
+      },
+      {
+        "name": "expiration_timestamp",
+        "ordinal": 3,
+        "type_info": "Blob"
+      },
+      {
+        "name": "fee",
+        "ordinal": 4,
+        "type_info": "Blob"
+      },
+      {
+        "name": "status",
+        "ordinal": 5,
+        "type_info": "Integer"
+      },
+      {
+        "name": "inserted_timestamp",
+        "ordinal": 6,
+        "type_info": "Blob"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "4e4f8169ea7bb563413fc740092fc0441bff904d4220a8030e95479624801027"
+}

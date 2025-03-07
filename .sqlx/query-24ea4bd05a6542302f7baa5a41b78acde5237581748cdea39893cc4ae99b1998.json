@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        UPDATE `collections` SET\n            `collection_id` = ?,\n            `did_id` = ?,\n            `metadata_collection_id` = ?,\n            `visible` = ?,\n            `name` = ?,\n            `icon` = ?\n        WHERE `collection_id` = ?\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 7
+    },
+    "nullable": []
+  },
+  "hash": "24ea4bd05a6542302f7baa5a41b78acde5237581748cdea39893cc4ae99b1998"
+}

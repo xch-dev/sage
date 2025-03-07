@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE `offers` SET `status` = ? WHERE `offer_id` = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "a491d525db244a1d652c603b177ab5a798f65477480750946ae6b982bac32ddc"
+}

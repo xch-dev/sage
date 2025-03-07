@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        INSERT OR IGNORE INTO `nft_coins` (\n            `coin_id`,\n            `parent_parent_coin_id`,\n            `parent_inner_puzzle_hash`,\n            `parent_amount`,\n            `launcher_id`,\n            `metadata`,\n            `metadata_updater_puzzle_hash`,\n            `current_owner`,\n            `royalty_puzzle_hash`,\n            `royalty_ten_thousandths`,\n            `p2_puzzle_hash`,\n            `data_hash`,\n            `metadata_hash`,\n            `license_hash`\n        )\n        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 14
+    },
+    "nullable": []
+  },
+  "hash": "bcd575c48884cbc133f407af02fb963d47a8ef0326e3dbb5dc8ab5654d1f392c"
+}

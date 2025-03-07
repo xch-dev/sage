@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT `spent_height`\n            FROM `coin_states`\n            WHERE `spent_unixtime` IS NULL\n            AND `spent_height` IS NOT NULL\n            ORDER BY `spent_height` DESC \n            LIMIT ?;\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "spent_height",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "d87bb29001a6854438394446d06baf79faff7a27e66b7669b049c51ec3579b5a"
+}

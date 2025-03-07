@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT `coin_states`.`coin_id`\n        FROM `coin_states` INDEXED BY `coin_spent`\n        INNER JOIN `nft_coins` ON `coin_states`.`coin_id` = `nft_coins`.`coin_id`\n        WHERE `spent_height` IS NULL\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "coin_id",
+        "ordinal": 0,
+        "type_info": "Blob"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "a27a932fd61aff027c2416fa86fd625bf7ce1a7ab5d0bf254df504b8708893c9"
+}

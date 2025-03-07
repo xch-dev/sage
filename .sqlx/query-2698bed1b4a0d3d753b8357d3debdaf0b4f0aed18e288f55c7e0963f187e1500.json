@@ -1,0 +1,56 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT `asset_id`, `name`, `ticker`, `description`, `icon`, `visible`, `fetched`\n        FROM `cats` INDEXED BY `cat_name`\n        ORDER BY `visible` DESC, `is_named` DESC, `name` ASC, `asset_id` ASC\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "asset_id",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "name",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "ticker",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "description",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "icon",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "visible",
+        "ordinal": 5,
+        "type_info": "Bool"
+      },
+      {
+        "name": "fetched",
+        "ordinal": 6,
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "2698bed1b4a0d3d753b8357d3debdaf0b4f0aed18e288f55c7e0963f187e1500"
+}

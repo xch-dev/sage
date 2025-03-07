@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT `coin_states`.`parent_coin_id`, `coin_states`.`puzzle_hash`, `coin_states`.`amount` FROM `coin_states`\n        LEFT JOIN `transaction_spends` ON `coin_states`.`coin_id` = `transaction_spends`.`coin_id`\n        LEFT JOIN `offered_coins` ON `coin_states`.`coin_id` = `offered_coins`.`coin_id`\n        LEFT JOIN `offers` ON `offered_coins`.`offer_id` = `offers`.`offer_id`\n        WHERE `coin_states`.`spent_height` IS NULL\n        AND `transaction_spends`.`coin_id` IS NULL\n        AND (`offered_coins`.`coin_id` IS NULL OR `offers`.`status` > 0)\n        AND `coin_states`.`transaction_id` IS NULL\n        AND `kind` = 1\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "parent_coin_id",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "puzzle_hash",
+        "ordinal": 1,
+        "type_info": "Blob"
+      },
+      {
+        "name": "amount",
+        "ordinal": 2,
+        "type_info": "Blob"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "1f02b69aed85e466920cf1890d478d481723d70c83c4370f4c528a574a69e7eb"
+}
