@@ -1,6 +1,4 @@
 use chia::protocol::{Bytes32, CoinState};
-use chia_wallet_sdk;
-use hex;
 use sqlx::Row;
 use sqlx::SqliteExecutor;
 
