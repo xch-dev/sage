@@ -30,6 +30,7 @@ import { platform } from '@tauri-apps/plugin-os';
 import { TrashIcon, WalletIcon } from 'lucide-react';
 import { useContext, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { ping } from 'tauri-plugin-nfc-debug-api';
 import { DarkModeContext } from '../App';
 import {
   commands,
@@ -101,14 +102,12 @@ export default function Settings() {
                     <Trans>Network</Trans>
                   </TabsTrigger>
 
-                  {!isMobile && (
-                    <TabsTrigger
-                      value='advanced'
-                      className='flex-1 md:flex-none rounded-md px-3 py-1 text-sm font-medium'
-                    >
-                      <Trans>Advanced</Trans>
-                    </TabsTrigger>
-                  )}
+                  <TabsTrigger
+                    value='advanced'
+                    className='flex-1 md:flex-none rounded-md px-3 py-1 text-sm font-medium'
+                  >
+                    <Trans>Advanced</Trans>
+                  </TabsTrigger>
                 </TabsList>
               </div>
             </div>
@@ -150,13 +149,12 @@ export default function Settings() {
                 <NetworkSettings />
               </TabsContent>
 
-              {!isMobile && (
-                <TabsContent value='advanced'>
-                  <div className='grid gap-6'>
-                    <RpcSettings />
-                  </div>
-                </TabsContent>
-              )}
+              <TabsContent value='advanced'>
+                <div className='grid gap-6'>
+                  {!isMobile && <RpcSettings />}
+                  {isMobile && <TangemDebug />}
+                </div>
+              </TabsContent>
             </div>
           </Tabs>
         </div>
@@ -565,6 +563,23 @@ function RpcSettings() {
         }
       />
     </SettingsSection>
+  );
+}
+
+function TangemDebug() {
+  const { addError } = useErrors();
+
+  const [result, setResult] = useState<string | null>(null);
+
+  return (
+    <div>
+      <Button
+        onClick={() => ping('Hello, world!').then(setResult).catch(addError)}
+      >
+        Ping
+      </Button>
+      {result}
+    </div>
   );
 }
 

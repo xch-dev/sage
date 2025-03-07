@@ -200,6 +200,8 @@
 				en,
 			);
 			mainGroup = 005CAC9C6FA87B40B7B3BCE3;
+			packageReferences = (
+			);
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -317,7 +319,6 @@
 		78CBA7A0F4678870E3678473 /* release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ARCHS = (
 					arm64,
 					"arm64-sim",
@@ -434,7 +435,6 @@
 		E38941181259EB3BA1D8FB77 /* debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ARCHS = (
 					arm64,
 					"arm64-sim",
