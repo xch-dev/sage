@@ -23,7 +23,9 @@ import { Switch } from '@/components/ui/switch';
 import { useErrors } from '@/hooks/useErrors';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
+import { platform } from '@tauri-apps/plugin-os';
 import {
+  CogIcon,
   EraserIcon,
   EyeIcon,
   FlameIcon,
@@ -32,15 +34,13 @@ import {
   PenIcon,
   SnowflakeIcon,
   TrashIcon,
-  CogIcon,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { commands, KeyInfo, SecretKeyInfo } from '../bindings';
 import Container from '../components/Container';
-import { loginAndUpdateState } from '../state';
-import { platform } from '@tauri-apps/plugin-os';
 import { useWallet } from '../contexts/WalletContext';
+import { loginAndUpdateState } from '../state';
 
 const isMobile = platform() === 'ios' || platform() === 'android';
 
@@ -74,7 +74,7 @@ export default function Login() {
     <SafeAreaView>
       <div
         className={`flex-1 space-y-4 px-4 overflow-y-scroll ${
-          !isMobile ? 'pt-4' : ''
+          isMobile ? '' : 'py-2 pb-4'
         }`}
       >
         <div className='flex items-center justify-between space-y-2'>
@@ -103,7 +103,7 @@ export default function Login() {
         </div>
         {keys !== null ? (
           keys.length ? (
-            <div className='grid md:grid-cols-2 lg:grid-cols-3 gap-4'>
+            <div className='grid md:grid-cols-2 lg:grid-cols-3 gap-3'>
               {keys.map((key, i) => (
                 <WalletItem
                   key={i}
@@ -127,7 +127,7 @@ export default function Login() {
 
 function SkeletonWalletList() {
   return (
-    <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 m-4'>
+    <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 m-4'>
       {Array.from({ length: 3 }).map((_, i) => (
         <div key={i} className='w-full'>
           <Skeleton className='h-[100px] w-full' />
@@ -309,20 +309,20 @@ function WalletItem({ network, info, keys, setKeys }: WalletItemProps) {
           </DropdownMenu>
         </CardHeader>
         <CardContent>
-          <div className='flex items-center mt-1 justify-between'>
+          <div className='flex items-center justify-between'>
             <span className='text-muted-foreground'>{info.fingerprint}</span>
             {info.has_secrets ? (
-              <div className='inline-flex gap-0.5 items-center rounded-full border px-2 py-1.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80'>
-                <FlameIcon className='h-4 w-4 pb-0.5' />
+              <div className='inline-flex gap-1 items-center rounded-full px-3 py-1.5 text-xs bg-rose-900'>
+                <FlameIcon className='h-4 w-4' />
                 <span>
-                  <Trans>Hot Wallet</Trans>
+                  <Trans>Hot</Trans>
                 </span>
               </div>
             ) : (
-              <div className='inline-flex gap-0.5 items-center rounded-full border px-2 py-1.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80'>
-                <SnowflakeIcon className='h-4 w-4 pb-0.5' />
+              <div className='inline-flex gap-1 items-center rounded-full px-3 py-1.5 text-xs bg-sky-800'>
+                <SnowflakeIcon className='h-4 w-4' />
                 <span>
-                  <Trans>Cold Wallet</Trans>
+                  <Trans>Cold</Trans>
                 </span>
               </div>
             )}
