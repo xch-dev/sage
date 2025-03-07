@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT `created_height`\n            FROM `coin_states`\n            WHERE `created_unixtime` IS NULL\n            AND `created_height` IS NOT NULL\n            ORDER BY `created_height` DESC \n            LIMIT ?;\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "created_height",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "2352d75ac81cc461f02e93d44bf84002200927526c2223dd75dc30a819d5b12c"
+}

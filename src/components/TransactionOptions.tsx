@@ -22,6 +22,8 @@ import {
   SetTransactionParams,
 } from '@/hooks/useTransactionsParams';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useDebounce } from '@/hooks/useDebounce';
+import { useState, useEffect } from 'react';
 
 const optionsPaginationVariants = {
   enter: { opacity: 1, y: 0 },
@@ -44,6 +46,18 @@ export function TransactionOptions({
   renderPagination,
 }: TransactionOptionsProps) {
   const { search, ascending, summarized } = params;
+  const [searchValue, setSearchValue] = useState(search);
+  const debouncedSearch = useDebounce(searchValue, 400);
+
+  useEffect(() => {
+    setSearchValue(search);
+  }, [search]);
+
+  useEffect(() => {
+    if (debouncedSearch !== search) {
+      onParamsChange({ search: debouncedSearch, page: 1 });
+    }
+  }, [debouncedSearch, search, onParamsChange]);
 
   return (
     <div
@@ -58,22 +72,22 @@ export function TransactionOptions({
             aria-hidden='true'
           />
           <Input
-            value={search}
+            value={searchValue}
             aria-label={t`Search transactions...`}
             title={t`Search transactions...`}
             placeholder={t`Search transactions...`}
-            onChange={(e) => onParamsChange({ search: e.target.value })}
+            onChange={(e) => setSearchValue(e.target.value)}
             className='w-full pl-8 pr-8'
           />
         </div>
-        {search && (
+        {searchValue && (
           <Button
             variant='ghost'
             size='icon'
             title={t`Clear search`}
             aria-label={t`Clear search`}
             className='absolute right-0 top-0 h-full px-2 hover:bg-transparent'
-            onClick={() => onParamsChange({ search: '' })}
+            onClick={() => setSearchValue('')}
           >
             <XIcon className='h-4 w-4' aria-hidden='true' />
           </Button>

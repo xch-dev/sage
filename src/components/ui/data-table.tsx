@@ -5,10 +5,10 @@ import {
   flexRender,
   getCoreRowModel,
   getSortedRowModel,
+  OnChangeFn,
+  Row,
   SortingState,
   useReactTable,
-  Row,
-  OnChangeFn,
 } from '@tanstack/react-table';
 
 import {
@@ -56,10 +56,12 @@ export function DataTable<TData, TValue>({
     getSortedRowModel: getSortedRowModel(),
   });
 
+  const length = data.length;
+
   return (
     <div>
       <div className='rounded-md border'>
-        <Table aria-label='Transactions table'>
+        <Table aria-label='Table'>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
@@ -86,7 +88,7 @@ export function DataTable<TData, TValue>({
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && 'selected'}
-                  className={getRowStyles?.(row)?.className}
+                  {...getRowStyles?.(row)}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell
@@ -116,8 +118,8 @@ export function DataTable<TData, TValue>({
           </TableBody>
         </Table>
       </div>
-      <div className='text-sm text-muted-foreground mb-2'>
-        <Trans>Showing {data.length} rows</Trans>
+      <div className='text-sm text-muted-foreground mt-1 mb-2'>
+        <Trans>Showing {length} rows</Trans>
       </div>
     </div>
   );
