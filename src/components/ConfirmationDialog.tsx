@@ -18,6 +18,7 @@ import {
   BadgeMinus,
   BadgePlus,
   BoxIcon,
+  CircleAlert,
   CopyCheckIcon,
   CopyIcon,
   ForwardIcon,
@@ -29,6 +30,7 @@ import {
   AlertCircleIcon,
   CheckCircleIcon,
   MessageSquareTextIcon,
+  ChevronDownIcon,
 } from 'lucide-react';
 import { PropsWithChildren, useEffect, useState } from 'react';
 import {
@@ -40,12 +42,17 @@ import {
 } from '../bindings';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { Badge } from './ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { formatNumber } from '../i18n';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Separator } from './ui/separator';
 import { CopyButton } from './CopyButton';
 import { toast } from 'react-toastify';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '../components/ui/accordion';
+import { formatNumber } from '../i18n';
 
 export interface ConfirmationDialogProps {
   response: TransactionResponse | TakeOfferResponse | null;
@@ -81,7 +88,6 @@ export default function ConfirmationDialog({
 
   const [pending, setPending] = useState(false);
   const [signature, setSignature] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<string>('details');
   const [jsonCopied, setJsonCopied] = useState(false);
 
   useEffect(() => {
@@ -110,7 +116,7 @@ export default function ConfirmationDialog({
             coin_spends: response.coin_spends,
             aggregated_signature:
               signature ||
-              '0xc000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000',
+              '0xc00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000',
           }
         : response.spend_bundle,
     null,
@@ -135,10 +141,38 @@ export default function ConfirmationDialog({
     .map((item) => item.address)
     .filter((address, index, self) => self.indexOf(address) === index);
 
+  // Group assets by type for combined display
+  const groupedAssets = created
+    .filter((item) => item.address !== t`Change` && item.address !== t`You`)
+    .sort((a, b) => a.sort - b.sort)
+    .reduce(
+      (acc, item) => {
+        // Group by badge and label to combine identical assets
+        const key = `${item.badge}-${item.label}`;
+        if (!acc[key]) {
+          acc[key] = {
+            badge: item.badge,
+            label: item.label,
+            recipients: [item.address],
+          };
+        } else {
+          // Add recipient if not already in the list
+          if (!acc[key].recipients.includes(item.address)) {
+            acc[key].recipients.push(item.address);
+          }
+        }
+        return acc;
+      },
+      {} as Record<
+        string,
+        { badge: string; label: string; recipients: string[] }
+      >,
+    );
+
   return (
     <Dialog open={!!response} onOpenChange={reset}>
-      <DialogContent className='max-w-[90vw] md:max-w-[500px] overflow-hidden'>
-        <DialogHeader>
+      <DialogContent className='max-w-[90vw] md:max-w-[500px] max-h-[90vh] flex flex-col overflow-hidden'>
+        <DialogHeader className='flex-shrink-0'>
           <DialogTitle className='text-xl font-semibold'>
             <Trans>Confirm Transaction</Trans>
           </DialogTitle>
@@ -151,7 +185,7 @@ export default function ConfirmationDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className='space-y-4'>
+        <div className='space-y-4 overflow-y-auto flex-grow'>
           {/* Transaction Summary Card */}
           <Card>
             <CardHeader className='pb-2'>
@@ -222,102 +256,50 @@ export default function ConfirmationDialog({
                 </div>
               )}
 
-              {/* Recipient Summary */}
+              {/* Combined Assets and Recipients */}
               <div className='pt-2'>
-                <h3 className='text-sm font-medium mb-2'>
-                  <Trans>Recipient</Trans>
-                  {recipients.length > 1 ? 's' : ''}
-                </h3>
-                <div className='space-y-2'>
-                  {recipients.length === 0 ? (
-                    <div className='text-sm text-muted-foreground'>
-                      <Trans>No external recipients</Trans>
-                    </div>
-                  ) : (
-                    recipients.map((address, i) => (
-                      <div
-                        key={i}
-                        className='flex items-center gap-2 text-sm border rounded-md p-2 w-full overflow-hidden'
-                      >
-                        <ForwardIcon className='h-4 w-4 text-blue-500 shrink-0' />
-                        <div className='truncate max-w-[200px]'>{address}</div>
-                        <CopyButton
-                          value={address}
-                          className='h-4 w-4 shrink-0 ml-auto'
-                          onCopy={() =>
-                            toast.success(t`Address copied to clipboard`)
-                          }
-                        />
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Tabs for Details and JSON */}
-          <Tabs
-            value={activeTab}
-            onValueChange={setActiveTab}
-            className='w-full'
-          >
-            <TabsList className='grid w-full grid-cols-2'>
-              <TabsTrigger value='details'>
-                <InfoIcon className='h-4 w-4 mr-2' />
-                <Trans>Details</Trans>
-              </TabsTrigger>
-              <TabsTrigger value='json'>
-                <CodeIcon className='h-4 w-4 mr-2' />
-                <Trans>JSON</Trans>
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent
-              value='details'
-              className='max-h-[300px] overflow-y-auto space-y-4 pt-4'
-            >
-              {/* Assets Being Sent */}
-              <div>
-                <h3 className='text-sm font-semibold mb-2 flex items-center'>
+                <h3 className='text-sm font-medium mb-2 flex items-center'>
                   <ArrowUpIcon className='h-4 w-4 mr-1' />
-                  <Trans>Assets Being Sent</Trans>
+                  <Trans>Sending</Trans>
                 </h3>
-                <div className='space-y-2'>
-                  {created
-                    .filter(
-                      (item) =>
-                        item.address !== t`Change` && item.address !== t`You`,
-                    )
-                    .sort((a, b) => a.sort - b.sort)
-                    .map((item, i) => (
-                      <div
-                        key={i}
-                        className='flex flex-col gap-1.5 rounded-md border p-3'
-                      >
-                        <div className='flex items-center justify-between'>
-                          <Badge className='max-w-[100px]'>
-                            <span className='truncate'>{item.badge}</span>
-                          </Badge>
-                          <div className='text-sm font-medium'>
-                            {item.label}
-                          </div>
+                <div className='space-y-4'>
+                  {Object.entries(groupedAssets).map(([key, group]) => (
+                    <div
+                      key={key}
+                      className='flex flex-col gap-1.5 rounded-md border p-3'
+                    >
+                      <div className='flex items-center justify-between'>
+                        <Badge className='max-w-[100px]'>
+                          <span className='truncate'>{group.badge}</span>
+                        </Badge>
+                        <div className='text-sm font-medium'>{group.label}</div>
+                      </div>
+
+                      <Separator className='my-2' />
+
+                      {/* Show recipients */}
+                      <div className='flex flex-col gap-2'>
+                        <div className='text-sm font-medium text-muted-foreground'>
+                          <Trans>To:</Trans>{' '}
+                          {group.recipients.length > 1 && (
+                            <span className='ml-1 text-xs bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded-full'>
+                              {group.recipients.length}
+                            </span>
+                          )}
                         </div>
 
-                        <Separator className='my-2' />
-
-                        <div className='flex items-center gap-2 w-full overflow-hidden'>
-                          <div className='text-sm font-medium text-muted-foreground shrink-0'>
-                            <Trans>To:</Trans>
-                          </div>
-                          <div className='flex items-center gap-1.5 min-w-0 w-full'>
+                        {group.recipients.map((address: string, i: number) => (
+                          <div
+                            key={i}
+                            className='flex items-center gap-1.5 min-w-0 w-full pl-2'
+                          >
                             <ForwardIcon className='w-4 h-4 text-blue-500 shrink-0' />
                             <div className='text-sm truncate max-w-[180px]'>
-                              {item.address}
+                              {address}
                             </div>
-                            {item.address !== t`Permanently Burned` && (
+                            {address !== t`Permanently Burned` && (
                               <CopyButton
-                                value={item.address}
+                                value={address}
                                 className='w-4 h-4 shrink-0 ml-auto'
                                 onCopy={() =>
                                   toast.success(t`Address copied to clipboard`)
@@ -325,9 +307,10 @@ export default function ConfirmationDialog({
                               />
                             )}
                           </div>
-                        </div>
+                        ))}
                       </div>
-                    ))}
+                    </div>
+                  ))}
 
                   {created.filter(
                     (item) =>
@@ -341,157 +324,226 @@ export default function ConfirmationDialog({
                   )}
                 </div>
               </div>
+            </CardContent>
+          </Card>
 
-              {/* Coins Being Spent */}
-              <div>
-                <h3 className='text-sm font-semibold mb-2 flex items-center'>
-                  <BoxIcon className='h-4 w-4 mr-1' />
-                  <Trans>Coins Being Spent</Trans>
-                </h3>
-                <div className='space-y-2'>
-                  {spent.length === 0 ? (
-                    <div className='text-sm text-muted-foreground p-3 border rounded-md'>
-                      <Trans>No coins being spent.</Trans>
-                    </div>
-                  ) : (
-                    spent
-                      .sort((a, b) => a.sort - b.sort)
-                      .map((item, i) => (
-                        <div
-                          key={i}
-                          className='flex flex-wrap items-center gap-2 text-sm border rounded-md p-2'
-                        >
-                          <Badge className='shrink-0'>{item.badge}</Badge>
-                          <div className='font-medium shrink-0'>
-                            {item.label}
-                          </div>
-                          <div className='text-muted-foreground truncate font-mono text-xs w-full mt-1 flex items-center'>
-                            <span className='truncate'>
-                              {item.coinId.slice(0, 6) +
-                                '...' +
-                                item.coinId.slice(-6)}
-                            </span>
-                            <CopyButton
-                              value={item.coinId}
-                              className='h-4 w-4 shrink-0 ml-auto'
-                              onCopy={() =>
-                                toast.success(t`Coin ID copied to clipboard`)
-                              }
-                            />
-                          </div>
-                        </div>
-                      ))
-                  )}
+          {/* Accordions for Details and JSON */}
+          <Accordion type='single' collapsible className='w-full'>
+            {/* Transaction Details Accordion */}
+            <AccordionItem value='details'>
+              <AccordionTrigger className='py-2 px-3 bg-neutral-50 dark:bg-neutral-900 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800'>
+                <div className='flex items-center'>
+                  <InfoIcon className='h-4 w-4 mr-2' />
+                  <span>
+                    <Trans>Transaction Details</Trans>
+                  </span>
                 </div>
-              </div>
+              </AccordionTrigger>
+              <AccordionContent className='pt-4 px-1'>
+                <div className='flex flex-col gap-4'>
+                  {/* Spent Coins */}
+                  <div>
+                    <h3 className='text-sm font-semibold mb-2 flex items-center'>
+                      <BadgeMinus className='h-4 w-4 mr-1' />
+                      <Trans>Spent Coins</Trans>
+                    </h3>
+                    <div className='space-y-2'>
+                      {spent.length === 0 ? (
+                        <div className='text-sm text-muted-foreground p-3 border rounded-md'>
+                          <Trans>No coins being spent.</Trans>
+                        </div>
+                      ) : (
+                        spent
+                          .sort((a, b) => a.sort - b.sort)
+                          .map((item, i) => (
+                            <div
+                              key={i}
+                              className='flex flex-col gap-1.5 rounded-md border p-2'
+                            >
+                              <div className='flex items-center justify-between'>
+                                <Badge className='shrink-0'>{item.badge}</Badge>
+                                <div className='font-medium'>{item.label}</div>
+                              </div>
+                              <div className='flex items-center gap-1.5'>
+                                <BoxIcon className='w-4 h-4 shrink-0 text-muted-foreground' />
+                                <div className='text-xs text-muted-foreground truncate font-mono flex-1'>
+                                  {item.coinId.slice(0, 6) +
+                                    '...' +
+                                    item.coinId.slice(-6)}
+                                </div>
+                                <CopyButton
+                                  value={item.coinId}
+                                  className='h-4 w-4 shrink-0'
+                                  onCopy={() =>
+                                    toast.success(
+                                      t`Coin ID copied to clipboard`,
+                                    )
+                                  }
+                                />
+                              </div>
+                            </div>
+                          ))
+                      )}
+                    </div>
+                  </div>
 
-              {/* Change Outputs */}
-              {created.some((item) => item.address === t`Change`) && (
-                <div>
-                  <h3 className='text-sm font-semibold mb-2 flex items-center'>
-                    <ArrowDownIcon className='h-4 w-4 mr-1' />
-                    <Trans>Change</Trans>
-                  </h3>
-                  <div className='space-y-2'>
-                    {created
-                      .filter((item) => item.address === t`Change`)
-                      .sort((a, b) => a.sort - b.sort)
-                      .map((item, i) => (
-                        <div
-                          key={i}
-                          className='flex items-center gap-2 text-sm border rounded-md p-2'
-                        >
-                          <Badge className='shrink-0'>{item.badge}</Badge>
-                          <div className='font-medium truncate'>
-                            {item.label}
-                          </div>
-                          <div className='text-muted-foreground ml-auto shrink-0'>
-                            <Trans>Returning</Trans>
+                  {/* Transaction Output */}
+                  <div>
+                    <h3 className='text-sm font-semibold mb-2 flex items-center'>
+                      <BadgePlus className='h-4 w-4 mr-1' />
+                      <Trans>Transaction Output</Trans>
+                    </h3>
+                    <div className='space-y-2'>
+                      {/* Fee */}
+                      {!fee.isZero() && (
+                        <div className='flex flex-col gap-1.5 rounded-md border p-2'>
+                          <div className='flex items-center justify-between'>
+                            <Badge
+                              variant='outline'
+                              className='bg-amber-100 dark:bg-amber-950 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300'
+                            >
+                              <Trans>Fee</Trans>
+                            </Badge>
+                            <span className='text-sm font-medium'>
+                              {formatNumber({
+                                value: fromMojos(
+                                  fee,
+                                  walletState.sync.unit.decimals,
+                                ),
+                                minimumFractionDigits: 0,
+                                maximumFractionDigits:
+                                  walletState.sync.unit.decimals,
+                              })}{' '}
+                              {ticker}
+                            </span>
                           </div>
                         </div>
-                      ))}
+                      )}
+
+                      {/* Created Coins */}
+                      {created
+                        .sort((a, b) => a.sort - b.sort)
+                        .map((item, i) => (
+                          <div
+                            key={i}
+                            className='flex flex-col gap-1.5 rounded-md border p-2'
+                          >
+                            <div className='flex items-center justify-between'>
+                              <Badge className='shrink-0'>{item.badge}</Badge>
+                              <div className='font-medium'>{item.label}</div>
+                            </div>
+                            <div className='flex items-center gap-1.5'>
+                              <ForwardIcon className='w-4 h-4 shrink-0 text-blue-500' />
+                              <div className='text-sm truncate flex-1'>
+                                {item.address}
+                              </div>
+                              {item.address !== t`Permanently Burned` &&
+                                item.address !== t`You` &&
+                                item.address !== t`Change` && (
+                                  <CopyButton
+                                    value={item.address}
+                                    className='h-4 w-4 shrink-0'
+                                    onCopy={() =>
+                                      toast.success(
+                                        t`Address copied to clipboard`,
+                                      )
+                                    }
+                                  />
+                                )}
+                            </div>
+                          </div>
+                        ))}
+                    </div>
                   </div>
                 </div>
-              )}
-            </TabsContent>
+              </AccordionContent>
+            </AccordionItem>
 
-            <TabsContent
-              value='json'
-              className='max-h-[300px] overflow-y-auto space-y-4 pt-4'
-            >
-              <Alert variant='warning'>
-                <AlertCircleIcon className='h-4 w-4' />
-                <AlertTitle>
-                  <Trans>Advanced Feature</Trans>
-                </AlertTitle>
-                <AlertDescription>
-                  <Trans>
-                    This is the raw JSON spend bundle for this transaction. If
-                    you sign it, the transaction can be submitted to the mempool
-                    externally.
-                  </Trans>
-                </AlertDescription>
-              </Alert>
+            {/* JSON Accordion */}
+            <AccordionItem value='json'>
+              <AccordionTrigger className='py-2 px-3 bg-neutral-50 dark:bg-neutral-900 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800'>
+                <div className='flex items-center'>
+                  <CodeIcon className='h-4 w-4 mr-2' />
+                  <span>
+                    <Trans>JSON</Trans>
+                  </span>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className='pt-4 px-1'>
+                <Alert variant='warning'>
+                  <AlertCircleIcon className='h-4 w-4' />
+                  <AlertTitle>
+                    <Trans>Advanced Feature</Trans>
+                  </AlertTitle>
+                  <AlertDescription>
+                    <Trans>
+                      This is the raw JSON spend bundle for this transaction. If
+                      you sign it, the transaction can be submitted to the
+                      mempool externally.
+                    </Trans>
+                  </AlertDescription>
+                </Alert>
 
-              <div className='flex items-center gap-2'>
-                <Button
-                  size='sm'
-                  onClick={() => {
-                    commands
-                      .signCoinSpends({
-                        coin_spends:
-                          response === null
-                            ? []
-                            : 'coin_spends' in response
-                              ? response.coin_spends
-                              : response.spend_bundle.coin_spends,
-                      })
-                      .then((data) => {
-                        setSignature(data.spend_bundle.aggregated_signature);
-                        toast.success(t`Transaction signed successfully`);
-                      })
-                      .catch(addError);
-                  }}
-                  disabled={!!signature}
-                >
-                  {signature ? (
-                    <>
-                      <CheckCircleIcon className='h-4 w-4 mr-1' />
-                      <Trans>Signed</Trans>
-                    </>
-                  ) : (
-                    <Trans>Sign Transaction</Trans>
-                  )}
-                </Button>
+                <div className='flex items-center gap-2 mt-4'>
+                  <Button
+                    size='sm'
+                    onClick={() => {
+                      commands
+                        .signCoinSpends({
+                          coin_spends:
+                            response === null
+                              ? []
+                              : 'coin_spends' in response
+                                ? response.coin_spends
+                                : response.spend_bundle.coin_spends,
+                        })
+                        .then((data) => {
+                          setSignature(data.spend_bundle.aggregated_signature);
+                          toast.success(t`Transaction signed successfully`);
+                        })
+                        .catch(addError);
+                    }}
+                    disabled={!!signature}
+                  >
+                    {signature ? (
+                      <>
+                        <CheckCircleIcon className='h-4 w-4 mr-1' />
+                        <Trans>Signed</Trans>
+                      </>
+                    ) : (
+                      <Trans>Sign Transaction</Trans>
+                    )}
+                  </Button>
 
-                <Button
-                  variant='outline'
-                  size='sm'
-                  onClick={copyJson}
-                  className='flex items-center gap-1'
-                >
-                  {jsonCopied ? (
-                    <>
-                      <CopyCheckIcon className='h-4 w-4 text-emerald-500' />
-                      <Trans>Copied</Trans>
-                    </>
-                  ) : (
-                    <>
-                      <CopyIcon className='h-4 w-4' />
-                      <Trans>Copy JSON</Trans>
-                    </>
-                  )}
-                </Button>
-              </div>
+                  <Button
+                    variant='outline'
+                    size='sm'
+                    onClick={copyJson}
+                    className='flex items-center gap-1'
+                  >
+                    {jsonCopied ? (
+                      <>
+                        <CopyCheckIcon className='h-4 w-4 text-emerald-500' />
+                        <Trans>Copied</Trans>
+                      </>
+                    ) : (
+                      <>
+                        <CopyIcon className='h-4 w-4' />
+                        <Trans>Copy JSON</Trans>
+                      </>
+                    )}
+                  </Button>
+                </div>
 
-              <div className='relative p-3 break-all rounded-md bg-neutral-100 dark:bg-neutral-900 whitespace-pre-wrap text-xs font-mono overflow-auto max-h-[200px]'>
-                {json}
-              </div>
-            </TabsContent>
-          </Tabs>
+                <div className='relative p-3 mt-4 break-all rounded-md bg-neutral-100 dark:bg-neutral-900 whitespace-pre-wrap text-xs font-mono'>
+                  {json}
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
         </div>
 
-        <DialogFooter className='pt-2'>
+        <DialogFooter className='pt-2 flex-shrink-0'>
           <Button variant='ghost' onClick={reset}>
             <Trans>Cancel</Trans>
           </Button>
