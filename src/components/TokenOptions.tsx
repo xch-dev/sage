@@ -20,6 +20,8 @@ import {
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
 import { TokenSortMode } from '@/hooks/useTokenParams';
+import { useDebounce } from '@/hooks/useDebounce';
+import { useState, useEffect } from 'react';
 
 interface TokenOptionsProps {
   query: string;
@@ -50,6 +52,28 @@ export function TokenOptions({
   setShowHiddenCats,
   className,
 }: TokenOptionsProps) {
+  const [searchValue, setSearchValue] = useState(query);
+  const debouncedSearch = useDebounce(searchValue);
+
+  useEffect(() => {
+    setSearchValue(query);
+  }, [query]);
+
+  useEffect(() => {
+    if (debouncedSearch !== query) {
+      setQuery(debouncedSearch);
+      handleSearch(debouncedSearch);
+    }
+  }, [debouncedSearch, query, setQuery, handleSearch]);
+
+  const handleInputChange = (value: string) => {
+    setSearchValue(value);
+  };
+
+  const handleClearSearch = () => {
+    handleInputChange('');
+  };
+
   return (
     <div
       className={`flex flex-col gap-4 ${className}`}
@@ -64,28 +88,22 @@ export function TokenOptions({
               aria-hidden='true'
             />
             <Input
-              value={query}
+              value={searchValue}
               aria-label={t`Search tokens...`}
               title={t`Search tokens...`}
               placeholder={t`Search tokens...`}
-              onChange={(e) => {
-                setQuery(e.target.value);
-                handleSearch(e.target.value);
-              }}
+              onChange={(e) => handleInputChange(e.target.value)}
               className='w-full pl-8 pr-8'
             />
           </div>
-          {query && (
+          {searchValue && (
             <Button
               variant='ghost'
               size='icon'
               title={t`Clear search`}
               aria-label={t`Clear search`}
               className='absolute right-0 top-0 h-full px-2 hover:bg-transparent'
-              onClick={() => {
-                setQuery('');
-                handleSearch('');
-              }}
+              onClick={handleClearSearch}
             >
               <XIcon className='h-4 w-4' aria-hidden='true' />
             </Button>
