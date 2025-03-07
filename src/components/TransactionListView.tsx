@@ -1,13 +1,12 @@
-import { TransactionCoin, TransactionRecord } from '../bindings';
 import { DataTable } from '@/components/ui/data-table';
-import { columns } from './TransactionColumns';
-import { SortingState } from '@tanstack/react-table';
-import { useState } from 'react';
-import { t } from '@lingui/core/macro';
-import { Loading } from './Loading';
-import { motion } from 'framer-motion';
 import { nftUri } from '@/lib/nftUri';
-import { FlattenedTransaction } from './TransactionColumns';
+import { t } from '@lingui/core/macro';
+import { SortingState } from '@tanstack/react-table';
+import { motion } from 'framer-motion';
+import { useState } from 'react';
+import { TransactionCoin, TransactionRecord } from '../bindings';
+import { Loading } from './Loading';
+import { columns } from './TransactionColumns';
 
 function getDisplayName(coin: TransactionCoin) {
   switch (coin.type) {
@@ -103,7 +102,7 @@ export function TransactionListView({
     // Net amounts for each group
     const summarizedCoins: Array<(typeof created)[0]> = [];
 
-    coinGroups.forEach((coins, key) => {
+    coinGroups.forEach((coins) => {
       // Skip if there's only one coin and it's not worth summarizing
       if (coins.length === 1) {
         summarizedCoins.push(coins[0]);
