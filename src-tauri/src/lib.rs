@@ -133,17 +133,16 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_os::init())
+        .plugin(tauri_plugin_nfc_debug::init())
         .invoke_handler(builder.invoke_handler())
         .setup(move |app| {
             #[cfg(mobile)]
             {
                 app.handle().plugin(tauri_plugin_barcode_scanner::init())?;
+                app.handle().plugin(tauri_plugin_safe_area_insets::init())?;
+                app.handle().plugin(tauri_plugin_nfc::init())?;
             }
 
-            #[cfg(mobile)]
-            {
-                app.handle().plugin(tauri_plugin_safe_area_insets::init())?;
-            }
             builder.mount_events(app);
             let path = app.path().app_data_dir()?;
             let app_state = AppState::new(Mutex::new(Sage::new(&path)));

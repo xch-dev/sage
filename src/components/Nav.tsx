@@ -201,7 +201,7 @@ function NavLink({
   ariaCurrent,
 }: NavLinkProps) {
   const className = `flex items-center gap-3 rounded-lg py-1.5 text-muted-foreground transition-all hover:text-primary ${
-    isCollapsed ? 'justify-center' : 'px-3'
+    isCollapsed ? 'justify-center' : 'px-2'
   } text-lg md:text-base`;
 
   const link =

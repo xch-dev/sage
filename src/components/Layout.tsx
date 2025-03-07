@@ -1,3 +1,4 @@
+import { KeyInfo } from '@/bindings';
 import {
   Tooltip,
   TooltipContent,
@@ -13,7 +14,6 @@ import { PropsWithChildren } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useLocalStorage } from 'usehooks-ts';
 import { BottomNav, TopNav } from './Nav';
-import { KeyInfo } from '@/bindings';
 
 const SIDEBAR_COLLAPSED_STORAGE_KEY = 'sage-wallet-sidebar-collapsed';
 

@@ -2,5 +2,9 @@
   "identifier": "mobile-capability",
   "windows": ["main"],
   "platforms": ["android", "iOS"],
-  "permissions": ["safe-area-insets:default", "barcode-scanner:default"]
+  "permissions": [
+    "safe-area-insets:default",
+    "barcode-scanner:default",
+    "nfc:default"
+  ]
 }

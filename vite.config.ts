@@ -1,7 +1,7 @@
+import { lingui } from '@lingui/vite-plugin';
 import react from '@vitejs/plugin-react-swc';
 import path from 'path';
 import { defineConfig } from 'vite';
-import { lingui } from '@lingui/vite-plugin';
 
 const host = process.env.TAURI_DEV_HOST;
 
