@@ -929,8 +929,7 @@ dependencies = [
 [[package]]
 name = "chia-sdk-client"
 version = "0.22.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1a743e2d9d36f000eec3cf7177ecc0754f50159a14d7accf312a417515d0c426"
+source = "git+https://github.com/xch-dev/chia-wallet-sdk.git?branch=no-openssl-req#2874abdcab6ee826413276b7a154dfc454bad3a0"
 dependencies = [
  "aws-lc-rs",
  "chia-protocol",
@@ -951,8 +950,7 @@ dependencies = [
 [[package]]
 name = "chia-sdk-coinset"
 version = "0.22.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b5a6a9b68622f1eca3a7354d9a50ae2046301b770ab9b1ecdfd0753f6fbc6f4e"
+source = "git+https://github.com/xch-dev/chia-wallet-sdk.git?branch=no-openssl-req#2874abdcab6ee826413276b7a154dfc454bad3a0"
 dependencies = [
  "chia-protocol",
  "hex",
@@ -965,8 +963,7 @@ dependencies = [
 [[package]]
 name = "chia-sdk-derive"
 version = "0.22.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a79af921123a16cb7136739417af58117f8ffd9484466de18ac4b54711fa851f"
+source = "git+https://github.com/xch-dev/chia-wallet-sdk.git?branch=no-openssl-req#2874abdcab6ee826413276b7a154dfc454bad3a0"
 dependencies = [
  "convert_case 0.6.0",
  "quote",
@@ -976,8 +973,7 @@ dependencies = [
 [[package]]
 name = "chia-sdk-driver"
 version = "0.22.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b999a8e4610d083e9d4d5480d6c9b03c343993e74edb74f750cd6a7ac720e27e"
+source = "git+https://github.com/xch-dev/chia-wallet-sdk.git?branch=no-openssl-req#2874abdcab6ee826413276b7a154dfc454bad3a0"
 dependencies = [
  "bech32",
  "bigdecimal",
@@ -1006,8 +1002,7 @@ dependencies = [
 [[package]]
 name = "chia-sdk-signer"
 version = "0.22.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "36efb2661060803e1b001fd7c52bc92a05f98757b3051a553f5dde88c90b7051"
+source = "git+https://github.com/xch-dev/chia-wallet-sdk.git?branch=no-openssl-req#2874abdcab6ee826413276b7a154dfc454bad3a0"
 dependencies = [
  "chia-bls 0.20.0",
  "chia-consensus",
@@ -1024,8 +1019,7 @@ dependencies = [
 [[package]]
 name = "chia-sdk-test"
 version = "0.22.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8d641c417bf9b6f2e567dd9dcd90d288d72834d3a32147562a3ede0312a7a3e4"
+source = "git+https://github.com/xch-dev/chia-wallet-sdk.git?branch=no-openssl-req#2874abdcab6ee826413276b7a154dfc454bad3a0"
 dependencies = [
  "anyhow",
  "bip39",
@@ -1058,8 +1052,7 @@ dependencies = [
 [[package]]
 name = "chia-sdk-types"
 version = "0.22.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0ec0bedaa2eb1dee680f445fd40be5397f1d35842a37b24d0c6ea3d1b45310ef"
+source = "git+https://github.com/xch-dev/chia-wallet-sdk.git?branch=no-openssl-req#2874abdcab6ee826413276b7a154dfc454bad3a0"
 dependencies = [
  "chia-bls 0.20.0",
  "chia-consensus",
@@ -1079,8 +1072,7 @@ dependencies = [
 [[package]]
 name = "chia-sdk-utils"
 version = "0.22.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dc01ab92e4f2e0f00a2690520aef2db1e6c9e551af36fd2d1991b7d0d6dd3173"
+source = "git+https://github.com/xch-dev/chia-wallet-sdk.git?branch=no-openssl-req#2874abdcab6ee826413276b7a154dfc454bad3a0"
 dependencies = [
  "bech32",
  "chia-protocol",
@@ -1169,8 +1161,7 @@ dependencies = [
 [[package]]
 name = "chia-wallet-sdk"
 version = "0.22.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a36880d7508a8e53ed8f9521b178a1ff808b0aa83e556f7a5cd4faf87ed1499a"
+source = "git+https://github.com/xch-dev/chia-wallet-sdk.git?branch=no-openssl-req#2874abdcab6ee826413276b7a154dfc454bad3a0"
 dependencies = [
  "chia-bls 0.20.0",
  "chia-protocol",
@@ -1384,7 +1375,7 @@ dependencies = [
  "cocoa-foundation",
  "core-foundation 0.10.0",
  "core-graphics 0.24.0",
- "foreign-types 0.5.0",
+ "foreign-types",
  "libc",
  "objc",
 ]
@@ -1522,7 +1513,7 @@ dependencies = [
  "bitflags 1.3.2",
  "core-foundation 0.9.4",
  "core-graphics-types 0.1.3",
- "foreign-types 0.5.0",
+ "foreign-types",
  "libc",
 ]
 
@@ -1535,7 +1526,7 @@ dependencies = [
  "bitflags 2.6.0",
  "core-foundation 0.10.0",
  "core-graphics-types 0.2.0",
- "foreign-types 0.5.0",
+ "foreign-types",
  "libc",
 ]
 
@@ -2124,21 +2115,12 @@ checksum = "f81ec6369c545a7d40e4589b5597581fa1c441fe1cce96dd1de43159910a36a2"
 
 [[package]]
 name = "foreign-types"
-version = "0.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f6f339eb8adc052cd2ca78910fda869aefa38d22d5cb648e6485e4d3fc06f3b1"
-dependencies = [
- "foreign-types-shared 0.1.1",
-]
-
-[[package]]
-name = "foreign-types"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d737d9aa519fb7b749cbc3b962edcf310a8dd1f4b67c91c4f83975dbdd17d965"
 dependencies = [
  "foreign-types-macros",
- "foreign-types-shared 0.3.1",
+ "foreign-types-shared",
 ]
 
 [[package]]
@@ -2151,12 +2133,6 @@ dependencies = [
  "quote",
  "syn 2.0.98",
 ]
-
-[[package]]
-name = "foreign-types-shared"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "00b0228411908ca8685dba7fc2cdd70ec9990a6e753e89b6ac91a84c40fbaf4b"
 
 [[package]]
 name = "foreign-types-shared"
@@ -2845,22 +2821,6 @@ dependencies = [
  "tokio-rustls",
  "tower-service",
  "webpki-roots",
-]
-
-[[package]]
-name = "hyper-tls"
-version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "70206fc6890eaca9fde8a0bf71caa2ddfc9fe045ac9e5c70df101a7dbde866e0"
-dependencies = [
- "bytes",
- "http-body-util",
- "hyper",
- "hyper-util",
- "native-tls",
- "tokio",
- "tokio-native-tls",
- "tower-service",
 ]
 
 [[package]]
@@ -3615,23 +3575,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "native-tls"
-version = "0.2.14"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "87de3442987e9dbec73158d5c715e7ad9072fda936bb03d19d7fa10e00520f0e"
-dependencies = [
- "libc",
- "log",
- "openssl",
- "openssl-probe",
- "openssl-sys",
- "schannel",
- "security-framework",
- "security-framework-sys",
- "tempfile",
-]
-
-[[package]]
 name = "ndk"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4054,50 +3997,6 @@ dependencies = [
  "is-wsl",
  "libc",
  "pathdiff",
-]
-
-[[package]]
-name = "openssl"
-version = "0.10.71"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5e14130c6a98cd258fdcb0fb6d744152343ff729cbfcb28c656a9d12b999fbcd"
-dependencies = [
- "bitflags 2.6.0",
- "cfg-if",
- "foreign-types 0.3.2",
- "libc",
- "once_cell",
- "openssl-macros",
- "openssl-sys",
-]
-
-[[package]]
-name = "openssl-macros"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a948666b637a0f465e8564c73e89d4dde00d72d4d473cc972f390fc3dcee7d9c"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.98",
-]
-
-[[package]]
-name = "openssl-probe"
-version = "0.1.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d05e27ee213611ffe7d6348b942e8f942b37114c00cc03cec254295a4a17852e"
-
-[[package]]
-name = "openssl-sys"
-version = "0.9.106"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8bb61ea9811cc39e3c2069f40b8b8e2e70d8569b361f879786cc7ed48b777cdd"
-dependencies = [
- "cc",
- "libc",
- "pkg-config",
- "vcpkg",
 ]
 
 [[package]]
@@ -4861,13 +4760,11 @@ dependencies = [
  "http-body-util",
  "hyper",
  "hyper-rustls",
- "hyper-tls",
  "hyper-util",
  "ipnet",
  "js-sys",
  "log",
  "mime",
- "native-tls",
  "once_cell",
  "percent-encoding",
  "pin-project-lite",
@@ -4881,7 +4778,6 @@ dependencies = [
  "sync_wrapper",
  "system-configuration",
  "tokio",
- "tokio-native-tls",
  "tokio-rustls",
  "tokio-util",
  "tower 0.5.2",
@@ -5281,15 +5177,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "schannel"
-version = "0.1.27"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1f29ebaa345f945cec9fbbc532eb307f0fdad8161f281b6369539c8d84876b3d"
-dependencies = [
- "windows-sys 0.59.0",
-]
-
-[[package]]
 name = "schemars"
 version = "0.8.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5334,29 +5221,6 @@ dependencies = [
  "pkcs8",
  "subtle",
  "zeroize",
-]
-
-[[package]]
-name = "security-framework"
-version = "2.11.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "897b2245f0b511c87893af39b033e5ca9cce68824c4d7e7630b5a1d339658d02"
-dependencies = [
- "bitflags 2.6.0",
- "core-foundation 0.9.4",
- "core-foundation-sys",
- "libc",
- "security-framework-sys",
-]
-
-[[package]]
-name = "security-framework-sys"
-version = "2.14.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "49db231d56a190491cb4aeda9527f1ad45345af50b0851622a7adb8c03b01c32"
-dependencies = [
- "core-foundation-sys",
- "libc",
 ]
 
 [[package]]
@@ -5671,7 +5535,7 @@ dependencies = [
  "bytemuck",
  "cfg_aliases",
  "core-graphics 0.24.0",
- "foreign-types 0.5.0",
+ "foreign-types",
  "js-sys",
  "log",
  "objc2",
@@ -6788,16 +6652,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.98",
-]
-
-[[package]]
-name = "tokio-native-tls"
-version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bbae76ab933c85776efabc971569dd6119c580d8f5d448769dec1764bf796ef2"
-dependencies = [
- "native-tls",
- "tokio",
 ]
 
 [[package]]

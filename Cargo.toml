@@ -81,7 +81,7 @@ tauri-specta = "2.0.0-rc.20"
 chia = "0.20.0"
 chia-puzzles = "0.20.1"
 clvmr = "0.12.0"
-chia-wallet-sdk = { features = ["rustls", "offers", "peer-simulator"], version = "0.22.0" }
+chia-wallet-sdk = { features = ["rustls", "offers", "peer-simulator"], git = "https://github.com/xch-dev/chia-wallet-sdk.git", branch = "no-openssl-req" }
 bip39 = "2.0.0"
 bech32 = "0.9.1"
 
