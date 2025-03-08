@@ -6,10 +6,11 @@ import {
   TransactionResponse,
 } from '@/bindings';
 import { useErrors } from '@/hooks/useErrors';
+import useOfferStateWithDefault from '@/hooks/useOfferStateWithDefault';
 import { amount } from '@/lib/formTypes';
 import { nftUri } from '@/lib/nftUri';
 import { toMojos } from '@/lib/utils';
-import { useOfferState, useWalletState } from '@/state';
+import { useWalletState } from '@/state';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -96,7 +97,7 @@ const NftCardComponent = ({
   selectionState,
 }: NftCardProps) => {
   const walletState = useWalletState();
-  const offerState = useOfferState();
+  const [offerState, setOfferState] = useOfferStateWithDefault();
   const navigate = useNavigate();
 
   const { addError } = useErrors();
@@ -374,7 +375,7 @@ const NftCardComponent = ({
                     const newNfts = [...offerState.offered.nfts];
                     newNfts.push(nft.launcher_id);
 
-                    useOfferState.setState({
+                    setOfferState({
                       offered: {
                         ...offerState.offered,
                         nfts: newNfts,

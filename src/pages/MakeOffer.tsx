@@ -18,52 +18,53 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { IntegerInput, TokenAmountInput } from '@/components/ui/masked-input';
 import { Switch } from '@/components/ui/switch';
-import { useErrors } from '@/hooks/useErrors';
-import { uploadToDexie, uploadToMintGarden } from '@/lib/offerUpload';
-import { toMojos } from '@/lib/utils';
-import { clearOffer, useOfferState, useWalletState } from '@/state';
-import { t } from '@lingui/core/macro';
-import { Trans } from '@lingui/react/macro';
-import { open } from '@tauri-apps/plugin-shell';
-import {
-  HandCoins,
-  Handshake,
-  ImageIcon,
-  LoaderCircleIcon,
-  PlusIcon,
-  TrashIcon,
-  ArrowUpToLine,
-} from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { CatRecord } from '../bindings';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { usePrices } from '@/hooks/usePrices';
 import { useDefaultOfferExpiry } from '@/hooks/useDefaultOfferExpiry';
+import { useErrors } from '@/hooks/useErrors';
+import useOfferStateWithDefault from '@/hooks/useOfferStateWithDefault';
+import { usePrices } from '@/hooks/usePrices';
+import { uploadToDexie, uploadToMintGarden } from '@/lib/offerUpload';
+import { toMojos } from '@/lib/utils';
+import { useWalletState } from '@/state';
+import { t } from '@lingui/core/macro';
+import { Trans } from '@lingui/react/macro';
+import { open } from '@tauri-apps/plugin-shell';
+import {
+  ArrowUpToLine,
+  HandCoins,
+  Handshake,
+  ImageIcon,
+  LoaderCircleIcon,
+  PlusIcon,
+  TrashIcon,
+} from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { CatRecord } from '../bindings';
 
 export function MakeOffer() {
-  const state = useOfferState();
+  const [state, setState] = useOfferStateWithDefault();
+
+  const { expiry } = useDefaultOfferExpiry();
+
   const walletState = useWalletState();
   const navigate = useNavigate();
+
   const { addError } = useErrors();
+
   const [offer, setOffer] = useState('');
   const [pending, setPending] = useState(false);
   const [dexieLink, setDexieLink] = useState('');
   const [mintGardenLink, setMintGardenLink] = useState('');
   const [canUploadToMintGarden, setCanUploadToMintGarden] = useState(false);
   const [config, setConfig] = useState<NetworkConfig | null>(null);
+
   const network = config?.network_id ?? 'mainnet';
-
-  const { expiry } = useDefaultOfferExpiry();
-
-  // Use refs to store initial values that won't trigger re-renders
-  const initialExpiryRef = useRef(expiry);
-  const initialStateRef = useRef(state);
 
   useEffect(() => {
     commands.networkConfig().then((config) => setConfig(config));
@@ -73,29 +74,6 @@ export function MakeOffer() {
     setDexieLink('');
     setMintGardenLink('');
   }, [offer]);
-
-  // Only run once when component mounts
-  useEffect(() => {
-    const initialExpiry = initialExpiryRef.current;
-    const initialState = initialStateRef.current;
-
-    if (initialExpiry.enabled && initialState.expiration === null) {
-      const isAllZero =
-        (parseInt(initialExpiry.days) || 0) === 0 &&
-        (parseInt(initialExpiry.hours) || 0) === 0 &&
-        (parseInt(initialExpiry.minutes) || 0) === 0;
-
-      if (!isAllZero) {
-        useOfferState.setState({
-          expiration: {
-            days: initialExpiry.days.toString(),
-            hours: initialExpiry.hours.toString(),
-            minutes: initialExpiry.minutes.toString(),
-          },
-        });
-      }
-    }
-  }, []);
 
   const handleMake = async () => {
     setPending(true);
@@ -152,7 +130,7 @@ export function MakeOffer() {
       expires_at_second: expiresAtSecond,
     });
 
-    clearOffer();
+    setState(null);
     setOffer(data.offer);
     setPending(false);
     setCanUploadToMintGarden(mintgardenSupported);
@@ -188,9 +166,7 @@ export function MakeOffer() {
                 offering
                 prefix='offer'
                 assets={state.offered}
-                setAssets={(assets) =>
-                  useOfferState.setState({ offered: assets })
-                }
+                setAssets={(assets) => setState({ offered: assets })}
               />
             </CardContent>
           </Card>
@@ -210,9 +186,7 @@ export function MakeOffer() {
               <AssetSelector
                 prefix='requested'
                 assets={state.requested}
-                setAssets={(assets) =>
-                  useOfferState.setState({ requested: assets })
-                }
+                setAssets={(assets) => setState({ requested: assets })}
               />
             </CardContent>
           </Card>
@@ -230,8 +204,8 @@ export function MakeOffer() {
                   className='pr-12'
                   value={state.fee}
                   onValueChange={(values) => {
-                    useOfferState.setState({
-                      fee: values.floatValue ?? 0.0,
+                    setState({
+                      fee: values.value,
                     });
                   }}
                 />
@@ -253,15 +227,15 @@ export function MakeOffer() {
                   checked={state.expiration !== null}
                   onCheckedChange={(value) => {
                     if (value) {
-                      useOfferState.setState({
+                      setState({
                         expiration: {
-                          days: initialExpiryRef.current.days.toString(),
-                          hours: initialExpiryRef.current.hours.toString(),
-                          minutes: initialExpiryRef.current.minutes.toString(),
+                          days: expiry.days.toString(),
+                          hours: expiry.hours.toString(),
+                          minutes: expiry.minutes.toString(),
                         },
                       });
                     } else {
-                      useOfferState.setState({ expiration: null });
+                      setState({ expiration: null });
                     }
                   }}
                 />
@@ -276,8 +250,8 @@ export function MakeOffer() {
                       placeholder='0'
                       min={0}
                       onValueChange={(values) => {
-                        if (state.expiration === null) return;
-                        useOfferState.setState({
+                        if (!state.expiration) return;
+                        setState({
                           expiration: {
                             ...state.expiration,
                             days: values.value,
@@ -299,8 +273,8 @@ export function MakeOffer() {
                       placeholder='0'
                       min={0}
                       onValueChange={(values) => {
-                        if (state.expiration === null) return;
-                        useOfferState.setState({
+                        if (!state.expiration) return;
+                        setState({
                           expiration: {
                             ...state.expiration,
                             hours: values.value,
@@ -322,8 +296,8 @@ export function MakeOffer() {
                       placeholder='0'
                       min={0}
                       onValueChange={(values) => {
-                        if (state.expiration === null) return;
-                        useOfferState.setState({
+                        if (!state.expiration) return;
+                        setState({
                           expiration: {
                             ...state.expiration,
                             minutes: values.value,
@@ -347,7 +321,7 @@ export function MakeOffer() {
           <Button
             variant='outline'
             onClick={() => {
-              clearOffer();
+              setState(null);
               navigate('/offers', { replace: true });
             }}
           >
@@ -461,7 +435,7 @@ function AssetSelector({
   assets,
   setAssets,
 }: AssetSelectorProps) {
-  const state = useOfferState();
+  const [state] = useOfferStateWithDefault();
   const [includeAmount, setIncludeAmount] = useState(!!assets.xch);
   const [tokens, setTokens] = useState<CatRecord[]>([]);
   const { getCatAskPriceInXch } = usePrices();
@@ -531,7 +505,7 @@ function AssetSelector({
               onValueChange={(values) => {
                 setAssets({
                   ...assets,
-                  xch: values.floatValue ?? 0.0,
+                  xch: values.value,
                 });
               }}
             />
@@ -652,7 +626,7 @@ function AssetSelector({
                   placeholder={t`Amount`}
                   value={cat.amount}
                   onValueChange={(values) => {
-                    assets.cats[i].amount = values.floatValue ?? 0.0;
+                    assets.cats[i].amount = values.value;
                     setAssets({ ...assets });
                   }}
                 />
