@@ -2,7 +2,7 @@ use chia::{
     bls::Signature,
     protocol::{Bytes32, SpendBundle},
 };
-use chia_wallet_sdk::Offer;
+use chia_wallet_sdk::driver::Offer;
 
 pub fn sort_offer(offer: Offer) -> Offer {
     let spend_bundle: SpendBundle = offer.into();

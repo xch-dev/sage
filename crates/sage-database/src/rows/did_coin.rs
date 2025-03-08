@@ -2,7 +2,7 @@ use chia::{
     protocol::{Bytes32, Coin, Program},
     puzzles::{LineageProof, Proof},
 };
-use chia_wallet_sdk::{Did, DidInfo};
+use chia_wallet_sdk::driver::{Did, DidInfo};
 
 use crate::{to_bytes32, to_u64, DatabaseError};
 

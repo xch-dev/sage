@@ -1,5 +1,5 @@
 use chia::protocol::Bytes32;
-use clvmr::sha2::Sha256;
+use chia::sha2::Sha256;
 use futures_lite::StreamExt;
 use futures_util::stream::FuturesUnordered;
 use mime_sniffer::MimeTypeSniffer;

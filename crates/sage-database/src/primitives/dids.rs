@@ -2,7 +2,7 @@ use chia::{
     protocol::{Bytes32, Program},
     puzzles::LineageProof,
 };
-use chia_wallet_sdk::{Did, DidInfo};
+use chia_wallet_sdk::driver::{Did, DidInfo};
 use sqlx::SqliteExecutor;
 
 use crate::{

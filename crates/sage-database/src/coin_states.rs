@@ -552,8 +552,8 @@ async fn get_block_heights_by_item_id(
     let id_bytes = if let Some(value) = &id {
         // First try to decode as a bech32m address (NFT ID, DID ID, etc.)
         if value.starts_with("nft") || value.starts_with("did:chia:") {
-            match chia_wallet_sdk::decode_address(value) {
-                Ok((launcher_id, _prefix)) => Some(launcher_id.to_vec()),
+            match chia_wallet_sdk::utils::Address::decode(value) {
+                Ok(address) => Some(address.puzzle_hash.to_vec()),
                 Err(_) => return Ok((Vec::new(), 0)), // Invalid bech32m address
             }
         } else {

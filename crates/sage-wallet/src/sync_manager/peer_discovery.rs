@@ -9,7 +9,7 @@ use chia::{
     protocol::{Message, NewPeakWallet, ProtocolMessageTypes},
     traits::Streamable,
 };
-use chia_wallet_sdk::{connect_peer, Peer, PeerOptions};
+use chia_wallet_sdk::client::{connect_peer, Peer, PeerOptions};
 use futures_lite::StreamExt;
 use futures_util::stream::FuturesUnordered;
 use tokio::{sync::mpsc, time::timeout};

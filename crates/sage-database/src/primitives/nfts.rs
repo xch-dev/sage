@@ -3,7 +3,7 @@ use chia::{
     puzzles::LineageProof,
     sha2::Sha256,
 };
-use chia_wallet_sdk::{Nft, NftInfo};
+use chia_wallet_sdk::driver::{Nft, NftInfo};
 use sqlx::SqliteExecutor;
 
 use crate::{

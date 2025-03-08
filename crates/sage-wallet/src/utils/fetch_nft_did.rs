@@ -9,7 +9,10 @@ use chia::{
         singleton::SingletonSolution,
     },
 };
-use chia_wallet_sdk::{run_puzzle, Condition, Conditions, DidInfo, HashedPtr, NftInfo, Puzzle};
+use chia_wallet_sdk::{
+    driver::{DidInfo, HashedPtr, NftInfo, Puzzle},
+    types::{run_puzzle, Condition, Conditions},
+};
 use clvmr::{Allocator, NodePtr};
 use tokio::time::{sleep, timeout};
 

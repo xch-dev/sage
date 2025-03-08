@@ -1,7 +1,9 @@
 use chia::protocol::CoinSpend;
 use chia_wallet_sdk::{
-    Cat, CatSpend, Conditions, Offer, OfferBuilder, SpendContext, SpendWithConditions,
-    StandardLayer, Take,
+    driver::{
+        Cat, CatSpend, Offer, OfferBuilder, SpendContext, SpendWithConditions, StandardLayer, Take,
+    },
+    types::Conditions,
 };
 use indexmap::IndexMap;
 
@@ -29,8 +31,8 @@ impl Wallet {
     ) -> Result<UnsignedTakeOffer, WalletError> {
         let mut ctx = SpendContext::new();
 
-        let offer = offer.parse(&mut ctx.allocator)?;
-        let (locked_coins, _original_coins) = parse_locked_coins(&mut ctx.allocator, &offer)?;
+        let offer = offer.parse(&mut ctx)?;
+        let (locked_coins, _original_coins) = parse_locked_coins(&mut ctx, &offer)?;
         let maker_amounts = locked_coins.amounts();
 
         let mut builder = offer.take();

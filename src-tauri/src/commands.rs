@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use chia_wallet_sdk::decode_address;
+use chia_wallet_sdk::utils::Address;
 use sage_api::{wallet_connect::*, *};
 use sage_api_macro::impl_endpoints_tauri;
 use sage_config::{NetworkConfig, WalletConfig};
@@ -74,10 +74,10 @@ impl_endpoints_tauri! {
 #[specta]
 pub async fn validate_address(state: State<'_, AppState>, address: String) -> Result<bool> {
     let state = state.lock().await;
-    let Some((_puzzle_hash, prefix)) = decode_address(&address).ok() else {
+    let Some(address) = Address::decode(&address).ok() else {
         return Ok(false);
     };
-    Ok(prefix == state.network().address_prefix)
+    Ok(address.prefix == state.network().address_prefix)
 }
 
 #[command]

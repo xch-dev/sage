@@ -4,7 +4,12 @@ use chia::{
     clvm_traits::{FromClvmError, ToClvmError},
     protocol::Bytes32,
 };
-use chia_wallet_sdk::{ClientError, CoinSelectionError, DriverError, OfferError, SignerError};
+use chia_wallet_sdk::{
+    client::ClientError,
+    driver::{DriverError, OfferError},
+    signer::SignerError,
+    utils::CoinSelectionError,
+};
 use clvmr::reduction::EvalErr;
 use sage_database::DatabaseError;
 use thiserror::Error;

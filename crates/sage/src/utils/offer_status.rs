@@ -4,7 +4,10 @@ use chia::{
     clvm_traits::{FromClvm, ToClvm},
     protocol::Bytes32,
 };
-use chia_wallet_sdk::{run_puzzle, Condition, ParsedOffer};
+use chia_wallet_sdk::{
+    driver::ParsedOffer,
+    types::{run_puzzle, Condition},
+};
 use clvmr::{Allocator, NodePtr};
 use sage_wallet::WalletPeer;
 

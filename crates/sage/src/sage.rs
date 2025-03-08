@@ -7,7 +7,10 @@ use std::{
 };
 
 use chia::{bls::master_to_wallet_unhardened_intermediate, protocol::Bytes32};
-use chia_wallet_sdk::{create_rustls_connector, decode_address, load_ssl_cert, Connector};
+use chia_wallet_sdk::{
+    client::{create_rustls_connector, load_ssl_cert, Connector},
+    utils::Address,
+};
 use indexmap::{indexmap, IndexMap};
 use sage_api::{Amount, Unit, XCH};
 use sage_config::{Config, Network, WalletConfig, MAINNET, TESTNET11};
@@ -198,7 +201,7 @@ impl Sage {
             self.peer_state.clone(),
             self.wallet.clone(),
             network_id,
-            chia_wallet_sdk::Network {
+            chia_wallet_sdk::client::Network {
                 default_port: network.default_port,
                 genesis_challenge: hex::decode(&network.genesis_challenge)?.try_into()?,
                 dns_introducers: network.dns_introducers.clone(),
@@ -327,13 +330,13 @@ impl Sage {
 
     #[allow(clippy::needless_pass_by_value)]
     pub fn parse_address(&self, input: String) -> Result<Bytes32> {
-        let (puzzle_hash, prefix) = decode_address(&input)?;
+        let address = Address::decode(&input)?;
 
-        if prefix != self.network().address_prefix {
-            return Err(Error::AddressPrefix(prefix));
+        if address.prefix != self.network().address_prefix {
+            return Err(Error::AddressPrefix(address.prefix));
         }
 
-        Ok(puzzle_hash.into())
+        Ok(address.puzzle_hash)
     }
 
     #[allow(clippy::needless_pass_by_value)]

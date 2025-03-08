@@ -8,7 +8,10 @@ use chia::{
     protocol::{CoinSpend, SpendBundle},
     puzzles::DeriveSynthetic,
 };
-use chia_wallet_sdk::{AggSigConstants, Offer, RequiredSignature};
+use chia_wallet_sdk::{
+    driver::Offer,
+    signer::{AggSigConstants, RequiredSignature},
+};
 use clvmr::Allocator;
 
 use crate::WalletError;

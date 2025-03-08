@@ -5,7 +5,7 @@ use std::{
 };
 
 use chia::protocol::Bytes32;
-use chia_wallet_sdk::Offer;
+use chia_wallet_sdk::driver::Offer;
 use clvmr::Allocator;
 use sage_database::{Database, OfferStatus};
 use tokio::{

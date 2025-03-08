@@ -4,7 +4,7 @@ use chia::{
     protocol::{Bytes, Coin, CoinSpend, SpendBundle},
     puzzles::{cat::CatArgs, standard::StandardArgs, DeriveSynthetic, Proof},
 };
-use chia_wallet_sdk::{Layer, SpendContext};
+use chia_wallet_sdk::driver::{Layer, SpendContext};
 use sage_api::wallet_connect::{
     self, AssetCoinType, FilterUnlockedCoins, FilterUnlockedCoinsResponse, GetAssetCoins,
     GetAssetCoinsResponse, LineageProof, SendTransactionImmediately,
