@@ -38,10 +38,11 @@ import {
 import { TokenAmountInput } from '@/components/ui/masked-input';
 import { Textarea } from '@/components/ui/textarea';
 import { useErrors } from '@/hooks/useErrors';
+import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
 import { amount } from '@/lib/formTypes';
 import { dexieLink } from '@/lib/offerUpload';
 import { toMojos } from '@/lib/utils';
-import { isDefaultOffer, useOfferState, useWalletState } from '@/state';
+import { useOfferState, useWalletState } from '@/state';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -62,7 +63,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
 import { z } from 'zod';
-import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
 
 export function Offers() {
   const navigate = useNavigate();
@@ -123,7 +123,7 @@ export function Offers() {
   }, [viewOffer]);
 
   useEffect(() => {
-    if (!isDefaultOffer(offerState)) {
+    if (offerState) {
       navigate('/offers/make', { replace: true });
     }
   }, [navigate, offerState]);

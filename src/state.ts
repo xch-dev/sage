@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import {
-  Amount,
   Assets,
   CoinRecord,
   commands,
@@ -14,10 +13,21 @@ export interface WalletState {
   coins: CoinRecord[];
 }
 
+export interface AssetInput {
+  xch: string;
+  cats: CatInput[];
+  nfts: string[];
+}
+
+export interface CatInput {
+  assetId: string;
+  amount: string;
+}
+
 export interface OfferState {
   offered: Assets;
   requested: Assets;
-  fee: Amount;
+  fee: string;
   expiration: OfferExpiration | null;
 }
 
@@ -38,7 +48,7 @@ export interface NavigationStore {
 }
 
 export const useWalletState = create<WalletState>(() => defaultState());
-export const useOfferState = create<OfferState>(() => defaultOffer());
+export const useOfferState = create<OfferState | null>(() => null);
 export const useNavigationStore = create<NavigationStore>((set) => ({
   returnValues: {},
   setReturnValue: (pageId, value) =>
@@ -49,11 +59,7 @@ export const useNavigationStore = create<NavigationStore>((set) => ({
 
 export function clearState() {
   useWalletState.setState(defaultState());
-  useOfferState.setState(defaultOffer());
-}
-
-export function clearOffer() {
-  useOfferState.setState(defaultOffer());
+  useOfferState.setState(null);
 }
 
 export async function fetchState() {
@@ -130,34 +136,4 @@ export function defaultState(): WalletState {
     },
     coins: [],
   };
-}
-
-export function defaultOffer(): OfferState {
-  return {
-    offered: {
-      xch: '',
-      cats: [],
-      nfts: [],
-    },
-    requested: {
-      xch: '',
-      cats: [],
-      nfts: [],
-    },
-    fee: '',
-    expiration: null,
-  };
-}
-
-export function isDefaultOffer(offer: OfferState): boolean {
-  return (
-    offer.offered.xch === '' &&
-    offer.offered.cats.length === 0 &&
-    offer.offered.nfts.length === 0 &&
-    offer.requested.xch === '' &&
-    offer.requested.cats.length === 0 &&
-    offer.requested.nfts.length === 0 &&
-    offer.fee === '' &&
-    offer.expiration === null
-  );
 }

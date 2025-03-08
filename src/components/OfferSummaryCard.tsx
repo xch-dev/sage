@@ -1,10 +1,10 @@
 import { OfferAssets, OfferRecord } from '@/bindings';
+import { NumberFormat } from '@/components/NumberFormat';
 import { nftUri } from '@/lib/nftUri';
 import { fromMojos, unixTimestampToDate } from '@/lib/utils';
 import { useWalletState } from '@/state';
-import BigNumber from 'bignumber.js';
 import { t } from '@lingui/core/macro';
-import { NumberFormat } from '@/components/NumberFormat';
+import BigNumber from 'bignumber.js';
 
 export interface OfferSummaryCardProps {
   record: OfferRecord;
@@ -90,8 +90,8 @@ function AssetPreview({ label, assets }: AssetPreviewProps) {
           </div>
         </div>
       )}
-      {Object.entries(assets.cats).map(([_assetId, cat]) => (
-        <div className='flex items-center gap-2'>
+      {Object.entries(assets.cats).map(([, cat], i) => (
+        <div className='flex items-center gap-2' key={i}>
           <img
             alt={cat.name ?? cat.ticker ?? t`Unknown`}
             src={cat.icon_url!}
@@ -108,8 +108,8 @@ function AssetPreview({ label, assets }: AssetPreviewProps) {
           </div>
         </div>
       ))}
-      {Object.entries(assets.nfts).map(([_nftId, nft]) => (
-        <div className='flex items-center gap-2'>
+      {Object.entries(assets.nfts).map(([, nft], i) => (
+        <div className='flex items-center gap-2' key={i}>
           <img
             alt={nft.name ?? t`Unknown`}
             src={nftUri(nft.image_mime_type, nft.image_data)}

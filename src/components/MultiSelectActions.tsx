@@ -1,7 +1,8 @@
 import { commands, TransactionResponse } from '@/bindings';
 import { useErrors } from '@/hooks/useErrors';
+import useOfferStateWithDefault from '@/hooks/useOfferStateWithDefault';
 import { toMojos } from '@/lib/utils';
-import { useOfferState, useWalletState } from '@/state';
+import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import {
@@ -12,6 +13,7 @@ import {
   UserRoundPlus,
 } from 'lucide-react';
 import { useState } from 'react';
+import { toast } from 'react-toastify';
 import { AssignNftDialog } from './AssignNftDialog';
 import ConfirmationDialog from './ConfirmationDialog';
 import { FeeOnlyDialog } from './FeeOnlyDialog';
@@ -25,7 +27,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
-import { toast } from 'react-toastify';
 
 export interface MultiSelectActionsProps {
   selected: string[];
@@ -37,13 +38,17 @@ export function MultiSelectActions({
   onConfirm,
 }: MultiSelectActionsProps) {
   const walletState = useWalletState();
-  const offerState = useOfferState();
+  const [offerState, setOfferState] = useOfferStateWithDefault();
+
   const { addError } = useErrors();
-  const selectedCount = selected.length;
+
   const [transferOpen, setTransferOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
   const [burnOpen, setBurnOpen] = useState(false);
   const [response, setResponse] = useState<TransactionResponse | null>(null);
+
+  const selectedCount = selected.length;
+
   const onTransferSubmit = (address: string, fee: string) => {
     commands
       .transferNfts({
@@ -55,6 +60,7 @@ export function MultiSelectActions({
       .catch(addError)
       .finally(() => setTransferOpen(false));
   };
+
   const onAssignSubmit = (profile: string | null, fee: string) => {
     commands
       .assignNftsToDid({
@@ -66,6 +72,7 @@ export function MultiSelectActions({
       .catch(addError)
       .finally(() => setAssignOpen(false));
   };
+
   const onBurnSubmit = (fee: string) => {
     commands
       .transferNfts({
@@ -164,7 +171,7 @@ export function MultiSelectActions({
                     addedCount++;
                   }
 
-                  useOfferState.setState({
+                  setOfferState({
                     offered: {
                       ...offerState.offered,
                       nfts: newNfts,
