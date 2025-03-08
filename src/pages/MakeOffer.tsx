@@ -524,13 +524,14 @@ function AssetSelector({
           <div className='flex'>
             <TokenAmountInput
               id={`${prefix}-amount`}
+              type='text'
               className='rounded-r-none z-10'
               placeholder={t`Enter amount`}
               value={assets.xch}
               onValueChange={(values) => {
                 setAssets({
                   ...assets,
-                  xch: Number(values.floatValue),
+                  xch: values.floatValue ?? 0.0,
                 });
               }}
             />
@@ -650,8 +651,8 @@ function AssetSelector({
                   className='border-l-0 z-10 rounded-l-none rounded-r-none w-[100px] h-12'
                   placeholder={t`Amount`}
                   value={cat.amount}
-                  onChange={(e) => {
-                    assets.cats[i].amount = e.target.value;
+                  onValueChange={(values) => {
+                    assets.cats[i].amount = values.floatValue ?? 0.0;
                     setAssets({ ...assets });
                   }}
                 />
