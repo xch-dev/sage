@@ -1,12 +1,12 @@
-import { t } from '@lingui/core/macro';
-import { NftCollectionRecord, DidRecord } from '../bindings';
-import { NftGroupMode } from '@/hooks/useNftParams';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { NftGroupMode } from '@/hooks/useNftParams';
+import { t } from '@lingui/core/macro';
+import { DidRecord, NftCollectionRecord } from '../bindings';
 
 interface NftPageTitleProps {
   collectionId?: string | null;
@@ -52,9 +52,9 @@ export function NftPageTitle(props: NftPageTitleProps) {
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <h1 className='truncate max-w-[300px]' aria-label={title}>
+          <div className='truncate max-w-[300px]' aria-label={title}>
             {title}
-          </h1>
+          </div>
         </TooltipTrigger>
         <TooltipContent role='tooltip' aria-label={t`Full title: ${title}`}>
           {title}

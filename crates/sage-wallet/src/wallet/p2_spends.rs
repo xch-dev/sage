@@ -1,7 +1,10 @@
 use std::mem;
 
 use chia::protocol::Coin;
-use chia_wallet_sdk::{Conditions, SpendContext, StandardLayer};
+use chia_wallet_sdk::{
+    driver::{SpendContext, StandardLayer},
+    types::Conditions,
+};
 
 use crate::WalletError;
 

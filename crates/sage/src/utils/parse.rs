@@ -4,7 +4,7 @@ use chia::{
     bls::{PublicKey, Signature},
     protocol::{Bytes32, Program},
 };
-use chia_wallet_sdk::decode_address;
+use chia_wallet_sdk::utils::Address;
 use sage_api::Amount;
 
 use crate::{Error, Result};
@@ -37,33 +37,33 @@ pub fn parse_coin_id(input: String) -> Result<Bytes32> {
 }
 
 pub fn parse_did_id(input: String) -> Result<Bytes32> {
-    let (launcher_id, prefix) = decode_address(&input)?;
+    let address = Address::decode(&input)?;
 
-    if prefix != "did:chia:" {
+    if address.prefix != "did:chia:" {
         return Err(Error::InvalidDidId(input));
     }
 
-    Ok(launcher_id.into())
+    Ok(address.puzzle_hash)
 }
 
 pub fn parse_nft_id(input: String) -> Result<Bytes32> {
-    let (launcher_id, prefix) = decode_address(&input)?;
+    let address = Address::decode(&input)?;
 
-    if prefix != "nft" {
+    if address.prefix != "nft" {
         return Err(Error::InvalidNftId(input));
     }
 
-    Ok(launcher_id.into())
+    Ok(address.puzzle_hash)
 }
 
 pub fn parse_collection_id(input: String) -> Result<Bytes32> {
-    let (launcher_id, prefix) = decode_address(&input)?;
+    let address = Address::decode(&input)?;
 
-    if prefix != "col" {
+    if address.prefix != "col" {
         return Err(Error::InvalidCollectionId(input));
     }
 
-    Ok(launcher_id.into())
+    Ok(address.puzzle_hash)
 }
 
 pub fn parse_offer_id(input: String) -> Result<Bytes32> {

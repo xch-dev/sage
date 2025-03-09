@@ -1,5 +1,8 @@
 use chia::protocol::{Bytes, Bytes32, CoinSpend};
-use chia_wallet_sdk::{Conditions, Memos, SpendContext};
+use chia_wallet_sdk::{
+    driver::SpendContext,
+    types::{conditions::Memos, Conditions},
+};
 
 use crate::WalletError;
 

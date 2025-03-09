@@ -17,6 +17,7 @@ workspace = true
 [dependencies]
 chia = { workspace = true }
 clvmr = { workspace = true }
+chia-puzzles = { workspace = true }
 chia-wallet-sdk = { workspace = true }
 sage-database = { workspace = true }
 sage-assets = { workspace = true }

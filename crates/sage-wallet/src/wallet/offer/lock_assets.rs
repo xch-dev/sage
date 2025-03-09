@@ -1,10 +1,12 @@
 use std::{collections::HashMap, mem};
 
-use chia::{
-    protocol::{Bytes32, Coin},
-    puzzles::offer::SETTLEMENT_PAYMENTS_PUZZLE_HASH,
+use chia::protocol::{Bytes32, Coin};
+use chia_puzzles::SETTLEMENT_PAYMENT_HASH;
+use chia_wallet_sdk::{
+    driver::{HashedPtr, SpendContext, StandardLayer},
+    prelude::TradePrice,
+    types::Conditions,
 };
-use chia_wallet_sdk::{Conditions, HashedPtr, SpendContext, StandardLayer, TradePrice};
 
 use crate::{Wallet, WalletError};
 
@@ -72,15 +74,12 @@ impl Wallet {
                 .unwrap_or_default();
 
             if amounts.xch > 0 {
-                conditions = conditions.create_coin(
-                    SETTLEMENT_PAYMENTS_PUZZLE_HASH.into(),
-                    amounts.xch,
-                    None,
-                );
+                conditions =
+                    conditions.create_coin(SETTLEMENT_PAYMENT_HASH.into(), amounts.xch, None);
 
                 locked.xch.push(Coin::new(
                     primary_xch_coin.coin_id(),
-                    SETTLEMENT_PAYMENTS_PUZZLE_HASH.into(),
+                    SETTLEMENT_PAYMENT_HASH.into(),
                     amounts.xch,
                 ));
             }
@@ -121,13 +120,13 @@ impl Wallet {
             let total_amount = cat_coins.iter().map(|cat| cat.coin.amount).sum::<u64>();
             let change = total_amount - amount - royalties.cat_amount(asset_id);
 
-            let settlement_hint = ctx.hint(SETTLEMENT_PAYMENTS_PUZZLE_HASH.into())?;
+            let settlement_hint = ctx.hint(SETTLEMENT_PAYMENT_HASH.into())?;
 
             let mut conditions = primary_conditions
                 .remove(&primary_cat.coin.coin_id())
                 .unwrap_or_default()
                 .create_coin(
-                    SETTLEMENT_PAYMENTS_PUZZLE_HASH.into(),
+                    SETTLEMENT_PAYMENT_HASH.into(),
                     amount,
                     Some(settlement_hint),
                 );
@@ -136,7 +135,7 @@ impl Wallet {
                 .cats
                 .entry(asset_id)
                 .or_default()
-                .push(primary_cat.wrapped_child(SETTLEMENT_PAYMENTS_PUZZLE_HASH.into(), amount));
+                .push(primary_cat.wrapped_child(SETTLEMENT_PAYMENT_HASH.into(), amount));
 
             if change > 0 {
                 let change_hint = ctx.hint(change_puzzle_hash)?;
@@ -167,7 +166,7 @@ impl Wallet {
         // Spend the NFTs.
         for nft in coins.nfts.into_values() {
             let metadata_ptr = ctx.alloc(&nft.info.metadata)?;
-            let nft = nft.with_metadata(HashedPtr::from_ptr(&ctx.allocator, metadata_ptr));
+            let nft = nft.with_metadata(HashedPtr::from_ptr(ctx, metadata_ptr));
 
             let synthetic_key = self.db.synthetic_key(nft.info.p2_puzzle_hash).await?;
             let p2 = StandardLayer::new(synthetic_key);

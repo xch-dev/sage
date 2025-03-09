@@ -4,7 +4,7 @@ use chia::{
     protocol::{Bytes, CoinSpend},
     puzzles::nft::NftMetadata,
 };
-use chia_wallet_sdk::{encode_address, MetadataUpdate};
+use chia_wallet_sdk::{driver::MetadataUpdate, utils::Address};
 use itertools::Itertools;
 use sage_api::{
     AddNftUri, AssignNftsToDid, AutoCombineCat, AutoCombineXch, BulkMintNfts, BulkMintNftsResponse,
@@ -359,7 +359,7 @@ impl Sage {
         let mut nft_ids = Vec::with_capacity(nfts.len());
 
         for nft in nfts {
-            nft_ids.push(encode_address(nft.info.launcher_id.to_bytes(), "nft")?);
+            nft_ids.push(Address::new(nft.info.launcher_id, "nft".to_string()).encode()?);
         }
 
         let response = self

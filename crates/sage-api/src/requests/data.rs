@@ -141,6 +141,22 @@ pub struct GetTransactionsResponse {
     pub total: u32,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct GetTransactionsByItemId {
+    pub offset: u32,
+    pub limit: u32,
+    pub ascending: bool,
+    pub id: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct GetTransactionsByItemIdResponse {
+    pub transactions: Vec<TransactionRecord>,
+    pub total: u32,
+}
+
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct GetTransaction {

@@ -2,7 +2,7 @@ use chia::{
     protocol::{Coin, Program},
     puzzles::{LineageProof, Proof},
 };
-use chia_wallet_sdk::{Nft, NftInfo};
+use chia_wallet_sdk::driver::{Nft, NftInfo};
 
 use crate::{to_bytes32, to_u64, DatabaseError};
 

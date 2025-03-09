@@ -5,10 +5,10 @@ import {
   flexRender,
   getCoreRowModel,
   getSortedRowModel,
+  OnChangeFn,
+  Row,
   SortingState,
   useReactTable,
-  Row,
-  OnChangeFn,
 } from '@tanstack/react-table';
 
 import {
@@ -21,6 +21,14 @@ import {
 } from '@/components/ui/table';
 
 import { Trans } from '@lingui/react/macro';
+import { cn } from '@/lib/utils';
+
+// Add a type declaration for the column meta
+declare module '@tanstack/react-table' {
+  interface ColumnMeta<TData, TValue> {
+    className?: string;
+  }
+}
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -48,15 +56,21 @@ export function DataTable<TData, TValue>({
     getSortedRowModel: getSortedRowModel(),
   });
 
+  const length = data.length;
+
   return (
     <div>
       <div className='rounded-md border'>
-        <Table aria-label='Transactions table'>
+        <Table aria-label='Table'>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id} role='columnheader'>
+                  <TableHead
+                    key={header.id}
+                    role='columnheader'
+                    className={cn(header.column.columnDef.meta?.className)}
+                  >
                     {header.isPlaceholder
                       ? null
                       : flexRender(
@@ -74,10 +88,14 @@ export function DataTable<TData, TValue>({
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && 'selected'}
-                  className={getRowStyles?.(row)?.className}
+                  {...getRowStyles?.(row)}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} role='cell'>
+                    <TableCell
+                      key={cell.id}
+                      role='cell'
+                      className={cn(cell.column.columnDef.meta?.className)}
+                    >
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext(),
@@ -100,8 +118,8 @@ export function DataTable<TData, TValue>({
           </TableBody>
         </Table>
       </div>
-      <div className='text-sm text-muted-foreground mb-2'>
-        <Trans>Showing {data.length} rows</Trans>
+      <div className='text-sm text-muted-foreground mt-1 mb-2'>
+        <Trans>Showing {length} rows</Trans>
       </div>
     </div>
   );

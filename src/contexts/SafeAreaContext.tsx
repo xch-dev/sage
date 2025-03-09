@@ -1,3 +1,4 @@
+import { platform } from '@tauri-apps/plugin-os';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { getInsets, Insets } from 'tauri-plugin-safe-area-insets';
 
@@ -13,6 +14,8 @@ const SafeAreaContext = createContext<Insets>(defaultInsets);
 export function SafeAreaProvider({ children }: { children: React.ReactNode }) {
   const [insets, setInsets] = useState<Insets>(defaultInsets);
 
+  const isMobile = platform() === 'ios' || platform() === 'android';
+
   useEffect(() => {
     async function loadInsets() {
       try {
@@ -23,8 +26,10 @@ export function SafeAreaProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    loadInsets();
-  }, []);
+    if (isMobile) {
+      loadInsets();
+    }
+  }, [isMobile]);
 
   return (
     <SafeAreaContext.Provider value={insets}>

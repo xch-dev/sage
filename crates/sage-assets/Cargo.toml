@@ -16,7 +16,6 @@ workspace = true
 
 [dependencies]
 chia = { workspace = true }
-clvmr = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 num-bigint = { workspace = true, features = ["serde"] }

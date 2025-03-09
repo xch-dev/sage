@@ -4,8 +4,12 @@ use std::{
 };
 
 use base64::{prelude::BASE64_STANDARD, Engine};
-use chia::{clvm_traits::FromClvm, protocol::SpendBundle, puzzles::nft::NftMetadata};
-use chia_wallet_sdk::{encode_address, AggSigConstants, Offer, SpendContext};
+use chia::{protocol::SpendBundle, puzzles::nft::NftMetadata};
+use chia_wallet_sdk::{
+    driver::{Offer, SpendContext},
+    signer::AggSigConstants,
+    utils::Address,
+};
 use chrono::{Local, TimeZone};
 use clvmr::Allocator;
 use indexmap::IndexMap;
@@ -293,9 +297,7 @@ impl Sage {
         }
 
         for nft in maker.nfts.into_values() {
-            let info = if let Ok(metadata) =
-                NftMetadata::from_clvm(&ctx.allocator, nft.info.metadata.ptr())
-            {
+            let info = if let Ok(metadata) = ctx.extract::<NftMetadata>(nft.info.metadata.ptr()) {
                 let mut confirmation_info = ConfirmationInfo::default();
 
                 if let Some(hash) = metadata.data_hash {
@@ -361,36 +363,35 @@ impl Sage {
         }
 
         for (nft, _) in taker.nfts.into_values() {
-            let info =
-                if let Ok(metadata) = NftMetadata::from_clvm(&ctx.allocator, nft.metadata.ptr()) {
-                    let mut confirmation_info = ConfirmationInfo::default();
+            let info = if let Ok(metadata) = ctx.extract::<NftMetadata>(nft.metadata.ptr()) {
+                let mut confirmation_info = ConfirmationInfo::default();
 
-                    if let Some(hash) = metadata.data_hash {
-                        if let Ok(Some(data)) = timeout(
-                            Duration::from_secs(10),
-                            fetch_uris_with_hash(metadata.data_uris.clone(), hash),
-                        )
-                        .await
-                        {
-                            confirmation_info.nft_data.insert(hash, data);
-                        }
+                if let Some(hash) = metadata.data_hash {
+                    if let Ok(Some(data)) = timeout(
+                        Duration::from_secs(10),
+                        fetch_uris_with_hash(metadata.data_uris.clone(), hash),
+                    )
+                    .await
+                    {
+                        confirmation_info.nft_data.insert(hash, data);
                     }
+                }
 
-                    if let Some(hash) = metadata.metadata_hash {
-                        if let Ok(Some(data)) = timeout(
-                            Duration::from_secs(10),
-                            fetch_uris_with_hash(metadata.metadata_uris.clone(), hash),
-                        )
-                        .await
-                        {
-                            confirmation_info.nft_data.insert(hash, data);
-                        }
+                if let Some(hash) = metadata.metadata_hash {
+                    if let Ok(Some(data)) = timeout(
+                        Duration::from_secs(10),
+                        fetch_uris_with_hash(metadata.metadata_uris.clone(), hash),
+                    )
+                    .await
+                    {
+                        confirmation_info.nft_data.insert(hash, data);
                     }
+                }
 
-                    extract_nft_data(Some(&wallet.db), Some(metadata), &confirmation_info).await?
-                } else {
-                    ExtractedNftData::default()
-                };
+                extract_nft_data(Some(&wallet.db), Some(metadata), &confirmation_info).await?
+            } else {
+                ExtractedNftData::default()
+            };
 
             nft_rows.push(OfferNftRow {
                 offer_id,
@@ -558,13 +559,14 @@ impl Sage {
         let mut taker_nfts = IndexMap::new();
 
         for nft in nfts {
-            let nft_id = encode_address(nft.launcher_id.into(), "nft")?;
+            let nft_id = Address::new(nft.launcher_id, "nft".to_string()).encode()?;
 
             let record = OfferNft {
-                royalty_address: encode_address(
-                    nft.royalty_puzzle_hash.into(),
-                    &self.network().address_prefix,
-                )?,
+                royalty_address: Address::new(
+                    nft.royalty_puzzle_hash,
+                    self.network().address_prefix.clone(),
+                )
+                .encode()?,
                 royalty_ten_thousandths: nft.royalty_ten_thousandths,
                 name: nft.name,
                 image_data: nft.thumbnail.map(|data| BASE64_STANDARD.encode(data)),
@@ -610,6 +612,8 @@ impl Sage {
                     nfts: taker_nfts,
                 },
                 fee: Amount::u64(offer.fee),
+                expiration_height: offer.expiration_height,
+                expiration_timestamp: offer.expiration_timestamp,
             },
         })
     }

@@ -3,7 +3,10 @@ use chia::{
     protocol::{Bytes32, Coin, CoinSpend},
     puzzles::{singleton::SingletonArgs, Proof},
 };
-use chia_wallet_sdk::{Conditions, Did, HashedPtr, Launcher, SpendContext, StandardLayer};
+use chia_wallet_sdk::{
+    driver::{Did, HashedPtr, Launcher, SpendContext, StandardLayer},
+    types::Conditions,
+};
 
 use crate::WalletError;
 
@@ -90,7 +93,7 @@ impl Wallet {
 
         for (i, did) in dids.into_iter().enumerate() {
             let did_metadata_ptr = ctx.alloc(&did.info.metadata)?;
-            let did = did.with_metadata(HashedPtr::from_ptr(&ctx.allocator, did_metadata_ptr));
+            let did = did.with_metadata(HashedPtr::from_ptr(&ctx, did_metadata_ptr));
 
             let synthetic_key = self.db.synthetic_key(did.info.p2_puzzle_hash).await?;
             let p2 = StandardLayer::new(synthetic_key);
@@ -168,7 +171,7 @@ impl Wallet {
 
         for (i, did) in dids.into_iter().enumerate() {
             let did_metadata_ptr = ctx.alloc(&did.info.metadata)?;
-            let did = did.with_metadata(HashedPtr::from_ptr(&ctx.allocator, did_metadata_ptr));
+            let did = did.with_metadata(HashedPtr::from_ptr(&ctx, did_metadata_ptr));
 
             let synthetic_key = self.db.synthetic_key(did.info.p2_puzzle_hash).await?;
             let p2 = StandardLayer::new(synthetic_key);

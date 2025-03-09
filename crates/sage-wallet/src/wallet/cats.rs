@@ -4,7 +4,10 @@ use chia::{
     bls::PublicKey,
     protocol::{Bytes, Bytes32, CoinSpend},
 };
-use chia_wallet_sdk::{Cat, Conditions, SpendContext};
+use chia_wallet_sdk::{
+    driver::{Cat, SpendContext},
+    types::Conditions,
+};
 
 use crate::WalletError;
 

@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use chia::protocol::{Bytes32, Coin, CoinSpend};
-use chia_wallet_sdk::{select_coins, Conditions, SpendContext};
+use chia_wallet_sdk::{driver::SpendContext, types::Conditions, utils::select_coins};
 
 use crate::WalletError;
 
