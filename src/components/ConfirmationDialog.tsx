@@ -55,6 +55,11 @@ export interface ConfirmationDialogProps {
   close: () => void;
   onConfirm?: () => void;
   memo?: string;
+  additionalData?: {
+    title: string;
+    content: React.ReactNode;
+    copyValue?: string;
+  };
 }
 
 interface SpentCoin {
@@ -77,6 +82,7 @@ export default function ConfirmationDialog({
   close,
   onConfirm,
   memo,
+  additionalData,
 }: ConfirmationDialogProps) {
   const walletState = useWalletState();
   const ticker = walletState.sync.unit.ticker;
@@ -326,6 +332,32 @@ export default function ConfirmationDialog({
                             toast.success(t`Memo copied to clipboard`)
                           }
                         />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Additional Data Display */}
+                {additionalData && (
+                  <div className='mb-4'>
+                    <h3 className='text-sm font-medium mb-2 flex items-center'>
+                      <InfoIcon className='h-4 w-4 mr-1' />
+                      <Trans>Additional Info: {additionalData.title}</Trans>
+                    </h3>
+                    <div className='space-y-2'>
+                      <div className='flex items-start gap-2 text-sm border rounded-md p-2 bg-neutral-50 dark:bg-neutral-900'>
+                        <div className='break-words whitespace-pre-wrap w-full'>
+                          {additionalData.content}
+                        </div>
+                        {additionalData.copyValue && (
+                          <CopyButton
+                            value={additionalData.copyValue}
+                            className='h-4 w-4 shrink-0 ml-auto'
+                            onCopy={() =>
+                              toast.success(t`Data copied to clipboard`)
+                            }
+                          />
+                        )}
                       </div>
                     </div>
                   </div>
