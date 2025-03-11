@@ -7,9 +7,10 @@ import { isImage, nftUri } from '@/lib/nftUri';
 import { isValidUrl } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import { open } from '@tauri-apps/plugin-shell';
+import { openUrl } from '@tauri-apps/plugin-opener';
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import {
   commands,
   events,
@@ -17,7 +18,6 @@ import {
   NftData,
   NftRecord,
 } from '../bindings';
-import { toast } from 'react-toastify';
 
 export default function Nft() {
   const { launcher_id: launcherId } = useParams();
@@ -137,7 +137,7 @@ export default function Nft() {
                       </h6>
                       {isValidUrl(attr.value) ? (
                         <div
-                          onClick={() => open(attr.value)}
+                          onClick={() => openUrl(attr.value)}
                           className='text-sm break-all text-blue-700 dark:text-blue-300 cursor-pointer hover:underline'
                         >
                           {attr.value}
@@ -160,7 +160,7 @@ export default function Nft() {
                   <div
                     key={i}
                     className='truncate text-sm text-blue-700 dark:text-blue-300 cursor-pointer'
-                    onClick={() => open(uri)}
+                    onClick={() => openUrl(uri)}
                   >
                     {uri}
                   </div>
@@ -177,7 +177,7 @@ export default function Nft() {
                   <div
                     key={i}
                     className='truncate text-sm text-blue-700 dark:text-blue-300 cursor-pointer'
-                    onClick={() => open(uri)}
+                    onClick={() => openUrl(uri)}
                   >
                     {uri}
                   </div>
@@ -194,7 +194,7 @@ export default function Nft() {
                   <div
                     key={i}
                     className='truncate text-sm text-blue-700 dark:text-blue-300 cursor-pointer'
-                    onClick={() => open(uri)}
+                    onClick={() => openUrl(uri)}
                   >
                     {uri}
                   </div>
@@ -278,7 +278,7 @@ export default function Nft() {
               <Button
                 variant='outline'
                 onClick={() => {
-                  open(
+                  openUrl(
                     `https://${config?.network_id !== 'mainnet' ? 'testnet.' : ''}mintgarden.io/nfts/${nft?.launcher_id}`,
                   );
                 }}
@@ -297,7 +297,7 @@ export default function Nft() {
               <Button
                 variant='outline'
                 onClick={() => {
-                  open(
+                  openUrl(
                     `https://${config?.network_id !== 'mainnet' ? 'testnet11.' : ''}spacescan.io/nft/${nft?.launcher_id}`,
                   );
                 }}

@@ -33,7 +33,7 @@ import { toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import { open } from '@tauri-apps/plugin-shell';
+import { openUrl } from '@tauri-apps/plugin-opener';
 import {
   ArrowUpToLine,
   HandCoins,
@@ -355,7 +355,7 @@ export function MakeOffer() {
                         variant='outline'
                         className='text-neutral-800 dark:text-neutral-200'
                         onClick={() => {
-                          if (dexieLink) return open(dexieLink);
+                          if (dexieLink) return openUrl(dexieLink);
                           uploadToDexie(offer, network === 'testnet11')
                             .then(setDexieLink)
                             .catch((error) =>
@@ -379,7 +379,7 @@ export function MakeOffer() {
                           variant='outline'
                           className='text-neutral-800 dark:text-neutral-200'
                           onClick={() => {
-                            if (mintGardenLink) return open(mintGardenLink);
+                            if (mintGardenLink) return openUrl(mintGardenLink);
                             uploadToMintGarden(offer, network === 'testnet11')
                               .then(setMintGardenLink)
                               .catch((error) =>

@@ -1,9 +1,3 @@
-import { ColumnDef } from '@tanstack/react-table';
-import { t } from '@lingui/core/macro';
-import { Trans } from '@lingui/react/macro';
-import { Link } from 'react-router-dom';
-import { NumberFormat } from './NumberFormat';
-import { toDecimal, formatUsdPrice } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -11,18 +5,24 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { formatUsdPrice, toDecimal } from '@/lib/utils';
+import { TokenRecord } from '@/types/TokenViewProps';
+import { t } from '@lingui/core/macro';
+import { Trans } from '@lingui/react/macro';
+import { ColumnDef } from '@tanstack/react-table';
+import { openUrl } from '@tauri-apps/plugin-opener';
 import {
-  MoreHorizontal,
-  RefreshCw,
-  Eye,
-  EyeOff,
+  Coins,
   Copy,
   ExternalLink,
-  Coins,
+  Eye,
+  EyeOff,
+  MoreHorizontal,
+  RefreshCw,
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { TokenRecord } from '@/types/TokenViewProps';
-import { open } from '@tauri-apps/plugin-shell';
+import { NumberFormat } from './NumberFormat';
 
 // Add new interface for token action handlers
 export interface TokenActionHandlers {
@@ -192,7 +192,7 @@ export const columns = (
                 )}
                 <DropdownMenuItem
                   onClick={() => {
-                    open(
+                    openUrl(
                       `https://dexie.space/offers/XCH/${record.asset_id}`,
                     ).catch((error) => {
                       console.error('Failed to open dexie.space:', error);

@@ -66,11 +66,11 @@ hex = "0.4.3"
 base64 = "0.22.1"
 
 # Tauri
-tauri = "2.1.1"
-tauri-plugin-clipboard-manager = "2.0.2"
-tauri-plugin-shell = "2.0.2"
-tauri-plugin-os = "2.0.0"
-tauri-build = "2.0.3"
+tauri = "2.3.1"
+tauri-plugin-clipboard-manager = "2.2.2"
+tauri-plugin-opener = "2.2.6"
+tauri-plugin-os = "2.2.1"
+tauri-build = "2.0.6"
 
 # Specta
 specta = "2.0.0-rc.20"
