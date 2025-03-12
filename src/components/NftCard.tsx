@@ -78,6 +78,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from './ui/tooltip';
+import { CopyBox } from './CopyBox';
 
 export interface NftProps {
   nft: NftRecord;
@@ -107,6 +108,7 @@ const NftCardComponent = ({
   const [assignOpen, setAssignOpen] = useState(false);
   const [addUrlOpen, setAddUrlOpen] = useState(false);
   const [burnOpen, setBurnOpen] = useState(false);
+  const [isBurning, setIsBurning] = useState(false);
   const [response, setResponse] = useState<TransactionResponse | null>(null);
 
   useEffect(() => {
@@ -179,6 +181,7 @@ const NftCardComponent = ({
   };
 
   const onBurnSubmit = (fee: string) => {
+    setIsBurning(true);
     commands
       .transferNfts({
         nft_ids: [nft.launcher_id],
@@ -186,7 +189,10 @@ const NftCardComponent = ({
         fee: toMojos(fee, walletState.sync.unit.decimals),
       })
       .then(setResponse)
-      .catch(addError)
+      .catch((err) => {
+        setIsBurning(false);
+        addError(err);
+      })
       .finally(() => setBurnOpen(false));
   };
 
@@ -585,6 +591,7 @@ const NftCardComponent = ({
         open={burnOpen}
         setOpen={setBurnOpen}
         onSubmit={onBurnSubmit}
+        submitButtonLabel={t`Burn`}
       >
         <Trans>
           This will permanently delete the NFT by sending it to the burn
@@ -594,8 +601,63 @@ const NftCardComponent = ({
 
       <ConfirmationDialog
         response={response}
-        close={() => setResponse(null)}
-        onConfirm={() => updateNfts()}
+        close={() => {
+          setResponse(null);
+          setIsBurning(false);
+        }}
+        onConfirm={() => {
+          updateNfts();
+          setIsBurning(false);
+        }}
+        additionalData={
+          isBurning && response
+            ? {
+                title: 'NFT Details',
+                content: (
+                  <div className='space-y-3 text-xs'>
+                    <div className='flex items-start gap-3'>
+                      <div className='overflow-hidden rounded-md flex-shrink-0 w-16 h-16 border border-neutral-200 dark:border-neutral-800'>
+                        <img
+                          alt={t`NFT artwork for ${nftName}`}
+                          loading='lazy'
+                          width='64'
+                          height='64'
+                          className='h-full w-full object-cover aspect-square color-[transparent]'
+                          src={nftUri(
+                            data?.mime_type ?? null,
+                            data?.blob ?? null,
+                          )}
+                        />
+                      </div>
+                      <div className='break-words whitespace-pre-wrap flex-1'>
+                        <div className='font-medium'>{nftName}</div>
+                        <CopyBox
+                          title={t`Launcher Id`}
+                          value={nft?.launcher_id ?? ''}
+                          onCopy={() =>
+                            toast.success(t`Launcher Id copied to clipboard`)
+                          }
+                        />
+                      </div>
+                    </div>
+
+                    <div className='p-2 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-md text-amber-800 dark:text-amber-300'>
+                      <div className='font-medium mb-1 flex items-center'>
+                        <Flame className='h-3 w-3 mr-1' />
+                        <Trans>Warning</Trans>
+                      </div>
+                      <div>
+                        <Trans>
+                          This will permanently delete the NFT by sending it to
+                          the burn address.
+                        </Trans>
+                      </div>
+                    </div>
+                  </div>
+                ),
+              }
+            : undefined
+        }
       />
     </>
   );
