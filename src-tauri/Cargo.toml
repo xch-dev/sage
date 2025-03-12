@@ -29,7 +29,7 @@ specta-typescript = { workspace = true }
 tauri-plugin-clipboard-manager = { workspace = true }
 tokio = { workspace = true }
 chia-wallet-sdk = { workspace = true, features = ["rustls"] }
-tauri-plugin-shell = { workspace = true }
+tauri-plugin-opener = { workspace = true }
 tauri-plugin-os = { workspace = true }
 serde_json = { workspace = true, features = ["arbitrary_precision"] }
 tracing = { workspace = true }

@@ -17,7 +17,7 @@
     "clipboard-manager:default",
     "clipboard-manager:allow-write-text",
     "clipboard-manager:allow-read-text",
-    "shell:default",
+    "opener:default",
     {
       "identifier": "http:default",
       "allow": [
