@@ -46,6 +46,8 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { ArrowUpToLine } from 'lucide-react';
+import { CopyButton } from '@/components/CopyButton';
+import { toast } from 'react-toastify';
 
 function stringToUint8Array(str: string): Uint8Array {
   return new TextEncoder().encode(str);
@@ -395,12 +397,20 @@ export default function Send() {
                 title: 'Memo',
                 content: (
                   <div className='space-y-1 text-xs'>
-                    <div className='break-words whitespace-pre-wrap'>
-                      {currentMemo}
+                    <div className='flex items-center justify-between'>
+                      <div className='break-words whitespace-pre-wrap flex-1'>
+                        {currentMemo}
+                      </div>
+                      <CopyButton
+                        value={currentMemo}
+                        className='h-4 w-4 shrink-0 ml-2'
+                        onCopy={() =>
+                          toast.success(t`Data copied to clipboard`)
+                        }
+                      />
                     </div>
                   </div>
                 ),
-                copyValue: currentMemo,
               }
             : undefined
         }

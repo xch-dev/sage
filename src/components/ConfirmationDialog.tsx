@@ -24,16 +24,13 @@ import {
   ForwardIcon,
   LoaderCircleIcon,
   ArrowUpIcon,
-  ArrowDownIcon,
-  CodeIcon,
   InfoIcon,
   AlertCircleIcon,
   CheckCircleIcon,
-  MessageSquareTextIcon,
   ListCollapseIcon,
   ArrowUpRightIcon,
 } from 'lucide-react';
-import { PropsWithChildren, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   commands,
   TakeOfferResponse,
@@ -43,7 +40,6 @@ import {
 } from '../bindings';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { Badge } from './ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Separator } from './ui/separator';
 import { CopyButton } from './CopyButton';
 import { toast } from 'react-toastify';
@@ -57,7 +53,6 @@ export interface ConfirmationDialogProps {
   additionalData?: {
     title: string;
     content: React.ReactNode;
-    copyValue?: string;
   };
 }
 
@@ -323,15 +318,6 @@ export default function ConfirmationDialog({
                         <div className='break-words whitespace-pre-wrap w-full'>
                           {additionalData.content}
                         </div>
-                        {additionalData.copyValue && (
-                          <CopyButton
-                            value={additionalData.copyValue}
-                            className='h-4 w-4 shrink-0 ml-auto'
-                            onCopy={() =>
-                              toast.success(t`Data copied to clipboard`)
-                            }
-                          />
-                        )}
                       </div>
                     </div>
                   </div>
