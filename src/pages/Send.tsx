@@ -389,7 +389,21 @@ export default function Send() {
         response={response}
         close={() => setResponse(null)}
         onConfirm={() => navigate(-1)}
-        memo={currentMemo}
+        additionalData={
+          currentMemo
+            ? {
+                title: 'Memo',
+                content: (
+                  <div className='space-y-1 text-xs'>
+                    <div className='break-words whitespace-pre-wrap'>
+                      {currentMemo}
+                    </div>
+                  </div>
+                ),
+                copyValue: currentMemo,
+              }
+            : undefined
+        }
       />
     </>
   );

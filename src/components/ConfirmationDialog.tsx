@@ -54,7 +54,6 @@ export interface ConfirmationDialogProps {
   response: TransactionResponse | TakeOfferResponse | null;
   close: () => void;
   onConfirm?: () => void;
-  memo?: string;
   additionalData?: {
     title: string;
     content: React.ReactNode;
@@ -81,7 +80,6 @@ export default function ConfirmationDialog({
   response,
   close,
   onConfirm,
-  memo,
   additionalData,
 }: ConfirmationDialogProps) {
   const walletState = useWalletState();
@@ -312,30 +310,6 @@ export default function ConfirmationDialog({
                     </span>
                   </div>
                 </div>
-
-                {/* Memo Display - only show if memo is provided */}
-                {memo && (
-                  <div className='mb-4'>
-                    <h3 className='text-sm font-medium mb-2 flex items-center'>
-                      <MessageSquareTextIcon className='h-4 w-4 mr-1' />
-                      <Trans>Memo</Trans>
-                    </h3>
-                    <div className='space-y-2'>
-                      <div className='flex items-start gap-2 text-sm border rounded-md p-2 bg-neutral-50 dark:bg-neutral-900'>
-                        <div className='break-words whitespace-pre-wrap w-full'>
-                          {memo}
-                        </div>
-                        <CopyButton
-                          value={memo}
-                          className='h-4 w-4 shrink-0 ml-auto'
-                          onCopy={() =>
-                            toast.success(t`Memo copied to clipboard`)
-                          }
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
 
                 {/* Additional Data Display */}
                 {additionalData && (

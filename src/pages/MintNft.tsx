@@ -331,7 +331,19 @@ export default function MintNft() {
                         .split(',')
                         .map((uri) => uri.trim())
                         .filter(Boolean)
-                        .join(', ')}
+                        .map((uri, index, array) => (
+                          <>
+                            <a 
+                              href={uri} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-blue-500 hover:underline"
+                            >
+                              {uri}
+                            </a>
+                            {index < array.length - 1 ? ', ' : ''}
+                          </>
+                        ))}
                     </div>
                     <div>
                       <strong>Metadata URLs:</strong>{' '}
@@ -340,7 +352,19 @@ export default function MintNft() {
                         .split(',')
                         .map((uri) => uri.trim())
                         .filter(Boolean)
-                        .join(', ')}
+                        .map((uri, index, array) => (
+                          <>
+                            <a 
+                              href={uri} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-blue-500 hover:underline"
+                            >
+                              {uri}
+                            </a>
+                            {index < array.length - 1 ? ', ' : ''}
+                          </>
+                        ))}
                     </div>
                     {form.getValues('licenseUris') && (
                       <div>
@@ -350,7 +374,19 @@ export default function MintNft() {
                           ?.split(',')
                           .map((uri) => uri.trim())
                           .filter(Boolean)
-                          .join(', ')}
+                          .map((uri, index, array) => (
+                            <>
+                              <a 
+                                href={uri} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-blue-500 hover:underline"
+                              >
+                                {uri}
+                              </a>
+                              {index < array.length - 1 ? ', ' : ''}
+                            </>
+                          ))}
                       </div>
                     )}
                   </div>
