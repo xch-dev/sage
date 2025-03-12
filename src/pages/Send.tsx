@@ -167,39 +167,45 @@ export default function Send() {
     // Store the memo for the confirmation dialog
     setCurrentMemo(values.memo);
 
-    const command = isXch
-      ? bulk
-        ? (req: SendXch) => {
-            return commands.bulkSendXch({
-              addresses: [...new Set(addressList(req.address))],
-              amount: req.amount,
-              fee: req.fee,
-              memos,
-            });
-          }
-        : (req: SendXch) => commands.sendXch({ ...req, memos })
-      : (req: SendXch) => {
-          // not sending memos with CATS
-          if (bulk) {
-            return commands.bulkSendCat({
-              asset_id: assetId!,
-              addresses: [...new Set(addressList(req.address))],
-              amount: req.amount,
-              fee: req.fee,
-            });
-          } else {
-            return commands.sendCat({ asset_id: assetId!, ...req });
-          }
-        };
+    let commandFn;
+    if (isXch) {
+      if (bulk) {
+        commandFn = commands.bulkSendXch;
+      } else {
+        commandFn = commands.sendXch;
+      }
+    } else {
+      if (bulk) {
+        commandFn = commands.bulkSendCat;
+      } else {
+        commandFn = commands.sendCat;
+      }
+    }
 
-    command({
-      address: values.address,
+    // Prepare common parameters
+    const params: any = {
       amount: toMojos(values.amount.toString(), asset?.decimals || 12),
       fee: toMojos(
         values.fee?.toString() || '0',
         walletState.sync.unit.decimals,
       ),
-    })
+      memos,
+    };
+
+    // Add asset_id for CAT tokens
+    if (!isXch) {
+      params.asset_id = assetId!;
+    }
+
+    // Handle address formatting for bulk operations
+    if (bulk) {
+      params.addresses = [...new Set(addressList(values.address))];
+    } else {
+      params.address = values.address;
+    }
+
+    // Execute the command
+    commandFn(params)
       .then((confirmation) => setResponse(confirmation))
       .catch(addError);
   };
@@ -355,29 +361,27 @@ export default function Send() {
                 )}
               />
 
-              {isXch && (
-                <FormField
-                  control={form.control}
-                  name='memo'
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>
-                        <Trans>Memo (optional)</Trans>
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          autoCorrect='off'
-                          autoCapitalize='off'
-                          autoComplete='off'
-                          placeholder={t`Enter memo`}
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
+              <FormField
+                control={form.control}
+                name='memo'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      <Trans>Memo (optional)</Trans>
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        autoCorrect='off'
+                        autoCapitalize='off'
+                        autoComplete='off'
+                        placeholder={t`Enter memo`}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
 
             <Button type='submit'>
