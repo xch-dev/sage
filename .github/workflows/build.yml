@@ -110,7 +110,7 @@ jobs:
       - name: Ubuntu ARM dependencies
         if: matrix.platform == 'linux-arm64'
         run: |
-          which xdg-open
+          # which xdg-open
           sudo apt-get install --reinstall xdg-utils
 
       - name: Windows dependencies
