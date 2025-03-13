@@ -8,7 +8,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useErrors } from '@/hooks/useErrors';
-import { toDecimal, fromMojos } from '@/lib/utils';
+import { fromMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -31,13 +31,7 @@ import {
   ArrowUpRightIcon,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import {
-  commands,
-  TakeOfferResponse,
-  TransactionResponse,
-  TransactionSummary,
-  Unit,
-} from '../bindings';
+import { commands, TakeOfferResponse, TransactionResponse } from '../bindings';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { Badge } from './ui/badge';
 import { Separator } from './ui/separator';
@@ -45,7 +39,7 @@ import { CopyButton } from './CopyButton';
 import { toast } from 'react-toastify';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { formatNumber } from '../i18n';
-
+import { calculateTransaction } from './AdvancedTransactionSummary';
 export interface ConfirmationDialogProps {
   response: TransactionResponse | TakeOfferResponse | null;
   close: () => void;
@@ -54,21 +48,6 @@ export interface ConfirmationDialogProps {
     title: string;
     content: React.ReactNode;
   };
-}
-
-interface SpentCoin {
-  sort: number;
-  badge: string;
-  label: string;
-  coinId: string;
-}
-
-interface CreatedCoin {
-  sort: number;
-  badge: string;
-  label: string;
-  address: string;
-  amount?: string;
 }
 
 export default function ConfirmationDialog({
@@ -110,11 +89,11 @@ export default function ConfirmationDialog({
       ? null
       : 'coin_spends' in response
         ? {
-            coin_spends: response.coin_spends,
-            aggregated_signature:
-              signature ||
-              '0xc000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000',
-          }
+          coin_spends: response.coin_spends,
+          aggregated_signature:
+            signature ||
+            '0xc000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000',
+        }
         : response.spend_bundle,
     null,
     2,
@@ -126,17 +105,6 @@ export default function ConfirmationDialog({
     setTimeout(() => setJsonCopied(false), 2000);
     toast.success(t`JSON copied to clipboard`);
   };
-
-  // Get recipient addresses (excluding change)
-  const recipients = created
-    .filter(
-      (item) =>
-        item.address !== t`Change` &&
-        item.address !== t`You` &&
-        item.address !== t`Permanently Burned`,
-    )
-    .map((item) => item.address)
-    .filter((address, index, self) => self.indexOf(address) === index);
 
   // Group assets by type for combined display
   const groupedAssets = created
@@ -311,7 +279,7 @@ export default function ConfirmationDialog({
                   <div className='mb-4'>
                     <h3 className='text-sm font-medium mb-2 flex items-center'>
                       <InfoIcon className='h-4 w-4 mr-1' />
-                      <Trans>Additional Info: {additionalData.title}</Trans>
+                      {additionalData.title}
                     </h3>
                     <div className='space-y-2'>
                       <div className='flex items-start gap-2 text-sm border rounded-md p-2 bg-neutral-50 dark:bg-neutral-900'>
@@ -410,12 +378,12 @@ export default function ConfirmationDialog({
                       (item) =>
                         item.address !== t`Change` && item.address !== t`You`,
                     ).length === 0 && (
-                      <div className='text-sm text-muted-foreground p-3 border rounded-md'>
-                        <Trans>
-                          No assets being sent to external recipients.
-                        </Trans>
-                      </div>
-                    )}
+                        <div className='text-sm text-muted-foreground p-3 border rounded-md'>
+                          <Trans>
+                            No assets being sent to external recipients.
+                          </Trans>
+                        </div>
+                      )}
                   </div>
                 </div>
               </TabsContent>
@@ -680,220 +648,4 @@ export default function ConfirmationDialog({
       </DialogContent>
     </Dialog>
   );
-}
-
-// Export AdvancedSummary for use in WalletConnectContext
-export interface AdvancedSummaryProps {
-  summary: TransactionSummary;
-}
-
-export function AdvancedSummary({ summary }: AdvancedSummaryProps) {
-  const walletState = useWalletState();
-
-  const { spent, created } = calculateTransaction(
-    walletState.sync.unit,
-    summary,
-  );
-
-  return (
-    <div className='flex flex-col gap-1.5'>
-      <div className='flex flex-col gap-2 w-full font-medium text-left text-neutral-900 dark:text-neutral-200 bg-neutral-100 dark:bg-neutral-900 p-2 rounded-md'>
-        <div className='flex items-center gap-2 text-lg'>
-          <BadgeMinus className='w-6 h-6' />
-          <span>
-            <Trans>Spent Coins</Trans>
-          </span>
-        </div>
-        <div className='flex flex-col gap-2'>
-          {spent
-            .sort((a, b) => a.sort - b.sort)
-            .map((spent, i) => (
-              <div
-                key={i}
-                className='flex flex-col gap-1 border-2 p-1.5 rounded-md'
-              >
-                <div className='flex items-center gap-2'>
-                  <Badge className='max-w-[100px]'>
-                    <span className='truncate'>{spent.badge}</span>
-                  </Badge>
-                  <span>{spent.label}</span>
-                </div>
-                <div className='flex items-center gap-1'>
-                  <BoxIcon className='w-4 h-4' />
-                  <div className='truncate text-neutral-600 dark:text-neutral-400'>
-                    {spent.coinId}
-                  </div>
-                </div>
-              </div>
-            ))}
-        </div>
-      </div>
-      <div className='flex flex-col gap-2 w-full font-medium text-left text-neutral-900 dark:text-neutral-200 bg-neutral-100 dark:bg-neutral-900 p-2 rounded-md'>
-        <div className='flex items-center gap-2 text-lg'>
-          <BadgePlus className='w-6 h-6' />
-          <span>
-            <Trans>Transaction Output</Trans>
-          </span>
-        </div>
-        <div className='flex flex-col gap-2'>
-          {!BigNumber(summary.fee || 0).isZero() && (
-            <div className='flex flex-col gap-1 border-2 p-1.5 rounded-md'>
-              <div className='flex items-center gap-2'>
-                <Badge>
-                  <Trans>Fee</Trans>
-                </Badge>
-                <span>
-                  {toDecimal(summary.fee, walletState.sync.unit.decimals)}{' '}
-                  {walletState.sync.unit.ticker}
-                </span>
-              </div>
-            </div>
-          )}
-          {created
-            .sort((a, b) => a.sort - b.sort)
-            .map((created, i) => (
-              <div
-                key={i}
-                className='flex flex-col gap-1 border-2 p-1.5 rounded-md'
-              >
-                <div className='flex items-center gap-2'>
-                  <Badge className='max-w-[100px]'>
-                    <span className='truncate'>{created.badge}</span>
-                  </Badge>
-                  <span>{created.label}</span>
-                </div>
-                <div className='flex items-center gap-1'>
-                  <ForwardIcon className='w-4 h-4' />
-                  <div className='truncate text-neutral-600 dark:text-neutral-400'>
-                    {created.address}
-                  </div>
-                </div>
-              </div>
-            ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-interface CalculatedTransaction {
-  spent: SpentCoin[];
-  created: CreatedCoin[];
-}
-
-function calculateTransaction(
-  xch: Unit,
-  summary: TransactionSummary,
-): CalculatedTransaction {
-  const spent: SpentCoin[] = [];
-  const created: CreatedCoin[] = [];
-
-  for (const input of summary.inputs || []) {
-    if (input.type === 'xch') {
-      spent.push({
-        badge: 'Chia',
-        label: `${formatNumber({
-          value: fromMojos(input.amount, xch.decimals),
-          minimumFractionDigits: 0,
-          maximumFractionDigits: xch.decimals,
-        })} ${xch.ticker}`,
-        coinId: input.coin_id,
-        sort: 1,
-      });
-
-      for (const output of input.outputs) {
-        if (summary.inputs.find((i) => i.coin_id === output.coin_id)) {
-          continue;
-        }
-
-        created.push({
-          badge: 'Chia',
-          label: `${formatNumber({
-            value: fromMojos(output.amount, xch.decimals),
-            minimumFractionDigits: 0,
-            maximumFractionDigits: xch.decimals,
-          })} ${xch.ticker}`,
-          address: output.burning
-            ? t`Permanently Burned`
-            : output.receiving
-              ? t`You`
-              : output.address,
-          sort: 1,
-        });
-      }
-    }
-
-    if (input.type === 'cat') {
-      const ticker = input.ticker || 'CAT';
-
-      spent.push({
-        badge: `CAT ${input.name || input.asset_id}`,
-        label: `${formatNumber({
-          value: fromMojos(input.amount, 3),
-          minimumFractionDigits: 0,
-          maximumFractionDigits: 3,
-        })} ${ticker}`,
-        coinId: input.coin_id,
-        sort: 2,
-      });
-
-      for (const output of input.outputs) {
-        if (summary.inputs.find((i) => i.coin_id === output.coin_id)) {
-          continue;
-        }
-
-        created.push({
-          badge: `CAT ${input.name || input.asset_id}`,
-          label: `${formatNumber({
-            value: fromMojos(output.amount, 3),
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 3,
-          })} ${ticker}`,
-          address: output.burning
-            ? t`Permanently Burned`
-            : output.receiving
-              ? t`You`
-              : output.address,
-          sort: 2,
-        });
-      }
-    }
-
-    if (input.type === 'did') {
-      if (
-        !summary.inputs
-          .map((i) => i.outputs)
-          .flat()
-          .find((o) => o.coin_id === input.coin_id)
-      ) {
-        spent.push({
-          badge: t`Profile`,
-          label: input.name || t`Unnamed`,
-          coinId: input.coin_id,
-          sort: 3,
-        });
-      }
-
-      for (const output of input.outputs) {
-        if (summary.inputs.find((i) => i.coin_id === output.coin_id)) {
-          continue;
-        }
-
-        if (BigNumber(output.amount).mod(2).eq(1)) {
-          created.push({
-            badge: t`Profile`,
-            label: input.name || t`Unnamed`,
-            address: output.burning
-              ? t`Permanently Burned`
-              : output.receiving
-                ? t`You`
-                : output.address,
-            sort: 3,
-          });
-        }
-      }
-    }
-  }
-
-  return { spent, created };
 }
