@@ -5,18 +5,18 @@ import {
   TransactionRecord,
 } from '@/bindings';
 import Container from '@/components/Container';
+import { CopyButton } from '@/components/CopyButton';
 import Header from '@/components/Header';
+import { NumberFormat } from '@/components/NumberFormat';
 import { Card } from '@/components/ui/card';
 import { nftUri } from '@/lib/nftUri';
+import { formatAddress, fromMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import { open } from '@tauri-apps/plugin-shell';
+import { openUrl } from '@tauri-apps/plugin-opener';
 import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { NumberFormat } from '@/components/NumberFormat';
-import { fromMojos, formatAddress } from '@/lib/utils';
-import { CopyButton } from '@/components/CopyButton';
 import { toast } from 'react-toastify';
 
 export default function Transaction() {
@@ -97,13 +97,13 @@ function TransactionCoin({ coin }: TransactionCoinProps) {
     <div className='rounded-xl border border-neutral-200 bg-white text-neutral-950 shadow dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-50 p-4'>
       <div
         className='cursor-pointer'
-        onClick={() => open(`https://spacescan.io/coin/0x${coin.coin_id}`)}
+        onClick={() => openUrl(`https://spacescan.io/coin/0x${coin.coin_id}`)}
         aria-label={t`View coin ${coinId} on Spacescan.io`}
         role='button'
         tabIndex={0}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
-            open(`https://spacescan.io/coin/0x${coin.coin_id}`);
+            openUrl(`https://spacescan.io/coin/0x${coin.coin_id}`);
           }
         }}
       >

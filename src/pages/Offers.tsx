@@ -47,8 +47,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
+import { openUrl } from '@tauri-apps/plugin-opener';
 import { platform } from '@tauri-apps/plugin-os';
-import { open } from '@tauri-apps/plugin-shell';
 import BigNumber from 'bignumber.js';
 import {
   CircleOff,
@@ -334,7 +334,7 @@ function Offer({ record, refresh }: OfferProps) {
                       className='cursor-pointer'
                       onClick={(e) => {
                         e.stopPropagation();
-                        open(
+                        openUrl(
                           dexieLink(record.offer_id, network === 'testnet11'),
                         );
                       }}

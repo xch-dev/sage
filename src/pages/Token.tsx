@@ -1,8 +1,10 @@
 import CoinList from '@/components/CoinList';
 import ConfirmationDialog from '@/components/ConfirmationDialog';
 import Container from '@/components/Container';
+import { CopyButton } from '@/components/CopyButton';
 import Header from '@/components/Header';
 import { ReceiveAddress } from '@/components/ReceiveAddress';
+import StyledQRCode from '@/components/StyledQrCode';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -32,28 +34,31 @@ import { Label } from '@/components/ui/label';
 import { useErrors } from '@/hooks/useErrors';
 import { usePrices } from '@/hooks/usePrices';
 import { amount } from '@/lib/formTypes';
-import { toDecimal, toMojos } from '@/lib/utils';
+import { fromMojos, toDecimal, toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { RowSelectionState } from '@tanstack/react-table';
+import { fetch } from '@tauri-apps/plugin-http';
+import { openUrl } from '@tauri-apps/plugin-opener';
 import BigNumber from 'bignumber.js';
 import {
+  ExternalLink,
+  Eye,
+  EyeOff,
   HandHelping,
   MergeIcon,
   MoreHorizontalIcon,
-  Send,
-  SplitIcon,
-  ExternalLink,
   Pencil,
   RefreshCw,
-  EyeOff,
-  Eye,
+  Send,
+  SplitIcon,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import * as z from 'zod';
 import {
   CatRecord,
@@ -63,12 +68,6 @@ import {
   TransactionResponse,
 } from '../bindings';
 import { NumberFormat } from '../components/NumberFormat';
-import { fromMojos } from '@/lib/utils';
-import { CopyButton } from '@/components/CopyButton';
-import StyledQRCode from '@/components/StyledQrCode';
-import { fetch } from '@tauri-apps/plugin-http';
-import { open } from '@tauri-apps/plugin-shell';
-import { toast } from 'react-toastify';
 
 interface QRCodeDialogProps {
   isOpen: boolean;
@@ -410,7 +409,7 @@ export default function Token() {
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => {
-                          open(
+                          openUrl(
                             `https://dexie.space/offers/XCH/${asset.asset_id}`,
                           ).catch((error) => {
                             console.error('Failed to open dexie.space:', error);

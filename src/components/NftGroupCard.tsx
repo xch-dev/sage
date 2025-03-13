@@ -2,17 +2,20 @@ import { DidRecord, NftCollectionRecord } from '@/bindings';
 import { NftGroupMode } from '@/hooks/useNftParams';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
+import { writeText } from '@tauri-apps/plugin-clipboard-manager';
+import { openUrl } from '@tauri-apps/plugin-opener';
 import {
-  LibraryBig,
-  Paintbrush,
-  UserIcon,
   Copy,
-  MoreVertical,
   ExternalLink,
   EyeIcon,
   EyeOff,
+  LibraryBig,
+  MoreVertical,
+  Paintbrush,
+  UserIcon,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import { Button } from './ui/button';
 import {
   DropdownMenu,
@@ -27,9 +30,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from './ui/tooltip';
-import { writeText } from '@tauri-apps/plugin-clipboard-manager';
-import { toast } from 'react-toastify';
-import { open } from '@tauri-apps/plugin-shell';
 
 interface NftGroupCardProps {
   type: 'collection' | 'did';
@@ -258,7 +258,7 @@ export function NftGroupCard({
                     className='cursor-pointer'
                     onClick={(e) => {
                       e.stopPropagation();
-                      open(`https://mintgarden.io/collections/${cardId}`);
+                      openUrl(`https://mintgarden.io/collections/${cardId}`);
                     }}
                     aria-label={t`View ${cardName} on Mintgarden`}
                   >
