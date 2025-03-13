@@ -307,8 +307,12 @@ export default function ConfirmationDialog({
                           <Badge className='max-w-[100px]'>
                             <span className='truncate'>{group.badge}</span>
                           </Badge>
-                          <div className='text-sm font-medium'>
-                            {group.label}
+                          <div className='flex items-center'>
+                            <ArrowUpRightIcon className='h-4 w-4 mr-1 text-blue-500' />
+                            <Trans>Total:</Trans>{' '}
+                            <span className='font-medium text-foreground ml-1'>
+                              {group.totalAmount} {group.ticker}
+                            </span>
                           </div>
                         </div>
 
@@ -326,16 +330,6 @@ export default function ConfirmationDialog({
                               )}
                             </div>
 
-                            {/* Display total amount if multiple recipients */}
-                            {group.recipients.length > 1 && (
-                              <div className='flex items-center'>
-                                <ArrowUpRightIcon className='h-4 w-4 mr-1 text-blue-500' />
-                                <Trans>Total:</Trans>{' '}
-                                <span className='font-medium text-foreground ml-1'>
-                                  {group.totalAmount} {group.ticker}
-                                </span>
-                              </div>
-                            )}
                           </div>
 
                           <div
