@@ -333,11 +333,11 @@ export default function MintNft() {
                         .filter(Boolean)
                         .map((uri, index, array) => (
                           <>
-                            <a 
-                              href={uri} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="text-blue-500 hover:underline"
+                            <a
+                              href={uri}
+                              target='_blank'
+                              rel='noopener noreferrer'
+                              className='text-blue-500 hover:underline'
                             >
                               {uri}
                             </a>
@@ -354,11 +354,11 @@ export default function MintNft() {
                         .filter(Boolean)
                         .map((uri, index, array) => (
                           <>
-                            <a 
-                              href={uri} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="text-blue-500 hover:underline"
+                            <a
+                              href={uri}
+                              target='_blank'
+                              rel='noopener noreferrer'
+                              className='text-blue-500 hover:underline'
                             >
                               {uri}
                             </a>
@@ -376,11 +376,11 @@ export default function MintNft() {
                           .filter(Boolean)
                           .map((uri, index, array) => (
                             <>
-                              <a 
-                                href={uri} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="text-blue-500 hover:underline"
+                              <a
+                                href={uri}
+                                target='_blank'
+                                rel='noopener noreferrer'
+                                className='text-blue-500 hover:underline'
                               >
                                 {uri}
                               </a>
@@ -390,32 +390,6 @@ export default function MintNft() {
                       </div>
                     )}
                   </div>
-                ),
-                copyValue: JSON.stringify(
-                  {
-                    profile: form.getValues('profile'),
-                    royaltyAddress: form.getValues('royaltyAddress') || null,
-                    royaltyPercent: form.getValues('royaltyPercent'),
-                    dataUris: form
-                      .getValues('dataUris')
-                      .split(',')
-                      .map((uri) => uri.trim())
-                      .filter(Boolean),
-                    metadataUris: form
-                      .getValues('metadataUris')
-                      .split(',')
-                      .map((uri) => uri.trim())
-                      .filter(Boolean),
-                    licenseUris: form.getValues('licenseUris')
-                      ? form
-                          .getValues('licenseUris')
-                          ?.split(',')
-                          .map((uri) => uri.trim())
-                          .filter(Boolean)
-                      : [],
-                  },
-                  null,
-                  2,
                 ),
               }
             : undefined
