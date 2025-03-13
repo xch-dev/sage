@@ -565,9 +565,9 @@ function AssetSelector({
             <div key={i} className='flex h-14 z-20'>
               {offering === true ? (
                 <NftSelector
-                  value={nft}
+                  value={nft || null}
                   onChange={(nftId) => {
-                    assets.nfts[i] = nftId;
+                    assets.nfts[i] = nftId || '';
                     setAssets({ ...assets });
                   }}
                   disabled={assets.nfts.filter((id) => id !== nft)}
