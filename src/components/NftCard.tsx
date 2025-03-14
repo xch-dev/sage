@@ -629,6 +629,7 @@ const NftCardComponent = ({
 
       <ConfirmationDialog
         response={response}
+        showSending={false}
         close={() => {
           setResponse(null);
           setIsBurning(false);

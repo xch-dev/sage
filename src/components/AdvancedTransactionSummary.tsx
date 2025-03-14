@@ -236,7 +236,41 @@ export function calculateTransaction(
         }
       }
     }
-  }
 
+    if (input.type === 'nft') {
+      if (
+        !summary.inputs
+          .map((i) => i.outputs)
+          .flat()
+          .find((o) => o.coin_id === input.coin_id)
+      ) {
+        spent.push({
+          badge: 'NFT',
+          label: input.name || t`Unknown`,
+          coinId: input.coin_id,
+          sort: 4,
+        });
+      }
+
+      for (const output of input.outputs) {
+        if (summary.inputs.find((i) => i.coin_id === output.coin_id)) {
+          continue;
+        }
+
+        if (BigNumber(output.amount).mod(2).isEqualTo(1)) {
+          created.push({
+            badge: 'NFT',
+            label: input.name || t`Unknown`,
+            address: output.burning
+              ? t`Permanently Burned`
+              : output.receiving
+                ? t`You`
+                : output.address,
+            sort: 4,
+          });
+        }
+      }
+    }
+  }
   return { spent, created };
 }

@@ -113,6 +113,7 @@ export default function CreateProfile() {
         response={response}
         close={() => setResponse(null)}
         onConfirm={() => navigate('/dids')}
+        showSending={false}
         additionalData={
           form.getValues().name
             ? {

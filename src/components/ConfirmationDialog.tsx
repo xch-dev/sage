@@ -48,6 +48,7 @@ export interface ConfirmationDialogProps {
     title: string;
     content: React.ReactNode;
   };
+  showSending: boolean;
 }
 
 export default function ConfirmationDialog({
@@ -55,6 +56,7 @@ export default function ConfirmationDialog({
   close,
   onConfirm,
   additionalData,
+  showSending = true,
 }: ConfirmationDialogProps) {
   const walletState = useWalletState();
   const ticker = walletState.sync.unit.ticker;
@@ -292,97 +294,99 @@ export default function ConfirmationDialog({
                 )}
 
                 {/* Combined Assets and Recipients */}
-                <div>
-                  <h3 className='text-sm font-medium mb-2 flex items-center'>
-                    <ArrowUpIcon className='h-4 w-4 mr-1' />
-                    <Trans>Sending</Trans>
-                  </h3>
-                  <div className='space-y-4'>
-                    {Object.entries(groupedAssets).map(([key, group]) => (
-                      <div
-                        key={key}
-                        className='flex flex-col gap-1.5 rounded-md border p-3'
-                      >
-                        <div className='flex items-center justify-between'>
-                          <Badge className='max-w-[100px]'>
-                            <span className='truncate'>{group.badge}</span>
-                          </Badge>
-                          <div className='flex items-center'>
-                            <ArrowUpRightIcon className='h-4 w-4 mr-1 text-blue-500' />
-                            <Trans>Total:</Trans>{' '}
-                            <span className='font-medium text-foreground ml-1'>
-                              {group.totalAmount} {group.ticker}
-                            </span>
-                          </div>
-                        </div>
-
-                        <Separator className='my-2' />
-
-                        {/* Show recipients */}
-                        <div className='flex flex-col gap-2'>
-                          <div className='text-sm font-medium text-muted-foreground flex items-center justify-between'>
+                {showSending && (
+                  <div>
+                    <h3 className='text-sm font-medium mb-2 flex items-center'>
+                      <ArrowUpIcon className='h-4 w-4 mr-1' />
+                      <Trans>Sending</Trans>
+                    </h3>
+                    <div className='space-y-4'>
+                      {Object.entries(groupedAssets).map(([key, group]) => (
+                        <div
+                          key={key}
+                          className='flex flex-col gap-1.5 rounded-md border p-3'
+                        >
+                          <div className='flex items-center justify-between'>
+                            <Badge className='max-w-[100px]'>
+                              <span className='truncate'>{group.badge}</span>
+                            </Badge>
                             <div className='flex items-center'>
-                              <Trans>To:</Trans>{' '}
-                              {group.recipients.length > 1 && (
-                                <span className='ml-1 text-xs bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded-full'>
-                                  <Trans id='sending_to_recipients'>
-                                    Sending <span>{group.label}</span> to{' '}
-                                    <span>{group.recipients.length}</span>{' '}
-                                    recipients
-                                  </Trans>
-                                </span>
-                              )}
+                              <ArrowUpRightIcon className='h-4 w-4 mr-1 text-blue-500' />
+                              <Trans>Total:</Trans>{' '}
+                              <span className='font-medium text-foreground ml-1'>
+                                {group.totalAmount} {group.ticker}
+                              </span>
                             </div>
                           </div>
 
-                          <div
-                            className={
-                              group.recipients.length > 3
-                                ? 'max-h-[150px] overflow-y-auto pr-1'
-                                : ''
-                            }
-                          >
-                            {group.recipients.map((address, i) => (
-                              <div
-                                key={i}
-                                className='flex items-center gap-1.5 min-w-0 w-full pl-2'
-                              >
-                                <ForwardIcon className='w-4 h-4 text-blue-500 shrink-0' />
-                                <div className='text-sm truncate flex-1'>
-                                  {address}
-                                </div>
-                                {address !== t`Permanently Burned` &&
-                                  address !== t`You` &&
-                                  address !== t`Change` && (
-                                    <CopyButton
-                                      value={address}
-                                      className='h-4 w-4 shrink-0'
-                                      onCopy={() =>
-                                        toast.success(
-                                          t`Address copied to clipboard`,
-                                        )
-                                      }
-                                    />
-                                  )}
+                          <Separator className='my-2' />
+
+                          {/* Show recipients */}
+                          <div className='flex flex-col gap-2'>
+                            <div className='text-sm font-medium text-muted-foreground flex items-center justify-between'>
+                              <div className='flex items-center'>
+                                <Trans>To:</Trans>{' '}
+                                {group.recipients.length > 1 && (
+                                  <span className='ml-1 text-xs bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded-full'>
+                                    <Trans id='sending_to_recipients'>
+                                      Sending <span>{group.label}</span> to{' '}
+                                      <span>{group.recipients.length}</span>{' '}
+                                      recipients
+                                    </Trans>
+                                  </span>
+                                )}
                               </div>
-                            ))}
+                            </div>
+
+                            <div
+                              className={
+                                group.recipients.length > 3
+                                  ? 'max-h-[150px] overflow-y-auto pr-1'
+                                  : ''
+                              }
+                            >
+                              {group.recipients.map((address, i) => (
+                                <div
+                                  key={i}
+                                  className='flex items-center gap-1.5 min-w-0 w-full pl-2'
+                                >
+                                  <ForwardIcon className='w-4 h-4 text-blue-500 shrink-0' />
+                                  <div className='text-sm truncate flex-1'>
+                                    {address}
+                                  </div>
+                                  {address !== t`Permanently Burned` &&
+                                    address !== t`You` &&
+                                    address !== t`Change` && (
+                                      <CopyButton
+                                        value={address}
+                                        className='h-4 w-4 shrink-0'
+                                        onCopy={() =>
+                                          toast.success(
+                                            t`Address copied to clipboard`,
+                                          )
+                                        }
+                                      />
+                                    )}
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
 
-                    {created.filter(
-                      (item) =>
-                        item.address !== t`Change` && item.address !== t`You`,
-                    ).length === 0 && (
-                      <div className='text-sm text-muted-foreground p-3 border rounded-md'>
-                        <Trans>
-                          No assets being sent to external recipients.
-                        </Trans>
-                      </div>
-                    )}
+                      {created.filter(
+                        (item) =>
+                          item.address !== t`Change` && item.address !== t`You`,
+                      ).length === 0 && (
+                        <div className='text-sm text-muted-foreground p-3 border rounded-md'>
+                          <Trans>
+                            No assets being sent to external recipients.
+                          </Trans>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
+                )}
               </TabsContent>
 
               {/* Transaction Details Tab */}
