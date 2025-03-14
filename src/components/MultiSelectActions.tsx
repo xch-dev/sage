@@ -29,6 +29,7 @@ import {
 } from './ui/dropdown-menu';
 import { BurnConfirmation } from './confirmations/BurnConfirmation';
 import { TransferConfirmation } from './confirmations/TransferConfirmation';
+import { EditProfileConfirmation } from './confirmations/EditProfileConfirmation';
 
 export interface MultiSelectActionsProps {
   selected: string[];
@@ -53,7 +54,11 @@ export function MultiSelectActions({
   const [burnOpen, setBurnOpen] = useState(false);
   const [isBurning, setIsBurning] = useState(false);
   const [isTransferring, setIsTransferring] = useState(false);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [transferAddress, setTransferAddress] = useState('');
+  const [assignedProfileId, setAssignedProfileId] = useState<string | null>(
+    null,
+  );
   const [response, setResponse] = useState<TransactionResponse | null>(null);
 
   // State for fetched NFT data when props aren't provided
@@ -140,6 +145,8 @@ export function MultiSelectActions({
   };
 
   const onAssignSubmit = (profile: string | null, fee: string) => {
+    setIsEditingProfile(true);
+    setAssignedProfileId(profile);
     commands
       .assignNftsToDid({
         nft_ids: selected,
@@ -147,7 +154,10 @@ export function MultiSelectActions({
         fee: toMojos(fee, walletState.sync.unit.decimals),
       })
       .then(setResponse)
-      .catch(addError)
+      .catch((err: any) => {
+        setIsEditingProfile(false);
+        addError(err);
+      })
       .finally(() => setAssignOpen(false));
   };
 
@@ -296,7 +306,7 @@ export function MultiSelectActions({
         </p>
       </TransferDialog>
       <AssignNftDialog
-        title={t`Assign Profile`}
+        title={t`Edit Profile`}
         open={assignOpen}
         setOpen={setAssignOpen}
         onSubmit={onAssignSubmit}
@@ -327,6 +337,7 @@ export function MultiSelectActions({
           setResponse(null);
           setIsBurning(false);
           setIsTransferring(false);
+          setIsEditingProfile(false);
           onConfirm();
         }}
         additionalData={
@@ -346,7 +357,18 @@ export function MultiSelectActions({
                     />
                   ),
                 }
-              : undefined
+              : isEditingProfile && response && nfts.length > 0
+                ? {
+                    title: t`Edit Profile`,
+                    content: (
+                      <EditProfileConfirmation
+                        nfts={nfts}
+                        nftData={nftData}
+                        profileId={assignedProfileId}
+                      />
+                    ),
+                  }
+                : undefined
         }
       />
     </>

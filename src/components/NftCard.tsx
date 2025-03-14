@@ -80,6 +80,8 @@ import {
 } from './ui/tooltip';
 import { BurnConfirmation } from './confirmations/BurnConfirmation';
 import { TransferConfirmation } from './confirmations/TransferConfirmation';
+import { AddUrlConfirmation } from './confirmations/AddUrlConfirmation';
+import { EditProfileConfirmation } from './confirmations/EditProfileConfirmation';
 
 export interface NftProps {
   nft: NftRecord;
@@ -111,7 +113,14 @@ const NftCardComponent = ({
   const [burnOpen, setBurnOpen] = useState(false);
   const [isBurning, setIsBurning] = useState(false);
   const [isTransferring, setIsTransferring] = useState(false);
+  const [isAddingUrl, setIsAddingUrl] = useState(false);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [addedUrl, setAddedUrl] = useState('');
+  const [addedUrlKind, setAddedUrlKind] = useState('');
   const [transferAddress, setTransferAddress] = useState('');
+  const [assignedProfileId, setAssignedProfileId] = useState<string | null>(
+    null,
+  );
   const [response, setResponse] = useState<TransactionResponse | null>(null);
 
   useEffect(() => {
@@ -146,6 +155,8 @@ const NftCardComponent = ({
   };
 
   const onAssignSubmit = (profile: string | null, fee: string) => {
+    setIsEditingProfile(true);
+    setAssignedProfileId(profile);
     commands
       .assignNftsToDid({
         nft_ids: [nft.launcher_id],
@@ -153,7 +164,10 @@ const NftCardComponent = ({
         fee: toMojos(fee, walletState.sync.unit.decimals),
       })
       .then(setResponse)
-      .catch(addError)
+      .catch((err) => {
+        setIsEditingProfile(false);
+        addError(err);
+      })
       .finally(() => setAssignOpen(false));
   };
 
@@ -176,6 +190,9 @@ const NftCardComponent = ({
   });
 
   const onAddUrlSubmit = (values: z.infer<typeof addUrlFormSchema>) => {
+    setIsAddingUrl(true);
+    setAddedUrl(values.url);
+    setAddedUrlKind(values.kind);
     commands
       .addNftUri({
         nft_id: nft.launcher_id,
@@ -184,7 +201,10 @@ const NftCardComponent = ({
         fee: toMojos(values.fee, walletState.sync.unit.decimals),
       })
       .then(setResponse)
-      .catch(addError)
+      .catch((err) => {
+        setIsAddingUrl(false);
+        addError(err);
+      })
       .finally(() => setAddUrlOpen(false));
   };
 
@@ -613,11 +633,15 @@ const NftCardComponent = ({
           setResponse(null);
           setIsBurning(false);
           setIsTransferring(false);
+          setIsAddingUrl(false);
+          setIsEditingProfile(false);
         }}
         onConfirm={() => {
           updateNfts();
           setIsBurning(false);
           setIsTransferring(false);
+          setIsAddingUrl(false);
+          setIsEditingProfile(false);
         }}
         additionalData={
           isBurning && response
@@ -641,7 +665,30 @@ const NftCardComponent = ({
                     />
                   ),
                 }
-              : undefined
+              : isAddingUrl && response
+                ? {
+                    title: t`Add URL`,
+                    content: (
+                      <AddUrlConfirmation
+                        nft={nft}
+                        nftData={data}
+                        url={addedUrl}
+                        kind={addedUrlKind}
+                      />
+                    ),
+                  }
+                : isEditingProfile && response
+                  ? {
+                      title: t`Edit Profile`,
+                      content: (
+                        <EditProfileConfirmation
+                          nfts={[nft]}
+                          nftData={{ [nft.launcher_id]: data }}
+                          profileId={assignedProfileId}
+                        />
+                      ),
+                    }
+                  : undefined
         }
       />
     </>
