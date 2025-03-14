@@ -89,11 +89,11 @@ export default function ConfirmationDialog({
       ? null
       : 'coin_spends' in response
         ? {
-          coin_spends: response.coin_spends,
-          aggregated_signature:
-            signature ||
-            '0xc000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000',
-        }
+            coin_spends: response.coin_spends,
+            aggregated_signature:
+              signature ||
+              '0xc000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000',
+          }
         : response.spend_bundle,
     null,
     2,
@@ -325,11 +325,14 @@ export default function ConfirmationDialog({
                               <Trans>To:</Trans>{' '}
                               {group.recipients.length > 1 && (
                                 <span className='ml-1 text-xs bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded-full'>
-                                  {group.recipients.length}
+                                  <Trans id='sending_to_recipients'>
+                                    Sending <span>{group.label}</span> to{' '}
+                                    <span>{group.recipients.length}</span>{' '}
+                                    recipients
+                                  </Trans>
                                 </span>
                               )}
                             </div>
-
                           </div>
 
                           <div
@@ -372,12 +375,12 @@ export default function ConfirmationDialog({
                       (item) =>
                         item.address !== t`Change` && item.address !== t`You`,
                     ).length === 0 && (
-                        <div className='text-sm text-muted-foreground p-3 border rounded-md'>
-                          <Trans>
-                            No assets being sent to external recipients.
-                          </Trans>
-                        </div>
-                      )}
+                      <div className='text-sm text-muted-foreground p-3 border rounded-md'>
+                        <Trans>
+                          No assets being sent to external recipients.
+                        </Trans>
+                      </div>
+                    )}
                   </div>
                 </div>
               </TabsContent>
