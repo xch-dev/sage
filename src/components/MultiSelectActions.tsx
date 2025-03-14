@@ -28,6 +28,7 @@ import {
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
 import { BurnConfirmation } from './confirmations/BurnConfirmation';
+import { TransferConfirmation } from './confirmations/TransferConfirmation';
 
 export interface MultiSelectActionsProps {
   selected: string[];
@@ -51,6 +52,8 @@ export function MultiSelectActions({
   const [assignOpen, setAssignOpen] = useState(false);
   const [burnOpen, setBurnOpen] = useState(false);
   const [isBurning, setIsBurning] = useState(false);
+  const [isTransferring, setIsTransferring] = useState(false);
+  const [transferAddress, setTransferAddress] = useState('');
   const [response, setResponse] = useState<TransactionResponse | null>(null);
 
   // State for fetched NFT data when props aren't provided
@@ -120,6 +123,8 @@ export function MultiSelectActions({
   }, [fetchedNfts, propNfts, propNftData, addError]);
 
   const onTransferSubmit = (address: string, fee: string) => {
+    setIsTransferring(true);
+    setTransferAddress(address);
     commands
       .transferNfts({
         nft_ids: selected,
@@ -127,7 +132,10 @@ export function MultiSelectActions({
         fee: toMojos(fee, walletState.sync.unit.decimals),
       })
       .then(setResponse)
-      .catch(addError)
+      .catch((err: any) => {
+        setIsTransferring(false);
+        addError(err);
+      })
       .finally(() => setTransferOpen(false));
   };
 
@@ -318,6 +326,7 @@ export function MultiSelectActions({
         close={() => {
           setResponse(null);
           setIsBurning(false);
+          setIsTransferring(false);
           onConfirm();
         }}
         additionalData={
@@ -326,7 +335,18 @@ export function MultiSelectActions({
                 title: t`NFT Details`,
                 content: <BurnConfirmation nfts={nfts} nftData={nftData} />,
               }
-            : undefined
+            : isTransferring && response && nfts.length > 0
+              ? {
+                  title: t`Transfer Details`,
+                  content: (
+                    <TransferConfirmation
+                      nfts={nfts}
+                      nftData={nftData}
+                      address={transferAddress}
+                    />
+                  ),
+                }
+              : undefined
         }
       />
     </>

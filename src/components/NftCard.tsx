@@ -79,6 +79,7 @@ import {
   TooltipTrigger,
 } from './ui/tooltip';
 import { BurnConfirmation } from './confirmations/BurnConfirmation';
+import { TransferConfirmation } from './confirmations/TransferConfirmation';
 
 export interface NftProps {
   nft: NftRecord;
@@ -109,6 +110,8 @@ const NftCardComponent = ({
   const [addUrlOpen, setAddUrlOpen] = useState(false);
   const [burnOpen, setBurnOpen] = useState(false);
   const [isBurning, setIsBurning] = useState(false);
+  const [isTransferring, setIsTransferring] = useState(false);
+  const [transferAddress, setTransferAddress] = useState('');
   const [response, setResponse] = useState<TransactionResponse | null>(null);
 
   useEffect(() => {
@@ -126,6 +129,8 @@ const NftCardComponent = ({
   };
 
   const onTransferSubmit = (address: string, fee: string) => {
+    setIsTransferring(true);
+    setTransferAddress(address);
     commands
       .transferNfts({
         nft_ids: [nft.launcher_id],
@@ -133,7 +138,10 @@ const NftCardComponent = ({
         fee: toMojos(fee, walletState.sync.unit.decimals),
       })
       .then(setResponse)
-      .catch(addError)
+      .catch((err) => {
+        setIsTransferring(false);
+        addError(err);
+      })
       .finally(() => setTransferOpen(false));
   };
 
@@ -604,10 +612,12 @@ const NftCardComponent = ({
         close={() => {
           setResponse(null);
           setIsBurning(false);
+          setIsTransferring(false);
         }}
         onConfirm={() => {
           updateNfts();
           setIsBurning(false);
+          setIsTransferring(false);
         }}
         additionalData={
           isBurning && response
@@ -620,7 +630,18 @@ const NftCardComponent = ({
                   />
                 ),
               }
-            : undefined
+            : isTransferring && response
+              ? {
+                  title: t`Transfer Details`,
+                  content: (
+                    <TransferConfirmation
+                      nfts={[nft]}
+                      nftData={{ [nft.launcher_id]: data }}
+                      address={transferAddress}
+                    />
+                  ),
+                }
+              : undefined
         }
       />
     </>
