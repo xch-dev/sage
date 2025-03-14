@@ -23,7 +23,7 @@ export function AddUrlConfirmation({
 
   return (
     <div className='space-y-3 text-xs'>
-      <div className='p-2 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-md text-green-800 dark:text-green-300'>
+      <div className='p-2 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-md text-blue-800 dark:text-blue-300'>
         <div className='font-medium mb-1 flex items-center'>
           <LinkIcon className='h-3 w-3 mr-1' />
           <Trans>URL</Trans>

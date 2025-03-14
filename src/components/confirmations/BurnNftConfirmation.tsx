@@ -3,41 +3,39 @@ import { CopyBox } from '@/components/CopyBox';
 import { nftUri } from '@/lib/nftUri';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import { SendIcon } from 'lucide-react';
+import { Flame } from 'lucide-react';
 import { toast } from 'react-toastify';
 
-interface TransferConfirmationProps {
+interface BurnNftConfirmationProps {
   nfts: NftRecord[];
   nftData: Record<string, NftData | null>;
-  address: string;
 }
 
-export function TransferConfirmation({
+export function BurnNftConfirmation({
   nfts,
   nftData,
-  address,
-}: TransferConfirmationProps) {
+}: BurnNftConfirmationProps) {
   return (
     <div className='space-y-3 text-xs'>
-      <div className='p-2 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-md text-blue-800 dark:text-blue-300'>
+      <div className='p-2 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-md text-red-800 dark:text-red-300'>
         <div className='font-medium mb-1 flex items-center'>
-          <SendIcon className='h-3 w-3 mr-1' />
-          <Trans>Transfer Details</Trans>
+          <Flame className='h-3 w-3 mr-1' />
+          <Trans>Warning</Trans>
         </div>
         <div>
           {nfts.length > 1 ? (
-            <Trans>These NFTs will be transferred to the address below.</Trans>
+            <Trans>
+              This will permanently delete these NFTs by sending them to the
+              burn address.
+            </Trans>
           ) : (
-            <Trans>This NFT will be transferred to the address below.</Trans>
+            <Trans>
+              This will permanently delete this NFT by sending it to the burn
+              address.
+            </Trans>
           )}
         </div>
       </div>
-
-      <CopyBox
-        title={t`Recipient Address`}
-        value={address}
-        onCopy={() => toast.success(t`Address copied to clipboard`)}
-      />
 
       {nfts.map((nft) => {
         const nftName = nft.name ?? t`Unnamed NFT`;

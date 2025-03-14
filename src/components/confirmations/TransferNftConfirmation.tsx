@@ -3,36 +3,41 @@ import { CopyBox } from '@/components/CopyBox';
 import { nftUri } from '@/lib/nftUri';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import { Flame } from 'lucide-react';
+import { SendIcon } from 'lucide-react';
 import { toast } from 'react-toastify';
 
-interface BurnConfirmationProps {
+interface TransferNftConfirmationProps {
   nfts: NftRecord[];
   nftData: Record<string, NftData | null>;
+  address: string;
 }
 
-export function BurnConfirmation({ nfts, nftData }: BurnConfirmationProps) {
+export function TransferNftConfirmation({
+  nfts,
+  nftData,
+  address,
+}: TransferNftConfirmationProps) {
   return (
     <div className='space-y-3 text-xs'>
       <div className='p-2 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-md text-amber-800 dark:text-amber-300'>
         <div className='font-medium mb-1 flex items-center'>
-          <Flame className='h-3 w-3 mr-1' />
-          <Trans>Warning</Trans>
+          <SendIcon className='h-3 w-3 mr-1' />
+          <Trans>Transfer Details</Trans>
         </div>
         <div>
           {nfts.length > 1 ? (
-            <Trans>
-              This will permanently delete these NFTs by sending them to the
-              burn address.
-            </Trans>
+            <Trans>These NFTs will be transferred to the address below.</Trans>
           ) : (
-            <Trans>
-              This will permanently delete this NFT by sending it to the burn
-              address.
-            </Trans>
+            <Trans>This NFT will be transferred to the address below.</Trans>
           )}
         </div>
       </div>
+
+      <CopyBox
+        title={t`Recipient Address`}
+        value={address}
+        onCopy={() => toast.success(t`Address copied to clipboard`)}
+      />
 
       {nfts.map((nft) => {
         const nftName = nft.name ?? t`Unnamed NFT`;
