@@ -24,6 +24,8 @@ import { useWalletState } from '../state';
 import { TokenAmountInput } from '@/components/ui/masked-input';
 import { Trans } from '@lingui/react/macro';
 import { t } from '@lingui/core/macro';
+import { IssueTokenConfirmation } from '@/components/confirmations/IssueTokenConfirmation';
+import { fromMojos } from '@/lib/utils';
 
 export default function IssueToken() {
   const navigate = useNavigate();
@@ -155,6 +157,23 @@ export default function IssueToken() {
         response={response}
         close={() => setResponse(null)}
         onConfirm={() => navigate('/wallet')}
+        showRecipientDetails={false}
+        additionalData={
+          form.getValues().name &&
+          form.getValues().ticker &&
+          form.getValues().amount
+            ? {
+                title: t`Token Details`,
+                content: (
+                  <IssueTokenConfirmation
+                    name={form.getValues().name}
+                    ticker={form.getValues().ticker}
+                    amount={form.getValues().amount.toString()}
+                  />
+                ),
+              }
+            : undefined
+        }
       />
     </>
   );
