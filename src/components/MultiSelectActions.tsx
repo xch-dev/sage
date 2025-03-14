@@ -1,4 +1,4 @@
-import { commands, TransactionResponse } from '@/bindings';
+import { commands, NftData, NftRecord, TransactionResponse } from '@/bindings';
 import { useErrors } from '@/hooks/useErrors';
 import useOfferStateWithDefault from '@/hooks/useOfferStateWithDefault';
 import { toMojos } from '@/lib/utils';
@@ -12,7 +12,7 @@ import {
   SendIcon,
   UserRoundPlus,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import { AssignNftDialog } from './AssignNftDialog';
 import ConfirmationDialog from './ConfirmationDialog';
@@ -27,14 +27,19 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
+import { BurnConfirmation } from './confirmations/BurnConfirmation';
 
 export interface MultiSelectActionsProps {
   selected: string[];
+  nfts?: NftRecord[];
+  nftData?: Record<string, NftData | null>;
   onConfirm: () => void;
 }
 
 export function MultiSelectActions({
   selected,
+  nfts: propNfts,
+  nftData: propNftData,
   onConfirm,
 }: MultiSelectActionsProps) {
   const walletState = useWalletState();
@@ -45,9 +50,74 @@ export function MultiSelectActions({
   const [transferOpen, setTransferOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
   const [burnOpen, setBurnOpen] = useState(false);
+  const [isBurning, setIsBurning] = useState(false);
   const [response, setResponse] = useState<TransactionResponse | null>(null);
 
+  // State for fetched NFT data when props aren't provided
+  const [fetchedNfts, setFetchedNfts] = useState<NftRecord[]>([]);
+  const [fetchedNftData, setFetchedNftData] = useState<
+    Record<string, NftData | null>
+  >({});
+
+  // Use prop values if provided, otherwise use fetched values
+  const nfts = propNfts?.length ? propNfts : fetchedNfts;
+  const nftData = Object.keys(propNftData || {}).length
+    ? propNftData || {}
+    : fetchedNftData;
+
   const selectedCount = selected.length;
+
+  // Fetch NFT records if not provided as props
+  useEffect(() => {
+    // Skip if we already have NFT records from props or if there are no selected NFTs
+    if ((propNfts && propNfts.length > 0) || selected.length === 0) return;
+
+    const fetchNftRecords = async () => {
+      try {
+        const records: NftRecord[] = [];
+        for (const nftId of selected) {
+          const response = await commands.getNft({ nft_id: nftId });
+          if (response.nft) {
+            records.push(response.nft);
+          }
+        }
+        setFetchedNfts(records);
+      } catch (error: any) {
+        addError(error);
+      }
+    };
+
+    fetchNftRecords();
+  }, [selected, propNfts, addError]);
+
+  // Fetch NFT data if not provided as props
+  useEffect(() => {
+    // Skip if we already have NFT data from props or if there are no NFT records
+    if (
+      (propNftData && Object.keys(propNftData).length > 0) ||
+      (fetchedNfts.length === 0 && (!propNfts || propNfts.length === 0))
+    )
+      return;
+
+    const nftsToFetch = propNfts?.length ? propNfts : fetchedNfts;
+
+    const fetchNftData = async () => {
+      try {
+        const data: Record<string, NftData | null> = {};
+        for (const nft of nftsToFetch) {
+          const response = await commands.getNftData({
+            nft_id: nft.launcher_id,
+          });
+          data[nft.launcher_id] = response.data;
+        }
+        setFetchedNftData(data);
+      } catch (error: any) {
+        addError(error);
+      }
+    };
+
+    fetchNftData();
+  }, [fetchedNfts, propNfts, propNftData, addError]);
 
   const onTransferSubmit = (address: string, fee: string) => {
     commands
@@ -74,6 +144,7 @@ export function MultiSelectActions({
   };
 
   const onBurnSubmit = (fee: string) => {
+    setIsBurning(true);
     commands
       .transferNfts({
         nft_ids: selected,
@@ -81,7 +152,10 @@ export function MultiSelectActions({
         fee: toMojos(fee, walletState.sync.unit.decimals),
       })
       .then(setResponse)
-      .catch(addError)
+      .catch((err: any) => {
+        setIsBurning(false);
+        addError(err);
+      })
       .finally(() => setBurnOpen(false));
   };
 
@@ -213,7 +287,6 @@ export function MultiSelectActions({
           </Trans>
         </p>
       </TransferDialog>
-
       <AssignNftDialog
         title={t`Assign Profile`}
         open={assignOpen}
@@ -225,12 +298,12 @@ export function MultiSelectActions({
           <Trans>This will bulk assign the NFTs to the selected profile.</Trans>
         </p>
       </AssignNftDialog>
-
       <FeeOnlyDialog
         title={t`Bulk Burn NFTs`}
         open={burnOpen}
         setOpen={setBurnOpen}
         onSubmit={onBurnSubmit}
+        submitButtonLabel={t`Burn`}
         aria-describedby='bulk-burn-description'
       >
         <p id='bulk-burn-description'>
@@ -240,13 +313,21 @@ export function MultiSelectActions({
           </Trans>
         </p>
       </FeeOnlyDialog>
-
       <ConfirmationDialog
         response={response}
         close={() => {
           setResponse(null);
+          setIsBurning(false);
           onConfirm();
         }}
+        additionalData={
+          isBurning && response && nfts.length > 0
+            ? {
+                title: t`NFT Details`,
+                content: <BurnConfirmation nfts={nfts} nftData={nftData} />,
+              }
+            : undefined
+        }
       />
     </>
   );
