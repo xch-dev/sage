@@ -48,7 +48,7 @@ export interface ConfirmationDialogProps {
     title: string;
     content: React.ReactNode;
   };
-  showSending: boolean;
+  showRecipientDetails?: boolean;
 }
 
 export default function ConfirmationDialog({
@@ -56,7 +56,7 @@ export default function ConfirmationDialog({
   close,
   onConfirm,
   additionalData,
-  showSending = true,
+  showRecipientDetails = true,
 }: ConfirmationDialogProps) {
   const walletState = useWalletState();
   const ticker = walletState.sync.unit.ticker;
@@ -294,7 +294,7 @@ export default function ConfirmationDialog({
                 )}
 
                 {/* Combined Assets and Recipients */}
-                {showSending && (
+                {showRecipientDetails && (
                   <div>
                     <h3 className='text-sm font-medium mb-2 flex items-center'>
                       <ArrowUpIcon className='h-4 w-4 mr-1' />

@@ -333,6 +333,7 @@ export function MultiSelectActions({
       </FeeOnlyDialog>
       <ConfirmationDialog
         response={response}
+        showRecipientDetails={false}
         close={() => {
           setResponse(null);
           setIsBurning(false);

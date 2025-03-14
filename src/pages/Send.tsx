@@ -29,13 +29,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router-dom';
 import * as z from 'zod';
-import {
-  CatRecord,
-  commands,
-  events,
-  SendXch,
-  TransactionResponse,
-} from '../bindings';
+import { CatRecord, commands, events, TransactionResponse } from '../bindings';
 import { NumberFormat } from '@/components/NumberFormat';
 import { toHex } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
@@ -46,8 +40,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { ArrowUpToLine } from 'lucide-react';
-import { CopyButton } from '@/components/CopyButton';
-import { toast } from 'react-toastify';
+import { SendTokenConfirmation } from '@/components/confirmations/SendTokenConfirmation';
 
 function stringToUint8Array(str: string): Uint8Array {
   return new TextEncoder().encode(str);
@@ -399,22 +392,7 @@ export default function Send() {
           currentMemo
             ? {
                 title: 'Memo',
-                content: (
-                  <div className='space-y-1 text-xs'>
-                    <div className='flex items-center justify-between'>
-                      <div className='break-words whitespace-pre-wrap flex-1'>
-                        {currentMemo}
-                      </div>
-                      <CopyButton
-                        value={currentMemo}
-                        className='h-4 w-4 shrink-0 ml-2'
-                        onCopy={() =>
-                          toast.success(t`Data copied to clipboard`)
-                        }
-                      />
-                    </div>
-                  </div>
-                ),
+                content: <SendTokenConfirmation currentMemo={currentMemo} />,
               }
             : undefined
         }
