@@ -1,10 +1,10 @@
 import { CoinRecord } from '@/bindings';
-import { CopyBox } from '@/components/CopyBox';
 import { fromMojos } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { SplitIcon } from 'lucide-react';
-import { toast } from 'react-toastify';
+import { ConfirmationAlert } from './ConfirmationAlert';
+import { ConfirmationCard } from './ConfirmationCard';
 
 interface SplitTokenConfirmationProps {
   coins: CoinRecord[];
@@ -20,39 +20,28 @@ export function SplitTokenConfirmation({
   precision,
 }: SplitTokenConfirmationProps) {
   const totalAmount = coins.reduce(
-    (sum, coin) => sum + BigInt(coin.amount),
+    (acc, coin) => acc + BigInt(coin.amount),
     BigInt(0),
   );
 
-  // Convert to string to avoid BigNumber rendering issues
   const formattedTotalAmount = String(
     fromMojos(totalAmount.toString(), precision),
   );
-  const approximateOutputAmount = (
-    Number(formattedTotalAmount) / outputCount
-  ).toFixed(precision);
 
   return (
     <div className='space-y-3 text-xs'>
-      <div className='p-2 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-md text-blue-800 dark:text-blue-300'>
-        <div className='font-medium mb-1 flex items-center'>
-          <SplitIcon className='h-3 w-3 mr-1' />
-          <Trans>Split Details</Trans>
-        </div>
-        <div>
-          <Trans>
-            You are splitting {coins.length}{' '}
-            {coins.length === 1 ? 'coin' : 'coins'} into {outputCount} new
-            coins. Each new coin will have approximately{' '}
-            {approximateOutputAmount} {ticker}.
-          </Trans>
-        </div>
-      </div>
+      <ConfirmationAlert
+        icon={SplitIcon}
+        title={<Trans>Split Coins</Trans>}
+        variant='info'
+      >
+        <Trans>
+          You are splitting coins into multiple coins of equal value. This can
+          help with parallel transactions and offer creation.
+        </Trans>
+      </ConfirmationAlert>
 
-      <div className='border border-neutral-200 dark:border-neutral-800 rounded-md p-3'>
-        <div className='font-medium mb-2'>
-          <Trans>Coins to Split</Trans>
-        </div>
+      <ConfirmationCard title={<Trans>Coins to Split</Trans>}>
         <div className='space-y-2 max-h-40 overflow-y-auto'>
           {coins.map((coin) => (
             <div
@@ -69,9 +58,9 @@ export function SplitTokenConfirmation({
             </div>
           ))}
         </div>
-      </div>
+      </ConfirmationCard>
 
-      <div className='border border-neutral-200 dark:border-neutral-800 rounded-md p-3'>
+      <ConfirmationCard>
         <div className='grid grid-cols-2 gap-4'>
           <div>
             <div className='text-muted-foreground mb-1'>
@@ -88,7 +77,7 @@ export function SplitTokenConfirmation({
             <div className='font-medium'>{outputCount} coins</div>
           </div>
         </div>
-      </div>
+      </ConfirmationCard>
     </div>
   );
 }

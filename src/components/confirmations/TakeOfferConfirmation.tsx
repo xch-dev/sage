@@ -3,6 +3,8 @@ import { ArrowUpIcon, ArrowDownIcon, HandshakeIcon } from 'lucide-react';
 import { OfferSummary } from '@/bindings';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Assets } from '@/components/OfferCard';
+import { ConfirmationAlert } from './ConfirmationAlert';
+import { ConfirmationCard } from './ConfirmationCard';
 
 interface TakeOfferConfirmationProps {
   offer: OfferSummary;
@@ -11,49 +13,43 @@ interface TakeOfferConfirmationProps {
 export function TakeOfferConfirmation({ offer }: TakeOfferConfirmationProps) {
   return (
     <div className='space-y-3 text-xs'>
-      <div className='p-2 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-md text-amber-800 dark:text-amber-300'>
-        <div className='font-medium mb-1 flex items-center'>
-          <HandshakeIcon className='h-3 w-3 mr-1' />
-          <Trans>Taking Offer</Trans>
-        </div>
-        <div>
-          <Trans>
-            Taking this offer will send the assets you are paying to the
-            recipient.
-          </Trans>
-        </div>
-      </div>
+      <ConfirmationAlert
+        icon={HandshakeIcon}
+        title={<Trans>Taking Offer</Trans>}
+        variant='warning'
+      >
+        <Trans>
+          Taking this offer will send the assets you are paying to the
+          recipient.
+        </Trans>
+      </ConfirmationAlert>
 
       <div className='grid grid-cols-1 gap-2'>
-        <Card>
-          <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2 pr-2 space-x-2'>
-            <CardTitle className='text-xs font-medium truncate flex items-center'>
-              <ArrowUpIcon className='mr-2 h-3 w-3' />
+        <ConfirmationCard>
+          <div className='flex items-center mb-2'>
+            <ArrowUpIcon className='mr-2 h-3 w-3' />
+            <span className='font-medium'>
               <Trans>Sending</Trans>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className='text-[10px] text-muted-foreground mb-2'>
-              <Trans>The assets you are paying.</Trans>
-            </div>
-            <Assets assets={offer.taker} />
-          </CardContent>
-        </Card>
+            </span>
+          </div>
+          <div className='text-[10px] text-muted-foreground mb-2'>
+            <Trans>The assets you are paying.</Trans>
+          </div>
+          <Assets assets={offer.taker} />
+        </ConfirmationCard>
 
-        <Card>
-          <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2 pr-2 space-x-2'>
-            <CardTitle className='text-xs font-medium truncate flex items-center'>
-              <ArrowDownIcon className='mr-2 h-3 w-3' />
+        <ConfirmationCard>
+          <div className='flex items-center mb-2'>
+            <ArrowDownIcon className='mr-2 h-3 w-3' />
+            <span className='font-medium'>
               <Trans>Receiving</Trans>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className='text-[10px] text-muted-foreground mb-2'>
-              <Trans>The assets you will receive.</Trans>
-            </div>
-            <Assets assets={offer.maker} />
-          </CardContent>
-        </Card>
+            </span>
+          </div>
+          <div className='text-[10px] text-muted-foreground mb-2'>
+            <Trans>The assets you will receive.</Trans>
+          </div>
+          <Assets assets={offer.maker} />
+        </ConfirmationCard>
       </div>
     </div>
   );

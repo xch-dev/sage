@@ -3,6 +3,8 @@ import { fromMojos } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { MergeIcon } from 'lucide-react';
+import { ConfirmationAlert } from './ConfirmationAlert';
+import { ConfirmationCard } from './ConfirmationCard';
 
 interface CombineTokenConfirmationProps {
   coins: CoinRecord[];
@@ -16,7 +18,7 @@ export function CombineTokenConfirmation({
   precision,
 }: CombineTokenConfirmationProps) {
   const totalAmount = coins.reduce(
-    (sum, coin) => sum + BigInt(coin.amount),
+    (acc, coin) => acc + BigInt(coin.amount),
     BigInt(0),
   );
 
@@ -27,24 +29,18 @@ export function CombineTokenConfirmation({
 
   return (
     <div className='space-y-3 text-xs'>
-      <div className='p-2 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-md text-blue-800 dark:text-blue-300'>
-        <div className='font-medium mb-1 flex items-center'>
-          <MergeIcon className='h-3 w-3 mr-1' />
-          <Trans>Combine Details</Trans>
-        </div>
-        <div>
-          <Trans>
-            You are combining {coins.length}{' '}
-            {coins.length === 1 ? 'coin' : 'coins'} into a single coin. The new
-            coin will have a total value of {formattedTotalAmount} {ticker}.
-          </Trans>
-        </div>
-      </div>
+      <ConfirmationAlert
+        icon={MergeIcon}
+        title={<Trans>Combine Coins</Trans>}
+        variant='info'
+      >
+        <Trans>
+          You are combining multiple coins into a single coin. This can help
+          reduce the number of coins in your wallet.
+        </Trans>
+      </ConfirmationAlert>
 
-      <div className='border border-neutral-200 dark:border-neutral-800 rounded-md p-3'>
-        <div className='font-medium mb-2'>
-          <Trans>Coins to Combine</Trans>
-        </div>
+      <ConfirmationCard title={<Trans>Coins to Combine</Trans>}>
         <div className='space-y-2 max-h-40 overflow-y-auto'>
           {coins.map((coin) => (
             <div
@@ -61,9 +57,9 @@ export function CombineTokenConfirmation({
             </div>
           ))}
         </div>
-      </div>
+      </ConfirmationCard>
 
-      <div className='border border-neutral-200 dark:border-neutral-800 rounded-md p-3'>
+      <ConfirmationCard>
         <div className='grid grid-cols-2 gap-4'>
           <div>
             <div className='text-muted-foreground mb-1'>
@@ -82,7 +78,7 @@ export function CombineTokenConfirmation({
             </div>
           </div>
         </div>
-      </div>
+      </ConfirmationCard>
     </div>
   );
 }

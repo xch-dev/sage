@@ -5,6 +5,8 @@ import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { LinkIcon } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { ConfirmationAlert } from './ConfirmationAlert';
+import { ConfirmationCard } from './ConfirmationCard';
 
 interface AddUrlConfirmationProps {
   nft: NftRecord;
@@ -23,21 +25,19 @@ export function AddUrlConfirmation({
 
   return (
     <div className='space-y-3 text-xs'>
-      <div className='p-2 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-md text-blue-800 dark:text-blue-300'>
-        <div className='font-medium mb-1 flex items-center'>
-          <LinkIcon className='h-3 w-3 mr-1' />
-          <Trans>URL</Trans>
-        </div>
-        <div>
-          <Trans>
-            A new URL will be added to this NFT. URLs cannot be removed once
-            added.
-          </Trans>
-        </div>
-      </div>
+      <ConfirmationAlert
+        icon={LinkIcon}
+        title={<Trans>Add URL</Trans>}
+        variant='info'
+      >
+        <Trans>
+          You are adding a URL to this NFT. This will be stored on-chain and can
+          be used to link to external content.
+        </Trans>
+      </ConfirmationAlert>
 
-      <div className='flex items-start gap-3 border border-neutral-200 dark:border-neutral-800 rounded-md p-3'>
-        <div className='overflow-hidden rounded-md flex-shrink-0 w-16 h-16 border border-neutral-200 dark:border-neutral-800'>
+      <ConfirmationCard
+        icon={
           <img
             alt={t`NFT artwork for ${nftName}`}
             loading='lazy'
@@ -46,33 +46,31 @@ export function AddUrlConfirmation({
             className='h-full w-full object-cover aspect-square color-[transparent]'
             src={nftUri(nftData?.mime_type ?? null, nftData?.blob ?? null)}
           />
-        </div>
-        <div className='break-words whitespace-pre-wrap flex-1'>
-          <div className='font-medium'>{nftName}</div>
-          <CopyBox
-            title={t`Launcher Id`}
-            value={nft?.launcher_id ?? ''}
-            onCopy={() => toast.success(t`Launcher Id copied to clipboard`)}
-          />
-        </div>
-      </div>
-
-      <div className='space-y-2'>
-        <div className='font-medium'>
-          <Trans>URL Details</Trans>
-        </div>
+        }
+        title={nftName}
+      >
         <CopyBox
-          title={t`URL`}
-          value={url}
-          onCopy={() => toast.success(t`URL copied to clipboard`)}
+          title={t`Launcher Id`}
+          value={nft?.launcher_id ?? ''}
+          onCopy={() => toast.success(t`Launcher Id copied to clipboard`)}
         />
-        <div className='flex items-center justify-between text-sm'>
-          <span className='text-muted-foreground'>
-            <Trans>Kind</Trans>:
-          </span>
-          <span className='font-medium capitalize'>{kind}</span>
+      </ConfirmationCard>
+
+      <ConfirmationCard title={<Trans>URL Details</Trans>}>
+        <div className='space-y-2'>
+          <CopyBox
+            title={t`URL`}
+            value={url}
+            onCopy={() => toast.success(t`URL copied to clipboard`)}
+          />
+          <div className='flex items-center justify-between text-sm'>
+            <span className='text-muted-foreground'>
+              <Trans>Kind</Trans>:
+            </span>
+            <span className='font-medium capitalize'>{kind}</span>
+          </div>
         </div>
-      </div>
+      </ConfirmationCard>
     </div>
   );
 }
