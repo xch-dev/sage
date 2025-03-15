@@ -303,6 +303,7 @@ export default function MintNft() {
 
       <ConfirmationDialog
         response={response}
+        showRecipientDetails={false}
         close={() => setResponse(null)}
         onConfirm={() => navigate('/nfts')}
         additionalData={
