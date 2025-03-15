@@ -4,7 +4,7 @@ import {
   OfferSummary,
   TransactionSummary,
 } from '@/bindings';
-import { AdvancedSummary } from '@/components/ConfirmationDialog';
+import { AdvancedTransactionSummary } from '@/components/AdvancedTransactionSummary';
 import { OfferCard } from '@/components/OfferCard';
 import { OfferSummaryCard } from '@/components/OfferSummaryCard';
 import { Button } from '@/components/ui/button';
@@ -409,7 +409,7 @@ function SignCoinSpendsDialog({
   }, [params, addError]);
 
   return summary ? (
-    <AdvancedSummary summary={summary} />
+    <AdvancedTransactionSummary summary={summary} />
   ) : (
     <div className='p-4 text-center'>Loading transaction summary...</div>
   );

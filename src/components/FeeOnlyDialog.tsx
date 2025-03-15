@@ -24,7 +24,6 @@ import {
   FormLabel,
   FormMessage,
 } from './ui/form';
-import { Input } from './ui/input';
 import { TokenAmountInput } from './ui/masked-input';
 
 export interface FeeOnlyDialogProps {
@@ -32,6 +31,7 @@ export interface FeeOnlyDialogProps {
   open: boolean;
   setOpen: (open: boolean) => void;
   onSubmit: (fee: string) => void;
+  submitButtonLabel?: string;
 }
 
 export function FeeOnlyDialog({
@@ -39,6 +39,7 @@ export function FeeOnlyDialog({
   open,
   setOpen,
   onSubmit,
+  submitButtonLabel = t`Transfer`,
   children,
 }: PropsWithChildren<FeeOnlyDialogProps>) {
   const walletState = useWalletState();
@@ -97,9 +98,7 @@ export function FeeOnlyDialog({
               >
                 <Trans>Cancel</Trans>
               </Button>
-              <Button type='submit'>
-                <Trans>Transfer</Trans>
-              </Button>
+              <Button type='submit'>{submitButtonLabel ?? t`Transfer`}</Button>
             </DialogFooter>
           </form>
         </Form>

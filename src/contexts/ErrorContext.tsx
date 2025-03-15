@@ -106,7 +106,9 @@ export default function ErrorDialog({ error, setError }: ErrorDialogProps) {
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{kind ? `${kind} ` : ''}Error</DialogTitle>
-          <DialogDescription>{error?.reason}</DialogDescription>
+          <DialogDescription className='break-all'>
+            {error?.reason}
+          </DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <Button onClick={() => setError(null)} autoFocus>
