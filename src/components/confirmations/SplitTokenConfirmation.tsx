@@ -73,7 +73,9 @@ export function SplitTokenConfirmation({
             <div className='text-muted-foreground mb-1'>
               <Trans>Output Count</Trans>
             </div>
-            <div className='font-medium'>{outputCount} coins</div>
+            <div className='font-medium'>
+              <Trans>{outputCount} coins</Trans>
+            </div>
           </div>
         </div>
       </ConfirmationCard>

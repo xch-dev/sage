@@ -175,8 +175,8 @@ export default function ConfirmationDialog({
 
   return (
     <Dialog open={!!response} onOpenChange={reset}>
-      <DialogContent className='max-w-[90vw] md:max-w-[500px] h-[80vh] flex flex-col'>
-        <DialogHeader className='flex-shrink-0'>
+      <DialogContent className='max-w-none w-full h-full md:max-w-[500px] md:h-[80vh] flex flex-col p-2.5 md:p-6 border-0 md:border rounded-none md:rounded-lg'>
+        <DialogHeader className='flex-shrink-0 mt-12 sm:mt-0'>
           <DialogTitle className='text-xl font-semibold'>
             <Trans>Confirm Transaction</Trans>
           </DialogTitle>
@@ -591,7 +591,7 @@ export default function ConfirmationDialog({
           </Tabs>
         </div>
 
-        <DialogFooter className='pt-4 flex-shrink-0 border-t mt-auto'>
+        <DialogFooter className='pt-4 flex-shrink-0 border-t mt-auto mb-6 sm:mb-0 mr-4 sm:mr-0'>
           <Button variant='ghost' onClick={reset}>
             <Trans>Cancel</Trans>
           </Button>
