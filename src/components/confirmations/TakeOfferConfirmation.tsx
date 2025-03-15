@@ -1,7 +1,6 @@
 import { Trans } from '@lingui/react/macro';
 import { ArrowUpIcon, ArrowDownIcon, HandshakeIcon } from 'lucide-react';
 import { OfferSummary } from '@/bindings';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Assets } from '@/components/OfferCard';
 import { ConfirmationAlert } from './ConfirmationAlert';
 import { ConfirmationCard } from './ConfirmationCard';
@@ -16,7 +15,7 @@ export function TakeOfferConfirmation({ offer }: TakeOfferConfirmationProps) {
       <ConfirmationAlert
         icon={HandshakeIcon}
         title={<Trans>Taking Offer</Trans>}
-        variant='warning'
+        variant='info'
       >
         <Trans>
           Taking this offer will send the assets you are paying to the

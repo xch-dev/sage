@@ -1,6 +1,5 @@
 import { CoinRecord } from '@/bindings';
 import { fromMojos } from '@/lib/utils';
-import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { MergeIcon } from 'lucide-react';
 import { ConfirmationAlert } from './ConfirmationAlert';
