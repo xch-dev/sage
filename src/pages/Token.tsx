@@ -40,7 +40,7 @@ export default function Token() {
 
     if (content.type === 'split') {
       return {
-        title: t`Split Details`,
+        title: t`Split Coins`,
         content: (
           <SplitTokenConfirmation
             coins={content.coins}
@@ -52,7 +52,7 @@ export default function Token() {
       };
     } else if (content.type === 'combine') {
       return {
-        title: t`Combine Details`,
+        title: t`Combine Coins`,
         content: (
           <CombineTokenConfirmation
             coins={content.coins}
@@ -123,6 +123,7 @@ export default function Token() {
       />
       <ConfirmationDialog
         response={response}
+        showRecipientDetails={false}
         close={() => setResponse(null)}
         onConfirm={() => setSelectedCoins({})}
         additionalData={confirmationAdditionalData}
