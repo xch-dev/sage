@@ -13,7 +13,7 @@ export function SendTokenConfirmation({
 }: SendTokenConfirmationProps) {
   return (
     <div className='space-y-3 text-xs'>
-      <ConfirmationCard title={<Trans>Memo</Trans>}>
+      <ConfirmationCard>
         <div className='flex items-center justify-between'>
           <div className='break-words whitespace-pre-wrap flex-1'>
             {currentMemo}
