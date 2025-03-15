@@ -27,9 +27,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
-import { BurnNftConfirmation } from './confirmations/BurnNftConfirmation';
-import { TransferNftConfirmation } from './confirmations/TransferNftConfirmation';
-import { EditNftProfileConfirmation } from './confirmations/EditNftProfileConfirmation';
+import { NftConfirmation } from './confirmations/NftConfirmation';
 
 export interface MultiSelectActionsProps {
   selected: string[];
@@ -344,14 +342,17 @@ export function MultiSelectActions({
         additionalData={
           isBurning && response && nfts.length > 0
             ? {
-                title: t`NFT Details`,
-                content: <BurnNftConfirmation nfts={nfts} nftData={nftData} />,
+                title: t`Burn NFT`,
+                content: (
+                  <NftConfirmation type='burn' nfts={nfts} nftData={nftData} />
+                ),
               }
             : isTransferring && response && nfts.length > 0
               ? {
-                  title: t`Transfer Details`,
+                  title: t`Transfer NFT`,
                   content: (
-                    <TransferNftConfirmation
+                    <NftConfirmation
+                      type='transfer'
                       nfts={nfts}
                       nftData={nftData}
                       address={transferAddress}
@@ -360,9 +361,10 @@ export function MultiSelectActions({
                 }
               : isEditingProfile && response && nfts.length > 0
                 ? {
-                    title: t`Edit Profile`,
+                    title: t`Edit NFT Profile`,
                     content: (
-                      <EditNftProfileConfirmation
+                      <NftConfirmation
+                        type='edit'
                         nfts={nfts}
                         nftData={nftData}
                         profileId={assignedProfileId}

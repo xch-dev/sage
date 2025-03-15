@@ -416,7 +416,7 @@ function Profile({ did, updateDids }: ProfileProps) {
         additionalData={
           isTransferring && response
             ? {
-                title: t`Transfer Details`,
+                title: t`Transfer DID`,
                 content: (
                   <DidConfirmation
                     dids={[did]}
@@ -427,12 +427,12 @@ function Profile({ did, updateDids }: ProfileProps) {
               }
             : isBurning && response
               ? {
-                  title: t`Burn Details`,
+                  title: t`Burn DID`,
                   content: <DidConfirmation dids={[did]} type='burn' />,
                 }
               : isNormalizing && response
                 ? {
-                    title: t`Normalize Details`,
+                    title: t`Normalize DID`,
                     content: <DidConfirmation dids={[did]} type='normalize' />,
                   }
                 : undefined

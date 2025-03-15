@@ -644,7 +644,7 @@ const NftCardComponent = ({
         additionalData={
           isBurning && response
             ? {
-                title: t`NFT Details`,
+                title: t`Burn NFT`,
                 content: (
                   <NftConfirmation
                     type='burn'
@@ -655,7 +655,7 @@ const NftCardComponent = ({
               }
             : isTransferring && response
               ? {
-                  title: t`Transfer Details`,
+                  title: t`Transfer Nft`,
                   content: (
                     <NftConfirmation
                       type='transfer'
@@ -667,7 +667,7 @@ const NftCardComponent = ({
                 }
               : isAddingUrl && response
                 ? {
-                    title: t`Add URL`,
+                    title: t`Add URL to NFT`,
                     content: (
                       <AddUrlConfirmation
                         nft={nft}
@@ -679,7 +679,7 @@ const NftCardComponent = ({
                   }
                 : isEditingProfile && response
                   ? {
-                      title: t`Edit Profile`,
+                      title: t`Edit Nft Profile`,
                       content: (
                         <NftConfirmation
                           type='edit'
