@@ -1,6 +1,9 @@
 import { Trans } from '@lingui/react/macro';
-import { CircleOff } from 'lucide-react';
+import { CircleOff, ArrowUpIcon, ArrowDownIcon } from 'lucide-react';
 import { OfferRecord } from '@/bindings';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { Assets } from '@/components/OfferCard';
 
 interface CancelOfferConfirmationProps {
   offer: OfferRecord;
@@ -45,6 +48,38 @@ export function CancelOfferConfirmation({
             <div className='capitalize'>{offer.status}</div>
           </div>
         </div>
+      </div>
+
+      <div className='grid grid-cols-1 gap-2'>
+        <Card>
+          <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2 pr-2 space-x-2'>
+            <CardTitle className='text-xs font-medium truncate flex items-center'>
+              <ArrowUpIcon className='mr-2 h-3 w-3' />
+              <Trans>Sending</Trans>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className='text-[10px] text-muted-foreground mb-2'>
+              <Trans>The assets you are offering.</Trans>
+            </div>
+            <Assets assets={offer.summary.maker} />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2 pr-2 space-x-2'>
+            <CardTitle className='text-xs font-medium truncate flex items-center'>
+              <ArrowDownIcon className='mr-2 h-3 w-3' />
+              <Trans>Receiving</Trans>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className='text-[10px] text-muted-foreground mb-2'>
+              <Trans>The assets being requested.</Trans>
+            </div>
+            <Assets assets={offer.summary.taker} />
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
