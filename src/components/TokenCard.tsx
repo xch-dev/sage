@@ -195,7 +195,7 @@ export function TokenCard({
               </Label>
               <Input
                 id='name'
-                placeholder='Name of this token'
+                placeholder={t`Name of this token`}
                 value={newName}
                 onChange={(event) => setNewName(event.target.value)}
                 onKeyDown={(event) => {
@@ -214,7 +214,7 @@ export function TokenCard({
               </Label>
               <Input
                 id='ticker'
-                placeholder='Ticker for this token'
+                placeholder={t`Ticker for this token`}
                 value={newTicker}
                 onChange={(event) => setNewTicker(event.target.value)}
                 onKeyDown={(event) => {
