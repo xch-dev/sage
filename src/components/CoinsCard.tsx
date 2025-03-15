@@ -73,13 +73,6 @@ export function CoinsCard({
       .filter(Boolean) as CoinRecord[];
   }, [selectedCoinIds, coins]);
 
-  const totalSelectedAmount = useMemo(() => {
-    return selectedCoinsList.reduce(
-      (sum, coin) => sum + BigInt(coin.amount),
-      BigInt(0),
-    );
-  }, [selectedCoinsList]);
-
   const canCombine = useMemo(
     () =>
       selectedCoinIds.length >= 2 &&

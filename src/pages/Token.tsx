@@ -2,7 +2,6 @@ import ConfirmationDialog from '@/components/ConfirmationDialog';
 import Container from '@/components/Container';
 import { CopyButton } from '@/components/CopyButton';
 import Header from '@/components/Header';
-import { QRCodeDialog } from '@/components/QRCodeDialog';
 import { useTokenManagement } from '@/hooks/useTokenManagement';
 import { t } from '@lingui/core/macro';
 import { useParams } from 'react-router-dom';
@@ -22,11 +21,9 @@ export default function Token() {
     balanceInUsd,
     response,
     selectedCoins,
-    isReceiveOpen,
     receive_address,
     setResponse,
     setSelectedCoins,
-    setReceiveOpen,
     redownload,
     setVisibility,
     updateCatDetails,
@@ -97,10 +94,10 @@ export default function Token() {
             assetId={assetId}
             precision={precision}
             balanceInUsd={balanceInUsd}
-            onReceiveClick={() => setReceiveOpen(true)}
             onRedownload={redownload}
             onVisibilityChange={setVisibility}
             onUpdateCat={updateCatDetails}
+            receive_address={receive_address}
           />
           <CoinsCard
             precision={precision}
@@ -115,12 +112,6 @@ export default function Token() {
         </div>
       </Container>
 
-      <QRCodeDialog
-        isOpen={isReceiveOpen}
-        onClose={setReceiveOpen}
-        asset={asset}
-        receive_address={receive_address}
-      />
       <ConfirmationDialog
         response={response}
         showRecipientDetails={false}

@@ -6,6 +6,7 @@ import { fromMojos } from '@/lib/utils';
 import { Link } from 'react-router-dom';
 import { Trans } from '@lingui/react/macro';
 import { t } from '@lingui/core/macro';
+import { QRCodeDialog } from '@/components/QRCodeDialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -42,10 +43,10 @@ interface TokenCardProps {
   assetId: string | undefined;
   precision: number;
   balanceInUsd: string;
-  onReceiveClick: () => void;
   onRedownload: () => void;
   onVisibilityChange: (visible: boolean) => void;
   onUpdateCat: (updatedAsset: CatRecord) => Promise<void>;
+  receive_address: string;
 }
 
 export function TokenCard({
@@ -53,12 +54,13 @@ export function TokenCard({
   assetId,
   precision,
   balanceInUsd,
-  onReceiveClick,
   onRedownload,
   onVisibilityChange,
   onUpdateCat,
+  receive_address,
 }: TokenCardProps) {
   const [isEditOpen, setEditOpen] = useState(false);
+  const [isReceiveOpen, setReceiveOpen] = useState(false);
   const [newName, setNewName] = useState('');
   const [newTicker, setNewTicker] = useState('');
 
@@ -123,7 +125,7 @@ export function TokenCard({
                 <Send className='mr-2 h-4 w-4' /> <Trans>Send</Trans>
               </Button>
             </Link>
-            <Button variant={'outline'} onClick={onReceiveClick}>
+            <Button variant={'outline'} onClick={() => setReceiveOpen(true)}>
               <HandHelping className='mr-2 h-4 w-4' />
               <Trans>Receive</Trans>
             </Button>
@@ -242,6 +244,13 @@ export function TokenCard({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <QRCodeDialog
+        isOpen={isReceiveOpen}
+        onClose={() => setReceiveOpen(false)}
+        asset={asset}
+        receive_address={receive_address}
+      />
     </>
   );
 }
