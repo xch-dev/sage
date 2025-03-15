@@ -63,7 +63,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
 import { z } from 'zod';
-import { CancelOfferConfirmation } from '@/components/confirmations/CancelOfferConfirmation';
+import { OfferConfirmation } from '@/components/confirmations/OfferConfirmation';
 
 export function Offers() {
   const navigate = useNavigate();
@@ -454,7 +454,9 @@ function Offer({ record, refresh }: OfferProps) {
         onConfirm={refresh}
         additionalData={{
           title: t`Cancel Offer`,
-          content: response && <CancelOfferConfirmation offer={record} />,
+          content: response && (
+            <OfferConfirmation type='cancel' offer={record} />
+          ),
         }}
       />
     </>

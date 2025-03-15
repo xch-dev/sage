@@ -7,8 +7,7 @@ import { t } from '@lingui/core/macro';
 import { useParams } from 'react-router-dom';
 import { CoinsCard } from '@/components/CoinsCard';
 import { TokenCard } from '@/components/TokenCard';
-import { SplitTokenConfirmation } from '@/components/confirmations/SplitTokenConfirmation';
-import { CombineTokenConfirmation } from '@/components/confirmations/CombineTokenConfirmation';
+import { TokenConfirmation } from '@/components/confirmations/TokenConfirmation';
 import { useMemo } from 'react';
 import { commands } from '../bindings';
 
@@ -39,7 +38,8 @@ export default function Token() {
       return {
         title: t`Split Coins`,
         content: (
-          <SplitTokenConfirmation
+          <TokenConfirmation
+            type='split'
             coins={content.coins}
             outputCount={content.outputCount || 2}
             ticker={content.ticker}
@@ -51,7 +51,8 @@ export default function Token() {
       return {
         title: t`Combine Coins`,
         content: (
-          <CombineTokenConfirmation
+          <TokenConfirmation
+            type='combine'
             coins={content.coins}
             ticker={content.ticker}
             precision={content.precision}

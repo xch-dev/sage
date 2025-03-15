@@ -40,7 +40,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { ArrowUpToLine } from 'lucide-react';
-import { SendTokenConfirmation } from '@/components/confirmations/SendTokenConfirmation';
+import { TokenConfirmation } from '@/components/confirmations/TokenConfirmation';
 
 function stringToUint8Array(str: string): Uint8Array {
   return new TextEncoder().encode(str);
@@ -391,8 +391,10 @@ export default function Send() {
         additionalData={
           currentMemo
             ? {
-                title: 'Memo',
-                content: <SendTokenConfirmation currentMemo={currentMemo} />,
+                title: t`Send ${ticker}`,
+                content: (
+                  <TokenConfirmation type='send' currentMemo={currentMemo} />
+                ),
               }
             : undefined
         }
