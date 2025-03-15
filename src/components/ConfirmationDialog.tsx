@@ -40,6 +40,7 @@ import { toast } from 'react-toastify';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { formatNumber } from '../i18n';
 import { calculateTransaction } from './AdvancedTransactionSummary';
+
 export interface ConfirmationDialogProps {
   response: TransactionResponse | TakeOfferResponse | null;
   close: () => void;
