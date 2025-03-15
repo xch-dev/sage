@@ -78,11 +78,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from './ui/tooltip';
-import { BurnNftConfirmation } from './confirmations/BurnNftConfirmation';
-import { TransferNftConfirmation } from './confirmations/TransferNftConfirmation';
 import { AddUrlConfirmation } from './confirmations/AddUrlConfirmation';
-import { EditNftProfileConfirmation } from './confirmations/EditNftProfileConfirmation';
-
+import { NftConfirmation } from './confirmations/NftConfirmation';
 export interface NftProps {
   nft: NftRecord;
   updateNfts: () => void;
@@ -649,7 +646,8 @@ const NftCardComponent = ({
             ? {
                 title: t`NFT Details`,
                 content: (
-                  <BurnNftConfirmation
+                  <NftConfirmation
+                    type='burn'
                     nfts={[nft]}
                     nftData={{ [nft.launcher_id]: data }}
                   />
@@ -659,7 +657,8 @@ const NftCardComponent = ({
               ? {
                   title: t`Transfer Details`,
                   content: (
-                    <TransferNftConfirmation
+                    <NftConfirmation
+                      type='transfer'
                       nfts={[nft]}
                       nftData={{ [nft.launcher_id]: data }}
                       address={transferAddress}
@@ -682,7 +681,8 @@ const NftCardComponent = ({
                   ? {
                       title: t`Edit Profile`,
                       content: (
-                        <EditNftProfileConfirmation
+                        <NftConfirmation
+                          type='edit'
                           nfts={[nft]}
                           nftData={{ [nft.launcher_id]: data }}
                           profileId={assignedProfileId}
