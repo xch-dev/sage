@@ -50,9 +50,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { commands, DidRecord, TransactionResponse } from '../bindings';
-import { TransferDidConfirmation } from '@/components/confirmations/TransferDidConfirmation';
-import { BurnDidConfirmation } from '@/components/confirmations/BurnDidConfirmation';
-import { NormalizeDidConfirmation } from '@/components/confirmations/NormalizeDidConfirmation';
+import { DidConfirmation } from '@/components/confirmations/DidConfirmation';
 
 export function DidList() {
   const navigate = useNavigate();
@@ -420,21 +418,22 @@ function Profile({ did, updateDids }: ProfileProps) {
             ? {
                 title: t`Transfer Details`,
                 content: (
-                  <TransferDidConfirmation
+                  <DidConfirmation
                     dids={[did]}
                     address={transferAddress}
+                    type='transfer'
                   />
                 ),
               }
             : isBurning && response
               ? {
                   title: t`Burn Details`,
-                  content: <BurnDidConfirmation dids={[did]} />,
+                  content: <DidConfirmation dids={[did]} type='burn' />,
                 }
               : isNormalizing && response
                 ? {
                     title: t`Normalize Details`,
-                    content: <NormalizeDidConfirmation dids={[did]} />,
+                    content: <DidConfirmation dids={[did]} type='normalize' />,
                   }
                 : undefined
         }

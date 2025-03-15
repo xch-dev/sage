@@ -29,7 +29,7 @@ import {
 } from './ui/dropdown-menu';
 import { BurnNftConfirmation } from './confirmations/BurnNftConfirmation';
 import { TransferNftConfirmation } from './confirmations/TransferNftConfirmation';
-import { EditProfileConfirmation } from './confirmations/EditProfileConfirmation';
+import { EditNftProfileConfirmation } from './confirmations/EditNftProfileConfirmation';
 
 export interface MultiSelectActionsProps {
   selected: string[];
@@ -362,7 +362,7 @@ export function MultiSelectActions({
                 ? {
                     title: t`Edit Profile`,
                     content: (
-                      <EditProfileConfirmation
+                      <EditNftProfileConfirmation
                         nfts={nfts}
                         nftData={nftData}
                         profileId={assignedProfileId}

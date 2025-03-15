@@ -81,7 +81,7 @@ import {
 import { BurnNftConfirmation } from './confirmations/BurnNftConfirmation';
 import { TransferNftConfirmation } from './confirmations/TransferNftConfirmation';
 import { AddUrlConfirmation } from './confirmations/AddUrlConfirmation';
-import { EditProfileConfirmation } from './confirmations/EditProfileConfirmation';
+import { EditNftProfileConfirmation } from './confirmations/EditNftProfileConfirmation';
 
 export interface NftProps {
   nft: NftRecord;
@@ -682,7 +682,7 @@ const NftCardComponent = ({
                   ? {
                       title: t`Edit Profile`,
                       content: (
-                        <EditProfileConfirmation
+                        <EditNftProfileConfirmation
                           nfts={[nft]}
                           nftData={{ [nft.launcher_id]: data }}
                           profileId={assignedProfileId}

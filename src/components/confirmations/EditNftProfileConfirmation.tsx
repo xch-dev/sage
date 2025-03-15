@@ -8,17 +8,17 @@ import { toast } from 'react-toastify';
 import { ConfirmationAlert } from './ConfirmationAlert';
 import { ConfirmationCard } from './ConfirmationCard';
 
-interface EditProfileConfirmationProps {
+interface EditNftProfileConfirmationProps {
   nfts: NftRecord[];
   nftData: Record<string, NftData | null>;
   profileId: string | null;
 }
 
-export function EditProfileConfirmation({
+export function EditNftProfileConfirmation({
   nfts,
   nftData,
   profileId,
-}: EditProfileConfirmationProps) {
+}: EditNftProfileConfirmationProps) {
   return (
     <div className='space-y-3 text-xs'>
       <ConfirmationAlert
