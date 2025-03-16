@@ -13,6 +13,7 @@ import {
   MoreVertical,
   Paintbrush,
   UserIcon,
+  ScrollText,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -254,6 +255,19 @@ export function NftGroupCard({
             <DropdownMenuGroup>
               {isCollection && (
                 <>
+                  <DropdownMenuItem
+                    className='cursor-pointer'
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/nfts/collections/metadata/${cardId}`);
+                    }}
+                    aria-label={t`View ${cardName} Metadata`}
+                  >
+                    <ScrollText className='mr-2 h-4 w-4' aria-hidden='true' />
+                    <span>
+                      <Trans>View Metadata</Trans>
+                    </span>
+                  </DropdownMenuItem>
                   <DropdownMenuItem
                     className='cursor-pointer'
                     onClick={(e) => {

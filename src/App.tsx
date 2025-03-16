@@ -47,6 +47,7 @@ import Wallet from './pages/Wallet';
 import QRScanner from './pages/QrScanner';
 import { ToastContainer, Slide } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import CollectionMetaData from './pages/CollectionMetaData';
 
 export interface DarkModeContext {
   toggle: () => void;
@@ -77,6 +78,10 @@ const router = createHashRouter(
         <Route path='' element={<NftList />} />
         <Route path=':launcher_id' element={<Nft />} />
         <Route path='collections/:collection_id' element={<NftList />} />
+        <Route
+          path='collections/metadata/:collection_id'
+          element={<CollectionMetaData />}
+        />
         <Route path='owners/:owner_did' element={<NftList />} />
         <Route path='minters/:minter_did' element={<NftList />} />
         <Route path='mint' element={<MintNft />} />
