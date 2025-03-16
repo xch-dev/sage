@@ -57,7 +57,7 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
           className='hover:underline'
           onClick={(e) => e.stopPropagation()}
           title={
-            row.original?.timestamp ? '' : row.getValue('transactionHeight')
+            row.original?.timestamp ? row.getValue('transactionHeight') : ''
           }
         >
           {formatTimestamp(row.original?.timestamp, 'short', 'short') ||
