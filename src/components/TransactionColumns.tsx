@@ -33,12 +33,12 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
   {
     accessorKey: 'transactionHeight',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={t`Block #`} />
+      <DataTableColumnHeader column={column} title={t`Transaction`} />
     ),
     enableSorting: false,
     size: 80,
     meta: {
-      className: 'w-[55px] min-w-[55px] md:w-[80px] md:min-w-[80px]',
+      className: 'w-[105px] min-w-[105px] md:w-[120px] md:min-w-[120px]',
     },
     cell: ({ row, table }) => {
       // Get all rows data
@@ -57,36 +57,9 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
           className='hover:underline'
           onClick={(e) => e.stopPropagation()}
         >
-          {row.getValue('transactionHeight')}
+          {formatTimestamp(row.original?.timestamp, 'short', 'short') ||
+            row.getValue('transactionHeight')}
         </Link>
-      ) : null;
-    },
-  },
-  {
-    accessorKey: 'timestamp',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={t`Date`} />
-    ),
-    enableSorting: false,
-    size: 160,
-    meta: {
-      className: 'hidden md:table-cell w-[160px] min-w-[160px]',
-    },
-    cell: ({ row, table }) => {
-      // Get all rows data
-      const rows = table.options.data as FlattenedTransaction[];
-
-      // Check if this is the first row for this transaction height
-      const isFirstInGroup =
-        rows.findIndex(
-          (tx) => tx.transactionHeight === row.original.transactionHeight,
-        ) === rows.indexOf(row.original);
-
-      // Only show timestamp for first row in group
-      return isFirstInGroup ? (
-        <div className='hidden md:block'>
-          {formatTimestamp(row.getValue('timestamp'), 'short', 'short')}
-        </div>
       ) : null;
     },
   },
