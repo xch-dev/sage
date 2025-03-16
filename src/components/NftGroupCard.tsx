@@ -41,7 +41,7 @@ interface NftGroupCardProps {
   onToggleVisibility?: () => void;
   isLoading?: boolean;
   error?: Error;
-  canToggleVisibility?: boolean;
+  isPlaceHolder?: boolean;
 }
 
 export function NftGroupCard({
@@ -53,7 +53,7 @@ export function NftGroupCard({
   onToggleVisibility = () => {},
   isLoading,
   error,
-  canToggleVisibility = true,
+  isPlaceHolder = false,
 }: NftGroupCardProps) {
   const navigate = useNavigate();
   const isCollection = type === 'collection';
@@ -257,6 +257,7 @@ export function NftGroupCard({
                 <>
                   <DropdownMenuItem
                     className='cursor-pointer'
+                    disabled={isPlaceHolder}
                     onClick={(e) => {
                       e.stopPropagation();
                       navigate(`/nfts/collections/metadata/${cardId}`);
@@ -270,6 +271,7 @@ export function NftGroupCard({
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     className='cursor-pointer'
+                    disabled={isPlaceHolder}
                     onClick={(e) => {
                       e.stopPropagation();
                       openUrl(`https://mintgarden.io/collections/${cardId}`);
@@ -288,7 +290,7 @@ export function NftGroupCard({
                       e.stopPropagation();
                       onToggleVisibility();
                     }}
-                    disabled={!canToggleVisibility}
+                    disabled={isPlaceHolder}
                     aria-label={
                       item.visible ? t`Hide ${cardName}` : t`Show ${cardName}`
                     }
