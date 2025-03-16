@@ -134,18 +134,18 @@ export default function CollectionMetaData() {
 
   const renderMetadataValue = (value: any): JSX.Element => {
     // Helper function to render a string that might be a link
-    const renderPossibleLink = (str: string) => {
+    const renderPossibleLink = (str: string, isDescription = false) => {
       if (str.match(/^(https?|ipfs|data):\/\/\S+/i)) {
         return (
           <span
-            className='text-blue-700 dark:text-blue-300 cursor-pointer hover:underline'
+            className='text-blue-700 dark:text-blue-300 cursor-pointer hover:underline break-all'
             onClick={() => openUrl(str)}
           >
             {str}
           </span>
         );
       }
-      return <span>{str}</span>;
+      return <span className={isDescription ? '' : 'break-all'}>{str}</span>;
     };
 
     if (typeof value === 'string') {
@@ -158,7 +158,10 @@ export default function CollectionMetaData() {
       return (
         <ul className='list-disc pl-4'>
           {value.map((item, index) => (
-            <li key={index}>
+            <li
+              key={index}
+              className={typeof item === 'string' ? 'break-all' : ''}
+            >
               {/* Special handling for attribute objects with type and value */}
               {typeof item === 'object' &&
               item !== null &&
@@ -168,7 +171,7 @@ export default function CollectionMetaData() {
               typeof item.value === 'string' ? (
                 <span>
                   <span className='font-bold'>{item.type}</span>:{' '}
-                  {renderPossibleLink(item.value)}
+                  {renderPossibleLink(item.value, item.type === 'description')}
                 </span>
               ) : (
                 renderMetadataValue(item)
@@ -189,7 +192,7 @@ export default function CollectionMetaData() {
         return (
           <span>
             <span className='font-bold'>{value.type}</span>:{' '}
-            {renderPossibleLink(value.value)}
+            {renderPossibleLink(value.value, value.type === 'description')}
           </span>
         );
       }
