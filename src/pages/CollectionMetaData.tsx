@@ -1,8 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { commands } from '@/bindings';
+import {
+  commands,
+  events,
+  NetworkConfig,
+  NftCollectionRecord,
+  NftRecord,
+} from '@/bindings';
 import { useErrors } from '@/hooks/useErrors';
-import { NftCollectionRecord, NftRecord } from '@/bindings';
 import { Button } from '@/components/ui/button';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -28,6 +33,7 @@ export default function CollectionMetaData() {
   const [metadataContent, setMetadataContent] =
     useState<MetadataContent | null>(null);
   const [loading, setLoading] = useState(true);
+  const [config, setConfig] = useState<NetworkConfig | null>(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -79,6 +85,10 @@ export default function CollectionMetaData() {
 
     fetchData();
   }, [collection_id, addError]);
+
+  useEffect(() => {
+    commands.networkConfig().then(setConfig).catch(addError);
+  }, [addError]);
 
   // Find banner URL from attributes if it exists
   const getBannerUrl = () => {
@@ -137,15 +147,15 @@ export default function CollectionMetaData() {
     const renderPossibleLink = (str: string, isDescription = false) => {
       if (str.match(/^(https?|ipfs|data):\/\/\S+/i)) {
         return (
-          <span
-            className='text-blue-700 dark:text-blue-300 cursor-pointer hover:underline break-all'
+          <div
+            className='text-blue-700 dark:text-blue-300 cursor-pointer hover:underline truncate'
             onClick={() => openUrl(str)}
           >
             {str}
-          </span>
+          </div>
         );
       }
-      return <span className={isDescription ? '' : 'break-all'}>{str}</span>;
+      return <div className={isDescription ? '' : 'break-all'}>{str}</div>;
     };
 
     if (typeof value === 'string') {
@@ -170,7 +180,7 @@ export default function CollectionMetaData() {
               typeof item.type === 'string' &&
               typeof item.value === 'string' ? (
                 <span>
-                  <span className='font-bold'>{item.type}</span>:{' '}
+                  <div className='font-bold'>{item.type}</div>
                   {renderPossibleLink(item.value, item.type === 'description')}
                 </span>
               ) : (
@@ -264,6 +274,16 @@ export default function CollectionMetaData() {
                 }
               />
             </div>
+            <div>
+              <h6 className='text-md font-bold'>
+                <Trans>Minter DID</Trans>
+              </h6>
+              <CopyBox
+                title={t`Minter DID`}
+                value={collection.did_id}
+                onCopy={() => toast.success(t`Minter DID copied to clipboard`)}
+              />
+            </div>
           </div>
 
           <div className='flex flex-col gap-3'>
@@ -275,8 +295,11 @@ export default function CollectionMetaData() {
                 variant='outline'
                 onClick={() =>
                   openUrl(
-                    `https://mintgarden.io/collections/${collection.collection_id}`,
+                    `https://${config?.network_id !== 'mainnet' ? 'testnet.' : ''}mintgarden.io/collections/${collection.collection_id}`,
                   )
+                }
+                disabled={
+                  !['mainnet', 'testnet11'].includes(config?.network_id ?? '')
                 }
               >
                 <img
@@ -285,6 +308,24 @@ export default function CollectionMetaData() {
                   alt='MintGarden logo'
                 />
                 MintGarden
+              </Button>
+              <Button
+                variant='outline'
+                onClick={() =>
+                  openUrl(
+                    `https://${config?.network_id !== 'mainnet' ? 'testnet11.' : ''}spacescan.io/collection/${collection.collection_id}`,
+                  )
+                }
+                disabled={
+                  !['mainnet', 'testnet11'].includes(config?.network_id ?? '')
+                }
+              >
+                <img
+                  src='https://spacescan.io/images/spacescan-logo-192.png'
+                  className='h-4 w-4 mr-2'
+                  alt='Spacescan.io logo'
+                />
+                Spacescan.io
               </Button>
             </div>
           </div>
