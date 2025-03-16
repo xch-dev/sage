@@ -169,9 +169,7 @@ export function OfferCard({
                 </div>
                 {summary.expiration_timestamp && (
                   <div className='text-sm'>
-                    {formatTimestamp(
-                      summary.expiration_timestamp,
-                    )}
+                    {formatTimestamp(summary.expiration_timestamp)}
                   </div>
                 )}
                 {summary.expiration_height && (

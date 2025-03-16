@@ -17,7 +17,7 @@ export function formatTimestamp(
   dateStyle: string = 'medium',
   timeStyle: string = dateStyle,
 ): string {
-  if (!timestamp) return "";
+  if (!timestamp) return '';
   const date = new Date(timestamp * 1000); // Convert from Unix timestamp to JavaScript timestamp
   return new Intl.DateTimeFormat(undefined, {
     dateStyle: dateStyle as 'full' | 'long' | 'medium' | 'short',

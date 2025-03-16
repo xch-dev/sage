@@ -33,9 +33,7 @@ export function OfferSummaryCard({ record, content }: OfferSummaryCardProps) {
               <div className='text-muted-foreground text-sm'>
                 <span>
                   Expires:{' '}
-                  {formatTimestamp(
-                    record.summary.expiration_timestamp,
-                  )}
+                  {formatTimestamp(record.summary.expiration_timestamp)}
                 </span>
               </div>
             )}
@@ -70,26 +68,26 @@ function AssetPreview({ label, assets }: AssetPreviewProps) {
       {BigNumber(assets.xch.amount)
         .plus(assets.xch.royalty)
         .isGreaterThan(0) && (
-          <div className='flex items-center gap-2'>
-            <img
-              alt={t`XCH`}
-              src='https://icons.dexie.space/xch.webp'
-              className='w-8 h-8'
-            />
+        <div className='flex items-center gap-2'>
+          <img
+            alt={t`XCH`}
+            src='https://icons.dexie.space/xch.webp'
+            className='w-8 h-8'
+          />
 
-            <div className='text-sm text-muted-foreground truncate'>
-              <NumberFormat
-                value={fromMojos(
-                  BigNumber(assets.xch.amount).plus(assets.xch.royalty),
-                  walletState.sync.unit.decimals,
-                )}
-                minimumFractionDigits={0}
-                maximumFractionDigits={walletState.sync.unit.decimals}
-              />{' '}
-              {walletState.sync.unit.ticker}
-            </div>
+          <div className='text-sm text-muted-foreground truncate'>
+            <NumberFormat
+              value={fromMojos(
+                BigNumber(assets.xch.amount).plus(assets.xch.royalty),
+                walletState.sync.unit.decimals,
+              )}
+              minimumFractionDigits={0}
+              maximumFractionDigits={walletState.sync.unit.decimals}
+            />{' '}
+            {walletState.sync.unit.ticker}
           </div>
-        )}
+        </div>
+      )}
       {Object.entries(assets.cats).map(([, cat], i) => (
         <div className='flex items-center gap-2' key={i}>
           <img
