@@ -1,6 +1,6 @@
 import { OfferAssets, OfferSummary, GetCat } from '@/bindings';
 import { nftUri } from '@/lib/nftUri';
-import { fromMojos, unixTimestampToDate } from '@/lib/utils';
+import { fromMojos, formatTimestamp } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -169,9 +169,9 @@ export function OfferCard({
                 </div>
                 {summary.expiration_timestamp && (
                   <div className='text-sm'>
-                    {unixTimestampToDate(
+                    {formatTimestamp(
                       summary.expiration_timestamp,
-                    ).toLocaleString()}
+                    )}
                   </div>
                 )}
                 {summary.expiration_height && (

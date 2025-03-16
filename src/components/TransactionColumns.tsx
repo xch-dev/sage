@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { toast } from 'react-toastify';
 import { AmountCell } from './AmountCell';
-import { formatAddress } from '../lib/utils';
+import { formatAddress, formatTimestamp } from '@/lib/utils';
 
 export interface FlattenedTransaction {
   transactionHeight: number;
@@ -26,6 +26,7 @@ export interface FlattenedTransaction {
   address: string | null;
   coin_id: string;
   displayName: string;
+  timestamp: number | null;
 }
 
 export const columns: ColumnDef<FlattenedTransaction>[] = [
@@ -58,6 +59,34 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
         >
           {row.getValue('transactionHeight')}
         </Link>
+      ) : null;
+    },
+  },
+  {
+    accessorKey: 'timestamp',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title={t`Date`} />
+    ),
+    enableSorting: false,
+    size: 160,
+    meta: {
+      className: 'hidden md:table-cell w-[160px] min-w-[160px]',
+    },
+    cell: ({ row, table }) => {
+      // Get all rows data
+      const rows = table.options.data as FlattenedTransaction[];
+
+      // Check if this is the first row for this transaction height
+      const isFirstInGroup =
+        rows.findIndex(
+          (tx) => tx.transactionHeight === row.original.transactionHeight,
+        ) === rows.indexOf(row.original);
+
+      // Only show timestamp for first row in group
+      return isFirstInGroup ? (
+        <div className='hidden md:block'>
+          {formatTimestamp(row.getValue('timestamp'), 'short', 'short')}
+        </div>
       ) : null;
     },
   },
