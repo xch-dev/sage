@@ -79,7 +79,7 @@ const router = createHashRouter(
         <Route path=':launcher_id' element={<Nft />} />
         <Route path='collections/:collection_id' element={<NftList />} />
         <Route
-          path='collections/metadata/:collection_id'
+          path='collections/:collection_id/metadata'
           element={<CollectionMetaData />}
         />
         <Route path='owners/:owner_did' element={<NftList />} />

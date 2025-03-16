@@ -260,7 +260,7 @@ export function NftGroupCard({
                     disabled={isPlaceHolder}
                     onClick={(e) => {
                       e.stopPropagation();
-                      navigate(`/nfts/collections/metadata/${cardId}`);
+                      navigate(`/nfts/collections/${cardId}/metadata`);
                     }}
                     aria-label={t`View ${cardName} Metadata`}
                   >
