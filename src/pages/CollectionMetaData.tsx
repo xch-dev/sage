@@ -114,19 +114,23 @@ export default function CollectionMetaData() {
   }
 
   const renderMetadataValue = (value: any): JSX.Element => {
-    if (typeof value === 'string') {
-      // Check if the string looks like a URI (starts with http://, https://, ipfs://, etc.)
-      if (value.match(/^(https?|ipfs|data):\/\/\S+/i)) {
+    // Helper function to render a string that might be a link
+    const renderPossibleLink = (str: string) => {
+      if (str.match(/^(https?|ipfs|data):\/\/\S+/i)) {
         return (
           <span
             className='text-blue-700 dark:text-blue-300 cursor-pointer hover:underline'
-            onClick={() => openUrl(value)}
+            onClick={() => openUrl(str)}
           >
-            {value}
+            {str}
           </span>
         );
       }
-      return <span>{value}</span>;
+      return <span>{str}</span>;
+    };
+
+    if (typeof value === 'string') {
+      return renderPossibleLink(value);
     }
     if (typeof value === 'number' || typeof value === 'boolean') {
       return <span>{String(value)}</span>;
@@ -135,12 +139,41 @@ export default function CollectionMetaData() {
       return (
         <ul className='list-disc pl-4'>
           {value.map((item, index) => (
-            <li key={index}>{renderMetadataValue(item)}</li>
+            <li key={index}>
+              {/* Special handling for attribute objects with type and value */}
+              {typeof item === 'object' &&
+              item !== null &&
+              'type' in item &&
+              'value' in item &&
+              typeof item.type === 'string' &&
+              typeof item.value === 'string' ? (
+                <span>
+                  <span className='font-bold'>{item.type}</span>:{' '}
+                  {renderPossibleLink(item.value)}
+                </span>
+              ) : (
+                renderMetadataValue(item)
+              )}
+            </li>
           ))}
         </ul>
       );
     }
     if (typeof value === 'object' && value !== null) {
+      // Special handling for single attribute object with type and value
+      if (
+        'type' in value &&
+        'value' in value &&
+        typeof value.type === 'string' &&
+        typeof value.value === 'string'
+      ) {
+        return (
+          <span>
+            <span className='font-bold'>{value.type}</span>:{' '}
+            {renderPossibleLink(value.value)}
+          </span>
+        );
+      }
       return (
         <div className='pl-4'>
           {Object.entries(value).map(([key, val]) => (
