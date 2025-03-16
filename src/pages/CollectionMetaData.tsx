@@ -23,6 +23,11 @@ type MetadataContent = {
   };
 };
 
+type AttributeType = {
+  type: string;
+  value: string;
+};
+
 export default function CollectionMetaData() {
   const { collection_id } = useParams();
   const { addError } = useErrors();
@@ -165,6 +170,47 @@ export default function CollectionMetaData() {
       return <span>{String(value)}</span>;
     }
     if (Array.isArray(value)) {
+      // Special handling for attributes array
+      if (
+        value.length > 0 &&
+        value.every(
+          (item) =>
+            typeof item === 'object' &&
+            item !== null &&
+            'type' in item &&
+            'value' in item,
+        )
+      ) {
+        const sortedAttributes = [...value].sort((a, b) =>
+          a.type.toLowerCase().localeCompare(b.type.toLowerCase()),
+        );
+
+        return (
+          <div className='grid grid-cols-2 gap-2'>
+            {sortedAttributes.map((item, index) => (
+              <div
+                key={index}
+                className='px-2 py-1 border-2 rounded-lg'
+                title={item.value}
+              >
+                <h6 className='text-sm font-semibold truncate'>{item.type}</h6>
+                {typeof item.value === 'string' &&
+                item.value.match(/^(https?|ipfs|data):\/\/\S+/i) ? (
+                  <div
+                    onClick={() => openUrl(item.value)}
+                    className='text-sm break-all text-blue-700 dark:text-blue-300 cursor-pointer hover:underline truncate'
+                  >
+                    {item.value}
+                  </div>
+                ) : (
+                  <div className='text-sm break-all'>{item.value}</div>
+                )}
+              </div>
+            ))}
+          </div>
+        );
+      }
+      // Default array handling for non-attribute arrays
       return (
         <ul className='list-disc pl-4'>
           {value.map((item, index) => (
@@ -172,20 +218,7 @@ export default function CollectionMetaData() {
               key={index}
               className={typeof item === 'string' ? 'break-all' : ''}
             >
-              {/* Special handling for attribute objects with type and value */}
-              {typeof item === 'object' &&
-              item !== null &&
-              'type' in item &&
-              'value' in item &&
-              typeof item.type === 'string' &&
-              typeof item.value === 'string' ? (
-                <span>
-                  <div className='font-bold'>{item.type}</div>
-                  {renderPossibleLink(item.value, item.type === 'description')}
-                </span>
-              ) : (
-                renderMetadataValue(item)
-              )}
+              {renderMetadataValue(item)}
             </li>
           ))}
         </ul>
@@ -252,16 +285,63 @@ export default function CollectionMetaData() {
                 </span>
               </div>
             )}
-            <CopyBox
-              title={t`Collection ID`}
-              value={collection.collection_id}
-              onCopy={() => toast.success(t`Collection ID copied to clipboard`)}
-            />
           </div>
         </div>
 
         <div className='my-4 grid grid-cols-1 md:grid-cols-2 gap-y-3 gap-x-10'>
           <div className='flex flex-col gap-3'>
+            {metadataContent?.collection?.attributes && (
+              <>
+                {/* Find and display description first */}
+                {metadataContent.collection.attributes.find(
+                  (attr: AttributeType) =>
+                    attr.type.toLowerCase() === 'description',
+                ) && (
+                  <div>
+                    <h6 className='text-md font-bold'>
+                      <Trans>Description</Trans>
+                    </h6>
+                    <div className='break-all text-sm'>
+                      {
+                        metadataContent.collection.attributes.find(
+                          (attr: AttributeType) =>
+                            attr.type.toLowerCase() === 'description',
+                        )?.value
+                      }
+                    </div>
+                  </div>
+                )}
+
+                {/* Display remaining attributes */}
+                <div>
+                  <h6 className='text-md font-bold mb-3'>
+                    <Trans>Attributes</Trans>
+                  </h6>
+                  {renderMetadataValue(
+                    metadataContent.collection.attributes.filter(
+                      (attr: AttributeType) =>
+                        attr.type.toLowerCase() !== 'description',
+                    ),
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+
+          <div className='flex flex-col gap-3'>
+            <div>
+              <h6 className='text-md font-bold'>
+                <Trans>Collection ID</Trans>
+              </h6>
+              <CopyBox
+                title={t`Collection ID`}
+                value={collection.collection_id}
+                onCopy={() =>
+                  toast.success(t`Collection ID copied to clipboard`)
+                }
+              />
+            </div>
+
             <div>
               <h6 className='text-md font-bold'>
                 <Trans>Metadata Collection ID</Trans>
@@ -274,6 +354,7 @@ export default function CollectionMetaData() {
                 }
               />
             </div>
+
             <div>
               <h6 className='text-md font-bold'>
                 <Trans>Minter DID</Trans>
@@ -284,9 +365,7 @@ export default function CollectionMetaData() {
                 onCopy={() => toast.success(t`Minter DID copied to clipboard`)}
               />
             </div>
-          </div>
 
-          <div className='flex flex-col gap-3'>
             <div className='flex flex-col gap-1'>
               <h6 className='text-md font-bold'>
                 <Trans>External Links</Trans>
@@ -328,26 +407,18 @@ export default function CollectionMetaData() {
                 Spacescan.io
               </Button>
             </div>
-          </div>
-        </div>
 
-        {metadataContent?.collection && (
-          <div className='mt-6'>
-            <h6 className='text-md font-bold mb-3'>
-              <Trans>Collection Metadata</Trans>
-            </h6>
-            <div className='text-sm bg-neutral-100 dark:bg-neutral-800 p-4 rounded-lg'>
-              {Object.entries(metadataContent.collection)
-                .filter(([key]) => !['name', 'id'].includes(key))
+            {metadataContent?.collection &&
+              Object.entries(metadataContent.collection)
+                .filter(([key]) => !['name', 'id', 'attributes'].includes(key))
                 .map(([key, value]) => (
-                  <div key={key} className='mb-3'>
-                    <div className='font-medium capitalize mb-1'>{key}:</div>
-                    <div className='pl-4'>{renderMetadataValue(value)}</div>
+                  <div key={key}>
+                    <h6 className='text-md font-bold capitalize mb-1'>{key}</h6>
+                    <div>{renderMetadataValue(value)}</div>
                   </div>
                 ))}
-            </div>
           </div>
-        )}
+        </div>
       </Container>
     </>
   );
