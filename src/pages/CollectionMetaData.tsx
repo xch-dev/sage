@@ -80,6 +80,25 @@ export default function CollectionMetaData() {
     fetchData();
   }, [collection_id, addError]);
 
+  // Find banner URL from attributes if it exists
+  const getBannerUrl = () => {
+    if (!metadataContent?.collection) return null;
+    const attributes = metadataContent.collection.attributes;
+    if (!Array.isArray(attributes)) return null;
+
+    const bannerAttr = attributes.find(
+      (attr) =>
+        typeof attr === 'object' &&
+        attr !== null &&
+        'type' in attr &&
+        'value' in attr &&
+        attr.type === 'banner' &&
+        typeof attr.value === 'string',
+    );
+
+    return bannerAttr?.value || null;
+  };
+
   if (loading) {
     return (
       <>
@@ -192,25 +211,40 @@ export default function CollectionMetaData() {
     <>
       <Header title={collection?.name ?? t`Unknown Collection`} />
       <Container>
-        <div className='flex flex-col gap-2 mx-auto sm:w-full md:w-[50%] max-w-[200px]'>
-          {collection.icon ? (
-            <img
-              src={collection.icon}
-              alt={t`Icon for ${collection.name || 'Unnamed Collection'}`}
-              className='w-full aspect-square object-contain rounded-lg'
-            />
-          ) : (
-            <div className='w-full aspect-square bg-neutral-100 dark:bg-neutral-800 rounded-lg flex items-center justify-center'>
-              <span className='text-neutral-400 dark:text-neutral-600'>
-                <Trans>No Icon</Trans>
-              </span>
+        <div className='relative'>
+          {getBannerUrl() && (
+            <div className='w-full h-48 mb-4 rounded-lg overflow-hidden'>
+              <img
+                src={getBannerUrl()!}
+                alt={t`Banner for ${collection.name || 'Unnamed Collection'}`}
+                className='w-full h-full object-cover'
+              />
             </div>
           )}
-          <CopyBox
-            title={t`Collection ID`}
-            value={collection.collection_id}
-            onCopy={() => toast.success(t`Collection ID copied to clipboard`)}
-          />
+          <div
+            className={`flex flex-col gap-2 mx-auto sm:w-full md:w-[50%] max-w-[200px] ${getBannerUrl() ? '-mt-24 relative z-10' : ''}`}
+          >
+            {collection.icon ? (
+              <div className='rounded-lg overflow-hidden bg-white dark:bg-neutral-900 shadow-lg'>
+                <img
+                  src={collection.icon}
+                  alt={t`Icon for ${collection.name || 'Unnamed Collection'}`}
+                  className='w-full aspect-square object-contain'
+                />
+              </div>
+            ) : (
+              <div className='w-full aspect-square bg-neutral-100 dark:bg-neutral-800 rounded-lg flex items-center justify-center shadow-lg'>
+                <span className='text-neutral-400 dark:text-neutral-600'>
+                  <Trans>No Icon</Trans>
+                </span>
+              </div>
+            )}
+            <CopyBox
+              title={t`Collection ID`}
+              value={collection.collection_id}
+              onCopy={() => toast.success(t`Collection ID copied to clipboard`)}
+            />
+          </div>
         </div>
 
         <div className='my-4 grid grid-cols-1 md:grid-cols-2 gap-y-3 gap-x-10'>
