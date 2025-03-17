@@ -48,6 +48,10 @@ export default function CoinList(props: CoinListProps) {
   ]);
   const [showUnspentOnly, setShowUnspentOnly] = useState(false);
 
+  const openUrl = (url: string) => {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
   const columns: ColumnDef<CoinRecord>[] = [
     {
       id: 'select',
@@ -111,7 +115,21 @@ export default function CoinList(props: CoinListProps) {
           </div>
         );
       },
-      cell: ({ row }) => <div className='truncate'>{row.original.coin_id}</div>,
+      cell: ({ row }) => (
+        <div
+          className='cursor-pointer truncate hover:underline'
+          onClick={() => openUrl(`https://spacescan.io/coin/0x${row.original.coin_id}`)}
+          aria-label={t`View coin ${row.original.coin_id} on Spacescan.io`}
+          role='button'
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              openUrl(`https://spacescan.io/coin/0x${row.original.coin_id}`);
+            }
+          }}
+        >
+          {row.original.coin_id}
+        </div>
+      ),
     },
     {
       accessorKey: 'amount',
@@ -346,9 +364,9 @@ export default function CoinList(props: CoinListProps) {
                     {header.isPlaceholder
                       ? null
                       : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext(),
-                        )}
+                        header.column.columnDef.header,
+                        header.getContext(),
+                      )}
                   </TableHead>
                 ))}
               </TableRow>
