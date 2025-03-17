@@ -6,7 +6,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { fromMojos } from '@/lib/utils';
+import { fromMojos, formatTimestamp } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import {
@@ -51,24 +51,36 @@ export default function CoinList(props: CoinListProps) {
   const columns: ColumnDef<CoinRecord>[] = [
     {
       id: 'select',
+      size: 40,
+      maxSize: 40,
+      minSize: 40,
+      meta: {
+        className: 'w-[40px] min-w-[40px] md:w-[40px] md:min-w-[40px]',
+      },
       header: ({ table }) => (
-        <Checkbox
-          className='mx-2'
-          checked={
-            table.getIsAllPageRowsSelected() ||
-            (table.getIsSomePageRowsSelected() && 'indeterminate')
-          }
-          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-          aria-label={t`Select all coins`}
-        />
+        <div className='flex justify-left'>
+          <Checkbox
+            className='mx-1'
+            checked={
+              table.getIsAllPageRowsSelected() ||
+              (table.getIsSomePageRowsSelected() && 'indeterminate')
+            }
+            onCheckedChange={(value) =>
+              table.toggleAllPageRowsSelected(!!value)
+            }
+            aria-label={t`Select all coins`}
+          />
+        </div>
       ),
       cell: ({ row }) => (
-        <Checkbox
-          className='mx-2'
-          checked={row.getIsSelected()}
-          onCheckedChange={(value) => row.toggleSelected(!!value)}
-          aria-label={t`Select coin row`}
-        />
+        <div className='w-6 h-6'>
+          <Checkbox
+            className='mx-1'
+            checked={row.getIsSelected()}
+            onCheckedChange={(value) => row.toggleSelected(!!value)}
+            aria-label={t`Select coin row`}
+          />
+        </div>
       ),
       enableSorting: false,
       enableHiding: false,
@@ -77,59 +89,71 @@ export default function CoinList(props: CoinListProps) {
       accessorKey: 'coin_id',
       header: ({ column }) => {
         return (
-          <Button
-            className='px-0'
-            variant='link'
-            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-          >
-            <Trans>Coin</Trans>
-            {column.getIsSorted() === 'asc' ? (
-              <ArrowUp className='ml-2 h-4 w-4' aria-hidden='true' />
-            ) : column.getIsSorted() === 'desc' ? (
-              <ArrowDown className='ml-2 h-4 w-4' aria-hidden='true' />
-            ) : (
-              <span className='ml-2 w-4 h-4' />
-            )}
-          </Button>
+          <div className='w-[140px]'>
+            <Button
+              className='px-0'
+              variant='link'
+              onClick={() =>
+                column.toggleSorting(column.getIsSorted() === 'asc')
+              }
+            >
+              <Trans>Coin</Trans>
+              {column.getIsSorted() === 'asc' ? (
+                <ArrowUp className='ml-2 h-4 w-4' aria-hidden='true' />
+              ) : column.getIsSorted() === 'desc' ? (
+                <ArrowDown className='ml-2 h-4 w-4' aria-hidden='true' />
+              ) : (
+                <span className='ml-2 w-4 h-4' />
+              )}
+            </Button>
+          </div>
         );
       },
-      size: 100,
       cell: ({ row }) => (
-        <div className='truncate overflow-hidden'>{row.original.coin_id}</div>
+        <div className='w-[140px] truncate overflow-hidden'>
+          {row.original.coin_id}
+        </div>
       ),
     },
     {
       accessorKey: 'amount',
       header: ({ column }) => {
         return (
-          <Button
-            className='px-0'
-            variant='link'
-            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-          >
-            <Trans>Amount</Trans>
-            {column.getIsSorted() === 'asc' ? (
-              <ArrowUp className='ml-2 h-4 w-4' aria-hidden='true' />
-            ) : column.getIsSorted() === 'desc' ? (
-              <ArrowDown className='ml-2 h-4 w-4' aria-hidden='true' />
-            ) : (
-              <span className='ml-2 w-4 h-4' />
-            )}
-          </Button>
+          <div className='w-[100px]'>
+            <Button
+              className='px-0'
+              variant='link'
+              onClick={() =>
+                column.toggleSorting(column.getIsSorted() === 'asc')
+              }
+            >
+              <Trans>Amount</Trans>
+              {column.getIsSorted() === 'asc' ? (
+                <ArrowUp className='ml-2 h-4 w-4' aria-hidden='true' />
+              ) : column.getIsSorted() === 'desc' ? (
+                <ArrowDown className='ml-2 h-4 w-4' aria-hidden='true' />
+              ) : (
+                <span className='ml-2 w-4 h-4' />
+              )}
+            </Button>
+          </div>
         );
       },
       cell: (info) => (
-        <span className='font-mono'>
-          <NumberFormat
-            value={fromMojos(info.getValue() as string, props.precision)}
-            minimumFractionDigits={0}
-            maximumFractionDigits={props.precision}
-          />
-        </span>
+        <div className='w-[100px]'>
+          <span className='font-mono'>
+            <NumberFormat
+              value={fromMojos(info.getValue() as string, props.precision)}
+              minimumFractionDigits={0}
+              maximumFractionDigits={props.precision}
+            />
+          </span>
+        </div>
       ),
     },
     {
       accessorKey: 'created_height',
+      size: 70,
       sortingFn: (rowA, rowB) => {
         const addSpend = 1_000_000_000;
         const addCreate = 2_000_000_000;
@@ -159,31 +183,40 @@ export default function CoinList(props: CoinListProps) {
       },
       header: ({ column }) => {
         return (
-          <Button
-            className='px-0'
-            variant='link'
-            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-          >
-            <Trans>Confirmed</Trans>
-            {column.getIsSorted() === 'asc' ? (
-              <ArrowUp className='ml-2 h-4 w-4' aria-hidden='true' />
-            ) : column.getIsSorted() === 'desc' ? (
-              <ArrowDown className='ml-2 h-4 w-4' aria-hidden='true' />
-            ) : (
-              <span className='ml-2 w-4 h-4' />
-            )}
-          </Button>
+          <div>
+            <Button
+              className='px-0'
+              variant='link'
+              onClick={() =>
+                column.toggleSorting(column.getIsSorted() === 'asc')
+              }
+            >
+              <Trans>Confirmed</Trans>
+              {column.getIsSorted() === 'asc' ? (
+                <ArrowUp className='ml-2 h-4 w-4' aria-hidden='true' />
+              ) : column.getIsSorted() === 'desc' ? (
+                <ArrowDown className='ml-2 h-4 w-4' aria-hidden='true' />
+              ) : (
+                <span className='ml-2 w-4 h-4' />
+              )}
+            </Button>
+          </div>
         );
       },
       cell: ({ row }) => (
-        <div className='truncate overflow-hidden'>
-          {row.original.created_height ??
-            (row.original.create_transaction_id ? t`Pending...` : '')}
+        <div className='w-[140px] truncate overflow-hidden'>
+          {row.original.created_timestamp
+            ? formatTimestamp(row.original.created_timestamp, 'short', 'short')
+            : row.original.create_transaction_id
+              ? t`Pending...`
+              : ''}
         </div>
       ),
     },
+
     {
       accessorKey: 'spent_height',
+      size: 70,
       sortingFn: (rowA, rowB) => {
         const a =
           (rowA.original.spent_height ?? 0) +
@@ -197,7 +230,7 @@ export default function CoinList(props: CoinListProps) {
       },
       header: ({ column }) => {
         return (
-          <div className='flex items-center'>
+          <div>
             <Button
               className='px-0 mr-2'
               variant='link'
@@ -250,13 +283,15 @@ export default function CoinList(props: CoinListProps) {
         );
       },
       cell: ({ row }) => (
-        <div className='truncate overflow-hidden'>
-          {row.original.spent_height ??
-            (row.original.spend_transaction_id
-              ? t`Pending...`
-              : row.original.offer_id
-                ? t`Offered...`
-                : '')}
+        <div className='w-[140px] truncate overflow-hidden'>
+          {row.original.spent_timestamp
+            ? formatTimestamp(row.original.spent_timestamp, 'short', 'short')
+            : (row.original.spent_height ??
+              (row.original.spend_transaction_id
+                ? t`Pending...`
+                : row.original.offer_id
+                  ? t`Offered...`
+                  : ''))}
         </div>
       ),
     },
@@ -265,6 +300,7 @@ export default function CoinList(props: CoinListProps) {
   const table = useReactTable({
     data: props.coins,
     columns,
+    columnResizeMode: 'onChange',
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -282,7 +318,7 @@ export default function CoinList(props: CoinListProps) {
       },
       columnFilters: [
         {
-          id: 'spent_height',
+          id: 'spent_timestamp',
           value: t`Unspent`,
         },
       ],
@@ -291,13 +327,13 @@ export default function CoinList(props: CoinListProps) {
 
   return (
     <div>
-      <div className='rounded-md border'>
-        <Table>
+      <div className='rounded-md border overflow-x-auto'>
+        <Table className='table-fixed'>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id}>
+                  <TableHead key={header.id} className='whitespace-nowrap'>
                     {header.isPlaceholder
                       ? null
                       : flexRender(
@@ -320,11 +356,8 @@ export default function CoinList(props: CoinListProps) {
                   {row.getVisibleCells().map((cell) => (
                     <TableCell
                       key={cell.id}
-                      style={{
-                        maxWidth: cell.column.columnDef.size,
-                      }}
                       className={
-                        'h-12' +
+                        'whitespace-nowrap' +
                         ((row.original.spend_transaction_id &&
                           !row.original.spent_height) ||
                         row.original.create_transaction_id
