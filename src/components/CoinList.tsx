@@ -52,9 +52,9 @@ export default function CoinList(props: CoinListProps) {
   const columns: ColumnDef<CoinRecord>[] = [
     {
       id: 'select',
-      size: 20,
+      size: 40,
       meta: {
-        className: 'w-[20px] min-w-[20px] max-w-[20px]',
+        className: 'w-[40px] min-w-[40px] max-w-[40px]',
       },
       header: ({ table }) => (
         <div className='flex'>
