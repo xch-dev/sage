@@ -52,10 +52,8 @@ export default function CoinList(props: CoinListProps) {
     {
       id: 'select',
       size: 40,
-      maxSize: 40,
-      minSize: 40,
       meta: {
-        className: 'w-[40px] min-w-[40px] md:w-[40px] md:min-w-[40px]',
+        className: 'w-[40px] min-w-[40px] max-w-[40px]',
       },
       header: ({ table }) => (
         <div className='flex justify-left'>
@@ -73,7 +71,7 @@ export default function CoinList(props: CoinListProps) {
         </div>
       ),
       cell: ({ row }) => (
-        <div className='w-6 h-6'>
+        <div className='flex justify-left'>
           <Checkbox
             className='mx-1'
             checked={row.getIsSelected()}
@@ -87,9 +85,12 @@ export default function CoinList(props: CoinListProps) {
     },
     {
       accessorKey: 'coin_id',
+      meta: {
+        className: 'w-[1240px] min-w-[140px]',
+      },
       header: ({ column }) => {
         return (
-          <div className='w-[140px]'>
+          <div>
             <Button
               className='px-0'
               variant='link'
@@ -109,17 +110,16 @@ export default function CoinList(props: CoinListProps) {
           </div>
         );
       },
-      cell: ({ row }) => (
-        <div className='w-[140px] truncate overflow-hidden'>
-          {row.original.coin_id}
-        </div>
-      ),
+      cell: ({ row }) => <div className='truncate'>{row.original.coin_id}</div>,
     },
     {
       accessorKey: 'amount',
+      meta: {
+        className: 'w-[100px] min-w-[100px]',
+      },
       header: ({ column }) => {
         return (
-          <div className='w-[100px]'>
+          <div>
             <Button
               className='px-0'
               variant='link'
@@ -140,7 +140,7 @@ export default function CoinList(props: CoinListProps) {
         );
       },
       cell: (info) => (
-        <div className='w-[100px]'>
+        <div>
           <span className='font-mono'>
             <NumberFormat
               value={fromMojos(info.getValue() as string, props.precision)}
@@ -153,7 +153,9 @@ export default function CoinList(props: CoinListProps) {
     },
     {
       accessorKey: 'created_height',
-      size: 70,
+      meta: {
+        className: 'w-[70px] min-w-[70px]',
+      },
       sortingFn: (rowA, rowB) => {
         const addSpend = 1_000_000_000;
         const addCreate = 2_000_000_000;
@@ -204,7 +206,7 @@ export default function CoinList(props: CoinListProps) {
         );
       },
       cell: ({ row }) => (
-        <div className='w-[140px] truncate overflow-hidden'>
+        <div>
           {row.original.created_timestamp
             ? formatTimestamp(row.original.created_timestamp, 'short', 'short')
             : row.original.create_transaction_id
@@ -213,10 +215,11 @@ export default function CoinList(props: CoinListProps) {
         </div>
       ),
     },
-
     {
       accessorKey: 'spent_height',
-      size: 70,
+      meta: {
+        className: 'w-[70px] min-w-[70px]',
+      },
       sortingFn: (rowA, rowB) => {
         const a =
           (rowA.original.spent_height ?? 0) +
@@ -283,7 +286,7 @@ export default function CoinList(props: CoinListProps) {
         );
       },
       cell: ({ row }) => (
-        <div className='w-[140px] truncate overflow-hidden'>
+        <div>
           {row.original.spent_timestamp
             ? formatTimestamp(row.original.spent_timestamp, 'short', 'short')
             : (row.original.spent_height ??
@@ -328,7 +331,7 @@ export default function CoinList(props: CoinListProps) {
   return (
     <div>
       <div className='rounded-md border overflow-x-auto'>
-        <Table className='table-fixed'>
+        <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
