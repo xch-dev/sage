@@ -35,7 +35,7 @@ export default function CoinList(props: CoinListProps) {
   const [sorting, setSorting] = useState<SortingState>([
     { id: 'created_height', desc: true },
   ]);
-  const [showUnspentOnly, setShowUnspentOnly] = useState(false);
+  const [showUnspentOnly, setShowUnspentOnly] = useState(true);
   const [currentPage, setCurrentPage] = useState(0);
   const pageSize = 10;
 
