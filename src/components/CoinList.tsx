@@ -58,6 +58,7 @@ export default function CoinList(props: CoinListProps) {
       header: ({ table }) => (
         <div className='flex'>
           <Checkbox
+            className='mx-1'
             checked={
               table.getIsAllPageRowsSelected() ||
               (table.getIsSomePageRowsSelected() && 'indeterminate')
