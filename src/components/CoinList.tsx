@@ -152,24 +152,27 @@ export default function CoinList(props: CoinListProps) {
     {
       accessorKey: 'amount',
       meta: {
-        className: 'w-[60px] md:w-[80px] min-w-[60px] md:min-w-[80px]',
+        className:
+          'text-right w-[60px] md:w-[80px] min-w-[60px] md:min-w-[80px]',
       },
       header: ({ column }) => (
-        <div>
-          <Button
-            className='px-0'
-            variant='link'
-            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-          >
+        <div
+          className='text-right cursor-pointer'
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+        >
+          {column.getIsSorted() === 'asc' ? (
+            <ArrowUp className='mr-2 h-4 w-4 inline-block' aria-hidden='true' />
+          ) : column.getIsSorted() === 'desc' ? (
+            <ArrowDown
+              className='mr-2 h-4 w-4 inline-block'
+              aria-hidden='true'
+            />
+          ) : (
+            <span className='mr-2 w-4 h-4 inline-block' />
+          )}
+          <span className='text-foreground hover:underline'>
             <Trans>Amount</Trans>
-            {column.getIsSorted() === 'asc' ? (
-              <ArrowUp className='ml-2 h-4 w-4' aria-hidden='true' />
-            ) : column.getIsSorted() === 'desc' ? (
-              <ArrowDown className='ml-2 h-4 w-4' aria-hidden='true' />
-            ) : (
-              <span className='ml-2 w-4 h-4' />
-            )}
-          </Button>
+          </span>
         </div>
       ),
       cell: (info) => (
