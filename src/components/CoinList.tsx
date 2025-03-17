@@ -57,7 +57,7 @@ export default function CoinList(props: CoinListProps) {
         className: 'w-[40px] min-w-[40px] max-w-[40px]',
       },
       header: ({ table }) => (
-        <div className='flex'>
+        <div className='flex justify-center'>
           <Checkbox
             className='mx-1'
             checked={
@@ -72,7 +72,7 @@ export default function CoinList(props: CoinListProps) {
         </div>
       ),
       cell: ({ row }) => (
-        <div>
+        <div className='flex justify-center'>
           <Checkbox
             className='mx-1'
             checked={row.getIsSelected()}
@@ -92,7 +92,7 @@ export default function CoinList(props: CoinListProps) {
       },
       header: ({ column }) => {
         return (
-          <div>
+          <div className='pl-0'>
             <Button
               className='px-0'
               variant='link'
@@ -174,7 +174,7 @@ export default function CoinList(props: CoinListProps) {
       accessorKey: 'created_height',
       size: 70,
       meta: {
-        className: 'w-[70px] min-w-[70px]',
+        className: 'md:table-cell w-[70px] min-w-[70px]',
       },
       sortingFn: (rowA, rowB) => {
         const addSpend = 1_000_000_000;
@@ -205,7 +205,7 @@ export default function CoinList(props: CoinListProps) {
       },
       header: ({ column }) => {
         return (
-          <div>
+          <div className='md:table-cell w-[70px] min-w-[70px]'>
             <Button
               className='px-0'
               variant='link'
@@ -226,7 +226,7 @@ export default function CoinList(props: CoinListProps) {
         );
       },
       cell: ({ row }) => (
-        <div className='truncate'>
+        <div className='truncate md:table-cell w-[70px] min-w-[70px]'>
           {row.original.created_timestamp
             ? formatTimestamp(row.original.created_timestamp, 'short', 'short')
             : row.original.create_transaction_id
@@ -307,7 +307,7 @@ export default function CoinList(props: CoinListProps) {
         );
       },
       cell: ({ row }) => (
-        <div className='truncate'>
+        <div className='truncate hidden md:table-cell w-[70px] min-w-[70px]'>
           {row.original.spent_timestamp
             ? formatTimestamp(row.original.spent_timestamp, 'short', 'short')
             : (row.original.spent_height ??
@@ -359,7 +359,7 @@ export default function CoinList(props: CoinListProps) {
                 {headerGroup.headers.map((header) => (
                   <TableHead
                     key={header.id}
-                    className='whitespace-nowrap'
+                    className='whitespace-nowrap p-2'
                     style={{ width: header.column.getSize() }}
                   >
                     {header.isPlaceholder
@@ -384,7 +384,7 @@ export default function CoinList(props: CoinListProps) {
                   {row.getVisibleCells().map((cell) => (
                     <TableCell
                       key={cell.id}
-                      className='whitespace-nowrap'
+                      className='whitespace-nowrap p-2'
                       style={{ width: cell.column.getSize() }}
                     >
                       {flexRender(
