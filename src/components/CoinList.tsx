@@ -33,6 +33,7 @@ import { CoinRecord } from '../bindings';
 import { Button } from './ui/button';
 import { Checkbox } from './ui/checkbox';
 import { NumberFormat } from './NumberFormat';
+import { openUrl } from '@tauri-apps/plugin-opener';
 
 export interface CoinListProps {
   precision: number;
@@ -47,10 +48,6 @@ export default function CoinList(props: CoinListProps) {
     { id: 'created_height', desc: true },
   ]);
   const [showUnspentOnly, setShowUnspentOnly] = useState(false);
-
-  const openUrl = (url: string) => {
-    window.open(url, '_blank', 'noopener,noreferrer');
-  };
 
   const columns: ColumnDef<CoinRecord>[] = [
     {
@@ -118,11 +115,15 @@ export default function CoinList(props: CoinListProps) {
       cell: ({ row }) => (
         <div
           className='cursor-pointer truncate hover:underline'
-          onClick={() => openUrl(`https://spacescan.io/coin/0x${row.original.coin_id}`)}
+          onClick={(e) => {
+            e.stopPropagation();
+            openUrl(`https://spacescan.io/coin/0x${row.original.coin_id}`);
+          }}
           aria-label={t`View coin ${row.original.coin_id} on Spacescan.io`}
           role='button'
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') {
+              e.stopPropagation();
               openUrl(`https://spacescan.io/coin/0x${row.original.coin_id}`);
             }
           }}
@@ -364,9 +365,9 @@ export default function CoinList(props: CoinListProps) {
                     {header.isPlaceholder
                       ? null
                       : flexRender(
-                        header.column.columnDef.header,
-                        header.getContext(),
-                      )}
+                          header.column.columnDef.header,
+                          header.getContext(),
+                        )}
                   </TableHead>
                 ))}
               </TableRow>
