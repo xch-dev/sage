@@ -51,14 +51,13 @@ export default function CoinList(props: CoinListProps) {
   const columns: ColumnDef<CoinRecord>[] = [
     {
       id: 'select',
-      size: 40,
+      size: 20,
       meta: {
-        className: 'w-[40px] min-w-[40px] max-w-[40px]',
+        className: 'w-[20px] min-w-[20px] max-w-[20px]',
       },
       header: ({ table }) => (
-        <div className='flex justify-left'>
+        <div className='flex'>
           <Checkbox
-            className='mx-1'
             checked={
               table.getIsAllPageRowsSelected() ||
               (table.getIsSomePageRowsSelected() && 'indeterminate')
@@ -71,7 +70,7 @@ export default function CoinList(props: CoinListProps) {
         </div>
       ),
       cell: ({ row }) => (
-        <div className='flex justify-left'>
+        <div>
           <Checkbox
             className='mx-1'
             checked={row.getIsSelected()}
@@ -85,8 +84,9 @@ export default function CoinList(props: CoinListProps) {
     },
     {
       accessorKey: 'coin_id',
+      size: 100,
       meta: {
-        className: 'w-[1240px] min-w-[140px]',
+        className: 'w-[100px] min-w-[100px]',
       },
       header: ({ column }) => {
         return (
@@ -114,8 +114,9 @@ export default function CoinList(props: CoinListProps) {
     },
     {
       accessorKey: 'amount',
+      size: 80,
       meta: {
-        className: 'w-[100px] min-w-[100px]',
+        className: 'w-[80px] min-w-[80px]',
       },
       header: ({ column }) => {
         return (
@@ -140,19 +141,18 @@ export default function CoinList(props: CoinListProps) {
         );
       },
       cell: (info) => (
-        <div>
-          <span className='font-mono'>
-            <NumberFormat
-              value={fromMojos(info.getValue() as string, props.precision)}
-              minimumFractionDigits={0}
-              maximumFractionDigits={props.precision}
-            />
-          </span>
+        <div className='font-mono truncate'>
+          <NumberFormat
+            value={fromMojos(info.getValue() as string, props.precision)}
+            minimumFractionDigits={0}
+            maximumFractionDigits={props.precision}
+          />
         </div>
       ),
     },
     {
       accessorKey: 'created_height',
+      size: 70,
       meta: {
         className: 'w-[70px] min-w-[70px]',
       },
@@ -206,7 +206,7 @@ export default function CoinList(props: CoinListProps) {
         );
       },
       cell: ({ row }) => (
-        <div>
+        <div className='truncate'>
           {row.original.created_timestamp
             ? formatTimestamp(row.original.created_timestamp, 'short', 'short')
             : row.original.create_transaction_id
@@ -217,8 +217,9 @@ export default function CoinList(props: CoinListProps) {
     },
     {
       accessorKey: 'spent_height',
+      size: 70,
       meta: {
-        className: 'w-[70px] min-w-[70px]',
+        className: 'hidden md:table-cell w-[70px] min-w-[70px]',
       },
       sortingFn: (rowA, rowB) => {
         const a =
@@ -233,7 +234,7 @@ export default function CoinList(props: CoinListProps) {
       },
       header: ({ column }) => {
         return (
-          <div>
+          <div className='hidden md:table-cell w-[70px] min-w-[70px]'>
             <Button
               className='px-0 mr-2'
               variant='link'
@@ -286,7 +287,7 @@ export default function CoinList(props: CoinListProps) {
         );
       },
       cell: ({ row }) => (
-        <div>
+        <div className='truncate'>
           {row.original.spent_timestamp
             ? formatTimestamp(row.original.spent_timestamp, 'short', 'short')
             : (row.original.spent_height ??
@@ -336,7 +337,11 @@ export default function CoinList(props: CoinListProps) {
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id} className='whitespace-nowrap'>
+                  <TableHead
+                    key={header.id}
+                    className='whitespace-nowrap'
+                    style={{ width: header.column.getSize() }}
+                  >
                     {header.isPlaceholder
                       ? null
                       : flexRender(
@@ -359,16 +364,8 @@ export default function CoinList(props: CoinListProps) {
                   {row.getVisibleCells().map((cell) => (
                     <TableCell
                       key={cell.id}
-                      className={
-                        'whitespace-nowrap' +
-                        ((row.original.spend_transaction_id &&
-                          !row.original.spent_height) ||
-                        row.original.create_transaction_id
-                          ? ' pulsate-opacity'
-                          : row.original.offer_id
-                            ? ' pulsate-opacity'
-                            : '')
-                      }
+                      className='whitespace-nowrap'
+                      style={{ width: cell.column.getSize() }}
                     >
                       {flexRender(
                         cell.column.columnDef.cell,
