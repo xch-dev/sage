@@ -5,12 +5,12 @@ use chia::sha2::Sha256;
 use futures_lite::StreamExt;
 use futures_util::stream::FuturesUnordered;
 use mime_sniffer::MimeTypeSniffer;
-use reqwest::header::CONTENT_TYPE;
+use reqwest::{header::CONTENT_TYPE, StatusCode};
 use thiserror::Error;
 use tokio::task::spawn_blocking;
 use tracing::debug;
 
-use super::{thumbnail, Thumbnail, ThumbnailError};
+use super::{thumbnail as make_thumbnail, Thumbnail, ThumbnailError};
 
 #[derive(Debug, Clone)]
 pub struct Data {
@@ -69,27 +69,38 @@ pub async fn fetch_uri(uri: String) -> Result<Data, UriError> {
     hasher.update(&blob);
     let hash = Bytes32::new(hasher.finalize());
 
-    let start = Instant::now();
-
-    let blob_clone = blob.clone();
-    let mime_type_clone = mime_type.clone();
-
-    let thumbnail = match spawn_blocking(move || thumbnail(&blob_clone, &mime_type_clone)).await {
-        Ok(Ok(thumbnail)) => thumbnail,
-        Ok(Err(error)) => {
-            debug!("No thumbnail created for {uri}: {error}");
-            None
-        }
+    let mut thumbnail = match mintgarden_thumbnail(hash).await {
+        Ok(thumbnail) => thumbnail,
         Err(error) => {
-            debug!("Failed to create thumbnail for {uri}: {error}");
+            debug!("Failed to fetch MintGarden thumbnail for {uri}: {error}");
             None
         }
     };
 
-    let elapsed = start.elapsed();
+    if thumbnail.is_none() {
+        let start = Instant::now();
 
-    if elapsed > Duration::from_millis(50) {
-        debug!("Thumbnail creation took {elapsed:?} for {uri}");
+        let blob_clone = blob.clone();
+        let mime_type_clone = mime_type.clone();
+
+        thumbnail =
+            match spawn_blocking(move || make_thumbnail(&blob_clone, &mime_type_clone)).await {
+                Ok(Ok(thumbnail)) => thumbnail,
+                Ok(Err(error)) => {
+                    debug!("No thumbnail created for {uri}: {error}");
+                    None
+                }
+                Err(error) => {
+                    debug!("Failed to create thumbnail for {uri}: {error}");
+                    None
+                }
+            };
+
+        let elapsed = start.elapsed();
+
+        if elapsed > Duration::from_millis(50) {
+            debug!("Thumbnail creation took {elapsed:?} for {uri}");
+        }
     }
 
     Ok(Data {
@@ -158,4 +169,18 @@ pub async fn fetch_uris_with_hash(uris: Vec<String>, hash: Bytes32) -> Option<Da
     }
 
     None
+}
+
+pub async fn mintgarden_thumbnail(data_hash: Bytes32) -> Result<Option<Thumbnail>, UriError> {
+    let url = format!("https://assets.mainnet.mintgarden.io/thumbnails/{data_hash}_512.webp");
+
+    let response = reqwest::get(&url).await?;
+
+    if response.status() != StatusCode::OK {
+        return Ok(None);
+    }
+
+    let bytes = response.bytes().await?;
+
+    Ok(make_thumbnail(&bytes, "image/webp")?)
 }
