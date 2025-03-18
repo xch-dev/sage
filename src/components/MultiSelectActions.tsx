@@ -27,6 +27,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
+import { useNavigate } from 'react-router-dom';
 
 export interface MultiSelectActionsProps {
   selected: string[];
@@ -41,6 +42,7 @@ export function MultiSelectActions({
   const [offerState, setOfferState] = useOfferStateWithDefault();
 
   const { addError } = useErrors();
+  const navigate = useNavigate();
 
   const [transferOpen, setTransferOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
@@ -183,7 +185,9 @@ export function MultiSelectActions({
                     addedCount > 0
                       ? t`Added ${addedCount} ${nfts} to offer`
                       : t`Selected NFTs are already in the offer`;
-                  toast.success(message);
+                  toast.success(message, {
+                    onClick: () => navigate('/offers/make'),
+                  });
 
                   onConfirm();
                 }}
