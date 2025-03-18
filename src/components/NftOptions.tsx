@@ -78,7 +78,12 @@ export function NftOptions({
   }, [query]);
 
   useEffect(() => {
-    if (debouncedSearch !== query) {
+    // Convert empty string, undefined, and null to consistent values for comparison
+    const normalizedDebounced = debouncedSearch || null;
+    const normalizedQuery = query || null;
+
+    // Check if queries are meaningfully different after normalization
+    if (normalizedDebounced !== normalizedQuery) {
       const shouldResetPage = prevSearchRef.current !== debouncedSearch;
       prevSearchRef.current = debouncedSearch;
 
