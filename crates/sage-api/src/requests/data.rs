@@ -242,6 +242,30 @@ pub struct GetNftResponse {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct GetNftIcon {
+    pub nft_id: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct GetNftIconResponse {
+    pub icon: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct GetNftThumbnail {
+    pub nft_id: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct GetNftThumbnailResponse {
+    pub thumbnail: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct GetNftData {
     pub nft_id: String,
 }

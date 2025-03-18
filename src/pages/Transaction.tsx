@@ -178,7 +178,7 @@ function TransactionCoinKind({ coin }: TransactionCoinKindProps) {
         <div className='flex items-center gap-2'>
           <img
             alt={coin.name ?? t`Unknown`}
-            src={nftUri(coin.image_mime_type, coin.image_data)}
+            src={nftUri(coin.icon ? 'image/png' : null, coin.icon)}
             className='w-8 h-8'
             aria-label={coin.name ?? t`Unknown`}
           />

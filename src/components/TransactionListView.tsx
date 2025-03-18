@@ -30,7 +30,7 @@ function getIconUrl(coin: TransactionCoin) {
     case 'cat':
       return coin.icon_url;
     case 'nft':
-      return nftUri(coin.image_mime_type, coin.image_data);
+      return nftUri(coin.icon ? 'image/png' : null, coin.icon);
     default:
       return null;
   }

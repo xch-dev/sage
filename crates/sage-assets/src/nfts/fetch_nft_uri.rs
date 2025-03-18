@@ -7,11 +7,14 @@ use reqwest::header::CONTENT_TYPE;
 use thiserror::Error;
 use tracing::debug;
 
+use super::{thumbnail, Thumbnail, ThumbnailError};
+
 #[derive(Debug, Clone)]
 pub struct Data {
     pub blob: Vec<u8>,
     pub mime_type: String,
     pub hash: Bytes32,
+    pub thumbnail: Option<Thumbnail>,
 }
 
 #[derive(Debug, Error)]
@@ -30,10 +33,13 @@ pub enum UriError {
 
     #[error("No URIs provided")]
     NoUris,
+
+    #[error("Failed to create thumbnail: {0}")]
+    Thumbnail(#[from] ThumbnailError),
 }
 
 pub async fn fetch_uri(uri: String) -> Result<Data, UriError> {
-    let response = reqwest::get(uri).await?;
+    let response = reqwest::get(&uri).await?;
 
     let mime_type = match response.headers().get(CONTENT_TYPE) {
         Some(header) => Some(
@@ -60,10 +66,19 @@ pub async fn fetch_uri(uri: String) -> Result<Data, UriError> {
     hasher.update(&blob);
     let hash = Bytes32::new(hasher.finalize());
 
+    let thumbnail = match thumbnail(&blob, &mime_type) {
+        Ok(thumbnail) => thumbnail,
+        Err(error) => {
+            debug!("No thumbnail created for {uri}: {error}");
+            None
+        }
+    };
+
     Ok(Data {
         blob,
         mime_type,
         hash,
+        thumbnail,
     })
 }
 

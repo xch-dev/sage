@@ -143,6 +143,12 @@ async getNft(req: GetNft) : Promise<GetNftResponse> {
 async getNftData(req: GetNftData) : Promise<GetNftDataResponse> {
     return await TAURI_INVOKE("get_nft_data", { req });
 },
+async getNftIcon(req: GetNftIcon) : Promise<GetNftIconResponse> {
+    return await TAURI_INVOKE("get_nft_icon", { req });
+},
+async getNftThumbnail(req: GetNftThumbnail) : Promise<GetNftThumbnailResponse> {
+    return await TAURI_INVOKE("get_nft_thumbnail", { req });
+},
 async getPendingTransactions(req: GetPendingTransactions) : Promise<GetPendingTransactionsResponse> {
     return await TAURI_INVOKE("get_pending_transactions", { req });
 },
@@ -353,7 +359,11 @@ export type GetNftCollections = { offset: number; limit: number; include_hidden:
 export type GetNftCollectionsResponse = { collections: NftCollectionRecord[]; total: number }
 export type GetNftData = { nft_id: string }
 export type GetNftDataResponse = { data: NftData | null }
+export type GetNftIcon = { nft_id: string }
+export type GetNftIconResponse = { icon: string | null }
 export type GetNftResponse = { nft: NftRecord | null }
+export type GetNftThumbnail = { nft_id: string }
+export type GetNftThumbnailResponse = { thumbnail: string | null }
 export type GetNfts = { collection_id?: string | null; minter_did_id?: string | null; owner_did_id?: string | null; name?: string | null; offset: number; limit: number; sort_mode: NftSortMode; include_hidden: boolean }
 export type GetNftsResponse = { nfts: NftRecord[]; total: number }
 export type GetOffer = { offer_id: string }
@@ -403,7 +413,7 @@ export type NftUriKind = "data" | "metadata" | "license"
 export type NormalizeDids = { did_ids: string[]; fee: Amount; auto_submit?: boolean }
 export type OfferAssets = { xch: OfferXch; cats: { [key in string]: OfferCat }; nfts: { [key in string]: OfferNft } }
 export type OfferCat = { amount: Amount; royalty: Amount; name: string | null; ticker: string | null; icon_url: string | null }
-export type OfferNft = { image_data: string | null; image_mime_type: string | null; name: string | null; royalty_ten_thousandths: number; royalty_address: string }
+export type OfferNft = { icon: string | null; name: string | null; royalty_ten_thousandths: number; royalty_address: string }
 export type OfferRecord = { offer_id: string; offer: string; status: OfferRecordStatus; creation_date: string; summary: OfferSummary }
 export type OfferRecordStatus = "active" | "completed" | "cancelled" | "expired"
 export type OfferSummary = { fee: Amount; maker: OfferAssets; taker: OfferAssets; expiration_height: number | null; expiration_timestamp: number | null }
@@ -451,8 +461,8 @@ export type SubmitTransactionResponse = Record<string, never>
 export type SyncEvent = { type: "start"; ip: string } | { type: "stop" } | { type: "subscribed" } | { type: "derivation" } | { type: "coin_state" } | { type: "puzzle_batch_synced" } | { type: "cat_info" } | { type: "did_info" } | { type: "nft_data" }
 export type TakeOffer = { offer: string; fee: Amount; auto_submit?: boolean; auto_import?: boolean }
 export type TakeOfferResponse = { summary: TransactionSummary; spend_bundle: SpendBundleJson; transaction_id: string }
-export type TransactionCoin = ({ type: "unknown" } | { type: "xch" } | { type: "launcher" } | { type: "cat"; asset_id: string; name: string | null; ticker: string | null; icon_url: string | null } | { type: "did"; launcher_id: string; name: string | null } | { type: "nft"; launcher_id: string; image_data: string | null; image_mime_type: string | null; name: string | null }) & { coin_id: string; amount: Amount; address: string | null; address_kind: AddressKind }
-export type TransactionInput = ({ type: "unknown" } | { type: "xch" } | { type: "launcher" } | { type: "cat"; asset_id: string; name: string | null; ticker: string | null; icon_url: string | null } | { type: "did"; launcher_id: string; name: string | null } | { type: "nft"; launcher_id: string; image_data: string | null; image_mime_type: string | null; name: string | null }) & { coin_id: string; amount: Amount; address: string; outputs: TransactionOutput[] }
+export type TransactionCoin = ({ type: "unknown" } | { type: "xch" } | { type: "launcher" } | { type: "cat"; asset_id: string; name: string | null; ticker: string | null; icon_url: string | null } | { type: "did"; launcher_id: string; name: string | null } | { type: "nft"; launcher_id: string; icon: string | null; name: string | null }) & { coin_id: string; amount: Amount; address: string | null; address_kind: AddressKind }
+export type TransactionInput = ({ type: "unknown" } | { type: "xch" } | { type: "launcher" } | { type: "cat"; asset_id: string; name: string | null; ticker: string | null; icon_url: string | null } | { type: "did"; launcher_id: string; name: string | null } | { type: "nft"; launcher_id: string; icon: string | null; name: string | null }) & { coin_id: string; amount: Amount; address: string; outputs: TransactionOutput[] }
 export type TransactionOutput = { coin_id: string; amount: Amount; address: string; receiving: boolean; burning: boolean }
 export type TransactionRecord = { height: number; timestamp: number | null; spent: TransactionCoin[]; created: TransactionCoin[] }
 export type TransactionResponse = { summary: TransactionSummary; coin_spends: CoinSpendJson[] }
