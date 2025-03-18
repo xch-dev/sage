@@ -1,3 +1,5 @@
+use std::time::{Duration, Instant};
+
 use chia::protocol::Bytes32;
 use chia::sha2::Sha256;
 use futures_lite::StreamExt;
@@ -5,6 +7,7 @@ use futures_util::stream::FuturesUnordered;
 use mime_sniffer::MimeTypeSniffer;
 use reqwest::header::CONTENT_TYPE;
 use thiserror::Error;
+use tokio::task::spawn_blocking;
 use tracing::debug;
 
 use super::{thumbnail, Thumbnail, ThumbnailError};
@@ -66,13 +69,28 @@ pub async fn fetch_uri(uri: String) -> Result<Data, UriError> {
     hasher.update(&blob);
     let hash = Bytes32::new(hasher.finalize());
 
-    let thumbnail = match thumbnail(&blob, &mime_type) {
-        Ok(thumbnail) => thumbnail,
-        Err(error) => {
+    let start = Instant::now();
+
+    let blob_clone = blob.clone();
+    let mime_type_clone = mime_type.clone();
+
+    let thumbnail = match spawn_blocking(move || thumbnail(&blob_clone, &mime_type_clone)).await {
+        Ok(Ok(thumbnail)) => thumbnail,
+        Ok(Err(error)) => {
             debug!("No thumbnail created for {uri}: {error}");
             None
         }
+        Err(error) => {
+            debug!("Failed to create thumbnail for {uri}: {error}");
+            None
+        }
     };
+
+    let elapsed = start.elapsed();
+
+    if elapsed > Duration::from_millis(50) {
+        debug!("Thumbnail creation took {elapsed:?} for {uri}");
+    }
 
     Ok(Data {
         blob,
