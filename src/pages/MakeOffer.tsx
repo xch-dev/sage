@@ -408,7 +408,7 @@ export function MakeOffer() {
             <DialogFooter>
               <Button
                 onClick={() => {
-                  setOffer('');
+                  setState(null);
                   navigate('/offers', { replace: true });
                 }}
               >
