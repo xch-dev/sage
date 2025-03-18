@@ -125,6 +125,7 @@ impl Sage {
 
             if let Some(hash) = metadata.data_hash {
                 tx.delete_nft_data(hash).await?;
+                tx.delete_nft_thumbnail(hash).await?;
             }
 
             if let Some(hash) = metadata.metadata_hash {

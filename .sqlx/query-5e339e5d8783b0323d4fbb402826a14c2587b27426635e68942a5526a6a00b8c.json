@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "REPLACE INTO `nft_thumbnails` (`hash`, `icon`, `thumbnail`) VALUES (?, ?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "5e339e5d8783b0323d4fbb402826a14c2587b27426635e68942a5526a6a00b8c"
+}

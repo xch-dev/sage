@@ -1,6 +1,6 @@
 import {
   commands,
-  NftData,
+  events,
   NftRecord,
   NftUriKind,
   TransactionResponse,
@@ -28,7 +28,7 @@ import {
   SendIcon,
   UserRoundPlus,
 } from 'lucide-react';
-import { memo, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -91,30 +91,39 @@ interface NftCardProps {
   selectionState: [boolean, (value: boolean) => void] | null;
 }
 
-const NftCardComponent = ({
-  nft,
-  updateNfts,
-  selectionState,
-}: NftCardProps) => {
+export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
   const walletState = useWalletState();
   const [offerState, setOfferState] = useOfferStateWithDefault();
   const navigate = useNavigate();
 
   const { addError } = useErrors();
 
-  const [data, setData] = useState<NftData | null>(null);
+  const [thumbnail, setThumbnail] = useState<string | null>(null);
   const [transferOpen, setTransferOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
   const [addUrlOpen, setAddUrlOpen] = useState(false);
   const [burnOpen, setBurnOpen] = useState(false);
   const [response, setResponse] = useState<TransactionResponse | null>(null);
 
-  useEffect(() => {
+  const fetchThumbnail = useCallback(() => {
     commands
-      .getNftData({ nft_id: nft.launcher_id })
-      .then((response) => setData(response.data))
-      .catch(addError);
-  }, [nft.launcher_id, addError]);
+      .getNftThumbnail({ nft_id: nft.launcher_id })
+      .then((response) => setThumbnail(response.thumbnail))
+      .catch((error) => console.error(error));
+  }, [nft.launcher_id]);
+
+  useEffect(() => {
+    fetchThumbnail();
+
+    const unlisten = events.syncEvent.listen((event) => {
+      const type = event.payload.type;
+      if (type === 'nft_data') fetchThumbnail();
+    });
+
+    return () => {
+      unlisten.then((u) => u());
+    };
+  }, [fetchThumbnail]);
 
   const toggleVisibility = () => {
     commands
@@ -234,8 +243,8 @@ const NftCardComponent = ({
                   loading='lazy'
                   width='150'
                   height='150'
-                  className='h-auto w-auto object-cover transition-all group-hover:scale-105 aspect-square color-[transparent]'
-                  src={nftUri(data?.mime_type ?? null, data?.blob ?? null)}
+                  className='h-auto w-full object-cover transition-all group-hover:scale-105 aspect-square color-[transparent]'
+                  src={nftUri(thumbnail ? 'image/png' : null, thumbnail)}
                 />
               </TooltipTrigger>
               <TooltipContent>
@@ -601,15 +610,4 @@ const NftCardComponent = ({
       />
     </>
   );
-};
-
-export const NftCard = memo(NftCardComponent, (prevProps, nextProps) => {
-  // Only re-render if these props change
-  return (
-    prevProps.nft.launcher_id === nextProps.nft.launcher_id &&
-    prevProps.nft.created_height === nextProps.nft.created_height &&
-    prevProps.nft.visible === nextProps.nft.visible &&
-    prevProps.selectionState?.[0] === nextProps.selectionState?.[0] &&
-    prevProps.nft.coin_id === nextProps.nft.coin_id
-  );
-});
+}

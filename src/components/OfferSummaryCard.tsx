@@ -112,7 +112,7 @@ function AssetPreview({ label, assets }: AssetPreviewProps) {
         <div className='flex items-center gap-2' key={i}>
           <img
             alt={nft.name ?? t`Unknown`}
-            src={nftUri(nft.image_mime_type, nft.image_data)}
+            src={nftUri(nft.icon ? 'image/png' : null, nft.icon)}
             className='w-8 h-8'
           />
 

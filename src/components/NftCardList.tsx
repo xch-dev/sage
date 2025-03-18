@@ -1,14 +1,14 @@
 import { NftCard } from '@/components/NftCard';
 import { NftGroupCard } from '@/components/NftGroupCard';
-import { NftGroupMode, CardSize } from '@/hooks/useNftParams';
+import { CardSize, NftGroupMode } from '@/hooks/useNftParams';
 import { t } from '@lingui/core/macro';
 import { ReactNode, useCallback } from 'react';
 import {
+  commands,
+  DidRecord,
+  Error,
   NftCollectionRecord,
   NftRecord,
-  DidRecord,
-  commands,
-  Error,
 } from '../bindings';
 
 interface NftCardListProps {

@@ -41,8 +41,7 @@ pub struct OfferCat {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct OfferNft {
-    pub image_data: Option<String>,
-    pub image_mime_type: Option<String>,
+    pub icon: Option<String>,
     pub name: Option<String>,
     pub royalty_ten_thousandths: u16,
     pub royalty_address: String,

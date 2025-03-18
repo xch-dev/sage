@@ -25,3 +25,6 @@ futures-util = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }
 mime-sniffer = { workspace = true }
+image = { workspace = true }
+webp = { workspace = true }
+tokio = { workspace = true, features = ["sync"] }

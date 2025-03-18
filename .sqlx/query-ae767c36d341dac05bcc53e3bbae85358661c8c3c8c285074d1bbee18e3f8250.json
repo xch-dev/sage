@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM `nft_thumbnails` WHERE `hash` = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "ae767c36d341dac05bcc53e3bbae85358661c8c3c8c285074d1bbee18e3f8250"
+}

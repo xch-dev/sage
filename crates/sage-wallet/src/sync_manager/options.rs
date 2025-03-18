@@ -32,7 +32,7 @@ impl Default for Timeouts {
         Self {
             sync_delay: Duration::from_secs(1),
             cat_delay: Duration::from_secs(1),
-            nft_uri_delay: Duration::from_secs(1),
+            nft_uri_delay: Duration::from_millis(500),
             puzzle_delay: Duration::from_secs(1),
             transaction_delay: Duration::from_secs(1),
             offer_delay: Duration::from_secs(5),

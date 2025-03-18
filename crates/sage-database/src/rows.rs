@@ -7,7 +7,6 @@ mod did;
 mod did_coin;
 mod nft;
 mod nft_coin;
-mod nft_uri;
 mod offer;
 
 pub use cat::*;

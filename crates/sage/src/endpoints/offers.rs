@@ -334,13 +334,8 @@ impl Sage {
                 royalty_puzzle_hash: nft.info.royalty_puzzle_hash,
                 royalty_ten_thousandths: nft.info.royalty_ten_thousandths,
                 name: info.name,
-                thumbnail: info
-                    .image_data
-                    .map(|data| BASE64_STANDARD.decode(data))
-                    .transpose()
-                    .ok()
-                    .flatten(),
-                thumbnail_mime_type: info.image_mime_type,
+                thumbnail: info.icon,
+                thumbnail_mime_type: Some("image/png".to_string()),
             });
         }
 
@@ -393,6 +388,12 @@ impl Sage {
                 ExtractedNftData::default()
             };
 
+            let thumbnail_mime_type = if info.icon.is_some() {
+                Some("image/png".to_string())
+            } else {
+                None
+            };
+
             nft_rows.push(OfferNftRow {
                 offer_id,
                 requested: true,
@@ -400,13 +401,8 @@ impl Sage {
                 royalty_puzzle_hash: nft.royalty_puzzle_hash,
                 royalty_ten_thousandths: nft.royalty_ten_thousandths,
                 name: info.name,
-                thumbnail: info
-                    .image_data
-                    .map(|data| BASE64_STANDARD.decode(data))
-                    .transpose()
-                    .ok()
-                    .flatten(),
-                thumbnail_mime_type: info.image_mime_type,
+                thumbnail: info.icon,
+                thumbnail_mime_type,
             });
         }
 
@@ -569,8 +565,7 @@ impl Sage {
                 .encode()?,
                 royalty_ten_thousandths: nft.royalty_ten_thousandths,
                 name: nft.name,
-                image_data: nft.thumbnail.map(|data| BASE64_STANDARD.encode(data)),
-                image_mime_type: nft.thumbnail_mime_type,
+                icon: nft.thumbnail.map(|data| BASE64_STANDARD.encode(data)),
             };
 
             if nft.requested {

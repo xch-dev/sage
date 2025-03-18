@@ -12,9 +12,10 @@ use sage_api::{
     DerivationRecord, DidRecord, GetCat, GetCatCoins, GetCatCoinsResponse, GetCatResponse, GetCats,
     GetCatsResponse, GetDerivations, GetDerivationsResponse, GetDids, GetDidsResponse,
     GetMinterDidIds, GetMinterDidIdsResponse, GetNft, GetNftCollection, GetNftCollectionResponse,
-    GetNftCollections, GetNftCollectionsResponse, GetNftData, GetNftDataResponse, GetNftResponse,
-    GetNfts, GetNftsResponse, GetPendingTransactions, GetPendingTransactionsResponse,
-    GetSyncStatus, GetSyncStatusResponse, GetTransaction, GetTransactionResponse, GetTransactions,
+    GetNftCollections, GetNftCollectionsResponse, GetNftData, GetNftDataResponse, GetNftIcon,
+    GetNftIconResponse, GetNftResponse, GetNftThumbnail, GetNftThumbnailResponse, GetNfts,
+    GetNftsResponse, GetPendingTransactions, GetPendingTransactionsResponse, GetSyncStatus,
+    GetSyncStatusResponse, GetTransaction, GetTransactionResponse, GetTransactions,
     GetTransactionsByItemId, GetTransactionsByItemIdResponse, GetTransactionsResponse, GetXchCoins,
     GetXchCoinsResponse, NftCollectionRecord, NftData, NftRecord, NftSortMode as ApiNftSortMode,
     PendingTransactionRecord, TransactionCoin, TransactionRecord,
@@ -567,6 +568,58 @@ impl Sage {
         })
     }
 
+    pub async fn get_nft_icon(&self, req: GetNftIcon) -> Result<GetNftIconResponse> {
+        let wallet = self.wallet()?;
+
+        let nft_id = parse_nft_id(req.nft_id)?;
+
+        let Some(nft) = wallet.db.nft(nft_id).await? else {
+            return Ok(GetNftIconResponse { icon: None });
+        };
+
+        let mut allocator = Allocator::new();
+        let metadata_ptr = nft.info.metadata.to_clvm(&mut allocator)?;
+        let metadata = NftMetadata::from_clvm(&allocator, metadata_ptr).ok();
+
+        let Some(data_hash) = metadata.as_ref().and_then(|m| m.data_hash) else {
+            return Ok(GetNftIconResponse { icon: None });
+        };
+
+        Ok(GetNftIconResponse {
+            icon: wallet
+                .db
+                .nft_icon(data_hash)
+                .await?
+                .map(|icon| BASE64_STANDARD.encode(icon)),
+        })
+    }
+
+    pub async fn get_nft_thumbnail(&self, req: GetNftThumbnail) -> Result<GetNftThumbnailResponse> {
+        let wallet = self.wallet()?;
+
+        let nft_id = parse_nft_id(req.nft_id)?;
+
+        let Some(nft) = wallet.db.nft(nft_id).await? else {
+            return Ok(GetNftThumbnailResponse { thumbnail: None });
+        };
+
+        let mut allocator = Allocator::new();
+        let metadata_ptr = nft.info.metadata.to_clvm(&mut allocator)?;
+        let metadata = NftMetadata::from_clvm(&allocator, metadata_ptr).ok();
+
+        let Some(data_hash) = metadata.as_ref().and_then(|m| m.data_hash) else {
+            return Ok(GetNftThumbnailResponse { thumbnail: None });
+        };
+
+        Ok(GetNftThumbnailResponse {
+            thumbnail: wallet
+                .db
+                .nft_thumbnail(data_hash)
+                .await?
+                .map(|thumbnail| BASE64_STANDARD.encode(thumbnail)),
+        })
+    }
+
     fn nft_record(
         &self,
         nft_row: NftRow,
@@ -681,8 +734,8 @@ impl Sage {
 
                     let data_hash = metadata.as_ref().and_then(|m| m.data_hash);
 
-                    let data = if let Some(hash) = data_hash {
-                        db.fetch_nft_data(hash).await?
+                    let icon = if let Some(hash) = data_hash {
+                        db.nft_icon(hash).await?
                     } else {
                         None
                     };
@@ -692,10 +745,7 @@ impl Sage {
                             launcher_id: Address::new(nft.info.launcher_id, "nft".to_string())
                                 .encode()?,
                             name: row.as_ref().and_then(|row| row.name.clone()),
-                            image_data: data
-                                .as_ref()
-                                .map(|data| BASE64_STANDARD.encode(&data.blob)),
-                            image_mime_type: data.map(|data| data.mime_type),
+                            icon: icon.map(|icon| BASE64_STANDARD.encode(icon)),
                         },
                         Some(nft.info.p2_puzzle_hash),
                     )
