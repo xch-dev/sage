@@ -66,8 +66,14 @@ export default function Login() {
   useEffect(() => {
     commands
       .getKey({})
-      .then((data) => data.key !== null && navigate('/wallet'))
-      .catch(addError);
+      .then((data) => {
+        if (data.key !== null) {
+          navigate('/wallet');
+        }
+      })
+      .catch((error) => {
+        addError(error);
+      });
   }, [navigate, addError]);
 
   return (
