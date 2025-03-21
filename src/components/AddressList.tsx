@@ -8,8 +8,6 @@ import { Button } from './ui/button';
 import { toast } from 'react-toastify';
 import { DataTable } from './ui/data-table';
 import { CopyButton } from './CopyButton';
-import { CopyBox } from './CopyBox';
-import { formatAddress } from '@/lib/utils';
 
 export interface AddressListProps {
   addresses: string[];
