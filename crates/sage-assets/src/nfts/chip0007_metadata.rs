@@ -36,10 +36,8 @@ pub enum SensitiveContent {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct NftAttribute {
-    pub trait_type: AttributeValue,
-    pub value: AttributeValue,
-    pub min_value: Option<BigInt>,
-    pub max_value: Option<BigInt>,
+    pub trait_type: serde_json::Value,
+    pub value: serde_json::Value,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
