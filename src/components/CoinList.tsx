@@ -46,13 +46,7 @@ export default function CoinList(props: CoinListProps) {
       )
     : props.coins;
 
-  // Calculate pagination
-  const pageCount = Math.ceil(filteredCoins.length / pageSize);
-  const paginatedCoins = filteredCoins.slice(
-    currentPage * pageSize,
-    (currentPage + 1) * pageSize,
-  );
-
+  // Column definitions
   const columns: ColumnDef<CoinRecord>[] = [
     {
       id: 'select',
@@ -337,6 +331,51 @@ export default function CoinList(props: CoinListProps) {
       },
     };
   };
+
+  // Custom sort function to sort the entire dataset
+  const sortData = (data: CoinRecord[], sortingState: SortingState) => {
+    if (!sortingState.length) return data;
+
+    return [...data].sort((a, b) => {
+      for (const sort of sortingState) {
+        const column = columns.find(
+          (col) => (col as any).accessorKey === sort.id || col.id === sort.id,
+        );
+        if (!column) continue;
+
+        let result = 0;
+
+        if (column.sortingFn && typeof column.sortingFn === 'function') {
+          // Use the column's custom sorting function
+          const rowA = { original: a };
+          const rowB = { original: b };
+          result = (column.sortingFn as any)(rowA, rowB, sort.id);
+        } else {
+          // Default sorting based on accessor key
+          const aValue = (a as any)[sort.id];
+          const bValue = (b as any)[sort.id];
+
+          if (aValue === undefined && bValue === undefined) result = 0;
+          else if (aValue === undefined) result = 1;
+          else if (bValue === undefined) result = -1;
+          else result = aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
+        }
+
+        if (result !== 0) return sort.desc ? -result : result;
+      }
+      return 0;
+    });
+  };
+
+  // Sort the entire dataset first, then paginate
+  const sortedCoins = sortData(filteredCoins, sorting);
+
+  // Calculate pagination after sorting
+  const pageCount = Math.ceil(sortedCoins.length / pageSize);
+  const paginatedCoins = sortedCoins.slice(
+    currentPage * pageSize,
+    (currentPage + 1) * pageSize,
+  );
 
   return (
     <div>
