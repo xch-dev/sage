@@ -8,6 +8,7 @@ import { Button } from './ui/button';
 import { toast } from 'react-toastify';
 import { DataTable } from './ui/data-table';
 import { CopyButton } from './CopyButton';
+import { SimplePagination } from './SimplePagination';
 
 export interface AddressListProps {
   addresses: string[];
@@ -95,27 +96,14 @@ export default function AddressList(props: AddressListProps) {
           getRowId={(row) => row.id.toString()}
         />
       </div>
-      <div className='flex-shrink-0 flex items-center justify-end space-x-2 py-4'>
-        <Button
-          variant='outline'
+      <div className='flex-shrink-0 py-4'>
+        <SimplePagination
+          currentPage={currentPage}
+          pageCount={pageCount}
+          setCurrentPage={setCurrentPage}
           size='sm'
-          onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
-          disabled={currentPage === 0}
-          aria-label={t`Previous page`}
-        >
-          <ChevronLeft className='h-4 w-4' aria-hidden='true' />
-        </Button>
-        <Button
-          variant='outline'
-          size='sm'
-          onClick={() =>
-            setCurrentPage(Math.min(pageCount - 1, currentPage + 1))
-          }
-          disabled={currentPage >= pageCount - 1}
-          aria-label={t`Next page`}
-        >
-          <ChevronRight className='h-4 w-4' aria-hidden='true' />
-        </Button>
+          align='end'
+        />
       </div>
     </div>
   );
