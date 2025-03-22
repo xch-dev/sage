@@ -35,11 +35,11 @@ export default function CoinList(props: CoinListProps) {
   const [sorting, setSorting] = useState<SortingState>([
     { id: 'created_height', desc: true },
   ]);
-  const [showUnspentOnly, setShowUnspentOnly] = useState(true);
+  const [showSpentCoins, setShowSpentCoins] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
   const pageSize = 10;
 
-  const filteredCoins = showUnspentOnly
+  const filteredCoins = showSpentCoins
     ? props.coins.filter(
         (coin) =>
           !coin.spend_transaction_id && !coin.spent_height && !coin.offer_id,
@@ -279,8 +279,9 @@ export default function CoinList(props: CoinListProps) {
               variant='ghost'
               className='h-6 w-6 p-0 ml-1'
               onClick={() => {
-                setShowUnspentOnly(!showUnspentOnly);
-                if (!showUnspentOnly) {
+                setShowSpentCoins(!showSpentCoins);
+                console.log('showSpentCoins', showSpentCoins);
+                if (showSpentCoins) {
                   setSorting([{ id: 'spent_height', desc: true }]);
                 } else {
                   setSorting([{ id: 'created_height', desc: true }]);
@@ -288,13 +289,13 @@ export default function CoinList(props: CoinListProps) {
                 setCurrentPage(0); // Reset to first page on filter change
               }}
               aria-label={
-                showUnspentOnly ? t`Show all coins` : t`Show unspent coins only`
+                showSpentCoins ? t`Show all coins` : t`Show unspent coins only`
               }
             >
-              {showUnspentOnly ? (
-                <FilterIcon className='h-3 w-3' aria-hidden='true' />
-              ) : (
+              {showSpentCoins ? (
                 <FilterXIcon className='h-3 w-3' aria-hidden='true' />
+              ) : (
+                <FilterIcon className='h-3 w-3' aria-hidden='true' />
               )}
             </Button>
           </div>
