@@ -54,7 +54,7 @@ export default function CoinList(props: CoinListProps) {
         className: 'w-[30px] max-w-[30px]',
       },
       header: ({ table }) => (
-        <div className='pl-1'>
+        <div className='flex justify-center items-center pt-1'>
           <Checkbox
             checked={
               table.getIsAllPageRowsSelected() ||
@@ -81,7 +81,7 @@ export default function CoinList(props: CoinListProps) {
         </div>
       ),
       cell: ({ row }) => (
-        <div className='pl-2 md:pl-1'>
+        <div className='flex justify-center items-center'>
           <Checkbox
             checked={row.getIsSelected()}
             onCheckedChange={(value) => {
