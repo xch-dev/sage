@@ -7,14 +7,7 @@ import {
   RowSelectionState,
   SortingState,
 } from '@tanstack/react-table';
-import {
-  ArrowDown,
-  ArrowUp,
-  ChevronLeft,
-  ChevronRight,
-  FilterIcon,
-  FilterXIcon,
-} from 'lucide-react';
+import { ArrowDown, ArrowUp, FilterIcon, FilterXIcon } from 'lucide-react';
 import { useState } from 'react';
 import { CoinRecord } from '../bindings';
 import { Button } from './ui/button';
@@ -22,6 +15,7 @@ import { Checkbox } from './ui/checkbox';
 import { NumberFormat } from './NumberFormat';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { DataTable } from './ui/data-table';
+import { SimplePagination } from './SimplePagination';
 
 export interface CoinListProps {
   precision: number;
@@ -81,7 +75,7 @@ export default function CoinList(props: CoinListProps) {
         </div>
       ),
       cell: ({ row }) => (
-        <div className='flex justify-center items-center'>
+        <div className='flex justify-center items-center pl-1 md:pl-0'>
           <Checkbox
             checked={row.getIsSelected()}
             onCheckedChange={(value) => {
@@ -391,32 +385,14 @@ export default function CoinList(props: CoinListProps) {
         getRowStyles={getRowStyles}
         getRowId={(row) => row.coin_id}
       />
-      <div className='pt-4'>
-        <div className='flex items-center justify-between'>
-          <div className='flex space-x-2'>{props.actions}</div>
-          <div className='flex space-x-2'>
-            <Button
-              variant='outline'
-              size='icon'
-              onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
-              disabled={currentPage === 0}
-              aria-label={t`Previous page`}
-            >
-              <ChevronLeft className='h-4 w-4' aria-hidden='true' />
-            </Button>
-            <Button
-              variant='outline'
-              size='icon'
-              onClick={() =>
-                setCurrentPage(Math.min(pageCount - 1, currentPage + 1))
-              }
-              disabled={currentPage >= pageCount - 1}
-              aria-label={t`Next page`}
-            >
-              <ChevronRight className='h-4 w-4' aria-hidden='true' />
-            </Button>
-          </div>
-        </div>
+      <div className='flex-shrink-0 py-4'>
+        <SimplePagination
+          currentPage={currentPage}
+          pageCount={pageCount}
+          setCurrentPage={setCurrentPage}
+          size='sm'
+          align='end'
+        />
       </div>
     </div>
   );

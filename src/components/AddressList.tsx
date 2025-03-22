@@ -1,10 +1,8 @@
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { ColumnDef, SortingState } from '@tanstack/react-table';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { FormattedAddress } from './FormattedAddress';
-import { Button } from './ui/button';
 import { toast } from 'react-toastify';
 import { DataTable } from './ui/data-table';
 import { CopyButton } from './CopyButton';
