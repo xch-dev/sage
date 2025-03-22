@@ -7,7 +7,14 @@ import {
   RowSelectionState,
   SortingState,
 } from '@tanstack/react-table';
-import { ArrowDown, ArrowUp, FilterIcon, FilterXIcon } from 'lucide-react';
+import {
+  ArrowDown,
+  ArrowUp,
+  ChevronLeft,
+  ChevronRight,
+  FilterIcon,
+  FilterXIcon,
+} from 'lucide-react';
 import { useState } from 'react';
 import { CoinRecord } from '../bindings';
 import { Button } from './ui/button';
@@ -15,7 +22,6 @@ import { Checkbox } from './ui/checkbox';
 import { NumberFormat } from './NumberFormat';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { DataTable } from './ui/data-table';
-import { SimplePagination } from './SimplePagination';
 
 export interface CoinListProps {
   precision: number;
@@ -33,7 +39,7 @@ export default function CoinList(props: CoinListProps) {
   const [currentPage, setCurrentPage] = useState(0);
   const pageSize = 10;
 
-  const filteredCoins = showSpentCoins
+  const filteredCoins = !showSpentCoins
     ? props.coins.filter(
         (coin) =>
           !coin.spend_transaction_id && !coin.spent_height && !coin.offer_id,
@@ -273,9 +279,9 @@ export default function CoinList(props: CoinListProps) {
               variant='ghost'
               className='h-6 w-6 p-0 ml-1'
               onClick={() => {
-                setShowSpentCoins(!showSpentCoins);
-                console.log('showSpentCoins', showSpentCoins);
-                if (showSpentCoins) {
+                const newShowSpentCoins = !showSpentCoins;
+                setShowSpentCoins(newShowSpentCoins);
+                if (newShowSpentCoins) {
                   setSorting([{ id: 'spent_height', desc: true }]);
                 } else {
                   setSorting([{ id: 'created_height', desc: true }]);
@@ -287,9 +293,9 @@ export default function CoinList(props: CoinListProps) {
               }
             >
               {showSpentCoins ? (
-                <FilterXIcon className='h-3 w-3' aria-hidden='true' />
-              ) : (
                 <FilterIcon className='h-3 w-3' aria-hidden='true' />
+              ) : (
+                <FilterXIcon className='h-3 w-3' aria-hidden='true' />
               )}
             </Button>
           </div>
@@ -386,12 +392,31 @@ export default function CoinList(props: CoinListProps) {
         getRowId={(row) => row.coin_id}
       />
       <div className='pt-4'>
-        <SimplePagination
-          currentPage={currentPage}
-          pageCount={pageCount}
-          setCurrentPage={setCurrentPage}
-          actions={props.actions}
-        />
+        <div className='flex items-center justify-between'>
+          <div className='flex space-x-2'>{props.actions}</div>
+          <div className='flex space-x-2'>
+            <Button
+              variant='outline'
+              size='icon'
+              onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
+              disabled={currentPage === 0}
+              aria-label={t`Previous page`}
+            >
+              <ChevronLeft className='h-4 w-4' aria-hidden='true' />
+            </Button>
+            <Button
+              variant='outline'
+              size='icon'
+              onClick={() =>
+                setCurrentPage(Math.min(pageCount - 1, currentPage + 1))
+              }
+              disabled={currentPage >= pageCount - 1}
+              aria-label={t`Next page`}
+            >
+              <ChevronRight className='h-4 w-4' aria-hidden='true' />
+            </Button>
+          </div>
+        </div>
       </div>
     </div>
   );
