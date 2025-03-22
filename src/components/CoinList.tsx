@@ -391,7 +391,8 @@ export default function CoinList(props: CoinListProps) {
           pageCount={pageCount}
           setCurrentPage={setCurrentPage}
           size='sm'
-          align='end'
+          align='between'
+          actions={props.actions}
         />
       </div>
     </div>
