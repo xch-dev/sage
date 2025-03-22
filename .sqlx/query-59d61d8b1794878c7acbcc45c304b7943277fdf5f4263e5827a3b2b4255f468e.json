@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `created_height`, `spent_height`, `transaction_id`, `kind`\n        FROM `coin_states` WHERE `coin_id` = ?\n        ",
+  "query": "\n        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `spent_height`, `created_height`, `transaction_id`, `kind`, `created_unixtime`, `spent_unixtime`\n        FROM `coin_states`\n        WHERE `spent_height` IS NULL\n        AND `created_height` IS NOT NULL\n        AND `kind` = 1\n        ORDER BY `created_height`, `coin_states`.`coin_id` LIMIT ? OFFSET ?\n        ",
   "describe": {
     "columns": [
       {
@@ -19,12 +19,12 @@
         "type_info": "Blob"
       },
       {
-        "name": "created_height",
+        "name": "spent_height",
         "ordinal": 3,
         "type_info": "Integer"
       },
       {
-        "name": "spent_height",
+        "name": "created_height",
         "ordinal": 4,
         "type_info": "Integer"
       },
@@ -37,10 +37,20 @@
         "name": "kind",
         "ordinal": 6,
         "type_info": "Integer"
+      },
+      {
+        "name": "created_unixtime",
+        "ordinal": 7,
+        "type_info": "Integer"
+      },
+      {
+        "name": "spent_unixtime",
+        "ordinal": 8,
+        "type_info": "Integer"
       }
     ],
     "parameters": {
-      "Right": 1
+      "Right": 2
     },
     "nullable": [
       false,
@@ -49,8 +59,10 @@
       true,
       true,
       true,
-      false
+      false,
+      true,
+      true
     ]
   },
-  "hash": "864efa77c492e3809b2502e3564eed0a613d7cc152c02fcd3b1fa32e8409b8d7"
+  "hash": "59d61d8b1794878c7acbcc45c304b7943277fdf5f4263e5827a3b2b4255f468e"
 }

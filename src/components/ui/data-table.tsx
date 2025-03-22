@@ -35,9 +35,14 @@ interface DataTableProps<TData, TValue> {
   data: TData[];
   state?: {
     sorting?: SortingState;
+    rowSelection?: Record<string, boolean>;
   };
   onSortingChange?: OnChangeFn<SortingState>;
-  getRowStyles?: (row: Row<TData>) => { className?: string };
+  getRowStyles?: (row: Row<TData>) => {
+    className?: string;
+    onClick?: () => void;
+  };
+  getRowId?: (originalRow: TData) => string;
 }
 
 export function DataTable<TData, TValue>({
@@ -46,6 +51,7 @@ export function DataTable<TData, TValue>({
   state,
   onSortingChange,
   getRowStyles,
+  getRowId,
 }: DataTableProps<TData, TValue>) {
   const table = useReactTable({
     data,
@@ -54,6 +60,7 @@ export function DataTable<TData, TValue>({
     onSortingChange,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
+    getRowId,
   });
 
   const length = data.length;

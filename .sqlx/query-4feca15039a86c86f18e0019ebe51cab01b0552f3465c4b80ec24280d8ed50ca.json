@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `spent_height`, `created_height`, `transaction_id`, `kind`\n        FROM `coin_states`\n        WHERE `spent_height` IS NULL\n        AND `created_height` IS NOT NULL\n        AND `kind` = 1\n        ORDER BY `created_height`, `coin_states`.`coin_id` LIMIT ? OFFSET ?\n        ",
+  "query": "\n        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `spent_height`, `created_height`, `transaction_id`, `kind`, `created_unixtime`, `spent_unixtime`\n        FROM `coin_states`\n        INNER JOIN `nft_coins` ON `coin_states`.coin_id = `nft_coins`.coin_id\n        WHERE `spent_height` IS NULL\n        AND `created_height` IS NOT NULL\n        ORDER BY `created_height`, `coin_states`.`coin_id` LIMIT ? OFFSET ?\n        ",
   "describe": {
     "columns": [
       {
@@ -37,6 +37,16 @@
         "name": "kind",
         "ordinal": 6,
         "type_info": "Integer"
+      },
+      {
+        "name": "created_unixtime",
+        "ordinal": 7,
+        "type_info": "Integer"
+      },
+      {
+        "name": "spent_unixtime",
+        "ordinal": 8,
+        "type_info": "Integer"
       }
     ],
     "parameters": {
@@ -49,8 +59,10 @@
       true,
       true,
       true,
-      false
+      false,
+      true,
+      true
     ]
   },
-  "hash": "8bc0f86f64bd3c1777698091cf638fee9876a7631c78ef362f0db3cc14f604f7"
+  "hash": "4feca15039a86c86f18e0019ebe51cab01b0552f3465c4b80ec24280d8ed50ca"
 }

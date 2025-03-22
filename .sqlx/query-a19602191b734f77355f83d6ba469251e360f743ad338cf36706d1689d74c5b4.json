@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `created_height`, `spent_height`, `transaction_id`, `kind`\n        FROM `coin_states` INDEXED BY `coin_created`\n        WHERE `created_height` = ?\n        ",
+  "query": "\n        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `created_height`, `spent_height`, `transaction_id`, `kind`, `created_unixtime`, `spent_unixtime`\n        FROM `coin_states` INDEXED BY `coin_created`\n        WHERE `created_height` = ?\n        ",
   "describe": {
     "columns": [
       {
@@ -37,6 +37,16 @@
         "name": "kind",
         "ordinal": 6,
         "type_info": "Integer"
+      },
+      {
+        "name": "created_unixtime",
+        "ordinal": 7,
+        "type_info": "Integer"
+      },
+      {
+        "name": "spent_unixtime",
+        "ordinal": 8,
+        "type_info": "Integer"
       }
     ],
     "parameters": {
@@ -49,8 +59,10 @@
       true,
       true,
       true,
-      false
+      false,
+      true,
+      true
     ]
   },
-  "hash": "a46bf8e0626ebbf2dd33cbe01ffb47d554f6a3e1a690562bf7c89a261124bcaf"
+  "hash": "a19602191b734f77355f83d6ba469251e360f743ad338cf36706d1689d74c5b4"
 }

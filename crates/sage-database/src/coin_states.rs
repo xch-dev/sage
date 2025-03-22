@@ -228,7 +228,7 @@ async fn unsynced_coin_states(
     let rows = sqlx::query_as!(
         CoinStateSql,
         "
-        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `created_height`, `spent_height`, `transaction_id`, `kind`
+        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `created_height`, `spent_height`, `transaction_id`, `kind`, `created_unixtime`, `spent_unixtime`
         FROM `coin_states`
         WHERE `synced` = 0 AND `created_height` IS NOT NULL
         ORDER BY `spent_height` ASC
@@ -326,7 +326,7 @@ async fn coin_state(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<O
     let Some(sql) = sqlx::query_as!(
         CoinStateSql,
         "
-        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `created_height`, `spent_height`, `transaction_id`, `kind`
+        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `created_height`, `spent_height`, `transaction_id`, `kind`, `created_unixtime`, `spent_unixtime`
         FROM `coin_states`
         WHERE `coin_id` = ?
         ",
@@ -663,7 +663,7 @@ async fn get_coin_states_by_created_height(
     let rows = sqlx::query_as!(
         CoinStateSql,
         "
-        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `created_height`, `spent_height`, `transaction_id`, `kind`
+        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `created_height`, `spent_height`, `transaction_id`, `kind`, `created_unixtime`, `spent_unixtime`
         FROM `coin_states` INDEXED BY `coin_created`
         WHERE `created_height` = ?
         ",
@@ -682,7 +682,7 @@ async fn get_coin_states_by_spent_height(
     let rows = sqlx::query_as!(
         CoinStateSql,
         "
-        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `created_height`, `spent_height`, `transaction_id`, `kind`
+        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `created_height`, `spent_height`, `transaction_id`, `kind`, `created_unixtime`, `spent_unixtime`
         FROM `coin_states` INDEXED BY `coin_spent`
         WHERE `spent_height` = ?
         ",
@@ -703,7 +703,7 @@ async fn full_coin_state(
     let Some(sql) = sqlx::query_as!(
         CoinStateSql,
         "
-        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `created_height`, `spent_height`, `transaction_id`, `kind`
+        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `created_height`, `spent_height`, `transaction_id`, `kind`, `created_unixtime`, `spent_unixtime`
         FROM `coin_states` WHERE `coin_id` = ?
         ",
         coin_id
