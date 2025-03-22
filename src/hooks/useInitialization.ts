@@ -16,22 +16,18 @@ export default function useInitialization() {
         // Always add the error to be displayed
         addError(error);
 
-        // Check if this is a database migration error using the specific error kind
+        // Check if this is a database migration, which is recoverable
         if (error.kind === 'database_migration') {
           try {
-            // Only log out for database migration errors
             await logoutAndUpdateState();
             console.log('Logged out due to database migration error');
-            // Mark as initialized so the app can proceed
+            // Now mark as initialized so the app can proceed
             setInitialized(true);
           } catch (logoutError) {
             console.error('Error during logout:', logoutError);
           }
         } else {
-          console.error(
-            'Initialization error (not a DB migration issue):',
-            error,
-          );
+          console.error('Unrecoverable initialization error', error);
         }
       });
   }, [addError]);

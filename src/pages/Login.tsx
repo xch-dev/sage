@@ -216,13 +216,18 @@ function WalletItem({ network, info, keys, setKeys }: WalletItemProps) {
   const loginSelf = (explicit: boolean) => {
     if (isMenuOpen && !explicit) return;
 
-    loginAndUpdateState(info.fingerprint).then(() => {
-      commands
-        .getKey({})
-        .then((data) => setWallet(data.key))
-        .then(() => navigate('/wallet'))
-        .catch(addError);
-    });
+    loginAndUpdateState(info.fingerprint)
+      .then(() => {
+        commands
+          .getKey({})
+          .then((data) => setWallet(data.key))
+          .then(() => navigate('/wallet'))
+          .catch(addError);
+      })
+      .catch(async (error) => {
+        // Always add the error to be displayed
+        addError(error);
+      });
   };
 
   useEffect(() => {
