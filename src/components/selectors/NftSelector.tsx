@@ -67,7 +67,11 @@ export function NftSelector({
 
   useEffect(() => {
     const nftsToFetch = [...nfts.map((nft) => nft.launcher_id)];
-    if (value && !nfts.find((nft) => nft.launcher_id === value)) {
+    if (
+      value &&
+      value !== '' &&
+      !nfts.find((nft) => nft.launcher_id === value)
+    ) {
       try {
         if (addressInfo(value).puzzleHash.length === 64) {
           nftsToFetch.push(value);
@@ -92,6 +96,37 @@ export function NftSelector({
       setNftThumbnails(map);
     });
   }, [nfts, value]);
+
+  // Load NFT record when a value is provided but not found in current nfts list
+  useEffect(() => {
+    if (
+      value &&
+      value !== '' &&
+      !selectedNft &&
+      !nfts.find((nft) => nft.launcher_id === value)
+    ) {
+      try {
+        // Validate the NFT ID format
+        if (isValidAddress(value, 'nft')) {
+          commands
+            .getNft({ nft_id: value })
+            .then((data) => {
+              setSelectedNft(data.nft);
+            })
+            .catch(addError);
+        }
+      } catch (error) {
+        // Handle any errors silently
+      }
+    }
+  }, [value, selectedNft, nfts, addError]);
+
+  // Reset selectedNft when value is null or empty
+  useEffect(() => {
+    if (!value || value === '') {
+      setSelectedNft(null);
+    }
+  }, [value]);
 
   const defaultNftImage = nftUri(null, null);
 

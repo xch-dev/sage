@@ -413,7 +413,9 @@ const NftCardComponent = ({
                       },
                     });
 
-                    toast.success(t`Added NFT to offer`);
+                    toast.success(t`Click here to go to offer.`, {
+                      onClick: () => navigate('/offers/make'),
+                    });
                   }}
                   disabled={
                     !nft.created_height ||

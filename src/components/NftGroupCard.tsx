@@ -13,6 +13,7 @@ import {
   MoreVertical,
   Paintbrush,
   UserIcon,
+  ScrollText,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -40,7 +41,7 @@ interface NftGroupCardProps {
   onToggleVisibility?: () => void;
   isLoading?: boolean;
   error?: Error;
-  canToggleVisibility?: boolean;
+  isPlaceHolder?: boolean;
 }
 
 export function NftGroupCard({
@@ -52,7 +53,7 @@ export function NftGroupCard({
   onToggleVisibility = () => {},
   isLoading,
   error,
-  canToggleVisibility = true,
+  isPlaceHolder = false,
 }: NftGroupCardProps) {
   const navigate = useNavigate();
   const isCollection = type === 'collection';
@@ -256,6 +257,21 @@ export function NftGroupCard({
                 <>
                   <DropdownMenuItem
                     className='cursor-pointer'
+                    disabled={isPlaceHolder}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/nfts/collections/${cardId}/metadata`);
+                    }}
+                    aria-label={t`View ${cardName} Metadata`}
+                  >
+                    <ScrollText className='mr-2 h-4 w-4' aria-hidden='true' />
+                    <span>
+                      <Trans>View Metadata</Trans>
+                    </span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className='cursor-pointer'
+                    disabled={isPlaceHolder}
                     onClick={(e) => {
                       e.stopPropagation();
                       openUrl(`https://mintgarden.io/collections/${cardId}`);
@@ -274,7 +290,7 @@ export function NftGroupCard({
                       e.stopPropagation();
                       onToggleVisibility();
                     }}
-                    disabled={!canToggleVisibility}
+                    disabled={isPlaceHolder}
                     aria-label={
                       item.visible ? t`Hide ${cardName}` : t`Show ${cardName}`
                     }

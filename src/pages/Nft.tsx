@@ -235,39 +235,57 @@ export default function Nft() {
               <h6 className='text-md font-bold'>
                 <Trans>Minter DID</Trans>
               </h6>
-              <div className='break-all text-sm'>
-                {nft?.minter_did ?? <Trans>None</Trans>}
-              </div>
+              <CopyBox
+                title={t`Minter DID`}
+                value={nft?.minter_did ?? t`None`}
+                onCopy={() => toast.success(t`Minter DID copied to clipboard`)}
+              />
             </div>
 
             <div>
               <h6 className='text-md font-bold'>
                 <Trans>Owner DID</Trans>
               </h6>
-              <div className='break-all text-sm'>
-                {nft?.owner_did ?? <Trans>None</Trans>}
-              </div>
+              <CopyBox
+                title={t`Owner DID`}
+                value={nft?.owner_did ?? t`None`}
+                onCopy={() => toast.success(t`Owner DID copied to clipboard`)}
+              />
             </div>
 
             <div>
               <h6 className='text-md font-bold'>
                 <Trans>Address</Trans>
               </h6>
-              <div className='break-all text-sm'>{nft?.address}</div>
+              <CopyBox
+                title={t`Address`}
+                value={nft?.address ?? ''}
+                onCopy={() => toast.success(t`Address copied to clipboard`)}
+              />
             </div>
 
             <div>
               <h6 className='text-md font-bold'>
                 <Trans>Coin Id</Trans>
               </h6>
-              <div className='break-all text-sm'>{nft?.coin_id}</div>
+              <CopyBox
+                title={t`Coin Id`}
+                value={nft?.coin_id ?? ''}
+                onCopy={() => toast.success(t`Coin ID copied to clipboard`)}
+              />
             </div>
 
             <div>
               <h6 className='text-md font-bold'>
                 <Trans>Royalties {royaltyPercentage}%</Trans>
               </h6>
-              <div className='break-all text-sm'>{nft?.royalty_address}</div>
+              <CopyBox
+                title={t`Royalty Address`}
+                value={nft?.royalty_address ?? ''}
+                onCopy={() =>
+                  toast.success(t`Royalty address copied to clipboard`)
+                }
+              />
             </div>
 
             <div className='flex flex-col gap-1'>

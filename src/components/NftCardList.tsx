@@ -84,7 +84,7 @@ export function NftCardList({
               item={col}
               updateNfts={updateNfts}
               page={page}
-              canToggleVisibility={col.collection_id !== 'No collection'}
+              isPlaceHolder={col.collection_id === 'No collection'}
               onToggleVisibility={() => {
                 commands
                   .updateNftCollection({
@@ -116,7 +116,7 @@ export function NftCardList({
               item={did}
               updateNfts={updateNfts}
               page={page}
-              canToggleVisibility={false}
+              isPlaceHolder={false}
             />
           ))}
         </>
@@ -139,7 +139,7 @@ export function NftCardList({
               item={did}
               updateNfts={updateNfts}
               page={page}
-              canToggleVisibility={false}
+              isPlaceHolder={false}
             />
           ))}
         </>
