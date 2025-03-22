@@ -56,6 +56,7 @@ export function TransactionListView({
       amount: `+${coin.amount.toString()}`,
       transactionHeight: transaction.height,
       icon_url: getIconUrl(coin),
+      timestamp: transaction.timestamp,
     }));
 
     const spent = transaction.spent.map((coin) => ({
@@ -64,6 +65,7 @@ export function TransactionListView({
       amount: `-${coin.amount.toString()}`,
       transactionHeight: transaction.height,
       icon_url: getIconUrl(coin),
+      timestamp: transaction.timestamp,
     }));
 
     if (!summarized) {

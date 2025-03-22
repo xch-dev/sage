@@ -1,7 +1,7 @@
 import { OfferAssets, OfferRecord } from '@/bindings';
 import { NumberFormat } from '@/components/NumberFormat';
 import { nftUri } from '@/lib/nftUri';
-import { fromMojos, unixTimestampToDate } from '@/lib/utils';
+import { fromMojos, formatTimestamp } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import BigNumber from 'bignumber.js';
@@ -33,9 +33,7 @@ export function OfferSummaryCard({ record, content }: OfferSummaryCardProps) {
               <div className='text-muted-foreground text-sm'>
                 <span>
                   Expires:{' '}
-                  {unixTimestampToDate(
-                    record.summary.expiration_timestamp,
-                  ).toLocaleString()}
+                  {formatTimestamp(record.summary.expiration_timestamp)}
                 </span>
               </div>
             )}
