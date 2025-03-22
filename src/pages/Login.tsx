@@ -225,8 +225,7 @@ function WalletItem({ network, info, keys, setKeys }: WalletItemProps) {
           .catch(addError);
       })
       .catch(async (error) => {
-        // Always add the error to be displayed
-        addError(error);
+        console.error('Login error', error);
       });
   };
 
