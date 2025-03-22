@@ -13,17 +13,26 @@ export default function useInitialization() {
       .initialize()
       .then(() => setInitialized(true))
       .catch(async (error) => {
-        // When there's an error (like DB migration issues), log out and show error
+        // Always add the error to be displayed
         addError(error);
-        try {
-          // Log out to ensure we go to login screen
-          await logoutAndUpdateState();
-        } catch (logoutError) {
-          // Even if logout fails, we still want to proceed
-          console.error('Error during logout:', logoutError);
+
+        // Check if this is a database migration error using the specific error kind
+        if (error.kind === 'database_migration') {
+          try {
+            // Only log out for database migration errors
+            await logoutAndUpdateState();
+            console.log('Logged out due to database migration error');
+            // Mark as initialized so the app can proceed
+            setInitialized(true);
+          } catch (logoutError) {
+            console.error('Error during logout:', logoutError);
+          }
+        } else {
+          console.error(
+            'Initialization error (not a DB migration issue):',
+            error,
+          );
         }
-        // Mark as initialized so the app can proceed
-        setInitialized(true);
       });
   }, [addError]);
 

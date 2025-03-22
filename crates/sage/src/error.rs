@@ -227,11 +227,11 @@ impl Error {
                 | KeychainError::Bip39(..)
                 | KeychainError::Argon2(..) => ErrorKind::Internal,
             },
+            Self::SqlxMigration(..) => ErrorKind::DatabaseMigration,
             Self::Send(..)
             | Self::Io(..)
             | Self::Client(..)
             | Self::Sqlx(..)
-            | Self::SqlxMigration(..)
             | Self::Bip39(..)
             | Self::TomlDe(..)
             | Self::TomlSer(..)
