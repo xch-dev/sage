@@ -12,6 +12,8 @@ pub(crate) struct CoinStateSql {
     pub created_height: Option<i64>,
     pub transaction_id: Option<Vec<u8>>,
     pub kind: i64,
+    pub created_unixtime: Option<i64>,
+    pub spent_unixtime: Option<i64>,
 }
 
 pub(crate) struct CoinSql {
@@ -46,6 +48,8 @@ pub struct CoinStateRow {
     pub coin_state: CoinState,
     pub transaction_id: Option<Bytes32>,
     pub kind: CoinKind,
+    pub created_timestamp: Option<u32>,
+    pub spent_timestamp: Option<u32>,
 }
 
 impl IntoRow for CoinStateSql {
@@ -64,6 +68,8 @@ impl IntoRow for CoinStateSql {
             },
             transaction_id: self.transaction_id.as_deref().map(to_bytes32).transpose()?,
             kind: CoinKind::from_i64(self.kind),
+            created_timestamp: self.created_unixtime.map(|t| t as u32),
+            spent_timestamp: self.spent_unixtime.map(|t| t as u32),
         })
     }
 }

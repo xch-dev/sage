@@ -92,7 +92,7 @@ async fn p2_coin_states(conn: impl SqliteExecutor<'_>) -> Result<Vec<CoinStateRo
     let rows = sqlx::query_as!(
         CoinStateSql,
         "
-        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `spent_height`, `created_height`, `transaction_id`, `kind`
+        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `spent_height`, `created_height`, `transaction_id`, `kind`, `created_unixtime`, `spent_unixtime`
         FROM `coin_states` WHERE `kind` = 1
         "
     )
@@ -110,7 +110,7 @@ async fn created_unspent_p2_coin_states(
     let rows = sqlx::query_as!(
         CoinStateSql,
         "
-        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `spent_height`, `created_height`, `transaction_id`, `kind`
+        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `spent_height`, `created_height`, `transaction_id`, `kind`, `created_unixtime`, `spent_unixtime`
         FROM `coin_states`
         WHERE `spent_height` IS NULL
         AND `created_height` IS NOT NULL

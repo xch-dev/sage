@@ -131,6 +131,8 @@ impl Sage {
                 create_transaction_id: row.transaction_id.map(hex::encode),
                 spend_transaction_id,
                 offer_id,
+                created_timestamp: row.created_timestamp,
+                spent_timestamp: row.spent_timestamp,
             });
         }
 
@@ -170,6 +172,8 @@ impl Sage {
                 create_transaction_id: row.transaction_id.map(hex::encode),
                 spend_transaction_id,
                 offer_id,
+                created_timestamp: row.created_timestamp,
+                spent_timestamp: row.spent_timestamp,
             });
         }
 

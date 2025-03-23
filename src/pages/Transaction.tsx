@@ -10,7 +10,7 @@ import Header from '@/components/Header';
 import { NumberFormat } from '@/components/NumberFormat';
 import { Card } from '@/components/ui/card';
 import { nftUri } from '@/lib/nftUri';
-import { formatAddress, fromMojos } from '@/lib/utils';
+import { formatAddress, fromMojos, formatTimestamp } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -55,6 +55,14 @@ export default function Transaction() {
     <>
       <Header title={t`Transaction #${height}`} />
       <Container>
+        <Card className='p-6 mb-4'>
+          <div className='text-xl font-medium'>
+            <Trans>Transaction Time</Trans>
+          </div>
+          <div className='text-md text-neutral-700 dark:text-neutral-300 mt-2'>
+            {formatTimestamp(transaction?.timestamp ?? null)}
+          </div>
+        </Card>
         <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
           {(transaction?.spent.length ?? 0) > 0 && (
             <Card className='p-6'>
