@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { toast } from 'react-toastify';
 import { AmountCell } from './AmountCell';
-import { formatAddress } from '../lib/utils';
+import { formatAddress, formatTimestamp } from '@/lib/utils';
 
 export interface FlattenedTransaction {
   transactionHeight: number;
@@ -26,18 +26,19 @@ export interface FlattenedTransaction {
   address: string | null;
   coin_id: string;
   displayName: string;
+  timestamp: number | null;
 }
 
 export const columns: ColumnDef<FlattenedTransaction>[] = [
   {
     accessorKey: 'transactionHeight',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={t`Block #`} />
+      <DataTableColumnHeader column={column} title={t`Transaction`} />
     ),
     enableSorting: false,
     size: 80,
     meta: {
-      className: 'w-[55px] min-w-[55px] md:w-[80px] md:min-w-[80px]',
+      className: 'w-[105px] min-w-[105px] md:w-[120px] md:min-w-[120px]',
     },
     cell: ({ row, table }) => {
       // Get all rows data
@@ -55,8 +56,12 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
           to={`/transactions/${row.getValue('transactionHeight')}`}
           className='hover:underline'
           onClick={(e) => e.stopPropagation()}
+          title={
+            row.original?.timestamp ? row.getValue('transactionHeight') : ''
+          }
         >
-          {row.getValue('transactionHeight')}
+          {formatTimestamp(row.original?.timestamp, 'short', 'short') ||
+            row.getValue('transactionHeight')}
         </Link>
       ) : null;
     },

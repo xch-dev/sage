@@ -12,14 +12,17 @@ export function dbg<T>(value: T): T {
   return value;
 }
 
-/**
- * Converts a Unix epoch timestamp to a Date object in UTC
- * @param timestamp Unix timestamp in seconds
- * @returns Date object in UTC
- */
-export function unixTimestampToDate(timestamp: number): Date {
-  // Convert seconds to milliseconds
-  return new Date(timestamp * 1000);
+export function formatTimestamp(
+  timestamp: number | null,
+  dateStyle: string = 'medium',
+  timeStyle: string = dateStyle,
+): string {
+  if (!timestamp) return '';
+  const date = new Date(timestamp * 1000); // Convert from Unix timestamp to JavaScript timestamp
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: dateStyle as 'full' | 'long' | 'medium' | 'short',
+    timeStyle: timeStyle as 'full' | 'long' | 'medium' | 'short',
+  }).format(date);
 }
 
 export function formatAddress(
