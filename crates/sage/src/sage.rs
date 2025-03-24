@@ -12,7 +12,7 @@ use chia_wallet_sdk::{
     utils::Address,
 };
 use indexmap::IndexMap;
-use sage_api::{Amount, Unit, XCH};
+use sage_api::{Unit, XCH};
 use sage_config::{
     migrate_config, migrate_networks, Config, Network, NetworkList, OldConfig, OldNetwork,
     WalletConfig,
@@ -342,7 +342,6 @@ impl Sage {
         Ok(())
     }
 
-    #[allow(clippy::needless_pass_by_value)]
     pub fn parse_address(&self, input: String) -> Result<Bytes32> {
         let address = Address::decode(&input)?;
 
@@ -351,15 +350,6 @@ impl Sage {
         }
 
         Ok(address.puzzle_hash)
-    }
-
-    #[allow(clippy::needless_pass_by_value)]
-    pub fn parse_amount(&self, input: Amount) -> Result<u64> {
-        let Some(amount) = input.to_u64() else {
-            return Err(Error::InvalidAmount(input.to_string()));
-        };
-
-        Ok(amount)
     }
 
     pub async fn connect_to_database(&self, fingerprint: u32) -> Result<SqlitePool> {

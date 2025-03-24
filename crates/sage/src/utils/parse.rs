@@ -66,11 +66,10 @@ pub fn parse_offer_id(input: String) -> Result<Bytes32> {
     Ok(asset_id.into())
 }
 
-pub fn parse_cat_amount(input: Amount) -> Result<u64> {
+pub fn parse_amount(input: Amount) -> Result<u64> {
     let Some(amount) = input.to_u64() else {
         return Err(Error::InvalidAmount(input.to_string()));
     };
-
     Ok(amount)
 }
 
