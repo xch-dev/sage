@@ -7,6 +7,7 @@ import { toast } from 'react-toastify';
 import { CopyButton } from '@/components/CopyButton';
 import { ConfirmationAlert } from './ConfirmationAlert';
 import { ConfirmationCard } from './ConfirmationCard';
+import { formatNumber } from '../../i18n';
 
 type TokenOperationType = 'split' | 'combine' | 'issue' | 'send';
 
@@ -125,7 +126,13 @@ export function TokenConfirmation({
                 <Trans>Amount</Trans>
               </div>
               <div className='font-medium'>
-                {amount} {ticker}
+                {formatNumber({
+                  value: amount ?? '0',
+                  style: 'decimal',
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 0,
+                })}{' '}
+                {ticker}
               </div>
             </div>
           </div>
