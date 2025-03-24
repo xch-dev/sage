@@ -1,7 +1,7 @@
 import { commands, OfferAssets, OfferSummary } from '@/bindings';
 import { NumberFormat } from '@/components/NumberFormat';
 import { nftUri } from '@/lib/nftUri';
-import { cn, fromMojos, unixTimestampToDate } from '@/lib/utils';
+import { fromMojos, formatTimestamp } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -24,6 +24,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from './ui/tooltip';
+import { cn } from '@/lib/utils';
 
 // Interface to track CAT presence in wallet
 interface CatPresence {
@@ -162,20 +163,16 @@ export function OfferCard({
                 <div className='text-sm font-medium text-muted-foreground'>
                   <Trans>Expires</Trans>
                 </div>
-                <div>
-                  {summary.expiration_timestamp && (
-                    <div>
-                      {unixTimestampToDate(
-                        summary.expiration_timestamp,
-                      ).toLocaleString()}
-                    </div>
-                  )}
-                  {summary.expiration_height && (
-                    <div className='text-muted-foreground'>
-                      <Trans>Block:</Trans> {summary.expiration_height}
-                    </div>
-                  )}
-                </div>
+                {summary.expiration_timestamp && (
+                  <div className='text-sm'>
+                    {formatTimestamp(summary.expiration_timestamp)}
+                  </div>
+                )}
+                {summary.expiration_height && (
+                  <div className='text-sm text-muted-foreground'>
+                    <Trans>Block:</Trans> {summary.expiration_height}
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -232,7 +229,7 @@ interface AssetsProps {
   catPresence?: CatPresence;
 }
 
-function Assets({ assets, catPresence = {} }: AssetsProps) {
+export function Assets({ assets, catPresence = {} }: AssetsProps) {
   const walletState = useWalletState();
   const amount = BigNumber(assets.xch.amount);
 
@@ -373,7 +370,7 @@ function Assets({ assets, catPresence = {} }: AssetsProps) {
 
           <div className='flex gap-1.5 items-center'>
             <img
-              src={nftUri(nft.image_mime_type, nft.image_data)}
+              src={nftUri(nft.icon ? 'image/png' : null, nft.icon)}
               className='w-6 h-6 rounded-sm'
               alt={t`NFT preview`}
             />

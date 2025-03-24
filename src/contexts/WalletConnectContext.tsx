@@ -4,7 +4,7 @@ import {
   OfferSummary,
   TransactionSummary,
 } from '@/bindings';
-import { AdvancedSummary } from '@/components/ConfirmationDialog';
+import { AdvancedTransactionSummary } from '@/components/AdvancedTransactionSummary';
 import { OfferCard } from '@/components/OfferCard';
 import { OfferSummaryCard } from '@/components/OfferSummaryCard';
 import { Button } from '@/components/ui/button';
@@ -17,8 +17,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { useErrors } from '@/hooks/useErrors';
 import { useWallet } from '@/contexts/WalletContext';
+import { useErrors } from '@/hooks/useErrors';
 import { fromMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import {
@@ -27,8 +27,8 @@ import {
   walletConnectCommands,
 } from '@/walletconnect/commands';
 import { handleCommand } from '@/walletconnect/handler';
-import { platform } from '@tauri-apps/plugin-os';
 import { getCurrentWindow, UserAttentionType } from '@tauri-apps/api/window';
+import { platform } from '@tauri-apps/plugin-os';
 import SignClient from '@walletconnect/sign-client';
 import { SessionTypes, SignClientTypes } from '@walletconnect/types';
 import {
@@ -171,23 +171,13 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
           throw new Error('Chain not supported');
         }
 
-        const networkConfig = await commands.networkConfig().catch((e) => {
-          console.error('Failed to get network config:', e);
-          throw e;
-        });
-
-        if (!networkConfig) {
-          throw new Error('Network config not found');
-        }
-
-        const network =
-          networkConfig.network_id === 'mainnet' ? 'mainnet' : 'testnet';
+        const network = await commands.getNetwork({});
 
         if (!wallet) {
           throw new Error('No active wallet');
         }
 
-        const account = `chia:${network}:${wallet.fingerprint}`;
+        const account = `chia:${network.kind}:${wallet.fingerprint}`;
         const availableMethods = methods;
         const availableEvents = events;
 
@@ -409,7 +399,7 @@ function SignCoinSpendsDialog({
   }, [params, addError]);
 
   return summary ? (
-    <AdvancedSummary summary={summary} />
+    <AdvancedTransactionSummary summary={summary} />
   ) : (
     <div className='p-4 text-center'>Loading transaction summary...</div>
   );

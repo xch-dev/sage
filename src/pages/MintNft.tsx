@@ -64,6 +64,24 @@ export default function MintNft() {
   const onSubmit = (values: z.infer<typeof formSchema>) => {
     setPending(true);
 
+    const mintDetails = {
+      did_id: values.profile,
+      royalty_address: values.royaltyAddress || null,
+      royalty_percent: Number(values.royaltyPercent),
+      data_uris: values.dataUris
+        .split(',')
+        .map((uri) => uri.trim())
+        .filter(Boolean),
+      metadata_uris: values.metadataUris
+        .split(',')
+        .map((uri) => uri.trim())
+        .filter(Boolean),
+      license_uris: (values.licenseUris ?? '')
+        .split(',')
+        .map((uri) => uri.trim())
+        .filter(Boolean),
+    };
+
     commands
       .bulkMintNfts({
         fee: toMojos(
@@ -77,18 +95,9 @@ export default function MintNft() {
             edition_total: null,
             royalty_address: values.royaltyAddress || null,
             royalty_ten_thousandths: Number(values.royaltyPercent) * 100,
-            data_uris: values.dataUris
-              .split(',')
-              .map((uri) => uri.trim())
-              .filter(Boolean),
-            metadata_uris: values.metadataUris
-              .split(',')
-              .map((uri) => uri.trim())
-              .filter(Boolean),
-            license_uris: (values.licenseUris ?? '')
-              .split(',')
-              .map((uri) => uri.trim())
-              .filter(Boolean),
+            data_uris: mintDetails.data_uris,
+            metadata_uris: mintDetails.metadata_uris,
+            license_uris: mintDetails.license_uris,
           },
         ],
       })
@@ -294,8 +303,98 @@ export default function MintNft() {
 
       <ConfirmationDialog
         response={response}
+        showRecipientDetails={false}
         close={() => setResponse(null)}
         onConfirm={() => navigate('/nfts')}
+        additionalData={
+          response
+            ? {
+                title: 'NFT Minting Details',
+                content: (
+                  <div className='space-y-1 text-xs'>
+                    <div>
+                      <strong>Profile:</strong> {form.getValues('profile')}
+                    </div>
+                    {form.getValues('royaltyAddress') && (
+                      <div>
+                        <strong>Royalty Address:</strong>{' '}
+                        {form.getValues('royaltyAddress')}
+                      </div>
+                    )}
+                    <div>
+                      <strong>Royalty Percent:</strong>{' '}
+                      {form.getValues('royaltyPercent')}%
+                    </div>
+                    <div>
+                      <strong>Data URLs:</strong>{' '}
+                      {form
+                        .getValues('dataUris')
+                        .split(',')
+                        .map((uri) => uri.trim())
+                        .filter(Boolean)
+                        .map((uri, index, array) => (
+                          <>
+                            <a
+                              href={uri}
+                              target='_blank'
+                              rel='noopener noreferrer'
+                              className='text-blue-500 hover:underline'
+                            >
+                              {uri}
+                            </a>
+                            {index < array.length - 1 ? ', ' : ''}
+                          </>
+                        ))}
+                    </div>
+                    <div>
+                      <strong>Metadata URLs:</strong>{' '}
+                      {form
+                        .getValues('metadataUris')
+                        .split(',')
+                        .map((uri) => uri.trim())
+                        .filter(Boolean)
+                        .map((uri, index, array) => (
+                          <>
+                            <a
+                              href={uri}
+                              target='_blank'
+                              rel='noopener noreferrer'
+                              className='text-blue-500 hover:underline'
+                            >
+                              {uri}
+                            </a>
+                            {index < array.length - 1 ? ', ' : ''}
+                          </>
+                        ))}
+                    </div>
+                    {form.getValues('licenseUris') && (
+                      <div>
+                        <strong>License URLs:</strong>{' '}
+                        {form
+                          .getValues('licenseUris')
+                          ?.split(',')
+                          .map((uri) => uri.trim())
+                          .filter(Boolean)
+                          .map((uri, index, array) => (
+                            <>
+                              <a
+                                href={uri}
+                                target='_blank'
+                                rel='noopener noreferrer'
+                                className='text-blue-500 hover:underline'
+                              >
+                                {uri}
+                              </a>
+                              {index < array.length - 1 ? ', ' : ''}
+                            </>
+                          ))}
+                      </div>
+                    )}
+                  </div>
+                ),
+              }
+            : undefined
+        }
       />
     </>
   );

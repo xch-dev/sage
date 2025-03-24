@@ -1,4 +1,4 @@
-import { Assets, commands, NetworkConfig } from '@/bindings';
+import { Assets, commands, NetworkKind } from '@/bindings';
 import Container from '@/components/Container';
 import { CopyBox } from '@/components/CopyBox';
 import Header from '@/components/Header';
@@ -62,12 +62,10 @@ export function MakeOffer() {
   const [dexieLink, setDexieLink] = useState('');
   const [mintGardenLink, setMintGardenLink] = useState('');
   const [canUploadToMintGarden, setCanUploadToMintGarden] = useState(false);
-  const [config, setConfig] = useState<NetworkConfig | null>(null);
-
-  const network = config?.network_id ?? 'mainnet';
+  const [network, setNetwork] = useState<NetworkKind | null>(null);
 
   useEffect(() => {
-    commands.networkConfig().then((config) => setConfig(config));
+    commands.getNetwork({}).then((data) => setNetwork(data.kind));
   }, []);
 
   useEffect(() => {
@@ -348,7 +346,7 @@ export function MakeOffer() {
                   recipient or make it public to be accepted by anyone.
                 </Trans>
                 <CopyBox title='Offer File' value={offer} className='mt-2' />
-                {(network === 'mainnet' || network === 'testnet11') && (
+                {network !== 'unknown' && (
                   <div className='flex flex-col gap-2 mt-2'>
                     <div className='grid grid-cols-2 gap-2'>
                       <Button
@@ -356,7 +354,7 @@ export function MakeOffer() {
                         className='text-neutral-800 dark:text-neutral-200'
                         onClick={() => {
                           if (dexieLink) return openUrl(dexieLink);
-                          uploadToDexie(offer, network === 'testnet11')
+                          uploadToDexie(offer, network === 'testnet')
                             .then(setDexieLink)
                             .catch((error) =>
                               addError({
@@ -380,7 +378,7 @@ export function MakeOffer() {
                           className='text-neutral-800 dark:text-neutral-200'
                           onClick={() => {
                             if (mintGardenLink) return openUrl(mintGardenLink);
-                            uploadToMintGarden(offer, network === 'testnet11')
+                            uploadToMintGarden(offer, network === 'testnet')
                               .then(setMintGardenLink)
                               .catch((error) =>
                                 addError({

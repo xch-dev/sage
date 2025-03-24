@@ -137,9 +137,6 @@ pub enum Error {
     #[error("Invalid coin amount: {0}")]
     InvalidCoinAmount(String),
 
-    #[error("Invalid genesis id: {0}")]
-    InvalidGenesisChallenge(String),
-
     #[error("Invalid hash: {0}")]
     InvalidHash(String),
 
@@ -267,7 +264,6 @@ impl Error {
             | Self::InvalidDidId(..)
             | Self::InvalidNftId(..)
             | Self::InvalidCollectionId(..)
-            | Self::InvalidGenesisChallenge(..)
             | Self::InvalidCoinId(..)
             | Self::InvalidHash(..)
             | Self::InvalidAssetId(..)

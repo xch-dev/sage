@@ -59,7 +59,7 @@ export default function Login() {
 
     commands
       .networkConfig()
-      .then((data) => setNetwork(data.network_id))
+      .then((data) => setNetwork(data.default_network))
       .catch(addError);
   }, [addError]);
 

@@ -50,6 +50,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { commands, DidRecord, TransactionResponse } from '../bindings';
+import { DidConfirmation } from '@/components/confirmations/DidConfirmation';
 
 export function DidList() {
   const navigate = useNavigate();
@@ -128,6 +129,12 @@ function Profile({ did, updateDids }: ProfileProps) {
   const [burnOpen, setBurnOpen] = useState(false);
   const [normalizeOpen, setNormalizeOpen] = useState(false);
 
+  // Track which action is being performed
+  const [isTransferring, setIsTransferring] = useState(false);
+  const [isBurning, setIsBurning] = useState(false);
+  const [isNormalizing, setIsNormalizing] = useState(false);
+  const [transferAddress, setTransferAddress] = useState('');
+
   const rename = () => {
     if (!name) return;
 
@@ -153,6 +160,8 @@ function Profile({ did, updateDids }: ProfileProps) {
   };
 
   const onTransferSubmit = (address: string, fee: string) => {
+    setIsTransferring(true);
+    setTransferAddress(address);
     commands
       .transferDids({
         did_ids: [did.launcher_id],
@@ -160,11 +169,15 @@ function Profile({ did, updateDids }: ProfileProps) {
         fee: toMojos(fee, walletState.sync.unit.decimals),
       })
       .then(setResponse)
-      .catch(addError)
+      .catch((err) => {
+        setIsTransferring(false);
+        addError(err);
+      })
       .finally(() => setTransferOpen(false));
   };
 
   const onBurnSubmit = (fee: string) => {
+    setIsBurning(true);
     commands
       .transferDids({
         did_ids: [did.launcher_id],
@@ -172,18 +185,25 @@ function Profile({ did, updateDids }: ProfileProps) {
         fee: toMojos(fee, walletState.sync.unit.decimals),
       })
       .then(setResponse)
-      .catch(addError)
+      .catch((err) => {
+        setIsBurning(false);
+        addError(err);
+      })
       .finally(() => setBurnOpen(false));
   };
 
   const onNormalizeSubmit = (fee: string) => {
+    setIsNormalizing(true);
     commands
       .normalizeDids({
         did_ids: [did.launcher_id],
         fee: toMojos(fee, walletState.sync.unit.decimals),
       })
       .then(setResponse)
-      .catch(addError)
+      .catch((err) => {
+        setIsNormalizing(false);
+        addError(err);
+      })
       .finally(() => setNormalizeOpen(false));
   };
 
@@ -359,6 +379,7 @@ function Profile({ did, updateDids }: ProfileProps) {
 
       <FeeOnlyDialog
         title={t`Burn Profile`}
+        submitButtonLabel={t`Burn`}
         open={burnOpen}
         setOpen={setBurnOpen}
         onSubmit={onBurnSubmit}
@@ -371,6 +392,7 @@ function Profile({ did, updateDids }: ProfileProps) {
 
       <FeeOnlyDialog
         title={t`Normalize Profile`}
+        submitButtonLabel={t`Normalize`}
         open={normalizeOpen}
         setOpen={setNormalizeOpen}
         onSubmit={onNormalizeSubmit}
@@ -383,8 +405,38 @@ function Profile({ did, updateDids }: ProfileProps) {
 
       <ConfirmationDialog
         response={response}
-        close={() => setResponse(null)}
+        showRecipientDetails={false}
+        close={() => {
+          setResponse(null);
+          setIsTransferring(false);
+          setIsBurning(false);
+          setIsNormalizing(false);
+        }}
         onConfirm={() => updateDids()}
+        additionalData={
+          isTransferring && response
+            ? {
+                title: t`Transfer DID`,
+                content: (
+                  <DidConfirmation
+                    dids={[did]}
+                    address={transferAddress}
+                    type='transfer'
+                  />
+                ),
+              }
+            : isBurning && response
+              ? {
+                  title: t`Burn DID`,
+                  content: <DidConfirmation dids={[did]} type='burn' />,
+                }
+              : isNormalizing && response
+                ? {
+                    title: t`Normalize DID`,
+                    content: <DidConfirmation dids={[did]} type='normalize' />,
+                  }
+                : undefined
+        }
       />
     </>
   );

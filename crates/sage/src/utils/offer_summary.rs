@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::time::Duration;
 
+use base64::{prelude::BASE64_STANDARD, Engine};
 use chia::puzzles::nft::NftMetadata;
 use chia_wallet_sdk::{
     driver::{Offer, SpendContext},
@@ -14,7 +15,7 @@ use tokio::time::timeout;
 use tracing::warn;
 
 use crate::utils::offer_status::{lookup_coin_creation, offer_expiration};
-use crate::{parse_genesis_challenge, Result, Sage};
+use crate::{Result, Sage};
 
 use super::{extract_nft_data, ConfirmationInfo, ExtractedNftData};
 
@@ -31,12 +32,9 @@ impl Sage {
         // Get expiration information
         let peer = self.peer_state.lock().await.acquire_peer();
         let status = if let Some(peer) = peer {
-            let coin_creation = lookup_coin_creation(
-                &peer,
-                coin_ids.clone(),
-                parse_genesis_challenge(self.network().genesis_challenge.clone())?,
-            )
-            .await?;
+            let coin_creation =
+                lookup_coin_creation(&peer, coin_ids.clone(), self.network().genesis_challenge)
+                    .await?;
             offer_expiration(&mut ctx, &parsed_offer, &coin_creation)?
         } else {
             warn!("No peers available to fetch coin creation information, so skipping for now");
@@ -134,13 +132,12 @@ impl Sage {
             maker.nfts.insert(
                 Address::new(launcher_id, "nft".to_string()).encode()?,
                 OfferNft {
-                    image_data: info.image_data,
-                    image_mime_type: info.image_mime_type,
+                    icon: info.icon.map(|icon| BASE64_STANDARD.encode(icon)),
                     name: info.name,
                     royalty_ten_thousandths: nft.info.royalty_ten_thousandths,
                     royalty_address: Address::new(
                         nft.info.royalty_puzzle_hash,
-                        self.network().address_prefix.clone(),
+                        self.network().prefix().clone(),
                     )
                     .encode()?,
                 },
@@ -183,15 +180,11 @@ impl Sage {
             taker.nfts.insert(
                 Address::new(launcher_id, "nft".to_string()).encode()?,
                 OfferNft {
-                    image_data: info.image_data,
-                    image_mime_type: info.image_mime_type,
+                    icon: info.icon.map(|icon| BASE64_STANDARD.encode(icon)),
                     name: info.name,
                     royalty_ten_thousandths: nft.royalty_ten_thousandths,
-                    royalty_address: Address::new(
-                        nft.royalty_puzzle_hash,
-                        self.network().address_prefix.clone(),
-                    )
-                    .encode()?,
+                    royalty_address: Address::new(nft.royalty_puzzle_hash, self.network().prefix())
+                        .encode()?,
                 },
             );
         }

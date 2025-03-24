@@ -1,5 +1,5 @@
 use std::{
-    fmt, mem,
+    fmt,
     net::{IpAddr, SocketAddr},
     sync::Arc,
     time::Duration,
@@ -207,27 +207,42 @@ impl SyncManager {
             return;
         }
 
-        if let InitialWalletSync::Subscribed(ip) = self.initial_wallet_sync {
-            if let Some(info) = self.state.lock().await.peer(ip) {
-                if let Some(wallet) = self.wallet.as_ref() {
-                    if let Err(error) = add_new_subscriptions(
-                        wallet,
-                        &info.peer,
-                        mem::take(&mut self.pending_coin_subscriptions),
-                        mem::take(&mut self.pending_puzzle_subscriptions),
-                        self.event_sender.clone(),
-                    )
-                    .await
-                    {
-                        warn!("Failed to add new subscriptions: {error}");
-                        self.state.lock().await.ban(
-                            ip,
-                            Duration::from_secs(300),
-                            "failed to add new subscriptions",
-                        );
-                    }
-                }
-            }
+        let InitialWalletSync::Subscribed(ip) = self.initial_wallet_sync else {
+            return;
+        };
+
+        let Some(peer) = self
+            .state
+            .lock()
+            .await
+            .peer(ip)
+            .map(|info| info.peer.clone())
+        else {
+            return;
+        };
+
+        let Some(wallet) = self.wallet.as_ref() else {
+            return;
+        };
+
+        if let Err(error) = add_new_subscriptions(
+            wallet,
+            &peer,
+            self.pending_coin_subscriptions.clone(),
+            self.pending_puzzle_subscriptions.clone(),
+            self.event_sender.clone(),
+        )
+        .await
+        {
+            warn!("Failed to add new subscriptions: {error}");
+            self.state.lock().await.ban(
+                ip,
+                Duration::from_secs(300),
+                "failed to add new subscriptions",
+            );
+        } else {
+            self.pending_coin_subscriptions.clear();
+            self.pending_puzzle_subscriptions.clear();
         }
     }
 

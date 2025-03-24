@@ -19,17 +19,16 @@ use sage_wallet::WalletNftMint;
 use tokio::time::timeout;
 
 use crate::{
-    fetch_cats, fetch_coins, json_bundle, json_spend, parse_asset_id, parse_cat_amount,
-    parse_did_id, parse_hash, parse_nft_id, rust_bundle, rust_spend, ConfirmationInfo, Error,
-    Result, Sage,
+    fetch_cats, fetch_coins, json_bundle, json_spend, parse_amount, parse_asset_id, parse_did_id,
+    parse_hash, parse_nft_id, rust_bundle, rust_spend, ConfirmationInfo, Error, Result, Sage,
 };
 
 impl Sage {
     pub async fn send_xch(&self, req: SendXch) -> Result<TransactionResponse> {
         let wallet = self.wallet()?;
         let puzzle_hash = self.parse_address(req.address)?;
-        let amount = self.parse_amount(req.amount)?;
-        let fee = self.parse_amount(req.fee)?;
+        let amount = parse_amount(req.amount)?;
+        let fee = parse_amount(req.fee)?;
 
         let mut memos = Vec::new();
 
@@ -46,7 +45,7 @@ impl Sage {
     pub async fn bulk_send_xch(&self, req: BulkSendXch) -> Result<TransactionResponse> {
         let wallet = self.wallet()?;
 
-        let amount = self.parse_amount(req.amount)?;
+        let amount = parse_amount(req.amount)?;
 
         let mut amounts = Vec::with_capacity(req.addresses.len());
 
@@ -54,7 +53,7 @@ impl Sage {
             amounts.push((self.parse_address(address)?, amount));
         }
 
-        let fee = self.parse_amount(req.fee)?;
+        let fee = parse_amount(req.fee)?;
 
         let mut memos = Vec::new();
 
@@ -68,7 +67,7 @@ impl Sage {
 
     pub async fn combine_xch(&self, req: CombineXch) -> Result<TransactionResponse> {
         let wallet = self.wallet()?;
-        let fee = self.parse_amount(req.fee)?;
+        let fee = parse_amount(req.fee)?;
         let coins = fetch_coins(&wallet, req.coin_ids).await?;
 
         let coin_spends = wallet.combine_xch(coins, fee, false, true).await?;
@@ -77,12 +76,8 @@ impl Sage {
 
     pub async fn auto_combine_xch(&self, req: AutoCombineXch) -> Result<TransactionResponse> {
         let wallet = self.wallet()?;
-        let fee = self.parse_amount(req.fee)?;
-
-        let max_amount = req
-            .max_coin_amount
-            .map(|amount| self.parse_amount(amount))
-            .transpose()?;
+        let fee = parse_amount(req.fee)?;
+        let max_amount = req.max_coin_amount.map(parse_amount).transpose()?;
 
         let coins = wallet
             .db
@@ -105,7 +100,7 @@ impl Sage {
 
     pub async fn split_xch(&self, req: SplitXch) -> Result<TransactionResponse> {
         let wallet = self.wallet()?;
-        let fee = self.parse_amount(req.fee)?;
+        let fee = parse_amount(req.fee)?;
         let coins = fetch_coins(&wallet, req.coin_ids).await?;
 
         let coin_spends = wallet
@@ -116,7 +111,7 @@ impl Sage {
 
     pub async fn combine_cat(&self, req: CombineCat) -> Result<TransactionResponse> {
         let wallet = self.wallet()?;
-        let fee = self.parse_amount(req.fee)?;
+        let fee = parse_amount(req.fee)?;
         let cats = fetch_cats(&wallet, req.coin_ids).await?;
 
         let coin_spends = wallet.combine_cat(cats, fee, false, true).await?;
@@ -125,14 +120,9 @@ impl Sage {
 
     pub async fn auto_combine_cat(&self, req: AutoCombineCat) -> Result<TransactionResponse> {
         let wallet = self.wallet()?;
-        let fee = self.parse_amount(req.fee)?;
-
+        let fee = parse_amount(req.fee)?;
         let asset_id = parse_asset_id(req.asset_id)?;
-
-        let max_amount = req
-            .max_coin_amount
-            .map(|amount| self.parse_amount(amount))
-            .transpose()?;
+        let max_amount = req.max_coin_amount.map(parse_amount).transpose()?;
 
         let rows = wallet
             .db
@@ -164,7 +154,7 @@ impl Sage {
 
     pub async fn split_cat(&self, req: SplitCat) -> Result<TransactionResponse> {
         let wallet = self.wallet()?;
-        let fee = self.parse_amount(req.fee)?;
+        let fee = parse_amount(req.fee)?;
         let cats = fetch_cats(&wallet, req.coin_ids).await?;
 
         let coin_spends = wallet
@@ -175,8 +165,8 @@ impl Sage {
 
     pub async fn issue_cat(&self, req: IssueCat) -> Result<TransactionResponse> {
         let wallet = self.wallet()?;
-        let amount = parse_cat_amount(req.amount)?;
-        let fee = self.parse_amount(req.fee)?;
+        let amount = parse_amount(req.amount)?;
+        let fee = parse_amount(req.fee)?;
 
         let (coin_spends, asset_id) = wallet.issue_cat(amount, fee, None, false, true).await?;
         wallet
@@ -199,8 +189,8 @@ impl Sage {
         let wallet = self.wallet()?;
         let asset_id = parse_asset_id(req.asset_id)?;
         let puzzle_hash = self.parse_address(req.address)?;
-        let amount = parse_cat_amount(req.amount)?;
-        let fee = self.parse_amount(req.fee)?;
+        let amount = parse_amount(req.amount)?;
+        let fee = parse_amount(req.fee)?;
 
         let mut memos = Vec::new();
 
@@ -225,7 +215,7 @@ impl Sage {
         let wallet = self.wallet()?;
         let asset_id = parse_asset_id(req.asset_id)?;
 
-        let amount = parse_cat_amount(req.amount)?;
+        let amount = parse_amount(req.amount)?;
 
         let mut amounts = Vec::with_capacity(req.addresses.len());
 
@@ -233,7 +223,7 @@ impl Sage {
             amounts.push((self.parse_address(address)?, amount));
         }
 
-        let fee = self.parse_amount(req.fee)?;
+        let fee = parse_amount(req.fee)?;
 
         let mut memos = Vec::new();
 
@@ -249,7 +239,7 @@ impl Sage {
 
     pub async fn create_did(&self, req: CreateDid) -> Result<TransactionResponse> {
         let wallet = self.wallet()?;
-        let fee = self.parse_amount(req.fee)?;
+        let fee = parse_amount(req.fee)?;
 
         let (coin_spends, did) = wallet.create_did(fee, false, true).await?;
         wallet
@@ -264,7 +254,7 @@ impl Sage {
 
     pub async fn bulk_mint_nfts(&self, req: BulkMintNfts) -> Result<BulkMintNftsResponse> {
         let wallet = self.wallet()?;
-        let fee = self.parse_amount(req.fee)?;
+        let fee = parse_amount(req.fee)?;
         let did_id = parse_did_id(req.did_id)?;
 
         let mut mints = Vec::with_capacity(req.mints.len());
@@ -381,7 +371,7 @@ impl Sage {
             .map(parse_nft_id)
             .collect::<Result<Vec<_>>>()?;
         let puzzle_hash = self.parse_address(req.address)?;
-        let fee = self.parse_amount(req.fee)?;
+        let fee = parse_amount(req.fee)?;
 
         let coin_spends = wallet
             .transfer_nfts(nft_ids, puzzle_hash, fee, false, true)
@@ -392,7 +382,7 @@ impl Sage {
     pub async fn add_nft_uri(&self, req: AddNftUri) -> Result<TransactionResponse> {
         let wallet = self.wallet()?;
         let nft_id = parse_nft_id(req.nft_id)?;
-        let fee = self.parse_amount(req.fee)?;
+        let fee = parse_amount(req.fee)?;
 
         let uri = match req.kind {
             NftUriKind::Data => MetadataUpdate::NewDataUri(req.uri),
@@ -412,7 +402,7 @@ impl Sage {
             .map(parse_nft_id)
             .collect::<Result<Vec<_>>>()?;
         let did_id = req.did_id.map(parse_did_id).transpose()?;
-        let fee = self.parse_amount(req.fee)?;
+        let fee = parse_amount(req.fee)?;
 
         let coin_spends = wallet
             .assign_nfts(nft_ids, did_id, fee, false, true)
@@ -428,7 +418,7 @@ impl Sage {
             .map(parse_did_id)
             .collect::<Result<Vec<_>>>()?;
         let puzzle_hash = self.parse_address(req.address)?;
-        let fee = self.parse_amount(req.fee)?;
+        let fee = parse_amount(req.fee)?;
 
         let coin_spends = wallet
             .transfer_dids(did_ids, puzzle_hash, fee, false, true)
@@ -443,7 +433,7 @@ impl Sage {
             .into_iter()
             .map(parse_did_id)
             .collect::<Result<Vec<_>>>()?;
-        let fee = self.parse_amount(req.fee)?;
+        let fee = parse_amount(req.fee)?;
 
         let coin_spends = wallet.normalize_dids(did_ids, fee, false, true).await?;
         self.transact(coin_spends, req.auto_submit).await

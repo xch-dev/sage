@@ -1,7 +1,7 @@
 import {
   commands,
   events,
-  NetworkConfig,
+  NetworkKind,
   OfferRecord,
   TransactionResponse,
 } from '@/bindings';
@@ -63,6 +63,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
 import { z } from 'zod';
+import { OfferConfirmation } from '@/components/confirmations/OfferConfirmation';
 
 export function Offers() {
   const navigate = useNavigate();
@@ -224,17 +225,16 @@ function Offer({ record, refresh }: OfferProps) {
   const [isDeleteOpen, setDeleteOpen] = useState(false);
   const [isCancelOpen, setCancelOpen] = useState(false);
 
-  const [config, setConfig] = useState<NetworkConfig | null>(null);
-  const network = config?.network_id ?? 'mainnet';
+  const [network, setNetwork] = useState<NetworkKind | null>(null);
 
   useEffect(() => {
-    commands.networkConfig().then((config) => setConfig(config));
+    commands.getNetwork({}).then((data) => setNetwork(data.kind));
   }, []);
 
   const cancelSchema = z.object({
     fee: amount(walletState.sync.unit.decimals).refine(
       (amount) => BigNumber(walletState.sync.balance).gte(amount || 0),
-      'Not enough funds to cover the fee',
+      t`Not enough funds to cover the fee`,
     ),
   });
 
@@ -245,18 +245,24 @@ function Offer({ record, refresh }: OfferProps) {
     },
   });
 
+  const [response, setResponse] = useState<TransactionResponse | null>(null);
+  const [currentFee, setCurrentFee] = useState<string>('');
+
   const cancelHandler = (values: z.infer<typeof cancelSchema>) => {
+    const fee = toMojos(values.fee, walletState.sync.unit.decimals);
+    setCurrentFee(fee);
+
     commands
       .cancelOffer({
         offer_id: record.offer_id,
-        fee: toMojos(values.fee, walletState.sync.unit.decimals),
+        fee,
       })
-      .then((response) => setResponse(response))
+      .then((result) => {
+        setResponse(result);
+      })
       .catch(addError)
       .finally(() => setCancelOpen(false));
   };
-
-  const [response, setResponse] = useState<TransactionResponse | null>(null);
 
   return (
     <>
@@ -329,13 +335,13 @@ function Offer({ record, refresh }: OfferProps) {
                     </span>
                   </DropdownMenuItem>
 
-                  {(network === 'mainnet' || network === 'testnet11') && (
+                  {network !== 'unknown' && (
                     <DropdownMenuItem
                       className='cursor-pointer'
                       onClick={(e) => {
                         e.stopPropagation();
                         openUrl(
-                          dexieLink(record.offer_id, network === 'testnet11'),
+                          dexieLink(record.offer_id, network === 'testnet'),
                         );
                       }}
                     >
@@ -392,10 +398,15 @@ function Offer({ record, refresh }: OfferProps) {
       <Dialog open={isCancelOpen} onOpenChange={setCancelOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Cancel offer?</DialogTitle>
+            <DialogTitle>
+              <Trans>Cancel offer?</Trans>
+            </DialogTitle>
             <DialogDescription>
-              This will cancel the offer on-chain with a transaction, preventing
-              it from being taken even if someone has the original offer file.
+              <Trans>
+                This will cancel the offer on-chain with a transaction,
+                preventing it from being taken even if someone has the original
+                offer file.
+              </Trans>
             </DialogDescription>
           </DialogHeader>
           <Form {...cancelForm}>
@@ -408,7 +419,9 @@ function Offer({ record, refresh }: OfferProps) {
                 name='fee'
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Network Fee</FormLabel>
+                    <FormLabel>
+                      <Trans>Network Fee</Trans>
+                    </FormLabel>
                     <FormControl>
                       <TokenAmountInput {...field} />
                     </FormControl>
@@ -422,16 +435,29 @@ function Offer({ record, refresh }: OfferProps) {
                   variant='outline'
                   onClick={() => setCancelOpen(false)}
                 >
-                  Cancel
+                  <Trans>Cancel</Trans>
                 </Button>
-                <Button type='submit'>Submit</Button>
+                <Button type='submit'>
+                  <Trans>Submit</Trans>
+                </Button>
               </DialogFooter>
             </form>
           </Form>
         </DialogContent>
       </Dialog>
 
-      <ConfirmationDialog response={response} close={() => setResponse(null)} />
+      <ConfirmationDialog
+        response={response}
+        showRecipientDetails={false}
+        close={() => setResponse(null)}
+        onConfirm={refresh}
+        additionalData={{
+          title: t`Cancel Offer`,
+          content: response && (
+            <OfferConfirmation type='cancel' offer={record} />
+          ),
+        }}
+      />
     </>
   );
 }
