@@ -31,13 +31,7 @@ import { TrashIcon, WalletIcon } from 'lucide-react';
 import { useContext, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DarkModeContext } from '../App';
-import {
-  commands,
-  KeyInfo,
-  Network,
-  NetworkConfig,
-  WalletConfig,
-} from '../bindings';
+import { commands, KeyInfo, Network, NetworkConfig, Wallet } from '../bindings';
 import { isValidU32 } from '../validation';
 
 export default function Settings() {
@@ -383,8 +377,8 @@ function NetworkSettings() {
 
   const [discoverPeers, setDiscoverPeers] = useState<boolean | null>(null);
   const [targetPeersText, setTargetPeers] = useState<string | null>(null);
-  const [networkId, setNetworkId] = useState<string | null>(null);
-  const [networks, setNetworks] = useState<Record<string, Network>>({});
+  const [network, setNetwork] = useState<string | null>(null);
+  const [networks, setNetworks] = useState<Network[]>([]);
 
   const targetPeers =
     targetPeersText === null ? null : parseInt(targetPeersText);
@@ -451,19 +445,19 @@ function NetworkSettings() {
         description={t`Choose the network to connect to`}
         control={
           <Select
-            value={networkId ?? config?.network_id ?? 'mainnet'}
-            onValueChange={(networkId) => {
-              if (networkId !== config?.network_id) {
+            value={network ?? config?.default_network ?? 'mainnet'}
+            onValueChange={(name) => {
+              if (name !== config?.default_network) {
                 if (config) {
-                  setConfig({ ...config, network_id: networkId });
+                  setConfig({ ...config, default_network: name });
                 }
                 clearState();
                 commands
-                  .setNetworkId({ network_id: networkId })
+                  .setNetwork({ name })
                   .catch(addError)
                   .finally(() => {
                     fetchState();
-                    setNetworkId(networkId);
+                    setNetwork(name);
                   });
               }
             }}
@@ -476,9 +470,9 @@ function NetworkSettings() {
               <SelectValue placeholder={<Trans>Select network</Trans>} />
             </SelectTrigger>
             <SelectContent>
-              {Object.keys(networks).map((networkId, i) => (
-                <SelectItem key={i} value={networkId}>
-                  {networkId}
+              {networks.map((network, i) => (
+                <SelectItem key={i} value={network.name}>
+                  {network.name}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -585,7 +579,7 @@ function WalletSettings(props: { wallet: KeyInfo }) {
   const invalidDerivationBatchSize =
     derivationBatchSize === null || !isValidU32(derivationBatchSize, 1);
 
-  const [config, setConfig] = useState<WalletConfig | null>(null);
+  const [config, setConfig] = useState<Wallet | null>(null);
 
   useEffect(() => {
     commands
@@ -623,7 +617,7 @@ function WalletSettings(props: { wallet: KeyInfo }) {
         }
       />
 
-      <SettingItem
+      {/* <SettingItem
         label={t`Generate Addresses`}
         description={t`Automatically generate new addresses as needed`}
         control={
@@ -676,7 +670,7 @@ function WalletSettings(props: { wallet: KeyInfo }) {
             }}
           />
         }
-      />
+      /> */}
     </SettingsSection>
   );
 }

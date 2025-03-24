@@ -1,7 +1,7 @@
 import {
   commands,
   events,
-  NetworkConfig,
+  NetworkKind,
   OfferRecord,
   TransactionResponse,
 } from '@/bindings';
@@ -225,11 +225,10 @@ function Offer({ record, refresh }: OfferProps) {
   const [isDeleteOpen, setDeleteOpen] = useState(false);
   const [isCancelOpen, setCancelOpen] = useState(false);
 
-  const [config, setConfig] = useState<NetworkConfig | null>(null);
-  const network = config?.network_id ?? 'mainnet';
+  const [network, setNetwork] = useState<NetworkKind | null>(null);
 
   useEffect(() => {
-    commands.networkConfig().then((config) => setConfig(config));
+    commands.getNetwork({}).then((data) => setNetwork(data.kind));
   }, []);
 
   const cancelSchema = z.object({
@@ -336,13 +335,13 @@ function Offer({ record, refresh }: OfferProps) {
                     </span>
                   </DropdownMenuItem>
 
-                  {(network === 'mainnet' || network === 'testnet11') && (
+                  {network !== 'unknown' && (
                     <DropdownMenuItem
                       className='cursor-pointer'
                       onClick={(e) => {
                         e.stopPropagation();
                         openUrl(
-                          dexieLink(record.offer_id, network === 'testnet11'),
+                          dexieLink(record.offer_id, network === 'testnet'),
                         );
                       }}
                     >

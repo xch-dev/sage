@@ -200,14 +200,17 @@ async setDiscoverPeers(req: SetDiscoverPeers) : Promise<SetDiscoverPeersResponse
 async setTargetPeers(req: SetTargetPeers) : Promise<SetTargetPeersResponse> {
     return await TAURI_INVOKE("set_target_peers", { req });
 },
-async setNetworkId(req: SetNetworkId) : Promise<SetNetworkIdResponse> {
-    return await TAURI_INVOKE("set_network_id", { req });
+async setNetwork(req: SetNetwork) : Promise<SetNetworkResponse> {
+    return await TAURI_INVOKE("set_network", { req });
 },
 async walletConfig(fingerprint: number) : Promise<Wallet | null> {
     return await TAURI_INVOKE("wallet_config", { fingerprint });
 },
 async getNetworks(req: GetNetworks) : Promise<NetworkList> {
     return await TAURI_INVOKE("get_networks", { req });
+},
+async getNetwork(req: GetNetwork) : Promise<GetNetworkResponse> {
+    return await TAURI_INVOKE("get_network", { req });
 },
 async updateCat(req: UpdateCat) : Promise<UpdateCatResponse> {
     return await TAURI_INVOKE("update_cat", { req });
@@ -367,6 +370,8 @@ export type GetKeys = Record<string, never>
 export type GetKeysResponse = { keys: KeyInfo[] }
 export type GetMinterDidIds = { offset: number; limit: number }
 export type GetMinterDidIdsResponse = { did_ids: string[]; total: number }
+export type GetNetwork = Record<string, never>
+export type GetNetworkResponse = { network: Network; kind: NetworkKind }
 export type GetNetworks = Record<string, never>
 export type GetNft = { nft_id: string }
 export type GetNftCollection = { collection_id: string | null }
@@ -421,6 +426,7 @@ export type MakeOffer = { requested_assets: Assets; offered_assets: Assets; fee:
 export type MakeOfferResponse = { offer: string; offer_id: string }
 export type Network = { name: string; ticker: string; prefix?: string | null; precision: number; network_id?: string | null; default_port: number; genesis_challenge: string; agg_sig_me?: string | null; dns_introducers: string[]; peer_introducers: string[]; inherit?: InheritedNetwork | null }
 export type NetworkConfig = { default_network: string; target_peers: number; discover_peers: boolean }
+export type NetworkKind = "mainnet" | "testnet" | "unknown"
 export type NetworkList = { networks: Network[] }
 export type NftCollectionRecord = { collection_id: string; did_id: string; metadata_collection_id: string; visible: boolean; name: string | null; icon: string | null }
 export type NftData = { blob: string | null; mime_type: string | null; hash_matches: boolean; metadata_json: string | null; metadata_hash_matches: boolean }
@@ -455,8 +461,8 @@ export type SendTransactionImmediatelyResponse = { status: number; error: string
 export type SendXch = { address: string; amount: Amount; fee: Amount; memos?: string[]; auto_submit?: boolean }
 export type SetDiscoverPeers = { discover_peers: boolean }
 export type SetDiscoverPeersResponse = Record<string, never>
-export type SetNetworkId = { network_id: string }
-export type SetNetworkIdResponse = Record<string, never>
+export type SetNetwork = { name: string }
+export type SetNetworkResponse = Record<string, never>
 export type SetTargetPeers = { target_peers: number }
 export type SetTargetPeersResponse = Record<string, never>
 export type SignCoinSpends = { coin_spends: CoinSpendJson[]; auto_submit?: boolean; partial?: boolean }

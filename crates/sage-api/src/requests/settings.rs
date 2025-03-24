@@ -1,4 +1,4 @@
-use sage_config::NetworkList;
+use sage_config::{Network, NetworkList};
 use serde::{Deserialize, Serialize};
 
 use crate::PeerRecord;
@@ -56,16 +56,36 @@ pub struct SetTargetPeersResponse {}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
-pub struct SetNetworkId {
-    pub network_id: String,
+pub struct SetNetwork {
+    pub name: String,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
-pub struct SetNetworkIdResponse {}
+pub struct SetNetworkResponse {}
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct GetNetworks {}
 
 pub type GetNetworksResponse = NetworkList;
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct GetNetwork {}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct GetNetworkResponse {
+    pub network: Network,
+    pub kind: NetworkKind,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[serde(rename_all = "snake_case")]
+pub enum NetworkKind {
+    Mainnet,
+    Testnet,
+    Unknown,
+}
