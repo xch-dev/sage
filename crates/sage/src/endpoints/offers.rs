@@ -32,8 +32,8 @@ use tracing::{debug, warn};
 
 use crate::{
     extract_nft_data, json_bundle, lookup_coin_creation, offer_expiration, parse_asset_id,
-    parse_cat_amount, parse_genesis_challenge, parse_nft_id, parse_offer_id, ConfirmationInfo,
-    Error, ExtractedNftData, Result, Sage,
+    parse_cat_amount, parse_nft_id, parse_offer_id, ConfirmationInfo, Error, ExtractedNftData,
+    Result, Sage,
 };
 
 impl Sage {
@@ -117,7 +117,7 @@ impl Sage {
         let offer = wallet
             .sign_make_offer(
                 unsigned,
-                &AggSigConstants::new(parse_genesis_challenge(self.network().agg_sig_me.clone())?),
+                &AggSigConstants::new(self.network().agg_sig_me),
                 master_sk,
             )
             .await?;
@@ -154,7 +154,7 @@ impl Sage {
         let spend_bundle = wallet
             .sign_take_offer(
                 unsigned,
-                &AggSigConstants::new(parse_genesis_challenge(self.network().agg_sig_me.clone())?),
+                &AggSigConstants::new(self.network().agg_sig_me),
                 master_sk,
             )
             .await?;
@@ -229,12 +229,9 @@ impl Sage {
         let (maker, coin_ids) = parse_locked_coins(&mut allocator, &parsed_offer)?;
 
         let status = if let Some(peer) = peer {
-            let coin_creation = lookup_coin_creation(
-                &peer,
-                coin_ids.clone(),
-                parse_genesis_challenge(self.network().genesis_challenge.clone())?,
-            )
-            .await?;
+            let coin_creation =
+                lookup_coin_creation(&peer, coin_ids.clone(), self.network().genesis_challenge)
+                    .await?;
             offer_expiration(&mut allocator, &parsed_offer, &coin_creation)?
         } else {
             warn!("No peers available to fetch coin creation information, so skipping for now");

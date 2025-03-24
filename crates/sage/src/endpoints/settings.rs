@@ -10,7 +10,7 @@ use sage_api::{
 };
 use sage_wallet::SyncCommand;
 
-use crate::{parse_genesis_challenge, Result, Sage};
+use crate::{Result, Sage};
 
 impl Sage {
     pub async fn get_peers(&self, _req: GetPeers) -> Result<GetPeersResponse> {
@@ -93,7 +93,7 @@ impl Sage {
                 network_id: req.network_id,
                 network: chia_wallet_sdk::client::Network {
                     default_port: network.default_port,
-                    genesis_challenge: parse_genesis_challenge(network.genesis_challenge.clone())?,
+                    genesis_challenge: network.genesis_challenge,
                     dns_introducers: network.dns_introducers.clone(),
                 },
             })

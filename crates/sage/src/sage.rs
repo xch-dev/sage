@@ -203,7 +203,7 @@ impl Sage {
             network_id,
             chia_wallet_sdk::client::Network {
                 default_port: network.default_port,
-                genesis_challenge: hex::decode(&network.genesis_challenge)?.try_into()?,
+                genesis_challenge: network.genesis_challenge,
                 dns_introducers: network.dns_introducers.clone(),
             },
             connector,
@@ -240,7 +240,7 @@ impl Sage {
             db.clone(),
             fingerprint,
             intermediate_pk,
-            hex::decode(&self.network().genesis_challenge)?.try_into()?,
+            self.network().genesis_challenge,
         ));
 
         self.wallet = Some(wallet.clone());
