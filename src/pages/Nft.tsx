@@ -11,13 +11,7 @@ import { openUrl } from '@tauri-apps/plugin-opener';
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import {
-  commands,
-  events,
-  NetworkConfig,
-  NftData,
-  NftRecord,
-} from '../bindings';
+import { commands, events, NetworkKind, NftData, NftRecord } from '../bindings';
 
 export default function Nft() {
   const { launcher_id: launcherId } = useParams();
@@ -71,10 +65,13 @@ export default function Nft() {
     }
   }, [data?.metadata_json, nft]);
 
-  const [config, setConfig] = useState<NetworkConfig | null>(null);
+  const [network, setNetwork] = useState<NetworkKind | null>(null);
 
   useEffect(() => {
-    commands.networkConfig().then(setConfig).catch(addError);
+    commands
+      .getNetwork({})
+      .then((data) => setNetwork(data.kind))
+      .catch(addError);
   }, [addError]);
 
   return (
@@ -297,12 +294,10 @@ export default function Nft() {
                 variant='outline'
                 onClick={() => {
                   openUrl(
-                    `https://${config?.network_id !== 'mainnet' ? 'testnet.' : ''}mintgarden.io/nfts/${nft?.launcher_id}`,
+                    `https://${network === 'testnet' ? 'testnet.' : ''}mintgarden.io/nfts/${nft?.launcher_id}`,
                   );
                 }}
-                disabled={
-                  !['mainnet', 'testnet11'].includes(config?.network_id ?? '')
-                }
+                disabled={network === 'unknown'}
               >
                 <img
                   src='https://mintgarden.io/mint-logo.svg'
@@ -316,12 +311,10 @@ export default function Nft() {
                 variant='outline'
                 onClick={() => {
                   openUrl(
-                    `https://${config?.network_id !== 'mainnet' ? 'testnet11.' : ''}spacescan.io/nft/${nft?.launcher_id}`,
+                    `https://${network === 'testnet' ? 'testnet11.' : ''}spacescan.io/nft/${nft?.launcher_id}`,
                   );
                 }}
-                disabled={
-                  !['mainnet', 'testnet11'].includes(config?.network_id ?? '')
-                }
+                disabled={network === 'unknown'}
               >
                 <img
                   src='https://spacescan.io/images/spacescan-logo-192.png'

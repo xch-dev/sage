@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { CustomError } from '@/contexts/ErrorContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useWallet } from '@/contexts/WalletContext';
 import { useDefaultOfferExpiry } from '@/hooks/useDefaultOfferExpiry';
@@ -31,13 +32,7 @@ import { TrashIcon, WalletIcon } from 'lucide-react';
 import { useContext, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DarkModeContext } from '../App';
-import {
-  commands,
-  KeyInfo,
-  Network,
-  NetworkConfig,
-  WalletConfig,
-} from '../bindings';
+import { commands, Network, NetworkConfig, Wallet } from '../bindings';
 import { isValidU32 } from '../validation';
 
 export default function Settings() {
@@ -123,7 +118,7 @@ export default function Settings() {
 
               <TabsContent value='wallet'>
                 {wallet ? (
-                  <WalletSettings wallet={wallet} />
+                  <WalletSettings fingerprint={wallet.fingerprint} />
                 ) : (
                   <Card>
                     <CardContent className='flex flex-col items-center justify-center gap-4 py-12'>
@@ -383,8 +378,8 @@ function NetworkSettings() {
 
   const [discoverPeers, setDiscoverPeers] = useState<boolean | null>(null);
   const [targetPeersText, setTargetPeers] = useState<string | null>(null);
-  const [networkId, setNetworkId] = useState<string | null>(null);
-  const [networks, setNetworks] = useState<Record<string, Network>>({});
+  const [network, setNetwork] = useState<string | null>(null);
+  const [networks, setNetworks] = useState<Network[]>([]);
 
   const targetPeers =
     targetPeersText === null ? null : parseInt(targetPeersText);
@@ -404,6 +399,46 @@ function NetworkSettings() {
 
   return (
     <SettingsSection title={t`Network`}>
+      <SettingItem
+        label={t`Default Network`}
+        description={t`Choose the network to connect to`}
+        control={
+          <Select
+            value={network ?? config?.default_network ?? 'mainnet'}
+            onValueChange={(name) => {
+              if (name !== config?.default_network) {
+                if (config) {
+                  setConfig({ ...config, default_network: name });
+                }
+                clearState();
+                commands
+                  .setNetwork({ name })
+                  .catch(addError)
+                  .finally(() => {
+                    fetchState();
+                    setNetwork(name);
+                  });
+              }
+            }}
+          >
+            <SelectTrigger
+              id='network'
+              aria-label='Select network'
+              className='w-[140px]'
+            >
+              <SelectValue placeholder={<Trans>Select network</Trans>} />
+            </SelectTrigger>
+            <SelectContent>
+              {networks.map((network, i) => (
+                <SelectItem key={i} value={network.name}>
+                  {network.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        }
+      />
+
       <SettingItem
         label={t`Discover Peers`}
         description={t`Automatically discover and connect to peers`}
@@ -443,46 +478,6 @@ function NetworkSettings() {
               }
             }}
           />
-        }
-      />
-
-      <SettingItem
-        label={t`Network ID`}
-        description={t`Choose the network to connect to`}
-        control={
-          <Select
-            value={networkId ?? config?.network_id ?? 'mainnet'}
-            onValueChange={(networkId) => {
-              if (networkId !== config?.network_id) {
-                if (config) {
-                  setConfig({ ...config, network_id: networkId });
-                }
-                clearState();
-                commands
-                  .setNetworkId({ network_id: networkId })
-                  .catch(addError)
-                  .finally(() => {
-                    fetchState();
-                    setNetworkId(networkId);
-                  });
-              }
-            }}
-          >
-            <SelectTrigger
-              id='network'
-              aria-label='Select network'
-              className='w-[140px]'
-            >
-              <SelectValue placeholder={<Trans>Select network</Trans>} />
-            </SelectTrigger>
-            <SelectContent>
-              {Object.keys(networks).map((networkId, i) => (
-                <SelectItem key={i} value={networkId}>
-                  {networkId}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
         }
       />
     </SettingsSection>
@@ -568,31 +563,53 @@ function RpcSettings() {
   );
 }
 
-function WalletSettings(props: { wallet: KeyInfo }) {
+function WalletSettings({ fingerprint }: { fingerprint: number }) {
   const { addError } = useErrors();
 
-  const [name, setName] = useState(props.wallet.name);
-  const [deriveAutomatically, setDeriveAutomatically] = useState<
-    boolean | null
-  >(true);
-  const [derivationBatchSizeText, setDerivationBatchSize] = useState<
-    string | null
-  >(null);
-
-  const derivationBatchSize =
-    derivationBatchSizeText === null ? null : parseInt(derivationBatchSizeText);
-
-  const invalidDerivationBatchSize =
-    derivationBatchSize === null || !isValidU32(derivationBatchSize, 1);
-
-  const [config, setConfig] = useState<WalletConfig | null>(null);
+  const [wallet, setWallet] = useState<Wallet | null>(null);
+  const [localName, setLocalName] = useState<string>('');
+  const [networks, setNetworks] = useState<Network[]>([]);
 
   useEffect(() => {
     commands
-      .walletConfig(props.wallet.fingerprint)
-      .then(setConfig)
+      .getNetworks({})
+      .then((data) => setNetworks(data.networks))
       .catch(addError);
-  }, [props.wallet.fingerprint, addError]);
+
+    commands
+      .walletConfig(fingerprint)
+      .then((data) => {
+        setWallet(data);
+        if (data?.name) setLocalName(data.name);
+      })
+      .catch(addError);
+  }, [addError, fingerprint]);
+
+  const addOverride = async () => {
+    if (!wallet) return;
+    try {
+      const config = await commands.networkConfig();
+      await commands.setNetworkOverride({
+        fingerprint,
+        name: config.default_network,
+      });
+      setWallet({ ...wallet, network: config.default_network });
+    } catch (error) {
+      addError(error as CustomError);
+    }
+  };
+
+  const setOverride = async (name: string | null) => {
+    if (!wallet) return;
+    clearState();
+    try {
+      await commands.setNetworkOverride({ fingerprint, name });
+      setWallet({ ...wallet, network: name });
+    } catch (error) {
+      addError(error as CustomError);
+    }
+    fetchState();
+  };
 
   return (
     <SettingsSection title={t`Wallet`}>
@@ -603,80 +620,73 @@ function WalletSettings(props: { wallet: KeyInfo }) {
           <Input
             type='text'
             className='w-[200px]'
-            value={name}
-            onChange={(event) => setName(event.target.value)}
+            value={localName}
+            onChange={(event) => setLocalName(event.target.value)}
             onBlur={() => {
-              if (name !== config?.name) {
-                if (config) {
-                  setConfig({ ...config, name });
-                }
-                if (name)
-                  commands
-                    .renameKey({
-                      fingerprint: props.wallet.fingerprint,
-                      name,
-                    })
-                    .catch(addError);
-              }
+              if (localName === wallet?.name) return;
+
+              commands
+                .renameKey({
+                  fingerprint,
+                  name: localName,
+                })
+                .then(() => {
+                  if (wallet) {
+                    setWallet({ ...wallet, name: localName });
+                  }
+                })
+                .catch(addError);
             }}
           />
         }
       />
 
       <SettingItem
-        label={t`Generate Addresses`}
-        description={t`Automatically generate new addresses as needed`}
+        label={t`Override Network`}
+        description={t`Override the default network for this wallet`}
         control={
           <Switch
-            checked={
-              deriveAutomatically ?? config?.derive_automatically ?? true
-            }
+            checked={!!wallet?.network}
             onCheckedChange={(checked) => {
-              commands
-                .setDeriveAutomatically({
-                  fingerprint: props.wallet.fingerprint,
-                  derive_automatically: checked,
-                })
-                .catch(addError)
-                .finally(() => setDeriveAutomatically(checked));
-            }}
-          />
-        }
-      />
-
-      <SettingItem
-        label={t`Address Batch Size`}
-        description={t`Number of addresses to generate at once`}
-        control={
-          <Input
-            type='number'
-            className='w-[120px]'
-            value={
-              derivationBatchSizeText ?? config?.derivation_batch_size ?? 500
-            }
-            disabled={!(deriveAutomatically ?? config?.derive_automatically)}
-            onChange={(event) => setDerivationBatchSize(event.target.value)}
-            onBlur={() => {
-              if (invalidDerivationBatchSize) return;
-
-              if (derivationBatchSize !== config?.derivation_batch_size) {
-                if (config) {
-                  setConfig({
-                    ...config,
-                    derivation_batch_size: derivationBatchSize,
-                  });
-                }
-                commands
-                  .setDerivationBatchSize({
-                    fingerprint: props.wallet.fingerprint,
-                    derivation_batch_size: derivationBatchSize,
-                  })
-                  .catch(addError);
+              if (checked) {
+                addOverride();
+              } else {
+                setOverride(null);
               }
             }}
           />
         }
       />
+
+      {!!wallet?.network && (
+        <SettingItem
+          label={t`Network`}
+          description={t`The network which this wallet will use`}
+          control={
+            <Select
+              value={wallet?.network}
+              onValueChange={(name) => {
+                setOverride(name);
+              }}
+            >
+              <SelectTrigger
+                id='network'
+                aria-label='Select network'
+                className='w-[140px]'
+              >
+                <SelectValue placeholder={<Trans>Select network</Trans>} />
+              </SelectTrigger>
+              <SelectContent>
+                {networks.map((network, i) => (
+                  <SelectItem key={i} value={network.name}>
+                    {network.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          }
+        />
+      )}
     </SettingsSection>
   );
 }

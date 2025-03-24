@@ -31,8 +31,8 @@ use tokio::time::timeout;
 use tracing::{debug, warn};
 
 use crate::{
-    extract_nft_data, json_bundle, lookup_coin_creation, offer_expiration, parse_asset_id,
-    parse_cat_amount, parse_nft_id, parse_offer_id, ConfirmationInfo, Error, ExtractedNftData,
+    extract_nft_data, json_bundle, lookup_coin_creation, offer_expiration, parse_amount,
+    parse_asset_id, parse_nft_id, parse_offer_id, ConfirmationInfo, Error, ExtractedNftData,
     Result, Sage,
 };
 
@@ -40,12 +40,12 @@ impl Sage {
     pub async fn make_offer(&self, req: MakeOffer) -> Result<MakeOfferResponse> {
         let wallet = self.wallet()?;
 
-        let offered_xch = self.parse_amount(req.offered_assets.xch)?;
+        let offered_xch = parse_amount(req.offered_assets.xch)?;
 
         let mut offered_cats = IndexMap::new();
 
         for CatAmount { asset_id, amount } in req.offered_assets.cats {
-            offered_cats.insert(parse_asset_id(asset_id)?, parse_cat_amount(amount)?);
+            offered_cats.insert(parse_asset_id(asset_id)?, parse_amount(amount)?);
         }
 
         let mut offered_nfts = Vec::new();
@@ -54,12 +54,12 @@ impl Sage {
             offered_nfts.push(parse_nft_id(nft_id)?);
         }
 
-        let requested_xch = self.parse_amount(req.requested_assets.xch)?;
+        let requested_xch = parse_amount(req.requested_assets.xch)?;
 
         let mut requested_cats = IndexMap::new();
 
         for CatAmount { asset_id, amount } in req.requested_assets.cats {
-            requested_cats.insert(parse_asset_id(asset_id)?, parse_cat_amount(amount)?);
+            requested_cats.insert(parse_asset_id(asset_id)?, parse_amount(amount)?);
         }
 
         let mut requested_nfts = IndexMap::new();
@@ -81,7 +81,7 @@ impl Sage {
             requested_nfts.insert(nft_id, offer_details);
         }
 
-        let fee = self.parse_amount(req.fee)?;
+        let fee = parse_amount(req.fee)?;
 
         let p2_puzzle_hash = req
             .receive_address
@@ -117,7 +117,7 @@ impl Sage {
         let offer = wallet
             .sign_make_offer(
                 unsigned,
-                &AggSigConstants::new(self.network().agg_sig_me),
+                &AggSigConstants::new(self.network().agg_sig_me()),
                 master_sk,
             )
             .await?;
@@ -141,7 +141,7 @@ impl Sage {
         let wallet = self.wallet()?;
 
         let offer = Offer::decode(&req.offer)?;
-        let fee = self.parse_amount(req.fee)?;
+        let fee = parse_amount(req.fee)?;
 
         let unsigned = wallet.take_offer(offer, fee, false, true).await?;
 
@@ -154,7 +154,7 @@ impl Sage {
         let spend_bundle = wallet
             .sign_take_offer(
                 unsigned,
-                &AggSigConstants::new(self.network().agg_sig_me),
+                &AggSigConstants::new(self.network().agg_sig_me()),
                 master_sk,
             )
             .await?;
@@ -555,11 +555,8 @@ impl Sage {
             let nft_id = Address::new(nft.launcher_id, "nft".to_string()).encode()?;
 
             let record = OfferNft {
-                royalty_address: Address::new(
-                    nft.royalty_puzzle_hash,
-                    self.network().address_prefix.clone(),
-                )
-                .encode()?,
+                royalty_address: Address::new(nft.royalty_puzzle_hash, self.network().prefix())
+                    .encode()?,
                 royalty_ten_thousandths: nft.royalty_ten_thousandths,
                 name: nft.name,
                 icon: nft.thumbnail.map(|data| BASE64_STANDARD.encode(data)),
@@ -613,7 +610,7 @@ impl Sage {
     pub async fn cancel_offer(&self, req: CancelOffer) -> Result<CancelOfferResponse> {
         let wallet = self.wallet()?;
         let offer_id = parse_offer_id(req.offer_id)?;
-        let fee = self.parse_amount(req.fee)?;
+        let fee = parse_amount(req.fee)?;
 
         let Some(row) = wallet.db.get_offer(offer_id).await? else {
             return Err(Error::MissingOffer(offer_id));

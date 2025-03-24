@@ -45,9 +45,7 @@ impl Sage {
         };
 
         let receive_address = puzzle_hash
-            .map(|puzzle_hash| {
-                Address::new(puzzle_hash, self.network().address_prefix.clone()).encode()
-            })
+            .map(|puzzle_hash| Address::new(puzzle_hash, self.network().prefix()).encode())
             .transpose()?;
 
         Ok(GetSyncStatusResponse {
@@ -56,11 +54,8 @@ impl Sage {
             total_coins,
             synced_coins,
             receive_address: receive_address.unwrap_or_default(),
-            burn_address: Address::new(
-                BURN_PUZZLE_HASH.into(),
-                self.network().address_prefix.clone(),
-            )
-            .encode()?,
+            burn_address: Address::new(BURN_PUZZLE_HASH.into(), self.network().prefix())
+                .encode()?,
         })
     }
 
@@ -88,11 +83,7 @@ impl Sage {
                 Ok(DerivationRecord {
                     index: row.index,
                     public_key: hex::encode(row.synthetic_key.to_bytes()),
-                    address: Address::new(
-                        row.p2_puzzle_hash,
-                        self.network().address_prefix.clone(),
-                    )
-                    .encode()?,
+                    address: Address::new(row.p2_puzzle_hash, self.network().prefix()).encode()?,
                 })
             })
             .collect::<Result<Vec<_>>>()?;
@@ -124,8 +115,7 @@ impl Sage {
 
             coins.push(CoinRecord {
                 coin_id: hex::encode(cs.coin.coin_id()),
-                address: Address::new(cs.coin.puzzle_hash, self.network().address_prefix.clone())
-                    .encode()?,
+                address: Address::new(cs.coin.puzzle_hash, self.network().prefix()).encode()?,
                 amount: Amount::u64(cs.coin.amount),
                 created_height: cs.created_height,
                 spent_height: cs.spent_height,
@@ -165,8 +155,7 @@ impl Sage {
 
             coins.push(CoinRecord {
                 coin_id: hex::encode(cs.coin.coin_id()),
-                address: Address::new(cs.coin.puzzle_hash, self.network().address_prefix.clone())
-                    .encode()?,
+                address: Address::new(cs.coin.puzzle_hash, self.network().prefix()).encode()?,
                 amount: Amount::u64(cs.coin.amount),
                 created_height: cs.created_height,
                 spent_height: cs.spent_height,
@@ -243,8 +232,7 @@ impl Sage {
                 name: row.name,
                 visible: row.visible,
                 coin_id: hex::encode(did.coin_id),
-                address: Address::new(did.p2_puzzle_hash, self.network().address_prefix.clone())
-                    .encode()?,
+                address: Address::new(did.p2_puzzle_hash, self.network().prefix()).encode()?,
                 amount: Amount::u64(did.amount),
                 recovery_hash: did.recovery_list_hash.map(hex::encode),
                 created_height: did.created_height,
@@ -657,16 +645,9 @@ impl Sage {
             name: nft_row.name,
             sensitive_content: nft_row.sensitive_content,
             coin_id: hex::encode(nft.coin.coin_id()),
-            address: Address::new(
-                nft.info.p2_puzzle_hash,
-                self.network().address_prefix.clone(),
-            )
-            .encode()?,
-            royalty_address: Address::new(
-                nft.info.royalty_puzzle_hash,
-                self.network().address_prefix.clone(),
-            )
-            .encode()?,
+            address: Address::new(nft.info.p2_puzzle_hash, self.network().prefix()).encode()?,
+            royalty_address: Address::new(nft.info.royalty_puzzle_hash, self.network().prefix())
+                .encode()?,
             royalty_ten_thousandths: nft.info.royalty_ten_thousandths,
             data_uris: metadata
                 .as_ref()
@@ -787,7 +768,7 @@ impl Sage {
             coin_id: hex::encode(coin_id),
             address: p2_puzzle_hash
                 .map(|p2_puzzle_hash| {
-                    Address::new(p2_puzzle_hash, self.network().address_prefix.clone()).encode()
+                    Address::new(p2_puzzle_hash, self.network().prefix()).encode()
                 })
                 .transpose()?,
             address_kind,

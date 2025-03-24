@@ -2,15 +2,15 @@ use std::time::Duration;
 
 use itertools::Itertools;
 use sage_api::{
-    AddPeer, AddPeerResponse, GetNetworks, GetNetworksResponse, GetPeers, GetPeersResponse,
-    PeerRecord, RemovePeer, RemovePeerResponse, SetDerivationBatchSize,
-    SetDerivationBatchSizeResponse, SetDeriveAutomatically, SetDeriveAutomaticallyResponse,
-    SetDiscoverPeers, SetDiscoverPeersResponse, SetNetworkId, SetNetworkIdResponse, SetTargetPeers,
-    SetTargetPeersResponse,
+    AddPeer, AddPeerResponse, GetNetwork, GetNetworkResponse, GetNetworks, GetNetworksResponse,
+    GetPeers, GetPeersResponse, NetworkKind, PeerRecord, RemovePeer, RemovePeerResponse,
+    SetDiscoverPeers, SetDiscoverPeersResponse, SetNetwork, SetNetworkOverride,
+    SetNetworkOverrideResponse, SetNetworkResponse, SetTargetPeers, SetTargetPeersResponse,
 };
+use sage_config::{MAINNET, TESTNET11};
 use sage_wallet::SyncCommand;
 
-use crate::{Result, Sage};
+use crate::{Error, Result, Sage};
 
 impl Sage {
     pub async fn get_peers(&self, _req: GetPeers) -> Result<GetPeersResponse> {
@@ -82,15 +82,16 @@ impl Sage {
         Ok(SetTargetPeersResponse {})
     }
 
-    pub async fn set_network_id(&mut self, req: SetNetworkId) -> Result<SetNetworkIdResponse> {
-        self.config.network.network_id.clone_from(&req.network_id);
+    pub async fn set_network(&mut self, req: SetNetwork) -> Result<SetNetworkResponse> {
+        self.config.network.default_network.clone_from(&req.name);
+
         self.save_config()?;
 
         let network = self.network();
 
         self.command_sender
             .send(SyncCommand::SwitchNetwork {
-                network_id: req.network_id,
+                network_id: network.name.clone(),
                 network: chia_wallet_sdk::client::Network {
                     default_port: network.default_port,
                     genesis_challenge: network.genesis_challenge,
@@ -102,39 +103,59 @@ impl Sage {
         self.switch_wallet().await?;
         self.setup_peers().await?;
 
-        Ok(SetNetworkIdResponse {})
+        Ok(SetNetworkResponse {})
     }
 
-    pub fn set_derive_automatically(
+    pub async fn set_network_override(
         &mut self,
-        req: SetDeriveAutomatically,
-    ) -> Result<SetDeriveAutomaticallyResponse> {
-        let config = self.try_wallet_config_mut(req.fingerprint);
+        req: SetNetworkOverride,
+    ) -> Result<SetNetworkOverrideResponse> {
+        let config = self
+            .wallet_config
+            .wallets
+            .iter_mut()
+            .find(|w| w.fingerprint == req.fingerprint)
+            .ok_or(Error::UnknownFingerprint)?;
 
-        if config.derive_automatically != req.derive_automatically {
-            config.derive_automatically = req.derive_automatically;
-            self.save_config()?;
-        }
+        config.network = req.name;
 
-        Ok(SetDeriveAutomaticallyResponse {})
-    }
-
-    pub fn set_derivation_batch_size(
-        &mut self,
-        req: SetDerivationBatchSize,
-    ) -> Result<SetDerivationBatchSizeResponse> {
-        let config = self.try_wallet_config_mut(req.fingerprint);
-        config.derivation_batch_size = req.derivation_batch_size;
         self.save_config()?;
 
-        // TODO: Update sync manager
+        let network = self.network();
 
-        Ok(SetDerivationBatchSizeResponse {})
+        self.command_sender
+            .send(SyncCommand::SwitchNetwork {
+                network_id: network.name.clone(),
+                network: chia_wallet_sdk::client::Network {
+                    default_port: network.default_port,
+                    genesis_challenge: network.genesis_challenge,
+                    dns_introducers: network.dns_introducers.clone(),
+                },
+            })
+            .await?;
+
+        self.switch_wallet().await?;
+        self.setup_peers().await?;
+
+        Ok(SetNetworkOverrideResponse {})
     }
 
     pub fn get_networks(&mut self, _req: GetNetworks) -> Result<GetNetworksResponse> {
-        Ok(GetNetworksResponse {
-            networks: self.networks.clone(),
+        Ok(self.network_list.clone())
+    }
+
+    pub fn get_network(&mut self, _req: GetNetwork) -> Result<GetNetworkResponse> {
+        let network = self.network();
+
+        Ok(GetNetworkResponse {
+            network: network.clone(),
+            kind: if network.genesis_challenge == MAINNET.genesis_challenge {
+                NetworkKind::Mainnet
+            } else if network.genesis_challenge == TESTNET11.genesis_challenge {
+                NetworkKind::Testnet
+            } else {
+                NetworkKind::Unknown
+            },
         })
     }
 }

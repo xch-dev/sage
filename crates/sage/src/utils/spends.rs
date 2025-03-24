@@ -21,7 +21,7 @@ impl Sage {
         let spend_bundle = wallet
             .sign_transaction(
                 coin_spends,
-                &AggSigConstants::new(self.network().agg_sig_me),
+                &AggSigConstants::new(self.network().agg_sig_me()),
                 master_sk,
                 partial,
             )

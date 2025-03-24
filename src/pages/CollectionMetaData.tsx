@@ -1,20 +1,19 @@
-import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
 import {
   commands,
-  events,
-  NetworkConfig,
+  NetworkKind,
   NftCollectionRecord,
   NftRecord,
 } from '@/bindings';
-import { useErrors } from '@/hooks/useErrors';
-import { Button } from '@/components/ui/button';
-import { t } from '@lingui/core/macro';
-import { Trans } from '@lingui/react/macro';
 import Container from '@/components/Container';
 import { CopyBox } from '@/components/CopyBox';
 import Header from '@/components/Header';
+import { Button } from '@/components/ui/button';
+import { useErrors } from '@/hooks/useErrors';
+import { t } from '@lingui/core/macro';
+import { Trans } from '@lingui/react/macro';
 import { openUrl } from '@tauri-apps/plugin-opener';
+import { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 
 type MetadataContent = {
@@ -38,7 +37,7 @@ export default function CollectionMetaData() {
   const [metadataContent, setMetadataContent] =
     useState<MetadataContent | null>(null);
   const [loading, setLoading] = useState(true);
-  const [config, setConfig] = useState<NetworkConfig | null>(null);
+  const [network, setNetwork] = useState<NetworkKind | null>(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -92,7 +91,10 @@ export default function CollectionMetaData() {
   }, [collection_id, addError]);
 
   useEffect(() => {
-    commands.networkConfig().then(setConfig).catch(addError);
+    commands
+      .getNetwork({})
+      .then((data) => setNetwork(data.kind))
+      .catch(addError);
   }, [addError]);
 
   // Find banner URL from attributes if it exists
@@ -253,6 +255,8 @@ export default function CollectionMetaData() {
     return <span>null</span>;
   };
 
+  const collectionName = collection.name || t`Unnamed Collection`;
+
   return (
     <>
       <Header title={collection?.name ?? t`Unknown Collection`} />
@@ -262,7 +266,7 @@ export default function CollectionMetaData() {
             <div className='w-full h-48 mb-4 rounded-lg overflow-hidden'>
               <img
                 src={getBannerUrl()!}
-                alt={t`Banner for ${collection.name || 'Unnamed Collection'}`}
+                alt={t`Banner for ${collectionName}`}
                 className='w-full h-full object-cover'
               />
             </div>
@@ -274,7 +278,7 @@ export default function CollectionMetaData() {
               <div className='rounded-lg overflow-hidden bg-white dark:bg-neutral-900 shadow-lg'>
                 <img
                   src={collection.icon}
-                  alt={t`Icon for ${collection.name || 'Unnamed Collection'}`}
+                  alt={t`Icon for ${collectionName}`}
                   className='w-full aspect-square object-contain'
                 />
               </div>
@@ -374,12 +378,10 @@ export default function CollectionMetaData() {
                 variant='outline'
                 onClick={() =>
                   openUrl(
-                    `https://${config?.network_id !== 'mainnet' ? 'testnet.' : ''}mintgarden.io/collections/${collection.collection_id}`,
+                    `https://${network === 'testnet' ? 'testnet.' : ''}mintgarden.io/collections/${collection.collection_id}`,
                   )
                 }
-                disabled={
-                  !['mainnet', 'testnet11'].includes(config?.network_id ?? '')
-                }
+                disabled={network === 'unknown'}
               >
                 <img
                   src='https://mintgarden.io/mint-logo.svg'
@@ -392,12 +394,10 @@ export default function CollectionMetaData() {
                 variant='outline'
                 onClick={() =>
                   openUrl(
-                    `https://${config?.network_id !== 'mainnet' ? 'testnet11.' : ''}spacescan.io/collection/${collection.collection_id}`,
+                    `https://${network === 'testnet' ? 'testnet11.' : ''}spacescan.io/collection/${collection.collection_id}`,
                   )
                 }
-                disabled={
-                  !['mainnet', 'testnet11'].includes(config?.network_id ?? '')
-                }
+                disabled={network === 'unknown'}
               >
                 <img
                   src='https://spacescan.io/images/spacescan-logo-192.png'

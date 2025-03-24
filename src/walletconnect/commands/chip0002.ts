@@ -3,9 +3,8 @@ import { BigNumber } from 'bignumber.js';
 import { Params } from '../commands';
 
 export async function handleChainId(_params: Params<'chip0002_chainId'>) {
-  const data = await commands.networkConfig();
-
-  return data.network_id;
+  const data = await commands.getNetwork({});
+  return data.network.network_id;
 }
 
 export async function handleConnect(_params: Params<'chip0002_connect'>) {
