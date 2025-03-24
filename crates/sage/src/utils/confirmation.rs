@@ -90,8 +90,7 @@ impl Sage {
                 }
             };
 
-            let address =
-                Address::new(p2_puzzle_hash, self.network().address_prefix.clone()).encode()?;
+            let address = Address::new(p2_puzzle_hash, self.network().prefix()).encode()?;
 
             let mut outputs = Vec::new();
 
@@ -104,8 +103,7 @@ impl Sage {
                     ChildKind::Nft { info, .. } => info.p2_puzzle_hash,
                 };
 
-                let address =
-                    Address::new(p2_puzzle_hash, self.network().address_prefix.clone()).encode()?;
+                let address = Address::new(p2_puzzle_hash, self.network().prefix()).encode()?;
 
                 outputs.push(TransactionOutput {
                     coin_id: hex::encode(output.coin.coin_id()),

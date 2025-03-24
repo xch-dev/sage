@@ -555,11 +555,8 @@ impl Sage {
             let nft_id = Address::new(nft.launcher_id, "nft".to_string()).encode()?;
 
             let record = OfferNft {
-                royalty_address: Address::new(
-                    nft.royalty_puzzle_hash,
-                    self.network().address_prefix.clone(),
-                )
-                .encode()?,
+                royalty_address: Address::new(nft.royalty_puzzle_hash, self.network().prefix())
+                    .encode()?,
                 royalty_ten_thousandths: nft.royalty_ten_thousandths,
                 name: nft.name,
                 icon: nft.thumbnail.map(|data| BASE64_STANDARD.encode(data)),

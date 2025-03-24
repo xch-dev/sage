@@ -1,13 +1,11 @@
-mod app_config;
+#![allow(clippy::needless_raw_string_hashes)]
+
 mod config;
 mod network;
-mod network_config;
-mod rpc_config;
-mod wallet_config;
+mod old;
+mod wallet;
 
-pub use app_config::*;
 pub use config::*;
 pub use network::*;
-pub use network_config::*;
-pub use rpc_config::*;
-pub use wallet_config::*;
+pub use old::*;
+pub use wallet::*;

@@ -137,7 +137,7 @@ impl Sage {
                     royalty_ten_thousandths: nft.info.royalty_ten_thousandths,
                     royalty_address: Address::new(
                         nft.info.royalty_puzzle_hash,
-                        self.network().address_prefix.clone(),
+                        self.network().prefix().clone(),
                     )
                     .encode()?,
                 },
@@ -183,11 +183,8 @@ impl Sage {
                     icon: info.icon.map(|icon| BASE64_STANDARD.encode(icon)),
                     name: info.name,
                     royalty_ten_thousandths: nft.royalty_ten_thousandths,
-                    royalty_address: Address::new(
-                        nft.royalty_puzzle_hash,
-                        self.network().address_prefix.clone(),
-                    )
-                    .encode()?,
+                    royalty_address: Address::new(nft.royalty_puzzle_hash, self.network().prefix())
+                        .encode()?,
                 },
             );
         }

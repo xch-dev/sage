@@ -65,8 +65,6 @@
   "set_discover_peers": true,
   "set_target_peers": true,
   "set_network_id": true,
-  "set_derive_automatically": false,
-  "set_derivation_batch_size": false,
   "get_networks": false,
   "remove_cat": true,
   "update_cat": true,

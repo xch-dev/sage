@@ -3,10 +3,8 @@ use std::time::Duration;
 use itertools::Itertools;
 use sage_api::{
     AddPeer, AddPeerResponse, GetNetworks, GetNetworksResponse, GetPeers, GetPeersResponse,
-    PeerRecord, RemovePeer, RemovePeerResponse, SetDerivationBatchSize,
-    SetDerivationBatchSizeResponse, SetDeriveAutomatically, SetDeriveAutomaticallyResponse,
-    SetDiscoverPeers, SetDiscoverPeersResponse, SetNetworkId, SetNetworkIdResponse, SetTargetPeers,
-    SetTargetPeersResponse,
+    PeerRecord, RemovePeer, RemovePeerResponse, SetDiscoverPeers, SetDiscoverPeersResponse,
+    SetNetworkId, SetNetworkIdResponse, SetTargetPeers, SetTargetPeersResponse,
 };
 use sage_wallet::SyncCommand;
 
@@ -83,7 +81,11 @@ impl Sage {
     }
 
     pub async fn set_network_id(&mut self, req: SetNetworkId) -> Result<SetNetworkIdResponse> {
-        self.config.network.network_id.clone_from(&req.network_id);
+        self.config
+            .network
+            .default_network
+            .clone_from(&req.network_id);
+
         self.save_config()?;
 
         let network = self.network();
@@ -105,36 +107,7 @@ impl Sage {
         Ok(SetNetworkIdResponse {})
     }
 
-    pub fn set_derive_automatically(
-        &mut self,
-        req: SetDeriveAutomatically,
-    ) -> Result<SetDeriveAutomaticallyResponse> {
-        let config = self.try_wallet_config_mut(req.fingerprint);
-
-        if config.derive_automatically != req.derive_automatically {
-            config.derive_automatically = req.derive_automatically;
-            self.save_config()?;
-        }
-
-        Ok(SetDeriveAutomaticallyResponse {})
-    }
-
-    pub fn set_derivation_batch_size(
-        &mut self,
-        req: SetDerivationBatchSize,
-    ) -> Result<SetDerivationBatchSizeResponse> {
-        let config = self.try_wallet_config_mut(req.fingerprint);
-        config.derivation_batch_size = req.derivation_batch_size;
-        self.save_config()?;
-
-        // TODO: Update sync manager
-
-        Ok(SetDerivationBatchSizeResponse {})
-    }
-
     pub fn get_networks(&mut self, _req: GetNetworks) -> Result<GetNetworksResponse> {
-        Ok(GetNetworksResponse {
-            networks: self.networks.clone(),
-        })
+        Ok(self.network_list.clone())
     }
 }

@@ -3,7 +3,7 @@ use std::time::Duration;
 use chia_wallet_sdk::utils::Address;
 use sage_api::{wallet_connect::*, *};
 use sage_api_macro::impl_endpoints_tauri;
-use sage_config::{NetworkConfig, WalletConfig};
+use sage_config::{NetworkConfig, Wallet};
 use sage_rpc::start_rpc;
 use specta::specta;
 use tauri::{command, AppHandle, State};
@@ -53,7 +53,7 @@ pub async fn initialize(
 
     let app_state = state.lock().await;
 
-    if app_state.config.rpc.run_on_startup {
+    if app_state.config.rpc.enabled {
         *rpc_task.0.lock().await = Some(tokio::spawn(start_rpc((*state).clone())));
     }
 
@@ -77,7 +77,7 @@ pub async fn validate_address(state: State<'_, AppState>, address: String) -> Re
     let Some(address) = Address::decode(&address).ok() else {
         return Ok(false);
     };
-    Ok(address.prefix == state.network().address_prefix)
+    Ok(address.prefix == state.network().prefix())
 }
 
 #[command]
@@ -88,8 +88,15 @@ pub async fn network_config(state: State<'_, AppState>) -> Result<NetworkConfig>
 
 #[command]
 #[specta]
-pub async fn wallet_config(state: State<'_, AppState>, fingerprint: u32) -> Result<WalletConfig> {
-    Ok(state.lock().await.try_wallet_config(fingerprint).clone())
+pub async fn wallet_config(state: State<'_, AppState>, fingerprint: u32) -> Result<Option<Wallet>> {
+    Ok(state
+        .lock()
+        .await
+        .wallet_config
+        .wallets
+        .iter()
+        .find(|wallet| wallet.fingerprint == fingerprint)
+        .cloned())
 }
 
 #[command]
@@ -122,7 +129,7 @@ pub async fn stop_rpc_server(rpc_task: State<'_, RpcTask>) -> Result<()> {
 #[command]
 #[specta]
 pub async fn get_rpc_run_on_startup(state: State<'_, AppState>) -> Result<bool> {
-    Ok(state.lock().await.config.rpc.run_on_startup)
+    Ok(state.lock().await.config.rpc.enabled)
 }
 
 #[command]
@@ -131,7 +138,7 @@ pub async fn set_rpc_run_on_startup(
     state: State<'_, AppState>,
     run_on_startup: bool,
 ) -> Result<()> {
-    state.lock().await.config.rpc.run_on_startup = run_on_startup;
+    state.lock().await.config.rpc.enabled = run_on_startup;
     state.lock().await.save_config()?;
     Ok(())
 }

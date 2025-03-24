@@ -90,8 +90,6 @@ pub fn run() {
             commands::set_target_peers,
             commands::set_network_id,
             commands::wallet_config,
-            commands::set_derive_automatically,
-            commands::set_derivation_batch_size,
             commands::get_networks,
             commands::update_cat,
             commands::remove_cat,
