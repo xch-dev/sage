@@ -5735,11 +5735,13 @@ dependencies = [
 name = "sage-config"
 version = "0.9.6"
 dependencies = [
+ "chia",
  "chia-wallet-sdk",
  "hex",
  "indexmap 2.7.1",
  "once_cell",
  "serde",
+ "serde_with",
  "specta",
 ]
 

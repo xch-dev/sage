@@ -16,7 +16,9 @@ workspace = true
 
 [dependencies]
 chia-wallet-sdk = { workspace = true }
+chia = { workspace = true }
 serde = { workspace = true }
+serde_with = { workspace = true, features = ["hex"] }
 indexmap = { workspace = true }
 specta = { workspace = true, features = ["derive", "indexmap"] }
 hex = { workspace = true }

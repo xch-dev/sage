@@ -15,7 +15,7 @@ use tokio::time::timeout;
 use tracing::warn;
 
 use crate::utils::offer_status::{lookup_coin_creation, offer_expiration};
-use crate::{parse_genesis_challenge, Result, Sage};
+use crate::{Result, Sage};
 
 use super::{extract_nft_data, ConfirmationInfo, ExtractedNftData};
 
@@ -32,12 +32,9 @@ impl Sage {
         // Get expiration information
         let peer = self.peer_state.lock().await.acquire_peer();
         let status = if let Some(peer) = peer {
-            let coin_creation = lookup_coin_creation(
-                &peer,
-                coin_ids.clone(),
-                parse_genesis_challenge(self.network().genesis_challenge.clone())?,
-            )
-            .await?;
+            let coin_creation =
+                lookup_coin_creation(&peer, coin_ids.clone(), self.network().genesis_challenge)
+                    .await?;
             offer_expiration(&mut ctx, &parsed_offer, &coin_creation)?
         } else {
             warn!("No peers available to fetch coin creation information, so skipping for now");
