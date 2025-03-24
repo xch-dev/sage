@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::time::Duration;
 
+use base64::{prelude::BASE64_STANDARD, Engine};
 use chia::puzzles::nft::NftMetadata;
 use chia_wallet_sdk::{
     driver::{Offer, SpendContext},
@@ -134,8 +135,7 @@ impl Sage {
             maker.nfts.insert(
                 Address::new(launcher_id, "nft".to_string()).encode()?,
                 OfferNft {
-                    image_data: info.image_data,
-                    image_mime_type: info.image_mime_type,
+                    icon: info.icon.map(|icon| BASE64_STANDARD.encode(icon)),
                     name: info.name,
                     royalty_ten_thousandths: nft.info.royalty_ten_thousandths,
                     royalty_address: Address::new(
@@ -183,8 +183,7 @@ impl Sage {
             taker.nfts.insert(
                 Address::new(launcher_id, "nft".to_string()).encode()?,
                 OfferNft {
-                    image_data: info.image_data,
-                    image_mime_type: info.image_mime_type,
+                    icon: info.icon.map(|icon| BASE64_STANDARD.encode(icon)),
                     name: info.name,
                     royalty_ten_thousandths: nft.royalty_ten_thousandths,
                     royalty_address: Address::new(

@@ -93,7 +93,7 @@ impl Sage {
             .build(log_dir)?;
 
         // Common filter string
-        let filter_string = format!("{log_level},rustls=off,tungstenite=off");
+        let filter_string = format!("{log_level},rustls=off,tungstenite=off,h2=off,hyper=off");
 
         // File layer - always without ANSI
         let file_layer = fmt::layer()

@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT `icon` FROM `nft_thumbnails` WHERE `hash` = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "icon",
+        "ordinal": 0,
+        "type_info": "Blob"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "b2c427e39098073050e4a92c94492de21f1a89a47bc0d1e5af7094bab5230a68"
+}

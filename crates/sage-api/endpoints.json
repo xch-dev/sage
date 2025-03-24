@@ -26,6 +26,8 @@
   "get_nft_collection": true,
   "get_nfts": true,
   "get_nft": true,
+  "get_nft_icon": true,
+  "get_nft_thumbnail": true,
   "get_nft_data": true,
   "send_xch": true,
   "bulk_send_xch": true,

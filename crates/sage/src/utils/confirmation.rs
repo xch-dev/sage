@@ -82,8 +82,7 @@ impl Sage {
 
                     let kind = AssetKind::Nft {
                         launcher_id: Address::new(info.launcher_id, "nft".to_string()).encode()?,
-                        image_data: extracted.image_data,
-                        image_mime_type: extracted.image_mime_type,
+                        icon: extracted.icon.map(|icon| BASE64_STANDARD.encode(icon)),
                         name: extracted.name,
                     };
 
@@ -135,8 +134,7 @@ impl Sage {
 
 #[derive(Debug, Default)]
 pub struct ExtractedNftData {
-    pub image_data: Option<String>,
-    pub image_mime_type: Option<String>,
+    pub icon: Option<Vec<u8>>,
     pub name: Option<String>,
 }
 
@@ -152,13 +150,15 @@ pub async fn extract_nft_data(
     };
 
     if let Some(data_hash) = onchain_metadata.data_hash {
-        if let Some(data) = cache.nft_data.get(&data_hash) {
-            result.image_data = Some(BASE64_STANDARD.encode(&data.blob));
-            result.image_mime_type = Some(data.mime_type.clone());
+        if let Some(Data {
+            thumbnail: Some(thumbnail),
+            ..
+        }) = cache.nft_data.get(&data_hash)
+        {
+            result.icon = Some(thumbnail.icon.clone());
         } else if let Some(db) = &db {
-            if let Some(data) = db.fetch_nft_data(data_hash).await? {
-                result.image_data = Some(BASE64_STANDARD.encode(&data.blob));
-                result.image_mime_type = Some(data.mime_type);
+            if let Some(data) = db.nft_icon(data_hash).await? {
+                result.icon = Some(data);
             }
         }
     }
