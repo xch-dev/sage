@@ -1,6 +1,7 @@
 import {
   commands,
   events,
+  NftData,
   NftRecord,
   NftUriKind,
   TransactionResponse,
@@ -28,7 +29,7 @@ import {
   SendIcon,
   UserRoundPlus,
 } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { memo, useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -99,6 +100,7 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
 
   const { addError } = useErrors();
 
+  const [data, setData] = useState<NftData | null>(null);
   const [thumbnail, setThumbnail] = useState<string | null>(null);
   const [transferOpen, setTransferOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
@@ -135,6 +137,13 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
       unlisten.then((u) => u());
     };
   }, [fetchThumbnail]);
+
+  useEffect(() => {
+    commands
+      .getNftData({ nft_id: nft.launcher_id })
+      .then((response) => setData(response.data))
+      .catch(addError);
+  }, [nft.launcher_id, addError]);
 
   const toggleVisibility = () => {
     commands
