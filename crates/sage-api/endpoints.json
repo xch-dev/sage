@@ -65,6 +65,7 @@
   "set_discover_peers": true,
   "set_target_peers": true,
   "set_network": true,
+  "set_network_override": true,
   "get_networks": false,
   "get_network": false,
   "remove_cat": true,

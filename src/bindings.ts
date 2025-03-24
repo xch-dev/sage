@@ -203,6 +203,9 @@ async setTargetPeers(req: SetTargetPeers) : Promise<SetTargetPeersResponse> {
 async setNetwork(req: SetNetwork) : Promise<SetNetworkResponse> {
     return await TAURI_INVOKE("set_network", { req });
 },
+async setNetworkOverride(req: SetNetworkOverride) : Promise<SetNetworkOverrideResponse> {
+    return await TAURI_INVOKE("set_network_override", { req });
+},
 async walletConfig(fingerprint: number) : Promise<Wallet | null> {
     return await TAURI_INVOKE("wallet_config", { fingerprint });
 },
@@ -462,6 +465,8 @@ export type SendXch = { address: string; amount: Amount; fee: Amount; memos?: st
 export type SetDiscoverPeers = { discover_peers: boolean }
 export type SetDiscoverPeersResponse = Record<string, never>
 export type SetNetwork = { name: string }
+export type SetNetworkOverride = { fingerprint: number; name: string | null }
+export type SetNetworkOverrideResponse = Record<string, never>
 export type SetNetworkResponse = Record<string, never>
 export type SetTargetPeers = { target_peers: number }
 export type SetTargetPeersResponse = Record<string, never>

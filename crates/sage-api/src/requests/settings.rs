@@ -64,6 +64,17 @@ pub struct SetNetwork {
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct SetNetworkResponse {}
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct SetNetworkOverride {
+    pub fingerprint: u32,
+    pub name: Option<String>,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct SetNetworkOverrideResponse {}
+
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct GetNetworks {}

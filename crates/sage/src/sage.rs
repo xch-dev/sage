@@ -390,6 +390,22 @@ impl Sage {
     }
 
     pub fn network(&self) -> &Network {
+        if let Some(fingerprint) = self.config.global.fingerprint {
+            if let Some(wallet) = self
+                .wallet_config
+                .wallets
+                .iter()
+                .find(|w| w.fingerprint == fingerprint)
+            {
+                if let Some(network) = &wallet.network {
+                    return self
+                        .network_list
+                        .by_name(network)
+                        .expect("network not found");
+                }
+            }
+        }
+
         self.network_list
             .by_name(&self.config.network.default_network)
             .expect("network not found")

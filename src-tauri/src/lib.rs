@@ -89,6 +89,7 @@ pub fn run() {
             commands::set_discover_peers,
             commands::set_target_peers,
             commands::set_network,
+            commands::set_network_override,
             commands::wallet_config,
             commands::get_networks,
             commands::get_network,

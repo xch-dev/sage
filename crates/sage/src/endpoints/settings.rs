@@ -4,13 +4,13 @@ use itertools::Itertools;
 use sage_api::{
     AddPeer, AddPeerResponse, GetNetwork, GetNetworkResponse, GetNetworks, GetNetworksResponse,
     GetPeers, GetPeersResponse, NetworkKind, PeerRecord, RemovePeer, RemovePeerResponse,
-    SetDiscoverPeers, SetDiscoverPeersResponse, SetNetwork, SetNetworkResponse, SetTargetPeers,
-    SetTargetPeersResponse,
+    SetDiscoverPeers, SetDiscoverPeersResponse, SetNetwork, SetNetworkOverride,
+    SetNetworkOverrideResponse, SetNetworkResponse, SetTargetPeers, SetTargetPeersResponse,
 };
 use sage_config::{MAINNET, TESTNET11};
 use sage_wallet::SyncCommand;
 
-use crate::{Result, Sage};
+use crate::{Error, Result, Sage};
 
 impl Sage {
     pub async fn get_peers(&self, _req: GetPeers) -> Result<GetPeersResponse> {
@@ -104,6 +104,40 @@ impl Sage {
         self.setup_peers().await?;
 
         Ok(SetNetworkResponse {})
+    }
+
+    pub async fn set_network_override(
+        &mut self,
+        req: SetNetworkOverride,
+    ) -> Result<SetNetworkOverrideResponse> {
+        let config = self
+            .wallet_config
+            .wallets
+            .iter_mut()
+            .find(|w| w.fingerprint == req.fingerprint)
+            .ok_or(Error::UnknownFingerprint)?;
+
+        config.network = req.name;
+
+        self.save_config()?;
+
+        let network = self.network();
+
+        self.command_sender
+            .send(SyncCommand::SwitchNetwork {
+                network_id: network.name.clone(),
+                network: chia_wallet_sdk::client::Network {
+                    default_port: network.default_port,
+                    genesis_challenge: network.genesis_challenge,
+                    dns_introducers: network.dns_introducers.clone(),
+                },
+            })
+            .await?;
+
+        self.switch_wallet().await?;
+        self.setup_peers().await?;
+
+        Ok(SetNetworkOverrideResponse {})
     }
 
     pub fn get_networks(&mut self, _req: GetNetworks) -> Result<GetNetworksResponse> {
