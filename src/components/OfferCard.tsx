@@ -370,7 +370,7 @@ export function Assets({ assets, catPresence = {} }: AssetsProps) {
 
           <div className='flex gap-1.5 items-center'>
             <img
-              src={nftUri(nft.image_mime_type, nft.image_data)}
+              src={nftUri(nft.icon ? 'image/png' : null, nft.icon)}
               className='w-6 h-6 rounded-sm'
               alt={t`NFT preview`}
             />

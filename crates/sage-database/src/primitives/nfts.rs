@@ -177,6 +177,14 @@ impl Database {
     ) -> Result<()> {
         set_collection_visible(&self.pool, collection_id, visible).await
     }
+
+    pub async fn nft_icon(&self, hash: Bytes32) -> Result<Option<Vec<u8>>> {
+        nft_icon(&self.pool, hash).await
+    }
+
+    pub async fn nft_thumbnail(&self, hash: Bytes32) -> Result<Option<Vec<u8>>> {
+        nft_thumbnail(&self.pool, hash).await
+    }
 }
 
 impl DatabaseTx<'_> {
@@ -222,8 +230,21 @@ impl DatabaseTx<'_> {
         delete_nft_data(&mut *self.tx, hash).await
     }
 
+    pub async fn delete_nft_thumbnail(&mut self, hash: Bytes32) -> Result<()> {
+        delete_nft_thumbnail(&mut *self.tx, hash).await
+    }
+
     pub async fn insert_nft_data(&mut self, hash: Bytes32, nft_data: NftData) -> Result<()> {
         insert_nft_data(&mut *self.tx, hash, nft_data).await
+    }
+
+    pub async fn insert_nft_thumbnail(
+        &mut self,
+        hash: Bytes32,
+        icon: Vec<u8>,
+        thumbnail: Vec<u8>,
+    ) -> Result<()> {
+        insert_nft_thumbnail(&mut *self.tx, hash, icon, thumbnail).await
     }
 
     pub async fn fetch_nft_data(&mut self, hash: Bytes32) -> Result<Option<NftData>> {
@@ -585,6 +606,59 @@ async fn delete_nft_data(conn: impl SqliteExecutor<'_>, hash: Bytes32) -> Result
         .await?;
 
     Ok(())
+}
+
+async fn insert_nft_thumbnail(
+    conn: impl SqliteExecutor<'_>,
+    hash: Bytes32,
+    icon: Vec<u8>,
+    thumbnail: Vec<u8>,
+) -> Result<()> {
+    let hash = hash.as_ref();
+
+    sqlx::query!(
+        "REPLACE INTO `nft_thumbnails` (`hash`, `icon`, `thumbnail`) VALUES (?, ?, ?)",
+        hash,
+        icon,
+        thumbnail
+    )
+    .execute(conn)
+    .await?;
+
+    Ok(())
+}
+
+async fn delete_nft_thumbnail(conn: impl SqliteExecutor<'_>, hash: Bytes32) -> Result<()> {
+    let hash = hash.as_ref();
+
+    sqlx::query!("DELETE FROM `nft_thumbnails` WHERE `hash` = ?", hash)
+        .execute(conn)
+        .await?;
+
+    Ok(())
+}
+
+async fn nft_icon(conn: impl SqliteExecutor<'_>, hash: Bytes32) -> Result<Option<Vec<u8>>> {
+    let hash = hash.as_ref();
+
+    let row = sqlx::query!("SELECT `icon` FROM `nft_thumbnails` WHERE `hash` = ?", hash)
+        .fetch_optional(conn)
+        .await?;
+
+    Ok(row.map(|row| row.icon))
+}
+
+async fn nft_thumbnail(conn: impl SqliteExecutor<'_>, hash: Bytes32) -> Result<Option<Vec<u8>>> {
+    let hash = hash.as_ref();
+
+    let row = sqlx::query!(
+        "SELECT `thumbnail` FROM `nft_thumbnails` WHERE `hash` = ?",
+        hash
+    )
+    .fetch_optional(conn)
+    .await?;
+
+    Ok(row.map(|row| row.thumbnail))
 }
 
 async fn distinct_minter_dids(

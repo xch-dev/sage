@@ -1,12 +1,11 @@
-import { commands, NftRecord } from '@/bindings';
+import { commands, events, NftRecord } from '@/bindings';
 import { useErrors } from '@/hooks/useErrors';
 import { nftUri } from '@/lib/nftUri';
-import { addressInfo } from '@/lib/utils';
-import { useEffect, useMemo, useState } from 'react';
+import { addressInfo, isValidAddress } from '@/lib/utils';
+import { t } from '@lingui/core/macro';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Input } from '../ui/input';
 import { DropdownSelector } from './DropdownSelector';
-import { t } from '@lingui/core/macro';
-import { isValidAddress } from '@/lib/utils';
 
 export interface NftSelectorProps {
   value: string | null;
@@ -65,7 +64,7 @@ export function NftSelector({
     }
   }, [isValidNftId, searchTerm, onChange, addError]);
 
-  useEffect(() => {
+  const updateThumbnails = useCallback(async () => {
     const nftsToFetch = [...nfts.map((nft) => nft.launcher_id)];
     if (
       value &&
@@ -81,21 +80,33 @@ export function NftSelector({
       }
     }
 
-    Promise.all(
+    return await Promise.all(
       nftsToFetch.map((nftId) =>
         commands
-          .getNftData({ nft_id: nftId })
-          .then((response) => [nftId, response.data] as const),
+          .getNftThumbnail({ nft_id: nftId })
+          .then((response) => [nftId, response.thumbnail] as const),
       ),
     ).then((thumbnails) => {
       const map: Record<string, string> = {};
       thumbnails.forEach(([id, thumbnail]) => {
-        if (thumbnail !== null)
-          map[id] = nftUri(thumbnail.mime_type, thumbnail.blob);
+        if (thumbnail !== null) map[id] = nftUri('image/png', thumbnail);
       });
       setNftThumbnails(map);
     });
   }, [nfts, value]);
+
+  useEffect(() => {
+    updateThumbnails();
+
+    const unlisten = events.syncEvent.listen((event) => {
+      const type = event.payload.type;
+      if (type === 'nft_data') updateThumbnails();
+    });
+
+    return () => {
+      unlisten.then((u) => u());
+    };
+  }, [updateThumbnails]);
 
   // Load NFT record when a value is provided but not found in current nfts list
   useEffect(() => {
