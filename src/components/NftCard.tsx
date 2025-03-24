@@ -1,6 +1,7 @@
 import {
   commands,
   events,
+  NftData,
   NftRecord,
   NftUriKind,
   TransactionResponse,
@@ -28,7 +29,7 @@ import {
   SendIcon,
   UserRoundPlus,
 } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { memo, useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -78,7 +79,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from './ui/tooltip';
-
+import { AddUrlConfirmation } from './confirmations/AddUrlConfirmation';
+import { NftConfirmation } from './confirmations/NftConfirmation';
 export interface NftProps {
   nft: NftRecord;
   updateNfts: () => void;
@@ -98,11 +100,22 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
 
   const { addError } = useErrors();
 
+  const [data, setData] = useState<NftData | null>(null);
   const [thumbnail, setThumbnail] = useState<string | null>(null);
   const [transferOpen, setTransferOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
   const [addUrlOpen, setAddUrlOpen] = useState(false);
   const [burnOpen, setBurnOpen] = useState(false);
+  const [isBurning, setIsBurning] = useState(false);
+  const [isTransferring, setIsTransferring] = useState(false);
+  const [isAddingUrl, setIsAddingUrl] = useState(false);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [addedUrl, setAddedUrl] = useState('');
+  const [addedUrlKind, setAddedUrlKind] = useState('');
+  const [transferAddress, setTransferAddress] = useState('');
+  const [assignedProfileId, setAssignedProfileId] = useState<string | null>(
+    null,
+  );
   const [response, setResponse] = useState<TransactionResponse | null>(null);
 
   const fetchThumbnail = useCallback(() => {
@@ -125,6 +138,13 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
     };
   }, [fetchThumbnail]);
 
+  useEffect(() => {
+    commands
+      .getNftData({ nft_id: nft.launcher_id })
+      .then((response) => setData(response.data))
+      .catch(addError);
+  }, [nft.launcher_id, addError]);
+
   const toggleVisibility = () => {
     commands
       .updateNft({ nft_id: nft.launcher_id, visible: !nft.visible })
@@ -133,6 +153,8 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
   };
 
   const onTransferSubmit = (address: string, fee: string) => {
+    setIsTransferring(true);
+    setTransferAddress(address);
     commands
       .transferNfts({
         nft_ids: [nft.launcher_id],
@@ -140,11 +162,16 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
         fee: toMojos(fee, walletState.sync.unit.decimals),
       })
       .then(setResponse)
-      .catch(addError)
+      .catch((err) => {
+        setIsTransferring(false);
+        addError(err);
+      })
       .finally(() => setTransferOpen(false));
   };
 
   const onAssignSubmit = (profile: string | null, fee: string) => {
+    setIsEditingProfile(true);
+    setAssignedProfileId(profile);
     commands
       .assignNftsToDid({
         nft_ids: [nft.launcher_id],
@@ -152,7 +179,10 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
         fee: toMojos(fee, walletState.sync.unit.decimals),
       })
       .then(setResponse)
-      .catch(addError)
+      .catch((err) => {
+        setIsEditingProfile(false);
+        addError(err);
+      })
       .finally(() => setAssignOpen(false));
   };
 
@@ -175,6 +205,9 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
   });
 
   const onAddUrlSubmit = (values: z.infer<typeof addUrlFormSchema>) => {
+    setIsAddingUrl(true);
+    setAddedUrl(values.url);
+    setAddedUrlKind(values.kind);
     commands
       .addNftUri({
         nft_id: nft.launcher_id,
@@ -183,11 +216,15 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
         fee: toMojos(values.fee, walletState.sync.unit.decimals),
       })
       .then(setResponse)
-      .catch(addError)
+      .catch((err) => {
+        setIsAddingUrl(false);
+        addError(err);
+      })
       .finally(() => setAddUrlOpen(false));
   };
 
   const onBurnSubmit = (fee: string) => {
+    setIsBurning(true);
     commands
       .transferNfts({
         nft_ids: [nft.launcher_id],
@@ -195,7 +232,10 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
         fee: toMojos(fee, walletState.sync.unit.decimals),
       })
       .then(setResponse)
-      .catch(addError)
+      .catch((err) => {
+        setIsBurning(false);
+        addError(err);
+      })
       .finally(() => setBurnOpen(false));
   };
 
@@ -596,6 +636,7 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
         open={burnOpen}
         setOpen={setBurnOpen}
         onSubmit={onBurnSubmit}
+        submitButtonLabel={t`Burn`}
       >
         <Trans>
           This will permanently delete the NFT by sending it to the burn
@@ -605,8 +646,71 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
 
       <ConfirmationDialog
         response={response}
-        close={() => setResponse(null)}
-        onConfirm={() => updateNfts()}
+        showRecipientDetails={false}
+        close={() => {
+          setResponse(null);
+          setIsBurning(false);
+          setIsTransferring(false);
+          setIsAddingUrl(false);
+          setIsEditingProfile(false);
+        }}
+        onConfirm={() => {
+          updateNfts();
+          setIsBurning(false);
+          setIsTransferring(false);
+          setIsAddingUrl(false);
+          setIsEditingProfile(false);
+        }}
+        additionalData={
+          isBurning && response
+            ? {
+                title: t`Burn NFT`,
+                content: (
+                  <NftConfirmation
+                    type='burn'
+                    nfts={[nft]}
+                    nftData={{ [nft.launcher_id]: data }}
+                  />
+                ),
+              }
+            : isTransferring && response
+              ? {
+                  title: t`Transfer Nft`,
+                  content: (
+                    <NftConfirmation
+                      type='transfer'
+                      nfts={[nft]}
+                      nftData={{ [nft.launcher_id]: data }}
+                      address={transferAddress}
+                    />
+                  ),
+                }
+              : isAddingUrl && response
+                ? {
+                    title: t`Add URL to NFT`,
+                    content: (
+                      <AddUrlConfirmation
+                        nft={nft}
+                        nftData={data}
+                        url={addedUrl}
+                        kind={addedUrlKind}
+                      />
+                    ),
+                  }
+                : isEditingProfile && response
+                  ? {
+                      title: t`Edit Nft Profile`,
+                      content: (
+                        <NftConfirmation
+                          type='edit'
+                          nfts={[nft]}
+                          nftData={{ [nft.launcher_id]: data }}
+                          profileId={assignedProfileId}
+                        />
+                      ),
+                    }
+                  : undefined
+        }
       />
     </>
   );

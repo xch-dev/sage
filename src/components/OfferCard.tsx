@@ -229,7 +229,7 @@ interface AssetsProps {
   catPresence?: CatPresence;
 }
 
-function Assets({ assets, catPresence = {} }: AssetsProps) {
+export function Assets({ assets, catPresence = {} }: AssetsProps) {
   const walletState = useWalletState();
   const amount = BigNumber(assets.xch.amount);
 

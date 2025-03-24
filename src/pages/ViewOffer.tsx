@@ -16,6 +16,7 @@ import { Trans } from '@lingui/react/macro';
 import { t } from '@lingui/core/macro';
 import { CustomError } from '@/contexts/ErrorContext';
 import { fetch } from '@tauri-apps/plugin-http';
+import { OfferConfirmation } from '@/components/confirmations/OfferConfirmation';
 
 const isValidHostname = (url: string, expectedHostname: string) => {
   try {
@@ -218,9 +219,16 @@ export function ViewOffer() {
       </Container>
 
       <ConfirmationDialog
+        showRecipientDetails={false}
         response={response}
         close={() => setResponse(null)}
         onConfirm={() => navigate('/offers')}
+        additionalData={{
+          title: t`Take Offer`,
+          content: response && summary && (
+            <OfferConfirmation type='take' offer={summary} />
+          ),
+        }}
       />
     </>
   );
