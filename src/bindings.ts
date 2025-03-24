@@ -268,6 +268,9 @@ async getRpcRunOnStartup() : Promise<boolean> {
 },
 async setRpcRunOnStartup(runOnStartup: boolean) : Promise<null> {
     return await TAURI_INVOKE("set_rpc_run_on_startup", { runOnStartup });
+},
+async switchWallet() : Promise<null> {
+    return await TAURI_INVOKE("switch_wallet");
 }
 }
 

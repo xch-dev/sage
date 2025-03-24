@@ -135,3 +135,10 @@ pub async fn set_rpc_run_on_startup(
     state.lock().await.save_config()?;
     Ok(())
 }
+
+#[command]
+#[specta]
+pub async fn switch_wallet(state: State<'_, AppState>) -> Result<()> {
+    state.lock().await.switch_wallet().await?;
+    Ok(())
+}
