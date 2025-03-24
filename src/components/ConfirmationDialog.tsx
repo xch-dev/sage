@@ -251,31 +251,6 @@ export default function ConfirmationDialog({
                 )}
 
                 {/* Fee Display */}
-                <div className='grid grid-cols-1 gap-4 mb-4'>
-                  <div className='flex flex-col space-y-1'>
-                    <span className='text-sm text-muted-foreground'>
-                      <Trans>Transaction Fee</Trans>
-                    </span>
-                    <span className='text-xl font-semibold'>
-                      {fee.isZero() ? (
-                        <span className='text-muted-foreground'>-</span>
-                      ) : (
-                        <>
-                          {formatNumber({
-                            value: fromMojos(
-                              fee,
-                              walletState.sync.unit.decimals,
-                            ),
-                            minimumFractionDigits: 0,
-                            maximumFractionDigits:
-                              walletState.sync.unit.decimals,
-                          })}{' '}
-                          {ticker}
-                        </>
-                      )}
-                    </span>
-                  </div>
-                </div>
 
                 {/* Additional Data Display */}
                 {additionalData && (
@@ -589,6 +564,28 @@ export default function ConfirmationDialog({
               </TabsContent>
             </div>
           </Tabs>
+        </div>
+
+        <div className='grid grid-cols-1 gap-4 mb-2'>
+          <div className='flex items-center justify-between text-sm text-muted-foreground px-2'>
+            <span>
+              <Trans>Transaction Fee</Trans>
+            </span>
+            <span>
+              {fee.isZero() ? (
+                '-'
+              ) : (
+                <>
+                  {formatNumber({
+                    value: fromMojos(fee, walletState.sync.unit.decimals),
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: walletState.sync.unit.decimals,
+                  })}{' '}
+                  {ticker}
+                </>
+              )}
+            </span>
+          </div>
         </div>
 
         <DialogFooter className='pt-4 flex-shrink-0 border-t mt-auto mb-6 sm:mb-0 mr-4 sm:mr-0'>
