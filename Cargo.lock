@@ -5753,7 +5753,6 @@ version = "0.9.6"
 dependencies = [
  "chia",
  "chia-wallet-sdk",
- "convert_case 0.8.0",
  "expect-test",
  "hex",
  "indexmap 2.7.1",

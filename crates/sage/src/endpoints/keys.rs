@@ -16,7 +16,7 @@ use sage_api::{
     ImportKeyResponse, KeyInfo, KeyKind, Login, LoginResponse, Logout, LogoutResponse, RenameKey,
     RenameKeyResponse, Resync, ResyncResponse, SecretKeyInfo,
 };
-use sage_config::Wallet;
+use sage_config::{ChangeMode, DerivationMode, Wallet};
 use sage_database::Database;
 
 use crate::{Error, Result, Sage};
@@ -147,7 +147,9 @@ impl Sage {
         self.wallet_config.wallets.push(Wallet {
             name: req.name,
             fingerprint,
-            ..Default::default()
+            change: ChangeMode::Default,
+            derivation: DerivationMode::Default,
+            network: None,
         });
         self.config.global.fingerprint = Some(fingerprint);
 
@@ -249,7 +251,7 @@ impl Sage {
                     None
                 }
             })
-            .unwrap_or_else(|| Wallet::default().name);
+            .unwrap_or_else(Wallet::default_name);
 
         let Some(master_pk) = self.keychain.extract_public_key(fingerprint)? else {
             return Ok(GetKeyResponse { key: None });

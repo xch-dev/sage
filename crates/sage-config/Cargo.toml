@@ -23,7 +23,6 @@ indexmap = { workspace = true, features = ["serde"] }
 specta = { workspace = true, features = ["derive", "indexmap"] }
 hex = { workspace = true }
 once_cell = { workspace = true }
-convert_case = { workspace = true }
 
 [dev-dependencies]
 expect-test = { workspace = true }

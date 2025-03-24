@@ -1,7 +1,6 @@
 use std::num::ParseIntError;
 
 use chia::protocol::Bytes32;
-use convert_case::{Case, Casing};
 use indexmap::IndexMap;
 use serde::Deserialize;
 use serde_with::{hex::Hex, serde_as};
@@ -12,9 +11,10 @@ use crate::{
     NetworkList, RpcConfig, Wallet, WalletConfig, WalletDefaults,
 };
 
-#[derive(Debug, Clone, Deserialize, Type)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Type)]
 #[serde(default)]
 pub struct OldConfig {
+    version: u32,
     app: OldAppConfig,
     rpc: OldRpcConfig,
     #[serde(skip_serializing_if = "IndexMap::is_empty")]
@@ -22,9 +22,16 @@ pub struct OldConfig {
     network: OldNetworkConfig,
 }
 
+impl OldConfig {
+    pub fn is_old(&self) -> bool {
+        self.version == 1
+    }
+}
+
 impl Default for OldConfig {
     fn default() -> Self {
         Self {
+            version: 1,
             app: OldAppConfig::default(),
             rpc: OldRpcConfig::default(),
             wallets: IndexMap::new(),
@@ -33,7 +40,7 @@ impl Default for OldConfig {
     }
 }
 
-#[derive(Debug, Clone, Deserialize, Type)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Type)]
 #[serde(default)]
 struct OldWalletConfig {
     name: String,
@@ -51,7 +58,7 @@ impl Default for OldWalletConfig {
     }
 }
 
-#[derive(Debug, Clone, Copy, Deserialize, Type)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Type)]
 #[serde(default)]
 struct OldRpcConfig {
     run_on_startup: bool,
@@ -67,7 +74,7 @@ impl Default for OldRpcConfig {
     }
 }
 
-#[derive(Debug, Clone, Deserialize, Type)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Type)]
 #[serde(default)]
 struct OldAppConfig {
     log_level: String,
@@ -83,7 +90,7 @@ impl Default for OldAppConfig {
     }
 }
 
-#[derive(Debug, Clone, Deserialize, Type)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Type)]
 #[serde(default)]
 struct OldNetworkConfig {
     network_id: String,
@@ -119,12 +126,13 @@ pub struct OldNetwork {
 
 pub fn migrate_config(old: OldConfig) -> Result<(Config, WalletConfig), ParseIntError> {
     let config = Config {
+        version: 2,
         global: GlobalConfig {
             log_level: old.app.log_level,
             fingerprint: old.app.active_fingerprint,
         },
         network: NetworkConfig {
-            default_network: old.network.network_id.to_case(Case::Pascal),
+            default_network: old.network.network_id,
             target_peers: old.network.target_peers,
             discover_peers: old.network.discover_peers,
         },
@@ -143,18 +151,12 @@ pub fn migrate_config(old: OldConfig) -> Result<(Config, WalletConfig), ParseInt
         wallet_config.wallets.push(Wallet {
             name: wallet.name,
             fingerprint: fingerprint.parse()?,
-            derivation_mode: if wallet.derive_automatically {
-                if wallet.derivation_batch_size == 1000 {
-                    DerivationMode::Default
-                } else {
-                    DerivationMode::Auto {
-                        derivation_batch_size: wallet.derivation_batch_size,
-                    }
-                }
+            derivation: if wallet.derive_automatically {
+                DerivationMode::Default
             } else {
                 DerivationMode::Static
             },
-            change_mode: ChangeMode::Default,
+            change: ChangeMode::Default,
             network: None,
         });
     }
@@ -186,7 +188,11 @@ pub fn migrate_networks(old: IndexMap<String, OldNetwork>) -> NetworkList {
                     network_id: None,
                     default_port: network.default_port,
                     genesis_challenge: network.genesis_challenge,
-                    agg_sig_me: network.agg_sig_me,
+                    agg_sig_me: if network.agg_sig_me == network.genesis_challenge {
+                        None
+                    } else {
+                        Some(network.agg_sig_me)
+                    },
                     dns_introducers: network.dns_introducers,
                     peer_introducers: vec![],
                     inherit,

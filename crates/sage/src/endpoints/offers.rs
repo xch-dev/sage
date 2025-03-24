@@ -117,7 +117,7 @@ impl Sage {
         let offer = wallet
             .sign_make_offer(
                 unsigned,
-                &AggSigConstants::new(self.network().agg_sig_me),
+                &AggSigConstants::new(self.network().agg_sig_me()),
                 master_sk,
             )
             .await?;
@@ -154,7 +154,7 @@ impl Sage {
         let spend_bundle = wallet
             .sign_take_offer(
                 unsigned,
-                &AggSigConstants::new(self.network().agg_sig_me),
+                &AggSigConstants::new(self.network().agg_sig_me()),
                 master_sk,
             )
             .await?;

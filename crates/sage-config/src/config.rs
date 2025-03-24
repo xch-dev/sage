@@ -1,15 +1,27 @@
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
-#[derive(Debug, Default, Clone, Serialize, Deserialize, Type)]
+#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize, Type)]
 #[serde(default)]
 pub struct Config {
+    pub version: u32,
     pub global: GlobalConfig,
     pub network: NetworkConfig,
     pub rpc: RpcConfig,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            version: 2,
+            global: GlobalConfig::default(),
+            network: NetworkConfig::default(),
+            rpc: RpcConfig::default(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(default)]
 pub struct GlobalConfig {
     pub log_level: String,
@@ -25,7 +37,7 @@ impl Default for GlobalConfig {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(default)]
 pub struct NetworkConfig {
     pub default_network: String,
@@ -43,7 +55,7 @@ impl Default for NetworkConfig {
     }
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, PartialEq, Eq, Copy, Serialize, Deserialize, Type)]
 #[serde(default)]
 pub struct RpcConfig {
     pub enabled: bool,

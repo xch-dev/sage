@@ -43,9 +43,9 @@ pub struct Network {
     #[serde_as(as = "Hex")]
     #[specta(type = String)]
     pub genesis_challenge: Bytes32,
-    #[serde_as(as = "Hex")]
-    #[specta(type = String)]
-    pub agg_sig_me: Bytes32,
+    #[serde_as(as = "Option<Hex>")]
+    #[specta(type = Option<String>)]
+    pub agg_sig_me: Option<Bytes32>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub dns_introducers: Vec<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -63,6 +63,10 @@ impl Network {
 
     pub fn network_id(&self) -> String {
         self.network_id.clone().unwrap_or_else(|| self.name.clone())
+    }
+
+    pub fn agg_sig_me(&self) -> Bytes32 {
+        self.agg_sig_me.unwrap_or(self.genesis_challenge)
     }
 
     pub fn all_dns_introducers(&self) -> Vec<String> {
@@ -109,7 +113,9 @@ fn is_default_precision(precision: &u8) -> bool {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Type)]
 pub enum InheritedNetwork {
+    #[serde(rename = "mainnet")]
     Mainnet,
+    #[serde(rename = "testnet11")]
     Testnet11,
 }
 
@@ -121,7 +127,7 @@ pub static MAINNET: Lazy<Network> = Lazy::new(|| Network {
     prefix: None,
     precision: 12,
     genesis_challenge: MAINNET_CONSTANTS.genesis_challenge,
-    agg_sig_me: MAINNET_CONSTANTS.agg_sig_me_additional_data,
+    agg_sig_me: None,
     dns_introducers: vec![
         "dns-introducer.chia.net".to_string(),
         "chia.ctrlaltdel.ch".to_string(),
@@ -140,7 +146,7 @@ pub static TESTNET11: Lazy<Network> = Lazy::new(|| Network {
     prefix: None,
     precision: 12,
     genesis_challenge: TESTNET11_CONSTANTS.genesis_challenge,
-    agg_sig_me: TESTNET11_CONSTANTS.agg_sig_me_additional_data,
+    agg_sig_me: None,
     dns_introducers: vec!["dns-introducer-testnet11.chia.net".to_string()],
     peer_introducers: vec![],
     inherit: Some(InheritedNetwork::Testnet11),

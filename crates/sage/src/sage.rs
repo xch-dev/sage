@@ -8,7 +8,7 @@ use std::{
 
 use chia::{bls::master_to_wallet_unhardened_intermediate, protocol::Bytes32};
 use chia_wallet_sdk::{
-    client::{create_rustls_connector, load_ssl_cert, Connector},
+    client::{create_rustls_connector, load_ssl_cert, Connector, Network as SdkNetwork},
     utils::Address,
 };
 use indexmap::IndexMap;
@@ -143,10 +143,18 @@ impl Sage {
         if config_path.try_exists()? {
             let config_text = fs::read_to_string(&config_path)?;
 
-            if let Ok(old_config) = toml::from_str::<OldConfig>(&config_text) {
+            if let Some(old_config) = toml::from_str::<OldConfig>(&config_text)
+                .ok()
+                .filter(OldConfig::is_old)
+            {
                 let (config, wallet_config) = migrate_config(old_config)?;
                 self.config = config;
                 self.wallet_config = wallet_config;
+                fs::write(&config_path, toml::to_string_pretty(&self.config)?)?;
+                fs::write(
+                    &wallet_config_path,
+                    toml::to_string_pretty(&self.wallet_config)?,
+                )?;
             } else {
                 self.config = toml::from_str(&config_text)?;
                 let wallet_config_text = fs::read_to_string(&wallet_config_path)?;
@@ -165,6 +173,10 @@ impl Sage {
 
             if let Ok(old_network_list) = toml::from_str::<IndexMap<String, OldNetwork>>(&text) {
                 self.network_list = migrate_networks(old_network_list);
+                fs::write(
+                    &network_list_path,
+                    toml::to_string_pretty(&self.network_list)?,
+                )?;
             } else {
                 self.network_list = toml::from_str(&text)?;
             }
@@ -215,7 +227,7 @@ impl Sage {
             self.peer_state.clone(),
             self.wallet.clone(),
             network.network_id(),
-            chia_wallet_sdk::client::Network {
+            SdkNetwork {
                 default_port: network.default_port,
                 genesis_challenge: network.genesis_challenge,
                 dns_introducers: network.dns_introducers.clone(),
@@ -408,6 +420,10 @@ impl Sage {
     pub fn save_config(&self) -> Result<()> {
         let config = toml::to_string_pretty(&self.config)?;
         fs::write(self.path.join("config.toml"), config)?;
+        let wallet_config = toml::to_string_pretty(&self.wallet_config)?;
+        fs::write(self.path.join("wallets.toml"), wallet_config)?;
+        let network_list = toml::to_string_pretty(&self.network_list)?;
+        fs::write(self.path.join("networks.toml"), network_list)?;
         Ok(())
     }
 

@@ -9,42 +9,43 @@ pub struct WalletConfig {
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Type)]
+#[serde(default)]
 pub struct WalletDefaults {
-    #[serde(default, flatten)]
-    pub change_mode: ChangeMode,
-    #[serde(default, flatten)]
-    pub derivation_mode: DerivationMode,
+    pub change: ChangeMode,
+    pub derivation: DerivationMode,
 }
 
 impl Default for WalletDefaults {
     fn default() -> Self {
         Self {
-            change_mode: ChangeMode::Same,
-            derivation_mode: DerivationMode::Auto {
+            change: ChangeMode::Same,
+            derivation: DerivationMode::Auto {
                 derivation_batch_size: 1000,
             },
         }
     }
 }
-#[derive(Debug, Default, Clone, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub struct Wallet {
-    #[serde(default = "default_name")]
+    #[serde(default = "Wallet::default_name")]
     pub name: String,
     pub fingerprint: u32,
-    #[serde(default, flatten, skip_serializing_if = "ChangeMode::is_default")]
-    pub change_mode: ChangeMode,
-    #[serde(default, flatten, skip_serializing_if = "DerivationMode::is_default")]
-    pub derivation_mode: DerivationMode,
+    #[serde(default, skip_serializing_if = "ChangeMode::is_default")]
+    pub change: ChangeMode,
+    #[serde(default, skip_serializing_if = "DerivationMode::is_default")]
+    pub derivation: DerivationMode,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub network: Option<String>,
 }
 
-fn default_name() -> String {
-    "Unnamed".to_string()
+impl Wallet {
+    pub fn default_name() -> String {
+        "Unnamed".to_string()
+    }
 }
 
 #[derive(Debug, Default, Clone, Copy, Serialize, Deserialize, Type)]
-#[serde(rename_all = "snake_case", tag = "change_mode")]
+#[serde(rename_all = "snake_case", tag = "mode")]
 pub enum ChangeMode {
     #[default]
     Default,
@@ -65,7 +66,7 @@ impl ChangeMode {
 }
 
 #[derive(Debug, Default, Clone, Copy, Serialize, Deserialize, Type)]
-#[serde(rename_all = "snake_case", tag = "derivation_mode")]
+#[serde(rename_all = "snake_case", tag = "mode")]
 pub enum DerivationMode {
     #[default]
     Default,
@@ -95,8 +96,8 @@ mod tests {
         Wallet {
             fingerprint: 1_000_000,
             name: "Main".to_string(),
-            change_mode: ChangeMode::Default,
-            derivation_mode: DerivationMode::Default,
+            change: ChangeMode::Default,
+            derivation: DerivationMode::Default,
             network: None,
         }
     }
@@ -118,9 +119,11 @@ mod tests {
         check(
             config,
             &expect![[r#"
-                [defaults]
-                change_mode = "same"
-                derivation_mode = "auto"
+                [defaults.change]
+                mode = "same"
+
+                [defaults.derivation]
+                mode = "auto"
                 derivation_batch_size = 1000
 
                 [[wallets]]
@@ -130,9 +133,13 @@ mod tests {
             &expect![[r#"
                 {
                   "defaults": {
-                    "change_mode": "same",
-                    "derivation_mode": "auto",
-                    "derivation_batch_size": 1000
+                    "change": {
+                      "mode": "same"
+                    },
+                    "derivation": {
+                      "mode": "auto",
+                      "derivation_batch_size": 1000
+                    }
                   },
                   "wallets": [
                     {
@@ -147,8 +154,8 @@ mod tests {
     #[test]
     fn test_wallet_config_override() {
         let config = Wallet {
-            change_mode: ChangeMode::Same,
-            derivation_mode: DerivationMode::Auto {
+            change: ChangeMode::Same,
+            derivation: DerivationMode::Auto {
                 derivation_batch_size: 1000,
             },
             ..default()
@@ -156,32 +163,46 @@ mod tests {
         check(
             config,
             &expect![[r#"
-                [defaults]
-                change_mode = "same"
-                derivation_mode = "auto"
+                [defaults.change]
+                mode = "same"
+
+                [defaults.derivation]
+                mode = "auto"
                 derivation_batch_size = 1000
 
                 [[wallets]]
                 name = "Main"
                 fingerprint = 1000000
-                change_mode = "same"
-                derivation_mode = "auto"
+
+                [wallets.change]
+                mode = "same"
+
+                [wallets.derivation]
+                mode = "auto"
                 derivation_batch_size = 1000
             "#]],
             &expect![[r#"
                 {
                   "defaults": {
-                    "change_mode": "same",
-                    "derivation_mode": "auto",
-                    "derivation_batch_size": 1000
+                    "change": {
+                      "mode": "same"
+                    },
+                    "derivation": {
+                      "mode": "auto",
+                      "derivation_batch_size": 1000
+                    }
                   },
                   "wallets": [
                     {
                       "name": "Main",
                       "fingerprint": 1000000,
-                      "change_mode": "same",
-                      "derivation_mode": "auto",
-                      "derivation_batch_size": 1000
+                      "change": {
+                        "mode": "same"
+                      },
+                      "derivation": {
+                        "mode": "auto",
+                        "derivation_batch_size": 1000
+                      }
                     }
                   ]
                 }"#]],

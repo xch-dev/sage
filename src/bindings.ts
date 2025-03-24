@@ -203,16 +203,10 @@ async setTargetPeers(req: SetTargetPeers) : Promise<SetTargetPeersResponse> {
 async setNetworkId(req: SetNetworkId) : Promise<SetNetworkIdResponse> {
     return await TAURI_INVOKE("set_network_id", { req });
 },
-async walletConfig(fingerprint: number) : Promise<WalletConfig> {
+async walletConfig(fingerprint: number) : Promise<Wallet | null> {
     return await TAURI_INVOKE("wallet_config", { fingerprint });
 },
-async setDeriveAutomatically(req: SetDeriveAutomatically) : Promise<SetDeriveAutomaticallyResponse> {
-    return await TAURI_INVOKE("set_derive_automatically", { req });
-},
-async setDerivationBatchSize(req: SetDerivationBatchSize) : Promise<SetDerivationBatchSizeResponse> {
-    return await TAURI_INVOKE("set_derivation_batch_size", { req });
-},
-async getNetworks(req: GetNetworks) : Promise<GetNetworksResponse> {
+async getNetworks(req: GetNetworks) : Promise<NetworkList> {
     return await TAURI_INVOKE("get_networks", { req });
 },
 async updateCat(req: UpdateCat) : Promise<UpdateCatResponse> {
@@ -309,6 +303,19 @@ export type BulkSendXch = { addresses: string[]; amount: Amount; fee: Amount; me
 export type CancelOffer = { offer_id: string; fee: Amount; auto_submit?: boolean }
 export type CatAmount = { asset_id: string; amount: Amount }
 export type CatRecord = { asset_id: string; name: string | null; ticker: string | null; description: string | null; icon_url: string | null; visible: boolean; balance: Amount }
+export type ChangeMode = { mode: "default" } | 
+/**
+ * Reuse the first address of coins involved in the transaction
+ * as the change address for the output. This improves compatibility
+ * with wallets which do not support multiple addresses.
+ */
+{ mode: "same" } | 
+/**
+ * Use an address that has not been used before as the change address
+ * for the output. This is beneficial for privacy, but results in more
+ * addresses being generated and used which can make syncing slower.
+ */
+{ mode: "new" }
 export type CheckAddress = { address: string }
 export type CheckAddressResponse = { valid: boolean }
 export type Coin = { parent_coin_info: string; puzzle_hash: string; amount: number }
@@ -325,6 +332,16 @@ export type DeleteKey = { fingerprint: number }
 export type DeleteKeyResponse = Record<string, never>
 export type DeleteOffer = { offer_id: string }
 export type DeleteOfferResponse = Record<string, never>
+export type DerivationMode = { mode: "default" } | 
+/**
+ * Automatically generate new addresses if there aren't enough that
+ * haven't been used yet.
+ */
+{ mode: "auto"; derivation_batch_size: number } | 
+/**
+ * Don't generate any new addresses, only use existing ones.
+ */
+{ mode: "static" }
 export type DerivationRecord = { index: number; public_key: string; address: string }
 export type DidRecord = { launcher_id: string; name: string | null; visible: boolean; coin_id: string; address: string; amount: Amount; recovery_hash: string | null; created_height: number | null; create_transaction_id: string | null }
 export type Error = { kind: ErrorKind; reason: string }
@@ -351,7 +368,6 @@ export type GetKeysResponse = { keys: KeyInfo[] }
 export type GetMinterDidIds = { offset: number; limit: number }
 export type GetMinterDidIdsResponse = { did_ids: string[]; total: number }
 export type GetNetworks = Record<string, never>
-export type GetNetworksResponse = { networks: { [key in string]: Network } }
 export type GetNft = { nft_id: string }
 export type GetNftCollection = { collection_id: string | null }
 export type GetNftCollectionResponse = { collection: NftCollectionRecord | null }
@@ -392,6 +408,7 @@ export type ImportOffer = { offer: string }
 export type ImportOfferResponse = Record<string, never>
 export type IncreaseDerivationIndex = { hardened: boolean; index: number }
 export type IncreaseDerivationIndexResponse = Record<string, never>
+export type InheritedNetwork = "mainnet" | "testnet11"
 export type IssueCat = { name: string; ticker: string; amount: Amount; fee: Amount; auto_submit?: boolean }
 export type KeyInfo = { name: string; fingerprint: number; public_key: string; kind: KeyKind; has_secrets: boolean }
 export type KeyKind = "bls"
@@ -402,8 +419,9 @@ export type Logout = Record<string, never>
 export type LogoutResponse = Record<string, never>
 export type MakeOffer = { requested_assets: Assets; offered_assets: Assets; fee: Amount; receive_address?: string | null; expires_at_second?: number | null; auto_import?: boolean }
 export type MakeOfferResponse = { offer: string; offer_id: string }
-export type Network = { default_port: number; ticker: string; address_prefix: string; precision: number; genesis_challenge: string; agg_sig_me: string; dns_introducers: string[] }
-export type NetworkConfig = { network_id: string; target_peers: number; discover_peers: boolean }
+export type Network = { name: string; ticker: string; prefix?: string | null; precision: number; network_id?: string | null; default_port: number; genesis_challenge: string; agg_sig_me?: string | null; dns_introducers: string[]; peer_introducers: string[]; inherit?: InheritedNetwork | null }
+export type NetworkConfig = { default_network: string; target_peers: number; discover_peers: boolean }
+export type NetworkList = { networks: Network[] }
 export type NftCollectionRecord = { collection_id: string; did_id: string; metadata_collection_id: string; visible: boolean; name: string | null; icon: string | null }
 export type NftData = { blob: string | null; mime_type: string | null; hash_matches: boolean; metadata_json: string | null; metadata_hash_matches: boolean }
 export type NftMint = { address?: string | null; edition_number?: number | null; edition_total?: number | null; data_hash?: string | null; data_uris?: string[]; metadata_hash?: string | null; metadata_uris?: string[]; license_hash?: string | null; license_uris?: string[]; royalty_address?: string | null; royalty_ten_thousandths?: number }
@@ -435,10 +453,6 @@ export type SendCat = { asset_id: string; address: string; amount: Amount; fee: 
 export type SendTransactionImmediately = { spend_bundle: SpendBundle }
 export type SendTransactionImmediatelyResponse = { status: number; error: string | null }
 export type SendXch = { address: string; amount: Amount; fee: Amount; memos?: string[]; auto_submit?: boolean }
-export type SetDerivationBatchSize = { fingerprint: number; derivation_batch_size: number }
-export type SetDerivationBatchSizeResponse = Record<string, never>
-export type SetDeriveAutomatically = { fingerprint: number; derive_automatically: boolean }
-export type SetDeriveAutomaticallyResponse = Record<string, never>
 export type SetDiscoverPeers = { discover_peers: boolean }
 export type SetDiscoverPeersResponse = Record<string, never>
 export type SetNetworkId = { network_id: string }
@@ -482,7 +496,7 @@ export type ViewCoinSpends = { coin_spends: CoinSpendJson[] }
 export type ViewCoinSpendsResponse = { summary: TransactionSummary }
 export type ViewOffer = { offer: string }
 export type ViewOfferResponse = { offer: OfferSummary }
-export type WalletConfig = { name: string; derive_automatically: boolean; derivation_batch_size: number }
+export type Wallet = { name?: string; fingerprint: number; change: ChangeMode; derivation: DerivationMode; network?: string | null }
 
 /** tauri-specta globals **/
 
