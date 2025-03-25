@@ -133,6 +133,8 @@ export function defaultState(): WalletState {
       },
       total_coins: 0,
       synced_coins: 0,
+      unhardened_derivation_index: 0,
+      hardened_derivation_index: 0,
     },
     coins: [],
   };
