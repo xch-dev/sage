@@ -2,11 +2,11 @@ import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { ColumnDef, SortingState } from '@tanstack/react-table';
 import { useMemo, useState } from 'react';
-import { FormattedAddress } from './FormattedAddress';
 import { toast } from 'react-toastify';
-import { DataTable } from './ui/data-table';
 import { CopyButton } from './CopyButton';
+import { FormattedAddress } from './FormattedAddress';
 import { SimplePagination } from './SimplePagination';
+import { DataTable } from './ui/data-table';
 
 export interface AddressListProps {
   addresses: string[];
@@ -42,27 +42,18 @@ export default function AddressList(props: AddressListProps) {
     {
       id: 'id',
       accessorFn: (row) => row.id,
-      meta: {
-        className: 'w-14 text-center',
-      },
-      header: () => (
-        <div className='text-center'>
-          <Trans>Index</Trans>
-        </div>
-      ),
-      cell: (info) => <div>{info.row.original.id}</div>,
+      size: 40,
+      header: () => <Trans>Index</Trans>,
+      cell: (info) => info.row.original.id,
     },
     {
       id: 'address',
       accessorFn: (row) => row.address,
-      meta: {
-        className: 'w-full',
-      },
       header: () => <Trans>Address</Trans>,
       cell: (info) => {
         const address = info.getValue() as string;
         return (
-          <div className='flex w-full'>
+          <div className='flex w-full items-center'>
             <div className='flex-grow overflow-hidden pr-2'>
               <FormattedAddress address={address} />
             </div>

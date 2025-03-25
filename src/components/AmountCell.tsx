@@ -1,5 +1,5 @@
-import { useWalletState } from '@/state';
 import { fromMojos } from '@/lib/utils';
+import { useWalletState } from '@/state';
 import { NumberFormat } from './NumberFormat';
 
 interface AmountCellProps {
@@ -16,7 +16,7 @@ export function AmountCell({ amount, type }: AmountCellProps) {
     amount === 'edited' ? 'edited' : isPositive ? 'received' : 'sent';
 
   return (
-    <div className='text-right whitespace-nowrap'>
+    <div className='whitespace-nowrap'>
       <span
         className={
           amount === 'edited'
