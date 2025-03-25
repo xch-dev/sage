@@ -47,6 +47,14 @@ pub struct AutoCombineXch {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct AutoCombineXchResponse {
+    pub coin_ids: Vec<String>,
+    pub summary: TransactionSummary,
+    pub coin_spends: Vec<CoinSpendJson>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct SplitXch {
     pub coin_ids: Vec<String>,
     pub output_count: u32,
@@ -73,6 +81,14 @@ pub struct AutoCombineCat {
     pub fee: Amount,
     #[serde(default)]
     pub auto_submit: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct AutoCombineCatResponse {
+    pub coin_ids: Vec<String>,
+    pub summary: TransactionSummary,
+    pub coin_spends: Vec<CoinSpendJson>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -283,10 +299,8 @@ pub struct TransactionResponse {
 pub type SendXchResponse = TransactionResponse;
 pub type BulkSendXchResponse = TransactionResponse;
 pub type CombineXchResponse = TransactionResponse;
-pub type AutoCombineXchResponse = TransactionResponse;
 pub type SplitXchResponse = TransactionResponse;
 pub type CombineCatResponse = TransactionResponse;
-pub type AutoCombineCatResponse = TransactionResponse;
 pub type SplitCatResponse = TransactionResponse;
 pub type IssueCatResponse = TransactionResponse;
 pub type SendCatResponse = TransactionResponse;

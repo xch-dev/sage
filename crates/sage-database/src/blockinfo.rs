@@ -45,7 +45,7 @@ async fn find_created_timestamp_null(
 ) -> Result<Vec<u32>> {
     let row = sqlx::query!(
         "
-            SELECT `created_height`
+            SELECT DISTINCT `created_height`
             FROM `coin_states`
             WHERE `created_unixtime` IS NULL
             AND `created_height` IS NOT NULL
@@ -66,7 +66,7 @@ async fn find_created_timestamp_null(
 async fn find_spent_timestamp_null(conn: impl SqliteExecutor<'_>, limit: u32) -> Result<Vec<u32>> {
     let row = sqlx::query!(
         "
-            SELECT `spent_height`
+            SELECT DISTINCT `spent_height`
             FROM `coin_states`
             WHERE `spent_unixtime` IS NULL
             AND `spent_height` IS NOT NULL

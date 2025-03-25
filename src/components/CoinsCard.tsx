@@ -20,7 +20,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { useErrors } from '@/hooks/useErrors';
 import { amount } from '@/lib/formTypes';
-import { toMojos, fromMojos } from '@/lib/utils';
+import { toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Trans } from '@lingui/react/macro';
@@ -43,6 +43,7 @@ interface CoinsCardProps {
   asset: CatRecord | null;
   splitHandler: typeof commands.splitXch | null;
   combineHandler: typeof commands.combineXch | null;
+  autoCombineHandler: typeof commands.autoCombineXch | null;
   setResponse: (response: TransactionResponse) => void;
   selectedCoins: RowSelectionState;
   setSelectedCoins: React.Dispatch<React.SetStateAction<RowSelectionState>>;
@@ -54,6 +55,7 @@ export function CoinsCard({
   asset,
   splitHandler,
   combineHandler,
+  autoCombineHandler,
   setResponse,
   selectedCoins,
   setSelectedCoins,
@@ -101,9 +103,22 @@ export function CoinsCard({
       }),
     [selectedCoinIds, coins],
   );
+  const canAutoCombine = useMemo(
+    () =>
+      selectedCoinIds.length === 0 &&
+      coins.filter(
+        (coin) =>
+          !coin?.spend_transaction_id &&
+          !coin?.create_transaction_id &&
+          coin?.created_height &&
+          !coin?.spent_height,
+      ).length > 0,
+    [selectedCoinIds, coins],
+  );
 
   const [isCombineOpen, setCombineOpen] = useState(false);
   const [isSplitOpen, setSplitOpen] = useState(false);
+  const [isAutoCombineOpen, setAutoCombineOpen] = useState(false);
 
   const combineFormSchema = z.object({
     combineFee: amount(walletState.sync.unit.decimals).refine(
@@ -195,6 +210,64 @@ export function CoinsCard({
       .finally(() => setSplitOpen(false));
   };
 
+  const autoCombineFormSchema = z.object({
+    autoCombineFee: amount(walletState.sync.unit.decimals).refine(
+      (amount) => BigNumber(walletState.sync.balance).gte(amount || 0),
+      'Not enough funds to cover the fee',
+    ),
+    maxCoins: amount(0),
+    maxCoinAmount: amount(precision).optional(),
+  });
+
+  const autoCombineForm = useForm<z.infer<typeof autoCombineFormSchema>>({
+    resolver: zodResolver(autoCombineFormSchema),
+    defaultValues: {
+      autoCombineFee: '0',
+      maxCoins: '100',
+      maxCoinAmount: '',
+    },
+  });
+
+  const onAutoCombineSubmit = (
+    values: z.infer<typeof autoCombineFormSchema>,
+  ) => {
+    if (!autoCombineHandler) return;
+
+    const fee = toMojos(values.autoCombineFee, walletState.sync.unit.decimals);
+    const maxCoins = values.maxCoins;
+    const maxCoinAmount = values.maxCoinAmount
+      ? toMojos(values.maxCoinAmount, precision)
+      : null;
+
+    console.log(fee, maxCoins, maxCoinAmount);
+
+    autoCombineHandler({
+      max_coins: parseInt(toMojos(maxCoins, 0)),
+      max_coin_amount: maxCoinAmount,
+      fee,
+    })
+      .then((result) => {
+        // Add confirmation data to the response
+        const resultWithDetails = Object.assign({}, result, {
+          additionalData: {
+            title: 'Combine Details',
+            content: {
+              type: 'combine',
+              coins: coins.filter((record) =>
+                result.coin_ids.includes(record.coin_id),
+              ),
+              ticker: ticker || '',
+              precision,
+            },
+          },
+        });
+
+        setResponse(resultWithDetails);
+      })
+      .catch(addError)
+      .finally(() => setAutoCombineOpen(false));
+  };
+
   return (
     <Card className='max-w-full overflow-auto'>
       <CardHeader>
@@ -219,11 +292,22 @@ export function CoinsCard({
                   <SplitIcon className='mr-2 h-4 w-4' /> <Trans>Split</Trans>
                 </Button>
               )}
-              {combineHandler && (
+              {(combineHandler || autoCombineHandler) && (
                 <Button
                   variant='outline'
-                  disabled={!canCombine}
-                  onClick={() => setCombineOpen(true)}
+                  disabled={
+                    !(
+                      (combineHandler && canCombine) ||
+                      (autoCombineHandler && canAutoCombine)
+                    )
+                  }
+                  onClick={() => {
+                    if (canCombine) {
+                      setCombineOpen(true);
+                    } else if (canAutoCombine) {
+                      setAutoCombineOpen(true);
+                    }
+                  }}
                 >
                   <MergeIcon className='mr-2 h-4 w-4' />
                   <Trans>Combine</Trans>
@@ -344,6 +428,89 @@ export function CoinsCard({
                 </Button>
                 <Button type='submit'>
                   <Trans>Split</Trans>
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isAutoCombineOpen} onOpenChange={setAutoCombineOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              <Trans>Auto Combine {ticker}</Trans>
+            </DialogTitle>
+            <DialogDescription>
+              <Trans>
+                This will combine small enough coins automatically, so you don't
+                have to manually select them.
+              </Trans>
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...autoCombineForm}>
+            <form
+              onSubmit={autoCombineForm.handleSubmit(onAutoCombineSubmit)}
+              className='space-y-4'
+            >
+              <FormField
+                control={autoCombineForm.control}
+                name='autoCombineFee'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      <Trans>Network Fee</Trans>
+                    </FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={autoCombineForm.control}
+                name='maxCoins'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      <Trans>Maximum Number of Coins</Trans>
+                    </FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={autoCombineForm.control}
+                name='maxCoinAmount'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      <Trans>Maximum Coin Amount</Trans>
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        placeholder='Leave blank for no limit'
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter className='gap-2'>
+                <Button
+                  type='button'
+                  variant='outline'
+                  onClick={() => setAutoCombineOpen(false)}
+                >
+                  <Trans>Cancel</Trans>
+                </Button>
+                <Button type='submit'>
+                  <Trans>Combine</Trans>
                 </Button>
               </DialogFooter>
             </form>

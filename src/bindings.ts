@@ -47,7 +47,7 @@ async bulkSendXch(req: BulkSendXch) : Promise<TransactionResponse> {
 async combineXch(req: CombineXch) : Promise<TransactionResponse> {
     return await TAURI_INVOKE("combine_xch", { req });
 },
-async autoCombineXch(req: AutoCombineXch) : Promise<TransactionResponse> {
+async autoCombineXch(req: AutoCombineXch) : Promise<AutoCombineXchResponse> {
     return await TAURI_INVOKE("auto_combine_xch", { req });
 },
 async splitXch(req: SplitXch) : Promise<TransactionResponse> {
@@ -62,7 +62,7 @@ async bulkSendCat(req: BulkSendCat) : Promise<TransactionResponse> {
 async combineCat(req: CombineCat) : Promise<TransactionResponse> {
     return await TAURI_INVOKE("combine_cat", { req });
 },
-async autoCombineCat(req: AutoCombineCat) : Promise<TransactionResponse> {
+async autoCombineCat(req: AutoCombineCat) : Promise<AutoCombineCatResponse> {
     return await TAURI_INVOKE("auto_combine_cat", { req });
 },
 async splitCat(req: SplitCat) : Promise<TransactionResponse> {
@@ -304,7 +304,9 @@ export type AssetCoinType = "cat" | "did" | "nft"
 export type Assets = { xch: Amount; cats: CatAmount[]; nfts: string[] }
 export type AssignNftsToDid = { nft_ids: string[]; did_id: string | null; fee: Amount; auto_submit?: boolean }
 export type AutoCombineCat = { asset_id: string; max_coins: number; max_coin_amount: Amount | null; fee: Amount; auto_submit?: boolean }
+export type AutoCombineCatResponse = { coin_ids: string[]; summary: TransactionSummary; coin_spends: CoinSpendJson[] }
 export type AutoCombineXch = { max_coins: number; max_coin_amount: Amount | null; fee: Amount; auto_submit?: boolean }
+export type AutoCombineXchResponse = { coin_ids: string[]; summary: TransactionSummary; coin_spends: CoinSpendJson[] }
 export type BulkMintNfts = { mints: NftMint[]; did_id: string; fee: Amount; auto_submit?: boolean }
 export type BulkMintNftsResponse = { nft_ids: string[]; summary: TransactionSummary; coin_spends: CoinSpendJson[] }
 export type BulkSendCat = { asset_id: string; addresses: string[]; amount: Amount; fee: Amount; memos?: string[]; auto_submit?: boolean }

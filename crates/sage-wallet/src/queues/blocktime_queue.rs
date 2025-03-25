@@ -1,10 +1,13 @@
-use crate::{PeerState, WalletError, WalletPeer};
+use crate::{PeerState, SyncEvent, WalletError, WalletPeer};
 
 use futures_util::{stream::FuturesUnordered, StreamExt};
 use sage_database::Database;
 use std::sync::Arc;
 use std::time::Duration;
-use tokio::{sync::Mutex, time::sleep};
+use tokio::{
+    sync::{mpsc, Mutex},
+    time::sleep,
+};
 use tracing::{error, info};
 
 #[derive(Debug)]
@@ -12,11 +15,20 @@ use tracing::{error, info};
 pub struct BlockTimeQueue {
     db: Database,
     state: Arc<Mutex<PeerState>>,
+    sync_sender: mpsc::Sender<SyncEvent>,
 }
 
 impl BlockTimeQueue {
-    pub fn new(db: Database, state: Arc<Mutex<PeerState>>) -> Self {
-        Self { db, state }
+    pub fn new(
+        db: Database,
+        state: Arc<Mutex<PeerState>>,
+        sync_sender: mpsc::Sender<SyncEvent>,
+    ) -> Self {
+        Self {
+            db,
+            state,
+            sync_sender,
+        }
     }
 
     pub async fn start(mut self, delay: Duration) -> Result<(), WalletError> {
@@ -61,6 +73,8 @@ impl BlockTimeQueue {
                 error!("Error fetching and processing blockinfo: {error}");
             }
         }
+
+        self.sync_sender.send(SyncEvent::CoinsUpdated).await.ok();
 
         Ok(())
     }
