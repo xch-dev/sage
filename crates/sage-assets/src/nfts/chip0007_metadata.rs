@@ -22,6 +22,7 @@ impl Chip0007Metadata {
         match &self.sensitive_content {
             Some(SensitiveContent::Flag(flag)) => *flag,
             Some(SensitiveContent::Items(items)) => !items.is_empty(),
+            Some(SensitiveContent::FlagString(flag)) => matches!(flag.as_str(), "true"),
             None => false,
         }
     }
@@ -32,14 +33,13 @@ impl Chip0007Metadata {
 pub enum SensitiveContent {
     Flag(bool),
     Items(Vec<String>),
+    FlagString(String),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct NftAttribute {
-    pub trait_type: AttributeValue,
-    pub value: AttributeValue,
-    pub min_value: Option<BigInt>,
-    pub max_value: Option<BigInt>,
+    pub trait_type: serde_json::Value,
+    pub value: serde_json::Value,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
