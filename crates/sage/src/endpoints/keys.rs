@@ -299,25 +299,6 @@ impl Sage {
             });
         }
 
-        // for fingerprint in self
-        //     .keychain
-        //     .fingerprints()
-        //     .filter(|fingerprint| !self.config.wallets.contains_key(&fingerprint.to_string()))
-        //     .sorted()
-        // {
-        //     let Some(master_pk) = self.keychain.extract_public_key(fingerprint)? else {
-        //         continue;
-        //     };
-
-        //     keys.push(KeyInfo {
-        //         name: "Unnamed".to_string(),
-        //         fingerprint,
-        //         public_key: hex::encode(master_pk.to_bytes()),
-        //         kind: KeyKind::Bls,
-        //         has_secrets: self.keychain.has_secret_key(fingerprint),
-        //     });
-        // }
-
         Ok(GetKeysResponse { keys })
     }
 }

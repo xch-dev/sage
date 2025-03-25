@@ -241,7 +241,26 @@ impl Sage {
         Ok(receiver)
     }
 
+    pub async fn switch_network(&mut self) -> Result<()> {
+        let network = self.network();
+
+        self.command_sender
+            .send(SyncCommand::SwitchNetwork {
+                network_id: network.name.clone(),
+                network: chia_wallet_sdk::client::Network {
+                    default_port: network.default_port,
+                    genesis_challenge: network.genesis_challenge,
+                    dns_introducers: network.dns_introducers.clone(),
+                },
+            })
+            .await?;
+
+        Ok(())
+    }
+
     pub async fn switch_wallet(&mut self) -> Result<()> {
+        self.switch_network().await?;
+
         let Some(fingerprint) = self.config.global.fingerprint else {
             self.wallet = None;
 

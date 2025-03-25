@@ -28,7 +28,6 @@ import {
   DragOverlay,
   DragStartEvent,
   MouseSensor,
-  PointerSensor,
   TouchSensor,
   UniqueIdentifier,
   useSensor,
@@ -92,14 +91,18 @@ export default function Login() {
 
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
 
-  const pointerSensor = useSensor(PointerSensor, {
+  const mouseSensor = useSensor(MouseSensor, {
     activationConstraint: {
-      distance: 5,
+      distance: 10,
     },
   });
-  const mouseSensor = useSensor(MouseSensor);
-  const touchSensor = useSensor(TouchSensor);
-  const sensors = useSensors(pointerSensor, mouseSensor, touchSensor);
+  const touchSensor = useSensor(TouchSensor, {
+    activationConstraint: {
+      delay: 250,
+      tolerance: 5,
+    },
+  });
+  const sensors = useSensors(mouseSensor, touchSensor);
 
   function handleDragStart(event: DragStartEvent) {
     const { active } = event;
@@ -108,20 +111,20 @@ export default function Login() {
   }
 
   function handleDragEnd(event: DragEndEvent) {
-    if (!keys) return;
-
     const { active, over } = event;
 
-    if (active.id !== over?.id) {
-      const oldIndex = keys.findIndex((key) => key.fingerprint === active.id);
-      const newIndex = keys.findIndex((key) => key.fingerprint === over?.id);
-
-      setKeys(arrayMove(keys, oldIndex, newIndex));
-
-      commands.moveKey(active.id as number, newIndex).catch(addError);
-    }
-
     setActiveId(null);
+
+    if (!keys || !over || active.id === over.id) return;
+
+    const oldIndex = keys.findIndex((key) => key.fingerprint === active.id);
+    const newIndex = keys.findIndex((key) => key.fingerprint === over.id);
+
+    if (oldIndex === newIndex || oldIndex === -1 || newIndex === -1) return;
+
+    setKeys(arrayMove(keys, oldIndex, newIndex));
+
+    commands.moveKey(active.id as number, newIndex).catch(addError);
   }
 
   return (
