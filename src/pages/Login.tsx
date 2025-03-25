@@ -21,6 +21,25 @@ import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { useErrors } from '@/hooks/useErrors';
+import {
+  closestCenter,
+  DndContext,
+  DragEndEvent,
+  DragOverlay,
+  DragStartEvent,
+  MouseSensor,
+  TouchSensor,
+  UniqueIdentifier,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  rectSortingStrategy,
+  SortableContext,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { platform } from '@tauri-apps/plugin-os';
@@ -35,7 +54,8 @@ import {
   SnowflakeIcon,
   TrashIcon,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import type { MouseEvent, TouchEvent } from 'react';
+import { ForwardedRef, forwardRef, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { commands, KeyInfo, SecretKeyInfo } from '../bindings';
 import Container from '../components/Container';
@@ -49,7 +69,6 @@ export default function Login() {
   const { addError } = useErrors();
   const [keys, setKeys] = useState<KeyInfo[] | null>(null);
   const [network, setNetwork] = useState<string | null>(null);
-  const { setWallet } = useWallet();
 
   useEffect(() => {
     commands
@@ -75,6 +94,44 @@ export default function Login() {
         addError(error);
       });
   }, [navigate, addError]);
+
+  const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
+
+  const mouseSensor = useSensor(MouseSensor, {
+    activationConstraint: {
+      distance: 10,
+    },
+  });
+  const touchSensor = useSensor(TouchSensor, {
+    activationConstraint: {
+      delay: 250,
+      tolerance: 5,
+    },
+  });
+  const sensors = useSensors(mouseSensor, touchSensor);
+
+  function handleDragStart(event: DragStartEvent) {
+    const { active } = event;
+
+    setActiveId(active.id);
+  }
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+
+    setActiveId(null);
+
+    if (!keys || !over || active.id === over.id) return;
+
+    const oldIndex = keys.findIndex((key) => key.fingerprint === active.id);
+    const newIndex = keys.findIndex((key) => key.fingerprint === over.id);
+
+    if (oldIndex === newIndex || oldIndex === -1 || newIndex === -1) return;
+
+    setKeys(arrayMove(keys, oldIndex, newIndex));
+
+    commands.moveKey(active.id as number, newIndex).catch(addError);
+  }
 
   return (
     <SafeAreaView>
@@ -109,17 +166,42 @@ export default function Login() {
         </div>
         {keys !== null ? (
           keys.length ? (
-            <div className='grid sm:grid-cols-2 md:grid-cols-3 gap-3'>
-              {keys.map((key, i) => (
-                <WalletItem
-                  key={i}
-                  network={network}
-                  info={key}
-                  keys={keys}
-                  setKeys={setKeys}
-                />
-              ))}
-            </div>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={keys.map((key) => key.fingerprint)}
+                strategy={rectSortingStrategy}
+              >
+                <div className='grid sm:grid-cols-2 md:grid-cols-3 gap-3'>
+                  {keys.map((key, i) => (
+                    <WalletItem
+                      draggable
+                      key={i}
+                      network={network}
+                      info={key}
+                      keys={keys}
+                      setKeys={setKeys}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+              <DragOverlay>
+                {activeId &&
+                  keys.findIndex((key) => key.fingerprint === activeId) !==
+                    -1 && (
+                    <WalletItem
+                      network={network}
+                      info={keys.find((key) => key.fingerprint === activeId)!}
+                      keys={keys}
+                      setKeys={setKeys}
+                    />
+                  )}
+              </DragOverlay>
+            </DndContext>
           ) : (
             <Welcome />
           )
@@ -130,6 +212,19 @@ export default function Login() {
     </SafeAreaView>
   );
 }
+
+export const Item = forwardRef(
+  (
+    { id, ...props }: { id: UniqueIdentifier },
+    ref: ForwardedRef<HTMLDivElement>,
+  ) => {
+    return (
+      <div {...props} ref={ref}>
+        {id}
+      </div>
+    );
+  },
+);
 
 function SkeletonWalletList() {
   return (
@@ -144,13 +239,20 @@ function SkeletonWalletList() {
 }
 
 interface WalletItemProps {
+  draggable?: boolean;
   network: string | null;
   info: KeyInfo;
   keys: KeyInfo[];
   setKeys: (keys: KeyInfo[]) => void;
 }
 
-function WalletItem({ network, info, keys, setKeys }: WalletItemProps) {
+function WalletItem({
+  draggable,
+  network,
+  info,
+  keys,
+  setKeys,
+}: WalletItemProps) {
   const navigate = useNavigate();
   const { addError } = useErrors();
   const { setWallet } = useWallet();
@@ -241,9 +343,33 @@ function WalletItem({ network, info, keys, setKeys }: WalletItemProps) {
       .catch(addError);
   }, [isDetailsOpen, info.fingerprint, addError]);
 
+  const values = useSortable({
+    id: draggable ? info.fingerprint : 'not-draggable',
+  });
+
+  let style: React.CSSProperties = {
+    transform: CSS.Transform.toString(values.transform),
+    transition: values.transition,
+    opacity: values.isDragging ? 0 : 1,
+  };
+
+  if (!draggable) {
+    values.listeners = {};
+    style = {};
+  }
+
   return (
     <>
-      <Card onClick={() => loginSelf(false)} className='cursor-pointer'>
+      <Card
+        ref={values.setNodeRef}
+        {...values.listeners}
+        {...values.attributes}
+        style={style}
+        onClick={() => {
+          loginSelf(false);
+        }}
+        className='cursor-pointer'
+      >
         <CardHeader className='flex flex-row items-center justify-between p-5 pt-4 pb-2'>
           <CardTitle className='text-2xl'>{info.name}</CardTitle>
           <DropdownMenu>
@@ -252,7 +378,7 @@ function WalletItem({ network, info, keys, setKeys }: WalletItemProps) {
                 <MoreVerticalIcon className='h-5 w-5' />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align='end'>
+            <DropdownMenuContent align='end' data-no-dnd>
               <DropdownMenuGroup>
                 <DropdownMenuItem
                   className='cursor-pointer'
@@ -556,3 +682,32 @@ function Welcome() {
     </Container>
   );
 }
+
+const customHandleEvent = (element: HTMLElement | null) => {
+  let cur = element;
+
+  while (cur) {
+    if (cur.dataset.noDnd) {
+      return false;
+    }
+    cur = cur.parentElement;
+  }
+
+  return true;
+};
+
+MouseSensor.activators = [
+  {
+    eventName: 'onMouseDown',
+    handler: ({ nativeEvent: event }: MouseEvent) =>
+      customHandleEvent(event.target as HTMLElement),
+  },
+];
+
+TouchSensor.activators = [
+  {
+    eventName: 'onTouchStart',
+    handler: ({ nativeEvent: event }: TouchEvent) =>
+      customHandleEvent(event.target as HTMLElement),
+  },
+];
