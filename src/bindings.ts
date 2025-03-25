@@ -274,6 +274,9 @@ async getRpcRunOnStartup() : Promise<boolean> {
 },
 async setRpcRunOnStartup(runOnStartup: boolean) : Promise<null> {
     return await TAURI_INVOKE("set_rpc_run_on_startup", { runOnStartup });
+},
+async moveKey(fingerprint: number, index: number) : Promise<null> {
+    return await TAURI_INVOKE("move_key", { fingerprint, index });
 }
 }
 

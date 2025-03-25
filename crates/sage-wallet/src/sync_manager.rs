@@ -161,10 +161,15 @@ impl SyncManager {
                     network_id,
                     network,
                 } => {
-                    self.state.lock().await.reset();
-                    self.abort_wallet_tasks();
-                    self.network_id = network_id;
-                    self.network = network;
+                    if self.network_id != network_id
+                        || self.network.genesis_challenge != network.genesis_challenge
+                        || self.network.default_port != network.default_port
+                    {
+                        self.state.lock().await.reset();
+                        self.abort_wallet_tasks();
+                        self.network_id = network_id;
+                        self.network = network;
+                    }
                 }
                 SyncCommand::HandleMessage { ip, message } => {
                     if let Err(error) = self.handle_message(ip, message).await {

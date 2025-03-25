@@ -84,25 +84,9 @@ impl Sage {
 
     pub async fn set_network(&mut self, req: SetNetwork) -> Result<SetNetworkResponse> {
         self.config.network.default_network.clone_from(&req.name);
-
         self.save_config()?;
-
-        let network = self.network();
-
-        self.command_sender
-            .send(SyncCommand::SwitchNetwork {
-                network_id: network.name.clone(),
-                network: chia_wallet_sdk::client::Network {
-                    default_port: network.default_port,
-                    genesis_challenge: network.genesis_challenge,
-                    dns_introducers: network.dns_introducers.clone(),
-                },
-            })
-            .await?;
-
         self.switch_wallet().await?;
         self.setup_peers().await?;
-
         Ok(SetNetworkResponse {})
     }
 
@@ -120,20 +104,6 @@ impl Sage {
         config.network = req.name;
 
         self.save_config()?;
-
-        let network = self.network();
-
-        self.command_sender
-            .send(SyncCommand::SwitchNetwork {
-                network_id: network.name.clone(),
-                network: chia_wallet_sdk::client::Network {
-                    default_port: network.default_port,
-                    genesis_challenge: network.genesis_challenge,
-                    dns_introducers: network.dns_introducers.clone(),
-                },
-            })
-            .await?;
-
         self.switch_wallet().await?;
         self.setup_peers().await?;
 
