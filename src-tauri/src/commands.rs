@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use chia_wallet_sdk::utils::Address;
+use sage::Error;
 use sage_api::{wallet_connect::*, *};
 use sage_api_macro::impl_endpoints_tauri;
 use sage_config::{NetworkConfig, Wallet};
@@ -140,5 +141,24 @@ pub async fn set_rpc_run_on_startup(
 ) -> Result<()> {
     state.lock().await.config.rpc.enabled = run_on_startup;
     state.lock().await.save_config()?;
+    Ok(())
+}
+
+#[command]
+#[specta]
+pub async fn move_key(state: State<'_, AppState>, fingerprint: u32, index: u32) -> Result<()> {
+    let mut state = state.lock().await;
+
+    let old_index = state
+        .wallet_config
+        .wallets
+        .iter()
+        .position(|w| w.fingerprint == fingerprint)
+        .ok_or(Error::UnknownFingerprint)?;
+
+    let wallet = state.wallet_config.wallets.remove(old_index);
+    state.wallet_config.wallets.insert(index as usize, wallet);
+    state.save_config()?;
+
     Ok(())
 }
