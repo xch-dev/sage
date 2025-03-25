@@ -239,8 +239,6 @@ export function CoinsCard({
       ? toMojos(values.maxCoinAmount, precision)
       : null;
 
-    console.log(fee, maxCoins, maxCoinAmount);
-
     autoCombineHandler({
       max_coins: parseInt(toMojos(maxCoins, 0)),
       max_coin_amount: maxCoinAmount,

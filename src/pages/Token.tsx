@@ -80,7 +80,11 @@ export default function Token() {
     () =>
       asset?.asset_id === 'xch'
         ? commands.autoCombineXch
-        : commands.autoCombineCat,
+        : (...[req]: Parameters<typeof commands.autoCombineXch>) =>
+            commands.autoCombineCat({
+              ...req,
+              asset_id: asset?.asset_id ?? '',
+            }),
     [asset?.asset_id],
   );
 
