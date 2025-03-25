@@ -1,26 +1,26 @@
 import Container from '@/components/Container';
 import Header from '@/components/Header';
+import { Loading } from '@/components/Loading';
+import { Pagination } from '@/components/Pagination';
 import { ReceiveAddress } from '@/components/ReceiveAddress';
+import { TransactionListView } from '@/components/TransactionListView';
+import { TransactionOptions } from '@/components/TransactionOptions';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useErrors } from '@/hooks/useErrors';
+import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
+import { useTransactionsParams } from '@/hooks/useTransactionsParams';
+import { isValidAddress, isValidAssetId } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Info } from 'lucide-react';
-import { useCallback, useEffect, useState, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   commands,
   events,
   PendingTransactionRecord,
   TransactionRecord,
 } from '../bindings';
-import { TransactionListView } from '@/components/TransactionListView';
-import { TransactionOptions } from '@/components/TransactionOptions';
-import { useTransactionsParams } from '@/hooks/useTransactionsParams';
-import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
-import { Pagination } from '@/components/Pagination';
-import { Loading } from '@/components/Loading';
-import { motion, AnimatePresence } from 'framer-motion';
-import { isValidAssetId, isValidAddress } from '@/lib/utils';
 
 export function Transactions() {
   const { addError } = useErrors();
@@ -39,75 +39,78 @@ export function Transactions() {
     setIsOptionsVisible(entry.isIntersecting);
   });
 
-  const updateTransactions = useCallback(async () => {
-    setIsLoading(true);
+  const updateTransactions = useCallback(
+    async (showLoader: boolean) => {
+      if (showLoader) setIsLoading(true);
 
-    try {
-      const pendingResult = await commands.getPendingTransactions({});
-      setPending(pendingResult.transactions);
+      try {
+        const pendingResult = await commands.getPendingTransactions({});
+        setPending(pendingResult.transactions);
 
-      // if the search term might be a block height, try to get the block
-      // and add it to the list of transactions
-      const searchHeight = search ? parseInt(search, 10) : null;
-      const isValidHeight =
-        searchHeight !== null && !isNaN(searchHeight) && searchHeight >= 0;
+        // if the search term might be a block height, try to get the block
+        // and add it to the list of transactions
+        const searchHeight = search ? parseInt(search, 10) : null;
+        const isValidHeight =
+          searchHeight !== null && !isNaN(searchHeight) && searchHeight >= 0;
 
-      let specificBlock: TransactionRecord[] = [];
-      if (isValidHeight) {
-        const block = await commands.getTransaction({ height: searchHeight });
-        specificBlock = [block.transaction];
-      }
-
-      // Check if the search term is an asset_id, NFT ID, or DID ID
-      let itemIdTransactions: TransactionRecord[] = [];
-      let itemIdTotal = 0;
-
-      if (search) {
-        if (
-          isValidAssetId(search) ||
-          isValidAddress(search, 'nft') ||
-          isValidAddress(search, 'did:chia:')
-        ) {
-          const itemIdResult = await commands.getTransactionsByItemId({
-            offset: (page - 1) * pageSize,
-            limit: pageSize,
-            ascending,
-            id: search,
-          });
-          itemIdTransactions = itemIdResult.transactions;
-          itemIdTotal = itemIdResult.total;
+        let specificBlock: TransactionRecord[] = [];
+        if (isValidHeight) {
+          const block = await commands.getTransaction({ height: searchHeight });
+          specificBlock = [block.transaction];
         }
+
+        // Check if the search term is an asset_id, NFT ID, or DID ID
+        let itemIdTransactions: TransactionRecord[] = [];
+        let itemIdTotal = 0;
+
+        if (search) {
+          if (
+            isValidAssetId(search) ||
+            isValidAddress(search, 'nft') ||
+            isValidAddress(search, 'did:chia:')
+          ) {
+            const itemIdResult = await commands.getTransactionsByItemId({
+              offset: (page - 1) * pageSize,
+              limit: pageSize,
+              ascending,
+              id: search,
+            });
+            itemIdTransactions = itemIdResult.transactions;
+            itemIdTotal = itemIdResult.total;
+          }
+        }
+
+        let regularTransactions: TransactionRecord[] = [];
+        let regularTotal = 0;
+
+        const result = await commands.getTransactions({
+          offset: (page - 1) * pageSize,
+          limit: pageSize,
+          ascending,
+          find_value: search || null,
+        });
+        regularTransactions = result.transactions;
+        regularTotal = result.total;
+
+        const combinedTransactions = [
+          ...specificBlock,
+          ...itemIdTransactions,
+          ...regularTransactions,
+        ];
+        setTransactions(combinedTransactions);
+        setTotalTransactions(regularTotal + specificBlock.length + itemIdTotal);
+      } catch (error) {
+        addError(error as any);
+      } finally {
+        setIsLoading(false);
+        setIsPaginationLoading(false);
       }
-
-      let regularTransactions: TransactionRecord[] = [];
-      let regularTotal = 0;
-
-      const result = await commands.getTransactions({
-        offset: (page - 1) * pageSize,
-        limit: pageSize,
-        ascending,
-        find_value: search || null,
-      });
-      regularTransactions = result.transactions;
-      regularTotal = result.total;
-
-      const combinedTransactions = [
-        ...specificBlock,
-        ...itemIdTransactions,
-        ...regularTransactions,
-      ];
-      setTransactions(combinedTransactions);
-      setTotalTransactions(regularTotal + specificBlock.length + itemIdTotal);
-    } catch (error) {
-      addError(error as any);
-    } finally {
-      setIsLoading(false);
-      setIsPaginationLoading(false);
-    }
-  }, [search, page, pageSize, ascending, addError]);
+    },
+    [search, page, pageSize, ascending, addError],
+  );
 
   useEffect(() => {
-    updateTransactions();
+    updateTransactions(true);
 
     const unlisten = events.syncEvent.listen((data) => {
       switch (data.payload.type) {
@@ -116,7 +119,7 @@ export function Transactions() {
         case 'did_info':
         case 'nft_data':
         case 'puzzle_batch_synced':
-          updateTransactions();
+          updateTransactions(false);
       }
     });
 
