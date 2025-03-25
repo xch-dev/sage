@@ -11,13 +11,13 @@ import { columns } from './TransactionColumns';
 function getDisplayName(coin: TransactionCoin) {
   switch (coin.type) {
     case 'xch':
-      return 'XCH';
+      return 'Chia';
     case 'cat':
-      return coin.ticker ?? 'CAT';
+      return coin.name ?? 'Unknown CAT';
     case 'did':
-      return coin.name ? `DID: ${coin.name}` : 'DID';
+      return coin.name ? `${coin.name}` : 'Unknown DID';
     case 'nft':
-      return coin.name ? `NFT: ${coin.name}` : 'NFT';
+      return coin.name ? `${coin.name}` : 'Unknown NFT';
     default:
       return coin.type.toUpperCase();
   }

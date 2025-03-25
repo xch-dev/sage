@@ -1,5 +1,12 @@
-'use client';
-
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Trans } from '@lingui/react/macro';
 import {
   ColumnDef,
   flexRender,
@@ -11,19 +18,7 @@ import {
   useReactTable,
 } from '@tanstack/react-table';
 
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-
-import { Trans } from '@lingui/react/macro';
-import { cn } from '@/lib/utils';
-
-// Add a type declaration for the column meta
+// Add responsive property to column definition
 declare module '@tanstack/react-table' {
   interface ColumnMeta<TData, TValue> {
     className?: string;
@@ -76,7 +71,8 @@ export function DataTable<TData, TValue>({
                   <TableHead
                     key={header.id}
                     role='columnheader'
-                    className={cn(header.column.columnDef.meta?.className)}
+                    className={`truncate px-2 ${header.column.columnDef.meta?.className ?? ''}`}
+                    style={{ width: `${header.getSize()}px` }}
                   >
                     {header.isPlaceholder
                       ? null
@@ -101,7 +97,7 @@ export function DataTable<TData, TValue>({
                     <TableCell
                       key={cell.id}
                       role='cell'
-                      className={cn(cell.column.columnDef.meta?.className)}
+                      className={`truncate px-2 ${cell.column.columnDef.meta?.className ?? ''}`}
                     >
                       {flexRender(
                         cell.column.columnDef.cell,
