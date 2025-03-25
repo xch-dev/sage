@@ -7,11 +7,12 @@ use chia::{
 use chia_wallet_sdk::{driver::MetadataUpdate, utils::Address};
 use itertools::Itertools;
 use sage_api::{
-    AddNftUri, AssignNftsToDid, AutoCombineCat, AutoCombineXch, BulkMintNfts, BulkMintNftsResponse,
-    BulkSendCat, BulkSendXch, CombineCat, CombineXch, CreateDid, IssueCat, NftUriKind,
-    NormalizeDids, SendCat, SendXch, SignCoinSpends, SignCoinSpendsResponse, SplitCat, SplitXch,
-    SubmitTransaction, SubmitTransactionResponse, TransactionResponse, TransferDids, TransferNfts,
-    ViewCoinSpends, ViewCoinSpendsResponse,
+    AddNftUri, AssignNftsToDid, AutoCombineCat, AutoCombineCatResponse, AutoCombineXch,
+    AutoCombineXchResponse, BulkMintNfts, BulkMintNftsResponse, BulkSendCat, BulkSendXch,
+    CombineCat, CombineXch, CreateDid, IssueCat, NftUriKind, NormalizeDids, SendCat, SendXch,
+    SignCoinSpends, SignCoinSpendsResponse, SplitCat, SplitXch, SubmitTransaction,
+    SubmitTransactionResponse, TransactionResponse, TransferDids, TransferNfts, ViewCoinSpends,
+    ViewCoinSpendsResponse,
 };
 use sage_assets::fetch_uris_without_hash;
 use sage_database::CatRow;
@@ -74,7 +75,7 @@ impl Sage {
         self.transact(coin_spends, req.auto_submit).await
     }
 
-    pub async fn auto_combine_xch(&self, req: AutoCombineXch) -> Result<TransactionResponse> {
+    pub async fn auto_combine_xch(&self, req: AutoCombineXch) -> Result<AutoCombineXchResponse> {
         let wallet = self.wallet()?;
         let fee = parse_amount(req.fee)?;
         let max_amount = req.max_coin_amount.map(parse_amount).transpose()?;
@@ -94,8 +95,19 @@ impl Sage {
             .take(req.max_coins as usize)
             .collect_vec();
 
+        let coin_ids = coins
+            .iter()
+            .map(|coin| hex::encode(coin.coin_id()))
+            .collect_vec();
+
         let coin_spends = wallet.combine_xch(coins, fee, false, true).await?;
-        self.transact(coin_spends, req.auto_submit).await
+        let response = self.transact(coin_spends, req.auto_submit).await?;
+
+        Ok(AutoCombineXchResponse {
+            coin_ids,
+            summary: response.summary,
+            coin_spends: response.coin_spends,
+        })
     }
 
     pub async fn split_xch(&self, req: SplitXch) -> Result<TransactionResponse> {
@@ -118,7 +130,7 @@ impl Sage {
         self.transact(coin_spends, req.auto_submit).await
     }
 
-    pub async fn auto_combine_cat(&self, req: AutoCombineCat) -> Result<TransactionResponse> {
+    pub async fn auto_combine_cat(&self, req: AutoCombineCat) -> Result<AutoCombineCatResponse> {
         let wallet = self.wallet()?;
         let fee = parse_amount(req.fee)?;
         let asset_id = parse_asset_id(req.asset_id)?;
@@ -148,8 +160,19 @@ impl Sage {
             cats.push(cat);
         }
 
+        let coin_ids = cats
+            .iter()
+            .map(|cat| hex::encode(cat.coin.coin_id()))
+            .collect_vec();
+
         let coin_spends = wallet.combine_cat(cats, fee, false, true).await?;
-        self.transact(coin_spends, req.auto_submit).await
+        let response = self.transact(coin_spends, req.auto_submit).await?;
+
+        Ok(AutoCombineCatResponse {
+            coin_ids,
+            summary: response.summary,
+            coin_spends: response.coin_spends,
+        })
     }
 
     pub async fn split_cat(&self, req: SplitCat) -> Result<TransactionResponse> {

@@ -210,13 +210,15 @@ export default function CoinList(props: CoinListProps) {
           )}
         </Button>
       ),
-      size: 120,
+      size: 140,
       cell: ({ row }) =>
         row.original.created_timestamp
           ? formatTimestamp(row.original.created_timestamp, 'short', 'short')
-          : row.original.create_transaction_id
-            ? t`Pending...`
-            : '',
+          : row.original.created_height
+            ? row.original.created_height.toString()
+            : row.original.create_transaction_id
+              ? t`Pending...`
+              : '',
     },
     {
       accessorKey: 'spent_height',
@@ -273,7 +275,7 @@ export default function CoinList(props: CoinListProps) {
           </Button>
         </div>
       ),
-      size: 120,
+      size: 140,
       cell: ({ row }) =>
         row.original.spent_timestamp
           ? formatTimestamp(row.original.spent_timestamp, 'short', 'short')
