@@ -467,8 +467,12 @@ impl SyncManager {
 
             if self.blocktime_queue_task.is_none() && !self.options.testing {
                 let task = tokio::spawn(
-                    BlockTimeQueue::new(wallet.db.clone(), self.state.clone())
-                        .start(self.options.timeouts.blocktime_delay),
+                    BlockTimeQueue::new(
+                        wallet.db.clone(),
+                        self.state.clone(),
+                        self.event_sender.clone(),
+                    )
+                    .start(self.options.timeouts.blocktime_delay),
                 );
                 self.blocktime_queue_task = Some(task);
             }

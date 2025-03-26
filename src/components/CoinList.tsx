@@ -1,4 +1,4 @@
-import { fromMojos, formatTimestamp } from '@/lib/utils';
+import { formatTimestamp, fromMojos } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import {
@@ -7,15 +7,15 @@ import {
   RowSelectionState,
   SortingState,
 } from '@tanstack/react-table';
+import { openUrl } from '@tauri-apps/plugin-opener';
 import { ArrowDown, ArrowUp, FilterIcon, FilterXIcon } from 'lucide-react';
 import { useState } from 'react';
 import { CoinRecord } from '../bindings';
+import { NumberFormat } from './NumberFormat';
+import { SimplePagination } from './SimplePagination';
 import { Button } from './ui/button';
 import { Checkbox } from './ui/checkbox';
-import { NumberFormat } from './NumberFormat';
-import { openUrl } from '@tauri-apps/plugin-opener';
 import { DataTable } from './ui/data-table';
-import { SimplePagination } from './SimplePagination';
 
 export interface CoinListProps {
   precision: number;
@@ -44,11 +44,9 @@ export default function CoinList(props: CoinListProps) {
   const columns: ColumnDef<CoinRecord>[] = [
     {
       id: 'select',
-      meta: {
-        className: 'w-[30px] max-w-[30px]',
-      },
+      size: 30,
       header: ({ table }) => (
-        <div className='flex justify-center items-center pt-1'>
+        <div className='flex justify-center items-center'>
           <Checkbox
             checked={
               table.getIsAllPageRowsSelected() ||
@@ -75,7 +73,7 @@ export default function CoinList(props: CoinListProps) {
         </div>
       ),
       cell: ({ row }) => (
-        <div className='flex justify-center items-center pl-1 md:pl-0'>
+        <div className='flex justify-center items-center'>
           <Checkbox
             checked={row.getIsSelected()}
             onCheckedChange={(value) => {
@@ -96,72 +94,66 @@ export default function CoinList(props: CoinListProps) {
     },
     {
       accessorKey: 'coin_id',
-      meta: {
-        className: 'w-[70px] min-w-[70px] md:min-w-[100px]',
-      },
+      size: 100,
       header: ({ column }) => (
-        <div>
-          <Button
-            className='px-0'
-            variant='link'
-            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-          >
-            <Trans>Coin</Trans>
-            {column.getIsSorted() === 'asc' ? (
-              <ArrowUp className='ml-2 h-4 w-4' aria-hidden='true' />
-            ) : column.getIsSorted() === 'desc' ? (
-              <ArrowDown className='ml-2 h-4 w-4' aria-hidden='true' />
-            ) : (
-              <span className='ml-2 w-4 h-4' />
-            )}
-          </Button>
-        </div>
-      ),
-      cell: ({ row }) => (
-        <div
-          className='cursor-pointer truncate hover:underline'
-          onClick={(e) => {
-            e.stopPropagation();
-            openUrl(`https://spacescan.io/coin/0x${row.original.coin_id}`);
-          }}
-          aria-label={t`View coin ${row.original.coin_id} on Spacescan.io`}
-          role='button'
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.stopPropagation();
-              openUrl(`https://spacescan.io/coin/0x${row.original.coin_id}`);
-            }
-          }}
+        <Button
+          className='px-0'
+          variant='link'
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
         >
-          {row.original.coin_id}
-        </div>
+          <Trans>Coin ID</Trans>
+          {column.getIsSorted() === 'asc' ? (
+            <ArrowUp className='ml-2 h-4 w-4' aria-hidden='true' />
+          ) : column.getIsSorted() === 'desc' ? (
+            <ArrowDown className='ml-2 h-4 w-4' aria-hidden='true' />
+          ) : (
+            <span className='ml-2 w-4 h-4' />
+          )}
+        </Button>
       ),
+      cell: ({ row }) => {
+        const coinId = row.original.coin_id;
+        return (
+          <div
+            className='cursor-pointer truncate hover:underline'
+            onClick={(e) => {
+              e.stopPropagation();
+              openUrl(`https://spacescan.io/coin/0x${coinId}`);
+            }}
+            aria-label={t`View coin ${coinId} on Spacescan.io`}
+            role='button'
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.stopPropagation();
+                openUrl(`https://spacescan.io/coin/0x${coinId}`);
+              }
+            }}
+          >
+            {coinId}
+          </div>
+        );
+      },
     },
     {
       accessorKey: 'amount',
-      meta: {
-        className:
-          'text-right w-[60px] md:w-[80px] min-w-[60px] md:min-w-[80px]',
-      },
+      size: 100,
       header: ({ column }) => (
-        <div
-          className='text-right cursor-pointer'
+        <Button
+          className='px-0'
+          variant='link'
           onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
         >
-          {column.getIsSorted() === 'asc' ? (
-            <ArrowUp className='mr-2 h-4 w-4 inline-block' aria-hidden='true' />
-          ) : column.getIsSorted() === 'desc' ? (
-            <ArrowDown
-              className='mr-2 h-4 w-4 inline-block'
-              aria-hidden='true'
-            />
-          ) : (
-            <span className='mr-2 w-4 h-4 inline-block' />
-          )}
           <span className='text-foreground hover:underline'>
             <Trans>Amount</Trans>
           </span>
-        </div>
+          {column.getIsSorted() === 'asc' ? (
+            <ArrowUp className='ml-2 h-4 w-4' aria-hidden='true' />
+          ) : column.getIsSorted() === 'desc' ? (
+            <ArrowDown className='ml-2 h-4 w-4' aria-hidden='true' />
+          ) : (
+            <span className='ml-2 w-4 h-4' />
+          )}
+        </Button>
       ),
       cell: (info) => (
         <div className='font-mono truncate'>
@@ -175,9 +167,6 @@ export default function CoinList(props: CoinListProps) {
     },
     {
       accessorKey: 'created_height',
-      meta: {
-        className: 'hidden md:table-cell w-[70px] min-w-[70px]',
-      },
       sortingFn: (rowA, rowB) => {
         const addSpend = 1_000_000_000;
         const addCreate = 2_000_000_000;
@@ -206,38 +195,33 @@ export default function CoinList(props: CoinListProps) {
         return a < b ? -1 : a > b ? 1 : 0;
       },
       header: ({ column }) => (
-        <div className='hidden md:block'>
-          <Button
-            className='px-0'
-            variant='link'
-            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-          >
-            <Trans>Confirmed</Trans>
-            {column.getIsSorted() === 'asc' ? (
-              <ArrowUp className='ml-2 h-4 w-4' aria-hidden='true' />
-            ) : column.getIsSorted() === 'desc' ? (
-              <ArrowDown className='ml-2 h-4 w-4' aria-hidden='true' />
-            ) : (
-              <span className='ml-2 w-4 h-4' />
-            )}
-          </Button>
-        </div>
+        <Button
+          className='px-0'
+          variant='link'
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+        >
+          <Trans>Confirmed</Trans>
+          {column.getIsSorted() === 'asc' ? (
+            <ArrowUp className='ml-2 h-4 w-4' aria-hidden='true' />
+          ) : column.getIsSorted() === 'desc' ? (
+            <ArrowDown className='ml-2 h-4 w-4' aria-hidden='true' />
+          ) : (
+            <span className='ml-2 w-4 h-4' />
+          )}
+        </Button>
       ),
-      cell: ({ row }) => (
-        <div className='hidden md:block truncate'>
-          {row.original.created_timestamp
-            ? formatTimestamp(row.original.created_timestamp, 'short', 'short')
+      size: 140,
+      cell: ({ row }) =>
+        row.original.created_timestamp
+          ? formatTimestamp(row.original.created_timestamp, 'short', 'short')
+          : row.original.created_height
+            ? row.original.created_height.toString()
             : row.original.create_transaction_id
               ? t`Pending...`
-              : ''}
-        </div>
-      ),
+              : '',
     },
     {
       accessorKey: 'spent_height',
-      meta: {
-        className: 'hidden md:table-cell w-[70px] min-w-[70px]',
-      },
       sortingFn: (rowA, rowB) => {
         const a =
           (rowA.original.spent_height ?? 0) +
@@ -250,63 +234,57 @@ export default function CoinList(props: CoinListProps) {
         return a < b ? -1 : a > b ? 1 : 0;
       },
       header: ({ column }) => (
-        <div className='hidden md:block'>
-          <div className='flex items-center space-x-1'>
-            <Button
-              className='px-0'
-              variant='link'
-              onClick={() =>
-                column.toggleSorting(column.getIsSorted() === 'asc')
+        <div className='flex items-center space-x-1'>
+          <Button
+            className='px-0'
+            variant='link'
+            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+          >
+            <Trans>Spent</Trans>
+            {column.getIsSorted() === 'asc' ? (
+              <ArrowUp className='ml-2 h-4 w-4' aria-hidden='true' />
+            ) : column.getIsSorted() === 'desc' ? (
+              <ArrowDown className='ml-2 h-4 w-4' aria-hidden='true' />
+            ) : (
+              <span className='ml-2 w-4 h-4' />
+            )}
+          </Button>
+          <Button
+            size='icon'
+            variant='ghost'
+            className='h-6 w-6 p-0 ml-1'
+            onClick={() => {
+              const newShowSpentCoins = !showSpentCoins;
+              setShowSpentCoins(newShowSpentCoins);
+              if (newShowSpentCoins) {
+                setSorting([{ id: 'spent_height', desc: true }]);
+              } else {
+                setSorting([{ id: 'created_height', desc: true }]);
               }
-            >
-              <Trans>Spent</Trans>
-              {column.getIsSorted() === 'asc' ? (
-                <ArrowUp className='ml-2 h-4 w-4' aria-hidden='true' />
-              ) : column.getIsSorted() === 'desc' ? (
-                <ArrowDown className='ml-2 h-4 w-4' aria-hidden='true' />
-              ) : (
-                <span className='ml-2 w-4 h-4' />
-              )}
-            </Button>
-            <Button
-              size='icon'
-              variant='ghost'
-              className='h-6 w-6 p-0 ml-1'
-              onClick={() => {
-                const newShowSpentCoins = !showSpentCoins;
-                setShowSpentCoins(newShowSpentCoins);
-                if (newShowSpentCoins) {
-                  setSorting([{ id: 'spent_height', desc: true }]);
-                } else {
-                  setSorting([{ id: 'created_height', desc: true }]);
-                }
-                setCurrentPage(0); // Reset to first page on filter change
-              }}
-              aria-label={
-                showSpentCoins ? t`Show all coins` : t`Show unspent coins only`
-              }
-            >
-              {showSpentCoins ? (
-                <FilterIcon className='h-3 w-3' aria-hidden='true' />
-              ) : (
-                <FilterXIcon className='h-3 w-3' aria-hidden='true' />
-              )}
-            </Button>
-          </div>
+              setCurrentPage(0); // Reset to first page on filter change
+            }}
+            aria-label={
+              showSpentCoins ? t`Show all coins` : t`Show unspent coins only`
+            }
+          >
+            {showSpentCoins ? (
+              <FilterIcon className='h-3 w-3' aria-hidden='true' />
+            ) : (
+              <FilterXIcon className='h-3 w-3' aria-hidden='true' />
+            )}
+          </Button>
         </div>
       ),
-      cell: ({ row }) => (
-        <div className='hidden md:block truncate'>
-          {row.original.spent_timestamp
-            ? formatTimestamp(row.original.spent_timestamp, 'short', 'short')
-            : (row.original.spent_height ??
-              (row.original.spend_transaction_id
-                ? t`Pending...`
-                : row.original.offer_id
-                  ? t`Offered...`
-                  : ''))}
-        </div>
-      ),
+      size: 140,
+      cell: ({ row }) =>
+        row.original.spent_timestamp
+          ? formatTimestamp(row.original.spent_timestamp, 'short', 'short')
+          : (row.original.spent_height ??
+            (row.original.spend_transaction_id
+              ? t`Pending...`
+              : row.original.offer_id
+                ? t`Offered...`
+                : '')),
     },
   ];
 

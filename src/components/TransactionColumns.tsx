@@ -1,21 +1,21 @@
 'use client';
 
-import { ColumnDef } from '@tanstack/react-table';
-import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
-import { t } from '@lingui/core/macro';
-import { Trans } from '@lingui/react/macro';
-import { Link } from 'react-router-dom';
-import { MoreHorizontal, Copy, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { formatAddress, formatTimestamp } from '@/lib/utils';
+import { t } from '@lingui/core/macro';
+import { Trans } from '@lingui/react/macro';
+import { ColumnDef } from '@tanstack/react-table';
+import { Copy, MoreHorizontal, Wallet } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { AmountCell } from './AmountCell';
-import { formatAddress, formatTimestamp } from '@/lib/utils';
 
 export interface FlattenedTransaction {
   transactionHeight: number;
@@ -36,10 +36,7 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
       <DataTableColumnHeader column={column} title={t`Transaction`} />
     ),
     enableSorting: false,
-    size: 80,
-    meta: {
-      className: 'w-[105px] min-w-[105px] md:w-[120px] md:min-w-[120px]',
-    },
+    size: 140,
     cell: ({ row, table }) => {
       // Get all rows data
       const rows = table.options.data as FlattenedTransaction[];
@@ -67,57 +64,43 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
     },
   },
   {
-    id: 'icon',
+    accessorKey: 'type',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title={t`Asset`} />
+    ),
     enableSorting: false,
-    size: 48,
-    meta: {
-      className: 'w-[40px] min-w-[40px] md:w-[48px] md:min-w-[48px]',
-    },
-    header: () => <span className='sr-only'>{t`Asset Icon`}</span>,
+    size: 140,
     cell: ({ row }) => {
-      const type = row.getValue('type') as string;
-      const ticker = row.original.ticker;
-      const assetName = type === 'xch' ? 'XCH' : (ticker ?? 'CAT');
+      const displayName = row.original.displayName;
 
       return (
-        <div className='w-6 h-6' role='img' aria-label={`${assetName} icon`}>
-          {row.original.icon_url ? (
-            <img
-              src={row.original.icon_url}
-              aria-hidden='true'
-              loading='lazy'
-            />
-          ) : null}
+        <div className='flex items-center gap-3'>
+          <div
+            className='w-6 h-6 flex-shrink-0'
+            role='img'
+            aria-label={`${displayName} icon`}
+          >
+            {row.original.icon_url ? (
+              <img
+                src={row.original.icon_url}
+                aria-hidden='true'
+                loading='lazy'
+              />
+            ) : null}
+          </div>
+
+          <div className='truncate'>{row.original.displayName}</div>
         </div>
       );
     },
   },
   {
-    accessorKey: 'type',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={t`Ticker`} />
-    ),
-    enableSorting: false,
-    size: 120,
-    meta: {
-      className: 'w-[70px] min-w-[70px] md:w-[120px] md:min-w-[120px]',
-    },
-    cell: ({ row }) => {
-      return <div className='truncate'>{row.original.displayName}</div>;
-    },
-  },
-  {
     accessorKey: 'amount',
     header: ({ column }) => (
-      <div className='text-right'>
-        <DataTableColumnHeader column={column} title={t`Amount`} />
-      </div>
+      <DataTableColumnHeader column={column} title={t`Amount`} />
     ),
     enableSorting: false,
     size: 120,
-    meta: {
-      className: 'w-[85px] min-w-[85px] md:w-[120px] md:min-w-[120px]',
-    },
     cell: ({ row }) => (
       <AmountCell amount={row.getValue('amount')} type={row.getValue('type')} />
     ),
@@ -125,14 +108,12 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
   {
     accessorKey: 'address',
     header: ({ column }) => (
-      <div className='hidden md:block'>
-        <DataTableColumnHeader column={column} title={t`Address`} />
-      </div>
+      <DataTableColumnHeader column={column} title={t`Address`} />
     ),
     enableSorting: false,
-    size: 200,
+    size: 130,
     meta: {
-      className: 'hidden md:table-cell w-full md:w-[200px] md:min-w-[200px]',
+      className: 'hidden md:table-cell',
     },
     cell: ({ row }) => (
       <div className='hidden md:block font-mono'>
@@ -144,9 +125,6 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
     id: 'actions',
     enableSorting: false,
     size: 50,
-    meta: {
-      className: 'w-[40px] min-w-[40px] md:w-[50px] md:min-w-[50px]',
-    },
     cell: ({ row }) => {
       const txCoin = row.original;
 
@@ -170,7 +148,7 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
               }}
             >
               <Copy className='mr-2 h-4 w-4' aria-hidden='true' />
-              <Trans>Copy amount</Trans>
+              <Trans>Copy Amount</Trans>
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => {
@@ -179,7 +157,7 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
               }}
             >
               <Wallet className='mr-2 h-4 w-4' aria-hidden='true' />
-              <Trans>Copy address</Trans>
+              <Trans>Copy Address</Trans>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

@@ -1,14 +1,14 @@
+import { CoinsCard } from '@/components/CoinsCard';
 import ConfirmationDialog from '@/components/ConfirmationDialog';
 import Container from '@/components/Container';
 import { CopyButton } from '@/components/CopyButton';
 import Header from '@/components/Header';
-import { useTokenManagement } from '@/hooks/useTokenManagement';
-import { t } from '@lingui/core/macro';
-import { useParams } from 'react-router-dom';
-import { CoinsCard } from '@/components/CoinsCard';
 import { TokenCard } from '@/components/TokenCard';
 import { TokenConfirmation } from '@/components/confirmations/TokenConfirmation';
+import { useTokenManagement } from '@/hooks/useTokenManagement';
+import { t } from '@lingui/core/macro';
 import { useMemo } from 'react';
+import { useParams } from 'react-router-dom';
 import { commands } from '../bindings';
 
 export default function Token() {
@@ -76,6 +76,18 @@ export default function Token() {
     [asset?.asset_id],
   );
 
+  const autoCombineHandler = useMemo(
+    () =>
+      asset?.asset_id === 'xch'
+        ? commands.autoCombineXch
+        : (...[req]: Parameters<typeof commands.autoCombineXch>) =>
+            commands.autoCombineCat({
+              ...req,
+              asset_id: asset?.asset_id ?? '',
+            }),
+    [asset?.asset_id],
+  );
+
   return (
     <>
       <Header
@@ -106,6 +118,7 @@ export default function Token() {
             asset={asset}
             splitHandler={splitHandler}
             combineHandler={combineHandler}
+            autoCombineHandler={autoCombineHandler}
             setResponse={setResponse}
             selectedCoins={selectedCoins}
             setSelectedCoins={setSelectedCoins}
