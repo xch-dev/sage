@@ -308,7 +308,11 @@ export function CoinsCard({
                   }}
                 >
                   <MergeIcon className='mr-2 h-4 w-4' />
-                  <Trans>Combine</Trans>
+                  {!canCombine && canAutoCombine ? (
+                    <Trans>Sweep</Trans>
+                  ) : (
+                    <Trans>Combine</Trans>
+                  )}
                 </Button>
               )}
             </>
