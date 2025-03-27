@@ -7,6 +7,7 @@ import {
   XIcon,
   ListFilter,
   List,
+  Download,
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -24,6 +25,8 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useState, useEffect } from 'react';
+import { TransactionRecord } from '@/bindings';
+import { exportTransactions } from '@/lib/exportTransactions';
 
 const optionsPaginationVariants = {
   enter: { opacity: 1, y: 0 },
@@ -37,6 +40,7 @@ interface TransactionOptionsProps {
   isLoading?: boolean;
   className?: string;
   renderPagination: () => React.ReactNode;
+  transactions: TransactionRecord[];
 }
 
 export function TransactionOptions({
@@ -44,6 +48,7 @@ export function TransactionOptions({
   onParamsChange,
   className,
   renderPagination,
+  transactions,
 }: TransactionOptionsProps) {
   const { search, ascending, summarized } = params;
   const [searchValue, setSearchValue] = useState(search);
@@ -106,6 +111,15 @@ export function TransactionOptions({
           </motion.div>
         </AnimatePresence>
         <div className='flex gap-2'>
+          <Button
+            variant='outline'
+            size='icon'
+            aria-label={t`Export transactions`}
+            title={t`Export transactions`}
+            onClick={() => exportTransactions(transactions)}
+          >
+            <Download className='h-4 w-4' aria-hidden='true' />
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button

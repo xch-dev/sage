@@ -40,6 +40,8 @@ rustls = { workspace = true }
 # https://aws.github.io/aws-lc-rs/platform_support.html#tested-platforms
 aws-lc-rs = { version = "1", features = ["bindgen"] }
 tauri-plugin-http = "2.0.0-rc"
+tauri-plugin-dialog = "2"
+tauri-plugin-fs = "2"
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-window-state = "2.0.0-rc"

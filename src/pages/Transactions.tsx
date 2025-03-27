@@ -231,6 +231,7 @@ export function Transactions() {
             isLoading={isLoading || isPaginationLoading}
             className='mb-4'
             renderPagination={() => renderPagination(false)}
+            transactions={transactions}
           />
         </div>
 
