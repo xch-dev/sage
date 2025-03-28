@@ -181,6 +181,40 @@ export function TokenList() {
             setParams({ search: value });
           }}
           className='mb-4'
+          tokens={[
+            {
+              asset_id: 'XCH',
+              name: 'Chia',
+              ticker: walletState.sync.unit.ticker,
+              icon_url: 'https://icons.dexie.space/xch.webp',
+              balance: walletState.sync.balance.toString(),
+              balanceInUsd: Number(
+                getBalanceInUsd(
+                  'xch',
+                  toDecimal(
+                    walletState.sync.balance,
+                    walletState.sync.unit.decimals,
+                  ),
+                ),
+              ),
+              priceInUsd: getPriceInUsd('xch'),
+              decimals: walletState.sync.unit.decimals,
+              isXch: true,
+              visible: true,
+            },
+            ...filteredCats.map((cat) => ({
+              asset_id: cat.asset_id,
+              name: cat.name,
+              ticker: cat.ticker,
+              icon_url: cat.icon_url,
+              balance: cat.balance,
+              balanceInUsd: cat.balanceInUsd,
+              priceInUsd: cat.priceInUsd,
+              decimals: 3,
+              isXch: false,
+              visible: cat.visible,
+            })),
+          ]}
         />
 
         {walletState.sync.synced_coins < walletState.sync.total_coins && (
