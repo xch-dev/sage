@@ -148,7 +148,12 @@ impl Sage {
     ) -> Result<IncreaseDerivationIndexResponse> {
         let wallet = self.wallet()?;
 
-        let derivations = if req.hardened {
+        let hardened = req.hardened.is_none_or(|hardened| hardened);
+        let unhardened = req.hardened.is_none_or(|hardened| !hardened);
+
+        let mut derivations = Vec::new();
+
+        if hardened {
             let (_mnemonic, Some(master_sk)) =
                 self.keychain.extract_secrets(wallet.fingerprint, b"")?
             else {
@@ -159,8 +164,6 @@ impl Sage {
 
             let start = tx.derivation_index(true).await?;
             let intermediate_sk = master_to_wallet_hardened_intermediate(&master_sk);
-
-            let mut derivations = Vec::new();
 
             for index in start..req.index {
                 let synthetic_key = intermediate_sk
@@ -177,21 +180,21 @@ impl Sage {
             }
 
             tx.commit().await?;
+        }
 
-            derivations
-        } else {
+        if unhardened {
             let mut tx = wallet.db.tx().await?;
 
             let start = tx.derivation_index(false).await?;
 
-            let derivations = wallet
-                .insert_unhardened_derivations(&mut tx, start..req.index)
-                .await?;
+            derivations.extend(
+                wallet
+                    .insert_unhardened_derivations(&mut tx, start..req.index)
+                    .await?,
+            );
 
             tx.commit().await?;
-
-            derivations
-        };
+        }
 
         self.command_sender
             .send(SyncCommand::SubscribePuzzles {

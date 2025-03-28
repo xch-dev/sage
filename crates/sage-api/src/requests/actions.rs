@@ -69,7 +69,8 @@ pub struct RedownloadNftResponse {}
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct IncreaseDerivationIndex {
-    pub hardened: bool,
+    #[serde(default)]
+    pub hardened: Option<bool>,
     pub index: u32,
 }
 
