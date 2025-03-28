@@ -6,11 +6,6 @@
     "linux"
   ],
   "permissions": [
-    "window-state:default",
-    "core:menu:default",
-    "core:tray:default",
-    "core:window:allow-request-user-attention",
-    "dialog:default",
-    "fs:allow-write-text-file"
+    "window-state:default"
   ]
 }
