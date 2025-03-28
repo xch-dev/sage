@@ -17,8 +17,6 @@
     "clipboard-manager:allow-write-text",
     "clipboard-manager:allow-read-text",
     "opener:default",
-    "dialog:default",
-    "fs:allow-write-text-file",
     {
       "identifier": "http:default",
       "allow": [

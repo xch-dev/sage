@@ -5,7 +5,15 @@
     "windows",
     "linux"
   ],
+  "windows": [
+    "main"
+  ],
   "permissions": [
-    "window-state:default"
+    "window-state:default",
+    "core:menu:default",
+    "core:tray:default",
+    "core:window:allow-request-user-attention",
+    "fs:allow-write-text-file",
+    "dialog:default"
   ]
 }
