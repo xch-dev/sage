@@ -40,6 +40,7 @@
   "issue_cat": true,
   "send_cat": true,
   "bulk_send_cat": true,
+  "multi_send": true,
   "create_did": true,
   "bulk_mint_nfts": true,
   "transfer_nfts": true,

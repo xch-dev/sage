@@ -9,19 +9,20 @@ use itertools::Itertools;
 use sage_api::{
     AddNftUri, AssignNftsToDid, AutoCombineCat, AutoCombineCatResponse, AutoCombineXch,
     AutoCombineXchResponse, BulkMintNfts, BulkMintNftsResponse, BulkSendCat, BulkSendXch,
-    CombineCat, CombineXch, CreateDid, IssueCat, NftUriKind, NormalizeDids, SendCat, SendXch,
-    SignCoinSpends, SignCoinSpendsResponse, SplitCat, SplitXch, SubmitTransaction,
+    CombineCat, CombineXch, CreateDid, IssueCat, MultiSend, NftUriKind, NormalizeDids, SendCat,
+    SendXch, SignCoinSpends, SignCoinSpendsResponse, SplitCat, SplitXch, SubmitTransaction,
     SubmitTransactionResponse, TransactionResponse, TransferDids, TransferNfts, ViewCoinSpends,
     ViewCoinSpendsResponse,
 };
 use sage_assets::fetch_uris_without_hash;
 use sage_database::CatRow;
-use sage_wallet::WalletNftMint;
+use sage_wallet::{MultiSendPayment, WalletNftMint};
 use tokio::time::timeout;
 
 use crate::{
     fetch_cats, fetch_coins, json_bundle, json_spend, parse_amount, parse_asset_id, parse_did_id,
-    parse_hash, parse_nft_id, rust_bundle, rust_spend, ConfirmationInfo, Error, Result, Sage,
+    parse_hash, parse_memos, parse_nft_id, rust_bundle, rust_spend, ConfirmationInfo, Error,
+    Result, Sage,
 };
 
 impl Sage {
@@ -30,12 +31,7 @@ impl Sage {
         let puzzle_hash = self.parse_address(req.address)?;
         let amount = parse_amount(req.amount)?;
         let fee = parse_amount(req.fee)?;
-
-        let mut memos = Vec::new();
-
-        for memo in req.memos {
-            memos.push(Bytes::from(hex::decode(memo)?));
-        }
+        let memos = parse_memos(req.memos)?;
 
         let coin_spends = wallet
             .send_xch(vec![(puzzle_hash, amount)], fee, memos, false, true)
@@ -55,12 +51,7 @@ impl Sage {
         }
 
         let fee = parse_amount(req.fee)?;
-
-        let mut memos = Vec::new();
-
-        for memo in req.memos {
-            memos.push(Bytes::from(hex::decode(memo)?));
-        }
+        let memos = parse_memos(req.memos)?;
 
         let coin_spends = wallet.send_xch(amounts, fee, memos, false, true).await?;
         self.transact(coin_spends, req.auto_submit).await
@@ -214,18 +205,14 @@ impl Sage {
         let puzzle_hash = self.parse_address(req.address)?;
         let amount = parse_amount(req.amount)?;
         let fee = parse_amount(req.fee)?;
-
-        let mut memos = Vec::new();
-
-        for memo in req.memos {
-            memos.push(Bytes::from(hex::decode(memo)?));
-        }
+        let memos = parse_memos(req.memos)?;
 
         let coin_spends = wallet
             .send_cat(
                 asset_id,
                 vec![(puzzle_hash, amount)],
                 fee,
+                req.include_hint,
                 memos,
                 false,
                 true,
@@ -247,16 +234,48 @@ impl Sage {
         }
 
         let fee = parse_amount(req.fee)?;
-
-        let mut memos = Vec::new();
-
-        for memo in req.memos {
-            memos.push(Bytes::from(hex::decode(memo)?));
-        }
+        let memos = parse_memos(req.memos)?;
 
         let coin_spends = wallet
-            .send_cat(asset_id, amounts, fee, memos, false, true)
+            .send_cat(asset_id, amounts, fee, req.include_hint, memos, false, true)
             .await?;
+        self.transact(coin_spends, req.auto_submit).await
+    }
+
+    pub async fn multi_send(&self, req: MultiSend) -> Result<TransactionResponse> {
+        let wallet = self.wallet()?;
+
+        let mut payments = Vec::with_capacity(req.payments.len());
+
+        for payment in req.payments {
+            let asset_id = if let Some(asset_id) = payment.asset_id {
+                Some(parse_asset_id(asset_id)?)
+            } else {
+                None
+            };
+            let amount = parse_amount(payment.amount)?;
+            let puzzle_hash = self.parse_address(payment.address)?;
+            let memos = if let Some(list) = payment.memos {
+                let mut memos = Vec::new();
+                for memo in list {
+                    memos.push(Bytes::from(hex::decode(memo)?));
+                }
+                Some(memos)
+            } else {
+                None
+            };
+
+            payments.push(MultiSendPayment {
+                asset_id,
+                amount,
+                puzzle_hash,
+                memos,
+            });
+        }
+
+        let fee = parse_amount(req.fee)?;
+
+        let coin_spends = wallet.multi_send(payments, fee, false, true).await?;
         self.transact(coin_spends, req.auto_submit).await
     }
 

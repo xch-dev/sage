@@ -2,7 +2,7 @@
 
 use chia::{
     bls::{PublicKey, Signature},
-    protocol::{Bytes32, Program},
+    protocol::{Bytes, Bytes32, Program},
 };
 use chia_wallet_sdk::utils::Address;
 use sage_api::Amount;
@@ -121,4 +121,16 @@ pub fn parse_program(input: String) -> Result<Program> {
     };
 
     Ok(hex::decode(stripped)?.into())
+}
+
+pub fn parse_memos(input: Option<Vec<String>>) -> Result<Option<Vec<Bytes>>> {
+    if let Some(list) = input {
+        let mut memos = Vec::new();
+        for memo in list {
+            memos.push(Bytes::from(hex::decode(memo)?));
+        }
+        Ok(Some(memos))
+    } else {
+        Ok(None)
+    }
 }
