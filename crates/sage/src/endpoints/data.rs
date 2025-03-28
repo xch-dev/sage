@@ -56,6 +56,8 @@ impl Sage {
             receive_address: receive_address.unwrap_or_default(),
             burn_address: Address::new(BURN_PUZZLE_HASH.into(), self.network().prefix())
                 .encode()?,
+            unhardened_derivation_index: wallet.db.derivation_index(false).await?,
+            hardened_derivation_index: wallet.db.derivation_index(true).await?,
         })
     }
 

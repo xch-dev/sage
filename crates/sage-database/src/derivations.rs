@@ -12,6 +12,10 @@ pub struct SyntheticKeyInfo {
 }
 
 impl Database {
+    pub async fn derivation_index(&self, hardened: bool) -> Result<u32> {
+        derivation_index(&self.pool, hardened).await
+    }
+
     pub async fn derivations(
         &self,
         hardened: bool,
