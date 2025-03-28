@@ -45,6 +45,8 @@ pub struct GetSyncStatusResponse {
     pub total_coins: u32,
     pub receive_address: String,
     pub burn_address: String,
+    pub unhardened_derivation_index: u32,
+    pub hardened_derivation_index: u32,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
