@@ -27,6 +27,8 @@ import { useDebounce } from '@/hooks/useDebounce';
 import { useState, useEffect } from 'react';
 import { TransactionRecord } from '@/bindings';
 import { exportTransactions } from '@/lib/exportTransactions';
+import { commands } from '@/bindings';
+import { platform } from '@tauri-apps/plugin-os';
 
 const optionsPaginationVariants = {
   enter: { opacity: 1, y: 0 },
@@ -52,6 +54,7 @@ export function TransactionOptions({
 }: TransactionOptionsProps) {
   const { search, ascending, summarized } = params;
   const [searchValue, setSearchValue] = useState(search);
+  const isMobile = platform() === 'ios' || platform() === 'android';
   const debouncedSearch = useDebounce(searchValue, 400);
 
   useEffect(() => {
@@ -63,6 +66,16 @@ export function TransactionOptions({
       onParamsChange({ search: debouncedSearch, page: 1 });
     }
   }, [debouncedSearch, search, onParamsChange]);
+
+  const fetchAllTransactions = async () => {
+    const result = await commands.getTransactions({
+      offset: 0,
+      limit: 1000000, // A large number to get all transactions
+      ascending: true,
+      find_value: search || null,
+    });
+    return result.transactions;
+  };
 
   return (
     <div
@@ -111,15 +124,19 @@ export function TransactionOptions({
           </motion.div>
         </AnimatePresence>
         <div className='flex gap-2'>
-          <Button
-            variant='outline'
-            size='icon'
-            aria-label={t`Export transactions`}
-            title={t`Export transactions`}
-            onClick={() => exportTransactions(transactions)}
-          >
-            <Download className='h-4 w-4' aria-hidden='true' />
-          </Button>
+          {!isMobile && (
+            <Button
+              variant='outline'
+              size='icon'
+              aria-label={t`Export transactions`}
+              title={t`Export transactions`}
+              onClick={() =>
+                exportTransactions(transactions, fetchAllTransactions)
+              }
+            >
+              <Download className='h-4 w-4' aria-hidden='true' />
+            </Button>
+          )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
