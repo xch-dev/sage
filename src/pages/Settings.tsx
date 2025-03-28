@@ -115,7 +115,7 @@ export default function Settings() {
                     <Trans>Network</Trans>
                   </TabsTrigger>
 
-                  {isMobile && (
+                  {!isMobile && (
                     <TabsTrigger
                       value='advanced'
                       className='flex-1 md:flex-none rounded-md px-3 py-1 text-sm font-medium'
@@ -164,7 +164,7 @@ export default function Settings() {
                 <NetworkSettings />
               </TabsContent>
 
-              {isMobile && (
+              {!isMobile && (
                 <TabsContent value='advanced'>
                   <div className='grid gap-6'>
                     <RpcSettings />
