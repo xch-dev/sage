@@ -153,6 +153,7 @@ export function NftList() {
             canLoadMore={canLoadMore()}
             renderPagination={() => renderPagination(false)}
             aria-live='polite'
+            nfts={nfts}
           />
         </div>
 

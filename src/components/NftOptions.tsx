@@ -23,6 +23,7 @@ import {
   Maximize2,
   Minimize2,
   Settings2,
+  Download,
 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from './ui/button';
@@ -37,6 +38,10 @@ import { Input } from './ui/input';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useDebounce } from '@/hooks/useDebounce';
+import { platform } from '@tauri-apps/plugin-os';
+import { exportNfts } from '@/lib/exportNfts';
+import { commands } from '@/bindings';
+import { NftRecord } from '@/bindings';
 
 export interface NftOptionsProps {
   isCollection?: boolean;
@@ -64,7 +69,8 @@ export function NftOptions({
   setMultiSelect,
   className,
   renderPagination,
-}: NftOptionsProps) {
+  nfts,
+}: NftOptionsProps & { nfts: NftRecord[] }) {
   const { collection_id, owner_did, minter_did } = useParams();
   const navigate = useNavigate();
   const isFilteredView = Boolean(collection_id || owner_did || minter_did);
@@ -72,6 +78,7 @@ export function NftOptions({
   const [searchValue, setSearchValue] = useState(query ?? '');
   const debouncedSearch = useDebounce(searchValue, 400);
   const prevSearchRef = useRef(query);
+  const isMobile = platform() === 'ios' || platform() === 'android';
 
   useEffect(() => {
     setSearchValue(query ?? '');
@@ -126,6 +133,23 @@ export function NftOptions({
 
   // Add view options label
   const viewLabel = t`View options`;
+
+  const fetchAllNfts = async () => {
+    console.log('Fetching all NFTs with params:', {
+      offset: 0,
+      limit: 1000000,
+      sort_mode: NftSortMode.Name,
+      include_hidden: true,
+    });
+    const result = await commands.getNfts({
+      offset: 0,
+      limit: 1000000, // A large number to get all NFTs
+      sort_mode: NftSortMode.Name,
+      include_hidden: true,
+    });
+    console.log('getNfts result:', result);
+    return result.nfts;
+  };
 
   return (
     <div
@@ -191,6 +215,18 @@ export function NftOptions({
               title={t`Back to groups`}
             >
               <ArrowLeftIcon className='h-4 w-4' aria-hidden='true' />
+            </Button>
+          )}
+
+          {!isMobile && nfts.length > 0 && (
+            <Button
+              variant='outline'
+              size='icon'
+              aria-label={t`Export NFTs`}
+              title={t`Export NFTs`}
+              onClick={() => exportNfts(nfts, fetchAllNfts)}
+            >
+              <Download className='h-4 w-4' aria-hidden='true' />
             </Button>
           )}
 
