@@ -122,7 +122,7 @@ pub struct SendCat {
     #[serde(default = "yes")]
     pub include_hint: bool,
     #[serde(default)]
-    pub memos: Vec<String>,
+    pub memos: Option<Vec<String>>,
     #[serde(default)]
     pub auto_submit: bool,
 }
@@ -137,7 +137,7 @@ pub struct BulkSendCat {
     #[serde(default = "yes")]
     pub include_hint: bool,
     #[serde(default)]
-    pub memos: Vec<String>,
+    pub memos: Option<Vec<String>>,
     #[serde(default)]
     pub auto_submit: bool,
 }

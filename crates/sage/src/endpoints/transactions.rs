@@ -223,11 +223,15 @@ impl Sage {
         let amount = parse_amount(req.amount)?;
         let fee = parse_amount(req.fee)?;
 
-        let mut memos = Vec::new();
-
-        for memo in req.memos {
-            memos.push(Bytes::from(hex::decode(memo)?));
-        }
+        let memos = if let Some(list) = req.memos {
+            let mut memos = Vec::new();
+            for memo in list {
+                memos.push(Bytes::from(hex::decode(memo)?));
+            }
+            Some(memos)
+        } else {
+            None
+        };
 
         let coin_spends = wallet
             .send_cat(
@@ -257,11 +261,15 @@ impl Sage {
 
         let fee = parse_amount(req.fee)?;
 
-        let mut memos = Vec::new();
-
-        for memo in req.memos {
-            memos.push(Bytes::from(hex::decode(memo)?));
-        }
+        let mut memos = if let Some(list) = req.memos {
+            let mut memos = Vec::new();
+            for memo in list {
+                memos.push(Bytes::from(hex::decode(memo)?));
+            }
+            Some(memos)
+        } else {
+            None
+        };
 
         let coin_spends = wallet
             .send_cat(asset_id, amounts, fee, req.include_hint, memos, false, true)
