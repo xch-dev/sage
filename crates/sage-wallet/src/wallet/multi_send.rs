@@ -1,12 +1,12 @@
 use std::{collections::HashMap, mem};
 
 use chia::protocol::{Bytes, Bytes32, CoinSpend};
-use chia_wallet_sdk::{driver::SpendContext, prelude::Memos, types::Conditions};
+use chia_wallet_sdk::{driver::SpendContext, types::Conditions};
 use indexmap::IndexMap;
 
 use crate::WalletError;
 
-use super::Wallet;
+use super::{memos::calculate_memos, Wallet};
 
 #[derive(Debug, Clone)]
 pub struct MultiSendPayment {
@@ -41,28 +41,6 @@ impl MultiSendPayment {
 
     pub fn is_cat(&self) -> bool {
         self.asset_id.is_some()
-    }
-
-    pub fn memos(&self, ctx: &mut SpendContext) -> Result<Option<Memos>, WalletError> {
-        let mut memos = if self.is_cat() {
-            Some(vec![self.puzzle_hash.into()])
-        } else {
-            None
-        };
-
-        if let Some(extra_memos) = self.memos.clone() {
-            if let Some(memos) = memos.as_mut() {
-                memos.extend(extra_memos);
-            } else {
-                memos = Some(extra_memos);
-            }
-        }
-
-        Ok(if let Some(memos) = memos {
-            Some(ctx.memos(&memos)?)
-        } else {
-            None
-        })
     }
 }
 
@@ -153,7 +131,7 @@ impl Wallet {
             }
 
             for payment in payments {
-                let memos = payment.memos(&mut ctx)?;
+                let memos = calculate_memos(&mut ctx, payment.puzzle_hash, true, payment.memos)?;
                 conditions = conditions.create_coin(payment.puzzle_hash, payment.amount, memos);
             }
 
@@ -196,7 +174,7 @@ impl Wallet {
             }
 
             for payment in xch_payments {
-                let memos = payment.memos(&mut ctx)?;
+                let memos = calculate_memos(&mut ctx, payment.puzzle_hash, false, payment.memos)?;
                 conditions = conditions.create_coin(payment.puzzle_hash, payment.amount, memos);
             }
 

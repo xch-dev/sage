@@ -21,7 +21,8 @@ use tokio::time::timeout;
 
 use crate::{
     fetch_cats, fetch_coins, json_bundle, json_spend, parse_amount, parse_asset_id, parse_did_id,
-    parse_hash, parse_nft_id, rust_bundle, rust_spend, ConfirmationInfo, Error, Result, Sage,
+    parse_hash, parse_memos, parse_nft_id, rust_bundle, rust_spend, ConfirmationInfo, Error,
+    Result, Sage,
 };
 
 impl Sage {
@@ -30,16 +31,7 @@ impl Sage {
         let puzzle_hash = self.parse_address(req.address)?;
         let amount = parse_amount(req.amount)?;
         let fee = parse_amount(req.fee)?;
-
-        let memos = if let Some(list) = req.memos {
-            let mut memos = Vec::new();
-            for memo in list {
-                memos.push(Bytes::from(hex::decode(memo)?));
-            }
-            Some(memos)
-        } else {
-            None
-        };
+        let memos = parse_memos(req.memos)?;
 
         let coin_spends = wallet
             .send_xch(vec![(puzzle_hash, amount)], fee, memos, false, true)
@@ -59,16 +51,7 @@ impl Sage {
         }
 
         let fee = parse_amount(req.fee)?;
-
-        let memos = if let Some(list) = req.memos {
-            let mut memos = Vec::new();
-            for memo in list {
-                memos.push(Bytes::from(hex::decode(memo)?));
-            }
-            Some(memos)
-        } else {
-            None
-        };
+        let memos = parse_memos(req.memos)?;
 
         let coin_spends = wallet.send_xch(amounts, fee, memos, false, true).await?;
         self.transact(coin_spends, req.auto_submit).await
@@ -222,16 +205,7 @@ impl Sage {
         let puzzle_hash = self.parse_address(req.address)?;
         let amount = parse_amount(req.amount)?;
         let fee = parse_amount(req.fee)?;
-
-        let memos = if let Some(list) = req.memos {
-            let mut memos = Vec::new();
-            for memo in list {
-                memos.push(Bytes::from(hex::decode(memo)?));
-            }
-            Some(memos)
-        } else {
-            None
-        };
+        let memos = parse_memos(req.memos)?;
 
         let coin_spends = wallet
             .send_cat(
@@ -260,16 +234,7 @@ impl Sage {
         }
 
         let fee = parse_amount(req.fee)?;
-
-        let mut memos = if let Some(list) = req.memos {
-            let mut memos = Vec::new();
-            for memo in list {
-                memos.push(Bytes::from(hex::decode(memo)?));
-            }
-            Some(memos)
-        } else {
-            None
-        };
+        let memos = parse_memos(req.memos)?;
 
         let coin_spends = wallet
             .send_cat(asset_id, amounts, fee, req.include_hint, memos, false, true)

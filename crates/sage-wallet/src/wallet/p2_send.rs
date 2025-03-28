@@ -1,12 +1,9 @@
 use chia::protocol::{Bytes, Bytes32, CoinSpend};
-use chia_wallet_sdk::{
-    driver::SpendContext,
-    types::{conditions::Memos, Conditions},
-};
+use chia_wallet_sdk::{driver::SpendContext, types::Conditions};
 
 use crate::WalletError;
 
-use super::Wallet;
+use super::{memos::calculate_memos, Wallet};
 
 impl Wallet {
     /// Sends the given amount of XCH to the given puzzle hash, minus the fee.
@@ -38,10 +35,7 @@ impl Wallet {
             conditions = conditions.create_coin(
                 puzzle_hash,
                 amount,
-                memos
-                    .as_ref()
-                    .map(|memos| Ok::<_, WalletError>(Memos::new(ctx.alloc(&memos)?)))
-                    .transpose()?,
+                calculate_memos(&mut ctx, puzzle_hash, false, memos.clone())?,
             );
         }
 

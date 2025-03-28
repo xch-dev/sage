@@ -11,7 +11,7 @@ use chia_wallet_sdk::{
 
 use crate::WalletError;
 
-use super::Wallet;
+use super::{memos::calculate_memos, Wallet};
 
 impl Wallet {
     pub async fn issue_cat(
@@ -115,21 +115,11 @@ impl Wallet {
         }
 
         for (puzzle_hash, amount) in amounts {
-            let output_memos = if include_hint {
-                let mut new_memos = vec![puzzle_hash.into()];
-                if let Some(extra_memos) = memos.clone() {
-                    new_memos.extend(extra_memos);
-                }
-                Some(new_memos)
-            } else {
-                memos.clone()
-            };
-            let memos = if let Some(memos) = output_memos {
-                Some(ctx.memos(&memos)?)
-            } else {
-                None
-            };
-            conditions = conditions.create_coin(puzzle_hash, amount, memos);
+            conditions = conditions.create_coin(
+                puzzle_hash,
+                amount,
+                calculate_memos(&mut ctx, puzzle_hash, include_hint, memos.clone())?,
+            );
         }
 
         let change_hint = ctx.hint(change_puzzle_hash)?;

@@ -8,6 +8,7 @@ mod coin_selection;
 mod derivations;
 mod did_assign;
 mod dids;
+mod memos;
 mod multi_send;
 mod nfts;
 mod offer;
