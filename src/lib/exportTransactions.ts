@@ -27,9 +27,9 @@ export async function exportTransactions(
             'Amount',
             'Signed Amount',
             'Address',
-            'Item Type',
-            'Item ID',
-            'Item Name',
+            'Coin Type',
+            'Coin ID',
+            'Coin Name',
         ];
         const rows = allTransactions.flatMap((tx) => {
             // Convert timestamp to UTC

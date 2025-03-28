@@ -10,7 +10,7 @@
     "core:menu:default",
     "core:tray:default",
     "core:window:allow-request-user-attention",
-    "dialog:default",
+    "dialog:allow-save",
     "fs:allow-write-text-file"
   ]
 }
