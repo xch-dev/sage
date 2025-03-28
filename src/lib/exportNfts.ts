@@ -9,7 +9,6 @@ export async function exportNfts(
     fetchAllNfts: () => Promise<NftRecord[]>,
 ) {
     try {
-        console.log('Current NFTs:', currentNfts.length);
         if (currentNfts.length === 0) {
             toast.error(t`No NFTs to export`);
             return;
@@ -18,9 +17,7 @@ export async function exportNfts(
         toast.info(t`Fetching NFTs...`, { autoClose: 30000 });
 
         // Fetch all NFTs
-        console.log('Fetching all NFTs...');
         const allNfts = await fetchAllNfts();
-        console.log('Fetched NFTs:', allNfts.length);
 
         if (allNfts.length === 0) {
             toast.error(t`No NFTs found to export`);
@@ -29,7 +26,6 @@ export async function exportNfts(
 
         // If we're in a filtered view, only export the current NFTs
         const nftsToExport = currentNfts.length < allNfts.length ? currentNfts : allNfts;
-        console.log('NFTs to export:', nftsToExport.length);
 
         // Create CSV content
         const headers = [
@@ -69,11 +65,11 @@ export async function exportNfts(
             nft.edition_number?.toString() || '',
             nft.edition_total?.toString() || '',
             (nft.license_uris || []).join(';').replace(/,/g, ''),
-            (nft.license_hash || '').replace(/,/g, ''),
+            (nft.license_hash || ''),
             (nft.metadata_uris || []).join(';').replace(/,/g, ''),
             (nft.metadata_hash || ''),
             (nft.royalty_ten_thousandths / 100).toString() + '%',
-            (nft.royalty_address || '').replace(/,/g, ''),
+            (nft.royalty_address || ''),
             (nft.address || ''),
             nft.sensitive_content ? 'true' : 'false',
         ]);
@@ -96,11 +92,8 @@ export async function exportNfts(
         });
 
         if (filePath) {
-            console.log('Writing file to:', filePath);
             await writeTextFile(filePath, csvContent);
             toast.success(t`NFTs exported successfully`);
-        } else {
-            console.log('Save dialog cancelled');
         }
     } catch (error) {
         console.error('Failed to export NFTs:', error);

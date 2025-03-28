@@ -8,7 +8,6 @@ export async function exportTokens(
     currentTokens: TokenRecord[]
 ) {
     try {
-        console.log('Current Tokens:', currentTokens.length);
         if (currentTokens.length === 0) {
             toast.error(t`No tokens to export`);
             return;
@@ -57,8 +56,6 @@ export async function exportTokens(
         if (filePath) {
             await writeTextFile(filePath, csvContent);
             toast.success(t`Tokens exported successfully`);
-        } else {
-            console.log('Save dialog cancelled');
         }
     } catch (error) {
         console.error('Failed to export tokens:', error);

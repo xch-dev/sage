@@ -82,13 +82,6 @@ export function TokenOptions({
     handleInputChange('');
   };
 
-  const fetchAllTokens = async () => {
-    console.log('Fetching all tokens...');
-    const result = await commands.getCats({});
-    console.log('getCats result:', result);
-    return result.cats;
-  };
-
   return (
     <div
       className={`flex flex-col gap-4 ${className}`}

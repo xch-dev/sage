@@ -14,7 +14,7 @@ export async function exportTransactions(
             return;
         }
 
-        toast.info(t`Fetching transactions...`, { autoClose: 30000 });
+        toast.info(t`Fetching transactions...`, { autoClose: 45000 });
 
         // Fetch all transactions
         const allTransactions = await fetchAllTransactions();
@@ -119,11 +119,8 @@ export async function exportTransactions(
         });
 
         if (filePath) {
-            console.log('Writing file to:', filePath);
             await writeTextFile(filePath, csvContent);
             toast.success(t`Transactions exported successfully`);
-        } else {
-            console.log('Save dialog cancelled');
         }
     } catch (error) {
         console.error('Failed to export transactions:', error);

@@ -135,19 +135,12 @@ export function NftOptions({
   const viewLabel = t`View options`;
 
   const fetchAllNfts = async () => {
-    console.log('Fetching all NFTs with params:', {
-      offset: 0,
-      limit: 1000000,
-      sort_mode: NftSortMode.Name,
-      include_hidden: true,
-    });
     const result = await commands.getNfts({
       offset: 0,
       limit: 1000000, // A large number to get all NFTs
       sort_mode: NftSortMode.Name,
       include_hidden: true,
     });
-    console.log('getNfts result:', result);
     return result.nfts;
   };
 
