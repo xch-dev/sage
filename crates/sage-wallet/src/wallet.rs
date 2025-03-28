@@ -15,6 +15,7 @@ mod p2_send;
 mod p2_spends;
 mod signing;
 
+pub use cats::MultiSendPayment;
 pub use nfts::WalletNftMint;
 pub use offer::*;
 
