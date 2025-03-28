@@ -27,8 +27,9 @@ export async function exportTransactions(
             'Amount',
             'Signed Amount',
             'Address',
-            'Coin Type',
             'Coin ID',
+            'Coin Type',
+            'Item ID',
             'Coin Name',
         ];
         const rows = allTransactions.flatMap((tx) => {
@@ -41,9 +42,10 @@ export async function exportTransactions(
                     tx.height,
                     timestamp.replace(/,/g, ''),
                     'Sent',
-                    coin.amount.toString().replace(/,/g, ''),
-                    '-' + coin.amount.toString().replace(/,/g, ''),
-                    (coin.address || '').replace(/,/g, ''),
+                    coin.amount.toString(),
+                    '-' + coin.amount.toString(),
+                    (coin.address || ''),
+                    coin.coin_id,
                     coin.type.toUpperCase(),
                     (coin.type === 'xch'
                         ? 'XCH'
@@ -54,7 +56,7 @@ export async function exportTransactions(
                                 : coin.type === 'did'
                                     ? coin.launcher_id
                                     : ''
-                    ).replace(/,/g, ''),
+                    ),
                     (coin.type === 'xch'
                         ? 'XCH'
                         : coin.type === 'cat'
@@ -70,9 +72,10 @@ export async function exportTransactions(
                     tx.height,
                     timestamp.replace(/,/g, ''),
                     'Received',
-                    coin.amount.toString().replace(/,/g, ''),
-                    coin.amount.toString().replace(/,/g, ''),
-                    (coin.address || '').replace(/,/g, ''),
+                    coin.amount.toString(),
+                    coin.amount.toString(),
+                    (coin.address || ''),
+                    coin.coin_id,
                     coin.type.toUpperCase(),
                     (coin.type === 'xch'
                         ? 'XCH'
@@ -83,7 +86,7 @@ export async function exportTransactions(
                                 : coin.type === 'did'
                                     ? coin.launcher_id
                                     : ''
-                    ).replace(/,/g, ''),
+                    ),
                     (coin.type === 'xch'
                         ? 'XCH'
                         : coin.type === 'cat'
