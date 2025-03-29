@@ -20,6 +20,7 @@ import { TokenOptions } from '@/components/TokenOptions';
 import { TokenSortMode } from '@/hooks/useTokenParams';
 import { TokenRecord } from '@/types/TokenViewProps';
 import { toast } from 'react-toastify';
+import { exportTokens } from '@/lib/exportTokens';
 
 export function TokenList() {
   const navigate = useNavigate();
@@ -29,6 +30,26 @@ export function TokenList() {
   const [params, setParams] = useTokenParams();
   const { viewMode, sortMode, showZeroBalanceTokens, showHiddenCats } = params;
   const [cats, setCats] = useState<CatRecord[]>([]);
+
+  const xchRecord = useMemo(
+    () => ({
+      asset_id: 'xch',
+      name: 'Chia',
+      ticker: walletState.sync.unit.ticker,
+      icon_url: 'https://icons.dexie.space/xch.webp',
+      balance: walletState.sync.balance.toString(),
+      balanceInUsd: Number(
+        getBalanceInUsd(
+          'xch',
+          toDecimal(walletState.sync.balance, walletState.sync.unit.decimals),
+        ),
+      ),
+      priceInUsd: getPriceInUsd('xch'),
+      decimals: walletState.sync.unit.decimals,
+      isXch: true,
+    }),
+    [walletState.sync, getBalanceInUsd, getPriceInUsd],
+  );
 
   const catsWithBalanceInUsd = useMemo(
     () =>
@@ -181,40 +202,12 @@ export function TokenList() {
             setParams({ search: value });
           }}
           className='mb-4'
-          tokens={[
-            {
-              asset_id: 'XCH',
-              name: 'Chia',
-              ticker: walletState.sync.unit.ticker,
-              icon_url: 'https://icons.dexie.space/xch.webp',
-              balance: walletState.sync.balance.toString(),
-              balanceInUsd: Number(
-                getBalanceInUsd(
-                  'xch',
-                  toDecimal(
-                    walletState.sync.balance,
-                    walletState.sync.unit.decimals,
-                  ),
-                ),
-              ),
-              priceInUsd: getPriceInUsd('xch'),
-              decimals: walletState.sync.unit.decimals,
-              isXch: true,
-              visible: true,
-            },
-            ...filteredCats.map((cat) => ({
-              asset_id: cat.asset_id,
-              name: cat.name,
-              ticker: cat.ticker,
-              icon_url: cat.icon_url,
-              balance: cat.balance,
-              balanceInUsd: cat.balanceInUsd,
-              priceInUsd: cat.priceInUsd,
-              decimals: 3,
-              isXch: false,
-              visible: cat.visible,
-            })),
-          ]}
+          onExport={() =>
+            exportTokens([
+              xchRecord,
+              ...filteredCats.map((cat) => ({ ...cat, decimals: 3 })),
+            ])
+          }
         />
 
         {walletState.sync.synced_coins < walletState.sync.total_coins && (
@@ -235,36 +228,14 @@ export function TokenList() {
         {viewMode === 'grid' ? (
           <TokenGridView
             cats={filteredCats}
-            xchBalance={walletState.sync.balance.toString()}
-            xchDecimals={walletState.sync.unit.decimals}
-            xchPrice={getPriceInUsd('xch')}
-            xchBalanceUsd={Number(
-              getBalanceInUsd(
-                'xch',
-                toDecimal(
-                  walletState.sync.balance,
-                  walletState.sync.unit.decimals,
-                ),
-              ),
-            )}
+            xchRecord={xchRecord}
             actionHandlers={tokenActionHandlers}
           />
         ) : (
           <div className='mt-4'>
             <TokenListView
               cats={filteredCats}
-              xchBalance={walletState.sync.balance.toString()}
-              xchDecimals={walletState.sync.unit.decimals}
-              xchPrice={getPriceInUsd('xch')}
-              xchBalanceUsd={Number(
-                getBalanceInUsd(
-                  'xch',
-                  toDecimal(
-                    walletState.sync.balance,
-                    walletState.sync.unit.decimals,
-                  ),
-                ),
-              )}
+              xchRecord={xchRecord}
               actionHandlers={tokenActionHandlers}
             />
           </div>
