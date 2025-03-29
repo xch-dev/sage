@@ -3,21 +3,87 @@ import { writeTextFile } from '@tauri-apps/plugin-fs';
 import { TransactionRecord } from '@/bindings';
 import { t } from '@lingui/core/macro';
 import { toast } from 'react-toastify';
+import { commands } from '@/bindings';
+import { isValidAddress, isValidAssetId } from '@/lib/utils';
 
-export async function exportTransactions(
-  currentTransactions: TransactionRecord[],
-  fetchAllTransactions: () => Promise<TransactionRecord[]>,
-) {
-  try {
-    if (currentTransactions.length === 0) {
-      toast.error(t`No transactions to export`);
-      return;
+interface TransactionQueryParams {
+  search: string | null;
+  ascending: boolean;
+  page?: number;
+  pageSize?: number;
+}
+
+export async function queryTransactions(
+  params: TransactionQueryParams,
+): Promise<{
+  transactions: TransactionRecord[];
+  total: number;
+}> {
+  // if the search term might be a block height, try to get the block
+  const searchHeight = params.search ? parseInt(params.search, 10) : null;
+  const isValidHeight =
+    searchHeight !== null && !isNaN(searchHeight) && searchHeight >= 0;
+
+  let specificBlock: TransactionRecord[] = [];
+  if (isValidHeight) {
+    const block = await commands.getTransaction({ height: searchHeight });
+    specificBlock = [block.transaction];
+  }
+
+  // Check if the search term is an asset_id, NFT ID, or DID ID
+  let itemIdTransactions: TransactionRecord[] = [];
+  let itemIdTotal = 0;
+
+  if (params.search) {
+    if (
+      isValidAssetId(params.search) ||
+      isValidAddress(params.search, 'nft') ||
+      isValidAddress(params.search, 'did:chia:')
+    ) {
+      const itemIdResult = await commands.getTransactionsByItemId({
+        offset: params.page ? (params.page - 1) * (params.pageSize || 10) : 0,
+        limit: params.pageSize || 1000000, // Use large limit if no pagination
+        ascending: params.ascending,
+        id: params.search,
+      });
+      itemIdTransactions = itemIdResult.transactions;
+      itemIdTotal = itemIdResult.total;
     }
+  }
 
+  let regularTransactions: TransactionRecord[] = [];
+  let regularTotal = 0;
+
+  const result = await commands.getTransactions({
+    offset: params.page ? (params.page - 1) * (params.pageSize || 10) : 0,
+    limit: params.pageSize || 1000000, // Use large limit if no pagination
+    ascending: params.ascending,
+    find_value: params.search || null,
+  });
+  regularTransactions = result.transactions;
+  regularTotal = result.total;
+
+  const combinedTransactions = [
+    ...specificBlock,
+    ...itemIdTransactions,
+    ...regularTransactions,
+  ];
+
+  return {
+    transactions: combinedTransactions,
+    total: regularTotal + specificBlock.length + itemIdTotal,
+  };
+}
+
+export async function exportTransactions(params: TransactionQueryParams) {
+  try {
     toast.info(t`Fetching transactions...`, { autoClose: 45000 });
 
-    // Fetch all transactions
-    const allTransactions = await fetchAllTransactions();
+    // Fetch all transactions using the shared query function
+    const { transactions: allTransactions } = await queryTransactions({
+      ...params,
+      pageSize: 1000000, // Get all transactions
+    });
 
     // Create CSV content
     const headers = [

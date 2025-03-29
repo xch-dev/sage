@@ -1,4 +1,3 @@
-import { isValidAddress } from '@/lib/utils';
 import { useCallback, useEffect, useState } from 'react';
 import {
   commands,

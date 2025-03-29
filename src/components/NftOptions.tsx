@@ -39,8 +39,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useDebounce } from '@/hooks/useDebounce';
 import { platform } from '@tauri-apps/plugin-os';
-import { commands } from '@/bindings';
-import { NftRecord } from '@/bindings';
 
 export interface NftOptionsProps {
   isCollection?: boolean;

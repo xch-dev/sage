@@ -26,7 +26,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useState, useEffect } from 'react';
 import { TransactionRecord } from '@/bindings';
-import { exportTransactions } from '@/lib/exportTransactions';
 import { commands } from '@/bindings';
 import { platform } from '@tauri-apps/plugin-os';
 
@@ -42,7 +41,7 @@ interface TransactionOptionsProps {
   isLoading?: boolean;
   className?: string;
   renderPagination: () => React.ReactNode;
-  transactions: TransactionRecord[];
+  onExport?: () => void;
 }
 
 export function TransactionOptions({
@@ -50,7 +49,7 @@ export function TransactionOptions({
   onParamsChange,
   className,
   renderPagination,
-  transactions,
+  onExport,
 }: TransactionOptionsProps) {
   const { search, ascending, summarized } = params;
   const [searchValue, setSearchValue] = useState(search);
@@ -66,16 +65,6 @@ export function TransactionOptions({
       onParamsChange({ search: debouncedSearch, page: 1 });
     }
   }, [debouncedSearch, search, onParamsChange]);
-
-  const fetchAllTransactions = async () => {
-    const result = await commands.getTransactions({
-      offset: 0,
-      limit: 1000000, // A large number to get all transactions
-      ascending: true,
-      find_value: search || null,
-    });
-    return result.transactions;
-  };
 
   return (
     <div
@@ -130,9 +119,7 @@ export function TransactionOptions({
               size='icon'
               aria-label={t`Export transactions`}
               title={t`Export transactions`}
-              onClick={() =>
-                exportTransactions(transactions, fetchAllTransactions)
-              }
+              onClick={onExport}
             >
               <Download className='h-4 w-4' aria-hidden='true' />
             </Button>
