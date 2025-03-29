@@ -11,7 +11,6 @@ use tokio::{
 use tracing::{error, info};
 
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct BlockTimeQueue {
     db: Database,
     state: Arc<Mutex<PeerState>>,

@@ -7,6 +7,8 @@ import {
   Route,
   RouterProvider,
 } from 'react-router-dom';
+import { Slide, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import { useLocalStorage } from 'usehooks-ts';
 import { ErrorProvider } from './contexts/ErrorContext';
 import {
@@ -19,10 +21,11 @@ import { PeerProvider } from './contexts/PeerContext';
 import { PriceProvider } from './contexts/PriceContext';
 import { SafeAreaProvider } from './contexts/SafeAreaContext';
 import { WalletConnectProvider } from './contexts/WalletConnectContext';
-import useInitialization from './hooks/useInitialization';
 import { WalletProvider } from './contexts/WalletContext';
+import useInitialization from './hooks/useInitialization';
 import { loadCatalog } from './i18n';
 import Addresses from './pages/Addresses';
+import CollectionMetaData from './pages/CollectionMetaData';
 import CreateProfile from './pages/CreateProfile';
 import CreateWallet from './pages/CreateWallet';
 import { DidList } from './pages/DidList';
@@ -35,8 +38,10 @@ import Nft from './pages/Nft';
 import { NftList } from './pages/NftList';
 import { Offers } from './pages/Offers';
 import PeerList from './pages/PeerList';
+import QRScanner from './pages/QrScanner';
 import Send from './pages/Send';
 import Settings from './pages/Settings';
+import Swap from './pages/Swap';
 import Token from './pages/Token';
 import { TokenList } from './pages/TokenList';
 import Transaction from './pages/Transaction';
@@ -44,10 +49,6 @@ import { Transactions } from './pages/Transactions';
 import { ViewOffer } from './pages/ViewOffer';
 import { ViewSavedOffer } from './pages/ViewSavedOffer';
 import Wallet from './pages/Wallet';
-import QRScanner from './pages/QrScanner';
-import { ToastContainer, Slide } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
-import CollectionMetaData from './pages/CollectionMetaData';
 
 export interface DarkModeContext {
   toggle: () => void;
@@ -100,6 +101,7 @@ const router = createHashRouter(
         <Route path='view/:offer' element={<ViewOffer />} />
         <Route path='view_saved/:offer_id' element={<ViewSavedOffer />} />
       </Route>
+      <Route path='/swap' element={<Swap />} />
       <Route path='/settings' element={<Settings />} />
       <Route path='/scan' element={<QRScanner />} />
       <Route path='/peers' element={<PeerList />} />

@@ -10,13 +10,14 @@ import { Trans } from '@lingui/react/macro';
 import {
   ArrowLeftRight,
   BookUser,
+  CalendarSearch,
+  CircleUserRound,
   Cog,
   Images,
   LogOut,
   MonitorCheck,
   MonitorCog,
   ShoppingCart,
-  SquareUserRound,
   WalletIcon,
 } from 'lucide-react';
 import { PropsWithChildren, useMemo } from 'react';
@@ -57,7 +58,7 @@ export function TopNav({ isCollapsed }: NavProps) {
         isCollapsed={isCollapsed}
         message={<Trans>Profiles</Trans>}
       >
-        <SquareUserRound className={className} />
+        <CircleUserRound className={className} />
       </NavLink>
       <NavLink
         url={'/offers'}
@@ -65,6 +66,13 @@ export function TopNav({ isCollapsed }: NavProps) {
         message={<Trans>Offers</Trans>}
       >
         <ShoppingCart className={className} />
+      </NavLink>
+      <NavLink
+        url={'/swap'}
+        isCollapsed={isCollapsed}
+        message={<Trans>Swap</Trans>}
+      >
+        <ArrowLeftRight className={className} />
       </NavLink>
       <NavLink
         url={'/wallet/addresses'}
@@ -78,7 +86,7 @@ export function TopNav({ isCollapsed }: NavProps) {
         isCollapsed={isCollapsed}
         message={<Trans>Transactions</Trans>}
       >
-        <ArrowLeftRight className={className} />
+        <CalendarSearch className={className} />
       </NavLink>
     </nav>
   );

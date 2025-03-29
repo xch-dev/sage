@@ -1,10 +1,10 @@
 import { CatRecord, commands } from '@/bindings';
 import { useErrors } from '@/hooks/useErrors';
+import { isValidAssetId } from '@/lib/utils';
+import { t } from '@lingui/core/macro';
 import { useEffect, useState } from 'react';
 import { Input } from '../ui/input';
 import { DropdownSelector } from './DropdownSelector';
-import { t } from '@lingui/core/macro';
-import { isValidAssetId } from '@/lib/utils';
 
 export interface TokenSelectorProps {
   value: string | null;
