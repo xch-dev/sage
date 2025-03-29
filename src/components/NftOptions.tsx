@@ -39,7 +39,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useDebounce } from '@/hooks/useDebounce';
 import { platform } from '@tauri-apps/plugin-os';
-import { exportNfts } from '@/lib/exportNfts';
 import { commands } from '@/bindings';
 import { NftRecord } from '@/bindings';
 
@@ -53,6 +52,7 @@ export interface NftOptionsProps {
   isLoading?: boolean;
   canLoadMore: boolean;
   total: number;
+  onExport?: () => void;
   renderPagination: () => React.ReactNode;
 }
 
@@ -68,9 +68,9 @@ export function NftOptions({
   multiSelect,
   setMultiSelect,
   className,
+  onExport,
   renderPagination,
-  nfts,
-}: NftOptionsProps & { nfts: NftRecord[] }) {
+}: NftOptionsProps) {
   const { collection_id, owner_did, minter_did } = useParams();
   const navigate = useNavigate();
   const isFilteredView = Boolean(collection_id || owner_did || minter_did);
@@ -133,16 +133,6 @@ export function NftOptions({
 
   // Add view options label
   const viewLabel = t`View options`;
-
-  const fetchAllNfts = async () => {
-    const result = await commands.getNfts({
-      offset: 0,
-      limit: 1000000, // A large number to get all NFTs
-      sort_mode: NftSortMode.Name,
-      include_hidden: true,
-    });
-    return result.nfts;
-  };
 
   return (
     <div
@@ -211,13 +201,15 @@ export function NftOptions({
             </Button>
           )}
 
-          {!isMobile && nfts.length > 0 && (
+          {!isMobile && (
             <Button
               variant='outline'
               size='icon'
               aria-label={t`Export NFTs`}
               title={t`Export NFTs`}
-              onClick={() => exportNfts(nfts, fetchAllNfts)}
+              onClick={onExport}
+              disabled={!(group === NftGroupMode.None || isFilteredView)}
+              className='hidden sm:inline-flex'
             >
               <Download className='h-4 w-4' aria-hidden='true' />
             </Button>

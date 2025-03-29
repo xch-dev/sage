@@ -9,6 +9,7 @@ import {
 } from '../bindings';
 import { useErrors } from './useErrors';
 import { NftGroupMode, NftSortMode } from './useNftParams';
+import { queryNfts } from '@/lib/exportNfts';
 
 interface NftDataParams {
   pageSize: number;
@@ -20,20 +21,6 @@ interface NftDataParams {
   ownerDid?: string;
   minterDid?: string;
   page: number;
-}
-
-interface NftDataState {
-  nfts: NftRecord[];
-  collections: NftCollectionRecord[];
-  ownerDids: DidRecord[];
-  minterDids: DidRecord[];
-  owner: DidRecord | null;
-  collection: NftCollectionRecord | null;
-  isLoading: boolean;
-  nftTotal: number;
-  collectionTotal: number;
-  ownerDidsTotal: number;
-  minterDidsTotal: number;
 }
 
 // Helper function moved from NftList
@@ -78,38 +65,26 @@ export function useNftData(params: NftDataParams) {
           params.minterDid ||
           params.group === NftGroupMode.None
         ) {
+          // Use the shared queryNfts function for paginated results
           const queryParams = {
-            name: params.query || null,
-            collection_id:
-              params.collectionId === 'No collection'
-                ? 'none'
-                : (params.collectionId ?? null),
-            owner_did_id:
-              params.ownerDid === 'No did' ? 'none' : (params.ownerDid ?? null),
-            minter_did_id:
-              params.minterDid === 'No did'
-                ? 'none'
-                : (params.minterDid ?? null),
-            offset: (page - 1) * params.pageSize,
-            limit: params.pageSize,
-            sort_mode: params.sort,
-            include_hidden: params.showHidden,
+            sort: params.sort,
+            group: params.group,
+            showHidden: params.showHidden,
+            query: params.query,
+            collectionId: params.collectionId,
+            ownerDid: params.ownerDid,
+            minterDid: params.minterDid,
           };
 
-          let nfts: NftRecord[] = [];
-          let total: number = 0;
-          if (params.query && isValidAddress(params.query, 'nft')) {
-            const response = await commands.getNft({ nft_id: params.query });
-            nfts = response.nft ? [response.nft] : [];
-            total = nfts.length;
-          } else {
-            const response = await commands.getNfts(queryParams);
-            nfts = response.nfts;
-            total = response.total;
-          }
+          const allNfts = await queryNfts(queryParams);
 
-          setNfts(nfts);
-          setNftTotal(total);
+          // Calculate pagination
+          const start = (page - 1) * params.pageSize;
+          const end = start + params.pageSize;
+          const paginatedNfts = allNfts.slice(start, end);
+
+          setNfts(paginatedNfts);
+          setNftTotal(allNfts.length);
 
           if (params.collectionId) {
             const collectionResponse = await commands.getNftCollection({
