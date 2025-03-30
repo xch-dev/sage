@@ -68,7 +68,7 @@ export async function fetchState() {
 
 function updateXchCoins() {
   commands
-    .getXchCoins({})
+    .getXchCoins({ offset: 0, limit: 10 })
     .then((data) =>
       useWalletState.setState({
         coins: data.coins,

@@ -55,8 +55,8 @@ export function useTokenManagement(assetId: string | undefined) {
     () => () => {
       const getCoins =
         assetId === 'xch'
-          ? commands.getXchCoins({})
-          : commands.getCatCoins({ asset_id: assetId! });
+          ? commands.getXchCoins({ offset: 0, limit: 10 })
+          : commands.getCatCoins({ asset_id: assetId!, offset: 0, limit: 10 });
 
       getCoins.then((res) => setCoins(res.coins)).catch(addError);
     },
@@ -147,28 +147,6 @@ export function useTokenManagement(assetId: string | undefined) {
       .updateCat({ record: updatedAsset })
       .then(() => updateCat())
       .catch(addError);
-  };
-
-  const getSelectedCoinsInfo = () => {
-    const selectedCoinIds = Object.keys(selectedCoins).filter(
-      (key) => selectedCoins[key],
-    );
-
-    const selectedCoinsList = selectedCoinIds
-      .map((id) => coins.find((coin) => coin.coin_id === id))
-      .filter(Boolean) as CoinRecord[];
-
-    const totalAmount = selectedCoinsList.reduce(
-      (sum, coin) => sum + BigInt(coin.amount),
-      BigInt(0),
-    );
-
-    return {
-      count: selectedCoinIds.length,
-      totalAmount: fromMojos(totalAmount.toString(), precision),
-      ticker: asset?.ticker || '',
-      selectedCoins: selectedCoinsList,
-    };
   };
 
   return {
