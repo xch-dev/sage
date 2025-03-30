@@ -5,7 +5,7 @@ import { CopyButton } from '@/components/CopyButton';
 import Header from '@/components/Header';
 import { TokenCard } from '@/components/TokenCard';
 import { TokenConfirmation } from '@/components/confirmations/TokenConfirmation';
-import { useTokenManagement } from '@/hooks/useTokenManagement';
+import { useTokenState } from '@/hooks/useTokenState';
 import { t } from '@lingui/core/macro';
 import { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
@@ -26,7 +26,7 @@ export default function Token() {
     redownload,
     setVisibility,
     updateCatDetails,
-  } = useTokenManagement(assetId);
+  } = useTokenState(assetId);
 
   // Create the appropriate confirmation component based on the response
   const confirmationAdditionalData = useMemo(() => {

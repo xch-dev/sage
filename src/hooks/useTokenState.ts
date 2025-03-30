@@ -27,7 +27,7 @@ interface EnhancedTransactionResponse extends TransactionResponse {
   };
 }
 
-export function useTokenManagement(assetId: string | undefined) {
+export function useTokenState(assetId: string | undefined) {
   const navigate = useNavigate();
   const walletState = useWalletState();
   const { getBalanceInUsd } = usePrices();
@@ -56,7 +56,11 @@ export function useTokenManagement(assetId: string | undefined) {
       const getCoins =
         assetId === 'xch'
           ? commands.getXchCoins({ offset: 0, limit: 100000 })
-          : commands.getCatCoins({ asset_id: assetId!, offset: 0, limit: 100000 });
+          : commands.getCatCoins({
+            asset_id: assetId!,
+            offset: 0,
+            limit: 100000,
+          });
 
       getCoins.then((res) => setCoins(res.coins)).catch(addError);
     },
