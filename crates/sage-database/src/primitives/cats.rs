@@ -49,7 +49,7 @@ impl Database {
         asset_id: Bytes32,
         limit: u32,
         offset: u32,
-    ) -> Result<Vec<CoinStateRow>> {
+    ) -> Result<(Vec<CoinStateRow>, u32)> {
         cat_coin_states(&self.pool, asset_id, limit, offset).await
     }
 
@@ -281,12 +281,27 @@ async fn cat_balance(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result
 }
 
 async fn cat_coin_states(
-    conn: impl SqliteExecutor<'_>,
+    conn: impl SqliteExecutor<'_> + Clone,
     asset_id: Bytes32,
     limit: u32,
     offset: u32,
-) -> Result<Vec<CoinStateRow>> {
+) -> Result<(Vec<CoinStateRow>, u32)> {
     let asset_id = asset_id.as_ref();
+    let conn_clone = conn.clone();
+
+    let total = sqlx::query!(
+        "
+        SELECT COUNT(*) as count
+        FROM `cat_coins` INDEXED BY `cat_asset_id`
+        INNER JOIN `coin_states` ON `coin_states`.coin_id = `cat_coins`.coin_id
+        WHERE `asset_id` = ?
+        ",
+        asset_id
+    )
+    .fetch_one(conn_clone)
+    .await?
+    .count
+    .try_into()?;
 
     let rows = sqlx::query_as!(
         CoinStateSql,
@@ -304,7 +319,9 @@ async fn cat_coin_states(
     .fetch_all(conn)
     .await?;
 
-    rows.into_iter().map(into_row).collect()
+    let coin_states = rows.into_iter().map(into_row).collect::<Result<Vec<_>>>()?;
+
+    Ok((coin_states, total))
 }
 
 async fn created_unspent_cat_coin_states(

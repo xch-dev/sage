@@ -2,7 +2,8 @@ use chia::protocol::{Bytes32, Coin};
 use sqlx::SqliteExecutor;
 
 use crate::{
-    into_row, to_bytes, CoinSql, CoinStateRow, CoinStateSql, Database, DatabaseTx, Result,
+    into_row, to_bytes, CoinSql, CoinStateRow, CoinStateSql, CoinStateWithTotalSql, Database,
+    DatabaseTx, Result,
 };
 
 impl Database {
@@ -14,7 +15,11 @@ impl Database {
         balance(&self.pool).await
     }
 
-    pub async fn p2_coin_states(&self, limit: u32, offset: u32) -> Result<Vec<CoinStateRow>> {
+    pub async fn p2_coin_states(
+        &self,
+        limit: u32,
+        offset: u32,
+    ) -> Result<(Vec<CoinStateRow>, u32)> {
         p2_coin_states(&self.pool, limit, offset).await
     }
 
@@ -92,12 +97,22 @@ async fn p2_coin_states(
     conn: impl SqliteExecutor<'_>,
     limit: u32,
     offset: u32,
-) -> Result<Vec<CoinStateRow>> {
-    let rows = sqlx::query_as!(
-        CoinStateSql,
+) -> Result<(Vec<CoinStateRow>, u32)> {
+    let rows = sqlx::query!(
         "
-        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `spent_height`, `created_height`, `transaction_id`, `kind`, `created_unixtime`, `spent_unixtime`
-        FROM `coin_states` WHERE `kind` = 1
+        SELECT 
+            `parent_coin_id`, 
+            `puzzle_hash`, 
+            `amount`, 
+            `spent_height`, 
+            `created_height`, 
+            `transaction_id`, 
+            `kind`, 
+            `created_unixtime`, 
+            `spent_unixtime`,
+            COUNT(*) OVER() as total_count
+        FROM `coin_states` 
+        WHERE `kind` = 1
         LIMIT ? OFFSET ?
         ",
         limit,
@@ -106,7 +121,34 @@ async fn p2_coin_states(
     .fetch_all(conn)
     .await?;
 
-    rows.into_iter().map(into_row).collect()
+    if rows.is_empty() {
+        return Ok((vec![], 0));
+    }
+
+    let total = rows.first().unwrap().total_count.try_into()?;
+    let coin_states = rows
+        .into_iter()
+        .map(|row| {
+            let with_total = CoinStateWithTotalSql {
+                coin_state: CoinStateSql {
+                    parent_coin_id: row.parent_coin_id,
+                    puzzle_hash: row.puzzle_hash,
+                    amount: row.amount,
+                    spent_height: row.spent_height,
+                    created_height: row.created_height,
+                    transaction_id: row.transaction_id,
+                    kind: row.kind,
+                    created_unixtime: row.created_unixtime,
+                    spent_unixtime: row.spent_unixtime,
+                },
+                total_count: row.total_count,
+            };
+            let (coin_state, _) = into_row(with_total)?;
+            Ok(coin_state)
+        })
+        .collect::<Result<Vec<_>>>()?;
+
+    Ok((coin_states, total))
 }
 
 async fn created_unspent_p2_coin_states(

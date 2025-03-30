@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `spent_height`, `created_height`, `transaction_id`, `kind`, `created_unixtime`, `spent_unixtime`\n        FROM `coin_states` WHERE `kind` = 1\n        LIMIT ? OFFSET ?\n        ",
+  "query": "\n        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `spent_height`, `created_height`, `transaction_id`, `kind`, `created_unixtime`, `spent_unixtime`\n        FROM `cat_coins` INDEXED BY `cat_asset_id`\n        INNER JOIN `coin_states` ON `coin_states`.coin_id = `cat_coins`.coin_id\n        WHERE `asset_id` = ?\n        LIMIT ? OFFSET ?\n        ",
   "describe": {
     "columns": [
       {
@@ -50,7 +50,7 @@
       }
     ],
     "parameters": {
-      "Right": 2
+      "Right": 3
     },
     "nullable": [
       false,
@@ -64,5 +64,5 @@
       true
     ]
   },
-  "hash": "c876a4a3f4980e86ce0b51e9cc141b0c297dd2df84bf4b2927f76bda59a38edb"
+  "hash": "f8e3b69d727f5bd318cad5d301a914944b1212bbe807b9c79f4a961b044b863d"
 }

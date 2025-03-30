@@ -16,6 +16,11 @@ pub(crate) struct CoinStateSql {
     pub spent_unixtime: Option<i64>,
 }
 
+pub(crate) struct CoinStateWithTotalSql {
+    pub coin_state: CoinStateSql,
+    pub total_count: i64,
+}
+
 pub(crate) struct CoinSql {
     pub parent_coin_id: Vec<u8>,
     pub puzzle_hash: Vec<u8>,
@@ -83,5 +88,13 @@ impl IntoRow for CoinSql {
             puzzle_hash: to_bytes32(&self.puzzle_hash)?,
             amount: to_u64(&self.amount)?,
         })
+    }
+}
+
+impl IntoRow for CoinStateWithTotalSql {
+    type Row = (CoinStateRow, i64);
+
+    fn into_row(self) -> Result<(CoinStateRow, i64), DatabaseError> {
+        Ok((self.coin_state.into_row()?, self.total_count))
     }
 }

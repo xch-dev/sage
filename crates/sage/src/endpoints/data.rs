@@ -97,8 +97,7 @@ impl Sage {
         let wallet = self.wallet()?;
 
         let mut coins = Vec::new();
-
-        let rows = wallet.db.p2_coin_states(_req.limit, _req.offset).await?;
+        let (rows, total) = wallet.db.p2_coin_states(_req.limit, _req.offset).await?;
 
         for row in rows {
             let cs = row.coin_state;
@@ -129,7 +128,7 @@ impl Sage {
             });
         }
 
-        Ok(GetXchCoinsResponse { coins })
+        Ok(GetXchCoinsResponse { coins, total })
     }
 
     pub async fn get_cat_coins(&self, req: GetCatCoins) -> Result<GetCatCoinsResponse> {
@@ -138,7 +137,7 @@ impl Sage {
 
         let mut coins = Vec::new();
 
-        let rows = wallet
+        let (rows, total) = wallet
             .db
             .cat_coin_states(asset_id, req.limit, req.offset)
             .await?;
@@ -172,7 +171,7 @@ impl Sage {
             });
         }
 
-        Ok(GetCatCoinsResponse { coins })
+        Ok(GetCatCoinsResponse { coins, total })
     }
 
     pub async fn get_cats(&self, _req: GetCats) -> Result<GetCatsResponse> {
