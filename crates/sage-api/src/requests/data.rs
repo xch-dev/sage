@@ -30,6 +30,7 @@ pub struct GetDerivations {
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct GetDerivationsResponse {
     pub derivations: Vec<DerivationRecord>,
+    pub total: u32,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]

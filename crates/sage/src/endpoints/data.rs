@@ -77,10 +77,12 @@ impl Sage {
     pub async fn get_derivations(&self, req: GetDerivations) -> Result<GetDerivationsResponse> {
         let wallet = self.wallet()?;
 
-        let derivations = wallet
+        let (derivations, total) = wallet
             .db
             .derivations(req.hardened, req.limit, req.offset)
-            .await?
+            .await?;
+
+        let derivations = derivations
             .into_iter()
             .map(|row| {
                 Ok(DerivationRecord {
@@ -91,7 +93,7 @@ impl Sage {
             })
             .collect::<Result<Vec<_>>>()?;
 
-        Ok(GetDerivationsResponse { derivations })
+        Ok(GetDerivationsResponse { derivations, total })
     }
 
     pub async fn get_xch_coins(&self, req: GetXchCoins) -> Result<GetXchCoinsResponse> {
