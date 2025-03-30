@@ -333,6 +333,8 @@ export default function CoinList(props: CoinListProps) {
           rowSelection: props.selectedCoins,
           maxRows: props.maxRows,
         }}
+        rowLabel={t`coin`}
+        rowLabelPlural={t`coins`}
       />
       <div className='flex-shrink-0 py-4'>
         <SimplePagination

@@ -41,6 +41,8 @@ interface DataTableProps<TData, TValue> {
   };
   getRowId?: (originalRow: TData) => string;
   showTotalRows?: boolean;
+  rowLabel?: string;
+  rowLabelPlural?: string;
 }
 
 export function DataTable<TData, TValue>({
@@ -51,6 +53,8 @@ export function DataTable<TData, TValue>({
   getRowStyles,
   getRowId,
   showTotalRows = true,
+  rowLabel = 'row',
+  rowLabelPlural = 'rows',
 }: DataTableProps<TData, TValue>) {
   const table = useReactTable({
     data,
@@ -64,8 +68,8 @@ export function DataTable<TData, TValue>({
 
   const length = data.length;
   const showingLabel = state?.maxRows
-    ? t`Showing ${length} of ${state.maxRows} rows`
-    : t`Showing ${length} row${length !== 1 ? 's' : ''}`;
+    ? t`Showing ${length} of ${state.maxRows} ${rowLabelPlural}`
+    : t`Showing ${length} ${length !== 1 ? rowLabelPlural : rowLabel}`;
 
   return (
     <div>
@@ -129,7 +133,10 @@ export function DataTable<TData, TValue>({
         </Table>
       </div>
       {showTotalRows && (
-        <div className='text-sm text-muted-foreground mt-1 mb-2'>
+        <div
+          className='text-sm text-muted-foreground mt-1 mb-2'
+          aria-label={showingLabel}
+        >
           {showingLabel}
         </div>
       )}
