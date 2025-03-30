@@ -91,8 +91,14 @@ export default function CoinList(props: CoinListProps) {
           className='px-0'
           variant='link'
           onClick={() => {
-            props.onSortModeChange('parent_coin_id');
-            props.onSortDirectionChange(!props.sortDirection);
+            if (props.sortMode === 'parent_coin_id') {
+              // Toggle direction only if already sorting by this column
+              props.onSortDirectionChange(!props.sortDirection);
+            } else {
+              // Set column as sort field with default direction (descending)
+              props.onSortModeChange('parent_coin_id');
+              props.onSortDirectionChange(false);
+            }
             props.setCurrentPage(0);
           }}
         >
@@ -139,8 +145,14 @@ export default function CoinList(props: CoinListProps) {
           className='px-0'
           variant='link'
           onClick={() => {
-            props.onSortModeChange('amount');
-            props.onSortDirectionChange(!props.sortDirection);
+            if (props.sortMode === 'amount') {
+              // Toggle direction only if already sorting by this column
+              props.onSortDirectionChange(!props.sortDirection);
+            } else {
+              // Set column as sort field with default direction (descending)
+              props.onSortModeChange('amount');
+              props.onSortDirectionChange(false);
+            }
             props.setCurrentPage(0);
           }}
         >
@@ -175,8 +187,14 @@ export default function CoinList(props: CoinListProps) {
           className='px-0'
           variant='link'
           onClick={() => {
-            props.onSortModeChange('created_height');
-            props.onSortDirectionChange(!props.sortDirection);
+            if (props.sortMode === 'created_height') {
+              // Toggle direction only if already sorting by this column
+              props.onSortDirectionChange(!props.sortDirection);
+            } else {
+              // Set column as sort field with default direction (descending)
+              props.onSortModeChange('created_height');
+              props.onSortDirectionChange(false);
+            }
             props.setCurrentPage(0);
           }}
         >
@@ -210,8 +228,14 @@ export default function CoinList(props: CoinListProps) {
             className='px-0'
             variant='link'
             onClick={() => {
-              props.onSortModeChange('spent_height');
-              props.onSortDirectionChange(!props.sortDirection);
+              if (props.sortMode === 'spent_height') {
+                // Toggle direction only if already sorting by this column
+                props.onSortDirectionChange(!props.sortDirection);
+              } else {
+                // Set column as sort field with default direction (descending)
+                props.onSortModeChange('spent_height');
+                props.onSortDirectionChange(false);
+              }
               props.setCurrentPage(0);
             }}
           >
