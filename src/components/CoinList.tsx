@@ -255,7 +255,15 @@ export default function CoinList(props: CoinListProps) {
             size='icon'
             className='ml-2 h-4 w-4'
             onClick={() => {
-              props.onIncludeSpentCoinsChange(!props.includeSpentCoins);
+              const newIncludeSpentCoins = !props.includeSpentCoins;
+              props.onIncludeSpentCoinsChange(newIncludeSpentCoins);
+              if (newIncludeSpentCoins) {
+                props.onSortModeChange('spent_height');
+                props.onSortDirectionChange(false);
+              } else {
+                props.onSortModeChange('created_height');
+                props.onSortDirectionChange(false);
+              }
               props.setCurrentPage(0);
             }}
             aria-label={
