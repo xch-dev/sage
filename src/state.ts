@@ -63,10 +63,10 @@ export function clearState() {
 }
 
 export async function fetchState() {
-  await Promise.all([updateCoins(), updateSyncStatus()]);
+  await Promise.all([updateXchCoins(), updateSyncStatus()]);
 }
 
-function updateCoins() {
+function updateXchCoins() {
   commands
     .getXchCoins({})
     .then((data) =>
@@ -87,7 +87,7 @@ function updateSyncStatus() {
 events.syncEvent.listen((event) => {
   switch (event.payload.type) {
     case 'coin_state':
-      updateCoins();
+      updateXchCoins();
       updateSyncStatus();
       break;
     case 'derivation':

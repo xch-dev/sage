@@ -14,8 +14,8 @@ impl Database {
         balance(&self.pool).await
     }
 
-    pub async fn p2_coin_states(&self) -> Result<Vec<CoinStateRow>> {
-        p2_coin_states(&self.pool).await
+    pub async fn p2_coin_states(&self, limit: u32, offset: u32) -> Result<Vec<CoinStateRow>> {
+        p2_coin_states(&self.pool, limit, offset).await
     }
 
     pub async fn created_unspent_p2_coin_states(
@@ -88,13 +88,20 @@ async fn spendable_coins(conn: impl SqliteExecutor<'_>) -> Result<Vec<Coin>> {
     .collect()
 }
 
-async fn p2_coin_states(conn: impl SqliteExecutor<'_>) -> Result<Vec<CoinStateRow>> {
+async fn p2_coin_states(
+    conn: impl SqliteExecutor<'_>,
+    limit: u32,
+    offset: u32,
+) -> Result<Vec<CoinStateRow>> {
     let rows = sqlx::query_as!(
         CoinStateSql,
         "
         SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `spent_height`, `created_height`, `transaction_id`, `kind`, `created_unixtime`, `spent_unixtime`
         FROM `coin_states` WHERE `kind` = 1
-        "
+        LIMIT ? OFFSET ?
+        ",
+        limit,
+        offset
     )
     .fetch_all(conn)
     .await?;

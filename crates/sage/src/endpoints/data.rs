@@ -98,7 +98,7 @@ impl Sage {
 
         let mut coins = Vec::new();
 
-        let rows = wallet.db.p2_coin_states().await?;
+        let rows = wallet.db.p2_coin_states(_req.limit, _req.offset).await?;
 
         for row in rows {
             let cs = row.coin_state;
@@ -138,7 +138,10 @@ impl Sage {
 
         let mut coins = Vec::new();
 
-        let rows = wallet.db.cat_coin_states(asset_id).await?;
+        let rows = wallet
+            .db
+            .cat_coin_states(asset_id, req.limit, req.offset)
+            .await?;
 
         for row in rows {
             let cs = row.coin_state;

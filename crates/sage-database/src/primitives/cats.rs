@@ -44,8 +44,13 @@ impl Database {
         refetch_cat(&self.pool, asset_id).await
     }
 
-    pub async fn cat_coin_states(&self, asset_id: Bytes32) -> Result<Vec<CoinStateRow>> {
-        cat_coin_states(&self.pool, asset_id).await
+    pub async fn cat_coin_states(
+        &self,
+        asset_id: Bytes32,
+        limit: u32,
+        offset: u32,
+    ) -> Result<Vec<CoinStateRow>> {
+        cat_coin_states(&self.pool, asset_id, limit, offset).await
     }
 
     pub async fn created_unspent_cat_coin_states(
@@ -278,6 +283,8 @@ async fn cat_balance(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result
 async fn cat_coin_states(
     conn: impl SqliteExecutor<'_>,
     asset_id: Bytes32,
+    limit: u32,
+    offset: u32,
 ) -> Result<Vec<CoinStateRow>> {
     let asset_id = asset_id.as_ref();
 
@@ -288,8 +295,11 @@ async fn cat_coin_states(
         FROM `cat_coins` INDEXED BY `cat_asset_id`
         INNER JOIN `coin_states` ON `coin_states`.coin_id = `cat_coins`.coin_id
         WHERE `asset_id` = ?
+        LIMIT ? OFFSET ?
         ",
-        asset_id
+        asset_id,
+        limit,
+        offset
     )
     .fetch_all(conn)
     .await?;

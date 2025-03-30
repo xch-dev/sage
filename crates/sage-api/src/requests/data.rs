@@ -51,7 +51,10 @@ pub struct GetSyncStatusResponse {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
-pub struct GetXchCoins {}
+pub struct GetXchCoins {
+    pub offset: u32,
+    pub limit: u32,
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
@@ -63,6 +66,8 @@ pub struct GetXchCoinsResponse {
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct GetCatCoins {
     pub asset_id: String,
+    pub offset: u32,
+    pub limit: u32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

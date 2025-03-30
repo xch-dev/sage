@@ -51,7 +51,7 @@ export function useTokenManagement(assetId: string | undefined) {
     return getBalanceInUsd(asset.asset_id, toDecimal(asset.balance, precision));
   }, [asset, precision, getBalanceInUsd]);
 
-  const updateCoins = useMemo(
+  const updateAllCoins = useMemo(
     () => () => {
       const getCoins =
         assetId === 'xch'
@@ -76,20 +76,20 @@ export function useTokenManagement(assetId: string | undefined) {
   );
 
   useEffect(() => {
-    updateCoins();
+    updateAllCoins();
 
     const unlisten = events.syncEvent.listen((event) => {
       const type = event.payload.type;
 
       if (type === 'coin_state' || type === 'puzzle_batch_synced') {
-        updateCoins();
+        updateAllCoins();
       }
     });
 
     return () => {
       unlisten.then((u) => u());
     };
-  }, [updateCoins]);
+  }, [updateAllCoins]);
 
   useEffect(() => {
     if (assetId === 'xch') {
