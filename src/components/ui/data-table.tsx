@@ -40,6 +40,7 @@ interface DataTableProps<TData, TValue> {
     onClick?: () => void;
   };
   getRowId?: (originalRow: TData) => string;
+  showTotalRows?: boolean;
 }
 
 export function DataTable<TData, TValue>({
@@ -49,6 +50,7 @@ export function DataTable<TData, TValue>({
   onSortingChange,
   getRowStyles,
   getRowId,
+  showTotalRows = true,
 }: DataTableProps<TData, TValue>) {
   const table = useReactTable({
     data,
@@ -126,9 +128,11 @@ export function DataTable<TData, TValue>({
           </TableBody>
         </Table>
       </div>
-      <div className='text-sm text-muted-foreground mt-1 mb-2'>
-        {showingLabel}
-      </div>
+      {showTotalRows && (
+        <div className='text-sm text-muted-foreground mt-1 mb-2'>
+          {showingLabel}
+        </div>
+      )}
     </div>
   );
 }
