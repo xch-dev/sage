@@ -20,8 +20,9 @@ impl Database {
         limit: u32,
         offset: u32,
         sort_mode: CoinSortMode,
+        include_spent_coins: bool,
     ) -> Result<(Vec<CoinStateRow>, u32)> {
-        p2_coin_states(&self.pool, limit, offset, sort_mode).await
+        p2_coin_states(&self.pool, limit, offset, sort_mode, include_spent_coins).await
     }
 
     pub async fn created_unspent_p2_coin_states(
@@ -99,6 +100,7 @@ async fn p2_coin_states(
     limit: u32,
     offset: u32,
     sort_mode: CoinSortMode,
+    include_spent_coins: bool,
 ) -> Result<(Vec<CoinStateRow>, u32)> {
     let mut query = sqlx::QueryBuilder::new(
         "
@@ -117,6 +119,10 @@ async fn p2_coin_states(
         WHERE `kind` = 1
         ",
     );
+
+    if !include_spent_coins {
+        query.push(" AND `spent_height` IS NULL");
+    }
 
     query.push(" ORDER BY ");
 

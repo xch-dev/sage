@@ -72,6 +72,8 @@ pub struct GetXchCoins {
     pub limit: u32,
     #[serde(default)]
     pub sort_mode: CoinSortMode,
+    #[serde(default)]
+    pub include_spent_coins: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -89,6 +91,8 @@ pub struct GetCatCoins {
     pub limit: u32,
     #[serde(default)]
     pub sort_mode: CoinSortMode,
+    #[serde(default)]
+    pub include_spent_coins: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

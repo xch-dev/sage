@@ -64,8 +64,17 @@ impl Database {
         limit: u32,
         offset: u32,
         sort_mode: CoinSortMode,
+        include_spent_coins: bool,
     ) -> Result<(Vec<CoinStateRow>, u32)> {
-        cat_coin_states(&self.pool, asset_id, limit, offset, sort_mode).await
+        cat_coin_states(
+            &self.pool,
+            asset_id,
+            limit,
+            offset,
+            sort_mode,
+            include_spent_coins,
+        )
+        .await
     }
 
     pub async fn created_unspent_cat_coin_states(
@@ -301,6 +310,7 @@ async fn cat_coin_states(
     limit: u32,
     offset: u32,
     sort_mode: CoinSortMode,
+    include_spent_coins: bool,
 ) -> Result<(Vec<CoinStateRow>, u32)> {
     let asset_id = asset_id.as_ref();
 
@@ -314,6 +324,10 @@ async fn cat_coin_states(
         WHERE `asset_id` = ",
     );
     query.push_bind(asset_id);
+
+    if !include_spent_coins {
+        query.push(" AND `spent_height` IS NULL");
+    }
 
     query.push(" ORDER BY ");
 
