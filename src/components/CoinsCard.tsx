@@ -35,6 +35,7 @@ import {
   CoinRecord,
   commands,
   TransactionResponse,
+  CoinSortMode,
 } from '../bindings';
 
 interface CoinsCardProps {
@@ -51,6 +52,12 @@ interface CoinsCardProps {
   totalCoins: number;
   pageSize: number;
   setCurrentPage: (page: number) => void;
+  sortMode: CoinSortMode;
+  sortDirection: boolean;
+  includeSpentCoins: boolean;
+  onSortModeChange: (mode: CoinSortMode) => void;
+  onSortDirectionChange: (ascending: boolean) => void;
+  onIncludeSpentCoinsChange: (include: boolean) => void;
 }
 
 export function CoinsCard({
@@ -67,6 +74,12 @@ export function CoinsCard({
   totalCoins,
   pageSize,
   setCurrentPage,
+  sortMode,
+  sortDirection,
+  includeSpentCoins,
+  onSortModeChange,
+  onSortDirectionChange,
+  onIncludeSpentCoinsChange,
 }: CoinsCardProps) {
   const walletState = useWalletState();
   const ticker = asset?.ticker;
@@ -293,6 +306,12 @@ export function CoinsCard({
           totalPages={pageCount}
           setCurrentPage={setCurrentPage}
           maxRows={totalCoins}
+          sortMode={sortMode}
+          sortDirection={sortDirection}
+          includeSpentCoins={includeSpentCoins}
+          onSortModeChange={onSortModeChange}
+          onSortDirectionChange={onSortDirectionChange}
+          onIncludeSpentCoinsChange={onIncludeSpentCoinsChange}
           actions={
             <>
               {splitHandler && (

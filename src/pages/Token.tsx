@@ -25,9 +25,15 @@ export default function Token() {
     currentPage,
     totalCoins,
     pageSize,
+    sortMode,
+    sortDirection,
+    includeSpentCoins,
     setResponse,
     setSelectedCoins,
     setCurrentPage,
+    setSortMode,
+    setSortDirection,
+    setIncludeSpentCoins,
     redownload,
     setVisibility,
     updateCatDetails,
@@ -135,6 +141,12 @@ export default function Token() {
             totalCoins={totalCoins}
             pageSize={pageSize}
             setCurrentPage={setCurrentPage}
+            sortMode={sortMode}
+            sortDirection={sortDirection}
+            includeSpentCoins={includeSpentCoins}
+            onSortModeChange={setSortMode}
+            onSortDirectionChange={setSortDirection}
+            onIncludeSpentCoinsChange={setIncludeSpentCoins}
           />
         </div>
       </Container>

@@ -73,6 +73,8 @@ pub struct GetXchCoins {
     #[serde(default)]
     pub sort_mode: CoinSortMode,
     #[serde(default)]
+    pub ascending: bool,
+    #[serde(default)]
     pub include_spent_coins: bool,
 }
 
@@ -91,6 +93,8 @@ pub struct GetCatCoins {
     pub limit: u32,
     #[serde(default)]
     pub sort_mode: CoinSortMode,
+    #[serde(default)]
+    pub ascending: bool,
     #[serde(default)]
     pub include_spent_coins: bool,
 }

@@ -20,9 +20,18 @@ impl Database {
         limit: u32,
         offset: u32,
         sort_mode: CoinSortMode,
+        ascending: bool,
         include_spent_coins: bool,
     ) -> Result<(Vec<CoinStateRow>, u32)> {
-        p2_coin_states(&self.pool, limit, offset, sort_mode, include_spent_coins).await
+        p2_coin_states(
+            &self.pool,
+            limit,
+            offset,
+            sort_mode,
+            ascending,
+            include_spent_coins,
+        )
+        .await
     }
 
     pub async fn created_unspent_p2_coin_states(
@@ -100,6 +109,7 @@ async fn p2_coin_states(
     limit: u32,
     offset: u32,
     sort_mode: CoinSortMode,
+    ascending: bool,
     include_spent_coins: bool,
 ) -> Result<(Vec<CoinStateRow>, u32)> {
     let mut query = sqlx::QueryBuilder::new(
@@ -139,6 +149,12 @@ async fn p2_coin_states(
         CoinSortMode::SpentHeight => {
             query.push("`spent_height`");
         }
+    }
+
+    if ascending {
+        query.push(" ASC");
+    } else {
+        query.push(" DESC");
     }
 
     query.push(" LIMIT ");

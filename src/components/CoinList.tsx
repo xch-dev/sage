@@ -1,16 +1,10 @@
 import { formatTimestamp, fromMojos } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import {
-  ColumnDef,
-  Row,
-  RowSelectionState,
-  SortingState,
-} from '@tanstack/react-table';
+import { ColumnDef, Row, RowSelectionState } from '@tanstack/react-table';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { ArrowDown, ArrowUp, FilterIcon, FilterXIcon } from 'lucide-react';
-import { useState } from 'react';
-import { CoinRecord } from '../bindings';
+import { CoinRecord, CoinSortMode } from '../bindings';
 import { NumberFormat } from './NumberFormat';
 import { SimplePagination } from './SimplePagination';
 import { Button } from './ui/button';
@@ -27,21 +21,16 @@ export interface CoinListProps {
   setCurrentPage: (page: number) => void;
   maxRows: number;
   actions?: React.ReactNode;
+  // Backend sorting and filtering props
+  sortMode: CoinSortMode;
+  sortDirection: boolean; // true = ascending, false = descending
+  includeSpentCoins: boolean;
+  onSortModeChange: (mode: CoinSortMode) => void;
+  onSortDirectionChange: (ascending: boolean) => void;
+  onIncludeSpentCoinsChange: (include: boolean) => void;
 }
 
 export default function CoinList(props: CoinListProps) {
-  const [sorting, setSorting] = useState<SortingState>([
-    { id: 'created_height', desc: true },
-  ]);
-  const [showSpentCoins, setShowSpentCoins] = useState(false);
-
-  const filteredCoins = !showSpentCoins
-    ? props.coins.filter(
-        (coin) =>
-          !coin.spend_transaction_id && !coin.spent_height && !coin.offer_id,
-      )
-    : props.coins;
-
   // Column definitions
   const columns: ColumnDef<CoinRecord>[] = [
     {
@@ -97,17 +86,22 @@ export default function CoinList(props: CoinListProps) {
     {
       accessorKey: 'coin_id',
       size: 100,
-      header: ({ column }) => (
+      header: () => (
         <Button
           className='px-0'
           variant='link'
-          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+          onClick={() => {
+            props.onSortModeChange('parent_coin_id');
+            props.onSortDirectionChange(!props.sortDirection);
+          }}
         >
           <Trans>Coin ID</Trans>
-          {column.getIsSorted() === 'asc' ? (
-            <ArrowUp className='ml-2 h-4 w-4' aria-hidden='true' />
-          ) : column.getIsSorted() === 'desc' ? (
-            <ArrowDown className='ml-2 h-4 w-4' aria-hidden='true' />
+          {props.sortMode === 'parent_coin_id' ? (
+            props.sortDirection ? (
+              <ArrowUp className='ml-2 h-4 w-4' aria-hidden='true' />
+            ) : (
+              <ArrowDown className='ml-2 h-4 w-4' aria-hidden='true' />
+            )
           ) : (
             <span className='ml-2 w-4 h-4' />
           )}
@@ -139,19 +133,24 @@ export default function CoinList(props: CoinListProps) {
     {
       accessorKey: 'amount',
       size: 100,
-      header: ({ column }) => (
+      header: () => (
         <Button
           className='px-0'
           variant='link'
-          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+          onClick={() => {
+            props.onSortModeChange('amount');
+            props.onSortDirectionChange(!props.sortDirection);
+          }}
         >
           <span className='text-foreground hover:underline'>
             <Trans>Amount</Trans>
           </span>
-          {column.getIsSorted() === 'asc' ? (
-            <ArrowUp className='ml-2 h-4 w-4' aria-hidden='true' />
-          ) : column.getIsSorted() === 'desc' ? (
-            <ArrowDown className='ml-2 h-4 w-4' aria-hidden='true' />
+          {props.sortMode === 'amount' ? (
+            props.sortDirection ? (
+              <ArrowUp className='ml-2 h-4 w-4' aria-hidden='true' />
+            ) : (
+              <ArrowDown className='ml-2 h-4 w-4' aria-hidden='true' />
+            )
           ) : (
             <span className='ml-2 w-4 h-4' />
           )}
@@ -169,44 +168,22 @@ export default function CoinList(props: CoinListProps) {
     },
     {
       accessorKey: 'created_height',
-      sortingFn: (rowA, rowB) => {
-        const addSpend = 1_000_000_000;
-        const addCreate = 2_000_000_000;
-
-        const aPending =
-          !!rowA.original.spend_transaction_id && !rowA.original.spent_height;
-        const bPending =
-          !!rowB.original.spend_transaction_id && !rowB.original.spent_height;
-
-        const a =
-          (rowA.original.created_height ?? 0) +
-          (aPending
-            ? addSpend
-            : rowA.original.create_transaction_id
-              ? addCreate
-              : 0);
-
-        const b =
-          (rowB.original.created_height ?? 0) +
-          (bPending
-            ? addSpend
-            : rowB.original.create_transaction_id
-              ? addCreate
-              : 0);
-
-        return a < b ? -1 : a > b ? 1 : 0;
-      },
-      header: ({ column }) => (
+      header: () => (
         <Button
           className='px-0'
           variant='link'
-          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+          onClick={() => {
+            props.onSortModeChange('created_height');
+            props.onSortDirectionChange(!props.sortDirection);
+          }}
         >
           <Trans>Confirmed</Trans>
-          {column.getIsSorted() === 'asc' ? (
-            <ArrowUp className='ml-2 h-4 w-4' aria-hidden='true' />
-          ) : column.getIsSorted() === 'desc' ? (
-            <ArrowDown className='ml-2 h-4 w-4' aria-hidden='true' />
+          {props.sortMode === 'created_height' ? (
+            props.sortDirection ? (
+              <ArrowUp className='ml-2 h-4 w-4' aria-hidden='true' />
+            ) : (
+              <ArrowDown className='ml-2 h-4 w-4' aria-hidden='true' />
+            )
           ) : (
             <span className='ml-2 w-4 h-4' />
           )}
@@ -224,29 +201,23 @@ export default function CoinList(props: CoinListProps) {
     },
     {
       accessorKey: 'spent_height',
-      sortingFn: (rowA, rowB) => {
-        const a =
-          (rowA.original.spent_height ?? 0) +
-          (rowA.original.spend_transaction_id ? 10000000 : 0) +
-          (rowA.original.offer_id ? 20000000 : 0);
-        const b =
-          (rowB.original.spent_height ?? 0) +
-          (rowB.original.spend_transaction_id ? 10000000 : 0) +
-          (rowB.original.offer_id ? 20000000 : 0);
-        return a < b ? -1 : a > b ? 1 : 0;
-      },
-      header: ({ column }) => (
+      header: () => (
         <div className='flex items-center space-x-1'>
           <Button
             className='px-0'
             variant='link'
-            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+            onClick={() => {
+              props.onSortModeChange('spent_height');
+              props.onSortDirectionChange(!props.sortDirection);
+            }}
           >
             <Trans>Spent</Trans>
-            {column.getIsSorted() === 'asc' ? (
-              <ArrowUp className='ml-2 h-4 w-4' aria-hidden='true' />
-            ) : column.getIsSorted() === 'desc' ? (
-              <ArrowDown className='ml-2 h-4 w-4' aria-hidden='true' />
+            {props.sortMode === 'spent_height' ? (
+              props.sortDirection ? (
+                <ArrowUp className='ml-2 h-4 w-4' aria-hidden='true' />
+              ) : (
+                <ArrowDown className='ml-2 h-4 w-4' aria-hidden='true' />
+              )
             ) : (
               <span className='ml-2 w-4 h-4' />
             )}
@@ -255,12 +226,16 @@ export default function CoinList(props: CoinListProps) {
             variant='ghost'
             size='icon'
             className='ml-2 h-4 w-4'
-            onClick={() => setShowSpentCoins(!showSpentCoins)}
+            onClick={() =>
+              props.onIncludeSpentCoinsChange(!props.includeSpentCoins)
+            }
             aria-label={
-              showSpentCoins ? t`Hide spent coins` : t`Show spent coins`
+              props.includeSpentCoins
+                ? t`Hide spent coins`
+                : t`Show spent coins`
             }
           >
-            {showSpentCoins ? (
+            {props.includeSpentCoins ? (
               <FilterXIcon className='h-3 w-3' aria-hidden='true' />
             ) : (
               <FilterIcon className='h-3 w-3' aria-hidden='true' />
@@ -311,83 +286,14 @@ export default function CoinList(props: CoinListProps) {
     };
   };
 
-  const sortData = (data: CoinRecord[], sortingState: SortingState) => {
-    const sorted = [...data];
-
-    sorted.sort((a, b) => {
-      for (let i = 0; i < sortingState.length; i++) {
-        const sort = sortingState[i];
-        const { id, desc } = sort;
-
-        if (id === 'created_height') {
-          const aPending = !!a.spend_transaction_id && !a.spent_height;
-          const bPending = !!b.spend_transaction_id && !b.spent_height;
-
-          const addSpend = 1_000_000_000;
-          const addCreate = 2_000_000_000;
-
-          const aVal =
-            (a.created_height ?? 0) +
-            (aPending ? addSpend : a.create_transaction_id ? addCreate : 0);
-
-          const bVal =
-            (b.created_height ?? 0) +
-            (bPending ? addSpend : b.create_transaction_id ? addCreate : 0);
-
-          if (aVal !== bVal) {
-            return desc ? bVal - aVal : aVal - bVal;
-          }
-        } else if (id === 'spent_height') {
-          const aVal =
-            (a.spent_height ?? 0) +
-            (a.spend_transaction_id ? 10000000 : 0) +
-            (a.offer_id ? 20000000 : 0);
-          const bVal =
-            (b.spent_height ?? 0) +
-            (b.spend_transaction_id ? 10000000 : 0) +
-            (b.offer_id ? 20000000 : 0);
-
-          if (aVal !== bVal) {
-            return desc ? bVal - aVal : aVal - bVal;
-          }
-        } else if (id === 'amount') {
-          const aVal = BigInt(a.amount);
-          const bVal = BigInt(b.amount);
-
-          if (aVal !== bVal) {
-            return desc ? (bVal > aVal ? 1 : -1) : aVal > bVal ? 1 : -1;
-          }
-        } else {
-          // Default string comparison for other columns
-          const aVal = a[id as keyof CoinRecord] as string | null;
-          const bVal = b[id as keyof CoinRecord] as string | null;
-
-          if (aVal !== bVal) {
-            if (aVal === null) return desc ? -1 : 1;
-            if (bVal === null) return desc ? 1 : -1;
-            return desc ? bVal.localeCompare(aVal) : aVal.localeCompare(bVal);
-          }
-        }
-      }
-
-      return 0;
-    });
-
-    return sorted;
-  };
-
-  const sortedData = sortData(filteredCoins, sorting);
-
   return (
     <div>
       <DataTable
-        data={sortedData}
+        data={props.coins}
         columns={columns}
         getRowStyles={getRowStyles}
-        onSortingChange={setSorting}
         state={{
           rowSelection: props.selectedCoins,
-          sorting,
           maxRows: props.maxRows,
         }}
       />

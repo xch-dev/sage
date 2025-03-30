@@ -64,6 +64,7 @@ impl Database {
         limit: u32,
         offset: u32,
         sort_mode: CoinSortMode,
+        ascending: bool,
         include_spent_coins: bool,
     ) -> Result<(Vec<CoinStateRow>, u32)> {
         cat_coin_states(
@@ -72,6 +73,7 @@ impl Database {
             limit,
             offset,
             sort_mode,
+            ascending,
             include_spent_coins,
         )
         .await
@@ -310,6 +312,7 @@ async fn cat_coin_states(
     limit: u32,
     offset: u32,
     sort_mode: CoinSortMode,
+    ascending: bool,
     include_spent_coins: bool,
 ) -> Result<(Vec<CoinStateRow>, u32)> {
     let asset_id = asset_id.as_ref();
@@ -344,6 +347,12 @@ async fn cat_coin_states(
         CoinSortMode::SpentHeight => {
             query.push("`coin_states`.`spent_height`");
         }
+    }
+
+    if ascending {
+        query.push(" ASC");
+    } else {
+        query.push(" DESC");
     }
 
     query.push(" LIMIT ");

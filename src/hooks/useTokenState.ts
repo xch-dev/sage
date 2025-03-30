@@ -10,6 +10,7 @@ import {
   commands,
   events,
   TransactionResponse,
+  CoinSortMode,
 } from '../bindings';
 
 // Extend the TransactionResponse type to include additionalData
@@ -40,6 +41,9 @@ export function useTokenState(assetId: string | undefined) {
   const { receive_address } = walletState.sync;
   const [currentPage, setCurrentPage] = useState<number>(0);
   const [totalCoins, setTotalCoins] = useState<number>(0);
+  const [sortMode, setSortMode] = useState<CoinSortMode>('created_height');
+  const [sortDirection, setSortDirection] = useState<boolean>(false); // false = descending, true = ascending
+  const [includeSpentCoins, setIncludeSpentCoins] = useState<boolean>(false);
   const pageSize = 10;
 
   const precision = useMemo(
@@ -59,12 +63,21 @@ export function useTokenState(assetId: string | undefined) {
 
         const getCoins =
           assetId === 'xch'
-            ? commands.getXchCoins({ offset, limit: pageSize })
+            ? commands.getXchCoins({
+              offset,
+              limit: pageSize,
+              sort_mode: sortMode,
+              ascending: sortDirection,
+              include_spent_coins: includeSpentCoins,
+            })
             : commands.getCatCoins({
-                asset_id: assetId!,
-                offset,
-                limit: pageSize,
-              });
+              asset_id: assetId!,
+              offset,
+              limit: pageSize,
+              sort_mode: sortMode,
+              ascending: sortDirection,
+              include_spent_coins: includeSpentCoins,
+            });
 
         getCoins
           .then((res) => {
@@ -73,7 +86,7 @@ export function useTokenState(assetId: string | undefined) {
           })
           .catch(addError);
       },
-    [assetId, addError, pageSize, currentPage],
+    [assetId, addError, pageSize, currentPage, sortMode, sortDirection, includeSpentCoins],
   );
 
   const updateCat = useMemo(
@@ -175,9 +188,15 @@ export function useTokenState(assetId: string | undefined) {
     currentPage,
     totalCoins,
     pageSize,
+    sortMode,
+    sortDirection,
+    includeSpentCoins,
     setResponse,
     setSelectedCoins,
     setCurrentPage,
+    setSortMode,
+    setSortDirection,
+    setIncludeSpentCoins,
     redownload,
     setVisibility,
     updateCatDetails,

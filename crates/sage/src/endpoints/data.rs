@@ -105,7 +105,13 @@ impl Sage {
         let mut coins = Vec::new();
         let (rows, total) = wallet
             .db
-            .p2_coin_states(req.limit, req.offset, sort_mode, req.include_spent_coins)
+            .p2_coin_states(
+                req.limit,
+                req.offset,
+                sort_mode,
+                req.ascending,
+                req.include_spent_coins,
+            )
             .await?;
 
         for row in rows {
@@ -160,6 +166,7 @@ impl Sage {
                 req.limit,
                 req.offset,
                 sort_mode,
+                req.ascending,
                 req.include_spent_coins,
             )
             .await?;
