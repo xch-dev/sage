@@ -1,11 +1,25 @@
 use chia::{protocol::Bytes32, puzzles::LineageProof};
 use chia_wallet_sdk::driver::Cat;
-use sqlx::SqliteExecutor;
+use sqlx::{Row, SqliteExecutor};
 
 use crate::{
     into_row, to_bytes, to_bytes32, CatCoinRow, CatCoinSql, CatRow, CatSql, CoinStateRow,
     CoinStateSql, Database, DatabaseTx, FullCatCoinSql, Result,
 };
+
+#[derive(Debug, Clone, Copy)]
+pub enum CoinSortMode {
+    ParentCoinId,
+    Amount,
+    CreatedHeight,
+    SpentHeight,
+}
+
+impl Default for CoinSortMode {
+    fn default() -> Self {
+        Self::CreatedHeight
+    }
+}
 
 impl Database {
     pub async fn insert_cat(&self, row: CatRow) -> Result<()> {
@@ -49,8 +63,9 @@ impl Database {
         asset_id: Bytes32,
         limit: u32,
         offset: u32,
+        sort_mode: CoinSortMode,
     ) -> Result<(Vec<CoinStateRow>, u32)> {
-        cat_coin_states(&self.pool, asset_id, limit, offset).await
+        cat_coin_states(&self.pool, asset_id, limit, offset, sort_mode).await
     }
 
     pub async fn created_unspent_cat_coin_states(
@@ -285,6 +300,7 @@ async fn cat_coin_states(
     asset_id: Bytes32,
     limit: u32,
     offset: u32,
+    sort_mode: CoinSortMode,
 ) -> Result<(Vec<CoinStateRow>, u32)> {
     let asset_id = asset_id.as_ref();
     let conn_clone = conn.clone();
@@ -303,23 +319,55 @@ async fn cat_coin_states(
     .count
     .try_into()?;
 
-    let rows = sqlx::query_as!(
-        CoinStateSql,
+    let mut query = sqlx::QueryBuilder::new(
         "
-        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `spent_height`, `created_height`, `transaction_id`, `kind`, `created_unixtime`, `spent_unixtime`
+        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `spent_height`, `created_height`, 
+               `transaction_id`, `kind`, `created_unixtime`, `spent_unixtime`
         FROM `cat_coins` INDEXED BY `cat_asset_id`
         INNER JOIN `coin_states` ON `coin_states`.coin_id = `cat_coins`.coin_id
-        WHERE `asset_id` = ?
-        LIMIT ? OFFSET ?
-        ",
-        asset_id,
-        limit,
-        offset
-    )
-    .fetch_all(conn)
-    .await?;
+        WHERE `asset_id` = ",
+    );
+    query.push_bind(asset_id);
 
-    let coin_states = rows.into_iter().map(into_row).collect::<Result<Vec<_>>>()?;
+    query.push(" ORDER BY ");
+
+    match sort_mode {
+        CoinSortMode::ParentCoinId => {
+            query.push("`coin_states`.`parent_coin_id`");
+        }
+        CoinSortMode::Amount => {
+            query.push("`coin_states`.`amount`");
+        }
+        CoinSortMode::CreatedHeight => {
+            query.push("`coin_states`.`created_height`");
+        }
+        CoinSortMode::SpentHeight => {
+            query.push("`coin_states`.`spent_height`");
+        }
+    }
+
+    query.push(" LIMIT ");
+    query.push_bind(limit);
+    query.push(" OFFSET ");
+    query.push_bind(offset);
+
+    let rows = query.build().fetch_all(conn).await?;
+
+    let mut coin_states = Vec::with_capacity(rows.len());
+    for row in rows {
+        let sql = CoinStateSql {
+            parent_coin_id: row.try_get("parent_coin_id")?,
+            puzzle_hash: row.try_get("puzzle_hash")?,
+            amount: row.try_get("amount")?,
+            spent_height: row.try_get("spent_height")?,
+            created_height: row.try_get("created_height")?,
+            transaction_id: row.try_get("transaction_id")?,
+            kind: row.try_get("kind")?,
+            created_unixtime: row.try_get("created_unixtime")?,
+            spent_unixtime: row.try_get("spent_unixtime")?,
+        };
+        coin_states.push(into_row(sql)?);
+    }
 
     Ok((coin_states, total))
 }

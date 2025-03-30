@@ -22,6 +22,9 @@ export interface CoinListProps {
   coins: CoinRecord[];
   selectedCoins: RowSelectionState;
   setSelectedCoins: React.Dispatch<React.SetStateAction<RowSelectionState>>;
+  currentPage: number;
+  totalPages: number;
+  setCurrentPage: (page: number) => void;
   actions?: React.ReactNode;
 }
 
@@ -30,8 +33,6 @@ export default function CoinList(props: CoinListProps) {
     { id: 'created_height', desc: true },
   ]);
   const [showSpentCoins, setShowSpentCoins] = useState(false);
-  const [currentPage, setCurrentPage] = useState(0);
-  const pageSize = 10;
 
   const filteredCoins = !showSpentCoins
     ? props.coins.filter(
@@ -250,47 +251,51 @@ export default function CoinList(props: CoinListProps) {
             )}
           </Button>
           <Button
-            size='icon'
             variant='ghost'
-            className='h-6 w-6 p-0 ml-1'
-            onClick={() => {
-              const newShowSpentCoins = !showSpentCoins;
-              setShowSpentCoins(newShowSpentCoins);
-              if (newShowSpentCoins) {
-                setSorting([{ id: 'spent_height', desc: true }]);
-              } else {
-                setSorting([{ id: 'created_height', desc: true }]);
-              }
-              setCurrentPage(0); // Reset to first page on filter change
-            }}
+            size='icon'
+            className='ml-2 h-4 w-4'
+            onClick={() => setShowSpentCoins(!showSpentCoins)}
             aria-label={
-              showSpentCoins ? t`Show all coins` : t`Show unspent coins only`
+              showSpentCoins ? t`Hide spent coins` : t`Show spent coins`
             }
           >
             {showSpentCoins ? (
-              <FilterIcon className='h-3 w-3' aria-hidden='true' />
-            ) : (
               <FilterXIcon className='h-3 w-3' aria-hidden='true' />
+            ) : (
+              <FilterIcon className='h-3 w-3' aria-hidden='true' />
             )}
           </Button>
         </div>
       ),
-      size: 140,
+      size: 120,
       cell: ({ row }) =>
         row.original.spent_timestamp
           ? formatTimestamp(row.original.spent_timestamp, 'short', 'short')
-          : (row.original.spent_height ??
-            (row.original.spend_transaction_id
+          : row.original.spent_height
+            ? row.original.spent_height.toString()
+            : row.original.spend_transaction_id
               ? t`Pending...`
               : row.original.offer_id
-                ? t`Offered...`
-                : '')),
+                ? t`Locked in offer`
+                : '',
     },
   ];
 
   const getRowStyles = (row: Row<CoinRecord>) => {
+    const coin = row.original;
+    const isSpent = !!coin.spent_height || !!coin.spend_transaction_id;
+    const isPending = !coin.created_height;
+
+    let className = '';
+
+    if (isSpent) {
+      className = 'opacity-50 relative';
+    } else if (isPending) {
+      className = 'font-medium';
+    }
+
     return {
-      className: row.getIsSelected() ? 'bg-primary/10' : '',
+      className,
       onClick: () => {
         const newValue = !row.getIsSelected();
         row.toggleSelected(newValue);
@@ -305,69 +310,90 @@ export default function CoinList(props: CoinListProps) {
     };
   };
 
-  // Custom sort function to sort the entire dataset
   const sortData = (data: CoinRecord[], sortingState: SortingState) => {
-    if (!sortingState.length) return data;
+    const sorted = [...data];
 
-    return [...data].sort((a, b) => {
-      for (const sort of sortingState) {
-        const column = columns.find(
-          (col) => (col as any).accessorKey === sort.id || col.id === sort.id,
-        );
-        if (!column) continue;
+    sorted.sort((a, b) => {
+      for (let i = 0; i < sortingState.length; i++) {
+        const sort = sortingState[i];
+        const { id, desc } = sort;
 
-        let result = 0;
+        if (id === 'created_height') {
+          const aPending = !!a.spend_transaction_id && !a.spent_height;
+          const bPending = !!b.spend_transaction_id && !b.spent_height;
 
-        if (column.sortingFn && typeof column.sortingFn === 'function') {
-          // Use the column's custom sorting function
-          const rowA = { original: a };
-          const rowB = { original: b };
-          result = (column.sortingFn as any)(rowA, rowB, sort.id);
+          const addSpend = 1_000_000_000;
+          const addCreate = 2_000_000_000;
+
+          const aVal =
+            (a.created_height ?? 0) +
+            (aPending ? addSpend : a.create_transaction_id ? addCreate : 0);
+
+          const bVal =
+            (b.created_height ?? 0) +
+            (bPending ? addSpend : b.create_transaction_id ? addCreate : 0);
+
+          if (aVal !== bVal) {
+            return desc ? bVal - aVal : aVal - bVal;
+          }
+        } else if (id === 'spent_height') {
+          const aVal =
+            (a.spent_height ?? 0) +
+            (a.spend_transaction_id ? 10000000 : 0) +
+            (a.offer_id ? 20000000 : 0);
+          const bVal =
+            (b.spent_height ?? 0) +
+            (b.spend_transaction_id ? 10000000 : 0) +
+            (b.offer_id ? 20000000 : 0);
+
+          if (aVal !== bVal) {
+            return desc ? bVal - aVal : aVal - bVal;
+          }
+        } else if (id === 'amount') {
+          const aVal = BigInt(a.amount);
+          const bVal = BigInt(b.amount);
+
+          if (aVal !== bVal) {
+            return desc ? (bVal > aVal ? 1 : -1) : aVal > bVal ? 1 : -1;
+          }
         } else {
-          // Default sorting based on accessor key
-          const aValue = (a as any)[sort.id];
-          const bValue = (b as any)[sort.id];
+          // Default string comparison for other columns
+          const aVal = a[id as keyof CoinRecord] as string | null;
+          const bVal = b[id as keyof CoinRecord] as string | null;
 
-          if (aValue === undefined && bValue === undefined) result = 0;
-          else if (aValue === undefined) result = 1;
-          else if (bValue === undefined) result = -1;
-          else result = aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
+          if (aVal !== bVal) {
+            if (aVal === null) return desc ? -1 : 1;
+            if (bVal === null) return desc ? 1 : -1;
+            return desc ? bVal.localeCompare(aVal) : aVal.localeCompare(bVal);
+          }
         }
-
-        if (result !== 0) return sort.desc ? -result : result;
       }
+
       return 0;
     });
+
+    return sorted;
   };
 
-  // Sort the entire dataset first, then paginate
-  const sortedCoins = sortData(filteredCoins, sorting);
-
-  // Calculate pagination after sorting
-  const pageCount = Math.ceil(sortedCoins.length / pageSize);
-  const paginatedCoins = sortedCoins.slice(
-    currentPage * pageSize,
-    (currentPage + 1) * pageSize,
-  );
+  const sortedData = sortData(filteredCoins, sorting);
 
   return (
     <div>
       <DataTable
+        data={sortedData}
         columns={columns}
-        data={paginatedCoins}
-        state={{
-          sorting,
-          rowSelection: props.selectedCoins,
-        }}
-        onSortingChange={setSorting}
         getRowStyles={getRowStyles}
-        getRowId={(row) => row.coin_id}
+        onSortingChange={setSorting}
+        state={{
+          rowSelection: props.selectedCoins,
+          sorting,
+        }}
       />
       <div className='flex-shrink-0 py-4'>
         <SimplePagination
-          currentPage={currentPage}
-          pageCount={pageCount}
-          setCurrentPage={setCurrentPage}
+          currentPage={props.currentPage}
+          pageCount={props.totalPages}
+          setCurrentPage={props.setCurrentPage}
           size='sm'
           align='between'
           actions={props.actions}

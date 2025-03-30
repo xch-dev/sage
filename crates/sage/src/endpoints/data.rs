@@ -9,19 +9,20 @@ use chia_wallet_sdk::{driver::Nft, utils::Address};
 use clvmr::Allocator;
 use sage_api::{
     AddressKind, Amount, AssetKind, CatRecord, CheckAddress, CheckAddressResponse, CoinRecord,
-    DerivationRecord, DidRecord, GetCat, GetCatCoins, GetCatCoinsResponse, GetCatResponse, GetCats,
-    GetCatsResponse, GetDerivations, GetDerivationsResponse, GetDids, GetDidsResponse,
-    GetMinterDidIds, GetMinterDidIdsResponse, GetNft, GetNftCollection, GetNftCollectionResponse,
-    GetNftCollections, GetNftCollectionsResponse, GetNftData, GetNftDataResponse, GetNftIcon,
-    GetNftIconResponse, GetNftResponse, GetNftThumbnail, GetNftThumbnailResponse, GetNfts,
-    GetNftsResponse, GetPendingTransactions, GetPendingTransactionsResponse, GetSyncStatus,
-    GetSyncStatusResponse, GetTransaction, GetTransactionResponse, GetTransactions,
-    GetTransactionsByItemId, GetTransactionsByItemIdResponse, GetTransactionsResponse, GetXchCoins,
-    GetXchCoinsResponse, NftCollectionRecord, NftData, NftRecord, NftSortMode as ApiNftSortMode,
+    CoinSortMode as ApiCoinSortMode, DerivationRecord, DidRecord, GetCat, GetCatCoins,
+    GetCatCoinsResponse, GetCatResponse, GetCats, GetCatsResponse, GetDerivations,
+    GetDerivationsResponse, GetDids, GetDidsResponse, GetMinterDidIds, GetMinterDidIdsResponse,
+    GetNft, GetNftCollection, GetNftCollectionResponse, GetNftCollections,
+    GetNftCollectionsResponse, GetNftData, GetNftDataResponse, GetNftIcon, GetNftIconResponse,
+    GetNftResponse, GetNftThumbnail, GetNftThumbnailResponse, GetNfts, GetNftsResponse,
+    GetPendingTransactions, GetPendingTransactionsResponse, GetSyncStatus, GetSyncStatusResponse,
+    GetTransaction, GetTransactionResponse, GetTransactions, GetTransactionsByItemId,
+    GetTransactionsByItemIdResponse, GetTransactionsResponse, GetXchCoins, GetXchCoinsResponse,
+    NftCollectionRecord, NftData, NftRecord, NftSortMode as ApiNftSortMode,
     PendingTransactionRecord, TransactionCoin, TransactionRecord,
 };
 use sage_database::{
-    CoinKind, CoinStateRow, Database, NftGroup, NftRow, NftSearchParams, NftSortMode,
+    CoinKind, CoinSortMode, CoinStateRow, Database, NftGroup, NftRow, NftSearchParams, NftSortMode,
 };
 use sage_wallet::WalletError;
 
@@ -93,11 +94,19 @@ impl Sage {
         Ok(GetDerivationsResponse { derivations })
     }
 
-    pub async fn get_xch_coins(&self, _req: GetXchCoins) -> Result<GetXchCoinsResponse> {
+    pub async fn get_xch_coins(&self, req: GetXchCoins) -> Result<GetXchCoinsResponse> {
         let wallet = self.wallet()?;
-
+        let sort_mode = match req.sort_mode {
+            ApiCoinSortMode::ParentCoinId => CoinSortMode::ParentCoinId,
+            ApiCoinSortMode::Amount => CoinSortMode::Amount,
+            ApiCoinSortMode::CreatedHeight => CoinSortMode::CreatedHeight,
+            ApiCoinSortMode::SpentHeight => CoinSortMode::SpentHeight,
+        };
         let mut coins = Vec::new();
-        let (rows, total) = wallet.db.p2_coin_states(_req.limit, _req.offset).await?;
+        let (rows, total) = wallet
+            .db
+            .p2_coin_states(req.limit, req.offset, sort_mode)
+            .await?;
 
         for row in rows {
             let cs = row.coin_state;
@@ -137,9 +146,16 @@ impl Sage {
 
         let mut coins = Vec::new();
 
+        let sort_mode = match req.sort_mode {
+            ApiCoinSortMode::ParentCoinId => CoinSortMode::ParentCoinId,
+            ApiCoinSortMode::Amount => CoinSortMode::Amount,
+            ApiCoinSortMode::CreatedHeight => CoinSortMode::CreatedHeight,
+            ApiCoinSortMode::SpentHeight => CoinSortMode::SpentHeight,
+        };
+
         let (rows, total) = wallet
             .db
-            .cat_coin_states(asset_id, req.limit, req.offset)
+            .cat_coin_states(asset_id, req.limit, req.offset, sort_mode)
             .await?;
 
         for row in rows {

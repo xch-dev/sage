@@ -38,6 +38,9 @@ export function useTokenState(assetId: string | undefined) {
   );
   const [selectedCoins, setSelectedCoins] = useState<RowSelectionState>({});
   const { receive_address } = walletState.sync;
+  const [currentPage, setCurrentPage] = useState<number>(0);
+  const [totalCoins, setTotalCoins] = useState<number>(0);
+  const pageSize = 10;
 
   const precision = useMemo(
     () => (assetId === 'xch' ? walletState.sync.unit.decimals : 3),
@@ -50,19 +53,27 @@ export function useTokenState(assetId: string | undefined) {
   }, [asset, precision, getBalanceInUsd]);
 
   const updateCoins = useMemo(
-    () => () => {
-      const getCoins =
-        assetId === 'xch'
-          ? commands.getXchCoins({ offset: 0, limit: 100000 })
-          : commands.getCatCoins({
-            asset_id: assetId!,
-            offset: 0,
-            limit: 100000,
-          });
+    () =>
+      (page: number = currentPage) => {
+        const offset = page * pageSize;
 
-      getCoins.then((res) => setCoins(res.coins)).catch(addError);
-    },
-    [assetId, addError],
+        const getCoins =
+          assetId === 'xch'
+            ? commands.getXchCoins({ offset, limit: pageSize })
+            : commands.getCatCoins({
+                asset_id: assetId!,
+                offset,
+                limit: pageSize,
+              });
+
+        getCoins
+          .then((res) => {
+            setCoins(res.coins);
+            setTotalCoins(res.total);
+          })
+          .catch(addError);
+      },
+    [assetId, addError, pageSize, currentPage],
   );
 
   const updateCat = useMemo(
@@ -138,9 +149,7 @@ export function useTokenState(assetId: string | undefined) {
     if (!asset || assetId === 'xch') return;
     const updatedAsset = { ...asset, visible };
 
-    commands
-      .updateCat({ record: updatedAsset })
-      .catch(addError);
+    commands.updateCat({ record: updatedAsset }).catch(addError);
   };
 
   const updateCatDetails = async (updatedAsset: CatRecord) => {
@@ -150,6 +159,11 @@ export function useTokenState(assetId: string | undefined) {
       .catch(addError);
   };
 
+  // Add effect to update coins when page changes
+  useEffect(() => {
+    updateCoins(currentPage);
+  }, [currentPage, updateCoins]);
+
   return {
     asset,
     coins,
@@ -158,10 +172,15 @@ export function useTokenState(assetId: string | undefined) {
     response,
     selectedCoins,
     receive_address,
+    currentPage,
+    totalCoins,
+    pageSize,
     setResponse,
     setSelectedCoins,
+    setCurrentPage,
     redownload,
     setVisibility,
     updateCatDetails,
+    updateCoins,
   };
 }

@@ -22,8 +22,12 @@ export default function Token() {
     response,
     selectedCoins,
     receive_address,
+    currentPage,
+    totalCoins,
+    pageSize,
     setResponse,
     setSelectedCoins,
+    setCurrentPage,
     redownload,
     setVisibility,
     updateCatDetails,
@@ -127,6 +131,10 @@ export default function Token() {
             setResponse={setResponse}
             selectedCoins={selectedCoins}
             setSelectedCoins={setSelectedCoins}
+            currentPage={currentPage}
+            totalCoins={totalCoins}
+            pageSize={pageSize}
+            setCurrentPage={setCurrentPage}
           />
         </div>
       </Container>

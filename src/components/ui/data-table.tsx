@@ -7,6 +7,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Trans } from '@lingui/react/macro';
+import { t } from '@lingui/core/macro';
 import {
   ColumnDef,
   flexRender,
@@ -31,6 +32,7 @@ interface DataTableProps<TData, TValue> {
   state?: {
     sorting?: SortingState;
     rowSelection?: Record<string, boolean>;
+    maxRows?: number;
   };
   onSortingChange?: OnChangeFn<SortingState>;
   getRowStyles?: (row: Row<TData>) => {
@@ -59,6 +61,9 @@ export function DataTable<TData, TValue>({
   });
 
   const length = data.length;
+  const showingLabel = state?.maxRows
+    ? t`Showing ${length} of ${state.maxRows} rows`
+    : t`Showing ${length} row${length > 1 ? 's' : ''}`;
 
   return (
     <div>
@@ -122,7 +127,7 @@ export function DataTable<TData, TValue>({
         </Table>
       </div>
       <div className='text-sm text-muted-foreground mt-1 mb-2'>
-        <Trans>Showing {length} rows</Trans>
+        {showingLabel}
       </div>
     </div>
   );
