@@ -93,6 +93,7 @@ export default function CoinList(props: CoinListProps) {
           onClick={() => {
             props.onSortModeChange('parent_coin_id');
             props.onSortDirectionChange(!props.sortDirection);
+            props.setCurrentPage(0);
           }}
         >
           <Trans>Coin ID</Trans>
@@ -140,6 +141,7 @@ export default function CoinList(props: CoinListProps) {
           onClick={() => {
             props.onSortModeChange('amount');
             props.onSortDirectionChange(!props.sortDirection);
+            props.setCurrentPage(0);
           }}
         >
           <span className='text-foreground hover:underline'>
@@ -175,6 +177,7 @@ export default function CoinList(props: CoinListProps) {
           onClick={() => {
             props.onSortModeChange('created_height');
             props.onSortDirectionChange(!props.sortDirection);
+            props.setCurrentPage(0);
           }}
         >
           <Trans>Confirmed</Trans>
@@ -209,6 +212,7 @@ export default function CoinList(props: CoinListProps) {
             onClick={() => {
               props.onSortModeChange('spent_height');
               props.onSortDirectionChange(!props.sortDirection);
+              props.setCurrentPage(0);
             }}
           >
             <Trans>Spent</Trans>
@@ -226,9 +230,10 @@ export default function CoinList(props: CoinListProps) {
             variant='ghost'
             size='icon'
             className='ml-2 h-4 w-4'
-            onClick={() =>
-              props.onIncludeSpentCoinsChange(!props.includeSpentCoins)
-            }
+            onClick={() => {
+              props.onIncludeSpentCoinsChange(!props.includeSpentCoins);
+              props.setCurrentPage(0);
+            }}
             aria-label={
               props.includeSpentCoins
                 ? t`Hide spent coins`

@@ -86,7 +86,15 @@ export function useTokenState(assetId: string | undefined) {
           })
           .catch(addError);
       },
-    [assetId, addError, pageSize, currentPage, sortMode, sortDirection, includeSpentCoins],
+    [
+      assetId,
+      addError,
+      pageSize,
+      currentPage,
+      sortMode,
+      sortDirection,
+      includeSpentCoins,
+    ],
   );
 
   const updateCat = useMemo(
@@ -176,6 +184,11 @@ export function useTokenState(assetId: string | undefined) {
   useEffect(() => {
     updateCoins(currentPage);
   }, [currentPage, updateCoins]);
+
+  // Reset to page 0 when sort parameters change
+  useEffect(() => {
+    setCurrentPage(0);
+  }, [sortMode, sortDirection, includeSpentCoins]);
 
   return {
     asset,
