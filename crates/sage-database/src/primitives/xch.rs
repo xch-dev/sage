@@ -137,8 +137,8 @@ async fn p2_coin_states(
     query.push(" ORDER BY ");
 
     match sort_mode {
-        CoinSortMode::ParentCoinId => {
-            query.push("`parent_coin_id`");
+        CoinSortMode::CoinId => {
+            query.push("`coin_id`");
         }
         CoinSortMode::Amount => {
             query.push("`amount`");

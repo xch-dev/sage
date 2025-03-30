@@ -9,7 +9,7 @@ use crate::{
 
 #[derive(Debug, Clone, Copy)]
 pub enum CoinSortMode {
-    ParentCoinId,
+    CoinId,
     Amount,
     CreatedHeight,
     SpentHeight,
@@ -335,8 +335,8 @@ async fn cat_coin_states(
     query.push(" ORDER BY ");
 
     match sort_mode {
-        CoinSortMode::ParentCoinId => {
-            query.push("`coin_states`.`parent_coin_id`");
+        CoinSortMode::CoinId => {
+            query.push("`coin_states`.`coin_id`");
         }
         CoinSortMode::Amount => {
             query.push("`coin_states`.`amount`");

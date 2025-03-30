@@ -99,7 +99,7 @@ impl Sage {
     pub async fn get_xch_coins(&self, req: GetXchCoins) -> Result<GetXchCoinsResponse> {
         let wallet = self.wallet()?;
         let sort_mode = match req.sort_mode {
-            ApiCoinSortMode::ParentCoinId => CoinSortMode::ParentCoinId,
+            ApiCoinSortMode::CoinId => CoinSortMode::CoinId,
             ApiCoinSortMode::Amount => CoinSortMode::Amount,
             ApiCoinSortMode::CreatedHeight => CoinSortMode::CreatedHeight,
             ApiCoinSortMode::SpentHeight => CoinSortMode::SpentHeight,
@@ -154,8 +154,8 @@ impl Sage {
 
         let mut coins = Vec::new();
 
-        let sort_mode = match req.sort_mode {
-            ApiCoinSortMode::ParentCoinId => CoinSortMode::ParentCoinId,
+        let sort_mode: CoinSortMode = match req.sort_mode {
+            ApiCoinSortMode::CoinId => CoinSortMode::CoinId,
             ApiCoinSortMode::Amount => CoinSortMode::Amount,
             ApiCoinSortMode::CreatedHeight => CoinSortMode::CreatedHeight,
             ApiCoinSortMode::SpentHeight => CoinSortMode::SpentHeight,

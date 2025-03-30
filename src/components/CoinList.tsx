@@ -91,19 +91,19 @@ export default function CoinList(props: CoinListProps) {
           className='px-0'
           variant='link'
           onClick={() => {
-            if (props.sortMode === 'parent_coin_id') {
+            if (props.sortMode === 'coin_id') {
               // Toggle direction only if already sorting by this column
               props.onSortDirectionChange(!props.sortDirection);
             } else {
               // Set column as sort field with default direction (descending)
-              props.onSortModeChange('parent_coin_id');
+              props.onSortModeChange('coin_id');
               props.onSortDirectionChange(false);
             }
             props.setCurrentPage(0);
           }}
         >
           <Trans>Coin ID</Trans>
-          {props.sortMode === 'parent_coin_id' ? (
+          {props.sortMode === 'coin_id' ? (
             props.sortDirection ? (
               <ArrowUp className='ml-2 h-4 w-4' aria-hidden='true' />
             ) : (

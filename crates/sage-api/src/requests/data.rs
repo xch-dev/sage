@@ -54,7 +54,7 @@ pub struct GetSyncStatusResponse {
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[serde(rename_all = "snake_case")]
 pub enum CoinSortMode {
-    ParentCoinId,
+    CoinId,
     Amount,
     CreatedHeight,
     SpentHeight,
