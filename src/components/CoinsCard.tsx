@@ -292,6 +292,7 @@ export function CoinsCard({
           currentPage={currentPage}
           totalPages={pageCount}
           setCurrentPage={setCurrentPage}
+          maxRows={totalCoins}
           actions={
             <>
               {splitHandler && (

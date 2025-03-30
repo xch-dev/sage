@@ -25,6 +25,7 @@ export interface CoinListProps {
   currentPage: number;
   totalPages: number;
   setCurrentPage: (page: number) => void;
+  maxRows: number;
   actions?: React.ReactNode;
 }
 
@@ -387,6 +388,7 @@ export default function CoinList(props: CoinListProps) {
         state={{
           rowSelection: props.selectedCoins,
           sorting,
+          maxRows: props.maxRows,
         }}
       />
       <div className='flex-shrink-0 py-4'>

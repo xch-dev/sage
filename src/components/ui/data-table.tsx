@@ -63,7 +63,7 @@ export function DataTable<TData, TValue>({
   const length = data.length;
   const showingLabel = state?.maxRows
     ? t`Showing ${length} of ${state.maxRows} rows`
-    : t`Showing ${length} row${length > 1 ? 's' : ''}`;
+    : t`Showing ${length} row${length !== 1 ? 's' : ''}`;
 
   return (
     <div>

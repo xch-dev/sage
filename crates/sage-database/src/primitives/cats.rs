@@ -303,26 +303,12 @@ async fn cat_coin_states(
     sort_mode: CoinSortMode,
 ) -> Result<(Vec<CoinStateRow>, u32)> {
     let asset_id = asset_id.as_ref();
-    let conn_clone = conn.clone();
-
-    let total = sqlx::query!(
-        "
-        SELECT COUNT(*) as count
-        FROM `cat_coins` INDEXED BY `cat_asset_id`
-        INNER JOIN `coin_states` ON `coin_states`.coin_id = `cat_coins`.coin_id
-        WHERE `asset_id` = ?
-        ",
-        asset_id
-    )
-    .fetch_one(conn_clone)
-    .await?
-    .count
-    .try_into()?;
 
     let mut query = sqlx::QueryBuilder::new(
         "
         SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `spent_height`, `created_height`, 
-               `transaction_id`, `kind`, `created_unixtime`, `spent_unixtime`
+               `transaction_id`, `kind`, `created_unixtime`, `spent_unixtime`,
+                COUNT(*) OVER() as total_count
         FROM `cat_coins` INDEXED BY `cat_asset_id`
         INNER JOIN `coin_states` ON `coin_states`.coin_id = `cat_coins`.coin_id
         WHERE `asset_id` = ",
@@ -352,7 +338,11 @@ async fn cat_coin_states(
     query.push_bind(offset);
 
     let rows = query.build().fetch_all(conn).await?;
+    if rows.is_empty() {
+        return Ok((vec![], 0));
+    }
 
+    let total: u32 = rows.first().unwrap().try_get("total_count")?;
     let mut coin_states = Vec::with_capacity(rows.len());
     for row in rows {
         let sql = CoinStateSql {
