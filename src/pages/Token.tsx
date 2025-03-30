@@ -10,6 +10,7 @@ import { t } from '@lingui/core/macro';
 import { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { commands } from '../bindings';
+import { useNavigate } from 'react-router-dom';
 
 export default function Token() {
   const { asset_id: assetId } = useParams();
@@ -27,6 +28,7 @@ export default function Token() {
     setVisibility,
     updateCatDetails,
   } = useTokenState(assetId);
+  const navigate = useNavigate();
 
   // Create the appropriate confirmation component based on the response
   const confirmationAdditionalData = useMemo(() => {
@@ -108,7 +110,10 @@ export default function Token() {
             precision={precision}
             balanceInUsd={balanceInUsd}
             onRedownload={redownload}
-            onVisibilityChange={setVisibility}
+            onVisibilityChange={() => {
+              setVisibility(asset?.visible ?? true);
+              navigate('/wallet');
+            }}
             onUpdateCat={updateCatDetails}
             receive_address={receive_address}
           />

@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useErrors } from '@/hooks/useErrors';
 import { useWalletState } from '@/state';
 import { usePrices } from '@/hooks/usePrices';
@@ -28,7 +27,6 @@ interface EnhancedTransactionResponse extends TransactionResponse {
 }
 
 export function useTokenState(assetId: string | undefined) {
-  const navigate = useNavigate();
   const walletState = useWalletState();
   const { getBalanceInUsd } = usePrices();
   const { addError } = useErrors();
@@ -142,7 +140,6 @@ export function useTokenState(assetId: string | undefined) {
 
     commands
       .updateCat({ record: updatedAsset })
-      .then(() => navigate('/wallet'))
       .catch(addError);
   };
 
