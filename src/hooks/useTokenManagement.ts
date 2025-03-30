@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useErrors } from '@/hooks/useErrors';
 import { useWalletState } from '@/state';
 import { usePrices } from '@/hooks/usePrices';
-import { toDecimal, fromMojos } from '@/lib/utils';
+import { toDecimal } from '@/lib/utils';
 import { RowSelectionState } from '@tanstack/react-table';
 import {
   CatRecord,
@@ -51,12 +51,12 @@ export function useTokenManagement(assetId: string | undefined) {
     return getBalanceInUsd(asset.asset_id, toDecimal(asset.balance, precision));
   }, [asset, precision, getBalanceInUsd]);
 
-  const updateAllCoins = useMemo(
+  const updateCoins = useMemo(
     () => () => {
       const getCoins =
         assetId === 'xch'
-          ? commands.getXchCoins({ offset: 0, limit: 10 })
-          : commands.getCatCoins({ asset_id: assetId!, offset: 0, limit: 10 });
+          ? commands.getXchCoins({ offset: 0, limit: 100000 })
+          : commands.getCatCoins({ asset_id: assetId!, offset: 0, limit: 100000 });
 
       getCoins.then((res) => setCoins(res.coins)).catch(addError);
     },
@@ -76,20 +76,20 @@ export function useTokenManagement(assetId: string | undefined) {
   );
 
   useEffect(() => {
-    updateAllCoins();
+    updateCoins();
 
     const unlisten = events.syncEvent.listen((event) => {
       const type = event.payload.type;
 
       if (type === 'coin_state' || type === 'puzzle_batch_synced') {
-        updateAllCoins();
+        updateCoins();
       }
     });
 
     return () => {
       unlisten.then((u) => u());
     };
-  }, [updateAllCoins]);
+  }, [updateCoins]);
 
   useEffect(() => {
     if (assetId === 'xch') {
