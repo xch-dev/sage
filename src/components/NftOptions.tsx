@@ -23,6 +23,7 @@ import {
   Maximize2,
   Minimize2,
   Settings2,
+  Download,
 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from './ui/button';
@@ -37,6 +38,7 @@ import { Input } from './ui/input';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useDebounce } from '@/hooks/useDebounce';
+import { platform } from '@tauri-apps/plugin-os';
 
 export interface NftOptionsProps {
   isCollection?: boolean;
@@ -48,6 +50,7 @@ export interface NftOptionsProps {
   isLoading?: boolean;
   canLoadMore: boolean;
   total: number;
+  onExport?: () => void;
   renderPagination: () => React.ReactNode;
 }
 
@@ -63,6 +66,7 @@ export function NftOptions({
   multiSelect,
   setMultiSelect,
   className,
+  onExport,
   renderPagination,
 }: NftOptionsProps) {
   const { collection_id, owner_did, minter_did } = useParams();
@@ -72,6 +76,7 @@ export function NftOptions({
   const [searchValue, setSearchValue] = useState(query ?? '');
   const debouncedSearch = useDebounce(searchValue, 400);
   const prevSearchRef = useRef(query);
+  const isMobile = platform() === 'ios' || platform() === 'android';
 
   useEffect(() => {
     setSearchValue(query ?? '');
@@ -191,6 +196,20 @@ export function NftOptions({
               title={t`Back to groups`}
             >
               <ArrowLeftIcon className='h-4 w-4' aria-hidden='true' />
+            </Button>
+          )}
+
+          {!isMobile && (
+            <Button
+              variant='outline'
+              size='icon'
+              aria-label={t`Export NFTs`}
+              title={t`Export NFTs`}
+              onClick={onExport}
+              disabled={!(group === NftGroupMode.None || isFilteredView)}
+              className='hidden sm:inline-flex'
+            >
+              <Download className='h-4 w-4' aria-hidden='true' />
             </Button>
           )}
 
