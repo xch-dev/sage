@@ -13,12 +13,13 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { CustomError } from '@/contexts/ErrorContext';
 import { useErrors } from '@/hooks/useErrors';
+import { useDerivationState } from '@/hooks/useDerivationState';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { CheckIcon, XCircleIcon } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
 import { toast } from 'react-toastify';
-import { commands, events } from '../bindings';
+import { commands } from '../bindings';
 import AddressList from '../components/AddressList';
 import { useWalletState } from '../state';
 
@@ -27,38 +28,23 @@ export default function Addresses() {
   const walletState = useWalletState();
   const ticker = walletState.sync.unit.ticker;
   const [hardened, setHardened] = useState(false);
-  const [addresses, setAddresses] = useState<string[]>([]);
   const [addressToCheck, setAddressToCheck] = useState('');
   const [checkStatus, setCheckStatus] = useState<'idle' | 'valid' | 'invalid'>(
     'idle',
   );
 
-  const updateAddresses = useCallback(() => {
-    commands
-      .getDerivations({ offset: 0, limit: 1000000, hardened })
-      .then((data) =>
-        setAddresses(data.derivations.map((derivation) => derivation.address)),
-      )
-      .catch(addError);
-  }, [addError, hardened]);
+  const {
+    derivations,
+    currentPage,
+    totalDerivations,
+    pageSize,
+    setCurrentPage,
+  } = useDerivationState(hardened);
 
-  useEffect(() => {
-    updateAddresses();
-
-    const unlisten = events.syncEvent.listen((event) => {
-      if (event.payload.type === 'derivation') {
-        updateAddresses();
-      }
-    });
-
-    return () => {
-      unlisten.then((u) => u());
-    };
-  }, [updateAddresses]);
+  const pageCount = Math.ceil(totalDerivations / pageSize);
 
   const handleCheckAddress = async () => {
     try {
-      // TODO: Replace with actual backend call
       const result = await commands.checkAddress({ address: addressToCheck });
       setCheckStatus(result.valid ? 'valid' : 'invalid');
       if (result.valid) {
@@ -166,7 +152,7 @@ export default function Addresses() {
           </CardHeader>
           <CardContent>
             <div className='flex items-center gap-2 mb-4'>
-              <label htmlFor='viewHidden'>
+              <label htmlFor='hardened'>
                 <Trans>Show hardened addresses</Trans>
               </label>
               <Switch
@@ -176,7 +162,13 @@ export default function Addresses() {
               />
             </div>
 
-            <AddressList addresses={addresses} />
+            <AddressList
+              derivations={derivations}
+              currentPage={currentPage}
+              totalPages={pageCount}
+              setCurrentPage={setCurrentPage}
+              totalDerivations={totalDerivations}
+            />
           </CardContent>
         </Card>
       </Container>

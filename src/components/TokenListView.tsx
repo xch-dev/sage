@@ -38,6 +38,8 @@ export function TokenListView({
         columns={columns(actionHandlers)}
         data={tokens}
         aria-label={t`Token list`}
+        rowLabel={t`asset`}
+        rowLabelPlural={t`assets`}
         getRowStyles={(row) => ({
           className: cn(
             !row.original.visible && !row.original.isXch && 'opacity-50',

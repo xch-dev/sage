@@ -1,5 +1,5 @@
 use chia::{bls::PublicKey, protocol::Bytes32};
-use sqlx::SqliteExecutor;
+use sqlx::{Row, SqliteExecutor};
 
 use crate::{
     into_row, to_bytes, to_bytes32, Database, DatabaseTx, DerivationRow, DerivationSql, Result,
@@ -21,7 +21,7 @@ impl Database {
         hardened: bool,
         limit: u32,
         offset: u32,
-    ) -> Result<Vec<DerivationRow>> {
+    ) -> Result<(Vec<DerivationRow>, u32)> {
         derivations(&self.pool, hardened, limit, offset).await
     }
 
@@ -167,24 +167,49 @@ async fn derivations(
     hardened: bool,
     limit: u32,
     offset: u32,
-) -> Result<Vec<DerivationRow>> {
-    sqlx::query_as!(
-        DerivationSql,
+) -> Result<(Vec<DerivationRow>, u32)> {
+    let mut query = sqlx::QueryBuilder::new(
         "
-        SELECT * FROM `derivations`
-        WHERE `hardened` = ?
-        ORDER BY `index` ASC
-        LIMIT ? OFFSET ?
+        SELECT 
+            `p2_puzzle_hash`,
+            `index`,
+            `hardened`,
+            `synthetic_key`,
+            COUNT(*) OVER() as total_count
+        FROM `derivations`
+        WHERE `hardened` =
         ",
-        hardened,
-        limit,
-        offset
-    )
-    .fetch_all(conn)
-    .await?
-    .into_iter()
-    .map(into_row)
-    .collect()
+    );
+
+    query.push_bind(hardened);
+    query.push(" ORDER BY `index` ASC");
+    query.push(" LIMIT ");
+    query.push_bind(limit);
+    query.push(" OFFSET ");
+    query.push_bind(offset);
+
+    // Build the query and bind the hardened parameter
+    let sql = query.build();
+    let rows = sql.bind(hardened).fetch_all(conn).await?;
+
+    if rows.is_empty() {
+        return Ok((vec![], 0));
+    }
+
+    let total: u32 = rows.first().unwrap().try_get("total_count")?;
+    let mut derivations = Vec::with_capacity(rows.len());
+
+    for row in rows {
+        let sql = DerivationSql {
+            p2_puzzle_hash: row.try_get("p2_puzzle_hash")?,
+            index: row.try_get("index")?,
+            hardened: row.try_get("hardened")?,
+            synthetic_key: row.try_get("synthetic_key")?,
+        };
+        derivations.push(into_row(sql)?);
+    }
+
+    Ok((derivations, total))
 }
 
 async fn synthetic_key(
