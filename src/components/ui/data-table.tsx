@@ -7,6 +7,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Trans } from '@lingui/react/macro';
+import { t } from '@lingui/core/macro';
 import {
   ColumnDef,
   flexRender,
@@ -31,6 +32,7 @@ interface DataTableProps<TData, TValue> {
   state?: {
     sorting?: SortingState;
     rowSelection?: Record<string, boolean>;
+    maxRows?: number;
   };
   onSortingChange?: OnChangeFn<SortingState>;
   getRowStyles?: (row: Row<TData>) => {
@@ -38,6 +40,9 @@ interface DataTableProps<TData, TValue> {
     onClick?: () => void;
   };
   getRowId?: (originalRow: TData) => string;
+  showTotalRows?: boolean;
+  rowLabel?: string;
+  rowLabelPlural?: string;
 }
 
 export function DataTable<TData, TValue>({
@@ -47,6 +52,9 @@ export function DataTable<TData, TValue>({
   onSortingChange,
   getRowStyles,
   getRowId,
+  showTotalRows = true,
+  rowLabel = 'row',
+  rowLabelPlural = 'rows',
 }: DataTableProps<TData, TValue>) {
   const table = useReactTable({
     data,
@@ -59,6 +67,9 @@ export function DataTable<TData, TValue>({
   });
 
   const length = data.length;
+  const showingLabel = state?.maxRows
+    ? t`Showing ${length} of ${state.maxRows} ${rowLabelPlural}`
+    : t`Showing ${length} ${length !== 1 ? rowLabelPlural : rowLabel}`;
 
   return (
     <div>
@@ -121,9 +132,14 @@ export function DataTable<TData, TValue>({
           </TableBody>
         </Table>
       </div>
-      <div className='text-sm text-muted-foreground mt-1 mb-2'>
-        <Trans>Showing {length} rows</Trans>
-      </div>
+      {showTotalRows && (
+        <div
+          className='text-sm text-muted-foreground mt-1 mb-2'
+          aria-label={showingLabel}
+        >
+          {showingLabel}
+        </div>
+      )}
     </div>
   );
 }

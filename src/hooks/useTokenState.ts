@@ -1,9 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useErrors } from '@/hooks/useErrors';
 import { useWalletState } from '@/state';
 import { usePrices } from '@/hooks/usePrices';
-import { toDecimal, fromMojos } from '@/lib/utils';
+import { toDecimal } from '@/lib/utils';
 import { RowSelectionState } from '@tanstack/react-table';
 import {
   CatRecord,
@@ -11,6 +10,7 @@ import {
   commands,
   events,
   TransactionResponse,
+  CoinSortMode,
 } from '../bindings';
 
 // Extend the TransactionResponse type to include additionalData
@@ -27,8 +27,7 @@ interface EnhancedTransactionResponse extends TransactionResponse {
   };
 }
 
-export function useTokenManagement(assetId: string | undefined) {
-  const navigate = useNavigate();
+export function useTokenState(assetId: string | undefined) {
   const walletState = useWalletState();
   const { getBalanceInUsd } = usePrices();
   const { addError } = useErrors();
@@ -40,6 +39,12 @@ export function useTokenManagement(assetId: string | undefined) {
   );
   const [selectedCoins, setSelectedCoins] = useState<RowSelectionState>({});
   const { receive_address } = walletState.sync;
+  const [currentPage, setCurrentPage] = useState<number>(0);
+  const [totalCoins, setTotalCoins] = useState<number>(0);
+  const [sortMode, setSortMode] = useState<CoinSortMode>('created_height');
+  const [sortDirection, setSortDirection] = useState<boolean>(false); // false = descending, true = ascending
+  const [includeSpentCoins, setIncludeSpentCoins] = useState<boolean>(false);
+  const pageSize = 10;
 
   const precision = useMemo(
     () => (assetId === 'xch' ? walletState.sync.unit.decimals : 3),
@@ -52,15 +57,44 @@ export function useTokenManagement(assetId: string | undefined) {
   }, [asset, precision, getBalanceInUsd]);
 
   const updateCoins = useMemo(
-    () => () => {
-      const getCoins =
-        assetId === 'xch'
-          ? commands.getXchCoins({})
-          : commands.getCatCoins({ asset_id: assetId! });
+    () =>
+      (page: number = currentPage) => {
+        const offset = page * pageSize;
 
-      getCoins.then((res) => setCoins(res.coins)).catch(addError);
-    },
-    [assetId, addError],
+        const getCoins =
+          assetId === 'xch'
+            ? commands.getXchCoins({
+                offset,
+                limit: pageSize,
+                sort_mode: sortMode,
+                ascending: sortDirection,
+                include_spent_coins: includeSpentCoins,
+              })
+            : commands.getCatCoins({
+                asset_id: assetId!,
+                offset,
+                limit: pageSize,
+                sort_mode: sortMode,
+                ascending: sortDirection,
+                include_spent_coins: includeSpentCoins,
+              });
+
+        getCoins
+          .then((res) => {
+            setCoins(res.coins);
+            setTotalCoins(res.total);
+          })
+          .catch(addError);
+      },
+    [
+      assetId,
+      addError,
+      pageSize,
+      currentPage,
+      sortMode,
+      sortDirection,
+      includeSpentCoins,
+    ],
   );
 
   const updateCat = useMemo(
@@ -136,10 +170,7 @@ export function useTokenManagement(assetId: string | undefined) {
     if (!asset || assetId === 'xch') return;
     const updatedAsset = { ...asset, visible };
 
-    commands
-      .updateCat({ record: updatedAsset })
-      .then(() => navigate('/wallet'))
-      .catch(addError);
+    commands.updateCat({ record: updatedAsset }).catch(addError);
   };
 
   const updateCatDetails = async (updatedAsset: CatRecord) => {
@@ -149,27 +180,15 @@ export function useTokenManagement(assetId: string | undefined) {
       .catch(addError);
   };
 
-  const getSelectedCoinsInfo = () => {
-    const selectedCoinIds = Object.keys(selectedCoins).filter(
-      (key) => selectedCoins[key],
-    );
+  // Add effect to update coins when page changes
+  useEffect(() => {
+    updateCoins(currentPage);
+  }, [currentPage, updateCoins]);
 
-    const selectedCoinsList = selectedCoinIds
-      .map((id) => coins.find((coin) => coin.coin_id === id))
-      .filter(Boolean) as CoinRecord[];
-
-    const totalAmount = selectedCoinsList.reduce(
-      (sum, coin) => sum + BigInt(coin.amount),
-      BigInt(0),
-    );
-
-    return {
-      count: selectedCoinIds.length,
-      totalAmount: fromMojos(totalAmount.toString(), precision),
-      ticker: asset?.ticker || '',
-      selectedCoins: selectedCoinsList,
-    };
-  };
+  // Reset to page 0 when sort parameters change
+  useEffect(() => {
+    setCurrentPage(0);
+  }, [sortMode, sortDirection, includeSpentCoins]);
 
   return {
     asset,
@@ -179,10 +198,21 @@ export function useTokenManagement(assetId: string | undefined) {
     response,
     selectedCoins,
     receive_address,
+    currentPage,
+    totalCoins,
+    pageSize,
+    sortMode,
+    sortDirection,
+    includeSpentCoins,
     setResponse,
     setSelectedCoins,
+    setCurrentPage,
+    setSortMode,
+    setSortDirection,
+    setIncludeSpentCoins,
     redownload,
     setVisibility,
     updateCatDetails,
+    updateCoins,
   };
 }

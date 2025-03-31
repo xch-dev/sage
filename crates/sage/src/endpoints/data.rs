@@ -9,19 +9,20 @@ use chia_wallet_sdk::{driver::Nft, utils::Address};
 use clvmr::Allocator;
 use sage_api::{
     AddressKind, Amount, AssetKind, CatRecord, CheckAddress, CheckAddressResponse, CoinRecord,
-    DerivationRecord, DidRecord, GetCat, GetCatCoins, GetCatCoinsResponse, GetCatResponse, GetCats,
-    GetCatsResponse, GetDerivations, GetDerivationsResponse, GetDids, GetDidsResponse,
-    GetMinterDidIds, GetMinterDidIdsResponse, GetNft, GetNftCollection, GetNftCollectionResponse,
-    GetNftCollections, GetNftCollectionsResponse, GetNftData, GetNftDataResponse, GetNftIcon,
-    GetNftIconResponse, GetNftResponse, GetNftThumbnail, GetNftThumbnailResponse, GetNfts,
-    GetNftsResponse, GetPendingTransactions, GetPendingTransactionsResponse, GetSyncStatus,
-    GetSyncStatusResponse, GetTransaction, GetTransactionResponse, GetTransactions,
-    GetTransactionsByItemId, GetTransactionsByItemIdResponse, GetTransactionsResponse, GetXchCoins,
-    GetXchCoinsResponse, NftCollectionRecord, NftData, NftRecord, NftSortMode as ApiNftSortMode,
+    CoinSortMode as ApiCoinSortMode, DerivationRecord, DidRecord, GetCat, GetCatCoins,
+    GetCatCoinsResponse, GetCatResponse, GetCats, GetCatsResponse, GetDerivations,
+    GetDerivationsResponse, GetDids, GetDidsResponse, GetMinterDidIds, GetMinterDidIdsResponse,
+    GetNft, GetNftCollection, GetNftCollectionResponse, GetNftCollections,
+    GetNftCollectionsResponse, GetNftData, GetNftDataResponse, GetNftIcon, GetNftIconResponse,
+    GetNftResponse, GetNftThumbnail, GetNftThumbnailResponse, GetNfts, GetNftsResponse,
+    GetPendingTransactions, GetPendingTransactionsResponse, GetSyncStatus, GetSyncStatusResponse,
+    GetTransaction, GetTransactionResponse, GetTransactions, GetTransactionsByItemId,
+    GetTransactionsByItemIdResponse, GetTransactionsResponse, GetXchCoins, GetXchCoinsResponse,
+    NftCollectionRecord, NftData, NftRecord, NftSortMode as ApiNftSortMode,
     PendingTransactionRecord, TransactionCoin, TransactionRecord,
 };
 use sage_database::{
-    CoinKind, CoinStateRow, Database, NftGroup, NftRow, NftSearchParams, NftSortMode,
+    CoinKind, CoinSortMode, CoinStateRow, Database, NftGroup, NftRow, NftSearchParams, NftSortMode,
 };
 use sage_wallet::WalletError;
 
@@ -76,10 +77,12 @@ impl Sage {
     pub async fn get_derivations(&self, req: GetDerivations) -> Result<GetDerivationsResponse> {
         let wallet = self.wallet()?;
 
-        let derivations = wallet
+        let (derivations, total) = wallet
             .db
             .derivations(req.hardened, req.limit, req.offset)
-            .await?
+            .await?;
+
+        let derivations = derivations
             .into_iter()
             .map(|row| {
                 Ok(DerivationRecord {
@@ -90,15 +93,28 @@ impl Sage {
             })
             .collect::<Result<Vec<_>>>()?;
 
-        Ok(GetDerivationsResponse { derivations })
+        Ok(GetDerivationsResponse { derivations, total })
     }
 
-    pub async fn get_xch_coins(&self, _req: GetXchCoins) -> Result<GetXchCoinsResponse> {
+    pub async fn get_xch_coins(&self, req: GetXchCoins) -> Result<GetXchCoinsResponse> {
         let wallet = self.wallet()?;
-
+        let sort_mode = match req.sort_mode {
+            ApiCoinSortMode::CoinId => CoinSortMode::CoinId,
+            ApiCoinSortMode::Amount => CoinSortMode::Amount,
+            ApiCoinSortMode::CreatedHeight => CoinSortMode::CreatedHeight,
+            ApiCoinSortMode::SpentHeight => CoinSortMode::SpentHeight,
+        };
         let mut coins = Vec::new();
-
-        let rows = wallet.db.p2_coin_states().await?;
+        let (rows, total) = wallet
+            .db
+            .p2_coin_states(
+                req.limit,
+                req.offset,
+                sort_mode,
+                req.ascending,
+                req.include_spent_coins,
+            )
+            .await?;
 
         for row in rows {
             let cs = row.coin_state;
@@ -129,7 +145,7 @@ impl Sage {
             });
         }
 
-        Ok(GetXchCoinsResponse { coins })
+        Ok(GetXchCoinsResponse { coins, total })
     }
 
     pub async fn get_cat_coins(&self, req: GetCatCoins) -> Result<GetCatCoinsResponse> {
@@ -138,7 +154,24 @@ impl Sage {
 
         let mut coins = Vec::new();
 
-        let rows = wallet.db.cat_coin_states(asset_id).await?;
+        let sort_mode: CoinSortMode = match req.sort_mode {
+            ApiCoinSortMode::CoinId => CoinSortMode::CoinId,
+            ApiCoinSortMode::Amount => CoinSortMode::Amount,
+            ApiCoinSortMode::CreatedHeight => CoinSortMode::CreatedHeight,
+            ApiCoinSortMode::SpentHeight => CoinSortMode::SpentHeight,
+        };
+
+        let (rows, total) = wallet
+            .db
+            .cat_coin_states(
+                asset_id,
+                req.limit,
+                req.offset,
+                sort_mode,
+                req.ascending,
+                req.include_spent_coins,
+            )
+            .await?;
 
         for row in rows {
             let cs = row.coin_state;
@@ -169,7 +202,7 @@ impl Sage {
             });
         }
 
-        Ok(GetCatCoinsResponse { coins })
+        Ok(GetCatCoinsResponse { coins, total })
     }
 
     pub async fn get_cats(&self, _req: GetCats) -> Result<GetCatsResponse> {

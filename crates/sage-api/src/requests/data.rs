@@ -30,6 +30,7 @@ pub struct GetDerivations {
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct GetDerivationsResponse {
     pub derivations: Vec<DerivationRecord>,
+    pub total: u32,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -51,24 +52,59 @@ pub struct GetSyncStatusResponse {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
-pub struct GetXchCoins {}
+#[serde(rename_all = "snake_case")]
+pub enum CoinSortMode {
+    CoinId,
+    Amount,
+    CreatedHeight,
+    SpentHeight,
+}
+
+impl Default for CoinSortMode {
+    fn default() -> Self {
+        Self::CreatedHeight
+    }
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct GetXchCoins {
+    pub offset: u32,
+    pub limit: u32,
+    #[serde(default)]
+    pub sort_mode: CoinSortMode,
+    #[serde(default)]
+    pub ascending: bool,
+    #[serde(default)]
+    pub include_spent_coins: bool,
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct GetXchCoinsResponse {
     pub coins: Vec<CoinRecord>,
+    pub total: u32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct GetCatCoins {
     pub asset_id: String,
+    pub offset: u32,
+    pub limit: u32,
+    #[serde(default)]
+    pub sort_mode: CoinSortMode,
+    #[serde(default)]
+    pub ascending: bool,
+    #[serde(default)]
+    pub include_spent_coins: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct GetCatCoinsResponse {
     pub coins: Vec<CoinRecord>,
+    pub total: u32,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]

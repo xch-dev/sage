@@ -5,11 +5,12 @@ import { CopyButton } from '@/components/CopyButton';
 import Header from '@/components/Header';
 import { TokenCard } from '@/components/TokenCard';
 import { TokenConfirmation } from '@/components/confirmations/TokenConfirmation';
-import { useTokenManagement } from '@/hooks/useTokenManagement';
+import { useTokenState } from '@/hooks/useTokenState';
 import { t } from '@lingui/core/macro';
 import { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { commands } from '../bindings';
+import { useNavigate } from 'react-router-dom';
 
 export default function Token() {
   const { asset_id: assetId } = useParams();
@@ -21,12 +22,23 @@ export default function Token() {
     response,
     selectedCoins,
     receive_address,
+    currentPage,
+    totalCoins,
+    pageSize,
+    sortMode,
+    sortDirection,
+    includeSpentCoins,
     setResponse,
     setSelectedCoins,
+    setCurrentPage,
+    setSortMode,
+    setSortDirection,
+    setIncludeSpentCoins,
     redownload,
     setVisibility,
     updateCatDetails,
-  } = useTokenManagement(assetId);
+  } = useTokenState(assetId);
+  const navigate = useNavigate();
 
   // Create the appropriate confirmation component based on the response
   const confirmationAdditionalData = useMemo(() => {
@@ -108,7 +120,10 @@ export default function Token() {
             precision={precision}
             balanceInUsd={balanceInUsd}
             onRedownload={redownload}
-            onVisibilityChange={setVisibility}
+            onVisibilityChange={() => {
+              setVisibility(asset?.visible ?? true);
+              navigate('/wallet');
+            }}
             onUpdateCat={updateCatDetails}
             receive_address={receive_address}
           />
@@ -122,6 +137,16 @@ export default function Token() {
             setResponse={setResponse}
             selectedCoins={selectedCoins}
             setSelectedCoins={setSelectedCoins}
+            currentPage={currentPage}
+            totalCoins={totalCoins}
+            pageSize={pageSize}
+            setCurrentPage={setCurrentPage}
+            sortMode={sortMode}
+            sortDirection={sortDirection}
+            includeSpentCoins={includeSpentCoins}
+            onSortModeChange={setSortMode}
+            onSortDirectionChange={setSortDirection}
+            onIncludeSpentCoinsChange={setIncludeSpentCoins}
           />
         </div>
       </Container>

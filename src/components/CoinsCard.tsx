@@ -35,6 +35,7 @@ import {
   CoinRecord,
   commands,
   TransactionResponse,
+  CoinSortMode,
 } from '../bindings';
 
 interface CoinsCardProps {
@@ -47,6 +48,16 @@ interface CoinsCardProps {
   setResponse: (response: TransactionResponse) => void;
   selectedCoins: RowSelectionState;
   setSelectedCoins: React.Dispatch<React.SetStateAction<RowSelectionState>>;
+  currentPage: number;
+  totalCoins: number;
+  pageSize: number;
+  setCurrentPage: (page: number) => void;
+  sortMode: CoinSortMode;
+  sortDirection: boolean;
+  includeSpentCoins: boolean;
+  onSortModeChange: (mode: CoinSortMode) => void;
+  onSortDirectionChange: (ascending: boolean) => void;
+  onIncludeSpentCoinsChange: (include: boolean) => void;
 }
 
 export function CoinsCard({
@@ -59,6 +70,16 @@ export function CoinsCard({
   setResponse,
   selectedCoins,
   setSelectedCoins,
+  currentPage,
+  totalCoins,
+  pageSize,
+  setCurrentPage,
+  sortMode,
+  sortDirection,
+  includeSpentCoins,
+  onSortModeChange,
+  onSortDirectionChange,
+  onIncludeSpentCoinsChange,
 }: CoinsCardProps) {
   const walletState = useWalletState();
   const ticker = asset?.ticker;
@@ -266,6 +287,8 @@ export function CoinsCard({
       .finally(() => setAutoCombineOpen(false));
   };
 
+  const pageCount = Math.ceil(totalCoins / pageSize);
+
   return (
     <Card className='max-w-full overflow-auto'>
       <CardHeader>
@@ -279,6 +302,16 @@ export function CoinsCard({
           coins={coins}
           selectedCoins={selectedCoins}
           setSelectedCoins={setSelectedCoins}
+          currentPage={currentPage}
+          totalPages={pageCount}
+          setCurrentPage={setCurrentPage}
+          maxRows={totalCoins}
+          sortMode={sortMode}
+          sortDirection={sortDirection}
+          includeSpentCoins={includeSpentCoins}
+          onSortModeChange={onSortModeChange}
+          onSortDirectionChange={onSortDirectionChange}
+          onIncludeSpentCoinsChange={onIncludeSpentCoinsChange}
           actions={
             <>
               {splitHandler && (
