@@ -21,10 +21,14 @@ impl Sage {
                 .peers_with_heights()
                 .into_iter()
                 .sorted_by_key(|info| info.0.socket_addr().ip())
-                .map(|info| PeerRecord {
-                    ip_addr: info.0.socket_addr().ip().to_string(),
-                    port: info.0.socket_addr().port(),
-                    peak_height: info.1,
+                .map(|info| {
+                    let ip = info.0.socket_addr().ip();
+                    PeerRecord {
+                        ip_addr: ip.to_string(),
+                        port: info.0.socket_addr().port(),
+                        peak_height: info.1,
+                        user_managed: peer_state.peer(ip).map(|p| p.user_managed).unwrap_or(false),
+                    }
                 })
                 .collect(),
         })

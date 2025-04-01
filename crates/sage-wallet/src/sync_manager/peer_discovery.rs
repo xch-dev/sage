@@ -283,6 +283,7 @@ impl SyncManager {
             peer: WalletPeer::new(peer),
             claimed_peak: message.height,
             header_hash: message.header_hash,
+            user_managed: false,
             receive_message_task: tokio::spawn(async move {
                 while let Some(message) = receiver.recv().await {
                     debug!("Received message from peer {}: {:?}", ip, message.msg_type);

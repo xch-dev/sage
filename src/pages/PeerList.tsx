@@ -42,9 +42,21 @@ import {
 } from '@tanstack/react-table';
 import { platform } from '@tauri-apps/plugin-os';
 import { useDrag } from '@use-gesture/react';
-import { BanIcon, HelpCircleIcon, Trash2Icon } from 'lucide-react';
+import {
+  BanIcon,
+  HelpCircleIcon,
+  Trash2Icon,
+  UserIcon,
+  CableIcon,
+} from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { commands, PeerRecord } from '../bindings';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 const MobileRow = ({
   peer,
@@ -124,6 +136,22 @@ const MobileRow = ({
             />
           )}
           <span className='font-medium flex-1'>{peer.ip_addr}</span>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger>
+                {peer.user_managed ? (
+                  <UserIcon className='h-4 w-4 text-muted-foreground' />
+                ) : (
+                  <CableIcon className='h-4 w-4 text-muted-foreground' />
+                )}
+              </TooltipTrigger>
+              <TooltipContent>
+                {peer.user_managed
+                  ? t`Manually added peer`
+                  : t`Auto-discovered peer`}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
 
         <div className='mt-3 grid grid-cols-2 gap-2 text-sm text-muted-foreground'>
@@ -185,18 +213,47 @@ export default function PeerList() {
           aria-label='Select row'
         />
       ),
+      size: 40,
     },
     {
       accessorKey: 'ip_addr',
       header: t`IP Address`,
+      size: 300,
     },
     {
       accessorKey: 'port',
       header: t`Port`,
+      size: 100,
     },
     {
       accessorKey: 'peak_height',
       header: t`Height`,
+      size: 120,
+    },
+    {
+      id: 'type',
+      header: t`Type`,
+      size: 80,
+      cell: ({ row }) => (
+        <div className='flex items-center'>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger>
+                {row.original.user_managed ? (
+                  <UserIcon className='h-4 w-4 text-muted-foreground' />
+                ) : (
+                  <CableIcon className='h-4 w-4 text-muted-foreground' />
+                )}
+              </TooltipTrigger>
+              <TooltipContent>
+                {row.original.user_managed
+                  ? t`Manually added peer`
+                  : t`Auto-discovered peer`}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+      ),
     },
     {
       id: 'actions',
@@ -205,6 +262,7 @@ export default function PeerList() {
           <Trans>Actions</Trans>
         </div>
       ),
+      size: 80,
       cell: ({ row }) => (
         <div className='text-center'>
           <Button
