@@ -57,6 +57,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { DataTable } from '@/components/ui/data-table';
+import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 
 const MobileRow = ({
   peer,
@@ -217,25 +219,35 @@ export default function PeerList() {
     },
     {
       accessorKey: 'ip_addr',
-      header: t`IP Address`,
-      size: 300,
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t`IP Address`} />
+      ),
+      size: 150,
     },
     {
       accessorKey: 'port',
-      header: t`Port`,
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t`Port`} />
+      ),
       size: 100,
     },
     {
       accessorKey: 'peak_height',
-      header: t`Height`,
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t`Height`} />
+      ),
       size: 120,
     },
     {
       id: 'type',
-      header: t`Type`,
-      size: 80,
+      header: () => (
+        <div className='text-center'>
+          <Trans>Type</Trans>
+        </div>
+      ),
+      size: 75,
       cell: ({ row }) => (
-        <div className='flex items-center'>
+        <div className='text-center'>
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger>
@@ -461,52 +473,14 @@ export default function PeerList() {
                 ))}
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  {table.getHeaderGroups().map((headerGroup) => (
-                    <TableRow key={headerGroup.id}>
-                      {headerGroup.headers.map((header) => (
-                        <TableHead key={header.id} className='px-4'>
-                          {header.isPlaceholder
-                            ? null
-                            : flexRender(
-                                header.column.columnDef.header,
-                                header.getContext(),
-                              )}
-                        </TableHead>
-                      ))}
-                    </TableRow>
-                  ))}
-                </TableHeader>
-                <TableBody>
-                  {table.getRowModel().rows?.length ? (
-                    table.getRowModel().rows.map((row) => (
-                      <TableRow
-                        key={row.id}
-                        data-state={row.getIsSelected() && 'selected'}
-                      >
-                        {row.getVisibleCells().map((cell) => (
-                          <TableCell key={cell.id} className='px-4'>
-                            {flexRender(
-                              cell.column.columnDef.cell,
-                              cell.getContext(),
-                            )}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell
-                        colSpan={columns.length}
-                        className='h-24 text-center'
-                      >
-                        <Trans>No results.</Trans>
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+              <DataTable
+                columns={columns}
+                data={peers ?? []}
+                state={{
+                  rowSelection,
+                }}
+                showTotalRows={false}
+              />
             )}
           </CardContent>
         </Card>
