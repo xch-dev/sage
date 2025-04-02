@@ -342,7 +342,23 @@ impl Sage {
             }
 
             self.command_sender
-                .send(SyncCommand::ConnectPeer { ip })
+                .send(SyncCommand::ConnectPeer {
+                    ip,
+                    user_managed: false,
+                })
+                .await?;
+        }
+
+        for &ip in &peers.user_managed {
+            if state.peer(ip).is_some() {
+                continue;
+            }
+
+            self.command_sender
+                .send(SyncCommand::ConnectPeer {
+                    ip,
+                    user_managed: true,
+                })
                 .await?;
         }
 

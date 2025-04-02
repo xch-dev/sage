@@ -146,7 +146,7 @@ impl TestWallet {
 
         assert!(
             sync_manager
-                .try_add_peer(peer.clone(), receiver, true)
+                .try_add_peer(peer.clone(), receiver, true, false)
                 .await
         );
 

@@ -52,7 +52,7 @@ impl SyncManager {
             .await;
 
         for addrs in addrs.chunks(self.options.connection_batch_size) {
-            if self.connect_batch(addrs, false).await {
+            if self.connect_batch(addrs, false, false).await {
                 break;
             }
         }
@@ -118,7 +118,7 @@ impl SyncManager {
                     }
 
                     for addrs in addrs.chunks(self.options.connection_batch_size) {
-                        if self.connect_batch(addrs, false).await {
+                        if self.connect_batch(addrs, false, false).await {
                             return true;
                         }
                     }
@@ -138,7 +138,12 @@ impl SyncManager {
         false
     }
 
-    pub(super) async fn connect_batch(&mut self, addrs: &[SocketAddr], force: bool) -> bool {
+    pub(super) async fn connect_batch(
+        &mut self,
+        addrs: &[SocketAddr],
+        force: bool,
+        user_managed: bool,
+    ) -> bool {
         let mut futures = FuturesUnordered::new();
 
         for &socket_addr in addrs {
@@ -165,7 +170,7 @@ impl SyncManager {
         while let Some((socket_addr, result)) = futures.next().await {
             match result {
                 Ok(Ok((peer, receiver))) => {
-                    if self.try_add_peer(peer, receiver, force).await {
+                    if self.try_add_peer(peer, receiver, force, user_managed).await {
                         if self.check_peer_count().await {
                             return true;
                         }
@@ -212,6 +217,7 @@ impl SyncManager {
         peer: Peer,
         mut receiver: mpsc::Receiver<Message>,
         force: bool,
+        user_managed: bool,
     ) -> bool {
         let Ok(Some(message)) = timeout(self.options.timeouts.initial_peak, receiver.recv()).await
         else {
@@ -283,7 +289,7 @@ impl SyncManager {
             peer: WalletPeer::new(peer),
             claimed_peak: message.height,
             header_hash: message.header_hash,
-            user_managed: false,
+            user_managed: user_managed,
             receive_message_task: tokio::spawn(async move {
                 while let Some(message) = receiver.recv().await {
                     debug!("Received message from peer {}: {:?}", ip, message.msg_type);

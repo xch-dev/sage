@@ -52,6 +52,7 @@ impl Sage {
         self.command_sender
             .send(SyncCommand::ConnectPeer {
                 ip: req.ip.parse()?,
+                user_managed: true,
             })
             .await?;
 
