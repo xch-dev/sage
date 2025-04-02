@@ -12,6 +12,7 @@ use chia::{
 use chia_wallet_sdk::client::{connect_peer, Peer, PeerOptions};
 use futures_lite::StreamExt;
 use futures_util::stream::FuturesUnordered;
+use rand::Rng;
 use tokio::{sync::mpsc, time::timeout};
 use tracing::{debug, info, warn};
 
@@ -257,12 +258,12 @@ impl SyncManager {
             return false;
         } else if force && state.peer_count() >= self.options.target_peers {
             let mut peers = state.peers_with_heights();
+            let mut rng = rand::thread_rng();
 
-            // Sort by user managed peers first, then by height
-            // This ensures that auto discovered peers are removed first
+            // Sort so user managed are deprioritized, then by height, then randomly
             peers.sort_by_key(|(peer, height)| {
                 let peer_info = state.peer(peer.socket_addr().ip()).unwrap();
-                (peer_info.user_managed, *height)
+                (peer_info.user_managed, *height, rng.gen_range(0..100))
             });
 
             let count = state.peer_count() - self.options.target_peers + 1;
