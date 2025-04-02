@@ -239,16 +239,18 @@ export default function PeerList() {
       size: 75,
       cell: ({ row }) => (
         <div className='text-center'>
-          <TooltipProvider>
+          <TooltipProvider delayDuration={200}>
             <Tooltip>
-              <TooltipTrigger>
-                {row.original.user_managed ? (
-                  <UserIcon className='h-4 w-4 text-muted-foreground' />
-                ) : (
-                  <CableIcon className='h-4 w-4 text-muted-foreground' />
-                )}
+              <TooltipTrigger asChild>
+                <div className='inline-flex items-center justify-center w-8 h-8 rounded-sm hover:bg-accent'>
+                  {row.original.user_managed ? (
+                    <UserIcon className='h-4 w-4 text-muted-foreground' />
+                  ) : (
+                    <CableIcon className='h-4 w-4 text-muted-foreground' />
+                  )}
+                </div>
               </TooltipTrigger>
-              <TooltipContent>
+              <TooltipContent side='top' align='center' sideOffset={5}>
                 {row.original.user_managed
                   ? t`Manually added peer`
                   : t`Auto-discovered peer`}
