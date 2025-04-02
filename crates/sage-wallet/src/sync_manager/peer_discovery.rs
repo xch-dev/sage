@@ -258,6 +258,8 @@ impl SyncManager {
         } else if force && state.peer_count() >= self.options.target_peers {
             let mut peers = state.peers_with_heights();
 
+            // Sort by user managed peers first, then by height
+            // This ensures that auto discovered peers are removed first
             peers.sort_by_key(|(peer, height)| {
                 let peer_info = state.peer(peer.socket_addr().ip()).unwrap();
                 (peer_info.user_managed, *height)
