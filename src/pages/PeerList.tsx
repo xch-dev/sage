@@ -13,7 +13,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
   Popover,
@@ -50,6 +49,7 @@ import {
 } from '@/components/ui/tooltip';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
+import { Textarea } from '@/components/ui/textarea';
 
 const MobileRow = ({
   peer,
@@ -385,30 +385,32 @@ export default function PeerList() {
                 <Dialog open={isAddOpen} onOpenChange={setAddOpen}>
                   <DialogTrigger asChild>
                     <Button variant='outline'>
-                      <Trans>Add Peer</Trans>
+                      <Trans>Add Peers</Trans>
                     </Button>
                   </DialogTrigger>
                   <DialogContent className='sm:max-w-[425px]'>
                     <DialogHeader>
                       <DialogTitle>
-                        <Trans>Add new peer</Trans>
+                        <Trans>Add new peers</Trans>
                       </DialogTitle>
                       <DialogDescription>
                         <Trans>
-                          Enter the IP address of the peer you want to connect
-                          to.
+                          Enter the IP addresses of the peers you want to
+                          connect to.
                         </Trans>
                       </DialogDescription>
                     </DialogHeader>
                     <div className='grid gap-4 py-4'>
                       <div className='flex flex-col space-y-1.5'>
                         <Label htmlFor='ip'>
-                          <Trans>IP Address</Trans>
+                          <Trans>IP Addresses</Trans>
                         </Label>
-                        <Input
+                        <Textarea
                           id='ip'
                           value={ip}
                           onChange={(e) => setIp(e.target.value)}
+                          placeholder={t`Enter multiple IP addresses (one per line or comma-separated)`}
+                          className='min-h-[100px]'
                         />
                       </div>
                     </div>
@@ -422,11 +424,22 @@ export default function PeerList() {
                       <Button
                         onClick={() => {
                           setAddOpen(false);
-                          commands.addPeer({ ip }).then((result) => {
-                            if (result.status === 'error') {
-                              console.error(result.error);
-                            }
-                          });
+                          // Split by newlines or commas and clean up whitespace
+                          const ips = ip
+                            .split(/[\n,]+/)
+                            .map((ip) => ip.trim())
+                            .filter(Boolean);
+
+                          // Add each peer
+                          Promise.all(
+                            ips.map((ip) =>
+                              commands.addPeer({ ip }).then((result) => {
+                                if (result.status === 'error') {
+                                  console.error(result.error);
+                                }
+                              }),
+                            ),
+                          );
                           setIp('');
                         }}
                         autoFocus
