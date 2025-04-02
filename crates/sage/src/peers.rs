@@ -8,8 +8,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct Peers {
     pub connections: HashSet<IpAddr>,
-    // TODO: Remove this in a backwards compatible way
-    pub trusted: HashSet<IpAddr>,
+    pub user_managed: HashSet<IpAddr>,
     pub banned: HashMap<IpAddr, u64>,
 }
 

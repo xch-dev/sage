@@ -12,6 +12,7 @@ use chia::{
 use chia_wallet_sdk::client::{connect_peer, Peer, PeerOptions};
 use futures_lite::StreamExt;
 use futures_util::stream::FuturesUnordered;
+use rand::Rng;
 use tokio::{sync::mpsc, time::timeout};
 use tracing::{debug, info, warn};
 
@@ -52,7 +53,7 @@ impl SyncManager {
             .await;
 
         for addrs in addrs.chunks(self.options.connection_batch_size) {
-            if self.connect_batch(addrs, false).await {
+            if self.connect_batch(addrs, false, false).await {
                 break;
             }
         }
@@ -118,7 +119,7 @@ impl SyncManager {
                     }
 
                     for addrs in addrs.chunks(self.options.connection_batch_size) {
-                        if self.connect_batch(addrs, false).await {
+                        if self.connect_batch(addrs, false, false).await {
                             return true;
                         }
                     }
@@ -138,7 +139,12 @@ impl SyncManager {
         false
     }
 
-    pub(super) async fn connect_batch(&mut self, addrs: &[SocketAddr], force: bool) -> bool {
+    pub(super) async fn connect_batch(
+        &mut self,
+        addrs: &[SocketAddr],
+        force: bool,
+        user_managed: bool,
+    ) -> bool {
         let mut futures = FuturesUnordered::new();
 
         for &socket_addr in addrs {
@@ -165,7 +171,7 @@ impl SyncManager {
         while let Some((socket_addr, result)) = futures.next().await {
             match result {
                 Ok(Ok((peer, receiver))) => {
-                    if self.try_add_peer(peer, receiver, force).await {
+                    if self.try_add_peer(peer, receiver, force, user_managed).await {
                         if self.check_peer_count().await {
                             return true;
                         }
@@ -212,6 +218,7 @@ impl SyncManager {
         peer: Peer,
         mut receiver: mpsc::Receiver<Message>,
         force: bool,
+        user_managed: bool,
     ) -> bool {
         let Ok(Some(message)) = timeout(self.options.timeouts.initial_peak, receiver.recv()).await
         else {
@@ -251,8 +258,13 @@ impl SyncManager {
             return false;
         } else if force && state.peer_count() >= self.options.target_peers {
             let mut peers = state.peers_with_heights();
+            let mut rng = rand::thread_rng();
 
-            peers.sort_by_key(|(_peer, height)| *height);
+            // Sort so user managed are deprioritized, then by height, then randomly
+            peers.sort_by_key(|(peer, height)| {
+                let peer_info = state.peer(peer.socket_addr().ip()).unwrap();
+                (peer_info.user_managed, *height, rng.gen_range(0..100))
+            });
 
             let count = state.peer_count() - self.options.target_peers + 1;
 
@@ -283,6 +295,7 @@ impl SyncManager {
             peer: WalletPeer::new(peer),
             claimed_peak: message.height,
             header_hash: message.header_hash,
+            user_managed: user_managed,
             receive_message_task: tokio::spawn(async move {
                 while let Some(message) = receiver.recv().await {
                     debug!("Received message from peer {}: {:?}", ip, message.msg_type);
