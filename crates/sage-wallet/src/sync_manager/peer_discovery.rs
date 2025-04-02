@@ -258,7 +258,10 @@ impl SyncManager {
         } else if force && state.peer_count() >= self.options.target_peers {
             let mut peers = state.peers_with_heights();
 
-            peers.sort_by_key(|(_peer, height)| *height);
+            peers.sort_by_key(|(peer, height)| {
+                let peer_info = state.peer(peer.socket_addr().ip()).unwrap();
+                (peer_info.user_managed, *height)
+            });
 
             let count = state.peer_count() - self.options.target_peers + 1;
 
