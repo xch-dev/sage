@@ -64,20 +64,20 @@ export function useTokenState(assetId: string | undefined) {
         const getCoins =
           assetId === 'xch'
             ? commands.getXchCoins({
-                offset,
-                limit: pageSize,
-                sort_mode: sortMode,
-                ascending: sortDirection,
-                include_spent_coins: includeSpentCoins,
-              })
+              offset,
+              limit: pageSize,
+              sort_mode: sortMode,
+              ascending: sortDirection,
+              include_spent_coins: includeSpentCoins,
+            })
             : commands.getCatCoins({
-                asset_id: assetId!,
-                offset,
-                limit: pageSize,
-                sort_mode: sortMode,
-                ascending: sortDirection,
-                include_spent_coins: includeSpentCoins,
-              });
+              asset_id: assetId!,
+              offset,
+              limit: pageSize,
+              sort_mode: sortMode,
+              ascending: sortDirection,
+              include_spent_coins: includeSpentCoins,
+            });
 
         getCoins
           .then((res) => {
@@ -188,7 +188,13 @@ export function useTokenState(assetId: string | undefined) {
   // Reset to page 0 when sort parameters change
   useEffect(() => {
     setCurrentPage(0);
+    setSelectedCoins({});
   }, [sortMode, sortDirection, includeSpentCoins]);
+
+  // Clear selection when page changes
+  useEffect(() => {
+    setSelectedCoins({});
+  }, [currentPage]);
 
   return {
     asset,
