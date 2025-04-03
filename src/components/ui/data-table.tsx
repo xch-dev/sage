@@ -15,6 +15,7 @@ import {
   getSortedRowModel,
   OnChangeFn,
   Row,
+  RowSelectionState,
   SortingState,
   useReactTable,
 } from '@tanstack/react-table';
@@ -31,10 +32,11 @@ interface DataTableProps<TData, TValue> {
   data: TData[];
   state?: {
     sorting?: SortingState;
-    rowSelection?: Record<string, boolean>;
+    rowSelection?: RowSelectionState;
     maxRows?: number;
   };
   onSortingChange?: OnChangeFn<SortingState>;
+  onRowSelectionChange?: OnChangeFn<RowSelectionState>;
   getRowStyles?: (row: Row<TData>) => {
     className?: string;
     onClick?: () => void;
@@ -50,6 +52,7 @@ export function DataTable<TData, TValue>({
   data,
   state,
   onSortingChange,
+  onRowSelectionChange,
   getRowStyles,
   getRowId,
   showTotalRows = true,
@@ -61,9 +64,13 @@ export function DataTable<TData, TValue>({
     columns,
     state,
     onSortingChange,
+    onRowSelectionChange,
+    enableRowSelection: true,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    getRowId,
+    getRowId:
+      getRowId ||
+      ((originalRow: any) => originalRow?.coin_id || Math.random().toString()),
   });
 
   const length = data.length;

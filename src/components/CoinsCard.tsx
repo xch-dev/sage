@@ -24,7 +24,7 @@ import { toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Trans } from '@lingui/react/macro';
-import { RowSelectionState } from '@tanstack/react-table';
+import { RowSelectionState, OnChangeFn } from '@tanstack/react-table';
 import BigNumber from 'bignumber.js';
 import { MergeIcon, SplitIcon } from 'lucide-react';
 import { useMemo, useState } from 'react';
@@ -48,6 +48,7 @@ interface CoinsCardProps {
   setResponse: (response: TransactionResponse) => void;
   selectedCoins: RowSelectionState;
   setSelectedCoins: React.Dispatch<React.SetStateAction<RowSelectionState>>;
+  onRowSelectionChange?: OnChangeFn<RowSelectionState>;
   currentPage: number;
   totalCoins: number;
   pageSize: number;
@@ -70,6 +71,7 @@ export function CoinsCard({
   setResponse,
   selectedCoins,
   setSelectedCoins,
+  onRowSelectionChange,
   currentPage,
   totalCoins,
   pageSize,
@@ -110,6 +112,7 @@ export function CoinsCard({
       }),
     [selectedCoinIds, coins],
   );
+
   const canSplit = useMemo(
     () =>
       selectedCoinIds.length >= 1 &&
@@ -124,6 +127,7 @@ export function CoinsCard({
       }),
     [selectedCoinIds, coins],
   );
+
   const canAutoCombine = useMemo(
     () =>
       selectedCoinIds.length === 0 &&
@@ -302,6 +306,7 @@ export function CoinsCard({
           coins={coins}
           selectedCoins={selectedCoins}
           setSelectedCoins={setSelectedCoins}
+          onRowSelectionChange={onRowSelectionChange}
           currentPage={currentPage}
           totalPages={pageCount}
           setCurrentPage={setCurrentPage}
