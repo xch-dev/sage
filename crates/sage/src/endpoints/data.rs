@@ -201,19 +201,7 @@ impl Sage {
             .await?;
 
         for row in rows {
-            let cs = row.coin_state;
-
-            let spend_transaction_id = wallet
-                .db
-                .coin_transaction_id(cs.coin.coin_id())
-                .await?
-                .map(hex::encode);
-
-            let offer_id = wallet
-                .db
-                .coin_offer_id(cs.coin.coin_id())
-                .await?
-                .map(hex::encode);
+            let cs = row.base.coin_state;
 
             coins.push(CoinRecord {
                 coin_id: hex::encode(cs.coin.coin_id()),
@@ -221,11 +209,11 @@ impl Sage {
                 amount: Amount::u64(cs.coin.amount),
                 created_height: cs.created_height,
                 spent_height: cs.spent_height,
-                create_transaction_id: row.transaction_id.map(hex::encode),
-                spend_transaction_id,
-                offer_id,
-                created_timestamp: row.created_timestamp,
-                spent_timestamp: row.spent_timestamp,
+                create_transaction_id: row.base.transaction_id.map(hex::encode),
+                spend_transaction_id: row.spend_transaction_id.map(hex::encode),
+                offer_id: row.offer_id.map(hex::encode),
+                created_timestamp: row.base.created_timestamp,
+                spent_timestamp: row.base.spent_timestamp,
             });
         }
 

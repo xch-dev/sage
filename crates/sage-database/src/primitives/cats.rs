@@ -4,7 +4,7 @@ use sqlx::{Row, SqliteExecutor};
 
 use crate::{
     into_row, to_bytes, to_bytes32, CatCoinRow, CatCoinSql, CatRow, CatSql, CoinStateRow,
-    CoinStateSql, Database, DatabaseTx, FullCatCoinSql, Result,
+    CoinStateSql, Database, DatabaseTx, EnhancedCoinStateRow, FullCatCoinSql, Result,
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -70,7 +70,7 @@ impl Database {
         sort_mode: CoinSortMode,
         ascending: bool,
         include_spent_coins: bool,
-    ) -> Result<(Vec<CoinStateRow>, u32)> {
+    ) -> Result<(Vec<EnhancedCoinStateRow>, u32)> {
         cat_coin_states(
             &self.pool,
             asset_id,
@@ -342,16 +342,19 @@ async fn cat_coin_states(
     sort_mode: CoinSortMode,
     ascending: bool,
     include_spent_coins: bool,
-) -> Result<(Vec<CoinStateRow>, u32)> {
+) -> Result<(Vec<EnhancedCoinStateRow>, u32)> {
     let asset_id = asset_id.as_ref();
 
     let mut query = sqlx::QueryBuilder::new(
         "
-        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `spent_height`, `created_height`, 
-               `transaction_id`, `kind`, `created_unixtime`, `spent_unixtime`,
+        SELECT `coin_states`.`parent_coin_id`, `coin_states`.`puzzle_hash`, `coin_states`.`amount`, `spent_height`, `created_height`, 
+               `coin_states`.`transaction_id`, `kind`, `created_unixtime`, `spent_unixtime`,
+               `offered_coins`.offer_id, `transaction_spends`.transaction_id as spend_transaction_id,
                 COUNT(*) OVER() as total_count
         FROM `cat_coins` INDEXED BY `cat_asset_id`
         INNER JOIN `coin_states` ON `coin_states`.coin_id = `cat_coins`.coin_id
+        LEFT JOIN `offered_coins` ON `coin_states`.coin_id = `offered_coins`.coin_id
+        LEFT JOIN `transaction_spends` ON `coin_states`.coin_id = `transaction_spends`.coin_id
         WHERE `asset_id` = ",
     );
     query.push_bind(asset_id);
@@ -407,7 +410,17 @@ async fn cat_coin_states(
             created_unixtime: row.try_get("created_unixtime")?,
             spent_unixtime: row.try_get("spent_unixtime")?,
         };
-        coin_states.push(into_row(sql)?);
+        let coin_state_row = into_row(sql)?;
+        let offer_id: Option<String> = row.try_get("offer_id").ok();
+        let spend_transaction_id: Option<String> = row.try_get("spend_transaction_id").ok();
+
+        let enhanced_row = EnhancedCoinStateRow {
+            base: coin_state_row,
+            offer_id,
+            spend_transaction_id,
+        };
+
+        coin_states.push(enhanced_row);
     }
 
     Ok((coin_states, total))
