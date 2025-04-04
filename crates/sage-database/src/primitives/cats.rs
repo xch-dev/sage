@@ -58,6 +58,10 @@ impl Database {
         refetch_cat(&self.pool, asset_id).await
     }
 
+    pub async fn spendable_cat_coin_count(&self, asset_id: Bytes32) -> Result<u32> {
+        spendable_cat_coin_count(&self.pool, asset_id).await
+    }
+
     pub async fn cat_coin_states(
         &self,
         asset_id: Bytes32,
@@ -304,6 +308,30 @@ async fn cat_balance(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result
     row.iter()
         .map(|row| Ok(u64::from_be_bytes(to_bytes(&row.amount)?) as u128))
         .sum::<Result<u128>>()
+}
+
+async fn spendable_cat_coin_count(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<u32> {
+    let asset_id = asset_id.as_ref();
+
+    let row = sqlx::query!(
+        "
+        SELECT COUNT(*) as count
+        FROM coin_states
+        INNER JOIN `cat_coins` ON `coin_states`.`coin_id` = `cat_coins`.`coin_id`
+        LEFT JOIN transaction_spends ON transaction_spends.coin_id = coin_states.coin_id
+        WHERE 1=1 
+        AND `cat_coins`.`asset_id` = ?
+        AND created_height IS NOT NULL
+        AND spent_height IS NULL
+        AND coin_states.transaction_id IS NULL
+        AND transaction_spends.coin_id IS NULL
+        ",
+        asset_id
+    )
+    .fetch_one(conn)
+    .await?;
+
+    Ok(row.count.try_into()?)
 }
 
 async fn cat_coin_states(

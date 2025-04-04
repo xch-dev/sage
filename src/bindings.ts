@@ -113,6 +113,12 @@ async getDerivations(req: GetDerivations) : Promise<GetDerivationsResponse> {
 async getAreAllCoinsSpendable(req: GetAreAllCoinsSpendable) : Promise<GetAreAllCoinsSpendableResponse> {
     return await TAURI_INVOKE("get_are_all_coins_spendable", { req });
 },
+async getSpendableXchCoinCount(req: GetSpendableXchCoinCount) : Promise<GetSpendableXchCoinCountResponse> {
+    return await TAURI_INVOKE("get_spendable_xch_coin_count", { req });
+},
+async getSpendableCatCoinCount(req: GetSpendableCatCoinCount) : Promise<GetSpendableCatCoinCountResponse> {
+    return await TAURI_INVOKE("get_spendable_cat_coin_count", { req });
+},
 async getXchCoins(req: GetXchCoins) : Promise<GetXchCoinsResponse> {
     return await TAURI_INVOKE("get_xch_coins", { req });
 },
@@ -411,6 +417,10 @@ export type GetPendingTransactions = Record<string, never>
 export type GetPendingTransactionsResponse = { transactions: PendingTransactionRecord[] }
 export type GetSecretKey = { fingerprint: number }
 export type GetSecretKeyResponse = { secrets: SecretKeyInfo | null }
+export type GetSpendableCatCoinCount = { asset_id: string }
+export type GetSpendableCatCoinCountResponse = { count: number }
+export type GetSpendableXchCoinCount = Record<string, never>
+export type GetSpendableXchCoinCountResponse = { count: number }
 export type GetSyncStatus = Record<string, never>
 export type GetSyncStatusResponse = { balance: Amount; unit: Unit; synced_coins: number; total_coins: number; receive_address: string; burn_address: string; unhardened_derivation_index: number; hardened_derivation_index: number }
 export type GetTransaction = { height: number }

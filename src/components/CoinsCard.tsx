@@ -120,6 +120,7 @@ export function CoinsCard({
 
   const [canCombine, setCanCombine] = useState(false);
   const [canSplit, setCanSplit] = useState(false);
+  const [canAutoCombine, setCanAutoCombine] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -158,18 +159,39 @@ export function CoinsCard({
     };
   }, [selectedCoinIds]);
 
-  const canAutoCombine = useMemo(
-    () =>
-      selectedCoinIds.length === 0 &&
-      pageCoins.filter(
-        (coin) =>
-          !coin?.spend_transaction_id &&
-          !coin?.create_transaction_id &&
-          coin?.created_height &&
-          !coin?.spent_height,
-      ).length > 0,
-    [selectedCoinIds, pageCoins],
-  );
+  useEffect(() => {
+    let isMounted = true;
+
+    const checkAutoCombine = async () => {
+      if (selectedCoinIds.length === 0 && asset !== undefined) {
+        try {
+          const spendable =
+            asset?.asset_id === 'xch'
+              ? await commands.getSpendableXchCoinCount({})
+              : await commands.getSpendableCatCoinCount({
+                  asset_id: asset?.asset_id ?? '',
+                });
+          if (isMounted) {
+            setCanAutoCombine(spendable.count > 1);
+          }
+        } catch (error) {
+          if (isMounted) {
+            setCanAutoCombine(false);
+          }
+        }
+      } else {
+        if (isMounted) {
+          setCanAutoCombine(false);
+        }
+      }
+    };
+
+    checkAutoCombine();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedCoinIds, asset]);
 
   const [isCombineOpen, setCombineOpen] = useState(false);
   const [isSplitOpen, setSplitOpen] = useState(false);
@@ -374,12 +396,7 @@ export function CoinsCard({
               {(combineHandler || autoCombineHandler) && (
                 <Button
                   variant='outline'
-                  disabled={
-                    !(
-                      (combineHandler && canCombine) ||
-                      (autoCombineHandler && canAutoCombine)
-                    )
-                  }
+                  disabled={!(canCombine || canAutoCombine)}
                   onClick={() => {
                     if (canCombine) {
                       setCombineOpen(true);

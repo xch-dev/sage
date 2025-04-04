@@ -15,6 +15,10 @@ impl Database {
         balance(&self.pool).await
     }
 
+    pub async fn spendable_p2_coin_count(&self) -> Result<u32> {
+        spendable_p2_coin_count(&self.pool).await
+    }
+
     pub async fn p2_coin_states(
         &self,
         limit: u32,
@@ -102,6 +106,26 @@ async fn spendable_coins(conn: impl SqliteExecutor<'_>) -> Result<Vec<Coin>> {
     .into_iter()
     .map(into_row)
     .collect()
+}
+
+async fn spendable_p2_coin_count(conn: impl SqliteExecutor<'_>) -> Result<u32> {
+    let row = sqlx::query!(
+        "
+        SELECT COUNT(*) as count
+        FROM coin_states
+        LEFT JOIN transaction_spends ON transaction_spends.coin_id = coin_states.coin_id
+        WHERE 1=1 
+        AND created_height IS NOT NULL
+        AND spent_height IS NULL
+        AND coin_states.transaction_id IS NULL
+        AND transaction_spends.coin_id IS NULL
+        AND `kind` = 1
+        "
+    )
+    .fetch_one(conn)
+    .await?;
+
+    Ok(row.count.try_into()?)
 }
 
 async fn p2_coin_states(
