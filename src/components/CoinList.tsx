@@ -15,6 +15,7 @@ import { SimplePagination } from './SimplePagination';
 import { Button } from './ui/button';
 import { Checkbox } from './ui/checkbox';
 import { DataTable } from './ui/data-table';
+import { useMemo } from 'react';
 
 export interface CoinListProps {
   precision: number;
@@ -302,26 +303,49 @@ export default function CoinList(props: CoinListProps) {
     };
   };
 
+  // This function ensures row selection is preserved across page changes
+  const getRowId = (coin: CoinRecord) => coin.coin_id;
+
+  // Function to handle row selection changes
+  const handleRowSelectionChange: OnChangeFn<RowSelectionState> = (
+    updaterOrValue,
+  ) => {
+    if (typeof updaterOrValue === 'function') {
+      const updater = updaterOrValue as (
+        prev: RowSelectionState,
+      ) => RowSelectionState;
+      props.setSelectedCoins((prev) => updater(prev));
+    } else {
+      props.setSelectedCoins(updaterOrValue);
+    }
+  };
+
+  // Prepare selected state for current page
+  const syncSelectionWithCurrentPage = useMemo(() => {
+    const currentPageSelection: RowSelectionState = {};
+
+    // Mark rows on the current page as selected based on global selection state
+    props.coins.forEach((coin) => {
+      if (props.selectedCoins[coin.coin_id]) {
+        currentPageSelection[coin.coin_id] = true;
+      }
+    });
+
+    return currentPageSelection;
+  }, [props.coins, props.selectedCoins]);
+
   return (
     <div>
       <DataTable
         data={props.coins}
         columns={columns}
         getRowStyles={getRowStyles}
-        getRowId={(coin: CoinRecord) => coin.coin_id}
+        getRowId={getRowId}
         state={{
-          rowSelection: props.selectedCoins,
+          rowSelection: syncSelectionWithCurrentPage,
           maxRows: props.maxRows,
         }}
-        onRowSelectionChange={(updater) => {
-          if (props.onRowSelectionChange) {
-            props.onRowSelectionChange(updater);
-          } else if (typeof updater === 'function') {
-            props.setSelectedCoins(updater);
-          } else {
-            props.setSelectedCoins(updater);
-          }
-        }}
+        onRowSelectionChange={handleRowSelectionChange}
         rowLabel={t`coin`}
         rowLabelPlural={t`coins`}
       />

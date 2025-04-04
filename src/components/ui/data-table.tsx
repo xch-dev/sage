@@ -68,9 +68,7 @@ export function DataTable<TData, TValue>({
     enableRowSelection: true,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    getRowId:
-      getRowId ||
-      ((originalRow: any) => originalRow?.coin_id || Math.random().toString()),
+    getRowId: getRowId,
   });
 
   const length = data.length;
