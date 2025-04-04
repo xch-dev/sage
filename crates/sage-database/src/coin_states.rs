@@ -729,9 +729,9 @@ async fn get_are_all_coins_spendable(
         return Ok(false);
     }
 
-    // Build the base SQL query
-    let mut sql = String::from(
-        "SELECT COUNT(*)
+    let mut query = sqlx::QueryBuilder::new(
+        "
+        SELECT COUNT(*)
         FROM coin_states
         LEFT JOIN transaction_spends ON transaction_spends.coin_id = coin_states.coin_id
         WHERE 1=1 
@@ -742,21 +742,13 @@ async fn get_are_all_coins_spendable(
         AND coin_states.coin_id IN (",
     );
 
-    // Build the parameter placeholders (X'hex' syntax)
-    for (i, coin_id) in coin_ids.iter().enumerate() {
-        if i > 0 {
-            sql.push_str(", ");
-        }
-        sql.push_str(&format!(
-            "X'{}'",
-            coin_id.to_uppercase().trim_start_matches("0X")
-        ));
+    let mut separated = query.separated(", ");
+    for coin_id in coin_ids {
+        separated.push(&format!("X'{}'", coin_id));
     }
-    sql.push_str(")");
+    separated.push_unseparated(")");
 
-    // Execute the raw SQL query
-    let row = sqlx::query(&sql).fetch_one(conn).await?;
-    let count: i64 = row.get(0);
+    let count: i64 = query.build().fetch_one(conn).await?.get(0);
 
     Ok(count == coin_ids.len() as i64)
 }
