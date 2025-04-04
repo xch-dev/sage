@@ -78,25 +78,15 @@ pub struct GetAreCoinsSpendableResponse {
     pub spendable: bool,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-#[cfg_attr(feature = "tauri", derive(specta::Type))]
-pub struct GetSpendableXchCoinCount {}
-
-#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
-#[cfg_attr(feature = "tauri", derive(specta::Type))]
-pub struct GetSpendableXchCoinCountResponse {
-    pub count: u32,
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
-pub struct GetSpendableCatCoinCount {
+pub struct GetSpendableCoinCount {
     pub asset_id: String,
 }
 
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
-pub struct GetSpendableCatCoinCountResponse {
+pub struct GetSpendableCoinCountResponse {
     pub count: u32,
 }
 

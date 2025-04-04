@@ -163,14 +163,11 @@ export function CoinsCard({
     let isMounted = true;
 
     const checkAutoCombine = async () => {
-      if (selectedCoinIds.length === 0 && asset !== undefined) {
+      if (selectedCoinIds.length === 0 && asset?.asset_id) {
         try {
-          const spendable =
-            asset?.asset_id === 'xch'
-              ? await commands.getSpendableXchCoinCount({})
-              : await commands.getSpendableCatCoinCount({
-                  asset_id: asset?.asset_id ?? '',
-                });
+          const spendable = await commands.getSpendableCoinCount({
+            asset_id: asset.asset_id,
+          });
           if (isMounted) {
             setCanAutoCombine(spendable.count > 1);
           }

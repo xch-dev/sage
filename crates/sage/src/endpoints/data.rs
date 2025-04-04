@@ -15,9 +15,8 @@ use sage_api::{
     GetMinterDidIds, GetMinterDidIdsResponse, GetNft, GetNftCollection, GetNftCollectionResponse,
     GetNftCollections, GetNftCollectionsResponse, GetNftData, GetNftDataResponse, GetNftIcon,
     GetNftIconResponse, GetNftResponse, GetNftThumbnail, GetNftThumbnailResponse, GetNfts,
-    GetNftsResponse, GetPendingTransactions, GetPendingTransactionsResponse,
-    GetSpendableCatCoinCount, GetSpendableCatCoinCountResponse, GetSpendableXchCoinCount,
-    GetSpendableXchCoinCountResponse, GetSyncStatus, GetSyncStatusResponse, GetTransaction,
+    GetNftsResponse, GetPendingTransactions, GetPendingTransactionsResponse, GetSpendableCoinCount,
+    GetSpendableCoinCountResponse, GetSyncStatus, GetSyncStatusResponse, GetTransaction,
     GetTransactionResponse, GetTransactions, GetTransactionsByItemId,
     GetTransactionsByItemIdResponse, GetTransactionsResponse, GetXchCoins, GetXchCoinsResponse,
     NftCollectionRecord, NftData, NftRecord, NftSortMode as ApiNftSortMode,
@@ -108,14 +107,20 @@ impl Sage {
         Ok(GetAreCoinsSpendableResponse { spendable })
     }
 
-    pub async fn get_spendable_xch_coin_count(
+    pub async fn get_spendable_coin_count(
         &self,
-        _req: GetSpendableXchCoinCount,
-    ) -> Result<GetSpendableXchCoinCountResponse> {
+        req: GetSpendableCoinCount,
+    ) -> Result<GetSpendableCoinCountResponse> {
         let wallet = self.wallet()?;
-        let count = wallet.db.spendable_p2_coin_count().await?;
+        let count = if req.asset_id == "xch" {
+            wallet.db.spendable_p2_coin_count().await?
+        } else {
+            let asset_id = parse_asset_id(req.asset_id)?;
 
-        Ok(GetSpendableXchCoinCountResponse { count })
+            wallet.db.spendable_cat_coin_count(asset_id).await?
+        };
+
+        Ok(GetSpendableCoinCountResponse { count })
     }
 
     pub async fn get_xch_coins(&self, req: GetXchCoins) -> Result<GetXchCoinsResponse> {
@@ -168,17 +173,6 @@ impl Sage {
         }
 
         Ok(GetXchCoinsResponse { coins, total })
-    }
-
-    pub async fn get_spendable_cat_coin_count(
-        &self,
-        req: GetSpendableCatCoinCount,
-    ) -> Result<GetSpendableCatCoinCountResponse> {
-        let wallet = self.wallet()?;
-        let asset_id = parse_asset_id(req.asset_id)?;
-        let count = wallet.db.spendable_cat_coin_count(asset_id).await?;
-
-        Ok(GetSpendableCatCoinCountResponse { count })
     }
 
     pub async fn get_cat_coins(&self, req: GetCatCoins) -> Result<GetCatCoinsResponse> {
