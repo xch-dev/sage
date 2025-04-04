@@ -87,6 +87,10 @@ impl Database {
     pub async fn get_coin_states_by_spent_height(&self, height: u32) -> Result<Vec<CoinStateRow>> {
         get_coin_states_by_spent_height(&self.pool, height).await
     }
+
+    pub async fn get_are_all_coins_spendable(&self, coin_ids: &[String]) -> Result<bool> {
+        get_are_all_coins_spendable(&self.pool, coin_ids).await
+    }
 }
 
 impl DatabaseTx<'_> {
@@ -715,4 +719,44 @@ async fn full_coin_state(
     };
 
     Ok(Some(sql.into_row()?))
+}
+
+async fn get_are_all_coins_spendable(
+    conn: impl SqliteExecutor<'_>,
+    coin_ids: &[String],
+) -> Result<bool> {
+    if coin_ids.is_empty() {
+        return Ok(false);
+    }
+
+    // Build the base SQL query
+    let mut sql = String::from(
+        "SELECT COUNT(*)
+        FROM coin_states
+        LEFT JOIN transaction_spends ON transaction_spends.coin_id = coin_states.coin_id
+        WHERE 1=1 
+        AND created_height IS NOT NULL
+        AND spent_height IS NULL
+        AND coin_states.transaction_id IS NULL
+        AND transaction_spends.coin_id IS NULL
+        AND coin_states.coin_id IN (",
+    );
+
+    // Build the parameter placeholders (X'hex' syntax)
+    for (i, coin_id) in coin_ids.iter().enumerate() {
+        if i > 0 {
+            sql.push_str(", ");
+        }
+        sql.push_str(&format!(
+            "X'{}'",
+            coin_id.to_uppercase().trim_start_matches("0X")
+        ));
+    }
+    sql.push_str(")");
+
+    // Execute the raw SQL query
+    let row = sqlx::query(&sql).fetch_one(conn).await?;
+    let count: i64 = row.get(0);
+
+    Ok(count == coin_ids.len() as i64)
 }

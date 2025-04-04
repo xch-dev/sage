@@ -27,7 +27,7 @@ import { Trans } from '@lingui/react/macro';
 import { RowSelectionState, OnChangeFn } from '@tanstack/react-table';
 import BigNumber from 'bignumber.js';
 import { MergeIcon, SplitIcon } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import {
@@ -98,35 +98,45 @@ export function CoinsCard({
       .filter(Boolean) as CoinRecord[];
   }, [selectedCoinIds, coins]);
 
-  const canCombine = useMemo(
-    () =>
-      selectedCoinIds.length >= 2 &&
-      selectedCoinIds.every((id) => {
-        const coin = coins.find((coin) => coin.coin_id === id);
-        return (
-          !coin?.spend_transaction_id &&
-          !coin?.create_transaction_id &&
-          coin?.created_height &&
-          !coin?.spent_height
-        );
-      }),
-    [selectedCoinIds, coins],
-  );
+  const [canCombine, setCanCombine] = useState(false);
+  const [canSplit, setCanSplit] = useState(false);
 
-  const canSplit = useMemo(
-    () =>
-      selectedCoinIds.length >= 1 &&
-      selectedCoinIds.every((id) => {
-        const coin = coins.find((coin) => coin.coin_id === id);
-        return (
-          !coin?.spend_transaction_id &&
-          !coin?.create_transaction_id &&
-          coin?.created_height &&
-          !coin?.spent_height
-        );
-      }),
-    [selectedCoinIds, coins],
-  );
+  useEffect(() => {
+    let isMounted = true;
+
+    const checkSpendable = async () => {
+      if (selectedCoinIds.length === 0) {
+        if (isMounted) {
+          setCanSplit(false);
+          setCanCombine(false);
+        }
+        return;
+      }
+
+      try {
+        const isSpendable = await commands.getAreAllCoinsSpendable({
+          coin_ids: selectedCoinIds,
+        });
+
+        if (isMounted) {
+          setCanSplit(selectedCoinIds.length >= 1 && isSpendable.spendable);
+          setCanCombine(selectedCoinIds.length >= 2 && isSpendable.spendable);
+        }
+      } catch (error) {
+        console.error('Error checking if coins are spendable:', error);
+        if (isMounted) {
+          setCanSplit(false);
+          setCanCombine(false);
+        }
+      }
+    };
+
+    checkSpendable();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedCoinIds]);
 
   const canAutoCombine = useMemo(
     () =>

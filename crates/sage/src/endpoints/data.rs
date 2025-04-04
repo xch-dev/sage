@@ -9,16 +9,16 @@ use chia_wallet_sdk::{driver::Nft, utils::Address};
 use clvmr::Allocator;
 use sage_api::{
     AddressKind, Amount, AssetKind, CatRecord, CheckAddress, CheckAddressResponse, CoinRecord,
-    CoinSortMode as ApiCoinSortMode, DerivationRecord, DidRecord, GetCat, GetCatCoins,
-    GetCatCoinsResponse, GetCatResponse, GetCats, GetCatsResponse, GetDerivations,
-    GetDerivationsResponse, GetDids, GetDidsResponse, GetMinterDidIds, GetMinterDidIdsResponse,
-    GetNft, GetNftCollection, GetNftCollectionResponse, GetNftCollections,
-    GetNftCollectionsResponse, GetNftData, GetNftDataResponse, GetNftIcon, GetNftIconResponse,
-    GetNftResponse, GetNftThumbnail, GetNftThumbnailResponse, GetNfts, GetNftsResponse,
-    GetPendingTransactions, GetPendingTransactionsResponse, GetSyncStatus, GetSyncStatusResponse,
-    GetTransaction, GetTransactionResponse, GetTransactions, GetTransactionsByItemId,
-    GetTransactionsByItemIdResponse, GetTransactionsResponse, GetXchCoins, GetXchCoinsResponse,
-    NftCollectionRecord, NftData, NftRecord, NftSortMode as ApiNftSortMode,
+    CoinSortMode as ApiCoinSortMode, DerivationRecord, DidRecord, GetAreAllCoinsSpendable,
+    GetAreAllCoinsSpendableResponse, GetCat, GetCatCoins, GetCatCoinsResponse, GetCatResponse,
+    GetCats, GetCatsResponse, GetDerivations, GetDerivationsResponse, GetDids, GetDidsResponse,
+    GetMinterDidIds, GetMinterDidIdsResponse, GetNft, GetNftCollection, GetNftCollectionResponse,
+    GetNftCollections, GetNftCollectionsResponse, GetNftData, GetNftDataResponse, GetNftIcon,
+    GetNftIconResponse, GetNftResponse, GetNftThumbnail, GetNftThumbnailResponse, GetNfts,
+    GetNftsResponse, GetPendingTransactions, GetPendingTransactionsResponse, GetSyncStatus,
+    GetSyncStatusResponse, GetTransaction, GetTransactionResponse, GetTransactions,
+    GetTransactionsByItemId, GetTransactionsByItemIdResponse, GetTransactionsResponse, GetXchCoins,
+    GetXchCoinsResponse, NftCollectionRecord, NftData, NftRecord, NftSortMode as ApiNftSortMode,
     PendingTransactionRecord, TransactionCoin, TransactionRecord,
 };
 use sage_database::{
@@ -94,6 +94,16 @@ impl Sage {
             .collect::<Result<Vec<_>>>()?;
 
         Ok(GetDerivationsResponse { derivations, total })
+    }
+
+    pub async fn get_are_all_coins_spendable(
+        &self,
+        req: GetAreAllCoinsSpendable,
+    ) -> Result<GetAreAllCoinsSpendableResponse> {
+        let wallet = self.wallet()?;
+        let spendable = wallet.db.get_are_all_coins_spendable(&req.coin_ids).await?;
+
+        Ok(GetAreAllCoinsSpendableResponse { spendable })
     }
 
     pub async fn get_xch_coins(&self, req: GetXchCoins) -> Result<GetXchCoinsResponse> {
