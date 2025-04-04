@@ -68,13 +68,13 @@ impl Default for CoinSortMode {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
-pub struct GetAreAllCoinsSpendable {
+pub struct GetAreCoinsSpendable {
     pub coin_ids: Vec<String>,
 }
 
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
-pub struct GetAreAllCoinsSpendableResponse {
+pub struct GetAreCoinsSpendableResponse {
     pub spendable: bool,
 }
 

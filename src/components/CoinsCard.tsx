@@ -135,7 +135,7 @@ export function CoinsCard({
       }
 
       try {
-        const isSpendable = await commands.getAreAllCoinsSpendable({
+        const isSpendable = await commands.getAreCoinsSpendable({
           coin_ids: selectedCoinIds,
         });
 

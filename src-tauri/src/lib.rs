@@ -58,7 +58,7 @@ pub fn run() {
             commands::get_sync_status,
             commands::check_address,
             commands::get_derivations,
-            commands::get_are_all_coins_spendable,
+            commands::get_are_coins_spendable,
             commands::get_spendable_xch_coin_count,
             commands::get_spendable_cat_coin_count,
             commands::get_xch_coins,

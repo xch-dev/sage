@@ -88,8 +88,8 @@ impl Database {
         get_coin_states_by_spent_height(&self.pool, height).await
     }
 
-    pub async fn get_are_all_coins_spendable(&self, coin_ids: &[String]) -> Result<bool> {
-        get_are_all_coins_spendable(&self.pool, coin_ids).await
+    pub async fn get_are_coins_spendable(&self, coin_ids: &[String]) -> Result<bool> {
+        get_are_coins_spendable(&self.pool, coin_ids).await
     }
 }
 
@@ -721,7 +721,7 @@ async fn full_coin_state(
     Ok(Some(sql.into_row()?))
 }
 
-async fn get_are_all_coins_spendable(
+async fn get_are_coins_spendable(
     conn: impl SqliteExecutor<'_>,
     coin_ids: &[String],
 ) -> Result<bool> {

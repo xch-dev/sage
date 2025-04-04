@@ -110,8 +110,8 @@ async checkAddress(req: CheckAddress) : Promise<CheckAddressResponse> {
 async getDerivations(req: GetDerivations) : Promise<GetDerivationsResponse> {
     return await TAURI_INVOKE("get_derivations", { req });
 },
-async getAreAllCoinsSpendable(req: GetAreAllCoinsSpendable) : Promise<GetAreAllCoinsSpendableResponse> {
-    return await TAURI_INVOKE("get_are_all_coins_spendable", { req });
+async getAreCoinsSpendable(req: GetAreCoinsSpendable) : Promise<GetAreCoinsSpendableResponse> {
+    return await TAURI_INVOKE("get_are_coins_spendable", { req });
 },
 async getSpendableXchCoinCount(req: GetSpendableXchCoinCount) : Promise<GetSpendableXchCoinCountResponse> {
     return await TAURI_INVOKE("get_spendable_xch_coin_count", { req });
@@ -371,8 +371,8 @@ export type FilterUnlockedCoins = { coin_ids: string[] }
 export type FilterUnlockedCoinsResponse = { coin_ids: string[] }
 export type GenerateMnemonic = { use_24_words: boolean }
 export type GenerateMnemonicResponse = { mnemonic: string }
-export type GetAreAllCoinsSpendable = { coin_ids: string[] }
-export type GetAreAllCoinsSpendableResponse = { spendable: boolean }
+export type GetAreCoinsSpendable = { coin_ids: string[] }
+export type GetAreCoinsSpendableResponse = { spendable: boolean }
 export type GetAssetCoins = { type?: AssetCoinType | null; assetId?: string | null; includedLocked?: boolean | null; offset?: number | null; limit?: number | null }
 export type GetCat = { asset_id: string }
 export type GetCatCoins = { asset_id: string; offset: number; limit: number; sort_mode?: CoinSortMode; ascending?: boolean; include_spent_coins?: boolean }

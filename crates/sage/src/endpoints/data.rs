@@ -9,8 +9,8 @@ use chia_wallet_sdk::{driver::Nft, utils::Address};
 use clvmr::Allocator;
 use sage_api::{
     AddressKind, Amount, AssetKind, CatRecord, CheckAddress, CheckAddressResponse, CoinRecord,
-    CoinSortMode as ApiCoinSortMode, DerivationRecord, DidRecord, GetAreAllCoinsSpendable,
-    GetAreAllCoinsSpendableResponse, GetCat, GetCatCoins, GetCatCoinsResponse, GetCatResponse,
+    CoinSortMode as ApiCoinSortMode, DerivationRecord, DidRecord, GetAreCoinsSpendable,
+    GetAreCoinsSpendableResponse, GetCat, GetCatCoins, GetCatCoinsResponse, GetCatResponse,
     GetCats, GetCatsResponse, GetDerivations, GetDerivationsResponse, GetDids, GetDidsResponse,
     GetMinterDidIds, GetMinterDidIdsResponse, GetNft, GetNftCollection, GetNftCollectionResponse,
     GetNftCollections, GetNftCollectionsResponse, GetNftData, GetNftDataResponse, GetNftIcon,
@@ -98,14 +98,14 @@ impl Sage {
         Ok(GetDerivationsResponse { derivations, total })
     }
 
-    pub async fn get_are_all_coins_spendable(
+    pub async fn get_are_coins_spendable(
         &self,
-        req: GetAreAllCoinsSpendable,
-    ) -> Result<GetAreAllCoinsSpendableResponse> {
+        req: GetAreCoinsSpendable,
+    ) -> Result<GetAreCoinsSpendableResponse> {
         let wallet = self.wallet()?;
-        let spendable = wallet.db.get_are_all_coins_spendable(&req.coin_ids).await?;
+        let spendable = wallet.db.get_are_coins_spendable(&req.coin_ids).await?;
 
-        Ok(GetAreAllCoinsSpendableResponse { spendable })
+        Ok(GetAreCoinsSpendableResponse { spendable })
     }
 
     pub async fn get_spendable_xch_coin_count(
