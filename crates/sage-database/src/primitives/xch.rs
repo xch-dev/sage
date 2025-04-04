@@ -3,7 +3,7 @@ use sqlx::{Row, SqliteExecutor};
 
 use crate::{
     into_row, to_bytes, CoinSortMode, CoinSql, CoinStateRow, CoinStateSql, Database, DatabaseTx,
-    Result,
+    EnhancedCoinStateRow, Result,
 };
 
 impl Database {
@@ -26,7 +26,7 @@ impl Database {
         sort_mode: CoinSortMode,
         ascending: bool,
         include_spent_coins: bool,
-    ) -> Result<(Vec<CoinStateRow>, u32)> {
+    ) -> Result<(Vec<EnhancedCoinStateRow>, u32)> {
         p2_coin_states(
             &self.pool,
             limit,
@@ -135,21 +135,16 @@ async fn p2_coin_states(
     sort_mode: CoinSortMode,
     ascending: bool,
     include_spent_coins: bool,
-) -> Result<(Vec<CoinStateRow>, u32)> {
+) -> Result<(Vec<EnhancedCoinStateRow>, u32)> {
     let mut query = sqlx::QueryBuilder::new(
         "
-        SELECT 
-            `parent_coin_id`, 
-            `puzzle_hash`, 
-            `amount`, 
-            `spent_height`, 
-            `created_height`, 
-            `transaction_id`, 
-            `kind`, 
-            `created_unixtime`, 
-            `spent_unixtime`,
-            COUNT(*) OVER() as total_count
+        SELECT `coin_states`.`parent_coin_id`, `coin_states`.`puzzle_hash`, `coin_states`.`amount`, `spent_height`, `created_height`, 
+               `coin_states`.`transaction_id`, `kind`, `created_unixtime`, `spent_unixtime`,
+               `offered_coins`.offer_id, `transaction_spends`.transaction_id as spend_transaction_id,
+                COUNT(*) OVER() as total_count
         FROM `coin_states` 
+        LEFT JOIN `offered_coins` ON `coin_states`.coin_id = `offered_coins`.coin_id
+        LEFT JOIN `transaction_spends` ON `coin_states`.coin_id = `transaction_spends`.coin_id
         WHERE `kind` = 1
         ",
     );
@@ -162,10 +157,10 @@ async fn p2_coin_states(
 
     match sort_mode {
         CoinSortMode::CoinId => {
-            query.push("`coin_id`");
+            query.push("`coin_states`.`coin_id`");
         }
         CoinSortMode::Amount => {
-            query.push("`amount`");
+            query.push("`coin_states`.`amount`");
         }
         CoinSortMode::CreatedHeight => {
             query.push("`created_height`");
@@ -194,7 +189,6 @@ async fn p2_coin_states(
 
     let total: u32 = rows.first().unwrap().try_get("total_count")?;
     let mut coin_states = Vec::with_capacity(rows.len());
-
     for row in rows {
         let sql = CoinStateSql {
             parent_coin_id: row.try_get("parent_coin_id")?,
@@ -207,7 +201,17 @@ async fn p2_coin_states(
             created_unixtime: row.try_get("created_unixtime")?,
             spent_unixtime: row.try_get("spent_unixtime")?,
         };
-        coin_states.push(into_row(sql)?);
+        let coin_state_row = into_row(sql)?;
+        let offer_id: Option<String> = row.try_get("offer_id").ok();
+        let spend_transaction_id: Option<String> = row.try_get("spend_transaction_id").ok();
+
+        let enhanced_row = EnhancedCoinStateRow {
+            base: coin_state_row,
+            offer_id,
+            spend_transaction_id,
+        };
+
+        coin_states.push(enhanced_row);
     }
 
     Ok((coin_states, total))
