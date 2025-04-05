@@ -201,15 +201,13 @@ async fn p2_coin_states(
             created_unixtime: row.try_get("created_unixtime")?,
             spent_unixtime: row.try_get("spent_unixtime")?,
         };
-        let coin_state_row = into_row(sql)?;
-        let offer_id: Option<String> = row.try_get("offer_id").ok();
-        let spend_transaction_id: Option<String> = row.try_get("spend_transaction_id").ok();
 
-        let enhanced_row = EnhancedCoinStateRow {
-            base: coin_state_row,
-            offer_id,
-            spend_transaction_id,
-        };
+        let coin_state_row = into_row(sql)?;
+
+        let mut enhanced_row = EnhancedCoinStateRow::from(coin_state_row);
+
+        enhanced_row.offer_id = row.try_get("offer_id").ok();
+        enhanced_row.spend_transaction_id = row.try_get("spend_transaction_id").ok();
 
         coin_states.push(enhanced_row);
     }
