@@ -161,6 +161,9 @@ importers:
       tauri-plugin-safe-area-insets:
         specifier: ^0.1.0
         version: 0.1.0
+      tauri-plugin-tangem-api:
+        specifier: link:../tauri-plugin-tangem
+        version: link:../tauri-plugin-tangem
       usehooks-ts:
         specifier: ^3.1.0
         version: 3.1.0(react@18.3.1)
