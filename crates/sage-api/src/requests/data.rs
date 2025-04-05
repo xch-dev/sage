@@ -105,6 +105,18 @@ pub struct GetXchCoins {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct GetCoinsByIds {
+    pub coin_ids: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct GetCoinsByIdsResponse {
+    pub coins: Vec<CoinRecord>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct GetXchCoinsResponse {
     pub coins: Vec<CoinRecord>,
     pub total: u32,

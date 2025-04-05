@@ -24,6 +24,7 @@ import { toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Trans } from '@lingui/react/macro';
+import { t } from '@lingui/core/macro';
 import { RowSelectionState, OnChangeFn } from '@tanstack/react-table';
 import BigNumber from 'bignumber.js';
 import { MergeIcon, SplitIcon, XIcon } from 'lucide-react';
@@ -197,7 +198,7 @@ export function CoinsCard({
   const combineFormSchema = z.object({
     combineFee: amount(walletState.sync.unit.decimals).refine(
       (amount) => BigNumber(walletState.sync.balance).gte(amount || 0),
-      'Not enough funds to cover the fee',
+      t`Not enough funds to cover the fee`,
     ),
   });
 
@@ -226,7 +227,7 @@ export function CoinsCard({
         // Add confirmation data to the response
         const resultWithDetails = Object.assign({}, result, {
           additionalData: {
-            title: 'Combine Details',
+            title: t`Combine Details`,
             content: {
               type: 'combine',
               coins: selectedCoinRecords,
@@ -246,7 +247,7 @@ export function CoinsCard({
     outputCount: z.number().int().min(2).max(4294967295),
     splitFee: amount(walletState.sync.unit.decimals).refine(
       (amount) => BigNumber(walletState.sync.balance).gte(amount || 0),
-      'Not enough funds to cover the fee',
+      t`Not enough funds to cover the fee`,
     ),
   });
 
@@ -277,7 +278,7 @@ export function CoinsCard({
         // Add confirmation data to the response
         const resultWithDetails = Object.assign({}, result, {
           additionalData: {
-            title: 'Split Details',
+            title: t`Split Details`,
             content: {
               type: 'split',
               coins: selectedCoinRecords,
@@ -297,7 +298,7 @@ export function CoinsCard({
   const autoCombineFormSchema = z.object({
     autoCombineFee: amount(walletState.sync.unit.decimals).refine(
       (amount) => BigNumber(walletState.sync.balance).gte(amount || 0),
-      'Not enough funds to cover the fee',
+      t`Not enough funds to cover the fee`,
     ),
     maxCoins: amount(0),
     maxCoinAmount: amount(precision).optional(),
@@ -328,19 +329,19 @@ export function CoinsCard({
       max_coin_amount: maxCoinAmount,
       fee,
     })
-      .then((result) => {
+      .then(async (result) => {
         // Find coin records for the returned coin IDs
-        const resultCoins = pageCoins.filter((record) =>
-          result.coin_ids.includes(record.coin_id),
-        );
+        const resultCoins = await commands.getCoinsByIds({
+          coin_ids: result.coin_ids,
+        });
 
         // Add confirmation data to the response
         const resultWithDetails = Object.assign({}, result, {
           additionalData: {
-            title: 'Combine Details',
+            title: t`Combine Details`,
             content: {
               type: 'combine',
-              coins: resultCoins,
+              coins: resultCoins.coins,
               ticker: ticker || '',
               precision,
             },

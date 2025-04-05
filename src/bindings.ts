@@ -116,6 +116,9 @@ async getAreCoinsSpendable(req: GetAreCoinsSpendable) : Promise<GetAreCoinsSpend
 async getSpendableCoinCount(req: GetSpendableCoinCount) : Promise<GetSpendableCoinCountResponse> {
     return await TAURI_INVOKE("get_spendable_coin_count", { req });
 },
+async getCoinsByIds(req: GetCoinsByIds) : Promise<GetCoinsByIdsResponse> {
+    return await TAURI_INVOKE("get_coins_by_ids", { req });
+},
 async getXchCoins(req: GetXchCoins) : Promise<GetXchCoinsResponse> {
     return await TAURI_INVOKE("get_xch_coins", { req });
 },
@@ -377,6 +380,8 @@ export type GetCatCoinsResponse = { coins: CoinRecord[]; total: number }
 export type GetCatResponse = { cat: CatRecord | null }
 export type GetCats = Record<string, never>
 export type GetCatsResponse = { cats: CatRecord[] }
+export type GetCoinsByIds = { coin_ids: string[] }
+export type GetCoinsByIdsResponse = { coins: CoinRecord[] }
 export type GetDerivations = { hardened?: boolean; offset: number; limit: number }
 export type GetDerivationsResponse = { derivations: DerivationRecord[]; total: number }
 export type GetDids = Record<string, never>

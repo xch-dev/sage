@@ -11,11 +11,12 @@ use sage_api::{
     AddressKind, Amount, AssetKind, CatRecord, CheckAddress, CheckAddressResponse, CoinRecord,
     CoinSortMode as ApiCoinSortMode, DerivationRecord, DidRecord, GetAreCoinsSpendable,
     GetAreCoinsSpendableResponse, GetCat, GetCatCoins, GetCatCoinsResponse, GetCatResponse,
-    GetCats, GetCatsResponse, GetDerivations, GetDerivationsResponse, GetDids, GetDidsResponse,
-    GetMinterDidIds, GetMinterDidIdsResponse, GetNft, GetNftCollection, GetNftCollectionResponse,
-    GetNftCollections, GetNftCollectionsResponse, GetNftData, GetNftDataResponse, GetNftIcon,
-    GetNftIconResponse, GetNftResponse, GetNftThumbnail, GetNftThumbnailResponse, GetNfts,
-    GetNftsResponse, GetPendingTransactions, GetPendingTransactionsResponse, GetSpendableCoinCount,
+    GetCats, GetCatsResponse, GetCoinsByIds, GetCoinsByIdsResponse, GetDerivations,
+    GetDerivationsResponse, GetDids, GetDidsResponse, GetMinterDidIds, GetMinterDidIdsResponse,
+    GetNft, GetNftCollection, GetNftCollectionResponse, GetNftCollections,
+    GetNftCollectionsResponse, GetNftData, GetNftDataResponse, GetNftIcon, GetNftIconResponse,
+    GetNftResponse, GetNftThumbnail, GetNftThumbnailResponse, GetNfts, GetNftsResponse,
+    GetPendingTransactions, GetPendingTransactionsResponse, GetSpendableCoinCount,
     GetSpendableCoinCountResponse, GetSyncStatus, GetSyncStatusResponse, GetTransaction,
     GetTransactionResponse, GetTransactions, GetTransactionsByItemId,
     GetTransactionsByItemIdResponse, GetTransactionsResponse, GetXchCoins, GetXchCoinsResponse,
@@ -121,6 +122,30 @@ impl Sage {
         };
 
         Ok(GetSpendableCoinCountResponse { count })
+    }
+
+    pub async fn get_coins_by_ids(&self, req: GetCoinsByIds) -> Result<GetCoinsByIdsResponse> {
+        let wallet = self.wallet()?;
+        let rows = wallet.db.coin_states_by_ids(&req.coin_ids).await?;
+        let mut coins = Vec::new();
+
+        for row in rows {
+            let cs = row.base.coin_state;
+
+            coins.push(CoinRecord {
+                coin_id: hex::encode(cs.coin.coin_id()),
+                address: Address::new(cs.coin.puzzle_hash, self.network().prefix()).encode()?,
+                amount: Amount::u64(cs.coin.amount),
+                created_height: cs.created_height,
+                spent_height: cs.spent_height,
+                create_transaction_id: row.base.transaction_id.map(hex::encode),
+                spend_transaction_id: row.spend_transaction_id.map(hex::encode),
+                offer_id: row.offer_id.map(hex::encode),
+                created_timestamp: row.base.created_timestamp,
+                spent_timestamp: row.base.spent_timestamp,
+            });
+        }
+        Ok(GetCoinsByIdsResponse { coins })
     }
 
     pub async fn get_xch_coins(&self, req: GetXchCoins) -> Result<GetXchCoinsResponse> {

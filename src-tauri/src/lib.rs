@@ -60,6 +60,7 @@ pub fn run() {
             commands::get_derivations,
             commands::get_are_coins_spendable,
             commands::get_spendable_coin_count,
+            commands::get_coins_by_ids,
             commands::get_xch_coins,
             commands::get_cat_coins,
             commands::get_cats,

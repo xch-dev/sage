@@ -62,6 +62,13 @@ impl Database {
         spendable_cat_coin_count(&self.pool, asset_id).await
     }
 
+    pub async fn coin_states_by_ids(
+        &self,
+        coin_ids: &[String],
+    ) -> Result<Vec<EnhancedCoinStateRow>> {
+        coin_states_by_ids(&self.pool, coin_ids).await
+    }
+
     pub async fn cat_coin_states(
         &self,
         asset_id: Bytes32,
@@ -332,6 +339,62 @@ async fn spendable_cat_coin_count(conn: impl SqliteExecutor<'_>, asset_id: Bytes
     .await?;
 
     Ok(row.count.try_into()?)
+}
+
+async fn coin_states_by_ids(
+    conn: impl SqliteExecutor<'_>,
+    coin_ids: &[String],
+) -> Result<Vec<EnhancedCoinStateRow>> {
+    let mut query = sqlx::QueryBuilder::new(
+        "
+        SELECT `coin_states`.`parent_coin_id`, `coin_states`.`puzzle_hash`, `coin_states`.`amount`, `spent_height`, `created_height`, 
+               `coin_states`.`transaction_id`, `kind`, `created_unixtime`, `spent_unixtime`,
+               `offered_coins`.offer_id, `transaction_spends`.transaction_id as spend_transaction_id
+        FROM `coin_states` 
+        LEFT JOIN `offered_coins` ON `coin_states`.coin_id = `offered_coins`.coin_id
+        LEFT JOIN `transaction_spends` ON `coin_states`.coin_id = `transaction_spends`.coin_id
+        WHERE 1=1 
+        AND coin_states.coin_id IN (",
+    );
+
+    let mut separated = query.separated(", ");
+    for coin_id in coin_ids {
+        separated.push(&format!("X'{}'", coin_id));
+    }
+    separated.push_unseparated(")");
+    let rows = query.build().fetch_all(conn).await?;
+
+    if rows.is_empty() {
+        return Ok(vec![]);
+    }
+
+    let mut coin_states = Vec::with_capacity(rows.len());
+    for row in rows {
+        let sql = CoinStateSql {
+            parent_coin_id: row.try_get("parent_coin_id")?,
+            puzzle_hash: row.try_get("puzzle_hash")?,
+            amount: row.try_get("amount")?,
+            spent_height: row.try_get("spent_height")?,
+            created_height: row.try_get("created_height")?,
+            transaction_id: row.try_get("transaction_id")?,
+            kind: row.try_get("kind")?,
+            created_unixtime: row.try_get("created_unixtime")?,
+            spent_unixtime: row.try_get("spent_unixtime")?,
+        };
+        let coin_state_row = into_row(sql)?;
+        let offer_id: Option<String> = row.try_get("offer_id").ok();
+        let spend_transaction_id: Option<String> = row.try_get("spend_transaction_id").ok();
+
+        let enhanced_row = EnhancedCoinStateRow {
+            base: coin_state_row,
+            offer_id,
+            spend_transaction_id,
+        };
+
+        coin_states.push(enhanced_row);
+    }
+
+    Ok(coin_states)
 }
 
 async fn cat_coin_states(
