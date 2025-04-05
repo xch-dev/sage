@@ -2,7 +2,7 @@ name: sage-tauri
 options:
   bundleIdPrefix: com.rigidnetwork.sage
   deploymentTarget:
-    iOS: 13.0
+    iOS: 15.0
 fileGroups: [../../src]
 configs:
   debug: debug
@@ -12,6 +12,7 @@ settingGroups:
     base:
       PRODUCT_NAME: Sage
       PRODUCT_BUNDLE_IDENTIFIER: com.rigidnetwork.sage
+      DEVELOPMENT_TEAM: NQJQRYZZG3
 targetTemplates:
   app:
     type: application
@@ -51,8 +52,8 @@ targets:
           - UIInterfaceOrientationPortraitUpsideDown
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
-        CFBundleShortVersionString: 0.1.0
-        CFBundleVersion: 0.1.0
+        CFBundleShortVersionString: 0.10.1
+        CFBundleVersion: 0.10.1
     entitlements:
       path: sage-tauri_iOS/sage-tauri_iOS.entitlements
     scheme:

@@ -67,6 +67,7 @@
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7",
     "tauri-plugin-safe-area-insets": "^0.1.0",
+    "tauri-plugin-tangem-api": "link:../tauri-plugin-tangem",
     "usehooks-ts": "^3.1.0",
     "zod": "^3.23.8",
     "zustand": "^4.5.5"
