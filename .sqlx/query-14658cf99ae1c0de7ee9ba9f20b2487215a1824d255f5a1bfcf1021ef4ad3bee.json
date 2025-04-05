@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT COUNT(*) as count\n        FROM coin_states\n        INNER JOIN `cat_coins` ON `coin_states`.`coin_id` = `cat_coins`.`coin_id`\n        LEFT JOIN transaction_spends ON transaction_spends.coin_id = coin_states.coin_id\n        WHERE 1=1 \n        AND `cat_coins`.`asset_id` = ?\n        AND created_height IS NOT NULL\n        AND spent_height IS NULL\n        AND coin_states.transaction_id IS NULL\n        AND transaction_spends.coin_id IS NULL\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "count",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "14658cf99ae1c0de7ee9ba9f20b2487215a1824d255f5a1bfcf1021ef4ad3bee"
+}

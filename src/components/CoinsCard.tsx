@@ -24,10 +24,11 @@ import { toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Trans } from '@lingui/react/macro';
-import { RowSelectionState } from '@tanstack/react-table';
+import { t } from '@lingui/core/macro';
+import { RowSelectionState, OnChangeFn } from '@tanstack/react-table';
 import BigNumber from 'bignumber.js';
-import { MergeIcon, SplitIcon } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { MergeIcon, SplitIcon, XIcon } from 'lucide-react';
+import { useMemo, useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import {
@@ -48,6 +49,7 @@ interface CoinsCardProps {
   setResponse: (response: TransactionResponse) => void;
   selectedCoins: RowSelectionState;
   setSelectedCoins: React.Dispatch<React.SetStateAction<RowSelectionState>>;
+  onRowSelectionChange?: OnChangeFn<RowSelectionState>;
   currentPage: number;
   totalCoins: number;
   pageSize: number;
@@ -62,7 +64,7 @@ interface CoinsCardProps {
 
 export function CoinsCard({
   precision,
-  coins,
+  coins: pageCoins,
   asset,
   splitHandler,
   combineHandler,
@@ -70,6 +72,7 @@ export function CoinsCard({
   setResponse,
   selectedCoins,
   setSelectedCoins,
+  onRowSelectionChange,
   currentPage,
   totalCoins,
   pageSize,
@@ -86,56 +89,107 @@ export function CoinsCard({
 
   const { addError } = useErrors();
 
+  // Store selected CoinRecords instead of just IDs
+  const [selectedCoinRecords, setSelectedCoinRecords] = useState<CoinRecord[]>(
+    [],
+  );
+
   const selectedCoinIds = useMemo(() => {
     return Object.keys(selectedCoins).filter((key) => selectedCoins[key]);
   }, [selectedCoins]);
 
-  const selectedCoinsList = useMemo(() => {
-    return selectedCoinIds
-      .map((id) => coins.find((coin) => coin.coin_id === id))
+  // Update selectedCoinRecords when selection changes
+  useEffect(() => {
+    // Find records in current page
+    const currentPageRecords = selectedCoinIds
+      .map((id) => pageCoins.find((coin) => coin.coin_id === id))
       .filter(Boolean) as CoinRecord[];
-  }, [selectedCoinIds, coins]);
 
-  const canCombine = useMemo(
-    () =>
-      selectedCoinIds.length >= 2 &&
-      selectedCoinIds.every((id) => {
-        const coin = coins.find((coin) => coin.coin_id === id);
-        return (
-          !coin?.spend_transaction_id &&
-          !coin?.create_transaction_id &&
-          coin?.created_height &&
-          !coin?.spent_height
-        );
-      }),
-    [selectedCoinIds, coins],
-  );
-  const canSplit = useMemo(
-    () =>
-      selectedCoinIds.length >= 1 &&
-      selectedCoinIds.every((id) => {
-        const coin = coins.find((coin) => coin.coin_id === id);
-        return (
-          !coin?.spend_transaction_id &&
-          !coin?.create_transaction_id &&
-          coin?.created_height &&
-          !coin?.spent_height
-        );
-      }),
-    [selectedCoinIds, coins],
-  );
-  const canAutoCombine = useMemo(
-    () =>
-      selectedCoinIds.length === 0 &&
-      coins.filter(
-        (coin) =>
-          !coin?.spend_transaction_id &&
-          !coin?.create_transaction_id &&
-          coin?.created_height &&
-          !coin?.spent_height,
-      ).length > 0,
-    [selectedCoinIds, coins],
-  );
+    // Use functional update to avoid dependency on selectedCoinRecords
+    setSelectedCoinRecords((prevRecords) => {
+      // Keep existing records that are still selected but not on current page
+      const existingSelectedRecords = prevRecords.filter(
+        (record) =>
+          selectedCoinIds.includes(record.coin_id) &&
+          !currentPageRecords.some((r) => r.coin_id === record.coin_id),
+      );
+
+      // Combine records from current page with previously selected records
+      return [...currentPageRecords, ...existingSelectedRecords];
+    });
+  }, [selectedCoinIds, pageCoins]);
+
+  const [canCombine, setCanCombine] = useState(false);
+  const [canSplit, setCanSplit] = useState(false);
+  const [canAutoCombine, setCanAutoCombine] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const checkSpendable = async () => {
+      if (selectedCoinIds.length === 0) {
+        if (isMounted) {
+          setCanSplit(false);
+          setCanCombine(false);
+        }
+        return;
+      }
+
+      try {
+        const isSpendable = await commands.getAreCoinsSpendable({
+          coin_ids: selectedCoinIds,
+        });
+
+        if (isMounted) {
+          setCanSplit(selectedCoinIds.length >= 1 && isSpendable.spendable);
+          setCanCombine(selectedCoinIds.length >= 2 && isSpendable.spendable);
+        }
+      } catch (error) {
+        console.error('Error checking if coins are spendable:', error);
+        if (isMounted) {
+          setCanSplit(false);
+          setCanCombine(false);
+        }
+      }
+    };
+
+    checkSpendable();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedCoinIds]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const checkAutoCombine = async () => {
+      if (selectedCoinIds.length === 0 && asset?.asset_id) {
+        try {
+          const spendable = await commands.getSpendableCoinCount({
+            asset_id: asset.asset_id,
+          });
+          if (isMounted) {
+            setCanAutoCombine(spendable.count > 1);
+          }
+        } catch (error) {
+          if (isMounted) {
+            setCanAutoCombine(false);
+          }
+        }
+      } else {
+        if (isMounted) {
+          setCanAutoCombine(false);
+        }
+      }
+    };
+
+    checkAutoCombine();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedCoinIds, asset]);
 
   const [isCombineOpen, setCombineOpen] = useState(false);
   const [isSplitOpen, setSplitOpen] = useState(false);
@@ -144,7 +198,7 @@ export function CoinsCard({
   const combineFormSchema = z.object({
     combineFee: amount(walletState.sync.unit.decimals).refine(
       (amount) => BigNumber(walletState.sync.balance).gte(amount || 0),
-      'Not enough funds to cover the fee',
+      t`Not enough funds to cover the fee`,
     ),
   });
 
@@ -160,18 +214,23 @@ export function CoinsCard({
 
     const fee = toMojos(values.combineFee, walletState.sync.unit.decimals);
 
+    // Get IDs from the selected coin records
+    const coinIdsForRequest = selectedCoinRecords.map(
+      (record) => record.coin_id,
+    );
+
     combineHandler({
-      coin_ids: selectedCoinIds,
+      coin_ids: coinIdsForRequest,
       fee,
     })
       .then((result) => {
         // Add confirmation data to the response
         const resultWithDetails = Object.assign({}, result, {
           additionalData: {
-            title: 'Combine Details',
+            title: t`Combine Details`,
             content: {
               type: 'combine',
-              coins: selectedCoinsList,
+              coins: selectedCoinRecords,
               ticker: ticker || '',
               precision,
             },
@@ -188,7 +247,7 @@ export function CoinsCard({
     outputCount: z.number().int().min(2).max(4294967295),
     splitFee: amount(walletState.sync.unit.decimals).refine(
       (amount) => BigNumber(walletState.sync.balance).gte(amount || 0),
-      'Not enough funds to cover the fee',
+      t`Not enough funds to cover the fee`,
     ),
   });
 
@@ -205,8 +264,13 @@ export function CoinsCard({
 
     const fee = toMojos(values.splitFee, walletState.sync.unit.decimals);
 
+    // Get IDs from the selected coin records
+    const coinIdsForRequest = selectedCoinRecords.map(
+      (record) => record.coin_id,
+    );
+
     splitHandler({
-      coin_ids: selectedCoinIds,
+      coin_ids: coinIdsForRequest,
       output_count: values.outputCount,
       fee,
     })
@@ -214,10 +278,10 @@ export function CoinsCard({
         // Add confirmation data to the response
         const resultWithDetails = Object.assign({}, result, {
           additionalData: {
-            title: 'Split Details',
+            title: t`Split Details`,
             content: {
               type: 'split',
-              coins: selectedCoinsList,
+              coins: selectedCoinRecords,
               outputCount: values.outputCount,
               ticker: ticker || '',
               precision,
@@ -234,7 +298,7 @@ export function CoinsCard({
   const autoCombineFormSchema = z.object({
     autoCombineFee: amount(walletState.sync.unit.decimals).refine(
       (amount) => BigNumber(walletState.sync.balance).gte(amount || 0),
-      'Not enough funds to cover the fee',
+      t`Not enough funds to cover the fee`,
     ),
     maxCoins: amount(0),
     maxCoinAmount: amount(precision).optional(),
@@ -265,16 +329,19 @@ export function CoinsCard({
       max_coin_amount: maxCoinAmount,
       fee,
     })
-      .then((result) => {
+      .then(async (result) => {
+        // Find coin records for the returned coin IDs
+        const resultCoins = await commands.getCoinsByIds({
+          coin_ids: result.coin_ids,
+        });
+
         // Add confirmation data to the response
         const resultWithDetails = Object.assign({}, result, {
           additionalData: {
-            title: 'Combine Details',
+            title: t`Combine Details`,
             content: {
               type: 'combine',
-              coins: coins.filter((record) =>
-                result.coin_ids.includes(record.coin_id),
-              ),
+              coins: resultCoins.coins,
               ticker: ticker || '',
               precision,
             },
@@ -299,9 +366,10 @@ export function CoinsCard({
       <CardContent>
         <CoinList
           precision={precision}
-          coins={coins}
+          coins={pageCoins}
           selectedCoins={selectedCoins}
           setSelectedCoins={setSelectedCoins}
+          onRowSelectionChange={onRowSelectionChange}
           currentPage={currentPage}
           totalPages={pageCount}
           setCurrentPage={setCurrentPage}
@@ -326,12 +394,7 @@ export function CoinsCard({
               {(combineHandler || autoCombineHandler) && (
                 <Button
                   variant='outline'
-                  disabled={
-                    !(
-                      (combineHandler && canCombine) ||
-                      (autoCombineHandler && canAutoCombine)
-                    )
-                  }
+                  disabled={!(canCombine || canAutoCombine)}
                   onClick={() => {
                     if (canCombine) {
                       setCombineOpen(true);
@@ -347,6 +410,22 @@ export function CoinsCard({
                     <Trans>Combine</Trans>
                   )}
                 </Button>
+              )}
+              <Button
+                variant='outline'
+                disabled={selectedCoinIds.length === 0}
+                onClick={() => setSelectedCoins({})}
+              >
+                <XIcon className='mr-2 h-4 w-4' />{' '}
+                <Trans>Clear Selection</Trans>
+              </Button>
+              {selectedCoinIds.length > 0 && (
+                <span className='text-muted-foreground text-sm ml-4 flex items-center'>
+                  <Trans>
+                    {selectedCoinIds.length} coin
+                    {selectedCoinIds.length !== 1 ? 's' : ''} selected
+                  </Trans>
+                </span>
               )}
             </>
           }
