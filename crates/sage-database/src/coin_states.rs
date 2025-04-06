@@ -1,6 +1,6 @@
 use chia::protocol::{Bytes32, CoinState};
-use sqlx::Row;
 use sqlx::SqliteExecutor;
+use sqlx::{sqlite::SqliteRow, Row};
 
 use crate::{
     into_row, to_bytes32, CoinKind, CoinStateRow, CoinStateSql, Database, DatabaseTx, IntoRow,
@@ -55,6 +55,16 @@ impl Database {
 
     pub async fn is_coin_locked(&self, coin_id: Bytes32) -> Result<bool> {
         is_coin_locked(&self.pool, coin_id).await
+    }
+
+    pub async fn get_transaction_coins(
+        &self,
+        offset: u32,
+        limit: u32,
+        asc: bool,
+        find_value: Option<String>,
+    ) -> Result<(Vec<SqliteRow>, u32)> {
+        get_transaction_coins(&self.pool, offset, limit, asc, find_value).await
     }
 
     pub async fn get_block_heights(
@@ -430,6 +440,142 @@ async fn is_coin_locked(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Resu
     .await?;
 
     Ok(row.count > 0)
+}
+
+async fn get_transaction_coins(
+    conn: impl SqliteExecutor<'_>,
+    offset: u32,
+    limit: u32,
+    asc: bool,
+    find_value: Option<String>,
+) -> Result<(Vec<SqliteRow>, u32)> {
+    let mut query = sqlx::QueryBuilder::new(
+        "
+            WITH coin_states_with_heights AS (
+                SELECT 
+                    cs.coin_id,
+                    cs.created_height as height
+                FROM coin_states cs
+                WHERE cs.created_height IS NOT NULL
+                
+                UNION ALL
+                
+                SELECT 
+                    cs.coin_id,
+                    cs.spent_height as height
+                FROM coin_states cs
+                WHERE cs.spent_height IS NOT NULL
+            ),
+            joined_coin_states AS (
+                SELECT 
+                    DISTINCT h.height
+                FROM coin_states_with_heights h
+                    LEFT JOIN cat_coins ON h.coin_id = cat_coins.coin_id
+                    LEFT JOIN cats ON cat_coins.asset_id = cats.asset_id
+                    LEFT JOIN did_coins ON h.coin_id = did_coins.coin_id
+                    LEFT JOIN dids ON did_coins.coin_id = dids.coin_id
+                    LEFT JOIN nft_coins ON h.coin_id = nft_coins.coin_id
+                    LEFT JOIN nfts ON nft_coins.coin_id = nfts.coin_id
+                WHERE 1=1
+        ",
+    );
+
+    if let Some(value) = &find_value {
+        // Check if searching for XCH (matches "x", "xc", or "xch")
+        let should_filter_xch = if value.len() <= 3 {
+            let value_lower = value.to_lowercase();
+            value_lower == "x" || value_lower == "xc" || value_lower == "xch"
+        } else {
+            false
+        };
+
+        query.push(" AND (");
+
+        if should_filter_xch {
+            // XCH coins have kind = 1 (standard P2 coins)
+            query.push("kind = 1 OR ");
+        }
+
+        query
+            .push("ticker LIKE ")
+            .push_bind(format!("%{value}%"))
+            .push(" OR cats.name LIKE ")
+            .push_bind(format!("%{value}%"))
+            .push(" OR dids.name LIKE ")
+            .push_bind(format!("%{value}%"))
+            .push(" OR nfts.name LIKE ")
+            .push_bind(format!("%{value}%"))
+            .push(")");
+    }
+
+    query.push(
+        "
+        ),
+        paged_heights AS (
+            SELECT 
+                height,
+                COUNT(*) OVER() as total_count
+            FROM joined_coin_states
+            ORDER BY height ",
+    );
+    query.push(if asc { "ASC" } else { "DESC" });
+    query.push(" LIMIT ? OFFSET ? )");
+
+    query.push("
+        SELECT 
+            paged_heights.total_count as total_tx_count,
+            cs.coin_id,  
+            cs.kind, 
+            cs.created_height,
+            cs.spent_height,
+            parent_coin_id, 
+            puzzle_hash, 
+            amount,
+            transaction_id, 
+            kind,
+            created_unixtime, 
+            spent_unixtime,
+            COALESCE (cat_coins.p2_puzzle_hash, did_coins.p2_puzzle_hash, nft_coins.p2_puzzle_hash, puzzle_hash) AS address,
+            COALESCE (cat_coins.parent_parent_coin_id, did_coins.parent_parent_coin_id, nft_coins.parent_parent_coin_id, NULL) AS parent_parent_coin_id,
+            COALESCE (cat_coins.parent_inner_puzzle_hash, did_coins.parent_inner_puzzle_hash, nft_coins.parent_inner_puzzle_hash, NULL) AS parent_inner_puzzle_hash,
+            COALESCE (cat_coins.parent_amount, did_coins.parent_amount, nft_coins.parent_amount, NULL) AS parent_amount,
+            COALESCE (cats.visible, nfts.visible, dids.visible, NULL) AS visible,
+            COALESCE (cats.name, nfts.name, dids.name, NULL) AS name,
+            HEX(COALESCE (cats.asset_id, nfts.launcher_id, dids.launcher_id, NULL)) AS item_id,
+            COALESCE (nft_coins.metadata, did_coins.metadata, NULL) AS metadata,
+            COALESCE (nfts.is_owned, dids.is_owned, NULL) AS is_owned,
+            cats.ticker,
+            cats.description,
+            cats.icon,
+            cats.fetched,
+            nft_coins.metadata_updater_puzzle_hash,
+            nft_coins.current_owner,
+            nft_coins.royalty_puzzle_hash,
+            nft_coins.royalty_ten_thousandths,
+            nfts.collection_id,
+            nfts.minter_did,
+            nfts.owner_did,
+            nfts.sensitive_content,
+            nfts.is_named,
+            nfts.is_pending,
+            nfts.metadata_hash,
+            did_coins.recovery_list_hash,
+            did_coins.num_verifications_required
+        FROM coin_states cs
+            LEFT JOIN cat_coins ON cs.coin_id = cat_coins.coin_id
+            LEFT JOIN cats ON cat_coins.asset_id = cats.asset_id
+            LEFT JOIN did_coins ON cs.coin_id = did_coins.coin_id
+            LEFT JOIN dids ON did_coins.coin_id = dids.coin_id
+            LEFT JOIN nft_coins ON cs.coin_id = nft_coins.coin_id
+            LEFT JOIN nfts ON nft_coins.coin_id = nfts.coin_id
+            INNER JOIN paged_heights ON (cs.created_height = paged_heights.height OR cs.spent_height = paged_heights.height)    
+    ");
+    let built_query = query.build();
+    let rows = built_query.bind(limit).bind(offset).fetch_all(conn).await?;
+
+    let total: u32 = rows.first().unwrap().try_get("total_count")?;
+
+    Ok((rows, total))
 }
 
 async fn get_block_heights(
