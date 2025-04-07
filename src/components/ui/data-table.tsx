@@ -35,6 +35,7 @@ interface DataTableProps<TData, TValue> {
     maxRows?: number;
   };
   onSortingChange?: OnChangeFn<SortingState>;
+  onRowSelectionChange?: OnChangeFn<Record<string, boolean>>;
   getRowStyles?: (row: Row<TData>) => {
     className?: string;
     onClick?: () => void;
@@ -50,6 +51,7 @@ export function DataTable<TData, TValue>({
   data,
   state,
   onSortingChange,
+  onRowSelectionChange,
   getRowStyles,
   getRowId,
   showTotalRows = true,
@@ -61,6 +63,7 @@ export function DataTable<TData, TValue>({
     columns,
     state,
     onSortingChange,
+    onRowSelectionChange,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getRowId,

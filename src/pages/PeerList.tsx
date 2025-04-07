@@ -485,6 +485,7 @@ export default function PeerList() {
                 state={{
                   rowSelection,
                 }}
+                onRowSelectionChange={setRowSelection}
                 showTotalRows={false}
               />
             )}
@@ -555,6 +556,7 @@ export default function PeerList() {
                       ),
                     ).then(() => {
                       setPeerToDelete(null);
+                      setRowSelection({});
                       updatePeers();
                     });
                   }
