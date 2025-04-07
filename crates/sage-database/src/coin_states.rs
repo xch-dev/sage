@@ -451,32 +451,32 @@ async fn get_transaction_coins(
 ) -> Result<(Vec<SqliteRow>, u32)> {
     let mut query = sqlx::QueryBuilder::new(
         "
-            WITH coin_states_with_heights AS (
-                SELECT 
-                    cs.coin_id,
-                    cs.created_height as height
-                FROM coin_states cs
-                WHERE cs.created_height IS NOT NULL
-                
-                UNION ALL
-                
-                SELECT 
-                    cs.coin_id,
-                    cs.spent_height as height
-                FROM coin_states cs
-                WHERE cs.spent_height IS NOT NULL
-            ),
-            joined_coin_states AS (
-                SELECT 
-                    DISTINCT h.height
-                FROM coin_states_with_heights h
-                    LEFT JOIN cat_coins ON h.coin_id = cat_coins.coin_id
-                    LEFT JOIN cats ON cat_coins.asset_id = cats.asset_id
-                    LEFT JOIN did_coins ON h.coin_id = did_coins.coin_id
-                    LEFT JOIN dids ON did_coins.coin_id = dids.coin_id
-                    LEFT JOIN nft_coins ON h.coin_id = nft_coins.coin_id
-                    LEFT JOIN nfts ON nft_coins.coin_id = nfts.coin_id
-                WHERE 1=1
+        WITH coin_states_with_heights AS (
+            SELECT 
+                cs.coin_id,
+                cs.created_height as height
+            FROM coin_states cs
+            WHERE cs.created_height IS NOT NULL
+            
+            UNION ALL
+            
+            SELECT 
+                cs.coin_id,
+                cs.spent_height as height
+            FROM coin_states cs
+            WHERE cs.spent_height IS NOT NULL
+        ),
+        joined_coin_states AS (
+            SELECT 
+                DISTINCT h.height
+            FROM coin_states_with_heights h
+                LEFT JOIN cat_coins ON h.coin_id = cat_coins.coin_id
+                LEFT JOIN cats ON cat_coins.asset_id = cats.asset_id
+                LEFT JOIN did_coins ON h.coin_id = did_coins.coin_id
+                LEFT JOIN dids ON did_coins.coin_id = dids.coin_id
+                LEFT JOIN nft_coins ON h.coin_id = nft_coins.coin_id
+                LEFT JOIN nfts ON nft_coins.coin_id = nfts.coin_id
+            WHERE 1=1
         ",
     );
 
@@ -523,43 +523,19 @@ async fn get_transaction_coins(
 
     query.push("
         SELECT 
-            paged_heights.total_count AS total_count,
+            paged_heights.total_count,
             'created' AS action_type,
+            cs.created_height AS height,
+            created_unixtime AS unixtime, 
             cs.coin_id,  
             cs.kind, 
-            cs.created_height AS height,
-            parent_coin_id, 
-            puzzle_hash, 
             amount,
-            transaction_id, 
-            kind,
-            created_unixtime AS unixtime, 
             COALESCE (cat_coins.p2_puzzle_hash, did_coins.p2_puzzle_hash, nft_coins.p2_puzzle_hash, puzzle_hash) AS p2_puzzle_hash,
-            COALESCE (cat_coins.parent_parent_coin_id, did_coins.parent_parent_coin_id, nft_coins.parent_parent_coin_id, NULL) AS parent_parent_coin_id,
-            COALESCE (cat_coins.parent_inner_puzzle_hash, did_coins.parent_inner_puzzle_hash, nft_coins.parent_inner_puzzle_hash, NULL) AS parent_inner_puzzle_hash,
-            COALESCE (cat_coins.parent_amount, did_coins.parent_amount, nft_coins.parent_amount, NULL) AS parent_amount,
-            COALESCE (cats.visible, nfts.visible, dids.visible, NULL) AS visible,
             COALESCE (cats.name, nfts.name, dids.name, NULL) AS name,
             COALESCE (cats.asset_id, nfts.launcher_id, dids.launcher_id, NULL) AS item_id,
-            COALESCE (nft_coins.metadata, did_coins.metadata, NULL) AS metadata,
-            COALESCE (nfts.is_owned, dids.is_owned, NULL) AS is_owned,
+            nft_coins.metadata AS nft_metadata,
             cats.ticker,
-            cats.description,
-            cats.icon,
-            cats.fetched,
-            nft_coins.metadata_updater_puzzle_hash,
-            nft_coins.current_owner,
-            nft_coins.royalty_puzzle_hash,
-            nft_coins.royalty_ten_thousandths,
-            nfts.collection_id,
-            nfts.minter_did,
-            nfts.owner_did,
-            nfts.sensitive_content,
-            nfts.is_named,
-            nfts.is_pending,
-            nfts.metadata_hash,
-            did_coins.recovery_list_hash,
-            did_coins.num_verifications_required
+            cats.icon
         FROM coin_states cs
             INNER JOIN paged_heights ON cs.created_height = paged_heights.height
             LEFT JOIN cat_coins ON cs.coin_id = cat_coins.coin_id
@@ -572,43 +548,19 @@ async fn get_transaction_coins(
         UNION ALL 
 
         SELECT 
-            paged_heights.total_count AS total_count,
+            paged_heights.total_count,
             'spent' AS action_type,
+            cs.spent_height AS height,
+            spent_unixtime AS unixtime, 
             cs.coin_id,  
             cs.kind, 
-            cs.spent_height AS height,
-            parent_coin_id, 
-            puzzle_hash, 
             amount,
-            transaction_id, 
-            kind,
-            spent_unixtime AS unixtime,
             COALESCE (cat_coins.p2_puzzle_hash, did_coins.p2_puzzle_hash, nft_coins.p2_puzzle_hash, puzzle_hash) AS p2_puzzle_hash,
-            COALESCE (cat_coins.parent_parent_coin_id, did_coins.parent_parent_coin_id, nft_coins.parent_parent_coin_id, NULL) AS parent_parent_coin_id,
-            COALESCE (cat_coins.parent_inner_puzzle_hash, did_coins.parent_inner_puzzle_hash, nft_coins.parent_inner_puzzle_hash, NULL) AS parent_inner_puzzle_hash,
-            COALESCE (cat_coins.parent_amount, did_coins.parent_amount, nft_coins.parent_amount, NULL) AS parent_amount,
-            COALESCE (cats.visible, nfts.visible, dids.visible, NULL) AS visible,
             COALESCE (cats.name, nfts.name, dids.name, NULL) AS name,
             COALESCE (cats.asset_id, nfts.launcher_id, dids.launcher_id, NULL) AS item_id,
-            COALESCE (nft_coins.metadata, did_coins.metadata, NULL) AS metadata,
-            COALESCE (nfts.is_owned, dids.is_owned, NULL) AS is_owned,
+            nft_coins.metadata AS nft_metadata,
             cats.ticker,
-            cats.description,
-            cats.icon,
-            cats.fetched,
-            nft_coins.metadata_updater_puzzle_hash,
-            nft_coins.current_owner,
-            nft_coins.royalty_puzzle_hash,
-            nft_coins.royalty_ten_thousandths,
-            nfts.collection_id,
-            nfts.minter_did,
-            nfts.owner_did,
-            nfts.sensitive_content,
-            nfts.is_named,
-            nfts.is_pending,
-            nfts.metadata_hash,
-            did_coins.recovery_list_hash,
-            did_coins.num_verifications_required
+            cats.icon
         FROM coin_states cs
             INNER JOIN paged_heights ON cs.spent_height = paged_heights.height
             LEFT JOIN cat_coins ON cs.coin_id = cat_coins.coin_id
@@ -616,8 +568,7 @@ async fn get_transaction_coins(
             LEFT JOIN did_coins ON cs.coin_id = did_coins.coin_id
             LEFT JOIN dids ON did_coins.coin_id = dids.coin_id
             LEFT JOIN nft_coins ON cs.coin_id = nft_coins.coin_id
-            LEFT JOIN nfts ON nft_coins.coin_id = nfts.coin_id
-    ");
+            LEFT JOIN nfts ON nft_coins.coin_id = nfts.coin_id");
     let built_query = query.build();
     let rows = built_query.bind(limit).bind(offset).fetch_all(conn).await?;
 

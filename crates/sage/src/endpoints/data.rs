@@ -373,9 +373,8 @@ impl Sage {
             // Process each group by height
             let height_u32: u32 = height.try_into().unwrap_or_default();
             let timestamp: Option<u32> = coins.first().unwrap().try_get("unixtime")?;
-
             let transaction_record = self
-                .transaction_record(&wallet.db, height_u32, timestamp, coins)
+                .transaction_record(height_u32, timestamp, coins)
                 .await?;
 
             transactions.push(transaction_record);
@@ -875,11 +874,7 @@ impl Sage {
             .map_err(|_| Error::Database(DatabaseError::InvalidLength(slice.len(), N)))
     }
 
-    async fn transaction_coin(
-        &self,
-        db: &Database,
-        transaction_coin: SqliteRow,
-    ) -> Result<TransactionCoin> {
+    async fn transaction_coin(&self, transaction_coin: SqliteRow) -> Result<TransactionCoin> {
         let coin_id: Option<Bytes32> = Self::to_bytes32_opt(transaction_coin.get("coin_id"));
         let kind_int: i64 = transaction_coin.get("kind");
         let coin_kind = CoinKind::from_i64(kind_int);
@@ -948,7 +943,6 @@ impl Sage {
 
     async fn transaction_record(
         &self,
-        db: &Database,
         height: u32,
         timestamp: Option<u32>,
         coins: Vec<SqliteRow>,
@@ -958,7 +952,7 @@ impl Sage {
 
         for coin in coins {
             let action: String = coin.get("action_type");
-            let transaction_coin = self.transaction_coin(&db, coin).await?;
+            let transaction_coin = self.transaction_coin(coin).await?;
 
             if action == "spent" {
                 spent.push(transaction_coin);
