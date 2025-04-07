@@ -155,12 +155,6 @@ async getPendingTransactions(req: GetPendingTransactions) : Promise<GetPendingTr
 async getTransactions(req: GetTransactions) : Promise<GetTransactionsResponse> {
     return await TAURI_INVOKE("get_transactions", { req });
 },
-async getTransactionsByItemId(req: GetTransactionsByItemId) : Promise<GetTransactionsByItemIdResponse> {
-    return await TAURI_INVOKE("get_transactions_by_item_id", { req });
-},
-async getTransaction(req: GetTransaction) : Promise<GetTransactionResponse> {
-    return await TAURI_INVOKE("get_transaction", { req });
-},
 async validateAddress(address: string) : Promise<boolean> {
     return await TAURI_INVOKE("validate_address", { address });
 },
@@ -408,11 +402,7 @@ export type GetSecretKey = { fingerprint: number }
 export type GetSecretKeyResponse = { secrets: SecretKeyInfo | null }
 export type GetSyncStatus = Record<string, never>
 export type GetSyncStatusResponse = { balance: Amount; unit: Unit; synced_coins: number; total_coins: number; receive_address: string; burn_address: string; unhardened_derivation_index: number; hardened_derivation_index: number }
-export type GetTransaction = { height: number }
-export type GetTransactionResponse = { transaction: TransactionRecord }
 export type GetTransactions = { offset: number; limit: number; ascending: boolean; find_value: string | null }
-export type GetTransactionsByItemId = { offset: number; limit: number; ascending: boolean; id: string | null }
-export type GetTransactionsByItemIdResponse = { transactions: TransactionRecord[]; total: number }
 export type GetTransactionsResponse = { transactions: TransactionRecord[]; total: number }
 export type GetXchCoins = { offset: number; limit: number; sort_mode?: CoinSortMode; ascending?: boolean; include_spent_coins?: boolean }
 export type GetXchCoinsResponse = { coins: CoinRecord[]; total: number }
