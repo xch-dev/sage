@@ -746,11 +746,11 @@ impl Sage {
             }
         };
 
-        // let address_kind = if let Some(p2_puzzle_hash) = p2_puzzle_hash {
-        //     self.address_kind(db, p2_puzzle_hash).await?
-        // } else {
-        //     AddressKind::Unknown
-        // };
+        let address_kind = if let Some(p2_puzzle_hash) = p2_puzzle_hash {
+            self.address_kind(transaction_coin, p2_puzzle_hash).await?
+        } else {
+            AddressKind::Unknown
+        };
 
         Ok(TransactionCoin {
             coin_id: coin_id.map_or_else(String::new, |id| hex::encode(id)),
@@ -759,7 +759,7 @@ impl Sage {
                     Address::new(p2_puzzle_hash, self.network().prefix()).encode()
                 })
                 .transpose()?,
-            address_kind: AddressKind::Unknown,
+            address_kind,
             amount: Amount::u64(Self::to_u64(&amount)?),
             kind,
         })
@@ -810,7 +810,11 @@ impl Sage {
             .map_err(|_| Error::Database(DatabaseError::InvalidLength(slice.len(), N)))
     }
 
-    async fn address_kind(&self, db: &Database, p2_puzzle_hash: Bytes32) -> Result<AddressKind> {
+    async fn address_kind(
+        &self,
+        transaction_coin: SqliteRow,
+        p2_puzzle_hash: Bytes32,
+    ) -> Result<AddressKind> {
         if p2_puzzle_hash == BURN_PUZZLE_HASH.into() {
             return Ok(AddressKind::Burn);
         } else if p2_puzzle_hash == SINGLETON_LAUNCHER_HASH.into() {
@@ -819,7 +823,8 @@ impl Sage {
             return Ok(AddressKind::Offer);
         }
 
-        Ok(if db.is_p2_puzzle_hash(p2_puzzle_hash).await? {
+        let derivation_count: Option<u32> = transaction_coin.get("derivation_count");
+        Ok(if derivation_count.is_some_and(|count| count > 0) {
             AddressKind::Own
         } else {
             AddressKind::External

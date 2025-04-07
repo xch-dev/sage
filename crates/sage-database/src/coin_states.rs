@@ -536,7 +536,10 @@ async fn get_transaction_coins(
             COALESCE (cats.asset_id, nfts.launcher_id, dids.launcher_id, NULL) AS item_id,
             nft_coins.metadata AS nft_metadata,
             cats.ticker,
-            cats.icon
+            cats.icon,
+            (SELECT COUNT(*)
+                FROM derivations d 
+                WHERE d.p2_puzzle_hash = COALESCE(cat_coins.p2_puzzle_hash, did_coins.p2_puzzle_hash, nft_coins.p2_puzzle_hash, cs.puzzle_hash)) AS derivation_count
         FROM coin_states cs
             INNER JOIN paged_heights ON cs.created_height = paged_heights.height
             LEFT JOIN cat_coins ON cs.coin_id = cat_coins.coin_id
@@ -561,7 +564,10 @@ async fn get_transaction_coins(
             COALESCE (cats.asset_id, nfts.launcher_id, dids.launcher_id, NULL) AS item_id,
             nft_coins.metadata AS nft_metadata,
             cats.ticker,
-            cats.icon
+            cats.icon,
+            (SELECT COUNT(*)
+                FROM derivations d 
+                WHERE d.p2_puzzle_hash = COALESCE(cat_coins.p2_puzzle_hash, did_coins.p2_puzzle_hash, nft_coins.p2_puzzle_hash, cs.puzzle_hash)) AS derivation_count
         FROM coin_states cs
             INNER JOIN paged_heights ON cs.spent_height = paged_heights.height
             LEFT JOIN cat_coins ON cs.coin_id = cat_coins.coin_id
