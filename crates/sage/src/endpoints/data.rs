@@ -1,6 +1,7 @@
 use crate::{
-    parse_asset_id, parse_collection_id, parse_did_id, parse_nft_id, Error, Result, Sage,
-    BURN_PUZZLE_HASH,
+    parse_asset_id, parse_collection_id, parse_did_id, parse_nft_id,
+    utils::{to_bytes32_opt, to_u64},
+    Error, Result, Sage, BURN_PUZZLE_HASH,
 };
 use base64::{prelude::BASE64_STANDARD, Engine};
 use chia::{
@@ -25,9 +26,7 @@ use sage_api::{
     NftCollectionRecord, NftData, NftRecord, NftSortMode as ApiNftSortMode,
     PendingTransactionRecord, TransactionCoin, TransactionRecord,
 };
-use sage_database::{
-    CoinKind, CoinSortMode, Database, DatabaseError, NftGroup, NftRow, NftSearchParams, NftSortMode,
-};
+use sage_database::{CoinKind, CoinSortMode, NftGroup, NftRow, NftSearchParams, NftSortMode};
 use sage_wallet::WalletError;
 use sqlx::{sqlite::SqliteRow, Row};
 
@@ -699,13 +698,13 @@ impl Sage {
     }
 
     async fn transaction_coin(&self, transaction_coin: SqliteRow) -> Result<TransactionCoin> {
-        let coin_id: Option<Bytes32> = Self::to_bytes32_opt(transaction_coin.get("coin_id"));
+        let coin_id: Option<Bytes32> = to_bytes32_opt(transaction_coin.get("coin_id"));
         let kind_int: i64 = transaction_coin.get("kind");
         let coin_kind = CoinKind::from_i64(kind_int);
         let p2_puzzle_hash: Option<Bytes32> =
-            Self::to_bytes32_opt(transaction_coin.get("p2_puzzle_hash"));
+            to_bytes32_opt(transaction_coin.get("p2_puzzle_hash"));
         let name: Option<String> = transaction_coin.get("name");
-        let item_id: Option<Bytes32> = Self::to_bytes32_opt(transaction_coin.get("item_id"));
+        let item_id: Option<Bytes32> = to_bytes32_opt(transaction_coin.get("item_id"));
         let amount: Vec<u8> = transaction_coin.get("amount");
 
         let kind = match coin_kind {
@@ -760,7 +759,7 @@ impl Sage {
                 })
                 .transpose()?,
             address_kind,
-            amount: Amount::u64(Self::to_u64(&amount)?),
+            amount: Amount::u64(to_u64(&amount)?),
             kind,
         })
     }
@@ -791,23 +790,6 @@ impl Sage {
             spent,
             created,
         })
-    }
-
-    fn to_bytes32_opt(bytes: Option<Vec<u8>>) -> Option<Bytes32> {
-        bytes.map(|b| {
-            let array: [u8; 32] = b.try_into().unwrap_or_default();
-            array.into()
-        })
-    }
-
-    fn to_u64(slice: &[u8]) -> Result<u64> {
-        Ok(u64::from_be_bytes(Self::to_bytes::<8>(slice)?))
-    }
-
-    pub fn to_bytes<const N: usize>(slice: &[u8]) -> Result<[u8; N]> {
-        slice
-            .try_into()
-            .map_err(|_| Error::Database(DatabaseError::InvalidLength(slice.len(), N)))
     }
 
     async fn address_kind(
