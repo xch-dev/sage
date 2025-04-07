@@ -175,7 +175,7 @@ export function Transactions() {
         pageSize={pageSize}
         onPageChange={(newPage) => handlePageChange(newPage, compact)}
         onPageSizeChange={(newSize) => handlePageSizeChange(newSize, compact)}
-        pageSizeOptions={[10, 25, 50]}
+        pageSizeOptions={[10, 25, 50, 100, 250, 500]}
         compact={compact}
         isLoading={isLoading || isPaginationLoading}
       />

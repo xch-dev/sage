@@ -355,18 +355,27 @@ impl Sage {
             .await?;
 
         // Group transaction coins by height
-        let grouped_coins = transaction_coins
+        let mut grouped_coins = transaction_coins
             .into_iter()
             .chunk_by(|row: &SqliteRow| row.get::<i64, _>("height"))
             .into_iter()
             .map(|(height, group)| (height, group.collect::<Vec<_>>()))
             .collect::<Vec<_>>();
 
+        // Sort grouped_coins by height
+        if req.ascending {
+            grouped_coins.sort_by_key(|(height, _)| *height);
+        } else {
+            grouped_coins.sort_by_key(|(height, _)| std::cmp::Reverse(*height));
+        }
+
         for (height, coins) in grouped_coins {
             // Process each group by height
             let height_u32: u32 = height.try_into().unwrap_or_default();
+            let timestamp: Option<u32> = coins.first().unwrap().try_get("unixtime")?;
+
             let transaction_record = self
-                .transaction_record(&wallet.db, height_u32, coins)
+                .transaction_record(&wallet.db, height_u32, timestamp, coins)
                 .await?;
 
             transactions.push(transaction_record);
@@ -918,11 +927,11 @@ impl Sage {
             }
         };
 
-        let address_kind = if let Some(p2_puzzle_hash) = p2_puzzle_hash {
-            self.address_kind(db, p2_puzzle_hash).await?
-        } else {
-            AddressKind::Unknown
-        };
+        // let address_kind = if let Some(p2_puzzle_hash) = p2_puzzle_hash {
+        //     self.address_kind(db, p2_puzzle_hash).await?
+        // } else {
+        //     AddressKind::Unknown
+        // };
 
         Ok(TransactionCoin {
             coin_id: coin_id.map_or_else(String::new, |id| hex::encode(id)),
@@ -931,7 +940,7 @@ impl Sage {
                     Address::new(p2_puzzle_hash, self.network().prefix()).encode()
                 })
                 .transpose()?,
-            address_kind,
+            address_kind: AddressKind::Unknown,
             amount: Amount::u64(Self::to_u64(&amount)?),
             kind,
         })
@@ -941,6 +950,7 @@ impl Sage {
         &self,
         db: &Database,
         height: u32,
+        timestamp: Option<u32>,
         coins: Vec<SqliteRow>,
     ) -> Result<TransactionRecord> {
         let mut spent = Vec::new();
@@ -956,11 +966,10 @@ impl Sage {
                 created.push(transaction_coin);
             }
         }
-        let timestamp = db.check_blockinfo(height).await?;
 
         Ok(TransactionRecord {
             height,
-            timestamp: timestamp.map(TryInto::try_into).transpose()?,
+            timestamp,
             spent,
             created,
         })
