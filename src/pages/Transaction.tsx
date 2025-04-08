@@ -27,9 +27,20 @@ export default function Transaction() {
   );
 
   const updateTransaction = useCallback(() => {
-    commands.getTransaction({ height: Number(height) }).then((data) => {
-      setTransaction(data.transaction);
-    });
+    commands
+      .getTransactions({
+        offset: 0,
+        limit: 1,
+        ascending: true,
+        find_value: height ?? '',
+      })
+      .then((data) => {
+        if (data.transactions.length > 0) {
+          setTransaction(data.transactions[0]);
+        } else {
+          setTransaction(null);
+        }
+      });
   }, [height]);
 
   useEffect(() => {
