@@ -579,6 +579,10 @@ async fn get_transaction_coins(
     let built_query = query.build();
     let rows = built_query.bind(limit).bind(offset).fetch_all(conn).await?;
 
+    if rows.is_empty() {
+        return Ok((vec![], 0));
+    }
+
     let total: u32 = rows.first().unwrap().try_get("total_count")?;
 
     Ok((rows, total))
