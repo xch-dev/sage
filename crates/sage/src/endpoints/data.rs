@@ -716,7 +716,7 @@ impl Sage {
                         asset_id: hex::encode(item_id),
                         name,
                         ticker: transaction_coin.get("ticker"),
-                        icon_url: transaction_coin.get("icon"),
+                        icon_url: transaction_coin.get("cat_icon_url"),
                     }
                 } else {
                     AssetKind::Unknown
@@ -724,10 +724,12 @@ impl Sage {
             }
             CoinKind::Nft => {
                 if let Some(item_id) = item_id {
+                    let icon: Option<Vec<u8>> = transaction_coin.get("nft_icon");
+
                     AssetKind::Nft {
                         launcher_id: Address::new(item_id, "nft".to_string()).encode()?,
                         name,
-                        icon: None, // icon.map(|icon| BASE64_STANDARD.encode(icon)),
+                        icon: icon.map(|icon| BASE64_STANDARD.encode(icon)),
                     }
                 } else {
                     AssetKind::Unknown

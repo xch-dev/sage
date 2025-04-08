@@ -536,7 +536,8 @@ async fn get_transaction_coins(
             COALESCE (cats.asset_id, nfts.launcher_id, dids.launcher_id, NULL) AS item_id,
             nft_coins.metadata AS nft_metadata,
             cats.ticker,
-            cats.icon,
+            cats.icon AS cat_icon_url,
+            nft_thumbnails.icon AS nft_icon,
             (SELECT COUNT(*)
                 FROM derivations d 
                 WHERE d.p2_puzzle_hash = COALESCE(cat_coins.p2_puzzle_hash, did_coins.p2_puzzle_hash, nft_coins.p2_puzzle_hash, cs.puzzle_hash)) AS derivation_count
@@ -548,6 +549,7 @@ async fn get_transaction_coins(
             LEFT JOIN dids ON did_coins.coin_id = dids.coin_id
             LEFT JOIN nft_coins ON cs.coin_id = nft_coins.coin_id
             LEFT JOIN nfts ON nft_coins.coin_id = nfts.coin_id
+	        LEFT JOIN nft_thumbnails ON nft_coins.data_hash = nft_thumbnails.hash
 
         UNION ALL 
 
@@ -564,7 +566,8 @@ async fn get_transaction_coins(
             COALESCE (cats.asset_id, nfts.launcher_id, dids.launcher_id, NULL) AS item_id,
             nft_coins.metadata AS nft_metadata,
             cats.ticker,
-            cats.icon,
+            cats.icon AS cat_icon_url,
+            nft_thumbnails.icon AS nft_icon,
             (SELECT COUNT(*)
                 FROM derivations d 
                 WHERE d.p2_puzzle_hash = COALESCE(cat_coins.p2_puzzle_hash, did_coins.p2_puzzle_hash, nft_coins.p2_puzzle_hash, cs.puzzle_hash)) AS derivation_count
@@ -575,7 +578,8 @@ async fn get_transaction_coins(
             LEFT JOIN did_coins ON cs.coin_id = did_coins.coin_id
             LEFT JOIN dids ON did_coins.coin_id = dids.coin_id
             LEFT JOIN nft_coins ON cs.coin_id = nft_coins.coin_id
-            LEFT JOIN nfts ON nft_coins.coin_id = nfts.coin_id");
+            LEFT JOIN nfts ON nft_coins.coin_id = nfts.coin_id
+            LEFT JOIN nft_thumbnails ON nft_coins.data_hash = nft_thumbnails.hash");
     let built_query = query.build();
     let rows = built_query.bind(limit).bind(offset).fetch_all(conn).await?;
 
