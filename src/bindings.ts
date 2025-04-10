@@ -110,6 +110,15 @@ async checkAddress(req: CheckAddress) : Promise<CheckAddressResponse> {
 async getDerivations(req: GetDerivations) : Promise<GetDerivationsResponse> {
     return await TAURI_INVOKE("get_derivations", { req });
 },
+async getAreCoinsSpendable(req: GetAreCoinsSpendable) : Promise<GetAreCoinsSpendableResponse> {
+    return await TAURI_INVOKE("get_are_coins_spendable", { req });
+},
+async getSpendableCoinCount(req: GetSpendableCoinCount) : Promise<GetSpendableCoinCountResponse> {
+    return await TAURI_INVOKE("get_spendable_coin_count", { req });
+},
+async getCoinsByIds(req: GetCoinsByIds) : Promise<GetCoinsByIdsResponse> {
+    return await TAURI_INVOKE("get_coins_by_ids", { req });
+},
 async getXchCoins(req: GetXchCoins) : Promise<GetXchCoinsResponse> {
     return await TAURI_INVOKE("get_xch_coins", { req });
 },
@@ -362,6 +371,8 @@ export type FilterUnlockedCoins = { coin_ids: string[] }
 export type FilterUnlockedCoinsResponse = { coin_ids: string[] }
 export type GenerateMnemonic = { use_24_words: boolean }
 export type GenerateMnemonicResponse = { mnemonic: string }
+export type GetAreCoinsSpendable = { coin_ids: string[] }
+export type GetAreCoinsSpendableResponse = { spendable: boolean }
 export type GetAssetCoins = { type?: AssetCoinType | null; assetId?: string | null; includedLocked?: boolean | null; offset?: number | null; limit?: number | null }
 export type GetCat = { asset_id: string }
 export type GetCatCoins = { asset_id: string; offset: number; limit: number; sort_mode?: CoinSortMode; ascending?: boolean; include_spent_coins?: boolean }
@@ -369,6 +380,8 @@ export type GetCatCoinsResponse = { coins: CoinRecord[]; total: number }
 export type GetCatResponse = { cat: CatRecord | null }
 export type GetCats = Record<string, never>
 export type GetCatsResponse = { cats: CatRecord[] }
+export type GetCoinsByIds = { coin_ids: string[] }
+export type GetCoinsByIdsResponse = { coins: CoinRecord[] }
 export type GetDerivations = { hardened?: boolean; offset: number; limit: number }
 export type GetDerivationsResponse = { derivations: DerivationRecord[]; total: number }
 export type GetDids = Record<string, never>
@@ -406,6 +419,8 @@ export type GetPendingTransactions = Record<string, never>
 export type GetPendingTransactionsResponse = { transactions: PendingTransactionRecord[] }
 export type GetSecretKey = { fingerprint: number }
 export type GetSecretKeyResponse = { secrets: SecretKeyInfo | null }
+export type GetSpendableCoinCount = { asset_id: string }
+export type GetSpendableCoinCountResponse = { count: number }
 export type GetSyncStatus = Record<string, never>
 export type GetSyncStatusResponse = { balance: Amount; unit: Unit; synced_coins: number; total_coins: number; receive_address: string; burn_address: string; unhardened_derivation_index: number; hardened_derivation_index: number }
 export type GetTransaction = { height: number }

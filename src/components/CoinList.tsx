@@ -1,7 +1,12 @@
 import { formatTimestamp, fromMojos } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import { ColumnDef, Row, RowSelectionState } from '@tanstack/react-table';
+import {
+  ColumnDef,
+  OnChangeFn,
+  Row,
+  RowSelectionState,
+} from '@tanstack/react-table';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { ArrowDown, ArrowUp, FilterIcon, FilterXIcon } from 'lucide-react';
 import { CoinRecord, CoinSortMode } from '../bindings';
@@ -10,12 +15,14 @@ import { SimplePagination } from './SimplePagination';
 import { Button } from './ui/button';
 import { Checkbox } from './ui/checkbox';
 import { DataTable } from './ui/data-table';
+import { useMemo } from 'react';
 
 export interface CoinListProps {
   precision: number;
   coins: CoinRecord[];
   selectedCoins: RowSelectionState;
   setSelectedCoins: React.Dispatch<React.SetStateAction<RowSelectionState>>;
+  onRowSelectionChange?: OnChangeFn<RowSelectionState>;
   currentPage: number;
   totalPages: number;
   setCurrentPage: (page: number) => void;
@@ -43,22 +50,9 @@ export default function CoinList(props: CoinListProps) {
               table.getIsAllPageRowsSelected() ||
               (table.getIsSomePageRowsSelected() && 'indeterminate')
             }
-            onCheckedChange={(value) => {
-              table.toggleAllPageRowsSelected(!!value);
-
-              // Update the external selection state
-              const newSelections = { ...props.selectedCoins };
-
-              // Get all visible rows on the current page
-              const pageRows = table.getRowModel().rows;
-
-              pageRows.forEach((row) => {
-                const rowId = row.original.coin_id;
-                newSelections[rowId] = !!value;
-              });
-
-              props.setSelectedCoins(newSelections);
-            }}
+            onCheckedChange={(value) =>
+              table.toggleAllPageRowsSelected(!!value)
+            }
             aria-label={t`Select all coins`}
           />
         </div>
@@ -67,16 +61,7 @@ export default function CoinList(props: CoinListProps) {
         <div className='flex justify-center items-center'>
           <Checkbox
             checked={row.getIsSelected()}
-            onCheckedChange={(value) => {
-              row.toggleSelected(!!value);
-
-              // Update the external selection state
-              const rowId = row.original.coin_id;
-              props.setSelectedCoins((prev) => ({
-                ...prev,
-                [rowId]: !!value,
-              }));
-            }}
+            onCheckedChange={(value) => row.toggleSelected(!!value)}
             aria-label={t`Select coin row`}
           />
         </div>
@@ -298,30 +283,56 @@ export default function CoinList(props: CoinListProps) {
     const coin = row.original;
     const isSpent = !!coin.spent_height || !!coin.spend_transaction_id;
     const isPending = !coin.created_height;
+    const isSelected = row.getIsSelected();
 
     let className = '';
 
+    if (isSelected) {
+      className = 'bg-accent';
+    }
+
     if (isSpent) {
-      className = 'opacity-50 relative';
+      className += (className ? ' ' : '') + 'opacity-50 relative';
     } else if (isPending) {
-      className = 'font-medium';
+      className += (className ? ' ' : '') + 'font-medium';
     }
 
     return {
       className,
-      onClick: () => {
-        const newValue = !row.getIsSelected();
-        row.toggleSelected(newValue);
-
-        // Update the external selection state
-        const rowId = row.original.coin_id;
-        props.setSelectedCoins((prev) => ({
-          ...prev,
-          [rowId]: newValue,
-        }));
-      },
+      onClick: () => row.toggleSelected(!row.getIsSelected()),
     };
   };
+
+  // This function ensures row selection is preserved across page changes
+  const getRowId = (coin: CoinRecord) => coin.coin_id;
+
+  // Function to handle row selection changes
+  const handleRowSelectionChange: OnChangeFn<RowSelectionState> = (
+    updaterOrValue,
+  ) => {
+    if (typeof updaterOrValue === 'function') {
+      const updater = updaterOrValue as (
+        prev: RowSelectionState,
+      ) => RowSelectionState;
+      props.setSelectedCoins((prev) => updater(prev));
+    } else {
+      props.setSelectedCoins(updaterOrValue);
+    }
+  };
+
+  // Prepare selected state for current page
+  const syncSelectionWithCurrentPage = useMemo(() => {
+    const currentPageSelection: RowSelectionState = {};
+
+    // Mark rows on the current page as selected based on global selection state
+    props.coins.forEach((coin) => {
+      if (props.selectedCoins[coin.coin_id]) {
+        currentPageSelection[coin.coin_id] = true;
+      }
+    });
+
+    return currentPageSelection;
+  }, [props.coins, props.selectedCoins]);
 
   return (
     <div>
@@ -329,10 +340,12 @@ export default function CoinList(props: CoinListProps) {
         data={props.coins}
         columns={columns}
         getRowStyles={getRowStyles}
+        getRowId={getRowId}
         state={{
-          rowSelection: props.selectedCoins,
+          rowSelection: syncSelectionWithCurrentPage,
           maxRows: props.maxRows,
         }}
+        onRowSelectionChange={handleRowSelectionChange}
         rowLabel={t`coin`}
         rowLabelPlural={t`coins`}
       />

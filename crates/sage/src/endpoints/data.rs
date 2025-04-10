@@ -9,14 +9,16 @@ use chia_wallet_sdk::{driver::Nft, utils::Address};
 use clvmr::Allocator;
 use sage_api::{
     AddressKind, Amount, AssetKind, CatRecord, CheckAddress, CheckAddressResponse, CoinRecord,
-    CoinSortMode as ApiCoinSortMode, DerivationRecord, DidRecord, GetCat, GetCatCoins,
-    GetCatCoinsResponse, GetCatResponse, GetCats, GetCatsResponse, GetDerivations,
+    CoinSortMode as ApiCoinSortMode, DerivationRecord, DidRecord, GetAreCoinsSpendable,
+    GetAreCoinsSpendableResponse, GetCat, GetCatCoins, GetCatCoinsResponse, GetCatResponse,
+    GetCats, GetCatsResponse, GetCoinsByIds, GetCoinsByIdsResponse, GetDerivations,
     GetDerivationsResponse, GetDids, GetDidsResponse, GetMinterDidIds, GetMinterDidIdsResponse,
     GetNft, GetNftCollection, GetNftCollectionResponse, GetNftCollections,
     GetNftCollectionsResponse, GetNftData, GetNftDataResponse, GetNftIcon, GetNftIconResponse,
     GetNftResponse, GetNftThumbnail, GetNftThumbnailResponse, GetNfts, GetNftsResponse,
-    GetPendingTransactions, GetPendingTransactionsResponse, GetSyncStatus, GetSyncStatusResponse,
-    GetTransaction, GetTransactionResponse, GetTransactions, GetTransactionsByItemId,
+    GetPendingTransactions, GetPendingTransactionsResponse, GetSpendableCoinCount,
+    GetSpendableCoinCountResponse, GetSyncStatus, GetSyncStatusResponse, GetTransaction,
+    GetTransactionResponse, GetTransactions, GetTransactionsByItemId,
     GetTransactionsByItemIdResponse, GetTransactionsResponse, GetXchCoins, GetXchCoinsResponse,
     NftCollectionRecord, NftData, NftRecord, NftSortMode as ApiNftSortMode,
     PendingTransactionRecord, TransactionCoin, TransactionRecord,
@@ -96,6 +98,56 @@ impl Sage {
         Ok(GetDerivationsResponse { derivations, total })
     }
 
+    pub async fn get_are_coins_spendable(
+        &self,
+        req: GetAreCoinsSpendable,
+    ) -> Result<GetAreCoinsSpendableResponse> {
+        let wallet = self.wallet()?;
+        let spendable = wallet.db.get_are_coins_spendable(&req.coin_ids).await?;
+
+        Ok(GetAreCoinsSpendableResponse { spendable })
+    }
+
+    pub async fn get_spendable_coin_count(
+        &self,
+        req: GetSpendableCoinCount,
+    ) -> Result<GetSpendableCoinCountResponse> {
+        let wallet = self.wallet()?;
+        let count = if req.asset_id == "xch" {
+            wallet.db.spendable_p2_coin_count().await?
+        } else {
+            let asset_id = parse_asset_id(req.asset_id)?;
+
+            wallet.db.spendable_cat_coin_count(asset_id).await?
+        };
+
+        Ok(GetSpendableCoinCountResponse { count })
+    }
+
+    pub async fn get_coins_by_ids(&self, req: GetCoinsByIds) -> Result<GetCoinsByIdsResponse> {
+        let wallet = self.wallet()?;
+        let rows = wallet.db.coin_states_by_ids(&req.coin_ids).await?;
+        let mut coins = Vec::new();
+
+        for row in rows {
+            let cs = row.base.coin_state;
+
+            coins.push(CoinRecord {
+                coin_id: hex::encode(cs.coin.coin_id()),
+                address: Address::new(cs.coin.puzzle_hash, self.network().prefix()).encode()?,
+                amount: Amount::u64(cs.coin.amount),
+                created_height: cs.created_height,
+                spent_height: cs.spent_height,
+                create_transaction_id: row.base.transaction_id.map(hex::encode),
+                spend_transaction_id: row.spend_transaction_id.map(hex::encode),
+                offer_id: row.offer_id.map(hex::encode),
+                created_timestamp: row.base.created_timestamp,
+                spent_timestamp: row.base.spent_timestamp,
+            });
+        }
+        Ok(GetCoinsByIdsResponse { coins })
+    }
+
     pub async fn get_xch_coins(&self, req: GetXchCoins) -> Result<GetXchCoinsResponse> {
         let wallet = self.wallet()?;
         let sort_mode = match req.sort_mode {
@@ -117,19 +169,7 @@ impl Sage {
             .await?;
 
         for row in rows {
-            let cs = row.coin_state;
-
-            let spend_transaction_id = wallet
-                .db
-                .coin_transaction_id(cs.coin.coin_id())
-                .await?
-                .map(hex::encode);
-
-            let offer_id = wallet
-                .db
-                .coin_offer_id(cs.coin.coin_id())
-                .await?
-                .map(hex::encode);
+            let cs = row.base.coin_state;
 
             coins.push(CoinRecord {
                 coin_id: hex::encode(cs.coin.coin_id()),
@@ -137,11 +177,11 @@ impl Sage {
                 amount: Amount::u64(cs.coin.amount),
                 created_height: cs.created_height,
                 spent_height: cs.spent_height,
-                create_transaction_id: row.transaction_id.map(hex::encode),
-                spend_transaction_id,
-                offer_id,
-                created_timestamp: row.created_timestamp,
-                spent_timestamp: row.spent_timestamp,
+                create_transaction_id: row.base.transaction_id.map(hex::encode),
+                spend_transaction_id: row.spend_transaction_id.map(hex::encode),
+                offer_id: row.offer_id.map(hex::encode),
+                created_timestamp: row.base.created_timestamp,
+                spent_timestamp: row.base.spent_timestamp,
             });
         }
 
@@ -174,19 +214,7 @@ impl Sage {
             .await?;
 
         for row in rows {
-            let cs = row.coin_state;
-
-            let spend_transaction_id = wallet
-                .db
-                .coin_transaction_id(cs.coin.coin_id())
-                .await?
-                .map(hex::encode);
-
-            let offer_id = wallet
-                .db
-                .coin_offer_id(cs.coin.coin_id())
-                .await?
-                .map(hex::encode);
+            let cs = row.base.coin_state;
 
             coins.push(CoinRecord {
                 coin_id: hex::encode(cs.coin.coin_id()),
@@ -194,11 +222,11 @@ impl Sage {
                 amount: Amount::u64(cs.coin.amount),
                 created_height: cs.created_height,
                 spent_height: cs.spent_height,
-                create_transaction_id: row.transaction_id.map(hex::encode),
-                spend_transaction_id,
-                offer_id,
-                created_timestamp: row.created_timestamp,
-                spent_timestamp: row.spent_timestamp,
+                create_transaction_id: row.base.transaction_id.map(hex::encode),
+                spend_transaction_id: row.spend_transaction_id.map(hex::encode),
+                offer_id: row.offer_id.map(hex::encode),
+                created_timestamp: row.base.created_timestamp,
+                spent_timestamp: row.base.spent_timestamp,
             });
         }
 
