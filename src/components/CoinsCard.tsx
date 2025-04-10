@@ -23,20 +23,20 @@ import { amount } from '@/lib/formTypes';
 import { toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Trans } from '@lingui/react/macro';
 import { t } from '@lingui/core/macro';
-import { RowSelectionState, OnChangeFn } from '@tanstack/react-table';
+import { Trans } from '@lingui/react/macro';
+import { OnChangeFn, RowSelectionState } from '@tanstack/react-table';
 import BigNumber from 'bignumber.js';
 import { MergeIcon, SplitIcon, XIcon } from 'lucide-react';
-import { useMemo, useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import {
   CatRecord,
   CoinRecord,
+  CoinSortMode,
   commands,
   TransactionResponse,
-  CoinSortMode,
 } from '../bindings';
 
 interface CoinsCardProps {
@@ -355,6 +355,8 @@ export function CoinsCard({
   };
 
   const pageCount = Math.ceil(totalCoins / pageSize);
+  const selectedCoinCount = selectedCoinIds.length;
+  const selectedCoinLabel = selectedCoinCount === 1 ? t`coin` : t`coins`;
 
   return (
     <Card className='max-w-full overflow-auto'>
@@ -411,25 +413,24 @@ export function CoinsCard({
                   )}
                 </Button>
               )}
-              <Button
-                variant='outline'
-                disabled={selectedCoinIds.length === 0}
-                onClick={() => setSelectedCoins({})}
-              >
-                <XIcon className='mr-2 h-4 w-4' />{' '}
-                <Trans>Clear Selection</Trans>
-              </Button>
-              {selectedCoinIds.length > 0 && (
-                <span className='text-muted-foreground text-sm ml-4 flex items-center'>
-                  <Trans>
-                    {selectedCoinIds.length} coin
-                    {selectedCoinIds.length !== 1 ? 's' : ''} selected
-                  </Trans>
-                </span>
-              )}
             </>
           }
         />
+
+        {selectedCoinCount > 0 && (
+          <div className='flex items-center gap-2'>
+            <Button variant='outline' onClick={() => setSelectedCoins({})}>
+              <XIcon className='h-4 w-4 mr-2' />
+              <Trans>Clear Selection</Trans>
+            </Button>
+
+            <span className='text-muted-foreground text-sm flex items-center'>
+              <Trans>
+                {selectedCoinCount} {selectedCoinLabel} selected
+              </Trans>
+            </span>
+          </div>
+        )}
       </CardContent>
 
       <Dialog open={isCombineOpen} onOpenChange={setCombineOpen}>
