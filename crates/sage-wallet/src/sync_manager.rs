@@ -181,9 +181,13 @@ impl SyncManager {
                         );
                     }
                 }
-                SyncCommand::ConnectPeer { ip } => {
-                    self.connect_batch(&[SocketAddr::new(ip, self.network.default_port)], true)
-                        .await;
+                SyncCommand::ConnectPeer { ip, user_managed } => {
+                    self.connect_batch(
+                        &[SocketAddr::new(ip, self.network.default_port)],
+                        true,
+                        user_managed,
+                    )
+                    .await;
                 }
                 SyncCommand::SubscribeCoins { coin_ids } => {
                     self.pending_coin_subscriptions.extend(coin_ids);
