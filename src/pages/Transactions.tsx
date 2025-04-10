@@ -47,58 +47,15 @@ export function Transactions() {
         const pendingResult = await commands.getPendingTransactions({});
         setPending(pendingResult.transactions);
 
-        // if the search term might be a block height, try to get the block
-        // and add it to the list of transactions
-        const searchHeight = search ? parseInt(search, 10) : null;
-        const isValidHeight =
-          searchHeight !== null && !isNaN(searchHeight) && searchHeight >= 0;
-
-        let specificBlock: TransactionRecord[] = [];
-        if (isValidHeight) {
-          const block = await commands.getTransaction({ height: searchHeight });
-          specificBlock = [block.transaction];
-        }
-
-        // Check if the search term is an asset_id, NFT ID, or DID ID
-        let itemIdTransactions: TransactionRecord[] = [];
-        let itemIdTotal = 0;
-
-        if (search) {
-          if (
-            isValidAssetId(search) ||
-            isValidAddress(search, 'nft') ||
-            isValidAddress(search, 'did:chia:')
-          ) {
-            const itemIdResult = await commands.getTransactionsByItemId({
-              offset: (page - 1) * pageSize,
-              limit: pageSize,
-              ascending,
-              id: search,
-            });
-            itemIdTransactions = itemIdResult.transactions;
-            itemIdTotal = itemIdResult.total;
-          }
-        }
-
-        let regularTransactions: TransactionRecord[] = [];
-        let regularTotal = 0;
-
         const result = await commands.getTransactions({
           offset: (page - 1) * pageSize,
           limit: pageSize,
           ascending,
           find_value: search || null,
         });
-        regularTransactions = result.transactions;
-        regularTotal = result.total;
 
-        const combinedTransactions = [
-          ...specificBlock,
-          ...itemIdTransactions,
-          ...regularTransactions,
-        ];
-        setTransactions(combinedTransactions);
-        setTotalTransactions(regularTotal + specificBlock.length + itemIdTotal);
+        setTransactions(result.transactions);
+        setTotalTransactions(result.total);
       } catch (error) {
         addError(error as any);
       } finally {
@@ -175,7 +132,7 @@ export function Transactions() {
         pageSize={pageSize}
         onPageChange={(newPage) => handlePageChange(newPage, compact)}
         onPageSizeChange={(newSize) => handlePageSizeChange(newSize, compact)}
-        pageSizeOptions={[10, 25, 50]}
+        pageSizeOptions={[10, 25, 50, 100, 250, 500]}
         compact={compact}
         isLoading={isLoading || isPaginationLoading}
       />
