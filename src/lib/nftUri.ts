@@ -11,10 +11,12 @@ const imageTypes = [
 
 const videoTypes = ['video/webm', 'video/mp4'];
 
+const audioTypes = ['audio/webm', 'audio/mp3', 'audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/mp4'];
+
 export function nftUri(mimeType: string | null, data: string | null): string {
   if (data === null || mimeType === null) return missing;
 
-  if (!imageTypes.concat(videoTypes).includes(mimeType)) return invalid;
+  if (!imageTypes.concat(videoTypes, audioTypes).includes(mimeType)) return invalid;
 
   return `data:${mimeType};base64,${data}`;
 }
@@ -25,4 +27,8 @@ export function isImage(mimeType: string | null): boolean {
 
 export function isVideo(mimeType: string | null): boolean {
   return mimeType !== null && videoTypes.includes(mimeType);
+}
+
+export function isAudio(mimeType: string | null): boolean {
+  return mimeType !== null && audioTypes.includes(mimeType);
 }
