@@ -49,6 +49,7 @@ import { ToastContainer, Slide } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import CollectionMetaData from './pages/CollectionMetaData';
 import NftMedia from './pages/NftMedia';
+
 export interface DarkModeContext {
   toggle: () => void;
   dark: boolean;
