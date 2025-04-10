@@ -10,25 +10,47 @@ const imageTypes = [
 ];
 
 const videoTypes = ['video/webm', 'video/mp4'];
-
 const audioTypes = ['audio/webm', 'audio/mp3', 'audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/mp4'];
+const textTypes = ['text/plain', 'text/html', 'text/css', 'text/javascript', 'text/markdown'];
+
+/**
+ * Extracts the base MIME type from a potentially parameterized MIME type string
+ * For example: "text/plain; charset=utf-8" -> "text/plain"
+ */
+export function getBaseMimeType(mimeType: string | null): string | null {
+  if (!mimeType) return null;
+  return mimeType.split(';')[0].trim();
+}
 
 export function nftUri(mimeType: string | null, data: string | null): string {
   if (data === null || mimeType === null) return missing;
 
-  if (!imageTypes.concat(videoTypes, audioTypes).includes(mimeType)) return invalid;
+  const baseMimeType = getBaseMimeType(mimeType);
+  if (!baseMimeType || !imageTypes.concat(videoTypes, audioTypes, textTypes).includes(baseMimeType)) return invalid;
 
   return `data:${mimeType};base64,${data}`;
 }
 
 export function isImage(mimeType: string | null): boolean {
-  return mimeType !== null && imageTypes.includes(mimeType);
+  const baseMimeType = getBaseMimeType(mimeType);
+  return baseMimeType !== null && imageTypes.includes(baseMimeType);
 }
 
 export function isVideo(mimeType: string | null): boolean {
-  return mimeType !== null && videoTypes.includes(mimeType);
+  const baseMimeType = getBaseMimeType(mimeType);
+  return baseMimeType !== null && videoTypes.includes(baseMimeType);
 }
 
 export function isAudio(mimeType: string | null): boolean {
-  return mimeType !== null && audioTypes.includes(mimeType);
+  const baseMimeType = getBaseMimeType(mimeType);
+  return baseMimeType !== null && audioTypes.includes(baseMimeType);
+}
+
+export function isText(mimeType: string | null): boolean {
+  const baseMimeType = getBaseMimeType(mimeType);
+  return baseMimeType !== null && textTypes.includes(baseMimeType);
+}
+
+export function isJson(mimeType: string | null): boolean {
+  return mimeType !== null && mimeType === 'application/json';
 }

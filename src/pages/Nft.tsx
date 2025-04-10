@@ -3,13 +3,13 @@ import { CopyBox } from '@/components/CopyBox';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { useErrors } from '@/hooks/useErrors';
-import { isAudio, isImage, isVideo, nftUri } from '@/lib/nftUri';
+import { isAudio, isImage, isText, nftUri } from '@/lib/nftUri';
 import { isValidUrl } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { commands, events, NetworkKind, NftData, NftRecord } from '../bindings';
 
@@ -19,7 +19,6 @@ export default function Nft() {
   const [nft, setNft] = useState<NftRecord | null>(null);
   const [data, setData] = useState<NftData | null>(null);
   const royaltyPercentage = (nft?.royalty_ten_thousandths ?? 0) / 100;
-  const navigate = useNavigate();
 
   const updateNft = useMemo(
     () => () => {
@@ -80,37 +79,34 @@ export default function Nft() {
       <Header title={nft?.name ?? t`Unknown NFT`} />
       <Container>
         <div className='flex flex-col gap-2 mx-auto sm:w-full md:w-[50%] max-w-[400px]'>
-          <div
-            className='cursor-pointer'
-            onClick={() => navigate(`/nfts/${launcherId}/media`)}
-          >
-            {isImage(data?.mime_type ?? null) ? (
-              <img
-                alt='NFT image'
+          {isImage(data?.mime_type ?? null) ? (
+            <img
+              alt='NFT image'
+              src={nftUri(data?.mime_type ?? null, data?.blob ?? null)}
+              className='rounded-lg'
+            />
+          ) : isText(data?.mime_type ?? null) ? (
+            <div className='border rounded-lg p-4 bg-gray-50 dark:bg-gray-800 overflow-auto max-h-[400px]'>
+              <pre className='whitespace-pre-wrap text-sm'>
+                {data?.blob ? atob(data.blob) : ''}
+              </pre>
+            </div>
+          ) : isAudio(data?.mime_type ?? null) ? (
+            <div className='flex flex-col items-center justify-center p-4 border rounded-lg bg-gray-50 dark:bg-gray-800'>
+              <div className='text-4xl mb-2'>🎵</div>
+              <audio
                 src={nftUri(data?.mime_type ?? null, data?.blob ?? null)}
-                className='rounded-lg'
-              />
-            ) : isVideo(data?.mime_type ?? null) ? (
-              <video
-                src={nftUri(data?.mime_type ?? null, data?.blob ?? null)}
-                className='rounded-lg'
                 controls
+                className='w-full'
               />
-            ) : isAudio(data?.mime_type ?? null) ? (
-              <div className='flex flex-col items-center justify-center p-4 border rounded-lg bg-gray-100 dark:bg-gray-800'>
-                <div className='text-4xl mb-2'>🎵</div>
-                <audio
-                  src={nftUri(data?.mime_type ?? null, data?.blob ?? null)}
-                  controls
-                  className='w-full'
-                />
-              </div>
-            ) : (
-              <div className='flex items-center justify-center p-4 border rounded-lg bg-gray-100 dark:bg-gray-800'>
-                <span>{t`Unsupported media type`}</span>
-              </div>
-            )}
-          </div>
+            </div>
+          ) : (
+            <video
+              src={nftUri(data?.mime_type ?? null, data?.blob ?? null)}
+              className='rounded-lg'
+              controls
+            />
+          )}
           <CopyBox
             title={t`Launcher Id`}
             value={nft?.launcher_id ?? ''}
@@ -148,7 +144,7 @@ export default function Nft() {
                 <div className='grid grid-cols-2 gap-2'>
                   {metadata.attributes.map((attr: any, i: number) => (
                     <div key={i} className='px-2 py-1 border-2 rounded-lg'>
-                      <h6 className='text-sm font-semibold truncate'>
+                      <h6 className='text-sm font-semibold'>
                         {attr.trait_type}
                       </h6>
                       {isValidUrl(attr.value) ? (
