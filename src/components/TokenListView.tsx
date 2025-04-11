@@ -11,26 +11,13 @@ type TokenListViewProps = TokenViewProps & {
 
 export function TokenListView({
   cats,
-  xchBalance,
-  xchDecimals,
-  xchBalanceUsd,
-  xchPrice,
+  xchRecord,
   actionHandlers,
 }: TokenListViewProps) {
   const walletState = useWalletState();
 
   const tokens: TokenRecord[] = [
-    {
-      asset_id: 'xch',
-      name: 'Chia',
-      ticker: walletState.sync.unit.ticker,
-      icon_url: 'https://icons.dexie.space/xch.webp',
-      balance: xchBalance,
-      balanceInUsd: xchBalanceUsd,
-      priceInUsd: xchPrice,
-      decimals: xchDecimals,
-      isXch: true,
-    },
+    xchRecord,
     ...cats.map((cat) => ({
       asset_id: cat.asset_id,
       name: cat.name,

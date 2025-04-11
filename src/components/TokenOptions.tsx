@@ -9,6 +9,7 @@ import {
   Filter,
   FilterX,
   Eye,
+  Download,
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -22,6 +23,7 @@ import {
 import { TokenSortMode } from '@/hooks/useTokenParams';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useState, useEffect } from 'react';
+import { platform } from '@tauri-apps/plugin-os';
 
 interface TokenOptionsProps {
   query: string;
@@ -36,6 +38,7 @@ interface TokenOptionsProps {
   showHiddenCats: boolean;
   setShowHiddenCats: (show: boolean) => void;
   className?: string;
+  onExport?: () => void;
 }
 
 export function TokenOptions({
@@ -51,9 +54,11 @@ export function TokenOptions({
   showHiddenCats,
   setShowHiddenCats,
   className,
+  onExport,
 }: TokenOptionsProps) {
   const [searchValue, setSearchValue] = useState(query);
   const debouncedSearch = useDebounce(searchValue);
+  const isMobile = platform() === 'ios' || platform() === 'android';
 
   useEffect(() => {
     setSearchValue(query);
@@ -111,6 +116,17 @@ export function TokenOptions({
         </div>
 
         <div className='flex gap-2'>
+          {!isMobile && (
+            <Button
+              variant='outline'
+              size='icon'
+              aria-label={t`Export tokens`}
+              title={t`Export tokens`}
+              onClick={onExport}
+            >
+              <Download className='h-4 w-4' aria-hidden='true' />
+            </Button>
+          )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
