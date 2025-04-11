@@ -9,4 +9,5 @@ pub enum ErrorKind {
     NotFound,
     Unauthorized,
     Internal,
+    DatabaseMigration,
 }

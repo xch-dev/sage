@@ -116,6 +116,7 @@ pub fn run() {
             commands::stop_rpc_server,
             commands::get_rpc_run_on_startup,
             commands::set_rpc_run_on_startup,
+            commands::switch_wallet,
             commands::move_key,
         ])
         .events(collect_events![SyncEvent]);
