@@ -17,6 +17,7 @@ pub struct PeerInfo {
     pub claimed_peak: u32,
     pub header_hash: Bytes32,
     pub receive_message_task: JoinHandle<()>,
+    pub user_managed: bool,
 }
 
 impl Drop for PeerInfo {
@@ -53,6 +54,22 @@ impl PeerState {
 
     pub fn peers(&self) -> Vec<WalletPeer> {
         self.peers.values().map(|info| info.peer.clone()).collect()
+    }
+
+    pub fn auto_discovered_peers(&self) -> Vec<WalletPeer> {
+        self.peers
+            .values()
+            .filter(|info| !info.user_managed)
+            .map(|info| info.peer.clone())
+            .collect()
+    }
+
+    pub fn user_managed_peers(&self) -> Vec<WalletPeer> {
+        self.peers
+            .values()
+            .filter(|info| info.user_managed)
+            .map(|info| info.peer.clone())
+            .collect()
     }
 
     pub fn peers_with_heights(&self) -> Vec<(WalletPeer, u32)> {
