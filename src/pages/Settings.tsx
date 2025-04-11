@@ -49,6 +49,7 @@ import { LoaderCircleIcon, TrashIcon, WalletIcon } from 'lucide-react';
 import { useContext, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { scan } from 'tauri-plugin-tangem-api';
 import { z } from 'zod';
 import { DarkModeContext } from '../App';
 import { commands, Network, NetworkConfig, Wallet } from '../bindings';
@@ -593,6 +594,8 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
   const [deriveOpen, setDeriveOpen] = useState(false);
   const [pending, setPending] = useState(false);
 
+  const [card, setCard] = useState<string | null>(null);
+
   useEffect(() => {
     commands
       .getNetworks({})
@@ -674,6 +677,20 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
 
   return (
     <SettingsSection title={t`Wallet`}>
+      <Button
+        onClick={() => {
+          scan()
+            .then((data) => setCard(JSON.stringify(data, null, 2)))
+            .catch((error) =>
+              addError({ kind: 'internal', reason: JSON.stringify(error) }),
+            );
+        }}
+      >
+        Scan
+      </Button>
+
+      {card && <pre>{card}</pre>}
+
       <SettingItem
         label={t`Wallet Name`}
         description={t`Give your wallet a memorable name`}
