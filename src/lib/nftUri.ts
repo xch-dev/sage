@@ -4,25 +4,37 @@ import missing from '@/images/missing.png';
 const imageTypes = [
   'image/png',
   'image/jpeg',
+  'image/jpg',
   'image/gif',
   'image/webp',
   'image/svg+xml',
+  'image/avif',
+  'image/x-ico',
+  'image/bmp',
 ];
-const videoTypes = ['video/webm', 'video/mp4'];
+const videoTypes = [
+  'video/webm',
+  'video/mp4',
+  'video/ogg',
+  'video/quicktime',
+  'video/mpeg',
+];
 const audioTypes = [
   'audio/webm',
-  'audio/mp3',
   'audio/mpeg',
-  'audio/wav',
   'audio/ogg',
   'audio/mp4',
+  'audio/flac',
+  'audio/opus',
+  'audio/aac',
 ];
 const textTypes = [
   'text/plain',
   'text/html',
   'text/css',
   'text/javascript',
-  'text/markdown',
+  'text/rtf',
+  'text/csv',
 ];
 const jsonTypes = ['application/json', 'application/ld+json'];
 
