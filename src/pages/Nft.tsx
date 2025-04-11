@@ -152,7 +152,10 @@ export default function Nft() {
                 <div className='grid grid-cols-2 gap-2'>
                   {metadata.attributes.map((attr: any, i: number) => (
                     <div key={i} className='px-2 py-1 border-2 rounded-lg'>
-                      <h6 className='text-sm font-semibold'>
+                      <h6
+                        className='text-sm font-semibold truncate'
+                        title={attr.trait_type}
+                      >
                         {attr.trait_type}
                       </h6>
                       {isValidUrl(attr.value) ? (
