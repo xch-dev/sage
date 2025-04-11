@@ -3,7 +3,7 @@ import { CopyBox } from '@/components/CopyBox';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { useErrors } from '@/hooks/useErrors';
-import { isImage, nftUri } from '@/lib/nftUri';
+import { isAudio, isImage, isJson, isText, nftUri } from '@/lib/nftUri';
 import { isValidUrl } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -85,6 +85,29 @@ export default function Nft() {
               src={nftUri(data?.mime_type ?? null, data?.blob ?? null)}
               className='rounded-lg'
             />
+          ) : isText(data?.mime_type ?? null) ? (
+            <div className='border rounded-lg p-4 bg-gray-50 dark:bg-gray-800 overflow-auto max-h-[400px]'>
+              <pre className='whitespace-pre-wrap text-sm'>
+                {data?.blob ? atob(data.blob) : ''}
+              </pre>
+            </div>
+          ) : isJson(data?.mime_type ?? null) ? (
+            <div className='border rounded-lg p-4 bg-gray-50 dark:bg-gray-800 overflow-auto max-h-[400px]'>
+              <pre className='whitespace-pre-wrap text-sm'>
+                {data?.blob
+                  ? JSON.stringify(JSON.parse(atob(data.blob)), null, 2)
+                  : ''}
+              </pre>
+            </div>
+          ) : isAudio(data?.mime_type ?? null) ? (
+            <div className='flex flex-col items-center justify-center p-4 border rounded-lg bg-gray-50 dark:bg-gray-800'>
+              <div className='text-4xl mb-2'>🎵</div>
+              <audio
+                src={nftUri(data?.mime_type ?? null, data?.blob ?? null)}
+                controls
+                className='w-full'
+              />
+            </div>
           ) : (
             <video
               src={nftUri(data?.mime_type ?? null, data?.blob ?? null)}
@@ -129,7 +152,10 @@ export default function Nft() {
                 <div className='grid grid-cols-2 gap-2'>
                   {metadata.attributes.map((attr: any, i: number) => (
                     <div key={i} className='px-2 py-1 border-2 rounded-lg'>
-                      <h6 className='text-sm font-semibold'>
+                      <h6
+                        className='text-sm font-semibold truncate'
+                        title={attr.trait_type}
+                      >
                         {attr.trait_type}
                       </h6>
                       {isValidUrl(attr.value) ? (
