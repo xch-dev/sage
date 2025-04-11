@@ -8,10 +8,22 @@ const imageTypes = [
   'image/webp',
   'image/svg+xml',
 ];
-
 const videoTypes = ['video/webm', 'video/mp4'];
-const audioTypes = ['audio/webm', 'audio/mp3', 'audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/mp4'];
-const textTypes = ['text/plain', 'text/html', 'text/css', 'text/javascript', 'text/markdown'];
+const audioTypes = [
+  'audio/webm',
+  'audio/mp3',
+  'audio/mpeg',
+  'audio/wav',
+  'audio/ogg',
+  'audio/mp4',
+];
+const textTypes = [
+  'text/plain',
+  'text/html',
+  'text/css',
+  'text/javascript',
+  'text/markdown',
+];
 const jsonTypes = ['application/json', 'application/ld+json'];
 
 /**
@@ -27,7 +39,13 @@ export function nftUri(mimeType: string | null, data: string | null): string {
   if (data === null || mimeType === null) return missing;
 
   const baseMimeType = getBaseMimeType(mimeType);
-  if (!baseMimeType || !imageTypes.concat(videoTypes, audioTypes, textTypes, jsonTypes).includes(baseMimeType)) return invalid;
+  if (
+    !baseMimeType ||
+    !imageTypes
+      .concat(videoTypes, audioTypes, textTypes, jsonTypes)
+      .includes(baseMimeType)
+  )
+    return invalid;
 
   return `data:${mimeType};base64,${data}`;
 }
