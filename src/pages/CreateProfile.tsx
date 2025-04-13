@@ -24,6 +24,7 @@ import { useWalletState } from '../state';
 import { TokenAmountInput } from '@/components/ui/masked-input';
 import { Trans } from '@lingui/react/macro';
 import { t } from '@lingui/core/macro';
+import { CreateProfileConfirmation } from '@/components/confirmations/CreateProfileConfirmation';
 
 export default function CreateProfile() {
   const { addError } = useErrors();
@@ -112,6 +113,17 @@ export default function CreateProfile() {
         response={response}
         close={() => setResponse(null)}
         onConfirm={() => navigate('/dids')}
+        showRecipientDetails={false}
+        additionalData={
+          form.getValues().name
+            ? {
+                title: t`Profile Details`,
+                content: (
+                  <CreateProfileConfirmation name={form.getValues().name} />
+                ),
+              }
+            : undefined
+        }
       />
     </>
   );

@@ -30,6 +30,7 @@ pub struct GetDerivations {
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct GetDerivationsResponse {
     pub derivations: Vec<DerivationRecord>,
+    pub total: u32,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -45,28 +46,101 @@ pub struct GetSyncStatusResponse {
     pub total_coins: u32,
     pub receive_address: String,
     pub burn_address: String,
+    pub unhardened_derivation_index: u32,
+    pub hardened_derivation_index: u32,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
-pub struct GetXchCoins {}
+#[serde(rename_all = "snake_case")]
+pub enum CoinSortMode {
+    CoinId,
+    Amount,
+    CreatedHeight,
+    SpentHeight,
+}
+
+impl Default for CoinSortMode {
+    fn default() -> Self {
+        Self::CreatedHeight
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct GetAreCoinsSpendable {
+    pub coin_ids: Vec<String>,
+}
+
+#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct GetAreCoinsSpendableResponse {
+    pub spendable: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct GetSpendableCoinCount {
+    pub asset_id: String,
+}
+
+#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct GetSpendableCoinCountResponse {
+    pub count: u32,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct GetXchCoins {
+    pub offset: u32,
+    pub limit: u32,
+    #[serde(default)]
+    pub sort_mode: CoinSortMode,
+    #[serde(default)]
+    pub ascending: bool,
+    #[serde(default)]
+    pub include_spent_coins: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct GetCoinsByIds {
+    pub coin_ids: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct GetCoinsByIdsResponse {
+    pub coins: Vec<CoinRecord>,
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct GetXchCoinsResponse {
     pub coins: Vec<CoinRecord>,
+    pub total: u32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct GetCatCoins {
     pub asset_id: String,
+    pub offset: u32,
+    pub limit: u32,
+    #[serde(default)]
+    pub sort_mode: CoinSortMode,
+    #[serde(default)]
+    pub ascending: bool,
+    #[serde(default)]
+    pub include_spent_coins: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct GetCatCoinsResponse {
     pub coins: Vec<CoinRecord>,
+    pub total: u32,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -125,16 +199,34 @@ pub struct GetPendingTransactionsResponse {
     pub transactions: Vec<PendingTransactionRecord>,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct GetTransactions {
     pub offset: u32,
     pub limit: u32,
+    pub ascending: bool,
+    pub find_value: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct GetTransactionsResponse {
+    pub transactions: Vec<TransactionRecord>,
+    pub total: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct GetTransactionsByItemId {
+    pub offset: u32,
+    pub limit: u32,
+    pub ascending: bool,
+    pub id: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct GetTransactionsByItemIdResponse {
     pub transactions: Vec<TransactionRecord>,
     pub total: u32,
 }
@@ -220,6 +312,30 @@ pub struct GetNft {
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct GetNftResponse {
     pub nft: Option<NftRecord>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct GetNftIcon {
+    pub nft_id: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct GetNftIconResponse {
+    pub icon: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct GetNftThumbnail {
+    pub nft_id: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct GetNftThumbnailResponse {
+    pub thumbnail: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

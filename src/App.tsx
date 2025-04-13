@@ -20,7 +20,7 @@ import { PriceProvider } from './contexts/PriceContext';
 import { SafeAreaProvider } from './contexts/SafeAreaContext';
 import { WalletConnectProvider } from './contexts/WalletConnectContext';
 import useInitialization from './hooks/useInitialization';
-import { useWallet } from './hooks/useWallet';
+import { WalletProvider } from './contexts/WalletContext';
 import { loadCatalog } from './i18n';
 import Addresses from './pages/Addresses';
 import CreateProfile from './pages/CreateProfile';
@@ -44,11 +44,10 @@ import { Transactions } from './pages/Transactions';
 import { ViewOffer } from './pages/ViewOffer';
 import { ViewSavedOffer } from './pages/ViewSavedOffer';
 import Wallet from './pages/Wallet';
-import { fetchState } from './state';
 import QRScanner from './pages/QrScanner';
-import { ToastContainer } from 'react-toastify';
+import { ToastContainer, Slide } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { Slide } from 'react-toastify';
+import CollectionMetaData from './pages/CollectionMetaData';
 
 export interface DarkModeContext {
   toggle: () => void;
@@ -79,6 +78,10 @@ const router = createHashRouter(
         <Route path='' element={<NftList />} />
         <Route path=':launcher_id' element={<Nft />} />
         <Route path='collections/:collection_id' element={<NftList />} />
+        <Route
+          path='collections/:collection_id/metadata'
+          element={<CollectionMetaData />}
+        />
         <Route path='owners/:owner_did' element={<NftList />} />
         <Route path='minters/:minter_did' element={<NftList />} />
         <Route path='mint' element={<MintNft />} />
@@ -161,7 +164,6 @@ export default function App() {
 function AppInner() {
   const initialized = useInitialization();
   const { locale } = useLanguage();
-  const wallet = useWallet(initialized);
   const [isLocaleInitialized, setIsLocaleInitialized] = useState(false);
 
   useEffect(() => {
@@ -170,25 +172,21 @@ function AppInner() {
       setIsLocaleInitialized(true);
     };
     initLocale();
-  }, []);
-
-  useEffect(() => {
-    if (wallet !== null) {
-      fetchState();
-    }
-  }, [wallet]);
+  }, [locale]);
 
   return (
     initialized &&
     isLocaleInitialized && (
       <I18nProvider i18n={i18n}>
-        <PeerProvider>
-          <WalletConnectProvider>
-            <PriceProvider>
-              <RouterProvider router={router} />
-            </PriceProvider>
-          </WalletConnectProvider>
-        </PeerProvider>
+        <WalletProvider>
+          <PeerProvider>
+            <WalletConnectProvider>
+              <PriceProvider>
+                <RouterProvider router={router} />
+              </PriceProvider>
+            </WalletConnectProvider>
+          </PeerProvider>
+        </WalletProvider>
       </I18nProvider>
     )
   );

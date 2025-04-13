@@ -4,26 +4,20 @@ import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { useErrors } from '@/hooks/useErrors';
 import { isImage, nftUri } from '@/lib/nftUri';
+import { isValidUrl } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import { open } from '@tauri-apps/plugin-shell';
+import { openUrl } from '@tauri-apps/plugin-opener';
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import {
-  commands,
-  events,
-  NetworkConfig,
-  NftData,
-  NftRecord,
-} from '../bindings';
+import { toast } from 'react-toastify';
+import { commands, events, NetworkKind, NftData, NftRecord } from '../bindings';
 
 export default function Nft() {
   const { launcher_id: launcherId } = useParams();
   const { addError } = useErrors();
-
   const [nft, setNft] = useState<NftRecord | null>(null);
   const [data, setData] = useState<NftData | null>(null);
-
   const royaltyPercentage = (nft?.royalty_ten_thousandths ?? 0) / 100;
 
   const updateNft = useMemo(
@@ -71,10 +65,13 @@ export default function Nft() {
     }
   }, [data?.metadata_json, nft]);
 
-  const [config, setConfig] = useState<NetworkConfig | null>(null);
+  const [network, setNetwork] = useState<NetworkKind | null>(null);
 
   useEffect(() => {
-    commands.networkConfig().then(setConfig).catch(addError);
+    commands
+      .getNetwork({})
+      .then((data) => setNetwork(data.kind))
+      .catch(addError);
   }, [addError]);
 
   return (
@@ -95,7 +92,11 @@ export default function Nft() {
               controls
             />
           )}
-          <CopyBox title={t`Launcher Id`} value={nft?.launcher_id ?? ''} />
+          <CopyBox
+            title={t`Launcher Id`}
+            value={nft?.launcher_id ?? ''}
+            onCopy={() => toast.success(t`Launcher Id copied to clipboard`)}
+          />
         </div>
 
         <div className='my-4 grid grid-cols-1 md:grid-cols-2 gap-y-3 gap-x-10'>
@@ -131,7 +132,16 @@ export default function Nft() {
                       <h6 className='text-sm font-semibold'>
                         {attr.trait_type}
                       </h6>
-                      <div className='text-sm'>{attr.value}</div>
+                      {isValidUrl(attr.value) ? (
+                        <div
+                          onClick={() => openUrl(attr.value)}
+                          className='text-sm break-all text-blue-700 dark:text-blue-300 cursor-pointer hover:underline'
+                        >
+                          {attr.value}
+                        </div>
+                      ) : (
+                        <div className='text-sm break-all'>{attr.value}</div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -147,7 +157,7 @@ export default function Nft() {
                   <div
                     key={i}
                     className='truncate text-sm text-blue-700 dark:text-blue-300 cursor-pointer'
-                    onClick={() => open(uri)}
+                    onClick={() => openUrl(uri)}
                   >
                     {uri}
                   </div>
@@ -164,7 +174,7 @@ export default function Nft() {
                   <div
                     key={i}
                     className='truncate text-sm text-blue-700 dark:text-blue-300 cursor-pointer'
-                    onClick={() => open(uri)}
+                    onClick={() => openUrl(uri)}
                   >
                     {uri}
                   </div>
@@ -181,7 +191,7 @@ export default function Nft() {
                   <div
                     key={i}
                     className='truncate text-sm text-blue-700 dark:text-blue-300 cursor-pointer'
-                    onClick={() => open(uri)}
+                    onClick={() => openUrl(uri)}
                   >
                     {uri}
                   </div>
@@ -222,39 +232,57 @@ export default function Nft() {
               <h6 className='text-md font-bold'>
                 <Trans>Minter DID</Trans>
               </h6>
-              <div className='break-all text-sm'>
-                {nft?.minter_did ?? <Trans>None</Trans>}
-              </div>
+              <CopyBox
+                title={t`Minter DID`}
+                value={nft?.minter_did ?? t`None`}
+                onCopy={() => toast.success(t`Minter DID copied to clipboard`)}
+              />
             </div>
 
             <div>
               <h6 className='text-md font-bold'>
                 <Trans>Owner DID</Trans>
               </h6>
-              <div className='break-all text-sm'>
-                {nft?.owner_did ?? <Trans>None</Trans>}
-              </div>
+              <CopyBox
+                title={t`Owner DID`}
+                value={nft?.owner_did ?? t`None`}
+                onCopy={() => toast.success(t`Owner DID copied to clipboard`)}
+              />
             </div>
 
             <div>
               <h6 className='text-md font-bold'>
                 <Trans>Address</Trans>
               </h6>
-              <div className='break-all text-sm'>{nft?.address}</div>
+              <CopyBox
+                title={t`Address`}
+                value={nft?.address ?? ''}
+                onCopy={() => toast.success(t`Address copied to clipboard`)}
+              />
             </div>
 
             <div>
               <h6 className='text-md font-bold'>
                 <Trans>Coin Id</Trans>
               </h6>
-              <div className='break-all text-sm'>{nft?.coin_id}</div>
+              <CopyBox
+                title={t`Coin Id`}
+                value={nft?.coin_id ?? ''}
+                onCopy={() => toast.success(t`Coin ID copied to clipboard`)}
+              />
             </div>
 
             <div>
               <h6 className='text-md font-bold'>
                 <Trans>Royalties {royaltyPercentage}%</Trans>
               </h6>
-              <div className='break-all text-sm'>{nft?.royalty_address}</div>
+              <CopyBox
+                title={t`Royalty Address`}
+                value={nft?.royalty_address ?? ''}
+                onCopy={() =>
+                  toast.success(t`Royalty address copied to clipboard`)
+                }
+              />
             </div>
 
             <div className='flex flex-col gap-1'>
@@ -265,13 +293,11 @@ export default function Nft() {
               <Button
                 variant='outline'
                 onClick={() => {
-                  open(
-                    `https://${config?.network_id !== 'mainnet' ? 'testnet.' : ''}mintgarden.io/nfts/${nft?.launcher_id}`,
+                  openUrl(
+                    `https://${network === 'testnet' ? 'testnet.' : ''}mintgarden.io/nfts/${nft?.launcher_id}`,
                   );
                 }}
-                disabled={
-                  !['mainnet', 'testnet11'].includes(config?.network_id ?? '')
-                }
+                disabled={network === 'unknown'}
               >
                 <img
                   src='https://mintgarden.io/mint-logo.svg'
@@ -284,13 +310,11 @@ export default function Nft() {
               <Button
                 variant='outline'
                 onClick={() => {
-                  open(
-                    `https://${config?.network_id !== 'mainnet' ? 'testnet11.' : ''}spacescan.io/nft/${nft?.launcher_id}`,
+                  openUrl(
+                    `https://${network === 'testnet' ? 'testnet11.' : ''}spacescan.io/nft/${nft?.launcher_id}`,
                   );
                 }}
-                disabled={
-                  !['mainnet', 'testnet11'].includes(config?.network_id ?? '')
-                }
+                disabled={network === 'unknown'}
               >
                 <img
                   src='https://spacescan.io/images/spacescan-logo-192.png'

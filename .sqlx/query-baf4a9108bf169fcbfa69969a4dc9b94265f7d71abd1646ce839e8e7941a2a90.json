@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        UPDATE OR IGNORE `coin_states`\n        SET `spent_unixtime` = ?\n        WHERE `spent_height` = ?\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "baf4a9108bf169fcbfa69969a4dc9b94265f7d71abd1646ce839e8e7941a2a90"
+}

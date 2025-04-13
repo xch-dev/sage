@@ -1,15 +1,22 @@
 import * as React from 'react';
-
+import { t } from '@lingui/core/macro';
 import { cn } from '@/lib/utils';
 
 const Table = React.forwardRef<
   HTMLTableElement,
   React.HTMLAttributes<HTMLTableElement>
 >(({ className, ...props }, ref) => (
-  <div className='relative w-full overflow-auto'>
+  <div
+    className='relative w-full overflow-auto'
+    role='region'
+    aria-label='Table'
+    tabIndex={0}
+  >
     <table
       ref={ref}
-      className={cn('w-full caption-bottom text-sm', className)}
+      className={cn('w-full caption-bottom text-sm table-fixed', className)}
+      role='table'
+      aria-label={t`Data table`}
       {...props}
     />
   </div>
@@ -20,7 +27,12 @@ const TableHeader = React.forwardRef<
   HTMLTableSectionElement,
   React.HTMLAttributes<HTMLTableSectionElement>
 >(({ className, ...props }, ref) => (
-  <thead ref={ref} className={cn('[&_tr]:border-b', className)} {...props} />
+  <thead
+    ref={ref}
+    className={cn('[&_tr]:border-b', className)}
+    role='rowgroup'
+    {...props}
+  />
 ));
 TableHeader.displayName = 'TableHeader';
 
@@ -31,6 +43,7 @@ const TableBody = React.forwardRef<
   <tbody
     ref={ref}
     className={cn('[&_tr:last-child]:border-0', className)}
+    role='rowgroup'
     {...props}
   />
 ));
@@ -61,6 +74,7 @@ const TableRow = React.forwardRef<
       'border-b transition-colors hover:bg-neutral-100/50 data-[state=selected]:bg-neutral-100 dark:hover:bg-neutral-800/50 dark:data-[state=selected]:bg-neutral-800',
       className,
     )}
+    role='row'
     {...props}
   />
 ));
@@ -88,7 +102,7 @@ const TableCell = React.forwardRef<
   <td
     ref={ref}
     className={cn(
-      'p-2 align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]',
+      'py-2 px-1 md:px-2 align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px] overflow-hidden',
       className,
     )}
     {...props}
@@ -113,11 +127,11 @@ TableCaption.displayName = 'TableCaption';
 
 export {
   Table,
+  TableHeader,
   TableBody,
-  TableCaption,
-  TableCell,
   TableFooter,
   TableHead,
-  TableHeader,
   TableRow,
+  TableCell,
+  TableCaption,
 };

@@ -1,6 +1,5 @@
-use std::cmp::Reverse;
-
 use chia::protocol::{Bytes32, CoinState};
+use sqlx::Row;
 use sqlx::SqliteExecutor;
 
 use crate::{
@@ -58,8 +57,24 @@ impl Database {
         is_coin_locked(&self.pool, coin_id).await
     }
 
-    pub async fn get_block_heights(&self) -> Result<Vec<u32>> {
-        get_block_heights(&self.pool).await
+    pub async fn get_block_heights(
+        &self,
+        offset: u32,
+        limit: u32,
+        asc: bool,
+        find_value: Option<String>,
+    ) -> Result<(Vec<u32>, u32)> {
+        get_block_heights(&self.pool, offset, limit, asc, find_value).await
+    }
+
+    pub async fn get_block_heights_by_item_id(
+        &self,
+        offset: u32,
+        limit: u32,
+        asc: bool,
+        id: Option<String>,
+    ) -> Result<(Vec<u32>, u32)> {
+        get_block_heights_by_item_id(&self.pool, offset, limit, asc, id).await
     }
 
     pub async fn get_coin_states_by_created_height(
@@ -72,9 +87,13 @@ impl Database {
     pub async fn get_coin_states_by_spent_height(&self, height: u32) -> Result<Vec<CoinStateRow>> {
         get_coin_states_by_spent_height(&self.pool, height).await
     }
+
+    pub async fn get_are_coins_spendable(&self, coin_ids: &[String]) -> Result<bool> {
+        get_are_coins_spendable(&self.pool, coin_ids).await
+    }
 }
 
-impl<'a> DatabaseTx<'a> {
+impl DatabaseTx<'_> {
     pub async fn insert_coin_state(
         &mut self,
         coin_state: CoinState,
@@ -213,7 +232,7 @@ async fn unsynced_coin_states(
     let rows = sqlx::query_as!(
         CoinStateSql,
         "
-        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `created_height`, `spent_height`, `transaction_id`, `kind`
+        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `created_height`, `spent_height`, `transaction_id`, `kind`, `created_unixtime`, `spent_unixtime`
         FROM `coin_states`
         WHERE `synced` = 0 AND `created_height` IS NOT NULL
         ORDER BY `spent_height` ASC
@@ -311,7 +330,7 @@ async fn coin_state(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<O
     let Some(sql) = sqlx::query_as!(
         CoinStateSql,
         "
-        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `created_height`, `spent_height`, `transaction_id`, `kind`
+        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `created_height`, `spent_height`, `transaction_id`, `kind`, `created_unixtime`, `spent_unixtime`
         FROM `coin_states`
         WHERE `coin_id` = ?
         ",
@@ -417,33 +436,228 @@ async fn is_coin_locked(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Resu
     Ok(row.count > 0)
 }
 
-async fn get_block_heights(conn: impl SqliteExecutor<'_>) -> Result<Vec<u32>> {
-    let rows = sqlx::query!(
+async fn get_block_heights(
+    conn: impl SqliteExecutor<'_>,
+    offset: u32,
+    limit: u32,
+    asc: bool,
+    find_value: Option<String>,
+) -> Result<(Vec<u32>, u32)> {
+    let mut query = sqlx::QueryBuilder::new(
         "
-        SELECT DISTINCT height FROM (
-            SELECT created_height as height FROM coin_states INDEXED BY `coin_created`
-            WHERE created_height IS NOT NULL
+        WITH filtered_coins AS (
+            SELECT cs.coin_id,  
+                cs.kind, 
+                cats.ticker,
+                cats.name as cat_name,
+                dids.name as did_name,
+                nfts.name as nft_name,
+                cs.created_height as height
+            FROM coin_states cs
+                LEFT JOIN cat_coins ON cs.coin_id = cat_coins.coin_id
+                LEFT JOIN cats ON cat_coins.asset_id = cats.asset_id
+                LEFT JOIN did_coins ON cs.coin_id = did_coins.coin_id
+                LEFT JOIN dids ON did_coins.coin_id = dids.coin_id
+                LEFT JOIN nft_coins ON cs.coin_id = nft_coins.coin_id
+                LEFT JOIN nfts ON nft_coins.coin_id = nfts.coin_id
+            WHERE cs.created_height IS NOT NULL
             UNION ALL
-            SELECT spent_height as height FROM coin_states INDEXED BY `coin_spent`
-            WHERE spent_height IS NOT NULL
-        )
-        GROUP BY height
+            SELECT cs.coin_id, 
+                cs.kind,
+                cats.ticker,
+                cats.name as cat_name,
+                dids.name as did_name,
+                nfts.name as nft_name,
+                cs.spent_height as height
+            FROM coin_states cs
+                LEFT JOIN cat_coins ON cs.coin_id = cat_coins.coin_id
+                LEFT JOIN cats ON cat_coins.asset_id = cats.asset_id
+                LEFT JOIN did_coins ON cs.coin_id = did_coins.coin_id
+                LEFT JOIN dids ON did_coins.coin_id = dids.coin_id
+                LEFT JOIN nft_coins ON cs.coin_id = nft_coins.coin_id
+                LEFT JOIN nfts ON nft_coins.coin_id = nfts.coin_id
+            WHERE cs.spent_height IS NOT NULL
+        ),
+        filtered_heights AS (
+            SELECT DISTINCT height
+            FROM filtered_coins
+            WHERE 1=1
+        ",
+    );
+
+    if let Some(value) = &find_value {
+        // Check if searching for XCH (matches "x", "xc", or "xch")
+        let should_filter_xch = if value.len() <= 3 {
+            let value_lower = value.to_lowercase();
+            value_lower == "x" || value_lower == "xc" || value_lower == "xch"
+        } else {
+            false
+        };
+
+        query.push(" AND (");
+
+        if should_filter_xch {
+            // XCH coins have kind = 1 (standard P2 coins)
+            query.push("kind = 1 OR ");
+        }
+
+        query
+            .push("ticker LIKE ")
+            .push_bind(format!("%{value}%"))
+            .push(" OR cat_name LIKE ")
+            .push_bind(format!("%{value}%"))
+            .push(" OR did_name LIKE ")
+            .push_bind(format!("%{value}%"))
+            .push(" OR nft_name LIKE ")
+            .push_bind(format!("%{value}%"))
+            .push(")");
+    }
+
+    query.push(")");
+
+    // Select both the paginated results and the total count
+    query.push(
         "
-    )
-    .fetch_all(conn)
-    .await?;
+        SELECT height, COUNT(*) OVER() as total_count
+        FROM filtered_heights 
+        ORDER BY height ",
+    );
+
+    query.push(if asc { "ASC" } else { "DESC" });
+    query.push(" LIMIT ? OFFSET ?");
+
+    let built_query = query.build();
+    let rows = built_query.bind(limit).bind(offset).fetch_all(conn).await?;
 
     let mut heights = Vec::with_capacity(rows.len());
+    let mut total_count = 0;
 
     for row in rows {
-        if let Some(height) = row.height {
+        if let Some(height) = row.get::<Option<i64>, _>(0) {
             heights.push(height.try_into()?);
+        }
+        // Get the total count from the first row (it will be the same in all rows)
+        if total_count == 0 {
+            total_count = row.get::<i64, _>(1).try_into()?;
         }
     }
 
-    heights.sort_by_key(|height| Reverse(*height));
+    Ok((heights, total_count))
+}
 
-    Ok(heights)
+async fn get_block_heights_by_item_id(
+    conn: impl SqliteExecutor<'_>,
+    offset: u32,
+    limit: u32,
+    asc: bool,
+    id: Option<String>,
+) -> Result<(Vec<u32>, u32)> {
+    // Early return with empty results if ID is provided but not valid
+    let id_bytes = if let Some(value) = &id {
+        // First try to decode as a bech32m address (NFT ID, DID ID, etc.)
+        if value.starts_with("nft") || value.starts_with("did:chia:") {
+            match chia_wallet_sdk::utils::Address::decode(value) {
+                Ok(address) => Some(address.puzzle_hash.to_vec()),
+                Err(_) => return Ok((Vec::new(), 0)), // Invalid bech32m address
+            }
+        } else {
+            // If not a bech32m address, try to decode as a hex string
+            // Strip 0x prefix if present
+            let stripped = value.strip_prefix("0x").unwrap_or(value);
+
+            // Try to decode the hex string to bytes
+            match hex::decode(stripped) {
+                Ok(bytes) if bytes.len() == 32 => Some(bytes),
+                _ => return Ok((Vec::new(), 0)), // Return empty results for invalid ID
+            }
+        }
+    } else {
+        None
+    };
+
+    // if all of these joins are too slow we can use the id type to execute 3 different queries
+    // (cat, nft, and did) for now performs well so am preferring simplicity over performance
+    let mut query = sqlx::QueryBuilder::new(
+        "
+        WITH filtered_coins AS (
+            SELECT cs.coin_id,  
+                cs.kind, 
+                cats.asset_id,
+                dids.launcher_id as did_launcher_id,
+                nfts.launcher_id as nft_launcher_id,
+                cs.created_height as height
+            FROM coin_states cs
+                LEFT JOIN cat_coins ON cs.coin_id = cat_coins.coin_id
+                LEFT JOIN cats ON cat_coins.asset_id = cats.asset_id
+                LEFT JOIN did_coins ON cs.coin_id = did_coins.coin_id
+                LEFT JOIN dids ON did_coins.coin_id = dids.coin_id
+                LEFT JOIN nft_coins ON cs.coin_id = nft_coins.coin_id
+                LEFT JOIN nfts ON nft_coins.coin_id = nfts.coin_id
+            WHERE cs.created_height IS NOT NULL
+            UNION ALL
+            SELECT cs.coin_id, 
+                cs.kind,
+                cats.asset_id,
+                dids.launcher_id as did_launcher_id,
+                nfts.launcher_id as nft_launcher_id,
+                cs.spent_height as height
+            FROM coin_states cs
+                LEFT JOIN cat_coins ON cs.coin_id = cat_coins.coin_id
+                LEFT JOIN cats ON cat_coins.asset_id = cats.asset_id
+                LEFT JOIN did_coins ON cs.coin_id = did_coins.coin_id
+                LEFT JOIN dids ON did_coins.coin_id = dids.coin_id
+                LEFT JOIN nft_coins ON cs.coin_id = nft_coins.coin_id
+                LEFT JOIN nfts ON nft_coins.coin_id = nfts.coin_id
+            WHERE cs.spent_height IS NOT NULL
+        ),
+        filtered_heights AS (
+            SELECT DISTINCT height
+            FROM filtered_coins
+            WHERE 1=1
+        ",
+    );
+
+    if let Some(bytes) = id_bytes {
+        query
+            .push(" AND (asset_id = ")
+            .push_bind(bytes.clone())
+            .push(" OR did_launcher_id = ")
+            .push_bind(bytes.clone())
+            .push(" OR nft_launcher_id = ")
+            .push_bind(bytes)
+            .push(")");
+    }
+
+    query.push(")");
+
+    // Select both the paginated results and the total count
+    query.push(
+        "
+        SELECT height, COUNT(*) OVER() as total_count
+        FROM filtered_heights 
+        ORDER BY height ",
+    );
+
+    query.push(if asc { "ASC" } else { "DESC" });
+    query.push(" LIMIT ? OFFSET ?");
+
+    let built_query = query.build();
+    let rows = built_query.bind(limit).bind(offset).fetch_all(conn).await?;
+
+    let mut heights = Vec::with_capacity(rows.len());
+    let mut total_count = 0;
+
+    for row in rows {
+        if let Some(height) = row.get::<Option<i64>, _>(0) {
+            heights.push(height.try_into()?);
+        }
+        // Get the total count from the first row (it will be the same in all rows)
+        if total_count == 0 {
+            total_count = row.get::<i64, _>(1).try_into()?;
+        }
+    }
+
+    Ok((heights, total_count))
 }
 
 async fn get_coin_states_by_created_height(
@@ -453,7 +667,7 @@ async fn get_coin_states_by_created_height(
     let rows = sqlx::query_as!(
         CoinStateSql,
         "
-        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `created_height`, `spent_height`, `transaction_id`, `kind`
+        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `created_height`, `spent_height`, `transaction_id`, `kind`, `created_unixtime`, `spent_unixtime`
         FROM `coin_states` INDEXED BY `coin_created`
         WHERE `created_height` = ?
         ",
@@ -472,7 +686,7 @@ async fn get_coin_states_by_spent_height(
     let rows = sqlx::query_as!(
         CoinStateSql,
         "
-        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `created_height`, `spent_height`, `transaction_id`, `kind`
+        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `created_height`, `spent_height`, `transaction_id`, `kind`, `created_unixtime`, `spent_unixtime`
         FROM `coin_states` INDEXED BY `coin_spent`
         WHERE `spent_height` = ?
         ",
@@ -493,7 +707,7 @@ async fn full_coin_state(
     let Some(sql) = sqlx::query_as!(
         CoinStateSql,
         "
-        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `created_height`, `spent_height`, `transaction_id`, `kind`
+        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `created_height`, `spent_height`, `transaction_id`, `kind`, `created_unixtime`, `spent_unixtime`
         FROM `coin_states` WHERE `coin_id` = ?
         ",
         coin_id
@@ -505,4 +719,36 @@ async fn full_coin_state(
     };
 
     Ok(Some(sql.into_row()?))
+}
+
+async fn get_are_coins_spendable(
+    conn: impl SqliteExecutor<'_>,
+    coin_ids: &[String],
+) -> Result<bool> {
+    if coin_ids.is_empty() {
+        return Ok(false);
+    }
+
+    let mut query = sqlx::QueryBuilder::new(
+        "
+        SELECT COUNT(*)
+        FROM coin_states
+        LEFT JOIN transaction_spends ON transaction_spends.coin_id = coin_states.coin_id
+        WHERE 1=1 
+        AND created_height IS NOT NULL
+        AND spent_height IS NULL
+        AND coin_states.transaction_id IS NULL
+        AND transaction_spends.coin_id IS NULL
+        AND coin_states.coin_id IN (",
+    );
+
+    let mut separated = query.separated(", ");
+    for coin_id in coin_ids {
+        separated.push(&format!("X'{}'", coin_id));
+    }
+    separated.push_unseparated(")");
+
+    let count: i64 = query.build().fetch_one(conn).await?.get(0);
+
+    Ok(count == coin_ids.len() as i64)
 }

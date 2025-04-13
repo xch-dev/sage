@@ -8,12 +8,14 @@ import { ReceiveAddress } from '@/components/ReceiveAddress';
 import { Button } from '@/components/ui/button';
 import { useNftParams, NftGroupMode } from '@/hooks/useNftParams';
 import { Trans } from '@lingui/react/macro';
-import { ImagePlusIcon, EyeIcon } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { ImagePlusIcon } from 'lucide-react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useNftData } from '@/hooks/useNftData';
 import { useErrors } from '@/hooks/useErrors';
 import { t } from '@lingui/core/macro';
+import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
+import { Pagination } from '@/components/Pagination';
 
 export function NftList() {
   const navigate = useNavigate();
@@ -49,6 +51,13 @@ export function NftList() {
     page: params.page,
   });
 
+  const optionsRef = useRef<HTMLDivElement>(null);
+  const [isOptionsVisible, setIsOptionsVisible] = useState(true);
+
+  useIntersectionObserver(optionsRef, ([entry]) => {
+    setIsOptionsVisible(entry.isIntersecting);
+  });
+
   // Reset multi-select when route changes
   useEffect(() => {
     setMultiSelect(false);
@@ -81,6 +90,25 @@ export function NftList() {
     pageSize,
   ]);
 
+  const renderPagination = useCallback(
+    (compact: boolean = false) => (
+      <Pagination
+        page={params.page}
+        total={total}
+        pageSize={params.pageSize}
+        onPageChange={(newPage) => setParams({ page: newPage })}
+        onPageSizeChange={(newSize) =>
+          setParams({ pageSize: newSize, page: 1 })
+        }
+        pageSizeOptions={[24, 48, 72, 96]}
+        compact={compact}
+        canLoadMore={canLoadMore()}
+        isLoading={isLoading}
+      />
+    ),
+    [params.page, params.pageSize, total, setParams, canLoadMore, isLoading],
+  );
+
   return (
     <>
       <Header
@@ -93,6 +121,9 @@ export function NftList() {
             minterDid={minterDid}
             group={group}
           />
+        }
+        paginationControls={
+          !isOptionsVisible ? renderPagination(true) : undefined
         }
       >
         <ReceiveAddress />
@@ -107,22 +138,25 @@ export function NftList() {
           <Trans>Mint NFT</Trans>
         </Button>
 
-        <NftOptions
-          params={params}
-          setParams={setParams}
-          multiSelect={multiSelect}
-          setMultiSelect={(value) => {
-            setMultiSelect(value);
-            setSelected([]);
-          }}
-          className='mt-4'
-          isLoading={isLoading}
-          total={total}
-          canLoadMore={canLoadMore()}
-          aria-live='polite'
-        />
+        <div ref={optionsRef}>
+          <NftOptions
+            params={params}
+            setParams={setParams}
+            multiSelect={multiSelect}
+            setMultiSelect={(value) => {
+              setMultiSelect(value);
+              setSelected([]);
+            }}
+            className='mt-4'
+            isLoading={isLoading}
+            total={total}
+            canLoadMore={canLoadMore()}
+            renderPagination={() => renderPagination(false)}
+            aria-live='polite'
+          />
+        </div>
 
-        <main aria-label={t`NFT Collection`} aria-busy={isLoading}>
+        <main aria-label={t`NFT Collection`}>
           <NftCardList
             collectionId={collectionId}
             ownerDid={ownerDid}

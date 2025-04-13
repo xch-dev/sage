@@ -2,17 +2,21 @@ import { DidRecord, NftCollectionRecord } from '@/bindings';
 import { NftGroupMode } from '@/hooks/useNftParams';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
+import { writeText } from '@tauri-apps/plugin-clipboard-manager';
+import { openUrl } from '@tauri-apps/plugin-opener';
 import {
-  LibraryBig,
-  Paintbrush,
-  UserIcon,
   Copy,
-  MoreVertical,
   ExternalLink,
   EyeIcon,
   EyeOff,
+  LibraryBig,
+  MoreVertical,
+  Paintbrush,
+  UserIcon,
+  ScrollText,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import { Button } from './ui/button';
 import {
   DropdownMenu,
@@ -27,9 +31,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from './ui/tooltip';
-import { writeText } from '@tauri-apps/plugin-clipboard-manager';
-import { toast } from 'react-toastify';
-import { open } from '@tauri-apps/plugin-shell';
 
 interface NftGroupCardProps {
   type: 'collection' | 'did';
@@ -40,7 +41,7 @@ interface NftGroupCardProps {
   onToggleVisibility?: () => void;
   isLoading?: boolean;
   error?: Error;
-  canToggleVisibility?: boolean;
+  isPlaceHolder?: boolean;
 }
 
 export function NftGroupCard({
@@ -52,7 +53,7 @@ export function NftGroupCard({
   onToggleVisibility = () => {},
   isLoading,
   error,
-  canToggleVisibility = true,
+  isPlaceHolder = false,
 }: NftGroupCardProps) {
   const navigate = useNavigate();
   const isCollection = type === 'collection';
@@ -179,6 +180,7 @@ export function NftGroupCard({
                 })()}
                 className='object-cover h-full w-full'
                 aria-hidden='true'
+                loading='lazy'
               />
             ) : (
               <LibraryBig
@@ -255,9 +257,24 @@ export function NftGroupCard({
                 <>
                   <DropdownMenuItem
                     className='cursor-pointer'
+                    disabled={isPlaceHolder}
                     onClick={(e) => {
                       e.stopPropagation();
-                      open(`https://mintgarden.io/collections/${cardId}`);
+                      navigate(`/nfts/collections/${cardId}/metadata`);
+                    }}
+                    aria-label={t`View ${cardName} Metadata`}
+                  >
+                    <ScrollText className='mr-2 h-4 w-4' aria-hidden='true' />
+                    <span>
+                      <Trans>View Metadata</Trans>
+                    </span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className='cursor-pointer'
+                    disabled={isPlaceHolder}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openUrl(`https://mintgarden.io/collections/${cardId}`);
                     }}
                     aria-label={t`View ${cardName} on Mintgarden`}
                   >
@@ -273,7 +290,7 @@ export function NftGroupCard({
                       e.stopPropagation();
                       onToggleVisibility();
                     }}
-                    disabled={!canToggleVisibility}
+                    disabled={isPlaceHolder}
                     aria-label={
                       item.visible ? t`Hide ${cardName}` : t`Show ${cardName}`
                     }

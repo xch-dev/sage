@@ -5,7 +5,7 @@ use chia::{
     protocol::{Bytes32, Coin, CoinSpend, SpendBundle},
     puzzles::nft::NftMetadata,
 };
-use chia_wallet_sdk::encode_address;
+use chia_wallet_sdk::utils::Address;
 use sage_api::{
     Amount, AssetKind, CoinJson, CoinSpendJson, SpendBundleJson, TransactionInput,
     TransactionOutput, TransactionSummary,
@@ -70,7 +70,8 @@ impl Sage {
                     };
 
                     let kind = AssetKind::Did {
-                        launcher_id: encode_address(info.launcher_id.into(), "did:chia:")?,
+                        launcher_id: Address::new(info.launcher_id, "did:chia:".to_string())
+                            .encode()?,
                         name,
                     };
 
@@ -80,9 +81,8 @@ impl Sage {
                     let extracted = extract_nft_data(Some(&wallet.db), metadata, &cache).await?;
 
                     let kind = AssetKind::Nft {
-                        launcher_id: encode_address(info.launcher_id.into(), "nft")?,
-                        image_data: extracted.image_data,
-                        image_mime_type: extracted.image_mime_type,
+                        launcher_id: Address::new(info.launcher_id, "nft".to_string()).encode()?,
+                        icon: extracted.icon.map(|icon| BASE64_STANDARD.encode(icon)),
                         name: extracted.name,
                     };
 
@@ -90,7 +90,7 @@ impl Sage {
                 }
             };
 
-            let address = encode_address(p2_puzzle_hash.into(), &self.network().address_prefix)?;
+            let address = Address::new(p2_puzzle_hash, self.network().prefix()).encode()?;
 
             let mut outputs = Vec::new();
 
@@ -103,8 +103,7 @@ impl Sage {
                     ChildKind::Nft { info, .. } => info.p2_puzzle_hash,
                 };
 
-                let address =
-                    encode_address(p2_puzzle_hash.into(), &self.network().address_prefix)?;
+                let address = Address::new(p2_puzzle_hash, self.network().prefix()).encode()?;
 
                 outputs.push(TransactionOutput {
                     coin_id: hex::encode(output.coin.coin_id()),
@@ -133,8 +132,7 @@ impl Sage {
 
 #[derive(Debug, Default)]
 pub struct ExtractedNftData {
-    pub image_data: Option<String>,
-    pub image_mime_type: Option<String>,
+    pub icon: Option<Vec<u8>>,
     pub name: Option<String>,
 }
 
@@ -150,13 +148,15 @@ pub async fn extract_nft_data(
     };
 
     if let Some(data_hash) = onchain_metadata.data_hash {
-        if let Some(data) = cache.nft_data.get(&data_hash) {
-            result.image_data = Some(BASE64_STANDARD.encode(&data.blob));
-            result.image_mime_type = Some(data.mime_type.clone());
+        if let Some(Data {
+            thumbnail: Some(thumbnail),
+            ..
+        }) = cache.nft_data.get(&data_hash)
+        {
+            result.icon = Some(thumbnail.icon.clone());
         } else if let Some(db) = &db {
-            if let Some(data) = db.fetch_nft_data(data_hash).await? {
-                result.image_data = Some(BASE64_STANDARD.encode(&data.blob));
-                result.image_mime_type = Some(data.mime_type);
+            if let Some(data) = db.nft_icon(data_hash).await? {
+                result.icon = Some(data);
             }
         }
     }

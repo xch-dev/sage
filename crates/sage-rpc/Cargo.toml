@@ -1,0 +1,28 @@
+[package]
+name = "sage-rpc"
+version = "0.10.1"
+edition = "2021"
+license = "Apache-2.0"
+description = "An RPC server for Sage wallet."
+authors = ["Rigidity <me@rigidnetwork.com>"]
+homepage = "https://github.com/rigidity/sage"
+repository = "https://github.com/rigidity/sage"
+readme = { workspace = true }
+keywords = { workspace = true }
+categories = { workspace = true }
+
+[lints]
+workspace = true
+
+[dependencies]
+sage = { workspace = true }
+sage-api = { workspace = true }
+sage-api-macro = { workspace = true }
+axum = { workspace = true }
+axum-server = { workspace = true, features = ["tls-rustls"] }
+tokio = { workspace = true, features = ["full"] }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+serde = { workspace = true }
+rustls = { workspace = true }
+rustls-pemfile = { workspace = true }

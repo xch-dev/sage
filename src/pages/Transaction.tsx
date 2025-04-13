@@ -5,17 +5,20 @@ import {
   TransactionRecord,
 } from '@/bindings';
 import Container from '@/components/Container';
+import { CopyButton } from '@/components/CopyButton';
 import Header from '@/components/Header';
+import { NumberFormat } from '@/components/NumberFormat';
 import { Card } from '@/components/ui/card';
 import { nftUri } from '@/lib/nftUri';
+import { formatAddress, fromMojos, formatTimestamp } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import { open } from '@tauri-apps/plugin-shell';
+import { openUrl } from '@tauri-apps/plugin-opener';
 import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { NumberFormat } from '@/components/NumberFormat';
-import { fromMojos } from '@/lib/utils';
+import { toast } from 'react-toastify';
+
 export default function Transaction() {
   const { height } = useParams();
 
@@ -50,13 +53,23 @@ export default function Transaction() {
 
   return (
     <>
-      <Header title={`Transaction #${height}`} />
+      <Header title={t`Transaction #${height}`} />
       <Container>
+        <Card className='p-6 mb-4'>
+          <div className='text-xl font-medium'>
+            <Trans>Transaction Time</Trans>
+          </div>
+          <div className='text-md text-neutral-700 dark:text-neutral-300 mt-2'>
+            {formatTimestamp(transaction?.timestamp ?? null)}
+          </div>
+        </Card>
         <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
           {(transaction?.spent.length ?? 0) > 0 && (
-            <Card className='p-4 space-y-2'>
-              <div className='text-xl font-medium'>Sent</div>
-              <div className='space-y-2'>
+            <Card className='p-6'>
+              <div className='text-xl font-medium mb-4'>
+                <Trans>Sent</Trans>
+              </div>
+              <div className='space-y-4'>
                 {transaction?.spent.map((coin, i) => (
                   <TransactionCoin key={i} coin={coin} />
                 ))}
@@ -64,9 +77,11 @@ export default function Transaction() {
             </Card>
           )}
           {(transaction?.created.length ?? 0) > 0 && (
-            <Card className='p-4 space-y-2'>
-              <div className='text-xl font-medium'>Received</div>
-              <div className='space-y-2'>
+            <Card className='p-6'>
+              <div className='text-xl font-medium mb-4'>
+                <Trans>Received</Trans>
+              </div>
+              <div className='space-y-4'>
                 {transaction?.created.map((coin, i) => (
                   <TransactionCoin key={i} coin={coin} />
                 ))}
@@ -87,16 +102,27 @@ function TransactionCoin({ coin }: TransactionCoinProps) {
   const coinId = coin.coin_id;
 
   return (
-    <div
-      className='p-2 rounded-md bg-neutral-100 dark:bg-neutral-800 cursor-pointer'
-      onClick={() => open(`https://spacescan.io/coin/0x${coin.coin_id}`)}
-    >
-      <TransactionCoinKind coin={coin} />
-      <div className='flex items-center gap-1'>
-        <div className='text-sm text-muted-foreground truncate'>
-          <Trans>Coin with id {coinId}</Trans>
+    <div className='rounded-xl border border-neutral-200 bg-white text-neutral-950 shadow dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-50 p-4'>
+      <div
+        className='cursor-pointer'
+        onClick={() => openUrl(`https://spacescan.io/coin/0x${coin.coin_id}`)}
+        aria-label={t`View coin ${coinId} on Spacescan.io`}
+        role='button'
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            openUrl(`https://spacescan.io/coin/0x${coin.coin_id}`);
+          }
+        }}
+      >
+        <TransactionCoinKind coin={coin} />
+        <div className='flex items-center gap-1 mt-2'>
+          <div className='text-sm text-muted-foreground truncate'>
+            <Trans>Coin with id {coinId}</Trans>
+          </div>
         </div>
       </div>
+      {coin.type !== 'xch' && <TransactionCoinId coin={coin} />}
     </div>
   );
 }
@@ -116,6 +142,7 @@ function TransactionCoinKind({ coin }: TransactionCoinKindProps) {
             alt={t`XCH`}
             src='https://icons.dexie.space/xch.webp'
             className='w-8 h-8'
+            aria-hidden={true}
           />
 
           <div className='text-md text-neutral-700 dark:text-neutral-300 break-all'>
@@ -136,6 +163,7 @@ function TransactionCoinKind({ coin }: TransactionCoinKindProps) {
             alt={coin.name ?? t`Unknown`}
             src={coin.icon_url!}
             className='w-8 h-8'
+            aria-hidden={true}
           />
 
           <div className='flex flex-col'>
@@ -158,8 +186,9 @@ function TransactionCoinKind({ coin }: TransactionCoinKindProps) {
         <div className='flex items-center gap-2'>
           <img
             alt={coin.name ?? t`Unknown`}
-            src={nftUri(coin.image_mime_type, coin.image_data)}
+            src={nftUri(coin.icon ? 'image/png' : null, coin.icon)}
             className='w-8 h-8'
+            aria-label={coin.name ?? t`Unknown`}
           />
 
           <div className='text-md text-neutral-700 dark:text-neutral-300'>
@@ -170,5 +199,53 @@ function TransactionCoinKind({ coin }: TransactionCoinKindProps) {
     }
   }
 
-  return <div>{coin.coin_id}</div>;
+  return <div className='break-all'>{coin.coin_id}</div>;
+}
+
+interface TransactionCoinIdProps {
+  coin: TransactionCoin;
+}
+
+function TransactionCoinId({ coin }: TransactionCoinIdProps) {
+  let id = '';
+  let label = '';
+  let toastMessage = '';
+
+  switch (coin.type) {
+    case 'cat':
+      id = coin.asset_id;
+      label = t`Asset ID`;
+      toastMessage = t`Asset ID copied to clipboard`;
+      break;
+    case 'nft':
+      id = coin.launcher_id;
+      label = t`Launcher ID`;
+      toastMessage = t`Launcher ID copied to clipboard`;
+      break;
+    case 'did':
+      id = coin.launcher_id;
+      label = t`Launcher ID`;
+      toastMessage = t`Launcher ID copied to clipboard`;
+      break;
+    default:
+      return null;
+  }
+
+  const handleCopyClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+  };
+
+  const handleCopy = () => {
+    toast.success(toastMessage);
+  };
+
+  return (
+    <div className='flex items-center gap-2 mt-2 text-sm text-muted-foreground'>
+      <span>{label}:</span>
+      <span className='font-mono'>{formatAddress(id, 6, 6)}</span>
+      <div onClick={handleCopyClick}>
+        <CopyButton value={id} className='h-6 w-6 p-0' onCopy={handleCopy} />
+      </div>
+    </div>
+  );
 }

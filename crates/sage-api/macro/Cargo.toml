@@ -1,0 +1,25 @@
+[package]
+name = "sage-api-macro"
+version = "0.10.1"
+edition = "2021"
+license = "Apache-2.0"
+description = "A macro for implementing things for each of the Sage API endpoints."
+authors = ["Rigidity <me@rigidnetwork.com>"]
+homepage = "https://github.com/rigidity/sage"
+repository = "https://github.com/rigidity/sage"
+readme = { workspace = true }
+keywords = { workspace = true }
+categories = { workspace = true }
+
+[lints]
+workspace = true
+
+[lib]
+proc-macro = true
+
+[dependencies]
+quote = { workspace = true }
+convert_case = { workspace = true }
+serde_json = { workspace = true }
+indexmap = { workspace = true, features = ["serde"] }
+proc-macro2 = { workspace = true }

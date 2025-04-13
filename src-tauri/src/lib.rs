@@ -1,4 +1,6 @@
-use app_state::{AppState, AppStateInner};
+use app_state::{AppState, Initialized, RpcTask};
+use rustls::crypto::aws_lc_rs::default_provider;
+use sage::Sage;
 use sage_api::SyncEvent;
 use tauri::Manager;
 use tauri_specta::{collect_commands, collect_events, Builder, ErrorHandlingMode};
@@ -13,6 +15,10 @@ use specta_typescript::{BigIntExportBehavior, Typescript};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    default_provider()
+        .install_default()
+        .expect("could not install AWS LC provider");
+
     let builder = Builder::<tauri::Wry>::new()
         .error_handling(ErrorHandlingMode::Throw)
         // Then register them (separated by a comma)
@@ -52,6 +58,9 @@ pub fn run() {
             commands::get_sync_status,
             commands::check_address,
             commands::get_derivations,
+            commands::get_are_coins_spendable,
+            commands::get_spendable_coin_count,
+            commands::get_coins_by_ids,
             commands::get_xch_coins,
             commands::get_cat_coins,
             commands::get_cats,
@@ -63,8 +72,11 @@ pub fn run() {
             commands::get_nfts,
             commands::get_nft,
             commands::get_nft_data,
+            commands::get_nft_icon,
+            commands::get_nft_thumbnail,
             commands::get_pending_transactions,
             commands::get_transactions,
+            commands::get_transactions_by_item_id,
             commands::get_transaction,
             commands::validate_address,
             commands::make_offer,
@@ -79,11 +91,11 @@ pub fn run() {
             commands::network_config,
             commands::set_discover_peers,
             commands::set_target_peers,
-            commands::set_network_id,
+            commands::set_network,
+            commands::set_network_override,
             commands::wallet_config,
-            commands::set_derive_automatically,
-            commands::set_derivation_batch_size,
             commands::get_networks,
+            commands::get_network,
             commands::update_cat,
             commands::remove_cat,
             commands::update_did,
@@ -99,6 +111,12 @@ pub fn run() {
             commands::sign_message_with_public_key,
             commands::sign_message_by_address,
             commands::send_transaction_immediately,
+            commands::is_rpc_running,
+            commands::start_rpc_server,
+            commands::stop_rpc_server,
+            commands::get_rpc_run_on_startup,
+            commands::set_rpc_run_on_startup,
+            commands::move_key,
         ])
         .events(collect_events![SyncEvent]);
 
@@ -119,7 +137,7 @@ pub fn run() {
     }
 
     tauri_builder
-        .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_os::init())
         .invoke_handler(builder.invoke_handler())
@@ -134,10 +152,10 @@ pub fn run() {
                 app.handle().plugin(tauri_plugin_safe_area_insets::init())?;
             }
             builder.mount_events(app);
-            let app_handle = app.handle().clone();
             let path = app.path().app_data_dir()?;
-            let inner = AppStateInner::new(app_handle, &path);
-            let app_state = AppState::new(Mutex::new(inner));
+            let app_state = AppState::new(Mutex::new(Sage::new(&path)));
+            app.manage(Initialized(Mutex::new(false)));
+            app.manage(RpcTask(Mutex::new(None)));
             app.manage(app_state);
             Ok(())
         })

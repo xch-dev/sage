@@ -1,5 +1,5 @@
 use std::{
-    fmt, mem,
+    fmt,
     net::{IpAddr, SocketAddr},
     sync::Arc,
     time::Duration,
@@ -9,7 +9,10 @@ use chia::{
     protocol::{Bytes32, CoinStateUpdate, Message, NewPeakWallet, ProtocolMessageTypes},
     traits::Streamable,
 };
-use chia_wallet_sdk::{ClientError, Connector, Network, MAINNET_CONSTANTS, TESTNET11_CONSTANTS};
+use chia_wallet_sdk::{
+    client::{ClientError, Connector, Network},
+    types::{MAINNET_CONSTANTS, TESTNET11_CONSTANTS},
+};
 use futures_lite::future::poll_once;
 use itertools::Itertools;
 use tokio::{
@@ -21,7 +24,8 @@ use tracing::{debug, info, warn};
 use wallet_sync::{add_new_subscriptions, incremental_sync, sync_wallet};
 
 use crate::{
-    CatQueue, NftUriQueue, OfferQueue, PuzzleQueue, TransactionQueue, Wallet, WalletError,
+    BlockTimeQueue, CatQueue, NftUriQueue, OfferQueue, PuzzleQueue, TransactionQueue, Wallet,
+    WalletError,
 };
 
 mod options;
@@ -52,6 +56,7 @@ pub struct SyncManager {
     nft_uri_queue_task: Option<JoinHandle<Result<(), WalletError>>>,
     transaction_queue_task: Option<JoinHandle<Result<(), WalletError>>>,
     offer_queue_task: Option<JoinHandle<Result<(), WalletError>>>,
+    blocktime_queue_task: Option<JoinHandle<Result<(), WalletError>>>,
     pending_coin_subscriptions: Vec<Bytes32>,
     pending_puzzle_subscriptions: Vec<Bytes32>,
 }
@@ -93,6 +98,9 @@ impl Drop for SyncManager {
         if let Some(task) = &mut self.offer_queue_task {
             task.abort();
         }
+        if let Some(task) = &mut self.blocktime_queue_task {
+            task.abort();
+        }
     }
 }
 
@@ -124,6 +132,7 @@ impl SyncManager {
             nft_uri_queue_task: None,
             transaction_queue_task: None,
             offer_queue_task: None,
+            blocktime_queue_task: None,
             pending_coin_subscriptions: Vec::new(),
             pending_puzzle_subscriptions: Vec::new(),
         };
@@ -152,10 +161,15 @@ impl SyncManager {
                     network_id,
                     network,
                 } => {
-                    self.state.lock().await.reset();
-                    self.abort_wallet_tasks();
-                    self.network_id = network_id;
-                    self.network = network;
+                    if self.network_id != network_id
+                        || self.network.genesis_challenge != network.genesis_challenge
+                        || self.network.default_port != network.default_port
+                    {
+                        self.state.lock().await.reset();
+                        self.abort_wallet_tasks();
+                        self.network_id = network_id;
+                        self.network = network;
+                    }
                 }
                 SyncCommand::HandleMessage { ip, message } => {
                     if let Err(error) = self.handle_message(ip, message).await {
@@ -167,9 +181,13 @@ impl SyncManager {
                         );
                     }
                 }
-                SyncCommand::ConnectPeer { ip } => {
-                    self.connect_batch(&[SocketAddr::new(ip, self.network.default_port)], true)
-                        .await;
+                SyncCommand::ConnectPeer { ip, user_managed } => {
+                    self.connect_batch(
+                        &[SocketAddr::new(ip, self.network.default_port)],
+                        true,
+                        user_managed,
+                    )
+                    .await;
                 }
                 SyncCommand::SubscribeCoins { coin_ids } => {
                     self.pending_coin_subscriptions.extend(coin_ids);
@@ -198,27 +216,42 @@ impl SyncManager {
             return;
         }
 
-        if let InitialWalletSync::Subscribed(ip) = self.initial_wallet_sync {
-            if let Some(info) = self.state.lock().await.peer(ip) {
-                if let Some(wallet) = self.wallet.as_ref() {
-                    if let Err(error) = add_new_subscriptions(
-                        wallet,
-                        &info.peer,
-                        mem::take(&mut self.pending_coin_subscriptions),
-                        mem::take(&mut self.pending_puzzle_subscriptions),
-                        self.event_sender.clone(),
-                    )
-                    .await
-                    {
-                        warn!("Failed to add new subscriptions: {error}");
-                        self.state.lock().await.ban(
-                            ip,
-                            Duration::from_secs(300),
-                            "failed to add new subscriptions",
-                        );
-                    }
-                }
-            }
+        let InitialWalletSync::Subscribed(ip) = self.initial_wallet_sync else {
+            return;
+        };
+
+        let Some(peer) = self
+            .state
+            .lock()
+            .await
+            .peer(ip)
+            .map(|info| info.peer.clone())
+        else {
+            return;
+        };
+
+        let Some(wallet) = self.wallet.as_ref() else {
+            return;
+        };
+
+        if let Err(error) = add_new_subscriptions(
+            wallet,
+            &peer,
+            self.pending_coin_subscriptions.clone(),
+            self.pending_puzzle_subscriptions.clone(),
+            self.event_sender.clone(),
+        )
+        .await
+        {
+            warn!("Failed to add new subscriptions: {error}");
+            self.state.lock().await.ban(
+                ip,
+                Duration::from_secs(300),
+                "failed to add new subscriptions",
+            );
+        } else {
+            self.pending_coin_subscriptions.clear();
+            self.pending_puzzle_subscriptions.clear();
         }
     }
 
@@ -241,6 +274,9 @@ impl SyncManager {
             task.abort();
         }
         if let Some(task) = &mut self.offer_queue_task.take() {
+            task.abort();
+        }
+        if let Some(task) = &mut self.blocktime_queue_task.take() {
             task.abort();
         }
     }
@@ -432,12 +468,25 @@ impl SyncManager {
                 );
                 self.offer_queue_task = Some(task);
             }
+
+            if self.blocktime_queue_task.is_none() && !self.options.testing {
+                let task = tokio::spawn(
+                    BlockTimeQueue::new(
+                        wallet.db.clone(),
+                        self.state.clone(),
+                        self.event_sender.clone(),
+                    )
+                    .start(self.options.timeouts.blocktime_delay),
+                );
+                self.blocktime_queue_task = Some(task);
+            }
         } else {
             self.puzzle_lookup_task = None;
             self.cat_queue_task = None;
             self.nft_uri_queue_task = None;
             self.transaction_queue_task = None;
             self.offer_queue_task = None;
+            self.blocktime_queue_task = None;
         }
     }
 
@@ -536,6 +585,23 @@ impl SyncManager {
                 }
                 Some(Ok(Ok(()))) => {
                     self.offer_queue_task = None;
+                }
+                None => {}
+            }
+        }
+
+        if let Some(task) = &mut self.blocktime_queue_task {
+            match poll_once(task).await {
+                Some(Err(error)) => {
+                    warn!("Blocktime queue failed with panic: {error}");
+                    self.blocktime_queue_task = None;
+                }
+                Some(Ok(Err(error))) => {
+                    warn!("Blocktime queue failed with error: {error}");
+                    self.blocktime_queue_task = None;
+                }
+                Some(Ok(Ok(()))) => {
+                    self.blocktime_queue_task = None;
                 }
                 None => {}
             }

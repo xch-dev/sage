@@ -1,5 +1,8 @@
 use chia::protocol::CoinSpend;
-use chia_wallet_sdk::{Conditions, HashedPtr, Offer, SpendContext, StandardLayer};
+use chia_wallet_sdk::{
+    driver::{HashedPtr, Offer, SpendContext, StandardLayer},
+    types::Conditions,
+};
 use sage_database::CoinKind;
 
 use crate::{Wallet, WalletError};
@@ -14,7 +17,7 @@ impl Wallet {
     ) -> Result<Vec<CoinSpend>, WalletError> {
         let mut ctx = SpendContext::new();
 
-        let offer = offer.parse(&mut ctx.allocator)?;
+        let offer = offer.parse(&mut ctx)?;
 
         let mut coin_states = Vec::with_capacity(offer.coin_spends.len());
 
@@ -106,7 +109,7 @@ impl Wallet {
                     return Err(WalletError::UncancellableOffer);
                 };
                 let metadata_ptr = ctx.alloc(&did.info.metadata)?;
-                let did = did.with_metadata(HashedPtr::from_ptr(&ctx.allocator, metadata_ptr));
+                let did = did.with_metadata(HashedPtr::from_ptr(&ctx, metadata_ptr));
 
                 let synthetic_key = self.db.synthetic_key(did.info.p2_puzzle_hash).await?;
                 let p2 = StandardLayer::new(synthetic_key);
@@ -118,7 +121,7 @@ impl Wallet {
                     return Err(WalletError::UncancellableOffer);
                 };
                 let metadata_ptr = ctx.alloc(&nft.info.metadata)?;
-                let nft = nft.with_metadata(HashedPtr::from_ptr(&ctx.allocator, metadata_ptr));
+                let nft = nft.with_metadata(HashedPtr::from_ptr(&ctx, metadata_ptr));
 
                 let synthetic_key = self.db.synthetic_key(nft.info.p2_puzzle_hash).await?;
                 let p2 = StandardLayer::new(synthetic_key);

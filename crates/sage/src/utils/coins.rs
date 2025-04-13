@@ -1,5 +1,5 @@
 use chia::protocol::{Bytes32, Coin};
-use chia_wallet_sdk::Cat;
+use chia_wallet_sdk::driver::Cat;
 use hex_literal::hex;
 use sage_wallet::Wallet;
 

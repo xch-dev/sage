@@ -2,9 +2,9 @@
 
 use chia::{
     bls::{PublicKey, Signature},
-    protocol::{Bytes32, Program},
+    protocol::{Bytes, Bytes32, Program},
 };
-use chia_wallet_sdk::decode_address;
+use chia_wallet_sdk::utils::Address;
 use sage_api::Amount;
 
 use crate::{Error, Result};
@@ -13,13 +13,6 @@ pub fn parse_asset_id(input: String) -> Result<Bytes32> {
     let asset_id: [u8; 32] = hex::decode(&input)?
         .try_into()
         .map_err(|_| Error::InvalidAssetId(input))?;
-    Ok(asset_id.into())
-}
-
-pub fn parse_genesis_challenge(input: String) -> Result<Bytes32> {
-    let asset_id: [u8; 32] = hex::decode(&input)?
-        .try_into()
-        .map_err(|_| Error::InvalidGenesisChallenge(input))?;
     Ok(asset_id.into())
 }
 
@@ -37,33 +30,33 @@ pub fn parse_coin_id(input: String) -> Result<Bytes32> {
 }
 
 pub fn parse_did_id(input: String) -> Result<Bytes32> {
-    let (launcher_id, prefix) = decode_address(&input)?;
+    let address = Address::decode(&input)?;
 
-    if prefix != "did:chia:" {
+    if address.prefix != "did:chia:" {
         return Err(Error::InvalidDidId(input));
     }
 
-    Ok(launcher_id.into())
+    Ok(address.puzzle_hash)
 }
 
 pub fn parse_nft_id(input: String) -> Result<Bytes32> {
-    let (launcher_id, prefix) = decode_address(&input)?;
+    let address = Address::decode(&input)?;
 
-    if prefix != "nft" {
+    if address.prefix != "nft" {
         return Err(Error::InvalidNftId(input));
     }
 
-    Ok(launcher_id.into())
+    Ok(address.puzzle_hash)
 }
 
 pub fn parse_collection_id(input: String) -> Result<Bytes32> {
-    let (launcher_id, prefix) = decode_address(&input)?;
+    let address = Address::decode(&input)?;
 
-    if prefix != "col" {
+    if address.prefix != "col" {
         return Err(Error::InvalidCollectionId(input));
     }
 
-    Ok(launcher_id.into())
+    Ok(address.puzzle_hash)
 }
 
 pub fn parse_offer_id(input: String) -> Result<Bytes32> {
@@ -73,11 +66,10 @@ pub fn parse_offer_id(input: String) -> Result<Bytes32> {
     Ok(asset_id.into())
 }
 
-pub fn parse_cat_amount(input: Amount) -> Result<u64> {
+pub fn parse_amount(input: Amount) -> Result<u64> {
     let Some(amount) = input.to_u64() else {
         return Err(Error::InvalidAmount(input.to_string()));
     };
-
     Ok(amount)
 }
 
@@ -129,4 +121,16 @@ pub fn parse_program(input: String) -> Result<Program> {
     };
 
     Ok(hex::decode(stripped)?.into())
+}
+
+pub fn parse_memos(input: Option<Vec<String>>) -> Result<Option<Vec<Bytes>>> {
+    if let Some(list) = input {
+        let mut memos = Vec::new();
+        for memo in list {
+            memos.push(Bytes::from(hex::decode(memo)?));
+        }
+        Ok(Some(memos))
+    } else {
+        Ok(None)
+    }
 }

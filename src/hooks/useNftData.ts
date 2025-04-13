@@ -1,3 +1,4 @@
+import { isValidAddress } from '@/lib/utils';
 import { useCallback, useEffect, useState } from 'react';
 import {
   commands,
@@ -52,23 +53,24 @@ function createDefaultDidRecord(name: string, launcherId: string): DidRecord {
 
 export function useNftData(params: NftDataParams) {
   const { addError } = useErrors();
-  const [state, setState] = useState<NftDataState>({
-    nfts: [],
-    collections: [],
-    ownerDids: [],
-    minterDids: [],
-    owner: null,
-    collection: null,
-    isLoading: false,
-    nftTotal: 0,
-    collectionTotal: 0,
-    ownerDidsTotal: 0,
-    minterDidsTotal: 0,
-  });
+
+  const [nfts, setNfts] = useState<NftRecord[]>([]);
+  const [collections, setCollections] = useState<NftCollectionRecord[]>([]);
+  const [ownerDids, setOwnerDids] = useState<DidRecord[]>([]);
+  const [minterDids, setMinterDids] = useState<DidRecord[]>([]);
+  const [owner, setOwner] = useState<DidRecord | null>(null);
+  const [collection, setCollection] = useState<NftCollectionRecord | null>(
+    null,
+  );
+  const [isLoading, setIsLoading] = useState(false);
+  const [nftTotal, setNftTotal] = useState(0);
+  const [collectionTotal, setCollectionTotal] = useState(0);
+  const [ownerDidsTotal, setOwnerDidsTotal] = useState(0);
+  const [minterDidsTotal, setMinterDidsTotal] = useState(0);
 
   const updateNfts = useCallback(
     async (page: number) => {
-      setState((prev) => ({ ...prev, isLoading: true }));
+      setIsLoading(true);
       try {
         if (
           params.collectionId ||
@@ -94,12 +96,20 @@ export function useNftData(params: NftDataParams) {
             include_hidden: params.showHidden,
           };
 
-          const response = await commands.getNfts(queryParams);
+          let nfts: NftRecord[] = [];
+          let total: number = 0;
+          if (params.query && isValidAddress(params.query, 'nft')) {
+            const response = await commands.getNft({ nft_id: params.query });
+            nfts = response.nft ? [response.nft] : [];
+            total = nfts.length;
+          } else {
+            const response = await commands.getNfts(queryParams);
+            nfts = response.nfts;
+            total = response.total;
+          }
 
-          const updates: Partial<NftDataState> = {
-            nfts: response.nfts,
-            nftTotal: response.total,
-          };
+          setNfts(nfts);
+          setNftTotal(total);
 
           if (params.collectionId) {
             const collectionResponse = await commands.getNftCollection({
@@ -108,22 +118,20 @@ export function useNftData(params: NftDataParams) {
                   ? null
                   : params.collectionId,
             });
-            updates.collection = collectionResponse.collection;
+            setCollection(collectionResponse.collection);
           } else if (params.ownerDid) {
             const didResponse = await commands.getDids({});
             const foundDid = didResponse.dids.find(
               (did) => did.launcher_id === params.ownerDid,
             );
-            updates.owner =
-              foundDid || createDefaultDidRecord('Unassigned NFTs', 'No did');
+            setOwner(
+              foundDid || createDefaultDidRecord('Unassigned NFTs', 'No did'),
+            );
           } else if (params.minterDid) {
-            updates.owner = createDefaultDidRecord(
-              params.minterDid,
-              params.minterDid,
+            setOwner(
+              createDefaultDidRecord(params.minterDid, params.minterDid),
             );
           }
-
-          setState((prev) => ({ ...prev, ...updates }));
         } else if (params.group === NftGroupMode.Collection) {
           try {
             const response = await commands.getNftCollections({
@@ -149,17 +157,11 @@ export function useNftData(params: NftDataParams) {
               });
             }
 
-            setState((prev) => ({
-              ...prev,
-              collections,
-              collectionTotal: response.total + 1, // Add 1 for No Collection
-            }));
+            setCollections(collections);
+            setCollectionTotal(response.total + 1); // Add 1 for No Collection
           } catch (error: any) {
-            setState((prev) => ({
-              ...prev,
-              collections: [],
-              collectionTotal: 0,
-            }));
+            setCollections([]);
+            setCollectionTotal(0);
             addError(error);
           }
         } else if (params.group === NftGroupMode.OwnerDid) {
@@ -177,17 +179,11 @@ export function useNftData(params: NftDataParams) {
               );
             }
 
-            setState((prev) => ({
-              ...prev,
-              ownerDids,
-              ownerDidsTotal: response.dids.length + 1, // Add 1 for Unassigned NFTs
-            }));
+            setOwnerDids(ownerDids);
+            setOwnerDidsTotal(response.dids.length + 1); // Add 1 for Unassigned NFTs
           } catch (error: any) {
-            setState((prev) => ({
-              ...prev,
-              ownerDids: [],
-              ownerDidsTotal: 0,
-            }));
+            setOwnerDids([]);
+            setOwnerDidsTotal(0);
             addError(error);
           }
         } else if (params.group === NftGroupMode.MinterDid) {
@@ -215,17 +211,11 @@ export function useNftData(params: NftDataParams) {
               );
             }
 
-            setState((prev) => ({
-              ...prev,
-              minterDids,
-              minterDidsTotal: uniqueMinterDids.total + 1, // Add 1 for Unknown Minter
-            }));
+            setMinterDids(minterDids);
+            setMinterDidsTotal(uniqueMinterDids.total + 1); // Add 1 for Unknown Minter
           } catch (error: any) {
-            setState((prev) => ({
-              ...prev,
-              minterDids: [],
-              minterDidsTotal: 0,
-            }));
+            setMinterDids([]);
+            setMinterDidsTotal(0);
             addError(error);
           }
         }
@@ -233,7 +223,7 @@ export function useNftData(params: NftDataParams) {
         console.error('Error fetching NFTs:', error);
         addError(error);
       } finally {
-        setState((prev) => ({ ...prev, isLoading: false }));
+        setIsLoading(false);
       }
     },
     [
@@ -251,15 +241,12 @@ export function useNftData(params: NftDataParams) {
 
   // Clear state and fetch new data when params change
   useEffect(() => {
-    setState((prev) => ({
-      ...prev,
-      nfts: [],
-      collections: [],
-      ownerDids: [],
-      minterDids: [],
-      collection: null,
-      owner: null,
-    }));
+    setNfts([]);
+    setCollections([]);
+    setOwnerDids([]);
+    setMinterDids([]);
+    setCollection(null);
+    setOwner(null);
     updateNfts(params.page);
   }, [
     updateNfts,
@@ -295,13 +282,13 @@ export function useNftData(params: NftDataParams) {
       params.minterDid ||
       params.group === NftGroupMode.None
     ) {
-      return state.nftTotal;
+      return nftTotal;
     } else if (params.group === NftGroupMode.Collection) {
-      return state.collectionTotal;
+      return collectionTotal;
     } else if (params.group === NftGroupMode.OwnerDid) {
-      return state.ownerDidsTotal;
+      return ownerDidsTotal;
     } else if (params.group === NftGroupMode.MinterDid) {
-      return state.minterDidsTotal;
+      return minterDidsTotal;
     }
     return 0;
   }, [
@@ -309,20 +296,20 @@ export function useNftData(params: NftDataParams) {
     params.ownerDid,
     params.minterDid,
     params.group,
-    state.nftTotal,
-    state.collectionTotal,
-    state.ownerDidsTotal,
-    state.minterDidsTotal,
+    nftTotal,
+    collectionTotal,
+    ownerDidsTotal,
+    minterDidsTotal,
   ]);
 
   return {
-    nfts: state.nfts,
-    collections: state.collections,
-    ownerDids: state.ownerDids,
-    minterDids: state.minterDids,
-    owner: state.owner,
-    collection: state.collection,
-    isLoading: state.isLoading,
+    nfts,
+    collections,
+    ownerDids,
+    minterDids,
+    owner,
+    collection,
+    isLoading,
     total: getTotal(),
     updateNfts,
   };

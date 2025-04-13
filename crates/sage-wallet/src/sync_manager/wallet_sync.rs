@@ -259,7 +259,8 @@ async fn auto_insert_unhardened_derivations(
         .await?
         .map_or(0, |index| index + 1);
 
-    while next_index < max_index + 500 {
+    //1000 derivations on initial sync
+    while max_index + 500 >= next_index {
         derivations.extend(
             wallet
                 .insert_unhardened_derivations(tx, next_index..next_index + 500)

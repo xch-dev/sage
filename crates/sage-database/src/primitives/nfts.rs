@@ -3,7 +3,7 @@ use chia::{
     puzzles::LineageProof,
     sha2::Sha256,
 };
-use chia_wallet_sdk::{Nft, NftInfo};
+use chia_wallet_sdk::driver::{Nft, NftInfo};
 use sqlx::SqliteExecutor;
 
 use crate::{
@@ -177,9 +177,17 @@ impl Database {
     ) -> Result<()> {
         set_collection_visible(&self.pool, collection_id, visible).await
     }
+
+    pub async fn nft_icon(&self, hash: Bytes32) -> Result<Option<Vec<u8>>> {
+        nft_icon(&self.pool, hash).await
+    }
+
+    pub async fn nft_thumbnail(&self, hash: Bytes32) -> Result<Option<Vec<u8>>> {
+        nft_thumbnail(&self.pool, hash).await
+    }
 }
 
-impl<'a> DatabaseTx<'a> {
+impl DatabaseTx<'_> {
     pub async fn insert_nft_coin(
         &mut self,
         coin_id: Bytes32,
@@ -222,8 +230,21 @@ impl<'a> DatabaseTx<'a> {
         delete_nft_data(&mut *self.tx, hash).await
     }
 
+    pub async fn delete_nft_thumbnail(&mut self, hash: Bytes32) -> Result<()> {
+        delete_nft_thumbnail(&mut *self.tx, hash).await
+    }
+
     pub async fn insert_nft_data(&mut self, hash: Bytes32, nft_data: NftData) -> Result<()> {
         insert_nft_data(&mut *self.tx, hash, nft_data).await
+    }
+
+    pub async fn insert_nft_thumbnail(
+        &mut self,
+        hash: Bytes32,
+        icon: Vec<u8>,
+        thumbnail: Vec<u8>,
+    ) -> Result<()> {
+        insert_nft_thumbnail(&mut *self.tx, hash, icon, thumbnail).await
     }
 
     pub async fn fetch_nft_data(&mut self, hash: Bytes32) -> Result<Option<NftData>> {
@@ -429,7 +450,7 @@ async fn collections_visible_named(
     .fetch_all(conn)
     .await?;
 
-    let total = rows.first().map_or(0, |r| r.total_count as u32);
+    let total = rows.first().map_or(Ok(0), |r| r.total_count.try_into())?;
     let collections = rows
         .into_iter()
         .map(|row| {
@@ -473,7 +494,7 @@ async fn collections_named(
     .fetch_all(conn)
     .await?;
 
-    let total = rows.first().map_or(0, |r| r.total_count as u32);
+    let total = rows.first().map_or(Ok(0), |r| r.total_count.try_into())?;
     let collections = rows
         .into_iter()
         .map(|row| {
@@ -587,6 +608,59 @@ async fn delete_nft_data(conn: impl SqliteExecutor<'_>, hash: Bytes32) -> Result
     Ok(())
 }
 
+async fn insert_nft_thumbnail(
+    conn: impl SqliteExecutor<'_>,
+    hash: Bytes32,
+    icon: Vec<u8>,
+    thumbnail: Vec<u8>,
+) -> Result<()> {
+    let hash = hash.as_ref();
+
+    sqlx::query!(
+        "REPLACE INTO `nft_thumbnails` (`hash`, `icon`, `thumbnail`) VALUES (?, ?, ?)",
+        hash,
+        icon,
+        thumbnail
+    )
+    .execute(conn)
+    .await?;
+
+    Ok(())
+}
+
+async fn delete_nft_thumbnail(conn: impl SqliteExecutor<'_>, hash: Bytes32) -> Result<()> {
+    let hash = hash.as_ref();
+
+    sqlx::query!("DELETE FROM `nft_thumbnails` WHERE `hash` = ?", hash)
+        .execute(conn)
+        .await?;
+
+    Ok(())
+}
+
+async fn nft_icon(conn: impl SqliteExecutor<'_>, hash: Bytes32) -> Result<Option<Vec<u8>>> {
+    let hash = hash.as_ref();
+
+    let row = sqlx::query!("SELECT `icon` FROM `nft_thumbnails` WHERE `hash` = ?", hash)
+        .fetch_optional(conn)
+        .await?;
+
+    Ok(row.map(|row| row.icon))
+}
+
+async fn nft_thumbnail(conn: impl SqliteExecutor<'_>, hash: Bytes32) -> Result<Option<Vec<u8>>> {
+    let hash = hash.as_ref();
+
+    let row = sqlx::query!(
+        "SELECT `thumbnail` FROM `nft_thumbnails` WHERE `hash` = ?",
+        hash
+    )
+    .fetch_optional(conn)
+    .await?;
+
+    Ok(row.map(|row| row.thumbnail))
+}
+
 async fn distinct_minter_dids(
     conn: impl SqliteExecutor<'_>,
     limit: u32,
@@ -611,7 +685,9 @@ async fn distinct_minter_dids(
     .fetch_all(conn)
     .await?;
 
-    let total_count = rows.first().map_or(0, |row| row.total_count as u32);
+    let total_count = rows
+        .first()
+        .map_or(Ok(0), |row| row.total_count.try_into())?;
     let dids = rows
         .into_iter()
         .map(|row| row.minter_did.map(|bytes| to_bytes32(&bytes)).transpose())
@@ -833,140 +909,99 @@ async fn nfts_by_metadata_hash(
     .collect()
 }
 
-fn escape_fts_query(query: &str) -> String {
-    // First escape backslashes by doubling them
-    // Then escape quotes by doubling them
-    // Finally wrap in quotes to treat as literal string
-    let escaped = query.replace('\\', "\\\\").replace('"', "\"\"");
-    format!("\"{escaped}\"")
-}
-
 async fn search_nfts(
     conn: impl SqliteExecutor<'_>,
     params: NftSearchParams,
     limit: u32,
     offset: u32,
 ) -> Result<(Vec<NftRow>, u32)> {
-    let mut conditions = vec!["is_owned = 1"];
-
-    // Group filtering (Collection/DID)
-    match params.group {
-        Some(NftGroup::Collection(_)) => conditions.push("collection_id = ?"),
-        Some(NftGroup::NoCollection) => conditions.push("collection_id IS NULL"),
-        Some(NftGroup::MinterDid(_)) => conditions.push("minter_did = ?"),
-        Some(NftGroup::NoMinterDid) => conditions.push("minter_did IS NULL"),
-        Some(NftGroup::OwnerDid(_)) => conditions.push("owner_did = ?"),
-        Some(NftGroup::NoOwnerDid) => conditions.push("owner_did IS NULL"),
-        None => {}
-    }
-
-    // Visibility condition
-    if !params.include_hidden {
-        conditions.push("visible = 1");
-    }
-
-    // Build base conditions
-    let where_clause = conditions.join(" AND ");
-
-    // Common parts
-    let order_by = format!(
-        r#"ORDER BY {visible_order}
-                 is_pending DESC,
-                 {sort_order},
-                 launcher_id ASC
-        LIMIT ? OFFSET ?"#,
-        visible_order = if params.include_hidden {
-            "visible DESC,"
-        } else {
-            ""
-        },
-        sort_order = match params.sort_mode {
-            NftSortMode::Recent => "created_height DESC",
-            NftSortMode::Name => "is_named DESC, name ASC",
-        }
+    let mut query = sqlx::QueryBuilder::new(
+        "SELECT launcher_id, 
+            coin_id, 
+            collection_id, 
+            minter_did, 
+            owner_did, 
+            visible, 
+            sensitive_content, 
+            name, 
+            is_owned, 
+            created_height, 
+            metadata_hash,
+            is_named,
+            is_pending,
+            COUNT(*) OVER() as total_count	
+        FROM nfts
+        WHERE 1=1 
+        AND is_owned = 1
+        ",
     );
 
-    // Choose index based on sort mode and group type
-    let index = match (params.sort_mode, &params.group) {
-        // Collection grouping
-        (NftSortMode::Name, Some(NftGroup::Collection(_) | NftGroup::NoCollection)) => {
-            "nft_col_name"
-        }
-        (NftSortMode::Recent, Some(NftGroup::Collection(_) | NftGroup::NoCollection)) => {
-            "nft_col_recent"
-        }
-
-        // Minter DID grouping
-        (NftSortMode::Name, Some(NftGroup::MinterDid(_) | NftGroup::NoMinterDid)) => {
-            "nft_minter_did_name"
-        }
-        (NftSortMode::Recent, Some(NftGroup::MinterDid(_) | NftGroup::NoMinterDid)) => {
-            "nft_minter_did_recent"
-        }
-
-        // Owner DID grouping
-        (NftSortMode::Name, Some(NftGroup::OwnerDid(_) | NftGroup::NoOwnerDid)) => {
-            "nft_owner_did_name"
-        }
-        (NftSortMode::Recent, Some(NftGroup::OwnerDid(_) | NftGroup::NoOwnerDid)) => {
-            "nft_owner_did_recent"
-        }
-
-        // Global sorting
-        (NftSortMode::Name, None) => "nft_name",
-        (NftSortMode::Recent, None) => "nft_recent",
-    };
-
-    // Construct query based on whether we're doing a name search
-    let query = if params.name.is_some() {
-        format!(
-            r#"
-            WITH matched_names AS (
-                SELECT launcher_id 
-                FROM nft_name_fts 
-                WHERE name MATCH ? || '*'
-                ORDER BY rank
-            )
-            SELECT nfts.*, COUNT(*) OVER() as total_count 
-            FROM nfts INDEXED BY {index}
-            INNER JOIN matched_names ON nfts.launcher_id = matched_names.launcher_id
-            WHERE {where_clause}
-            {order_by}
-            "#
-        )
-    } else {
-        format!(
-            r#"
-            SELECT *, COUNT(*) OVER() as total_count
-            FROM nfts INDEXED BY {index}
-            WHERE {where_clause}
-            {order_by}
-            "#
-        )
-    };
-
-    // Execute query with bindings
-    let mut query = sqlx::query_as::<_, NftSearchRow>(&query);
-
-    // Bind name search if present
-    if let Some(name_search) = params.name {
-        query = query.bind(escape_fts_query(&name_search));
+    // Add visibility condition if not including hidden NFTs
+    if !params.include_hidden {
+        query.push(" AND visible = 1");
     }
 
-    // Bind group parameters if present
-    //if let Some(NftGroup::Collection(id) | NftGroup::MinterDid(id)) = &params.group {
-    if let Some(NftGroup::Collection(id) | NftGroup::MinterDid(id) | NftGroup::OwnerDid(id)) =
-        &params.group
-    {
-        query = query.bind(id.as_ref());
+    // Add group filtering (Collection/DID)
+    if let Some(group) = &params.group {
+        match group {
+            NftGroup::Collection(id) => {
+                query.push(" AND collection_id = ");
+                query.push_bind(id.as_ref());
+            }
+            NftGroup::NoCollection => {
+                query.push(" AND collection_id IS NULL");
+            }
+            NftGroup::MinterDid(id) => {
+                query.push(" AND minter_did = ");
+                query.push_bind(id.as_ref());
+            }
+            NftGroup::NoMinterDid => {
+                query.push(" AND minter_did IS NULL");
+            }
+            NftGroup::OwnerDid(id) => {
+                query.push(" AND owner_did = ");
+                query.push_bind(id.as_ref());
+            }
+            NftGroup::NoOwnerDid => {
+                query.push(" AND owner_did IS NULL");
+            }
+        }
     }
 
-    // Limit and offset
-    query = query.bind(limit);
-    query = query.bind(offset);
+    // Add name search if present
+    if let Some(name_search) = &params.name {
+        query.push(" AND name LIKE ");
+        query.push_bind(format!("%{name_search}%"));
+    }
+
+    // Add ORDER BY clause based on sort_mode
+    query.push(" ORDER BY ");
+
+    // Add visible DESC to sort order if including hidden NFTs
+    if params.include_hidden {
+        query.push("visible DESC, ");
+    }
+
+    match params.sort_mode {
+        NftSortMode::Recent => {
+            query.push("is_pending DESC, created_height DESC, launcher_id ASC");
+        }
+        NftSortMode::Name => {
+            query.push("is_pending DESC, is_named DESC, name ASC, launcher_id ASC");
+        }
+    }
+
+    query.push(" LIMIT ? OFFSET ?");
+
+    let query = query.build_query_as::<NftSearchRow>();
+
+    // Bind limit and offset
+    let query = query.bind(limit).bind(offset);
 
     let rows = query.fetch_all(conn).await?;
-    let total_count = rows.first().map_or(0, |row| row.total_count as u32);
+    let total_count = rows
+        .first()
+        .map_or(Ok(0), |row| row.total_count.try_into())?;
     let nfts = rows
         .into_iter()
         .map(|row| into_row(row.nft))
@@ -1115,7 +1150,7 @@ async fn created_unspent_nft_coin_states(
     let rows = sqlx::query_as!(
         CoinStateSql,
         "
-        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `spent_height`, `created_height`, `transaction_id`, `kind`
+        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `spent_height`, `created_height`, `transaction_id`, `kind`, `created_unixtime`, `spent_unixtime`
         FROM `coin_states`
         INNER JOIN `nft_coins` ON `coin_states`.coin_id = `nft_coins`.coin_id
         WHERE `spent_height` IS NULL
@@ -1140,7 +1175,7 @@ async fn created_unspent_nft_coin_state(
     let rows = sqlx::query_as!(
         CoinStateSql,
         "
-        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `spent_height`, `created_height`, `transaction_id`, `kind`
+        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `spent_height`, `created_height`, `transaction_id`, `kind`, `created_unixtime`, `spent_unixtime`
         FROM `coin_states`
         INNER JOIN `nft_coins` ON `coin_states`.coin_id = `nft_coins`.coin_id
         WHERE `launcher_id` = ?

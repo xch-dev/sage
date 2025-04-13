@@ -1,10 +1,10 @@
 import { OfferAssets, OfferRecord } from '@/bindings';
-import { nftUri } from '@/lib/nftUri';
-import { fromMojos } from '@/lib/utils';
-import { useWalletState } from '@/state';
-import BigNumber from 'bignumber.js';
-import { t } from '@lingui/core/macro';
 import { NumberFormat } from '@/components/NumberFormat';
+import { nftUri } from '@/lib/nftUri';
+import { fromMojos, formatTimestamp } from '@/lib/utils';
+import { useWalletState } from '@/state';
+import { t } from '@lingui/core/macro';
+import BigNumber from 'bignumber.js';
 
 export interface OfferSummaryCardProps {
   record: OfferRecord;
@@ -27,8 +27,21 @@ export function OfferSummaryCard({ record, content }: OfferSummaryCardProps) {
                     : 'Expired'}
             </div>
             <div className='text-muted-foreground text-sm'>
-              {record.creation_date}
+              {new Date(record.creation_date).toLocaleString()}
             </div>
+            {record.summary?.expiration_timestamp && (
+              <div className='text-muted-foreground text-sm'>
+                <span>
+                  Expires:{' '}
+                  {formatTimestamp(record.summary.expiration_timestamp)}
+                </span>
+              </div>
+            )}
+            {record.summary?.expiration_height && (
+              <div className='text-muted-foreground text-sm'>
+                <span>Block: {record.summary.expiration_height}</span>
+              </div>
+            )}
           </div>
 
           <AssetPreview label='Offered' assets={record.summary.maker} />
@@ -75,8 +88,8 @@ function AssetPreview({ label, assets }: AssetPreviewProps) {
           </div>
         </div>
       )}
-      {Object.entries(assets.cats).map(([_assetId, cat]) => (
-        <div className='flex items-center gap-2'>
+      {Object.entries(assets.cats).map(([, cat], i) => (
+        <div className='flex items-center gap-2' key={i}>
           <img
             alt={cat.name ?? cat.ticker ?? t`Unknown`}
             src={cat.icon_url!}
@@ -93,11 +106,11 @@ function AssetPreview({ label, assets }: AssetPreviewProps) {
           </div>
         </div>
       ))}
-      {Object.entries(assets.nfts).map(([_nftId, nft]) => (
-        <div className='flex items-center gap-2'>
+      {Object.entries(assets.nfts).map(([, nft], i) => (
+        <div className='flex items-center gap-2' key={i}>
           <img
             alt={nft.name ?? t`Unknown`}
-            src={nftUri(nft.image_mime_type, nft.image_data)}
+            src={nftUri(nft.icon ? 'image/png' : null, nft.icon)}
             className='w-8 h-8'
           />
 

@@ -1,12 +1,11 @@
-import { commands, NftRecord } from '@/bindings';
+import { commands, events, NftRecord } from '@/bindings';
 import { useErrors } from '@/hooks/useErrors';
 import { nftUri } from '@/lib/nftUri';
-import { addressInfo } from '@/lib/utils';
-import { useEffect, useMemo, useState } from 'react';
+import { addressInfo, isValidAddress } from '@/lib/utils';
+import { t } from '@lingui/core/macro';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Input } from '../ui/input';
 import { DropdownSelector } from './DropdownSelector';
-import { t } from '@lingui/core/macro';
-import { isValidAddress } from '@/lib/utils';
 
 export interface NftSelectorProps {
   value: string | null;
@@ -65,9 +64,13 @@ export function NftSelector({
     }
   }, [isValidNftId, searchTerm, onChange, addError]);
 
-  useEffect(() => {
+  const updateThumbnails = useCallback(async () => {
     const nftsToFetch = [...nfts.map((nft) => nft.launcher_id)];
-    if (value && !nfts.find((nft) => nft.launcher_id === value)) {
+    if (
+      value &&
+      value !== '' &&
+      !nfts.find((nft) => nft.launcher_id === value)
+    ) {
       try {
         if (addressInfo(value).puzzleHash.length === 64) {
           nftsToFetch.push(value);
@@ -77,21 +80,64 @@ export function NftSelector({
       }
     }
 
-    Promise.all(
+    return await Promise.all(
       nftsToFetch.map((nftId) =>
         commands
-          .getNftData({ nft_id: nftId })
-          .then((response) => [nftId, response.data] as const),
+          .getNftThumbnail({ nft_id: nftId })
+          .then((response) => [nftId, response.thumbnail] as const),
       ),
     ).then((thumbnails) => {
       const map: Record<string, string> = {};
       thumbnails.forEach(([id, thumbnail]) => {
-        if (thumbnail !== null)
-          map[id] = nftUri(thumbnail.mime_type, thumbnail.blob);
+        if (thumbnail !== null) map[id] = nftUri('image/png', thumbnail);
       });
       setNftThumbnails(map);
     });
   }, [nfts, value]);
+
+  useEffect(() => {
+    updateThumbnails();
+
+    const unlisten = events.syncEvent.listen((event) => {
+      const type = event.payload.type;
+      if (type === 'nft_data') updateThumbnails();
+    });
+
+    return () => {
+      unlisten.then((u) => u());
+    };
+  }, [updateThumbnails]);
+
+  // Load NFT record when a value is provided but not found in current nfts list
+  useEffect(() => {
+    if (
+      value &&
+      value !== '' &&
+      !selectedNft &&
+      !nfts.find((nft) => nft.launcher_id === value)
+    ) {
+      try {
+        // Validate the NFT ID format
+        if (isValidAddress(value, 'nft')) {
+          commands
+            .getNft({ nft_id: value })
+            .then((data) => {
+              setSelectedNft(data.nft);
+            })
+            .catch(addError);
+        }
+      } catch (error) {
+        // Handle any errors silently
+      }
+    }
+  }, [value, selectedNft, nfts, addError]);
+
+  // Reset selectedNft when value is null or empty
+  useEffect(() => {
+    if (!value || value === '') {
+      setSelectedNft(null);
+    }
+  }, [value]);
 
   const defaultNftImage = nftUri(null, null);
 
@@ -128,6 +174,7 @@ export function NftSelector({
             className='w-10 h-10 rounded object-cover'
             alt=''
             aria-hidden='true'
+            loading='lazy'
           />
           <div className='flex flex-col truncate'>
             <span className='flex-grow truncate' role='text'>
@@ -150,6 +197,7 @@ export function NftSelector({
               ? (nftThumbnails[selectedNft.launcher_id] ?? defaultNftImage)
               : defaultNftImage
           }
+          loading='lazy'
           alt=''
           aria-hidden='true'
           className='w-8 h-8 rounded object-cover'

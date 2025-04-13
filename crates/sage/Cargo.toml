@@ -1,6 +1,6 @@
 [package]
 name = "sage"
-version = "0.9.6"
+version = "0.10.1"
 edition = "2021"
 license = "Apache-2.0"
 description = "A high level abstraction for running Sage wallet."
@@ -30,6 +30,7 @@ indexmap = { workspace = true, features = ["serde"] }
 toml = { workspace = true, features = ["preserve_order"] }
 chia-wallet-sdk = { workspace = true, features = ["rustls"] }
 chia = { workspace = true }
+chia-puzzles = { workspace = true }
 hex = { workspace = true }
 thiserror = { workspace = true }
 log = { workspace = true }

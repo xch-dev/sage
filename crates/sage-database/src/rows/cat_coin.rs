@@ -2,7 +2,7 @@ use chia::{
     protocol::{Bytes32, Coin},
     puzzles::LineageProof,
 };
-use chia_wallet_sdk::Cat;
+use chia_wallet_sdk::driver::Cat;
 
 use crate::{to_bytes32, to_u64, DatabaseError};
 

@@ -1,7 +1,8 @@
-import { commands, TransactionResponse } from '@/bindings';
+import { commands, NftData, NftRecord, TransactionResponse } from '@/bindings';
 import { useErrors } from '@/hooks/useErrors';
+import useOfferStateWithDefault from '@/hooks/useOfferStateWithDefault';
 import { toMojos } from '@/lib/utils';
-import { useOfferState, useWalletState } from '@/state';
+import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import {
@@ -11,7 +12,8 @@ import {
   SendIcon,
   UserRoundPlus,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { toast } from 'react-toastify';
 import { AssignNftDialog } from './AssignNftDialog';
 import ConfirmationDialog from './ConfirmationDialog';
 import { FeeOnlyDialog } from './FeeOnlyDialog';
@@ -25,26 +27,109 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
-import { toast } from 'react-toastify';
+import { NftConfirmation } from './confirmations/NftConfirmation';
+import { useNavigate } from 'react-router-dom';
 
 export interface MultiSelectActionsProps {
   selected: string[];
+  nfts?: NftRecord[];
+  nftData?: Record<string, NftData | null>;
   onConfirm: () => void;
 }
 
 export function MultiSelectActions({
   selected,
+  nfts: propNfts,
+  nftData: propNftData,
   onConfirm,
 }: MultiSelectActionsProps) {
   const walletState = useWalletState();
-  const offerState = useOfferState();
+  const [offerState, setOfferState] = useOfferStateWithDefault();
+
   const { addError } = useErrors();
-  const selectedCount = selected.length;
+  const navigate = useNavigate();
+
   const [transferOpen, setTransferOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
   const [burnOpen, setBurnOpen] = useState(false);
+  const [isBurning, setIsBurning] = useState(false);
+  const [isTransferring, setIsTransferring] = useState(false);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [transferAddress, setTransferAddress] = useState('');
+  const [assignedProfileId, setAssignedProfileId] = useState<string | null>(
+    null,
+  );
   const [response, setResponse] = useState<TransactionResponse | null>(null);
+
+  // State for fetched NFT data when props aren't provided
+  const [fetchedNfts, setFetchedNfts] = useState<NftRecord[]>([]);
+  const [fetchedNftData, setFetchedNftData] = useState<
+    Record<string, NftData | null>
+  >({});
+
+  // Use prop values if provided, otherwise use fetched values
+  const nfts = propNfts?.length ? propNfts : fetchedNfts;
+  const nftData = Object.keys(propNftData || {}).length
+    ? propNftData || {}
+    : fetchedNftData;
+
+  const selectedCount = selected.length;
+
+  // Fetch NFT records if not provided as props
+  useEffect(() => {
+    // Skip if we already have NFT records from props or if there are no selected NFTs
+    if ((propNfts && propNfts.length > 0) || selected.length === 0) return;
+
+    const fetchNftRecords = async () => {
+      try {
+        const records: NftRecord[] = [];
+        for (const nftId of selected) {
+          const response = await commands.getNft({ nft_id: nftId });
+          if (response.nft) {
+            records.push(response.nft);
+          }
+        }
+        setFetchedNfts(records);
+      } catch (error: any) {
+        addError(error);
+      }
+    };
+
+    fetchNftRecords();
+  }, [selected, propNfts, addError]);
+
+  // Fetch NFT data if not provided as props
+  useEffect(() => {
+    // Skip if we already have NFT data from props or if there are no NFT records
+    if (
+      (propNftData && Object.keys(propNftData).length > 0) ||
+      (fetchedNfts.length === 0 && (!propNfts || propNfts.length === 0))
+    )
+      return;
+
+    const nftsToFetch = propNfts?.length ? propNfts : fetchedNfts;
+
+    const fetchNftData = async () => {
+      try {
+        const data: Record<string, NftData | null> = {};
+        for (const nft of nftsToFetch) {
+          const response = await commands.getNftData({
+            nft_id: nft.launcher_id,
+          });
+          data[nft.launcher_id] = response.data;
+        }
+        setFetchedNftData(data);
+      } catch (error: any) {
+        addError(error);
+      }
+    };
+
+    fetchNftData();
+  }, [fetchedNfts, propNfts, propNftData, addError]);
+
   const onTransferSubmit = (address: string, fee: string) => {
+    setIsTransferring(true);
+    setTransferAddress(address);
     commands
       .transferNfts({
         nft_ids: selected,
@@ -52,10 +137,16 @@ export function MultiSelectActions({
         fee: toMojos(fee, walletState.sync.unit.decimals),
       })
       .then(setResponse)
-      .catch(addError)
+      .catch((err: any) => {
+        setIsTransferring(false);
+        addError(err);
+      })
       .finally(() => setTransferOpen(false));
   };
+
   const onAssignSubmit = (profile: string | null, fee: string) => {
+    setIsEditingProfile(true);
+    setAssignedProfileId(profile);
     commands
       .assignNftsToDid({
         nft_ids: selected,
@@ -63,10 +154,15 @@ export function MultiSelectActions({
         fee: toMojos(fee, walletState.sync.unit.decimals),
       })
       .then(setResponse)
-      .catch(addError)
+      .catch((err: any) => {
+        setIsEditingProfile(false);
+        addError(err);
+      })
       .finally(() => setAssignOpen(false));
   };
+
   const onBurnSubmit = (fee: string) => {
+    setIsBurning(true);
     commands
       .transferNfts({
         nft_ids: selected,
@@ -74,7 +170,10 @@ export function MultiSelectActions({
         fee: toMojos(fee, walletState.sync.unit.decimals),
       })
       .then(setResponse)
-      .catch(addError)
+      .catch((err: any) => {
+        setIsBurning(false);
+        addError(err);
+      })
       .finally(() => setBurnOpen(false));
   };
 
@@ -164,7 +263,7 @@ export function MultiSelectActions({
                     addedCount++;
                   }
 
-                  useOfferState.setState({
+                  setOfferState({
                     offered: {
                       ...offerState.offered,
                       nfts: newNfts,
@@ -176,7 +275,9 @@ export function MultiSelectActions({
                     addedCount > 0
                       ? t`Added ${addedCount} ${nfts} to offer`
                       : t`Selected NFTs are already in the offer`;
-                  toast.success(message);
+                  toast.success(message, {
+                    onClick: () => navigate('/offers/make'),
+                  });
 
                   onConfirm();
                 }}
@@ -206,9 +307,8 @@ export function MultiSelectActions({
           </Trans>
         </p>
       </TransferDialog>
-
       <AssignNftDialog
-        title={t`Assign Profile`}
+        title={t`Edit Profile`}
         open={assignOpen}
         setOpen={setAssignOpen}
         onSubmit={onAssignSubmit}
@@ -218,12 +318,12 @@ export function MultiSelectActions({
           <Trans>This will bulk assign the NFTs to the selected profile.</Trans>
         </p>
       </AssignNftDialog>
-
       <FeeOnlyDialog
         title={t`Bulk Burn NFTs`}
         open={burnOpen}
         setOpen={setBurnOpen}
         onSubmit={onBurnSubmit}
+        submitButtonLabel={t`Burn`}
         aria-describedby='bulk-burn-description'
       >
         <p id='bulk-burn-description'>
@@ -233,13 +333,50 @@ export function MultiSelectActions({
           </Trans>
         </p>
       </FeeOnlyDialog>
-
       <ConfirmationDialog
         response={response}
+        showRecipientDetails={false}
         close={() => {
           setResponse(null);
+          setIsBurning(false);
+          setIsTransferring(false);
+          setIsEditingProfile(false);
           onConfirm();
         }}
+        additionalData={
+          isBurning && response && nfts.length > 0
+            ? {
+                title: t`Burn NFT`,
+                content: (
+                  <NftConfirmation type='burn' nfts={nfts} nftData={nftData} />
+                ),
+              }
+            : isTransferring && response && nfts.length > 0
+              ? {
+                  title: t`Transfer NFT`,
+                  content: (
+                    <NftConfirmation
+                      type='transfer'
+                      nfts={nfts}
+                      nftData={nftData}
+                      address={transferAddress}
+                    />
+                  ),
+                }
+              : isEditingProfile && response && nfts.length > 0
+                ? {
+                    title: t`Edit NFT Profile`,
+                    content: (
+                      <NftConfirmation
+                        type='edit'
+                        nfts={nfts}
+                        nftData={nftData}
+                        profileId={assignedProfileId}
+                      />
+                    ),
+                  }
+                : undefined
+        }
       />
     </>
   );

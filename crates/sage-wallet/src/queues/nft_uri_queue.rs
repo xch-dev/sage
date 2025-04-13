@@ -31,7 +31,7 @@ impl NftUriQueue {
     }
 
     async fn process_batch(&self) -> Result<(), WalletError> {
-        let batch = self.db.unchecked_nft_uris(30).await?;
+        let batch = self.db.unchecked_nft_uris(10).await?;
 
         if batch.is_empty() {
             return Ok(());
@@ -64,7 +64,7 @@ impl NftUriQueue {
 
                     let existing = tx.fetch_nft_data(item.hash).await?;
 
-                    if existing.as_ref().map_or(true, |data| !data.hash_matches) {
+                    if existing.as_ref().is_none_or(|data| !data.hash_matches) {
                         tx.insert_nft_data(
                             item.hash,
                             NftData {
@@ -74,6 +74,11 @@ impl NftUriQueue {
                             },
                         )
                         .await?;
+
+                        if let Some(thumbnail) = data.thumbnail {
+                            tx.insert_nft_thumbnail(item.hash, thumbnail.icon, thumbnail.thumbnail)
+                                .await?;
+                        }
 
                         let nfts = tx.nfts_by_metadata_hash(item.hash).await?;
 

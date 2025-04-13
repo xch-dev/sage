@@ -19,8 +19,7 @@ pub enum AssetKind {
     },
     Nft {
         launcher_id: String,
-        image_data: Option<String>,
-        image_mime_type: Option<String>,
+        icon: Option<String>,
         name: Option<String>,
     },
 }

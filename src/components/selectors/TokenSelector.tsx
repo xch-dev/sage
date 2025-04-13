@@ -11,6 +11,7 @@ export interface TokenSelectorProps {
   onChange: (value: string) => void;
   disabled?: string[];
   className?: string;
+  hideZeroBalance?: boolean;
 }
 
 export function TokenSelector({
@@ -18,6 +19,7 @@ export function TokenSelector({
   onChange,
   disabled = [],
   className,
+  hideZeroBalance = false,
 }: TokenSelectorProps) {
   const { addError } = useErrors();
 
@@ -45,6 +47,7 @@ export function TokenSelector({
   // Filter tokens based on search term or show all if it's a valid asset ID
   const filteredTokens = tokens.filter((token) => {
     if (!token.visible) return false;
+    if (hideZeroBalance && token.balance === 0) return false;
     if (!searchTerm) return true;
 
     if (isValidAssetId(searchTerm)) {
@@ -102,6 +105,7 @@ export function TokenSelector({
               className='w-10 h-10 rounded object-cover'
               alt={token.name ?? t`Unknown token`}
               aria-hidden='true'
+              loading='lazy'
             />
           )}
           <div className='flex flex-col truncate'>
@@ -129,6 +133,7 @@ export function TokenSelector({
                 ? `Image of ${selectedToken.name}`
                 : 'No token name'
             }
+            loading='lazy'
             aria-hidden='true'
           />
         )}

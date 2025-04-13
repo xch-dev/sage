@@ -2,7 +2,7 @@ use chia::{
     protocol::{Bytes32, Program},
     puzzles::LineageProof,
 };
-use chia_wallet_sdk::{Did, DidInfo};
+use chia_wallet_sdk::driver::{Did, DidInfo};
 use sqlx::SqliteExecutor;
 
 use crate::{
@@ -59,7 +59,7 @@ impl Database {
     }
 }
 
-impl<'a> DatabaseTx<'a> {
+impl DatabaseTx<'_> {
     pub async fn insert_did(&mut self, row: DidRow) -> Result<()> {
         insert_did(&mut *self.tx, row).await
     }
@@ -410,7 +410,7 @@ async fn created_unspent_did_coin_states(
     let rows = sqlx::query_as!(
         CoinStateSql,
         "
-        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `spent_height`, `created_height`, `transaction_id`, `kind`
+        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `spent_height`, `created_height`, `transaction_id`, `kind`, `created_unixtime`, `spent_unixtime`
         FROM `coin_states`
         INNER JOIN `did_coins` ON `coin_states`.coin_id = `did_coins`.coin_id
         WHERE `spent_height` IS NULL
@@ -435,7 +435,7 @@ async fn created_unspent_did_coin_state(
     let rows = sqlx::query_as!(
         CoinStateSql,
         "
-        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `spent_height`, `created_height`, `transaction_id`, `kind`
+        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `spent_height`, `created_height`, `transaction_id`, `kind`, `created_unixtime`, `spent_unixtime`
         FROM `did_coins`
         INNER JOIN `coin_states` ON `coin_states`.coin_id = `did_coins`.coin_id
         WHERE `launcher_id` = ?

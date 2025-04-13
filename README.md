@@ -64,6 +64,36 @@ pnpm tauri ios dev
 pnpm tauri android dev
 ```
 
+### Working in the database
+
+If you are going to be working on the wallet database follow the steps below.
+
+Sage uses [sqlx](https://github.com/launchbadge/sqlx) for database integration, so first sintall the [sqlx-cli](https://lib.rs/crates/sqlx-cli)
+
+```bash
+cargo install sqlx-cli
+```
+
+Next create a `.env` file in the project root with these contents:
+
+```
+DATABASE_URL=sqlite://./test.sqlite
+```
+
+In order to sync your local environment to incoming query or schema changes run (if you see rust compile errors like `error: error returned from database` you probably need to run this command:
+
+```bash
+sqlx db reset -y
+```
+
+If you add or change queries run this command to generate new sqlx SQL files:
+
+```
+cargo sqlx prepare --workspace
+```
+
+Schema changes, including new indices, go into the `migrations` folder as SQL DDL scripts.
+
 ### Testing
 
 Currently, only the wallet driver code has tests. These can be run with:

@@ -1,9 +1,9 @@
 use chia::protocol::{Bytes, Bytes32, CoinSpend};
-use chia_wallet_sdk::{Conditions, Memos, SpendContext};
+use chia_wallet_sdk::{driver::SpendContext, types::Conditions};
 
 use crate::WalletError;
 
-use super::Wallet;
+use super::{memos::calculate_memos, Wallet};
 
 impl Wallet {
     /// Sends the given amount of XCH to the given puzzle hash, minus the fee.
@@ -11,7 +11,7 @@ impl Wallet {
         &self,
         amounts: Vec<(Bytes32, u64)>,
         fee: u64,
-        memos: Vec<Bytes>,
+        memos: Option<Vec<Bytes>>,
         hardened: bool,
         reuse: bool,
     ) -> Result<Vec<CoinSpend>, WalletError> {
@@ -32,8 +32,11 @@ impl Wallet {
         let mut conditions = Conditions::new();
 
         for (puzzle_hash, amount) in amounts {
-            conditions =
-                conditions.create_coin(puzzle_hash, amount, Some(Memos::new(ctx.alloc(&memos)?)));
+            conditions = conditions.create_coin(
+                puzzle_hash,
+                amount,
+                calculate_memos(&mut ctx, puzzle_hash, false, memos.clone())?,
+            );
         }
 
         if fee > 0 {
@@ -62,7 +65,7 @@ mod tests {
 
         let coin_spends = test
             .wallet
-            .send_xch(vec![(test.puzzle_hash, 1000)], 0, Vec::new(), false, true)
+            .send_xch(vec![(test.puzzle_hash, 1000)], 0, None, false, true)
             .await?;
 
         assert_eq!(coin_spends.len(), 1);
@@ -82,7 +85,7 @@ mod tests {
 
         let coin_spends = test
             .wallet
-            .send_xch(vec![(test.puzzle_hash, 250)], 250, Vec::new(), false, true)
+            .send_xch(vec![(test.puzzle_hash, 250)], 250, None, false, true)
             .await?;
 
         assert_eq!(coin_spends.len(), 1);
@@ -102,13 +105,7 @@ mod tests {
 
         let coin_spends = test
             .wallet
-            .send_xch(
-                vec![(test.hardened_puzzle_hash, 1000)],
-                0,
-                Vec::new(),
-                true,
-                true,
-            )
+            .send_xch(vec![(test.hardened_puzzle_hash, 1000)], 0, None, true, true)
             .await?;
 
         assert_eq!(coin_spends.len(), 1);
@@ -121,7 +118,7 @@ mod tests {
 
         let coin_spends = test
             .wallet
-            .send_xch(vec![(test.puzzle_hash, 1000)], 0, Vec::new(), false, true)
+            .send_xch(vec![(test.puzzle_hash, 1000)], 0, None, false, true)
             .await?;
 
         assert_eq!(coin_spends.len(), 1);
