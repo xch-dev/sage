@@ -170,3 +170,11 @@ function fromHex(hex: string): Uint8Array {
   }
   return i === bytes.length ? bytes : bytes.slice(0, i);
 }
+
+export function decodeHexMessage(hexMessage: string): string {
+  return new TextDecoder().decode(fromHex(sanitizeHex(hexMessage)));
+}
+
+export function isHex(str: string): boolean {
+  return /^(0x)?[0-9a-fA-F]+$/.test(str);
+}

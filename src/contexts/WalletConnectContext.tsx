@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/dialog';
 import { useWallet } from '@/contexts/WalletContext';
 import { useErrors } from '@/hooks/useErrors';
-import { fromMojos } from '@/lib/utils';
+import { fromMojos, decodeHexMessage, isHex } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import {
   Params,
@@ -40,6 +40,7 @@ import {
   useState,
 } from 'react';
 import { formatNumber } from '../i18n';
+import { Switch } from '@/components/ui/switch';
 
 export interface WalletConnectContextType {
   sessions: SessionTypes.Struct[];
@@ -405,6 +406,42 @@ function SignCoinSpendsDialog({
   );
 }
 
+function MessageToSign(params: { message: string }) {
+  const [showDecoded, setShowDecoded] = useState(false);
+  const isHexMessage = isHex(params.message);
+  const message = isHexMessage
+    ? !showDecoded
+      ? params.message
+      : decodeHexMessage(params.message)
+    : params.message;
+
+  return (
+    <div className='space-y-2'>
+      <div className='flex items-center justify-between gap-2 flex-wrap'>
+        <div className='font-medium'>
+          Message{' '}
+          {isHexMessage && showDecoded && (
+            <span className='text-xs text-muted-foreground ml-1'>
+              (Decoded)
+            </span>
+          )}
+        </div>
+        {isHexMessage && (
+          <div className='flex items-center gap-2'>
+            <span className='text-sm text-muted-foreground whitespace-nowrap'>
+              Show decoded
+            </span>
+            <Switch checked={showDecoded} onCheckedChange={setShowDecoded} />
+          </div>
+        )}
+      </div>
+      <div className='text-sm text-muted-foreground break-all font-mono bg-muted p-2 rounded whitespace-pre-wrap'>
+        {message}
+      </div>
+    </div>
+  );
+}
+
 function SignMessageDialog({
   params,
 }: CommandDialogProps<'chip0002_signMessage'>) {
@@ -416,12 +453,23 @@ function SignMessageDialog({
           {params.publicKey}
         </div>
       </div>
+      <MessageToSign message={params.message} />
+    </div>
+  );
+}
+
+function SignMessageByAddressDialog({
+  params,
+}: CommandDialogProps<'chia_signMessageByAddress'>) {
+  return (
+    <div className='space-y-4 p-4'>
       <div className='space-y-2'>
-        <div className='font-medium'>Message</div>
-        <div className='text-sm text-muted-foreground break-all font-mono bg-muted p-2 rounded whitespace-pre-wrap'>
-          {params.message}
+        <div className='font-medium'>Address</div>
+        <div className='text-sm text-muted-foreground break-all font-mono bg-muted p-2 rounded'>
+          {params.address}
         </div>
       </div>
+      <MessageToSign message={params.message} />
     </div>
   );
 }
@@ -582,27 +630,6 @@ function SendDialog({ params }: CommandDialogProps<'chia_send'>) {
           <div className='text-sm text-muted-foreground'>{params.assetId}</div>
         </div>
       )}
-    </div>
-  );
-}
-
-function SignMessageByAddressDialog({
-  params,
-}: CommandDialogProps<'chia_signMessageByAddress'>) {
-  return (
-    <div className='space-y-4 p-4'>
-      <div className='space-y-2'>
-        <div className='font-medium'>Address</div>
-        <div className='text-sm text-muted-foreground break-all font-mono bg-muted p-2 rounded'>
-          {params.address}
-        </div>
-      </div>
-      <div className='space-y-2'>
-        <div className='font-medium'>Message</div>
-        <div className='text-sm text-muted-foreground break-all font-mono bg-muted p-2 rounded whitespace-pre-wrap'>
-          {params.message}
-        </div>
-      </div>
     </div>
   );
 }
