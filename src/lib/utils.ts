@@ -172,6 +172,9 @@ function fromHex(hex: string): Uint8Array {
 }
 
 export function decodeHexMessage(hexMessage: string): string {
-  const hex = hexMessage.startsWith('0x') ? hexMessage.slice(2) : hexMessage;
-  return new TextDecoder().decode(fromHex(hex));
+  return new TextDecoder().decode(fromHex(sanitizeHex(hexMessage)));
+}
+
+export function isHex(str: string): boolean {
+  return /^(0x)?[0-9a-fA-F]+$/.test(str);
 }

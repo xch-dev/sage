@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/dialog';
 import { useWallet } from '@/contexts/WalletContext';
 import { useErrors } from '@/hooks/useErrors';
-import { fromMojos, decodeHexMessage } from '@/lib/utils';
+import { fromMojos, decodeHexMessage, isHex } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import {
   Params,
@@ -406,10 +406,11 @@ function SignCoinSpendsDialog({
   );
 }
 
-function MessageToSign(params: { message: string; hex: boolean }) {
-  const [showHex, setShowHex] = useState(true);
-  const message = params.hex
-    ? showHex
+function MessageToSign(params: { message: string }) {
+  const [showDecoded, setShowDecoded] = useState(false);
+  const isHexMessage = isHex(params.message);
+  const message = isHexMessage
+    ? !showDecoded
       ? params.message
       : decodeHexMessage(params.message)
     : params.message;
@@ -419,18 +420,18 @@ function MessageToSign(params: { message: string; hex: boolean }) {
       <div className='flex items-center justify-between gap-2 flex-wrap'>
         <div className='font-medium'>
           Message{' '}
-          {params.hex && !showHex && (
+          {isHexMessage && showDecoded && (
             <span className='text-xs text-muted-foreground ml-1'>
               (Decoded)
             </span>
           )}
         </div>
-        {params.hex && (
+        {isHexMessage && (
           <div className='flex items-center gap-2'>
             <span className='text-sm text-muted-foreground whitespace-nowrap'>
-              Show hex
+              Show decoded
             </span>
-            <Switch checked={showHex} onCheckedChange={setShowHex} />
+            <Switch checked={showDecoded} onCheckedChange={setShowDecoded} />
           </div>
         )}
       </div>
@@ -452,7 +453,7 @@ function SignMessageDialog({
           {params.publicKey}
         </div>
       </div>
-      <MessageToSign message={params.message} hex={params.hex} />
+      <MessageToSign message={params.message} />
     </div>
   );
 }
@@ -468,7 +469,7 @@ function SignMessageByAddressDialog({
           {params.address}
         </div>
       </div>
-      <MessageToSign message={params.message} hex={params.hex} />
+      <MessageToSign message={params.message} />
     </div>
   );
 }

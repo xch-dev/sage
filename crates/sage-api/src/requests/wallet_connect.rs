@@ -1,9 +1,5 @@
 use serde::{Deserialize, Serialize};
 
-fn default_true() -> bool {
-    true
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct FilterUnlockedCoins {
@@ -79,8 +75,6 @@ pub struct LineageProof {
 pub struct SignMessageWithPublicKey {
     pub message: String,
     pub public_key: String,
-    #[serde(default = "default_true")]
-    pub hex: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -126,8 +120,6 @@ pub struct SpendBundle {
 pub struct SignMessageByAddress {
     pub message: String,
     pub address: String,
-    #[serde(default = "default_true")]
-    pub hex: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

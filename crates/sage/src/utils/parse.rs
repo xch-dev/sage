@@ -99,6 +99,26 @@ pub fn parse_signature(input: String) -> Result<Signature> {
     Ok(Signature::from_bytes(&signature)?)
 }
 
+/// Parse a signature message.
+///
+/// It takes a string and returns a Bytes object.
+///
+/// This function supports hex strings with or without a 0x prefix.
+/// It also supports non-hex strings.
+pub fn parse_signature_message(input: String) -> Result<Bytes> {
+    let stripped = if let Some(stripped) = input.strip_prefix("0x") {
+        stripped
+    } else {
+        &input
+    };
+
+    if stripped.chars().all(|c| c.is_ascii_hexdigit()) && !stripped.is_empty() {
+        Ok(Bytes::from(hex::decode(stripped)?))
+    } else {
+        Ok(Bytes::from(input.as_bytes()))
+    }
+}
+
 pub fn parse_public_key(input: String) -> Result<PublicKey> {
     let stripped = if let Some(stripped) = input.strip_prefix("0x") {
         stripped
@@ -132,5 +152,43 @@ pub fn parse_memos(input: Option<Vec<String>>) -> Result<Option<Vec<Bytes>>> {
         Ok(Some(memos))
     } else {
         Ok(None)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_signature_message() {
+        // Test hex string with 0x prefix
+        let input = "0x1234567890abcdef";
+        let result = parse_signature_message(input.to_string()).unwrap();
+        let expected = Bytes::from(hex::decode(&input[2..]).unwrap());
+        assert_eq!(result, expected);
+
+        // Test hex string without prefix
+        let input = "1234567890abcdef";
+        let result = parse_signature_message(input.to_string()).unwrap();
+        let expected = Bytes::from(hex::decode(input).unwrap());
+        assert_eq!(result, expected);
+
+        // Test non-hex string
+        let input = "Hello, world!";
+        let result = parse_signature_message(input.to_string()).unwrap();
+        let expected = Bytes::from(input.as_bytes());
+        assert_eq!(result, expected);
+
+        // Test hex string with 0x prefix
+        let input = "0xcafe";
+        let result = parse_signature_message(input.to_string()).unwrap();
+        let expected = Bytes::from(hex::decode(&input[2..]).unwrap());
+        assert_eq!(result, expected);
+
+        // Test hex string without prefix
+        let input = "cafe";
+        let result = parse_signature_message(input.to_string()).unwrap();
+        let expected = Bytes::from(hex::decode(input).unwrap());
+        assert_eq!(result, expected);
     }
 }
