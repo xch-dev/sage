@@ -13,7 +13,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
   Popover,
@@ -21,14 +20,6 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Switch } from '@/components/ui/switch';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import { useErrors } from '@/hooks/useErrors';
 import { useLongPress } from '@/hooks/useLongPress';
 import { t } from '@lingui/core/macro';
@@ -36,15 +27,29 @@ import { Plural, Trans } from '@lingui/react/macro';
 import { animated, useSpring } from '@react-spring/web';
 import {
   ColumnDef,
-  flexRender,
   getCoreRowModel,
   useReactTable,
 } from '@tanstack/react-table';
 import { platform } from '@tauri-apps/plugin-os';
 import { useDrag } from '@use-gesture/react';
-import { BanIcon, HelpCircleIcon, Trash2Icon } from 'lucide-react';
+import {
+  BanIcon,
+  HelpCircleIcon,
+  Trash2Icon,
+  UserIcon,
+  CableIcon,
+} from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { commands, PeerRecord } from '../bindings';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { DataTable } from '@/components/ui/data-table';
+import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
+import { Textarea } from '@/components/ui/textarea';
 
 const MobileRow = ({
   peer,
@@ -124,6 +129,22 @@ const MobileRow = ({
             />
           )}
           <span className='font-medium flex-1'>{peer.ip_addr}</span>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger>
+                {peer.user_managed ? (
+                  <UserIcon className='h-4 w-4 text-muted-foreground' />
+                ) : (
+                  <CableIcon className='h-4 w-4 text-muted-foreground' />
+                )}
+              </TooltipTrigger>
+              <TooltipContent>
+                {peer.user_managed
+                  ? t`Manually added peer`
+                  : t`Auto-discovered peer`}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
 
         <div className='mt-3 grid grid-cols-2 gap-2 text-sm text-muted-foreground'>
@@ -185,18 +206,59 @@ export default function PeerList() {
           aria-label='Select row'
         />
       ),
+      size: 40,
     },
     {
       accessorKey: 'ip_addr',
-      header: t`IP Address`,
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t`IP Address`} />
+      ),
+      size: 150,
     },
     {
       accessorKey: 'port',
-      header: t`Port`,
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t`Port`} />
+      ),
+      size: 100,
     },
     {
       accessorKey: 'peak_height',
-      header: t`Height`,
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t`Height`} />
+      ),
+      size: 120,
+    },
+    {
+      id: 'type',
+      header: () => (
+        <div className='text-center'>
+          <Trans>Type</Trans>
+        </div>
+      ),
+      size: 75,
+      cell: ({ row }) => (
+        <div className='text-center'>
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className='inline-flex items-center justify-center w-8 h-8 rounded-sm hover:bg-accent'>
+                  {row.original.user_managed ? (
+                    <UserIcon className='h-4 w-4 text-muted-foreground' />
+                  ) : (
+                    <CableIcon className='h-4 w-4 text-muted-foreground' />
+                  )}
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side='top' align='center' sideOffset={5}>
+                {row.original.user_managed
+                  ? t`Manually added peer`
+                  : t`Auto-discovered peer`}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+      ),
     },
     {
       id: 'actions',
@@ -205,6 +267,7 @@ export default function PeerList() {
           <Trans>Actions</Trans>
         </div>
       ),
+      size: 80,
       cell: ({ row }) => (
         <div className='text-center'>
           <Button
@@ -324,30 +387,32 @@ export default function PeerList() {
                 <Dialog open={isAddOpen} onOpenChange={setAddOpen}>
                   <DialogTrigger asChild>
                     <Button variant='outline'>
-                      <Trans>Add Peer</Trans>
+                      <Trans>Add Peers</Trans>
                     </Button>
                   </DialogTrigger>
                   <DialogContent className='sm:max-w-[425px]'>
                     <DialogHeader>
                       <DialogTitle>
-                        <Trans>Add new peer</Trans>
+                        <Trans>Add new peers</Trans>
                       </DialogTitle>
                       <DialogDescription>
                         <Trans>
-                          Enter the IP address of the peer you want to connect
-                          to.
+                          Enter the IP addresses of the peers you want to
+                          connect to.
                         </Trans>
                       </DialogDescription>
                     </DialogHeader>
                     <div className='grid gap-4 py-4'>
                       <div className='flex flex-col space-y-1.5'>
                         <Label htmlFor='ip'>
-                          <Trans>IP Address</Trans>
+                          <Trans>IP Addresses</Trans>
                         </Label>
-                        <Input
+                        <Textarea
                           id='ip'
                           value={ip}
                           onChange={(e) => setIp(e.target.value)}
+                          placeholder={t`Enter multiple IP addresses (one per line or comma-separated)`}
+                          className='min-h-[100px]'
                         />
                       </div>
                     </div>
@@ -361,11 +426,22 @@ export default function PeerList() {
                       <Button
                         onClick={() => {
                           setAddOpen(false);
-                          commands.addPeer({ ip }).then((result) => {
-                            if (result.status === 'error') {
-                              console.error(result.error);
-                            }
-                          });
+                          // Split by newlines or commas and clean up whitespace
+                          const ips = ip
+                            .split(/[\n,]+/)
+                            .map((ip) => ip.trim())
+                            .filter(Boolean);
+
+                          // Add each peer
+                          Promise.all(
+                            ips.map((ip) =>
+                              commands.addPeer({ ip }).then((result) => {
+                                if (result.status === 'error') {
+                                  console.error(result.error);
+                                }
+                              }),
+                            ),
+                          );
                           setIp('');
                         }}
                         autoFocus
@@ -403,52 +479,15 @@ export default function PeerList() {
                 ))}
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  {table.getHeaderGroups().map((headerGroup) => (
-                    <TableRow key={headerGroup.id}>
-                      {headerGroup.headers.map((header) => (
-                        <TableHead key={header.id} className='px-4'>
-                          {header.isPlaceholder
-                            ? null
-                            : flexRender(
-                                header.column.columnDef.header,
-                                header.getContext(),
-                              )}
-                        </TableHead>
-                      ))}
-                    </TableRow>
-                  ))}
-                </TableHeader>
-                <TableBody>
-                  {table.getRowModel().rows?.length ? (
-                    table.getRowModel().rows.map((row) => (
-                      <TableRow
-                        key={row.id}
-                        data-state={row.getIsSelected() && 'selected'}
-                      >
-                        {row.getVisibleCells().map((cell) => (
-                          <TableCell key={cell.id} className='px-4'>
-                            {flexRender(
-                              cell.column.columnDef.cell,
-                              cell.getContext(),
-                            )}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell
-                        colSpan={columns.length}
-                        className='h-24 text-center'
-                      >
-                        <Trans>No results.</Trans>
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+              <DataTable
+                columns={columns}
+                data={peers ?? []}
+                state={{
+                  rowSelection,
+                }}
+                onRowSelectionChange={setRowSelection}
+                showTotalRows={false}
+              />
             )}
           </CardContent>
         </Card>
@@ -517,6 +556,7 @@ export default function PeerList() {
                       ),
                     ).then(() => {
                       setPeerToDelete(null);
+                      setRowSelection({});
                       updatePeers();
                     });
                   }

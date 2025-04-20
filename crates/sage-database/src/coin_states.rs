@@ -77,6 +77,10 @@ impl Database {
     pub async fn get_coin_states_by_spent_height(&self, height: u32) -> Result<Vec<CoinStateRow>> {
         get_coin_states_by_spent_height(&self.pool, height).await
     }
+
+    pub async fn get_are_coins_spendable(&self, coin_ids: &[String]) -> Result<bool> {
+        get_are_coins_spendable(&self.pool, coin_ids).await
+    }
 }
 
 impl DatabaseTx<'_> {
@@ -678,4 +682,36 @@ fn puzzle_hash_from_address(address: &str) -> Option<String> {
 /// Checks if a string is a valid block height (non-negative integer)
 pub fn is_valid_height(height_str: &str) -> bool {
     height_str.parse::<u32>().is_ok()
+}
+
+async fn get_are_coins_spendable(
+    conn: impl SqliteExecutor<'_>,
+    coin_ids: &[String],
+) -> Result<bool> {
+    if coin_ids.is_empty() {
+        return Ok(false);
+    }
+
+    let mut query = sqlx::QueryBuilder::new(
+        "
+        SELECT COUNT(*)
+        FROM coin_states
+        LEFT JOIN transaction_spends ON transaction_spends.coin_id = coin_states.coin_id
+        WHERE 1=1 
+        AND created_height IS NOT NULL
+        AND spent_height IS NULL
+        AND coin_states.transaction_id IS NULL
+        AND transaction_spends.coin_id IS NULL
+        AND coin_states.coin_id IN (",
+    );
+
+    let mut separated = query.separated(", ");
+    for coin_id in coin_ids {
+        separated.push(&format!("X'{}'", coin_id));
+    }
+    separated.push_unseparated(")");
+
+    let count: i64 = query.build().fetch_one(conn).await?.get(0);
+
+    Ok(count == coin_ids.len() as i64)
 }

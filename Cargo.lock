@@ -5856,6 +5856,7 @@ dependencies = [
  "hex-literal",
  "indexmap 2.7.1",
  "itertools 0.13.0",
+ "rand 0.8.5",
  "reqwest",
  "sage-assets",
  "sage-database",
