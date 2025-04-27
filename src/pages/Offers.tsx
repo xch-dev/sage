@@ -58,6 +58,7 @@ import {
   ScanIcon,
   Tags,
   TrashIcon,
+  QrCode,
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -336,24 +337,38 @@ function Offer({ record, refresh }: OfferProps) {
                   </DropdownMenuItem>
 
                   {network !== 'unknown' && (
-                    <DropdownMenuItem
-                      className='cursor-pointer'
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openUrl(
-                          dexieLink(record.offer_id, network === 'testnet'),
-                        );
-                      }}
-                    >
-                      <img
-                        src='https://raw.githubusercontent.com/dexie-space/dexie-kit/refs/heads/main/svg/duck.svg'
-                        className='h-4 w-4 mr-2'
-                        alt='Dexie logo'
-                      />
-                      <span>
-                        <Trans>Dexie</Trans>
-                      </span>
-                    </DropdownMenuItem>
+                    <>
+                      <DropdownMenuItem
+                        className='cursor-pointer'
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openUrl(
+                            dexieLink(record.offer_id, network === 'testnet'),
+                          );
+                        }}
+                      >
+                        <img
+                          src='https://raw.githubusercontent.com/dexie-space/dexie-kit/refs/heads/main/svg/duck.svg'
+                          className='h-4 w-4 mr-2'
+                          alt='Dexie logo'
+                        />
+                        <span>
+                          <Trans>Dexie</Trans>
+                        </span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className='cursor-pointer'
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          writeText(record.offer_id);
+                        }}
+                      >
+                        <QrCode className='mr-2 h-4 w-4' />
+                        <span>
+                          <Trans>Dexie QR Code</Trans>
+                        </span>
+                      </DropdownMenuItem>
+                    </>
                   )}
                 </DropdownMenuGroup>
               </DropdownMenuContent>
