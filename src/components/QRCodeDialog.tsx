@@ -11,12 +11,16 @@ import {
 import StyledQRCode from '@/components/StyledQrCode';
 import { fetch } from '@tauri-apps/plugin-http';
 import { CatRecord } from '../bindings';
+import { openUrl } from '@tauri-apps/plugin-opener';
+import { isValidUrl } from '@/lib/utils';
 
 interface QRCodeDialogProps {
   isOpen: boolean;
   onClose: (open: boolean) => void;
   asset: CatRecord | null;
-  receive_address: string;
+  qr_code_contents: string;
+  title?: string;
+  description?: string;
 }
 
 const getImageDataUrl = async (url: string) => {
@@ -35,12 +39,16 @@ const getImageDataUrl = async (url: string) => {
   }
 };
 
-const QRCodeCopyButton = ({ receive_address }: { receive_address: string }) => {
+const QRCodeCopyButton = ({
+  qr_code_contents,
+}: {
+  qr_code_contents: string;
+}) => {
   const [copySuccess, setCopySuccess] = useState(false);
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(receive_address);
+      await navigator.clipboard.writeText(qr_code_contents);
       setCopySuccess(true);
       setTimeout(() => setCopySuccess(false), 2000); // Reset after 2 seconds
     } catch (err) {
@@ -64,7 +72,9 @@ export function QRCodeDialog({
   isOpen,
   onClose,
   asset,
-  receive_address,
+  qr_code_contents,
+  title,
+  description,
 }: QRCodeDialogProps) {
   const [imageDataUrl, setImageDataUrl] = useState<string | undefined>(
     undefined,
@@ -87,18 +97,16 @@ export function QRCodeDialog({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className='sm:max-w-md'>
         <DialogHeader>
-          <DialogTitle>
-            <Trans>Receive {ticker}</Trans>
-          </DialogTitle>
+          <DialogTitle>{title || <Trans>Receive {ticker}</Trans>}</DialogTitle>
           <DialogDescription>
-            <Trans>Use this address to receive {name}</Trans>
+            {description || <Trans>Use this address to receive {name}</Trans>}
           </DialogDescription>
         </DialogHeader>
         <div className='flex'>
           <div className='flex flex-col items-center justify-center'>
             <div className='py-4'>
               <StyledQRCode
-                data={receive_address}
+                data={qr_code_contents}
                 cornersSquareOptions={{
                   type: 'extra-rounded',
                 }}
@@ -117,10 +125,23 @@ export function QRCodeDialog({
               />
             </div>
             <span className='text-center break-words break-all'>
-              {receive_address}
+              {isValidUrl(qr_code_contents) ? (
+                <a
+                  href='#'
+                  onClick={(e) => {
+                    e.preventDefault();
+                    openUrl(qr_code_contents);
+                  }}
+                  className='text-blue-600 hover:underline'
+                >
+                  {qr_code_contents}
+                </a>
+              ) : (
+                qr_code_contents
+              )}
             </span>
             <div className='pt-8 w-full'>
-              <QRCodeCopyButton receive_address={receive_address} />
+              <QRCodeCopyButton qr_code_contents={qr_code_contents} />
             </div>
           </div>
         </div>
