@@ -38,13 +38,9 @@ const extractOfferId = (url: string) => {
 
 const fetchDexieOffer = async (id: string): Promise<string> => {
   const response = await fetch(`https://api.dexie.space/v1/offers/${id}`);
-  console.log('a', response);
-
   const data = await response.json();
-  console.log('b', data);
 
   if (!data) {
-    console.log('c');
     throw {
       kind: 'api',
       reason: '[Dexie] Invalid response data',
@@ -85,13 +81,10 @@ const fetchOfferCoOffer = async (id: string): Promise<string> => {
 
 const resolveOffer = async (offerData: string): Promise<string> => {
   try {
-    console.log('x', offerData);
     if (isValidHostname(offerData, 'dexie.space')) {
       const offerId = extractOfferId(offerData);
-      console.log('y', offerId);
       if (offerId) {
         const resolvedOffer = await fetchDexieOffer(offerId);
-        console.log('z', resolvedOffer);
         if (resolvedOffer) {
           return resolvedOffer;
         }
