@@ -65,6 +65,7 @@ import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 import { OfferConfirmation } from '@/components/confirmations/OfferConfirmation';
+import { QRCodeDialog } from '@/components/QRCodeDialog';
 
 export function Offers() {
   const navigate = useNavigate();
@@ -225,6 +226,7 @@ function Offer({ record, refresh }: OfferProps) {
 
   const [isDeleteOpen, setDeleteOpen] = useState(false);
   const [isCancelOpen, setCancelOpen] = useState(false);
+  const [isQrOpen, setQrOpen] = useState(false);
 
   const [network, setNetwork] = useState<NetworkKind | null>(null);
 
@@ -360,7 +362,7 @@ function Offer({ record, refresh }: OfferProps) {
                         className='cursor-pointer'
                         onClick={(e) => {
                           e.stopPropagation();
-                          writeText(record.offer_id);
+                          setQrOpen(true);
                         }}
                       >
                         <QrCode className='mr-2 h-4 w-4' />
@@ -472,6 +474,13 @@ function Offer({ record, refresh }: OfferProps) {
             <OfferConfirmation type='cancel' offer={record} />
           ),
         }}
+      />
+
+      <QRCodeDialog
+        isOpen={isQrOpen}
+        onClose={setQrOpen}
+        asset={null}
+        receive_address={dexieLink(record.offer_id, network === 'testnet')}
       />
     </>
   );
