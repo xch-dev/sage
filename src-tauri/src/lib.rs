@@ -76,8 +76,6 @@ pub fn run() {
             commands::get_nft_thumbnail,
             commands::get_pending_transactions,
             commands::get_transactions,
-            commands::get_transactions_by_item_id,
-            commands::get_transaction,
             commands::validate_address,
             commands::make_offer,
             commands::take_offer,
