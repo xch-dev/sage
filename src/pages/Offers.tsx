@@ -194,12 +194,12 @@ export function Offers() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              <Trans>Enter Offer String</Trans>
+              <Trans>Enter Offer String or Dexie URL</Trans>
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleViewOffer} className='flex flex-col gap-4'>
             <Textarea
-              placeholder={t`Paste your offer string here...`}
+              placeholder={t`Paste your offer string or Dexie URL here...`}
               value={offerString}
               onChange={(e) => setOfferString(e.target.value)}
               className='min-h-[200px] font-mono text-xs'
@@ -480,7 +480,9 @@ function Offer({ record, refresh }: OfferProps) {
         isOpen={isQrOpen}
         onClose={setQrOpen}
         asset={null}
-        receive_address={dexieLink(record.offer_id, network === 'testnet')}
+        qr_code_contents={dexieLink(record.offer_id, network === 'testnet')}
+        title={t`Dexie QR Code`}
+        description={t`Scan this QR code to view the offer`}
       />
     </>
   );
