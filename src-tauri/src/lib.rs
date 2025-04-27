@@ -99,6 +99,7 @@ pub fn run() {
             commands::update_cat,
             commands::remove_cat,
             commands::update_did,
+            commands::update_option,
             commands::update_nft,
             commands::update_nft_collection,
             commands::redownload_nft,

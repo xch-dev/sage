@@ -22,7 +22,7 @@ pub use nft::*;
 pub(crate) use nft_coin::*;
 pub use offer::*;
 pub use option::*;
-pub(crate) use option_coin::*;
+pub use option_coin::*;
 
 use crate::DatabaseError;
 

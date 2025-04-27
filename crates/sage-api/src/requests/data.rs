@@ -325,8 +325,6 @@ pub struct GetNftDataResponse {
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct GetOptions {
-    pub offset: u32,
-    pub limit: u32,
     pub include_hidden: bool,
 }
 
@@ -334,7 +332,6 @@ pub struct GetOptions {
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct GetOptionsResponse {
     pub options: Vec<OptionRecord>,
-    pub total: u32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

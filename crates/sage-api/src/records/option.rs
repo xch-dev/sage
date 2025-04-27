@@ -8,4 +8,5 @@ pub struct OptionRecord {
     pub created_height: Option<u32>,
     pub coin_id: String,
     pub address: String,
+    pub create_transaction_id: Option<String>,
 }

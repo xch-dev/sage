@@ -1,5 +1,5 @@
 use chia::{
-    protocol::Coin,
+    protocol::{Bytes32, Coin},
     puzzles::{LineageProof, Proof},
 };
 use chia_wallet_sdk::driver::{OptionContract, OptionInfo};
@@ -44,6 +44,34 @@ impl IntoRow for OptionCoinSql {
                 )?,
                 p2_puzzle_hash: to_bytes32(&self.p2_puzzle_hash)?,
             },
+        })
+    }
+}
+
+pub(crate) struct OptionRecordSql {
+    pub coin_id: Vec<u8>,
+    pub p2_puzzle_hash: Vec<u8>,
+    pub created_height: Option<i64>,
+    pub transaction_id: Option<Vec<u8>>,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct OptionRecordInfo {
+    pub coin_id: Bytes32,
+    pub p2_puzzle_hash: Bytes32,
+    pub created_height: Option<u32>,
+    pub transaction_id: Option<Bytes32>,
+}
+
+impl IntoRow for OptionRecordSql {
+    type Row = OptionRecordInfo;
+
+    fn into_row(self) -> Result<OptionRecordInfo, DatabaseError> {
+        Ok(OptionRecordInfo {
+            coin_id: to_bytes32(&self.coin_id)?,
+            p2_puzzle_hash: to_bytes32(&self.p2_puzzle_hash)?,
+            created_height: self.created_height.map(TryInto::try_into).transpose()?,
+            transaction_id: self.transaction_id.as_deref().map(to_bytes32).transpose()?,
         })
     }
 }

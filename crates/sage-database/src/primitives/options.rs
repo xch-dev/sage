@@ -2,13 +2,15 @@ use chia::{protocol::Bytes32, puzzles::LineageProof};
 use chia_wallet_sdk::driver::{OptionContract, OptionInfo};
 use sqlx::SqliteExecutor;
 
-use crate::{into_row, Database, DatabaseTx, IntoRow, OptionCoinSql, OptionRow, OptionSql, Result};
+use crate::{
+    into_row, Database, DatabaseTx, IntoRow, OptionCoinSql, OptionRecordInfo, OptionRecordSql,
+    OptionRow, OptionSql, Result,
+};
 
 #[derive(sqlx::FromRow)]
 struct OptionSearchRow {
     #[sqlx(flatten)]
     option: OptionSql,
-    total_count: i32,
 }
 
 impl Database {
@@ -16,13 +18,8 @@ impl Database {
         option_by_coin_id(&self.pool, coin_id).await
     }
 
-    pub async fn options(
-        &self,
-        include_hidden: bool,
-        limit: u32,
-        offset: u32,
-    ) -> Result<(Vec<OptionRow>, u32)> {
-        options(&self.pool, include_hidden, limit, offset).await
+    pub async fn options(&self, include_hidden: bool) -> Result<Vec<OptionRow>> {
+        options(&self.pool, include_hidden).await
     }
 
     pub async fn option(&self, launcher_id: Bytes32) -> Result<Option<OptionContract>> {
@@ -31,6 +28,14 @@ impl Database {
 
     pub async fn option_row(&self, launcher_id: Bytes32) -> Result<Option<OptionRow>> {
         option_row(&self.pool, launcher_id).await
+    }
+
+    pub async fn option_record_info(&self, coin_id: Bytes32) -> Result<Option<OptionRecordInfo>> {
+        option_record_info(&self.pool, coin_id).await
+    }
+
+    pub async fn set_option_visible(&self, launcher_id: Bytes32, visible: bool) -> Result<()> {
+        set_option_visible(&self.pool, launcher_id, visible).await
     }
 }
 
@@ -169,23 +174,16 @@ async fn option_by_coin_id(
     Ok(Some(sql.into_row()?))
 }
 
-async fn options(
-    conn: impl SqliteExecutor<'_>,
-    include_hidden: bool,
-    limit: u32,
-    offset: u32,
-) -> Result<(Vec<OptionRow>, u32)> {
+async fn options(conn: impl SqliteExecutor<'_>, include_hidden: bool) -> Result<Vec<OptionRow>> {
     let mut query = sqlx::QueryBuilder::new(
         "SELECT launcher_id, 
             coin_id, 
             visible, 
             is_owned, 
             created_height, 
-            is_pending,
-            COUNT(*) OVER() as total_count	
+            is_pending
         FROM options
-        WHERE 1=1 
-        AND is_owned = 1
+        WHERE is_owned = 1
         ",
     );
 
@@ -194,7 +192,6 @@ async fn options(
         query.push(" AND visible = 1");
     }
 
-    // Add ORDER BY clause based on sort_mode
     query.push(" ORDER BY ");
 
     // Add visible DESC to sort order if including hidden options
@@ -202,23 +199,18 @@ async fn options(
         query.push("visible DESC, ");
     }
 
-    query.push("is_pending DESC, created_height DESC, launcher_id ASC LIMIT ? OFFSET ?");
+    query.push("is_pending DESC, created_height DESC, launcher_id ASC");
 
     let query = query.build_query_as::<OptionSearchRow>();
 
-    // Bind limit and offset
-    let query = query.bind(limit).bind(offset);
-
     let rows = query.fetch_all(conn).await?;
-    let total_count = rows
-        .first()
-        .map_or(Ok(0), |row| row.total_count.try_into())?;
+
     let options = rows
         .into_iter()
         .map(|row| into_row(row.option))
         .collect::<Result<Vec<_>>>()?;
 
-    Ok((options, total_count))
+    Ok(options)
 }
 
 async fn option(
@@ -250,4 +242,49 @@ async fn option(
     };
 
     Ok(Some(sql.into_row()?))
+}
+
+async fn option_record_info(
+    conn: impl SqliteExecutor<'_>,
+    coin_id: Bytes32,
+) -> Result<Option<OptionRecordInfo>> {
+    let coin_id = coin_id.as_ref();
+
+    let Some(sql) = sqlx::query_as!(
+        OptionRecordSql,
+        "
+        SELECT
+            `option_coins`.`coin_id`, `p2_puzzle_hash`,
+            `created_height`, `transaction_id`
+        FROM `option_coins`
+        INNER JOIN `coin_states` ON `coin_states`.coin_id = `option_coins`.coin_id
+        WHERE `option_coins`.`coin_id` = ?
+        ",
+        coin_id
+    )
+    .fetch_optional(conn)
+    .await?
+    else {
+        return Ok(None);
+    };
+
+    Ok(Some(sql.into_row()?))
+}
+
+async fn set_option_visible(
+    conn: impl SqliteExecutor<'_>,
+    launcher_id: Bytes32,
+    visible: bool,
+) -> Result<()> {
+    let launcher_id = launcher_id.as_ref();
+
+    sqlx::query!(
+        "UPDATE `options` SET `visible` = ? WHERE `launcher_id` = ?",
+        visible,
+        launcher_id
+    )
+    .execute(conn)
+    .await?;
+
+    Ok(())
 }

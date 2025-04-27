@@ -10,10 +10,7 @@ use chia::{
     puzzles::nft::NftMetadata,
 };
 use chia_puzzles::{SETTLEMENT_PAYMENT_HASH, SINGLETON_LAUNCHER_HASH};
-use chia_wallet_sdk::{
-    driver::{Nft, OptionContract},
-    utils::Address,
-};
+use chia_wallet_sdk::{driver::Nft, utils::Address};
 use clvmr::Allocator;
 use itertools::Itertools;
 use sage_api::{
@@ -32,7 +29,8 @@ use sage_api::{
     OptionRecord, PendingTransactionRecord, TransactionCoin, TransactionRecord,
 };
 use sage_database::{
-    CoinKind, CoinSortMode, NftGroup, NftRow, NftSearchParams, NftSortMode, OptionRow,
+    CoinKind, CoinSortMode, NftGroup, NftRow, NftSearchParams, NftSortMode, OptionRecordInfo,
+    OptionRow,
 };
 use sage_wallet::WalletError;
 use sqlx::{sqlite::SqliteRow, Row};
@@ -672,22 +670,16 @@ impl Sage {
 
         let mut records = Vec::new();
 
-        let (options, total) = wallet
-            .db
-            .options(req.include_hidden, req.limit, req.offset)
-            .await?;
+        let options = wallet.db.options(req.include_hidden).await?;
 
         for option_row in options {
-            let Some(option) = wallet.db.option(option_row.launcher_id).await? else {
+            let Some(info) = wallet.db.option_record_info(option_row.coin_id).await? else {
                 continue;
             };
-            records.push(self.option_record(option_row, &option)?);
+            records.push(self.option_record(option_row, info)?);
         }
 
-        Ok(GetOptionsResponse {
-            options: records,
-            total,
-        })
+        Ok(GetOptionsResponse { options: records })
     }
 
     pub async fn get_option(&self, req: GetOption) -> Result<GetOptionResponse> {
@@ -699,12 +691,12 @@ impl Sage {
             return Ok(GetOptionResponse { option: None });
         };
 
-        let Some(option) = wallet.db.option(option_id).await? else {
+        let Some(info) = wallet.db.option_record_info(option_row.coin_id).await? else {
             return Ok(GetOptionResponse { option: None });
         };
 
         Ok(GetOptionResponse {
-            option: Some(self.option_record(option_row, &option)?),
+            option: Some(self.option_record(option_row, info)?),
         })
     }
 
@@ -772,17 +764,14 @@ impl Sage {
         })
     }
 
-    fn option_record(
-        &self,
-        option_row: OptionRow,
-        option: &OptionContract,
-    ) -> Result<OptionRecord> {
+    fn option_record(&self, option_row: OptionRow, info: OptionRecordInfo) -> Result<OptionRecord> {
         Ok(OptionRecord {
             launcher_id: Address::new(option_row.launcher_id, "option".to_string()).encode()?,
             visible: option_row.visible,
-            coin_id: hex::encode(option.coin.coin_id()),
-            address: Address::new(option.info.p2_puzzle_hash, self.network().prefix()).encode()?,
-            created_height: option_row.created_height,
+            coin_id: hex::encode(info.coin_id),
+            address: Address::new(info.p2_puzzle_hash, self.network().prefix()).encode()?,
+            created_height: info.created_height,
+            create_transaction_id: info.transaction_id.map(hex::encode),
         })
     }
 
