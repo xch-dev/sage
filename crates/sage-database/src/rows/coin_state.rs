@@ -29,6 +29,7 @@ pub enum CoinKind {
     Cat,
     Nft,
     Did,
+    Option,
 }
 
 impl CoinKind {
@@ -38,6 +39,7 @@ impl CoinKind {
             2 => Self::Cat,
             3 => Self::Nft,
             4 => Self::Did,
+            5 => Self::Option,
             _ => Self::Unknown,
         }
     }

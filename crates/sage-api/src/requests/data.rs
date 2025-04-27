@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     Amount, CatRecord, CoinRecord, DerivationRecord, DidRecord, NftCollectionRecord, NftData,
-    NftRecord, PendingTransactionRecord, TransactionRecord, Unit,
+    NftRecord, OptionRecord, PendingTransactionRecord, TransactionRecord, Unit,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -320,4 +320,31 @@ pub struct GetNftData {
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct GetNftDataResponse {
     pub data: Option<NftData>,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct GetOptions {
+    pub offset: u32,
+    pub limit: u32,
+    pub include_hidden: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct GetOptionsResponse {
+    pub options: Vec<OptionRecord>,
+    pub total: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct GetOption {
+    pub option_id: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct GetOptionResponse {
+    pub option: Option<OptionRecord>,
 }

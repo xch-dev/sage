@@ -7,7 +7,7 @@ use chia::{
     bls::Signature,
     protocol::{Bytes32, CoinState},
 };
-use sage_database::{CatRow, CoinKind, Database, DatabaseTx, DidRow, NftRow};
+use sage_database::{CatRow, CoinKind, Database, DatabaseTx, DidRow, NftRow, OptionRow};
 
 use crate::{compute_nft_info, fetch_nft_did, ChildKind, Transaction, WalletError, WalletPeer};
 
@@ -69,7 +69,6 @@ pub async fn insert_puzzle(
     tx: &mut DatabaseTx<'_>,
     coin_state: CoinState,
     info: ChildKind,
-    minter_did: Option<Bytes32>,
 ) -> Result<(), WalletError> {
     let coin_id = coin_state.coin.coin_id();
 
@@ -137,6 +136,7 @@ pub async fn insert_puzzle(
             lineage_proof,
             info,
             metadata,
+            minter_did,
         } => {
             let data_hash = metadata.as_ref().and_then(|m| m.data_hash);
             let metadata_hash = metadata.as_ref().and_then(|m| m.metadata_hash);
@@ -175,9 +175,7 @@ pub async fn insert_puzzle(
                 metadata_hash,
             });
 
-            if coin_state.spent_height.is_none() {
-                row.is_owned = true;
-            }
+            row.is_owned = true;
 
             let metadata_row = if let Some(metadata_hash) = metadata_hash {
                 tx.fetch_nft_data(metadata_hash).await?
@@ -233,6 +231,35 @@ pub async fn insert_puzzle(
                     }
                 }
             }
+        }
+        ChildKind::Option {
+            lineage_proof,
+            info,
+        } => {
+            let launcher_id = info.launcher_id;
+
+            tx.sync_coin(coin_id, Some(info.p2_puzzle_hash), CoinKind::Option)
+                .await?;
+
+            tx.insert_option_coin(coin_id, lineage_proof, info).await?;
+
+            if coin_state.spent_height.is_some() {
+                return Ok(());
+            }
+
+            let mut row = tx.option_row(launcher_id).await?.unwrap_or(OptionRow {
+                launcher_id,
+                coin_id,
+                visible: true,
+                is_owned: coin_state.spent_height.is_none(),
+                created_height: coin_state.created_height,
+            });
+
+            row.is_owned = true;
+            row.coin_id = coin_id;
+            row.created_height = coin_state.created_height;
+
+            tx.insert_option(row).await?;
         }
     }
 
@@ -309,7 +336,7 @@ pub async fn insert_transaction(
         tx.insert_transaction_spend(transaction_id, input.coin_spend, index)
             .await?;
 
-        for output in input.outputs {
+        for mut output in input.outputs {
             let coin_state = CoinState::new(output.coin, None, None);
             let coin_id = output.coin.coin_id();
 
@@ -330,29 +357,26 @@ pub async fn insert_transaction(
 
             tx.insert_coin_state(coin_state, true, Some(transaction_id))
                 .await?;
-            tx.sync_coin(
-                coin_id,
-                Some(p2_puzzle_hash),
-                match output.kind {
-                    ChildKind::Unknown { .. } | ChildKind::Launcher => CoinKind::Unknown,
-                    ChildKind::Cat { .. } => CoinKind::Cat,
-                    ChildKind::Did { .. } => CoinKind::Did,
-                    ChildKind::Nft { .. } => CoinKind::Nft,
-                },
-            )
-            .await?;
+
+            let coin_kind = match &mut output.kind {
+                ChildKind::Unknown { .. } | ChildKind::Launcher => CoinKind::Unknown,
+                ChildKind::Cat { .. } => CoinKind::Cat,
+                ChildKind::Did { .. } => CoinKind::Did,
+                ChildKind::Nft { minter_did, .. } => {
+                    *minter_did = minter_dids.get(&output.coin.coin_id()).copied();
+                    CoinKind::Nft
+                }
+                ChildKind::Option { .. } => CoinKind::Option,
+            };
+
+            tx.sync_coin(coin_id, Some(p2_puzzle_hash), coin_kind)
+                .await?;
 
             if output.kind.subscribe() {
                 subscriptions.push(coin_id);
             }
 
-            insert_puzzle(
-                &mut tx,
-                coin_state,
-                output.kind,
-                minter_dids.get(&output.coin.coin_id()).copied(),
-            )
-            .await?;
+            insert_puzzle(&mut tx, coin_state, output.kind).await?;
         }
     }
 

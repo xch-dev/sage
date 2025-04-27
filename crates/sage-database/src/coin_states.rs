@@ -460,6 +460,8 @@ async fn get_transaction_coins(
                 LEFT JOIN dids ON did_coins.coin_id = dids.coin_id
                 LEFT JOIN nft_coins ON h.coin_id = nft_coins.coin_id
                 LEFT JOIN nfts ON nft_coins.coin_id = nfts.coin_id
+                LEFT JOIN option_coins ON h.coin_id = option_coins.coin_id
+                LEFT JOIN options ON option_coins.coin_id = options.coin_id
             WHERE 1=1
         ",
     );
@@ -493,6 +495,13 @@ async fn get_transaction_coins(
             if let Some(puzzle_hash) = puzzle_hash_from_address(value) {
                 query
                     .push("dids.launcher_id = X'")
+                    .push(puzzle_hash)
+                    .push("' OR ");
+            }
+        } else if is_valid_address(value, "option") {
+            if let Some(puzzle_hash) = puzzle_hash_from_address(value) {
+                query
+                    .push("options.launcher_id = X'")
                     .push(puzzle_hash)
                     .push("' OR ");
             }
@@ -535,25 +544,27 @@ async fn get_transaction_coins(
             cs.coin_id,  
             cs.kind, 
             amount,
-            COALESCE (cat_coins.p2_puzzle_hash, did_coins.p2_puzzle_hash, nft_coins.p2_puzzle_hash, puzzle_hash) AS p2_puzzle_hash,
+            COALESCE (cat_coins.p2_puzzle_hash, did_coins.p2_puzzle_hash, nft_coins.p2_puzzle_hash, option_coins.p2_puzzle_hash, puzzle_hash) AS p2_puzzle_hash,
             COALESCE (cats.name, nfts.name, dids.name, NULL) AS name,
-            COALESCE (cats.asset_id, nfts.launcher_id, dids.launcher_id, NULL) AS item_id,
+            COALESCE (cats.asset_id, nfts.launcher_id, dids.launcher_id, options.launcher_id, NULL) AS item_id,
             nft_coins.metadata AS nft_metadata,
             cats.ticker,
             cats.icon AS cat_icon_url,
             nft_thumbnails.icon AS nft_icon,
             (SELECT COUNT(*)
                 FROM derivations d 
-                WHERE d.p2_puzzle_hash = COALESCE(cat_coins.p2_puzzle_hash, did_coins.p2_puzzle_hash, nft_coins.p2_puzzle_hash, cs.puzzle_hash)) AS derivation_count
+                WHERE d.p2_puzzle_hash = COALESCE(cat_coins.p2_puzzle_hash, did_coins.p2_puzzle_hash, nft_coins.p2_puzzle_hash, option_coins.p2_puzzle_hash, cs.puzzle_hash)) AS derivation_count
         FROM coin_states cs
             INNER JOIN paged_heights ON cs.created_height = paged_heights.height
             LEFT JOIN cat_coins ON cs.coin_id = cat_coins.coin_id
             LEFT JOIN cats ON cat_coins.asset_id = cats.asset_id
             LEFT JOIN did_coins ON cs.coin_id = did_coins.coin_id
-            LEFT JOIN dids ON did_coins.coin_id = dids.coin_id
+            LEFT JOIN dids ON did_coins.launcher_id = dids.launcher_id
             LEFT JOIN nft_coins ON cs.coin_id = nft_coins.coin_id
-            LEFT JOIN nfts ON nft_coins.coin_id = nfts.coin_id
+            LEFT JOIN nfts ON nft_coins.launcher_id = nfts.launcher_id
 	        LEFT JOIN nft_thumbnails ON nft_coins.data_hash = nft_thumbnails.hash
+            LEFT JOIN option_coins ON cs.coin_id = option_coins.coin_id
+            LEFT JOIN options ON option_coins.launcher_id = options.launcher_id
 
         UNION ALL 
 
@@ -565,25 +576,28 @@ async fn get_transaction_coins(
             cs.coin_id,  
             cs.kind, 
             amount,
-            COALESCE (cat_coins.p2_puzzle_hash, did_coins.p2_puzzle_hash, nft_coins.p2_puzzle_hash, puzzle_hash) AS p2_puzzle_hash,
+            COALESCE (cat_coins.p2_puzzle_hash, did_coins.p2_puzzle_hash, nft_coins.p2_puzzle_hash, option_coins.p2_puzzle_hash, puzzle_hash) AS p2_puzzle_hash,
             COALESCE (cats.name, nfts.name, dids.name, NULL) AS name,
-            COALESCE (cats.asset_id, nfts.launcher_id, dids.launcher_id, NULL) AS item_id,
+            COALESCE (cats.asset_id, nfts.launcher_id, dids.launcher_id, options.launcher_id, NULL) AS item_id,
             nft_coins.metadata AS nft_metadata,
             cats.ticker,
             cats.icon AS cat_icon_url,
             nft_thumbnails.icon AS nft_icon,
             (SELECT COUNT(*)
                 FROM derivations d 
-                WHERE d.p2_puzzle_hash = COALESCE(cat_coins.p2_puzzle_hash, did_coins.p2_puzzle_hash, nft_coins.p2_puzzle_hash, cs.puzzle_hash)) AS derivation_count
+                WHERE d.p2_puzzle_hash = COALESCE(cat_coins.p2_puzzle_hash, did_coins.p2_puzzle_hash, nft_coins.p2_puzzle_hash, option_coins.p2_puzzle_hash, cs.puzzle_hash)) AS derivation_count
         FROM coin_states cs
             INNER JOIN paged_heights ON cs.spent_height = paged_heights.height
             LEFT JOIN cat_coins ON cs.coin_id = cat_coins.coin_id
             LEFT JOIN cats ON cat_coins.asset_id = cats.asset_id
             LEFT JOIN did_coins ON cs.coin_id = did_coins.coin_id
-            LEFT JOIN dids ON did_coins.coin_id = dids.coin_id
+            LEFT JOIN dids ON did_coins.launcher_id = dids.launcher_id
             LEFT JOIN nft_coins ON cs.coin_id = nft_coins.coin_id
-            LEFT JOIN nfts ON nft_coins.coin_id = nfts.coin_id
-            LEFT JOIN nft_thumbnails ON nft_coins.data_hash = nft_thumbnails.hash");
+            LEFT JOIN nfts ON nft_coins.launcher_id = nfts.launcher_id
+            LEFT JOIN nft_thumbnails ON nft_coins.data_hash = nft_thumbnails.hash
+            LEFT JOIN option_coins ON cs.coin_id = option_coins.coin_id
+            LEFT JOIN options ON option_coins.launcher_id = options.launcher_id
+        ");
     let built_query = query.build();
     let rows = built_query.bind(limit).bind(offset).fetch_all(conn).await?;
 

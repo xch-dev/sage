@@ -8,6 +8,8 @@ mod did_coin;
 mod nft;
 mod nft_coin;
 mod offer;
+mod option;
+mod option_coin;
 
 pub use cat::*;
 pub use cat_coin::*;
@@ -19,6 +21,8 @@ pub use did_coin::*;
 pub use nft::*;
 pub(crate) use nft_coin::*;
 pub use offer::*;
+pub use option::*;
+pub(crate) use option_coin::*;
 
 use crate::DatabaseError;
 

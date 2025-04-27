@@ -5,7 +5,7 @@ use chia::{
 };
 use chia_puzzles::SINGLETON_LAUNCHER_HASH;
 use chia_wallet_sdk::{
-    driver::{Cat, Did, DidInfo, HashedPtr, Nft, NftInfo, Puzzle},
+    driver::{Cat, Did, DidInfo, HashedPtr, Nft, NftInfo, OptionContract, OptionInfo, Puzzle},
     prelude::Memos,
     types::{run_puzzle, Condition},
 };
@@ -34,6 +34,11 @@ pub enum ChildKind {
         info: NftInfo<Program>,
         lineage_proof: LineageProof,
         metadata: Option<NftMetadata>,
+        minter_did: Option<Bytes32>,
+    },
+    Option {
+        info: OptionInfo,
+        lineage_proof: LineageProof,
     },
 }
 
@@ -156,6 +161,7 @@ impl ChildKind {
                     lineage_proof,
                     info: nft.info.with_metadata(metadata_program),
                     metadata,
+                    minter_did: None,
                 });
             }
 
@@ -195,6 +201,35 @@ impl ChildKind {
             Ok(None) => {}
         }
 
+        match OptionContract::parse_child(allocator, parent_coin, parent_puzzle, parent_solution) {
+            // If there was an error parsing the option, we can exit early.
+            Err(error) => {
+                warn!("Invalid option: {}", error);
+                return Ok(unknown);
+            }
+
+            // If the coin is an option coin, return the relevant information.
+            Ok(Some((option, _))) => {
+                if option.coin != coin {
+                    warn!("Option coin does not match expected coin");
+                    return Ok(unknown);
+                }
+
+                // We don't support parsing eve options during syncing.
+                let Proof::Lineage(lineage_proof) = option.proof else {
+                    return Ok(unknown);
+                };
+
+                return Ok(Self::Option {
+                    info: option.info,
+                    lineage_proof,
+                });
+            }
+
+            // If the coin is not an option coin, continue parsing.
+            Ok(None) => {}
+        }
+
         Ok(unknown)
     }
 
@@ -204,10 +239,14 @@ impl ChildKind {
             Self::Cat { p2_puzzle_hash, .. } => Some(*p2_puzzle_hash),
             Self::Did { info, .. } => Some(info.p2_puzzle_hash),
             Self::Nft { info, .. } => Some(info.p2_puzzle_hash),
+            Self::Option { info, .. } => Some(info.p2_puzzle_hash),
         }
     }
 
     pub fn subscribe(&self) -> bool {
-        matches!(self, Self::Cat { .. } | Self::Did { .. } | Self::Nft { .. })
+        matches!(
+            self,
+            Self::Cat { .. } | Self::Did { .. } | Self::Nft { .. } | Self::Option { .. }
+        )
     }
 }

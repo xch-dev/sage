@@ -30,6 +30,8 @@
   "get_nft_icon": true,
   "get_nft_thumbnail": true,
   "get_nft_data": true,
+  "get_options": true,
+  "get_option": true,
   "send_xch": true,
   "bulk_send_xch": true,
   "combine_xch": true,

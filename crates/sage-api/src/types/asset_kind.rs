@@ -22,4 +22,7 @@ pub enum AssetKind {
         icon: Option<String>,
         name: Option<String>,
     },
+    Option {
+        launcher_id: String,
+    },
 }

@@ -1,5 +1,5 @@
 use crate::{
-    parse_asset_id, parse_collection_id, parse_did_id, parse_nft_id,
+    parse_asset_id, parse_collection_id, parse_did_id, parse_nft_id, parse_option_id,
     utils::{to_bytes32_opt, to_u64},
     Error, Result, Sage, BURN_PUZZLE_HASH,
 };
@@ -10,7 +10,10 @@ use chia::{
     puzzles::nft::NftMetadata,
 };
 use chia_puzzles::{SETTLEMENT_PAYMENT_HASH, SINGLETON_LAUNCHER_HASH};
-use chia_wallet_sdk::{driver::Nft, utils::Address};
+use chia_wallet_sdk::{
+    driver::{Nft, OptionContract},
+    utils::Address,
+};
 use clvmr::Allocator;
 use itertools::Itertools;
 use sage_api::{
@@ -21,14 +24,16 @@ use sage_api::{
     GetDerivationsResponse, GetDids, GetDidsResponse, GetMinterDidIds, GetMinterDidIdsResponse,
     GetNft, GetNftCollection, GetNftCollectionResponse, GetNftCollections,
     GetNftCollectionsResponse, GetNftData, GetNftDataResponse, GetNftIcon, GetNftIconResponse,
-    GetNftResponse, GetNftThumbnail, GetNftThumbnailResponse, GetNfts, GetNftsResponse,
-    GetPendingTransactions, GetPendingTransactionsResponse, GetSpendableCoinCount,
-    GetSpendableCoinCountResponse, GetSyncStatus, GetSyncStatusResponse, GetTransactions,
-    GetTransactionsResponse, GetXchCoins, GetXchCoinsResponse, NftCollectionRecord, NftData,
-    NftRecord, NftSortMode as ApiNftSortMode, PendingTransactionRecord, TransactionCoin,
-    TransactionRecord,
+    GetNftResponse, GetNftThumbnail, GetNftThumbnailResponse, GetNfts, GetNftsResponse, GetOption,
+    GetOptionResponse, GetOptions, GetOptionsResponse, GetPendingTransactions,
+    GetPendingTransactionsResponse, GetSpendableCoinCount, GetSpendableCoinCountResponse,
+    GetSyncStatus, GetSyncStatusResponse, GetTransactions, GetTransactionsResponse, GetXchCoins,
+    GetXchCoinsResponse, NftCollectionRecord, NftData, NftRecord, NftSortMode as ApiNftSortMode,
+    OptionRecord, PendingTransactionRecord, TransactionCoin, TransactionRecord,
 };
-use sage_database::{CoinKind, CoinSortMode, NftGroup, NftRow, NftSearchParams, NftSortMode};
+use sage_database::{
+    CoinKind, CoinSortMode, NftGroup, NftRow, NftSearchParams, NftSortMode, OptionRow,
+};
 use sage_wallet::WalletError;
 use sqlx::{sqlite::SqliteRow, Row};
 
@@ -662,6 +667,47 @@ impl Sage {
         })
     }
 
+    pub async fn get_options(&self, req: GetOptions) -> Result<GetOptionsResponse> {
+        let wallet = self.wallet()?;
+
+        let mut records = Vec::new();
+
+        let (options, total) = wallet
+            .db
+            .options(req.include_hidden, req.limit, req.offset)
+            .await?;
+
+        for option_row in options {
+            let Some(option) = wallet.db.option(option_row.launcher_id).await? else {
+                continue;
+            };
+            records.push(self.option_record(option_row, &option)?);
+        }
+
+        Ok(GetOptionsResponse {
+            options: records,
+            total,
+        })
+    }
+
+    pub async fn get_option(&self, req: GetOption) -> Result<GetOptionResponse> {
+        let wallet = self.wallet()?;
+
+        let option_id = parse_option_id(req.option_id)?;
+
+        let Some(option_row) = wallet.db.option_row(option_id).await? else {
+            return Ok(GetOptionResponse { option: None });
+        };
+
+        let Some(option) = wallet.db.option(option_id).await? else {
+            return Ok(GetOptionResponse { option: None });
+        };
+
+        Ok(GetOptionResponse {
+            option: Some(self.option_record(option_row, &option)?),
+        })
+    }
+
     fn nft_record(
         &self,
         nft_row: NftRow,
@@ -726,6 +772,20 @@ impl Sage {
         })
     }
 
+    fn option_record(
+        &self,
+        option_row: OptionRow,
+        option: &OptionContract,
+    ) -> Result<OptionRecord> {
+        Ok(OptionRecord {
+            launcher_id: Address::new(option_row.launcher_id, "option".to_string()).encode()?,
+            visible: option_row.visible,
+            coin_id: hex::encode(option.coin.coin_id()),
+            address: Address::new(option.info.p2_puzzle_hash, self.network().prefix()).encode()?,
+            created_height: option_row.created_height,
+        })
+    }
+
     fn transaction_coin(&self, transaction_coin: SqliteRow) -> Result<TransactionCoin> {
         let coin_id: Option<Bytes32> = to_bytes32_opt(transaction_coin.get("coin_id"));
         let kind_int: i64 = transaction_coin.get("kind");
@@ -769,6 +829,15 @@ impl Sage {
                     AssetKind::Did {
                         launcher_id: Address::new(item_id, "did:chia:".to_string()).encode()?,
                         name,
+                    }
+                } else {
+                    AssetKind::Unknown
+                }
+            }
+            CoinKind::Option => {
+                if let Some(item_id) = item_id {
+                    AssetKind::Option {
+                        launcher_id: Address::new(item_id, "option".to_string()).encode()?,
                     }
                 } else {
                     AssetKind::Unknown
