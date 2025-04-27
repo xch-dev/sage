@@ -1,5 +1,4 @@
-import { useState, useEffect } from 'react';
-import { Trans } from '@lingui/react/macro';
+import StyledQRCode from '@/components/StyledQrCode';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -8,8 +7,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import StyledQRCode from '@/components/StyledQrCode';
-import { fetch } from '@tauri-apps/plugin-http';
+import { Trans } from '@lingui/react/macro';
+import { useEffect, useState } from 'react';
 import { CatRecord } from '../bindings';
 
 interface QRCodeDialogProps {

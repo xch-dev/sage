@@ -35,7 +35,6 @@ serde_json = { workspace = true, features = ["arbitrary_precision"] }
 tracing = { workspace = true }
 anyhow = { workspace = true }
 rustls = { workspace = true }
-tauri-plugin-http = { workspace = true }
 tauri-plugin-window-state = { workspace = true }
 tauri-plugin-barcode-scanner = { workspace = true }
 tauri-plugin-safe-area-insets = { workspace = true }
