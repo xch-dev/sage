@@ -249,7 +249,7 @@ export function TokenCard({
         isOpen={isReceiveOpen}
         onClose={() => setReceiveOpen(false)}
         asset={asset}
-        receive_address={receive_address}
+        qr_code_contents={receive_address}
       />
     </>
   );

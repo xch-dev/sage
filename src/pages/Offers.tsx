@@ -40,7 +40,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useErrors } from '@/hooks/useErrors';
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
 import { amount } from '@/lib/formTypes';
-import { dexieLink, offerIsOnDexie } from '@/lib/offerUpload';
+import { dexieLink, offerIsOnDexie, uploadToDexie } from '@/lib/offerUpload';
 import { toMojos } from '@/lib/utils';
 import { useOfferState, useWalletState } from '@/state';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -66,6 +66,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 import { OfferConfirmation } from '@/components/confirmations/OfferConfirmation';
 import { QRCodeDialog } from '@/components/QRCodeDialog';
+import { toast } from 'react-toastify';
 
 export function Offers() {
   const navigate = useNavigate();
@@ -353,11 +354,36 @@ function Offer({ record, refresh }: OfferProps) {
                         className='cursor-pointer'
                         onClick={(e) => {
                           e.stopPropagation();
-                          openUrl(
-                            dexieLink(record.offer_id, network === 'testnet'),
-                          );
+                          if (isOnDexie) {
+                            openUrl(
+                              dexieLink(record.offer_id, network === 'testnet'),
+                            );
+                          } else {
+                            const toastId = toast.loading(
+                              t`Uploading to Dexie...`,
+                            );
+                            uploadToDexie(record.offer, network === 'testnet')
+                              .then((url: string) => {
+                                toast.update(toastId, {
+                                  render: t`Uploaded to Dexie!`,
+                                  type: 'success',
+                                  isLoading: false,
+                                  autoClose: 3000,
+                                });
+                                setIsOnDexie(true);
+                                openUrl(url);
+                              })
+                              .catch((error) => {
+                                toast.update(toastId, {
+                                  render: t`Failed to upload to Dexie`,
+                                  type: 'error',
+                                  isLoading: false,
+                                  autoClose: 3000,
+                                });
+                                addError(error);
+                              });
+                          }
                         }}
-                        disabled={!isOnDexie}
                       >
                         <img
                           src='https://raw.githubusercontent.com/dexie-space/dexie-kit/refs/heads/main/svg/duck.svg'
@@ -365,7 +391,11 @@ function Offer({ record, refresh }: OfferProps) {
                           alt='Dexie logo'
                         />
                         <span>
-                          <Trans>Dexie</Trans>
+                          {isOnDexie ? (
+                            <Trans>Dexie</Trans>
+                          ) : (
+                            <Trans>Upload to Dexie</Trans>
+                          )}
                         </span>
                       </DropdownMenuItem>
                       <DropdownMenuItem
