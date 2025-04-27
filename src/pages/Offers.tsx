@@ -40,7 +40,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useErrors } from '@/hooks/useErrors';
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
 import { amount } from '@/lib/formTypes';
-import { dexieLink } from '@/lib/offerUpload';
+import { dexieLink, offerIsOnDexie } from '@/lib/offerUpload';
 import { toMojos } from '@/lib/utils';
 import { useOfferState, useWalletState } from '@/state';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -229,10 +229,19 @@ function Offer({ record, refresh }: OfferProps) {
   const [isQrOpen, setQrOpen] = useState(false);
 
   const [network, setNetwork] = useState<NetworkKind | null>(null);
+  const [isOnDexie, setIsOnDexie] = useState<boolean | null>(null);
 
   useEffect(() => {
     commands.getNetwork({}).then((data) => setNetwork(data.kind));
   }, []);
+
+  useEffect(() => {
+    if (network !== 'unknown') {
+      offerIsOnDexie(record.offer_id, network === 'testnet')
+        .then(setIsOnDexie)
+        .catch(() => setIsOnDexie(false));
+    }
+  }, [network, record.offer_id]);
 
   const cancelSchema = z.object({
     fee: amount(walletState.sync.unit.decimals).refine(
@@ -348,6 +357,7 @@ function Offer({ record, refresh }: OfferProps) {
                             dexieLink(record.offer_id, network === 'testnet'),
                           );
                         }}
+                        disabled={!isOnDexie}
                       >
                         <img
                           src='https://raw.githubusercontent.com/dexie-space/dexie-kit/refs/heads/main/svg/duck.svg'
@@ -364,6 +374,7 @@ function Offer({ record, refresh }: OfferProps) {
                           e.stopPropagation();
                           setQrOpen(true);
                         }}
+                        disabled={!isOnDexie}
                       >
                         <QrCode className='mr-2 h-4 w-4' />
                         <span>
