@@ -377,10 +377,11 @@ impl Sage {
         for (height, coins) in grouped_coins {
             // Process each group by height
             let height_u32: u32 = height.try_into().unwrap_or_default();
-            let timestamp: Option<u32> = coins.first().unwrap().try_get("unixtime")?;
-            let transaction_record = self
-                .transaction_record(height_u32, timestamp, coins)
-                .await?;
+            let timestamp: Option<u32> = coins
+                .first()
+                .map(|coin| coin.try_get("unixtime"))
+                .transpose()?;
+            let transaction_record = self.transaction_record(height_u32, timestamp, coins)?;
 
             transactions.push(transaction_record);
         }
@@ -725,7 +726,7 @@ impl Sage {
         })
     }
 
-    async fn transaction_coin(&self, transaction_coin: SqliteRow) -> Result<TransactionCoin> {
+    fn transaction_coin(&self, transaction_coin: SqliteRow) -> Result<TransactionCoin> {
         let coin_id: Option<Bytes32> = to_bytes32_opt(transaction_coin.get("coin_id"));
         let kind_int: i64 = transaction_coin.get("kind");
         let coin_kind = CoinKind::from_i64(kind_int);
@@ -776,13 +777,13 @@ impl Sage {
         };
 
         let address_kind = if let Some(p2_puzzle_hash) = p2_puzzle_hash {
-            self.address_kind(transaction_coin, p2_puzzle_hash).await?
+            address_kind(transaction_coin, p2_puzzle_hash)
         } else {
             AddressKind::Unknown
         };
 
         Ok(TransactionCoin {
-            coin_id: coin_id.map_or_else(String::new, |id| hex::encode(id)),
+            coin_id: coin_id.map_or_else(String::new, hex::encode),
             address: p2_puzzle_hash
                 .map(|p2_puzzle_hash| {
                     Address::new(p2_puzzle_hash, self.network().prefix()).encode()
@@ -794,7 +795,7 @@ impl Sage {
         })
     }
 
-    async fn transaction_record(
+    fn transaction_record(
         &self,
         height: u32,
         timestamp: Option<u32>,
@@ -805,7 +806,7 @@ impl Sage {
 
         for coin in coins {
             let action: String = coin.get("action_type");
-            let transaction_coin = self.transaction_coin(coin).await?;
+            let transaction_coin = self.transaction_coin(coin)?;
 
             if action == "spent" {
                 spent.push(transaction_coin);
@@ -821,25 +822,22 @@ impl Sage {
             created,
         })
     }
+}
 
-    async fn address_kind(
-        &self,
-        transaction_coin: SqliteRow,
-        p2_puzzle_hash: Bytes32,
-    ) -> Result<AddressKind> {
-        if p2_puzzle_hash == BURN_PUZZLE_HASH.into() {
-            return Ok(AddressKind::Burn);
-        } else if p2_puzzle_hash == SINGLETON_LAUNCHER_HASH.into() {
-            return Ok(AddressKind::Launcher);
-        } else if p2_puzzle_hash == SETTLEMENT_PAYMENT_HASH.into() {
-            return Ok(AddressKind::Offer);
-        }
+fn address_kind(transaction_coin: SqliteRow, p2_puzzle_hash: Bytes32) -> AddressKind {
+    if p2_puzzle_hash == BURN_PUZZLE_HASH.into() {
+        return AddressKind::Burn;
+    } else if p2_puzzle_hash == SINGLETON_LAUNCHER_HASH.into() {
+        return AddressKind::Launcher;
+    } else if p2_puzzle_hash == SETTLEMENT_PAYMENT_HASH.into() {
+        return AddressKind::Offer;
+    }
 
-        let derivation_count: Option<u32> = transaction_coin.get("derivation_count");
-        Ok(if derivation_count.is_some_and(|count| count > 0) {
-            AddressKind::Own
-        } else {
-            AddressKind::External
-        })
+    let derivation_count: Option<u32> = transaction_coin.get("derivation_count");
+
+    if derivation_count.is_some_and(|count| count > 0) {
+        AddressKind::Own
+    } else {
+        AddressKind::External
     }
 }

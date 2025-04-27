@@ -27,7 +27,7 @@ impl Sage {
                         ip_addr: ip.to_string(),
                         port: info.0.socket_addr().port(),
                         peak_height: info.1,
-                        user_managed: peer_state.peer(ip).map(|p| p.user_managed).unwrap_or(false),
+                        user_managed: peer_state.peer(ip).is_some_and(|p| p.user_managed),
                     }
                 })
                 .collect(),

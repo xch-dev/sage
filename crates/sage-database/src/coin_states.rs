@@ -587,11 +587,11 @@ async fn get_transaction_coins(
     let built_query = query.build();
     let rows = built_query.bind(limit).bind(offset).fetch_all(conn).await?;
 
-    if rows.is_empty() {
+    let Some(first_row) = rows.first() else {
         return Ok((vec![], 0));
-    }
+    };
 
-    let total: u32 = rows.first().unwrap().try_get("total_count")?;
+    let total: u32 = first_row.try_get("total_count")?;
 
     Ok((rows, total))
 }
@@ -707,11 +707,12 @@ async fn get_are_coins_spendable(
 
     let mut separated = query.separated(", ");
     for coin_id in coin_ids {
-        separated.push(&format!("X'{}'", coin_id));
+        separated.push(format!("X'{coin_id}'"));
     }
     separated.push_unseparated(")");
 
     let count: i64 = query.build().fetch_one(conn).await?.get(0);
 
+    #[allow(clippy::cast_possible_wrap)]
     Ok(count == coin_ids.len() as i64)
 }

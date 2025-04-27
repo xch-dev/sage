@@ -157,6 +157,8 @@ pub fn parse_memos(input: Option<Vec<String>>) -> Result<Option<Vec<Bytes>>> {
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::unwrap_used)]
+
     use super::*;
 
     #[test]

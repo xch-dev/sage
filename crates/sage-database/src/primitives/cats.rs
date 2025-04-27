@@ -359,7 +359,7 @@ async fn coin_states_by_ids(
 
     let mut separated = query.separated(", ");
     for coin_id in coin_ids {
-        separated.push(&format!("X'{}'", coin_id));
+        separated.push(format!("X'{coin_id}'"));
     }
     separated.push_unseparated(")");
     let rows = query.build().fetch_all(conn).await?;
@@ -453,12 +453,15 @@ async fn cat_coin_states(
     query.push_bind(offset);
 
     let rows = query.build().fetch_all(conn).await?;
-    if rows.is_empty() {
-        return Ok((vec![], 0));
-    }
 
-    let total: u32 = rows.first().unwrap().try_get("total_count")?;
+    let Some(first_row) = rows.first() else {
+        return Ok((vec![], 0));
+    };
+
+    let total: u32 = first_row.try_get("total_count")?;
+
     let mut coin_states = Vec::with_capacity(rows.len());
+
     for row in rows {
         let sql = CoinStateSql {
             parent_coin_id: row.try_get("parent_coin_id")?,
