@@ -262,7 +262,7 @@ impl SyncManager {
 
             // Sort so user managed are deprioritized, then by height, then randomly
             peers.sort_by_key(|(peer, height)| {
-                let peer_info = state.peer(peer.socket_addr().ip()).unwrap();
+                let peer_info = state.peer(peer.socket_addr().ip()).expect("peer not found");
                 (peer_info.user_managed, *height, rng.gen_range(0..100))
             });
 
@@ -295,7 +295,7 @@ impl SyncManager {
             peer: WalletPeer::new(peer),
             claimed_peak: message.height,
             header_hash: message.header_hash,
-            user_managed: user_managed,
+            user_managed,
             receive_message_task: tokio::spawn(async move {
                 while let Some(message) = receiver.recv().await {
                     debug!("Received message from peer {}: {:?}", ip, message.msg_type);

@@ -183,12 +183,14 @@ async fn p2_coin_states(
 
     let rows = query.build().fetch_all(conn).await?;
 
-    if rows.is_empty() {
+    let Some(first_row) = rows.first() else {
         return Ok((vec![], 0));
-    }
+    };
 
-    let total: u32 = rows.first().unwrap().try_get("total_count")?;
+    let total: u32 = first_row.try_get("total_count")?;
+
     let mut coin_states = Vec::with_capacity(rows.len());
+
     for row in rows {
         let sql = CoinStateSql {
             parent_coin_id: row.try_get("parent_coin_id")?,
