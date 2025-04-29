@@ -52,6 +52,23 @@ pub struct CoinStateRow {
     pub spent_timestamp: Option<u32>,
 }
 
+#[derive(Debug, Clone)]
+pub struct EnhancedCoinStateRow {
+    pub base: CoinStateRow,
+    pub offer_id: Option<String>,
+    pub spend_transaction_id: Option<String>,
+}
+
+impl From<CoinStateRow> for EnhancedCoinStateRow {
+    fn from(base: CoinStateRow) -> Self {
+        Self {
+            base,
+            offer_id: None,
+            spend_transaction_id: None,
+        }
+    }
+}
+
 impl IntoRow for CoinStateSql {
     type Row = CoinStateRow;
 

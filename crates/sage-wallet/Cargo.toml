@@ -1,6 +1,6 @@
 [package]
 name = "sage-wallet"
-version = "0.10.0"
+version = "0.10.1"
 edition = "2021"
 license = "Apache-2.0"
 description = "The driver code and sync logic for Sage wallet."
@@ -30,6 +30,7 @@ futures-lite = { workspace = true }
 reqwest = { workspace = true, default-features = false, features = ["http2", "rustls-tls-webpki-roots", "json"] }
 serde = { workspace = true, features = ["derive"] }
 indexmap = { workspace = true }
+rand = { workspace = true }
 
 [dev-dependencies]
 anyhow = { workspace = true }

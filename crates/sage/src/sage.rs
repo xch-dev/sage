@@ -341,7 +341,23 @@ impl Sage {
             }
 
             self.command_sender
-                .send(SyncCommand::ConnectPeer { ip })
+                .send(SyncCommand::ConnectPeer {
+                    ip,
+                    user_managed: false,
+                })
+                .await?;
+        }
+
+        for &ip in &peers.user_managed {
+            if state.peer(ip).is_some() {
+                continue;
+            }
+
+            self.command_sender
+                .send(SyncCommand::ConnectPeer {
+                    ip,
+                    user_managed: true,
+                })
                 .await?;
         }
 
@@ -358,7 +374,11 @@ impl Sage {
         let mut peers = Peers::default();
         let mut state = self.peer_state.lock().await;
 
-        for peer in state.peers() {
+        for peer in state.user_managed_peers() {
+            peers.user_managed.insert(peer.socket_addr().ip());
+        }
+
+        for peer in state.auto_discovered_peers() {
             peers.connections.insert(peer.socket_addr().ip());
         }
 

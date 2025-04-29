@@ -8,6 +8,8 @@ mod coin_selection;
 mod derivations;
 mod did_assign;
 mod dids;
+mod memos;
+mod multi_send;
 mod nfts;
 mod offer;
 mod p2_coin_management;
@@ -15,7 +17,8 @@ mod p2_send;
 mod p2_spends;
 mod signing;
 
-pub use nfts::WalletNftMint;
+pub use multi_send::*;
+pub use nfts::*;
 pub use offer::*;
 
 #[derive(Debug)]

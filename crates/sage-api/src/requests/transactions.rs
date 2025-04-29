@@ -9,7 +9,7 @@ pub struct SendXch {
     pub amount: Amount,
     pub fee: Amount,
     #[serde(default)]
-    pub memos: Vec<String>,
+    pub memos: Option<Vec<String>>,
     #[serde(default)]
     pub auto_submit: bool,
 }
@@ -21,7 +21,7 @@ pub struct BulkSendXch {
     pub amount: Amount,
     pub fee: Amount,
     #[serde(default)]
-    pub memos: Vec<String>,
+    pub memos: Option<Vec<String>>,
     #[serde(default)]
     pub auto_submit: bool,
 }
@@ -119,8 +119,10 @@ pub struct SendCat {
     pub address: String,
     pub amount: Amount,
     pub fee: Amount,
+    #[serde(default = "yes")]
+    pub include_hint: bool,
     #[serde(default)]
-    pub memos: Vec<String>,
+    pub memos: Option<Vec<String>>,
     #[serde(default)]
     pub auto_submit: bool,
 }
@@ -132,10 +134,36 @@ pub struct BulkSendCat {
     pub addresses: Vec<String>,
     pub amount: Amount,
     pub fee: Amount,
+    #[serde(default = "yes")]
+    pub include_hint: bool,
     #[serde(default)]
-    pub memos: Vec<String>,
+    pub memos: Option<Vec<String>>,
     #[serde(default)]
     pub auto_submit: bool,
+}
+
+fn yes() -> bool {
+    true
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct MultiSend {
+    pub payments: Vec<Payment>,
+    pub fee: Amount,
+    #[serde(default)]
+    pub auto_submit: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct Payment {
+    #[serde(default)]
+    pub asset_id: Option<String>,
+    pub address: String,
+    pub amount: Amount,
+    #[serde(default)]
+    pub memos: Option<Vec<String>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -305,6 +333,7 @@ pub type SplitCatResponse = TransactionResponse;
 pub type IssueCatResponse = TransactionResponse;
 pub type SendCatResponse = TransactionResponse;
 pub type BulkSendCatResponse = TransactionResponse;
+pub type MultiSendResponse = TransactionResponse;
 pub type CreateDidResponse = TransactionResponse;
 pub type TransferNftsResponse = TransactionResponse;
 pub type AddNftUriResponse = TransactionResponse;

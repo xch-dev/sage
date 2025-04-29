@@ -143,7 +143,10 @@ export function TokenConfirmation({
         <>
           <ConfirmationCard
             title={
-              <Trans>Coins to {type === 'split' ? 'Split' : 'Combine'}</Trans>
+              <Trans>
+                {type === 'split' ? 'Split' : 'Combine'} {coins.length} coin
+                {coins.length === 1 ? '' : 's'}
+              </Trans>
             }
           >
             <div className='space-y-2 max-h-40 overflow-y-auto'>

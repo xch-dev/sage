@@ -110,6 +110,15 @@ async checkAddress(req: CheckAddress) : Promise<CheckAddressResponse> {
 async getDerivations(req: GetDerivations) : Promise<GetDerivationsResponse> {
     return await TAURI_INVOKE("get_derivations", { req });
 },
+async getAreCoinsSpendable(req: GetAreCoinsSpendable) : Promise<GetAreCoinsSpendableResponse> {
+    return await TAURI_INVOKE("get_are_coins_spendable", { req });
+},
+async getSpendableCoinCount(req: GetSpendableCoinCount) : Promise<GetSpendableCoinCountResponse> {
+    return await TAURI_INVOKE("get_spendable_coin_count", { req });
+},
+async getCoinsByIds(req: GetCoinsByIds) : Promise<GetCoinsByIdsResponse> {
+    return await TAURI_INVOKE("get_coins_by_ids", { req });
+},
 async getXchCoins(req: GetXchCoins) : Promise<GetXchCoinsResponse> {
     return await TAURI_INVOKE("get_xch_coins", { req });
 },
@@ -154,12 +163,6 @@ async getPendingTransactions(req: GetPendingTransactions) : Promise<GetPendingTr
 },
 async getTransactions(req: GetTransactions) : Promise<GetTransactionsResponse> {
     return await TAURI_INVOKE("get_transactions", { req });
-},
-async getTransactionsByItemId(req: GetTransactionsByItemId) : Promise<GetTransactionsByItemIdResponse> {
-    return await TAURI_INVOKE("get_transactions_by_item_id", { req });
-},
-async getTransaction(req: GetTransaction) : Promise<GetTransactionResponse> {
-    return await TAURI_INVOKE("get_transaction", { req });
 },
 async validateAddress(address: string) : Promise<boolean> {
     return await TAURI_INVOKE("validate_address", { address });
@@ -312,8 +315,8 @@ export type AutoCombineXch = { max_coins: number; max_coin_amount: Amount | null
 export type AutoCombineXchResponse = { coin_ids: string[]; summary: TransactionSummary; coin_spends: CoinSpendJson[] }
 export type BulkMintNfts = { mints: NftMint[]; did_id: string; fee: Amount; auto_submit?: boolean }
 export type BulkMintNftsResponse = { nft_ids: string[]; summary: TransactionSummary; coin_spends: CoinSpendJson[] }
-export type BulkSendCat = { asset_id: string; addresses: string[]; amount: Amount; fee: Amount; memos?: string[]; auto_submit?: boolean }
-export type BulkSendXch = { addresses: string[]; amount: Amount; fee: Amount; memos?: string[]; auto_submit?: boolean }
+export type BulkSendCat = { asset_id: string; addresses: string[]; amount: Amount; fee: Amount; include_hint?: boolean; memos?: string[] | null; auto_submit?: boolean }
+export type BulkSendXch = { addresses: string[]; amount: Amount; fee: Amount; memos?: string[] | null; auto_submit?: boolean }
 export type CancelOffer = { offer_id: string; fee: Amount; auto_submit?: boolean }
 export type CatAmount = { asset_id: string; amount: Amount }
 export type CatRecord = { asset_id: string; name: string | null; ticker: string | null; description: string | null; icon_url: string | null; visible: boolean; balance: Amount }
@@ -335,6 +338,7 @@ export type CheckAddressResponse = { valid: boolean }
 export type Coin = { parent_coin_info: string; puzzle_hash: string; amount: number }
 export type CoinJson = { parent_coin_info: string; puzzle_hash: string; amount: Amount }
 export type CoinRecord = { coin_id: string; address: string; amount: Amount; created_height: number | null; spent_height: number | null; create_transaction_id: string | null; spend_transaction_id: string | null; offer_id: string | null; spent_timestamp: number | null; created_timestamp: number | null }
+export type CoinSortMode = "coin_id" | "amount" | "created_height" | "spent_height"
 export type CoinSpend = { coin: Coin; puzzle_reveal: string; solution: string }
 export type CoinSpendJson = { coin: CoinJson; puzzle_reveal: string; solution: string }
 export type CombineCat = { coin_ids: string[]; fee: Amount; auto_submit?: boolean }
@@ -364,15 +368,19 @@ export type FilterUnlockedCoins = { coin_ids: string[] }
 export type FilterUnlockedCoinsResponse = { coin_ids: string[] }
 export type GenerateMnemonic = { use_24_words: boolean }
 export type GenerateMnemonicResponse = { mnemonic: string }
+export type GetAreCoinsSpendable = { coin_ids: string[] }
+export type GetAreCoinsSpendableResponse = { spendable: boolean }
 export type GetAssetCoins = { type?: AssetCoinType | null; assetId?: string | null; includedLocked?: boolean | null; offset?: number | null; limit?: number | null }
 export type GetCat = { asset_id: string }
-export type GetCatCoins = { asset_id: string }
-export type GetCatCoinsResponse = { coins: CoinRecord[] }
+export type GetCatCoins = { asset_id: string; offset: number; limit: number; sort_mode?: CoinSortMode; ascending?: boolean; include_spent_coins?: boolean }
+export type GetCatCoinsResponse = { coins: CoinRecord[]; total: number }
 export type GetCatResponse = { cat: CatRecord | null }
 export type GetCats = Record<string, never>
 export type GetCatsResponse = { cats: CatRecord[] }
+export type GetCoinsByIds = { coin_ids: string[] }
+export type GetCoinsByIdsResponse = { coins: CoinRecord[] }
 export type GetDerivations = { hardened?: boolean; offset: number; limit: number }
-export type GetDerivationsResponse = { derivations: DerivationRecord[] }
+export type GetDerivationsResponse = { derivations: DerivationRecord[]; total: number }
 export type GetDids = Record<string, never>
 export type GetDidsResponse = { dids: DidRecord[] }
 export type GetKey = { fingerprint?: number | null }
@@ -408,21 +416,19 @@ export type GetPendingTransactions = Record<string, never>
 export type GetPendingTransactionsResponse = { transactions: PendingTransactionRecord[] }
 export type GetSecretKey = { fingerprint: number }
 export type GetSecretKeyResponse = { secrets: SecretKeyInfo | null }
+export type GetSpendableCoinCount = { asset_id: string }
+export type GetSpendableCoinCountResponse = { count: number }
 export type GetSyncStatus = Record<string, never>
-export type GetSyncStatusResponse = { balance: Amount; unit: Unit; synced_coins: number; total_coins: number; receive_address: string; burn_address: string }
-export type GetTransaction = { height: number }
-export type GetTransactionResponse = { transaction: TransactionRecord }
+export type GetSyncStatusResponse = { balance: Amount; unit: Unit; synced_coins: number; total_coins: number; receive_address: string; burn_address: string; unhardened_derivation_index: number; hardened_derivation_index: number }
 export type GetTransactions = { offset: number; limit: number; ascending: boolean; find_value: string | null }
-export type GetTransactionsByItemId = { offset: number; limit: number; ascending: boolean; id: string | null }
-export type GetTransactionsByItemIdResponse = { transactions: TransactionRecord[]; total: number }
 export type GetTransactionsResponse = { transactions: TransactionRecord[]; total: number }
-export type GetXchCoins = Record<string, never>
-export type GetXchCoinsResponse = { coins: CoinRecord[] }
+export type GetXchCoins = { offset: number; limit: number; sort_mode?: CoinSortMode; ascending?: boolean; include_spent_coins?: boolean }
+export type GetXchCoinsResponse = { coins: CoinRecord[]; total: number }
 export type ImportKey = { name: string; key: string; derivation_index?: number; save_secrets?: boolean; login?: boolean }
 export type ImportKeyResponse = { fingerprint: number }
 export type ImportOffer = { offer: string }
 export type ImportOfferResponse = Record<string, never>
-export type IncreaseDerivationIndex = { hardened: boolean; index: number }
+export type IncreaseDerivationIndex = { hardened?: boolean | null; index: number }
 export type IncreaseDerivationIndexResponse = Record<string, never>
 export type InheritedNetwork = "mainnet" | "testnet11"
 export type IssueCat = { name: string; ticker: string; amount: Amount; fee: Amount; auto_submit?: boolean }
@@ -453,7 +459,7 @@ export type OfferRecord = { offer_id: string; offer: string; status: OfferRecord
 export type OfferRecordStatus = "active" | "completed" | "cancelled" | "expired"
 export type OfferSummary = { fee: Amount; maker: OfferAssets; taker: OfferAssets; expiration_height: number | null; expiration_timestamp: number | null }
 export type OfferXch = { amount: Amount; royalty: Amount }
-export type PeerRecord = { ip_addr: string; port: number; peak_height: number }
+export type PeerRecord = { ip_addr: string; port: number; peak_height: number; user_managed: boolean }
 export type PendingTransactionRecord = { transaction_id: string; fee: Amount; submitted_at: string | null }
 export type RedownloadNft = { nft_id: string }
 export type RedownloadNftResponse = Record<string, never>
@@ -466,10 +472,10 @@ export type RenameKeyResponse = Record<string, never>
 export type Resync = { fingerprint: number; delete_offer_files?: boolean; delete_unhardened_derivations?: boolean; delete_hardened_derivations?: boolean; delete_blockinfo?: boolean }
 export type ResyncResponse = Record<string, never>
 export type SecretKeyInfo = { mnemonic: string | null; secret_key: string }
-export type SendCat = { asset_id: string; address: string; amount: Amount; fee: Amount; memos?: string[]; auto_submit?: boolean }
+export type SendCat = { asset_id: string; address: string; amount: Amount; fee: Amount; include_hint?: boolean; memos?: string[] | null; auto_submit?: boolean }
 export type SendTransactionImmediately = { spend_bundle: SpendBundle }
 export type SendTransactionImmediatelyResponse = { status: number; error: string | null }
-export type SendXch = { address: string; amount: Amount; fee: Amount; memos?: string[]; auto_submit?: boolean }
+export type SendXch = { address: string; amount: Amount; fee: Amount; memos?: string[] | null; auto_submit?: boolean }
 export type SetDiscoverPeers = { discover_peers: boolean }
 export type SetDiscoverPeersResponse = Record<string, never>
 export type SetNetwork = { name: string }

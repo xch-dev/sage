@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import {
   Assets,
-  CoinRecord,
   commands,
   events,
   GetSyncStatusResponse,
@@ -10,7 +9,6 @@ import {
 
 export interface WalletState {
   sync: GetSyncStatusResponse;
-  coins: CoinRecord[];
 }
 
 export interface AssetInput {
@@ -63,18 +61,7 @@ export function clearState() {
 }
 
 export async function fetchState() {
-  await Promise.all([updateCoins(), updateSyncStatus()]);
-}
-
-function updateCoins() {
-  commands
-    .getXchCoins({})
-    .then((data) =>
-      useWalletState.setState({
-        coins: data.coins,
-      }),
-    )
-    .catch((error) => console.error(error));
+  await Promise.all([updateSyncStatus()]);
 }
 
 function updateSyncStatus() {
@@ -87,7 +74,6 @@ function updateSyncStatus() {
 events.syncEvent.listen((event) => {
   switch (event.payload.type) {
     case 'coin_state':
-      updateCoins();
       updateSyncStatus();
       break;
     case 'derivation':
@@ -133,7 +119,8 @@ export function defaultState(): WalletState {
       },
       total_coins: 0,
       synced_coins: 0,
+      unhardened_derivation_index: 0,
+      hardened_derivation_index: 0,
     },
-    coins: [],
   };
 }

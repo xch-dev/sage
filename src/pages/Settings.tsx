@@ -4,6 +4,22 @@ import Layout from '@/components/Layout';
 import { PasteInput } from '@/components/PasteInput';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { IntegerInput } from '@/components/ui/masked-input';
@@ -23,14 +39,17 @@ import { useDefaultOfferExpiry } from '@/hooks/useDefaultOfferExpiry';
 import { useErrors } from '@/hooks/useErrors';
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
 import { useWalletConnect } from '@/hooks/useWalletConnect';
-import { clearState, fetchState } from '@/state';
+import { clearState, fetchState, useWalletState } from '@/state';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { getVersion } from '@tauri-apps/api/app';
 import { platform } from '@tauri-apps/plugin-os';
-import { TrashIcon, WalletIcon } from 'lucide-react';
+import { LoaderCircleIcon, TrashIcon, WalletIcon } from 'lucide-react';
 import { useContext, useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { z } from 'zod';
 import { DarkModeContext } from '../App';
 import { commands, Network, NetworkConfig, Wallet } from '../bindings';
 import { isValidU32 } from '../validation';
@@ -566,9 +585,13 @@ function RpcSettings() {
 function WalletSettings({ fingerprint }: { fingerprint: number }) {
   const { addError } = useErrors();
 
+  const walletState = useWalletState();
+
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [localName, setLocalName] = useState<string>('');
   const [networks, setNetworks] = useState<Network[]>([]);
+  const [deriveOpen, setDeriveOpen] = useState(false);
+  const [pending, setPending] = useState(false);
 
   useEffect(() => {
     commands
@@ -609,6 +632,44 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
       addError(error as CustomError);
     }
     fetchState();
+  };
+
+  const derivationIndex = walletState.sync.unhardened_derivation_index;
+
+  const schema = z.object({
+    index: z.string().refine((value) => {
+      const num = parseInt(value);
+
+      if (
+        isNaN(num) ||
+        !isFinite(num) ||
+        num < derivationIndex ||
+        num > 100000 ||
+        Math.floor(num) != num
+      )
+        return false;
+
+      return true;
+    }),
+  });
+
+  const form = useForm<z.infer<typeof schema>>({
+    resolver: zodResolver(schema),
+    defaultValues: {
+      index: derivationIndex.toString(),
+    },
+  });
+
+  const handler = (values: z.infer<typeof schema>) => {
+    setPending(true);
+
+    commands
+      .increaseDerivationIndex({ index: parseInt(values.index) })
+      .then(() => {
+        setDeriveOpen(false);
+      })
+      .catch(addError)
+      .finally(() => setPending(false));
   };
 
   return (
@@ -687,6 +748,85 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
           }
         />
       )}
+
+      <SettingItem
+        label={t`Derivation Index`}
+        description={t`The number of addresses managed by this wallet`}
+        control={
+          <div className='flex items-center gap-3'>
+            <span className='text-md'>{derivationIndex}</span>
+            <Button
+              variant='secondary'
+              size='sm'
+              onClick={() => setDeriveOpen(true)}
+            >
+              <Trans>Increase</Trans>
+            </Button>
+          </div>
+        }
+      />
+
+      <Dialog open={deriveOpen} onOpenChange={setDeriveOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              <Trans>Increase Derivation Index</Trans>
+            </DialogTitle>
+            <DialogDescription>
+              <Trans>
+                Increase the derivation index to generate new addresses. Setting
+                this too high can cause issues, and it can't be reversed without
+                resyncing the wallet.
+              </Trans>
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(handler)} className='space-y-4'>
+              <FormField
+                control={form.control}
+                name='index'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      <Trans>Derivation Index</Trans>
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        placeholder={t`Enter derivation index`}
+                        aria-label={t`Derivation index`}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter className='gap-2'>
+                <Button
+                  type='button'
+                  variant='outline'
+                  onClick={() => setDeriveOpen(false)}
+                >
+                  <Trans>Cancel</Trans>
+                </Button>
+                <Button
+                  type='submit'
+                  disabled={!form.formState.isValid || pending}
+                >
+                  {pending && (
+                    <LoaderCircleIcon className='mr-2 h-4 w-4 animate-spin' />
+                  )}
+                  {pending ? (
+                    <Trans>Generating</Trans>
+                  ) : (
+                    <Trans>Generate</Trans>
+                  )}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </SettingsSection>
   );
 }

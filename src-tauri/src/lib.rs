@@ -58,6 +58,9 @@ pub fn run() {
             commands::get_sync_status,
             commands::check_address,
             commands::get_derivations,
+            commands::get_are_coins_spendable,
+            commands::get_spendable_coin_count,
+            commands::get_coins_by_ids,
             commands::get_xch_coins,
             commands::get_cat_coins,
             commands::get_cats,
@@ -73,8 +76,6 @@ pub fn run() {
             commands::get_nft_thumbnail,
             commands::get_pending_transactions,
             commands::get_transactions,
-            commands::get_transactions_by_item_id,
-            commands::get_transaction,
             commands::validate_address,
             commands::make_offer,
             commands::take_offer,
@@ -127,7 +128,7 @@ pub fn run() {
         )
         .expect("Failed to export TypeScript bindings");
 
-    let mut tauri_builder = tauri::Builder::default().plugin(tauri_plugin_http::init());
+    let mut tauri_builder = tauri::Builder::default();
 
     #[cfg(not(any(target_os = "android", target_os = "ios")))]
     {
