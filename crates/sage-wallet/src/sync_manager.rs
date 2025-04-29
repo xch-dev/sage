@@ -10,11 +10,12 @@ use chia::{
     traits::Streamable,
 };
 use chia_wallet_sdk::{
-    client::{ClientError, Connector, Network},
+    client::{ClientError, Connector},
     types::{MAINNET_CONSTANTS, TESTNET11_CONSTANTS},
 };
 use futures_lite::future::poll_once;
 use itertools::Itertools;
+use sage_config::Network;
 use tokio::{
     sync::{mpsc, Mutex},
     task::JoinHandle,
@@ -28,6 +29,7 @@ use crate::{
     WalletError,
 };
 
+mod dns;
 mod options;
 mod peer_discovery;
 mod peer_state;
@@ -44,7 +46,6 @@ pub struct SyncManager {
     options: SyncOptions,
     state: Arc<Mutex<PeerState>>,
     wallet: Option<Arc<Wallet>>,
-    network_id: String,
     network: Network,
     connector: Connector,
     event_sender: mpsc::Sender<SyncEvent>,
@@ -109,7 +110,6 @@ impl SyncManager {
         options: SyncOptions,
         state: Arc<Mutex<PeerState>>,
         wallet: Option<Arc<Wallet>>,
-        network_id: String,
         network: Network,
         connector: Connector,
     ) -> (Self, mpsc::Sender<SyncCommand>, mpsc::Receiver<SyncEvent>) {
@@ -120,7 +120,6 @@ impl SyncManager {
             options,
             state,
             wallet,
-            network_id,
             network,
             connector,
             event_sender,
@@ -157,17 +156,13 @@ impl SyncManager {
                     self.abort_wallet_tasks();
                     self.wallet = wallet;
                 }
-                SyncCommand::SwitchNetwork {
-                    network_id,
-                    network,
-                } => {
-                    if self.network_id != network_id
+                SyncCommand::SwitchNetwork(network) => {
+                    if self.network.network_id() != network.network_id()
                         || self.network.genesis_challenge != network.genesis_challenge
                         || self.network.default_port != network.default_port
                     {
                         self.state.lock().await.reset();
                         self.abort_wallet_tasks();
-                        self.network_id = network_id;
                         self.network = network;
                     }
                 }
@@ -359,11 +354,11 @@ impl SyncManager {
 
         if peer_count < self.options.target_peers && self.options.discover_peers {
             if peer_count > 0 {
-                if !self.peer_discovery().await {
-                    self.dns_discovery().await;
+                if !self.peer_discovery().await && !self.dns_discovery().await {
+                    self.introducer_discovery().await;
                 }
-            } else {
-                self.dns_discovery().await;
+            } else if !self.dns_discovery().await {
+                self.introducer_discovery().await;
             }
         }
 

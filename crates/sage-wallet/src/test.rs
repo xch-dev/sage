@@ -9,11 +9,12 @@ use chia::{
     puzzles::{standard::StandardArgs, DeriveSynthetic},
 };
 use chia_wallet_sdk::{
-    client::{Connector, Network, Peer},
+    client::{Connector, Peer},
     signer::AggSigConstants,
     test::{BlsPair, PeerSimulator},
     types::TESTNET11_CONSTANTS,
 };
+use sage_config::TESTNET11;
 use sage_database::Database;
 use sqlx::{migrate, SqlitePool};
 use tokio::{
@@ -137,8 +138,7 @@ impl TestWallet {
             },
             state.clone(),
             Some(wallet.clone()),
-            "testnet11".to_string(),
-            Network::default_testnet11(),
+            TESTNET11.clone(),
             Connector::Plain,
         );
 
