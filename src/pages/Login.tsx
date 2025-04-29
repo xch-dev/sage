@@ -318,7 +318,7 @@ function WalletItem({
   const loginSelf = (explicit: boolean) => {
     if (isMenuOpen && !explicit) return;
 
-    loginAndUpdateState(info.fingerprint)
+    loginAndUpdateState(info.fingerprint, addError)
       .then(() => {
         commands
           .getKey({})
@@ -326,8 +326,8 @@ function WalletItem({
           .then(() => navigate('/wallet'))
           .catch(addError);
       })
-      .catch(async (error) => {
-        console.error('Login error', error);
+      .catch((error) => {
+        addError(error);
       });
   };
 
