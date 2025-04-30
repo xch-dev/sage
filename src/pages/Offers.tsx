@@ -1,7 +1,7 @@
 import {
   commands,
   events,
-  NetworkConfig,
+  NetworkKind,
   OfferRecord,
   TransactionResponse,
 } from '@/bindings';
@@ -38,16 +38,17 @@ import {
 import { TokenAmountInput } from '@/components/ui/masked-input';
 import { Textarea } from '@/components/ui/textarea';
 import { useErrors } from '@/hooks/useErrors';
+import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
 import { amount } from '@/lib/formTypes';
-import { dexieLink } from '@/lib/offerUpload';
+import { dexieLink, offerIsOnDexie, uploadToDexie } from '@/lib/offerUpload';
 import { toMojos } from '@/lib/utils';
-import { isDefaultOffer, useOfferState, useWalletState } from '@/state';
+import { useOfferState, useWalletState } from '@/state';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
+import { openUrl } from '@tauri-apps/plugin-opener';
 import { platform } from '@tauri-apps/plugin-os';
-import { open } from '@tauri-apps/plugin-shell';
 import BigNumber from 'bignumber.js';
 import {
   CircleOff,
@@ -57,12 +58,15 @@ import {
   ScanIcon,
   Tags,
   TrashIcon,
+  QrCode,
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
 import { z } from 'zod';
-import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
+import { OfferConfirmation } from '@/components/confirmations/OfferConfirmation';
+import { QRCodeDialog } from '@/components/QRCodeDialog';
+import { toast } from 'react-toastify';
 
 export function Offers() {
   const navigate = useNavigate();
@@ -123,7 +127,7 @@ export function Offers() {
   }, [viewOffer]);
 
   useEffect(() => {
-    if (!isDefaultOffer(offerState)) {
+    if (offerState) {
       navigate('/offers/make', { replace: true });
     }
   }, [navigate, offerState]);
@@ -191,12 +195,12 @@ export function Offers() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              <Trans>Enter Offer String</Trans>
+              <Trans>Enter Offer String or Dexie URL</Trans>
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleViewOffer} className='flex flex-col gap-4'>
             <Textarea
-              placeholder={t`Paste your offer string here...`}
+              placeholder={t`Paste your offer string or Dexie URL here...`}
               value={offerString}
               onChange={(e) => setOfferString(e.target.value)}
               className='min-h-[200px] font-mono text-xs'
@@ -223,18 +227,27 @@ function Offer({ record, refresh }: OfferProps) {
 
   const [isDeleteOpen, setDeleteOpen] = useState(false);
   const [isCancelOpen, setCancelOpen] = useState(false);
+  const [isQrOpen, setQrOpen] = useState(false);
 
-  const [config, setConfig] = useState<NetworkConfig | null>(null);
-  const network = config?.network_id ?? 'mainnet';
+  const [network, setNetwork] = useState<NetworkKind | null>(null);
+  const [isOnDexie, setIsOnDexie] = useState<boolean | null>(null);
 
   useEffect(() => {
-    commands.networkConfig().then((config) => setConfig(config));
+    commands.getNetwork({}).then((data) => setNetwork(data.kind));
   }, []);
+
+  useEffect(() => {
+    if (network !== 'unknown') {
+      offerIsOnDexie(record.offer_id, network === 'testnet')
+        .then(setIsOnDexie)
+        .catch(() => setIsOnDexie(false));
+    }
+  }, [network, record.offer_id]);
 
   const cancelSchema = z.object({
     fee: amount(walletState.sync.unit.decimals).refine(
       (amount) => BigNumber(walletState.sync.balance).gte(amount || 0),
-      'Not enough funds to cover the fee',
+      t`Not enough funds to cover the fee`,
     ),
   });
 
@@ -245,18 +258,24 @@ function Offer({ record, refresh }: OfferProps) {
     },
   });
 
+  const [response, setResponse] = useState<TransactionResponse | null>(null);
+  const [currentFee, setCurrentFee] = useState<string>('');
+
   const cancelHandler = (values: z.infer<typeof cancelSchema>) => {
+    const fee = toMojos(values.fee, walletState.sync.unit.decimals);
+    setCurrentFee(fee);
+
     commands
       .cancelOffer({
         offer_id: record.offer_id,
-        fee: toMojos(values.fee, walletState.sync.unit.decimals),
+        fee,
       })
-      .then((response) => setResponse(response))
+      .then((result) => {
+        setResponse(result);
+      })
       .catch(addError)
       .finally(() => setCancelOpen(false));
   };
-
-  const [response, setResponse] = useState<TransactionResponse | null>(null);
 
   return (
     <>
@@ -329,25 +348,70 @@ function Offer({ record, refresh }: OfferProps) {
                     </span>
                   </DropdownMenuItem>
 
-                  {(network === 'mainnet' || network === 'testnet11') && (
-                    <DropdownMenuItem
-                      className='cursor-pointer'
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        open(
-                          dexieLink(record.offer_id, network === 'testnet11'),
-                        );
-                      }}
-                    >
-                      <img
-                        src='https://raw.githubusercontent.com/dexie-space/dexie-kit/refs/heads/main/svg/duck.svg'
-                        className='h-4 w-4 mr-2'
-                        alt='Dexie logo'
-                      />
-                      <span>
-                        <Trans>Dexie</Trans>
-                      </span>
-                    </DropdownMenuItem>
+                  {network !== 'unknown' && (
+                    <>
+                      <DropdownMenuItem
+                        className='cursor-pointer'
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (isOnDexie) {
+                            openUrl(
+                              dexieLink(record.offer_id, network === 'testnet'),
+                            );
+                          } else {
+                            const toastId = toast.loading(
+                              t`Uploading to Dexie...`,
+                            );
+                            uploadToDexie(record.offer, network === 'testnet')
+                              .then((url: string) => {
+                                toast.update(toastId, {
+                                  render: t`Uploaded to Dexie!`,
+                                  type: 'success',
+                                  isLoading: false,
+                                  autoClose: 3000,
+                                });
+                                setIsOnDexie(true);
+                                openUrl(url);
+                              })
+                              .catch((error) => {
+                                toast.update(toastId, {
+                                  render: t`Failed to upload to Dexie`,
+                                  type: 'error',
+                                  isLoading: false,
+                                  autoClose: 3000,
+                                });
+                                addError(error);
+                              });
+                          }
+                        }}
+                      >
+                        <img
+                          src='https://raw.githubusercontent.com/dexie-space/dexie-kit/refs/heads/main/svg/duck.svg'
+                          className='h-4 w-4 mr-2'
+                          alt='Dexie logo'
+                        />
+                        <span>
+                          {isOnDexie ? (
+                            <Trans>Dexie</Trans>
+                          ) : (
+                            <Trans>Upload to Dexie</Trans>
+                          )}
+                        </span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className='cursor-pointer'
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setQrOpen(true);
+                        }}
+                        disabled={!isOnDexie}
+                      >
+                        <QrCode className='mr-2 h-4 w-4' />
+                        <span>
+                          <Trans>Dexie QR Code</Trans>
+                        </span>
+                      </DropdownMenuItem>
+                    </>
                   )}
                 </DropdownMenuGroup>
               </DropdownMenuContent>
@@ -392,10 +456,15 @@ function Offer({ record, refresh }: OfferProps) {
       <Dialog open={isCancelOpen} onOpenChange={setCancelOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Cancel offer?</DialogTitle>
+            <DialogTitle>
+              <Trans>Cancel offer?</Trans>
+            </DialogTitle>
             <DialogDescription>
-              This will cancel the offer on-chain with a transaction, preventing
-              it from being taken even if someone has the original offer file.
+              <Trans>
+                This will cancel the offer on-chain with a transaction,
+                preventing it from being taken even if someone has the original
+                offer file.
+              </Trans>
             </DialogDescription>
           </DialogHeader>
           <Form {...cancelForm}>
@@ -408,7 +477,9 @@ function Offer({ record, refresh }: OfferProps) {
                 name='fee'
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Network Fee</FormLabel>
+                    <FormLabel>
+                      <Trans>Network Fee</Trans>
+                    </FormLabel>
                     <FormControl>
                       <TokenAmountInput {...field} />
                     </FormControl>
@@ -422,16 +493,38 @@ function Offer({ record, refresh }: OfferProps) {
                   variant='outline'
                   onClick={() => setCancelOpen(false)}
                 >
-                  Cancel
+                  <Trans>Cancel</Trans>
                 </Button>
-                <Button type='submit'>Submit</Button>
+                <Button type='submit'>
+                  <Trans>Submit</Trans>
+                </Button>
               </DialogFooter>
             </form>
           </Form>
         </DialogContent>
       </Dialog>
 
-      <ConfirmationDialog response={response} close={() => setResponse(null)} />
+      <ConfirmationDialog
+        response={response}
+        showRecipientDetails={false}
+        close={() => setResponse(null)}
+        onConfirm={refresh}
+        additionalData={{
+          title: t`Cancel Offer`,
+          content: response && (
+            <OfferConfirmation type='cancel' offer={record} />
+          ),
+        }}
+      />
+
+      <QRCodeDialog
+        isOpen={isQrOpen}
+        onClose={setQrOpen}
+        asset={null}
+        qr_code_contents={dexieLink(record.offer_id, network === 'testnet')}
+        title={t`Dexie QR Code`}
+        description={t`Scan this QR code to view the offer`}
+      />
     </>
   );
 }

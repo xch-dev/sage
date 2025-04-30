@@ -1,3 +1,4 @@
+mod blockinfo;
 mod coin_states;
 mod derivations;
 mod offers;
@@ -144,6 +145,9 @@ pub enum DatabaseError {
 
     #[error("Invalid offer status {0}")]
     InvalidOfferStatus(i64),
+
+    #[error("Invalid address")]
+    InvalidAddress,
 }
 
 pub(crate) type Result<T> = std::result::Result<T, DatabaseError>;

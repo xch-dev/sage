@@ -1,6 +1,6 @@
 [package]
 name = "sage-assets"
-version = "0.9.6"
+version = "0.10.1"
 edition = "2021"
 license = "Apache-2.0"
 description = "Fetches non-critical data from various APIs for use in Sage wallet."
@@ -16,7 +16,6 @@ workspace = true
 
 [dependencies]
 chia = { workspace = true }
-clvmr = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 num-bigint = { workspace = true, features = ["serde"] }
@@ -26,3 +25,6 @@ futures-util = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }
 mime-sniffer = { workspace = true }
+image = { workspace = true }
+webp = { workspace = true }
+tokio = { workspace = true, features = ["sync"] }

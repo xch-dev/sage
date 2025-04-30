@@ -7,10 +7,16 @@ use std::{
 };
 
 use chia::{bls::master_to_wallet_unhardened_intermediate, protocol::Bytes32};
-use chia_wallet_sdk::{create_rustls_connector, decode_address, load_ssl_cert, Connector};
-use indexmap::{indexmap, IndexMap};
-use sage_api::{Amount, Unit, XCH};
-use sage_config::{Config, Network, WalletConfig, MAINNET, TESTNET11};
+use chia_wallet_sdk::{
+    client::{create_rustls_connector, load_ssl_cert, Connector},
+    utils::Address,
+};
+use indexmap::IndexMap;
+use sage_api::{Unit, XCH};
+use sage_config::{
+    migrate_config, migrate_networks, Config, Network, NetworkList, OldConfig, OldNetwork,
+    WalletConfig,
+};
 use sage_database::Database;
 use sage_keychain::Keychain;
 use sage_wallet::{PeerState, SyncCommand, SyncEvent, SyncManager, SyncOptions, Timeouts, Wallet};
@@ -31,8 +37,9 @@ use crate::{peers::Peers, Error, Result};
 pub struct Sage {
     pub path: PathBuf,
     pub config: Config,
+    pub wallet_config: WalletConfig,
+    pub network_list: NetworkList,
     pub keychain: Keychain,
-    pub networks: IndexMap<String, Network>,
     pub wallet: Option<Arc<Wallet>>,
     pub peer_state: Arc<Mutex<PeerState>>,
     pub command_sender: mpsc::Sender<SyncCommand>,
@@ -44,11 +51,9 @@ impl Sage {
         Self {
             path: path.to_path_buf(),
             config: Config::default(),
+            wallet_config: WalletConfig::default(),
+            network_list: NetworkList::default(),
             keychain: Keychain::default(),
-            networks: indexmap! {
-                "mainnet".to_string() => MAINNET.clone(),
-                "testnet11".to_string() => TESTNET11.clone(),
-            },
             wallet: None,
             peer_state: Arc::new(Mutex::new(PeerState::default())),
             command_sender: mpsc::channel(1).0,
@@ -61,7 +66,6 @@ impl Sage {
 
         self.setup_keys()?;
         self.setup_config()?;
-        self.setup_networks()?;
         self.setup_logging()?;
 
         let receiver = self.setup_sync_manager()?;
@@ -80,7 +84,7 @@ impl Sage {
             std::fs::create_dir_all(&log_dir)?;
         }
 
-        let log_level: Level = self.config.app.log_level.parse()?;
+        let log_level: Level = self.config.global.log_level.parse()?;
 
         // Create rotated log file
         let log_file = Builder::new()
@@ -90,7 +94,7 @@ impl Sage {
             .build(log_dir)?;
 
         // Common filter string
-        let filter_string = format!("{log_level},rustls=off,tungstenite=off");
+        let filter_string = format!("{log_level},rustls=off,tungstenite=off,h2=off,hyper=off");
 
         // File layer - always without ANSI
         let file_layer = fmt::layer()
@@ -133,25 +137,54 @@ impl Sage {
 
     fn setup_config(&mut self) -> Result<()> {
         let config_path = self.path.join("config.toml");
+        let wallet_config_path = self.path.join("wallets.toml");
+        let network_list_path = self.path.join("networks.toml");
 
         if config_path.try_exists()? {
-            let text = fs::read_to_string(&config_path)?;
-            self.config = toml::from_str(&text)?;
+            let config_text = fs::read_to_string(&config_path)?;
+
+            if let Some(old_config) = toml::from_str::<OldConfig>(&config_text)
+                .ok()
+                .filter(OldConfig::is_old)
+            {
+                let (config, wallet_config) = migrate_config(old_config)?;
+                self.config = config;
+                self.wallet_config = wallet_config;
+                fs::write(&config_path, toml::to_string_pretty(&self.config)?)?;
+                fs::write(
+                    &wallet_config_path,
+                    toml::to_string_pretty(&self.wallet_config)?,
+                )?;
+            } else {
+                self.config = toml::from_str(&config_text)?;
+                let wallet_config_text = fs::read_to_string(&wallet_config_path)?;
+                self.wallet_config = toml::from_str(&wallet_config_text)?;
+            }
         } else {
             fs::write(&config_path, toml::to_string_pretty(&self.config)?)?;
+            fs::write(
+                &wallet_config_path,
+                toml::to_string_pretty(&self.wallet_config)?,
+            )?;
         };
 
-        Ok(())
-    }
+        if network_list_path.try_exists()? {
+            let text = fs::read_to_string(&network_list_path)?;
 
-    fn setup_networks(&mut self) -> Result<()> {
-        let networks_path = self.path.join("networks.toml");
-
-        if networks_path.try_exists()? {
-            let text = fs::read_to_string(&networks_path)?;
-            self.networks = toml::from_str(&text)?;
+            if let Ok(old_network_list) = toml::from_str::<IndexMap<String, OldNetwork>>(&text) {
+                self.network_list = migrate_networks(old_network_list);
+                fs::write(
+                    &network_list_path,
+                    toml::to_string_pretty(&self.network_list)?,
+                )?;
+            } else {
+                self.network_list = toml::from_str(&text)?;
+            }
         } else {
-            fs::write(&networks_path, toml::to_string_pretty(&self.networks)?)?;
+            fs::write(
+                &network_list_path,
+                toml::to_string_pretty(&self.network_list)?,
+            )?;
         }
 
         Ok(())
@@ -180,11 +213,6 @@ impl Sage {
     fn setup_sync_manager(&mut self) -> Result<mpsc::Receiver<SyncEvent>> {
         let connector = self.setup_ssl()?;
 
-        let network_id = self.config.network.network_id.clone();
-        let Some(network) = self.networks.get(network_id.as_str()).cloned() else {
-            return Err(Error::UnknownNetwork);
-        };
-
         let (sync_manager, command_sender, receiver) = SyncManager::new(
             SyncOptions {
                 target_peers: self.config.network.target_peers.try_into()?,
@@ -197,12 +225,7 @@ impl Sage {
             },
             self.peer_state.clone(),
             self.wallet.clone(),
-            network_id,
-            chia_wallet_sdk::Network {
-                default_port: network.default_port,
-                genesis_challenge: hex::decode(&network.genesis_challenge)?.try_into()?,
-                dns_introducers: network.dns_introducers.clone(),
-            },
+            self.network().clone(),
             connector,
         );
 
@@ -212,8 +235,18 @@ impl Sage {
         Ok(receiver)
     }
 
+    pub async fn switch_network(&mut self) -> Result<()> {
+        self.command_sender
+            .send(SyncCommand::SwitchNetwork(self.network().clone()))
+            .await?;
+
+        Ok(())
+    }
+
     pub async fn switch_wallet(&mut self) -> Result<()> {
-        let Some(fingerprint) = self.config.app.active_fingerprint else {
+        self.switch_network().await?;
+
+        let Some(fingerprint) = self.config.global.fingerprint else {
             self.wallet = None;
 
             self.command_sender
@@ -237,7 +270,7 @@ impl Sage {
             db.clone(),
             fingerprint,
             intermediate_pk,
-            hex::decode(&self.network().genesis_challenge)?.try_into()?,
+            self.network().genesis_challenge,
         ));
 
         self.wallet = Some(wallet.clone());
@@ -262,7 +295,7 @@ impl Sage {
             fs::create_dir_all(&peer_dir)?;
         }
 
-        let peer_path = peer_dir.join(format!("{}.bin", self.config.network.network_id));
+        let peer_path = peer_dir.join(format!("{}.bin", self.network_id()));
 
         let peers = if peer_path.try_exists()? {
             Peers::from_bytes(&fs::read(&peer_path)?).unwrap_or_else(|error| {
@@ -294,7 +327,23 @@ impl Sage {
             }
 
             self.command_sender
-                .send(SyncCommand::ConnectPeer { ip })
+                .send(SyncCommand::ConnectPeer {
+                    ip,
+                    user_managed: false,
+                })
+                .await?;
+        }
+
+        for &ip in &peers.user_managed {
+            if state.peer(ip).is_some() {
+                continue;
+            }
+
+            self.command_sender
+                .send(SyncCommand::ConnectPeer {
+                    ip,
+                    user_managed: true,
+                })
                 .await?;
         }
 
@@ -311,7 +360,11 @@ impl Sage {
         let mut peers = Peers::default();
         let mut state = self.peer_state.lock().await;
 
-        for peer in state.peers() {
+        for peer in state.user_managed_peers() {
+            peers.user_managed.insert(peer.socket_addr().ip());
+        }
+
+        for peer in state.auto_discovered_peers() {
             peers.connections.insert(peer.socket_addr().ip());
         }
 
@@ -319,30 +372,20 @@ impl Sage {
             peers.banned.insert(ip, ban);
         }
 
-        let peer_path = peer_dir.join(format!("{}.bin", self.config.network.network_id));
+        let peer_path = peer_dir.join(format!("{}.bin", self.network_id()));
         fs::write(&peer_path, peers.to_bytes()?)?;
 
         Ok(())
     }
 
-    #[allow(clippy::needless_pass_by_value)]
     pub fn parse_address(&self, input: String) -> Result<Bytes32> {
-        let (puzzle_hash, prefix) = decode_address(&input)?;
+        let address = Address::decode(&input)?;
 
-        if prefix != self.network().address_prefix {
-            return Err(Error::AddressPrefix(prefix));
+        if address.prefix != self.network().prefix() {
+            return Err(Error::AddressPrefix(address.prefix));
         }
 
-        Ok(puzzle_hash.into())
-    }
-
-    #[allow(clippy::needless_pass_by_value)]
-    pub fn parse_amount(&self, input: Amount) -> Result<u64> {
-        let Some(amount) = input.to_u64() else {
-            return Err(Error::InvalidAmount(input.to_string()));
-        };
-
-        Ok(amount)
+        Ok(address.puzzle_hash)
     }
 
     pub async fn connect_to_database(&self, fingerprint: u32) -> Result<SqlitePool> {
@@ -366,19 +409,38 @@ impl Sage {
     fn wallet_db_path(&self, fingerprint: u32) -> Result<PathBuf> {
         let path = self.path.join("wallets").join(fingerprint.to_string());
         fs::create_dir_all(&path)?;
-        let network_id = &self.config.network.network_id;
-        let path = path.join(format!("{network_id}.sqlite"));
+        let path = path.join(format!("{}.sqlite", self.network_id()));
         Ok(path)
     }
 
     pub fn network(&self) -> &Network {
-        self.networks
-            .get(&self.config.network.network_id)
+        if let Some(fingerprint) = self.config.global.fingerprint {
+            if let Some(wallet) = self
+                .wallet_config
+                .wallets
+                .iter()
+                .find(|w| w.fingerprint == fingerprint)
+            {
+                if let Some(network) = &wallet.network {
+                    return self
+                        .network_list
+                        .by_name(network)
+                        .expect("network not found");
+                }
+            }
+        }
+
+        self.network_list
+            .by_name(&self.config.network.default_network)
             .expect("network not found")
     }
 
+    pub fn network_id(&self) -> String {
+        self.network().network_id()
+    }
+
     pub fn wallet(&self) -> Result<Arc<Wallet>> {
-        let Some(fingerprint) = self.config.app.active_fingerprint else {
+        let Some(fingerprint) = self.config.global.fingerprint else {
             return Err(Error::NotLoggedIn);
         };
 
@@ -395,30 +457,13 @@ impl Sage {
         Ok(wallet.clone())
     }
 
-    pub fn try_wallet_config(&mut self, fingerprint: u32) -> &WalletConfig {
-        self.config
-            .wallets
-            .entry(fingerprint.to_string())
-            .or_default()
-    }
-
-    pub fn try_wallet_config_mut(&mut self, fingerprint: u32) -> &mut WalletConfig {
-        self.config
-            .wallets
-            .entry(fingerprint.to_string())
-            .or_default()
-    }
-
-    pub fn wallet_config_mut(&mut self, fingerprint: u32) -> &mut WalletConfig {
-        self.config
-            .wallets
-            .entry(fingerprint.to_string())
-            .or_default()
-    }
-
     pub fn save_config(&self) -> Result<()> {
         let config = toml::to_string_pretty(&self.config)?;
         fs::write(self.path.join("config.toml"), config)?;
+        let wallet_config = toml::to_string_pretty(&self.wallet_config)?;
+        fs::write(self.path.join("wallets.toml"), wallet_config)?;
+        let network_list = toml::to_string_pretty(&self.network_list)?;
+        fs::write(self.path.join("networks.toml"), network_list)?;
         Ok(())
     }
 

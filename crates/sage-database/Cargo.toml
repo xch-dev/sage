@@ -1,6 +1,6 @@
 [package]
 name = "sage-database"
-version = "0.9.6"
+version = "0.10.1"
 edition = "2021"
 license = "Apache-2.0"
 description = "The SQLite database for Sage."

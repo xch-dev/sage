@@ -1,10 +1,14 @@
 use chia::{
     protocol::{Bytes32, CoinSpend, Program},
-    puzzles::nft::{NftMetadata, NFT_METADATA_UPDATER_PUZZLE_HASH},
+    puzzles::nft::NftMetadata,
 };
+use chia_puzzles::NFT_METADATA_UPDATER_DEFAULT_HASH;
 use chia_wallet_sdk::{
-    Conditions, Did, DidOwner, HashedPtr, Launcher, MetadataUpdate, Nft, NftMint, SpendContext,
-    StandardLayer,
+    driver::{
+        Did, DidOwner, HashedPtr, Launcher, MetadataUpdate, Nft, NftMint, SpendContext,
+        StandardLayer,
+    },
+    types::Conditions,
 };
 
 use crate::WalletError;
@@ -45,7 +49,7 @@ impl Wallet {
         let mut ctx = SpendContext::new();
 
         let did_metadata_ptr = ctx.alloc(&did.info.metadata)?;
-        let did = did.with_metadata(HashedPtr::from_ptr(&ctx.allocator, did_metadata_ptr));
+        let did = did.with_metadata(HashedPtr::from_ptr(&ctx, did_metadata_ptr));
 
         let synthetic_key = self.db.synthetic_key(did.info.p2_puzzle_hash).await?;
         let p2 = StandardLayer::new(synthetic_key);
@@ -56,7 +60,7 @@ impl Wallet {
         for (i, mint) in mints.into_iter().enumerate() {
             let mint = NftMint {
                 metadata: mint.metadata,
-                metadata_updater_puzzle_hash: NFT_METADATA_UPDATER_PUZZLE_HASH.into(),
+                metadata_updater_puzzle_hash: NFT_METADATA_UPDATER_DEFAULT_HASH.into(),
                 royalty_puzzle_hash: mint.royalty_puzzle_hash.unwrap_or(p2_puzzle_hash),
                 royalty_ten_thousandths: mint.royalty_ten_thousandths,
                 p2_puzzle_hash: mint.p2_puzzle_hash.unwrap_or(p2_puzzle_hash),
@@ -136,7 +140,7 @@ impl Wallet {
 
         for (i, nft) in nfts.into_iter().enumerate() {
             let nft_metadata_ptr = ctx.alloc(&nft.info.metadata)?;
-            let nft = nft.with_metadata(HashedPtr::from_ptr(&ctx.allocator, nft_metadata_ptr));
+            let nft = nft.with_metadata(HashedPtr::from_ptr(&ctx, nft_metadata_ptr));
 
             let synthetic_key = self.db.synthetic_key(nft.info.p2_puzzle_hash).await?;
             let p2 = StandardLayer::new(synthetic_key);
@@ -203,7 +207,7 @@ impl Wallet {
         let mut ctx = SpendContext::new();
 
         let nft_metadata_ptr = ctx.alloc(&nft.info.metadata)?;
-        let nft = nft.with_metadata(HashedPtr::from_ptr(&ctx.allocator, nft_metadata_ptr));
+        let nft = nft.with_metadata(HashedPtr::from_ptr(&ctx, nft_metadata_ptr));
 
         let synthetic_key = self.db.synthetic_key(nft.info.p2_puzzle_hash).await?;
         let p2 = StandardLayer::new(synthetic_key);

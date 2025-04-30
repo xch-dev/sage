@@ -1,13 +1,20 @@
+use std::collections::HashMap;
 use std::time::Duration;
 
-use chia::{clvm_traits::FromClvm, puzzles::nft::NftMetadata};
-use chia_wallet_sdk::{encode_address, Offer, SpendContext};
+use base64::{prelude::BASE64_STANDARD, Engine};
+use chia::puzzles::nft::NftMetadata;
+use chia_wallet_sdk::{
+    driver::{Offer, SpendContext},
+    utils::Address,
+};
 use indexmap::IndexMap;
 use sage_api::{Amount, OfferAssets, OfferCat, OfferNft, OfferSummary, OfferXch};
 use sage_assets::fetch_uris_with_hash;
 use sage_wallet::{calculate_royalties, parse_locked_coins, parse_offer_payments, NftRoyaltyInfo};
 use tokio::time::timeout;
+use tracing::warn;
 
+use crate::utils::offer_status::{lookup_coin_creation, offer_expiration};
 use crate::{Result, Sage};
 
 use super::{extract_nft_data, ConfirmationInfo, ExtractedNftData};
@@ -18,11 +25,23 @@ impl Sage {
 
         let mut ctx = SpendContext::new();
 
-        let offer = offer.parse(&mut ctx.allocator)?;
-        let (locked_coins, _original_coin_ids) = parse_locked_coins(&mut ctx.allocator, &offer)?;
+        let parsed_offer = offer.parse(&mut ctx)?;
+        let (locked_coins, coin_ids) = parse_locked_coins(&mut ctx, &parsed_offer)?;
         let maker_amounts = locked_coins.amounts();
 
-        let mut builder = offer.take();
+        // Get expiration information
+        let peer = self.peer_state.lock().await.acquire_peer();
+        let status = if let Some(peer) = peer {
+            let coin_creation =
+                lookup_coin_creation(&peer, coin_ids.clone(), self.network().genesis_challenge)
+                    .await?;
+            offer_expiration(&mut ctx, &parsed_offer, &coin_creation)?
+        } else {
+            warn!("No peers available to fetch coin creation information, so skipping for now");
+            offer_expiration(&mut ctx, &parsed_offer, &HashMap::new())?
+        };
+
+        let mut builder = parsed_offer.take();
         let requested_payments = parse_offer_payments(&mut ctx, &mut builder)?;
         let taker_amounts = requested_payments.amounts();
 
@@ -80,9 +99,7 @@ impl Sage {
         }
 
         for (launcher_id, nft) in locked_coins.nfts {
-            let info = if let Ok(metadata) =
-                NftMetadata::from_clvm(&ctx.allocator, nft.info.metadata.ptr())
-            {
+            let info = if let Ok(metadata) = ctx.extract::<NftMetadata>(nft.info.metadata.ptr()) {
                 let mut confirmation_info = ConfirmationInfo::default();
 
                 if let Some(hash) = metadata.data_hash {
@@ -113,16 +130,16 @@ impl Sage {
             };
 
             maker.nfts.insert(
-                encode_address(launcher_id.to_bytes(), "nft")?,
+                Address::new(launcher_id, "nft".to_string()).encode()?,
                 OfferNft {
-                    image_data: info.image_data,
-                    image_mime_type: info.image_mime_type,
+                    icon: info.icon.map(|icon| BASE64_STANDARD.encode(icon)),
                     name: info.name,
                     royalty_ten_thousandths: nft.info.royalty_ten_thousandths,
-                    royalty_address: encode_address(
-                        nft.info.royalty_puzzle_hash.into(),
-                        &self.network().address_prefix,
-                    )?,
+                    royalty_address: Address::new(
+                        nft.info.royalty_puzzle_hash,
+                        self.network().prefix().clone(),
+                    )
+                    .encode()?,
                 },
             );
         }
@@ -152,7 +169,7 @@ impl Sage {
         }
 
         for (launcher_id, (nft, _payments)) in requested_payments.nfts {
-            let metadata = NftMetadata::from_clvm(&ctx.allocator, nft.metadata.ptr())?;
+            let metadata = ctx.extract::<NftMetadata>(nft.metadata.ptr())?;
             let info = extract_nft_data(
                 Some(&wallet.db),
                 Some(metadata),
@@ -161,16 +178,13 @@ impl Sage {
             .await?;
 
             taker.nfts.insert(
-                encode_address(launcher_id.to_bytes(), "nft")?,
+                Address::new(launcher_id, "nft".to_string()).encode()?,
                 OfferNft {
-                    image_data: info.image_data,
-                    image_mime_type: info.image_mime_type,
+                    icon: info.icon.map(|icon| BASE64_STANDARD.encode(icon)),
                     name: info.name,
                     royalty_ten_thousandths: nft.royalty_ten_thousandths,
-                    royalty_address: encode_address(
-                        nft.royalty_puzzle_hash.into(),
-                        &self.network().address_prefix,
-                    )?,
+                    royalty_address: Address::new(nft.royalty_puzzle_hash, self.network().prefix())
+                        .encode()?,
                 },
             );
         }
@@ -179,6 +193,8 @@ impl Sage {
             fee: Amount::u64(locked_coins.fee),
             maker,
             taker,
+            expiration_height: status.expiration_height,
+            expiration_timestamp: status.expiration_timestamp,
         })
     }
 }

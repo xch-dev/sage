@@ -1,11 +1,11 @@
 use chia::{
     protocol::{Bytes32, Coin},
-    puzzles::offer::{
-        NotarizedPayment, Payment, SettlementPaymentsSolution, SETTLEMENT_PAYMENTS_PUZZLE_HASH,
-    },
+    puzzles::offer::{NotarizedPayment, Payment, SettlementPaymentsSolution},
 };
+use chia_puzzles::SETTLEMENT_PAYMENT_HASH;
 use chia_wallet_sdk::{
-    Cat, CatSpend, CreateCoin, DriverError, Layer, SettlementLayer, SpendContext,
+    driver::{Cat, CatSpend, DriverError, Layer, SettlementLayer, SpendContext},
+    types::conditions::CreateCoin,
 };
 use clvmr::NodePtr;
 use indexmap::IndexMap;
@@ -43,7 +43,7 @@ pub fn make_royalty_payments(
     royalties: Vec<RoyaltyPayment>,
     origin: PaymentOrigin,
 ) -> Result<CreateCoin<NodePtr>, DriverError> {
-    let mut parent_coin = origin.descendent(SETTLEMENT_PAYMENTS_PUZZLE_HASH.into(), total_amount);
+    let mut parent_coin = origin.descendent(SETTLEMENT_PAYMENT_HASH.into(), total_amount);
     let mut remaining_payments = royalties.into_iter().rev().collect::<Vec<_>>();
     let mut cat_spends = Vec::new();
 
@@ -84,7 +84,7 @@ pub fn make_royalty_payments(
                 // TODO: Make nonce nil as an optimization
                 nonce: Bytes32::default(),
                 payments: vec![Payment::new(
-                    SETTLEMENT_PAYMENTS_PUZZLE_HASH.into(),
+                    SETTLEMENT_PAYMENT_HASH.into(),
                     remaining_amount,
                 )],
             });
@@ -98,8 +98,7 @@ pub fn make_royalty_payments(
             PaymentOrigin::Cat(cat) => cat_spends.push(CatSpend::new(cat, spend)),
         }
 
-        parent_coin =
-            parent_coin.descendent(SETTLEMENT_PAYMENTS_PUZZLE_HASH.into(), remaining_amount);
+        parent_coin = parent_coin.descendent(SETTLEMENT_PAYMENT_HASH.into(), remaining_amount);
     }
 
     if !cat_spends.is_empty() {
@@ -107,7 +106,7 @@ pub fn make_royalty_payments(
     }
 
     Ok(CreateCoin::new(
-        SETTLEMENT_PAYMENTS_PUZZLE_HASH.into(),
+        SETTLEMENT_PAYMENT_HASH.into(),
         total_amount,
         None,
     ))
@@ -177,7 +176,7 @@ pub fn make_offer_payments(
                 // TODO: Make nonce nil as an optimization
                 nonce: Bytes32::default(),
                 payments: vec![Payment::new(
-                    SETTLEMENT_PAYMENTS_PUZZLE_HASH.into(),
+                    SETTLEMENT_PAYMENT_HASH.into(),
                     remaining_amount,
                 )],
             });
@@ -191,8 +190,7 @@ pub fn make_offer_payments(
             PaymentOrigin::Cat(cat) => cat_spends.push(CatSpend::new(cat, spend)),
         }
 
-        parent_coin =
-            parent_coin.descendent(SETTLEMENT_PAYMENTS_PUZZLE_HASH.into(), remaining_amount);
+        parent_coin = parent_coin.descendent(SETTLEMENT_PAYMENT_HASH.into(), remaining_amount);
     }
 
     for other_coin in other_coins {

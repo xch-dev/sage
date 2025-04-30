@@ -61,12 +61,25 @@ const StyledQRCode: React.FC<StyledQRCodeProps> = ({
     qrCode.current = new QRCodeStyling(options);
     qrCode.current.append(ref.current);
 
+    const currentRef = ref.current;
     return () => {
-      if (ref.current) {
-        ref.current.innerHTML = '';
+      if (currentRef) {
+        currentRef.innerHTML = '';
       }
     };
-  }, []);
+  }, [
+    type,
+    shape,
+    width,
+    height,
+    margin,
+    data,
+    qrOptions,
+    imageOptions,
+    dotsOptions,
+    backgroundOptions,
+    rest,
+  ]);
 
   useEffect(() => {
     if (!qrCode.current) return;
@@ -97,6 +110,7 @@ const StyledQRCode: React.FC<StyledQRCodeProps> = ({
     imageOptions,
     dotsOptions,
     backgroundOptions,
+    rest,
   ]);
 
   useEffect(() => {

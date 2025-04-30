@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT DISTINCT `spent_height`\n            FROM `coin_states`\n            WHERE `spent_unixtime` IS NULL\n            AND `spent_height` IS NOT NULL\n            ORDER BY `spent_height` DESC \n            LIMIT ?;\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "spent_height",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "593ff26761c8cc24690c2bfefdc08703daf515f8da64299a1f82df5e2ca609c4"
+}

@@ -3,8 +3,10 @@ use chia::{
     puzzles::offer::{NotarizedPayment, Payment, SettlementPaymentsSolution},
 };
 use chia_wallet_sdk::{
-    payment_assertion, AssertPuzzleAnnouncement, Cat, CatSpend, HashedPtr, Layer, Nft,
-    SettlementLayer, SpendContext,
+    driver::{
+        payment_assertion, Cat, CatSpend, HashedPtr, Layer, Nft, SettlementLayer, SpendContext,
+    },
+    types::conditions::AssertPuzzleAnnouncement,
 };
 use indexmap::IndexMap;
 

@@ -1,6 +1,6 @@
 [package]
 name = "sage-wallet"
-version = "0.9.6"
+version = "0.10.1"
 edition = "2021"
 license = "Apache-2.0"
 description = "The driver code and sync logic for Sage wallet."
@@ -16,10 +16,15 @@ workspace = true
 
 [dependencies]
 chia = { workspace = true }
+chia-traits = { workspace = true }
+chia-sha2 = { workspace = true }
+chia_streamable_macro = { workspace = true }
 clvmr = { workspace = true }
+chia-puzzles = { workspace = true }
 chia-wallet-sdk = { workspace = true }
 sage-database = { workspace = true }
 sage-assets = { workspace = true }
+sage-config = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }
 tokio = { workspace = true, features = ["time"] }
@@ -29,6 +34,7 @@ futures-lite = { workspace = true }
 reqwest = { workspace = true, default-features = false, features = ["http2", "rustls-tls-webpki-roots", "json"] }
 serde = { workspace = true, features = ["derive"] }
 indexmap = { workspace = true }
+rand = { workspace = true }
 
 [dev-dependencies]
 anyhow = { workspace = true }

@@ -19,11 +19,13 @@ pub struct Timeouts {
     pub puzzle_delay: Duration,
     pub transaction_delay: Duration,
     pub offer_delay: Duration,
+    pub blocktime_delay: Duration,
     pub connection: Duration,
     pub initial_peak: Duration,
     pub remove_subscription: Duration,
     pub request_peers: Duration,
     pub dns: Duration,
+    pub introducer: Duration,
 }
 
 impl Default for Timeouts {
@@ -31,15 +33,17 @@ impl Default for Timeouts {
         Self {
             sync_delay: Duration::from_secs(1),
             cat_delay: Duration::from_secs(1),
-            nft_uri_delay: Duration::from_secs(1),
+            nft_uri_delay: Duration::from_millis(500),
             puzzle_delay: Duration::from_secs(1),
             transaction_delay: Duration::from_secs(1),
             offer_delay: Duration::from_secs(5),
+            blocktime_delay: Duration::from_secs(1),
             connection: Duration::from_secs(3),
             initial_peak: Duration::from_secs(2),
             remove_subscription: Duration::from_secs(3),
             request_peers: Duration::from_secs(3),
             dns: Duration::from_secs(3),
+            introducer: Duration::from_secs(10),
         }
     }
 }

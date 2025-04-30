@@ -2,15 +2,15 @@ use std::time::Duration;
 
 use itertools::Itertools;
 use sage_api::{
-    AddPeer, AddPeerResponse, GetNetworks, GetNetworksResponse, GetPeers, GetPeersResponse,
-    PeerRecord, RemovePeer, RemovePeerResponse, SetDerivationBatchSize,
-    SetDerivationBatchSizeResponse, SetDeriveAutomatically, SetDeriveAutomaticallyResponse,
-    SetDiscoverPeers, SetDiscoverPeersResponse, SetNetworkId, SetNetworkIdResponse, SetTargetPeers,
-    SetTargetPeersResponse,
+    AddPeer, AddPeerResponse, GetNetwork, GetNetworkResponse, GetNetworks, GetNetworksResponse,
+    GetPeers, GetPeersResponse, NetworkKind, PeerRecord, RemovePeer, RemovePeerResponse,
+    SetDiscoverPeers, SetDiscoverPeersResponse, SetNetwork, SetNetworkOverride,
+    SetNetworkOverrideResponse, SetNetworkResponse, SetTargetPeers, SetTargetPeersResponse,
 };
+use sage_config::{MAINNET, TESTNET11};
 use sage_wallet::SyncCommand;
 
-use crate::{parse_genesis_challenge, Result, Sage};
+use crate::{Error, Result, Sage};
 
 impl Sage {
     pub async fn get_peers(&self, _req: GetPeers) -> Result<GetPeersResponse> {
@@ -21,10 +21,14 @@ impl Sage {
                 .peers_with_heights()
                 .into_iter()
                 .sorted_by_key(|info| info.0.socket_addr().ip())
-                .map(|info| PeerRecord {
-                    ip_addr: info.0.socket_addr().ip().to_string(),
-                    port: info.0.socket_addr().port(),
-                    peak_height: info.1,
+                .map(|info| {
+                    let ip = info.0.socket_addr().ip();
+                    PeerRecord {
+                        ip_addr: ip.to_string(),
+                        port: info.0.socket_addr().port(),
+                        peak_height: info.1,
+                        user_managed: peer_state.peer(ip).is_some_and(|p| p.user_managed),
+                    }
                 })
                 .collect(),
         })
@@ -48,6 +52,7 @@ impl Sage {
         self.command_sender
             .send(SyncCommand::ConnectPeer {
                 ip: req.ip.parse()?,
+                user_managed: true,
             })
             .await?;
 
@@ -82,59 +87,50 @@ impl Sage {
         Ok(SetTargetPeersResponse {})
     }
 
-    pub async fn set_network_id(&mut self, req: SetNetworkId) -> Result<SetNetworkIdResponse> {
-        self.config.network.network_id.clone_from(&req.network_id);
+    pub async fn set_network(&mut self, req: SetNetwork) -> Result<SetNetworkResponse> {
+        self.config.network.default_network.clone_from(&req.name);
         self.save_config()?;
+        self.switch_wallet().await?;
+        self.setup_peers().await?;
+        Ok(SetNetworkResponse {})
+    }
 
-        let network = self.network();
+    pub async fn set_network_override(
+        &mut self,
+        req: SetNetworkOverride,
+    ) -> Result<SetNetworkOverrideResponse> {
+        let config = self
+            .wallet_config
+            .wallets
+            .iter_mut()
+            .find(|w| w.fingerprint == req.fingerprint)
+            .ok_or(Error::UnknownFingerprint)?;
 
-        self.command_sender
-            .send(SyncCommand::SwitchNetwork {
-                network_id: req.network_id,
-                network: chia_wallet_sdk::Network {
-                    default_port: network.default_port,
-                    genesis_challenge: parse_genesis_challenge(network.genesis_challenge.clone())?,
-                    dns_introducers: network.dns_introducers.clone(),
-                },
-            })
-            .await?;
+        config.network = req.name;
 
+        self.save_config()?;
         self.switch_wallet().await?;
         self.setup_peers().await?;
 
-        Ok(SetNetworkIdResponse {})
-    }
-
-    pub fn set_derive_automatically(
-        &mut self,
-        req: SetDeriveAutomatically,
-    ) -> Result<SetDeriveAutomaticallyResponse> {
-        let config = self.try_wallet_config_mut(req.fingerprint);
-
-        if config.derive_automatically != req.derive_automatically {
-            config.derive_automatically = req.derive_automatically;
-            self.save_config()?;
-        }
-
-        Ok(SetDeriveAutomaticallyResponse {})
-    }
-
-    pub fn set_derivation_batch_size(
-        &mut self,
-        req: SetDerivationBatchSize,
-    ) -> Result<SetDerivationBatchSizeResponse> {
-        let config = self.try_wallet_config_mut(req.fingerprint);
-        config.derivation_batch_size = req.derivation_batch_size;
-        self.save_config()?;
-
-        // TODO: Update sync manager
-
-        Ok(SetDerivationBatchSizeResponse {})
+        Ok(SetNetworkOverrideResponse {})
     }
 
     pub fn get_networks(&mut self, _req: GetNetworks) -> Result<GetNetworksResponse> {
-        Ok(GetNetworksResponse {
-            networks: self.networks.clone(),
+        Ok(self.network_list.clone())
+    }
+
+    pub fn get_network(&mut self, _req: GetNetwork) -> Result<GetNetworkResponse> {
+        let network = self.network();
+
+        Ok(GetNetworkResponse {
+            network: network.clone(),
+            kind: if network.genesis_challenge == MAINNET.genesis_challenge {
+                NetworkKind::Mainnet
+            } else if network.genesis_challenge == TESTNET11.genesis_challenge {
+                NetworkKind::Testnet
+            } else {
+                NetworkKind::Unknown
+            },
         })
     }
 }

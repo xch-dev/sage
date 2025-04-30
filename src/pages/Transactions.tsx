@@ -1,30 +1,31 @@
 import Container from '@/components/Container';
 import Header from '@/components/Header';
+import { Loading } from '@/components/Loading';
+import { Pagination } from '@/components/Pagination';
 import { ReceiveAddress } from '@/components/ReceiveAddress';
+import { TransactionListView } from '@/components/TransactionListView';
+import { TransactionOptions } from '@/components/TransactionOptions';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useErrors } from '@/hooks/useErrors';
+import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
+import { useTransactionsParams } from '@/hooks/useTransactionsParams';
+import { isValidAddress, isValidAssetId } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Info } from 'lucide-react';
-import { useCallback, useEffect, useState, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   commands,
   events,
   PendingTransactionRecord,
   TransactionRecord,
 } from '../bindings';
-import { TransactionListView } from '@/components/TransactionListView';
-import { TransactionOptions } from '@/components/TransactionOptions';
-import { useTransactionsParams } from '@/hooks/useTransactionsParams';
-import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
-import { Pagination } from '@/components/Pagination';
-import { Loading } from '@/components/Loading';
-import { motion, AnimatePresence } from 'framer-motion';
 
 export function Transactions() {
   const { addError } = useErrors();
   const [params, setParams] = useTransactionsParams();
-  const { page, pageSize, search, ascending } = params;
+  const { page, pageSize, search, ascending, summarized } = params;
   const [_pending, setPending] = useState<PendingTransactionRecord[]>([]);
   const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
   const [totalTransactions, setTotalTransactions] = useState(0);
@@ -38,45 +39,35 @@ export function Transactions() {
     setIsOptionsVisible(entry.isIntersecting);
   });
 
-  const updateTransactions = useCallback(async () => {
-    setIsLoading(true);
+  const updateTransactions = useCallback(
+    async (showLoader: boolean) => {
+      if (showLoader) setIsLoading(true);
 
-    try {
-      const pendingResult = await commands.getPendingTransactions({});
-      setPending(pendingResult.transactions);
+      try {
+        const pendingResult = await commands.getPendingTransactions({});
+        setPending(pendingResult.transactions);
 
-      // if the search term might be a block height, try to get the block
-      // and add it to the list of transactions
-      const searchHeight = search ? parseInt(search, 10) : null;
-      const isValidHeight =
-        searchHeight !== null && !isNaN(searchHeight) && searchHeight >= 0;
+        const result = await commands.getTransactions({
+          offset: (page - 1) * pageSize,
+          limit: pageSize,
+          ascending,
+          find_value: search || null,
+        });
 
-      let specificBlock: TransactionRecord[] = [];
-      if (isValidHeight) {
-        const block = await commands.getTransaction({ height: searchHeight });
-        specificBlock = [block.transaction];
+        setTransactions(result.transactions);
+        setTotalTransactions(result.total);
+      } catch (error) {
+        addError(error as any);
+      } finally {
+        setIsLoading(false);
+        setIsPaginationLoading(false);
       }
-
-      const result = await commands.getTransactions({
-        offset: (page - 1) * pageSize,
-        limit: pageSize,
-        ascending,
-        find_value: search || null,
-      });
-
-      const combinedTransactions = [...specificBlock, ...result.transactions];
-      setTransactions(combinedTransactions);
-      setTotalTransactions(result.total + specificBlock.length);
-    } catch (error) {
-      addError(error as any);
-    } finally {
-      setIsLoading(false);
-      setIsPaginationLoading(false);
-    }
-  }, [addError, page, pageSize, ascending, search]);
+    },
+    [search, page, pageSize, ascending, addError],
+  );
 
   useEffect(() => {
-    updateTransactions();
+    updateTransactions(true);
 
     const unlisten = events.syncEvent.listen((data) => {
       switch (data.payload.type) {
@@ -85,7 +76,7 @@ export function Transactions() {
         case 'did_info':
         case 'nft_data':
         case 'puzzle_batch_synced':
-          updateTransactions();
+          updateTransactions(false);
       }
     });
 
@@ -94,27 +85,44 @@ export function Transactions() {
     };
   }, [updateTransactions]);
 
-  const handlePageChange = useCallback((newPage: number, compact?: boolean) => {
-    setIsPaginationLoading(true);
-    setParams({ page: newPage });
-    if (compact) {
-      listRef.current?.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start',
-      });
+  // Add a new useEffect to handle summarized view toggle
+  useEffect(() => {
+    // This effect only handles the loading state for summarized view toggle
+    // It doesn't need to fetch new data, just update the UI state
+    if (isPaginationLoading && !isLoading) {
+      // If we're in pagination loading state but not in the main loading state,
+      // it might be due to a summarized view toggle, so clear the loading state
+      setIsPaginationLoading(false);
     }
-  }, [setParams]);
+  }, [summarized, isPaginationLoading, isLoading]);
 
-  const handlePageSizeChange = useCallback((newSize: number, compact?: boolean) => {
-    setIsPaginationLoading(true);
-    setParams({ pageSize: newSize, page: 1 });
-    if (compact) {
+  const handlePageChange = useCallback(
+    (newPage: number, compact?: boolean) => {
+      setIsPaginationLoading(true);
+      setParams({ page: newPage });
+      if (compact) {
         listRef.current?.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start',
-      });
-    }
-  }, [setParams]);
+          behavior: 'smooth',
+          block: 'start',
+        });
+      }
+    },
+    [setParams],
+  );
+
+  const handlePageSizeChange = useCallback(
+    (newSize: number, compact?: boolean) => {
+      setIsPaginationLoading(true);
+      setParams({ pageSize: newSize, page: 1 });
+      if (compact) {
+        listRef.current?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+        });
+      }
+    },
+    [setParams],
+  );
 
   const renderPagination = useCallback(
     (compact: boolean = false) => (
@@ -124,12 +132,20 @@ export function Transactions() {
         pageSize={pageSize}
         onPageChange={(newPage) => handlePageChange(newPage, compact)}
         onPageSizeChange={(newSize) => handlePageSizeChange(newSize, compact)}
-        pageSizeOptions={[10, 25, 50]}
+        pageSizeOptions={[10, 25, 50, 100, 250, 500]}
         compact={compact}
         isLoading={isLoading || isPaginationLoading}
       />
     ),
-    [page, pageSize, totalTransactions, isLoading, isPaginationLoading, handlePageChange, handlePageSizeChange],
+    [
+      page,
+      pageSize,
+      totalTransactions,
+      isLoading,
+      isPaginationLoading,
+      handlePageChange,
+      handlePageSizeChange,
+    ],
   );
 
   return (
@@ -161,7 +177,8 @@ export function Transactions() {
             onParamsChange={(newParams) => {
               if (
                 newParams.page !== params.page ||
-                newParams.pageSize !== params.pageSize
+                newParams.pageSize !== params.pageSize ||
+                newParams.summarized !== params.summarized
               ) {
                 setIsPaginationLoading(true);
               }
@@ -196,6 +213,7 @@ export function Transactions() {
               setParams({ ascending: value, page: 1 });
             }}
             isLoading={isLoading && !isPaginationLoading}
+            summarized={summarized}
           />
         </div>
       </Container>

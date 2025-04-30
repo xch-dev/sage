@@ -17,15 +17,6 @@
     "clipboard-manager:default",
     "clipboard-manager:allow-write-text",
     "clipboard-manager:allow-read-text",
-    "shell:default",
-    {
-      "identifier": "http:default",
-      "allow": [
-        { "url": "https://*.tauri.app" },
-        { "url": "https://icons.dexie.space/*.webp" },
-        { "url": "https://offerco.de/api/v1/*" },
-        { "url": "https://api.dexie.space/v1/*" }
-      ]
-    }
+    "opener:default"
   ]
 }

@@ -1,0 +1,68 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `spent_height`, `created_height`, `transaction_id`, `kind`, `created_unixtime`, `spent_unixtime`\n        FROM `did_coins`\n        INNER JOIN `coin_states` ON `coin_states`.coin_id = `did_coins`.coin_id\n        WHERE `launcher_id` = ?\n        AND `spent_height` IS NULL\n        AND `created_height` IS NOT NULL\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "parent_coin_id",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "puzzle_hash",
+        "ordinal": 1,
+        "type_info": "Blob"
+      },
+      {
+        "name": "amount",
+        "ordinal": 2,
+        "type_info": "Blob"
+      },
+      {
+        "name": "spent_height",
+        "ordinal": 3,
+        "type_info": "Integer"
+      },
+      {
+        "name": "created_height",
+        "ordinal": 4,
+        "type_info": "Integer"
+      },
+      {
+        "name": "transaction_id",
+        "ordinal": 5,
+        "type_info": "Blob"
+      },
+      {
+        "name": "kind",
+        "ordinal": 6,
+        "type_info": "Integer"
+      },
+      {
+        "name": "created_unixtime",
+        "ordinal": 7,
+        "type_info": "Integer"
+      },
+      {
+        "name": "spent_unixtime",
+        "ordinal": 8,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "99ccce96cc2ec334724a1ff115c4f09114d37e70b84c3c1b2277c58ffe01adfc"
+}

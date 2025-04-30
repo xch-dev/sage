@@ -34,9 +34,9 @@ import {
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
 import { Input } from './ui/input';
-import { Pagination } from './Pagination';
-import { CardSizeToggle } from './CardSizeToggle';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useDebounce } from '@/hooks/useDebounce';
 
 export interface NftOptionsProps {
   isCollection?: boolean;
@@ -69,6 +69,39 @@ export function NftOptions({
   const navigate = useNavigate();
   const isFilteredView = Boolean(collection_id || owner_did || minter_did);
   const allowSearch = group === NftGroupMode.None || isFilteredView;
+  const [searchValue, setSearchValue] = useState(query ?? '');
+  const debouncedSearch = useDebounce(searchValue, 400);
+  const prevSearchRef = useRef(query);
+
+  useEffect(() => {
+    setSearchValue(query ?? '');
+  }, [query]);
+
+  useEffect(() => {
+    // Convert empty string, undefined, and null to consistent values for comparison
+    const normalizedDebounced = debouncedSearch || null;
+    const normalizedQuery = query || null;
+
+    // Check if queries are meaningfully different after normalization
+    if (normalizedDebounced !== normalizedQuery) {
+      const shouldResetPage = prevSearchRef.current !== debouncedSearch;
+      prevSearchRef.current = debouncedSearch;
+
+      setParams({
+        query: debouncedSearch || null,
+        ...(shouldResetPage && { page: 1 }),
+      });
+    }
+  }, [debouncedSearch, query, setParams]);
+
+  const handleInputChange = useCallback((value: string) => {
+    setSearchValue(value);
+  }, []);
+
+  const handleClearSearch = useCallback(() => {
+    setSearchValue('');
+  }, []);
+
   const handleBack = () => {
     if (collection_id) {
       setParams({ group: NftGroupMode.Collection, page: 1 });
@@ -107,24 +140,24 @@ export function NftOptions({
             aria-hidden='true'
           />
           <Input
-            value={query ?? ''}
+            value={searchValue}
             aria-label={t`Search NFTs...`}
             title={t`Search NFTs...`}
             placeholder={t`Search NFTs...`}
-            onChange={(e) => setParams({ query: e.target.value, page: 1 })}
+            onChange={(e) => handleInputChange(e.target.value)}
             className='w-full pl-8 pr-8'
             disabled={!allowSearch}
             aria-disabled={!allowSearch}
           />
         </div>
-        {query && (
+        {searchValue && (
           <Button
             variant='ghost'
             size='icon'
             title={t`Clear search`}
             aria-label={t`Clear search`}
             className='absolute right-0 top-0 h-full px-2 hover:bg-transparent'
-            onClick={() => setParams({ query: '', page: 1 })}
+            onClick={handleClearSearch}
             disabled={!allowSearch}
           >
             <XIcon className='h-4 w-4' aria-hidden='true' />

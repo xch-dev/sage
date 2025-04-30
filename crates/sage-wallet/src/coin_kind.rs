@@ -1,9 +1,10 @@
 use chia::{
     clvm_traits::{FromClvm, ToClvm},
     protocol::{Bytes32, Program},
-    puzzles::{nft::NftMetadata, singleton::SINGLETON_LAUNCHER_PUZZLE_HASH},
+    puzzles::nft::NftMetadata,
 };
-use chia_wallet_sdk::{CatLayer, DidInfo, HashedPtr, Layer, NftInfo, Puzzle};
+use chia_puzzles::SINGLETON_LAUNCHER_HASH;
+use chia_wallet_sdk::driver::{CatLayer, DidInfo, HashedPtr, Layer, NftInfo, Puzzle};
 use clvmr::Allocator;
 use tracing::{debug_span, warn};
 
@@ -41,7 +42,7 @@ impl CoinKind {
         let parse_span = debug_span!("parse puzzle");
         let _span = parse_span.enter();
 
-        if puzzle.curried_puzzle_hash() == SINGLETON_LAUNCHER_PUZZLE_HASH {
+        if puzzle.curried_puzzle_hash() == SINGLETON_LAUNCHER_HASH.into() {
             return Ok(Self::Launcher);
         }
 

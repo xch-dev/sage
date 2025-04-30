@@ -53,7 +53,7 @@ impl Client {
             } else {
                 Config::default()
             };
-            ([127, 0, 0, 1], config.rpc.server_port).into()
+            ([127, 0, 0, 1], config.rpc.port).into()
         };
 
         let cert_path = if let Ok(cert_path) = env::var("SAGE_RPC_CERT_PATH") {

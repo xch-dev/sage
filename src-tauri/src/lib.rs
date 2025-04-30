@@ -58,6 +58,9 @@ pub fn run() {
             commands::get_sync_status,
             commands::check_address,
             commands::get_derivations,
+            commands::get_are_coins_spendable,
+            commands::get_spendable_coin_count,
+            commands::get_coins_by_ids,
             commands::get_xch_coins,
             commands::get_cat_coins,
             commands::get_cats,
@@ -69,9 +72,10 @@ pub fn run() {
             commands::get_nfts,
             commands::get_nft,
             commands::get_nft_data,
+            commands::get_nft_icon,
+            commands::get_nft_thumbnail,
             commands::get_pending_transactions,
             commands::get_transactions,
-            commands::get_transaction,
             commands::validate_address,
             commands::make_offer,
             commands::take_offer,
@@ -85,11 +89,11 @@ pub fn run() {
             commands::network_config,
             commands::set_discover_peers,
             commands::set_target_peers,
-            commands::set_network_id,
+            commands::set_network,
+            commands::set_network_override,
             commands::wallet_config,
-            commands::set_derive_automatically,
-            commands::set_derivation_batch_size,
             commands::get_networks,
+            commands::get_network,
             commands::update_cat,
             commands::remove_cat,
             commands::update_did,
@@ -110,6 +114,7 @@ pub fn run() {
             commands::stop_rpc_server,
             commands::get_rpc_run_on_startup,
             commands::set_rpc_run_on_startup,
+            commands::move_key,
         ])
         .events(collect_events![SyncEvent]);
 
@@ -122,7 +127,7 @@ pub fn run() {
         )
         .expect("Failed to export TypeScript bindings");
 
-    let mut tauri_builder = tauri::Builder::default().plugin(tauri_plugin_http::init());
+    let mut tauri_builder = tauri::Builder::default();
 
     #[cfg(not(any(target_os = "android", target_os = "ios")))]
     {
@@ -130,7 +135,7 @@ pub fn run() {
     }
 
     tauri_builder
-        .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_os::init())
         .invoke_handler(builder.invoke_handler())

@@ -8,7 +8,6 @@ use chia::{
     },
     puzzles::{standard::StandardArgs, DeriveSynthetic},
 };
-use itertools::Itertools;
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use sage_api::{
@@ -17,30 +16,31 @@ use sage_api::{
     ImportKeyResponse, KeyInfo, KeyKind, Login, LoginResponse, Logout, LogoutResponse, RenameKey,
     RenameKeyResponse, Resync, ResyncResponse, SecretKeyInfo,
 };
+use sage_config::{ChangeMode, DerivationMode, Wallet};
 use sage_database::Database;
 
 use crate::{Error, Result, Sage};
 
 impl Sage {
     pub async fn login(&mut self, req: Login) -> Result<LoginResponse> {
-        self.config.app.active_fingerprint = Some(req.fingerprint);
+        self.config.global.fingerprint = Some(req.fingerprint);
         self.save_config()?;
         self.switch_wallet().await?;
         Ok(LoginResponse {})
     }
 
     pub async fn logout(&mut self, _req: Logout) -> Result<LogoutResponse> {
-        self.config.app.active_fingerprint = None;
+        self.config.global.fingerprint = None;
         self.save_config()?;
         self.switch_wallet().await?;
         Ok(LogoutResponse {})
     }
 
     pub async fn resync(&mut self, req: Resync) -> Result<ResyncResponse> {
-        let login = self.config.app.active_fingerprint == Some(req.fingerprint);
+        let login = self.config.global.fingerprint == Some(req.fingerprint);
 
         if login {
-            self.config.app.active_fingerprint = None;
+            self.config.global.fingerprint = None;
             self.switch_wallet().await?;
         }
 
@@ -76,9 +76,14 @@ impl Sage {
                 .execute(&pool)
                 .await?;
         }
+        if req.delete_blockinfo {
+            sqlx::query!("DELETE FROM `blockinfo`")
+                .execute(&pool)
+                .await?;
+        }
 
         if login {
-            self.config.app.active_fingerprint = Some(req.fingerprint);
+            self.config.global.fingerprint = Some(req.fingerprint);
             self.save_config()?;
             self.switch_wallet().await?;
         }
@@ -139,9 +144,14 @@ impl Sage {
             (fingerprint, Some(master_sk), master_pk)
         };
 
-        let config = self.wallet_config_mut(fingerprint);
-        config.name = req.name;
-        self.config.app.active_fingerprint = Some(fingerprint);
+        self.wallet_config.wallets.push(Wallet {
+            name: req.name,
+            fingerprint,
+            change: ChangeMode::Default,
+            derivation: DerivationMode::Default,
+            network: None,
+        });
+        self.config.global.fingerprint = Some(fingerprint);
 
         self.save_keychain()?;
         self.save_config()?;
@@ -188,11 +198,12 @@ impl Sage {
     pub fn delete_key(&mut self, req: DeleteKey) -> Result<DeleteKeyResponse> {
         self.keychain.remove(req.fingerprint);
 
-        self.config
+        self.wallet_config
             .wallets
-            .shift_remove(&req.fingerprint.to_string());
-        if self.config.app.active_fingerprint == Some(req.fingerprint) {
-            self.config.app.active_fingerprint = None;
+            .retain(|wallet| wallet.fingerprint != req.fingerprint);
+
+        if self.config.global.fingerprint == Some(req.fingerprint) {
+            self.config.global.fingerprint = None;
         }
 
         self.save_keychain()?;
@@ -207,25 +218,40 @@ impl Sage {
     }
 
     pub fn rename_key(&mut self, req: RenameKey) -> Result<RenameKeyResponse> {
-        let config = self.try_wallet_config_mut(req.fingerprint);
-        config.name = req.name;
+        let Some(wallet) = self
+            .wallet_config
+            .wallets
+            .iter_mut()
+            .find(|wallet| wallet.fingerprint == req.fingerprint)
+        else {
+            return Err(Error::UnknownFingerprint);
+        };
+
+        wallet.name = req.name;
         self.save_config()?;
 
         Ok(RenameKeyResponse {})
     }
 
     pub fn get_key(&self, req: GetKey) -> Result<GetKeyResponse> {
-        let fingerprint = req.fingerprint.or(self.config.app.active_fingerprint);
+        let fingerprint = req.fingerprint.or(self.config.global.fingerprint);
 
         let Some(fingerprint) = fingerprint else {
             return Ok(GetKeyResponse { key: None });
         };
 
         let name = self
-            .config
+            .wallet_config
             .wallets
-            .get(&fingerprint.to_string())
-            .map_or_else(|| "Unnamed".to_string(), |config| config.name.clone());
+            .iter()
+            .find_map(|wallet| {
+                if wallet.fingerprint == fingerprint {
+                    Some(wallet.name.clone())
+                } else {
+                    None
+                }
+            })
+            .unwrap_or_else(Wallet::default_name);
 
         let Some(master_pk) = self.keychain.extract_public_key(fingerprint)? else {
             return Ok(GetKeyResponse { key: None });
@@ -257,40 +283,19 @@ impl Sage {
     }
 
     pub fn get_keys(&self, _req: GetKeys) -> Result<GetKeysResponse> {
-        let mut keys = Vec::with_capacity(self.config.wallets.len());
+        let mut keys = Vec::new();
 
-        for (fingerprint, wallet) in &self.config.wallets {
-            let fingerprint = fingerprint.parse::<u32>()?;
-
-            let Some(master_pk) = self.keychain.extract_public_key(fingerprint)? else {
+        for wallet in &self.wallet_config.wallets {
+            let Some(master_pk) = self.keychain.extract_public_key(wallet.fingerprint)? else {
                 continue;
             };
 
             keys.push(KeyInfo {
                 name: wallet.name.clone(),
-                fingerprint,
+                fingerprint: wallet.fingerprint,
                 public_key: hex::encode(master_pk.to_bytes()),
                 kind: KeyKind::Bls,
-                has_secrets: self.keychain.has_secret_key(fingerprint),
-            });
-        }
-
-        for fingerprint in self
-            .keychain
-            .fingerprints()
-            .filter(|fingerprint| !self.config.wallets.contains_key(&fingerprint.to_string()))
-            .sorted()
-        {
-            let Some(master_pk) = self.keychain.extract_public_key(fingerprint)? else {
-                continue;
-            };
-
-            keys.push(KeyInfo {
-                name: "Unnamed".to_string(),
-                fingerprint,
-                public_key: hex::encode(master_pk.to_bytes()),
-                kind: KeyKind::Bls,
-                has_secrets: self.keychain.has_secret_key(fingerprint),
+                has_secrets: self.keychain.has_secret_key(wallet.fingerprint),
             });
         }
 

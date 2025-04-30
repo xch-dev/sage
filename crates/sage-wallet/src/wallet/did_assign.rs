@@ -1,5 +1,8 @@
 use chia::protocol::{Bytes32, CoinSpend};
-use chia_wallet_sdk::{Conditions, DidOwner, HashedPtr, SpendContext, StandardLayer};
+use chia_wallet_sdk::{
+    driver::{DidOwner, HashedPtr, SpendContext, StandardLayer},
+    types::Conditions,
+};
 
 use crate::WalletError;
 
@@ -57,7 +60,7 @@ impl Wallet {
 
         let did = if let Some(did) = did {
             let did_metadata_ptr = ctx.alloc(&did.info.metadata)?;
-            Some(did.with_metadata(HashedPtr::from_ptr(&ctx.allocator, did_metadata_ptr)))
+            Some(did.with_metadata(HashedPtr::from_ptr(&ctx, did_metadata_ptr)))
         } else {
             None
         };
@@ -71,7 +74,7 @@ impl Wallet {
 
         for (i, nft) in nfts.into_iter().enumerate() {
             let nft_metadata_ptr = ctx.alloc(&nft.info.metadata)?;
-            let nft = nft.with_metadata(HashedPtr::from_ptr(&ctx.allocator, nft_metadata_ptr));
+            let nft = nft.with_metadata(HashedPtr::from_ptr(&ctx, nft_metadata_ptr));
 
             let synthetic_key = self.db.synthetic_key(nft.info.p2_puzzle_hash).await?;
             let p2 = StandardLayer::new(synthetic_key);

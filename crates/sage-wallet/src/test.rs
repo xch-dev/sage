@@ -9,8 +9,12 @@ use chia::{
     puzzles::{standard::StandardArgs, DeriveSynthetic},
 };
 use chia_wallet_sdk::{
-    test_secret_key, AggSigConstants, Connector, Network, Peer, PeerSimulator, TESTNET11_CONSTANTS,
+    client::{Connector, Peer},
+    signer::AggSigConstants,
+    test::{BlsPair, PeerSimulator},
+    types::TESTNET11_CONSTANTS,
 };
+use sage_config::TESTNET11;
 use sage_database::Database;
 use sqlx::{migrate, SqlitePool};
 use tokio::{
@@ -71,7 +75,7 @@ impl TestWallet {
         let db = Database::new(pool);
         db.run_rust_migrations().await?;
 
-        let sk = test_secret_key()?.derive_unhardened(key_index);
+        let sk = BlsPair::default().sk.derive_unhardened(key_index);
         let pk = sk.public_key();
         let fingerprint = pk.get_fingerprint();
         let intermediate_pk = master_to_wallet_unhardened_intermediate(&pk);
@@ -134,8 +138,7 @@ impl TestWallet {
             },
             state.clone(),
             Some(wallet.clone()),
-            "testnet11".to_string(),
-            Network::default_testnet11(),
+            TESTNET11.clone(),
             Connector::Plain,
         );
 
@@ -143,7 +146,7 @@ impl TestWallet {
 
         assert!(
             sync_manager
-                .try_add_peer(peer.clone(), receiver, true)
+                .try_add_peer(peer.clone(), receiver, true, false)
                 .await
         );
 

@@ -107,6 +107,10 @@ jobs:
         if: matrix.platform == 'ubuntu-22.04' || matrix.platform == 'linux-arm64'
         run: sudo apt-get update && sudo apt-get install -y libgtk-3-dev libjavascriptcoregtk-4.1-dev libwebkit2gtk-4.1-dev
 
+      - name: Ubuntu ARM dependencies
+        if: matrix.platform == 'linux-arm64'
+        run: sudo apt-get install --reinstall xdg-utils
+
       - name: Windows dependencies
         if: matrix.platform == 'windows-latest'
         run: |

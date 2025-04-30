@@ -1,9 +1,3 @@
-import { ColumnDef } from '@tanstack/react-table';
-import { t } from '@lingui/core/macro';
-import { Trans } from '@lingui/react/macro';
-import { Link } from 'react-router-dom';
-import { NumberFormat } from './NumberFormat';
-import { toDecimal, formatUsdPrice } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -11,18 +5,24 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { formatUsdPrice, toDecimal } from '@/lib/utils';
+import { TokenRecord } from '@/types/TokenViewProps';
+import { t } from '@lingui/core/macro';
+import { Trans } from '@lingui/react/macro';
+import { ColumnDef } from '@tanstack/react-table';
+import { openUrl } from '@tauri-apps/plugin-opener';
 import {
-  MoreHorizontal,
-  RefreshCw,
-  Eye,
-  EyeOff,
+  Coins,
   Copy,
   ExternalLink,
-  Coins,
+  Eye,
+  EyeOff,
+  MoreHorizontal,
+  RefreshCw,
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { TokenRecord } from '@/types/TokenViewProps';
-import { open } from '@tauri-apps/plugin-shell';
+import { NumberFormat } from './NumberFormat';
 
 // Add new interface for token action handlers
 export interface TokenActionHandlers {
@@ -35,7 +35,9 @@ export const columns = (
 ): ColumnDef<TokenRecord>[] => [
   {
     id: 'icon',
+    enableSorting: false,
     header: () => <span className='sr-only'>{t`Token Icon`}</span>,
+    size: 40,
     cell: ({ row }) => {
       const record = row.original;
       const iconUrl = record.isXch
@@ -43,20 +45,19 @@ export const columns = (
         : record.icon_url;
 
       return iconUrl ? (
-        <div className='w-[40px] min-w-[40px]'>
-          <img
-            alt={t`Token logo`}
-            aria-hidden='true'
-            className='h-6 w-6'
-            src={iconUrl}
-          />
-        </div>
+        <img
+          alt={t`Token logo`}
+          aria-hidden='true'
+          className='h-6 w-6 ml-1'
+          src={iconUrl}
+        />
       ) : null;
     },
   },
   {
     accessorKey: 'name',
     header: () => <Trans>Name</Trans>,
+    minSize: 120,
     cell: ({ row }) => {
       const record = row.original;
       const name = record.isXch
@@ -67,60 +68,49 @@ export const columns = (
         : `/wallet/token/${record.asset_id}`;
       const ariaLabel = record.isXch
         ? t`View Chia token details`
-        : record.name
-          ? t`View ${record.name} token details`
-          : t`View Unknown CAT token details`;
+        : t`View ${name} token details`;
 
       return (
-        <div className='max-w-[120px] truncate'>
-          <Link to={path} className='hover:underline' aria-label={ariaLabel}>
-            {name}
-          </Link>
-        </div>
+        <Link to={path} className='hover:underline' aria-label={ariaLabel}>
+          {name}
+        </Link>
       );
     },
   },
   {
     accessorKey: 'ticker',
-    header: () => (
-      <div className='hidden sm:block'>
-        <Trans>Symbol</Trans>
-      </div>
-    ),
+    header: () => <Trans>Symbol</Trans>,
+    size: 80,
+    meta: {
+      className: 'hidden md:table-cell',
+    },
     cell: ({ row }) => {
-      const record = row.original;
-      const ticker = record.isXch ? 'XCH' : record.ticker || '-';
-      return <div className='hidden sm:block'>{ticker}</div>;
+      return row.original.ticker;
     },
   },
   {
     accessorKey: 'balance',
-    header: () => (
-      <div className='text-right'>
-        <Trans>Balance</Trans>
-      </div>
-    ),
+    header: () => <Trans>Balance</Trans>,
+    size: 100,
     cell: ({ row }) => {
       const record = row.original;
       return (
-        <div className='text-right'>
-          <NumberFormat
-            value={toDecimal(record.balance, record.decimals)}
-            maximumFractionDigits={record.decimals}
-          />
-        </div>
+        <NumberFormat
+          value={toDecimal(record.balance, record.decimals)}
+          maximumFractionDigits={record.decimals}
+        />
       );
     },
   },
   {
     accessorKey: 'balanceInUsd',
-    header: () => (
-      <div className='text-right hidden md:block'>
-        <Trans>Balance (USD)</Trans>
-      </div>
-    ),
+    header: () => <Trans>Value</Trans>,
+    size: 90,
+    meta: {
+      className: 'hidden md:table-cell',
+    },
     cell: ({ row }) => (
-      <div className='text-right hidden md:block'>
+      <div>
         <span className='sr-only'>USD Value: </span>
         <NumberFormat
           value={row.original.balanceInUsd}
@@ -133,13 +123,13 @@ export const columns = (
   },
   {
     accessorKey: 'priceInUsd',
-    header: () => (
-      <div className='text-right hidden md:block'>
-        <Trans>Price (USD)</Trans>
-      </div>
-    ),
+    header: () => <Trans>Price</Trans>,
+    size: 60,
+    meta: {
+      className: 'hidden md:table-cell',
+    },
     cell: ({ row }) => (
-      <div className='text-right hidden md:block'>
+      <div>
         <span className='sr-only'>Price per token: </span>
         {formatUsdPrice(row.original.priceInUsd)}
       </div>
@@ -148,6 +138,7 @@ export const columns = (
   {
     id: 'actions',
     enableSorting: false,
+    size: 44,
     cell: ({ row }) => {
       const record = row.original;
       const balance = toDecimal(record.balance, record.decimals);
@@ -192,7 +183,7 @@ export const columns = (
                 )}
                 <DropdownMenuItem
                   onClick={() => {
-                    open(
+                    openUrl(
                       `https://dexie.space/offers/XCH/${record.asset_id}`,
                     ).catch((error) => {
                       console.error('Failed to open dexie.space:', error);

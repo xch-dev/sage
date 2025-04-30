@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        INSERT OR IGNORE INTO `blockinfo` (\n            `height`,\n            `unix_time`\n        )\n        VALUES (?, ?)\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "4d0c70f825bfd512daa0b520d2d4e1a99f5cd363ffaafd9b79306ad9e131f2ab"
+}

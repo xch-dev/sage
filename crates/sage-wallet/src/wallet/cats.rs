@@ -4,11 +4,14 @@ use chia::{
     bls::PublicKey,
     protocol::{Bytes, Bytes32, CoinSpend},
 };
-use chia_wallet_sdk::{Cat, Conditions, SpendContext};
+use chia_wallet_sdk::{
+    driver::{Cat, SpendContext},
+    types::Conditions,
+};
 
 use crate::WalletError;
 
-use super::Wallet;
+use super::{memos::calculate_memos, Wallet};
 
 impl Wallet {
     pub async fn issue_cat(
@@ -55,14 +58,15 @@ impl Wallet {
         Ok((ctx.take(), eve.asset_id))
     }
 
-    /// Sends the given amount of XCH to the given puzzle hash, minus the fee.
+    /// Sends the given amount of CAT to the given puzzle hash.
     #[allow(clippy::too_many_arguments)]
     pub async fn send_cat(
         &self,
         asset_id: Bytes32,
         amounts: Vec<(Bytes32, u64)>,
         fee: u64,
-        memos: Vec<Bytes>,
+        include_hint: bool,
+        memos: Option<Vec<Bytes>>,
         hardened: bool,
         reuse: bool,
     ) -> Result<Vec<CoinSpend>, WalletError> {
@@ -111,10 +115,11 @@ impl Wallet {
         }
 
         for (puzzle_hash, amount) in amounts {
-            let mut output_memos = vec![puzzle_hash.into()];
-            output_memos.extend(memos.clone());
-            let memos = ctx.memos(&output_memos)?;
-            conditions = conditions.create_coin(puzzle_hash, amount, Some(memos));
+            conditions = conditions.create_coin(
+                puzzle_hash,
+                amount,
+                calculate_memos(&mut ctx, puzzle_hash, include_hint, memos.clone())?,
+            );
         }
 
         let change_hint = ctx.hint(change_puzzle_hash)?;
@@ -169,7 +174,8 @@ mod tests {
                 asset_id,
                 vec![(test.puzzle_hash, 750)],
                 0,
-                Vec::new(),
+                true,
+                None,
                 false,
                 true,
             )
@@ -188,7 +194,8 @@ mod tests {
                 asset_id,
                 vec![(test.puzzle_hash, 1000)],
                 500,
-                Vec::new(),
+                true,
+                None,
                 false,
                 true,
             )

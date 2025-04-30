@@ -3,21 +3,15 @@ import { CopyBox } from '@/components/CopyBox';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { useErrors } from '@/hooks/useErrors';
-import { isImage, nftUri } from '@/lib/nftUri';
+import { isAudio, isImage, isJson, isText, nftUri } from '@/lib/nftUri';
 import { isValidUrl } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import { open } from '@tauri-apps/plugin-shell';
+import { openUrl } from '@tauri-apps/plugin-opener';
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import {
-  commands,
-  events,
-  NetworkConfig,
-  NftData,
-  NftRecord,
-} from '../bindings';
 import { toast } from 'react-toastify';
+import { commands, events, NetworkKind, NftData, NftRecord } from '../bindings';
 
 export default function Nft() {
   const { launcher_id: launcherId } = useParams();
@@ -71,10 +65,13 @@ export default function Nft() {
     }
   }, [data?.metadata_json, nft]);
 
-  const [config, setConfig] = useState<NetworkConfig | null>(null);
+  const [network, setNetwork] = useState<NetworkKind | null>(null);
 
   useEffect(() => {
-    commands.networkConfig().then(setConfig).catch(addError);
+    commands
+      .getNetwork({})
+      .then((data) => setNetwork(data.kind))
+      .catch(addError);
   }, [addError]);
 
   return (
@@ -88,6 +85,29 @@ export default function Nft() {
               src={nftUri(data?.mime_type ?? null, data?.blob ?? null)}
               className='rounded-lg'
             />
+          ) : isText(data?.mime_type ?? null) ? (
+            <div className='border rounded-lg p-4 bg-gray-50 dark:bg-gray-800 overflow-auto max-h-[400px]'>
+              <pre className='whitespace-pre-wrap text-sm'>
+                {data?.blob ? atob(data.blob) : ''}
+              </pre>
+            </div>
+          ) : isJson(data?.mime_type ?? null) ? (
+            <div className='border rounded-lg p-4 bg-gray-50 dark:bg-gray-800 overflow-auto max-h-[400px]'>
+              <pre className='whitespace-pre-wrap text-sm'>
+                {data?.blob
+                  ? JSON.stringify(JSON.parse(atob(data.blob)), null, 2)
+                  : ''}
+              </pre>
+            </div>
+          ) : isAudio(data?.mime_type ?? null) ? (
+            <div className='flex flex-col items-center justify-center p-4 border rounded-lg bg-gray-50 dark:bg-gray-800'>
+              <div className='text-4xl mb-2'>🎵</div>
+              <audio
+                src={nftUri(data?.mime_type ?? null, data?.blob ?? null)}
+                controls
+                className='w-full'
+              />
+            </div>
           ) : (
             <video
               src={nftUri(data?.mime_type ?? null, data?.blob ?? null)}
@@ -132,12 +152,15 @@ export default function Nft() {
                 <div className='grid grid-cols-2 gap-2'>
                   {metadata.attributes.map((attr: any, i: number) => (
                     <div key={i} className='px-2 py-1 border-2 rounded-lg'>
-                      <h6 className='text-sm font-semibold'>
+                      <h6
+                        className='text-sm font-semibold truncate'
+                        title={attr.trait_type}
+                      >
                         {attr.trait_type}
                       </h6>
                       {isValidUrl(attr.value) ? (
                         <div
-                          onClick={() => open(attr.value)}
+                          onClick={() => openUrl(attr.value)}
                           className='text-sm break-all text-blue-700 dark:text-blue-300 cursor-pointer hover:underline'
                         >
                           {attr.value}
@@ -160,7 +183,7 @@ export default function Nft() {
                   <div
                     key={i}
                     className='truncate text-sm text-blue-700 dark:text-blue-300 cursor-pointer'
-                    onClick={() => open(uri)}
+                    onClick={() => openUrl(uri)}
                   >
                     {uri}
                   </div>
@@ -177,7 +200,7 @@ export default function Nft() {
                   <div
                     key={i}
                     className='truncate text-sm text-blue-700 dark:text-blue-300 cursor-pointer'
-                    onClick={() => open(uri)}
+                    onClick={() => openUrl(uri)}
                   >
                     {uri}
                   </div>
@@ -194,7 +217,7 @@ export default function Nft() {
                   <div
                     key={i}
                     className='truncate text-sm text-blue-700 dark:text-blue-300 cursor-pointer'
-                    onClick={() => open(uri)}
+                    onClick={() => openUrl(uri)}
                   >
                     {uri}
                   </div>
@@ -235,39 +258,57 @@ export default function Nft() {
               <h6 className='text-md font-bold'>
                 <Trans>Minter DID</Trans>
               </h6>
-              <div className='break-all text-sm'>
-                {nft?.minter_did ?? <Trans>None</Trans>}
-              </div>
+              <CopyBox
+                title={t`Minter DID`}
+                value={nft?.minter_did ?? t`None`}
+                onCopy={() => toast.success(t`Minter DID copied to clipboard`)}
+              />
             </div>
 
             <div>
               <h6 className='text-md font-bold'>
                 <Trans>Owner DID</Trans>
               </h6>
-              <div className='break-all text-sm'>
-                {nft?.owner_did ?? <Trans>None</Trans>}
-              </div>
+              <CopyBox
+                title={t`Owner DID`}
+                value={nft?.owner_did ?? t`None`}
+                onCopy={() => toast.success(t`Owner DID copied to clipboard`)}
+              />
             </div>
 
             <div>
               <h6 className='text-md font-bold'>
                 <Trans>Address</Trans>
               </h6>
-              <div className='break-all text-sm'>{nft?.address}</div>
+              <CopyBox
+                title={t`Address`}
+                value={nft?.address ?? ''}
+                onCopy={() => toast.success(t`Address copied to clipboard`)}
+              />
             </div>
 
             <div>
               <h6 className='text-md font-bold'>
                 <Trans>Coin Id</Trans>
               </h6>
-              <div className='break-all text-sm'>{nft?.coin_id}</div>
+              <CopyBox
+                title={t`Coin Id`}
+                value={nft?.coin_id ?? ''}
+                onCopy={() => toast.success(t`Coin ID copied to clipboard`)}
+              />
             </div>
 
             <div>
               <h6 className='text-md font-bold'>
                 <Trans>Royalties {royaltyPercentage}%</Trans>
               </h6>
-              <div className='break-all text-sm'>{nft?.royalty_address}</div>
+              <CopyBox
+                title={t`Royalty Address`}
+                value={nft?.royalty_address ?? ''}
+                onCopy={() =>
+                  toast.success(t`Royalty address copied to clipboard`)
+                }
+              />
             </div>
 
             <div className='flex flex-col gap-1'>
@@ -278,13 +319,11 @@ export default function Nft() {
               <Button
                 variant='outline'
                 onClick={() => {
-                  open(
-                    `https://${config?.network_id !== 'mainnet' ? 'testnet.' : ''}mintgarden.io/nfts/${nft?.launcher_id}`,
+                  openUrl(
+                    `https://${network === 'testnet' ? 'testnet.' : ''}mintgarden.io/nfts/${nft?.launcher_id}`,
                   );
                 }}
-                disabled={
-                  !['mainnet', 'testnet11'].includes(config?.network_id ?? '')
-                }
+                disabled={network === 'unknown'}
               >
                 <img
                   src='https://mintgarden.io/mint-logo.svg'
@@ -297,13 +336,11 @@ export default function Nft() {
               <Button
                 variant='outline'
                 onClick={() => {
-                  open(
-                    `https://${config?.network_id !== 'mainnet' ? 'testnet11.' : ''}spacescan.io/nft/${nft?.launcher_id}`,
+                  openUrl(
+                    `https://${network === 'testnet' ? 'testnet11.' : ''}spacescan.io/nft/${nft?.launcher_id}`,
                   );
                 }}
-                disabled={
-                  !['mainnet', 'testnet11'].includes(config?.network_id ?? '')
-                }
+                disabled={network === 'unknown'}
               >
                 <img
                   src='https://spacescan.io/images/spacescan-logo-192.png'

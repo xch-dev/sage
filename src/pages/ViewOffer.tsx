@@ -1,5 +1,6 @@
 import { commands, OfferSummary, TakeOfferResponse } from '@/bindings';
 import ConfirmationDialog from '@/components/ConfirmationDialog';
+import { OfferConfirmation } from '@/components/confirmations/OfferConfirmation';
 import Container from '@/components/Container';
 import Header from '@/components/Header';
 import { Loading } from '@/components/Loading';
@@ -7,15 +8,14 @@ import { OfferCard } from '@/components/OfferCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { CustomError } from '@/contexts/ErrorContext';
 import { useErrors } from '@/hooks/useErrors';
 import { toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
+import { t } from '@lingui/core/macro';
+import { Trans } from '@lingui/react/macro';
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Trans } from '@lingui/react/macro';
-import { t } from '@lingui/core/macro';
-import { CustomError } from '@/contexts/ErrorContext';
-import { fetch } from '@tauri-apps/plugin-http';
 
 const isValidHostname = (url: string, expectedHostname: string) => {
   try {
@@ -218,9 +218,16 @@ export function ViewOffer() {
       </Container>
 
       <ConfirmationDialog
+        showRecipientDetails={false}
         response={response}
         close={() => setResponse(null)}
         onConfirm={() => navigate('/offers')}
+        additionalData={{
+          title: t`Take Offer`,
+          content: response && summary && (
+            <OfferConfirmation type='take' offer={summary} />
+          ),
+        }}
       />
     </>
   );

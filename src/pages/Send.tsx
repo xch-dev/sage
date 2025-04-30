@@ -29,16 +29,18 @@ import { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router-dom';
 import * as z from 'zod';
-import {
-  CatRecord,
-  commands,
-  events,
-  SendXch,
-  TransactionResponse,
-} from '../bindings';
+import { CatRecord, commands, events, TransactionResponse } from '../bindings';
 import { NumberFormat } from '@/components/NumberFormat';
 import { toHex } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { ArrowUpToLine } from 'lucide-react';
+import { TokenConfirmation } from '@/components/confirmations/TokenConfirmation';
 
 function stringToUint8Array(str: string): Uint8Array {
   return new TextEncoder().encode(str);
@@ -55,6 +57,7 @@ export default function Send() {
     null,
   );
   const [response, setResponse] = useState<TransactionResponse | null>(null);
+  const [currentMemo, setCurrentMemo] = useState<string | undefined>(undefined);
 
   const [bulk, setBulk] = useState(false);
 
@@ -154,39 +157,48 @@ export default function Send() {
     const values = form.getValues();
     const memos = values.memo ? [toHex(stringToUint8Array(values.memo))] : [];
 
-    const command = isXch
-      ? bulk
-        ? (req: SendXch) => {
-            return commands.bulkSendXch({
-              addresses: [...new Set(addressList(req.address))],
-              amount: req.amount,
-              fee: req.fee,
-              memos,
-            });
-          }
-        : (req: SendXch) => commands.sendXch({ ...req, memos })
-      : (req: SendXch) => {
-          // not sending memos with CATS
-          if (bulk) {
-            return commands.bulkSendCat({
-              asset_id: assetId!,
-              addresses: [...new Set(addressList(req.address))],
-              amount: req.amount,
-              fee: req.fee,
-            });
-          } else {
-            return commands.sendCat({ asset_id: assetId!, ...req });
-          }
-        };
+    // Store the memo for the confirmation dialog
+    setCurrentMemo(values.memo);
 
-    command({
-      address: values.address,
+    let commandFn;
+    if (isXch) {
+      if (bulk) {
+        commandFn = commands.bulkSendXch;
+      } else {
+        commandFn = commands.sendXch;
+      }
+    } else {
+      if (bulk) {
+        commandFn = commands.bulkSendCat;
+      } else {
+        commandFn = commands.sendCat;
+      }
+    }
+
+    // Prepare common parameters
+    const params: any = {
       amount: toMojos(values.amount.toString(), asset?.decimals || 12),
       fee: toMojos(
         values.fee?.toString() || '0',
         walletState.sync.unit.decimals,
       ),
-    })
+      memos,
+    };
+
+    // Add asset_id for CAT tokens
+    if (!isXch) {
+      params.asset_id = assetId!;
+    }
+
+    // Handle address formatting for bulk operations
+    if (bulk) {
+      params.addresses = [...new Set(addressList(values.address))];
+    } else {
+      params.address = values.address;
+    }
+
+    // Execute the command
+    commandFn(params)
       .then((confirmation) => setResponse(confirmation))
       .catch(addError);
   };
@@ -266,9 +278,42 @@ export default function Send() {
                       <Trans>Amount</Trans>
                     </FormLabel>
                     <FormControl>
-                      <div className='relative'>
-                        <TokenAmountInput {...field} className='pr-12' />
-                        <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
+                      <div className='relative flex'>
+                        <TokenAmountInput
+                          {...field}
+                          className='pr-12 rounded-r-none z-10'
+                        />
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant='outline'
+                                size='icon'
+                                type='button'
+                                className='border-l-0 rounded-l-none flex-shrink-0'
+                                onClick={() => {
+                                  if (asset) {
+                                    const maxAmount = fromMojos(
+                                      asset.balance,
+                                      asset.decimals,
+                                    );
+                                    form.setValue(
+                                      'amount',
+                                      maxAmount.toString(),
+                                      { shouldValidate: true },
+                                    );
+                                  }
+                                }}
+                              >
+                                <ArrowUpToLine className='h-4 w-4' />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <Trans>Use maximum balance</Trans>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        <div className='pointer-events-none absolute inset-y-0 right-12 flex items-center pr-3'>
                           <span
                             className='text-gray-500 text-sm'
                             id='price-currency'
@@ -309,29 +354,27 @@ export default function Send() {
                 )}
               />
 
-              {isXch && (
-                <FormField
-                  control={form.control}
-                  name='memo'
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>
-                        <Trans>Memo (optional)</Trans>
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          autoCorrect='off'
-                          autoCapitalize='off'
-                          autoComplete='off'
-                          placeholder={t`Enter memo`}
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
+              <FormField
+                control={form.control}
+                name='memo'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      <Trans>Memo (optional)</Trans>
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        autoCorrect='off'
+                        autoCapitalize='off'
+                        autoComplete='off'
+                        placeholder={t`Enter memo`}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
 
             <Button type='submit'>
@@ -345,6 +388,16 @@ export default function Send() {
         response={response}
         close={() => setResponse(null)}
         onConfirm={() => navigate(-1)}
+        additionalData={
+          currentMemo
+            ? {
+                title: t`Send ${ticker}`,
+                content: (
+                  <TokenConfirmation type='send' currentMemo={currentMemo} />
+                ),
+              }
+            : undefined
+        }
       />
     </>
   );

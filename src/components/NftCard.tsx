@@ -1,15 +1,17 @@
 import {
   commands,
+  events,
   NftData,
   NftRecord,
   NftUriKind,
   TransactionResponse,
 } from '@/bindings';
 import { useErrors } from '@/hooks/useErrors';
+import useOfferStateWithDefault from '@/hooks/useOfferStateWithDefault';
 import { amount } from '@/lib/formTypes';
 import { nftUri } from '@/lib/nftUri';
 import { toMojos } from '@/lib/utils';
-import { useOfferState, useWalletState } from '@/state';
+import { useWalletState } from '@/state';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -27,7 +29,7 @@ import {
   SendIcon,
   UserRoundPlus,
 } from 'lucide-react';
-import { memo, useEffect, useState } from 'react';
+import { memo, useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -77,7 +79,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from './ui/tooltip';
-
+import { AddUrlConfirmation } from './confirmations/AddUrlConfirmation';
+import { NftConfirmation } from './confirmations/NftConfirmation';
 export interface NftProps {
   nft: NftRecord;
   updateNfts: () => void;
@@ -90,23 +93,50 @@ interface NftCardProps {
   selectionState: [boolean, (value: boolean) => void] | null;
 }
 
-const NftCardComponent = ({
-  nft,
-  updateNfts,
-  selectionState,
-}: NftCardProps) => {
+export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
   const walletState = useWalletState();
-  const offerState = useOfferState();
+  const [offerState, setOfferState] = useOfferStateWithDefault();
   const navigate = useNavigate();
 
   const { addError } = useErrors();
 
   const [data, setData] = useState<NftData | null>(null);
+  const [thumbnail, setThumbnail] = useState<string | null>(null);
   const [transferOpen, setTransferOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
   const [addUrlOpen, setAddUrlOpen] = useState(false);
   const [burnOpen, setBurnOpen] = useState(false);
+  const [isBurning, setIsBurning] = useState(false);
+  const [isTransferring, setIsTransferring] = useState(false);
+  const [isAddingUrl, setIsAddingUrl] = useState(false);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [addedUrl, setAddedUrl] = useState('');
+  const [addedUrlKind, setAddedUrlKind] = useState('');
+  const [transferAddress, setTransferAddress] = useState('');
+  const [assignedProfileId, setAssignedProfileId] = useState<string | null>(
+    null,
+  );
   const [response, setResponse] = useState<TransactionResponse | null>(null);
+
+  const fetchThumbnail = useCallback(() => {
+    commands
+      .getNftThumbnail({ nft_id: nft.launcher_id })
+      .then((response) => setThumbnail(response.thumbnail))
+      .catch((error) => console.error(error));
+  }, [nft.launcher_id]);
+
+  useEffect(() => {
+    fetchThumbnail();
+
+    const unlisten = events.syncEvent.listen((event) => {
+      const type = event.payload.type;
+      if (type === 'nft_data') fetchThumbnail();
+    });
+
+    return () => {
+      unlisten.then((u) => u());
+    };
+  }, [fetchThumbnail]);
 
   useEffect(() => {
     commands
@@ -123,6 +153,8 @@ const NftCardComponent = ({
   };
 
   const onTransferSubmit = (address: string, fee: string) => {
+    setIsTransferring(true);
+    setTransferAddress(address);
     commands
       .transferNfts({
         nft_ids: [nft.launcher_id],
@@ -130,11 +162,16 @@ const NftCardComponent = ({
         fee: toMojos(fee, walletState.sync.unit.decimals),
       })
       .then(setResponse)
-      .catch(addError)
+      .catch((err) => {
+        setIsTransferring(false);
+        addError(err);
+      })
       .finally(() => setTransferOpen(false));
   };
 
   const onAssignSubmit = (profile: string | null, fee: string) => {
+    setIsEditingProfile(true);
+    setAssignedProfileId(profile);
     commands
       .assignNftsToDid({
         nft_ids: [nft.launcher_id],
@@ -142,7 +179,10 @@ const NftCardComponent = ({
         fee: toMojos(fee, walletState.sync.unit.decimals),
       })
       .then(setResponse)
-      .catch(addError)
+      .catch((err) => {
+        setIsEditingProfile(false);
+        addError(err);
+      })
       .finally(() => setAssignOpen(false));
   };
 
@@ -165,6 +205,9 @@ const NftCardComponent = ({
   });
 
   const onAddUrlSubmit = (values: z.infer<typeof addUrlFormSchema>) => {
+    setIsAddingUrl(true);
+    setAddedUrl(values.url);
+    setAddedUrlKind(values.kind);
     commands
       .addNftUri({
         nft_id: nft.launcher_id,
@@ -173,11 +216,15 @@ const NftCardComponent = ({
         fee: toMojos(values.fee, walletState.sync.unit.decimals),
       })
       .then(setResponse)
-      .catch(addError)
+      .catch((err) => {
+        setIsAddingUrl(false);
+        addError(err);
+      })
       .finally(() => setAddUrlOpen(false));
   };
 
   const onBurnSubmit = (fee: string) => {
+    setIsBurning(true);
     commands
       .transferNfts({
         nft_ids: [nft.launcher_id],
@@ -185,7 +232,10 @@ const NftCardComponent = ({
         fee: toMojos(fee, walletState.sync.unit.decimals),
       })
       .then(setResponse)
-      .catch(addError)
+      .catch((err) => {
+        setIsBurning(false);
+        addError(err);
+      })
       .finally(() => setBurnOpen(false));
   };
 
@@ -233,8 +283,8 @@ const NftCardComponent = ({
                   loading='lazy'
                   width='150'
                   height='150'
-                  className='h-auto w-auto object-cover transition-all group-hover:scale-105 aspect-square color-[transparent]'
-                  src={nftUri(data?.mime_type ?? null, data?.blob ?? null)}
+                  className='h-auto w-full object-cover transition-all group-hover:scale-105 aspect-square color-[transparent]'
+                  src={nftUri(thumbnail ? 'image/png' : null, thumbnail)}
                 />
               </TooltipTrigger>
               <TooltipContent>
@@ -374,14 +424,16 @@ const NftCardComponent = ({
                     const newNfts = [...offerState.offered.nfts];
                     newNfts.push(nft.launcher_id);
 
-                    useOfferState.setState({
+                    setOfferState({
                       offered: {
                         ...offerState.offered,
                         nfts: newNfts,
                       },
                     });
 
-                    toast.success(t`Added NFT to offer`);
+                    toast.success(t`Click here to go to offer.`, {
+                      onClick: () => navigate('/offers/make'),
+                    });
                   }}
                   disabled={
                     !nft.created_height ||
@@ -584,6 +636,7 @@ const NftCardComponent = ({
         open={burnOpen}
         setOpen={setBurnOpen}
         onSubmit={onBurnSubmit}
+        submitButtonLabel={t`Burn`}
       >
         <Trans>
           This will permanently delete the NFT by sending it to the burn
@@ -593,20 +646,72 @@ const NftCardComponent = ({
 
       <ConfirmationDialog
         response={response}
-        close={() => setResponse(null)}
-        onConfirm={() => updateNfts()}
+        showRecipientDetails={false}
+        close={() => {
+          setResponse(null);
+          setIsBurning(false);
+          setIsTransferring(false);
+          setIsAddingUrl(false);
+          setIsEditingProfile(false);
+        }}
+        onConfirm={() => {
+          updateNfts();
+          setIsBurning(false);
+          setIsTransferring(false);
+          setIsAddingUrl(false);
+          setIsEditingProfile(false);
+        }}
+        additionalData={
+          isBurning && response
+            ? {
+                title: t`Burn NFT`,
+                content: (
+                  <NftConfirmation
+                    type='burn'
+                    nfts={[nft]}
+                    nftData={{ [nft.launcher_id]: data }}
+                  />
+                ),
+              }
+            : isTransferring && response
+              ? {
+                  title: t`Transfer Nft`,
+                  content: (
+                    <NftConfirmation
+                      type='transfer'
+                      nfts={[nft]}
+                      nftData={{ [nft.launcher_id]: data }}
+                      address={transferAddress}
+                    />
+                  ),
+                }
+              : isAddingUrl && response
+                ? {
+                    title: t`Add URL to NFT`,
+                    content: (
+                      <AddUrlConfirmation
+                        nft={nft}
+                        nftData={data}
+                        url={addedUrl}
+                        kind={addedUrlKind}
+                      />
+                    ),
+                  }
+                : isEditingProfile && response
+                  ? {
+                      title: t`Edit Nft Profile`,
+                      content: (
+                        <NftConfirmation
+                          type='edit'
+                          nfts={[nft]}
+                          nftData={{ [nft.launcher_id]: data }}
+                          profileId={assignedProfileId}
+                        />
+                      ),
+                    }
+                  : undefined
+        }
       />
     </>
   );
-};
-
-export const NftCard = memo(NftCardComponent, (prevProps, nextProps) => {
-  // Only re-render if these props change
-  return (
-    prevProps.nft.launcher_id === nextProps.nft.launcher_id &&
-    prevProps.nft.created_height === nextProps.nft.created_height &&
-    prevProps.nft.visible === nextProps.nft.visible &&
-    prevProps.selectionState?.[0] === nextProps.selectionState?.[0] &&
-    prevProps.nft.coin_id === nextProps.nft.coin_id
-  );
-});
+}

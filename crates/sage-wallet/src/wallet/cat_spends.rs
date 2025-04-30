@@ -1,5 +1,6 @@
 use chia_wallet_sdk::{
-    Cat, CatSpend, Conditions, SpendContext, SpendWithConditions, StandardLayer,
+    driver::{Cat, CatSpend, SpendContext, SpendWithConditions, StandardLayer},
+    types::Conditions,
 };
 
 use crate::WalletError;

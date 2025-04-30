@@ -1,10 +1,13 @@
 use chia::{
     clvm_traits::{FromClvm, ToClvm},
     protocol::{Bytes32, Coin, Program},
-    puzzles::{nft::NftMetadata, singleton::SINGLETON_LAUNCHER_PUZZLE_HASH, LineageProof, Proof},
+    puzzles::{nft::NftMetadata, LineageProof, Proof},
 };
+use chia_puzzles::SINGLETON_LAUNCHER_HASH;
 use chia_wallet_sdk::{
-    run_puzzle, Cat, Condition, Did, DidInfo, HashedPtr, Memos, Nft, NftInfo, Puzzle,
+    driver::{Cat, Did, DidInfo, HashedPtr, Nft, NftInfo, Puzzle},
+    prelude::Memos,
+    types::{run_puzzle, Condition},
 };
 use clvmr::{Allocator, NodePtr};
 use tracing::{debug_span, warn};
@@ -75,7 +78,7 @@ impl ChildKind {
         );
         let _span = parse_span.enter();
 
-        if coin.puzzle_hash == SINGLETON_LAUNCHER_PUZZLE_HASH.into() {
+        if coin.puzzle_hash == SINGLETON_LAUNCHER_HASH.into() {
             return Ok(Self::Launcher);
         }
 

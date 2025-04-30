@@ -1,10 +1,8 @@
 use chia::protocol::{CoinSpend, SpendBundle};
-use chia_wallet_sdk::AggSigConstants;
+use chia_wallet_sdk::signer::AggSigConstants;
 use sage_wallet::{insert_transaction, SyncCommand, Transaction};
 
 use crate::{Error, Result, Sage};
-
-use super::parse_genesis_challenge;
 
 impl Sage {
     pub(crate) async fn sign(
@@ -23,7 +21,7 @@ impl Sage {
         let spend_bundle = wallet
             .sign_transaction(
                 coin_spends,
-                &AggSigConstants::new(parse_genesis_challenge(self.network().agg_sig_me.clone())?),
+                &AggSigConstants::new(self.network().agg_sig_me()),
                 master_sk,
                 partial,
             )

@@ -55,7 +55,7 @@ where
 pub async fn start_rpc(sage: Arc<Mutex<Sage>>) -> Result<()> {
     let app = sage.lock().await;
 
-    let addr: SocketAddr = ([127, 0, 0, 1], app.config.rpc.server_port).into();
+    let addr: SocketAddr = ([127, 0, 0, 1], app.config.rpc.port).into();
     info!("RPC server is listening at {addr}");
 
     let config = tls::load_rustls_config(

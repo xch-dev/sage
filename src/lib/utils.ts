@@ -12,6 +12,19 @@ export function dbg<T>(value: T): T {
   return value;
 }
 
+export function formatTimestamp(
+  timestamp: number | null,
+  dateStyle: string = 'medium',
+  timeStyle: string = dateStyle,
+): string {
+  if (!timestamp) return '';
+  const date = new Date(timestamp * 1000); // Convert from Unix timestamp to JavaScript timestamp
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: dateStyle as 'full' | 'long' | 'medium' | 'short',
+    timeStyle: timeStyle as 'full' | 'long' | 'medium' | 'short',
+  }).format(date);
+}
+
 export function formatAddress(
   address: string,
   chars: number = 8,
@@ -156,4 +169,12 @@ function fromHex(hex: string): Uint8Array {
     bytes[i] = (a << 4) | b;
   }
   return i === bytes.length ? bytes : bytes.slice(0, i);
+}
+
+export function decodeHexMessage(hexMessage: string): string {
+  return new TextDecoder().decode(fromHex(sanitizeHex(hexMessage)));
+}
+
+export function isHex(str: string): boolean {
+  return /^(0x)?[0-9a-fA-F]+$/.test(str);
 }

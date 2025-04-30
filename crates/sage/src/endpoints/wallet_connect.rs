@@ -1,10 +1,10 @@
 use chia::{
     bls::{master_to_wallet_hardened, master_to_wallet_unhardened, sign},
     clvm_utils::ToTreeHash,
-    protocol::{Bytes, Coin, CoinSpend, SpendBundle},
+    protocol::{Coin, CoinSpend, SpendBundle},
     puzzles::{cat::CatArgs, standard::StandardArgs, DeriveSynthetic, Proof},
 };
-use chia_wallet_sdk::{Layer, SpendContext};
+use chia_wallet_sdk::driver::{Layer, SpendContext};
 use sage_api::wallet_connect::{
     self, AssetCoinType, FilterUnlockedCoins, FilterUnlockedCoinsResponse, GetAssetCoins,
     GetAssetCoinsResponse, LineageProof, SendTransactionImmediately,
@@ -16,7 +16,7 @@ use tracing::{debug, info, warn};
 
 use crate::{
     parse_asset_id, parse_coin_id, parse_did_id, parse_hash, parse_nft_id, parse_program,
-    parse_public_key, parse_signature, Error, Result, Sage,
+    parse_public_key, parse_signature, parse_signature_message, Error, Result, Sage,
 };
 
 impl Sage {
@@ -347,7 +347,7 @@ impl Sage {
         }
         .derive_synthetic();
 
-        let decoded_message = Bytes::from(hex::decode(&req.message)?);
+        let decoded_message = parse_signature_message(req.message)?;
         let signature = sign(
             &secret_key,
             ("Chia Signed Message", decoded_message).tree_hash(),
@@ -384,7 +384,7 @@ impl Sage {
         }
         .derive_synthetic();
 
-        let decoded_message = Bytes::from(hex::decode(&req.message)?);
+        let decoded_message = parse_signature_message(req.message)?;
         let signature = sign(
             &secret_key,
             ("Chia Signed Message", decoded_message).tree_hash(),

@@ -1,36 +1,36 @@
+use crate::{
+    parse_asset_id, parse_collection_id, parse_did_id, parse_nft_id,
+    utils::{to_bytes32_opt, to_u64},
+    Error, Result, Sage, BURN_PUZZLE_HASH,
+};
 use base64::{prelude::BASE64_STANDARD, Engine};
 use chia::{
     clvm_traits::{FromClvm, ToClvm},
     protocol::{Bytes32, Program},
-    puzzles::{
-        nft::NftMetadata, offer::SETTLEMENT_PAYMENTS_PUZZLE_HASH,
-        singleton::SINGLETON_LAUNCHER_PUZZLE_HASH,
-    },
+    puzzles::nft::NftMetadata,
 };
-use chia_wallet_sdk::{decode_address, encode_address, Nft};
+use chia_puzzles::{SETTLEMENT_PAYMENT_HASH, SINGLETON_LAUNCHER_HASH};
+use chia_wallet_sdk::{driver::Nft, utils::Address};
 use clvmr::Allocator;
-use hex_literal::hex;
+use itertools::Itertools;
 use sage_api::{
     AddressKind, Amount, AssetKind, CatRecord, CheckAddress, CheckAddressResponse, CoinRecord,
-    DerivationRecord, DidRecord, GetCat, GetCatCoins, GetCatCoinsResponse, GetCatResponse, GetCats,
-    GetCatsResponse, GetDerivations, GetDerivationsResponse, GetDids, GetDidsResponse,
-    GetMinterDidIds, GetMinterDidIdsResponse, GetNft, GetNftCollection, GetNftCollectionResponse,
-    GetNftCollections, GetNftCollectionsResponse, GetNftData, GetNftDataResponse, GetNftResponse,
-    GetNfts, GetNftsResponse, GetPendingTransactions, GetPendingTransactionsResponse,
-    GetSyncStatus, GetSyncStatusResponse, GetTransaction, GetTransactionResponse, GetTransactions,
+    CoinSortMode as ApiCoinSortMode, DerivationRecord, DidRecord, GetAreCoinsSpendable,
+    GetAreCoinsSpendableResponse, GetCat, GetCatCoins, GetCatCoinsResponse, GetCatResponse,
+    GetCats, GetCatsResponse, GetCoinsByIds, GetCoinsByIdsResponse, GetDerivations,
+    GetDerivationsResponse, GetDids, GetDidsResponse, GetMinterDidIds, GetMinterDidIdsResponse,
+    GetNft, GetNftCollection, GetNftCollectionResponse, GetNftCollections,
+    GetNftCollectionsResponse, GetNftData, GetNftDataResponse, GetNftIcon, GetNftIconResponse,
+    GetNftResponse, GetNftThumbnail, GetNftThumbnailResponse, GetNfts, GetNftsResponse,
+    GetPendingTransactions, GetPendingTransactionsResponse, GetSpendableCoinCount,
+    GetSpendableCoinCountResponse, GetSyncStatus, GetSyncStatusResponse, GetTransactions,
     GetTransactionsResponse, GetXchCoins, GetXchCoinsResponse, NftCollectionRecord, NftData,
     NftRecord, NftSortMode as ApiNftSortMode, PendingTransactionRecord, TransactionCoin,
     TransactionRecord,
 };
-use sage_database::{
-    CoinKind, CoinStateRow, Database, NftGroup, NftRow, NftSearchParams, NftSortMode,
-};
+use sage_database::{CoinKind, CoinSortMode, NftGroup, NftRow, NftSearchParams, NftSortMode};
 use sage_wallet::WalletError;
-
-use crate::{
-    parse_asset_id, parse_collection_id, parse_did_id, parse_nft_id, Error, Result, Sage,
-    BURN_PUZZLE_HASH,
-};
+use sqlx::{sqlite::SqliteRow, Row};
 
 impl Sage {
     pub async fn get_sync_status(&self, _req: GetSyncStatus) -> Result<GetSyncStatusResponse> {
@@ -47,9 +47,7 @@ impl Sage {
         };
 
         let receive_address = puzzle_hash
-            .map(|puzzle_hash| {
-                encode_address(puzzle_hash.to_bytes(), &self.network().address_prefix)
-            })
+            .map(|puzzle_hash| Address::new(puzzle_hash, self.network().prefix()).encode())
             .transpose()?;
 
         Ok(GetSyncStatusResponse {
@@ -58,21 +56,21 @@ impl Sage {
             total_coins,
             synced_coins,
             receive_address: receive_address.unwrap_or_default(),
-            burn_address: encode_address(
-                hex!("000000000000000000000000000000000000000000000000000000000000dead"),
-                &self.network().address_prefix,
-            )?,
+            burn_address: Address::new(BURN_PUZZLE_HASH.into(), self.network().prefix())
+                .encode()?,
+            unhardened_derivation_index: wallet.db.derivation_index(false).await?,
+            hardened_derivation_index: wallet.db.derivation_index(true).await?,
         })
     }
 
     pub async fn check_address(&self, req: CheckAddress) -> Result<CheckAddressResponse> {
         let wallet = self.wallet()?;
 
-        let Some((puzzle_hash, _prefix)) = decode_address(&req.address).ok() else {
+        let Some(address) = Address::decode(&req.address).ok() else {
             return Ok(CheckAddressResponse { valid: false });
         };
 
-        let is_valid = wallet.db.is_p2_puzzle_hash(puzzle_hash.into()).await?;
+        let is_valid = wallet.db.is_p2_puzzle_hash(address.puzzle_hash).await?;
 
         Ok(CheckAddressResponse { valid: is_valid })
     }
@@ -80,64 +78,113 @@ impl Sage {
     pub async fn get_derivations(&self, req: GetDerivations) -> Result<GetDerivationsResponse> {
         let wallet = self.wallet()?;
 
-        let derivations = wallet
+        let (derivations, total) = wallet
             .db
             .derivations(req.hardened, req.limit, req.offset)
-            .await?
+            .await?;
+
+        let derivations = derivations
             .into_iter()
             .map(|row| {
                 Ok(DerivationRecord {
                     index: row.index,
                     public_key: hex::encode(row.synthetic_key.to_bytes()),
-                    address: encode_address(
-                        row.p2_puzzle_hash.to_bytes(),
-                        &self.network().address_prefix,
-                    )?,
+                    address: Address::new(row.p2_puzzle_hash, self.network().prefix()).encode()?,
                 })
             })
             .collect::<Result<Vec<_>>>()?;
 
-        Ok(GetDerivationsResponse { derivations })
+        Ok(GetDerivationsResponse { derivations, total })
     }
 
-    pub async fn get_xch_coins(&self, _req: GetXchCoins) -> Result<GetXchCoinsResponse> {
+    pub async fn get_are_coins_spendable(
+        &self,
+        req: GetAreCoinsSpendable,
+    ) -> Result<GetAreCoinsSpendableResponse> {
         let wallet = self.wallet()?;
+        let spendable = wallet.db.get_are_coins_spendable(&req.coin_ids).await?;
 
+        Ok(GetAreCoinsSpendableResponse { spendable })
+    }
+
+    pub async fn get_spendable_coin_count(
+        &self,
+        req: GetSpendableCoinCount,
+    ) -> Result<GetSpendableCoinCountResponse> {
+        let wallet = self.wallet()?;
+        let count = if req.asset_id == "xch" {
+            wallet.db.spendable_p2_coin_count().await?
+        } else {
+            let asset_id = parse_asset_id(req.asset_id)?;
+
+            wallet.db.spendable_cat_coin_count(asset_id).await?
+        };
+
+        Ok(GetSpendableCoinCountResponse { count })
+    }
+
+    pub async fn get_coins_by_ids(&self, req: GetCoinsByIds) -> Result<GetCoinsByIdsResponse> {
+        let wallet = self.wallet()?;
+        let rows = wallet.db.coin_states_by_ids(&req.coin_ids).await?;
         let mut coins = Vec::new();
 
-        let rows = wallet.db.p2_coin_states().await?;
-
         for row in rows {
-            let cs = row.coin_state;
-
-            let spend_transaction_id = wallet
-                .db
-                .coin_transaction_id(cs.coin.coin_id())
-                .await?
-                .map(hex::encode);
-
-            let offer_id = wallet
-                .db
-                .coin_offer_id(cs.coin.coin_id())
-                .await?
-                .map(hex::encode);
+            let cs = row.base.coin_state;
 
             coins.push(CoinRecord {
                 coin_id: hex::encode(cs.coin.coin_id()),
-                address: encode_address(
-                    cs.coin.puzzle_hash.to_bytes(),
-                    &self.network().address_prefix,
-                )?,
+                address: Address::new(cs.coin.puzzle_hash, self.network().prefix()).encode()?,
                 amount: Amount::u64(cs.coin.amount),
                 created_height: cs.created_height,
                 spent_height: cs.spent_height,
-                create_transaction_id: row.transaction_id.map(hex::encode),
-                spend_transaction_id,
-                offer_id,
+                create_transaction_id: row.base.transaction_id.map(hex::encode),
+                spend_transaction_id: row.spend_transaction_id.map(hex::encode),
+                offer_id: row.offer_id.map(hex::encode),
+                created_timestamp: row.base.created_timestamp,
+                spent_timestamp: row.base.spent_timestamp,
+            });
+        }
+        Ok(GetCoinsByIdsResponse { coins })
+    }
+
+    pub async fn get_xch_coins(&self, req: GetXchCoins) -> Result<GetXchCoinsResponse> {
+        let wallet = self.wallet()?;
+        let sort_mode = match req.sort_mode {
+            ApiCoinSortMode::CoinId => CoinSortMode::CoinId,
+            ApiCoinSortMode::Amount => CoinSortMode::Amount,
+            ApiCoinSortMode::CreatedHeight => CoinSortMode::CreatedHeight,
+            ApiCoinSortMode::SpentHeight => CoinSortMode::SpentHeight,
+        };
+        let mut coins = Vec::new();
+        let (rows, total) = wallet
+            .db
+            .p2_coin_states(
+                req.limit,
+                req.offset,
+                sort_mode,
+                req.ascending,
+                req.include_spent_coins,
+            )
+            .await?;
+
+        for row in rows {
+            let cs = row.base.coin_state;
+
+            coins.push(CoinRecord {
+                coin_id: hex::encode(cs.coin.coin_id()),
+                address: Address::new(cs.coin.puzzle_hash, self.network().prefix()).encode()?,
+                amount: Amount::u64(cs.coin.amount),
+                created_height: cs.created_height,
+                spent_height: cs.spent_height,
+                create_transaction_id: row.base.transaction_id.map(hex::encode),
+                spend_transaction_id: row.spend_transaction_id.map(hex::encode),
+                offer_id: row.offer_id.map(hex::encode),
+                created_timestamp: row.base.created_timestamp,
+                spent_timestamp: row.base.spent_timestamp,
             });
         }
 
-        Ok(GetXchCoinsResponse { coins })
+        Ok(GetXchCoinsResponse { coins, total })
     }
 
     pub async fn get_cat_coins(&self, req: GetCatCoins) -> Result<GetCatCoinsResponse> {
@@ -146,39 +193,43 @@ impl Sage {
 
         let mut coins = Vec::new();
 
-        let rows = wallet.db.cat_coin_states(asset_id).await?;
+        let sort_mode: CoinSortMode = match req.sort_mode {
+            ApiCoinSortMode::CoinId => CoinSortMode::CoinId,
+            ApiCoinSortMode::Amount => CoinSortMode::Amount,
+            ApiCoinSortMode::CreatedHeight => CoinSortMode::CreatedHeight,
+            ApiCoinSortMode::SpentHeight => CoinSortMode::SpentHeight,
+        };
+
+        let (rows, total) = wallet
+            .db
+            .cat_coin_states(
+                asset_id,
+                req.limit,
+                req.offset,
+                sort_mode,
+                req.ascending,
+                req.include_spent_coins,
+            )
+            .await?;
 
         for row in rows {
-            let cs = row.coin_state;
-
-            let spend_transaction_id = wallet
-                .db
-                .coin_transaction_id(cs.coin.coin_id())
-                .await?
-                .map(hex::encode);
-
-            let offer_id = wallet
-                .db
-                .coin_offer_id(cs.coin.coin_id())
-                .await?
-                .map(hex::encode);
+            let cs = row.base.coin_state;
 
             coins.push(CoinRecord {
                 coin_id: hex::encode(cs.coin.coin_id()),
-                address: encode_address(
-                    cs.coin.puzzle_hash.to_bytes(),
-                    &self.network().address_prefix,
-                )?,
+                address: Address::new(cs.coin.puzzle_hash, self.network().prefix()).encode()?,
                 amount: Amount::u64(cs.coin.amount),
                 created_height: cs.created_height,
                 spent_height: cs.spent_height,
-                create_transaction_id: row.transaction_id.map(hex::encode),
-                spend_transaction_id,
-                offer_id,
+                create_transaction_id: row.base.transaction_id.map(hex::encode),
+                spend_transaction_id: row.spend_transaction_id.map(hex::encode),
+                offer_id: row.offer_id.map(hex::encode),
+                created_timestamp: row.base.created_timestamp,
+                spent_timestamp: row.base.spent_timestamp,
             });
         }
 
-        Ok(GetCatCoinsResponse { coins })
+        Ok(GetCatCoinsResponse { coins, total })
     }
 
     pub async fn get_cats(&self, _req: GetCats) -> Result<GetCatsResponse> {
@@ -239,14 +290,11 @@ impl Sage {
             };
 
             dids.push(DidRecord {
-                launcher_id: encode_address(row.launcher_id.to_bytes(), "did:chia:")?,
+                launcher_id: Address::new(row.launcher_id, "did:chia:".to_string()).encode()?,
                 name: row.name,
                 visible: row.visible,
                 coin_id: hex::encode(did.coin_id),
-                address: encode_address(
-                    did.p2_puzzle_hash.to_bytes(),
-                    &self.network().address_prefix,
-                )?,
+                address: Address::new(did.p2_puzzle_hash, self.network().prefix()).encode()?,
                 amount: Amount::u64(did.amount),
                 recovery_hash: did.recovery_list_hash.map(hex::encode),
                 created_height: did.created_height,
@@ -270,7 +318,7 @@ impl Sage {
 
         let did_ids = dids
             .into_iter()
-            .filter_map(|did| did.map(|d| encode_address(d.to_bytes(), "did:chia:").ok()))
+            .filter_map(|did| did.map(|d| Address::new(d, "did:chia:".to_string()).encode().ok()))
             .flatten()
             .collect();
 
@@ -306,25 +354,42 @@ impl Sage {
 
         let mut transactions = Vec::new();
 
-        let (heights, total) = wallet
+        let (transaction_coins, total) = wallet
             .db
-            .get_block_heights(req.offset, req.limit, req.ascending, req.find_value)
+            .get_transaction_coins(req.offset, req.limit, req.ascending, req.find_value)
             .await?;
-        for height in heights {
-            let transaction = self.transaction_record(&wallet.db, height).await?;
-            transactions.push(transaction);
+
+        // Group transaction coins by height
+        let mut grouped_coins = transaction_coins
+            .into_iter()
+            .chunk_by(|row: &SqliteRow| row.get::<i64, _>("height"))
+            .into_iter()
+            .map(|(height, group)| (height, group.collect::<Vec<_>>()))
+            .collect::<Vec<_>>();
+
+        // Sort grouped_coins by height
+        if req.ascending {
+            grouped_coins.sort_by_key(|(height, _)| *height);
+        } else {
+            grouped_coins.sort_by_key(|(height, _)| std::cmp::Reverse(*height));
+        }
+
+        for (height, coins) in grouped_coins {
+            // Process each group by height
+            let height_u32: u32 = height.try_into().unwrap_or_default();
+            let timestamp: Option<u32> = coins
+                .first()
+                .map(|coin| coin.try_get("unixtime"))
+                .transpose()?;
+            let transaction_record = self.transaction_record(height_u32, timestamp, coins)?;
+
+            transactions.push(transaction_record);
         }
 
         Ok(GetTransactionsResponse {
             transactions,
             total,
         })
-    }
-
-    pub async fn get_transaction(&self, req: GetTransaction) -> Result<GetTransactionResponse> {
-        let wallet = self.wallet()?;
-        let transaction = self.transaction_record(&wallet.db, req.height).await?;
-        Ok(GetTransactionResponse { transaction })
     }
 
     pub async fn get_nft_collections(
@@ -347,8 +412,8 @@ impl Sage {
             .into_iter()
             .map(|row| {
                 Ok(NftCollectionRecord {
-                    collection_id: encode_address(row.collection_id.to_bytes(), "col")?,
-                    did_id: encode_address(row.did_id.to_bytes(), "did:chia:")?,
+                    collection_id: Address::new(row.collection_id, "col".to_string()).encode()?,
+                    did_id: Address::new(row.did_id, "did:chia:".to_string()).encode()?,
                     metadata_collection_id: row.metadata_collection_id,
                     name: row.name,
                     icon: row.icon,
@@ -382,8 +447,9 @@ impl Sage {
 
         let record = if let Some(collection) = collection {
             NftCollectionRecord {
-                collection_id: encode_address(collection.collection_id.to_bytes(), "col")?,
-                did_id: encode_address(collection.did_id.to_bytes(), "did:chia:")?,
+                collection_id: Address::new(collection.collection_id, "col".to_string())
+                    .encode()?,
+                did_id: Address::new(collection.did_id, "did:chia:".to_string()).encode()?,
                 metadata_collection_id: collection.metadata_collection_id,
                 visible: collection.visible,
                 name: collection.name,
@@ -544,6 +610,58 @@ impl Sage {
         })
     }
 
+    pub async fn get_nft_icon(&self, req: GetNftIcon) -> Result<GetNftIconResponse> {
+        let wallet = self.wallet()?;
+
+        let nft_id = parse_nft_id(req.nft_id)?;
+
+        let Some(nft) = wallet.db.nft(nft_id).await? else {
+            return Ok(GetNftIconResponse { icon: None });
+        };
+
+        let mut allocator = Allocator::new();
+        let metadata_ptr = nft.info.metadata.to_clvm(&mut allocator)?;
+        let metadata = NftMetadata::from_clvm(&allocator, metadata_ptr).ok();
+
+        let Some(data_hash) = metadata.as_ref().and_then(|m| m.data_hash) else {
+            return Ok(GetNftIconResponse { icon: None });
+        };
+
+        Ok(GetNftIconResponse {
+            icon: wallet
+                .db
+                .nft_icon(data_hash)
+                .await?
+                .map(|icon| BASE64_STANDARD.encode(icon)),
+        })
+    }
+
+    pub async fn get_nft_thumbnail(&self, req: GetNftThumbnail) -> Result<GetNftThumbnailResponse> {
+        let wallet = self.wallet()?;
+
+        let nft_id = parse_nft_id(req.nft_id)?;
+
+        let Some(nft) = wallet.db.nft(nft_id).await? else {
+            return Ok(GetNftThumbnailResponse { thumbnail: None });
+        };
+
+        let mut allocator = Allocator::new();
+        let metadata_ptr = nft.info.metadata.to_clvm(&mut allocator)?;
+        let metadata = NftMetadata::from_clvm(&allocator, metadata_ptr).ok();
+
+        let Some(data_hash) = metadata.as_ref().and_then(|m| m.data_hash) else {
+            return Ok(GetNftThumbnailResponse { thumbnail: None });
+        };
+
+        Ok(GetNftThumbnailResponse {
+            thumbnail: wallet
+                .db
+                .nft_thumbnail(data_hash)
+                .await?
+                .map(|thumbnail| BASE64_STANDARD.encode(thumbnail)),
+        })
+    }
+
     fn nft_record(
         &self,
         nft_row: NftRow,
@@ -559,32 +677,27 @@ impl Sage {
         let license_hash = metadata.as_ref().and_then(|m| m.license_hash);
 
         Ok(NftRecord {
-            launcher_id: encode_address(nft_row.launcher_id.to_bytes(), "nft")?,
+            launcher_id: Address::new(nft_row.launcher_id, "nft".to_string()).encode()?,
             collection_id: nft_row
                 .collection_id
-                .map(|col| encode_address(col.to_bytes(), "col"))
+                .map(|col| Address::new(col, "col".to_string()).encode())
                 .transpose()?,
             collection_name,
             minter_did: nft_row
                 .minter_did
-                .map(|did| encode_address(did.to_bytes(), "did:chia:"))
+                .map(|did| Address::new(did, "did:chia:".to_string()).encode())
                 .transpose()?,
             owner_did: nft_row
                 .owner_did
-                .map(|did| encode_address(did.to_bytes(), "did:chia:"))
+                .map(|did| Address::new(did, "did:chia:".to_string()).encode())
                 .transpose()?,
             visible: nft_row.visible,
             name: nft_row.name,
             sensitive_content: nft_row.sensitive_content,
             coin_id: hex::encode(nft.coin.coin_id()),
-            address: encode_address(
-                nft.info.p2_puzzle_hash.to_bytes(),
-                &self.network().address_prefix,
-            )?,
-            royalty_address: encode_address(
-                nft.info.royalty_puzzle_hash.to_bytes(),
-                &self.network().address_prefix,
-            )?,
+            address: Address::new(nft.info.p2_puzzle_hash, self.network().prefix()).encode()?,
+            royalty_address: Address::new(nft.info.royalty_puzzle_hash, self.network().prefix())
+                .encode()?,
             royalty_ten_thousandths: nft.info.royalty_ten_thousandths,
             data_uris: metadata
                 .as_ref()
@@ -613,143 +726,118 @@ impl Sage {
         })
     }
 
-    async fn transaction_coin(&self, db: &Database, coin: CoinStateRow) -> Result<TransactionCoin> {
-        let coin_id = coin.coin_state.coin.coin_id();
+    fn transaction_coin(&self, transaction_coin: SqliteRow) -> Result<TransactionCoin> {
+        let coin_id: Option<Bytes32> = to_bytes32_opt(transaction_coin.get("coin_id"));
+        let kind_int: i64 = transaction_coin.get("kind");
+        let coin_kind = CoinKind::from_i64(kind_int);
+        let p2_puzzle_hash: Option<Bytes32> =
+            to_bytes32_opt(transaction_coin.get("p2_puzzle_hash"));
+        let name: Option<String> = transaction_coin.get("name");
+        let item_id: Option<Bytes32> = to_bytes32_opt(transaction_coin.get("item_id"));
+        let amount: Vec<u8> = transaction_coin.get("amount");
 
-        let (kind, p2_puzzle_hash) = match coin.kind {
-            CoinKind::Unknown => (AssetKind::Unknown, None),
-            CoinKind::Xch => (AssetKind::Xch, Some(coin.coin_state.coin.puzzle_hash)),
+        let kind = match coin_kind {
+            CoinKind::Unknown => AssetKind::Unknown,
+            CoinKind::Xch => AssetKind::Xch,
             CoinKind::Cat => {
-                if let Some(cat) = db.cat_coin(coin_id).await? {
-                    if let Some(row) = db.cat(cat.asset_id).await? {
-                        (
-                            AssetKind::Cat {
-                                asset_id: hex::encode(cat.asset_id),
-                                name: row.name,
-                                ticker: row.ticker,
-                                icon_url: row.icon,
-                            },
-                            Some(cat.p2_puzzle_hash),
-                        )
-                    } else {
-                        (
-                            AssetKind::Cat {
-                                asset_id: hex::encode(cat.asset_id),
-                                name: None,
-                                ticker: None,
-                                icon_url: None,
-                            },
-                            Some(cat.p2_puzzle_hash),
-                        )
+                if let Some(item_id) = item_id {
+                    AssetKind::Cat {
+                        asset_id: hex::encode(item_id),
+                        name,
+                        ticker: transaction_coin.get("ticker"),
+                        icon_url: transaction_coin.get("cat_icon_url"),
                     }
                 } else {
-                    (AssetKind::Unknown, None)
+                    AssetKind::Unknown
                 }
             }
             CoinKind::Nft => {
-                if let Some(nft) = db.nft_by_coin_id(coin_id).await? {
-                    let row = db.nft_row(nft.info.launcher_id).await?;
+                if let Some(item_id) = item_id {
+                    let icon: Option<Vec<u8>> = transaction_coin.get("nft_icon");
 
-                    let mut allocator = Allocator::new();
-                    let metadata_ptr = nft.info.metadata.to_clvm(&mut allocator)?;
-                    let metadata = NftMetadata::from_clvm(&allocator, metadata_ptr).ok();
-
-                    let data_hash = metadata.as_ref().and_then(|m| m.data_hash);
-
-                    let data = if let Some(hash) = data_hash {
-                        db.fetch_nft_data(hash).await?
-                    } else {
-                        None
-                    };
-
-                    (
-                        AssetKind::Nft {
-                            launcher_id: encode_address(nft.info.launcher_id.to_bytes(), "nft")?,
-                            name: row.as_ref().and_then(|row| row.name.clone()),
-                            image_data: data
-                                .as_ref()
-                                .map(|data| BASE64_STANDARD.encode(&data.blob)),
-                            image_mime_type: data.map(|data| data.mime_type),
-                        },
-                        Some(nft.info.p2_puzzle_hash),
-                    )
+                    AssetKind::Nft {
+                        launcher_id: Address::new(item_id, "nft".to_string()).encode()?,
+                        name,
+                        icon: icon.map(|icon| BASE64_STANDARD.encode(icon)),
+                    }
                 } else {
-                    (AssetKind::Unknown, None)
+                    AssetKind::Unknown
                 }
             }
             CoinKind::Did => {
-                if let Some(did) = db.did_by_coin_id(coin_id).await? {
-                    let row = db.did_row(did.info.launcher_id).await?;
-                    (
-                        AssetKind::Did {
-                            launcher_id: encode_address(
-                                did.info.launcher_id.to_bytes(),
-                                "did:chia:",
-                            )?,
-                            name: row.and_then(|row| row.name),
-                        },
-                        Some(did.info.p2_puzzle_hash),
-                    )
+                if let Some(item_id) = item_id {
+                    AssetKind::Did {
+                        launcher_id: Address::new(item_id, "did:chia:".to_string()).encode()?,
+                        name,
+                    }
                 } else {
-                    (AssetKind::Unknown, None)
+                    AssetKind::Unknown
                 }
             }
         };
 
         let address_kind = if let Some(p2_puzzle_hash) = p2_puzzle_hash {
-            self.address_kind(db, p2_puzzle_hash).await?
+            address_kind(transaction_coin, p2_puzzle_hash)
         } else {
             AddressKind::Unknown
         };
 
         Ok(TransactionCoin {
-            coin_id: hex::encode(coin_id),
+            coin_id: coin_id.map_or_else(String::new, hex::encode),
             address: p2_puzzle_hash
                 .map(|p2_puzzle_hash| {
-                    encode_address(p2_puzzle_hash.to_bytes(), &self.network().address_prefix)
+                    Address::new(p2_puzzle_hash, self.network().prefix()).encode()
                 })
                 .transpose()?,
             address_kind,
-            amount: Amount::u64(coin.coin_state.coin.amount),
+            amount: Amount::u64(to_u64(&amount)?),
             kind,
         })
     }
 
-    async fn transaction_record(&self, db: &Database, height: u32) -> Result<TransactionRecord> {
-        let spent_rows = db.get_coin_states_by_spent_height(height).await?;
-        let created_rows = db.get_coin_states_by_created_height(height).await?;
-
+    fn transaction_record(
+        &self,
+        height: u32,
+        timestamp: Option<u32>,
+        coins: Vec<SqliteRow>,
+    ) -> Result<TransactionRecord> {
         let mut spent = Vec::new();
         let mut created = Vec::new();
 
-        for row in spent_rows {
-            spent.push(self.transaction_coin(db, row).await?);
-        }
+        for coin in coins {
+            let action: String = coin.get("action_type");
+            let transaction_coin = self.transaction_coin(coin)?;
 
-        for row in created_rows {
-            created.push(self.transaction_coin(db, row).await?);
+            if action == "spent" {
+                spent.push(transaction_coin);
+            } else {
+                created.push(transaction_coin);
+            }
         }
 
         Ok(TransactionRecord {
             height,
+            timestamp,
             spent,
             created,
         })
     }
+}
 
-    async fn address_kind(&self, db: &Database, p2_puzzle_hash: Bytes32) -> Result<AddressKind> {
-        if p2_puzzle_hash == BURN_PUZZLE_HASH.into() {
-            return Ok(AddressKind::Burn);
-        } else if p2_puzzle_hash == SINGLETON_LAUNCHER_PUZZLE_HASH.into() {
-            return Ok(AddressKind::Launcher);
-        } else if p2_puzzle_hash == SETTLEMENT_PAYMENTS_PUZZLE_HASH.into() {
-            return Ok(AddressKind::Offer);
-        }
+fn address_kind(transaction_coin: SqliteRow, p2_puzzle_hash: Bytes32) -> AddressKind {
+    if p2_puzzle_hash == BURN_PUZZLE_HASH.into() {
+        return AddressKind::Burn;
+    } else if p2_puzzle_hash == SINGLETON_LAUNCHER_HASH.into() {
+        return AddressKind::Launcher;
+    } else if p2_puzzle_hash == SETTLEMENT_PAYMENT_HASH.into() {
+        return AddressKind::Offer;
+    }
 
-        Ok(if db.is_p2_puzzle_hash(p2_puzzle_hash).await? {
-            AddressKind::Own
-        } else {
-            AddressKind::External
-        })
+    let derivation_count: Option<u32> = transaction_coin.get("derivation_count");
+
+    if derivation_count.is_some_and(|count| count > 0) {
+        AddressKind::Own
+    } else {
+        AddressKind::External
     }
 }

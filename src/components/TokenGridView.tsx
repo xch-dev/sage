@@ -120,137 +120,140 @@ export function TokenGridView({
     <div
       role='region'
       aria-label={t`Token Grid`}
-      className='mt-4 grid gap-2 md:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 3xl:grid-cols-6'
+      className='relative w-full overflow-auto mt-4'
     >
-      <Link to={`/wallet/token/xch`}>
-        <Card className='transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900'>
-          <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <CardTitle className='text-md font-medium'>Chia</CardTitle>
-              </TooltipTrigger>
-              <TooltipContent>Chia</TooltipContent>
-            </Tooltip>
-            <img
-              alt={t`Token logo`}
-              aria-hidden='true'
-              className='h-6 w-6'
-              src='https://icons.dexie.space/xch.webp'
-              loading='lazy'
-            />
-          </CardHeader>
-          <CardContent className='flex flex-col gap-1'>
-            <div className='text-2xl font-medium truncate'>
-              <NumberFormat
-                value={fromMojos(xchBalance, xchDecimals)}
-                minimumFractionDigits={0}
-                maximumFractionDigits={xchDecimals}
-              />
-            </div>
-            <div className='flex justify-between items-center text-sm text-neutral-500'>
+      <div className='grid gap-2 md:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 3xl:grid-cols-6'>
+        <Link to={`/wallet/token/xch`}>
+          <Card className='transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900'>
+            <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <div>
-                    ~
-                    <NumberFormat
-                      value={xchBalanceUsd}
-                      style='currency'
-                      currency='USD'
-                      minimumFractionDigits={2}
-                      maximumFractionDigits={2}
-                    />
-                  </div>
+                  <CardTitle className='text-md font-medium'>Chia</CardTitle>
                 </TooltipTrigger>
-                <TooltipContent>
-                  <span>1 XCH = ${xchPrice}</span>
-                </TooltipContent>
+                <TooltipContent>Chia</TooltipContent>
               </Tooltip>
-              <TokenCardMenu
-                record={xchRecord}
-                actionHandlers={actionHandlers}
+              <img
+                alt={t`Token logo`}
+                aria-hidden='true'
+                className='h-6 w-6'
+                src='https://icons.dexie.space/xch.webp'
+                loading='lazy'
               />
-            </div>
-          </CardContent>
-        </Card>
-      </Link>
-      {cats.map((cat) => {
-        const record: TokenRecord = {
-          asset_id: cat.asset_id,
-          name: cat.name,
-          ticker: cat.ticker,
-          icon_url: cat.icon_url,
-          balance: cat.balance,
-          balanceInUsd: cat.balanceInUsd,
-          priceInUsd: cat.priceInUsd,
-          decimals: 3,
-          isXch: false,
-          visible: cat.visible,
-        };
-
-        return (
-          <Link key={cat.asset_id} to={`/wallet/token/${cat.asset_id}`}>
-            <Card
-              className={`transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900 ${!cat.visible ? 'opacity-50 grayscale' : ''}`}
-            >
-              <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2 space-x-2'>
+            </CardHeader>
+            <CardContent className='flex flex-col gap-1'>
+              <div className='text-2xl font-medium truncate'>
+                <NumberFormat
+                  value={fromMojos(xchBalance, xchDecimals)}
+                  minimumFractionDigits={0}
+                  maximumFractionDigits={xchDecimals}
+                />
+              </div>
+              <div className='flex justify-between items-center text-sm text-neutral-500'>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <CardTitle className='text-md font-medium truncate'>
-                      {cat.name || <Trans>Unknown CAT</Trans>}
-                    </CardTitle>
+                    <div>
+                      ~
+                      <NumberFormat
+                        value={xchBalanceUsd}
+                        style='currency'
+                        currency='USD'
+                        minimumFractionDigits={2}
+                        maximumFractionDigits={2}
+                      />
+                    </div>
                   </TooltipTrigger>
                   <TooltipContent>
-                    {cat.name || <Trans>Unknown CAT</Trans>}
+                    <span>1 XCH = ${xchPrice}</span>
                   </TooltipContent>
                 </Tooltip>
-                {cat.icon_url && (
-                  <img
-                    alt={t`Token logo`}
-                    aria-hidden='true'
-                    className='h-6 w-6'
-                    src={cat.icon_url}
-                  />
-                )}
-              </CardHeader>
-              <CardContent className='flex flex-col gap-1'>
-                <div className='text-2xl font-medium truncate'>
-                  <NumberFormat
-                    value={fromMojos(cat.balance, 3)}
-                    minimumFractionDigits={0}
-                    maximumFractionDigits={3}
-                  />{' '}
-                  {cat.ticker ?? ''}
-                </div>
-                <div className='flex justify-between items-center text-sm text-neutral-500'>
+                <TokenCardMenu
+                  record={xchRecord}
+                  actionHandlers={actionHandlers}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+        {cats.map((cat) => {
+          const record: TokenRecord = {
+            asset_id: cat.asset_id,
+            name: cat.name,
+            ticker: cat.ticker,
+            icon_url: cat.icon_url,
+            balance: cat.balance,
+            balanceInUsd: cat.balanceInUsd,
+            priceInUsd: cat.priceInUsd,
+            decimals: 3,
+            isXch: false,
+            visible: cat.visible,
+          };
+
+          return (
+            <Link key={cat.asset_id} to={`/wallet/token/${cat.asset_id}`}>
+              <Card
+                className={`transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900 ${!cat.visible ? 'opacity-50 grayscale' : ''}`}
+              >
+                <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2 space-x-2'>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <div>
-                        ~
-                        <NumberFormat
-                          value={cat.balanceInUsd}
-                          style='currency'
-                          currency='USD'
-                          minimumFractionDigits={2}
-                          maximumFractionDigits={2}
-                        />
-                      </div>
+                      <CardTitle className='text-md font-medium truncate'>
+                        {cat.name || <Trans>Unknown CAT</Trans>}
+                      </CardTitle>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <span>
-                        1 {cat.ticker ?? 'CAT'} {formatUsdPrice(cat.priceInUsd)}
-                      </span>
+                      {cat.name || <Trans>Unknown CAT</Trans>}
                     </TooltipContent>
                   </Tooltip>
-                  <TokenCardMenu
-                    record={record}
-                    actionHandlers={actionHandlers}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-        );
-      })}
+                  {cat.icon_url && (
+                    <img
+                      alt={t`Token logo`}
+                      aria-hidden='true'
+                      className='h-6 w-6'
+                      src={cat.icon_url}
+                    />
+                  )}
+                </CardHeader>
+                <CardContent className='flex flex-col gap-1'>
+                  <div className='text-2xl font-medium truncate'>
+                    <NumberFormat
+                      value={fromMojos(cat.balance, 3)}
+                      minimumFractionDigits={0}
+                      maximumFractionDigits={3}
+                    />{' '}
+                    {cat.ticker ?? ''}
+                  </div>
+                  <div className='flex justify-between items-center text-sm text-neutral-500'>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div>
+                          ~
+                          <NumberFormat
+                            value={cat.balanceInUsd}
+                            style='currency'
+                            currency='USD'
+                            minimumFractionDigits={2}
+                            maximumFractionDigits={2}
+                          />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <span>
+                          1 {cat.ticker ?? 'CAT'}{' '}
+                          {formatUsdPrice(cat.priceInUsd)}
+                        </span>
+                      </TooltipContent>
+                    </Tooltip>
+                    <TokenCardMenu
+                      record={record}
+                      actionHandlers={actionHandlers}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+          );
+        })}
+      </div>
     </div>
   );
 }

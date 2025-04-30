@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT `unix_time`\n            FROM `blockinfo`\n            WHERE `height` = ?\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "unix_time",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "08603dd734a2434722e2243d61a44577d5eb89f5d546db3b7f87b37bd420737d"
+}

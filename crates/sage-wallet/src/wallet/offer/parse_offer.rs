@@ -3,11 +3,15 @@ use std::collections::HashSet;
 use chia::{
     clvm_traits::{FromClvm, ToClvm},
     protocol::{Bytes32, Coin},
-    puzzles::offer::{NotarizedPayment, SETTLEMENT_PAYMENTS_PUZZLE_HASH},
+    puzzles::offer::NotarizedPayment,
 };
+use chia_puzzles::SETTLEMENT_PAYMENT_HASH;
 use chia_wallet_sdk::{
-    run_puzzle, Cat, CatLayer, Condition, Conditions, HashedPtr, Layer, Nft, NftInfo, OfferBuilder,
-    ParsedOffer, Puzzle, SpendContext, Take,
+    driver::{
+        Cat, CatLayer, HashedPtr, Layer, Nft, NftInfo, OfferBuilder, ParsedOffer, Puzzle,
+        SpendContext, Take,
+    },
+    types::{run_puzzle, Condition, Conditions},
 };
 use clvmr::{Allocator, NodePtr};
 use indexmap::IndexMap;
@@ -149,7 +153,7 @@ pub fn parse_locked_coins(
                 continue;
             }
 
-            if coin.puzzle_hash == SETTLEMENT_PAYMENTS_PUZZLE_HASH.into() {
+            if coin.puzzle_hash == SETTLEMENT_PAYMENT_HASH.into() {
                 xch.push(coin);
             }
         }
@@ -160,7 +164,7 @@ pub fn parse_locked_coins(
                     continue;
                 }
 
-                if child.p2_puzzle_hash == SETTLEMENT_PAYMENTS_PUZZLE_HASH.into() {
+                if child.p2_puzzle_hash == SETTLEMENT_PAYMENT_HASH.into() {
                     cats.entry(child.asset_id)
                         .or_insert_with(Vec::new)
                         .push(child);
@@ -172,7 +176,7 @@ pub fn parse_locked_coins(
             Nft::<HashedPtr>::parse_child(allocator, coin_spend.coin, puzzle, solution)?
         {
             if !spent_coin_ids.contains(&child.coin.coin_id())
-                && child.info.p2_puzzle_hash == SETTLEMENT_PAYMENTS_PUZZLE_HASH.into()
+                && child.info.p2_puzzle_hash == SETTLEMENT_PAYMENT_HASH.into()
             {
                 nfts.insert(child.info.launcher_id, child);
             }
@@ -202,8 +206,8 @@ pub fn parse_offer_payments(
     let mut nft_payments = IndexMap::new();
 
     while let Some((puzzle, payments)) = builder.fulfill() {
-        if let Some(cat) = CatLayer::<Puzzle>::parse_puzzle(&ctx.allocator, puzzle)? {
-            if cat.inner_puzzle.curried_puzzle_hash() != SETTLEMENT_PAYMENTS_PUZZLE_HASH {
+        if let Some(cat) = CatLayer::<Puzzle>::parse_puzzle(ctx, puzzle)? {
+            if cat.inner_puzzle.curried_puzzle_hash() != SETTLEMENT_PAYMENT_HASH.into() {
                 return Err(WalletError::InvalidRequestedPayment);
             }
 
@@ -211,10 +215,8 @@ pub fn parse_offer_payments(
                 .entry(cat.asset_id)
                 .or_insert_with(Vec::new)
                 .extend(payments);
-        } else if let Some((nft_info, inner_puzzle)) =
-            NftInfo::<HashedPtr>::parse(&ctx.allocator, puzzle)?
-        {
-            if inner_puzzle.curried_puzzle_hash() != SETTLEMENT_PAYMENTS_PUZZLE_HASH {
+        } else if let Some((nft_info, inner_puzzle)) = NftInfo::<HashedPtr>::parse(ctx, puzzle)? {
+            if inner_puzzle.curried_puzzle_hash() != SETTLEMENT_PAYMENT_HASH.into() {
                 return Err(WalletError::InvalidRequestedPayment);
             }
 
@@ -226,7 +228,7 @@ pub fn parse_offer_payments(
                     nft_info.launcher_id,
                 ));
             }
-        } else if puzzle.curried_puzzle_hash() == SETTLEMENT_PAYMENTS_PUZZLE_HASH {
+        } else if puzzle.curried_puzzle_hash() == SETTLEMENT_PAYMENT_HASH.into() {
             xch_payments.extend(payments);
         } else {
             return Err(WalletError::UnknownRequestedPayment(

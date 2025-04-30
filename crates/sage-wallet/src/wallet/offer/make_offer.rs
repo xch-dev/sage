@@ -1,11 +1,12 @@
 use chia::{
     protocol::{Bytes32, CoinSpend, Program},
-    puzzles::{
-        cat::CatArgs,
-        offer::{Payment, SETTLEMENT_PAYMENTS_PUZZLE_HASH},
-    },
+    puzzles::{cat::CatArgs, offer::Payment},
 };
-use chia_wallet_sdk::{Conditions, Layer, NftInfo, OfferBuilder, Partial, SpendContext};
+use chia_puzzles::SETTLEMENT_PAYMENT_HASH;
+use chia_wallet_sdk::{
+    driver::{Layer, NftInfo, OfferBuilder, Partial, SpendContext},
+    types::{puzzles::SettlementPayment, Conditions},
+};
 use indexmap::IndexMap;
 
 use crate::{Wallet, WalletError};
@@ -88,7 +89,7 @@ impl Wallet {
 
         let mut builder = OfferBuilder::new(maker_coins.nonce());
         let mut ctx = SpendContext::new();
-        let settlement = ctx.settlement_payments_puzzle()?;
+        let settlement = ctx.alloc_mod::<SettlementPayment>()?;
 
         // Add requested XCH payments.
         if taker.xch > 0 {
@@ -127,7 +128,7 @@ impl Wallet {
                 current_owner: None,
                 royalty_puzzle_hash: info.royalty_puzzle_hash,
                 royalty_ten_thousandths: info.royalty_ten_thousandths,
-                p2_puzzle_hash: SETTLEMENT_PAYMENTS_PUZZLE_HASH.into(),
+                p2_puzzle_hash: SETTLEMENT_PAYMENT_HASH.into(),
             };
 
             let layers = info.into_layers(settlement).construct_puzzle(&mut ctx)?;

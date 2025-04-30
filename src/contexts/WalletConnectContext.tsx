@@ -4,7 +4,7 @@ import {
   OfferSummary,
   TransactionSummary,
 } from '@/bindings';
-import { AdvancedSummary } from '@/components/ConfirmationDialog';
+import { AdvancedTransactionSummary } from '@/components/AdvancedTransactionSummary';
 import { OfferCard } from '@/components/OfferCard';
 import { OfferSummaryCard } from '@/components/OfferSummaryCard';
 import { Button } from '@/components/ui/button';
@@ -17,9 +17,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { useErrors } from '@/hooks/useErrors';
 import { useWallet } from '@/contexts/WalletContext';
-import { fromMojos } from '@/lib/utils';
+import { useErrors } from '@/hooks/useErrors';
+import { fromMojos, decodeHexMessage, isHex } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import {
   Params,
@@ -27,8 +27,8 @@ import {
   walletConnectCommands,
 } from '@/walletconnect/commands';
 import { handleCommand } from '@/walletconnect/handler';
-import { platform } from '@tauri-apps/plugin-os';
 import { getCurrentWindow, UserAttentionType } from '@tauri-apps/api/window';
+import { platform } from '@tauri-apps/plugin-os';
 import SignClient from '@walletconnect/sign-client';
 import { SessionTypes, SignClientTypes } from '@walletconnect/types';
 import {
@@ -40,6 +40,7 @@ import {
   useState,
 } from 'react';
 import { formatNumber } from '../i18n';
+import { Switch } from '@/components/ui/switch';
 
 export interface WalletConnectContextType {
   sessions: SessionTypes.Struct[];
@@ -171,23 +172,13 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
           throw new Error('Chain not supported');
         }
 
-        const networkConfig = await commands.networkConfig().catch((e) => {
-          console.error('Failed to get network config:', e);
-          throw e;
-        });
-
-        if (!networkConfig) {
-          throw new Error('Network config not found');
-        }
-
-        const network =
-          networkConfig.network_id === 'mainnet' ? 'mainnet' : 'testnet';
+        const network = await commands.getNetwork({});
 
         if (!wallet) {
           throw new Error('No active wallet');
         }
 
-        const account = `chia:${network}:${wallet.fingerprint}`;
+        const account = `chia:${network.kind}:${wallet.fingerprint}`;
         const availableMethods = methods;
         const availableEvents = events;
 
@@ -409,9 +400,45 @@ function SignCoinSpendsDialog({
   }, [params, addError]);
 
   return summary ? (
-    <AdvancedSummary summary={summary} />
+    <AdvancedTransactionSummary summary={summary} />
   ) : (
     <div className='p-4 text-center'>Loading transaction summary...</div>
+  );
+}
+
+function MessageToSign(params: { message: string }) {
+  const [showDecoded, setShowDecoded] = useState(false);
+  const isHexMessage = isHex(params.message);
+  const message = isHexMessage
+    ? !showDecoded
+      ? params.message
+      : decodeHexMessage(params.message)
+    : params.message;
+
+  return (
+    <div className='space-y-2'>
+      <div className='flex items-center justify-between gap-2 flex-wrap'>
+        <div className='font-medium'>
+          Message{' '}
+          {isHexMessage && showDecoded && (
+            <span className='text-xs text-muted-foreground ml-1'>
+              (Decoded)
+            </span>
+          )}
+        </div>
+        {isHexMessage && (
+          <div className='flex items-center gap-2'>
+            <span className='text-sm text-muted-foreground whitespace-nowrap'>
+              Show decoded
+            </span>
+            <Switch checked={showDecoded} onCheckedChange={setShowDecoded} />
+          </div>
+        )}
+      </div>
+      <div className='text-sm text-muted-foreground break-all font-mono bg-muted p-2 rounded whitespace-pre-wrap'>
+        {message}
+      </div>
+    </div>
   );
 }
 
@@ -426,12 +453,23 @@ function SignMessageDialog({
           {params.publicKey}
         </div>
       </div>
+      <MessageToSign message={params.message} />
+    </div>
+  );
+}
+
+function SignMessageByAddressDialog({
+  params,
+}: CommandDialogProps<'chia_signMessageByAddress'>) {
+  return (
+    <div className='space-y-4 p-4'>
       <div className='space-y-2'>
-        <div className='font-medium'>Message</div>
-        <div className='text-sm text-muted-foreground break-all font-mono bg-muted p-2 rounded whitespace-pre-wrap'>
-          {params.message}
+        <div className='font-medium'>Address</div>
+        <div className='text-sm text-muted-foreground break-all font-mono bg-muted p-2 rounded'>
+          {params.address}
         </div>
       </div>
+      <MessageToSign message={params.message} />
     </div>
   );
 }
@@ -592,27 +630,6 @@ function SendDialog({ params }: CommandDialogProps<'chia_send'>) {
           <div className='text-sm text-muted-foreground'>{params.assetId}</div>
         </div>
       )}
-    </div>
-  );
-}
-
-function SignMessageByAddressDialog({
-  params,
-}: CommandDialogProps<'chia_signMessageByAddress'>) {
-  return (
-    <div className='space-y-4 p-4'>
-      <div className='space-y-2'>
-        <div className='font-medium'>Address</div>
-        <div className='text-sm text-muted-foreground break-all font-mono bg-muted p-2 rounded'>
-          {params.address}
-        </div>
-      </div>
-      <div className='space-y-2'>
-        <div className='font-medium'>Message</div>
-        <div className='text-sm text-muted-foreground break-all font-mono bg-muted p-2 rounded whitespace-pre-wrap'>
-          {params.message}
-        </div>
-      </div>
     </div>
   );
 }

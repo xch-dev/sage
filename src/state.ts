@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import {
   Assets,
-  CoinRecord,
   commands,
   events,
   GetSyncStatusResponse,
@@ -10,7 +9,17 @@ import {
 
 export interface WalletState {
   sync: GetSyncStatusResponse;
-  coins: CoinRecord[];
+}
+
+export interface AssetInput {
+  xch: string;
+  cats: CatInput[];
+  nfts: string[];
+}
+
+export interface CatInput {
+  assetId: string;
+  amount: string;
 }
 
 export interface OfferState {
@@ -37,7 +46,7 @@ export interface NavigationStore {
 }
 
 export const useWalletState = create<WalletState>(() => defaultState());
-export const useOfferState = create<OfferState>(() => defaultOffer());
+export const useOfferState = create<OfferState | null>(() => null);
 export const useNavigationStore = create<NavigationStore>((set) => ({
   returnValues: {},
   setReturnValue: (pageId, value) =>
@@ -48,26 +57,11 @@ export const useNavigationStore = create<NavigationStore>((set) => ({
 
 export function clearState() {
   useWalletState.setState(defaultState());
-  useOfferState.setState(defaultOffer());
-}
-
-export function clearOffer() {
-  useOfferState.setState(defaultOffer());
+  useOfferState.setState(null);
 }
 
 export async function fetchState() {
-  await Promise.all([updateCoins(), updateSyncStatus()]);
-}
-
-function updateCoins() {
-  commands
-    .getXchCoins({})
-    .then((data) =>
-      useWalletState.setState({
-        coins: data.coins,
-      }),
-    )
-    .catch((error) => console.error(error));
+  await Promise.all([updateSyncStatus()]);
 }
 
 function updateSyncStatus() {
@@ -80,7 +74,6 @@ function updateSyncStatus() {
 events.syncEvent.listen((event) => {
   switch (event.payload.type) {
     case 'coin_state':
-      updateCoins();
       updateSyncStatus();
       break;
     case 'derivation':
@@ -126,37 +119,8 @@ export function defaultState(): WalletState {
       },
       total_coins: 0,
       synced_coins: 0,
+      unhardened_derivation_index: 0,
+      hardened_derivation_index: 0,
     },
-    coins: [],
   };
-}
-
-export function defaultOffer(): OfferState {
-  return {
-    offered: {
-      xch: '',
-      cats: [],
-      nfts: [],
-    },
-    requested: {
-      xch: '',
-      cats: [],
-      nfts: [],
-    },
-    fee: '',
-    expiration: null,
-  };
-}
-
-export function isDefaultOffer(offer: OfferState): boolean {
-  return (
-    offer.offered.xch === '' &&
-    offer.offered.cats.length === 0 &&
-    offer.offered.nfts.length === 0 &&
-    offer.requested.xch === '' &&
-    offer.requested.cats.length === 0 &&
-    offer.requested.nfts.length === 0 &&
-    offer.fee === '' &&
-    offer.expiration === null
-  );
 }

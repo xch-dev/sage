@@ -4,7 +4,7 @@ use chia::{
     clvm_traits::{FromClvm, ToClvm},
     protocol::{Bytes32, Program},
 };
-use chia_wallet_sdk::{HashedPtr, Nft, Puzzle};
+use chia_wallet_sdk::driver::{HashedPtr, Nft, Puzzle};
 use clvmr::Allocator;
 use tokio::time::{sleep, timeout};
 
