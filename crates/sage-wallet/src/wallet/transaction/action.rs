@@ -2,6 +2,8 @@ mod add_nft_uri;
 mod assign_nft;
 mod create_did;
 mod issue_cat;
+mod make_offer;
+mod mint_nft;
 mod normalize_did;
 mod send;
 mod take_offer;
@@ -12,6 +14,8 @@ pub use add_nft_uri::*;
 pub use assign_nft::*;
 pub use create_did::*;
 pub use issue_cat::*;
+pub use make_offer::*;
+pub use mint_nft::*;
 pub use normalize_did::*;
 pub use send::*;
 pub use take_offer::*;
@@ -26,12 +30,14 @@ use super::{Select, Selection};
 pub enum Action {
     Send(SendAction),
     IssueCat(IssueCatAction),
-    CreateDid(CreateDidAction),
+    MintNft(MintNftAction),
     TransferNft(TransferNftAction),
     AssignNft(AssignNftAction),
     AddNftUri(AddNftUriAction),
+    CreateDid(CreateDidAction),
     TransferDid(TransferDidAction),
     NormalizeDid(NormalizeDidAction),
+    MakeOffer(MakeOfferAction),
     TakeOffer(TakeOfferAction),
 }
 
@@ -40,12 +46,14 @@ impl Select for Action {
         match self {
             Action::Send(action) => action.select(selection, index),
             Action::IssueCat(action) => action.select(selection, index),
-            Action::CreateDid(action) => action.select(selection, index),
+            Action::MintNft(action) => action.select(selection, index),
             Action::TransferNft(action) => action.select(selection, index),
             Action::AssignNft(action) => action.select(selection, index),
             Action::AddNftUri(action) => action.select(selection, index),
+            Action::CreateDid(action) => action.select(selection, index),
             Action::TransferDid(action) => action.select(selection, index),
             Action::NormalizeDid(action) => action.select(selection, index),
+            Action::MakeOffer(action) => action.select(selection, index),
             Action::TakeOffer(action) => action.select(selection, index),
         }
     }
