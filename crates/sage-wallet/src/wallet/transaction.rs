@@ -13,19 +13,16 @@ use chia::{
     protocol::{Bytes32, Coin, CoinSpend},
 };
 use chia_wallet_sdk::{
-    driver::{
-        Cat, CatSpend, HashedPtr, Launcher, SpendContext, SpendWithConditions, StandardLayer,
-    },
+    driver::{Cat, CatSpend, Launcher, SpendContext, SpendWithConditions, StandardLayer},
     types::Conditions,
 };
-use indexmap::{IndexMap, IndexSet};
-use sage_database::CoinKind;
+use indexmap::IndexMap;
 
 use crate::WalletError;
 
 use super::{memos::calculate_memos, Wallet};
 
-#[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Default, Clone)]
 pub struct TransactionConfig {
     pub actions: Vec<Action>,
     pub preselected_coin_ids: Vec<Bytes32>,
@@ -45,14 +42,14 @@ impl Wallet {
     ) -> Result<TransactionResult, WalletError> {
         let mut ctx = SpendContext::new();
 
-        let mut selection = self.select_transaction(&mut ctx, tx).await?;
+        let selection = self.select_transaction(&mut ctx, tx).await?;
 
         let mut send_xch = Vec::new();
         let mut send_cats = IndexMap::new();
         let mut single_issue_cats = Vec::new();
         let mut create_did = Vec::new();
 
-        for (i, &action) in tx.actions.iter().enumerate() {
+        for (i, action) in tx.actions.iter().cloned().enumerate() {
             match action {
                 Action::Send(action) => {
                     if let Some(id) = action.asset_id {
@@ -71,13 +68,15 @@ impl Wallet {
         }
 
         let selected_xch: i64 = selection.xch.amount.try_into()?;
-        let change_xch = selected_xch - selection.required_xch;
+        let change_xch = selected_xch - selection.spent_xch;
 
         if change_xch > 0 {
             send_xch.push(SendAction {
                 asset_id: None,
                 puzzle_hash: change_puzzle_hash,
                 amount: change_xch as u64,
+                include_hint: Hint::Default,
+                memos: None,
             });
         }
 

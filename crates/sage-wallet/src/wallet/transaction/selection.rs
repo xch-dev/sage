@@ -7,7 +7,7 @@ use sage_database::CoinKind;
 
 use crate::{Wallet, WalletError};
 
-use super::{Action, Id, TransactionConfig};
+use super::{Id, TransactionConfig};
 
 #[derive(Debug, Default, Clone)]
 pub struct Selection {
@@ -115,39 +115,14 @@ impl Wallet {
             }
         }
 
-        let mut needs_xch_parent = false;
-
         for (index, action) in tx.actions.iter().enumerate() {
             action.select(&mut selection, index)?;
-
-            match action {
-                Action::Send(action) => {
-                    let amount: i64 = action.amount.try_into()?;
-
-                    if let Some(id) = action.asset_id {
-                        *selection.required_cats.entry(id).or_insert(0) += amount;
-                    } else {
-                        selection.required_xch += amount;
-                        needs_xch_parent = true;
-                    }
-                }
-                Action::IssueCat(action) => {
-                    let amount: i64 = action.amount.try_into()?;
-                    *selection.required_cats.entry(Id::New(index)).or_insert(0) -= amount;
-                    selection.required_xch += amount;
-                    needs_xch_parent = true;
-                }
-                Action::CreateDid(_action) => {
-                    selection.required_xch += 1;
-                    needs_xch_parent = true;
-                }
-            }
         }
 
-        if selection.required_xch >= 0
-            && (selection.required_xch as u64 > selection.xch.amount || needs_xch_parent)
+        if selection.spent_xch >= 0
+            && (selection.spent_xch as u64 > selection.xch.amount || selection.needs_xch_parent)
         {
-            let missing = selection.required_xch as u64 - selection.xch.amount;
+            let missing = selection.spent_xch as u64 - selection.xch.amount;
 
             let coins = self.select_p2_coins(missing as u128).await?;
 
@@ -158,11 +133,7 @@ impl Wallet {
         }
 
         for (&id, selected) in &mut selection.cats {
-            let required = selection
-                .required_cats
-                .get(&id)
-                .copied()
-                .unwrap_or_default();
+            let required = selection.spent_cats.get(&id).copied().unwrap_or_default();
 
             if required >= 0 && required as u64 > selected.amount {
                 if let Id::Existing(asset_id) = id {
