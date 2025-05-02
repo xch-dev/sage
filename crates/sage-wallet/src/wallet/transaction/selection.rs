@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use chia::protocol::Coin;
 use chia_wallet_sdk::driver::{Cat, Did, HashedPtr, Nft, OptionContract, SpendContext};
@@ -18,6 +18,8 @@ pub struct Selection {
     pub options: HashMap<Id, OptionContract>,
     pub spent_xch: i64,
     pub spent_cats: HashMap<Id, i64>,
+    pub spent_nfts: HashSet<Id>,
+    pub spent_dids: HashSet<Id>,
     pub needs_xch_parent: bool,
 }
 
