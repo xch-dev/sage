@@ -16,10 +16,12 @@ mod p2_coin_management;
 mod p2_send;
 mod p2_spends;
 mod signing;
+mod transaction;
 
 pub use multi_send::*;
 pub use nfts::*;
 pub use offer::*;
+pub use transaction::*;
 
 #[derive(Debug)]
 pub struct Wallet {
