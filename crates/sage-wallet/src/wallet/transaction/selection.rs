@@ -1,13 +1,16 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use chia::protocol::Coin;
-use chia_wallet_sdk::driver::{Cat, Did, HashedPtr, Nft, OptionContract, SpendContext};
+use chia_wallet_sdk::{
+    driver::{Cat, Did, HashedPtr, Nft, OptionContract, SpendContext},
+    utils::select_coins,
+};
 use indexmap::IndexSet;
 use sage_database::CoinKind;
 
 use crate::{Wallet, WalletError};
 
-use super::{Id, TransactionConfig};
+use super::{Id, Preselection, TransactionConfig};
 
 #[derive(Debug, Default, Clone)]
 pub struct Selection {
@@ -16,11 +19,6 @@ pub struct Selection {
     pub nfts: HashMap<Id, Nft<HashedPtr>>,
     pub dids: HashMap<Id, Did<HashedPtr>>,
     pub options: HashMap<Id, OptionContract>,
-    pub spent_xch: i64,
-    pub spent_cats: HashMap<Id, i64>,
-    pub spent_nfts: HashSet<Id>,
-    pub spent_dids: HashSet<Id>,
-    pub needs_xch_parent: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -38,20 +36,14 @@ impl<T> Default for Selected<T> {
     }
 }
 
-pub trait Select {
-    fn select(&self, selection: &mut Selection, index: usize) -> Result<(), WalletError>;
-}
-
 impl Wallet {
     pub async fn select_transaction(
         &self,
         ctx: &mut SpendContext,
+        preselection: &Preselection,
         tx: &TransactionConfig,
     ) -> Result<Selection, WalletError> {
-        let mut selection = Selection {
-            spent_xch: tx.fee.try_into()?,
-            ..Default::default()
-        };
+        let mut selection = Selection::default();
 
         for &coin_id in tx.preselected_coin_ids.iter().collect::<IndexSet<_>>() {
             let Some(row) = self.db.full_coin_state(coin_id).await? else {
@@ -117,18 +109,16 @@ impl Wallet {
             }
         }
 
-        for (index, action) in tx.actions.iter().enumerate() {
-            action.select(&mut selection, index)?;
-        }
+        let xch_deficit = preselection
+            .spent_xch
+            .saturating_sub(preselection.created_xch)
+            .saturating_sub(selection.xch.amount);
 
-        if selection.spent_xch >= 0
-            && (selection.spent_xch as u64 > selection.xch.amount || selection.needs_xch_parent)
-        {
-            let missing = selection.spent_xch as u64 - selection.xch.amount;
+        if xch_deficit > 0 || (selection.xch.coins.is_empty() && preselection.needs_xch_parent) {
+            let mut spendable_coins = self.db.spendable_coins().await?;
+            spendable_coins.retain(|coin| !selection.xch.coins.contains(coin));
 
-            let coins = self.select_p2_coins(missing as u128).await?;
-
-            for coin in coins {
+            for coin in select_coins(spendable_coins, xch_deficit as u128)? {
                 selection.xch.coins.push(coin);
                 selection.xch.amount += coin.amount;
             }

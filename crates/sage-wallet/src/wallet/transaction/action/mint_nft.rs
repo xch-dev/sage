@@ -1,10 +1,19 @@
-use crate::{Select, Selection, WalletError};
+use chia::{protocol::Bytes32, puzzles::nft::NftMetadata};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct MintNftAction {}
+use crate::{Action, Id, Preselection};
 
-impl Select for MintNftAction {
-    fn select(&self, selection: &mut Selection, _index: usize) -> Result<(), WalletError> {
-        Ok(())
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MintNftAction {
+    pub metadata: NftMetadata,
+    pub royalty_puzzle_hash: Bytes32,
+    pub royalty_ten_thousandths: u16,
+    pub minter_did: Id,
+}
+
+impl Action for MintNftAction {
+    fn preselect(&self, preselection: &mut Preselection, index: usize) {
+        preselection.created_nfts.insert(Id::New(index));
+        preselection.spent_dids.insert(self.minter_did);
+        preselection.spent_xch += 1;
     }
 }

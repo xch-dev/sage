@@ -1,4 +1,4 @@
-use crate::{Id, Select, Selection, WalletError};
+use crate::{Action, Id, Preselection};
 
 /// This will either assign an NFT to a DID, or remove the DID from an NFT.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -9,16 +9,12 @@ pub struct AssignNftAction {
     pub did_id: Option<Id>,
 }
 
-impl Select for AssignNftAction {
-    fn select(&self, selection: &mut Selection, _index: usize) -> Result<(), WalletError> {
-        // We need to spend the NFT to update its owner.
-        selection.spent_nfts.insert(self.nft_id);
+impl Action for AssignNftAction {
+    fn preselect(&self, preselection: &mut Preselection, _index: usize) {
+        preselection.spent_nfts.insert(self.nft_id);
 
-        // We need to spend the DID to authorize the NFT ownership change.
         if let Some(did_id) = self.did_id {
-            selection.spent_dids.insert(did_id);
+            preselection.spent_dids.insert(did_id);
         }
-
-        Ok(())
     }
 }

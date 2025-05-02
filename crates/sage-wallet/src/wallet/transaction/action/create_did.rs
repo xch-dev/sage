@@ -1,18 +1,12 @@
-use crate::{Select, Selection, WalletError};
+use crate::{Action, Preselection};
 
 /// This will create a new DID at the change puzzle hash specified
 /// in the transaction config. It can be immediately spent if needed.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct CreateDidAction;
 
-impl Select for CreateDidAction {
-    fn select(&self, selection: &mut Selection, _index: usize) -> Result<(), WalletError> {
-        // We need 1 mojo to create the DID singleton.
-        selection.spent_xch += 1;
-
-        // We need an XCH parent to create the singleton launcher.
-        selection.needs_xch_parent = true;
-
-        Ok(())
+impl Action for CreateDidAction {
+    fn preselect(&self, preselection: &mut Preselection, _index: usize) {
+        preselection.spent_xch += 1;
     }
 }

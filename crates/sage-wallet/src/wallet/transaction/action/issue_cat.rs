@@ -1,21 +1,15 @@
-use chia::bls::SecretKey;
+use crate::{Action, Id, Preselection};
 
-use crate::{Id, Select, Selection, WalletError};
-
+/// This will create a new single-issuance CAT.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct IssueCatAction {
-    pub secret_key: Option<SecretKey>,
+    /// The amount of the CAT to issue.
     pub amount: u64,
 }
 
-impl Select for IssueCatAction {
-    fn select(&self, selection: &mut Selection, index: usize) -> Result<(), WalletError> {
-        let amount: i64 = self.amount.try_into()?;
-
-        *selection.spent_cats.entry(Id::New(index)).or_insert(0) -= amount;
-        selection.spent_xch += amount;
-        selection.needs_xch_parent = true;
-
-        Ok(())
+impl Action for IssueCatAction {
+    fn preselect(&self, preselection: &mut Preselection, index: usize) {
+        *preselection.created_cats.entry(Id::New(index)).or_insert(0) += self.amount;
+        preselection.spent_xch += self.amount;
     }
 }

@@ -1,6 +1,6 @@
 use chia::protocol::{Bytes, Bytes32};
 
-use crate::{Id, Select, Selection, WalletError};
+use crate::{Action, Id, Preselection};
 
 /// Sends an amount of a fungible asset to a given puzzle hash. This means
 /// that a coin will be created at the puzzle hash and amount, but the
@@ -32,17 +32,12 @@ pub enum Hint {
     No,
 }
 
-impl Select for SendAction {
-    fn select(&self, selection: &mut Selection, _index: usize) -> Result<(), WalletError> {
-        let amount: i64 = self.amount.try_into()?;
-
+impl Action for SendAction {
+    fn preselect(&self, preselection: &mut Preselection, _index: usize) {
         if let Some(id) = self.asset_id {
-            *selection.spent_cats.entry(id).or_insert(0) += amount;
+            *preselection.spent_cats.entry(id).or_insert(0) += self.amount;
         } else {
-            selection.spent_xch += amount;
-            selection.needs_xch_parent = true;
+            preselection.spent_xch += self.amount;
         }
-
-        Ok(())
     }
 }

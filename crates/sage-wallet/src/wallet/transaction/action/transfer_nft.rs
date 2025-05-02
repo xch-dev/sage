@@ -1,6 +1,6 @@
 use chia::protocol::Bytes32;
 
-use crate::{Id, Select, Selection, WalletError};
+use crate::{Action, Id, Preselection};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct TransferNftAction {
@@ -8,8 +8,8 @@ pub struct TransferNftAction {
     pub puzzle_hash: Bytes32,
 }
 
-impl Select for TransferNftAction {
-    fn select(&self, selection: &mut Selection, _index: usize) -> Result<(), WalletError> {
-        Ok(())
+impl Action for TransferNftAction {
+    fn preselect(&self, preselection: &mut Preselection, _index: usize) {
+        preselection.spent_nfts.insert(self.nft_id);
     }
 }

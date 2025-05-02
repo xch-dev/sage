@@ -1,9 +1,11 @@
 mod action;
 mod id;
+mod preselection;
 mod selection;
 
 pub use action::*;
 pub use id::*;
+pub use preselection::*;
 pub use selection::*;
 
 use std::collections::HashSet;
@@ -24,7 +26,7 @@ use super::{memos::calculate_memos, Wallet};
 
 #[derive(Debug, Default, Clone)]
 pub struct TransactionConfig {
-    pub actions: Vec<Action>,
+    pub actions: Vec<SpendAction>,
     pub preselected_coin_ids: Vec<Bytes32>,
     pub fee: u64,
 }

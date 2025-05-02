@@ -2,11 +2,9 @@ mod add_nft_uri;
 mod assign_nft;
 mod create_did;
 mod issue_cat;
-mod make_offer;
 mod mint_nft;
 mod normalize_did;
 mod send;
-mod take_offer;
 mod transfer_did;
 mod transfer_nft;
 
@@ -14,20 +12,16 @@ pub use add_nft_uri::*;
 pub use assign_nft::*;
 pub use create_did::*;
 pub use issue_cat::*;
-pub use make_offer::*;
 pub use mint_nft::*;
 pub use normalize_did::*;
 pub use send::*;
-pub use take_offer::*;
 pub use transfer_did::*;
 pub use transfer_nft::*;
 
-use crate::WalletError;
-
-use super::{Select, Selection};
+use super::Preselection;
 
 #[derive(Debug, Clone)]
-pub enum Action {
+pub enum SpendAction {
     Send(SendAction),
     IssueCat(IssueCatAction),
     MintNft(MintNftAction),
@@ -37,24 +31,24 @@ pub enum Action {
     CreateDid(CreateDidAction),
     TransferDid(TransferDidAction),
     NormalizeDid(NormalizeDidAction),
-    MakeOffer(MakeOfferAction),
-    TakeOffer(TakeOfferAction),
 }
 
-impl Select for Action {
-    fn select(&self, selection: &mut Selection, index: usize) -> Result<(), WalletError> {
+pub trait Action {
+    fn preselect(&self, preselection: &mut Preselection, index: usize);
+}
+
+impl Action for SpendAction {
+    fn preselect(&self, preselection: &mut Preselection, index: usize) {
         match self {
-            Action::Send(action) => action.select(selection, index),
-            Action::IssueCat(action) => action.select(selection, index),
-            Action::MintNft(action) => action.select(selection, index),
-            Action::TransferNft(action) => action.select(selection, index),
-            Action::AssignNft(action) => action.select(selection, index),
-            Action::AddNftUri(action) => action.select(selection, index),
-            Action::CreateDid(action) => action.select(selection, index),
-            Action::TransferDid(action) => action.select(selection, index),
-            Action::NormalizeDid(action) => action.select(selection, index),
-            Action::MakeOffer(action) => action.select(selection, index),
-            Action::TakeOffer(action) => action.select(selection, index),
+            SpendAction::Send(action) => action.preselect(preselection, index),
+            SpendAction::IssueCat(action) => action.preselect(preselection, index),
+            SpendAction::MintNft(action) => action.preselect(preselection, index),
+            SpendAction::TransferNft(action) => action.preselect(preselection, index),
+            SpendAction::AssignNft(action) => action.preselect(preselection, index),
+            SpendAction::AddNftUri(action) => action.preselect(preselection, index),
+            SpendAction::CreateDid(action) => action.preselect(preselection, index),
+            SpendAction::TransferDid(action) => action.preselect(preselection, index),
+            SpendAction::NormalizeDid(action) => action.preselect(preselection, index),
         }
     }
 }

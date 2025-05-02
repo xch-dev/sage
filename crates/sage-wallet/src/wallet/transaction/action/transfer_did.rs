@@ -1,6 +1,6 @@
 use chia::protocol::Bytes32;
 
-use crate::{Id, Select, Selection, WalletError};
+use crate::{Action, Id, Preselection};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct TransferDidAction {
@@ -8,8 +8,8 @@ pub struct TransferDidAction {
     pub puzzle_hash: Bytes32,
 }
 
-impl Select for TransferDidAction {
-    fn select(&self, selection: &mut Selection, _index: usize) -> Result<(), WalletError> {
-        Ok(())
+impl Action for TransferDidAction {
+    fn preselect(&self, preselection: &mut Preselection, _index: usize) {
+        preselection.spent_dids.insert(self.did_id);
     }
 }
