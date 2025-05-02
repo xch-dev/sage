@@ -44,7 +44,13 @@ impl Wallet {
     ) -> Result<TransactionResult, WalletError> {
         let mut ctx = SpendContext::new();
 
-        let selection = self.select_transaction(&mut ctx, tx).await?;
+        let mut preselection = Preselection::new(tx.fee);
+
+        for (index, action) in tx.actions.iter().enumerate() {
+            action.preselect(&mut preselection, index);
+        }
+
+        let selection = self.select_transaction(&mut ctx, &preselection, tx).await?;
 
         let mut send_xch = Vec::new();
         let mut send_cats = IndexMap::new();

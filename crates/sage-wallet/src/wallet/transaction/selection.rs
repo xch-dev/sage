@@ -114,7 +114,7 @@ impl Wallet {
             .saturating_sub(preselection.created_xch)
             .saturating_sub(selection.xch.amount);
 
-        if xch_deficit > 0 || (selection.xch.coins.is_empty() && preselection.needs_xch_parent) {
+        if xch_deficit > 0 || (selection.xch.coins.is_empty() && preselection.spent_xch > 0) {
             let mut spendable_coins = self.db.spendable_coins().await?;
             spendable_coins.retain(|coin| !selection.xch.coins.contains(coin));
 
@@ -125,18 +125,121 @@ impl Wallet {
         }
 
         for (&id, selected) in &mut selection.cats {
-            let required = selection.spent_cats.get(&id).copied().unwrap_or_default();
+            let spent = preselection
+                .spent_cats
+                .get(&id)
+                .copied()
+                .unwrap_or_default();
 
-            if required >= 0 && required as u64 > selected.amount {
+            let created = preselection
+                .created_cats
+                .get(&id)
+                .copied()
+                .unwrap_or_default();
+
+            let deficit = spent
+                .saturating_sub(created)
+                .saturating_sub(selected.amount);
+
+            if deficit > 0 {
                 if let Id::Existing(asset_id) = id {
-                    let missing = required as u64 - selected.amount;
+                    let mut rows = self.db.spendable_cat_coins(asset_id).await?;
+                    rows.retain(|cat| !selected.coins.iter().any(|c| c.coin == cat.coin));
 
-                    let cats = self.select_cat_coins(asset_id, missing as u128).await?;
+                    let selected_coins =
+                        select_coins(rows.iter().map(|r| r.coin).collect(), deficit as u128)?;
 
-                    for cat in cats {
+                    for coin in selected_coins {
+                        let row = rows
+                            .iter()
+                            .find(|r| r.coin == coin)
+                            .copied()
+                            .expect("missing row");
+
+                        let cat = Cat::new(
+                            row.coin,
+                            Some(row.lineage_proof),
+                            asset_id,
+                            row.p2_puzzle_hash,
+                        );
+
                         selected.coins.push(cat);
                         selected.amount += cat.coin.amount;
                     }
+                }
+            }
+        }
+
+        for &id in preselection
+            .spent_nfts
+            .difference(&preselection.created_nfts)
+        {
+            if selection.nfts.contains_key(&id) {
+                continue;
+            }
+
+            match id {
+                Id::Existing(launcher_id) => {
+                    let Some(nft) = self.db.spendable_nft(launcher_id).await? else {
+                        return Err(WalletError::MissingNft(launcher_id));
+                    };
+
+                    let metadata_ptr = ctx.alloc(&nft.info.metadata)?;
+                    let metadata = HashedPtr::from_ptr(ctx, metadata_ptr);
+                    let nft = nft.with_metadata(metadata);
+
+                    selection.nfts.insert(id, nft);
+                }
+                Id::New(id) => {
+                    return Err(WalletError::InvalidNewId(id));
+                }
+            }
+        }
+
+        for &id in preselection
+            .spent_dids
+            .difference(&preselection.created_dids)
+        {
+            if selection.dids.contains_key(&id) {
+                continue;
+            }
+
+            match id {
+                Id::Existing(launcher_id) => {
+                    let Some(did) = self.db.spendable_did(launcher_id).await? else {
+                        return Err(WalletError::MissingDid(launcher_id));
+                    };
+
+                    let metadata_ptr = ctx.alloc(&did.info.metadata)?;
+                    let metadata = HashedPtr::from_ptr(ctx, metadata_ptr);
+                    let did = did.with_metadata(metadata);
+
+                    selection.dids.insert(id, did);
+                }
+                Id::New(id) => {
+                    return Err(WalletError::InvalidNewId(id));
+                }
+            }
+        }
+
+        for &id in preselection
+            .spent_options
+            .difference(&preselection.created_options)
+        {
+            if selection.options.contains_key(&id) {
+                continue;
+            }
+
+            match id {
+                Id::Existing(launcher_id) => {
+                    let Some(option) = self.db.spendable_option(launcher_id).await? else {
+                        return Err(WalletError::MissingOption(launcher_id));
+                    };
+
+                    selection.options.insert(id, option);
+                }
+                Id::New(id) => {
+                    return Err(WalletError::InvalidNewId(id));
                 }
             }
         }

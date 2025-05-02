@@ -89,6 +89,12 @@ pub enum WalletError {
     #[error("Missing NFT with id {0}")]
     MissingNft(Bytes32),
 
+    #[error("Missing option with id {0}")]
+    MissingOption(Bytes32),
+
+    #[error("Invalid new id: {0}")]
+    InvalidNewId(usize),
+
     #[error("Uncancellable offer")]
     UncancellableOffer,
 

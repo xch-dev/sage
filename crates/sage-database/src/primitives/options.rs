@@ -26,6 +26,10 @@ impl Database {
         option(&self.pool, launcher_id).await
     }
 
+    pub async fn spendable_option(&self, launcher_id: Bytes32) -> Result<Option<OptionContract>> {
+        spendable_option(&self.pool, launcher_id).await
+    }
+
     pub async fn option_row(&self, launcher_id: Bytes32) -> Result<Option<OptionRow>> {
         option_row(&self.pool, launcher_id).await
     }
@@ -211,6 +215,39 @@ async fn options(conn: impl SqliteExecutor<'_>, include_hidden: bool) -> Result<
         .collect::<Result<Vec<_>>>()?;
 
     Ok(options)
+}
+
+async fn spendable_option(
+    conn: impl SqliteExecutor<'_>,
+    launcher_id: Bytes32,
+) -> Result<Option<OptionContract>> {
+    let launcher_id = launcher_id.as_ref();
+
+    let Some(sql) = sqlx::query_as!(
+        OptionCoinSql,
+        "
+        SELECT
+            `coin_states`.`parent_coin_id`, `coin_states`.`puzzle_hash`, `coin_states`.`amount`,
+            `parent_parent_coin_id`, `parent_inner_puzzle_hash`, `parent_amount`,
+            `launcher_id`, `underlying_coin_id`, `underlying_delegated_puzzle_hash`, `p2_puzzle_hash`
+        FROM `option_coins` INDEXED BY `option_launcher_id`
+        INNER JOIN `coin_states` INDEXED BY `coin_height` ON `option_coins`.`coin_id` = `coin_states`.`coin_id`
+        LEFT JOIN `transaction_spends` ON `coin_states`.`coin_id` = `transaction_spends`.`coin_id`
+        WHERE `launcher_id` = ?
+        AND `spent_height` IS NULL
+        AND `created_height` IS NOT NULL
+        AND `coin_states`.`transaction_id` IS NULL
+        AND `transaction_spends`.`transaction_id` IS NULL
+        ",
+        launcher_id
+    )
+    .fetch_optional(conn)
+    .await?
+    else {
+        return Ok(None);
+    };
+
+    Ok(Some(sql.into_row()?))
 }
 
 async fn option(
