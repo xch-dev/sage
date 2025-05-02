@@ -249,6 +249,7 @@ function GlobalSettings() {
               <SelectItem value='en-US'>English</SelectItem>
               <SelectItem value='de-DE'>Deutsch</SelectItem>
               <SelectItem value='zh-CN'>中文</SelectItem>
+              <SelectItem value='es-MX'>Español</SelectItem>
             </SelectContent>
           </Select>
         }
