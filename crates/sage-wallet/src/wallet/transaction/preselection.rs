@@ -1,6 +1,8 @@
 use std::collections::{HashMap, HashSet};
 
-use super::Id;
+use crate::{Wallet, WalletError};
+
+use super::{Action, Id, TransactionConfig};
 
 #[derive(Debug, Default, Clone)]
 pub struct Preselection {
@@ -22,5 +24,17 @@ impl Preselection {
             spent_xch: fee,
             ..Default::default()
         }
+    }
+}
+
+impl Wallet {
+    pub fn preselect(&self, tx: &TransactionConfig) -> Result<Preselection, WalletError> {
+        let mut preselection = Preselection::new(tx.fee);
+
+        for (index, action) in tx.actions.iter().enumerate() {
+            action.preselect(&mut preselection, index);
+        }
+
+        Ok(preselection)
     }
 }

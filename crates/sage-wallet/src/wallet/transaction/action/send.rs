@@ -24,6 +24,24 @@ pub struct SendAction {
     pub memos: Option<Vec<Bytes>>,
 }
 
+impl SendAction {
+    pub fn new(
+        asset_id: Option<Id>,
+        puzzle_hash: Bytes32,
+        amount: u64,
+        include_hint: Hint,
+        memos: Option<Vec<Bytes>>,
+    ) -> Self {
+        Self {
+            asset_id,
+            puzzle_hash,
+            amount,
+            include_hint,
+            memos,
+        }
+    }
+}
+
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Hint {
     #[default]

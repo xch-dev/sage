@@ -1,9 +1,8 @@
 use chia::protocol::{Bytes, Bytes32, CoinSpend};
-use chia_wallet_sdk::{driver::SpendContext, types::Conditions};
 
-use crate::WalletError;
+use crate::{Hint, SendAction, SpendAction, TransactionConfig, WalletError};
 
-use super::{memos::calculate_memos, Wallet};
+use super::Wallet;
 
 impl Wallet {
     /// Sends the given amount of XCH to the given puzzle hash, minus the fee.
@@ -15,41 +14,23 @@ impl Wallet {
         hardened: bool,
         reuse: bool,
     ) -> Result<Vec<CoinSpend>, WalletError> {
-        let combined_amount = amounts.iter().map(|(_, amount)| amount).sum::<u64>();
-
-        let total = combined_amount as u128 + fee as u128;
-        let coins = self.select_p2_coins(total).await?;
-        let selected: u128 = coins.iter().map(|coin| coin.amount as u128).sum();
-
-        let change_puzzle_hash = self.p2_puzzle_hash(hardened, reuse).await?;
-
-        let change: u64 = (selected - total)
-            .try_into()
-            .expect("change amount overflow");
-
-        let mut ctx = SpendContext::new();
-
-        let mut conditions = Conditions::new();
+        let mut actions = Vec::new();
 
         for (puzzle_hash, amount) in amounts {
-            conditions = conditions.create_coin(
+            actions.push(SpendAction::Send(SendAction::new(
+                None,
                 puzzle_hash,
                 amount,
-                calculate_memos(&mut ctx, puzzle_hash, false, memos.clone())?,
-            );
+                Hint::Default,
+                memos.clone(),
+            )));
         }
 
-        if fee > 0 {
-            conditions = conditions.reserve_fee(fee);
-        }
+        let change_puzzle_hash = self.p2_puzzle_hash(hardened, reuse).await?;
+        let tx = TransactionConfig::new(actions, fee, change_puzzle_hash);
+        let result = self.transact(&tx).await?;
 
-        if change > 0 {
-            conditions = conditions.create_coin(change_puzzle_hash, change, None);
-        }
-
-        self.spend_p2_coins(&mut ctx, coins, conditions).await?;
-
-        Ok(ctx.take())
+        Ok(result.coin_spends)
     }
 }
 

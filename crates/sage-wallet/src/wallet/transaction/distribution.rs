@@ -7,10 +7,11 @@ use chia_wallet_sdk::{
     types::Conditions,
 };
 use indexmap::IndexSet;
+use itertools::Itertools;
 
-use crate::{wallet::memos::calculate_memos, WalletError};
+use crate::{wallet::memos::calculate_memos, Wallet, WalletError};
 
-use super::Id;
+use super::{Action, Id, Preselection, Selection, TransactionConfig};
 
 #[derive(Debug)]
 pub struct Distribution<'a> {
@@ -25,6 +26,16 @@ pub struct DistributionItem {
     coin: DistributionCoin,
     payments: IndexSet<Payment>,
     conditions: Conditions,
+}
+
+impl DistributionItem {
+    pub fn new(coin: DistributionCoin) -> Self {
+        Self {
+            coin,
+            payments: IndexSet::new(),
+            conditions: Conditions::new(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -72,11 +83,15 @@ impl Payment {
 }
 
 impl<'a> Distribution<'a> {
-    pub fn new(ctx: &'a mut SpendContext, asset_id: Option<Id>) -> Self {
+    pub fn new(
+        ctx: &'a mut SpendContext,
+        asset_id: Option<Id>,
+        items: Vec<DistributionItem>,
+    ) -> Self {
         Self {
             ctx,
             asset_id,
-            items: Vec::new(),
+            items,
             launcher_index: 0,
         }
     }
@@ -125,13 +140,7 @@ impl<'a> Distribution<'a> {
             );
 
             let child = parent.coin.child(parent.coin.p2_puzzle_hash(), 0);
-
-            self.items.push(DistributionItem {
-                coin: child,
-                payments: IndexSet::new(),
-                conditions: Conditions::new(),
-            });
-
+            self.items.push(DistributionItem::new(child));
             self.items.last_mut().expect("item should exist")
         };
 
@@ -183,6 +192,58 @@ impl<'a> Distribution<'a> {
                 f(ctx, launcher, conditions)
             },
         )?;
+
+        Ok(())
+    }
+}
+
+impl Wallet {
+    pub async fn distribute(
+        &self,
+        ctx: &mut SpendContext,
+        preselection: &Preselection,
+        selection: &Selection,
+        tx: &TransactionConfig,
+    ) -> Result<(), WalletError> {
+        let mut distribution = Distribution::new(
+            ctx,
+            None,
+            selection
+                .xch
+                .coins
+                .iter()
+                .enumerate()
+                .map(|(i, &coin)| {
+                    let mut item = DistributionItem::new(DistributionCoin::Xch(coin));
+
+                    if i == 0 && tx.fee > 0 {
+                        item.conditions = item.conditions.reserve_fee(tx.fee);
+                    }
+
+                    item
+                })
+                .collect(),
+        );
+
+        let change_amount = (selection.xch.existing_amount + preselection.created_xch)
+            .saturating_sub(preselection.spent_xch);
+
+        if change_amount > 0 {
+            distribution.create_coin(tx.change_address, change_amount, false, None)?;
+        }
+
+        for action in &tx.actions {
+            action.distribute(&mut distribution)?;
+        }
+
+        let items = distribution
+            .items
+            .into_iter()
+            .map(|item| (item.coin.coin(), item.conditions))
+            .collect_vec();
+
+        self.spend_p2_coins_separately(ctx, items.into_iter())
+            .await?;
 
         Ok(())
     }

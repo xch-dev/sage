@@ -24,20 +24,20 @@ pub struct Selection {
 #[derive(Debug, Clone)]
 pub struct Selected<T> {
     pub coins: Vec<T>,
-    pub amount: u64,
+    pub existing_amount: u64,
 }
 
 impl<T> Default for Selected<T> {
     fn default() -> Self {
         Self {
             coins: Vec::new(),
-            amount: 0,
+            existing_amount: 0,
         }
     }
 }
 
 impl Wallet {
-    pub async fn select_transaction(
+    pub async fn select(
         &self,
         ctx: &mut SpendContext,
         preselection: &Preselection,
@@ -56,7 +56,7 @@ impl Wallet {
                 }
                 CoinKind::Xch => {
                     selection.xch.coins.push(row.coin_state.coin);
-                    selection.xch.amount += row.coin_state.coin.amount;
+                    selection.xch.existing_amount += row.coin_state.coin.amount;
                 }
                 CoinKind::Cat => {
                     let Some(cat) = self.db.cat_coin(coin_id).await? else {
@@ -69,7 +69,7 @@ impl Wallet {
                         .or_default();
 
                     existing.coins.push(cat);
-                    existing.amount += cat.coin.amount;
+                    existing.existing_amount += cat.coin.amount;
                 }
                 CoinKind::Nft => {
                     let Some(nft) = self.db.nft_by_coin_id(coin_id).await? else {
@@ -112,7 +112,7 @@ impl Wallet {
         let xch_deficit = preselection
             .spent_xch
             .saturating_sub(preselection.created_xch)
-            .saturating_sub(selection.xch.amount);
+            .saturating_sub(selection.xch.existing_amount);
 
         if xch_deficit > 0 || (selection.xch.coins.is_empty() && preselection.spent_xch > 0) {
             let mut spendable_coins = self.db.spendable_coins().await?;
@@ -120,7 +120,7 @@ impl Wallet {
 
             for coin in select_coins(spendable_coins, xch_deficit as u128)? {
                 selection.xch.coins.push(coin);
-                selection.xch.amount += coin.amount;
+                selection.xch.existing_amount += coin.amount;
             }
         }
 
@@ -139,7 +139,7 @@ impl Wallet {
 
             let deficit = spent
                 .saturating_sub(created)
-                .saturating_sub(selected.amount);
+                .saturating_sub(selected.existing_amount);
 
             if deficit > 0 {
                 if let Id::Existing(asset_id) = id {
@@ -164,7 +164,7 @@ impl Wallet {
                         );
 
                         selected.coins.push(cat);
-                        selected.amount += cat.coin.amount;
+                        selected.existing_amount += cat.coin.amount;
                     }
                 }
             }
