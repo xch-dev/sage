@@ -3,7 +3,7 @@ use std::{collections::HashMap, mem};
 use chia::protocol::{Bytes, Bytes32, Coin};
 use chia_puzzles::SINGLETON_LAUNCHER_HASH;
 use chia_wallet_sdk::{
-    driver::{Cat, Launcher, SpendContext},
+    driver::{Cat, Did, HashedPtr, Launcher, Nft, OptionContract, SpendContext},
     types::Conditions,
 };
 use indexmap::IndexSet;
@@ -26,6 +26,9 @@ pub struct Distribution<'a> {
 #[derive(Debug, Default, Clone)]
 pub struct NewAssets {
     pub cats: HashMap<Id, NewCat>,
+    pub nfts: HashMap<Id, Nft<HashedPtr>>,
+    pub dids: HashMap<Id, Did<HashedPtr>>,
+    pub options: HashMap<Id, OptionContract>,
 }
 
 #[derive(Debug, Clone)]

@@ -1,16 +1,18 @@
 mod action;
 mod distribution;
 mod id;
+mod lineation;
 mod selection;
 mod summary;
 
 pub use action::*;
-use chia::protocol::{Bytes32, CoinSpend};
 pub use distribution::*;
 pub use id::*;
+pub use lineation::*;
 pub use selection::*;
 pub use summary::*;
 
+use chia::protocol::{Bytes32, CoinSpend};
 use chia_wallet_sdk::driver::SpendContext;
 
 use crate::WalletError;
@@ -56,7 +58,9 @@ impl Wallet {
     ) -> Result<NewAssets, WalletError> {
         let summary = self.summarize(tx)?;
         self.select(ctx, &mut tx.preselection, &summary).await?;
-        self.distribute(ctx, &summary, &tx.preselection, tx).await
+        let new_assets = self.distribute(ctx, &summary, &tx.preselection, tx).await?;
+        self.lineate(ctx, &tx.preselection, &new_assets, tx).await?;
+        Ok(new_assets)
     }
 
     pub async fn transact_with_coin_ids(
@@ -77,6 +81,9 @@ impl Wallet {
 
         let new_assets = self
             .distribute(&mut ctx, &summary, &tx.preselection, &tx)
+            .await?;
+
+        self.lineate(&mut ctx, &tx.preselection, &new_assets, &tx)
             .await?;
 
         Ok(TransactionResult {
@@ -100,6 +107,9 @@ impl Wallet {
 
         let new_assets = self
             .distribute(&mut ctx, &summary, &tx.preselection, &tx)
+            .await?;
+
+        self.lineate(&mut ctx, &tx.preselection, &new_assets, &tx)
             .await?;
 
         Ok(TransactionResult {

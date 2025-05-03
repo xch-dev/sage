@@ -1,11 +1,9 @@
-use std::collections::HashMap;
-
 use chia::protocol::{Bytes32, Coin};
 use chia_wallet_sdk::{
     driver::{Cat, Did, HashedPtr, Nft, OptionContract, SpendContext},
     utils::select_coins,
 };
-use indexmap::IndexSet;
+use indexmap::{IndexMap, IndexSet};
 use sage_database::CoinKind;
 
 use crate::{Wallet, WalletError};
@@ -15,10 +13,10 @@ use super::{Id, Summary};
 #[derive(Debug, Default, Clone)]
 pub struct Selection {
     pub xch: Selected<Coin>,
-    pub cats: HashMap<Id, Selected<Cat>>,
-    pub nfts: HashMap<Id, Nft<HashedPtr>>,
-    pub dids: HashMap<Id, Did<HashedPtr>>,
-    pub options: HashMap<Id, OptionContract>,
+    pub cats: IndexMap<Id, Selected<Cat>>,
+    pub nfts: IndexMap<Id, Nft<HashedPtr>>,
+    pub dids: IndexMap<Id, Did<HashedPtr>>,
+    pub options: IndexMap<Id, OptionContract>,
 }
 
 #[derive(Debug, Clone)]

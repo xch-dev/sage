@@ -50,6 +50,9 @@ pub enum WalletError {
     #[error("Missing child of id {0}")]
     MissingChild(Bytes32),
 
+    #[error("Missing derivation for puzzle hash {0}")]
+    MissingDerivation(Bytes32),
+
     #[error("Peer misbehaved")]
     PeerMisbehaved,
 

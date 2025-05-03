@@ -1,5 +1,4 @@
 mod add_nft_uri;
-mod assign_nft;
 mod create_did;
 mod issue_cat;
 mod mint_nft;
@@ -9,7 +8,6 @@ mod transfer_did;
 mod transfer_nft;
 
 pub use add_nft_uri::*;
-pub use assign_nft::*;
 pub use create_did::*;
 pub use issue_cat::*;
 pub use mint_nft::*;
@@ -20,7 +18,7 @@ pub use transfer_nft::*;
 
 use crate::WalletError;
 
-use super::{Distribution, Summary};
+use super::{lineation::Lineation, Distribution, Summary};
 
 #[derive(Debug, Clone)]
 pub enum SpendAction {
@@ -28,7 +26,6 @@ pub enum SpendAction {
     IssueCat(IssueCatAction),
     MintNft(MintNftAction),
     TransferNft(TransferNftAction),
-    AssignNft(AssignNftAction),
     AddNftUri(AddNftUriAction),
     CreateDid(CreateDidAction),
     TransferDid(TransferDidAction),
@@ -47,6 +44,12 @@ pub trait Action {
         let _ = index;
         Ok(())
     }
+
+    fn lineate(&self, lineation: &mut Lineation<'_>, index: usize) -> Result<(), WalletError> {
+        let _ = lineation;
+        let _ = index;
+        Ok(())
+    }
 }
 
 impl Action for SpendAction {
@@ -56,7 +59,6 @@ impl Action for SpendAction {
             SpendAction::IssueCat(action) => action.summarize(summary, index),
             SpendAction::MintNft(action) => action.summarize(summary, index),
             SpendAction::TransferNft(action) => action.summarize(summary, index),
-            SpendAction::AssignNft(action) => action.summarize(summary, index),
             SpendAction::AddNftUri(action) => action.summarize(summary, index),
             SpendAction::CreateDid(action) => action.summarize(summary, index),
             SpendAction::TransferDid(action) => action.summarize(summary, index),
@@ -74,11 +76,23 @@ impl Action for SpendAction {
             SpendAction::IssueCat(action) => action.distribute(distribution, index),
             SpendAction::MintNft(action) => action.distribute(distribution, index),
             SpendAction::TransferNft(action) => action.distribute(distribution, index),
-            SpendAction::AssignNft(action) => action.distribute(distribution, index),
             SpendAction::AddNftUri(action) => action.distribute(distribution, index),
             SpendAction::CreateDid(action) => action.distribute(distribution, index),
             SpendAction::TransferDid(action) => action.distribute(distribution, index),
             SpendAction::NormalizeDid(action) => action.distribute(distribution, index),
+        }
+    }
+
+    fn lineate(&self, lineation: &mut Lineation<'_>, index: usize) -> Result<(), WalletError> {
+        match self {
+            SpendAction::Send(action) => action.lineate(lineation, index),
+            SpendAction::IssueCat(action) => action.lineate(lineation, index),
+            SpendAction::MintNft(action) => action.lineate(lineation, index),
+            SpendAction::TransferNft(action) => action.lineate(lineation, index),
+            SpendAction::AddNftUri(action) => action.lineate(lineation, index),
+            SpendAction::CreateDid(action) => action.lineate(lineation, index),
+            SpendAction::TransferDid(action) => action.lineate(lineation, index),
+            SpendAction::NormalizeDid(action) => action.lineate(lineation, index),
         }
     }
 }
