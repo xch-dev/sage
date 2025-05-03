@@ -53,6 +53,7 @@ import {
   PenIcon,
   SnowflakeIcon,
   TrashIcon,
+  CopyIcon,
 } from 'lucide-react';
 import type { MouseEvent, TouchEvent } from 'react';
 import { ForwardedRef, forwardRef, useEffect, useState } from 'react';
@@ -60,7 +61,12 @@ import { useNavigate } from 'react-router-dom';
 import { commands, KeyInfo, SecretKeyInfo } from '../bindings';
 import Container from '../components/Container';
 import { useWallet } from '../contexts/WalletContext';
-import { loginAndUpdateState } from '../state';
+import {
+  loginAndUpdateState,
+  logoutAndUpdateState,
+  useWalletState,
+} from '../state';
+import { toast } from 'react-toastify';
 
 const isMobile = platform() === 'ios' || platform() === 'android';
 
@@ -250,6 +256,7 @@ function WalletItem({
   const navigate = useNavigate();
   const { addError } = useErrors();
   const { setWallet } = useWallet();
+  const walletState = useWalletState();
 
   const [anchorEl, _setAnchorEl] = useState<HTMLElement | null>(null);
   const isMenuOpen = Boolean(anchorEl);
@@ -307,6 +314,22 @@ function WalletItem({
       .finally(() => setRenameOpen(false));
 
     setNewName('');
+  };
+
+  const copyAddress = async () => {
+    try {
+      await loginAndUpdateState(info.fingerprint);
+      navigator.clipboard.writeText(walletState.sync.receive_address);
+      toast.success(t`Address copied to clipboard`);
+    } catch (error) {
+      toast.error(t`Failed to copy address to clipboard`);
+    } finally {
+      try {
+        await logoutAndUpdateState();
+      } catch (error) {
+        console.error(error);
+      }
+    }
   };
 
   const loginSelf = (explicit: boolean) => {
@@ -380,6 +403,18 @@ function WalletItem({
                   <LogInIcon className='mr-2 h-4 w-4' />
                   <span>
                     <Trans>Login</Trans>
+                  </span>
+                </DropdownMenuItem>{' '}
+                <DropdownMenuItem
+                  className='cursor-pointer'
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    await copyAddress();
+                  }}
+                >
+                  <CopyIcon className='mr-2 h-4 w-4' />
+                  <span>
+                    <Trans>Copy Address</Trans>
                   </span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
