@@ -59,7 +59,11 @@ impl Action for SendAction {
         }
     }
 
-    fn distribute(&self, distribution: &mut Distribution<'_>) -> Result<(), WalletError> {
+    fn distribute(
+        &self,
+        distribution: &mut Distribution<'_>,
+        _index: usize,
+    ) -> Result<(), WalletError> {
         if distribution.asset_id() == self.asset_id {
             distribution.create_coin(
                 self.puzzle_hash,

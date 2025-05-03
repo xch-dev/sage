@@ -38,8 +38,13 @@ pub enum SpendAction {
 pub trait Action {
     fn summarize(&self, summary: &mut Summary, index: usize);
 
-    fn distribute(&self, distribution: &mut Distribution<'_>) -> Result<(), WalletError> {
+    fn distribute(
+        &self,
+        distribution: &mut Distribution<'_>,
+        index: usize,
+    ) -> Result<(), WalletError> {
         let _ = distribution;
+        let _ = index;
         Ok(())
     }
 }
@@ -59,17 +64,21 @@ impl Action for SpendAction {
         }
     }
 
-    fn distribute(&self, distribution: &mut Distribution<'_>) -> Result<(), WalletError> {
+    fn distribute(
+        &self,
+        distribution: &mut Distribution<'_>,
+        index: usize,
+    ) -> Result<(), WalletError> {
         match self {
-            SpendAction::Send(action) => action.distribute(distribution),
-            SpendAction::IssueCat(action) => action.distribute(distribution),
-            SpendAction::MintNft(action) => action.distribute(distribution),
-            SpendAction::TransferNft(action) => action.distribute(distribution),
-            SpendAction::AssignNft(action) => action.distribute(distribution),
-            SpendAction::AddNftUri(action) => action.distribute(distribution),
-            SpendAction::CreateDid(action) => action.distribute(distribution),
-            SpendAction::TransferDid(action) => action.distribute(distribution),
-            SpendAction::NormalizeDid(action) => action.distribute(distribution),
+            SpendAction::Send(action) => action.distribute(distribution, index),
+            SpendAction::IssueCat(action) => action.distribute(distribution, index),
+            SpendAction::MintNft(action) => action.distribute(distribution, index),
+            SpendAction::TransferNft(action) => action.distribute(distribution, index),
+            SpendAction::AssignNft(action) => action.distribute(distribution, index),
+            SpendAction::AddNftUri(action) => action.distribute(distribution, index),
+            SpendAction::CreateDid(action) => action.distribute(distribution, index),
+            SpendAction::TransferDid(action) => action.distribute(distribution, index),
+            SpendAction::NormalizeDid(action) => action.distribute(distribution, index),
         }
     }
 }

@@ -1,4 +1,4 @@
-use std::mem;
+use std::{collections::HashMap, mem};
 
 use chia::protocol::{Bytes, Bytes32, Coin};
 use chia_puzzles::SINGLETON_LAUNCHER_HASH;
@@ -15,17 +15,30 @@ use super::{Action, Id, Selected, Selection, Summary, TransactionConfig};
 
 #[derive(Debug)]
 pub struct Distribution<'a> {
-    ctx: &'a mut SpendContext,
-    asset_id: Option<Id>,
-    items: Vec<DistributionItem>,
-    launcher_index: usize,
+    pub ctx: &'a mut SpendContext,
+    pub asset_id: Option<Id>,
+    pub items: Vec<DistributionItem>,
+    pub launcher_index: usize,
+    pub parent_index: usize,
+    pub new_assets: NewAssets,
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct NewAssets {
+    pub cats: HashMap<Id, NewCat>,
+}
+
+#[derive(Debug, Clone)]
+pub struct NewCat {
+    pub asset_id: Bytes32,
+    pub items: Vec<DistributionItem>,
 }
 
 #[derive(Debug, Clone)]
 pub struct DistributionItem {
-    coin: DistributionCoin,
-    payments: IndexSet<Payment>,
-    conditions: Conditions,
+    pub coin: DistributionCoin,
+    pub payments: IndexSet<Payment>,
+    pub conditions: Conditions,
 }
 
 impl DistributionItem {
@@ -93,6 +106,8 @@ impl<'a> Distribution<'a> {
             asset_id,
             items,
             launcher_index: 0,
+            parent_index: 0,
+            new_assets: NewAssets::default(),
         }
     }
 
@@ -100,11 +115,12 @@ impl<'a> Distribution<'a> {
         self.asset_id
     }
 
-    pub fn add(
+    pub fn make_payment(
         &mut self,
         payment: Payment,
         f: impl FnOnce(
             &mut SpendContext,
+            &mut NewAssets,
             &DistributionCoin,
             Conditions,
         ) -> Result<Conditions, WalletError>,
@@ -147,7 +163,7 @@ impl<'a> Distribution<'a> {
         item.payments.insert(payment);
 
         let conditions = mem::take(&mut item.conditions);
-        let new_conditions = f(self.ctx, &item.coin, conditions)?;
+        let new_conditions = f(self.ctx, &mut self.new_assets, &item.coin, conditions)?;
         item.conditions = new_conditions;
 
         Ok(())
@@ -160,9 +176,9 @@ impl<'a> Distribution<'a> {
         include_hint: bool,
         memos: Option<Vec<Bytes>>,
     ) -> Result<(), WalletError> {
-        self.add(
+        self.make_payment(
             Payment::new(p2_puzzle_hash, amount),
-            |ctx, _coin, conditions| {
+            |ctx, _new_assets, _coin, conditions| {
                 Ok(conditions.create_coin(
                     p2_puzzle_hash,
                     amount,
@@ -176,22 +192,76 @@ impl<'a> Distribution<'a> {
 
     pub fn create_launcher(
         &mut self,
-        f: impl FnOnce(&mut SpendContext, Launcher, Conditions) -> Result<Conditions, WalletError>,
+        f: impl FnOnce(
+            &mut SpendContext,
+            &mut NewAssets,
+            Launcher,
+            Conditions,
+        ) -> Result<Conditions, WalletError>,
     ) -> Result<(), WalletError> {
         let launcher_amount = self.launcher_index as u64 * 2;
         self.launcher_index += 1;
 
         let p2_puzzle_hash = SINGLETON_LAUNCHER_HASH.into();
 
-        self.add(
+        self.make_payment(
             Payment::new(p2_puzzle_hash, launcher_amount),
-            |ctx, coin, conditions| {
+            |ctx, new_assets, coin, conditions| {
                 let launcher =
                     Launcher::new(coin.coin().coin_id(), launcher_amount).with_singleton_amount(1);
 
-                f(ctx, launcher, conditions)
+                f(ctx, new_assets, launcher, conditions)
             },
         )?;
+
+        Ok(())
+    }
+
+    pub fn create_from_unique_parent(
+        &mut self,
+        f: impl FnOnce(
+            &mut SpendContext,
+            &mut NewAssets,
+            &DistributionCoin,
+            Conditions,
+        ) -> Result<Conditions, WalletError>,
+    ) -> Result<(), WalletError> {
+        let item = if let Some(item) = self.items.get_mut(self.parent_index) {
+            item
+        } else {
+            let Some(parent) = self.items.iter_mut().find(|item| {
+                !item
+                    .payments
+                    .contains(&Payment::new(item.coin.p2_puzzle_hash(), 0))
+            }) else {
+                return Ok(());
+            };
+
+            parent
+                .payments
+                .insert(Payment::new(parent.coin.p2_puzzle_hash(), 0));
+
+            parent.conditions = mem::take(&mut parent.conditions).create_coin(
+                parent.coin.p2_puzzle_hash(),
+                0,
+                calculate_memos(
+                    self.ctx,
+                    parent.coin.p2_puzzle_hash(),
+                    matches!(parent.coin, DistributionCoin::Cat(..)),
+                    None,
+                )?,
+            );
+
+            let child = parent.coin.child(parent.coin.p2_puzzle_hash(), 0);
+            self.items.push(DistributionItem::new(child));
+            self.items.last_mut().expect("item should exist")
+        };
+
+        self.parent_index += 1;
+
+        let conditions = mem::take(&mut item.conditions);
+        let new_conditions = f(self.ctx, &mut self.new_assets, &item.coin, conditions)?;
+        item.conditions = new_conditions;
 
         Ok(())
     }
@@ -204,18 +274,33 @@ impl Wallet {
         summary: &Summary,
         selection: &Selection,
         tx: &TransactionConfig,
-    ) -> Result<(), WalletError> {
+    ) -> Result<NewAssets, WalletError> {
         let change_puzzle_hash = self.p2_puzzle_hash(false, true).await?;
 
-        self.distribute_xch(ctx, summary, selection, tx, change_puzzle_hash)
+        let new_assets = self
+            .distribute_xch(ctx, summary, selection, tx, change_puzzle_hash)
             .await?;
 
-        for (&id, selected) in &selection.cats {
-            self.distribute_cat(ctx, summary, id, selected, tx, change_puzzle_hash)
-                .await?;
+        let mut new_selection = selection.clone();
+
+        for &id in new_assets.cats.keys() {
+            new_selection.cats.entry(id).or_default();
         }
 
-        Ok(())
+        for (&id, selected) in &new_selection.cats {
+            self.distribute_cat(
+                ctx,
+                summary,
+                id,
+                &new_assets,
+                selected,
+                tx,
+                change_puzzle_hash,
+            )
+            .await?;
+        }
+
+        Ok(new_assets)
     }
 
     async fn distribute_xch(
@@ -225,7 +310,7 @@ impl Wallet {
         selection: &Selection,
         tx: &TransactionConfig,
         change_puzzle_hash: Bytes32,
-    ) -> Result<(), WalletError> {
+    ) -> Result<NewAssets, WalletError> {
         let mut distribution = Distribution::new(
             ctx,
             None,
@@ -253,8 +338,8 @@ impl Wallet {
             distribution.create_coin(change_puzzle_hash, change_amount, false, None)?;
         }
 
-        for action in &tx.actions {
-            action.distribute(&mut distribution)?;
+        for (index, action) in tx.actions.iter().enumerate() {
+            action.distribute(&mut distribution, index)?;
         }
 
         let items = distribution
@@ -263,17 +348,21 @@ impl Wallet {
             .map(|item| (item.coin.coin(), item.conditions))
             .collect_vec();
 
+        let new_assets = distribution.new_assets;
+
         self.spend_p2_coins_separately(ctx, items.into_iter())
             .await?;
 
-        Ok(())
+        Ok(new_assets)
     }
 
+    #[allow(clippy::too_many_arguments)]
     async fn distribute_cat(
         &self,
         ctx: &mut SpendContext,
         summary: &Summary,
         id: Id,
+        new_assets: &NewAssets,
         selected: &Selected<Cat>,
         tx: &TransactionConfig,
         change_puzzle_hash: Bytes32,
@@ -285,6 +374,13 @@ impl Wallet {
                 .coins
                 .iter()
                 .map(|&cat| DistributionItem::new(DistributionCoin::Cat(cat)))
+                .chain(
+                    new_assets
+                        .cats
+                        .get(&id)
+                        .map(|asset| asset.items.clone())
+                        .unwrap_or_default(),
+                )
                 .collect(),
         );
 
@@ -299,8 +395,8 @@ impl Wallet {
             distribution.create_coin(change_puzzle_hash, change_amount, false, None)?;
         }
 
-        for action in &tx.actions {
-            action.distribute(&mut distribution)?;
+        for (index, action) in tx.actions.iter().enumerate() {
+            action.distribute(&mut distribution, index)?;
         }
 
         let items = distribution

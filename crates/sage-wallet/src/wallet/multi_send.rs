@@ -196,19 +196,19 @@ mod tests {
         let mut alice = TestWallet::new(5000).await?;
         let mut bob = alice.next(0).await?;
 
-        let (coin_spends, bronze) = alice.wallet.issue_cat(1000, 0, false, true).await?;
+        let (coin_spends, bronze) = alice.wallet.issue_cat(1000, 0).await?;
         assert_eq!(coin_spends.len(), 2);
 
         alice.transact(coin_spends).await?;
         alice.wait_for_coins().await;
 
-        let (coin_spends, silver) = alice.wallet.issue_cat(1000, 0, false, true).await?;
+        let (coin_spends, silver) = alice.wallet.issue_cat(1000, 0).await?;
         assert_eq!(coin_spends.len(), 2);
 
         alice.transact(coin_spends).await?;
         alice.wait_for_coins().await;
 
-        let (coin_spends, gold) = alice.wallet.issue_cat(1000, 0, false, true).await?;
+        let (coin_spends, gold) = alice.wallet.issue_cat(1000, 0).await?;
         assert_eq!(coin_spends.len(), 2);
 
         alice.transact(coin_spends).await?;

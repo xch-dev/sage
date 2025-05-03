@@ -1,12 +1,9 @@
 use chia::protocol::{Bytes, Bytes32, CoinSpend};
-use chia_wallet_sdk::{
-    driver::{Cat, SpendContext},
-    types::Conditions,
-};
+use chia_wallet_sdk::driver::SpendContext;
 
 use crate::WalletError;
 
-use super::{Hint, Id, SendAction, SpendAction, TransactionConfig, Wallet};
+use super::{Hint, Id, IssueCatAction, SendAction, SpendAction, TransactionConfig, Wallet};
 
 impl Wallet {
     /// Sends the given amount of XCH to the given puzzle hash, minus the fee.
@@ -29,7 +26,7 @@ impl Wallet {
             })
             .collect();
 
-        self.transact(actions, fee).await
+        Ok(self.transact(actions, fee).await?.coin_spends)
     }
 
     /// Sends the given amount of CAT to the given puzzle hash.
@@ -54,46 +51,31 @@ impl Wallet {
             })
             .collect();
 
-        self.transact(actions, fee).await
+        Ok(self.transact(actions, fee).await?.coin_spends)
     }
 
     pub async fn issue_cat(
         &self,
         amount: u64,
         fee: u64,
-        hardened: bool,
-        reuse: bool,
     ) -> Result<(Vec<CoinSpend>, Bytes32), WalletError> {
-        let total_amount = amount as u128 + fee as u128;
-        let coins = self.select_p2_coins(total_amount).await?;
-        let selected: u128 = coins.iter().map(|coin| coin.amount as u128).sum();
+        let result = self
+            .transact(
+                vec![SpendAction::IssueCat(IssueCatAction::new(amount))],
+                fee,
+            )
+            .await?;
 
-        let change: u64 = (selected - total_amount)
-            .try_into()
-            .expect("change amount overflow");
-
-        let p2_puzzle_hash = self.p2_puzzle_hash(hardened, reuse).await?;
-
-        let mut ctx = SpendContext::new();
-
-        let hint = ctx.hint(p2_puzzle_hash)?;
-
-        let eve_conditions = Conditions::new().create_coin(p2_puzzle_hash, amount, Some(hint));
-
-        let (mut conditions, eve) =
-            Cat::single_issuance_eve(&mut ctx, coins[0].coin_id(), amount, eve_conditions)?;
-
-        if fee > 0 {
-            conditions = conditions.reserve_fee(fee);
-        }
-
-        if change > 0 {
-            conditions = conditions.create_coin(p2_puzzle_hash, change, None);
-        }
-
-        self.spend_p2_coins(&mut ctx, coins, conditions).await?;
-
-        Ok((ctx.take(), eve.asset_id))
+        Ok((
+            result.coin_spends,
+            result
+                .new_assets
+                .cats
+                .values()
+                .next()
+                .expect("no cat")
+                .asset_id,
+        ))
     }
 
     pub async fn combine(
@@ -101,7 +83,10 @@ impl Wallet {
         coin_ids: Vec<Bytes32>,
         fee: u64,
     ) -> Result<Vec<CoinSpend>, WalletError> {
-        self.transact_with_coin_ids(coin_ids, Vec::new(), fee).await
+        Ok(self
+            .transact_with_coin_ids(coin_ids, Vec::new(), fee)
+            .await?
+            .coin_spends)
     }
 
     pub async fn split(
@@ -288,7 +273,7 @@ mod tests {
     async fn test_send_cat() -> anyhow::Result<()> {
         let mut test = TestWallet::new(1500).await?;
 
-        let (coin_spends, asset_id) = test.wallet.issue_cat(1000, 0, false, true).await?;
+        let (coin_spends, asset_id) = test.wallet.issue_cat(1000, 0).await?;
         assert_eq!(coin_spends.len(), 2);
 
         test.transact(coin_spends).await?;
@@ -332,7 +317,7 @@ mod tests {
     async fn test_cat_coin_management() -> anyhow::Result<()> {
         let mut test = TestWallet::new(100).await?;
 
-        let (coin_spends, asset_id) = test.wallet.issue_cat(100, 0, false, true).await?;
+        let (coin_spends, asset_id) = test.wallet.issue_cat(100, 0).await?;
         test.transact(coin_spends).await?;
         test.wait_for_coins().await;
 

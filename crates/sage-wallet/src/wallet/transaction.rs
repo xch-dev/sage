@@ -42,16 +42,21 @@ impl TransactionConfig {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct TransactionResult {
+    pub coin_spends: Vec<CoinSpend>,
+    pub new_assets: NewAssets,
+}
+
 impl Wallet {
     pub async fn transact_preselected(
         &self,
         ctx: &mut SpendContext,
         tx: &mut TransactionConfig,
-    ) -> Result<(), WalletError> {
+    ) -> Result<NewAssets, WalletError> {
         let summary = self.summarize(tx)?;
         self.select(ctx, &mut tx.preselection, &summary).await?;
-        self.distribute(ctx, &summary, &tx.preselection, tx).await?;
-        Ok(())
+        self.distribute(ctx, &summary, &tx.preselection, tx).await
     }
 
     pub async fn transact_with_coin_ids(
@@ -59,7 +64,7 @@ impl Wallet {
         coin_ids: Vec<Bytes32>,
         actions: Vec<SpendAction>,
         fee: u64,
-    ) -> Result<Vec<CoinSpend>, WalletError> {
+    ) -> Result<TransactionResult, WalletError> {
         let mut ctx = SpendContext::new();
 
         let preselection = self.preselect(&mut ctx, coin_ids).await?;
@@ -70,18 +75,21 @@ impl Wallet {
         self.select(&mut ctx, &mut tx.preselection, &summary)
             .await?;
 
-        self.distribute(&mut ctx, &summary, &tx.preselection, &tx)
+        let new_assets = self
+            .distribute(&mut ctx, &summary, &tx.preselection, &tx)
             .await?;
 
-        Ok(ctx.take())
+        Ok(TransactionResult {
+            coin_spends: ctx.take(),
+            new_assets,
+        })
     }
 
     pub async fn transact(
         &self,
-
         actions: Vec<SpendAction>,
         fee: u64,
-    ) -> Result<Vec<CoinSpend>, WalletError> {
+    ) -> Result<TransactionResult, WalletError> {
         let mut ctx = SpendContext::new();
         let mut tx = TransactionConfig::new(actions, fee);
 
@@ -90,9 +98,13 @@ impl Wallet {
         self.select(&mut ctx, &mut tx.preselection, &summary)
             .await?;
 
-        self.distribute(&mut ctx, &summary, &tx.preselection, &tx)
+        let new_assets = self
+            .distribute(&mut ctx, &summary, &tx.preselection, &tx)
             .await?;
 
-        Ok(ctx.take())
+        Ok(TransactionResult {
+            coin_spends: ctx.take(),
+            new_assets,
+        })
     }
 }
