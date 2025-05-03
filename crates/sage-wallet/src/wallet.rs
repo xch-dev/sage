@@ -3,7 +3,6 @@ use sage_database::Database;
 
 mod coin_selection;
 mod derivations;
-mod did_assign;
 mod dids;
 mod fungible_assets;
 mod memos;

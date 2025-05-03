@@ -444,9 +444,7 @@ impl Sage {
         let did_id = req.did_id.map(parse_did_id).transpose()?;
         let fee = parse_amount(req.fee)?;
 
-        let coin_spends = wallet
-            .assign_nfts(nft_ids, did_id, fee, false, true)
-            .await?;
+        let coin_spends = wallet.assign_nfts(nft_ids, did_id, fee).await?;
         self.transact(coin_spends, req.auto_submit).await
     }
 

@@ -100,21 +100,48 @@ impl Wallet {
         puzzle_hash: Bytes32,
         fee: u64,
     ) -> Result<Vec<CoinSpend>, WalletError> {
-        let mut actions = Vec::new();
-
         let unassign_did = !self.db.is_p2_puzzle_hash(puzzle_hash).await?;
 
-        for nft_id in nft_ids {
-            actions.push(SpendAction::TransferNft(TransferNftAction::new(
-                Id::Existing(nft_id),
-                puzzle_hash,
-                if unassign_did {
-                    AssignDid::None
-                } else {
-                    AssignDid::Existing
-                },
-            )));
-        }
+        let actions = nft_ids
+            .into_iter()
+            .map(|nft_id| {
+                SpendAction::TransferNft(TransferNftAction::new(
+                    Id::Existing(nft_id),
+                    puzzle_hash,
+                    if unassign_did {
+                        AssignDid::None
+                    } else {
+                        AssignDid::Existing
+                    },
+                ))
+            })
+            .collect();
+
+        Ok(self.transact(actions, fee).await?.coin_spends)
+    }
+
+    pub async fn assign_nfts(
+        &self,
+        nft_ids: Vec<Bytes32>,
+        did_id: Option<Bytes32>,
+        fee: u64,
+    ) -> Result<Vec<CoinSpend>, WalletError> {
+        let puzzle_hash = self.p2_puzzle_hash(false, true).await?;
+
+        let actions = nft_ids
+            .into_iter()
+            .map(|nft_id| {
+                SpendAction::TransferNft(TransferNftAction::new(
+                    Id::Existing(nft_id),
+                    puzzle_hash,
+                    if let Some(did_id) = did_id {
+                        AssignDid::New(Id::Existing(did_id))
+                    } else {
+                        AssignDid::Existing
+                    },
+                ))
+            })
+            .collect();
 
         Ok(self.transact(actions, fee).await?.coin_spends)
     }
@@ -354,8 +381,6 @@ mod tests {
                 vec![nft.info.launcher_id],
                 Some(bob_did.info.launcher_id),
                 0,
-                false,
-                true,
             )
             .await?;
         bob.transact(coin_spends).await?;
@@ -375,6 +400,51 @@ mod tests {
             .await?
             .expect("missing nft");
         assert_eq!(row.owner_did, Some(bob_did.info.launcher_id));
+
+        Ok(())
+    }
+
+    #[test(tokio::test)]
+    async fn test_assign_nft() -> anyhow::Result<()> {
+        let mut test = TestWallet::new(2).await?;
+
+        let (coin_spends, did) = test.wallet.create_did(0, false, true).await?;
+        test.transact(coin_spends).await?;
+        test.wait_for_coins().await;
+
+        let (coin_spends, mut nfts, _did) = test
+            .wallet
+            .bulk_mint_nfts(
+                0,
+                did.info.launcher_id,
+                vec![WalletNftMint {
+                    metadata: NftMetadata::default(),
+                    p2_puzzle_hash: None,
+                    royalty_puzzle_hash: Some(Bytes32::default()),
+                    royalty_ten_thousandths: 300,
+                }],
+                false,
+                true,
+            )
+            .await?;
+        test.transact(coin_spends).await?;
+        test.wait_for_coins().await;
+
+        let nft = nfts.remove(0);
+
+        let coin_spends = test
+            .wallet
+            .assign_nfts(vec![nft.info.launcher_id], None, 0)
+            .await?;
+        test.transact(coin_spends).await?;
+        test.wait_for_coins().await;
+
+        let coin_spends = test
+            .wallet
+            .assign_nfts(vec![nft.info.launcher_id], Some(did.info.launcher_id), 0)
+            .await?;
+        test.transact(coin_spends).await?;
+        test.wait_for_coins().await;
 
         Ok(())
     }
