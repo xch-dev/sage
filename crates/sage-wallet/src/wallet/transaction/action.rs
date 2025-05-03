@@ -1,4 +1,3 @@
-mod add_nft_uri;
 mod create_did;
 mod issue_cat;
 mod mint_nft;
@@ -7,7 +6,6 @@ mod send;
 mod transfer_did;
 mod transfer_nft;
 
-pub use add_nft_uri::*;
 pub use create_did::*;
 pub use issue_cat::*;
 pub use mint_nft::*;
@@ -26,7 +24,6 @@ pub enum SpendAction {
     IssueCat(IssueCatAction),
     MintNft(MintNftAction),
     TransferNft(TransferNftAction),
-    AddNftUri(AddNftUriAction),
     CreateDid(CreateDidAction),
     TransferDid(TransferDidAction),
     NormalizeDid(NormalizeDidAction),
@@ -59,7 +56,6 @@ impl Action for SpendAction {
             SpendAction::IssueCat(action) => action.summarize(summary, index),
             SpendAction::MintNft(action) => action.summarize(summary, index),
             SpendAction::TransferNft(action) => action.summarize(summary, index),
-            SpendAction::AddNftUri(action) => action.summarize(summary, index),
             SpendAction::CreateDid(action) => action.summarize(summary, index),
             SpendAction::TransferDid(action) => action.summarize(summary, index),
             SpendAction::NormalizeDid(action) => action.summarize(summary, index),
@@ -76,7 +72,6 @@ impl Action for SpendAction {
             SpendAction::IssueCat(action) => action.distribute(distribution, index),
             SpendAction::MintNft(action) => action.distribute(distribution, index),
             SpendAction::TransferNft(action) => action.distribute(distribution, index),
-            SpendAction::AddNftUri(action) => action.distribute(distribution, index),
             SpendAction::CreateDid(action) => action.distribute(distribution, index),
             SpendAction::TransferDid(action) => action.distribute(distribution, index),
             SpendAction::NormalizeDid(action) => action.distribute(distribution, index),
@@ -89,7 +84,6 @@ impl Action for SpendAction {
             SpendAction::IssueCat(action) => action.lineate(lineation, index),
             SpendAction::MintNft(action) => action.lineate(lineation, index),
             SpendAction::TransferNft(action) => action.lineate(lineation, index),
-            SpendAction::AddNftUri(action) => action.lineate(lineation, index),
             SpendAction::CreateDid(action) => action.lineate(lineation, index),
             SpendAction::TransferDid(action) => action.lineate(lineation, index),
             SpendAction::NormalizeDid(action) => action.lineate(lineation, index),
