@@ -2,7 +2,6 @@ use chia::{bls::PublicKey, protocol::Bytes32};
 use sage_database::Database;
 
 mod cat_coin_management;
-mod cat_spends;
 mod cats;
 mod coin_selection;
 mod derivations;
@@ -14,8 +13,8 @@ mod nfts;
 mod offer;
 mod p2_coin_management;
 mod p2_send;
-mod p2_spends;
 mod signing;
+mod spends;
 mod transaction;
 
 pub use multi_send::*;
