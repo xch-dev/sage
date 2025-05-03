@@ -1,7 +1,4 @@
-use chia::{
-    bls::PublicKey,
-    protocol::{Bytes, Bytes32, CoinSpend},
-};
+use chia::protocol::{Bytes, Bytes32, CoinSpend};
 use chia_wallet_sdk::{
     driver::{Cat, SpendContext},
     types::Conditions,
@@ -16,7 +13,6 @@ impl Wallet {
         &self,
         amount: u64,
         fee: u64,
-        multi_issuance_key: Option<PublicKey>,
         hardened: bool,
         reuse: bool,
     ) -> Result<(Vec<CoinSpend>, Bytes32), WalletError> {
@@ -36,12 +32,8 @@ impl Wallet {
 
         let eve_conditions = Conditions::new().create_coin(p2_puzzle_hash, amount, Some(hint));
 
-        let (mut conditions, eve) = match multi_issuance_key {
-            Some(pk) => {
-                Cat::multi_issuance_eve(&mut ctx, coins[0].coin_id(), pk, amount, eve_conditions)?
-            }
-            None => Cat::single_issuance_eve(&mut ctx, coins[0].coin_id(), amount, eve_conditions)?,
-        };
+        let (mut conditions, eve) =
+            Cat::single_issuance_eve(&mut ctx, coins[0].coin_id(), amount, eve_conditions)?;
 
         if fee > 0 {
             conditions = conditions.reserve_fee(fee);
@@ -98,7 +90,7 @@ mod tests {
     async fn test_send_cat() -> anyhow::Result<()> {
         let mut test = TestWallet::new(1500).await?;
 
-        let (coin_spends, asset_id) = test.wallet.issue_cat(1000, 0, None, false, true).await?;
+        let (coin_spends, asset_id) = test.wallet.issue_cat(1000, 0, false, true).await?;
         assert_eq!(coin_spends.len(), 2);
 
         test.transact(coin_spends).await?;

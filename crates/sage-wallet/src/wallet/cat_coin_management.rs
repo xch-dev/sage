@@ -174,7 +174,7 @@ mod tests {
     async fn test_cat_coin_management() -> anyhow::Result<()> {
         let mut test = TestWallet::new(100).await?;
 
-        let (coin_spends, asset_id) = test.wallet.issue_cat(100, 0, None, false, true).await?;
+        let (coin_spends, asset_id) = test.wallet.issue_cat(100, 0, false, true).await?;
         test.transact(coin_spends).await?;
         test.wait_for_coins().await;
 
