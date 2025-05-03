@@ -184,7 +184,7 @@ impl Sage {
         let amount = parse_amount(req.amount)?;
         let fee = parse_amount(req.fee)?;
 
-        let (coin_spends, asset_id) = wallet.issue_cat(amount, fee, false, true).await?;
+        let (coin_spends, asset_id) = wallet.issue_cat(amount, fee).await?;
         wallet
             .db
             .insert_cat(CatRow {
