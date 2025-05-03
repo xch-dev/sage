@@ -18,9 +18,6 @@ pub use send::*;
 pub use transfer_did::*;
 pub use transfer_nft::*;
 
-use chia::protocol::Coin;
-use chia_wallet_sdk::driver::Cat;
-
 use crate::WalletError;
 
 use super::{Distribution, Preselection};
@@ -41,12 +38,7 @@ pub enum SpendAction {
 pub trait Action {
     fn preselect(&self, preselection: &mut Preselection, index: usize);
 
-    fn distribute_xch(&self, distribution: &mut Distribution<'_, Coin>) -> Result<(), WalletError> {
-        let _ = distribution;
-        Ok(())
-    }
-
-    fn distribute_cat(&self, distribution: &mut Distribution<'_, Cat>) -> Result<(), WalletError> {
+    fn distribute(&self, distribution: &mut Distribution<'_>) -> Result<(), WalletError> {
         let _ = distribution;
         Ok(())
     }
@@ -67,17 +59,17 @@ impl Action for SpendAction {
         }
     }
 
-    fn distribute_xch(&self, distribution: &mut Distribution<'_, Coin>) -> Result<(), WalletError> {
+    fn distribute(&self, distribution: &mut Distribution<'_>) -> Result<(), WalletError> {
         match self {
-            SpendAction::Send(action) => action.distribute_xch(distribution),
-            SpendAction::IssueCat(action) => action.distribute_xch(distribution),
-            SpendAction::MintNft(action) => action.distribute_xch(distribution),
-            SpendAction::TransferNft(action) => action.distribute_xch(distribution),
-            SpendAction::AssignNft(action) => action.distribute_xch(distribution),
-            SpendAction::AddNftUri(action) => action.distribute_xch(distribution),
-            SpendAction::CreateDid(action) => action.distribute_xch(distribution),
-            SpendAction::TransferDid(action) => action.distribute_xch(distribution),
-            SpendAction::NormalizeDid(action) => action.distribute_xch(distribution),
+            SpendAction::Send(action) => action.distribute(distribution),
+            SpendAction::IssueCat(action) => action.distribute(distribution),
+            SpendAction::MintNft(action) => action.distribute(distribution),
+            SpendAction::TransferNft(action) => action.distribute(distribution),
+            SpendAction::AssignNft(action) => action.distribute(distribution),
+            SpendAction::AddNftUri(action) => action.distribute(distribution),
+            SpendAction::CreateDid(action) => action.distribute(distribution),
+            SpendAction::TransferDid(action) => action.distribute(distribution),
+            SpendAction::NormalizeDid(action) => action.distribute(distribution),
         }
     }
 }

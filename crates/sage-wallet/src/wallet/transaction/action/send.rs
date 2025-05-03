@@ -1,5 +1,4 @@
-use chia::protocol::{Bytes, Bytes32, Coin};
-use chia_wallet_sdk::driver::Cat;
+use chia::protocol::{Bytes, Bytes32};
 
 use crate::{Action, Distribution, Id, Preselection, WalletError};
 
@@ -42,24 +41,20 @@ impl Action for SendAction {
         }
     }
 
-    fn distribute_xch(&self, distribution: &mut Distribution<'_, Coin>) -> Result<(), WalletError> {
-        distribution.create_coin(
-            self.puzzle_hash,
-            self.amount,
-            matches!(self.include_hint, Hint::Yes),
-            self.memos.clone(),
-        )
-    }
-
-    fn distribute_cat(&self, distribution: &mut Distribution<'_, Cat>) -> Result<(), WalletError> {
+    fn distribute(&self, distribution: &mut Distribution<'_>) -> Result<(), WalletError> {
         if distribution.asset_id() == self.asset_id {
             distribution.create_coin(
                 self.puzzle_hash,
                 self.amount,
-                !matches!(self.include_hint, Hint::No),
+                if self.asset_id.is_some() {
+                    matches!(self.include_hint, Hint::Default | Hint::Yes)
+                } else {
+                    matches!(self.include_hint, Hint::Yes)
+                },
                 self.memos.clone(),
             )?;
         }
+
         Ok(())
     }
 }
