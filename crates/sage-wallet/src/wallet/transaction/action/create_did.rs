@@ -1,4 +1,4 @@
-use crate::{Action, Preselection};
+use crate::{Action, Summary};
 
 /// This will create a new DID at the change puzzle hash specified
 /// in the transaction config. It can be immediately spent if needed.
@@ -6,7 +6,7 @@ use crate::{Action, Preselection};
 pub struct CreateDidAction;
 
 impl Action for CreateDidAction {
-    fn preselect(&self, preselection: &mut Preselection, _index: usize) {
-        preselection.spent_xch += 1;
+    fn summarize(&self, summary: &mut Summary, _index: usize) {
+        summary.spent_xch += 1;
     }
 }

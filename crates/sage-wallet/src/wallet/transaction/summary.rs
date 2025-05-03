@@ -5,7 +5,7 @@ use crate::{Wallet, WalletError};
 use super::{Action, Id, TransactionConfig};
 
 #[derive(Debug, Default, Clone)]
-pub struct Preselection {
+pub struct Summary {
     pub created_xch: u64,
     pub created_cats: HashMap<Id, u64>,
     pub created_nfts: HashSet<Id>,
@@ -18,7 +18,7 @@ pub struct Preselection {
     pub spent_options: HashSet<Id>,
 }
 
-impl Preselection {
+impl Summary {
     pub fn new(fee: u64) -> Self {
         Self {
             spent_xch: fee,
@@ -28,13 +28,13 @@ impl Preselection {
 }
 
 impl Wallet {
-    pub fn preselect(&self, tx: &TransactionConfig) -> Result<Preselection, WalletError> {
-        let mut preselection = Preselection::new(tx.fee);
+    pub fn summarize(&self, tx: &TransactionConfig) -> Result<Summary, WalletError> {
+        let mut summary = Summary::new(tx.fee);
 
         for (index, action) in tx.actions.iter().enumerate() {
-            action.preselect(&mut preselection, index);
+            action.summarize(&mut summary, index);
         }
 
-        Ok(preselection)
+        Ok(summary)
     }
 }

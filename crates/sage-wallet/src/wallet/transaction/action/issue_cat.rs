@@ -1,4 +1,4 @@
-use crate::{Action, Id, Preselection};
+use crate::{Action, Id, Summary};
 
 /// This will create a new single-issuance CAT.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -8,8 +8,8 @@ pub struct IssueCatAction {
 }
 
 impl Action for IssueCatAction {
-    fn preselect(&self, preselection: &mut Preselection, index: usize) {
-        *preselection.created_cats.entry(Id::New(index)).or_insert(0) += self.amount;
-        preselection.spent_xch += self.amount;
+    fn summarize(&self, summary: &mut Summary, index: usize) {
+        *summary.created_cats.entry(Id::New(index)).or_insert(0) += self.amount;
+        summary.spent_xch += self.amount;
     }
 }

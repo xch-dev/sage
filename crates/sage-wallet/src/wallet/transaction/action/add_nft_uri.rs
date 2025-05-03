@@ -1,4 +1,4 @@
-use crate::{Action, Id, Preselection};
+use crate::{Action, Id, Summary};
 
 /// Adds a single URI to a standard NFT with a metadata update.
 /// If the NFT is not standard, this will raise an error at runtime.
@@ -24,7 +24,7 @@ pub enum NftKind {
 }
 
 impl Action for AddNftUriAction {
-    fn preselect(&self, preselection: &mut Preselection, _index: usize) {
-        preselection.spent_nfts.insert(self.nft_id);
+    fn summarize(&self, summary: &mut Summary, _index: usize) {
+        summary.spent_nfts.insert(self.nft_id);
     }
 }

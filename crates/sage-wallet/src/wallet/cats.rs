@@ -6,7 +6,7 @@ use chia_wallet_sdk::{
 
 use crate::WalletError;
 
-use super::{Hint, Id, SendAction, SpendAction, TransactionConfig, Wallet};
+use super::{Hint, Id, SendAction, SpendAction, Wallet};
 
 impl Wallet {
     pub async fn issue_cat(
@@ -71,10 +71,7 @@ impl Wallet {
             })
             .collect();
 
-        Ok(self
-            .transact(&TransactionConfig::new(actions, fee))
-            .await?
-            .coin_spends)
+        self.transact(actions, fee).await
     }
 }
 

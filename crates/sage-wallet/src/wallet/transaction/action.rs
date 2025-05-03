@@ -20,7 +20,7 @@ pub use transfer_nft::*;
 
 use crate::WalletError;
 
-use super::{Distribution, Preselection};
+use super::{Distribution, Summary};
 
 #[derive(Debug, Clone)]
 pub enum SpendAction {
@@ -36,7 +36,7 @@ pub enum SpendAction {
 }
 
 pub trait Action {
-    fn preselect(&self, preselection: &mut Preselection, index: usize);
+    fn summarize(&self, summary: &mut Summary, index: usize);
 
     fn distribute(&self, distribution: &mut Distribution<'_>) -> Result<(), WalletError> {
         let _ = distribution;
@@ -45,17 +45,17 @@ pub trait Action {
 }
 
 impl Action for SpendAction {
-    fn preselect(&self, preselection: &mut Preselection, index: usize) {
+    fn summarize(&self, summary: &mut Summary, index: usize) {
         match self {
-            SpendAction::Send(action) => action.preselect(preselection, index),
-            SpendAction::IssueCat(action) => action.preselect(preselection, index),
-            SpendAction::MintNft(action) => action.preselect(preselection, index),
-            SpendAction::TransferNft(action) => action.preselect(preselection, index),
-            SpendAction::AssignNft(action) => action.preselect(preselection, index),
-            SpendAction::AddNftUri(action) => action.preselect(preselection, index),
-            SpendAction::CreateDid(action) => action.preselect(preselection, index),
-            SpendAction::TransferDid(action) => action.preselect(preselection, index),
-            SpendAction::NormalizeDid(action) => action.preselect(preselection, index),
+            SpendAction::Send(action) => action.summarize(summary, index),
+            SpendAction::IssueCat(action) => action.summarize(summary, index),
+            SpendAction::MintNft(action) => action.summarize(summary, index),
+            SpendAction::TransferNft(action) => action.summarize(summary, index),
+            SpendAction::AssignNft(action) => action.summarize(summary, index),
+            SpendAction::AddNftUri(action) => action.summarize(summary, index),
+            SpendAction::CreateDid(action) => action.summarize(summary, index),
+            SpendAction::TransferDid(action) => action.summarize(summary, index),
+            SpendAction::NormalizeDid(action) => action.summarize(summary, index),
         }
     }
 

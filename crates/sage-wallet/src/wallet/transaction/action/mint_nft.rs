@@ -1,6 +1,6 @@
 use chia::{protocol::Bytes32, puzzles::nft::NftMetadata};
 
-use crate::{Action, Id, Preselection};
+use crate::{Action, Id, Summary};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MintNftAction {
@@ -11,9 +11,9 @@ pub struct MintNftAction {
 }
 
 impl Action for MintNftAction {
-    fn preselect(&self, preselection: &mut Preselection, index: usize) {
-        preselection.created_nfts.insert(Id::New(index));
-        preselection.spent_dids.insert(self.minter_did);
-        preselection.spent_xch += 1;
+    fn summarize(&self, summary: &mut Summary, index: usize) {
+        summary.created_nfts.insert(Id::New(index));
+        summary.spent_dids.insert(self.minter_did);
+        summary.spent_xch += 1;
     }
 }

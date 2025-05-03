@@ -11,7 +11,7 @@ use itertools::Itertools;
 
 use crate::{wallet::memos::calculate_memos, Wallet, WalletError};
 
-use super::{Action, Id, Preselection, Selected, Selection, TransactionConfig};
+use super::{Action, Id, Selected, Selection, Summary, TransactionConfig};
 
 #[derive(Debug)]
 pub struct Distribution<'a> {
@@ -201,17 +201,17 @@ impl Wallet {
     pub async fn distribute(
         &self,
         ctx: &mut SpendContext,
-        preselection: &Preselection,
+        summary: &Summary,
         selection: &Selection,
         tx: &TransactionConfig,
     ) -> Result<(), WalletError> {
         let change_puzzle_hash = self.p2_puzzle_hash(false, true).await?;
 
-        self.distribute_xch(ctx, preselection, selection, tx, change_puzzle_hash)
+        self.distribute_xch(ctx, summary, selection, tx, change_puzzle_hash)
             .await?;
 
         for (&id, selected) in &selection.cats {
-            self.distribute_cat(ctx, preselection, id, selected, tx, change_puzzle_hash)
+            self.distribute_cat(ctx, summary, id, selected, tx, change_puzzle_hash)
                 .await?;
         }
 
@@ -221,7 +221,7 @@ impl Wallet {
     async fn distribute_xch(
         &self,
         ctx: &mut SpendContext,
-        preselection: &Preselection,
+        summary: &Summary,
         selection: &Selection,
         tx: &TransactionConfig,
         change_puzzle_hash: Bytes32,
@@ -246,8 +246,8 @@ impl Wallet {
                 .collect(),
         );
 
-        let change_amount = (selection.xch.existing_amount + preselection.created_xch)
-            .saturating_sub(preselection.spent_xch);
+        let change_amount =
+            (selection.xch.existing_amount + summary.created_xch).saturating_sub(summary.spent_xch);
 
         if change_amount > 0 {
             distribution.create_coin(change_puzzle_hash, change_amount, false, None)?;
@@ -272,7 +272,7 @@ impl Wallet {
     async fn distribute_cat(
         &self,
         ctx: &mut SpendContext,
-        preselection: &Preselection,
+        summary: &Summary,
         id: Id,
         selected: &Selected<Cat>,
         tx: &TransactionConfig,
@@ -288,17 +288,9 @@ impl Wallet {
                 .collect(),
         );
 
-        let created_amount = preselection
-            .created_cats
-            .get(&id)
-            .copied()
-            .unwrap_or_default();
+        let created_amount = summary.created_cats.get(&id).copied().unwrap_or_default();
 
-        let spent_amount = preselection
-            .spent_cats
-            .get(&id)
-            .copied()
-            .unwrap_or_default();
+        let spent_amount = summary.spent_cats.get(&id).copied().unwrap_or_default();
 
         let change_amount =
             (selected.existing_amount + created_amount).saturating_sub(spent_amount);

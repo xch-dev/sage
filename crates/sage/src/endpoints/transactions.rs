@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use chia::{
-    protocol::{Bytes, CoinSpend},
+    protocol::{Bytes, Bytes32, CoinSpend},
     puzzles::nft::NftMetadata,
 };
 use chia_wallet_sdk::{driver::MetadataUpdate, utils::Address};
@@ -20,7 +20,7 @@ use sage_wallet::{MultiSendPayment, WalletNftMint};
 use tokio::time::timeout;
 
 use crate::{
-    fetch_cats, fetch_coins, json_bundle, json_spend, parse_amount, parse_asset_id, parse_did_id,
+    fetch_cats, json_bundle, json_spend, parse_amount, parse_asset_id, parse_coin_id, parse_did_id,
     parse_hash, parse_memos, parse_nft_id, rust_bundle, rust_spend, ConfirmationInfo, Error,
     Result, Sage,
 };
@@ -60,9 +60,13 @@ impl Sage {
     pub async fn combine_xch(&self, req: CombineXch) -> Result<TransactionResponse> {
         let wallet = self.wallet()?;
         let fee = parse_amount(req.fee)?;
-        let coins = fetch_coins(&wallet, req.coin_ids).await?;
+        let coin_ids = req
+            .coin_ids
+            .into_iter()
+            .map(parse_coin_id)
+            .collect::<Result<Vec<Bytes32>>>()?;
 
-        let coin_spends = wallet.combine_xch(coins, fee, false, true).await?;
+        let coin_spends = wallet.combine_xch(coin_ids, fee).await?;
         self.transact(coin_spends, req.auto_submit).await
     }
 
@@ -71,7 +75,7 @@ impl Sage {
         let fee = parse_amount(req.fee)?;
         let max_amount = req.max_coin_amount.map(parse_amount).transpose()?;
 
-        let coins = wallet
+        let coin_ids = wallet
             .db
             .spendable_coins()
             .await?
@@ -84,18 +88,15 @@ impl Sage {
             })
             .sorted_by_key(|coin| coin.amount)
             .take(req.max_coins as usize)
+            .map(|coin| coin.coin_id())
             .collect_vec();
 
-        let coin_ids = coins
-            .iter()
-            .map(|coin| hex::encode(coin.coin_id()))
-            .collect_vec();
-
-        let coin_spends = wallet.combine_xch(coins, fee, false, true).await?;
+        let coin_ids_hex = coin_ids.iter().map(hex::encode).collect_vec();
+        let coin_spends = wallet.combine_xch(coin_ids, fee).await?;
         let response = self.transact(coin_spends, req.auto_submit).await?;
 
         Ok(AutoCombineXchResponse {
-            coin_ids,
+            coin_ids: coin_ids_hex,
             summary: response.summary,
             coin_spends: response.coin_spends,
         })
@@ -104,10 +105,15 @@ impl Sage {
     pub async fn split_xch(&self, req: SplitXch) -> Result<TransactionResponse> {
         let wallet = self.wallet()?;
         let fee = parse_amount(req.fee)?;
-        let coins = fetch_coins(&wallet, req.coin_ids).await?;
+
+        let coin_ids = req
+            .coin_ids
+            .into_iter()
+            .map(parse_coin_id)
+            .collect::<Result<Vec<Bytes32>>>()?;
 
         let coin_spends = wallet
-            .split_xch(&coins, req.output_count as usize, fee, false, true)
+            .split_xch(coin_ids, req.output_count as usize, fee)
             .await?;
         self.transact(coin_spends, req.auto_submit).await
     }

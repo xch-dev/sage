@@ -1,6 +1,6 @@
 use chia::protocol::Bytes32;
 
-use crate::{Action, Id, Preselection};
+use crate::{Action, Id, Summary};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct TransferDidAction {
@@ -9,7 +9,7 @@ pub struct TransferDidAction {
 }
 
 impl Action for TransferDidAction {
-    fn preselect(&self, preselection: &mut Preselection, _index: usize) {
-        preselection.spent_dids.insert(self.did_id);
+    fn summarize(&self, summary: &mut Summary, _index: usize) {
+        summary.spent_dids.insert(self.did_id);
     }
 }

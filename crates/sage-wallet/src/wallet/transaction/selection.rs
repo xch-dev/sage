@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use chia::protocol::Coin;
+use chia::protocol::{Bytes32, Coin};
 use chia_wallet_sdk::{
     driver::{Cat, Did, HashedPtr, Nft, OptionContract, SpendContext},
     utils::select_coins,
@@ -10,7 +10,7 @@ use sage_database::CoinKind;
 
 use crate::{Wallet, WalletError};
 
-use super::{Id, Preselection, TransactionConfig};
+use super::{Id, Summary};
 
 #[derive(Debug, Default, Clone)]
 pub struct Selection {
@@ -37,15 +37,14 @@ impl<T> Default for Selected<T> {
 }
 
 impl Wallet {
-    pub async fn select(
+    pub async fn preselect(
         &self,
         ctx: &mut SpendContext,
-        preselection: &Preselection,
-        tx: &TransactionConfig,
+        coin_ids: Vec<Bytes32>,
     ) -> Result<Selection, WalletError> {
         let mut selection = Selection::default();
 
-        for &coin_id in tx.preselected_coin_ids.iter().collect::<IndexSet<_>>() {
+        for coin_id in coin_ids.into_iter().collect::<IndexSet<_>>() {
             let Some(row) = self.db.full_coin_state(coin_id).await? else {
                 return Err(WalletError::MissingCoin(coin_id));
             };
@@ -109,12 +108,21 @@ impl Wallet {
             }
         }
 
-        let xch_deficit = preselection
+        Ok(selection)
+    }
+
+    pub async fn select(
+        &self,
+        ctx: &mut SpendContext,
+        selection: &mut Selection,
+        summary: &Summary,
+    ) -> Result<(), WalletError> {
+        let xch_deficit = summary
             .spent_xch
-            .saturating_sub(preselection.created_xch)
+            .saturating_sub(summary.created_xch)
             .saturating_sub(selection.xch.existing_amount);
 
-        if xch_deficit > 0 || (selection.xch.coins.is_empty() && preselection.spent_xch > 0) {
+        if xch_deficit > 0 || (selection.xch.coins.is_empty() && summary.spent_xch > 0) {
             let mut spendable_coins = self.db.spendable_coins().await?;
             spendable_coins.retain(|coin| !selection.xch.coins.contains(coin));
 
@@ -124,14 +132,10 @@ impl Wallet {
             }
         }
 
-        for (id, spent) in preselection.spent_cats.clone() {
+        for (id, spent) in summary.spent_cats.clone() {
             let selected = selection.cats.entry(id).or_default();
 
-            let created = preselection
-                .created_cats
-                .get(&id)
-                .copied()
-                .unwrap_or_default();
+            let created = summary.created_cats.get(&id).copied().unwrap_or_default();
 
             let deficit = spent
                 .saturating_sub(created)
@@ -166,10 +170,7 @@ impl Wallet {
             }
         }
 
-        for &id in preselection
-            .spent_nfts
-            .difference(&preselection.created_nfts)
-        {
+        for &id in summary.spent_nfts.difference(&summary.created_nfts) {
             if selection.nfts.contains_key(&id) {
                 continue;
             }
@@ -192,10 +193,7 @@ impl Wallet {
             }
         }
 
-        for &id in preselection
-            .spent_dids
-            .difference(&preselection.created_dids)
-        {
+        for &id in summary.spent_dids.difference(&summary.created_dids) {
             if selection.dids.contains_key(&id) {
                 continue;
             }
@@ -218,10 +216,7 @@ impl Wallet {
             }
         }
 
-        for &id in preselection
-            .spent_options
-            .difference(&preselection.created_options)
-        {
+        for &id in summary.spent_options.difference(&summary.created_options) {
             if selection.options.contains_key(&id) {
                 continue;
             }
@@ -240,6 +235,6 @@ impl Wallet {
             }
         }
 
-        Ok(selection)
+        Ok(())
     }
 }
