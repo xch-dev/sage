@@ -205,11 +205,13 @@ impl Wallet {
         selection: &Selection,
         tx: &TransactionConfig,
     ) -> Result<(), WalletError> {
-        self.distribute_xch(ctx, preselection, selection, tx)
+        let change_puzzle_hash = self.p2_puzzle_hash(false, true).await?;
+
+        self.distribute_xch(ctx, preselection, selection, tx, change_puzzle_hash)
             .await?;
 
         for (&id, selected) in &selection.cats {
-            self.distribute_cat(ctx, preselection, id, selected, tx)
+            self.distribute_cat(ctx, preselection, id, selected, tx, change_puzzle_hash)
                 .await?;
         }
 
@@ -222,6 +224,7 @@ impl Wallet {
         preselection: &Preselection,
         selection: &Selection,
         tx: &TransactionConfig,
+        change_puzzle_hash: Bytes32,
     ) -> Result<(), WalletError> {
         let mut distribution = Distribution::new(
             ctx,
@@ -247,7 +250,7 @@ impl Wallet {
             .saturating_sub(preselection.spent_xch);
 
         if change_amount > 0 {
-            distribution.create_coin(tx.change_address, change_amount, false, None)?;
+            distribution.create_coin(change_puzzle_hash, change_amount, false, None)?;
         }
 
         for action in &tx.actions {
@@ -273,6 +276,7 @@ impl Wallet {
         id: Id,
         selected: &Selected<Cat>,
         tx: &TransactionConfig,
+        change_puzzle_hash: Bytes32,
     ) -> Result<(), WalletError> {
         let mut distribution = Distribution::new(
             ctx,
@@ -300,7 +304,7 @@ impl Wallet {
             (selected.existing_amount + created_amount).saturating_sub(spent_amount);
 
         if change_amount > 0 {
-            distribution.create_coin(tx.change_address, change_amount, false, None)?;
+            distribution.create_coin(change_puzzle_hash, change_amount, false, None)?;
         }
 
         for action in &tx.actions {

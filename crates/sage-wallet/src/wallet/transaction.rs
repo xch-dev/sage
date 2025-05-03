@@ -22,16 +22,14 @@ pub struct TransactionConfig {
     pub actions: Vec<SpendAction>,
     pub preselected_coin_ids: Vec<Bytes32>,
     pub fee: u64,
-    pub change_address: Bytes32,
 }
 
 impl TransactionConfig {
-    pub fn new(actions: Vec<SpendAction>, fee: u64, change_address: Bytes32) -> Self {
+    pub fn new(actions: Vec<SpendAction>, fee: u64) -> Self {
         Self {
             actions,
             preselected_coin_ids: Vec::new(),
             fee,
-            change_address,
         }
     }
 }

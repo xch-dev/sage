@@ -57,26 +57,24 @@ impl Wallet {
         fee: u64,
         include_hint: bool,
         memos: Option<Vec<Bytes>>,
-        hardened: bool,
-        reuse: bool,
     ) -> Result<Vec<CoinSpend>, WalletError> {
-        let mut actions = Vec::new();
+        let actions = amounts
+            .into_iter()
+            .map(|(puzzle_hash, amount)| {
+                SpendAction::Send(SendAction::new(
+                    Some(Id::Existing(asset_id)),
+                    puzzle_hash,
+                    amount,
+                    if include_hint { Hint::Yes } else { Hint::No },
+                    memos.clone(),
+                ))
+            })
+            .collect();
 
-        for (puzzle_hash, amount) in amounts {
-            actions.push(SpendAction::Send(SendAction::new(
-                Some(Id::Existing(asset_id)),
-                puzzle_hash,
-                amount,
-                if include_hint { Hint::Yes } else { Hint::No },
-                memos.clone(),
-            )));
-        }
-
-        let change_puzzle_hash = self.p2_puzzle_hash(hardened, reuse).await?;
-        let tx = TransactionConfig::new(actions, fee, change_puzzle_hash);
-        let result = self.transact(&tx).await?;
-
-        Ok(result.coin_spends)
+        Ok(self
+            .transact(&TransactionConfig::new(actions, fee))
+            .await?
+            .coin_spends)
     }
 }
 
@@ -103,15 +101,7 @@ mod tests {
 
         let coin_spends = test
             .wallet
-            .send_cat(
-                asset_id,
-                vec![(test.puzzle_hash, 750)],
-                0,
-                true,
-                None,
-                false,
-                true,
-            )
+            .send_cat(asset_id, vec![(test.puzzle_hash, 750)], 0, true, None)
             .await?;
         assert_eq!(coin_spends.len(), 1);
 
@@ -123,15 +113,7 @@ mod tests {
 
         let coin_spends = test
             .wallet
-            .send_cat(
-                asset_id,
-                vec![(test.puzzle_hash, 1000)],
-                500,
-                true,
-                None,
-                false,
-                true,
-            )
+            .send_cat(asset_id, vec![(test.puzzle_hash, 1000)], 500, true, None)
             .await?;
         assert_eq!(coin_spends.len(), 3);
 
