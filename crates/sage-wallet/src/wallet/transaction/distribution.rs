@@ -11,7 +11,7 @@ use itertools::Itertools;
 
 use crate::{wallet::memos::calculate_memos, Wallet, WalletError};
 
-use super::{Action, Id, Preselection, Selection, TransactionConfig};
+use super::{Action, Id, Preselection, Selected, Selection, TransactionConfig};
 
 #[derive(Debug)]
 pub struct Distribution<'a> {
@@ -205,6 +205,24 @@ impl Wallet {
         selection: &Selection,
         tx: &TransactionConfig,
     ) -> Result<(), WalletError> {
+        self.distribute_xch(ctx, preselection, selection, tx)
+            .await?;
+
+        for (&id, selected) in &selection.cats {
+            self.distribute_cat(ctx, preselection, id, selected, tx)
+                .await?;
+        }
+
+        Ok(())
+    }
+
+    async fn distribute_xch(
+        &self,
+        ctx: &mut SpendContext,
+        preselection: &Preselection,
+        selection: &Selection,
+        tx: &TransactionConfig,
+    ) -> Result<(), WalletError> {
         let mut distribution = Distribution::new(
             ctx,
             None,
@@ -244,6 +262,66 @@ impl Wallet {
 
         self.spend_p2_coins_separately(ctx, items.into_iter())
             .await?;
+
+        Ok(())
+    }
+
+    async fn distribute_cat(
+        &self,
+        ctx: &mut SpendContext,
+        preselection: &Preselection,
+        id: Id,
+        selected: &Selected<Cat>,
+        tx: &TransactionConfig,
+    ) -> Result<(), WalletError> {
+        let mut distribution = Distribution::new(
+            ctx,
+            Some(id),
+            selected
+                .coins
+                .iter()
+                .map(|&cat| DistributionItem::new(DistributionCoin::Cat(cat)))
+                .collect(),
+        );
+
+        let created_amount = preselection
+            .created_cats
+            .get(&id)
+            .copied()
+            .unwrap_or_default();
+
+        let spent_amount = preselection
+            .spent_cats
+            .get(&id)
+            .copied()
+            .unwrap_or_default();
+
+        let change_amount =
+            (selected.existing_amount + created_amount).saturating_sub(spent_amount);
+
+        if change_amount > 0 {
+            distribution.create_coin(tx.change_address, change_amount, false, None)?;
+        }
+
+        for action in &tx.actions {
+            action.distribute(&mut distribution)?;
+        }
+
+        let items = distribution
+            .items
+            .into_iter()
+            .map(|item| {
+                (
+                    match item.coin {
+                        DistributionCoin::Xch(..) => unreachable!(),
+                        DistributionCoin::Cat(cat) => cat,
+                    },
+                    item.conditions,
+                )
+            })
+            .collect_vec();
+
+        self.spend_cat_coins(ctx, items.into_iter()).await?;
 
         Ok(())
     }

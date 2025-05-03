@@ -124,12 +124,8 @@ impl Wallet {
             }
         }
 
-        for (&id, selected) in &mut selection.cats {
-            let spent = preselection
-                .spent_cats
-                .get(&id)
-                .copied()
-                .unwrap_or_default();
+        for (id, spent) in preselection.spent_cats.clone() {
+            let selected = selection.cats.entry(id).or_default();
 
             let created = preselection
                 .created_cats

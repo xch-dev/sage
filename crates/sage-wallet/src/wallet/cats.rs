@@ -1,5 +1,3 @@
-use std::mem;
-
 use chia::{
     bls::PublicKey,
     protocol::{Bytes, Bytes32, CoinSpend},
@@ -11,7 +9,7 @@ use chia_wallet_sdk::{
 
 use crate::WalletError;
 
-use super::{memos::calculate_memos, Wallet};
+use super::{Hint, Id, SendAction, SpendAction, TransactionConfig, Wallet};
 
 impl Wallet {
     pub async fn issue_cat(
@@ -70,80 +68,23 @@ impl Wallet {
         hardened: bool,
         reuse: bool,
     ) -> Result<Vec<CoinSpend>, WalletError> {
-        let fee_coins = if fee > 0 {
-            self.select_p2_coins(fee as u128).await?
-        } else {
-            Vec::new()
-        };
-
-        let combined_amount = amounts.iter().map(|(_, amount)| amount).sum::<u64>();
-
-        let cats = self
-            .select_cat_coins(asset_id, combined_amount as u128)
-            .await?;
-        let cat_selected: u128 = cats.iter().map(|cat| cat.coin.amount as u128).sum();
-        let cat_change: u64 = (cat_selected - combined_amount as u128)
-            .try_into()
-            .expect("change amount overflow");
-
-        let change_puzzle_hash = self.p2_puzzle_hash(hardened, reuse).await?;
-
-        let mut conditions = if fee_coins.is_empty() {
-            Conditions::new()
-        } else {
-            Conditions::new().assert_concurrent_spend(cats[0].coin.coin_id())
-        };
-
-        if fee > 0 {
-            let fee_selected: u128 = fee_coins.iter().map(|coin| coin.amount as u128).sum();
-            let fee_change: u64 = (fee_selected - fee as u128)
-                .try_into()
-                .expect("fee change overflow");
-
-            conditions = conditions.reserve_fee(fee);
-
-            if fee_change > 0 {
-                conditions = conditions.create_coin(change_puzzle_hash, fee_change, None);
-            }
-        }
-
-        let mut ctx = SpendContext::new();
-
-        if !fee_coins.is_empty() {
-            self.spend_p2_coins(&mut ctx, fee_coins, mem::take(&mut conditions))
-                .await?;
-        }
+        let mut actions = Vec::new();
 
         for (puzzle_hash, amount) in amounts {
-            conditions = conditions.create_coin(
+            actions.push(SpendAction::Send(SendAction::new(
+                Some(Id::Existing(asset_id)),
                 puzzle_hash,
                 amount,
-                calculate_memos(&mut ctx, puzzle_hash, include_hint, memos.clone())?,
-            );
+                if include_hint { Hint::Yes } else { Hint::No },
+                memos.clone(),
+            )));
         }
 
-        let change_hint = ctx.hint(change_puzzle_hash)?;
+        let change_puzzle_hash = self.p2_puzzle_hash(hardened, reuse).await?;
+        let tx = TransactionConfig::new(actions, fee, change_puzzle_hash);
+        let result = self.transact(&tx).await?;
 
-        self.spend_cat_coins(
-            &mut ctx,
-            cats.into_iter().enumerate().map(|(i, cat)| {
-                if i != 0 {
-                    return (cat, Conditions::new());
-                }
-
-                let mut conditions = mem::take(&mut conditions);
-
-                if cat_change > 0 {
-                    conditions =
-                        conditions.create_coin(change_puzzle_hash, cat_change, Some(change_hint));
-                }
-
-                (cat, conditions)
-            }),
-        )
-        .await?;
-
-        Ok(ctx.take())
+        Ok(result.coin_spends)
     }
 }
 
