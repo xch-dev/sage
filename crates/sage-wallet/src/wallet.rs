@@ -6,14 +6,13 @@ mod derivations;
 mod dids;
 mod fungible_assets;
 mod memos;
-mod multi_send;
 mod nfts;
 mod offer;
 mod signing;
 mod spends;
 mod transaction;
 
-pub use multi_send::*;
+pub use fungible_assets::*;
 pub use nfts::*;
 pub use offer::*;
 pub use transaction::*;

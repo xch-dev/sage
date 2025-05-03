@@ -275,7 +275,7 @@ impl Sage {
 
         let fee = parse_amount(req.fee)?;
 
-        let coin_spends = wallet.multi_send(payments, fee, false, true).await?;
+        let coin_spends = wallet.multi_send(payments, fee).await?;
         self.transact(coin_spends, req.auto_submit).await
     }
 
