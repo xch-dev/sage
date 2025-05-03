@@ -1,6 +1,7 @@
-use chia::protocol::{Bytes, Bytes32};
+use chia::protocol::{Bytes, Bytes32, Coin};
+use chia_wallet_sdk::driver::Cat;
 
-use crate::{Action, Id, Preselection};
+use crate::{Action, Distribution, Id, Preselection, WalletError};
 
 /// Sends an amount of a fungible asset to a given puzzle hash. This means
 /// that a coin will be created at the puzzle hash and amount, but the
@@ -39,5 +40,26 @@ impl Action for SendAction {
         } else {
             preselection.spent_xch += self.amount;
         }
+    }
+
+    fn distribute_xch(&self, distribution: &mut Distribution<'_, Coin>) -> Result<(), WalletError> {
+        distribution.create_coin(
+            self.puzzle_hash,
+            self.amount,
+            matches!(self.include_hint, Hint::Yes),
+            self.memos.clone(),
+        )
+    }
+
+    fn distribute_cat(&self, distribution: &mut Distribution<'_, Cat>) -> Result<(), WalletError> {
+        if distribution.asset_id() == self.asset_id {
+            distribution.create_coin(
+                self.puzzle_hash,
+                self.amount,
+                !matches!(self.include_hint, Hint::No),
+                self.memos.clone(),
+            )?;
+        }
+        Ok(())
     }
 }

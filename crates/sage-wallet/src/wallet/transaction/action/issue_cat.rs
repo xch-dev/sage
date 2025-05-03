@@ -1,7 +1,7 @@
 use crate::{Action, Id, Preselection};
 
 /// This will create a new single-issuance CAT.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct IssueCatAction {
     /// The amount of the CAT to issue.
     pub amount: u64,
