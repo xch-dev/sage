@@ -63,10 +63,9 @@ import Container from '../components/Container';
 import { useWallet } from '../contexts/WalletContext';
 import {
   loginAndUpdateState,
-  logoutAndUpdateState,
-  useWalletState,
 } from '../state';
 import { toast } from 'react-toastify';
+import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 
 const isMobile = platform() === 'ios' || platform() === 'android';
 
@@ -256,19 +255,13 @@ function WalletItem({
   const navigate = useNavigate();
   const { addError } = useErrors();
   const { setWallet } = useWallet();
-  const walletState = useWalletState();
-
   const [anchorEl, _setAnchorEl] = useState<HTMLElement | null>(null);
   const isMenuOpen = Boolean(anchorEl);
-
   const [isDeleteOpen, setDeleteOpen] = useState(false);
-
   const [isDetailsOpen, setDetailsOpen] = useState(false);
   const [secrets, setSecrets] = useState<SecretKeyInfo | null>(null);
-
   const [isRenameOpen, setRenameOpen] = useState(false);
   const [newName, setNewName] = useState('');
-
   const [isResyncOpen, setResyncOpen] = useState(false);
   const [deleteOffers, setDeleteOffers] = useState(false);
   const [deleteUnhardened, setDeleteUnhardened] = useState(false);
@@ -318,14 +311,21 @@ function WalletItem({
 
   const copyAddress = async () => {
     try {
-      await loginAndUpdateState(info.fingerprint);
-      navigator.clipboard.writeText(walletState.sync.receive_address);
-      toast.success(t`Address copied to clipboard`);
+      await commands.login({ fingerprint: info.fingerprint });
+      const sync = await commands.getSyncStatus({});
+
+      if (sync?.receive_address) {
+        writeText(sync.receive_address);
+        toast.success(sync.receive_address);
+        toast.success(t`Address copied to clipboard`);
+      } else {
+        toast.error(t`No address found`);
+      }
     } catch (error) {
       toast.error(t`Failed to copy address to clipboard`);
     } finally {
       try {
-        await logoutAndUpdateState();
+        await commands.logout({});
       } catch (error) {
         console.error(error);
       }
