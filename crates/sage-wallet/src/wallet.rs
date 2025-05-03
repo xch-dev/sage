@@ -1,7 +1,6 @@
 use chia::{bls::PublicKey, protocol::Bytes32};
 use sage_database::Database;
 
-mod cat_coin_management;
 mod cats;
 mod coin_selection;
 mod derivations;
