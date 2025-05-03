@@ -113,6 +113,7 @@ impl Wallet {
                     } else {
                         AssignDid::Existing
                     },
+                    None,
                 ))
             })
             .collect();
@@ -139,6 +140,7 @@ impl Wallet {
                     } else {
                         AssignDid::Existing
                     },
+                    None,
                 ))
             })
             .collect();
@@ -151,58 +153,21 @@ impl Wallet {
         nft_id: Bytes32,
         fee: u64,
         uri: MetadataUpdate,
-        hardened: bool,
-        reuse: bool,
-    ) -> Result<(Vec<CoinSpend>, Nft<Program>), WalletError> {
-        let Some(nft) = self.db.spendable_nft(nft_id).await? else {
-            return Err(WalletError::MissingNft(nft_id));
-        };
+    ) -> Result<Vec<CoinSpend>, WalletError> {
+        let puzzle_hash = self.p2_puzzle_hash(false, true).await?;
 
-        let coins = if fee > 0 {
-            self.select_p2_coins(fee as u128).await?
-        } else {
-            Vec::new()
-        };
-        let selected: u128 = coins.iter().map(|coin| coin.amount as u128).sum();
-
-        let change: u64 = (selected - fee as u128)
-            .try_into()
-            .expect("change amount overflow");
-
-        let p2_puzzle_hash = self.p2_puzzle_hash(hardened, reuse).await?;
-
-        let mut ctx = SpendContext::new();
-
-        let nft_metadata_ptr = ctx.alloc(&nft.info.metadata)?;
-        let nft = nft.with_metadata(HashedPtr::from_ptr(&ctx, nft_metadata_ptr));
-
-        let synthetic_key = self.db.synthetic_key(nft.info.p2_puzzle_hash).await?;
-        let p2 = StandardLayer::new(synthetic_key);
-
-        let update_spend = uri.spend(&mut ctx)?;
-        let new_nft: Nft<HashedPtr> = nft.transfer_with_metadata(
-            &mut ctx,
-            &p2,
-            nft.info.p2_puzzle_hash,
-            update_spend,
-            Conditions::new(),
-        )?;
-
-        if fee > 0 {
-            let mut conditions = Conditions::new()
-                .assert_concurrent_spend(nft.coin.coin_id())
-                .reserve_fee(fee);
-
-            if change > 0 {
-                conditions = conditions.create_coin(p2_puzzle_hash, change, None);
-            }
-
-            self.spend_p2_coins(&mut ctx, coins, conditions).await?;
-        }
-
-        let new_nft = new_nft.with_metadata(ctx.serialize(&new_nft.info.metadata)?);
-
-        Ok((ctx.take(), new_nft))
+        Ok(self
+            .transact(
+                vec![SpendAction::TransferNft(TransferNftAction::new(
+                    Id::Existing(nft_id),
+                    puzzle_hash,
+                    AssignDid::Existing,
+                    Some(uri),
+                ))],
+                fee,
+            )
+            .await?
+            .coin_spends)
     }
 }
 
@@ -249,9 +214,9 @@ mod tests {
             MetadataUpdate::NewMetadataUri("xyz".to_string()),
             MetadataUpdate::NewLicenseUri("123".to_string()),
         ] {
-            let (coin_spends, _nft) = test
+            let coin_spends = test
                 .wallet
-                .add_nft_uri(nft.info.launcher_id, 0, item, false, true)
+                .add_nft_uri(nft.info.launcher_id, 0, item)
                 .await?;
             test.transact(coin_spends).await?;
             test.wait_for_coins().await;

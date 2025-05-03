@@ -430,7 +430,7 @@ impl Sage {
             NftUriKind::License => MetadataUpdate::NewLicenseUri(req.uri),
         };
 
-        let (coin_spends, _new_nft) = wallet.add_nft_uri(nft_id, fee, uri, false, true).await?;
+        let coin_spends = wallet.add_nft_uri(nft_id, fee, uri).await?;
         self.transact(coin_spends, req.auto_submit).await
     }
 

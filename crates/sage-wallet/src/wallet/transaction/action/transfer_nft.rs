@@ -1,21 +1,31 @@
 use chia::protocol::Bytes32;
-use chia_wallet_sdk::{driver::DidOwner, types::Conditions};
+use chia_wallet_sdk::{
+    driver::{DidOwner, MetadataUpdate},
+    types::Conditions,
+};
 
 use crate::{Action, Id, Lineation, Summary, WalletError};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TransferNftAction {
     pub nft_id: Id,
     pub puzzle_hash: Bytes32,
     pub assign_did: AssignDid,
+    pub add_uri: Option<MetadataUpdate>,
 }
 
 impl TransferNftAction {
-    pub fn new(nft_id: Id, puzzle_hash: Bytes32, assign_did: AssignDid) -> Self {
+    pub fn new(
+        nft_id: Id,
+        puzzle_hash: Bytes32,
+        assign_did: AssignDid,
+        add_uri: Option<MetadataUpdate>,
+    ) -> Self {
         Self {
             nft_id,
             puzzle_hash,
             assign_did,
+            add_uri,
         }
     }
 }
@@ -44,17 +54,39 @@ impl Action for TransferNftAction {
             .get(&nft.info.p2_puzzle_hash)
             .ok_or(WalletError::MissingDerivation(nft.info.p2_puzzle_hash))?;
 
-        let new_nft = match self.assign_did {
-            AssignDid::Existing => {
+        let new_nft = match (self.assign_did, &self.add_uri) {
+            (AssignDid::Existing, None) => {
                 nft.transfer(lineation.ctx, nft_p2, self.puzzle_hash, Conditions::new())?
             }
-            AssignDid::None => nft.transfer(
+            (AssignDid::None, None) => nft.transfer(
                 lineation.ctx,
                 nft_p2,
                 self.puzzle_hash,
                 Conditions::new().transfer_nft(None, Vec::new(), None),
             )?,
-            AssignDid::New(did_id) => {
+            (AssignDid::Existing, Some(uri)) => {
+                let metadata_update = uri.spend(lineation.ctx)?;
+
+                nft.transfer_with_metadata(
+                    lineation.ctx,
+                    nft_p2,
+                    self.puzzle_hash,
+                    metadata_update,
+                    Conditions::new(),
+                )?
+            }
+            (AssignDid::None, Some(uri)) => {
+                let metadata_update = uri.spend(lineation.ctx)?;
+
+                nft.transfer_with_metadata(
+                    lineation.ctx,
+                    nft_p2,
+                    self.puzzle_hash,
+                    metadata_update,
+                    Conditions::new(),
+                )?
+            }
+            (AssignDid::New(did_id), uri) => {
                 let did = lineation.dids[&did_id];
 
                 let did_p2 = lineation
@@ -62,15 +94,31 @@ impl Action for TransferNftAction {
                     .get(&did.info.p2_puzzle_hash)
                     .ok_or(WalletError::MissingDerivation(did.info.p2_puzzle_hash))?;
 
-                let (conditions, nft) = nft.transfer_to_did(
+                let (conditions, mut nft) = nft.transfer_to_did(
                     lineation.ctx,
                     nft_p2,
-                    self.puzzle_hash,
+                    if uri.is_some() {
+                        nft.info.p2_puzzle_hash
+                    } else {
+                        self.puzzle_hash
+                    },
                     Some(DidOwner::from_did_info(&did.info)),
                     Conditions::new(),
                 )?;
 
                 lineation.dids[&did_id] = did.update(lineation.ctx, did_p2, conditions)?;
+
+                if let Some(uri) = uri {
+                    let metadata_update = uri.spend(lineation.ctx)?;
+
+                    nft = nft.transfer_with_metadata(
+                        lineation.ctx,
+                        nft_p2,
+                        self.puzzle_hash,
+                        metadata_update,
+                        Conditions::new(),
+                    )?;
+                }
 
                 nft
             }
