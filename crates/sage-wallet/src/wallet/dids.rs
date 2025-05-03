@@ -4,49 +4,33 @@ use chia::{
     puzzles::{singleton::SingletonArgs, Proof},
 };
 use chia_wallet_sdk::{
-    driver::{Did, HashedPtr, Launcher, SpendContext, StandardLayer},
+    driver::{Did, HashedPtr, SpendContext, StandardLayer},
     types::Conditions,
 };
 
 use crate::WalletError;
 
-use super::{Id, SpendAction, TransferDidAction, Wallet};
+use super::{CreateDidAction, Id, SpendAction, TransferDidAction, Wallet};
 
 impl Wallet {
     pub async fn create_did(
         &self,
         fee: u64,
-        hardened: bool,
-        reuse: bool,
-    ) -> Result<(Vec<CoinSpend>, Did<()>), WalletError> {
-        let total_amount = fee as u128 + 1;
-        let coins = self.select_p2_coins(total_amount).await?;
-        let selected: u128 = coins.iter().map(|coin| coin.amount as u128).sum();
+    ) -> Result<(Vec<CoinSpend>, Did<HashedPtr>), WalletError> {
+        let result = self
+            .transact(vec![SpendAction::CreateDid(CreateDidAction)], fee)
+            .await?;
 
-        let change: u64 = (selected - total_amount)
-            .try_into()
-            .expect("change amount overflow");
-
-        let p2_puzzle_hash = self.p2_puzzle_hash(hardened, reuse).await?;
-
-        let mut ctx = SpendContext::new();
-
-        let synthetic_key = self.db.synthetic_key(coins[0].puzzle_hash).await?;
-        let p2 = StandardLayer::new(synthetic_key);
-        let (mut conditions, did) =
-            Launcher::new(coins[0].coin_id(), 1).create_simple_did(&mut ctx, &p2)?;
-
-        if fee > 0 {
-            conditions = conditions.reserve_fee(fee);
-        }
-
-        if change > 0 {
-            conditions = conditions.create_coin(p2_puzzle_hash, change, None);
-        }
-
-        self.spend_p2_coins(&mut ctx, coins, conditions).await?;
-
-        Ok((ctx.take(), did))
+        Ok((
+            result.coin_spends,
+            result
+                .new_assets
+                .dids
+                .values()
+                .copied()
+                .next()
+                .expect("no did"),
+        ))
     }
 
     pub async fn transfer_dids(
@@ -188,7 +172,7 @@ mod tests {
     async fn test_create_did() -> anyhow::Result<()> {
         let mut test = TestWallet::new(1).await?;
 
-        let (coin_spends, did) = test.wallet.create_did(0, false, true).await?;
+        let (coin_spends, did) = test.wallet.create_did(0).await?;
         test.transact(coin_spends).await?;
         test.wait_for_coins().await;
 

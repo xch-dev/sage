@@ -183,7 +183,7 @@ mod tests {
     async fn test_mint_nft() -> anyhow::Result<()> {
         let mut test = TestWallet::new(2).await?;
 
-        let (coin_spends, did) = test.wallet.create_did(0, false, true).await?;
+        let (coin_spends, did) = test.wallet.create_did(0).await?;
         test.transact(coin_spends).await?;
         test.wait_for_coins().await;
 
@@ -246,7 +246,7 @@ mod tests {
     async fn test_transfer_nft_internal() -> anyhow::Result<()> {
         let mut test = TestWallet::new(2).await?;
 
-        let (coin_spends, did) = test.wallet.create_did(0, false, true).await?;
+        let (coin_spends, did) = test.wallet.create_did(0).await?;
         test.transact(coin_spends).await?;
         test.wait_for_coins().await;
 
@@ -295,11 +295,11 @@ mod tests {
         let mut alice = TestWallet::new(2).await?;
         let mut bob = alice.next(1).await?;
 
-        let (coin_spends, alice_did) = alice.wallet.create_did(0, false, true).await?;
+        let (coin_spends, alice_did) = alice.wallet.create_did(0).await?;
         alice.transact(coin_spends).await?;
         alice.wait_for_coins().await;
 
-        let (coin_spends, bob_did) = bob.wallet.create_did(0, false, true).await?;
+        let (coin_spends, bob_did) = bob.wallet.create_did(0).await?;
         bob.transact(coin_spends).await?;
         bob.wait_for_coins().await;
 
@@ -373,7 +373,7 @@ mod tests {
     async fn test_assign_nft() -> anyhow::Result<()> {
         let mut test = TestWallet::new(2).await?;
 
-        let (coin_spends, did) = test.wallet.create_did(0, false, true).await?;
+        let (coin_spends, did) = test.wallet.create_did(0).await?;
         test.transact(coin_spends).await?;
         test.wait_for_coins().await;
 

@@ -3,7 +3,7 @@ use std::{collections::HashMap, mem};
 use chia::protocol::{Bytes, Bytes32, Coin};
 use chia_puzzles::SINGLETON_LAUNCHER_HASH;
 use chia_wallet_sdk::{
-    driver::{Cat, Did, HashedPtr, Launcher, Nft, OptionContract, SpendContext},
+    driver::{Cat, Did, HashedPtr, Launcher, Nft, OptionContract, SpendContext, StandardLayer},
     types::Conditions,
 };
 use indexmap::IndexSet;
@@ -40,14 +40,16 @@ pub struct NewCat {
 #[derive(Debug, Clone)]
 pub struct DistributionItem {
     pub coin: DistributionCoin,
+    pub p2: StandardLayer,
     pub payments: IndexSet<Payment>,
     pub conditions: Conditions,
 }
 
 impl DistributionItem {
-    pub fn new(coin: DistributionCoin) -> Self {
+    pub fn new(coin: DistributionCoin, p2: StandardLayer) -> Self {
         Self {
             coin,
+            p2,
             payments: IndexSet::new(),
             conditions: Conditions::new(),
         }
@@ -124,7 +126,7 @@ impl<'a> Distribution<'a> {
         f: impl FnOnce(
             &mut SpendContext,
             &mut NewAssets,
-            &DistributionCoin,
+            &DistributionItem,
             Conditions,
         ) -> Result<Conditions, WalletError>,
     ) -> Result<(), WalletError> {
@@ -159,14 +161,15 @@ impl<'a> Distribution<'a> {
             );
 
             let child = parent.coin.child(parent.coin.p2_puzzle_hash(), 0);
-            self.items.push(DistributionItem::new(child));
+            let p2 = parent.p2;
+            self.items.push(DistributionItem::new(child, p2));
             self.items.last_mut().expect("item should exist")
         };
 
         item.payments.insert(payment);
 
         let conditions = mem::take(&mut item.conditions);
-        let new_conditions = f(self.ctx, &mut self.new_assets, &item.coin, conditions)?;
+        let new_conditions = f(self.ctx, &mut self.new_assets, item, conditions)?;
         item.conditions = new_conditions;
 
         Ok(())
@@ -198,6 +201,7 @@ impl<'a> Distribution<'a> {
         f: impl FnOnce(
             &mut SpendContext,
             &mut NewAssets,
+            &DistributionItem,
             Launcher,
             Conditions,
         ) -> Result<Conditions, WalletError>,
@@ -209,11 +213,11 @@ impl<'a> Distribution<'a> {
 
         self.make_payment(
             Payment::new(p2_puzzle_hash, launcher_amount),
-            |ctx, new_assets, coin, conditions| {
-                let launcher =
-                    Launcher::new(coin.coin().coin_id(), launcher_amount).with_singleton_amount(1);
+            |ctx, new_assets, item, conditions| {
+                let launcher = Launcher::new(item.coin.coin().coin_id(), launcher_amount)
+                    .with_singleton_amount(1);
 
-                f(ctx, new_assets, launcher, conditions)
+                f(ctx, new_assets, item, launcher, conditions)
             },
         )?;
 
@@ -225,7 +229,7 @@ impl<'a> Distribution<'a> {
         f: impl FnOnce(
             &mut SpendContext,
             &mut NewAssets,
-            &DistributionCoin,
+            &DistributionItem,
             Conditions,
         ) -> Result<Conditions, WalletError>,
     ) -> Result<(), WalletError> {
@@ -256,14 +260,15 @@ impl<'a> Distribution<'a> {
             );
 
             let child = parent.coin.child(parent.coin.p2_puzzle_hash(), 0);
-            self.items.push(DistributionItem::new(child));
+            let p2 = parent.p2;
+            self.items.push(DistributionItem::new(child, p2));
             self.items.last_mut().expect("item should exist")
         };
 
         self.parent_index += 1;
 
         let conditions = mem::take(&mut item.conditions);
-        let new_conditions = f(self.ctx, &mut self.new_assets, &item.coin, conditions)?;
+        let new_conditions = f(self.ctx, &mut self.new_assets, item, conditions)?;
         item.conditions = new_conditions;
 
         Ok(())
@@ -314,25 +319,24 @@ impl Wallet {
         tx: &TransactionConfig,
         change_puzzle_hash: Bytes32,
     ) -> Result<NewAssets, WalletError> {
-        let mut distribution = Distribution::new(
-            ctx,
-            None,
-            selection
-                .xch
-                .coins
-                .iter()
-                .enumerate()
-                .map(|(i, &coin)| {
-                    let mut item = DistributionItem::new(DistributionCoin::Xch(coin));
+        let mut items = Vec::new();
 
-                    if i == 0 && tx.fee > 0 {
-                        item.conditions = item.conditions.reserve_fee(tx.fee);
-                    }
+        for (i, &coin) in selection.xch.coins.iter().enumerate() {
+            let synthetic_key = self.db.synthetic_key(coin.puzzle_hash).await?;
 
-                    item
-                })
-                .collect(),
-        );
+            let mut item = DistributionItem::new(
+                DistributionCoin::Xch(coin),
+                StandardLayer::new(synthetic_key),
+            );
+
+            if i == 0 && tx.fee > 0 {
+                item.conditions = item.conditions.reserve_fee(tx.fee);
+            }
+
+            items.push(item);
+        }
+
+        let mut distribution = Distribution::new(ctx, None, items);
 
         let change_amount =
             (selection.xch.existing_amount + summary.created_xch).saturating_sub(summary.spent_xch);
@@ -370,13 +374,22 @@ impl Wallet {
         tx: &TransactionConfig,
         change_puzzle_hash: Bytes32,
     ) -> Result<(), WalletError> {
+        let mut items = Vec::new();
+
+        for &cat in &selected.coins {
+            let synthetic_key = self.db.synthetic_key(cat.p2_puzzle_hash).await?;
+
+            items.push(DistributionItem::new(
+                DistributionCoin::Cat(cat),
+                StandardLayer::new(synthetic_key),
+            ));
+        }
+
         let mut distribution = Distribution::new(
             ctx,
             Some(id),
-            selected
-                .coins
-                .iter()
-                .map(|&cat| DistributionItem::new(DistributionCoin::Cat(cat)))
+            items
+                .into_iter()
                 .chain(
                     new_assets
                         .cats

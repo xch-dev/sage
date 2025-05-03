@@ -91,7 +91,7 @@ mod tests {
         let mut alice = TestWallet::new(1030).await?;
         let mut bob = alice.next(2).await?;
 
-        let (coin_spends, did) = bob.wallet.create_did(0, false, true).await?;
+        let (coin_spends, did) = bob.wallet.create_did(0).await?;
         bob.transact(coin_spends).await?;
         bob.wait_for_coins().await;
 
@@ -175,7 +175,7 @@ mod tests {
         let mut alice = TestWallet::new(2).await?;
         let mut bob = alice.next(1030).await?;
 
-        let (coin_spends, did) = alice.wallet.create_did(0, false, true).await?;
+        let (coin_spends, did) = alice.wallet.create_did(0).await?;
         alice.transact(coin_spends).await?;
         alice.wait_for_coins().await;
 
@@ -248,7 +248,7 @@ mod tests {
         let mut alice = TestWallet::new(3).await?;
         let mut bob = alice.next(1030).await?;
 
-        let (coin_spends, did) = alice.wallet.create_did(0, false, true).await?;
+        let (coin_spends, did) = alice.wallet.create_did(0).await?;
         alice.transact(coin_spends).await?;
         alice.wait_for_coins().await;
 
@@ -343,7 +343,7 @@ mod tests {
         let mut alice = TestWallet::new(3).await?;
         let mut bob = alice.next(1030).await?;
 
-        let (coin_spends, did) = alice.wallet.create_did(0, false, true).await?;
+        let (coin_spends, did) = alice.wallet.create_did(0).await?;
         alice.transact(coin_spends).await?;
         alice.wait_for_coins().await;
 
@@ -443,7 +443,7 @@ mod tests {
         let mut alice = TestWallet::new(3).await?;
         let mut bob = alice.next(1030).await?;
 
-        let (coin_spends, did) = alice.wallet.create_did(0, false, true).await?;
+        let (coin_spends, did) = alice.wallet.create_did(0).await?;
         alice.transact(coin_spends).await?;
         alice.wait_for_coins().await;
 
@@ -538,7 +538,7 @@ mod tests {
         let mut alice = TestWallet::new(3).await?;
         let mut bob = alice.next(1030).await?;
 
-        let (coin_spends, did) = alice.wallet.create_did(0, false, true).await?;
+        let (coin_spends, did) = alice.wallet.create_did(0).await?;
         alice.transact(coin_spends).await?;
         alice.wait_for_coins().await;
 
@@ -741,7 +741,7 @@ mod tests {
         let mut alice = TestWallet::new(2).await?;
         let mut bob = alice.next(0).await?;
 
-        let (coin_spends, did) = alice.wallet.create_did(0, false, true).await?;
+        let (coin_spends, did) = alice.wallet.create_did(0).await?;
         alice.transact(coin_spends).await?;
         alice.wait_for_coins().await;
 
