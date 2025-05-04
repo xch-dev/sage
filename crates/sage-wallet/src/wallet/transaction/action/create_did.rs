@@ -8,7 +8,8 @@ use crate::{Action, Distribution, Id, Summary, WalletError};
 pub struct CreateDidAction;
 
 impl Action for CreateDidAction {
-    fn summarize(&self, summary: &mut Summary, _index: usize) {
+    fn summarize(&self, summary: &mut Summary, index: usize) {
+        summary.created_dids.insert(Id::New(index));
         summary.spent_xch += 1;
     }
 
