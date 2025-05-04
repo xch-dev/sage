@@ -1,4 +1,4 @@
-use std::{collections::HashMap, mem};
+use std::mem;
 
 use chia::protocol::{Bytes, Bytes32, Coin};
 use chia_puzzles::SINGLETON_LAUNCHER_HASH;
@@ -6,7 +6,7 @@ use chia_wallet_sdk::{
     driver::{Cat, Did, HashedPtr, Launcher, Nft, OptionContract, SpendContext, StandardLayer},
     types::Conditions,
 };
-use indexmap::IndexSet;
+use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 
 use crate::{wallet::memos::calculate_memos, Wallet, WalletError};
@@ -15,20 +15,29 @@ use super::{Action, Id, Selected, Selection, Summary, TransactionConfig};
 
 #[derive(Debug)]
 pub struct Distribution<'a> {
-    pub ctx: &'a mut SpendContext,
-    pub asset_id: Option<Id>,
-    pub items: Vec<DistributionItem>,
-    pub launcher_index: usize,
-    pub parent_index: usize,
-    pub new_assets: NewAssets,
+    ctx: &'a mut SpendContext,
+    asset_id: Option<Id>,
+    asset_type: AssetType,
+    items: Vec<DistributionItem>,
+    launcher_index: usize,
+    parent_index: usize,
+    new_assets: &'a mut NewAssets,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum AssetType {
+    Fungible,
+    Did,
+    Nft,
+    Option,
 }
 
 #[derive(Debug, Default, Clone)]
 pub struct NewAssets {
-    pub cats: HashMap<Id, NewCat>,
-    pub nfts: HashMap<Id, Nft<HashedPtr>>,
-    pub dids: HashMap<Id, Did<HashedPtr>>,
-    pub options: HashMap<Id, OptionContract>,
+    pub cats: IndexMap<Id, NewCat>,
+    pub nfts: IndexMap<Id, Nft<HashedPtr>>,
+    pub dids: IndexMap<Id, Did<HashedPtr>>,
+    pub options: IndexMap<Id, OptionContract>,
 }
 
 #[derive(Debug, Clone)]
@@ -56,10 +65,13 @@ impl DistributionItem {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy)]
 pub enum DistributionCoin {
     Xch(Coin),
     Cat(Cat),
+    Did(Did<HashedPtr>),
+    Nft(Nft<HashedPtr>),
+    Option(OptionContract),
 }
 
 impl DistributionCoin {
@@ -68,6 +80,11 @@ impl DistributionCoin {
         match self {
             Self::Xch(coin) => Self::Xch(Coin::new(coin.coin_id(), p2_puzzle_hash, amount)),
             Self::Cat(cat) => Self::Cat(cat.wrapped_child(p2_puzzle_hash, amount)),
+            Self::Did(did) => Self::Xch(Coin::new(did.coin.coin_id(), p2_puzzle_hash, amount)),
+            Self::Nft(nft) => Self::Xch(Coin::new(nft.coin.coin_id(), p2_puzzle_hash, amount)),
+            Self::Option(option) => {
+                Self::Xch(Coin::new(option.coin.coin_id(), p2_puzzle_hash, amount))
+            }
         }
     }
 
@@ -75,6 +92,9 @@ impl DistributionCoin {
         match self {
             Self::Xch(coin) => *coin,
             Self::Cat(cat) => cat.coin,
+            Self::Did(did) => did.coin,
+            Self::Nft(nft) => nft.coin,
+            Self::Option(option) => option.coin,
         }
     }
 
@@ -82,9 +102,13 @@ impl DistributionCoin {
         match self {
             Self::Xch(coin) => coin.puzzle_hash,
             Self::Cat(cat) => cat.p2_puzzle_hash,
+            Self::Did(did) => did.info.p2_puzzle_hash,
+            Self::Nft(nft) => nft.info.p2_puzzle_hash,
+            Self::Option(option) => option.info.p2_puzzle_hash,
         }
     }
 }
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Payment {
     pub puzzle_hash: Bytes32,
@@ -104,20 +128,27 @@ impl<'a> Distribution<'a> {
     pub fn new(
         ctx: &'a mut SpendContext,
         asset_id: Option<Id>,
+        asset_type: AssetType,
         items: Vec<DistributionItem>,
+        new_assets: &'a mut NewAssets,
     ) -> Self {
         Self {
             ctx,
             asset_id,
+            asset_type,
             items,
             launcher_index: 0,
             parent_index: 0,
-            new_assets: NewAssets::default(),
+            new_assets,
         }
     }
 
     pub fn asset_id(&self) -> Option<Id> {
         self.asset_id
+    }
+
+    pub fn asset_type(&self) -> AssetType {
+        self.asset_type
     }
 
     pub fn make_payment(
@@ -169,7 +200,7 @@ impl<'a> Distribution<'a> {
         item.payments.insert(payment);
 
         let conditions = mem::take(&mut item.conditions);
-        let new_conditions = f(self.ctx, &mut self.new_assets, item, conditions)?;
+        let new_conditions = f(self.ctx, self.new_assets, item, conditions)?;
         item.conditions = new_conditions;
 
         Ok(())
@@ -206,7 +237,11 @@ impl<'a> Distribution<'a> {
             Conditions,
         ) -> Result<Conditions, WalletError>,
     ) -> Result<(), WalletError> {
-        let launcher_amount = self.launcher_index as u64 * 2;
+        let launcher_amount = self.launcher_index as u64
+            * match self.asset_type {
+                AssetType::Fungible => 1,
+                AssetType::Did | AssetType::Nft | AssetType::Option => 2,
+            };
         self.launcher_index += 1;
 
         let p2_puzzle_hash = SINGLETON_LAUNCHER_HASH.into();
@@ -268,7 +303,7 @@ impl<'a> Distribution<'a> {
         self.parent_index += 1;
 
         let conditions = mem::take(&mut item.conditions);
-        let new_conditions = f(self.ctx, &mut self.new_assets, item, conditions)?;
+        let new_conditions = f(self.ctx, self.new_assets, item, conditions)?;
         item.conditions = new_conditions;
 
         Ok(())
@@ -285,9 +320,17 @@ impl Wallet {
     ) -> Result<NewAssets, WalletError> {
         let change_puzzle_hash = self.p2_puzzle_hash(false, true).await?;
 
-        let new_assets = self
-            .distribute_xch(ctx, summary, selection, tx, change_puzzle_hash)
-            .await?;
+        let mut new_assets = NewAssets::default();
+
+        self.distribute_xch(
+            ctx,
+            summary,
+            selection,
+            tx,
+            change_puzzle_hash,
+            &mut new_assets,
+        )
+        .await?;
 
         let mut new_selection = selection.clone();
 
@@ -295,17 +338,26 @@ impl Wallet {
             new_selection.cats.entry(id).or_default();
         }
 
+        new_selection.dids.extend(new_assets.dids.clone());
+        new_selection.nfts.extend(new_assets.nfts.clone());
+        new_selection.options.extend(new_assets.options.clone());
+
         for (&id, selected) in &new_selection.cats {
             self.distribute_cat(
                 ctx,
                 summary,
                 id,
-                &new_assets,
                 selected,
                 tx,
                 change_puzzle_hash,
+                &mut new_assets,
             )
             .await?;
+        }
+
+        for (&id, &did) in &new_selection.dids {
+            self.distribute_did(ctx, id, did, tx, &mut new_assets)
+                .await?;
         }
 
         Ok(new_assets)
@@ -318,7 +370,8 @@ impl Wallet {
         selection: &Selection,
         tx: &TransactionConfig,
         change_puzzle_hash: Bytes32,
-    ) -> Result<NewAssets, WalletError> {
+        new_assets: &mut NewAssets,
+    ) -> Result<(), WalletError> {
         let mut items = Vec::new();
 
         for (i, &coin) in selection.xch.coins.iter().enumerate() {
@@ -336,7 +389,7 @@ impl Wallet {
             items.push(item);
         }
 
-        let mut distribution = Distribution::new(ctx, None, items);
+        let mut distribution = Distribution::new(ctx, None, AssetType::Fungible, items, new_assets);
 
         let change_amount =
             (selection.xch.existing_amount + summary.created_xch).saturating_sub(summary.spent_xch);
@@ -355,12 +408,10 @@ impl Wallet {
             .map(|item| (item.coin.coin(), item.conditions))
             .collect_vec();
 
-        let new_assets = distribution.new_assets;
-
         self.spend_p2_coins_separately(ctx, items.into_iter())
             .await?;
 
-        Ok(new_assets)
+        Ok(())
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -369,10 +420,10 @@ impl Wallet {
         ctx: &mut SpendContext,
         summary: &Summary,
         id: Id,
-        new_assets: &NewAssets,
         selected: &Selected<Cat>,
         tx: &TransactionConfig,
         change_puzzle_hash: Bytes32,
+        new_assets: &mut NewAssets,
     ) -> Result<(), WalletError> {
         let mut items = Vec::new();
 
@@ -388,6 +439,7 @@ impl Wallet {
         let mut distribution = Distribution::new(
             ctx,
             Some(id),
+            AssetType::Fungible,
             items
                 .into_iter()
                 .chain(
@@ -398,6 +450,7 @@ impl Wallet {
                         .unwrap_or_default(),
                 )
                 .collect(),
+            new_assets,
         );
 
         let created_amount = summary.created_cats.get(&id).copied().unwrap_or_default();
@@ -421,8 +474,8 @@ impl Wallet {
             .map(|item| {
                 (
                     match item.coin {
-                        DistributionCoin::Xch(..) => unreachable!(),
                         DistributionCoin::Cat(cat) => cat,
+                        _ => unreachable!(),
                     },
                     item.conditions,
                 )
@@ -430,6 +483,53 @@ impl Wallet {
             .collect_vec();
 
         self.spend_cat_coins(ctx, items.into_iter()).await?;
+
+        Ok(())
+    }
+
+    #[allow(clippy::large_types_passed_by_value)]
+    async fn distribute_did(
+        &self,
+        ctx: &mut SpendContext,
+        id: Id,
+        did: Did<HashedPtr>,
+        tx: &TransactionConfig,
+        new_assets: &mut NewAssets,
+    ) -> Result<(), WalletError> {
+        let synthetic_key = self.db.synthetic_key(did.info.p2_puzzle_hash).await?;
+        let p2 = StandardLayer::new(synthetic_key);
+
+        let mut distribution = Distribution::new(
+            ctx,
+            Some(id),
+            AssetType::Did,
+            vec![DistributionItem::new(DistributionCoin::Did(did), p2)],
+            new_assets,
+        );
+
+        for (index, action) in tx.actions.iter().enumerate() {
+            action.distribute(&mut distribution, index)?;
+        }
+
+        let mut xch = Vec::new();
+        let mut did_conditions = Conditions::new();
+
+        for item in distribution.items {
+            match item.coin {
+                DistributionCoin::Xch(coin) => xch.push((coin, item.conditions)),
+                DistributionCoin::Did(..) => {
+                    did_conditions = did_conditions.extend(item.conditions);
+                }
+                _ => unreachable!(),
+            }
+        }
+
+        self.spend_p2_coins_separately(ctx, xch.into_iter()).await?;
+
+        if !did_conditions.is_empty() {
+            let did = did.update(ctx, &p2, did_conditions)?;
+            new_assets.dids.insert(id, did);
+        }
 
         Ok(())
     }

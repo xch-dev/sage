@@ -1,19 +1,12 @@
 use chia::{
-    protocol::{Bytes32, CoinSpend, Program},
+    protocol::{Bytes32, CoinSpend},
     puzzles::nft::NftMetadata,
 };
-use chia_puzzles::NFT_METADATA_UPDATER_DEFAULT_HASH;
-use chia_wallet_sdk::{
-    driver::{
-        Did, DidOwner, HashedPtr, Launcher, MetadataUpdate, Nft, NftMint, SpendContext,
-        StandardLayer,
-    },
-    types::Conditions,
-};
+use chia_wallet_sdk::driver::{HashedPtr, MetadataUpdate, Nft};
 
 use crate::WalletError;
 
-use super::{AssignDid, Id, SpendAction, TransferNftAction, Wallet};
+use super::{AssignDid, Id, MintNftAction, SpendAction, TransferNftAction, Wallet};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WalletNftMint {
@@ -29,69 +22,28 @@ impl Wallet {
         fee: u64,
         did_id: Bytes32,
         mints: Vec<WalletNftMint>,
-        hardened: bool,
-        reuse: bool,
-    ) -> Result<(Vec<CoinSpend>, Vec<Nft<NftMetadata>>, Did<Program>), WalletError> {
-        let Some(did) = self.db.spendable_did(did_id).await? else {
-            return Err(WalletError::MissingDid(did_id));
-        };
+    ) -> Result<(Vec<CoinSpend>, Vec<Nft<HashedPtr>>), WalletError> {
+        let change_puzzle_hash = self.p2_puzzle_hash(false, true).await?;
 
-        let total_amount = fee as u128 + mints.len() as u128;
-        let coins = self.select_p2_coins(total_amount).await?;
-        let selected: u128 = coins.iter().map(|coin| coin.amount as u128).sum();
+        let actions = mints
+            .into_iter()
+            .map(|mint| {
+                SpendAction::MintNft(MintNftAction::new(
+                    mint.metadata,
+                    mint.royalty_puzzle_hash.unwrap_or(change_puzzle_hash),
+                    mint.royalty_ten_thousandths,
+                    mint.p2_puzzle_hash.unwrap_or(change_puzzle_hash),
+                    Id::Existing(did_id),
+                ))
+            })
+            .collect();
 
-        let change: u64 = (selected - total_amount)
-            .try_into()
-            .expect("change amount overflow");
+        let result = self.transact(actions, fee).await?;
 
-        let p2_puzzle_hash = self.p2_puzzle_hash(hardened, reuse).await?;
-
-        let mut ctx = SpendContext::new();
-
-        let did_metadata_ptr = ctx.alloc(&did.info.metadata)?;
-        let did = did.with_metadata(HashedPtr::from_ptr(&ctx, did_metadata_ptr));
-
-        let synthetic_key = self.db.synthetic_key(did.info.p2_puzzle_hash).await?;
-        let p2 = StandardLayer::new(synthetic_key);
-
-        let mut did_conditions = Conditions::new();
-        let mut nfts = Vec::with_capacity(mints.len());
-
-        for (i, mint) in mints.into_iter().enumerate() {
-            let mint = NftMint {
-                metadata: mint.metadata,
-                metadata_updater_puzzle_hash: NFT_METADATA_UPDATER_DEFAULT_HASH.into(),
-                royalty_puzzle_hash: mint.royalty_puzzle_hash.unwrap_or(p2_puzzle_hash),
-                royalty_ten_thousandths: mint.royalty_ten_thousandths,
-                p2_puzzle_hash: mint.p2_puzzle_hash.unwrap_or(p2_puzzle_hash),
-                owner: Some(DidOwner::from_did_info(&did.info)),
-            };
-
-            let (mint_nft, nft) = Launcher::new(did.coin.coin_id(), i as u64 * 2)
-                .with_singleton_amount(1)
-                .mint_nft(&mut ctx, mint)?;
-
-            did_conditions = did_conditions.extend(mint_nft);
-            nfts.push(nft);
-        }
-
-        let new_did = did.update(&mut ctx, &p2, did_conditions)?;
-
-        let mut conditions = Conditions::new().assert_concurrent_spend(did.coin.coin_id());
-
-        if fee > 0 {
-            conditions = conditions.reserve_fee(fee);
-        }
-
-        if change > 0 {
-            conditions = conditions.create_coin(p2_puzzle_hash, change, None);
-        }
-
-        self.spend_p2_coins(&mut ctx, coins, conditions).await?;
-
-        let new_did = new_did.with_metadata(ctx.serialize(&new_did.info.metadata)?);
-
-        Ok((ctx.take(), nfts, new_did))
+        Ok((
+            result.coin_spends,
+            result.new_assets.nfts.into_values().collect(),
+        ))
     }
 
     pub async fn transfer_nfts(
@@ -187,7 +139,7 @@ mod tests {
         test.transact(coin_spends).await?;
         test.wait_for_coins().await;
 
-        let (coin_spends, mut nfts, _did) = test
+        let (coin_spends, mut nfts) = test
             .wallet
             .bulk_mint_nfts(
                 0,
@@ -198,8 +150,6 @@ mod tests {
                     royalty_puzzle_hash: Some(Bytes32::default()),
                     royalty_ten_thousandths: 300,
                 }],
-                false,
-                true,
             )
             .await?;
         test.transact(coin_spends).await?;
@@ -250,7 +200,7 @@ mod tests {
         test.transact(coin_spends).await?;
         test.wait_for_coins().await;
 
-        let (coin_spends, mut nfts, _did) = test
+        let (coin_spends, mut nfts) = test
             .wallet
             .bulk_mint_nfts(
                 0,
@@ -261,8 +211,6 @@ mod tests {
                     royalty_puzzle_hash: Some(Bytes32::default()),
                     royalty_ten_thousandths: 300,
                 }],
-                false,
-                true,
             )
             .await?;
         test.transact(coin_spends).await?;
@@ -303,7 +251,7 @@ mod tests {
         bob.transact(coin_spends).await?;
         bob.wait_for_coins().await;
 
-        let (coin_spends, mut nfts, _did) = alice
+        let (coin_spends, mut nfts) = alice
             .wallet
             .bulk_mint_nfts(
                 0,
@@ -314,8 +262,6 @@ mod tests {
                     royalty_puzzle_hash: Some(Bytes32::default()),
                     royalty_ten_thousandths: 300,
                 }],
-                false,
-                true,
             )
             .await?;
         alice.transact(coin_spends).await?;
@@ -377,7 +323,7 @@ mod tests {
         test.transact(coin_spends).await?;
         test.wait_for_coins().await;
 
-        let (coin_spends, mut nfts, _did) = test
+        let (coin_spends, mut nfts) = test
             .wallet
             .bulk_mint_nfts(
                 0,
@@ -388,8 +334,6 @@ mod tests {
                     royalty_puzzle_hash: Some(Bytes32::default()),
                     royalty_ten_thousandths: 300,
                 }],
-                false,
-                true,
             )
             .await?;
         test.transact(coin_spends).await?;

@@ -384,9 +384,7 @@ impl Sage {
             });
         }
 
-        let (coin_spends, nfts, _did) = wallet
-            .bulk_mint_nfts(fee, did_id, mints, false, true)
-            .await?;
+        let (coin_spends, nfts) = wallet.bulk_mint_nfts(fee, did_id, mints).await?;
 
         let mut nft_ids = Vec::with_capacity(nfts.len());
 

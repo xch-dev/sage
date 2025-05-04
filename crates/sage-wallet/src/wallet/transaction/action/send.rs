@@ -1,6 +1,6 @@
 use chia::protocol::{Bytes, Bytes32};
 
-use crate::{Action, Distribution, Id, Summary, WalletError};
+use crate::{Action, AssetType, Distribution, Id, Summary, WalletError};
 
 /// Sends an amount of a fungible asset to a given puzzle hash. This means
 /// that a coin will be created at the puzzle hash and amount, but the
@@ -64,7 +64,9 @@ impl Action for SendAction {
         distribution: &mut Distribution<'_>,
         _index: usize,
     ) -> Result<(), WalletError> {
-        if distribution.asset_id() == self.asset_id {
+        if distribution.asset_id() == self.asset_id
+            && distribution.asset_type() == AssetType::Fungible
+        {
             distribution.create_coin(
                 self.puzzle_hash,
                 self.amount,
