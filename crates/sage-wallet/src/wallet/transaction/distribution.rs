@@ -321,6 +321,7 @@ impl Wallet {
         let change_puzzle_hash = self.p2_puzzle_hash(false, true).await?;
 
         let mut new_assets = NewAssets::default();
+        let mut assert_concurrent = None;
 
         self.distribute_xch(
             ctx,
@@ -329,6 +330,7 @@ impl Wallet {
             tx,
             change_puzzle_hash,
             &mut new_assets,
+            &mut assert_concurrent,
         )
         .await?;
 
@@ -351,18 +353,19 @@ impl Wallet {
                 tx,
                 change_puzzle_hash,
                 &mut new_assets,
+                &mut assert_concurrent,
             )
             .await?;
         }
 
         for (&id, &did) in &new_selection.dids {
-            self.distribute_did(ctx, id, did, tx, &mut new_assets)
+            self.distribute_did(ctx, id, did, tx, &mut new_assets, &mut assert_concurrent)
                 .await?;
         }
-
         Ok(new_assets)
     }
 
+    #[allow(clippy::too_many_arguments)]
     async fn distribute_xch(
         &self,
         ctx: &mut SpendContext,
@@ -371,6 +374,7 @@ impl Wallet {
         tx: &TransactionConfig,
         change_puzzle_hash: Bytes32,
         new_assets: &mut NewAssets,
+        assert_concurrent: &mut Option<Bytes32>,
     ) -> Result<(), WalletError> {
         let mut items = Vec::new();
 
@@ -415,6 +419,13 @@ impl Wallet {
             .map(|(i, item)| {
                 let mut conditions = item.conditions;
 
+                if i == 0 {
+                    if let Some(coin_id) = assert_concurrent {
+                        conditions = conditions.assert_concurrent_spend(*coin_id);
+                        *assert_concurrent = Some(coin_ids[0]);
+                    }
+                }
+
                 if coin_ids.len() > 1 {
                     conditions = conditions.assert_concurrent_spend(if i == 0 {
                         coin_ids[coin_ids.len() - 1]
@@ -443,6 +454,7 @@ impl Wallet {
         tx: &TransactionConfig,
         change_puzzle_hash: Bytes32,
         new_assets: &mut NewAssets,
+        assert_concurrent: &mut Option<Bytes32>,
     ) -> Result<(), WalletError> {
         let mut items = Vec::new();
 
@@ -490,13 +502,23 @@ impl Wallet {
         let items = distribution
             .items
             .into_iter()
-            .map(|item| {
+            .enumerate()
+            .map(|(i, item)| {
+                let mut conditions = item.conditions;
+
+                if i == 0 {
+                    if let Some(coin_id) = assert_concurrent {
+                        conditions = conditions.assert_concurrent_spend(*coin_id);
+                        *assert_concurrent = Some(item.coin.coin().coin_id());
+                    }
+                }
+
                 (
                     match item.coin {
                         DistributionCoin::Cat(cat) => cat,
                         _ => unreachable!(),
                     },
-                    item.conditions,
+                    conditions,
                 )
             })
             .collect_vec();
@@ -514,6 +536,7 @@ impl Wallet {
         did: Did<HashedPtr>,
         tx: &TransactionConfig,
         new_assets: &mut NewAssets,
+        assert_concurrent: &mut Option<Bytes32>,
     ) -> Result<(), WalletError> {
         let synthetic_key = self.db.synthetic_key(did.info.p2_puzzle_hash).await?;
         let p2 = StandardLayer::new(synthetic_key);
@@ -546,6 +569,11 @@ impl Wallet {
         self.spend_p2_coins_separately(ctx, xch.into_iter()).await?;
 
         if !did_conditions.is_empty() {
+            if let Some(coin_id) = assert_concurrent {
+                did_conditions = did_conditions.assert_concurrent_spend(*coin_id);
+                *assert_concurrent = Some(did.coin.coin_id());
+            }
+
             let did = did.update(ctx, &p2, did_conditions)?;
             new_assets.dids.insert(id, did);
         }
