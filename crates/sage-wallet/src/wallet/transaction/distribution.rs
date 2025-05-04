@@ -402,10 +402,29 @@ impl Wallet {
             action.distribute(&mut distribution, index)?;
         }
 
+        let coin_ids = distribution
+            .items
+            .iter()
+            .map(|item| item.coin.coin().coin_id())
+            .collect_vec();
+
         let items = distribution
             .items
             .into_iter()
-            .map(|item| (item.coin.coin(), item.conditions))
+            .enumerate()
+            .map(|(i, item)| {
+                let mut conditions = item.conditions;
+
+                if coin_ids.len() > 1 {
+                    conditions = conditions.assert_concurrent_spend(if i == 0 {
+                        coin_ids[coin_ids.len() - 1]
+                    } else {
+                        coin_ids[i - 1]
+                    });
+                }
+
+                (item.coin.coin(), conditions)
+            })
             .collect_vec();
 
         self.spend_p2_coins_separately(ctx, items.into_iter())
