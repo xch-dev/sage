@@ -61,9 +61,7 @@ import { useNavigate } from 'react-router-dom';
 import { commands, KeyInfo, SecretKeyInfo } from '../bindings';
 import Container from '../components/Container';
 import { useWallet } from '../contexts/WalletContext';
-import {
-  loginAndUpdateState,
-} from '../state';
+import { loginAndUpdateState } from '../state';
 import { toast } from 'react-toastify';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 
@@ -316,7 +314,6 @@ function WalletItem({
 
       if (sync?.receive_address) {
         writeText(sync.receive_address);
-        toast.success(sync.receive_address);
         toast.success(t`Address copied to clipboard`);
       } else {
         toast.error(t`No address found`);
