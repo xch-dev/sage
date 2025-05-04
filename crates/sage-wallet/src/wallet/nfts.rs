@@ -1,8 +1,8 @@
 use chia::{
-    protocol::{Bytes32, CoinSpend},
+    protocol::{Bytes32, CoinSpend, Program},
     puzzles::nft::NftMetadata,
 };
-use chia_wallet_sdk::driver::{HashedPtr, MetadataUpdate, Nft};
+use chia_wallet_sdk::driver::{MetadataUpdate, Nft};
 
 use crate::WalletError;
 
@@ -22,7 +22,7 @@ impl Wallet {
         fee: u64,
         did_id: Bytes32,
         mints: Vec<WalletNftMint>,
-    ) -> Result<(Vec<CoinSpend>, Vec<Nft<HashedPtr>>), WalletError> {
+    ) -> Result<(Vec<CoinSpend>, Vec<Nft<Program>>), WalletError> {
         let change_puzzle_hash = self.p2_puzzle_hash(false, true).await?;
 
         let actions = mints

@@ -21,12 +21,7 @@ pub use unlock_assets::*;
 
 #[cfg(test)]
 mod tests {
-    use chia::{
-        clvm_traits::{FromClvm, ToClvm},
-        protocol::{Bytes32, Program},
-        puzzles::nft::NftMetadata,
-    };
-    use clvmr::Allocator;
+    use chia::{protocol::Bytes32, puzzles::nft::NftMetadata};
     use indexmap::indexmap;
     use test_log::test;
 
@@ -113,10 +108,6 @@ mod tests {
 
         let nft = nfts.remove(0);
 
-        let mut allocator = Allocator::new();
-        let metadata = nft.info.metadata.to_clvm(&mut allocator)?;
-        let metadata = Program::from_clvm(&allocator, metadata)?;
-
         // Create offer
         let offer = alice
             .wallet
@@ -128,7 +119,7 @@ mod tests {
                 TakerSide {
                     nfts: indexmap! {
                         nft.info.launcher_id => RequestedNft {
-                            metadata,
+                            metadata: nft.info.metadata,
                             metadata_updater_puzzle_hash: nft.info.metadata_updater_puzzle_hash,
                             royalty_puzzle_hash: nft.info.royalty_puzzle_hash,
                             royalty_ten_thousandths: nft.info.royalty_ten_thousandths,

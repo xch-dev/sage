@@ -1,5 +1,5 @@
-use chia::protocol::{Bytes32, CoinSpend};
-use chia_wallet_sdk::driver::{Did, HashedPtr};
+use chia::protocol::{Bytes32, CoinSpend, Program};
+use chia_wallet_sdk::driver::Did;
 
 use crate::WalletError;
 
@@ -9,20 +9,14 @@ impl Wallet {
     pub async fn create_did(
         &self,
         fee: u64,
-    ) -> Result<(Vec<CoinSpend>, Did<HashedPtr>), WalletError> {
+    ) -> Result<(Vec<CoinSpend>, Did<Program>), WalletError> {
         let result = self
             .transact(vec![SpendAction::CreateDid(CreateDidAction)], fee)
             .await?;
 
         Ok((
             result.coin_spends,
-            result
-                .new_assets
-                .dids
-                .values()
-                .copied()
-                .next()
-                .expect("no did"),
+            result.new_assets.dids.into_values().next().expect("no did"),
         ))
     }
 

@@ -12,8 +12,13 @@ pub use lineation::*;
 pub use selection::*;
 pub use summary::*;
 
-use chia::protocol::{Bytes32, CoinSpend};
-use chia_wallet_sdk::driver::SpendContext;
+use chia::{
+    clvm_traits::FromClvm,
+    protocol::{Bytes32, CoinSpend, Program},
+};
+use chia_wallet_sdk::driver::{Did, Nft, OptionContract, SpendContext};
+use clvmr::Allocator;
+use indexmap::IndexMap;
 
 use crate::WalletError;
 
@@ -47,7 +52,47 @@ impl TransactionConfig {
 #[derive(Debug, Clone)]
 pub struct TransactionResult {
     pub coin_spends: Vec<CoinSpend>,
-    pub new_assets: NewAssets,
+    pub new_assets: OwnedNewAssets,
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct OwnedNewAssets {
+    pub cats: IndexMap<Id, NewCat>,
+    pub nfts: IndexMap<Id, Nft<Program>>,
+    pub dids: IndexMap<Id, Did<Program>>,
+    pub options: IndexMap<Id, OptionContract>,
+}
+
+impl OwnedNewAssets {
+    pub fn from_new_assets(
+        allocator: &Allocator,
+        new_assets: NewAssets,
+    ) -> Result<Self, WalletError> {
+        Ok(Self {
+            cats: new_assets.cats,
+            nfts: new_assets
+                .nfts
+                .into_iter()
+                .map(|(id, nft)| {
+                    Ok((
+                        id,
+                        nft.with_metadata(Program::from_clvm(allocator, nft.info.metadata.ptr())?),
+                    ))
+                })
+                .collect::<Result<_, WalletError>>()?,
+            dids: new_assets
+                .dids
+                .into_iter()
+                .map(|(id, did)| {
+                    Ok((
+                        id,
+                        did.with_metadata(Program::from_clvm(allocator, did.info.metadata.ptr())?),
+                    ))
+                })
+                .collect::<Result<_, WalletError>>()?,
+            options: new_assets.options,
+        })
+    }
 }
 
 impl Wallet {
@@ -88,7 +133,7 @@ impl Wallet {
 
         Ok(TransactionResult {
             coin_spends: ctx.take(),
-            new_assets,
+            new_assets: OwnedNewAssets::from_new_assets(&ctx, new_assets)?,
         })
     }
 
@@ -114,7 +159,7 @@ impl Wallet {
 
         Ok(TransactionResult {
             coin_spends: ctx.take(),
-            new_assets,
+            new_assets: OwnedNewAssets::from_new_assets(&ctx, new_assets)?,
         })
     }
 }
