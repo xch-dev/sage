@@ -313,7 +313,7 @@ function WalletItem({
       const sync = await commands.getSyncStatus({});
 
       if (sync?.receive_address) {
-        writeText(sync.receive_address);
+        await writeText(sync.receive_address);
         toast.success(t`Address copied to clipboard`);
       } else {
         toast.error(t`No address found`);
