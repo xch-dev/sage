@@ -11,6 +11,7 @@ import {
   ArrowLeftRight,
   BookUser,
   Cog,
+  Handshake,
   Images,
   LogOut,
   MonitorCheck,
@@ -65,6 +66,13 @@ export function TopNav({ isCollapsed }: NavProps) {
         message={<Trans>Offers</Trans>}
       >
         <ShoppingCart className={className} />
+      </NavLink>
+      <NavLink
+        url={'/options'}
+        isCollapsed={isCollapsed}
+        message={<Trans>Options</Trans>}
+      >
+        <Handshake className={className} />
       </NavLink>
       <NavLink
         url={'/wallet/addresses'}

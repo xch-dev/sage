@@ -21,12 +21,7 @@ pub use unlock_assets::*;
 
 #[cfg(test)]
 mod tests {
-    use chia::{
-        clvm_traits::{FromClvm, ToClvm},
-        protocol::{Bytes32, Program},
-        puzzles::nft::NftMetadata,
-    };
-    use clvmr::Allocator;
+    use chia::{protocol::Bytes32, puzzles::nft::NftMetadata};
     use indexmap::indexmap;
     use test_log::test;
 
@@ -40,7 +35,7 @@ mod tests {
         let mut bob = alice.next(1000).await?;
 
         // Issue CAT
-        let (coin_spends, asset_id) = bob.wallet.issue_cat(1000, 0, None, false, true).await?;
+        let (coin_spends, asset_id) = bob.wallet.issue_cat(1000, 0).await?;
         bob.transact(coin_spends).await?;
         bob.wait_for_coins().await;
 
@@ -91,11 +86,11 @@ mod tests {
         let mut alice = TestWallet::new(1030).await?;
         let mut bob = alice.next(2).await?;
 
-        let (coin_spends, did) = bob.wallet.create_did(0, false, true).await?;
+        let (coin_spends, did) = bob.wallet.create_did(0).await?;
         bob.transact(coin_spends).await?;
         bob.wait_for_coins().await;
 
-        let (coin_spends, mut nfts, _did) = bob
+        let (coin_spends, mut nfts) = bob
             .wallet
             .bulk_mint_nfts(
                 0,
@@ -106,18 +101,12 @@ mod tests {
                     royalty_puzzle_hash: Some(Bytes32::default()),
                     royalty_ten_thousandths: 300,
                 }],
-                false,
-                true,
             )
             .await?;
         bob.transact(coin_spends).await?;
         bob.wait_for_coins().await;
 
         let nft = nfts.remove(0);
-
-        let mut allocator = Allocator::new();
-        let metadata = nft.info.metadata.to_clvm(&mut allocator)?;
-        let metadata = Program::from_clvm(&allocator, metadata)?;
 
         // Create offer
         let offer = alice
@@ -130,7 +119,7 @@ mod tests {
                 TakerSide {
                     nfts: indexmap! {
                         nft.info.launcher_id => RequestedNft {
-                            metadata,
+                            metadata: nft.info.metadata,
                             metadata_updater_puzzle_hash: nft.info.metadata_updater_puzzle_hash,
                             royalty_puzzle_hash: nft.info.royalty_puzzle_hash,
                             royalty_ten_thousandths: nft.info.royalty_ten_thousandths,
@@ -175,11 +164,11 @@ mod tests {
         let mut alice = TestWallet::new(2).await?;
         let mut bob = alice.next(1030).await?;
 
-        let (coin_spends, did) = alice.wallet.create_did(0, false, true).await?;
+        let (coin_spends, did) = alice.wallet.create_did(0).await?;
         alice.transact(coin_spends).await?;
         alice.wait_for_coins().await;
 
-        let (coin_spends, mut nfts, _did) = alice
+        let (coin_spends, mut nfts) = alice
             .wallet
             .bulk_mint_nfts(
                 0,
@@ -190,8 +179,6 @@ mod tests {
                     royalty_puzzle_hash: Some(Bytes32::default()),
                     royalty_ten_thousandths: 300,
                 }],
-                false,
-                true,
             )
             .await?;
         alice.transact(coin_spends).await?;
@@ -248,11 +235,11 @@ mod tests {
         let mut alice = TestWallet::new(3).await?;
         let mut bob = alice.next(1030).await?;
 
-        let (coin_spends, did) = alice.wallet.create_did(0, false, true).await?;
+        let (coin_spends, did) = alice.wallet.create_did(0).await?;
         alice.transact(coin_spends).await?;
         alice.wait_for_coins().await;
 
-        let (coin_spends, mut nfts, _did) = alice
+        let (coin_spends, mut nfts) = alice
             .wallet
             .bulk_mint_nfts(
                 0,
@@ -271,8 +258,6 @@ mod tests {
                         royalty_ten_thousandths: 300,
                     },
                 ],
-                false,
-                true,
             )
             .await?;
         alice.transact(coin_spends).await?;
@@ -343,11 +328,11 @@ mod tests {
         let mut alice = TestWallet::new(3).await?;
         let mut bob = alice.next(1030).await?;
 
-        let (coin_spends, did) = alice.wallet.create_did(0, false, true).await?;
+        let (coin_spends, did) = alice.wallet.create_did(0).await?;
         alice.transact(coin_spends).await?;
         alice.wait_for_coins().await;
 
-        let (coin_spends, mut nfts, _did) = alice
+        let (coin_spends, mut nfts) = alice
             .wallet
             .bulk_mint_nfts(
                 0,
@@ -366,8 +351,6 @@ mod tests {
                         royalty_ten_thousandths: 300,
                     },
                 ],
-                false,
-                true,
             )
             .await?;
         alice.transact(coin_spends).await?;
@@ -377,7 +360,7 @@ mod tests {
         let nft_id_second = nfts.remove(0);
 
         // Issue CAT
-        let (coin_spends, asset_id) = bob.wallet.issue_cat(1030, 0, None, false, true).await?;
+        let (coin_spends, asset_id) = bob.wallet.issue_cat(1030, 0).await?;
         bob.transact(coin_spends).await?;
         bob.wait_for_coins().await;
 
@@ -443,11 +426,11 @@ mod tests {
         let mut alice = TestWallet::new(3).await?;
         let mut bob = alice.next(1030).await?;
 
-        let (coin_spends, did) = alice.wallet.create_did(0, false, true).await?;
+        let (coin_spends, did) = alice.wallet.create_did(0).await?;
         alice.transact(coin_spends).await?;
         alice.wait_for_coins().await;
 
-        let (coin_spends, mut nfts, _did) = alice
+        let (coin_spends, mut nfts) = alice
             .wallet
             .bulk_mint_nfts(
                 0,
@@ -466,8 +449,6 @@ mod tests {
                         royalty_ten_thousandths: 0,
                     },
                 ],
-                false,
-                true,
             )
             .await?;
         alice.transact(coin_spends).await?;
@@ -538,11 +519,11 @@ mod tests {
         let mut alice = TestWallet::new(3).await?;
         let mut bob = alice.next(1030).await?;
 
-        let (coin_spends, did) = alice.wallet.create_did(0, false, true).await?;
+        let (coin_spends, did) = alice.wallet.create_did(0).await?;
         alice.transact(coin_spends).await?;
         alice.wait_for_coins().await;
 
-        let (coin_spends, mut nfts, _did) = alice
+        let (coin_spends, mut nfts) = alice
             .wallet
             .bulk_mint_nfts(
                 0,
@@ -561,8 +542,6 @@ mod tests {
                         royalty_ten_thousandths: 300,
                     },
                 ],
-                false,
-                true,
             )
             .await?;
         alice.transact(coin_spends).await?;
@@ -696,7 +675,7 @@ mod tests {
         let mut alice = TestWallet::new(1000).await?;
         let mut bob = alice.next(0).await?;
 
-        let (coin_spends, asset_id) = alice.wallet.issue_cat(1000, 0, None, false, true).await?;
+        let (coin_spends, asset_id) = alice.wallet.issue_cat(1000, 0).await?;
         alice.transact(coin_spends).await?;
         alice.wait_for_coins().await;
 
@@ -741,11 +720,11 @@ mod tests {
         let mut alice = TestWallet::new(2).await?;
         let mut bob = alice.next(0).await?;
 
-        let (coin_spends, did) = alice.wallet.create_did(0, false, true).await?;
+        let (coin_spends, did) = alice.wallet.create_did(0).await?;
         alice.transact(coin_spends).await?;
         alice.wait_for_coins().await;
 
-        let (coin_spends, mut nfts, _did) = alice
+        let (coin_spends, mut nfts) = alice
             .wallet
             .bulk_mint_nfts(
                 0,
@@ -756,8 +735,6 @@ mod tests {
                     royalty_puzzle_hash: Some(Bytes32::default()),
                     royalty_ten_thousandths: 300,
                 }],
-                false,
-                true,
             )
             .await?;
         alice.transact(coin_spends).await?;

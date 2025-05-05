@@ -101,7 +101,7 @@ impl PuzzleQueue {
             let coin_id = coin_state.coin.coin_id();
 
             match result {
-                Ok((info, minter_did)) => {
+                Ok(info) => {
                     let subscribe = info.subscribe();
 
                     let remove = match info.p2_puzzle_hash() {
@@ -113,7 +113,7 @@ impl PuzzleQueue {
                         self.db.delete_coin_state(coin_state.coin.coin_id()).await?;
                     } else {
                         let mut tx = self.db.tx().await?;
-                        insert_puzzle(&mut tx, coin_state, info, minter_did).await?;
+                        insert_puzzle(&mut tx, coin_state, info).await?;
                         tx.commit().await?;
                     }
 
@@ -164,14 +164,14 @@ async fn fetch_puzzle(
     peer: &WalletPeer,
     genesis_challenge: Bytes32,
     coin: Coin,
-) -> Result<(ChildKind, Option<Bytes32>), WalletError> {
+) -> Result<ChildKind, WalletError> {
     let parent_spend = timeout(
         Duration::from_secs(15),
         peer.fetch_coin_spend(coin.parent_coin_info, genesis_challenge),
     )
     .await??;
 
-    let info = spawn_blocking(move || {
+    let mut info = spawn_blocking(move || {
         ChildKind::from_parent(
             parent_spend.coin,
             &parent_spend.puzzle_reveal,
@@ -181,11 +181,13 @@ async fn fetch_puzzle(
     })
     .await??;
 
-    let minter_did = if let ChildKind::Nft { info, .. } = &info {
-        fetch_nft_did(peer, genesis_challenge, info.launcher_id, &HashMap::new()).await?
-    } else {
-        None
-    };
+    if let ChildKind::Nft {
+        info, minter_did, ..
+    } = &mut info
+    {
+        *minter_did =
+            fetch_nft_did(peer, genesis_challenge, info.launcher_id, &HashMap::new()).await?;
+    }
 
-    Ok((info, minter_did))
+    Ok(info)
 }

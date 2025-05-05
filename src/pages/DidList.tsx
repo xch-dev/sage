@@ -1,4 +1,5 @@
 import ConfirmationDialog from '@/components/ConfirmationDialog';
+import { DidConfirmation } from '@/components/confirmations/DidConfirmation';
 import Container from '@/components/Container';
 import { FeeOnlyDialog } from '@/components/FeeOnlyDialog';
 import Header from '@/components/Header';
@@ -31,7 +32,7 @@ import { useErrors } from '@/hooks/useErrors';
 import { toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
-import { Plural, Trans } from '@lingui/react/macro';
+import { Trans } from '@lingui/react/macro';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 import {
   ActivityIcon,
@@ -50,7 +51,6 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { commands, DidRecord, TransactionResponse } from '../bindings';
-import { DidConfirmation } from '@/components/confirmations/DidConfirmation';
 
 export function DidList() {
   const navigate = useNavigate();
@@ -92,11 +92,10 @@ export function DidList() {
               <Trans>Create a profile?</Trans>
             </AlertTitle>
             <AlertDescription>
-              <Plural
-                value={didsCount}
-                one='You do not currently have any DID profile. Would you like to create one?'
-                other='You do not currently have any DID profiles. Would you like to create one?'
-              />
+              <Trans>
+                You do not currently have any DID profiles. Would you like to
+                create one?
+              </Trans>
             </AlertDescription>
           </Alert>
         )}

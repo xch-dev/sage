@@ -35,7 +35,11 @@ impl Wallet {
             }
 
             match row.kind {
-                CoinKind::Xch | CoinKind::Cat | CoinKind::Did | CoinKind::Nft => {}
+                CoinKind::Xch
+                | CoinKind::Cat
+                | CoinKind::Did
+                | CoinKind::Nft
+                | CoinKind::Option => {}
                 CoinKind::Unknown => continue,
             }
 
@@ -127,6 +131,17 @@ impl Wallet {
                 let p2 = StandardLayer::new(synthetic_key);
 
                 let _nft = nft.transfer(&mut ctx, &p2, p2_puzzle_hash, Conditions::new())?;
+            }
+            CoinKind::Option => {
+                let Some(option) = self.db.option_by_coin_id(coin_state.coin.coin_id()).await?
+                else {
+                    return Err(WalletError::UncancellableOffer);
+                };
+
+                let synthetic_key = self.db.synthetic_key(option.info.p2_puzzle_hash).await?;
+                let p2 = StandardLayer::new(synthetic_key);
+
+                let _option = option.transfer(&mut ctx, &p2, p2_puzzle_hash, Conditions::new())?;
             }
             CoinKind::Unknown => unreachable!(),
         }

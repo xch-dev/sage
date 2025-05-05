@@ -152,6 +152,9 @@ pub enum Error {
     #[error("Invalid collection id: {0}")]
     InvalidCollectionId(String),
 
+    #[error("Invalid option id: {0}")]
+    InvalidOptionId(String),
+
     #[error("Invalid asset id: {0}")]
     InvalidAssetId(String),
 
@@ -264,6 +267,7 @@ impl Error {
             | Self::InvalidDidId(..)
             | Self::InvalidNftId(..)
             | Self::InvalidCollectionId(..)
+            | Self::InvalidOptionId(..)
             | Self::InvalidCoinId(..)
             | Self::InvalidHash(..)
             | Self::InvalidAssetId(..)

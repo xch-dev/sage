@@ -47,8 +47,20 @@ pub enum WalletError {
     #[error("Missing spend with id {0}")]
     MissingSpend(Bytes32),
 
+    #[error("No intermediate parent")]
+    NoIntermediateParent,
+
+    #[error("Missing asset in spends")]
+    MissingAsset,
+
+    #[error("P2 puzzle hash changed during incomplete spend")]
+    P2PuzzleHashChange,
+
     #[error("Missing child of id {0}")]
     MissingChild(Bytes32),
+
+    #[error("Missing derivation for puzzle hash {0}")]
+    MissingDerivation(Bytes32),
 
     #[error("Peer misbehaved")]
     PeerMisbehaved,
@@ -88,6 +100,12 @@ pub enum WalletError {
 
     #[error("Missing NFT with id {0}")]
     MissingNft(Bytes32),
+
+    #[error("Missing option with id {0}")]
+    MissingOption(Bytes32),
+
+    #[error("Invalid new id: {0}")]
+    InvalidNewId(usize),
 
     #[error("Uncancellable offer")]
     UncancellableOffer,

@@ -88,6 +88,14 @@ impl Sage {
 
                     (kind, info.p2_puzzle_hash)
                 }
+                CoinKind::Option { info } => {
+                    let kind = AssetKind::Option {
+                        launcher_id: Address::new(info.launcher_id, "option".to_string())
+                            .encode()?,
+                    };
+
+                    (kind, info.p2_puzzle_hash)
+                }
             };
 
             let address = Address::new(p2_puzzle_hash, self.network().prefix()).encode()?;
@@ -101,6 +109,7 @@ impl Sage {
                     ChildKind::Cat { p2_puzzle_hash, .. } => p2_puzzle_hash,
                     ChildKind::Did { info, .. } => info.p2_puzzle_hash,
                     ChildKind::Nft { info, .. } => info.p2_puzzle_hash,
+                    ChildKind::Option { info, .. } => info.p2_puzzle_hash,
                 };
 
                 let address = Address::new(p2_puzzle_hash, self.network().prefix()).encode()?;

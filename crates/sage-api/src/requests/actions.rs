@@ -36,6 +36,17 @@ pub struct UpdateDidResponse {}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct UpdateOption {
+    pub option_id: String,
+    pub visible: bool,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct UpdateOptionResponse {}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct UpdateNft {
     pub nft_id: String,
     pub visible: bool,

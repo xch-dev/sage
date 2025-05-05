@@ -1,0 +1,351 @@
+mod fungible_asset;
+mod singleton;
+
+pub use fungible_asset::*;
+pub use singleton::*;
+
+use std::collections::HashMap;
+
+use chia::protocol::{Bytes32, Coin};
+use chia_wallet_sdk::{
+    driver::{
+        Cat, CatSpend, Did, HashedPtr, Nft, OptionContract, SpendContext, SpendWithConditions,
+        StandardLayer,
+    },
+    types::Conditions,
+};
+use indexmap::IndexMap;
+
+use crate::{Wallet, WalletError};
+
+use super::{Action, Id, Selection, Summary, TransactionConfig};
+
+#[derive(Debug, Clone)]
+pub struct Spends {
+    pub xch: FungibleAsset<Coin>,
+    pub cats: IndexMap<Id, FungibleAsset<Cat>>,
+    pub dids: IndexMap<Id, SingletonLineage<Did<HashedPtr>>>,
+    pub nfts: IndexMap<Id, SingletonLineage<Nft<HashedPtr>>>,
+    pub options: IndexMap<Id, SingletonLineage<OptionContract>>,
+}
+
+impl Wallet {
+    pub async fn spend(
+        &self,
+        ctx: &mut SpendContext,
+        summary: &Summary,
+        selection: &Selection,
+        tx: &TransactionConfig,
+    ) -> Result<Spends, WalletError> {
+        let p2 = self.fetch_p2_map(selection).await?;
+
+        let mut spends = Self::initial_spends(selection, &p2);
+
+        for (index, action) in tx.actions.iter().enumerate() {
+            action.spend(ctx, &mut spends, index)?;
+        }
+
+        self.send_change(ctx, summary, selection, &mut spends)
+            .await?;
+
+        Self::finalize_singletons(ctx, &mut spends)?;
+
+        let mut coin_ids = Vec::new();
+
+        // This is a complicated way of forming a ring of assert concurrent spend conditions.
+        for collect in [true, false] {
+            if !collect && !coin_ids.is_empty() {
+                // We need to shift to the right by one to form a ring.
+                let last = coin_ids.remove(coin_ids.len() - 1);
+                coin_ids.insert(0, last);
+
+                // If there's only one coin, there's no point in forming a ring.
+                if coin_ids.len() == 1 {
+                    coin_ids = Vec::new();
+                }
+
+                // Reverse the coin ids since we're going to be popping them from the end.
+                coin_ids.reverse();
+            }
+
+            for item in &spends.xch.items {
+                if collect {
+                    coin_ids.push(item.coin.coin_id());
+                    continue;
+                }
+
+                let mut conditions = item.conditions.clone();
+
+                if let Some(coin_id) = coin_ids.pop() {
+                    conditions = conditions.assert_concurrent_spend(coin_id);
+                }
+
+                item.p2.spend(ctx, item.coin, conditions)?;
+            }
+
+            'cats: for cat in spends.cats.values() {
+                let mut cat_spends = Vec::new();
+
+                for item in &cat.items {
+                    if collect {
+                        coin_ids.push(item.coin.coin.coin_id());
+                        continue 'cats;
+                    }
+
+                    let mut conditions = item.conditions.clone();
+
+                    if let Some(coin_id) = coin_ids.pop() {
+                        conditions = conditions.assert_concurrent_spend(coin_id);
+                    }
+
+                    cat_spends.push(CatSpend::new(
+                        item.coin,
+                        item.p2.spend_with_conditions(ctx, conditions)?,
+                    ));
+                }
+
+                Cat::spend_all(ctx, &cat_spends)?;
+            }
+
+            for lineage in spends.dids.values_mut() {
+                let mut last_coin_id = None;
+
+                for item in lineage.iter() {
+                    if item.has_conditions() {
+                        if collect {
+                            last_coin_id = Some(item.coin_id());
+                            continue;
+                        }
+
+                        let mut conditions = Conditions::new();
+
+                        if let Some(coin_id) = coin_ids.pop() {
+                            conditions = conditions.assert_concurrent_spend(coin_id);
+                        }
+
+                        item.spend(ctx, conditions)?;
+                    }
+                }
+
+                if let Some(coin_id) = last_coin_id {
+                    if collect {
+                        coin_ids.push(coin_id);
+                    }
+                }
+            }
+
+            for lineage in spends.nfts.values_mut() {
+                let mut last_coin_id = None;
+
+                for item in lineage.iter() {
+                    if item.has_conditions() {
+                        if collect {
+                            last_coin_id = Some(item.coin_id());
+                            continue;
+                        }
+
+                        let mut conditions = Conditions::new();
+
+                        if let Some(coin_id) = coin_ids.pop() {
+                            conditions = conditions.assert_concurrent_spend(coin_id);
+                        }
+
+                        item.spend(ctx, conditions)?;
+                    }
+                }
+
+                if let Some(coin_id) = last_coin_id {
+                    if collect {
+                        coin_ids.push(coin_id);
+                    }
+                }
+            }
+
+            for lineage in spends.options.values_mut() {
+                let mut last_coin_id = None;
+
+                for item in lineage.iter() {
+                    if item.has_conditions() {
+                        if collect {
+                            last_coin_id = Some(item.coin_id());
+                            continue;
+                        }
+
+                        let mut conditions = Conditions::new();
+
+                        if let Some(coin_id) = coin_ids.pop() {
+                            conditions = conditions.assert_concurrent_spend(coin_id);
+                        }
+
+                        item.spend(ctx, conditions)?;
+                    }
+                }
+
+                if let Some(coin_id) = last_coin_id {
+                    if collect {
+                        coin_ids.push(coin_id);
+                    }
+                }
+            }
+        }
+
+        Ok(spends)
+    }
+
+    // TODO: Improve how the p2 is fetched and make it work on the fly
+    async fn fetch_p2_map(
+        &self,
+        selection: &Selection,
+    ) -> Result<HashMap<Bytes32, StandardLayer>, WalletError> {
+        let mut p2 = HashMap::new();
+
+        for coin in &selection.xch.coins {
+            let synthetic_key = self.db.synthetic_key(coin.puzzle_hash).await?;
+            p2.insert(coin.puzzle_hash, StandardLayer::new(synthetic_key));
+        }
+
+        for cat in selection.cats.values() {
+            for cat in &cat.coins {
+                let synthetic_key = self.db.synthetic_key(cat.p2_puzzle_hash).await?;
+                p2.insert(cat.p2_puzzle_hash, StandardLayer::new(synthetic_key));
+            }
+        }
+
+        for nft in selection.nfts.values() {
+            let synthetic_key = self.db.synthetic_key(nft.info.p2_puzzle_hash).await?;
+            p2.insert(nft.info.p2_puzzle_hash, StandardLayer::new(synthetic_key));
+        }
+
+        for did in selection.dids.values() {
+            let synthetic_key = self.db.synthetic_key(did.info.p2_puzzle_hash).await?;
+            p2.insert(did.info.p2_puzzle_hash, StandardLayer::new(synthetic_key));
+        }
+
+        for option in selection.options.values() {
+            let synthetic_key = self.db.synthetic_key(option.info.p2_puzzle_hash).await?;
+            p2.insert(
+                option.info.p2_puzzle_hash,
+                StandardLayer::new(synthetic_key),
+            );
+        }
+
+        Ok(p2)
+    }
+
+    fn initial_spends(selection: &Selection, p2: &HashMap<Bytes32, StandardLayer>) -> Spends {
+        let xch = FungibleAsset::new(
+            selection
+                .xch
+                .coins
+                .iter()
+                .map(|&coin| AssetCoin::new(coin, p2[&coin.puzzle_hash]))
+                .collect(),
+            false,
+        );
+
+        let cats = selection
+            .cats
+            .iter()
+            .map(|(&id, selected)| {
+                let spends = FungibleAsset::new(
+                    selected
+                        .coins
+                        .iter()
+                        .map(|&cat| AssetCoin::new(cat, p2[&cat.p2_puzzle_hash]))
+                        .collect(),
+                    false,
+                );
+                (id, spends)
+            })
+            .collect();
+
+        let dids = selection
+            .dids
+            .iter()
+            .map(|(&id, &did)| {
+                let singleton = SingletonLineage::new(did, p2[&did.info.p2_puzzle_hash], false);
+                (id, singleton)
+            })
+            .collect();
+
+        let nfts = selection
+            .nfts
+            .iter()
+            .map(|(&id, &nft)| {
+                let singleton = SingletonLineage::new(nft, p2[&nft.info.p2_puzzle_hash], false);
+                (id, singleton)
+            })
+            .collect();
+
+        let options = selection
+            .options
+            .iter()
+            .map(|(&id, &option)| {
+                let singleton =
+                    SingletonLineage::new(option, p2[&option.info.p2_puzzle_hash], false);
+                (id, singleton)
+            })
+            .collect();
+
+        Spends {
+            xch,
+            cats,
+            dids,
+            nfts,
+            options,
+        }
+    }
+
+    async fn send_change(
+        &self,
+        ctx: &mut SpendContext,
+        summary: &Summary,
+        selection: &Selection,
+        spends: &mut Spends,
+    ) -> Result<(), WalletError> {
+        let change_puzzle_hash = self.p2_puzzle_hash(false, true).await?;
+
+        let change_amount =
+            (selection.xch.existing_amount + summary.created_xch).saturating_sub(summary.spent_xch);
+
+        if change_amount > 0 {
+            spends
+                .xch
+                .create_coin(ctx, change_puzzle_hash, change_amount, false, None)?;
+        }
+
+        for (id, cat) in &mut spends.cats {
+            let existing_amount = selection
+                .cats
+                .get(id)
+                .map_or(0, |selected| selected.existing_amount);
+
+            let created_amount = summary.created_cats.get(id).copied().unwrap_or_default();
+            let spent_amount = summary.spent_cats.get(id).copied().unwrap_or_default();
+
+            let change_amount = (existing_amount + created_amount).saturating_sub(spent_amount);
+
+            if change_amount > 0 {
+                cat.create_coin(ctx, change_puzzle_hash, change_amount, true, None)?;
+            }
+        }
+
+        Ok(())
+    }
+
+    fn finalize_singletons(ctx: &mut SpendContext, spends: &mut Spends) -> Result<(), WalletError> {
+        for lineage in spends.dids.values_mut() {
+            lineage.recreate(ctx)?;
+        }
+
+        for lineage in spends.nfts.values_mut() {
+            lineage.recreate(ctx)?;
+        }
+
+        for lineage in spends.options.values_mut() {
+            lineage.recreate(ctx)?;
+        }
+
+        Ok(())
+    }
+}
