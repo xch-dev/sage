@@ -75,7 +75,9 @@ impl Action for SendAction {
                 self.amount,
                 matches!(self.include_hint, Hint::Default | Hint::Yes),
                 self.memos.clone(),
-            )
+            )?;
+
+            Ok(())
         } else {
             spends.xch.create_coin(
                 ctx,
@@ -83,7 +85,9 @@ impl Action for SendAction {
                 self.amount,
                 matches!(self.include_hint, Hint::Yes),
                 self.memos.clone(),
-            )
+            )?;
+
+            Ok(())
         }
     }
 }

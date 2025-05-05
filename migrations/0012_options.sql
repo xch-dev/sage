@@ -5,7 +5,7 @@ CREATE TABLE `options` (
     `is_owned` BOOLEAN NOT NULL,
     `created_height` INTEGER,
     `is_pending` BOOLEAN GENERATED ALWAYS AS (`created_height` IS NULL) STORED,
-    FOREIGN KEY (`coin_id`) REFERENCES `nft_coins` (`coin_id`) ON DELETE CASCADE
+    FOREIGN KEY (`coin_id`) REFERENCES `option_coins` (`coin_id`) ON DELETE CASCADE
 );
 
 CREATE INDEX `option_coin_id` ON `nfts` (`coin_id`);

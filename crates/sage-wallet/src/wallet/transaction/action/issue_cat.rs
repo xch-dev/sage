@@ -34,7 +34,8 @@ impl Action for IssueCatAction {
         spends: &mut Spends,
         index: usize,
     ) -> Result<(), WalletError> {
-        let parent = spends.xch.create_from_unique_parent(ctx)?;
+        let parent_ref = spends.xch.create_from_unique_parent(ctx)?;
+        let parent = spends.xch.get_mut(parent_ref)?;
 
         let parent_coin_id = parent.coin.coin_id();
         let tail = ctx.curry(GenesisByCoinIdTailArgs::new(parent_coin_id))?;

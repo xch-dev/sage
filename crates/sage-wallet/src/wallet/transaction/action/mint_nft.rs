@@ -70,7 +70,7 @@ impl Action for MintNftAction {
         spends.nfts.insert(
             Id::New(index),
             // TODO: This is the wrong p2
-            SingletonLineage::new(nft, current_did.p2(), true),
+            SingletonLineage::new(nft, current_did.p2(), true, false),
         );
 
         did_lineage.add_conditions(mint_nft);

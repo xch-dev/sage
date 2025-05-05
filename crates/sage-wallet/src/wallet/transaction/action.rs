@@ -3,20 +3,24 @@ mod assign_nft;
 mod create_did;
 mod issue_cat;
 mod mint_nft;
+mod mint_option;
 mod normalize_did;
 mod send;
 mod transfer_did;
 mod transfer_nft;
+mod transfer_option;
 
 pub use add_nft_uri::*;
 pub use assign_nft::*;
 pub use create_did::*;
 pub use issue_cat::*;
 pub use mint_nft::*;
+pub use mint_option::*;
 pub use normalize_did::*;
 pub use send::*;
 pub use transfer_did::*;
 pub use transfer_nft::*;
+pub use transfer_option::*;
 
 use crate::WalletError;
 
@@ -35,6 +39,8 @@ pub enum SpendAction {
     CreateDid(CreateDidAction),
     TransferDid(TransferDidAction),
     NormalizeDid(NormalizeDidAction),
+    MintOption(MintOptionAction),
+    TransferOption(TransferOptionAction),
 }
 
 pub trait Action {
@@ -65,6 +71,8 @@ impl Action for SpendAction {
             SpendAction::CreateDid(action) => action.summarize(summary, index),
             SpendAction::TransferDid(action) => action.summarize(summary, index),
             SpendAction::NormalizeDid(action) => action.summarize(summary, index),
+            SpendAction::MintOption(action) => action.summarize(summary, index),
+            SpendAction::TransferOption(action) => action.summarize(summary, index),
         }
     }
 
@@ -84,6 +92,8 @@ impl Action for SpendAction {
             SpendAction::CreateDid(action) => action.spend(ctx, distribution, index),
             SpendAction::TransferDid(action) => action.spend(ctx, distribution, index),
             SpendAction::NormalizeDid(action) => action.spend(ctx, distribution, index),
+            SpendAction::MintOption(action) => action.spend(ctx, distribution, index),
+            SpendAction::TransferOption(action) => action.spend(ctx, distribution, index),
         }
     }
 }

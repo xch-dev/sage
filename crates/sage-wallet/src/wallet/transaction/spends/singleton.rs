@@ -31,6 +31,7 @@ pub struct SingletonItem<T> {
     p2: StandardLayer,
     conditions: Conditions,
     launcher_index: u64,
+    needs_spend: bool,
 }
 
 pub trait SingletonCoinExt {
@@ -154,9 +155,9 @@ impl<T> SingletonLineage<T>
 where
     T: SingletonCoinExt + Copy,
 {
-    pub fn new(coin: T, p2: StandardLayer, was_created: bool) -> Self {
+    pub fn new(coin: T, p2: StandardLayer, was_created: bool, needs_spend: bool) -> Self {
         Self {
-            items: vec![SingletonItem::new(coin, p2)],
+            items: vec![SingletonItem::new(coin, p2, needs_spend)],
             child_info: coin.info(),
             was_created,
         }
@@ -184,10 +185,6 @@ where
 }
 
 impl SingletonLineage<Did<HashedPtr>> {
-    pub fn changed(&self) -> bool {
-        self.has_conditions() || self.p2_puzzle_hash_changed() || self.recovery_list_hash_changed()
-    }
-
     pub fn recreate(&mut self, ctx: &mut SpendContext) -> Result<(), WalletError> {
         self.recreate_impl(ctx, false)
     }
@@ -214,7 +211,7 @@ impl SingletonLineage<Did<HashedPtr>> {
             Some(hint),
         );
 
-        let child = SingletonItem::new(current.coin.child_with_info(child_info), current.p2);
+        let child = SingletonItem::new(current.coin.child_with_info(child_info), current.p2, false);
         self.items.push(child);
 
         Ok(())
@@ -226,6 +223,7 @@ impl SingletonLineage<Did<HashedPtr>> {
 
     pub fn set_recovery_list_hash(&mut self, recovery_list_hash: Option<Bytes32>) {
         self.child_info.recovery_list_hash = recovery_list_hash;
+        self.current_mut().needs_spend = true;
     }
 
     pub fn recovery_list_hash_changed(&self) -> bool {
@@ -236,12 +234,7 @@ impl SingletonLineage<Did<HashedPtr>> {
 
     pub fn set_p2_puzzle_hash(&mut self, p2_puzzle_hash: Bytes32) {
         self.child_info.p2_puzzle_hash = p2_puzzle_hash;
-    }
-
-    pub fn p2_puzzle_hash_changed(&self) -> bool {
-        let current = self.current();
-
-        current.coin.info.p2_puzzle_hash != self.child_info.p2_puzzle_hash
+        self.current_mut().needs_spend = true;
     }
 
     pub fn authorize_nft_ownership(&mut self, nft_puzzle_hash: Bytes32, nft_launcher_id: Bytes32) {
@@ -257,22 +250,18 @@ impl SingletonLineage<Did<HashedPtr>> {
                 ),
             ))
             .create_puzzle_announcement(nft_launcher_id.into());
+
+        current.needs_spend = true;
     }
 
     pub fn add_conditions(&mut self, conditions: Conditions) {
-        self.current_mut().conditions =
-            mem::take(&mut self.current_mut().conditions).extend(conditions);
+        let current = self.current_mut();
+        current.conditions = mem::take(&mut current.conditions).extend(conditions);
+        current.needs_spend = true;
     }
 }
 
 impl SingletonLineage<Nft<HashedPtr>> {
-    pub fn changed(&self) -> bool {
-        self.has_conditions()
-            || self.p2_puzzle_hash_changed()
-            || self.did_owner_changed()
-            || self.metadata_changed()
-    }
-
     pub fn recreate(&mut self, ctx: &mut SpendContext) -> Result<(), WalletError> {
         let child_info = self.child_info;
         let current = self.current_mut();
@@ -284,7 +273,7 @@ impl SingletonLineage<Nft<HashedPtr>> {
             Some(hint),
         );
 
-        let child = SingletonItem::new(current.coin.child_with_info(child_info), current.p2);
+        let child = SingletonItem::new(current.coin.child_with_info(child_info), current.p2, false);
         self.items.push(child);
 
         Ok(())
@@ -296,12 +285,7 @@ impl SingletonLineage<Nft<HashedPtr>> {
 
     pub fn set_p2_puzzle_hash(&mut self, p2_puzzle_hash: Bytes32) {
         self.child_info.p2_puzzle_hash = p2_puzzle_hash;
-    }
-
-    pub fn p2_puzzle_hash_changed(&self) -> bool {
-        let current = self.current();
-
-        current.coin.info.p2_puzzle_hash != self.child_info.p2_puzzle_hash
+        self.current_mut().needs_spend = true;
     }
 
     pub fn set_did_owner(
@@ -322,6 +306,8 @@ impl SingletonLineage<Nft<HashedPtr>> {
             Vec::new(),
             owner.map(|owner| owner.inner_puzzle_hash),
         );
+
+        current.needs_spend = true;
 
         Ok(())
     }
@@ -351,6 +337,8 @@ impl SingletonLineage<Nft<HashedPtr>> {
         current.conditions = mem::take(&mut current.conditions)
             .update_nft_metadata(metadata_update.puzzle, metadata_update.solution);
 
+        current.needs_spend = true;
+
         Ok(())
     }
 
@@ -364,10 +352,6 @@ impl SingletonLineage<Nft<HashedPtr>> {
 }
 
 impl SingletonLineage<OptionContract> {
-    pub fn changed(&self) -> bool {
-        self.has_conditions() || self.p2_puzzle_hash_changed()
-    }
-
     pub fn recreate(&mut self, ctx: &mut SpendContext) -> Result<(), WalletError> {
         let child_info = self.child_info;
         let current = self.current_mut();
@@ -379,7 +363,7 @@ impl SingletonLineage<OptionContract> {
             Some(hint),
         );
 
-        let child = SingletonItem::new(current.coin.child_with_info(child_info), current.p2);
+        let child = SingletonItem::new(current.coin.child_with_info(child_info), current.p2, false);
         self.items.push(child);
 
         Ok(())
@@ -391,12 +375,7 @@ impl SingletonLineage<OptionContract> {
 
     pub fn set_p2_puzzle_hash(&mut self, p2_puzzle_hash: Bytes32) {
         self.child_info.p2_puzzle_hash = p2_puzzle_hash;
-    }
-
-    pub fn p2_puzzle_hash_changed(&self) -> bool {
-        let current = self.current();
-
-        current.coin.info.p2_puzzle_hash != self.child_info.p2_puzzle_hash
+        self.current_mut().needs_spend = true;
     }
 }
 
@@ -404,13 +383,18 @@ impl<T> SingletonItem<T>
 where
     T: SingletonCoinExt,
 {
-    pub fn new(coin: T, p2: StandardLayer) -> Self {
+    pub fn new(coin: T, p2: StandardLayer, needs_spend: bool) -> Self {
         Self {
             coin,
             p2,
             conditions: Conditions::new(),
             launcher_index: 0,
+            needs_spend,
         }
+    }
+
+    pub fn needs_spend(&self) -> bool {
+        self.needs_spend
     }
 
     pub fn spend(

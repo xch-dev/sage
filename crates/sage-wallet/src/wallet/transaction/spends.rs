@@ -51,6 +51,7 @@ impl Wallet {
         Self::finalize_singletons(ctx, &mut spends)?;
 
         let mut coin_ids = Vec::new();
+        let mut skip_counts = Vec::new();
 
         // This is a complicated way of forming a ring of assert concurrent spend conditions.
         for collect in [true, false] {
@@ -66,6 +67,7 @@ impl Wallet {
 
                 // Reverse the coin ids since we're going to be popping them from the end.
                 coin_ids.reverse();
+                skip_counts.reverse();
             }
 
             for item in &spends.xch.items {
@@ -109,18 +111,28 @@ impl Wallet {
 
             for lineage in spends.dids.values_mut() {
                 let mut last_coin_id = None;
+                let mut skip_count = if collect {
+                    skip_counts.pop().unwrap_or_default()
+                } else {
+                    0
+                };
 
                 for item in lineage.iter() {
                     if item.has_conditions() {
                         if collect {
                             last_coin_id = Some(item.coin_id());
+                            skip_count += 1;
                             continue;
                         }
 
                         let mut conditions = Conditions::new();
 
-                        if let Some(coin_id) = coin_ids.pop() {
-                            conditions = conditions.assert_concurrent_spend(coin_id);
+                        if skip_count == 0 {
+                            if let Some(coin_id) = coin_ids.pop() {
+                                conditions = conditions.assert_concurrent_spend(coin_id);
+                            }
+                        } else {
+                            skip_count -= 1;
                         }
 
                         item.spend(ctx, conditions)?;
@@ -130,24 +142,35 @@ impl Wallet {
                 if let Some(coin_id) = last_coin_id {
                     if collect {
                         coin_ids.push(coin_id);
+                        skip_counts.push(skip_count - 1);
                     }
                 }
             }
 
             for lineage in spends.nfts.values_mut() {
                 let mut last_coin_id = None;
+                let mut skip_count = if collect {
+                    skip_counts.pop().unwrap_or_default()
+                } else {
+                    0
+                };
 
                 for item in lineage.iter() {
                     if item.has_conditions() {
                         if collect {
                             last_coin_id = Some(item.coin_id());
+                            skip_count += 1;
                             continue;
                         }
 
                         let mut conditions = Conditions::new();
 
-                        if let Some(coin_id) = coin_ids.pop() {
-                            conditions = conditions.assert_concurrent_spend(coin_id);
+                        if skip_count == 0 {
+                            if let Some(coin_id) = coin_ids.pop() {
+                                conditions = conditions.assert_concurrent_spend(coin_id);
+                            }
+                        } else {
+                            skip_count -= 1;
                         }
 
                         item.spend(ctx, conditions)?;
@@ -157,24 +180,35 @@ impl Wallet {
                 if let Some(coin_id) = last_coin_id {
                     if collect {
                         coin_ids.push(coin_id);
+                        skip_counts.push(skip_count - 1);
                     }
                 }
             }
 
             for lineage in spends.options.values_mut() {
                 let mut last_coin_id = None;
+                let mut skip_count = if collect {
+                    skip_counts.pop().unwrap_or_default()
+                } else {
+                    0
+                };
 
                 for item in lineage.iter() {
                     if item.has_conditions() {
                         if collect {
                             last_coin_id = Some(item.coin_id());
+                            skip_count += 1;
                             continue;
                         }
 
                         let mut conditions = Conditions::new();
 
-                        if let Some(coin_id) = coin_ids.pop() {
-                            conditions = conditions.assert_concurrent_spend(coin_id);
+                        if skip_count == 0 {
+                            if let Some(coin_id) = coin_ids.pop() {
+                                conditions = conditions.assert_concurrent_spend(coin_id);
+                            }
+                        } else {
+                            skip_count -= 1;
                         }
 
                         item.spend(ctx, conditions)?;
@@ -184,6 +218,7 @@ impl Wallet {
                 if let Some(coin_id) = last_coin_id {
                     if collect {
                         coin_ids.push(coin_id);
+                        skip_counts.push(skip_count - 1);
                     }
                 }
             }
@@ -263,7 +298,8 @@ impl Wallet {
             .dids
             .iter()
             .map(|(&id, &did)| {
-                let singleton = SingletonLineage::new(did, p2[&did.info.p2_puzzle_hash], false);
+                let singleton =
+                    SingletonLineage::new(did, p2[&did.info.p2_puzzle_hash], false, true);
                 (id, singleton)
             })
             .collect();
@@ -272,7 +308,8 @@ impl Wallet {
             .nfts
             .iter()
             .map(|(&id, &nft)| {
-                let singleton = SingletonLineage::new(nft, p2[&nft.info.p2_puzzle_hash], false);
+                let singleton =
+                    SingletonLineage::new(nft, p2[&nft.info.p2_puzzle_hash], false, true);
                 (id, singleton)
             })
             .collect();
@@ -282,7 +319,7 @@ impl Wallet {
             .iter()
             .map(|(&id, &option)| {
                 let singleton =
-                    SingletonLineage::new(option, p2[&option.info.p2_puzzle_hash], false);
+                    SingletonLineage::new(option, p2[&option.info.p2_puzzle_hash], false, true);
                 (id, singleton)
             })
             .collect();
@@ -335,15 +372,21 @@ impl Wallet {
 
     fn finalize_singletons(ctx: &mut SpendContext, spends: &mut Spends) -> Result<(), WalletError> {
         for lineage in spends.dids.values_mut() {
-            lineage.recreate(ctx)?;
+            if lineage.current().needs_spend() {
+                lineage.recreate(ctx)?;
+            }
         }
 
         for lineage in spends.nfts.values_mut() {
-            lineage.recreate(ctx)?;
+            if lineage.current().needs_spend() {
+                lineage.recreate(ctx)?;
+            }
         }
 
         for lineage in spends.options.values_mut() {
-            lineage.recreate(ctx)?;
+            if lineage.current().needs_spend() {
+                lineage.recreate(ctx)?;
+            }
         }
 
         Ok(())

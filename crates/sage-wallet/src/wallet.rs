@@ -8,6 +8,7 @@ mod fungible_assets;
 mod memos;
 mod nfts;
 mod offer;
+mod options;
 mod signing;
 mod spends;
 mod transaction;
