@@ -6,7 +6,9 @@ use chia_wallet_sdk::driver::{MetadataUpdate, Nft};
 
 use crate::WalletError;
 
-use super::{AssignDid, Id, MintNftAction, SpendAction, TransferNftAction, Wallet};
+use super::{
+    AddNftUriAction, AssignNftAction, Id, MintNftAction, SpendAction, TransferNftAction, Wallet,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WalletNftMint {
@@ -54,21 +56,21 @@ impl Wallet {
     ) -> Result<Vec<CoinSpend>, WalletError> {
         let unassign_did = !self.db.is_p2_puzzle_hash(puzzle_hash).await?;
 
-        let actions = nft_ids
-            .into_iter()
-            .map(|nft_id| {
-                SpendAction::TransferNft(TransferNftAction::new(
+        let mut actions = Vec::new();
+
+        for nft_id in nft_ids {
+            if unassign_did {
+                actions.push(SpendAction::AssignNft(AssignNftAction::new(
                     Id::Existing(nft_id),
-                    puzzle_hash,
-                    if unassign_did {
-                        AssignDid::None
-                    } else {
-                        AssignDid::Existing
-                    },
                     None,
-                ))
-            })
-            .collect();
+                )));
+            }
+
+            actions.push(SpendAction::TransferNft(TransferNftAction::new(
+                Id::Existing(nft_id),
+                puzzle_hash,
+            )));
+        }
 
         Ok(self.transact(actions, fee).await?.coin_spends)
     }
@@ -81,21 +83,19 @@ impl Wallet {
     ) -> Result<Vec<CoinSpend>, WalletError> {
         let puzzle_hash = self.p2_puzzle_hash(false, true).await?;
 
-        let actions = nft_ids
-            .into_iter()
-            .map(|nft_id| {
-                SpendAction::TransferNft(TransferNftAction::new(
-                    Id::Existing(nft_id),
-                    puzzle_hash,
-                    if let Some(did_id) = did_id {
-                        AssignDid::New(Id::Existing(did_id))
-                    } else {
-                        AssignDid::Existing
-                    },
-                    None,
-                ))
-            })
-            .collect();
+        let mut actions = Vec::new();
+
+        for nft_id in nft_ids {
+            actions.push(SpendAction::AssignNft(AssignNftAction::new(
+                Id::Existing(nft_id),
+                did_id.map(Id::Existing),
+            )));
+
+            actions.push(SpendAction::TransferNft(TransferNftAction::new(
+                Id::Existing(nft_id),
+                puzzle_hash,
+            )));
+        }
 
         Ok(self.transact(actions, fee).await?.coin_spends)
     }
@@ -106,15 +106,11 @@ impl Wallet {
         fee: u64,
         uri: MetadataUpdate,
     ) -> Result<Vec<CoinSpend>, WalletError> {
-        let puzzle_hash = self.p2_puzzle_hash(false, true).await?;
-
         Ok(self
             .transact(
-                vec![SpendAction::TransferNft(TransferNftAction::new(
+                vec![SpendAction::AddNftUri(AddNftUriAction::new(
                     Id::Existing(nft_id),
-                    puzzle_hash,
-                    AssignDid::Existing,
-                    Some(uri),
+                    uri,
                 ))],
                 fee,
             )

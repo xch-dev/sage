@@ -104,13 +104,7 @@ impl Wallet {
 
         Ok((
             result.coin_spends,
-            result
-                .new_assets
-                .cats
-                .values()
-                .next()
-                .expect("no cat")
-                .asset_id,
+            *result.new_assets.cats.first().expect("no cat").1,
         ))
     }
 

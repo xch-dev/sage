@@ -3,11 +3,14 @@ use chia::{
     protocol::{Bytes32, Coin},
     puzzles::{singleton::SingletonArgs, Proof},
 };
-use chia_wallet_sdk::{driver::Did, types::Conditions};
+use chia_wallet_sdk::{
+    driver::{Did, SpendContext},
+    types::Conditions,
+};
 
-use crate::{Action, Id, Lineation, Summary, WalletError};
+use crate::{Action, AssetCoin, AssetSpend, Id, Spends, Summary, WalletError};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct NormalizeDidAction {
     pub did_id: Id,
 }
@@ -23,23 +26,28 @@ impl Action for NormalizeDidAction {
         summary.spent_dids.insert(self.did_id);
     }
 
-    fn lineate(&self, lineation: &mut Lineation<'_>, _index: usize) -> Result<(), WalletError> {
-        let did = lineation.dids[&self.did_id];
+    fn spend(
+        &self,
+        ctx: &mut SpendContext,
+        spends: &mut Spends,
+        _index: usize,
+    ) -> Result<(), WalletError> {
+        let item = spends
+            .dids
+            .get_mut(&self.did_id)
+            .ok_or(WalletError::MissingAsset)?;
 
-        let p2 = lineation
-            .p2
-            .get(&did.info.p2_puzzle_hash)
-            .ok_or(WalletError::MissingDerivation(did.info.p2_puzzle_hash))?;
+        let (spend, did) = item.did()?;
 
         let mut new_info = did.info;
         new_info.recovery_list_hash = Some(Bytes32::from(tree_hash_atom(&[])));
         let new_inner_puzzle_hash = new_info.inner_puzzle_hash();
 
-        let memos = lineation.ctx.hint(did.info.p2_puzzle_hash)?;
+        let memos = ctx.hint(did.info.p2_puzzle_hash)?;
 
         did.spend_with(
-            lineation.ctx,
-            p2,
+            ctx,
+            &spend.p2,
             Conditions::new().create_coin(
                 new_inner_puzzle_hash.into(),
                 did.coin.amount,
@@ -57,7 +65,9 @@ impl Action for NormalizeDidAction {
             info: new_info,
         };
 
-        lineation.dids[&self.did_id] = did.update(lineation.ctx, p2, Conditions::new())?;
+        let new_did = did.update(ctx, &spend.p2, spend.conditions.clone())?;
+
+        *spend = AssetSpend::new(AssetCoin::Did(new_did), spend.p2);
 
         Ok(())
     }

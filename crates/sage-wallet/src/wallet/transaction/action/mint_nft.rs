@@ -1,9 +1,10 @@
+use std::mem;
+
 use chia::{protocol::Bytes32, puzzles::nft::NftMetadata};
 use chia_puzzles::NFT_METADATA_UPDATER_DEFAULT_HASH;
-use chia_wallet_sdk::driver::{DidOwner, HashedPtr, NftMint};
-use tracing::info;
+use chia_wallet_sdk::driver::{DidOwner, HashedPtr, NftMint, SpendContext};
 
-use crate::{Action, AssetType, Distribution, DistributionCoin, Id, Summary, WalletError};
+use crate::{Action, AssetCoin, AssetSpend, AssetSpends, Id, Spends, Summary, WalletError};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MintNftAction {
@@ -39,43 +40,51 @@ impl Action for MintNftAction {
         summary.spent_xch += 1;
     }
 
-    fn distribute(
+    fn spend(
         &self,
-        distribution: &mut Distribution<'_>,
+        ctx: &mut SpendContext,
+        spends: &mut Spends,
         index: usize,
     ) -> Result<(), WalletError> {
-        if distribution.asset_id() != Some(self.minter_did)
-            || distribution.asset_type() != AssetType::Did
-        {
-            return Ok(());
-        }
+        let item = spends
+            .dids
+            .get_mut(&self.minter_did)
+            .ok_or(WalletError::MissingAsset)?;
 
-        info!("XYZXYXYZYXYZYXYZYXZYYXZYZYXYZYZYXY");
+        let did = item.did()?.1;
 
-        distribution.create_launcher(|ctx, new_assets, item, launcher, conditions| {
-            let DistributionCoin::Did(did) = item.coin else {
-                unreachable!()
-            };
+        let (parent, launcher) = item.create_launcher(ctx)?;
 
-            info!("ABCABCABCABCABBBBABABABAB");
+        let mint = NftMint {
+            metadata: self.metadata.clone(),
+            metadata_updater_puzzle_hash: NFT_METADATA_UPDATER_DEFAULT_HASH.into(),
+            royalty_puzzle_hash: self.royalty_puzzle_hash,
+            royalty_ten_thousandths: self.royalty_ten_thousandths,
+            p2_puzzle_hash: self.p2_puzzle_hash,
+            owner: Some(DidOwner::from_did_info(&did.info)),
+        };
 
-            let mint = NftMint {
-                metadata: self.metadata.clone(),
-                metadata_updater_puzzle_hash: NFT_METADATA_UPDATER_DEFAULT_HASH.into(),
-                royalty_puzzle_hash: self.royalty_puzzle_hash,
-                royalty_ten_thousandths: self.royalty_ten_thousandths,
-                p2_puzzle_hash: self.p2_puzzle_hash,
-                owner: Some(DidOwner::from_did_info(&did.info)),
-            };
+        let (mint_nft, nft) = launcher.mint_nft(ctx, mint)?;
 
-            let (mint_nft, nft) = launcher.mint_nft(ctx, mint)?;
+        let metadata_ptr = ctx.alloc(&nft.info.metadata)?;
+        let nft = nft.with_metadata(HashedPtr::from_ptr(ctx, metadata_ptr));
 
-            let metadata_ptr = ctx.alloc(&nft.info.metadata)?;
-            let nft = nft.with_metadata(HashedPtr::from_ptr(ctx, metadata_ptr));
+        spends.nfts.insert(
+            Id::New(index),
+            AssetSpends::new(
+                vec![AssetSpend::new(
+                    AssetCoin::Nft(nft.with_metadata(HashedPtr::NIL)),
+                    parent.p2,
+                )],
+                2,
+                true,
+            ),
+        );
 
-            new_assets.nfts.insert(Id::New(index), nft);
+        let did_spend = item.did()?.0;
 
-            Ok(conditions.extend(mint_nft))
-        })
+        did_spend.conditions = mem::take(&mut did_spend.conditions).extend(mint_nft);
+
+        Ok(())
     }
 }

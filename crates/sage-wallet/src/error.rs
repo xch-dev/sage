@@ -47,6 +47,12 @@ pub enum WalletError {
     #[error("Missing spend with id {0}")]
     MissingSpend(Bytes32),
 
+    #[error("No intermediate parent")]
+    NoIntermediateParent,
+
+    #[error("Missing asset in spends")]
+    MissingAsset,
+
     #[error("Missing child of id {0}")]
     MissingChild(Bytes32),
 

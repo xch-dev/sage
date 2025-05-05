@@ -1,9 +1,9 @@
 use chia::protocol::Bytes32;
-use chia_wallet_sdk::types::Conditions;
+use chia_wallet_sdk::driver::SpendContext;
 
-use crate::{Action, Id, Lineation, Summary, WalletError};
+use crate::{Action, AssetCoin, AssetSpend, Id, Spends, Summary, WalletError};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TransferDidAction {
     pub did_id: Id,
     pub puzzle_hash: Bytes32,
@@ -23,16 +23,22 @@ impl Action for TransferDidAction {
         summary.spent_dids.insert(self.did_id);
     }
 
-    fn lineate(&self, lineation: &mut Lineation<'_>, _index: usize) -> Result<(), WalletError> {
-        let did = lineation.dids[&self.did_id];
+    fn spend(
+        &self,
+        ctx: &mut SpendContext,
+        spends: &mut Spends,
+        _index: usize,
+    ) -> Result<(), WalletError> {
+        let item = spends
+            .dids
+            .get_mut(&self.did_id)
+            .ok_or(WalletError::MissingAsset)?;
 
-        let p2 = lineation
-            .p2
-            .get(&did.info.p2_puzzle_hash)
-            .ok_or(WalletError::MissingDerivation(did.info.p2_puzzle_hash))?;
+        let (spend, did) = item.did()?;
 
-        lineation.dids[&self.did_id] =
-            did.transfer(lineation.ctx, p2, self.puzzle_hash, Conditions::new())?;
+        let new_did = did.transfer(ctx, &spend.p2, self.puzzle_hash, spend.conditions.clone())?;
+
+        *spend = AssetSpend::new(AssetCoin::Did(new_did), spend.p2);
 
         Ok(())
     }

@@ -1,6 +1,7 @@
 use chia::protocol::{Bytes, Bytes32};
+use chia_wallet_sdk::driver::SpendContext;
 
-use crate::{Action, AssetType, Distribution, Id, Summary, WalletError};
+use crate::{Action, Id, Spends, Summary, WalletError};
 
 /// Sends an amount of a fungible asset to a given puzzle hash. This means
 /// that a coin will be created at the puzzle hash and amount, but the
@@ -10,7 +11,7 @@ use crate::{Action, AssetType, Distribution, Id, Summary, WalletError};
 ///
 /// If a CAT is sent, a hint will be included by default to make it possible
 /// for the recipient to discover the CAT by looking up the puzzle hash.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SendAction {
     /// The id of the asset to send.
     pub asset_id: Option<Id>,
@@ -59,25 +60,29 @@ impl Action for SendAction {
         }
     }
 
-    fn distribute(
+    fn spend(
         &self,
-        distribution: &mut Distribution<'_>,
+        ctx: &mut SpendContext,
+        spends: &mut Spends,
         _index: usize,
     ) -> Result<(), WalletError> {
-        if distribution.asset_id() == self.asset_id
-            && distribution.asset_type() == AssetType::Fungible
-        {
-            distribution.create_coin(
-                self.puzzle_hash,
-                self.amount,
-                if self.asset_id.is_some() {
-                    matches!(self.include_hint, Hint::Default | Hint::Yes)
-                } else {
-                    matches!(self.include_hint, Hint::Yes)
-                },
-                self.memos.clone(),
-            )?;
-        }
+        let asset = if let Some(id) = self.asset_id {
+            spends.cats.get_mut(&id).ok_or(WalletError::MissingAsset)?
+        } else {
+            &mut spends.xch
+        };
+
+        asset.create_coin(
+            ctx,
+            self.puzzle_hash,
+            self.amount,
+            if self.asset_id.is_some() {
+                matches!(self.include_hint, Hint::Default | Hint::Yes)
+            } else {
+                matches!(self.include_hint, Hint::Yes)
+            },
+            self.memos.clone(),
+        )?;
 
         Ok(())
     }

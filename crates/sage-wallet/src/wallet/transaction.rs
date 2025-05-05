@@ -1,15 +1,13 @@
 mod action;
-mod distribution;
 mod id;
-mod lineation;
 mod selection;
+mod spends;
 mod summary;
 
 pub use action::*;
-pub use distribution::*;
 pub use id::*;
-pub use lineation::*;
 pub use selection::*;
+pub use spends::*;
 pub use summary::*;
 
 use chia::{
@@ -52,45 +50,67 @@ impl TransactionConfig {
 #[derive(Debug, Clone)]
 pub struct TransactionResult {
     pub coin_spends: Vec<CoinSpend>,
-    pub new_assets: OwnedNewAssets,
+    pub new_assets: NewAssets,
 }
 
 #[derive(Debug, Default, Clone)]
-pub struct OwnedNewAssets {
-    pub cats: IndexMap<Id, NewCat>,
+pub struct NewAssets {
+    pub cats: IndexMap<Id, Bytes32>,
     pub nfts: IndexMap<Id, Nft<Program>>,
     pub dids: IndexMap<Id, Did<Program>>,
     pub options: IndexMap<Id, OptionContract>,
 }
 
-impl OwnedNewAssets {
-    pub fn from_new_assets(
-        allocator: &Allocator,
-        new_assets: NewAssets,
-    ) -> Result<Self, WalletError> {
+impl NewAssets {
+    pub fn from_spends(allocator: &Allocator, spends: Spends) -> Result<Self, WalletError> {
         Ok(Self {
-            cats: new_assets.cats,
-            nfts: new_assets
+            cats: spends
+                .cats
+                .into_iter()
+                .filter_map(|(id, spend)| {
+                    if spend.was_created {
+                        spend.items.first().and_then(|item| {
+                            if let AssetCoin::Cat(cat) = item.coin {
+                                Some((id, cat.asset_id))
+                            } else {
+                                None
+                            }
+                        })
+                    } else {
+                        None
+                    }
+                })
+                .collect(),
+            nfts: spends
                 .nfts
                 .into_iter()
-                .map(|(id, nft)| {
+                .map(|(id, mut item)| {
+                    let nft = item.nft()?.1;
                     Ok((
                         id,
                         nft.with_metadata(Program::from_clvm(allocator, nft.info.metadata.ptr())?),
                     ))
                 })
                 .collect::<Result<_, WalletError>>()?,
-            dids: new_assets
+            dids: spends
                 .dids
                 .into_iter()
-                .map(|(id, did)| {
+                .map(|(id, mut item)| {
+                    let did = item.did()?.1;
                     Ok((
                         id,
                         did.with_metadata(Program::from_clvm(allocator, did.info.metadata.ptr())?),
                     ))
                 })
                 .collect::<Result<_, WalletError>>()?,
-            options: new_assets.options,
+            options: spends
+                .options
+                .into_iter()
+                .map(|(id, mut item)| {
+                    let option = item.option()?.1;
+                    Ok((id, option))
+                })
+                .collect::<Result<_, WalletError>>()?,
         })
     }
 }
@@ -100,12 +120,10 @@ impl Wallet {
         &self,
         ctx: &mut SpendContext,
         tx: &mut TransactionConfig,
-    ) -> Result<NewAssets, WalletError> {
+    ) -> Result<Spends, WalletError> {
         let summary = self.summarize(tx)?;
         self.select(ctx, &mut tx.preselection, &summary).await?;
-        let new_assets = self.distribute(ctx, &summary, &tx.preselection, tx).await?;
-        self.lineate(ctx, &tx.preselection, &new_assets, tx).await?;
-        Ok(new_assets)
+        self.spend(ctx, &summary, &tx.preselection, tx).await
     }
 
     pub async fn transact_with_coin_ids(
@@ -124,16 +142,13 @@ impl Wallet {
         self.select(&mut ctx, &mut tx.preselection, &summary)
             .await?;
 
-        let new_assets = self
-            .distribute(&mut ctx, &summary, &tx.preselection, &tx)
-            .await?;
-
-        self.lineate(&mut ctx, &tx.preselection, &new_assets, &tx)
+        let spends = self
+            .spend(&mut ctx, &summary, &tx.preselection, &tx)
             .await?;
 
         Ok(TransactionResult {
             coin_spends: ctx.take(),
-            new_assets: OwnedNewAssets::from_new_assets(&ctx, new_assets)?,
+            new_assets: NewAssets::from_spends(&ctx, spends)?,
         })
     }
 
@@ -150,16 +165,13 @@ impl Wallet {
         self.select(&mut ctx, &mut tx.preselection, &summary)
             .await?;
 
-        let new_assets = self
-            .distribute(&mut ctx, &summary, &tx.preselection, &tx)
-            .await?;
-
-        self.lineate(&mut ctx, &tx.preselection, &new_assets, &tx)
+        let spends = self
+            .spend(&mut ctx, &summary, &tx.preselection, &tx)
             .await?;
 
         Ok(TransactionResult {
             coin_spends: ctx.take(),
-            new_assets: OwnedNewAssets::from_new_assets(&ctx, new_assets)?,
+            new_assets: NewAssets::from_spends(&ctx, spends)?,
         })
     }
 }
