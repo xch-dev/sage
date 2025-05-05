@@ -398,8 +398,16 @@ where
         }
     }
 
-    pub fn spend(&self, ctx: &mut SpendContext) -> Result<(), WalletError> {
-        self.coin.spend(ctx, self.p2, self.conditions.clone())
+    pub fn spend(
+        &self,
+        ctx: &mut SpendContext,
+        extra_conditions: Conditions,
+    ) -> Result<(), WalletError> {
+        self.coin.spend(
+            ctx,
+            self.p2,
+            self.conditions.clone().extend(extra_conditions),
+        )
     }
 
     pub fn p2(&self) -> StandardLayer {

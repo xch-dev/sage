@@ -7,9 +7,12 @@ pub use singleton::*;
 use std::collections::HashMap;
 
 use chia::protocol::{Bytes32, Coin};
-use chia_wallet_sdk::driver::{
-    Cat, CatSpend, Did, HashedPtr, Nft, OptionContract, SpendContext, SpendWithConditions,
-    StandardLayer,
+use chia_wallet_sdk::{
+    driver::{
+        Cat, CatSpend, Did, HashedPtr, Nft, OptionContract, SpendContext, SpendWithConditions,
+        StandardLayer,
+    },
+    types::Conditions,
 };
 use indexmap::IndexMap;
 
@@ -68,7 +71,7 @@ impl Wallet {
         for lineage in spends.dids.values_mut() {
             for item in lineage.iter() {
                 if item.has_conditions() {
-                    item.spend(ctx)?;
+                    item.spend(ctx, Conditions::new())?;
                 }
             }
         }
@@ -76,7 +79,7 @@ impl Wallet {
         for lineage in spends.nfts.values_mut() {
             for item in lineage.iter() {
                 if item.has_conditions() {
-                    item.spend(ctx)?;
+                    item.spend(ctx, Conditions::new())?;
                 }
             }
         }
@@ -84,7 +87,7 @@ impl Wallet {
         for lineage in spends.options.values_mut() {
             for item in lineage.iter() {
                 if item.has_conditions() {
-                    item.spend(ctx)?;
+                    item.spend(ctx, Conditions::new())?;
                 }
             }
         }
