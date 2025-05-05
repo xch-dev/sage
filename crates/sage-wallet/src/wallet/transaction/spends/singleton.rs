@@ -410,6 +410,10 @@ where
         )
     }
 
+    pub fn coin_id(&self) -> Bytes32 {
+        self.coin.coin_id()
+    }
+
     pub fn p2(&self) -> StandardLayer {
         self.p2
     }

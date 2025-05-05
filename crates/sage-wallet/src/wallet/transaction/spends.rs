@@ -50,44 +50,141 @@ impl Wallet {
 
         Self::finalize_singletons(ctx, &mut spends)?;
 
-        for item in &spends.xch.items {
-            item.p2.spend(ctx, item.coin, item.conditions.clone())?;
-        }
+        let mut coin_ids = Vec::new();
 
-        for cat in spends.cats.values() {
-            let mut cat_spends = Vec::new();
+        // This is a complicated way of forming a ring of assert concurrent spend conditions.
+        for collect in [true, false] {
+            if !collect && !coin_ids.is_empty() {
+                // We need to shift to the right by one to form a ring.
+                let last = coin_ids.remove(coin_ids.len() - 1);
+                coin_ids.insert(0, last);
 
-            for item in &cat.items {
-                cat_spends.push(CatSpend::new(
-                    item.coin,
-                    item.p2
-                        .spend_with_conditions(ctx, item.conditions.clone())?,
-                ));
+                // If there's only one coin, there's no point in forming a ring.
+                if coin_ids.len() == 1 {
+                    coin_ids = Vec::new();
+                }
+
+                // Reverse the coin ids since we're going to be popping them from the end.
+                coin_ids.reverse();
             }
 
-            Cat::spend_all(ctx, &cat_spends)?;
-        }
+            for item in &spends.xch.items {
+                if collect {
+                    coin_ids.push(item.coin.coin_id());
+                    continue;
+                }
 
-        for lineage in spends.dids.values_mut() {
-            for item in lineage.iter() {
-                if item.has_conditions() {
-                    item.spend(ctx, Conditions::new())?;
+                let mut conditions = item.conditions.clone();
+
+                if let Some(coin_id) = coin_ids.pop() {
+                    conditions = conditions.assert_concurrent_spend(coin_id);
+                }
+
+                item.p2.spend(ctx, item.coin, conditions)?;
+            }
+
+            'cats: for cat in spends.cats.values() {
+                let mut cat_spends = Vec::new();
+
+                for item in &cat.items {
+                    if collect {
+                        coin_ids.push(item.coin.coin.coin_id());
+                        continue 'cats;
+                    }
+
+                    let mut conditions = item.conditions.clone();
+
+                    if let Some(coin_id) = coin_ids.pop() {
+                        conditions = conditions.assert_concurrent_spend(coin_id);
+                    }
+
+                    cat_spends.push(CatSpend::new(
+                        item.coin,
+                        item.p2.spend_with_conditions(ctx, conditions)?,
+                    ));
+                }
+
+                Cat::spend_all(ctx, &cat_spends)?;
+            }
+
+            for lineage in spends.dids.values_mut() {
+                let mut last_coin_id = None;
+
+                for item in lineage.iter() {
+                    if item.has_conditions() {
+                        if collect {
+                            last_coin_id = Some(item.coin_id());
+                            continue;
+                        }
+
+                        let mut conditions = Conditions::new();
+
+                        if let Some(coin_id) = coin_ids.pop() {
+                            conditions = conditions.assert_concurrent_spend(coin_id);
+                        }
+
+                        item.spend(ctx, conditions)?;
+                    }
+                }
+
+                if let Some(coin_id) = last_coin_id {
+                    if collect {
+                        coin_ids.push(coin_id);
+                    }
                 }
             }
-        }
 
-        for lineage in spends.nfts.values_mut() {
-            for item in lineage.iter() {
-                if item.has_conditions() {
-                    item.spend(ctx, Conditions::new())?;
+            for lineage in spends.nfts.values_mut() {
+                let mut last_coin_id = None;
+
+                for item in lineage.iter() {
+                    if item.has_conditions() {
+                        if collect {
+                            last_coin_id = Some(item.coin_id());
+                            continue;
+                        }
+
+                        let mut conditions = Conditions::new();
+
+                        if let Some(coin_id) = coin_ids.pop() {
+                            conditions = conditions.assert_concurrent_spend(coin_id);
+                        }
+
+                        item.spend(ctx, conditions)?;
+                    }
+                }
+
+                if let Some(coin_id) = last_coin_id {
+                    if collect {
+                        coin_ids.push(coin_id);
+                    }
                 }
             }
-        }
 
-        for lineage in spends.options.values_mut() {
-            for item in lineage.iter() {
-                if item.has_conditions() {
-                    item.spend(ctx, Conditions::new())?;
+            for lineage in spends.options.values_mut() {
+                let mut last_coin_id = None;
+
+                for item in lineage.iter() {
+                    if item.has_conditions() {
+                        if collect {
+                            last_coin_id = Some(item.coin_id());
+                            continue;
+                        }
+
+                        let mut conditions = Conditions::new();
+
+                        if let Some(coin_id) = coin_ids.pop() {
+                            conditions = conditions.assert_concurrent_spend(coin_id);
+                        }
+
+                        item.spend(ctx, conditions)?;
+                    }
+                }
+
+                if let Some(coin_id) = last_coin_id {
+                    if collect {
+                        coin_ids.push(coin_id);
+                    }
                 }
             }
         }
