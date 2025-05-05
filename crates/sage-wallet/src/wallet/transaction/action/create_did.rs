@@ -4,7 +4,6 @@ use chia_wallet_sdk::driver::{HashedPtr, SpendContext};
 
 use crate::{Action, Id, SingletonLineage, Spends, Summary, WalletError};
 
-/// This will create a new DID.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct CreateDidAction;
 

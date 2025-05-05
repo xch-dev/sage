@@ -9,10 +9,8 @@ use clvmr::NodePtr;
 
 use crate::{Action, AssetCoin, AssetCoinExt, FungibleAsset, Id, Spends, Summary, WalletError};
 
-/// This will create a new single-issuance CAT.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct IssueCatAction {
-    /// The amount of the CAT to issue.
     pub amount: u64,
 }
 

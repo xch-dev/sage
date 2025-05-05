@@ -24,8 +24,9 @@ pub use transfer_option::*;
 
 use crate::WalletError;
 
-use super::{Spends, Summary};
+use super::{Id, Spends, Summary};
 
+use chia::protocol::{Bytes, Bytes32};
 use chia_wallet_sdk::driver::SpendContext;
 
 #[derive(Debug, Clone)]
@@ -41,6 +42,37 @@ pub enum SpendAction {
     NormalizeDid(NormalizeDidAction),
     MintOption(MintOptionAction),
     TransferOption(TransferOptionAction),
+}
+
+impl SpendAction {
+    pub fn send_xch(puzzle_hash: Bytes32, amount: u64, memos: Option<Vec<Bytes>>) -> Self {
+        Self::Send(SendAction::new(
+            None,
+            puzzle_hash,
+            amount,
+            Hint::Default,
+            memos,
+        ))
+    }
+
+    pub fn send_cat(
+        asset_id: Bytes32,
+        puzzle_hash: Bytes32,
+        amount: u64,
+        memos: Option<Vec<Bytes>>,
+    ) -> Self {
+        Self::Send(SendAction::new(
+            Some(Id::Existing(asset_id)),
+            puzzle_hash,
+            amount,
+            Hint::Default,
+            memos,
+        ))
+    }
+
+    pub fn issue_cat(amount: u64) -> Self {
+        Self::IssueCat(IssueCatAction::new(amount))
+    }
 }
 
 pub trait Action {

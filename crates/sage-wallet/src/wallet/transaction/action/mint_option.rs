@@ -5,7 +5,6 @@ use chia_wallet_sdk::driver::{OptionLauncherInfo, OptionType, SpendContext};
 
 use crate::{Action, Id, SingletonLineage, Spends, Summary, WalletError};
 
-/// This will create a new option contract.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct MintOptionAction {
     pub creator_puzzle_hash: Bytes32,

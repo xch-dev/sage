@@ -4,7 +4,7 @@ mod singleton;
 pub use fungible_asset::*;
 pub use singleton::*;
 
-use std::collections::HashMap;
+use std::{collections::HashMap, mem};
 
 use chia::protocol::{Bytes32, Coin};
 use chia_wallet_sdk::{
@@ -43,6 +43,12 @@ impl Wallet {
 
         for (index, action) in tx.actions.iter().enumerate() {
             action.spend(ctx, &mut spends, index)?;
+        }
+
+        if tx.fee > 0 {
+            if let Some(item) = spends.xch.items.first_mut() {
+                item.conditions = mem::take(&mut item.conditions).reserve_fee(tx.fee);
+            }
         }
 
         self.send_change(ctx, summary, selection, &mut spends)
