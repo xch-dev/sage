@@ -189,10 +189,18 @@ impl SingletonLineage<Did<HashedPtr>> {
     }
 
     pub fn recreate(&mut self, ctx: &mut SpendContext) -> Result<(), WalletError> {
-        if self.recovery_list_hash_changed() {
+        self.recreate_impl(ctx, false)
+    }
+
+    fn recreate_impl(
+        &mut self,
+        ctx: &mut SpendContext,
+        is_update_spend: bool,
+    ) -> Result<(), WalletError> {
+        if self.recovery_list_hash_changed() && !is_update_spend {
             let p2_puzzle_hash = self.current().coin.info.p2_puzzle_hash;
             let p2_puzzle_hash = mem::replace(&mut self.child_info.p2_puzzle_hash, p2_puzzle_hash);
-            self.recreate(ctx)?;
+            self.recreate_impl(ctx, true)?;
             self.child_info.p2_puzzle_hash = p2_puzzle_hash;
         }
 
