@@ -1,5 +1,3 @@
-use std::mem;
-
 use chia::clvm_traits::clvm_list;
 use chia_wallet_sdk::{
     driver::{HashedPtr, MetadataUpdate, SpendContext},
@@ -32,27 +30,29 @@ impl Action for AddNftUriAction {
         spends: &mut Spends,
         _index: usize,
     ) -> Result<(), WalletError> {
-        let nft = spends
+        let nft_lineage = spends
             .nfts
             .get_mut(&self.nft_id)
             .ok_or(WalletError::MissingAsset)?;
 
+        let nft = nft_lineage.coin();
+
         let metadata_update = self.add_uri.spend(ctx)?;
 
         let metadata_updater_solution = ctx.alloc(&clvm_list!(
-            nft.coin.info.metadata,
-            nft.coin.info.metadata_updater_puzzle_hash,
+            nft.info.metadata,
+            nft.info.metadata_updater_puzzle_hash,
             metadata_update.solution
         ))?;
         let ptr = ctx.run(metadata_update.puzzle, metadata_updater_solution)?;
         let output = ctx.extract::<NewMetadataOutput<HashedPtr, NodePtr>>(ptr)?;
 
-        nft.child_info = nft
-            .child_info
-            .with_metadata(output.metadata_info.new_metadata);
-        nft.child_info.metadata_updater_puzzle_hash = output.metadata_info.new_updater_puzzle_hash;
-        nft.conditions = mem::take(&mut nft.conditions)
-            .update_nft_metadata(metadata_update.puzzle, metadata_update.solution);
+        nft_lineage.set_metadata(
+            ctx,
+            metadata_update,
+            output.metadata_info.new_metadata,
+            output.metadata_info.new_updater_puzzle_hash,
+        )?;
 
         Ok(())
     }

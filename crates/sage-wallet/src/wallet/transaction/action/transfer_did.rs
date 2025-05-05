@@ -25,7 +25,7 @@ impl Action for TransferDidAction {
 
     fn spend(
         &self,
-        ctx: &mut SpendContext,
+        _ctx: &mut SpendContext,
         spends: &mut Spends,
         _index: usize,
     ) -> Result<(), WalletError> {
@@ -34,21 +34,7 @@ impl Action for TransferDidAction {
             .get_mut(&self.did_id)
             .ok_or(WalletError::MissingAsset)?;
 
-        if item.coin.info.p2_puzzle_hash != item.child_info.p2_puzzle_hash {
-            return Err(WalletError::P2PuzzleHashChange);
-        }
-
-        if item.coin.info != item.child_info {
-            item.coin
-                .spend_with(ctx, &item.p2, item.conditions.clone())?;
-            *item = item.child();
-        }
-
-        let did = item
-            .coin
-            .transfer(ctx, &item.p2, self.puzzle_hash, item.conditions.clone())?;
-
-        *item = item.child_with(did);
+        item.set_p2_puzzle_hash(self.puzzle_hash);
 
         Ok(())
     }

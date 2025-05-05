@@ -2,7 +2,7 @@ use std::mem;
 
 use chia_wallet_sdk::driver::{HashedPtr, SpendContext};
 
-use crate::{Action, Id, Singleton, Spends, Summary, WalletError};
+use crate::{Action, Id, SingletonLineage, Spends, Summary, WalletError};
 
 /// This will create a new DID at the change puzzle hash specified
 /// in the transaction config. It can be immediately spent if needed.
@@ -30,7 +30,7 @@ impl Action for CreateDidAction {
 
         spends
             .dids
-            .insert(Id::New(index), Singleton::new(did, did.info, item.p2, true));
+            .insert(Id::New(index), SingletonLineage::new(did, item.p2, true));
 
         Ok(())
     }

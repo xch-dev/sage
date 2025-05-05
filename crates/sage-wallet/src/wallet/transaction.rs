@@ -78,8 +78,9 @@ impl NewAssets {
             nfts: spends
                 .nfts
                 .into_iter()
+                .filter(|(_, item)| item.was_created())
                 .map(|(id, item)| {
-                    let nft = item.coin;
+                    let nft = item.coin();
                     Ok((
                         id,
                         nft.with_metadata(Program::from_clvm(allocator, nft.info.metadata.ptr())?),
@@ -89,8 +90,9 @@ impl NewAssets {
             dids: spends
                 .dids
                 .into_iter()
+                .filter(|(_, item)| item.was_created())
                 .map(|(id, item)| {
-                    let did = item.coin;
+                    let did = item.coin();
                     Ok((
                         id,
                         did.with_metadata(Program::from_clvm(allocator, did.info.metadata.ptr())?),
@@ -100,7 +102,8 @@ impl NewAssets {
             options: spends
                 .options
                 .into_iter()
-                .map(|(id, item)| (id, item.coin))
+                .filter(|(_, item)| item.was_created())
+                .map(|(id, item)| (id, item.coin()))
                 .collect(),
         })
     }

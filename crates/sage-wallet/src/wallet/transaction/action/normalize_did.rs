@@ -1,4 +1,4 @@
-use chia::{clvm_utils::tree_hash_atom, protocol::Bytes32};
+use chia::clvm_utils::tree_hash_atom;
 use chia_wallet_sdk::driver::SpendContext;
 
 use crate::{Action, Id, Spends, Summary, WalletError};
@@ -30,7 +30,7 @@ impl Action for NormalizeDidAction {
             .get_mut(&self.did_id)
             .ok_or(WalletError::MissingAsset)?;
 
-        item.child_info.recovery_list_hash = Some(Bytes32::from(tree_hash_atom(&[])));
+        item.set_recovery_list_hash(Some(tree_hash_atom(&[]).into()));
 
         Ok(())
     }

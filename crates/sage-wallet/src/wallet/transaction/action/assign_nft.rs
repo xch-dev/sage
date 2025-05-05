@@ -1,9 +1,4 @@
-use std::mem;
-
-use chia_wallet_sdk::{
-    driver::{did_puzzle_assertion, SpendContext},
-    prelude::TransferNft,
-};
+use chia_wallet_sdk::driver::{DidOwner, SpendContext};
 
 use crate::{Action, Id, Spends, Summary, WalletError};
 
@@ -30,41 +25,36 @@ impl Action for AssignNftAction {
 
     fn spend(
         &self,
-        _ctx: &mut SpendContext,
+        ctx: &mut SpendContext,
         spends: &mut Spends,
         _index: usize,
     ) -> Result<(), WalletError> {
-        let nft = spends
+        let nft_lineage = spends
             .nfts
             .get_mut(&self.nft_id)
             .ok_or(WalletError::MissingAsset)?;
 
-        let transfer_condition = if let Some(did_id) = self.did_id {
-            let did = spends
+        let nft = nft_lineage.coin();
+
+        let owner = if let Some(did_id) = self.did_id {
+            let did_lineage = spends
                 .dids
                 .get_mut(&did_id)
                 .ok_or(WalletError::MissingAsset)?;
 
-            let transfer_condition = TransferNft::new(
-                Some(did.coin.info.launcher_id),
-                Vec::new(),
-                Some(did.coin.info.inner_puzzle_hash().into()),
-            );
+            let did = did_lineage.coin();
 
-            did.conditions = mem::take(&mut did.conditions)
-                .assert_puzzle_announcement(did_puzzle_assertion(
-                    nft.coin.coin.puzzle_hash,
-                    &transfer_condition,
-                ))
-                .create_puzzle_announcement(nft.coin.info.launcher_id.into());
+            did_lineage.authorize_nft_ownership(nft.coin.puzzle_hash, nft.info.launcher_id);
 
-            transfer_condition
+            Some(DidOwner::new(
+                did.info.launcher_id,
+                did.info.inner_puzzle_hash().into(),
+            ))
         } else {
-            TransferNft::new(None, Vec::new(), None)
+            None
         };
 
-        nft.child_info = nft.child_info.with_owner(transfer_condition.did_id);
-        nft.conditions = mem::take(&mut nft.conditions).with(transfer_condition);
+        nft_lineage.set_did_owner(ctx, owner)?;
 
         Ok(())
     }

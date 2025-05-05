@@ -7,9 +7,8 @@ pub use singleton::*;
 use std::collections::HashMap;
 
 use chia::protocol::Coin;
-use chia_wallet_sdk::{
-    driver::{Cat, Did, HashedPtr, Nft, OptionContract, SpendContext, StandardLayer},
-    types::Conditions,
+use chia_wallet_sdk::driver::{
+    Cat, Did, HashedPtr, Nft, OptionContract, SpendContext, StandardLayer,
 };
 use indexmap::IndexMap;
 use itertools::Itertools;
@@ -22,9 +21,9 @@ use super::{Action, Id, Selection, Summary, TransactionConfig};
 pub struct Spends {
     pub xch: FungibleAsset<Coin>,
     pub cats: IndexMap<Id, FungibleAsset<Cat>>,
-    pub dids: IndexMap<Id, Singleton<Did<HashedPtr>>>,
-    pub nfts: IndexMap<Id, Singleton<Nft<HashedPtr>>>,
-    pub options: IndexMap<Id, Singleton<OptionContract>>,
+    pub dids: IndexMap<Id, SingletonLineage<Did<HashedPtr>>>,
+    pub nfts: IndexMap<Id, SingletonLineage<Nft<HashedPtr>>>,
+    pub options: IndexMap<Id, SingletonLineage<OptionContract>>,
 }
 
 impl Wallet {
@@ -93,7 +92,7 @@ impl Wallet {
             .dids
             .iter()
             .map(|(&id, &did)| {
-                let singleton = Singleton::new(did, did.info, p2[&did.info.p2_puzzle_hash], false);
+                let singleton = SingletonLineage::new(did, p2[&did.info.p2_puzzle_hash], false);
                 (id, singleton)
             })
             .collect();
@@ -102,7 +101,7 @@ impl Wallet {
             .nfts
             .iter()
             .map(|(&id, &nft)| {
-                let singleton = Singleton::new(nft, nft.info, p2[&nft.info.p2_puzzle_hash], false);
+                let singleton = SingletonLineage::new(nft, p2[&nft.info.p2_puzzle_hash], false);
                 (id, singleton)
             })
             .collect();
@@ -112,7 +111,7 @@ impl Wallet {
             .iter()
             .map(|(&id, &option)| {
                 let singleton =
-                    Singleton::new(option, option.info, p2[&option.info.p2_puzzle_hash], false);
+                    SingletonLineage::new(option, p2[&option.info.p2_puzzle_hash], false);
                 (id, singleton)
             })
             .collect();
@@ -174,77 +173,34 @@ impl Wallet {
             self.spend_cat_coins(ctx, cat_spends.into_iter()).await?;
         }
 
-        for item in spends.dids.values_mut() {
-            let metadata_changed = item.coin.info != item.child_info;
+        for lineage in spends.dids.values_mut() {
+            lineage.recreate(ctx)?;
 
-            if item.conditions.is_empty() && !metadata_changed {
-                continue;
-            }
-
-            if item.coin.info.p2_puzzle_hash != item.child_info.p2_puzzle_hash {
-                return Err(WalletError::P2PuzzleHashChange);
-            }
-
-            let hint = ctx.hint(item.child_info.p2_puzzle_hash)?;
-
-            item.coin.spend_with(
-                ctx,
-                &item.p2,
-                Conditions::new()
-                    .create_coin(
-                        item.child_info.inner_puzzle_hash().into(),
-                        item.coin.coin.amount,
-                        Some(hint),
-                    )
-                    .extend(item.conditions.clone()),
-            )?;
-
-            *item = item.child();
-
-            if metadata_changed {
-                let new_p2 =
-                    StandardLayer::new(self.db.synthetic_key(item.coin.info.p2_puzzle_hash).await?);
-                let _ = item.coin.update(ctx, &new_p2, Conditions::new())?;
-                *item = item.child();
+            for item in lineage.iter() {
+                if item.has_conditions() {
+                    item.spend(ctx)?;
+                }
             }
         }
 
-        for item in spends.nfts.values_mut() {
-            if item.conditions.is_empty() {
-                continue;
+        for lineage in spends.nfts.values_mut() {
+            lineage.recreate(ctx)?;
+
+            for item in lineage.iter() {
+                if item.has_conditions() {
+                    item.spend(ctx)?;
+                }
             }
-
-            if item.coin.info.p2_puzzle_hash != item.child_info.p2_puzzle_hash {
-                return Err(WalletError::P2PuzzleHashChange);
-            }
-
-            let _ = item.coin.transfer(
-                ctx,
-                &item.p2,
-                item.child_info.p2_puzzle_hash,
-                item.conditions.clone(),
-            );
-
-            *item = item.child();
         }
 
-        for item in spends.options.values_mut() {
-            if item.conditions.is_empty() {
-                continue;
+        for lineage in spends.options.values_mut() {
+            lineage.recreate(ctx)?;
+
+            for item in lineage.iter() {
+                if item.has_conditions() {
+                    item.spend(ctx)?;
+                }
             }
-
-            if item.coin.info.p2_puzzle_hash != item.child_info.p2_puzzle_hash {
-                return Err(WalletError::P2PuzzleHashChange);
-            }
-
-            let _ = item.coin.transfer(
-                ctx,
-                &item.p2,
-                item.child_info.p2_puzzle_hash,
-                item.conditions.clone(),
-            );
-
-            *item = item.child();
         }
 
         Ok(spends)
