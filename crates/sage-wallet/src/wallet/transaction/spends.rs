@@ -6,12 +6,12 @@ pub use singleton::*;
 
 use std::collections::HashMap;
 
-use chia::protocol::Coin;
+use chia::protocol::{Bytes32, Coin};
 use chia_wallet_sdk::driver::{
-    Cat, Did, HashedPtr, Nft, OptionContract, SpendContext, StandardLayer,
+    Cat, CatSpend, Did, HashedPtr, Nft, OptionContract, SpendContext, SpendWithConditions,
+    StandardLayer,
 };
 use indexmap::IndexMap;
-use itertools::Itertools;
 
 use crate::{Wallet, WalletError};
 
@@ -34,8 +34,69 @@ impl Wallet {
         selection: &Selection,
         tx: &TransactionConfig,
     ) -> Result<Spends, WalletError> {
-        let change_puzzle_hash = self.p2_puzzle_hash(false, true).await?;
+        let p2 = self.fetch_p2_map(selection).await?;
 
+        let mut spends = Self::initial_spends(selection, &p2);
+
+        for (index, action) in tx.actions.iter().enumerate() {
+            action.spend(ctx, &mut spends, index)?;
+        }
+
+        self.send_change(ctx, summary, selection, &mut spends)
+            .await?;
+
+        Self::finalize_singletons(ctx, &mut spends)?;
+
+        for item in &spends.xch.items {
+            item.p2.spend(ctx, item.coin, item.conditions.clone())?;
+        }
+
+        for cat in spends.cats.values() {
+            let mut cat_spends = Vec::new();
+
+            for item in &cat.items {
+                cat_spends.push(CatSpend::new(
+                    item.coin,
+                    item.p2
+                        .spend_with_conditions(ctx, item.conditions.clone())?,
+                ));
+            }
+
+            Cat::spend_all(ctx, &cat_spends)?;
+        }
+
+        for lineage in spends.dids.values_mut() {
+            for item in lineage.iter() {
+                if item.has_conditions() {
+                    item.spend(ctx)?;
+                }
+            }
+        }
+
+        for lineage in spends.nfts.values_mut() {
+            for item in lineage.iter() {
+                if item.has_conditions() {
+                    item.spend(ctx)?;
+                }
+            }
+        }
+
+        for lineage in spends.options.values_mut() {
+            for item in lineage.iter() {
+                if item.has_conditions() {
+                    item.spend(ctx)?;
+                }
+            }
+        }
+
+        Ok(spends)
+    }
+
+    // TODO: Improve how the p2 is fetched and make it work on the fly
+    async fn fetch_p2_map(
+        &self,
+        selection: &Selection,
+    ) -> Result<HashMap<Bytes32, StandardLayer>, WalletError> {
         let mut p2 = HashMap::new();
 
         for p2_puzzle_hash in selection
@@ -62,6 +123,10 @@ impl Wallet {
             p2.insert(p2_puzzle_hash, StandardLayer::new(synthetic_key));
         }
 
+        Ok(p2)
+    }
+
+    fn initial_spends(selection: &Selection, p2: &HashMap<Bytes32, StandardLayer>) -> Spends {
         let xch = FungibleAsset::new(
             selection
                 .xch
@@ -116,17 +181,23 @@ impl Wallet {
             })
             .collect();
 
-        let mut spends = Spends {
+        Spends {
             xch,
             cats,
             dids,
             nfts,
             options,
-        };
-
-        for (index, action) in tx.actions.iter().enumerate() {
-            action.spend(ctx, &mut spends, index)?;
         }
+    }
+
+    async fn send_change(
+        &self,
+        ctx: &mut SpendContext,
+        summary: &Summary,
+        selection: &Selection,
+        spends: &mut Spends,
+    ) -> Result<(), WalletError> {
+        let change_puzzle_hash = self.p2_puzzle_hash(false, true).await?;
 
         let change_amount =
             (selection.xch.existing_amount + summary.created_xch).saturating_sub(summary.spent_xch);
@@ -153,56 +224,22 @@ impl Wallet {
             }
         }
 
-        let xch_spends = spends
-            .xch
-            .items
-            .iter()
-            .map(|spend| (spend.coin.coin(), spend.conditions.clone()))
-            .collect_vec();
+        Ok(())
+    }
 
-        self.spend_p2_coins_separately(ctx, xch_spends.into_iter())
-            .await?;
-
-        for cat in spends.cats.values() {
-            let cat_spends = cat
-                .items
-                .iter()
-                .map(|spend| (spend.coin, spend.conditions.clone()))
-                .collect_vec();
-
-            self.spend_cat_coins(ctx, cat_spends.into_iter()).await?;
-        }
-
+    fn finalize_singletons(ctx: &mut SpendContext, spends: &mut Spends) -> Result<(), WalletError> {
         for lineage in spends.dids.values_mut() {
             lineage.recreate(ctx)?;
-
-            for item in lineage.iter() {
-                if item.has_conditions() {
-                    item.spend(ctx)?;
-                }
-            }
         }
 
         for lineage in spends.nfts.values_mut() {
             lineage.recreate(ctx)?;
-
-            for item in lineage.iter() {
-                if item.has_conditions() {
-                    item.spend(ctx)?;
-                }
-            }
         }
 
         for lineage in spends.options.values_mut() {
             lineage.recreate(ctx)?;
-
-            for item in lineage.iter() {
-                if item.has_conditions() {
-                    item.spend(ctx)?;
-                }
-            }
         }
 
-        Ok(spends)
+        Ok(())
     }
 }
