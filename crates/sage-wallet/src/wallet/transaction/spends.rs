@@ -1,298 +1,30 @@
-use std::{collections::HashMap, mem};
+mod fungible_asset;
+mod singleton;
 
-use chia::protocol::{Bytes, Bytes32, Coin};
-use chia_puzzles::SINGLETON_LAUNCHER_HASH;
+pub use fungible_asset::*;
+pub use singleton::*;
+
+use std::collections::HashMap;
+
+use chia::protocol::Coin;
 use chia_wallet_sdk::{
-    driver::{Cat, Did, HashedPtr, Launcher, Nft, OptionContract, SpendContext, StandardLayer},
+    driver::{Cat, Did, HashedPtr, Nft, OptionContract, SpendContext, StandardLayer},
     types::Conditions,
 };
-use indexmap::{IndexMap, IndexSet};
+use indexmap::IndexMap;
 use itertools::Itertools;
 
-use crate::{wallet::memos::calculate_memos, Wallet, WalletError};
+use crate::{Wallet, WalletError};
 
 use super::{Action, Id, Selection, Summary, TransactionConfig};
 
 #[derive(Debug, Clone)]
 pub struct Spends {
-    pub xch: AssetSpends,
-    pub cats: IndexMap<Id, AssetSpends>,
-    pub dids: IndexMap<Id, AssetSpends>,
-    pub nfts: IndexMap<Id, AssetSpends>,
-    pub options: IndexMap<Id, AssetSpends>,
-}
-
-#[derive(Debug, Clone)]
-pub struct AssetSpends {
-    pub items: Vec<AssetSpend>,
-    pub launcher_index: u64,
-    pub launcher_multiplier: u64,
-    pub parent_index: usize,
-    pub was_created: bool,
-}
-
-impl AssetSpends {
-    pub fn did(&mut self) -> Result<(&mut AssetSpend, Did<HashedPtr>), WalletError> {
-        self.items
-            .iter_mut()
-            .find_map(|spend| {
-                if let AssetCoin::Did(did) = spend.coin {
-                    Some((spend, did))
-                } else {
-                    None
-                }
-            })
-            .ok_or(WalletError::MissingAsset)
-    }
-
-    pub fn nft(&mut self) -> Result<(&mut AssetSpend, Nft<HashedPtr>), WalletError> {
-        self.items
-            .iter_mut()
-            .find_map(|spend| {
-                if let AssetCoin::Nft(nft) = spend.coin {
-                    Some((spend, nft))
-                } else {
-                    None
-                }
-            })
-            .ok_or(WalletError::MissingAsset)
-    }
-
-    pub fn option(&mut self) -> Result<(&mut AssetSpend, OptionContract), WalletError> {
-        self.items
-            .iter_mut()
-            .find_map(|spend| {
-                if let AssetCoin::Option(option) = spend.coin {
-                    Some((spend, option))
-                } else {
-                    None
-                }
-            })
-            .ok_or(WalletError::MissingAsset)
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct AssetSpend {
-    pub coin: AssetCoin,
-    pub p2: StandardLayer,
-    pub payments: IndexSet<Payment>,
-    pub conditions: Conditions,
-}
-
-impl AssetSpend {
-    pub fn new(coin: AssetCoin, p2: StandardLayer) -> Self {
-        Self {
-            coin,
-            p2,
-            payments: IndexSet::new(),
-            conditions: Conditions::new(),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-pub enum AssetCoin {
-    Xch(Coin),
-    Cat(Cat),
-    Did(Did<HashedPtr>),
-    Nft(Nft<HashedPtr>),
-    Option(OptionContract),
-}
-
-impl AssetCoin {
-    #[must_use]
-    pub fn child(&self, p2_puzzle_hash: Bytes32, amount: u64) -> Self {
-        match self {
-            Self::Xch(coin) => Self::Xch(Coin::new(coin.coin_id(), p2_puzzle_hash, amount)),
-            Self::Cat(cat) => Self::Cat(cat.wrapped_child(p2_puzzle_hash, amount)),
-            Self::Did(did) => Self::Xch(Coin::new(did.coin.coin_id(), p2_puzzle_hash, amount)),
-            Self::Nft(nft) => Self::Xch(Coin::new(nft.coin.coin_id(), p2_puzzle_hash, amount)),
-            Self::Option(option) => {
-                Self::Xch(Coin::new(option.coin.coin_id(), p2_puzzle_hash, amount))
-            }
-        }
-    }
-
-    pub fn coin(&self) -> Coin {
-        match self {
-            Self::Xch(coin) => *coin,
-            Self::Cat(cat) => cat.coin,
-            Self::Did(did) => did.coin,
-            Self::Nft(nft) => nft.coin,
-            Self::Option(option) => option.coin,
-        }
-    }
-
-    pub fn p2_puzzle_hash(&self) -> Bytes32 {
-        match self {
-            Self::Xch(coin) => coin.puzzle_hash,
-            Self::Cat(cat) => cat.p2_puzzle_hash,
-            Self::Did(did) => did.info.p2_puzzle_hash,
-            Self::Nft(nft) => nft.info.p2_puzzle_hash,
-            Self::Option(option) => option.info.p2_puzzle_hash,
-        }
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct Payment {
-    pub puzzle_hash: Bytes32,
-    pub amount: u64,
-}
-
-impl Payment {
-    pub fn new(puzzle_hash: Bytes32, amount: u64) -> Self {
-        Self {
-            puzzle_hash,
-            amount,
-        }
-    }
-}
-
-impl AssetSpends {
-    pub fn new(items: Vec<AssetSpend>, launcher_multiplier: u64, was_created: bool) -> Self {
-        Self {
-            items,
-            launcher_index: 0,
-            launcher_multiplier,
-            parent_index: 0,
-            was_created,
-        }
-    }
-
-    pub fn make_payment(
-        &mut self,
-        ctx: &mut SpendContext,
-        payment: Payment,
-    ) -> Result<&mut AssetSpend, WalletError> {
-        // This weird duplicated logic is due to a flaw in the borrow checker.
-        if self
-            .items
-            .iter()
-            .any(|item| !item.payments.contains(&payment))
-        {
-            let item = self
-                .items
-                .iter_mut()
-                .find(|item| !item.payments.contains(&payment))
-                .expect("missing item");
-            item.payments.insert(payment);
-            return Ok(item);
-        }
-
-        let Some(parent) = self.items.iter_mut().find(|item| {
-            !item
-                .payments
-                .contains(&Payment::new(item.coin.p2_puzzle_hash(), 0))
-        }) else {
-            return Err(WalletError::NoIntermediateParent);
-        };
-
-        parent
-            .payments
-            .insert(Payment::new(parent.coin.p2_puzzle_hash(), 0));
-
-        parent.conditions = mem::take(&mut parent.conditions).create_coin(
-            parent.coin.p2_puzzle_hash(),
-            0,
-            calculate_memos(
-                ctx,
-                parent.coin.p2_puzzle_hash(),
-                matches!(parent.coin, AssetCoin::Cat(..)),
-                None,
-            )?,
-        );
-
-        let child = parent.coin.child(parent.coin.p2_puzzle_hash(), 0);
-        let p2 = parent.p2;
-
-        self.items.push(AssetSpend::new(child, p2));
-        let item = self.items.last_mut().expect("item should exist");
-
-        item.payments.insert(payment);
-
-        Ok(item)
-    }
-
-    pub fn create_coin(
-        &mut self,
-        ctx: &mut SpendContext,
-        p2_puzzle_hash: Bytes32,
-        amount: u64,
-        include_hint: bool,
-        memos: Option<Vec<Bytes>>,
-    ) -> Result<(), WalletError> {
-        let item = self.make_payment(ctx, Payment::new(p2_puzzle_hash, amount))?;
-
-        item.conditions = mem::take(&mut item.conditions).create_coin(
-            p2_puzzle_hash,
-            amount,
-            calculate_memos(ctx, p2_puzzle_hash, include_hint, memos)?,
-        );
-
-        Ok(())
-    }
-
-    pub fn create_launcher(
-        &mut self,
-        ctx: &mut SpendContext,
-    ) -> Result<(&mut AssetSpend, Launcher), WalletError> {
-        let launcher_amount = self.launcher_index * self.launcher_multiplier;
-        self.launcher_index += 1;
-
-        let p2_puzzle_hash = SINGLETON_LAUNCHER_HASH.into();
-
-        let item = self.make_payment(ctx, Payment::new(p2_puzzle_hash, launcher_amount))?;
-
-        let launcher =
-            Launcher::new(item.coin.coin().coin_id(), launcher_amount).with_singleton_amount(1);
-
-        Ok((item, launcher))
-    }
-
-    pub fn create_from_unique_parent(
-        &mut self,
-        ctx: &mut SpendContext,
-    ) -> Result<&mut AssetSpend, WalletError> {
-        // This weird duplicated logic is due to a flaw in the borrow checker.
-        if self.parent_index < self.items.len() {
-            return Ok(self.items.get_mut(self.parent_index).expect("missing item"));
-        }
-
-        let Some(parent) = self.items.iter_mut().find(|item| {
-            !item
-                .payments
-                .contains(&Payment::new(item.coin.p2_puzzle_hash(), 0))
-        }) else {
-            return Err(WalletError::NoIntermediateParent);
-        };
-
-        parent
-            .payments
-            .insert(Payment::new(parent.coin.p2_puzzle_hash(), 0));
-
-        parent.conditions = mem::take(&mut parent.conditions).create_coin(
-            parent.coin.p2_puzzle_hash(),
-            0,
-            calculate_memos(
-                ctx,
-                parent.coin.p2_puzzle_hash(),
-                matches!(parent.coin, AssetCoin::Cat(..)),
-                None,
-            )?,
-        );
-
-        let child = parent.coin.child(parent.coin.p2_puzzle_hash(), 0);
-        let p2 = parent.p2;
-
-        self.items.push(AssetSpend::new(child, p2));
-        let item = self.items.last_mut().expect("item should exist");
-
-        self.parent_index += 1;
-
-        Ok(item)
-    }
+    pub xch: FungibleAsset<Coin>,
+    pub cats: IndexMap<Id, FungibleAsset<Cat>>,
+    pub dids: IndexMap<Id, Singleton<Did<HashedPtr>>>,
+    pub nfts: IndexMap<Id, Singleton<Nft<HashedPtr>>>,
+    pub options: IndexMap<Id, Singleton<OptionContract>>,
 }
 
 impl Wallet {
@@ -331,14 +63,13 @@ impl Wallet {
             p2.insert(p2_puzzle_hash, StandardLayer::new(synthetic_key));
         }
 
-        let xch = AssetSpends::new(
+        let xch = FungibleAsset::new(
             selection
                 .xch
                 .coins
                 .iter()
-                .map(|&coin| AssetSpend::new(AssetCoin::Xch(coin), p2[&coin.puzzle_hash]))
+                .map(|&coin| AssetCoin::new(coin, p2[&coin.puzzle_hash]))
                 .collect(),
-            1,
             false,
         );
 
@@ -346,13 +77,12 @@ impl Wallet {
             .cats
             .iter()
             .map(|(&id, selected)| {
-                let spends = AssetSpends::new(
+                let spends = FungibleAsset::new(
                     selected
                         .coins
                         .iter()
-                        .map(|&cat| AssetSpend::new(AssetCoin::Cat(cat), p2[&cat.p2_puzzle_hash]))
+                        .map(|&cat| AssetCoin::new(cat, p2[&cat.p2_puzzle_hash]))
                         .collect(),
-                    1,
                     false,
                 );
                 (id, spends)
@@ -363,15 +93,8 @@ impl Wallet {
             .dids
             .iter()
             .map(|(&id, &did)| {
-                let spends = AssetSpends::new(
-                    vec![AssetSpend::new(
-                        AssetCoin::Did(did),
-                        p2[&did.info.p2_puzzle_hash],
-                    )],
-                    2,
-                    false,
-                );
-                (id, spends)
+                let singleton = Singleton::new(did, did.info, p2[&did.info.p2_puzzle_hash], false);
+                (id, singleton)
             })
             .collect();
 
@@ -379,15 +102,8 @@ impl Wallet {
             .nfts
             .iter()
             .map(|(&id, &nft)| {
-                let spends = AssetSpends::new(
-                    vec![AssetSpend::new(
-                        AssetCoin::Nft(nft),
-                        p2[&nft.info.p2_puzzle_hash],
-                    )],
-                    2,
-                    false,
-                );
-                (id, spends)
+                let singleton = Singleton::new(nft, nft.info, p2[&nft.info.p2_puzzle_hash], false);
+                (id, singleton)
             })
             .collect();
 
@@ -395,15 +111,9 @@ impl Wallet {
             .options
             .iter()
             .map(|(&id, &option)| {
-                let spends = AssetSpends::new(
-                    vec![AssetSpend::new(
-                        AssetCoin::Option(option),
-                        p2[&option.info.p2_puzzle_hash],
-                    )],
-                    2,
-                    false,
-                );
-                (id, spends)
+                let singleton =
+                    Singleton::new(option, option.info, p2[&option.info.p2_puzzle_hash], false);
+                (id, singleton)
             })
             .collect();
 
@@ -458,80 +168,83 @@ impl Wallet {
             let cat_spends = cat
                 .items
                 .iter()
-                .filter_map(|spend| {
-                    if let AssetCoin::Cat(cat) = spend.coin {
-                        Some((cat, spend.conditions.clone()))
-                    } else {
-                        None
-                    }
-                })
+                .map(|spend| (spend.coin, spend.conditions.clone()))
                 .collect_vec();
 
             self.spend_cat_coins(ctx, cat_spends.into_iter()).await?;
         }
 
-        for did_item in spends.dids.values_mut() {
-            let xch_spends = did_item
-                .items
-                .iter()
-                .filter(|spend| matches!(spend.coin, AssetCoin::Xch(..)))
-                .map(|spend| (spend.coin.coin(), spend.conditions.clone()))
-                .collect_vec();
+        for item in spends.dids.values_mut() {
+            let metadata_changed = item.coin.info != item.child_info;
 
-            self.spend_p2_coins_separately(ctx, xch_spends.into_iter())
-                .await?;
+            if item.conditions.is_empty() && !metadata_changed {
+                continue;
+            }
 
-            let (did_spend, did) = did_item.did()?;
+            if item.coin.info.p2_puzzle_hash != item.child_info.p2_puzzle_hash {
+                return Err(WalletError::P2PuzzleHashChange);
+            }
 
-            let did = did.update(ctx, &did_spend.p2, did_spend.conditions.clone())?;
+            let hint = ctx.hint(item.child_info.p2_puzzle_hash)?;
 
-            *did_spend = AssetSpend::new(AssetCoin::Did(did), did_spend.p2);
-        }
-
-        for nft_item in spends.nfts.values_mut() {
-            let xch_spends = nft_item
-                .items
-                .iter()
-                .filter(|spend| matches!(spend.coin, AssetCoin::Xch(..)))
-                .map(|spend| (spend.coin.coin(), spend.conditions.clone()))
-                .collect_vec();
-
-            self.spend_p2_coins_separately(ctx, xch_spends.into_iter())
-                .await?;
-
-            let (nft_spend, nft) = nft_item.nft()?;
-
-            let nft = nft.transfer(
+            item.coin.spend_with(
                 ctx,
-                &nft_spend.p2,
-                nft.info.p2_puzzle_hash,
-                nft_spend.conditions.clone(),
+                &item.p2,
+                Conditions::new()
+                    .create_coin(
+                        item.child_info.inner_puzzle_hash().into(),
+                        item.coin.coin.amount,
+                        Some(hint),
+                    )
+                    .extend(item.conditions.clone()),
             )?;
 
-            *nft_spend = AssetSpend::new(AssetCoin::Nft(nft), nft_spend.p2);
+            *item = item.child();
+
+            if metadata_changed {
+                let new_p2 =
+                    StandardLayer::new(self.db.synthetic_key(item.coin.info.p2_puzzle_hash).await?);
+                let _ = item.coin.update(ctx, &new_p2, Conditions::new())?;
+                *item = item.child();
+            }
         }
 
-        for option_item in spends.options.values_mut() {
-            let xch_spends = option_item
-                .items
-                .iter()
-                .filter(|spend| matches!(spend.coin, AssetCoin::Xch(..)))
-                .map(|spend| (spend.coin.coin(), spend.conditions.clone()))
-                .collect_vec();
+        for item in spends.nfts.values_mut() {
+            if item.conditions.is_empty() {
+                continue;
+            }
 
-            self.spend_p2_coins_separately(ctx, xch_spends.into_iter())
-                .await?;
+            if item.coin.info.p2_puzzle_hash != item.child_info.p2_puzzle_hash {
+                return Err(WalletError::P2PuzzleHashChange);
+            }
 
-            let (option_spend, option) = option_item.option()?;
-
-            let option = option.transfer(
+            let _ = item.coin.transfer(
                 ctx,
-                &option_spend.p2,
-                option.info.p2_puzzle_hash,
-                option_spend.conditions.clone(),
-            )?;
+                &item.p2,
+                item.child_info.p2_puzzle_hash,
+                item.conditions.clone(),
+            );
 
-            *option_spend = AssetSpend::new(AssetCoin::Option(option), option_spend.p2);
+            *item = item.child();
+        }
+
+        for item in spends.options.values_mut() {
+            if item.conditions.is_empty() {
+                continue;
+            }
+
+            if item.coin.info.p2_puzzle_hash != item.child_info.p2_puzzle_hash {
+                return Err(WalletError::P2PuzzleHashChange);
+            }
+
+            let _ = item.coin.transfer(
+                ctx,
+                &item.p2,
+                item.child_info.p2_puzzle_hash,
+                item.conditions.clone(),
+            );
+
+            *item = item.child();
         }
 
         Ok(spends)

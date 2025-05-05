@@ -2,7 +2,7 @@ use std::mem;
 
 use chia_wallet_sdk::driver::{HashedPtr, SpendContext};
 
-use crate::{Action, AssetCoin, AssetSpend, AssetSpends, Id, Spends, Summary, WalletError};
+use crate::{Action, Id, Singleton, Spends, Summary, WalletError};
 
 /// This will create a new DID at the change puzzle hash specified
 /// in the transaction config. It can be immediately spent if needed.
@@ -24,20 +24,13 @@ impl Action for CreateDidAction {
         let (item, launcher) = spends.xch.create_launcher(ctx)?;
 
         let (create_did, did) = launcher.create_simple_did(ctx, &item.p2)?;
+        let did = did.with_metadata(HashedPtr::NIL);
 
         item.conditions = mem::take(&mut item.conditions).extend(create_did);
 
-        spends.dids.insert(
-            Id::New(index),
-            AssetSpends::new(
-                vec![AssetSpend::new(
-                    AssetCoin::Did(did.with_metadata(HashedPtr::NIL)),
-                    item.p2,
-                )],
-                2,
-                true,
-            ),
-        );
+        spends
+            .dids
+            .insert(Id::New(index), Singleton::new(did, did.info, item.p2, true));
 
         Ok(())
     }

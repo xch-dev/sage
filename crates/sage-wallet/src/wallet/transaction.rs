@@ -69,13 +69,7 @@ impl NewAssets {
                 .into_iter()
                 .filter_map(|(id, spend)| {
                     if spend.was_created {
-                        spend.items.first().and_then(|item| {
-                            if let AssetCoin::Cat(cat) = item.coin {
-                                Some((id, cat.asset_id))
-                            } else {
-                                None
-                            }
-                        })
+                        spend.items.first().map(|item| (id, item.coin.asset_id))
                     } else {
                         None
                     }
@@ -84,8 +78,8 @@ impl NewAssets {
             nfts: spends
                 .nfts
                 .into_iter()
-                .map(|(id, mut item)| {
-                    let nft = item.nft()?.1;
+                .map(|(id, item)| {
+                    let nft = item.coin;
                     Ok((
                         id,
                         nft.with_metadata(Program::from_clvm(allocator, nft.info.metadata.ptr())?),
@@ -95,8 +89,8 @@ impl NewAssets {
             dids: spends
                 .dids
                 .into_iter()
-                .map(|(id, mut item)| {
-                    let did = item.did()?.1;
+                .map(|(id, item)| {
+                    let did = item.coin;
                     Ok((
                         id,
                         did.with_metadata(Program::from_clvm(allocator, did.info.metadata.ptr())?),
@@ -106,11 +100,8 @@ impl NewAssets {
             options: spends
                 .options
                 .into_iter()
-                .map(|(id, mut item)| {
-                    let option = item.option()?.1;
-                    Ok((id, option))
-                })
-                .collect::<Result<_, WalletError>>()?,
+                .map(|(id, item)| (id, item.coin))
+                .collect(),
         })
     }
 }

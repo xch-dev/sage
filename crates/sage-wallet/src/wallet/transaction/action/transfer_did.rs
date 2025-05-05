@@ -1,7 +1,7 @@
 use chia::protocol::Bytes32;
 use chia_wallet_sdk::driver::SpendContext;
 
-use crate::{Action, AssetCoin, AssetSpend, Id, Spends, Summary, WalletError};
+use crate::{Action, Id, Spends, Summary, WalletError};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TransferDidAction {
@@ -34,11 +34,21 @@ impl Action for TransferDidAction {
             .get_mut(&self.did_id)
             .ok_or(WalletError::MissingAsset)?;
 
-        let (spend, did) = item.did()?;
+        if item.coin.info.p2_puzzle_hash != item.child_info.p2_puzzle_hash {
+            return Err(WalletError::P2PuzzleHashChange);
+        }
 
-        let new_did = did.transfer(ctx, &spend.p2, self.puzzle_hash, spend.conditions.clone())?;
+        if item.coin.info != item.child_info {
+            item.coin
+                .spend_with(ctx, &item.p2, item.conditions.clone())?;
+            *item = item.child();
+        }
 
-        *spend = AssetSpend::new(AssetCoin::Did(new_did), spend.p2);
+        let did = item
+            .coin
+            .transfer(ctx, &item.p2, self.puzzle_hash, item.conditions.clone())?;
+
+        *item = item.child_with(did);
 
         Ok(())
     }

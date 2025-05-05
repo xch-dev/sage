@@ -1,7 +1,7 @@
 use chia::protocol::Bytes32;
 use chia_wallet_sdk::driver::SpendContext;
 
-use crate::{Action, AssetCoin, AssetSpend, Id, Spends, Summary, WalletError};
+use crate::{Action, Id, SingletonCoinExt, Spends, Summary, WalletError};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TransferNftAction {
@@ -34,11 +34,18 @@ impl Action for TransferNftAction {
             .get_mut(&self.nft_id)
             .ok_or(WalletError::MissingAsset)?;
 
-        let (spend, nft) = item.nft()?;
+        if item.coin.info.p2_puzzle_hash != item.child_info.p2_puzzle_hash {
+            return Err(WalletError::P2PuzzleHashChange);
+        }
 
-        let new_nft = nft.transfer(ctx, &spend.p2, self.puzzle_hash, spend.conditions.clone())?;
+        let _ = item
+            .coin
+            .transfer(ctx, &item.p2, self.puzzle_hash, item.conditions.clone())?;
 
-        *spend = AssetSpend::new(AssetCoin::Nft(new_nft), spend.p2);
+        *item = item.child_with(
+            item.coin
+                .child_with_info(item.child_info.with_p2_puzzle_hash(self.puzzle_hash)),
+        );
 
         Ok(())
     }

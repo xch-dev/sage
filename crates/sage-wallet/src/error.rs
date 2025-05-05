@@ -53,6 +53,9 @@ pub enum WalletError {
     #[error("Missing asset in spends")]
     MissingAsset,
 
+    #[error("P2 puzzle hash changed during incomplete spend")]
+    P2PuzzleHashChange,
+
     #[error("Missing child of id {0}")]
     MissingChild(Bytes32),
 

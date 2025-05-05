@@ -4,7 +4,7 @@ use chia::{protocol::Bytes32, puzzles::nft::NftMetadata};
 use chia_puzzles::NFT_METADATA_UPDATER_DEFAULT_HASH;
 use chia_wallet_sdk::driver::{DidOwner, HashedPtr, NftMint, SpendContext};
 
-use crate::{Action, AssetCoin, AssetSpend, AssetSpends, Id, Spends, Summary, WalletError};
+use crate::{Action, Id, Singleton, Spends, Summary, WalletError};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MintNftAction {
@@ -51,9 +51,9 @@ impl Action for MintNftAction {
             .get_mut(&self.minter_did)
             .ok_or(WalletError::MissingAsset)?;
 
-        let did = item.did()?.1;
+        let did = item.coin;
 
-        let (parent, launcher) = item.create_launcher(ctx)?;
+        let launcher = item.create_launcher();
 
         let mint = NftMint {
             metadata: self.metadata.clone(),
@@ -69,21 +69,11 @@ impl Action for MintNftAction {
         let metadata_ptr = ctx.alloc(&nft.info.metadata)?;
         let nft = nft.with_metadata(HashedPtr::from_ptr(ctx, metadata_ptr));
 
-        spends.nfts.insert(
-            Id::New(index),
-            AssetSpends::new(
-                vec![AssetSpend::new(
-                    AssetCoin::Nft(nft.with_metadata(HashedPtr::NIL)),
-                    parent.p2,
-                )],
-                2,
-                true,
-            ),
-        );
+        spends
+            .nfts
+            .insert(Id::New(index), Singleton::new(nft, nft.info, item.p2, true));
 
-        let did_spend = item.did()?.0;
-
-        did_spend.conditions = mem::take(&mut did_spend.conditions).extend(mint_nft);
+        item.conditions = mem::take(&mut item.conditions).extend(mint_nft);
 
         Ok(())
     }

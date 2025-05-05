@@ -66,24 +66,24 @@ impl Action for SendAction {
         spends: &mut Spends,
         _index: usize,
     ) -> Result<(), WalletError> {
-        let asset = if let Some(id) = self.asset_id {
-            spends.cats.get_mut(&id).ok_or(WalletError::MissingAsset)?
+        if let Some(id) = self.asset_id {
+            let asset = spends.cats.get_mut(&id).ok_or(WalletError::MissingAsset)?;
+
+            asset.create_coin(
+                ctx,
+                self.puzzle_hash,
+                self.amount,
+                matches!(self.include_hint, Hint::Default | Hint::Yes),
+                self.memos.clone(),
+            )
         } else {
-            &mut spends.xch
-        };
-
-        asset.create_coin(
-            ctx,
-            self.puzzle_hash,
-            self.amount,
-            if self.asset_id.is_some() {
-                matches!(self.include_hint, Hint::Default | Hint::Yes)
-            } else {
-                matches!(self.include_hint, Hint::Yes)
-            },
-            self.memos.clone(),
-        )?;
-
-        Ok(())
+            spends.xch.create_coin(
+                ctx,
+                self.puzzle_hash,
+                self.amount,
+                matches!(self.include_hint, Hint::Yes),
+                self.memos.clone(),
+            )
+        }
     }
 }

@@ -81,21 +81,15 @@ impl Wallet {
         did_id: Option<Bytes32>,
         fee: u64,
     ) -> Result<Vec<CoinSpend>, WalletError> {
-        let puzzle_hash = self.p2_puzzle_hash(false, true).await?;
-
-        let mut actions = Vec::new();
-
-        for nft_id in nft_ids {
-            actions.push(SpendAction::AssignNft(AssignNftAction::new(
-                Id::Existing(nft_id),
-                did_id.map(Id::Existing),
-            )));
-
-            actions.push(SpendAction::TransferNft(TransferNftAction::new(
-                Id::Existing(nft_id),
-                puzzle_hash,
-            )));
-        }
+        let actions = nft_ids
+            .into_iter()
+            .map(|nft_id| {
+                SpendAction::AssignNft(AssignNftAction::new(
+                    Id::Existing(nft_id),
+                    did_id.map(Id::Existing),
+                ))
+            })
+            .collect();
 
         Ok(self.transact(actions, fee).await?.coin_spends)
     }

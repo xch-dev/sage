@@ -7,7 +7,7 @@ use chia::{
 use chia_wallet_sdk::driver::{Cat, SpendContext};
 use clvmr::NodePtr;
 
-use crate::{Action, AssetCoin, AssetSpend, AssetSpends, Id, Spends, Summary, WalletError};
+use crate::{Action, AssetCoin, AssetCoinExt, FungibleAsset, Id, Spends, Summary, WalletError};
 
 /// This will create a new single-issuance CAT.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -36,7 +36,7 @@ impl Action for IssueCatAction {
     ) -> Result<(), WalletError> {
         let parent = spends.xch.create_from_unique_parent(ctx)?;
 
-        let parent_coin_id = parent.coin.coin().coin_id();
+        let parent_coin_id = parent.coin.coin_id();
         let tail = ctx.curry(GenesisByCoinIdTailArgs::new(parent_coin_id))?;
         let asset_id = ctx.tree_hash(tail).into();
 
@@ -50,14 +50,14 @@ impl Action for IssueCatAction {
             inner_puzzle_hash,
         );
 
-        let mut eve_item = AssetSpend::new(AssetCoin::Cat(eve), parent.p2);
+        let mut eve_item = AssetCoin::new(eve, parent.p2);
 
         eve_item.conditions = eve_item.conditions.run_cat_tail(tail, NodePtr::NIL);
 
         spends
             .cats
             .entry(Id::New(index))
-            .or_insert_with(|| AssetSpends::new(Vec::new(), 1, true))
+            .or_insert_with(|| FungibleAsset::new(Vec::new(), true))
             .items
             .push(eve_item);
 
