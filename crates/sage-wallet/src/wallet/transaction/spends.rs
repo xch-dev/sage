@@ -102,28 +102,34 @@ impl Wallet {
     ) -> Result<HashMap<Bytes32, StandardLayer>, WalletError> {
         let mut p2 = HashMap::new();
 
-        for p2_puzzle_hash in selection
-            .xch
-            .coins
-            .iter()
-            .map(|coin| coin.puzzle_hash)
-            .chain(
-                selection
-                    .cats
-                    .values()
-                    .flat_map(|selected| selected.coins.iter().map(|cat| cat.p2_puzzle_hash)),
-            )
-            .chain(selection.nfts.values().map(|nft| nft.info.p2_puzzle_hash))
-            .chain(selection.dids.values().map(|did| did.info.p2_puzzle_hash))
-            .chain(
-                selection
-                    .options
-                    .values()
-                    .map(|option| option.info.p2_puzzle_hash),
-            )
-        {
-            let synthetic_key = self.db.synthetic_key(p2_puzzle_hash).await?;
-            p2.insert(p2_puzzle_hash, StandardLayer::new(synthetic_key));
+        for coin in &selection.xch.coins {
+            let synthetic_key = self.db.synthetic_key(coin.puzzle_hash).await?;
+            p2.insert(coin.puzzle_hash, StandardLayer::new(synthetic_key));
+        }
+
+        for cat in selection.cats.values() {
+            for cat in &cat.coins {
+                let synthetic_key = self.db.synthetic_key(cat.p2_puzzle_hash).await?;
+                p2.insert(cat.p2_puzzle_hash, StandardLayer::new(synthetic_key));
+            }
+        }
+
+        for nft in selection.nfts.values() {
+            let synthetic_key = self.db.synthetic_key(nft.info.p2_puzzle_hash).await?;
+            p2.insert(nft.info.p2_puzzle_hash, StandardLayer::new(synthetic_key));
+        }
+
+        for did in selection.dids.values() {
+            let synthetic_key = self.db.synthetic_key(did.info.p2_puzzle_hash).await?;
+            p2.insert(did.info.p2_puzzle_hash, StandardLayer::new(synthetic_key));
+        }
+
+        for option in selection.options.values() {
+            let synthetic_key = self.db.synthetic_key(option.info.p2_puzzle_hash).await?;
+            p2.insert(
+                option.info.p2_puzzle_hash,
+                StandardLayer::new(synthetic_key),
+            );
         }
 
         Ok(p2)
