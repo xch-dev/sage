@@ -75,7 +75,7 @@ mod tests {
     use test_log::test;
 
     #[test(tokio::test)]
-    async fn test_action_issue_cat() -> anyhow::Result<()> {
+    async fn test_action_issue_multiple_cats() -> anyhow::Result<()> {
         let mut alice = TestWallet::new(1000).await?;
         let mut bob = alice.next(0).await?;
 
@@ -118,6 +118,41 @@ mod tests {
         assert_eq!(alice.wallet.db.cat_balance(asset_ids[1]).await?, 0);
         assert_eq!(bob.wallet.db.cat_balance(asset_ids[0]).await?, 500);
         assert_eq!(bob.wallet.db.cat_balance(asset_ids[1]).await?, 500);
+
+        Ok(())
+    }
+
+    #[test(tokio::test)]
+    async fn test_action_issue_cat_and_send() -> anyhow::Result<()> {
+        let mut alice = TestWallet::new(1000).await?;
+        let mut bob = alice.next(0).await?;
+
+        let result = alice
+            .wallet
+            .transact(
+                vec![
+                    SpendAction::issue_cat(1000),
+                    SpendAction::send_new_cat(0, bob.puzzle_hash, 1000, None),
+                ],
+                0,
+            )
+            .await?;
+
+        assert_eq!(result.coin_spends.len(), 2);
+
+        let asset_id = result
+            .new_assets
+            .cats
+            .into_values()
+            .next()
+            .expect("no asset id");
+
+        alice.transact(result.coin_spends).await?;
+        alice.wait_for_coins().await;
+        bob.wait_for_puzzles().await;
+
+        assert_eq!(alice.wallet.db.cat_balance(asset_id).await?, 0);
+        assert_eq!(bob.wallet.db.cat_balance(asset_id).await?, 1000);
 
         Ok(())
     }

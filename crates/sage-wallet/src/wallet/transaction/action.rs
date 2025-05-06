@@ -70,6 +70,21 @@ impl SpendAction {
         ))
     }
 
+    pub fn send_new_cat(
+        index: usize,
+        puzzle_hash: Bytes32,
+        amount: u64,
+        memos: Option<Vec<Bytes>>,
+    ) -> Self {
+        Self::Send(SendAction::new(
+            Some(Id::New(index)),
+            puzzle_hash,
+            amount,
+            Hint::Default,
+            memos,
+        ))
+    }
+
     pub fn issue_cat(amount: u64) -> Self {
         Self::IssueCat(IssueCatAction::new(amount))
     }

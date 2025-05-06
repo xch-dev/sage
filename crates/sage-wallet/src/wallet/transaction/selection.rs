@@ -233,6 +233,11 @@ impl Wallet {
             }
         }
 
+        // Cleanup CATs that don't have any selection
+        selection
+            .cats
+            .retain(|_, selected| selected.existing_amount > 0 || !selected.coins.is_empty());
+
         Ok(())
     }
 }
