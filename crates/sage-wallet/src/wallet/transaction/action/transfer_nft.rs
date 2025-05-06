@@ -39,3 +39,116 @@ impl Action for TransferNftAction {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{SpendAction, TestWallet, WalletNftMint};
+
+    use chia::puzzles::nft::NftMetadata;
+    use test_log::test;
+
+    #[test(tokio::test)]
+    async fn test_action_transfer_nft() -> anyhow::Result<()> {
+        let mut alice = TestWallet::new(2).await?;
+        let mut bob = alice.next(0).await?;
+
+        let (coin_spends, did) = alice.wallet.create_did(0).await?;
+        alice.transact(coin_spends).await?;
+        alice.wait_for_coins().await;
+
+        let (coin_spends, nfts) = alice
+            .wallet
+            .bulk_mint_nfts(
+                0,
+                did.info.launcher_id,
+                vec![WalletNftMint {
+                    metadata: NftMetadata::default(),
+                    p2_puzzle_hash: None,
+                    royalty_puzzle_hash: None,
+                    royalty_ten_thousandths: 0,
+                }],
+            )
+            .await?;
+        let nft_id = nfts[0].info.launcher_id;
+        alice.transact(coin_spends).await?;
+        alice.wait_for_coins().await;
+
+        let coin_spends = alice
+            .wallet
+            .transact(vec![SpendAction::transfer_nft(nft_id, bob.puzzle_hash)], 0)
+            .await?
+            .coin_spends;
+
+        assert_eq!(coin_spends.len(), 1);
+
+        alice.transact(coin_spends).await?;
+        alice.wait_for_coins().await;
+        bob.wait_for_puzzles().await;
+
+        assert!(alice.wallet.db.spendable_nft(nft_id).await?.is_none());
+        assert!(bob.wallet.db.spendable_nft(nft_id).await?.is_some());
+
+        Ok(())
+    }
+
+    #[test(tokio::test)]
+    async fn test_action_transfer_multiple_nfts() -> anyhow::Result<()> {
+        let mut alice = TestWallet::new(3).await?;
+        let mut bob = alice.next(0).await?;
+
+        let (coin_spends, did) = alice.wallet.create_did(0).await?;
+        alice.transact(coin_spends).await?;
+        alice.wait_for_coins().await;
+
+        let (coin_spends, nfts) = alice
+            .wallet
+            .bulk_mint_nfts(
+                0,
+                did.info.launcher_id,
+                vec![
+                    WalletNftMint {
+                        metadata: NftMetadata::default(),
+                        p2_puzzle_hash: None,
+                        royalty_puzzle_hash: None,
+                        royalty_ten_thousandths: 0,
+                    },
+                    WalletNftMint {
+                        metadata: NftMetadata::default(),
+                        p2_puzzle_hash: None,
+                        royalty_puzzle_hash: None,
+                        royalty_ten_thousandths: 0,
+                    },
+                ],
+            )
+            .await?;
+        let nft_one = nfts[0].info.launcher_id;
+        let nft_two = nfts[1].info.launcher_id;
+        alice.transact(coin_spends).await?;
+        alice.wait_for_coins().await;
+
+        let coin_spends = alice
+            .wallet
+            .transact(
+                vec![
+                    SpendAction::transfer_nft(nft_one, bob.puzzle_hash),
+                    SpendAction::transfer_nft(nft_two, bob.puzzle_hash),
+                ],
+                0,
+            )
+            .await?
+            .coin_spends;
+
+        assert_eq!(coin_spends.len(), 2);
+
+        alice.transact(coin_spends).await?;
+        alice.wait_for_coins().await;
+        bob.wait_for_puzzles().await;
+
+        assert!(alice.wallet.db.spendable_nft(nft_one).await?.is_none());
+        assert!(alice.wallet.db.spendable_nft(nft_two).await?.is_none());
+        assert!(bob.wallet.db.spendable_nft(nft_one).await?.is_some());
+        assert!(bob.wallet.db.spendable_nft(nft_two).await?.is_some());
+
+        Ok(())
+    }
+}

@@ -100,6 +100,14 @@ impl SpendAction {
     pub fn transfer_new_did(index: usize, puzzle_hash: Bytes32) -> Self {
         Self::TransferDid(TransferDidAction::new(Id::New(index), puzzle_hash))
     }
+
+    pub fn transfer_nft(nft_id: Bytes32, puzzle_hash: Bytes32) -> Self {
+        Self::TransferNft(TransferNftAction::new(Id::Existing(nft_id), puzzle_hash))
+    }
+
+    pub fn transfer_new_nft(index: usize, puzzle_hash: Bytes32) -> Self {
+        Self::TransferNft(TransferNftAction::new(Id::New(index), puzzle_hash))
+    }
 }
 
 pub trait Action {
