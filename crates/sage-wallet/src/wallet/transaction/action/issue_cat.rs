@@ -56,7 +56,7 @@ impl Action for IssueCatAction {
         spends
             .cats
             .entry(Id::New(index))
-            .or_insert_with(|| FungibleAsset::new(Vec::new(), true))
+            .or_insert_with(|| FungibleAsset::new(Vec::new()))
             .items
             .push(eve_item);
 
@@ -91,7 +91,7 @@ mod tests {
         // An intermediate coin is created because the CATs are created from a unique parent
         assert_eq!(result.coin_spends.len(), 4);
 
-        let asset_ids = result.new_assets.cats.values().copied().collect_vec();
+        let asset_ids = result.ids.into_values().collect_vec();
 
         alice.transact(result.coin_spends).await?;
         alice.wait_for_coins().await;
@@ -140,12 +140,7 @@ mod tests {
 
         assert_eq!(result.coin_spends.len(), 2);
 
-        let asset_id = result
-            .new_assets
-            .cats
-            .into_values()
-            .next()
-            .expect("no asset id");
+        let asset_id = result.ids.into_values().next().expect("no asset id");
 
         alice.transact(result.coin_spends).await?;
         alice.wait_for_coins().await;

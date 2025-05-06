@@ -58,12 +58,7 @@ mod tests {
 
         assert_eq!(result.coin_spends.len(), 5);
 
-        let did_ids = result
-            .new_assets
-            .dids
-            .values()
-            .map(|did| did.info.launcher_id)
-            .collect_vec();
+        let did_ids = result.ids.into_values().collect_vec();
 
         alice.transact(result.coin_spends).await?;
         alice.wait_for_coins().await;
@@ -112,13 +107,7 @@ mod tests {
 
         assert_eq!(result.coin_spends.len(), 3);
 
-        let did_id = result
-            .new_assets
-            .dids
-            .values()
-            .map(|did| did.info.launcher_id)
-            .next()
-            .expect("no did id");
+        let did_id = result.ids.into_values().next().expect("no did id");
 
         alice.transact(result.coin_spends).await?;
         alice.wait_for_coins().await;
@@ -141,13 +130,7 @@ mod tests {
 
         assert_eq!(result.coin_spends.len(), 3);
 
-        let did_id = result
-            .new_assets
-            .dids
-            .values()
-            .map(|did| did.info.launcher_id)
-            .next()
-            .expect("no did id");
+        let did_id = result.ids.into_values().next().expect("no did id");
 
         alice.transact(result.coin_spends).await?;
         alice.wait_for_coins().await;

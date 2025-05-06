@@ -15,7 +15,6 @@ pub struct FungibleAsset<T> {
     pub items: Vec<AssetCoin<T>>,
     pub launcher_index: u64,
     pub parent_index: usize,
-    pub was_created: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -103,12 +102,11 @@ impl<T> FungibleAsset<T>
 where
     T: AssetCoinExt,
 {
-    pub fn new(items: Vec<AssetCoin<T>>, was_created: bool) -> Self {
+    pub fn new(items: Vec<AssetCoin<T>>) -> Self {
         Self {
             items,
             launcher_index: 0,
             parent_index: 0,
-            was_created,
         }
     }
 

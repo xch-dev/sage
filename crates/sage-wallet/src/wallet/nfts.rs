@@ -44,7 +44,7 @@ impl Wallet {
 
         Ok((
             result.coin_spends,
-            result.new_assets.nfts.into_values().collect(),
+            result.unspent_assets.nfts.into_values().collect(),
         ))
     }
 

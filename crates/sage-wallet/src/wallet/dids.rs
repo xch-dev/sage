@@ -16,7 +16,12 @@ impl Wallet {
 
         Ok((
             result.coin_spends,
-            result.new_assets.dids.into_values().next().expect("no did"),
+            result
+                .unspent_assets
+                .dids
+                .into_values()
+                .next()
+                .expect("no did"),
         ))
     }
 

@@ -32,7 +32,7 @@ impl Wallet {
         Ok((
             result.coin_spends,
             result
-                .new_assets
+                .unspent_assets
                 .options
                 .into_values()
                 .next()

@@ -281,7 +281,6 @@ impl Wallet {
                 .iter()
                 .map(|&coin| AssetCoin::new(coin, p2[&coin.puzzle_hash]))
                 .collect(),
-            false,
         );
 
         let cats = selection
@@ -294,7 +293,6 @@ impl Wallet {
                         .iter()
                         .map(|&cat| AssetCoin::new(cat, p2[&cat.p2_puzzle_hash]))
                         .collect(),
-                    false,
                 );
                 (id, spends)
             })

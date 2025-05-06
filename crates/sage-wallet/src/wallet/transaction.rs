@@ -4,17 +4,20 @@ mod selection;
 mod spends;
 mod summary;
 
+use std::collections::HashMap;
+
 pub use action::*;
 pub use id::*;
+use itertools::Itertools;
 pub use selection::*;
 pub use spends::*;
 pub use summary::*;
 
 use chia::{
     clvm_traits::FromClvm,
-    protocol::{Bytes32, CoinSpend, Program},
+    protocol::{Bytes32, Coin, CoinSpend, Program},
 };
-use chia_wallet_sdk::driver::{Did, Nft, OptionContract, SpendContext};
+use chia_wallet_sdk::driver::{Cat, Did, Nft, OptionContract, SpendContext};
 use clvmr::Allocator;
 use indexmap::IndexMap;
 
@@ -50,36 +53,57 @@ impl TransactionConfig {
 #[derive(Debug, Clone)]
 pub struct TransactionResult {
     pub coin_spends: Vec<CoinSpend>,
-    pub new_assets: NewAssets,
+    pub unspent_assets: UnspentAssets,
+    pub spends: Spends,
+    pub ids: HashMap<Id, Bytes32>,
 }
 
 #[derive(Debug, Default, Clone)]
-pub struct NewAssets {
-    pub cats: IndexMap<Id, Bytes32>,
+pub struct UnspentAssets {
+    pub xch: Vec<Coin>,
+    pub cats: IndexMap<Id, Vec<Cat>>,
     pub nfts: IndexMap<Id, Nft<Program>>,
     pub dids: IndexMap<Id, Did<Program>>,
     pub options: IndexMap<Id, OptionContract>,
 }
 
-impl NewAssets {
-    pub fn from_spends(allocator: &Allocator, spends: Spends) -> Result<Self, WalletError> {
+impl UnspentAssets {
+    pub fn from_spends(allocator: &Allocator, spends: &Spends) -> Result<Self, WalletError> {
         Ok(Self {
+            xch: spends
+                .xch
+                .items
+                .iter()
+                .flat_map(|item| {
+                    item.payments.iter().map(|payment| {
+                        Coin::new(item.coin.coin_id(), payment.puzzle_hash, payment.amount)
+                    })
+                })
+                .collect_vec(),
             cats: spends
                 .cats
-                .into_iter()
-                .filter_map(|(id, spend)| {
-                    if spend.was_created {
-                        spend.items.first().map(|item| (id, item.coin.asset_id))
-                    } else {
-                        None
-                    }
+                .iter()
+                .map(|(&id, spend)| {
+                    (
+                        id,
+                        spend
+                            .items
+                            .iter()
+                            .flat_map(|item| {
+                                item.payments.iter().map(|payment| {
+                                    item.coin.wrapped_child(payment.puzzle_hash, payment.amount)
+                                })
+                            })
+                            .collect_vec(),
+                    )
                 })
+                .filter(|(_, cats)| !cats.is_empty())
                 .collect(),
             nfts: spends
                 .nfts
-                .into_iter()
+                .iter()
                 .filter(|(_, item)| item.was_created())
-                .map(|(id, item)| {
+                .map(|(&id, item)| {
                     let nft = item.coin();
                     Ok((
                         id,
@@ -89,9 +113,9 @@ impl NewAssets {
                 .collect::<Result<_, WalletError>>()?,
             dids: spends
                 .dids
-                .into_iter()
+                .iter()
                 .filter(|(_, item)| item.was_created())
-                .map(|(id, item)| {
+                .map(|(&id, item)| {
                     let did = item.coin();
                     Ok((
                         id,
@@ -101,12 +125,36 @@ impl NewAssets {
                 .collect::<Result<_, WalletError>>()?,
             options: spends
                 .options
-                .into_iter()
+                .iter()
                 .filter(|(_, item)| item.was_created())
-                .map(|(id, item)| (id, item.coin()))
+                .map(|(&id, item)| (id, item.coin()))
                 .collect(),
         })
     }
+}
+
+fn collect_ids(spends: &Spends) -> HashMap<Id, Bytes32> {
+    let mut ids = HashMap::new();
+
+    for (&id, spends) in &spends.cats {
+        if let Some(item) = spends.items.first() {
+            ids.insert(id, item.coin.asset_id);
+        }
+    }
+
+    for (&id, lineage) in &spends.nfts {
+        ids.insert(id, lineage.coin().info.launcher_id);
+    }
+
+    for (&id, lineage) in &spends.dids {
+        ids.insert(id, lineage.coin().info.launcher_id);
+    }
+
+    for (&id, lineage) in &spends.options {
+        ids.insert(id, lineage.coin().info.launcher_id);
+    }
+
+    ids
 }
 
 impl Wallet {
@@ -140,9 +188,13 @@ impl Wallet {
             .spend(&mut ctx, &summary, &tx.preselection, &tx)
             .await?;
 
+        let ids = collect_ids(&spends);
+
         Ok(TransactionResult {
             coin_spends: ctx.take(),
-            new_assets: NewAssets::from_spends(&ctx, spends)?,
+            unspent_assets: UnspentAssets::from_spends(&ctx, &spends)?,
+            spends,
+            ids,
         })
     }
 
@@ -163,9 +215,13 @@ impl Wallet {
             .spend(&mut ctx, &summary, &tx.preselection, &tx)
             .await?;
 
+        let ids = collect_ids(&spends);
+
         Ok(TransactionResult {
             coin_spends: ctx.take(),
-            new_assets: NewAssets::from_spends(&ctx, spends)?,
+            unspent_assets: UnspentAssets::from_spends(&ctx, &spends)?,
+            spends,
+            ids,
         })
     }
 }

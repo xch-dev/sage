@@ -104,7 +104,7 @@ impl Wallet {
 
         Ok((
             result.coin_spends,
-            *result.new_assets.cats.values().next().expect("no cat"),
+            *result.ids.values().next().expect("no cat"),
         ))
     }
 
