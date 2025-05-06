@@ -9,7 +9,7 @@ use chia_wallet_sdk::{
         did_puzzle_assertion, Did, DidInfo, DidOwner, HashedPtr, Launcher, Nft, NftInfo,
         OptionContract, OptionInfo, Spend, SpendContext, StandardLayer,
     },
-    prelude::TransferNft,
+    prelude::{TradePrice, TransferNft},
     types::Conditions,
 };
 
@@ -291,6 +291,7 @@ impl SingletonLineage<Nft<HashedPtr>> {
         &mut self,
         ctx: &mut SpendContext,
         owner: Option<DidOwner>,
+        trade_prices: Vec<TradePrice>,
     ) -> Result<(), WalletError> {
         if self.did_owner_changed() {
             self.recreate(ctx)?;
@@ -302,7 +303,7 @@ impl SingletonLineage<Nft<HashedPtr>> {
 
         current.conditions = mem::take(&mut current.conditions).transfer_nft(
             owner.map(|owner| owner.did_id),
-            Vec::new(),
+            trade_prices,
             owner.map(|owner| owner.inner_puzzle_hash),
         );
 
@@ -347,6 +348,12 @@ impl SingletonLineage<Nft<HashedPtr>> {
         current.coin.info.metadata != self.child_info.metadata
             || current.coin.info.metadata_updater_puzzle_hash
                 != self.child_info.metadata_updater_puzzle_hash
+    }
+
+    pub fn add_conditions(&mut self, conditions: Conditions) {
+        let current = self.current_mut();
+        current.conditions = mem::take(&mut current.conditions).extend(conditions);
+        current.needs_spend = true;
     }
 }
 

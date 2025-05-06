@@ -1,16 +1,24 @@
-use chia_wallet_sdk::driver::{DidOwner, SpendContext};
+use chia_wallet_sdk::{
+    driver::{DidOwner, SpendContext},
+    prelude::TradePrice,
+};
 
 use crate::{Action, Id, Spends, Summary, WalletError};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AssignNftAction {
     pub nft_id: Id,
     pub did_id: Option<Id>,
+    pub trade_prices: Vec<TradePrice>,
 }
 
 impl AssignNftAction {
-    pub fn new(nft_id: Id, did_id: Option<Id>) -> Self {
-        Self { nft_id, did_id }
+    pub fn new(nft_id: Id, did_id: Option<Id>, trade_prices: Vec<TradePrice>) -> Self {
+        Self {
+            nft_id,
+            did_id,
+            trade_prices,
+        }
     }
 }
 
@@ -54,7 +62,7 @@ impl Action for AssignNftAction {
             None
         };
 
-        nft_lineage.set_did_owner(ctx, owner)?;
+        nft_lineage.set_did_owner(ctx, owner, self.trade_prices.clone())?;
 
         Ok(())
     }

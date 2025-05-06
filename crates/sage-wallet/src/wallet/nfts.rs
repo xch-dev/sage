@@ -63,6 +63,7 @@ impl Wallet {
                 actions.push(SpendAction::AssignNft(AssignNftAction::new(
                     Id::Existing(nft_id),
                     None,
+                    Vec::new(),
                 )));
             }
 
@@ -87,6 +88,7 @@ impl Wallet {
                 SpendAction::AssignNft(AssignNftAction::new(
                     Id::Existing(nft_id),
                     did_id.map(Id::Existing),
+                    Vec::new(),
                 ))
             })
             .collect();

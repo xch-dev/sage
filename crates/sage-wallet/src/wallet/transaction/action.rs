@@ -27,7 +27,8 @@ use crate::WalletError;
 use super::{Id, Spends, Summary};
 
 use chia::protocol::{Bytes, Bytes32};
-use chia_wallet_sdk::driver::SpendContext;
+use chia_puzzles::SETTLEMENT_PAYMENT_HASH;
+use chia_wallet_sdk::{driver::SpendContext, prelude::TradePrice};
 
 #[derive(Debug, Clone)]
 pub enum SpendAction {
@@ -55,6 +56,10 @@ impl SpendAction {
         ))
     }
 
+    pub fn offer_xch(amount: u64) -> Self {
+        Self::send_xch(SETTLEMENT_PAYMENT_HASH.into(), amount, None)
+    }
+
     pub fn send_cat(
         asset_id: Bytes32,
         puzzle_hash: Bytes32,
@@ -70,6 +75,10 @@ impl SpendAction {
         ))
     }
 
+    pub fn offer_cat(asset_id: Bytes32, amount: u64) -> Self {
+        Self::send_cat(asset_id, SETTLEMENT_PAYMENT_HASH.into(), amount, None)
+    }
+
     pub fn send_new_cat(
         index: usize,
         puzzle_hash: Bytes32,
@@ -83,6 +92,10 @@ impl SpendAction {
             Hint::Default,
             memos,
         ))
+    }
+
+    pub fn offer_new_cat(index: usize, amount: u64) -> Self {
+        Self::send_new_cat(index, SETTLEMENT_PAYMENT_HASH.into(), amount, None)
     }
 
     pub fn issue_cat(amount: u64) -> Self {
@@ -105,8 +118,32 @@ impl SpendAction {
         Self::TransferNft(TransferNftAction::new(Id::Existing(nft_id), puzzle_hash))
     }
 
+    pub fn offer_nft(nft_id: Bytes32, trade_prices: Vec<TradePrice>) -> [Self; 2] {
+        [
+            Self::AssignNft(AssignNftAction::new(
+                Id::Existing(nft_id),
+                None,
+                trade_prices,
+            )),
+            Self::TransferNft(TransferNftAction::new(
+                Id::Existing(nft_id),
+                SETTLEMENT_PAYMENT_HASH.into(),
+            )),
+        ]
+    }
+
     pub fn transfer_new_nft(index: usize, puzzle_hash: Bytes32) -> Self {
         Self::TransferNft(TransferNftAction::new(Id::New(index), puzzle_hash))
+    }
+
+    pub fn offer_new_nft(index: usize, trade_prices: Vec<TradePrice>) -> [Self; 2] {
+        [
+            Self::AssignNft(AssignNftAction::new(Id::New(index), None, trade_prices)),
+            Self::TransferNft(TransferNftAction::new(
+                Id::New(index),
+                SETTLEMENT_PAYMENT_HASH.into(),
+            )),
+        ]
     }
 }
 
