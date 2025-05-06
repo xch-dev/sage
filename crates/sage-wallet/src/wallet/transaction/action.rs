@@ -88,6 +88,18 @@ impl SpendAction {
     pub fn issue_cat(amount: u64) -> Self {
         Self::IssueCat(IssueCatAction::new(amount))
     }
+
+    pub fn create_did() -> Self {
+        Self::CreateDid(CreateDidAction)
+    }
+
+    pub fn transfer_did(did_id: Bytes32, puzzle_hash: Bytes32) -> Self {
+        Self::TransferDid(TransferDidAction::new(Id::Existing(did_id), puzzle_hash))
+    }
+
+    pub fn transfer_new_did(index: usize, puzzle_hash: Bytes32) -> Self {
+        Self::TransferDid(TransferDidAction::new(Id::New(index), puzzle_hash))
+    }
 }
 
 pub trait Action {

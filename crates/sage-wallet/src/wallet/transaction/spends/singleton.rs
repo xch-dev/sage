@@ -228,7 +228,6 @@ impl SingletonLineage<Did<HashedPtr>> {
 
     pub fn recovery_list_hash_changed(&self) -> bool {
         let current = self.current();
-
         current.coin.info.recovery_list_hash != self.child_info.recovery_list_hash
     }
 
