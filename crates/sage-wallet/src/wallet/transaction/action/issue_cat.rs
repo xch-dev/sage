@@ -66,3 +66,59 @@ impl Action for IssueCatAction {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{SpendAction, TestWallet};
+
+    use itertools::Itertools;
+    use test_log::test;
+
+    #[test(tokio::test)]
+    async fn test_action_issue_cat() -> anyhow::Result<()> {
+        let mut alice = TestWallet::new(1000).await?;
+        let mut bob = alice.next(0).await?;
+
+        let result = alice
+            .wallet
+            .transact(
+                vec![SpendAction::issue_cat(500), SpendAction::issue_cat(500)],
+                0,
+            )
+            .await?;
+
+        // 1 spend for the original XCH coin, 1 for the intermediate coin, and 2 for the eve CATs
+        // An intermediate coin is created because the CATs are created from a unique parent
+        assert_eq!(result.coin_spends.len(), 4);
+
+        let asset_ids = result.new_assets.cats.values().copied().collect_vec();
+
+        alice.transact(result.coin_spends).await?;
+        alice.wait_for_coins().await;
+
+        let coin_spends = alice
+            .wallet
+            .transact(
+                vec![
+                    SpendAction::send_cat(asset_ids[0], bob.puzzle_hash, 500, None),
+                    SpendAction::send_cat(asset_ids[1], bob.puzzle_hash, 500, None),
+                ],
+                0,
+            )
+            .await?
+            .coin_spends;
+
+        assert_eq!(coin_spends.len(), 2);
+
+        alice.transact(coin_spends).await?;
+        alice.wait_for_coins().await;
+        bob.wait_for_puzzles().await;
+
+        assert_eq!(alice.wallet.db.cat_balance(asset_ids[0]).await?, 0);
+        assert_eq!(alice.wallet.db.cat_balance(asset_ids[1]).await?, 0);
+        assert_eq!(bob.wallet.db.cat_balance(asset_ids[0]).await?, 500);
+        assert_eq!(bob.wallet.db.cat_balance(asset_ids[1]).await?, 500);
+
+        Ok(())
+    }
+}

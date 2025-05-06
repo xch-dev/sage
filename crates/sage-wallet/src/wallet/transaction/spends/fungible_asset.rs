@@ -236,7 +236,9 @@ where
     ) -> Result<AssetCoinRef, WalletError> {
         // This weird duplicated logic is due to a flaw in the borrow checker.
         if self.parent_index < self.items.len() {
-            return Ok(AssetCoinRef(self.parent_index));
+            let index = self.parent_index;
+            self.parent_index += 1;
+            return Ok(AssetCoinRef(index));
         }
 
         let Some(parent) = self.items.iter_mut().find(|item| {
