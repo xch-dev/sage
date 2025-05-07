@@ -49,7 +49,7 @@ impl Action for MintNftAction {
             .get_mut(&self.minter_did)
             .ok_or(WalletError::MissingAsset)?;
 
-        let did = did_lineage.coin();
+        let did = did_lineage.last_coin();
         let current_did = did_lineage.current_mut();
         let launcher = current_did.create_launcher()?;
 

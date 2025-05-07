@@ -123,19 +123,19 @@ impl UnspentAssets {
                 .nfts
                 .iter()
                 .filter(|(_, item)| item.current().p2().is_empty())
-                .map(|(&id, item)| (id, item.coin()))
+                .map(|(&id, item)| (id, item.last_coin()))
                 .collect(),
             dids: spends
                 .dids
                 .iter()
                 .filter(|(_, item)| item.current().p2().is_empty())
-                .map(|(&id, item)| (id, item.coin()))
+                .map(|(&id, item)| (id, item.last_coin()))
                 .collect(),
             options: spends
                 .options
                 .iter()
                 .filter(|(_, item)| item.current().p2().is_empty())
-                .map(|(&id, item)| (id, item.coin()))
+                .map(|(&id, item)| (id, item.last_coin()))
                 .collect(),
         }
     }
@@ -193,15 +193,15 @@ fn collect_ids(spends: &Spends) -> HashMap<Id, Bytes32> {
     }
 
     for (&id, lineage) in &spends.nfts {
-        ids.insert(id, lineage.coin().info.launcher_id);
+        ids.insert(id, lineage.last_coin().info.launcher_id);
     }
 
     for (&id, lineage) in &spends.dids {
-        ids.insert(id, lineage.coin().info.launcher_id);
+        ids.insert(id, lineage.last_coin().info.launcher_id);
     }
 
     for (&id, lineage) in &spends.options {
-        ids.insert(id, lineage.coin().info.launcher_id);
+        ids.insert(id, lineage.last_coin().info.launcher_id);
     }
 
     ids

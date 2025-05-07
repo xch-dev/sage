@@ -35,7 +35,7 @@ impl Action for AddNftUriAction {
             .get_mut(&self.nft_id)
             .ok_or(WalletError::MissingAsset)?;
 
-        let nft = nft_lineage.coin();
+        let nft = nft_lineage.last_coin();
 
         let metadata_update = self.add_uri.spend(ctx)?;
 

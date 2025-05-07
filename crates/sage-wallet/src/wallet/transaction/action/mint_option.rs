@@ -85,7 +85,7 @@ impl OptionTypeWithId {
                             .nfts
                             .get(&id)
                             .ok_or(WalletError::MissingAsset)?
-                            .coin()
+                            .last_coin()
                             .info
                             .launcher_id
                     }
@@ -189,7 +189,7 @@ impl Action for MintOptionAction {
                 let nft_lineage = spends.nfts.get_mut(&id).ok_or(WalletError::MissingAsset)?;
                 nft_lineage.set_p2_puzzle_hash(launcher.p2_puzzle_hash());
                 nft_lineage.recreate(ctx)?;
-                nft_lineage.coin().coin.coin_id()
+                nft_lineage.last_coin().coin.coin_id()
             }
         };
 

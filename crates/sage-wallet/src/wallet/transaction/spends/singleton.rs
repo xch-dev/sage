@@ -160,7 +160,7 @@ where
         self.was_created
     }
 
-    pub fn coin(&self) -> T {
+    pub fn last_coin(&self) -> T {
         self.items.last().expect("no lineage").coin
     }
 

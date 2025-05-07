@@ -42,7 +42,7 @@ impl Action for AssignNftAction {
             .get_mut(&self.nft_id)
             .ok_or(WalletError::MissingAsset)?;
 
-        let nft = nft_lineage.coin();
+        let nft = nft_lineage.last_coin();
 
         let owner = if let Some(did_id) = self.did_id {
             let did_lineage = spends
@@ -50,7 +50,7 @@ impl Action for AssignNftAction {
                 .get_mut(&did_id)
                 .ok_or(WalletError::MissingAsset)?;
 
-            let did = did_lineage.coin();
+            let did = did_lineage.last_coin();
 
             did_lineage.authorize_nft_ownership(nft.coin.puzzle_hash, nft.info.launcher_id)?;
 

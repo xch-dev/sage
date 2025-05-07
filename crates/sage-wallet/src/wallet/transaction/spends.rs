@@ -136,158 +136,65 @@ impl Wallet {
                 Cat::spend_all(ctx, &cat_spends)?;
             }
 
-            for lineage in spends.dids.values_mut() {
-                let mut last_coin_id = None;
-                let mut skip_count = if collect {
-                    skip_counts.pop().unwrap_or_default()
-                } else {
-                    0
-                };
-
-                for item in lineage.iter_mut() {
-                    if !item.p2().is_empty() {
-                        let inner_spend = match item.p2_mut() {
-                            P2::Standard(p2) => {
-                                if collect {
-                                    last_coin_id = Some(item.coin_id());
-                                    skip_count += 1;
-                                    continue;
-                                }
-
-                                if skip_count == 0 {
-                                    if let Some(coin_id) = coin_ids.pop() {
-                                        p2.add_conditions(
-                                            Conditions::new().assert_concurrent_spend(coin_id),
-                                        );
-                                    }
-                                } else {
-                                    skip_count -= 1;
-                                }
-
-                                p2.inner_spend(ctx)?
-                            }
-                            P2::Offer(p2) => {
-                                if collect {
-                                    continue;
-                                }
-
-                                p2.inner_spend(ctx)?
-                            }
+            macro_rules! singleton {
+                ( $name:ident ) => {
+                    for lineage in spends.$name.values_mut() {
+                        let mut last_coin_id = None;
+                        let mut skip_count = if collect {
+                            skip_counts.pop().unwrap_or_default()
+                        } else {
+                            0
                         };
 
-                        item.coin().spend(ctx, inner_spend)?;
-                    }
-                }
+                        for item in lineage.iter_mut() {
+                            if !item.p2().is_empty() {
+                                let inner_spend = match item.p2_mut() {
+                                    P2::Standard(p2) => {
+                                        if collect {
+                                            last_coin_id = Some(item.coin_id());
+                                            skip_count += 1;
+                                            continue;
+                                        }
 
-                if let Some(coin_id) = last_coin_id {
-                    if collect {
-                        coin_ids.push(coin_id);
-                        skip_counts.push(skip_count - 1);
-                    }
-                }
-            }
+                                        if skip_count == 0 {
+                                            if let Some(coin_id) = coin_ids.pop() {
+                                                p2.add_conditions(
+                                                    Conditions::new()
+                                                        .assert_concurrent_spend(coin_id),
+                                                );
+                                            }
+                                        } else {
+                                            skip_count -= 1;
+                                        }
 
-            for lineage in spends.nfts.values_mut() {
-                let mut last_coin_id = None;
-                let mut skip_count = if collect {
-                    skip_counts.pop().unwrap_or_default()
-                } else {
-                    0
-                };
-
-                for item in lineage.iter_mut() {
-                    if !item.p2().is_empty() {
-                        let inner_spend = match item.p2_mut() {
-                            P2::Standard(p2) => {
-                                if collect {
-                                    last_coin_id = Some(item.coin_id());
-                                    skip_count += 1;
-                                    continue;
-                                }
-
-                                if skip_count == 0 {
-                                    if let Some(coin_id) = coin_ids.pop() {
-                                        p2.add_conditions(
-                                            Conditions::new().assert_concurrent_spend(coin_id),
-                                        );
+                                        p2.inner_spend(ctx)?
                                     }
-                                } else {
-                                    skip_count -= 1;
-                                }
+                                    P2::Offer(p2) => {
+                                        if collect {
+                                            continue;
+                                        }
 
-                                p2.inner_spend(ctx)?
-                            }
-                            P2::Offer(p2) => {
-                                if collect {
-                                    continue;
-                                }
-
-                                p2.inner_spend(ctx)?
-                            }
-                        };
-
-                        item.coin().spend(ctx, inner_spend)?;
-                    }
-                }
-
-                if let Some(coin_id) = last_coin_id {
-                    if collect {
-                        coin_ids.push(coin_id);
-                        skip_counts.push(skip_count - 1);
-                    }
-                }
-            }
-
-            for lineage in spends.options.values_mut() {
-                let mut last_coin_id = None;
-                let mut skip_count = if collect {
-                    skip_counts.pop().unwrap_or_default()
-                } else {
-                    0
-                };
-
-                for item in lineage.iter_mut() {
-                    if !item.p2().is_empty() {
-                        let inner_spend = match item.p2_mut() {
-                            P2::Standard(p2) => {
-                                if collect {
-                                    last_coin_id = Some(item.coin_id());
-                                    skip_count += 1;
-                                    continue;
-                                }
-
-                                if skip_count == 0 {
-                                    if let Some(coin_id) = coin_ids.pop() {
-                                        p2.add_conditions(
-                                            Conditions::new().assert_concurrent_spend(coin_id),
-                                        );
+                                        p2.inner_spend(ctx)?
                                     }
-                                } else {
-                                    skip_count -= 1;
-                                }
+                                };
 
-                                p2.inner_spend(ctx)?
+                                item.coin().spend(ctx, inner_spend)?;
                             }
-                            P2::Offer(p2) => {
-                                if collect {
-                                    continue;
-                                }
+                        }
 
-                                p2.inner_spend(ctx)?
+                        if let Some(coin_id) = last_coin_id {
+                            if collect {
+                                coin_ids.push(coin_id);
+                                skip_counts.push(skip_count - 1);
                             }
-                        };
-
-                        item.coin().spend(ctx, inner_spend)?;
+                        }
                     }
-                }
-
-                if let Some(coin_id) = last_coin_id {
-                    if collect {
-                        coin_ids.push(coin_id);
-                        skip_counts.push(skip_count - 1);
-                    }
-                }
+                };
             }
+
+            singleton!(dids);
+            singleton!(nfts);
+            singleton!(options);
         }
 
         Ok(spends)
