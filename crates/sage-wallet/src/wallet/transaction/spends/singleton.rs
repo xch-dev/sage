@@ -3,7 +3,7 @@ use std::mem;
 use chia::{
     protocol::{Bytes, Bytes32, Coin},
     puzzles::{
-        offer::{Memos, NotarizedPayment, Payment},
+        offer::{Memos, Payment},
         singleton::SingletonArgs,
         Proof,
     },
@@ -176,6 +176,10 @@ where
         self.items.iter()
     }
 
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut SingletonItem<T>> {
+        self.items.iter_mut()
+    }
+
     pub fn set_settlement_nonce(&mut self, nonce: Bytes32) {
         self.current_mut().child_nonce = nonce;
     }
@@ -214,11 +218,11 @@ impl SingletonLineage<Did<HashedPtr>> {
                     current.child_hint,
                     current.child_memos.clone(),
                 )?;
-                p2.conditions = mem::take(&mut p2.conditions).create_coin(
+                p2.add_conditions(Conditions::new().create_coin(
                     child_info.inner_puzzle_hash().into(),
                     current.coin.coin.amount,
                     memos,
-                );
+                ));
             }
             P2::Offer(p2) => {
                 let memos = calculate_memos_list(
@@ -226,14 +230,14 @@ impl SingletonLineage<Did<HashedPtr>> {
                     current.child_hint,
                     current.child_memos.clone(),
                 );
-                p2.notarized_payments.push(NotarizedPayment {
-                    nonce: current.child_nonce,
-                    payments: vec![Payment {
+                p2.add_payment(
+                    current.child_nonce,
+                    Payment {
                         puzzle_hash: child_info.inner_puzzle_hash().into(),
                         amount: current.coin.coin.amount,
                         memos: memos.map(Memos),
-                    }],
-                });
+                    },
+                );
             }
         }
 
@@ -278,16 +282,18 @@ impl SingletonLineage<Did<HashedPtr>> {
             .as_standard_mut()
             .ok_or(WalletError::P2Unsupported)?;
 
-        p2.conditions = mem::take(&mut p2.conditions)
-            .assert_puzzle_announcement(did_puzzle_assertion(
-                nft_puzzle_hash,
-                &TransferNft::new(
-                    Some(current.coin.info.launcher_id),
-                    Vec::new(),
-                    Some(current.coin.info.inner_puzzle_hash().into()),
-                ),
-            ))
-            .create_puzzle_announcement(nft_launcher_id.into());
+        p2.add_conditions(
+            Conditions::new()
+                .assert_puzzle_announcement(did_puzzle_assertion(
+                    nft_puzzle_hash,
+                    &TransferNft::new(
+                        Some(current.coin.info.launcher_id),
+                        Vec::new(),
+                        Some(current.coin.info.inner_puzzle_hash().into()),
+                    ),
+                ))
+                .create_puzzle_announcement(nft_launcher_id.into()),
+        );
 
         current.needs_spend = true;
 
@@ -302,7 +308,7 @@ impl SingletonLineage<Did<HashedPtr>> {
             .as_standard_mut()
             .ok_or(WalletError::P2Unsupported)?;
 
-        p2.conditions = mem::take(&mut p2.conditions).extend(conditions);
+        p2.add_conditions(conditions);
         current.needs_spend = true;
 
         Ok(())
@@ -322,11 +328,11 @@ impl SingletonLineage<Nft<HashedPtr>> {
                     current.child_hint,
                     current.child_memos.clone(),
                 )?;
-                p2.conditions = mem::take(&mut p2.conditions).create_coin(
+                p2.add_conditions(Conditions::new().create_coin(
                     child_info.p2_puzzle_hash,
                     current.coin.coin.amount,
                     memos,
-                );
+                ));
             }
             P2::Offer(p2) => {
                 let memos = calculate_memos_list(
@@ -334,14 +340,14 @@ impl SingletonLineage<Nft<HashedPtr>> {
                     current.child_hint,
                     current.child_memos.clone(),
                 );
-                p2.notarized_payments.push(NotarizedPayment {
-                    nonce: current.child_nonce,
-                    payments: vec![Payment {
+                p2.add_payment(
+                    current.child_nonce,
+                    Payment {
                         puzzle_hash: child_info.p2_puzzle_hash,
                         amount: current.coin.coin.amount,
                         memos: memos.map(Memos),
-                    }],
-                });
+                    },
+                );
             }
         }
 
@@ -383,11 +389,11 @@ impl SingletonLineage<Nft<HashedPtr>> {
             .as_standard_mut()
             .ok_or(WalletError::P2Unsupported)?;
 
-        p2.conditions = mem::take(&mut p2.conditions).transfer_nft(
+        p2.add_conditions(Conditions::new().transfer_nft(
             owner.map(|owner| owner.did_id),
             trade_prices,
             owner.map(|owner| owner.inner_puzzle_hash),
-        );
+        ));
 
         current.needs_spend = true;
 
@@ -421,8 +427,9 @@ impl SingletonLineage<Nft<HashedPtr>> {
             .as_standard_mut()
             .ok_or(WalletError::P2Unsupported)?;
 
-        p2.conditions = mem::take(&mut p2.conditions)
-            .update_nft_metadata(metadata_update.puzzle, metadata_update.solution);
+        p2.add_conditions(
+            Conditions::new().update_nft_metadata(metadata_update.puzzle, metadata_update.solution),
+        );
 
         current.needs_spend = true;
 
@@ -445,7 +452,7 @@ impl SingletonLineage<Nft<HashedPtr>> {
             .as_standard_mut()
             .ok_or(WalletError::P2Unsupported)?;
 
-        p2.conditions = mem::take(&mut p2.conditions).extend(conditions);
+        p2.add_conditions(conditions);
         current.needs_spend = true;
 
         Ok(())
@@ -465,11 +472,11 @@ impl SingletonLineage<OptionContract> {
                     current.child_hint,
                     current.child_memos.clone(),
                 )?;
-                p2.conditions = mem::take(&mut p2.conditions).create_coin(
+                p2.add_conditions(Conditions::new().create_coin(
                     child_info.p2_puzzle_hash,
                     current.coin.coin.amount,
                     memos,
-                );
+                ));
             }
             P2::Offer(p2) => {
                 let memos = calculate_memos_list(
@@ -477,14 +484,14 @@ impl SingletonLineage<OptionContract> {
                     current.child_hint,
                     current.child_memos.clone(),
                 );
-                p2.notarized_payments.push(NotarizedPayment {
-                    nonce: current.child_nonce,
-                    payments: vec![Payment {
+                p2.add_payment(
+                    current.child_nonce,
+                    Payment {
                         puzzle_hash: child_info.p2_puzzle_hash,
                         amount: current.coin.coin.amount,
                         memos: memos.map(Memos),
-                    }],
-                });
+                    },
+                );
             }
         }
 
@@ -532,6 +539,10 @@ where
         &self.p2
     }
 
+    pub fn p2_mut(&mut self) -> &mut P2 {
+        &mut self.p2
+    }
+
     pub fn needs_spend(&self) -> bool {
         self.needs_spend
     }
@@ -552,7 +563,7 @@ where
             .as_standard_mut()
             .ok_or(WalletError::P2Unsupported)?;
 
-        p2.conditions = mem::take(&mut p2.conditions).extend(create_launcher);
+        p2.add_conditions(create_launcher);
 
         Ok(launcher.with_singleton_amount(1))
     }

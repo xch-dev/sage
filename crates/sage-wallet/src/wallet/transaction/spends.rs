@@ -6,15 +6,12 @@ pub use fungible_asset::*;
 pub use p2::*;
 pub use singleton::*;
 
-use std::{collections::HashMap, mem};
+use std::collections::HashMap;
 
-use chia::{
-    protocol::{Bytes32, Coin},
-    puzzles::offer::SettlementPaymentsSolution,
-};
-use chia_wallet_sdk::driver::{
-    Cat, CatSpend, Did, HashedPtr, Layer, Nft, OptionContract, SpendContext, SpendWithConditions,
-    StandardLayer,
+use chia::protocol::{Bytes32, Coin};
+use chia_wallet_sdk::{
+    driver::{Cat, CatSpend, Did, HashedPtr, Nft, OptionContract, SpendContext, StandardLayer},
+    types::Conditions,
 };
 use indexmap::IndexMap;
 
@@ -54,7 +51,7 @@ impl Wallet {
                 .iter_mut()
                 .find_map(|item| item.p2.as_standard_mut())
             {
-                p2.conditions = mem::take(&mut p2.conditions).reserve_fee(tx.fee);
+                p2.add_conditions(Conditions::new().reserve_fee(tx.fee));
             }
         }
 
@@ -83,73 +80,57 @@ impl Wallet {
                 skip_counts.reverse();
             }
 
-            for item in &spends.xch.items {
-                match &item.p2 {
+            for item in &mut spends.xch.items {
+                match &mut item.p2 {
                     P2::Standard(p2) => {
                         if collect {
                             coin_ids.push(item.coin.coin_id());
                             continue;
                         }
 
-                        let mut conditions = p2.conditions.clone();
-
                         if let Some(coin_id) = coin_ids.pop() {
-                            conditions = conditions.assert_concurrent_spend(coin_id);
+                            p2.add_conditions(Conditions::new().assert_concurrent_spend(coin_id));
                         }
-
-                        p2.layer.spend(ctx, item.coin, conditions)?;
                     }
-                    P2::Offer(p2) => {
+                    P2::Offer(_) => {
                         if collect {
                             continue;
                         }
-
-                        let coin_spend = p2.layer.construct_coin_spend(
-                            ctx,
-                            item.coin,
-                            SettlementPaymentsSolution {
-                                notarized_payments: p2.notarized_payments.clone(),
-                            },
-                        )?;
-                        ctx.insert(coin_spend);
                     }
                 }
+
+                item.p2.spend(ctx, item.coin)?;
             }
 
-            'cats: for cat in spends.cats.values() {
+            'cats: for cat in spends.cats.values_mut() {
                 let mut cat_spends = Vec::new();
 
-                for item in &cat.items {
-                    match &item.p2 {
+                for item in &mut cat.items {
+                    let inner_spend = match &mut item.p2 {
                         P2::Standard(p2) => {
                             if collect {
                                 coin_ids.push(item.coin.coin.coin_id());
                                 continue 'cats;
                             }
 
-                            let mut conditions = p2.conditions.clone();
-
                             if let Some(coin_id) = coin_ids.pop() {
-                                conditions = conditions.assert_concurrent_spend(coin_id);
+                                p2.add_conditions(
+                                    Conditions::new().assert_concurrent_spend(coin_id),
+                                );
                             }
 
-                            let inner_spend = p2.layer.spend_with_conditions(ctx, conditions)?;
-                            cat_spends.push(CatSpend::new(item.coin, inner_spend));
+                            p2.inner_spend(ctx)?
                         }
                         P2::Offer(p2) => {
                             if collect {
                                 continue;
                             }
 
-                            let inner_spend = p2.layer.construct_spend(
-                                ctx,
-                                SettlementPaymentsSolution {
-                                    notarized_payments: p2.notarized_payments.clone(),
-                                },
-                            )?;
-                            cat_spends.push(CatSpend::new(item.coin, inner_spend));
+                            p2.inner_spend(ctx)?
                         }
-                    }
+                    };
+
+                    cat_spends.push(CatSpend::new(item.coin, inner_spend));
                 }
 
                 Cat::spend_all(ctx, &cat_spends)?;
@@ -163,9 +144,9 @@ impl Wallet {
                     0
                 };
 
-                for item in lineage.iter() {
+                for item in lineage.iter_mut() {
                     if !item.p2().is_empty() {
-                        match item.p2() {
+                        let inner_spend = match item.p2_mut() {
                             P2::Standard(p2) => {
                                 if collect {
                                     last_coin_id = Some(item.coin_id());
@@ -173,34 +154,28 @@ impl Wallet {
                                     continue;
                                 }
 
-                                let mut conditions = p2.conditions.clone();
-
                                 if skip_count == 0 {
                                     if let Some(coin_id) = coin_ids.pop() {
-                                        conditions = conditions.assert_concurrent_spend(coin_id);
+                                        p2.add_conditions(
+                                            Conditions::new().assert_concurrent_spend(coin_id),
+                                        );
                                     }
                                 } else {
                                     skip_count -= 1;
                                 }
 
-                                let inner_spend =
-                                    p2.layer.spend_with_conditions(ctx, conditions)?;
-                                item.coin().spend(ctx, inner_spend)?;
+                                p2.inner_spend(ctx)?
                             }
                             P2::Offer(p2) => {
                                 if collect {
                                     continue;
                                 }
 
-                                let inner_spend = p2.layer.construct_spend(
-                                    ctx,
-                                    SettlementPaymentsSolution {
-                                        notarized_payments: p2.notarized_payments.clone(),
-                                    },
-                                )?;
-                                item.coin().spend(ctx, inner_spend)?;
+                                p2.inner_spend(ctx)?
                             }
-                        }
+                        };
+
+                        item.coin().spend(ctx, inner_spend)?;
                     }
                 }
 
@@ -220,9 +195,9 @@ impl Wallet {
                     0
                 };
 
-                for item in lineage.iter() {
+                for item in lineage.iter_mut() {
                     if !item.p2().is_empty() {
-                        match item.p2() {
+                        let inner_spend = match item.p2_mut() {
                             P2::Standard(p2) => {
                                 if collect {
                                     last_coin_id = Some(item.coin_id());
@@ -230,34 +205,28 @@ impl Wallet {
                                     continue;
                                 }
 
-                                let mut conditions = p2.conditions.clone();
-
                                 if skip_count == 0 {
                                     if let Some(coin_id) = coin_ids.pop() {
-                                        conditions = conditions.assert_concurrent_spend(coin_id);
+                                        p2.add_conditions(
+                                            Conditions::new().assert_concurrent_spend(coin_id),
+                                        );
                                     }
                                 } else {
                                     skip_count -= 1;
                                 }
 
-                                let inner_spend =
-                                    p2.layer.spend_with_conditions(ctx, conditions)?;
-                                item.coin().spend(ctx, inner_spend)?;
+                                p2.inner_spend(ctx)?
                             }
                             P2::Offer(p2) => {
                                 if collect {
                                     continue;
                                 }
 
-                                let inner_spend = p2.layer.construct_spend(
-                                    ctx,
-                                    SettlementPaymentsSolution {
-                                        notarized_payments: p2.notarized_payments.clone(),
-                                    },
-                                )?;
-                                item.coin().spend(ctx, inner_spend)?;
+                                p2.inner_spend(ctx)?
                             }
-                        }
+                        };
+
+                        item.coin().spend(ctx, inner_spend)?;
                     }
                 }
 
@@ -277,9 +246,9 @@ impl Wallet {
                     0
                 };
 
-                for item in lineage.iter() {
+                for item in lineage.iter_mut() {
                     if !item.p2().is_empty() {
-                        match item.p2() {
+                        let inner_spend = match item.p2_mut() {
                             P2::Standard(p2) => {
                                 if collect {
                                     last_coin_id = Some(item.coin_id());
@@ -287,34 +256,28 @@ impl Wallet {
                                     continue;
                                 }
 
-                                let mut conditions = p2.conditions.clone();
-
                                 if skip_count == 0 {
                                     if let Some(coin_id) = coin_ids.pop() {
-                                        conditions = conditions.assert_concurrent_spend(coin_id);
+                                        p2.add_conditions(
+                                            Conditions::new().assert_concurrent_spend(coin_id),
+                                        );
                                     }
                                 } else {
                                     skip_count -= 1;
                                 }
 
-                                let inner_spend =
-                                    p2.layer.spend_with_conditions(ctx, conditions)?;
-                                item.coin().spend(ctx, inner_spend)?;
+                                p2.inner_spend(ctx)?
                             }
                             P2::Offer(p2) => {
                                 if collect {
                                     continue;
                                 }
 
-                                let inner_spend = p2.layer.construct_spend(
-                                    ctx,
-                                    SettlementPaymentsSolution {
-                                        notarized_payments: p2.notarized_payments.clone(),
-                                    },
-                                )?;
-                                item.coin().spend(ctx, inner_spend)?;
+                                p2.inner_spend(ctx)?
                             }
-                        }
+                        };
+
+                        item.coin().spend(ctx, inner_spend)?;
                     }
                 }
 

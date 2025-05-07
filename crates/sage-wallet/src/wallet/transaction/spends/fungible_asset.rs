@@ -1,11 +1,12 @@
-use std::mem;
-
 use chia::{
     protocol::{Bytes, Bytes32, Coin},
-    puzzles::offer::{self, NotarizedPayment},
+    puzzles::offer::{self},
 };
 use chia_puzzles::{SETTLEMENT_PAYMENT_HASH, SINGLETON_LAUNCHER_HASH};
-use chia_wallet_sdk::driver::{Cat, Launcher, OptionLauncher, OptionLauncherInfo, SpendContext};
+use chia_wallet_sdk::{
+    driver::{Cat, Launcher, OptionLauncher, OptionLauncherInfo, SpendContext},
+    types::Conditions,
+};
 use indexmap::IndexSet;
 
 use crate::{
@@ -168,7 +169,7 @@ where
 
         match &mut parent.p2 {
             P2::Standard(p2) => {
-                p2.conditions = mem::take(&mut p2.conditions).create_coin(
+                p2.add_conditions(Conditions::new().create_coin(
                     intermediate_puzzle_hash,
                     1,
                     calculate_memos(
@@ -177,7 +178,7 @@ where
                         parent.coin.include_hint(),
                         None,
                     )?,
-                );
+                ));
             }
             P2::Offer(p2) => {
                 let nonce = p2_selection.nonce();
@@ -193,18 +194,7 @@ where
                     .map(offer::Memos),
                 };
 
-                if let Some(np) = p2
-                    .notarized_payments
-                    .iter_mut()
-                    .find(|np| np.nonce == nonce)
-                {
-                    np.payments.push(offer_payment);
-                } else {
-                    p2.notarized_payments.push(NotarizedPayment {
-                        nonce,
-                        payments: vec![offer_payment],
-                    });
-                }
+                p2.add_payment(nonce, offer_payment);
             }
         }
 
@@ -238,11 +228,11 @@ where
 
         match &mut item.p2 {
             P2::Standard(p2) => {
-                p2.conditions = mem::take(&mut p2.conditions).create_coin(
+                p2.add_conditions(Conditions::new().create_coin(
                     p2_puzzle_hash,
                     amount,
                     calculate_memos(ctx, p2_puzzle_hash, include_hint, memos)?,
-                );
+                ));
             }
             P2::Offer(p2) => {
                 let nonce = p2_selection.nonce();
@@ -254,18 +244,7 @@ where
                         .map(offer::Memos),
                 };
 
-                if let Some(np) = p2
-                    .notarized_payments
-                    .iter_mut()
-                    .find(|np| np.nonce == nonce)
-                {
-                    np.payments.push(offer_payment);
-                } else {
-                    p2.notarized_payments.push(NotarizedPayment {
-                        nonce,
-                        payments: vec![offer_payment],
-                    });
-                }
+                p2.add_payment(nonce, offer_payment);
             }
         }
 
@@ -350,7 +329,7 @@ where
             .as_standard_mut()
             .ok_or(WalletError::P2Unsupported)?;
 
-        p2.conditions = mem::take(&mut p2.conditions).create_coin(
+        p2.add_conditions(Conditions::new().create_coin(
             parent.coin.p2_puzzle_hash(),
             1,
             calculate_memos(
@@ -359,7 +338,7 @@ where
                 parent.coin.include_hint(),
                 None,
             )?,
-        );
+        ));
 
         let child = parent.coin.child(parent.coin.p2_puzzle_hash(), 1);
         let p2 = parent.p2.cleared();

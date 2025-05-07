@@ -1,5 +1,3 @@
-use std::mem;
-
 use chia_wallet_sdk::driver::{HashedPtr, SpendContext};
 
 use crate::{Action, Id, SingletonLineage, Spends, Summary, WalletError};
@@ -30,7 +28,7 @@ impl Action for CreateDidAction {
             .as_standard_mut()
             .ok_or(WalletError::P2Unsupported)?;
 
-        p2.conditions = mem::take(&mut p2.conditions).extend(create_did);
+        p2.add_conditions(create_did);
 
         spends.dids.insert(
             Id::New(index),

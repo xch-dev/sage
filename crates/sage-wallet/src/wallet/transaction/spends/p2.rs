@@ -1,8 +1,15 @@
-use chia::{protocol::Bytes32, puzzles::offer::NotarizedPayment};
+use std::mem;
+
+use chia::{
+    protocol::{Bytes32, Coin},
+    puzzles::offer::{NotarizedPayment, Payment, SettlementPaymentsSolution},
+};
 use chia_wallet_sdk::{
-    driver::{SettlementLayer, StandardLayer},
+    driver::{Layer, SettlementLayer, Spend, SpendContext, SpendWithConditions, StandardLayer},
     types::Conditions,
 };
+
+use crate::WalletError;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum P2Selection {
@@ -84,12 +91,26 @@ impl P2 {
             Self::Offer(..) => Self::Offer(SettlementP2::new()),
         }
     }
+
+    pub fn inner_spend(&self, ctx: &mut SpendContext) -> Result<Spend, WalletError> {
+        match self {
+            Self::Standard(p2) => p2.inner_spend(ctx),
+            Self::Offer(p2) => p2.inner_spend(ctx),
+        }
+    }
+
+    pub fn spend(&self, ctx: &mut SpendContext, coin: Coin) -> Result<(), WalletError> {
+        match self {
+            Self::Standard(p2) => p2.spend(ctx, coin),
+            Self::Offer(p2) => p2.spend(ctx, coin),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
 pub struct StandardP2 {
-    pub layer: StandardLayer,
-    pub conditions: Conditions,
+    layer: StandardLayer,
+    conditions: Conditions,
 }
 
 impl StandardP2 {
@@ -99,12 +120,27 @@ impl StandardP2 {
             conditions: Conditions::new(),
         }
     }
+
+    pub fn add_conditions(&mut self, conditions: Conditions) {
+        self.conditions = mem::take(&mut self.conditions).extend(conditions);
+    }
+
+    pub fn inner_spend(&self, ctx: &mut SpendContext) -> Result<Spend, WalletError> {
+        Ok(self
+            .layer
+            .spend_with_conditions(ctx, self.conditions.clone())?)
+    }
+
+    pub fn spend(&self, ctx: &mut SpendContext, coin: Coin) -> Result<(), WalletError> {
+        self.layer.spend(ctx, coin, self.conditions.clone())?;
+        Ok(())
+    }
 }
 
 #[derive(Debug, Clone)]
 pub struct SettlementP2 {
-    pub layer: SettlementLayer,
-    pub notarized_payments: Vec<NotarizedPayment>,
+    layer: SettlementLayer,
+    notarized_payments: Vec<NotarizedPayment>,
 }
 
 impl Default for SettlementP2 {
@@ -119,5 +155,41 @@ impl Default for SettlementP2 {
 impl SettlementP2 {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    pub fn add_payment(&mut self, nonce: Bytes32, payment: Payment) {
+        if let Some(np) = self
+            .notarized_payments
+            .iter_mut()
+            .find(|np| np.nonce == nonce)
+        {
+            np.payments.push(payment);
+        } else {
+            self.notarized_payments.push(NotarizedPayment {
+                nonce,
+                payments: vec![payment],
+            });
+        }
+    }
+
+    pub fn inner_spend(&self, ctx: &mut SpendContext) -> Result<Spend, WalletError> {
+        Ok(self.layer.construct_spend(
+            ctx,
+            SettlementPaymentsSolution {
+                notarized_payments: self.notarized_payments.clone(),
+            },
+        )?)
+    }
+
+    pub fn spend(&self, ctx: &mut SpendContext, coin: Coin) -> Result<(), WalletError> {
+        let coin_spend = self.layer.construct_coin_spend(
+            ctx,
+            coin,
+            SettlementPaymentsSolution {
+                notarized_payments: self.notarized_payments.clone(),
+            },
+        )?;
+        ctx.insert(coin_spend);
+        Ok(())
     }
 }

@@ -1,10 +1,11 @@
-use std::mem;
-
 use chia::{
     protocol::Coin,
     puzzles::cat::{CatArgs, GenesisByCoinIdTailArgs},
 };
-use chia_wallet_sdk::driver::{Cat, SpendContext};
+use chia_wallet_sdk::{
+    driver::{Cat, SpendContext},
+    types::Conditions,
+};
 use clvmr::NodePtr;
 
 use crate::{Action, AssetCoin, AssetCoinExt, FungibleAsset, Id, Spends, Summary, WalletError};
@@ -56,7 +57,7 @@ impl Action for IssueCatAction {
             .as_standard_mut()
             .ok_or(WalletError::P2Unsupported)?;
 
-        eve_p2.conditions = mem::take(&mut eve_p2.conditions).run_cat_tail(tail, NodePtr::NIL);
+        eve_p2.add_conditions(Conditions::new().run_cat_tail(tail, NodePtr::NIL));
 
         spends
             .cats
@@ -70,8 +71,7 @@ impl Action for IssueCatAction {
             .as_standard_mut()
             .ok_or(WalletError::P2Unsupported)?;
 
-        parent_p2.conditions =
-            mem::take(&mut parent_p2.conditions).create_coin(puzzle_hash, self.amount, None);
+        parent_p2.add_conditions(Conditions::new().create_coin(puzzle_hash, self.amount, None));
 
         Ok(())
     }

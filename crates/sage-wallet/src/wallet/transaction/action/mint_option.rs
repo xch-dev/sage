@@ -1,5 +1,3 @@
-use std::mem;
-
 use chia::protocol::Bytes32;
 use chia_wallet_sdk::driver::{OptionLauncherInfo, OptionType, SpendContext};
 
@@ -204,7 +202,7 @@ impl Action for MintOptionAction {
             .as_standard_mut()
             .ok_or(WalletError::P2Unsupported)?;
 
-        p2.conditions = mem::take(&mut p2.conditions).extend(mint_option);
+        p2.add_conditions(mint_option);
 
         // TODO: Fix p2
         spends.options.insert(
