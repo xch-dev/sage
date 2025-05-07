@@ -74,9 +74,16 @@ export function TransactionListView({
 
     // For summarized view, group by coin type and net the amounts
     const coinGroups = new Map<string, Array<(typeof created)[0]>>();
+    const ungroupedCoins: Array<(typeof created)[0]> = [];
 
     // Group created coins by type and ticker
     created.forEach((coin) => {
+      // Don't group DID and NFT coins
+      if (coin.type.toLowerCase() === 'did' || coin.type.toLowerCase() === 'nft') {
+        ungroupedCoins.push(coin);
+        return;
+      }
+
       // Use type as the key for grouping, add displayName for uniqueness
       const key = `${coin.type}_${coin.displayName}`;
       if (!coinGroups.has(key)) {
@@ -90,6 +97,12 @@ export function TransactionListView({
 
     // Group spent coins by type and ticker
     spent.forEach((coin) => {
+      // Don't group DID and NFT coins
+      if (coin.type.toLowerCase() === 'did' || coin.type.toLowerCase() === 'nft') {
+        ungroupedCoins.push(coin);
+        return;
+      }
+
       // Use type as the key for grouping, add displayName for uniqueness
       const key = `${coin.type}_${coin.displayName}`;
       if (!coinGroups.has(key)) {
@@ -102,7 +115,7 @@ export function TransactionListView({
     });
 
     // Net amounts for each group
-    const summarizedCoins: Array<(typeof created)[0]> = [];
+    const summarizedCoins: Array<(typeof created)[0]> = [...ungroupedCoins];
 
     coinGroups.forEach((coins) => {
       // Skip if there's only one coin and it's not worth summarizing
