@@ -156,8 +156,6 @@ jobs:
       - name: Bindgen CLI
         run: cargo install bindgen-cli --locked
 
-      - uses: Swatinem/rust-cache@v2
-
       # On MacOS we only notarize on tagged releases
       # On iOS we need these secrets as well to do code signing
       - name: Build with secrets
