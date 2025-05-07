@@ -6,9 +6,7 @@ use chia_wallet_sdk::driver::{MetadataUpdate, Nft};
 
 use crate::WalletError;
 
-use super::{
-    AddNftUriAction, AssignNftAction, Id, MintNftAction, SpendAction, TransferNftAction, Wallet,
-};
+use super::{AddNftUriAction, AssignNftAction, Id, MintNftAction, SpendAction, Wallet};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WalletNftMint {
@@ -67,10 +65,7 @@ impl Wallet {
                 )));
             }
 
-            actions.push(SpendAction::TransferNft(TransferNftAction::new(
-                Id::Existing(nft_id),
-                puzzle_hash,
-            )));
+            actions.push(SpendAction::transfer_nft(nft_id, puzzle_hash));
         }
 
         Ok(self.transact(actions, fee).await?.coin_spends)

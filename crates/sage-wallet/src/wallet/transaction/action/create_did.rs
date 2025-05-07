@@ -25,11 +25,16 @@ impl Action for CreateDidAction {
         let (create_did, did) = launcher.create_eve_did(ctx, item.coin.puzzle_hash, None, 1, ())?;
         let did = did.with_metadata(HashedPtr::NIL);
 
-        item.conditions = mem::take(&mut item.conditions).extend(create_did);
+        let p2 = item
+            .p2
+            .as_standard_mut()
+            .ok_or(WalletError::P2Unsupported)?;
+
+        p2.conditions = mem::take(&mut p2.conditions).extend(create_did);
 
         spends.dids.insert(
             Id::New(index),
-            SingletonLineage::new(did, item.p2, true, true),
+            SingletonLineage::new(did, item.p2.cleared(), true, true),
         );
 
         Ok(())

@@ -51,7 +51,7 @@ impl Action for MintNftAction {
 
         let did = did_lineage.coin();
         let current_did = did_lineage.current_mut();
-        let launcher = current_did.create_launcher();
+        let launcher = current_did.create_launcher()?;
 
         let mint = NftMint {
             metadata: self.metadata.clone(),
@@ -70,10 +70,10 @@ impl Action for MintNftAction {
         spends.nfts.insert(
             Id::New(index),
             // TODO: This is the wrong p2
-            SingletonLineage::new(nft, current_did.p2(), true, false),
+            SingletonLineage::new(nft, current_did.p2().cleared(), true, false),
         );
 
-        did_lineage.add_conditions(mint_nft);
+        did_lineage.add_conditions(mint_nft)?;
 
         Ok(())
     }

@@ -3,12 +3,11 @@ use chia_wallet_sdk::{driver::SpendContext, prelude::Memos};
 
 use crate::WalletError;
 
-pub fn calculate_memos(
-    ctx: &mut SpendContext,
+pub fn calculate_memos_list(
     p2_puzzle_hash: Bytes32,
     include_hint: bool,
     memos: Option<Vec<Bytes>>,
-) -> Result<Option<Memos>, WalletError> {
+) -> Option<Vec<Bytes>> {
     let mut result = None;
 
     if include_hint {
@@ -22,6 +21,17 @@ pub fn calculate_memos(
             result = Some(memos);
         }
     }
+
+    result
+}
+
+pub fn calculate_memos(
+    ctx: &mut SpendContext,
+    p2_puzzle_hash: Bytes32,
+    include_hint: bool,
+    memos: Option<Vec<Bytes>>,
+) -> Result<Option<Memos>, WalletError> {
+    let result = calculate_memos_list(p2_puzzle_hash, include_hint, memos);
 
     Ok(if let Some(result) = result {
         Some(ctx.memos(&result)?)

@@ -68,10 +68,7 @@ impl Wallet {
 mod tests {
     use crate::TestWallet;
 
-    use chia::{
-        bls::Signature,
-        protocol::{Bytes32, SpendBundle},
-    };
+    use chia::protocol::Bytes32;
     use chia_wallet_sdk::driver::OptionType;
     use test_log::test;
 
@@ -91,11 +88,6 @@ mod tests {
                 0,
             )
             .await?;
-
-        println!(
-            "{}",
-            serde_json::to_string(&SpendBundle::new(coin_spends.clone(), Signature::default()))?
-        );
 
         test.transact(coin_spends).await?;
         test.wait_for_coins().await;

@@ -1,18 +1,20 @@
 mod fungible_asset;
+mod p2;
 mod singleton;
 
 pub use fungible_asset::*;
+pub use p2::*;
 pub use singleton::*;
 
 use std::{collections::HashMap, mem};
 
-use chia::protocol::{Bytes32, Coin};
-use chia_wallet_sdk::{
-    driver::{
-        Cat, CatSpend, Did, HashedPtr, Nft, OptionContract, SpendContext, SpendWithConditions,
-        StandardLayer,
-    },
-    types::Conditions,
+use chia::{
+    protocol::{Bytes32, Coin},
+    puzzles::offer::SettlementPaymentsSolution,
+};
+use chia_wallet_sdk::driver::{
+    Cat, CatSpend, Did, HashedPtr, Layer, Nft, OptionContract, SpendContext, SpendWithConditions,
+    StandardLayer,
 };
 use indexmap::IndexMap;
 
@@ -46,8 +48,13 @@ impl Wallet {
         }
 
         if tx.fee > 0 {
-            if let Some(item) = spends.xch.items.first_mut() {
-                item.conditions = mem::take(&mut item.conditions).reserve_fee(tx.fee);
+            if let Some(p2) = spends
+                .xch
+                .items
+                .iter_mut()
+                .find_map(|item| item.p2.as_standard_mut())
+            {
+                p2.conditions = mem::take(&mut p2.conditions).reserve_fee(tx.fee);
             }
         }
 
@@ -77,39 +84,72 @@ impl Wallet {
             }
 
             for item in &spends.xch.items {
-                if collect {
-                    coin_ids.push(item.coin.coin_id());
-                    continue;
+                match &item.p2 {
+                    P2::Standard(p2) => {
+                        if collect {
+                            coin_ids.push(item.coin.coin_id());
+                            continue;
+                        }
+
+                        let mut conditions = p2.conditions.clone();
+
+                        if let Some(coin_id) = coin_ids.pop() {
+                            conditions = conditions.assert_concurrent_spend(coin_id);
+                        }
+
+                        p2.layer.spend(ctx, item.coin, conditions)?;
+                    }
+                    P2::Offer(p2) => {
+                        if collect {
+                            continue;
+                        }
+
+                        let coin_spend = p2.layer.construct_coin_spend(
+                            ctx,
+                            item.coin,
+                            SettlementPaymentsSolution {
+                                notarized_payments: p2.notarized_payments.clone(),
+                            },
+                        )?;
+                        ctx.insert(coin_spend);
+                    }
                 }
-
-                let mut conditions = item.conditions.clone();
-
-                if let Some(coin_id) = coin_ids.pop() {
-                    conditions = conditions.assert_concurrent_spend(coin_id);
-                }
-
-                item.p2.spend(ctx, item.coin, conditions)?;
             }
 
             'cats: for cat in spends.cats.values() {
                 let mut cat_spends = Vec::new();
 
                 for item in &cat.items {
-                    if collect {
-                        coin_ids.push(item.coin.coin.coin_id());
-                        continue 'cats;
+                    match &item.p2 {
+                        P2::Standard(p2) => {
+                            if collect {
+                                coin_ids.push(item.coin.coin.coin_id());
+                                continue 'cats;
+                            }
+
+                            let mut conditions = p2.conditions.clone();
+
+                            if let Some(coin_id) = coin_ids.pop() {
+                                conditions = conditions.assert_concurrent_spend(coin_id);
+                            }
+
+                            let inner_spend = p2.layer.spend_with_conditions(ctx, conditions)?;
+                            cat_spends.push(CatSpend::new(item.coin, inner_spend));
+                        }
+                        P2::Offer(p2) => {
+                            if collect {
+                                continue;
+                            }
+
+                            let inner_spend = p2.layer.construct_spend(
+                                ctx,
+                                SettlementPaymentsSolution {
+                                    notarized_payments: p2.notarized_payments.clone(),
+                                },
+                            )?;
+                            cat_spends.push(CatSpend::new(item.coin, inner_spend));
+                        }
                     }
-
-                    let mut conditions = item.conditions.clone();
-
-                    if let Some(coin_id) = coin_ids.pop() {
-                        conditions = conditions.assert_concurrent_spend(coin_id);
-                    }
-
-                    cat_spends.push(CatSpend::new(
-                        item.coin,
-                        item.p2.spend_with_conditions(ctx, conditions)?,
-                    ));
                 }
 
                 Cat::spend_all(ctx, &cat_spends)?;
@@ -124,24 +164,43 @@ impl Wallet {
                 };
 
                 for item in lineage.iter() {
-                    if item.has_conditions() {
-                        if collect {
-                            last_coin_id = Some(item.coin_id());
-                            skip_count += 1;
-                            continue;
-                        }
+                    if !item.p2().is_empty() {
+                        match item.p2() {
+                            P2::Standard(p2) => {
+                                if collect {
+                                    last_coin_id = Some(item.coin_id());
+                                    skip_count += 1;
+                                    continue;
+                                }
 
-                        let mut conditions = Conditions::new();
+                                let mut conditions = p2.conditions.clone();
 
-                        if skip_count == 0 {
-                            if let Some(coin_id) = coin_ids.pop() {
-                                conditions = conditions.assert_concurrent_spend(coin_id);
+                                if skip_count == 0 {
+                                    if let Some(coin_id) = coin_ids.pop() {
+                                        conditions = conditions.assert_concurrent_spend(coin_id);
+                                    }
+                                } else {
+                                    skip_count -= 1;
+                                }
+
+                                let inner_spend =
+                                    p2.layer.spend_with_conditions(ctx, conditions)?;
+                                item.coin().spend(ctx, inner_spend)?;
                             }
-                        } else {
-                            skip_count -= 1;
-                        }
+                            P2::Offer(p2) => {
+                                if collect {
+                                    continue;
+                                }
 
-                        item.spend(ctx, conditions)?;
+                                let inner_spend = p2.layer.construct_spend(
+                                    ctx,
+                                    SettlementPaymentsSolution {
+                                        notarized_payments: p2.notarized_payments.clone(),
+                                    },
+                                )?;
+                                item.coin().spend(ctx, inner_spend)?;
+                            }
+                        }
                     }
                 }
 
@@ -162,24 +221,43 @@ impl Wallet {
                 };
 
                 for item in lineage.iter() {
-                    if item.has_conditions() {
-                        if collect {
-                            last_coin_id = Some(item.coin_id());
-                            skip_count += 1;
-                            continue;
-                        }
+                    if !item.p2().is_empty() {
+                        match item.p2() {
+                            P2::Standard(p2) => {
+                                if collect {
+                                    last_coin_id = Some(item.coin_id());
+                                    skip_count += 1;
+                                    continue;
+                                }
 
-                        let mut conditions = Conditions::new();
+                                let mut conditions = p2.conditions.clone();
 
-                        if skip_count == 0 {
-                            if let Some(coin_id) = coin_ids.pop() {
-                                conditions = conditions.assert_concurrent_spend(coin_id);
+                                if skip_count == 0 {
+                                    if let Some(coin_id) = coin_ids.pop() {
+                                        conditions = conditions.assert_concurrent_spend(coin_id);
+                                    }
+                                } else {
+                                    skip_count -= 1;
+                                }
+
+                                let inner_spend =
+                                    p2.layer.spend_with_conditions(ctx, conditions)?;
+                                item.coin().spend(ctx, inner_spend)?;
                             }
-                        } else {
-                            skip_count -= 1;
-                        }
+                            P2::Offer(p2) => {
+                                if collect {
+                                    continue;
+                                }
 
-                        item.spend(ctx, conditions)?;
+                                let inner_spend = p2.layer.construct_spend(
+                                    ctx,
+                                    SettlementPaymentsSolution {
+                                        notarized_payments: p2.notarized_payments.clone(),
+                                    },
+                                )?;
+                                item.coin().spend(ctx, inner_spend)?;
+                            }
+                        }
                     }
                 }
 
@@ -200,24 +278,43 @@ impl Wallet {
                 };
 
                 for item in lineage.iter() {
-                    if item.has_conditions() {
-                        if collect {
-                            last_coin_id = Some(item.coin_id());
-                            skip_count += 1;
-                            continue;
-                        }
+                    if !item.p2().is_empty() {
+                        match item.p2() {
+                            P2::Standard(p2) => {
+                                if collect {
+                                    last_coin_id = Some(item.coin_id());
+                                    skip_count += 1;
+                                    continue;
+                                }
 
-                        let mut conditions = Conditions::new();
+                                let mut conditions = p2.conditions.clone();
 
-                        if skip_count == 0 {
-                            if let Some(coin_id) = coin_ids.pop() {
-                                conditions = conditions.assert_concurrent_spend(coin_id);
+                                if skip_count == 0 {
+                                    if let Some(coin_id) = coin_ids.pop() {
+                                        conditions = conditions.assert_concurrent_spend(coin_id);
+                                    }
+                                } else {
+                                    skip_count -= 1;
+                                }
+
+                                let inner_spend =
+                                    p2.layer.spend_with_conditions(ctx, conditions)?;
+                                item.coin().spend(ctx, inner_spend)?;
                             }
-                        } else {
-                            skip_count -= 1;
-                        }
+                            P2::Offer(p2) => {
+                                if collect {
+                                    continue;
+                                }
 
-                        item.spend(ctx, conditions)?;
+                                let inner_spend = p2.layer.construct_spend(
+                                    ctx,
+                                    SettlementPaymentsSolution {
+                                        notarized_payments: p2.notarized_payments.clone(),
+                                    },
+                                )?;
+                                item.coin().spend(ctx, inner_spend)?;
+                            }
+                        }
                     }
                 }
 
@@ -237,49 +334,61 @@ impl Wallet {
     async fn fetch_p2_map(
         &self,
         selection: &Selection,
-    ) -> Result<HashMap<Bytes32, StandardLayer>, WalletError> {
+    ) -> Result<HashMap<Bytes32, P2>, WalletError> {
         let mut p2 = HashMap::new();
 
         for coin in &selection.xch.coins {
             let synthetic_key = self.db.synthetic_key(coin.puzzle_hash).await?;
-            p2.insert(coin.puzzle_hash, StandardLayer::new(synthetic_key));
+            p2.insert(
+                coin.puzzle_hash,
+                P2::Standard(StandardP2::new(StandardLayer::new(synthetic_key))),
+            );
         }
 
         for cat in selection.cats.values() {
             for cat in &cat.coins {
                 let synthetic_key = self.db.synthetic_key(cat.p2_puzzle_hash).await?;
-                p2.insert(cat.p2_puzzle_hash, StandardLayer::new(synthetic_key));
+                p2.insert(
+                    cat.p2_puzzle_hash,
+                    P2::Standard(StandardP2::new(StandardLayer::new(synthetic_key))),
+                );
             }
         }
 
         for nft in selection.nfts.values() {
             let synthetic_key = self.db.synthetic_key(nft.info.p2_puzzle_hash).await?;
-            p2.insert(nft.info.p2_puzzle_hash, StandardLayer::new(synthetic_key));
+            p2.insert(
+                nft.info.p2_puzzle_hash,
+                P2::Standard(StandardP2::new(StandardLayer::new(synthetic_key))),
+            );
         }
 
         for did in selection.dids.values() {
             let synthetic_key = self.db.synthetic_key(did.info.p2_puzzle_hash).await?;
-            p2.insert(did.info.p2_puzzle_hash, StandardLayer::new(synthetic_key));
+            p2.insert(
+                did.info.p2_puzzle_hash,
+                P2::Standard(StandardP2::new(StandardLayer::new(synthetic_key))),
+            );
         }
 
         for option in selection.options.values() {
             let synthetic_key = self.db.synthetic_key(option.info.p2_puzzle_hash).await?;
             p2.insert(
                 option.info.p2_puzzle_hash,
-                StandardLayer::new(synthetic_key),
+                P2::Standard(StandardP2::new(StandardLayer::new(synthetic_key))),
             );
         }
 
         Ok(p2)
     }
 
-    fn initial_spends(selection: &Selection, p2: &HashMap<Bytes32, StandardLayer>) -> Spends {
+    fn initial_spends(selection: &Selection, p2: &HashMap<Bytes32, P2>) -> Spends {
         let xch = FungibleAsset::new(
             selection
                 .xch
                 .coins
                 .iter()
-                .map(|&coin| AssetCoin::new(coin, p2[&coin.puzzle_hash]))
+                .map(|&coin| AssetCoin::new(coin, p2[&coin.puzzle_hash].clone()))
                 .collect(),
         );
 
@@ -291,7 +400,7 @@ impl Wallet {
                     selected
                         .coins
                         .iter()
-                        .map(|&cat| AssetCoin::new(cat, p2[&cat.p2_puzzle_hash]))
+                        .map(|&cat| AssetCoin::new(cat, p2[&cat.p2_puzzle_hash].clone()))
                         .collect(),
                 );
                 (id, spends)
@@ -303,7 +412,7 @@ impl Wallet {
             .iter()
             .map(|(&id, &did)| {
                 let singleton =
-                    SingletonLineage::new(did, p2[&did.info.p2_puzzle_hash], false, true);
+                    SingletonLineage::new(did, p2[&did.info.p2_puzzle_hash].clone(), false, true);
                 (id, singleton)
             })
             .collect();
@@ -313,7 +422,7 @@ impl Wallet {
             .iter()
             .map(|(&id, &nft)| {
                 let singleton =
-                    SingletonLineage::new(nft, p2[&nft.info.p2_puzzle_hash], false, true);
+                    SingletonLineage::new(nft, p2[&nft.info.p2_puzzle_hash].clone(), false, true);
                 (id, singleton)
             })
             .collect();
@@ -322,8 +431,12 @@ impl Wallet {
             .options
             .iter()
             .map(|(&id, &option)| {
-                let singleton =
-                    SingletonLineage::new(option, p2[&option.info.p2_puzzle_hash], false, true);
+                let singleton = SingletonLineage::new(
+                    option,
+                    p2[&option.info.p2_puzzle_hash].clone(),
+                    false,
+                    true,
+                );
                 (id, singleton)
             })
             .collect();
@@ -350,9 +463,14 @@ impl Wallet {
             (selection.xch.existing_amount + summary.created_xch).saturating_sub(summary.spent_xch);
 
         if change_amount > 0 {
-            spends
-                .xch
-                .create_coin(ctx, change_puzzle_hash, change_amount, false, None)?;
+            spends.xch.create_coin(
+                ctx,
+                change_puzzle_hash,
+                change_amount,
+                false,
+                None,
+                P2Selection::Payment,
+            )?;
         }
 
         for (id, cat) in &mut spends.cats {
@@ -367,7 +485,14 @@ impl Wallet {
             let change_amount = (existing_amount + created_amount).saturating_sub(spent_amount);
 
             if change_amount > 0 {
-                cat.create_coin(ctx, change_puzzle_hash, change_amount, true, None)?;
+                cat.create_coin(
+                    ctx,
+                    change_puzzle_hash,
+                    change_amount,
+                    true,
+                    None,
+                    P2Selection::Payment,
+                )?;
             }
         }
 

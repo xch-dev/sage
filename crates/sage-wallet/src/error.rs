@@ -56,6 +56,9 @@ pub enum WalletError {
     #[error("P2 puzzle hash changed during incomplete spend")]
     P2PuzzleHashChange,
 
+    #[error("P2 does not support conditions")]
+    P2Unsupported,
+
     #[error("Missing child of id {0}")]
     MissingChild(Bytes32),
 

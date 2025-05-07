@@ -1,19 +1,34 @@
-use chia::protocol::Bytes32;
+use chia::protocol::{Bytes, Bytes32};
+use chia_puzzles::SETTLEMENT_PAYMENT_HASH;
 use chia_wallet_sdk::driver::SpendContext;
 
 use crate::{Action, Id, Spends, Summary, WalletError};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+use super::Hint;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TransferNftAction {
     pub nft_id: Id,
     pub puzzle_hash: Bytes32,
+    pub include_hint: Hint,
+    pub memos: Option<Vec<Bytes>>,
+    pub settlement_nonce: Option<Bytes32>,
 }
 
 impl TransferNftAction {
-    pub fn new(nft_id: Id, puzzle_hash: Bytes32) -> Self {
+    pub fn new(
+        nft_id: Id,
+        puzzle_hash: Bytes32,
+        include_hint: Hint,
+        memos: Option<Vec<Bytes>>,
+        settlement_nonce: Option<Bytes32>,
+    ) -> Self {
         Self {
             nft_id,
             puzzle_hash,
+            include_hint,
+            memos,
+            settlement_nonce,
         }
     }
 }
@@ -25,7 +40,7 @@ impl Action for TransferNftAction {
 
     fn spend(
         &self,
-        _ctx: &mut SpendContext,
+        ctx: &mut SpendContext,
         spends: &mut Spends,
         _index: usize,
     ) -> Result<(), WalletError> {
@@ -33,6 +48,15 @@ impl Action for TransferNftAction {
             .nfts
             .get_mut(&self.nft_id)
             .ok_or(WalletError::MissingAsset)?;
+
+        if let Some(nonce) = self.settlement_nonce {
+            if item.current().p2().is_standard() {
+                item.set_p2_puzzle_hash(SETTLEMENT_PAYMENT_HASH.into());
+                item.set_did_owner(ctx, None, Vec::new())?;
+                item.recreate(ctx)?;
+            }
+            item.set_settlement_nonce(nonce);
+        }
 
         item.set_p2_puzzle_hash(self.puzzle_hash);
 

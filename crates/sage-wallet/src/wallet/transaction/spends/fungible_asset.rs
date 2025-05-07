@@ -1,14 +1,19 @@
 use std::mem;
 
-use chia::protocol::{Bytes, Bytes32, Coin};
-use chia_puzzles::SINGLETON_LAUNCHER_HASH;
-use chia_wallet_sdk::{
-    driver::{Cat, Launcher, OptionLauncher, OptionLauncherInfo, SpendContext, StandardLayer},
-    types::Conditions,
+use chia::{
+    protocol::{Bytes, Bytes32, Coin},
+    puzzles::offer::{self, NotarizedPayment},
 };
+use chia_puzzles::{SETTLEMENT_PAYMENT_HASH, SINGLETON_LAUNCHER_HASH};
+use chia_wallet_sdk::driver::{Cat, Launcher, OptionLauncher, OptionLauncherInfo, SpendContext};
 use indexmap::IndexSet;
 
-use crate::{wallet::memos::calculate_memos, WalletError};
+use crate::{
+    wallet::memos::{calculate_memos, calculate_memos_list},
+    WalletError,
+};
+
+use super::{P2Selection, SettlementP2, P2};
 
 #[derive(Debug, Clone)]
 pub struct FungibleAsset<T> {
@@ -23,18 +28,16 @@ pub struct AssetCoinRef(usize);
 #[derive(Debug, Clone)]
 pub struct AssetCoin<T> {
     pub coin: T,
-    pub p2: StandardLayer,
+    pub p2: P2,
     pub payments: IndexSet<Payment>,
-    pub conditions: Conditions,
 }
 
 impl<T> AssetCoin<T> {
-    pub fn new(coin: T, p2: StandardLayer) -> Self {
+    pub fn new(coin: T, p2: P2) -> Self {
         Self {
             coin,
             p2,
             payments: IndexSet::new(),
-            conditions: Conditions::new(),
         }
     }
 }
@@ -120,17 +123,20 @@ where
         &mut self,
         ctx: &mut SpendContext,
         payment: Payment,
+        p2_selection: P2Selection,
     ) -> Result<AssetCoinRef, WalletError> {
         // This weird duplicated logic is due to a flaw in the borrow checker.
         if self
             .items
             .iter()
-            .any(|item| !item.payments.contains(&payment))
+            .any(|item| !item.payments.contains(&payment) && p2_selection.matches(&item.p2))
         {
             let item_ref = AssetCoinRef(
                 self.items
                     .iter_mut()
-                    .position(|item| !item.payments.contains(&payment))
+                    .position(|item| {
+                        !item.payments.contains(&payment) && p2_selection.matches(&item.p2)
+                    })
                     .expect("missing item"),
             );
             self.get_mut(item_ref)?.payments.insert(payment);
@@ -138,30 +144,76 @@ where
         }
 
         let Some(parent) = self.items.iter_mut().find(|item| {
-            !item
-                .payments
-                .contains(&Payment::new(item.coin.p2_puzzle_hash(), 0))
+            !item.payments.contains(&Payment::new(
+                if matches!(p2_selection, P2Selection::Offer(_)) {
+                    SETTLEMENT_PAYMENT_HASH.into()
+                } else {
+                    item.coin.p2_puzzle_hash()
+                },
+                1,
+            ))
         }) else {
             return Err(WalletError::NoIntermediateParent);
         };
 
+        let intermediate_puzzle_hash = if matches!(p2_selection, P2Selection::Offer(_)) {
+            SETTLEMENT_PAYMENT_HASH.into()
+        } else {
+            parent.coin.p2_puzzle_hash()
+        };
+
         parent
             .payments
-            .insert(Payment::new(parent.coin.p2_puzzle_hash(), 0));
+            .insert(Payment::new(intermediate_puzzle_hash, 1));
 
-        parent.conditions = mem::take(&mut parent.conditions).create_coin(
-            parent.coin.p2_puzzle_hash(),
-            0,
-            calculate_memos(
-                ctx,
-                parent.coin.p2_puzzle_hash(),
-                parent.coin.include_hint(),
-                None,
-            )?,
-        );
+        match &mut parent.p2 {
+            P2::Standard(p2) => {
+                p2.conditions = mem::take(&mut p2.conditions).create_coin(
+                    intermediate_puzzle_hash,
+                    1,
+                    calculate_memos(
+                        ctx,
+                        intermediate_puzzle_hash,
+                        parent.coin.include_hint(),
+                        None,
+                    )?,
+                );
+            }
+            P2::Offer(p2) => {
+                let nonce = p2_selection.nonce();
 
-        let child = parent.coin.child(parent.coin.p2_puzzle_hash(), 0);
-        let p2 = parent.p2;
+                let offer_payment = offer::Payment {
+                    puzzle_hash: intermediate_puzzle_hash,
+                    amount: 1,
+                    memos: calculate_memos_list(
+                        intermediate_puzzle_hash,
+                        parent.coin.include_hint(),
+                        None,
+                    )
+                    .map(offer::Memos),
+                };
+
+                if let Some(np) = p2
+                    .notarized_payments
+                    .iter_mut()
+                    .find(|np| np.nonce == nonce)
+                {
+                    np.payments.push(offer_payment);
+                } else {
+                    p2.notarized_payments.push(NotarizedPayment {
+                        nonce,
+                        payments: vec![offer_payment],
+                    });
+                }
+            }
+        }
+
+        let child = parent.coin.child(intermediate_puzzle_hash, 1);
+        let p2 = if matches!(p2_selection, P2Selection::Offer(_)) {
+            P2::Offer(SettlementP2::new())
+        } else {
+            parent.p2.cleared()
+        };
 
         self.items.push(AssetCoin::new(child, p2));
         let item_ref = AssetCoinRef(self.items.len() - 1);
@@ -178,15 +230,44 @@ where
         amount: u64,
         include_hint: bool,
         memos: Option<Vec<Bytes>>,
+        p2_selection: P2Selection,
     ) -> Result<T, WalletError> {
-        let item_ref = self.make_payment(ctx, Payment::new(p2_puzzle_hash, amount))?;
+        let item_ref =
+            self.make_payment(ctx, Payment::new(p2_puzzle_hash, amount), p2_selection)?;
         let item = self.get_mut(item_ref)?;
 
-        item.conditions = mem::take(&mut item.conditions).create_coin(
-            p2_puzzle_hash,
-            amount,
-            calculate_memos(ctx, p2_puzzle_hash, include_hint, memos)?,
-        );
+        match &mut item.p2 {
+            P2::Standard(p2) => {
+                p2.conditions = mem::take(&mut p2.conditions).create_coin(
+                    p2_puzzle_hash,
+                    amount,
+                    calculate_memos(ctx, p2_puzzle_hash, include_hint, memos)?,
+                );
+            }
+            P2::Offer(p2) => {
+                let nonce = p2_selection.nonce();
+
+                let offer_payment = offer::Payment {
+                    puzzle_hash: p2_puzzle_hash,
+                    amount,
+                    memos: calculate_memos_list(p2_puzzle_hash, include_hint, memos)
+                        .map(offer::Memos),
+                };
+
+                if let Some(np) = p2
+                    .notarized_payments
+                    .iter_mut()
+                    .find(|np| np.nonce == nonce)
+                {
+                    np.payments.push(offer_payment);
+                } else {
+                    p2.notarized_payments.push(NotarizedPayment {
+                        nonce,
+                        payments: vec![offer_payment],
+                    });
+                }
+            }
+        }
 
         Ok(item.coin.child(p2_puzzle_hash, amount))
     }
@@ -200,7 +281,11 @@ where
 
         let p2_puzzle_hash = SINGLETON_LAUNCHER_HASH.into();
 
-        let item_ref = self.make_payment(ctx, Payment::new(p2_puzzle_hash, launcher_amount))?;
+        let item_ref = self.make_payment(
+            ctx,
+            Payment::new(p2_puzzle_hash, launcher_amount),
+            P2Selection::Standard,
+        )?;
         let item = self.get_mut(item_ref)?;
 
         let launcher =
@@ -219,7 +304,11 @@ where
 
         let p2_puzzle_hash = SINGLETON_LAUNCHER_HASH.into();
 
-        let item_ref = self.make_payment(ctx, Payment::new(p2_puzzle_hash, launcher_amount))?;
+        let item_ref = self.make_payment(
+            ctx,
+            Payment::new(p2_puzzle_hash, launcher_amount),
+            P2Selection::Standard,
+        )?;
         let item = self.get_mut(item_ref)?;
 
         let launcher =
@@ -233,27 +322,37 @@ where
         ctx: &mut SpendContext,
     ) -> Result<AssetCoinRef, WalletError> {
         // This weird duplicated logic is due to a flaw in the borrow checker.
-        if self.parent_index < self.items.len() {
-            let index = self.parent_index;
-            self.parent_index += 1;
+        if let Some(index) = self
+            .items
+            .iter()
+            .skip(self.parent_index)
+            .position(|item| P2Selection::Standard.matches(&item.p2))
+        {
+            self.parent_index = index + 1;
             return Ok(AssetCoinRef(index));
         }
 
         let Some(parent) = self.items.iter_mut().find(|item| {
             !item
                 .payments
-                .contains(&Payment::new(item.coin.p2_puzzle_hash(), 0))
+                .contains(&Payment::new(item.coin.p2_puzzle_hash(), 1))
+                && P2Selection::Standard.matches(&item.p2)
         }) else {
             return Err(WalletError::NoIntermediateParent);
         };
 
         parent
             .payments
-            .insert(Payment::new(parent.coin.p2_puzzle_hash(), 0));
+            .insert(Payment::new(parent.coin.p2_puzzle_hash(), 1));
 
-        parent.conditions = mem::take(&mut parent.conditions).create_coin(
+        let p2 = parent
+            .p2
+            .as_standard_mut()
+            .ok_or(WalletError::P2Unsupported)?;
+
+        p2.conditions = mem::take(&mut p2.conditions).create_coin(
             parent.coin.p2_puzzle_hash(),
-            0,
+            1,
             calculate_memos(
                 ctx,
                 parent.coin.p2_puzzle_hash(),
@@ -262,8 +361,8 @@ where
             )?,
         );
 
-        let child = parent.coin.child(parent.coin.p2_puzzle_hash(), 0);
-        let p2 = parent.p2;
+        let child = parent.coin.child(parent.coin.p2_puzzle_hash(), 1);
+        let p2 = parent.p2.cleared();
 
         self.items.push(AssetCoin::new(child, p2));
         self.parent_index += 1;

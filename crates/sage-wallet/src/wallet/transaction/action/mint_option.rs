@@ -3,7 +3,7 @@ use std::mem;
 use chia::protocol::Bytes32;
 use chia_wallet_sdk::driver::{OptionLauncherInfo, OptionType, SpendContext};
 
-use crate::{Action, Id, SingletonLineage, Spends, Summary, WalletError};
+use crate::{Action, Id, P2Selection, SingletonLineage, Spends, Summary, WalletError};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct MintOptionAction {
@@ -164,12 +164,26 @@ impl Action for MintOptionAction {
         let underlying_coin_id = match self.underlying_type {
             OptionTypeWithId::Xch { amount } => spends
                 .xch
-                .create_coin(ctx, launcher.p2_puzzle_hash(), amount, false, None)?
+                .create_coin(
+                    ctx,
+                    launcher.p2_puzzle_hash(),
+                    amount,
+                    false,
+                    None,
+                    P2Selection::Payment,
+                )?
                 .coin_id(),
             OptionTypeWithId::Cat { id, amount } => {
                 let asset = spends.cats.get_mut(&id).ok_or(WalletError::MissingAsset)?;
                 asset
-                    .create_coin(ctx, launcher.p2_puzzle_hash(), amount, true, None)?
+                    .create_coin(
+                        ctx,
+                        launcher.p2_puzzle_hash(),
+                        amount,
+                        true,
+                        None,
+                        P2Selection::Payment,
+                    )?
                     .coin
                     .coin_id()
             }
@@ -185,12 +199,17 @@ impl Action for MintOptionAction {
 
         let item = spends.xch.get_mut(item_ref)?;
 
-        item.conditions = mem::take(&mut item.conditions).extend(mint_option);
+        let p2 = item
+            .p2
+            .as_standard_mut()
+            .ok_or(WalletError::P2Unsupported)?;
+
+        p2.conditions = mem::take(&mut p2.conditions).extend(mint_option);
 
         // TODO: Fix p2
         spends.options.insert(
             Id::New(index),
-            SingletonLineage::new(option, item.p2, true, false),
+            SingletonLineage::new(option, item.p2.cleared(), true, false),
         );
 
         Ok(())

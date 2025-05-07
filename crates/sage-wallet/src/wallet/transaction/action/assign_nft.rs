@@ -52,7 +52,7 @@ impl Action for AssignNftAction {
 
             let did = did_lineage.coin();
 
-            did_lineage.authorize_nft_ownership(nft.coin.puzzle_hash, nft.info.launcher_id);
+            did_lineage.authorize_nft_ownership(nft.coin.puzzle_hash, nft.info.launcher_id)?;
 
             Some(DidOwner::new(
                 did.info.launcher_id,
@@ -62,7 +62,13 @@ impl Action for AssignNftAction {
             None
         };
 
-        nft_lineage.set_did_owner(ctx, owner, self.trade_prices.clone())?;
+        let trade_prices = if nft.info.royalty_ten_thousandths > 0 {
+            self.trade_prices.clone()
+        } else {
+            Vec::new()
+        };
+
+        nft_lineage.set_did_owner(ctx, owner, trade_prices)?;
 
         Ok(())
     }

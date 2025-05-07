@@ -51,15 +51,7 @@ impl Wallet {
     ) -> Result<Vec<CoinSpend>, WalletError> {
         let actions = amounts
             .into_iter()
-            .map(|(puzzle_hash, amount)| {
-                SpendAction::Send(SendAction::new(
-                    None,
-                    puzzle_hash,
-                    amount,
-                    Hint::Default,
-                    memos.clone(),
-                ))
-            })
+            .map(|(puzzle_hash, amount)| SpendAction::send_xch(puzzle_hash, amount, memos.clone()))
             .collect();
 
         Ok(self.transact(actions, fee).await?.coin_spends)
@@ -83,6 +75,7 @@ impl Wallet {
                     amount,
                     if include_hint { Hint::Yes } else { Hint::No },
                     memos.clone(),
+                    None,
                 ))
             })
             .collect();
@@ -175,15 +168,17 @@ impl Wallet {
                 amount,
                 Hint::Default,
                 None,
+                None,
             )));
 
             remaining_count -= 1;
         }
 
-        self.transact_preselected(&mut ctx, &mut TransactionConfig::new(actions, fee))
+        let result = self
+            .transact_preselected_alloc(&mut ctx, &mut TransactionConfig::new(actions, fee))
             .await?;
 
-        Ok(ctx.take())
+        Ok(result.coin_spends)
     }
 
     pub async fn multi_send(
@@ -202,6 +197,7 @@ impl Wallet {
                             payment.amount,
                             Hint::Default,
                             payment.memos,
+                            None,
                         ))
                     })
                     .collect(),

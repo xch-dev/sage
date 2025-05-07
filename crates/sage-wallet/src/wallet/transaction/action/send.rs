@@ -1,7 +1,7 @@
 use chia::protocol::{Bytes, Bytes32};
 use chia_wallet_sdk::driver::SpendContext;
 
-use crate::{Action, Id, Spends, Summary, WalletError};
+use crate::{Action, Id, P2Selection, Spends, Summary, WalletError};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SendAction {
@@ -10,6 +10,7 @@ pub struct SendAction {
     pub amount: u64,
     pub include_hint: Hint,
     pub memos: Option<Vec<Bytes>>,
+    pub settlement_nonce: Option<Bytes32>,
 }
 
 impl SendAction {
@@ -19,6 +20,7 @@ impl SendAction {
         amount: u64,
         include_hint: Hint,
         memos: Option<Vec<Bytes>>,
+        settlement_nonce: Option<Bytes32>,
     ) -> Self {
         Self {
             asset_id,
@@ -26,6 +28,7 @@ impl SendAction {
             amount,
             include_hint,
             memos,
+            settlement_nonce,
         }
     }
 }
@@ -62,6 +65,11 @@ impl Action for SendAction {
                 self.amount,
                 matches!(self.include_hint, Hint::Default | Hint::Yes),
                 self.memos.clone(),
+                if let Some(nonce) = self.settlement_nonce {
+                    P2Selection::Offer(nonce)
+                } else {
+                    P2Selection::Payment
+                },
             )?;
 
             Ok(())
@@ -72,6 +80,11 @@ impl Action for SendAction {
                 self.amount,
                 matches!(self.include_hint, Hint::Yes),
                 self.memos.clone(),
+                if let Some(nonce) = self.settlement_nonce {
+                    P2Selection::Offer(nonce)
+                } else {
+                    P2Selection::Payment
+                },
             )?;
 
             Ok(())

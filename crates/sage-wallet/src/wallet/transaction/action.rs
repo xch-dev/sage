@@ -26,7 +26,10 @@ use crate::WalletError;
 
 use super::{Id, Spends, Summary};
 
-use chia::protocol::{Bytes, Bytes32};
+use chia::{
+    protocol::{Bytes, Bytes32},
+    puzzles::offer::Payment,
+};
 use chia_puzzles::SETTLEMENT_PAYMENT_HASH;
 use chia_wallet_sdk::{driver::SpendContext, prelude::TradePrice};
 
@@ -53,6 +56,18 @@ impl SpendAction {
             amount,
             Hint::Default,
             memos,
+            None,
+        ))
+    }
+
+    pub fn fulfill_xch_payment(nonce: Bytes32, payment: Payment) -> Self {
+        Self::Send(SendAction::new(
+            None,
+            payment.puzzle_hash,
+            payment.amount,
+            Hint::No,
+            payment.memos.map(|memos| memos.0),
+            Some(nonce),
         ))
     }
 
@@ -72,6 +87,18 @@ impl SpendAction {
             amount,
             Hint::Default,
             memos,
+            None,
+        ))
+    }
+
+    pub fn fulfill_cat_payment(nonce: Bytes32, asset_id: Bytes32, payment: Payment) -> Self {
+        Self::Send(SendAction::new(
+            Some(Id::Existing(asset_id)),
+            payment.puzzle_hash,
+            payment.amount,
+            Hint::No,
+            payment.memos.map(|memos| memos.0),
+            Some(nonce),
         ))
     }
 
@@ -91,6 +118,7 @@ impl SpendAction {
             amount,
             Hint::Default,
             memos,
+            None,
         ))
     }
 
@@ -115,7 +143,13 @@ impl SpendAction {
     }
 
     pub fn transfer_nft(nft_id: Bytes32, puzzle_hash: Bytes32) -> Self {
-        Self::TransferNft(TransferNftAction::new(Id::Existing(nft_id), puzzle_hash))
+        Self::TransferNft(TransferNftAction::new(
+            Id::Existing(nft_id),
+            puzzle_hash,
+            Hint::Default,
+            None,
+            None,
+        ))
     }
 
     pub fn offer_nft(nft_id: Bytes32, trade_prices: Vec<TradePrice>) -> [Self; 2] {
@@ -128,12 +162,31 @@ impl SpendAction {
             Self::TransferNft(TransferNftAction::new(
                 Id::Existing(nft_id),
                 SETTLEMENT_PAYMENT_HASH.into(),
+                Hint::Default,
+                None,
+                None,
             )),
         ]
     }
 
+    pub fn fulfill_nft_payment(nft_id: Bytes32, nonce: Bytes32, payment: Payment) -> Self {
+        Self::TransferNft(TransferNftAction::new(
+            Id::Existing(nft_id),
+            payment.puzzle_hash,
+            Hint::No,
+            payment.memos.map(|memos| memos.0),
+            Some(nonce),
+        ))
+    }
+
     pub fn transfer_new_nft(index: usize, puzzle_hash: Bytes32) -> Self {
-        Self::TransferNft(TransferNftAction::new(Id::New(index), puzzle_hash))
+        Self::TransferNft(TransferNftAction::new(
+            Id::New(index),
+            puzzle_hash,
+            Hint::Default,
+            None,
+            None,
+        ))
     }
 
     pub fn offer_new_nft(index: usize, trade_prices: Vec<TradePrice>) -> [Self; 2] {
@@ -142,6 +195,9 @@ impl SpendAction {
             Self::TransferNft(TransferNftAction::new(
                 Id::New(index),
                 SETTLEMENT_PAYMENT_HASH.into(),
+                Hint::Default,
+                None,
+                None,
             )),
         ]
     }

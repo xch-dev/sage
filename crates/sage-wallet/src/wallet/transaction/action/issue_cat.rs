@@ -49,9 +49,14 @@ impl Action for IssueCatAction {
             inner_puzzle_hash,
         );
 
-        let mut eve_item = AssetCoin::new(eve, parent.p2);
+        let mut eve_item = AssetCoin::new(eve, parent.p2.cleared());
 
-        eve_item.conditions = eve_item.conditions.run_cat_tail(tail, NodePtr::NIL);
+        let eve_p2 = eve_item
+            .p2
+            .as_standard_mut()
+            .ok_or(WalletError::P2Unsupported)?;
+
+        eve_p2.conditions = mem::take(&mut eve_p2.conditions).run_cat_tail(tail, NodePtr::NIL);
 
         spends
             .cats
@@ -60,8 +65,13 @@ impl Action for IssueCatAction {
             .items
             .push(eve_item);
 
-        parent.conditions =
-            mem::take(&mut parent.conditions).create_coin(puzzle_hash, self.amount, None);
+        let parent_p2 = parent
+            .p2
+            .as_standard_mut()
+            .ok_or(WalletError::P2Unsupported)?;
+
+        parent_p2.conditions =
+            mem::take(&mut parent_p2.conditions).create_coin(puzzle_hash, self.amount, None);
 
         Ok(())
     }
