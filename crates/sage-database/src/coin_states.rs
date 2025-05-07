@@ -550,9 +550,9 @@ async fn get_transaction_coins(
             LEFT JOIN cat_coins ON cs.coin_id = cat_coins.coin_id
             LEFT JOIN cats ON cat_coins.asset_id = cats.asset_id
             LEFT JOIN did_coins ON cs.coin_id = did_coins.coin_id
-            LEFT JOIN dids ON did_coins.coin_id = dids.coin_id
+            LEFT JOIN dids ON did_coins.launcher_id = dids.launcher_id
             LEFT JOIN nft_coins ON cs.coin_id = nft_coins.coin_id
-            LEFT JOIN nfts ON nft_coins.coin_id = nfts.coin_id
+            LEFT JOIN nfts ON nft_coins.launcher_id = nfts.launcher_id
 	        LEFT JOIN nft_thumbnails ON nft_coins.data_hash = nft_thumbnails.hash
 
         UNION ALL 
@@ -580,9 +580,9 @@ async fn get_transaction_coins(
             LEFT JOIN cat_coins ON cs.coin_id = cat_coins.coin_id
             LEFT JOIN cats ON cat_coins.asset_id = cats.asset_id
             LEFT JOIN did_coins ON cs.coin_id = did_coins.coin_id
-            LEFT JOIN dids ON did_coins.coin_id = dids.coin_id
+            LEFT JOIN dids ON did_coins.launcher_id = dids.launcher_id
             LEFT JOIN nft_coins ON cs.coin_id = nft_coins.coin_id
-            LEFT JOIN nfts ON nft_coins.coin_id = nfts.coin_id
+            LEFT JOIN nfts ON nft_coins.launcher_id = nfts.launcher_id
             LEFT JOIN nft_thumbnails ON nft_coins.data_hash = nft_thumbnails.hash");
     let built_query = query.build();
     let rows = built_query.bind(limit).bind(offset).fetch_all(conn).await?;

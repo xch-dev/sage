@@ -19,7 +19,22 @@ function getDisplayName(coin: TransactionCoin) {
     case 'nft':
       return coin.name ? `${coin.name}` : 'Unknown NFT';
     default:
-      return coin.type.toUpperCase();
+      return coin.type === 'unknown' ? 'Unknown' : coin.type.toUpperCase();
+  }
+}
+
+function getItemId(coin: TransactionCoin) {
+  switch (coin.type) {
+    case 'xch':
+      return 'xch';
+    case 'cat':
+      return coin.asset_id;
+    case 'did':
+      return coin.launcher_id;
+    case 'nft':
+      return coin.launcher_id;
+    default:
+      return coin.type;
   }
 }
 
@@ -53,6 +68,7 @@ export function TransactionListView({
     const created = transaction.created.map((coin) => ({
       ...coin,
       displayName: getDisplayName(coin),
+      item_id: getItemId(coin),
       amount: `+${coin.amount.toString()}`,
       transactionHeight: transaction.height,
       icon_url: getIconUrl(coin),
@@ -62,6 +78,7 @@ export function TransactionListView({
     const spent = transaction.spent.map((coin) => ({
       ...coin,
       displayName: getDisplayName(coin),
+      item_id: getItemId(coin),
       amount: `-${coin.amount.toString()}`,
       transactionHeight: transaction.height,
       icon_url: getIconUrl(coin),
@@ -72,13 +89,13 @@ export function TransactionListView({
       return [...created, ...spent];
     }
 
-    // For summarized view, group by coin type and net the amounts
+    // For summarized view, group by item_id
     const coinGroups = new Map<string, Array<(typeof created)[0]>>();
+    const ungroupedCoins: Array<(typeof created)[0]> = [];
 
-    // Group created coins by type and ticker
+    // Group created coins by item_id
     created.forEach((coin) => {
-      // Use type as the key for grouping, add displayName for uniqueness
-      const key = `${coin.type}_${coin.displayName}`;
+      const key = coin.item_id;
       if (!coinGroups.has(key)) {
         coinGroups.set(key, []);
       }
@@ -88,10 +105,9 @@ export function TransactionListView({
       }
     });
 
-    // Group spent coins by type and ticker
+    // Group spent coins by item_id
     spent.forEach((coin) => {
-      // Use type as the key for grouping, add displayName for uniqueness
-      const key = `${coin.type}_${coin.displayName}`;
+      const key = coin.item_id;
       if (!coinGroups.has(key)) {
         coinGroups.set(key, []);
       }
@@ -102,7 +118,7 @@ export function TransactionListView({
     });
 
     // Net amounts for each group
-    const summarizedCoins: Array<(typeof created)[0]> = [];
+    const summarizedCoins: Array<(typeof created)[0]> = [...ungroupedCoins];
 
     coinGroups.forEach((coins) => {
       // Skip if there's only one coin and it's not worth summarizing
@@ -115,11 +131,6 @@ export function TransactionListView({
       let netAmount = BigInt(0);
       let hasSent = false;
       let hasReceived = false;
-      const isNftOrDid = coins.some(
-        (coin) =>
-          coin.type.toLowerCase() === 'nft' ||
-          coin.type.toLowerCase() === 'did',
-      );
 
       coins.forEach((coin) => {
         const amountStr = coin.amount.replace(/[+]/g, '').replace(/-/g, '');
@@ -136,9 +147,9 @@ export function TransactionListView({
       // Create a summarized coin
       const baseCoin = coins[0];
 
-      // Special handling for NFT and DID transactions with both sent and received coins
+      // Special handling for transactions with both sent and received coins
       let netAmountStr;
-      if (isNftOrDid && hasSent && hasReceived) {
+      if (hasSent && hasReceived) {
         netAmountStr = 'edited';
       } else {
         netAmountStr =
