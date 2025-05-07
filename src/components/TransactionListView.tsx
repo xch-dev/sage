@@ -19,7 +19,7 @@ function getDisplayName(coin: TransactionCoin) {
     case 'nft':
       return coin.name ? `${coin.name}` : 'Unknown NFT';
     default:
-      return coin.type.toUpperCase();
+      return coin.type === 'unknown' ? 'Unknown' : coin.type.toUpperCase();
   }
 }
 
