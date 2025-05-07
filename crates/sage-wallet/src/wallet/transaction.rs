@@ -7,9 +7,7 @@ mod summary;
 use std::collections::HashMap;
 
 pub use action::*;
-use clvmr::Allocator;
 pub use id::*;
-use itertools::Itertools;
 pub use selection::*;
 pub use spends::*;
 pub use summary::*;
@@ -19,7 +17,9 @@ use chia::{
     protocol::{Bytes32, Coin, CoinSpend, Program},
 };
 use chia_wallet_sdk::driver::{Cat, Did, HashedPtr, Nft, OptionContract, SpendContext};
+use clvmr::Allocator;
 use indexmap::IndexMap;
+use itertools::Itertools;
 
 use crate::WalletError;
 

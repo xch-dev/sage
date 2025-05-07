@@ -158,18 +158,10 @@ impl SettlementP2 {
     }
 
     pub fn add_payment(&mut self, nonce: Bytes32, payment: Payment) {
-        if let Some(np) = self
-            .notarized_payments
-            .iter_mut()
-            .find(|np| np.nonce == nonce)
-        {
-            np.payments.push(payment);
-        } else {
-            self.notarized_payments.push(NotarizedPayment {
-                nonce,
-                payments: vec![payment],
-            });
-        }
+        self.notarized_payments.push(NotarizedPayment {
+            nonce,
+            payments: vec![payment],
+        });
     }
 
     pub fn inner_spend(&self, ctx: &mut SpendContext) -> Result<Spend, WalletError> {
