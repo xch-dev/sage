@@ -585,7 +585,6 @@ async fn get_transaction_coins(
             LEFT JOIN nfts ON nft_coins.launcher_id = nfts.launcher_id
             LEFT JOIN nft_thumbnails ON nft_coins.data_hash = nft_thumbnails.hash");
     let built_query = query.build();
-    //println!("Generated SQL: {}", built_query.sql());
     let rows = built_query.bind(limit).bind(offset).fetch_all(conn).await?;
 
     let Some(first_row) = rows.first() else {
