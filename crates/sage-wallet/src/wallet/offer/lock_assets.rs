@@ -1,15 +1,18 @@
-use chia::{protocol::Bytes32, puzzles::offer::Payment};
+use std::{collections::HashMap, mem};
+
+use chia::protocol::{Bytes32, Coin};
 use chia_puzzles::SETTLEMENT_PAYMENT_HASH;
 use chia_wallet_sdk::{
-    driver::{HashedPtr, SpendContext},
+    driver::{HashedPtr, SpendContext, StandardLayer},
     prelude::TradePrice,
     types::Conditions,
 };
-use itertools::Itertools;
 
-use crate::{Id, Selection, SpendAction, TransactionConfig, Wallet, WalletError};
+use crate::{Wallet, WalletError};
 
-use super::{LockedCoins, OfferAmounts, OfferCoins, Royalties};
+use super::{
+    make_royalty_payments, LockedCoins, OfferAmounts, OfferCoins, PaymentOrigin, Royalties,
+};
 
 #[derive(Debug, Clone)]
 pub struct OfferSpend {
@@ -36,116 +39,156 @@ impl Wallet {
             mut extra_conditions,
         }: OfferSpend,
     ) -> Result<LockedCoins, WalletError> {
-        let mut selection = Selection::default();
+        let primary_coins = coins.primary_coin_ids();
 
-        for coin in coins.xch {
-            selection.xch.coins.push(coin);
-            selection.xch.existing_amount += coin.amount;
-        }
+        // Calculate conditions for each primary coin.
+        let mut primary_conditions = HashMap::new();
 
-        for (asset_id, cats) in coins.cats.clone() {
-            for cat in cats {
-                let selected = selection.cats.entry(Id::Existing(asset_id)).or_default();
-                selected.coins.push(cat);
-                selected.existing_amount += cat.coin.amount;
+        if primary_coins.len() == 1 {
+            primary_conditions.insert(primary_coins[0], extra_conditions);
+        } else {
+            for (i, &coin_id) in primary_coins.iter().enumerate() {
+                let relation = if i == 0 {
+                    *primary_coins.last().expect("empty primary coins")
+                } else {
+                    primary_coins[i - 1]
+                };
+
+                primary_conditions.insert(
+                    coin_id,
+                    mem::take(&mut extra_conditions).assert_concurrent_spend(relation),
+                );
             }
         }
 
-        for (launcher_id, nft) in coins.nfts.clone() {
-            let metadata = ctx.alloc(&nft.info.metadata)?;
-            let nft = nft.with_metadata(HashedPtr::from_ptr(ctx, metadata));
-            selection.nfts.insert(Id::Existing(launcher_id), nft);
-        }
+        // Keep track of the coins that are locked.
+        let mut locked = LockedCoins {
+            fee,
+            ..Default::default()
+        };
 
-        let mut actions = Vec::new();
+        // Spend the XCH.
+        if let Some(primary_xch_coin) = coins.xch.first().copied() {
+            let mut conditions = primary_conditions
+                .remove(&primary_xch_coin.coin_id())
+                .unwrap_or_default();
 
-        if amounts.xch > 0 {
-            actions.push(SpendAction::offer_xch(amounts.xch));
-        }
+            if amounts.xch > 0 {
+                conditions =
+                    conditions.create_coin(SETTLEMENT_PAYMENT_HASH.into(), amounts.xch, None);
 
-        let royalty_amount = royalties.xch_amount();
-
-        if royalty_amount > 0 {
-            for royalty in &royalties.xch {
-                actions.push(SpendAction::fulfill_xch_payment(
-                    royalty.nft_id,
-                    Payment::with_memos(
-                        royalty.p2_puzzle_hash,
-                        royalty.amount,
-                        vec![royalty.p2_puzzle_hash.into()],
-                    ),
+                locked.xch.push(Coin::new(
+                    primary_xch_coin.coin_id(),
+                    SETTLEMENT_PAYMENT_HASH.into(),
+                    amounts.xch,
                 ));
             }
-        }
 
-        for &asset_id in coins.cats.keys() {
-            let amount = amounts.cats.get(&asset_id).copied().unwrap_or(0);
+            // Handle royalties.
+            let royalty_amount = royalties.xch_amount();
 
-            if amount > 0 {
-                actions.push(SpendAction::offer_cat(asset_id, amount));
+            if royalty_amount > 0 {
+                conditions = conditions.with(make_royalty_payments(
+                    ctx,
+                    royalty_amount,
+                    royalties.xch.clone(),
+                    PaymentOrigin::Xch(primary_xch_coin),
+                )?);
             }
 
+            let total_amount = coins.xch.iter().map(|coin| coin.amount).sum::<u64>();
+            let change = total_amount - amounts.xch - fee - royalties.xch_amount();
+
+            if change > 0 {
+                conditions = conditions.create_coin(change_puzzle_hash, change, None);
+            }
+
+            if fee > 0 {
+                conditions = conditions.reserve_fee(fee);
+            }
+
+            self.spend_p2_coins(ctx, coins.xch, conditions).await?;
+        }
+
+        // Spend the CATs.
+        for (asset_id, cat_coins) in coins.cats {
+            let Some(primary_cat) = cat_coins.first().copied() else {
+                continue;
+            };
+
+            let amount = amounts.cats.get(&asset_id).copied().unwrap_or(0);
+            let total_amount = cat_coins.iter().map(|cat| cat.coin.amount).sum::<u64>();
+            let change = total_amount - amount - royalties.cat_amount(asset_id);
+
+            let settlement_hint = ctx.hint(SETTLEMENT_PAYMENT_HASH.into())?;
+
+            let mut conditions = primary_conditions
+                .remove(&primary_cat.coin.coin_id())
+                .unwrap_or_default()
+                .create_coin(
+                    SETTLEMENT_PAYMENT_HASH.into(),
+                    amount,
+                    Some(settlement_hint),
+                );
+
+            locked
+                .cats
+                .entry(asset_id)
+                .or_default()
+                .push(primary_cat.wrapped_child(SETTLEMENT_PAYMENT_HASH.into(), amount));
+
+            if change > 0 {
+                let change_hint = ctx.hint(change_puzzle_hash)?;
+                conditions = conditions.create_coin(change_puzzle_hash, change, Some(change_hint));
+            }
+
+            // Handle royalties.
             let royalty_amount = royalties.cat_amount(asset_id);
 
             if royalty_amount > 0 {
-                for royalty in &royalties.cats[&asset_id] {
-                    actions.push(SpendAction::fulfill_cat_payment(
-                        royalty.nft_id,
-                        asset_id,
-                        Payment::with_memos(
-                            royalty.p2_puzzle_hash,
-                            royalty.amount,
-                            vec![royalty.p2_puzzle_hash.into()],
-                        ),
-                    ));
-                }
+                conditions = conditions.with(make_royalty_payments(
+                    ctx,
+                    royalty_amount,
+                    royalties.cats[&asset_id].clone(),
+                    PaymentOrigin::Cat(primary_cat),
+                )?);
             }
-        }
 
-        for &nft in coins.nfts.keys() {
-            actions.extend(SpendAction::offer_nft(nft, trade_prices.clone()));
-        }
-
-        let result = self
-            .transact_preselected_alloc(
+            self.spend_cat_coins(
                 ctx,
-                &mut TransactionConfig::new_preselected(actions, selection, fee),
+                cat_coins
+                    .into_iter()
+                    .map(|cat| (cat, mem::take(&mut conditions))),
             )
             .await?;
-
-        for coin_spend in result.coin_spends {
-            ctx.insert(coin_spend);
         }
 
-        Ok(LockedCoins {
-            xch: result
-                .unspent_assets
-                .xch
-                .into_iter()
-                .filter(|coin| coin.puzzle_hash == SETTLEMENT_PAYMENT_HASH.into())
-                .collect(),
-            cats: result
-                .unspent_assets
-                .cats
-                .into_iter()
-                .map(|(id, cats)| {
-                    (
-                        result.ids[&id],
-                        cats.into_iter()
-                            .filter(|cat| cat.p2_puzzle_hash == SETTLEMENT_PAYMENT_HASH.into())
-                            .collect_vec(),
-                    )
-                })
-                .filter(|(_, cats)| !cats.is_empty())
-                .collect(),
-            nfts: result
-                .unspent_assets
-                .nfts
-                .into_iter()
-                .map(|(id, nft)| (result.ids[&id], nft))
-                .filter(|(_, nft)| nft.info.p2_puzzle_hash == SETTLEMENT_PAYMENT_HASH.into())
-                .collect(),
-            fee,
-        })
+        // Spend the NFTs.
+        for nft in coins.nfts.into_values() {
+            let metadata_ptr = ctx.alloc(&nft.info.metadata)?;
+            let nft = nft.with_metadata(HashedPtr::from_ptr(ctx, metadata_ptr));
+
+            let synthetic_key = self.db.synthetic_key(nft.info.p2_puzzle_hash).await?;
+            let p2 = StandardLayer::new(synthetic_key);
+
+            let conditions = primary_conditions
+                .remove(&nft.coin.coin_id())
+                .unwrap_or_default();
+
+            let nft = nft.lock_settlement(
+                ctx,
+                &p2,
+                if nft.info.royalty_ten_thousandths > 0 {
+                    trade_prices.clone()
+                } else {
+                    Vec::new()
+                },
+                conditions,
+            )?;
+
+            locked.nfts.insert(nft.info.launcher_id, nft);
+        }
+
+        Ok(locked)
     }
 }
