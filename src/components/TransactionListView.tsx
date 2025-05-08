@@ -1,12 +1,13 @@
 import { DataTable } from '@/components/ui/data-table';
 import { nftUri } from '@/lib/nftUri';
 import { t } from '@lingui/core/macro';
-import { SortingState } from '@tanstack/react-table';
+import { Row, SortingState } from '@tanstack/react-table';
+import BigNumber from 'bignumber.js';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 import { TransactionCoin, TransactionRecord } from '../bindings';
 import { Loading } from './Loading';
-import { columns } from './TransactionColumns';
+import { columns, FlattenedTransaction } from './TransactionColumns';
 
 function getDisplayName(coin: TransactionCoin) {
   switch (coin.type) {
@@ -65,23 +66,25 @@ export function TransactionListView({
   const [sorting, setSorting] = useState<SortingState>([]);
 
   const flattenedTransactions = transactions.flatMap((transaction) => {
-    const created = transaction.created.map((coin) => ({
-      ...coin,
+    const created: FlattenedTransaction[] = transaction.created.map((coin) => ({
+      type: coin.type,
+      address: coin.address,
       displayName: getDisplayName(coin),
-      item_id: getItemId(coin),
-      amount: `+${coin.amount.toString()}`,
+      itemId: getItemId(coin),
+      amount: coin.amount.toString(),
       transactionHeight: transaction.height,
-      icon_url: getIconUrl(coin),
+      iconUrl: getIconUrl(coin),
       timestamp: transaction.timestamp,
     }));
 
-    const spent = transaction.spent.map((coin) => ({
-      ...coin,
+    const spent: FlattenedTransaction[] = transaction.spent.map((coin) => ({
+      type: coin.type,
+      address: coin.address,
       displayName: getDisplayName(coin),
-      item_id: getItemId(coin),
-      amount: `-${coin.amount.toString()}`,
+      itemId: getItemId(coin),
+      amount: BigNumber(coin.amount).negated().toString(),
       transactionHeight: transaction.height,
-      icon_url: getIconUrl(coin),
+      iconUrl: getIconUrl(coin),
       timestamp: transaction.timestamp,
     }));
 
@@ -89,90 +92,35 @@ export function TransactionListView({
       return [...created, ...spent];
     }
 
-    // For summarized view, group by item_id
-    const coinGroups = new Map<string, Array<(typeof created)[0]>>();
-    const ungroupedCoins: Array<(typeof created)[0]> = [];
+    // For summarized view, combine created and spent coins
+    const allCoins = [...created, ...spent];
 
-    // Group created coins by item_id
-    created.forEach((coin) => {
-      const key = coin.item_id;
-      if (!coinGroups.has(key)) {
-        coinGroups.set(key, []);
-      }
-      const group = coinGroups.get(key);
-      if (group) {
-        group.push(coin);
-      }
-    });
+    // Group coins by item_id and calculate net amounts
+    const summaryMap = new Map<string, FlattenedTransaction>();
 
-    // Group spent coins by item_id
-    spent.forEach((coin) => {
-      const key = coin.item_id;
-      if (!coinGroups.has(key)) {
-        coinGroups.set(key, []);
-      }
-      const group = coinGroups.get(key);
-      if (group) {
-        group.push(coin);
-      }
-    });
+    allCoins.forEach((coin) => {
+      const existing = summaryMap.get(coin.itemId);
+      const amount = BigNumber(coin.amount);
 
-    // Net amounts for each group
-    const summarizedCoins: Array<(typeof created)[0]> = [...ungroupedCoins];
-
-    coinGroups.forEach((coins) => {
-      // Skip if there's only one coin and it's not worth summarizing
-      if (coins.length === 1) {
-        summarizedCoins.push(coins[0]);
-        return;
-      }
-
-      // Calculate net amount
-      let netAmount = BigInt(0);
-      let hasSent = false;
-      let hasReceived = false;
-
-      coins.forEach((coin) => {
-        const amountStr = coin.amount.replace(/[+]/g, '').replace(/-/g, '');
-        const amount = BigInt(amountStr);
-        if (coin.amount.startsWith('+')) {
-          netAmount += amount;
-          hasReceived = true;
-        } else {
-          netAmount -= amount;
-          hasSent = true;
-        }
-      });
-
-      // Create a summarized coin
-      const baseCoin = coins[0];
-
-      // Special handling for transactions with both sent and received coins
-      let netAmountStr;
-      if (hasSent && hasReceived) {
-        netAmountStr = 'edited';
+      if (existing) {
+        summaryMap.set(coin.itemId, {
+          ...existing,
+          amount: BigNumber(existing.amount).plus(amount).toString(),
+        });
       } else {
-        netAmountStr =
-          netAmount > 0
-            ? `+${netAmount.toString()}`
-            : netAmount < 0
-              ? `-${(-netAmount).toString()}`
-              : '0';
+        summaryMap.set(coin.itemId, {
+          ...coin,
+          amount: amount.toString(),
+        });
       }
-
-      summarizedCoins.push({
-        ...baseCoin,
-        amount: netAmountStr,
-        // Use the first coin's ID as a representative
-        coin_id: `${baseCoin.coin_id}_summarized`,
-      });
     });
 
-    return summarizedCoins;
+    // Convert the map to an array and format the amounts
+    return [...summaryMap.values()];
   });
 
   // Function to determine if a row is the first in a transaction group
-  const getRowStyles = (row: any) => {
+  const getRowStyles = (row: Row<FlattenedTransaction>) => {
     const currentHeight = row.original.transactionHeight;
     const rowIndex = flattenedTransactions.indexOf(row.original);
 

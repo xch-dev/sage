@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::{
     parse_asset_id, parse_collection_id, parse_did_id, parse_nft_id,
     utils::{to_bytes32_opt, to_u64},
@@ -12,7 +14,6 @@ use chia::{
 use chia_puzzles::{SETTLEMENT_PAYMENT_HASH, SINGLETON_LAUNCHER_HASH};
 use chia_wallet_sdk::{driver::Nft, utils::Address};
 use clvmr::Allocator;
-use itertools::Itertools;
 use sage_api::{
     AddressKind, Amount, AssetKind, CatRecord, CheckAddress, CheckAddressResponse, CoinRecord,
     CoinSortMode as ApiCoinSortMode, DerivationRecord, DidRecord, GetAreCoinsSpendable,
@@ -360,12 +361,14 @@ impl Sage {
             .await?;
 
         // Group transaction coins by height
-        let mut grouped_coins = transaction_coins
-            .into_iter()
-            .chunk_by(|row: &SqliteRow| row.get::<i64, _>("height"))
-            .into_iter()
-            .map(|(height, group)| (height, group.collect::<Vec<_>>()))
-            .collect::<Vec<_>>();
+        let mut heights = HashMap::new();
+
+        for row in transaction_coins {
+            let height: u32 = row.get::<i64, _>("height").try_into()?;
+            heights.entry(height).or_insert_with(Vec::new).push(row);
+        }
+
+        let mut grouped_coins = heights.into_iter().collect::<Vec<_>>();
 
         // Sort grouped_coins by height
         if req.ascending {
@@ -376,12 +379,11 @@ impl Sage {
 
         for (height, coins) in grouped_coins {
             // Process each group by height
-            let height_u32: u32 = height.try_into().unwrap_or_default();
             let timestamp: Option<u32> = coins
                 .first()
                 .map(|coin| coin.try_get("unixtime"))
                 .transpose()?;
-            let transaction_record = self.transaction_record(height_u32, timestamp, coins)?;
+            let transaction_record = self.transaction_record(height, timestamp, coins)?;
 
             transactions.push(transaction_record);
         }
