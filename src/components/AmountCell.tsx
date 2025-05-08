@@ -1,34 +1,39 @@
+import { Amount, AssetCoinType } from '@/bindings';
 import { fromMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
+import BigNumber from 'bignumber.js';
 import { NumberFormat } from './NumberFormat';
 
 interface AmountCellProps {
-  amount: string;
-  type: string;
+  amount: Amount;
+  type: AssetCoinType;
 }
 
 export function AmountCell({ amount, type }: AmountCellProps) {
   const walletState = useWalletState();
-  const isPositive = amount.startsWith('+');
-  const typeLower = type.toLowerCase();
-  const decimals = typeLower === 'cat' ? 3 : walletState.sync.unit.decimals;
-  const sign =
-    amount === 'edited' ? 'edited' : isPositive ? 'received' : 'sent';
+  const amountNum = BigNumber(amount);
+  const decimals = type === 'cat' ? 3 : walletState.sync.unit.decimals;
 
   return (
     <div className='whitespace-nowrap'>
       <span
         className={
-          amount === 'edited'
+          amountNum.eq(0)
             ? 'text-blue-600'
-            : isPositive
+            : amountNum.gt(0)
               ? 'text-green-600'
               : 'text-red-600'
         }
-        aria-label={`${sign} ${typeLower === 'nft' || typeLower === 'did' || amount === 'edited' ? '' : fromMojos(amount, decimals)} ${typeLower === 'xch' ? 'XCH' : typeLower === 'cat' ? 'CAT' : type}`}
+        aria-label={`${fromMojos(amount, decimals)} ${type.toUpperCase()}`}
       >
-        {typeLower === 'nft' || typeLower === 'did' || amount === 'edited' ? (
-          <span>{sign}</span>
+        {type === 'nft' || type === 'did' ? (
+          amountNum.eq(0) ? (
+            'Edited'
+          ) : amountNum.gt(0) ? (
+            'Received'
+          ) : (
+            'Sent'
+          )
         ) : (
           <NumberFormat
             value={fromMojos(amount, decimals)}

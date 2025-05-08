@@ -1,12 +1,13 @@
 import { DataTable } from '@/components/ui/data-table';
 import { nftUri } from '@/lib/nftUri';
 import { t } from '@lingui/core/macro';
-import { SortingState } from '@tanstack/react-table';
+import { Row, SortingState } from '@tanstack/react-table';
+import BigNumber from 'bignumber.js';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 import { TransactionCoin, TransactionRecord } from '../bindings';
 import { Loading } from './Loading';
-import { columns } from './TransactionColumns';
+import { columns, FlattenedTransaction } from './TransactionColumns';
 
 function getDisplayName(coin: TransactionCoin) {
   switch (coin.type) {
@@ -65,23 +66,25 @@ export function TransactionListView({
   const [sorting, setSorting] = useState<SortingState>([]);
 
   const flattenedTransactions = transactions.flatMap((transaction) => {
-    const created = transaction.created.map((coin) => ({
-      ...coin,
+    const created: FlattenedTransaction[] = transaction.created.map((coin) => ({
+      type: coin.type,
+      address: coin.address,
       displayName: getDisplayName(coin),
-      item_id: getItemId(coin),
-      amount: `+${coin.amount.toString()}`,
+      itemId: getItemId(coin),
+      amount: coin.amount.toString(),
       transactionHeight: transaction.height,
-      icon_url: getIconUrl(coin),
+      iconUrl: getIconUrl(coin),
       timestamp: transaction.timestamp,
     }));
 
-    const spent = transaction.spent.map((coin) => ({
-      ...coin,
+    const spent: FlattenedTransaction[] = transaction.spent.map((coin) => ({
+      type: coin.type,
+      address: coin.address,
       displayName: getDisplayName(coin),
-      item_id: getItemId(coin),
-      amount: `-${coin.amount.toString()}`,
+      itemId: getItemId(coin),
+      amount: BigNumber(coin.amount).negated().toString(),
       transactionHeight: transaction.height,
-      icon_url: getIconUrl(coin),
+      iconUrl: getIconUrl(coin),
       timestamp: transaction.timestamp,
     }));
 
@@ -89,42 +92,35 @@ export function TransactionListView({
       return [...created, ...spent];
     }
 
-    if (transaction.height === 6787085) {
-      // For summarized view, combine created and spent coins
-      const allCoins = [...created, ...spent];
+    // For summarized view, combine created and spent coins
+    const allCoins = [...created, ...spent];
 
-      // Group coins by item_id and calculate net amounts
-      const summaryMap = new Map();
+    // Group coins by item_id and calculate net amounts
+    const summaryMap = new Map<string, FlattenedTransaction>();
 
-      allCoins.forEach((coin) => {
-        const existing = summaryMap.get(coin.item_id);
-        const amount = parseInt(coin.amount);
+    allCoins.forEach((coin) => {
+      const existing = summaryMap.get(coin.itemId);
+      const amount = BigNumber(coin.amount);
 
-        if (existing) {
-          summaryMap.set(coin.item_id, {
-            ...existing,
-            amount: existing.amount + amount,
-          });
-        } else {
-          summaryMap.set(coin.item_id, {
-            ...coin,
-            amount,
-          });
-        }
-      });
+      if (existing) {
+        summaryMap.set(coin.itemId, {
+          ...existing,
+          amount: BigNumber(existing.amount).plus(amount).toString(),
+        });
+      } else {
+        summaryMap.set(coin.itemId, {
+          ...coin,
+          amount: amount.toString(),
+        });
+      }
+    });
 
-      // Convert the map to an array and format the amounts
-      return Array.from(summaryMap.values()).map((coin) => ({
-        ...coin,
-        amount: coin.amount > 0 ? `+${coin.amount}` : coin.amount.toString(),
-      }));
-    }
-
-    return [];
+    // Convert the map to an array and format the amounts
+    return [...summaryMap.values()];
   });
 
   // Function to determine if a row is the first in a transaction group
-  const getRowStyles = (row: any) => {
+  const getRowStyles = (row: Row<FlattenedTransaction>) => {
     const currentHeight = row.original.transactionHeight;
     const rowIndex = flattenedTransactions.indexOf(row.original);
 

@@ -21,10 +21,10 @@ export interface FlattenedTransaction {
   transactionHeight: number;
   type: string;
   ticker?: string | null;
-  icon_url?: string | null;
+  iconUrl?: string | null;
   amount: string;
   address: string | null;
-  coin_id: string;
+  itemId: string;
   displayName: string;
   timestamp: number | null;
 }
@@ -80,9 +80,9 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
             role='img'
             aria-label={`${displayName} icon`}
           >
-            {row.original.icon_url ? (
+            {row.original.iconUrl ? (
               <img
-                src={row.original.icon_url}
+                src={row.original.iconUrl}
                 aria-hidden='true'
                 loading='lazy'
               />
