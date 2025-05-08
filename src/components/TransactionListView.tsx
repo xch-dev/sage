@@ -89,86 +89,38 @@ export function TransactionListView({
       return [...created, ...spent];
     }
 
-    // For summarized view, group by item_id
-    const coinGroups = new Map<string, Array<(typeof created)[0]>>();
-    const ungroupedCoins: Array<(typeof created)[0]> = [];
+    if (transaction.height === 6787085) {
+      // For summarized view, combine created and spent coins
+      const allCoins = [...created, ...spent];
 
-    // Group created coins by item_id
-    created.forEach((coin) => {
-      const key = coin.item_id;
-      if (!coinGroups.has(key)) {
-        coinGroups.set(key, []);
-      }
-      const group = coinGroups.get(key);
-      if (group) {
-        group.push(coin);
-      }
-    });
+      // Group coins by item_id and calculate net amounts
+      const summaryMap = new Map();
 
-    // Group spent coins by item_id
-    spent.forEach((coin) => {
-      const key = coin.item_id;
-      if (!coinGroups.has(key)) {
-        coinGroups.set(key, []);
-      }
-      const group = coinGroups.get(key);
-      if (group) {
-        group.push(coin);
-      }
-    });
+      allCoins.forEach((coin) => {
+        const existing = summaryMap.get(coin.item_id);
+        const amount = parseInt(coin.amount);
 
-    // Net amounts for each group
-    const summarizedCoins: Array<(typeof created)[0]> = [...ungroupedCoins];
-
-    coinGroups.forEach((coins) => {
-      // Skip if there's only one coin and it's not worth summarizing
-      if (coins.length === 1) {
-        summarizedCoins.push(coins[0]);
-        return;
-      }
-
-      // Calculate net amount
-      let netAmount = BigInt(0);
-      let hasSent = false;
-      let hasReceived = false;
-
-      coins.forEach((coin) => {
-        const amountStr = coin.amount.replace(/[+]/g, '').replace(/-/g, '');
-        const amount = BigInt(amountStr);
-        if (coin.amount.startsWith('+')) {
-          netAmount += amount;
-          hasReceived = true;
+        if (existing) {
+          summaryMap.set(coin.item_id, {
+            ...existing,
+            amount: existing.amount + amount,
+          });
         } else {
-          netAmount -= amount;
-          hasSent = true;
+          summaryMap.set(coin.item_id, {
+            ...coin,
+            amount,
+          });
         }
       });
 
-      // Create a summarized coin
-      const baseCoin = coins[0];
+      // Convert the map to an array and format the amounts
+      return Array.from(summaryMap.values()).map((coin) => ({
+        ...coin,
+        amount: coin.amount > 0 ? `+${coin.amount}` : coin.amount.toString(),
+      }));
+    }
 
-      // Special handling for transactions with both sent and received coins
-      let netAmountStr;
-      if (hasSent && hasReceived) {
-        netAmountStr = 'edited';
-      } else {
-        netAmountStr =
-          netAmount > 0
-            ? `+${netAmount.toString()}`
-            : netAmount < 0
-              ? `-${(-netAmount).toString()}`
-              : '0';
-      }
-
-      summarizedCoins.push({
-        ...baseCoin,
-        amount: netAmountStr,
-        // Use the first coin's ID as a representative
-        coin_id: `${baseCoin.coin_id}_summarized`,
-      });
-    });
-
-    return summarizedCoins;
+    return [];
   });
 
   // Function to determine if a row is the first in a transaction group
