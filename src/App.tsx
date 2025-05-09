@@ -1,13 +1,17 @@
 import { i18n } from '@lingui/core';
 import { I18nProvider } from '@lingui/react';
-import { createContext, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   createHashRouter,
   createRoutesFromElements,
   Route,
   RouterProvider,
 } from 'react-router-dom';
+import { Slide, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import { useLocalStorage } from 'usehooks-ts';
+import { BiometricProvider } from './contexts/BiometricContext';
+import { DarkModeContext } from './contexts/DarkModeContext';
 import { ErrorProvider } from './contexts/ErrorContext';
 import {
   getBrowserLanguage,
@@ -19,10 +23,11 @@ import { PeerProvider } from './contexts/PeerContext';
 import { PriceProvider } from './contexts/PriceContext';
 import { SafeAreaProvider } from './contexts/SafeAreaContext';
 import { WalletConnectProvider } from './contexts/WalletConnectContext';
-import useInitialization from './hooks/useInitialization';
 import { WalletProvider } from './contexts/WalletContext';
+import useInitialization from './hooks/useInitialization';
 import { loadCatalog } from './i18n';
 import Addresses from './pages/Addresses';
+import CollectionMetaData from './pages/CollectionMetaData';
 import CreateProfile from './pages/CreateProfile';
 import CreateWallet from './pages/CreateWallet';
 import { DidList } from './pages/DidList';
@@ -35,6 +40,7 @@ import Nft from './pages/Nft';
 import { NftList } from './pages/NftList';
 import { Offers } from './pages/Offers';
 import PeerList from './pages/PeerList';
+import QRScanner from './pages/QrScanner';
 import Send from './pages/Send';
 import Settings from './pages/Settings';
 import Token from './pages/Token';
@@ -44,22 +50,6 @@ import { Transactions } from './pages/Transactions';
 import { ViewOffer } from './pages/ViewOffer';
 import { ViewSavedOffer } from './pages/ViewSavedOffer';
 import Wallet from './pages/Wallet';
-import QRScanner from './pages/QrScanner';
-import { ToastContainer, Slide } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
-import CollectionMetaData from './pages/CollectionMetaData';
-
-export interface DarkModeContext {
-  toggle: () => void;
-  dark: boolean;
-  setDark: (dark: boolean) => void;
-}
-
-export const DarkModeContext = createContext<DarkModeContext>({
-  toggle: () => {},
-  dark: false,
-  setDark: () => {},
-});
 
 const router = createHashRouter(
   createRoutesFromElements(
@@ -134,7 +124,9 @@ export default function App() {
       <DarkModeContext.Provider value={darkMode}>
         <SafeAreaProvider>
           <ErrorProvider>
-            <AppInner />
+            <BiometricProvider>
+              <AppInner />
+            </BiometricProvider>
           </ErrorProvider>
         </SafeAreaProvider>
       </DarkModeContext.Provider>
