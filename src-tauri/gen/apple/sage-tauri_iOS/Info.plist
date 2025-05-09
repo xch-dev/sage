@@ -44,5 +44,7 @@
 	<string>Read QR codes</string>
 	<key>NFCReaderUsageDescription</key>
 	<string>Read NFC tags</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Authenticate with biometric</string>
 </dict>
 </plist>

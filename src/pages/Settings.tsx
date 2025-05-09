@@ -35,6 +35,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CustomError } from '@/contexts/ErrorContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useWallet } from '@/contexts/WalletContext';
+import { useBiometric } from '@/hooks/useBiometric';
 import { useDefaultOfferExpiry } from '@/hooks/useDefaultOfferExpiry';
 import { useErrors } from '@/hooks/useErrors';
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
@@ -50,8 +51,8 @@ import { useContext, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { z } from 'zod';
-import { DarkModeContext } from '../App';
 import { commands, Network, NetworkConfig, Wallet } from '../bindings';
+import { DarkModeContext } from '../contexts/DarkModeContext';
 import { isValidU32 } from '../validation';
 
 export default function Settings() {
@@ -228,6 +229,17 @@ function GlobalSettings() {
   const { dark, setDark } = useContext(DarkModeContext);
   const { locale, changeLanguage } = useLanguage();
   const { expiry, setExpiry } = useDefaultOfferExpiry();
+  const { enabled, available, enableIfAvailable, disable } = useBiometric();
+
+  const isMobile = platform() === 'ios' || platform() === 'android';
+
+  const toggleBiometric = async (value: boolean) => {
+    if (value) {
+      await enableIfAvailable();
+    } else {
+      await disable();
+    }
+  };
 
   return (
     <SettingsSection title={t`Preferences`}>
@@ -236,6 +248,20 @@ function GlobalSettings() {
         description={t`Switch between light and dark theme`}
         control={<Switch checked={dark} onCheckedChange={setDark} />}
       />
+
+      {isMobile && (
+        <SettingItem
+          label={t`Biometric Authentication`}
+          description={t`Enable biometric authentication`}
+          control={
+            <Switch
+              checked={enabled}
+              disabled={!available}
+              onCheckedChange={toggleBiometric}
+            />
+          }
+        />
+      )}
 
       <SettingItem
         label={t`Language`}
@@ -506,6 +532,7 @@ function NetworkSettings() {
 
 function RpcSettings() {
   const { addError } = useErrors();
+  const { promptIfEnabled } = useBiometric();
 
   const [isRunning, setIsRunning] = useState(false);
   const [runOnStartup, setRunOnStartup] = useState(false);
@@ -527,7 +554,9 @@ function RpcSettings() {
     return () => clearInterval(interval);
   }, [addError]);
 
-  const start = () => {
+  const start = async () => {
+    if (!(await promptIfEnabled())) return;
+
     commands
       .startRpcServer()
       .catch(addError)
@@ -541,7 +570,9 @@ function RpcSettings() {
       .then(() => setIsRunning(false));
   };
 
-  const toggleRunOnStartup = (checked: boolean) => {
+  const toggleRunOnStartup = async (checked: boolean) => {
+    if (!(await promptIfEnabled())) return;
+
     commands
       .setRpcRunOnStartup(checked)
       .catch(addError)

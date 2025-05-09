@@ -1,8 +1,16 @@
 import { Assets, commands } from '@/bindings';
 import { BigNumber } from 'bignumber.js';
 import { Params } from '../commands';
+import { HandlerContext } from '../handler';
 
-export async function handleCreateOffer(params: Params<'chia_createOffer'>) {
+export async function handleCreateOffer(
+  params: Params<'chia_createOffer'>,
+  context: HandlerContext,
+) {
+  if (!(await context.promptIfEnabled())) {
+    throw new Error('Authentication failed');
+  }
+
   const defaultAssets = (): Assets => {
     return {
       xch: '0',
@@ -52,7 +60,14 @@ export async function handleCreateOffer(params: Params<'chia_createOffer'>) {
   };
 }
 
-export async function handleTakeOffer(params: Params<'chia_takeOffer'>) {
+export async function handleTakeOffer(
+  params: Params<'chia_takeOffer'>,
+  context: HandlerContext,
+) {
+  if (!(await context.promptIfEnabled())) {
+    throw new Error('Authentication failed');
+  }
+
   const data = await commands.takeOffer({
     offer: params.offer,
     fee: params.fee ?? 0,
@@ -62,7 +77,14 @@ export async function handleTakeOffer(params: Params<'chia_takeOffer'>) {
   return { id: data.transaction_id };
 }
 
-export async function handleCancelOffer(params: Params<'chia_cancelOffer'>) {
+export async function handleCancelOffer(
+  params: Params<'chia_cancelOffer'>,
+  context: HandlerContext,
+) {
+  if (!(await context.promptIfEnabled())) {
+    throw new Error('Authentication failed');
+  }
+
   await commands.cancelOffer({
     offer_id: params.id,
     fee: params.fee ?? 0,

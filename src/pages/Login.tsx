@@ -1,4 +1,3 @@
-import { DarkModeContext } from '@/App';
 import SafeAreaView from '@/components/SafeAreaView';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,6 +20,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
+import { DarkModeContext } from '@/contexts/DarkModeContext';
+import { useBiometric } from '@/hooks/useBiometric';
 import { useErrors } from '@/hooks/useErrors';
 import {
   closestCenter,
@@ -244,9 +245,12 @@ interface WalletItemProps {
 
 function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
   const navigate = useNavigate();
+
   const { addError } = useErrors();
   const { setWallet } = useWallet();
   const { dark } = useContext(DarkModeContext);
+  const { promptIfEnabled } = useBiometric();
+
   const [anchorEl, _setAnchorEl] = useState<HTMLElement | null>(null);
   const isMenuOpen = Boolean(anchorEl);
   const [isDeleteOpen, setDeleteOpen] = useState(false);
@@ -271,14 +275,17 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
       .finally(() => setResyncOpen(false));
   };
 
-  const deleteSelf = () => {
-    commands
-      .deleteKey({ fingerprint: info.fingerprint })
-      .then(() =>
-        setKeys(keys.filter((key) => key.fingerprint !== info.fingerprint)),
-      )
-      .catch(addError)
-      .finally(() => setDeleteOpen(false));
+  const deleteSelf = async () => {
+    if (await promptIfEnabled()) {
+      await commands
+        .deleteKey({ fingerprint: info.fingerprint })
+        .then(() =>
+          setKeys(keys.filter((key) => key.fingerprint !== info.fingerprint)),
+        )
+        .catch(addError);
+    }
+
+    setDeleteOpen(false);
   };
 
   const renameSelf = () => {
@@ -336,16 +343,18 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
   };
 
   useEffect(() => {
-    if (!isDetailsOpen) {
-      setSecrets(null);
-      return;
-    }
+    (async () => {
+      if (!isDetailsOpen || !(await promptIfEnabled())) {
+        setSecrets(null);
+        return;
+      }
 
-    commands
-      .getSecretKey({ fingerprint: info.fingerprint })
-      .then((data) => data.secrets !== null && setSecrets(data.secrets))
-      .catch(addError);
-  }, [isDetailsOpen, info.fingerprint, addError]);
+      commands
+        .getSecretKey({ fingerprint: info.fingerprint })
+        .then((data) => data.secrets !== null && setSecrets(data.secrets))
+        .catch(addError);
+    })();
+  }, [isDetailsOpen, info.fingerprint, addError, promptIfEnabled]);
 
   const values = useSortable({
     id: draggable ? info.fingerprint : 'not-draggable',

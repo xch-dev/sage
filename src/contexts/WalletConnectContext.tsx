@@ -17,9 +17,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Switch } from '@/components/ui/switch';
 import { useWallet } from '@/contexts/WalletContext';
+import { useBiometric } from '@/hooks/useBiometric';
 import { useErrors } from '@/hooks/useErrors';
-import { fromMojos, decodeHexMessage, isHex } from '@/lib/utils';
+import { decodeHexMessage, fromMojos, isHex } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import {
   Params,
@@ -40,7 +42,6 @@ import {
   useState,
 } from 'react';
 import { formatNumber } from '../i18n';
-import { Switch } from '@/components/ui/switch';
 
 export interface WalletConnectContextType {
   sessions: SessionTypes.Struct[];
@@ -58,6 +59,7 @@ type SessionRequest = SignClientTypes.EventArguments['session_request'];
 export function WalletConnectProvider({ children }: { children: ReactNode }) {
   const { wallet } = useWallet();
   const { addError } = useErrors();
+  const { promptIfEnabled } = useBiometric();
 
   const [signClient, setSignClient] = useState<Awaited<
     ReturnType<typeof SignClient.init>
@@ -96,6 +98,7 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
         const result = await handleCommand(
           method,
           request.params.request.params,
+          { promptIfEnabled },
         );
 
         await signClient.respond({
@@ -129,7 +132,7 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
         });
       }
     },
-    [signClient, addError],
+    [signClient, addError, promptIfEnabled],
   );
 
   useEffect(() => {
