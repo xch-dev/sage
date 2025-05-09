@@ -5699,6 +5699,7 @@ dependencies = [
  "aws-lc-rs",
  "chia-wallet-sdk",
  "glob",
+ "reqwest",
  "rustls",
  "sage",
  "sage-api",
@@ -5714,6 +5715,7 @@ dependencies = [
  "tauri-build",
  "tauri-plugin-barcode-scanner",
  "tauri-plugin-clipboard-manager",
+ "tauri-plugin-nfc",
  "tauri-plugin-opener",
  "tauri-plugin-os",
  "tauri-plugin-safe-area-insets",
@@ -6772,6 +6774,21 @@ dependencies = [
  "log",
  "serde",
  "serde_json",
+ "tauri",
+ "tauri-plugin",
+ "thiserror 2.0.12",
+]
+
+[[package]]
+name = "tauri-plugin-nfc"
+version = "2.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "87e2585d6db543f77ba5031f42832d7ebb5e59672b9ddc2e8a888ef888fac4f5"
+dependencies = [
+ "log",
+ "serde",
+ "serde_json",
+ "serde_repr",
  "tauri",
  "tauri-plugin",
  "thiserror 2.0.12",

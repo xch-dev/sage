@@ -6,6 +6,7 @@ use sage_api::{wallet_connect::*, *};
 use sage_api_macro::impl_endpoints_tauri;
 use sage_config::{NetworkConfig, Wallet};
 use sage_rpc::start_rpc;
+use serde::{Deserialize, Serialize};
 use specta::specta;
 use tauri::{command, AppHandle, State};
 use tokio::time::sleep;
@@ -161,4 +162,29 @@ pub async fn move_key(state: State<'_, AppState>, fingerprint: u32, index: u32) 
     state.save_config()?;
 
     Ok(())
+}
+
+#[command]
+#[specta]
+pub async fn download_cni_offercode(code: String) -> Result<String> {
+    #[derive(Serialize)]
+    struct Request {
+        code: String,
+    }
+
+    #[derive(Deserialize)]
+    struct Response {
+        offer: String,
+    }
+
+    let response = reqwest::Client::new()
+        .post("https://offercodes.chia.net/download_offer")
+        .json(&Request { code })
+        .send()
+        .await?
+        .json::<Response>()
+        .await?
+        .offer;
+
+    Ok(response)
 }
