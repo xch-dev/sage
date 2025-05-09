@@ -42,3 +42,6 @@ sqlx = { workspace = true, features = ["runtime-tokio"] }
 test-log = { workspace = true, features = ["trace"] }
 tokio = { workspace = true }
 hex-literal = { workspace = true }
+
+[package.metadata.cargo-machete]
+ignored = ["chia-sha2", "chia-traits"]
