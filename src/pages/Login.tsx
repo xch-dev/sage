@@ -53,6 +53,7 @@ import {
   PenIcon,
   SnowflakeIcon,
   TrashIcon,
+  CopyIcon,
 } from 'lucide-react';
 import type { MouseEvent, TouchEvent } from 'react';
 import { ForwardedRef, forwardRef, useEffect, useState } from 'react';
@@ -61,6 +62,8 @@ import { commands, KeyInfo, SecretKeyInfo } from '../bindings';
 import Container from '../components/Container';
 import { useWallet } from '../contexts/WalletContext';
 import { loginAndUpdateState } from '../state';
+import { toast } from 'react-toastify';
+import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 
 const isMobile = platform() === 'ios' || platform() === 'android';
 
@@ -250,18 +253,13 @@ function WalletItem({
   const navigate = useNavigate();
   const { addError } = useErrors();
   const { setWallet } = useWallet();
-
   const [anchorEl, _setAnchorEl] = useState<HTMLElement | null>(null);
   const isMenuOpen = Boolean(anchorEl);
-
   const [isDeleteOpen, setDeleteOpen] = useState(false);
-
   const [isDetailsOpen, setDetailsOpen] = useState(false);
   const [secrets, setSecrets] = useState<SecretKeyInfo | null>(null);
-
   const [isRenameOpen, setRenameOpen] = useState(false);
   const [newName, setNewName] = useState('');
-
   const [isResyncOpen, setResyncOpen] = useState(false);
   const [deleteOffers, setDeleteOffers] = useState(false);
   const [deleteUnhardened, setDeleteUnhardened] = useState(false);
@@ -307,6 +305,28 @@ function WalletItem({
       .finally(() => setRenameOpen(false));
 
     setNewName('');
+  };
+
+  const copyAddress = async () => {
+    try {
+      await commands.login({ fingerprint: info.fingerprint });
+      const sync = await commands.getSyncStatus({});
+
+      if (sync?.receive_address) {
+        await writeText(sync.receive_address);
+        toast.success(t`Address copied to clipboard`);
+      } else {
+        toast.error(t`No address found`);
+      }
+    } catch (error) {
+      toast.error(t`Failed to copy address to clipboard`);
+    } finally {
+      try {
+        await commands.logout({});
+      } catch (error) {
+        console.error(error);
+      }
+    }
   };
 
   const loginSelf = (explicit: boolean) => {
@@ -380,6 +400,18 @@ function WalletItem({
                   <LogInIcon className='mr-2 h-4 w-4' />
                   <span>
                     <Trans>Login</Trans>
+                  </span>
+                </DropdownMenuItem>{' '}
+                <DropdownMenuItem
+                  className='cursor-pointer'
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    await copyAddress();
+                  }}
+                >
+                  <CopyIcon className='mr-2 h-4 w-4' />
+                  <span>
+                    <Trans>Copy Address</Trans>
                   </span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
