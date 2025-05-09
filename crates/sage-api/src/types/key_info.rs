@@ -8,6 +8,7 @@ pub struct KeyInfo {
     pub public_key: String,
     pub kind: KeyKind,
     pub has_secrets: bool,
+    pub network_id: String,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]

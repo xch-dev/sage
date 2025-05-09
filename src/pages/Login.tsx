@@ -42,9 +42,11 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
+import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 import { platform } from '@tauri-apps/plugin-os';
 import {
   CogIcon,
+  CopyIcon,
   EraserIcon,
   EyeIcon,
   FlameIcon,
@@ -53,17 +55,15 @@ import {
   PenIcon,
   SnowflakeIcon,
   TrashIcon,
-  CopyIcon,
 } from 'lucide-react';
 import type { MouseEvent, TouchEvent } from 'react';
 import { ForwardedRef, forwardRef, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import { commands, KeyInfo, SecretKeyInfo } from '../bindings';
 import Container from '../components/Container';
 import { useWallet } from '../contexts/WalletContext';
 import { loginAndUpdateState } from '../state';
-import { toast } from 'react-toastify';
-import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 
 const isMobile = platform() === 'ios' || platform() === 'android';
 
@@ -71,17 +71,11 @@ export default function Login() {
   const navigate = useNavigate();
   const { addError } = useErrors();
   const [keys, setKeys] = useState<KeyInfo[] | null>(null);
-  const [network, setNetwork] = useState<string | null>(null);
 
   useEffect(() => {
     commands
       .getKeys({})
       .then((data) => setKeys(data.keys))
-      .catch(addError);
-
-    commands
-      .networkConfig()
-      .then((data) => setNetwork(data.default_network))
       .catch(addError);
   }, [addError]);
 
@@ -178,7 +172,6 @@ export default function Login() {
                     <WalletItem
                       draggable
                       key={i}
-                      network={network}
                       info={key}
                       keys={keys}
                       setKeys={setKeys}
@@ -191,7 +184,6 @@ export default function Login() {
                   keys.findIndex((key) => key.fingerprint === activeId) !==
                     -1 && (
                     <WalletItem
-                      network={network}
                       info={keys.find((key) => key.fingerprint === activeId)!}
                       keys={keys}
                       setKeys={setKeys}
@@ -237,19 +229,12 @@ function SkeletonWalletList() {
 
 interface WalletItemProps {
   draggable?: boolean;
-  network: string | null;
   info: KeyInfo;
   keys: KeyInfo[];
   setKeys: (keys: KeyInfo[]) => void;
 }
 
-function WalletItem({
-  draggable,
-  network,
-  info,
-  keys,
-  setKeys,
-}: WalletItemProps) {
+function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
   const navigate = useNavigate();
   const { addError } = useErrors();
   const { setWallet } = useWallet();
@@ -368,6 +353,8 @@ function WalletItem({
     style = {};
   }
 
+  const networkId = info.network_id;
+
   return (
     <>
       <Card
@@ -447,7 +434,7 @@ function WalletItem({
                 >
                   <EraserIcon className='mr-2 h-4 w-4' />
                   <span>
-                    <Trans>Resync ({network})</Trans>
+                    <Trans>Resync ({networkId})</Trans>
                   </span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
@@ -495,7 +482,7 @@ function WalletItem({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              <Trans>Resync on {network}</Trans>
+              <Trans>Resync on {networkId}</Trans>
             </DialogTitle>
             <DialogDescription>
               <Trans>
