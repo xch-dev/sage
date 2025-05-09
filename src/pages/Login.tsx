@@ -1,3 +1,4 @@
+import { DarkModeContext } from '@/App';
 import SafeAreaView from '@/components/SafeAreaView';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -57,9 +58,16 @@ import {
   TrashIcon,
 } from 'lucide-react';
 import type { MouseEvent, TouchEvent } from 'react';
-import { ForwardedRef, forwardRef, useEffect, useState } from 'react';
+import {
+  ForwardedRef,
+  forwardRef,
+  useContext,
+  useEffect,
+  useState,
+} from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import { Spoiler } from 'spoiled';
 import { commands, KeyInfo, SecretKeyInfo } from '../bindings';
 import Container from '../components/Container';
 import { useWallet } from '../contexts/WalletContext';
@@ -238,6 +246,7 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
   const navigate = useNavigate();
   const { addError } = useErrors();
   const { setWallet } = useWallet();
+  const { dark } = useContext(DarkModeContext);
   const [anchorEl, _setAnchorEl] = useState<HTMLElement | null>(null);
   const isMenuOpen = Boolean(anchorEl);
   const [isDeleteOpen, setDeleteOpen] = useState(false);
@@ -624,6 +633,14 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
           <div className='space-y-4'>
             <div>
               <h3 className='font-semibold'>
+                <Trans>Network</Trans>
+              </h3>
+              <p className='break-all text-sm text-muted-foreground'>
+                {networkId}
+              </p>
+            </div>
+            <div>
+              <h3 className='font-semibold'>
                 <Trans>Public Key</Trans>
               </h3>
               <p className='break-all text-sm text-muted-foreground'>
@@ -637,7 +654,9 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
                     <Trans>Secret Key</Trans>
                   </h3>
                   <p className='break-all text-sm text-muted-foreground'>
-                    {secrets.secret_key}
+                    <Spoiler theme={dark ? 'dark' : 'light'}>
+                      {secrets.secret_key}
+                    </Spoiler>
                   </p>
                 </div>
                 {secrets.mnemonic && (
@@ -646,7 +665,9 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
                       <Trans>Mnemonic</Trans>
                     </h3>
                     <p className='break-words text-sm text-muted-foreground'>
-                      {secrets.mnemonic}
+                      <Spoiler theme={dark ? 'dark' : 'light'}>
+                        {secrets.mnemonic}
+                      </Spoiler>
                     </p>
                   </div>
                 )}
