@@ -18,7 +18,7 @@ import {
 import { ErrorKind } from '../bindings';
 
 export interface CustomError {
-  kind: ErrorKind | 'walletconnect' | 'upload' | 'invalid';
+  kind: ErrorKind | 'walletconnect' | 'upload' | 'invalid' | 'nfc';
   reason: string;
 }
 
@@ -93,6 +93,10 @@ export default function ErrorDialog({ error, setError }: ErrorDialogProps) {
 
     case 'upload':
       kind = 'Upload';
+      break;
+
+    case 'nfc':
+      kind = 'NFC';
       break;
 
     default:

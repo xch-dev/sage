@@ -43,7 +43,7 @@ jobs:
       - name: Unused dependencies
         run: |
           cargo install cargo-machete --locked
-          cargo machete
+          cargo machete --skip-target-dir
 
       - name: Fmt
         run: cargo fmt --all -- --files-with-diff --check

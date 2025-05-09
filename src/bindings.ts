@@ -280,6 +280,9 @@ async setRpcRunOnStartup(runOnStartup: boolean) : Promise<null> {
 },
 async moveKey(fingerprint: number, index: number) : Promise<null> {
     return await TAURI_INVOKE("move_key", { fingerprint, index });
+},
+async downloadCniOffercode(code: string) : Promise<string> {
+    return await TAURI_INVOKE("download_cni_offercode", { code });
 }
 }
 
