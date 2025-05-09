@@ -252,7 +252,7 @@ function GlobalSettings() {
       {isMobile && (
         <SettingItem
           label={t`Biometric Authentication`}
-          description={t`Enable biometric authentication`}
+          description={t`Require biometrics for sensitive actions`}
           control={
             <Switch
               checked={enabled}
