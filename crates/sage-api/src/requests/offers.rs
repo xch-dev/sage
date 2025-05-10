@@ -91,7 +91,9 @@ pub struct ImportOffer {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
-pub struct ImportOfferResponse {}
+pub struct ImportOfferResponse {
+    pub offer_id: String,
+}
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
