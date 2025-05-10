@@ -603,8 +603,6 @@ export default function ConfirmationDialog({
               setPending(true);
 
               (async () => {
-                if (!(await promptIfEnabled())) return;
-
                 let finalSignature: string | null = signature;
 
                 if (
@@ -612,6 +610,8 @@ export default function ConfirmationDialog({
                   response !== null &&
                   'coin_spends' in response
                 ) {
+                  if (!(await promptIfEnabled())) return;
+
                   const data = await commands
                     .signCoinSpends({
                       coin_spends: response!.coin_spends,
