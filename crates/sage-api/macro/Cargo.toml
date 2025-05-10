@@ -1,6 +1,6 @@
 [package]
 name = "sage-api-macro"
-version = "0.10.1"
+version = "0.10.2"
 edition = "2021"
 license = "Apache-2.0"
 description = "A macro for implementing things for each of the Sage API endpoints."
