@@ -133,7 +133,7 @@ impl Sage {
 
         Ok(MakeOfferResponse {
             offer: encoded_offer,
-            offer_id: hex::encode(SpendBundle::from(offer).name()),
+            offer_id: hex::encode(SpendBundle::from(sort_offer(offer)).name()),
         })
     }
 
@@ -218,7 +218,9 @@ impl Sage {
         let offer_id = spend_bundle.name();
 
         if wallet.db.get_offer(offer_id).await?.is_some() {
-            return Ok(ImportOfferResponse {});
+            return Ok(ImportOfferResponse {
+                offer_id: hex::encode(offer_id),
+            });
         }
 
         let peer = self.peer_state.lock().await.acquire_peer();
@@ -455,7 +457,9 @@ impl Sage {
 
         tx.commit().await?;
 
-        Ok(ImportOfferResponse {})
+        Ok(ImportOfferResponse {
+            offer_id: hex::encode(offer_id),
+        })
     }
 
     pub fn combine_offers(&self, req: CombineOffers) -> Result<CombineOffersResponse> {
