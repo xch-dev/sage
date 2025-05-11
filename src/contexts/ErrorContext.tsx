@@ -95,6 +95,10 @@ export default function ErrorDialog({ error, setError }: ErrorDialogProps) {
       kind = 'Upload';
       break;
 
+    case 'nfc':
+      kind = 'NFC';
+      break;
+
     default:
       kind = null;
   }

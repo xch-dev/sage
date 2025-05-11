@@ -8,7 +8,7 @@ use std::{
 
 use chia::{bls::master_to_wallet_unhardened_intermediate, protocol::Bytes32};
 use chia_wallet_sdk::{
-    client::{create_rustls_connector, load_ssl_cert, Connector, Network as SdkNetwork},
+    client::{create_rustls_connector, load_ssl_cert, Connector},
     utils::Address,
 };
 use indexmap::IndexMap;
@@ -211,7 +211,6 @@ impl Sage {
 
     fn setup_sync_manager(&mut self) -> Result<mpsc::Receiver<SyncEvent>> {
         let connector = self.setup_ssl()?;
-        let network = self.network().clone();
 
         let (sync_manager, command_sender, receiver) = SyncManager::new(
             SyncOptions {
@@ -225,12 +224,7 @@ impl Sage {
             },
             self.peer_state.clone(),
             self.wallet.clone(),
-            network.network_id(),
-            SdkNetwork {
-                default_port: network.default_port,
-                genesis_challenge: network.genesis_challenge,
-                dns_introducers: network.dns_introducers.clone(),
-            },
+            self.network().clone(),
             connector,
         );
 
@@ -241,17 +235,8 @@ impl Sage {
     }
 
     pub async fn switch_network(&mut self) -> Result<()> {
-        let network = self.network();
-
         self.command_sender
-            .send(SyncCommand::SwitchNetwork {
-                network_id: network.name.clone(),
-                network: chia_wallet_sdk::client::Network {
-                    default_port: network.default_port,
-                    genesis_challenge: network.genesis_challenge,
-                    dns_introducers: network.dns_introducers.clone(),
-                },
-            })
+            .send(SyncCommand::SwitchNetwork(self.network().clone()))
             .await?;
 
         Ok(())
@@ -423,7 +408,19 @@ impl Sage {
     fn wallet_db_path(&self, fingerprint: u32) -> Result<PathBuf> {
         let path = self.path.join("wallets").join(fingerprint.to_string());
         fs::create_dir_all(&path)?;
-        let path = path.join(format!("{}.sqlite", self.network_id()));
+        let network_id = self
+            .wallet_config
+            .wallets
+            .iter()
+            .find_map(|wallet| {
+                if wallet.fingerprint == fingerprint {
+                    wallet.network.clone()
+                } else {
+                    None
+                }
+            })
+            .unwrap_or_else(|| self.network_id());
+        let path = path.join(format!("{network_id}.sqlite"));
         Ok(path)
     }
 

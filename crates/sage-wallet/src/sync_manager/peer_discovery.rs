@@ -6,19 +6,43 @@ use std::{
 };
 
 use chia::{
-    protocol::{Message, NewPeakWallet, ProtocolMessageTypes},
+    protocol::{
+        ChiaProtocolMessage, Handshake, Message, NewPeakWallet, NodeType, ProtocolMessageTypes,
+        TimestampedPeerInfo,
+    },
     traits::Streamable,
 };
-use chia_wallet_sdk::client::{connect_peer, Peer, PeerOptions};
+use chia_streamable_macro::Streamable;
+use chia_wallet_sdk::client::{connect_peer, ClientError, Peer, PeerOptions};
 use futures_lite::StreamExt;
 use futures_util::stream::FuturesUnordered;
 use rand::Rng;
 use tokio::{sync::mpsc, time::timeout};
 use tracing::{debug, info, warn};
 
-use crate::{SyncCommand, WalletPeer};
+use crate::{SyncCommand, WalletError, WalletPeer};
 
-use super::{PeerInfo, SyncManager};
+use super::{dns::lookup_all, PeerInfo, SyncManager};
+
+#[derive(Streamable)]
+struct RequestPeersIntroducer {}
+
+impl ChiaProtocolMessage for RequestPeersIntroducer {
+    fn msg_type() -> ProtocolMessageTypes {
+        ProtocolMessageTypes::RequestPeersIntroducer
+    }
+}
+
+#[derive(Streamable)]
+struct RespondPeersIntroducer {
+    peer_list: Vec<TimestampedPeerInfo>,
+}
+
+impl ChiaProtocolMessage for RespondPeersIntroducer {
+    fn msg_type() -> ProtocolMessageTypes {
+        ProtocolMessageTypes::RespondPeersIntroducer
+    }
+}
 
 impl SyncManager {
     pub(super) async fn clear_subscriptions(&self) {
@@ -46,15 +70,119 @@ impl SyncManager {
         while let Some(()) = futures.next().await {}
     }
 
-    pub(super) async fn dns_discovery(&mut self) {
-        let addrs = self
-            .network
-            .lookup_all(self.options.timeouts.dns, self.options.dns_batch_size)
-            .await;
+    pub(super) async fn dns_discovery(&mut self) -> bool {
+        let addrs = lookup_all(
+            &self.network.dns_introducers(),
+            self.network.default_port,
+            self.options.timeouts.dns,
+            self.options.dns_batch_size,
+        )
+        .await;
+
+        if addrs.is_empty() {
+            return false;
+        }
 
         for addrs in addrs.chunks(self.options.connection_batch_size) {
             if self.connect_batch(addrs, false, false).await {
                 break;
+            }
+        }
+
+        true
+    }
+
+    pub(super) async fn introducer_discovery(&mut self) {
+        info!(
+            "Looking up non-DNS introducers {}",
+            self.network.peer_introducers().join(", ")
+        );
+
+        let mut futures = FuturesUnordered::new();
+
+        for host in self.network.peer_introducers() {
+            let introducer_timeout = self.options.timeouts.introducer;
+            let port = self.network.default_port;
+            let connector = self.connector.clone();
+            let network_id = self.network.network_id();
+
+            futures.push(async move {
+                let host_clone = host.clone();
+
+                let result = timeout(introducer_timeout, async move {
+                    let (peer, mut receiver) = Peer::connect_full_uri(
+                        &format!("wss://{host_clone}:{port}/ws"),
+                        connector,
+                        PeerOptions::default(),
+                    )
+                    .await?;
+
+                    peer.send(Handshake {
+                        network_id: network_id.clone(),
+                        protocol_version: "0.0.37".to_string(),
+                        software_version: "0.0.0".to_string(),
+                        server_port: 0,
+                        node_type: NodeType::Wallet,
+                        capabilities: vec![
+                            (1, "1".to_string()),
+                            (2, "1".to_string()),
+                            (3, "1".to_string()),
+                        ],
+                    })
+                    .await?;
+
+                    let Some(message) = receiver.recv().await else {
+                        return Err(ClientError::MissingHandshake)?;
+                    };
+
+                    if message.msg_type != ProtocolMessageTypes::Handshake {
+                        return Err(ClientError::InvalidResponse(
+                            vec![ProtocolMessageTypes::Handshake],
+                            message.msg_type,
+                        ))?;
+                    }
+
+                    let handshake =
+                        Handshake::from_bytes(&message.data).map_err(ClientError::from)?;
+
+                    if handshake.node_type != NodeType::Introducer {
+                        return Err(ClientError::WrongNodeType(
+                            NodeType::Introducer,
+                            handshake.node_type,
+                        ))?;
+                    }
+
+                    if handshake.network_id != network_id {
+                        return Err(ClientError::WrongNetwork(
+                            network_id.to_string(),
+                            handshake.network_id,
+                        ))?;
+                    }
+
+                    let peer_list = peer
+                        .request_infallible::<RespondPeersIntroducer, _>(RequestPeersIntroducer {})
+                        .await?
+                        .peer_list;
+
+                    Result::<_, WalletError>::Ok((peer.socket_addr().ip(), peer_list))
+                })
+                .await;
+
+                (host, result)
+            });
+        }
+
+        while let Some((host, result)) = futures.next().await {
+            match result {
+                Ok(Ok((ip, peer_list))) => {
+                    self.handle_peer_list(None, peer_list, ip, false).await;
+                }
+                Ok(Err(error)) => {
+                    debug!("Failed to request peers from {host}: {error}");
+                }
+                Err(_timeout) => {
+                    debug!("Timeout requesting peers from {host}");
+                }
             }
         }
     }
@@ -73,7 +201,9 @@ impl SyncManager {
             let ip = peer.socket_addr().ip();
             let duration = self.options.timeouts.request_peers;
             futures.push(async move {
-                let result = timeout(duration, peer.request_peers()).await;
+                let result = timeout(duration, peer.request_peers())
+                    .await
+                    .map(|result| result.map(|result| result.peer_list));
                 (ip, result)
             });
         }
@@ -86,42 +216,12 @@ impl SyncManager {
 
         while let Some((ip, result)) = futures.next().await {
             match result {
-                Ok(Ok(mut response)) => {
-                    response.peer_list.retain(|item| {
-                        item.timestamp >= timestamp - self.options.max_peer_age_seconds
-                    });
-
-                    if !response.peer_list.is_empty() {
-                        info!(
-                            "Received {} recent peers from {}",
-                            response.peer_list.len(),
-                            ip
-                        );
-                    }
-
-                    response
-                        .peer_list
-                        .sort_by_key(|item| Reverse(item.timestamp));
-
-                    let mut addrs = Vec::new();
-
-                    for item in response.peer_list {
-                        let Some(new_ip) = IpAddr::from_str(&item.host).ok() else {
-                            debug!("Invalid IP address in peer list");
-                            self.state.lock().await.ban(
-                                ip,
-                                Duration::from_secs(300),
-                                "invalid ip in peer list",
-                            );
-                            break;
-                        };
-                        addrs.push(SocketAddr::new(new_ip, self.network.default_port));
-                    }
-
-                    for addrs in addrs.chunks(self.options.connection_batch_size) {
-                        if self.connect_batch(addrs, false, false).await {
-                            return true;
-                        }
+                Ok(Ok(peer_list)) => {
+                    if self
+                        .handle_peer_list(Some(timestamp), peer_list, ip, true)
+                        .await
+                    {
+                        return true;
                     }
                 }
                 Ok(Err(error)) => {
@@ -133,6 +233,54 @@ impl SyncManager {
                     );
                 }
                 Err(_timeout) => {}
+            }
+        }
+
+        false
+    }
+
+    async fn handle_peer_list(
+        &mut self,
+        timestamp: Option<u64>,
+        mut peer_list: Vec<TimestampedPeerInfo>,
+        ip: IpAddr,
+        ban: bool,
+    ) -> bool {
+        if let Some(timestamp) = timestamp {
+            peer_list
+                .retain(|item| item.timestamp >= timestamp - self.options.max_peer_age_seconds);
+        }
+
+        if !peer_list.is_empty() {
+            info!("Received {} recent peers from {}", peer_list.len(), ip);
+        }
+
+        if timestamp.is_some() {
+            peer_list.sort_by_key(|item| Reverse(item.timestamp));
+        }
+
+        let mut addrs = Vec::new();
+
+        for item in peer_list {
+            let Some(new_ip) = IpAddr::from_str(&item.host).ok() else {
+                debug!("Invalid IP address in peer list");
+
+                if ban {
+                    self.state.lock().await.ban(
+                        ip,
+                        Duration::from_secs(300),
+                        "invalid ip in peer list",
+                    );
+                }
+
+                break;
+            };
+            addrs.push(SocketAddr::new(new_ip, self.network.default_port));
+        }
+
+        for addrs in addrs.chunks(self.options.connection_batch_size) {
+            if self.connect_batch(addrs, false, false).await {
+                return true;
             }
         }
 
@@ -154,7 +302,7 @@ impl SyncManager {
             }
             drop(state);
 
-            let network_id = self.network_id.clone();
+            let network_id = self.network.network_id();
             let connector = self.connector.clone();
             let duration = self.options.timeouts.connection;
 

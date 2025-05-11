@@ -5519,7 +5519,7 @@ checksum = "28d3b2b1366ec20994f1fd18c3c594f05c5dd4bc44d8bb0c1c632c8d6829481f"
 
 [[package]]
 name = "sage"
-version = "0.10.1"
+version = "0.10.2"
 dependencies = [
  "base64 0.22.1",
  "bech32",
@@ -5556,7 +5556,7 @@ dependencies = [
 
 [[package]]
 name = "sage-api"
-version = "0.10.1"
+version = "0.10.2"
 dependencies = [
  "indexmap 2.9.0",
  "once_cell",
@@ -5568,7 +5568,7 @@ dependencies = [
 
 [[package]]
 name = "sage-api-macro"
-version = "0.10.1"
+version = "0.10.2"
 dependencies = [
  "convert_case 0.8.0",
  "indexmap 2.9.0",
@@ -5579,7 +5579,7 @@ dependencies = [
 
 [[package]]
 name = "sage-assets"
-version = "0.10.1"
+version = "0.10.2"
 dependencies = [
  "chia",
  "futures-lite",
@@ -5598,7 +5598,7 @@ dependencies = [
 
 [[package]]
 name = "sage-cli"
-version = "0.10.1"
+version = "0.10.2"
 dependencies = [
  "anyhow",
  "clap",
@@ -5616,7 +5616,7 @@ dependencies = [
 
 [[package]]
 name = "sage-client"
-version = "0.10.1"
+version = "0.10.2"
 dependencies = [
  "dirs 5.0.1",
  "reqwest",
@@ -5631,7 +5631,7 @@ dependencies = [
 
 [[package]]
 name = "sage-config"
-version = "0.10.1"
+version = "0.10.2"
 dependencies = [
  "chia",
  "chia-wallet-sdk",
@@ -5648,7 +5648,7 @@ dependencies = [
 
 [[package]]
 name = "sage-database"
-version = "0.10.1"
+version = "0.10.2"
 dependencies = [
  "chia",
  "chia-wallet-sdk",
@@ -5660,7 +5660,7 @@ dependencies = [
 
 [[package]]
 name = "sage-keychain"
-version = "0.10.1"
+version = "0.10.2"
 dependencies = [
  "aes-gcm",
  "argon2",
@@ -5676,7 +5676,7 @@ dependencies = [
 
 [[package]]
 name = "sage-rpc"
-version = "0.10.1"
+version = "0.10.2"
 dependencies = [
  "anyhow",
  "axum",
@@ -5693,12 +5693,13 @@ dependencies = [
 
 [[package]]
 name = "sage-tauri"
-version = "0.10.1"
+version = "0.10.2"
 dependencies = [
  "anyhow",
  "aws-lc-rs",
  "chia-wallet-sdk",
  "glob",
+ "reqwest",
  "rustls",
  "sage",
  "sage-api",
@@ -5713,7 +5714,9 @@ dependencies = [
  "tauri",
  "tauri-build",
  "tauri-plugin-barcode-scanner",
+ "tauri-plugin-biometric",
  "tauri-plugin-clipboard-manager",
+ "tauri-plugin-nfc",
  "tauri-plugin-opener",
  "tauri-plugin-os",
  "tauri-plugin-safe-area-insets",
@@ -5725,12 +5728,15 @@ dependencies = [
 
 [[package]]
 name = "sage-wallet"
-version = "0.10.1"
+version = "0.10.2"
 dependencies = [
  "anyhow",
  "chia",
  "chia-puzzles",
+ "chia-sha2 0.20.0",
+ "chia-traits 0.20.0",
  "chia-wallet-sdk",
+ "chia_streamable_macro 0.20.0",
  "clvmr",
  "futures-lite",
  "futures-util",
@@ -5740,6 +5746,7 @@ dependencies = [
  "rand 0.8.5",
  "reqwest",
  "sage-assets",
+ "sage-config",
  "sage-database",
  "serde",
  "sqlx",
@@ -6759,6 +6766,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "tauri-plugin-biometric"
+version = "2.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a460c3eeff1d9aa57bf71e7983daeb5b57e5195121d252ebd795c8eda5007a64"
+dependencies = [
+ "log",
+ "serde",
+ "serde_json",
+ "serde_repr",
+ "tauri",
+ "tauri-plugin",
+ "thiserror 2.0.12",
+]
+
+[[package]]
 name = "tauri-plugin-clipboard-manager"
 version = "2.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6768,6 +6790,21 @@ dependencies = [
  "log",
  "serde",
  "serde_json",
+ "tauri",
+ "tauri-plugin",
+ "thiserror 2.0.12",
+]
+
+[[package]]
+name = "tauri-plugin-nfc"
+version = "2.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "87e2585d6db543f77ba5031f42832d7ebb5e59672b9ddc2e8a888ef888fac4f5"
+dependencies = [
+ "log",
+ "serde",
+ "serde_json",
+ "serde_repr",
  "tauri",
  "tauri-plugin",
  "thiserror 2.0.12",

@@ -240,18 +240,17 @@ impl Sage {
             return Ok(GetKeyResponse { key: None });
         };
 
-        let name = self
+        let wallet_config = self
             .wallet_config
             .wallets
             .iter()
-            .find_map(|wallet| {
-                if wallet.fingerprint == fingerprint {
-                    Some(wallet.name.clone())
-                } else {
-                    None
-                }
-            })
-            .unwrap_or_else(Wallet::default_name);
+            .find(|wallet| wallet.fingerprint == fingerprint);
+
+        let name = wallet_config.map_or_else(Wallet::default_name, |wallet| wallet.name.clone());
+
+        let network_id = wallet_config
+            .and_then(|wallet| wallet.network.clone())
+            .unwrap_or_else(|| self.network_id());
 
         let Some(master_pk) = self.keychain.extract_public_key(fingerprint)? else {
             return Ok(GetKeyResponse { key: None });
@@ -264,6 +263,7 @@ impl Sage {
                 public_key: hex::encode(master_pk.to_bytes()),
                 kind: KeyKind::Bls,
                 has_secrets: self.keychain.has_secret_key(fingerprint),
+                network_id,
             }),
         })
     }
@@ -296,6 +296,7 @@ impl Sage {
                 public_key: hex::encode(master_pk.to_bytes()),
                 kind: KeyKind::Bls,
                 has_secrets: self.keychain.has_secret_key(wallet.fingerprint),
+                network_id: wallet.network.clone().unwrap_or_else(|| self.network_id()),
             });
         }
 

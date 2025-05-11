@@ -105,10 +105,6 @@ pub async fn insert_puzzle(
                 .await?;
             tx.insert_did_coin(coin_id, lineage_proof, info).await?;
 
-            if coin_state.spent_height.is_some() {
-                return Ok(());
-            }
-
             let name = tx.get_future_did_name(launcher_id).await?;
 
             if name.is_some() {
@@ -123,6 +119,12 @@ pub async fn insert_puzzle(
                 visible: true,
                 created_height: coin_state.created_height,
             });
+
+            if coin_state.spent_height.is_some()
+                && (row.created_height.is_none() || row.created_height > coin_state.created_height)
+            {
+                return Ok(());
+            }
 
             if coin_state.spent_height.is_none() {
                 row.is_owned = true;
@@ -157,10 +159,6 @@ pub async fn insert_puzzle(
             )
             .await?;
 
-            if coin_state.spent_height.is_some() {
-                return Ok(());
-            }
-
             let mut row = tx.nft_row(launcher_id).await?.unwrap_or(NftRow {
                 launcher_id,
                 coin_id,
@@ -174,6 +172,12 @@ pub async fn insert_puzzle(
                 created_height: coin_state.created_height,
                 metadata_hash,
             });
+
+            if coin_state.spent_height.is_some()
+                && (row.created_height.is_none() || row.created_height > coin_state.created_height)
+            {
+                return Ok(());
+            }
 
             if coin_state.spent_height.is_none() {
                 row.is_owned = true;

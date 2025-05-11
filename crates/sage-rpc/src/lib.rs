@@ -45,9 +45,10 @@ where
                 ErrorKind::Api => StatusCode::BAD_REQUEST,
                 ErrorKind::NotFound => StatusCode::NOT_FOUND,
                 ErrorKind::Unauthorized => StatusCode::UNAUTHORIZED,
-                ErrorKind::DatabaseMigration | ErrorKind::Wallet | ErrorKind::Internal => {
-                    StatusCode::INTERNAL_SERVER_ERROR
-                }
+                ErrorKind::DatabaseMigration
+                | ErrorKind::Wallet
+                | ErrorKind::Internal
+                | ErrorKind::Nfc => StatusCode::INTERNAL_SERVER_ERROR,
             };
             (status, error.to_string()).into_response()
         }

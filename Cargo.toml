@@ -72,6 +72,8 @@ tauri-plugin-opener = "2.2.6"
 tauri-plugin-os = "2.2.1"
 tauri-plugin-window-state = "2.2.2"
 tauri-plugin-barcode-scanner = "2.2.0"
+tauri-plugin-nfc = "2.2.0"
+tauri-plugin-biometric = "2.2.1"
 tauri-plugin-safe-area-insets = "0.1.0"
 tauri-build = "2.2.0"
 
@@ -82,6 +84,9 @@ tauri-specta = "2.0.0-rc.20"
 
 # Chia
 chia = "0.20.0"
+chia_streamable_macro = "0.20.0"
+chia-traits = "0.20.0"
+chia-sha2 = "0.20.0"
 chia-puzzles = "0.20.1"
 clvmr = "0.12.0"
 chia-wallet-sdk = { version = "0.23.0", features = ["rustls", "offers", "peer-simulator"] }

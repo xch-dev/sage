@@ -35,10 +35,12 @@ import { fetchState } from '../state';
 import SafeAreaView from '@/components/SafeAreaView';
 import { Trans } from '@lingui/react/macro';
 import { t } from '@lingui/core/macro';
+import { useWallet } from '@/contexts/WalletContext';
 
 export default function CreateWallet() {
   const { addError } = useErrors();
   const navigate = useNavigate();
+  const { setWallet } = useWallet();
 
   const submit = (values: z.infer<typeof formSchema>) => {
     commands
@@ -48,8 +50,12 @@ export default function CreateWallet() {
         save_secrets: values.saveMnemonic,
       })
       .catch(addError)
-      .then(fetchState)
-      .then(() => navigate('/wallet'));
+      .then(async () => {
+        await fetchState();
+        const data = await commands.getKey({});
+        setWallet(data.key);
+        navigate('/wallet');
+      });
   };
 
   return (

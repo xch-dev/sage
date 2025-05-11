@@ -1,6 +1,6 @@
 [package]
 name = "sage-tauri"
-version = "0.10.1"
+version = "0.10.2"
 description = "A next generation Chia wallet."
 authors = ["Rigidity <me@rigidnetwork.com>"]
 license = "Apache-2.0"
@@ -35,17 +35,20 @@ serde_json = { workspace = true, features = ["arbitrary_precision"] }
 tracing = { workspace = true }
 anyhow = { workspace = true }
 rustls = { workspace = true }
-tauri-plugin-window-state = { workspace = true }
-tauri-plugin-barcode-scanner = { workspace = true }
-tauri-plugin-safe-area-insets = { workspace = true }
+reqwest = { workspace = true }
 
 # This is to ensure that the bindgen feature is enabled for the aws-lc-rs crate.
 # https://aws.github.io/aws-lc-rs/platform_support.html#tested-platforms
 aws-lc-rs = { version = "1", features = ["bindgen"] }
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+tauri-plugin-window-state = { workspace = true }
 
 [target.'cfg(any(target_os = "android", target_os = "ios"))'.dependencies]
+tauri-plugin-nfc = { workspace = true }
+tauri-plugin-biometric = { workspace = true }
+tauri-plugin-barcode-scanner = { workspace = true }
+tauri-plugin-safe-area-insets = { workspace = true }
 
 [build-dependencies]
 tauri-build = { workspace = true, features = [] }

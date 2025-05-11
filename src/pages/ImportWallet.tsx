@@ -13,6 +13,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
+import { useWallet } from '@/contexts/WalletContext';
 import { useErrors } from '@/hooks/useErrors';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from '@lingui/core/macro';
@@ -30,6 +31,7 @@ export default function ImportWallet() {
   const navigate = useNavigate();
 
   const { addError } = useErrors();
+  const { setWallet } = useWallet();
 
   const [advanced, setAdvanced] = useState(false);
   const [pending, setPending] = useState(false);
@@ -53,7 +55,7 @@ export default function ImportWallet() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      addresses: '0',
+      addresses: '5000',
     },
   });
 
@@ -67,7 +69,12 @@ export default function ImportWallet() {
         derivation_index: parseInt(values.addresses),
       })
       .then(fetchState)
-      .then(() => navigate('/wallet'))
+      .then(async () => {
+        await fetchState();
+        const data = await commands.getKey({});
+        setWallet(data.key);
+        navigate('/wallet');
+      })
       .catch(addError)
       .finally(() => setPending(false));
   };

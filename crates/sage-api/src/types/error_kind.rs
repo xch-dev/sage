@@ -10,4 +10,5 @@ pub enum ErrorKind {
     Unauthorized,
     Internal,
     DatabaseMigration,
+    Nfc,
 }

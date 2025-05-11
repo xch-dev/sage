@@ -1,6 +1,7 @@
 import { commands } from '@/bindings';
 import { BigNumber } from 'bignumber.js';
 import { Params } from '../commands';
+import { HandlerContext } from '../handler';
 
 export async function handleChainId(_params: Params<'chip0002_chainId'>) {
   const data = await commands.getNetwork({});
@@ -72,7 +73,12 @@ export async function handleGetAssetBalance(
 
 export async function handleSignCoinSpends(
   params: Params<'chip0002_signCoinSpends'>,
+  context: HandlerContext,
 ) {
+  if (!(await context.promptIfEnabled())) {
+    throw new Error('Authentication failed');
+  }
+
   const data = await commands.signCoinSpends({
     coin_spends: params.coinSpends.map((coinSpend) => {
       return {
@@ -94,7 +100,12 @@ export async function handleSignCoinSpends(
 
 export async function handleSignMessage(
   params: Params<'chip0002_signMessage'>,
+  context: HandlerContext,
 ) {
+  if (!(await context.promptIfEnabled())) {
+    throw new Error('Authentication failed');
+  }
+
   const data = await commands.signMessageWithPublicKey(params);
 
   return data.signature;

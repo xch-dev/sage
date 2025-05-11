@@ -20,6 +20,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
+import { DarkModeContext } from '@/contexts/DarkModeContext';
+import { useBiometric } from '@/hooks/useBiometric';
 import { useErrors } from '@/hooks/useErrors';
 import {
   closestCenter,
@@ -42,9 +44,11 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
+import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 import { platform } from '@tauri-apps/plugin-os';
 import {
   CogIcon,
+  CopyIcon,
   EraserIcon,
   EyeIcon,
   FlameIcon,
@@ -55,8 +59,16 @@ import {
   TrashIcon,
 } from 'lucide-react';
 import type { MouseEvent, TouchEvent } from 'react';
-import { ForwardedRef, forwardRef, useEffect, useState } from 'react';
+import {
+  ForwardedRef,
+  forwardRef,
+  useContext,
+  useEffect,
+  useState,
+} from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
+import { Spoiler } from 'spoiled';
 import { commands, KeyInfo, SecretKeyInfo } from '../bindings';
 import Container from '../components/Container';
 import { useWallet } from '../contexts/WalletContext';
@@ -68,17 +80,11 @@ export default function Login() {
   const navigate = useNavigate();
   const { addError } = useErrors();
   const [keys, setKeys] = useState<KeyInfo[] | null>(null);
-  const [network, setNetwork] = useState<string | null>(null);
 
   useEffect(() => {
     commands
       .getKeys({})
       .then((data) => setKeys(data.keys))
-      .catch(addError);
-
-    commands
-      .networkConfig()
-      .then((data) => setNetwork(data.default_network))
       .catch(addError);
   }, [addError]);
 
@@ -181,7 +187,6 @@ export default function Login() {
                     <WalletItem
                       draggable
                       key={i}
-                      network={network}
                       info={key}
                       keys={keys}
                       setKeys={setKeys}
@@ -194,7 +199,6 @@ export default function Login() {
                   keys.findIndex((key) => key.fingerprint === activeId) !==
                     -1 && (
                     <WalletItem
-                      network={network}
                       info={keys.find((key) => key.fingerprint === activeId)!}
                       keys={keys}
                       setKeys={setKeys}
@@ -240,34 +244,26 @@ function SkeletonWalletList() {
 
 interface WalletItemProps {
   draggable?: boolean;
-  network: string | null;
   info: KeyInfo;
   keys: KeyInfo[];
   setKeys: (keys: KeyInfo[]) => void;
 }
 
-function WalletItem({
-  draggable,
-  network,
-  info,
-  keys,
-  setKeys,
-}: WalletItemProps) {
+function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
   const navigate = useNavigate();
+
   const { addError } = useErrors();
   const { setWallet } = useWallet();
+  const { dark } = useContext(DarkModeContext);
+  const { promptIfEnabled } = useBiometric();
 
   const [anchorEl, _setAnchorEl] = useState<HTMLElement | null>(null);
   const isMenuOpen = Boolean(anchorEl);
-
   const [isDeleteOpen, setDeleteOpen] = useState(false);
-
   const [isDetailsOpen, setDetailsOpen] = useState(false);
   const [secrets, setSecrets] = useState<SecretKeyInfo | null>(null);
-
   const [isRenameOpen, setRenameOpen] = useState(false);
   const [newName, setNewName] = useState('');
-
   const [isResyncOpen, setResyncOpen] = useState(false);
   const [deleteOffers, setDeleteOffers] = useState(false);
   const [deleteUnhardened, setDeleteUnhardened] = useState(false);
@@ -285,14 +281,17 @@ function WalletItem({
       .finally(() => setResyncOpen(false));
   };
 
-  const deleteSelf = () => {
-    commands
-      .deleteKey({ fingerprint: info.fingerprint })
-      .then(() =>
-        setKeys(keys.filter((key) => key.fingerprint !== info.fingerprint)),
-      )
-      .catch(addError)
-      .finally(() => setDeleteOpen(false));
+  const deleteSelf = async () => {
+    if (await promptIfEnabled()) {
+      await commands
+        .deleteKey({ fingerprint: info.fingerprint })
+        .then(() =>
+          setKeys(keys.filter((key) => key.fingerprint !== info.fingerprint)),
+        )
+        .catch(addError);
+    }
+
+    setDeleteOpen(false);
   };
 
   const renameSelf = () => {
@@ -315,6 +314,28 @@ function WalletItem({
     setNewName('');
   };
 
+  const copyAddress = async () => {
+    try {
+      await commands.login({ fingerprint: info.fingerprint });
+      const sync = await commands.getSyncStatus({});
+
+      if (sync?.receive_address) {
+        await writeText(sync.receive_address);
+        toast.success(t`Address copied to clipboard`);
+      } else {
+        toast.error(t`No address found`);
+      }
+    } catch (error) {
+      toast.error(t`Failed to copy address to clipboard`);
+    } finally {
+      try {
+        await commands.logout({});
+      } catch (error) {
+        console.error(error);
+      }
+    }
+  };
+
   const loginSelf = (explicit: boolean) => {
     if (isMenuOpen && !explicit) return;
 
@@ -332,16 +353,18 @@ function WalletItem({
   };
 
   useEffect(() => {
-    if (!isDetailsOpen) {
-      setSecrets(null);
-      return;
-    }
+    (async () => {
+      if (!isDetailsOpen || !(await promptIfEnabled())) {
+        setSecrets(null);
+        return;
+      }
 
-    commands
-      .getSecretKey({ fingerprint: info.fingerprint })
-      .then((data) => data.secrets !== null && setSecrets(data.secrets))
-      .catch(addError);
-  }, [isDetailsOpen, info.fingerprint, addError]);
+      commands
+        .getSecretKey({ fingerprint: info.fingerprint })
+        .then((data) => data.secrets !== null && setSecrets(data.secrets))
+        .catch(addError);
+    })();
+  }, [isDetailsOpen, info.fingerprint, addError, promptIfEnabled]);
 
   const values = useSortable({
     id: draggable ? info.fingerprint : 'not-draggable',
@@ -357,6 +380,8 @@ function WalletItem({
     values.listeners = {};
     style = {};
   }
+
+  const networkId = info.network_id;
 
   return (
     <>
@@ -390,6 +415,18 @@ function WalletItem({
                   <LogInIcon className='mr-2 h-4 w-4' />
                   <span>
                     <Trans>Login</Trans>
+                  </span>
+                </DropdownMenuItem>{' '}
+                <DropdownMenuItem
+                  className='cursor-pointer'
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    await copyAddress();
+                  }}
+                >
+                  <CopyIcon className='mr-2 h-4 w-4' />
+                  <span>
+                    <Trans>Copy Address</Trans>
                   </span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
@@ -425,7 +462,7 @@ function WalletItem({
                 >
                   <EraserIcon className='mr-2 h-4 w-4' />
                   <span>
-                    <Trans>Resync ({network})</Trans>
+                    <Trans>Resync ({networkId})</Trans>
                   </span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
@@ -473,7 +510,7 @@ function WalletItem({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              <Trans>Resync on {network}</Trans>
+              <Trans>Resync on {networkId}</Trans>
             </DialogTitle>
             <DialogDescription>
               <Trans>
@@ -615,6 +652,14 @@ function WalletItem({
           <div className='space-y-4'>
             <div>
               <h3 className='font-semibold'>
+                <Trans>Network</Trans>
+              </h3>
+              <p className='break-all text-sm text-muted-foreground'>
+                {networkId}
+              </p>
+            </div>
+            <div>
+              <h3 className='font-semibold'>
                 <Trans>Public Key</Trans>
               </h3>
               <p className='break-all text-sm text-muted-foreground'>
@@ -628,7 +673,9 @@ function WalletItem({
                     <Trans>Secret Key</Trans>
                   </h3>
                   <p className='break-all text-sm text-muted-foreground'>
-                    {secrets.secret_key}
+                    <Spoiler theme={dark ? 'dark' : 'light'}>
+                      {secrets.secret_key}
+                    </Spoiler>
                   </p>
                 </div>
                 {secrets.mnemonic && (
@@ -637,7 +684,9 @@ function WalletItem({
                       <Trans>Mnemonic</Trans>
                     </h3>
                     <p className='break-words text-sm text-muted-foreground'>
-                      {secrets.mnemonic}
+                      <Spoiler theme={dark ? 'dark' : 'light'}>
+                        {secrets.mnemonic}
+                      </Spoiler>
                     </p>
                   </div>
                 )}

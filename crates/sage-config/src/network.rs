@@ -14,7 +14,22 @@ pub struct NetworkList {
 impl Default for NetworkList {
     fn default() -> Self {
         Self {
-            networks: vec![MAINNET.clone(), TESTNET11.clone()],
+            // These will inherit from the mainnet and testnet11 networks anyway
+            // So we don't need to include the introducers in the config
+            // The idea is if we add new introducers over time, they will automatically
+            // be added to the mainnet and testnet11 networks for everyone
+            networks: vec![
+                Network {
+                    additional_dns_introducers: Vec::new(),
+                    additional_peer_introducers: Vec::new(),
+                    ..MAINNET.clone()
+                },
+                Network {
+                    additional_dns_introducers: Vec::new(),
+                    additional_peer_introducers: Vec::new(),
+                    ..TESTNET11.clone()
+                },
+            ],
         }
     }
 }
@@ -46,10 +61,18 @@ pub struct Network {
     #[serde_as(as = "Option<Hex>")]
     #[specta(type = Option<String>)]
     pub agg_sig_me: Option<Bytes32>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub dns_introducers: Vec<String>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub peer_introducers: Vec<String>,
+    #[serde(
+        default,
+        skip_serializing_if = "Vec::is_empty",
+        rename = "dns_introducers"
+    )]
+    pub additional_dns_introducers: Vec<String>,
+    #[serde(
+        default,
+        skip_serializing_if = "Vec::is_empty",
+        rename = "peer_introducers"
+    )]
+    pub additional_peer_introducers: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub inherit: Option<InheritedNetwork>,
 }
@@ -69,35 +92,51 @@ impl Network {
         self.agg_sig_me.unwrap_or(self.genesis_challenge)
     }
 
-    pub fn all_dns_introducers(&self) -> Vec<String> {
+    pub fn dns_introducers(&self) -> Vec<String> {
         match self.inherit {
-            Some(InheritedNetwork::Mainnet) => [
-                MAINNET.dns_introducers.clone(),
-                self.dns_introducers.clone(),
-            ]
-            .concat(),
-            Some(InheritedNetwork::Testnet11) => [
-                TESTNET11.dns_introducers.clone(),
-                self.dns_introducers.clone(),
-            ]
-            .concat(),
-            None => self.dns_introducers.clone(),
+            Some(InheritedNetwork::Mainnet) => {
+                let mut introducers = self.additional_dns_introducers.clone();
+                for introducer in &MAINNET.additional_dns_introducers {
+                    if !introducers.contains(introducer) {
+                        introducers.push(introducer.clone());
+                    }
+                }
+                introducers
+            }
+            Some(InheritedNetwork::Testnet11) => {
+                let mut introducers = self.additional_dns_introducers.clone();
+                for introducer in &TESTNET11.additional_dns_introducers {
+                    if !introducers.contains(introducer) {
+                        introducers.push(introducer.clone());
+                    }
+                }
+                introducers
+            }
+            None => self.additional_dns_introducers.clone(),
         }
     }
 
-    pub fn all_peer_introducers(&self) -> Vec<String> {
+    pub fn peer_introducers(&self) -> Vec<String> {
         match self.inherit {
-            Some(InheritedNetwork::Mainnet) => [
-                MAINNET.peer_introducers.clone(),
-                self.peer_introducers.clone(),
-            ]
-            .concat(),
-            Some(InheritedNetwork::Testnet11) => [
-                TESTNET11.peer_introducers.clone(),
-                self.peer_introducers.clone(),
-            ]
-            .concat(),
-            None => self.peer_introducers.clone(),
+            Some(InheritedNetwork::Mainnet) => {
+                let mut introducers = self.additional_peer_introducers.clone();
+                for introducer in &MAINNET.additional_peer_introducers {
+                    if !introducers.contains(introducer) {
+                        introducers.push(introducer.clone());
+                    }
+                }
+                introducers
+            }
+            Some(InheritedNetwork::Testnet11) => {
+                let mut introducers = self.additional_peer_introducers.clone();
+                for introducer in &TESTNET11.additional_peer_introducers {
+                    if !introducers.contains(introducer) {
+                        introducers.push(introducer.clone());
+                    }
+                }
+                introducers
+            }
+            None => self.additional_peer_introducers.clone(),
         }
     }
 }
@@ -128,13 +167,13 @@ pub static MAINNET: Lazy<Network> = Lazy::new(|| Network {
     precision: 12,
     genesis_challenge: MAINNET_CONSTANTS.genesis_challenge,
     agg_sig_me: None,
-    dns_introducers: vec![
+    additional_dns_introducers: vec![
         "dns-introducer.chia.net".to_string(),
         "chia.ctrlaltdel.ch".to_string(),
         "seeder.dexie.space".to_string(),
         "chia.hoffmang.com".to_string(),
     ],
-    peer_introducers: vec![],
+    additional_peer_introducers: vec!["introducer.chia.net".to_string()],
     inherit: Some(InheritedNetwork::Mainnet),
 });
 
@@ -147,7 +186,7 @@ pub static TESTNET11: Lazy<Network> = Lazy::new(|| Network {
     precision: 12,
     genesis_challenge: TESTNET11_CONSTANTS.genesis_challenge,
     agg_sig_me: None,
-    dns_introducers: vec!["dns-introducer-testnet11.chia.net".to_string()],
-    peer_introducers: vec![],
+    additional_dns_introducers: vec!["dns-introducer-testnet11.chia.net".to_string()],
+    additional_peer_introducers: vec!["introducer-testnet11.chia.net".to_string()],
     inherit: Some(InheritedNetwork::Testnet11),
 });

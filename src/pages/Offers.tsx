@@ -6,9 +6,11 @@ import {
   TransactionResponse,
 } from '@/bindings';
 import ConfirmationDialog from '@/components/ConfirmationDialog';
+import { OfferConfirmation } from '@/components/confirmations/OfferConfirmation';
 import Container from '@/components/Container';
 import Header from '@/components/Header';
 import { OfferSummaryCard } from '@/components/OfferSummaryCard';
+import { QRCodeDialog } from '@/components/QRCodeDialog';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -47,6 +49,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
+import { isAvailable, scan } from '@tauri-apps/plugin-nfc';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { platform } from '@tauri-apps/plugin-os';
 import BigNumber from 'bignumber.js';
@@ -55,18 +58,17 @@ import {
   CopyIcon,
   HandCoins,
   MoreVertical,
+  NfcIcon,
+  QrCode,
   ScanIcon,
   Tags,
   TrashIcon,
-  QrCode,
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
-import { z } from 'zod';
-import { OfferConfirmation } from '@/components/confirmations/OfferConfirmation';
-import { QRCodeDialog } from '@/components/QRCodeDialog';
 import { toast } from 'react-toastify';
+import { z } from 'zod';
 
 export function Offers() {
   const navigate = useNavigate();
@@ -77,6 +79,8 @@ export function Offers() {
   const [offerString, setOfferString] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [offers, setOffers] = useState<OfferRecord[]>([]);
+  const [isNfcAvailable, setIsNfcAvailable] = useState(false);
+  const [showScanUi, setShowScanUi] = useState(false);
 
   const viewOffer = useCallback(
     (offer: string) => {
@@ -137,15 +141,83 @@ export function Offers() {
     viewOffer(offerString);
   };
 
+  useEffect(() => {
+    isAvailable().then((available) => setIsNfcAvailable(available));
+  }, [addError]);
+
+  const handleNfcScan = async () => {
+    const isAndroid = platform() === 'android';
+
+    if (isAndroid) setShowScanUi(true);
+
+    const tag = await scan(
+      { type: 'ndef' },
+      {
+        keepSessionAlive: false,
+        message: 'Scan an NFC tag',
+        successMessage: 'NFC tag successfully scanned',
+      },
+    )
+      .catch((error) =>
+        addError({ kind: 'internal', reason: `Failed to scan NFC: ${error}` }),
+      )
+      .finally(() => setShowScanUi(false));
+
+    if (!tag) return;
+
+    const payload = tag.records[0].payload.slice(3);
+    const array = new Uint8Array(payload);
+    let text = new TextDecoder().decode(array);
+
+    if (!text.startsWith('DT001')) {
+      addError({
+        kind: 'nfc',
+        reason: 'Invalid NFC payload (not following CHIP-0047)',
+      });
+      return;
+    }
+
+    text = text.slice(5);
+
+    const nftId = text.slice(0, 62);
+
+    if (nftId.length !== 62 || !nftId.startsWith('nft1')) {
+      addError({
+        kind: 'nfc',
+        reason:
+          'NFC payload starts with CHIP-0047 prefix but does not have a valid NFT ID',
+      });
+      return;
+    }
+
+    text = text.slice(62);
+
+    const offer = await commands.downloadCniOffercode(text).catch(addError);
+
+    if (!offer) return;
+
+    viewOffer(offer);
+  };
+
   return (
     <>
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <Header
           title={<Trans>Offers</Trans>}
           mobileActionItems={
-            <Button size='icon' variant='ghost' onClick={handleScanOrPaste}>
-              <ScanIcon className='h-5 w-5 ' />
-            </Button>
+            <div className='flex items-center gap-2'>
+              <Button size='icon' variant='ghost' onClick={handleScanOrPaste}>
+                <ScanIcon className='h-5 w-5' />
+              </Button>
+              <Button
+                size='icon'
+                variant='ghost'
+                disabled={!isNfcAvailable}
+                onClick={handleNfcScan}
+              >
+                <NfcIcon className='h-5 w-5 ' />
+              </Button>
+            </div>
           }
         />
         <Container>
@@ -209,6 +281,17 @@ export function Offers() {
               <Trans>View Offer</Trans>
             </Button>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showScanUi} onOpenChange={setShowScanUi}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Scan an NFC tag</DialogTitle>
+            <DialogDescription>
+              <Trans>Place the NFC tag near your device to scan it.</Trans>
+            </DialogDescription>
+          </DialogHeader>
         </DialogContent>
       </Dialog>
     </>
