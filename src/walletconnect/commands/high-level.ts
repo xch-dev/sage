@@ -1,6 +1,7 @@
 import { commands } from '@/bindings';
 import { useWalletState } from '@/state';
 import { Params, Return } from '../commands';
+import { HandlerContext } from '../handler';
 
 export async function handleGetNfts(
   params: Params<'chia_getNfts'>,
@@ -44,7 +45,12 @@ export async function handleGetNfts(
 
 export async function handleSend(
   params: Params<'chia_send'>,
+  context: HandlerContext,
 ): Promise<Return<'chia_send'>> {
+  if (!(await context.promptIfEnabled())) {
+    throw new Error('Authentication failed');
+  }
+
   if (params.assetId) {
     await commands.sendCat({
       asset_id: params.assetId,
@@ -77,13 +83,23 @@ export async function handleGetAddress(
 
 export async function handleSignMessageByAddress(
   params: Params<'chia_signMessageByAddress'>,
+  context: HandlerContext,
 ) {
+  if (!(await context.promptIfEnabled())) {
+    throw new Error('Authentication failed');
+  }
+
   return await commands.signMessageByAddress(params);
 }
 
 export async function handleBulkMintNfts(
   params: Params<'chia_bulkMintNfts'>,
+  context: HandlerContext,
 ): Promise<Return<'chia_bulkMintNfts'>> {
+  if (!(await context.promptIfEnabled())) {
+    throw new Error('Authentication failed');
+  }
+
   const response = await commands.bulkMintNfts({
     did_id: params.did,
     fee: params.fee ?? 0,

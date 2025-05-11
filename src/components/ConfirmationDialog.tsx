@@ -7,6 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { useBiometric } from '@/hooks/useBiometric';
 import { useErrors } from '@/hooks/useErrors';
 import { fromMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
@@ -15,31 +16,31 @@ import { Trans } from '@lingui/react/macro';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 import BigNumber from 'bignumber.js';
 import {
+  AlertCircleIcon,
+  ArrowUpIcon,
+  ArrowUpRightIcon,
   BadgeMinus,
   BadgePlus,
   BoxIcon,
   BracesIcon,
+  CheckCircleIcon,
   CopyCheckIcon,
   CopyIcon,
   ForwardIcon,
-  LoaderCircleIcon,
-  ArrowUpIcon,
   InfoIcon,
-  AlertCircleIcon,
-  CheckCircleIcon,
   ListCollapseIcon,
-  ArrowUpRightIcon,
+  LoaderCircleIcon,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { toast } from 'react-toastify';
 import { commands, TakeOfferResponse, TransactionResponse } from '../bindings';
+import { formatNumber } from '../i18n';
+import { calculateTransaction } from './AdvancedTransactionSummary';
+import { CopyButton } from './CopyButton';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { Badge } from './ui/badge';
 import { Separator } from './ui/separator';
-import { CopyButton } from './CopyButton';
-import { toast } from 'react-toastify';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { formatNumber } from '../i18n';
-import { calculateTransaction } from './AdvancedTransactionSummary';
 
 export interface ConfirmationDialogProps {
   response: TransactionResponse | TakeOfferResponse | null;
@@ -63,6 +64,7 @@ export default function ConfirmationDialog({
   const ticker = walletState.sync.unit.ticker;
 
   const { addError } = useErrors();
+  const { promptIfEnabled } = useBiometric();
 
   const [pending, setPending] = useState(false);
   const [signature, setSignature] = useState<string | null>(null);
@@ -510,21 +512,25 @@ export default function ConfirmationDialog({
                 <div className='flex items-center gap-2 mt-4'>
                   <Button
                     size='sm'
-                    onClick={() => {
-                      commands
-                        .signCoinSpends({
-                          coin_spends:
-                            response === null
-                              ? []
-                              : 'coin_spends' in response
-                                ? response.coin_spends
-                                : response.spend_bundle.coin_spends,
-                        })
-                        .then((data) => {
-                          setSignature(data.spend_bundle.aggregated_signature);
-                          toast.success(t`Transaction signed successfully`);
-                        })
-                        .catch(addError);
+                    onClick={async () => {
+                      if (await promptIfEnabled()) {
+                        commands
+                          .signCoinSpends({
+                            coin_spends:
+                              response === null
+                                ? []
+                                : 'coin_spends' in response
+                                  ? response.coin_spends
+                                  : response.spend_bundle.coin_spends,
+                          })
+                          .then((data) => {
+                            setSignature(
+                              data.spend_bundle.aggregated_signature,
+                            );
+                            toast.success(t`Transaction signed successfully`);
+                          })
+                          .catch(addError);
+                      }
                     }}
                     disabled={!!signature}
                   >
@@ -604,6 +610,8 @@ export default function ConfirmationDialog({
                   response !== null &&
                   'coin_spends' in response
                 ) {
+                  if (!(await promptIfEnabled())) return;
+
                   const data = await commands
                     .signCoinSpends({
                       coin_spends: response!.coin_spends,

@@ -25,6 +25,7 @@ pub struct Timeouts {
     pub remove_subscription: Duration,
     pub request_peers: Duration,
     pub dns: Duration,
+    pub introducer: Duration,
 }
 
 impl Default for Timeouts {
@@ -42,6 +43,7 @@ impl Default for Timeouts {
             remove_subscription: Duration::from_secs(3),
             request_peers: Duration::from_secs(3),
             dns: Duration::from_secs(3),
+            introducer: Duration::from_secs(10),
         }
     }
 }

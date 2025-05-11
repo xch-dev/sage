@@ -144,7 +144,7 @@ async fn max_used_derivation_index(
     )
     .fetch_one(conn)
     .await?;
-    Ok(row.max_index.map(TryInto::try_into).transpose()?)
+    Ok(row.max_index.map(TryInto::<_>::try_into).transpose()?)
 }
 
 async fn p2_puzzle_hashes(conn: impl SqliteExecutor<'_>) -> Result<Vec<Bytes32>> {
@@ -192,11 +192,12 @@ async fn derivations(
     let sql = query.build();
     let rows = sql.bind(hardened).fetch_all(conn).await?;
 
-    if rows.is_empty() {
+    let Some(first_row) = rows.first() else {
         return Ok((vec![], 0));
-    }
+    };
 
-    let total: u32 = rows.first().unwrap().try_get("total_count")?;
+    let total: u32 = first_row.try_get("total_count")?;
+
     let mut derivations = Vec::with_capacity(rows.len());
 
     for row in rows {

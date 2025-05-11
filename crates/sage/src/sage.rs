@@ -8,7 +8,7 @@ use std::{
 
 use chia::{bls::master_to_wallet_unhardened_intermediate, protocol::Bytes32};
 use chia_wallet_sdk::{
-    client::{create_rustls_connector, load_ssl_cert, Connector, Network as SdkNetwork},
+    client::{create_rustls_connector, load_ssl_cert, Connector},
     utils::Address,
 };
 use indexmap::IndexMap;
@@ -212,7 +212,6 @@ impl Sage {
 
     fn setup_sync_manager(&mut self) -> Result<mpsc::Receiver<SyncEvent>> {
         let connector = self.setup_ssl()?;
-        let network = self.network().clone();
 
         let (sync_manager, command_sender, receiver) = SyncManager::new(
             SyncOptions {
@@ -226,12 +225,7 @@ impl Sage {
             },
             self.peer_state.clone(),
             self.wallet.clone(),
-            network.network_id(),
-            SdkNetwork {
-                default_port: network.default_port,
-                genesis_challenge: network.genesis_challenge,
-                dns_introducers: network.dns_introducers.clone(),
-            },
+            self.network().clone(),
             connector,
         );
 
@@ -242,17 +236,8 @@ impl Sage {
     }
 
     pub async fn switch_network(&mut self) -> Result<()> {
-        let network = self.network();
-
         self.command_sender
-            .send(SyncCommand::SwitchNetwork {
-                network_id: network.name.clone(),
-                network: chia_wallet_sdk::client::Network {
-                    default_port: network.default_port,
-                    genesis_challenge: network.genesis_challenge,
-                    dns_introducers: network.dns_introducers.clone(),
-                },
-            })
+            .send(SyncCommand::SwitchNetwork(self.network().clone()))
             .await?;
 
         Ok(())
@@ -342,7 +327,23 @@ impl Sage {
             }
 
             self.command_sender
-                .send(SyncCommand::ConnectPeer { ip })
+                .send(SyncCommand::ConnectPeer {
+                    ip,
+                    user_managed: false,
+                })
+                .await?;
+        }
+
+        for &ip in &peers.user_managed {
+            if state.peer(ip).is_some() {
+                continue;
+            }
+
+            self.command_sender
+                .send(SyncCommand::ConnectPeer {
+                    ip,
+                    user_managed: true,
+                })
                 .await?;
         }
 
@@ -359,7 +360,11 @@ impl Sage {
         let mut peers = Peers::default();
         let mut state = self.peer_state.lock().await;
 
-        for peer in state.peers() {
+        for peer in state.user_managed_peers() {
+            peers.user_managed.insert(peer.socket_addr().ip());
+        }
+
+        for peer in state.auto_discovered_peers() {
             peers.connections.insert(peer.socket_addr().ip());
         }
 
@@ -404,7 +409,19 @@ impl Sage {
     fn wallet_db_path(&self, fingerprint: u32) -> Result<PathBuf> {
         let path = self.path.join("wallets").join(fingerprint.to_string());
         fs::create_dir_all(&path)?;
-        let path = path.join(format!("{}.sqlite", self.network_id()));
+        let network_id = self
+            .wallet_config
+            .wallets
+            .iter()
+            .find_map(|wallet| {
+                if wallet.fingerprint == fingerprint {
+                    wallet.network.clone()
+                } else {
+                    None
+                }
+            })
+            .unwrap_or_else(|| self.network_id());
+        let path = path.join(format!("{network_id}.sqlite"));
         Ok(path)
     }
 

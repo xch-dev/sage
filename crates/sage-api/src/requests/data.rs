@@ -66,6 +66,30 @@ impl Default for CoinSortMode {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct GetAreCoinsSpendable {
+    pub coin_ids: Vec<String>,
+}
+
+#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct GetAreCoinsSpendableResponse {
+    pub spendable: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct GetSpendableCoinCount {
+    pub asset_id: String,
+}
+
+#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct GetSpendableCoinCountResponse {
+    pub count: u32,
+}
+
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct GetXchCoins {
@@ -77,6 +101,18 @@ pub struct GetXchCoins {
     pub ascending: bool,
     #[serde(default)]
     pub include_spent_coins: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct GetCoinsByIds {
+    pub coin_ids: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct GetCoinsByIdsResponse {
+    pub coins: Vec<CoinRecord>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -177,34 +213,6 @@ pub struct GetTransactions {
 pub struct GetTransactionsResponse {
     pub transactions: Vec<TransactionRecord>,
     pub total: u32,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(feature = "tauri", derive(specta::Type))]
-pub struct GetTransactionsByItemId {
-    pub offset: u32,
-    pub limit: u32,
-    pub ascending: bool,
-    pub id: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(feature = "tauri", derive(specta::Type))]
-pub struct GetTransactionsByItemIdResponse {
-    pub transactions: Vec<TransactionRecord>,
-    pub total: u32,
-}
-
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-#[cfg_attr(feature = "tauri", derive(specta::Type))]
-pub struct GetTransaction {
-    pub height: u32,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(feature = "tauri", derive(specta::Type))]
-pub struct GetTransactionResponse {
-    pub transaction: TransactionRecord,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]

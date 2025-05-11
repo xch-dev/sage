@@ -19,60 +19,12 @@ export async function queryTransactions(
   transactions: TransactionRecord[];
   total: number;
 }> {
-  // if the search term might be a block height, try to get the block
-  const searchHeight = params.search ? parseInt(params.search, 10) : null;
-  const isValidHeight =
-    searchHeight !== null && !isNaN(searchHeight) && searchHeight >= 0;
-
-  let specificBlock: TransactionRecord[] = [];
-  if (isValidHeight) {
-    const block = await commands.getTransaction({ height: searchHeight });
-    specificBlock = [block.transaction];
-  }
-
-  // Check if the search term is an asset_id, NFT ID, or DID ID
-  let itemIdTransactions: TransactionRecord[] = [];
-  let itemIdTotal = 0;
-
-  if (params.search) {
-    if (
-      isValidAssetId(params.search) ||
-      isValidAddress(params.search, 'nft') ||
-      isValidAddress(params.search, 'did:chia:')
-    ) {
-      const itemIdResult = await commands.getTransactionsByItemId({
-        offset: params.page ? (params.page - 1) * (params.pageSize || 10) : 0,
-        limit: params.pageSize || 1000000, // Use large limit if no pagination
-        ascending: params.ascending,
-        id: params.search,
-      });
-      itemIdTransactions = itemIdResult.transactions;
-      itemIdTotal = itemIdResult.total;
-    }
-  }
-
-  let regularTransactions: TransactionRecord[] = [];
-  let regularTotal = 0;
-
-  const result = await commands.getTransactions({
+  return await commands.getTransactions({
     offset: params.page ? (params.page - 1) * (params.pageSize || 10) : 0,
     limit: params.pageSize || 1000000, // Use large limit if no pagination
     ascending: params.ascending,
     find_value: params.search || null,
   });
-  regularTransactions = result.transactions;
-  regularTotal = result.total;
-
-  const combinedTransactions = [
-    ...specificBlock,
-    ...itemIdTransactions,
-    ...regularTransactions,
-  ];
-
-  return {
-    transactions: combinedTransactions,
-    total: regularTotal + specificBlock.length + itemIdTotal,
-  };
 }
 
 export async function exportTransactions(params: TransactionQueryParams) {

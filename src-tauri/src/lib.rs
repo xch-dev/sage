@@ -58,6 +58,9 @@ pub fn run() {
             commands::get_sync_status,
             commands::check_address,
             commands::get_derivations,
+            commands::get_are_coins_spendable,
+            commands::get_spendable_coin_count,
+            commands::get_coins_by_ids,
             commands::get_xch_coins,
             commands::get_cat_coins,
             commands::get_cats,
@@ -73,8 +76,6 @@ pub fn run() {
             commands::get_nft_thumbnail,
             commands::get_pending_transactions,
             commands::get_transactions,
-            commands::get_transactions_by_item_id,
-            commands::get_transaction,
             commands::validate_address,
             commands::make_offer,
             commands::take_offer,
@@ -114,6 +115,7 @@ pub fn run() {
             commands::get_rpc_run_on_startup,
             commands::set_rpc_run_on_startup,
             commands::move_key,
+            commands::download_cni_offercode,
         ])
         .events(collect_events![SyncEvent]);
 
@@ -144,12 +146,11 @@ pub fn run() {
             #[cfg(mobile)]
             {
                 app.handle().plugin(tauri_plugin_barcode_scanner::init())?;
+                app.handle().plugin(tauri_plugin_safe_area_insets::init())?;
+                app.handle().plugin(tauri_plugin_nfc::init())?;
+                app.handle().plugin(tauri_plugin_biometric::init())?;
             }
 
-            #[cfg(mobile)]
-            {
-                app.handle().plugin(tauri_plugin_safe_area_insets::init())?;
-            }
             builder.mount_events(app);
             let path = app.path().app_data_dir()?;
             let app_state = AppState::new(Mutex::new(Sage::new(&path)));

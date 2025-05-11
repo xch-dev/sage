@@ -11,6 +11,7 @@ import { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { commands } from '../bindings';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 
 export default function Token() {
   const { asset_id: assetId } = useParams();
@@ -107,7 +108,12 @@ export default function Token() {
           <span>
             {asset ? (asset.name ?? t`Unknown asset`) : ''}{' '}
             {asset?.asset_id !== 'xch' && (
-              <CopyButton value={asset?.asset_id ?? ''} />
+              <CopyButton
+                value={asset?.asset_id ?? ''}
+                onCopy={() => {
+                  toast.success(t`Asset ID copied to clipboard`);
+                }}
+              />
             )}
           </span>
         }

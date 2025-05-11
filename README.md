@@ -68,7 +68,7 @@ pnpm tauri android dev
 
 If you are going to be working on the wallet database follow the steps below.
 
-Sage uses [sqlx](https://github.com/launchbadge/sqlx) for database integration, so first sintall the [sqlx-cli](https://lib.rs/crates/sqlx-cli)
+Sage uses [sqlx](https://github.com/launchbadge/sqlx) for database integration, so first install the [sqlx-cli](https://lib.rs/crates/sqlx-cli)
 
 ```bash
 cargo install sqlx-cli
@@ -76,11 +76,11 @@ cargo install sqlx-cli
 
 Next create a `.env` file in the project root with these contents:
 
-```
+```bash
 DATABASE_URL=sqlite://./test.sqlite
 ```
 
-In order to sync your local environment to incoming query or schema changes run (if you see rust compile errors like `error: error returned from database` you probably need to run this command:
+In order to sync your local environment to incoming query or schema changes or if you see rust compile errors like `error: error returned from database` you probably need to run this command:
 
 ```bash
 sqlx db reset -y
@@ -88,7 +88,7 @@ sqlx db reset -y
 
 If you add or change queries run this command to generate new sqlx SQL files:
 
-```
+```bash
 cargo sqlx prepare --workspace
 ```
 

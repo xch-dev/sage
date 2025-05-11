@@ -6,9 +6,11 @@ import {
   TransactionResponse,
 } from '@/bindings';
 import ConfirmationDialog from '@/components/ConfirmationDialog';
+import { OfferConfirmation } from '@/components/confirmations/OfferConfirmation';
 import Container from '@/components/Container';
 import Header from '@/components/Header';
 import { OfferSummaryCard } from '@/components/OfferSummaryCard';
+import { QRCodeDialog } from '@/components/QRCodeDialog';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -40,13 +42,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { useErrors } from '@/hooks/useErrors';
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
 import { amount } from '@/lib/formTypes';
-import { dexieLink } from '@/lib/offerUpload';
+import { dexieLink, offerIsOnDexie, uploadToDexie } from '@/lib/offerUpload';
 import { toMojos } from '@/lib/utils';
 import { useOfferState, useWalletState } from '@/state';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
+import { isAvailable, scan } from '@tauri-apps/plugin-nfc';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { platform } from '@tauri-apps/plugin-os';
 import BigNumber from 'bignumber.js';
@@ -55,6 +58,8 @@ import {
   CopyIcon,
   HandCoins,
   MoreVertical,
+  NfcIcon,
+  QrCode,
   ScanIcon,
   Tags,
   TrashIcon,
@@ -62,8 +67,8 @@ import {
 import { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import { z } from 'zod';
-import { OfferConfirmation } from '@/components/confirmations/OfferConfirmation';
 
 export function Offers() {
   const navigate = useNavigate();
@@ -74,6 +79,8 @@ export function Offers() {
   const [offerString, setOfferString] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [offers, setOffers] = useState<OfferRecord[]>([]);
+  const [isNfcAvailable, setIsNfcAvailable] = useState(false);
+  const [showScanUi, setShowScanUi] = useState(false);
 
   const viewOffer = useCallback(
     (offer: string) => {
@@ -134,15 +141,83 @@ export function Offers() {
     viewOffer(offerString);
   };
 
+  useEffect(() => {
+    isAvailable().then((available) => setIsNfcAvailable(available));
+  }, [addError]);
+
+  const handleNfcScan = async () => {
+    const isAndroid = platform() === 'android';
+
+    if (isAndroid) setShowScanUi(true);
+
+    const tag = await scan(
+      { type: 'ndef' },
+      {
+        keepSessionAlive: false,
+        message: 'Scan an NFC tag',
+        successMessage: 'NFC tag successfully scanned',
+      },
+    )
+      .catch((error) =>
+        addError({ kind: 'internal', reason: `Failed to scan NFC: ${error}` }),
+      )
+      .finally(() => setShowScanUi(false));
+
+    if (!tag) return;
+
+    const payload = tag.records[0].payload.slice(3);
+    const array = new Uint8Array(payload);
+    let text = new TextDecoder().decode(array);
+
+    if (!text.startsWith('DT001')) {
+      addError({
+        kind: 'nfc',
+        reason: 'Invalid NFC payload (not following CHIP-0047)',
+      });
+      return;
+    }
+
+    text = text.slice(5);
+
+    const nftId = text.slice(0, 62);
+
+    if (nftId.length !== 62 || !nftId.startsWith('nft1')) {
+      addError({
+        kind: 'nfc',
+        reason:
+          'NFC payload starts with CHIP-0047 prefix but does not have a valid NFT ID',
+      });
+      return;
+    }
+
+    text = text.slice(62);
+
+    const offer = await commands.downloadCniOffercode(text).catch(addError);
+
+    if (!offer) return;
+
+    viewOffer(offer);
+  };
+
   return (
     <>
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <Header
           title={<Trans>Offers</Trans>}
           mobileActionItems={
-            <Button size='icon' variant='ghost' onClick={handleScanOrPaste}>
-              <ScanIcon className='h-5 w-5 ' />
-            </Button>
+            <div className='flex items-center gap-2'>
+              <Button size='icon' variant='ghost' onClick={handleScanOrPaste}>
+                <ScanIcon className='h-5 w-5' />
+              </Button>
+              <Button
+                size='icon'
+                variant='ghost'
+                disabled={!isNfcAvailable}
+                onClick={handleNfcScan}
+              >
+                <NfcIcon className='h-5 w-5 ' />
+              </Button>
+            </div>
           }
         />
         <Container>
@@ -192,12 +267,12 @@ export function Offers() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              <Trans>Enter Offer String</Trans>
+              <Trans>Enter Offer String or Dexie URL</Trans>
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleViewOffer} className='flex flex-col gap-4'>
             <Textarea
-              placeholder={t`Paste your offer string here...`}
+              placeholder={t`Paste your offer string or Dexie URL here...`}
               value={offerString}
               onChange={(e) => setOfferString(e.target.value)}
               className='min-h-[200px] font-mono text-xs'
@@ -206,6 +281,17 @@ export function Offers() {
               <Trans>View Offer</Trans>
             </Button>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showScanUi} onOpenChange={setShowScanUi}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Scan an NFC tag</DialogTitle>
+            <DialogDescription>
+              <Trans>Place the NFC tag near your device to scan it.</Trans>
+            </DialogDescription>
+          </DialogHeader>
         </DialogContent>
       </Dialog>
     </>
@@ -224,12 +310,22 @@ function Offer({ record, refresh }: OfferProps) {
 
   const [isDeleteOpen, setDeleteOpen] = useState(false);
   const [isCancelOpen, setCancelOpen] = useState(false);
+  const [isQrOpen, setQrOpen] = useState(false);
 
   const [network, setNetwork] = useState<NetworkKind | null>(null);
+  const [isOnDexie, setIsOnDexie] = useState<boolean | null>(null);
 
   useEffect(() => {
     commands.getNetwork({}).then((data) => setNetwork(data.kind));
   }, []);
+
+  useEffect(() => {
+    if (network !== 'unknown') {
+      offerIsOnDexie(record.offer_id, network === 'testnet')
+        .then(setIsOnDexie)
+        .catch(() => setIsOnDexie(false));
+    }
+  }, [network, record.offer_id]);
 
   const cancelSchema = z.object({
     fee: amount(walletState.sync.unit.decimals).refine(
@@ -336,24 +432,69 @@ function Offer({ record, refresh }: OfferProps) {
                   </DropdownMenuItem>
 
                   {network !== 'unknown' && (
-                    <DropdownMenuItem
-                      className='cursor-pointer'
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openUrl(
-                          dexieLink(record.offer_id, network === 'testnet'),
-                        );
-                      }}
-                    >
-                      <img
-                        src='https://raw.githubusercontent.com/dexie-space/dexie-kit/refs/heads/main/svg/duck.svg'
-                        className='h-4 w-4 mr-2'
-                        alt='Dexie logo'
-                      />
-                      <span>
-                        <Trans>Dexie</Trans>
-                      </span>
-                    </DropdownMenuItem>
+                    <>
+                      <DropdownMenuItem
+                        className='cursor-pointer'
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (isOnDexie) {
+                            openUrl(
+                              dexieLink(record.offer_id, network === 'testnet'),
+                            );
+                          } else {
+                            const toastId = toast.loading(
+                              t`Uploading to Dexie...`,
+                            );
+                            uploadToDexie(record.offer, network === 'testnet')
+                              .then((url: string) => {
+                                toast.update(toastId, {
+                                  render: t`Uploaded to Dexie!`,
+                                  type: 'success',
+                                  isLoading: false,
+                                  autoClose: 3000,
+                                });
+                                setIsOnDexie(true);
+                                openUrl(url);
+                              })
+                              .catch((error) => {
+                                toast.update(toastId, {
+                                  render: t`Failed to upload to Dexie`,
+                                  type: 'error',
+                                  isLoading: false,
+                                  autoClose: 3000,
+                                });
+                                addError(error);
+                              });
+                          }
+                        }}
+                      >
+                        <img
+                          src='https://raw.githubusercontent.com/dexie-space/dexie-kit/refs/heads/main/svg/duck.svg'
+                          className='h-4 w-4 mr-2'
+                          alt='Dexie logo'
+                        />
+                        <span>
+                          {isOnDexie ? (
+                            <Trans>Dexie</Trans>
+                          ) : (
+                            <Trans>Upload to Dexie</Trans>
+                          )}
+                        </span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className='cursor-pointer'
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setQrOpen(true);
+                        }}
+                        disabled={!isOnDexie}
+                      >
+                        <QrCode className='mr-2 h-4 w-4' />
+                        <span>
+                          <Trans>Dexie QR Code</Trans>
+                        </span>
+                      </DropdownMenuItem>
+                    </>
                   )}
                 </DropdownMenuGroup>
               </DropdownMenuContent>
@@ -457,6 +598,15 @@ function Offer({ record, refresh }: OfferProps) {
             <OfferConfirmation type='cancel' offer={record} />
           ),
         }}
+      />
+
+      <QRCodeDialog
+        isOpen={isQrOpen}
+        onClose={setQrOpen}
+        asset={null}
+        qr_code_contents={dexieLink(record.offer_id, network === 'testnet')}
+        title={t`Dexie QR Code`}
+        description={t`Scan this QR code to view the offer`}
       />
     </>
   );

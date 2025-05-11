@@ -1,7 +1,7 @@
 import { loadCatalog } from '@/i18n';
 import { createContext, ReactNode, useContext } from 'react';
 
-const SUPPORTED_LANGUAGES = ['en-US', 'de-DE', 'zh-CN'] as const;
+const SUPPORTED_LANGUAGES = ['en-US', 'de-DE', 'zh-CN', 'es-MX'] as const;
 export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
 export interface LanguageContextType {
   locale: SupportedLanguage;
