@@ -15,7 +15,6 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Trans } from '@lingui/react/macro';
 import { t } from '@lingui/core/macro';
 import { CustomError } from '@/contexts/ErrorContext';
-import { fetch } from '@tauri-apps/plugin-http';
 import { OfferConfirmation } from '@/components/confirmations/OfferConfirmation';
 
 const isValidHostname = (url: string, expectedHostname: string) => {

@@ -9,7 +9,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import StyledQRCode from '@/components/StyledQrCode';
-import { fetch } from '@tauri-apps/plugin-http';
 import { CatRecord } from '../bindings';
 
 interface QRCodeDialogProps {

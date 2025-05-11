@@ -39,7 +39,6 @@ rustls = { workspace = true }
 # This is to ensure that the bindgen feature is enabled for the aws-lc-rs crate.
 # https://aws.github.io/aws-lc-rs/platform_support.html#tested-platforms
 aws-lc-rs = { version = "1", features = ["bindgen"] }
-tauri-plugin-http = "2.0.0-rc"
 tauri-plugin-dialog = "2"
 tauri-plugin-fs = "2"
 
