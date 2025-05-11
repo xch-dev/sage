@@ -6,6 +6,7 @@ import {
   GetSyncStatusResponse,
   KeyInfo,
 } from './bindings';
+import { CustomError } from './contexts/ErrorContext';
 
 export interface WalletState {
   sync: GetSyncStatusResponse;
@@ -85,9 +86,21 @@ events.syncEvent.listen((event) => {
   }
 });
 
-export async function loginAndUpdateState(fingerprint: number): Promise<void> {
-  await commands.login({ fingerprint });
-  await fetchState();
+export async function loginAndUpdateState(
+  fingerprint: number,
+  onError?: (error: CustomError) => void,
+): Promise<void> {
+  try {
+    await commands.login({ fingerprint });
+    await fetchState();
+  } catch (error) {
+    if (onError) {
+      onError(error as CustomError);
+    } else {
+      console.error(error);
+    }
+    throw error;
+  }
 }
 
 // Create a separate function to handle wallet state updates

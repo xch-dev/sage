@@ -278,6 +278,9 @@ async getRpcRunOnStartup() : Promise<boolean> {
 async setRpcRunOnStartup(runOnStartup: boolean) : Promise<null> {
     return await TAURI_INVOKE("set_rpc_run_on_startup", { runOnStartup });
 },
+async switchWallet() : Promise<null> {
+    return await TAURI_INVOKE("switch_wallet");
+},
 async moveKey(fingerprint: number, index: number) : Promise<null> {
     return await TAURI_INVOKE("move_key", { fingerprint, index });
 },
@@ -363,7 +366,7 @@ export type DerivationMode = { mode: "default" } |
 export type DerivationRecord = { index: number; public_key: string; address: string }
 export type DidRecord = { launcher_id: string; name: string | null; visible: boolean; coin_id: string; address: string; amount: Amount; recovery_hash: string | null; created_height: number | null; create_transaction_id: string | null }
 export type Error = { kind: ErrorKind; reason: string }
-export type ErrorKind = "wallet" | "api" | "not_found" | "unauthorized" | "internal" | "nfc"
+export type ErrorKind = "wallet" | "api" | "not_found" | "unauthorized" | "internal" | "database_migration" | "nfc"
 export type FilterUnlockedCoins = { coin_ids: string[] }
 export type FilterUnlockedCoinsResponse = { coin_ids: string[] }
 export type GenerateMnemonic = { use_24_words: boolean }
@@ -427,7 +430,7 @@ export type GetXchCoinsResponse = { coins: CoinRecord[]; total: number }
 export type ImportKey = { name: string; key: string; derivation_index?: number; save_secrets?: boolean; login?: boolean }
 export type ImportKeyResponse = { fingerprint: number }
 export type ImportOffer = { offer: string }
-export type ImportOfferResponse = Record<string, never>
+export type ImportOfferResponse = { offer_id: string }
 export type IncreaseDerivationIndex = { hardened?: boolean | null; index: number }
 export type IncreaseDerivationIndexResponse = Record<string, never>
 export type InheritedNetwork = "mainnet" | "testnet11"

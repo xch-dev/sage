@@ -148,6 +148,13 @@ pub async fn set_rpc_run_on_startup(
 
 #[command]
 #[specta]
+pub async fn switch_wallet(state: State<'_, AppState>) -> Result<()> {
+    state.lock().await.switch_wallet().await?;
+    Ok(())
+}
+
+#[command]
+#[specta]
 pub async fn move_key(state: State<'_, AppState>, fingerprint: u32, index: u32) -> Result<()> {
     let mut state = state.lock().await;
 

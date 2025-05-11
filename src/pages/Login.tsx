@@ -91,8 +91,14 @@ export default function Login() {
   useEffect(() => {
     commands
       .getKey({})
-      .then((data) => data.key !== null && navigate('/wallet'))
-      .catch(addError);
+      .then((data) => {
+        if (data.key !== null) {
+          navigate('/wallet');
+        }
+      })
+      .catch((error) => {
+        addError(error);
+      });
   }, [navigate, addError]);
 
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
@@ -333,13 +339,17 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
   const loginSelf = (explicit: boolean) => {
     if (isMenuOpen && !explicit) return;
 
-    loginAndUpdateState(info.fingerprint).then(() => {
-      commands
-        .getKey({})
-        .then((data) => setWallet(data.key))
-        .then(() => navigate('/wallet'))
-        .catch(addError);
-    });
+    loginAndUpdateState(info.fingerprint, addError)
+      .then(() => {
+        commands
+          .getKey({})
+          .then((data) => setWallet(data.key))
+          .then(() => navigate('/wallet'))
+          .catch(addError);
+      })
+      .catch((error) => {
+        addError(error);
+      });
   };
 
   useEffect(() => {

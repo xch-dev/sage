@@ -110,7 +110,7 @@ export default function ErrorDialog({ error, setError }: ErrorDialogProps) {
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{kind ? `${kind} ` : ''}Error</DialogTitle>
-          <DialogDescription className='break-all'>
+          <DialogDescription className='break-words'>
             {error?.reason}
           </DialogDescription>
         </DialogHeader>
