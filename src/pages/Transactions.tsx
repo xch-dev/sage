@@ -16,6 +16,10 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Info } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  exportTransactions,
+  queryTransactions,
+} from '@/lib/exportTransactions';
+import {
   commands,
   events,
   PendingTransactionRecord,
@@ -47,11 +51,11 @@ export function Transactions() {
         const pendingResult = await commands.getPendingTransactions({});
         setPending(pendingResult.transactions);
 
-        const result = await commands.getTransactions({
-          offset: (page - 1) * pageSize,
-          limit: pageSize,
+        const result = await queryTransactions({
+          search,
           ascending,
-          find_value: search || null,
+          page,
+          pageSize,
         });
 
         setTransactions(result.transactions);
@@ -188,6 +192,12 @@ export function Transactions() {
             isLoading={isLoading || isPaginationLoading}
             className='mb-4'
             renderPagination={() => renderPagination(false)}
+            onExport={() =>
+              exportTransactions({
+                search,
+                ascending,
+              })
+            }
           />
         </div>
 

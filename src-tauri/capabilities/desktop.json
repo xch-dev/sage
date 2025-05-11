@@ -2,5 +2,13 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "desktop-capability",
   "platforms": ["macOS", "windows", "linux"],
-  "permissions": ["window-state:default"]
+  "windows": ["main"],
+  "permissions": [
+    "window-state:default",
+    "core:menu:default",
+    "core:tray:default",
+    "core:window:allow-request-user-attention",
+    "fs:allow-write-text-file",
+    "dialog:default"
+  ]
 }
