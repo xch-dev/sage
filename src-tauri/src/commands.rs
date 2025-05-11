@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use chia_wallet_sdk::utils::Address;
+use reqwest::StatusCode;
 use sage::Error;
 use sage_api::{wallet_connect::*, *};
 use sage_api_macro::impl_endpoints_tauri;
@@ -179,12 +180,21 @@ pub async fn download_cni_offercode(code: String) -> Result<String> {
 
     let response = reqwest::Client::new()
         .post("https://offercodes.chia.net/download_offer")
-        .json(&Request { code })
+        .json(&Request { code: code.clone() })
         .send()
-        .await?
-        .json::<Response>()
-        .await?
-        .offer;
+        .await?;
+
+    if response.status() != StatusCode::OK {
+        return Err(crate::error::Error {
+            kind: ErrorKind::Nfc,
+            reason: format!(
+                "Invalid offer code {code}: Server responded with code {}",
+                response.status()
+            ),
+        });
+    }
+
+    let response = response.json::<Response>().await?.offer;
 
     Ok(response)
 }

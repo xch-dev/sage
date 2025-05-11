@@ -73,6 +73,7 @@ tauri-plugin-os = "2.2.1"
 tauri-plugin-window-state = "2.2.2"
 tauri-plugin-barcode-scanner = "2.2.0"
 tauri-plugin-nfc = "2.2.0"
+tauri-plugin-biometric = "2.2.1"
 tauri-plugin-safe-area-insets = "0.1.0"
 tauri-build = "2.2.0"
 

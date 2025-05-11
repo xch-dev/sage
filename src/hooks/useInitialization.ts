@@ -7,7 +7,7 @@ export default function useInitialization() {
 
   const [initialized, setInitialized] = useState(false);
 
-  const onInitialize = useCallback(async () => {
+  const initialize = useCallback(async () => {
     commands
       .initialize()
       .then(() => setInitialized(true))
@@ -16,9 +16,9 @@ export default function useInitialization() {
 
   useEffect(() => {
     if (!initialized) {
-      onInitialize();
+      initialize();
     }
-  }, [initialized, onInitialize]);
+  }, [initialized, initialize]);
 
   return initialized;
 }

@@ -80,6 +80,7 @@ export function Offers() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [offers, setOffers] = useState<OfferRecord[]>([]);
   const [isNfcAvailable, setIsNfcAvailable] = useState(false);
+  const [showScanUi, setShowScanUi] = useState(false);
 
   const viewOffer = useCallback(
     (offer: string) => {
@@ -145,16 +146,22 @@ export function Offers() {
   }, [addError]);
 
   const handleNfcScan = async () => {
+    const isAndroid = platform() === 'android';
+
+    if (isAndroid) setShowScanUi(true);
+
     const tag = await scan(
       { type: 'ndef' },
       {
         keepSessionAlive: false,
-        message: 'Scan a NFC tag',
+        message: 'Scan an NFC tag',
         successMessage: 'NFC tag successfully scanned',
       },
-    ).catch((error) =>
-      addError({ kind: 'internal', reason: `Failed to scan NFC: ${error}` }),
-    );
+    )
+      .catch((error) =>
+        addError({ kind: 'internal', reason: `Failed to scan NFC: ${error}` }),
+      )
+      .finally(() => setShowScanUi(false));
 
     if (!tag) return;
 
@@ -274,6 +281,17 @@ export function Offers() {
               <Trans>View Offer</Trans>
             </Button>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showScanUi} onOpenChange={setShowScanUi}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Scan an NFC tag</DialogTitle>
+            <DialogDescription>
+              <Trans>Place the NFC tag near your device to scan it.</Trans>
+            </DialogDescription>
+          </DialogHeader>
         </DialogContent>
       </Dialog>
     </>

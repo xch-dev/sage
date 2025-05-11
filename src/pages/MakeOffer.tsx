@@ -24,6 +24,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { useBiometric } from '@/hooks/useBiometric';
 import { useDefaultOfferExpiry } from '@/hooks/useDefaultOfferExpiry';
 import { useErrors } from '@/hooks/useErrors';
 import useOfferStateWithDefault from '@/hooks/useOfferStateWithDefault';
@@ -56,6 +57,7 @@ export function MakeOffer() {
   const navigate = useNavigate();
 
   const { addError } = useErrors();
+  const { promptIfEnabled } = useBiometric();
 
   const [offer, setOffer] = useState('');
   const [pending, setPending] = useState(false);
@@ -96,6 +98,11 @@ export function MakeOffer() {
         return;
       }
       expiresAtSecond = Math.ceil(Date.now() / 1000) + totalSeconds;
+    }
+
+    if (!(await promptIfEnabled())) {
+      setPending(false);
+      return;
     }
 
     const data = await commands.makeOffer({

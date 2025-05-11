@@ -57,7 +57,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: 'macos-latest'
+          - platform: 'macos-15'
             platform_name: MacOS
             build: 'pnpm tauri build --target universal-apple-darwin'
           - platform: 'ubuntu-22.04'
@@ -72,11 +72,11 @@ jobs:
           - platform: 'windows-latest'
             platform_name: Windows (ARM)
             build: 'pnpm tauri build --target aarch64-pc-windows-msvc'
-          - platform: 'macos-latest'
+          - platform: 'macos-15'
             platform_name: iOS
             build: 'pnpm tauri ios build --export-method app-store-connect'
             build_dev: 'pnpm tauri ios build --export-method debugging'
-          - platform: 'macos-latest'
+          - platform: 'macos-15'
             platform_name: Android
             build: 'pnpm tauri android build'
     steps:
@@ -148,7 +148,7 @@ jobs:
         run: pnpm install
 
       - name: Save API key to file
-        if: matrix.platform == 'macos-latest'
+        if: matrix.platform == 'macos-15'
         run: |
           mkdir -p ~/private_keys
           echo -n '${{ secrets.APPLE_API_SECRET_KEY }}' > ~/private_keys/AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8
