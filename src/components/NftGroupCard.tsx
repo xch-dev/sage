@@ -24,6 +24,7 @@ import {
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
 import {
@@ -312,16 +313,6 @@ export function NftGroupCard({
                       </>
                     )}
                   </DropdownMenuItem>
-
-                  <DropdownMenuItem
-                    className='cursor-pointer'
-                    aria-label={t`Add ${cardName} to offer`}
-                  >
-                    <HandCoins className='mr-2 h-4 w-4' aria-hidden='true' />
-                    <span>
-                      <Trans>Create Offers</Trans>
-                    </span>
-                  </DropdownMenuItem>
                 </>
               )}
 
@@ -343,6 +334,16 @@ export function NftGroupCard({
                 <Copy className='mr-2 h-4 w-4' aria-hidden='true' />
                 <span>
                   <Trans>Copy ID</Trans>
+                </span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className='cursor-pointer'
+                aria-label={t`Create offers for all NFTs in ${cardName}`}
+              >
+                <HandCoins className='mr-2 h-4 w-4' aria-hidden='true' />
+                <span title={t`Create offers for all NFTs in ${cardName}`}>
+                  <Trans>Create Offers</Trans>
                 </span>
               </DropdownMenuItem>
             </DropdownMenuGroup>
