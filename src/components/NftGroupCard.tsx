@@ -9,6 +9,7 @@ import {
   ExternalLink,
   EyeIcon,
   EyeOff,
+  HandCoins,
   LibraryBig,
   MoreVertical,
   Paintbrush,
@@ -310,6 +311,16 @@ export function NftGroupCard({
                         </span>
                       </>
                     )}
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem
+                    className='cursor-pointer'
+                    aria-label={t`Add ${cardName} to offer`}
+                  >
+                    <HandCoins className='mr-2 h-4 w-4' aria-hidden='true' />
+                    <span>
+                      <Trans>Create Offers</Trans>
+                    </span>
                   </DropdownMenuItem>
                 </>
               )}
