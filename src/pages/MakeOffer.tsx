@@ -65,6 +65,8 @@ export function MakeOffer() {
   const [mintGardenLink, setMintGardenLink] = useState('');
   const [canUploadToMintGarden, setCanUploadToMintGarden] = useState(false);
   const [network, setNetwork] = useState<NetworkKind | null>(null);
+  const [splitNftOffers, setSplitNftOffers] = useState(false);
+  const [offers, setOffers] = useState<string[]>([]);
 
   useEffect(() => {
     commands.getNetwork({}).then((data) => setNetwork(data.kind));
@@ -73,6 +75,7 @@ export function MakeOffer() {
   useEffect(() => {
     setDexieLink('');
     setMintGardenLink('');
+    setOffers([]);
   }, [offer]);
 
   const handleMake = async () => {
@@ -105,38 +108,79 @@ export function MakeOffer() {
       return;
     }
 
-    const data = await commands.makeOffer({
-      offered_assets: {
-        xch: toMojos(
-          (state.offered.xch || '0').toString(),
+    if (splitNftOffers && state.offered.nfts.length > 1) {
+      // Create individual offers for each NFT
+      const newOffers: string[] = [];
+      for (const nft of state.offered.nfts) {
+        const data = await commands.makeOffer({
+          offered_assets: {
+            xch: toMojos(
+              (state.offered.xch || '0').toString(),
+              walletState.sync.unit.decimals,
+            ),
+            cats: state.offered.cats.map((cat) => ({
+              asset_id: cat.asset_id,
+              amount: toMojos((cat.amount || '0').toString(), 3),
+            })),
+            nfts: [nft],
+          },
+          requested_assets: {
+            xch: toMojos(
+              (state.requested.xch || '0').toString(),
+              walletState.sync.unit.decimals,
+            ),
+            cats: state.requested.cats.map((cat) => ({
+              asset_id: cat.asset_id,
+              amount: toMojos((cat.amount || '0').toString(), 3),
+            })),
+            nfts: state.requested.nfts,
+          },
+          fee: toMojos(
+            (state.fee || '0').toString(),
+            walletState.sync.unit.decimals,
+          ),
+          expires_at_second: expiresAtSecond,
+        });
+        newOffers.push(data.offer);
+      }
+      setOffers(newOffers);
+      setOffer(newOffers[0]); // Show first offer by default
+    } else {
+      // Create single offer with all NFTs
+      const data = await commands.makeOffer({
+        offered_assets: {
+          xch: toMojos(
+            (state.offered.xch || '0').toString(),
+            walletState.sync.unit.decimals,
+          ),
+          cats: state.offered.cats.map((cat) => ({
+            asset_id: cat.asset_id,
+            amount: toMojos((cat.amount || '0').toString(), 3),
+          })),
+          nfts: state.offered.nfts,
+        },
+        requested_assets: {
+          xch: toMojos(
+            (state.requested.xch || '0').toString(),
+            walletState.sync.unit.decimals,
+          ),
+          cats: state.requested.cats.map((cat) => ({
+            asset_id: cat.asset_id,
+            amount: toMojos((cat.amount || '0').toString(), 3),
+          })),
+          nfts: state.requested.nfts,
+        },
+        fee: toMojos(
+          (state.fee || '0').toString(),
           walletState.sync.unit.decimals,
         ),
-        cats: state.offered.cats.map((cat) => ({
-          asset_id: cat.asset_id,
-          amount: toMojos((cat.amount || '0').toString(), 3),
-        })),
-        nfts: state.offered.nfts,
-      },
-      requested_assets: {
-        xch: toMojos(
-          (state.requested.xch || '0').toString(),
-          walletState.sync.unit.decimals,
-        ),
-        cats: state.requested.cats.map((cat) => ({
-          asset_id: cat.asset_id,
-          amount: toMojos((cat.amount || '0').toString(), 3),
-        })),
-        nfts: state.requested.nfts,
-      },
-      fee: toMojos(
-        (state.fee || '0').toString(),
-        walletState.sync.unit.decimals,
-      ),
-      expires_at_second: expiresAtSecond,
-    });
+        expires_at_second: expiresAtSecond,
+      });
+
+      setOffer(data.offer);
+    }
 
     setState(null);
-    setOffer(data.offer);
     setPending(false);
     setCanUploadToMintGarden(mintgardenSupported);
   };
@@ -172,6 +216,8 @@ export function MakeOffer() {
                 prefix='offer'
                 assets={state.offered}
                 setAssets={(assets) => setState({ offered: assets })}
+                splitNftOffers={splitNftOffers}
+                setSplitNftOffers={setSplitNftOffers}
               />
             </CardContent>
           </Card>
@@ -192,6 +238,8 @@ export function MakeOffer() {
                 prefix='requested'
                 assets={state.requested}
                 setAssets={(assets) => setState({ requested: assets })}
+                splitNftOffers={splitNftOffers}
+                setSplitNftOffers={setSplitNftOffers}
               />
             </CardContent>
           </Card>
@@ -352,6 +400,24 @@ export function MakeOffer() {
                   copy the offer file below and send it to the intended
                   recipient or make it public to be accepted by anyone.
                 </Trans>
+                {offers.length > 1 && (
+                  <div className='mt-2'>
+                    <Label>
+                      <Trans>Select Offer</Trans>
+                    </Label>
+                    <select
+                      className='w-full mt-1 p-2 border rounded'
+                      value={offer}
+                      onChange={(e) => setOffer(e.target.value)}
+                    >
+                      {offers.map((o, i) => (
+                        <option key={i} value={o}>
+                          {t`Offer ${i + 1}`}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <CopyBox title='Offer File' value={offer} className='mt-2' />
                 {network !== 'unknown' && (
                   <div className='flex flex-col gap-2 mt-2'>
@@ -432,6 +498,8 @@ interface AssetSelectorProps {
   prefix: string;
   assets: Assets;
   setAssets: (value: Assets) => void;
+  splitNftOffers?: boolean;
+  setSplitNftOffers?: (value: boolean) => void;
 }
 
 function AssetSelector({
@@ -439,6 +507,8 @@ function AssetSelector({
   prefix,
   assets,
   setAssets,
+  splitNftOffers,
+  setSplitNftOffers,
 }: AssetSelectorProps) {
   const [state] = useOfferStateWithDefault();
   const [includeAmount, setIncludeAmount] = useState(!!assets.xch);
@@ -566,6 +636,18 @@ function AssetSelector({
             <ImageIcon className='h-4 w-4' />
             <span>NFTs</span>
           </Label>
+          {assets.nfts.length > 1 && (
+            <div className='flex items-center gap-2 mb-2'>
+              <Switch
+                id='split-offers'
+                checked={splitNftOffers}
+                onCheckedChange={setSplitNftOffers}
+              />
+              <Label htmlFor='split-offers' className='text-sm'>
+                <Trans>Create individual offers for each NFT</Trans>
+              </Label>
+            </div>
+          )}
           {assets.nfts.map((nft, i) => (
             <div key={i} className='flex h-14 z-20'>
               {offering === true ? (

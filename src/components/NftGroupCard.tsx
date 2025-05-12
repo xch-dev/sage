@@ -339,11 +339,11 @@ export function NftGroupCard({
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 className='cursor-pointer'
-                aria-label={t`Create offers for all NFTs in ${cardName}`}
+                aria-label={t`Add all NFTs in ${cardName} to an offer`}
               >
                 <HandCoins className='mr-2 h-4 w-4' aria-hidden='true' />
-                <span title={t`Create offers for all NFTs in ${cardName}`}>
-                  <Trans>Create Offers</Trans>
+                <span title={t`Add all NFTs in ${cardName} to an offer`}>
+                  <Trans>Add to Offer</Trans>
                 </span>
               </DropdownMenuItem>
             </DropdownMenuGroup>

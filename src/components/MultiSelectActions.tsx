@@ -288,16 +288,6 @@ export function MultiSelectActions({
                   <Trans>Add to Offer</Trans>
                 </span>
               </DropdownMenuItem>
-              <DropdownMenuItem
-                className='cursor-pointer'
-                disabled={selectedCount === 1}
-                aria-label={t`Create an offer for each selected NFT`}
-              >
-                <HandCoins className='mr-2 h-4 w-4' aria-hidden='true' />
-                <span>
-                  <Trans>Create Offers</Trans>
-                </span>
-              </DropdownMenuItem>
             </DropdownMenuGroup>
           </DropdownMenuContent>
         </DropdownMenu>

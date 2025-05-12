@@ -6,7 +6,7 @@ import {
   TransactionResponse,
 } from '@/bindings';
 import ConfirmationDialog from '@/components/ConfirmationDialog';
-import { OfferConfirmation } from '@/components/confirmations/OfferConfirmation';
+import { TakeOfferConfirmation } from '@/components/confirmations/TakeOfferConfirmation';
 import Container from '@/components/Container';
 import Header from '@/components/Header';
 import { OfferSummaryCard } from '@/components/OfferSummaryCard';
@@ -595,7 +595,7 @@ function Offer({ record, refresh }: OfferProps) {
         additionalData={{
           title: t`Cancel Offer`,
           content: response && (
-            <OfferConfirmation type='cancel' offer={record} />
+            <TakeOfferConfirmation type='cancel' offer={record} />
           ),
         }}
       />

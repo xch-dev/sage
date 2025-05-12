@@ -17,7 +17,7 @@ interface OfferConfirmationProps {
   offer: OfferSummary | OfferRecord;
 }
 
-export function OfferConfirmation({ type, offer }: OfferConfirmationProps) {
+export function TakeOfferConfirmation({ type, offer }: OfferConfirmationProps) {
   const config = {
     take: {
       icon: HandshakeIcon,
