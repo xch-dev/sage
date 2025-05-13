@@ -50,6 +50,7 @@ interface NftGroupCardProps {
   isLoading?: boolean;
   error?: Error;
   isPlaceHolder?: boolean;
+  setSplitNftOffers?: (value: boolean) => void;
 }
 
 export function NftGroupCard({
@@ -62,6 +63,7 @@ export function NftGroupCard({
   isLoading,
   error,
   isPlaceHolder = false,
+  setSplitNftOffers,
 }: NftGroupCardProps) {
   const navigate = useNavigate();
   const [offerState, setOfferState] = useOfferStateWithDefault();
@@ -408,13 +410,20 @@ export function NftGroupCard({
                       },
                     });
 
+                    if (setSplitNftOffers) {
+                      setSplitNftOffers(true);
+                    }
+
                     const nfts = addedCount === 1 ? t`NFT` : t`NFTs`;
                     const message =
                       addedCount > 0
                         ? t`Added ${addedCount} ${nfts} to offer`
                         : t`Selected NFTs are already in the offer`;
                     toast.success(message, {
-                      onClick: () => navigate('/offers/make'),
+                      onClick: () =>
+                        navigate('/offers/make', {
+                          state: { splitNftOffers: true },
+                        }),
                     });
                   } catch (error: any) {
                     toast.error(

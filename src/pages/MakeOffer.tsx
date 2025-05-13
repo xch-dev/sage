@@ -45,17 +45,15 @@ import {
   TrashIcon,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { CatRecord } from '../bindings';
 
 export function MakeOffer() {
   const [state, setState] = useOfferStateWithDefault();
-
+  const location = useLocation();
   const { expiry } = useDefaultOfferExpiry();
-
   const walletState = useWalletState();
   const navigate = useNavigate();
-
   const { addError } = useErrors();
   const { promptIfEnabled } = useBiometric();
 
@@ -65,7 +63,9 @@ export function MakeOffer() {
   const [mintGardenLink, setMintGardenLink] = useState('');
   const [canUploadToMintGarden, setCanUploadToMintGarden] = useState(false);
   const [network, setNetwork] = useState<NetworkKind | null>(null);
-  const [splitNftOffers, setSplitNftOffers] = useState(false);
+  const [splitNftOffers, setSplitNftOffers] = useState(
+    location.state?.splitNftOffers || false,
+  );
   const [offers, setOffers] = useState<string[]>([]);
 
   useEffect(() => {
