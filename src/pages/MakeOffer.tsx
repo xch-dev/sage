@@ -1,4 +1,4 @@
-import { Assets, commands, NetworkKind } from '@/bindings';
+import { Assets, commands, NetworkKind, Error as ChiaError } from '@/bindings';
 import Container from '@/components/Container';
 import { CopyBox } from '@/components/CopyBox';
 import Header from '@/components/Header';
@@ -24,13 +24,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { useBiometric } from '@/hooks/useBiometric';
 import { useDefaultOfferExpiry } from '@/hooks/useDefaultOfferExpiry';
 import { useErrors } from '@/hooks/useErrors';
 import useOfferStateWithDefault from '@/hooks/useOfferStateWithDefault';
 import { usePrices } from '@/hooks/usePrices';
 import { uploadToDexie, uploadToMintGarden } from '@/lib/offerUpload';
-import { toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -47,6 +45,8 @@ import {
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { CatRecord } from '../bindings';
+import { MakeOfferConfirmationDialog } from '@/components/MakeOfferConfirmationDialog';
+import { useOfferProcessor } from '@/hooks/useOfferProcessor';
 
 export function MakeOffer() {
   const [state, setState] = useOfferStateWithDefault();
@@ -55,38 +55,94 @@ export function MakeOffer() {
   const walletState = useWalletState();
   const navigate = useNavigate();
   const { addError } = useErrors();
-  const { promptIfEnabled } = useBiometric();
-
-  const [offer, setOffer] = useState('');
-  const [pending, setPending] = useState(false);
   const [dexieLink, setDexieLink] = useState('');
   const [mintGardenLink, setMintGardenLink] = useState('');
-  const [canUploadToMintGarden, setCanUploadToMintGarden] = useState(false);
   const [network, setNetwork] = useState<NetworkKind | null>(null);
   const [splitNftOffers, setSplitNftOffers] = useState(
     location.state?.splitNftOffers || false,
   );
-  const [offers, setOffers] = useState<string[]>([]);
+  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+  const [autoUploadToDexie, setAutoUploadToDexie] = useState(false);
+  const {
+    createdOffer,
+    createdOffers,
+    isProcessing,
+    canUploadToMintGarden,
+    processOffer,
+    clearProcessedOffers,
+  } = useOfferProcessor({
+    offerState: state,
+    splitNftOffers,
+    onProcessingEnd: () => {
+      if (createdOffer || createdOffers.length > 0) {
+        setState(null);
+      }
+    },
+  });
+  const [selectedDialogOffer, setSelectedDialogOffer] = useState('');
 
   useEffect(() => {
     commands.getNetwork({}).then((data) => setNetwork(data.kind));
   }, []);
 
   useEffect(() => {
-    setDexieLink('');
-    setMintGardenLink('');
-    setOffers([]);
-  }, [offer]);
+    if (!createdOffer && createdOffers.length === 0) {
+      setDexieLink('');
+      setMintGardenLink('');
+      setSelectedDialogOffer('');
+    }
+  }, [createdOffer, createdOffers]);
 
-  const handleMake = async () => {
-    setPending(true);
+  useEffect(() => {
+    if (autoUploadToDexie && createdOffer && !createdOffers.length && network) {
+      uploadToDexie(createdOffer, network === 'testnet')
+        .then(setDexieLink)
+        .catch((error) =>
+          addError({
+            kind: 'upload',
+            reason: `Failed to auto-upload to Dexie: ${error}`,
+          }),
+        )
+        .finally(() => {
+          setAutoUploadToDexie(false);
+        });
+    } else if (autoUploadToDexie && createdOffers.length > 0 && network) {
+      Promise.all(
+        createdOffers.map((individualOffer) =>
+          uploadToDexie(individualOffer, network === 'testnet')
+            .then((link) => {
+              if (createdOffers.indexOf(individualOffer) === 0) {
+                setDexieLink(link);
+              }
+              console.log(
+                `Successfully uploaded offer ${createdOffers.indexOf(individualOffer) + 1} to Dexie: ${link}`,
+              );
+            })
+            .catch((error) => {
+              addError({
+                kind: 'upload',
+                reason: `Failed to auto-upload offer ${createdOffers.indexOf(individualOffer) + 1} to Dexie: ${error}`,
+              });
+              console.error(
+                `Failed to auto-upload offer ${createdOffers.indexOf(individualOffer) + 1} to Dexie: ${error}`,
+              );
+            }),
+        ),
+      ).finally(() => {
+        setAutoUploadToDexie(false);
+      });
+    }
+  }, [createdOffer, createdOffers, autoUploadToDexie, network, addError]);
 
-    const mintgardenSupported =
-      (state.offered.xch === '0' || !state.offered.xch) &&
-      state.offered.cats.length === 0 &&
-      state.offered.nfts.length === 1;
+  useEffect(() => {
+    if (createdOffers.length > 0) {
+      setSelectedDialogOffer(createdOffers[0]);
+    } else if (createdOffer) {
+      setSelectedDialogOffer(createdOffer);
+    }
+  }, [createdOffer, createdOffers]);
 
-    let expiresAtSecond = null;
+  const makeAction = () => {
     if (state.expiration !== null) {
       const days = parseInt(state.expiration.days) || 0;
       const hours = parseInt(state.expiration.hours) || 0;
@@ -97,95 +153,34 @@ export function MakeOffer() {
           kind: 'invalid',
           reason: t`Expiration must be at least 1 second in the future`,
         });
-        setPending(false);
         return;
       }
-      expiresAtSecond = Math.ceil(Date.now() / 1000) + totalSeconds;
     }
+    const hasOfferedXch = state.offered.xch && state.offered.xch !== '0';
+    const hasOfferedCats = state.offered.cats.length > 0;
+    const hasOfferedNfts = state.offered.nfts.filter((n) => n).length > 0;
+    const hasRequestedXch = state.requested.xch && state.requested.xch !== '0';
+    const hasRequestedCats = state.requested.cats.length > 0;
+    const hasRequestedNfts = state.requested.nfts.filter((n) => n).length > 0;
 
-    if (!(await promptIfEnabled())) {
-      setPending(false);
+    if (
+      !(
+        hasOfferedXch ||
+        hasOfferedCats ||
+        hasOfferedNfts ||
+        hasRequestedXch ||
+        hasRequestedCats ||
+        hasRequestedNfts
+      )
+    ) {
+      addError({
+        kind: 'invalid',
+        reason: t`Offer must include at least one offered or requested asset.`,
+      });
       return;
     }
-
-    if (splitNftOffers && state.offered.nfts.length > 1) {
-      // Create individual offers for each NFT
-      const newOffers: string[] = [];
-      for (const nft of state.offered.nfts) {
-        const data = await commands.makeOffer({
-          offered_assets: {
-            xch: toMojos(
-              (state.offered.xch || '0').toString(),
-              walletState.sync.unit.decimals,
-            ),
-            cats: state.offered.cats.map((cat) => ({
-              asset_id: cat.asset_id,
-              amount: toMojos((cat.amount || '0').toString(), 3),
-            })),
-            nfts: [nft],
-          },
-          requested_assets: {
-            xch: toMojos(
-              (state.requested.xch || '0').toString(),
-              walletState.sync.unit.decimals,
-            ),
-            cats: state.requested.cats.map((cat) => ({
-              asset_id: cat.asset_id,
-              amount: toMojos((cat.amount || '0').toString(), 3),
-            })),
-            nfts: state.requested.nfts,
-          },
-          fee: toMojos(
-            (state.fee || '0').toString(),
-            walletState.sync.unit.decimals,
-          ),
-          expires_at_second: expiresAtSecond,
-        });
-        newOffers.push(data.offer);
-      }
-      setOffers(newOffers);
-      setOffer(newOffers[0]); // Show first offer by default
-    } else {
-      // Create single offer with all NFTs
-      const data = await commands.makeOffer({
-        offered_assets: {
-          xch: toMojos(
-            (state.offered.xch || '0').toString(),
-            walletState.sync.unit.decimals,
-          ),
-          cats: state.offered.cats.map((cat) => ({
-            asset_id: cat.asset_id,
-            amount: toMojos((cat.amount || '0').toString(), 3),
-          })),
-          nfts: state.offered.nfts,
-        },
-        requested_assets: {
-          xch: toMojos(
-            (state.requested.xch || '0').toString(),
-            walletState.sync.unit.decimals,
-          ),
-          cats: state.requested.cats.map((cat) => ({
-            asset_id: cat.asset_id,
-            amount: toMojos((cat.amount || '0').toString(), 3),
-          })),
-          nfts: state.requested.nfts,
-        },
-        fee: toMojos(
-          (state.fee || '0').toString(),
-          walletState.sync.unit.decimals,
-        ),
-        expires_at_second: expiresAtSecond,
-      });
-
-      setOffer(data.offer);
-    }
-
-    setState(null);
-    setPending(false);
-    setCanUploadToMintGarden(mintgardenSupported);
+    setIsConfirmDialogOpen(true);
   };
-
-  const make = () => handleMake().catch(addError);
 
   const invalid =
     state.expiration !== null &&
@@ -375,84 +370,100 @@ export function MakeOffer() {
             variant='outline'
             onClick={() => {
               setState(null);
+              clearProcessedOffers();
               navigate('/offers', { replace: true });
             }}
           >
             <Trans>Cancel Offer</Trans>
           </Button>
-          <Button disabled={invalid || pending} onClick={make}>
-            {pending && (
+          <Button disabled={invalid || isProcessing} onClick={makeAction}>
+            {isProcessing && (
               <LoaderCircleIcon className='mr-2 h-4 w-4 animate-spin' />
             )}
-            {pending ? t`Creating Offer` : t`Create Offer`}
+            {isProcessing ? t`Creating Offer` : t`Create Offer`}
           </Button>
         </div>
 
-        <Dialog open={!!offer} onOpenChange={() => setOffer('')}>
+        <Dialog
+          open={!!createdOffer || createdOffers.length > 0}
+          onOpenChange={(isOpen) => {
+            if (!isOpen) {
+              clearProcessedOffers();
+            }
+          }}
+        >
           <DialogContent>
             <DialogHeader>
               <DialogTitle>
-                <Trans>Offer Created</Trans>
+                {createdOffers.length > 1 ? (
+                  <Trans>Offers Created</Trans>
+                ) : (
+                  <Trans>Offer Created</Trans>
+                )}
               </DialogTitle>
               <DialogDescription>
-                <Trans>
-                  The offer has been created and imported successfully. You can
-                  copy the offer file below and send it to the intended
-                  recipient or make it public to be accepted by anyone.
-                </Trans>
-                {offers.length > 1 && (
+                {createdOffers.length > 1 ? (
+                  <Trans>
+                    {createdOffers.length} offers have been created and imported
+                    successfully. Select an offer to view its details or copy
+                    it.
+                  </Trans>
+                ) : (
+                  <Trans>
+                    The offer has been created and imported successfully. You
+                    can copy the offer file below and send it to the intended
+                    recipient or make it public to be accepted by anyone.
+                  </Trans>
+                )}
+                {(createdOffers.length > 1 ||
+                  (createdOffers.length === 0 && createdOffer)) && (
                   <div className='mt-2'>
                     <Label>
-                      <Trans>Select Offer</Trans>
+                      {createdOffers.length > 1 ? (
+                        <Trans>Select Offer</Trans>
+                      ) : (
+                        <Trans>Offer File</Trans>
+                      )}
                     </Label>
-                    <select
-                      className='w-full mt-1 p-2 border rounded'
-                      value={offer}
-                      onChange={(e) => setOffer(e.target.value)}
-                    >
-                      {offers.map((o, i) => (
-                        <option key={i} value={o}>
-                          {t`Offer ${i + 1}`}
-                        </option>
-                      ))}
-                    </select>
+                    {createdOffers.length > 1 ? (
+                      <select
+                        className='w-full mt-1 p-2 border rounded'
+                        value={selectedDialogOffer}
+                        onChange={(e) => setSelectedDialogOffer(e.target.value)}
+                      >
+                        {createdOffers.map((o, i) => (
+                          <option key={i} value={o}>
+                            {t`Offer ${i + 1}`}
+                          </option>
+                        ))}
+                      </select>
+                    ) : null}
+                    <CopyBox
+                      title={
+                        createdOffers.length > 1
+                          ? t`Offer ${createdOffers.indexOf(selectedDialogOffer) + 1}`
+                          : t`Offer File`
+                      }
+                      value={selectedDialogOffer}
+                      className='mt-2'
+                    />
                   </div>
                 )}
-                <CopyBox title='Offer File' value={offer} className='mt-2' />
-                {network !== 'unknown' && (
-                  <div className='flex flex-col gap-2 mt-2'>
-                    <div className='grid grid-cols-2 gap-2'>
-                      <Button
-                        variant='outline'
-                        className='text-neutral-800 dark:text-neutral-200'
-                        onClick={() => {
-                          if (dexieLink) return openUrl(dexieLink);
-                          uploadToDexie(offer, network === 'testnet')
-                            .then(setDexieLink)
-                            .catch((error) =>
-                              addError({
-                                kind: 'upload',
-                                reason: `${error}`,
-                              }),
-                            );
-                        }}
-                      >
-                        <img
-                          src='https://raw.githubusercontent.com/dexie-space/dexie-kit/refs/heads/main/svg/duck.svg'
-                          className='h-4 w-4 mr-2'
-                          alt='Dexie logo'
-                        />
-                        {dexieLink ? t`Dexie Link` : t`Upload to Dexie`}
-                      </Button>
 
-                      {canUploadToMintGarden && (
+                {network !== 'unknown' &&
+                  (createdOffers.length > 0 || createdOffer) && (
+                    <div className='flex flex-col gap-2 mt-2'>
+                      <div className='grid grid-cols-2 gap-2'>
                         <Button
                           variant='outline'
                           className='text-neutral-800 dark:text-neutral-200'
                           onClick={() => {
-                            if (mintGardenLink) return openUrl(mintGardenLink);
-                            uploadToMintGarden(offer, network === 'testnet')
-                              .then(setMintGardenLink)
+                            if (dexieLink) return openUrl(dexieLink);
+                            uploadToDexie(
+                              selectedDialogOffer,
+                              network === 'testnet',
+                            )
+                              .then(setDexieLink)
                               .catch((error) =>
                                 addError({
                                   kind: 'upload',
@@ -462,24 +473,52 @@ export function MakeOffer() {
                           }}
                         >
                           <img
-                            src='https://mintgarden.io/mint-logo.svg'
+                            src='https://raw.githubusercontent.com/dexie-space/dexie-kit/refs/heads/main/svg/duck.svg'
                             className='h-4 w-4 mr-2'
-                            alt='MintGarden logo'
+                            alt='Dexie logo'
                           />
-                          {mintGardenLink
-                            ? t`MintGarden Link`
-                            : t`Upload to MintGarden`}
+                          {dexieLink ? t`Dexie Link` : t`Upload to Dexie`}
                         </Button>
-                      )}
+
+                        {canUploadToMintGarden && (
+                          <Button
+                            variant='outline'
+                            className='text-neutral-800 dark:text-neutral-200'
+                            onClick={() => {
+                              if (mintGardenLink)
+                                return openUrl(mintGardenLink);
+                              uploadToMintGarden(
+                                selectedDialogOffer,
+                                network === 'testnet',
+                              )
+                                .then(setMintGardenLink)
+                                .catch((error) =>
+                                  addError({
+                                    kind: 'upload',
+                                    reason: `${error}`,
+                                  }),
+                                );
+                            }}
+                          >
+                            <img
+                              src='https://mintgarden.io/mint-logo.svg'
+                              className='h-4 w-4 mr-2'
+                              alt='MintGarden logo'
+                            />
+                            {mintGardenLink
+                              ? t`MintGarden Link`
+                              : t`Upload to MintGarden`}
+                          </Button>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
               <Button
                 onClick={() => {
-                  setState(null);
+                  clearProcessedOffers();
                   navigate('/offers', { replace: true });
                 }}
               >
@@ -488,6 +527,22 @@ export function MakeOffer() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <MakeOfferConfirmationDialog
+          open={isConfirmDialogOpen}
+          onOpenChange={setIsConfirmDialogOpen}
+          onConfirm={async () => {
+            await processOffer();
+            setIsConfirmDialogOpen(false);
+          }}
+          offerState={state}
+          splitNftOffers={splitNftOffers}
+          fee={state.fee || '0'}
+          walletUnit={walletState.sync.unit.ticker}
+          walletDecimals={walletState.sync.unit.decimals}
+          autoUploadToDexie={autoUploadToDexie}
+          setAutoUploadToDexie={setAutoUploadToDexie}
+        />
       </Container>
     </>
   );
@@ -510,7 +565,7 @@ function AssetSelector({
   splitNftOffers,
   setSplitNftOffers,
 }: AssetSelectorProps) {
-  const [state] = useOfferStateWithDefault();
+  const [currentState] = useOfferStateWithDefault();
   const [includeAmount, setIncludeAmount] = useState(!!assets.xch);
   const [tokens, setTokens] = useState<CatRecord[]>([]);
   const { getCatAskPriceInXch } = usePrices();
@@ -585,8 +640,8 @@ function AssetSelector({
               }}
             />
             {!offering &&
-              state.offered.cats.length === 1 &&
-              state.offered.cats[0].amount && (
+              currentState.offered.cats.length === 1 &&
+              currentState.offered.cats[0].amount && (
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -595,7 +650,7 @@ function AssetSelector({
                         size='icon'
                         className='border-l-0 rounded-none flex-shrink-0'
                         onClick={() => {
-                          const cat = state.offered.cats[0];
+                          const cat = currentState.offered.cats[0];
                           const xchAmount = calculateXchEquivalent(
                             Number(cat.amount),
                             cat.asset_id,
@@ -636,7 +691,7 @@ function AssetSelector({
             <ImageIcon className='h-4 w-4' />
             <span>NFTs</span>
           </Label>
-          {assets.nfts.length > 1 && (
+          {offering && assets.nfts.filter((n) => n).length > 1 && (
             <div className='flex items-center gap-2 mb-2'>
               <Switch
                 id='split-offers'
@@ -649,15 +704,18 @@ function AssetSelector({
             </div>
           )}
           {assets.nfts.map((nft, i) => (
-            <div key={i} className='flex h-14 z-20'>
+            <div key={i} className='flex h-14 z-20 mb-1'>
               {offering === true ? (
                 <NftSelector
                   value={nft || null}
                   onChange={(nftId) => {
-                    assets.nfts[i] = nftId || '';
-                    setAssets({ ...assets });
+                    const newNfts = [...assets.nfts];
+                    newNfts[i] = nftId || '';
+                    setAssets({ ...assets, nfts: newNfts });
                   }}
-                  disabled={assets.nfts.filter((id) => id !== nft)}
+                  disabled={assets.nfts.filter(
+                    (id, idx) => id !== '' && idx !== i,
+                  )}
                   className='rounded-r-none'
                 />
               ) : (
@@ -666,8 +724,9 @@ function AssetSelector({
                   placeholder='Enter NFT id'
                   value={nft}
                   onChange={(e) => {
-                    assets.nfts[i] = e.target.value;
-                    setAssets({ ...assets });
+                    const newNfts = [...assets.nfts];
+                    newNfts[i] = e.target.value;
+                    setAssets({ ...assets, nfts: newNfts });
                   }}
                 />
               )}
@@ -675,8 +734,9 @@ function AssetSelector({
                 variant='outline'
                 className='border-l-0 rounded-l-none flex-shrink-0 flex-grow-0 h-12 px-3'
                 onClick={() => {
-                  assets.nfts.splice(i, 1);
-                  setAssets({ ...assets });
+                  const newNfts = [...assets.nfts];
+                  newNfts.splice(i, 1);
+                  setAssets({ ...assets, nfts: newNfts });
                 }}
               >
                 <TrashIcon className='h-4 w-4' />
@@ -693,16 +753,17 @@ function AssetSelector({
             <span>Tokens</span>
           </Label>
           {assets.cats.map((cat, i) => (
-            <div key={i} className='flex h-14'>
+            <div key={i} className='flex h-14 mb-1'>
               <TokenSelector
                 value={cat.asset_id}
                 onChange={(assetId) => {
-                  assets.cats[i].asset_id = assetId;
-                  setAssets({ ...assets });
+                  const newCats = [...assets.cats];
+                  newCats[i] = { ...newCats[i], asset_id: assetId };
+                  setAssets({ ...assets, cats: newCats });
                 }}
                 disabled={assets.cats
-                  .filter((amount) => amount.asset_id !== cat.asset_id)
-                  .map((amount) => amount.asset_id)}
+                  .filter((c, idx) => c.asset_id !== '' && idx !== i)
+                  .map((c) => c.asset_id)}
                 className='rounded-r-none'
                 hideZeroBalance={offering === true}
               />
@@ -713,8 +774,9 @@ function AssetSelector({
                   placeholder={t`Amount`}
                   value={cat.amount}
                   onValueChange={(values) => {
-                    assets.cats[i].amount = values.value;
-                    setAssets({ ...assets });
+                    const newCats = [...assets.cats];
+                    newCats[i] = { ...newCats[i], amount: values.value };
+                    setAssets({ ...assets, cats: newCats });
                   }}
                 />
                 {offering && (
@@ -729,10 +791,14 @@ function AssetSelector({
                               (t) => t.asset_id === cat.asset_id,
                             );
                             if (token) {
-                              assets.cats[i].amount = (
-                                Number(token.balance) / 1000
-                              ).toString();
-                              setAssets({ ...assets });
+                              const newCats = [...assets.cats];
+                              newCats[i] = {
+                                ...newCats[i],
+                                amount: (
+                                  Number(token.balance) / 1000
+                                ).toString(),
+                              };
+                              setAssets({ ...assets, cats: newCats });
                             }
                           }}
                         >
@@ -749,8 +815,9 @@ function AssetSelector({
                   variant='outline'
                   className='border-l-0 rounded-l-none flex-shrink-0 flex-grow-0 h-12 px-3'
                   onClick={() => {
-                    assets.cats.splice(i, 1);
-                    setAssets({ ...assets });
+                    const newCats = [...assets.cats];
+                    newCats.splice(i, 1);
+                    setAssets({ ...assets, cats: newCats });
                   }}
                 >
                   <TrashIcon className='h-4 w-4' />
