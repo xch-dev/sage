@@ -61,7 +61,6 @@ export function MakeOffer() {
 
   useEffect(() => {
     if (!createdOffer && createdOffers.length === 0) {
-      setDexieLink('');
       setMintGardenLink('');
       setSelectedDialogOffer('');
     }
@@ -106,6 +105,7 @@ export function MakeOffer() {
         setAutoUploadToDexie(false);
       });
     }
+    setAutoUploadToDexie(false);
   }, [createdOffer, createdOffers, autoUploadToDexie, network, addError]);
 
   useEffect(() => {
@@ -357,50 +357,6 @@ export function MakeOffer() {
             {isProcessing ? t`Creating Offer` : t`Create Offer`}
           </Button>
         </div>
-
-        <OffersCreatedDialog
-          open={!!createdOffer || createdOffers.length > 0}
-          onOpenChange={(isOpen) => {
-            if (!isOpen) {
-              clearProcessedOffers();
-            }
-          }}
-          createdOffer={createdOffer}
-          createdOffers={createdOffers}
-          selectedDialogOffer={selectedDialogOffer}
-          setSelectedDialogOffer={setSelectedDialogOffer}
-          dexieLink={dexieLink}
-          mintGardenLink={mintGardenLink}
-          canUploadToMintGarden={canUploadToMintGarden}
-          network={network}
-          onDexieUpload={() => {
-            if (dexieLink) return openUrl(dexieLink);
-            uploadToDexie(selectedDialogOffer, network === 'testnet')
-              .then(setDexieLink)
-              .catch((error) =>
-                addError({
-                  kind: 'upload',
-                  reason: `${error}`,
-                }),
-              );
-          }}
-          onMintGardenUpload={() => {
-            if (mintGardenLink) return openUrl(mintGardenLink);
-            uploadToMintGarden(selectedDialogOffer, network === 'testnet')
-              .then(setMintGardenLink)
-              .catch((error) =>
-                addError({
-                  kind: 'upload',
-                  reason: `${error}`,
-                }),
-              );
-          }}
-          onOk={() => {
-            clearProcessedOffers();
-            navigate('/offers', { replace: true });
-          }}
-        />
-
         <MakeOfferConfirmationDialog
           open={isConfirmDialogOpen}
           onOpenChange={setIsConfirmDialogOpen}
@@ -415,6 +371,39 @@ export function MakeOffer() {
           walletDecimals={walletState.sync.unit.decimals}
           autoUploadToDexie={autoUploadToDexie}
           setAutoUploadToDexie={setAutoUploadToDexie}
+        />
+        <OffersCreatedDialog
+          open={!!createdOffer || createdOffers.length > 0}
+          onOpenChange={(isOpen) => {
+            if (!isOpen && (createdOffer || createdOffers.length > 0)) {
+              clearProcessedOffers();
+              setState(null);
+              navigate('/offers', { replace: true });
+            }
+          }}
+          createdOffer={createdOffer}
+          createdOffers={createdOffers}
+          selectedDialogOffer={selectedDialogOffer}
+          setSelectedDialogOffer={setSelectedDialogOffer}
+          mintGardenLink={mintGardenLink}
+          canUploadToMintGarden={canUploadToMintGarden}
+          network={network}
+          onMintGardenUpload={() => {
+            if (mintGardenLink) return openUrl(mintGardenLink);
+            uploadToMintGarden(selectedDialogOffer, network === 'testnet')
+              .then(setMintGardenLink)
+              .catch((error) =>
+                addError({
+                  kind: 'upload',
+                  reason: `${error}`,
+                }),
+              );
+          }}
+          onOk={() => {
+            clearProcessedOffers();
+            setState(null);
+            navigate('/offers', { replace: true });
+          }}
         />
       </Container>
     </>
