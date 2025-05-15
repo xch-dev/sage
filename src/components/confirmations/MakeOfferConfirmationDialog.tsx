@@ -10,8 +10,8 @@ import {
 } from '@/components/ui/dialog';
 import { OfferState } from '@/state';
 import { Assets, CatAmount, commands } from '@/bindings';
-import { ScrollArea } from './ui/scroll-area';
-import { NumberFormat } from './NumberFormat';
+import { ScrollArea } from '../ui/scroll-area';
+import { NumberFormat } from '../NumberFormat';
 import BigNumber from 'bignumber.js';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
