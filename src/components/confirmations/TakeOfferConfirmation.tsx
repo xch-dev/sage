@@ -1,5 +1,5 @@
 import { OfferRecord, OfferSummary } from '@/bindings';
-import { Assets } from '@/components/OfferCard';
+import { Assets } from '@/components/Assets';
 import { Trans } from '@lingui/react/macro';
 import {
   ArrowUpIcon,
