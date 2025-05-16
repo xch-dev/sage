@@ -114,7 +114,7 @@ export function OfferCard({ record, summary, content }: OfferCardProps) {
 
       // Check MintGarden
       fetch(
-        `https://${network === 'testnet' ? 'testnet.' : ''}api.mintgarden.io/offers/${offerId}`,
+        `https://api.${network === 'testnet' ? 'testnet.' : ''}mintgarden.io/offers/${offerId}`,
       )
         .then((response) => response.json())
         .then((data) => {
