@@ -105,7 +105,6 @@ export function MakeOffer() {
         setAutoUploadToDexie(false);
       });
     }
-    setAutoUploadToDexie(false);
   }, [createdOffer, createdOffers, autoUploadToDexie, network, addError]);
 
   useEffect(() => {

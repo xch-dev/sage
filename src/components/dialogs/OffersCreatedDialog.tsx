@@ -6,10 +6,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { CopyBox } from '@/components/CopyBox';
-import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 
 interface OffersCreatedDialogProps {
@@ -29,14 +26,7 @@ interface OffersCreatedDialogProps {
 export function OffersCreatedDialog({
   open,
   onOpenChange,
-  createdOffer,
   createdOffers,
-  selectedDialogOffer,
-  setSelectedDialogOffer,
-  mintGardenLink,
-  canUploadToMintGarden,
-  network,
-  onMintGardenUpload,
   onOk,
 }: OffersCreatedDialogProps) {
   return (

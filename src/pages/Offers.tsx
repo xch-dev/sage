@@ -8,19 +8,15 @@ import {
 import ConfirmationDialog from '@/components/ConfirmationDialog';
 import { TakeOfferConfirmation } from '@/components/confirmations/TakeOfferConfirmation';
 import Container from '@/components/Container';
+import { CancelOfferDialog } from '@/components/dialogs/CancelOfferDialog';
+import { DeleteOfferDialog } from '@/components/dialogs/DeleteOfferDialog';
+import { NfcScanDialog } from '@/components/dialogs/NfcScanDialog';
+import { ViewOfferDialog } from '@/components/dialogs/ViewOfferDialog';
 import Header from '@/components/Header';
 import { OfferSummaryCard } from '@/components/OfferSummaryCard';
 import { QRCodeDialog } from '@/components/QRCodeDialog';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
+import { DialogTrigger } from '@/components/ui/dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,16 +25,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import { TokenAmountInput } from '@/components/ui/masked-input';
-import { Textarea } from '@/components/ui/textarea';
 import { useErrors } from '@/hooks/useErrors';
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
 import { amount } from '@/lib/formTypes';
@@ -73,9 +59,7 @@ import { z } from 'zod';
 export function Offers() {
   const navigate = useNavigate();
   const offerState = useOfferState();
-
   const { addError } = useErrors();
-
   const [offerString, setOfferString] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [offers, setOffers] = useState<OfferRecord[]>([]);
@@ -201,99 +185,77 @@ export function Offers() {
 
   return (
     <>
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <Header
-          title={<Trans>Offers</Trans>}
-          mobileActionItems={
-            <div className='flex items-center gap-2'>
-              <Button size='icon' variant='ghost' onClick={handleScanOrPaste}>
-                <ScanIcon className='h-5 w-5' />
-              </Button>
-              <Button
-                size='icon'
-                variant='ghost'
-                disabled={!isNfcAvailable}
-                onClick={handleNfcScan}
-              >
-                <NfcIcon className='h-5 w-5 ' />
-              </Button>
+      <Header
+        title={<Trans>Offers</Trans>}
+        mobileActionItems={
+          <div className='flex items-center gap-2'>
+            <Button size='icon' variant='ghost' onClick={handleScanOrPaste}>
+              <ScanIcon className='h-5 w-5' />
+            </Button>
+            <Button
+              size='icon'
+              variant='ghost'
+              disabled={!isNfcAvailable}
+              onClick={handleNfcScan}
+            >
+              <NfcIcon className='h-5 w-5 ' />
+            </Button>
+          </div>
+        }
+      />
+      <Container>
+        <div className='flex flex-col gap-10'>
+          <div className='flex flex-col items-center justify-center pt-10 text-center gap-4'>
+            <HandCoins className='h-12 w-12 text-muted-foreground' />
+            <div>
+              <h2 className='text-lg font-semibold'>
+                {offers.length > 0 ? (
+                  <Trans>Manage offers</Trans>
+                ) : (
+                  <Trans>No offers yet</Trans>
+                )}
+              </h2>
+              <p className='mt-2 text-sm text-muted-foreground'>
+                <Trans>
+                  Create a new offer to get started with peer-to-peer trading.
+                </Trans>
+              </p>
+              <p className='mt-1 text-sm text-muted-foreground'>
+                <Trans>You can also paste an offer using</Trans>{' '}
+                <kbd>{platform() === 'macos' ? '⌘+V' : 'Ctrl+V'}</kbd>.
+              </p>
             </div>
-          }
-        />
-        <Container>
-          <div className='flex flex-col gap-10'>
-            <div className='flex flex-col items-center justify-center pt-10 text-center gap-4'>
-              <HandCoins className='h-12 w-12 text-muted-foreground' />
-              <div>
-                <h2 className='text-lg font-semibold'>
-                  {offers.length > 0 ? (
-                    <Trans>Manage offers</Trans>
-                  ) : (
-                    <Trans>No offers yet</Trans>
-                  )}
-                </h2>
-                <p className='mt-2 text-sm text-muted-foreground'>
-                  <Trans>
-                    Create a new offer to get started with peer-to-peer trading.
-                  </Trans>
-                </p>
-                <p className='mt-1 text-sm text-muted-foreground'>
-                  <Trans>You can also paste an offer using</Trans>{' '}
-                  <kbd>{platform() === 'macos' ? '⌘+V' : 'Ctrl+V'}</kbd>.
-                </p>
-              </div>
-              <div className='flex gap-2'>
-                <DialogTrigger asChild>
-                  <Button variant='outline' className='flex items-center gap-1'>
-                    <Trans>View Offer</Trans>
-                  </Button>
-                </DialogTrigger>
-                <Link to='/offers/make' replace={true}>
-                  <Button>
-                    <Trans>Create Offer</Trans>
-                  </Button>
-                </Link>
-              </div>
-            </div>
-
-            <div className='flex flex-col gap-2'>
-              {offers.map((record, i) => (
-                <Offer record={record} refresh={updateOffers} key={i} />
-              ))}
+            <div className='flex gap-2'>
+              <DialogTrigger asChild>
+                <Button variant='outline' className='flex items-center gap-1'>
+                  <Trans>View Offer</Trans>
+                </Button>
+              </DialogTrigger>
+              <Link to='/offers/make' replace={true}>
+                <Button>
+                  <Trans>Create Offer</Trans>
+                </Button>
+              </Link>
             </div>
           </div>
-        </Container>
 
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              <Trans>Enter Offer String or Dexie URL</Trans>
-            </DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleViewOffer} className='flex flex-col gap-4'>
-            <Textarea
-              placeholder={t`Paste your offer string or Dexie URL here...`}
-              value={offerString}
-              onChange={(e) => setOfferString(e.target.value)}
-              className='min-h-[200px] font-mono text-xs'
-            />
-            <Button type='submit'>
-              <Trans>View Offer</Trans>
-            </Button>
-          </form>
-        </DialogContent>
-      </Dialog>
+          <div className='flex flex-col gap-2'>
+            {offers.map((record, i) => (
+              <Offer record={record} refresh={updateOffers} key={i} />
+            ))}
+          </div>
+        </div>
+      </Container>
 
-      <Dialog open={showScanUi} onOpenChange={setShowScanUi}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Scan an NFC tag</DialogTitle>
-            <DialogDescription>
-              <Trans>Place the NFC tag near your device to scan it.</Trans>
-            </DialogDescription>
-          </DialogHeader>
-        </DialogContent>
-      </Dialog>
+      <ViewOfferDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        offerString={offerString}
+        setOfferString={setOfferString}
+        onSubmit={handleViewOffer}
+      />
+
+      <NfcScanDialog open={showScanUi} onOpenChange={setShowScanUi} />
     </>
   );
 }
@@ -503,89 +465,24 @@ function Offer({ record, refresh }: OfferProps) {
         />
       </Link>
 
-      <Dialog open={isDeleteOpen} onOpenChange={setDeleteOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              <Trans>Delete offer record?</Trans>
-            </DialogTitle>
-            <DialogDescription>
-              <Trans>
-                This will delete the offer from the wallet, but if it's shared
-                externally it can still be accepted. The only way to truly
-                cancel a public offer is by spending one or more of its coins.
-              </Trans>
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant='outline' onClick={() => setDeleteOpen(false)}>
-              <Trans>Cancel</Trans>
-            </Button>
-            <Button
-              onClick={() => {
-                commands
-                  .deleteOffer({ offer_id: record.offer_id })
-                  .then(() => refresh())
-                  .catch(addError)
-                  .finally(() => setDeleteOpen(false));
-              }}
-            >
-              <Trans>Delete</Trans>
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <DeleteOfferDialog
+        open={isDeleteOpen}
+        onOpenChange={setDeleteOpen}
+        onDelete={() => {
+          commands
+            .deleteOffer({ offer_id: record.offer_id })
+            .then(() => refresh())
+            .catch(addError)
+            .finally(() => setDeleteOpen(false));
+        }}
+      />
 
-      <Dialog open={isCancelOpen} onOpenChange={setCancelOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              <Trans>Cancel offer?</Trans>
-            </DialogTitle>
-            <DialogDescription>
-              <Trans>
-                This will cancel the offer on-chain with a transaction,
-                preventing it from being taken even if someone has the original
-                offer file.
-              </Trans>
-            </DialogDescription>
-          </DialogHeader>
-          <Form {...cancelForm}>
-            <form
-              onSubmit={cancelForm.handleSubmit(cancelHandler)}
-              className='space-y-4'
-            >
-              <FormField
-                control={cancelForm.control}
-                name='fee'
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      <Trans>Network Fee</Trans>
-                    </FormLabel>
-                    <FormControl>
-                      <TokenAmountInput {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <DialogFooter className='gap-2'>
-                <Button
-                  type='button'
-                  variant='outline'
-                  onClick={() => setCancelOpen(false)}
-                >
-                  <Trans>Cancel</Trans>
-                </Button>
-                <Button type='submit'>
-                  <Trans>Submit</Trans>
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
+      <CancelOfferDialog
+        open={isCancelOpen}
+        onOpenChange={setCancelOpen}
+        form={cancelForm}
+        onSubmit={cancelHandler}
+      />
 
       <ConfirmationDialog
         response={response}
@@ -606,7 +503,7 @@ function Offer({ record, refresh }: OfferProps) {
         asset={null}
         qr_code_contents={dexieLink(record.offer_id, network === 'testnet')}
         title={t`Dexie QR Code`}
-        description={t`Scan this QR code to view the offer`}
+        description={t`Scan this QR code to view the offer on dexie.space`}
       />
     </>
   );
