@@ -86,8 +86,13 @@ export function Offers() {
   };
 
   useEffect(() => {
-    isAvailable().then((available) => setIsNfcAvailable(available));
-  }, [addError]);
+    isAvailable()
+      .then((available) => setIsNfcAvailable(available))
+      .catch((error) => {
+        console.warn('NFC not available:', error);
+        setIsNfcAvailable(false);
+      });
+  }, []);
 
   const handleNfcScan = async () => {
     const isAndroid = platform() === 'android';

@@ -53,11 +53,10 @@ interface OfferCardProps {
   record?: OfferRecord;
   summary?: OfferSummary;
   content?: React.ReactNode;
-  offer?: string;
   children?: React.ReactNode;
 }
 
-export function OfferCard({ record, summary, content, offer }: OfferCardProps) {
+export function OfferCard({ record, summary, content }: OfferCardProps) {
   const walletState = useWalletState();
   const { addError } = useErrors();
   // State to track which CATs are present in the wallet
@@ -74,6 +73,7 @@ export function OfferCard({ record, summary, content, offer }: OfferCardProps) {
 
   const offerSummary = summary || record?.summary;
   const offerId = record?.offer_id || '';
+  const offer = record?.offer || undefined;
 
   // Check if CATs in the receiving section are present in the wallet
   useEffect(() => {
@@ -96,7 +96,7 @@ export function OfferCard({ record, summary, content, offer }: OfferCardProps) {
     };
 
     checkCatPresence();
-  }, [offerSummary?.maker.cats]);
+  }, [offerSummary]);
 
   useEffect(() => {
     commands.getNetwork({}).then((data) => setNetwork(data.kind));
