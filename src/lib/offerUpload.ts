@@ -1,3 +1,17 @@
+import bs58 from 'bs58';
+
+export async function calculateMintGardenOfferId(offer: string): Promise<string> {
+  // Create SHA-256 hash of the UTF-8 encoded offer
+  const encoder = new TextEncoder();
+  const data = encoder.encode(offer);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashBytes = new Uint8Array(hashArray);
+
+  // Encode the hash in base58
+  return bs58.encode(hashBytes);
+}
+
 export async function uploadToDexie(
   offer: string,
   testnet: boolean,

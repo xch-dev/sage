@@ -39,6 +39,7 @@ import {
   dexieLink,
   uploadToDexie,
   uploadToMintGarden,
+  calculateMintGardenOfferId,
 } from '@/lib/offerUpload';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { toast } from 'react-toastify';
@@ -113,21 +114,24 @@ export function OfferCard({ record, summary, content }: OfferCardProps) {
         .catch(() => setIsOnDexie(false));
 
       // Check MintGarden
-      fetch(
-        `https://api.${network === 'testnet' ? 'testnet.' : ''}mintgarden.io/offers/${offerId}`,
-      )
-        .then((response) => response.json())
-        .then((data) => {
-          setIsOnMintGarden(data.success === true);
-          if (data.success) {
-            setCurrentMintGardenLink(
-              `https://${network === 'testnet' ? 'testnet.' : ''}mintgarden.io/offers/${offerId}`,
-            );
-          }
-        })
-        .catch(() => setIsOnMintGarden(false));
+      if (offer) {
+        calculateMintGardenOfferId(offer).then((mintGardenId) => {
+          const mintGardenUrl = `https://${network === 'testnet' ? 'testnet.' : ''}mintgarden.io/offers/${mintGardenId}`;
+          setCurrentMintGardenLink(mintGardenUrl);
+          console.log(
+            'MintGarden URL:',
+            `https://api.${network === 'testnet' ? 'testnet.' : ''}mintgarden.io/offers/${mintGardenId}`,
+          );
+          fetch(
+            `https://api.${network === 'testnet' ? 'testnet.' : ''}mintgarden.io/offers/${mintGardenId}`,
+          )
+            .then((response) => response.json())
+            .then((data) => setIsOnMintGarden(data.id === mintGardenId))
+            .catch(() => setIsOnMintGarden(false));
+        });
+      }
     }
-  }, [network, offerId]);
+  }, [network, offerId, offer]);
 
   const getStatusStyles = (status: string) => {
     switch (status.toLowerCase()) {
