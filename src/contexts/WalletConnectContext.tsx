@@ -42,6 +42,7 @@ import {
   useState,
 } from 'react';
 import { formatNumber } from '../i18n';
+import { Trans } from '@lingui/react/macro';
 
 export interface WalletConnectContextType {
   sessions: SessionTypes.Struct[];
@@ -491,7 +492,9 @@ function TakeOfferDialog({ params }: CommandDialogProps<'chia_takeOffer'>) {
   return offer ? (
     <OfferCard summary={offer} />
   ) : (
-    <div className='p-4 text-center'>Loading offer details...</div>
+    <div className='p-4 text-center'>
+      <Trans>Loading offer details...</Trans>
+    </div>
   );
 }
 

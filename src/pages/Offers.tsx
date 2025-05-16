@@ -28,12 +28,6 @@ import {
 import { useErrors } from '@/hooks/useErrors';
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
 import { amount } from '@/lib/formTypes';
-import {
-  dexieLink,
-  offerIsOnDexie,
-  uploadToDexie,
-  uploadToMintGarden,
-} from '@/lib/offerUpload';
 import { toMojos } from '@/lib/utils';
 import { useOfferState, useWalletState } from '@/state';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -50,7 +44,6 @@ import {
   HandCoins,
   MoreVertical,
   NfcIcon,
-  QrCode,
   ScanIcon,
   Tags,
   TrashIcon,
@@ -58,7 +51,6 @@ import {
 import { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
-import { toast } from 'react-toastify';
 import { z } from 'zod';
 
 export function Offers() {
@@ -273,27 +265,14 @@ interface OfferProps {
 
 function Offer({ record, refresh }: OfferProps) {
   const walletState = useWalletState();
-
   const { addError } = useErrors();
-
   const [isDeleteOpen, setDeleteOpen] = useState(false);
   const [isCancelOpen, setCancelOpen] = useState(false);
-  const [isQrOpen, setQrOpen] = useState(false);
-
   const [network, setNetwork] = useState<NetworkKind | null>(null);
-  const [isOnDexie, setIsOnDexie] = useState<boolean | null>(null);
 
   useEffect(() => {
     commands.getNetwork({}).then((data) => setNetwork(data.kind));
   }, []);
-
-  useEffect(() => {
-    if (network !== 'unknown') {
-      offerIsOnDexie(record.offer_id, network === 'testnet')
-        .then(setIsOnDexie)
-        .catch(() => setIsOnDexie(false));
-    }
-  }, [network, record.offer_id]);
 
   const cancelSchema = z.object({
     fee: amount(walletState.sync.unit.decimals).refine(
@@ -398,116 +377,6 @@ function Offer({ record, refresh }: OfferProps) {
                       <Trans>Copy ID</Trans>
                     </span>
                   </DropdownMenuItem>
-
-                  {network !== 'unknown' && (
-                    <>
-                      <DropdownMenuItem
-                        className='cursor-pointer'
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (isOnDexie) {
-                            openUrl(
-                              dexieLink(record.offer_id, network === 'testnet'),
-                            );
-                          } else {
-                            const toastId = toast.loading(
-                              t`Uploading to Dexie...`,
-                            );
-                            uploadToDexie(record.offer, network === 'testnet')
-                              .then((url: string) => {
-                                toast.update(toastId, {
-                                  render: t`Uploaded to Dexie!`,
-                                  type: 'success',
-                                  isLoading: false,
-                                  autoClose: 3000,
-                                });
-                                setIsOnDexie(true);
-                                openUrl(url);
-                              })
-                              .catch((error) => {
-                                toast.update(toastId, {
-                                  render: t`Failed to upload to Dexie`,
-                                  type: 'error',
-                                  isLoading: false,
-                                  autoClose: 3000,
-                                });
-                                addError(error);
-                              });
-                          }
-                        }}
-                      >
-                        <img
-                          src='https://raw.githubusercontent.com/dexie-space/dexie-kit/refs/heads/main/svg/duck.svg'
-                          className='h-4 w-4 mr-2'
-                          alt='Dexie logo'
-                        />
-                        <span>
-                          {isOnDexie ? (
-                            <Trans>Dexie</Trans>
-                          ) : (
-                            <Trans>Upload to Dexie</Trans>
-                          )}
-                        </span>
-                      </DropdownMenuItem>
-
-                      <DropdownMenuItem
-                        className='cursor-pointer'
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setQrOpen(true);
-                        }}
-                        disabled={!isOnDexie}
-                      >
-                        <QrCode className='mr-2 h-4 w-4' />
-                        <span>
-                          <Trans>Dexie QR Code</Trans>
-                        </span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        className='cursor-pointer'
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const toastId = toast.loading(
-                            t`Uploading to MintGarden...`,
-                          );
-                          uploadToMintGarden(
-                            record.offer,
-                            network === 'testnet',
-                          )
-                            .then((url: string) => {
-                              toast.update(toastId, {
-                                render: t`Uploaded to MintGarden!`,
-                                type: 'success',
-                                isLoading: false,
-                                autoClose: 3000,
-                              });
-                              openUrl(url);
-                            })
-                            .catch((error: Error) => {
-                              toast.update(toastId, {
-                                render: t`Failed to upload to MintGarden`,
-                                type: 'error',
-                                isLoading: false,
-                                autoClose: 3000,
-                              });
-                              addError({
-                                kind: 'upload',
-                                reason: `Failed to upload to MintGarden: ${error.message}`,
-                              });
-                            });
-                        }}
-                      >
-                        <img
-                          src='https://mintgarden.io/favicon.ico'
-                          className='h-4 w-4 mr-2'
-                          alt='MintGarden logo'
-                        />
-                        <span>
-                          <Trans>Upload to MintGarden</Trans>
-                        </span>
-                      </DropdownMenuItem>
-                    </>
-                  )}
                 </DropdownMenuGroup>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -545,15 +414,6 @@ function Offer({ record, refresh }: OfferProps) {
             <TakeOfferConfirmation type='cancel' offer={record} />
           ),
         }}
-      />
-
-      <QRCodeDialog
-        isOpen={isQrOpen}
-        onClose={setQrOpen}
-        asset={null}
-        qr_code_contents={dexieLink(record.offer_id, network === 'testnet')}
-        title={t`Dexie QR Code`}
-        description={t`Scan this QR code to view the offer on dexie.space`}
       />
     </>
   );
