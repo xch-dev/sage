@@ -16,7 +16,7 @@ import Header from '@/components/Header';
 import { OfferSummaryCard } from '@/components/OfferSummaryCard';
 import { QRCodeDialog } from '@/components/QRCodeDialog';
 import { Button } from '@/components/ui/button';
-import { DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,7 +28,12 @@ import {
 import { useErrors } from '@/hooks/useErrors';
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
 import { amount } from '@/lib/formTypes';
-import { dexieLink, offerIsOnDexie, uploadToDexie } from '@/lib/offerUpload';
+import {
+  dexieLink,
+  offerIsOnDexie,
+  uploadToDexie,
+  uploadToMintGarden,
+} from '@/lib/offerUpload';
 import { toMojos } from '@/lib/utils';
 import { useOfferState, useWalletState } from '@/state';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -226,11 +231,20 @@ export function Offers() {
               </p>
             </div>
             <div className='flex gap-2'>
-              <DialogTrigger asChild>
-                <Button variant='outline' className='flex items-center gap-1'>
-                  <Trans>View Offer</Trans>
-                </Button>
-              </DialogTrigger>
+              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant='outline' className='flex items-center gap-1'>
+                    <Trans>View Offer</Trans>
+                  </Button>
+                </DialogTrigger>
+                <ViewOfferDialog
+                  open={dialogOpen}
+                  onOpenChange={setDialogOpen}
+                  offerString={offerString}
+                  setOfferString={setOfferString}
+                  onSubmit={handleViewOffer}
+                />
+              </Dialog>
               <Link to='/offers/make' replace={true}>
                 <Button>
                   <Trans>Create Offer</Trans>
@@ -246,14 +260,6 @@ export function Offers() {
           </div>
         </div>
       </Container>
-
-      <ViewOfferDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        offerString={offerString}
-        setOfferString={setOfferString}
-        onSubmit={handleViewOffer}
-      />
 
       <NfcScanDialog open={showScanUi} onOpenChange={setShowScanUi} />
     </>
@@ -443,6 +449,7 @@ function Offer({ record, refresh }: OfferProps) {
                           )}
                         </span>
                       </DropdownMenuItem>
+
                       <DropdownMenuItem
                         className='cursor-pointer'
                         onClick={(e) => {
@@ -454,6 +461,49 @@ function Offer({ record, refresh }: OfferProps) {
                         <QrCode className='mr-2 h-4 w-4' />
                         <span>
                           <Trans>Dexie QR Code</Trans>
+                        </span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className='cursor-pointer'
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const toastId = toast.loading(
+                            t`Uploading to MintGarden...`,
+                          );
+                          uploadToMintGarden(
+                            record.offer,
+                            network === 'testnet',
+                          )
+                            .then((url: string) => {
+                              toast.update(toastId, {
+                                render: t`Uploaded to MintGarden!`,
+                                type: 'success',
+                                isLoading: false,
+                                autoClose: 3000,
+                              });
+                              openUrl(url);
+                            })
+                            .catch((error: Error) => {
+                              toast.update(toastId, {
+                                render: t`Failed to upload to MintGarden`,
+                                type: 'error',
+                                isLoading: false,
+                                autoClose: 3000,
+                              });
+                              addError({
+                                kind: 'upload',
+                                reason: `Failed to upload to MintGarden: ${error.message}`,
+                              });
+                            });
+                        }}
+                      >
+                        <img
+                          src='https://mintgarden.io/favicon.ico'
+                          className='h-4 w-4 mr-2'
+                          alt='MintGarden logo'
+                        />
+                        <span>
+                          <Trans>Upload to MintGarden</Trans>
                         </span>
                       </DropdownMenuItem>
                     </>

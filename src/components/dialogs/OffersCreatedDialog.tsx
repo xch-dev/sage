@@ -12,14 +12,7 @@ import { Trans } from '@lingui/react/macro';
 interface OffersCreatedDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  createdOffer: string;
   createdOffers: string[];
-  selectedDialogOffer: string;
-  setSelectedDialogOffer: (offer: string) => void;
-  mintGardenLink: string;
-  canUploadToMintGarden: boolean;
-  network: string | null;
-  onMintGardenUpload: () => void;
   onOk: () => void;
 }
 

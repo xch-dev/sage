@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { commands } from '@/bindings';
 import { OfferState, useWalletState } from '@/state';
 import { useErrors } from '@/hooks/useErrors';
@@ -35,6 +35,19 @@ export function useOfferProcessor({
   const [isProcessing, setIsProcessing] = useState(false);
   const [canUploadToMintGarden, setCanUploadToMintGarden] = useState(false);
 
+  const calculateMintGardenSupport = useCallback((state: OfferState) => {
+    return (
+      (state.offered.xch === '0' || !state.offered.xch) &&
+      state.offered.cats.length === 0 &&
+      state.offered.nfts.filter(n => n).length === 1
+    );
+  }, []);
+
+  // Update canUploadToMintGarden whenever offerState changes
+  useEffect(() => {
+    setCanUploadToMintGarden(calculateMintGardenSupport(offerState));
+  }, [offerState, calculateMintGardenSupport]);
+
   const clearProcessedOffers = useCallback(() => {
     setCreatedOffer('');
     setCreatedOffers([]);
@@ -45,13 +58,7 @@ export function useOfferProcessor({
     setIsProcessing(true);
     clearProcessedOffers(); // Clear previous offers before starting
 
-    const mintgardenSupported =
-      (offerState.offered.xch === '0' || !offerState.offered.xch) &&
-      offerState.offered.cats.length === 0 &&
-      offerState.offered.nfts.length === 1 &&
-      (offerState.requested.xch === '0' || !offerState.requested.xch) &&
-      offerState.requested.cats.length === 0 &&
-      offerState.requested.nfts.length === 0;
+    const mintgardenSupported = calculateMintGardenSupport(offerState);
 
     let expiresAtSecond: number | null = null;
     if (offerState.expiration !== null) {

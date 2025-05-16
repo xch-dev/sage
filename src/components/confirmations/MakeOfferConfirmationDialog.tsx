@@ -30,6 +30,9 @@ interface MakeOfferConfirmationDialogProps {
   walletDecimals: number;
   autoUploadToDexie: boolean;
   setAutoUploadToDexie: (value: boolean) => void;
+  canUploadToMintGarden: boolean;
+  autoUploadToMintGarden: boolean;
+  setAutoUploadToMintGarden: (value: boolean) => void;
 }
 
 interface DisplayableNft {
@@ -248,6 +251,9 @@ export function MakeOfferConfirmationDialog({
   walletDecimals,
   autoUploadToDexie,
   setAutoUploadToDexie,
+  canUploadToMintGarden,
+  autoUploadToMintGarden,
+  setAutoUploadToMintGarden,
 }: MakeOfferConfirmationDialogProps) {
   const numOfferedNfts = offerState.offered.nfts.filter(
     (nft: string) => !!nft,
@@ -406,25 +412,53 @@ export function MakeOfferConfirmationDialog({
             </div>
           )}
 
-          <div className='flex items-center space-x-2 pt-2'>
-            <Switch
-              id='auto-upload-dexie'
-              checked={autoUploadToDexie}
-              onCheckedChange={setAutoUploadToDexie}
-            />
-            <Label htmlFor='auto-upload-dexie' className='flex flex-col'>
-              <span>
-                <Trans>Upload to Dexie.space</Trans>
-              </span>
-              {autoUploadToDexie && (
-                <span className='text-xs text-muted-foreground'>
-                  <Trans>
-                    This will make your offer(s) immediately public and takeable
-                    on Dexie.space.
-                  </Trans>
+          <div className='flex flex-col gap-4 pt-2'>
+            <div className='flex items-center space-x-2'>
+              <Switch
+                id='auto-upload-dexie'
+                checked={autoUploadToDexie}
+                onCheckedChange={setAutoUploadToDexie}
+              />
+              <Label htmlFor='auto-upload-dexie' className='flex flex-col'>
+                <span>
+                  <Trans>Upload to Dexie.space</Trans>
                 </span>
-              )}
-            </Label>
+                {autoUploadToDexie && (
+                  <span className='text-xs text-muted-foreground'>
+                    <Trans>
+                      This will make your offer(s) immediately public and
+                      takeable on Dexie.space.
+                    </Trans>
+                  </span>
+                )}
+              </Label>
+            </div>
+
+            {canUploadToMintGarden && (
+              <div className='flex items-center space-x-2'>
+                <Switch
+                  id='auto-upload-mintgarden'
+                  checked={autoUploadToMintGarden}
+                  onCheckedChange={setAutoUploadToMintGarden}
+                />
+                <Label
+                  htmlFor='auto-upload-mintgarden'
+                  className='flex flex-col'
+                >
+                  <span>
+                    <Trans>Upload to MintGarden</Trans>
+                  </span>
+                  {autoUploadToMintGarden && (
+                    <span className='text-xs text-muted-foreground'>
+                      <Trans>
+                        This will make your offer(s) immediately public and
+                        takeable on MintGarden.
+                      </Trans>
+                    </span>
+                  )}
+                </Label>
+              </div>
+            )}
           </div>
         </div>
 

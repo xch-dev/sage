@@ -37,6 +37,7 @@ export function MakeOffer() {
   );
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [autoUploadToDexie, setAutoUploadToDexie] = useState(false);
+  const [autoUploadToMintGarden, setAutoUploadToMintGarden] = useState(false);
   const {
     createdOffer,
     createdOffers,
@@ -106,6 +107,52 @@ export function MakeOffer() {
       });
     }
   }, [createdOffer, createdOffers, autoUploadToDexie, network, addError]);
+
+  useEffect(() => {
+    if (
+      autoUploadToMintGarden &&
+      createdOffer &&
+      !createdOffers.length &&
+      network
+    ) {
+      uploadToMintGarden(createdOffer, network === 'testnet')
+        .then(setMintGardenLink)
+        .catch((error) =>
+          addError({
+            kind: 'upload',
+            reason: `Failed to auto-upload to MintGarden: ${error}`,
+          }),
+        )
+        .finally(() => {
+          setAutoUploadToMintGarden(false);
+        });
+    } else if (autoUploadToMintGarden && createdOffers.length > 0 && network) {
+      Promise.all(
+        createdOffers.map((individualOffer) =>
+          uploadToMintGarden(individualOffer, network === 'testnet')
+            .then((link) => {
+              if (createdOffers.indexOf(individualOffer) === 0) {
+                setMintGardenLink(link);
+              }
+              console.log(
+                `Successfully uploaded offer ${createdOffers.indexOf(individualOffer) + 1} to MintGarden: ${link}`,
+              );
+            })
+            .catch((error) => {
+              addError({
+                kind: 'upload',
+                reason: `Failed to auto-upload offer ${createdOffers.indexOf(individualOffer) + 1} to MintGarden: ${error}`,
+              });
+              console.error(
+                `Failed to auto-upload offer ${createdOffers.indexOf(individualOffer) + 1} to MintGarden: ${error}`,
+              );
+            }),
+        ),
+      ).finally(() => {
+        setAutoUploadToMintGarden(false);
+      });
+    }
+  }, [createdOffer, createdOffers, autoUploadToMintGarden, network, addError]);
 
   useEffect(() => {
     if (createdOffers.length > 0) {
@@ -370,6 +417,9 @@ export function MakeOffer() {
           walletDecimals={walletState.sync.unit.decimals}
           autoUploadToDexie={autoUploadToDexie}
           setAutoUploadToDexie={setAutoUploadToDexie}
+          canUploadToMintGarden={canUploadToMintGarden}
+          autoUploadToMintGarden={autoUploadToMintGarden}
+          setAutoUploadToMintGarden={setAutoUploadToMintGarden}
         />
         <OffersCreatedDialog
           open={!!createdOffer || createdOffers.length > 0}
@@ -380,24 +430,7 @@ export function MakeOffer() {
               navigate('/offers', { replace: true });
             }
           }}
-          createdOffer={createdOffer}
           createdOffers={createdOffers}
-          selectedDialogOffer={selectedDialogOffer}
-          setSelectedDialogOffer={setSelectedDialogOffer}
-          mintGardenLink={mintGardenLink}
-          canUploadToMintGarden={canUploadToMintGarden}
-          network={network}
-          onMintGardenUpload={() => {
-            if (mintGardenLink) return openUrl(mintGardenLink);
-            uploadToMintGarden(selectedDialogOffer, network === 'testnet')
-              .then(setMintGardenLink)
-              .catch((error) =>
-                addError({
-                  kind: 'upload',
-                  reason: `${error}`,
-                }),
-              );
-          }}
           onOk={() => {
             clearProcessedOffers();
             setState(null);
