@@ -31,7 +31,6 @@ interface OfferCardProps {
 
 export function OfferCard({ record, summary, content }: OfferCardProps) {
   const walletState = useWalletState();
-  const { addError } = useErrors();
   // State to track which CATs are present in the wallet
   const [catPresence, setCatPresence] = useState<CatPresence>({});
   const [network, setNetwork] = useState<NetworkKind | null>(null);

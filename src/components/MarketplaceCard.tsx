@@ -11,6 +11,7 @@ export interface MarketplaceConfig {
   id: string;
   name: string;
   logo: string;
+  qrCodeLogo: string | null;
   isSupported: (offer: string, offerSummary?: any) => boolean;
   isOnMarketplace: (
     offer: string,
@@ -137,6 +138,7 @@ export function MarketplaceCard({
             margin: 5,
             saveAsBlob: true,
           }}
+          {...(marketplace.qrCodeLogo && { image: marketplace.qrCodeLogo })}
         />
       )}
     </div>
