@@ -5,7 +5,6 @@ import { useErrors } from '@/hooks/useErrors';
 import { useBiometric } from '@/hooks/useBiometric';
 import { toMojos } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
-import { isMintGardenSupported } from '@/lib/offerUpload';
 
 interface UseOfferProcessorProps {
   offerState: OfferState;
@@ -17,7 +16,6 @@ interface UseOfferProcessorReturn {
   createdOffer: string;
   createdOffers: string[];
   isProcessing: boolean;
-  canUploadToMintGarden: boolean;
   processOffer: () => Promise<void>;
   clearProcessedOffers: () => void;
 }
@@ -33,24 +31,15 @@ export function useOfferProcessor({
   const [createdOffer, setCreatedOffer] = useState('');
   const [createdOffers, setCreatedOffers] = useState<string[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [canUploadToMintGarden, setCanUploadToMintGarden] = useState(false);
-
-  // Update canUploadToMintGarden whenever offerState changes
-  useEffect(() => {
-    setCanUploadToMintGarden(isMintGardenSupported(offerState));
-  }, [offerState]);
 
   const clearProcessedOffers = useCallback(() => {
     setCreatedOffer('');
     setCreatedOffers([]);
-    setCanUploadToMintGarden(false);
   }, []);
 
   const processOffer = useCallback(async () => {
     setIsProcessing(true);
     clearProcessedOffers(); // Clear previous offers before starting
-
-    const mintgardenSupported = isMintGardenSupported(offerState);
 
     let expiresAtSecond: number | null = null;
     if (offerState.expiration !== null) {
@@ -148,7 +137,6 @@ export function useOfferProcessor({
         });
         setCreatedOffer(data.offer);
       }
-      setCanUploadToMintGarden(mintgardenSupported);
     } catch (err: any) {
       addError({
         kind: 'invalid',
@@ -173,7 +161,6 @@ export function useOfferProcessor({
     createdOffer,
     createdOffers,
     isProcessing,
-    canUploadToMintGarden,
     processOffer,
     clearProcessedOffers,
   };

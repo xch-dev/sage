@@ -13,7 +13,6 @@ import { uploadToDexie, uploadToMintGarden } from '@/lib/offerUpload';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import { openUrl } from '@tauri-apps/plugin-opener';
 import { HandCoins, Handshake, LoaderCircleIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -29,8 +28,6 @@ export function MakeOffer() {
   const walletState = useWalletState();
   const navigate = useNavigate();
   const { addError } = useErrors();
-  const [dexieLink, setDexieLink] = useState('');
-  const [mintGardenLink, setMintGardenLink] = useState('');
   const [network, setNetwork] = useState<NetworkKind | null>(null);
   const [splitNftOffers, setSplitNftOffers] = useState(
     location.state?.splitNftOffers || false,
@@ -61,7 +58,6 @@ export function MakeOffer() {
 
   useEffect(() => {
     if (!createdOffer && createdOffers.length === 0) {
-      setMintGardenLink('');
       setSelectedDialogOffer('');
     }
   }, [createdOffer, createdOffers]);
@@ -69,7 +65,6 @@ export function MakeOffer() {
   useEffect(() => {
     if (autoUploadToDexie && createdOffer && !createdOffers.length && network) {
       uploadToDexie(createdOffer, network === 'testnet')
-        .then(setDexieLink)
         .catch((error) =>
           addError({
             kind: 'upload',
@@ -84,9 +79,6 @@ export function MakeOffer() {
         createdOffers.map((individualOffer) =>
           uploadToDexie(individualOffer, network === 'testnet')
             .then((link) => {
-              if (createdOffers.indexOf(individualOffer) === 0) {
-                setDexieLink(link);
-              }
               console.log(
                 `Successfully uploaded offer ${createdOffers.indexOf(individualOffer) + 1} to Dexie: ${link}`,
               );
@@ -115,7 +107,6 @@ export function MakeOffer() {
       network
     ) {
       uploadToMintGarden(createdOffer, network === 'testnet')
-        .then(setMintGardenLink)
         .catch((error) =>
           addError({
             kind: 'upload',
@@ -130,9 +121,6 @@ export function MakeOffer() {
         createdOffers.map((individualOffer) =>
           uploadToMintGarden(individualOffer, network === 'testnet')
             .then((link) => {
-              if (createdOffers.indexOf(individualOffer) === 0) {
-                setMintGardenLink(link);
-              }
               console.log(
                 `Successfully uploaded offer ${createdOffers.indexOf(individualOffer) + 1} to MintGarden: ${link}`,
               );
