@@ -2,33 +2,15 @@ import { commands, NetworkKind, OfferRecord, OfferSummary } from '@/bindings';
 import { NumberFormat } from '@/components/NumberFormat';
 import { fromMojos, formatTimestamp } from '@/lib/utils';
 import { useWalletState } from '@/state';
-import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import {
-  ArrowDownIcon,
-  ArrowUpIcon,
-  InfoIcon,
-  ExternalLink,
-  Tags,
-} from 'lucide-react';
+import { ArrowDownIcon, ArrowUpIcon, InfoIcon, Tags } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { cn } from '@/lib/utils';
-import {
-  dexieLink,
-  uploadToDexie,
-  uploadToMintGarden,
-  offerIsOnDexie,
-  offerIsOnMintGarden,
-  isMintGardenSupportedForSummary,
-  mintGardenLink,
-  getOfferHash,
-} from '@/lib/offerUpload';
-import { openUrl } from '@tauri-apps/plugin-opener';
-import { toast } from 'react-toastify';
 import { useErrors } from '@/hooks/useErrors';
 import { Assets } from '@/components/Assets';
-import StyledQRCode from '@/components/StyledQrCode';
+import { MarketplaceCard } from '@/components/MarketplaceCard';
+import { marketplaces } from '@/lib/marketplaces';
 
 // Interface to track CAT presence in wallet
 interface CatPresence {
@@ -48,20 +30,10 @@ export function OfferCard({ record, summary, content }: OfferCardProps) {
   // State to track which CATs are present in the wallet
   const [catPresence, setCatPresence] = useState<CatPresence>({});
   const [network, setNetwork] = useState<NetworkKind | null>(null);
-  const [isOnDexie, setIsOnDexie] = useState<boolean | null>(null);
-  const [isOnMintGarden, setIsOnMintGarden] = useState<boolean | null>(null);
-  const [offerHash, setOfferHash] = useState<string>('');
 
   const offerSummary = summary || record?.summary;
   const offerId = record?.offer_id || '';
   const offer = record?.offer || undefined;
-
-  useEffect(() => {
-    (async () => {
-      const hash = await getOfferHash(offer || '');
-      setOfferHash(hash);
-    })();
-  }, [offer]);
 
   // Check if CATs in the receiving section are present in the wallet
   useEffect(() => {
@@ -90,26 +62,6 @@ export function OfferCard({ record, summary, content }: OfferCardProps) {
     commands.getNetwork({}).then((data) => setNetwork(data.kind));
   }, []);
 
-  useEffect(() => {
-    let isMounted = true;
-
-    if (network !== 'unknown') {
-      offerIsOnDexie(offerId, network === 'testnet').then((isOnDexie) => {
-        if (isMounted) setIsOnDexie(isOnDexie);
-      });
-
-      offerIsOnMintGarden(offer || '', network === 'testnet').then(
-        (isOnMintGarden) => {
-          if (isMounted) setIsOnMintGarden(isOnMintGarden);
-        },
-      );
-    }
-
-    return () => {
-      isMounted = false;
-    };
-  }, [network, offerId, offer]);
-
   const getStatusStyles = (status: string) => {
     switch (status.toLowerCase()) {
       case 'active':
@@ -137,68 +89,6 @@ export function OfferCard({ record, summary, content }: OfferCardProps) {
         return 'bg-red-500';
       default:
         return 'bg-gray-500';
-    }
-  };
-
-  const handleDexieAction = async () => {
-    if (!offer) return;
-
-    if (isOnDexie) {
-      openUrl(dexieLink(offerHash, network === 'testnet'));
-    } else {
-      const toastId = toast.loading(t`Uploading to Dexie...`);
-      try {
-        const url = await uploadToDexie(offer, network === 'testnet');
-        toast.update(toastId, {
-          render: t`Uploaded to Dexie!`,
-          type: 'success',
-          isLoading: false,
-          autoClose: 3000,
-        });
-        setIsOnDexie(true);
-      } catch (error: unknown) {
-        toast.update(toastId, {
-          render: t`Failed to upload to Dexie`,
-          type: 'error',
-          isLoading: false,
-          autoClose: 3000,
-        });
-        addError({
-          kind: 'upload',
-          reason: `Failed to upload to Dexie: ${error instanceof Error ? error.message : String(error)}`,
-        });
-      }
-    }
-  };
-
-  const handleMintGardenAction = async () => {
-    if (!offer) return;
-
-    if (isOnMintGarden) {
-      openUrl(mintGardenLink(offerHash, network === 'testnet'));
-    } else {
-      const toastId = toast.loading(t`Uploading to MintGarden...`);
-      try {
-        const url = await uploadToMintGarden(offer, network === 'testnet');
-        toast.update(toastId, {
-          render: t`Uploaded to MintGarden!`,
-          type: 'success',
-          isLoading: false,
-          autoClose: 3000,
-        });
-        setIsOnMintGarden(true);
-      } catch (error: unknown) {
-        toast.update(toastId, {
-          render: t`Failed to upload to MintGarden`,
-          type: 'error',
-          isLoading: false,
-          autoClose: 3000,
-        });
-        addError({
-          kind: 'upload',
-          reason: `Failed to upload to MintGarden: ${error instanceof Error ? error.message : String(error)}`,
-        });
-      }
     }
   };
 
@@ -348,98 +238,16 @@ export function OfferCard({ record, summary, content }: OfferCardProps) {
           </CardHeader>
           <CardContent className='flex flex-col gap-3'>
             <div className='flex flex-col md:flex-row justify-start gap-8'>
-              {/* Dexie Column */}
-              <div className='flex flex-col items-center gap-4 w-full md:w-auto'>
-                <button
-                  onClick={handleDexieAction}
-                  className='flex items-center gap-2 px-3 py-1.5 rounded-md border hover:bg-accent w-fit'
-                >
-                  <img
-                    src='https://raw.githubusercontent.com/dexie-space/dexie-kit/refs/heads/main/svg/duck.svg'
-                    className='h-4 w-4'
-                    alt='Dexie logo'
-                  />
-                  <span className='text-sm'>
-                    {isOnDexie ? (
-                      <Trans>View on Dexie</Trans>
-                    ) : (
-                      <Trans>Upload to Dexie</Trans>
-                    )}
-                  </span>
-                  {isOnDexie && <ExternalLink className='h-4 w-4' />}
-                </button>
-
-                {isOnDexie && (
-                  <StyledQRCode
-                    data={dexieLink(offerHash, network === 'testnet')}
-                    width={200}
-                    height={200}
-                    cornersSquareOptions={{
-                      type: 'extra-rounded',
-                    }}
-                    dotsOptions={{
-                      type: 'rounded',
-                      color: '#000000',
-                    }}
-                    backgroundOptions={{}}
-                    //image='https://raw.githubusercontent.com/dexie-space/dexie-kit/refs/heads/main/svg/duck.svg'
-                    imageOptions={{
-                      hideBackgroundDots: true,
-                      imageSize: 0.4,
-                      margin: 5,
-                      saveAsBlob: true,
-                    }}
-                  />
-                )}
-              </div>
-
-              {/* MintGarden Column */}
-              {offerSummary &&
-                isMintGardenSupportedForSummary(offerSummary) && (
-                  <div className='flex flex-col items-center gap-4 w-full md:w-auto'>
-                    <button
-                      onClick={handleMintGardenAction}
-                      className='flex items-center gap-2 px-3 py-1.5 rounded-md border hover:bg-accent w-fit'
-                    >
-                      <img
-                        src='https://mintgarden.io/favicon.ico'
-                        className='h-4 w-4'
-                        alt='MintGarden logo'
-                      />
-                      <span className='text-sm'>
-                        {isOnMintGarden ? (
-                          <Trans>View on MintGarden</Trans>
-                        ) : (
-                          <Trans>Upload to MintGarden</Trans>
-                        )}
-                      </span>
-                      {isOnMintGarden && <ExternalLink className='h-4 w-4' />}
-                    </button>
-
-                    {isOnMintGarden && (
-                      <StyledQRCode
-                        data={mintGardenLink(offerHash, network === 'testnet')}
-                        width={200}
-                        height={200}
-                        cornersSquareOptions={{
-                          type: 'extra-rounded',
-                        }}
-                        dotsOptions={{
-                          type: 'rounded',
-                          color: '#000000',
-                        }}
-                        backgroundOptions={{}}
-                        //image='/images/mintgarden-logo.png'
-                        imageOptions={{
-                          hideBackgroundDots: true,
-                          imageSize: 0.4,
-                          margin: 5,
-                          saveAsBlob: true,
-                        }}
-                      />
-                    )}
-                  </div>
-                )}
+              {marketplaces.map((marketplace) => (
+                <MarketplaceCard
+                  key={marketplace.id}
+                  offer={offer || ''}
+                  offerId={offerId}
+                  offerSummary={offerSummary}
+                  network={network || 'unknown'}
+                  marketplace={marketplace}
+                />
+              ))}
             </div>
           </CardContent>
         </Card>
