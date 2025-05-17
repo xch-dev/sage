@@ -1,5 +1,5 @@
 import { OfferRecord, OfferSummary } from '@/bindings';
-import { Assets } from '@/components/OfferCard';
+import { Assets } from '@/components/Assets';
 import { Trans } from '@lingui/react/macro';
 import {
   ArrowUpIcon,
@@ -17,7 +17,7 @@ interface OfferConfirmationProps {
   offer: OfferSummary | OfferRecord;
 }
 
-export function OfferConfirmation({ type, offer }: OfferConfirmationProps) {
+export function TakeOfferConfirmation({ type, offer }: OfferConfirmationProps) {
   const config = {
     take: {
       icon: HandshakeIcon,
