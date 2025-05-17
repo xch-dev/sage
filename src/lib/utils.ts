@@ -1,3 +1,4 @@
+import { commands, Error } from '@/bindings';
 import { bech32m } from 'bech32';
 import BigNumber from 'bignumber.js';
 import { clsx, type ClassValue } from 'clsx';
@@ -177,4 +178,33 @@ export function decodeHexMessage(hexMessage: string): string {
 
 export function isHex(str: string): boolean {
   return /^(0x)?[0-9a-fA-F]+$/.test(str);
+}
+
+export async function fetchNfcOffer(text: string): Promise<string | Error> {
+  if (!text.startsWith('DT001')) {
+    return {
+      kind: 'nfc',
+      reason: 'Invalid NFC payload (not following CHIP-0047)',
+    };
+  }
+
+  text = text.slice(5);
+
+  const nftId = text.slice(0, 62);
+
+  if (nftId.length !== 62 || !nftId.startsWith('nft1')) {
+    return {
+      kind: 'nfc',
+      reason:
+        'NFC payload starts with CHIP-0047 prefix but does not have a valid NFT ID',
+    };
+  }
+
+  text = text.slice(62);
+
+  try {
+    return await commands.downloadCniOffercode(text);
+  } catch (error: unknown) {
+    return error as Error;
+  }
 }

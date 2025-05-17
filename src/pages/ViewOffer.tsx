@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { CustomError } from '@/contexts/ErrorContext';
 import { useErrors } from '@/hooks/useErrors';
-import { toMojos } from '@/lib/utils';
+import { fetchNfcOffer, toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -105,6 +105,12 @@ const resolveOffer = async (offerData: string): Promise<string> => {
       kind: 'api',
       reason: 'Failed to resolve offer',
     } as CustomError;
+  }
+
+  const offer = await fetchNfcOffer(offerData);
+
+  if (typeof offer === 'string') {
+    return offer;
   }
 
   return offerData;
