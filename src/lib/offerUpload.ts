@@ -76,8 +76,8 @@ export function dexieLink(offerId: string, testnet: boolean) {
   return `https://${testnet ? 'testnet.' : ''}dexie.space/offers/${offerId}`;
 }
 
-export function mintGardenLink(offerId: string, testnet: boolean) {
-  return `https://${testnet ? 'testnet.' : ''}mintgarden.io/offers/${offerId}`;
+export function mintGardenLink(offerHash: string, testnet: boolean) {
+  return `https://${testnet ? 'testnet.' : ''}mintgarden.io/offers/${offerHash}`;
 }
 
 export async function offerIsOnDexie(
@@ -87,7 +87,7 @@ export async function offerIsOnDexie(
   try {
     if (!offerId || offerId === '') return false;
     const response = await fetch(
-      `https://${isTestnet ? 'testnet.' : ''}api.dexie.space/v1/offers/${offerId}`,
+      `https://${isTestnet ? 'api-testnet' : 'api'}.dexie.space/v1/offers/${offerId}`,
     );
     const data = await response.json();
     return data.success === true;

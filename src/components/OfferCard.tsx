@@ -21,6 +21,8 @@ import {
   offerIsOnDexie,
   offerIsOnMintGarden,
   isMintGardenSupportedForSummary,
+  mintGardenLink,
+  getOfferHash,
 } from '@/lib/offerUpload';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { toast } from 'react-toastify';
@@ -48,12 +50,18 @@ export function OfferCard({ record, summary, content }: OfferCardProps) {
   const [network, setNetwork] = useState<NetworkKind | null>(null);
   const [isOnDexie, setIsOnDexie] = useState<boolean | null>(null);
   const [isOnMintGarden, setIsOnMintGarden] = useState<boolean | null>(null);
-  const [currentMintGardenLink, setCurrentMintGardenLink] =
-    useState<string>('');
+  const [offerHash, setOfferHash] = useState<string>('');
 
   const offerSummary = summary || record?.summary;
   const offerId = record?.offer_id || '';
   const offer = record?.offer || undefined;
+
+  useEffect(() => {
+    (async () => {
+      const hash = await getOfferHash(offer || '');
+      setOfferHash(hash);
+    })();
+  }, [offer]);
 
   // Check if CATs in the receiving section are present in the wallet
   useEffect(() => {
@@ -136,7 +144,7 @@ export function OfferCard({ record, summary, content }: OfferCardProps) {
     if (!offer) return;
 
     if (isOnDexie) {
-      openUrl(dexieLink(offerId, network === 'testnet'));
+      openUrl(dexieLink(offerHash, network === 'testnet'));
     } else {
       const toastId = toast.loading(t`Uploading to Dexie...`);
       try {
@@ -167,7 +175,7 @@ export function OfferCard({ record, summary, content }: OfferCardProps) {
     if (!offer) return;
 
     if (isOnMintGarden) {
-      openUrl(currentMintGardenLink);
+      openUrl(mintGardenLink(offerHash, network === 'testnet'));
     } else {
       const toastId = toast.loading(t`Uploading to MintGarden...`);
       try {
@@ -179,7 +187,6 @@ export function OfferCard({ record, summary, content }: OfferCardProps) {
           autoClose: 3000,
         });
         setIsOnMintGarden(true);
-        setCurrentMintGardenLink(url);
       } catch (error: unknown) {
         toast.update(toastId, {
           render: t`Failed to upload to MintGarden`,
@@ -363,28 +370,26 @@ export function OfferCard({ record, summary, content }: OfferCardProps) {
                 </button>
 
                 {isOnDexie && (
-                  <div className='bg-white p-2 rounded-lg'>
-                    <StyledQRCode
-                      data={dexieLink(offerId, network === 'testnet')}
-                      width={200}
-                      height={200}
-                      cornersSquareOptions={{
-                        type: 'extra-rounded',
-                      }}
-                      dotsOptions={{
-                        type: 'rounded',
-                        color: '#000000',
-                      }}
-                      backgroundOptions={{}}
-                      image='https://raw.githubusercontent.com/dexie-space/dexie-kit/refs/heads/main/svg/duck.svg'
-                      imageOptions={{
-                        hideBackgroundDots: true,
-                        imageSize: 0.4,
-                        margin: 5,
-                        saveAsBlob: true,
-                      }}
-                    />
-                  </div>
+                  <StyledQRCode
+                    data={dexieLink(offerHash, network === 'testnet')}
+                    width={200}
+                    height={200}
+                    cornersSquareOptions={{
+                      type: 'extra-rounded',
+                    }}
+                    dotsOptions={{
+                      type: 'rounded',
+                      color: '#000000',
+                    }}
+                    backgroundOptions={{}}
+                    //image='https://raw.githubusercontent.com/dexie-space/dexie-kit/refs/heads/main/svg/duck.svg'
+                    imageOptions={{
+                      hideBackgroundDots: true,
+                      imageSize: 0.4,
+                      margin: 5,
+                      saveAsBlob: true,
+                    }}
+                  />
                 )}
               </div>
 
@@ -413,7 +418,7 @@ export function OfferCard({ record, summary, content }: OfferCardProps) {
 
                     {isOnMintGarden && (
                       <StyledQRCode
-                        data={currentMintGardenLink}
+                        data={mintGardenLink(offerHash, network === 'testnet')}
                         width={200}
                         height={200}
                         cornersSquareOptions={{
@@ -424,8 +429,9 @@ export function OfferCard({ record, summary, content }: OfferCardProps) {
                           color: '#000000',
                         }}
                         backgroundOptions={{}}
+                        //image='/images/mintgarden-logo.png'
                         imageOptions={{
-                          hideBackgroundDots: false,
+                          hideBackgroundDots: true,
                           imageSize: 0.4,
                           margin: 5,
                           saveAsBlob: true,
