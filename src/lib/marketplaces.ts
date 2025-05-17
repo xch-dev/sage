@@ -9,6 +9,8 @@ import {
     mintGardenLink,
 } from '@/lib/offerUpload';
 import { MarketplaceConfig } from '@/components/MarketplaceCard';
+// need to store mintgarden logo locally because of CORS
+import mintGardenLogo from '@/images/mintgarden-logo.svg';
 
 export const marketplaces: MarketplaceConfig[] = [
     {
@@ -25,7 +27,7 @@ export const marketplaces: MarketplaceConfig[] = [
     {
         id: 'mintgarden',
         name: 'MintGarden',
-        logo: 'https://mintgarden.io/mint-logo-round.svg',
+        logo: mintGardenLogo,
         qrCodeLogo: mintGardenLogo,
         isSupported: (_, offerSummary?: OfferSummary) =>
             offerSummary ? isMintGardenSupportedForSummary(offerSummary) : false,
