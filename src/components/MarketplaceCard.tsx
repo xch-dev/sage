@@ -96,7 +96,7 @@ export function MarketplaceCard({
   }
 
   return (
-    <div className='flex flex-col items-center gap-4 w-full md:w-auto'>
+    <div className='flex flex-col items-center gap-4 w-auto'>
       <button
         onClick={handleMarketplaceAction}
         className='flex items-center gap-2 px-3 py-1.5 rounded-md border hover:bg-accent w-fit'

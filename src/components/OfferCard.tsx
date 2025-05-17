@@ -243,7 +243,7 @@ export function OfferCard({ record, summary, content }: OfferCardProps) {
             </p>
           </CardHeader>
           <CardContent className='flex flex-col gap-3'>
-            <div className='flex flex-col md:flex-row justify-start gap-8'>
+            <div className='flex flex-col md:flex-row items-start gap-8'>
               {marketplaces.map((marketplace) => (
                 <MarketplaceCard
                   key={marketplace.id}
