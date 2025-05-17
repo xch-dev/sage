@@ -266,7 +266,8 @@ export function MakeOfferConfirmationDialog({
     ? new BigNumber(feePerOffer).multipliedBy(numOfferedNfts).toString()
     : feePerOffer;
   const hasFee = new BigNumber(feePerOffer).gt(0);
-  const canUploadToMintGarden = isMintGardenSupported(offerState);
+  const canUploadToMintGarden = isMintGardenSupported(offerState, isSplitting);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className='sm:max-w-lg'>

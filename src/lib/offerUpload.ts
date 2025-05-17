@@ -22,10 +22,19 @@ export function isMintGardenSupportedForSummary(summary: OfferSummary) {
   );
 }
 
-export function isMintGardenSupported(state: OfferState) {
+export function isMintGardenSupported(
+  state: OfferState,
+  isSplitting = false,
+) {
+  if (isSplitting) {
+    return ((state.offered.xch === '0' || !state.offered.xch) &&
+      state.offered.cats.filter((c) => c).length === 0 &&
+      state.offered.nfts.filter((n) => n).length > 0
+    );
+  }
   return (
     (state.offered.xch === '0' || !state.offered.xch) &&
-    state.offered.cats.length === 0 &&
+    state.offered.cats.filter((c) => c).length === 0 &&
     state.offered.nfts.filter((n) => n).length === 1
   );
 }
