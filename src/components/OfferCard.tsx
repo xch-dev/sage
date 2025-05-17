@@ -3,7 +3,12 @@ import { NumberFormat } from '@/components/NumberFormat';
 import { fromMojos, formatTimestamp } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { Trans } from '@lingui/react/macro';
-import { ArrowDownIcon, ArrowUpIcon, InfoIcon, Tags } from 'lucide-react';
+import {
+  ShoppingBasketIcon,
+  InfoIcon,
+  Tags,
+  HandCoinsIcon,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { cn } from '@/lib/utils';
@@ -187,11 +192,13 @@ export function OfferCard({ record, summary, content }: OfferCardProps) {
         <Card>
           <CardHeader className='pb-2'>
             <CardTitle className='text-lg font-medium flex items-center'>
-              <ArrowUpIcon className='mr-2 h-5 w-5' />
-              <Trans>Sending</Trans>
+              <ShoppingBasketIcon className='mr-2 h-5 w-5' />
+              <Trans>Requested</Trans>
             </CardTitle>
             <p className='text-sm text-muted-foreground'>
-              <Trans>The assets you have to pay to fulfill the offer.</Trans>
+              <Trans>
+                The assets the taker will have to pay to fulfill the offer.
+              </Trans>
             </p>
           </CardHeader>
           <CardContent className='flex flex-col gap-3'>
@@ -203,11 +210,11 @@ export function OfferCard({ record, summary, content }: OfferCardProps) {
         <Card>
           <CardHeader className='pb-2'>
             <CardTitle className='text-lg font-medium flex items-center'>
-              <ArrowDownIcon className='mr-2 h-5 w-5' />
-              <Trans>Receiving</Trans>
+              <HandCoinsIcon className='mr-2 h-5 w-5' />
+              <Trans>Offered</Trans>
             </CardTitle>
             <p className='text-sm text-muted-foreground'>
-              <Trans>The assets being given to you in the offer.</Trans>
+              <Trans>The assets being given to the taker in the offer.</Trans>
             </p>
           </CardHeader>
           <CardContent className='flex flex-col gap-3'>

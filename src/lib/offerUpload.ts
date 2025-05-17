@@ -2,9 +2,7 @@ import { OfferSummary } from '@/bindings';
 import { OfferState } from '@/state';
 import bs58 from 'bs58';
 
-export async function getOfferHash(
-  offer: string,
-): Promise<string> {
+export async function getOfferHash(offer: string): Promise<string> {
   // Create SHA-256 hash of the UTF-8 encoded offer
   const encoder = new TextEncoder();
   const data = encoder.encode(offer);
