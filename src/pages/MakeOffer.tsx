@@ -42,7 +42,6 @@ export function MakeOffer() {
     createdOffer,
     createdOffers,
     isProcessing,
-    canUploadToMintGarden,
     processOffer,
     clearProcessedOffers,
   } = useOfferProcessor({
@@ -417,7 +416,6 @@ export function MakeOffer() {
           walletDecimals={walletState.sync.unit.decimals}
           autoUploadToDexie={autoUploadToDexie}
           setAutoUploadToDexie={setAutoUploadToDexie}
-          canUploadToMintGarden={canUploadToMintGarden}
           autoUploadToMintGarden={autoUploadToMintGarden}
           setAutoUploadToMintGarden={setAutoUploadToMintGarden}
         />

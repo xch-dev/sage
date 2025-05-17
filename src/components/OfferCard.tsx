@@ -18,13 +18,16 @@ import {
   dexieLink,
   uploadToDexie,
   uploadToMintGarden,
-  calculateMintGardenOfferId,
+  offerIsOnDexie,
+  offerIsOnMintGarden,
+  isMintGardenSupportedForSummary,
 } from '@/lib/offerUpload';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { toast } from 'react-toastify';
 import { useErrors } from '@/hooks/useErrors';
 import { Assets } from '@/components/Assets';
 import StyledQRCode from '@/components/StyledQrCode';
+
 // Interface to track CAT presence in wallet
 interface CatPresence {
   [assetId: string]: boolean;
@@ -80,52 +83,23 @@ export function OfferCard({ record, summary, content }: OfferCardProps) {
   }, []);
 
   useEffect(() => {
-    if (network !== 'unknown' && offerId) {
-      // Check Dexie
-      fetch(
-        `https://${network === 'testnet' ? 'testnet.' : ''}api.dexie.space/v1/offers/${offerId}`,
-      )
-        .then((response) => response.json())
-        .then((data) => setIsOnDexie(data.success === true))
-        .catch(() => setIsOnDexie(false));
+    let isMounted = true;
 
-      // Check MintGarden
-      if (offer) {
-        let isMounted = true; // Add mounted check
+    if (network !== 'unknown') {
+      offerIsOnDexie(offerId, network === 'testnet').then((isOnDexie) => {
+        if (isMounted) setIsOnDexie(isOnDexie);
+      });
 
-        calculateMintGardenOfferId(offer).then((mintGardenId) => {
-          if (!isMounted) return; // Skip if component unmounted
-
-          const mintGardenUrl = `https://${network === 'testnet' ? 'testnet.' : ''}mintgarden.io/offers/${mintGardenId}`;
-
-          fetch(
-            `https://api.${network === 'testnet' ? 'testnet.' : ''}mintgarden.io/offers/${mintGardenId}`,
-          )
-            .then((response) => response.json())
-            .then((data) => {
-              if (!isMounted) return; // Skip if component unmounted
-
-              const isOnMintGarden = data.id === mintGardenId;
-              setIsOnMintGarden(isOnMintGarden);
-              if (isOnMintGarden) {
-                setCurrentMintGardenLink(mintGardenUrl);
-              } else {
-                setCurrentMintGardenLink('');
-              }
-            })
-            .catch(() => {
-              if (!isMounted) return; // Skip if component unmounted
-
-              setIsOnMintGarden(false);
-              setCurrentMintGardenLink('');
-            });
-        });
-
-        return () => {
-          isMounted = false; // Cleanup on unmount
-        };
-      }
+      offerIsOnMintGarden(offer || '', network === 'testnet').then(
+        (isOnMintGarden) => {
+          if (isMounted) setIsOnMintGarden(isOnMintGarden);
+        },
+      );
     }
+
+    return () => {
+      isMounted = false;
+    };
   }, [network, offerId, offer]);
 
   const getStatusStyles = (status: string) => {
@@ -417,48 +391,51 @@ export function OfferCard({ record, summary, content }: OfferCardProps) {
               </div>
 
               {/* MintGarden Column */}
-              <div className='flex flex-col items-center gap-4 w-full md:w-auto'>
-                <button
-                  onClick={handleMintGardenAction}
-                  className='flex items-center gap-2 px-3 py-1.5 rounded-md border hover:bg-accent w-fit'
-                >
-                  <img
-                    src='https://mintgarden.io/favicon.ico'
-                    className='h-4 w-4'
-                    alt='MintGarden logo'
-                  />
-                  <span className='text-sm'>
-                    {isOnMintGarden ? (
-                      <Trans>View on MintGarden</Trans>
-                    ) : (
-                      <Trans>Upload to MintGarden</Trans>
-                    )}
-                  </span>
-                  {isOnMintGarden && <ExternalLink className='h-4 w-4' />}
-                </button>
+              {offerSummary &&
+                isMintGardenSupportedForSummary(offerSummary) && (
+                  <div className='flex flex-col items-center gap-4 w-full md:w-auto'>
+                    <button
+                      onClick={handleMintGardenAction}
+                      className='flex items-center gap-2 px-3 py-1.5 rounded-md border hover:bg-accent w-fit'
+                    >
+                      <img
+                        src='https://mintgarden.io/favicon.ico'
+                        className='h-4 w-4'
+                        alt='MintGarden logo'
+                      />
+                      <span className='text-sm'>
+                        {isOnMintGarden ? (
+                          <Trans>View on MintGarden</Trans>
+                        ) : (
+                          <Trans>Upload to MintGarden</Trans>
+                        )}
+                      </span>
+                      {isOnMintGarden && <ExternalLink className='h-4 w-4' />}
+                    </button>
 
-                {isOnMintGarden && (
-                  <StyledQRCode
-                    data={currentMintGardenLink}
-                    width={200}
-                    height={200}
-                    cornersSquareOptions={{
-                      type: 'extra-rounded',
-                    }}
-                    dotsOptions={{
-                      type: 'rounded',
-                      color: '#000000',
-                    }}
-                    backgroundOptions={{}}
-                    imageOptions={{
-                      hideBackgroundDots: false,
-                      imageSize: 0.4,
-                      margin: 5,
-                      saveAsBlob: true,
-                    }}
-                  />
+                    {isOnMintGarden && (
+                      <StyledQRCode
+                        data={currentMintGardenLink}
+                        width={200}
+                        height={200}
+                        cornersSquareOptions={{
+                          type: 'extra-rounded',
+                        }}
+                        dotsOptions={{
+                          type: 'rounded',
+                          color: '#000000',
+                        }}
+                        backgroundOptions={{}}
+                        imageOptions={{
+                          hideBackgroundDots: false,
+                          imageSize: 0.4,
+                          margin: 5,
+                          saveAsBlob: true,
+                        }}
+                      />
+                    )}
+                  </div>
                 )}
-              </div>
             </div>
           </CardContent>
         </Card>

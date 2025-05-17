@@ -5,7 +5,7 @@ import { useErrors } from '@/hooks/useErrors';
 import { useBiometric } from '@/hooks/useBiometric';
 import { toMojos } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
-
+import { isMintGardenSupported } from '@/lib/offerUpload';
 interface UseOfferProcessorProps {
   offerState: OfferState;
   splitNftOffers: boolean;
@@ -29,24 +29,15 @@ export function useOfferProcessor({
   const walletState = useWalletState();
   const { addError } = useErrors();
   const { promptIfEnabled } = useBiometric();
-
   const [createdOffer, setCreatedOffer] = useState('');
   const [createdOffers, setCreatedOffers] = useState<string[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [canUploadToMintGarden, setCanUploadToMintGarden] = useState(false);
 
-  const calculateMintGardenSupport = useCallback((state: OfferState) => {
-    return (
-      (state.offered.xch === '0' || !state.offered.xch) &&
-      state.offered.cats.length === 0 &&
-      state.offered.nfts.filter(n => n).length === 1
-    );
-  }, []);
-
   // Update canUploadToMintGarden whenever offerState changes
   useEffect(() => {
-    setCanUploadToMintGarden(calculateMintGardenSupport(offerState));
-  }, [offerState, calculateMintGardenSupport]);
+    setCanUploadToMintGarden(isMintGardenSupported(offerState));
+  }, [offerState]);
 
   const clearProcessedOffers = useCallback(() => {
     setCreatedOffer('');
@@ -58,7 +49,7 @@ export function useOfferProcessor({
     setIsProcessing(true);
     clearProcessedOffers(); // Clear previous offers before starting
 
-    const mintgardenSupported = calculateMintGardenSupport(offerState);
+    const mintgardenSupported = isMintGardenSupported(offerState);
 
     let expiresAtSecond: number | null = null;
     if (offerState.expiration !== null) {

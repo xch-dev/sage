@@ -17,7 +17,8 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { useEffect, useState } from 'react';
 import { nftUri } from '@/lib/nftUri';
-import { ImageIcon, AlertTriangle } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
+import { isMintGardenSupported } from '@/lib/offerUpload';
 
 interface MakeOfferConfirmationDialogProps {
   open: boolean;
@@ -30,7 +31,6 @@ interface MakeOfferConfirmationDialogProps {
   walletDecimals: number;
   autoUploadToDexie: boolean;
   setAutoUploadToDexie: (value: boolean) => void;
-  canUploadToMintGarden: boolean;
   autoUploadToMintGarden: boolean;
   setAutoUploadToMintGarden: (value: boolean) => void;
 }
@@ -251,7 +251,6 @@ export function MakeOfferConfirmationDialog({
   walletDecimals,
   autoUploadToDexie,
   setAutoUploadToDexie,
-  canUploadToMintGarden,
   autoUploadToMintGarden,
   setAutoUploadToMintGarden,
 }: MakeOfferConfirmationDialogProps) {
@@ -267,7 +266,7 @@ export function MakeOfferConfirmationDialog({
     ? new BigNumber(feePerOffer).multipliedBy(numOfferedNfts).toString()
     : feePerOffer;
   const hasFee = new BigNumber(feePerOffer).gt(0);
-
+  const canUploadToMintGarden = isMintGardenSupported(offerState);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className='sm:max-w-lg'>

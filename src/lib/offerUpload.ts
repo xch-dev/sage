@@ -1,6 +1,10 @@
+import { OfferSummary } from '@/bindings';
+import { OfferState } from '@/state';
 import bs58 from 'bs58';
 
-export async function calculateMintGardenOfferId(offer: string): Promise<string> {
+export async function calculateMintGardenOfferId(
+  offer: string,
+): Promise<string> {
   // Create SHA-256 hash of the UTF-8 encoded offer
   const encoder = new TextEncoder();
   const data = encoder.encode(offer);
@@ -10,6 +14,22 @@ export async function calculateMintGardenOfferId(offer: string): Promise<string>
 
   // Encode the hash in base58
   return bs58.encode(hashBytes);
+}
+
+export function isMintGardenSupportedForSummary(summary: OfferSummary) {
+  return (
+    summary.maker?.xch?.amount === 0 &&
+    Object.keys(summary.maker.cats).length === 0 &&
+    Object.keys(summary.maker.nfts).length === 1
+  );
+}
+
+export function isMintGardenSupported(state: OfferState) {
+  return (
+    (state.offered.xch === '0' || !state.offered.xch) &&
+    state.offered.cats.length === 0 &&
+    state.offered.nfts.filter((n) => n).length === 1
+  );
 }
 
 export async function uploadToDexie(
@@ -72,6 +92,23 @@ export async function offerIsOnDexie(
     );
     const data = await response.json();
     return data.success === true;
+  } catch {
+    return false;
+  }
+}
+
+export async function offerIsOnMintGarden(
+  offer: string,
+  isTestnet: boolean,
+): Promise<boolean> {
+  try {
+    if (!offer || offer === '') return false;
+    const mintGardenId = await calculateMintGardenOfferId(offer);
+    const response = await fetch(
+      `https://api.${isTestnet ? 'testnet.' : ''}mintgarden.io/offers/${mintGardenId}`,
+    );
+    const data = await response.json();
+    return data.id === mintGardenId;
   } catch {
     return false;
   }
