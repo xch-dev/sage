@@ -2,7 +2,7 @@ import { OfferSummary } from '@/bindings';
 import { OfferState } from '@/state';
 import bs58 from 'bs58';
 
-export async function calculateMintGardenOfferId(
+export async function getOfferHash(
   offer: string,
 ): Promise<string> {
   // Create SHA-256 hash of the UTF-8 encoded offer
@@ -69,8 +69,6 @@ export async function uploadToMintGarden(
   );
 
   const data = await response.json();
-  console.log(data);
-
   return mintGardenLink(data.offer.id, testnet);
 }
 
@@ -87,6 +85,7 @@ export async function offerIsOnDexie(
   isTestnet: boolean,
 ): Promise<boolean> {
   try {
+    if (!offerId || offerId === '') return false;
     const response = await fetch(
       `https://${isTestnet ? 'testnet.' : ''}api.dexie.space/v1/offers/${offerId}`,
     );
@@ -103,12 +102,12 @@ export async function offerIsOnMintGarden(
 ): Promise<boolean> {
   try {
     if (!offer || offer === '') return false;
-    const mintGardenId = await calculateMintGardenOfferId(offer);
+    const hash = await getOfferHash(offer);
     const response = await fetch(
-      `https://api.${isTestnet ? 'testnet.' : ''}mintgarden.io/offers/${mintGardenId}`,
+      `https://api.${isTestnet ? 'testnet.' : ''}mintgarden.io/offers/${hash}`,
     );
     const data = await response.json();
-    return data.id === mintGardenId;
+    return data.id === hash;
   } catch {
     return false;
   }

@@ -148,7 +148,6 @@ export function OfferCard({ record, summary, content }: OfferCardProps) {
           autoClose: 3000,
         });
         setIsOnDexie(true);
-        openUrl(url);
       } catch (error: unknown) {
         toast.update(toastId, {
           render: t`Failed to upload to Dexie`,
@@ -181,7 +180,6 @@ export function OfferCard({ record, summary, content }: OfferCardProps) {
         });
         setIsOnMintGarden(true);
         setCurrentMintGardenLink(url);
-        openUrl(url);
       } catch (error: unknown) {
         toast.update(toastId, {
           render: t`Failed to upload to MintGarden`,

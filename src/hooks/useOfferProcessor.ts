@@ -6,6 +6,7 @@ import { useBiometric } from '@/hooks/useBiometric';
 import { toMojos } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { isMintGardenSupported } from '@/lib/offerUpload';
+
 interface UseOfferProcessorProps {
   offerState: OfferState;
   splitNftOffers: boolean;
