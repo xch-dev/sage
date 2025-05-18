@@ -127,7 +127,7 @@ export default function IssueToken() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>
-                      <Trans>Fee</Trans>
+                      <Trans>Network Fee</Trans>
                     </FormLabel>
                     <FormControl>
                       <div className='relative'>

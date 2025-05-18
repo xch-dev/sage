@@ -336,19 +336,11 @@ export default function Send() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>
-                      <Trans>Fee</Trans>
+                      <Trans>Network Fee</Trans>
                     </FormLabel>
                     <FormControl>
                       <div className='relative'>
                         <FeeAmountInput {...field} className='pr-12' />
-                        <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
-                          <span
-                            className='text-gray-500 text-sm'
-                            id='price-currency'
-                          >
-                            {walletState.sync.unit.ticker}
-                          </span>
-                        </div>
                       </div>
                     </FormControl>
                     <FormMessage />
