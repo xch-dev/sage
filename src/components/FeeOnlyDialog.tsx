@@ -24,8 +24,7 @@ import {
   FormLabel,
   FormMessage,
 } from './ui/form';
-import { TokenAmountInput } from './ui/masked-input';
-import { useDefaultFee } from '@/hooks/useDefaultFee';
+import { FeeAmountInput } from './ui/masked-input';
 
 export interface FeeOnlyDialogProps {
   title: string;
@@ -44,7 +43,6 @@ export function FeeOnlyDialog({
   children,
 }: PropsWithChildren<FeeOnlyDialogProps>) {
   const walletState = useWalletState();
-  const { fee: defaultFee } = useDefaultFee();
 
   const schema = z.object({
     fee: amount(walletState.sync.unit.decimals).refine(
@@ -55,9 +53,6 @@ export function FeeOnlyDialog({
 
   const form = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
-    defaultValues: {
-      fee: defaultFee,
-    },
   });
 
   const handler = (values: z.infer<typeof schema>) => {
@@ -82,11 +77,7 @@ export function FeeOnlyDialog({
                     <Trans>Network Fee</Trans>
                   </FormLabel>
                   <FormControl>
-                    <TokenAmountInput
-                      {...field}
-                      placeholder={t`Enter network fee`}
-                      aria-label={t`Network fee amount`}
-                    />
+                    <FeeAmountInput {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

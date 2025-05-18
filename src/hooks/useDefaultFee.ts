@@ -12,7 +12,10 @@ const isValidFee = (value: string): boolean => {
 const DEFAULT_FEE = '0';
 
 export function useDefaultFee() {
-  const [defaultFee, setDefaultFee] = useLocalStorage<DefaultFee>('defaultFee', { fee: DEFAULT_FEE });
+  const [defaultFee, setDefaultFee] = useLocalStorage<DefaultFee>(
+    'defaultFee',
+    { fee: DEFAULT_FEE },
+  );
 
   const setFee = (fee: string) => {
     if (isValidFee(fee)) {

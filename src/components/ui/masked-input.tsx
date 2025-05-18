@@ -3,6 +3,8 @@ import * as React from 'react';
 import { NumericFormat, NumericFormatProps } from 'react-number-format';
 import { toast } from 'react-toastify';
 import { Input, InputProps } from './input';
+import { useDefaultFee } from '@/hooks/useDefaultFee';
+import { useWalletState } from '@/state';
 
 interface MaskedInputProps extends NumericFormatProps<InputProps> {
   inputRef?: React.Ref<HTMLInputElement>;
@@ -109,4 +111,58 @@ const IntegerInput = React.forwardRef<HTMLInputElement, IntegerInputProps>(
 
 IntegerInput.displayName = 'IntegerInput';
 
-export { MaskedInput, TokenAmountInput, IntegerInput };
+// Fee input that uses the default fee value as initial value
+interface FeeAmountInputProps extends Omit<XchInputProps, 'value'> {
+  value?: string;
+  className?: string;
+  onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onValueChange?: (values: {
+    floatValue: number | undefined;
+    value: string;
+  }) => void;
+}
+
+const FeeAmountInput = React.forwardRef<HTMLInputElement, FeeAmountInputProps>(
+  ({ value, className, onChange, onValueChange, ...props }, ref) => {
+    const { fee: defaultFee } = useDefaultFee();
+    const walletState = useWalletState();
+    const hasSetInitialValue = React.useRef(false);
+
+    // Set initial value when component mounts
+    React.useEffect(() => {
+      if (!value && !hasSetInitialValue.current) {
+        hasSetInitialValue.current = true;
+        if (onChange) {
+          onChange({ target: { value: defaultFee } } as any);
+        }
+        if (onValueChange) {
+          onValueChange({ floatValue: Number(defaultFee), value: defaultFee });
+        }
+      }
+    }, [defaultFee, onChange, onValueChange, value]);
+
+    return (
+      <div className='relative'>
+        <TokenAmountInput
+          {...props}
+          ref={ref}
+          value={value ?? defaultFee}
+          onChange={onChange}
+          onValueChange={onValueChange}
+          placeholder={t`Enter network fee`}
+          aria-label={t`Network fee amount`}
+          className={`pr-12 ${className || ''}`}
+        />
+        <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
+          <span className='text-gray-500 text-sm' id='price-currency'>
+            {walletState.sync.unit.ticker}
+          </span>
+        </div>
+      </div>
+    );
+  },
+);
+
+FeeAmountInput.displayName = 'FeeAmountInput';
+
+export { MaskedInput, TokenAmountInput, IntegerInput, FeeAmountInput };

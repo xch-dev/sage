@@ -16,7 +16,11 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { IntegerInput, TokenAmountInput } from '@/components/ui/masked-input';
+import {
+  IntegerInput,
+  TokenAmountInput,
+  FeeAmountInput,
+} from '@/components/ui/masked-input';
 import { Switch } from '@/components/ui/switch';
 import {
   Tooltip,
@@ -134,7 +138,7 @@ export function MakeOffer() {
       ),
       expires_at_second: expiresAtSecond,
     });
-
+    console.log(`state ${state.fee}`);
     setState(null);
     setOffer(data.offer);
     setPending(false);
@@ -202,13 +206,11 @@ export function MakeOffer() {
                 <Trans>Network Fee</Trans>
               </Label>
               <div className='relative'>
-                <TokenAmountInput
+                <FeeAmountInput
                   id='fee'
-                  type='text'
-                  placeholder={'0.00'}
                   className='pr-12'
-                  value={state.fee}
-                  onValueChange={(values) => {
+                  onValueChange={(values: { value: string }) => {
+                    console.log(`values ${values.value}`);
                     setState({
                       fee: values.value,
                     });
