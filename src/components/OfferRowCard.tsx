@@ -1,9 +1,4 @@
-import {
-  commands,
-  NetworkKind,
-  OfferRecord,
-  TransactionResponse,
-} from '@/bindings';
+import { commands, OfferRecord, TransactionResponse } from '@/bindings';
 import ConfirmationDialog from '@/components/ConfirmationDialog';
 import { TakeOfferConfirmation } from '@/components/confirmations/TakeOfferConfirmation';
 import { CancelOfferDialog } from '@/components/dialogs/CancelOfferDialog';

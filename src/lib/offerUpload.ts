@@ -22,12 +22,10 @@ export function isMintGardenSupportedForSummary(summary: OfferSummary) {
   );
 }
 
-export function isMintGardenSupported(
-  state: OfferState,
-  isSplitting = false,
-) {
+export function isMintGardenSupported(state: OfferState, isSplitting = false) {
   if (isSplitting) {
-    return ((state.offered.xch === '0' || !state.offered.xch) &&
+    return (
+      (state.offered.xch === '0' || !state.offered.xch) &&
       state.offered.cats.filter((c) => c).length === 0 &&
       state.offered.nfts.filter((n) => n).length > 0
     );
