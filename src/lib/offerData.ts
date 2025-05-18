@@ -1,0 +1,136 @@
+import { commands } from '@/bindings';
+import { CustomError } from '@/contexts/ErrorContext';
+
+const CNI_NFC_PREFIX = 'DT001';
+
+export async function resolveOfferData(text: string): Promise<string> {
+  try {
+    if (isValidHostname(text, 'dexie.space')) {
+      const offerId = extractOfferId(text);
+      if (offerId) {
+        const resolvedOffer = await fetchDexieOffer(offerId);
+        if (resolvedOffer) {
+          return resolvedOffer;
+        }
+      }
+    }
+
+    if (isValidHostname(text, 'offerco.de')) {
+      const offerId = extractOfferId(text);
+      if (offerId) {
+        const resolvedOffer = await fetchOfferCoOffer(offerId);
+        if (resolvedOffer) {
+          return resolvedOffer;
+        }
+      }
+    }
+  } catch {
+    throw {
+      kind: 'api',
+      reason: 'Failed to resolve offer',
+    } as CustomError;
+  }
+
+  if (text.startsWith(CNI_NFC_PREFIX)) {
+    return await fetchCniNfcOffer(text);
+  }
+
+  return text;
+}
+
+function isValidHostname(url: string, expectedHostname: string) {
+  try {
+    const parsedUrl = new URL(url);
+    return parsedUrl.hostname === expectedHostname;
+  } catch {
+    return false;
+  }
+}
+
+function extractOfferId(url: string) {
+  try {
+    const segments = url.split('/');
+    const lastSegment = segments[segments.length - 1];
+    return lastSegment;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchDexieOffer(id: string): Promise<string> {
+  const response = await fetch(`https://api.dexie.space/v1/offers/${id}`);
+  const data = await response.json();
+
+  if (!data) {
+    throw {
+      kind: 'api',
+      reason: 'Failed to fetch offer from Dexie: Invalid response data',
+    } as CustomError;
+  }
+
+  if (data.success && data.offer?.offer) {
+    return data.offer.offer;
+  }
+
+  throw {
+    kind: 'api',
+    reason:
+      'Failed to fetch offer from Dexie: Offer not found or invalid format',
+  } as CustomError;
+}
+
+async function fetchOfferCoOffer(id: string): Promise<string> {
+  const response = await fetch('https://offerco.de/api/v1/getoffer', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'X-API-Key': '602307f09cc95d490061bda377079f44',
+    },
+    body: `short_code=${id}`,
+  });
+
+  const data = await response.json();
+
+  if (data.status === 'success' && data.data?.offer_code) {
+    return data.data.offer_code;
+  }
+
+  throw {
+    kind: 'api',
+    reason: 'Failed to fetch offer from Offerco.de',
+  } as CustomError;
+}
+
+async function fetchCniNfcOffer(text: string): Promise<string> {
+  if (!text.startsWith(CNI_NFC_PREFIX)) {
+    throw {
+      kind: 'nfc',
+      reason: 'Invalid NFC payload (not following CHIP-0047)',
+    } as CustomError;
+  }
+
+  text = text.slice(CNI_NFC_PREFIX.length);
+
+  const nftId = text.slice(0, 62);
+
+  if (nftId.length !== 62 || !nftId.startsWith('nft1')) {
+    throw {
+      kind: 'nfc',
+      reason:
+        'NFC payload starts with CHIP-0047 prefix but does not have a valid NFT ID',
+    } as CustomError;
+  }
+
+  text = text.slice(62);
+
+  const offer = await commands.downloadCniOffercode(text);
+
+  if (!offer) {
+    throw {
+      kind: 'nfc',
+      reason: 'Failed to fetch offer from the CNI offercode API',
+    } as CustomError;
+  }
+
+  return offer;
+}
