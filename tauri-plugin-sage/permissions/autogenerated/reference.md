@@ -4,7 +4,8 @@ Default permissions for the plugin
 
 #### This default permission set includes the following:
 
-- `allow-ping`
+- `allow-is-ndef-available`
+- `allow-get-ndef-payloads`
 
 ## Permission Table
 
@@ -18,12 +19,12 @@ Default permissions for the plugin
 <tr>
 <td>
 
-`sage:allow-ping`
+`sage:allow-get-ndef-payloads`
 
 </td>
 <td>
 
-Enables the ping command without any pre-configured scope.
+Enables the get_ndef_payloads command without any pre-configured scope.
 
 </td>
 </tr>
@@ -31,12 +32,38 @@ Enables the ping command without any pre-configured scope.
 <tr>
 <td>
 
-`sage:deny-ping`
+`sage:deny-get-ndef-payloads`
 
 </td>
 <td>
 
-Denies the ping command without any pre-configured scope.
+Denies the get_ndef_payloads command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`sage:allow-is-ndef-available`
+
+</td>
+<td>
+
+Enables the is_ndef_available command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`sage:deny-is-ndef-available`
+
+</td>
+<td>
+
+Denies the is_ndef_available command without any pre-configured scope.
 
 </td>
 </tr>

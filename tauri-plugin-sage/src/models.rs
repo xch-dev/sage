@@ -2,12 +2,20 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct PingRequest {
-    pub value: Option<String>,
-}
+pub struct IsNdefAvailableRequest {}
 
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct PingResponse {
-    pub value: Option<String>,
+pub struct IsNdefAvailableResponse {
+    pub available: bool,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GetNdefPayloadsRequest {}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GetNdefPayloadsResponse {
+    pub payloads: Vec<Vec<u8>>,
 }

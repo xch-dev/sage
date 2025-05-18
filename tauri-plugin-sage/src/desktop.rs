@@ -14,9 +14,11 @@ pub fn init<R: Runtime, C: DeserializeOwned>(
 pub struct Sage<R: Runtime>(AppHandle<R>);
 
 impl<R: Runtime> Sage<R> {
-    pub fn ping(&self, payload: PingRequest) -> crate::Result<PingResponse> {
-        Ok(PingResponse {
-            value: payload.value,
-        })
+    pub fn is_ndef_available(&self) -> crate::Result<IsNdefAvailableResponse> {
+        Ok(IsNdefAvailableResponse { available: false })
+    }
+
+    pub fn get_ndef_payloads(&self) -> crate::Result<GetNdefPayloadsResponse> {
+        Ok(GetNdefPayloadsResponse { payloads: vec![] })
     }
 }

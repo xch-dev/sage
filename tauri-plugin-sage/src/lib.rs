@@ -35,7 +35,10 @@ impl<R: Runtime, T: Manager<R>> crate::SageExt<R> for T {
 /// Initializes the plugin.
 pub fn init<R: Runtime>() -> TauriPlugin<R> {
     Builder::new("sage")
-        .invoke_handler(tauri::generate_handler![commands::ping])
+        .invoke_handler(tauri::generate_handler![
+            commands::is_ndef_available,
+            commands::get_ndef_payloads
+        ])
         .setup(|app, api| {
             #[cfg(mobile)]
             let sage = mobile::init(app, api)?;

@@ -295,22 +295,34 @@
       "type": "string",
       "oneOf": [
         {
-          "description": "Enables the ping command without any pre-configured scope.",
+          "description": "Enables the get_ndef_payloads command without any pre-configured scope.",
           "type": "string",
-          "const": "allow-ping",
-          "markdownDescription": "Enables the ping command without any pre-configured scope."
+          "const": "allow-get-ndef-payloads",
+          "markdownDescription": "Enables the get_ndef_payloads command without any pre-configured scope."
         },
         {
-          "description": "Denies the ping command without any pre-configured scope.",
+          "description": "Denies the get_ndef_payloads command without any pre-configured scope.",
           "type": "string",
-          "const": "deny-ping",
-          "markdownDescription": "Denies the ping command without any pre-configured scope."
+          "const": "deny-get-ndef-payloads",
+          "markdownDescription": "Denies the get_ndef_payloads command without any pre-configured scope."
         },
         {
-          "description": "Default permissions for the plugin\n#### This default permission set includes:\n\n- `allow-ping`",
+          "description": "Enables the is_ndef_available command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-is-ndef-available",
+          "markdownDescription": "Enables the is_ndef_available command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the is_ndef_available command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-is-ndef-available",
+          "markdownDescription": "Denies the is_ndef_available command without any pre-configured scope."
+        },
+        {
+          "description": "Default permissions for the plugin\n#### This default permission set includes:\n\n- `allow-is-ndef-available`\n- `allow-get-ndef-payloads`",
           "type": "string",
           "const": "default",
-          "markdownDescription": "Default permissions for the plugin\n#### This default permission set includes:\n\n- `allow-ping`"
+          "markdownDescription": "Default permissions for the plugin\n#### This default permission set includes:\n\n- `allow-is-ndef-available`\n- `allow-get-ndef-payloads`"
         }
       ]
     }

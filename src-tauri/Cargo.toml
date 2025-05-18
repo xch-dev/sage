@@ -45,7 +45,6 @@ aws-lc-rs = { version = "1", features = ["bindgen"] }
 tauri-plugin-window-state = { workspace = true }
 
 [target.'cfg(any(target_os = "android", target_os = "ios"))'.dependencies]
-tauri-plugin-nfc = { workspace = true }
 tauri-plugin-biometric = { workspace = true }
 tauri-plugin-barcode-scanner = { workspace = true }
 tauri-plugin-safe-area-insets = { workspace = true }

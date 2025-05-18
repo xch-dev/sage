@@ -1,9 +1,13 @@
 import { invoke } from '@tauri-apps/api/core';
 
-export async function ping(value: string): Promise<string | null> {
-  return await invoke<{ value?: string }>('plugin:sage|ping', {
-    payload: {
-      value,
-    },
-  }).then((r) => (r.value ? r.value : null));
+export async function isNdefAvailable(): Promise<boolean> {
+  return await invoke<{ available: boolean }>(
+    'plugin:sage|is_ndef_available',
+  ).then((r) => r.available);
+}
+
+export async function getNdefPayloads(): Promise<number[][]> {
+  return await invoke<{ payloads: number[][] }>(
+    'plugin:sage|get_ndef_payloads',
+  ).then((r) => r.payloads);
 }
