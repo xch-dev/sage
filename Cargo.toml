@@ -4,7 +4,7 @@ keywords = ["chia", "wallet", "blockchain", "crypto"]
 categories = ["cryptography::cryptocurrencies"]
 
 [workspace]
-members = ["src-tauri", "crates/*", "crates/sage-api/macro"]
+members = ["src-tauri", "crates/*", "crates/sage-api/macro", "tauri-plugin-sage"]
 resolver = "2"
 
 [workspace.lints.rust]
@@ -75,7 +75,9 @@ tauri-plugin-barcode-scanner = "2.2.0"
 tauri-plugin-nfc = "2.2.0"
 tauri-plugin-biometric = "2.2.1"
 tauri-plugin-safe-area-insets = "0.1.0"
+tauri-plugin-sage = { path = "./tauri-plugin-sage" }
 tauri-build = "2.2.0"
+tauri-plugin = "2.2.0"
 
 # Specta
 specta = "2.0.0-rc.20"

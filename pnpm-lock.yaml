@@ -104,6 +104,9 @@ importers:
       '@tauri-apps/plugin-os':
         specifier: ^2.2.1
         version: 2.2.1
+      '@tauri-apps/plugin-sage':
+        specifier: file:./tauri-plugin-sage
+        version: tauri-plugin-sage-api@file:tauri-plugin-sage
       '@tauri-apps/plugin-window-state':
         specifier: ^2.2.1
         version: 2.2.1
@@ -3510,6 +3513,9 @@ packages:
 
   tauri-plugin-safe-area-insets@0.1.0:
     resolution: {integrity: sha512-NhtxSQdU7+laTJiO4WZFlTB1CBzRlNE5EuHflGAGXS55fiwOkkaWztfNishFQO+eZtb9i5jLHX3Yho48lnqcRQ==}
+
+  tauri-plugin-sage-api@file:tauri-plugin-sage:
+    resolution: {directory: tauri-plugin-sage, type: directory}
 
   text-table@0.2.0:
     resolution: {integrity: sha512-N+8UisAXDGk8PFXP4HAzVR9nbfmVJ3zYLAWiTIoqC5v5isinhr+r5uaO8+7r3BMfuNIufIsA7RdpVgacC2cSpw==}
@@ -7284,6 +7290,10 @@ snapshots:
       - ts-node
 
   tauri-plugin-safe-area-insets@0.1.0:
+    dependencies:
+      '@tauri-apps/api': 2.3.0
+
+  tauri-plugin-sage-api@file:tauri-plugin-sage:
     dependencies:
       '@tauri-apps/api': 2.3.0
 

@@ -5720,6 +5720,7 @@ dependencies = [
  "tauri-plugin-opener",
  "tauri-plugin-os",
  "tauri-plugin-safe-area-insets",
+ "tauri-plugin-sage",
  "tauri-plugin-window-state",
  "tauri-specta",
  "tokio",
@@ -6860,6 +6861,16 @@ dependencies = [
  "tauri",
  "tauri-plugin",
  "thiserror 2.0.12",
+]
+
+[[package]]
+name = "tauri-plugin-sage"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "tauri",
+ "tauri-plugin",
+ "thiserror 1.0.69",
 ]
 
 [[package]]
