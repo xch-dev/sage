@@ -25,6 +25,7 @@ import {
   FormMessage,
 } from './ui/form';
 import { TokenAmountInput } from './ui/masked-input';
+import { useDefaultFee } from '@/hooks/useDefaultFee';
 
 export interface FeeOnlyDialogProps {
   title: string;
@@ -43,6 +44,7 @@ export function FeeOnlyDialog({
   children,
 }: PropsWithChildren<FeeOnlyDialogProps>) {
   const walletState = useWalletState();
+  const { fee: defaultFee } = useDefaultFee();
 
   const schema = z.object({
     fee: amount(walletState.sync.unit.decimals).refine(
@@ -54,7 +56,7 @@ export function FeeOnlyDialog({
   const form = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
     defaultValues: {
-      fee: '0',
+      fee: defaultFee,
     },
   });
 

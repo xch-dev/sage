@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { IntegerInput } from '@/components/ui/masked-input';
+import { IntegerInput, TokenAmountInput } from '@/components/ui/masked-input';
 import {
   Select,
   SelectContent,
@@ -54,6 +54,8 @@ import { z } from 'zod';
 import { commands, Network, NetworkConfig, Wallet } from '../bindings';
 import { DarkModeContext } from '../contexts/DarkModeContext';
 import { isValidU32 } from '../validation';
+import { useLocalStorage } from 'usehooks-ts';
+import { useDefaultFee } from '@/hooks/useDefaultFee';
 
 export default function Settings() {
   const { wallet } = useWallet();
@@ -230,6 +232,7 @@ function GlobalSettings() {
   const { locale, changeLanguage } = useLanguage();
   const { expiry, setExpiry } = useDefaultOfferExpiry();
   const { enabled, available, enableIfAvailable, disable } = useBiometric();
+  const { fee, setFee } = useDefaultFee();
 
   const isMobile = platform() === 'ios' || platform() === 'android';
 
@@ -248,7 +251,6 @@ function GlobalSettings() {
         description={t`Switch between light and dark theme`}
         control={<Switch checked={dark} onCheckedChange={setDark} />}
       />
-
       {isMobile && (
         <SettingItem
           label={t`Biometric Authentication`}
@@ -262,7 +264,6 @@ function GlobalSettings() {
           }
         />
       )}
-
       <SettingItem
         label={t`Language`}
         description={t`Choose your preferred language`}
@@ -280,7 +281,16 @@ function GlobalSettings() {
           </Select>
         }
       />
-
+      <SettingItem
+        label={t`Default Fee (in XCH)`}
+        description={t`The default fee (in XCH) to use for transactions`}
+        control={
+          <TokenAmountInput
+            value={fee}
+            onChange={(e) => setFee(e.target.value)}
+          />
+        }
+      />
       <SettingItem
         label={t`Default Offer Expiry`}
         description={t`Set a default expiration time for new offers`}
