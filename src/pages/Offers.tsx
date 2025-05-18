@@ -167,36 +167,9 @@ export function Offers() {
 
     const payload = tag.records[0].payload.slice(3);
     const array = new Uint8Array(payload);
-    let text = new TextDecoder().decode(array);
+    const text = new TextDecoder().decode(array);
 
-    if (!text.startsWith('DT001')) {
-      addError({
-        kind: 'nfc',
-        reason: 'Invalid NFC payload (not following CHIP-0047)',
-      });
-      return;
-    }
-
-    text = text.slice(5);
-
-    const nftId = text.slice(0, 62);
-
-    if (nftId.length !== 62 || !nftId.startsWith('nft1')) {
-      addError({
-        kind: 'nfc',
-        reason:
-          'NFC payload starts with CHIP-0047 prefix but does not have a valid NFT ID',
-      });
-      return;
-    }
-
-    text = text.slice(62);
-
-    const offer = await commands.downloadCniOffercode(text).catch(addError);
-
-    if (!offer) return;
-
-    viewOffer(offer);
+    viewOffer(text);
   };
 
   return (
