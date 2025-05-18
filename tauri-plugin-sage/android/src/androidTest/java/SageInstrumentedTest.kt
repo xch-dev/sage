@@ -1,4 +1,4 @@
-package com.rigidnetwork.sage-plugin
+package com.rigidnetwork.sage_plugin
 
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -19,6 +19,6 @@ class SageInstrumentedTest {
     fun useAppContext() {
         // Context of the app under test.
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
-        assertEquals("com.rigidnetwork.sage-plugin", appContext.packageName)
+        assertEquals("com.rigidnetwork.sage_plugin", appContext.packageName)
     }
 }

@@ -1,4 +1,4 @@
-package com.rigidnetwork.sage-plugin
+package com.rigidnetwork.sage_plugin
 
 import org.junit.Test
 

@@ -15,7 +15,7 @@ pub fn init<R: Runtime, C: DeserializeOwned>(
     api: PluginApi<R, C>,
 ) -> crate::Result<Sage<R>> {
     #[cfg(target_os = "android")]
-    let handle = api.register_android_plugin("", "SagePlugin")?;
+    let handle = api.register_android_plugin("com.rigidnetwork.sage_plugin", "SagePlugin")?;
     #[cfg(target_os = "ios")]
     let handle = api.register_ios_plugin(init_plugin_sage)?;
     Ok(Sage(handle))

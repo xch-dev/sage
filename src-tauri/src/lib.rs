@@ -128,6 +128,7 @@ pub fn run() {
         )
         .expect("Failed to export TypeScript bindings");
 
+    #[allow(unused_mut)]
     let mut tauri_builder = tauri::Builder::default();
 
     #[cfg(not(any(target_os = "android", target_os = "ios")))]
