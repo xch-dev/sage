@@ -34,6 +34,7 @@ import * as z from 'zod';
 import { commands, TransactionResponse } from '../bindings';
 import Container from '../components/Container';
 import { useWalletState } from '../state';
+import { FeeAmountInput } from '@/components/ui/masked-input';
 
 export default function MintNft() {
   const navigate = useNavigate();
@@ -272,17 +273,7 @@ export default function MintNft() {
                     </FormLabel>
                     <FormControl>
                       <div className='relative'>
-                        <Input
-                          type='text'
-                          placeholder={'0.00'}
-                          {...field}
-                          className='pr-12'
-                        />
-                        <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
-                          <span className='text-gray-500 text-sm'>
-                            {walletState.sync.unit.ticker}
-                          </span>
-                        </div>
+                        <FeeAmountInput {...field} className='pr-12' />
                       </div>
                     </FormControl>
                     <FormMessage />
