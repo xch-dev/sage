@@ -1,4 +1,5 @@
 import { useLocalStorage } from 'usehooks-ts';
+import * as React from 'react';
 
 export interface DefaultFee {
   fee: string;
@@ -24,9 +25,11 @@ export function useDefaultFee() {
   };
 
   // Ensure we always have a valid fee value
-  if (!isValidFee(defaultFee.fee)) {
-    setDefaultFee({ fee: DEFAULT_FEE });
-  }
+  React.useEffect(() => {
+    if (!isValidFee(defaultFee.fee)) {
+      setDefaultFee({ fee: DEFAULT_FEE });
+    }
+  }, [defaultFee.fee, setDefaultFee]);
 
   return {
     fee: isValidFee(defaultFee.fee) ? defaultFee.fee : DEFAULT_FEE,
