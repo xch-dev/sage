@@ -138,7 +138,7 @@ export function MakeOffer() {
       ),
       expires_at_second: expiresAtSecond,
     });
-    console.log(`state ${state.fee}`);
+
     setState(null);
     setOffer(data.offer);
     setPending(false);
@@ -210,7 +210,6 @@ export function MakeOffer() {
                   id='fee'
                   className='pr-12'
                   onValueChange={(values: { value: string }) => {
-                    console.log(`values ${values.value}`);
                     setState({
                       fee: values.value,
                     });
