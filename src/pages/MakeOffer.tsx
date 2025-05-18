@@ -50,17 +50,10 @@ export function MakeOffer() {
       }
     },
   });
-  const [selectedDialogOffer, setSelectedDialogOffer] = useState('');
 
   useEffect(() => {
     commands.getNetwork({}).then((data) => setNetwork(data.kind));
   }, []);
-
-  useEffect(() => {
-    if (!createdOffer && createdOffers.length === 0) {
-      setSelectedDialogOffer('');
-    }
-  }, [createdOffer, createdOffers]);
 
   useEffect(() => {
     if (autoUploadToDexie && createdOffer && !createdOffers.length && network) {
@@ -140,14 +133,6 @@ export function MakeOffer() {
       });
     }
   }, [createdOffer, createdOffers, autoUploadToMintGarden, network, addError]);
-
-  useEffect(() => {
-    if (createdOffers.length > 0) {
-      setSelectedDialogOffer(createdOffers[0]);
-    } else if (createdOffer) {
-      setSelectedDialogOffer(createdOffer);
-    }
-  }, [createdOffer, createdOffers]);
 
   const makeAction = () => {
     if (state.expiration !== null) {

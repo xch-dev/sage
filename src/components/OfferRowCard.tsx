@@ -34,7 +34,7 @@ import {
   Tags,
   TrashIcon,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link } from 'react-router-dom';
 import { z } from 'zod';
@@ -49,11 +49,6 @@ export function OfferRowCard({ record, refresh }: OfferRowCardProps) {
   const { addError } = useErrors();
   const [isDeleteOpen, setDeleteOpen] = useState(false);
   const [isCancelOpen, setCancelOpen] = useState(false);
-  const [network, setNetwork] = useState<NetworkKind | null>(null);
-
-  useEffect(() => {
-    commands.getNetwork({}).then((data) => setNetwork(data.kind));
-  }, []);
 
   const cancelSchema = z.object({
     fee: amount(walletState.sync.unit.decimals).refine(
@@ -70,11 +65,9 @@ export function OfferRowCard({ record, refresh }: OfferRowCardProps) {
   });
 
   const [response, setResponse] = useState<TransactionResponse | null>(null);
-  const [currentFee, setCurrentFee] = useState<string>('');
 
   const cancelHandler = (values: z.infer<typeof cancelSchema>) => {
     const fee = toMojos(values.fee, walletState.sync.unit.decimals);
-    setCurrentFee(fee);
 
     commands
       .cancelOffer({

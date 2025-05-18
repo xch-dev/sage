@@ -55,7 +55,10 @@ export async function uploadToDexie(
   );
 
   const data = await response.json();
-  console.log(data);
+  if (!data?.success) {
+    console.error(data);
+    throw new Error(`Failed to upload offer to Dexie: ${data?.error_message}`);
+  }
 
   return dexieLink(data.id, testnet);
 }

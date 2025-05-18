@@ -12,7 +12,6 @@ import {
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { cn } from '@/lib/utils';
-import { useErrors } from '@/hooks/useErrors';
 import { Assets } from '@/components/Assets';
 import { MarketplaceCard } from '@/components/MarketplaceCard';
 import { marketplaces } from '@/lib/marketplaces';

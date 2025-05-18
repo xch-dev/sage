@@ -3,9 +3,9 @@ import { Trans } from '@lingui/react/macro';
 import { t } from '@lingui/core/macro';
 import { toast } from 'react-toastify';
 import { openUrl } from '@tauri-apps/plugin-opener';
-import { useErrors } from '@/hooks/useErrors';
 import StyledQRCode from '@/components/StyledQrCode';
 import { useEffect, useState } from 'react';
+import { getOfferHash } from '@/lib/offerUpload';
 
 export interface MarketplaceConfig {
   id: string;
@@ -37,7 +37,6 @@ export function MarketplaceCard({
   network,
   marketplace,
 }: MarketplaceCardProps) {
-  const { addError } = useErrors();
   const [isOnMarketplace, setIsOnMarketplace] = useState<boolean | null>(null);
   const [offerHash, setOfferHash] = useState<string>('');
 
@@ -45,6 +44,10 @@ export function MarketplaceCard({
     let isMounted = true;
 
     if (network !== 'unknown' && marketplace.isSupported(offer, offerSummary)) {
+      getOfferHash(offer).then((hash) => {
+        if (isMounted) setOfferHash(hash);
+      });
+
       marketplace
         .isOnMarketplace(offer, offerId, network === 'testnet')
         .then((isOn) => {
@@ -78,14 +81,10 @@ export function MarketplaceCard({
         setIsOnMarketplace(true);
       } catch (error: unknown) {
         toast.update(toastId, {
-          render: t`Failed to upload to ${marketplace.name}`,
+          render: `${error instanceof Error ? error.message : String(error)}`,
           type: 'error',
           isLoading: false,
           autoClose: 3000,
-        });
-        addError({
-          kind: 'upload',
-          reason: `Failed to upload to ${marketplace.name}: ${error instanceof Error ? error.message : String(error)}`,
         });
       }
     }
@@ -100,6 +99,7 @@ export function MarketplaceCard({
       <button
         onClick={handleMarketplaceAction}
         className='flex items-center gap-2 px-3 py-1.5 rounded-md border hover:bg-accent w-fit'
+        title={marketplace.getMarketplaceLink(offerHash, network === 'testnet')}
       >
         <img
           src={marketplace.logo}
