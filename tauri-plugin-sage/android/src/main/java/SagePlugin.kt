@@ -1,14 +1,11 @@
 package com.rigidnetwork.sage_plugin
 
 import android.app.Activity
-import android.app.PendingIntent
-import android.content.Intent
-import android.content.IntentFilter
 import android.nfc.NdefMessage
 import android.nfc.NfcAdapter
 import android.nfc.Tag
 import android.os.Build
-import android.os.Parcelable
+import android.os.Bundle
 import android.webkit.WebView
 import app.tauri.Logger
 import app.tauri.annotation.Command
@@ -16,13 +13,22 @@ import app.tauri.annotation.TauriPlugin
 import app.tauri.plugin.Invoke
 import app.tauri.plugin.JSObject
 import app.tauri.plugin.Plugin
+import org.json.JSONArray
 
 class Session(
     val invoke: Invoke
 )
 
+private fun fromU8Array(byteArray: ByteArray): JSONArray {
+    val json = JSONArray()
+    for (byte in byteArray) {
+        json.put(byte)
+    }
+    return json
+}
+
 @TauriPlugin
-class SagePlugin(private val activity: Activity) : Plugin(activity) {
+class SagePlugin(private val activity: Activity) : Plugin(activity), NfcAdapter.ReaderCallback {
     private lateinit var webView: WebView
     private var nfcAdapter: NfcAdapter? = null
     private var session: Session? = null
@@ -33,14 +39,8 @@ class SagePlugin(private val activity: Activity) : Plugin(activity) {
         this.nfcAdapter = NfcAdapter.getDefaultAdapter(activity.applicationContext)
     }
 
-    override fun onNewIntent(intent: Intent) {
-        Logger.info("NFC", "onNewIntent")
-        super.onNewIntent(intent)
-        readTag(intent)
-    }
-
     override fun onPause() {
-        disableNFCInForeground()
+        stopNfcReading()
         super.onPause()
         Logger.info("NFC", "onPause")
     }
@@ -49,7 +49,7 @@ class SagePlugin(private val activity: Activity) : Plugin(activity) {
         super.onResume()
         Logger.info("NFC", "onResume")
         session?.let {
-            enableNFCInForeground()
+            startNfcReading()
         }
     }
 
@@ -67,57 +67,51 @@ class SagePlugin(private val activity: Activity) : Plugin(activity) {
             return
         }
 
-        enableNFCInForeground()
         session = Session(invoke)
+        startNfcReading()
     }
 
-    private fun readTag(intent: Intent) {
+    private fun startNfcReading() {
+        val flags = NfcAdapter.FLAG_READER_NFC_A or
+                NfcAdapter.FLAG_READER_NFC_B or
+                NfcAdapter.FLAG_READER_NFC_F or
+                NfcAdapter.FLAG_READER_NFC_V or
+                NfcAdapter.FLAG_READER_NO_PLATFORM_SOUNDS or
+                NfcAdapter.FLAG_READER_NFC_BARCODE
+
+        nfcAdapter?.enableReaderMode(activity, this, flags, Bundle())
+    }
+
+    private fun stopNfcReading() {
+        nfcAdapter?.disableReaderMode(activity)
+        session = null
+    }
+
+    override fun onTagDiscovered(tag: Tag) {
         try {
-            val rawMessages = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                intent.getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES, Parcelable::class.java)
-            } else {
-                @Suppress("DEPRECATION")
-                intent.getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES)
-            }
-
-            val payloads = mutableListOf<ByteArray>()
+            val ndef = android.nfc.tech.Ndef.get(tag)
+            ndef?.connect()
             
-            rawMessages?.let { messages ->
-                for (message in messages) {
-                    val ndefMessage = message as NdefMessage
-                    for (record in ndefMessage.records) {
-                        payloads.add(record.payload)
-                    }
-                }
+            val ndefMessage = ndef?.cachedNdefMessage
+            val payloads = JSONArray()
+            
+            ndefMessage?.records?.forEach { record ->
+                payloads.put(fromU8Array(record.payload))
             }
 
-            val ret = JSObject()
-            ret.put("payloads", payloads.toTypedArray())
-            session?.invoke?.resolve(ret)
+            activity.runOnUiThread {
+                val ret = JSObject()
+                ret.put("payloads", payloads)
+                session?.invoke?.resolve(ret)
+                stopNfcReading()
+            }
+            
+            ndef?.close()
         } catch (e: Exception) {
-            session?.invoke?.reject("Failed to read tag: ${e.message}")
-        } finally {
-            session = null
-            disableNFCInForeground()
-        }
-    }
-
-    private fun enableNFCInForeground() {
-        val flag =
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE else PendingIntent.FLAG_UPDATE_CURRENT
-        val pendingIntent = PendingIntent.getActivity(
-            activity, 0,
-            Intent(activity, activity.javaClass).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),
-            flag
-        )
-
-        val intentFilter = IntentFilter(NfcAdapter.ACTION_NDEF_DISCOVERED)
-        nfcAdapter?.enableForegroundDispatch(activity, pendingIntent, arrayOf(intentFilter), null)
-    }
-
-    private fun disableNFCInForeground() {
-        activity.runOnUiThread {
-            nfcAdapter?.disableForegroundDispatch(activity)
+            activity.runOnUiThread {
+                session?.invoke?.reject("Failed to read tag: ${e.message}")
+                stopNfcReading()
+            }
         }
     }
 }
