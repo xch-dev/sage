@@ -49,7 +49,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
-import { isAvailable, scan } from '@tauri-apps/plugin-nfc';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { platform } from '@tauri-apps/plugin-os';
 import BigNumber from 'bignumber.js';
@@ -68,6 +67,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import { getNdefPayloads, isNdefAvailable } from 'tauri-plugin-sage';
 import { z } from 'zod';
 
 export function Offers() {
@@ -142,7 +142,7 @@ export function Offers() {
   };
 
   useEffect(() => {
-    isAvailable().then((available) => setIsNfcAvailable(available));
+    isNdefAvailable().then(setIsNfcAvailable);
   }, [addError]);
 
   const handleNfcScan = async () => {
@@ -150,22 +150,15 @@ export function Offers() {
 
     if (isAndroid) setShowScanUi(true);
 
-    const tag = await scan(
-      { type: 'ndef' },
-      {
-        keepSessionAlive: false,
-        message: 'Scan an NFC tag',
-        successMessage: 'NFC tag successfully scanned',
-      },
-    )
+    const payloads = await getNdefPayloads()
       .catch((error) =>
         addError({ kind: 'internal', reason: `Failed to scan NFC: ${error}` }),
       )
       .finally(() => setShowScanUi(false));
 
-    if (!tag) return;
+    if (!payloads) return;
 
-    const payload = tag.records[0].payload.slice(3);
+    const payload = payloads[0].slice(3);
     const array = new Uint8Array(payload);
     const text = new TextDecoder().decode(array);
 
