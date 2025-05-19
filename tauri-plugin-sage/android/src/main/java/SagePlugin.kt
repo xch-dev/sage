@@ -37,6 +37,14 @@ class SagePlugin(private val activity: Activity) : Plugin(activity), NfcAdapter.
         super.load(webView)
         this.webView = webView
         this.nfcAdapter = NfcAdapter.getDefaultAdapter(activity.applicationContext)
+        
+        // Handle any NFC intent that launched the activity
+        activity.intent?.let { intent ->
+            if (NfcAdapter.ACTION_NDEF_DISCOVERED == intent.action) {
+                // Consume the intent
+                activity.intent = null
+            }
+        }
     }
 
     override fun onPause() {
@@ -48,6 +56,15 @@ class SagePlugin(private val activity: Activity) : Plugin(activity), NfcAdapter.
     override fun onResume() {
         super.onResume()
         Logger.info("NFC", "onResume")
+        
+        // Handle any NFC intent that came while the app was paused
+        activity.intent?.let { intent ->
+            if (NfcAdapter.ACTION_NDEF_DISCOVERED == intent.action) {
+                // Consume the intent
+                activity.intent = null
+            }
+        }
+        
         session?.let {
             startNfcReading()
         }
