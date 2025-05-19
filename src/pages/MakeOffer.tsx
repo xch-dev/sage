@@ -35,20 +35,16 @@ export function MakeOffer() {
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [autoUploadToDexie, setAutoUploadToDexie] = useState(false);
   const [autoUploadToMintGarden, setAutoUploadToMintGarden] = useState(false);
-  const {
-    createdOffers,
-    isProcessing,
-    processOffer,
-    clearProcessedOffers,
-  } = useOfferProcessor({
-    offerState: state,
-    splitNftOffers,
-    onProcessingEnd: () => {
-      if (createdOffers.length > 0) {
-        setState(null);
-      }
-    },
-  });
+  const { createdOffers, isProcessing, processOffer, clearProcessedOffers } =
+    useOfferProcessor({
+      offerState: state,
+      splitNftOffers,
+      onProcessingEnd: () => {
+        if (createdOffers.length > 0) {
+          setState(null);
+        }
+      },
+    });
 
   useEffect(() => {
     commands.getNetwork({}).then((data) => setNetwork(data.kind));
