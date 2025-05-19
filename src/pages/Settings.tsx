@@ -22,7 +22,11 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { FeeAmountInput, IntegerInput, TokenAmountInput } from '@/components/ui/masked-input';
+import {
+  FeeAmountInput,
+  IntegerInput,
+  TokenAmountInput,
+} from '@/components/ui/masked-input';
 import {
   Select,
   SelectContent,
@@ -286,7 +290,9 @@ function GlobalSettings() {
         description={t`The default fee to use for transactions`}
         control={
           <FeeAmountInput
-            onValueChange={(values) => setFee(values.value === '' ? '0' : values.value)}
+            onValueChange={(values) =>
+              setFee(values.value === '' ? '0' : values.value)
+            }
           />
         }
       />
