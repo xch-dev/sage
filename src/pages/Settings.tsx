@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { IntegerInput, TokenAmountInput } from '@/components/ui/masked-input';
+import { FeeAmountInput, IntegerInput, TokenAmountInput } from '@/components/ui/masked-input';
 import {
   Select,
   SelectContent,
@@ -282,12 +282,11 @@ function GlobalSettings() {
         }
       />
       <SettingItem
-        label={t`Default Fee (in XCH)`}
-        description={t`The default fee (in XCH) to use for transactions`}
+        label={t`Default Fee`}
+        description={t`The default fee to use for transactions`}
         control={
-          <TokenAmountInput
-            value={fee}
-            onChange={(e) => setFee(e.target.value)}
+          <FeeAmountInput
+            onValueChange={(values) => setFee(values.value)}
           />
         }
       />
