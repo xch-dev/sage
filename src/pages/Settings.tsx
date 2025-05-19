@@ -286,7 +286,7 @@ function GlobalSettings() {
         description={t`The default fee to use for transactions`}
         control={
           <FeeAmountInput
-            onValueChange={(values) => setFee(values.value)}
+            onValueChange={(values) => setFee(values.value === '' ? '0' : values.value)}
           />
         }
       />
