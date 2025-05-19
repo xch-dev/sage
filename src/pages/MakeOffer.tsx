@@ -36,7 +36,6 @@ export function MakeOffer() {
   const [autoUploadToDexie, setAutoUploadToDexie] = useState(false);
   const [autoUploadToMintGarden, setAutoUploadToMintGarden] = useState(false);
   const {
-    createdOffer,
     createdOffers,
     isProcessing,
     processOffer,
@@ -45,7 +44,7 @@ export function MakeOffer() {
     offerState: state,
     splitNftOffers,
     onProcessingEnd: () => {
-      if (createdOffer || createdOffers.length > 0) {
+      if (createdOffers.length > 0) {
         setState(null);
       }
     },
@@ -56,18 +55,7 @@ export function MakeOffer() {
   }, []);
 
   useEffect(() => {
-    if (autoUploadToDexie && createdOffer && !createdOffers.length && network) {
-      uploadToDexie(createdOffer, network === 'testnet')
-        .catch((error) =>
-          addError({
-            kind: 'upload',
-            reason: `Failed to auto-upload to Dexie: ${error}`,
-          }),
-        )
-        .finally(() => {
-          setAutoUploadToDexie(false);
-        });
-    } else if (autoUploadToDexie && createdOffers.length > 0 && network) {
+    if (autoUploadToDexie && createdOffers.length > 0 && network) {
       Promise.all(
         createdOffers.map((individualOffer) =>
           uploadToDexie(individualOffer, network === 'testnet')
@@ -90,26 +78,10 @@ export function MakeOffer() {
         setAutoUploadToDexie(false);
       });
     }
-  }, [createdOffer, createdOffers, autoUploadToDexie, network, addError]);
+  }, [createdOffers, autoUploadToDexie, network, addError]);
 
   useEffect(() => {
-    if (
-      autoUploadToMintGarden &&
-      createdOffer &&
-      !createdOffers.length &&
-      network
-    ) {
-      uploadToMintGarden(createdOffer, network === 'testnet')
-        .catch((error) =>
-          addError({
-            kind: 'upload',
-            reason: `Failed to auto-upload to MintGarden: ${error}`,
-          }),
-        )
-        .finally(() => {
-          setAutoUploadToMintGarden(false);
-        });
-    } else if (autoUploadToMintGarden && createdOffers.length > 0 && network) {
+    if (autoUploadToMintGarden && createdOffers.length > 0 && network) {
       Promise.all(
         createdOffers.map((individualOffer) =>
           uploadToMintGarden(individualOffer, network === 'testnet')
@@ -132,7 +104,7 @@ export function MakeOffer() {
         setAutoUploadToMintGarden(false);
       });
     }
-  }, [createdOffer, createdOffers, autoUploadToMintGarden, network, addError]);
+  }, [createdOffers, autoUploadToMintGarden, network, addError]);
 
   const makeAction = () => {
     if (state.expiration !== null) {
@@ -393,9 +365,9 @@ export function MakeOffer() {
           setAutoUploadToMintGarden={setAutoUploadToMintGarden}
         />
         <OffersCreatedDialog
-          open={!!createdOffer || createdOffers.length > 0}
+          open={createdOffers.length > 0}
           onOpenChange={(isOpen) => {
-            if (!isOpen && (createdOffer || createdOffers.length > 0)) {
+            if (!isOpen && createdOffers.length > 0) {
               clearProcessedOffers();
               setState(null);
               navigate('/offers', { replace: true });

@@ -13,7 +13,6 @@ interface UseOfferProcessorProps {
 }
 
 interface UseOfferProcessorReturn {
-  createdOffer: string;
   createdOffers: string[];
   isProcessing: boolean;
   processOffer: () => Promise<void>;
@@ -28,12 +27,10 @@ export function useOfferProcessor({
   const walletState = useWalletState();
   const { addError } = useErrors();
   const { promptIfEnabled } = useBiometric();
-  const [createdOffer, setCreatedOffer] = useState('');
   const [createdOffers, setCreatedOffers] = useState<string[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
 
   const clearProcessedOffers = useCallback(() => {
-    setCreatedOffer('');
     setCreatedOffers([]);
   }, []);
 
@@ -104,7 +101,6 @@ export function useOfferProcessor({
           newOffers.push(data.offer);
         }
         setCreatedOffers(newOffers);
-        if (newOffers.length > 0) setCreatedOffer(newOffers[0]);
       } else {
         const data = await commands.makeOffer({
           offered_assets: {
@@ -135,7 +131,7 @@ export function useOfferProcessor({
           ),
           expires_at_second: expiresAtSecond,
         });
-        setCreatedOffer(data.offer);
+        setCreatedOffers([data.offer]);
       }
     } catch (err: any) {
       addError({
@@ -158,7 +154,6 @@ export function useOfferProcessor({
   ]);
 
   return {
-    createdOffer,
     createdOffers,
     isProcessing,
     processOffer,
