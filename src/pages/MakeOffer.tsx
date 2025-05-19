@@ -52,53 +52,73 @@ export function MakeOffer() {
 
   useEffect(() => {
     if (autoUploadToDexie && createdOffers.length > 0 && network) {
+      let isMounted = true;
       Promise.all(
         createdOffers.map((individualOffer) =>
           uploadToDexie(individualOffer, network === 'testnet')
             .then((link) => {
-              console.log(
-                `Successfully uploaded offer ${createdOffers.indexOf(individualOffer) + 1} to Dexie: ${link}`,
-              );
+              if (isMounted) {
+                console.log(
+                  `Successfully uploaded offer ${createdOffers.indexOf(individualOffer) + 1} to Dexie: ${link}`,
+                );
+              }
             })
             .catch((error) => {
-              addError({
-                kind: 'upload',
-                reason: `Failed to auto-upload offer ${createdOffers.indexOf(individualOffer) + 1} to Dexie: ${error}`,
-              });
-              console.error(
-                `Failed to auto-upload offer ${createdOffers.indexOf(individualOffer) + 1} to Dexie: ${error}`,
-              );
+              if (isMounted) {
+                addError({
+                  kind: 'upload',
+                  reason: `Failed to auto-upload offer ${createdOffers.indexOf(individualOffer) + 1} to Dexie: ${error}`,
+                });
+                console.error(
+                  `Failed to auto-upload offer ${createdOffers.indexOf(individualOffer) + 1} to Dexie: ${error}`,
+                );
+              }
             }),
         ),
       ).finally(() => {
-        setAutoUploadToDexie(false);
+        if (isMounted) {
+          setAutoUploadToDexie(false);
+        }
       });
+      return () => {
+        isMounted = false;
+      };
     }
   }, [createdOffers, autoUploadToDexie, network, addError]);
 
   useEffect(() => {
     if (autoUploadToMintGarden && createdOffers.length > 0 && network) {
+      let isMounted = true;
       Promise.all(
         createdOffers.map((individualOffer) =>
           uploadToMintGarden(individualOffer, network === 'testnet')
             .then((link) => {
-              console.log(
-                `Successfully uploaded offer ${createdOffers.indexOf(individualOffer) + 1} to MintGarden: ${link}`,
-              );
+              if (isMounted) {
+                console.log(
+                  `Successfully uploaded offer ${createdOffers.indexOf(individualOffer) + 1} to MintGarden: ${link}`,
+                );
+              }
             })
             .catch((error) => {
-              addError({
-                kind: 'upload',
-                reason: `Failed to auto-upload offer ${createdOffers.indexOf(individualOffer) + 1} to MintGarden: ${error}`,
-              });
-              console.error(
-                `Failed to auto-upload offer ${createdOffers.indexOf(individualOffer) + 1} to MintGarden: ${error}`,
-              );
+              if (isMounted) {
+                addError({
+                  kind: 'upload',
+                  reason: `Failed to auto-upload offer ${createdOffers.indexOf(individualOffer) + 1} to MintGarden: ${error}`,
+                });
+                console.error(
+                  `Failed to auto-upload offer ${createdOffers.indexOf(individualOffer) + 1} to MintGarden: ${error}`,
+                );
+              }
             }),
         ),
       ).finally(() => {
-        setAutoUploadToMintGarden(false);
+        if (isMounted) {
+          setAutoUploadToMintGarden(false);
+        }
       });
+      return () => {
+        isMounted = false;
+      };
     }
   }, [createdOffers, autoUploadToMintGarden, network, addError]);
 

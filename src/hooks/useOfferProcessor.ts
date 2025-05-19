@@ -62,6 +62,7 @@ export function useOfferProcessor({
       return;
     }
 
+    let isMounted = true;
     try {
       if (
         splitNftOffers &&
@@ -98,9 +99,13 @@ export function useOfferProcessor({
             ),
             expires_at_second: expiresAtSecond,
           });
-          newOffers.push(data.offer);
+          if (isMounted) {
+            newOffers.push(data.offer);
+          }
         }
-        setCreatedOffers(newOffers);
+        if (isMounted) {
+          setCreatedOffers(newOffers);
+        }
       } else {
         const data = await commands.makeOffer({
           offered_assets: {
@@ -131,17 +136,23 @@ export function useOfferProcessor({
           ),
           expires_at_second: expiresAtSecond,
         });
-        setCreatedOffers([data.offer]);
+        if (isMounted) {
+          setCreatedOffers([data.offer]);
+        }
       }
     } catch (err: any) {
-      addError({
-        kind: 'invalid',
-        reason:
-          err.message || t`An unknown error occurred while creating the offer.`,
-      });
+      if (isMounted) {
+        addError({
+          kind: 'invalid',
+          reason:
+            err.message || t`An unknown error occurred while creating the offer.`,
+        });
+      }
     } finally {
-      setIsProcessing(false);
-      onProcessingEnd?.();
+      if (isMounted) {
+        setIsProcessing(false);
+        onProcessingEnd?.();
+      }
     }
   }, [
     offerState,
@@ -152,6 +163,13 @@ export function useOfferProcessor({
     clearProcessedOffers,
     onProcessingEnd,
   ]);
+
+  useEffect(() => {
+    let isMounted = true;
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   return {
     createdOffers,
