@@ -145,7 +145,8 @@ export function useOfferProcessor({
         addError({
           kind: 'invalid',
           reason:
-            err.message || t`An unknown error occurred while creating the offer.`,
+            err.message ||
+            t`An unknown error occurred while creating the offer.`,
         });
       }
     } finally {

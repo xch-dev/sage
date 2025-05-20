@@ -6,13 +6,13 @@ import { openUrl } from '@tauri-apps/plugin-opener';
 import StyledQRCode from '@/components/StyledQrCode';
 import { useEffect, useState } from 'react';
 import { getOfferHash } from '@/lib/offerUpload';
-
+import { OfferSummary } from '@/bindings';
 export interface MarketplaceConfig {
   id: string;
   name: string;
   logo: string;
   qrCodeLogo: string | null;
-  isSupported: (offer: string, offerSummary?: any) => boolean;
+  isSupported: (offerSummary: OfferSummary) => boolean;
   isOnMarketplace: (
     offer: string,
     offerId: string,
@@ -43,7 +43,7 @@ export function MarketplaceCard({
   useEffect(() => {
     let isMounted = true;
 
-    if (network !== 'unknown' && marketplace.isSupported(offer, offerSummary)) {
+    if (network !== 'unknown' && marketplace.isSupported(offerSummary)) {
       getOfferHash(offer).then((hash) => {
         if (isMounted) setOfferHash(hash);
       });
@@ -90,7 +90,7 @@ export function MarketplaceCard({
     }
   };
 
-  if (!marketplace.isSupported(offer, offerSummary)) {
+  if (!marketplace.isSupported(offerSummary)) {
     return null;
   }
 

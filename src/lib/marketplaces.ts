@@ -7,6 +7,7 @@ import {
   offerIsOnMintGarden,
   isMintGardenSupportedForSummary,
   mintGardenLink,
+  isDexieSupportedForSummary,
 } from '@/lib/offerUpload';
 import { MarketplaceConfig } from '@/components/MarketplaceCard';
 // need to store mintgarden logo locally because of CORS
@@ -19,7 +20,8 @@ export const marketplaces: MarketplaceConfig[] = [
     logo: 'https://raw.githubusercontent.com/dexie-space/dexie-kit/refs/heads/main/svg/duck.svg',
     qrCodeLogo:
       'https://raw.githubusercontent.com/dexie-space/dexie-kit/refs/heads/main/svg/duck.svg',
-    isSupported: () => true, // Dexie supports all offers
+    isSupported: (offerSummary: OfferSummary) =>
+      isDexieSupportedForSummary(offerSummary),
     isOnMarketplace: (_, offerId, isTestnet) =>
       offerIsOnDexie(offerId, isTestnet),
     uploadToMarketplace: uploadToDexie,
@@ -30,8 +32,8 @@ export const marketplaces: MarketplaceConfig[] = [
     name: 'MintGarden',
     logo: mintGardenLogo,
     qrCodeLogo: mintGardenLogo,
-    isSupported: (_, offerSummary?: OfferSummary) =>
-      offerSummary ? isMintGardenSupportedForSummary(offerSummary) : false,
+    isSupported: (offerSummary: OfferSummary) =>
+      isMintGardenSupportedForSummary(offerSummary),
     isOnMarketplace: (offer, _, isTestnet) =>
       offerIsOnMintGarden(offer, isTestnet),
     uploadToMarketplace: uploadToMintGarden,

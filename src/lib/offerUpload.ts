@@ -1,5 +1,6 @@
 import { OfferSummary } from '@/bindings';
 import { OfferState } from '@/state';
+import BigNumber from 'bignumber.js';
 import bs58 from 'bs58';
 
 export async function getOfferHash(offer: string): Promise<string> {
@@ -34,6 +35,22 @@ export function isMintGardenSupported(state: OfferState, isSplitting = false) {
     (state.offered.xch === '0' || !state.offered.xch) &&
     state.offered.cats.filter((c) => c).length === 0 &&
     state.offered.nfts.filter((n) => n).length === 1
+  );
+}
+
+export function isDexieSupported(state: OfferState, _ = false) {
+  return (
+    BigNumber(state.requested.xch || 0).gt(0) ||
+    Object.keys(state.requested.cats).length > 0 ||
+    Object.keys(state.requested.nfts).length > 0
+  );
+}
+
+export function isDexieSupportedForSummary(summary: OfferSummary) {
+  return (
+    BigNumber(summary.taker?.xch?.amount || 0).gt(0) ||
+    Object.keys(summary.taker.cats).length > 0 ||
+    Object.keys(summary.taker.nfts).length > 0
   );
 }
 
