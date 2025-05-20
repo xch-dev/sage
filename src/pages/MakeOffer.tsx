@@ -21,6 +21,8 @@ import { useOfferProcessor } from '@/hooks/useOfferProcessor';
 import { AssetSelector } from '@/components/selectors/AssetSelector';
 import { OffersCreatedDialog } from '@/components/dialogs/OffersCreatedDialog';
 
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 export function MakeOffer() {
   const [state, setState] = useOfferStateWithDefault();
   const location = useLocation();
@@ -53,33 +55,40 @@ export function MakeOffer() {
   useEffect(() => {
     if (autoUploadToDexie && createdOffers.length > 0 && network) {
       let isMounted = true;
-      Promise.all(
-        createdOffers.map((individualOffer) =>
-          uploadToDexie(individualOffer, network === 'testnet')
-            .then((link) => {
-              if (isMounted) {
-                console.log(
-                  `Successfully uploaded offer ${createdOffers.indexOf(individualOffer) + 1} to Dexie: ${link}`,
-                );
-              }
-            })
-            .catch((error) => {
-              if (isMounted) {
-                addError({
-                  kind: 'upload',
-                  reason: `Failed to auto-upload offer ${createdOffers.indexOf(individualOffer) + 1} to Dexie: ${error}`,
-                });
-                console.error(
-                  `Failed to auto-upload offer ${createdOffers.indexOf(individualOffer) + 1} to Dexie: ${error}`,
-                );
-              }
-            }),
-        ),
-      ).finally(() => {
+      const uploadWithDelay = async () => {
+        for (const [index, individualOffer] of createdOffers.entries()) {
+          if (!isMounted) break;
+          try {
+            const link = await uploadToDexie(
+              individualOffer,
+              network === 'testnet',
+            );
+            if (isMounted) {
+              console.log(
+                `Successfully uploaded offer ${index + 1} to Dexie: ${link}`,
+              );
+            }
+            // Add delay between uploads, but not after the last one
+            if (index < createdOffers.length - 1) {
+              await delay(500);
+            }
+          } catch (error) {
+            if (isMounted) {
+              addError({
+                kind: 'upload',
+                reason: `Failed to auto-upload offer ${index + 1} to Dexie: ${error}`,
+              });
+              console.error(
+                `Failed to auto-upload offer ${index + 1} to Dexie: ${error}`,
+              );
+            }
+          }
+        }
         if (isMounted) {
           setAutoUploadToDexie(false);
         }
-      });
+      };
+      uploadWithDelay();
       return () => {
         isMounted = false;
       };
@@ -89,33 +98,40 @@ export function MakeOffer() {
   useEffect(() => {
     if (autoUploadToMintGarden && createdOffers.length > 0 && network) {
       let isMounted = true;
-      Promise.all(
-        createdOffers.map((individualOffer) =>
-          uploadToMintGarden(individualOffer, network === 'testnet')
-            .then((link) => {
-              if (isMounted) {
-                console.log(
-                  `Successfully uploaded offer ${createdOffers.indexOf(individualOffer) + 1} to MintGarden: ${link}`,
-                );
-              }
-            })
-            .catch((error) => {
-              if (isMounted) {
-                addError({
-                  kind: 'upload',
-                  reason: `Failed to auto-upload offer ${createdOffers.indexOf(individualOffer) + 1} to MintGarden: ${error}`,
-                });
-                console.error(
-                  `Failed to auto-upload offer ${createdOffers.indexOf(individualOffer) + 1} to MintGarden: ${error}`,
-                );
-              }
-            }),
-        ),
-      ).finally(() => {
+      const uploadWithDelay = async () => {
+        for (const [index, individualOffer] of createdOffers.entries()) {
+          if (!isMounted) break;
+          try {
+            const link = await uploadToMintGarden(
+              individualOffer,
+              network === 'testnet',
+            );
+            if (isMounted) {
+              console.log(
+                `Successfully uploaded offer ${index + 1} to MintGarden: ${link}`,
+              );
+            }
+            // Add delay between uploads, but not after the last one
+            if (index < createdOffers.length - 1) {
+              await delay(500);
+            }
+          } catch (error) {
+            if (isMounted) {
+              addError({
+                kind: 'upload',
+                reason: `Failed to auto-upload offer ${index + 1} to MintGarden: ${error}`,
+              });
+              console.error(
+                `Failed to auto-upload offer ${index + 1} to MintGarden: ${error}`,
+              );
+            }
+          }
+        }
         if (isMounted) {
           setAutoUploadToMintGarden(false);
         }
-      });
+      };
+      uploadWithDelay();
       return () => {
         isMounted = false;
       };
