@@ -9,19 +9,19 @@ import {
 import { Button } from '@/components/ui/button';
 import { Trans } from '@lingui/react/macro';
 
-interface OffersCreatedDialogProps {
+interface OfferCreationProgressDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   createdOffers: string[];
   onOk: () => void;
 }
 
-export function OffersCreatedDialog({
+export function OfferCreationProgressDialog({
   open,
   onOpenChange,
   createdOffers,
   onOk,
-}: OffersCreatedDialogProps) {
+}: OfferCreationProgressDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>

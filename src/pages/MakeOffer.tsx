@@ -19,7 +19,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { MakeOfferConfirmationDialog } from '@/components/confirmations/MakeOfferConfirmationDialog';
 import { useOfferProcessor } from '@/hooks/useOfferProcessor';
 import { AssetSelector } from '@/components/selectors/AssetSelector';
-import { OffersCreatedDialog } from '@/components/dialogs/OffersCreatedDialog';
+import { OfferCreationProgressDialog } from '@/components/dialogs/OfferCreationProgressDialog';
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -396,7 +396,7 @@ export function MakeOffer() {
           autoUploadToMintGarden={autoUploadToMintGarden}
           setAutoUploadToMintGarden={setAutoUploadToMintGarden}
         />
-        <OffersCreatedDialog
+        <OfferCreationProgressDialog
           open={createdOffers.length > 0}
           onOpenChange={(isOpen) => {
             if (!isOpen && createdOffers.length > 0) {
