@@ -37,16 +37,21 @@ export function MakeOffer() {
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [autoUploadToDexie, setAutoUploadToDexie] = useState(false);
   const [autoUploadToMintGarden, setAutoUploadToMintGarden] = useState(false);
-  const { createdOffers, isProcessing, processOffer, clearProcessedOffers } =
-    useOfferProcessor({
-      offerState: state,
-      splitNftOffers,
-      onProcessingEnd: () => {
-        if (createdOffers.length > 0) {
-          setState(null);
-        }
-      },
-    });
+  const {
+    createdOffers,
+    isProcessing,
+    processOffer,
+    clearProcessedOffers,
+    cancelProcessing,
+  } = useOfferProcessor({
+    offerState: state,
+    splitNftOffers,
+    onProcessingEnd: () => {
+      if (createdOffers.length > 0) {
+        setState(null);
+      }
+    },
+  });
 
   useEffect(() => {
     commands.getNetwork({}).then((data) => setNetwork(data.kind));
@@ -397,7 +402,7 @@ export function MakeOffer() {
           setAutoUploadToMintGarden={setAutoUploadToMintGarden}
         />
         <OfferCreationProgressDialog
-          open={createdOffers.length > 0}
+          open={createdOffers.length > 0 || isProcessing}
           onOpenChange={(isOpen) => {
             if (!isOpen && createdOffers.length > 0) {
               clearProcessedOffers();
@@ -410,6 +415,10 @@ export function MakeOffer() {
             clearProcessedOffers();
             setState(null);
             navigate('/offers', { replace: true });
+          }}
+          isProcessing={isProcessing}
+          onCancel={() => {
+            cancelProcessing();
           }}
         />
       </Container>

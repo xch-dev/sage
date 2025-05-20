@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { commands } from '@/bindings';
 import { OfferState, useWalletState } from '@/state';
 import { useErrors } from '@/hooks/useErrors';
@@ -17,6 +17,7 @@ interface UseOfferProcessorReturn {
   isProcessing: boolean;
   processOffer: () => Promise<void>;
   clearProcessedOffers: () => void;
+  cancelProcessing: () => void;
 }
 
 export function useOfferProcessor({
@@ -29,13 +30,21 @@ export function useOfferProcessor({
   const { promptIfEnabled } = useBiometric();
   const [createdOffers, setCreatedOffers] = useState<string[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const isCancelled = useRef(false);
 
   const clearProcessedOffers = useCallback(() => {
     setCreatedOffers([]);
   }, []);
 
+  const cancelProcessing = useCallback(() => {
+    isCancelled.current = true;
+    setIsProcessing(false);
+    onProcessingEnd?.();
+  }, [onProcessingEnd]);
+
   const processOffer = useCallback(async () => {
     setIsProcessing(true);
+    isCancelled.current = false;
     clearProcessedOffers(); // Clear previous offers before starting
 
     let expiresAtSecond: number | null = null;
@@ -62,7 +71,6 @@ export function useOfferProcessor({
       return;
     }
 
-    let isMounted = true;
     try {
       if (
         splitNftOffers &&
@@ -70,6 +78,7 @@ export function useOfferProcessor({
       ) {
         const newOffers: string[] = [];
         for (const nft of offerState.offered.nfts.filter((n) => n)) {
+          if (isCancelled.current) break;
           const data = await commands.makeOffer({
             offered_assets: {
               xch: toMojos(
@@ -99,11 +108,11 @@ export function useOfferProcessor({
             ),
             expires_at_second: expiresAtSecond,
           });
-          if (isMounted) {
+          if (!isCancelled.current) {
             newOffers.push(data.offer);
           }
         }
-        if (isMounted) {
+        if (!isCancelled.current) {
           setCreatedOffers(newOffers);
         }
       } else {
@@ -136,12 +145,12 @@ export function useOfferProcessor({
           ),
           expires_at_second: expiresAtSecond,
         });
-        if (isMounted) {
+        if (!isCancelled.current) {
           setCreatedOffers([data.offer]);
         }
       }
     } catch (err: any) {
-      if (isMounted) {
+      if (!isCancelled.current) {
         addError({
           kind: 'invalid',
           reason:
@@ -150,7 +159,7 @@ export function useOfferProcessor({
         });
       }
     } finally {
-      if (isMounted) {
+      if (!isCancelled.current) {
         setIsProcessing(false);
         onProcessingEnd?.();
       }
@@ -177,5 +186,6 @@ export function useOfferProcessor({
     isProcessing,
     processOffer,
     clearProcessedOffers,
+    cancelProcessing,
   };
 }

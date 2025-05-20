@@ -94,6 +94,10 @@ export async function uploadToMintGarden(
   );
 
   const data = await response.json();
+  if (!data?.offer?.id) {
+    console.error(data);
+    throw new Error(`Failed to upload offer to MintGarden: ${data?.detail}`);
+  }
   return mintGardenLink(data.offer.id, testnet);
 }
 

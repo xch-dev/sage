@@ -8,12 +8,15 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Trans } from '@lingui/react/macro';
+import { LoaderCircleIcon } from 'lucide-react';
 
 interface OfferCreationProgressDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   createdOffers: string[];
   onOk: () => void;
+  isProcessing?: boolean;
+  onCancel?: () => void;
 }
 
 export function OfferCreationProgressDialog({
@@ -21,20 +24,31 @@ export function OfferCreationProgressDialog({
   onOpenChange,
   createdOffers,
   onOk,
+  isProcessing = false,
+  onCancel,
 }: OfferCreationProgressDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            {createdOffers.length > 1 ? (
+            {isProcessing ? (
+              <div className='flex items-center gap-2'>
+                <LoaderCircleIcon className='h-4 w-4 animate-spin' />
+                <Trans>Creating Offer</Trans>
+              </div>
+            ) : createdOffers.length > 1 ? (
               <Trans>Offers Created</Trans>
             ) : (
               <Trans>Offer Created</Trans>
             )}
           </DialogTitle>
           <DialogDescription>
-            {createdOffers.length > 1 ? (
+            {isProcessing ? (
+              <Trans>
+                Please wait while your offer is being created and uploaded...
+              </Trans>
+            ) : createdOffers.length > 1 ? (
               <Trans>
                 {createdOffers.length} offers have been created and imported
                 successfully. You will now be redirected to the offers page
@@ -50,9 +64,15 @@ export function OfferCreationProgressDialog({
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <Button onClick={onOk}>
-            <Trans>Ok</Trans>
-          </Button>
+          {isProcessing ? (
+            <Button variant='outline' onClick={onCancel}>
+              <Trans>Cancel</Trans>
+            </Button>
+          ) : (
+            <Button onClick={onOk}>
+              <Trans>Ok</Trans>
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
