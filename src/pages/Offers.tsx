@@ -11,10 +11,35 @@ import { useOfferState } from '@/state';
 import { Trans } from '@lingui/react/macro';
 import { isAvailable, scan } from '@tauri-apps/plugin-nfc';
 import { platform } from '@tauri-apps/plugin-os';
-import { HandCoins, NfcIcon, ScanIcon } from 'lucide-react';
+import {
+  HandCoins,
+  NfcIcon,
+  ScanIcon,
+  FilterIcon,
+  TrashIcon,
+  CircleOff,
+} from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { OfferRowCard } from '@/components/OfferRowCard';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 export function Offers() {
   const navigate = useNavigate();
@@ -25,6 +50,7 @@ export function Offers() {
   const [offers, setOffers] = useState<OfferRecord[]>([]);
   const [isNfcAvailable, setIsNfcAvailable] = useState(false);
   const [showScanUi, setShowScanUi] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<string>('all');
 
   const viewOffer = useCallback(
     (offer: string) => {
@@ -121,6 +147,47 @@ export function Offers() {
     viewOffer(text);
   };
 
+  const filteredOffers = offers.filter((offer) =>
+    statusFilter === 'all' ? true : offer.status === statusFilter,
+  );
+
+  const handleDeleteAll = async () => {
+    try {
+      await Promise.all(
+        filteredOffers.map((offer) =>
+          commands.deleteOffer({ offer_id: offer.offer_id }),
+        ),
+      );
+      updateOffers();
+    } catch (error) {
+      addError({
+        kind: 'internal',
+        reason: `Failed to delete offers: ${error}`,
+      });
+    }
+  };
+
+  const handleCancelAll = async () => {
+    try {
+      await Promise.all(
+        filteredOffers
+          .filter((offer) => offer.status === 'active')
+          .map((offer) =>
+            commands.cancelOffer({
+              offer_id: offer.offer_id,
+              fee: '0',
+            }),
+          ),
+      );
+      updateOffers();
+    } catch (error) {
+      addError({
+        kind: 'internal',
+        reason: `Failed to cancel offers: ${error}`,
+      });
+    }
+  };
+
   return (
     <>
       <Header
@@ -186,11 +253,104 @@ export function Offers() {
             </div>
           </div>
 
-          <div className='flex flex-col gap-2'>
-            {offers.map((record, i) => (
-              <OfferRowCard record={record} refresh={updateOffers} key={i} />
-            ))}
-          </div>
+          {offers.length > 0 && (
+            <div className='flex flex-col gap-4'>
+              <div className='flex items-center justify-between'>
+                <div className='flex items-center gap-2'>
+                  <FilterIcon className='h-4 w-4 text-muted-foreground' />
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className='w-[180px]'>
+                      <SelectValue placeholder='Filter by status' />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value='all'>All Offers</SelectItem>
+                      <SelectItem value='active'>Active</SelectItem>
+                      <SelectItem value='completed'>Completed</SelectItem>
+                      <SelectItem value='cancelled'>Cancelled</SelectItem>
+                      <SelectItem value='expired'>Expired</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className='flex gap-2'>
+                  {filteredOffers.some(
+                    (offer) => offer.status === 'active',
+                  ) && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant='outline'
+                          size='sm'
+                          className='flex items-center gap-1'
+                        >
+                          <CircleOff className='h-4 w-4' />
+                          <Trans>Cancel All Active</Trans>
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>
+                            Cancel All Active Offers
+                          </AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to cancel all active offers?
+                            This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={handleCancelAll}>
+                            Continue
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
+                  {filteredOffers.length > 0 && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant='destructive'
+                          size='sm'
+                          className='flex items-center gap-1'
+                        >
+                          <TrashIcon className='h-4 w-4' />
+                          <Trans>Delete All</Trans>
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>
+                            Delete All Filtered Offers
+                          </AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to delete all{' '}
+                            {filteredOffers.length} filtered offers? This action
+                            cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={handleDeleteAll}>
+                            Continue
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
+                </div>
+              </div>
+
+              <div className='flex flex-col gap-2'>
+                {filteredOffers.map((record, i) => (
+                  <OfferRowCard
+                    record={record}
+                    refresh={updateOffers}
+                    key={i}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </Container>
 
