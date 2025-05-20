@@ -40,6 +40,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { useLocalStorage } from 'usehooks-ts';
+
+const OFFER_FILTER_STORAGE_KEY = 'sage-offer-filter';
 
 export function Offers() {
   const navigate = useNavigate();
@@ -50,7 +53,10 @@ export function Offers() {
   const [offers, setOffers] = useState<OfferRecord[]>([]);
   const [isNfcAvailable, setIsNfcAvailable] = useState(false);
   const [showScanUi, setShowScanUi] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useLocalStorage(
+    OFFER_FILTER_STORAGE_KEY,
+    'all',
+  );
 
   const viewOffer = useCallback(
     (offer: string) => {
