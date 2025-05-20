@@ -91,7 +91,9 @@ export function Assets({ assets, catPresence = {} }: AssetsProps) {
                 minimumFractionDigits={0}
                 maximumFractionDigits={3}
               />{' '}
-              {cat.name ?? cat.ticker ?? t`Unknown`}
+              <span className='break-words'>
+                {cat.name ?? cat.ticker ?? t`Unknown`}
+              </span>
             </div>
 
             {catPresence && assetId in catPresence && (
@@ -129,7 +131,7 @@ export function Assets({ assets, catPresence = {} }: AssetsProps) {
               />
             )}
 
-            <div className='text-sm font-mono text-muted-foreground'>
+            <div className='text-sm font-mono text-muted-foreground truncate'>
               {assetId.slice(0, 10) + '...' + assetId.slice(-10)}
             </div>
 
@@ -144,7 +146,8 @@ export function Assets({ assets, catPresence = {} }: AssetsProps) {
                 minimumFractionDigits={0}
                 maximumFractionDigits={3}
               />{' '}
-              {cat.ticker ?? 'CAT'} <Trans>royalty</Trans>
+              <span className='truncate'>{cat.ticker ?? 'CAT'}</span>{' '}
+              <Trans>royalty</Trans>
             </div>
           )}
         </div>
@@ -155,13 +158,13 @@ export function Assets({ assets, catPresence = {} }: AssetsProps) {
           <div className='overflow-hidden flex items-center gap-2'>
             <div className='truncate flex items-center gap-2'>
               <Badge className='max-w-[100px] bg-green-600 text-white dark:bg-green-600 dark:text-white'>
-                <span className='truncate'>
-                  <Trans>NFT</Trans>
-                </span>
+                <Trans>NFT</Trans>
               </Badge>
             </div>
 
-            <div className='text-sm font-medium'>{nft.name ?? t`Unnamed`}</div>
+            <div className='text-sm font-medium break-words'>
+              {nft.name ?? t`Unnamed`}
+            </div>
           </div>
 
           <Separator className='my-1' />
