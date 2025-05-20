@@ -6,7 +6,7 @@
   "permissions": [
     "safe-area-insets:default",
     "barcode-scanner:default",
-    "nfc:default",
-    "biometric:default"
+    "biometric:default",
+    "sage:default"
   ]
 }

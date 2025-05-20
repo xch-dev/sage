@@ -9,7 +9,6 @@ import { useErrors } from '@/hooks/useErrors';
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
 import { useOfferState } from '@/state';
 import { Trans } from '@lingui/react/macro';
-import { isAvailable, scan } from '@tauri-apps/plugin-nfc';
 import { platform } from '@tauri-apps/plugin-os';
 import {
   HandCoins,
@@ -43,6 +42,7 @@ import {
 import { useLocalStorage } from 'usehooks-ts';
 
 const OFFER_FILTER_STORAGE_KEY = 'sage-offer-filter';
+import { getNdefPayloads, isNdefAvailable } from 'tauri-plugin-sage';
 
 export function Offers() {
   const navigate = useNavigate();
@@ -118,35 +118,23 @@ export function Offers() {
   };
 
   useEffect(() => {
-    isAvailable()
-      .then((available) => setIsNfcAvailable(available))
-      .catch((error) => {
-        console.warn('NFC not available:', error);
-        setIsNfcAvailable(false);
-      });
-  }, []);
+    isNdefAvailable().then(setIsNfcAvailable);
+  }, [addError]);
 
   const handleNfcScan = async () => {
     const isAndroid = platform() === 'android';
 
     if (isAndroid) setShowScanUi(true);
 
-    const tag = await scan(
-      { type: 'ndef' },
-      {
-        keepSessionAlive: false,
-        message: 'Scan an NFC tag',
-        successMessage: 'NFC tag successfully scanned',
-      },
-    )
+    const payloads = await getNdefPayloads()
       .catch((error) =>
         addError({ kind: 'internal', reason: `Failed to scan NFC: ${error}` }),
       )
       .finally(() => setShowScanUi(false));
 
-    if (!tag) return;
+    if (!payloads) return;
 
-    const payload = tag.records[0].payload.slice(3);
+    const payload = payloads[0].slice(3);
     const array = new Uint8Array(payload);
     const text = new TextDecoder().decode(array);
 
