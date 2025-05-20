@@ -46,22 +46,37 @@ pub struct TestWallet {
     pub events: Receiver<SyncEvent>,
     pub index: u32,
     pub state: Arc<Mutex<PeerState>>,
+    pub options: SyncOptions,
 }
 
 impl TestWallet {
     pub async fn new(balance: u64) -> anyhow::Result<Self> {
-        let sim = PeerSimulator::new().await?;
-        Self::with_sim(Arc::new(sim), balance, 0).await
+        Self::new_with_options(balance, default_test_options()).await
     }
 
     pub async fn next(&self, balance: u64) -> anyhow::Result<Self> {
-        Self::with_sim(self.sim.clone(), balance, self.index + 1).await
+        self.next_with_options(balance, default_test_options())
+            .await
+    }
+
+    pub async fn new_with_options(balance: u64, options: SyncOptions) -> anyhow::Result<Self> {
+        let sim = PeerSimulator::new().await?;
+        Self::with_sim(Arc::new(sim), balance, 0, options).await
+    }
+
+    pub async fn next_with_options(
+        &self,
+        balance: u64,
+        options: SyncOptions,
+    ) -> anyhow::Result<Self> {
+        Self::with_sim(self.sim.clone(), balance, self.index + 1, options).await
     }
 
     async fn with_sim(
         sim: Arc<PeerSimulator>,
         balance: u64,
         key_index: u32,
+        options: SyncOptions,
     ) -> anyhow::Result<Self> {
         let db_index = {
             let mut lock = INDEX.lock().await;
@@ -119,23 +134,7 @@ impl TestWallet {
         ));
 
         let (mut sync_manager, sender, events) = SyncManager::new(
-            SyncOptions {
-                target_peers: 0,
-                discover_peers: false,
-                dns_batch_size: 0,
-                connection_batch_size: 0,
-                max_peer_age_seconds: 0,
-                timeouts: Timeouts {
-                    sync_delay: Duration::from_millis(100),
-                    nft_uri_delay: Duration::from_millis(100),
-                    cat_delay: Duration::from_millis(100),
-                    puzzle_delay: Duration::from_millis(100),
-                    transaction_delay: Duration::from_millis(100),
-                    offer_delay: Duration::from_millis(100),
-                    ..Default::default()
-                },
-                testing: true,
-            },
+            options,
             state.clone(),
             Some(wallet.clone()),
             TESTNET11.clone(),
@@ -164,6 +163,7 @@ impl TestWallet {
             events,
             index: key_index,
             state,
+            options,
         };
 
         test.consume_until(|event| matches!(event, SyncEvent::Subscribed))
@@ -171,6 +171,11 @@ impl TestWallet {
         assert_eq!(test.wallet.db.balance().await?, balance as u128);
 
         Ok(test)
+    }
+
+    pub async fn resync(&mut self) -> anyhow::Result<()> {
+        *self = Self::with_sim(self.sim.clone(), 0, self.index, self.options).await?;
+        Ok(())
     }
 
     pub async fn transact(&self, coin_spends: Vec<CoinSpend>) -> anyhow::Result<()> {
@@ -229,5 +234,26 @@ impl TestWallet {
     pub async fn wait_for_puzzles(&mut self) {
         self.consume_until(|event| matches!(event, SyncEvent::PuzzleBatchSynced))
             .await;
+    }
+}
+
+pub fn default_test_options() -> SyncOptions {
+    SyncOptions {
+        target_peers: 0,
+        discover_peers: false,
+        dns_batch_size: 0,
+        connection_batch_size: 0,
+        max_peer_age_seconds: 0,
+        puzzle_batch_size_per_peer: 5,
+        timeouts: Timeouts {
+            sync_delay: Duration::from_millis(100),
+            nft_uri_delay: Duration::from_millis(100),
+            cat_delay: Duration::from_millis(100),
+            puzzle_delay: Duration::from_millis(100),
+            transaction_delay: Duration::from_millis(100),
+            offer_delay: Duration::from_millis(100),
+            ..Default::default()
+        },
+        testing: true,
     }
 }

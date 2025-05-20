@@ -19,6 +19,7 @@ use crate::{
 pub struct PuzzleQueue {
     db: Database,
     genesis_challenge: Bytes32,
+    batch_size_per_peer: usize,
     state: Arc<Mutex<PeerState>>,
     sync_sender: mpsc::Sender<SyncEvent>,
     command_sender: mpsc::Sender<SyncCommand>,
@@ -28,6 +29,7 @@ impl PuzzleQueue {
     pub fn new(
         db: Database,
         genesis_challenge: Bytes32,
+        batch_size_per_peer: usize,
         state: Arc<Mutex<PeerState>>,
         sync_sender: mpsc::Sender<SyncEvent>,
         command_sender: mpsc::Sender<SyncCommand>,
@@ -35,6 +37,7 @@ impl PuzzleQueue {
         Self {
             db,
             genesis_challenge,
+            batch_size_per_peer,
             state,
             sync_sender,
             command_sender,
@@ -55,7 +58,10 @@ impl PuzzleQueue {
             return Ok(());
         }
 
-        let coin_states = self.db.unsynced_coin_states(peers.len() * 5).await?;
+        let coin_states = self
+            .db
+            .unsynced_coin_states(peers.len() * self.batch_size_per_peer)
+            .await?;
 
         if coin_states.is_empty() {
             return Ok(());
@@ -68,7 +74,7 @@ impl PuzzleQueue {
         let mut coin_states_iter = coin_states.into_iter();
 
         for peer in peers {
-            for _ in 0..5 {
+            for _ in 0..self.batch_size_per_peer {
                 let Some(coin_state) = coin_states_iter.next() else {
                     break;
                 };
