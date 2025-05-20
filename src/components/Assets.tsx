@@ -57,7 +57,7 @@ export function Assets({ assets, catPresence = {} }: AssetsProps) {
                 minimumFractionDigits={0}
                 maximumFractionDigits={walletState.sync.unit.decimals}
               />{' '}
-              {walletState.sync.unit.ticker}
+              <span className='truncate'>{walletState.sync.unit.ticker}</span>
             </div>
           </div>
 
@@ -72,7 +72,8 @@ export function Assets({ assets, catPresence = {} }: AssetsProps) {
                 minimumFractionDigits={0}
                 maximumFractionDigits={walletState.sync.unit.decimals}
               />{' '}
-              {walletState.sync.unit.ticker} <Trans>royalty</Trans>
+              <span className='truncate'>{walletState.sync.unit.ticker}</span>{' '}
+              <Trans>royalty</Trans>
             </div>
           )}
         </div>
@@ -91,7 +92,7 @@ export function Assets({ assets, catPresence = {} }: AssetsProps) {
                 minimumFractionDigits={0}
                 maximumFractionDigits={3}
               />{' '}
-              <span className='break-words'>
+              <span className='text-sm font-medium break-words'>
                 {cat.name ?? cat.ticker ?? t`Unknown`}
               </span>
             </div>
