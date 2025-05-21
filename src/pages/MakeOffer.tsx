@@ -1,4 +1,3 @@
-import { commands, NetworkKind } from '@/bindings';
 import Container from '@/components/Container';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
@@ -9,20 +8,15 @@ import { Switch } from '@/components/ui/switch';
 import { useDefaultOfferExpiry } from '@/hooks/useDefaultOfferExpiry';
 import { useErrors } from '@/hooks/useErrors';
 import useOfferStateWithDefault from '@/hooks/useOfferStateWithDefault';
-import { uploadToDexie, uploadToMintGarden } from '@/lib/offerUpload';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import { HandCoins, Handshake, LoaderCircleIcon } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { HandCoins, Handshake } from 'lucide-react';
+import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { MakeOfferConfirmationDialog } from '@/components/dialogs/MakeOfferConfirmationDialog';
-import { useOfferProcessor } from '@/hooks/useOfferProcessor';
 import { AssetSelector } from '@/components/selectors/AssetSelector';
 import { OfferCreationProgressDialog } from '@/components/dialogs/OfferCreationProgressDialog';
-import { CustomError } from '@/contexts/ErrorContext';
-
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export function MakeOffer() {
   const [state, setState] = useOfferStateWithDefault();
@@ -31,100 +25,13 @@ export function MakeOffer() {
   const walletState = useWalletState();
   const navigate = useNavigate();
   const { addError } = useErrors();
-  const [network, setNetwork] = useState<NetworkKind | null>(null);
   const [splitNftOffers, setSplitNftOffers] = useState(
     location.state?.splitNftOffers || false,
   );
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+  const [isProgressDialogOpen, setIsProgressDialogOpen] = useState(false);
   const [autoUploadToDexie, setAutoUploadToDexie] = useState(false);
   const [autoUploadToMintGarden, setAutoUploadToMintGarden] = useState(false);
-  const {
-    createdOffers,
-    isProcessing,
-    processOffer,
-    clearProcessedOffers,
-    cancelProcessing,
-  } = useOfferProcessor({
-    offerState: state,
-    splitNftOffers,
-    onProcessingEnd: () => {
-      if (createdOffers.length > 0) {
-        setState(null);
-      }
-    },
-  });
-
-  useEffect(() => {
-    commands.getNetwork({}).then((data) => setNetwork(data.kind));
-  }, []);
-
-  useEffect(() => {
-    if (autoUploadToDexie && createdOffers.length > 0 && network) {
-      let isMounted = true;
-      const uploadWithDelay = async () => {
-        for (const [index, individualOffer] of createdOffers.entries()) {
-          if (!isMounted) break;
-          try {
-            const link = await uploadToDexie(
-              individualOffer,
-              network === 'testnet',
-            );
-            if (index < createdOffers.length - 1) {
-              await delay(500);
-            }
-          } catch (error) {
-            if (isMounted) {
-              addError({
-                kind: 'upload',
-                reason: `Failed to auto-upload offer ${index + 1} to Dexie: ${error}`,
-              });
-            }
-          }
-        }
-        if (isMounted) {
-          setAutoUploadToDexie(false);
-        }
-      };
-      uploadWithDelay();
-      return () => {
-        isMounted = false;
-      };
-    }
-  }, [createdOffers, autoUploadToDexie, network, addError]);
-
-  useEffect(() => {
-    if (autoUploadToMintGarden && createdOffers.length > 0 && network) {
-      let isMounted = true;
-      const uploadWithDelay = async () => {
-        for (const [index, individualOffer] of createdOffers.entries()) {
-          if (!isMounted) break;
-          try {
-            const link = await uploadToMintGarden(
-              individualOffer,
-              network === 'testnet',
-            );
-            if (index < createdOffers.length - 1) {
-              await delay(500);
-            }
-          } catch (error) {
-            if (isMounted) {
-              addError({
-                kind: 'upload',
-                reason: `Failed to auto-upload offer ${index + 1} to MintGarden: ${error}`,
-              });
-            }
-          }
-        }
-        if (isMounted) {
-          setAutoUploadToMintGarden(false);
-        }
-      };
-      uploadWithDelay();
-      return () => {
-        isMounted = false;
-      };
-    }
-  }, [createdOffers, autoUploadToMintGarden, network, addError]);
 
   const makeAction = () => {
     if (state.expiration !== null) {
@@ -166,6 +73,16 @@ export function MakeOffer() {
       return;
     }
     setIsConfirmDialogOpen(true);
+  };
+
+  const handleConfirm = () => {
+    setIsProgressDialogOpen(true);
+  };
+
+  const handleProgressDialogClose = (isOpen: boolean) => {
+    if (!isOpen) {
+      setIsProgressDialogOpen(false);
+    }
   };
 
   const invalid =
@@ -353,43 +270,20 @@ export function MakeOffer() {
             variant='outline'
             onClick={() => {
               setState(null);
-              clearProcessedOffers();
               navigate('/offers', { replace: true });
             }}
           >
             <Trans>Cancel Offer</Trans>
           </Button>
-          <Button disabled={invalid || isProcessing} onClick={makeAction}>
-            {isProcessing && (
-              <LoaderCircleIcon className='mr-2 h-4 w-4 animate-spin' />
-            )}
-            {isProcessing ? t`Creating Offer` : t`Create Offer`}
+          <Button disabled={invalid} onClick={makeAction}>
+            <Trans>Create Offer</Trans>
           </Button>
         </div>
+
         <MakeOfferConfirmationDialog
           open={isConfirmDialogOpen}
           onOpenChange={setIsConfirmDialogOpen}
-          onConfirm={async () => {
-            try {
-              await processOffer();
-            } catch (error) {
-              if (
-                error &&
-                typeof error === 'object' &&
-                'kind' in error &&
-                'reason' in error
-              ) {
-                addError(error as CustomError);
-              } else {
-                addError({
-                  kind: 'invalid',
-                  reason:
-                    error instanceof Error ? error.message : 'Unknown error',
-                });
-              }
-            }
-            setIsConfirmDialogOpen(false);
-          }}
+          onConfirm={handleConfirm}
           offerState={state}
           splitNftOffers={splitNftOffers}
           fee={state.fee || '0'}
@@ -400,27 +294,15 @@ export function MakeOffer() {
           autoUploadToMintGarden={autoUploadToMintGarden}
           setAutoUploadToMintGarden={setAutoUploadToMintGarden}
         />
+
         <OfferCreationProgressDialog
-          open={createdOffers.length > 0 || isProcessing}
-          onOpenChange={(isOpen) => {
-            if (!isOpen && createdOffers.length > 0) {
-              clearProcessedOffers();
-              setState(null);
-              navigate('/offers', { replace: true });
-            }
-          }}
-          createdOffers={createdOffers}
-          onOk={() => {
-            clearProcessedOffers();
-            setState(null);
-            navigate('/offers', { replace: true });
-          }}
-          isProcessing={isProcessing}
-          onCancel={() => {
-            cancelProcessing();
-          }}
-          isMultipleOffers={splitNftOffers}
-          isUploading={autoUploadToDexie || autoUploadToMintGarden}
+          open={isProgressDialogOpen}
+          onOpenChange={handleProgressDialogClose}
+          offerState={state}
+          splitNftOffers={splitNftOffers}
+          autoUploadToDexie={autoUploadToDexie}
+          autoUploadToMintGarden={autoUploadToMintGarden}
+          clearOfferState={() => setState(null)}
         />
       </Container>
     </>

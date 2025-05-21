@@ -9,7 +9,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { OfferState } from '@/state';
-import { Assets, CatAmount, commands } from '@/bindings';
+import { Assets, CatAmount, commands, NetworkKind } from '@/bindings';
 import { ScrollArea } from '../ui/scroll-area';
 import { NumberFormat } from '../NumberFormat';
 import BigNumber from 'bignumber.js';
@@ -254,6 +254,11 @@ export function MakeOfferConfirmationDialog({
   autoUploadToMintGarden,
   setAutoUploadToMintGarden,
 }: MakeOfferConfirmationDialogProps) {
+  const handleConfirm = () => {
+    onConfirm();
+    onOpenChange(false);
+  };
+
   const numOfferedNfts = offerState.offered.nfts.filter(
     (nft: string) => !!nft,
   ).length;
@@ -469,12 +474,7 @@ export function MakeOfferConfirmationDialog({
           <Button variant='outline' onClick={() => onOpenChange(false)}>
             <Trans>Cancel</Trans>
           </Button>
-          <Button
-            onClick={() => {
-              onConfirm();
-              onOpenChange(false);
-            }}
-          >
+          <Button onClick={handleConfirm}>
             <Trans>Confirm & Create</Trans>
           </Button>
         </DialogFooter>
