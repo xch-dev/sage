@@ -6,8 +6,8 @@ import Header from '@/components/Header';
 import { Loading } from '@/components/Loading';
 import { OfferCard } from '@/components/OfferCard';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { FeeAmountInput } from '@/components/ui/masked-input';
 import { CustomError } from '@/contexts/ErrorContext';
 import { useErrors } from '@/hooks/useErrors';
 import { resolveOfferData } from '@/lib/offerData';
@@ -95,13 +95,10 @@ export function ViewOffer() {
                   <Label htmlFor='fee'>
                     <Trans>Network Fee</Trans>
                   </Label>
-                  <Input
+                  <FeeAmountInput
                     id='fee'
-                    type='text'
-                    placeholder='0.00'
                     className='pr-12'
-                    value={fee}
-                    onChange={(e) => setFee(e.target.value)}
+                    onValueChange={(values) => setFee(values.value)}
                     onKeyDown={(event) => {
                       if (event.key === 'Enter') {
                         event.preventDefault();

@@ -38,6 +38,7 @@ import {
   commands,
   TransactionResponse,
 } from '../bindings';
+import { FeeAmountInput } from './ui/masked-input';
 
 interface CoinsCardProps {
   precision: number;
@@ -204,9 +205,6 @@ export function CoinsCard({
 
   const combineForm = useForm<z.infer<typeof combineFormSchema>>({
     resolver: zodResolver(combineFormSchema),
-    defaultValues: {
-      combineFee: '0',
-    },
   });
 
   const onCombineSubmit = (values: z.infer<typeof combineFormSchema>) => {
@@ -255,7 +253,6 @@ export function CoinsCard({
     resolver: zodResolver(splitFormSchema),
     defaultValues: {
       outputCount: 2,
-      splitFee: '0',
     },
   });
 
@@ -307,7 +304,6 @@ export function CoinsCard({
   const autoCombineForm = useForm<z.infer<typeof autoCombineFormSchema>>({
     resolver: zodResolver(autoCombineFormSchema),
     defaultValues: {
-      autoCombineFee: '0',
       maxCoins: '100',
       maxCoinAmount: '',
     },
@@ -459,7 +455,7 @@ export function CoinsCard({
                       <Trans>Network Fee</Trans>
                     </FormLabel>
                     <FormControl>
-                      <Input {...field} />
+                      <FeeAmountInput {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -527,7 +523,7 @@ export function CoinsCard({
                       <Trans>Network Fee</Trans>
                     </FormLabel>
                     <FormControl>
-                      <Input {...field} />
+                      <FeeAmountInput {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -577,7 +573,7 @@ export function CoinsCard({
                       <Trans>Network Fee</Trans>
                     </FormLabel>
                     <FormControl>
-                      <Input {...field} />
+                      <FeeAmountInput {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

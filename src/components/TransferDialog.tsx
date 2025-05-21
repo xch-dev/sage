@@ -23,7 +23,7 @@ import {
   FormMessage,
 } from './ui/form';
 import { Input } from './ui/input';
-import { TokenAmountInput } from './ui/masked-input';
+import { FeeAmountInput } from './ui/masked-input';
 import { Trans } from '@lingui/react/macro';
 import { t } from '@lingui/core/macro';
 
@@ -55,7 +55,6 @@ export function TransferDialog({
     resolver: zodResolver(schema),
     defaultValues: {
       address: '',
-      fee: '0',
     },
   });
 
@@ -96,10 +95,7 @@ export function TransferDialog({
                     <Trans>Network Fee</Trans>
                   </FormLabel>
                   <FormControl>
-                    <TokenAmountInput
-                      {...field}
-                      placeholder={t`Enter fee amount`}
-                    />
+                    <FeeAmountInput {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

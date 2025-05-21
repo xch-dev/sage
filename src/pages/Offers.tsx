@@ -37,7 +37,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { TokenAmountInput } from '@/components/ui/masked-input';
+import { FeeAmountInput } from '@/components/ui/masked-input';
 import { Textarea } from '@/components/ui/textarea';
 import { useErrors } from '@/hooks/useErrors';
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
@@ -302,9 +302,6 @@ function Offer({ record, refresh }: OfferProps) {
 
   const cancelForm = useForm<z.infer<typeof cancelSchema>>({
     resolver: zodResolver(cancelSchema),
-    defaultValues: {
-      fee: '0',
-    },
   });
 
   const [response, setResponse] = useState<TransactionResponse | null>(null);
@@ -530,7 +527,7 @@ function Offer({ record, refresh }: OfferProps) {
                       <Trans>Network Fee</Trans>
                     </FormLabel>
                     <FormControl>
-                      <TokenAmountInput {...field} />
+                      <FeeAmountInput {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
