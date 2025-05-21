@@ -220,6 +220,7 @@ impl Sage {
                 max_peer_age_seconds: 3600 * 8,
                 dns_batch_size: 10,
                 connection_batch_size: 30,
+                puzzle_batch_size_per_peer: 5,
                 timeouts: Timeouts::default(),
                 testing: false,
             },

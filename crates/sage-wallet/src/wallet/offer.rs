@@ -21,6 +21,8 @@ pub use unlock_assets::*;
 
 #[cfg(test)]
 mod tests {
+    use std::time::Duration;
+
     use chia::{
         clvm_traits::{FromClvm, ToClvm},
         protocol::{Bytes32, Program},
@@ -30,7 +32,10 @@ mod tests {
     use indexmap::indexmap;
     use test_log::test;
 
-    use crate::{MakerSide, RequestedNft, TakerSide, TestWallet, WalletNftMint};
+    use crate::{
+        default_test_options, MakerSide, RequestedNft, SyncOptions, TakerSide, TestWallet,
+        Timeouts, WalletNftMint,
+    };
 
     use super::aggregate_offers;
 
@@ -738,8 +743,22 @@ mod tests {
 
     #[test(tokio::test)]
     async fn test_offer_nft_single_sided() -> anyhow::Result<()> {
+        let options = default_test_options();
+
         let mut alice = TestWallet::new(2).await?;
-        let mut bob = alice.next(0).await?;
+        let mut bob = alice
+            .next_with_options(
+                0,
+                SyncOptions {
+                    puzzle_batch_size_per_peer: 1,
+                    timeouts: Timeouts {
+                        puzzle_delay: Duration::from_secs(1),
+                        ..options.timeouts
+                    },
+                    ..options
+                },
+            )
+            .await?;
 
         let (coin_spends, did) = alice.wallet.create_did(0, false, true).await?;
         alice.transact(coin_spends).await?;
@@ -790,16 +809,43 @@ mod tests {
             .wallet
             .sign_take_offer(offer, &bob.agg_sig, bob.master_sk.clone())
             .await?;
+        assert_eq!(spend_bundle.coin_spends.len(), 3);
         bob.push_bundle(spend_bundle).await?;
 
         // We need to wait for both wallets to sync in this case
         bob.wait_for_coins().await;
 
+        // Resync to make sure the NFT is spendable even if it wasn't pending previously
+        bob.resync().await?;
+        bob.wait_for_puzzles().await;
+        bob.wait_for_puzzles().await;
+
         // Check balances
-        assert_ne!(
-            bob.wallet.db.spendable_nft(nft.info.launcher_id).await?,
-            None
-        );
+        let nft = bob
+            .wallet
+            .db
+            .spendable_nft(nft.info.launcher_id)
+            .await?
+            .expect("NFT should be spendable");
+
+        let coin_id = bob
+            .wallet
+            .db
+            .nft_row(nft.info.launcher_id)
+            .await?
+            .expect("NFT should exist")
+            .coin_id;
+
+        let is_spent = bob
+            .wallet
+            .db
+            .coin_state(coin_id)
+            .await?
+            .expect("coin should exist")
+            .spent_height
+            .is_some();
+
+        assert!(!is_spent);
 
         Ok(())
     }
