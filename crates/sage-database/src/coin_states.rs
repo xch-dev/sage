@@ -225,7 +225,7 @@ async fn unsynced_coin_states(
         SELECT `parent_coin_id`, `puzzle_hash`, `amount`, `created_height`, `spent_height`, `transaction_id`, `kind`, `created_unixtime`, `spent_unixtime`
         FROM `coin_states`
         WHERE `synced` = 0 AND `created_height` IS NOT NULL
-        ORDER BY RANDOM()
+        ORDER BY `spent_height` ASC
         LIMIT ?
         ",
         limit
