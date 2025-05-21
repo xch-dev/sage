@@ -343,8 +343,8 @@ msgstr "Descubrir y conectarse automáticamente a nodos"
 msgid "Automatically start the RPC server when the app launches"
 msgstr "Iniciar automáticamente el servidor RPC cuando se inicia la aplicación"
 
-#: src/components/Header.tsx:53
-#: src/components/Header.tsx:115
+#: src/components/Header.tsx:56
+#: src/components/Header.tsx:122
 msgid "Back"
 msgstr "Atrás"
 
@@ -578,8 +578,8 @@ msgstr "Frío"
 #~ msgid "Cold Wallet"
 #~ msgstr "Billetera Fría"
 
-#: src/components/Layout.tsx:86
-#: src/components/Layout.tsx:102
+#: src/components/Layout.tsx:98
+#: src/components/Layout.tsx:114
 msgid "Collapse sidebar"
 msgstr "Contraer barra lateral"
 
@@ -1064,12 +1064,12 @@ msgstr "Introduzca su mnemotécnico, clave privada o clave pública arriba. Si e
 #~ msgid "Enter your mnemonic, private key, or public key below. If it's a public key, it will be imported as a read-only cold wallet."
 #~ msgstr "Introduce tu mnemotécnico, clave privada o clave pública a continuación. Si es una clave pública, se importará como una billetera fría de solo lectura."
 
-#: src/components/Layout.tsx:86
-#: src/components/Layout.tsx:101
+#: src/components/Layout.tsx:98
+#: src/components/Layout.tsx:113
 msgid "Expand sidebar"
 msgstr "Ampliar barra lateral"
 
-#: src/components/Layout.tsx:100
+#: src/components/Layout.tsx:112
 msgid "Expand sidebar - {0}"
 msgstr "Ampliar barra lateral - {0}"
 
@@ -1168,7 +1168,7 @@ msgstr "Ir a la página {0}"
 msgid "Go to previous page"
 msgstr "Ir a la página anterior"
 
-#: src/components/Header.tsx:92
+#: src/components/Header.tsx:95
 msgid "Go to wallet"
 msgstr "Ir a la billetera"
 
@@ -1590,7 +1590,7 @@ msgstr "Nombre de este token"
 msgid "Name of your wallet"
 msgstr "Nombre de tu billetera"
 
-#: src/components/Header.tsx:76
+#: src/components/Header.tsx:79
 msgid "Navigation menu"
 msgstr "Menú de navegación"
 
@@ -2452,7 +2452,7 @@ msgstr "Mostrando {length} de {0} {rowLabelPlural}"
 #~ msgid "Showing {length} rows"
 #~ msgstr "Mostrando {length} filas"
 
-#: src/components/Layout.tsx:74
+#: src/components/Layout.tsx:86
 msgid "Sidebar navigation"
 msgstr "Navegación de barra lateral"
 
@@ -2888,7 +2888,7 @@ msgstr "Para:"
 msgid "Toggle multi-select"
 msgstr "Alternar selección múltiple"
 
-#: src/components/Header.tsx:63
+#: src/components/Header.tsx:66
 msgid "Toggle navigation menu"
 msgstr "Alternar menú de navegación"
 
@@ -3268,8 +3268,8 @@ msgstr "Ver opciones"
 #: src/pages/Settings.tsx:723
 #: src/pages/Login.tsx:713
 #: src/components/Nav.tsx:43
-#: src/components/Layout.tsx:45
-#: src/components/Layout.tsx:60
+#: src/components/Layout.tsx:53
+#: src/components/Layout.tsx:72
 msgid "Wallet"
 msgstr "Billetera"
 
@@ -3277,9 +3277,9 @@ msgstr "Billetera"
 msgid "Wallet Details"
 msgstr "Detalles de la billetera"
 
-#: src/components/Layout.tsx:39
-#: src/components/Layout.tsx:57
-#: src/components/Header.tsx:94
+#: src/components/Layout.tsx:46
+#: src/components/Layout.tsx:68
+#: src/components/Header.tsx:100
 msgid "Wallet icon"
 msgstr "Icono de billetera"
 
