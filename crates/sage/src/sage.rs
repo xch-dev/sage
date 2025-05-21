@@ -69,7 +69,6 @@ impl Sage {
         self.setup_logging()?;
 
         let receiver = self.setup_sync_manager()?;
-        self.switch_wallet().await?;
         self.setup_peers().await?;
 
         info!("Sage wallet initialized");
