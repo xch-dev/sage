@@ -343,8 +343,8 @@ msgstr ""
 msgid "Automatically start the RPC server when the app launches"
 msgstr ""
 
-#: src/components/Header.tsx:53
-#: src/components/Header.tsx:115
+#: src/components/Header.tsx:56
+#: src/components/Header.tsx:122
 msgid "Back"
 msgstr "Zurück"
 
@@ -578,8 +578,8 @@ msgstr ""
 #~ msgid "Cold Wallet"
 #~ msgstr "Cold Wallet"
 
-#: src/components/Layout.tsx:86
-#: src/components/Layout.tsx:102
+#: src/components/Layout.tsx:98
+#: src/components/Layout.tsx:114
 msgid "Collapse sidebar"
 msgstr ""
 
@@ -1064,12 +1064,12 @@ msgstr ""
 #~ msgid "Enter your mnemonic, private key, or public key below. If it's a public key, it will be imported as a read-only cold wallet."
 #~ msgstr "Geben Sie unten Ihre Mnemonic, Ihren Private Key oder Ihren Public Key ein. Wenn es sich um einen Public Key handelt, wird er als schreibgeschütztes Cold Wallet importiert."
 
-#: src/components/Layout.tsx:86
-#: src/components/Layout.tsx:101
+#: src/components/Layout.tsx:98
+#: src/components/Layout.tsx:113
 msgid "Expand sidebar"
 msgstr ""
 
-#: src/components/Layout.tsx:100
+#: src/components/Layout.tsx:112
 msgid "Expand sidebar - {0}"
 msgstr ""
 
@@ -1168,7 +1168,7 @@ msgstr ""
 msgid "Go to previous page"
 msgstr ""
 
-#: src/components/Header.tsx:92
+#: src/components/Header.tsx:95
 msgid "Go to wallet"
 msgstr "Zum Wallet gehen"
 
@@ -1590,7 +1590,7 @@ msgstr ""
 msgid "Name of your wallet"
 msgstr "Name Ihres Wallets"
 
-#: src/components/Header.tsx:76
+#: src/components/Header.tsx:79
 msgid "Navigation menu"
 msgstr ""
 
@@ -2452,7 +2452,7 @@ msgstr ""
 #~ msgid "Showing {length} rows"
 #~ msgstr ""
 
-#: src/components/Layout.tsx:74
+#: src/components/Layout.tsx:86
 msgid "Sidebar navigation"
 msgstr ""
 
@@ -2888,7 +2888,7 @@ msgstr ""
 msgid "Toggle multi-select"
 msgstr "Mehrfachauswahl umschalten"
 
-#: src/components/Header.tsx:63
+#: src/components/Header.tsx:66
 msgid "Toggle navigation menu"
 msgstr "Navigationsmenü umschalten"
 
@@ -3268,8 +3268,8 @@ msgstr ""
 #: src/pages/Settings.tsx:723
 #: src/pages/Login.tsx:713
 #: src/components/Nav.tsx:43
-#: src/components/Layout.tsx:45
-#: src/components/Layout.tsx:60
+#: src/components/Layout.tsx:53
+#: src/components/Layout.tsx:72
 msgid "Wallet"
 msgstr "Wallet"
 
@@ -3277,9 +3277,9 @@ msgstr "Wallet"
 msgid "Wallet Details"
 msgstr "Wallet Details"
 
-#: src/components/Layout.tsx:39
-#: src/components/Layout.tsx:57
-#: src/components/Header.tsx:94
+#: src/components/Layout.tsx:46
+#: src/components/Layout.tsx:68
+#: src/components/Header.tsx:100
 msgid "Wallet icon"
 msgstr "Wallet Symbol"
 

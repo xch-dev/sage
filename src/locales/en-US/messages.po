@@ -343,8 +343,8 @@ msgstr "Automatically discover and connect to peers"
 msgid "Automatically start the RPC server when the app launches"
 msgstr "Automatically start the RPC server when the app launches"
 
-#: src/components/Header.tsx:53
-#: src/components/Header.tsx:115
+#: src/components/Header.tsx:56
+#: src/components/Header.tsx:122
 msgid "Back"
 msgstr "Back"
 
@@ -578,8 +578,8 @@ msgstr "Cold"
 #~ msgid "Cold Wallet"
 #~ msgstr "Cold Wallet"
 
-#: src/components/Layout.tsx:86
-#: src/components/Layout.tsx:102
+#: src/components/Layout.tsx:98
+#: src/components/Layout.tsx:114
 msgid "Collapse sidebar"
 msgstr "Collapse sidebar"
 
@@ -1064,12 +1064,12 @@ msgstr "Enter your mnemonic, private key, or public key above. If it's a public 
 #~ msgid "Enter your mnemonic, private key, or public key below. If it's a public key, it will be imported as a read-only cold wallet."
 #~ msgstr "Enter your mnemonic, private key, or public key below. If it's a public key, it will be imported as a read-only cold wallet."
 
-#: src/components/Layout.tsx:86
-#: src/components/Layout.tsx:101
+#: src/components/Layout.tsx:98
+#: src/components/Layout.tsx:113
 msgid "Expand sidebar"
 msgstr "Expand sidebar"
 
-#: src/components/Layout.tsx:100
+#: src/components/Layout.tsx:112
 msgid "Expand sidebar - {0}"
 msgstr "Expand sidebar - {0}"
 
@@ -1168,7 +1168,7 @@ msgstr "Go to page {0}"
 msgid "Go to previous page"
 msgstr "Go to previous page"
 
-#: src/components/Header.tsx:92
+#: src/components/Header.tsx:95
 msgid "Go to wallet"
 msgstr "Go to wallet"
 
@@ -1590,7 +1590,7 @@ msgstr "Name of this token"
 msgid "Name of your wallet"
 msgstr "Name of your wallet"
 
-#: src/components/Header.tsx:76
+#: src/components/Header.tsx:79
 msgid "Navigation menu"
 msgstr "Navigation menu"
 
@@ -2452,7 +2452,7 @@ msgstr "Showing {length} of {0} {rowLabelPlural}"
 #~ msgid "Showing {length} rows"
 #~ msgstr "Showing {length} rows"
 
-#: src/components/Layout.tsx:74
+#: src/components/Layout.tsx:86
 msgid "Sidebar navigation"
 msgstr "Sidebar navigation"
 
@@ -2888,7 +2888,7 @@ msgstr "To:"
 msgid "Toggle multi-select"
 msgstr "Toggle multi-select"
 
-#: src/components/Header.tsx:63
+#: src/components/Header.tsx:66
 msgid "Toggle navigation menu"
 msgstr "Toggle navigation menu"
 
@@ -3268,8 +3268,8 @@ msgstr "View options"
 #: src/pages/Settings.tsx:723
 #: src/pages/Login.tsx:713
 #: src/components/Nav.tsx:43
-#: src/components/Layout.tsx:45
-#: src/components/Layout.tsx:60
+#: src/components/Layout.tsx:53
+#: src/components/Layout.tsx:72
 msgid "Wallet"
 msgstr "Wallet"
 
@@ -3277,9 +3277,9 @@ msgstr "Wallet"
 msgid "Wallet Details"
 msgstr "Wallet Details"
 
-#: src/components/Layout.tsx:39
-#: src/components/Layout.tsx:57
-#: src/components/Header.tsx:94
+#: src/components/Layout.tsx:46
+#: src/components/Layout.tsx:68
+#: src/components/Header.tsx:100
 msgid "Wallet icon"
 msgstr "Wallet icon"
 
