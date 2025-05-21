@@ -58,7 +58,7 @@ msgstr "{peersToDeleteCount, plural, one {这将移除与该节点的连接. 如
 msgid "{peersToDeleteCount, plural, one {Will temporarily prevent the peer from being connected to.} other {Will temporarily prevent the peers from being connected to.}}"
 msgstr "{peersToDeleteCount, plural, one {将暂时阻止与该节点的连接.} other {将暂时阻止与该节点的连接.}}"
 
-#: src/components/CoinsCard.tsx:428
+#: src/components/CoinsCard.tsx:424
 msgid "{selectedCoinCount} {selectedCoinLabel} selected"
 msgstr ""
 
@@ -99,7 +99,7 @@ msgstr ""
 msgid "Actions for selected NFTs"
 msgstr ""
 
-#: src/components/NftCard.tsx:444
+#: src/components/NftCard.tsx:443
 msgid "Add {nftName} to offer"
 msgstr ""
 
@@ -115,7 +115,7 @@ msgstr ""
 msgid "Add new peers"
 msgstr ""
 
-#: src/components/NftCard.tsx:535
+#: src/components/NftCard.tsx:534
 msgid "Add NFT URL"
 msgstr "添加NFT网址"
 
@@ -127,30 +127,30 @@ msgstr "添加NFT网址"
 msgid "Add Peers"
 msgstr ""
 
-#: src/pages/MakeOffer.tsx:167
+#: src/pages/MakeOffer.tsx:171
 msgid "Add the assets you are offering."
 msgstr "添加提供的资产."
 
-#: src/pages/MakeOffer.tsx:188
+#: src/pages/MakeOffer.tsx:192
 msgid "Add the assets you are requesting."
 msgstr "添加请求的资产."
 
-#: src/components/NftCard.tsx:448
+#: src/components/NftCard.tsx:447
 #: src/components/MultiSelectActions.tsx:288
 msgid "Add to Offer"
 msgstr ""
 
-#: src/components/NftCard.tsx:398
-#: src/components/NftCard.tsx:626
+#: src/components/NftCard.tsx:397
+#: src/components/NftCard.tsx:625
 #: src/components/confirmations/AddUrlConfirmation.tsx:30
 msgid "Add URL"
 msgstr "添加网址"
 
-#: src/components/NftCard.tsx:394
+#: src/components/NftCard.tsx:393
 msgid "Add URL to {nftName}"
 msgstr ""
 
-#: src/components/NftCard.tsx:690
+#: src/components/NftCard.tsx:689
 msgid "Add URL to NFT"
 msgstr ""
 
@@ -162,10 +162,10 @@ msgstr ""
 #~ msgid "Added NFT to offer"
 #~ msgstr ""
 
-#: src/pages/Send.tsx:244
+#: src/pages/Send.tsx:246
 #: src/pages/Nft.tsx:281
 #: src/pages/Nft.tsx:284
-#: src/components/TransferDialog.tsx:81
+#: src/components/TransferDialog.tsx:80
 #: src/components/TransactionColumns.tsx:111
 #: src/components/AddressList.tsx:39
 msgid "Address"
@@ -180,7 +180,7 @@ msgid "Address belongs to your wallet"
 msgstr ""
 
 #: src/pages/Nft.tsx:286
-#: src/pages/Login.tsx:318
+#: src/pages/Login.tsx:324
 #: src/components/TransactionColumns.tsx:156
 #: src/components/ReceiveAddress.tsx:74
 #: src/components/ConfirmationDialog.tsx:343
@@ -215,7 +215,7 @@ msgstr ""
 msgid "Addresses"
 msgstr "地址"
 
-#: src/pages/Settings.tsx:124
+#: src/pages/Settings.tsx:130
 msgid "Advanced"
 msgstr "高级"
 
@@ -223,7 +223,7 @@ msgstr "高级"
 msgid "Advanced Feature"
 msgstr ""
 
-#: src/pages/ImportWallet.tsx:125
+#: src/pages/ImportWallet.tsx:132
 msgid "Advanced options"
 msgstr ""
 
@@ -231,8 +231,8 @@ msgstr ""
 msgid "All Addresses"
 msgstr "所有地址"
 
-#: src/pages/Send.tsx:278
-#: src/pages/MakeOffer.tsx:631
+#: src/pages/Send.tsx:280
+#: src/pages/MakeOffer.tsx:632
 #: src/pages/IssueToken.tsx:109
 #: src/components/TransactionColumns.tsx:100
 #: src/components/CoinList.tsx:145
@@ -245,11 +245,11 @@ msgid "Amount copied to clipboard"
 msgstr ""
 
 #: src/components/OfferCard.tsx:268
-#: src/components/OfferCard.tsx:343
+#: src/components/OfferCard.tsx:346
 msgid "Amount includes"
 msgstr "金额包括"
 
-#: src/pages/Login.tsx:564
+#: src/pages/Login.tsx:574
 msgid "Are you sure you want to delete this wallet? This cannot be undone, and all funds will be lost unless you have saved your mnemonic phrase."
 msgstr "确定要删除这个钱包吗? 此操作无法撤销, 且所有资金将丢失, 除非已保存助记词."
 
@@ -261,7 +261,7 @@ msgstr "确定移除 {peersToDeleteCount} 个节点?"
 msgid "Are you sure you want to remove the peer?"
 msgstr "确定移除该节点?"
 
-#: src/pages/Login.tsx:506
+#: src/pages/Login.tsx:516
 msgid "Are you sure you want to resync this wallet's data? This will re-download data from the network which can take a while depending on the size of the wallet."
 msgstr "确定要重新同步此钱包的数据吗? 这将从网络重新下载数据, 根据钱包的大小, 这可能需要一些时间."
 
@@ -299,16 +299,16 @@ msgstr ""
 msgid "Assets"
 msgstr "资产"
 
-#: src/components/NftCard.tsx:373
+#: src/components/NftCard.tsx:372
 msgid "Assign profile"
 msgstr ""
 
-#: src/components/NftCard.tsx:379
-#: src/components/NftCard.tsx:522
+#: src/components/NftCard.tsx:378
+#: src/components/NftCard.tsx:521
 msgid "Assign Profile"
 msgstr "分配个人资料"
 
-#: src/components/NftCard.tsx:526
+#: src/components/NftCard.tsx:525
 msgid "Assign profile for {nftName}"
 msgstr ""
 
@@ -322,7 +322,7 @@ msgstr ""
 msgid "Attributes"
 msgstr "属性"
 
-#: src/components/CoinsCard.tsx:557
+#: src/components/CoinsCard.tsx:553
 msgid "Auto Combine {ticker}"
 msgstr ""
 
@@ -331,7 +331,7 @@ msgstr ""
 msgid "Auto-discovered peer"
 msgstr ""
 
-#: src/pages/Settings.tsx:490
+#: src/pages/Settings.tsx:505
 msgid "Automatically discover and connect to peers"
 msgstr ""
 
@@ -339,7 +339,7 @@ msgstr ""
 #~ msgid "Automatically generate new addresses as needed"
 #~ msgstr ""
 
-#: src/pages/Settings.tsx:608
+#: src/pages/Settings.tsx:623
 msgid "Automatically start the RPC server when the app launches"
 msgstr ""
 
@@ -370,7 +370,7 @@ msgstr ""
 msgid "Banner for {collectionName}"
 msgstr ""
 
-#: src/pages/Settings.tsx:254
+#: src/pages/Settings.tsx:260
 msgid "Biometric Authentication"
 msgstr ""
 
@@ -404,14 +404,14 @@ msgstr "批量转移NFT"
 
 #: src/pages/DidList.tsx:266
 #: src/pages/DidList.tsx:382
-#: src/components/NftCard.tsx:413
-#: src/components/NftCard.tsx:639
+#: src/components/NftCard.tsx:412
+#: src/components/NftCard.tsx:638
 #: src/components/MultiSelectActions.tsx:243
 #: src/components/MultiSelectActions.tsx:326
 msgid "Burn"
 msgstr "销毁"
 
-#: src/components/NftCard.tsx:409
+#: src/components/NftCard.tsx:408
 msgid "Burn {nftName}"
 msgstr ""
 
@@ -423,8 +423,8 @@ msgstr ""
 msgid "Burn DID"
 msgstr ""
 
-#: src/components/NftCard.tsx:635
-#: src/components/NftCard.tsx:667
+#: src/components/NftCard.tsx:634
+#: src/components/NftCard.tsx:666
 #: src/components/MultiSelectActions.tsx:349
 msgid "Burn NFT"
 msgstr "销毁NFT"
@@ -437,27 +437,27 @@ msgstr "销毁个人资料"
 msgid "By disabling this you are creating a cold wallet, with no ability to sign transactions. The mnemonic will need to be saved elsewhere."
 msgstr "禁用此功能后, 将创建一个冷钱包, 该钱包无法签署交易. 需要将助记词保存在其他地方."
 
-#: src/pages/Settings.tsx:842
+#: src/pages/Settings.tsx:857
 #: src/pages/PeerList.tsx:368
 #: src/pages/PeerList.tsx:424
 #: src/pages/PeerList.tsx:547
-#: src/pages/Offers.tsx:416
-#: src/pages/Offers.tsx:522
-#: src/pages/Offers.tsx:579
-#: src/pages/Login.tsx:545
-#: src/pages/Login.tsx:573
-#: src/pages/Login.tsx:623
+#: src/pages/Offers.tsx:379
+#: src/pages/Offers.tsx:485
+#: src/pages/Offers.tsx:542
+#: src/pages/Login.tsx:555
+#: src/pages/Login.tsx:583
+#: src/pages/Login.tsx:633
 #: src/pages/DidList.tsx:362
 #: src/pages/CreateWallet.tsx:257
-#: src/components/TransferDialog.tsx:114
+#: src/components/TransferDialog.tsx:110
 #: src/components/TokenCard.tsx:239
-#: src/components/NftCard.tsx:623
-#: src/components/FeeOnlyDialog.tsx:99
+#: src/components/NftCard.tsx:622
+#: src/components/FeeOnlyDialog.tsx:92
 #: src/components/ConfirmationDialog.tsx:599
-#: src/components/CoinsCard.tsx:474
-#: src/components/CoinsCard.tsx:542
-#: src/components/CoinsCard.tsx:625
-#: src/components/AssignNftDialog.tsx:151
+#: src/components/CoinsCard.tsx:470
+#: src/components/CoinsCard.tsx:538
+#: src/components/CoinsCard.tsx:621
+#: src/components/AssignNftDialog.tsx:144
 msgid "Cancel"
 msgstr "取消"
 
@@ -465,12 +465,12 @@ msgstr "取消"
 msgid "Cancel Details"
 msgstr ""
 
-#: src/pages/Offers.tsx:596
-#: src/pages/MakeOffer.tsx:333
+#: src/pages/Offers.tsx:559
+#: src/pages/MakeOffer.tsx:334
 msgid "Cancel Offer"
 msgstr "取消报价"
 
-#: src/pages/Offers.tsx:543
+#: src/pages/Offers.tsx:506
 msgid "Cancel offer?"
 msgstr ""
 
@@ -481,7 +481,7 @@ msgstr ""
 #~ msgid "CAT"
 #~ msgstr "CAT"
 
-#: src/components/OfferCard.tsx:330
+#: src/components/OfferCard.tsx:333
 msgid "CAT icon"
 msgstr "CAT硬币"
 
@@ -504,11 +504,11 @@ msgstr ""
 msgid "Check if an address is owned by this wallet."
 msgstr ""
 
-#: src/pages/Settings.tsx:450
+#: src/pages/Settings.tsx:465
 msgid "Choose the network to connect to"
 msgstr ""
 
-#: src/pages/Settings.tsx:268
+#: src/pages/Settings.tsx:273
 msgid "Choose your preferred language"
 msgstr ""
 
@@ -521,15 +521,15 @@ msgstr ""
 msgid "Clear search"
 msgstr ""
 
-#: src/components/CoinsCard.tsx:424
+#: src/components/CoinsCard.tsx:420
 msgid "Clear Selection"
 msgstr ""
 
-#: src/components/NftCard.tsx:434
+#: src/components/NftCard.tsx:433
 msgid "Click here to go to offer."
 msgstr ""
 
-#: src/components/CoinsCard.tsx:359
+#: src/components/CoinsCard.tsx:355
 #: src/components/CoinList.tsx:349
 msgid "coin"
 msgstr ""
@@ -556,12 +556,12 @@ msgstr ""
 msgid "Coin with id {coinId}"
 msgstr ""
 
-#: src/components/CoinsCard.tsx:359
+#: src/components/CoinsCard.tsx:355
 #: src/components/CoinList.tsx:350
 msgid "coins"
 msgstr ""
 
-#: src/components/CoinsCard.tsx:365
+#: src/components/CoinsCard.tsx:361
 msgid "Coins"
 msgstr "硬币"
 
@@ -569,7 +569,7 @@ msgstr "硬币"
 #~ msgid "Coins to {0}"
 #~ msgstr ""
 
-#: src/pages/Login.tsx:488
+#: src/pages/Login.tsx:498
 msgid "Cold"
 msgstr ""
 
@@ -608,13 +608,13 @@ msgstr ""
 msgid "Collections"
 msgstr ""
 
-#: src/components/CoinsCard.tsx:412
-#: src/components/CoinsCard.tsx:477
-#: src/components/CoinsCard.tsx:628
+#: src/components/CoinsCard.tsx:408
+#: src/components/CoinsCard.tsx:473
+#: src/components/CoinsCard.tsx:624
 msgid "Combine"
 msgstr "合并"
 
-#: src/components/CoinsCard.tsx:440
+#: src/components/CoinsCard.tsx:436
 msgid "Combine {ticker}"
 msgstr "合并 {ticker}"
 
@@ -623,8 +623,8 @@ msgstr "合并 {ticker}"
 msgid "Combine Coins"
 msgstr ""
 
-#: src/components/CoinsCard.tsx:230
-#: src/components/CoinsCard.tsx:341
+#: src/components/CoinsCard.tsx:228
+#: src/components/CoinsCard.tsx:337
 msgid "Combine Details"
 msgstr ""
 
@@ -652,16 +652,16 @@ msgstr ""
 msgid "Confirmed"
 msgstr "已确认"
 
-#: src/pages/Settings.tsx:410
+#: src/pages/Settings.tsx:425
 #: src/pages/PeerList.tsx:449
 msgid "Connect"
 msgstr "连接"
 
-#: src/pages/Settings.tsx:153
+#: src/pages/Settings.tsx:159
 msgid "Connect a wallet to manage its settings"
 msgstr ""
 
-#: src/pages/Settings.tsx:157
+#: src/pages/Settings.tsx:163
 msgid "Connect Wallet"
 msgstr ""
 
@@ -677,12 +677,12 @@ msgstr "已连接到 {totalPeersCount} 个节点"
 msgid "connecting..."
 msgstr "连接中..."
 
-#: src/pages/Settings.tsx:408
+#: src/pages/Settings.tsx:423
 #: src/components/Nav.tsx:129
 msgid "Connecting..."
 msgstr ""
 
-#: src/pages/MakeOffer.tsx:540
+#: src/pages/MakeOffer.tsx:541
 msgid "Convert to XCH at current asking price"
 msgstr ""
 
@@ -694,7 +694,7 @@ msgstr ""
 msgid "Copied!"
 msgstr ""
 
-#: src/pages/Offers.tsx:390
+#: src/pages/Offers.tsx:353
 #: src/components/QRCodeDialog.tsx:65
 msgid "Copy"
 msgstr "复制"
@@ -707,7 +707,7 @@ msgstr ""
 #~ msgid "Copy address"
 #~ msgstr ""
 
-#: src/pages/Login.tsx:419
+#: src/pages/Login.tsx:429
 #: src/components/TransactionColumns.tsx:160
 msgid "Copy Address"
 msgstr ""
@@ -730,10 +730,10 @@ msgstr ""
 msgid "Copy Balance"
 msgstr ""
 
-#: src/pages/Offers.tsx:430
+#: src/pages/Offers.tsx:393
 #: src/pages/DidList.tsx:282
 #: src/components/NftGroupCard.tsx:334
-#: src/components/NftCard.tsx:502
+#: src/components/NftCard.tsx:501
 msgid "Copy ID"
 msgstr "复制ID"
 
@@ -745,15 +745,15 @@ msgstr "复制ID"
 msgid "Copy JSON"
 msgstr ""
 
-#: src/components/NftCard.tsx:498
+#: src/components/NftCard.tsx:497
 msgid "Copy NFT ID to clipboard"
 msgstr ""
 
-#: src/pages/Login.tsx:161
+#: src/pages/Login.tsx:167
 msgid "Create"
 msgstr "创建"
 
-#: src/pages/Offers.tsx:236
+#: src/pages/Offers.tsx:202
 msgid "Create a new offer to get started with peer-to-peer trading."
 msgstr "创建一个新报价以开始点对点交易."
 
@@ -765,18 +765,18 @@ msgstr "创建个人资料?"
 msgid "Create new NFT"
 msgstr ""
 
-#: src/pages/Offers.tsx:253
-#: src/pages/MakeOffer.tsx:339
+#: src/pages/Offers.tsx:219
+#: src/pages/MakeOffer.tsx:340
 msgid "Create Offer"
 msgstr "创建报价"
 
 #: src/pages/DidList.tsx:72
 #: src/pages/CreateProfile.tsx:59
-#: src/pages/CreateProfile.tsx:106
+#: src/pages/CreateProfile.tsx:101
 msgid "Create Profile"
 msgstr "创建个人资料"
 
-#: src/pages/Login.tsx:718
+#: src/pages/Login.tsx:728
 #: src/pages/CreateWallet.tsx:63
 msgid "Create Wallet"
 msgstr "创建钱包"
@@ -785,7 +785,7 @@ msgstr "创建钱包"
 msgid "Created"
 msgstr ""
 
-#: src/pages/MakeOffer.tsx:339
+#: src/pages/MakeOffer.tsx:340
 msgid "Creating Offer"
 msgstr "正在创建报价"
 
@@ -797,11 +797,11 @@ msgstr "货币符号"
 msgid "Current page {page} of {totalPages}"
 msgstr ""
 
-#: src/pages/Settings.tsx:247
+#: src/pages/Settings.tsx:254
 msgid "Dark Mode"
 msgstr "深色模式"
 
-#: src/components/NftCard.tsx:585
+#: src/components/NftCard.tsx:584
 msgid "Data"
 msgstr "数据"
 
@@ -821,27 +821,31 @@ msgstr ""
 msgid "Data URIs"
 msgstr "数据URI"
 
-#: src/pages/MintNft.tsx:158
+#: src/pages/MintNft.tsx:159
 msgid "Data URLs"
 msgstr "数据URL"
 
-#: src/pages/Settings.tsx:303
-#: src/pages/MakeOffer.tsx:269
+#: src/pages/Settings.tsx:318
+#: src/pages/MakeOffer.tsx:270
 msgid "Days"
 msgstr "天"
 
-#: src/pages/Settings.tsx:449
+#: src/pages/Settings.tsx:289
+msgid "Default Fee"
+msgstr ""
+
+#: src/pages/Settings.tsx:464
 msgid "Default Network"
 msgstr ""
 
-#: src/pages/Settings.tsx:285
+#: src/pages/Settings.tsx:300
 msgid "Default Offer Expiry"
 msgstr ""
 
-#: src/pages/Offers.tsx:403
-#: src/pages/Offers.tsx:533
-#: src/pages/Login.tsx:467
-#: src/pages/Login.tsx:576
+#: src/pages/Offers.tsx:366
+#: src/pages/Offers.tsx:496
+#: src/pages/Login.tsx:477
+#: src/pages/Login.tsx:586
 msgid "Delete"
 msgstr "删除"
 
@@ -849,28 +853,28 @@ msgstr "删除"
 msgid "Delete {selectedPeersCount}"
 msgstr "删除 {selectedPeersCount}"
 
-#: src/pages/Login.tsx:533
+#: src/pages/Login.tsx:543
 msgid "Delete hardened addresses"
 msgstr ""
 
-#: src/pages/Offers.tsx:510
+#: src/pages/Offers.tsx:473
 msgid "Delete offer record?"
 msgstr "删除报价记录?"
 
-#: src/pages/Login.tsx:513
+#: src/pages/Login.tsx:523
 msgid "Delete saved offer files"
 msgstr "删除已保存报价"
 
-#: src/pages/Login.tsx:523
+#: src/pages/Login.tsx:533
 msgid "Delete unhardened addresses"
 msgstr ""
 
-#: src/pages/Settings.tsx:829
+#: src/pages/Settings.tsx:844
 msgid "Derivation index"
 msgstr ""
 
-#: src/pages/Settings.tsx:785
-#: src/pages/Settings.tsx:823
+#: src/pages/Settings.tsx:800
+#: src/pages/Settings.tsx:838
 msgid "Derivation Index"
 msgstr ""
 
@@ -883,7 +887,7 @@ msgstr ""
 msgid "Description"
 msgstr "描述"
 
-#: src/components/NftCard.tsx:300
+#: src/components/NftCard.tsx:299
 msgid "Deselect NFT"
 msgstr ""
 
@@ -891,21 +895,21 @@ msgstr ""
 msgid "Detailed View"
 msgstr ""
 
-#: src/pages/Login.tsx:431
+#: src/pages/Login.tsx:441
 #: src/components/ConfirmationDialog.tsx:218
 msgid "Details"
 msgstr "详情"
 
-#: src/pages/Offers.tsx:478
+#: src/pages/Offers.tsx:441
 msgid "Dexie"
 msgstr ""
 
-#: src/pages/MakeOffer.tsx:379
+#: src/pages/MakeOffer.tsx:380
 msgid "Dexie Link"
 msgstr "Dexie链接"
 
-#: src/pages/Offers.tsx:494
-#: src/pages/Offers.tsx:608
+#: src/pages/Offers.tsx:457
+#: src/pages/Offers.tsx:571
 msgid "Dexie QR Code"
 msgstr ""
 
@@ -926,7 +930,7 @@ msgstr "已保存好助记词?"
 #~ msgid "Disconnect"
 #~ msgstr "断开连接"
 
-#: src/pages/Settings.tsx:489
+#: src/pages/Settings.tsx:504
 msgid "Discover Peers"
 msgstr ""
 
@@ -939,7 +943,7 @@ msgstr ""
 msgid "Display name"
 msgstr "显示名称"
 
-#: src/pages/Login.tsx:688
+#: src/pages/Login.tsx:698
 msgid "Done"
 msgstr "确定"
 
@@ -947,7 +951,7 @@ msgstr "确定"
 msgid "Edit"
 msgstr "编辑"
 
-#: src/components/NftCard.tsx:702
+#: src/components/NftCard.tsx:701
 msgid "Edit Nft Profile"
 msgstr ""
 
@@ -955,11 +959,11 @@ msgstr ""
 msgid "Edit NFT Profile"
 msgstr ""
 
-#: src/components/NftCard.tsx:373
+#: src/components/NftCard.tsx:372
 msgid "Edit profile"
 msgstr ""
 
-#: src/components/NftCard.tsx:381
+#: src/components/NftCard.tsx:380
 #: src/components/MultiSelectActions.tsx:229
 #: src/components/MultiSelectActions.tsx:311
 #: src/components/confirmations/NftConfirmation.tsx:57
@@ -974,36 +978,36 @@ msgstr ""
 msgid "Edit Token Details"
 msgstr "编辑代币详情"
 
-#: src/pages/Send.tsx:260
-#: src/pages/MintNft.tsx:226
+#: src/pages/Send.tsx:262
+#: src/pages/MintNft.tsx:227
 #: src/pages/Addresses.tsx:94
-#: src/components/TransferDialog.tsx:84
+#: src/components/TransferDialog.tsx:83
 msgid "Enter address"
 msgstr "输入地址"
 
-#: src/pages/MakeOffer.tsx:508
+#: src/pages/MakeOffer.tsx:509
 msgid "Enter amount"
 msgstr "输入金额"
 
-#: src/pages/MintNft.tsx:163
-#: src/pages/MintNft.tsx:184
-#: src/pages/MintNft.tsx:205
+#: src/pages/MintNft.tsx:164
+#: src/pages/MintNft.tsx:185
+#: src/pages/MintNft.tsx:206
 msgid "Enter comma separated URLs"
 msgstr "请输入以逗号分隔的网址"
 
-#: src/pages/Settings.tsx:828
+#: src/pages/Settings.tsx:843
 msgid "Enter derivation index"
 msgstr ""
 
 #: src/components/TransferDialog.tsx:101
-msgid "Enter fee amount"
-msgstr "输入手续费金额"
+#~ msgid "Enter fee amount"
+#~ msgstr "输入手续费金额"
 
-#: src/pages/Send.tsx:370
+#: src/pages/Send.tsx:364
 msgid "Enter memo"
 msgstr ""
 
-#: src/pages/Send.tsx:252
+#: src/pages/Send.tsx:254
 msgid "Enter multiple distinct addresses"
 msgstr ""
 
@@ -1011,7 +1015,7 @@ msgstr ""
 msgid "Enter multiple IP addresses (one per line or comma-separated)"
 msgstr ""
 
-#: src/components/FeeOnlyDialog.tsx:85
+#: src/components/ui/masked-input.tsx:152
 msgid "Enter network fee"
 msgstr "输入网络手续费"
 
@@ -1019,11 +1023,11 @@ msgstr "输入网络手续费"
 #~ msgid "Enter Offer String"
 #~ msgstr "输入报价文本"
 
-#: src/pages/Offers.tsx:270
+#: src/pages/Offers.tsx:236
 msgid "Enter Offer String or Dexie URL"
 msgstr ""
 
-#: src/pages/MintNft.tsx:249
+#: src/pages/MintNft.tsx:250
 msgid "Enter percent"
 msgstr "输入百分比"
 
@@ -1043,15 +1047,15 @@ msgstr "输入此代币的新显示详情"
 msgid "Enter the new display name for this profile."
 msgstr "输入此个人资料的新显示名称."
 
-#: src/pages/Login.tsx:592
+#: src/pages/Login.tsx:602
 msgid "Enter the new display name for this wallet."
 msgstr "输入此钱包的新显示名称."
 
-#: src/components/NftCard.tsx:559
+#: src/components/NftCard.tsx:558
 msgid "Enter URL"
 msgstr "输入网址"
 
-#: src/pages/ImportWallet.tsx:112
+#: src/pages/ImportWallet.tsx:119
 msgid "Enter your mnemonic, private key, or public key above. If it's a public key, it will be imported as a read-only cold wallet."
 msgstr ""
 
@@ -1068,7 +1072,7 @@ msgstr ""
 msgid "Expand sidebar - {0}"
 msgstr ""
 
-#: src/pages/MakeOffer.tsx:95
+#: src/pages/MakeOffer.tsx:99
 msgid "Expiration must be at least 1 second in the future"
 msgstr ""
 
@@ -1079,7 +1083,7 @@ msgstr ""
 msgid "Expires"
 msgstr ""
 
-#: src/pages/MakeOffer.tsx:228
+#: src/pages/MakeOffer.tsx:229
 msgid "Expiring offer"
 msgstr "包含有效期的报价"
 
@@ -1088,7 +1092,7 @@ msgstr "包含有效期的报价"
 msgid "External Links"
 msgstr "外部链接"
 
-#: src/pages/Login.tsx:323
+#: src/pages/Login.tsx:329
 msgid "Failed to copy address to clipboard"
 msgstr ""
 
@@ -1097,12 +1101,10 @@ msgstr ""
 msgid "Failed to open dexie.space"
 msgstr ""
 
-#: src/pages/Offers.tsx:461
+#: src/pages/Offers.tsx:424
 msgid "Failed to upload to Dexie"
 msgstr ""
 
-#: src/pages/Send.tsx:337
-#: src/pages/IssueToken.tsx:130
 #: src/components/ConfirmationDialog.tsx:437
 #: src/components/AdvancedTransactionSummary.tsx:86
 msgid "Fee"
@@ -1112,7 +1114,7 @@ msgstr "手续费"
 msgid "Fee exceeds recommended maximum of 0.001 {ticker}"
 msgstr "费用超过推荐的最大值 0.001 {ticker}"
 
-#: src/pages/ViewOffer.tsx:130
+#: src/pages/ViewOffer.tsx:38
 msgid "Fetching offer details..."
 msgstr "正在获取报价详情..."
 
@@ -1124,11 +1126,11 @@ msgstr "刷新地址"
 msgid "Full title: {title}"
 msgstr ""
 
-#: src/pages/Settings.tsx:102
+#: src/pages/Settings.tsx:108
 msgid "General"
 msgstr ""
 
-#: src/pages/Settings.tsx:854
+#: src/pages/Settings.tsx:869
 msgid "Generate"
 msgstr ""
 
@@ -1140,11 +1142,11 @@ msgstr ""
 #~ msgid "Generate addresses automatically"
 #~ msgstr "自动生成地址"
 
-#: src/pages/Settings.tsx:852
+#: src/pages/Settings.tsx:867
 msgid "Generating"
 msgstr ""
 
-#: src/pages/Settings.tsx:711
+#: src/pages/Settings.tsx:726
 msgid "Give your wallet a memorable name"
 msgstr ""
 
@@ -1213,7 +1215,7 @@ msgstr "高度:"
 #: src/components/TokenColumns.tsx:180
 #: src/components/TokenCard.tsx:156
 #: src/components/NftGroupCard.tsx:302
-#: src/components/NftCard.tsx:487
+#: src/components/NftCard.tsx:486
 msgid "Hide"
 msgstr "隐藏"
 
@@ -1221,7 +1223,7 @@ msgstr "隐藏"
 msgid "Hide {cardName}"
 msgstr ""
 
-#: src/components/NftCard.tsx:478
+#: src/components/NftCard.tsx:477
 msgid "Hide {nftName}"
 msgstr ""
 
@@ -1263,7 +1265,7 @@ msgstr ""
 msgid "High Transaction Fee"
 msgstr "高交易手续费"
 
-#: src/pages/Login.tsx:481
+#: src/pages/Login.tsx:491
 msgid "Hot"
 msgstr ""
 
@@ -1271,8 +1273,8 @@ msgstr ""
 #~ msgid "Hot Wallet"
 #~ msgstr "热钱包"
 
-#: src/pages/Settings.tsx:308
-#: src/pages/MakeOffer.tsx:292
+#: src/pages/Settings.tsx:323
+#: src/pages/MakeOffer.tsx:293
 msgid "Hours"
 msgstr "小时"
 
@@ -1288,29 +1290,29 @@ msgstr ""
 msgid "ID: {cardId}"
 msgstr ""
 
-#: src/pages/Login.tsx:158
-#: src/pages/ImportWallet.tsx:164
+#: src/pages/Login.tsx:164
+#: src/pages/ImportWallet.tsx:171
 msgid "Import"
 msgstr "导入"
 
-#: src/pages/Login.tsx:715
-#: src/pages/ImportWallet.tsx:77
+#: src/pages/Login.tsx:725
+#: src/pages/ImportWallet.tsx:84
 msgid "Import Wallet"
 msgstr "导入钱包"
 
-#: src/pages/ImportWallet.tsx:164
+#: src/pages/ImportWallet.tsx:171
 msgid "Importing"
 msgstr ""
 
-#: src/pages/Settings.tsx:795
+#: src/pages/Settings.tsx:810
 msgid "Increase"
 msgstr ""
 
-#: src/pages/Settings.tsx:805
+#: src/pages/Settings.tsx:820
 msgid "Increase Derivation Index"
 msgstr ""
 
-#: src/pages/Settings.tsx:808
+#: src/pages/Settings.tsx:823
 msgid "Increase the derivation index to generate new addresses. Setting this too high can cause issues, and it can't be reversed without resyncing the wallet."
 msgstr ""
 
@@ -1318,23 +1320,23 @@ msgstr ""
 msgid "Index"
 msgstr "索引"
 
-#: src/pages/ImportWallet.tsx:141
+#: src/pages/ImportWallet.tsx:148
 msgid "Initial Addresses"
 msgstr ""
 
-#: src/pages/ViewOffer.tsx:120
+#: src/pages/ViewOffer.tsx:28
 msgid "Initializing..."
 msgstr "正在初始化..."
 
-#: src/pages/Send.tsx:135
+#: src/pages/Send.tsx:137
 msgid "Invalid address"
 msgstr "无效地址"
 
-#: src/pages/Send.tsx:135
+#: src/pages/Send.tsx:137
 msgid "Invalid addresses"
 msgstr ""
 
-#: src/components/ui/masked-input.tsx:24
+#: src/components/ui/masked-input.tsx:26
 msgid "Invalid number {pastedText}"
 msgstr ""
 
@@ -1352,7 +1354,7 @@ msgstr ""
 
 #: src/pages/TokenList.tsx:164
 #: src/pages/IssueToken.tsx:63
-#: src/pages/IssueToken.tsx:149
+#: src/pages/IssueToken.tsx:144
 msgid "Issue Token"
 msgstr "发行代币"
 
@@ -1368,7 +1370,7 @@ msgstr "JSON"
 msgid "JSON copied to clipboard"
 msgstr ""
 
-#: src/components/NftCard.tsx:572
+#: src/components/NftCard.tsx:571
 #: src/components/confirmations/AddUrlConfirmation.tsx:68
 msgid "Kind"
 msgstr "类型"
@@ -1377,7 +1379,7 @@ msgstr "类型"
 msgid "Kind is required"
 msgstr "需提供类型"
 
-#: src/pages/Settings.tsx:267
+#: src/pages/Settings.tsx:272
 msgid "Language"
 msgstr "语言"
 
@@ -1407,7 +1409,7 @@ msgstr ""
 msgid "Launcher ID copied to clipboard"
 msgstr ""
 
-#: src/components/NftCard.tsx:591
+#: src/components/NftCard.tsx:590
 msgid "License"
 msgstr "许可证"
 
@@ -1419,7 +1421,7 @@ msgstr "许可证哈希"
 msgid "License URIs"
 msgstr "许可证网址"
 
-#: src/pages/MintNft.tsx:200
+#: src/pages/MintNft.tsx:201
 msgid "License URLs"
 msgstr "许可证网址"
 
@@ -1444,7 +1446,7 @@ msgstr ""
 msgid "Locked in offer"
 msgstr ""
 
-#: src/pages/Login.tsx:407
+#: src/pages/Login.tsx:417
 msgid "Login"
 msgstr "登录"
 
@@ -1464,7 +1466,7 @@ msgstr "请确保已保存助记词. 以后无法访问它, 因为它不会保�
 msgid "Maker Fee"
 msgstr ""
 
-#: src/pages/Offers.tsx:230
+#: src/pages/Offers.tsx:196
 msgid "Manage offers"
 msgstr "管理报价"
 
@@ -1473,19 +1475,19 @@ msgstr "管理报价"
 msgid "Manually added peer"
 msgstr ""
 
-#: src/components/CoinsCard.tsx:607
+#: src/components/CoinsCard.tsx:603
 msgid "Maximum Coin Amount"
 msgstr ""
 
-#: src/components/CoinsCard.tsx:592
+#: src/components/CoinsCard.tsx:588
 msgid "Maximum Number of Coins"
 msgstr ""
 
-#: src/pages/Send.tsx:363
+#: src/pages/Send.tsx:357
 msgid "Memo (optional)"
 msgstr ""
 
-#: src/components/NftCard.tsx:588
+#: src/components/NftCard.tsx:587
 msgid "Metadata"
 msgstr "元数据"
 
@@ -1506,11 +1508,11 @@ msgstr "元数据哈希"
 msgid "Metadata URIs"
 msgstr "元数据网址"
 
-#: src/pages/MintNft.tsx:179
+#: src/pages/MintNft.tsx:180
 msgid "Metadata URLs"
 msgstr "元数据网址"
 
-#: src/pages/MintNft.tsx:298
+#: src/pages/MintNft.tsx:289
 msgid "Mint"
 msgstr "铸造"
 
@@ -1519,7 +1521,7 @@ msgstr "铸造"
 #~ msgstr "铸造NFT?"
 
 #: src/pages/NftList.tsx:138
-#: src/pages/MintNft.tsx:111
+#: src/pages/MintNft.tsx:112
 msgid "Mint NFT"
 msgstr "铸造NFT"
 
@@ -1547,20 +1549,20 @@ msgstr ""
 msgid "Minters"
 msgstr ""
 
-#: src/pages/MakeOffer.tsx:404
+#: src/pages/MakeOffer.tsx:405
 msgid "MintGarden Link"
 msgstr "MintGarden链接"
 
-#: src/pages/MintNft.tsx:298
+#: src/pages/MintNft.tsx:289
 msgid "Minting"
 msgstr "正在铸造"
 
-#: src/pages/Settings.tsx:313
-#: src/pages/MakeOffer.tsx:315
+#: src/pages/Settings.tsx:328
+#: src/pages/MakeOffer.tsx:316
 msgid "Minutes"
 msgstr "分钟"
 
-#: src/pages/Login.tsx:674
+#: src/pages/Login.tsx:684
 #: src/pages/CreateWallet.tsx:200
 msgid "Mnemonic"
 msgstr "助记词"
@@ -1582,7 +1584,7 @@ msgstr "需提供名称"
 msgid "Name of this token"
 msgstr ""
 
-#: src/pages/Login.tsx:602
+#: src/pages/Login.tsx:612
 msgid "Name of your wallet"
 msgstr "钱包名称"
 
@@ -1590,30 +1592,31 @@ msgstr "钱包名称"
 msgid "Navigation menu"
 msgstr ""
 
-#: src/pages/Settings.tsx:116
-#: src/pages/Settings.tsx:447
-#: src/pages/Settings.tsx:756
-#: src/pages/Login.tsx:645
+#: src/pages/Settings.tsx:122
+#: src/pages/Settings.tsx:462
+#: src/pages/Settings.tsx:771
+#: src/pages/Login.tsx:655
 msgid "Network"
 msgstr "网络"
 
-#: src/pages/ViewOffer.tsx:187
-#: src/pages/Offers.tsx:564
-#: src/pages/MintNft.tsx:271
-#: src/pages/MakeOffer.tsx:202
+#: src/pages/ViewOffer.tsx:96
+#: src/pages/Send.tsx:339
+#: src/pages/Offers.tsx:527
+#: src/pages/MintNft.tsx:272
+#: src/pages/MakeOffer.tsx:206
+#: src/pages/IssueToken.tsx:130
 #: src/pages/CreateProfile.tsx:87
-#: src/components/TransferDialog.tsx:96
-#: src/components/NftCard.tsx:607
-#: src/components/FeeOnlyDialog.tsx:80
-#: src/components/CoinsCard.tsx:459
-#: src/components/CoinsCard.tsx:527
-#: src/components/CoinsCard.tsx:577
-#: src/components/AssignNftDialog.tsx:133
+#: src/components/TransferDialog.tsx:95
+#: src/components/NftCard.tsx:606
+#: src/components/FeeOnlyDialog.tsx:77
+#: src/components/CoinsCard.tsx:455
+#: src/components/CoinsCard.tsx:523
+#: src/components/CoinsCard.tsx:573
+#: src/components/AssignNftDialog.tsx:129
 msgid "Network Fee"
 msgstr "网络手续费"
 
-#: src/components/FeeOnlyDialog.tsx:86
-#: src/components/AssignNftDialog.tsx:138
+#: src/components/ui/masked-input.tsx:153
 msgid "Network fee amount"
 msgstr "网络手续费金额"
 
@@ -1626,7 +1629,7 @@ msgstr "网络手续费金额"
 #~ msgid "Network status"
 #~ msgstr "网络状态"
 
-#: src/pages/MakeOffer.tsx:154
+#: src/pages/MakeOffer.tsx:158
 msgid "New Offer"
 msgstr "新报价"
 
@@ -1634,13 +1637,13 @@ msgstr "新报价"
 msgid "Next page"
 msgstr "下一页"
 
-#: src/pages/MakeOffer.tsx:484
-#: src/components/OfferCard.tsx:361
+#: src/pages/MakeOffer.tsx:485
+#: src/components/OfferCard.tsx:365
 #: src/components/MultiSelectActions.tsx:273
 msgid "NFT"
 msgstr "NFT"
 
-#: src/components/NftCard.tsx:282
+#: src/components/NftCard.tsx:281
 #: src/components/confirmations/NftConfirmation.tsx:111
 #: src/components/confirmations/AddUrlConfirmation.tsx:42
 msgid "NFT artwork for {nftName}"
@@ -1654,7 +1657,7 @@ msgstr ""
 msgid "NFT Collection"
 msgstr ""
 
-#: src/components/NftCard.tsx:307
+#: src/components/NftCard.tsx:306
 msgid "NFT details"
 msgstr ""
 
@@ -1666,7 +1669,7 @@ msgstr ""
 msgid "NFT Gallery"
 msgstr ""
 
-#: src/components/NftCard.tsx:496
+#: src/components/NftCard.tsx:495
 msgid "NFT ID copied to clipboard"
 msgstr ""
 
@@ -1674,7 +1677,7 @@ msgstr ""
 #~ msgid "NFT options"
 #~ msgstr "NFT选项"
 
-#: src/components/OfferCard.tsx:375
+#: src/components/OfferCard.tsx:379
 msgid "NFT preview"
 msgstr "NFT预览"
 
@@ -1688,11 +1691,11 @@ msgstr ""
 msgid "NFTs"
 msgstr "NFT"
 
-#: src/pages/Settings.tsx:391
+#: src/pages/Settings.tsx:406
 msgid "No active sessions"
 msgstr "没有活跃的会话"
 
-#: src/pages/Login.tsx:320
+#: src/pages/Login.tsx:326
 msgid "No address found"
 msgstr ""
 
@@ -1704,8 +1707,8 @@ msgstr ""
 msgid "No coins being spent."
 msgstr ""
 
-#: src/components/NftCard.tsx:327
-#: src/components/NftCard.tsx:331
+#: src/components/NftCard.tsx:326
+#: src/components/NftCard.tsx:330
 msgid "No collection"
 msgstr "无集合"
 
@@ -1727,7 +1730,7 @@ msgstr ""
 msgid "No Icon"
 msgstr ""
 
-#: src/pages/Offers.tsx:232
+#: src/pages/Offers.tsx:198
 msgid "No offers yet"
 msgstr "还没有报价"
 
@@ -1735,13 +1738,13 @@ msgstr "还没有报价"
 msgid "No results."
 msgstr "无结果."
 
-#: src/pages/Settings.tsx:150
+#: src/pages/Settings.tsx:156
 msgid "No Wallet Connected"
 msgstr ""
 
 #: src/pages/Nft.tsx:263
 #: src/pages/Nft.tsx:274
-#: src/components/AssignNftDialog.tsx:104
+#: src/components/AssignNftDialog.tsx:100
 msgid "None"
 msgstr "无"
 
@@ -1762,13 +1765,13 @@ msgstr ""
 msgid "Normalize Profiles"
 msgstr ""
 
-#: src/pages/Offers.tsx:333
+#: src/pages/Offers.tsx:299
 #: src/components/TransferDialog.tsx:50
 #: src/components/NftCard.tsx:194
 #: src/components/FeeOnlyDialog.tsx:50
-#: src/components/CoinsCard.tsx:201
-#: src/components/CoinsCard.tsx:250
-#: src/components/CoinsCard.tsx:301
+#: src/components/CoinsCard.tsx:202
+#: src/components/CoinsCard.tsx:248
+#: src/components/CoinsCard.tsx:298
 #: src/components/AssignNftDialog.tsx:58
 msgid "Not enough funds to cover the fee"
 msgstr "余额不足以支付手续费"
@@ -1781,11 +1784,11 @@ msgstr "备注"
 #~ msgid "Number of addresses to generate at once"
 #~ msgstr ""
 
-#: src/pages/Settings.tsx:506
+#: src/pages/Settings.tsx:521
 msgid "Number of peers to maintain connections with"
 msgstr ""
 
-#: src/pages/MakeOffer.tsx:347
+#: src/pages/MakeOffer.tsx:348
 msgid "Offer Created"
 msgstr "创建的报价"
 
@@ -1798,7 +1801,7 @@ msgstr ""
 msgid "Offer ID"
 msgstr ""
 
-#: src/pages/MakeOffer.tsx:162
+#: src/pages/MakeOffer.tsx:166
 msgid "Offered"
 msgstr "提供"
 
@@ -1806,12 +1809,12 @@ msgstr "提供"
 #~ msgid "Offered..."
 #~ msgstr ""
 
-#: src/pages/Offers.tsx:206
+#: src/pages/Offers.tsx:172
 #: src/components/Nav.tsx:65
 msgid "Offers"
 msgstr "报价"
 
-#: src/pages/MakeOffer.tsx:420
+#: src/pages/MakeOffer.tsx:421
 msgid "Ok"
 msgstr "Ok"
 
@@ -1839,20 +1842,20 @@ msgstr ""
 msgid "Options for {cardName}"
 msgstr ""
 
-#: src/components/NftCard.tsx:342
+#: src/components/NftCard.tsx:341
 msgid "Options for {nftName}"
 msgstr ""
 
-#: src/components/CoinsCard.tsx:506
+#: src/components/CoinsCard.tsx:502
 #: src/components/confirmations/TokenConfirmation.tsx:184
 msgid "Output Count"
 msgstr "转出数量"
 
-#: src/pages/Settings.tsx:738
+#: src/pages/Settings.tsx:753
 msgid "Override Network"
 msgstr ""
 
-#: src/pages/Settings.tsx:739
+#: src/pages/Settings.tsx:754
 msgid "Override the default network for this wallet"
 msgstr ""
 
@@ -1894,7 +1897,7 @@ msgstr ""
 #~ msgid "Paste your offer string here..."
 #~ msgstr "在这里粘贴报价文本..."
 
-#: src/pages/Offers.tsx:275
+#: src/pages/Offers.tsx:241
 msgid "Paste your offer string or Dexie URL here..."
 msgstr ""
 
@@ -1931,11 +1934,11 @@ msgstr "处理中..."
 msgid "Permanently Burned"
 msgstr "永久销毁"
 
-#: src/pages/Login.tsx:561
+#: src/pages/Login.tsx:571
 msgid "Permanently Delete"
 msgstr "永久删除"
 
-#: src/pages/Offers.tsx:292
+#: src/pages/Offers.tsx:258
 msgid "Place the NFC tag near your device to scan it."
 msgstr ""
 
@@ -1955,7 +1958,7 @@ msgstr "端口:"
 msgid "Position the QR code within the frame"
 msgstr ""
 
-#: src/pages/Settings.tsx:245
+#: src/pages/Settings.tsx:252
 msgid "Preferences"
 msgstr ""
 
@@ -1979,12 +1982,12 @@ msgstr ""
 #~ msgid "Price (USD)"
 #~ msgstr ""
 
-#: src/pages/ViewOffer.tsx:136
+#: src/pages/ViewOffer.tsx:46
 msgid "Processing offer data..."
 msgstr "正在处理报价数据..."
 
-#: src/pages/MintNft.tsx:122
-#: src/components/AssignNftDialog.tsx:92
+#: src/pages/MintNft.tsx:123
+#: src/components/AssignNftDialog.tsx:88
 #: src/components/AdvancedTransactionSummary.tsx:213
 #: src/components/AdvancedTransactionSummary.tsx:227
 msgid "Profile"
@@ -1998,7 +2001,7 @@ msgstr ""
 msgid "Profile Creation"
 msgstr ""
 
-#: src/pages/CreateProfile.tsx:120
+#: src/pages/CreateProfile.tsx:115
 msgid "Profile Details"
 msgstr ""
 
@@ -2011,7 +2014,7 @@ msgstr ""
 msgid "Profile ID copied to clipboard"
 msgstr ""
 
-#: src/pages/MintNft.tsx:47
+#: src/pages/MintNft.tsx:48
 #: src/components/AssignNftDialog.tsx:55
 msgid "Profile is required"
 msgstr "需提供个人资料"
@@ -2029,7 +2032,7 @@ msgstr "个人资料名称"
 msgid "Profiles"
 msgstr "个人资料"
 
-#: src/pages/Login.tsx:653
+#: src/pages/Login.tsx:663
 #: src/components/AddressList.tsx:63
 msgid "Public Key"
 msgstr "公钥"
@@ -2038,7 +2041,7 @@ msgstr "公钥"
 msgid "Public key copied to clipboard"
 msgstr ""
 
-#: src/components/NftCard.tsx:461
+#: src/components/NftCard.tsx:460
 msgid "Re-downloading NFT data"
 msgstr ""
 
@@ -2081,11 +2084,11 @@ msgstr "正在接收"
 msgid "Recipient Address"
 msgstr ""
 
-#: src/components/NftCard.tsx:467
+#: src/components/NftCard.tsx:466
 msgid "Redownload"
 msgstr ""
 
-#: src/components/NftCard.tsx:463
+#: src/components/NftCard.tsx:462
 msgid "Redownload {nftName}"
 msgstr ""
 
@@ -2103,8 +2106,8 @@ msgstr "刷新信息"
 msgid "Refreshing token info..."
 msgstr ""
 
-#: src/pages/Login.tsx:443
-#: src/pages/Login.tsx:626
+#: src/pages/Login.tsx:453
+#: src/pages/Login.tsx:636
 #: src/pages/DidList.tsx:295
 #: src/pages/DidList.tsx:365
 #: src/components/TokenCard.tsx:242
@@ -2115,15 +2118,15 @@ msgstr "重命名"
 msgid "Rename Profile"
 msgstr "重命名个人资料"
 
-#: src/pages/Login.tsx:589
+#: src/pages/Login.tsx:599
 msgid "Rename Wallet"
 msgstr "重命名钱包"
 
-#: src/pages/MakeOffer.tsx:183
+#: src/pages/MakeOffer.tsx:187
 msgid "Requested"
 msgstr "请求"
 
-#: src/pages/Settings.tsx:255
+#: src/pages/Settings.tsx:261
 msgid "Require biometrics for sensitive actions"
 msgstr ""
 
@@ -2131,7 +2134,7 @@ msgstr ""
 msgid "Result"
 msgstr ""
 
-#: src/pages/Login.tsx:548
+#: src/pages/Login.tsx:558
 msgid "Resync"
 msgstr "重新同步"
 
@@ -2139,7 +2142,7 @@ msgstr "重新同步"
 #~ msgid "Resync ({network})"
 #~ msgstr "重新同步 ({network})"
 
-#: src/pages/Login.tsx:455
+#: src/pages/Login.tsx:465
 msgid "Resync ({networkId})"
 msgstr ""
 
@@ -2147,7 +2150,7 @@ msgstr ""
 #~ msgid "Resync on {network}"
 #~ msgstr "在 {network} 上重新同步"
 
-#: src/pages/Login.tsx:503
+#: src/pages/Login.tsx:513
 msgid "Resync on {networkId}"
 msgstr ""
 
@@ -2163,13 +2166,13 @@ msgstr ""
 msgid "Royalties {royaltyPercentage}%"
 msgstr "版税 {royaltyPercentage}%"
 
-#: src/components/OfferCard.tsx:277
-#: src/components/OfferCard.tsx:349
+#: src/components/OfferCard.tsx:278
+#: src/components/OfferCard.tsx:353
 msgid "royalty"
 msgstr "版税"
 
 #: src/pages/Nft.tsx:306
-#: src/pages/MintNft.tsx:221
+#: src/pages/MintNft.tsx:222
 msgid "Royalty Address"
 msgstr "版税地址"
 
@@ -2177,23 +2180,23 @@ msgstr "版税地址"
 msgid "Royalty address copied to clipboard"
 msgstr ""
 
-#: src/pages/MintNft.tsx:243
+#: src/pages/MintNft.tsx:244
 msgid "Royalty Percent"
 msgstr "税率"
 
-#: src/components/OfferCard.tsx:390
+#: src/components/OfferCard.tsx:394
 msgid "royalty to"
 msgstr "版税支付给"
 
-#: src/pages/Settings.tsx:583
+#: src/pages/Settings.tsx:598
 msgid "RPC Server"
 msgstr ""
 
-#: src/pages/Settings.tsx:607
+#: src/pages/Settings.tsx:622
 msgid "Run on startup"
 msgstr ""
 
-#: src/pages/Settings.tsx:593
+#: src/pages/Settings.tsx:608
 msgid "Running"
 msgstr ""
 
@@ -2201,7 +2204,7 @@ msgstr ""
 msgid "Save mnemonic"
 msgstr "保存助记词"
 
-#: src/pages/ViewOffer.tsx:208
+#: src/pages/ViewOffer.tsx:114
 msgid "Save Offer"
 msgstr "保存报价"
 
@@ -2209,7 +2212,7 @@ msgstr "保存报价"
 msgid "Scan QR Code"
 msgstr ""
 
-#: src/pages/Offers.tsx:609
+#: src/pages/Offers.tsx:572
 msgid "Scan this QR code to view the offer"
 msgstr ""
 
@@ -2263,7 +2266,7 @@ msgstr ""
 msgid "Secondary navigation"
 msgstr ""
 
-#: src/pages/Login.tsx:663
+#: src/pages/Login.tsx:673
 msgid "Secret Key"
 msgstr "私钥"
 
@@ -2275,17 +2278,17 @@ msgstr "选择所有硬币"
 msgid "Select coin row"
 msgstr "选择硬币行"
 
+#: src/components/NftCard.tsx:579
 #: src/components/NftCard.tsx:580
-#: src/components/NftCard.tsx:581
 msgid "Select kind"
 msgstr "选择种类"
 
-#: src/pages/Settings.tsx:475
-#: src/pages/Settings.tsx:770
+#: src/pages/Settings.tsx:490
+#: src/pages/Settings.tsx:785
 msgid "Select network"
 msgstr "选择网络"
 
-#: src/components/NftCard.tsx:300
+#: src/components/NftCard.tsx:299
 #: src/components/selectors/NftSelector.tsx:207
 msgid "Select NFT"
 msgstr ""
@@ -2294,10 +2297,10 @@ msgstr ""
 msgid "Select page number"
 msgstr ""
 
-#: src/pages/MintNft.tsx:128
-#: src/pages/MintNft.tsx:130
-#: src/components/AssignNftDialog.tsx:98
-#: src/components/AssignNftDialog.tsx:100
+#: src/pages/MintNft.tsx:129
+#: src/pages/MintNft.tsx:131
+#: src/components/AssignNftDialog.tsx:94
+#: src/components/AssignNftDialog.tsx:96
 msgid "Select profile"
 msgstr "选择个人资料"
 
@@ -2325,13 +2328,13 @@ msgstr ""
 msgid "Send"
 msgstr "发送"
 
-#: src/pages/Send.tsx:208
-#: src/pages/Send.tsx:381
-#: src/pages/Send.tsx:394
+#: src/pages/Send.tsx:210
+#: src/pages/Send.tsx:375
+#: src/pages/Send.tsx:388
 msgid "Send {ticker}"
 msgstr "发送 {ticker}"
 
-#: src/pages/Send.tsx:231
+#: src/pages/Send.tsx:233
 msgid "Send in bulk (airdrop)"
 msgstr ""
 
@@ -2354,11 +2357,11 @@ msgstr ""
 msgid "Sent"
 msgstr "已发送"
 
-#: src/pages/Settings.tsx:286
+#: src/pages/Settings.tsx:301
 msgid "Set a default expiration time for new offers"
 msgstr ""
 
-#: src/pages/Settings.tsx:80
+#: src/pages/Settings.tsx:86
 #: src/components/Nav.tsx:171
 msgid "Settings"
 msgstr "设置"
@@ -2368,7 +2371,7 @@ msgstr "设置"
 #: src/components/TokenColumns.tsx:180
 #: src/components/TokenCard.tsx:156
 #: src/components/NftGroupCard.tsx:309
-#: src/components/NftCard.tsx:487
+#: src/components/NftCard.tsx:486
 msgid "Show"
 msgstr "显示"
 
@@ -2376,7 +2379,7 @@ msgstr "显示"
 msgid "Show {cardName}"
 msgstr ""
 
-#: src/components/NftCard.tsx:478
+#: src/components/NftCard.tsx:477
 msgid "Show {nftName}"
 msgstr ""
 
@@ -2524,12 +2527,12 @@ msgstr "已经花费"
 msgid "Spent Coins"
 msgstr "已花费硬币"
 
-#: src/components/CoinsCard.tsx:393
-#: src/components/CoinsCard.tsx:545
+#: src/components/CoinsCard.tsx:389
+#: src/components/CoinsCard.tsx:541
 msgid "Split"
 msgstr "拆分"
 
-#: src/components/CoinsCard.tsx:489
+#: src/components/CoinsCard.tsx:485
 msgid "Split {ticker}"
 msgstr "拆分 {ticker}"
 
@@ -2538,11 +2541,11 @@ msgstr "拆分 {ticker}"
 msgid "Split Coins"
 msgstr ""
 
-#: src/components/CoinsCard.tsx:281
+#: src/components/CoinsCard.tsx:278
 msgid "Split Details"
 msgstr ""
 
-#: src/pages/Settings.tsx:601
+#: src/pages/Settings.tsx:616
 msgid "Start"
 msgstr ""
 
@@ -2551,15 +2554,15 @@ msgstr ""
 msgid "Status"
 msgstr ""
 
-#: src/pages/Settings.tsx:601
+#: src/pages/Settings.tsx:616
 msgid "Stop"
 msgstr ""
 
-#: src/pages/Settings.tsx:593
+#: src/pages/Settings.tsx:608
 msgid "Stopped"
 msgstr ""
 
-#: src/pages/Offers.tsx:582
+#: src/pages/Offers.tsx:545
 #: src/pages/CreateWallet.tsx:238
 #: src/components/ConfirmationDialog.tsx:652
 msgid "Submit"
@@ -2577,11 +2580,11 @@ msgstr ""
 msgid "Summary"
 msgstr "摘要"
 
-#: src/components/CoinsCard.tsx:410
+#: src/components/CoinsCard.tsx:406
 msgid "Sweep"
 msgstr ""
 
-#: src/pages/Settings.tsx:248
+#: src/pages/Settings.tsx:255
 msgid "Switch between light and dark theme"
 msgstr ""
 
@@ -2633,8 +2636,8 @@ msgstr "正在同步 {syncedCoins} / {totalCoins}"
 msgid "Syncing in progress..."
 msgstr "同步进行中..."
 
-#: src/pages/ViewOffer.tsx:212
-#: src/pages/ViewOffer.tsx:226
+#: src/pages/ViewOffer.tsx:118
+#: src/pages/ViewOffer.tsx:132
 msgid "Take Offer"
 msgstr "接受报价"
 
@@ -2653,7 +2656,7 @@ msgstr ""
 msgid "Taking this offer will send the assets you are paying to the recipient."
 msgstr ""
 
-#: src/pages/Settings.tsx:505
+#: src/pages/Settings.tsx:520
 msgid "Target Peers"
 msgstr "目标节点"
 
@@ -2681,19 +2684,23 @@ msgstr "报价中需要支出的资产."
 msgid "The assets you will receive."
 msgstr ""
 
-#: src/pages/ImportWallet.tsx:147
+#: src/pages/Settings.tsx:290
+msgid "The default fee to use for transactions"
+msgstr ""
+
+#: src/pages/ImportWallet.tsx:154
 msgid "The initial derivation index to sync to (both hardened and unhardened keys). This is primarily applicable to legacy wallets with either hardened keys or gaps in addresses used."
 msgstr ""
 
-#: src/pages/Settings.tsx:757
+#: src/pages/Settings.tsx:772
 msgid "The network which this wallet will use"
 msgstr ""
 
-#: src/pages/Settings.tsx:786
+#: src/pages/Settings.tsx:801
 msgid "The number of addresses managed by this wallet"
 msgstr ""
 
-#: src/pages/MakeOffer.tsx:350
+#: src/pages/MakeOffer.tsx:351
 msgid "The offer has been created and imported successfully. You can copy the offer file below and send it to the intended recipient or make it public to be accepted by anyone."
 msgstr "该报价已成功创建并导入. 可以复制下面的报价文件并将其发送给预定的接收者, 或者公开该报价文件以供任何人接受."
 
@@ -2705,7 +2712,7 @@ msgstr "钱包在每次交易后会生成一个新的地址, 旧地址仍然有�
 msgid "The wallet is still syncing. Balances may not be accurate until it completes."
 msgstr "钱包仍在同步中. 同步完成之前, 余额可能不准确."
 
-#: src/pages/Login.tsx:707
+#: src/pages/Login.tsx:717
 msgid "There aren't any wallets to log into yet. To get started, create a new wallet or import an existing one."
 msgstr "目前没有可登录的钱包. 要开始, 请创建一个新钱包或导入一个现有钱包."
 
@@ -2733,11 +2740,11 @@ msgstr ""
 msgid "These profiles will be transferred to the address below."
 msgstr ""
 
-#: src/components/OfferCard.tsx:312
+#: src/components/OfferCard.tsx:315
 msgid "This CAT is already in your wallet"
 msgstr ""
 
-#: src/components/OfferCard.tsx:316
+#: src/components/OfferCard.tsx:319
 msgid "This CAT is not in your wallet yet"
 msgstr ""
 
@@ -2772,11 +2779,11 @@ msgstr ""
 msgid "This profile will be transferred to the address below."
 msgstr ""
 
-#: src/components/NftCard.tsx:538
+#: src/components/NftCard.tsx:537
 msgid "This will add an additional URL to the NFT. It is not possible to remove URLs later, so be careful with this and try to use permanent URLs if possible."
 msgstr "这将为 NFT 添加一个额外的 URL. 以后无法删除 URL, 因此请小心操作, 如果可能的话, 尽量使用永久性的 URL."
 
-#: src/components/NftCard.tsx:528
+#: src/components/NftCard.tsx:527
 msgid "This will assign the NFT to the selected profile."
 msgstr "这将把 NFT 分配给选定的个人资料."
 
@@ -2796,19 +2803,19 @@ msgstr "这将批量转移 {selectedCount} 个 NFT 到另一个钱包. 确定要
 #~ msgid "This will bulk unassign the NFTs from their profiles."
 #~ msgstr "这将批量取消 NFT 与其个人资料的关联."
 
-#: src/pages/Offers.tsx:546
+#: src/pages/Offers.tsx:509
 msgid "This will cancel the offer on-chain with a transaction, preventing it from being taken even if someone has the original offer file."
 msgstr ""
 
-#: src/components/CoinsCard.tsx:443
+#: src/components/CoinsCard.tsx:439
 msgid "This will combine all of the selected coins into one."
 msgstr "这将把所有选中的币合并为一个."
 
-#: src/components/CoinsCard.tsx:560
+#: src/components/CoinsCard.tsx:556
 msgid "This will combine small enough coins automatically, so you don't have to manually select them."
 msgstr ""
 
-#: src/pages/Offers.tsx:513
+#: src/pages/Offers.tsx:476
 msgid "This will delete the offer from the wallet, but if it's shared externally it can still be accepted. The only way to truly cancel a public offer is by spending one or more of its coins."
 msgstr "这将从钱包中删除该报价, 但如果已被外部共享, 仍然可以被接受. 真正取消公共报价的唯一方式是花费其中一个或多个币."
 
@@ -2816,7 +2823,7 @@ msgstr "这将从钱包中删除该报价, 但如果已被外部共享, 仍然�
 msgid "This will modify the profile's recovery info to be compatible with the Chia reference wallet."
 msgstr ""
 
-#: src/components/NftCard.tsx:641
+#: src/components/NftCard.tsx:640
 msgid "This will permanently delete the NFT by sending it to the burn address."
 msgstr "这将通过把 NFT 发送到销毁地址来永久删除它."
 
@@ -2832,7 +2839,7 @@ msgstr ""
 msgid "This will permanently delete this NFT by sending it to the burn address."
 msgstr ""
 
-#: src/components/NftCard.tsx:518
+#: src/components/NftCard.tsx:517
 msgid "This will send the NFT to the provided address."
 msgstr "这将把NFT发送到提供的地址."
 
@@ -2840,7 +2847,7 @@ msgstr "这将把NFT发送到提供的地址."
 msgid "This will send the profile to the provided address."
 msgstr "这将把个人资料发送到提供的地址."
 
-#: src/components/CoinsCard.tsx:492
+#: src/components/CoinsCard.tsx:488
 msgid "This will split all of the selected coins."
 msgstr "这将拆分所有选定的硬币."
 
@@ -2880,11 +2887,11 @@ msgstr "切换多重选择"
 msgid "Toggle navigation menu"
 msgstr "切换导航菜单"
 
-#: src/pages/MakeOffer.tsx:496
+#: src/pages/MakeOffer.tsx:497
 msgid "Token"
 msgstr "代币"
 
-#: src/pages/IssueToken.tsx:165
+#: src/pages/IssueToken.tsx:160
 msgid "Token Details"
 msgstr ""
 
@@ -2985,17 +2992,17 @@ msgid "Transactions"
 msgstr "交易"
 
 #: src/pages/DidList.tsx:238
-#: src/components/TransferDialog.tsx:117
-#: src/components/NftCard.tsx:361
+#: src/components/TransferDialog.tsx:113
+#: src/components/NftCard.tsx:360
 #: src/components/MultiSelectActions.tsx:215
 #: src/components/FeeOnlyDialog.tsx:42
-#: src/components/FeeOnlyDialog.tsx:101
-#: src/components/AssignNftDialog.tsx:154
+#: src/components/FeeOnlyDialog.tsx:94
+#: src/components/AssignNftDialog.tsx:147
 msgid "Transfer"
 msgstr "转移"
 
-#: src/components/NftCard.tsx:357
-#: src/components/NftCard.tsx:516
+#: src/components/NftCard.tsx:356
+#: src/components/NftCard.tsx:515
 msgid "Transfer {nftName}"
 msgstr ""
 
@@ -3012,11 +3019,11 @@ msgstr ""
 msgid "Transfer DID"
 msgstr ""
 
-#: src/components/NftCard.tsx:678
+#: src/components/NftCard.tsx:677
 msgid "Transfer Nft"
 msgstr ""
 
-#: src/components/NftCard.tsx:512
+#: src/components/NftCard.tsx:511
 #: src/components/MultiSelectActions.tsx:356
 msgid "Transfer NFT"
 msgstr "转移NFT"
@@ -3054,14 +3061,14 @@ msgstr ""
 #: src/components/OfferSummaryCard.tsx:105
 #: src/components/OfferSummaryCard.tsx:112
 #: src/components/OfferSummaryCard.tsx:118
-#: src/components/OfferCard.tsx:296
+#: src/components/OfferCard.tsx:298
 #: src/components/AdvancedTransactionSummary.tsx:249
 #: src/components/AdvancedTransactionSummary.tsx:263
 msgid "Unknown"
 msgstr "未知"
 
-#: src/pages/Settings.tsx:373
-#: src/pages/Settings.tsx:377
+#: src/pages/Settings.tsx:388
+#: src/pages/Settings.tsx:392
 msgid "Unknown App"
 msgstr "未知App"
 
@@ -3096,7 +3103,7 @@ msgstr "未知NFT"
 msgid "Unknown token"
 msgstr ""
 
-#: src/components/OfferCard.tsx:366
+#: src/components/OfferCard.tsx:370
 #: src/components/AdvancedTransactionSummary.tsx:214
 #: src/components/AdvancedTransactionSummary.tsx:228
 msgid "Unnamed"
@@ -3107,7 +3114,7 @@ msgstr "未命名"
 msgid "Unnamed Collection"
 msgstr ""
 
-#: src/components/NftCard.tsx:242
+#: src/components/NftCard.tsx:241
 #: src/components/confirmations/NftConfirmation.tsx:103
 #: src/components/confirmations/AddUrlConfirmation.tsx:24
 msgid "Unnamed NFT"
@@ -3129,24 +3136,24 @@ msgstr ""
 msgid "Untitled Profile"
 msgstr "未命名个人资料"
 
-#: src/pages/Offers.tsx:480
-#: src/pages/MakeOffer.tsx:379
+#: src/pages/Offers.tsx:443
+#: src/pages/MakeOffer.tsx:380
 msgid "Upload to Dexie"
 msgstr "提交到Dexie"
 
-#: src/pages/MakeOffer.tsx:405
+#: src/pages/MakeOffer.tsx:406
 msgid "Upload to MintGarden"
 msgstr "提交到MintGarden"
 
-#: src/pages/Offers.tsx:451
+#: src/pages/Offers.tsx:414
 msgid "Uploaded to Dexie!"
 msgstr ""
 
-#: src/pages/Offers.tsx:446
+#: src/pages/Offers.tsx:409
 msgid "Uploading to Dexie..."
 msgstr ""
 
-#: src/components/NftCard.tsx:556
+#: src/components/NftCard.tsx:555
 #: src/components/confirmations/AddUrlConfirmation.tsx:62
 msgid "URL"
 msgstr "网址"
@@ -3167,8 +3174,8 @@ msgstr "需提供网址"
 msgid "Use 24 words"
 msgstr "使用24词"
 
-#: src/pages/Send.tsx:312
-#: src/pages/MakeOffer.tsx:661
+#: src/pages/Send.tsx:314
+#: src/pages/MakeOffer.tsx:662
 msgid "Use maximum balance"
 msgstr ""
 
@@ -3184,7 +3191,7 @@ msgstr ""
 msgid "Value"
 msgstr ""
 
-#: src/pages/Settings.tsx:85
+#: src/pages/Settings.tsx:91
 msgid "Version {version}"
 msgstr ""
 
@@ -3225,8 +3232,8 @@ msgstr "查看已隐藏的"
 msgid "View Metadata"
 msgstr ""
 
-#: src/pages/Offers.tsx:248
-#: src/pages/Offers.tsx:281
+#: src/pages/Offers.tsx:214
+#: src/pages/Offers.tsx:247
 msgid "View Offer"
 msgstr "查看报价"
 
@@ -3251,16 +3258,16 @@ msgstr ""
 #~ msgid "View Unknown CAT token details"
 #~ msgstr ""
 
-#: src/pages/Settings.tsx:109
-#: src/pages/Settings.tsx:708
-#: src/pages/Login.tsx:703
+#: src/pages/Settings.tsx:115
+#: src/pages/Settings.tsx:723
+#: src/pages/Login.tsx:713
 #: src/components/Nav.tsx:43
 #: src/components/Layout.tsx:45
 #: src/components/Layout.tsx:60
 msgid "Wallet"
 msgstr "钱包"
 
-#: src/pages/Login.tsx:639
+#: src/pages/Login.tsx:649
 msgid "Wallet Details"
 msgstr "钱包详情"
 
@@ -3270,26 +3277,26 @@ msgstr "钱包详情"
 msgid "Wallet icon"
 msgstr "钱包硬币"
 
-#: src/pages/ImportWallet.tsx:106
+#: src/pages/ImportWallet.tsx:113
 msgid "Wallet Key"
 msgstr "钱包密钥"
 
-#: src/pages/Settings.tsx:710
-#: src/pages/Login.tsx:598
-#: src/pages/ImportWallet.tsx:90
+#: src/pages/Settings.tsx:725
+#: src/pages/Login.tsx:608
+#: src/pages/ImportWallet.tsx:97
 #: src/pages/CreateWallet.tsx:130
 msgid "Wallet Name"
 msgstr "钱包名称"
 
-#: src/pages/Settings.tsx:363
+#: src/pages/Settings.tsx:378
 msgid "WalletConnect"
 msgstr "WalletConnect"
 
-#: src/pages/Settings.tsx:400
+#: src/pages/Settings.tsx:415
 msgid "WalletConnect URI"
 msgstr ""
 
-#: src/pages/Login.tsx:147
+#: src/pages/Login.tsx:153
 msgid "Wallets"
 msgstr "钱包"
 
@@ -3350,7 +3357,7 @@ msgstr ""
 msgid "You are splitting coins into multiple coins of equal value. This can help with parallel transactions and offer creation."
 msgstr ""
 
-#: src/pages/Offers.tsx:241
+#: src/pages/Offers.tsx:207
 msgid "You can also paste an offer using"
 msgstr "也可以粘贴报价通过"
 
