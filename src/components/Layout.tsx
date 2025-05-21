@@ -1,19 +1,21 @@
+import { KeyInfo } from '@/bindings';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { DarkModeContext } from '@/contexts/DarkModeContext';
 import { useInsets } from '@/contexts/SafeAreaContext';
 import { useWallet } from '@/contexts/WalletContext';
-import icon from '@/icon.png';
+import iconDark from '@/icon-dark.png';
+import iconLight from '@/icon-light.png';
 import { t } from '@lingui/core/macro';
 import { PanelLeft, PanelLeftClose } from 'lucide-react';
-import { PropsWithChildren } from 'react';
+import { PropsWithChildren, useContext } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useLocalStorage } from 'usehooks-ts';
 import { BottomNav, TopNav } from './Nav';
-import { KeyInfo } from '@/bindings';
 
 const SIDEBAR_COLLAPSED_STORAGE_KEY = 'sage-wallet-sidebar-collapsed';
 
@@ -24,6 +26,8 @@ type LayoutProps = PropsWithChildren<object> & {
 
 export function FullLayout(props: LayoutProps) {
   const { wallet } = props;
+  const { dark } = useContext(DarkModeContext);
+
   const insets = useInsets();
 
   const [isCollapsed, setIsCollapsed] = useLocalStorage<boolean>(
@@ -36,7 +40,11 @@ export function FullLayout(props: LayoutProps) {
       to='/wallet'
       className={`flex items-center gap-2 font-semibold ${!wallet ? 'opacity-50 pointer-events-none' : ''}`}
     >
-      <img src={icon} className='h-8 w-8' alt={t`Wallet icon`} />
+      <img
+        src={dark ? iconLight : iconDark}
+        className='h-6 w-6'
+        alt={t`Wallet icon`}
+      />
       <span
         className={`text-lg transition-opacity duration-300 ${
           isCollapsed ? 'opacity-0 hidden' : 'opacity-100'
@@ -54,7 +62,11 @@ export function FullLayout(props: LayoutProps) {
           to='/wallet'
           className={`flex items-center gap-2 font-semibold ${!wallet ? 'opacity-50 pointer-events-none' : ''}`}
         >
-          <img src={icon} className='h-8 w-8' alt={t`Wallet icon`} />
+          <img
+            src={dark ? iconLight : iconDark}
+            className='h-6 w-6'
+            alt={t`Wallet icon`}
+          />
         </Link>
       </TooltipTrigger>
       <TooltipContent side='right'>{wallet?.name ?? t`Wallet`}</TooltipContent>
