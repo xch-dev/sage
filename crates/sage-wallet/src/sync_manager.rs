@@ -407,6 +407,7 @@ impl SyncManager {
                     PuzzleQueue::new(
                         wallet.db.clone(),
                         wallet.genesis_challenge,
+                        self.options.puzzle_batch_size_per_peer,
                         self.state.clone(),
                         self.event_sender.clone(),
                         self.command_sender.clone(),

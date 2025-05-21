@@ -4,7 +4,11 @@ import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { IntegerInput, TokenAmountInput } from '@/components/ui/masked-input';
+import {
+  IntegerInput,
+  TokenAmountInput,
+  FeeAmountInput,
+} from '@/components/ui/masked-input';
 import { Switch } from '@/components/ui/switch';
 import { useDefaultOfferExpiry } from '@/hooks/useDefaultOfferExpiry';
 import { useErrors } from '@/hooks/useErrors';
@@ -246,13 +250,10 @@ export function MakeOffer() {
                 <Trans>Network Fee</Trans>
               </Label>
               <div className='relative'>
-                <TokenAmountInput
+                <FeeAmountInput
                   id='fee'
-                  type='text'
-                  placeholder={'0.00'}
                   className='pr-12'
-                  value={state.fee}
-                  onValueChange={(values) => {
+                  onValueChange={(values: { value: string }) => {
                     setState({
                       fee: values.value,
                     });

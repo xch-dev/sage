@@ -1,5 +1,6 @@
 use std::{
     cmp::Reverse,
+    collections::HashMap,
     net::{IpAddr, SocketAddr},
     str::FromStr,
     time::{Duration, SystemTime, UNIX_EPOCH},
@@ -409,9 +410,19 @@ impl SyncManager {
             let mut rng = rand::thread_rng();
 
             // Sort so user managed are deprioritized, then by height, then randomly
+            let mut peer_rng = HashMap::new();
+
+            for (peer, _) in &peers {
+                peer_rng.insert(peer.socket_addr(), rng.gen_range(0..100));
+            }
+
             peers.sort_by_key(|(peer, height)| {
                 let peer_info = state.peer(peer.socket_addr().ip()).expect("peer not found");
-                (peer_info.user_managed, *height, rng.gen_range(0..100))
+                (
+                    peer_info.user_managed,
+                    *height,
+                    peer_rng[&peer.socket_addr()],
+                )
             });
 
             let count = state.peer_count() - self.options.target_peers + 1;

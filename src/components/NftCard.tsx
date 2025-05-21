@@ -65,7 +65,7 @@ import {
   FormMessage,
 } from './ui/form';
 import { Input } from './ui/input';
-import { TokenAmountInput } from './ui/masked-input';
+import { FeeAmountInput } from './ui/masked-input';
 import {
   Select,
   SelectContent,
@@ -200,7 +200,6 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
     defaultValues: {
       url: '',
       kind: 'data',
-      fee: '0',
     },
   });
 
@@ -607,7 +606,7 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
                       <Trans>Network Fee</Trans>
                     </FormLabel>
                     <FormControl>
-                      <TokenAmountInput {...field} />
+                      <FeeAmountInput {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

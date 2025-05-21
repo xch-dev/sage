@@ -13,7 +13,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Label } from '@/components/ui/label';
-import { TokenAmountInput } from '@/components/ui/masked-input';
+import { FeeAmountInput, TokenAmountInput } from '@/components/ui/masked-input';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { useErrors } from '@/hooks/useErrors';
@@ -41,6 +41,7 @@ import {
 } from '@/components/ui/tooltip';
 import { ArrowUpToLine } from 'lucide-react';
 import { TokenConfirmation } from '@/components/confirmations/TokenConfirmation';
+import { useDefaultFee } from '@/hooks/useDefaultFee';
 
 function stringToUint8Array(str: string): Uint8Array {
   return new TextEncoder().encode(str);
@@ -52,6 +53,7 @@ export default function Send() {
   const navigate = useNavigate();
   const walletState = useWalletState();
   const { addError } = useErrors();
+  const { fee: defaultFee } = useDefaultFee();
 
   const [asset, setAsset] = useState<(CatRecord & { decimals: number }) | null>(
     null,
@@ -334,19 +336,11 @@ export default function Send() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>
-                      <Trans>Fee</Trans>
+                      <Trans>Network Fee</Trans>
                     </FormLabel>
                     <FormControl>
                       <div className='relative'>
-                        <TokenAmountInput {...field} className='pr-12' />
-                        <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
-                          <span
-                            className='text-gray-500 text-sm'
-                            id='price-currency'
-                          >
-                            {walletState.sync.unit.ticker}
-                          </span>
-                        </div>
+                        <FeeAmountInput {...field} className='pr-12' />
                       </div>
                     </FormControl>
                     <FormMessage />
