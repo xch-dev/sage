@@ -27,6 +27,7 @@ export default function Header(
     children?: ReactNode;
     paginationControls?: ReactNode;
     alwaysShowChildren?: boolean;
+    style?: React.CSSProperties;
   }>,
 ) {
   const navigate = useNavigate();
@@ -45,6 +46,7 @@ export default function Header(
         !isMobile ? 'pt-2' : 'pb-2 pt-2'
       }`}
       role='banner'
+      style={props.style}
     >
       <Sheet>
         {hasBackButton ? (

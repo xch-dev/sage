@@ -176,6 +176,15 @@ function MinimalLayout(props: LayoutProps) {
             : 'env(safe-area-inset-bottom)',
         }}
       >
+        <div
+          className='bg-background'
+          style={{
+            height:
+              insets.top !== 0
+                ? `${insets.top + 8}px`
+                : 'env(safe-area-inset-top)',
+          }}
+        />
         {props.children}
       </div>
     </div>
