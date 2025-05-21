@@ -4,11 +4,7 @@ import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import {
-  IntegerInput,
-  TokenAmountInput,
-  FeeAmountInput,
-} from '@/components/ui/masked-input';
+import { IntegerInput, FeeAmountInput } from '@/components/ui/masked-input';
 import { Switch } from '@/components/ui/switch';
 import { useDefaultOfferExpiry } from '@/hooks/useDefaultOfferExpiry';
 import { useErrors } from '@/hooks/useErrors';
@@ -20,7 +16,7 @@ import { Trans } from '@lingui/react/macro';
 import { HandCoins, Handshake, LoaderCircleIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { MakeOfferConfirmationDialog } from '@/components/confirmations/MakeOfferConfirmationDialog';
+import { MakeOfferConfirmationDialog } from '@/components/dialogs/MakeOfferConfirmationDialog';
 import { useOfferProcessor } from '@/hooks/useOfferProcessor';
 import { AssetSelector } from '@/components/selectors/AssetSelector';
 import { OfferCreationProgressDialog } from '@/components/dialogs/OfferCreationProgressDialog';
