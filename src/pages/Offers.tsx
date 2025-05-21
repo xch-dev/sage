@@ -245,7 +245,7 @@ export function Offers() {
 
           {offers.length > 0 && (
             <div className='flex flex-col gap-4'>
-              <div className='flex items-center justify-between'>
+              <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4'>
                 <div className='flex items-center gap-2'>
                   <FilterIcon className='h-4 w-4 text-muted-foreground' />
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -261,7 +261,7 @@ export function Offers() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className='flex gap-2'>
+                <div className='flex flex-wrap gap-2 justify-end'>
                   {filteredOffers.some(
                     (offer) => offer.status === 'active',
                   ) && (

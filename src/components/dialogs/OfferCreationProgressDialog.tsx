@@ -17,6 +17,8 @@ interface OfferCreationProgressDialogProps {
   onOk: () => void;
   isProcessing?: boolean;
   onCancel?: () => void;
+  isMultipleOffers?: boolean;
+  isUploading?: boolean;
 }
 
 export function OfferCreationProgressDialog({
@@ -26,6 +28,8 @@ export function OfferCreationProgressDialog({
   onOk,
   isProcessing = false,
   onCancel,
+  isMultipleOffers = false,
+  isUploading = false,
 }: OfferCreationProgressDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -34,8 +38,15 @@ export function OfferCreationProgressDialog({
           <DialogTitle>
             {isProcessing ? (
               <div className='flex items-center gap-2'>
-                <LoaderCircleIcon className='h-4 w-4 animate-spin' />
-                <Trans>Creating Offer</Trans>
+                <LoaderCircleIcon
+                  className='h-4 w-4 animate-spin'
+                  aria-hidden='true'
+                />
+                {isMultipleOffers ? (
+                  <Trans>Creating Offers</Trans>
+                ) : (
+                  <Trans>Creating Offer</Trans>
+                )}
               </div>
             ) : createdOffers.length > 1 ? (
               <Trans>Offers Created</Trans>
@@ -46,7 +57,9 @@ export function OfferCreationProgressDialog({
           <DialogDescription>
             {isProcessing ? (
               <Trans>
-                Please wait while your offer is being created and uploaded...
+                Please wait while{' '}
+                {isMultipleOffers ? 'your offers are' : 'your offer is'} being
+                created{isUploading ? ' and uploaded' : ''}...
               </Trans>
             ) : createdOffers.length > 1 ? (
               <Trans>
@@ -56,7 +69,7 @@ export function OfferCreationProgressDialog({
               </Trans>
             ) : (
               <Trans>
-                The offer has been created and imported successfully. You will
+                Your offer has been created and imported successfully. You will
                 now be redirected to the offers page where you can view its
                 details.
               </Trans>

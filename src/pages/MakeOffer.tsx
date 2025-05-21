@@ -417,6 +417,8 @@ export function MakeOffer() {
           onCancel={() => {
             cancelProcessing();
           }}
+          isMultipleOffers={splitNftOffers}
+          isUploading={autoUploadToDexie || autoUploadToMintGarden}
         />
       </Container>
     </>
