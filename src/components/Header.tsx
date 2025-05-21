@@ -1,12 +1,14 @@
+import { DarkModeContext } from '@/contexts/DarkModeContext';
 import { useInsets } from '@/contexts/SafeAreaContext';
 import { useWallet } from '@/contexts/WalletContext';
-import icon from '@/icon.png';
+import iconDark from '@/icon-dark.png';
+import iconLight from '@/icon-light.png';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { platform } from '@tauri-apps/plugin-os';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronLeft, Menu } from 'lucide-react';
-import { PropsWithChildren, ReactNode } from 'react';
+import { PropsWithChildren, ReactNode, useContext } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { BottomNav, TopNav } from './Nav';
 import { Button } from './ui/button';
@@ -32,6 +34,7 @@ export default function Header(
   const insets = useInsets();
 
   const { wallet } = useWallet();
+  const { dark } = useContext(DarkModeContext);
 
   const hasBackButton = props.back || location.pathname.split('/').length > 2;
   const isMobile = platform() === 'ios' || platform() === 'android';
@@ -91,7 +94,11 @@ export default function Header(
               className='flex items-center gap-2 font-semibold'
               aria-label={t`Go to wallet`}
             >
-              <img src={icon} className='h-8 w-8' alt={t`Wallet icon`} />
+              <img
+                src={dark ? iconLight : iconDark}
+                className='h-6 w-6'
+                alt={t`Wallet icon`}
+              />
               <span className='text-lg'>{wallet?.name}</span>
             </Link>
           </div>
