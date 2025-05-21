@@ -121,7 +121,9 @@ pub async fn insert_puzzle(
             });
 
             if coin_state.spent_height.is_some()
-                && (row.created_height.is_none() || row.created_height > coin_state.created_height)
+                && (row.created_height.is_none()
+                    || row.created_height > coin_state.created_height
+                    || row.is_owned)
             {
                 return Ok(());
             }
@@ -174,7 +176,9 @@ pub async fn insert_puzzle(
             });
 
             if coin_state.spent_height.is_some()
-                && (row.created_height.is_none() || row.created_height > coin_state.created_height)
+                && (row.created_height.is_none()
+                    || row.created_height > coin_state.created_height
+                    || row.is_owned)
             {
                 return Ok(());
             }

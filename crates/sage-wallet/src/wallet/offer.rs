@@ -828,15 +828,24 @@ mod tests {
             .await?
             .expect("NFT should be spendable");
 
-        let is_owned = bob
+        let coin_id = bob
             .wallet
             .db
             .nft_row(nft.info.launcher_id)
             .await?
             .expect("NFT should exist")
-            .is_owned;
+            .coin_id;
 
-        assert!(is_owned);
+        let is_spent = bob
+            .wallet
+            .db
+            .coin_state(coin_id)
+            .await?
+            .expect("coin should exist")
+            .spent_height
+            .is_some();
+
+        assert!(!is_spent);
 
         Ok(())
     }
