@@ -147,11 +147,9 @@ export function Offers() {
 
   const handleDeleteAll = async () => {
     try {
-      await Promise.all(
-        filteredOffers.map((offer) =>
-          commands.deleteOffer({ offer_id: offer.offer_id }),
-        ),
-      );
+      for (const offer of filteredOffers) {
+        await commands.deleteOffer({ offer_id: offer.offer_id });
+      }
       updateOffers();
     } catch (error) {
       addError({
@@ -163,16 +161,14 @@ export function Offers() {
 
   const handleCancelAll = async () => {
     try {
-      await Promise.all(
-        filteredOffers
-          .filter((offer) => offer.status === 'active')
-          .map((offer) =>
-            commands.cancelOffer({
-              offer_id: offer.offer_id,
-              fee: '0',
-            }),
-          ),
-      );
+      for (const offer of filteredOffers.filter(
+        (offer) => offer.status === 'active',
+      )) {
+        await commands.cancelOffer({
+          offer_id: offer.offer_id,
+          fee: '0',
+        });
+      }
       updateOffers();
     } catch (error) {
       addError({
