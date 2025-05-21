@@ -83,11 +83,6 @@ export default function Settings() {
         title={t`Settings`}
         back={!wallet ? () => navigate('/') : undefined}
         alwaysShowChildren
-        style={{
-          paddingTop: insets.top
-            ? `${insets.top}px`
-            : 'env(safe-area-inset-top)',
-        }}
       >
         <div className='flex items-center justify-center gap-2 text-md text-muted-foreground'>
           <Trans>Version {version}</Trans>
