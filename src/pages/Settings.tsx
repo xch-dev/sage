@@ -60,6 +60,7 @@ import { DarkModeContext } from '../contexts/DarkModeContext';
 import { isValidU32 } from '../validation';
 import { useLocalStorage } from 'usehooks-ts';
 import { useDefaultFee } from '@/hooks/useDefaultFee';
+import { useInsets } from '@/contexts/SafeAreaContext';
 
 export default function Settings() {
   const { wallet } = useWallet();
@@ -67,6 +68,7 @@ export default function Settings() {
   const isMobile = platform() === 'ios' || platform() === 'android';
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const insets = useInsets();
 
   useEffect(() => {
     getVersion().then(setVersion);
@@ -86,12 +88,24 @@ export default function Settings() {
         title={t`Settings`}
         back={!wallet ? () => navigate('/') : undefined}
         alwaysShowChildren
+        style={{
+          paddingTop: insets.top
+            ? `${insets.top}px`
+            : 'env(safe-area-inset-top)',
+        }}
       >
         <div className='flex items-center justify-center gap-2 text-md text-muted-foreground'>
           <Trans>Version {version}</Trans>
         </div>
       </Header>
-      <Container className='max-w-3xl'>
+      <Container
+        className='max-w-3xl'
+        style={{
+          paddingBottom: insets.bottom
+            ? `${insets.bottom}px`
+            : 'env(safe-area-inset-bottom)',
+        }}
+      >
         <div className='flex flex-col gap-4'>
           <Tabs
             value={currentTab}
