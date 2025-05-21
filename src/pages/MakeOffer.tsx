@@ -20,6 +20,7 @@ import { MakeOfferConfirmationDialog } from '@/components/dialogs/MakeOfferConfi
 import { useOfferProcessor } from '@/hooks/useOfferProcessor';
 import { AssetSelector } from '@/components/selectors/AssetSelector';
 import { OfferCreationProgressDialog } from '@/components/dialogs/OfferCreationProgressDialog';
+import { CustomError } from '@/contexts/ErrorContext';
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -68,12 +69,6 @@ export function MakeOffer() {
               individualOffer,
               network === 'testnet',
             );
-            if (isMounted) {
-              console.log(
-                `Successfully uploaded offer ${index + 1} to Dexie: ${link}`,
-              );
-            }
-            // Add delay between uploads, but not after the last one
             if (index < createdOffers.length - 1) {
               await delay(500);
             }
@@ -83,9 +78,6 @@ export function MakeOffer() {
                 kind: 'upload',
                 reason: `Failed to auto-upload offer ${index + 1} to Dexie: ${error}`,
               });
-              console.error(
-                `Failed to auto-upload offer ${index + 1} to Dexie: ${error}`,
-              );
             }
           }
         }
@@ -111,12 +103,6 @@ export function MakeOffer() {
               individualOffer,
               network === 'testnet',
             );
-            if (isMounted) {
-              console.log(
-                `Successfully uploaded offer ${index + 1} to MintGarden: ${link}`,
-              );
-            }
-            // Add delay between uploads, but not after the last one
             if (index < createdOffers.length - 1) {
               await delay(500);
             }
@@ -126,9 +112,6 @@ export function MakeOffer() {
                 kind: 'upload',
                 reason: `Failed to auto-upload offer ${index + 1} to MintGarden: ${error}`,
               });
-              console.error(
-                `Failed to auto-upload offer ${index + 1} to MintGarden: ${error}`,
-              );
             }
           }
         }
@@ -149,6 +132,7 @@ export function MakeOffer() {
       const hours = parseInt(state.expiration.hours) || 0;
       const minutes = parseInt(state.expiration.minutes) || 0;
       const totalSeconds = days * 24 * 60 * 60 + hours * 60 * 60 + minutes * 60;
+
       if (totalSeconds <= 0) {
         addError({
           kind: 'invalid',
@@ -157,6 +141,7 @@ export function MakeOffer() {
         return;
       }
     }
+
     const hasOfferedXch = state.offered.xch && state.offered.xch !== '0';
     const hasOfferedCats = state.offered.cats.length > 0;
     const hasOfferedNfts = state.offered.nfts.filter((n) => n).length > 0;
@@ -385,7 +370,24 @@ export function MakeOffer() {
           open={isConfirmDialogOpen}
           onOpenChange={setIsConfirmDialogOpen}
           onConfirm={async () => {
-            await processOffer();
+            try {
+              await processOffer();
+            } catch (error) {
+              if (
+                error &&
+                typeof error === 'object' &&
+                'kind' in error &&
+                'reason' in error
+              ) {
+                addError(error as CustomError);
+              } else {
+                addError({
+                  kind: 'invalid',
+                  reason:
+                    error instanceof Error ? error.message : 'Unknown error',
+                });
+              }
+            }
             setIsConfirmDialogOpen(false);
           }}
           offerState={state}

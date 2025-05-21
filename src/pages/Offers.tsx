@@ -114,6 +114,7 @@ export function Offers() {
 
   const handleViewOffer = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    console.log('handleViewOffer', offerString);
     viewOffer(offerString);
   };
 

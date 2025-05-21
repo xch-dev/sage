@@ -1,7 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { commands } from '@/bindings';
 import { OfferState, useWalletState } from '@/state';
-import { useErrors } from '@/hooks/useErrors';
 import { useBiometric } from '@/hooks/useBiometric';
 import { toMojos } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
@@ -26,7 +25,6 @@ export function useOfferProcessor({
   onProcessingEnd,
 }: UseOfferProcessorProps): UseOfferProcessorReturn {
   const walletState = useWalletState();
-  const { addError } = useErrors();
   const { promptIfEnabled } = useBiometric();
   const [createdOffers, setCreatedOffers] = useState<string[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -45,7 +43,7 @@ export function useOfferProcessor({
   const processOffer = useCallback(async () => {
     setIsProcessing(true);
     isCancelled.current = false;
-    clearProcessedOffers(); // Clear previous offers before starting
+    clearProcessedOffers();
 
     let expiresAtSecond: number | null = null;
     if (offerState.expiration !== null) {
@@ -53,22 +51,15 @@ export function useOfferProcessor({
       const hours = parseInt(offerState.expiration.hours) || 0;
       const minutes = parseInt(offerState.expiration.minutes) || 0;
       const totalSeconds = days * 24 * 60 * 60 + hours * 60 * 60 + minutes * 60;
+
       if (totalSeconds <= 0) {
-        addError({
-          kind: 'invalid',
-          reason: t`Expiration must be at least 1 second in the future`,
-        });
-        setIsProcessing(false);
-        onProcessingEnd?.();
-        return;
+        throw new Error(t`Expiration must be at least 1 second in the future`);
       }
       expiresAtSecond = Math.ceil(Date.now() / 1000) + totalSeconds;
     }
 
     if (!(await promptIfEnabled())) {
-      setIsProcessing(false);
-      onProcessingEnd?.();
-      return;
+      throw new Error(t`Biometric authentication failed or was cancelled`);
     }
 
     try {
@@ -77,8 +68,13 @@ export function useOfferProcessor({
         offerState.offered.nfts.filter((n) => n).length > 1
       ) {
         const newOffers: string[] = [];
-        for (const nft of offerState.offered.nfts.filter((n) => n)) {
-          if (isCancelled.current) break;
+        const nfts = offerState.offered.nfts.filter((n) => n);
+
+        for (const [index, nft] of nfts.entries()) {
+          if (isCancelled.current) {
+            break;
+          }
+
           const data = await commands.makeOffer({
             offered_assets: {
               xch: toMojos(
@@ -149,14 +145,9 @@ export function useOfferProcessor({
           setCreatedOffers([data.offer]);
         }
       }
-    } catch (err: any) {
+    } catch (err) {
       if (!isCancelled.current) {
-        addError({
-          kind: 'invalid',
-          reason:
-            err.message ||
-            t`An unknown error occurred while creating the offer.`,
-        });
+        throw err;
       }
     } finally {
       if (!isCancelled.current) {
@@ -168,7 +159,6 @@ export function useOfferProcessor({
     offerState,
     splitNftOffers,
     walletState.sync.unit.decimals,
-    addError,
     promptIfEnabled,
     clearProcessedOffers,
     onProcessingEnd,
