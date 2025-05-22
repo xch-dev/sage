@@ -40,6 +40,12 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useLocalStorage } from 'usehooks-ts';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 const OFFER_FILTER_STORAGE_KEY = 'sage-offer-filter';
 import { getNdefPayloads, isNdefAvailable } from 'tauri-plugin-sage';
@@ -246,7 +252,7 @@ export function Offers() {
 
           {offers.length > 0 && (
             <div className='flex flex-col gap-4'>
-              <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4'>
+              <div className='flex flex-row items-center justify-between gap-4'>
                 <div className='flex items-center gap-2'>
                   <FilterIcon className='h-4 w-4 text-muted-foreground' />
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -262,20 +268,29 @@ export function Offers() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className='flex flex-wrap gap-2 justify-end'>
+                <div className='flex items-center gap-2 min-w-fit'>
                   {filteredOffers.some(
                     (offer) => offer.status === 'active',
                   ) && (
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
-                        <Button
-                          variant='outline'
-                          size='sm'
-                          className='flex items-center gap-1'
-                        >
-                          <CircleOff className='h-4 w-4' />
-                          <Trans>Cancel All Active</Trans>
-                        </Button>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant='outline'
+                                size='sm'
+                                className='flex items-center gap-1'
+                              >
+                                <CircleOff className='h-4 w-4' />
+                                <span className='hidden sm:inline'><Trans>Cancel All Active</Trans></span>
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <Trans>Cancel All Active Offers</Trans>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader>
@@ -299,14 +314,23 @@ export function Offers() {
                   {filteredOffers.length > 0 && (
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
-                        <Button
-                          variant='destructive'
-                          size='sm'
-                          className='flex items-center gap-1'
-                        >
-                          <TrashIcon className='h-4 w-4' />
-                          <Trans>Delete All</Trans>
-                        </Button>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant='destructive'
+                                size='sm'
+                                className='flex items-center gap-1'
+                              >
+                                <TrashIcon className='h-4 w-4' />
+                                <span className='hidden sm:inline'><Trans>Delete All</Trans></span>
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <Trans>Delete All Filtered Offers</Trans>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader>
