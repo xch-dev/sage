@@ -46,6 +46,9 @@ export function OfferCreationProgressDialog({
   const [isUploadingToMintGarden, setIsUploadingToMintGarden] = useState(false);
   const [hasStartedProcessing, setHasStartedProcessing] = useState(false);
   const [isCanceling, setIsCanceling] = useState(false);
+  const [currentStep, setCurrentStep] = useState<'creating' | 'dexie' | 'mintgarden'>('creating');
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const totalOffers = splitNftOffers ? offerState.offered.nfts.filter(n => n).length : 1;
 
   const {
     createdOffers,
@@ -59,16 +62,94 @@ export function OfferCreationProgressDialog({
     onProcessingEnd: () => {
       // Don't auto-close on success
     },
+    onProgress: (index: number) => {
+      setCurrentIndex(index);
+    },
   });
 
   useEffect(() => {
     commands.getNetwork({}).then((data) => setNetwork(data.kind));
   }, []);
 
+  // Handle uploads when offers are created
+  useEffect(() => {
+    if (createdOffers.length > 0 && network) {
+      let isMounted = true;
+
+      const uploadToDexieWithDelay = async () => {
+        if (!autoUploadToDexie) return;
+        setIsUploadingToDexie(true);
+        setCurrentStep('dexie');
+        for (const [index, individualOffer] of createdOffers.entries()) {
+          if (!isMounted) break;
+          setCurrentIndex(index);
+          try {
+            await uploadToDexie(individualOffer, network === 'testnet');
+            if (index < createdOffers.length - 1) {
+              await delay(500);
+            }
+          } catch (error) {
+            if (isMounted) {
+              addError({
+                kind: 'upload',
+                reason: `Failed to auto-upload offer ${index + 1} to Dexie: ${error}`,
+              });
+            }
+          }
+        }
+        if (isMounted) {
+          setIsUploadingToDexie(false);
+        }
+      };
+
+      const uploadToMintGardenWithDelay = async () => {
+        if (!autoUploadToMintGarden) return;
+        setIsUploadingToMintGarden(true);
+        setCurrentStep('mintgarden');
+        for (const [index, individualOffer] of createdOffers.entries()) {
+          if (!isMounted) break;
+          setCurrentIndex(index);
+          try {
+            await uploadToMintGarden(individualOffer, network === 'testnet');
+            if (index < createdOffers.length - 1) {
+              await delay(500);
+            }
+          } catch (error) {
+            if (isMounted) {
+              addError({
+                kind: 'upload',
+                reason: `Failed to auto-upload offer ${index + 1} to MintGarden: ${error}`,
+              });
+            }
+          }
+        }
+        if (isMounted) {
+          setIsUploadingToMintGarden(false);
+        }
+      };
+
+      const handleUploads = async () => {
+        if (autoUploadToDexie) {
+          await uploadToDexieWithDelay();
+        }
+        if (autoUploadToMintGarden) {
+          await uploadToMintGardenWithDelay();
+        }
+      };
+
+      handleUploads();
+
+      return () => {
+        isMounted = false;
+      };
+    }
+  }, [createdOffers, network, addError, autoUploadToDexie, autoUploadToMintGarden]);
+
   // Start processing when dialog opens
   useEffect(() => {
     if (open && !hasStartedProcessing && !isCanceling) {
       setHasStartedProcessing(true);
+      setCurrentStep('creating');
       const startProcessing = async () => {
         try {
           await processOffer();
@@ -98,70 +179,10 @@ export function OfferCreationProgressDialog({
     if (!open) {
       setHasStartedProcessing(false);
       setIsCanceling(false);
+      setCurrentStep('creating');
+      setCurrentIndex(0);
     }
   }, [open]);
-
-  // Handle uploads when offers are created
-  useEffect(() => {
-    if (createdOffers.length > 0 && network) {
-      let isMounted = true;
-
-      const uploadToDexieWithDelay = async () => {
-        if (!autoUploadToDexie) return;
-        setIsUploadingToDexie(true);
-        for (const [index, individualOffer] of createdOffers.entries()) {
-          if (!isMounted) break;
-          try {
-            await uploadToDexie(individualOffer, network === 'testnet');
-            if (index < createdOffers.length - 1) {
-              await delay(500);
-            }
-          } catch (error) {
-            if (isMounted) {
-              addError({
-                kind: 'upload',
-                reason: `Failed to auto-upload offer ${index + 1} to Dexie: ${error}`,
-              });
-            }
-          }
-        }
-        if (isMounted) {
-          setIsUploadingToDexie(false);
-        }
-      };
-
-      const uploadToMintGardenWithDelay = async () => {
-        if (!autoUploadToMintGarden) return;
-        setIsUploadingToMintGarden(true);
-        for (const [index, individualOffer] of createdOffers.entries()) {
-          if (!isMounted) break;
-          try {
-            await uploadToMintGarden(individualOffer, network === 'testnet');
-            if (index < createdOffers.length - 1) {
-              await delay(500);
-            }
-          } catch (error) {
-            if (isMounted) {
-              addError({
-                kind: 'upload',
-                reason: `Failed to auto-upload offer ${index + 1} to MintGarden: ${error}`,
-              });
-            }
-          }
-        }
-        if (isMounted) {
-          setIsUploadingToMintGarden(false);
-        }
-      };
-
-      uploadToDexieWithDelay();
-      uploadToMintGardenWithDelay();
-
-      return () => {
-        isMounted = false;
-      };
-    }
-  }, [createdOffers, network, addError, autoUploadToDexie, autoUploadToMintGarden]);
 
   const handleClose = (isOpen: boolean) => {
     if (!isOpen) {
@@ -181,6 +202,32 @@ export function OfferCreationProgressDialog({
     clearProcessedOffers();
     clearOfferState();
     navigate('/offers', { replace: true });
+  };
+
+  const getProgressMessage = () => {
+    if (isProcessing) {
+      switch (currentStep) {
+        case 'creating':
+          return (
+            <Trans>
+              Creating offer {currentIndex + 1} of {totalOffers}...
+            </Trans>
+          );
+        case 'dexie':
+          return (
+            <Trans>
+              Uploading offer {currentIndex + 1} of {totalOffers} to Dexie...
+            </Trans>
+          );
+        case 'mintgarden':
+          return (
+            <Trans>
+              Uploading offer {currentIndex + 1} of {totalOffers} to MintGarden...
+            </Trans>
+          );
+      }
+    }
+    return null;
   };
 
   return (
@@ -208,11 +255,18 @@ export function OfferCreationProgressDialog({
           </DialogTitle>
           <DialogDescription>
             {isProcessing ? (
-              <Trans>
-                Please wait while{' '}
-                {splitNftOffers ? 'your offers are' : 'your offer is'} being
-                created{(autoUploadToDexie || autoUploadToMintGarden) ? ' and uploaded' : ''}...
-              </Trans>
+              <div className="space-y-2">
+                <p>
+                  <Trans>
+                    Please wait while{' '}
+                    {splitNftOffers ? 'your offers are' : 'your offer is'} being
+                    created{(autoUploadToDexie || autoUploadToMintGarden) ? ' and uploaded' : ''}...
+                  </Trans>
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {getProgressMessage()}
+                </p>
+              </div>
             ) : createdOffers.length > 1 ? (
               <Trans>
                 {createdOffers.length} offers have been created and imported

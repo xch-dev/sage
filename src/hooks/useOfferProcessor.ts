@@ -9,6 +9,7 @@ interface UseOfferProcessorProps {
   offerState: OfferState;
   splitNftOffers: boolean;
   onProcessingEnd?: () => void; // Callback for when offer processing (success or fail) is done
+  onProgress?: (index: number) => void; // Callback for progress updates
 }
 
 interface UseOfferProcessorReturn {
@@ -23,6 +24,7 @@ export function useOfferProcessor({
   offerState,
   splitNftOffers,
   onProcessingEnd,
+  onProgress,
 }: UseOfferProcessorProps): UseOfferProcessorReturn {
   const walletState = useWalletState();
   const { promptIfEnabled } = useBiometric();
@@ -75,6 +77,8 @@ export function useOfferProcessor({
             break;
           }
 
+          onProgress?.(index);
+
           const data = await commands.makeOffer({
             offered_assets: {
               xch: toMojos(
@@ -112,6 +116,7 @@ export function useOfferProcessor({
           setCreatedOffers(newOffers);
         }
       } else {
+        onProgress?.(0);
         const data = await commands.makeOffer({
           offered_assets: {
             xch: toMojos(
@@ -162,6 +167,7 @@ export function useOfferProcessor({
     promptIfEnabled,
     clearProcessedOffers,
     onProcessingEnd,
+    onProgress,
   ]);
 
   useEffect(() => {
