@@ -14,7 +14,10 @@ export interface MarketplaceConfig {
   name: string;
   logo: string;
   qrCodeLogo: string | null;
-  isSupported: (offerSummary: OfferSummary | OfferState) => boolean;
+  isSupported: (
+    offer: OfferSummary | OfferState,
+    isSplitting: boolean,
+  ) => boolean;
   isOnMarketplace: (
     offer: string,
     offerId: string,
@@ -45,7 +48,7 @@ export function MarketplaceCard({
   useEffect(() => {
     let isMounted = true;
 
-    if (network !== 'unknown' && marketplace.isSupported(offerSummary)) {
+    if (network !== 'unknown' && marketplace.isSupported(offerSummary, false)) {
       getOfferHash(offer).then((hash) => {
         if (isMounted) setOfferHash(hash);
       });
@@ -92,7 +95,7 @@ export function MarketplaceCard({
     }
   };
 
-  if (!marketplace.isSupported(offerSummary)) {
+  if (!marketplace.isSupported(offerSummary, false)) {
     return null;
   }
 

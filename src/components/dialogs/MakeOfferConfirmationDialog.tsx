@@ -414,7 +414,10 @@ export function MakeOfferConfirmationDialog({
 
           <div className='flex flex-col gap-4 pt-2'>
             {marketplaces.map((marketplace) => {
-              const isSupported = marketplace.isSupported(offerState);
+              const isSupported = marketplace.isSupported(
+                offerState,
+                isSplitting,
+              );
               if (!isSupported) return null;
 
               return (

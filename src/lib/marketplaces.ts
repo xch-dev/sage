@@ -23,12 +23,12 @@ export const marketplaces: MarketplaceConfig[] = [
     logo: 'https://raw.githubusercontent.com/dexie-space/dexie-kit/refs/heads/main/svg/duck.svg',
     qrCodeLogo:
       'https://raw.githubusercontent.com/dexie-space/dexie-kit/refs/heads/main/svg/duck.svg',
-    isSupported: (offerSummary: OfferSummary | OfferState) => {
-      if ('taker' in offerSummary) {
-        return isDexieSupportedForSummary(offerSummary);
+    isSupported: (offer: OfferSummary | OfferState, isSplitting: boolean) => {
+      if ('taker' in offer) {
+        return isDexieSupportedForSummary(offer);
       }
 
-      return isDexieSupported(offerSummary);
+      return isDexieSupported(offer, isSplitting);
     },
     isOnMarketplace: (_, offerId, isTestnet) =>
       offerIsOnDexie(offerId, isTestnet),
@@ -40,12 +40,12 @@ export const marketplaces: MarketplaceConfig[] = [
     name: 'MintGarden',
     logo: mintGardenLogo,
     qrCodeLogo: mintGardenLogo,
-    isSupported: (offerSummary: OfferSummary | OfferState) => {
-      if ('taker' in offerSummary) {
-        return isMintGardenSupportedForSummary(offerSummary);
+    isSupported: (offer: OfferSummary | OfferState, isSplitting: boolean) => {
+      if ('taker' in offer) {
+        return isMintGardenSupportedForSummary(offer);
       }
 
-      return isMintGardenSupported(offerSummary);
+      return isMintGardenSupported(offer), isSplitting;
     },
     isOnMarketplace: (offer, _, isTestnet) =>
       offerIsOnMintGarden(offer, isTestnet),
