@@ -17,3 +17,10 @@ pub(crate) async fn get_ndef_payloads<R: Runtime>(
 ) -> Result<GetNdefPayloadsResponse> {
     app.sage().get_ndef_payloads()
 }
+
+#[command]
+pub(crate) async fn scan_tangem_card<R: Runtime>(
+    app: AppHandle<R>,
+) -> Result<ScanTangemCardResponse> {
+    app.sage().scan_tangem_card()
+}

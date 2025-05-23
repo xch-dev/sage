@@ -1,0 +1,39 @@
+{
+    "array" : [
+        {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "create_wallet",
+            "params": {
+                "curve": "secp256k1"
+            }
+        },
+        {
+            "jsonrpc": "2.0",
+            "id": 2,
+            "method": "create_wallet",
+            "params": {
+                "curve": "secp256r1"
+            }
+        }
+    ],
+    "singleItem" : [
+        {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "create_wallet",
+            "params": {
+                "curve": "secp256k1"
+            }
+        }
+    ],
+    "singleRequest" :
+        {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "create_wallet",
+            "params": {
+                "curve": "secp256k1"
+            }
+        }
+}

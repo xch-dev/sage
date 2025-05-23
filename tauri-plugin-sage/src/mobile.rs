@@ -36,4 +36,10 @@ impl<R: Runtime> Sage<R> {
             .run_mobile_plugin("getNdefPayloads", GetNdefPayloadsRequest {})
             .map_err(Into::into)
     }
+
+    pub fn scan_tangem_card(&self) -> crate::Result<ScanTangemCardResponse> {
+        self.0
+            .run_mobile_plugin("scanTangemCard", ScanTangemCardRequest {})
+            .map_err(Into::into)
+    }
 }

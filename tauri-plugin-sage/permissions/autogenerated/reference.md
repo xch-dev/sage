@@ -6,6 +6,7 @@ Default permissions for the plugin
 
 - `allow-is-ndef-available`
 - `allow-get-ndef-payloads`
+- `allow-scan-tangem-card`
 
 ## Permission Table
 
@@ -64,6 +65,32 @@ Enables the is_ndef_available command without any pre-configured scope.
 <td>
 
 Denies the is_ndef_available command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`sage:allow-scan-tangem-card`
+
+</td>
+<td>
+
+Enables the scan_tangem_card command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`sage:deny-scan-tangem-card`
+
+</td>
+<td>
+
+Denies the scan_tangem_card command without any pre-configured scope.
 
 </td>
 </tr>

@@ -34,7 +34,8 @@
       "icons/icon.ico"
     ],
     "iOS": {
-      "developmentTeam": "NQJQRYZZG3"
+      "developmentTeam": "NQJQRYZZG3",
+      "minimumSystemVersion": "15.0"
     }
   },
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json"

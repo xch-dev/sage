@@ -1,4 +1,4 @@
-const COMMANDS: &[&str] = &["is_ndef_available", "get_ndef_payloads"];
+const COMMANDS: &[&str] = &["is_ndef_available", "get_ndef_payloads", "scan_tangem_card"];
 
 fn main() {
     tauri_plugin::Builder::new(COMMANDS)

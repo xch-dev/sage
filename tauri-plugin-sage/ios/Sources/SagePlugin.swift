@@ -3,21 +3,50 @@ import SwiftRs
 import Tauri
 import UIKit
 import WebKit
+import TangemSdk
 
 class SagePlugin: Plugin, NFCNDEFReaderSessionDelegate {
   var session: Session?
+  var card: Card?
+  var curve: EllipticCurve?
 
   @objc public func isNdefAvailable(_ invoke: Invoke) throws {
+    Logger.enabled = true
+    Logger.error("SAGE PLUGIN LOGS: isNdefAvailable")
+    
     invoke.resolve(["available": NFCNDEFReaderSession.readingAvailable])
   }
 
   @objc public func getNdefPayloads(_ invoke: Invoke) throws {
+    Logger.enabled = true
+    Logger.error("SAGE PLUGIN LOGS: getNdefPayloads")
+
     if !NFCNDEFReaderSession.readingAvailable {
       invoke.reject("NFC NDEF reading unavailable")
       return
     }
 
     self.startScanSession(invoke)
+  }
+
+  @objc public func scanTangemCard(_ invoke: Invoke) throws {
+    Logger.enabled = true
+    Logger.error("SAGE PLUGIN LOGS: Tangem SDK")
+
+    let tangemSdk = TangemSdk()
+
+    Logger.error("SAGE PLUGIN LOGS: Scanning Tangem Card")
+
+    tangemSdk.scanCard(initialMessage: Message(header: "Scan Card", body: "Tap Tangem Card to test support")) { result in
+      if case let .success(card) = result {
+          self.card = card
+          self.curve = card.supportedCurves[0]
+      }
+
+      Logger.error("SAGE PLUGIN LOGS: End")
+      
+      // self.handleCompletion(result)
+    }
   }
 
   private func startScanSession(_ invoke: Invoke) {

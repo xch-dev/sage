@@ -22,11 +22,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  FeeAmountInput,
-  IntegerInput,
-  TokenAmountInput,
-} from '@/components/ui/masked-input';
+import { FeeAmountInput, IntegerInput } from '@/components/ui/masked-input';
 import {
   Select,
   SelectContent,
@@ -40,6 +36,7 @@ import { CustomError } from '@/contexts/ErrorContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useWallet } from '@/contexts/WalletContext';
 import { useBiometric } from '@/hooks/useBiometric';
+import { useDefaultFee } from '@/hooks/useDefaultFee';
 import { useDefaultOfferExpiry } from '@/hooks/useDefaultOfferExpiry';
 import { useErrors } from '@/hooks/useErrors';
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
@@ -54,12 +51,11 @@ import { LoaderCircleIcon, TrashIcon, WalletIcon } from 'lucide-react';
 import { useContext, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { scanTangemCard } from 'tauri-plugin-sage';
 import { z } from 'zod';
 import { commands, Network, NetworkConfig, Wallet } from '../bindings';
 import { DarkModeContext } from '../contexts/DarkModeContext';
 import { isValidU32 } from '../validation';
-import { useLocalStorage } from 'usehooks-ts';
-import { useDefaultFee } from '@/hooks/useDefaultFee';
 
 export default function Settings() {
   const { wallet } = useWallet();
@@ -122,14 +118,14 @@ export default function Settings() {
                     <Trans>Network</Trans>
                   </TabsTrigger>
 
-                  {!isMobile && (
+                  {
                     <TabsTrigger
                       value='advanced'
                       className='flex-1 md:flex-none rounded-md px-3 py-1 text-sm font-medium'
                     >
                       <Trans>Advanced</Trans>
                     </TabsTrigger>
-                  )}
+                  }
                 </TabsList>
               </div>
             </div>
@@ -171,13 +167,13 @@ export default function Settings() {
                 <NetworkSettings />
               </TabsContent>
 
-              {!isMobile && (
+              {
                 <TabsContent value='advanced'>
                   <div className='grid gap-6'>
                     <RpcSettings />
                   </div>
                 </TabsContent>
-              )}
+              }
             </div>
           </Tabs>
         </div>
@@ -609,6 +605,20 @@ function RpcSettings() {
             </span>
           </div>
           <Button
+            variant='default'
+            size='sm'
+            onClick={() =>
+              scanTangemCard().catch((error) =>
+                addError({
+                  kind: 'internal',
+                  reason: `${error} => ${JSON.stringify(error)}`,
+                }),
+              )
+            }
+          >
+            <Trans>Scan Tangem Card</Trans>
+          </Button>
+          <Button
             variant={isRunning ? 'destructive' : 'default'}
             size='sm'
             onClick={isRunning ? stop : start}
@@ -617,7 +627,6 @@ function RpcSettings() {
           </Button>
         </div>
       </div>
-
       <SettingItem
         label={t`Run on startup`}
         description={t`Automatically start the RPC server when the app launches`}

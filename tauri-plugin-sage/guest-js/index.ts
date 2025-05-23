@@ -11,3 +11,7 @@ export async function getNdefPayloads(): Promise<number[][]> {
     'plugin:sage|get_ndef_payloads',
   ).then((r) => r.payloads);
 }
+
+export async function scanTangemCard(): Promise<void> {
+  return await invoke<void>('plugin:sage|scan_tangem_card');
+}

@@ -1,0 +1,93 @@
+{
+    "request": {
+        "jsonrpc": "2.0",
+        "method": "personalize",
+        "params": {
+            "config": {
+                "releaseVersion": true,
+                "issuerName": "TANGEM",
+                "series": "CB",
+                "startNumber": 5300000000000,
+                "count": 1000,
+                "numberFormat": "",
+                "PIN": "000000",
+                "PIN2": "000",
+                "PIN3": "",
+                "hexCrExKey": "",
+                "CVC": "000",
+                "pauseBeforePIN2": 15000,
+                "smartSecurityDelay": true,
+                "curveID": "ed25519",
+                "SigningMethod": 0,
+                "MaxSignatures": 1000000,
+                "isReusable": true,
+                "allowSwapPIN": false,
+                "allowSwapPIN2": true,
+                "useActivation": false,
+                "useCVC": false,
+                "useNDEF": true,
+                "useDynamicNDEF": true,
+                "useOneCommandAtTime": false,
+                "useBlock": false,
+                "allowSelectBlockchain": false,
+                "forbidPurgeWallet": false,
+                "protocolAllowUnencrypted": true,
+                "protocolAllowStaticEncryption": true,
+                "protectIssuerDataAgainstReplay": true,
+                "forbidDefaultPIN": false,
+                "disablePrecomputedNDEF": false,
+                "skipSecurityDelayIfValidatedByIssuer": false,
+                "skipCheckPIN2andCVCIfValidatedByIssuer": false,
+                "skipSecurityDelayIfValidatedByLinkedTerminal": true,
+                "restrictOverwriteIssuerDataEx": false,
+                "requireTerminalTxSignature": false,
+                "requireTerminalCertSignature": false,
+                "checkPIN3onCard": false,
+                "NDEF": [
+                    {
+                        "type": "AAR",
+                        "value": "com.tangem.wallet"
+                    }
+                ],
+                "cardData": {
+                    "date": "2020-08-12",
+                    "batch": "0063",
+                    "blockchain": "CARDANO-S",
+                    "product_note": true,
+                    "product_tag": false,
+                    "product_id_card": false
+                },
+                "createWallet": 0,
+                "issuerData": null
+            },
+            "manufacturer": {
+                "keyPair": {
+                    "privateKey": "0000",
+                    "publicKey": "0000"
+                },
+                "name": "Tangem"
+            },
+            "issuer": {
+                "dataKeyPair": {
+                    "privateKey": "0000",
+                    "publicKey": "0000"
+                },
+                "transactionKeyPair": {
+                    "privateKey": "0000",
+                    "publicKey": "0000"
+                },
+                "name": "TANGEM SDK",
+                "id": "TANGEM SDK"
+            },
+            "acquirer": {
+                "keyPair": {
+                    "privateKey": "0000",
+                    "publicKey": "0000"
+                },
+                "name": "Tangem SDK",
+                "id": "Tangem SDK"
+            }
+        },
+        "id": 1
+    }
+}

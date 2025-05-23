@@ -21,4 +21,8 @@ impl<R: Runtime> Sage<R> {
     pub fn get_ndef_payloads(&self) -> crate::Result<GetNdefPayloadsResponse> {
         Ok(GetNdefPayloadsResponse { payloads: vec![] })
     }
+
+    pub fn scan_tangem_card(&self) -> crate::Result<ScanTangemCardResponse> {
+        Ok(ScanTangemCardResponse {})
+    }
 }

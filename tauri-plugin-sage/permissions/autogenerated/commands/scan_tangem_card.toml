@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-scan-tangem-card"
+description = "Enables the scan_tangem_card command without any pre-configured scope."
+commands.allow = ["scan_tangem_card"]
+
+[[permission]]
+identifier = "deny-scan-tangem-card"
+description = "Denies the scan_tangem_card command without any pre-configured scope."
+commands.deny = ["scan_tangem_card"]

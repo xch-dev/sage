@@ -1,0 +1,9 @@
+module TangemSdk_secp256k1 [system] {
+  header "Crypto/secp256k1/include/secp256k1_ecdh.h"
+  header "Crypto/secp256k1/include/secp256k1_recovery.h"
+  header "Crypto/secp256k1/include/secp256k1_preallocated.h"
+  header "Crypto/secp256k1/include/secp256k1_schnorrsig.h"
+  header "Crypto/secp256k1/include/secp256k1_extrakeys.h"
+  header "Crypto/secp256k1/include/secp256k1_tangem.h" //secp256k1.h leads to conflicts with another secp256k1 copies when installing locally
+  export *
+}

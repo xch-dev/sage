@@ -1,0 +1,56 @@
+{
+    "english": [
+        [
+            "legal winner thank year wave sausage worth useful legal winner thank yellow",
+            "legal winner thank year wave sausage worth useful legal winner thank yellow",
+        ],
+        [
+            "Legal winner thank year wave sausage worth useful legal winner thank yellow",
+            "legal winner thank year wave sausage worth useful legal winner thank yellow",
+        ],
+        [
+            "Legal winner thank YEAR WaVe sausage worth useful legal winner thank yellow",
+            "legal winner thank year wave sausage worth useful legal winner thank yellow",
+        ],
+        [
+            "  Legal\t\twinner\t\tthank\t\tYEAR\t\tWaVe\n\nsausage\t\nworth useful\tlegal\twinner thank yellow",
+            "legal winner thank year wave sausage worth useful legal winner thank yellow",
+        ],
+        [
+            "1. legal 2. winner 3. thank 4. year 5. wave 6. sausage 7. worth 8. useful 9. legal 10. winner 11. thank 12. yellow",
+            "legal winner thank year wave sausage worth useful legal winner thank yellow",
+        ],
+        [
+            "1) legal 2) winner 3) thank 4) year 5) wave 6) sausage 7) worth 8) useful 9) legal 10) winner 11) thank 12) yellow",
+            "legal winner thank year wave sausage worth useful legal winner thank yellow",
+        ],
+        [
+            "legal;winner;thank;year;wave;sausage;worth;useful;legal;winner;thank;yellow",
+            "legal winner thank year wave sausage worth useful legal winner thank yellow",
+        ],
+        [
+            "legal-winner-thank-year-wave-sausage-worth-useful-legal-winner-thank-yellow",
+            "legal winner thank year wave sausage worth useful legal winner thank yellow",
+        ],
+        [
+            "legal,winner,thank,year,wave,sausage,worth,useful,legal,winner,thank,yellow",
+            "legal winner thank year wave sausage worth useful legal winner thank yellow",
+        ],
+        [
+            "legal, winner, thank, year, wave, sausage, worth, useful, legal, winner, thank, yellow",
+            "legal winner thank year wave sausage worth useful legal winner thank yellow",
+        ],
+        [
+            "legal, winner, thank, year,\nwave, sausage, worth, useful,\nlegal, winner, thank, yellow",
+            "legal winner thank year wave sausage worth useful legal winner thank yellow",
+        ],
+        [
+            " legal  winner  thank  year  wave  sausage  worth  useful  legal  winner  thank  yellow ",
+            "legal winner thank year wave sausage worth useful legal winner thank yellow",
+        ],
+        [
+            "legal\nwinner\nthank\nyear\nwave\nsausage\nworth\nuseful\nlegal\nwinner\nthank\nyellow",
+            "legal winner thank year wave sausage worth useful legal winner thank yellow",
+        ],
+    ]
+}

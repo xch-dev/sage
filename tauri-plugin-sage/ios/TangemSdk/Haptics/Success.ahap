@@ -1,0 +1,39 @@
+{
+    "Version": 1.0,
+    "Metadata":
+    {
+        "Project" : "TangemSdk",
+        "Created" : "21 May 2020",
+        "Description" : "Success feedback"
+    },
+    "Pattern":
+    [
+        {
+            "Event":
+            {
+                "Time": 0,
+                "Duration": 0.04,
+                "EventType": "HapticTransient",
+                "EventParameters":
+                [
+                    { "ParameterID": "HapticIntensity", "ParameterValue": 0.6 },
+                    { "ParameterID": "HapticSharpness", "ParameterValue": 0.4 }
+                ]
+            }
+        },
+        {
+            "Event":
+            {
+                "Time": 0.08,
+                "Duration": 0.04,
+                "EventType": "HapticTransient",
+                "EventParameters":
+                [
+                    { "ParameterID": "HapticIntensity", "ParameterValue": 0.8 },
+                    { "ParameterID": "HapticSharpness", "ParameterValue": 0.4 }
+                ]
+            }
+        },
+        
+    ]
+}

@@ -319,10 +319,22 @@
           "markdownDescription": "Denies the is_ndef_available command without any pre-configured scope."
         },
         {
-          "description": "Default permissions for the plugin\n#### This default permission set includes:\n\n- `allow-is-ndef-available`\n- `allow-get-ndef-payloads`",
+          "description": "Enables the scan_tangem_card command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-scan-tangem-card",
+          "markdownDescription": "Enables the scan_tangem_card command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the scan_tangem_card command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-scan-tangem-card",
+          "markdownDescription": "Denies the scan_tangem_card command without any pre-configured scope."
+        },
+        {
+          "description": "Default permissions for the plugin\n#### This default permission set includes:\n\n- `allow-is-ndef-available`\n- `allow-get-ndef-payloads`\n- `allow-scan-tangem-card`",
           "type": "string",
           "const": "default",
-          "markdownDescription": "Default permissions for the plugin\n#### This default permission set includes:\n\n- `allow-is-ndef-available`\n- `allow-get-ndef-payloads`"
+          "markdownDescription": "Default permissions for the plugin\n#### This default permission set includes:\n\n- `allow-is-ndef-available`\n- `allow-get-ndef-payloads`\n- `allow-scan-tangem-card`"
         }
       ]
     }

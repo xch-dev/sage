@@ -37,7 +37,8 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
     Builder::new("sage")
         .invoke_handler(tauri::generate_handler![
             commands::is_ndef_available,
-            commands::get_ndef_payloads
+            commands::get_ndef_payloads,
+            commands::scan_tangem_card
         ])
         .setup(|app, api| {
             #[cfg(mobile)]
