@@ -272,11 +272,11 @@ export function Offers() {
                   {filteredOffers.some(
                     (offer) => offer.status === 'active',
                   ) && (
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
+                    <TooltipProvider>
+                      <AlertDialog>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <AlertDialogTrigger asChild>
                               <Button
                                 variant='outline'
                                 size='sm'
@@ -287,38 +287,38 @@ export function Offers() {
                                   <Trans>Cancel All Active</Trans>
                                 </span>
                               </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <Trans>Cancel All Active Offers</Trans>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>
-                            Cancel All Active Offers
-                          </AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Are you sure you want to cancel all active offers?
-                            This action cannot be undone.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction onClick={handleCancelAll}>
-                            Continue
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                            </AlertDialogTrigger>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <Trans>Cancel All Active Offers</Trans>
+                          </TooltipContent>
+                        </Tooltip>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>
+                              Cancel All Active Offers
+                            </AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to cancel all active offers?
+                              This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleCancelAll}>
+                              Continue
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </TooltipProvider>
                   )}
                   {filteredOffers.length > 0 && (
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
+                    <TooltipProvider>
+                      <AlertDialog>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <AlertDialogTrigger asChild>
                               <Button
                                 variant='destructive'
                                 size='sm'
@@ -329,32 +329,32 @@ export function Offers() {
                                   <Trans>Delete All</Trans>
                                 </span>
                               </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <Trans>Delete All Filtered Offers</Trans>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>
-                            Delete All Filtered Offers
-                          </AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Are you sure you want to delete all{' '}
-                            {filteredOffers.length} filtered offers? This action
-                            cannot be undone.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction onClick={handleDeleteAll}>
-                            Continue
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                            </AlertDialogTrigger>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <Trans>Delete All Filtered Offers</Trans>
+                          </TooltipContent>
+                        </Tooltip>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>
+                              Delete All Filtered Offers
+                            </AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to delete all{' '}
+                              {filteredOffers.length} filtered offers? This
+                              action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleDeleteAll}>
+                              Continue
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </TooltipProvider>
                   )}
                 </div>
               </div>

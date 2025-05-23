@@ -7,12 +7,14 @@ import StyledQRCode from '@/components/StyledQrCode';
 import { useEffect, useState } from 'react';
 import { getOfferHash } from '@/lib/offerUpload';
 import { OfferSummary } from '@/bindings';
+import { OfferState } from '@/state';
+
 export interface MarketplaceConfig {
   id: string;
   name: string;
   logo: string;
   qrCodeLogo: string | null;
-  isSupported: (offerSummary: OfferSummary) => boolean;
+  isSupported: (offerSummary: OfferSummary | OfferState) => boolean;
   isOnMarketplace: (
     offer: string,
     offerId: string,

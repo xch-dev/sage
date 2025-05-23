@@ -17,6 +17,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { MakeOfferConfirmationDialog } from '@/components/dialogs/MakeOfferConfirmationDialog';
 import { AssetSelector } from '@/components/selectors/AssetSelector';
 import { OfferCreationProgressDialog } from '@/components/dialogs/OfferCreationProgressDialog';
+import { marketplaces } from '@/lib/marketplaces';
 
 export function MakeOffer() {
   const [state, setState] = useOfferStateWithDefault();
@@ -30,8 +31,9 @@ export function MakeOffer() {
   );
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [isProgressDialogOpen, setIsProgressDialogOpen] = useState(false);
-  const [autoUploadToDexie, setAutoUploadToDexie] = useState(false);
-  const [autoUploadToMintGarden, setAutoUploadToMintGarden] = useState(false);
+  const [enabledMarketplaces, setEnabledMarketplaces] = useState<{
+    [key: string]: boolean;
+  }>({});
 
   const makeAction = () => {
     if (state.expiration !== null) {
@@ -289,10 +291,8 @@ export function MakeOffer() {
           fee={state.fee || '0'}
           walletUnit={walletState.sync.unit.ticker}
           walletDecimals={walletState.sync.unit.decimals}
-          autoUploadToDexie={autoUploadToDexie}
-          setAutoUploadToDexie={setAutoUploadToDexie}
-          autoUploadToMintGarden={autoUploadToMintGarden}
-          setAutoUploadToMintGarden={setAutoUploadToMintGarden}
+          enabledMarketplaces={enabledMarketplaces}
+          setEnabledMarketplaces={setEnabledMarketplaces}
         />
 
         <OfferCreationProgressDialog
@@ -300,8 +300,7 @@ export function MakeOffer() {
           onOpenChange={handleProgressDialogClose}
           offerState={state}
           splitNftOffers={splitNftOffers}
-          autoUploadToDexie={autoUploadToDexie}
-          autoUploadToMintGarden={autoUploadToMintGarden}
+          enabledMarketplaces={enabledMarketplaces}
           clearOfferState={() => setState(null)}
         />
       </Container>

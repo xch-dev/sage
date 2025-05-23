@@ -18,7 +18,7 @@ import { Label } from '@/components/ui/label';
 import { useEffect, useState } from 'react';
 import { nftUri } from '@/lib/nftUri';
 import { AlertTriangle } from 'lucide-react';
-import { isDexieSupported, isMintGardenSupported } from '@/lib/offerUpload';
+import { marketplaces } from '@/lib/marketplaces';
 
 interface MakeOfferConfirmationDialogProps {
   open: boolean;
@@ -29,10 +29,8 @@ interface MakeOfferConfirmationDialogProps {
   fee: string;
   walletUnit: string;
   walletDecimals: number;
-  autoUploadToDexie: boolean;
-  setAutoUploadToDexie: (value: boolean) => void;
-  autoUploadToMintGarden: boolean;
-  setAutoUploadToMintGarden: (value: boolean) => void;
+  enabledMarketplaces: { [key: string]: boolean };
+  setEnabledMarketplaces: (marketplaces: { [key: string]: boolean }) => void;
 }
 
 interface DisplayableNft {
@@ -249,10 +247,8 @@ export function MakeOfferConfirmationDialog({
   fee,
   walletUnit,
   walletDecimals,
-  autoUploadToDexie,
-  setAutoUploadToDexie,
-  autoUploadToMintGarden,
-  setAutoUploadToMintGarden,
+  enabledMarketplaces,
+  setEnabledMarketplaces,
 }: MakeOfferConfirmationDialogProps) {
   const handleConfirm = () => {
     onConfirm();
@@ -271,8 +267,6 @@ export function MakeOfferConfirmationDialog({
     ? new BigNumber(feePerOffer).multipliedBy(numOfferedNfts).toString()
     : feePerOffer;
   const hasFee = new BigNumber(feePerOffer).gt(0);
-  const canUploadToMintGarden = isMintGardenSupported(offerState, isSplitting);
-  const canUploadToDexie = isDexieSupported(offerState, isSplitting);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -419,54 +413,44 @@ export function MakeOfferConfirmationDialog({
           )}
 
           <div className='flex flex-col gap-4 pt-2'>
-            {canUploadToDexie && (
-              <div className='flex items-center space-x-2'>
-                <Switch
-                  id='auto-upload-dexie'
-                  checked={autoUploadToDexie}
-                  onCheckedChange={setAutoUploadToDexie}
-                />
-                <Label htmlFor='auto-upload-dexie' className='flex flex-col'>
-                  <span>
-                    <Trans>Upload to Dexie.space</Trans>
-                  </span>
-                  {autoUploadToDexie && (
-                    <span className='text-xs text-muted-foreground'>
-                      <Trans>
-                        This will make your offer(s) immediately public and
-                        takeable on Dexie.space.
-                      </Trans>
-                    </span>
-                  )}
-                </Label>
-              </div>
-            )}
+            {marketplaces.map((marketplace) => {
+              const isSupported = marketplace.isSupported(offerState);
+              if (!isSupported) return null;
 
-            {canUploadToMintGarden && (
-              <div className='flex items-center space-x-2'>
-                <Switch
-                  id='auto-upload-mintgarden'
-                  checked={autoUploadToMintGarden}
-                  onCheckedChange={setAutoUploadToMintGarden}
-                />
-                <Label
-                  htmlFor='auto-upload-mintgarden'
-                  className='flex flex-col'
+              return (
+                <div
+                  key={marketplace.id}
+                  className='flex items-center space-x-2'
                 >
-                  <span>
-                    <Trans>Upload to MintGarden</Trans>
-                  </span>
-                  {autoUploadToMintGarden && (
-                    <span className='text-xs text-muted-foreground'>
-                      <Trans>
-                        This will make your offer(s) immediately public and
-                        takeable on MintGarden.
-                      </Trans>
+                  <Switch
+                    id={`auto-upload-${marketplace.id}`}
+                    checked={enabledMarketplaces[marketplace.id] || false}
+                    onCheckedChange={(checked) =>
+                      setEnabledMarketplaces({
+                        ...enabledMarketplaces,
+                        [marketplace.id]: checked,
+                      })
+                    }
+                  />
+                  <Label
+                    htmlFor={`auto-upload-${marketplace.id}`}
+                    className='flex flex-col'
+                  >
+                    <span>
+                      <Trans>Upload to {marketplace.name}</Trans>
                     </span>
-                  )}
-                </Label>
-              </div>
-            )}
+                    {enabledMarketplaces[marketplace.id] && (
+                      <span className='text-xs text-muted-foreground'>
+                        <Trans>
+                          This will make your offer(s) immediately public and
+                          takeable on {marketplace.name}.
+                        </Trans>
+                      </span>
+                    )}
+                  </Label>
+                </div>
+              );
+            })}
           </div>
         </div>
 
