@@ -46,9 +46,13 @@ export function OfferCreationProgressDialog({
   const [isUploadingToMintGarden, setIsUploadingToMintGarden] = useState(false);
   const [hasStartedProcessing, setHasStartedProcessing] = useState(false);
   const [isCanceling, setIsCanceling] = useState(false);
-  const [currentStep, setCurrentStep] = useState<'creating' | 'dexie' | 'mintgarden'>('creating');
+  const [currentStep, setCurrentStep] = useState<
+    'creating' | 'dexie' | 'mintgarden'
+  >('creating');
   const [currentIndex, setCurrentIndex] = useState(0);
-  const totalOffers = splitNftOffers ? offerState.offered.nfts.filter(n => n).length : 1;
+  const totalOffers = splitNftOffers
+    ? offerState.offered.nfts.filter((n) => n).length
+    : 1;
 
   const {
     createdOffers,
@@ -143,7 +147,13 @@ export function OfferCreationProgressDialog({
         isMounted = false;
       };
     }
-  }, [createdOffers, network, addError, autoUploadToDexie, autoUploadToMintGarden]);
+  }, [
+    createdOffers,
+    network,
+    addError,
+    autoUploadToDexie,
+    autoUploadToMintGarden,
+  ]);
 
   // Start processing when dialog opens
   useEffect(() => {
@@ -172,7 +182,14 @@ export function OfferCreationProgressDialog({
       };
       startProcessing();
     }
-  }, [open, hasStartedProcessing, isCanceling, processOffer, addError, onOpenChange]);
+  }, [
+    open,
+    hasStartedProcessing,
+    isCanceling,
+    processOffer,
+    addError,
+    onOpenChange,
+  ]);
 
   // Reset processing state when dialog closes
   useEffect(() => {
@@ -222,7 +239,8 @@ export function OfferCreationProgressDialog({
         case 'mintgarden':
           return (
             <Trans>
-              Uploading offer {currentIndex + 1} of {totalOffers} to MintGarden...
+              Uploading offer {currentIndex + 1} of {totalOffers} to
+              MintGarden...
             </Trans>
           );
       }
@@ -255,15 +273,19 @@ export function OfferCreationProgressDialog({
           </DialogTitle>
           <DialogDescription>
             {isProcessing ? (
-              <div className="space-y-2">
+              <div className='space-y-2'>
                 <p>
                   <Trans>
                     Please wait while{' '}
                     {splitNftOffers ? 'your offers are' : 'your offer is'} being
-                    created{(autoUploadToDexie || autoUploadToMintGarden) ? ' and uploaded' : ''}...
+                    created
+                    {autoUploadToDexie || autoUploadToMintGarden
+                      ? ' and uploaded'
+                      : ''}
+                    ...
                   </Trans>
                 </p>
-                <p className="text-sm text-muted-foreground">
+                <p className='text-sm text-muted-foreground'>
                   {getProgressMessage()}
                 </p>
               </div>

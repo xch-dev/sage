@@ -1,6 +1,5 @@
 import { OfferSummary } from '@/bindings';
 import { OfferState } from '@/state';
-import BigNumber from 'bignumber.js';
 import bs58 from 'bs58';
 
 export async function getOfferHash(offer: string): Promise<string> {
@@ -15,11 +14,30 @@ export async function getOfferHash(offer: string): Promise<string> {
   return bs58.encode(hashBytes);
 }
 
+export function isOneSideOffer(summary: OfferSummary | OfferState) {
+  // Check if it's an OfferSummary
+  if ('taker' in summary) {
+    return (
+      (!summary.taker?.xch?.amount || summary.taker.xch.amount === 0) &&
+      Object.keys(summary.taker.cats).length === 0 &&
+      Object.keys(summary.taker.nfts).length === 0
+    );
+  }
+
+  // Handle OfferState
+  return (
+    (!summary.requested.xch || summary.requested.xch === '0') &&
+    summary.requested.cats.filter((c) => c).length === 0 &&
+    summary.requested.nfts.filter((n) => n).length === 0
+  );
+}
+
 export function isMintGardenSupportedForSummary(summary: OfferSummary) {
   return (
     summary.maker?.xch?.amount === 0 &&
     Object.keys(summary.maker.cats).length === 0 &&
-    Object.keys(summary.maker.nfts).length === 1
+    Object.keys(summary.maker.nfts).length === 1 &&
+    !isOneSideOffer(summary)
   );
 }
 
@@ -28,30 +46,24 @@ export function isMintGardenSupported(state: OfferState, isSplitting = false) {
     return (
       (state.offered.xch === '0' || !state.offered.xch) &&
       state.offered.cats.filter((c) => c).length === 0 &&
-      state.offered.nfts.filter((n) => n).length > 0
+      state.offered.nfts.filter((n) => n).length > 0 &&
+      !isOneSideOffer(state)
     );
   }
   return (
     (state.offered.xch === '0' || !state.offered.xch) &&
     state.offered.cats.filter((c) => c).length === 0 &&
-    state.offered.nfts.filter((n) => n).length === 1
+    state.offered.nfts.filter((n) => n).length === 1 &&
+    !isOneSideOffer(state)
   );
 }
 
 export function isDexieSupported(state: OfferState, _ = false) {
-  return (
-    BigNumber(state.requested.xch || 0).gt(0) ||
-    Object.keys(state.requested.cats).length > 0 ||
-    Object.keys(state.requested.nfts).length > 0
-  );
+  return !isOneSideOffer(state);
 }
 
 export function isDexieSupportedForSummary(summary: OfferSummary) {
-  return (
-    BigNumber(summary.taker?.xch?.amount || 0).gt(0) ||
-    Object.keys(summary.taker.cats).length > 0 ||
-    Object.keys(summary.taker.nfts).length > 0
-  );
+  return !isOneSideOffer(summary);
 }
 
 export async function uploadToDexie(
@@ -98,6 +110,7 @@ export async function uploadToMintGarden(
     console.error(data);
     throw new Error(`Failed to upload offer to MintGarden: ${data?.detail}`);
   }
+
   return mintGardenLink(data.offer.id, testnet);
 }
 

@@ -283,7 +283,9 @@ export function Offers() {
                                 className='flex items-center gap-1'
                               >
                                 <CircleOff className='h-4 w-4' />
-                                <span className='hidden sm:inline'><Trans>Cancel All Active</Trans></span>
+                                <span className='hidden sm:inline'>
+                                  <Trans>Cancel All Active</Trans>
+                                </span>
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
@@ -323,7 +325,9 @@ export function Offers() {
                                 className='flex items-center gap-1'
                               >
                                 <TrashIcon className='h-4 w-4' />
-                                <span className='hidden sm:inline'><Trans>Delete All</Trans></span>
+                                <span className='hidden sm:inline'>
+                                  <Trans>Delete All</Trans>
+                                </span>
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
