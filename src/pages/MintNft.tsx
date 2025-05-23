@@ -35,6 +35,8 @@ import { commands, TransactionResponse } from '../bindings';
 import Container from '../components/Container';
 import { useWalletState } from '../state';
 import { FeeAmountInput } from '@/components/ui/masked-input';
+import { Switch } from '@/components/ui/switch';
+import { IntegerInput } from '@/components/ui/masked-input';
 
 export default function MintNft() {
   const navigate = useNavigate();
@@ -52,11 +54,19 @@ export default function MintNft() {
     dataUris: z.string(),
     metadataUris: z.string(),
     licenseUris: z.string().optional(),
+    isEdition: z.boolean().default(false),
+    editionCount: z.number().min(1).default(10),
   });
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
+    defaultValues: {
+      isEdition: false,
+      editionCount: 10,
+    },
   });
+
+  const isEdition = form.watch('isEdition');
 
   const { handleScanOrPaste } = useScannerOrClipboard((scanResValue) => {
     form.setValue('royaltyAddress', scanResValue);
@@ -83,14 +93,17 @@ export default function MintNft() {
         .filter(Boolean),
     };
 
-    commands
-      .bulkMintNfts({
-        fee: toMojos(
-          values.fee?.toString() || '0',
-          walletState.sync.unit.decimals,
-        ),
-        did_id: values.profile,
-        mints: [
+    const mints = values.isEdition
+      ? Array.from({ length: values.editionCount }, (_, i) => ({
+          edition_number: i + 1,
+          edition_total: values.editionCount,
+          royalty_address: values.royaltyAddress || null,
+          royalty_ten_thousandths: Number(values.royaltyPercent) * 100,
+          data_uris: mintDetails.data_uris,
+          metadata_uris: mintDetails.metadata_uris,
+          license_uris: mintDetails.license_uris,
+        }))
+      : [
           {
             edition_number: null,
             edition_total: null,
@@ -100,7 +113,16 @@ export default function MintNft() {
             metadata_uris: mintDetails.metadata_uris,
             license_uris: mintDetails.license_uris,
           },
-        ],
+        ];
+
+    commands
+      .bulkMintNfts({
+        fee: toMojos(
+          values.fee?.toString() || '0',
+          walletState.sync.unit.decimals,
+        ),
+        did_id: values.profile,
+        mints,
       })
       .then(setResponse)
       .catch(addError)
@@ -282,6 +304,57 @@ export default function MintNft() {
               />
             </div>
 
+            <div className='grid sm:grid-cols-2 gap-4'>
+              <FormField
+                control={form.control}
+                name='isEdition'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      <Trans>Edition</Trans>
+                    </FormLabel>
+                    <div className='flex items-center space-x-4 rounded-lg border px-4 h-[42px]'>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      {field.value && (
+                        <FormField
+                          control={form.control}
+                          name='editionCount'
+                          render={({ field: editionField }) => (
+                            <FormItem className='flex-1 space-y-0'>
+                              <div className='flex items-center space-x-2'>
+                                <span className='text-sm text-muted-foreground whitespace-nowrap'>
+                                  Count:
+                                </span>
+                                <FormControl>
+                                  <IntegerInput
+                                    min={1}
+                                    className='w-[100px]'
+                                    {...editionField}
+                                    onChange={(e) =>
+                                      editionField.onChange(
+                                        parseInt(e.target.value, 10),
+                                      )
+                                    }
+                                  />
+                                </FormControl>
+                              </div>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      )}
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
             <Button type='submit' disabled={pending}>
               {pending && (
                 <LoaderCircleIcon className='mr-2 h-4 w-4 animate-spin' />
@@ -310,6 +383,12 @@ export default function MintNft() {
                       <div>
                         <strong>Royalty Address:</strong>{' '}
                         {form.getValues('royaltyAddress')}
+                      </div>
+                    )}
+                    {form.getValues('isEdition') && (
+                      <div>
+                        <strong>Edition Count:</strong>{' '}
+                        {form.getValues('editionCount')}
                       </div>
                     )}
                     <div>
