@@ -1,0 +1,151 @@
+import { ExternalLink } from 'lucide-react';
+import { Trans } from '@lingui/react/macro';
+import { t } from '@lingui/core/macro';
+import { toast } from 'react-toastify';
+import { openUrl } from '@tauri-apps/plugin-opener';
+import StyledQRCode from '@/components/StyledQrCode';
+import { useEffect, useState } from 'react';
+import { getOfferHash } from '@/lib/offerUpload';
+import { OfferSummary } from '@/bindings';
+import { OfferState } from '@/state';
+
+export interface MarketplaceConfig {
+  id: string;
+  name: string;
+  logo: string;
+  qrCodeLogo: string | null;
+  isSupported: (
+    offer: OfferSummary | OfferState,
+    isSplitting: boolean,
+  ) => boolean;
+  isOnMarketplace: (
+    offer: string,
+    offerId: string,
+    isTestnet: boolean,
+  ) => Promise<boolean>;
+  uploadToMarketplace: (offer: string, isTestnet: boolean) => Promise<string>;
+  getMarketplaceLink: (offerHash: string, isTestnet: boolean) => string;
+}
+
+interface MarketplaceCardProps {
+  offer: string;
+  offerId: string;
+  offerSummary?: any;
+  network: 'mainnet' | 'testnet' | 'unknown';
+  marketplace: MarketplaceConfig;
+}
+
+export function MarketplaceCard({
+  offer,
+  offerId,
+  offerSummary,
+  network,
+  marketplace,
+}: MarketplaceCardProps) {
+  const [isOnMarketplace, setIsOnMarketplace] = useState<boolean | null>(null);
+  const [offerHash, setOfferHash] = useState<string>('');
+
+  useEffect(() => {
+    let isMounted = true;
+
+    if (network !== 'unknown' && marketplace.isSupported(offerSummary, false)) {
+      getOfferHash(offer).then((hash) => {
+        if (isMounted) setOfferHash(hash);
+      });
+
+      marketplace
+        .isOnMarketplace(offer, offerId, network === 'testnet')
+        .then((isOn) => {
+          if (isMounted) setIsOnMarketplace(isOn);
+        });
+    }
+
+    return () => {
+      isMounted = false;
+    };
+  }, [network, offerId, offer, marketplace, offerSummary]);
+
+  const handleMarketplaceAction = async () => {
+    if (!offer) return;
+
+    if (isOnMarketplace) {
+      openUrl(marketplace.getMarketplaceLink(offerHash, network === 'testnet'));
+    } else {
+      const toastId = toast.loading(t`Uploading to ${marketplace.name}...`);
+      try {
+        const url = await marketplace.uploadToMarketplace(
+          offer,
+          network === 'testnet',
+        );
+        toast.update(toastId, {
+          render: t`Uploaded to ${marketplace.name}!`,
+          type: 'success',
+          isLoading: false,
+          autoClose: 3000,
+        });
+        setIsOnMarketplace(true);
+      } catch (error: unknown) {
+        toast.update(toastId, {
+          render: `${error instanceof Error ? error.message : String(error)}`,
+          type: 'error',
+          isLoading: false,
+          autoClose: 3000,
+        });
+      }
+    }
+  };
+
+  if (!marketplace.isSupported(offerSummary, false)) {
+    return null;
+  }
+
+  return (
+    <div className='flex flex-col items-center gap-4 w-auto'>
+      <button
+        onClick={handleMarketplaceAction}
+        className='flex items-center gap-2 px-3 py-1.5 rounded-md border hover:bg-accent w-fit'
+        title={marketplace.getMarketplaceLink(offerHash, network === 'testnet')}
+      >
+        <img
+          src={marketplace.logo}
+          className='h-4 w-4'
+          alt={`${marketplace.name} logo`}
+        />
+        <span className='text-sm'>
+          {isOnMarketplace ? (
+            <Trans>View on {marketplace.name}</Trans>
+          ) : (
+            <Trans>Upload to {marketplace.name}</Trans>
+          )}
+        </span>
+        {isOnMarketplace && <ExternalLink className='h-4 w-4' />}
+      </button>
+
+      {isOnMarketplace && (
+        <StyledQRCode
+          data={marketplace.getMarketplaceLink(
+            offerHash,
+            network === 'testnet',
+          )}
+          width={200}
+          height={200}
+          cornersSquareOptions={{
+            type: 'extra-rounded',
+          }}
+          dotsOptions={{
+            type: 'rounded',
+            color: '#000000',
+          }}
+          backgroundOptions={{}}
+          imageOptions={{
+            hideBackgroundDots: true,
+            imageSize: 0.4,
+            margin: 5,
+            saveAsBlob: true,
+          }}
+          {...(marketplace.qrCodeLogo && { image: marketplace.qrCodeLogo })}
+        />
+      )}
+    </div>
+  );
+}
