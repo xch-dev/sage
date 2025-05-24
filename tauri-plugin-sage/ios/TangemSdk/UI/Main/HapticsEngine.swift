@@ -20,39 +20,11 @@ class HapticsEngine {
     }()
     
     func playSuccess() {
-        if supportsHaptics {
-            do {
-                let filePath = filePath(forResource: "Success")
-
-                guard let path = Bundle.sdkBundle.path(forResource: filePath, ofType: "ahap") else {
-                    return
-                }
-                
-                try engine?.playPattern(from: URL(fileURLWithPath: path))
-            } catch let error {
-                Log.error("Error creating a haptic transient pattern: \(error)")
-            }
-        } else {
-            AudioServicesPlaySystemSound(SystemSoundID(1520))
-        }
+        AudioServicesPlaySystemSound(SystemSoundID(1520))
     }
     
     func playError() {
-        if supportsHaptics {
-            do {
-                let filePath = filePath(forResource: "Error")
-
-                guard let path = Bundle.sdkBundle.path(forResource: filePath, ofType: "ahap") else {
-                    return
-                }
-                
-                try engine?.playPattern(from: URL(fileURLWithPath: path))
-            } catch let error {
-                Log.error("Error creating a haptic transient pattern: \(error)")
-            }
-        } else {
-            AudioServicesPlaySystemSound(SystemSoundID(1102))
-        }
+        AudioServicesPlaySystemSound(SystemSoundID(1102))
     }
     
     func playTick() {

@@ -46,5 +46,10 @@
 	<string>Read NFC tags</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Authenticate with biometric</string>
+	<key>com.apple.developer.nfc.readersession.iso7816.select-identifiers</key>
+	<array>
+		<string>A000000812010208</string>
+		<string>D2760000850101</string>
+	</array>
 </dict>
 </plist>

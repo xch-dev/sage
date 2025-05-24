@@ -28,17 +28,6 @@ extension BIP39.Wordlist {
     }
 
     private func readWords(from fileName: String) throws -> [String] {
-        guard let path = Bundle.sdkBundle.path(forResource: fileName, ofType: "txt") else {
-            throw MnemonicError.invalidWordsFile
-        }
-
-        let content = try String(contentsOfFile: path, encoding: .utf8)
-        let words = content.trim().components(separatedBy: "\n")
-
-        guard words.count == 2048 else {
-            throw MnemonicError.invalidWordCount
-        }
-
-        return words
+        return []
     }
 }

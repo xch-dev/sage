@@ -37,16 +37,16 @@ public extension String {
     }
 
     internal var localized: String {
-        Localization.getFormat(for: self)
+        self
     }
 
     internal func localized(_ arguments: [CVarArg]) -> String {
-        let format = Localization.getFormat(for: self)
+        let format = self
         return String(format: format, arguments: arguments)
     }
 
     internal func localized(_ arguments: CVarArg) -> String {
-        let format = Localization.getFormat(for: self)
+        let format = self
         return String(format: format, arguments)
     }
     

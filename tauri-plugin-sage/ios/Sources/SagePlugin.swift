@@ -30,6 +30,8 @@ class SagePlugin: Plugin, NFCNDEFReaderSessionDelegate {
   }
 
   @objc public func scanTangemCard(_ invoke: Invoke) throws {
+    invoke.reject("Ooga booga")
+
     Logger.enabled = true
     Logger.error("SAGE PLUGIN LOGS: Tangem SDK")
 
@@ -44,8 +46,6 @@ class SagePlugin: Plugin, NFCNDEFReaderSessionDelegate {
       }
 
       Logger.error("SAGE PLUGIN LOGS: End")
-      
-      // self.handleCompletion(result)
     }
   }
 
