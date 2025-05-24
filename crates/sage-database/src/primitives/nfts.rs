@@ -734,8 +734,10 @@ async fn insert_nft(conn: impl SqliteExecutor<'_>, row: NftRow) -> Result<()> {
             `name`,
             `is_owned`,
             `created_height`,
-            `metadata_hash`
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            `metadata_hash`,
+            `edition_number`,
+            `edition_total`
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         launcher_id,
         coin_id,
         collection_id,
@@ -746,7 +748,9 @@ async fn insert_nft(conn: impl SqliteExecutor<'_>, row: NftRow) -> Result<()> {
         name,
         row.is_owned,
         row.created_height,
-        metadata_hash
+        metadata_hash,
+        row.edition_number,
+        row.edition_total
     )
     .execute(conn)
     .await?;
@@ -760,7 +764,10 @@ async fn nft_row(conn: impl SqliteExecutor<'_>, launcher_id: Bytes32) -> Result<
     sqlx::query_as!(
         NftSql,
         "
-        SELECT * FROM `nfts` WHERE `launcher_id` = ?
+        SELECT launcher_id, coin_id, collection_id, minter_did, owner_did, visible, 
+               sensitive_content, name, is_owned, created_height, metadata_hash,
+               is_named, is_pending, edition_number, edition_total
+        FROM `nfts` WHERE `launcher_id` = ?
         ",
         launcher_id
     )
@@ -779,7 +786,10 @@ async fn nft_row_by_coin(
     sqlx::query_as!(
         NftSql,
         "
-        SELECT * FROM `nfts` WHERE `coin_id` = ?
+        SELECT launcher_id, coin_id, collection_id, minter_did, owner_did, visible, 
+               sensitive_content, name, is_owned, created_height, metadata_hash,
+               is_named, is_pending, edition_number, edition_total
+        FROM `nfts` WHERE `coin_id` = ?
         ",
         coin_id
     )
@@ -897,7 +907,10 @@ async fn nfts_by_metadata_hash(
     sqlx::query_as!(
         NftSql,
         "
-        SELECT * FROM `nfts` INDEXED BY `nft_metadata`
+        SELECT launcher_id, coin_id, collection_id, minter_did, owner_did, visible, 
+               sensitive_content, name, is_owned, created_height, metadata_hash,
+               is_named, is_pending, edition_number, edition_total
+        FROM `nfts` INDEXED BY `nft_metadata`
         WHERE `metadata_hash` = ?
         ",
         metadata_hash
@@ -929,6 +942,8 @@ async fn search_nfts(
             metadata_hash,
             is_named,
             is_pending,
+            edition_number,
+            edition_total,
             COUNT(*) OVER() as total_count	
         FROM nfts
         WHERE 1=1 
