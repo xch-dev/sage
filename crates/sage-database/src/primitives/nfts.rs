@@ -1002,7 +1002,9 @@ async fn search_nfts(
             query.push("is_pending DESC, created_height DESC, launcher_id ASC");
         }
         NftSortMode::Name => {
-            query.push("is_pending DESC, is_named DESC, name ASC, launcher_id ASC");
+            query.push(
+                "is_pending DESC, is_named DESC, name ASC, edition_number ASC, launcher_id ASC",
+            );
         }
     }
 
