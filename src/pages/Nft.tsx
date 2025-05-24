@@ -124,6 +124,14 @@ export default function Nft() {
 
         <div className='my-4 grid grid-cols-1 md:grid-cols-2 gap-y-3 gap-x-10'>
           <div className='flex flex-col gap-3'>
+            {nft?.edition_number && nft?.edition_total && (
+              <div>
+                <h6 className='text-md font-bold'>
+                  <Trans>Edition {nft.edition_number} of {nft.edition_total}</Trans>
+                </h6>
+              </div>
+            )}
+
             {metadata.description && (
               <div>
                 <h6 className='text-md font-bold'>
