@@ -127,7 +127,9 @@ export default function Nft() {
             {nft?.edition_number && nft?.edition_total && (
               <div>
                 <h6 className='text-md font-bold'>
-                  <Trans>Edition {nft.edition_number} of {nft.edition_total}</Trans>
+                  <Trans>
+                    Edition {nft.edition_number} of {nft.edition_total}
+                  </Trans>
                 </h6>
               </div>
             )}
