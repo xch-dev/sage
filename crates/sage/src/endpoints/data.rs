@@ -718,12 +718,12 @@ impl Sage {
             license_hash: license_hash.map(hex::encode),
             edition_number: metadata
                 .as_ref()
-                .map(|m| m.edition_number.try_into())
-                .transpose()?,
+                .and_then(|m| m.edition_number)
+                .and_then(|n| n.try_into().ok()),
             edition_total: metadata
                 .as_ref()
-                .map(|m| m.edition_total.try_into())
-                .transpose()?,
+                .and_then(|m| m.edition_total)
+                .and_then(|n| n.try_into().ok()),
             created_height: nft_row.created_height,
         })
     }

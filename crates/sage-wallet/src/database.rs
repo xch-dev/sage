@@ -175,10 +175,12 @@ pub async fn insert_puzzle(
                 metadata_hash,
                 edition_number: metadata
                     .as_ref()
-                    .and_then(|m| m.edition_number.try_into().ok()),
+                    .and_then(|m| m.edition_number)
+                    .and_then(|n| n.try_into().ok()),
                 edition_total: metadata
                     .as_ref()
-                    .and_then(|m| m.edition_total.try_into().ok()),
+                    .and_then(|m| m.edition_total)
+                    .and_then(|n| n.try_into().ok()),
             });
 
             if coin_state.spent_height.is_some()
@@ -230,12 +232,14 @@ pub async fn insert_puzzle(
             if row.edition_number.is_none() {
                 row.edition_number = metadata
                     .as_ref()
-                    .and_then(|m| m.edition_number.try_into().ok());
+                    .and_then(|m| m.edition_number)
+                    .and_then(|n| n.try_into().ok());
             }
             if row.edition_total.is_none() {
                 row.edition_total = metadata
                     .as_ref()
-                    .and_then(|m| m.edition_total.try_into().ok());
+                    .and_then(|m| m.edition_total)
+                    .and_then(|n| n.try_into().ok());
             }
 
             tx.insert_nft(row).await?;
