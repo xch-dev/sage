@@ -173,6 +173,12 @@ pub async fn insert_puzzle(
                 is_owned: coin_state.spent_height.is_none(),
                 created_height: coin_state.created_height,
                 metadata_hash,
+                edition_number: metadata
+                    .as_ref()
+                    .and_then(|m| m.edition_number.try_into().ok()),
+                edition_total: metadata
+                    .as_ref()
+                    .and_then(|m| m.edition_total.try_into().ok()),
             });
 
             if coin_state.spent_height.is_some()
@@ -219,6 +225,18 @@ pub async fn insert_puzzle(
 
             row.owner_did = owner_did;
             row.created_height = coin_state.created_height;
+
+            // Update edition information if not already set
+            if row.edition_number.is_none() {
+                row.edition_number = metadata
+                    .as_ref()
+                    .and_then(|m| m.edition_number.try_into().ok());
+            }
+            if row.edition_total.is_none() {
+                row.edition_total = metadata
+                    .as_ref()
+                    .and_then(|m| m.edition_total.try_into().ok());
+            }
 
             tx.insert_nft(row).await?;
 

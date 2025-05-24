@@ -287,7 +287,12 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
                 />
               </TooltipTrigger>
               <TooltipContent>
-                <p>{nftName}</p>
+                <p>
+                  {nftName}
+                  {nft.edition_number && nft.edition_total && (
+                    <span> (<Trans>{nft.edition_number} of {nft.edition_total}</Trans>)</span>
+                  )}
+                </p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>

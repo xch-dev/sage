@@ -20,6 +20,8 @@ pub(crate) struct NftSql {
     pub metadata_hash: Option<Vec<u8>>,
     pub is_named: Option<bool>,
     pub is_pending: Option<bool>,
+    pub edition_number: Option<i64>,
+    pub edition_total: Option<i64>,
 }
 
 impl FromRow<'_, SqliteRow> for NftSql {
@@ -38,6 +40,8 @@ impl FromRow<'_, SqliteRow> for NftSql {
             metadata_hash: row.try_get("metadata_hash")?,
             is_named: row.try_get("is_named")?,
             is_pending: row.try_get("is_pending")?,
+            edition_number: row.try_get("edition_number")?,
+            edition_total: row.try_get("edition_total")?,
         })
     }
 }
@@ -55,6 +59,8 @@ pub struct NftRow {
     pub is_owned: bool,
     pub created_height: Option<u32>,
     pub metadata_hash: Option<Bytes32>,
+    pub edition_number: Option<u32>,
+    pub edition_total: Option<u32>,
 }
 
 impl IntoRow for NftSql {
@@ -73,6 +79,8 @@ impl IntoRow for NftSql {
             is_owned: self.is_owned,
             created_height: self.created_height.map(TryInto::try_into).transpose()?,
             metadata_hash: self.metadata_hash.as_deref().map(to_bytes32).transpose()?,
+            edition_number: self.edition_number.map(TryInto::try_into).transpose()?,
+            edition_total: self.edition_total.map(TryInto::try_into).transpose()?,
         })
     }
 }
