@@ -9,6 +9,7 @@ pub enum SyncEvent {
     Subscribed,
     Derivation,
     CoinState,
+    TransactionFailed { transaction_id: String },
     PuzzleBatchSynced,
     CatInfo,
     DidInfo,
