@@ -313,7 +313,7 @@ export default function MintNft() {
                     <FormLabel>
                       <Trans>Edition</Trans>
                     </FormLabel>
-                    <div className='flex items-center space-x-4 rounded-lg border px-4 h-[42px]'>
+                    <div className='flex items-center space-x-4 px-4 h-[42px]'>
                       <FormControl>
                         <Switch
                           checked={field.value}
