@@ -124,7 +124,7 @@ export default function Nft() {
 
         <div className='my-4 grid grid-cols-1 md:grid-cols-2 gap-y-3 gap-x-10'>
           <div className='flex flex-col gap-3'>
-            {nft?.edition_number && nft?.edition_total && (
+            {nft?.edition_total != null && nft?.edition_total > 1 && (
               <div>
                 <h6 className='text-md font-bold'>
                   <Trans>
