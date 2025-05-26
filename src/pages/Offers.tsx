@@ -307,7 +307,7 @@ export function Offers() {
                           <Button
                             variant='outline'
                             size='sm'
-                            className='flex items-center gap-1'
+                            className='flex items-center gap-1 hidden'
                             onClick={() => setCancelAllOpen(true)}
                           >
                             <CircleOff className='h-4 w-4' />
