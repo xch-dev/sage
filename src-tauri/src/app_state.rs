@@ -24,6 +24,7 @@ pub async fn initialize(app_handle: AppHandle, sage: &mut Sage) -> Result<()> {
                 SyncEvent::DerivationIndex { .. } => ApiEvent::Derivation,
                 SyncEvent::TransactionEnded {
                     transaction_id,
+                    error,
                     success,
                 } => {
                     if success {
@@ -31,6 +32,7 @@ pub async fn initialize(app_handle: AppHandle, sage: &mut Sage) -> Result<()> {
                     } else {
                         ApiEvent::TransactionFailed {
                             transaction_id: transaction_id.to_string(),
+                            error,
                         }
                     }
                 }

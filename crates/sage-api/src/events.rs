@@ -4,12 +4,17 @@ use serde::{Deserialize, Serialize};
 #[cfg_attr(feature = "tauri", derive(specta::Type, tauri_specta::Event))]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum SyncEvent {
-    Start { ip: String },
+    Start {
+        ip: String,
+    },
     Stop,
     Subscribed,
     Derivation,
     CoinState,
-    TransactionFailed { transaction_id: String },
+    TransactionFailed {
+        transaction_id: String,
+        error: Option<String>,
+    },
     PuzzleBatchSynced,
     CatInfo,
     DidInfo,

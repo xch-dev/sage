@@ -7,6 +7,7 @@ export function TransactionFailureTest() {
     // Manually emit a test transaction failure event
     events.syncEvent.emit({
       type: 'transaction_failed',
+      error: 'Test error message',
       transaction_id:
         '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
     });
