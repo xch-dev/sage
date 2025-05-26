@@ -11,7 +11,6 @@ import { Trans } from '@lingui/react/macro';
 import { LoaderCircleIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { commands, NetworkKind } from '@/bindings';
-import { uploadToDexie, uploadToMintGarden } from '@/lib/offerUpload';
 import { useErrors } from '@/hooks/useErrors';
 import { useOfferProcessor } from '@/hooks/useOfferProcessor';
 import { OfferState } from '@/state';

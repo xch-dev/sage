@@ -45,7 +45,7 @@ export const marketplaces: MarketplaceConfig[] = [
         return isMintGardenSupportedForSummary(offer);
       }
 
-      return isMintGardenSupported(offer), isSplitting;
+      return isMintGardenSupported(offer, isSplitting);
     },
     isOnMarketplace: (offer, _, isTestnet) =>
       offerIsOnMintGarden(offer, isTestnet),
