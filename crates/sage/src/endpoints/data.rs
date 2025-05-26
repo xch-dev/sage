@@ -716,14 +716,8 @@ impl Sage {
                 .map(|m| m.license_uris.clone())
                 .unwrap_or_default(),
             license_hash: license_hash.map(hex::encode),
-            edition_number: metadata
-                .as_ref()
-                .map(|m| m.edition_number.try_into())
-                .transpose()?,
-            edition_total: metadata
-                .as_ref()
-                .map(|m| m.edition_total.try_into())
-                .transpose()?,
+            edition_number: metadata.as_ref().map(|m| m.edition_number as u32),
+            edition_total: metadata.as_ref().map(|m| m.edition_total as u32),
             created_height: nft_row.created_height,
         })
     }

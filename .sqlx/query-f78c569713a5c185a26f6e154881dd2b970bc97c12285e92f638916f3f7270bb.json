@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n        SELECT * FROM `nfts` WHERE `coin_id` = ?\n        ",
+  "query": "\n        SELECT launcher_id, coin_id, collection_id, minter_did, owner_did, visible, \n               sensitive_content, name, is_owned, created_height, metadata_hash,\n               is_named, is_pending, edition_number, edition_total\n        FROM `nfts` WHERE `launcher_id` = ?\n        ",
   "describe": {
     "columns": [
       {
@@ -49,24 +49,34 @@
         "type_info": "Bool"
       },
       {
-        "name": "is_named",
-        "ordinal": 9,
-        "type_info": "Bool"
-      },
-      {
         "name": "created_height",
-        "ordinal": 10,
+        "ordinal": 9,
         "type_info": "Integer"
       },
       {
-        "name": "is_pending",
+        "name": "metadata_hash",
+        "ordinal": 10,
+        "type_info": "Blob"
+      },
+      {
+        "name": "is_named",
         "ordinal": 11,
         "type_info": "Bool"
       },
       {
-        "name": "metadata_hash",
+        "name": "is_pending",
         "ordinal": 12,
-        "type_info": "Blob"
+        "type_info": "Bool"
+      },
+      {
+        "name": "edition_number",
+        "ordinal": 13,
+        "type_info": "Integer"
+      },
+      {
+        "name": "edition_total",
+        "ordinal": 14,
+        "type_info": "Integer"
       }
     ],
     "parameters": {
@@ -85,8 +95,10 @@
       true,
       true,
       true,
+      true,
+      true,
       true
     ]
   },
-  "hash": "5a182a71c0ec051f1922c9acc230c7d92948cf8cdbd4b286c933ee5837c7742d"
+  "hash": "f78c569713a5c185a26f6e154881dd2b970bc97c12285e92f638916f3f7270bb"
 }

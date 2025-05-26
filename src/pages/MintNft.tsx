@@ -35,6 +35,8 @@ import { commands, TransactionResponse } from '../bindings';
 import Container from '../components/Container';
 import { useWalletState } from '../state';
 import { FeeAmountInput } from '@/components/ui/masked-input';
+import { Switch } from '@/components/ui/switch';
+import { IntegerInput } from '@/components/ui/masked-input';
 
 export default function MintNft() {
   const navigate = useNavigate();
@@ -52,10 +54,14 @@ export default function MintNft() {
     dataUris: z.string(),
     metadataUris: z.string(),
     licenseUris: z.string().optional(),
+    editionCount: z.number().min(1).default(1),
   });
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
+    defaultValues: {
+      editionCount: 1,
+    },
   });
 
   const { handleScanOrPaste } = useScannerOrClipboard((scanResValue) => {
@@ -83,6 +89,29 @@ export default function MintNft() {
         .filter(Boolean),
     };
 
+    const mints =
+      values.editionCount > 1
+        ? Array.from({ length: values.editionCount }, (_, i) => ({
+            edition_number: i + 1,
+            edition_total: values.editionCount,
+            royalty_address: values.royaltyAddress || null,
+            royalty_ten_thousandths: Number(values.royaltyPercent) * 100,
+            data_uris: mintDetails.data_uris,
+            metadata_uris: mintDetails.metadata_uris,
+            license_uris: mintDetails.license_uris,
+          }))
+        : [
+            {
+              edition_number: null,
+              edition_total: null,
+              royalty_address: values.royaltyAddress || null,
+              royalty_ten_thousandths: Number(values.royaltyPercent) * 100,
+              data_uris: mintDetails.data_uris,
+              metadata_uris: mintDetails.metadata_uris,
+              license_uris: mintDetails.license_uris,
+            },
+          ];
+
     commands
       .bulkMintNfts({
         fee: toMojos(
@@ -90,17 +119,7 @@ export default function MintNft() {
           walletState.sync.unit.decimals,
         ),
         did_id: values.profile,
-        mints: [
-          {
-            edition_number: null,
-            edition_total: null,
-            royalty_address: values.royaltyAddress || null,
-            royalty_ten_thousandths: Number(values.royaltyPercent) * 100,
-            data_uris: mintDetails.data_uris,
-            metadata_uris: mintDetails.metadata_uris,
-            license_uris: mintDetails.license_uris,
-          },
-        ],
+        mints,
       })
       .then(setResponse)
       .catch(addError)
@@ -260,6 +279,28 @@ export default function MintNft() {
                   </FormItem>
                 )}
               />
+              <FormField
+                control={form.control}
+                name='editionCount'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      <Trans>Edition Count</Trans>
+                    </FormLabel>
+                    <FormControl>
+                      <IntegerInput
+                        min={1}
+                        placeholder={t`Enter count`}
+                        {...field}
+                        onChange={(e) =>
+                          field.onChange(parseInt(e.target.value, 10))
+                        }
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
 
             <div className='grid sm:grid-cols-2 gap-4'>
@@ -310,6 +351,12 @@ export default function MintNft() {
                       <div>
                         <strong>Royalty Address:</strong>{' '}
                         {form.getValues('royaltyAddress')}
+                      </div>
+                    )}
+                    {form.getValues('editionCount') > 1 && (
+                      <div>
+                        <strong>Edition Count:</strong>{' '}
+                        {form.getValues('editionCount')}
                       </div>
                     )}
                     <div>
