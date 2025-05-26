@@ -15,7 +15,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { TokenAmountInput } from '@/components/ui/masked-input';
+import { FeeAmountInput } from '@/components/ui/masked-input';
 import { Trans } from '@lingui/react/macro';
 import { UseFormReturn } from 'react-hook-form';
 
@@ -24,6 +24,9 @@ interface CancelOfferDialogProps {
   onOpenChange: (open: boolean) => void;
   form: UseFormReturn<any>;
   onSubmit: (values: any) => void;
+  title?: React.ReactNode;
+  description?: React.ReactNode;
+  feeLabel?: React.ReactNode;
 }
 
 export function CancelOfferDialog({
@@ -31,19 +34,23 @@ export function CancelOfferDialog({
   onOpenChange,
   form,
   onSubmit,
+  title,
+  description,
+  feeLabel,
 }: CancelOfferDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>
-            <Trans>Cancel offer?</Trans>
-          </DialogTitle>
+          <DialogTitle>{title || <Trans>Cancel offer?</Trans>}</DialogTitle>
           <DialogDescription>
-            <Trans>
-              This will cancel the offer on-chain with a transaction, preventing
-              it from being taken even if someone has the original offer file.
-            </Trans>
+            {description || (
+              <Trans>
+                This will cancel the offer on-chain with a transaction,
+                preventing it from being taken even if someone has the original
+                offer file.
+              </Trans>
+            )}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -54,10 +61,10 @@ export function CancelOfferDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>
-                    <Trans>Network Fee</Trans>
+                    {feeLabel || <Trans>Network Fee</Trans>}
                   </FormLabel>
                   <FormControl>
-                    <TokenAmountInput {...field} />
+                    <FeeAmountInput {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

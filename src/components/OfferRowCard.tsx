@@ -54,9 +54,6 @@ export function OfferRowCard({ record, refresh }: OfferRowCardProps) {
 
   const cancelForm = useForm<z.infer<typeof cancelSchema>>({
     resolver: zodResolver(cancelSchema),
-    defaultValues: {
-      fee: '0',
-    },
   });
 
   const [response, setResponse] = useState<TransactionResponse | null>(null);

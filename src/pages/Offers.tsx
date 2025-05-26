@@ -1,5 +1,7 @@
-import { commands, events, OfferRecord } from '@/bindings';
+import { commands, events, OfferRecord, TransactionResponse } from '@/bindings';
 import Container from '@/components/Container';
+import ConfirmationDialog from '@/components/ConfirmationDialog';
+import { CancelOfferDialog } from '@/components/dialogs/CancelOfferDialog';
 import { NfcScanDialog } from '@/components/dialogs/NfcScanDialog';
 import { ViewOfferDialog } from '@/components/dialogs/ViewOfferDialog';
 import Header from '@/components/Header';
@@ -7,9 +9,14 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import { useErrors } from '@/hooks/useErrors';
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
-import { useOfferState } from '@/state';
+import { amount } from '@/lib/formTypes';
+import { toMojos } from '@/lib/utils';
+import { useOfferState, useWalletState } from '@/state';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { platform } from '@tauri-apps/plugin-os';
+import BigNumber from 'bignumber.js';
 import {
   HandCoins,
   NfcIcon,
@@ -19,7 +26,9 @@ import {
   CircleOff,
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
+import { z } from 'zod';
 import { OfferRowCard } from '@/components/OfferRowCard';
 import {
   Select,
@@ -53,6 +62,7 @@ import { getNdefPayloads, isNdefAvailable } from 'tauri-plugin-sage';
 export function Offers() {
   const navigate = useNavigate();
   const offerState = useOfferState();
+  const walletState = useWalletState();
   const { addError } = useErrors();
   const [offerString, setOfferString] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -63,6 +73,20 @@ export function Offers() {
     OFFER_FILTER_STORAGE_KEY,
     'all',
   );
+  const [isCancelAllOpen, setCancelAllOpen] = useState(false);
+  const [cancelAllResponse, setCancelAllResponse] =
+    useState<TransactionResponse | null>(null);
+
+  const cancelAllSchema = z.object({
+    fee: amount(walletState.sync.unit.decimals).refine(
+      (amount) => BigNumber(walletState.sync.balance).gte(amount || 0),
+      t`Not enough funds to cover the fee`,
+    ),
+  });
+
+  const cancelAllForm = useForm<z.infer<typeof cancelAllSchema>>({
+    resolver: zodResolver(cancelAllSchema),
+  });
 
   const viewOffer = useCallback(
     (offer: string) => {
@@ -166,23 +190,28 @@ export function Offers() {
     }
   };
 
-  const handleCancelAll = async () => {
-    try {
-      for (const offer of filteredOffers.filter(
-        (offer) => offer.status === 'active',
-      )) {
-        await commands.cancelOffer({
+  const handleCancelAll = (values: z.infer<typeof cancelAllSchema>) => {
+    const fee = toMojos(values.fee, walletState.sync.unit.decimals);
+    const activeOffers = filteredOffers.filter(
+      (offer) => offer.status === 'active',
+    );
+
+    Promise.all(
+      activeOffers.map((offer) =>
+        commands.cancelOffer({
           offer_id: offer.offer_id,
-          fee: '0',
-        });
-      }
-      updateOffers();
-    } catch (error) {
-      addError({
-        kind: 'internal',
-        reason: `Failed to cancel offers: ${error}`,
-      });
-    }
+          fee,
+        }),
+      ),
+    )
+      .then((results) => {
+        // For simplicity, we'll show the first response in the confirmation dialog
+        if (results.length > 0) {
+          setCancelAllResponse(results[0]);
+        }
+      })
+      .catch(addError)
+      .finally(() => setCancelAllOpen(false));
   };
 
   return (
@@ -273,44 +302,24 @@ export function Offers() {
                     (offer) => offer.status === 'active',
                   ) && (
                     <TooltipProvider>
-                      <AlertDialog>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <AlertDialogTrigger asChild>
-                              <Button
-                                variant='outline'
-                                size='sm'
-                                className='flex items-center gap-1'
-                              >
-                                <CircleOff className='h-4 w-4' />
-                                <span className='hidden sm:inline'>
-                                  <Trans>Cancel All Active</Trans>
-                                </span>
-                              </Button>
-                            </AlertDialogTrigger>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <Trans>Cancel All Active Offers</Trans>
-                          </TooltipContent>
-                        </Tooltip>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>
-                              Cancel All Active Offers
-                            </AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Are you sure you want to cancel all active offers?
-                              This action cannot be undone.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={handleCancelAll}>
-                              Continue
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant='outline'
+                            size='sm'
+                            className='flex items-center gap-1'
+                            onClick={() => setCancelAllOpen(true)}
+                          >
+                            <CircleOff className='h-4 w-4' />
+                            <span className='hidden sm:inline'>
+                              <Trans>Cancel All Active</Trans>
+                            </span>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <Trans>Cancel All Active Offers</Trans>
+                        </TooltipContent>
+                      </Tooltip>
                     </TooltipProvider>
                   )}
                   {filteredOffers.length > 0 && (
@@ -374,6 +383,49 @@ export function Offers() {
       </Container>
 
       <NfcScanDialog open={showScanUi} onOpenChange={setShowScanUi} />
+
+      <CancelOfferDialog
+        open={isCancelAllOpen}
+        onOpenChange={setCancelAllOpen}
+        form={cancelAllForm}
+        onSubmit={handleCancelAll}
+        title={<Trans>Cancel all active offers?</Trans>}
+        description={
+          <Trans>
+            This will cancel all{' '}
+            {filteredOffers.filter((offer) => offer.status === 'active').length}{' '}
+            active offers on-chain with transactions, preventing them from being
+            taken even if someone has the original offer files.
+          </Trans>
+        }
+        feeLabel={<Trans>Network Fee (per offer)</Trans>}
+      />
+
+      <ConfirmationDialog
+        response={cancelAllResponse}
+        showRecipientDetails={false}
+        close={() => setCancelAllResponse(null)}
+        onConfirm={updateOffers}
+        additionalData={{
+          title: t`Cancel All Active Offers`,
+          content: cancelAllResponse && (
+            <div className='text-center'>
+              <p className='mb-2'>
+                <Trans>Successfully cancelled all active offers</Trans>
+              </p>
+              <p className='text-sm text-muted-foreground'>
+                <Trans>
+                  {
+                    filteredOffers.filter((offer) => offer.status === 'active')
+                      .length
+                  }{' '}
+                  offers were cancelled
+                </Trans>
+              </p>
+            </div>
+          ),
+        }}
+      />
     </>
   );
 }
