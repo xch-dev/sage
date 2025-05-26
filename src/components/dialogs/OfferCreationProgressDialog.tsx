@@ -8,6 +8,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Trans } from '@lingui/react/macro';
+import { t } from '@lingui/core/macro';
 import { LoaderCircleIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { commands, NetworkKind } from '@/bindings';
@@ -43,6 +44,7 @@ export function OfferCreationProgressDialog({
   const [isUploading, setIsUploading] = useState(false);
   const [hasStartedProcessing, setHasStartedProcessing] = useState(false);
   const [isCanceling, setIsCanceling] = useState(false);
+  const [uploadsCompleted, setUploadsCompleted] = useState(false);
   const [currentStep, setCurrentStep] = useState<'creating' | 'uploading'>(
     'creating',
   );
@@ -75,7 +77,7 @@ export function OfferCreationProgressDialog({
 
   // Handle uploads when offers are created
   useEffect(() => {
-    if (createdOffers.length > 0 && network) {
+    if (createdOffers.length > 0 && network && !isProcessing && !isCanceling) {
       let isMounted = true;
 
       const uploadToMarketplaces = async () => {
@@ -83,7 +85,10 @@ export function OfferCreationProgressDialog({
           (marketplace) => enabledMarketplaces[marketplace.id],
         );
 
-        if (enabledMarketplaceConfigs.length === 0) return;
+        if (enabledMarketplaceConfigs.length === 0) {
+          setUploadsCompleted(true);
+          return;
+        }
 
         setIsUploading(true);
         setCurrentStep('uploading');
@@ -92,11 +97,11 @@ export function OfferCreationProgressDialog({
           marketplaceIndex,
           marketplace,
         ] of enabledMarketplaceConfigs.entries()) {
-          if (!isMounted) break;
+          if (!isMounted || isCanceling) break;
           setCurrentMarketplaceIndex(marketplaceIndex);
 
           for (const [offerIndex, individualOffer] of createdOffers.entries()) {
-            if (!isMounted) break;
+            if (!isMounted || isCanceling) break;
             setCurrentOfferIndex(offerIndex);
             try {
               await marketplace.uploadToMarketplace(
@@ -104,21 +109,23 @@ export function OfferCreationProgressDialog({
                 network === 'testnet',
               );
               if (offerIndex < createdOffers.length - 1) {
+                // rate limit
                 await delay(500);
               }
             } catch (error) {
               if (isMounted) {
                 addError({
                   kind: 'upload',
-                  reason: `Failed to auto-upload offer ${offerIndex + 1} to ${marketplace.name}: ${error}`,
+                  reason: t`Failed to auto-upload offer ${offerIndex + 1} to ${marketplace.name}: ${error}`,
                 });
               }
             }
           }
         }
 
-        if (isMounted) {
+        if (isMounted && !isCanceling) {
           setIsUploading(false);
+          setUploadsCompleted(true);
         }
       };
 
@@ -128,7 +135,14 @@ export function OfferCreationProgressDialog({
         isMounted = false;
       };
     }
-  }, [createdOffers, network, addError, enabledMarketplaces]);
+  }, [
+    createdOffers,
+    network,
+    addError,
+    enabledMarketplaces,
+    isProcessing,
+    isCanceling,
+  ]);
 
   // Start processing when dialog opens
   useEffect(() => {
@@ -149,7 +163,7 @@ export function OfferCreationProgressDialog({
           } else {
             addError({
               kind: 'invalid',
-              reason: error instanceof Error ? error.message : 'Unknown error',
+              reason: error instanceof Error ? error.message : t`Unknown error`,
             });
           }
           onOpenChange(false);
@@ -171,6 +185,7 @@ export function OfferCreationProgressDialog({
     if (!open) {
       setHasStartedProcessing(false);
       setIsCanceling(false);
+      setUploadsCompleted(false);
       setCurrentStep('creating');
       setCurrentOfferIndex(0);
     }
@@ -185,8 +200,12 @@ export function OfferCreationProgressDialog({
 
   const handleCancel = async () => {
     setIsCanceling(true);
-    await cancelProcessing();
+    if (isProcessing) {
+      await cancelProcessing();
+    }
     clearProcessedOffers();
+    setIsUploading(false);
+    setUploadsCompleted(false);
     onOpenChange(false);
   };
 
@@ -197,7 +216,7 @@ export function OfferCreationProgressDialog({
   };
 
   const getProgressMessage = () => {
-    if (isProcessing) {
+    if (isProcessing || isUploading) {
       if (currentStep === 'creating') {
         return (
           <Trans>
@@ -221,21 +240,37 @@ export function OfferCreationProgressDialog({
     return null;
   };
 
+  // Check if all operations are complete
+  const isAllComplete = () => {
+    const hasEnabledMarketplaces =
+      Object.values(enabledMarketplaces).some(Boolean);
+    if (hasEnabledMarketplaces) {
+      return !isProcessing && !isUploading && uploadsCompleted;
+    }
+    return !isProcessing;
+  };
+
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            {isProcessing ? (
+            {isProcessing || isUploading ? (
               <div className='flex items-center gap-2'>
                 <LoaderCircleIcon
                   className='h-4 w-4 animate-spin'
                   aria-hidden='true'
                 />
-                {splitNftOffers ? (
-                  <Trans>Creating Offers</Trans>
+                {currentStep === 'creating' ? (
+                  splitNftOffers ? (
+                    <Trans>Creating Offers</Trans>
+                  ) : (
+                    <Trans>Creating Offer</Trans>
+                  )
+                ) : splitNftOffers ? (
+                  <Trans>Uploading Offers</Trans>
                 ) : (
-                  <Trans>Creating Offer</Trans>
+                  <Trans>Uploading Offer</Trans>
                 )}
               </div>
             ) : createdOffers.length > 1 ? (
@@ -245,14 +280,15 @@ export function OfferCreationProgressDialog({
             )}
           </DialogTitle>
           <DialogDescription>
-            {isProcessing ? (
+            {isProcessing || isUploading ? (
               <div className='space-y-2'>
                 <p>
                   <Trans>
                     Please wait while{' '}
                     {splitNftOffers ? 'your offers are' : 'your offer is'} being
-                    created
-                    {Object.values(enabledMarketplaces).some(Boolean)
+                    {currentStep === 'creating' ? 'created' : 'uploaded'}
+                    {currentStep === 'creating' &&
+                    Object.values(enabledMarketplaces).some(Boolean)
                       ? ' and uploaded'
                       : ''}
                     ...
@@ -265,20 +301,27 @@ export function OfferCreationProgressDialog({
             ) : createdOffers.length > 1 ? (
               <Trans>
                 {createdOffers.length} offers have been created and imported
-                successfully. You will now be redirected to the offers page
-                where you can view the details of each offer.
+                successfully
+                {Object.values(enabledMarketplaces).some(Boolean)
+                  ? ' and uploaded to the selected marketplaces'
+                  : ''}
+                . You will now be redirected to the offers page where you can
+                view the details of each offer.
               </Trans>
             ) : (
               <Trans>
-                Your offer has been created and imported successfully. You will
-                now be redirected to the offers page where you can view its
-                details.
+                Your offer has been created and imported successfully
+                {Object.values(enabledMarketplaces).some(Boolean)
+                  ? ' and uploaded to the selected marketplaces'
+                  : ''}
+                . You will now be redirected to the offers page where you can
+                view its details.
               </Trans>
             )}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          {isProcessing ? (
+          {isProcessing || isUploading ? (
             <Button variant='outline' onClick={handleCancel}>
               <Trans>Cancel</Trans>
             </Button>
