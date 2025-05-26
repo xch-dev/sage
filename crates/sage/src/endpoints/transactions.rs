@@ -369,8 +369,8 @@ impl Sage {
 
             mints.push(WalletNftMint {
                 metadata: NftMetadata {
-                    edition_number: item.edition_number.map_or(1, Into::into),
-                    edition_total: item.edition_total.map_or(1, Into::into),
+                    edition_number: item.edition_number.unwrap_or(1) as u64,
+                    edition_total: item.edition_total.unwrap_or(1) as u64,
                     data_uris: item.data_uris,
                     data_hash,
                     metadata_uris: item.metadata_uris,
