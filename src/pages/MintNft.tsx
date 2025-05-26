@@ -66,8 +66,6 @@ export default function MintNft() {
     },
   });
 
-  const isEdition = form.watch('isEdition');
-
   const { handleScanOrPaste } = useScannerOrClipboard((scanResValue) => {
     form.setValue('royaltyAddress', scanResValue);
   });
