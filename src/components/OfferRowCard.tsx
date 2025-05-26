@@ -1,6 +1,5 @@
 import { commands, OfferRecord, TransactionResponse } from '@/bindings';
 import ConfirmationDialog from '@/components/ConfirmationDialog';
-import { TakeOfferConfirmation } from '@/components/confirmations/TakeOfferConfirmation';
 import { CancelOfferDialog } from '@/components/dialogs/CancelOfferDialog';
 import { DeleteOfferDialog } from '@/components/dialogs/DeleteOfferDialog';
 import { OfferSummaryCard } from '@/components/OfferSummaryCard';
@@ -33,6 +32,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link } from 'react-router-dom';
 import { z } from 'zod';
+import { CancelOfferConfirmation } from './confirmations/CancelOfferConfirmation';
 
 interface OfferRowCardProps {
   record: OfferRecord;
@@ -153,6 +153,7 @@ export function OfferRowCard({ record, refresh }: OfferRowCardProps) {
       <DeleteOfferDialog
         open={isDeleteOpen}
         onOpenChange={setDeleteOpen}
+        offerCount={1}
         onDelete={() => {
           commands
             .deleteOffer({ offer_id: record.offer_id })
@@ -176,9 +177,7 @@ export function OfferRowCard({ record, refresh }: OfferRowCardProps) {
         onConfirm={refresh}
         additionalData={{
           title: t`Cancel Offer`,
-          content: response && (
-            <TakeOfferConfirmation type='cancel' offer={record} />
-          ),
+          content: response && <CancelOfferConfirmation offers={[record]} />,
         }}
       />
     </>

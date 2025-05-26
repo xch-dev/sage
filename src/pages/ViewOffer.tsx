@@ -131,7 +131,7 @@ export function ViewOffer() {
         additionalData={{
           title: t`Take Offer`,
           content: response && summary && (
-            <TakeOfferConfirmation type='take' offer={summary} />
+            <TakeOfferConfirmation offer={summary} />
           ),
         }}
       />

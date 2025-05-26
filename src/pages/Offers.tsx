@@ -2,6 +2,7 @@ import { commands, events, OfferRecord, TransactionResponse } from '@/bindings';
 import Container from '@/components/Container';
 import ConfirmationDialog from '@/components/ConfirmationDialog';
 import { CancelOfferDialog } from '@/components/dialogs/CancelOfferDialog';
+import { DeleteOfferDialog } from '@/components/dialogs/DeleteOfferDialog';
 import { NfcScanDialog } from '@/components/dialogs/NfcScanDialog';
 import { ViewOfferDialog } from '@/components/dialogs/ViewOfferDialog';
 import Header from '@/components/Header';
@@ -37,17 +38,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
 import { useLocalStorage } from 'usehooks-ts';
 import {
   Tooltip,
@@ -76,6 +66,7 @@ export function Offers() {
   const [isCancelAllOpen, setCancelAllOpen] = useState(false);
   const [cancelAllResponse, setCancelAllResponse] =
     useState<TransactionResponse | null>(null);
+  const [isDeleteAllOpen, setDeleteAllOpen] = useState(false);
 
   const cancelAllSchema = z.object({
     fee: amount(walletState.sync.unit.decimals).refine(
@@ -182,6 +173,7 @@ export function Offers() {
         await commands.deleteOffer({ offer_id: offer.offer_id });
       }
       updateOffers();
+      setDeleteAllOpen(false);
     } catch (error) {
       addError({
         kind: 'internal',
@@ -324,45 +316,24 @@ export function Offers() {
                   )}
                   {filteredOffers.length > 0 && (
                     <TooltipProvider>
-                      <AlertDialog>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <AlertDialogTrigger asChild>
-                              <Button
-                                variant='destructive'
-                                size='sm'
-                                className='flex items-center gap-1'
-                              >
-                                <TrashIcon className='h-4 w-4' />
-                                <span className='hidden sm:inline'>
-                                  <Trans>Delete All</Trans>
-                                </span>
-                              </Button>
-                            </AlertDialogTrigger>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <Trans>Delete All Filtered Offers</Trans>
-                          </TooltipContent>
-                        </Tooltip>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>
-                              Delete All Filtered Offers
-                            </AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Are you sure you want to delete all{' '}
-                              {filteredOffers.length} filtered offers? This
-                              action cannot be undone.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={handleDeleteAll}>
-                              Continue
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant='destructive'
+                            size='sm'
+                            className='flex items-center gap-1'
+                            onClick={() => setDeleteAllOpen(true)}
+                          >
+                            <TrashIcon className='h-4 w-4' />
+                            <span className='hidden sm:inline'>
+                              <Trans>Delete All</Trans>
+                            </span>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <Trans>Delete All Filtered Offers</Trans>
+                        </TooltipContent>
+                      </Tooltip>
                     </TooltipProvider>
                   )}
                 </div>
@@ -399,6 +370,13 @@ export function Offers() {
           </Trans>
         }
         feeLabel={<Trans>Network Fee (per offer)</Trans>}
+      />
+
+      <DeleteOfferDialog
+        open={isDeleteAllOpen}
+        onOpenChange={setDeleteAllOpen}
+        onDelete={handleDeleteAll}
+        offerCount={filteredOffers.length}
       />
 
       <ConfirmationDialog
