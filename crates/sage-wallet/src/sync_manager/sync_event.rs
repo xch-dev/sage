@@ -3,7 +3,7 @@ use std::net::IpAddr;
 use chia::protocol::Bytes32;
 use sage_database::OfferStatus;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SyncEvent {
     Start(IpAddr),
     Stop,
@@ -17,6 +17,7 @@ pub enum SyncEvent {
     },
     TransactionEnded {
         transaction_id: Bytes32,
+        error: Option<String>,
         success: bool,
     },
     OfferUpdated {

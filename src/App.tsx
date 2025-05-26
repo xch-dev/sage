@@ -25,6 +25,7 @@ import { SafeAreaProvider } from './contexts/SafeAreaContext';
 import { WalletConnectProvider } from './contexts/WalletConnectContext';
 import { WalletProvider } from './contexts/WalletContext';
 import useInitialization from './hooks/useInitialization';
+import { useTransactionFailures } from './hooks/useTransactionFailures';
 import { loadCatalog } from './i18n';
 import Addresses from './pages/Addresses';
 import CollectionMetaData from './pages/CollectionMetaData';
@@ -157,6 +158,9 @@ function AppInner() {
   const initialized = useInitialization();
   const { locale } = useLanguage();
   const [isLocaleInitialized, setIsLocaleInitialized] = useState(false);
+
+  // Enable global transaction failure handling
+  useTransactionFailures();
 
   useEffect(() => {
     const initLocale = async () => {
