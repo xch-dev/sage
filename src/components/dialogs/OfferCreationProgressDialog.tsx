@@ -116,8 +116,10 @@ export function OfferCreationProgressDialog({
               if (isMounted) {
                 addError({
                   kind: 'upload',
-                  reason: t`Failed to auto-upload offer ${offerIndex + 1} to ${marketplace.name}: ${error}`,
+                  reason: t`Failed to auto-upload offer ${offerIndex + 1} to ${marketplace.name}. Stopping.: ${error}`,
                 });
+                // typically if one fails the rest will fail too
+                break;
               }
             }
           }
@@ -238,16 +240,6 @@ export function OfferCreationProgressDialog({
       }
     }
     return null;
-  };
-
-  // Check if all operations are complete
-  const isAllComplete = () => {
-    const hasEnabledMarketplaces =
-      Object.values(enabledMarketplaces).some(Boolean);
-    if (hasEnabledMarketplaces) {
-      return !isProcessing && !isUploading && uploadsCompleted;
-    }
-    return !isProcessing;
   };
 
   return (
