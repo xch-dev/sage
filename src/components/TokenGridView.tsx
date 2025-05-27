@@ -98,24 +98,9 @@ function TokenCardMenu({
 
 export function TokenGridView({
   cats,
-  xchBalance,
-  xchDecimals,
-  xchBalanceUsd,
-  xchPrice,
+  xchRecord,
   actionHandlers,
 }: TokenGridViewProps) {
-  const xchRecord: TokenRecord = {
-    asset_id: 'xch',
-    name: 'Chia',
-    ticker: 'XCH',
-    icon_url: 'https://icons.dexie.space/xch.webp',
-    balance: xchBalance,
-    balanceInUsd: xchBalanceUsd,
-    priceInUsd: xchPrice,
-    decimals: xchDecimals,
-    isXch: true,
-  };
-
   return (
     <div
       role='region'
@@ -128,24 +113,26 @@ export function TokenGridView({
             <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <CardTitle className='text-md font-medium'>Chia</CardTitle>
+                  <CardTitle className='text-md font-medium'>
+                    {xchRecord.name}
+                  </CardTitle>
                 </TooltipTrigger>
-                <TooltipContent>Chia</TooltipContent>
+                <TooltipContent>{xchRecord.name}</TooltipContent>
               </Tooltip>
               <img
                 alt={t`Token logo`}
                 aria-hidden='true'
                 className='h-6 w-6'
-                src='https://icons.dexie.space/xch.webp'
+                src={xchRecord.icon_url || ''}
                 loading='lazy'
               />
             </CardHeader>
             <CardContent className='flex flex-col gap-1'>
               <div className='text-2xl font-medium truncate'>
                 <NumberFormat
-                  value={fromMojos(xchBalance, xchDecimals)}
+                  value={fromMojos(xchRecord.balance, xchRecord.decimals)}
                   minimumFractionDigits={0}
-                  maximumFractionDigits={xchDecimals}
+                  maximumFractionDigits={xchRecord.decimals}
                 />
               </div>
               <div className='flex justify-between items-center text-sm text-neutral-500'>
@@ -154,7 +141,7 @@ export function TokenGridView({
                     <div>
                       ~
                       <NumberFormat
-                        value={xchBalanceUsd}
+                        value={xchRecord.balanceInUsd}
                         style='currency'
                         currency='USD'
                         minimumFractionDigits={2}
@@ -163,7 +150,9 @@ export function TokenGridView({
                     </div>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <span>1 XCH = ${xchPrice}</span>
+                    <span>
+                      1 {xchRecord.ticker} = ${xchRecord.priceInUsd}
+                    </span>
                   </TooltipContent>
                 </Tooltip>
                 <TokenCardMenu
