@@ -1,13 +1,22 @@
 import { commands, events, OfferRecord, TransactionResponse } from '@/bindings';
 import Container from '@/components/Container';
 import ConfirmationDialog from '@/components/ConfirmationDialog';
+import { CancelOfferConfirmation } from '@/components/confirmations/CancelOfferConfirmation';
 import { CancelOfferDialog } from '@/components/dialogs/CancelOfferDialog';
 import { DeleteOfferDialog } from '@/components/dialogs/DeleteOfferDialog';
 import { NfcScanDialog } from '@/components/dialogs/NfcScanDialog';
 import { ViewOfferDialog } from '@/components/dialogs/ViewOfferDialog';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogTrigger } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { useErrors } from '@/hooks/useErrors';
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
 import { amount } from '@/lib/formTypes';
@@ -66,8 +75,8 @@ export function Offers() {
   const [isCancelAllOpen, setCancelAllOpen] = useState(false);
   const [cancelAllResponse, setCancelAllResponse] =
     useState<TransactionResponse | null>(null);
+  const [cancelAllFee, setCancelAllFee] = useState<string>('');
   const [isDeleteAllOpen, setDeleteAllOpen] = useState(false);
-
   const cancelAllSchema = z.object({
     fee: amount(walletState.sync.unit.decimals).refine(
       (amount) => BigNumber(walletState.sync.balance).gte(amount || 0),
@@ -182,28 +191,27 @@ export function Offers() {
     }
   };
 
-  const handleCancelAll = (values: z.infer<typeof cancelAllSchema>) => {
+  const cancelAllHandler = (values: z.infer<typeof cancelAllSchema>) => {
     const fee = toMojos(values.fee, walletState.sync.unit.decimals);
     const activeOffers = filteredOffers.filter(
       (offer) => offer.status === 'active',
     );
 
-    Promise.all(
-      activeOffers.map((offer) =>
-        commands.cancelOffer({
-          offer_id: offer.offer_id,
-          fee,
-        }),
-      ),
-    )
-      .then((results) => {
-        // For simplicity, we'll show the first response in the confirmation dialog
-        if (results.length > 0) {
-          setCancelAllResponse(results[0]);
-        }
+    // Store the fee for display in confirmation
+    setCancelAllFee(`${values.fee} ${walletState.sync.unit.ticker}`);
+
+    commands
+      .cancelOffers({
+        offer_ids: activeOffers.map((offer) => offer.offer_id),
+        fee,
+      })
+      .then((response) => {
+        setCancelAllResponse(response);
       })
       .catch(addError)
-      .finally(() => setCancelAllOpen(false));
+      .finally(() => {
+        setCancelAllOpen(false);
+      });
   };
 
   return (
@@ -299,7 +307,7 @@ export function Offers() {
                           <Button
                             variant='outline'
                             size='sm'
-                            className='flex items-center gap-1 hidden'
+                            className='flex items-center gap-1'
                             onClick={() => setCancelAllOpen(true)}
                           >
                             <CircleOff className='h-4 w-4' />
@@ -355,11 +363,18 @@ export function Offers() {
 
       <NfcScanDialog open={showScanUi} onOpenChange={setShowScanUi} />
 
+      <DeleteOfferDialog
+        open={isDeleteAllOpen}
+        onOpenChange={setDeleteAllOpen}
+        onDelete={handleDeleteAll}
+        offerCount={filteredOffers.length}
+      />
+
       <CancelOfferDialog
         open={isCancelAllOpen}
         onOpenChange={setCancelAllOpen}
         form={cancelAllForm}
-        onSubmit={handleCancelAll}
+        onSubmit={cancelAllHandler}
         title={<Trans>Cancel all active offers?</Trans>}
         description={
           <Trans>
@@ -372,35 +387,23 @@ export function Offers() {
         feeLabel={<Trans>Network Fee (per offer)</Trans>}
       />
 
-      <DeleteOfferDialog
-        open={isDeleteAllOpen}
-        onOpenChange={setDeleteAllOpen}
-        onDelete={handleDeleteAll}
-        offerCount={filteredOffers.length}
-      />
-
       <ConfirmationDialog
         response={cancelAllResponse}
         showRecipientDetails={false}
-        close={() => setCancelAllResponse(null)}
+        close={() => {
+          setCancelAllResponse(null);
+          setCancelAllFee('');
+        }}
         onConfirm={updateOffers}
         additionalData={{
           title: t`Cancel All Active Offers`,
           content: cancelAllResponse && (
-            <div className='text-center'>
-              <p className='mb-2'>
-                <Trans>Successfully cancelled all active offers</Trans>
-              </p>
-              <p className='text-sm text-muted-foreground'>
-                <Trans>
-                  {
-                    filteredOffers.filter((offer) => offer.status === 'active')
-                      .length
-                  }{' '}
-                  offers were cancelled
-                </Trans>
-              </p>
-            </div>
+            <CancelOfferConfirmation
+              offers={filteredOffers.filter(
+                (offer) => offer.status === 'active',
+              )}
+              fee={cancelAllFee}
+            />
           ),
         }}
       />

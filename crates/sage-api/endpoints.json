@@ -61,6 +61,7 @@
   "get_offer": true,
   "delete_offer": true,
   "cancel_offer": true,
+  "cancel_offers": true,
   "get_peers": true,
   "remove_peer": true,
   "add_peer": true,
