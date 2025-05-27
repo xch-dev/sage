@@ -130,28 +130,30 @@ pub fn run() {
         .expect("Failed to export TypeScript bindings");
 
     let mut tauri_builder = tauri::Builder::default()
-        .plugin(tauri_plugin_fs::init())
-        .plugin(tauri_plugin_dialog::init());
+        .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_clipboard_manager::init())
+        .plugin(tauri_plugin_os::init());
 
-    #[cfg(not(any(target_os = "android", target_os = "ios")))]
+    #[cfg(not(mobile))]
     {
-        tauri_builder = tauri_builder.plugin(tauri_plugin_window_state::Builder::new().build());
+        tauri_builder = tauri_builder
+            .plugin(tauri_plugin_window_state::Builder::new().build())
+            .plugin(tauri_plugin_fs::init())
+            .plugin(tauri_plugin_dialog::init());
+    }
+
+    #[cfg(mobile)]
+    {
+        tauri_builder = tauri_builder
+            .plugin(tauri_plugin_barcode_scanner::init())
+            .plugin(tauri_plugin_safe_area_insets::init())
+            .plugin(tauri_plugin_biometric::init())
+            .plugin(tauri_plugin_sage::init());
     }
 
     tauri_builder
-        .plugin(tauri_plugin_opener::init())
-        .plugin(tauri_plugin_clipboard_manager::init())
-        .plugin(tauri_plugin_os::init())
         .invoke_handler(builder.invoke_handler())
         .setup(move |app| {
-            #[cfg(mobile)]
-            {
-                app.handle().plugin(tauri_plugin_barcode_scanner::init())?;
-                app.handle().plugin(tauri_plugin_safe_area_insets::init())?;
-                app.handle().plugin(tauri_plugin_biometric::init())?;
-                app.handle().plugin(tauri_plugin_sage::init())?;
-            }
-
             builder.mount_events(app);
             let path = app.path().app_data_dir()?;
             let app_state = AppState::new(Mutex::new(Sage::new(&path)));
