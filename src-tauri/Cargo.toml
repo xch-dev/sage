@@ -1,6 +1,6 @@
 [package]
 name = "sage-tauri"
-version = "0.10.2"
+version = "0.10.3"
 description = "A next generation Chia wallet."
 authors = ["Rigidity <me@rigidnetwork.com>"]
 license = "Apache-2.0"
@@ -47,10 +47,10 @@ tauri-plugin-fs = "2"
 tauri-plugin-window-state = { workspace = true }
 
 [target.'cfg(any(target_os = "android", target_os = "ios"))'.dependencies]
-tauri-plugin-nfc = { workspace = true }
 tauri-plugin-biometric = { workspace = true }
 tauri-plugin-barcode-scanner = { workspace = true }
 tauri-plugin-safe-area-insets = { workspace = true }
+tauri-plugin-sage = { workspace = true }
 
 [build-dependencies]
 tauri-build = { workspace = true, features = [] }

@@ -37,7 +37,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { TokenAmountInput } from '@/components/ui/masked-input';
+import { FeeAmountInput } from '@/components/ui/masked-input';
 import { Textarea } from '@/components/ui/textarea';
 import { useErrors } from '@/hooks/useErrors';
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
@@ -49,7 +49,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
-import { isAvailable, scan } from '@tauri-apps/plugin-nfc';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { platform } from '@tauri-apps/plugin-os';
 import BigNumber from 'bignumber.js';
@@ -68,6 +67,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import { getNdefPayloads, isNdefAvailable } from 'tauri-plugin-sage';
 import { z } from 'zod';
 
 export function Offers() {
@@ -142,7 +142,7 @@ export function Offers() {
   };
 
   useEffect(() => {
-    isAvailable().then((available) => setIsNfcAvailable(available));
+    isNdefAvailable().then(setIsNfcAvailable);
   }, [addError]);
 
   const handleNfcScan = async () => {
@@ -150,53 +150,19 @@ export function Offers() {
 
     if (isAndroid) setShowScanUi(true);
 
-    const tag = await scan(
-      { type: 'ndef' },
-      {
-        keepSessionAlive: false,
-        message: 'Scan an NFC tag',
-        successMessage: 'NFC tag successfully scanned',
-      },
-    )
+    const payloads = await getNdefPayloads()
       .catch((error) =>
         addError({ kind: 'internal', reason: `Failed to scan NFC: ${error}` }),
       )
       .finally(() => setShowScanUi(false));
 
-    if (!tag) return;
+    if (!payloads) return;
 
-    const payload = tag.records[0].payload.slice(3);
+    const payload = payloads[0].slice(3);
     const array = new Uint8Array(payload);
-    let text = new TextDecoder().decode(array);
+    const text = new TextDecoder().decode(array);
 
-    if (!text.startsWith('DT001')) {
-      addError({
-        kind: 'nfc',
-        reason: 'Invalid NFC payload (not following CHIP-0047)',
-      });
-      return;
-    }
-
-    text = text.slice(5);
-
-    const nftId = text.slice(0, 62);
-
-    if (nftId.length !== 62 || !nftId.startsWith('nft1')) {
-      addError({
-        kind: 'nfc',
-        reason:
-          'NFC payload starts with CHIP-0047 prefix but does not have a valid NFT ID',
-      });
-      return;
-    }
-
-    text = text.slice(62);
-
-    const offer = await commands.downloadCniOffercode(text).catch(addError);
-
-    if (!offer) return;
-
-    viewOffer(offer);
+    viewOffer(text);
   };
 
   return (
@@ -336,9 +302,6 @@ function Offer({ record, refresh }: OfferProps) {
 
   const cancelForm = useForm<z.infer<typeof cancelSchema>>({
     resolver: zodResolver(cancelSchema),
-    defaultValues: {
-      fee: '0',
-    },
   });
 
   const [response, setResponse] = useState<TransactionResponse | null>(null);
@@ -564,7 +527,7 @@ function Offer({ record, refresh }: OfferProps) {
                       <Trans>Network Fee</Trans>
                     </FormLabel>
                     <FormControl>
-                      <TokenAmountInput {...field} />
+                      <FeeAmountInput {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

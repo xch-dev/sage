@@ -27,7 +27,7 @@ export function useDefaultOfferExpiry() {
   const [expiry, setExpiry] = useLocalStorage<DefaultOfferExpiry>(
     'default-offer-expiry',
     {
-      enabled: false,
+      enabled: true,
       days: '1',
       hours: '',
       minutes: '',

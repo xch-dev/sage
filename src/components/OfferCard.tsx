@@ -100,7 +100,7 @@ export function OfferCard({
   };
 
   return (
-    <div className='flex flex-col gap-4 max-w-screen-lg'>
+    <div className='flex flex-col gap-4 max-w-screen-lg pr-1'>
       <Card>
         <CardHeader className='pb-2'>
           <CardTitle className='text-lg font-medium flex items-center'>
@@ -244,13 +244,13 @@ export function Assets({ assets, catPresence = {} }: AssetsProps) {
   return (
     <div className='flex flex-col gap-3'>
       {amount.isGreaterThan(0) && (
-        <div className='flex flex-col gap-2 rounded-lg border p-3'>
+        <div className='flex flex-col gap-2 rounded-lg border'>
           <div className='flex items-center gap-2'>
             <Badge className='px-2 py-0.5'>
               <span className='truncate'>{walletState.sync.unit.ticker}</span>
             </Badge>
 
-            <div className='font-medium'>
+            <div className='font-medium text-sm'>
               <NumberFormat
                 value={fromMojos(
                   BigNumber(amount).plus(assets.xch.royalty),
@@ -259,7 +259,7 @@ export function Assets({ assets, catPresence = {} }: AssetsProps) {
                 minimumFractionDigits={0}
                 maximumFractionDigits={walletState.sync.unit.decimals}
               />{' '}
-              {walletState.sync.unit.ticker}
+              <span className='truncate'>{walletState.sync.unit.ticker}</span>
             </div>
           </div>
 
@@ -274,7 +274,8 @@ export function Assets({ assets, catPresence = {} }: AssetsProps) {
                 minimumFractionDigits={0}
                 maximumFractionDigits={walletState.sync.unit.decimals}
               />{' '}
-              {walletState.sync.unit.ticker} <Trans>royalty</Trans>
+              <span className='truncate'>{walletState.sync.unit.ticker}</span>{' '}
+              <Trans>royalty</Trans>
             </div>
           )}
         </div>
@@ -287,13 +288,15 @@ export function Assets({ assets, catPresence = {} }: AssetsProps) {
               <span className='truncate'>{cat.ticker ?? 'CAT'}</span>
             </Badge>
 
-            <div className='font-medium'>
+            <div className='font-medium text-sm'>
               <NumberFormat
                 value={fromMojos(BigNumber(cat.amount).plus(cat.royalty), 3)}
                 minimumFractionDigits={0}
                 maximumFractionDigits={3}
               />{' '}
-              {cat.name ?? cat.ticker ?? t`Unknown`}
+              <span className='break-words'>
+                {cat.name ?? cat.ticker ?? t`Unknown`}
+              </span>
             </div>
 
             {catPresence && assetId in catPresence && (
@@ -331,7 +334,7 @@ export function Assets({ assets, catPresence = {} }: AssetsProps) {
               />
             )}
 
-            <div className='text-sm font-mono text-muted-foreground'>
+            <div className='text-sm font-mono text-muted-foreground truncate'>
               {assetId.slice(0, 10) + '...' + assetId.slice(-10)}
             </div>
 
@@ -346,7 +349,8 @@ export function Assets({ assets, catPresence = {} }: AssetsProps) {
                 minimumFractionDigits={0}
                 maximumFractionDigits={3}
               />{' '}
-              {cat.ticker ?? 'CAT'} <Trans>royalty</Trans>
+              <span className='truncate'>{cat.ticker ?? 'CAT'}</span>{' '}
+              <Trans>royalty</Trans>
             </div>
           )}
         </div>

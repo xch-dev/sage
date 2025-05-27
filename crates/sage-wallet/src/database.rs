@@ -121,7 +121,9 @@ pub async fn insert_puzzle(
             });
 
             if coin_state.spent_height.is_some()
-                && (row.created_height.is_none() || row.created_height > coin_state.created_height)
+                && (row.created_height.is_none()
+                    || row.created_height > coin_state.created_height
+                    || row.is_owned)
             {
                 return Ok(());
             }
@@ -171,10 +173,20 @@ pub async fn insert_puzzle(
                 is_owned: coin_state.spent_height.is_none(),
                 created_height: coin_state.created_height,
                 metadata_hash,
+                edition_number: metadata
+                    .as_ref()
+                    .map(|m| m.edition_number.try_into().ok())
+                    .flatten(),
+                edition_total: metadata
+                    .as_ref()
+                    .map(|m| m.edition_total.try_into().ok())
+                    .flatten(),
             });
 
             if coin_state.spent_height.is_some()
-                && (row.created_height.is_none() || row.created_height > coin_state.created_height)
+                && (row.created_height.is_none()
+                    || row.created_height > coin_state.created_height
+                    || row.is_owned)
             {
                 return Ok(());
             }
@@ -215,6 +227,20 @@ pub async fn insert_puzzle(
 
             row.owner_did = owner_did;
             row.created_height = coin_state.created_height;
+
+            // Update edition information if not already set
+            if row.edition_number.is_none() {
+                row.edition_number = metadata
+                    .as_ref()
+                    .map(|m| m.edition_number.try_into().ok())
+                    .flatten();
+            }
+            if row.edition_total.is_none() {
+                row.edition_total = metadata
+                    .as_ref()
+                    .map(|m| m.edition_total.try_into().ok())
+                    .flatten();
+            }
 
             tx.insert_nft(row).await?;
 

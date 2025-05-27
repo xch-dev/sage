@@ -21,7 +21,7 @@ import * as z from 'zod';
 import { commands, TransactionResponse } from '../bindings';
 import Container from '../components/Container';
 import { useWalletState } from '../state';
-import { TokenAmountInput } from '@/components/ui/masked-input';
+import { FeeAmountInput } from '@/components/ui/masked-input';
 import { Trans } from '@lingui/react/macro';
 import { t } from '@lingui/core/macro';
 import { CreateProfileConfirmation } from '@/components/confirmations/CreateProfileConfirmation';
@@ -88,12 +88,7 @@ export default function CreateProfile() {
                     </FormLabel>
                     <FormControl>
                       <div className='relative'>
-                        <TokenAmountInput {...field} className='pr-12' />
-                        <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
-                          <span className='text-gray-500 text-sm'>
-                            {walletState.sync.unit.ticker}
-                          </span>
-                        </div>
+                        <FeeAmountInput {...field} className='pr-12' />
                       </div>
                     </FormControl>
                     <FormMessage />

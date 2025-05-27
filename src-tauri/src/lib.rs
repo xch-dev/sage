@@ -114,6 +114,7 @@ pub fn run() {
             commands::stop_rpc_server,
             commands::get_rpc_run_on_startup,
             commands::set_rpc_run_on_startup,
+            commands::switch_wallet,
             commands::move_key,
             commands::download_cni_offercode,
         ])
@@ -147,8 +148,8 @@ pub fn run() {
             {
                 app.handle().plugin(tauri_plugin_barcode_scanner::init())?;
                 app.handle().plugin(tauri_plugin_safe_area_insets::init())?;
-                app.handle().plugin(tauri_plugin_nfc::init())?;
                 app.handle().plugin(tauri_plugin_biometric::init())?;
+                app.handle().plugin(tauri_plugin_sage::init())?;
             }
 
             builder.mount_events(app);

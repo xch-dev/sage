@@ -23,6 +23,7 @@ impl_endpoints! {
                 Self::Start => {
                     let mut sage = Sage::new(&path);
                     let mut receiver = sage.initialize().await?;
+                    sage.switch_wallet().await?;
                     tokio::spawn(async move { while let Some(_message) = receiver.recv().await {} });
                     start_rpc(Arc::new(Mutex::new(sage))).await
                 },
