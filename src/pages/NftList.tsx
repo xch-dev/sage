@@ -17,6 +17,7 @@ import { t } from '@lingui/core/macro';
 import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
 import { Pagination } from '@/components/Pagination';
 import useOfferStateWithDefault from '@/hooks/useOfferStateWithDefault';
+import { exportNfts } from '@/lib/exportNfts';
 
 export function NftList() {
   const navigate = useNavigate();
@@ -156,6 +157,17 @@ export function NftList() {
             canLoadMore={canLoadMore()}
             renderPagination={() => renderPagination(false)}
             aria-live='polite'
+            onExport={() =>
+              exportNfts({
+                sort,
+                group,
+                showHidden,
+                query,
+                collectionId,
+                ownerDid,
+                minterDid,
+              })
+            }
           />
         </div>
 
