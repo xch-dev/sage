@@ -1,9 +1,10 @@
-import { Assets, commands } from '@/bindings';
+import { Assets, CatRecord, commands } from '@/bindings';
 import { NftSelector } from '@/components/selectors/NftSelector';
 import { TokenSelector } from '@/components/selectors/TokenSelector';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { TokenAmountInput } from '@/components/ui/masked-input';
 import { Switch } from '@/components/ui/switch';
 import {
   Tooltip,
@@ -23,8 +24,6 @@ import {
   TrashIcon,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { CatRecord } from '@/bindings';
-import { TokenAmountInput } from '@/components/ui/masked-input';
 
 interface AssetSelectorProps {
   offering?: boolean;
@@ -170,7 +169,7 @@ export function AssetSelector({
             <span>NFTs</span>
           </Label>
           {offering && assets.nfts.filter((n) => n).length > 1 && (
-            <div className='flex items-center gap-2 mb-2'>
+            <div className='flex items-center gap-2 mt-1 mb-3'>
               <Switch
                 id='split-offers'
                 checked={splitNftOffers}

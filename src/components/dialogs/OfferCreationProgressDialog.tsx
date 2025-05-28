@@ -1,3 +1,5 @@
+import { commands, NetworkKind } from '@/bindings';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -6,18 +8,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Trans } from '@lingui/react/macro';
-import { t } from '@lingui/core/macro';
-import { LoaderCircleIcon } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { commands, NetworkKind } from '@/bindings';
+import { CustomError } from '@/contexts/ErrorContext';
 import { useErrors } from '@/hooks/useErrors';
 import { useOfferProcessor } from '@/hooks/useOfferProcessor';
-import { OfferState } from '@/state';
-import { useNavigate } from 'react-router-dom';
-import { CustomError } from '@/contexts/ErrorContext';
 import { marketplaces } from '@/lib/marketplaces';
+import { OfferState } from '@/state';
+import { t } from '@lingui/core/macro';
+import { Trans } from '@lingui/react/macro';
+import { LoaderCircleIcon } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -278,7 +278,7 @@ export function OfferCreationProgressDialog({
                   <Trans>
                     Please wait while{' '}
                     {splitNftOffers ? 'your offers are' : 'your offer is'} being
-                    {currentStep === 'creating' ? 'created' : 'uploaded'}
+                    {currentStep === 'creating' ? ' created' : ' uploaded'}
                     {currentStep === 'creating' &&
                     Object.values(enabledMarketplaces).some(Boolean)
                       ? ' and uploaded'
