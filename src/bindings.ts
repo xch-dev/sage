@@ -194,6 +194,9 @@ async deleteOffer(req: DeleteOffer) : Promise<DeleteOfferResponse> {
 async cancelOffer(req: CancelOffer) : Promise<TransactionResponse> {
     return await TAURI_INVOKE("cancel_offer", { req });
 },
+async cancelOffers(req: CancelOffers) : Promise<TransactionResponse> {
+    return await TAURI_INVOKE("cancel_offers", { req });
+},
 async networkConfig() : Promise<NetworkConfig> {
     return await TAURI_INVOKE("network_config");
 },
@@ -321,6 +324,7 @@ export type BulkMintNftsResponse = { nft_ids: string[]; summary: TransactionSumm
 export type BulkSendCat = { asset_id: string; addresses: string[]; amount: Amount; fee: Amount; include_hint?: boolean; memos?: string[] | null; auto_submit?: boolean }
 export type BulkSendXch = { addresses: string[]; amount: Amount; fee: Amount; memos?: string[] | null; auto_submit?: boolean }
 export type CancelOffer = { offer_id: string; fee: Amount; auto_submit?: boolean }
+export type CancelOffers = { offer_ids: string[]; fee: Amount; auto_submit?: boolean }
 export type CatAmount = { asset_id: string; amount: Amount }
 export type CatRecord = { asset_id: string; name: string | null; ticker: string | null; description: string | null; icon_url: string | null; visible: boolean; balance: Amount }
 export type ChangeMode = { mode: "default" } | 

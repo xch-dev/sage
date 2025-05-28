@@ -33,7 +33,11 @@ export function OfferSummaryCard({ record, content }: OfferSummaryCardProps) {
               <div className='text-muted-foreground text-sm'>
                 <span>
                   Expires:{' '}
-                  {formatTimestamp(record.summary.expiration_timestamp)}
+                  {formatTimestamp(
+                    record.summary.expiration_timestamp,
+                    'short',
+                    'medium',
+                  )}
                 </span>
               </div>
             )}

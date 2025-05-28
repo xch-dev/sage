@@ -14,11 +14,11 @@ use chrono::{Local, TimeZone};
 use clvmr::Allocator;
 use indexmap::IndexMap;
 use sage_api::{
-    Amount, CancelOffer, CancelOfferResponse, CatAmount, CombineOffers, CombineOffersResponse,
-    DeleteOffer, DeleteOfferResponse, GetOffer, GetOfferResponse, GetOffers, GetOffersResponse,
-    ImportOffer, ImportOfferResponse, MakeOffer, MakeOfferResponse, OfferAssets, OfferCat,
-    OfferNft, OfferRecord, OfferRecordStatus, OfferSummary, OfferXch, TakeOffer, TakeOfferResponse,
-    ViewOffer, ViewOfferResponse,
+    Amount, CancelOffer, CancelOfferResponse, CancelOffers, CancelOffersResponse, CatAmount,
+    CombineOffers, CombineOffersResponse, DeleteOffer, DeleteOfferResponse, GetOffer,
+    GetOfferResponse, GetOffers, GetOffersResponse, ImportOffer, ImportOfferResponse, MakeOffer,
+    MakeOfferResponse, OfferAssets, OfferCat, OfferNft, OfferRecord, OfferRecordStatus,
+    OfferSummary, OfferXch, TakeOffer, TakeOfferResponse, ViewOffer, ViewOfferResponse,
 };
 use sage_assets::fetch_uris_with_hash;
 use sage_database::{OfferCatRow, OfferNftRow, OfferRow, OfferStatus, OfferXchRow};
@@ -622,6 +622,31 @@ impl Sage {
 
         let offer = Offer::decode(&row.encoded_offer)?;
         let coin_spends = wallet.cancel_offer(offer, fee, false, true).await?;
+
+        self.transact(coin_spends, req.auto_submit).await
+    }
+
+    pub async fn cancel_offers(&self, req: CancelOffers) -> Result<CancelOffersResponse> {
+        let wallet = self.wallet()?;
+        let fee = parse_amount(req.fee)?;
+
+        let offer_ids = req
+            .offer_ids
+            .iter()
+            .map(|offer_id| parse_offer_id(offer_id.clone()))
+            .collect::<Result<Vec<_>>>()?;
+
+        let mut coin_spends = Vec::new();
+
+        for offer_id in offer_ids {
+            let Some(row) = wallet.db.get_offer(offer_id).await? else {
+                return Err(Error::MissingOffer(offer_id));
+            };
+
+            let offer = Offer::decode(&row.encoded_offer)?;
+            let spends = wallet.cancel_offer(offer, fee, false, true).await?;
+            coin_spends.extend(spends);
+        }
 
         self.transact(coin_spends, req.auto_submit).await
     }
