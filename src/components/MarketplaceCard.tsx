@@ -1,13 +1,15 @@
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, Share } from 'lucide-react';
 import { Trans } from '@lingui/react/macro';
 import { t } from '@lingui/core/macro';
 import { toast } from 'react-toastify';
 import { openUrl } from '@tauri-apps/plugin-opener';
+import { platform } from '@tauri-apps/plugin-os';
 import StyledQRCode from '@/components/StyledQrCode';
 import { useEffect, useState } from 'react';
 import { getOfferHash } from '@/lib/offerUpload';
 import { OfferSummary } from '@/bindings';
 import { OfferState } from '@/state';
+import { shareText } from '@buildyourwebapp/tauri-plugin-sharesheet';
 
 export interface MarketplaceConfig {
   id: string;
@@ -44,6 +46,7 @@ export function MarketplaceCard({
 }: MarketplaceCardProps) {
   const [isOnMarketplace, setIsOnMarketplace] = useState<boolean | null>(null);
   const [offerHash, setOfferHash] = useState<string>('');
+  const isMobile = platform() === 'ios' || platform() === 'android';
 
   useEffect(() => {
     let isMounted = true;
@@ -95,31 +98,60 @@ export function MarketplaceCard({
     }
   };
 
+  const handleShare = async () => {
+    if (!isOnMarketplace || !offerHash) return;
+
+    try {
+      const marketplaceLink = marketplace.getMarketplaceLink(
+        offerHash,
+        network === 'testnet',
+      );
+      await shareText(marketplaceLink);
+    } catch (error: unknown) {
+      toast.error(`${error instanceof Error ? error.message : String(error)}`);
+    }
+  };
+
   if (!marketplace.isSupported(offerSummary, false)) {
     return null;
   }
 
   return (
     <div className='flex flex-col items-center gap-4 w-auto'>
-      <button
-        onClick={handleMarketplaceAction}
-        className='flex items-center gap-2 px-3 py-1.5 rounded-md border hover:bg-accent w-fit'
-        title={marketplace.getMarketplaceLink(offerHash, network === 'testnet')}
-      >
-        <img
-          src={marketplace.logo}
-          className='h-4 w-4'
-          alt={`${marketplace.name} logo`}
-        />
-        <span className='text-sm'>
-          {isOnMarketplace ? (
-            <Trans>View on {marketplace.name}</Trans>
-          ) : (
-            <Trans>Upload to {marketplace.name}</Trans>
+      <div className='flex items-center gap-2'>
+        <button
+          onClick={handleMarketplaceAction}
+          className='flex items-center gap-2 px-3 py-1.5 rounded-md border hover:bg-accent w-fit'
+          title={marketplace.getMarketplaceLink(
+            offerHash,
+            network === 'testnet',
           )}
-        </span>
-        {isOnMarketplace && <ExternalLink className='h-4 w-4' />}
-      </button>
+        >
+          <img
+            src={marketplace.logo}
+            className='h-4 w-4'
+            alt={`${marketplace.name} logo`}
+          />
+          <span className='text-sm'>
+            {isOnMarketplace ? (
+              <Trans>View on {marketplace.name}</Trans>
+            ) : (
+              <Trans>Upload to {marketplace.name}</Trans>
+            )}
+          </span>
+          {isOnMarketplace && <ExternalLink className='h-4 w-4' />}
+        </button>
+
+        {isOnMarketplace && isMobile && (
+          <button
+            onClick={handleShare}
+            className='flex items-center gap-2 px-3 py-1.5 rounded-md border hover:bg-accent w-fit'
+            title={t`Share marketplace link`}
+          >
+            <Share className='h-4 w-4' aria-hidden='true' />
+          </button>
+        )}
+      </div>
 
       {isOnMarketplace && (
         <StyledQRCode

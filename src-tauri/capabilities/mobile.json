@@ -7,6 +7,7 @@
     "safe-area-insets:default",
     "barcode-scanner:default",
     "biometric:default",
-    "sage:default"
+    "sage:default",
+    "sharesheet:allow-share-text"
   ]
 }
