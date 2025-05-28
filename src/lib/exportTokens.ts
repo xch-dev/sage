@@ -40,8 +40,9 @@ export async function exportTokens(tokens: TokenRecord[]) {
 
     toast.dismiss();
 
-    await exportText(csvContent, 'tokens');
-    toast.success(t`Tokens exported successfully`);
+    if (await exportText(csvContent, 'tokens')) {
+      toast.success(t`Tokens exported successfully`);
+    }
   } catch (error) {
     console.error('Failed to export tokens:', error);
     toast.dismiss();

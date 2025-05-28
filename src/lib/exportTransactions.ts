@@ -122,8 +122,9 @@ export async function exportTransactions(params: TransactionQueryParams) {
 
     toast.dismiss();
 
-    await exportText(csvContent, 'transactions');
-    toast.success(t`Transactions exported successfully`);
+    if (await exportText(csvContent, 'transactions')) {
+      toast.success(t`Transactions exported successfully`);
+    }
   } catch (error) {
     console.error('Failed to export transactions:', error);
     toast.dismiss();

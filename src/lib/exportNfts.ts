@@ -107,8 +107,9 @@ export async function exportNfts(params: ExportParams) {
 
     toast.dismiss();
 
-    await exportText(csvContent, 'nfts');
-    toast.success(t`NFTs exported successfully`);
+    if (await exportText(csvContent, 'nfts')) {
+      toast.success(t`NFTs exported successfully`);
+    }
   } catch (error) {
     console.error('Failed to export NFTs:', error);
     toast.dismiss();

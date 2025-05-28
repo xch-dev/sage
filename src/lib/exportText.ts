@@ -11,9 +11,10 @@ export async function exportText(text: string, title: string) {
       mimeType: 'text/csv',
       title: title,
     });
-  } else {
-    await saveText(text, title);
+    return true;
   }
+
+  return await saveText(text, title);
 }
 
 async function saveText(text: string, title: string) {
@@ -29,5 +30,8 @@ async function saveText(text: string, title: string) {
 
   if (filePath) {
     await writeTextFile(filePath, text);
+    return true;
   }
+
+  return false;
 }
