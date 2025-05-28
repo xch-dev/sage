@@ -199,19 +199,17 @@ export function NftOptions({
             </Button>
           )}
 
-          {!isMobile && (
-            <Button
-              variant='outline'
-              size='icon'
-              aria-label={t`Export NFTs`}
-              title={t`Export NFTs`}
-              onClick={onExport}
-              disabled={!(group === NftGroupMode.None || isFilteredView)}
-              className='hidden sm:inline-flex'
-            >
-              <Download className='h-4 w-4' aria-hidden='true' />
-            </Button>
-          )}
+          <Button
+            variant='outline'
+            size='icon'
+            aria-label={t`Export NFTs`}
+            title={t`Export NFTs`}
+            onClick={onExport}
+            disabled={!(group === NftGroupMode.None || isFilteredView)}
+            className='hidden md:inline-flex'
+          >
+            <Download className='h-4 w-4' aria-hidden='true' />
+          </Button>
 
           <Button
             variant='outline'

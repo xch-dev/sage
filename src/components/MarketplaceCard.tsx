@@ -106,7 +106,10 @@ export function MarketplaceCard({
         offerHash,
         network === 'testnet',
       );
-      await shareText(marketplaceLink);
+      await shareText(marketplaceLink, {
+        title: t`${marketplace.name} link`,
+        mimeType: 'text/uri-list',
+      });
     } catch (error: unknown) {
       toast.error(`${error instanceof Error ? error.message : String(error)}`);
     }

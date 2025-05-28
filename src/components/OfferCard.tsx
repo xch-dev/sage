@@ -48,7 +48,10 @@ export function OfferCard({ record, summary, content }: OfferCardProps) {
     if (!offer) return;
 
     try {
-      await shareText(offer);
+      await shareText(offer, {
+        title: t`Offer`,
+        mimeType: 'text/plain',
+      });
     } catch (error: unknown) {
       toast.error(`${error instanceof Error ? error.message : String(error)}`);
     }
@@ -217,7 +220,7 @@ export function OfferCard({ record, summary, content }: OfferCardProps) {
         <Card>
           <CardHeader className='pb-2'>
             <CardTitle className='text-lg font-medium flex items-center'>
-              <ShoppingBasketIcon className='mr-2 h-5 w-5' />
+              <ShoppingBasketIcon className='mr-2 h-5 w-5' aria-hidden='true' />
               <Trans>Requested</Trans>
             </CardTitle>
             <p className='text-sm text-muted-foreground'>

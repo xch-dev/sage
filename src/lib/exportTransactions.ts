@@ -1,10 +1,8 @@
-import { save } from '@tauri-apps/plugin-dialog';
-import { writeTextFile } from '@tauri-apps/plugin-fs';
 import { TransactionRecord } from '@/bindings';
 import { t } from '@lingui/core/macro';
 import { toast } from 'react-toastify';
 import { commands } from '@/bindings';
-import { isValidAddress, isValidAssetId } from '@/lib/utils';
+import { exportText } from './exportText';
 
 interface TransactionQueryParams {
   search: string | null;
@@ -123,21 +121,9 @@ export async function exportTransactions(params: TransactionQueryParams) {
     ].join('\n');
 
     toast.dismiss();
-    // Open save dialog
-    const filePath = await save({
-      filters: [
-        {
-          name: 'CSV',
-          extensions: ['csv'],
-        },
-      ],
-      defaultPath: 'transactions.csv',
-    });
 
-    if (filePath) {
-      await writeTextFile(filePath, csvContent);
-      toast.success(t`Transactions exported successfully`);
-    }
+    await exportText(csvContent, 'transactions');
+    toast.success(t`Transactions exported successfully`);
   } catch (error) {
     console.error('Failed to export transactions:', error);
     toast.dismiss();

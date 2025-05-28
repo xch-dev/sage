@@ -1,8 +1,7 @@
-import { save } from '@tauri-apps/plugin-dialog';
-import { writeTextFile } from '@tauri-apps/plugin-fs';
 import { t } from '@lingui/core/macro';
 import { toast } from 'react-toastify';
 import { TokenRecord } from '@/types/TokenViewProps';
+import { exportText } from '@/lib/exportText';
 
 export async function exportTokens(tokens: TokenRecord[]) {
   try {
@@ -40,21 +39,9 @@ export async function exportTokens(tokens: TokenRecord[]) {
     ].join('\n');
 
     toast.dismiss();
-    // Open save dialog
-    const filePath = await save({
-      filters: [
-        {
-          name: 'CSV',
-          extensions: ['csv'],
-        },
-      ],
-      defaultPath: 'tokens.csv',
-    });
 
-    if (filePath) {
-      await writeTextFile(filePath, csvContent);
-      toast.success(t`Tokens exported successfully`);
-    }
+    await exportText(csvContent, 'tokens');
+    toast.success(t`Tokens exported successfully`);
   } catch (error) {
     console.error('Failed to export tokens:', error);
     toast.dismiss();
