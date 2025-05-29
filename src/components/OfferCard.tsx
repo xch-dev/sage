@@ -10,6 +10,7 @@ import {
   Tags,
   HandCoinsIcon,
   Share,
+  Copy,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
@@ -52,6 +53,17 @@ export function OfferCard({ record, summary, content }: OfferCardProps) {
         title: t`Offer`,
         mimeType: 'text/plain',
       });
+    } catch (error: unknown) {
+      toast.error(`${error instanceof Error ? error.message : String(error)}`);
+    }
+  };
+
+  const handleCopy = async () => {
+    if (!offer) return;
+
+    try {
+      await navigator.clipboard.writeText(offer);
+      toast.success(t`Offer copied to clipboard`);
     } catch (error: unknown) {
       toast.error(`${error instanceof Error ? error.message : String(error)}`);
     }
@@ -125,14 +137,27 @@ export function OfferCard({ record, summary, content }: OfferCardProps) {
               <InfoIcon className='mr-2 h-5 w-5' />
               <Trans>Offer Details</Trans>
             </CardTitle>
-            {isMobile && offer && (
-              <button
-                onClick={handleShare}
-                className='flex items-center gap-2 px-3 py-1.5 rounded-md border hover:bg-accent w-fit'
-                title={t`Share offer`}
-              >
-                <Share className='h-4 w-4' aria-hidden='true' />
-              </button>
+            {offer && (
+              <div className='flex items-center gap-2'>
+                {!isMobile && (
+                  <button
+                    onClick={handleCopy}
+                    className='flex items-center gap-2 px-3 py-1.5 rounded-md border hover:bg-accent w-fit'
+                    title={t`Copy offer`}
+                  >
+                    <Copy className='h-4 w-4' aria-hidden='true' />
+                  </button>
+                )}
+                {isMobile && (
+                  <button
+                    onClick={handleShare}
+                    className='flex items-center gap-2 px-3 py-1.5 rounded-md border hover:bg-accent w-fit'
+                    title={t`Share offer`}
+                  >
+                    <Share className='h-4 w-4' aria-hidden='true' />
+                  </button>
+                )}
+              </div>
             )}
           </div>
         </CardHeader>

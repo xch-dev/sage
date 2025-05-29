@@ -1,4 +1,4 @@
-import { ExternalLink, Share } from 'lucide-react';
+import { ExternalLink, Share, Copy } from 'lucide-react';
 import { Trans } from '@lingui/react/macro';
 import { t } from '@lingui/core/macro';
 import { toast } from 'react-toastify';
@@ -115,6 +115,21 @@ export function MarketplaceCard({
     }
   };
 
+  const handleCopy = async () => {
+    if (!isOnMarketplace || !offerHash) return;
+
+    try {
+      const marketplaceLink = marketplace.getMarketplaceLink(
+        offerHash,
+        network === 'testnet',
+      );
+      await navigator.clipboard.writeText(marketplaceLink);
+      toast.success(t`Link copied to clipboard`);
+    } catch (error: unknown) {
+      toast.error(`${error instanceof Error ? error.message : String(error)}`);
+    }
+  };
+
   if (!marketplace.isSupported(offerSummary, false)) {
     return null;
   }
@@ -152,6 +167,16 @@ export function MarketplaceCard({
             title={t`Share marketplace link`}
           >
             <Share className='h-4 w-4' aria-hidden='true' />
+          </button>
+        )}
+
+        {isOnMarketplace && !isMobile && (
+          <button
+            onClick={handleCopy}
+            className='flex items-center gap-2 px-3 py-1.5 rounded-md border hover:bg-accent w-fit'
+            title={t`Copy marketplace link`}
+          >
+            <Copy className='h-4 w-4' aria-hidden='true' />
           </button>
         )}
       </div>
