@@ -406,7 +406,7 @@ impl Sage {
         Ok(pool)
     }
 
-    fn wallet_db_path(&self, fingerprint: u32) -> Result<PathBuf> {
+    pub fn wallet_db_path(&self, fingerprint: u32) -> Result<PathBuf> {
         let path = self.path.join("wallets").join(fingerprint.to_string());
         fs::create_dir_all(&path)?;
         let network_id = self

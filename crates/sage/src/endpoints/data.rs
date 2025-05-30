@@ -51,6 +51,8 @@ impl Sage {
             .map(|puzzle_hash| Address::new(puzzle_hash, self.network().prefix()).encode())
             .transpose()?;
 
+        let database_size = self.wallet_db_path(wallet.fingerprint)?.metadata()?.len();
+
         Ok(GetSyncStatusResponse {
             balance: Amount::u128(balance),
             unit: self.unit.clone(),
@@ -61,6 +63,9 @@ impl Sage {
                 .encode()?,
             unhardened_derivation_index: wallet.db.derivation_index(false).await?,
             hardened_derivation_index: wallet.db.derivation_index(true).await?,
+            checked_uris: wallet.db.checked_uris().await?,
+            total_uris: wallet.db.total_uris().await?,
+            database_size,
         })
     }
 
