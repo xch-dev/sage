@@ -5777,6 +5777,7 @@ dependencies = [
  "tauri-plugin-os",
  "tauri-plugin-safe-area-insets",
  "tauri-plugin-sage",
+ "tauri-plugin-sharesheet",
  "tauri-plugin-window-state",
  "tauri-specta",
  "tokio",
@@ -6950,6 +6951,21 @@ name = "tauri-plugin-sage"
 version = "0.1.0"
 dependencies = [
  "serde",
+ "tauri",
+ "tauri-plugin",
+ "thiserror 1.0.69",
+]
+
+[[package]]
+name = "tauri-plugin-sharesheet"
+version = "0.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6fe9f40c5f62fe0780abe84f192f084beda5d66e1a9095a24fa99d1c5b9c0956"
+dependencies = [
+ "log",
+ "serde",
+ "serde_json",
+ "serde_repr",
  "tauri",
  "tauri-plugin",
  "thiserror 1.0.69",
