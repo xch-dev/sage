@@ -51,7 +51,11 @@ impl Sage {
             .map(|puzzle_hash| Address::new(puzzle_hash, self.network().prefix()).encode())
             .transpose()?;
 
-        let database_size = self.wallet_db_path(wallet.fingerprint)?.metadata()?.len();
+        let database_size = self
+            .wallet_db_path(wallet.fingerprint)
+            .ok()
+            .and_then(|path| path.metadata().ok())
+            .map_or(0, |metadata| metadata.len());
 
         Ok(GetSyncStatusResponse {
             balance: Amount::u128(balance),
