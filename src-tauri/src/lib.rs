@@ -56,6 +56,7 @@ pub fn run() {
             commands::view_coin_spends,
             commands::submit_transaction,
             commands::get_sync_status,
+            commands::get_version,
             commands::check_address,
             commands::get_derivations,
             commands::get_are_coins_spendable,

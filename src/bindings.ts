@@ -104,6 +104,9 @@ async submitTransaction(req: SubmitTransaction) : Promise<SubmitTransactionRespo
 async getSyncStatus(req: GetSyncStatus) : Promise<GetSyncStatusResponse> {
     return await TAURI_INVOKE("get_sync_status", { req });
 },
+async getVersion(req: GetVersion) : Promise<GetVersionResponse> {
+    return await TAURI_INVOKE("get_version", { req });
+},
 async checkAddress(req: CheckAddress) : Promise<CheckAddressResponse> {
     return await TAURI_INVOKE("check_address", { req });
 },
@@ -429,6 +432,8 @@ export type GetSyncStatus = Record<string, never>
 export type GetSyncStatusResponse = { balance: Amount; unit: Unit; synced_coins: number; total_coins: number; receive_address: string; burn_address: string; unhardened_derivation_index: number; hardened_derivation_index: number; checked_uris: number; total_uris: number; database_size: number }
 export type GetTransactions = { offset: number; limit: number; ascending: boolean; find_value: string | null }
 export type GetTransactionsResponse = { transactions: TransactionRecord[]; total: number }
+export type GetVersion = Record<string, never>
+export type GetVersionResponse = { version: string }
 export type GetXchCoins = { offset: number; limit: number; sort_mode?: CoinSortMode; ascending?: boolean; include_spent_coins?: boolean }
 export type GetXchCoinsResponse = { coins: CoinRecord[]; total: number }
 export type ImportKey = { name: string; key: string; derivation_index?: number; save_secrets?: boolean; login?: boolean }
