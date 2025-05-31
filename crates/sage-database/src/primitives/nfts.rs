@@ -185,6 +185,14 @@ impl Database {
     pub async fn nft_thumbnail(&self, hash: Bytes32) -> Result<Option<Vec<u8>>> {
         nft_thumbnail(&self.pool, hash).await
     }
+
+    pub async fn total_uris(&self) -> Result<u32> {
+        total_uris(&self.pool).await
+    }
+
+    pub async fn checked_uris(&self) -> Result<u32> {
+        checked_uris(&self.pool).await
+    }
 }
 
 impl DatabaseTx<'_> {
@@ -1312,4 +1320,22 @@ async fn update_nft_collection_ids(
     .await?;
 
     Ok(())
+}
+
+pub async fn total_uris(conn: impl SqliteExecutor<'_>) -> Result<u32> {
+    Ok(sqlx::query!("SELECT COUNT(*) AS `count` FROM `nft_uris`")
+        .fetch_one(conn)
+        .await?
+        .count
+        .try_into()?)
+}
+
+pub async fn checked_uris(conn: impl SqliteExecutor<'_>) -> Result<u32> {
+    Ok(
+        sqlx::query!("SELECT COUNT(*) AS `count` FROM `nft_uris` WHERE `checked` = 1")
+            .fetch_one(conn)
+            .await?
+            .count
+            .try_into()?,
+    )
 }

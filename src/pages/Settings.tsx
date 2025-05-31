@@ -1,4 +1,5 @@
 import Container from '@/components/Container';
+import { ResyncDialog } from '@/components/dialogs/ResyncDialog';
 import Header from '@/components/Header';
 import Layout from '@/components/Layout';
 import { PasteInput } from '@/components/PasteInput';
@@ -34,19 +35,27 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CustomError } from '@/contexts/ErrorContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useInsets } from '@/contexts/SafeAreaContext';
 import { useWallet } from '@/contexts/WalletContext';
 import { useBiometric } from '@/hooks/useBiometric';
+import { useDefaultFee } from '@/hooks/useDefaultFee';
 import { useDefaultOfferExpiry } from '@/hooks/useDefaultOfferExpiry';
 import { useErrors } from '@/hooks/useErrors';
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
 import { useWalletConnect } from '@/hooks/useWalletConnect';
-import { clearState, fetchState, useWalletState } from '@/state';
+import {
+  clearState,
+  fetchState,
+  updateSyncStatus,
+  useWalletState,
+} from '@/state';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { getVersion } from '@tauri-apps/api/app';
 import { platform } from '@tauri-apps/plugin-os';
 import { LoaderCircleIcon, TrashIcon, WalletIcon } from 'lucide-react';
+import prettyBytes from 'pretty-bytes';
 import { useContext, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -54,8 +63,6 @@ import { z } from 'zod';
 import { commands, Network, NetworkConfig, Wallet } from '../bindings';
 import { DarkModeContext } from '../contexts/DarkModeContext';
 import { isValidU32 } from '../validation';
-import { useDefaultFee } from '@/hooks/useDefaultFee';
-import { useInsets } from '@/contexts/SafeAreaContext';
 
 export default function Settings() {
   const { wallet } = useWallet();
@@ -91,9 +98,7 @@ export default function Settings() {
       <Container
         className='max-w-3xl'
         style={{
-          paddingBottom: insets.bottom
-            ? `${insets.bottom}px`
-            : 'env(safe-area-inset-bottom)',
+          paddingBottom: insets.bottom ? `${insets.bottom}px` : undefined,
         }}
       >
         <div className='flex flex-col gap-4'>
@@ -643,6 +648,7 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
   const [networks, setNetworks] = useState<Network[]>([]);
   const [deriveOpen, setDeriveOpen] = useState(false);
   const [pending, setPending] = useState(false);
+  const [resyncOpen, setResyncOpen] = useState(false);
 
   useEffect(() => {
     commands
@@ -695,7 +701,6 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
         isNaN(num) ||
         !isFinite(num) ||
         num < derivationIndex ||
-        num > 100000 ||
         Math.floor(num) != num
       )
         return false;
@@ -718,104 +723,131 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
       .increaseDerivationIndex({ index: parseInt(values.index) })
       .then(() => {
         setDeriveOpen(false);
+        updateSyncStatus();
       })
       .catch(addError)
       .finally(() => setPending(false));
   };
 
   return (
-    <SettingsSection title={t`Wallet`}>
-      <SettingItem
-        label={t`Wallet Name`}
-        description={t`Give your wallet a memorable name`}
-        control={
-          <Input
-            type='text'
-            className='w-[200px]'
-            value={localName}
-            onChange={(event) => setLocalName(event.target.value)}
-            onBlur={() => {
-              if (localName === wallet?.name) return;
-
-              commands
-                .renameKey({
-                  fingerprint,
-                  name: localName,
-                })
-                .then(() => {
-                  if (wallet) {
-                    setWallet({ ...wallet, name: localName });
-                  }
-                })
-                .catch(addError);
-            }}
-          />
-        }
-      />
-
-      <SettingItem
-        label={t`Override Network`}
-        description={t`Override the default network for this wallet`}
-        control={
-          <Switch
-            checked={!!wallet?.network}
-            onCheckedChange={(checked) => {
-              if (checked) {
-                addOverride();
-              } else {
-                setOverride(null);
-              }
-            }}
-          />
-        }
-      />
-
-      {!!wallet?.network && (
+    <div className='flex flex-col gap-4'>
+      <SettingsSection title={t`Wallet`}>
         <SettingItem
-          label={t`Network`}
-          description={t`The network which this wallet will use`}
+          label={t`Wallet Name`}
+          description={t`Give your wallet a memorable name`}
           control={
-            <Select
-              value={wallet?.network}
-              onValueChange={(name) => {
-                setOverride(name);
+            <Input
+              type='text'
+              className='w-[200px]'
+              value={localName}
+              onChange={(event) => setLocalName(event.target.value)}
+              onBlur={() => {
+                if (localName === wallet?.name) return;
+
+                commands
+                  .renameKey({
+                    fingerprint,
+                    name: localName,
+                  })
+                  .then(() => {
+                    if (wallet) {
+                      setWallet({ ...wallet, name: localName });
+                    }
+                  })
+                  .catch(addError);
               }}
-            >
-              <SelectTrigger
-                id='network'
-                aria-label='Select network'
-                className='w-[140px]'
-              >
-                <SelectValue placeholder={<Trans>Select network</Trans>} />
-              </SelectTrigger>
-              <SelectContent>
-                {networks.map((network, i) => (
-                  <SelectItem key={i} value={network.name}>
-                    {network.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            />
           }
         />
-      )}
 
-      <SettingItem
-        label={t`Derivation Index`}
-        description={t`The number of addresses managed by this wallet`}
-        control={
-          <div className='flex items-center gap-3'>
-            <span className='text-md'>{derivationIndex}</span>
+        <SettingItem
+          label={t`Override Network`}
+          description={t`Override the default network for this wallet`}
+          control={
+            <Switch
+              checked={!!wallet?.network}
+              onCheckedChange={(checked) => {
+                if (checked) {
+                  addOverride();
+                } else {
+                  setOverride(null);
+                }
+              }}
+            />
+          }
+        >
+          {!!wallet?.network && (
+            <div className='mt-3'>
+              <Select
+                value={wallet?.network}
+                onValueChange={(name) => {
+                  setOverride(name);
+                }}
+              >
+                <SelectTrigger
+                  id='network'
+                  aria-label='Select network'
+                  className='w-[140px]'
+                >
+                  <SelectValue placeholder={<Trans>Select network</Trans>} />
+                </SelectTrigger>
+                <SelectContent>
+                  {networks.map((network, i) => (
+                    <SelectItem key={i} value={network.name}>
+                      {network.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </SettingItem>
+      </SettingsSection>
+
+      <SettingsSection title={t`Syncing`}>
+        <SettingItem
+          label={t`Derivation Index`}
+          description={t`The number of addresses managed by this wallet`}
+          control={
+            <div className='flex items-center gap-3'>
+              <span className='text-md'>{derivationIndex}</span>
+              <Button
+                variant='secondary'
+                size='sm'
+                onClick={() => setDeriveOpen(true)}
+              >
+                <Trans>Increase</Trans>
+              </Button>
+            </div>
+          }
+        />
+
+        <SettingItem
+          label={t`Resync`}
+          description={t`Delete and redownload coin data from the network`}
+          control={
             <Button
-              variant='secondary'
+              variant='destructive'
               size='sm'
-              onClick={() => setDeriveOpen(true)}
+              onClick={() => setResyncOpen(true)}
             >
-              <Trans>Increase</Trans>
+              <Trans>Resync</Trans>
             </Button>
-          </div>
-        }
-      />
+          }
+        />
+      </SettingsSection>
+
+      <SettingsSection title={t`Status`}>
+        <SettingItem
+          label={t`Database Size`}
+          description={t`The size of the database`}
+          control={
+            <span className='text-md'>
+              {prettyBytes(walletState.sync.database_size, { locale: true })}
+            </span>
+          }
+        />
+      </SettingsSection>
 
       <Dialog open={deriveOpen} onOpenChange={setDeriveOpen}>
         <DialogContent>
@@ -878,6 +910,14 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
           </Form>
         </DialogContent>
       </Dialog>
-    </SettingsSection>
+
+      <ResyncDialog
+        open={resyncOpen}
+        setOpen={setResyncOpen}
+        submit={async (options) => {
+          await commands.resync({ fingerprint, ...options });
+        }}
+      />
+    </div>
   );
 }

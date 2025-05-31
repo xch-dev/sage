@@ -31,7 +31,7 @@ impl NftUriQueue {
     }
 
     async fn process_batch(&self) -> Result<(), WalletError> {
-        let batch = self.db.unchecked_nft_uris(10).await?;
+        let batch = self.db.unchecked_nft_uris(25).await?;
 
         if batch.is_empty() {
             return Ok(());
