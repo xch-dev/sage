@@ -65,7 +65,7 @@ export async function fetchState() {
   await Promise.all([updateSyncStatus()]);
 }
 
-function updateSyncStatus() {
+export function updateSyncStatus() {
   commands
     .getSyncStatus({})
     .then((sync) => useWalletState.setState({ sync }))
@@ -81,6 +81,9 @@ events.syncEvent.listen((event) => {
       updateSyncStatus();
       break;
     case 'puzzle_batch_synced':
+      updateSyncStatus();
+      break;
+    case 'nft_data':
       updateSyncStatus();
       break;
   }
@@ -134,6 +137,9 @@ export function defaultState(): WalletState {
       synced_coins: 0,
       unhardened_derivation_index: 0,
       hardened_derivation_index: 0,
+      checked_uris: 0,
+      total_uris: 0,
+      database_size: 0,
     },
   };
 }

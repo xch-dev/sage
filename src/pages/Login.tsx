@@ -1,3 +1,4 @@
+import { ResyncDialog } from '@/components/dialogs/ResyncDialog';
 import SafeAreaView from '@/components/SafeAreaView';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,7 +20,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Switch } from '@/components/ui/switch';
 import { DarkModeContext } from '@/contexts/DarkModeContext';
 import { useBiometric } from '@/hooks/useBiometric';
 import { useErrors } from '@/hooks/useErrors';
@@ -265,21 +265,6 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
   const [isRenameOpen, setRenameOpen] = useState(false);
   const [newName, setNewName] = useState('');
   const [isResyncOpen, setResyncOpen] = useState(false);
-  const [deleteOffers, setDeleteOffers] = useState(false);
-  const [deleteUnhardened, setDeleteUnhardened] = useState(false);
-  const [deleteHardened, setDeleteHardened] = useState(false);
-
-  const resyncSelf = () => {
-    commands
-      .resync({
-        fingerprint: info.fingerprint,
-        delete_offer_files: deleteOffers,
-        delete_unhardened_derivations: deleteUnhardened,
-        delete_hardened_derivations: deleteHardened,
-      })
-      .catch(addError)
-      .finally(() => setResyncOpen(false));
-  };
 
   const deleteSelf = async () => {
     if (await promptIfEnabled()) {
@@ -503,63 +488,17 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
         </CardContent>
       </Card>
 
-      <Dialog
+      <ResyncDialog
         open={isResyncOpen}
-        onOpenChange={(open) => !open && setResyncOpen(false)}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              <Trans>Resync on {networkId}</Trans>
-            </DialogTitle>
-            <DialogDescription>
-              <Trans>
-                Are you sure you want to resync this wallet's data? This will
-                re-download data from the network which can take a while
-                depending on the size of the wallet.
-              </Trans>
-              <div className='flex items-center gap-2 my-2'>
-                <label htmlFor='deleteOffers'>
-                  <Trans>Delete saved offer files</Trans>
-                </label>
-                <Switch
-                  id='deleteOffers'
-                  checked={deleteOffers}
-                  onCheckedChange={(value) => setDeleteOffers(value)}
-                />
-              </div>
-              <div className='flex items-center gap-2 my-2'>
-                <label htmlFor='deleteUnhardened'>
-                  <Trans>Delete unhardened addresses</Trans>
-                </label>
-                <Switch
-                  id='deleteUnhardened'
-                  checked={deleteUnhardened}
-                  onCheckedChange={(value) => setDeleteUnhardened(value)}
-                />
-              </div>
-              <div className='flex items-center gap-2 my-2'>
-                <label htmlFor='deleteHardened'>
-                  <Trans>Delete hardened addresses</Trans>
-                </label>
-                <Switch
-                  id='deleteHardened'
-                  checked={deleteHardened}
-                  onCheckedChange={(value) => setDeleteHardened(value)}
-                />
-              </div>
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant='outline' onClick={() => setResyncOpen(false)}>
-              <Trans>Cancel</Trans>
-            </Button>
-            <Button variant='destructive' onClick={resyncSelf} autoFocus>
-              <Trans>Resync</Trans>
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        setOpen={setResyncOpen}
+        networkId={networkId}
+        submit={async (options) => {
+          await commands.resync({
+            fingerprint: info.fingerprint,
+            ...options,
+          });
+        }}
+      />
 
       <Dialog
         open={isDeleteOpen}
