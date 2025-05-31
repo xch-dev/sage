@@ -55,6 +55,7 @@ import { Trans } from '@lingui/react/macro';
 import { getVersion } from '@tauri-apps/api/app';
 import { platform } from '@tauri-apps/plugin-os';
 import { LoaderCircleIcon, TrashIcon, WalletIcon } from 'lucide-react';
+import prettyBytes from 'pretty-bytes';
 import { useContext, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -803,7 +804,7 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
         </SettingItem>
       </SettingsSection>
 
-      <SettingsSection title={t`Sync`}>
+      <SettingsSection title={t`Syncing`}>
         <SettingItem
           label={t`Derivation Index`}
           description={t`The number of addresses managed by this wallet`}
@@ -832,6 +833,18 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
             >
               <Trans>Resync</Trans>
             </Button>
+          }
+        />
+      </SettingsSection>
+
+      <SettingsSection title={t`Status`}>
+        <SettingItem
+          label={t`Database Size`}
+          description={t`The size of the database`}
+          control={
+            <span className='text-md'>
+              {prettyBytes(walletState.sync.database_size, { locale: true })}
+            </span>
           }
         />
       </SettingsSection>
