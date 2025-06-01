@@ -10,7 +10,7 @@
   "get_secret_key": false,
   "get_keys": false,
   "get_sync_status": true,
-  "get_version": true,
+  "get_version": false,
   "check_address": true,
   "get_derivations": true,
   "get_are_coins_spendable": true,

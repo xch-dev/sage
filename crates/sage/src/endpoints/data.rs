@@ -34,7 +34,7 @@ use sage_wallet::WalletError;
 use sqlx::{sqlite::SqliteRow, Row};
 
 impl Sage {
-    pub async fn get_version(&self, _req: GetVersion) -> Result<GetVersionResponse> {
+    pub fn get_version(&self, _req: GetVersion) -> Result<GetVersionResponse> {
         Ok(GetVersionResponse {
             version: env!("CARGO_PKG_VERSION").to_string(),
         })
