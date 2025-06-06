@@ -1,10 +1,9 @@
-import { save } from '@tauri-apps/plugin-dialog';
-import { writeTextFile } from '@tauri-apps/plugin-fs';
 import { t } from '@lingui/core/macro';
 import { toast } from 'react-toastify';
 import { commands, NftRecord } from '@/bindings';
 import { NftGroupMode, NftSortMode } from '@/hooks/useNftParams';
 import { isValidAddress } from '@/lib/utils';
+import { exportText } from './exportText';
 
 interface ExportParams {
   sort: NftSortMode;
@@ -107,19 +106,8 @@ export async function exportNfts(params: ExportParams) {
     ].join('\n');
 
     toast.dismiss();
-    // Open save dialog
-    const filePath = await save({
-      filters: [
-        {
-          name: 'CSV',
-          extensions: ['csv'],
-        },
-      ],
-      defaultPath: 'nfts.csv',
-    });
 
-    if (filePath) {
-      await writeTextFile(filePath, csvContent);
+    if (await exportText(csvContent, 'nfts')) {
       toast.success(t`NFTs exported successfully`);
     }
   } catch (error) {

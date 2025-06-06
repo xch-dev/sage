@@ -25,9 +25,6 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useState, useEffect } from 'react';
-import { TransactionRecord } from '@/bindings';
-import { commands } from '@/bindings';
-import { platform } from '@tauri-apps/plugin-os';
 
 const optionsPaginationVariants = {
   enter: { opacity: 1, y: 0 },
@@ -53,7 +50,6 @@ export function TransactionOptions({
 }: TransactionOptionsProps) {
   const { search, ascending, summarized } = params;
   const [searchValue, setSearchValue] = useState(search);
-  const isMobile = platform() === 'ios' || platform() === 'android';
   const debouncedSearch = useDebounce(searchValue, 400);
 
   useEffect(() => {
@@ -113,17 +109,15 @@ export function TransactionOptions({
           </motion.div>
         </AnimatePresence>
         <div className='flex gap-2'>
-          {!isMobile && (
-            <Button
-              variant='outline'
-              size='icon'
-              aria-label={t`Export transactions`}
-              title={t`Export transactions`}
-              onClick={onExport}
-            >
-              <Download className='h-4 w-4' aria-hidden='true' />
-            </Button>
-          )}
+          <Button
+            variant='outline'
+            size='icon'
+            aria-label={t`Export transactions`}
+            title={t`Export transactions`}
+            onClick={onExport}
+          >
+            <Download className='h-4 w-4' aria-hidden='true' />
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
