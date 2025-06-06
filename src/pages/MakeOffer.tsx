@@ -17,7 +17,6 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { MakeOfferConfirmationDialog } from '@/components/dialogs/MakeOfferConfirmationDialog';
 import { AssetSelector } from '@/components/selectors/AssetSelector';
 import { OfferCreationProgressDialog } from '@/components/dialogs/OfferCreationProgressDialog';
-import { marketplaces } from '@/lib/marketplaces';
 
 export function MakeOffer() {
   const [state, setState] = useOfferStateWithDefault();

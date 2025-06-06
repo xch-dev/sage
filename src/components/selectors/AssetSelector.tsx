@@ -243,6 +243,7 @@ export function AssetSelector({
                   .map((c) => c.asset_id)}
                 className='rounded-r-none'
                 hideZeroBalance={offering === true}
+                includeDexieList={offering !== true}
               />
               <div className='flex flex-grow-0'>
                 <TokenAmountInput
