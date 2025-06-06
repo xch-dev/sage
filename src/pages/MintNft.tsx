@@ -34,8 +34,7 @@ import * as z from 'zod';
 import { commands, TransactionResponse } from '../bindings';
 import Container from '../components/Container';
 import { useWalletState } from '../state';
-import { FeeAmountInput } from '@/components/ui/masked-input';
-import { Switch } from '@/components/ui/switch';
+import { FeeAmountInput, MaskedInput } from '@/components/ui/masked-input';
 import { IntegerInput } from '@/components/ui/masked-input';
 
 export default function MintNft() {
@@ -264,9 +263,16 @@ export default function MintNft() {
                     </FormLabel>
                     <FormControl>
                       <div className='relative'>
-                        <Input
-                          type='text'
+                        <MaskedInput
+                          title={t`The maximum royalty percent is 655.36%`}
                           placeholder={t`Enter percent`}
+                          allowLeadingZeros={true}
+                          allowNegative={false}
+                          decimalScale={2}
+                          isAllowed={(values) => {
+                            const { floatValue } = values;
+                            return !floatValue || floatValue <= 655.36;
+                          }}
                           {...field}
                           className='pr-12'
                         />
