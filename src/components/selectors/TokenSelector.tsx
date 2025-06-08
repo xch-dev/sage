@@ -5,6 +5,7 @@ import { Input } from '../ui/input';
 import { DropdownSelector } from './DropdownSelector';
 import { t } from '@lingui/core/macro';
 import { isValidAssetId } from '@/lib/utils';
+import { usePrices } from '@/hooks/usePrices';
 
 export interface TokenSelectorProps {
   value: string | null;
@@ -12,6 +13,7 @@ export interface TokenSelectorProps {
   disabled?: string[];
   className?: string;
   hideZeroBalance?: boolean;
+  includeDexieList?: boolean;
 }
 
 export function TokenSelector({
@@ -20,29 +22,76 @@ export function TokenSelector({
   disabled = [],
   className,
   hideZeroBalance = false,
+  includeDexieList = false,
 }: TokenSelectorProps) {
   const { addError } = useErrors();
+  const { getCatList } = usePrices();
 
   const [tokens, setTokens] = useState<CatRecord[]>([]);
   const [selectedToken, setSelectedToken] = useState<CatRecord | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
+    let isMounted = true;
     commands
       .getCats({})
       .then((data) => {
+        if (!isMounted) return;
         if (tokens.length) return;
 
-        setTokens(data.cats);
+        const walletTokens = data.cats;
+        let allTokens = walletTokens;
+
+        if (includeDexieList) {
+          // Convert CatListItem[] to CatRecord[]
+          const dexieTokens: CatRecord[] = getCatList().map((cat) => ({
+            asset_id: cat.asset_id,
+            name: cat.name,
+            ticker: cat.ticker,
+            description: null,
+            icon_url: cat.icon_url,
+            visible: true,
+            balance: 0,
+          }));
+
+          // Merge and deduplicate by asset_id
+          const tokenMap = new Map<string, CatRecord>();
+          [...walletTokens, ...dexieTokens].forEach((token) => {
+            if (!tokenMap.has(token.asset_id)) {
+              tokenMap.set(token.asset_id, token);
+            }
+          });
+          allTokens = Array.from(tokenMap.values());
+
+          // Sort by name (nulls last)
+          allTokens.sort((a, b) => {
+            if (!a.name && !b.name) return 0;
+            if (!a.name) return 1;
+            if (!b.name) return -1;
+            return a.name.localeCompare(b.name);
+          });
+        }
+
+        setTokens(allTokens);
 
         if (value && !selectedToken) {
           setSelectedToken(
-            data.cats.find((token) => token.asset_id === value) ?? null,
+            allTokens.find((token) => token.asset_id === value) ?? null,
           );
         }
       })
       .catch(addError);
-  }, [addError, tokens.length, value, selectedToken]);
+    return () => {
+      isMounted = false;
+    };
+  }, [
+    addError,
+    tokens.length,
+    value,
+    selectedToken,
+    includeDexieList,
+    getCatList,
+  ]);
 
   // Filter tokens based on search term or show all if it's a valid asset ID
   const filteredTokens = tokens.filter((token) => {
