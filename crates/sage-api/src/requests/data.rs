@@ -55,6 +55,16 @@ pub struct GetSyncStatusResponse {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct GetVersion {}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct GetVersionResponse {
+    pub version: String,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[serde(rename_all = "snake_case")]
 pub enum CoinSortMode {
     CoinId,
