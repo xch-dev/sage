@@ -23,7 +23,6 @@ import {
 import { TokenSortMode } from '@/hooks/useTokenParams';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useState, useEffect } from 'react';
-import { platform } from '@tauri-apps/plugin-os';
 
 interface TokenOptionsProps {
   query: string;
@@ -58,7 +57,6 @@ export function TokenOptions({
 }: TokenOptionsProps) {
   const [searchValue, setSearchValue] = useState(query);
   const debouncedSearch = useDebounce(searchValue);
-  const isMobile = platform() === 'ios' || platform() === 'android';
 
   useEffect(() => {
     setSearchValue(query);
@@ -116,17 +114,15 @@ export function TokenOptions({
         </div>
 
         <div className='flex gap-2'>
-          {!isMobile && (
-            <Button
-              variant='outline'
-              size='icon'
-              aria-label={t`Export tokens`}
-              title={t`Export tokens`}
-              onClick={onExport}
-            >
-              <Download className='h-4 w-4' aria-hidden='true' />
-            </Button>
-          )}
+          <Button
+            variant='outline'
+            size='icon'
+            aria-label={t`Export tokens`}
+            title={t`Export tokens`}
+            onClick={onExport}
+          >
+            <Download className='h-4 w-4' aria-hidden='true' />
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button

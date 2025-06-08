@@ -1,6 +1,5 @@
 import { DataTable } from '@/components/ui/data-table';
 import { cn } from '@/lib/utils';
-import { useWalletState } from '@/state';
 import { TokenRecord, TokenViewProps } from '@/types/TokenViewProps';
 import { t } from '@lingui/core/macro';
 import { columns, TokenActionHandlers } from './TokenColumns';
@@ -14,8 +13,6 @@ export function TokenListView({
   xchRecord,
   actionHandlers,
 }: TokenListViewProps) {
-  const walletState = useWalletState();
-
   const tokens: TokenRecord[] = [
     xchRecord,
     ...cats.map((cat) => ({
