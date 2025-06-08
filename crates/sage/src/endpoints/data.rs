@@ -25,15 +25,21 @@ use sage_api::{
     GetNftResponse, GetNftThumbnail, GetNftThumbnailResponse, GetNfts, GetNftsResponse,
     GetPendingTransactions, GetPendingTransactionsResponse, GetSpendableCoinCount,
     GetSpendableCoinCountResponse, GetSyncStatus, GetSyncStatusResponse, GetTransactions,
-    GetTransactionsResponse, GetXchCoins, GetXchCoinsResponse, NftCollectionRecord, NftData,
-    NftRecord, NftSortMode as ApiNftSortMode, PendingTransactionRecord, TransactionCoin,
-    TransactionRecord,
+    GetTransactionsResponse, GetVersion, GetVersionResponse, GetXchCoins, GetXchCoinsResponse,
+    NftCollectionRecord, NftData, NftRecord, NftSortMode as ApiNftSortMode,
+    PendingTransactionRecord, TransactionCoin, TransactionRecord,
 };
 use sage_database::{CoinKind, CoinSortMode, NftGroup, NftRow, NftSearchParams, NftSortMode};
 use sage_wallet::WalletError;
 use sqlx::{sqlite::SqliteRow, Row};
 
 impl Sage {
+    pub fn get_version(&self, _req: GetVersion) -> Result<GetVersionResponse> {
+        Ok(GetVersionResponse {
+            version: env!("CARGO_PKG_VERSION").to_string(),
+        })
+    }
+
     pub async fn get_sync_status(&self, _req: GetSyncStatus) -> Result<GetSyncStatusResponse> {
         let wallet = self.wallet()?;
 
