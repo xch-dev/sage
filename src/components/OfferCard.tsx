@@ -3,11 +3,14 @@ import { NumberFormat } from '@/components/NumberFormat';
 import { fromMojos, formatTimestamp } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { Trans } from '@lingui/react/macro';
+import { t } from '@lingui/core/macro';
 import {
   ShoppingBasketIcon,
   InfoIcon,
   Tags,
   HandCoinsIcon,
+  Share,
+  Copy,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
@@ -15,6 +18,9 @@ import { cn } from '@/lib/utils';
 import { Assets } from '@/components/Assets';
 import { MarketplaceCard } from '@/components/MarketplaceCard';
 import { marketplaces } from '@/lib/marketplaces';
+import { shareText } from '@buildyourwebapp/tauri-plugin-sharesheet';
+import { platform } from '@tauri-apps/plugin-os';
+import { toast } from 'react-toastify';
 
 // Interface to track CAT presence in wallet
 interface CatPresence {
@@ -33,10 +39,35 @@ export function OfferCard({ record, summary, content }: OfferCardProps) {
   // State to track which CATs are present in the wallet
   const [catPresence, setCatPresence] = useState<CatPresence>({});
   const [network, setNetwork] = useState<NetworkKind | null>(null);
+  const isMobile = platform() === 'ios' || platform() === 'android';
 
   const offerSummary = summary || record?.summary;
   const offerId = record?.offer_id || '';
   const offer = record?.offer || undefined;
+
+  const handleShare = async () => {
+    if (!offer) return;
+
+    try {
+      await shareText(offer, {
+        title: t`Offer`,
+        mimeType: 'text/plain',
+      });
+    } catch (error: unknown) {
+      toast.error(`${error instanceof Error ? error.message : String(error)}`);
+    }
+  };
+
+  const handleCopy = async () => {
+    if (!offer) return;
+
+    try {
+      await navigator.clipboard.writeText(offer);
+      toast.success(t`Offer copied to clipboard`);
+    } catch (error: unknown) {
+      toast.error(`${error instanceof Error ? error.message : String(error)}`);
+    }
+  };
 
   // Check if CATs in the receiving section are present in the wallet
   useEffect(() => {
@@ -101,10 +132,34 @@ export function OfferCard({ record, summary, content }: OfferCardProps) {
     <div className='flex flex-col gap-4 max-w-screen-lg pr-1'>
       <Card>
         <CardHeader className='pb-2'>
-          <CardTitle className='text-lg font-medium flex items-center'>
-            <InfoIcon className='mr-2 h-5 w-5' />
-            <Trans>Offer Details</Trans>
-          </CardTitle>
+          <div className='flex items-center justify-between'>
+            <CardTitle className='text-lg font-medium flex items-center'>
+              <InfoIcon className='mr-2 h-5 w-5' />
+              <Trans>Offer Details</Trans>
+            </CardTitle>
+            {offer && (
+              <div className='flex items-center gap-2'>
+                {!isMobile && (
+                  <button
+                    onClick={handleCopy}
+                    className='flex items-center gap-2 px-3 py-1.5 rounded-md border hover:bg-accent w-fit'
+                    title={t`Copy offer`}
+                  >
+                    <Copy className='h-4 w-4' aria-hidden='true' />
+                  </button>
+                )}
+                {isMobile && (
+                  <button
+                    onClick={handleShare}
+                    className='flex items-center gap-2 px-3 py-1.5 rounded-md border hover:bg-accent w-fit'
+                    title={t`Share offer`}
+                  >
+                    <Share className='h-4 w-4' aria-hidden='true' />
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         </CardHeader>
         <CardContent className='flex flex-col gap-4'>
           <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
@@ -190,7 +245,7 @@ export function OfferCard({ record, summary, content }: OfferCardProps) {
         <Card>
           <CardHeader className='pb-2'>
             <CardTitle className='text-lg font-medium flex items-center'>
-              <ShoppingBasketIcon className='mr-2 h-5 w-5' />
+              <ShoppingBasketIcon className='mr-2 h-5 w-5' aria-hidden='true' />
               <Trans>Requested</Trans>
             </CardTitle>
             <p className='text-sm text-muted-foreground'>

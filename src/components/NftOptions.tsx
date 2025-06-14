@@ -38,7 +38,6 @@ import { Input } from './ui/input';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useDebounce } from '@/hooks/useDebounce';
-import { platform } from '@tauri-apps/plugin-os';
 
 export interface NftOptionsProps {
   isCollection?: boolean;
@@ -76,7 +75,6 @@ export function NftOptions({
   const [searchValue, setSearchValue] = useState(query ?? '');
   const debouncedSearch = useDebounce(searchValue, 400);
   const prevSearchRef = useRef(query);
-  const isMobile = platform() === 'ios' || platform() === 'android';
 
   useEffect(() => {
     setSearchValue(query ?? '');
@@ -199,19 +197,17 @@ export function NftOptions({
             </Button>
           )}
 
-          {!isMobile && (
-            <Button
-              variant='outline'
-              size='icon'
-              aria-label={t`Export NFTs`}
-              title={t`Export NFTs`}
-              onClick={onExport}
-              disabled={!(group === NftGroupMode.None || isFilteredView)}
-              className='hidden sm:inline-flex'
-            >
-              <Download className='h-4 w-4' aria-hidden='true' />
-            </Button>
-          )}
+          <Button
+            variant='outline'
+            size='icon'
+            aria-label={t`Export NFTs`}
+            title={t`Export NFTs`}
+            onClick={onExport}
+            disabled={!(group === NftGroupMode.None || isFilteredView)}
+            className='hidden md:inline-flex'
+          >
+            <Download className='h-4 w-4' aria-hidden='true' />
+          </Button>
 
           <Button
             variant='outline'

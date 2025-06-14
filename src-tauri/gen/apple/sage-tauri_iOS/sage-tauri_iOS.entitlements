@@ -6,5 +6,7 @@
 	<array>
 		<string>TAG</string>
 	</array>
+	<key>com.apple.developer.group-session</key>
+	<true/>
 </dict>
 </plist>
