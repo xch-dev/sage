@@ -1,11 +1,11 @@
 use chia::{
     protocol::{Bytes32, CoinSpend, Program},
-    puzzles::nft::NftMetadata,
+    puzzles::{nft::NftMetadata, Memos},
 };
 use chia_puzzles::NFT_METADATA_UPDATER_DEFAULT_HASH;
 use chia_wallet_sdk::{
     driver::{
-        Did, DidOwner, HashedPtr, Launcher, MetadataUpdate, Nft, NftMint, SpendContext,
+        Did, HashedPtr, Launcher, MetadataUpdate, Nft, NftMint, NftOwner, SpendContext,
         StandardLayer,
     },
     types::Conditions,
@@ -20,7 +20,7 @@ pub struct WalletNftMint {
     pub metadata: NftMetadata,
     pub p2_puzzle_hash: Option<Bytes32>,
     pub royalty_puzzle_hash: Option<Bytes32>,
-    pub royalty_ten_thousandths: u16,
+    pub royalty_basis_points: u16,
 }
 
 impl Wallet {
@@ -62,9 +62,9 @@ impl Wallet {
                 metadata: mint.metadata,
                 metadata_updater_puzzle_hash: NFT_METADATA_UPDATER_DEFAULT_HASH.into(),
                 royalty_puzzle_hash: mint.royalty_puzzle_hash.unwrap_or(p2_puzzle_hash),
-                royalty_ten_thousandths: mint.royalty_ten_thousandths,
+                royalty_basis_points: mint.royalty_basis_points,
                 p2_puzzle_hash: mint.p2_puzzle_hash.unwrap_or(p2_puzzle_hash),
-                owner: Some(DidOwner::from_did_info(&did.info)),
+                owner: Some(NftOwner::from_did_info(&did.info)),
             };
 
             let (mint_nft, nft) = Launcher::new(did.coin.coin_id(), i as u64 * 2)
@@ -84,7 +84,7 @@ impl Wallet {
         }
 
         if change > 0 {
-            conditions = conditions.create_coin(p2_puzzle_hash, change, None);
+            conditions = conditions.create_coin(p2_puzzle_hash, change, Memos::None);
         }
 
         self.spend_p2_coins(&mut ctx, coins, conditions).await?;
@@ -170,7 +170,7 @@ impl Wallet {
                 .reserve_fee(fee);
 
             if change > 0 {
-                conditions = conditions.create_coin(change_puzzle_hash, change, None);
+                conditions = conditions.create_coin(change_puzzle_hash, change, Memos::None);
             }
 
             self.spend_p2_coins(&mut ctx, coins, conditions).await?;
@@ -227,7 +227,7 @@ impl Wallet {
                 .reserve_fee(fee);
 
             if change > 0 {
-                conditions = conditions.create_coin(p2_puzzle_hash, change, None);
+                conditions = conditions.create_coin(p2_puzzle_hash, change, Memos::None);
             }
 
             self.spend_p2_coins(&mut ctx, coins, conditions).await?;
@@ -264,7 +264,7 @@ mod tests {
                     metadata: NftMetadata::default(),
                     p2_puzzle_hash: None,
                     royalty_puzzle_hash: Some(Bytes32::default()),
-                    royalty_ten_thousandths: 300,
+                    royalty_basis_points: 300,
                 }],
                 false,
                 true,
@@ -327,7 +327,7 @@ mod tests {
                     metadata: NftMetadata::default(),
                     p2_puzzle_hash: None,
                     royalty_puzzle_hash: Some(Bytes32::default()),
-                    royalty_ten_thousandths: 300,
+                    royalty_basis_points: 300,
                 }],
                 false,
                 true,
@@ -380,7 +380,7 @@ mod tests {
                     metadata: NftMetadata::default(),
                     p2_puzzle_hash: None,
                     royalty_puzzle_hash: Some(Bytes32::default()),
-                    royalty_ten_thousandths: 300,
+                    royalty_basis_points: 300,
                 }],
                 false,
                 true,

@@ -3,6 +3,7 @@ use std::mem;
 use chia::{
     bls::PublicKey,
     protocol::{Bytes, Bytes32, CoinSpend},
+    puzzles::Memos,
 };
 use chia_wallet_sdk::{
     driver::{Cat, SpendContext},
@@ -36,13 +37,13 @@ impl Wallet {
 
         let hint = ctx.hint(p2_puzzle_hash)?;
 
-        let eve_conditions = Conditions::new().create_coin(p2_puzzle_hash, amount, Some(hint));
+        let eve_conditions = Conditions::new().create_coin(p2_puzzle_hash, amount, hint);
 
-        let (mut conditions, eve) = match multi_issuance_key {
+        let (mut conditions, cats) = match multi_issuance_key {
             Some(pk) => {
-                Cat::multi_issuance_eve(&mut ctx, coins[0].coin_id(), pk, amount, eve_conditions)?
+                Cat::issue_with_key(&mut ctx, coins[0].coin_id(), pk, amount, eve_conditions)?
             }
-            None => Cat::single_issuance_eve(&mut ctx, coins[0].coin_id(), amount, eve_conditions)?,
+            None => Cat::issue_with_coin(&mut ctx, coins[0].coin_id(), amount, eve_conditions)?,
         };
 
         if fee > 0 {
@@ -50,12 +51,12 @@ impl Wallet {
         }
 
         if change > 0 {
-            conditions = conditions.create_coin(p2_puzzle_hash, change, None);
+            conditions = conditions.create_coin(p2_puzzle_hash, change, Memos::None);
         }
 
         self.spend_p2_coins(&mut ctx, coins, conditions).await?;
 
-        Ok((ctx.take(), eve.asset_id))
+        Ok((ctx.take(), cats[0].info.asset_id))
     }
 
     /// Sends the given amount of CAT to the given puzzle hash.
@@ -103,7 +104,7 @@ impl Wallet {
             conditions = conditions.reserve_fee(fee);
 
             if fee_change > 0 {
-                conditions = conditions.create_coin(change_puzzle_hash, fee_change, None);
+                conditions = conditions.create_coin(change_puzzle_hash, fee_change, Memos::None);
             }
         }
 
@@ -135,7 +136,7 @@ impl Wallet {
 
                 if cat_change > 0 {
                     conditions =
-                        conditions.create_coin(change_puzzle_hash, cat_change, Some(change_hint));
+                        conditions.create_coin(change_puzzle_hash, cat_change, change_hint);
                 }
 
                 (cat, conditions)

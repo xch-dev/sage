@@ -1,6 +1,9 @@
-use chia::protocol::{Bytes32, CoinSpend};
+use chia::{
+    protocol::{Bytes32, CoinSpend},
+    puzzles::Memos,
+};
 use chia_wallet_sdk::{
-    driver::{DidOwner, HashedPtr, SpendContext, StandardLayer},
+    driver::{HashedPtr, NftOwner, SpendContext, StandardLayer},
     types::Conditions,
 };
 
@@ -91,11 +94,11 @@ impl Wallet {
                 )
             };
 
-            let (parent_conditions, _nft) = nft.transfer_to_did(
+            let (parent_conditions, _nft) = nft.assign_owner(
                 &mut ctx,
                 &p2,
                 nft.info.p2_puzzle_hash,
-                did.as_ref().map(|did| DidOwner::from_did_info(&did.info)),
+                did.as_ref().map(|did| NftOwner::from_did_info(&did.info)),
                 conditions,
             )?;
 
@@ -116,7 +119,7 @@ impl Wallet {
                 .reserve_fee(fee);
 
             if change > 0 {
-                conditions = conditions.create_coin(change_puzzle_hash, change, None);
+                conditions = conditions.create_coin(change_puzzle_hash, change, Memos::None);
             }
 
             if let Some(did_coin_id) = did_coin_id {
@@ -156,7 +159,7 @@ mod tests {
                     metadata: NftMetadata::default(),
                     p2_puzzle_hash: None,
                     royalty_puzzle_hash: Some(Bytes32::default()),
-                    royalty_ten_thousandths: 300,
+                    royalty_basis_points: 300,
                 }],
                 false,
                 true,

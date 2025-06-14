@@ -61,7 +61,7 @@ pub async fn fetch_nft_offer_details(
                 metadata: Program::from_clvm(&allocator, nft.info.metadata.ptr())?,
                 metadata_updater_puzzle_hash: nft.info.metadata_updater_puzzle_hash,
                 royalty_puzzle_hash: nft.info.royalty_puzzle_hash,
-                royalty_ten_thousandths: nft.info.royalty_ten_thousandths,
+                royalty_basis_points: nft.info.royalty_basis_points,
             });
             break;
         }

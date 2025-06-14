@@ -1,7 +1,7 @@
 use chia::{
     clvm_utils::tree_hash_atom,
     protocol::{Bytes32, Coin, CoinSpend},
-    puzzles::{singleton::SingletonArgs, Proof},
+    puzzles::{singleton::SingletonArgs, Memos, Proof},
 };
 use chia_wallet_sdk::{
     driver::{Did, HashedPtr, Launcher, SpendContext, StandardLayer},
@@ -41,7 +41,7 @@ impl Wallet {
         }
 
         if change > 0 {
-            conditions = conditions.create_coin(p2_puzzle_hash, change, None);
+            conditions = conditions.create_coin(p2_puzzle_hash, change, Memos::None);
         }
 
         self.spend_p2_coins(&mut ctx, coins, conditions).await?;
@@ -119,7 +119,7 @@ impl Wallet {
                 .reserve_fee(fee);
 
             if change > 0 {
-                conditions = conditions.create_coin(p2_puzzle_hash, change, None);
+                conditions = conditions.create_coin(p2_puzzle_hash, change, Memos::None);
             }
 
             self.spend_p2_coins(&mut ctx, coins, conditions).await?;
@@ -197,11 +197,7 @@ impl Wallet {
             did.spend_with(
                 &mut ctx,
                 &p2,
-                Conditions::new().create_coin(
-                    new_inner_puzzle_hash.into(),
-                    did.coin.amount,
-                    Some(memos),
-                ),
+                Conditions::new().create_coin(new_inner_puzzle_hash.into(), did.coin.amount, memos),
             )?;
 
             let did = Did {
@@ -224,7 +220,7 @@ impl Wallet {
                 .reserve_fee(fee);
 
             if change > 0 {
-                conditions = conditions.create_coin(p2_puzzle_hash, change, None);
+                conditions = conditions.create_coin(p2_puzzle_hash, change, Memos::None);
             }
 
             self.spend_p2_coins(&mut ctx, coins, conditions).await?;

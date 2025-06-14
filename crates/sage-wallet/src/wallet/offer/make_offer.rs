@@ -44,7 +44,7 @@ pub struct RequestedNft {
     pub metadata: Program,
     pub metadata_updater_puzzle_hash: Bytes32,
     pub royalty_puzzle_hash: Bytes32,
-    pub royalty_ten_thousandths: u16,
+    pub royalty_basis_points: u16,
 }
 
 impl Wallet {
@@ -69,7 +69,7 @@ impl Wallet {
                 .map(|(nft_id, requested_nft)| NftRoyaltyInfo {
                     launcher_id: *nft_id,
                     royalty_puzzle_hash: requested_nft.royalty_puzzle_hash,
-                    royalty_ten_thousandths: requested_nft.royalty_ten_thousandths,
+                    royalty_basis_points: requested_nft.royalty_basis_points,
                 })
                 .collect::<Vec<_>>(),
         )?;
@@ -92,15 +92,13 @@ impl Wallet {
         let settlement = ctx.alloc_mod::<SettlementPayment>()?;
 
         // Add requested XCH payments.
+        let hint = ctx.hint(p2_puzzle_hash)?;
+
         if taker.xch > 0 {
             builder = builder.request(
                 &mut ctx,
                 &settlement,
-                vec![Payment::with_memos(
-                    p2_puzzle_hash,
-                    taker.xch,
-                    vec![p2_puzzle_hash.into()],
-                )],
+                vec![Payment::new(p2_puzzle_hash, taker.xch, hint)],
             )?;
         }
 
@@ -111,11 +109,7 @@ impl Wallet {
             builder = builder.request(
                 &mut ctx,
                 &cat_puzzle,
-                vec![Payment::with_memos(
-                    p2_puzzle_hash,
-                    amount,
-                    vec![p2_puzzle_hash.into()],
-                )],
+                vec![Payment::new(p2_puzzle_hash, amount, hint)],
             )?;
         }
 
@@ -127,7 +121,7 @@ impl Wallet {
                 metadata_updater_puzzle_hash: info.metadata_updater_puzzle_hash,
                 current_owner: None,
                 royalty_puzzle_hash: info.royalty_puzzle_hash,
-                royalty_ten_thousandths: info.royalty_ten_thousandths,
+                royalty_basis_points: info.royalty_basis_points,
                 p2_puzzle_hash: SETTLEMENT_PAYMENT_HASH.into(),
             };
 
@@ -136,11 +130,7 @@ impl Wallet {
             builder = builder.request(
                 &mut ctx,
                 &layers,
-                vec![Payment::with_memos(
-                    p2_puzzle_hash,
-                    1,
-                    vec![p2_puzzle_hash.into()],
-                )],
+                vec![Payment::new(p2_puzzle_hash, 1, hint)],
             )?;
         }
 
@@ -155,7 +145,7 @@ impl Wallet {
             maker_coins
                 .nfts
                 .values()
-                .filter(|nft| nft.info.royalty_ten_thousandths > 0)
+                .filter(|nft| nft.info.royalty_basis_points > 0)
                 .count(),
         )?;
 

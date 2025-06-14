@@ -1,4 +1,4 @@
-use chia::protocol::CoinSpend;
+use chia::{protocol::CoinSpend, puzzles::Memos};
 use chia_wallet_sdk::{
     driver::{Cat, SpendContext},
     types::Conditions,
@@ -43,7 +43,8 @@ impl Wallet {
             }
 
             if fee_change > 0 {
-                fee_conditions = fee_conditions.create_coin(p2_puzzle_hash, fee_change, None);
+                fee_conditions =
+                    fee_conditions.create_coin(p2_puzzle_hash, fee_change, Memos::None);
             }
 
             self.spend_p2_coins(&mut ctx, fee_coins, fee_conditions)
@@ -61,7 +62,7 @@ impl Wallet {
                         Conditions::new().create_coin(
                             p2_puzzle_hash,
                             cat_total.try_into().expect("output amount overflow"),
-                            Some(hint),
+                            hint,
                         ),
                     )
                 } else {
@@ -124,7 +125,8 @@ impl Wallet {
             }
 
             if fee_change > 0 {
-                fee_conditions = fee_conditions.create_coin(derivations[0], fee_change, None);
+                fee_conditions =
+                    fee_conditions.create_coin(derivations[0], fee_change, Memos::None);
             }
 
             self.spend_p2_coins(&mut ctx, fee_coins, fee_conditions)
@@ -149,7 +151,7 @@ impl Wallet {
                 remaining_amount -= amount as u128;
 
                 let hint = ctx.hint(derivation)?;
-                conditions = conditions.create_coin(derivation, amount, Some(hint));
+                conditions = conditions.create_coin(derivation, amount, hint);
 
                 remaining_count -= 1;
             }

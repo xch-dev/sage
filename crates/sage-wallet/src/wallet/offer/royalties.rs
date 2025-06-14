@@ -1,8 +1,10 @@
 use chia::{
+    clvm_utils::{ToTreeHash, TreeHash},
     protocol::Bytes32,
     puzzles::{
         cat::CatArgs,
         offer::{NotarizedPayment, Payment},
+        Memos,
     },
 };
 use chia_puzzles::SETTLEMENT_PAYMENT_HASH;
@@ -77,14 +79,14 @@ pub struct RoyaltyPayment {
 }
 
 impl RoyaltyPayment {
-    pub fn notarized_payment(&self) -> NotarizedPayment {
+    pub fn notarized_payment(&self) -> NotarizedPayment<TreeHash> {
         NotarizedPayment {
             nonce: self.nft_id,
-            payments: vec![Payment::with_memos(
-                self.p2_puzzle_hash,
-                self.amount,
-                vec![self.p2_puzzle_hash.into()],
-            )],
+            payments: vec![Payment {
+                puzzle_hash: self.p2_puzzle_hash,
+                amount: self.amount,
+                memos: Memos::Some(vec![self.p2_puzzle_hash].tree_hash()),
+            }],
         }
     }
 }
@@ -93,7 +95,7 @@ impl RoyaltyPayment {
 pub struct NftRoyaltyInfo {
     pub launcher_id: Bytes32,
     pub royalty_puzzle_hash: Bytes32,
-    pub royalty_ten_thousandths: u16,
+    pub royalty_basis_points: u16,
 }
 
 pub fn calculate_trade_prices(
@@ -135,7 +137,7 @@ pub fn calculate_royalties(
 ) -> Result<Royalties, WalletError> {
     let royalty_nfts = nfts
         .iter()
-        .filter(|nft| nft.royalty_ten_thousandths > 0)
+        .filter(|nft| nft.royalty_basis_points > 0)
         .count();
 
     let mut royalties = Royalties::default();
@@ -149,11 +151,11 @@ pub fn calculate_royalties(
             .ok_or(WalletError::InvalidTradePrice)?;
 
         for nft in nfts {
-            if nft.royalty_ten_thousandths == 0 {
+            if nft.royalty_basis_points == 0 {
                 continue;
             }
 
-            let amount = calculate_nft_royalty(trade_price, nft.royalty_ten_thousandths)
+            let amount = calculate_nft_royalty(trade_price, nft.royalty_basis_points)
                 .ok_or(WalletError::InvalidRoyaltyAmount)?;
 
             if amount == 0 {
@@ -173,11 +175,11 @@ pub fn calculate_royalties(
             .ok_or(WalletError::InvalidTradePrice)?;
 
         for nft in nfts {
-            if nft.royalty_ten_thousandths == 0 {
+            if nft.royalty_basis_points == 0 {
                 continue;
             }
 
-            let amount = calculate_nft_royalty(trade_price, nft.royalty_ten_thousandths)
+            let amount = calculate_nft_royalty(trade_price, nft.royalty_basis_points)
                 .ok_or(WalletError::InvalidRoyaltyAmount)?;
 
             if amount == 0 {

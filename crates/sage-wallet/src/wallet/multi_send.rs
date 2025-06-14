@@ -1,6 +1,9 @@
 use std::{collections::HashMap, mem};
 
-use chia::protocol::{Bytes, Bytes32, CoinSpend};
+use chia::{
+    protocol::{Bytes, Bytes32, CoinSpend},
+    puzzles::Memos,
+};
 use chia_wallet_sdk::{driver::SpendContext, types::Conditions};
 use indexmap::IndexMap;
 
@@ -145,11 +148,8 @@ impl Wallet {
                     let mut conditions = mem::take(&mut conditions);
 
                     if cat_change > 0 {
-                        conditions = conditions.create_coin(
-                            change_puzzle_hash,
-                            cat_change,
-                            Some(change_hint),
-                        );
+                        conditions =
+                            conditions.create_coin(change_puzzle_hash, cat_change, change_hint);
                     }
 
                     (cat, conditions)
@@ -170,7 +170,7 @@ impl Wallet {
             }
 
             if xch_change > 0 {
-                conditions = conditions.create_coin(change_puzzle_hash, xch_change, None);
+                conditions = conditions.create_coin(change_puzzle_hash, xch_change, Memos::None);
             }
 
             for payment in xch_payments {

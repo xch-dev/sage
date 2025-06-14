@@ -98,7 +98,7 @@ pub async fn fetch_nft_did(
                 if let Ok(output) = run_puzzle(&mut allocator, p2_puzzle.ptr(), p2_solution) {
                     if let Ok(conditions) = Conditions::<NodePtr>::from_clvm(&allocator, output) {
                         did_id = conditions.into_iter().find_map(|cond| match cond {
-                            Condition::TransferNft(transfer) => transfer.did_id,
+                            Condition::TransferNft(transfer) => transfer.launcher_id,
                             _ => None,
                         });
                     }

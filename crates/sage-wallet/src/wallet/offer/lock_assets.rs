@@ -1,6 +1,9 @@
 use std::{collections::HashMap, mem};
 
-use chia::protocol::{Bytes32, Coin};
+use chia::{
+    protocol::{Bytes32, Coin},
+    puzzles::Memos,
+};
 use chia_puzzles::SETTLEMENT_PAYMENT_HASH;
 use chia_wallet_sdk::{
     driver::{HashedPtr, SpendContext, StandardLayer},
@@ -74,8 +77,11 @@ impl Wallet {
                 .unwrap_or_default();
 
             if amounts.xch > 0 {
-                conditions =
-                    conditions.create_coin(SETTLEMENT_PAYMENT_HASH.into(), amounts.xch, None);
+                conditions = conditions.create_coin(
+                    SETTLEMENT_PAYMENT_HASH.into(),
+                    amounts.xch,
+                    Memos::None,
+                );
 
                 locked.xch.push(Coin::new(
                     primary_xch_coin.coin_id(),
@@ -100,7 +106,7 @@ impl Wallet {
             let change = total_amount - amounts.xch - fee - royalties.xch_amount();
 
             if change > 0 {
-                conditions = conditions.create_coin(change_puzzle_hash, change, None);
+                conditions = conditions.create_coin(change_puzzle_hash, change, Memos::None);
             }
 
             if fee > 0 {
@@ -125,21 +131,17 @@ impl Wallet {
             let mut conditions = primary_conditions
                 .remove(&primary_cat.coin.coin_id())
                 .unwrap_or_default()
-                .create_coin(
-                    SETTLEMENT_PAYMENT_HASH.into(),
-                    amount,
-                    Some(settlement_hint),
-                );
+                .create_coin(SETTLEMENT_PAYMENT_HASH.into(), amount, settlement_hint);
 
             locked
                 .cats
                 .entry(asset_id)
                 .or_default()
-                .push(primary_cat.wrapped_child(SETTLEMENT_PAYMENT_HASH.into(), amount));
+                .push(primary_cat.child(SETTLEMENT_PAYMENT_HASH.into(), amount));
 
             if change > 0 {
                 let change_hint = ctx.hint(change_puzzle_hash)?;
-                conditions = conditions.create_coin(change_puzzle_hash, change, Some(change_hint));
+                conditions = conditions.create_coin(change_puzzle_hash, change, change_hint);
             }
 
             // Handle royalties.
@@ -178,7 +180,7 @@ impl Wallet {
             let nft = nft.lock_settlement(
                 ctx,
                 &p2,
-                if nft.info.royalty_ten_thousandths > 0 {
+                if nft.info.royalty_basis_points > 0 {
                     trade_prices.clone()
                 } else {
                     Vec::new()

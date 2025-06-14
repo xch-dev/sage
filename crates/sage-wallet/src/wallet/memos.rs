@@ -8,7 +8,7 @@ pub fn calculate_memos(
     p2_puzzle_hash: Bytes32,
     include_hint: bool,
     memos: Option<Vec<Bytes>>,
-) -> Result<Option<Memos>, WalletError> {
+) -> Result<Memos, WalletError> {
     let mut result = None;
 
     if include_hint {
@@ -24,8 +24,8 @@ pub fn calculate_memos(
     }
 
     Ok(if let Some(result) = result {
-        Some(ctx.memos(&result)?)
+        ctx.memos(&result)?
     } else {
-        None
+        Memos::None
     })
 }
