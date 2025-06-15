@@ -122,7 +122,7 @@ impl TestWallet {
         );
 
         if balance > 0 {
-            sim.mint_coin(puzzle_hash.into(), balance).await;
+            sim.lock().await.new_coin(puzzle_hash.into(), balance);
         }
 
         let state = Arc::new(Mutex::new(PeerState::default()));

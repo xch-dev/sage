@@ -1054,7 +1054,7 @@ async fn insert_nft_coin(
     let metadata_updater_puzzle_hash = nft_info.metadata_updater_puzzle_hash.as_ref();
     let current_owner = nft_info.current_owner.as_deref();
     let royalty_puzzle_hash = nft_info.royalty_puzzle_hash.as_ref();
-    let royalty_ten_thousandths = nft_info.royalty_ten_thousandths;
+    let royalty_ten_thousandths = nft_info.royalty_basis_points;
     let p2_puzzle_hash = nft_info.p2_puzzle_hash.as_ref();
     let data_hash = data_hash.as_deref();
     let metadata_hash = metadata_hash.as_deref();

@@ -90,9 +90,9 @@ impl ChildKind {
             return Ok(Self::Unknown { hint: None });
         };
 
-        let hint = if let Some(memos) = create_coin.memos {
-            let memos = Memos::<(Bytes32, NodePtr)>::from_clvm(allocator, memos.value).ok();
-            memos.map(|memos| memos.value.0)
+        let hint = if let Memos::Some(memos) = create_coin.memos {
+            let memos = <(Bytes32, NodePtr)>::from_clvm(allocator, memos).ok();
+            memos.map(|memos| memos.0)
         } else {
             None
         };
@@ -119,9 +119,9 @@ impl ChildKind {
                 };
 
                 return Ok(Self::Cat {
-                    asset_id: cat.asset_id,
+                    asset_id: cat.info.asset_id,
                     lineage_proof,
-                    p2_puzzle_hash: cat.p2_puzzle_hash,
+                    p2_puzzle_hash: cat.info.p2_puzzle_hash,
                 });
             }
 

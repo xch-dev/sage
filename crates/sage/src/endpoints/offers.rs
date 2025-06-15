@@ -254,7 +254,7 @@ impl Sage {
                 .map(|(nft, _payments)| NftRoyaltyInfo {
                     launcher_id: nft.launcher_id,
                     royalty_puzzle_hash: nft.royalty_puzzle_hash,
-                    royalty_ten_thousandths: nft.royalty_ten_thousandths,
+                    royalty_basis_points: nft.royalty_basis_points,
                 })
                 .collect::<Vec<_>>(),
         )?
@@ -268,7 +268,7 @@ impl Sage {
                 .map(|nft| NftRoyaltyInfo {
                     launcher_id: nft.info.launcher_id,
                     royalty_puzzle_hash: nft.info.royalty_puzzle_hash,
-                    royalty_ten_thousandths: nft.info.royalty_ten_thousandths,
+                    royalty_basis_points: nft.info.royalty_basis_points,
                 })
                 .collect::<Vec<_>>(),
         )?
@@ -331,7 +331,7 @@ impl Sage {
                 requested: false,
                 launcher_id: nft.info.launcher_id,
                 royalty_puzzle_hash: nft.info.royalty_puzzle_hash,
-                royalty_ten_thousandths: nft.info.royalty_ten_thousandths,
+                royalty_ten_thousandths: nft.info.royalty_basis_points,
                 name: info.name,
                 thumbnail: info.icon,
                 thumbnail_mime_type: Some("image/png".to_string()),
@@ -398,7 +398,7 @@ impl Sage {
                 requested: true,
                 launcher_id: nft.launcher_id,
                 royalty_puzzle_hash: nft.royalty_puzzle_hash,
-                royalty_ten_thousandths: nft.royalty_ten_thousandths,
+                royalty_ten_thousandths: nft.royalty_basis_points,
                 name: info.name,
                 thumbnail: info.icon,
                 thumbnail_mime_type,

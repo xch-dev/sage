@@ -715,7 +715,7 @@ impl Sage {
             address: Address::new(nft.info.p2_puzzle_hash, self.network().prefix()).encode()?,
             royalty_address: Address::new(nft.info.royalty_puzzle_hash, self.network().prefix())
                 .encode()?,
-            royalty_ten_thousandths: nft.info.royalty_ten_thousandths,
+            royalty_ten_thousandths: nft.info.royalty_basis_points,
             data_uris: metadata
                 .as_ref()
                 .map(|m| m.data_uris.clone())

@@ -164,8 +164,8 @@ pub fn parse_locked_coins(
                     continue;
                 }
 
-                if child.p2_puzzle_hash == SETTLEMENT_PAYMENT_HASH.into() {
-                    cats.entry(child.asset_id)
+                if child.info.p2_puzzle_hash == SETTLEMENT_PAYMENT_HASH.into() {
+                    cats.entry(child.info.asset_id)
                         .or_insert_with(Vec::new)
                         .push(child);
                 }
