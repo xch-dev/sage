@@ -83,7 +83,7 @@ pub enum WalletError {
     #[error("SECP is not supported")]
     SecpNotSupported,
 
-    #[error("Missing DID with id {0}")]
+    #[error("Missing DID with id {0}. It may have been spent recently. Please try again later.")]
     MissingDid(Bytes32),
 
     #[error("Missing NFT with id {0}")]

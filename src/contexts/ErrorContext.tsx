@@ -40,7 +40,10 @@ export function ErrorProvider({ children }: { children: ReactNode }) {
   }, [errors]);
 
   const addError = useMemo(
-    () => (error: CustomError) => setErrors([...errorsRef.current, error]),
+    () => (error: CustomError) => {
+      console.log('addError', error);
+      setErrors([...errorsRef.current, error]);
+    },
     [],
   );
 
@@ -110,7 +113,7 @@ export default function ErrorDialog({ error, setError }: ErrorDialogProps) {
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{kind ? `${kind} ` : ''}Error</DialogTitle>
-          <DialogDescription className='break-words'>
+          <DialogDescription className='break-words hyphens-auto'>
             {error?.reason}
           </DialogDescription>
         </DialogHeader>
