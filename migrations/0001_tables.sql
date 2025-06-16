@@ -20,12 +20,12 @@ CREATE TABLE rust_migrations (
 );
 
 /* 
-  new tables that redefine the current schema and introduce some conventions
+  new tables that redefine the current schema and introduce the following conventions
   - all BOOLEAN columns are named is_<name>
   - all foreign keys are specified with FOREIGN KEY (and indexed)
   - all UNIX timestamps are INTEGER and named <name>_timestamp
+  - except for blocks, derivations and rust_migrations, all tables have a surrogate primary key
   - all natural keys are specified as UNIQUE (which also creates an auto-index)
-  - expect for blocks, derivations and rust_migrations, all tables have a surrogate primary key
 */
 CREATE TABLE offers (
   id INTEGER PRIMARY KEY,

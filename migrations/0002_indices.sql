@@ -11,3 +11,12 @@ CREATE INDEX idx_coins_hash ON coins(hash);
 CREATE INDEX idx_coins_puzzle_hash ON coins(puzzle_hash);
 CREATE INDEX idx_coins_hint ON coins(hint);
 CREATE INDEX idx_coins_amount ON coins(amount);
+
+/*
+    Asset search indices
+*/
+CREATE INDEX idx_asset_name ON assets (is_visible DESC, is_pending DESC, name ASC, hash ASC);
+CREATE INDEX idx_nft_collection ON nfts (is_owned, collection_id, edition_number ASC);
+CREATE INDEX idx_nft_minter_did ON nfts (is_owned, minter_did, edition_number ASC);
+CREATE INDEX idx_nft_owner_did ON nfts (is_owned, owner_did, edition_number ASC); 
+CREATE INDEX idx_token_ticker ON tokens (ticker ASC); 
