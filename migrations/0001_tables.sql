@@ -7,7 +7,6 @@ CREATE TABLE future_did_names (
     name TEXT NOT NULL
 );
 
-
 CREATE TABLE rust_migrations (
   version INTEGER PRIMARY KEY
 );
@@ -85,8 +84,8 @@ CREATE TABLE p2_puzzles (
 CREATE TABLE public_keys (
   id INTEGER PRIMARY KEY,
   p2_puzzle_id INTEGER NOT NULL,
-  hardened BOOLEAN NOT NULL,
-  synthetic BOOLEAN NOT NULL,
+  is_hardened BOOLEAN NOT NULL,
+  is_synthetic BOOLEAN NOT NULL,
   key BLOB NOT NULL,
   FOREIGN KEY (p2_puzzle_id) REFERENCES p2_puzzles(id) ON DELETE CASCADE
 );
@@ -144,6 +143,13 @@ CREATE TABLE lineage_proofs (
   FOREIGN KEY (coin_id) REFERENCES coins(id) ON DELETE CASCADE
 );
 
+/*
+  Offer statuses
+    Active = 0,
+    Completed = 1,
+    Cancelled = 2,
+    Expired = 3,
+*/
 CREATE TABLE offers (
   id INTEGER PRIMARY KEY,
   hash BLOB NOT NULL UNIQUE,
@@ -229,6 +235,12 @@ CREATE TABLE nfts (
   with kind to differentiate between the three types of data.
   Also, data_index, is a pointer to an external data source. It could
   be a file path, a cache index, or a url etc so need to flesh that out more.
+
+  kind values:
+    - 0 = data
+    - 1 = uri
+    - 2 = thumbnail
+    - 3 = icon
 */
 CREATE TABLE nft_data (
   id INTEGER PRIMARY KEY,
