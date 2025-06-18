@@ -24,6 +24,16 @@ export async function resolveOfferData(text: string): Promise<string> {
         }
       }
     }
+
+    if (isValidHostname(text, 'chia-offer.com')) {
+      const offerId = extractOfferId(text);
+      if (offerId) {
+        const resolvedOffer = await fetchChiaOfferComOffer(offerId);
+        if (resolvedOffer) {
+          return resolvedOffer;
+        }
+      }
+    }
   } catch {
     throw {
       kind: 'api',
@@ -55,6 +65,31 @@ function extractOfferId(url: string) {
   } catch {
     return null;
   }
+}
+
+async function fetchChiaOfferComOffer(id: string): Promise<string> {
+  const response = await fetch(
+    `https://api.chia-offer.com/get-offer.php?id=${id}`,
+  );
+  const data = await response.json();
+
+  if (!data) {
+    throw {
+      kind: 'api',
+      reason:
+        'Failed to fetch offer from chia-offer.com: Invalid response data',
+    } as CustomError;
+  }
+
+  if (data.success && data.data?.full_offer) {
+    return data.data.full_offer;
+  }
+
+  throw {
+    kind: 'api',
+    reason:
+      'Failed to fetch offer from chia-offer.com: Offer not found or invalid format',
+  } as CustomError;
 }
 
 async function fetchDexieOffer(id: string): Promise<string> {
