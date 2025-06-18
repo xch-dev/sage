@@ -123,7 +123,6 @@ CREATE TABLE coins (
   parent_coin_id BLOB NOT NULL,
   puzzle_hash BLOB NOT NULL,
   amount BLOB NOT NULL,
-  is_synced BOOLEAN NOT NULL,
   p2_puzzle_id INTEGER,
   memos BLOB,
   created_height INTEGER,
@@ -173,6 +172,15 @@ CREATE TABLE offer_assets (
   UNIQUE(offer_id, asset_id)
 );
 
+CREATE TABLE offer_coins (
+  id INTEGER PRIMARY KEY,
+  offer_id INTEGER NOT NULL,
+  coin_id INTEGER NOT NULL,
+  FOREIGN KEY (offer_id) REFERENCES offers(id) ON DELETE CASCADE
+  FOREIGN KEY (coin_id) REFERENCES coins(id) ON DELETE CASCADE
+  UNIQUE(offer_id, coin_id)
+);
+
 CREATE TABLE transactions (
   id INTEGER PRIMARY KEY,
   hash BLOB NOT NULL UNIQUE,
@@ -186,14 +194,19 @@ CREATE TABLE transactions (
 CREATE TABLE transaction_coins (
   id INTEGER PRIMARY KEY,
   transaction_id INTEGER NOT NULL,
-  coin_id INTEGER NOT NULL UNIQUE,
-  'index' INTEGER NOT NULL,
-  puzzle_hash BLOB NOT NULL,
-  puzzle_reveal BLOB NOT NULL,
-  solution BLOB NOT NULL,
-  is_spend BOOLEAN NOT NULL,
+  coin_id INTEGER NOT NULL,
+  is_output BOOLEAN NOT NULL,
+  seq INTEGER NOT NULL,
   FOREIGN KEY (transaction_id) REFERENCES transactions(id) ON DELETE CASCADE,
   UNIQUE(transaction_id, coin_id)
+);
+
+CREATE TABLE transaction_spends (
+  id INTEGER PRIMARY KEY,
+  transaction_coin_id INTEGER NOT NULL UNIQUE,
+  puzzle_reveal BLOB NOT NULL,
+  solution BLOB NOT NULL,
+  FOREIGN KEY (transaction_coin_id) REFERENCES transaction_coins(id) ON DELETE CASCADE
 );
 
 CREATE TABLE collections (
@@ -269,11 +282,10 @@ CREATE TABLE dids (
   FOREIGN KEY (asset_id) REFERENCES assets(id) ON DELETE CASCADE
 );
 
-CREATE TABLE offer_coins (
+CREATE TABLE options (
   id INTEGER PRIMARY KEY,
-  offer_id INTEGER NOT NULL,
-  coin_id INTEGER NOT NULL,
-  FOREIGN KEY (offer_id) REFERENCES offers(id) ON DELETE CASCADE
-  FOREIGN KEY (coin_id) REFERENCES coins(id) ON DELETE CASCADE
-  UNIQUE(offer_id, coin_id)
+  asset_id INTEGER NOT NULL UNIQUE,
+  creator_puzzle_hash BLOB NOT NULL,
+  is_owned BOOLEAN NOT NULL,
+  FOREIGN KEY (asset_id) REFERENCES assets(id) ON DELETE CASCADE
 );
