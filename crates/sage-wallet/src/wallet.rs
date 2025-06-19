@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use chia::{
     bls::PublicKey,
@@ -12,9 +12,9 @@ use indexmap::{indexmap, IndexMap};
 use itertools::Itertools;
 use sage_database::{CoinKind, Database};
 
-mod cat_coin_management;
 mod cat_spends;
 mod cats;
+mod coin_management;
 mod derivations;
 mod did_assign;
 mod dids;
@@ -22,7 +22,6 @@ mod memos;
 mod multi_send;
 mod nfts;
 mod offer;
-mod p2_coin_management;
 mod p2_send;
 mod p2_spends;
 mod signing;
@@ -57,7 +56,17 @@ impl Wallet {
     }
 
     pub(crate) async fn select_p2_coins(&self, amount: u64) -> Result<Vec<Coin>, WalletError> {
-        let spendable_coins = self.db.spendable_coins().await?;
+        self.select_p2_coins_without(amount, &HashSet::new()).await
+    }
+
+    async fn select_p2_coins_without(
+        &self,
+        amount: u64,
+        selected_coin_ids: &HashSet<Bytes32>,
+    ) -> Result<Vec<Coin>, WalletError> {
+        let mut spendable_coins = self.db.spendable_coins().await?;
+        spendable_coins.retain(|coin| !selected_coin_ids.contains(&coin.coin_id()));
+
         Ok(select_coins(spendable_coins, amount)?)
     }
 
@@ -66,7 +75,18 @@ impl Wallet {
         asset_id: Bytes32,
         amount: u64,
     ) -> Result<Vec<Cat>, WalletError> {
-        let cat_coins = self.db.spendable_cat_coins(asset_id).await?;
+        self.select_cat_coins_without(asset_id, amount, &HashSet::new())
+            .await
+    }
+
+    async fn select_cat_coins_without(
+        &self,
+        asset_id: Bytes32,
+        amount: u64,
+        selected_coin_ids: &HashSet<Bytes32>,
+    ) -> Result<Vec<Cat>, WalletError> {
+        let mut cat_coins = self.db.spendable_cat_coins(asset_id).await?;
+        cat_coins.retain(|cat| !selected_coin_ids.contains(&cat.coin.coin_id()));
 
         let mut cats = HashMap::with_capacity(cat_coins.len());
         let mut spendable_coins = Vec::with_capacity(cat_coins.len());
@@ -100,21 +120,16 @@ impl Wallet {
         self.complete_spends(ctx, &deltas, spends).await
     }
 
-    async fn prepare_spends(
+    pub async fn prepare_spends_for_selection(
         &self,
         ctx: &mut SpendContext,
-        selected_coin_ids: Vec<Bytes32>,
-        actions: &[Action],
+        selected_coin_ids: &[Bytes32],
     ) -> Result<Spends, WalletError> {
         let self_puzzle_hash = self.p2_puzzle_hash(false, true).await?;
-        let deltas = Deltas::from_actions(actions);
 
         let mut spends = Spends::new(self_puzzle_hash);
-        let mut selected = indexmap! {
-            None => 0,
-        };
 
-        for coin_id in selected_coin_ids {
+        for &coin_id in selected_coin_ids {
             let Some(row) = self.db.full_coin_state(coin_id).await? else {
                 return Err(WalletError::MissingCoin(coin_id));
             };
@@ -124,14 +139,12 @@ impl Wallet {
             match row.kind {
                 CoinKind::Xch => {
                     spends.add(coin);
-                    *selected.entry(None).or_insert(0) += coin.amount;
                 }
                 CoinKind::Cat => {
                     let Some(cat) = self.db.cat_coin(coin_id).await? else {
                         return Err(WalletError::MissingCoin(coin_id));
                     };
                     spends.add(cat);
-                    *selected.entry(Some(cat.info.asset_id)).or_insert(0) += coin.amount;
                 }
                 CoinKind::Did => {
                     let Some(did) = self.db.did_by_coin_id(coin_id).await? else {
@@ -153,6 +166,46 @@ impl Wallet {
             }
         }
 
+        Ok(spends)
+    }
+
+    pub async fn prepare_spends(
+        &self,
+        ctx: &mut SpendContext,
+        selected_coin_ids: Vec<Bytes32>,
+        actions: &[Action],
+    ) -> Result<Spends, WalletError> {
+        let mut spends = self
+            .prepare_spends_for_selection(ctx, &selected_coin_ids)
+            .await?;
+
+        self.select_spends(ctx, &mut spends, selected_coin_ids, actions)
+            .await?;
+
+        Ok(spends)
+    }
+
+    pub async fn select_spends(
+        &self,
+        ctx: &mut SpendContext,
+        spends: &mut Spends,
+        selected_coin_ids: Vec<Bytes32>,
+        actions: &[Action],
+    ) -> Result<(), WalletError> {
+        let deltas = Deltas::from_actions(actions);
+
+        let mut selected = indexmap! { None => spends.xch.selected_amount() };
+
+        for cat in spends.cats.values() {
+            if cat.items.is_empty() {
+                continue;
+            }
+
+            let asset_id = cat.items[0].asset.info.asset_id;
+
+            *selected.entry(Some(asset_id)).or_insert(0) += cat.selected_amount();
+        }
+
         let requested = deltas
             .ids()
             .filter_map(|&id| {
@@ -168,6 +221,8 @@ impl Wallet {
             })
             .collect_vec();
 
+        let selected_coin_ids: HashSet<Bytes32> = selected_coin_ids.into_iter().collect();
+
         for (asset_id, amount) in selected.into_iter().chain(requested) {
             let id = asset_id.map(Id::Existing);
             let delta = deltas.get(id).copied().unwrap_or_default();
@@ -175,11 +230,17 @@ impl Wallet {
 
             if required_amount > 0 || deltas.is_needed(id) {
                 if let Some(asset_id) = asset_id {
-                    for cat in self.select_cat_coins(asset_id, required_amount).await? {
+                    for cat in self
+                        .select_cat_coins_without(asset_id, required_amount, &selected_coin_ids)
+                        .await?
+                    {
                         spends.add(cat);
                     }
                 } else {
-                    for coin in self.select_p2_coins(required_amount).await? {
+                    for coin in self
+                        .select_p2_coins_without(required_amount, &selected_coin_ids)
+                        .await?
+                    {
                         spends.add(coin);
                     }
                 }
@@ -200,10 +261,10 @@ impl Wallet {
             }
         }
 
-        Ok(spends)
+        Ok(())
     }
 
-    async fn complete_spends(
+    pub async fn complete_spends(
         &self,
         ctx: &mut SpendContext,
         deltas: &Deltas,

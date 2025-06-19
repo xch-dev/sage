@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use chia::{
-    protocol::{Bytes, CoinSpend},
+    protocol::{Bytes, Coin, CoinSpend},
     puzzles::nft::NftMetadata,
 };
 use chia_wallet_sdk::{driver::MetadataUpdate, utils::Address};
@@ -20,9 +20,8 @@ use sage_wallet::{MultiSendPayment, WalletNftMint};
 use tokio::time::timeout;
 
 use crate::{
-    fetch_cats, fetch_coins, json_bundle, json_spend, parse_amount, parse_asset_id, parse_did_id,
-    parse_hash, parse_memos, parse_nft_id, rust_bundle, rust_spend, ConfirmationInfo, Error,
-    Result, Sage,
+    json_bundle, json_spend, parse_amount, parse_asset_id, parse_coin_ids, parse_did_id,
+    parse_hash, parse_memos, parse_nft_id, rust_bundle, rust_spend, ConfirmationInfo, Result, Sage,
 };
 
 impl Sage {
@@ -60,9 +59,9 @@ impl Sage {
     pub async fn combine_xch(&self, req: CombineXch) -> Result<TransactionResponse> {
         let wallet = self.wallet()?;
         let fee = parse_amount(req.fee)?;
-        let coins = fetch_coins(&wallet, req.coin_ids).await?;
+        let coin_ids = parse_coin_ids(req.coin_ids)?;
 
-        let coin_spends = wallet.combine_xch(coins, fee, false, true).await?;
+        let coin_spends = wallet.combine(coin_ids, fee).await?;
         self.transact(coin_spends, req.auto_submit).await
     }
 
@@ -91,7 +90,9 @@ impl Sage {
             .map(|coin| hex::encode(coin.coin_id()))
             .collect_vec();
 
-        let coin_spends = wallet.combine_xch(coins, fee, false, true).await?;
+        let coin_spends = wallet
+            .combine(coins.iter().map(Coin::coin_id).collect(), fee)
+            .await?;
         let response = self.transact(coin_spends, req.auto_submit).await?;
 
         Ok(AutoCombineXchResponse {
@@ -104,10 +105,10 @@ impl Sage {
     pub async fn split_xch(&self, req: SplitXch) -> Result<TransactionResponse> {
         let wallet = self.wallet()?;
         let fee = parse_amount(req.fee)?;
-        let coins = fetch_coins(&wallet, req.coin_ids).await?;
+        let coin_ids = parse_coin_ids(req.coin_ids)?;
 
         let coin_spends = wallet
-            .split_xch(&coins, req.output_count as usize, fee, false, true)
+            .split(coin_ids, req.output_count as usize, fee)
             .await?;
         self.transact(coin_spends, req.auto_submit).await
     }
@@ -115,9 +116,9 @@ impl Sage {
     pub async fn combine_cat(&self, req: CombineCat) -> Result<TransactionResponse> {
         let wallet = self.wallet()?;
         let fee = parse_amount(req.fee)?;
-        let cats = fetch_cats(&wallet, req.coin_ids).await?;
+        let coin_ids = parse_coin_ids(req.coin_ids)?;
 
-        let coin_spends = wallet.combine_cat(cats, fee, false, true).await?;
+        let coin_spends = wallet.combine(coin_ids, fee).await?;
         self.transact(coin_spends, req.auto_submit).await
     }
 
@@ -127,7 +128,7 @@ impl Sage {
         let asset_id = parse_asset_id(req.asset_id)?;
         let max_amount = req.max_coin_amount.map(parse_amount).transpose()?;
 
-        let rows = wallet
+        let cats = wallet
             .db
             .spendable_cat_coins(asset_id)
             .await?
@@ -142,21 +143,14 @@ impl Sage {
             .take(req.max_coins as usize)
             .collect_vec();
 
-        let mut cats = Vec::with_capacity(rows.len());
-
-        for row in rows {
-            let Some(cat) = wallet.db.cat_coin(row.coin.coin_id()).await? else {
-                return Err(Error::MissingCatCoin(row.coin.coin_id()));
-            };
-            cats.push(cat);
-        }
-
         let coin_ids = cats
             .iter()
             .map(|cat| hex::encode(cat.coin.coin_id()))
             .collect_vec();
 
-        let coin_spends = wallet.combine_cat(cats, fee, false, true).await?;
+        let coin_spends = wallet
+            .combine(cats.iter().map(|row| row.coin.coin_id()).collect(), fee)
+            .await?;
         let response = self.transact(coin_spends, req.auto_submit).await?;
 
         Ok(AutoCombineCatResponse {
@@ -169,10 +163,10 @@ impl Sage {
     pub async fn split_cat(&self, req: SplitCat) -> Result<TransactionResponse> {
         let wallet = self.wallet()?;
         let fee = parse_amount(req.fee)?;
-        let cats = fetch_cats(&wallet, req.coin_ids).await?;
+        let coin_ids = parse_coin_ids(req.coin_ids)?;
 
         let coin_spends = wallet
-            .split_cat(cats, req.output_count as usize, fee, false, true)
+            .split(coin_ids, req.output_count as usize, fee)
             .await?;
         self.transact(coin_spends, req.auto_submit).await
     }
