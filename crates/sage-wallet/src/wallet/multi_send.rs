@@ -1,11 +1,5 @@
-use std::{collections::HashMap, mem};
-
-use chia::{
-    protocol::{Bytes, Bytes32, CoinSpend},
-    puzzles::Memos,
-};
-use chia_wallet_sdk::{driver::SpendContext, types::Conditions};
-use indexmap::IndexMap;
+use chia::protocol::{Bytes, Bytes32, CoinSpend};
+use chia_wallet_sdk::driver::{Action, Id, SendAction, SpendContext};
 
 use crate::WalletError;
 
@@ -47,136 +41,32 @@ impl MultiSendPayment {
     }
 }
 
-fn split_payments(
-    payments: Vec<MultiSendPayment>,
-) -> (
-    Vec<MultiSendPayment>,
-    IndexMap<Bytes32, Vec<MultiSendPayment>>,
-) {
-    let mut xch_payments = Vec::new();
-    let mut cat_payments = IndexMap::new();
-
-    for payment in payments {
-        if let Some(asset_id) = payment.asset_id {
-            cat_payments
-                .entry(asset_id)
-                .or_insert_with(Vec::new)
-                .push(payment);
-        } else {
-            xch_payments.push(payment);
-        }
-    }
-
-    (xch_payments, cat_payments)
-}
-
 impl Wallet {
     /// Sends XCH and CATs to the given puzzle hashes.
     pub async fn multi_send(
         &self,
         payments: Vec<MultiSendPayment>,
         fee: u64,
-        hardened: bool,
-        reuse: bool,
     ) -> Result<Vec<CoinSpend>, WalletError> {
-        if payments.is_empty() && fee == 0 {
-            return Ok(Vec::new());
-        }
-
-        let (xch_payments, cat_payments) = split_payments(payments);
-
         let mut ctx = SpendContext::new();
+        let mut actions = vec![Action::fee(fee)];
 
-        let change_puzzle_hash = self.p2_puzzle_hash(hardened, reuse).await?;
-        let change_hint = ctx.hint(change_puzzle_hash)?;
-
-        let xch_amount = xch_payments.iter().map(|p| p.amount).sum::<u64>();
-        let xch_selected_amount = xch_amount + fee;
-        let xch_coins = if xch_selected_amount > 0 {
-            self.select_p2_coins(xch_selected_amount).await?
-        } else {
-            Vec::new()
-        };
-        let xch_total = xch_coins.iter().map(|c| c.amount).sum::<u64>();
-        let xch_change = xch_total - xch_selected_amount;
-
-        let mut selected_cat_coins = HashMap::new();
-
-        for (&asset_id, payments) in &cat_payments {
-            let cat_amount = payments.iter().map(|p| p.amount).sum::<u64>();
-            let cat_coins = self.select_cat_coins(asset_id, cat_amount).await?;
-            let cat_total = cat_coins.iter().map(|c| c.coin.amount).sum::<u64>();
-            let cat_change = cat_total - cat_amount;
-            selected_cat_coins.insert(asset_id, (cat_coins, cat_change));
-        }
-
-        let mut concurrent_coin_id = if let Some(xch_coin) = xch_coins.first() {
-            xch_coin.coin_id()
-        } else {
-            selected_cat_coins[cat_payments.last().expect("no cat payments").0].0[0]
-                .coin
-                .coin_id()
-        };
-
-        for (asset_id, payments) in cat_payments {
-            let (cats, cat_change) = selected_cat_coins[&asset_id].clone();
-
-            let mut conditions = Conditions::new();
-
-            let next_concurrent_id = cats[0].coin.coin_id();
-
-            if concurrent_coin_id != next_concurrent_id {
-                conditions = conditions.assert_concurrent_spend(concurrent_coin_id);
-                concurrent_coin_id = next_concurrent_id;
-            }
-
-            for payment in payments {
-                let memos = calculate_memos(&mut ctx, payment.puzzle_hash, true, payment.memos)?;
-                conditions = conditions.create_coin(payment.puzzle_hash, payment.amount, memos);
-            }
-
-            self.spend_cat_coins(
+        for payment in payments {
+            let memos = calculate_memos(
                 &mut ctx,
-                cats.into_iter().enumerate().map(|(i, cat)| {
-                    if i != 0 {
-                        return (cat, Conditions::new());
-                    }
-
-                    let mut conditions = mem::take(&mut conditions);
-
-                    if cat_change > 0 {
-                        conditions =
-                            conditions.create_coin(change_puzzle_hash, cat_change, change_hint);
-                    }
-
-                    (cat, conditions)
-                }),
-            )
-            .await?;
+                payment.puzzle_hash,
+                payment.asset_id.is_some(),
+                payment.memos,
+            )?;
+            actions.push(Action::Send(SendAction::new(
+                payment.asset_id.map(Id::Existing),
+                payment.puzzle_hash,
+                payment.amount,
+                memos,
+            )));
         }
 
-        if !xch_coins.is_empty() {
-            let mut conditions = Conditions::new();
-
-            if concurrent_coin_id != xch_coins[0].coin_id() {
-                conditions = conditions.assert_concurrent_spend(concurrent_coin_id);
-            }
-
-            if fee > 0 {
-                conditions = conditions.reserve_fee(fee);
-            }
-
-            if xch_change > 0 {
-                conditions = conditions.create_coin(change_puzzle_hash, xch_change, Memos::None);
-            }
-
-            for payment in xch_payments {
-                let memos = calculate_memos(&mut ctx, payment.puzzle_hash, false, payment.memos)?;
-                conditions = conditions.create_coin(payment.puzzle_hash, payment.amount, memos);
-            }
-
-            self.spend_p2_coins(&mut ctx, xch_coins, conditions).await?;
-        }
+        self.spend(&mut ctx, vec![], &actions).await?;
 
         Ok(ctx.take())
     }
@@ -193,19 +83,19 @@ mod tests {
         let mut alice = TestWallet::new(5000).await?;
         let mut bob = alice.next(0).await?;
 
-        let (coin_spends, bronze) = alice.wallet.issue_cat(1000, 0, None, false, true).await?;
+        let (coin_spends, bronze) = alice.wallet.issue_cat(1000, 0, None).await?;
         assert_eq!(coin_spends.len(), 2);
 
         alice.transact(coin_spends).await?;
         alice.wait_for_coins().await;
 
-        let (coin_spends, silver) = alice.wallet.issue_cat(1000, 0, None, false, true).await?;
+        let (coin_spends, silver) = alice.wallet.issue_cat(1000, 0, None).await?;
         assert_eq!(coin_spends.len(), 2);
 
         alice.transact(coin_spends).await?;
         alice.wait_for_coins().await;
 
-        let (coin_spends, gold) = alice.wallet.issue_cat(1000, 0, None, false, true).await?;
+        let (coin_spends, gold) = alice.wallet.issue_cat(1000, 0, None).await?;
         assert_eq!(coin_spends.len(), 2);
 
         alice.transact(coin_spends).await?;
@@ -225,8 +115,6 @@ mod tests {
                     MultiSendPayment::cat(gold, bob.puzzle_hash, 100),
                 ],
                 0,
-                false,
-                true,
             )
             .await?;
         assert_eq!(coin_spends.len(), 3);
@@ -247,12 +135,7 @@ mod tests {
 
         let coin_spends = alice
             .wallet
-            .multi_send(
-                vec![MultiSendPayment::xch(bob.puzzle_hash, 500)],
-                250,
-                false,
-                true,
-            )
+            .multi_send(vec![MultiSendPayment::xch(bob.puzzle_hash, 500)], 250)
             .await?;
         assert_eq!(coin_spends.len(), 1);
 
@@ -272,12 +155,7 @@ mod tests {
 
         let coin_spends = alice
             .wallet
-            .multi_send(
-                vec![MultiSendPayment::xch(bob.puzzle_hash, 500)],
-                0,
-                false,
-                true,
-            )
+            .multi_send(vec![MultiSendPayment::xch(bob.puzzle_hash, 500)], 0)
             .await?;
         assert_eq!(coin_spends.len(), 1);
 
@@ -304,8 +182,6 @@ mod tests {
                     MultiSendPayment::cat(gold, bob.puzzle_hash, 900),
                 ],
                 400,
-                false,
-                true,
             )
             .await?;
         assert_eq!(coin_spends.len(), 3);

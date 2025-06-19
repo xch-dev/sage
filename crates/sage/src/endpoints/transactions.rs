@@ -182,7 +182,7 @@ impl Sage {
         let amount = parse_amount(req.amount)?;
         let fee = parse_amount(req.fee)?;
 
-        let (coin_spends, asset_id) = wallet.issue_cat(amount, fee, None, false, true).await?;
+        let (coin_spends, asset_id) = wallet.issue_cat(amount, fee, None).await?;
         wallet
             .db
             .insert_cat(CatRow {
@@ -214,8 +214,6 @@ impl Sage {
                 fee,
                 req.include_hint,
                 memos,
-                false,
-                true,
             )
             .await?;
         self.transact(coin_spends, req.auto_submit).await
@@ -237,7 +235,7 @@ impl Sage {
         let memos = parse_memos(req.memos)?;
 
         let coin_spends = wallet
-            .send_cat(asset_id, amounts, fee, req.include_hint, memos, false, true)
+            .send_cat(asset_id, amounts, fee, req.include_hint, memos)
             .await?;
         self.transact(coin_spends, req.auto_submit).await
     }
@@ -275,7 +273,7 @@ impl Sage {
 
         let fee = parse_amount(req.fee)?;
 
-        let coin_spends = wallet.multi_send(payments, fee, false, true).await?;
+        let coin_spends = wallet.multi_send(payments, fee).await?;
         self.transact(coin_spends, req.auto_submit).await
     }
 

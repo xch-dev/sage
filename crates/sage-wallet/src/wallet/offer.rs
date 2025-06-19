@@ -45,7 +45,7 @@ mod tests {
         let mut bob = alice.next(1000).await?;
 
         // Issue CAT
-        let (coin_spends, asset_id) = bob.wallet.issue_cat(1000, 0, None, false, true).await?;
+        let (coin_spends, asset_id) = bob.wallet.issue_cat(1000, 0, None).await?;
         bob.transact(coin_spends).await?;
         bob.wait_for_coins().await;
 
@@ -382,7 +382,7 @@ mod tests {
         let nft_id_second = nfts.remove(0);
 
         // Issue CAT
-        let (coin_spends, asset_id) = bob.wallet.issue_cat(1030, 0, None, false, true).await?;
+        let (coin_spends, asset_id) = bob.wallet.issue_cat(1030, 0, None).await?;
         bob.transact(coin_spends).await?;
         bob.wait_for_coins().await;
 
@@ -701,7 +701,7 @@ mod tests {
         let mut alice = TestWallet::new(1000).await?;
         let mut bob = alice.next(0).await?;
 
-        let (coin_spends, asset_id) = alice.wallet.issue_cat(1000, 0, None, false, true).await?;
+        let (coin_spends, asset_id) = alice.wallet.issue_cat(1000, 0, None).await?;
         alice.transact(coin_spends).await?;
         alice.wait_for_coins().await;
 
