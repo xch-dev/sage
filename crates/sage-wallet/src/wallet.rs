@@ -8,7 +8,8 @@ use chia_wallet_sdk::{
     driver::{Action, Cat, CatInfo, Deltas, Id, Outputs, SpendContext, Spends},
     utils::select_coins,
 };
-use indexmap::IndexMap;
+use indexmap::{indexmap, IndexMap};
+use itertools::Itertools;
 use sage_database::{CoinKind, Database};
 
 mod cat_coin_management;
@@ -88,7 +89,18 @@ impl Wallet {
             .collect())
     }
 
-    pub async fn prepare_spends(
+    pub async fn spend(
+        &self,
+        ctx: &mut SpendContext,
+        selected_coin_ids: Vec<Bytes32>,
+        actions: &[Action],
+    ) -> Result<Outputs, WalletError> {
+        let mut spends = self.prepare_spends(ctx, selected_coin_ids, actions).await?;
+        let deltas = spends.apply(ctx, actions)?;
+        self.complete_spends(ctx, &deltas, spends).await
+    }
+
+    async fn prepare_spends(
         &self,
         ctx: &mut SpendContext,
         selected_coin_ids: Vec<Bytes32>,
@@ -98,7 +110,9 @@ impl Wallet {
         let deltas = Deltas::from_actions(actions);
 
         let mut spends = Spends::new(self_puzzle_hash);
-        let mut selected = IndexMap::new();
+        let mut selected = indexmap! {
+            None => 0,
+        };
 
         for coin_id in selected_coin_ids {
             let Some(row) = self.db.full_coin_state(coin_id).await? else {
@@ -139,7 +153,22 @@ impl Wallet {
             }
         }
 
-        for (asset_id, amount) in selected {
+        let requested = deltas
+            .ids()
+            .filter_map(|&id| {
+                let Id::Existing(asset_id) = id else {
+                    return None;
+                };
+
+                if selected.contains_key(&Some(asset_id)) {
+                    return None;
+                }
+
+                Some((Some(asset_id), 0))
+            })
+            .collect_vec();
+
+        for (asset_id, amount) in selected.into_iter().chain(requested) {
             let id = asset_id.map(Id::Existing);
             let delta = deltas.get(id).copied().unwrap_or_default();
             let required_amount = delta.output.saturating_sub(amount + delta.input);
@@ -174,7 +203,7 @@ impl Wallet {
         Ok(spends)
     }
 
-    pub async fn complete_spends(
+    async fn complete_spends(
         &self,
         ctx: &mut SpendContext,
         deltas: &Deltas,

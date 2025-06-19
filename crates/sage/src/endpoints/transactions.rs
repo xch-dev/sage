@@ -34,7 +34,7 @@ impl Sage {
         let memos = parse_memos(req.memos)?;
 
         let coin_spends = wallet
-            .send_xch(vec![(puzzle_hash, amount)], fee, memos, false, true)
+            .send_xch(vec![(puzzle_hash, amount)], fee, memos)
             .await?;
         self.transact(coin_spends, req.auto_submit).await
     }
@@ -53,7 +53,7 @@ impl Sage {
         let fee = parse_amount(req.fee)?;
         let memos = parse_memos(req.memos)?;
 
-        let coin_spends = wallet.send_xch(amounts, fee, memos, false, true).await?;
+        let coin_spends = wallet.send_xch(amounts, fee, memos).await?;
         self.transact(coin_spends, req.auto_submit).await
     }
 
