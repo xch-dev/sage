@@ -34,13 +34,11 @@ impl Wallet {
             return Err(WalletError::MissingDid(did_id));
         };
 
-        let total_amount = fee as u128 + mints.len() as u128;
+        let total_amount = fee + mints.len() as u64;
         let coins = self.select_p2_coins(total_amount).await?;
-        let selected: u128 = coins.iter().map(|coin| coin.amount as u128).sum();
+        let selected: u64 = coins.iter().map(|coin| coin.amount).sum();
 
-        let change: u64 = (selected - total_amount)
-            .try_into()
-            .expect("change amount overflow");
+        let change = selected - total_amount;
 
         let p2_puzzle_hash = self.p2_puzzle_hash(hardened, reuse).await?;
 
@@ -121,15 +119,12 @@ impl Wallet {
         }
 
         let coins = if fee > 0 {
-            self.select_p2_coins(fee as u128).await?
+            self.select_p2_coins(fee).await?
         } else {
             Vec::new()
         };
-        let selected: u128 = coins.iter().map(|coin| coin.amount as u128).sum();
-
-        let change: u64 = (selected - fee as u128)
-            .try_into()
-            .expect("change amount overflow");
+        let selected: u64 = coins.iter().map(|coin| coin.amount).sum();
+        let change = selected - fee;
 
         let change_puzzle_hash = self.p2_puzzle_hash(hardened, reuse).await?;
 
@@ -194,15 +189,12 @@ impl Wallet {
         };
 
         let coins = if fee > 0 {
-            self.select_p2_coins(fee as u128).await?
+            self.select_p2_coins(fee).await?
         } else {
             Vec::new()
         };
-        let selected: u128 = coins.iter().map(|coin| coin.amount as u128).sum();
-
-        let change: u64 = (selected - fee as u128)
-            .try_into()
-            .expect("change amount overflow");
+        let selected: u64 = coins.iter().map(|coin| coin.amount).sum();
+        let change = selected - fee;
 
         let p2_puzzle_hash = self.p2_puzzle_hash(hardened, reuse).await?;
 

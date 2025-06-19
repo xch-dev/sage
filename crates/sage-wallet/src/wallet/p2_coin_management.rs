@@ -19,17 +19,15 @@ impl Wallet {
         hardened: bool,
         reuse: bool,
     ) -> Result<Vec<CoinSpend>, WalletError> {
-        let total: u128 = coins.iter().map(|coin| coin.amount as u128).sum();
+        let total: u64 = coins.iter().map(|coin| coin.amount).sum();
 
-        if fee as u128 > total {
+        if fee > total {
             return Err(WalletError::InsufficientFunds);
         }
 
         let p2_puzzle_hash = self.p2_puzzle_hash(hardened, reuse).await?;
 
-        let change: u64 = (total - fee as u128)
-            .try_into()
-            .expect("change amount overflow");
+        let change = total - fee;
 
         let mut conditions = Conditions::new();
 
@@ -55,19 +53,16 @@ impl Wallet {
         hardened: bool,
         reuse: bool,
     ) -> Result<Vec<CoinSpend>, WalletError> {
-        let total: u128 = coins.iter().map(|coin| coin.amount as u128).sum();
+        let total: u64 = coins.iter().map(|coin| coin.amount).sum();
 
-        if fee as u128 > total {
+        if fee > total {
             return Err(WalletError::InsufficientFunds);
         }
 
         let mut remaining_count = output_count;
-        let mut remaining_amount = total - fee as u128;
+        let mut remaining_amount = total - fee;
 
-        let max_individual_amount: u64 = remaining_amount
-            .div_ceil(output_count as u128)
-            .try_into()
-            .expect("output amount overflow");
+        let max_individual_amount = remaining_amount.div_ceil(output_count as u64);
 
         let derivations_needed: u32 = output_count
             .div_ceil(coins.len())
@@ -102,16 +97,11 @@ impl Wallet {
                         break;
                     }
 
-                    let amount: u64 = (max_individual_amount as u128)
-                        .min(remaining_amount)
-                        .try_into()
-                        .expect("output amount overflow");
-
-                    remaining_amount -= amount as u128;
+                    let amount = max_individual_amount.min(remaining_amount);
+                    remaining_amount -= amount;
+                    remaining_count -= 1;
 
                     conditions = conditions.create_coin(derivation, amount, Memos::None);
-
-                    remaining_count -= 1;
                 }
 
                 (*coin, conditions)
@@ -131,9 +121,7 @@ impl Wallet {
         mut fee: u64,
     ) -> Result<Vec<CoinSpend>, WalletError> {
         // Select the most optimal coins to use for the fee, to keep cost to a minimum.
-        let fee_coins: HashSet<Coin> = select_coins(coins.clone(), fee as u128)?
-            .into_iter()
-            .collect();
+        let fee_coins: HashSet<Coin> = select_coins(coins.clone(), fee)?.into_iter().collect();
 
         let mut ctx = SpendContext::new();
 

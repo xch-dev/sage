@@ -59,7 +59,7 @@ impl Wallet {
         }
 
         if remaining_fee > 0 {
-            xch_coins.extend(self.select_p2_coins(remaining_fee as u128).await?);
+            xch_coins.extend(self.select_p2_coins(remaining_fee).await?);
         }
 
         let total_amount = xch_coins.iter().map(|coin| coin.amount).sum::<u64>();

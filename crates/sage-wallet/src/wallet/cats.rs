@@ -23,13 +23,10 @@ impl Wallet {
         hardened: bool,
         reuse: bool,
     ) -> Result<(Vec<CoinSpend>, Bytes32), WalletError> {
-        let total_amount = amount as u128 + fee as u128;
+        let total_amount = amount + fee;
         let coins = self.select_p2_coins(total_amount).await?;
-        let selected: u128 = coins.iter().map(|coin| coin.amount as u128).sum();
-
-        let change: u64 = (selected - total_amount)
-            .try_into()
-            .expect("change amount overflow");
+        let selected: u64 = coins.iter().map(|coin| coin.amount).sum();
+        let change = selected - total_amount;
 
         let p2_puzzle_hash = self.p2_puzzle_hash(hardened, reuse).await?;
 
@@ -72,20 +69,16 @@ impl Wallet {
         reuse: bool,
     ) -> Result<Vec<CoinSpend>, WalletError> {
         let fee_coins = if fee > 0 {
-            self.select_p2_coins(fee as u128).await?
+            self.select_p2_coins(fee).await?
         } else {
             Vec::new()
         };
 
         let combined_amount = amounts.iter().map(|(_, amount)| amount).sum::<u64>();
 
-        let cats = self
-            .select_cat_coins(asset_id, combined_amount as u128)
-            .await?;
-        let cat_selected: u128 = cats.iter().map(|cat| cat.coin.amount as u128).sum();
-        let cat_change: u64 = (cat_selected - combined_amount as u128)
-            .try_into()
-            .expect("change amount overflow");
+        let cats = self.select_cat_coins(asset_id, combined_amount).await?;
+        let cat_selected: u64 = cats.iter().map(|cat| cat.coin.amount).sum();
+        let cat_change = cat_selected - combined_amount;
 
         let change_puzzle_hash = self.p2_puzzle_hash(hardened, reuse).await?;
 
@@ -96,10 +89,8 @@ impl Wallet {
         };
 
         if fee > 0 {
-            let fee_selected: u128 = fee_coins.iter().map(|coin| coin.amount as u128).sum();
-            let fee_change: u64 = (fee_selected - fee as u128)
-                .try_into()
-                .expect("fee change overflow");
+            let fee_selected: u64 = fee_coins.iter().map(|coin| coin.amount).sum();
+            let fee_change = fee_selected - fee;
 
             conditions = conditions.reserve_fee(fee);
 

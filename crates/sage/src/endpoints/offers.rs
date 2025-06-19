@@ -516,18 +516,18 @@ impl Sage {
         let cats = wallet.db.offer_cats(offer.offer_id).await?;
         let nfts = wallet.db.offer_nfts(offer.offer_id).await?;
 
-        let mut maker_xch_amount = 0u128;
-        let mut maker_xch_royalty = 0u128;
-        let mut taker_xch_amount = 0u128;
-        let mut taker_xch_royalty = 0u128;
+        let mut maker_xch_amount = 0;
+        let mut maker_xch_royalty = 0;
+        let mut taker_xch_amount = 0;
+        let mut taker_xch_royalty = 0;
 
         for xch in xch {
             if xch.requested {
-                taker_xch_amount += xch.amount as u128;
-                taker_xch_royalty += xch.royalty as u128;
+                taker_xch_amount += xch.amount;
+                taker_xch_royalty += xch.royalty;
             } else {
-                maker_xch_amount += xch.amount as u128;
-                maker_xch_royalty += xch.royalty as u128;
+                maker_xch_amount += xch.amount;
+                maker_xch_royalty += xch.royalty;
             }
         }
 
@@ -590,16 +590,16 @@ impl Sage {
             summary: OfferSummary {
                 maker: OfferAssets {
                     xch: OfferXch {
-                        amount: Amount::u128(maker_xch_amount),
-                        royalty: Amount::u128(maker_xch_royalty),
+                        amount: Amount::u64(maker_xch_amount),
+                        royalty: Amount::u64(maker_xch_royalty),
                     },
                     cats: maker_cats,
                     nfts: maker_nfts,
                 },
                 taker: OfferAssets {
                     xch: OfferXch {
-                        amount: Amount::u128(taker_xch_amount),
-                        royalty: Amount::u128(taker_xch_royalty),
+                        amount: Amount::u64(taker_xch_amount),
+                        royalty: Amount::u64(taker_xch_royalty),
                     },
                     cats: taker_cats,
                     nfts: taker_nfts,

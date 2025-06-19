@@ -20,15 +20,12 @@ impl Wallet {
     ) -> Result<Vec<CoinSpend>, WalletError> {
         let combined_amount = amounts.iter().map(|(_, amount)| amount).sum::<u64>();
 
-        let total = combined_amount as u128 + fee as u128;
+        let total = combined_amount + fee;
         let coins = self.select_p2_coins(total).await?;
-        let selected: u128 = coins.iter().map(|coin| coin.amount as u128).sum();
+        let selected: u64 = coins.iter().map(|coin| coin.amount).sum();
 
         let change_puzzle_hash = self.p2_puzzle_hash(hardened, reuse).await?;
-
-        let change: u64 = (selected - total)
-            .try_into()
-            .expect("change amount overflow");
+        let change = selected - total;
 
         let mut ctx = SpendContext::new();
 

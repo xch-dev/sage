@@ -90,26 +90,23 @@ impl Wallet {
         let change_puzzle_hash = self.p2_puzzle_hash(hardened, reuse).await?;
         let change_hint = ctx.hint(change_puzzle_hash)?;
 
-        let xch_amount = xch_payments.iter().map(|p| p.amount as u128).sum::<u128>();
-        let xch_selected_amount = xch_amount + fee as u128;
+        let xch_amount = xch_payments.iter().map(|p| p.amount).sum::<u64>();
+        let xch_selected_amount = xch_amount + fee;
         let xch_coins = if xch_selected_amount > 0 {
             self.select_p2_coins(xch_selected_amount).await?
         } else {
             Vec::new()
         };
-        let xch_total = xch_coins.iter().map(|c| c.amount as u128).sum::<u128>();
-        let xch_change = (xch_total - xch_selected_amount) as u64;
+        let xch_total = xch_coins.iter().map(|c| c.amount).sum::<u64>();
+        let xch_change = xch_total - xch_selected_amount;
 
         let mut selected_cat_coins = HashMap::new();
 
         for (&asset_id, payments) in &cat_payments {
-            let cat_amount = payments.iter().map(|p| p.amount as u128).sum::<u128>();
+            let cat_amount = payments.iter().map(|p| p.amount).sum::<u64>();
             let cat_coins = self.select_cat_coins(asset_id, cat_amount).await?;
-            let cat_total = cat_coins
-                .iter()
-                .map(|c| c.coin.amount as u128)
-                .sum::<u128>();
-            let cat_change = (cat_total - cat_amount) as u64;
+            let cat_total = cat_coins.iter().map(|c| c.coin.amount).sum::<u64>();
+            let cat_change = cat_total - cat_amount;
             selected_cat_coins.insert(asset_id, (cat_coins, cat_change));
         }
 

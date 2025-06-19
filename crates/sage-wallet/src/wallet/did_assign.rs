@@ -48,15 +48,12 @@ impl Wallet {
         };
 
         let coins = if fee > 0 {
-            self.select_p2_coins(fee as u128).await?
+            self.select_p2_coins(fee).await?
         } else {
             Vec::new()
         };
-        let selected: u128 = coins.iter().map(|coin| coin.amount as u128).sum();
-
-        let change: u64 = (selected - fee as u128)
-            .try_into()
-            .expect("change amount overflow");
+        let selected: u64 = coins.iter().map(|coin| coin.amount).sum();
+        let change = selected - fee;
 
         let change_puzzle_hash = self.p2_puzzle_hash(hardened, reuse).await?;
 
