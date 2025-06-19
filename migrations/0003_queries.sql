@@ -36,5 +36,6 @@ WHERE 1=1
         INNER JOIN assets ON options.asset_id = assets.id
         INNER JOIN p2_puzzles ON p2_puzzles.hash = options.creator_puzzle_hash
         WHERE assets.hash = p2_options.hash
+        AND unixepoch() <= options.seconds
     )
   )

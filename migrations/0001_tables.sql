@@ -286,6 +286,7 @@ CREATE TABLE options (
   id INTEGER PRIMARY KEY,
   asset_id INTEGER NOT NULL UNIQUE,
   creator_puzzle_hash BLOB NOT NULL,
+  seconds INTEGER NOT NULL,
   is_owned BOOLEAN NOT NULL,
   FOREIGN KEY (asset_id) REFERENCES assets(id) ON DELETE CASCADE
 );
