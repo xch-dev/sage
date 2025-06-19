@@ -3,7 +3,8 @@ use chia::{
     puzzles::Memos,
 };
 use chia_wallet_sdk::{
-    driver::{HashedPtr, NftOwner, SpendContext, StandardLayer},
+    driver::{HashedPtr, SpendContext, StandardLayer},
+    prelude::TransferNft,
     types::Conditions,
 };
 
@@ -98,7 +99,15 @@ impl Wallet {
                 &mut ctx,
                 &p2,
                 nft.info.p2_puzzle_hash,
-                did.as_ref().map(|did| NftOwner::from_did_info(&did.info)),
+                did.as_ref()
+                    .map(|did| {
+                        TransferNft::new(
+                            Some(did.info.launcher_id),
+                            vec![],
+                            Some(did.info.inner_puzzle_hash().into()),
+                        )
+                    })
+                    .unwrap_or_default(),
                 conditions,
             )?;
 

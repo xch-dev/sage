@@ -4,10 +4,8 @@ use chia::{
 };
 use chia_puzzles::NFT_METADATA_UPDATER_DEFAULT_HASH;
 use chia_wallet_sdk::{
-    driver::{
-        Did, HashedPtr, Launcher, MetadataUpdate, Nft, NftMint, NftOwner, SpendContext,
-        StandardLayer,
-    },
+    driver::{Did, HashedPtr, Launcher, MetadataUpdate, Nft, NftMint, SpendContext, StandardLayer},
+    prelude::TransferNft,
     types::Conditions,
 };
 
@@ -64,7 +62,11 @@ impl Wallet {
                 royalty_puzzle_hash: mint.royalty_puzzle_hash.unwrap_or(p2_puzzle_hash),
                 royalty_basis_points: mint.royalty_basis_points,
                 p2_puzzle_hash: mint.p2_puzzle_hash.unwrap_or(p2_puzzle_hash),
-                owner: Some(NftOwner::from_did_info(&did.info)),
+                transfer_condition: Some(TransferNft::new(
+                    Some(did.info.launcher_id),
+                    vec![],
+                    Some(did.info.inner_puzzle_hash().into()),
+                )),
             };
 
             let (mint_nft, nft) = Launcher::new(did.coin.coin_id(), i as u64 * 2)
