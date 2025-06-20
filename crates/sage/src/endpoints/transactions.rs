@@ -467,7 +467,7 @@ impl Sage {
             .collect::<Result<Vec<_>>>()?;
         let fee = parse_amount(req.fee)?;
 
-        let coin_spends = wallet.normalize_dids(did_ids, fee, false, true).await?;
+        let coin_spends = wallet.normalize_dids(did_ids, fee).await?;
         self.transact(coin_spends, req.auto_submit).await
     }
 
