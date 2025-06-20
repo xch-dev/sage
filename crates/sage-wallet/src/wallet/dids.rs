@@ -1,10 +1,10 @@
 use chia::{
     clvm_utils::tree_hash_atom,
-    protocol::{Bytes32, Coin, CoinSpend},
+    protocol::{Bytes32, Coin, CoinSpend, Program},
     puzzles::{singleton::SingletonArgs, Memos, Proof},
 };
 use chia_wallet_sdk::{
-    driver::{Did, HashedPtr, Launcher, SpendContext, StandardLayer},
+    driver::{Action, Did, HashedPtr, Id, SpendContext, StandardLayer},
     types::Conditions,
 };
 
@@ -16,34 +16,21 @@ impl Wallet {
     pub async fn create_did(
         &self,
         fee: u64,
-        hardened: bool,
-        reuse: bool,
-    ) -> Result<(Vec<CoinSpend>, Did<()>), WalletError> {
-        let total_amount = fee + 1;
-        let coins = self.select_p2_coins(total_amount).await?;
-        let selected: u64 = coins.iter().map(|coin| coin.amount).sum();
-        let change = selected - total_amount;
-
-        let p2_puzzle_hash = self.p2_puzzle_hash(hardened, reuse).await?;
-
+    ) -> Result<(Vec<CoinSpend>, Did<Program>), WalletError> {
         let mut ctx = SpendContext::new();
 
-        let synthetic_key = self.db.synthetic_key(coins[0].puzzle_hash).await?;
-        let p2 = StandardLayer::new(synthetic_key);
-        let (mut conditions, did) =
-            Launcher::new(coins[0].coin_id(), 1).create_simple_did(&mut ctx, &p2)?;
+        let outputs = self
+            .spend(
+                &mut ctx,
+                vec![],
+                &[Action::fee(fee), Action::create_empty_did()],
+            )
+            .await?;
 
-        if fee > 0 {
-            conditions = conditions.reserve_fee(fee);
-        }
+        let did = outputs.dids[&Id::New(1)];
+        let metadata = ctx.serialize(&did.info.metadata)?;
 
-        if change > 0 {
-            conditions = conditions.create_coin(p2_puzzle_hash, change, Memos::None);
-        }
-
-        self.spend_p2_coins(&mut ctx, coins, conditions).await?;
-
-        Ok((ctx.take(), did))
+        Ok((ctx.take(), did.with_metadata(metadata)))
     }
 
     pub async fn transfer_dids(
@@ -51,73 +38,16 @@ impl Wallet {
         did_ids: Vec<Bytes32>,
         puzzle_hash: Bytes32,
         fee: u64,
-        hardened: bool,
-        reuse: bool,
     ) -> Result<Vec<CoinSpend>, WalletError> {
-        if did_ids.is_empty() {
-            return Err(WalletError::EmptyBulkTransfer);
-        }
-
-        let mut dids = Vec::new();
+        let mut ctx = SpendContext::new();
+        let mut actions = vec![Action::fee(fee)];
 
         for did_id in did_ids {
-            let Some(did) = self.db.spendable_did(did_id).await? else {
-                return Err(WalletError::MissingDid(did_id));
-            };
-
-            dids.push(did);
+            let hint = ctx.hint(puzzle_hash)?;
+            actions.push(Action::send(Id::Existing(did_id), puzzle_hash, 1, hint));
         }
 
-        let coins = if fee > 0 {
-            self.select_p2_coins(fee).await?
-        } else {
-            Vec::new()
-        };
-        let selected: u64 = coins.iter().map(|coin| coin.amount).sum();
-        let change = selected - fee;
-
-        let p2_puzzle_hash = self.p2_puzzle_hash(hardened, reuse).await?;
-
-        let mut ctx = SpendContext::new();
-
-        let did_coin_ids = dids
-            .iter()
-            .map(|did| did.coin.coin_id())
-            .collect::<Vec<_>>();
-
-        for (i, did) in dids.into_iter().enumerate() {
-            let did_metadata_ptr = ctx.alloc(&did.info.metadata)?;
-            let did = did.with_metadata(HashedPtr::from_ptr(&ctx, did_metadata_ptr));
-
-            let synthetic_key = self.db.synthetic_key(did.info.p2_puzzle_hash).await?;
-            let p2 = StandardLayer::new(synthetic_key);
-
-            let conditions = if did_coin_ids.len() == 1 {
-                Conditions::new()
-            } else {
-                Conditions::new().assert_concurrent_spend(
-                    did_coin_ids[if i == 0 {
-                        did_coin_ids.len() - 1
-                    } else {
-                        i - 1
-                    }],
-                )
-            };
-
-            let _did = did.transfer(&mut ctx, &p2, puzzle_hash, conditions)?;
-        }
-
-        if fee > 0 {
-            let mut conditions = Conditions::new()
-                .assert_concurrent_spend(did_coin_ids[0])
-                .reserve_fee(fee);
-
-            if change > 0 {
-                conditions = conditions.create_coin(p2_puzzle_hash, change, Memos::None);
-            }
-
-            self.spend_p2_coins(&mut ctx, coins, conditions).await?;
-        }
+        self.spend(&mut ctx, vec![], &actions).await?;
 
         Ok(ctx.take())
     }
@@ -231,14 +161,14 @@ mod tests {
     async fn test_create_did() -> anyhow::Result<()> {
         let mut test = TestWallet::new(1).await?;
 
-        let (coin_spends, did) = test.wallet.create_did(0, false, true).await?;
+        let (coin_spends, did) = test.wallet.create_did(0).await?;
         test.transact(coin_spends).await?;
         test.wait_for_coins().await;
 
         for _ in 0..2 {
             let coin_spends = test
                 .wallet
-                .transfer_dids(vec![did.info.launcher_id], test.puzzle_hash, 0, false, true)
+                .transfer_dids(vec![did.info.launcher_id], test.puzzle_hash, 0)
                 .await?;
             test.transact(coin_spends).await?;
             test.wait_for_coins().await;

@@ -275,7 +275,7 @@ impl Sage {
         let wallet = self.wallet()?;
         let fee = parse_amount(req.fee)?;
 
-        let (coin_spends, did) = wallet.create_did(fee, false, true).await?;
+        let (coin_spends, did) = wallet.create_did(fee).await?;
         wallet
             .db
             .set_future_did_name(did.info.launcher_id, req.name.clone())
@@ -454,9 +454,7 @@ impl Sage {
         let puzzle_hash = self.parse_address(req.address)?;
         let fee = parse_amount(req.fee)?;
 
-        let coin_spends = wallet
-            .transfer_dids(did_ids, puzzle_hash, fee, false, true)
-            .await?;
+        let coin_spends = wallet.transfer_dids(did_ids, puzzle_hash, fee).await?;
         self.transact(coin_spends, req.auto_submit).await
     }
 

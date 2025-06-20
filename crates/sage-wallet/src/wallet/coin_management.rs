@@ -15,8 +15,10 @@ impl Wallet {
         fee: u64,
     ) -> Result<Vec<CoinSpend>, WalletError> {
         let mut ctx = SpendContext::new();
+
         self.spend(&mut ctx, selected_coin_ids, &[Action::fee(fee)])
             .await?;
+
         Ok(ctx.take())
     }
 

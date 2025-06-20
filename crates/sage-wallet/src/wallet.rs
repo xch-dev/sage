@@ -16,7 +16,6 @@ mod cat_spends;
 mod cats;
 mod coin_management;
 mod derivations;
-mod did_assign;
 mod dids;
 mod memos;
 mod multi_send;
@@ -194,6 +193,20 @@ impl Wallet {
     ) -> Result<(), WalletError> {
         let deltas = Deltas::from_actions(actions);
 
+        for &id in deltas.ids() {
+            let Id::Existing(launcher_id) = id else {
+                continue;
+            };
+
+            if let Some(did) = self.db.spendable_did(launcher_id).await? {
+                let metadata_ptr = ctx.alloc_hashed(&did.info.metadata)?;
+                spends.add(did.with_metadata(metadata_ptr));
+            } else if let Some(nft) = self.db.spendable_nft(launcher_id).await? {
+                let metadata_ptr = ctx.alloc_hashed(&nft.info.metadata)?;
+                spends.add(nft.with_metadata(metadata_ptr));
+            }
+        }
+
         let mut selected = indexmap! { None => spends.xch.selected_amount() };
 
         for cat in spends.cats.values() {
@@ -225,6 +238,16 @@ impl Wallet {
 
         for (asset_id, amount) in selected.into_iter().chain(requested) {
             let id = asset_id.map(Id::Existing);
+
+            if let Some(id) = &id {
+                if spends.dids.contains_key(id)
+                    || spends.nfts.contains_key(id)
+                    || spends.options.contains_key(id)
+                {
+                    continue;
+                }
+            }
+
             let delta = deltas.get(id).copied().unwrap_or_default();
             let required_amount = delta.output.saturating_sub(amount + delta.input);
 
@@ -244,20 +267,6 @@ impl Wallet {
                         spends.add(coin);
                     }
                 }
-            }
-        }
-
-        for &id in deltas.ids() {
-            let Id::Existing(launcher_id) = id else {
-                continue;
-            };
-
-            if let Some(did) = self.db.spendable_did(launcher_id).await? {
-                let metadata_ptr = ctx.alloc_hashed(&did.info.metadata)?;
-                spends.add(did.with_metadata(metadata_ptr));
-            } else if let Some(nft) = self.db.spendable_nft(launcher_id).await? {
-                let metadata_ptr = ctx.alloc_hashed(&nft.info.metadata)?;
-                spends.add(nft.with_metadata(metadata_ptr));
             }
         }
 
