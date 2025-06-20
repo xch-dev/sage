@@ -27,7 +27,7 @@ async fn insert_peak(
     let header_hash = header_hash.as_ref();
     sqlx::query!(
         "
-        REPLACE INTO `peaks` (`height`, `header_hash`)
+        REPLACE INTO blocks (height, header_hash)
         VALUES (?, ?)
         ",
         height,
@@ -41,9 +41,9 @@ async fn insert_peak(
 async fn latest_peak(conn: impl SqliteExecutor<'_>) -> Result<Option<(u32, Bytes32)>> {
     sqlx::query!(
         "
-        SELECT `height`, `header_hash`
-        FROM `peaks`
-        ORDER BY `height` DESC
+        SELECT height, header_hash
+        FROM blocks
+        ORDER BY height DESC
         LIMIT 1
         "
     )
