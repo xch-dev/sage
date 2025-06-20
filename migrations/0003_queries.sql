@@ -1,7 +1,7 @@
 CREATE VIEW unspent_coins AS
 SELECT
-  parent_coin_id, 
-  coins.puzzle_hash, 
+  parent_coin_hash,
+  puzzle_hash,
   amount
 FROM coins
   INNER JOIN assets ON asset_id = assets.id
@@ -12,30 +12,26 @@ FROM coins
   LEFT JOIN clawbacks ON clawbacks.p2_puzzle_id = coins.p2_puzzle_id
   LEFT JOIN p2_options ON p2_options.p2_puzzle_id = coins.p2_puzzle_id
 WHERE 1=1
-  AND spent_height IS NULL 
+  AND spent_height IS NULL
   AND assets.kind = 0
-  AND (offers.id IS NULL OR offers.status != 0)
+  AND (offers.id IS NULL OR offers.status > 1)
   AND transaction_coins.id IS NULL
   AND (
     clawbacks.id IS NULL
     OR EXISTS (
         SELECT 1 FROM p2_puzzles 
-        WHERE p2_puzzles.hash = clawbacks.sender_puzzle_hash
-        AND unixepoch() < clawbacks.seconds
-    )
-    OR EXISTS (
-        SELECT 1 FROM p2_puzzles 
         WHERE p2_puzzles.hash = clawbacks.receiver_puzzle_hash
-        AND unixepoch() >= clawbacks.seconds
+        AND unixepoch() >= clawbacks.expiration_seconds
     )
   )
   AND (
     p2_options.id IS NULL
     OR EXISTS (
         SELECT 1 FROM options
-        INNER JOIN assets ON options.asset_id = assets.id
         INNER JOIN p2_puzzles ON p2_puzzles.hash = options.creator_puzzle_hash
-        WHERE assets.hash = p2_options.hash
-        AND unixepoch() <= options.seconds
+        WHERE options.asset_id = p2_options.option_asset_id
+        AND unixepoch() >= options.expiration_seconds
     )
-  )
+  );
+
+SELECT * FROM unspent_coins;
