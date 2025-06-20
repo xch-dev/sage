@@ -30,8 +30,7 @@ export function ResyncDialog({
   const { addError } = useErrors();
 
   const [pending, setPending] = useState(false);
-  const [deleteHardened, setDeleteHardened] = useState(false);
-  const [deleteUnhardened, setDeleteUnhardened] = useState(false);
+  const [deleteAddresses, setDeleteAddresses] = useState(false);
   const [deleteOffers, setDeleteOffers] = useState(false);
 
   return (
@@ -62,23 +61,13 @@ export function ResyncDialog({
               />
             </div>
             <div className='flex items-center gap-2 my-2'>
-              <label htmlFor='deleteUnhardened'>
-                <Trans>Delete unhardened addresses</Trans>
+              <label htmlFor='deleteAddresses'>
+                <Trans>Delete addresses</Trans>
               </label>
               <Switch
-                id='deleteUnhardened'
-                checked={deleteUnhardened}
-                onCheckedChange={(value) => setDeleteUnhardened(value)}
-              />
-            </div>
-            <div className='flex items-center gap-2 my-2'>
-              <label htmlFor='deleteHardened'>
-                <Trans>Delete hardened addresses</Trans>
-              </label>
-              <Switch
-                id='deleteHardened'
-                checked={deleteHardened}
-                onCheckedChange={(value) => setDeleteHardened(value)}
+                id='deleteAddresses'
+                checked={deleteAddresses}
+                onCheckedChange={(value) => setDeleteAddresses(value)}
               />
             </div>
           </DialogDescription>
@@ -92,8 +81,7 @@ export function ResyncDialog({
             onClick={() => {
               setPending(true);
               submit({
-                delete_hardened_derivations: deleteHardened,
-                delete_unhardened_derivations: deleteUnhardened,
+                delete_addresses: deleteAddresses,
                 delete_offer_files: deleteOffers,
                 delete_blockinfo: false,
               })

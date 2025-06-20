@@ -146,7 +146,7 @@ CREATE TABLE clawbacks (
 CREATE TABLE p2_options (
   id INTEGER PRIMARY KEY,
   p2_puzzle_id INTEGER NOT NULL,
-  option_asset_id BLOB NOT NULL,
+  option_asset_id INTEGER NULL,
   FOREIGN KEY (p2_puzzle_id) REFERENCES p2_puzzles(id) ON DELETE CASCADE,
   FOREIGN KEY (option_asset_id) REFERENCES assets(id) ON DELETE CASCADE
 );

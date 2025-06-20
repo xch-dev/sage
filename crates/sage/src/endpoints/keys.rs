@@ -48,38 +48,32 @@ impl Sage {
 
         sqlx::query!(
             "
-            DELETE FROM `coin_states`;
-            DELETE FROM `transactions`;
-            DELETE FROM `peaks`;
-            DELETE FROM `cats`;
-            DELETE FROM `future_did_names`;
-            DELETE FROM `collections`;
-            DELETE FROM `nft_data`;
-            DELETE FROM `nft_uris`;
+            DELETE FROM coins;
+            DELETE FROM assets;
+            DELETE FROM transactions;
+            DELETE FROM collections;
+            DELETE FROM nfts;
+            DELETE FROM dids;
+            DELETE FROM tokens;
+            DELETE FROM options;
+            DELETE FROM files;
             "
         )
         .execute(&pool)
         .await?;
 
         if req.delete_offer_files {
-            sqlx::query!("DELETE FROM `offers`").execute(&pool).await?;
+            sqlx::query!("DELETE FROM offers").execute(&pool).await?;
         }
 
-        if req.delete_unhardened_derivations {
-            sqlx::query!("DELETE FROM `derivations` WHERE `hardened` = 0")
+        if req.delete_addresses {
+            sqlx::query!("DELETE FROM p2_puzzles")
                 .execute(&pool)
                 .await?;
         }
 
-        if req.delete_hardened_derivations {
-            sqlx::query!("DELETE FROM `derivations` WHERE `hardened` = 1")
-                .execute(&pool)
-                .await?;
-        }
         if req.delete_blockinfo {
-            sqlx::query!("DELETE FROM `blockinfo`")
-                .execute(&pool)
-                .await?;
+            sqlx::query!("DELETE FROM blocks").execute(&pool).await?;
         }
 
         if login {
