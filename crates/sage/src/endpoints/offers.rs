@@ -621,7 +621,7 @@ impl Sage {
         };
 
         let offer = Offer::decode(&row.encoded_offer)?;
-        let coin_spends = wallet.cancel_offer(offer, fee, false, true).await?;
+        let coin_spends = wallet.cancel_offer(offer, fee).await?;
 
         self.transact(coin_spends, req.auto_submit).await
     }
@@ -644,7 +644,7 @@ impl Sage {
             };
 
             let offer = Offer::decode(&row.encoded_offer)?;
-            let spends = wallet.cancel_offer(offer, fee, false, true).await?;
+            let spends = wallet.cancel_offer(offer, fee).await?;
             coin_spends.extend(spends);
         }
 
