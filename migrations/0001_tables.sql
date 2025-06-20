@@ -196,7 +196,7 @@ CREATE TABLE lineage_proofs (
  * Completed = 2
  * Cancelled = 3
  * Expired = 4
-*/
+ */
 CREATE TABLE offers (
   id INTEGER PRIMARY KEY,
   hash BLOB NOT NULL UNIQUE,
@@ -205,19 +205,19 @@ CREATE TABLE offers (
   status INTEGER NOT NULL,
   expiration_height INTEGER,
   expiration_timestamp INTEGER,
-  inserted_timestamp INTEGER NOT NULL
+  inserted_timestamp INTEGER NOT NULL DEFAULT (unixepoch())
 );
 
 CREATE TABLE offer_assets (
   id INTEGER PRIMARY KEY,
   offer_id INTEGER NOT NULL,
   asset_id INTEGER NOT NULL,
-  amount BLOB NOT NULL,
-  royalty BLOB,
   is_requested BOOLEAN NOT NULL,
+  amount BLOB NOT NULL,
+  royalty BLOB NOT NULL,
   FOREIGN KEY (offer_id) REFERENCES offers(id) ON DELETE CASCADE,
   FOREIGN KEY (asset_id) REFERENCES assets(id) ON DELETE CASCADE,
-  UNIQUE(offer_id, asset_id)
+  UNIQUE(offer_id, asset_id, is_requested)
 );
 
 CREATE TABLE offer_coins (
@@ -233,10 +233,8 @@ CREATE TABLE transactions (
   id INTEGER PRIMARY KEY,
   hash BLOB NOT NULL UNIQUE,
   aggregated_signature BLOB,
-  fee BLOB,
-  height INTEGER,
-  submitted_at_timestamp INTEGER,
-  FOREIGN KEY (height) REFERENCES blocks(height) ON DELETE CASCADE
+  fee BLOB NOT NULL,
+  submitted_timestamp INTEGER NOT NULL DEFAULT (unixepoch())
 );
 
 CREATE TABLE transaction_coins (
@@ -246,6 +244,7 @@ CREATE TABLE transaction_coins (
   is_output BOOLEAN NOT NULL,
   seq INTEGER NOT NULL,
   FOREIGN KEY (transaction_id) REFERENCES transactions(id) ON DELETE CASCADE,
+  FOREIGN KEY (coin_id) REFERENCES coins(id) ON DELETE CASCADE,
   UNIQUE(transaction_id, coin_id)
 );
 
@@ -259,35 +258,29 @@ CREATE TABLE transaction_spends (
 
 CREATE TABLE collections (
   id INTEGER PRIMARY KEY,
-  name TEXT,
   hash BLOB NOT NULL UNIQUE,
-  description TEXT,
-  metadata_id TEXT NOT NULL,
-  is_visible BOOLEAN NOT NULL,
-  minter_did BLOB NOT NULL,
+  uuid TEXT NOT NULL,
+  minter_hash BLOB NOT NULL,
+  name TEXT,
   icon_url TEXT,
-  banner_url TEXT
+  banner_url TEXT,
+  description TEXT,
+  is_visible BOOLEAN NOT NULL,
+  created_height INTEGER
 );
 
-
-/* 
-  This table collapses nft_data, nft_uris, and nft_thumbnails into a single table
-  with kind to differentiate between the three types of data.
-  Also, data_index, is a pointer to an external data source. It could
-  be a file path, a cache index, or a url etc so need to flesh that out more.
-
-  kind values:
-    - 0 = data
-    - 1 = uri
-    - 2 = thumbnail
-    - 3 = icon
-*/
-CREATE TABLE nft_data (
+CREATE TABLE files (
   id INTEGER PRIMARY KEY,
-  nft_id INTEGER NOT NULL,
-  kind INTEGER NOT NULL,
+  hash BLOB NOT NULL UNIQUE,
   mime_type TEXT,
-  is_hash_matched BOOLEAN NOT NULL,
-  data_index TEXT NOT NULL, 
-  FOREIGN KEY (nft_id) REFERENCES nfts(id) ON DELETE CASCADE
+  is_hash_match BOOLEAN NOT NULL,
+  is_downloaded BOOLEAN NOT NULL
+);
+
+CREATE TABLE file_uris (
+  id INTEGER PRIMARY KEY,
+  file_id INTEGER NOT NULL,
+  uri TEXT NOT NULL,
+  FOREIGN KEY (file_id) REFERENCES files(id) ON DELETE CASCADE,
+  UNIQUE(file_id, uri)
 );
