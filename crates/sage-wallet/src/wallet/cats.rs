@@ -33,7 +33,6 @@ impl Wallet {
     }
 
     /// Sends the given amount of CAT to the given puzzle hash.
-    #[allow(clippy::too_many_arguments)]
     pub async fn send_cat(
         &self,
         asset_id: Bytes32,

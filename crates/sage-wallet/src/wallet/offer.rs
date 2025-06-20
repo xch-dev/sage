@@ -100,7 +100,7 @@ mod tests {
         bob.transact(coin_spends).await?;
         bob.wait_for_coins().await;
 
-        let (coin_spends, mut nfts, _did) = bob
+        let (coin_spends, mut nfts) = bob
             .wallet
             .bulk_mint_nfts(
                 0,
@@ -111,8 +111,6 @@ mod tests {
                     royalty_puzzle_hash: Some(Bytes32::default()),
                     royalty_basis_points: 300,
                 }],
-                false,
-                true,
             )
             .await?;
         bob.transact(coin_spends).await?;
@@ -184,7 +182,7 @@ mod tests {
         alice.transact(coin_spends).await?;
         alice.wait_for_coins().await;
 
-        let (coin_spends, mut nfts, _did) = alice
+        let (coin_spends, mut nfts) = alice
             .wallet
             .bulk_mint_nfts(
                 0,
@@ -195,8 +193,6 @@ mod tests {
                     royalty_puzzle_hash: Some(Bytes32::default()),
                     royalty_basis_points: 300,
                 }],
-                false,
-                true,
             )
             .await?;
         alice.transact(coin_spends).await?;
@@ -257,7 +253,7 @@ mod tests {
         alice.transact(coin_spends).await?;
         alice.wait_for_coins().await;
 
-        let (coin_spends, mut nfts, _did) = alice
+        let (coin_spends, mut nfts) = alice
             .wallet
             .bulk_mint_nfts(
                 0,
@@ -276,8 +272,6 @@ mod tests {
                         royalty_basis_points: 300,
                     },
                 ],
-                false,
-                true,
             )
             .await?;
         alice.transact(coin_spends).await?;
@@ -352,7 +346,7 @@ mod tests {
         alice.transact(coin_spends).await?;
         alice.wait_for_coins().await;
 
-        let (coin_spends, mut nfts, _did) = alice
+        let (coin_spends, mut nfts) = alice
             .wallet
             .bulk_mint_nfts(
                 0,
@@ -371,8 +365,6 @@ mod tests {
                         royalty_basis_points: 300,
                     },
                 ],
-                false,
-                true,
             )
             .await?;
         alice.transact(coin_spends).await?;
@@ -452,7 +444,7 @@ mod tests {
         alice.transact(coin_spends).await?;
         alice.wait_for_coins().await;
 
-        let (coin_spends, mut nfts, _did) = alice
+        let (coin_spends, mut nfts) = alice
             .wallet
             .bulk_mint_nfts(
                 0,
@@ -471,8 +463,6 @@ mod tests {
                         royalty_basis_points: 0,
                     },
                 ],
-                false,
-                true,
             )
             .await?;
         alice.transact(coin_spends).await?;
@@ -547,7 +537,7 @@ mod tests {
         alice.transact(coin_spends).await?;
         alice.wait_for_coins().await;
 
-        let (coin_spends, mut nfts, _did) = alice
+        let (coin_spends, mut nfts) = alice
             .wallet
             .bulk_mint_nfts(
                 0,
@@ -566,8 +556,6 @@ mod tests {
                         royalty_basis_points: 300,
                     },
                 ],
-                false,
-                true,
             )
             .await?;
         alice.transact(coin_spends).await?;
@@ -764,7 +752,7 @@ mod tests {
         alice.transact(coin_spends).await?;
         alice.wait_for_coins().await;
 
-        let (coin_spends, mut nfts, _did) = alice
+        let (coin_spends, mut nfts) = alice
             .wallet
             .bulk_mint_nfts(
                 0,
@@ -775,8 +763,6 @@ mod tests {
                     royalty_puzzle_hash: Some(Bytes32::default()),
                     royalty_basis_points: 300,
                 }],
-                false,
-                true,
             )
             .await?;
         alice.transact(coin_spends).await?;

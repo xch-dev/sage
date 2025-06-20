@@ -376,9 +376,7 @@ impl Sage {
             });
         }
 
-        let (coin_spends, nfts, _did) = wallet
-            .bulk_mint_nfts(fee, did_id, mints, false, true)
-            .await?;
+        let (coin_spends, nfts) = wallet.bulk_mint_nfts(fee, did_id, mints).await?;
 
         let mut nft_ids = Vec::with_capacity(nfts.len());
 
@@ -407,9 +405,7 @@ impl Sage {
         let puzzle_hash = self.parse_address(req.address)?;
         let fee = parse_amount(req.fee)?;
 
-        let coin_spends = wallet
-            .transfer_nfts(nft_ids, puzzle_hash, fee, false, true)
-            .await?;
+        let coin_spends = wallet.transfer_nfts(nft_ids, puzzle_hash, fee).await?;
         self.transact(coin_spends, req.auto_submit).await
     }
 
@@ -424,7 +420,7 @@ impl Sage {
             NftUriKind::License => MetadataUpdate::NewLicenseUri(req.uri),
         };
 
-        let (coin_spends, _new_nft) = wallet.add_nft_uri(nft_id, fee, uri, false, true).await?;
+        let coin_spends = wallet.add_nft_uri(nft_id, fee, uri).await?;
         self.transact(coin_spends, req.auto_submit).await
     }
 
@@ -438,9 +434,7 @@ impl Sage {
         let did_id = req.did_id.map(parse_did_id).transpose()?;
         let fee = parse_amount(req.fee)?;
 
-        let coin_spends = wallet
-            .assign_nfts(nft_ids, did_id, fee, false, true)
-            .await?;
+        let coin_spends = wallet.assign_nfts(nft_ids, did_id, fee).await?;
         self.transact(coin_spends, req.auto_submit).await
     }
 
