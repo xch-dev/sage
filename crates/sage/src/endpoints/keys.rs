@@ -76,6 +76,9 @@ impl Sage {
             sqlx::query!("DELETE FROM blocks").execute(&pool).await?;
         }
 
+        // reclaim disk space after all those deletes
+        sqlx::query("VACUUM").execute(&pool).await?;
+
         if login {
             self.config.global.fingerprint = Some(req.fingerprint);
             self.save_config()?;
