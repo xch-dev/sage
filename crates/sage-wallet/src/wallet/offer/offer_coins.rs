@@ -86,7 +86,7 @@ impl Wallet {
     ) -> Result<OfferCoins, WalletError> {
         // Select XCH coins.
         let xch = if total_amounts.xch > 0 {
-            self.select_p2_coins(total_amounts.xch as u128).await?
+            self.select_p2_coins(total_amounts.xch).await?
         } else {
             Vec::new()
         };
@@ -99,10 +99,7 @@ impl Wallet {
                 continue;
             }
 
-            cats.insert(
-                asset_id,
-                self.select_cat_coins(asset_id, amount as u128).await?,
-            );
+            cats.insert(asset_id, self.select_cat_coins(asset_id, amount).await?);
         }
 
         // Fetch NFT coins.

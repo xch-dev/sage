@@ -29,6 +29,10 @@ pub fn parse_coin_id(input: String) -> Result<Bytes32> {
     Ok(asset_id.into())
 }
 
+pub fn parse_coin_ids(input: Vec<String>) -> Result<Vec<Bytes32>> {
+    input.into_iter().map(parse_coin_id).collect()
+}
+
 pub fn parse_did_id(input: String) -> Result<Bytes32> {
     let address = Address::decode(&input)?;
 

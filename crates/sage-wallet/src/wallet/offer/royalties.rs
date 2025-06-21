@@ -9,8 +9,9 @@ use chia::{
 };
 use chia_puzzles::SETTLEMENT_PAYMENT_HASH;
 use chia_wallet_sdk::{
-    driver::{calculate_nft_royalty, calculate_nft_trace_price, payment_assertion},
+    driver::{calculate_nft_royalty, calculate_nft_trace_price},
     prelude::{AssertPuzzleAnnouncement, TradePrice},
+    types::payment_assertion,
 };
 use indexmap::IndexMap;
 
@@ -54,7 +55,7 @@ impl Royalties {
         for royalty in &self.xch {
             assertions.push(payment_assertion(
                 SETTLEMENT_PAYMENT_HASH.into(),
-                &royalty.notarized_payment(),
+                royalty.notarized_payment().tree_hash(),
             ));
         }
 
@@ -62,7 +63,7 @@ impl Royalties {
             for royalty in royalties {
                 assertions.push(payment_assertion(
                     CatArgs::curry_tree_hash(asset_id, SETTLEMENT_PAYMENT_HASH.into()).into(),
-                    &royalty.notarized_payment(),
+                    royalty.notarized_payment().tree_hash(),
                 ));
             }
         }

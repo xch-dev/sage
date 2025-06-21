@@ -3,11 +3,8 @@ use chia::{
     puzzles::offer::{NotarizedPayment, Payment, SettlementPaymentsSolution},
 };
 use chia_wallet_sdk::{
-    driver::{
-        payment_assertion, tree_hash_notarized_payment, Cat, CatSpend, HashedPtr, Layer, Nft,
-        SettlementLayer, SpendContext,
-    },
-    types::conditions::AssertPuzzleAnnouncement,
+    driver::{Cat, CatSpend, HashedPtr, Layer, Nft, SettlementLayer, SpendContext},
+    types::{conditions::AssertPuzzleAnnouncement, payment_assertion, tree_hash_notarized_payment},
 };
 use indexmap::IndexMap;
 
@@ -67,7 +64,7 @@ pub fn unlock_assets(
         if i == 0 {
             assertions.push(payment_assertion(
                 coin.puzzle_hash,
-                &tree_hash_notarized_payment(ctx, &notarized_payment),
+                tree_hash_notarized_payment(ctx, &notarized_payment),
             ));
         }
 
@@ -109,7 +106,7 @@ pub fn unlock_assets(
             if i == 0 {
                 assertions.push(payment_assertion(
                     cat.coin.puzzle_hash,
-                    &tree_hash_notarized_payment(ctx, &notarized_payment),
+                    tree_hash_notarized_payment(ctx, &notarized_payment),
                 ));
             }
 
@@ -132,6 +129,7 @@ pub fn unlock_assets(
                 p2_puzzle_hash,
                 None,
                 nft.info.metadata,
+                nft.coin.amount,
             )));
         }
 
@@ -142,7 +140,7 @@ pub fn unlock_assets(
 
         assertions.push(payment_assertion(
             nft.coin.puzzle_hash,
-            &tree_hash_notarized_payment(ctx, &notarized_payment),
+            tree_hash_notarized_payment(ctx, &notarized_payment),
         ));
 
         let _nft = nft.unlock_settlement(ctx, vec![notarized_payment])?;
