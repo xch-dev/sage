@@ -5,7 +5,7 @@ use chia::{
     protocol::{Bytes32, Coin},
 };
 use chia_wallet_sdk::{
-    driver::{Action, Cat, CatInfo, Deltas, Id, Outputs, SpendContext, Spends},
+    driver::{Action, Cat, CatInfo, Deltas, Id, Outputs, Relation, SpendContext, Spends},
     utils::select_coins,
 };
 use indexmap::{indexmap, IndexMap};
@@ -288,6 +288,6 @@ impl Wallet {
             keys.insert(p2_puzzle_hash, key);
         }
 
-        Ok(spends.finish_with_keys(ctx, deltas, &keys)?)
+        Ok(spends.finish_with_keys(ctx, deltas, Relation::AssertConcurrent, &keys)?)
     }
 }
