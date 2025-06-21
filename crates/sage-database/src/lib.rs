@@ -1,4 +1,4 @@
-mod blockinfo;
+mod blocks;
 mod coin_states;
 mod derivations;
 mod offers;
