@@ -46,10 +46,11 @@ export function ViewOffer() {
       setLoadingStatus(t`Processing offer data...`);
     } catch (error) {
       addError(error as CustomError);
+      navigate('/offers');
     } finally {
       setIsLoading(false);
     }
-  }, [offer, addError]);
+  }, [offer, addError, navigate]);
 
   useEffect(() => {
     resolveOffer();

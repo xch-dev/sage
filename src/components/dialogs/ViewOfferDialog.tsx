@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
@@ -29,12 +30,17 @@ export function ViewOfferDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            <Trans>Enter Offer String or Dexie URL</Trans>
+            <Trans>Enter Offer String or Offer URL</Trans>
           </DialogTitle>
+          <DialogDescription>
+            <Trans>
+              (Dexie, OfferCo.de, chia-offer.com URLs are supported)
+            </Trans>
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={onSubmit} className='flex flex-col gap-4'>
           <Textarea
-            placeholder={t`Paste your offer string or Dexie URL here...`}
+            placeholder={t`Paste your offer string or offer URL here...`}
             value={offerString}
             onChange={(e) => setOfferString(e.target.value)}
             className='min-h-[200px] font-mono text-xs'
