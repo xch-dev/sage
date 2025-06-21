@@ -2,7 +2,6 @@ mod blocks;
 mod coin_states;
 mod derivations;
 mod offers;
-mod peaks;
 mod primitives;
 mod rows;
 mod transactions;
