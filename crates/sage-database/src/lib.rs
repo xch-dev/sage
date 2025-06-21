@@ -1,8 +1,7 @@
-mod blockinfo;
+mod blocks;
 mod coin_states;
 mod derivations;
 mod offers;
-mod peaks;
 mod primitives;
 mod rows;
 mod transactions;
@@ -82,7 +81,7 @@ impl Database {
                 .fetch_one(&self.pool)
                 .await?
         } else {
-            sqlx::query_scalar!("SELECT COUNT(*) FROM collections WHERE visible = 1")
+            sqlx::query_scalar!("SELECT COUNT(*) FROM collections WHERE is_visible = 1")
                 .fetch_one(&self.pool)
                 .await?
         };
@@ -110,7 +109,7 @@ impl<'a> DatabaseTx<'a> {
     }
 
     pub async fn rust_migration_version(&mut self) -> Result<i64> {
-        let row = sqlx::query_scalar!("SELECT `version` FROM `rust_migrations` LIMIT 1")
+        let row = sqlx::query_scalar!("SELECT version FROM rust_migrations LIMIT 1")
             .fetch_one(&mut *self.tx)
             .await?;
 
@@ -118,7 +117,7 @@ impl<'a> DatabaseTx<'a> {
     }
 
     pub async fn set_rust_migration_version(&mut self, version: i64) -> Result<()> {
-        sqlx::query!("UPDATE `rust_migrations` SET `version` = ?", version)
+        sqlx::query!("UPDATE rust_migrations SET version = ?", version)
             .execute(&mut *self.tx)
             .await?;
 

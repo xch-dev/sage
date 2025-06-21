@@ -84,16 +84,16 @@ impl BlockTimeQueue {
         peer: WalletPeer,
         height: u32,
     ) -> Result<(), WalletError> {
-        let check_blockinfo = self.db.check_blockinfo(height).await?;
+        let check_block = self.db.check_block(height).await?;
 
-        if let Some(unix_time) = check_blockinfo {
-            self.update_coinstates(height, unix_time).await?;
+        if let Some(unix_time) = check_block {
+            self.insert_timestamp_height(height, unix_time).await?;
             return Ok(());
         }
 
         match peer.block_timestamp(height).await {
             Ok(Some(timestamp)) => {
-                self.update_coinstates(height, timestamp.try_into()?)
+                self.insert_timestamp_height(height, timestamp.try_into()?)
                     .await?;
             }
             Ok(None) => {
@@ -109,9 +109,11 @@ impl BlockTimeQueue {
         Ok(())
     }
 
-    async fn update_coinstates(&self, height: u32, timestamp: i64) -> Result<(), WalletError> {
-        self.db.update_created_timestamp(height, timestamp).await?;
-        self.db.update_spent_timestamp(height, timestamp).await?;
+    async fn insert_timestamp_height(
+        &self,
+        height: u32,
+        timestamp: i64,
+    ) -> Result<(), WalletError> {
         self.db.insert_timestamp_height(height, timestamp).await?;
 
         Ok(())
