@@ -1,7 +1,6 @@
+use crate::{to_bytes32, Database, DatabaseTx, Result};
+use chia::protocol::Bytes32;
 use sqlx::SqliteExecutor;
-
-use crate::{Database, DatabaseTx, Result};
-//use std::error::Error;
 
 impl Database {
     pub async fn find_created_timestamp_null(&self, limit: u32) -> Result<Vec<u32>> {
@@ -18,6 +17,14 @@ impl Database {
 
     pub async fn insert_timestamp_height(&self, height: u32, timestamp: i64) -> Result<()> {
         insert_timestamp_height(&self.pool, height, timestamp).await
+    }
+
+    pub async fn insert_peak(&self, height: u32, header_hash: Bytes32) -> Result<()> {
+        insert_peak(&self.pool, height, header_hash).await
+    }
+
+    pub async fn latest_peak(&self) -> Result<Option<(u32, Bytes32)>> {
+        latest_peak(&self.pool).await
     }
 }
 
@@ -113,4 +120,42 @@ async fn insert_timestamp_height(
     .await?;
 
     Ok(())
+}
+
+async fn insert_peak(
+    conn: impl SqliteExecutor<'_>,
+    height: u32,
+    header_hash: Bytes32,
+) -> Result<()> {
+    let header_hash = header_hash.as_ref();
+    sqlx::query!(
+        "
+        REPLACE INTO blocks (height, header_hash)
+        VALUES (?, ?)
+        ",
+        height,
+        header_hash
+    )
+    .execute(conn)
+    .await?;
+    Ok(())
+}
+
+async fn latest_peak(conn: impl SqliteExecutor<'_>) -> Result<Option<(u32, Bytes32)>> {
+    sqlx::query!(
+        "
+        SELECT height, header_hash
+        FROM blocks
+        WHERE header_hash IS NOT NULL
+        ORDER BY height DESC
+        LIMIT 1
+        "
+    )
+    .fetch_optional(conn)
+    .await?
+    .and_then(|row| {
+        row.header_hash
+            .map(|hash| Ok((row.height.try_into()?, to_bytes32(&hash)?)))
+    })
+    .transpose()
 }
