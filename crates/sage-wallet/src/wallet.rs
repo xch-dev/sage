@@ -248,10 +248,12 @@ impl Wallet {
                 }
             }
 
-            let delta = deltas.get(id).copied().unwrap_or_default();
+            let id = id.unwrap_or(Id::Xch);
+
+            let delta = deltas.get(&id).copied().unwrap_or_default();
             let required_amount = delta.output.saturating_sub(amount + delta.input);
 
-            if required_amount > 0 || deltas.is_needed(id) {
+            if required_amount > 0 || deltas.is_needed(&id) {
                 if let Some(asset_id) = asset_id {
                     for cat in self
                         .select_cat_coins_without(asset_id, required_amount, &selected_coin_ids)

@@ -1,5 +1,5 @@
 use chia::protocol::{Bytes, Bytes32, CoinSpend};
-use chia_wallet_sdk::driver::{Action, SpendContext};
+use chia_wallet_sdk::driver::{Action, Id, SpendContext};
 
 use crate::{wallet::memos::calculate_memos, WalletError};
 
@@ -18,7 +18,7 @@ impl Wallet {
 
         for (puzzle_hash, amount) in amounts {
             let memos = calculate_memos(&mut ctx, puzzle_hash, false, memos.clone())?;
-            actions.push(Action::send_xch(puzzle_hash, amount, memos));
+            actions.push(Action::send(Id::Xch, puzzle_hash, amount, memos));
         }
 
         self.spend(&mut ctx, vec![], &actions).await?;

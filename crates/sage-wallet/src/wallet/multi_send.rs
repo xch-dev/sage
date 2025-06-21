@@ -1,5 +1,5 @@
 use chia::protocol::{Bytes, Bytes32, CoinSpend};
-use chia_wallet_sdk::driver::{Action, Id, SendAction, SpendContext};
+use chia_wallet_sdk::driver::{Action, Id, SpendContext};
 
 use crate::WalletError;
 
@@ -58,12 +58,12 @@ impl Wallet {
                 payment.asset_id.is_some(),
                 payment.memos,
             )?;
-            actions.push(Action::Send(SendAction::new(
-                payment.asset_id.map(Id::Existing),
+            actions.push(Action::send(
+                payment.asset_id.map_or(Id::Xch, Id::Existing),
                 payment.puzzle_hash,
                 payment.amount,
                 memos,
-            )));
+            ));
         }
 
         self.spend(&mut ctx, vec![], &actions).await?;

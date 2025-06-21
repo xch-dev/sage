@@ -2,7 +2,7 @@ use chia::{
     protocol::{Bytes32, CoinSpend},
     puzzles::Memos,
 };
-use chia_wallet_sdk::driver::{Action, Id, SendAction, SpendContext};
+use chia_wallet_sdk::driver::{Action, Id, SpendContext};
 
 use crate::WalletError;
 
@@ -73,8 +73,8 @@ impl Wallet {
             remaining_amount -= amount;
             remaining_count -= 1;
 
-            actions.push(Action::Send(SendAction::new(
-                asset_id.map(Id::Existing),
+            actions.push(Action::send(
+                asset_id.map_or(Id::Xch, Id::Existing),
                 puzzle_hash,
                 amount,
                 if asset_id.is_some() {
@@ -82,7 +82,7 @@ impl Wallet {
                 } else {
                     Memos::None
                 },
-            )));
+            ));
         }
 
         let deltas = spends.apply(&mut ctx, &actions)?;
