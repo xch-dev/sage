@@ -34,17 +34,19 @@ impl Database {
         Ok(DatabaseTx::new(tx))
     }
 
-    pub async fn run_rust_migrations(&self) -> Result<()> {
-        const TARGET_RUST_VERSION: i64 = 0; // no migrations yet
+    pub async fn run_rust_migrations(&self, ticker: String) -> Result<()> {
         let mut tx = self.tx().await?;
 
         let version = tx.rust_migration_version().await?;
 
         info!("The current Sage migration version is {version}");
 
-        if version < TARGET_RUST_VERSION {
-            info!("Migrating to version 1");
-
+        if version < 1 {
+            let ticker_upper = ticker.to_uppercase();
+            info!("Migrating to version 1 - setting chia token ticker to {ticker_upper}");
+            sqlx::query!("UPDATE tokens SET ticker = ? WHERE id = 0", ticker_upper)
+                .execute(&mut *tx.tx)
+                .await?;
             tx.set_rust_migration_version(1).await?;
         }
 
