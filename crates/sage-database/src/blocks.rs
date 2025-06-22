@@ -97,7 +97,7 @@ async fn check_block(conn: impl SqliteExecutor<'_>, height: u32) -> Result<Optio
     .fetch_optional(conn)
     .await?;
 
-    Ok(row.map(|r| r.timestamp).flatten())
+    Ok(row.and_then(|r| r.timestamp))
 }
 
 async fn insert_timestamp_height(
