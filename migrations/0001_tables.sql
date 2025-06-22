@@ -240,7 +240,7 @@ CREATE TABLE transactions (
 CREATE TABLE transaction_coins (
   id INTEGER PRIMARY KEY,
   transaction_id INTEGER NOT NULL,
-  asset_id INTEGER,
+  asset_id INTEGER NOT NULL,
   coin_id INTEGER,
   coin_hash BLOB NOT NULL,
   parent_coin_hash BLOB NOT NULL,
