@@ -154,7 +154,7 @@ impl Sage {
                 unsigned,
                 &AggSigConstants::new(self.network().agg_sig_me()),
                 master_sk,
-                false,
+                true,
             )
             .await?;
 

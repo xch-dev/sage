@@ -55,7 +55,7 @@ impl Wallet {
         };
 
         let mut remaining_count = output_count;
-        let mut remaining_amount = total - fee;
+        let mut remaining_amount = total - if asset_id.is_none() { fee } else { 0 };
 
         let max_individual_amount = remaining_amount.div_ceil(output_count as u64);
         let derivations_needed = output_count.div_ceil(selected_coin_ids.len()) as u32;
