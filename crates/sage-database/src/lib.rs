@@ -17,7 +17,7 @@ use std::num::TryFromIntError;
 
 use sqlx::{Sqlite, SqlitePool, Transaction};
 use thiserror::Error;
-use tracing::{debug, info};
+use tracing::info;
 
 #[derive(Debug, Clone)]
 pub struct Database {
@@ -34,7 +34,7 @@ impl Database {
         Ok(DatabaseTx::new(tx))
     }
 
-    pub async fn run_rust_migrations(&self) -> Result<()> {
+    pub async fn run_rust_migrations(&self, ticker: String) -> Result<()> {
         let mut tx = self.tx().await?;
 
         let version = tx.rust_migration_version().await?;
@@ -42,51 +42,17 @@ impl Database {
         info!("The current Sage migration version is {version}");
 
         if version < 1 {
-            info!("Migrating to version 1 (fixed collection id calculation)");
-
-            for collection_id in tx.collection_ids().await? {
-                let collection = tx
-                    .collection(collection_id)
-                    .await?
-                    .expect("collection not found");
-
-                let new_collection_id =
-                    calculate_collection_id(collection.did_id, &collection.metadata_collection_id);
-
-                if collection_id == new_collection_id {
-                    continue;
-                }
-
-                debug!("Migrating collection {collection_id} to {new_collection_id}");
-
-                tx.update_collection_id(collection_id, new_collection_id)
-                    .await?;
-
-                tx.update_nft_collection_ids(collection_id, new_collection_id)
-                    .await?;
-            }
-
+            let ticker_upper = ticker.to_uppercase();
+            info!("Migrating to version 1 - setting chia token ticker to {ticker_upper}");
+            sqlx::query!("UPDATE tokens SET ticker = ? WHERE id = 0", ticker_upper)
+                .execute(&mut *tx.tx)
+                .await?;
             tx.set_rust_migration_version(1).await?;
         }
 
         tx.commit().await?;
 
         Ok(())
-    }
-
-    /// Count collections, optionally including hidden ones
-    pub async fn count_collections(&self, include_hidden: bool) -> Result<i64> {
-        let count: i64 = if include_hidden {
-            sqlx::query_scalar!("SELECT COUNT(*) FROM collections")
-                .fetch_one(&self.pool)
-                .await?
-        } else {
-            sqlx::query_scalar!("SELECT COUNT(*) FROM collections WHERE is_visible = 1")
-                .fetch_one(&self.pool)
-                .await?
-        };
-
-        Ok(count)
     }
 }
 

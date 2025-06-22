@@ -264,7 +264,8 @@ impl Sage {
 
         let pool = self.connect_to_database(fingerprint).await?;
         let db = Database::new(pool);
-        db.run_rust_migrations().await?;
+        db.run_rust_migrations(self.network().ticker.clone())
+            .await?;
 
         let wallet = Arc::new(Wallet::new(
             db.clone(),
