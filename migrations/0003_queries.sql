@@ -1,5 +1,7 @@
 CREATE VIEW spendable_coins AS
 SELECT
+  coins.id,
+  coins.hash,
   asset_id,
   parent_coin_hash,
   puzzle_hash,
@@ -39,6 +41,8 @@ WHERE 1=1
 
 CREATE VIEW owned_coins AS
 SELECT
+  coins.id,
+  coins.hash,
   asset_id,
   parent_coin_hash,
   puzzle_hash,
