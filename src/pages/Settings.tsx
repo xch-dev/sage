@@ -84,7 +84,6 @@ export default function Settings() {
   const handleTabChange = (value: string) => {
     setSearchParams({ tab: value });
   };
-  const isDev = import.meta.env.DEV;
 
   return (
     <Layout>
@@ -186,15 +185,6 @@ export default function Settings() {
                 <TabsContent value='advanced'>
                   <div className='grid gap-6'>
                     <RpcSettings />
-                    {isDev && (
-                      <SettingsSection title={t`Development & Testing`}>
-                        <SettingItem
-                          label={t`Transaction Failure Test`}
-                          description={t`Test the transaction failure notification system`}
-                          control={<TransactionFailureTest />}
-                        />
-                      </SettingsSection>
-                    )}
                   </div>
                 </TabsContent>
               )}
