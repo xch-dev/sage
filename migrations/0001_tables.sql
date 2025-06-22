@@ -240,12 +240,18 @@ CREATE TABLE transactions (
 CREATE TABLE transaction_coins (
   id INTEGER PRIMARY KEY,
   transaction_id INTEGER NOT NULL,
-  coin_id INTEGER NOT NULL,
+  asset_id INTEGER NOT NULL,
+  coin_id INTEGER,
+  coin_hash BLOB NOT NULL,
+  parent_coin_hash BLOB NOT NULL,
+  puzzle_hash BLOB NOT NULL,
+  amount BLOB NOT NULL,
   is_output BOOLEAN NOT NULL,
   seq INTEGER NOT NULL,
   FOREIGN KEY (transaction_id) REFERENCES transactions(id) ON DELETE CASCADE,
-  FOREIGN KEY (coin_id) REFERENCES coins(id) ON DELETE CASCADE,
-  UNIQUE(transaction_id, coin_id)
+  FOREIGN KEY (asset_id) REFERENCES assets(id) ON DELETE SET NULL,
+  FOREIGN KEY (coin_id) REFERENCES coins(id) ON DELETE SET NULL,
+  UNIQUE(transaction_id, coin_hash)
 );
 
 CREATE TABLE transaction_spends (
