@@ -1172,7 +1172,9 @@ dependencies = [
 
 [[package]]
 name = "chia-sdk-client"
-version = "0.25.0"
+version = "0.26.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9d9ce02d27d3ce19509c15be930ba082e94553291e6792dcaa82fecf85f0fb3f"
 dependencies = [
  "aws-lc-rs",
  "chia-protocol",
@@ -1192,7 +1194,9 @@ dependencies = [
 
 [[package]]
 name = "chia-sdk-coinset"
-version = "0.25.0"
+version = "0.26.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9462f26a23f5b92bd1512989721fd3d21028223880c6c536f5fb146224b78278"
 dependencies = [
  "chia-protocol",
  "hex",
@@ -1204,7 +1208,9 @@ dependencies = [
 
 [[package]]
 name = "chia-sdk-derive"
-version = "0.25.0"
+version = "0.26.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0f05ddfc048ef665eb1455ea109452524a0a18c77c7b726ee7417ef9e0fae46a"
 dependencies = [
  "convert_case 0.6.0",
  "quote",
@@ -1213,7 +1219,9 @@ dependencies = [
 
 [[package]]
 name = "chia-sdk-driver"
-version = "0.25.0"
+version = "0.26.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1cb9a91810da115b7b2c595350f43d8a8a84d89b977b0da9a00cb6dd296c1073"
 dependencies = [
  "bech32",
  "bigdecimal",
@@ -1237,14 +1245,14 @@ dependencies = [
  "indexmap 2.9.0",
  "num-bigint",
  "once_cell",
- "rand 0.8.5",
- "rand_chacha 0.3.1",
  "thiserror 2.0.12",
 ]
 
 [[package]]
 name = "chia-sdk-signer"
-version = "0.25.0"
+version = "0.26.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "97967a49012c42b7cd922571c85600a0c1e89f92f921a41d7b7b7656ab92e380"
 dependencies = [
  "chia-bls 0.25.0",
  "chia-consensus",
@@ -1260,7 +1268,9 @@ dependencies = [
 
 [[package]]
 name = "chia-sdk-test"
-version = "0.25.0"
+version = "0.26.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e31339f6f47bd8b017a5972fcef6fd8755cb110477a8453fc444d05c8f3a41a8"
 dependencies = [
  "anyhow",
  "bip39",
@@ -1292,7 +1302,9 @@ dependencies = [
 
 [[package]]
 name = "chia-sdk-types"
-version = "0.25.0"
+version = "0.26.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5105970c2e29e64f1f07bbbe8d73336d0505e7d27ceeb6a1930312c8cdb66a7b"
 dependencies = [
  "chia-bls 0.25.0",
  "chia-consensus",
@@ -1313,7 +1325,9 @@ dependencies = [
 
 [[package]]
 name = "chia-sdk-utils"
-version = "0.25.0"
+version = "0.26.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dabb3a85abb572978a05a9e988340dbb0245d9a3eedcfc196db8f7eb86544660"
 dependencies = [
  "bech32",
  "chia-protocol",
@@ -1400,7 +1414,9 @@ dependencies = [
 
 [[package]]
 name = "chia-wallet-sdk"
-version = "0.25.0"
+version = "0.26.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8cf8a6dda3ac2e723261f27fa00dfb0261f0c1c7a39c1abffbc327063a482fc5"
 dependencies = [
  "chia-bls 0.25.0",
  "chia-protocol",
@@ -5896,7 +5912,6 @@ dependencies = [
  "sage-config",
  "sage-database",
  "serde",
- "serde_json",
  "sqlx",
  "test-log",
  "thiserror 1.0.69",
