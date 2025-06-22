@@ -4,15 +4,16 @@ use chia::{
     bls::PublicKey,
     protocol::{Bytes32, Coin},
 };
+use chia_puzzles::SETTLEMENT_PAYMENT_HASH;
 use chia_wallet_sdk::{
     driver::{Action, Cat, CatInfo, Deltas, Id, Outputs, Relation, SpendContext, Spends},
+    signer::AggSigConstants,
     utils::select_coins,
 };
 use indexmap::{indexmap, IndexMap};
 use itertools::Itertools;
 use sage_database::{CoinKind, Database};
 
-mod cat_spends;
 mod cats;
 mod coin_management;
 mod derivations;
@@ -22,7 +23,6 @@ mod multi_send;
 mod nfts;
 mod offer;
 mod p2_send;
-mod p2_spends;
 mod signing;
 
 pub use multi_send::*;
@@ -37,6 +37,7 @@ pub struct Wallet {
     pub fingerprint: u32,
     pub intermediate_pk: PublicKey,
     pub genesis_challenge: Bytes32,
+    pub agg_sig_constants: AggSigConstants,
 }
 
 impl Wallet {
@@ -45,20 +46,18 @@ impl Wallet {
         fingerprint: u32,
         intermediate_pk: PublicKey,
         genesis_challenge: Bytes32,
+        agg_sig_constants: AggSigConstants,
     ) -> Self {
         Self {
             db,
             fingerprint,
             intermediate_pk,
             genesis_challenge,
+            agg_sig_constants,
         }
     }
 
-    pub(crate) async fn select_p2_coins(&self, amount: u64) -> Result<Vec<Coin>, WalletError> {
-        self.select_p2_coins_without(amount, &HashSet::new()).await
-    }
-
-    async fn select_p2_coins_without(
+    async fn select_p2_coins(
         &self,
         amount: u64,
         selected_coin_ids: &HashSet<Bytes32>,
@@ -69,16 +68,7 @@ impl Wallet {
         Ok(select_coins(spendable_coins, amount)?)
     }
 
-    pub(crate) async fn select_cat_coins(
-        &self,
-        asset_id: Bytes32,
-        amount: u64,
-    ) -> Result<Vec<Cat>, WalletError> {
-        self.select_cat_coins_without(asset_id, amount, &HashSet::new())
-            .await
-    }
-
-    async fn select_cat_coins_without(
+    async fn select_cat_coins(
         &self,
         asset_id: Bytes32,
         amount: u64,
@@ -198,6 +188,10 @@ impl Wallet {
                 continue;
             };
 
+            if spends.dids.contains_key(&id) || spends.nfts.contains_key(&id) {
+                continue;
+            }
+
             if let Some(did) = self.db.spendable_did(launcher_id).await? {
                 let metadata_ptr = ctx.alloc_hashed(&did.info.metadata)?;
                 spends.add(did.with_metadata(metadata_ptr));
@@ -256,14 +250,14 @@ impl Wallet {
             if required_amount > 0 || deltas.is_needed(&id) {
                 if let Some(asset_id) = asset_id {
                     for cat in self
-                        .select_cat_coins_without(asset_id, required_amount, &selected_coin_ids)
+                        .select_cat_coins(asset_id, required_amount, &selected_coin_ids)
                         .await?
                     {
                         spends.add(cat);
                     }
                 } else {
                     for coin in self
-                        .select_p2_coins_without(required_amount, &selected_coin_ids)
+                        .select_p2_coins(required_amount, &selected_coin_ids)
                         .await?
                     {
                         spends.add(coin);
@@ -284,6 +278,10 @@ impl Wallet {
         let mut keys = IndexMap::new();
 
         for p2_puzzle_hash in spends.p2_puzzle_hashes() {
+            if p2_puzzle_hash == SETTLEMENT_PAYMENT_HASH.into() {
+                continue;
+            }
+
             let key = self.db.synthetic_key(p2_puzzle_hash).await?;
             keys.insert(p2_puzzle_hash, key);
         }

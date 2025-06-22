@@ -1,30 +1,24 @@
 use chia::{
-    protocol::{Bytes32, CoinSpend, Program},
-    puzzles::{cat::CatArgs, offer::Payment},
+    bls::Signature,
+    protocol::{Bytes32, Program, SpendBundle},
+    puzzles::{
+        offer::{NotarizedPayment, Payment},
+        Memos,
+    },
 };
 use chia_puzzles::SETTLEMENT_PAYMENT_HASH;
-use chia_wallet_sdk::{
-    driver::{Layer, NftInfo, OfferBuilder, Partial, SpendContext},
-    types::{puzzles::SettlementPayment, Conditions},
+use chia_wallet_sdk::driver::{
+    calculate_royalty_payments, calculate_trade_price_amounts, calculate_trade_prices, Action,
+    AssetInfo, Id, NftAssetInfo, Offer, OfferAmounts, RequestedPayments, RoyaltyInfo, SpendContext,
+    Spends, TransferNftById,
 };
 use indexmap::IndexMap;
+use itertools::Itertools;
 
 use crate::{Wallet, WalletError};
 
-use super::{
-    calculate_royalties, calculate_trade_prices, lock_assets::OfferSpend, NftRoyaltyInfo,
-    OfferAmounts,
-};
-
-#[derive(Debug)]
-pub struct UnsignedMakeOffer {
-    pub ctx: SpendContext,
-    pub coin_spends: Vec<CoinSpend>,
-    pub builder: OfferBuilder<Partial>,
-}
-
 #[derive(Debug, Default, Clone)]
-pub struct MakerSide {
+pub struct Offered {
     pub xch: u64,
     pub cats: IndexMap<Bytes32, u64>,
     pub nfts: Vec<Bytes32>,
@@ -33,7 +27,7 @@ pub struct MakerSide {
 }
 
 #[derive(Debug, Default, Clone)]
-pub struct TakerSide {
+pub struct Requested {
     pub xch: u64,
     pub cats: IndexMap<Bytes32, u64>,
     pub nfts: IndexMap<Bytes32, RequestedNft>,
@@ -50,135 +44,201 @@ pub struct RequestedNft {
 impl Wallet {
     pub async fn make_offer(
         &self,
-        maker: MakerSide,
-        taker: TakerSide,
+        offered: Offered,
+        requested: Requested,
         expires_at: Option<u64>,
-        hardened: bool,
-        reuse: bool,
-    ) -> Result<UnsignedMakeOffer, WalletError> {
-        let maker_amounts = OfferAmounts {
-            xch: maker.xch,
-            cats: maker.cats,
+    ) -> Result<SpendBundle, WalletError> {
+        let mut ctx = SpendContext::new();
+
+        let change_puzzle_hash = self.p2_puzzle_hash(false, true).await?;
+
+        let offer_amounts = OfferAmounts {
+            xch: offered.xch,
+            cats: offered.cats.clone(),
         };
 
-        let maker_royalties = calculate_royalties(
-            &maker_amounts,
-            &taker
-                .nfts
-                .iter()
-                .map(|(nft_id, requested_nft)| NftRoyaltyInfo {
-                    launcher_id: *nft_id,
-                    royalty_puzzle_hash: requested_nft.royalty_puzzle_hash,
-                    royalty_basis_points: requested_nft.royalty_basis_points,
-                })
-                .collect::<Vec<_>>(),
-        )?;
+        let requested_amounts = OfferAmounts {
+            xch: requested.xch,
+            cats: requested.cats.clone(),
+        };
 
-        let total_amounts = maker_amounts.clone()
-            + maker_royalties.amounts()
-            + OfferAmounts {
-                xch: maker.fee,
-                cats: IndexMap::new(),
-            };
-        let maker_coins = self
-            .fetch_offer_coins(&total_amounts, maker.nfts.clone())
-            .await?;
+        let offer_royalties = requested
+            .nfts
+            .iter()
+            .map(|(&launcher_id, nft)| {
+                RoyaltyInfo::new(
+                    launcher_id,
+                    nft.royalty_puzzle_hash,
+                    nft.royalty_basis_points,
+                )
+            })
+            .filter(|info| info.basis_points > 0)
+            .collect_vec();
 
-        let change_puzzle_hash = self.p2_puzzle_hash(hardened, reuse).await?;
-        let p2_puzzle_hash = maker.p2_puzzle_hash.unwrap_or(change_puzzle_hash);
+        let offer_trade_price_amounts =
+            calculate_trade_price_amounts(&offer_amounts, offer_royalties.len());
 
-        let mut builder = OfferBuilder::new(maker_coins.nonce());
-        let mut ctx = SpendContext::new();
-        let settlement = ctx.alloc_mod::<SettlementPayment>()?;
+        // Make payments
+        let mut actions = vec![Action::fee(offered.fee)];
 
-        // Add requested XCH payments.
+        if offered.xch > 0 {
+            actions.push(Action::send(
+                Id::Xch,
+                SETTLEMENT_PAYMENT_HASH.into(),
+                offered.xch,
+                Memos::None,
+            ));
+        }
+
+        for (asset_id, amount) in offered.cats {
+            actions.push(Action::send(
+                Id::Existing(asset_id),
+                SETTLEMENT_PAYMENT_HASH.into(),
+                amount,
+                Memos::None,
+            ));
+        }
+
+        for launcher_id in offered.nfts {
+            actions.push(Action::send(
+                Id::Existing(launcher_id),
+                SETTLEMENT_PAYMENT_HASH.into(),
+                1,
+                Memos::None,
+            ));
+        }
+
+        // Pay royalties
+        let royalty_payments =
+            calculate_royalty_payments(&mut ctx, &offer_trade_price_amounts, &offer_royalties)?;
+        actions.extend(royalty_payments.actions());
+
+        // Pay requested payments
+        let p2_puzzle_hash = offered.p2_puzzle_hash.unwrap_or(change_puzzle_hash);
         let hint = ctx.hint(p2_puzzle_hash)?;
 
-        if taker.xch > 0 {
-            builder = builder.request(
-                &mut ctx,
-                &settlement,
-                vec![Payment::new(p2_puzzle_hash, taker.xch, hint)],
+        // Add requested payments
+        let mut spends = Spends::new(change_puzzle_hash);
+        self.select_spends(&mut ctx, &mut spends, vec![], &actions)
+            .await?;
+
+        let nonce = Offer::nonce(spends.non_settlement_coin_ids());
+
+        let mut asset_info = AssetInfo::new();
+        let mut requested_payments = RequestedPayments::new();
+
+        if requested.xch > 0 {
+            requested_payments.xch.push(NotarizedPayment::new(
+                nonce,
+                vec![Payment::new(p2_puzzle_hash, requested.xch, hint)],
+            ));
+        }
+
+        for (asset_id, amount) in requested.cats {
+            requested_payments
+                .cats
+                .entry(asset_id)
+                .or_default()
+                .push(NotarizedPayment::new(
+                    nonce,
+                    vec![Payment::new(p2_puzzle_hash, amount, hint)],
+                ));
+        }
+
+        for (launcher_id, nft) in requested.nfts {
+            let metadata = ctx.alloc_hashed(&nft.metadata)?;
+
+            requested_payments
+                .nfts
+                .entry(launcher_id)
+                .or_default()
+                .push(NotarizedPayment::new(
+                    nonce,
+                    vec![Payment::new(p2_puzzle_hash, 1, hint)],
+                ));
+
+            asset_info.insert_nft(
+                launcher_id,
+                NftAssetInfo::new(
+                    metadata,
+                    nft.metadata_updater_puzzle_hash,
+                    nft.royalty_puzzle_hash,
+                    nft.royalty_basis_points,
+                ),
             )?;
         }
 
-        // Add requested CAT payments.
-        for (&asset_id, &amount) in &taker.cats {
-            let cat_puzzle = ctx.curry(CatArgs::new(asset_id, settlement))?;
+        // Reset DIDs and reveal trade prices
+        let mut royalty_nft_count = 0;
 
-            builder = builder.request(
-                &mut ctx,
-                &cat_puzzle,
-                vec![Payment::new(p2_puzzle_hash, amount, hint)],
-            )?;
+        for nft in spends.nfts.values().rev() {
+            let nft = nft.last()?;
+
+            if !nft.kind.is_conditions() {
+                continue;
+            }
+
+            if nft.asset.info.royalty_basis_points > 0 {
+                royalty_nft_count += 1;
+            }
         }
-
-        // Add requested NFT payments.
-        for (nft_id, info) in taker.nfts {
-            let info = NftInfo {
-                launcher_id: nft_id,
-                metadata: info.metadata,
-                metadata_updater_puzzle_hash: info.metadata_updater_puzzle_hash,
-                current_owner: None,
-                royalty_puzzle_hash: info.royalty_puzzle_hash,
-                royalty_basis_points: info.royalty_basis_points,
-                p2_puzzle_hash: SETTLEMENT_PAYMENT_HASH.into(),
-            };
-
-            let layers = info.into_layers(settlement).construct_puzzle(&mut ctx)?;
-
-            builder = builder.request(
-                &mut ctx,
-                &layers,
-                vec![Payment::new(p2_puzzle_hash, 1, hint)],
-            )?;
-        }
-
-        // Calculate trade prices for the taker side.
-        let taker_amounts = OfferAmounts {
-            xch: taker.xch,
-            cats: taker.cats,
-        };
 
         let trade_prices = calculate_trade_prices(
-            &taker_amounts,
-            maker_coins
-                .nfts
-                .values()
-                .filter(|nft| nft.info.royalty_basis_points > 0)
-                .count(),
-        )?;
+            &calculate_trade_price_amounts(&requested_amounts, royalty_nft_count),
+            &asset_info,
+        );
 
-        let (assertions, builder) = builder.finish();
-        let mut extra_conditions = Conditions::new()
-            .extend(assertions)
-            .extend(maker_royalties.assertions());
+        for nft in spends.nfts.values().rev() {
+            let nft = nft.last()?;
 
-        if let Some(expires_at) = expires_at {
-            extra_conditions = extra_conditions.assert_before_seconds_absolute(expires_at);
+            if !nft.kind.is_conditions() {
+                continue;
+            }
+
+            actions.insert(
+                0,
+                Action::update_nft(
+                    Id::Existing(nft.asset.info.launcher_id),
+                    vec![],
+                    Some(TransferNftById::new(
+                        None,
+                        if nft.asset.info.royalty_basis_points > 0 {
+                            trade_prices.clone()
+                        } else {
+                            vec![]
+                        },
+                    )),
+                ),
+            );
         }
 
-        // Spend the assets.
-        self.lock_assets(
-            &mut ctx,
-            OfferSpend {
-                amounts: maker_amounts,
-                coins: maker_coins,
-                royalties: maker_royalties,
-                trade_prices,
-                fee: maker.fee,
-                change_puzzle_hash,
-                extra_conditions,
-            },
-        )
-        .await?;
+        // Add requested payment assertions
+        spends.conditions.required = spends
+            .conditions
+            .required
+            .extend(requested_payments.assertions(&mut ctx, &asset_info)?);
+
+        if let Some(expires_at) = expires_at {
+            spends.conditions.required = spends
+                .conditions
+                .required
+                .assert_before_seconds_absolute(expires_at);
+        }
+
+        // Finish the spend
+        let deltas = spends.apply(&mut ctx, &actions)?;
+
+        self.complete_spends(&mut ctx, &deltas, spends).await?;
 
         let coin_spends = ctx.take();
 
-        Ok(UnsignedMakeOffer {
-            ctx,
-            coin_spends,
-            builder,
-        })
+        let offer = Offer::from_input_spend_bundle(
+            &mut ctx,
+            SpendBundle::new(coin_spends, Signature::default()),
+            requested_payments,
+            asset_info,
+        )?;
+
+        Ok(offer.to_spend_bundle(&mut ctx)?)
     }
 }

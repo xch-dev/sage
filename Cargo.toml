@@ -90,7 +90,7 @@ chia-traits = "0.25.0"
 chia-sha2 = "0.25.0"
 chia-puzzles = "0.20.1"
 clvmr = "0.14.0"
-chia-wallet-sdk = { path = "../wallet-sdk", features = ["rustls", "offers", "peer-simulator"] }
+chia-wallet-sdk = { path = "../wallet-sdk", features = ["rustls", "offer-compression", "peer-simulator"] }
 bip39 = "2.0.0"
 bech32 = "0.9.1"
 rand = "0.8.5"

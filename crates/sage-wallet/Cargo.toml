@@ -35,6 +35,7 @@ reqwest = { workspace = true, default-features = false, features = ["http2", "ru
 serde = { workspace = true, features = ["derive"] }
 indexmap = { workspace = true }
 rand = { workspace = true }
+serde_json = { workspace = true }
 
 [dev-dependencies]
 anyhow = { workspace = true }

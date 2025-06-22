@@ -10,46 +10,47 @@ impl Wallet {
         offer: Offer,
         fee: u64,
     ) -> Result<Vec<CoinSpend>, WalletError> {
-        let mut ctx = SpendContext::new();
+        // let mut ctx = SpendContext::new();
 
-        let offer = offer.parse(&mut ctx)?;
+        // let offer = offer.parse(&mut ctx)?;
 
-        let mut coin_states = Vec::with_capacity(offer.coin_spends.len());
+        // let mut coin_states = Vec::with_capacity(offer.coin_spends.len());
 
-        for coin_spend in offer.coin_spends {
-            let Some(row) = self.db.full_coin_state(coin_spend.coin.coin_id()).await? else {
-                continue;
-            };
+        // for coin_spend in offer.coin_spends {
+        //     let Some(row) = self.db.full_coin_state(coin_spend.coin.coin_id()).await? else {
+        //         continue;
+        //     };
 
-            if row.coin_state.created_height.is_none() {
-                continue;
-            }
+        //     if row.coin_state.created_height.is_none() {
+        //         continue;
+        //     }
 
-            if row.coin_state.spent_height.is_some() {
-                return Err(WalletError::UncancellableOffer);
-            }
+        //     if row.coin_state.spent_height.is_some() {
+        //         return Err(WalletError::UncancellableOffer);
+        //     }
 
-            match row.kind {
-                CoinKind::Xch | CoinKind::Cat | CoinKind::Did | CoinKind::Nft => {}
-                CoinKind::Unknown => continue,
-            }
+        //     match row.kind {
+        //         CoinKind::Xch | CoinKind::Cat | CoinKind::Did | CoinKind::Nft => {}
+        //         CoinKind::Unknown => continue,
+        //     }
 
-            coin_states.push(row);
-        }
+        //     coin_states.push(row);
+        // }
 
-        coin_states.sort_by_key(|row| row.kind);
+        // coin_states.sort_by_key(|row| row.kind);
 
-        let Some(row) = coin_states.first().copied() else {
-            return Err(WalletError::UncancellableOffer);
-        };
+        // let Some(row) = coin_states.first().copied() else {
+        //     return Err(WalletError::UncancellableOffer);
+        // };
 
-        self.spend(
-            &mut ctx,
-            vec![row.coin_state.coin.coin_id()],
-            &[Action::fee(fee)],
-        )
-        .await?;
+        // self.spend(
+        //     &mut ctx,
+        //     vec![row.coin_state.coin.coin_id()],
+        //     &[Action::fee(fee)],
+        // )
+        // .await?;
 
-        Ok(ctx.take())
+        // Ok(ctx.take())
+        todo!()
     }
 }
