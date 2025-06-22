@@ -108,6 +108,7 @@ impl TransactionQueue {
                     self.sync_sender
                         .send(SyncEvent::TransactionEnded {
                             transaction_id,
+                            error: None,
                             success: true,
                         })
                         .await
@@ -143,6 +144,7 @@ impl TransactionQueue {
                     self.sync_sender
                         .send(SyncEvent::TransactionEnded {
                             transaction_id,
+                            error,
                             success: false,
                         })
                         .await

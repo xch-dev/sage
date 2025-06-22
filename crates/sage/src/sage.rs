@@ -9,6 +9,7 @@ use std::{
 use chia::{bls::master_to_wallet_unhardened_intermediate, protocol::Bytes32};
 use chia_wallet_sdk::{
     client::{create_rustls_connector, load_ssl_cert, Connector},
+    signer::AggSigConstants,
     utils::Address,
 };
 use indexmap::IndexMap;
@@ -272,6 +273,7 @@ impl Sage {
             fingerprint,
             intermediate_pk,
             self.network().genesis_challenge,
+            AggSigConstants::new(self.network().agg_sig_me()),
         ));
 
         self.wallet = Some(wallet.clone());

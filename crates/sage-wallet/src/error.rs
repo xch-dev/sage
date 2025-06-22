@@ -5,10 +5,7 @@ use chia::{
     protocol::Bytes32,
 };
 use chia_wallet_sdk::{
-    client::ClientError,
-    driver::{DriverError, OfferError},
-    signer::SignerError,
-    utils::CoinSelectionError,
+    client::ClientError, driver::DriverError, signer::SignerError, utils::CoinSelectionError,
 };
 use clvmr::reduction::EvalErr;
 use sage_database::DatabaseError;
@@ -28,9 +25,6 @@ pub enum WalletError {
 
     #[error("Signer error: {0}")]
     Signer(#[from] SignerError),
-
-    #[error("Offer error: {0}")]
-    Offer(#[from] OfferError),
 
     #[error("Coin selection error: {0}")]
     CoinSelection(#[from] CoinSelectionError),
