@@ -1,4 +1,7 @@
-use chia::protocol::{CoinSpend, SpendBundle};
+use chia::{
+    bls::Signature,
+    protocol::{CoinSpend, SpendBundle},
+};
 use chia_wallet_sdk::signer::AggSigConstants;
 use sage_wallet::{insert_transaction, SyncCommand, Transaction};
 
@@ -20,7 +23,7 @@ impl Sage {
 
         let spend_bundle = wallet
             .sign_transaction(
-                coin_spends,
+                SpendBundle::new(coin_spends, Signature::default()),
                 &AggSigConstants::new(self.network().agg_sig_me()),
                 master_sk,
                 partial,
