@@ -4,15 +4,15 @@ use std::{
 };
 
 use base64::{prelude::BASE64_STANDARD, Engine};
-use chia::{protocol::SpendBundle, puzzles::nft::NftMetadata};
+use chia::puzzles::nft::NftMetadata;
 use chia_wallet_sdk::{
-    driver::{Offer, SpendContext},
+    driver::{decode_offer, encode_offer, DriverError, Offer, SpendContext},
     signer::AggSigConstants,
     utils::Address,
 };
 use chrono::{Local, TimeZone};
-use clvmr::Allocator;
 use indexmap::IndexMap;
+use itertools::Itertools;
 use sage_api::{
     Amount, CancelOffer, CancelOfferResponse, CancelOffers, CancelOffersResponse, CatAmount,
     CombineOffers, CombineOffersResponse, DeleteOffer, DeleteOfferResponse, GetOffer,
@@ -23,9 +23,8 @@ use sage_api::{
 use sage_assets::fetch_uris_with_hash;
 use sage_database::{OfferCatRow, OfferNftRow, OfferRow, OfferStatus, OfferXchRow};
 use sage_wallet::{
-    aggregate_offers, calculate_royalties, fetch_nft_offer_details, insert_transaction,
-    parse_locked_coins, parse_offer_payments, sort_offer, MakerSide, NftRoyaltyInfo, SyncCommand,
-    TakerSide, Transaction, Wallet,
+    aggregate_offers, fetch_nft_offer_details, insert_transaction, sort_offer, Offered, Requested,
+    SyncCommand, Transaction, Wallet,
 };
 use tokio::time::timeout;
 use tracing::{debug, warn};
@@ -90,21 +89,19 @@ impl Sage {
 
         let unsigned = wallet
             .make_offer(
-                MakerSide {
+                Offered {
                     xch: offered_xch,
                     cats: offered_cats,
                     nfts: offered_nfts,
                     fee,
                     p2_puzzle_hash,
                 },
-                TakerSide {
+                Requested {
                     xch: requested_xch,
                     cats: requested_cats,
                     nfts: requested_nfts,
                 },
                 req.expires_at_second,
-                false,
-                true,
             )
             .await?;
 
@@ -115,14 +112,15 @@ impl Sage {
         };
 
         let offer = wallet
-            .sign_make_offer(
+            .sign_transaction(
                 unsigned,
                 &AggSigConstants::new(self.network().agg_sig_me()),
                 master_sk,
+                false,
             )
             .await?;
 
-        let encoded_offer = offer.encode()?;
+        let encoded_offer = encode_offer(&offer)?;
 
         if req.auto_import {
             self.import_offer(ImportOffer {
@@ -133,17 +131,17 @@ impl Sage {
 
         Ok(MakeOfferResponse {
             offer: encoded_offer,
-            offer_id: hex::encode(SpendBundle::from(sort_offer(offer)).name()),
+            offer_id: hex::encode(sort_offer(offer).name()),
         })
     }
 
     pub async fn take_offer(&self, req: TakeOffer) -> Result<TakeOfferResponse> {
         let wallet = self.wallet()?;
 
-        let offer = Offer::decode(&req.offer)?;
+        let offer = decode_offer(&req.offer)?;
         let fee = parse_amount(req.fee)?;
 
-        let unsigned = wallet.take_offer(offer, fee, false, true).await?;
+        let unsigned = wallet.take_offer(offer, fee).await?;
 
         let (_mnemonic, Some(master_sk)) =
             self.keychain.extract_secrets(wallet.fingerprint, b"")?
@@ -152,10 +150,11 @@ impl Sage {
         };
 
         let spend_bundle = wallet
-            .sign_take_offer(
+            .sign_transaction(
                 unsigned,
                 &AggSigConstants::new(self.network().agg_sig_me()),
                 master_sk,
+                false,
             )
             .await?;
 
@@ -206,15 +205,14 @@ impl Sage {
     }
 
     pub async fn view_offer(&self, req: ViewOffer) -> Result<ViewOfferResponse> {
-        let offer = self.summarize_offer(Offer::decode(&req.offer)?).await?;
+        let offer = self.summarize_offer(decode_offer(&req.offer)?).await?;
 
         Ok(ViewOfferResponse { offer })
     }
 
     pub async fn import_offer(&self, req: ImportOffer) -> Result<ImportOfferResponse> {
         let wallet = self.wallet()?;
-        let offer = sort_offer(Offer::decode(&req.offer)?);
-        let spend_bundle: SpendBundle = offer.clone().into();
+        let spend_bundle = sort_offer(decode_offer(&req.offer)?);
         let offer_id = spend_bundle.name();
 
         if wallet.db.get_offer(offer_id).await?.is_some() {
@@ -225,59 +223,33 @@ impl Sage {
 
         let peer = self.peer_state.lock().await.acquire_peer();
 
-        let mut allocator = Allocator::new();
-        let parsed_offer = offer.parse(&mut allocator)?;
-
-        let (maker, coin_ids) = parse_locked_coins(&mut allocator, &parsed_offer)?;
+        let mut ctx = SpendContext::new();
+        let offer = Offer::from_spend_bundle(&mut ctx, &spend_bundle)?;
+        let coin_ids = offer
+            .cancellable_coin_spends()?
+            .into_iter()
+            .map(|cs| cs.coin.coin_id())
+            .collect_vec();
 
         let status = if let Some(peer) = peer {
             let coin_creation =
                 lookup_coin_creation(&peer, coin_ids.clone(), self.network().genesis_challenge)
                     .await?;
-            offer_expiration(&mut allocator, &parsed_offer, &coin_creation)?
+            offer_expiration(&mut ctx, &offer, &coin_creation)?
         } else {
             warn!("No peers available to fetch coin creation information, so skipping for now");
-            offer_expiration(&mut allocator, &parsed_offer, &HashMap::new())?
+            offer_expiration(&mut ctx, &offer, &HashMap::new())?
         };
 
-        let maker_amounts = maker.amounts();
-        let mut builder = parsed_offer.take();
-        let mut ctx = SpendContext::from(allocator);
-        let taker = parse_offer_payments(&mut ctx, &mut builder)?;
-        let taker_amounts = taker.amounts();
-
-        let maker_royalties = calculate_royalties(
-            &maker.amounts(),
-            &taker
-                .nfts
-                .values()
-                .map(|(nft, _payments)| NftRoyaltyInfo {
-                    launcher_id: nft.launcher_id,
-                    royalty_puzzle_hash: nft.royalty_puzzle_hash,
-                    royalty_basis_points: nft.royalty_basis_points,
-                })
-                .collect::<Vec<_>>(),
-        )?
-        .amounts();
-
-        let taker_royalties = calculate_royalties(
-            &taker_amounts,
-            &maker
-                .nfts
-                .values()
-                .map(|nft| NftRoyaltyInfo {
-                    launcher_id: nft.info.launcher_id,
-                    royalty_puzzle_hash: nft.info.royalty_puzzle_hash,
-                    royalty_basis_points: nft.info.royalty_basis_points,
-                })
-                .collect::<Vec<_>>(),
-        )?
-        .amounts();
+        let offered_amounts = offer.offered_coins().amounts();
+        let requested_amounts = offer.requested_payments().amounts();
+        let offered_royalties = offer.offered_royalty_amounts();
+        let requested_royalties = offer.requested_royalty_amounts();
 
         let mut cat_rows = Vec::new();
         let mut nft_rows = Vec::new();
 
-        for (asset_id, amount) in maker_amounts.cats {
+        for (asset_id, amount) in offered_amounts.cats {
             let info = wallet.db.cat(asset_id).await?;
             let name = info.as_ref().and_then(|info| info.name.clone());
             let ticker = info.as_ref().and_then(|info| info.ticker.clone());
@@ -291,11 +263,11 @@ impl Sage {
                 name: name.clone(),
                 ticker: ticker.clone(),
                 icon: icon.clone(),
-                royalty: maker_royalties.cats.get(&asset_id).copied().unwrap_or(0),
+                royalty: offered_royalties.cats.get(&asset_id).copied().unwrap_or(0),
             });
         }
 
-        for nft in maker.nfts.into_values() {
+        for nft in offer.offered_coins().nfts.values() {
             let info = if let Ok(metadata) = ctx.extract::<NftMetadata>(nft.info.metadata.ptr()) {
                 let mut confirmation_info = ConfirmationInfo::default();
 
@@ -338,7 +310,7 @@ impl Sage {
             });
         }
 
-        for (asset_id, amount) in taker_amounts.cats {
+        for (asset_id, amount) in requested_amounts.cats {
             let info = wallet.db.cat(asset_id).await?;
             let name = info.as_ref().and_then(|info| info.name.clone());
             let ticker = info.as_ref().and_then(|info| info.ticker.clone());
@@ -352,11 +324,20 @@ impl Sage {
                 name: name.clone(),
                 ticker: ticker.clone(),
                 icon: icon.clone(),
-                royalty: taker_royalties.cats.get(&asset_id).copied().unwrap_or(0),
+                royalty: requested_royalties
+                    .cats
+                    .get(&asset_id)
+                    .copied()
+                    .unwrap_or(0),
             });
         }
 
-        for (nft, _) in taker.nfts.into_values() {
+        for &launcher_id in offer.requested_payments().nfts.keys() {
+            let nft = offer
+                .asset_info()
+                .nft(launcher_id)
+                .ok_or(DriverError::MissingAssetInfo)?;
+
             let info = if let Ok(metadata) = ctx.extract::<NftMetadata>(nft.metadata.ptr()) {
                 let mut confirmation_info = ConfirmationInfo::default();
 
@@ -396,7 +377,7 @@ impl Sage {
             nft_rows.push(OfferNftRow {
                 offer_id,
                 requested: true,
-                launcher_id: nft.launcher_id,
+                launcher_id,
                 royalty_puzzle_hash: nft.royalty_puzzle_hash,
                 royalty_ten_thousandths: nft.royalty_basis_points,
                 name: info.name,
@@ -417,7 +398,7 @@ impl Sage {
             encoded_offer: req.offer,
             expiration_height: status.expiration_height,
             expiration_timestamp: status.expiration_timestamp,
-            fee: maker.fee,
+            fee: offer.offered_coins().fee,
             status: OfferStatus::Active,
             inserted_timestamp,
         })
@@ -427,22 +408,22 @@ impl Sage {
             tx.insert_offered_coin(offer_id, coin_id).await?;
         }
 
-        if maker_amounts.xch > 0 || maker_royalties.xch > 0 {
+        if offered_amounts.xch > 0 || offered_royalties.xch > 0 {
             tx.insert_offer_xch(OfferXchRow {
                 offer_id,
                 requested: false,
-                amount: maker_amounts.xch,
-                royalty: maker_royalties.xch,
+                amount: offered_amounts.xch,
+                royalty: offered_royalties.xch,
             })
             .await?;
         }
 
-        if taker_amounts.xch > 0 || taker_royalties.xch > 0 {
+        if requested_amounts.xch > 0 || requested_royalties.xch > 0 {
             tx.insert_offer_xch(OfferXchRow {
                 offer_id,
                 requested: true,
-                amount: taker_amounts.xch,
-                royalty: taker_royalties.xch,
+                amount: requested_amounts.xch,
+                royalty: requested_royalties.xch,
             })
             .await?;
         }
@@ -466,11 +447,11 @@ impl Sage {
         let offers = req
             .offers
             .iter()
-            .map(|offer| Ok(Offer::decode(offer)?))
+            .map(|offer| Ok(decode_offer(offer)?))
             .collect::<Result<Vec<_>>>()?;
 
         Ok(CombineOffersResponse {
-            offer: aggregate_offers(offers).encode()?,
+            offer: encode_offer(&aggregate_offers(offers))?,
         })
     }
 
@@ -620,7 +601,7 @@ impl Sage {
             return Err(Error::MissingOffer(offer_id));
         };
 
-        let offer = Offer::decode(&row.encoded_offer)?;
+        let offer = decode_offer(&row.encoded_offer)?;
         let coin_spends = wallet.cancel_offer(offer, fee).await?;
 
         self.transact(coin_spends, req.auto_submit).await
@@ -643,7 +624,7 @@ impl Sage {
                 return Err(Error::MissingOffer(offer_id));
             };
 
-            let offer = Offer::decode(&row.encoded_offer)?;
+            let offer = decode_offer(&row.encoded_offer)?;
             let spends = wallet.cancel_offer(offer, fee).await?;
             coin_spends.extend(spends);
         }

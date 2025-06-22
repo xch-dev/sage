@@ -69,7 +69,7 @@ impl OfferQueue {
                     .insert(row.offer_id);
             }
 
-            for coin_spend in spend_bundle.coin_spends {
+            for coin_spend in offer.cancellable_coin_spends()? {
                 input_coin_ids
                     .entry(coin_spend.coin.coin_id())
                     .or_insert(HashSet::new())

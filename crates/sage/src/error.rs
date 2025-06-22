@@ -9,11 +9,7 @@ use chia::{
     clvm_traits::{FromClvmError, ToClvmError},
     protocol::Bytes32,
 };
-use chia_wallet_sdk::{
-    client::ClientError,
-    driver::{DriverError, OfferError},
-    utils::AddressError,
-};
+use chia_wallet_sdk::{client::ClientError, driver::DriverError, utils::AddressError};
 use clvmr::reduction::EvalErr;
 use hex::FromHexError;
 use sage_api::ErrorKind;
@@ -49,9 +45,6 @@ pub enum Error {
 
     #[error("Driver error: {0}")]
     Driver(#[from] DriverError),
-
-    #[error("Offer error: {0}")]
-    Offer(#[from] OfferError),
 
     #[error("URI error: {0}")]
     Uri(#[from] UriError),
@@ -274,7 +267,6 @@ impl Error {
             | Self::CoinSpent(..)
             | Self::Uri(..)
             | Self::IpAddrParse(..)
-            | Self::Offer(..)
             | Self::NoPeers
             | Self::CouldNotFetchNft(..)
             | Self::MissingAssetId

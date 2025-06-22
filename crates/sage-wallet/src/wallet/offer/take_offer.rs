@@ -1,4 +1,4 @@
-use chia::protocol::SpendBundle;
+use chia::{bls::Signature, protocol::SpendBundle};
 use chia_wallet_sdk::driver::{
     calculate_royalty_payments, calculate_trade_price_amounts, calculate_trade_prices, Action, Id,
     Offer, OfferAmounts, RoyaltyInfo, SpendContext, Spends, TransferNftById,
@@ -76,35 +76,8 @@ impl Wallet {
 
         // Pay requested payments
         let mut spends = Spends::new(change_puzzle_hash);
-
         spends.add(offer.offered_coins().clone());
-
-        let payments = offer.requested_payments().clone();
-
-        for (id, notarized_payment) in payments
-            .xch
-            .into_iter()
-            .map(|np| (Id::Xch, np))
-            .chain(payments.cats.into_iter().flat_map(|(asset_id, cat)| {
-                cat.into_iter().map(move |np| (Id::Existing(asset_id), np))
-            }))
-            .chain(payments.nfts.into_iter().flat_map(|(launcher_id, nft)| {
-                nft.into_iter()
-                    .map(move |np| (Id::Existing(launcher_id), np))
-            }))
-            .chain(
-                payments
-                    .options
-                    .into_iter()
-                    .flat_map(|(launcher_id, option)| {
-                        option
-                            .into_iter()
-                            .map(move |np| (Id::Existing(launcher_id), np))
-                    }),
-            )
-        {
-            actions.push(Action::settle(id, notarized_payment));
-        }
+        actions.extend(offer.requested_payments().actions());
 
         // Add requested payments
         self.select_spends(&mut ctx, &mut spends, vec![], &actions)
@@ -159,6 +132,6 @@ impl Wallet {
 
         self.complete_spends(&mut ctx, &deltas, spends).await?;
 
-        Ok(offer.finish(ctx.take()))
+        Ok(offer.take(SpendBundle::new(ctx.take(), Signature::default())))
     }
 }
