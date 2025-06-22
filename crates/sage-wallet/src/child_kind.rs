@@ -140,7 +140,10 @@ impl ChildKind {
             // If the coin is a NFT coin, return the relevant information.
             Ok(Some(nft)) => {
                 if nft.coin != coin {
-                    warn!("NFT coin does not match expected coin");
+                    warn!(
+                        "NFT coin {:?} does not match expected coin {:?}",
+                        nft.coin, coin
+                    );
                     return Ok(unknown);
                 }
 

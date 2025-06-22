@@ -1,23 +1,10 @@
 mod aggregate_offer;
 mod cancel_offer;
-mod lock_assets;
 mod make_offer;
-mod offer_coins;
-mod parse_offer;
-mod payments;
-mod royalties;
 mod take_offer;
-mod unlock_assets;
 
 pub use aggregate_offer::*;
-pub use lock_assets::*;
 pub use make_offer::*;
-pub use offer_coins::*;
-pub use parse_offer::*;
-pub use payments::*;
-pub use royalties::*;
-pub use take_offer::*;
-pub use unlock_assets::*;
 
 #[cfg(test)]
 mod tests {
@@ -33,8 +20,8 @@ mod tests {
     use test_log::test;
 
     use crate::{
-        default_test_options, MakerSide, RequestedNft, SyncOptions, TakerSide, TestWallet,
-        Timeouts, WalletNftMint,
+        default_test_options, Offered, Requested, RequestedNft, SyncOptions, TestWallet, Timeouts,
+        WalletNftMint,
     };
 
     use super::aggregate_offers;
@@ -45,7 +32,7 @@ mod tests {
         let mut bob = alice.next(1000).await?;
 
         // Issue CAT
-        let (coin_spends, asset_id) = bob.wallet.issue_cat(1000, 0, None, false, true).await?;
+        let (coin_spends, asset_id) = bob.wallet.issue_cat(1000, 0, None).await?;
         bob.transact(coin_spends).await?;
         bob.wait_for_coins().await;
 
@@ -53,30 +40,28 @@ mod tests {
         let offer = alice
             .wallet
             .make_offer(
-                MakerSide {
+                Offered {
                     xch: 750,
                     fee: 250,
                     ..Default::default()
                 },
-                TakerSide {
+                Requested {
                     cats: indexmap! { asset_id => 1000 },
                     ..Default::default()
                 },
                 None,
-                false,
-                true,
             )
             .await?;
         let offer = alice
             .wallet
-            .sign_make_offer(offer, &alice.agg_sig, alice.master_sk.clone())
+            .sign_transaction(offer, &alice.agg_sig, alice.master_sk.clone(), true)
             .await?;
 
         // Take offer
-        let offer = bob.wallet.take_offer(offer, 0, false, true).await?;
+        let offer = bob.wallet.take_offer(offer, 0).await?;
         let spend_bundle = bob
             .wallet
-            .sign_take_offer(offer, &bob.agg_sig, bob.master_sk.clone())
+            .sign_transaction(offer, &bob.agg_sig, bob.master_sk.clone(), true)
             .await?;
         bob.push_bundle(spend_bundle).await?;
 
@@ -96,11 +81,11 @@ mod tests {
         let mut alice = TestWallet::new(1030).await?;
         let mut bob = alice.next(2).await?;
 
-        let (coin_spends, did) = bob.wallet.create_did(0, false, true).await?;
+        let (coin_spends, did) = bob.wallet.create_did(0).await?;
         bob.transact(coin_spends).await?;
         bob.wait_for_coins().await;
 
-        let (coin_spends, mut nfts, _did) = bob
+        let (coin_spends, mut nfts) = bob
             .wallet
             .bulk_mint_nfts(
                 0,
@@ -111,8 +96,6 @@ mod tests {
                     royalty_puzzle_hash: Some(Bytes32::default()),
                     royalty_basis_points: 300,
                 }],
-                false,
-                true,
             )
             .await?;
         bob.transact(coin_spends).await?;
@@ -128,11 +111,11 @@ mod tests {
         let offer = alice
             .wallet
             .make_offer(
-                MakerSide {
+                Offered {
                     xch: 1000,
                     ..Default::default()
                 },
-                TakerSide {
+                Requested {
                     nfts: indexmap! {
                         nft.info.launcher_id => RequestedNft {
                             metadata,
@@ -144,20 +127,18 @@ mod tests {
                     ..Default::default()
                 },
                 None,
-                false,
-                true,
             )
             .await?;
         let offer = alice
             .wallet
-            .sign_make_offer(offer, &alice.agg_sig, alice.master_sk.clone())
+            .sign_transaction(offer, &alice.agg_sig, alice.master_sk.clone(), true)
             .await?;
 
         // Take offer
-        let offer = bob.wallet.take_offer(offer, 0, false, true).await?;
+        let offer = bob.wallet.take_offer(offer, 0).await?;
         let spend_bundle = bob
             .wallet
-            .sign_take_offer(offer, &bob.agg_sig, bob.master_sk.clone())
+            .sign_transaction(offer, &bob.agg_sig, bob.master_sk.clone(), true)
             .await?;
         bob.push_bundle(spend_bundle).await?;
 
@@ -180,11 +161,11 @@ mod tests {
         let mut alice = TestWallet::new(2).await?;
         let mut bob = alice.next(1030).await?;
 
-        let (coin_spends, did) = alice.wallet.create_did(0, false, true).await?;
+        let (coin_spends, did) = alice.wallet.create_did(0).await?;
         alice.transact(coin_spends).await?;
         alice.wait_for_coins().await;
 
-        let (coin_spends, mut nfts, _did) = alice
+        let (coin_spends, mut nfts) = alice
             .wallet
             .bulk_mint_nfts(
                 0,
@@ -195,8 +176,6 @@ mod tests {
                     royalty_puzzle_hash: Some(Bytes32::default()),
                     royalty_basis_points: 300,
                 }],
-                false,
-                true,
             )
             .await?;
         alice.transact(coin_spends).await?;
@@ -208,29 +187,27 @@ mod tests {
         let offer = alice
             .wallet
             .make_offer(
-                MakerSide {
+                Offered {
                     nfts: vec![nft.info.launcher_id],
                     ..Default::default()
                 },
-                TakerSide {
+                Requested {
                     xch: 1000,
                     ..Default::default()
                 },
                 None,
-                false,
-                true,
             )
             .await?;
         let offer = alice
             .wallet
-            .sign_make_offer(offer, &alice.agg_sig, alice.master_sk.clone())
+            .sign_transaction(offer, &alice.agg_sig, alice.master_sk.clone(), true)
             .await?;
 
         // Take offer
-        let offer = bob.wallet.take_offer(offer, 0, false, true).await?;
+        let offer = bob.wallet.take_offer(offer, 0).await?;
         let spend_bundle = bob
             .wallet
-            .sign_take_offer(offer, &bob.agg_sig, bob.master_sk.clone())
+            .sign_transaction(offer, &bob.agg_sig, bob.master_sk.clone(), true)
             .await?;
         bob.push_bundle(spend_bundle).await?;
 
@@ -253,11 +230,11 @@ mod tests {
         let mut alice = TestWallet::new(3).await?;
         let mut bob = alice.next(1030).await?;
 
-        let (coin_spends, did) = alice.wallet.create_did(0, false, true).await?;
+        let (coin_spends, did) = alice.wallet.create_did(0).await?;
         alice.transact(coin_spends).await?;
         alice.wait_for_coins().await;
 
-        let (coin_spends, mut nfts, _did) = alice
+        let (coin_spends, mut nfts) = alice
             .wallet
             .bulk_mint_nfts(
                 0,
@@ -276,8 +253,6 @@ mod tests {
                         royalty_basis_points: 300,
                     },
                 ],
-                false,
-                true,
             )
             .await?;
         alice.transact(coin_spends).await?;
@@ -290,32 +265,30 @@ mod tests {
         let offer = alice
             .wallet
             .make_offer(
-                MakerSide {
+                Offered {
                     nfts: vec![
                         nft_id_first.info.launcher_id,
                         nft_id_second.info.launcher_id,
                     ],
                     ..Default::default()
                 },
-                TakerSide {
+                Requested {
                     xch: 1000,
                     ..Default::default()
                 },
                 None,
-                false,
-                true,
             )
             .await?;
         let offer = alice
             .wallet
-            .sign_make_offer(offer, &alice.agg_sig, alice.master_sk.clone())
+            .sign_transaction(offer, &alice.agg_sig, alice.master_sk.clone(), true)
             .await?;
 
         // Take offer
-        let offer = bob.wallet.take_offer(offer, 0, false, true).await?;
+        let offer = bob.wallet.take_offer(offer, 0).await?;
         let spend_bundle = bob
             .wallet
-            .sign_take_offer(offer, &bob.agg_sig, bob.master_sk.clone())
+            .sign_transaction(offer, &bob.agg_sig, bob.master_sk.clone(), true)
             .await?;
         bob.push_bundle(spend_bundle).await?;
 
@@ -348,11 +321,11 @@ mod tests {
         let mut alice = TestWallet::new(3).await?;
         let mut bob = alice.next(1030).await?;
 
-        let (coin_spends, did) = alice.wallet.create_did(0, false, true).await?;
+        let (coin_spends, did) = alice.wallet.create_did(0).await?;
         alice.transact(coin_spends).await?;
         alice.wait_for_coins().await;
 
-        let (coin_spends, mut nfts, _did) = alice
+        let (coin_spends, mut nfts) = alice
             .wallet
             .bulk_mint_nfts(
                 0,
@@ -371,8 +344,6 @@ mod tests {
                         royalty_basis_points: 300,
                     },
                 ],
-                false,
-                true,
             )
             .await?;
         alice.transact(coin_spends).await?;
@@ -382,7 +353,7 @@ mod tests {
         let nft_id_second = nfts.remove(0);
 
         // Issue CAT
-        let (coin_spends, asset_id) = bob.wallet.issue_cat(1030, 0, None, false, true).await?;
+        let (coin_spends, asset_id) = bob.wallet.issue_cat(1030, 0, None).await?;
         bob.transact(coin_spends).await?;
         bob.wait_for_coins().await;
 
@@ -390,32 +361,30 @@ mod tests {
         let offer = alice
             .wallet
             .make_offer(
-                MakerSide {
+                Offered {
                     nfts: vec![
                         nft_id_first.info.launcher_id,
                         nft_id_second.info.launcher_id,
                     ],
                     ..Default::default()
                 },
-                TakerSide {
+                Requested {
                     cats: indexmap! { asset_id => 1000 },
                     ..Default::default()
                 },
                 None,
-                false,
-                true,
             )
             .await?;
         let offer = alice
             .wallet
-            .sign_make_offer(offer, &alice.agg_sig, alice.master_sk.clone())
+            .sign_transaction(offer, &alice.agg_sig, alice.master_sk.clone(), true)
             .await?;
 
         // Take offer
-        let offer = bob.wallet.take_offer(offer, 0, false, true).await?;
+        let offer = bob.wallet.take_offer(offer, 0).await?;
         let spend_bundle = bob
             .wallet
-            .sign_take_offer(offer, &bob.agg_sig, bob.master_sk.clone())
+            .sign_transaction(offer, &bob.agg_sig, bob.master_sk.clone(), true)
             .await?;
         bob.push_bundle(spend_bundle).await?;
 
@@ -448,11 +417,11 @@ mod tests {
         let mut alice = TestWallet::new(3).await?;
         let mut bob = alice.next(1030).await?;
 
-        let (coin_spends, did) = alice.wallet.create_did(0, false, true).await?;
+        let (coin_spends, did) = alice.wallet.create_did(0).await?;
         alice.transact(coin_spends).await?;
         alice.wait_for_coins().await;
 
-        let (coin_spends, mut nfts, _did) = alice
+        let (coin_spends, mut nfts) = alice
             .wallet
             .bulk_mint_nfts(
                 0,
@@ -471,8 +440,6 @@ mod tests {
                         royalty_basis_points: 0,
                     },
                 ],
-                false,
-                true,
             )
             .await?;
         alice.transact(coin_spends).await?;
@@ -485,32 +452,30 @@ mod tests {
         let offer = alice
             .wallet
             .make_offer(
-                MakerSide {
+                Offered {
                     nfts: vec![
                         nft_id_first.info.launcher_id,
                         nft_id_second.info.launcher_id,
                     ],
                     ..Default::default()
                 },
-                TakerSide {
+                Requested {
                     xch: 1000,
                     ..Default::default()
                 },
                 None,
-                false,
-                true,
             )
             .await?;
         let offer = alice
             .wallet
-            .sign_make_offer(offer, &alice.agg_sig, alice.master_sk.clone())
+            .sign_transaction(offer, &alice.agg_sig, alice.master_sk.clone(), true)
             .await?;
 
         // Take offer
-        let offer = bob.wallet.take_offer(offer, 0, false, true).await?;
+        let offer = bob.wallet.take_offer(offer, 0).await?;
         let spend_bundle = bob
             .wallet
-            .sign_take_offer(offer, &bob.agg_sig, bob.master_sk.clone())
+            .sign_transaction(offer, &bob.agg_sig, bob.master_sk.clone(), true)
             .await?;
         bob.push_bundle(spend_bundle).await?;
 
@@ -543,11 +508,11 @@ mod tests {
         let mut alice = TestWallet::new(3).await?;
         let mut bob = alice.next(1030).await?;
 
-        let (coin_spends, did) = alice.wallet.create_did(0, false, true).await?;
+        let (coin_spends, did) = alice.wallet.create_did(0).await?;
         alice.transact(coin_spends).await?;
         alice.wait_for_coins().await;
 
-        let (coin_spends, mut nfts, _did) = alice
+        let (coin_spends, mut nfts) = alice
             .wallet
             .bulk_mint_nfts(
                 0,
@@ -566,8 +531,6 @@ mod tests {
                         royalty_basis_points: 300,
                     },
                 ],
-                false,
-                true,
             )
             .await?;
         alice.transact(coin_spends).await?;
@@ -580,54 +543,50 @@ mod tests {
         let first_offer = alice
             .wallet
             .make_offer(
-                MakerSide {
+                Offered {
                     nfts: vec![nft_first.info.launcher_id],
                     ..Default::default()
                 },
-                TakerSide {
+                Requested {
                     xch: 500,
                     ..Default::default()
                 },
                 None,
-                false,
-                true,
             )
             .await?;
         let first_offer = alice
             .wallet
-            .sign_make_offer(first_offer, &alice.agg_sig, alice.master_sk.clone())
+            .sign_transaction(first_offer, &alice.agg_sig, alice.master_sk.clone(), true)
             .await?;
 
         // Create second offer
         let second_offer = alice
             .wallet
             .make_offer(
-                MakerSide {
+                Offered {
                     nfts: vec![nft_second.info.launcher_id],
                     ..Default::default()
                 },
-                TakerSide {
+                Requested {
                     xch: 500,
                     ..Default::default()
                 },
                 None,
-                false,
-                true,
             )
             .await?;
         let second_offer = alice
             .wallet
-            .sign_make_offer(second_offer, &alice.agg_sig, alice.master_sk.clone())
+            .sign_transaction(second_offer, &alice.agg_sig, alice.master_sk.clone(), true)
             .await?;
 
         // Aggregate offers
         let offer = aggregate_offers(vec![first_offer, second_offer]);
 
         // Take offer
-        let offer = bob.wallet.take_offer(offer, 0, false, true).await?;
+        let offer = bob.wallet.take_offer(offer, 0).await?;
         let spend_bundle = bob
             .wallet
-            .sign_take_offer(offer, &bob.agg_sig, bob.master_sk.clone())
+            .sign_transaction(offer, &bob.agg_sig, bob.master_sk.clone(), true)
             .await?;
         bob.push_bundle(spend_bundle).await?;
 
@@ -664,26 +623,24 @@ mod tests {
         let offer = alice
             .wallet
             .make_offer(
-                MakerSide {
+                Offered {
                     xch: 1000,
                     ..Default::default()
                 },
-                TakerSide::default(),
+                Requested::default(),
                 None,
-                false,
-                true,
             )
             .await?;
         let offer = alice
             .wallet
-            .sign_make_offer(offer, &alice.agg_sig, alice.master_sk.clone())
+            .sign_transaction(offer, &alice.agg_sig, alice.master_sk.clone(), true)
             .await?;
 
         // Take offer
-        let offer = bob.wallet.take_offer(offer, 0, false, true).await?;
+        let offer = bob.wallet.take_offer(offer, 0).await?;
         let spend_bundle = bob
             .wallet
-            .sign_take_offer(offer, &bob.agg_sig, bob.master_sk.clone())
+            .sign_transaction(offer, &bob.agg_sig, bob.master_sk.clone(), true)
             .await?;
         bob.push_bundle(spend_bundle).await?;
 
@@ -701,7 +658,7 @@ mod tests {
         let mut alice = TestWallet::new(1000).await?;
         let mut bob = alice.next(0).await?;
 
-        let (coin_spends, asset_id) = alice.wallet.issue_cat(1000, 0, None, false, true).await?;
+        let (coin_spends, asset_id) = alice.wallet.issue_cat(1000, 0, None).await?;
         alice.transact(coin_spends).await?;
         alice.wait_for_coins().await;
 
@@ -709,26 +666,24 @@ mod tests {
         let offer = alice
             .wallet
             .make_offer(
-                MakerSide {
+                Offered {
                     cats: indexmap! { asset_id => 1000 },
                     ..Default::default()
                 },
-                TakerSide::default(),
+                Requested::default(),
                 None,
-                false,
-                true,
             )
             .await?;
         let offer = alice
             .wallet
-            .sign_make_offer(offer, &alice.agg_sig, alice.master_sk.clone())
+            .sign_transaction(offer, &alice.agg_sig, alice.master_sk.clone(), true)
             .await?;
 
         // Take offer
-        let offer = bob.wallet.take_offer(offer, 0, false, true).await?;
+        let offer = bob.wallet.take_offer(offer, 0).await?;
         let spend_bundle = bob
             .wallet
-            .sign_take_offer(offer, &bob.agg_sig, bob.master_sk.clone())
+            .sign_transaction(offer, &bob.agg_sig, bob.master_sk.clone(), true)
             .await?;
         bob.push_bundle(spend_bundle).await?;
 
@@ -760,11 +715,11 @@ mod tests {
             )
             .await?;
 
-        let (coin_spends, did) = alice.wallet.create_did(0, false, true).await?;
+        let (coin_spends, did) = alice.wallet.create_did(0).await?;
         alice.transact(coin_spends).await?;
         alice.wait_for_coins().await;
 
-        let (coin_spends, mut nfts, _did) = alice
+        let (coin_spends, mut nfts) = alice
             .wallet
             .bulk_mint_nfts(
                 0,
@@ -775,8 +730,6 @@ mod tests {
                     royalty_puzzle_hash: Some(Bytes32::default()),
                     royalty_basis_points: 300,
                 }],
-                false,
-                true,
             )
             .await?;
         alice.transact(coin_spends).await?;
@@ -788,26 +741,24 @@ mod tests {
         let offer = alice
             .wallet
             .make_offer(
-                MakerSide {
+                Offered {
                     nfts: vec![nft.info.launcher_id],
                     ..Default::default()
                 },
-                TakerSide::default(),
+                Requested::default(),
                 None,
-                false,
-                true,
             )
             .await?;
         let offer = alice
             .wallet
-            .sign_make_offer(offer, &alice.agg_sig, alice.master_sk.clone())
+            .sign_transaction(offer, &alice.agg_sig, alice.master_sk.clone(), true)
             .await?;
 
         // Take offer
-        let offer = bob.wallet.take_offer(offer, 0, false, true).await?;
+        let offer = bob.wallet.take_offer(offer, 0).await?;
         let spend_bundle = bob
             .wallet
-            .sign_take_offer(offer, &bob.agg_sig, bob.master_sk.clone())
+            .sign_transaction(offer, &bob.agg_sig, bob.master_sk.clone(), true)
             .await?;
         assert_eq!(spend_bundle.coin_spends.len(), 3);
         bob.push_bundle(spend_bundle).await?;
@@ -817,7 +768,6 @@ mod tests {
 
         // Resync to make sure the NFT is spendable even if it wasn't pending previously
         bob.resync().await?;
-        bob.wait_for_puzzles().await;
         bob.wait_for_puzzles().await;
 
         // Check balances

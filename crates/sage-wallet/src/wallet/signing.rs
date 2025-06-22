@@ -3,69 +3,37 @@ use std::collections::HashMap;
 use chia::{
     bls::{
         master_to_wallet_hardened_intermediate, master_to_wallet_unhardened_intermediate, sign,
-        DerivableKey, PublicKey, SecretKey, Signature,
+        DerivableKey, PublicKey, SecretKey,
     },
-    protocol::{CoinSpend, SpendBundle},
+    protocol::{Bytes32, SpendBundle},
     puzzles::DeriveSynthetic,
 };
-use chia_wallet_sdk::{
-    driver::Offer,
-    signer::{AggSigConstants, RequiredSignature},
-};
+use chia_wallet_sdk::signer::{AggSigConstants, RequiredSignature};
 use clvmr::Allocator;
+use itertools::Itertools;
 
 use crate::WalletError;
 
-use super::{UnsignedMakeOffer, UnsignedTakeOffer, Wallet};
+use super::Wallet;
 
 impl Wallet {
-    pub async fn sign_make_offer(
-        &self,
-        info: UnsignedMakeOffer,
-        agg_sig_constants: &AggSigConstants,
-        master_sk: SecretKey,
-    ) -> Result<Offer, WalletError> {
-        let UnsignedMakeOffer {
-            mut ctx,
-            coin_spends,
-            builder,
-        } = info;
-
-        let spend_bundle = self
-            .sign_transaction(coin_spends, agg_sig_constants, master_sk, false)
-            .await?;
-
-        Ok(builder.bundle(&mut ctx, spend_bundle)?)
-    }
-
-    pub async fn sign_take_offer(
-        &self,
-        info: UnsignedTakeOffer,
-        agg_sig_constants: &AggSigConstants,
-        master_sk: SecretKey,
-    ) -> Result<SpendBundle, WalletError> {
-        let UnsignedTakeOffer {
-            coin_spends,
-            builder,
-        } = info;
-
-        let spend_bundle = self
-            .sign_transaction(coin_spends, agg_sig_constants, master_sk, false)
-            .await?;
-
-        Ok(builder.bundle(spend_bundle))
-    }
-
     pub async fn sign_transaction(
         &self,
-        coin_spends: Vec<CoinSpend>,
+        spend_bundle: SpendBundle,
         agg_sig_constants: &AggSigConstants,
         master_sk: SecretKey,
         partial: bool,
     ) -> Result<SpendBundle, WalletError> {
+        let input_coin_spends = spend_bundle
+            .coin_spends
+            .iter()
+            .filter(|cs| cs.coin.parent_coin_info != Bytes32::default())
+            .cloned()
+            .collect_vec();
+
         let required_signatures = RequiredSignature::from_coin_spends(
             &mut Allocator::new(),
-            &coin_spends,
+            &input_coin_spends,
             agg_sig_constants,
         )?;
 
@@ -102,7 +70,7 @@ impl Wallet {
             })
             .collect();
 
-        let mut aggregated_signature = Signature::default();
+        let mut aggregated_signature = spend_bundle.aggregated_signature;
 
         for required in required_signatures {
             let RequiredSignature::Bls(required) = required else {
@@ -114,6 +82,9 @@ impl Wallet {
             aggregated_signature += &sign(&sk, required.message());
         }
 
-        Ok(SpendBundle::new(coin_spends, aggregated_signature))
+        Ok(SpendBundle::new(
+            spend_bundle.coin_spends,
+            aggregated_signature,
+        ))
     }
 }

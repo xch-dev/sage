@@ -5,7 +5,7 @@ use std::{
 };
 
 use chia::protocol::Bytes32;
-use chia_wallet_sdk::driver::Offer;
+use chia_wallet_sdk::driver::{decode_offer, Offer};
 use clvmr::Allocator;
 use sage_database::{Database, OfferStatus};
 use tokio::{
@@ -14,7 +14,7 @@ use tokio::{
 };
 use tracing::warn;
 
-use crate::{parse_locked_coins, PeerState, SyncEvent, WalletError};
+use crate::{PeerState, SyncEvent, WalletError};
 
 #[derive(Debug)]
 pub struct OfferQueue {
@@ -56,23 +56,24 @@ impl OfferQueue {
         let mut settlement_coin_ids = HashMap::new();
         let mut input_coin_ids = HashMap::new();
 
-        for offer in &offers {
+        for row in &offers {
             let mut allocator = Allocator::new();
-            let parsed = Offer::decode(&offer.encoded_offer)?.parse(&mut allocator)?;
-            let (locked, inputs) = parse_locked_coins(&mut allocator, &parsed)?;
 
-            for coin in locked.coins() {
+            let spend_bundle = decode_offer(&row.encoded_offer)?;
+            let offer = Offer::from_spend_bundle(&mut allocator, &spend_bundle)?;
+
+            for coin in offer.offered_coins().flatten() {
                 settlement_coin_ids
                     .entry(coin.coin_id())
                     .or_insert(HashSet::new())
-                    .insert(offer.offer_id);
+                    .insert(row.offer_id);
             }
 
-            for coin_id in inputs {
+            for coin_spend in offer.cancellable_coin_spends()? {
                 input_coin_ids
-                    .entry(coin_id)
+                    .entry(coin_spend.coin.coin_id())
                     .or_insert(HashSet::new())
-                    .insert(offer.offer_id);
+                    .insert(row.offer_id);
             }
         }
 

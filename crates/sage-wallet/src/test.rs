@@ -3,7 +3,7 @@ use std::{sync::Arc, time::Duration};
 use chia::{
     bls::{
         master_to_wallet_hardened, master_to_wallet_hardened_intermediate,
-        master_to_wallet_unhardened_intermediate, DerivableKey, SecretKey,
+        master_to_wallet_unhardened_intermediate, DerivableKey, SecretKey, Signature,
     },
     protocol::{Bytes32, CoinSpend, SpendBundle},
     puzzles::{standard::StandardArgs, DeriveSynthetic},
@@ -131,6 +131,7 @@ impl TestWallet {
             fingerprint,
             intermediate_pk,
             genesis_challenge,
+            AggSigConstants::new(TESTNET11_CONSTANTS.agg_sig_me_additional_data),
         ));
 
         let (mut sync_manager, sender, events) = SyncManager::new(
@@ -181,7 +182,12 @@ impl TestWallet {
     pub async fn transact(&self, coin_spends: Vec<CoinSpend>) -> anyhow::Result<()> {
         let spend_bundle = self
             .wallet
-            .sign_transaction(coin_spends, &self.agg_sig, self.master_sk.clone(), false)
+            .sign_transaction(
+                SpendBundle::new(coin_spends, Signature::default()),
+                &self.agg_sig,
+                self.master_sk.clone(),
+                false,
+            )
             .await?;
 
         self.push_bundle(spend_bundle).await?;

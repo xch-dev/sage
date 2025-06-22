@@ -1,12 +1,9 @@
-use chia::{
-    protocol::{Bytes, Bytes32, CoinSpend},
-    puzzles::Memos,
-};
-use chia_wallet_sdk::{driver::SpendContext, types::Conditions};
+use chia::protocol::{Bytes, Bytes32, CoinSpend};
+use chia_wallet_sdk::driver::{Action, Id, SpendContext};
 
-use crate::WalletError;
+use crate::{wallet::memos::calculate_memos, WalletError};
 
-use super::{memos::calculate_memos, Wallet};
+use super::Wallet;
 
 impl Wallet {
     /// Sends the given amount of XCH to the given puzzle hash, minus the fee.
@@ -15,42 +12,16 @@ impl Wallet {
         amounts: Vec<(Bytes32, u64)>,
         fee: u64,
         memos: Option<Vec<Bytes>>,
-        hardened: bool,
-        reuse: bool,
     ) -> Result<Vec<CoinSpend>, WalletError> {
-        let combined_amount = amounts.iter().map(|(_, amount)| amount).sum::<u64>();
-
-        let total = combined_amount as u128 + fee as u128;
-        let coins = self.select_p2_coins(total).await?;
-        let selected: u128 = coins.iter().map(|coin| coin.amount as u128).sum();
-
-        let change_puzzle_hash = self.p2_puzzle_hash(hardened, reuse).await?;
-
-        let change: u64 = (selected - total)
-            .try_into()
-            .expect("change amount overflow");
-
         let mut ctx = SpendContext::new();
-
-        let mut conditions = Conditions::new();
+        let mut actions = vec![Action::fee(fee)];
 
         for (puzzle_hash, amount) in amounts {
-            conditions = conditions.create_coin(
-                puzzle_hash,
-                amount,
-                calculate_memos(&mut ctx, puzzle_hash, false, memos.clone())?,
-            );
+            let memos = calculate_memos(&mut ctx, puzzle_hash, false, memos.clone())?;
+            actions.push(Action::send(Id::Xch, puzzle_hash, amount, memos));
         }
 
-        if fee > 0 {
-            conditions = conditions.reserve_fee(fee);
-        }
-
-        if change > 0 {
-            conditions = conditions.create_coin(change_puzzle_hash, change, Memos::None);
-        }
-
-        self.spend_p2_coins(&mut ctx, coins, conditions).await?;
+        self.spend(&mut ctx, vec![], &actions).await?;
 
         Ok(ctx.take())
     }
@@ -68,7 +39,7 @@ mod tests {
 
         let coin_spends = test
             .wallet
-            .send_xch(vec![(test.puzzle_hash, 1000)], 0, None, false, true)
+            .send_xch(vec![(test.puzzle_hash, 1000)], 0, None)
             .await?;
 
         assert_eq!(coin_spends.len(), 1);
@@ -88,7 +59,7 @@ mod tests {
 
         let coin_spends = test
             .wallet
-            .send_xch(vec![(test.puzzle_hash, 250)], 250, None, false, true)
+            .send_xch(vec![(test.puzzle_hash, 250)], 250, None)
             .await?;
 
         assert_eq!(coin_spends.len(), 1);
@@ -108,7 +79,7 @@ mod tests {
 
         let coin_spends = test
             .wallet
-            .send_xch(vec![(test.hardened_puzzle_hash, 1000)], 0, None, true, true)
+            .send_xch(vec![(test.hardened_puzzle_hash, 1000)], 0, None)
             .await?;
 
         assert_eq!(coin_spends.len(), 1);
@@ -121,7 +92,7 @@ mod tests {
 
         let coin_spends = test
             .wallet
-            .send_xch(vec![(test.puzzle_hash, 1000)], 0, None, false, true)
+            .send_xch(vec![(test.puzzle_hash, 1000)], 0, None)
             .await?;
 
         assert_eq!(coin_spends.len(), 1);

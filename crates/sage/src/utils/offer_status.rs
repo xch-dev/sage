@@ -5,7 +5,7 @@ use chia::{
     protocol::Bytes32,
 };
 use chia_wallet_sdk::{
-    driver::ParsedOffer,
+    driver::Offer,
     types::{run_puzzle, Condition},
 };
 use clvmr::{Allocator, NodePtr};
@@ -67,13 +67,13 @@ pub async fn lookup_coin_creation(
 
 pub fn offer_expiration(
     allocator: &mut Allocator,
-    offer: &ParsedOffer,
+    offer: &Offer,
     coin_creation: &HashMap<Bytes32, CoinCreation>,
 ) -> Result<OfferExpiration> {
     let mut expiration_height = None::<u32>;
     let mut expiration_timestamp = None::<u64>;
 
-    for coin_spend in &offer.coin_spends {
+    for coin_spend in offer.cancellable_coin_spends()? {
         let puzzle = coin_spend.puzzle_reveal.to_clvm(allocator)?;
         let solution = coin_spend.solution.to_clvm(allocator)?;
         let output = run_puzzle(allocator, puzzle, solution)?;

@@ -2,11 +2,8 @@ use chia::{
     bls::Signature,
     protocol::{Bytes32, SpendBundle},
 };
-use chia_wallet_sdk::driver::Offer;
 
-pub fn sort_offer(offer: Offer) -> Offer {
-    let spend_bundle: SpendBundle = offer.into();
-
+pub fn sort_offer(spend_bundle: SpendBundle) -> SpendBundle {
     let mut offered_coin_spends = Vec::new();
     let mut requested_coin_spends = Vec::new();
 
@@ -18,20 +15,19 @@ pub fn sort_offer(offer: Offer) -> Offer {
         }
     }
 
-    Offer::new(SpendBundle::new(
+    SpendBundle::new(
         [requested_coin_spends, offered_coin_spends].concat(),
         spend_bundle.aggregated_signature,
-    ))
+    )
 }
 
-pub fn aggregate_offers(offers: Vec<Offer>) -> Offer {
+pub fn aggregate_offers(spend_bundles: Vec<SpendBundle>) -> SpendBundle {
     let mut aggregate = SpendBundle::new(Vec::new(), Signature::default());
 
-    for offer in offers {
-        let spend_bundle: SpendBundle = offer.into();
+    for spend_bundle in spend_bundles {
         aggregate.coin_spends.extend(spend_bundle.coin_spends);
         aggregate.aggregated_signature += &spend_bundle.aggregated_signature;
     }
 
-    sort_offer(Offer::new(aggregate))
+    sort_offer(aggregate)
 }
