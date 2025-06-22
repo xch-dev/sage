@@ -1,4 +1,4 @@
-use chia::protocol::CoinSpend;
+use chia::{protocol::CoinSpend, puzzles::Memos};
 use chia_wallet_sdk::{
     driver::{
         Cat, CatSpend, Offer, OfferBuilder, SpendContext, SpendWithConditions, StandardLayer, Take,
@@ -47,7 +47,7 @@ impl Wallet {
                 .map(|nft| NftRoyaltyInfo {
                     launcher_id: nft.info.launcher_id,
                     royalty_puzzle_hash: nft.info.royalty_puzzle_hash,
-                    royalty_ten_thousandths: nft.info.royalty_ten_thousandths,
+                    royalty_basis_points: nft.info.royalty_basis_points,
                 })
                 .collect::<Vec<_>>(),
         )?;
@@ -79,7 +79,7 @@ impl Wallet {
             requested_payments
                 .nfts
                 .values()
-                .filter(|(nft, _)| nft.royalty_ten_thousandths > 0)
+                .filter(|(nft, _)| nft.royalty_basis_points > 0)
                 .count(),
         )?;
 
@@ -97,7 +97,7 @@ impl Wallet {
                     p2.spend(
                         &mut ctx,
                         coin,
-                        extra_conditions.create_coin(p2_puzzle_hash, coin.amount, None),
+                        extra_conditions.create_coin(p2_puzzle_hash, coin.amount, Memos::None),
                     )?;
                 }
                 SingleSidedIntermediary::Cat(cat) => {
@@ -106,11 +106,7 @@ impl Wallet {
                         cat,
                         p2.spend_with_conditions(
                             &mut ctx,
-                            extra_conditions.create_coin(
-                                p2_puzzle_hash,
-                                cat.coin.amount,
-                                Some(hint),
-                            ),
+                            extra_conditions.create_coin(p2_puzzle_hash, cat.coin.amount, hint),
                         )?,
                     );
                     Cat::spend_all(&mut ctx, &[cat_spend])?;

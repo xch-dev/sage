@@ -1,6 +1,6 @@
 import { commands, OfferSummary, TakeOfferResponse } from '@/bindings';
 import ConfirmationDialog from '@/components/ConfirmationDialog';
-import { OfferConfirmation } from '@/components/confirmations/OfferConfirmation';
+import { TakeOfferConfirmation } from '@/components/confirmations/TakeOfferConfirmation';
 import Container from '@/components/Container';
 import Header from '@/components/Header';
 import { Loading } from '@/components/Loading';
@@ -46,10 +46,11 @@ export function ViewOffer() {
       setLoadingStatus(t`Processing offer data...`);
     } catch (error) {
       addError(error as CustomError);
+      navigate('/offers');
     } finally {
       setIsLoading(false);
     }
-  }, [offer, addError]);
+  }, [offer, addError, navigate]);
 
   useEffect(() => {
     resolveOffer();
@@ -131,7 +132,7 @@ export function ViewOffer() {
         additionalData={{
           title: t`Take Offer`,
           content: response && summary && (
-            <OfferConfirmation type='take' offer={summary} />
+            <TakeOfferConfirmation offer={summary} />
           ),
         }}
       />

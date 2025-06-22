@@ -53,7 +53,7 @@ impl Sage {
                 .map(|(nft, _payments)| NftRoyaltyInfo {
                     launcher_id: nft.launcher_id,
                     royalty_puzzle_hash: nft.royalty_puzzle_hash,
-                    royalty_ten_thousandths: nft.royalty_ten_thousandths,
+                    royalty_basis_points: nft.royalty_basis_points,
                 })
                 .collect::<Vec<_>>(),
         )?;
@@ -66,7 +66,7 @@ impl Sage {
                 .map(|nft| NftRoyaltyInfo {
                     launcher_id: nft.info.launcher_id,
                     royalty_puzzle_hash: nft.info.royalty_puzzle_hash,
-                    royalty_ten_thousandths: nft.info.royalty_ten_thousandths,
+                    royalty_basis_points: nft.info.royalty_basis_points,
                 })
                 .collect::<Vec<_>>(),
         )?;
@@ -134,7 +134,7 @@ impl Sage {
                 OfferNft {
                     icon: info.icon.map(|icon| BASE64_STANDARD.encode(icon)),
                     name: info.name,
-                    royalty_ten_thousandths: nft.info.royalty_ten_thousandths,
+                    royalty_ten_thousandths: nft.info.royalty_basis_points,
                     royalty_address: Address::new(
                         nft.info.royalty_puzzle_hash,
                         self.network().prefix().clone(),
@@ -182,7 +182,7 @@ impl Sage {
                 OfferNft {
                     icon: info.icon.map(|icon| BASE64_STANDARD.encode(icon)),
                     name: info.name,
-                    royalty_ten_thousandths: nft.royalty_ten_thousandths,
+                    royalty_ten_thousandths: nft.royalty_basis_points,
                     royalty_address: Address::new(nft.royalty_puzzle_hash, self.network().prefix())
                         .encode()?,
                 },

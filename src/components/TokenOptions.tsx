@@ -9,6 +9,7 @@ import {
   Filter,
   FilterX,
   Eye,
+  Download,
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -36,6 +37,7 @@ interface TokenOptionsProps {
   showHiddenCats: boolean;
   setShowHiddenCats: (show: boolean) => void;
   className?: string;
+  onExport?: () => void;
 }
 
 export function TokenOptions({
@@ -51,6 +53,7 @@ export function TokenOptions({
   showHiddenCats,
   setShowHiddenCats,
   className,
+  onExport,
 }: TokenOptionsProps) {
   const [searchValue, setSearchValue] = useState(query);
   const debouncedSearch = useDebounce(searchValue);
@@ -111,6 +114,15 @@ export function TokenOptions({
         </div>
 
         <div className='flex gap-2'>
+          <Button
+            variant='outline'
+            size='icon'
+            aria-label={t`Export tokens`}
+            title={t`Export tokens`}
+            onClick={onExport}
+          >
+            <Download className='h-4 w-4' aria-hidden='true' />
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button

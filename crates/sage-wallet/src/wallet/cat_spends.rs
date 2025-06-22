@@ -18,7 +18,7 @@ impl Wallet {
 
         for (cat, conditions) in cats {
             // We need to figure out what the synthetic public key is for this CAT coin.
-            let synthetic_key = self.db.synthetic_key(cat.p2_puzzle_hash).await?;
+            let synthetic_key = self.db.synthetic_key(cat.info.p2_puzzle_hash).await?;
 
             // Create the standard p2 layer for the key.
             let p2 = StandardLayer::new(synthetic_key);

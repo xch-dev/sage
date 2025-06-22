@@ -16,6 +16,8 @@ import { useErrors } from '@/hooks/useErrors';
 import { t } from '@lingui/core/macro';
 import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
 import { Pagination } from '@/components/Pagination';
+import useOfferStateWithDefault from '@/hooks/useOfferStateWithDefault';
+import { exportNfts } from '@/lib/exportNfts';
 
 export function NftList() {
   const navigate = useNavigate();
@@ -29,6 +31,8 @@ export function NftList() {
   const [multiSelect, setMultiSelect] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const { addError } = useErrors();
+  const [offerState, setOfferState] = useOfferStateWithDefault();
+  const [splitNftOffers, setSplitNftOffers] = useState(false);
   const {
     nfts,
     collections,
@@ -153,6 +157,17 @@ export function NftList() {
             canLoadMore={canLoadMore()}
             renderPagination={() => renderPagination(false)}
             aria-live='polite'
+            onExport={() =>
+              exportNfts({
+                sort,
+                group,
+                showHidden,
+                query,
+                collectionId,
+                ownerDid,
+                minterDid,
+              })
+            }
           />
         </div>
 
@@ -173,6 +188,7 @@ export function NftList() {
             setSelected={setSelected}
             addError={addError}
             cardSize={params.cardSize}
+            setSplitNftOffers={setSplitNftOffers}
           />
         </main>
       </Container>

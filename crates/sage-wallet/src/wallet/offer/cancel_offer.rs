@@ -1,4 +1,4 @@
-use chia::protocol::CoinSpend;
+use chia::{protocol::CoinSpend, puzzles::Memos};
 use chia_wallet_sdk::{
     driver::{HashedPtr, Offer, SpendContext, StandardLayer},
     types::Conditions,
@@ -78,7 +78,7 @@ impl Wallet {
         }
 
         if change > 0 {
-            conditions = conditions.create_coin(p2_puzzle_hash, change, None);
+            conditions = conditions.create_coin(p2_puzzle_hash, change, Memos::None);
         }
 
         if !xch_coins.is_empty() {
@@ -98,7 +98,7 @@ impl Wallet {
                     &mut ctx,
                     [(
                         cat,
-                        Conditions::new().create_coin(p2_puzzle_hash, cat.coin.amount, Some(memos)),
+                        Conditions::new().create_coin(p2_puzzle_hash, cat.coin.amount, memos),
                     )]
                     .into_iter(),
                 )

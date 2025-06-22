@@ -1,4 +1,7 @@
-use chia::protocol::{Bytes, Bytes32, CoinSpend};
+use chia::{
+    protocol::{Bytes, Bytes32, CoinSpend},
+    puzzles::Memos,
+};
 use chia_wallet_sdk::{driver::SpendContext, types::Conditions};
 
 use crate::WalletError;
@@ -44,7 +47,7 @@ impl Wallet {
         }
 
         if change > 0 {
-            conditions = conditions.create_coin(change_puzzle_hash, change, None);
+            conditions = conditions.create_coin(change_puzzle_hash, change, Memos::None);
         }
 
         self.spend_p2_coins(&mut ctx, coins, conditions).await?;

@@ -45,7 +45,7 @@ impl IntoRow for FullNftCoinSql {
                 metadata_updater_puzzle_hash: to_bytes32(&self.metadata_updater_puzzle_hash)?,
                 current_owner: self.current_owner.as_deref().map(to_bytes32).transpose()?,
                 royalty_puzzle_hash: to_bytes32(&self.royalty_puzzle_hash)?,
-                royalty_ten_thousandths: self.royalty_ten_thousandths.try_into()?,
+                royalty_basis_points: self.royalty_ten_thousandths.try_into()?,
                 p2_puzzle_hash: to_bytes32(&self.p2_puzzle_hash)?,
             },
         })

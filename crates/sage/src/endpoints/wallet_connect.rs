@@ -84,11 +84,12 @@ impl Sage {
                             return Err(Error::MissingCatCoin(cs.coin.coin_id()));
                         };
 
-                        let synthetic_key = wallet.db.synthetic_key(cat.p2_puzzle_hash).await?;
+                        let synthetic_key =
+                            wallet.db.synthetic_key(cat.info.p2_puzzle_hash).await?;
 
                         let mut ctx = SpendContext::new();
                         let p2_puzzle = ctx.curry(StandardArgs::new(synthetic_key))?;
-                        let cat_puzzle = ctx.curry(CatArgs::new(cat.asset_id, p2_puzzle))?;
+                        let cat_puzzle = ctx.curry(CatArgs::new(cat.info.asset_id, p2_puzzle))?;
 
                         items.push(SpendableCoin {
                             coin: wallet_connect::Coin {

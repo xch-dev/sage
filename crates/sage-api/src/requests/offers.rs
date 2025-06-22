@@ -138,6 +138,17 @@ pub struct CancelOffer {
 
 pub type CancelOfferResponse = TransactionResponse;
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct CancelOffers {
+    pub offer_ids: Vec<String>,
+    pub fee: Amount,
+    #[serde(default)]
+    pub auto_submit: bool,
+}
+
+pub type CancelOffersResponse = TransactionResponse;
+
 fn yes() -> bool {
     true
 }

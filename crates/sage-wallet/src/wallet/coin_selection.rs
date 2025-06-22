@@ -1,7 +1,10 @@
 use std::collections::HashMap;
 
 use chia::protocol::{Bytes32, Coin};
-use chia_wallet_sdk::{driver::Cat, utils::select_coins};
+use chia_wallet_sdk::{
+    driver::{Cat, CatInfo},
+    utils::select_coins,
+};
 
 use crate::WalletError;
 
@@ -28,12 +31,11 @@ impl Wallet {
         for cat in &cat_coins {
             cats.insert(
                 cat.coin,
-                Cat {
-                    coin: cat.coin,
-                    lineage_proof: Some(cat.lineage_proof),
-                    asset_id,
-                    p2_puzzle_hash: cat.p2_puzzle_hash,
-                },
+                Cat::new(
+                    cat.coin,
+                    Some(cat.lineage_proof),
+                    CatInfo::new(asset_id, None, cat.p2_puzzle_hash),
+                ),
             );
             spendable_coins.push(cat.coin);
         }

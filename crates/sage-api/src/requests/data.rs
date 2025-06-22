@@ -48,6 +48,19 @@ pub struct GetSyncStatusResponse {
     pub burn_address: String,
     pub unhardened_derivation_index: u32,
     pub hardened_derivation_index: u32,
+    pub checked_uris: u32,
+    pub total_uris: u32,
+    pub database_size: u64,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct GetVersion {}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct GetVersionResponse {
+    pub version: String,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]

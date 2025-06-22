@@ -19,7 +19,7 @@ import {
   SquareUserRound,
   WalletIcon,
 } from 'lucide-react';
-import { PropsWithChildren, useMemo } from 'react';
+import { PropsWithChildren } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Separator } from './ui/separator';
 
@@ -93,10 +93,14 @@ export function BottomNav({ isCollapsed }: NavProps) {
   const walletState = useWalletState();
   const syncedCoins = walletState.sync.synced_coins;
   const totalCoins = walletState.sync.total_coins;
-  const isSynced = useMemo(
-    () => walletState.sync.synced_coins === walletState.sync.total_coins,
-    [walletState.sync.synced_coins, walletState.sync.total_coins],
-  );
+  const checkedUris = walletState.sync.checked_uris;
+  const totalUris = walletState.sync.total_uris;
+
+  const coinsSynced =
+    walletState.sync.synced_coins === walletState.sync.total_coins;
+  const urisSynced =
+    walletState.sync.checked_uris === walletState.sync.total_uris;
+  const isSynced = coinsSynced && urisSynced;
 
   const peerMaxHeight =
     peers?.reduce((max, peer) => {
@@ -129,6 +133,10 @@ export function BottomNav({ isCollapsed }: NavProps) {
                 <Trans>Connecting...</Trans>
               )}
             </>
+          ) : coinsSynced ? (
+            <Trans>
+              Downloading {checkedUris} / {totalUris}
+            </Trans>
           ) : (
             <Trans>
               Syncing {syncedCoins} / {totalCoins}

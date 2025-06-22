@@ -9,12 +9,15 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useErrors } from '@/hooks/useErrors';
 import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
 import { useTransactionsParams } from '@/hooks/useTransactionsParams';
-import { isValidAddress, isValidAssetId } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Info } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  exportTransactions,
+  queryTransactions,
+} from '@/lib/exportTransactions';
 import {
   commands,
   events,
@@ -47,11 +50,11 @@ export function Transactions() {
         const pendingResult = await commands.getPendingTransactions({});
         setPending(pendingResult.transactions);
 
-        const result = await commands.getTransactions({
-          offset: (page - 1) * pageSize,
-          limit: pageSize,
+        const result = await queryTransactions({
+          search,
           ascending,
-          find_value: search || null,
+          page,
+          pageSize,
         });
 
         setTransactions(result.transactions);
@@ -188,6 +191,12 @@ export function Transactions() {
             isLoading={isLoading || isPaginationLoading}
             className='mb-4'
             renderPagination={() => renderPagination(false)}
+            onExport={() =>
+              exportTransactions({
+                search,
+                ascending,
+              })
+            }
           />
         </div>
 

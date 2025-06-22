@@ -380,7 +380,7 @@ impl Sage {
                 },
                 p2_puzzle_hash,
                 royalty_puzzle_hash,
-                royalty_ten_thousandths,
+                royalty_basis_points: royalty_ten_thousandths,
             });
         }
 

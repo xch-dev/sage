@@ -25,15 +25,21 @@ use sage_api::{
     GetNftResponse, GetNftThumbnail, GetNftThumbnailResponse, GetNfts, GetNftsResponse,
     GetPendingTransactions, GetPendingTransactionsResponse, GetSpendableCoinCount,
     GetSpendableCoinCountResponse, GetSyncStatus, GetSyncStatusResponse, GetTransactions,
-    GetTransactionsResponse, GetXchCoins, GetXchCoinsResponse, NftCollectionRecord, NftData,
-    NftRecord, NftSortMode as ApiNftSortMode, PendingTransactionRecord, TransactionCoin,
-    TransactionRecord,
+    GetTransactionsResponse, GetVersion, GetVersionResponse, GetXchCoins, GetXchCoinsResponse,
+    NftCollectionRecord, NftData, NftRecord, NftSortMode as ApiNftSortMode,
+    PendingTransactionRecord, TransactionCoin, TransactionRecord,
 };
 use sage_database::{CoinKind, CoinSortMode, NftGroup, NftRow, NftSearchParams, NftSortMode};
 use sage_wallet::WalletError;
 use sqlx::{sqlite::SqliteRow, Row};
 
 impl Sage {
+    pub fn get_version(&self, _req: GetVersion) -> Result<GetVersionResponse> {
+        Ok(GetVersionResponse {
+            version: env!("CARGO_PKG_VERSION").to_string(),
+        })
+    }
+
     pub async fn get_sync_status(&self, _req: GetSyncStatus) -> Result<GetSyncStatusResponse> {
         let wallet = self.wallet()?;
 
@@ -51,6 +57,12 @@ impl Sage {
             .map(|puzzle_hash| Address::new(puzzle_hash, self.network().prefix()).encode())
             .transpose()?;
 
+        let database_size = self
+            .wallet_db_path(wallet.fingerprint)
+            .ok()
+            .and_then(|path| path.metadata().ok())
+            .map_or(0, |metadata| metadata.len());
+
         Ok(GetSyncStatusResponse {
             balance: Amount::u128(balance),
             unit: self.unit.clone(),
@@ -61,6 +73,9 @@ impl Sage {
                 .encode()?,
             unhardened_derivation_index: wallet.db.derivation_index(false).await?,
             hardened_derivation_index: wallet.db.derivation_index(true).await?,
+            checked_uris: wallet.db.checked_uris().await?,
+            total_uris: wallet.db.total_uris().await?,
+            database_size,
         })
     }
 
@@ -700,7 +715,7 @@ impl Sage {
             address: Address::new(nft.info.p2_puzzle_hash, self.network().prefix()).encode()?,
             royalty_address: Address::new(nft.info.royalty_puzzle_hash, self.network().prefix())
                 .encode()?,
-            royalty_ten_thousandths: nft.info.royalty_ten_thousandths,
+            royalty_ten_thousandths: nft.info.royalty_basis_points,
             data_uris: metadata
                 .as_ref()
                 .map(|m| m.data_uris.clone())

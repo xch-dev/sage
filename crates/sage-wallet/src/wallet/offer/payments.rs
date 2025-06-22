@@ -1,6 +1,9 @@
 use chia::{
     protocol::{Bytes32, Coin},
-    puzzles::offer::{NotarizedPayment, Payment, SettlementPaymentsSolution},
+    puzzles::{
+        offer::{NotarizedPayment, Payment, SettlementPaymentsSolution},
+        Memos,
+    },
 };
 use chia_puzzles::SETTLEMENT_PAYMENT_HASH;
 use chia_wallet_sdk::{
@@ -25,7 +28,7 @@ impl PaymentOrigin {
             Self::Xch(coin) => {
                 Self::Xch(Coin::new(coin.coin_id(), p2_puzzle_hash, remaining_amount))
             }
-            Self::Cat(cat) => Self::Cat(cat.wrapped_child(p2_puzzle_hash, remaining_amount)),
+            Self::Cat(cat) => Self::Cat(cat.child(p2_puzzle_hash, remaining_amount)),
         }
     }
 
@@ -62,13 +65,11 @@ pub fn make_royalty_payments(
 
             remaining_payments.remove(i);
 
+            let hint = ctx.hint(payment.p2_puzzle_hash)?;
+
             notarized_payments.push(NotarizedPayment {
                 nonce: payment.nft_id,
-                payments: vec![Payment::with_memos(
-                    payment.p2_puzzle_hash,
-                    payment.amount,
-                    vec![payment.p2_puzzle_hash.into()],
-                )],
+                payments: vec![Payment::new(payment.p2_puzzle_hash, payment.amount, hint)],
             });
 
             outputs.push(payment_coin);
@@ -86,6 +87,7 @@ pub fn make_royalty_payments(
                 payments: vec![Payment::new(
                     SETTLEMENT_PAYMENT_HASH.into(),
                     remaining_amount,
+                    Memos::None,
                 )],
             });
         }
@@ -108,7 +110,7 @@ pub fn make_royalty_payments(
     Ok(CreateCoin::new(
         SETTLEMENT_PAYMENT_HASH.into(),
         total_amount,
-        None,
+        Memos::None,
     ))
 }
 
@@ -178,6 +180,7 @@ pub fn make_offer_payments(
                 payments: vec![Payment::new(
                     SETTLEMENT_PAYMENT_HASH.into(),
                     remaining_amount,
+                    Memos::None,
                 )],
             });
         }

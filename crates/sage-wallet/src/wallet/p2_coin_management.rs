@@ -1,6 +1,9 @@
 use std::collections::HashSet;
 
-use chia::protocol::{Bytes32, Coin, CoinSpend};
+use chia::{
+    protocol::{Bytes32, Coin, CoinSpend},
+    puzzles::Memos,
+};
 use chia_wallet_sdk::{driver::SpendContext, types::Conditions, utils::select_coins};
 
 use crate::WalletError;
@@ -35,7 +38,7 @@ impl Wallet {
         }
 
         if change > 0 {
-            conditions = conditions.create_coin(p2_puzzle_hash, change, None);
+            conditions = conditions.create_coin(p2_puzzle_hash, change, Memos::None);
         }
 
         let mut ctx = SpendContext::new();
@@ -106,7 +109,7 @@ impl Wallet {
 
                     remaining_amount -= amount as u128;
 
-                    conditions = conditions.create_coin(derivation, amount, None);
+                    conditions = conditions.create_coin(derivation, amount, Memos::None);
 
                     remaining_count -= 1;
                 }
@@ -144,13 +147,17 @@ impl Wallet {
 
                     // If there is excess amount in this coin after the fee is paid, create a new output.
                     if consumed < coin.amount {
-                        Conditions::new().create_coin(puzzle_hash, coin.amount - consumed, None)
+                        Conditions::new().create_coin(
+                            puzzle_hash,
+                            coin.amount - consumed,
+                            Memos::None,
+                        )
                     } else {
                         Conditions::new()
                     }
                 } else {
                     // Otherwise, just create a new output coin at the given puzzle hash.
-                    Conditions::new().create_coin(puzzle_hash, coin.amount, None)
+                    Conditions::new().create_coin(puzzle_hash, coin.amount, Memos::None)
                 };
 
                 // Ensure that there is a ring of assertions for all of the coins.

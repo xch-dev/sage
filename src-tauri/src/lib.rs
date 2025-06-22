@@ -56,6 +56,7 @@ pub fn run() {
             commands::view_coin_spends,
             commands::submit_transaction,
             commands::get_sync_status,
+            commands::get_version,
             commands::check_address,
             commands::get_derivations,
             commands::get_are_coins_spendable,
@@ -86,6 +87,7 @@ pub fn run() {
             commands::get_offer,
             commands::delete_offer,
             commands::cancel_offer,
+            commands::cancel_offers,
             commands::network_config,
             commands::set_discover_peers,
             commands::set_target_peers,
@@ -129,28 +131,32 @@ pub fn run() {
         )
         .expect("Failed to export TypeScript bindings");
 
-    #[allow(unused_mut)]
-    let mut tauri_builder = tauri::Builder::default();
+    let mut tauri_builder = tauri::Builder::default()
+        .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_clipboard_manager::init())
+        .plugin(tauri_plugin_os::init());
 
-    #[cfg(not(any(target_os = "android", target_os = "ios")))]
+    #[cfg(not(mobile))]
     {
-        tauri_builder = tauri_builder.plugin(tauri_plugin_window_state::Builder::new().build());
+        tauri_builder = tauri_builder
+            .plugin(tauri_plugin_window_state::Builder::new().build())
+            .plugin(tauri_plugin_fs::init())
+            .plugin(tauri_plugin_dialog::init());
+    }
+
+    #[cfg(mobile)]
+    {
+        tauri_builder = tauri_builder
+            .plugin(tauri_plugin_barcode_scanner::init())
+            .plugin(tauri_plugin_safe_area_insets::init())
+            .plugin(tauri_plugin_biometric::init())
+            .plugin(tauri_plugin_sharesheet::init())
+            .plugin(tauri_plugin_sage::init());
     }
 
     tauri_builder
-        .plugin(tauri_plugin_opener::init())
-        .plugin(tauri_plugin_clipboard_manager::init())
-        .plugin(tauri_plugin_os::init())
         .invoke_handler(builder.invoke_handler())
         .setup(move |app| {
-            #[cfg(mobile)]
-            {
-                app.handle().plugin(tauri_plugin_barcode_scanner::init())?;
-                app.handle().plugin(tauri_plugin_safe_area_insets::init())?;
-                app.handle().plugin(tauri_plugin_biometric::init())?;
-                app.handle().plugin(tauri_plugin_sage::init())?;
-            }
-
             builder.mount_events(app);
             let path = app.path().app_data_dir()?;
             let app_state = AppState::new(Mutex::new(Sage::new(&path)));

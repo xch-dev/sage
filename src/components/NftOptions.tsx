@@ -23,6 +23,7 @@ import {
   Maximize2,
   Minimize2,
   Settings2,
+  Download,
 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from './ui/button';
@@ -48,6 +49,7 @@ export interface NftOptionsProps {
   isLoading?: boolean;
   canLoadMore: boolean;
   total: number;
+  onExport?: () => void;
   renderPagination: () => React.ReactNode;
 }
 
@@ -63,6 +65,7 @@ export function NftOptions({
   multiSelect,
   setMultiSelect,
   className,
+  onExport,
   renderPagination,
 }: NftOptionsProps) {
   const { collection_id, owner_did, minter_did } = useParams();
@@ -193,6 +196,18 @@ export function NftOptions({
               <ArrowLeftIcon className='h-4 w-4' aria-hidden='true' />
             </Button>
           )}
+
+          <Button
+            variant='outline'
+            size='icon'
+            aria-label={t`Export NFTs`}
+            title={t`Export NFTs`}
+            onClick={onExport}
+            disabled={!(group === NftGroupMode.None || isFilteredView)}
+            className='hidden md:inline-flex'
+          >
+            <Download className='h-4 w-4' aria-hidden='true' />
+          </Button>
 
           <Button
             variant='outline'
