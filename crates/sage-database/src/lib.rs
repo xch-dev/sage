@@ -4,6 +4,7 @@ mod derivations;
 mod offers;
 mod primitives;
 mod rows;
+mod tables;
 mod transactions;
 mod utils;
 
