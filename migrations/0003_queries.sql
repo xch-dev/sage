@@ -1,8 +1,9 @@
-CREATE VIEW unspent_coins AS
+CREATE VIEW spendable_coins AS
 SELECT
+  asset_id,
   parent_coin_hash,
   puzzle_hash,
-  amount
+  amount  
 FROM coins
   INNER JOIN assets ON asset_id = assets.id
   LEFT JOIN offer_coins ON offer_coins.coin_id = coins.id
@@ -34,4 +35,19 @@ WHERE 1=1
     )
   );
 
-SELECT * FROM unspent_coins;
+
+
+CREATE VIEW owned_coins AS
+SELECT
+  asset_id,
+  parent_coin_hash,
+  puzzle_hash,
+  amount  
+FROM coins
+  INNER JOIN assets ON asset_id = assets.id
+  LEFT JOIN transaction_coins ON transaction_coins.coin_id = coins.id
+  LEFT JOIN transaction_spends ON transaction_spends.transaction_coin_id = transaction_coins.id
+WHERE 1=1
+  AND spent_height IS NULL
+  AND assets.kind = 0
+  AND transaction_spends.id IS NULL;
