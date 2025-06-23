@@ -42,10 +42,6 @@
 //         unfetched_cat(&self.pool).await
 //     }
 
-//     pub async fn cat_coin(&self, coin_id: Bytes32) -> Result<Option<Cat>> {
-//         cat_coin(&self.pool, coin_id).await
-//     }
-
 //     pub async fn refetch_cat(&self, asset_id: Bytes32) -> Result<()> {
 //         refetch_cat(&self.pool, asset_id).await
 //     }
@@ -256,37 +252,6 @@
 //     Ok(())
 // }
 
-// async fn spendable_cat_coins(
-//     conn: impl SqliteExecutor<'_>,
-//     asset_id: Bytes32,
-// ) -> Result<Vec<CatCoinRow>> {
-//     let asset_id = asset_id.as_ref();
-
-//     let rows = sqlx::query_as!(
-//         CatCoinSql,
-//         "
-//         SELECT
-//             cs.`parent_coin_id`, cs.`puzzle_hash`, cs.`amount`, `p2_puzzle_hash`,
-//             `parent_parent_coin_id`, `parent_inner_puzzle_hash`, `parent_amount`
-//         FROM `cat_coins` INDEXED BY `cat_asset_id`
-//         INNER JOIN `coin_states` AS cs ON `cat_coins`.`coin_id` = cs.`coin_id`
-//         LEFT JOIN `transaction_spends` ON cs.`coin_id` = `transaction_spends`.`coin_id`
-//         LEFT JOIN `offered_coins` ON cs.`coin_id` = `offered_coins`.`coin_id`
-//         LEFT JOIN `offers` ON `offered_coins`.`offer_id` = `offers`.`offer_id`
-//         WHERE `cat_coins`.`asset_id` = ?
-//         AND cs.`spent_height` IS NULL
-//         AND `transaction_spends`.`coin_id` IS NULL
-//         AND (`offered_coins`.`coin_id` IS NULL OR `offers`.`status` > 0)
-//         AND cs.`transaction_id` IS NULL
-//         ",
-//         asset_id
-//     )
-//     .fetch_all(conn)
-//     .await?;
-
-//     rows.into_iter().map(into_row).collect()
-// }
-
 // async fn spendable_cat_coin_count(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<u32> {
 //     let asset_id = asset_id.as_ref();
 
@@ -485,28 +450,6 @@
 //     .await?;
 
 //     rows.into_iter().map(into_row).collect()
-// }
-
-// async fn cat_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Option<Cat>> {
-//     let coin_id = coin_id.as_ref();
-
-//     let row = sqlx::query_as!(
-//         FullCatCoinSql,
-//         "
-//         SELECT
-//             `parent_coin_id`, `puzzle_hash`, `amount`,
-//             `parent_parent_coin_id`, `parent_inner_puzzle_hash`, `parent_amount`,
-//             `asset_id`, `p2_puzzle_hash`
-//         FROM `coin_states`
-//         INNER JOIN `cat_coins` ON `coin_states`.`coin_id` = `cat_coins`.`coin_id`
-//         WHERE `coin_states`.`coin_id` = ?
-//         ",
-//         coin_id
-//     )
-//     .fetch_optional(conn)
-//     .await?;
-
-//     row.map(into_row).transpose()
 // }
 
 // async fn refetch_cat(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<()> {

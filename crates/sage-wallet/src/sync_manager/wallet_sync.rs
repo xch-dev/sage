@@ -30,10 +30,7 @@ pub async fn sync_wallet(
         |(peak, header_hash)| (Some(peak), header_hash),
     );
 
-    let mut coin_ids = Vec::new();
-    coin_ids.extend(wallet.db.unspent_nft_coin_ids().await?);
-    coin_ids.extend(wallet.db.unspent_did_coin_ids().await?);
-    coin_ids.extend(wallet.db.unspent_cat_coin_ids().await?);
+    let coin_ids = wallet.db.subscription_coin_ids().await?;
 
     sync_coin_ids(
         &wallet,

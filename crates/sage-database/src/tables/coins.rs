@@ -12,6 +12,10 @@ impl Database {
         unsynced_coins(&self.pool, limit).await
     }
 
+    pub async fn subscription_coin_ids(&self) -> Result<Vec<Bytes32>> {
+        subscription_coin_ids(&self.pool).await
+    }
+
     pub async fn xch_balance(&self) -> Result<u128> {
         xch_balance(&self.pool).await
     }
@@ -64,6 +68,15 @@ async fn unsynced_coins(conn: impl SqliteExecutor<'_>, limit: usize) -> Result<V
         ))
     })
     .collect()
+}
+
+async fn subscription_coin_ids(conn: impl SqliteExecutor<'_>) -> Result<Vec<Bytes32>> {
+    query!("SELECT hash FROM coins WHERE asset_id != 0")
+        .fetch_all(conn)
+        .await?
+        .into_iter()
+        .map(|row| row.hash.convert())
+        .collect()
 }
 
 async fn xch_balance(conn: impl SqliteExecutor<'_>) -> Result<u128> {
