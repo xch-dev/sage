@@ -130,6 +130,7 @@ CREATE TABLE public_keys (
   id INTEGER PRIMARY KEY,
   p2_puzzle_id INTEGER NOT NULL,
   is_hardened BOOLEAN NOT NULL,
+  derivation_index INTEGER NOT NULL,
   key BLOB NOT NULL,
   FOREIGN KEY (p2_puzzle_id) REFERENCES p2_puzzles(id) ON DELETE CASCADE
 );

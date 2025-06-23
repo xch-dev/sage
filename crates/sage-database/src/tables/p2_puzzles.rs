@@ -1,7 +1,7 @@
 use chia::protocol::Bytes32;
 use sqlx::{query, SqliteExecutor};
 
-use crate::{Convert, Database, Result};
+use crate::{Convert, Database, DatabaseTx, Result};
 
 impl Database {
     pub async fn custody_p2_puzzle_hashes(&self) -> Result<Vec<Bytes32>> {
@@ -14,6 +14,12 @@ impl Database {
 
     pub async fn is_p2_puzzle_hash(&self, puzzle_hash: Bytes32) -> Result<bool> {
         is_p2_puzzle_hash(&self.pool, puzzle_hash).await
+    }
+}
+
+impl DatabaseTx<'_> {
+    pub async fn derivation_index(&mut self, is_hardened: bool) -> Result<u32> {
+        derivation_index(&mut *self.tx, is_hardened).await
     }
 }
 
@@ -53,4 +59,17 @@ async fn is_p2_puzzle_hash(conn: impl SqliteExecutor<'_>, puzzle_hash: Bytes32) 
     .await?
     .count
         > 0)
+}
+
+async fn derivation_index(conn: impl SqliteExecutor<'_>, is_hardened: bool) -> Result<u32> {
+    query!(
+        "
+        SELECT COALESCE(MAX(derivation_index) + 1, 0) AS derivation_index FROM public_keys WHERE is_hardened = ?
+        ",
+        is_hardened
+    )
+    .fetch_one(conn)
+    .await?
+    .derivation_index
+    .convert()
 }
