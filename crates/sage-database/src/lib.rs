@@ -7,6 +7,8 @@ mod tables;
 mod transactions;
 mod utils;
 
+pub use tables::*;
+
 pub(crate) use utils::*;
 
 use std::num::TryFromIntError;
@@ -104,11 +106,11 @@ pub enum DatabaseError {
     #[error("Invalid enum variant")]
     InvalidEnumVariant,
 
-    #[error("Invalid offer status {0}")]
-    InvalidOfferStatus(i64),
-
     #[error("Invalid address")]
     InvalidAddress,
+
+    #[error("Incomplete strike asset info")]
+    IncompleteStrikeAssetInfo,
 }
 
 pub(crate) type Result<T> = std::result::Result<T, DatabaseError>;

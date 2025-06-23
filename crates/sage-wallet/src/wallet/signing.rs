@@ -37,36 +37,35 @@ impl Wallet {
             agg_sig_constants,
         )?;
 
-        let mut indices = HashMap::new();
+        let mut derivations = HashMap::new();
 
         for required in &required_signatures {
             let RequiredSignature::Bls(required) = required else {
                 return Err(WalletError::SecpNotSupported);
             };
-            let pk = required.public_key;
-            let Some(info) = self.db.synthetic_key_info(pk).await? else {
+            let Some(derivation) = self.db.derivation(required.public_key).await? else {
                 if partial {
                     continue;
                 }
                 return Err(WalletError::UnknownPublicKey);
             };
-            indices.insert(pk, info);
+            derivations.insert(required.public_key, derivation);
         }
 
         let unhardened_intermediate_sk = master_to_wallet_unhardened_intermediate(&master_sk);
         let hardened_intermediate_sk = master_to_wallet_hardened_intermediate(&master_sk);
 
-        let secret_keys: HashMap<PublicKey, SecretKey> = indices
+        let secret_keys: HashMap<PublicKey, SecretKey> = derivations
             .iter()
-            .map(|(pk, info)| {
-                let sk = if info.hardened {
-                    hardened_intermediate_sk.derive_hardened(info.index)
+            .map(|(public_key, derivation)| {
+                let secret_key = if derivation.is_hardened {
+                    hardened_intermediate_sk.derive_hardened(derivation.derivation_index)
                 } else {
-                    unhardened_intermediate_sk.derive_unhardened(info.index)
+                    unhardened_intermediate_sk.derive_unhardened(derivation.derivation_index)
                 }
                 .derive_synthetic();
 
-                (*pk, sk)
+                (*public_key, secret_key)
             })
             .collect();
 

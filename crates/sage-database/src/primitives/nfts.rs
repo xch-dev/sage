@@ -66,13 +66,6 @@
 //     total_count: i64,
 // }
 
-// pub fn calculate_collection_id(did_id: Bytes32, json_collection_id: &str) -> Bytes32 {
-//     let mut hasher = Sha256::new();
-//     hasher.update(hex::encode(did_id));
-//     hasher.update(json_collection_id);
-//     hasher.finalize().into()
-// }
-
 // impl Database {
 //     pub async fn unchecked_nft_uris(&self, limit: u32) -> Result<Vec<NftUri>> {
 //         unchecked_nft_uris(&self.pool, limit).await
@@ -80,10 +73,6 @@
 
 //     pub async fn set_nft_visible(&self, launcher_id: Bytes32, visible: bool) -> Result<()> {
 //         set_nft_visible(&self.pool, launcher_id, visible).await
-//     }
-
-//     pub async fn spendable_nft(&self, launcher_id: Bytes32) -> Result<Option<Nft<Program>>> {
-//         spendable_nft(&self.pool, launcher_id).await
 //     }
 
 //     pub async fn fetch_nft_data(&self, hash: Bytes32) -> Result<Option<NftData>> {
@@ -131,10 +120,6 @@
 //         nft_row(&self.pool, launcher_id).await
 //     }
 
-//     pub async fn nft(&self, launcher_id: Bytes32) -> Result<Option<Nft<Program>>> {
-//         nft(&self.pool, launcher_id).await
-//     }
-
 //     pub async fn collection_name(&self, collection_id: Bytes32) -> Result<Option<String>> {
 //         collection_name(&self.pool, collection_id).await
 //     }
@@ -164,10 +149,6 @@
 //         launcher_id: Bytes32,
 //     ) -> Result<Vec<CoinStateRow>> {
 //         created_unspent_nft_coin_state(&self.pool, launcher_id).await
-//     }
-
-//     pub async fn nft_by_coin_id(&self, coin_id: Bytes32) -> Result<Option<Nft<Program>>> {
-//         nft_by_coin_id(&self.pool, coin_id).await
 //     }
 
 //     pub async fn set_collection_visible(
@@ -273,10 +254,6 @@
 
 //     pub async fn nfts_by_metadata_hash(&mut self, metadata_hash: Bytes32) -> Result<Vec<NftRow>> {
 //         nfts_by_metadata_hash(&mut *self.tx, metadata_hash).await
-//     }
-
-//     pub async fn nft(&mut self, launcher_id: Bytes32) -> Result<Option<Nft<Program>>> {
-//         nft(&mut *self.tx, launcher_id).await
 //     }
 
 //     pub async fn collection(&mut self, collection_id: Bytes32) -> Result<Option<CollectionRow>> {
@@ -827,69 +804,6 @@
 //     Ok(())
 // }
 
-// async fn spendable_nft(
-//     conn: impl SqliteExecutor<'_>,
-//     launcher_id: Bytes32,
-// ) -> Result<Option<Nft<Program>>> {
-//     let launcher_id = launcher_id.as_ref();
-
-//     let Some(sql) = sqlx::query_as!(
-//         FullNftCoinSql,
-//         "
-//         SELECT
-//             `coin_states`.`parent_coin_id`, `coin_states`.`puzzle_hash`, `coin_states`.`amount`,
-//             `parent_parent_coin_id`, `parent_inner_puzzle_hash`, `parent_amount`,
-//             `launcher_id`, `metadata`, `metadata_updater_puzzle_hash`, `current_owner`,
-//             `royalty_puzzle_hash`, `royalty_ten_thousandths`, `p2_puzzle_hash`
-//         FROM `nft_coins`
-//         INNER JOIN `coin_states` INDEXED BY `coin_height` ON `nft_coins`.`coin_id` = `coin_states`.`coin_id`
-//         LEFT JOIN `transaction_spends` ON `coin_states`.`coin_id` = `transaction_spends`.`coin_id`
-//         WHERE `launcher_id` = ?
-//         AND `spent_height` IS NULL
-//         AND `created_height` IS NOT NULL
-//         AND `coin_states`.`transaction_id` IS NULL
-//         AND `transaction_spends`.`transaction_id` IS NULL
-//         ",
-//         launcher_id
-//     )
-//     .fetch_optional(conn)
-//     .await?
-//     else {
-//         return Ok(None);
-//     };
-
-//     Ok(Some(sql.into_row()?))
-// }
-
-// async fn nft(conn: impl SqliteExecutor<'_>, launcher_id: Bytes32) -> Result<Option<Nft<Program>>> {
-//     let launcher_id = launcher_id.as_ref();
-
-//     let Some(sql) = sqlx::query_as!(
-//         FullNftCoinSql,
-//         "
-//         SELECT
-//             `coin_states`.`parent_coin_id`, `coin_states`.`puzzle_hash`, `coin_states`.`amount`,
-//             `parent_parent_coin_id`, `parent_inner_puzzle_hash`, `parent_amount`,
-//             `launcher_id`, `metadata`, `metadata_updater_puzzle_hash`, `current_owner`,
-//             `royalty_puzzle_hash`, `royalty_ten_thousandths`, `p2_puzzle_hash`
-//         FROM `nft_coins` INDEXED BY `nft_launcher_id`
-//         INNER JOIN `coin_states` ON `nft_coins`.`coin_id` = `coin_states`.`coin_id`
-//         LEFT JOIN `transaction_spends` ON `coin_states`.`coin_id` = `transaction_spends`.`coin_id`
-//         WHERE `launcher_id` = ?
-//         AND `spent_height` IS NULL
-//         AND `transaction_spends`.`transaction_id` IS NULL
-//         ",
-//         launcher_id
-//     )
-//     .fetch_optional(conn)
-//     .await?
-//     else {
-//         return Ok(None);
-//     };
-
-//     Ok(Some(sql.into_row()?))
-// }
-
 // async fn nfts_by_metadata_hash(
 //     conn: impl SqliteExecutor<'_>,
 //     metadata_hash: Bytes32,
@@ -1197,35 +1111,6 @@
 //     .await?;
 
 //     rows.into_iter().map(into_row).collect()
-// }
-
-// async fn nft_by_coin_id(
-//     conn: impl SqliteExecutor<'_>,
-//     coin_id: Bytes32,
-// ) -> Result<Option<Nft<Program>>> {
-//     let coin_id = coin_id.as_ref();
-
-//     let Some(sql) = sqlx::query_as!(
-//         FullNftCoinSql,
-//         "
-//         SELECT
-//             `coin_states`.`parent_coin_id`, `coin_states`.`puzzle_hash`, `coin_states`.`amount`,
-//             `parent_parent_coin_id`, `parent_inner_puzzle_hash`, `parent_amount`,
-//             `launcher_id`, `metadata`, `metadata_updater_puzzle_hash`, `current_owner`,
-//             `royalty_puzzle_hash`, `royalty_ten_thousandths`, `p2_puzzle_hash`
-//         FROM `nft_coins`
-//         INNER JOIN `coin_states` INDEXED BY `coin_height` ON `nft_coins`.`coin_id` = `coin_states`.`coin_id`
-//         WHERE `coin_states`.`coin_id` = ?
-//         ",
-//         coin_id
-//     )
-//     .fetch_optional(conn)
-//     .await?
-//     else {
-//         return Ok(None);
-//     };
-
-//     Ok(Some(sql.into_row()?))
 // }
 
 // async fn set_nft_not_owned(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<()> {

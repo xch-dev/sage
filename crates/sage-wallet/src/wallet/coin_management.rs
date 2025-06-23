@@ -144,12 +144,7 @@ mod tests {
         assert_eq!(test.wallet.db.cat_balance(asset_id).await?, 100);
         assert_eq!(cats.len(), 1);
 
-        let cat = test
-            .wallet
-            .db
-            .cat_coin(cats.remove(0).coin.coin_id())
-            .await?
-            .expect("missing cat");
+        let cat = cats.remove(0);
         let coin_spends = test.wallet.split(vec![cat.coin.coin_id()], 2, 0).await?;
         test.transact(coin_spends).await?;
         test.wait_for_coins().await;

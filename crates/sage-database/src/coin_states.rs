@@ -12,24 +12,8 @@
 //         unsynced_coin_states(&self.pool, limit).await
 //     }
 
-//     pub async fn coin_state(&self, coin_id: Bytes32) -> Result<Option<CoinState>> {
-//         coin_state(&self.pool, coin_id).await
-//     }
-
 //     pub async fn full_coin_state(&self, coin_id: Bytes32) -> Result<Option<CoinStateRow>> {
 //         full_coin_state(&self.pool, coin_id).await
-//     }
-
-//     pub async fn unspent_nft_coin_ids(&self) -> Result<Vec<Bytes32>> {
-//         unspent_nft_coin_ids(&self.pool).await
-//     }
-
-//     pub async fn unspent_did_coin_ids(&self) -> Result<Vec<Bytes32>> {
-//         unspent_did_coin_ids(&self.pool).await
-//     }
-
-//     pub async fn unspent_cat_coin_ids(&self) -> Result<Vec<Bytes32>> {
-//         unspent_cat_coin_ids(&self.pool).await
 //     }
 
 //     pub async fn delete_coin_state(&self, coin_id: Bytes32) -> Result<()> {

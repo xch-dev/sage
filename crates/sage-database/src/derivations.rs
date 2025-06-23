@@ -1,16 +1,3 @@
-// use chia::{bls::PublicKey, protocol::Bytes32};
-// use sqlx::{Row, SqliteExecutor};
-
-// use crate::{
-//     into_row, to_bytes, to_bytes32, Database, DatabaseTx, DerivationRow, DerivationSql, Result,
-// };
-
-// #[derive(Debug, Clone, Copy)]
-// pub struct SyntheticKeyInfo {
-//     pub index: u32,
-//     pub hardened: bool,
-// }
-
 // impl Database {
 //     pub async fn derivations(
 //         &self,
@@ -19,17 +6,6 @@
 //         offset: u32,
 //     ) -> Result<(Vec<DerivationRow>, u32)> {
 //         derivations(&self.pool, hardened, limit, offset).await
-//     }
-
-//     pub async fn synthetic_key(&self, p2_puzzle_hash: Bytes32) -> Result<PublicKey> {
-//         synthetic_key(&self.pool, p2_puzzle_hash).await
-//     }
-
-//     pub async fn synthetic_key_info(
-//         &self,
-//         synthetic_key: PublicKey,
-//     ) -> Result<Option<SyntheticKeyInfo>> {
-//         synthetic_key_info(&self.pool, synthetic_key).await
 //     }
 // }
 
@@ -133,51 +109,6 @@
 //     }
 
 //     Ok((derivations, total))
-// }
-
-// async fn synthetic_key(
-//     conn: impl SqliteExecutor<'_>,
-//     p2_puzzle_hash: Bytes32,
-// ) -> Result<PublicKey> {
-//     let p2_puzzle_hash = p2_puzzle_hash.as_ref();
-//     let row = sqlx::query!(
-//         "
-//         SELECT `synthetic_key`
-//         FROM `derivations`
-//         WHERE `p2_puzzle_hash` = ?
-//         ",
-//         p2_puzzle_hash
-//     )
-//     .fetch_one(conn)
-//     .await?;
-//     let bytes = row.synthetic_key.as_slice();
-//     Ok(PublicKey::from_bytes(&to_bytes(bytes)?)?)
-// }
-
-// async fn synthetic_key_info(
-//     conn: impl SqliteExecutor<'_>,
-//     synthetic_key: PublicKey,
-// ) -> Result<Option<SyntheticKeyInfo>> {
-//     let synthetic_key = synthetic_key.to_bytes();
-//     let synthetic_key_ref = synthetic_key.as_ref();
-
-//     sqlx::query!(
-//         "
-//         SELECT `index`, `hardened`
-//         FROM `derivations`
-//         WHERE `synthetic_key` = ?
-//         ",
-//         synthetic_key_ref
-//     )
-//     .fetch_optional(conn)
-//     .await?
-//     .map(|row| {
-//         Ok(SyntheticKeyInfo {
-//             index: row.index.try_into()?,
-//             hardened: row.hardened,
-//         })
-//     })
-//     .transpose()
 // }
 
 // async fn p2_puzzle_hash(
