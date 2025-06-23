@@ -43,7 +43,7 @@ impl Sage {
     pub async fn get_sync_status(&self, _req: GetSyncStatus) -> Result<GetSyncStatusResponse> {
         let wallet = self.wallet()?;
 
-        let balance = wallet.db.balance().await?;
+        let balance = wallet.db.xch_balance().await?;
         let total_coins = wallet.db.total_coin_count().await?;
         let synced_coins = wallet.db.synced_coin_count().await?;
 
@@ -86,7 +86,10 @@ impl Sage {
             return Ok(CheckAddressResponse { valid: false });
         };
 
-        let is_valid = wallet.db.is_p2_puzzle_hash(address.puzzle_hash).await?;
+        let is_valid = wallet
+            .db
+            .is_custody_p2_puzzle_hash(address.puzzle_hash)
+            .await?;
 
         Ok(CheckAddressResponse { valid: is_valid })
     }

@@ -23,7 +23,7 @@ pub async fn sync_wallet(
 ) -> Result<(), WalletError> {
     info!("Starting sync against peer {}", peer.socket_addr());
 
-    let p2_puzzle_hashes = wallet.db.p2_puzzle_hashes().await?;
+    let p2_puzzle_hashes = wallet.db.custody_p2_puzzle_hashes().await?;
 
     let (start_height, start_header_hash) = wallet.db.latest_peak().await?.map_or_else(
         || (None, wallet.genesis_challenge),

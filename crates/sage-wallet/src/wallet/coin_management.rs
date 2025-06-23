@@ -103,7 +103,7 @@ mod tests {
     async fn test_xch_coin_management() -> anyhow::Result<()> {
         let mut test = TestWallet::new(1000).await?;
 
-        let coins = test.wallet.db.spendable_coins().await?;
+        let coins = test.wallet.db.spendable_xch_coins().await?;
         let coin_spends = test
             .wallet
             .split(coins.iter().map(Coin::coin_id).collect(), 3, 0)
@@ -113,10 +113,10 @@ mod tests {
         test.transact(coin_spends).await?;
         test.wait_for_coins().await;
 
-        assert_eq!(test.wallet.db.balance().await?, 1000);
-        assert_eq!(test.wallet.db.spendable_coins().await?.len(), 3);
+        assert_eq!(test.wallet.db.xch_balance().await?, 1000);
+        assert_eq!(test.wallet.db.spendable_xch_coins().await?.len(), 3);
 
-        let coins = test.wallet.db.spendable_coins().await?;
+        let coins = test.wallet.db.spendable_xch_coins().await?;
         let coin_spends = test
             .wallet
             .combine(coins.iter().map(Coin::coin_id).collect(), 0)
@@ -126,8 +126,8 @@ mod tests {
         test.transact(coin_spends).await?;
         test.wait_for_coins().await;
 
-        assert_eq!(test.wallet.db.balance().await?, 1000);
-        assert_eq!(test.wallet.db.spendable_coins().await?.len(), 1);
+        assert_eq!(test.wallet.db.xch_balance().await?, 1000);
+        assert_eq!(test.wallet.db.spendable_xch_coins().await?.len(), 1);
 
         Ok(())
     }

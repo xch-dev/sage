@@ -42,14 +42,6 @@
 //         unfetched_cat(&self.pool).await
 //     }
 
-//     pub async fn spendable_cat_coins(&self, asset_id: Bytes32) -> Result<Vec<CatCoinRow>> {
-//         spendable_cat_coins(&self.pool, asset_id).await
-//     }
-
-//     pub async fn cat_balance(&self, asset_id: Bytes32) -> Result<u128> {
-//         cat_balance(&self.pool, asset_id).await
-//     }
-
 //     pub async fn cat_coin(&self, coin_id: Bytes32) -> Result<Option<Cat>> {
 //         cat_coin(&self.pool, coin_id).await
 //     }
@@ -293,28 +285,6 @@
 //     .await?;
 
 //     rows.into_iter().map(into_row).collect()
-// }
-
-// async fn cat_balance(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<u128> {
-//     let asset_id = asset_id.as_ref();
-
-//     let row = sqlx::query!(
-//         "
-//         SELECT `coin_states`.`amount` FROM `coin_states` INDEXED BY `coin_spent`
-//         INNER JOIN `cat_coins` ON `coin_states`.`coin_id` = `cat_coins`.`coin_id`
-//         LEFT JOIN `transaction_spends` ON `coin_states`.`coin_id` = `transaction_spends`.`coin_id`
-//         WHERE `coin_states`.`spent_height` IS NULL
-//         AND `cat_coins`.`asset_id` = ?
-//         AND `transaction_spends`.`coin_id` IS NULL
-//         ",
-//         asset_id
-//     )
-//     .fetch_all(conn)
-//     .await?;
-
-//     row.iter()
-//         .map(|row| Ok(u64::from_be_bytes(to_bytes(&row.amount)?) as u128))
-//         .sum::<Result<u128>>()
 // }
 
 // async fn spendable_cat_coin_count(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<u32> {

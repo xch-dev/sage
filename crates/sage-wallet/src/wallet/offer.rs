@@ -71,7 +71,7 @@ mod tests {
 
         // Check balances
         assert_eq!(alice.wallet.db.cat_balance(asset_id).await?, 1000);
-        assert_eq!(bob.wallet.db.balance().await?, 750);
+        assert_eq!(bob.wallet.db.xch_balance().await?, 750);
 
         Ok(())
     }
@@ -151,7 +151,7 @@ mod tests {
             alice.wallet.db.spendable_nft(nft.info.launcher_id).await?,
             None
         );
-        assert_eq!(bob.wallet.db.balance().await?, 1000);
+        assert_eq!(bob.wallet.db.xch_balance().await?, 1000);
 
         Ok(())
     }
@@ -216,7 +216,7 @@ mod tests {
         bob.wait_for_coins().await;
 
         // Check balances
-        assert_eq!(alice.wallet.db.balance().await?, 1000);
+        assert_eq!(alice.wallet.db.xch_balance().await?, 1000);
         assert_ne!(
             bob.wallet.db.spendable_nft(nft.info.launcher_id).await?,
             None
@@ -297,7 +297,7 @@ mod tests {
         bob.wait_for_coins().await;
 
         // Check balances
-        assert_eq!(alice.wallet.db.balance().await?, 1000);
+        assert_eq!(alice.wallet.db.xch_balance().await?, 1000);
         assert_ne!(
             bob.wallet
                 .db
@@ -484,7 +484,7 @@ mod tests {
         bob.wait_for_coins().await;
 
         // Check balances
-        assert_eq!(alice.wallet.db.balance().await?, 1000);
+        assert_eq!(alice.wallet.db.xch_balance().await?, 1000);
         assert_ne!(
             bob.wallet
                 .db
@@ -595,7 +595,7 @@ mod tests {
         bob.wait_for_coins().await;
 
         // Check balances
-        assert_eq!(alice.wallet.db.balance().await?, 1000);
+        assert_eq!(alice.wallet.db.xch_balance().await?, 1000);
         assert_ne!(
             bob.wallet
                 .db
@@ -648,7 +648,7 @@ mod tests {
         bob.wait_for_coins().await;
 
         // Check balances
-        assert_eq!(bob.wallet.db.balance().await?, 1000);
+        assert_eq!(bob.wallet.db.xch_balance().await?, 1000);
 
         Ok(())
     }

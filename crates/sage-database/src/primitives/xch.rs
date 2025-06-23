@@ -7,14 +7,6 @@
 // };
 
 // impl Database {
-//     pub async fn spendable_coins(&self) -> Result<Vec<Coin>> {
-//         spendable_coins(&self.pool).await
-//     }
-
-//     pub async fn balance(&self) -> Result<u128> {
-//         balance(&self.pool).await
-//     }
-
 //     pub async fn spendable_p2_coin_count(&self) -> Result<u32> {
 //         spendable_p2_coin_count(&self.pool).await
 //     }
@@ -66,46 +58,6 @@
 //     .await?;
 
 //     Ok(())
-// }
-
-// async fn balance(conn: impl SqliteExecutor<'_>) -> Result<u128> {
-//     let row = sqlx::query!(
-//         "
-//         SELECT `coin_states`.`amount` FROM `coin_states` INDEXED BY `coin_kind_spent`
-//         LEFT JOIN `transaction_spends` ON `coin_states`.`coin_id` = `transaction_spends`.`coin_id`
-//         WHERE `coin_states`.`spent_height` IS NULL
-//         AND `transaction_spends`.`coin_id` IS NULL
-//         AND `kind` = 1
-//         "
-//     )
-//     .fetch_all(conn)
-//     .await?;
-
-//     row.iter()
-//         .map(|row| Ok(u64::from_be_bytes(to_bytes(&row.amount)?) as u128))
-//         .sum::<Result<u128>>()
-// }
-
-// async fn spendable_coins(conn: impl SqliteExecutor<'_>) -> Result<Vec<Coin>> {
-//     sqlx::query_as!(
-//         CoinSql,
-//         "
-//         SELECT `coin_states`.`parent_coin_id`, `coin_states`.`puzzle_hash`, `coin_states`.`amount` FROM `coin_states`
-//         LEFT JOIN `transaction_spends` ON `coin_states`.`coin_id` = `transaction_spends`.`coin_id`
-//         LEFT JOIN `offered_coins` ON `coin_states`.`coin_id` = `offered_coins`.`coin_id`
-//         LEFT JOIN `offers` ON `offered_coins`.`offer_id` = `offers`.`offer_id`
-//         WHERE `coin_states`.`spent_height` IS NULL
-//         AND `transaction_spends`.`coin_id` IS NULL
-//         AND (`offered_coins`.`coin_id` IS NULL OR `offers`.`status` > 0)
-//         AND `coin_states`.`transaction_id` IS NULL
-//         AND `kind` = 1
-//         "
-//     )
-//     .fetch_all(conn)
-//     .await?
-//     .into_iter()
-//     .map(into_row)
-//     .collect()
 // }
 
 // async fn spendable_p2_coin_count(conn: impl SqliteExecutor<'_>) -> Result<u32> {

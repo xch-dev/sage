@@ -2,7 +2,7 @@ use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use chia::protocol::{Bytes32, Coin};
 use futures_util::{stream::FuturesUnordered, StreamExt};
-use sage_database::{CoinKind, Database};
+use sage_database::Database;
 use tokio::{
     sync::{mpsc, Mutex},
     task::spawn_blocking,
@@ -60,7 +60,7 @@ impl PuzzleQueue {
 
         let coin_states = self
             .db
-            .unsynced_coin_states(peers.len() * self.batch_size_per_peer)
+            .unsynced_coins(peers.len() * self.batch_size_per_peer)
             .await?;
 
         if coin_states.is_empty() {
