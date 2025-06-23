@@ -1,6 +1,7 @@
 use chia::protocol::Bytes32;
 use chia_sha2::Sha256;
 use sage_assets::{Chip0007Metadata, Collection};
+use sage_database::CollectionRow;
 use tracing::warn;
 
 #[derive(Debug, Default, Clone)]
@@ -36,18 +37,28 @@ pub fn compute_nft_info(did_id: Option<Bytes32>, blob: Option<&[u8]>) -> Compute
         }),
     ) = (did_id, json.collection)
     {
+        let attributes = attributes.unwrap_or_default();
         Some(CollectionRow {
-            collection_id: calculate_collection_id(did_id, &metadata_collection_id.to_string()),
-            did_id,
-            metadata_collection_id: metadata_collection_id.to_string(),
+            id: -1,
+            description: None,
+            created_height: None,
+            hash: calculate_collection_id(did_id, &metadata_collection_id.to_string()),
+            minter_hash: did_id,
+            uuid: metadata_collection_id.to_string(),
             name: Some(name),
-            icon: attributes.unwrap_or_default().into_iter().find_map(|item| {
+            icon_url: attributes.iter().find_map(|item| {
                 match (item.kind.as_str(), item.value.as_str()) {
                     (Some("icon"), Some(icon)) => Some(icon.to_string()),
                     _ => None,
                 }
             }),
-            visible: true,
+            banner_url: attributes.iter().find_map(|item| {
+                match (item.kind.as_str(), item.value.as_str()) {
+                    (Some("banner"), Some(banner)) => Some(banner.to_string()),
+                    _ => None,
+                }
+            }),
+            is_visible: true,
         })
     } else {
         None
