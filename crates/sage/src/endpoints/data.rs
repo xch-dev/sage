@@ -417,27 +417,22 @@ impl Sage {
         req: GetNftCollections,
     ) -> Result<GetNftCollectionsResponse> {
         let wallet = self.wallet()?;
-        let include_hidden = req.include_hidden;
 
-        let (collections, total) = if include_hidden {
-            wallet.db.collections_named(req.limit, req.offset).await?
-        } else {
-            wallet
-                .db
-                .collections_visible_named(req.limit, req.offset)
-                .await?
-        };
+        let (collections, total) = wallet
+            .db
+            .collections(req.limit, req.offset, req.include_hidden)
+            .await?;
 
         let records = collections
             .into_iter()
             .map(|row| {
                 Ok(NftCollectionRecord {
-                    collection_id: Address::new(row.collection_id, "col".to_string()).encode()?,
-                    did_id: Address::new(row.did_id, "did:chia:".to_string()).encode()?,
-                    metadata_collection_id: row.metadata_collection_id,
+                    collection_id: Address::new(row.hash, "col".to_string()).encode()?,
+                    did_id: Address::new(row.minter_hash, "did:chia:".to_string()).encode()?,
+                    metadata_collection_id: row.uuid,
                     name: row.name,
-                    icon: row.icon,
-                    visible: row.visible,
+                    icon: row.icon_url,
+                    visible: row.is_visible,
                 })
             })
             .collect::<Result<Vec<_>>>()?;
@@ -469,11 +464,11 @@ impl Sage {
             NftCollectionRecord {
                 collection_id: Address::new(collection.collection_id, "col".to_string())
                     .encode()?,
-                did_id: Address::new(collection.did_id, "did:chia:".to_string()).encode()?,
-                metadata_collection_id: collection.metadata_collection_id,
-                visible: collection.visible,
+                did_id: Address::new(collection.minter_hash, "did:chia:".to_string()).encode()?,
+                metadata_collection_id: collection.uuid,
+                visible: collection.is_visible,
                 name: collection.name,
-                icon: collection.icon,
+                icon: collection.icon_url,
             }
         } else {
             NftCollectionRecord {
