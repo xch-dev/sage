@@ -62,7 +62,7 @@ impl Wallet {
         amount: u64,
         selected_coin_ids: &HashSet<Bytes32>,
     ) -> Result<Vec<Coin>, WalletError> {
-        let mut spendable_coins = self.db.spendable_coins().await?;
+        let mut spendable_coins = self.db.spendable_xch_coins().await?;
         spendable_coins.retain(|coin| !selected_coin_ids.contains(&coin.coin_id()));
 
         Ok(select_coins(spendable_coins, amount)?)

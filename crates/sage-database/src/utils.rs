@@ -1,17 +1,48 @@
-use chia::protocol::Bytes32;
+use chia::protocol::BytesImpl;
 
 use crate::{DatabaseError, Result};
 
-pub fn to_bytes<const N: usize>(slice: &[u8]) -> Result<[u8; N]> {
-    slice
-        .try_into()
-        .map_err(|_| DatabaseError::InvalidLength(slice.len(), N))
+pub trait Convert<T> {
+    fn convert(self) -> Result<T>;
 }
 
-pub fn to_bytes32(slice: &[u8]) -> Result<Bytes32> {
-    to_bytes(slice).map(Bytes32::new)
+impl<const N: usize> Convert<[u8; N]> for Vec<u8> {
+    fn convert(self) -> Result<[u8; N]> {
+        let length = self.len();
+        self.try_into()
+            .map_err(|_| DatabaseError::InvalidLength(length, N))
+    }
 }
 
-pub fn to_u64(slice: &[u8]) -> Result<u64> {
-    Ok(u64::from_be_bytes(to_bytes::<8>(slice)?))
+impl<const N: usize> Convert<BytesImpl<N>> for Vec<u8> {
+    fn convert(self) -> Result<BytesImpl<N>> {
+        Ok(BytesImpl::new(self.convert()?))
+    }
+}
+
+impl Convert<u64> for Vec<u8> {
+    fn convert(self) -> Result<u64> {
+        Ok(u64::from_be_bytes(self.convert()?))
+    }
+}
+
+impl Convert<u128> for Vec<u8> {
+    fn convert(self) -> Result<u128> {
+        Ok(u128::from_be_bytes(self.convert()?))
+    }
+}
+
+impl Convert<u32> for i64 {
+    fn convert(self) -> Result<u32> {
+        Ok(self.try_into()?)
+    }
+}
+
+impl<T, U> Convert<Option<T>> for Option<U>
+where
+    U: Convert<T>,
+{
+    fn convert(self) -> Result<Option<T>> {
+        self.map(U::convert).transpose()
+    }
 }
