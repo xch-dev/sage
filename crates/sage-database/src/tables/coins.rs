@@ -1,11 +1,22 @@
 use chia::{
-    protocol::{Bytes32, Coin, CoinState},
-    puzzles::LineageProof,
+    protocol::{Bytes32, Coin, CoinState, Program},
+    puzzles::{LineageProof, Proof},
 };
-use chia_wallet_sdk::driver::{Cat, CatInfo};
+use chia_wallet_sdk::driver::{
+    Cat, CatInfo, Did, DidInfo, Nft, NftInfo, OptionContract, OptionInfo,
+};
 use sqlx::{query, SqliteExecutor};
 
-use crate::{Convert, Database, Result};
+use crate::{AssetKind, Convert, Database, DatabaseError, Result};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum CoinKind {
+    Xch,
+    Cat,
+    Nft,
+    Did,
+    Option,
+}
 
 impl Database {
     pub async fn unsynced_coins(&self, limit: usize) -> Result<Vec<CoinState>> {
@@ -38,6 +49,42 @@ impl Database {
 
     pub async fn spendable_cat_coins(&self, asset_id: Bytes32) -> Result<Vec<Cat>> {
         spendable_cat_coins(&self.pool, asset_id).await
+    }
+
+    pub async fn coin_kind(&self, coin_id: Bytes32) -> Result<CoinKind> {
+        coin_kind(&self.pool, coin_id).await
+    }
+
+    pub async fn xch_coin(&self, coin_id: Bytes32) -> Result<Coin> {
+        xch_coin(&self.pool, coin_id).await
+    }
+
+    pub async fn cat_coin(&self, coin_id: Bytes32) -> Result<Cat> {
+        cat_coin(&self.pool, coin_id).await
+    }
+
+    pub async fn did_coin(&self, coin_id: Bytes32) -> Result<Did<Program>> {
+        did_coin(&self.pool, coin_id).await
+    }
+
+    pub async fn nft_coin(&self, coin_id: Bytes32) -> Result<Nft<Program>> {
+        nft_coin(&self.pool, coin_id).await
+    }
+
+    pub async fn option_coin(&self, coin_id: Bytes32) -> Result<OptionContract> {
+        option_coin(&self.pool, coin_id).await
+    }
+
+    pub async fn did(&self, launcher_id: Bytes32) -> Result<Did<Program>> {
+        did(&self.pool, launcher_id).await
+    }
+
+    pub async fn nft(&self, launcher_id: Bytes32) -> Result<Nft<Program>> {
+        nft(&self.pool, launcher_id).await
+    }
+
+    pub async fn option(&self, launcher_id: Bytes32) -> Result<OptionContract> {
+        option(&self.pool, launcher_id).await
     }
 }
 
@@ -192,4 +239,350 @@ async fn spendable_cat_coins(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -
         ))
     })
     .collect()
+}
+
+async fn coin_kind(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<CoinKind> {
+    let coin_id_ref = coin_id.as_ref();
+
+    let row = query!(
+        "SELECT asset_id, kind FROM coins INNER JOIN assets ON assets.id = asset_id WHERE coins.hash = ?",
+        coin_id_ref
+    )
+    .fetch_one(conn)
+    .await?;
+
+    let Some(asset_id) = row.asset_id else {
+        return Err(DatabaseError::InvalidEnumVariant);
+    };
+
+    let kind: AssetKind = row.kind.convert()?;
+
+    Ok(match kind {
+        AssetKind::Token => {
+            if asset_id == 0 {
+                CoinKind::Xch
+            } else {
+                CoinKind::Cat
+            }
+        }
+        AssetKind::Nft => CoinKind::Nft,
+        AssetKind::Did => CoinKind::Did,
+        AssetKind::Option => CoinKind::Option,
+    })
+}
+
+async fn xch_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Coin> {
+    let coin_id_ref = coin_id.as_ref();
+
+    let row = query!(
+        "
+        SELECT
+            parent_coin_hash, puzzle_hash, amount
+        FROM owned_coins
+        WHERE owned_coins.hash = ? AND asset_id = 0
+        ",
+        coin_id_ref
+    )
+    .fetch_one(conn)
+    .await?;
+
+    Ok(Coin::new(
+        row.parent_coin_hash.convert()?,
+        row.puzzle_hash.convert()?,
+        row.amount.convert()?,
+    ))
+}
+
+async fn cat_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Cat> {
+    let coin_id_ref = coin_id.as_ref();
+
+    let row = query!(
+        "
+        SELECT
+            parent_coin_hash, puzzle_hash, amount, hidden_puzzle_hash, p2_puzzles.hash AS p2_puzzle_hash,
+            parent_parent_coin_hash, parent_inner_puzzle_hash, parent_amount, assets.hash AS asset_id
+        FROM owned_coins
+        INNER JOIN assets ON assets.id = asset_id
+        INNER JOIN lineage_proofs ON lineage_proofs.coin_id = coin_id
+        INNER JOIN p2_puzzles ON p2_puzzles.id = p2_puzzle_id
+        WHERE owned_coins.hash = ?
+        ",
+        coin_id_ref
+    )
+    .fetch_one(conn)
+    .await?;
+
+    Ok(Cat::new(
+        Coin::new(
+            row.parent_coin_hash.convert()?,
+            row.puzzle_hash.convert()?,
+            row.amount.convert()?,
+        ),
+        Some(LineageProof {
+            parent_parent_coin_info: row.parent_parent_coin_hash.convert()?,
+            parent_inner_puzzle_hash: row.parent_inner_puzzle_hash.convert()?,
+            parent_amount: row.parent_amount.convert()?,
+        }),
+        CatInfo::new(
+            row.asset_id.convert()?,
+            row.hidden_puzzle_hash.convert()?,
+            row.p2_puzzle_hash.convert()?,
+        ),
+    ))
+}
+
+async fn did_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Did<Program>> {
+    let coin_id_ref = coin_id.as_ref();
+
+    let row = query!(
+        "
+        SELECT
+            parent_coin_hash, puzzle_hash, amount, p2_puzzles.hash AS p2_puzzle_hash,
+            parent_parent_coin_hash, parent_inner_puzzle_hash, parent_amount,
+            assets.hash AS launcher_id, recovery_list_hash, num_verifications_required, metadata
+        FROM owned_coins
+        INNER JOIN assets ON assets.id = owned_coins.asset_id
+        INNER JOIN dids ON dids.asset_id = assets.id
+        INNER JOIN lineage_proofs ON lineage_proofs.coin_id = coin_id
+        INNER JOIN p2_puzzles ON p2_puzzles.id = p2_puzzle_id
+        WHERE owned_coins.hash = ?
+        ",
+        coin_id_ref
+    )
+    .fetch_one(conn)
+    .await?;
+
+    Ok(Did::new(
+        Coin::new(
+            row.parent_coin_hash.convert()?,
+            row.puzzle_hash.convert()?,
+            row.amount.convert()?,
+        ),
+        Proof::Lineage(LineageProof {
+            parent_parent_coin_info: row.parent_parent_coin_hash.convert()?,
+            parent_inner_puzzle_hash: row.parent_inner_puzzle_hash.convert()?,
+            parent_amount: row.parent_amount.convert()?,
+        }),
+        DidInfo::new(
+            row.launcher_id.convert()?,
+            row.recovery_list_hash.convert()?,
+            row.num_verifications_required.convert()?,
+            row.metadata.into(),
+            row.p2_puzzle_hash.convert()?,
+        ),
+    ))
+}
+
+async fn nft_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Nft<Program>> {
+    let coin_id_ref = coin_id.as_ref();
+
+    let row = query!(
+        "
+        SELECT
+            parent_coin_hash, puzzle_hash, amount, p2_puzzles.hash AS p2_puzzle_hash,
+            parent_parent_coin_hash, parent_inner_puzzle_hash, parent_amount,
+            assets.hash AS launcher_id, metadata, metadata_updater_puzzle_hash,
+            owner_hash, royalty_puzzle_hash, royalty_basis_points
+        FROM owned_coins
+        INNER JOIN assets ON assets.id = owned_coins.asset_id
+        INNER JOIN nfts ON nfts.asset_id = assets.id
+        INNER JOIN lineage_proofs ON lineage_proofs.coin_id = coin_id
+        INNER JOIN p2_puzzles ON p2_puzzles.id = p2_puzzle_id
+        WHERE owned_coins.hash = ?
+        ",
+        coin_id_ref
+    )
+    .fetch_one(conn)
+    .await?;
+
+    Ok(Nft::new(
+        Coin::new(
+            row.parent_coin_hash.convert()?,
+            row.puzzle_hash.convert()?,
+            row.amount.convert()?,
+        ),
+        Proof::Lineage(LineageProof {
+            parent_parent_coin_info: row.parent_parent_coin_hash.convert()?,
+            parent_inner_puzzle_hash: row.parent_inner_puzzle_hash.convert()?,
+            parent_amount: row.parent_amount.convert()?,
+        }),
+        NftInfo::new(
+            row.launcher_id.convert()?,
+            row.metadata.into(),
+            row.metadata_updater_puzzle_hash.convert()?,
+            row.owner_hash.convert()?,
+            row.royalty_puzzle_hash.convert()?,
+            row.royalty_basis_points.convert()?,
+            row.p2_puzzle_hash.convert()?,
+        ),
+    ))
+}
+
+async fn option_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<OptionContract> {
+    let coin_id_ref = coin_id.as_ref();
+
+    let row = query!(
+        "
+        SELECT
+            parent_coin_hash, puzzle_hash, amount, p2_puzzles.hash AS p2_puzzle_hash,
+            parent_parent_coin_hash, parent_inner_puzzle_hash, parent_amount,
+            assets.hash AS launcher_id, underlying_coin_hash, underlying_delegated_puzzle_hash
+        FROM owned_coins
+        INNER JOIN assets ON assets.id = owned_coins.asset_id
+        INNER JOIN options ON options.asset_id = assets.id
+        INNER JOIN lineage_proofs ON lineage_proofs.coin_id = coin_id
+        INNER JOIN p2_puzzles ON p2_puzzles.id = p2_puzzle_id
+        WHERE owned_coins.hash = ?
+        ",
+        coin_id_ref
+    )
+    .fetch_one(conn)
+    .await?;
+
+    Ok(OptionContract::new(
+        Coin::new(
+            row.parent_coin_hash.convert()?,
+            row.puzzle_hash.convert()?,
+            row.amount.convert()?,
+        ),
+        Proof::Lineage(LineageProof {
+            parent_parent_coin_info: row.parent_parent_coin_hash.convert()?,
+            parent_inner_puzzle_hash: row.parent_inner_puzzle_hash.convert()?,
+            parent_amount: row.parent_amount.convert()?,
+        }),
+        OptionInfo::new(
+            row.launcher_id.convert()?,
+            row.underlying_coin_hash.convert()?,
+            row.underlying_delegated_puzzle_hash.convert()?,
+            row.p2_puzzle_hash.convert()?,
+        ),
+    ))
+}
+
+async fn did(conn: impl SqliteExecutor<'_>, launcher_id: Bytes32) -> Result<Did<Program>> {
+    let launcher_id_ref = launcher_id.as_ref();
+
+    let row = query!(
+        "
+        SELECT
+            parent_coin_hash, puzzle_hash, amount, p2_puzzles.hash AS p2_puzzle_hash,
+            parent_parent_coin_hash, parent_inner_puzzle_hash, parent_amount,
+            assets.hash AS launcher_id, recovery_list_hash, num_verifications_required, metadata
+        FROM owned_coins
+        INNER JOIN assets ON assets.id = owned_coins.asset_id
+        INNER JOIN dids ON dids.asset_id = assets.id
+        INNER JOIN lineage_proofs ON lineage_proofs.coin_id = coin_id
+        INNER JOIN p2_puzzles ON p2_puzzles.id = p2_puzzle_id
+        WHERE assets.hash = ?
+        ",
+        launcher_id_ref
+    )
+    .fetch_one(conn)
+    .await?;
+
+    Ok(Did::new(
+        Coin::new(
+            row.parent_coin_hash.convert()?,
+            row.puzzle_hash.convert()?,
+            row.amount.convert()?,
+        ),
+        Proof::Lineage(LineageProof {
+            parent_parent_coin_info: row.parent_parent_coin_hash.convert()?,
+            parent_inner_puzzle_hash: row.parent_inner_puzzle_hash.convert()?,
+            parent_amount: row.parent_amount.convert()?,
+        }),
+        DidInfo::new(
+            row.launcher_id.convert()?,
+            row.recovery_list_hash.convert()?,
+            row.num_verifications_required.convert()?,
+            row.metadata.into(),
+            row.p2_puzzle_hash.convert()?,
+        ),
+    ))
+}
+
+async fn nft(conn: impl SqliteExecutor<'_>, launcher_id: Bytes32) -> Result<Nft<Program>> {
+    let launcher_id_ref = launcher_id.as_ref();
+
+    let row = query!(
+        "
+        SELECT
+            parent_coin_hash, puzzle_hash, amount, p2_puzzles.hash AS p2_puzzle_hash,
+            parent_parent_coin_hash, parent_inner_puzzle_hash, parent_amount,
+            assets.hash AS launcher_id, metadata, metadata_updater_puzzle_hash,
+            owner_hash, royalty_puzzle_hash, royalty_basis_points
+        FROM owned_coins
+        INNER JOIN assets ON assets.id = owned_coins.asset_id
+        INNER JOIN nfts ON nfts.asset_id = assets.id
+        INNER JOIN lineage_proofs ON lineage_proofs.coin_id = coin_id
+        INNER JOIN p2_puzzles ON p2_puzzles.id = p2_puzzle_id
+        WHERE assets.hash = ?
+        ",
+        launcher_id_ref
+    )
+    .fetch_one(conn)
+    .await?;
+
+    Ok(Nft::new(
+        Coin::new(
+            row.parent_coin_hash.convert()?,
+            row.puzzle_hash.convert()?,
+            row.amount.convert()?,
+        ),
+        Proof::Lineage(LineageProof {
+            parent_parent_coin_info: row.parent_parent_coin_hash.convert()?,
+            parent_inner_puzzle_hash: row.parent_inner_puzzle_hash.convert()?,
+            parent_amount: row.parent_amount.convert()?,
+        }),
+        NftInfo::new(
+            row.launcher_id.convert()?,
+            row.metadata.into(),
+            row.metadata_updater_puzzle_hash.convert()?,
+            row.owner_hash.convert()?,
+            row.royalty_puzzle_hash.convert()?,
+            row.royalty_basis_points.convert()?,
+            row.p2_puzzle_hash.convert()?,
+        ),
+    ))
+}
+
+async fn option(conn: impl SqliteExecutor<'_>, launcher_id: Bytes32) -> Result<OptionContract> {
+    let launcher_id_ref = launcher_id.as_ref();
+
+    let row = query!(
+        "
+        SELECT
+            parent_coin_hash, puzzle_hash, amount, p2_puzzles.hash AS p2_puzzle_hash,
+            parent_parent_coin_hash, parent_inner_puzzle_hash, parent_amount,
+            assets.hash AS launcher_id, underlying_coin_hash, underlying_delegated_puzzle_hash
+        FROM owned_coins
+        INNER JOIN assets ON assets.id = owned_coins.asset_id
+        INNER JOIN options ON options.asset_id = assets.id
+        INNER JOIN lineage_proofs ON lineage_proofs.coin_id = coin_id
+        INNER JOIN p2_puzzles ON p2_puzzles.id = p2_puzzle_id
+        WHERE assets.hash = ?
+        ",
+        launcher_id_ref
+    )
+    .fetch_one(conn)
+    .await?;
+
+    Ok(OptionContract::new(
+        Coin::new(
+            row.parent_coin_hash.convert()?,
+            row.puzzle_hash.convert()?,
+            row.amount.convert()?,
+        ),
+        Proof::Lineage(LineageProof {
+            parent_parent_coin_info: row.parent_parent_coin_hash.convert()?,
+            parent_inner_puzzle_hash: row.parent_inner_puzzle_hash.convert()?,
+            parent_amount: row.parent_amount.convert()?,
+        }),
+        OptionInfo::new(
+            row.launcher_id.convert()?,
+            row.underlying_coin_hash.convert()?,
+            row.underlying_delegated_puzzle_hash.convert()?,
+            row.p2_puzzle_hash.convert()?,
+        ),
+    ))
 }
