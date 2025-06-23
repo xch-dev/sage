@@ -58,10 +58,10 @@ CREATE TABLE nfts (
   minter_hash BLOB,
   owner_hash BLOB,
   is_sensitive_content BOOLEAN NOT NULL DEFAULT FALSE,
-  metadata BLOB,
-  metadata_updater_puzzle_hash BLOB,
+  metadata BLOB NOT NULL,
+  metadata_updater_puzzle_hash BLOB NOT NULL,
   royalty_puzzle_hash BLOB NOT NULL,
-  royalty_basis_points INTEGER,
+  royalty_basis_points INTEGER NOT NULL,
   data_hash BLOB,
   metadata_hash BLOB,
   license_hash BLOB,
@@ -92,6 +92,8 @@ CREATE TABLE options (
   underlying_coin_hash BLOB NOT NULL,
   underlying_delegated_puzzle_hash BLOB NOT NULL,
   strike_asset_id INTEGER NOT NULL,
+  strike_hidden_puzzle_hash BLOB,
+  strike_settlement_puzzle_hash BLOB,
   strike_amount BLOB NOT NULL,
   FOREIGN KEY (asset_id) REFERENCES assets(id) ON DELETE CASCADE,
   FOREIGN KEY (underlying_asset_id) REFERENCES assets(id) ON DELETE CASCADE,
@@ -114,9 +116,9 @@ CREATE TABLE blocks (
 
 /*
  * A table of all p2 puzzle hashes that belong to the wallet, from kinds such as:
- * P2_DELEGATED_PUZZLE_OR_HIDDEN_PUZZLE = 0
- * CLAWBACK = 1
- * OPTION_UNDERLYING = 2
+ * Derivation = 0
+ * Clawback = 1
+ * OptionUnderlying = 2
  *
  * However, outer puzzles such as the CAT or revocation layer are stored elsewhere.
  */
