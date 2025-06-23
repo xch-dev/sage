@@ -88,7 +88,7 @@ impl TestWallet {
             SqlitePool::connect(&format!("file:testdb{db_index}?mode=memory&cache=shared")).await?;
         migrate!("../../migrations").run(&pool).await?;
         let db = Database::new(pool);
-        db.run_rust_migrations().await?;
+        db.run_rust_migrations("TXCH".to_string()).await?;
 
         let sk = BlsPair::default().sk.derive_unhardened(key_index);
         let pk = sk.public_key();

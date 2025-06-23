@@ -147,10 +147,7 @@ mod tests {
         alice.wait_for_puzzles().await;
 
         // Check balances
-        assert_ne!(
-            alice.wallet.db.spendable_nft(nft.info.launcher_id).await?,
-            None
-        );
+        assert_ne!(alice.wallet.db.nft(nft.info.launcher_id).await?, None);
         assert_eq!(bob.wallet.db.xch_balance().await?, 1000);
 
         Ok(())
@@ -217,10 +214,7 @@ mod tests {
 
         // Check balances
         assert_eq!(alice.wallet.db.xch_balance().await?, 1000);
-        assert_ne!(
-            bob.wallet.db.spendable_nft(nft.info.launcher_id).await?,
-            None
-        );
+        assert_ne!(bob.wallet.db.nft(nft.info.launcher_id).await?, None);
 
         Ok(())
     }
@@ -299,17 +293,11 @@ mod tests {
         // Check balances
         assert_eq!(alice.wallet.db.xch_balance().await?, 1000);
         assert_ne!(
-            bob.wallet
-                .db
-                .spendable_nft(nft_id_first.info.launcher_id)
-                .await?,
+            bob.wallet.db.nft(nft_id_first.info.launcher_id).await?,
             None
         );
         assert_ne!(
-            bob.wallet
-                .db
-                .spendable_nft(nft_id_second.info.launcher_id)
-                .await?,
+            bob.wallet.db.nft(nft_id_second.info.launcher_id).await?,
             None
         );
 
@@ -395,17 +383,11 @@ mod tests {
         // Check balances
         assert_eq!(alice.wallet.db.cat_balance(asset_id).await?, 1000);
         assert_ne!(
-            bob.wallet
-                .db
-                .spendable_nft(nft_id_first.info.launcher_id)
-                .await?,
+            bob.wallet.db.nft(nft_id_first.info.launcher_id).await?,
             None
         );
         assert_ne!(
-            bob.wallet
-                .db
-                .spendable_nft(nft_id_second.info.launcher_id)
-                .await?,
+            bob.wallet.db.nft(nft_id_second.info.launcher_id).await?,
             None
         );
 
@@ -486,17 +468,11 @@ mod tests {
         // Check balances
         assert_eq!(alice.wallet.db.xch_balance().await?, 1000);
         assert_ne!(
-            bob.wallet
-                .db
-                .spendable_nft(nft_id_first.info.launcher_id)
-                .await?,
+            bob.wallet.db.nft(nft_id_first.info.launcher_id).await?,
             None
         );
         assert_ne!(
-            bob.wallet
-                .db
-                .spendable_nft(nft_id_second.info.launcher_id)
-                .await?,
+            bob.wallet.db.nft(nft_id_second.info.launcher_id).await?,
             None
         );
 
@@ -596,20 +572,8 @@ mod tests {
 
         // Check balances
         assert_eq!(alice.wallet.db.xch_balance().await?, 1000);
-        assert_ne!(
-            bob.wallet
-                .db
-                .spendable_nft(nft_first.info.launcher_id)
-                .await?,
-            None
-        );
-        assert_ne!(
-            bob.wallet
-                .db
-                .spendable_nft(nft_second.info.launcher_id)
-                .await?,
-            None
-        );
+        assert_ne!(bob.wallet.db.nft(nft_first.info.launcher_id).await?, None);
+        assert_ne!(bob.wallet.db.nft(nft_second.info.launcher_id).await?, None);
 
         Ok(())
     }
@@ -774,23 +738,24 @@ mod tests {
         let nft = bob
             .wallet
             .db
-            .spendable_nft(nft.info.launcher_id)
+            .nft(nft.info.launcher_id)
             .await?
             .expect("NFT should be spendable");
 
         let coin_id = bob
             .wallet
             .db
-            .nft_row(nft.info.launcher_id)
+            .nft(nft.info.launcher_id)
             .await?
             .expect("NFT should exist")
-            .coin_id;
+            .coin
+            .coin_id();
 
         let is_spent = bob
-            .wallet
-            .db
+            .sim
+            .lock()
+            .await
             .coin_state(coin_id)
-            .await?
             .expect("coin should exist")
             .spent_height
             .is_some();

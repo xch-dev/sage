@@ -119,25 +119,50 @@ impl Wallet {
         for &coin_id in selected_coin_ids {
             match self.db.coin_kind(coin_id).await? {
                 CoinKind::Xch => {
-                    let coin = self.db.xch_coin(coin_id).await?;
+                    let coin = self
+                        .db
+                        .xch_coin(coin_id)
+                        .await?
+                        .ok_or(WalletError::MissingXchCoin(coin_id))?;
+
                     spends.add(coin);
                 }
                 CoinKind::Cat => {
-                    let cat = self.db.cat_coin(coin_id).await?;
+                    let cat = self
+                        .db
+                        .cat_coin(coin_id)
+                        .await?
+                        .ok_or(WalletError::MissingCatCoin(coin_id))?;
+
                     spends.add(cat);
                 }
                 CoinKind::Did => {
-                    let did = self.db.did_coin(coin_id).await?;
+                    let did = self
+                        .db
+                        .did_coin(coin_id)
+                        .await?
+                        .ok_or(WalletError::MissingDidCoin(coin_id))?;
+
                     let metadata_ptr = ctx.alloc_hashed(&did.info.metadata)?;
                     spends.add(did.with_metadata(metadata_ptr));
                 }
                 CoinKind::Nft => {
-                    let nft = self.db.nft_coin(coin_id).await?;
+                    let nft = self
+                        .db
+                        .nft_coin(coin_id)
+                        .await?
+                        .ok_or(WalletError::MissingNftCoin(coin_id))?;
+
                     let metadata_ptr = ctx.alloc_hashed(&nft.info.metadata)?;
                     spends.add(nft.with_metadata(metadata_ptr));
                 }
                 CoinKind::Option => {
-                    let option = self.db.option_coin(coin_id).await?;
+                    let option = self
+                        .db
+                        .option_coin(coin_id)
+                        .await?
+                        .ok_or(WalletError::MissingOptionCoin(coin_id))?;
+
                     spends.add(option);
                 }
             }
@@ -199,7 +224,7 @@ impl Wallet {
                     }
                 }
                 Id::Existing(asset_id) => match self.db.asset_kind(asset_id).await? {
-                    AssetKind::Token => {
+                    Some(AssetKind::Token) => {
                         let coins = self
                             .select_cat_coins(asset_id, required_amount, &selected_coin_ids)
                             .await?;
@@ -208,20 +233,36 @@ impl Wallet {
                             spends.add(coin);
                         }
                     }
-                    AssetKind::Did => {
-                        let did = self.db.did(asset_id).await?;
+                    Some(AssetKind::Did) => {
+                        let did = self
+                            .db
+                            .did(asset_id)
+                            .await?
+                            .ok_or(WalletError::MissingDid(asset_id))?;
+
                         let metadata_ptr = ctx.alloc_hashed(&did.info.metadata)?;
                         spends.add(did.with_metadata(metadata_ptr));
                     }
-                    AssetKind::Nft => {
-                        let nft = self.db.nft(asset_id).await?;
+                    Some(AssetKind::Nft) => {
+                        let nft = self
+                            .db
+                            .nft(asset_id)
+                            .await?
+                            .ok_or(WalletError::MissingNft(asset_id))?;
+
                         let metadata_ptr = ctx.alloc_hashed(&nft.info.metadata)?;
                         spends.add(nft.with_metadata(metadata_ptr));
                     }
-                    AssetKind::Option => {
-                        let option = self.db.option(asset_id).await?;
+                    Some(AssetKind::Option) => {
+                        let option = self
+                            .db
+                            .option(asset_id)
+                            .await?
+                            .ok_or(WalletError::MissingOptionContract(asset_id))?;
+
                         spends.add(option);
                     }
+                    None => return Err(WalletError::MissingAsset(asset_id)),
                 },
             }
         }

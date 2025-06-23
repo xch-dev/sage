@@ -32,6 +32,12 @@ pub struct OptionUnderlyingWithKey {
     pub option: OptionUnderlying,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct Derivation {
+    pub derivation_index: u32,
+    pub is_hardened: bool,
+}
+
 impl Database {
     pub async fn custody_p2_puzzle_hashes(&self) -> Result<Vec<Bytes32>> {
         custody_p2_puzzle_hashes(&self.pool).await
@@ -57,6 +63,10 @@ impl Database {
                 option_underlying(&self.pool, puzzle_hash).await?,
             )),
         }
+    }
+
+    pub async fn derivation(&self, public_key: PublicKey) -> Result<Option<Derivation>> {
+        derivation(&self.pool, public_key).await
     }
 }
 
@@ -252,4 +262,27 @@ async fn option_underlying(
             },
         },
     })
+}
+
+async fn derivation(
+    conn: impl SqliteExecutor<'_>,
+    public_key: PublicKey,
+) -> Result<Option<Derivation>> {
+    let public_key = public_key.to_bytes();
+    let public_key = public_key.as_ref();
+
+    let Some(row) = query!(
+        "SELECT derivation_index, is_hardened FROM public_keys WHERE key = ?",
+        public_key
+    )
+    .fetch_optional(conn)
+    .await?
+    else {
+        return Ok(None);
+    };
+
+    Ok(Some(Derivation {
+        derivation_index: row.derivation_index.convert()?,
+        is_hardened: row.is_hardened,
+    }))
 }

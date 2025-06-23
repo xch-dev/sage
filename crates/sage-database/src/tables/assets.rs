@@ -24,17 +24,17 @@ impl Convert<AssetKind> for i64 {
 }
 
 impl Database {
-    pub async fn asset_kind(&self, asset_id: Bytes32) -> Result<AssetKind> {
+    pub async fn asset_kind(&self, asset_id: Bytes32) -> Result<Option<AssetKind>> {
         asset_kind(&self.pool, asset_id).await
     }
 }
 
-async fn asset_kind(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<AssetKind> {
+async fn asset_kind(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<Option<AssetKind>> {
     let asset_id = asset_id.as_ref();
 
     query!("SELECT kind FROM assets WHERE hash = ?", asset_id)
-        .fetch_one(conn)
+        .fetch_optional(conn)
         .await?
-        .kind
-        .convert()
+        .map(|row| row.kind.convert())
+        .transpose()
 }

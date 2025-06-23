@@ -66,13 +66,6 @@
 //     total_count: i64,
 // }
 
-// pub fn calculate_collection_id(did_id: Bytes32, json_collection_id: &str) -> Bytes32 {
-//     let mut hasher = Sha256::new();
-//     hasher.update(hex::encode(did_id));
-//     hasher.update(json_collection_id);
-//     hasher.finalize().into()
-// }
-
 // impl Database {
 //     pub async fn unchecked_nft_uris(&self, limit: u32) -> Result<Vec<NftUri>> {
 //         unchecked_nft_uris(&self.pool, limit).await

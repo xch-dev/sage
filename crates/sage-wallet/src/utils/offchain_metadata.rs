@@ -1,6 +1,6 @@
 use chia::protocol::Bytes32;
+use chia_sha2::Sha256;
 use sage_assets::{Chip0007Metadata, Collection};
-use sage_database::{calculate_collection_id, CollectionRow};
 use tracing::warn;
 
 #[derive(Debug, Default, Clone)]
@@ -58,6 +58,13 @@ pub fn compute_nft_info(did_id: Option<Bytes32>, blob: Option<&[u8]>) -> Compute
         sensitive_content,
         collection,
     }
+}
+
+fn calculate_collection_id(did_id: Bytes32, json_collection_id: &str) -> Bytes32 {
+    let mut hasher = Sha256::new();
+    hasher.update(hex::encode(did_id));
+    hasher.update(json_collection_id);
+    hasher.finalize().into()
 }
 
 #[cfg(test)]

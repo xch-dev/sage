@@ -9,13 +9,13 @@ use sqlx::{query, SqliteExecutor};
 
 use crate::{AssetKind, Convert, Database, DatabaseError, Result};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum CoinKind {
     Xch,
     Cat,
-    Nft,
     Did,
     Option,
+    Nft,
 }
 
 impl Database {
@@ -51,39 +51,39 @@ impl Database {
         spendable_cat_coins(&self.pool, asset_id).await
     }
 
-    pub async fn coin_kind(&self, coin_id: Bytes32) -> Result<CoinKind> {
+    pub async fn coin_kind(&self, coin_id: Bytes32) -> Result<Option<CoinKind>> {
         coin_kind(&self.pool, coin_id).await
     }
 
-    pub async fn xch_coin(&self, coin_id: Bytes32) -> Result<Coin> {
+    pub async fn xch_coin(&self, coin_id: Bytes32) -> Result<Option<Coin>> {
         xch_coin(&self.pool, coin_id).await
     }
 
-    pub async fn cat_coin(&self, coin_id: Bytes32) -> Result<Cat> {
+    pub async fn cat_coin(&self, coin_id: Bytes32) -> Result<Option<Cat>> {
         cat_coin(&self.pool, coin_id).await
     }
 
-    pub async fn did_coin(&self, coin_id: Bytes32) -> Result<Did<Program>> {
+    pub async fn did_coin(&self, coin_id: Bytes32) -> Result<Option<Did<Program>>> {
         did_coin(&self.pool, coin_id).await
     }
 
-    pub async fn nft_coin(&self, coin_id: Bytes32) -> Result<Nft<Program>> {
+    pub async fn nft_coin(&self, coin_id: Bytes32) -> Result<Option<Nft<Program>>> {
         nft_coin(&self.pool, coin_id).await
     }
 
-    pub async fn option_coin(&self, coin_id: Bytes32) -> Result<OptionContract> {
+    pub async fn option_coin(&self, coin_id: Bytes32) -> Result<Option<OptionContract>> {
         option_coin(&self.pool, coin_id).await
     }
 
-    pub async fn did(&self, launcher_id: Bytes32) -> Result<Did<Program>> {
+    pub async fn did(&self, launcher_id: Bytes32) -> Result<Option<Did<Program>>> {
         did(&self.pool, launcher_id).await
     }
 
-    pub async fn nft(&self, launcher_id: Bytes32) -> Result<Nft<Program>> {
+    pub async fn nft(&self, launcher_id: Bytes32) -> Result<Option<Nft<Program>>> {
         nft(&self.pool, launcher_id).await
     }
 
-    pub async fn option(&self, launcher_id: Bytes32) -> Result<OptionContract> {
+    pub async fn option(&self, launcher_id: Bytes32) -> Result<Option<OptionContract>> {
         option(&self.pool, launcher_id).await
     }
 }
@@ -241,15 +241,18 @@ async fn spendable_cat_coins(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -
     .collect()
 }
 
-async fn coin_kind(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<CoinKind> {
+async fn coin_kind(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Option<CoinKind>> {
     let coin_id_ref = coin_id.as_ref();
 
-    let row = query!(
+    let Some(row) = query!(
         "SELECT asset_id, kind FROM coins INNER JOIN assets ON assets.id = asset_id WHERE coins.hash = ?",
         coin_id_ref
     )
-    .fetch_one(conn)
-    .await?;
+    .fetch_optional(conn)
+    .await?
+    else {
+        return Ok(None);
+    };
 
     let Some(asset_id) = row.asset_id else {
         return Err(DatabaseError::InvalidEnumVariant);
@@ -257,7 +260,7 @@ async fn coin_kind(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Co
 
     let kind: AssetKind = row.kind.convert()?;
 
-    Ok(match kind {
+    Ok(Some(match kind {
         AssetKind::Token => {
             if asset_id == 0 {
                 CoinKind::Xch
@@ -268,13 +271,13 @@ async fn coin_kind(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Co
         AssetKind::Nft => CoinKind::Nft,
         AssetKind::Did => CoinKind::Did,
         AssetKind::Option => CoinKind::Option,
-    })
+    }))
 }
 
-async fn xch_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Coin> {
+async fn xch_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Option<Coin>> {
     let coin_id_ref = coin_id.as_ref();
 
-    let row = query!(
+    let Some(row) = query!(
         "
         SELECT
             parent_coin_hash, puzzle_hash, amount
@@ -283,20 +286,23 @@ async fn xch_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Coi
         ",
         coin_id_ref
     )
-    .fetch_one(conn)
-    .await?;
+    .fetch_optional(conn)
+    .await?
+    else {
+        return Ok(None);
+    };
 
-    Ok(Coin::new(
+    Ok(Some(Coin::new(
         row.parent_coin_hash.convert()?,
         row.puzzle_hash.convert()?,
         row.amount.convert()?,
-    ))
+    )))
 }
 
-async fn cat_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Cat> {
+async fn cat_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Option<Cat>> {
     let coin_id_ref = coin_id.as_ref();
 
-    let row = query!(
+    let Some(row) = query!(
         "
         SELECT
             parent_coin_hash, puzzle_hash, amount, hidden_puzzle_hash, p2_puzzles.hash AS p2_puzzle_hash,
@@ -309,10 +315,13 @@ async fn cat_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Cat
         ",
         coin_id_ref
     )
-    .fetch_one(conn)
-    .await?;
+    .fetch_optional(conn)
+    .await?
+    else {
+        return Ok(None);
+    };
 
-    Ok(Cat::new(
+    Ok(Some(Cat::new(
         Coin::new(
             row.parent_coin_hash.convert()?,
             row.puzzle_hash.convert()?,
@@ -328,13 +337,13 @@ async fn cat_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Cat
             row.hidden_puzzle_hash.convert()?,
             row.p2_puzzle_hash.convert()?,
         ),
-    ))
+    )))
 }
 
-async fn did_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Did<Program>> {
+async fn did_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Option<Did<Program>>> {
     let coin_id_ref = coin_id.as_ref();
 
-    let row = query!(
+    let Some(row) = query!(
         "
         SELECT
             parent_coin_hash, puzzle_hash, amount, p2_puzzles.hash AS p2_puzzle_hash,
@@ -349,10 +358,13 @@ async fn did_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Did
         ",
         coin_id_ref
     )
-    .fetch_one(conn)
-    .await?;
+    .fetch_optional(conn)
+    .await?
+    else {
+        return Ok(None);
+    };
 
-    Ok(Did::new(
+    Ok(Some(Did::new(
         Coin::new(
             row.parent_coin_hash.convert()?,
             row.puzzle_hash.convert()?,
@@ -370,13 +382,13 @@ async fn did_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Did
             row.metadata.into(),
             row.p2_puzzle_hash.convert()?,
         ),
-    ))
+    )))
 }
 
-async fn nft_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Nft<Program>> {
+async fn nft_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Option<Nft<Program>>> {
     let coin_id_ref = coin_id.as_ref();
 
-    let row = query!(
+    let Some(row) = query!(
         "
         SELECT
             parent_coin_hash, puzzle_hash, amount, p2_puzzles.hash AS p2_puzzle_hash,
@@ -392,10 +404,13 @@ async fn nft_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Nft
         ",
         coin_id_ref
     )
-    .fetch_one(conn)
-    .await?;
+    .fetch_optional(conn)
+    .await?
+    else {
+        return Ok(None);
+    };
 
-    Ok(Nft::new(
+    Ok(Some(Nft::new(
         Coin::new(
             row.parent_coin_hash.convert()?,
             row.puzzle_hash.convert()?,
@@ -415,13 +430,16 @@ async fn nft_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Nft
             row.royalty_basis_points.convert()?,
             row.p2_puzzle_hash.convert()?,
         ),
-    ))
+    )))
 }
 
-async fn option_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<OptionContract> {
+async fn option_coin(
+    conn: impl SqliteExecutor<'_>,
+    coin_id: Bytes32,
+) -> Result<Option<OptionContract>> {
     let coin_id_ref = coin_id.as_ref();
 
-    let row = query!(
+    let Some(row) = query!(
         "
         SELECT
             parent_coin_hash, puzzle_hash, amount, p2_puzzles.hash AS p2_puzzle_hash,
@@ -436,10 +454,13 @@ async fn option_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<
         ",
         coin_id_ref
     )
-    .fetch_one(conn)
-    .await?;
+    .fetch_optional(conn)
+    .await?
+    else {
+        return Ok(None);
+    };
 
-    Ok(OptionContract::new(
+    Ok(Some(OptionContract::new(
         Coin::new(
             row.parent_coin_hash.convert()?,
             row.puzzle_hash.convert()?,
@@ -456,13 +477,13 @@ async fn option_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<
             row.underlying_delegated_puzzle_hash.convert()?,
             row.p2_puzzle_hash.convert()?,
         ),
-    ))
+    )))
 }
 
-async fn did(conn: impl SqliteExecutor<'_>, launcher_id: Bytes32) -> Result<Did<Program>> {
+async fn did(conn: impl SqliteExecutor<'_>, launcher_id: Bytes32) -> Result<Option<Did<Program>>> {
     let launcher_id_ref = launcher_id.as_ref();
 
-    let row = query!(
+    let Some(row) = query!(
         "
         SELECT
             parent_coin_hash, puzzle_hash, amount, p2_puzzles.hash AS p2_puzzle_hash,
@@ -477,10 +498,13 @@ async fn did(conn: impl SqliteExecutor<'_>, launcher_id: Bytes32) -> Result<Did<
         ",
         launcher_id_ref
     )
-    .fetch_one(conn)
-    .await?;
+    .fetch_optional(conn)
+    .await?
+    else {
+        return Ok(None);
+    };
 
-    Ok(Did::new(
+    Ok(Some(Did::new(
         Coin::new(
             row.parent_coin_hash.convert()?,
             row.puzzle_hash.convert()?,
@@ -498,13 +522,13 @@ async fn did(conn: impl SqliteExecutor<'_>, launcher_id: Bytes32) -> Result<Did<
             row.metadata.into(),
             row.p2_puzzle_hash.convert()?,
         ),
-    ))
+    )))
 }
 
-async fn nft(conn: impl SqliteExecutor<'_>, launcher_id: Bytes32) -> Result<Nft<Program>> {
+async fn nft(conn: impl SqliteExecutor<'_>, launcher_id: Bytes32) -> Result<Option<Nft<Program>>> {
     let launcher_id_ref = launcher_id.as_ref();
 
-    let row = query!(
+    let Some(row) = query!(
         "
         SELECT
             parent_coin_hash, puzzle_hash, amount, p2_puzzles.hash AS p2_puzzle_hash,
@@ -520,10 +544,13 @@ async fn nft(conn: impl SqliteExecutor<'_>, launcher_id: Bytes32) -> Result<Nft<
         ",
         launcher_id_ref
     )
-    .fetch_one(conn)
-    .await?;
+    .fetch_optional(conn)
+    .await?
+    else {
+        return Ok(None);
+    };
 
-    Ok(Nft::new(
+    Ok(Some(Nft::new(
         Coin::new(
             row.parent_coin_hash.convert()?,
             row.puzzle_hash.convert()?,
@@ -543,13 +570,16 @@ async fn nft(conn: impl SqliteExecutor<'_>, launcher_id: Bytes32) -> Result<Nft<
             row.royalty_basis_points.convert()?,
             row.p2_puzzle_hash.convert()?,
         ),
-    ))
+    )))
 }
 
-async fn option(conn: impl SqliteExecutor<'_>, launcher_id: Bytes32) -> Result<OptionContract> {
+async fn option(
+    conn: impl SqliteExecutor<'_>,
+    launcher_id: Bytes32,
+) -> Result<Option<OptionContract>> {
     let launcher_id_ref = launcher_id.as_ref();
 
-    let row = query!(
+    let Some(row) = query!(
         "
         SELECT
             parent_coin_hash, puzzle_hash, amount, p2_puzzles.hash AS p2_puzzle_hash,
@@ -564,10 +594,13 @@ async fn option(conn: impl SqliteExecutor<'_>, launcher_id: Bytes32) -> Result<O
         ",
         launcher_id_ref
     )
-    .fetch_one(conn)
-    .await?;
+    .fetch_optional(conn)
+    .await?
+    else {
+        return Ok(None);
+    };
 
-    Ok(OptionContract::new(
+    Ok(Some(OptionContract::new(
         Coin::new(
             row.parent_coin_hash.convert()?,
             row.puzzle_hash.convert()?,
@@ -584,5 +617,5 @@ async fn option(conn: impl SqliteExecutor<'_>, launcher_id: Bytes32) -> Result<O
             row.underlying_delegated_puzzle_hash.convert()?,
             row.p2_puzzle_hash.convert()?,
         ),
-    ))
+    )))
 }
