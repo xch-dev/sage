@@ -1,4 +1,4 @@
-use crate::{to_bytes32, Database, DatabaseTx, Result};
+use crate::{Convert, Database, DatabaseTx, Result};
 use chia::protocol::Bytes32;
 use sqlx::SqliteExecutor;
 
@@ -155,7 +155,7 @@ async fn latest_peak(conn: impl SqliteExecutor<'_>) -> Result<Option<(u32, Bytes
     .await?
     .and_then(|row| {
         row.header_hash
-            .map(|hash| Ok((row.height.try_into()?, to_bytes32(&hash)?)))
+            .map(|hash| Ok((row.height.convert()?, hash.convert()?)))
     })
     .transpose()
 }

@@ -130,6 +130,7 @@ CREATE TABLE public_keys (
   id INTEGER PRIMARY KEY,
   p2_puzzle_id INTEGER NOT NULL,
   is_hardened BOOLEAN NOT NULL,
+  derivation_index INTEGER NOT NULL,
   key BLOB NOT NULL,
   FOREIGN KEY (p2_puzzle_id) REFERENCES p2_puzzles(id) ON DELETE CASCADE
 );
@@ -182,7 +183,7 @@ CREATE TABLE coins (
 CREATE TABLE lineage_proofs (
   id INTEGER PRIMARY KEY,
   coin_id INTEGER NOT NULL UNIQUE,
-  parent_parent_coin_id BLOB NOT NULL,
+  parent_parent_coin_hash BLOB NOT NULL,
   parent_inner_puzzle_hash BLOB NOT NULL,
   parent_amount BLOB NOT NULL,
   FOREIGN KEY (coin_id) REFERENCES coins(id) ON DELETE CASCADE

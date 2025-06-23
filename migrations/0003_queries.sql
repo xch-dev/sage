@@ -5,7 +5,9 @@ SELECT
   coins.asset_id,
   coins.parent_coin_hash,
   coins.puzzle_hash,
-  coins.amount
+  coins.amount,
+  coins.hidden_puzzle_hash,
+  coins.p2_puzzle_id
 FROM coins
   INNER JOIN assets ON assets.id = coins.asset_id
   LEFT JOIN offer_coins ON offer_coins.coin_id = coins.id
@@ -46,9 +48,9 @@ SELECT
   coins.asset_id,
   coins.parent_coin_hash,
   coins.puzzle_hash,
-  coins.amount 
+  coins.amount
 FROM coins
-  INNER JOIN assets ON asset_id = assets.id
+  INNER JOIN assets ON assets.id = coins.asset_id
   LEFT JOIN transaction_coins ON transaction_coins.coin_id = coins.id
   LEFT JOIN transaction_spends ON transaction_spends.transaction_coin_id = transaction_coins.id
 WHERE 1=1

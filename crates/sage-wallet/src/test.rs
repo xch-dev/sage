@@ -169,7 +169,7 @@ impl TestWallet {
 
         test.consume_until(|event| matches!(event, SyncEvent::Subscribed))
             .await;
-        assert_eq!(test.wallet.db.balance().await?, balance as u128);
+        assert_eq!(test.wallet.db.xch_balance().await?, balance as u128);
 
         Ok(test)
     }
