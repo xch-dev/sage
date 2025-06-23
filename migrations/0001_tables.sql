@@ -278,8 +278,8 @@ CREATE TABLE files (
   id INTEGER NOT NULL PRIMARY KEY,
   hash BLOB NOT NULL UNIQUE,
   mime_type TEXT,
-  is_hash_match BOOLEAN NOT NULL,
-  is_downloaded BOOLEAN NOT NULL
+  is_hash_match BOOLEAN,
+  is_downloaded BOOLEAN NOT NULL DEFAULT FALSE
 );
 
 CREATE TABLE file_uris (

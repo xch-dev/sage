@@ -55,7 +55,7 @@ async fn collection(conn: impl SqliteExecutor<'_>, hash: Bytes32) -> Result<Opti
 
     row.map(|row| {
         Ok(CollectionRow {
-            id: row.id.unwrap_or_default(),
+            id: row.id,
             hash: row.hash.convert()?,
             uuid: row.uuid,
             minter_hash: row.minter_hash.convert()?,

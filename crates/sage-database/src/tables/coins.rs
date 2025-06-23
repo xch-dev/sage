@@ -23,6 +23,10 @@ impl Database {
         unsynced_coins(&self.pool, limit).await
     }
 
+    pub async fn coin_id(&self, hash: Bytes32) -> Result<i64> {
+        coin_id(&self.pool, hash).await
+    }
+
     pub async fn sync_coin(
         &self,
         id: i64,
