@@ -251,12 +251,8 @@ async fn auto_insert_unhardened_derivations(
     let mut derivations = Vec::new();
     let mut next_index = tx.derivation_index(false).await?;
 
-    let max_index = tx
-        .max_used_derivation_index(false)
-        .await?
-        .map_or(0, |index| index + 1);
+    let max_index = tx.unused_derivation_index(false).await?;
 
-    //1000 derivations on initial sync
     while max_index + 500 >= next_index {
         derivations.extend(
             wallet

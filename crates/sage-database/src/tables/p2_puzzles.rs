@@ -71,8 +71,29 @@ impl Database {
 }
 
 impl DatabaseTx<'_> {
+    pub async fn custody_p2_puzzle_hash(
+        &mut self,
+        derivation_index: u32,
+        is_hardened: bool,
+    ) -> Result<Bytes32> {
+        custody_p2_puzzle_hash(&mut *self.tx, derivation_index, is_hardened).await
+    }
+
     pub async fn derivation_index(&mut self, is_hardened: bool) -> Result<u32> {
         derivation_index(&mut *self.tx, is_hardened).await
+    }
+
+    pub async fn unused_derivation_index(&mut self, is_hardened: bool) -> Result<u32> {
+        unused_derivation_index(&mut *self.tx, is_hardened).await
+    }
+
+    pub async fn insert_custody_p2_puzzle(
+        &mut self,
+        p2_puzzle_hash: Bytes32,
+        key: PublicKey,
+        derivation: Derivation,
+    ) -> Result<()> {
+        insert_custody_p2_puzzle(&mut *self.tx, p2_puzzle_hash, key, derivation).await
     }
 }
 
@@ -83,6 +104,26 @@ async fn custody_p2_puzzle_hashes(conn: impl SqliteExecutor<'_>) -> Result<Vec<B
         .into_iter()
         .map(|row| row.hash.convert())
         .collect()
+}
+
+async fn custody_p2_puzzle_hash(
+    conn: impl SqliteExecutor<'_>,
+    derivation_index: u32,
+    is_hardened: bool,
+) -> Result<Bytes32> {
+    query!(
+        "
+        SELECT hash FROM p2_puzzles
+        INNER JOIN public_keys ON public_keys.p2_puzzle_id = p2_puzzles.id
+        WHERE public_keys.derivation_index = ? AND public_keys.is_hardened = ?
+        ",
+        derivation_index,
+        is_hardened
+    )
+    .fetch_one(conn)
+    .await?
+    .hash
+    .convert()
 }
 
 async fn is_custody_p2_puzzle_hash(
@@ -117,7 +158,9 @@ async fn is_p2_puzzle_hash(conn: impl SqliteExecutor<'_>, puzzle_hash: Bytes32) 
 async fn derivation_index(conn: impl SqliteExecutor<'_>, is_hardened: bool) -> Result<u32> {
     query!(
         "
-        SELECT COALESCE(MAX(derivation_index) + 1, 0) AS derivation_index FROM public_keys WHERE is_hardened = ?
+        SELECT COALESCE(MAX(derivation_index) + 1, 0) AS derivation_index
+        FROM public_keys
+        WHERE is_hardened = ?
         ",
         is_hardened
     )
@@ -125,6 +168,51 @@ async fn derivation_index(conn: impl SqliteExecutor<'_>, is_hardened: bool) -> R
     .await?
     .derivation_index
     .convert()
+}
+
+async fn unused_derivation_index(conn: impl SqliteExecutor<'_>, is_hardened: bool) -> Result<u32> {
+    query!(
+        "
+        SELECT COALESCE(MAX(derivation_index) + 1, 0) AS derivation_index
+        FROM public_keys
+        INNER JOIN coins ON coins.p2_puzzle_id = public_keys.p2_puzzle_id
+        WHERE is_hardened = ?
+        ",
+        is_hardened
+    )
+    .fetch_one(conn)
+    .await?
+    .derivation_index
+    .convert()
+}
+
+async fn insert_custody_p2_puzzle(
+    conn: impl SqliteExecutor<'_>,
+    p2_puzzle_hash: Bytes32,
+    key: PublicKey,
+    derivation: Derivation,
+) -> Result<()> {
+    let p2_puzzle_hash = p2_puzzle_hash.as_ref();
+    let key = key.to_bytes();
+    let key = key.as_ref();
+
+    query!(
+        "
+        INSERT OR IGNORE INTO p2_puzzles (hash, kind) VALUES (?, 0);
+
+        INSERT OR IGNORE INTO public_keys (p2_puzzle_id, is_hardened, derivation_index, key)
+        VALUES ((SELECT id FROM p2_puzzles WHERE hash = ?), ?, ?, ?);
+        ",
+        p2_puzzle_hash,
+        p2_puzzle_hash,
+        derivation.is_hardened,
+        derivation.derivation_index,
+        key,
+    )
+    .execute(conn)
+    .await?;
+
+    Ok(())
 }
 
 async fn p2_puzzle_kind(
