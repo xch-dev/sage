@@ -213,10 +213,7 @@ pub async fn insert_puzzle(
             }
 
             if row.collection_id.is_none() && metadata_row.is_some_and(|data| data.hash_matches) {
-                row.collection_id = computed_info
-                    .collection
-                    .as_ref()
-                    .map(|col| col.collection_id);
+                row.collection_id = computed_info.collection.as_ref().map(|col| col.hash);
 
                 if let Some(collection) = computed_info.collection {
                     tx.insert_collection(collection).await?;

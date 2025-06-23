@@ -1,4 +1,4 @@
-use crate::{Convert, Database, Result};
+use crate::{Convert, Database, DatabaseTx, Result};
 use chia::protocol::Bytes32;
 use sqlx::{query, SqliteExecutor};
 
@@ -28,6 +28,20 @@ impl Database {
 
     pub async fn collection(&self, hash: Bytes32) -> Result<Option<CollectionRow>> {
         collection(&self.pool, hash).await
+    }
+
+    pub async fn set_collection_visible(&self, hash: Bytes32, visible: bool) -> Result<()> {
+        set_collection_visible(&self.pool, hash, visible).await
+    }
+}
+
+impl DatabaseTx<'_> {
+    pub async fn insert_collection(&mut self, row: CollectionRow) -> Result<()> {
+        insert_collection(&mut *self.tx, row).await
+    }
+
+    pub async fn set_collection_visible(&mut self, hash: Bytes32, visible: bool) -> Result<()> {
+        set_collection_visible(&mut *self.tx, hash, visible).await
     }
 }
 
@@ -95,4 +109,43 @@ async fn collections(
         .collect::<Result<Vec<_>>>()?;
 
     Ok(collections)
+}
+
+async fn insert_collection(conn: impl SqliteExecutor<'_>, row: CollectionRow) -> Result<()> {
+    let hash_ref = row.hash.as_ref();
+    let minter_hash_ref = row.minter_hash.as_ref();
+    query!(
+        "INSERT OR IGNORE INTO collections (hash, uuid, minter_hash, name, icon_url, banner_url, description, is_visible, created_height)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        hash_ref,
+        row.uuid,
+        minter_hash_ref,
+        row.name,
+        row.icon_url,
+        row.banner_url,
+        row.description,
+        row.is_visible,
+        row.created_height,
+    )
+    .execute(conn)
+    .await?;
+
+    Ok(())
+}
+
+async fn set_collection_visible(
+    conn: impl SqliteExecutor<'_>,
+    hash: Bytes32,
+    visible: bool,
+) -> Result<()> {
+    let hash_ref = hash.as_ref();
+    query!(
+        "UPDATE collections SET is_visible = ? WHERE hash = ?",
+        visible,
+        hash_ref
+    )
+    .execute(conn)
+    .await?;
+
+    Ok(())
 }

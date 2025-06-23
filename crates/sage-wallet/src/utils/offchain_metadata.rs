@@ -39,7 +39,7 @@ pub fn compute_nft_info(did_id: Option<Bytes32>, blob: Option<&[u8]>) -> Compute
     {
         let attributes = attributes.unwrap_or_default();
         Some(CollectionRow {
-            id: 0,
+            id: -1,
             description: None,
             created_height: None,
             hash: calculate_collection_id(did_id, &metadata_collection_id.to_string()),
