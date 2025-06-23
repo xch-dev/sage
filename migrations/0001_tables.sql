@@ -4,7 +4,7 @@
  * 1. All BOOLEAN columns are named is_<name>
  * 2. All foreign keys are specified with FOREIGN KEY (and indexed)
  * 3. All UNIX timestamps are INTEGER and named <name>_timestamp
- * 4. All tables have a surrogate or INTEGER primary key
+ * 4. All tables have a surrogate or INTEGER NOT NULL PRIMARY KEY
  * 5. All natural keys are specified as UNIQUE (which also creates an auto-index)
 */
 
@@ -13,7 +13,7 @@
  * more complex or parameterizable code than SQLite can handle.
  */
 CREATE TABLE rust_migrations (
-  version INTEGER PRIMARY KEY
+  version INTEGER NOT NULL PRIMARY KEY
 );
 
 /*
@@ -31,7 +31,7 @@ CREATE TABLE rust_migrations (
  * transaction history or offers.
  */
 CREATE TABLE assets (
-  id INTEGER PRIMARY KEY,
+  id INTEGER NOT NULL PRIMARY KEY,
   hash BLOB NOT NULL UNIQUE,
   kind INTEGER NOT NULL,
   name TEXT,
@@ -43,7 +43,7 @@ CREATE TABLE assets (
 );
 
 CREATE TABLE tokens (
-  id INTEGER PRIMARY KEY,
+  id INTEGER NOT NULL PRIMARY KEY,
   asset_id INTEGER NOT NULL UNIQUE,
   ticker TEXT,
   precision INTEGER NOT NULL DEFAULT 3,
@@ -51,9 +51,8 @@ CREATE TABLE tokens (
 );
 
 CREATE TABLE nfts (
-  id INTEGER PRIMARY KEY,
+  id INTEGER NOT NULL PRIMARY KEY,
   asset_id INTEGER NOT NULL UNIQUE,
-  is_owned BOOLEAN NOT NULL,
   collection_id INTEGER,
   minter_hash BLOB,
   owner_hash BLOB,
@@ -72,9 +71,8 @@ CREATE TABLE nfts (
 );
 
 CREATE TABLE dids (
-  id INTEGER PRIMARY KEY,
+  id INTEGER NOT NULL PRIMARY KEY,
   asset_id INTEGER NOT NULL UNIQUE,
-  is_owned BOOLEAN NOT NULL,
   metadata BLOB NOT NULL,
   recovery_list_hash BLOB,
   num_verifications_required BLOB NOT NULL,
@@ -82,9 +80,8 @@ CREATE TABLE dids (
 );
 
 CREATE TABLE options (
-  id INTEGER PRIMARY KEY,
+  id INTEGER NOT NULL PRIMARY KEY,
   asset_id INTEGER NOT NULL UNIQUE,
-  is_owned BOOLEAN NOT NULL,
   creator_puzzle_hash BLOB NOT NULL,
   expiration_seconds INTEGER NOT NULL,
   underlying_asset_id INTEGER NOT NULL,
@@ -109,7 +106,7 @@ CREATE TABLE options (
  * previous block is changed (a fork).
  */
 CREATE TABLE blocks (
-  height INTEGER PRIMARY KEY,
+  height INTEGER NOT NULL PRIMARY KEY,
   header_hash BLOB,
   timestamp INTEGER
 );
@@ -123,13 +120,13 @@ CREATE TABLE blocks (
  * However, outer puzzles such as the CAT or revocation layer are stored elsewhere.
  */
 CREATE TABLE p2_puzzles (
-  id INTEGER PRIMARY KEY,
+  id INTEGER NOT NULL PRIMARY KEY,
   hash BLOB NOT NULL UNIQUE,
   kind INTEGER NOT NULL
 );
 
 CREATE TABLE public_keys (
-  id INTEGER PRIMARY KEY,
+  id INTEGER NOT NULL PRIMARY KEY,
   p2_puzzle_id INTEGER NOT NULL,
   is_hardened BOOLEAN NOT NULL,
   derivation_index INTEGER NOT NULL,
@@ -138,7 +135,7 @@ CREATE TABLE public_keys (
 );
 
 CREATE TABLE clawbacks (
-  id INTEGER PRIMARY KEY,
+  id INTEGER NOT NULL PRIMARY KEY,
   p2_puzzle_id INTEGER NOT NULL,
   sender_puzzle_hash BLOB NOT NULL,
   receiver_puzzle_hash BLOB NOT NULL,
@@ -147,7 +144,7 @@ CREATE TABLE clawbacks (
 );
 
 CREATE TABLE p2_options (
-  id INTEGER PRIMARY KEY,
+  id INTEGER NOT NULL PRIMARY KEY,
   p2_puzzle_id INTEGER NOT NULL,
   option_asset_id INTEGER NULL,
   FOREIGN KEY (p2_puzzle_id) REFERENCES p2_puzzles(id) ON DELETE CASCADE,
@@ -165,7 +162,7 @@ CREATE TABLE p2_options (
  * The hint is for identifying 
  */
 CREATE TABLE coins (
-  id INTEGER PRIMARY KEY,
+  id INTEGER NOT NULL PRIMARY KEY,
   asset_id INTEGER,
   hash BLOB NOT NULL UNIQUE,
   parent_coin_hash BLOB NOT NULL,
@@ -173,7 +170,6 @@ CREATE TABLE coins (
   amount BLOB NOT NULL,
   hidden_puzzle_hash BLOB,
   p2_puzzle_id INTEGER,
-  memos BLOB,
   created_height INTEGER,
   spent_height INTEGER,
   FOREIGN KEY (asset_id) REFERENCES assets(id) ON DELETE CASCADE,
@@ -183,7 +179,7 @@ CREATE TABLE coins (
 );
 
 CREATE TABLE lineage_proofs (
-  id INTEGER PRIMARY KEY,
+  id INTEGER NOT NULL PRIMARY KEY,
   coin_id INTEGER NOT NULL UNIQUE,
   parent_parent_coin_hash BLOB NOT NULL,
   parent_inner_puzzle_hash BLOB NOT NULL,
@@ -201,7 +197,7 @@ CREATE TABLE lineage_proofs (
  * Expired = 4
  */
 CREATE TABLE offers (
-  id INTEGER PRIMARY KEY,
+  id INTEGER NOT NULL PRIMARY KEY,
   hash BLOB NOT NULL UNIQUE,
   encoded_offer TEXT NOT NULL,
   fee BLOB NOT NULL,
@@ -212,7 +208,7 @@ CREATE TABLE offers (
 );
 
 CREATE TABLE offer_assets (
-  id INTEGER PRIMARY KEY,
+  id INTEGER NOT NULL PRIMARY KEY,
   offer_id INTEGER NOT NULL,
   asset_id INTEGER NOT NULL,
   is_requested BOOLEAN NOT NULL,
@@ -224,7 +220,7 @@ CREATE TABLE offer_assets (
 );
 
 CREATE TABLE offer_coins (
-  id INTEGER PRIMARY KEY,
+  id INTEGER NOT NULL PRIMARY KEY,
   offer_id INTEGER NOT NULL,
   coin_id INTEGER NOT NULL,
   FOREIGN KEY (offer_id) REFERENCES offers(id) ON DELETE CASCADE
@@ -233,7 +229,7 @@ CREATE TABLE offer_coins (
 );
 
 CREATE TABLE transactions (
-  id INTEGER PRIMARY KEY,
+  id INTEGER NOT NULL PRIMARY KEY,
   hash BLOB NOT NULL UNIQUE,
   aggregated_signature BLOB,
   fee BLOB NOT NULL,
@@ -241,7 +237,7 @@ CREATE TABLE transactions (
 );
 
 CREATE TABLE transaction_coins (
-  id INTEGER PRIMARY KEY,
+  id INTEGER NOT NULL PRIMARY KEY,
   transaction_id INTEGER NOT NULL,
   asset_id INTEGER NOT NULL,
   coin_id INTEGER,
@@ -258,7 +254,7 @@ CREATE TABLE transaction_coins (
 );
 
 CREATE TABLE transaction_spends (
-  id INTEGER PRIMARY KEY,
+  id INTEGER NOT NULL PRIMARY KEY,
   transaction_coin_id INTEGER NOT NULL UNIQUE,
   puzzle_reveal BLOB NOT NULL,
   solution BLOB NOT NULL,
@@ -266,7 +262,7 @@ CREATE TABLE transaction_spends (
 );
 
 CREATE TABLE collections (
-  id INTEGER PRIMARY KEY,
+  id INTEGER NOT NULL PRIMARY KEY,
   hash BLOB NOT NULL UNIQUE,
   uuid TEXT NOT NULL,
   minter_hash BLOB NOT NULL,
@@ -279,7 +275,7 @@ CREATE TABLE collections (
 );
 
 CREATE TABLE files (
-  id INTEGER PRIMARY KEY,
+  id INTEGER NOT NULL PRIMARY KEY,
   hash BLOB NOT NULL UNIQUE,
   mime_type TEXT,
   is_hash_match BOOLEAN NOT NULL,
@@ -287,7 +283,7 @@ CREATE TABLE files (
 );
 
 CREATE TABLE file_uris (
-  id INTEGER PRIMARY KEY,
+  id INTEGER NOT NULL PRIMARY KEY,
   file_id INTEGER NOT NULL,
   uri TEXT NOT NULL,
   FOREIGN KEY (file_id) REFERENCES files(id) ON DELETE CASCADE,

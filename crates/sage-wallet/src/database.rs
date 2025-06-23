@@ -7,7 +7,7 @@ use chia::{
     bls::Signature,
     protocol::{Bytes32, CoinState},
 };
-use sage_database::{CatRow, CoinKind, Database, DatabaseTx, DidRow, NftRow};
+use sage_database::{CatAsset, CoinKind, Database, DatabaseTx, DidAsset, DidCoinInfo};
 
 use crate::{compute_nft_info, fetch_nft_did, ChildKind, Transaction, WalletError, WalletPeer};
 
@@ -70,78 +70,63 @@ pub async fn insert_puzzle(
     coin_state: CoinState,
     info: ChildKind,
     minter_did: Option<Bytes32>,
-) -> Result<(), WalletError> {
+) -> Result<bool, WalletError> {
     let coin_id = coin_state.coin.coin_id();
+    let db_id = tx.coin_id(coin_id).await?;
+
+    let Some(p2_puzzle_hash) = info.p2_puzzle_hash() else {
+        tx.delete_coin(coin_id).await?;
+        return Ok(false);
+    };
+
+    let Some(p2_puzzle_id) = tx.p2_puzzle_id(p2_puzzle_hash).await? else {
+        tx.delete_coin(coin_id).await?;
+        return Ok(false);
+    };
 
     match info {
-        ChildKind::Launcher | ChildKind::Unknown { .. } => {}
+        ChildKind::Launcher | ChildKind::Unknown => {}
         ChildKind::Cat {
-            asset_id,
+            info,
             lineage_proof,
-            p2_puzzle_hash,
         } => {
-            tx.sync_coin(coin_id, Some(p2_puzzle_hash), CoinKind::Cat)
-                .await?;
-            tx.insert_cat(CatRow {
-                asset_id,
-                name: None,
-                ticker: None,
-                description: None,
-                icon: None,
-                visible: true,
-                fetched: false,
-            })
-            .await?;
-            tx.insert_cat_coin(coin_id, lineage_proof, p2_puzzle_hash, asset_id)
+            tx.insert_lineage_proof(db_id, lineage_proof).await?;
+
+            let asset_id = tx.insert_cat(CatAsset::empty(info.asset_id, true)).await?;
+
+            tx.sync_coin(db_id, asset_id, p2_puzzle_id, info.hidden_puzzle_hash)
                 .await?;
         }
         ChildKind::Did {
             lineage_proof,
             info,
         } => {
-            let launcher_id = info.launcher_id;
+            tx.insert_lineage_proof(db_id, lineage_proof).await?;
 
-            tx.sync_coin(coin_id, Some(info.p2_puzzle_hash), CoinKind::Did)
+            let coin_info = DidCoinInfo {
+                metadata: info.metadata,
+                recovery_list_hash: info.recovery_list_hash,
+                num_verifications_required: info.num_verifications_required,
+            };
+
+            let asset_id = tx
+                .insert_did(
+                    DidAsset::empty(info.launcher_id, true, coin_state.created_height),
+                    &coin_info,
+                )
                 .await?;
-            tx.insert_did_coin(coin_id, lineage_proof, info).await?;
 
-            let name = tx.get_future_did_name(launcher_id).await?;
-
-            if name.is_some() {
-                tx.delete_future_did_name(launcher_id).await?;
+            if tx.is_latest_singleton_coin(coin_id).await? {
+                tx.update_did_coin_info(asset_id, &coin_info).await?;
             }
-
-            let mut row = tx.did_row(launcher_id).await?.unwrap_or(DidRow {
-                launcher_id,
-                coin_id,
-                name,
-                is_owned: coin_state.spent_height.is_none(),
-                visible: true,
-                created_height: coin_state.created_height,
-            });
-
-            if coin_state.spent_height.is_some()
-                && (row.created_height.is_none()
-                    || row.created_height > coin_state.created_height
-                    || row.is_owned)
-            {
-                return Ok(());
-            }
-
-            if coin_state.spent_height.is_none() {
-                row.is_owned = true;
-            }
-
-            row.coin_id = coin_id;
-            row.created_height = coin_state.created_height;
-
-            tx.insert_did(row).await?;
         }
         ChildKind::Nft {
             lineage_proof,
             info,
             metadata,
         } => {
+            tx.insert_lineage_proof(db_id, lineage_proof).await?;
+
             let data_hash = metadata.as_ref().and_then(|m| m.data_hash);
             let metadata_hash = metadata.as_ref().and_then(|m| m.metadata_hash);
             let license_hash = metadata.as_ref().and_then(|m| m.license_hash);

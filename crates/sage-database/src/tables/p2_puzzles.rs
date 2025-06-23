@@ -47,8 +47,12 @@ impl Database {
         is_custody_p2_puzzle_hash(&self.pool, puzzle_hash).await
     }
 
+    pub async fn p2_puzzle_id(&self, p2_puzzle_hash: Bytes32) -> Result<Option<i64>> {
+        p2_puzzle_id(&self.pool, p2_puzzle_hash).await
+    }
+
     pub async fn is_p2_puzzle_hash(&self, puzzle_hash: Bytes32) -> Result<bool> {
-        is_p2_puzzle_hash(&self.pool, puzzle_hash).await
+        Ok(p2_puzzle_id(&self.pool, puzzle_hash).await?.is_some())
     }
 
     pub async fn p2_puzzle(&self, puzzle_hash: Bytes32) -> Result<P2Puzzle> {
@@ -77,6 +81,10 @@ impl DatabaseTx<'_> {
         is_hardened: bool,
     ) -> Result<Bytes32> {
         custody_p2_puzzle_hash(&mut *self.tx, derivation_index, is_hardened).await
+    }
+
+    pub async fn p2_puzzle_id(&mut self, p2_puzzle_hash: Bytes32) -> Result<Option<i64>> {
+        p2_puzzle_id(&mut *self.tx, p2_puzzle_hash).await
     }
 
     pub async fn derivation_index(&mut self, is_hardened: bool) -> Result<u32> {
@@ -142,17 +150,18 @@ async fn is_custody_p2_puzzle_hash(
         > 0)
 }
 
-async fn is_p2_puzzle_hash(conn: impl SqliteExecutor<'_>, puzzle_hash: Bytes32) -> Result<bool> {
-    let puzzle_hash = puzzle_hash.as_ref();
+async fn p2_puzzle_id(
+    conn: impl SqliteExecutor<'_>,
+    p2_puzzle_hash: Bytes32,
+) -> Result<Option<i64>> {
+    let p2_puzzle_hash = p2_puzzle_hash.as_ref();
 
-    Ok(query!(
-        "SELECT COUNT(*) AS count FROM p2_puzzles WHERE hash = ?",
-        puzzle_hash
+    Ok(
+        query!("SELECT id FROM p2_puzzles WHERE hash = ?", p2_puzzle_hash)
+            .fetch_optional(conn)
+            .await?
+            .map(|row| row.id),
     )
-    .fetch_one(conn)
-    .await?
-    .count
-        > 0)
 }
 
 async fn derivation_index(conn: impl SqliteExecutor<'_>, is_hardened: bool) -> Result<u32> {
@@ -313,10 +322,6 @@ async fn option_underlying(
     .fetch_one(conn)
     .await?;
 
-    let Some(strike_asset_id) = row.strike_asset_id else {
-        return Err(DatabaseError::IncompleteStrikeAssetInfo);
-    };
-
     Ok(OptionUnderlyingWithKey {
         public_key: row.key.convert()?,
         option: OptionUnderlying {
@@ -324,7 +329,7 @@ async fn option_underlying(
             creator_puzzle_hash: row.creator_puzzle_hash.convert()?,
             seconds: row.expiration_seconds.convert()?,
             amount: row.underlying_amount.convert()?,
-            strike_type: if strike_asset_id == 0 {
+            strike_type: if row.strike_asset_id == 0 {
                 OptionType::Xch {
                     amount: row.strike_amount.convert()?,
                 }
