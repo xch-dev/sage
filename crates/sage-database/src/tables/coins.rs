@@ -127,7 +127,7 @@ async fn subscription_coin_ids(conn: impl SqliteExecutor<'_>) -> Result<Vec<Byte
 }
 
 async fn xch_balance(conn: impl SqliteExecutor<'_>) -> Result<u128> {
-    query!("SELECT amount FROM owned_coins WHERE asset_id = 0")
+    query!("SELECT amount FROM owned_coins WHERE owned_coins.asset_id = 0")
         .fetch_all(conn)
         .await?
         .into_iter()
@@ -141,7 +141,7 @@ async fn cat_balance(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result
     query!(
         "
         SELECT amount FROM owned_coins
-        INNER JOIN assets ON assets.id = asset_id
+        INNER JOIN assets ON assets.id = owned_coins.asset_id
         WHERE assets.hash = ?
         ",
         asset_id_ref
@@ -209,7 +209,7 @@ async fn spendable_cat_coins(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -
             parent_coin_hash, puzzle_hash, amount, hidden_puzzle_hash, p2_puzzles.hash AS p2_puzzle_hash,
             parent_parent_coin_hash, parent_inner_puzzle_hash, parent_amount
         FROM spendable_coins
-        INNER JOIN assets ON assets.id = asset_id
+        INNER JOIN assets ON assets.id = spendable_coins.asset_id
         INNER JOIN lineage_proofs ON lineage_proofs.coin_id = coin_id
         INNER JOIN p2_puzzles ON p2_puzzles.id = p2_puzzle_id
         WHERE assets.hash = ?
@@ -282,7 +282,7 @@ async fn xch_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Opt
         SELECT
             parent_coin_hash, puzzle_hash, amount
         FROM owned_coins
-        WHERE owned_coins.hash = ? AND asset_id = 0
+        WHERE owned_coins.hash = ? AND owned_coins.asset_id = 0
         ",
         coin_id_ref
     )
@@ -308,7 +308,7 @@ async fn cat_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Opt
             parent_coin_hash, puzzle_hash, amount, hidden_puzzle_hash, p2_puzzles.hash AS p2_puzzle_hash,
             parent_parent_coin_hash, parent_inner_puzzle_hash, parent_amount, assets.hash AS asset_id
         FROM owned_coins
-        INNER JOIN assets ON assets.id = asset_id
+        INNER JOIN assets ON assets.id = owned_coins.asset_id
         INNER JOIN lineage_proofs ON lineage_proofs.coin_id = coin_id
         INNER JOIN p2_puzzles ON p2_puzzles.id = p2_puzzle_id
         WHERE owned_coins.hash = ?
