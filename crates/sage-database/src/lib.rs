@@ -1,6 +1,5 @@
 mod blocks;
 mod coin_states;
-mod derivations;
 mod offers;
 mod primitives;
 mod tables;

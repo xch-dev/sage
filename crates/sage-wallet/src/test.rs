@@ -15,7 +15,7 @@ use chia_wallet_sdk::{
     types::TESTNET11_CONSTANTS,
 };
 use sage_config::TESTNET11;
-use sage_database::Database;
+use sage_database::{Database, Derivation};
 use sqlx::{migrate, SqlitePool};
 use tokio::{
     sync::{
@@ -106,8 +106,15 @@ impl TestWallet {
                 .derive_synthetic()
                 .public_key();
             let p2_puzzle_hash = StandardArgs::curry_tree_hash(synthetic_key).into();
-            tx.insert_derivation(p2_puzzle_hash, index, true, synthetic_key)
-                .await?;
+            tx.insert_custody_p2_puzzle(
+                p2_puzzle_hash,
+                synthetic_key,
+                Derivation {
+                    derivation_index: index,
+                    is_hardened: true,
+                },
+            )
+            .await?;
         }
 
         tx.commit().await?;
