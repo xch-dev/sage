@@ -420,7 +420,7 @@ impl Sage {
 
         let (collections, total) = wallet
             .db
-            .get_collections(req.limit, req.offset, req.include_hidden)
+            .collections(req.limit, req.offset, req.include_hidden)
             .await?;
 
         let records = collections
@@ -464,11 +464,11 @@ impl Sage {
             NftCollectionRecord {
                 collection_id: Address::new(collection.collection_id, "col".to_string())
                     .encode()?,
-                did_id: Address::new(collection.did_id, "did:chia:".to_string()).encode()?,
-                metadata_collection_id: collection.metadata_collection_id,
-                visible: collection.visible,
+                did_id: Address::new(collection.minter_hash, "did:chia:".to_string()).encode()?,
+                metadata_collection_id: collection.uuid,
+                visible: collection.is_visible,
                 name: collection.name,
-                icon: collection.icon,
+                icon: collection.icon_url,
             }
         } else {
             NftCollectionRecord {
