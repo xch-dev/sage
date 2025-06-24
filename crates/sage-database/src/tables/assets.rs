@@ -49,6 +49,12 @@ impl Asset {
 }
 
 #[derive(Debug, Clone)]
+pub struct CatAsset {
+    pub asset: Asset,
+    pub ticker: Option<String>,
+}
+
+#[derive(Debug, Clone)]
 pub struct DidCoinInfo {
     pub metadata: Program,
     pub recovery_list_hash: Option<Bytes32>,
@@ -73,7 +79,7 @@ pub struct NftCoinInfo {
 
 #[derive(Debug, Clone)]
 pub struct NftAsset {
-    pub singleton: SingletonAsset,
+    pub asset: Asset,
     pub nft_info: NftCoinInfo,
 }
 
@@ -110,8 +116,8 @@ impl Database {
 }
 
 impl DatabaseTx<'_> {
-    pub async fn insert_cat(&mut self, cat: Asset, ticker: Option<String>) -> Result<()> {
-        insert_cat(&mut self.tx, cat, ticker).await
+    pub async fn insert_cat(&mut self, cat: CatAsset) -> Result<()> {
+        insert_cat(&mut self.tx, cat).await
     }
 
     pub async fn insert_did(&mut self, did: Asset, coin_info: &DidCoinInfo) -> Result<()> {
@@ -149,8 +155,8 @@ async fn asset_kind(conn: impl SqliteExecutor<'_>, hash: Bytes32) -> Result<Opti
         .transpose()
 }
 
-async fn insert_cat(conn: &mut SqliteConnection, cat: Asset, ticker: Option<String>) -> Result<()> {
-    let hash = cat.hash.as_ref();
+async fn insert_cat(conn: &mut SqliteConnection, cat: CatAsset) -> Result<()> {
+    let hash = cat.asset.hash.as_ref();
 
     let asset_id = query!(
         "
@@ -164,10 +170,10 @@ async fn insert_cat(conn: &mut SqliteConnection, cat: Asset, ticker: Option<Stri
         RETURNING id
         ",
         hash,
-        cat.name,
-        cat.icon_url,
-        cat.description,
-        cat.is_visible
+        cat.asset.name,
+        cat.asset.icon_url,
+        cat.asset.description,
+        cat.asset.is_visible
     )
     .fetch_one(&mut *conn)
     .await?
@@ -181,7 +187,7 @@ async fn insert_cat(conn: &mut SqliteConnection, cat: Asset, ticker: Option<Stri
             ticker = COALESCE(ticker, excluded.ticker)
         ",
         asset_id,
-        ticker,
+        cat.ticker,
     )
     .execute(&mut *conn)
     .await?;
@@ -391,7 +397,7 @@ async fn cat_asset(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<O
     let asset_id = asset_id.as_ref();
 
     query!(
-        "SELECT hash, name, icon_url, description, ticker, is_visible
+        "SELECT hash, name, icon_url, description, ticker, is_visible, is_sensitive_content, created_height
         FROM assets
         INNER JOIN tokens ON tokens.asset_id = assets.id
         WHERE hash = ?",
@@ -401,12 +407,16 @@ async fn cat_asset(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<O
     .await?
     .map(|row| {
         Ok(CatAsset {
-            hash: row.hash.convert()?,
-            name: row.name,
-            icon_url: row.icon_url,
-            description: row.description,
+            asset: Asset {
+                hash: row.hash.convert()?,
+                name: row.name,
+                icon_url: row.icon_url,
+                description: row.description,
+                is_visible: row.is_visible,
+                is_sensitive_content: row.is_sensitive_content,
+                created_height: row.created_height.map(TryInto::try_into).transpose()?,
+            },
             ticker: row.ticker,
-            is_visible: row.is_visible,
         })
     })
     .transpose()
@@ -419,7 +429,7 @@ async fn cat_assets(
     include_hidden: bool,
 ) -> Result<Vec<CatAsset>> {
     query!(
-        "SELECT hash, name, icon_url, description, ticker, is_visible
+        "SELECT hash, name, icon_url, description, ticker, is_visible, is_sensitive_content, created_height
             FROM assets
             INNER JOIN tokens ON tokens.asset_id = assets.id
             WHERE ? OR is_visible = 1
@@ -435,12 +445,16 @@ async fn cat_assets(
     .into_iter()
     .map(|row| {
         Ok(CatAsset {
-            hash: row.hash.convert()?,
-            name: row.name,
-            icon_url: row.icon_url,
-            description: row.description,
+            asset: Asset {
+                hash: row.hash.convert()?,
+                name: row.name,
+                icon_url: row.icon_url,
+                description: row.description,
+                is_visible: row.is_visible,
+                is_sensitive_content: row.is_sensitive_content,
+                created_height: row.created_height.map(TryInto::try_into).transpose()?,
+            },
             ticker: row.ticker,
-            is_visible: row.is_visible,
         })
     })
     .collect()
@@ -451,39 +465,42 @@ async fn nft_asset(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<O
 
     query!(
         "SELECT        
-            hash, name, icon_url, description, is_visible, created_height,
-            minter_hash, owner_hash, metadata, metadata_updater_puzzle_hash, royalty_puzzle_hash,
-            royalty_basis_points, data_hash, metadata_hash, license_hash, edition_number,edition_total
-            edition_total
+            assets.hash AS asset_hash, assets.name, assets.icon_url, assets.description, is_sensitive_content,
+            assets.is_visible, assets.created_height, collections.hash AS 'collection_hash?', nfts.minter_hash, owner_hash,
+            metadata, metadata_updater_puzzle_hash, royalty_puzzle_hash, royalty_basis_points,
+            data_hash, metadata_hash, license_hash, edition_number, edition_total
         FROM assets
         INNER JOIN nfts ON nfts.asset_id = assets.id
-        WHERE hash = ?",
+        LEFT JOIN collections ON collections.id = nfts.collection_id
+        WHERE assets.hash = ?",
         asset_id
     )
     .fetch_optional(conn)
     .await?
     .map(|row| {
         Ok(NftAsset {
-            singleton: SingletonAsset {
-                hash: row.hash.convert()?,
+            asset: Asset {
+                hash: row.asset_hash.convert()?,
                 name: row.name,
                 icon_url: row.icon_url,
                 description: row.description,
+                is_sensitive_content: row.is_sensitive_content,
                 is_visible: row.is_visible,
-                created_height: row.created_height.map(|h| h.try_into()).transpose()?,
+                created_height: row.created_height.map(TryInto::try_into).transpose()?,
             },
             nft_info: NftCoinInfo {
-                minter_hash: row.minter_hash.map(|h| h.convert()).transpose()?,
-                owner_hash: row.owner_hash.map(|h| h.convert()).transpose()?,
+                collection_id: row.collection_hash.map(Convert::convert).transpose()?,
+                minter_hash: row.minter_hash.map(Convert::convert).transpose()?,
+                owner_hash: row.owner_hash.map(Convert::convert).transpose()?,
                 metadata: Program::from(row.metadata),
                 metadata_updater_puzzle_hash: row.metadata_updater_puzzle_hash.convert()?,
                 royalty_puzzle_hash: row.royalty_puzzle_hash.convert()?,
                 royalty_basis_points: row.royalty_basis_points.try_into()?,
-                data_hash: row.data_hash.map(|h| h.convert()).transpose()?,
-                metadata_hash: row.metadata_hash.map(|h| h.convert()).transpose()?,
-                license_hash: row.license_hash.map(|h| h.convert()).transpose()?,
-                edition_number: row.edition_number.map(|n| n.try_into()).transpose()?,
-                edition_total: row.edition_total.map(|n| n.try_into()).transpose()?,
+                data_hash: row.data_hash.map(Convert::convert).transpose()?,
+                metadata_hash: row.metadata_hash.map(Convert::convert).transpose()?,
+                license_hash: row.license_hash.map(Convert::convert).transpose()?,
+                edition_number: row.edition_number.map(TryInto::try_into).transpose()?,
+                edition_total: row.edition_total.map(TryInto::try_into).transpose()?,
             },
         })
     })
@@ -498,13 +515,15 @@ async fn nft_assets(
 ) -> Result<Vec<NftAsset>> {
     query!(
         "SELECT        
-            hash, name, icon_url, description, is_visible, created_height,
-            minter_hash, owner_hash, metadata, metadata_updater_puzzle_hash, royalty_puzzle_hash,
-            royalty_basis_points, data_hash, metadata_hash, license_hash, edition_number,edition_total
+            assets.hash AS asset_hash, assets.name, assets.icon_url, assets.description, is_sensitive_content,
+            assets.is_visible, assets.created_height, collections.hash AS 'collection_hash?', nfts.minter_hash, owner_hash,
+            metadata, metadata_updater_puzzle_hash, royalty_puzzle_hash, royalty_basis_points,
+            data_hash, metadata_hash, license_hash, edition_number, edition_total
         FROM assets
         INNER JOIN nfts ON nfts.asset_id = assets.id
-        WHERE ? OR is_visible = 1
-        ORDER BY name DESC
+        LEFT JOIN collections ON collections.id = nfts.collection_id
+        WHERE ? OR assets.is_visible = 1
+        ORDER BY assets.name DESC
         LIMIT ?
         OFFSET ?",
         include_hidden,
@@ -516,26 +535,28 @@ async fn nft_assets(
     .into_iter()
     .map(|row| {
         Ok(NftAsset {
-            singleton: SingletonAsset {
-                hash: row.hash.convert()?,
+            asset: Asset {
+                hash: row.asset_hash.convert()?,
                 name: row.name,
                 icon_url: row.icon_url,
                 description: row.description,
                 is_visible: row.is_visible,
-                created_height: row.created_height.map(|h| h.try_into()).transpose()?,
+                is_sensitive_content: row.is_sensitive_content,
+                created_height: row.created_height.map(TryInto::try_into).transpose()?,
             },
             nft_info: NftCoinInfo {
-                minter_hash: row.minter_hash.map(|h| h.convert()).transpose()?,
-                owner_hash: row.owner_hash.map(|h| h.convert()).transpose()?,
+                collection_id: row.collection_hash.map(Convert::convert).transpose()?,
+                minter_hash: row.minter_hash.map(Convert::convert).transpose()?,
+                owner_hash: row.owner_hash.map(Convert::convert).transpose()?,
                 metadata: Program::from(row.metadata),
                 metadata_updater_puzzle_hash: row.metadata_updater_puzzle_hash.convert()?,
                 royalty_puzzle_hash: row.royalty_puzzle_hash.convert()?,
                 royalty_basis_points: row.royalty_basis_points.try_into()?,
-                data_hash: row.data_hash.map(|h| h.convert()).transpose()?,
-                metadata_hash: row.metadata_hash.map(|h| h.convert()).transpose()?,
-                license_hash: row.license_hash.map(|h| h.convert()).transpose()?,
-                edition_number: row.edition_number.map(|n| n.try_into()).transpose()?,
-                edition_total: row.edition_total.map(|n| n.try_into()).transpose()?,
+                data_hash: row.data_hash.map(Convert::convert).transpose()?,
+                metadata_hash: row.metadata_hash.map(Convert::convert).transpose()?,
+                license_hash: row.license_hash.map(Convert::convert).transpose()?,
+                edition_number: row.edition_number.map(TryInto::try_into).transpose()?,
+                edition_total: row.edition_total.map(TryInto::try_into).transpose()?,
             },
         })
     })

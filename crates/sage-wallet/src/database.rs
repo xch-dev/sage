@@ -4,7 +4,7 @@ use chia::{
     bls::Signature,
     protocol::{Bytes32, CoinState},
 };
-use sage_database::{Asset, CoinKind, Database, DatabaseTx, DidCoinInfo, NftCoinInfo};
+use sage_database::{Asset, CatAsset, CoinKind, Database, DatabaseTx, DidCoinInfo, NftCoinInfo};
 
 use crate::{compute_nft_info, fetch_nft_did, ChildKind, Transaction, WalletError, WalletPeer};
 
@@ -34,8 +34,11 @@ pub async fn insert_puzzle(
         } => {
             tx.insert_lineage_proof(coin_id, lineage_proof).await?;
 
-            tx.insert_cat(Asset::empty(info.asset_id, true, None), None)
-                .await?;
+            tx.insert_cat(CatAsset {
+                asset: Asset::empty(info.asset_id, true, None),
+                ticker: None,
+            })
+            .await?;
 
             tx.sync_coin(
                 coin_id,
@@ -100,6 +103,11 @@ pub async fn insert_puzzle(
                     asset.name = computed.name;
                     asset.description = computed.description;
                     asset.is_sensitive_content = computed.sensitive_content;
+
+                    if let Some(collection) = computed.collection {
+                        coin_info.collection_id = Some(collection.hash);
+                        tx.insert_collection(collection).await?;
+                    }
                 }
             };
 
@@ -186,14 +194,6 @@ pub async fn insert_transaction(
 
     tx.insert_pending_transaction(transaction_id, aggregated_signature, transaction.fee)
         .await?;
-
-    for coin_id in transaction
-        .inputs
-        .iter()
-        .map(|input| input.coin_spend.coin.coin_id())
-    {
-        delete_puzzle(&mut tx, coin_id).await?;
-    }
 
     let mut subscriptions = Vec::new();
 
