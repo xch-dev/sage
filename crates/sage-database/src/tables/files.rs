@@ -4,14 +4,6 @@ use sqlx::{query, SqliteExecutor};
 use crate::{Convert, Database, DatabaseTx, Result};
 
 #[derive(Debug, Clone)]
-pub struct File {
-    pub hash: Bytes32,
-    pub data: Option<Vec<u8>>,
-    pub mime_type: Option<String>,
-    pub is_hash_match: Option<bool>,
-}
-
-#[derive(Debug, Clone)]
 pub struct FileUri {
     pub hash: Bytes32,
     pub uri: String,
