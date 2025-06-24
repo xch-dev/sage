@@ -1,8 +1,9 @@
-/* foregin key indices */
+/* foreign key indices */
 CREATE INDEX idx_nfts_data_hash ON nfts(data_hash);
 CREATE INDEX idx_nfts_metadata_hash ON nfts(metadata_hash);
 CREATE INDEX idx_nfts_license_hash ON nfts(license_hash);
 CREATE INDEX idx_nfts_collection_id ON nfts(collection_id);
+CREATE INDEX idx_file_uris_file_id ON file_uris(file_id);
 CREATE INDEX idx_public_keys_p2_puzzle_id ON public_keys(p2_puzzle_id);
 CREATE INDEX idx_clawbacks_p2_puzzle_id ON clawbacks(p2_puzzle_id);
 CREATE INDEX idx_p2_options_p2_puzzle_id ON p2_options(p2_puzzle_id);
