@@ -83,9 +83,9 @@ impl PuzzleQueue {
                 let peer = peer.clone();
                 let genesis_challenge = self.genesis_challenge;
 
-                if let Some(p2_puzzle_id) = db.p2_puzzle_id(coin.puzzle_hash).await? {
-                    let id = db.coin_id(coin.coin_id()).await?;
-                    db.sync_coin(id, 0, p2_puzzle_id, None).await?;
+                if db.is_p2_puzzle_hash(coin.puzzle_hash).await? {
+                    db.sync_coin(coin.coin_id(), Bytes32::default(), coin.puzzle_hash, None)
+                        .await?;
                     warn!("Added missing XCH asset to {}", coin.coin_id());
                     continue;
                 }
