@@ -4,7 +4,6 @@ use sqlx::{query, SqliteExecutor};
 
 #[derive(Debug, Clone)]
 pub struct CollectionRow {
-    pub id: i64,
     pub hash: Bytes32,
     pub uuid: String,
     pub minter_hash: Bytes32,
@@ -55,7 +54,6 @@ async fn collection(conn: impl SqliteExecutor<'_>, hash: Bytes32) -> Result<Opti
 
     row.map(|row| {
         Ok(CollectionRow {
-            id: row.id,
             hash: row.hash.convert()?,
             uuid: row.uuid,
             minter_hash: row.minter_hash.convert()?,
@@ -77,7 +75,7 @@ async fn collections(
     include_hidden: bool,
 ) -> Result<Vec<CollectionRow>> {
     let rows = query!(
-        "SELECT id, hash, uuid, minter_hash, name, icon_url, banner_url, description, is_visible, created_height 
+        "SELECT hash, uuid, minter_hash, name, icon_url, banner_url, description, is_visible, created_height 
             FROM collections
             WHERE ? OR is_visible = 1
             ORDER BY name DESC
@@ -94,7 +92,6 @@ async fn collections(
         .into_iter()
         .map(|row| {
             Ok(CollectionRow {
-                id: row.id,
                 hash: row.hash.convert()?,
                 uuid: row.uuid,
                 minter_hash: row.minter_hash.convert()?,

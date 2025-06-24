@@ -95,6 +95,19 @@ impl Database {
     pub async fn asset_kind(&self, asset_id: Bytes32) -> Result<Option<AssetKind>> {
         asset_kind(&self.pool, asset_id).await
     }
+
+    pub async fn cat_asset(&self, asset_id: Bytes32) -> Result<Option<CatAsset>> {
+        cat_asset(&self.pool, asset_id).await
+    }
+
+    pub async fn cat_assets(
+        &self,
+        limit: u32,
+        offset: u32,
+        include_hidden: bool,
+    ) -> Result<Vec<CatAsset>> {
+        cat_assets(&self.pool, limit, offset, include_hidden).await
+    }
 }
 
 impl DatabaseTx<'_> {
@@ -375,4 +388,63 @@ async fn update_nft_coin_info(
     .await?;
 
     Ok(())
+}
+
+async fn cat_asset(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<Option<CatAsset>> {
+    let asset_id = asset_id.as_ref();
+
+    query!(
+        "SELECT hash, name, icon_url, description, ticker, is_visible
+        FROM assets
+        INNER JOIN tokens ON tokens.asset_id = assets.id
+        WHERE hash = ?",
+        asset_id
+    )
+    .fetch_optional(conn)
+    .await?
+    .map(|row| {
+        Ok(CatAsset {
+            hash: row.hash.convert()?,
+            name: row.name,
+            icon_url: row.icon_url,
+            description: row.description,
+            ticker: row.ticker,
+            is_visible: row.is_visible,
+        })
+    })
+    .transpose()
+}
+
+async fn cat_assets(
+    conn: impl SqliteExecutor<'_>,
+    limit: u32,
+    offset: u32,
+    include_hidden: bool,
+) -> Result<Vec<CatAsset>> {
+    query!(
+        "SELECT hash, name, icon_url, description, ticker, is_visible
+            FROM assets
+            INNER JOIN tokens ON tokens.asset_id = assets.id
+            WHERE ? OR is_visible = 1
+            ORDER BY name DESC
+            LIMIT ?
+            OFFSET ?",
+        include_hidden,
+        limit,
+        offset
+    )
+    .fetch_all(conn)
+    .await?
+    .into_iter()
+    .map(|row| {
+        Ok(CatAsset {
+            hash: row.hash.convert()?,
+            name: row.name,
+            icon_url: row.icon_url,
+            description: row.description,
+            ticker: row.ticker,
+            is_visible: row.is_visible,
+        })
+    })
+    .collect()
 }
