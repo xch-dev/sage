@@ -253,7 +253,7 @@ impl Sage {
 
     pub async fn get_cats(&self, _req: GetCats) -> Result<GetCatsResponse> {
         let wallet = self.wallet()?;
-        todo!("add paging and is_visible to get_cats");
+        // TODO: add paging and is_visible to get_cats
         let cats = wallet.db.cat_assets(10000, 0, false).await?;
 
         let mut records = Vec::with_capacity(cats.len());
@@ -557,7 +557,7 @@ impl Sage {
 
         let nft_id = parse_nft_id(req.nft_id)?;
 
-        let Some(nft_row) = wallet.db.nft_row(nft_id).await? else {
+        let Some(nft_row) = wallet.db.nft_asset(nft_id).await? else {
             return Ok(GetNftResponse { nft: None });
         };
 
