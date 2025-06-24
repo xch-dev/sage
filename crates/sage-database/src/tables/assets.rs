@@ -83,6 +83,14 @@ pub struct NftAsset {
     pub nft_info: NftCoinInfo,
 }
 
+#[derive(Debug, Clone)]
+pub struct NftMetadataInfo {
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub is_sensitive_content: bool,
+    pub collection_id: Option<Bytes32>,
+}
+
 impl Database {
     pub async fn asset_kind(&self, asset_id: Bytes32) -> Result<Option<AssetKind>> {
         asset_kind(&self.pool, asset_id).await
@@ -142,6 +150,14 @@ impl DatabaseTx<'_> {
         coin_info: &NftCoinInfo,
     ) -> Result<()> {
         update_nft_coin_info(&mut self.tx, launcher_id, coin_info).await
+    }
+
+    pub async fn update_nft_metadata(
+        &mut self,
+        hash: Bytes32,
+        metadata_info: NftMetadataInfo,
+    ) -> Result<()> {
+        update_nft_metadata(&mut self.tx, hash, metadata_info).await
     }
 }
 
@@ -386,6 +402,44 @@ async fn update_nft_coin_info(
         edition_number,
         edition_total,
         launcher_id
+    )
+    .execute(&mut *conn)
+    .await?;
+
+    Ok(())
+}
+
+async fn update_nft_metadata(
+    conn: &mut SqliteConnection,
+    hash: Bytes32,
+    metadata_info: NftMetadataInfo,
+) -> Result<()> {
+    let hash = hash.as_ref();
+    let collection_id = metadata_info.collection_id.as_deref();
+
+    query!(
+        "
+        UPDATE assets SET
+            name = ?,
+            description = ?,
+            is_sensitive_content = ?
+        WHERE hash = ?
+        ",
+        metadata_info.name,
+        metadata_info.description,
+        metadata_info.is_sensitive_content,
+        hash
+    )
+    .execute(&mut *conn)
+    .await?;
+
+    query!(
+        "
+        UPDATE nfts SET collection_id = ?
+        WHERE asset_id = (SELECT id FROM assets WHERE hash = ?)
+        ",
+        collection_id,
+        hash
     )
     .execute(&mut *conn)
     .await?;

@@ -282,10 +282,26 @@ CREATE TABLE files (
   is_hash_match BOOLEAN
 );
 
+/*
+ * Resized images
+ *
+ * Icon = 0
+ * Thumbnail = 1
+ */
+CREATE TABLE resized_images (
+  id INTEGER NOT NULL PRIMARY KEY,
+  file_id INTEGER NOT NULL,
+  kind INTEGER NOT NULL,
+  data BLOB NOT NULL,
+  FOREIGN KEY (file_id) REFERENCES files(id) ON DELETE CASCADE
+);
+
 CREATE TABLE file_uris (
   id INTEGER NOT NULL PRIMARY KEY,
   file_id INTEGER NOT NULL,
   uri TEXT NOT NULL,
+  last_checked_timestamp INTEGER,
+  failed_attempts INTEGER NOT NULL DEFAULT 0,
   FOREIGN KEY (file_id) REFERENCES files(id) ON DELETE CASCADE,
   UNIQUE(file_id, uri)
 );
