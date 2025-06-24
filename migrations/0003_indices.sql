@@ -1,4 +1,4 @@
-/* foregin key indices */
+/* foreign key indices */
 CREATE INDEX idx_nfts_data_hash ON nfts(data_hash);
 CREATE INDEX idx_nfts_metadata_hash ON nfts(metadata_hash);
 CREATE INDEX idx_nfts_license_hash ON nfts(license_hash);
