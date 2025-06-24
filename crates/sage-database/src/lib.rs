@@ -1,4 +1,3 @@
-mod blocks;
 mod coin_states;
 mod offers;
 mod primitives;
