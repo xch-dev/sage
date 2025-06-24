@@ -106,6 +106,10 @@ impl Database {
 }
 
 impl DatabaseTx<'_> {
+    pub async fn insert_coin(&mut self, coin_state: CoinState) -> Result<()> {
+        insert_coin(&mut *self.tx, coin_state).await
+    }
+
     pub async fn is_latest_singleton_coin(&mut self, hash: Bytes32) -> Result<bool> {
         is_latest_singleton_coin(&mut *self.tx, hash).await
     }
@@ -138,6 +142,36 @@ impl DatabaseTx<'_> {
     ) -> Result<()> {
         insert_lineage_proof(&mut *self.tx, coin_id, lineage_proof).await
     }
+}
+
+async fn insert_coin(conn: impl SqliteExecutor<'_>, coin_state: CoinState) -> Result<()> {
+    let hash = coin_state.coin.coin_id();
+    let hash = hash.as_ref();
+    let parent_coin_hash = coin_state.coin.parent_coin_info.as_ref();
+    let puzzle_hash = coin_state.coin.puzzle_hash.as_ref();
+    let amount = coin_state.coin.amount.to_be_bytes().to_vec();
+
+    query!(
+        "
+        INSERT INTO coins
+            (hash, parent_coin_hash, puzzle_hash, amount, created_height, spent_height)
+        VALUES
+            (?, ?, ?, ?, ?, ?)
+        ON CONFLICT(hash) DO UPDATE SET
+            created_height = excluded.created_height,
+            spent_height = excluded.spent_height
+        ",
+        hash,
+        parent_coin_hash,
+        puzzle_hash,
+        amount,
+        coin_state.created_height,
+        coin_state.spent_height,
+    )
+    .execute(conn)
+    .await?;
+
+    Ok(())
 }
 
 async fn unsynced_coins(conn: impl SqliteExecutor<'_>, limit: usize) -> Result<Vec<CoinState>> {

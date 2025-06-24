@@ -24,45 +24,24 @@ impl Convert<AssetKind> for i64 {
 }
 
 #[derive(Debug, Clone)]
-pub struct CatAsset {
+pub struct Asset {
     pub hash: Bytes32,
     pub name: Option<String>,
     pub icon_url: Option<String>,
     pub description: Option<String>,
-    pub ticker: Option<String>,
-    pub is_visible: bool,
-}
-
-impl CatAsset {
-    pub fn empty(hash: Bytes32, is_visible: bool) -> Self {
-        Self {
-            hash,
-            name: None,
-            icon_url: None,
-            description: None,
-            ticker: None,
-            is_visible,
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct SingletonAsset {
-    pub hash: Bytes32,
-    pub name: Option<String>,
-    pub icon_url: Option<String>,
-    pub description: Option<String>,
+    pub is_sensitive_content: bool,
     pub is_visible: bool,
     pub created_height: Option<u32>,
 }
 
-impl SingletonAsset {
+impl Asset {
     pub fn empty(hash: Bytes32, is_visible: bool, created_height: Option<u32>) -> Self {
         Self {
             hash,
             name: None,
             icon_url: None,
             description: None,
+            is_sensitive_content: false,
             is_visible,
             created_height,
         }
@@ -78,6 +57,7 @@ pub struct DidCoinInfo {
 
 #[derive(Debug, Clone)]
 pub struct NftCoinInfo {
+    pub collection_id: Option<Bytes32>,
     pub minter_hash: Option<Bytes32>,
     pub owner_hash: Option<Bytes32>,
     pub metadata: Program,
@@ -98,11 +78,11 @@ impl Database {
 }
 
 impl DatabaseTx<'_> {
-    pub async fn insert_cat(&mut self, cat: CatAsset) -> Result<()> {
-        insert_cat(&mut self.tx, cat).await
+    pub async fn insert_cat(&mut self, cat: Asset, ticker: Option<String>) -> Result<()> {
+        insert_cat(&mut self.tx, cat, ticker).await
     }
 
-    pub async fn insert_did(&mut self, did: SingletonAsset, coin_info: &DidCoinInfo) -> Result<()> {
+    pub async fn insert_did(&mut self, did: Asset, coin_info: &DidCoinInfo) -> Result<()> {
         insert_did(&mut self.tx, did, coin_info).await
     }
 
@@ -114,7 +94,7 @@ impl DatabaseTx<'_> {
         update_did_coin_info(&mut self.tx, launcher_id, coin_info).await
     }
 
-    pub async fn insert_nft(&mut self, nft: SingletonAsset, coin_info: &NftCoinInfo) -> Result<()> {
+    pub async fn insert_nft(&mut self, nft: Asset, coin_info: &NftCoinInfo) -> Result<()> {
         insert_nft(&mut self.tx, nft, coin_info).await
     }
 
@@ -137,7 +117,7 @@ async fn asset_kind(conn: impl SqliteExecutor<'_>, hash: Bytes32) -> Result<Opti
         .transpose()
 }
 
-async fn insert_cat(conn: &mut SqliteConnection, cat: CatAsset) -> Result<()> {
+async fn insert_cat(conn: &mut SqliteConnection, cat: Asset, ticker: Option<String>) -> Result<()> {
     let hash = cat.hash.as_ref();
 
     let asset_id = query!(
@@ -147,7 +127,8 @@ async fn insert_cat(conn: &mut SqliteConnection, cat: CatAsset) -> Result<()> {
         ON CONFLICT(hash) DO UPDATE SET
             name = COALESCE(name, excluded.name),
             icon_url = COALESCE(icon_url, excluded.icon_url),
-            description = COALESCE(description, excluded.description)
+            description = COALESCE(description, excluded.description),
+            is_sensitive_content = is_sensitive_content OR excluded.is_sensitive_content
         RETURNING id
         ",
         hash,
@@ -168,7 +149,7 @@ async fn insert_cat(conn: &mut SqliteConnection, cat: CatAsset) -> Result<()> {
             ticker = COALESCE(ticker, excluded.ticker)
         ",
         asset_id,
-        cat.ticker,
+        ticker,
     )
     .execute(&mut *conn)
     .await?;
@@ -176,21 +157,18 @@ async fn insert_cat(conn: &mut SqliteConnection, cat: CatAsset) -> Result<()> {
     Ok(())
 }
 
-async fn insert_singleton(
-    conn: &mut SqliteConnection,
-    kind: i64,
-    singleton: SingletonAsset,
-) -> Result<i64> {
+async fn insert_singleton(conn: &mut SqliteConnection, kind: i64, singleton: Asset) -> Result<i64> {
     let hash = singleton.hash.as_ref();
 
     let asset_id = query!(
         "
-        INSERT INTO assets (hash, kind, name, icon_url, description, is_visible, is_pending, created_height)
-        VALUES (?, ?, ?, ?, ?, ?, FALSE, ?)
+        INSERT INTO assets (hash, kind, name, icon_url, description, is_sensitive_content, is_visible, is_pending, created_height)
+        VALUES (?, ?, ?, ?, ?, ?, ?, FALSE, ?)
         ON CONFLICT(hash) DO UPDATE SET
             name = COALESCE(name, excluded.name),
             icon_url = COALESCE(icon_url, excluded.icon_url),
             description = COALESCE(description, excluded.description),
+            is_sensitive_content = is_sensitive_content OR excluded.is_sensitive_content,
             created_height = COALESCE(MAX(created_height, excluded.created_height), created_height, excluded.created_height)
         RETURNING id
         ",
@@ -199,6 +177,7 @@ async fn insert_singleton(
         singleton.name,
         singleton.icon_url,
         singleton.description,
+        singleton.is_sensitive_content,
         singleton.is_visible,
         singleton.created_height
     )
@@ -211,7 +190,7 @@ async fn insert_singleton(
 
 async fn insert_did(
     conn: &mut SqliteConnection,
-    did: SingletonAsset,
+    did: Asset,
     coin_info: &DidCoinInfo,
 ) -> Result<()> {
     let asset_id = insert_singleton(conn, 2, did).await?;
@@ -268,11 +247,12 @@ async fn update_did_coin_info(
 
 async fn insert_nft(
     conn: &mut SqliteConnection,
-    nft: SingletonAsset,
+    nft: Asset,
     coin_info: &NftCoinInfo,
 ) -> Result<()> {
     let asset_id = insert_singleton(conn, 1, nft).await?;
 
+    let collection_id = coin_info.collection_id.as_deref();
     let minter_hash = coin_info.minter_hash.as_deref();
     let owner_hash = coin_info.owner_hash.as_deref();
     let metadata = coin_info.metadata.as_slice();
@@ -290,13 +270,14 @@ async fn insert_nft(
     query!(
         "
         INSERT OR IGNORE INTO nfts (
-            asset_id, minter_hash, owner_hash, metadata, metadata_updater_puzzle_hash,
+            asset_id, collection_id, minter_hash, owner_hash, metadata, metadata_updater_puzzle_hash,
             royalty_puzzle_hash, royalty_basis_points, data_hash, metadata_hash, license_hash,
             edition_number, edition_total
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ",
         asset_id,
+        collection_id,
         minter_hash,
         owner_hash,
         metadata,
@@ -321,6 +302,7 @@ async fn update_nft_coin_info(
     coin_info: &NftCoinInfo,
 ) -> Result<()> {
     let launcher_id = launcher_id.as_ref();
+    let collection_id = coin_info.collection_id.as_deref();
     let minter_hash = coin_info.minter_hash.as_deref();
     let owner_hash = coin_info.owner_hash.as_deref();
     let metadata = coin_info.metadata.as_slice();
@@ -339,6 +321,7 @@ async fn update_nft_coin_info(
         "
         UPDATE nfts
         SET
+            collection_id = ?,
             minter_hash = ?,
             owner_hash = ?,
             metadata = ?,
@@ -352,6 +335,7 @@ async fn update_nft_coin_info(
             edition_total = ?
         WHERE asset_id = (SELECT id FROM assets WHERE hash = ?)
         ",
+        collection_id,
         minter_hash,
         owner_hash,
         metadata,
