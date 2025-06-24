@@ -118,7 +118,7 @@ impl Wallet {
 
         for &coin_id in selected_coin_ids {
             match self.db.coin_kind(coin_id).await? {
-                CoinKind::Xch => {
+                Some(CoinKind::Xch) => {
                     let coin = self
                         .db
                         .xch_coin(coin_id)
@@ -127,7 +127,7 @@ impl Wallet {
 
                     spends.add(coin);
                 }
-                CoinKind::Cat => {
+                Some(CoinKind::Cat) => {
                     let cat = self
                         .db
                         .cat_coin(coin_id)
@@ -136,7 +136,7 @@ impl Wallet {
 
                     spends.add(cat);
                 }
-                CoinKind::Did => {
+                Some(CoinKind::Did) => {
                     let did = self
                         .db
                         .did_coin(coin_id)
@@ -146,7 +146,7 @@ impl Wallet {
                     let metadata_ptr = ctx.alloc_hashed(&did.info.metadata)?;
                     spends.add(did.with_metadata(metadata_ptr));
                 }
-                CoinKind::Nft => {
+                Some(CoinKind::Nft) => {
                     let nft = self
                         .db
                         .nft_coin(coin_id)
@@ -156,7 +156,7 @@ impl Wallet {
                     let metadata_ptr = ctx.alloc_hashed(&nft.info.metadata)?;
                     spends.add(nft.with_metadata(metadata_ptr));
                 }
-                CoinKind::Option => {
+                Some(CoinKind::Option) => {
                     let option = self
                         .db
                         .option_coin(coin_id)
@@ -165,6 +165,7 @@ impl Wallet {
 
                     spends.add(option);
                 }
+                None => return Err(WalletError::MissingCoin(coin_id)),
             }
         }
 

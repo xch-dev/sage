@@ -8,6 +8,7 @@ use chia_wallet_sdk::{
     client::ClientError, driver::DriverError, signer::SignerError, utils::CoinSelectionError,
 };
 use clvmr::reduction::EvalErr;
+use sage_assets::UriError;
 use sage_database::DatabaseError;
 use thiserror::Error;
 use tokio::{task::JoinError, time::error::Elapsed};
@@ -31,6 +32,9 @@ pub enum WalletError {
 
     #[error("Request error: {0}")]
     Request(#[from] reqwest::Error),
+
+    #[error("URI error: {0}")]
+    Uri(#[from] UriError),
 
     #[error("Timeout exceeded")]
     Elapsed(#[from] Elapsed),

@@ -1,6 +1,5 @@
 mod blocks;
 mod coin_states;
-mod derivations;
 mod offers;
 mod primitives;
 mod tables;
@@ -108,9 +107,6 @@ pub enum DatabaseError {
 
     #[error("Invalid address")]
     InvalidAddress,
-
-    #[error("Incomplete strike asset info")]
-    IncompleteStrikeAssetInfo,
 }
 
 pub(crate) type Result<T> = std::result::Result<T, DatabaseError>;
