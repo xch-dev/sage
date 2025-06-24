@@ -23,18 +23,21 @@ impl Database {
         unsynced_coins(&self.pool, limit).await
     }
 
-    pub async fn coin_id(&self, hash: Bytes32) -> Result<i64> {
-        coin_id(&self.pool, hash).await
-    }
-
     pub async fn sync_coin(
         &self,
-        id: i64,
-        asset_id: i64,
-        p2_puzzle_id: i64,
+        coin_id: Bytes32,
+        asset_hash: Bytes32,
+        p2_puzzle_hash: Bytes32,
         hidden_puzzle_hash: Option<Bytes32>,
     ) -> Result<()> {
-        sync_coin(&self.pool, id, asset_id, p2_puzzle_id, hidden_puzzle_hash).await
+        sync_coin(
+            &self.pool,
+            coin_id,
+            asset_hash,
+            p2_puzzle_hash,
+            hidden_puzzle_hash,
+        )
+        .await
     }
 
     pub async fn subscription_coin_ids(&self) -> Result<Vec<Bytes32>> {
@@ -103,26 +106,22 @@ impl Database {
 }
 
 impl DatabaseTx<'_> {
-    pub async fn coin_id(&mut self, hash: Bytes32) -> Result<i64> {
-        coin_id(&mut *self.tx, hash).await
-    }
-
     pub async fn is_latest_singleton_coin(&mut self, hash: Bytes32) -> Result<bool> {
         is_latest_singleton_coin(&mut *self.tx, hash).await
     }
 
     pub async fn sync_coin(
         &mut self,
-        id: i64,
-        asset_id: i64,
-        p2_puzzle_id: i64,
+        coin_id: Bytes32,
+        asset_hash: Bytes32,
+        p2_puzzle_hash: Bytes32,
         hidden_puzzle_hash: Option<Bytes32>,
     ) -> Result<()> {
         sync_coin(
             &mut *self.tx,
-            id,
-            asset_id,
-            p2_puzzle_id,
+            coin_id,
+            asset_hash,
+            p2_puzzle_hash,
             hidden_puzzle_hash,
         )
         .await
@@ -134,7 +133,7 @@ impl DatabaseTx<'_> {
 
     pub async fn insert_lineage_proof(
         &mut self,
-        coin_id: i64,
+        coin_id: Bytes32,
         lineage_proof: LineageProof,
     ) -> Result<()> {
         insert_lineage_proof(&mut *self.tx, coin_id, lineage_proof).await
@@ -180,15 +179,6 @@ async fn delete_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<
     Ok(())
 }
 
-async fn coin_id(conn: impl SqliteExecutor<'_>, hash: Bytes32) -> Result<i64> {
-    let hash_ref = hash.as_ref();
-
-    Ok(query!("SELECT id FROM coins WHERE hash = ?", hash_ref)
-        .fetch_one(conn)
-        .await?
-        .id)
-}
-
 async fn is_latest_singleton_coin(conn: impl SqliteExecutor<'_>, hash: Bytes32) -> Result<bool> {
     let hash_ref = hash.as_ref();
 
@@ -207,19 +197,27 @@ async fn is_latest_singleton_coin(conn: impl SqliteExecutor<'_>, hash: Bytes32) 
 
 async fn sync_coin(
     conn: impl SqliteExecutor<'_>,
-    id: i64,
-    asset_id: i64,
-    p2_puzzle_id: i64,
+    coin_id: Bytes32,
+    asset_hash: Bytes32,
+    p2_puzzle_hash: Bytes32,
     hidden_puzzle_hash: Option<Bytes32>,
 ) -> Result<()> {
-    let hidden_puzzle_hash_ref = hidden_puzzle_hash.as_deref();
+    let coin_id = coin_id.as_ref();
+    let asset_hash = asset_hash.as_ref();
+    let p2_puzzle_hash = p2_puzzle_hash.as_ref();
+    let hidden_puzzle_hash = hidden_puzzle_hash.as_deref();
 
     query!(
-        "UPDATE coins SET asset_id = ?, p2_puzzle_id = ?, hidden_puzzle_hash = ? WHERE id = ?",
-        asset_id,
-        p2_puzzle_id,
-        hidden_puzzle_hash_ref,
-        id,
+        "
+        UPDATE coins SET
+            asset_id = (SELECT id FROM assets WHERE hash = ?),
+            p2_puzzle_id = (SELECT id FROM p2_puzzles WHERE hash = ?),
+            hidden_puzzle_hash = ?
+        WHERE hash = ?",
+        asset_hash,
+        p2_puzzle_hash,
+        hidden_puzzle_hash,
+        coin_id,
     )
     .execute(conn)
     .await?;
@@ -229,19 +227,24 @@ async fn sync_coin(
 
 async fn insert_lineage_proof(
     conn: impl SqliteExecutor<'_>,
-    coin_id: i64,
+    coin_id: Bytes32,
     lineage_proof: LineageProof,
 ) -> Result<()> {
-    let parent_parent_coin_hash_ref = lineage_proof.parent_parent_coin_info.as_ref();
-    let parent_inner_puzzle_hash_ref = lineage_proof.parent_inner_puzzle_hash.as_ref();
-    let parent_amount_ref = lineage_proof.parent_amount.to_be_bytes().to_vec();
+    let coin_id = coin_id.as_ref();
+    let parent_parent_coin_hash = lineage_proof.parent_parent_coin_info.as_ref();
+    let parent_inner_puzzle_hash = lineage_proof.parent_inner_puzzle_hash.as_ref();
+    let parent_amount = lineage_proof.parent_amount.to_be_bytes().to_vec();
 
     query!(
-        "INSERT INTO lineage_proofs (coin_id, parent_parent_coin_hash, parent_inner_puzzle_hash, parent_amount) VALUES (?, ?, ?, ?)",
+        "INSERT INTO lineage_proofs
+            (coin_id, parent_parent_coin_hash, parent_inner_puzzle_hash, parent_amount)
+        VALUES
+            ((SELECT id FROM coins WHERE hash = ?), ?, ?, ?)
+        ",
         coin_id,
-        parent_parent_coin_hash_ref,
-        parent_inner_puzzle_hash_ref,
-        parent_amount_ref,
+        parent_parent_coin_hash,
+        parent_inner_puzzle_hash,
+        parent_amount,
     )
     .execute(conn)
     .await?;

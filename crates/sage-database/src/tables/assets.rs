@@ -98,54 +98,46 @@ impl Database {
 }
 
 impl DatabaseTx<'_> {
-    pub async fn insert_cat(&mut self, cat: CatAsset) -> Result<i64> {
+    pub async fn insert_cat(&mut self, cat: CatAsset) -> Result<()> {
         insert_cat(&mut self.tx, cat).await
     }
 
-    pub async fn insert_did(
-        &mut self,
-        did: SingletonAsset,
-        coin_info: &DidCoinInfo,
-    ) -> Result<i64> {
+    pub async fn insert_did(&mut self, did: SingletonAsset, coin_info: &DidCoinInfo) -> Result<()> {
         insert_did(&mut self.tx, did, coin_info).await
     }
 
     pub async fn update_did_coin_info(
         &mut self,
-        asset_id: i64,
+        launcher_id: Bytes32,
         coin_info: &DidCoinInfo,
     ) -> Result<()> {
-        update_did_coin_info(&mut self.tx, asset_id, coin_info).await
+        update_did_coin_info(&mut self.tx, launcher_id, coin_info).await
     }
 
-    pub async fn insert_nft(
-        &mut self,
-        nft: SingletonAsset,
-        coin_info: &NftCoinInfo,
-    ) -> Result<i64> {
+    pub async fn insert_nft(&mut self, nft: SingletonAsset, coin_info: &NftCoinInfo) -> Result<()> {
         insert_nft(&mut self.tx, nft, coin_info).await
     }
 
     pub async fn update_nft_coin_info(
         &mut self,
-        asset_id: i64,
+        launcher_id: Bytes32,
         coin_info: &NftCoinInfo,
     ) -> Result<()> {
-        update_nft_coin_info(&mut self.tx, asset_id, coin_info).await
+        update_nft_coin_info(&mut self.tx, launcher_id, coin_info).await
     }
 }
 
-async fn asset_kind(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<Option<AssetKind>> {
-    let asset_id = asset_id.as_ref();
+async fn asset_kind(conn: impl SqliteExecutor<'_>, hash: Bytes32) -> Result<Option<AssetKind>> {
+    let hash = hash.as_ref();
 
-    query!("SELECT kind FROM assets WHERE hash = ?", asset_id)
+    query!("SELECT kind FROM assets WHERE hash = ?", hash)
         .fetch_optional(conn)
         .await?
         .map(|row| row.kind.convert())
         .transpose()
 }
 
-async fn insert_cat(conn: &mut SqliteConnection, cat: CatAsset) -> Result<i64> {
+async fn insert_cat(conn: &mut SqliteConnection, cat: CatAsset) -> Result<()> {
     let hash = cat.hash.as_ref();
 
     let asset_id = query!(
@@ -181,7 +173,7 @@ async fn insert_cat(conn: &mut SqliteConnection, cat: CatAsset) -> Result<i64> {
     .execute(&mut *conn)
     .await?;
 
-    Ok(asset_id)
+    Ok(())
 }
 
 async fn insert_singleton(
@@ -221,7 +213,7 @@ async fn insert_did(
     conn: &mut SqliteConnection,
     did: SingletonAsset,
     coin_info: &DidCoinInfo,
-) -> Result<i64> {
+) -> Result<()> {
     let asset_id = insert_singleton(conn, 2, did).await?;
 
     let metadata = coin_info.metadata.as_slice();
@@ -241,14 +233,15 @@ async fn insert_did(
     .execute(&mut *conn)
     .await?;
 
-    Ok(asset_id)
+    Ok(())
 }
 
 async fn update_did_coin_info(
     conn: &mut SqliteConnection,
-    asset_id: i64,
+    launcher_id: Bytes32,
     coin_info: &DidCoinInfo,
 ) -> Result<()> {
+    let launcher_id = launcher_id.as_ref();
     let metadata = coin_info.metadata.as_slice();
     let recovery_list_hash = coin_info.recovery_list_hash.as_deref();
     let num_verifications_required: i64 = coin_info.num_verifications_required.try_into()?;
@@ -260,12 +253,12 @@ async fn update_did_coin_info(
             metadata = ?,
             recovery_list_hash = ?,
             num_verifications_required = ?
-        WHERE asset_id = ?
+        WHERE asset_id = (SELECT id FROM assets WHERE hash = ?)
         ",
         metadata,
         recovery_list_hash,
         num_verifications_required,
-        asset_id
+        launcher_id
     )
     .execute(&mut *conn)
     .await?;
@@ -277,7 +270,7 @@ async fn insert_nft(
     conn: &mut SqliteConnection,
     nft: SingletonAsset,
     coin_info: &NftCoinInfo,
-) -> Result<i64> {
+) -> Result<()> {
     let asset_id = insert_singleton(conn, 1, nft).await?;
 
     let minter_hash = coin_info.minter_hash.as_deref();
@@ -319,14 +312,15 @@ async fn insert_nft(
     .execute(&mut *conn)
     .await?;
 
-    Ok(asset_id)
+    Ok(())
 }
 
 async fn update_nft_coin_info(
     conn: &mut SqliteConnection,
-    asset_id: i64,
+    launcher_id: Bytes32,
     coin_info: &NftCoinInfo,
 ) -> Result<()> {
+    let launcher_id = launcher_id.as_ref();
     let minter_hash = coin_info.minter_hash.as_deref();
     let owner_hash = coin_info.owner_hash.as_deref();
     let metadata = coin_info.metadata.as_slice();
@@ -356,9 +350,8 @@ async fn update_nft_coin_info(
             license_hash = ?,
             edition_number = ?,
             edition_total = ?
-        WHERE asset_id = ?
+        WHERE asset_id = (SELECT id FROM assets WHERE hash = ?)
         ",
-        asset_id,
         minter_hash,
         owner_hash,
         metadata,
@@ -369,7 +362,8 @@ async fn update_nft_coin_info(
         metadata_hash,
         license_hash,
         edition_number,
-        edition_total
+        edition_total,
+        launcher_id
     )
     .execute(&mut *conn)
     .await?;

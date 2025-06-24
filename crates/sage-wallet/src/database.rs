@@ -1,7 +1,4 @@
-use std::{
-    collections::HashMap,
-    time::{Duration, Instant},
-};
+use std::collections::HashMap;
 
 use chia::{
     bls::Signature,
@@ -13,37 +10,22 @@ use sage_database::{
 
 use crate::{fetch_nft_did, ChildKind, Transaction, WalletError, WalletPeer};
 
-#[derive(Debug, Default, Clone, Copy)]
-pub struct UpsertCounters {
-    pub is_p2: Duration,
-    pub insert_coin_state: Duration,
-    pub update_coin_state: Duration,
-    pub insert_p2_coin: Duration,
-    pub update_created_puzzle: Duration,
-    pub delete_puzzle: Duration,
-}
-
 pub async fn upsert_coin(
     tx: &mut DatabaseTx<'_>,
     coin_state: CoinState,
     transaction_id: Option<Bytes32>,
-    counters: &mut UpsertCounters,
 ) -> Result<(), WalletError> {
     let coin_id = coin_state.coin.coin_id();
 
     // Check if the coin is plain XCH, rather than an asset that wraps the p2 puzzle hash.
-    let start = Instant::now();
     let is_p2 = tx.is_p2_puzzle_hash(coin_state.coin.puzzle_hash).await?;
-    counters.is_p2 += start.elapsed();
 
     // If the coin is XCH, there's no reason to sync the puzzle.
-    let start = Instant::now();
     tx.insert_coin_state(coin_state, is_p2, transaction_id)
         .await?;
-    counters.insert_coin_state += start.elapsed();
 
     // If the coin already existed, instead of replacing it we will just update it.
-    let start = Instant::now();
+
     tx.update_coin_state(
         coin_id,
         coin_state.created_height,
@@ -51,17 +33,12 @@ pub async fn upsert_coin(
         transaction_id,
     )
     .await?;
-    counters.update_coin_state += start.elapsed();
 
     // This allows querying for XCH coins without joining on the derivations table.
     if is_p2 {
-        let start = Instant::now();
         tx.insert_p2_coin(coin_id).await?;
-        counters.insert_p2_coin += start.elapsed();
     } else {
-        let start = Instant::now();
         update_created_puzzle(tx, coin_state).await?;
-        counters.update_created_puzzle += start.elapsed();
     }
 
     Ok(())
@@ -74,14 +51,13 @@ pub async fn insert_puzzle(
     minter_did: Option<Bytes32>,
 ) -> Result<bool, WalletError> {
     let coin_id = coin_state.coin.coin_id();
-    let db_id = tx.coin_id(coin_id).await?;
 
     let Some(p2_puzzle_hash) = info.p2_puzzle_hash() else {
         tx.delete_coin(coin_id).await?;
         return Ok(false);
     };
 
-    let Some(p2_puzzle_id) = tx.p2_puzzle_id(p2_puzzle_hash).await? else {
+    if !tx.is_p2_puzzle_hash(p2_puzzle_hash).await? {
         tx.delete_coin(coin_id).await?;
         return Ok(false);
     };
@@ -92,18 +68,23 @@ pub async fn insert_puzzle(
             info,
             lineage_proof,
         } => {
-            tx.insert_lineage_proof(db_id, lineage_proof).await?;
+            tx.insert_lineage_proof(coin_id, lineage_proof).await?;
 
-            let asset_id = tx.insert_cat(CatAsset::empty(info.asset_id, true)).await?;
+            tx.insert_cat(CatAsset::empty(info.asset_id, true)).await?;
 
-            tx.sync_coin(db_id, asset_id, p2_puzzle_id, info.hidden_puzzle_hash)
-                .await?;
+            tx.sync_coin(
+                coin_id,
+                info.asset_id,
+                p2_puzzle_hash,
+                info.hidden_puzzle_hash,
+            )
+            .await?;
         }
         ChildKind::Did {
             lineage_proof,
             info,
         } => {
-            tx.insert_lineage_proof(db_id, lineage_proof).await?;
+            tx.insert_lineage_proof(coin_id, lineage_proof).await?;
 
             let coin_info = DidCoinInfo {
                 metadata: info.metadata,
@@ -111,25 +92,26 @@ pub async fn insert_puzzle(
                 num_verifications_required: info.num_verifications_required,
             };
 
-            let asset_id = tx
-                .insert_did(
-                    SingletonAsset::empty(info.launcher_id, true, coin_state.created_height),
-                    &coin_info,
-                )
-                .await?;
+            tx.insert_did(
+                SingletonAsset::empty(info.launcher_id, true, coin_state.created_height),
+                &coin_info,
+            )
+            .await?;
 
             if tx.is_latest_singleton_coin(coin_id).await? {
-                tx.update_did_coin_info(asset_id, &coin_info).await?;
+                tx.update_did_coin_info(info.launcher_id, &coin_info)
+                    .await?;
             }
 
-            tx.sync_coin(db_id, asset_id, p2_puzzle_id, None).await?;
+            tx.sync_coin(coin_id, info.launcher_id, p2_puzzle_hash, None)
+                .await?;
         }
         ChildKind::Nft {
             lineage_proof,
             info,
             metadata,
         } => {
-            tx.insert_lineage_proof(db_id, lineage_proof).await?;
+            tx.insert_lineage_proof(coin_id, lineage_proof).await?;
 
             let coin_info = NftCoinInfo {
                 minter_hash: minter_did,
@@ -145,18 +127,19 @@ pub async fn insert_puzzle(
                 edition_total: metadata.as_ref().map(|m| m.edition_total),
             };
 
-            let asset_id = tx
-                .insert_nft(
-                    SingletonAsset::empty(info.launcher_id, true, coin_state.created_height),
-                    &coin_info,
-                )
-                .await?;
+            tx.insert_nft(
+                SingletonAsset::empty(info.launcher_id, true, coin_state.created_height),
+                &coin_info,
+            )
+            .await?;
 
             if tx.is_latest_singleton_coin(coin_id).await? {
-                tx.update_nft_coin_info(asset_id, &coin_info).await?;
+                tx.update_nft_coin_info(info.launcher_id, &coin_info)
+                    .await?;
             }
 
-            tx.sync_coin(db_id, asset_id, p2_puzzle_id, None).await?;
+            tx.sync_coin(coin_id, info.launcher_id, p2_puzzle_hash, None)
+                .await?;
 
             let (data_uris, metadata_uris, license_uris) = metadata
                 .map(|metadata| {
