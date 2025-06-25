@@ -37,6 +37,7 @@ CREATE TABLE assets (
   name TEXT,
   icon_url TEXT,
   description TEXT,
+  is_sensitive_content BOOLEAN NOT NULL DEFAULT FALSE,
   is_visible BOOLEAN NOT NULL,
   is_pending BOOLEAN NOT NULL,
   created_height INTEGER
@@ -56,7 +57,6 @@ CREATE TABLE nfts (
   collection_id INTEGER,
   minter_hash BLOB,
   owner_hash BLOB,
-  is_sensitive_content BOOLEAN NOT NULL DEFAULT FALSE,
   metadata BLOB NOT NULL,
   metadata_updater_puzzle_hash BLOB NOT NULL,
   royalty_puzzle_hash BLOB NOT NULL,
@@ -231,7 +231,7 @@ CREATE TABLE offer_coins (
 CREATE TABLE transactions (
   id INTEGER NOT NULL PRIMARY KEY,
   hash BLOB NOT NULL UNIQUE,
-  aggregated_signature BLOB,
+  aggregated_signature BLOB NOT NULL,
   fee BLOB NOT NULL,
   submitted_timestamp INTEGER NOT NULL DEFAULT (unixepoch())
 );
@@ -239,26 +239,26 @@ CREATE TABLE transactions (
 CREATE TABLE transaction_coins (
   id INTEGER NOT NULL PRIMARY KEY,
   transaction_id INTEGER NOT NULL,
-  asset_id INTEGER NOT NULL,
-  coin_id INTEGER,
-  coin_hash BLOB NOT NULL,
-  parent_coin_hash BLOB NOT NULL,
-  puzzle_hash BLOB NOT NULL,
-  amount BLOB NOT NULL,
+  coin_id INTEGER NOT NULL,
+  is_input BOOLEAN NOT NULL,
   is_output BOOLEAN NOT NULL,
-  seq INTEGER NOT NULL,
   FOREIGN KEY (transaction_id) REFERENCES transactions(id) ON DELETE CASCADE,
-  FOREIGN KEY (asset_id) REFERENCES assets(id) ON DELETE SET NULL,
-  FOREIGN KEY (coin_id) REFERENCES coins(id) ON DELETE SET NULL,
-  UNIQUE(transaction_id, coin_hash)
+  FOREIGN KEY (coin_id) REFERENCES coins(id) ON DELETE CASCADE,
+  UNIQUE(transaction_id, coin_id)
 );
 
 CREATE TABLE transaction_spends (
   id INTEGER NOT NULL PRIMARY KEY,
-  transaction_coin_id INTEGER NOT NULL UNIQUE,
+  transaction_id INTEGER NOT NULL,
+  coin_hash BLOB NOT NULL,
+  parent_coin_hash BLOB NOT NULL,
+  puzzle_hash BLOB NOT NULL,
+  amount BLOB NOT NULL,
   puzzle_reveal BLOB NOT NULL,
   solution BLOB NOT NULL,
-  FOREIGN KEY (transaction_coin_id) REFERENCES transaction_coins(id) ON DELETE CASCADE
+  seq INTEGER NOT NULL,
+  FOREIGN KEY (transaction_id) REFERENCES transactions(id) ON DELETE CASCADE,
+  UNIQUE(transaction_id, coin_hash)
 );
 
 CREATE TABLE collections (
@@ -277,15 +277,31 @@ CREATE TABLE collections (
 CREATE TABLE files (
   id INTEGER NOT NULL PRIMARY KEY,
   hash BLOB NOT NULL UNIQUE,
+  data BLOB,
   mime_type TEXT,
-  is_hash_match BOOLEAN,
-  is_downloaded BOOLEAN NOT NULL DEFAULT FALSE
+  is_hash_match BOOLEAN
+);
+
+/*
+ * Resized images
+ *
+ * Icon = 0
+ * Thumbnail = 1
+ */
+CREATE TABLE resized_images (
+  id INTEGER NOT NULL PRIMARY KEY,
+  file_id INTEGER NOT NULL,
+  kind INTEGER NOT NULL,
+  data BLOB NOT NULL,
+  FOREIGN KEY (file_id) REFERENCES files(id) ON DELETE CASCADE
 );
 
 CREATE TABLE file_uris (
   id INTEGER NOT NULL PRIMARY KEY,
   file_id INTEGER NOT NULL,
   uri TEXT NOT NULL,
+  last_checked_timestamp INTEGER,
+  failed_attempts INTEGER NOT NULL DEFAULT 0,
   FOREIGN KEY (file_id) REFERENCES files(id) ON DELETE CASCADE,
   UNIQUE(file_id, uri)
 );

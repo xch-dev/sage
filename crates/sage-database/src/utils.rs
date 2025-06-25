@@ -1,4 +1,7 @@
-use chia::{bls::PublicKey, protocol::BytesImpl};
+use chia::{
+    bls::{PublicKey, Signature},
+    protocol::BytesImpl,
+};
 
 use crate::{DatabaseError, Result};
 
@@ -23,6 +26,12 @@ impl<const N: usize> Convert<BytesImpl<N>> for Vec<u8> {
 impl Convert<PublicKey> for Vec<u8> {
     fn convert(self) -> Result<PublicKey> {
         Ok(PublicKey::from_bytes(&self.convert()?)?)
+    }
+}
+
+impl Convert<Signature> for Vec<u8> {
+    fn convert(self) -> Result<Signature> {
+        Ok(Signature::from_bytes(&self.convert()?)?)
     }
 }
 

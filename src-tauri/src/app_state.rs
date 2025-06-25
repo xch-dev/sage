@@ -22,20 +22,13 @@ pub async fn initialize(app_handle: AppHandle, sage: &mut Sage) -> Result<()> {
                 SyncEvent::Stop => ApiEvent::Stop,
                 SyncEvent::Subscribed => ApiEvent::Subscribed,
                 SyncEvent::DerivationIndex { .. } => ApiEvent::Derivation,
-                SyncEvent::TransactionEnded {
+                SyncEvent::TransactionFailed {
                     transaction_id,
                     error,
-                    success,
-                } => {
-                    if success {
-                        ApiEvent::CoinState
-                    } else {
-                        ApiEvent::TransactionFailed {
-                            transaction_id: transaction_id.to_string(),
-                            error,
-                        }
-                    }
-                }
+                } => ApiEvent::TransactionFailed {
+                    transaction_id: transaction_id.to_string(),
+                    error,
+                },
                 // TODO: New event?
                 SyncEvent::CoinsUpdated { .. }
                 | SyncEvent::TransactionUpdated { .. }

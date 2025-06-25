@@ -1,7 +1,4 @@
-use std::{
-    sync::Arc,
-    time::{Duration, Instant},
-};
+use std::{collections::HashSet, sync::Arc, time::Duration};
 
 use chia::protocol::{Bytes32, CoinState, CoinStateFilters};
 use sage_database::DatabaseTx;
@@ -11,7 +8,7 @@ use tokio::{
 };
 use tracing::{debug, info, warn};
 
-use crate::{delete_puzzle, upsert_coin, UpsertCounters, Wallet, WalletError, WalletPeer};
+use crate::{Wallet, WalletError, WalletPeer};
 
 use super::{PeerState, SyncEvent};
 
@@ -196,27 +193,32 @@ pub async fn incremental_sync(
     sync_sender: &mpsc::Sender<SyncEvent>,
 ) -> Result<(), WalletError> {
     let mut tx = wallet.db.tx().await?;
-
-    let start = Instant::now();
-
-    let mut counters = UpsertCounters::default();
+    let mut confirmed_transactions = HashSet::new();
 
     for &coin_state in &coin_states {
-        upsert_coin(&mut tx, coin_state, None, &mut counters).await?;
+        tx.insert_coin(coin_state).await?;
+
+        if tx.is_p2_puzzle_hash(coin_state.coin.puzzle_hash).await? {
+            tx.sync_coin(
+                coin_state.coin.coin_id(),
+                Bytes32::default(),
+                coin_state.coin.puzzle_hash,
+                None,
+            )
+            .await?;
+        }
 
         if coin_state.spent_height.is_some() {
-            let start = Instant::now();
-            delete_puzzle(&mut tx, coin_state.coin.coin_id()).await?;
-            counters.delete_puzzle += start.elapsed();
+            confirmed_transactions.extend(
+                tx.transactions_for_output(coin_state.coin.coin_id())
+                    .await?,
+            );
         }
     }
 
-    debug!(
-        "Upserted {} coins in {:?}, with counters {:?}",
-        coin_states.len(),
-        start.elapsed(),
-        counters
-    );
+    for transaction_id in confirmed_transactions {
+        tx.remove_transaction(transaction_id).await?;
+    }
 
     let mut derived = false;
 

@@ -15,7 +15,6 @@ CREATE INDEX idx_offer_assets_offer_id ON offer_assets(offer_id);
 CREATE INDEX idx_offer_assets_asset_id ON offer_assets(asset_id);
 CREATE INDEX idx_offer_coins_offer_id ON offer_coins(offer_id);
 CREATE INDEX idx_offer_coins_coin_id ON offer_coins(coin_id);
-CREATE INDEX idx_transaction_coins_asset_id ON transaction_coins(asset_id);
 CREATE INDEX idx_transaction_coins_coin_id ON transaction_coins(coin_id);
 CREATE INDEX idx_transaction_coins_transaction_id ON transaction_coins(transaction_id);
 CREATE INDEX idx_options_underlying_asset_id ON options(underlying_asset_id);

@@ -7,22 +7,22 @@ use tracing::warn;
 #[derive(Debug, Default, Clone)]
 pub struct ComputedNftInfo {
     pub name: Option<String>,
+    pub description: Option<String>,
     pub sensitive_content: bool,
     pub collection: Option<CollectionRow>,
 }
 
-pub fn compute_nft_info(did_id: Option<Bytes32>, blob: Option<&[u8]>) -> ComputedNftInfo {
-    let Some(json) = blob.and_then(|blob| {
-        Chip0007Metadata::from_bytes(blob)
-            .map_err(|error| {
-                warn!(
-                    "Error parsing offchain metadata: {error}, {}",
-                    String::from_utf8_lossy(blob)
-                );
-                error
-            })
-            .ok()
-    }) else {
+pub fn compute_nft_info(did_id: Option<Bytes32>, blob: &[u8]) -> ComputedNftInfo {
+    let Some(json) = Chip0007Metadata::from_bytes(blob)
+        .map_err(|error| {
+            warn!(
+                "Error parsing offchain metadata: {error}, {}",
+                String::from_utf8_lossy(blob)
+            );
+            error
+        })
+        .ok()
+    else {
         return ComputedNftInfo::default();
     };
 
@@ -65,6 +65,7 @@ pub fn compute_nft_info(did_id: Option<Bytes32>, blob: Option<&[u8]>) -> Compute
 
     ComputedNftInfo {
         name: Some(json.name.clone()),
+        description: Some(json.description.clone()),
         sensitive_content,
         collection,
     }
