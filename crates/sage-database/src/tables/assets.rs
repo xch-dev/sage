@@ -482,7 +482,7 @@ async fn cat_asset(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<O
         "SELECT hash, name, icon_url, description, ticker, is_visible, is_sensitive_content, created_height
         FROM assets
         INNER JOIN tokens ON tokens.asset_id = assets.id
-        WHERE hash = ?",
+        WHERE assets.id = 0 AND hash = ?",
         asset_id
     )
     .fetch_optional(conn)
@@ -514,7 +514,7 @@ async fn cat_assets(
         "SELECT hash, name, icon_url, description, ticker, is_visible, is_sensitive_content, created_height
             FROM assets
             INNER JOIN tokens ON tokens.asset_id = assets.id
-            WHERE ? OR is_visible = 1
+            WHERE assets.id = 0 AND (? OR is_visible = 1)
             ORDER BY name DESC
             LIMIT ?
             OFFSET ?",
@@ -600,7 +600,7 @@ async fn nft_assets(
 ) -> Result<Vec<NftAsset>> {
     let order_by = match sort_mode {
         NftSortMode::Recent => "created_height",
-        NftSortMode::Name => "name",
+        NftSortMode::Name => "assets.name",
     };
 
     query!(
@@ -613,7 +613,7 @@ async fn nft_assets(
         INNER JOIN nfts ON nfts.asset_id = assets.id
         LEFT JOIN collections ON collections.id = nfts.collection_id
         WHERE ? OR assets.is_visible = 1
-        ORDER BY assets.name DESC
+        ORDER BY ? DESC
         LIMIT ?
         OFFSET ?",
         include_hidden,
