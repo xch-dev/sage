@@ -7,7 +7,6 @@ mod p2_puzzles;
 mod transactions;
 
 pub use assets::*;
-pub use blocks::*;
 pub use coins::*;
 pub use collections::*;
 pub use files::*;

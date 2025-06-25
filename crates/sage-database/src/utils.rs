@@ -1,6 +1,6 @@
 use chia::{
     bls::{PublicKey, Signature},
-    protocol::{BytesImpl, Program},
+    protocol::BytesImpl,
 };
 
 use crate::{DatabaseError, Result};
