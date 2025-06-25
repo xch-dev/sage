@@ -598,12 +598,7 @@ async fn nft_assets(
     offset: u32,
     include_hidden: bool,
 ) -> Result<Vec<NftAsset>> {
-    let order_by = match sort_mode {
-        NftSortMode::Recent => "created_height",
-        NftSortMode::Name => "assets.name",
-    };
-
-    query!(
+    let mut query = sqlx::QueryBuilder::new(
         "SELECT        
             assets.hash AS asset_hash, assets.name, assets.icon_url, assets.description, is_sensitive_content,
             assets.is_visible, assets.created_height, collections.hash AS 'collection_hash?', nfts.minter_hash, owner_hash,
@@ -612,44 +607,89 @@ async fn nft_assets(
         FROM assets
         INNER JOIN nfts ON nfts.asset_id = assets.id
         LEFT JOIN collections ON collections.id = nfts.collection_id
-        WHERE ? OR assets.is_visible = 1
-        ORDER BY ? DESC
-        LIMIT ?
-        OFFSET ?",
-        include_hidden,
-        order_by,
-        limit,
-        offset
-    )
-    .fetch_all(conn)
-    .await?
-    .into_iter()
-    .map(|row| {
-        Ok(NftAsset {
-            asset: Asset {
-                hash: row.asset_hash.convert()?,
-                name: row.name,
-                icon_url: row.icon_url,
-                description: row.description,
-                is_visible: row.is_visible,
-                is_sensitive_content: row.is_sensitive_content,
-                created_height: row.created_height.map(TryInto::try_into).transpose()?,
-            },
-            nft_info: NftCoinInfo {
-                collection_id: row.collection_hash.map(Convert::convert).transpose()?,
-                minter_hash: row.minter_hash.map(Convert::convert).transpose()?,
-                owner_hash: row.owner_hash.map(Convert::convert).transpose()?,
-                metadata: Program::from(row.metadata),
-                metadata_updater_puzzle_hash: row.metadata_updater_puzzle_hash.convert()?,
-                royalty_puzzle_hash: row.royalty_puzzle_hash.convert()?,
-                royalty_basis_points: row.royalty_basis_points.try_into()?,
-                data_hash: row.data_hash.map(Convert::convert).transpose()?,
-                metadata_hash: row.metadata_hash.map(Convert::convert).transpose()?,
-                license_hash: row.license_hash.map(Convert::convert).transpose()?,
-                edition_number: row.edition_number.map(TryInto::try_into).transpose()?,
-                edition_total: row.edition_total.map(TryInto::try_into).transpose()?,
-            },
+        WHERE 1=1 "
+    );
+
+    if let Some(name_search) = name_search {
+        query.push("AND assets.name LIKE ?");
+        query.push_bind(format!("%{}%", name_search));
+    }
+
+    if let Some(group) = group_search {
+        match group {
+            NftGroupSearch::Collection(id) => {
+                query.push(" AND collections.hash = ");
+                query.push_bind(id.as_ref());
+            }
+            NftGroupSearch::NoCollection => {
+                query.push(" AND collections.hash IS NULL");
+            }
+            NftGroupSearch::MinterDid(id) => {
+                query.push(" AND nfts.minter_hash = ");
+                query.push_bind(id.as_ref());
+            }
+            NftGroupSearch::NoMinterDid => {
+                query.push(" AND nfts.minter_hash IS NULL");
+            }
+            NftGroupSearch::OwnerDid(id) => {
+                query.push(" AND nfts.owner_hash = ");
+                query.push_bind(id.as_ref());
+            }
+            NftGroupSearch::NoOwnerDid => {
+                query.push(" AND nfts.owner_hash IS NULL");
+            }
+        }
+    }
+    // Add ORDER BY clause based on sort_mode
+    query.push(" ORDER BY ");
+
+    // Add visible DESC to sort order if including hidden NFTs
+    if include_hidden {
+        query.push("assets.is_visible DESC, ");
+    }
+
+    match sort_mode {
+        NftSortMode::Recent => {
+            query.push("assets.is_pending DESC, assets.created_height DESC");
+        }
+        NftSortMode::Name => {
+            query.push("assets.is_pending DESC, assets.name ASC, nfts.edition_number ASC");
+        }
+    }
+
+    query.push(" LIMIT ? OFFSET ?");
+    let query = query.build().bind(limit).bind(offset);
+
+    query
+        .fetch_all(conn)
+        .await?
+        .into_iter()
+        .map(|row| {
+            Ok(NftAsset {
+                asset: Asset {
+                    hash: row.asset_hash.convert()?,
+                    name: row.name,
+                    icon_url: row.icon_url,
+                    description: row.description,
+                    is_visible: row.is_visible,
+                    is_sensitive_content: row.is_sensitive_content,
+                    created_height: row.created_height.map(TryInto::try_into).transpose()?,
+                },
+                nft_info: NftCoinInfo {
+                    collection_id: row.collection_hash.map(Convert::convert).transpose()?,
+                    minter_hash: row.minter_hash.map(Convert::convert).transpose()?,
+                    owner_hash: row.owner_hash.map(Convert::convert).transpose()?,
+                    metadata: Program::from(row.metadata),
+                    metadata_updater_puzzle_hash: row.metadata_updater_puzzle_hash.convert()?,
+                    royalty_puzzle_hash: row.royalty_puzzle_hash.convert()?,
+                    royalty_basis_points: row.royalty_basis_points.try_into()?,
+                    data_hash: row.data_hash.map(Convert::convert).transpose()?,
+                    metadata_hash: row.metadata_hash.map(Convert::convert).transpose()?,
+                    license_hash: row.license_hash.map(Convert::convert).transpose()?,
+                    edition_number: row.edition_number.map(TryInto::try_into).transpose()?,
+                    edition_total: row.edition_total.map(TryInto::try_into).transpose()?,
+                },
+            })
         })
-    })
-    .collect()
+        .collect()
 }
