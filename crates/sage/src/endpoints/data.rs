@@ -29,7 +29,7 @@ use sage_api::{
     NftCollectionRecord, NftData, NftRecord, NftSortMode as ApiNftSortMode,
     PendingTransactionRecord, TransactionCoin, TransactionRecord,
 };
-use sage_database::{CoinKind, CoinSortMode, NftGroup, NftRow, NftSearchParams, NftSortMode};
+use sage_database::{CoinKind, CoinSortMode, NftGroup, NftRow, NftSearchParams, NftSortMode, NftGroupSearch};
 use sage_wallet::WalletError;
 use sqlx::{sqlite::SqliteRow, Row};
 
@@ -495,42 +495,37 @@ impl Sage {
         let group = match (&req.collection_id, &req.minter_did_id, &req.owner_did_id) {
             (Some(collection_id), None, None) => {
                 if collection_id == "none" {
-                    Some(NftGroup::NoCollection)
+                    Some(NftGroupSearch::NoCollection)
                 } else {
-                    Some(NftGroup::Collection(parse_collection_id(
+                    Some(NftGroupSearch::Collection(parse_collection_id(
                         collection_id.clone(),
                     )?))
                 }
             }
             (None, Some(minter_did_id), None) => {
                 if minter_did_id == "none" {
-                    Some(NftGroup::NoMinterDid)
+                    Some(NftGroupSearch::NoMinterDid)
                 } else {
-                    Some(NftGroup::MinterDid(parse_did_id(minter_did_id.clone())?))
+                    Some(NftGroupSearch::MinterDid(parse_did_id(minter_did_id.clone())?))
                 }
             }
             (None, None, Some(owner_did_id)) => {
                 if owner_did_id == "none" {
-                    Some(NftGroup::NoOwnerDid)
+                    Some(NftGroupSearch::NoOwnerDid)
                 } else {
-                    Some(NftGroup::OwnerDid(parse_did_id(owner_did_id.clone())?))
+                    Some(NftGroupSearch::OwnerDid(parse_did_id(owner_did_id.clone())?))
                 }
             }
             (None, None, None) => None,
             _ => return Err(Error::InvalidGroup),
         };
 
-        let params = NftSearchParams {
-            sort_mode: match req.sort_mode {
+        let sort_mode = match req.sort_mode {
                 ApiNftSortMode::Recent => NftSortMode::Recent,
                 ApiNftSortMode::Name => NftSortMode::Name,
-            },
-            include_hidden: req.include_hidden,
-            group,
-            name: req.name,
-        };
+            };
 
-        let (nfts, total) = wallet.db.search_nfts(params, req.limit, req.offset).await?;
+        let (nfts, total) = wallet.db.nft_assets(req.name, group, sort_mode, req.limit, req.offset, req.include_hidden).await?;
 
         for nft_row in nfts {
             let Some(nft) = wallet.db.nft(nft_row.launcher_id).await? else {

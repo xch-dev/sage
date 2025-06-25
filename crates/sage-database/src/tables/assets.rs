@@ -76,6 +76,22 @@ pub struct DidCoinInfo {
     pub num_verifications_required: u64,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum NftSortMode {
+    Recent,
+    Name,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum NftGroupSearch {
+    Collection(Bytes32),
+    NoCollection,
+    MinterDid(Bytes32),
+    NoMinterDid,
+    OwnerDid(Bytes32),
+    NoOwnerDid,
+}
+
 #[derive(Debug, Clone)]
 pub struct NftCoinInfo {
     pub minter_hash: Option<Bytes32>,
@@ -121,11 +137,14 @@ impl Database {
 
     pub async fn nft_assets(
         &self,
+        name_search: Option<String>,
+        group_search: Option<NftGroupSearch>,
+        sort_mode: NftSortMode,
         limit: u32,
         offset: u32,
         include_hidden: bool,
     ) -> Result<Vec<NftAsset>> {
-        nft_assets(&self.pool, limit, offset, include_hidden).await
+        nft_assets(&self.pool, name_search, group_search, sort_mode, limit, offset, include_hidden).await
     }
 }
 
@@ -469,8 +488,7 @@ async fn nft_asset(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<O
         "SELECT        
             hash, name, icon_url, description, is_visible, created_height,
             minter_hash, owner_hash, metadata, metadata_updater_puzzle_hash, royalty_puzzle_hash,
-            royalty_basis_points, data_hash, metadata_hash, license_hash, edition_number,edition_total
-            edition_total
+            royalty_basis_points, data_hash, metadata_hash, license_hash, edition_number, edition_total
         FROM assets
         INNER JOIN nfts ON nfts.asset_id = assets.id
         WHERE hash = ?",
@@ -508,22 +526,31 @@ async fn nft_asset(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<O
 
 async fn nft_assets(
     conn: impl SqliteExecutor<'_>,
+    name_search: Option<String>,
+    group_search: Option<NftGroupSearch>,
+    sort_mode: NftSortMode,
     limit: u32,
     offset: u32,
     include_hidden: bool,
 ) -> Result<Vec<NftAsset>> {
+    let order_by = match sort_mode {
+        NftSortMode::Recent => "created_height",
+        NftSortMode::Name => "name",
+    };
+
     query!(
         "SELECT        
             hash, name, icon_url, description, is_visible, created_height,
             minter_hash, owner_hash, metadata, metadata_updater_puzzle_hash, royalty_puzzle_hash,
-            royalty_basis_points, data_hash, metadata_hash, license_hash, edition_number,edition_total
+            royalty_basis_points, data_hash, metadata_hash, license_hash, edition_number, edition_total
         FROM assets
         INNER JOIN nfts ON nfts.asset_id = assets.id
         WHERE ? OR is_visible = 1
-        ORDER BY name DESC
+        ORDER BY ? DESC
         LIMIT ?
         OFFSET ?",
         include_hidden,
+        order_by,
         limit,
         offset
     )
