@@ -1,5 +1,5 @@
 use chia::protocol::{Bytes32, Program};
-use sqlx::{query, SqliteConnection, SqliteExecutor};
+use sqlx::{query, Row, SqliteConnection, SqliteExecutor};
 
 use crate::{Convert, Database, DatabaseError, DatabaseTx, Result};
 
@@ -619,21 +619,21 @@ async fn nft_assets(
         match group {
             NftGroupSearch::Collection(id) => {
                 query.push(" AND collections.hash = ");
-                query.push_bind(id.as_ref());
+                query.push_bind(id.as_ref().to_vec());
             }
             NftGroupSearch::NoCollection => {
                 query.push(" AND collections.hash IS NULL");
             }
             NftGroupSearch::MinterDid(id) => {
                 query.push(" AND nfts.minter_hash = ");
-                query.push_bind(id.as_ref());
+                query.push_bind(id.as_ref().to_vec());
             }
             NftGroupSearch::NoMinterDid => {
                 query.push(" AND nfts.minter_hash IS NULL");
             }
             NftGroupSearch::OwnerDid(id) => {
                 query.push(" AND nfts.owner_hash = ");
-                query.push_bind(id.as_ref());
+                query.push_bind(id.as_ref().to_vec());
             }
             NftGroupSearch::NoOwnerDid => {
                 query.push(" AND nfts.owner_hash IS NULL");
@@ -667,27 +667,56 @@ async fn nft_assets(
         .map(|row| {
             Ok(NftAsset {
                 asset: Asset {
-                    hash: row.asset_hash.convert()?,
-                    name: row.name,
-                    icon_url: row.icon_url,
-                    description: row.description,
-                    is_visible: row.is_visible,
-                    is_sensitive_content: row.is_sensitive_content,
-                    created_height: row.created_height.map(TryInto::try_into).transpose()?,
+                    hash: row.get::<Vec<u8>, _>("asset_hash").convert()?,
+                    name: row.get::<Option<String>, _>("name"),
+                    icon_url: row.get::<Option<String>, _>("icon_url"),
+                    description: row.get::<Option<String>, _>("description"),
+                    is_visible: row.get::<bool, _>("is_visible"),
+                    is_sensitive_content: row.get::<bool, _>("is_sensitive_content"),
+                    created_height: row
+                        .get::<Option<i64>, _>("created_height")
+                        .map(TryInto::try_into)
+                        .transpose()?,
                 },
                 nft_info: NftCoinInfo {
-                    collection_id: row.collection_hash.map(Convert::convert).transpose()?,
-                    minter_hash: row.minter_hash.map(Convert::convert).transpose()?,
-                    owner_hash: row.owner_hash.map(Convert::convert).transpose()?,
-                    metadata: Program::from(row.metadata),
-                    metadata_updater_puzzle_hash: row.metadata_updater_puzzle_hash.convert()?,
-                    royalty_puzzle_hash: row.royalty_puzzle_hash.convert()?,
-                    royalty_basis_points: row.royalty_basis_points.try_into()?,
-                    data_hash: row.data_hash.map(Convert::convert).transpose()?,
-                    metadata_hash: row.metadata_hash.map(Convert::convert).transpose()?,
-                    license_hash: row.license_hash.map(Convert::convert).transpose()?,
-                    edition_number: row.edition_number.map(TryInto::try_into).transpose()?,
-                    edition_total: row.edition_total.map(TryInto::try_into).transpose()?,
+                    collection_id: row
+                        .get::<Option<Vec<u8>>, _>("collection_hash")
+                        .map(Convert::convert)
+                        .transpose()?,
+                    minter_hash: row
+                        .get::<Option<Vec<u8>>, _>("minter_hash")
+                        .map(Convert::convert)
+                        .transpose()?,
+                    owner_hash: row
+                        .get::<Option<Vec<u8>>, _>("owner_hash")
+                        .map(Convert::convert)
+                        .transpose()?,
+                    metadata: Program::from(row.get::<Vec<u8>, _>("metadata")),
+                    metadata_updater_puzzle_hash: row
+                        .get::<Vec<u8>, _>("metadata_updater_puzzle_hash")
+                        .convert()?,
+                    royalty_puzzle_hash: row.get::<Vec<u8>, _>("royalty_puzzle_hash").convert()?,
+                    royalty_basis_points: row.get::<u16, _>("royalty_basis_points"),
+                    data_hash: row
+                        .get::<Option<Vec<u8>>, _>("data_hash")
+                        .map(Convert::convert)
+                        .transpose()?,
+                    metadata_hash: row
+                        .get::<Option<Vec<u8>>, _>("metadata_hash")
+                        .map(Convert::convert)
+                        .transpose()?,
+                    license_hash: row
+                        .get::<Option<Vec<u8>>, _>("license_hash")
+                        .map(Convert::convert)
+                        .transpose()?,
+                    edition_number: row
+                        .get::<Option<i64>, _>("edition_number")
+                        .map(TryInto::try_into)
+                        .transpose()?,
+                    edition_total: row
+                        .get::<Option<i64>, _>("edition_total")
+                        .map(TryInto::try_into)
+                        .transpose()?,
                 },
             })
         })

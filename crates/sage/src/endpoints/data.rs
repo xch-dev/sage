@@ -29,7 +29,9 @@ use sage_api::{
     NftCollectionRecord, NftData, NftRecord, NftSortMode as ApiNftSortMode,
     PendingTransactionRecord, TransactionCoin, TransactionRecord,
 };
-use sage_database::{CoinKind, CoinSortMode, NftGroup, NftRow, NftSearchParams, NftSortMode, NftGroupSearch};
+use sage_database::{
+    CoinKind, CoinSortMode, NftGroup, NftGroupSearch, NftRow, NftSearchParams, NftSortMode,
+};
 use sage_wallet::WalletError;
 use sqlx::{sqlite::SqliteRow, Row};
 
@@ -506,14 +508,18 @@ impl Sage {
                 if minter_did_id == "none" {
                     Some(NftGroupSearch::NoMinterDid)
                 } else {
-                    Some(NftGroupSearch::MinterDid(parse_did_id(minter_did_id.clone())?))
+                    Some(NftGroupSearch::MinterDid(parse_did_id(
+                        minter_did_id.clone(),
+                    )?))
                 }
             }
             (None, None, Some(owner_did_id)) => {
                 if owner_did_id == "none" {
                     Some(NftGroupSearch::NoOwnerDid)
                 } else {
-                    Some(NftGroupSearch::OwnerDid(parse_did_id(owner_did_id.clone())?))
+                    Some(NftGroupSearch::OwnerDid(parse_did_id(
+                        owner_did_id.clone(),
+                    )?))
                 }
             }
             (None, None, None) => None,
@@ -521,12 +527,24 @@ impl Sage {
         };
 
         let sort_mode = match req.sort_mode {
-                ApiNftSortMode::Recent => NftSortMode::Recent,
-                ApiNftSortMode::Name => NftSortMode::Name,
-            };
+            ApiNftSortMode::Recent => NftSortMode::Recent,
+            ApiNftSortMode::Name => NftSortMode::Name,
+        };
 
-        let (nfts, total) = wallet.db.nft_assets(req.name, group, sort_mode, req.limit, req.offset, req.include_hidden).await?;
+        // TODO - add total to all paged queries
+        let (nfts, total) = wallet
+            .db
+            .nft_assets(
+                req.name,
+                group,
+                sort_mode,
+                req.limit,
+                req.offset,
+                req.include_hidden,
+            )
+            .await?;
 
+        // TODO - we should not need the secondary fetches here any longer
         for nft_row in nfts {
             let Some(nft) = wallet.db.nft(nft_row.launcher_id).await? else {
                 continue;
