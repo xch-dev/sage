@@ -54,7 +54,7 @@ CREATE TABLE tokens (
 CREATE TABLE nfts (
   id INTEGER NOT NULL PRIMARY KEY,
   asset_id INTEGER NOT NULL UNIQUE,
-  collection_id INTEGER,
+  collection_id INTEGER NOT NULL DEFAULT 0,
   minter_hash BLOB,
   owner_hash BLOB,
   metadata BLOB NOT NULL,
