@@ -38,6 +38,14 @@ pub struct Derivation {
     pub is_hardened: bool,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct DerivationRow {
+    pub p2_puzzle_hash: Bytes32,
+    pub index: u32,
+    pub hardened: bool,
+    pub synthetic_key: PublicKey,
+}
+
 impl Database {
     pub async fn custody_p2_puzzle_hashes(&self) -> Result<Vec<Bytes32>> {
         custody_p2_puzzle_hashes(&self.pool).await
@@ -67,6 +75,15 @@ impl Database {
 
     pub async fn derivation(&self, public_key: PublicKey) -> Result<Option<Derivation>> {
         derivation(&self.pool, public_key).await
+    }
+
+    pub async fn derivations(
+        &self,
+        is_hardened: bool,
+        limit: u32,
+        offset: u32,
+    ) -> Result<(Vec<DerivationRow>, u32)> {
+        derivations(&self.pool, is_hardened, limit, offset).await
     }
 }
 
@@ -172,6 +189,50 @@ async fn derivation_index(conn: impl SqliteExecutor<'_>, is_hardened: bool) -> R
     .await?
     .derivation_index
     .convert()
+}
+
+async fn derivations(
+    conn: impl SqliteExecutor<'_>,
+    is_hardened: bool,
+    limit: u32,
+    offset: u32,
+) -> Result<(Vec<DerivationRow>, u32)> {
+    let rows = query!(
+        "
+        SELECT
+            p2_puzzles.hash AS p2_puzzle_hash,
+            public_keys.derivation_index,
+            public_keys.is_hardened,
+            public_keys.key AS synthetic_key,
+            COUNT(*) OVER() AS total
+        FROM p2_puzzles
+        INNER JOIN public_keys ON public_keys.p2_puzzle_id = p2_puzzles.id
+        WHERE public_keys.is_hardened = ?
+        ORDER BY public_keys.derivation_index ASC
+        LIMIT ? OFFSET ?
+        ",
+        is_hardened,
+        limit,
+        offset
+    )
+    .fetch_all(conn)
+    .await?;
+
+    let total_count = rows.first().map_or(Ok(0), |row| row.total.try_into())?;
+
+    let derivations = rows
+        .into_iter()
+        .map(|row| {
+            Ok(DerivationRow {
+                p2_puzzle_hash: row.p2_puzzle_hash.convert()?,
+                index: row.derivation_index.convert()?,
+                hardened: row.is_hardened,
+                synthetic_key: row.synthetic_key.convert()?,
+            })
+        })
+        .collect::<std::result::Result<Vec<DerivationRow>, DatabaseError>>()?;
+
+    Ok((derivations, total_count))
 }
 
 async fn unused_derivation_index(conn: impl SqliteExecutor<'_>, is_hardened: bool) -> Result<u32> {
