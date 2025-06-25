@@ -255,8 +255,8 @@ impl Sage {
 
     pub async fn get_cats(&self, _req: GetCats) -> Result<GetCatsResponse> {
         let wallet = self.wallet()?;
-        // TODO: add paging and is_visible to get_cats
-        let cats = wallet.db.cat_assets(10000, 0, false).await?;
+        // TODO: add paging and is_visible to GetCats
+        let (cats, total) = wallet.db.cat_assets(false, 10000, 0).await?;
 
         let mut records = Vec::with_capacity(cats.len());
 
@@ -532,16 +532,15 @@ impl Sage {
             ApiNftSortMode::Name => NftSortMode::Name,
         };
 
-        // TODO - add total to all paged queries
         let (nfts, total) = wallet
             .db
             .nft_assets(
                 req.name,
                 group,
                 sort_mode,
+                req.include_hidden,
                 req.limit,
                 req.offset,
-                req.include_hidden,
             )
             .await?;
 

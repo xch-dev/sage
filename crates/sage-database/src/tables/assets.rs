@@ -124,11 +124,11 @@ impl Database {
 
     pub async fn cat_assets(
         &self,
+        include_hidden: bool,
         limit: u32,
         offset: u32,
-        include_hidden: bool,
-    ) -> Result<Vec<CatAsset>> {
-        cat_assets(&self.pool, limit, offset, include_hidden).await
+    ) -> std::result::Result<(Vec<CatAsset>, u32), DatabaseError> {
+        cat_assets(&self.pool, include_hidden, limit, offset).await
     }
 
     pub async fn nft_asset(&self, asset_id: Bytes32) -> Result<Option<NftAsset>> {
@@ -140,18 +140,18 @@ impl Database {
         name_search: Option<String>,
         group_search: Option<NftGroupSearch>,
         sort_mode: NftSortMode,
+        include_hidden: bool,
         limit: u32,
         offset: u32,
-        include_hidden: bool,
-    ) -> Result<Vec<NftAsset>> {
+    ) -> std::result::Result<(Vec<NftAsset>, u32), DatabaseError> {
         nft_assets(
             &self.pool,
             name_search,
             group_search,
             sort_mode,
+            include_hidden,
             limit,
             offset,
-            include_hidden,
         )
         .await
     }
@@ -520,12 +520,12 @@ async fn cat_asset(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<O
 
 async fn cat_assets(
     conn: impl SqliteExecutor<'_>,
+    include_hidden: bool,
     limit: u32,
     offset: u32,
-    include_hidden: bool,
-) -> Result<Vec<CatAsset>> {
-    query!(
-        "SELECT hash, name, icon_url, description, ticker, is_visible, is_sensitive_content, created_height
+) -> std::result::Result<(Vec<CatAsset>, u32), DatabaseError> {
+    let rows = query!(
+        "SELECT hash, name, icon_url, description, ticker, is_visible, is_sensitive_content, created_height, COUNT(*) OVER () AS total
             FROM assets
             INNER JOIN tokens ON tokens.asset_id = assets.id
             WHERE assets.id = 0 AND (? OR is_visible = 1)
@@ -537,23 +537,29 @@ async fn cat_assets(
         offset
     )
     .fetch_all(conn)
-    .await?
-    .into_iter()
-    .map(|row| {
-        Ok(CatAsset {
-            asset: Asset {
-                hash: row.hash.convert()?,
-                name: row.name,
-                icon_url: row.icon_url,
-                description: row.description,
-                is_visible: row.is_visible,
-                is_sensitive_content: row.is_sensitive_content,
-                created_height: row.created_height.map(TryInto::try_into).transpose()?,
-            },
-            ticker: row.ticker,
+    .await?;
+
+    let total_count = rows.first().map_or(Ok(0), |row| row.total.try_into())?;
+
+    let cats = rows
+        .into_iter()
+        .map(|row| {
+            Ok(CatAsset {
+                asset: Asset {
+                    hash: row.hash.convert()?,
+                    name: row.name,
+                    icon_url: row.icon_url,
+                    description: row.description,
+                    is_visible: row.is_visible,
+                    is_sensitive_content: row.is_sensitive_content,
+                    created_height: row.created_height.map(TryInto::try_into).transpose()?,
+                },
+                ticker: row.ticker,
+            })
         })
-    })
-    .collect()
+        .collect::<std::result::Result<Vec<CatAsset>, DatabaseError>>()?;
+
+    Ok((cats, total_count))
 }
 
 async fn nft_asset(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<Option<NftAsset>> {
@@ -608,16 +614,17 @@ async fn nft_assets(
     name_search: Option<String>,
     group_search: Option<NftGroupSearch>,
     sort_mode: NftSortMode,
+    include_hidden: bool,
     limit: u32,
     offset: u32,
-    include_hidden: bool,
-) -> Result<Vec<NftAsset>> {
+) -> std::result::Result<(Vec<NftAsset>, u32), DatabaseError> {
     let mut query = sqlx::QueryBuilder::new(
         "SELECT        
             assets.hash AS asset_hash, assets.name, assets.icon_url, assets.description, is_sensitive_content,
             assets.is_visible, assets.created_height, collections.hash AS 'collection_hash?', nfts.minter_hash, owner_hash,
             metadata, metadata_updater_puzzle_hash, royalty_puzzle_hash, royalty_basis_points,
-            data_hash, metadata_hash, license_hash, edition_number, edition_total
+            data_hash, metadata_hash, license_hash, edition_number, edition_total,
+            COUNT(*) OVER() as total_count	
         FROM assets
         INNER JOIN nfts ON nfts.asset_id = assets.id
         LEFT JOIN collections ON collections.id = nfts.collection_id
@@ -674,9 +681,12 @@ async fn nft_assets(
     query.push(" LIMIT ? OFFSET ?");
     let query = query.build().bind(limit).bind(offset);
 
-    query
-        .fetch_all(conn)
-        .await?
+    let rows = query.fetch_all(conn).await?;
+    let total_count = rows
+        .first()
+        .map_or(Ok(0), |row| row.get::<i64, _>("total_count").try_into())?;
+
+    let nfts = rows
         .into_iter()
         .map(|row| {
             Ok(NftAsset {
@@ -734,7 +744,9 @@ async fn nft_assets(
                 },
             })
         })
-        .collect()
+        .collect::<std::result::Result<Vec<NftAsset>, DatabaseError>>()?;
+
+    Ok((nfts, total_count))
 }
 
 async fn did_asset(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<Option<DidAsset>> {
