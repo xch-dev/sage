@@ -2,7 +2,6 @@ mod coin_states;
 mod offers;
 mod primitives;
 mod tables;
-mod transactions;
 mod utils;
 
 pub use tables::*;

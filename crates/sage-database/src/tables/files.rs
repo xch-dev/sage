@@ -120,9 +120,8 @@ async fn candidates_for_download(
         SELECT hash, uri, last_checked_timestamp, failed_attempts
         FROM file_uris
         INNER JOIN files ON files.id = file_uris.file_id
-        WHERE last_checked_timestamp IS NULL
-        AND (data IS NULL OR NOT is_hash_match)
-        AND unixepoch() - last_checked_timestamp >= ?
+        WHERE (data IS NULL OR NOT is_hash_match)
+        AND (last_checked_timestamp IS NULL OR unixepoch() - last_checked_timestamp >= ?)
         AND failed_attempts < ?
         ORDER BY last_checked_timestamp ASC
         LIMIT ?

@@ -1,4 +1,4 @@
-use std::{sync::Arc, time::Duration};
+use std::{collections::HashSet, sync::Arc, time::Duration};
 
 use chia::protocol::{Bytes32, CoinState, CoinStateFilters};
 use sage_database::DatabaseTx;
@@ -193,6 +193,7 @@ pub async fn incremental_sync(
     sync_sender: &mpsc::Sender<SyncEvent>,
 ) -> Result<(), WalletError> {
     let mut tx = wallet.db.tx().await?;
+    let mut confirmed_transactions = HashSet::new();
 
     for &coin_state in &coin_states {
         tx.insert_coin(coin_state).await?;
@@ -206,6 +207,17 @@ pub async fn incremental_sync(
             )
             .await?;
         }
+
+        if coin_state.spent_height.is_some() {
+            confirmed_transactions.extend(
+                tx.transactions_for_output(coin_state.coin.coin_id())
+                    .await?,
+            );
+        }
+    }
+
+    for transaction_id in confirmed_transactions {
+        tx.remove_transaction(transaction_id).await?;
     }
 
     let mut derived = false;
