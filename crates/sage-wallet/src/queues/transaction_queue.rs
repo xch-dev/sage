@@ -1,9 +1,6 @@
-use std::{
-    sync::Arc,
-    time::{Duration, SystemTime, UNIX_EPOCH},
-};
+use std::{sync::Arc, time::Duration};
 
-use chia::protocol::{Bytes32, SpendBundle};
+use chia::protocol::SpendBundle;
 use sage_database::Database;
 use tokio::{
     sync::{mpsc, Mutex},
@@ -11,14 +8,11 @@ use tokio::{
 };
 use tracing::{info, warn};
 
-use crate::{
-    safely_remove_transaction, submit_to_peers, PeerState, Status, SyncEvent, WalletError,
-};
+use crate::{submit_to_peers, PeerState, Status, SyncEvent, WalletError};
 
 #[derive(Debug)]
 pub struct TransactionQueue {
     db: Database,
-    genesis_challenge: Bytes32,
     state: Arc<Mutex<PeerState>>,
     sync_sender: mpsc::Sender<SyncEvent>,
 }
@@ -26,13 +20,11 @@ pub struct TransactionQueue {
 impl TransactionQueue {
     pub fn new(
         db: Database,
-        genesis_challenge: Bytes32,
         state: Arc<Mutex<PeerState>>,
         sync_sender: mpsc::Sender<SyncEvent>,
     ) -> Self {
         Self {
             db,
-            genesis_challenge,
             state,
             sync_sender,
         }
@@ -52,43 +44,21 @@ impl TransactionQueue {
             return Ok(());
         }
 
-        let timestamp: i64 = SystemTime::now()
-            .duration_since(UNIX_EPOCH)?
-            .as_secs()
-            .try_into()
-            .expect("timestamp does not fit in i64");
-
         let mut spend_bundles = Vec::new();
 
-        let rows = self.db.resubmittable_transactions(timestamp - 180).await?;
+        let rows = self.db.transactions_to_submit(120, 3).await?;
 
         if rows.is_empty() {
             return Ok(());
         }
 
-        for (transaction_id, aggregated_signature) in rows {
-            let coin_spends = self.db.coin_spends(transaction_id).await?;
-            spend_bundles.push(SpendBundle::new(coin_spends, aggregated_signature));
+        for row in rows {
+            let coin_spends = self.db.transaction_coin_spends(row.hash).await?;
+            spend_bundles.push(SpendBundle::new(coin_spends, row.aggregated_signature));
         }
-
-        info!(
-            "Submitting the following transactions: {:?}",
-            spend_bundles
-                .iter()
-                .map(|sb| (
-                    sb.name(),
-                    sb.coin_spends
-                        .iter()
-                        .map(|cs| cs.coin.coin_id())
-                        .collect::<Vec<_>>()
-                ))
-                .collect::<Vec<_>>()
-        );
 
         for spend_bundle in spend_bundles {
             sleep(Duration::from_secs(1)).await;
-
-            let transaction_id = spend_bundle.name();
 
             let peers = self.state.lock().await.peers();
 
@@ -96,36 +66,22 @@ impl TransactionQueue {
                 return Ok(());
             }
 
-            match submit_to_peers(&peers, self.genesis_challenge, spend_bundle).await? {
-                Status::Success => {
-                    info!("Transaction {transaction_id} confirmed, removing and confirming coins");
+            let transaction_id = spend_bundle.name();
 
-                    let mut tx = self.db.tx().await?;
-                    tx.confirm_coins(transaction_id).await?;
-                    safely_remove_transaction(&mut tx, transaction_id).await?;
-                    tx.commit().await?;
+            info!(
+                "Submitting transaction with id {transaction_id}: {:?}",
+                spend_bundle
+                    .coin_spends
+                    .iter()
+                    .map(|cs| cs.coin.coin_id())
+                    .collect::<Vec<_>>()
+            );
 
-                    self.sync_sender
-                        .send(SyncEvent::TransactionEnded {
-                            transaction_id,
-                            error: None,
-                            success: true,
-                        })
-                        .await
-                        .ok();
-                }
+            match submit_to_peers(&peers, spend_bundle).await? {
                 Status::Pending => {
                     info!("Transaction inclusion in mempool successful, updating timestamp");
 
-                    let timestamp = SystemTime::now()
-                        .duration_since(UNIX_EPOCH)?
-                        .as_secs()
-                        .try_into()
-                        .expect("timestamp exceeds i64");
-
-                    self.db
-                        .update_transaction_mempool_time(transaction_id, timestamp)
-                        .await?;
+                    self.db.update_transaction_time(transaction_id).await?;
 
                     self.sync_sender
                         .send(SyncEvent::TransactionUpdated { transaction_id })
@@ -138,14 +94,15 @@ impl TransactionQueue {
                     );
 
                     let mut tx = self.db.tx().await?;
-                    safely_remove_transaction(&mut tx, transaction_id).await?;
+
+                    tx.remove_transaction(transaction_id).await?;
+
                     tx.commit().await?;
 
                     self.sync_sender
-                        .send(SyncEvent::TransactionEnded {
+                        .send(SyncEvent::TransactionFailed {
                             transaction_id,
                             error,
-                            success: false,
                         })
                         .await
                         .ok();

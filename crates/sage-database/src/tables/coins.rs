@@ -110,6 +110,10 @@ impl DatabaseTx<'_> {
         insert_coin(&mut *self.tx, coin_state).await
     }
 
+    pub async fn is_known_coin(&mut self, coin_id: Bytes32) -> Result<bool> {
+        is_known_coin(&mut *self.tx, coin_id).await
+    }
+
     pub async fn is_latest_singleton_coin(&mut self, hash: Bytes32) -> Result<bool> {
         is_latest_singleton_coin(&mut *self.tx, hash).await
     }
@@ -172,6 +176,19 @@ async fn insert_coin(conn: impl SqliteExecutor<'_>, coin_state: CoinState) -> Re
     .await?;
 
     Ok(())
+}
+
+async fn is_known_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<bool> {
+    let coin_id_ref = coin_id.as_ref();
+
+    let row = query!(
+        "SELECT COUNT(*) AS count FROM coins WHERE hash = ?",
+        coin_id_ref
+    )
+    .fetch_one(conn)
+    .await?;
+
+    Ok(row.count > 0)
 }
 
 async fn unsynced_coins(conn: impl SqliteExecutor<'_>, limit: usize) -> Result<Vec<CoinState>> {

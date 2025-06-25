@@ -1,10 +1,10 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use chia::{
     bls::Signature,
     protocol::{Bytes32, CoinState},
 };
-use sage_database::{Asset, CatAsset, CoinKind, Database, DatabaseTx, DidCoinInfo, NftCoinInfo};
+use sage_database::{Asset, CatAsset, Database, DatabaseTx, DidCoinInfo, NftCoinInfo};
 
 use crate::{compute_nft_info, fetch_nft_did, ChildKind, Transaction, WalletError, WalletPeer};
 
@@ -168,12 +168,19 @@ pub async fn insert_transaction(
     transaction: Transaction,
     aggregated_signature: Signature,
 ) -> Result<Vec<Bytes32>, WalletError> {
+    // Make lookups faster for inputs and outputs, and prepare pending coin spends.
     let mut coin_spends = HashMap::new();
+    let mut output_coin_ids = HashSet::new();
 
     for input in &transaction.inputs {
         coin_spends.insert(input.coin_spend.coin.coin_id(), input.coin_spend.clone());
+
+        for output in &input.outputs {
+            output_coin_ids.insert(output.coin.coin_id());
+        }
     }
 
+    // Fetch minter DIDs for created NFTs in the transaction from the blockchain.
     let mut minter_dids = HashMap::new();
 
     for input in &transaction.inputs {
@@ -190,28 +197,53 @@ pub async fn insert_transaction(
         }
     }
 
+    // Insert the transaction into the database.
     let mut tx = db.tx().await?;
 
-    tx.insert_pending_transaction(transaction_id, aggregated_signature, transaction.fee)
+    tx.insert_transaction(transaction_id, aggregated_signature, transaction.fee)
         .await?;
 
     let mut subscriptions = Vec::new();
 
     for (index, input) in transaction.inputs.into_iter().enumerate() {
+        let input_coin_id = input.coin_spend.coin.coin_id();
+
+        // Insert the spend into the database in the proper order so it can be reconstructed later.
         tx.insert_transaction_spend(transaction_id, input.coin_spend, index)
             .await?;
 
+        // If the coin isn't ephemeral (exists on-chain) and we already have it in the database,
+        // we can attach it to the transaction as our coin for display purposes.
+        if !output_coin_ids.contains(&input_coin_id) && tx.is_known_coin(input_coin_id).await? {
+            tx.insert_transaction_coin(transaction_id, input_coin_id, true, false)
+                .await?;
+        }
+
         for output in input.outputs {
+            // Coins that don't exist on-chain yet don't have a created or spent height.
             let coin_state = CoinState::new(output.coin, None, None);
             let coin_id = output.coin.coin_id();
 
+            // If it's an XCH coin, we can insert it and sync it immediately.
+            // Attach it to the transaction as an output for display purposes.
             if tx.is_p2_puzzle_hash(output.coin.puzzle_hash).await? {
-                tx.insert_coin_state(coin_state, true, Some(transaction_id))
+                tx.insert_coin(coin_state).await?;
+
+                tx.sync_coin(coin_id, Bytes32::default(), output.coin.puzzle_hash, None)
                     .await?;
-                tx.insert_p2_coin(coin_id).await?;
+
+                tx.insert_transaction_coin(
+                    transaction_id,
+                    coin_id,
+                    coin_spends.contains_key(&coin_id),
+                    true,
+                )
+                .await?;
+
                 continue;
             }
 
+            // We don't want to insert output coins that we won't own in the future.
             let Some(p2_puzzle_hash) = output.kind.p2_puzzle_hash() else {
                 continue;
             };
@@ -220,24 +252,24 @@ pub async fn insert_transaction(
                 continue;
             }
 
-            tx.insert_coin_state(coin_state, true, Some(transaction_id))
-                .await?;
-            tx.sync_coin(
+            // Insert the coin into the database and attach it to the transaction as an output for display purposes.
+            tx.insert_coin(coin_state).await?;
+
+            tx.insert_transaction_coin(
+                transaction_id,
                 coin_id,
-                Some(p2_puzzle_hash),
-                match output.kind {
-                    ChildKind::Unknown | ChildKind::Launcher => CoinKind::Unknown,
-                    ChildKind::Cat { .. } => CoinKind::Cat,
-                    ChildKind::Did { .. } => CoinKind::Did,
-                    ChildKind::Nft { .. } => CoinKind::Nft,
-                },
+                coin_spends.contains_key(&coin_id),
+                true,
             )
             .await?;
 
+            // We should subscribe to the coin so we know when it's created on-chain.
+            // TODO: Is this necessary? Subscribing to the p2 puzzle hash is probably sufficient for created coins.
             if output.kind.subscribe() {
                 subscriptions.push(coin_id);
             }
 
+            // Do the busy work of inserting the asset information into the database now that the coin exists.
             insert_puzzle(
                 &mut tx,
                 coin_state,

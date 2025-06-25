@@ -54,8 +54,7 @@ SELECT
 FROM coins
   INNER JOIN assets ON assets.id = coins.asset_id
   LEFT JOIN transaction_coins ON transaction_coins.coin_id = coins.id
-  LEFT JOIN transaction_spends ON transaction_spends.transaction_coin_id = transaction_coins.id
 WHERE 1=1
   AND spent_height IS NULL
   AND assets.kind = 0
-  AND transaction_spends.id IS NULL;
+  AND NOT transaction_coins.is_input;
