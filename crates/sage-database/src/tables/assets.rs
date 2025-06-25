@@ -55,6 +55,12 @@ pub struct CatAsset {
 }
 
 #[derive(Debug, Clone)]
+pub struct DidAsset {
+    pub asset: Asset,
+    pub did_info: DidCoinInfo,
+}
+
+#[derive(Debug, Clone)]
 pub struct DidCoinInfo {
     pub metadata: Program,
     pub recovery_list_hash: Option<Bytes32>,
@@ -148,6 +154,14 @@ impl Database {
             include_hidden,
         )
         .await
+    }
+
+    pub async fn did_asset(&self, asset_id: Bytes32) -> Result<Option<DidAsset>> {
+        did_asset(&self.pool, asset_id).await
+    }
+
+    pub async fn did_assets(&self) -> Result<Vec<DidAsset>> {
+        did_assets(&self.pool).await
     }
 }
 
@@ -721,4 +735,70 @@ async fn nft_assets(
             })
         })
         .collect()
+}
+
+async fn did_asset(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<Option<DidAsset>> {
+    let asset_id = asset_id.as_ref();
+
+    query!(
+        "SELECT assets.hash AS asset_hash, assets.name, assets.icon_url, assets.description, assets.is_visible, 
+            assets.is_sensitive_content, assets.created_height, dids.metadata, dids.recovery_list_hash, 
+            dids.num_verifications_required
+        FROM assets
+        INNER JOIN dids ON dids.asset_id = assets.id
+        WHERE hash = ?",
+        asset_id
+    )
+    .fetch_optional(conn)
+    .await?
+    .map(|row| {
+        Ok(DidAsset {
+            asset: Asset {
+                hash: row.asset_hash.convert()?,
+                name: row.name,
+                icon_url: row.icon_url,
+                description: row.description,
+                is_visible: row.is_visible,
+                is_sensitive_content: row.is_sensitive_content,
+                created_height: row.created_height.map(TryInto::try_into).transpose()?,
+            },
+            did_info: DidCoinInfo {
+                metadata: Program::from(row.metadata),
+                recovery_list_hash: row.recovery_list_hash.map(Convert::convert).transpose()?,
+                num_verifications_required: row.num_verifications_required.convert()?,
+            },
+        })
+    })
+    .transpose()
+}
+
+async fn did_assets(conn: impl SqliteExecutor<'_>) -> Result<Vec<DidAsset>> {
+    query!(
+        "SELECT assets.hash AS asset_hash, assets.name, assets.icon_url, assets.description, assets.is_visible, 
+            assets.is_sensitive_content, assets.created_height, dids.metadata, dids.recovery_list_hash, dids.num_verifications_required
+        FROM assets
+        INNER JOIN dids ON dids.asset_id = assets.id"
+    )
+    .fetch_all(conn)
+    .await?
+    .into_iter()
+    .map(|row| {
+        Ok(DidAsset {
+            asset: Asset {
+                hash: row.asset_hash.convert()?,
+                name: row.name,
+                icon_url: row.icon_url,
+                description: row.description,
+                is_visible: row.is_visible,
+                is_sensitive_content: row.is_sensitive_content,
+                created_height: row.created_height.map(TryInto::try_into).transpose()?,
+            },
+            did_info: DidCoinInfo {
+                metadata: Program::from(row.metadata),
+                recovery_list_hash: row.recovery_list_hash.map(Convert::convert).transpose()?,
+                num_verifications_required: row.num_verifications_required.convert()?,
+            },
+        })
+    })
+    .collect()
 }

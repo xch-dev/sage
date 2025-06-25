@@ -306,7 +306,8 @@ impl Sage {
 
         let mut dids = Vec::new();
 
-        for row in wallet.db.dids_by_name().await? {
+        for row in wallet.db.did_assets().await? {
+            // TODO - we should not need the secondary fetch here any longer
             let Some(did) = wallet.db.did_coin_info(row.coin_id).await? else {
                 continue;
             };
