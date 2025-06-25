@@ -1,34 +1,232 @@
 use chia::protocol::Bytes32;
 use sqlx::{query, SqliteExecutor};
 
-use crate::{DatabaseTx, Result};
+use crate::{Convert, Database, DatabaseTx, Result};
+
+#[derive(Debug, Clone)]
+pub struct FileUri {
+    pub hash: Bytes32,
+    pub uri: String,
+    pub last_checked_timestamp: Option<u64>,
+    pub failed_attempts: u32,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct UpdateableNft {
+    pub hash: Bytes32,
+    pub minter_hash: Option<Bytes32>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ResizedImageKind {
+    Icon,
+    Thumbnail,
+}
+
+impl Database {
+    pub async fn candidates_for_download(
+        &self,
+        check_every_seconds: i64,
+        max_failed_attempts: u32,
+        limit: u32,
+    ) -> Result<Vec<FileUri>> {
+        candidates_for_download(&self.pool, check_every_seconds, max_failed_attempts, limit).await
+    }
+}
 
 impl DatabaseTx<'_> {
-    pub async fn insert_file(&mut self, hash: Bytes32) -> Result<i64> {
+    pub async fn insert_file(&mut self, hash: Bytes32) -> Result<()> {
         insert_file(&mut *self.tx, hash).await
     }
 
-    pub async fn insert_file_uri(&mut self, file_id: i64, uri: String) -> Result<()> {
-        insert_file_uri(&mut *self.tx, file_id, uri).await
+    pub async fn insert_file_uri(&mut self, hash: Bytes32, uri: String) -> Result<()> {
+        insert_file_uri(&mut *self.tx, hash, uri).await
+    }
+
+    pub async fn file_data(&mut self, hash: Bytes32) -> Result<Option<Vec<u8>>> {
+        file_data(&mut *self.tx, hash).await
+    }
+
+    pub async fn update_failed_uri(&mut self, hash: Bytes32, uri: String) -> Result<()> {
+        update_failed_uri(&mut *self.tx, hash, uri).await
+    }
+
+    pub async fn update_file(
+        &mut self,
+        hash: Bytes32,
+        data: Vec<u8>,
+        mime_type: String,
+        is_hash_match: bool,
+    ) -> Result<()> {
+        update_file(&mut *self.tx, hash, data, mime_type, is_hash_match).await
+    }
+
+    pub async fn insert_resized_image(
+        &mut self,
+        file_hash: Bytes32,
+        kind: ResizedImageKind,
+        data: Vec<u8>,
+    ) -> Result<()> {
+        insert_resized_image(&mut *self.tx, file_hash, kind, data).await
+    }
+
+    pub async fn nfts_with_metadata_hash(&mut self, hash: Bytes32) -> Result<Vec<UpdateableNft>> {
+        nfts_with_metadata_hash(&mut *self.tx, hash).await
     }
 }
 
-async fn insert_file(conn: impl SqliteExecutor<'_>, hash: Bytes32) -> Result<i64> {
+async fn insert_file(conn: impl SqliteExecutor<'_>, hash: Bytes32) -> Result<()> {
     let hash = hash.as_ref();
 
-    Ok(
-        query!("INSERT INTO files (hash) VALUES (?) RETURNING id", hash)
-            .fetch_one(conn)
-            .await?
-            .id,
-    )
+    query!("INSERT INTO files (hash) VALUES (?)", hash)
+        .fetch_one(conn)
+        .await?;
+
+    Ok(())
 }
 
-async fn insert_file_uri(conn: impl SqliteExecutor<'_>, file_id: i64, uri: String) -> Result<()> {
+async fn insert_file_uri(conn: impl SqliteExecutor<'_>, hash: Bytes32, uri: String) -> Result<()> {
+    let hash = hash.as_ref();
+
     query!(
-        "INSERT INTO file_uris (file_id, uri) VALUES (?, ?)",
-        file_id,
+        "INSERT INTO file_uris (file_id, uri) VALUES ((SELECT id FROM files WHERE hash = ?), ?)",
+        hash,
         uri
+    )
+    .execute(conn)
+    .await?;
+
+    Ok(())
+}
+
+async fn file_data(conn: impl SqliteExecutor<'_>, hash: Bytes32) -> Result<Option<Vec<u8>>> {
+    let hash = hash.as_ref();
+
+    let row = query!("SELECT data FROM files WHERE hash = ?", hash)
+        .fetch_optional(conn)
+        .await?;
+
+    Ok(row.and_then(|row| row.data))
+}
+
+async fn candidates_for_download(
+    conn: impl SqliteExecutor<'_>,
+    check_every_seconds: i64,
+    max_failed_attempts: u32,
+    limit: u32,
+) -> Result<Vec<FileUri>> {
+    query!(
+        "
+        SELECT hash, uri, last_checked_timestamp, failed_attempts
+        FROM file_uris
+        INNER JOIN files ON files.id = file_uris.file_id
+        WHERE last_checked_timestamp IS NULL
+        AND (data IS NULL OR NOT is_hash_match)
+        AND unixepoch() - last_checked_timestamp >= ?
+        AND failed_attempts < ?
+        ORDER BY last_checked_timestamp ASC
+        LIMIT ?
+        ",
+        check_every_seconds,
+        max_failed_attempts,
+        limit
+    )
+    .fetch_all(conn)
+    .await?
+    .into_iter()
+    .map(|row| {
+        Ok(FileUri {
+            hash: row.hash.convert()?,
+            uri: row.uri,
+            last_checked_timestamp: row.last_checked_timestamp.convert()?,
+            failed_attempts: row.failed_attempts.convert()?,
+        })
+    })
+    .collect()
+}
+
+async fn update_failed_uri(
+    conn: impl SqliteExecutor<'_>,
+    hash: Bytes32,
+    uri: String,
+) -> Result<()> {
+    let hash = hash.as_ref();
+
+    query!(
+        "
+        UPDATE file_uris
+        SET failed_attempts = failed_attempts + 1, last_checked_timestamp = unixepoch()
+        WHERE file_id = (SELECT id FROM files WHERE hash = ?) AND uri = ?
+        ",
+        hash,
+        uri
+    )
+    .execute(conn)
+    .await?;
+
+    Ok(())
+}
+
+async fn update_file(
+    conn: impl SqliteExecutor<'_>,
+    hash: Bytes32,
+    data: Vec<u8>,
+    mime_type: String,
+    is_hash_match: bool,
+) -> Result<()> {
+    let hash = hash.as_ref();
+
+    query!(
+        "
+        UPDATE files SET data = ?, mime_type = ?, is_hash_match = ?
+        WHERE hash = ?
+        AND (data IS NULL OR NOT is_hash_match)
+        ",
+        data,
+        mime_type,
+        is_hash_match,
+        hash
+    )
+    .execute(conn)
+    .await?;
+
+    Ok(())
+}
+
+async fn nfts_with_metadata_hash(
+    conn: impl SqliteExecutor<'_>,
+    hash: Bytes32,
+) -> Result<Vec<UpdateableNft>> {
+    let hash = hash.as_ref();
+
+    query!(
+        "SELECT hash, minter_hash FROM nfts INNER JOIN assets ON assets.id = asset_id WHERE metadata_hash = ?",
+        hash
+    )
+    .fetch_all(conn)
+    .await?
+    .into_iter()
+    .map(|row| Ok(UpdateableNft {
+        hash: row.hash.convert()?,
+        minter_hash: row.minter_hash.convert()?,
+    }))
+    .collect()
+}
+
+async fn insert_resized_image(
+    conn: impl SqliteExecutor<'_>,
+    file_hash: Bytes32,
+    kind: ResizedImageKind,
+    data: Vec<u8>,
+) -> Result<()> {
+    let file_hash = file_hash.as_ref();
+    let kind = kind as i64;
+
+    query!(
+        "INSERT INTO resized_images (file_id, kind, data) VALUES ((SELECT id FROM files WHERE hash = ?), ?, ?)",
+        file_hash,
+        kind,
+        data
     )
     .execute(conn)
     .await?;

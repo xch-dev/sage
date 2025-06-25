@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use sage_assets::DexieCat;
-use sage_database::{CatAsset, Database};
+use sage_database::{Asset, CatAsset, Database};
 use serde::Deserialize;
 use tokio::{
     sync::mpsc,
@@ -56,12 +56,16 @@ impl CatQueue {
 
         for cat in cats {
             tx.insert_cat(CatAsset {
-                hash: cat.hash,
-                name: cat.name,
-                icon_url: cat.icon_url,
-                description: cat.description,
+                asset: Asset {
+                    hash: cat.hash,
+                    name: cat.name,
+                    icon_url: cat.icon_url,
+                    description: cat.description,
+                    is_sensitive_content: false,
+                    is_visible: true,
+                    created_height: None,
+                },
                 ticker: cat.ticker,
-                is_visible: true,
             });
         }
 

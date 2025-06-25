@@ -37,6 +37,7 @@ CREATE TABLE assets (
   name TEXT,
   icon_url TEXT,
   description TEXT,
+  is_sensitive_content BOOLEAN NOT NULL DEFAULT FALSE,
   is_visible BOOLEAN NOT NULL,
   is_pending BOOLEAN NOT NULL,
   created_height INTEGER
@@ -56,7 +57,6 @@ CREATE TABLE nfts (
   collection_id INTEGER,
   minter_hash BLOB,
   owner_hash BLOB,
-  is_sensitive_content BOOLEAN NOT NULL DEFAULT FALSE,
   metadata BLOB NOT NULL,
   metadata_updater_puzzle_hash BLOB NOT NULL,
   royalty_puzzle_hash BLOB NOT NULL,
@@ -277,15 +277,31 @@ CREATE TABLE collections (
 CREATE TABLE files (
   id INTEGER NOT NULL PRIMARY KEY,
   hash BLOB NOT NULL UNIQUE,
+  data BLOB,
   mime_type TEXT,
-  is_hash_match BOOLEAN,
-  is_downloaded BOOLEAN NOT NULL DEFAULT FALSE
+  is_hash_match BOOLEAN
+);
+
+/*
+ * Resized images
+ *
+ * Icon = 0
+ * Thumbnail = 1
+ */
+CREATE TABLE resized_images (
+  id INTEGER NOT NULL PRIMARY KEY,
+  file_id INTEGER NOT NULL,
+  kind INTEGER NOT NULL,
+  data BLOB NOT NULL,
+  FOREIGN KEY (file_id) REFERENCES files(id) ON DELETE CASCADE
 );
 
 CREATE TABLE file_uris (
   id INTEGER NOT NULL PRIMARY KEY,
   file_id INTEGER NOT NULL,
   uri TEXT NOT NULL,
+  last_checked_timestamp INTEGER,
+  failed_attempts INTEGER NOT NULL DEFAULT 0,
   FOREIGN KEY (file_id) REFERENCES files(id) ON DELETE CASCADE,
   UNIQUE(file_id, uri)
 );
