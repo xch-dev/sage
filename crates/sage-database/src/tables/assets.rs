@@ -496,7 +496,7 @@ async fn cat_asset(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<O
         "SELECT hash, name, icon_url, description, ticker, is_visible, is_sensitive_content, created_height
         FROM assets
         INNER JOIN tokens ON tokens.asset_id = assets.id
-        WHERE assets.id = 0 AND hash = ?",
+        WHERE assets.id != 0 AND hash = ?",
         asset_id
     )
     .fetch_optional(conn)
@@ -528,7 +528,7 @@ async fn cat_assets(
         "SELECT hash, name, icon_url, description, ticker, is_visible, is_sensitive_content, created_height, COUNT(*) OVER () AS total
             FROM assets
             INNER JOIN tokens ON tokens.asset_id = assets.id
-            WHERE assets.id = 0 AND (? OR is_visible = 1)
+            WHERE assets.id != 0 AND (? OR is_visible = 1)
             ORDER BY name DESC
             LIMIT ?
             OFFSET ?",
