@@ -156,6 +156,14 @@ impl Database {
         .await
     }
 
+    pub async fn distinct_minter_dids(
+        &self,
+        limit: u32,
+        offset: u32,
+    ) -> Result<(Vec<Bytes32>, u32)> {
+        distinct_minter_dids(&self.pool, limit, offset).await
+    }
+
     pub async fn did_asset(&self, asset_id: Bytes32) -> Result<Option<DidAsset>> {
         did_asset(&self.pool, asset_id).await
     }
@@ -747,6 +755,31 @@ async fn nft_assets(
         .collect::<std::result::Result<Vec<NftAsset>, DatabaseError>>()?;
 
     Ok((nfts, total_count))
+}
+
+async fn distinct_minter_dids(
+    conn: impl SqliteExecutor<'_>,
+    limit: u32,
+    offset: u32,
+) -> Result<(Vec<Bytes32>, u32)> {
+    let rows = query!(
+        "SELECT DISTINCT minter_hash, COUNT(*) OVER() AS total_count FROM nfts LIMIT ? OFFSET ?",
+        limit,
+        offset
+    )
+    .fetch_all(conn)
+    .await?;
+
+    let total_count = rows
+        .first()
+        .map_or(Ok(0), |row| row.total_count.try_into())?;
+
+    let dids = rows
+        .into_iter()
+        .filter_map(|row| row.minter_hash.convert().transpose())
+        .collect::<Result<Vec<_>>>()?;
+
+    Ok((dids, total_count))
 }
 
 async fn did_asset(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<Option<DidAsset>> {
