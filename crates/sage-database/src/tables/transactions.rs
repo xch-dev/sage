@@ -18,28 +18,25 @@ pub struct TransactionCoin {
 }
 
 impl Database {
-    pub async fn transaction_block(&self, height: u32) -> Result<Option<Transaction>> {
-        transaction_block(&self.pool, height).await
+    pub async fn transaction(&self, height: u32) -> Result<Option<Transaction>> {
+        transaction(&self.pool, height).await
     }
 
-    pub async fn transaction_blocks(
+    pub async fn transactions(
         &self,
         find_value: Option<String>,
         sort_ascending: bool,
         limit: u32,
         offset: u32,
     ) -> Result<(Vec<Transaction>, u32)> {
-        transaction_blocks(&self.pool, find_value, sort_ascending, limit, offset).await
+        transactions(&self.pool, find_value, sort_ascending, limit, offset).await
     }
 }
-async fn transaction_block(
-    conn: impl SqliteExecutor<'_>,
-    height: u32,
-) -> Result<Option<Transaction>> {
+async fn transaction(conn: impl SqliteExecutor<'_>, height: u32) -> Result<Option<Transaction>> {
     Ok(None)
 }
 
-async fn transaction_blocks(
+async fn transactions(
     conn: impl SqliteExecutor<'_>,
     find_value: Option<String>,
     sort_ascending: bool,
