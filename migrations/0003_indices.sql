@@ -22,4 +22,5 @@ CREATE INDEX idx_options_strike_asset_id ON options(strike_asset_id);
 
 /* search indices */
 CREATE INDEX idx_tokens_ticker ON tokens(ticker);
-CREATE INDEX idx_assets_name ON assets(is_visible, is_pending, name, hash);
+CREATE INDEX idx_assets_search_order ON assets(is_visible DESC, is_pending DESC, name ASC, created_height DESC);
+CREATE INDEX idx_assets_name ON assets(name);

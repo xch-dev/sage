@@ -1,5 +1,5 @@
 use chia::protocol::{Bytes32, Program};
-use sqlx::{query, SqliteConnection, SqliteExecutor};
+use sqlx::{query, Row, SqliteConnection, SqliteExecutor};
 
 use crate::{Convert, Database, DatabaseError, DatabaseTx, Result};
 
@@ -55,10 +55,32 @@ pub struct CatAsset {
 }
 
 #[derive(Debug, Clone)]
+pub struct DidAsset {
+    pub asset: Asset,
+    pub did_info: DidCoinInfo,
+}
+
+#[derive(Debug, Clone)]
 pub struct DidCoinInfo {
     pub metadata: Program,
     pub recovery_list_hash: Option<Bytes32>,
     pub num_verifications_required: u64,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum NftSortMode {
+    Recent,
+    Name,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum NftGroupSearch {
+    Collection(Bytes32),
+    NoCollection,
+    MinterDid(Bytes32),
+    NoMinterDid,
+    OwnerDid(Bytes32),
+    NoOwnerDid,
 }
 
 #[derive(Debug, Clone)]
@@ -102,11 +124,11 @@ impl Database {
 
     pub async fn cat_assets(
         &self,
+        include_hidden: bool,
         limit: u32,
         offset: u32,
-        include_hidden: bool,
-    ) -> Result<Vec<CatAsset>> {
-        cat_assets(&self.pool, limit, offset, include_hidden).await
+    ) -> std::result::Result<(Vec<CatAsset>, u32), DatabaseError> {
+        cat_assets(&self.pool, include_hidden, limit, offset).await
     }
 
     pub async fn nft_asset(&self, asset_id: Bytes32) -> Result<Option<NftAsset>> {
@@ -115,11 +137,31 @@ impl Database {
 
     pub async fn nft_assets(
         &self,
+        name_search: Option<String>,
+        group_search: Option<NftGroupSearch>,
+        sort_mode: NftSortMode,
+        include_hidden: bool,
         limit: u32,
         offset: u32,
-        include_hidden: bool,
-    ) -> Result<Vec<NftAsset>> {
-        nft_assets(&self.pool, limit, offset, include_hidden).await
+    ) -> std::result::Result<(Vec<NftAsset>, u32), DatabaseError> {
+        nft_assets(
+            &self.pool,
+            name_search,
+            group_search,
+            sort_mode,
+            include_hidden,
+            limit,
+            offset,
+        )
+        .await
+    }
+
+    pub async fn did_asset(&self, asset_id: Bytes32) -> Result<Option<DidAsset>> {
+        did_asset(&self.pool, asset_id).await
+    }
+
+    pub async fn did_assets(&self) -> Result<Vec<DidAsset>> {
+        did_assets(&self.pool).await
     }
 }
 
@@ -454,7 +496,7 @@ async fn cat_asset(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<O
         "SELECT hash, name, icon_url, description, ticker, is_visible, is_sensitive_content, created_height
         FROM assets
         INNER JOIN tokens ON tokens.asset_id = assets.id
-        WHERE hash = ?",
+        WHERE assets.id = 0 AND hash = ?",
         asset_id
     )
     .fetch_optional(conn)
@@ -478,15 +520,15 @@ async fn cat_asset(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<O
 
 async fn cat_assets(
     conn: impl SqliteExecutor<'_>,
+    include_hidden: bool,
     limit: u32,
     offset: u32,
-    include_hidden: bool,
-) -> Result<Vec<CatAsset>> {
-    query!(
-        "SELECT hash, name, icon_url, description, ticker, is_visible, is_sensitive_content, created_height
+) -> std::result::Result<(Vec<CatAsset>, u32), DatabaseError> {
+    let rows = query!(
+        "SELECT hash, name, icon_url, description, ticker, is_visible, is_sensitive_content, created_height, COUNT(*) OVER () AS total
             FROM assets
             INNER JOIN tokens ON tokens.asset_id = assets.id
-            WHERE ? OR is_visible = 1
+            WHERE assets.id = 0 AND (? OR is_visible = 1)
             ORDER BY name DESC
             LIMIT ?
             OFFSET ?",
@@ -495,23 +537,29 @@ async fn cat_assets(
         offset
     )
     .fetch_all(conn)
-    .await?
-    .into_iter()
-    .map(|row| {
-        Ok(CatAsset {
-            asset: Asset {
-                hash: row.hash.convert()?,
-                name: row.name,
-                icon_url: row.icon_url,
-                description: row.description,
-                is_visible: row.is_visible,
-                is_sensitive_content: row.is_sensitive_content,
-                created_height: row.created_height.map(TryInto::try_into).transpose()?,
-            },
-            ticker: row.ticker,
+    .await?;
+
+    let total_count = rows.first().map_or(Ok(0), |row| row.total.try_into())?;
+
+    let cats = rows
+        .into_iter()
+        .map(|row| {
+            Ok(CatAsset {
+                asset: Asset {
+                    hash: row.hash.convert()?,
+                    name: row.name,
+                    icon_url: row.icon_url,
+                    description: row.description,
+                    is_visible: row.is_visible,
+                    is_sensitive_content: row.is_sensitive_content,
+                    created_height: row.created_height.map(TryInto::try_into).transpose()?,
+                },
+                ticker: row.ticker,
+            })
         })
-    })
-    .collect()
+        .collect::<std::result::Result<Vec<CatAsset>, DatabaseError>>()?;
+
+    Ok((cats, total_count))
 }
 
 async fn nft_asset(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<Option<NftAsset>> {
@@ -563,32 +611,160 @@ async fn nft_asset(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<O
 
 async fn nft_assets(
     conn: impl SqliteExecutor<'_>,
+    name_search: Option<String>,
+    group_search: Option<NftGroupSearch>,
+    sort_mode: NftSortMode,
+    include_hidden: bool,
     limit: u32,
     offset: u32,
-    include_hidden: bool,
-) -> Result<Vec<NftAsset>> {
-    query!(
+) -> std::result::Result<(Vec<NftAsset>, u32), DatabaseError> {
+    let mut query = sqlx::QueryBuilder::new(
         "SELECT        
             assets.hash AS asset_hash, assets.name, assets.icon_url, assets.description, is_sensitive_content,
             assets.is_visible, assets.created_height, collections.hash AS 'collection_hash?', nfts.minter_hash, owner_hash,
             metadata, metadata_updater_puzzle_hash, royalty_puzzle_hash, royalty_basis_points,
-            data_hash, metadata_hash, license_hash, edition_number, edition_total
+            data_hash, metadata_hash, license_hash, edition_number, edition_total,
+            COUNT(*) OVER() as total_count	
         FROM assets
         INNER JOIN nfts ON nfts.asset_id = assets.id
         LEFT JOIN collections ON collections.id = nfts.collection_id
-        WHERE ? OR assets.is_visible = 1
-        ORDER BY assets.name DESC
-        LIMIT ?
-        OFFSET ?",
-        include_hidden,
-        limit,
-        offset
+        WHERE 1=1 "
+    );
+
+    if let Some(name_search) = name_search {
+        query.push("AND assets.name LIKE ?");
+        query.push_bind(format!("%{}%", name_search));
+    }
+
+    if let Some(group) = group_search {
+        match group {
+            NftGroupSearch::Collection(id) => {
+                query.push(" AND collections.hash = ");
+                query.push_bind(id.as_ref().to_vec());
+            }
+            NftGroupSearch::NoCollection => {
+                query.push(" AND collections.hash IS NULL");
+            }
+            NftGroupSearch::MinterDid(id) => {
+                query.push(" AND nfts.minter_hash = ");
+                query.push_bind(id.as_ref().to_vec());
+            }
+            NftGroupSearch::NoMinterDid => {
+                query.push(" AND nfts.minter_hash IS NULL");
+            }
+            NftGroupSearch::OwnerDid(id) => {
+                query.push(" AND nfts.owner_hash = ");
+                query.push_bind(id.as_ref().to_vec());
+            }
+            NftGroupSearch::NoOwnerDid => {
+                query.push(" AND nfts.owner_hash IS NULL");
+            }
+        }
+    }
+    // Add ORDER BY clause based on sort_mode
+    query.push(" ORDER BY ");
+
+    // Add visible DESC to sort order if including hidden NFTs
+    if include_hidden {
+        query.push("assets.is_visible DESC, ");
+    }
+
+    match sort_mode {
+        NftSortMode::Recent => {
+            query.push("assets.is_pending DESC, assets.created_height DESC");
+        }
+        NftSortMode::Name => {
+            query.push("assets.is_pending DESC, assets.name ASC, nfts.edition_number ASC");
+        }
+    }
+
+    query.push(" LIMIT ? OFFSET ?");
+    let query = query.build().bind(limit).bind(offset);
+
+    let rows = query.fetch_all(conn).await?;
+    let total_count = rows
+        .first()
+        .map_or(Ok(0), |row| row.get::<i64, _>("total_count").try_into())?;
+
+    let nfts = rows
+        .into_iter()
+        .map(|row| {
+            Ok(NftAsset {
+                asset: Asset {
+                    hash: row.get::<Vec<u8>, _>("asset_hash").convert()?,
+                    name: row.get::<Option<String>, _>("name"),
+                    icon_url: row.get::<Option<String>, _>("icon_url"),
+                    description: row.get::<Option<String>, _>("description"),
+                    is_visible: row.get::<bool, _>("is_visible"),
+                    is_sensitive_content: row.get::<bool, _>("is_sensitive_content"),
+                    created_height: row
+                        .get::<Option<i64>, _>("created_height")
+                        .map(TryInto::try_into)
+                        .transpose()?,
+                },
+                nft_info: NftCoinInfo {
+                    collection_id: row
+                        .get::<Option<Vec<u8>>, _>("collection_hash")
+                        .map(Convert::convert)
+                        .transpose()?,
+                    minter_hash: row
+                        .get::<Option<Vec<u8>>, _>("minter_hash")
+                        .map(Convert::convert)
+                        .transpose()?,
+                    owner_hash: row
+                        .get::<Option<Vec<u8>>, _>("owner_hash")
+                        .map(Convert::convert)
+                        .transpose()?,
+                    metadata: Program::from(row.get::<Vec<u8>, _>("metadata")),
+                    metadata_updater_puzzle_hash: row
+                        .get::<Vec<u8>, _>("metadata_updater_puzzle_hash")
+                        .convert()?,
+                    royalty_puzzle_hash: row.get::<Vec<u8>, _>("royalty_puzzle_hash").convert()?,
+                    royalty_basis_points: row.get::<u16, _>("royalty_basis_points"),
+                    data_hash: row
+                        .get::<Option<Vec<u8>>, _>("data_hash")
+                        .map(Convert::convert)
+                        .transpose()?,
+                    metadata_hash: row
+                        .get::<Option<Vec<u8>>, _>("metadata_hash")
+                        .map(Convert::convert)
+                        .transpose()?,
+                    license_hash: row
+                        .get::<Option<Vec<u8>>, _>("license_hash")
+                        .map(Convert::convert)
+                        .transpose()?,
+                    edition_number: row
+                        .get::<Option<i64>, _>("edition_number")
+                        .map(TryInto::try_into)
+                        .transpose()?,
+                    edition_total: row
+                        .get::<Option<i64>, _>("edition_total")
+                        .map(TryInto::try_into)
+                        .transpose()?,
+                },
+            })
+        })
+        .collect::<std::result::Result<Vec<NftAsset>, DatabaseError>>()?;
+
+    Ok((nfts, total_count))
+}
+
+async fn did_asset(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<Option<DidAsset>> {
+    let asset_id = asset_id.as_ref();
+
+    query!(
+        "SELECT assets.hash AS asset_hash, assets.name, assets.icon_url, assets.description, assets.is_visible, 
+            assets.is_sensitive_content, assets.created_height, dids.metadata, dids.recovery_list_hash, 
+            dids.num_verifications_required
+        FROM assets
+        INNER JOIN dids ON dids.asset_id = assets.id
+        WHERE hash = ?",
+        asset_id
     )
-    .fetch_all(conn)
+    .fetch_optional(conn)
     .await?
-    .into_iter()
     .map(|row| {
-        Ok(NftAsset {
+        Ok(DidAsset {
             asset: Asset {
                 hash: row.asset_hash.convert()?,
                 name: row.name,
@@ -598,19 +774,41 @@ async fn nft_assets(
                 is_sensitive_content: row.is_sensitive_content,
                 created_height: row.created_height.map(TryInto::try_into).transpose()?,
             },
-            nft_info: NftCoinInfo {
-                collection_id: row.collection_hash.map(Convert::convert).transpose()?,
-                minter_hash: row.minter_hash.map(Convert::convert).transpose()?,
-                owner_hash: row.owner_hash.map(Convert::convert).transpose()?,
+            did_info: DidCoinInfo {
                 metadata: Program::from(row.metadata),
-                metadata_updater_puzzle_hash: row.metadata_updater_puzzle_hash.convert()?,
-                royalty_puzzle_hash: row.royalty_puzzle_hash.convert()?,
-                royalty_basis_points: row.royalty_basis_points.try_into()?,
-                data_hash: row.data_hash.map(Convert::convert).transpose()?,
-                metadata_hash: row.metadata_hash.map(Convert::convert).transpose()?,
-                license_hash: row.license_hash.map(Convert::convert).transpose()?,
-                edition_number: row.edition_number.map(TryInto::try_into).transpose()?,
-                edition_total: row.edition_total.map(TryInto::try_into).transpose()?,
+                recovery_list_hash: row.recovery_list_hash.map(Convert::convert).transpose()?,
+                num_verifications_required: row.num_verifications_required.convert()?,
+            },
+        })
+    })
+    .transpose()
+}
+
+async fn did_assets(conn: impl SqliteExecutor<'_>) -> Result<Vec<DidAsset>> {
+    query!(
+        "SELECT assets.hash AS asset_hash, assets.name, assets.icon_url, assets.description, assets.is_visible, 
+            assets.is_sensitive_content, assets.created_height, dids.metadata, dids.recovery_list_hash, dids.num_verifications_required
+        FROM assets
+        INNER JOIN dids ON dids.asset_id = assets.id"
+    )
+    .fetch_all(conn)
+    .await?
+    .into_iter()
+    .map(|row| {
+        Ok(DidAsset {
+            asset: Asset {
+                hash: row.asset_hash.convert()?,
+                name: row.name,
+                icon_url: row.icon_url,
+                description: row.description,
+                is_visible: row.is_visible,
+                is_sensitive_content: row.is_sensitive_content,
+                created_height: row.created_height.map(TryInto::try_into).transpose()?,
+            },
+            did_info: DidCoinInfo {
+                metadata: Program::from(row.metadata),
+                recovery_list_hash: row.recovery_list_hash.map(Convert::convert).transpose()?,
+                num_verifications_required: row.num_verifications_required.convert()?,
             },
         })
     })
