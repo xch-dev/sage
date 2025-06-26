@@ -4,13 +4,28 @@ use chia::{
 };
 use sqlx::{query, SqliteConnection, SqliteExecutor};
 
-use crate::{Convert, Database, DatabaseTx, Result};
+use crate::{Asset, Convert, Database, DatabaseTx, Result};
+
+#[derive(Debug, Clone)]
+pub struct TransactionRecord {
+    pub height: u32,
+    pub timestamp: Option<u32>,
+    pub spent: Vec<TransactionCoin>,
+    pub created: Vec<TransactionCoin>,
+}
+
+#[derive(Debug, Clone)]
+pub struct TransactionCoin {
+    pub coin: Coin,
+    pub asset: Asset,
+}
 
 #[derive(Debug, Clone)]
 pub struct TransactionRow {
     pub hash: Bytes32,
     pub aggregated_signature: Signature,
     pub fee: u64,
+    pub submitted_timestamp: i64,
 }
 
 impl Database {
@@ -28,6 +43,10 @@ impl Database {
 
     pub async fn update_transaction_time(&self, transaction_id: Bytes32) -> Result<()> {
         update_transaction_time(&self.pool, transaction_id).await
+    }
+
+    pub async fn pending_transactions(&self) -> Result<Vec<TransactionRow>> {
+        pending_transactions(&self.pool).await
     }
 }
 
@@ -163,7 +182,7 @@ async fn transactions_to_submit(
 ) -> Result<Vec<TransactionRow>> {
     query!(
         "
-        SELECT hash, aggregated_signature, fee
+        SELECT hash, aggregated_signature, fee, submitted_timestamp
         FROM transactions
         WHERE submitted_timestamp IS NULL OR unixepoch() - submitted_timestamp >= ?
         LIMIT ?
@@ -179,6 +198,7 @@ async fn transactions_to_submit(
             hash: row.hash.convert()?,
             aggregated_signature: row.aggregated_signature.convert()?,
             fee: row.fee.convert()?,
+            submitted_timestamp: row.submitted_timestamp,
         })
     })
     .collect()
@@ -276,4 +296,26 @@ async fn update_transaction_time(
     .await?;
 
     Ok(())
+}
+
+async fn pending_transactions(conn: impl SqliteExecutor<'_>) -> Result<Vec<TransactionRow>> {
+    query!(
+        "
+        SELECT hash, aggregated_signature, fee, submitted_timestamp
+        FROM transactions
+        ORDER BY submitted_timestamp DESC, hash ASC
+        ",
+    )
+    .fetch_all(conn)
+    .await?
+    .into_iter()
+    .map(|row| {
+        Ok(TransactionRow {
+            hash: row.hash.convert()?,
+            aggregated_signature: row.aggregated_signature.convert()?,
+            fee: row.fee.convert()?,
+            submitted_timestamp: row.submitted_timestamp,
+        })
+    })
+    .collect()
 }

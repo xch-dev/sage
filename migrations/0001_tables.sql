@@ -233,7 +233,7 @@ CREATE TABLE transactions (
   hash BLOB NOT NULL UNIQUE,
   aggregated_signature BLOB NOT NULL,
   fee BLOB NOT NULL,
-  submitted_timestamp INTEGER NOT NULL DEFAULT (unixepoch())
+  submitted_timestamp INTEGER
 );
 
 CREATE TABLE transaction_coins (

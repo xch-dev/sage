@@ -356,7 +356,7 @@ impl Sage {
 
         let transactions = wallet
             .db
-            .transactions()
+            .pending_transactions()
             .await?
             .into_iter()
             .map(|tx| {
