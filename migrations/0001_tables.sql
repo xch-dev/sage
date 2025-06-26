@@ -228,7 +228,7 @@ CREATE TABLE offer_coins (
   UNIQUE(offer_id, coin_id)
 );
 
-CREATE TABLE transactions (
+CREATE TABLE mempool_items (
   id INTEGER NOT NULL PRIMARY KEY,
   hash BLOB NOT NULL UNIQUE,
   aggregated_signature BLOB NOT NULL,
@@ -236,20 +236,20 @@ CREATE TABLE transactions (
   submitted_timestamp INTEGER
 );
 
-CREATE TABLE transaction_coins (
+CREATE TABLE mempool_coins (
   id INTEGER NOT NULL PRIMARY KEY,
-  transaction_id INTEGER NOT NULL,
+  mempool_item_id INTEGER NOT NULL,
   coin_id INTEGER NOT NULL,
   is_input BOOLEAN NOT NULL,
   is_output BOOLEAN NOT NULL,
-  FOREIGN KEY (transaction_id) REFERENCES transactions(id) ON DELETE CASCADE,
+  FOREIGN KEY (mempool_item_id) REFERENCES mempool_items(id) ON DELETE CASCADE,
   FOREIGN KEY (coin_id) REFERENCES coins(id) ON DELETE CASCADE,
-  UNIQUE(transaction_id, coin_id)
+  UNIQUE(mempool_item_id, coin_id)
 );
 
-CREATE TABLE transaction_spends (
+CREATE TABLE mempool_spends (
   id INTEGER NOT NULL PRIMARY KEY,
-  transaction_id INTEGER NOT NULL,
+  mempool_item_id INTEGER NOT NULL,
   coin_hash BLOB NOT NULL,
   parent_coin_hash BLOB NOT NULL,
   puzzle_hash BLOB NOT NULL,
@@ -257,8 +257,8 @@ CREATE TABLE transaction_spends (
   puzzle_reveal BLOB NOT NULL,
   solution BLOB NOT NULL,
   seq INTEGER NOT NULL,
-  FOREIGN KEY (transaction_id) REFERENCES transactions(id) ON DELETE CASCADE,
-  UNIQUE(transaction_id, coin_hash)
+  FOREIGN KEY (mempool_item_id) REFERENCES mempool_items(id) ON DELETE CASCADE,
+  UNIQUE(mempool_item_id, coin_hash)
 );
 
 CREATE TABLE collections (
