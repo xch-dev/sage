@@ -29,7 +29,9 @@ use sage_api::{
     NftCollectionRecord, NftData, NftRecord, NftSortMode as ApiNftSortMode,
     PendingTransactionRecord, TransactionCoin, TransactionRecord,
 };
-use sage_database::{CoinKind, CoinSortMode, NftGroup, NftRow, NftSearchParams, NftSortMode};
+use sage_database::{
+    CoinKind, CoinSortMode, NftGroup, NftGroupSearch, NftRow, NftSearchParams, NftSortMode,
+};
 use sage_wallet::WalletError;
 use sqlx::{sqlite::SqliteRow, Row};
 
@@ -43,7 +45,7 @@ impl Sage {
     pub async fn get_sync_status(&self, _req: GetSyncStatus) -> Result<GetSyncStatusResponse> {
         let wallet = self.wallet()?;
 
-        let balance = wallet.db.balance().await?;
+        let balance = wallet.db.xch_balance().await?;
         let total_coins = wallet.db.total_coin_count().await?;
         let synced_coins = wallet.db.synced_coin_count().await?;
 
@@ -86,7 +88,10 @@ impl Sage {
             return Ok(CheckAddressResponse { valid: false });
         };
 
-        let is_valid = wallet.db.is_p2_puzzle_hash(address.puzzle_hash).await?;
+        let is_valid = wallet
+            .db
+            .is_custody_p2_puzzle_hash(address.puzzle_hash)
+            .await?;
 
         Ok(CheckAddressResponse { valid: is_valid })
     }
@@ -250,7 +255,8 @@ impl Sage {
 
     pub async fn get_cats(&self, _req: GetCats) -> Result<GetCatsResponse> {
         let wallet = self.wallet()?;
-        let cats = wallet.db.cats_by_name().await?;
+        // TODO: add paging and is_visible to GetCats
+        let (cats, total) = wallet.db.cat_assets(false, 10000, 0).await?;
 
         let mut records = Vec::with_capacity(cats.len());
 
@@ -275,7 +281,7 @@ impl Sage {
         let wallet = self.wallet()?;
 
         let asset_id = parse_asset_id(req.asset_id)?;
-        let cat = wallet.db.cat(asset_id).await?;
+        let cat = wallet.db.cat_asset(asset_id).await?;
         let balance = wallet.db.cat_balance(asset_id).await?;
 
         let cat = cat
@@ -300,7 +306,8 @@ impl Sage {
 
         let mut dids = Vec::new();
 
-        for row in wallet.db.dids_by_name().await? {
+        for row in wallet.db.did_assets().await? {
+            // TODO - we should not need the secondary fetch here any longer
             let Some(did) = wallet.db.did_coin_info(row.coin_id).await? else {
                 continue;
             };
@@ -349,7 +356,7 @@ impl Sage {
 
         let transactions = wallet
             .db
-            .transactions()
+            .pending_transactions()
             .await?
             .into_iter()
             .map(|tx| {
@@ -372,7 +379,7 @@ impl Sage {
 
         let (transaction_coins, total) = wallet
             .db
-            .get_transaction_coins(req.offset, req.limit, req.ascending, req.find_value)
+            .transaction_blocks(req.find_value, req.ascending, req.limit, req.offset)
             .await?;
 
         // Group transaction coins by height
@@ -414,27 +421,22 @@ impl Sage {
         req: GetNftCollections,
     ) -> Result<GetNftCollectionsResponse> {
         let wallet = self.wallet()?;
-        let include_hidden = req.include_hidden;
 
-        let (collections, total) = if include_hidden {
-            wallet.db.collections_named(req.limit, req.offset).await?
-        } else {
-            wallet
-                .db
-                .collections_visible_named(req.limit, req.offset)
-                .await?
-        };
+        let (collections, total) = wallet
+            .db
+            .collections(req.limit, req.offset, req.include_hidden)
+            .await?;
 
         let records = collections
             .into_iter()
             .map(|row| {
                 Ok(NftCollectionRecord {
-                    collection_id: Address::new(row.collection_id, "col".to_string()).encode()?,
-                    did_id: Address::new(row.did_id, "did:chia:".to_string()).encode()?,
-                    metadata_collection_id: row.metadata_collection_id,
+                    collection_id: Address::new(row.hash, "col".to_string()).encode()?,
+                    did_id: Address::new(row.minter_hash, "did:chia:".to_string()).encode()?,
+                    metadata_collection_id: row.uuid,
                     name: row.name,
-                    icon: row.icon,
-                    visible: row.visible,
+                    icon: row.icon_url,
+                    visible: row.is_visible,
                 })
             })
             .collect::<Result<Vec<_>>>()?;
@@ -466,11 +468,11 @@ impl Sage {
             NftCollectionRecord {
                 collection_id: Address::new(collection.collection_id, "col".to_string())
                     .encode()?,
-                did_id: Address::new(collection.did_id, "did:chia:".to_string()).encode()?,
-                metadata_collection_id: collection.metadata_collection_id,
-                visible: collection.visible,
+                did_id: Address::new(collection.minter_hash, "did:chia:".to_string()).encode()?,
+                metadata_collection_id: collection.uuid,
+                visible: collection.is_visible,
                 name: collection.name,
-                icon: collection.icon,
+                icon: collection.icon_url,
             }
         } else {
             NftCollectionRecord {
@@ -496,43 +498,53 @@ impl Sage {
         let group = match (&req.collection_id, &req.minter_did_id, &req.owner_did_id) {
             (Some(collection_id), None, None) => {
                 if collection_id == "none" {
-                    Some(NftGroup::NoCollection)
+                    Some(NftGroupSearch::NoCollection)
                 } else {
-                    Some(NftGroup::Collection(parse_collection_id(
+                    Some(NftGroupSearch::Collection(parse_collection_id(
                         collection_id.clone(),
                     )?))
                 }
             }
             (None, Some(minter_did_id), None) => {
                 if minter_did_id == "none" {
-                    Some(NftGroup::NoMinterDid)
+                    Some(NftGroupSearch::NoMinterDid)
                 } else {
-                    Some(NftGroup::MinterDid(parse_did_id(minter_did_id.clone())?))
+                    Some(NftGroupSearch::MinterDid(parse_did_id(
+                        minter_did_id.clone(),
+                    )?))
                 }
             }
             (None, None, Some(owner_did_id)) => {
                 if owner_did_id == "none" {
-                    Some(NftGroup::NoOwnerDid)
+                    Some(NftGroupSearch::NoOwnerDid)
                 } else {
-                    Some(NftGroup::OwnerDid(parse_did_id(owner_did_id.clone())?))
+                    Some(NftGroupSearch::OwnerDid(parse_did_id(
+                        owner_did_id.clone(),
+                    )?))
                 }
             }
             (None, None, None) => None,
             _ => return Err(Error::InvalidGroup),
         };
 
-        let params = NftSearchParams {
-            sort_mode: match req.sort_mode {
-                ApiNftSortMode::Recent => NftSortMode::Recent,
-                ApiNftSortMode::Name => NftSortMode::Name,
-            },
-            include_hidden: req.include_hidden,
-            group,
-            name: req.name,
+        let sort_mode = match req.sort_mode {
+            ApiNftSortMode::Recent => NftSortMode::Recent,
+            ApiNftSortMode::Name => NftSortMode::Name,
         };
 
-        let (nfts, total) = wallet.db.search_nfts(params, req.limit, req.offset).await?;
+        let (nfts, total) = wallet
+            .db
+            .nft_assets(
+                req.name,
+                group,
+                sort_mode,
+                req.include_hidden,
+                req.limit,
+                req.offset,
+            )
+            .await?;
 
+        // TODO - we should not need the secondary fetches here any longer
         for nft_row in nfts {
             let Some(nft) = wallet.db.nft(nft_row.launcher_id).await? else {
                 continue;
@@ -558,7 +570,7 @@ impl Sage {
 
         let nft_id = parse_nft_id(req.nft_id)?;
 
-        let Some(nft_row) = wallet.db.nft_row(nft_id).await? else {
+        let Some(nft_row) = wallet.db.nft_asset(nft_id).await? else {
             return Ok(GetNftResponse { nft: None });
         };
 

@@ -28,9 +28,7 @@ pub struct Resync {
     #[serde(default)]
     pub delete_offer_files: bool,
     #[serde(default)]
-    pub delete_unhardened_derivations: bool,
-    #[serde(default)]
-    pub delete_hardened_derivations: bool,
+    pub delete_addresses: bool,
     #[serde(default)]
     pub delete_blockinfo: bool,
 }

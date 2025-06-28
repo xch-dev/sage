@@ -47,8 +47,8 @@ mod tests {
         test.transact(coin_spends).await?;
         test.wait_for_coins().await;
 
-        assert_eq!(test.wallet.db.balance().await?, 1000);
-        assert_eq!(test.wallet.db.spendable_coins().await?.len(), 1);
+        assert_eq!(test.wallet.db.xch_balance().await?, 1000);
+        assert_eq!(test.wallet.db.spendable_xch_coins().await?.len(), 1);
 
         Ok(())
     }
@@ -67,8 +67,8 @@ mod tests {
         test.transact(coin_spends).await?;
         test.wait_for_coins().await;
 
-        assert_eq!(test.wallet.db.balance().await?, 750);
-        assert_eq!(test.wallet.db.spendable_coins().await?.len(), 2);
+        assert_eq!(test.wallet.db.xch_balance().await?, 750);
+        assert_eq!(test.wallet.db.spendable_xch_coins().await?.len(), 2);
 
         Ok(())
     }
@@ -87,8 +87,8 @@ mod tests {
         test.transact(coin_spends).await?;
         test.wait_for_coins().await;
 
-        assert_eq!(test.wallet.db.balance().await?, 1000);
-        assert_eq!(test.wallet.db.spendable_coins().await?.len(), 1);
+        assert_eq!(test.wallet.db.xch_balance().await?, 1000);
+        assert_eq!(test.wallet.db.spendable_xch_coins().await?.len(), 1);
 
         let coin_spends = test
             .wallet
@@ -100,8 +100,8 @@ mod tests {
         test.transact(coin_spends).await?;
         test.wait_for_coins().await;
 
-        assert_eq!(test.wallet.db.balance().await?, 1000);
-        assert_eq!(test.wallet.db.spendable_coins().await?.len(), 1);
+        assert_eq!(test.wallet.db.xch_balance().await?, 1000);
+        assert_eq!(test.wallet.db.spendable_xch_coins().await?.len(), 1);
 
         Ok(())
     }

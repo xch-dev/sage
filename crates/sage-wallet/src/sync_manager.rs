@@ -443,7 +443,6 @@ impl SyncManager {
                 let task = tokio::spawn(
                     TransactionQueue::new(
                         wallet.db.clone(),
-                        wallet.genesis_challenge,
                         self.state.clone(),
                         self.event_sender.clone(),
                     )

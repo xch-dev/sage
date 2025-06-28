@@ -4,11 +4,7 @@ use chia::{
     puzzles::{nft::NftMetadata, LineageProof, Proof},
 };
 use chia_puzzles::SINGLETON_LAUNCHER_HASH;
-use chia_wallet_sdk::{
-    driver::{Cat, Did, DidInfo, HashedPtr, Nft, NftInfo, Puzzle},
-    prelude::Memos,
-    types::{run_puzzle, Condition},
-};
+use chia_wallet_sdk::driver::{Cat, CatInfo, Did, DidInfo, HashedPtr, Nft, NftInfo, Puzzle};
 use clvmr::{Allocator, NodePtr};
 use tracing::{debug_span, warn};
 
@@ -17,13 +13,10 @@ use crate::WalletError;
 #[derive(Debug, Clone)]
 #[allow(clippy::large_enum_variant)]
 pub enum ChildKind {
-    Unknown {
-        hint: Option<Bytes32>,
-    },
+    Unknown,
     Launcher,
     Cat {
-        asset_id: Bytes32,
-        p2_puzzle_hash: Bytes32,
+        info: CatInfo,
         lineage_proof: LineageProof,
     },
     Did {
@@ -50,15 +43,11 @@ impl ChildKind {
         let parent_puzzle = Puzzle::parse(&allocator, parent_puzzle_ptr);
         let parent_solution = parent_solution.to_clvm(&mut allocator)?;
 
-        let output = run_puzzle(&mut allocator, parent_puzzle.ptr(), parent_solution)?;
-        let conditions = Vec::<Condition>::from_clvm(&allocator, output)?;
-
         Self::from_parent_cached(
             &mut allocator,
             parent_coin,
             parent_puzzle,
             parent_solution,
-            conditions,
             coin,
         )
     }
@@ -68,7 +57,6 @@ impl ChildKind {
         parent_coin: Coin,
         parent_puzzle: Puzzle,
         parent_solution: NodePtr,
-        conditions: Vec<Condition>,
         coin: Coin,
     ) -> Result<Self, WalletError> {
         let parse_span = debug_span!(
@@ -82,46 +70,28 @@ impl ChildKind {
             return Ok(Self::Launcher);
         }
 
-        let Some(create_coin) = conditions
-            .into_iter()
-            .filter_map(Condition::into_create_coin)
-            .find(|cond| cond.puzzle_hash == coin.puzzle_hash && cond.amount == coin.amount)
-        else {
-            return Ok(Self::Unknown { hint: None });
-        };
-
-        let hint = if let Memos::Some(memos) = create_coin.memos {
-            let memos = <(Bytes32, NodePtr)>::from_clvm(allocator, memos).ok();
-            memos.map(|memos| memos.0)
-        } else {
-            None
-        };
-
-        let unknown = Self::Unknown { hint };
-
         match Cat::parse_children(allocator, parent_coin, parent_puzzle, parent_solution) {
             // If there was an error parsing the CAT, we can exit early.
             Err(error) => {
                 warn!("Invalid CAT: {}", error);
-                return Ok(unknown);
+                return Ok(Self::Unknown);
             }
 
             // If the coin is a CAT coin, return the relevant information.
             Ok(Some(cats)) => {
                 let Some(cat) = cats.into_iter().find(|cat| cat.coin == coin) else {
                     warn!("CAT coin not found in children");
-                    return Ok(unknown);
+                    return Ok(Self::Unknown);
                 };
 
                 // We don't support parsing eve CATs during syncing.
                 let Some(lineage_proof) = cat.lineage_proof else {
-                    return Ok(unknown);
+                    return Ok(Self::Unknown);
                 };
 
                 return Ok(Self::Cat {
-                    asset_id: cat.info.asset_id,
+                    info: cat.info,
                     lineage_proof,
-                    p2_puzzle_hash: cat.info.p2_puzzle_hash,
                 });
             }
 
@@ -134,7 +104,7 @@ impl ChildKind {
             // If there was an error parsing the NFT, we can exit early.
             Err(error) => {
                 warn!("Invalid NFT: {}", error);
-                return Ok(unknown);
+                return Ok(Self::Unknown);
             }
 
             // If the coin is a NFT coin, return the relevant information.
@@ -144,12 +114,12 @@ impl ChildKind {
                         "NFT coin {:?} does not match expected coin {:?}",
                         nft.coin, coin
                     );
-                    return Ok(unknown);
+                    return Ok(Self::Unknown);
                 }
 
                 // We don't support parsing eve NFTs during syncing.
                 let Proof::Lineage(lineage_proof) = nft.proof else {
-                    return Ok(unknown);
+                    return Ok(Self::Unknown);
                 };
 
                 let metadata_program = Program::from_clvm(allocator, nft.info.metadata.ptr())?;
@@ -176,14 +146,14 @@ impl ChildKind {
             // If there was an error parsing the DID, we can exit early.
             Err(error) => {
                 warn!("Invalid DID: {}", error);
-                return Ok(unknown);
+                return Ok(Self::Unknown);
             }
 
             // If the coin is a DID coin, return the relevant information.
             Ok(Some(did)) => {
                 // We don't support parsing eve DIDs during syncing.
                 let Proof::Lineage(lineage_proof) = did.proof else {
-                    return Ok(unknown);
+                    return Ok(Self::Unknown);
                 };
 
                 let metadata = Program::from_clvm(allocator, did.info.metadata.ptr())?;
@@ -198,13 +168,13 @@ impl ChildKind {
             Ok(None) => {}
         }
 
-        Ok(unknown)
+        Ok(Self::Unknown)
     }
 
     pub fn p2_puzzle_hash(&self) -> Option<Bytes32> {
         match self {
-            Self::Launcher | Self::Unknown { .. } => None,
-            Self::Cat { p2_puzzle_hash, .. } => Some(*p2_puzzle_hash),
+            Self::Launcher | Self::Unknown => None,
+            Self::Cat { info, .. } => Some(info.p2_puzzle_hash),
             Self::Did { info, .. } => Some(info.p2_puzzle_hash),
             Self::Nft { info, .. } => Some(info.p2_puzzle_hash),
         }
