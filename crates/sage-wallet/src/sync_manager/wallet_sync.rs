@@ -210,14 +210,14 @@ pub async fn incremental_sync(
 
         if coin_state.spent_height.is_some() {
             confirmed_transactions.extend(
-                tx.transactions_for_output(coin_state.coin.coin_id())
+                tx.mempool_items_for_output(coin_state.coin.coin_id())
                     .await?,
             );
         }
     }
 
-    for transaction_id in confirmed_transactions {
-        tx.remove_transaction(transaction_id).await?;
+    for mempool_item_id in confirmed_transactions {
+        tx.remove_mempool_item(mempool_item_id).await?;
     }
 
     let mut derived = false;

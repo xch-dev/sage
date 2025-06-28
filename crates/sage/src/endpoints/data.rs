@@ -356,7 +356,7 @@ impl Sage {
 
         let transactions = wallet
             .db
-            .transactions()
+            .pending_transactions()
             .await?
             .into_iter()
             .map(|tx| {
@@ -379,7 +379,7 @@ impl Sage {
 
         let (transaction_coins, total) = wallet
             .db
-            .get_transaction_coins(req.offset, req.limit, req.ascending, req.find_value)
+            .transaction_blocks(req.find_value, req.ascending, req.limit, req.offset)
             .await?;
 
         // Group transaction coins by height
