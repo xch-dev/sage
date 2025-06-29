@@ -68,13 +68,13 @@ async fn transaction(conn: impl SqliteExecutor<'_>, height: u32) -> Result<Optio
             is_created_in_block,
             is_spent_in_block,
             asset_hash,
-            description,
-            is_visible,
-            is_sensitive_content,
-            created_height,
-            name,
-            icon_url,
-            kind,
+            asset_description,
+            asset_is_visible,
+            asset_is_sensitive_content,
+            asset_created_height,
+            asset_name,
+            asset_icon_url,
+            asset_kind,
             p2_puzzle_hash 
         FROM transaction_coins 
         WHERE height = ?",
@@ -104,12 +104,12 @@ async fn transaction(conn: impl SqliteExecutor<'_>, height: u32) -> Result<Optio
 
         let asset = Asset {
             hash: row.asset_hash.convert()?,
-            name: row.name,
-            icon_url: row.icon_url,
-            description: row.description,
-            is_sensitive_content: row.is_sensitive_content,
-            is_visible: row.is_visible,
-            created_height: row.created_height.map(|h| h as u32),
+            name: row.asset_name,
+            icon_url: row.asset_icon_url,
+            description: row.asset_description,
+            is_sensitive_content: row.asset_is_sensitive_content,
+            is_visible: row.asset_is_visible,
+            created_height: row.asset_created_height.map(|h| h as u32),
         };
 
         let transaction_coin = TransactionCoin { coin, asset };
@@ -150,13 +150,13 @@ async fn transactions(
             is_created_in_block,
             is_spent_in_block,
             asset_hash,
-            description,
-            is_visible,
-            is_sensitive_content,
-            created_height,
-            name,
-            icon_url,
-            kind,
+            asset_description,
+            asset_is_visible,
+            asset_is_sensitive_content,
+            asset_created_height,
+            asset_name,
+            asset_icon_url,
+            asset_kind,
             p2_puzzle_hash,
             COUNT(*) OVER() as total_count
         FROM transaction_coins

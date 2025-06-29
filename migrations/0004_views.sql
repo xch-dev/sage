@@ -69,15 +69,15 @@ SELECT
   coins.amount,
   coins.created_height = blocks.height AS is_created_in_block,
   coins.spent_height = blocks.height AS is_spent_in_block,
-  assets.hash AS asset_hash,
-  assets.name,
-  assets.icon_url,
-  assets.kind,
-  assets.description,
-  assets.is_visible,
-  assets.is_sensitive_content,
-  assets.created_height,
   p2_puzzles.hash AS p2_puzzle_hash,
+  assets.hash AS asset_hash,
+  assets.name AS asset_name,
+  assets.icon_url AS asset_icon_url,
+  assets.kind AS asset_kind,
+  assets.description AS asset_description,
+  assets.is_visible AS asset_is_visible,
+  assets.is_sensitive_content AS asset_is_sensitive_content,
+  assets.created_height AS asset_created_height,
   tokens.ticker
 FROM blocks
 LEFT JOIN coins ON coins.created_height = blocks.height OR coins.spent_height = blocks.height
