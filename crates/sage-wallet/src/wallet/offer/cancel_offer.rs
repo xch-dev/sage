@@ -1,6 +1,5 @@
 use chia::protocol::{CoinSpend, SpendBundle};
 use chia_wallet_sdk::driver::{Action, Offer, SpendContext};
-use sage_database::CoinKind;
 
 use crate::{Wallet, WalletError};
 
@@ -14,41 +13,26 @@ impl Wallet {
 
         let offer = Offer::from_spend_bundle(&mut ctx, &spend_bundle)?;
 
-        let mut coin_states = Vec::new();
+        let mut coins = Vec::new();
 
-        for coin_spend in &offer.spend_bundle().coin_spends {
-            let Some(row) = self.db.full_coin_state(coin_spend.coin.coin_id()).await? else {
+        for coin_spend in offer.cancellable_coin_spends()? {
+            let coin_id = coin_spend.coin.coin_id();
+
+            let Some(kind) = self.db.coin_kind(coin_id).await? else {
                 continue;
             };
 
-            if row.coin_state.created_height.is_none() {
-                continue;
-            }
-
-            if row.coin_state.spent_height.is_some() {
-                return Err(WalletError::UncancellableOffer);
-            }
-
-            match row.kind {
-                CoinKind::Xch | CoinKind::Cat | CoinKind::Did | CoinKind::Nft => {}
-                CoinKind::Unknown => continue,
-            }
-
-            coin_states.push(row);
+            coins.push((kind, coin_id));
         }
 
-        coin_states.sort_by_key(|row| row.kind);
+        coins.sort();
 
-        let Some(row) = coin_states.first().copied() else {
+        let Some((_, coin_id)) = coins.first().copied() else {
             return Err(WalletError::UncancellableOffer);
         };
 
-        self.spend(
-            &mut ctx,
-            vec![row.coin_state.coin.coin_id()],
-            &[Action::fee(fee)],
-        )
-        .await?;
+        self.spend(&mut ctx, vec![coin_id], &[Action::fee(fee)])
+            .await?;
 
         Ok(ctx.take())
     }

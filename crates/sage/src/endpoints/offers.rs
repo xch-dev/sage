@@ -23,7 +23,7 @@ use sage_api::{
 use sage_assets::fetch_uris_with_hash;
 use sage_database::{OfferCatRow, OfferNftRow, OfferRow, OfferStatus, OfferXchRow};
 use sage_wallet::{
-    aggregate_offers, fetch_nft_offer_details, insert_transaction, sort_offer, Offered, Requested,
+    aggregate_offers, fetch_nft_offer_details, insert_mempool_item, sort_offer, Offered, Requested,
     SyncCommand, Transaction, Wallet,
 };
 use tokio::time::timeout;

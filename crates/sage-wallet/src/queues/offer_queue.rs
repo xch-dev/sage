@@ -7,7 +7,7 @@ use std::{
 use chia::protocol::Bytes32;
 use chia_wallet_sdk::driver::{decode_offer, Offer};
 use clvmr::Allocator;
-use sage_database::{Database, OfferStatus};
+use sage_database::Database;
 use tokio::{
     sync::{mpsc, Mutex},
     time::{sleep, timeout},

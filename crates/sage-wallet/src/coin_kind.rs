@@ -1,10 +1,10 @@
 use chia::{
     clvm_traits::{FromClvm, ToClvm},
-    protocol::{Bytes32, Program},
+    protocol::Program,
     puzzles::nft::NftMetadata,
 };
 use chia_puzzles::SINGLETON_LAUNCHER_HASH;
-use chia_wallet_sdk::driver::{CatLayer, DidInfo, HashedPtr, Layer, NftInfo, Puzzle};
+use chia_wallet_sdk::driver::{CatInfo, DidInfo, HashedPtr, NftInfo, Puzzle};
 use clvmr::Allocator;
 use tracing::{debug_span, warn};
 
@@ -16,8 +16,7 @@ pub enum CoinKind {
     Unknown,
     Launcher,
     Cat {
-        asset_id: Bytes32,
-        p2_puzzle_hash: Bytes32,
+        info: CatInfo,
     },
     Did {
         info: DidInfo<Program>,
@@ -46,7 +45,7 @@ impl CoinKind {
             return Ok(Self::Launcher);
         }
 
-        match CatLayer::<HashedPtr>::parse_puzzle(allocator, puzzle) {
+        match CatInfo::parse(allocator, puzzle) {
             // If there was an error parsing the CAT, we can exit early.
             Err(error) => {
                 warn!("Invalid CAT: {}", error);
@@ -54,11 +53,8 @@ impl CoinKind {
             }
 
             // If the coin is a CAT coin, return the relevant information.
-            Ok(Some(cat)) => {
-                return Ok(Self::Cat {
-                    asset_id: cat.asset_id,
-                    p2_puzzle_hash: cat.inner_puzzle.tree_hash().into(),
-                });
+            Ok(Some((cat, _inner_puzzle))) => {
+                return Ok(Self::Cat { info: cat });
             }
 
             // If the coin is not a CAT coin, continue parsing.

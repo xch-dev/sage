@@ -72,7 +72,7 @@ impl Sage {
 
         let coins = wallet
             .db
-            .spendable_coins()
+            .spendable_xch_coins()
             .await?
             .into_iter()
             .filter(|coin| {
