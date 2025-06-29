@@ -10,7 +10,7 @@ pub(crate) use utils::*;
 
 use std::num::TryFromIntError;
 
-use sqlx::{Sqlite, SqlitePool, Transaction};
+use sqlx::{Sqlite, SqlitePool, Transaction as SqliteTransaction};
 use thiserror::Error;
 use tracing::info;
 
@@ -53,11 +53,11 @@ impl Database {
 
 #[derive(Debug)]
 pub struct DatabaseTx<'a> {
-    pub(crate) tx: Transaction<'a, Sqlite>,
+    pub(crate) tx: SqliteTransaction<'a, Sqlite>,
 }
 
 impl<'a> DatabaseTx<'a> {
-    pub fn new(tx: Transaction<'a, Sqlite>) -> Self {
+    pub fn new(tx: SqliteTransaction<'a, Sqlite>) -> Self {
         Self { tx }
     }
 
