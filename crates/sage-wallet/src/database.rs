@@ -200,7 +200,7 @@ pub async fn insert_transaction(
     // Insert the transaction into the database.
     let mut tx = db.tx().await?;
 
-    tx.insert_transaction(transaction_id, aggregated_signature, transaction.fee)
+    tx.insert_mempool_item(transaction_id, aggregated_signature, transaction.fee)
         .await?;
 
     let mut subscriptions = Vec::new();
@@ -209,13 +209,13 @@ pub async fn insert_transaction(
         let input_coin_id = input.coin_spend.coin.coin_id();
 
         // Insert the spend into the database in the proper order so it can be reconstructed later.
-        tx.insert_transaction_spend(transaction_id, input.coin_spend, index)
+        tx.insert_mempool_spend(transaction_id, input.coin_spend, index)
             .await?;
 
         // If the coin isn't ephemeral (exists on-chain) and we already have it in the database,
         // we can attach it to the transaction as our coin for display purposes.
         if !output_coin_ids.contains(&input_coin_id) && tx.is_known_coin(input_coin_id).await? {
-            tx.insert_transaction_coin(transaction_id, input_coin_id, true, false)
+            tx.insert_mempool_coin(transaction_id, input_coin_id, true, false)
                 .await?;
         }
 
@@ -232,7 +232,7 @@ pub async fn insert_transaction(
                 tx.sync_coin(coin_id, Bytes32::default(), output.coin.puzzle_hash, None)
                     .await?;
 
-                tx.insert_transaction_coin(
+                tx.insert_mempool_coin(
                     transaction_id,
                     coin_id,
                     coin_spends.contains_key(&coin_id),
@@ -255,7 +255,7 @@ pub async fn insert_transaction(
             // Insert the coin into the database and attach it to the transaction as an output for display purposes.
             tx.insert_coin(coin_state).await?;
 
-            tx.insert_transaction_coin(
+            tx.insert_mempool_coin(
                 transaction_id,
                 coin_id,
                 coin_spends.contains_key(&coin_id),

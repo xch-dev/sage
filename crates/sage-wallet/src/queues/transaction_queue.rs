@@ -46,14 +46,14 @@ impl TransactionQueue {
 
         let mut spend_bundles = Vec::new();
 
-        let rows = self.db.transactions_to_submit(120, 3).await?;
+        let rows = self.db.mempool_items_to_submit(120, 3).await?;
 
         if rows.is_empty() {
             return Ok(());
         }
 
         for row in rows {
-            let coin_spends = self.db.transaction_coin_spends(row.hash).await?;
+            let coin_spends = self.db.mempool_coin_spends(row.hash).await?;
             spend_bundles.push(SpendBundle::new(coin_spends, row.aggregated_signature));
         }
 
@@ -81,7 +81,7 @@ impl TransactionQueue {
                 Status::Pending => {
                     info!("Transaction inclusion in mempool successful, updating timestamp");
 
-                    self.db.update_transaction_time(transaction_id).await?;
+                    self.db.update_mempool_item_time(transaction_id).await?;
 
                     self.sync_sender
                         .send(SyncEvent::TransactionUpdated { transaction_id })
@@ -95,7 +95,7 @@ impl TransactionQueue {
 
                     let mut tx = self.db.tx().await?;
 
-                    tx.remove_transaction(transaction_id).await?;
+                    tx.remove_mempool_item(transaction_id).await?;
 
                     tx.commit().await?;
 
