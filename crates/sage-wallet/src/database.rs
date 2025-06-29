@@ -66,7 +66,7 @@ pub async fn insert_puzzle(
             )
             .await?;
 
-            if tx.is_latest_singleton_coin(coin_id).await? {
+            if coin_state.created_height.is_some() && tx.is_latest_singleton_coin(coin_id).await? {
                 tx.update_did_coin_info(info.launcher_id, &coin_info)
                     .await?;
             }
@@ -113,7 +113,7 @@ pub async fn insert_puzzle(
 
             tx.insert_nft(asset, &coin_info).await?;
 
-            if tx.is_latest_singleton_coin(coin_id).await? {
+            if coin_state.created_height.is_some() && tx.is_latest_singleton_coin(coin_id).await? {
                 tx.update_nft_coin_info(info.launcher_id, &coin_info)
                     .await?;
             }

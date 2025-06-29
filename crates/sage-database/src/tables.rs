@@ -3,6 +3,7 @@ mod blocks;
 mod coins;
 mod collections;
 mod files;
+mod offers;
 mod p2_puzzles;
 mod transactions;
 
@@ -10,5 +11,6 @@ pub use assets::*;
 pub use coins::*;
 pub use collections::*;
 pub use files::*;
+pub use offers::*;
 pub use p2_puzzles::*;
 pub use transactions::*;
