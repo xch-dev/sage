@@ -114,6 +114,13 @@ pub struct NftMetadataInfo {
 }
 
 impl Database {
+    pub async fn insert_cat(&self, cat: CatAsset) -> Result<()> {
+        let mut tx = self.tx().await?;
+        insert_cat(&mut tx.tx, cat).await?;
+        tx.commit().await?;
+        Ok(())
+    }
+
     pub async fn asset_kind(&self, asset_id: Bytes32) -> Result<Option<AssetKind>> {
         asset_kind(&self.pool, asset_id).await
     }
@@ -641,7 +648,7 @@ async fn nft_assets(
 
     if let Some(name_search) = name_search {
         query.push("AND assets.name LIKE ?");
-        query.push_bind(format!("%{}%", name_search));
+        query.push_bind(format!("%{name_search}%"));
     }
 
     if let Some(group) = group_search {
