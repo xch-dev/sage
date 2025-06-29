@@ -47,119 +47,119 @@ impl OfferQueue {
     }
 
     async fn process_batch(&mut self) -> Result<(), WalletError> {
-        if self.state.lock().await.peer_count() == 0 {
-            return Ok(());
-        }
+        // if self.state.lock().await.peer_count() == 0 {
+        //     return Ok(());
+        // }
 
-        let offers = self.db.active_offers().await?;
+        // let offers = self.db.active_offers().await?;
 
-        let mut settlement_coin_ids = HashMap::new();
-        let mut input_coin_ids = HashMap::new();
+        // let mut settlement_coin_ids = HashMap::new();
+        // let mut input_coin_ids = HashMap::new();
 
-        for row in &offers {
-            let mut allocator = Allocator::new();
+        // for row in &offers {
+        //     let mut allocator = Allocator::new();
 
-            let spend_bundle = decode_offer(&row.encoded_offer)?;
-            let offer = Offer::from_spend_bundle(&mut allocator, &spend_bundle)?;
+        //     let spend_bundle = decode_offer(&row.encoded_offer)?;
+        //     let offer = Offer::from_spend_bundle(&mut allocator, &spend_bundle)?;
 
-            for coin in offer.offered_coins().flatten() {
-                settlement_coin_ids
-                    .entry(coin.coin_id())
-                    .or_insert(HashSet::new())
-                    .insert(row.offer_id);
-            }
+        //     for coin in offer.offered_coins().flatten() {
+        //         settlement_coin_ids
+        //             .entry(coin.coin_id())
+        //             .or_insert(HashSet::new())
+        //             .insert(row.offer_id);
+        //     }
 
-            for coin_spend in offer.cancellable_coin_spends()? {
-                input_coin_ids
-                    .entry(coin_spend.coin.coin_id())
-                    .or_insert(HashSet::new())
-                    .insert(row.offer_id);
-            }
-        }
+        //     for coin_spend in offer.cancellable_coin_spends()? {
+        //         input_coin_ids
+        //             .entry(coin_spend.coin.coin_id())
+        //             .or_insert(HashSet::new())
+        //             .insert(row.offer_id);
+        //     }
+        // }
 
-        let Some(peer) = self.state.lock().await.acquire_peer() else {
-            return Ok(());
-        };
+        // let Some(peer) = self.state.lock().await.acquire_peer() else {
+        //     return Ok(());
+        // };
 
-        let coin_states = match timeout(
-            Duration::from_secs(10),
-            peer.fetch_coins(
-                settlement_coin_ids
-                    .keys()
-                    .copied()
-                    .chain(input_coin_ids.keys().copied())
-                    .collect(),
-                self.genesis_challenge,
-            ),
-        )
-        .await
-        {
-            Ok(Ok(coin_states)) => coin_states,
-            Ok(Err(err)) => {
-                warn!("Coin lookup failed for {}: {}", peer.socket_addr(), err);
-                self.state.lock().await.ban(
-                    peer.socket_addr().ip(),
-                    Duration::from_secs(300),
-                    "coin lookup failed",
-                );
-                return Ok(());
-            }
-            Err(_) => {
-                warn!("Coin lookup timed out for {}", peer.socket_addr());
-                self.state.lock().await.ban(
-                    peer.socket_addr().ip(),
-                    Duration::from_secs(300),
-                    "coin lookup timeout",
-                );
-                return Ok(());
-            }
-        };
+        // let coin_states = match timeout(
+        //     Duration::from_secs(10),
+        //     peer.fetch_coins(
+        //         settlement_coin_ids
+        //             .keys()
+        //             .copied()
+        //             .chain(input_coin_ids.keys().copied())
+        //             .collect(),
+        //         self.genesis_challenge,
+        //     ),
+        // )
+        // .await
+        // {
+        //     Ok(Ok(coin_states)) => coin_states,
+        //     Ok(Err(err)) => {
+        //         warn!("Coin lookup failed for {}: {}", peer.socket_addr(), err);
+        //         self.state.lock().await.ban(
+        //             peer.socket_addr().ip(),
+        //             Duration::from_secs(300),
+        //             "coin lookup failed",
+        //         );
+        //         return Ok(());
+        //     }
+        //     Err(_) => {
+        //         warn!("Coin lookup timed out for {}", peer.socket_addr());
+        //         self.state.lock().await.ban(
+        //             peer.socket_addr().ip(),
+        //             Duration::from_secs(300),
+        //             "coin lookup timeout",
+        //         );
+        //         return Ok(());
+        //     }
+        // };
 
-        let mut new_offer_statuses = HashMap::new();
+        // let mut new_offer_statuses = HashMap::new();
 
-        for coin_state in coin_states {
-            if let Some(offer_ids) = settlement_coin_ids.get(&coin_state.coin.coin_id()) {
-                for &offer_id in offer_ids {
-                    new_offer_statuses.insert(offer_id, OfferStatus::Completed);
-                }
-            }
+        // for coin_state in coin_states {
+        //     if let Some(offer_ids) = settlement_coin_ids.get(&coin_state.coin.coin_id()) {
+        //         for &offer_id in offer_ids {
+        //             new_offer_statuses.insert(offer_id, OfferStatus::Completed);
+        //         }
+        //     }
 
-            if coin_state.spent_height.is_none() {
-                continue;
-            }
+        //     if coin_state.spent_height.is_none() {
+        //         continue;
+        //     }
 
-            if let Some(offer_ids) = input_coin_ids.get(&coin_state.coin.coin_id()) {
-                for &offer_id in offer_ids {
-                    new_offer_statuses
-                        .entry(offer_id)
-                        .or_insert(OfferStatus::Cancelled);
-                }
-            }
-        }
+        //     if let Some(offer_ids) = input_coin_ids.get(&coin_state.coin.coin_id()) {
+        //         for &offer_id in offer_ids {
+        //             new_offer_statuses
+        //                 .entry(offer_id)
+        //                 .or_insert(OfferStatus::Cancelled);
+        //         }
+        //     }
+        // }
 
-        let peak_height = self.state.lock().await.peak().map_or(0, |peak| peak.0);
-        let timestamp = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
+        // let peak_height = self.state.lock().await.peak().map_or(0, |peak| peak.0);
+        // let timestamp = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
 
-        for offer in offers {
-            if offer
-                .expiration_height
-                .is_some_and(|height| height <= peak_height)
-                || offer.expiration_timestamp.is_some_and(|ts| ts <= timestamp)
-            {
-                new_offer_statuses
-                    .entry(offer.offer_id)
-                    .or_insert(OfferStatus::Expired);
-            }
-        }
+        // for offer in offers {
+        //     if offer
+        //         .expiration_height
+        //         .is_some_and(|height| height <= peak_height)
+        //         || offer.expiration_timestamp.is_some_and(|ts| ts <= timestamp)
+        //     {
+        //         new_offer_statuses
+        //             .entry(offer.offer_id)
+        //             .or_insert(OfferStatus::Expired);
+        //     }
+        // }
 
-        for (offer_id, status) in new_offer_statuses {
-            self.db.update_offer_status(offer_id, status).await?;
+        // for (offer_id, status) in new_offer_statuses {
+        //     self.db.update_offer_status(offer_id, status).await?;
 
-            self.sync_sender
-                .send(SyncEvent::OfferUpdated { offer_id, status })
-                .await
-                .ok();
-        }
+        //     self.sync_sender
+        //         .send(SyncEvent::OfferUpdated { offer_id, status })
+        //         .await
+        //         .ok();
+        // }
 
         Ok(())
     }
