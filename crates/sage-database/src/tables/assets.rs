@@ -118,6 +118,10 @@ impl Database {
         asset_kind(&self.pool, asset_id).await
     }
 
+    pub async fn set_asset_visible(&self, asset_id: Bytes32, is_visible: bool) -> Result<()> {
+        set_asset_visible(&self.pool, asset_id, is_visible).await
+    }
+
     pub async fn cat_asset(&self, asset_id: Bytes32) -> Result<Option<CatAsset>> {
         cat_asset(&self.pool, asset_id).await
     }
@@ -129,10 +133,6 @@ impl Database {
         offset: u32,
     ) -> std::result::Result<(Vec<CatAsset>, u32), DatabaseError> {
         cat_assets(&self.pool, include_hidden, limit, offset).await
-    }
-
-    pub async fn nft_asset(&self, asset_id: Bytes32) -> Result<Option<NftAsset>> {
-        nft_asset(&self.pool, asset_id).await
     }
 
     pub async fn nft_assets(
@@ -174,6 +174,10 @@ impl Database {
 }
 
 impl DatabaseTx<'_> {
+    pub async fn update_cat_asset(&mut self, cat: CatAsset) -> Result<()> {
+        update_cat_asset(&self.tx, cat).await
+    }
+
     pub async fn insert_cat(&mut self, cat: CatAsset) -> Result<()> {
         insert_cat(&mut self.tx, cat).await
     }
@@ -219,6 +223,61 @@ async fn asset_kind(conn: impl SqliteExecutor<'_>, hash: Bytes32) -> Result<Opti
         .await?
         .map(|row| row.kind.convert())
         .transpose()
+}
+
+async fn set_asset_visible(
+    conn: impl SqliteExecutor<'_>,
+    asset_id: Bytes32,
+    is_visible: bool,
+) -> Result<()> {
+    let asset_id = asset_id.as_ref();
+
+    query!(
+        "UPDATE assets SET is_visible = ? WHERE hash = ?",
+        is_visible,
+        asset_id
+    )
+    .execute(conn)
+    .await?;
+
+    Ok(())
+}
+
+async fn update_cat_asset(conn: &mut SqliteConnection, cat: CatAsset) -> Result<()> {
+    let hash = cat.asset.hash.as_ref();
+
+    let asset_id = query!(
+        "UPDATE assets 
+        SET name = ?, icon_url = ?, description = ?, is_visible = ?, is_sensitive_content = ?, created_height = ?
+        WHERE hash = ?
+        RETURNING id
+    ",
+        cat.asset.name,
+        cat.asset.icon_url,
+        cat.asset.description,
+        cat.asset.is_visible,
+        cat.asset.is_sensitive_content,
+        cat.asset.created_height,
+        hash
+    )
+    .fetch_one(&mut *conn)
+    .await?
+    .id;
+
+    query!(
+        "
+        INSERT INTO tokens (asset_id, ticker)
+        VALUES (?, ?)
+        ON CONFLICT(asset_id) DO UPDATE SET
+            ticker = excluded.ticker
+        ",
+        asset_id,
+        cat.ticker,
+    )
+    .execute(&mut *conn)
+    .await?;
+
+    Ok(())
 }
 
 async fn insert_cat(conn: &mut SqliteConnection, cat: CatAsset) -> Result<()> {

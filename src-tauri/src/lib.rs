@@ -97,7 +97,7 @@ pub fn run() {
             commands::get_networks,
             commands::get_network,
             commands::update_cat,
-            commands::remove_cat,
+            commands::resync_cat,
             commands::update_did,
             commands::update_nft,
             commands::update_nft_collection,

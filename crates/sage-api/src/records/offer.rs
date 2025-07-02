@@ -16,8 +16,9 @@ pub struct OfferRecord {
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[serde(rename_all = "snake_case")]
 pub enum OfferRecordStatus {
-    Active = 0,
-    Completed = 1,
-    Cancelled = 2,
-    Expired = 3,
+    Pending = 0,
+    Active = 1,
+    Completed = 2,
+    Cancelled = 3,
+    Expired = 4,
 }

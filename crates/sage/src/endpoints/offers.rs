@@ -558,6 +558,7 @@ impl Sage {
             offer_id: hex::encode(offer.offer_id),
             offer: offer.encoded_offer,
             status: match offer.status {
+                OfferStatus::Pending => OfferRecordStatus::Pending,
                 OfferStatus::Active => OfferRecordStatus::Active,
                 OfferStatus::Completed => OfferRecordStatus::Completed,
                 OfferStatus::Cancelled => OfferRecordStatus::Cancelled,
