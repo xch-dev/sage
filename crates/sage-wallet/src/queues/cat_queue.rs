@@ -66,7 +66,8 @@ impl CatQueue {
                     created_height: None,
                 },
                 ticker: cat.ticker,
-            });
+            })
+            .await?;
         }
 
         tx.commit().await?;
