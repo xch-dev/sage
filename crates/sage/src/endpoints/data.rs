@@ -287,12 +287,12 @@ impl Sage {
         let cat = cat
             .map(|cat| {
                 Result::Ok(CatRecord {
-                    asset_id: hex::encode(cat.asset_id),
-                    name: cat.name,
+                    asset_id: cat.asset.hash.to_string(),
+                    name: cat.asset.name,
                     ticker: cat.ticker,
-                    description: cat.description,
-                    icon_url: cat.icon,
-                    visible: cat.visible,
+                    description: cat.asset.description,
+                    icon_url: cat.asset.icon_url,
+                    visible: cat.asset.is_visible,
                     balance: Amount::u128(balance),
                 })
             })
@@ -307,20 +307,15 @@ impl Sage {
         let mut dids = Vec::new();
 
         for row in wallet.db.did_assets().await? {
-            // TODO - we should not need the secondary fetch here any longer
-            let Some(did) = wallet.db.did_coin_info(row.coin_id).await? else {
-                continue;
-            };
-
             dids.push(DidRecord {
-                launcher_id: Address::new(row.launcher_id, "did:chia:".to_string()).encode()?,
-                name: row.name,
-                visible: row.visible,
+                launcher_id: Address::new(row.asset.hash, "did:chia:".to_string()).encode()?,
+                name: row.asset.name,
+                visible: row.asset.is_visible,
                 coin_id: hex::encode(did.coin_id),
                 address: Address::new(did.p2_puzzle_hash, self.network().prefix()).encode()?,
                 amount: Amount::u64(did.amount),
-                recovery_hash: did.recovery_list_hash.map(hex::encode),
-                created_height: did.created_height,
+                recovery_hash: row.did_info.recovery_list_hash.map(hex::encode),
+                created_height: row.asset.created_height,
                 create_transaction_id: did.transaction_id.map(hex::encode),
             });
         }
@@ -341,8 +336,7 @@ impl Sage {
 
         let did_ids = dids
             .into_iter()
-            .filter_map(|did| did.map(|d| Address::new(d, "did:chia:".to_string()).encode().ok()))
-            .flatten()
+            .filter_map(|did| Address::new(did, "did:chia:".to_string()).encode().ok())
             .collect();
 
         Ok(GetMinterDidIdsResponse { did_ids, total })
@@ -356,15 +350,15 @@ impl Sage {
 
         let transactions = wallet
             .db
-            .pending_transactions()
+            .mempool_items()
             .await?
             .into_iter()
             .map(|tx| {
                 Result::Ok(PendingTransactionRecord {
-                    transaction_id: hex::encode(tx.transaction_id),
+                    transaction_id: hex::encode(tx.hash),
                     fee: Amount::u64(tx.fee),
                     // TODO: Date format?
-                    submitted_at: tx.submitted_at.map(|ts| ts.to_string()),
+                    submitted_at: Some(tx.submitted_timestamp.to_string()),
                 })
             })
             .collect::<Result<Vec<_>>>()?;
