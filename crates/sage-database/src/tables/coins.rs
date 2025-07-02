@@ -19,6 +19,14 @@ pub enum CoinKind {
 }
 
 impl Database {
+    pub async fn total_coin_count(&self) -> Result<u32> {
+        total_coin_count(&self.pool).await
+    }
+
+    pub async fn synced_coin_count(&self) -> Result<u32> {
+        synced_coin_count(&self.pool).await
+    }
+
     pub async fn unsynced_coins(&self, limit: usize) -> Result<Vec<CoinState>> {
         unsynced_coins(&self.pool, limit).await
     }
@@ -310,6 +318,22 @@ async fn subscription_coin_ids(conn: impl SqliteExecutor<'_>) -> Result<Vec<Byte
         .into_iter()
         .map(|row| row.hash.convert())
         .collect()
+}
+
+async fn total_coin_count(conn: impl SqliteExecutor<'_>) -> Result<u32> {
+    query!("SELECT COUNT(*) AS count FROM coins")
+        .fetch_one(conn)
+        .await?
+        .count
+        .convert()
+}
+
+async fn synced_coin_count(conn: impl SqliteExecutor<'_>) -> Result<u32> {
+    query!("SELECT COUNT(*) as count FROM coins WHERE asset_id IS NOT NULL")
+        .fetch_one(conn)
+        .await?
+        .count
+        .convert()
 }
 
 async fn xch_balance(conn: impl SqliteExecutor<'_>) -> Result<u128> {

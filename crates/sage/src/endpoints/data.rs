@@ -73,8 +73,8 @@ impl Sage {
             receive_address: receive_address.unwrap_or_default(),
             burn_address: Address::new(BURN_PUZZLE_HASH.into(), self.network().prefix())
                 .encode()?,
-            unhardened_derivation_index: wallet.db.derivation_index(false).await?,
-            hardened_derivation_index: wallet.db.derivation_index(true).await?,
+            unhardened_derivation_index: wallet.db.max_derivation_index(false).await?,
+            hardened_derivation_index: wallet.db.max_derivation_index(true).await?,
             checked_uris: wallet.db.checked_uris().await?,
             total_uris: wallet.db.total_uris().await?,
             database_size,
@@ -371,37 +371,16 @@ impl Sage {
 
         let mut transactions = Vec::new();
 
-        let (transaction_coins, total) = wallet
+        let (transaction_records, total) = wallet
             .db
-            .transaction_blocks(req.find_value, req.ascending, req.limit, req.offset)
+            .transactions(req.find_value, req.ascending, req.limit, req.offset)
             .await?;
 
-        // Group transaction coins by height
-        let mut heights = HashMap::new();
-
-        for row in transaction_coins {
-            let height: u32 = row.get::<i64, _>("height").try_into()?;
-            heights.entry(height).or_insert_with(Vec::new).push(row);
-        }
-
-        let mut grouped_coins = heights.into_iter().collect::<Vec<_>>();
-
-        // Sort grouped_coins by height
-        if req.ascending {
-            grouped_coins.sort_by_key(|(height, _)| *height);
-        } else {
-            grouped_coins.sort_by_key(|(height, _)| std::cmp::Reverse(*height));
-        }
-
-        for (height, coins) in grouped_coins {
-            // Process each group by height
-            let timestamp: Option<u32> = coins
-                .first()
-                .map(|coin| coin.try_get("unixtime"))
-                .transpose()?;
-            let transaction_record = self.transaction_record(height, timestamp, coins)?;
-
-            transactions.push(transaction_record);
+        for row in transaction_records {
+            transactions.push(TransactionRecord {
+                height: row.height,
+                timestamp: row.timestamp,
+            });
         }
 
         Ok(GetTransactionsResponse {

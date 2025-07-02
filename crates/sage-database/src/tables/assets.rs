@@ -175,7 +175,7 @@ impl Database {
 
 impl DatabaseTx<'_> {
     pub async fn update_cat_asset(&mut self, cat: CatAsset) -> Result<()> {
-        update_cat_asset(&self.tx, cat).await
+        update_cat_asset(&mut *self.tx, cat).await
     }
 
     pub async fn insert_cat(&mut self, cat: CatAsset) -> Result<()> {

@@ -85,6 +85,10 @@ impl Database {
     ) -> Result<(Vec<DerivationRow>, u32)> {
         derivations(&self.pool, is_hardened, limit, offset).await
     }
+
+    pub async fn max_derivation_index(&self, is_hardened: bool) -> Result<u32> {
+        max_derivation_index(&self.pool, is_hardened).await
+    }
 }
 
 impl DatabaseTx<'_> {
@@ -189,6 +193,23 @@ async fn derivation_index(conn: impl SqliteExecutor<'_>, is_hardened: bool) -> R
     .await?
     .derivation_index
     .convert()
+}
+
+async fn max_derivation_index(conn: impl SqliteExecutor<'_>, is_hardened: bool) -> Result<u32> {
+    let row = query!(
+        "
+        SELECT MAX(derivation_index) AS derivation_index 
+        FROM public_keys 
+        WHERE is_hardened = ?
+        ",
+        is_hardened
+    )
+    .fetch_one(conn)
+    .await?;
+
+    Ok(row
+        .derivation_index
+        .map_or(0, |idx| idx.try_into().unwrap_or(0)))
 }
 
 async fn derivations(
