@@ -5,7 +5,7 @@ use chia::{
 use chia_wallet_sdk::driver::{
     Cat, CatInfo, Did, DidInfo, Nft, NftInfo, OptionContract, OptionInfo,
 };
-use sqlx::{query, SqliteExecutor};
+use sqlx::{query, Row, SqliteExecutor};
 
 use crate::{AssetKind, Convert, Database, DatabaseError, DatabaseTx, Result};
 
@@ -19,6 +19,10 @@ pub enum CoinKind {
 }
 
 impl Database {
+    pub async fn are_coins_spendable(&self, coin_ids: &[String]) -> Result<bool> {
+        are_coins_spendable(&self.pool, coin_ids).await
+    }
+
     pub async fn total_coin_count(&self) -> Result<u32> {
         total_coin_count(&self.pool).await
     }
@@ -154,6 +158,31 @@ impl DatabaseTx<'_> {
     ) -> Result<()> {
         insert_lineage_proof(&mut *self.tx, coin_id, lineage_proof).await
     }
+}
+
+async fn are_coins_spendable(conn: impl SqliteExecutor<'_>, coin_ids: &[String]) -> Result<bool> {
+    if coin_ids.is_empty() {
+        return Ok(false);
+    }
+
+    let mut query = sqlx::QueryBuilder::new(
+        "
+        SELECT COUNT(*) AS count
+        FROM spendable_coins
+        WHERE 1=1
+        AND hash IN (",
+    );
+
+    let mut separated = query.separated(", ");
+    for coin_id in coin_ids {
+        separated.push(format!("X'{coin_id}'"));
+    }
+    separated.push_unseparated(")");
+
+    let count: i64 = query.build().fetch_one(conn).await?.get("count");
+
+    #[allow(clippy::cast_possible_wrap)]
+    Ok(count == coin_ids.len() as i64)
 }
 
 async fn insert_coin(conn: impl SqliteExecutor<'_>, coin_state: CoinState) -> Result<()> {

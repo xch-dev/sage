@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use crate::{
     parse_asset_id, parse_collection_id, parse_did_id, parse_nft_id,
     utils::{to_bytes32_opt, to_u64},
@@ -123,7 +121,7 @@ impl Sage {
         req: GetAreCoinsSpendable,
     ) -> Result<GetAreCoinsSpendableResponse> {
         let wallet = self.wallet()?;
-        let spendable = wallet.db.get_are_coins_spendable(&req.coin_ids).await?;
+        let spendable = wallet.db.are_coins_spendable(&req.coin_ids).await?;
 
         Ok(GetAreCoinsSpendableResponse { spendable })
     }
