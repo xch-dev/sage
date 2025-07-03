@@ -35,7 +35,7 @@ impl Sage {
                 is_sensitive_content: false,
                 is_visible: true,
                 created_height: None,
-                kind: Some(AssetKind::Token),
+                kind: AssetKind::Token,
             },
             ticker: cat.ticker,
         })
@@ -60,7 +60,7 @@ impl Sage {
                 is_sensitive_content: false, // TODO: add is_sensitive_content
                 is_visible: req.record.visible,
                 created_height: None, // TODO: add created_height
-                kind: Some(AssetKind::Token),
+                kind: AssetKind::Token,
             },
             ticker: req.record.ticker,
         })
