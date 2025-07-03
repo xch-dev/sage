@@ -32,6 +32,7 @@ pub struct Asset {
     pub is_sensitive_content: bool,
     pub is_visible: bool,
     pub created_height: Option<u32>,
+    pub kind: AssetKind,
 }
 
 impl Asset {
@@ -44,6 +45,7 @@ impl Asset {
             is_sensitive_content: false,
             is_visible,
             created_height,
+            kind: AssetKind::Token,
         }
     }
 }
@@ -86,6 +88,7 @@ pub enum NftGroupSearch {
 #[derive(Debug, Clone)]
 pub struct NftCoinInfo {
     pub collection_id: Option<Bytes32>,
+    pub collection_name: Option<String>,
     pub minter_hash: Option<Bytes32>,
     pub owner_hash: Option<Bytes32>,
     pub metadata: Program,
@@ -133,6 +136,10 @@ impl Database {
         offset: u32,
     ) -> std::result::Result<(Vec<CatAsset>, u32), DatabaseError> {
         cat_assets(&self.pool, include_hidden, limit, offset).await
+    }
+
+    pub async fn nft_asset(&self, asset_id: Bytes32) -> Result<Option<NftAsset>> {
+        nft_asset(&self.pool, asset_id).await
     }
 
     pub async fn nft_assets(
@@ -578,6 +585,7 @@ async fn cat_asset(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<O
                 is_visible: row.is_visible,
                 is_sensitive_content: row.is_sensitive_content,
                 created_height: row.created_height.map(TryInto::try_into).transpose()?,
+                kind: AssetKind::Token,
             },
             ticker: row.ticker,
         })
@@ -620,6 +628,7 @@ async fn cat_assets(
                     is_visible: row.is_visible,
                     is_sensitive_content: row.is_sensitive_content,
                     created_height: row.created_height.map(TryInto::try_into).transpose()?,
+                    kind: AssetKind::Token,
                 },
                 ticker: row.ticker,
             })
@@ -635,8 +644,8 @@ async fn nft_asset(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<O
     query!(
         "SELECT        
             assets.hash AS asset_hash, assets.name, assets.icon_url, assets.description, is_sensitive_content,
-            assets.is_visible, assets.created_height, collections.hash AS 'collection_hash?', nfts.minter_hash, owner_hash,
-            metadata, metadata_updater_puzzle_hash, royalty_puzzle_hash, royalty_basis_points,
+            assets.is_visible, assets.created_height, collections.hash AS 'collection_hash?', collections.name AS 'collection_name?', 
+            nfts.minter_hash, owner_hash, metadata, metadata_updater_puzzle_hash, royalty_puzzle_hash, royalty_basis_points,
             data_hash, metadata_hash, license_hash, edition_number, edition_total
         FROM assets
         INNER JOIN nfts ON nfts.asset_id = assets.id
@@ -656,9 +665,11 @@ async fn nft_asset(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<O
                 is_sensitive_content: row.is_sensitive_content,
                 is_visible: row.is_visible,
                 created_height: row.created_height.map(TryInto::try_into).transpose()?,
+                kind: AssetKind::Nft,
             },
             nft_info: NftCoinInfo {
                 collection_id: row.collection_hash.map(Convert::convert).transpose()?,
+                collection_name: row.collection_name,
                 minter_hash: row.minter_hash.map(Convert::convert).transpose()?,
                 owner_hash: row.owner_hash.map(Convert::convert).transpose()?,
                 metadata: Program::from(row.metadata),
@@ -688,8 +699,8 @@ async fn nft_assets(
     let mut query = sqlx::QueryBuilder::new(
         "SELECT        
             assets.hash AS asset_hash, assets.name, assets.icon_url, assets.description, is_sensitive_content,
-            assets.is_visible, assets.created_height, collections.hash AS 'collection_hash?', nfts.minter_hash, owner_hash,
-            metadata, metadata_updater_puzzle_hash, royalty_puzzle_hash, royalty_basis_points,
+            assets.is_visible, assets.created_height, collections.hash AS 'collection_hash?', collections.name AS 'collection_name?, 
+            nfts.minter_hash, owner_hash, metadata, metadata_updater_puzzle_hash, royalty_puzzle_hash, royalty_basis_points,
             data_hash, metadata_hash, license_hash, edition_number, edition_total,
             COUNT(*) OVER() as total_count	
         FROM assets
@@ -768,12 +779,14 @@ async fn nft_assets(
                         .get::<Option<i64>, _>("created_height")
                         .map(TryInto::try_into)
                         .transpose()?,
+                    kind: AssetKind::Nft,
                 },
                 nft_info: NftCoinInfo {
                     collection_id: row
                         .get::<Option<Vec<u8>>, _>("collection_hash")
                         .map(Convert::convert)
                         .transpose()?,
+                    collection_name: row.get::<Option<String>, _>("collection_name"),
                     minter_hash: row
                         .get::<Option<Vec<u8>>, _>("minter_hash")
                         .map(Convert::convert)
@@ -865,6 +878,7 @@ async fn did_asset(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<O
                 is_visible: row.is_visible,
                 is_sensitive_content: row.is_sensitive_content,
                 created_height: row.created_height.map(TryInto::try_into).transpose()?,
+                kind: AssetKind::Did,
             },
             did_info: DidCoinInfo {
                 metadata: Program::from(row.metadata),
@@ -896,6 +910,7 @@ async fn did_assets(conn: impl SqliteExecutor<'_>) -> Result<Vec<DidAsset>> {
                 is_visible: row.is_visible,
                 is_sensitive_content: row.is_sensitive_content,
                 created_height: row.created_height.map(TryInto::try_into).transpose()?,
+                kind: AssetKind::Did,
             },
             did_info: DidCoinInfo {
                 metadata: Program::from(row.metadata),

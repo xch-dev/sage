@@ -11,7 +11,7 @@ use sage_api::{
     UpdateNft, UpdateNftCollection, UpdateNftCollectionResponse, UpdateNftResponse,
 };
 use sage_assets::DexieCat;
-use sage_database::{Asset, CatAsset, Derivation};
+use sage_database::{Asset, AssetKind, CatAsset, Derivation};
 use sage_wallet::SyncCommand;
 
 use crate::{parse_asset_id, parse_collection_id, parse_did_id, parse_nft_id, Error, Result, Sage};
@@ -35,6 +35,7 @@ impl Sage {
                 is_sensitive_content: false,
                 is_visible: true,
                 created_height: None,
+                kind: Some(AssetKind::Token),
             },
             ticker: cat.ticker,
         })
@@ -59,6 +60,7 @@ impl Sage {
                 is_sensitive_content: false, // TODO: add is_sensitive_content
                 is_visible: req.record.visible,
                 created_height: None, // TODO: add created_height
+                kind: Some(AssetKind::Token),
             },
             ticker: req.record.ticker,
         })

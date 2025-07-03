@@ -22,4 +22,5 @@ pub enum AssetKind {
         icon: Option<String>,
         name: Option<String>,
     },
+    Option, // TODO: add option fields
 }

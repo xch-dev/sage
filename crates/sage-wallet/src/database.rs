@@ -84,6 +84,7 @@ pub async fn insert_puzzle(
             let mut asset = Asset::empty(info.launcher_id, true, coin_state.created_height);
             let mut coin_info = NftCoinInfo {
                 collection_id: None,
+                collection_name: None,
                 minter_hash: minter_did,
                 owner_hash: info.current_owner,
                 metadata: info.metadata,

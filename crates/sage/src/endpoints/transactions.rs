@@ -15,7 +15,7 @@ use sage_api::{
     ViewCoinSpendsResponse,
 };
 use sage_assets::fetch_uris_without_hash;
-use sage_database::{Asset, CatAsset};
+use sage_database::{Asset, AssetKind, CatAsset};
 use sage_wallet::{MultiSendPayment, WalletNftMint};
 use tokio::time::timeout;
 
@@ -187,6 +187,7 @@ impl Sage {
                 is_sensitive_content: false,
                 is_visible: true,
                 created_height: None,
+                kind: AssetKind::Token,
             },
             ticker: Some(req.ticker),
         })

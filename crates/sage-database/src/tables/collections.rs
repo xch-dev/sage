@@ -21,7 +21,7 @@ impl Database {
         limit: u32,
         offset: u32,
         include_hidden: bool,
-    ) -> Result<Vec<CollectionRow>> {
+    ) -> Result<(Vec<CollectionRow>, u32)> {
         collections(&self.pool, limit, offset, include_hidden).await
     }
 
@@ -73,20 +73,25 @@ async fn collections(
     limit: u32,
     offset: u32,
     include_hidden: bool,
-) -> Result<Vec<CollectionRow>> {
+) -> Result<(Vec<CollectionRow>, u32)> {
     let rows = query!(
-        "SELECT hash, uuid, minter_hash, name, icon_url, banner_url, description, is_visible, created_height 
-            FROM collections
-            WHERE ? OR is_visible = 1
-            ORDER BY name DESC
-            LIMIT ?
-            OFFSET ?",
+        "SELECT hash, uuid, minter_hash, name, icon_url, banner_url, description, is_visible, created_height,
+        COUNT(*) OVER() as total_count
+        FROM collections
+        WHERE ? OR is_visible = 1
+        ORDER BY name DESC
+        LIMIT ?
+        OFFSET ?",
         include_hidden,
         limit,
         offset
     )
     .fetch_all(conn)
     .await?;
+
+    let total_count = rows
+        .first()
+        .map_or(Ok(0), |row| row.total_count.try_into())?;
 
     let collections = rows
         .into_iter()
@@ -105,7 +110,7 @@ async fn collections(
         })
         .collect::<Result<Vec<_>>>()?;
 
-    Ok(collections)
+    Ok((collections, total_count))
 }
 
 async fn insert_collection(conn: impl SqliteExecutor<'_>, row: CollectionRow) -> Result<()> {
