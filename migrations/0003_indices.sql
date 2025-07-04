@@ -18,8 +18,6 @@ CREATE INDEX idx_offer_coins_offer_id ON offer_coins(offer_id);
 CREATE INDEX idx_offer_coins_coin_id ON offer_coins(coin_id);
 CREATE INDEX idx_options_underlying_asset_id ON options(underlying_asset_id);
 CREATE INDEX idx_options_strike_asset_id ON options(strike_asset_id);
-CREATE INDEX idx_public_keys_p2_puzzle_id ON public_keys(p2_puzzle_id);
-CREATE INDEX idx_p2_options_p2_puzzle_id ON p2_options(p2_puzzle_id);
 CREATE INDEX idx_resized_images_file_id ON resized_images(file_id);
 
 /* search and ordering indices */
