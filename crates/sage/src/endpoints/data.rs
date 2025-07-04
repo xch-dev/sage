@@ -27,8 +27,8 @@ use sage_api::{
     PendingTransactionRecord, TransactionRecord, TransactionRecordCoin,
 };
 use sage_database::{
-    AssetKind as DatabaseAssetKind, NftGroup, NftGroupSearch, NftRow, NftSearchParams, NftSortMode,
-    Transaction, TransactionCoin,
+    AssetKind as DatabaseAssetKind, CoinSortMode, NftGroup, NftGroupSearch, NftRow,
+    NftSearchParams, NftSortMode, Transaction, TransactionCoin,
 };
 use sage_wallet::WalletError;
 
@@ -133,7 +133,7 @@ impl Sage {
     ) -> Result<GetSpendableCoinCountResponse> {
         let wallet = self.wallet()?;
         let count = if req.asset_id == "xch" {
-            wallet.db.spendable_p2_coin_count().await?
+            wallet.db.spendable_xch_coin_count().await?
         } else {
             let asset_id = parse_asset_id(req.asset_id)?;
 
@@ -178,7 +178,7 @@ impl Sage {
         let mut coins = Vec::new();
         let (rows, total) = wallet
             .db
-            .p2_coin_states(
+            .xch_coins(
                 req.limit,
                 req.offset,
                 sort_mode,
@@ -188,12 +188,10 @@ impl Sage {
             .await?;
 
         for row in rows {
-            let cs = row.base.coin_state;
-
             coins.push(CoinRecord {
-                coin_id: hex::encode(cs.coin.coin_id()),
-                address: Address::new(cs.coin.puzzle_hash, self.network().prefix()).encode()?,
-                amount: Amount::u64(cs.coin.amount),
+                coin_id: hex::encode(row.coin.coin_id()),
+                address: Address::new(row.coin.puzzle_hash, self.network().prefix()).encode()?,
+                amount: Amount::u64(row.coin.amount),
                 created_height: cs.created_height,
                 spent_height: cs.spent_height,
                 create_transaction_id: row.base.transaction_id.map(hex::encode),

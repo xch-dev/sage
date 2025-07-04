@@ -8,6 +8,8 @@ SELECT
   coins.amount,
   coins.hidden_puzzle_hash,
   coins.p2_puzzle_id,
+  coins.spent_height,
+  coins.created_height,
   assets.hash AS asset_hash
 FROM coins
   INNER JOIN assets ON assets.id = coins.asset_id
@@ -50,6 +52,8 @@ SELECT
   coins.amount,
   coins.hidden_puzzle_hash,
   coins.p2_puzzle_id,
+  coins.spent_height,
+  coins.created_height,
   assets.hash AS asset_hash
 FROM coins
   INNER JOIN assets ON assets.id = coins.asset_id
