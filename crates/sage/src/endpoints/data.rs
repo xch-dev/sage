@@ -27,7 +27,7 @@ use sage_api::{
     PendingTransactionRecord, TransactionRecord, TransactionRecordCoin,
 };
 use sage_database::{
-    AssetKind as DatabaseAssetKind, CoinSortMode, NftGroupSearch,
+    AssetKind as DatabaseAssetKind, CoinSortMode, NftAsset, NftGroupSearch,
     NftSortMode, Transaction, TransactionCoin,
 };
 use sage_wallet::WalletError;
@@ -513,7 +513,7 @@ impl Sage {
                 continue;
             };
 
-            let collection_name = nft_row.nft_info.collection_name;
+            let collection_name = nft_row.nft_info.collection_name.clone();
             records.push(self.nft_record(nft_row, nft, collection_name)?);
         }
 
@@ -536,7 +536,7 @@ impl Sage {
             return Ok(GetNftResponse { nft: None });
         };
 
-        let collection_name = nft_row.nft_info.collection_name;
+        let collection_name = nft_row.nft_info.collection_name.clone();
 
         Ok(GetNftResponse {
             nft: Some(self.nft_record(nft_row, nft, collection_name)?),
@@ -647,7 +647,7 @@ impl Sage {
 
     fn nft_record(
         &self,
-        nft_row: NftRow,
+        nft_row: NftAsset,
         nft: Nft<Program>,
         collection_name: Option<String>,
     ) -> Result<NftRecord> {
@@ -660,23 +660,26 @@ impl Sage {
         let license_hash = metadata.as_ref().and_then(|m| m.license_hash);
 
         Ok(NftRecord {
-            launcher_id: Address::new(nft_row.launcher_id, "nft".to_string()).encode()?,
+            launcher_id: Address::new(nft_row.asset.hash, "nft".to_string()).encode()?,
             collection_id: nft_row
+                .nft_info
                 .collection_id
                 .map(|col| Address::new(col, "col".to_string()).encode())
                 .transpose()?,
             collection_name,
             minter_did: nft_row
-                .minter_did
+                .nft_info
+                .minter_hash
                 .map(|did| Address::new(did, "did:chia:".to_string()).encode())
                 .transpose()?,
             owner_did: nft_row
-                .owner_did
+                .nft_info
+                .owner_hash
                 .map(|did| Address::new(did, "did:chia:".to_string()).encode())
                 .transpose()?,
-            visible: nft_row.visible,
-            name: nft_row.name,
-            sensitive_content: nft_row.sensitive_content,
+            visible: nft_row.asset.is_visible,
+            name: nft_row.asset.name,
+            sensitive_content: nft_row.asset.is_sensitive_content,
             coin_id: hex::encode(nft.coin.coin_id()),
             address: Address::new(nft.info.p2_puzzle_hash, self.network().prefix()).encode()?,
             royalty_address: Address::new(nft.info.royalty_puzzle_hash, self.network().prefix())
@@ -699,7 +702,7 @@ impl Sage {
             license_hash: license_hash.map(hex::encode),
             edition_number: metadata.as_ref().map(|m| m.edition_number as u32),
             edition_total: metadata.as_ref().map(|m| m.edition_total as u32),
-            created_height: nft_row.created_height,
+            created_height: nft_row.asset.created_height,
         })
     }
 
