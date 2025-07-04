@@ -148,7 +148,7 @@ export function TokenList() {
     onRefreshInfo: (assetId: string) => {
       if (assetId === 'xch') return;
       commands
-        .removeCat({ asset_id: assetId })
+        .resyncCat({ asset_id: assetId })
         .then(() => {
           updateCats();
           toast.success(t`Refreshing token info...`);

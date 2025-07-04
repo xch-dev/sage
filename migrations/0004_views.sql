@@ -8,6 +8,8 @@ SELECT
   coins.amount,
   coins.hidden_puzzle_hash,
   coins.p2_puzzle_id,
+  coins.spent_height,
+  coins.created_height,
   assets.hash AS asset_hash,
   assets.kind AS asset_kind,
   p2_puzzles.hash AS p2_puzzle_hash
@@ -53,6 +55,8 @@ SELECT
   coins.amount,
   coins.hidden_puzzle_hash,
   coins.p2_puzzle_id,
+  coins.spent_height,
+  coins.created_height,
   assets.hash AS asset_hash,
   assets.kind AS asset_kind,
   p2_puzzles.hash AS p2_puzzle_hash

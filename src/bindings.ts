@@ -227,8 +227,8 @@ export const commands = {
     async updateCat(req: UpdateCat): Promise<UpdateCatResponse> {
         return await TAURI_INVOKE("update_cat", { req });
     },
-    async removeCat(req: RemoveCat): Promise<RemoveCatResponse> {
-        return await TAURI_INVOKE("remove_cat", { req });
+    async resyncCat(req: ResyncCat): Promise<ResyncCatResponse> {
+        return await TAURI_INVOKE("resync_cat", { req });
     },
     async updateDid(req: UpdateDid): Promise<UpdateDidResponse> {
         return await TAURI_INVOKE("update_did", { req });
@@ -475,8 +475,8 @@ export type PeerRecord = { ip_addr: string; port: number; peak_height: number; u
 export type PendingTransactionRecord = { transaction_id: string; fee: Amount; submitted_at: string | null }
 export type RedownloadNft = { nft_id: string }
 export type RedownloadNftResponse = Record<string, never>
-export type RemoveCat = { asset_id: string }
-export type RemoveCatResponse = Record<string, never>
+export type ResyncCat = { asset_id: string }
+export type ResyncCatResponse = Record<string, never>
 export type RemovePeer = { ip: string; ban: boolean }
 export type RemovePeerResponse = Record<string, never>
 export type RenameKey = { fingerprint: number; name: string }

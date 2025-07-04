@@ -18,13 +18,87 @@ pub enum CoinKind {
     Nft,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum CoinSortMode {
+    CoinId,
+    Amount,
+    CreatedHeight,
+    SpentHeight,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct CoinRow {
+    pub coin: Coin,
+    pub transaction_id: Option<Bytes32>,
+    pub spend_transaction_id: Option<Bytes32>,
+    pub kind: CoinKind,
+    pub offer_id: Option<Bytes32>,
+    pub created_height: Option<u32>,
+    pub spent_height: Option<u32>,
+    pub created_timestamp: Option<u32>,
+    pub spent_timestamp: Option<u32>,
+}
+
 impl Database {
+    pub async fn coins_by_ids(&self, coin_ids: &[String]) -> Result<Vec<CoinRow>> {
+        coins_by_ids(&self.pool, coin_ids).await
+    }
+
+    pub async fn xch_coins(
+        &self,
+        limit: u32,
+        offset: u32,
+        sort_mode: CoinSortMode,
+        ascending: bool,
+        include_spent_coins: bool,
+    ) -> Result<(Vec<CoinRow>, u32)> {
+        coins(
+            &self.pool,
+            None,
+            limit,
+            offset,
+            sort_mode,
+            ascending,
+            include_spent_coins,
+        )
+        .await
+    }
+
+    pub async fn cat_coins(
+        &self,
+        asset_id: Bytes32,
+        limit: u32,
+        offset: u32,
+        sort_mode: CoinSortMode,
+        ascending: bool,
+        include_spent_coins: bool,
+    ) -> Result<(Vec<CoinRow>, u32)> {
+        coins(
+            &self.pool,
+            Some(asset_id),
+            limit,
+            offset,
+            sort_mode,
+            ascending,
+            include_spent_coins,
+        )
+        .await
+    }
+
     pub async fn are_coins_spendable(&self, coin_ids: &[String]) -> Result<bool> {
         are_coins_spendable(&self.pool, coin_ids).await
     }
 
     pub async fn total_coin_count(&self) -> Result<u32> {
         total_coin_count(&self.pool).await
+    }
+
+    pub async fn spendable_xch_coin_count(&self) -> Result<u32> {
+        spendable_xch_coin_count(&self.pool).await
+    }
+
+    pub async fn spendable_cat_coin_count(&self, asset_id: Bytes32) -> Result<u32> {
+        spendable_cat_coin_count(&self.pool, asset_id).await
     }
 
     pub async fn synced_coin_count(&self) -> Result<u32> {
@@ -349,6 +423,27 @@ async fn subscription_coin_ids(conn: impl SqliteExecutor<'_>) -> Result<Vec<Byte
         .collect()
 }
 
+async fn spendable_xch_coin_count(conn: impl SqliteExecutor<'_>) -> Result<u32> {
+    query!("SELECT COUNT(*) AS count FROM spendable_coins WHERE asset_id = 0")
+        .fetch_one(conn)
+        .await?
+        .count
+        .convert()
+}
+
+async fn spendable_cat_coin_count(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<u32> {
+    let asset_id_ref = asset_id.as_ref();
+
+    query!(
+        "SELECT COUNT(*) AS count FROM spendable_coins WHERE asset_hash = ?",
+        asset_id_ref
+    )
+    .fetch_one(conn)
+    .await?
+    .count
+    .convert()
+}
+
 async fn total_coin_count(conn: impl SqliteExecutor<'_>) -> Result<u32> {
     query!("SELECT COUNT(*) AS count FROM coins")
         .fetch_one(conn)
@@ -421,6 +516,117 @@ async fn spendable_cat_balance(conn: impl SqliteExecutor<'_>, asset_id: Bytes32)
         Ok(amount as u128)
     })
     .sum()
+}
+
+async fn coins_by_ids(conn: impl SqliteExecutor<'_>, coin_ids: &[String]) -> Result<Vec<CoinRow>> {
+    let mut query = sqlx::QueryBuilder::new(
+        "SELECT parent_coin_hash, puzzle_hash, amount, spent_height, created_height 
+        FROM owned_coins WHERE hash IN (",
+    );
+    let mut separated = query.separated(", ");
+
+    for coin_id in coin_ids {
+        separated.push(format!("X'{coin_id}'"));
+    }
+    separated.push_unseparated(")");
+    let rows = query.build().fetch_all(conn).await?;
+
+    let coins = rows
+    .into_iter()
+    .map(|row| {
+        Ok(CoinRow {
+            coin: Coin::new(
+                row.get::<Vec<u8>, _>("parent_coin_hash").convert()?,
+                row.get::<Vec<u8>, _>("puzzle_hash").convert()?,
+                row.get::<Vec<u8>, _>("amount").convert()?,
+            ),
+            transaction_id: None, // TODO: Add transaction_id
+            spend_transaction_id: None, // TODO: Add spend_transaction_id
+            kind: CoinKind::Xch,
+            offer_id: None, // TODO: Add offer_id 
+            created_height: row.get::<Option<u32>, _>("created_height"),
+            spent_height: row.get::<Option<u32>, _>("spent_height"),
+            created_timestamp: None, // TODO: Add created_timestamp
+            spent_timestamp: None, // TODO: Add spent_timestamp
+        })
+    })
+    .collect::<Result<Vec<_>>>()?;
+
+    Ok(coins)
+}
+
+async fn coins(
+    conn: impl SqliteExecutor<'_>,
+    asset_id: Option<Bytes32>,
+    limit: u32,
+    offset: u32,
+    sort_mode: CoinSortMode,
+    ascending: bool,
+    include_spent_coins: bool,
+) -> Result<(Vec<CoinRow>, u32)> {
+    let mut query = sqlx::QueryBuilder::new(
+        "SELECT 
+        parent_coin_hash, puzzle_hash, amount, spent_height, created_height, COUNT(*) OVER () AS total_count
+        FROM ",
+    );
+
+    if include_spent_coins {
+        query.push("spendable_coins");
+    } else {
+        query.push("owned_coins");
+    }
+
+    query.push(" WHERE 1=1");
+    if let Some(ref asset_id) = asset_id {
+        query.push(" AND asset_hash = ?");
+        query.push_bind(asset_id.as_ref());
+    } else {
+        query.push(" AND asset_id = 0");
+    }
+
+    query.push(" ORDER BY ");
+    match sort_mode {
+        CoinSortMode::CoinId => query.push("hash"),
+        CoinSortMode::Amount => query.push("amount"),
+        CoinSortMode::CreatedHeight => query.push("created_height"),
+        CoinSortMode::SpentHeight => query.push("spent_height"),
+    };
+    if ascending {
+        query.push(" ASC");
+    } else {
+        query.push(" DESC");
+    }
+
+    query.push(" LIMIT ? OFFSET ?");
+    query.push_bind(limit as i64);
+    query.push_bind(offset as i64);
+
+    let rows = query.build().fetch_all(conn).await?;
+    let total_count = rows
+        .first()
+        .map_or(Ok(0), |row| row.get::<i64, _>("total_count").try_into())?;
+    let coins = rows
+        .into_iter()
+        .map(|row| {
+            Ok(CoinRow {
+                coin: Coin::new(
+                    row.get::<Vec<u8>, _>("parent_coin_hash").convert()?,
+                    row.get::<Vec<u8>, _>("puzzle_hash").convert()?,
+                    row.get::<Vec<u8>, _>("amount").convert()?,
+                ),
+                transaction_id: None, // TODO: Add transaction_id
+                spend_transaction_id: None, // TODO: Add spend_transaction_id
+                kind: CoinKind::Xch,
+                offer_id: None, // TODO: Add offer_id 
+                created_height: row.get::<Option<u32>, _>("created_height"),
+                spent_height: row.get::<Option<u32>, _>("spent_height"),
+                created_timestamp: None, // TODO: Add created_timestamp
+                spent_timestamp: None, // TODO: Add spent_timestamp
+            })
+        })
+        .collect::<Result<Vec<_>>>()?;
+
+    Ok((coins, total_count))
 }
 
 async fn spendable_xch_coins(conn: impl SqliteExecutor<'_>) -> Result<Vec<Coin>> {

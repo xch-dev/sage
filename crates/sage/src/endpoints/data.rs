@@ -27,8 +27,8 @@ use sage_api::{
     PendingTransactionRecord, TransactionRecord, TransactionRecordCoin,
 };
 use sage_database::{
-    AssetKind as DatabaseAssetKind, NftGroup, NftGroupSearch, NftRow, NftSearchParams, NftSortMode,
-    Transaction, TransactionCoin,
+    AssetKind as DatabaseAssetKind, CoinSortMode, NftAsset, NftGroupSearch,
+    NftSortMode, Transaction, TransactionCoin,
 };
 use sage_wallet::WalletError;
 
@@ -133,7 +133,7 @@ impl Sage {
     ) -> Result<GetSpendableCoinCountResponse> {
         let wallet = self.wallet()?;
         let count = if req.asset_id == "xch" {
-            wallet.db.spendable_p2_coin_count().await?
+            wallet.db.spendable_xch_coin_count().await?
         } else {
             let asset_id = parse_asset_id(req.asset_id)?;
 
@@ -145,23 +145,21 @@ impl Sage {
 
     pub async fn get_coins_by_ids(&self, req: GetCoinsByIds) -> Result<GetCoinsByIdsResponse> {
         let wallet = self.wallet()?;
-        let rows = wallet.db.coin_states_by_ids(&req.coin_ids).await?;
+        let rows = wallet.db.coins_by_ids(&req.coin_ids).await?;
         let mut coins = Vec::new();
 
         for row in rows {
-            let cs = row.base.coin_state;
-
             coins.push(CoinRecord {
-                coin_id: hex::encode(cs.coin.coin_id()),
-                address: Address::new(cs.coin.puzzle_hash, self.network().prefix()).encode()?,
-                amount: Amount::u64(cs.coin.amount),
-                created_height: cs.created_height,
-                spent_height: cs.spent_height,
-                create_transaction_id: row.base.transaction_id.map(hex::encode),
+                coin_id: hex::encode(row.coin.coin_id()),
+                address: Address::new(row.coin.puzzle_hash, self.network().prefix()).encode()?,
+                amount: Amount::u64(row.coin.amount),
+                created_height: row.created_height,
+                spent_height: row.spent_height,
+                create_transaction_id: row.transaction_id.map(hex::encode),
                 spend_transaction_id: row.spend_transaction_id.map(hex::encode),
                 offer_id: row.offer_id.map(hex::encode),
-                created_timestamp: row.base.created_timestamp,
-                spent_timestamp: row.base.spent_timestamp,
+                created_timestamp: row.created_timestamp,
+                spent_timestamp: row.spent_timestamp,
             });
         }
         Ok(GetCoinsByIdsResponse { coins })
@@ -178,7 +176,7 @@ impl Sage {
         let mut coins = Vec::new();
         let (rows, total) = wallet
             .db
-            .p2_coin_states(
+            .xch_coins(
                 req.limit,
                 req.offset,
                 sort_mode,
@@ -188,19 +186,17 @@ impl Sage {
             .await?;
 
         for row in rows {
-            let cs = row.base.coin_state;
-
             coins.push(CoinRecord {
-                coin_id: hex::encode(cs.coin.coin_id()),
-                address: Address::new(cs.coin.puzzle_hash, self.network().prefix()).encode()?,
-                amount: Amount::u64(cs.coin.amount),
-                created_height: cs.created_height,
-                spent_height: cs.spent_height,
-                create_transaction_id: row.base.transaction_id.map(hex::encode),
+                coin_id: hex::encode(row.coin.coin_id()),
+                address: Address::new(row.coin.puzzle_hash, self.network().prefix()).encode()?,
+                amount: Amount::u64(row.coin.amount),
+                created_height: row.created_height,
+                spent_height: row.spent_height,
+                create_transaction_id: row.transaction_id.map(hex::encode),
                 spend_transaction_id: row.spend_transaction_id.map(hex::encode),
                 offer_id: row.offer_id.map(hex::encode),
-                created_timestamp: row.base.created_timestamp,
-                spent_timestamp: row.base.spent_timestamp,
+                created_timestamp: row.created_timestamp,
+                spent_timestamp: row.spent_timestamp,
             });
         }
 
@@ -222,7 +218,7 @@ impl Sage {
 
         let (rows, total) = wallet
             .db
-            .cat_coin_states(
+            .cat_coins(
                 asset_id,
                 req.limit,
                 req.offset,
@@ -233,19 +229,17 @@ impl Sage {
             .await?;
 
         for row in rows {
-            let cs = row.base.coin_state;
-
             coins.push(CoinRecord {
-                coin_id: hex::encode(cs.coin.coin_id()),
-                address: Address::new(cs.coin.puzzle_hash, self.network().prefix()).encode()?,
-                amount: Amount::u64(cs.coin.amount),
-                created_height: cs.created_height,
-                spent_height: cs.spent_height,
-                create_transaction_id: row.base.transaction_id.map(hex::encode),
+                coin_id: hex::encode(row.coin.coin_id()),
+                address: Address::new(row.coin.puzzle_hash, self.network().prefix()).encode()?,
+                amount: Amount::u64(row.coin.amount),
+                created_height: row.created_height,
+                spent_height: row.spent_height,
+                create_transaction_id: row.transaction_id.map(hex::encode),
                 spend_transaction_id: row.spend_transaction_id.map(hex::encode),
                 offer_id: row.offer_id.map(hex::encode),
-                created_timestamp: row.base.created_timestamp,
-                spent_timestamp: row.base.spent_timestamp,
+                created_timestamp: row.created_timestamp,
+                spent_timestamp: row.spent_timestamp,
             });
         }
 
@@ -519,7 +513,7 @@ impl Sage {
                 continue;
             };
 
-            let collection_name = nft_row.nft_info.collection_name;
+            let collection_name = nft_row.nft_info.collection_name.clone();
             records.push(self.nft_record(nft_row, nft, collection_name)?);
         }
 
@@ -542,7 +536,7 @@ impl Sage {
             return Ok(GetNftResponse { nft: None });
         };
 
-        let collection_name = nft_row.nft_info.collection_name;
+        let collection_name = nft_row.nft_info.collection_name.clone();
 
         Ok(GetNftResponse {
             nft: Some(self.nft_record(nft_row, nft, collection_name)?),
@@ -653,7 +647,7 @@ impl Sage {
 
     fn nft_record(
         &self,
-        nft_row: NftRow,
+        nft_row: NftAsset,
         nft: Nft<Program>,
         collection_name: Option<String>,
     ) -> Result<NftRecord> {
@@ -666,23 +660,26 @@ impl Sage {
         let license_hash = metadata.as_ref().and_then(|m| m.license_hash);
 
         Ok(NftRecord {
-            launcher_id: Address::new(nft_row.launcher_id, "nft".to_string()).encode()?,
+            launcher_id: Address::new(nft_row.asset.hash, "nft".to_string()).encode()?,
             collection_id: nft_row
+                .nft_info
                 .collection_id
                 .map(|col| Address::new(col, "col".to_string()).encode())
                 .transpose()?,
             collection_name,
             minter_did: nft_row
-                .minter_did
+                .nft_info
+                .minter_hash
                 .map(|did| Address::new(did, "did:chia:".to_string()).encode())
                 .transpose()?,
             owner_did: nft_row
-                .owner_did
+                .nft_info
+                .owner_hash
                 .map(|did| Address::new(did, "did:chia:".to_string()).encode())
                 .transpose()?,
-            visible: nft_row.visible,
-            name: nft_row.name,
-            sensitive_content: nft_row.sensitive_content,
+            visible: nft_row.asset.is_visible,
+            name: nft_row.asset.name,
+            sensitive_content: nft_row.asset.is_sensitive_content,
             coin_id: hex::encode(nft.coin.coin_id()),
             address: Address::new(nft.info.p2_puzzle_hash, self.network().prefix()).encode()?,
             royalty_address: Address::new(nft.info.royalty_puzzle_hash, self.network().prefix())
@@ -705,7 +702,7 @@ impl Sage {
             license_hash: license_hash.map(hex::encode),
             edition_number: metadata.as_ref().map(|m| m.edition_number as u32),
             edition_total: metadata.as_ref().map(|m| m.edition_total as u32),
-            created_height: nft_row.created_height,
+            created_height: nft_row.asset.created_height,
         })
     }
 
