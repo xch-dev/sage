@@ -23,7 +23,7 @@ use sage_api::{
 use sage_assets::fetch_uris_with_hash;
 use sage_database::{OfferCatRow, OfferNftRow, OfferRow, OfferStatus, OfferXchRow};
 use sage_wallet::{
-    aggregate_offers, fetch_nft_offer_details, insert_mempool_item, sort_offer, Offered, Requested,
+    aggregate_offers, fetch_nft_offer_details, insert_transaction, sort_offer, Offered, Requested,
     SyncCommand, Transaction, Wallet,
 };
 use tokio::time::timeout;
@@ -215,7 +215,7 @@ impl Sage {
         let spend_bundle = sort_offer(decode_offer(&req.offer)?);
         let offer_id = spend_bundle.name();
 
-        if wallet.db.get_offer(offer_id).await?.is_some() {
+        if wallet.db.offer(offer_id).await?.is_some() {
             return Ok(ImportOfferResponse {
                 offer_id: hex::encode(offer_id),
             });
@@ -250,10 +250,10 @@ impl Sage {
         let mut nft_rows = Vec::new();
 
         for (asset_id, amount) in offered_amounts.cats {
-            let info = wallet.db.cat(asset_id).await?;
-            let name = info.as_ref().and_then(|info| info.name.clone());
+            let info = wallet.db.cat_asset(asset_id).await?;
+            let name = info.as_ref().and_then(|info| info.asset.name.clone());
             let ticker = info.as_ref().and_then(|info| info.ticker.clone());
-            let icon = info.as_ref().and_then(|info| info.icon.clone());
+            let icon = info.as_ref().and_then(|info| info.asset.icon_url.clone());
 
             cat_rows.push(OfferCatRow {
                 offer_id,
@@ -311,10 +311,10 @@ impl Sage {
         }
 
         for (asset_id, amount) in requested_amounts.cats {
-            let info = wallet.db.cat(asset_id).await?;
-            let name = info.as_ref().and_then(|info| info.name.clone());
+            let info = wallet.db.cat_asset(asset_id).await?;
+            let name = info.as_ref().and_then(|info| info.asset.name.clone());
             let ticker = info.as_ref().and_then(|info| info.ticker.clone());
-            let icon = info.as_ref().and_then(|info| info.icon.clone());
+            let icon = info.as_ref().and_then(|info| info.asset.icon_url.clone());
 
             cat_rows.push(OfferCatRow {
                 offer_id,
@@ -457,7 +457,7 @@ impl Sage {
 
     pub async fn get_offers(&self, _req: GetOffers) -> Result<GetOffersResponse> {
         let wallet = self.wallet()?;
-        let offers = wallet.db.get_offers().await?;
+        let offers = wallet.db.active_offers().await?;
 
         let mut records = Vec::new();
 
@@ -474,7 +474,7 @@ impl Sage {
         let offer_id = parse_offer_id(req.offer_id)?;
         let offer = wallet
             .db
-            .get_offer(offer_id)
+            .offer(offer_id)
             .await?
             .ok_or_else(|| Error::MissingOffer(offer_id))?;
 
@@ -598,7 +598,7 @@ impl Sage {
         let offer_id = parse_offer_id(req.offer_id)?;
         let fee = parse_amount(req.fee)?;
 
-        let Some(row) = wallet.db.get_offer(offer_id).await? else {
+        let Some(row) = wallet.db.offer(offer_id).await? else {
             return Err(Error::MissingOffer(offer_id));
         };
 
@@ -621,7 +621,7 @@ impl Sage {
         let mut coin_spends = Vec::new();
 
         for offer_id in offer_ids {
-            let Some(row) = wallet.db.get_offer(offer_id).await? else {
+            let Some(row) = wallet.db.offer(offer_id).await? else {
                 return Err(Error::MissingOffer(offer_id));
             };
 
