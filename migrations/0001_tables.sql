@@ -221,8 +221,8 @@ CREATE TABLE offer_coins (
   id INTEGER NOT NULL PRIMARY KEY,
   offer_id INTEGER NOT NULL,
   coin_id INTEGER NOT NULL,
-  FOREIGN KEY (offer_id) REFERENCES offers(id) ON DELETE CASCADE
-  FOREIGN KEY (coin_id) REFERENCES coins(id) ON DELETE CASCADE
+  FOREIGN KEY (offer_id) REFERENCES offers(id) ON DELETE CASCADE,
+  FOREIGN KEY (coin_id) REFERENCES coins(id) ON DELETE CASCADE,
   UNIQUE(offer_id, coin_id)
 );
 
