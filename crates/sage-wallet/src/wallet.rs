@@ -27,8 +27,8 @@ mod memos;
 mod multi_send;
 mod nfts;
 mod offer;
-mod p2_send;
 mod signing;
+mod xch;
 
 pub use multi_send::*;
 pub use nfts::*;
