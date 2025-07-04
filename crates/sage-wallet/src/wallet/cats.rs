@@ -91,7 +91,10 @@ mod tests {
         test.wait_for_coins().await;
 
         assert_eq!(test.wallet.db.cat_balance(asset_id).await?, 1000);
-        assert_eq!(test.wallet.db.spendable_cat_coins(asset_id).await?.len(), 2);
+        assert_eq!(
+            dbg!(test.wallet.db.spendable_cat_coins(asset_id).await?).len(),
+            2
+        );
 
         let coin_spends = test
             .wallet

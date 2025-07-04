@@ -65,6 +65,10 @@ impl DatabaseTx<'_> {
         insert_mempool_spend(&mut *self.tx, mempool_item_id, coin_spend, seq).await
     }
 
+    pub async fn mempool_items_for_input(&mut self, coin_id: Bytes32) -> Result<Vec<Bytes32>> {
+        mempool_items_for_input(&mut *self.tx, coin_id).await
+    }
+
     pub async fn mempool_items_for_output(&mut self, coin_id: Bytes32) -> Result<Vec<Bytes32>> {
         mempool_items_for_output(&mut *self.tx, coin_id).await
     }
@@ -220,6 +224,29 @@ async fn mempool_coin_spends(
             row.solution.into(),
         ))
     })
+    .collect()
+}
+
+async fn mempool_items_for_input(
+    conn: impl SqliteExecutor<'_>,
+    coin_id: Bytes32,
+) -> Result<Vec<Bytes32>> {
+    let coin_id = coin_id.as_ref();
+
+    query!(
+        "
+        SELECT mempool_items.hash AS mempool_item_hash 
+        FROM mempool_items
+        INNER JOIN mempool_coins ON mempool_coins.mempool_item_id = mempool_items.id
+        INNER JOIN coins ON coins.hash = ?
+        WHERE mempool_coins.is_input = TRUE
+        ",
+        coin_id
+    )
+    .fetch_all(conn)
+    .await?
+    .into_iter()
+    .map(|row| row.mempool_item_hash.convert())
     .collect()
 }
 

@@ -83,7 +83,7 @@ pub async fn insert_puzzle(
 
             let mut asset = Asset::empty(info.launcher_id, true, coin_state.created_height);
             let mut coin_info = NftCoinInfo {
-                collection_id: None,
+                collection_hash: Bytes32::default(),
                 collection_name: None,
                 minter_hash: minter_did,
                 owner_hash: info.current_owner,
@@ -106,7 +106,7 @@ pub async fn insert_puzzle(
                     asset.is_sensitive_content = computed.sensitive_content;
 
                     if let Some(collection) = computed.collection {
-                        coin_info.collection_id = Some(collection.hash);
+                        coin_info.collection_hash = collection.hash;
                         tx.insert_collection(collection).await?;
                     }
                 }

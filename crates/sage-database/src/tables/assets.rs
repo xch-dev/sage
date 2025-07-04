@@ -87,7 +87,7 @@ pub enum NftGroupSearch {
 
 #[derive(Debug, Clone)]
 pub struct NftCoinInfo {
-    pub collection_id: Option<Bytes32>,
+    pub collection_hash: Bytes32,
     pub collection_name: Option<String>,
     pub minter_hash: Option<Bytes32>,
     pub owner_hash: Option<Bytes32>,
@@ -182,7 +182,7 @@ impl Database {
 
 impl DatabaseTx<'_> {
     pub async fn update_cat_asset(&mut self, cat: CatAsset) -> Result<()> {
-        update_cat_asset(&mut *self.tx, cat).await
+        update_cat_asset(&mut self.tx, cat).await
     }
 
     pub async fn insert_cat(&mut self, cat: CatAsset) -> Result<()> {
@@ -422,7 +422,7 @@ async fn insert_nft(
 ) -> Result<()> {
     let asset_id = insert_singleton(conn, 1, nft).await?;
 
-    let collection_id = coin_info.collection_id.as_deref();
+    let collection_id = coin_info.collection_hash.as_ref();
     let minter_hash = coin_info.minter_hash.as_deref();
     let owner_hash = coin_info.owner_hash.as_deref();
     let metadata = coin_info.metadata.as_slice();
@@ -444,7 +444,7 @@ async fn insert_nft(
             royalty_puzzle_hash, royalty_basis_points, data_hash, metadata_hash, license_hash,
             edition_number, edition_total
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, (SELECT id FROM collections WHERE hash = ?), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ",
         asset_id,
         collection_id,
@@ -472,7 +472,7 @@ async fn update_nft_coin_info(
     coin_info: &NftCoinInfo,
 ) -> Result<()> {
     let launcher_id = launcher_id.as_ref();
-    let collection_id = coin_info.collection_id.as_deref();
+    let collection_hash = coin_info.collection_hash.as_ref();
     let minter_hash = coin_info.minter_hash.as_deref();
     let owner_hash = coin_info.owner_hash.as_deref();
     let metadata = coin_info.metadata.as_slice();
@@ -491,7 +491,7 @@ async fn update_nft_coin_info(
         "
         UPDATE nfts
         SET
-            collection_id = ?,
+            collection_id = (SELECT id FROM collections WHERE hash = ?),
             minter_hash = ?,
             owner_hash = ?,
             metadata = ?,
@@ -505,7 +505,7 @@ async fn update_nft_coin_info(
             edition_total = ?
         WHERE asset_id = (SELECT id FROM assets WHERE hash = ?)
         ",
-        collection_id,
+        collection_hash,
         minter_hash,
         owner_hash,
         metadata,
@@ -551,7 +551,7 @@ async fn update_nft_metadata(
 
     query!(
         "
-        UPDATE nfts SET collection_id = ?
+        UPDATE nfts SET collection_id = (SELECT id FROM collections WHERE hash = ?)
         WHERE asset_id = (SELECT id FROM assets WHERE hash = ?)
         ",
         collection_id,
@@ -668,7 +668,7 @@ async fn nft_asset(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<O
                 kind: AssetKind::Nft,
             },
             nft_info: NftCoinInfo {
-                collection_id: row.collection_hash.map(Convert::convert).transpose()?,
+                collection_hash: row.collection_hash.convert()?.unwrap_or_default(),
                 collection_name: row.collection_name,
                 minter_hash: row.minter_hash.map(Convert::convert).transpose()?,
                 owner_hash: row.owner_hash.map(Convert::convert).transpose()?,
@@ -711,7 +711,7 @@ async fn nft_assets(
 
     if let Some(name_search) = name_search {
         query.push("AND assets.name LIKE ?");
-        query.push_bind(format!("%{}%", name_search));
+        query.push_bind(format!("%{name_search}%"));
     }
 
     if let Some(group) = group_search {
@@ -782,10 +782,7 @@ async fn nft_assets(
                     kind: AssetKind::Nft,
                 },
                 nft_info: NftCoinInfo {
-                    collection_id: row
-                        .get::<Option<Vec<u8>>, _>("collection_hash")
-                        .map(Convert::convert)
-                        .transpose()?,
+                    collection_hash: row.get::<Vec<u8>, _>("collection_hash").convert()?,
                     collection_name: row.get::<Option<String>, _>("collection_name"),
                     minter_hash: row
                         .get::<Option<Vec<u8>>, _>("minter_hash")
