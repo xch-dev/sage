@@ -27,6 +27,14 @@ impl Database {
         total_coin_count(&self.pool).await
     }
 
+    pub async fn spendable_p2_coin_count(&self) -> Result<u32> {
+        spendable_p2_coin_count(&self.pool).await
+    }
+
+    pub async fn spendable_cat_coin_count(&self, asset_id: Bytes32) -> Result<u32> {
+        spendable_cat_coin_count(&self.pool, asset_id).await
+    }
+
     pub async fn synced_coin_count(&self) -> Result<u32> {
         synced_coin_count(&self.pool).await
     }
@@ -347,6 +355,24 @@ async fn subscription_coin_ids(conn: impl SqliteExecutor<'_>) -> Result<Vec<Byte
         .into_iter()
         .map(|row| row.hash.convert())
         .collect()
+}
+
+async fn spendable_p2_coin_count(conn: impl SqliteExecutor<'_>) -> Result<u32> {
+    query!("SELECT COUNT(*) AS count FROM spendable_coins WHERE asset_id = 0")
+        .fetch_one(conn)
+        .await?
+        .count
+        .convert()
+}
+
+async fn spendable_cat_coin_count(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<u32> {
+    let asset_id_ref = asset_id.as_ref();
+
+    query!("SELECT COUNT(*) AS count FROM spendable_coins WHERE hash = ?", asset_id_ref)
+        .fetch_one(conn)
+        .await?
+        .count
+        .convert()
 }
 
 async fn total_coin_count(conn: impl SqliteExecutor<'_>) -> Result<u32> {

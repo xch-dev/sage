@@ -39,8 +39,6 @@ WHERE 1=1
     )
   );
 
-
-
 CREATE VIEW owned_coins AS
 SELECT
   coins.id,
