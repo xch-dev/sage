@@ -57,7 +57,7 @@ impl Sage {
         };
 
         for (asset_id, amount) in offered_amounts.cats {
-            let cat = wallet.db.cat(asset_id).await?;
+            let cat = wallet.db.cat_asset(asset_id).await?;
 
             maker.cats.insert(
                 hex::encode(asset_id),
@@ -66,9 +66,9 @@ impl Sage {
                     royalty: Amount::u64(
                         offered_royalties.cats.get(&asset_id).copied().unwrap_or(0),
                     ),
-                    name: cat.as_ref().and_then(|cat| cat.name.clone()),
+                    name: cat.as_ref().and_then(|cat| cat.asset.name.clone()),
                     ticker: cat.as_ref().and_then(|cat| cat.ticker.clone()),
-                    icon_url: cat.as_ref().and_then(|cat| cat.icon.clone()),
+                    icon_url: cat.as_ref().and_then(|cat| cat.asset.icon_url.clone()),
                 },
             );
         }
@@ -129,7 +129,7 @@ impl Sage {
         };
 
         for (asset_id, amount) in requested_amounts.cats {
-            let cat = wallet.db.cat(asset_id).await?;
+            let cat = wallet.db.cat_asset(asset_id).await?;
 
             taker.cats.insert(
                 hex::encode(asset_id),
@@ -142,9 +142,9 @@ impl Sage {
                             .copied()
                             .unwrap_or(0),
                     ),
-                    name: cat.as_ref().and_then(|cat| cat.name.clone()),
+                    name: cat.as_ref().and_then(|cat| cat.asset.name.clone()),
                     ticker: cat.as_ref().and_then(|cat| cat.ticker.clone()),
-                    icon_url: cat.as_ref().and_then(|cat| cat.icon.clone()),
+                    icon_url: cat.as_ref().and_then(|cat| cat.asset.icon_url.clone()),
                 },
             );
         }

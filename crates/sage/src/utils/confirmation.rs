@@ -166,7 +166,7 @@ pub async fn extract_nft_data(
             let info = compute_nft_info(None, Some(&metadata.blob));
             result.name = info.name;
         } else if let Some(db) = &db {
-            if let Some(metadata) = db.fetch_nft_data(metadata_hash).await? {
+            if let Some(metadata) = db.full_file_data(metadata_hash).await? {
                 let info = compute_nft_info(None, Some(&metadata.blob));
                 result.name = info.name;
             }

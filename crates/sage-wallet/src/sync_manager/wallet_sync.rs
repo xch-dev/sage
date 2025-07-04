@@ -1,7 +1,4 @@
-use std::{
-    sync::Arc,
-    time::{Duration, Instant},
-};
+use std::{collections::HashSet, sync::Arc, time::Duration};
 
 use chia::protocol::{Bytes32, CoinState, CoinStateFilters};
 use sage_database::DatabaseTx;
@@ -11,7 +8,7 @@ use tokio::{
 };
 use tracing::{debug, info, warn};
 
-use crate::{delete_puzzle, upsert_coin, UpsertCounters, Wallet, WalletError, WalletPeer};
+use crate::{Wallet, WalletError, WalletPeer};
 
 use super::{PeerState, SyncEvent};
 
@@ -23,17 +20,14 @@ pub async fn sync_wallet(
 ) -> Result<(), WalletError> {
     info!("Starting sync against peer {}", peer.socket_addr());
 
-    let p2_puzzle_hashes = wallet.db.p2_puzzle_hashes().await?;
+    let p2_puzzle_hashes = wallet.db.custody_p2_puzzle_hashes().await?;
 
     let (start_height, start_header_hash) = wallet.db.latest_peak().await?.map_or_else(
         || (None, wallet.genesis_challenge),
         |(peak, header_hash)| (Some(peak), header_hash),
     );
 
-    let mut coin_ids = Vec::new();
-    coin_ids.extend(wallet.db.unspent_nft_coin_ids().await?);
-    coin_ids.extend(wallet.db.unspent_did_coin_ids().await?);
-    coin_ids.extend(wallet.db.unspent_cat_coin_ids().await?);
+    let coin_ids = wallet.db.subscription_coin_ids().await?;
 
     sync_coin_ids(
         &wallet,
@@ -94,7 +88,7 @@ pub async fn sync_wallet(
             "Updating peak from peer to {} with header hash {}",
             height, header_hash
         );
-        wallet.db.insert_peak(height, header_hash).await?;
+        wallet.db.insert_block(height, header_hash, None).await?;
     } else {
         warn!("No peak found");
     }
@@ -199,27 +193,45 @@ pub async fn incremental_sync(
     sync_sender: &mpsc::Sender<SyncEvent>,
 ) -> Result<(), WalletError> {
     let mut tx = wallet.db.tx().await?;
-
-    let start = Instant::now();
-
-    let mut counters = UpsertCounters::default();
+    let mut confirmed_transactions = HashSet::new();
 
     for &coin_state in &coin_states {
-        upsert_coin(&mut tx, coin_state, None, &mut counters).await?;
+        if let Some(height) = coin_state.created_height {
+            tx.insert_height(height).await?;
+        }
+
+        if let Some(height) = coin_state.spent_height {
+            tx.insert_height(height).await?;
+        }
+
+        tx.insert_coin(coin_state).await?;
+
+        if tx.is_p2_puzzle_hash(coin_state.coin.puzzle_hash).await? {
+            tx.sync_coin(
+                coin_state.coin.coin_id(),
+                Bytes32::default(),
+                coin_state.coin.puzzle_hash,
+                None,
+            )
+            .await?;
+        }
+
+        confirmed_transactions.extend(
+            tx.mempool_items_for_output(coin_state.coin.coin_id())
+                .await?,
+        );
 
         if coin_state.spent_height.is_some() {
-            let start = Instant::now();
-            delete_puzzle(&mut tx, coin_state.coin.coin_id()).await?;
-            counters.delete_puzzle += start.elapsed();
+            confirmed_transactions.extend(
+                tx.mempool_items_for_input(coin_state.coin.coin_id())
+                    .await?,
+            );
         }
     }
 
-    debug!(
-        "Upserted {} coins in {:?}, with counters {:?}",
-        coin_states.len(),
-        start.elapsed(),
-        counters
-    );
+    for mempool_item_id in confirmed_transactions {
+        tx.remove_mempool_item(mempool_item_id).await?;
+    }
 
     let mut derived = false;
 
@@ -254,12 +266,8 @@ async fn auto_insert_unhardened_derivations(
     let mut derivations = Vec::new();
     let mut next_index = tx.derivation_index(false).await?;
 
-    let max_index = tx
-        .max_used_derivation_index(false)
-        .await?
-        .map_or(0, |index| index + 1);
+    let max_index = tx.unused_derivation_index(false).await?;
 
-    //1000 derivations on initial sync
     while max_index + 500 >= next_index {
         derivations.extend(
             wallet

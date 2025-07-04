@@ -208,10 +208,10 @@ mod tests {
         let nft = test
             .wallet
             .db
-            .nft_row(nft.info.launcher_id)
+            .nft(nft.info.launcher_id)
             .await?
             .expect("missing nft");
-        assert_eq!(nft.owner_did, Some(did.info.launcher_id));
+        assert_eq!(nft.info.current_owner, Some(did.info.launcher_id));
 
         Ok(())
     }
@@ -254,10 +254,10 @@ mod tests {
         let nft = test
             .wallet
             .db
-            .nft_row(nft.info.launcher_id)
+            .nft(nft.info.launcher_id)
             .await?
             .expect("missing nft");
-        assert_eq!(nft.owner_did, Some(did.info.launcher_id));
+        assert_eq!(nft.info.current_owner, Some(did.info.launcher_id));
 
         Ok(())
     }
@@ -305,10 +305,10 @@ mod tests {
         let row = bob
             .wallet
             .db
-            .nft_row(nft.info.launcher_id)
+            .nft(nft.info.launcher_id)
             .await?
             .expect("missing nft");
-        assert_eq!(row.owner_did, None);
+        assert_eq!(row.info.current_owner, None);
 
         let coin_spends = bob
             .wallet
@@ -331,10 +331,10 @@ mod tests {
         let row = bob
             .wallet
             .db
-            .nft_row(nft.info.launcher_id)
+            .nft(nft.info.launcher_id)
             .await?
             .expect("missing nft");
-        assert_eq!(row.owner_did, Some(bob_did.info.launcher_id));
+        assert_eq!(row.info.current_owner, Some(bob_did.info.launcher_id));
 
         Ok(())
     }

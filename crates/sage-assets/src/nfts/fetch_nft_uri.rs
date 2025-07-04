@@ -6,11 +6,12 @@ use futures_lite::StreamExt;
 use futures_util::stream::FuturesUnordered;
 use mime_sniffer::MimeTypeSniffer;
 use reqwest::{header::CONTENT_TYPE, StatusCode};
-use thiserror::Error;
 use tokio::task::spawn_blocking;
 use tracing::debug;
 
-use super::{thumbnail as make_thumbnail, Thumbnail, ThumbnailError};
+use crate::UriError;
+
+use super::{thumbnail as make_thumbnail, Thumbnail};
 
 #[derive(Debug, Clone)]
 pub struct Data {
@@ -18,27 +19,6 @@ pub struct Data {
     pub mime_type: String,
     pub hash: Bytes32,
     pub thumbnail: Option<Thumbnail>,
-}
-
-#[derive(Debug, Error)]
-pub enum UriError {
-    #[error("Failed to fetch NFT data: {0}")]
-    Fetch(#[from] reqwest::Error),
-
-    #[error("Missing or invalid content type")]
-    InvalidContentType,
-
-    #[error("Mime type mismatch, expected {expected} but found {found}")]
-    MimeTypeMismatch { expected: String, found: String },
-
-    #[error("Hash mismatch, expected {expected} but found {found}")]
-    HashMismatch { expected: Bytes32, found: Bytes32 },
-
-    #[error("No URIs provided")]
-    NoUris,
-
-    #[error("Failed to create thumbnail: {0}")]
-    Thumbnail(#[from] ThumbnailError),
 }
 
 pub async fn fetch_uri(uri: String) -> Result<Data, UriError> {

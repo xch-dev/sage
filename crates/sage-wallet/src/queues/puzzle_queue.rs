@@ -2,7 +2,7 @@ use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use chia::protocol::{Bytes32, Coin};
 use futures_util::{stream::FuturesUnordered, StreamExt};
-use sage_database::{CoinKind, Database};
+use sage_database::Database;
 use tokio::{
     sync::{mpsc, Mutex},
     task::spawn_blocking,
@@ -60,7 +60,7 @@ impl PuzzleQueue {
 
         let coin_states = self
             .db
-            .unsynced_coin_states(peers.len() * self.batch_size_per_peer)
+            .unsynced_coins(peers.len() * self.batch_size_per_peer)
             .await?;
 
         if coin_states.is_empty() {
@@ -70,33 +70,29 @@ impl PuzzleQueue {
         debug!("Syncing a batch of {} coins", coin_states.len());
 
         let mut futures = FuturesUnordered::new();
-
-        let mut coin_states_iter = coin_states.into_iter();
+        let mut remaining = coin_states.into_iter();
 
         for peer in peers {
             for _ in 0..self.batch_size_per_peer {
-                let Some(coin_state) = coin_states_iter.next() else {
+                let Some(coin_state) = remaining.next() else {
                     break;
                 };
+                let coin = coin_state.coin;
 
                 let db = self.db.clone();
-                let genesis_challenge = self.genesis_challenge;
-                let addr = peer.socket_addr();
                 let peer = peer.clone();
+                let genesis_challenge = self.genesis_challenge;
 
-                if db.is_p2_puzzle_hash(coin_state.coin.puzzle_hash).await? {
-                    db.sync_coin(coin_state.coin.coin_id(), None, CoinKind::Xch)
+                if db.is_p2_puzzle_hash(coin.puzzle_hash).await? {
+                    db.sync_coin(coin.coin_id(), Bytes32::default(), coin.puzzle_hash, None)
                         .await?;
-                    warn!(
-                        "Coin {} should already be synced, but isn't",
-                        coin_state.coin.coin_id()
-                    );
+                    warn!("Added missing XCH asset to {}", coin.coin_id());
                     continue;
                 }
 
                 futures.push(async move {
-                    let result = fetch_puzzle(&peer, genesis_challenge, coin_state.coin).await;
-                    (addr, coin_state, result)
+                    let result = fetch_puzzle(&peer, genesis_challenge, coin).await;
+                    (peer.socket_addr(), coin_state, result)
                 });
             }
         }
@@ -110,22 +106,13 @@ impl PuzzleQueue {
                 Ok((info, minter_did)) => {
                     let subscribe = info.subscribe();
 
-                    let remove = match info.p2_puzzle_hash() {
-                        Some(p2_puzzle_hash) => !self.db.is_p2_puzzle_hash(p2_puzzle_hash).await?,
-                        None => true,
-                    };
+                    let mut tx = self.db.tx().await?;
 
-                    if remove {
-                        self.db.delete_coin_state(coin_state.coin.coin_id()).await?;
-                    } else {
-                        let mut tx = self.db.tx().await?;
-                        insert_puzzle(&mut tx, coin_state, info, minter_did).await?;
-                        tx.commit().await?;
-                    }
-
-                    if subscribe {
+                    if insert_puzzle(&mut tx, coin_state, info, minter_did).await? && subscribe {
                         subscriptions.push(coin_id);
                     }
+
+                    tx.commit().await?;
                 }
                 Err(error) => {
                     debug!(

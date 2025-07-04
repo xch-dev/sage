@@ -15,7 +15,7 @@ use chia_wallet_sdk::{
     types::TESTNET11_CONSTANTS,
 };
 use sage_config::TESTNET11;
-use sage_database::Database;
+use sage_database::{Database, Derivation};
 use sqlx::{migrate, SqlitePool};
 use tokio::{
     sync::{
@@ -88,7 +88,7 @@ impl TestWallet {
             SqlitePool::connect(&format!("file:testdb{db_index}?mode=memory&cache=shared")).await?;
         migrate!("../../migrations").run(&pool).await?;
         let db = Database::new(pool);
-        db.run_rust_migrations().await?;
+        db.run_rust_migrations("TXCH".to_string()).await?;
 
         let sk = BlsPair::default().sk.derive_unhardened(key_index);
         let pk = sk.public_key();
@@ -106,8 +106,15 @@ impl TestWallet {
                 .derive_synthetic()
                 .public_key();
             let p2_puzzle_hash = StandardArgs::curry_tree_hash(synthetic_key).into();
-            tx.insert_derivation(p2_puzzle_hash, index, true, synthetic_key)
-                .await?;
+            tx.insert_custody_p2_puzzle(
+                p2_puzzle_hash,
+                synthetic_key,
+                Derivation {
+                    derivation_index: index,
+                    is_hardened: true,
+                },
+            )
+            .await?;
         }
 
         tx.commit().await?;
@@ -169,7 +176,7 @@ impl TestWallet {
 
         test.consume_until(|event| matches!(event, SyncEvent::Subscribed))
             .await;
-        assert_eq!(test.wallet.db.balance().await?, balance as u128);
+        assert_eq!(test.wallet.db.xch_balance().await?, balance as u128);
 
         Ok(test)
     }

@@ -265,7 +265,8 @@ impl Sage {
 
         let pool = self.connect_to_database(fingerprint).await?;
         let db = Database::new(pool);
-        db.run_rust_migrations().await?;
+        db.run_rust_migrations(self.network().ticker.clone())
+            .await?;
 
         let wallet = Arc::new(Wallet::new(
             db.clone(),
@@ -397,7 +398,11 @@ impl Sage {
             .connect_with(
                 SqliteConnectOptions::from_str(&format!("sqlite://{}?mode=rwc", path.display()))?
                     .journal_mode(SqliteJournalMode::Wal)
-                    .log_statements(log::LevelFilter::Trace)
+                    .log_statements(if cfg!(debug_assertions) {
+                        log::LevelFilter::Trace
+                    } else {
+                        log::LevelFilter::Error
+                    })
                     .synchronous(SqliteSynchronous::Normal)
                     .busy_timeout(Duration::from_secs(60)),
             )
