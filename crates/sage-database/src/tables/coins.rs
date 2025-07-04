@@ -30,12 +30,20 @@ pub enum CoinSortMode {
 pub struct CoinRow {
     pub coin: Coin,
     pub transaction_id: Option<Bytes32>,
+    pub spend_transaction_id: Option<Bytes32>,
     pub kind: CoinKind,
+    pub offer_id: Option<Bytes32>,
+    pub created_height: Option<u32>,
+    pub spent_height: Option<u32>,
     pub created_timestamp: Option<u32>,
     pub spent_timestamp: Option<u32>,
 }
 
 impl Database {
+    pub async fn coins_by_ids(&self, coin_ids: &[String]) -> Result<Vec<CoinRow>> {
+        coins_by_ids(&self.pool, coin_ids).await
+    }
+
     pub async fn xch_coins(
         &self,
         limit: u32,
@@ -506,6 +514,43 @@ async fn spendable_cat_balance(conn: impl SqliteExecutor<'_>, asset_id: Bytes32)
     .sum()
 }
 
+async fn coins_by_ids(conn: impl SqliteExecutor<'_>, coin_ids: &[String]) -> Result<Vec<CoinRow>> {
+    let mut query = sqlx::QueryBuilder::new(
+        "SELECT parent_coin_hash, puzzle_hash, amount, spent_height, created_height 
+        FROM owned_coins WHERE hash IN (",
+    );
+    let mut separated = query.separated(", ");
+
+    for coin_id in coin_ids {
+        separated.push(format!("X'{coin_id}'"));
+    }
+    separated.push_unseparated(")");
+    let rows = query.build().fetch_all(conn).await?;
+
+    let coins = rows
+    .into_iter()
+    .map(|row| {
+        Ok(CoinRow {
+            coin: Coin::new(
+                row.get::<Vec<u8>, _>("parent_coin_hash").convert()?,
+                row.get::<Vec<u8>, _>("puzzle_hash").convert()?,
+                row.get::<Vec<u8>, _>("amount").convert()?,
+            ),
+            transaction_id: None, // TODO: Add transaction_id
+            spend_transaction_id: None, // TODO: Add spend_transaction_id
+            kind: CoinKind::Xch,
+            offer_id: None, // TODO: Add offer_id 
+            created_height: row.get::<Option<u32>, _>("created_height"),
+            spent_height: row.get::<Option<u32>, _>("spent_height"),
+            created_timestamp: None, // TODO: Add created_timestamp
+            spent_timestamp: None, // TODO: Add spent_timestamp
+        })
+    })
+    .collect::<Result<Vec<_>>>()?;
+
+    Ok(coins)
+}
+
 async fn coins(
     conn: impl SqliteExecutor<'_>,
     asset_id: Option<Bytes32>,
@@ -565,10 +610,14 @@ async fn coins(
                     row.get::<Vec<u8>, _>("puzzle_hash").convert()?,
                     row.get::<Vec<u8>, _>("amount").convert()?,
                 ),
-                transaction_id: None,
+                transaction_id: None, // TODO: Add transaction_id
+                spend_transaction_id: None, // TODO: Add spend_transaction_id
                 kind: CoinKind::Xch,
-                created_timestamp: None,
-                spent_timestamp: None,
+                offer_id: None, // TODO: Add offer_id 
+                created_height: row.get::<Option<u32>, _>("created_height"),
+                spent_height: row.get::<Option<u32>, _>("spent_height"),
+                created_timestamp: None, // TODO: Add created_timestamp
+                spent_timestamp: None, // TODO: Add spent_timestamp
             })
         })
         .collect::<Result<Vec<_>>>()?;
