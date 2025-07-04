@@ -1,4 +1,4 @@
-use chia::protocol::Coin;
+use chia::protocol::{Bytes32, Coin};
 use sqlx::{Row, SqliteExecutor};
 
 use crate::{Asset, Convert, Database, Result};
@@ -15,6 +15,8 @@ pub struct Transaction {
 pub struct TransactionCoin {
     pub coin: Coin,
     pub asset: Asset,
+    pub p2_puzzle_hash: Option<Bytes32>,
+    pub ticker: Option<String>,
 }
 
 impl Database {
@@ -51,9 +53,21 @@ fn create_transaction_coin(row: &sqlx::sqlite::SqliteRow) -> Result<TransactionC
         created_height: row
             .get::<Option<i64>, _>("created_height")
             .map(|h| h as u32),
+        kind: row
+            .get::<Option<i64>, _>("asset_kind")
+            .map(Convert::convert)
+            .transpose()?
+            .unwrap_or(crate::AssetKind::Token),
     };
 
-    Ok(TransactionCoin { coin, asset })
+    let p2_puzzle_hash = row.get::<Option<Vec<u8>>, _>("p2_puzzle_hash").convert()?;
+
+    Ok(TransactionCoin {
+        coin,
+        asset,
+        p2_puzzle_hash,
+        ticker: row.get::<Option<String>, _>("ticker"),
+    })
 }
 
 async fn transaction(conn: impl SqliteExecutor<'_>, height: u32) -> Result<Option<Transaction>> {
@@ -75,7 +89,8 @@ async fn transaction(conn: impl SqliteExecutor<'_>, height: u32) -> Result<Optio
             asset_name,
             asset_icon_url,
             asset_kind,
-            p2_puzzle_hash 
+            p2_puzzle_hash,
+            ticker
         FROM transaction_coins 
         WHERE height = ?",
         height
@@ -110,9 +125,15 @@ async fn transaction(conn: impl SqliteExecutor<'_>, height: u32) -> Result<Optio
             is_sensitive_content: row.asset_is_sensitive_content,
             is_visible: row.asset_is_visible,
             created_height: row.asset_created_height.map(|h| h as u32),
+            kind: row.asset_kind.convert()?,
         };
 
-        let transaction_coin = TransactionCoin { coin, asset };
+        let transaction_coin = TransactionCoin {
+            coin,
+            asset,
+            p2_puzzle_hash: row.p2_puzzle_hash.convert()?,
+            ticker: row.ticker,
+        };
 
         // these represent whether the coins was spent and/or created in this block
         if row.is_spent_in_block == 1 {
@@ -158,6 +179,7 @@ async fn transactions(
             asset_icon_url,
             asset_kind,
             p2_puzzle_hash,
+            ticker,
             COUNT(*) OVER() as total_count
         FROM transaction_coins
         WHERE 1=1",

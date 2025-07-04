@@ -1,6 +1,6 @@
-use std::net::IpAddr;
-
 use chia::protocol::Bytes32;
+use sage_database::OfferStatus;
+use std::net::IpAddr;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SyncEvent {

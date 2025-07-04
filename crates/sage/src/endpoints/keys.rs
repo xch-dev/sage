@@ -17,7 +17,7 @@ use sage_api::{
     RenameKeyResponse, Resync, ResyncResponse, SecretKeyInfo,
 };
 use sage_config::{ChangeMode, DerivationMode, Wallet};
-use sage_database::Database;
+use sage_database::{Database, Derivation};
 
 use crate::{Error, Result, Sage};
 
@@ -50,7 +50,7 @@ impl Sage {
             "
             DELETE FROM coins;
             DELETE FROM assets;
-            DELETE FROM transactions;
+            DELETE FROM mempool_items;
             DELETE FROM collections;
             DELETE FROM nfts;
             DELETE FROM dids;
@@ -165,8 +165,15 @@ impl Sage {
                 .derive_unhardened(index)
                 .derive_synthetic();
             let p2_puzzle_hash = StandardArgs::curry_tree_hash(synthetic_key).into();
-            tx.insert_derivation(p2_puzzle_hash, index, false, synthetic_key)
-                .await?;
+            tx.insert_custody_p2_puzzle(
+                p2_puzzle_hash,
+                synthetic_key,
+                Derivation {
+                    derivation_index: index,
+                    is_hardened: false,
+                },
+            )
+            .await?;
         }
 
         if let Some(master_sk) = master_sk {
@@ -178,8 +185,15 @@ impl Sage {
                     .derive_synthetic()
                     .public_key();
                 let p2_puzzle_hash = StandardArgs::curry_tree_hash(synthetic_key).into();
-                tx.insert_derivation(p2_puzzle_hash, index, true, synthetic_key)
-                    .await?;
+                tx.insert_custody_p2_puzzle(
+                    p2_puzzle_hash,
+                    synthetic_key,
+                    Derivation {
+                        derivation_index: index,
+                        is_hardened: true,
+                    },
+                )
+                .await?;
             }
         }
 

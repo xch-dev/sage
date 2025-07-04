@@ -15,7 +15,7 @@ use sage_api::{
     ViewCoinSpendsResponse,
 };
 use sage_assets::fetch_uris_without_hash;
-use sage_database::CatRow;
+use sage_database::{Asset, AssetKind, CatAsset};
 use sage_wallet::{MultiSendPayment, WalletNftMint};
 use tokio::time::timeout;
 
@@ -177,18 +177,22 @@ impl Sage {
         let fee = parse_amount(req.fee)?;
 
         let (coin_spends, asset_id) = wallet.issue_cat(amount, fee, None).await?;
-        wallet
-            .db
-            .insert_cat(CatRow {
-                asset_id,
+        let mut tx = wallet.db.tx().await?;
+        tx.insert_cat(CatAsset {
+            asset: Asset {
+                hash: asset_id,
                 name: Some(req.name),
-                ticker: Some(req.ticker),
+                icon_url: None,
                 description: None,
-                icon: None,
-                visible: true,
-                fetched: true,
-            })
-            .await?;
+                is_sensitive_content: false,
+                is_visible: true,
+                created_height: None,
+                kind: AssetKind::Token,
+            },
+            ticker: Some(req.ticker),
+        })
+        .await?;
+        tx.commit().await?;
 
         self.transact(coin_spends, req.auto_submit).await
     }
@@ -276,10 +280,6 @@ impl Sage {
         let fee = parse_amount(req.fee)?;
 
         let (coin_spends, did) = wallet.create_did(fee).await?;
-        wallet
-            .db
-            .set_future_did_name(did.info.launcher_id, req.name.clone())
-            .await?;
 
         let mut info = ConfirmationInfo::default();
         info.did_names.insert(did.info.launcher_id, req.name);

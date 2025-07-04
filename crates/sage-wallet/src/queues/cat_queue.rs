@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use sage_assets::DexieCat;
-use sage_database::{Asset, CatAsset, Database};
+use sage_database::{Asset, AssetKind, CatAsset, Database};
 use serde::Deserialize;
 use tokio::{
     sync::mpsc,
@@ -64,9 +64,11 @@ impl CatQueue {
                     is_sensitive_content: false,
                     is_visible: true,
                     created_height: None,
+                    kind: AssetKind::Token,
                 },
                 ticker: cat.ticker,
-            });
+            })
+            .await?;
         }
 
         tx.commit().await?;

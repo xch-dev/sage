@@ -23,6 +23,14 @@ pub enum ResizedImageKind {
     Thumbnail,
 }
 
+#[derive(Debug, Clone)]
+pub struct FileData {
+    pub hash: Bytes32,
+    pub data: Vec<u8>,
+    pub mime_type: String,
+    pub is_hash_match: bool,
+}
+
 impl Database {
     pub async fn candidates_for_download(
         &self,
@@ -31,6 +39,18 @@ impl Database {
         limit: u32,
     ) -> Result<Vec<FileUri>> {
         candidates_for_download(&self.pool, check_every_seconds, max_failed_attempts, limit).await
+    }
+
+    pub async fn thumbnail(&self, hash: Bytes32) -> Result<Option<Vec<u8>>> {
+        resized_image(&self.pool, hash, ResizedImageKind::Thumbnail).await
+    }
+
+    pub async fn icon(&self, hash: Bytes32) -> Result<Option<Vec<u8>>> {
+        resized_image(&self.pool, hash, ResizedImageKind::Icon).await
+    }
+
+    pub async fn full_file_data(&self, hash: Bytes32) -> Result<Option<FileData>> {
+        full_file_data(&self.pool, hash).await
     }
 }
 
@@ -73,6 +93,14 @@ impl DatabaseTx<'_> {
     pub async fn nfts_with_metadata_hash(&mut self, hash: Bytes32) -> Result<Vec<UpdateableNft>> {
         nfts_with_metadata_hash(&mut *self.tx, hash).await
     }
+
+    pub async fn delete_file(&mut self, hash: Bytes32) -> Result<()> {
+        delete_file(&mut *self.tx, hash).await
+    }
+
+    pub async fn set_uri_unchecked(&mut self, uri: String) -> Result<()> {
+        set_uri_unchecked(&mut *self.tx, uri).await
+    }
 }
 
 async fn insert_file(conn: impl SqliteExecutor<'_>, hash: Bytes32) -> Result<()> {
@@ -107,6 +135,27 @@ async fn file_data(conn: impl SqliteExecutor<'_>, hash: Bytes32) -> Result<Optio
         .await?;
 
     Ok(row.and_then(|row| row.data))
+}
+
+async fn full_file_data(conn: impl SqliteExecutor<'_>, hash: Bytes32) -> Result<Option<FileData>> {
+    let hash = hash.as_ref();
+
+    let row = query!(
+        "SELECT hash, data, mime_type, is_hash_match FROM files WHERE hash = ?",
+        hash
+    )
+    .fetch_optional(conn)
+    .await?;
+
+    row.map(|row| {
+        Ok(FileData {
+            hash: row.hash.convert()?,
+            data: row.data.unwrap_or_default(),
+            mime_type: row.mime_type.unwrap_or_default(),
+            is_hash_match: row.is_hash_match.unwrap_or_default(),
+        })
+    })
+    .transpose()
 }
 
 async fn candidates_for_download(
@@ -226,6 +275,52 @@ async fn insert_resized_image(
         file_hash,
         kind,
         data
+    )
+    .execute(conn)
+    .await?;
+
+    Ok(())
+}
+
+async fn resized_image(
+    conn: impl SqliteExecutor<'_>,
+    hash: Bytes32,
+    kind: ResizedImageKind,
+) -> Result<Option<Vec<u8>>> {
+    let hash = hash.as_ref();
+    let kind = kind as i64;
+
+    let row = query!(
+        "SELECT resized_images.data 
+        FROM resized_images 
+        INNER JOIN files ON files.id = resized_images.file_id
+        WHERE files.hash = ? AND kind = ?",
+        hash,
+        kind
+    )
+    .fetch_optional(conn)
+    .await?;
+
+    Ok(row.map(|row| row.data))
+}
+
+async fn delete_file(conn: impl SqliteExecutor<'_>, hash: Bytes32) -> Result<()> {
+    let hash = hash.as_ref();
+
+    query!("DELETE FROM files WHERE hash = ?", hash)
+        .execute(conn)
+        .await?;
+
+    Ok(())
+}
+
+async fn set_uri_unchecked(conn: impl SqliteExecutor<'_>, uri: String) -> Result<()> {
+    query!(
+        "UPDATE file_uris 
+        SET failed_attempts = 0, last_checked_timestamp = NULL
+        FROM files
+        WHERE file_uris.file_id = files.id AND file_uris.uri = ?",
+        uri
     )
     .execute(conn)
     .await?;

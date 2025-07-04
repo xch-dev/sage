@@ -3,25 +3,46 @@ use chia::{
     clvm_traits::{FromClvm, ToClvm},
     puzzles::{nft::NftMetadata, standard::StandardArgs, DeriveSynthetic},
 };
+use chia_wallet_sdk::types::TESTNET11_CONSTANTS;
 use clvmr::Allocator;
 use sage_api::{
     IncreaseDerivationIndex, IncreaseDerivationIndexResponse, RedownloadNft, RedownloadNftResponse,
-    RemoveCat, RemoveCatResponse, UpdateCat, UpdateCatResponse, UpdateDid, UpdateDidResponse,
+    ResyncCat, ResyncCatResponse, UpdateCat, UpdateCatResponse, UpdateDid, UpdateDidResponse,
     UpdateNft, UpdateNftCollection, UpdateNftCollectionResponse, UpdateNftResponse,
 };
-use sage_database::{CatRow, DidRow};
+use sage_assets::DexieCat;
+use sage_database::{Asset, AssetKind, CatAsset, Derivation};
 use sage_wallet::SyncCommand;
 
 use crate::{parse_asset_id, parse_collection_id, parse_did_id, parse_nft_id, Error, Result, Sage};
 
 impl Sage {
-    pub async fn remove_cat(&self, req: RemoveCat) -> Result<RemoveCatResponse> {
+    pub async fn resync_cat(&self, req: ResyncCat) -> Result<ResyncCatResponse> {
         let wallet = self.wallet()?;
 
         let asset_id = parse_asset_id(req.asset_id)?;
-        wallet.db.refetch_cat(asset_id).await?;
+        let testnet = self.network().genesis_challenge == TESTNET11_CONSTANTS.genesis_challenge;
 
-        Ok(RemoveCatResponse {})
+        let cat = DexieCat::fetch(asset_id, testnet).await?;
+
+        let mut tx = wallet.db.tx().await?;
+        tx.update_cat_asset(CatAsset {
+            asset: Asset {
+                hash: asset_id,
+                name: cat.name,
+                icon_url: cat.icon_url,
+                description: cat.description,
+                is_sensitive_content: false,
+                is_visible: true,
+                created_height: None,
+                kind: AssetKind::Token,
+            },
+            ticker: cat.ticker,
+        })
+        .await?;
+        tx.commit().await?;
+
+        Ok(ResyncCatResponse {})
     }
 
     pub async fn update_cat(&self, req: UpdateCat) -> Result<UpdateCatResponse> {
@@ -29,18 +50,22 @@ impl Sage {
 
         let asset_id = parse_asset_id(req.record.asset_id)?;
 
-        wallet
-            .db
-            .update_cat(CatRow {
-                asset_id,
+        let mut tx = wallet.db.tx().await?;
+        tx.update_cat_asset(CatAsset {
+            asset: Asset {
+                hash: asset_id,
                 name: req.record.name,
+                icon_url: req.record.icon_url,
                 description: req.record.description,
-                ticker: req.record.ticker,
-                icon: req.record.icon_url,
-                visible: req.record.visible,
-                fetched: true,
-            })
-            .await?;
+                is_sensitive_content: false, // TODO: add is_sensitive_content
+                is_visible: req.record.visible,
+                created_height: None, // TODO: add created_height
+                kind: AssetKind::Token,
+            },
+            ticker: req.record.ticker,
+        })
+        .await?;
+        tx.commit().await?;
 
         Ok(UpdateCatResponse {})
     }
@@ -50,21 +75,13 @@ impl Sage {
 
         let did_id = parse_did_id(req.did_id)?;
 
-        let Some(row) = wallet.db.did_row(did_id).await? else {
+        let Some(row) = wallet.db.did_asset(did_id).await? else {
             return Err(Error::MissingDid(did_id));
         };
 
-        wallet
-            .db
-            .insert_did(DidRow {
-                launcher_id: row.launcher_id,
-                coin_id: row.coin_id,
-                name: req.name,
-                is_owned: row.is_owned,
-                visible: req.visible,
-                created_height: row.created_height,
-            })
-            .await?;
+        let mut tx = wallet.db.tx().await?;
+        tx.insert_did(row.asset, &row.did_info).await?;
+        tx.commit().await?;
 
         Ok(UpdateDidResponse {})
     }
@@ -73,7 +90,7 @@ impl Sage {
         let wallet = self.wallet()?;
 
         let nft_id = parse_nft_id(req.nft_id)?;
-        wallet.db.set_nft_visible(nft_id, req.visible).await?;
+        wallet.db.set_asset_visible(nft_id, req.visible).await?;
 
         Ok(UpdateNftResponse {})
     }
@@ -120,20 +137,19 @@ impl Sage {
             ]
             .concat()
             {
-                tx.set_nft_uri_unchecked(uri).await?;
+                tx.set_uri_unchecked(uri).await?;
             }
 
             if let Some(hash) = metadata.data_hash {
-                tx.delete_nft_data(hash).await?;
-                tx.delete_nft_thumbnail(hash).await?;
+                tx.delete_file(hash).await?;
             }
 
             if let Some(hash) = metadata.metadata_hash {
-                tx.delete_nft_data(hash).await?;
+                tx.delete_file(hash).await?;
             }
 
             if let Some(hash) = metadata.license_hash {
-                tx.delete_nft_data(hash).await?;
+                tx.delete_file(hash).await?;
             }
 
             tx.commit().await?;
@@ -173,8 +189,15 @@ impl Sage {
 
                 let p2_puzzle_hash = StandardArgs::curry_tree_hash(synthetic_key).into();
 
-                tx.insert_derivation(p2_puzzle_hash, index, true, synthetic_key)
-                    .await?;
+                tx.insert_custody_p2_puzzle(
+                    p2_puzzle_hash,
+                    synthetic_key,
+                    Derivation {
+                        derivation_index: index,
+                        is_hardened: true,
+                    },
+                )
+                .await?;
 
                 derivations.push(p2_puzzle_hash);
             }
