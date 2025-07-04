@@ -212,6 +212,7 @@ async fn transactions(
 fn group_rows_into_transactions(rows: Vec<sqlx::sqlite::SqliteRow>) -> Result<Vec<Transaction>> {
     use std::collections::HashMap;
 
+    #[allow(clippy::type_complexity)]
     let mut transactions_by_height: HashMap<
         u32,
         (Option<u32>, Vec<TransactionCoin>, Vec<TransactionCoin>),

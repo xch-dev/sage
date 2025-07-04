@@ -329,7 +329,7 @@ impl SyncManager {
 
                     wallet
                         .db
-                        .insert_peak(message.height, message.peak_hash)
+                        .insert_block(message.height, message.peak_hash, None)
                         .await?;
 
                     info!(

@@ -75,7 +75,7 @@ CREATE TABLE dids (
   asset_id INTEGER NOT NULL UNIQUE,
   metadata BLOB NOT NULL,
   recovery_list_hash BLOB,
-  num_verifications_required BLOB NOT NULL,
+  num_verifications_required INTEGER NOT NULL,
   FOREIGN KEY (asset_id) REFERENCES assets(id) ON DELETE CASCADE
 );
 
@@ -127,7 +127,7 @@ CREATE TABLE p2_puzzles (
 
 CREATE TABLE public_keys (
   id INTEGER NOT NULL PRIMARY KEY,
-  p2_puzzle_id INTEGER NOT NULL,
+  p2_puzzle_id INTEGER NOT NULL UNIQUE,
   is_hardened BOOLEAN NOT NULL,
   derivation_index INTEGER NOT NULL,
   key BLOB NOT NULL,
@@ -136,7 +136,7 @@ CREATE TABLE public_keys (
 
 CREATE TABLE clawbacks (
   id INTEGER NOT NULL PRIMARY KEY,
-  p2_puzzle_id INTEGER NOT NULL,
+  p2_puzzle_id INTEGER NOT NULL UNIQUE,
   sender_puzzle_hash BLOB NOT NULL,
   receiver_puzzle_hash BLOB NOT NULL,
   expiration_seconds INTEGER NOT NULL,
@@ -145,7 +145,7 @@ CREATE TABLE clawbacks (
 
 CREATE TABLE p2_options (
   id INTEGER NOT NULL PRIMARY KEY,
-  p2_puzzle_id INTEGER NOT NULL,
+  p2_puzzle_id INTEGER NOT NULL UNIQUE,
   option_asset_id INTEGER NULL,
   FOREIGN KEY (p2_puzzle_id) REFERENCES p2_puzzles(id) ON DELETE CASCADE,
   FOREIGN KEY (option_asset_id) REFERENCES assets(id) ON DELETE CASCADE
@@ -158,8 +158,6 @@ CREATE TABLE p2_options (
  * When a coin is discovered, and hasn't been synced yet, it's added to this table without
  * an asset_id. This will put it into a queue for further processing, in which case we
  * will lookup the coin on-chain and discover the asset.
- *
- * The hint is for identifying 
  */
 CREATE TABLE coins (
   id INTEGER NOT NULL PRIMARY KEY,
