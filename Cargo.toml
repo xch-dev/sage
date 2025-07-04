@@ -84,13 +84,13 @@ specta-typescript = "0.0.7"
 tauri-specta = "2.0.0-rc.20"
 
 # Chia
-chia = "0.25.0"
-chia_streamable_macro = "0.25.0"
-chia-traits = "0.25.0"
-chia-sha2 = "0.25.0"
+chia = "0.26.0"
+chia_streamable_macro = "0.26.0"
+chia-traits = "0.26.0"
+chia-sha2 = "0.26.0"
 chia-puzzles = "0.20.1"
 clvmr = "0.14.0"
-chia-wallet-sdk = { git = "https://github.com/xch-dev/chia-wallet-sdk", rev = "10423bb0e1ecc133e91e4841600730eab697b015", features = ["rustls", "offer-compression", "peer-simulator"] }
+chia-wallet-sdk = { git = "https://github.com/xch-dev/chia-wallet-sdk", rev = "1202fe93b62a60fba4009071ae60b960b27e72e6", features = ["rustls", "offer-compression", "peer-simulator"] }
 bip39 = "2.0.0"
 bech32 = "0.9.1"
 rand = "0.8.5"

@@ -88,7 +88,7 @@ pub async fn sync_wallet(
             "Updating peak from peer to {} with header hash {}",
             height, header_hash
         );
-        wallet.db.insert_peak(height, header_hash).await?;
+        wallet.db.insert_block(height, header_hash, None).await?;
     } else {
         warn!("No peak found");
     }
@@ -196,6 +196,14 @@ pub async fn incremental_sync(
     let mut confirmed_transactions = HashSet::new();
 
     for &coin_state in &coin_states {
+        if let Some(height) = coin_state.created_height {
+            tx.insert_height(height).await?;
+        }
+
+        if let Some(height) = coin_state.spent_height {
+            tx.insert_height(height).await?;
+        }
+
         tx.insert_coin(coin_state).await?;
 
         if tx.is_p2_puzzle_hash(coin_state.coin.puzzle_hash).await? {
@@ -208,9 +216,14 @@ pub async fn incremental_sync(
             .await?;
         }
 
+        confirmed_transactions.extend(
+            tx.mempool_items_for_output(coin_state.coin.coin_id())
+                .await?,
+        );
+
         if coin_state.spent_height.is_some() {
             confirmed_transactions.extend(
-                tx.mempool_items_for_output(coin_state.coin.coin_id())
+                tx.mempool_items_for_input(coin_state.coin.coin_id())
                     .await?,
             );
         }

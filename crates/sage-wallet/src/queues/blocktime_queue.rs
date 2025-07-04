@@ -44,12 +44,7 @@ impl BlockTimeQueue {
         let peers = self.state.lock().await.peers();
         let limit = 5 * u32::try_from(peers.len())?;
 
-        let mut heights = self.db.find_created_timestamp_null(limit).await?;
-        heights.extend(
-            self.db
-                .find_spent_timestamp_null(limit.saturating_sub(heights.len().try_into()?))
-                .await?,
-        );
+        let heights = self.db.unsynced_blocks(limit).await?;
 
         if heights.is_empty() {
             return Ok(());
@@ -84,37 +79,17 @@ impl BlockTimeQueue {
         peer: WalletPeer,
         height: u32,
     ) -> Result<(), WalletError> {
-        let check_block = self.db.check_block(height).await?;
-
-        if let Some(unix_time) = check_block {
-            self.insert_timestamp_height(height, unix_time).await?;
-            return Ok(());
-        }
-
         match peer.block_timestamp(height).await {
-            Ok(Some(timestamp)) => {
-                self.insert_timestamp_height(height, timestamp.try_into()?)
+            Ok((header_hash, timestamp)) => {
+                self.db
+                    .insert_block(height, header_hash, Some(timestamp.try_into()?))
                     .await?;
-            }
-            Ok(None) => {
-                error!("No timestamp found for block {height}");
-                return Err(WalletError::PeerMisbehaved);
             }
             Err(error) => {
                 error!("Failed to fetch block {height} timestamp: {error}");
                 return Err(error);
             }
         }
-
-        Ok(())
-    }
-
-    async fn insert_timestamp_height(
-        &self,
-        height: u32,
-        timestamp: i64,
-    ) -> Result<(), WalletError> {
-        self.db.insert_timestamp_height(height, timestamp).await?;
 
         Ok(())
     }

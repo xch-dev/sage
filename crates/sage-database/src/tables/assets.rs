@@ -182,7 +182,7 @@ impl Database {
 
 impl DatabaseTx<'_> {
     pub async fn update_cat_asset(&mut self, cat: CatAsset) -> Result<()> {
-        update_cat_asset(&mut *self.tx, cat).await
+        update_cat_asset(&mut self.tx, cat).await
     }
 
     pub async fn insert_cat(&mut self, cat: CatAsset) -> Result<()> {
@@ -711,7 +711,7 @@ async fn nft_assets(
 
     if let Some(name_search) = name_search {
         query.push("AND assets.name LIKE ?");
-        query.push_bind(format!("%{}%", name_search));
+        query.push_bind(format!("%{name_search}%"));
     }
 
     if let Some(group) = group_search {
