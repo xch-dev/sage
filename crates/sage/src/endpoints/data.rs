@@ -619,7 +619,7 @@ impl Sage {
         Ok(GetNftIconResponse {
             icon: wallet
                 .db
-                .nft_icon(data_hash)
+                .icon(data_hash)
                 .await?
                 .map(|icon| BASE64_STANDARD.encode(icon)),
         })
@@ -645,7 +645,7 @@ impl Sage {
         Ok(GetNftThumbnailResponse {
             thumbnail: wallet
                 .db
-                .nft_thumbnail(data_hash)
+                .thumbnail(data_hash)
                 .await?
                 .map(|thumbnail| BASE64_STANDARD.encode(thumbnail)),
         })

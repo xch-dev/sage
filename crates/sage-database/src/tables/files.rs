@@ -32,6 +32,14 @@ impl Database {
     ) -> Result<Vec<FileUri>> {
         candidates_for_download(&self.pool, check_every_seconds, max_failed_attempts, limit).await
     }
+
+    pub async fn thumbnail(&self, hash: Bytes32) -> Result<Option<Vec<u8>>> {
+        resized_image(&self.pool, hash, ResizedImageKind::Thumbnail).await
+    }
+
+    pub async fn icon(&self, hash: Bytes32) -> Result<Option<Vec<u8>>> {
+        resized_image(&self.pool, hash, ResizedImageKind::Icon).await
+    }
 }
 
 impl DatabaseTx<'_> {
@@ -231,4 +239,26 @@ async fn insert_resized_image(
     .await?;
 
     Ok(())
+}
+
+async fn resized_image(
+    conn: impl SqliteExecutor<'_>,
+    hash: Bytes32,
+    kind: ResizedImageKind,
+) -> Result<Option<Vec<u8>>> {
+    let hash = hash.as_ref();
+    let kind = kind as i64;
+
+    let row = query!(
+        "SELECT resized_images.data 
+        FROM resized_images 
+        INNER JOIN files ON files.id = resized_images.file_id
+        WHERE files.hash = ? AND kind = ?",
+        hash,
+        kind
+    )
+    .fetch_optional(conn)
+    .await?;
+
+    Ok(row.map(|row| row.data))
 }
