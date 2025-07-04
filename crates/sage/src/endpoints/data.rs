@@ -27,8 +27,8 @@ use sage_api::{
     PendingTransactionRecord, TransactionRecord, TransactionRecordCoin,
 };
 use sage_database::{
-    AssetKind as DatabaseAssetKind, CoinSortMode, NftAsset, NftGroupSearch,
-    NftSortMode, Transaction, TransactionCoin,
+    AssetKind as DatabaseAssetKind, CoinSortMode, NftAsset, NftGroupSearch, NftSortMode,
+    Transaction, TransactionCoin,
 };
 use sage_wallet::WalletError;
 
@@ -661,11 +661,9 @@ impl Sage {
 
         Ok(NftRecord {
             launcher_id: Address::new(nft_row.asset.hash, "nft".to_string()).encode()?,
-            collection_id: nft_row
-                .nft_info
-                .collection_id
-                .map(|col| Address::new(col, "col".to_string()).encode())
-                .transpose()?,
+            collection_id: Some(
+                Address::new(nft_row.nft_info.collection_hash, "col".to_string()).encode()?,
+            ),
             collection_name,
             minter_did: nft_row
                 .nft_info
