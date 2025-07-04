@@ -137,20 +137,19 @@ impl Sage {
             ]
             .concat()
             {
-                tx.set_nft_uri_unchecked(uri).await?;
+                tx.set_uri_unchecked(uri).await?;
             }
 
             if let Some(hash) = metadata.data_hash {
-                tx.delete_nft_data(hash).await?;
-                tx.delete_nft_thumbnail(hash).await?;
+                tx.delete_file(hash).await?;
             }
 
             if let Some(hash) = metadata.metadata_hash {
-                tx.delete_nft_data(hash).await?;
+                tx.delete_file(hash).await?;
             }
 
             if let Some(hash) = metadata.license_hash {
-                tx.delete_nft_data(hash).await?;
+                tx.delete_file(hash).await?;
             }
 
             tx.commit().await?;

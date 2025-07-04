@@ -74,8 +74,8 @@ impl Sage {
             hardened_derivation_index: wallet.db.max_derivation_index(true).await?,
 
             // TODO: add checked_uris and total_uris
-            // checked_uris: wallet.db.checked_uris().await?,
-            // total_uris: wallet.db.total_uris().await?,
+            checked_uris: 0, //wallet.db.checked_uris().await?,
+            total_uris: 0,   //wallet.db.total_uris().await?,
             database_size,
         })
     }
@@ -566,30 +566,30 @@ impl Sage {
         let metadata_hash = metadata.as_ref().and_then(|m| m.metadata_hash);
 
         let data = if let Some(hash) = data_hash {
-            wallet.db.fetch_nft_data(hash).await?
+            wallet.db.full_file_data(hash).await?
         } else {
             None
         };
 
         let offchain_metadata = if let Some(hash) = metadata_hash {
-            wallet.db.fetch_nft_data(hash).await?
+            wallet.db.full_file_data(hash).await?
         } else {
             None
         };
 
-        let hash_matches = data.as_ref().is_some_and(|data| data.hash_matches);
+        let hash_matches = data.as_ref().is_some_and(|data| data.is_hash_match);
         let metadata_hash_matches = offchain_metadata
             .as_ref()
-            .is_some_and(|offchain_metadata| offchain_metadata.hash_matches);
+            .is_some_and(|offchain_metadata| offchain_metadata.is_hash_match);
 
         Ok(GetNftDataResponse {
             data: Some(NftData {
-                blob: data.as_ref().map(|data| BASE64_STANDARD.encode(&data.blob)),
+                blob: data.as_ref().map(|data| BASE64_STANDARD.encode(&data.data)),
                 mime_type: data.map(|data| data.mime_type),
                 hash_matches,
                 metadata_json: offchain_metadata.and_then(|offchain_metadata| {
                     if offchain_metadata.mime_type == "application/json" {
-                        String::from_utf8(offchain_metadata.blob).ok()
+                        String::from_utf8(offchain_metadata.data).ok()
                     } else {
                         None
                     }
