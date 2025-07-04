@@ -7,7 +7,8 @@ SELECT
   coins.puzzle_hash,
   coins.amount,
   coins.hidden_puzzle_hash,
-  coins.p2_puzzle_id
+  coins.p2_puzzle_id,
+  assets.hash AS asset_hash
 FROM coins
   INNER JOIN assets ON assets.id = coins.asset_id
   LEFT JOIN offer_coins ON offer_coins.coin_id = coins.id
@@ -48,7 +49,8 @@ SELECT
   coins.puzzle_hash,
   coins.amount,
   coins.hidden_puzzle_hash,
-  coins.p2_puzzle_id
+  coins.p2_puzzle_id,
+  assets.hash AS asset_hash
 FROM coins
   INNER JOIN assets ON assets.id = coins.asset_id
   LEFT JOIN mempool_coins ON mempool_coins.coin_id = coins.id

@@ -368,11 +368,14 @@ async fn spendable_p2_coin_count(conn: impl SqliteExecutor<'_>) -> Result<u32> {
 async fn spendable_cat_coin_count(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<u32> {
     let asset_id_ref = asset_id.as_ref();
 
-    query!("SELECT COUNT(*) AS count FROM spendable_coins WHERE hash = ?", asset_id_ref)
-        .fetch_one(conn)
-        .await?
-        .count
-        .convert()
+    query!(
+        "SELECT COUNT(*) AS count FROM spendable_coins WHERE asset_hash = ?",
+        asset_id_ref
+    )
+    .fetch_one(conn)
+    .await?
+    .count
+    .convert()
 }
 
 async fn total_coin_count(conn: impl SqliteExecutor<'_>) -> Result<u32> {
