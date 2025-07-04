@@ -64,20 +64,20 @@ export function useTokenState(assetId: string | undefined) {
         const getCoins =
           assetId === 'xch'
             ? commands.getXchCoins({
-                offset,
-                limit: pageSize,
-                sort_mode: sortMode,
-                ascending: sortDirection,
-                include_spent_coins: includeSpentCoins,
-              })
+              offset,
+              limit: pageSize,
+              sort_mode: sortMode,
+              ascending: sortDirection,
+              include_spent_coins: includeSpentCoins,
+            })
             : commands.getCatCoins({
-                asset_id: assetId!,
-                offset,
-                limit: pageSize,
-                sort_mode: sortMode,
-                ascending: sortDirection,
-                include_spent_coins: includeSpentCoins,
-              });
+              asset_id: assetId!,
+              offset,
+              limit: pageSize,
+              sort_mode: sortMode,
+              ascending: sortDirection,
+              include_spent_coins: includeSpentCoins,
+            });
 
         getCoins
           .then((res) => {
@@ -161,7 +161,7 @@ export function useTokenState(assetId: string | undefined) {
     if (!assetId || assetId === 'xch') return;
 
     commands
-      .removeCat({ asset_id: assetId })
+      .resyncCat({ asset_id: assetId })
       .then(() => updateCat())
       .catch(addError);
   };
