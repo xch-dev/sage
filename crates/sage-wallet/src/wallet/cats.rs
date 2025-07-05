@@ -6,7 +6,7 @@ use chia::{
 use chia_wallet_sdk::driver::{Action, Id, Spend, SpendContext};
 use clvmr::NodePtr;
 
-use crate::WalletError;
+use crate::{wallet::memos::Hint, WalletError};
 
 use super::{memos::calculate_memos, Wallet};
 
@@ -39,13 +39,21 @@ impl Wallet {
         amounts: Vec<(Bytes32, u64)>,
         fee: u64,
         include_hint: bool,
-        memos: Option<Vec<Bytes>>,
+        memos: Vec<Bytes>,
     ) -> Result<Vec<CoinSpend>, WalletError> {
         let mut ctx = SpendContext::new();
         let mut actions = vec![Action::fee(fee)];
 
         for (puzzle_hash, amount) in amounts {
-            let memos = calculate_memos(&mut ctx, puzzle_hash, include_hint, memos.clone())?;
+            let memos = calculate_memos(
+                &mut ctx,
+                if include_hint {
+                    Hint::P2PuzzleHash(puzzle_hash)
+                } else {
+                    Hint::None
+                },
+                memos.clone(),
+            )?;
             actions.push(Action::send(
                 Id::Existing(asset_id),
                 puzzle_hash,
@@ -83,7 +91,7 @@ mod tests {
 
         let coin_spends = test
             .wallet
-            .send_cat(asset_id, vec![(test.puzzle_hash, 750)], 0, true, None)
+            .send_cat(asset_id, vec![(test.puzzle_hash, 750)], 0, true, vec![])
             .await?;
         assert_eq!(coin_spends.len(), 1);
 
@@ -98,7 +106,7 @@ mod tests {
 
         let coin_spends = test
             .wallet
-            .send_cat(asset_id, vec![(test.puzzle_hash, 1000)], 500, true, None)
+            .send_cat(asset_id, vec![(test.puzzle_hash, 1000)], 500, true, vec![])
             .await?;
         assert_eq!(coin_spends.len(), 3);
 

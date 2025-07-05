@@ -1,7 +1,7 @@
 use chia::protocol::{Bytes, Bytes32, CoinSpend};
 use chia_wallet_sdk::driver::{Action, Id, SpendContext};
 
-use crate::WalletError;
+use crate::{wallet::memos::Hint, WalletError};
 
 use super::{memos::calculate_memos, Wallet};
 
@@ -10,7 +10,7 @@ pub struct MultiSendPayment {
     pub asset_id: Option<Bytes32>,
     pub amount: u64,
     pub puzzle_hash: Bytes32,
-    pub memos: Option<Vec<Bytes>>,
+    pub memos: Vec<Bytes>,
 }
 
 impl MultiSendPayment {
@@ -19,7 +19,7 @@ impl MultiSendPayment {
             asset_id: None,
             amount,
             puzzle_hash,
-            memos: None,
+            memos: vec![],
         }
     }
 
@@ -28,7 +28,7 @@ impl MultiSendPayment {
             asset_id: Some(asset_id),
             amount,
             puzzle_hash,
-            memos: None,
+            memos: vec![],
         }
     }
 
@@ -54,8 +54,11 @@ impl Wallet {
         for payment in payments {
             let memos = calculate_memos(
                 &mut ctx,
-                payment.puzzle_hash,
-                payment.asset_id.is_some(),
+                if payment.asset_id.is_some() {
+                    Hint::P2PuzzleHash(payment.puzzle_hash)
+                } else {
+                    Hint::None
+                },
                 payment.memos,
             )?;
             actions.push(Action::send(

@@ -20,6 +20,7 @@ FROM coins
 WHERE 1=1
   AND spent_height IS NULL
   AND mempool_coins.id IS NULL
+  AND p2_puzzles.kind IN (0, 1)
   AND NOT EXISTS (
     SELECT 1 FROM offer_coins
     INNER JOIN offers ON offers.id = offer_coins.offer_id
@@ -27,21 +28,14 @@ WHERE 1=1
     AND offers.status <= 1
   )
   AND NOT EXISTS (
-    SELECT 1 FROM clawbacks
+    SELECT 1 FROM clawbacks -- If it's not a clawback, it's spendable
     WHERE clawbacks.p2_puzzle_id = p2_puzzles.id
     AND (
-      NOT EXISTS (SELECT 1 FROM p2_puzzles WHERE p2_puzzles.hash = clawbacks.receiver_puzzle_hash)
-      OR unixepoch() < clawbacks.expiration_seconds
-    )
-  )
-  AND NOT EXISTS (
-    SELECT 1 FROM p2_options
-    LEFT JOIN options ON options.asset_id = p2_options.option_asset_id
-    WHERE p2_options.p2_puzzle_id = p2_puzzles.id
-    AND (
-      options.id IS NULL
-      OR NOT EXISTS (SELECT 1 FROM p2_puzzles WHERE p2_puzzles.hash = options.creator_puzzle_hash)
-      OR unixepoch() < options.expiration_seconds
+      -- If it is a clawback, it's not spendable if the receiver puzzle hash isn't ours
+      -- Technically, we can spend it if we're the sender, but we don't want to select it or include it in the spendable balance
+      NOT EXISTS (SELECT 1 FROM p2_puzzles WHERE p2_puzzles.hash = receiver_puzzle_hash)
+      -- It's not spendable if the clawback hasn't expired yet
+      OR unixepoch() < expiration_seconds
     )
   );
 

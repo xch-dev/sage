@@ -1,4 +1,7 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 use chia::{
     bls::PublicKey,
@@ -289,6 +292,8 @@ impl Wallet {
             p2_puzzles.insert(p2_puzzle_hash, p2_puzzle);
         }
 
+        let timestamp = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
+
         Ok(spends.finish(
             ctx,
             deltas,
@@ -314,10 +319,19 @@ impl Wallet {
                                 !matches!(asset, SpendableAsset::Xch(..)),
                             );
 
-                            if custody.tree_hash() == clawback.sender_puzzle_hash.into() {
+                            let is_receiver =
+                                custody.tree_hash() == clawback.receiver_puzzle_hash.into();
+                            let is_sender =
+                                custody.tree_hash() == clawback.sender_puzzle_hash.into();
+
+                            if is_sender && timestamp < clawback.seconds {
                                 clawback.sender_spend(ctx, spend)
-                            } else if custody.tree_hash() == clawback.receiver_puzzle_hash.into() {
+                            } else if is_receiver && timestamp >= clawback.seconds {
                                 clawback.receiver_spend(ctx, spend)
+                            } else if is_sender || is_receiver {
+                                return Err(DriverError::Custom(
+                                    "Cannot fulfill clawback spend".to_string(),
+                                ));
                             } else {
                                 return Err(DriverError::MissingKey);
                             }

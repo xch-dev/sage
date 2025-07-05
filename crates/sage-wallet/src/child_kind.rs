@@ -1,10 +1,13 @@
 use chia::{
     clvm_traits::{FromClvm, ToClvm},
     protocol::{Bytes32, Coin, Program},
-    puzzles::{nft::NftMetadata, LineageProof, Proof},
+    puzzles::{nft::NftMetadata, LineageProof, Memos, Proof},
 };
 use chia_puzzles::SINGLETON_LAUNCHER_HASH;
-use chia_wallet_sdk::driver::{Cat, CatInfo, Did, DidInfo, HashedPtr, Nft, NftInfo, Puzzle};
+use chia_wallet_sdk::{
+    driver::{Cat, CatInfo, ClawbackV2, Did, DidInfo, HashedPtr, Nft, NftInfo, Puzzle},
+    types::{run_puzzle, Condition},
+};
 use clvmr::{Allocator, NodePtr};
 use tracing::{debug_span, warn};
 
@@ -15,6 +18,9 @@ use crate::WalletError;
 pub enum ChildKind {
     Unknown,
     Launcher,
+    Clawback {
+        info: ClawbackV2,
+    },
     Cat {
         info: CatInfo,
         lineage_proof: LineageProof,
@@ -168,12 +174,55 @@ impl ChildKind {
             Ok(None) => {}
         }
 
+        let output = run_puzzle(allocator, parent_puzzle.ptr(), parent_solution)?;
+        let conditions = Vec::<Condition>::from_clvm(allocator, output)?;
+
+        for condition in conditions {
+            let Some(create_coin) = condition.into_create_coin() else {
+                continue;
+            };
+
+            let child_coin = Coin::new(
+                parent_coin.coin_id(),
+                create_coin.puzzle_hash,
+                create_coin.amount,
+            );
+
+            if coin != child_coin {
+                continue;
+            }
+
+            let Memos::Some(memos) = create_coin.memos else {
+                continue;
+            };
+
+            let Ok((hint, (clawback_memo, _))) =
+                <(Bytes32, (NodePtr, NodePtr))>::from_clvm(allocator, memos)
+            else {
+                continue;
+            };
+
+            let Some(info) = ClawbackV2::from_memo(
+                allocator,
+                clawback_memo,
+                hint,
+                coin.amount,
+                false,
+                coin.puzzle_hash,
+            ) else {
+                continue;
+            };
+
+            return Ok(Self::Clawback { info });
+        }
+
         Ok(Self::Unknown)
     }
 
-    pub fn p2_puzzle_hash(&self) -> Option<Bytes32> {
+    pub fn custody_p2_puzzle_hash(&self) -> Option<Bytes32> {
         match self {
             Self::Launcher | Self::Unknown => None,
+            Self::Clawback { info } => Some(info.receiver_puzzle_hash),
             Self::Cat { info, .. } => Some(info.p2_puzzle_hash),
             Self::Did { info, .. } => Some(info.p2_puzzle_hash),
             Self::Nft { info, .. } => Some(info.p2_puzzle_hash),
