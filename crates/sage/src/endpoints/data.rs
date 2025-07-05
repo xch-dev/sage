@@ -27,8 +27,8 @@ use sage_api::{
     PendingTransactionRecord, TransactionRecord, TransactionRecordCoin,
 };
 use sage_database::{
-    AssetKind as DatabaseAssetKind, CoinSortMode, NftAsset, NftGroupSearch, NftSortMode,
-    Transaction, TransactionCoin,
+    AssetFilter, AssetKind as DatabaseAssetKind, CoinFilterMode, CoinSortMode, NftAsset,
+    NftGroupSearch, NftSortMode, Transaction, TransactionCoin,
 };
 use sage_wallet::WalletError;
 
@@ -155,8 +155,7 @@ impl Sage {
                 amount: Amount::u64(row.coin.amount),
                 created_height: row.created_height,
                 spent_height: row.spent_height,
-                create_transaction_id: row.transaction_id.map(hex::encode),
-                spend_transaction_id: row.spend_transaction_id.map(hex::encode),
+                transaction_id: row.transaction_id.map(hex::encode),
                 offer_id: row.offer_id.map(hex::encode),
                 created_timestamp: row.created_timestamp,
                 spent_timestamp: row.spent_timestamp,
@@ -176,12 +175,17 @@ impl Sage {
         let mut coins = Vec::new();
         let (rows, total) = wallet
             .db
-            .xch_coins(
+            .coin_records(
+                AssetFilter::Id(Bytes32::default()),
                 req.limit,
                 req.offset,
                 sort_mode,
                 req.ascending,
-                req.include_spent_coins,
+                if req.include_spent_coins {
+                    CoinFilterMode::All
+                } else {
+                    CoinFilterMode::Spendable
+                },
             )
             .await?;
 
@@ -192,8 +196,7 @@ impl Sage {
                 amount: Amount::u64(row.coin.amount),
                 created_height: row.created_height,
                 spent_height: row.spent_height,
-                create_transaction_id: row.transaction_id.map(hex::encode),
-                spend_transaction_id: row.spend_transaction_id.map(hex::encode),
+                transaction_id: row.transaction_id.map(hex::encode),
                 offer_id: row.offer_id.map(hex::encode),
                 created_timestamp: row.created_timestamp,
                 spent_timestamp: row.spent_timestamp,
@@ -218,13 +221,17 @@ impl Sage {
 
         let (rows, total) = wallet
             .db
-            .cat_coins(
-                asset_id,
+            .coin_records(
+                AssetFilter::Id(asset_id),
                 req.limit,
                 req.offset,
                 sort_mode,
                 req.ascending,
-                req.include_spent_coins,
+                if req.include_spent_coins {
+                    CoinFilterMode::All
+                } else {
+                    CoinFilterMode::Spendable
+                },
             )
             .await?;
 
@@ -235,8 +242,7 @@ impl Sage {
                 amount: Amount::u64(row.coin.amount),
                 created_height: row.created_height,
                 spent_height: row.spent_height,
-                create_transaction_id: row.transaction_id.map(hex::encode),
-                spend_transaction_id: row.spend_transaction_id.map(hex::encode),
+                transaction_id: row.transaction_id.map(hex::encode),
                 offer_id: row.offer_id.map(hex::encode),
                 created_timestamp: row.created_timestamp,
                 spent_timestamp: row.spent_timestamp,
@@ -787,11 +793,9 @@ impl Sage {
 }
 
 fn address_kind(p2_puzzle_hash: Option<Bytes32>) -> AddressKind {
-    if p2_puzzle_hash.is_none() {
+    let Some(p2_puzzle_hash) = p2_puzzle_hash else {
         return AddressKind::External;
-    }
-
-    let p2_puzzle_hash = p2_puzzle_hash.unwrap();
+    };
 
     if p2_puzzle_hash == BURN_PUZZLE_HASH.into() {
         return AddressKind::Burn;
@@ -803,5 +807,5 @@ fn address_kind(p2_puzzle_hash: Option<Bytes32>) -> AddressKind {
         return AddressKind::Offer;
     }
 
-    return AddressKind::Own;
+    AddressKind::Own
 }
