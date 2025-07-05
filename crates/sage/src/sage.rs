@@ -265,11 +265,6 @@ impl Sage {
 
         let pool = self.connect_to_database(fingerprint).await?;
         let db = Database::new(pool);
-        let version = db.database_version().await?;
-
-        if version < 2 {
-            return Err(Error::DatabaseVersionTooOld);
-        }
 
         db.run_rust_migrations(self.network().ticker.clone())
             .await?;
@@ -414,9 +409,21 @@ impl Sage {
             )
             .await?;
 
+        let version = Self::user_version(&pool).await?;
+
+        if version < 2 {
+            return Err(Error::DatabaseVersionTooOld);
+        }
         sqlx::migrate!("../../migrations").run(&pool).await?;
 
         Ok(pool)
+    }
+
+    async fn user_version(pool: &SqlitePool) -> Result<i32> {
+        let row: (i32,) = sqlx::query_as("PRAGMA user_version")
+            .fetch_one(pool)
+            .await?;
+        Ok(row.0)
     }
 
     pub fn wallet_db_path(&self, fingerprint: u32) -> Result<PathBuf> {
