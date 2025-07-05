@@ -47,6 +47,10 @@ pub struct DerivationRow {
 }
 
 impl Database {
+    pub async fn public_key(&self, p2_puzzle_hash: Bytes32) -> Result<Option<PublicKey>> {
+        public_key(&self.pool, p2_puzzle_hash).await
+    }
+
     pub async fn custody_p2_puzzle_hashes(&self) -> Result<Vec<Bytes32>> {
         custody_p2_puzzle_hashes(&self.pool).await
     }
@@ -61,9 +65,12 @@ impl Database {
 
     pub async fn p2_puzzle(&self, puzzle_hash: Bytes32) -> Result<P2Puzzle> {
         match p2_puzzle_kind(&self.pool, puzzle_hash).await? {
-            P2PuzzleKind::PublicKey => Ok(P2Puzzle::PublicKey(
-                public_key(&self.pool, puzzle_hash).await?,
-            )),
+            P2PuzzleKind::PublicKey => {
+                let Some(key) = public_key(&self.pool, puzzle_hash).await? else {
+                    return Err(DatabaseError::InvalidEnumVariant);
+                };
+                Ok(P2Puzzle::PublicKey(key))
+            }
             P2PuzzleKind::Clawback => {
                 Ok(P2Puzzle::Clawback(clawback(&self.pool, puzzle_hash).await?))
             }
@@ -319,10 +326,13 @@ async fn p2_puzzle_kind(
     })
 }
 
-async fn public_key(conn: impl SqliteExecutor<'_>, p2_puzzle_hash: Bytes32) -> Result<PublicKey> {
+async fn public_key(
+    conn: impl SqliteExecutor<'_>,
+    p2_puzzle_hash: Bytes32,
+) -> Result<Option<PublicKey>> {
     let p2_puzzle_hash = p2_puzzle_hash.as_ref();
 
-    query!(
+    let row = query!(
         "
         SELECT key
         FROM p2_puzzles
@@ -331,10 +341,10 @@ async fn public_key(conn: impl SqliteExecutor<'_>, p2_puzzle_hash: Bytes32) -> R
         ",
         p2_puzzle_hash
     )
-    .fetch_one(conn)
-    .await?
-    .key
-    .convert()
+    .fetch_optional(conn)
+    .await?;
+
+    row.map(|row| row.key.convert()).transpose()
 }
 
 async fn clawback(conn: impl SqliteExecutor<'_>, p2_puzzle_hash: Bytes32) -> Result<Clawback> {

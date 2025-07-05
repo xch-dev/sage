@@ -28,11 +28,7 @@ impl Sage {
         let mut coin_ids = Vec::new();
 
         for coin_id in req.coin_ids {
-            if !wallet
-                .db
-                .is_coin_locked(parse_coin_id(coin_id.clone())?)
-                .await?
-            {
+            if wallet.db.are_coins_spendable(&[coin_id.clone()]).await? {
                 coin_ids.push(coin_id);
             }
         }
@@ -84,8 +80,11 @@ impl Sage {
                             return Err(Error::MissingCatCoin(cs.coin.coin_id()));
                         };
 
-                        let synthetic_key =
-                            wallet.db.synthetic_key(cat.info.p2_puzzle_hash).await?;
+                        let Some(synthetic_key) =
+                            wallet.db.public_key(cat.info.p2_puzzle_hash).await?
+                        else {
+                            return Err(Error::InvalidKey);
+                        };
 
                         let mut ctx = SpendContext::new();
                         let p2_puzzle = ctx.curry(StandardArgs::new(synthetic_key))?;
@@ -158,8 +157,11 @@ impl Sage {
                             return Err(Error::MissingCoin(cs.coin.coin_id()));
                         };
 
-                        let synthetic_key =
-                            wallet.db.synthetic_key(did.info.p2_puzzle_hash).await?;
+                        let Some(synthetic_key) =
+                            wallet.db.public_key(did.info.p2_puzzle_hash).await?
+                        else {
+                            return Err(Error::InvalidKey);
+                        };
 
                         let mut ctx = SpendContext::new();
                         let p2_puzzle = ctx.curry(StandardArgs::new(synthetic_key))?;
@@ -240,8 +242,11 @@ impl Sage {
                             return Err(Error::MissingCoin(cs.coin.coin_id()));
                         };
 
-                        let synthetic_key =
-                            wallet.db.synthetic_key(nft.info.p2_puzzle_hash).await?;
+                        let Some(synthetic_key) =
+                            wallet.db.public_key(nft.info.p2_puzzle_hash).await?
+                        else {
+                            return Err(Error::InvalidKey);
+                        };
 
                         let mut ctx = SpendContext::new();
                         let p2_puzzle = ctx.curry(StandardArgs::new(synthetic_key))?;
@@ -301,7 +306,9 @@ impl Sage {
                     continue;
                 }
 
-                let synthetic_key = wallet.db.synthetic_key(cs.coin.puzzle_hash).await?;
+                let Some(synthetic_key) = wallet.db.public_key(cs.coin.puzzle_hash).await? else {
+                    return Err(Error::InvalidKey);
+                };
 
                 let mut ctx = SpendContext::new();
                 let puzzle = ctx.curry(StandardArgs::new(synthetic_key))?;
@@ -331,7 +338,7 @@ impl Sage {
         let wallet = self.wallet()?;
 
         let public_key = parse_public_key(req.public_key)?;
-        let Some(info) = wallet.db.synthetic_key_info(public_key).await? else {
+        let Some(info) = wallet.db.derivation(public_key).await? else {
             return Err(Error::InvalidKey);
         };
 
@@ -341,10 +348,10 @@ impl Sage {
             return Err(Error::NoSigningKey);
         };
 
-        let secret_key = if info.hardened {
-            master_to_wallet_hardened(&master_sk, info.index)
+        let secret_key = if info.is_hardened {
+            master_to_wallet_hardened(&master_sk, info.derivation_index)
         } else {
-            master_to_wallet_unhardened(&master_sk, info.index)
+            master_to_wallet_unhardened(&master_sk, info.derivation_index)
         }
         .derive_synthetic();
 
@@ -366,9 +373,11 @@ impl Sage {
         let wallet = self.wallet()?;
 
         let p2_puzzle_hash = self.parse_address(req.address)?;
-        let public_key = wallet.db.synthetic_key(p2_puzzle_hash).await?;
+        let Some(public_key) = wallet.db.public_key(p2_puzzle_hash).await? else {
+            return Err(Error::InvalidKey);
+        };
 
-        let Some(info) = wallet.db.synthetic_key_info(public_key).await? else {
+        let Some(info) = wallet.db.derivation(public_key).await? else {
             return Err(Error::InvalidKey);
         };
 
@@ -378,10 +387,10 @@ impl Sage {
             return Err(Error::NoSigningKey);
         };
 
-        let secret_key = if info.hardened {
-            master_to_wallet_hardened(&master_sk, info.index)
+        let secret_key = if info.is_hardened {
+            master_to_wallet_hardened(&master_sk, info.derivation_index)
         } else {
-            master_to_wallet_unhardened(&master_sk, info.index)
+            master_to_wallet_unhardened(&master_sk, info.derivation_index)
         }
         .derive_synthetic();
 
