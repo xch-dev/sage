@@ -51,7 +51,7 @@ pub async fn lookup_coin_creation(
             .created_height
             .map_or(0, |height| height.saturating_sub(1));
 
-        let previous_timestamp = peer.block_timestamp(previous_height).await?.unwrap_or(0);
+        let (_, previous_timestamp) = peer.block_timestamp(previous_height).await?;
 
         coin_creation.insert(
             coin_id,

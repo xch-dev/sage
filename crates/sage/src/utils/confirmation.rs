@@ -49,24 +49,22 @@ impl Sage {
                     (kind, coin.puzzle_hash)
                 }
                 CoinKind::Launcher => (AssetKind::Launcher, coin.puzzle_hash),
-                CoinKind::Cat {
-                    asset_id,
-                    p2_puzzle_hash,
-                } => {
-                    let cat = wallet.db.cat(asset_id).await?;
+                CoinKind::Cat { info } => {
+                    let cat = wallet.db.cat_asset(info.asset_id).await?;
                     let kind = AssetKind::Cat {
-                        asset_id: hex::encode(asset_id),
-                        name: cat.as_ref().and_then(|cat| cat.name.clone()),
+                        asset_id: hex::encode(info.asset_id),
+                        name: cat.as_ref().and_then(|cat| cat.asset.name.clone()),
                         ticker: cat.as_ref().and_then(|cat| cat.ticker.clone()),
-                        icon_url: cat.as_ref().and_then(|cat| cat.icon.clone()),
+                        icon_url: cat.as_ref().and_then(|cat| cat.asset.icon_url.clone()),
                     };
-                    (kind, p2_puzzle_hash)
+                    (kind, info.p2_puzzle_hash)
                 }
                 CoinKind::Did { info } => {
                     let name = if let Some(name) = cache.did_names.get(&info.launcher_id).cloned() {
                         Some(name)
                     } else {
-                        wallet.db.did_name(info.launcher_id).await?
+                        let did = wallet.db.did_asset(info.launcher_id).await?;
+                        did.and_then(|did| did.asset.name)
                     };
 
                     let kind = AssetKind::Did {
@@ -155,7 +153,7 @@ pub async fn extract_nft_data(
         {
             result.icon = Some(thumbnail.icon.clone());
         } else if let Some(db) = &db {
-            if let Some(data) = db.nft_icon(data_hash).await? {
+            if let Some(data) = db.icon(data_hash).await? {
                 result.icon = Some(data);
             }
         }
