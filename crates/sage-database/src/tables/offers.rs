@@ -22,6 +22,14 @@ pub struct OfferRow {
     pub status: OfferStatus,
     pub inserted_timestamp: u64,
 }
+#[derive(Debug, Clone, Copy)]
+pub struct OfferAssetRow {
+    pub offer_id: Bytes32,
+    pub asset_id: Bytes32,
+    pub is_requested: bool,
+    pub amount: u64,
+    pub royalty: u64,
+}
 
 impl Database {
     pub async fn offer(&self, offer_id: Bytes32) -> Result<Option<OfferRow>> {
@@ -44,6 +52,24 @@ impl Database {
 impl DatabaseTx<'_> {
     pub async fn insert_offer(&mut self, offer: OfferRow) -> Result<()> {
         insert_offer(&mut *self.tx, offer).await
+    }
+
+    pub async fn insert_offered_coin(&mut self, offer_id: Bytes32, coin_id: Bytes32) -> Result<()> {
+        insert_offered_coin(&mut *self.tx, offer_id, coin_id).await
+    }
+
+    pub async fn insert_offer_xch(
+        &mut self,
+        offer_id: Bytes32,
+        xch: u64,
+        royalty: u64,
+        is_requested: bool,
+    ) -> Result<()> {
+        insert_offer_xch(&mut *self.tx, offer_id, xch, royalty, is_requested).await
+    }
+
+    pub async fn insert_offer_asset(&mut self, asset: OfferAssetRow) -> Result<()> {
+        insert_offer_asset(&mut *self.tx, asset).await
     }
 
     pub async fn update_offer_status(
@@ -70,6 +96,62 @@ async fn insert_offer(conn: impl SqliteExecutor<'_>, offer: OfferRow) -> Result<
         .bind(offer.inserted_timestamp as i64)
         .execute(conn)
         .await?;
+    Ok(())
+}
+
+async fn insert_offer_asset(conn: impl SqliteExecutor<'_>, asset: OfferAssetRow) -> Result<()> {
+    let offer_id_ref = asset.offer_id.as_ref();
+    let asset_id_ref = asset.asset_id.as_ref();
+    sqlx::query(
+        "INSERT INTO offer_assets (offer_id, asset_id, amount, royalty, is_requested) 
+        VALUES ((SELECT id FROM offers WHERE hash = ?), (SELECT id FROM assets WHERE hash = ?), ?, ?, ?)",
+    )
+        .bind(offer_id_ref)
+        .bind(asset_id_ref)
+        .bind(asset.amount as i64)
+        .bind(asset.royalty as i64)
+        .bind(asset.is_requested)
+        .execute(conn)
+        .await?;
+    Ok(())
+}
+
+async fn insert_offer_xch(
+    conn: impl SqliteExecutor<'_>,
+    offer_hash: Bytes32,
+    xch: u64,
+    royalty: u64,
+    is_requested: bool,
+) -> Result<()> {
+    let offer_id_ref = offer_hash.as_ref();
+    sqlx::query(
+        "INSERT INTO offer_assets (offer_id, asset_id, amount, royalty, is_requested) 
+    VALUES ((SELECT id FROM offers WHERE hash = ?), 0, ?, ?, ?)",
+    )
+    .bind(offer_id_ref)
+    .bind(xch as i64)
+    .bind(royalty as i64)
+    .bind(is_requested)
+    .execute(conn)
+    .await?;
+    Ok(())
+}
+
+async fn insert_offered_coin(
+    conn: impl SqliteExecutor<'_>,
+    offer_hash: Bytes32,
+    coin_hash: Bytes32,
+) -> Result<()> {
+    let offer_id_ref = offer_hash.as_ref();
+    let coin_hash_ref = coin_hash.as_ref();
+    sqlx::query(
+        "INSERT INTO offer_coins (offer_id, coin_id) 
+        VALUES ((SELECT id FROM offers WHERE hash = ?), (SELECT id FROM coins WHERE hash = ?))",
+    )
+    .bind(offer_id_ref)
+    .bind(coin_hash_ref)
+    .execute(conn)
+    .await?;
     Ok(())
 }
 

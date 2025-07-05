@@ -21,7 +21,7 @@ use sage_api::{
     OfferSummary, OfferXch, TakeOffer, TakeOfferResponse, ViewOffer, ViewOfferResponse,
 };
 use sage_assets::fetch_uris_with_hash;
-use sage_database::{OfferCatRow, OfferNftRow, OfferRow, OfferStatus, OfferXchRow};
+use sage_database::{OfferAssetRow, OfferRow, OfferStatus};
 use sage_wallet::{
     aggregate_offers, fetch_nft_offer_details, insert_transaction, sort_offer, Offered, Requested,
     SyncCommand, Transaction, Wallet,
@@ -255,14 +255,11 @@ impl Sage {
             let ticker = info.as_ref().and_then(|info| info.ticker.clone());
             let icon = info.as_ref().and_then(|info| info.asset.icon_url.clone());
 
-            cat_rows.push(OfferCatRow {
+            cat_rows.push(OfferAssetRow {
                 offer_id,
-                requested: false,
+                is_requested: false,
                 asset_id,
                 amount,
-                name: name.clone(),
-                ticker: ticker.clone(),
-                icon: icon.clone(),
                 royalty: offered_royalties.cats.get(&asset_id).copied().unwrap_or(0),
             });
         }
@@ -298,15 +295,12 @@ impl Sage {
                 ExtractedNftData::default()
             };
 
-            nft_rows.push(OfferNftRow {
+            nft_rows.push(OfferAssetRow {
                 offer_id,
-                requested: false,
-                launcher_id: nft.info.launcher_id,
-                royalty_puzzle_hash: nft.info.royalty_puzzle_hash,
-                royalty_ten_thousandths: nft.info.royalty_basis_points,
-                name: info.name,
-                thumbnail: info.icon,
-                thumbnail_mime_type: Some("image/png".to_string()),
+                is_requested: false,
+                asset_id: nft.info.launcher_id,
+                amount: 0, // TODO is this right?
+                royalty: nft.info.royalty_basis_points as u64,
             });
         }
 
@@ -316,14 +310,11 @@ impl Sage {
             let ticker = info.as_ref().and_then(|info| info.ticker.clone());
             let icon = info.as_ref().and_then(|info| info.asset.icon_url.clone());
 
-            cat_rows.push(OfferCatRow {
+            cat_rows.push(OfferAssetRow {
                 offer_id,
-                requested: true,
+                is_requested: true,
                 asset_id,
                 amount,
-                name: name.clone(),
-                ticker: ticker.clone(),
-                icon: icon.clone(),
                 royalty: requested_royalties
                     .cats
                     .get(&asset_id)
@@ -374,15 +365,12 @@ impl Sage {
                 None
             };
 
-            nft_rows.push(OfferNftRow {
+            nft_rows.push(OfferAssetRow {
                 offer_id,
-                requested: true,
-                launcher_id,
-                royalty_puzzle_hash: nft.royalty_puzzle_hash,
-                royalty_ten_thousandths: nft.royalty_basis_points,
-                name: info.name,
-                thumbnail: info.icon,
-                thumbnail_mime_type,
+                is_requested: true,
+                asset_id: launcher_id,
+                amount: 0, // TODO is this right?
+                royalty: nft.royalty_basis_points as u64,
             });
         }
 
@@ -409,31 +397,26 @@ impl Sage {
         }
 
         if offered_amounts.xch > 0 || offered_royalties.xch > 0 {
-            tx.insert_offer_xch(OfferXchRow {
-                offer_id,
-                requested: false,
-                amount: offered_amounts.xch,
-                royalty: offered_royalties.xch,
-            })
-            .await?;
+            tx.insert_offer_xch(offer_id, offered_amounts.xch, offered_royalties.xch, false)
+                .await?;
         }
 
         if requested_amounts.xch > 0 || requested_royalties.xch > 0 {
-            tx.insert_offer_xch(OfferXchRow {
+            tx.insert_offer_xch(
                 offer_id,
-                requested: true,
-                amount: requested_amounts.xch,
-                royalty: requested_royalties.xch,
-            })
+                requested_amounts.xch,
+                requested_royalties.xch,
+                true,
+            )
             .await?;
         }
 
         for row in cat_rows {
-            tx.insert_offer_cat(row).await?;
+            tx.insert_offer_asset(row).await?;
         }
 
         for row in nft_rows {
-            tx.insert_offer_nft(row).await?;
+            tx.insert_offer_asset(row).await?;
         }
 
         tx.commit().await?;
