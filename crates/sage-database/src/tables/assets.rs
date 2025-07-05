@@ -1,10 +1,9 @@
 use chia::protocol::{Bytes32, Program};
 use sqlx::{query, Row, SqliteConnection, SqliteExecutor};
-use std::sync::LazyLock;
 
 use crate::{Convert, Database, DatabaseError, DatabaseTx, Result};
 
-pub static XCH_ASSET_HASH: LazyLock<Bytes32> = LazyLock::new(|| Bytes32::default());
+pub static XCH_ASSET_HASH: Bytes32 = Bytes32::new([0; 32]);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum AssetKind {
