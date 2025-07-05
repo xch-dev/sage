@@ -103,10 +103,7 @@ mod tests {
             test.wait_for_coins().await;
         }
 
-        assert_ne!(
-            test.wallet.db.spendable_did(did.info.launcher_id).await?,
-            None
-        );
+        assert_ne!(test.wallet.db.did(did.info.launcher_id).await?, None);
 
         Ok(())
     }

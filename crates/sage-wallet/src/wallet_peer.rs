@@ -193,13 +193,21 @@ impl WalletPeer {
         Ok(())
     }
 
-    pub async fn block_timestamp(&self, height: u32) -> Result<Option<u64>, WalletError> {
-        Ok(self
+    pub async fn block_timestamp(&self, height: u32) -> Result<(Bytes32, u64), WalletError> {
+        let header_block = self
             .peer
             .request_infallible::<RespondBlockHeader, _>(RequestBlockHeader::new(height))
             .await?
-            .header_block
+            .header_block;
+
+        let timestamp = header_block
             .foliage_transaction_block
-            .map(|block| block.timestamp))
+            .as_ref()
+            .map(|block| block.timestamp);
+
+        Ok((
+            header_block.header_hash(),
+            timestamp.ok_or(WalletError::PeerMisbehaved)?,
+        ))
     }
 }
