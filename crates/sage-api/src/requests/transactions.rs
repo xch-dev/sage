@@ -9,7 +9,7 @@ pub struct SendXch {
     pub amount: Amount,
     pub fee: Amount,
     #[serde(default)]
-    pub memos: Option<Vec<String>>,
+    pub memos: Vec<String>,
     #[serde(default)]
     pub auto_submit: bool,
 }
@@ -21,7 +21,7 @@ pub struct BulkSendXch {
     pub amount: Amount,
     pub fee: Amount,
     #[serde(default)]
-    pub memos: Option<Vec<String>>,
+    pub memos: Vec<String>,
     #[serde(default)]
     pub auto_submit: bool,
 }
@@ -122,7 +122,7 @@ pub struct SendCat {
     #[serde(default = "yes")]
     pub include_hint: bool,
     #[serde(default)]
-    pub memos: Option<Vec<String>>,
+    pub memos: Vec<String>,
     #[serde(default)]
     pub auto_submit: bool,
 }
@@ -137,7 +137,7 @@ pub struct BulkSendCat {
     #[serde(default = "yes")]
     pub include_hint: bool,
     #[serde(default)]
-    pub memos: Option<Vec<String>>,
+    pub memos: Vec<String>,
     #[serde(default)]
     pub auto_submit: bool,
 }
@@ -163,7 +163,7 @@ pub struct Payment {
     pub address: String,
     pub amount: Amount,
     #[serde(default)]
-    pub memos: Option<Vec<String>>,
+    pub memos: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
