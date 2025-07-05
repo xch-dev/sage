@@ -51,6 +51,7 @@ pub async fn insert_puzzle(
         ChildKind::Cat {
             info,
             lineage_proof,
+            clawback,
         } => {
             tx.insert_lineage_proof(coin_id, lineage_proof).await?;
 
@@ -60,10 +61,14 @@ pub async fn insert_puzzle(
             })
             .await?;
 
+            if let Some(clawback) = clawback {
+                tx.insert_clawback_p2_puzzle(clawback).await?;
+            }
+
             tx.sync_coin(
                 coin_id,
                 info.asset_id,
-                custody_p2_puzzle_hash,
+                info.p2_puzzle_hash,
                 info.hidden_puzzle_hash,
             )
             .await?;
@@ -71,6 +76,7 @@ pub async fn insert_puzzle(
         ChildKind::Did {
             lineage_proof,
             info,
+            clawback,
         } => {
             tx.insert_lineage_proof(coin_id, lineage_proof).await?;
 
@@ -91,13 +97,18 @@ pub async fn insert_puzzle(
                     .await?;
             }
 
-            tx.sync_coin(coin_id, info.launcher_id, custody_p2_puzzle_hash, None)
+            if let Some(clawback) = clawback {
+                tx.insert_clawback_p2_puzzle(clawback).await?;
+            }
+
+            tx.sync_coin(coin_id, info.launcher_id, info.p2_puzzle_hash, None)
                 .await?;
         }
         ChildKind::Nft {
             lineage_proof,
             info,
             metadata,
+            clawback,
         } => {
             tx.insert_lineage_proof(coin_id, lineage_proof).await?;
 
@@ -139,7 +150,11 @@ pub async fn insert_puzzle(
                     .await?;
             }
 
-            tx.sync_coin(coin_id, info.launcher_id, custody_p2_puzzle_hash, None)
+            if let Some(clawback) = clawback {
+                tx.insert_clawback_p2_puzzle(clawback).await?;
+            }
+
+            tx.sync_coin(coin_id, info.launcher_id, info.p2_puzzle_hash, None)
                 .await?;
 
             let (data_uris, metadata_uris, license_uris) = metadata
