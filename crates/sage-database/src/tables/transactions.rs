@@ -186,9 +186,11 @@ async fn transactions(
     );
 
     if let Some(find_value) = find_value {
-        query.push(" AND (name LIKE %?% OR ticker LIKE %?%)");
+        query.push(" AND (name LIKE %");
         query.push_bind(find_value.clone());
+        query.push("% OR ticker LIKE %");
         query.push_bind(find_value);
+        query.push("%)");
     }
 
     if !sort_ascending {

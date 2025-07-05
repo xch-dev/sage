@@ -712,7 +712,7 @@ async fn nft_assets(
     );
 
     if let Some(name_search) = name_search {
-        query.push("AND assets.name LIKE ?");
+        query.push("AND assets.name LIKE ");
         query.push_bind(format!("%{name_search}%"));
     }
 

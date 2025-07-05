@@ -10,7 +10,7 @@ use chia_wallet_sdk::{
     prelude::CreateCoin,
     types::{run_puzzle, Condition},
 };
-use clvmr::{serde::node_to_bytes, Allocator, NodePtr};
+use clvmr::{Allocator, NodePtr};
 use tracing::{debug_span, warn};
 
 use crate::WalletError;
@@ -195,19 +195,6 @@ impl ChildKind {
                 };
 
                 let metadata = Program::from_clvm(allocator, did.info.metadata.ptr())?;
-
-                println!(
-                    "memos: {:?}",
-                    node_to_bytes(
-                        allocator,
-                        match create_coin.memos {
-                            Memos::Some(memos) => memos,
-                            Memos::None => NodePtr::NIL,
-                        }
-                    )
-                    .ok()
-                    .map(hex::encode)
-                );
 
                 let clawback = parse_clawback_unchecked(allocator, &create_coin, true);
 
