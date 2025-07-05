@@ -199,6 +199,9 @@ pub enum Error {
     #[error("Missing asset id")]
     MissingAssetId,
 
+    #[error("Database version too old")]
+    DatabaseVersionTooOld,
+
     #[error("Timeout")]
     Timeout(#[from] Elapsed),
 }
@@ -217,7 +220,7 @@ impl Error {
                 | KeychainError::Bip39(..)
                 | KeychainError::Argon2(..) => ErrorKind::Internal,
             },
-            Self::SqlxMigration(..) => ErrorKind::DatabaseMigration,
+            Self::SqlxMigration(..) | Self::DatabaseVersionTooOld => ErrorKind::DatabaseMigration,
             Self::Send(..)
             | Self::Io(..)
             | Self::Client(..)
