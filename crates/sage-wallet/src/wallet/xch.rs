@@ -149,7 +149,7 @@ mod tests {
                 vec![(test.puzzle_hash, 1000)],
                 0,
                 vec![],
-                Some(timestamp + 3),
+                Some(timestamp + 5),
             )
             .await?;
 
@@ -162,7 +162,7 @@ mod tests {
         assert_eq!(test.wallet.db.spendable_xch_balance().await?, 0);
         assert_eq!(test.wallet.db.spendable_xch_coins().await?.len(), 0);
 
-        sleep(Duration::from_secs(5)).await;
+        sleep(Duration::from_secs(6)).await;
         test.new_block_with_current_time().await?;
 
         assert_eq!(test.wallet.db.xch_balance().await?, 1000);
@@ -198,7 +198,7 @@ mod tests {
                 vec![(bob.puzzle_hash, 1000)],
                 0,
                 vec![],
-                Some(timestamp + 3000),
+                Some(timestamp + 5),
             )
             .await?;
 
@@ -218,7 +218,7 @@ mod tests {
         assert_eq!(bob.wallet.db.spendable_xch_balance().await?, 0);
         assert_eq!(bob.wallet.db.spendable_xch_coins().await?.len(), 0);
 
-        sleep(Duration::from_secs(5)).await;
+        sleep(Duration::from_secs(6)).await;
         bob.new_block_with_current_time().await?;
 
         assert_eq!(bob.wallet.db.xch_balance().await?, 1000);

@@ -230,6 +230,9 @@ impl ChildKind {
     }
 
     pub fn subscribe(&self) -> bool {
-        matches!(self, Self::Cat { .. } | Self::Did { .. } | Self::Nft { .. })
+        matches!(
+            self,
+            Self::Clawback { .. } | Self::Cat { .. } | Self::Did { .. } | Self::Nft { .. }
+        )
     }
 }

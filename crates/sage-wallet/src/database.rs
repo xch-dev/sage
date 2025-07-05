@@ -2,6 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use chia::{
     bls::Signature,
+    clvm_utils::ToTreeHash,
     protocol::{Bytes32, CoinState},
 };
 use sage_database::{Asset, CatAsset, Database, DatabaseTx, DidCoinInfo, NftCoinInfo};
@@ -44,7 +45,7 @@ pub async fn insert_puzzle(
         ChildKind::Clawback { info } => {
             tx.insert_clawback_p2_puzzle(info).await?;
 
-            tx.sync_coin(coin_id, Bytes32::default(), custody_p2_puzzle_hash, None)
+            tx.sync_coin(coin_id, Bytes32::default(), info.tree_hash().into(), None)
                 .await?;
         }
         ChildKind::Cat {
