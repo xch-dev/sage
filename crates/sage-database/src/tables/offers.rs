@@ -1,4 +1,4 @@
-use crate::{Convert, Database, DatabaseTx, Result};
+use crate::{Asset, AssetKind, Convert, Database, DatabaseTx, Result};
 use chia::protocol::Bytes32;
 use sqlx::SqliteExecutor;
 
@@ -22,10 +22,10 @@ pub struct OfferRow {
     pub status: OfferStatus,
     pub inserted_timestamp: u64,
 }
-#[derive(Debug, Clone, Copy)]
-pub struct OfferAssetRow {
+#[derive(Debug, Clone)]
+pub struct OfferedAsset {
     pub offer_id: Bytes32,
-    pub asset_id: Bytes32,
+    pub asset: Asset,
     pub is_requested: bool,
     pub amount: u64,
     pub royalty: u64,
@@ -34,6 +34,18 @@ pub struct OfferAssetRow {
 impl Database {
     pub async fn offer(&self, offer_id: Bytes32) -> Result<Option<OfferRow>> {
         offer(&self.pool, offer_id).await
+    }
+
+    pub async fn offer_xch_assets(&self, offer_id: Bytes32) -> Result<Vec<OfferedAsset>> {
+        offer_xch_assets(&self.pool, offer_id).await
+    }
+
+    pub async fn offer_cat_assets(&self, offer_id: Bytes32) -> Result<Vec<OfferedAsset>> {
+        offer_assets(&self.pool, offer_id, AssetKind::Token).await
+    }
+
+    pub async fn offer_nft_assets(&self, offer_id: Bytes32) -> Result<Vec<OfferedAsset>> {
+        offer_assets(&self.pool, offer_id, AssetKind::Nft).await
     }
 
     pub async fn delete_offer(&self, offer_id: Bytes32) -> Result<()> {
@@ -68,8 +80,23 @@ impl DatabaseTx<'_> {
         insert_offer_xch(&mut *self.tx, offer_id, xch, royalty, is_requested).await
     }
 
-    pub async fn insert_offer_asset(&mut self, asset: OfferAssetRow) -> Result<()> {
-        insert_offer_asset(&mut *self.tx, asset).await
+    pub async fn insert_offer_asset(
+        &mut self,
+        offer_id: Bytes32,
+        asset_id: Bytes32,
+        amount: u64,
+        royalty: u64,
+        is_requested: bool,
+    ) -> Result<()> {
+        insert_offer_asset(
+            &mut *self.tx,
+            offer_id,
+            asset_id,
+            amount,
+            royalty,
+            is_requested,
+        )
+        .await
     }
 
     pub async fn update_offer_status(
@@ -79,6 +106,87 @@ impl DatabaseTx<'_> {
     ) -> Result<()> {
         update_offer_status(&mut *self.tx, offer_id, status).await
     }
+}
+
+async fn offer_assets(
+    conn: impl SqliteExecutor<'_>,
+    offer_id: Bytes32,
+    kind: AssetKind,
+) -> Result<Vec<OfferedAsset>> {
+    let offer_id_ref = offer_id.as_ref();
+    let kind_u8 = kind as u8;
+    let rows = sqlx::query!(
+        "SELECT offers.hash as offer_id, assets.hash as asset_id, amount, royalty, is_requested, 
+        assets.description, assets.is_sensitive_content, assets.is_visible, assets.created_height, assets.icon_url, assets.name
+        FROM offer_assets 
+        INNER JOIN assets ON offer_assets.asset_id = assets.id
+        INNER JOIN offers ON offer_assets.offer_id = offers.id
+        WHERE offer_id = ? AND kind = ?",
+        offer_id_ref,
+        kind_u8
+    )
+    .fetch_all(conn)
+    .await?;
+
+    rows.into_iter()
+        .map(|row| {
+            Ok(OfferedAsset {
+                offer_id: row.offer_id.convert()?,
+                asset: Asset {
+                    hash: row.asset_id.convert()?,
+                    description: row.description,
+                    is_sensitive_content: row.is_sensitive_content,
+                    is_visible: row.is_visible,
+                    created_height: row.created_height.map(|h| h as u32),
+                    icon_url: row.icon_url,
+                    kind: kind,
+                    name: row.name,
+                },
+                amount: row.amount.convert()?,
+                royalty: row.royalty.convert()?,
+                is_requested: row.is_requested,
+            })
+        })
+        .collect()
+}
+
+async fn offer_xch_assets(
+    conn: impl SqliteExecutor<'_>,
+    offer_id: Bytes32,
+) -> Result<Vec<OfferedAsset>> {
+    let offer_id_ref = offer_id.as_ref();
+    let rows = sqlx::query!(
+        "SELECT offers.hash as offer_id, assets.hash as asset_id, amount, royalty, is_requested, 
+        assets.description, assets.is_sensitive_content, assets.is_visible, assets.created_height, assets.icon_url, assets.name
+        FROM offer_assets 
+        INNER JOIN assets ON offer_assets.asset_id = assets.id
+        INNER JOIN offers ON offer_assets.offer_id = offers.id
+        WHERE asset_id = 0 AND offer_id = ?",
+        offer_id_ref,
+    )
+    .fetch_all(conn)
+    .await?;
+
+    rows.into_iter()
+        .map(|row| {
+            Ok(OfferedAsset {
+                offer_id: row.offer_id.convert()?,
+                asset: Asset {
+                    hash: row.asset_id.convert()?,
+                    description: row.description,
+                    is_sensitive_content: row.is_sensitive_content,
+                    is_visible: row.is_visible,
+                    created_height: row.created_height.map(|h| h as u32),
+                    icon_url: row.icon_url,
+                    kind: AssetKind::Token,
+                    name: row.name,
+                },
+                amount: row.amount.convert()?,
+                royalty: row.royalty.convert()?,
+                is_requested: row.is_requested,
+            })
+        })
+        .collect()
 }
 
 async fn insert_offer(conn: impl SqliteExecutor<'_>, offer: OfferRow) -> Result<()> {
@@ -99,18 +207,25 @@ async fn insert_offer(conn: impl SqliteExecutor<'_>, offer: OfferRow) -> Result<
     Ok(())
 }
 
-async fn insert_offer_asset(conn: impl SqliteExecutor<'_>, asset: OfferAssetRow) -> Result<()> {
-    let offer_id_ref = asset.offer_id.as_ref();
-    let asset_id_ref = asset.asset_id.as_ref();
+async fn insert_offer_asset(
+    conn: impl SqliteExecutor<'_>,
+    offer_id: Bytes32,
+    asset_id: Bytes32,
+    amount: u64,
+    royalty: u64,
+    is_requested: bool,
+) -> Result<()> {
+    let offer_id_ref = offer_id.as_ref();
+    let asset_id_ref = asset_id.as_ref();
     sqlx::query(
         "INSERT INTO offer_assets (offer_id, asset_id, amount, royalty, is_requested) 
         VALUES ((SELECT id FROM offers WHERE hash = ?), (SELECT id FROM assets WHERE hash = ?), ?, ?, ?)",
     )
         .bind(offer_id_ref)
         .bind(asset_id_ref)
-        .bind(asset.amount as i64)
-        .bind(asset.royalty as i64)
-        .bind(asset.is_requested)
+        .bind(amount as i64)
+        .bind(royalty as i64)
+        .bind(is_requested)
         .execute(conn)
         .await?;
     Ok(())
