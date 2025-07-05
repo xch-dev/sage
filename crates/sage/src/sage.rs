@@ -409,7 +409,7 @@ impl Sage {
             )
             .await?;
 
-        let version = Self::user_version(&pool).await?;
+        let version = Self::database_version(&pool).await?;
 
         if version < 2 {
             return Err(Error::DatabaseVersionTooOld);
@@ -419,7 +419,7 @@ impl Sage {
         Ok(pool)
     }
 
-    async fn user_version(pool: &SqlitePool) -> Result<i32> {
+    async fn database_version(pool: &SqlitePool) -> Result<i32> {
         let row: (i32,) = sqlx::query_as("PRAGMA user_version")
             .fetch_one(pool)
             .await?;
