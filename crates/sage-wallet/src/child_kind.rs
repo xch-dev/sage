@@ -1,5 +1,6 @@
 use chia::{
     clvm_traits::{FromClvm, ToClvm},
+    clvm_utils::ToTreeHash,
     protocol::{Bytes32, Coin, Program},
     puzzles::{nft::NftMetadata, LineageProof, Memos, Proof},
 };
@@ -9,7 +10,7 @@ use chia_wallet_sdk::{
     prelude::CreateCoin,
     types::{run_puzzle, Condition},
 };
-use clvmr::{Allocator, NodePtr};
+use clvmr::{serde::node_to_bytes, Allocator, NodePtr};
 use tracing::{debug_span, warn};
 
 use crate::WalletError;
@@ -118,8 +119,8 @@ impl ChildKind {
                     return Ok(Self::Unknown);
                 };
 
-                let clawback =
-                    parse_clawback(allocator, &create_coin, true, cat.info.p2_puzzle_hash);
+                let clawback = parse_clawback_unchecked(allocator, &create_coin, true)
+                    .filter(|clawback| clawback.tree_hash() == cat.info.p2_puzzle_hash.into());
 
                 return Ok(Self::Cat {
                     info: cat.info,
@@ -158,8 +159,8 @@ impl ChildKind {
                 let metadata_program = Program::from_clvm(allocator, nft.info.metadata.ptr())?;
                 let metadata = NftMetadata::from_clvm(allocator, nft.info.metadata.ptr()).ok();
 
-                let clawback =
-                    parse_clawback(allocator, &create_coin, true, nft.info.p2_puzzle_hash);
+                let clawback = parse_clawback_unchecked(allocator, &create_coin, true)
+                    .filter(|clawback| clawback.tree_hash() == nft.info.p2_puzzle_hash.into());
 
                 return Ok(Self::Nft {
                     lineage_proof,
@@ -195,8 +196,44 @@ impl ChildKind {
 
                 let metadata = Program::from_clvm(allocator, did.info.metadata.ptr())?;
 
-                let clawback =
-                    parse_clawback(allocator, &create_coin, true, did.info.p2_puzzle_hash);
+                println!(
+                    "memos: {:?}",
+                    node_to_bytes(
+                        allocator,
+                        match create_coin.memos {
+                            Memos::Some(memos) => memos,
+                            Memos::None => NodePtr::NIL,
+                        }
+                    )
+                    .ok()
+                    .map(hex::encode)
+                );
+
+                let clawback = parse_clawback_unchecked(allocator, &create_coin, true);
+
+                let did = if let Some(clawback) = clawback {
+                    let p2_puzzle_hash = clawback.tree_hash().into();
+
+                    let clawback_did = Did::new(
+                        did.coin,
+                        did.proof,
+                        DidInfo::new(
+                            did.info.launcher_id,
+                            did.info.recovery_list_hash,
+                            did.info.num_verifications_required,
+                            did.info.metadata,
+                            p2_puzzle_hash,
+                        ),
+                    );
+
+                    if clawback_did.info.puzzle_hash() == coin.puzzle_hash.into() {
+                        clawback_did
+                    } else {
+                        did
+                    }
+                } else {
+                    did
+                };
 
                 return Ok(Self::Did {
                     lineage_proof,
@@ -209,7 +246,9 @@ impl ChildKind {
             Ok(None) => {}
         }
 
-        if let Some(clawback) = parse_clawback(allocator, &create_coin, false, coin.puzzle_hash) {
+        if let Some(clawback) = parse_clawback_unchecked(allocator, &create_coin, false)
+            .filter(|clawback| clawback.tree_hash() == coin.puzzle_hash.into())
+        {
             return Ok(Self::Clawback { info: clawback });
         }
 
@@ -246,11 +285,10 @@ impl ChildKind {
     }
 }
 
-fn parse_clawback(
+fn parse_clawback_unchecked(
     allocator: &Allocator,
     create_coin: &CreateCoin<NodePtr>,
     hinted: bool,
-    p2_puzzle_hash: Bytes32,
 ) -> Option<ClawbackV2> {
     let Memos::Some(memos) = create_coin.memos else {
         return None;
@@ -259,12 +297,26 @@ fn parse_clawback(
     let (hint, (clawback_memo, _)) =
         <(Bytes32, (NodePtr, NodePtr))>::from_clvm(allocator, memos).ok()?;
 
-    ClawbackV2::from_memo(
-        allocator,
-        clawback_memo,
-        hint,
-        create_coin.amount,
+    clawback_from_memo_unchecked(allocator, clawback_memo, hint, create_coin.amount, hinted)
+}
+
+pub fn clawback_from_memo_unchecked(
+    allocator: &Allocator,
+    memo: NodePtr,
+    receiver_puzzle_hash: Bytes32,
+    amount: u64,
+    hinted: bool,
+) -> Option<ClawbackV2> {
+    let (sender_puzzle_hash, (seconds, ())) =
+        <(Bytes32, (u64, ()))>::from_clvm(allocator, memo).ok()?;
+
+    let clawback = ClawbackV2 {
+        sender_puzzle_hash,
+        receiver_puzzle_hash,
+        seconds,
+        amount,
         hinted,
-        p2_puzzle_hash,
-    )
+    };
+
+    Some(clawback)
 }
