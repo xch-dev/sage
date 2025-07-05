@@ -2,9 +2,11 @@ use std::collections::{HashMap, HashSet};
 
 use chia::{
     bls::Signature,
+    clvm_utils::ToTreeHash,
     protocol::{Bytes32, CoinState},
 };
 use sage_database::{Asset, CatAsset, Database, DatabaseTx, DidCoinInfo, NftCoinInfo};
+use tracing::warn;
 
 use crate::{compute_nft_info, fetch_nft_did, ChildKind, Transaction, WalletError, WalletPeer};
 
@@ -16,21 +18,40 @@ pub async fn insert_puzzle(
 ) -> Result<bool, WalletError> {
     let coin_id = coin_state.coin.coin_id();
 
-    let Some(p2_puzzle_hash) = info.p2_puzzle_hash() else {
+    let Some(custody_p2_puzzle_hash) = info.custody_p2_puzzle_hash() else {
+        warn!(
+            "Deleting coin {} because it has no custody p2 puzzle hash",
+            coin_id
+        );
         tx.delete_coin(coin_id).await?;
         return Ok(false);
     };
 
-    if !tx.is_p2_puzzle_hash(p2_puzzle_hash).await? {
+    if !tx.is_p2_puzzle_hash(custody_p2_puzzle_hash).await? {
+        warn!(
+            "Deleting coin {} because it has a custody p2 puzzle hash we don't know about",
+            coin_id
+        );
         tx.delete_coin(coin_id).await?;
         return Ok(false);
     };
 
     match info {
-        ChildKind::Launcher | ChildKind::Unknown => {}
+        ChildKind::Launcher | ChildKind::Unknown => {
+            warn!("Deleting coin {} because it has an unknown puzzle", coin_id);
+            tx.delete_coin(coin_id).await?;
+            return Ok(false);
+        }
+        ChildKind::Clawback { info } => {
+            tx.insert_clawback_p2_puzzle(info).await?;
+
+            tx.sync_coin(coin_id, Bytes32::default(), info.tree_hash().into(), None)
+                .await?;
+        }
         ChildKind::Cat {
             info,
             lineage_proof,
+            clawback,
         } => {
             tx.insert_lineage_proof(coin_id, lineage_proof).await?;
 
@@ -40,10 +61,14 @@ pub async fn insert_puzzle(
             })
             .await?;
 
+            if let Some(clawback) = clawback {
+                tx.insert_clawback_p2_puzzle(clawback).await?;
+            }
+
             tx.sync_coin(
                 coin_id,
                 info.asset_id,
-                p2_puzzle_hash,
+                info.p2_puzzle_hash,
                 info.hidden_puzzle_hash,
             )
             .await?;
@@ -51,6 +76,7 @@ pub async fn insert_puzzle(
         ChildKind::Did {
             lineage_proof,
             info,
+            clawback,
         } => {
             tx.insert_lineage_proof(coin_id, lineage_proof).await?;
 
@@ -71,13 +97,18 @@ pub async fn insert_puzzle(
                     .await?;
             }
 
-            tx.sync_coin(coin_id, info.launcher_id, p2_puzzle_hash, None)
+            if let Some(clawback) = clawback {
+                tx.insert_clawback_p2_puzzle(clawback).await?;
+            }
+
+            tx.sync_coin(coin_id, info.launcher_id, info.p2_puzzle_hash, None)
                 .await?;
         }
         ChildKind::Nft {
             lineage_proof,
             info,
             metadata,
+            clawback,
         } => {
             tx.insert_lineage_proof(coin_id, lineage_proof).await?;
 
@@ -119,7 +150,11 @@ pub async fn insert_puzzle(
                     .await?;
             }
 
-            tx.sync_coin(coin_id, info.launcher_id, p2_puzzle_hash, None)
+            if let Some(clawback) = clawback {
+                tx.insert_clawback_p2_puzzle(clawback).await?;
+            }
+
+            tx.sync_coin(coin_id, info.launcher_id, info.p2_puzzle_hash, None)
                 .await?;
 
             let (data_uris, metadata_uris, license_uris) = metadata
@@ -245,11 +280,11 @@ pub async fn insert_transaction(
             }
 
             // We don't want to insert output coins that we won't own in the future.
-            let Some(p2_puzzle_hash) = output.kind.p2_puzzle_hash() else {
+            let Some(custody_p2_puzzle_hash) = output.kind.custody_p2_puzzle_hash() else {
                 continue;
             };
 
-            if !tx.is_p2_puzzle_hash(p2_puzzle_hash).await? {
+            if !tx.is_p2_puzzle_hash(custody_p2_puzzle_hash).await? {
                 continue;
             }
 

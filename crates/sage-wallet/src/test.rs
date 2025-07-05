@@ -1,4 +1,7 @@
-use std::{sync::Arc, time::Duration};
+use std::{
+    sync::Arc,
+    time::{Duration, SystemTime, UNIX_EPOCH},
+};
 
 use chia::{
     bls::{
@@ -247,6 +250,14 @@ impl TestWallet {
     pub async fn wait_for_puzzles(&mut self) {
         self.consume_until(|event| matches!(event, SyncEvent::PuzzleBatchSynced))
             .await;
+    }
+
+    pub async fn new_block_with_current_time(&self) -> anyhow::Result<u64> {
+        let timestamp = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
+        let mut sim = self.sim.lock().await;
+        sim.set_next_timestamp(timestamp)?;
+        sim.create_block();
+        Ok(timestamp)
     }
 }
 

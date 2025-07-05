@@ -1,11 +1,16 @@
 use chia::{
     clvm_traits::{FromClvm, ToClvm},
+    clvm_utils::ToTreeHash,
     protocol::{Bytes32, Coin, Program},
-    puzzles::{nft::NftMetadata, LineageProof, Proof},
+    puzzles::{nft::NftMetadata, LineageProof, Memos, Proof},
 };
 use chia_puzzles::SINGLETON_LAUNCHER_HASH;
-use chia_wallet_sdk::driver::{Cat, CatInfo, Did, DidInfo, HashedPtr, Nft, NftInfo, Puzzle};
-use clvmr::{Allocator, NodePtr};
+use chia_wallet_sdk::{
+    driver::{Cat, CatInfo, ClawbackV2, Did, DidInfo, HashedPtr, Nft, NftInfo, Puzzle},
+    prelude::CreateCoin,
+    types::{run_puzzle, Condition},
+};
+use clvmr::{serde::node_to_bytes, Allocator, NodePtr};
 use tracing::{debug_span, warn};
 
 use crate::WalletError;
@@ -15,18 +20,24 @@ use crate::WalletError;
 pub enum ChildKind {
     Unknown,
     Launcher,
+    Clawback {
+        info: ClawbackV2,
+    },
     Cat {
         info: CatInfo,
         lineage_proof: LineageProof,
+        clawback: Option<ClawbackV2>,
     },
     Did {
         info: DidInfo<Program>,
         lineage_proof: LineageProof,
+        clawback: Option<ClawbackV2>,
     },
     Nft {
         info: NftInfo<Program>,
         lineage_proof: LineageProof,
         metadata: Option<NftMetadata>,
+        clawback: Option<ClawbackV2>,
     },
 }
 
@@ -70,6 +81,25 @@ impl ChildKind {
             return Ok(Self::Launcher);
         }
 
+        let output = run_puzzle(allocator, parent_puzzle.ptr(), parent_solution)?;
+        let conditions = Vec::<Condition>::from_clvm(allocator, output)?;
+
+        let Some(create_coin) = conditions
+            .into_iter()
+            .filter_map(Condition::into_create_coin)
+            .find(|create_coin| {
+                let child_coin = Coin::new(
+                    parent_coin.coin_id(),
+                    create_coin.puzzle_hash,
+                    create_coin.amount,
+                );
+
+                child_coin == coin
+            })
+        else {
+            return Ok(Self::Unknown);
+        };
+
         match Cat::parse_children(allocator, parent_coin, parent_puzzle, parent_solution) {
             // If there was an error parsing the CAT, we can exit early.
             Err(error) => {
@@ -89,9 +119,13 @@ impl ChildKind {
                     return Ok(Self::Unknown);
                 };
 
+                let clawback = parse_clawback_unchecked(allocator, &create_coin, true)
+                    .filter(|clawback| clawback.tree_hash() == cat.info.p2_puzzle_hash.into());
+
                 return Ok(Self::Cat {
                     info: cat.info,
                     lineage_proof,
+                    clawback,
                 });
             }
 
@@ -125,10 +159,14 @@ impl ChildKind {
                 let metadata_program = Program::from_clvm(allocator, nft.info.metadata.ptr())?;
                 let metadata = NftMetadata::from_clvm(allocator, nft.info.metadata.ptr()).ok();
 
+                let clawback = parse_clawback_unchecked(allocator, &create_coin, true)
+                    .filter(|clawback| clawback.tree_hash() == nft.info.p2_puzzle_hash.into());
+
                 return Ok(Self::Nft {
                     lineage_proof,
                     info: nft.info.with_metadata(metadata_program),
                     metadata,
+                    clawback,
                 });
             }
 
@@ -158,9 +196,49 @@ impl ChildKind {
 
                 let metadata = Program::from_clvm(allocator, did.info.metadata.ptr())?;
 
+                println!(
+                    "memos: {:?}",
+                    node_to_bytes(
+                        allocator,
+                        match create_coin.memos {
+                            Memos::Some(memos) => memos,
+                            Memos::None => NodePtr::NIL,
+                        }
+                    )
+                    .ok()
+                    .map(hex::encode)
+                );
+
+                let clawback = parse_clawback_unchecked(allocator, &create_coin, true);
+
+                let did = if let Some(clawback) = clawback {
+                    let p2_puzzle_hash = clawback.tree_hash().into();
+
+                    let clawback_did = Did::new(
+                        did.coin,
+                        did.proof,
+                        DidInfo::new(
+                            did.info.launcher_id,
+                            did.info.recovery_list_hash,
+                            did.info.num_verifications_required,
+                            did.info.metadata,
+                            p2_puzzle_hash,
+                        ),
+                    );
+
+                    if clawback_did.info.puzzle_hash() == coin.puzzle_hash.into() {
+                        clawback_did
+                    } else {
+                        did
+                    }
+                } else {
+                    did
+                };
+
                 return Ok(Self::Did {
                     lineage_proof,
                     info: did.info.with_metadata(metadata),
+                    clawback,
                 });
             }
 
@@ -168,19 +246,77 @@ impl ChildKind {
             Ok(None) => {}
         }
 
+        if let Some(clawback) = parse_clawback_unchecked(allocator, &create_coin, false)
+            .filter(|clawback| clawback.tree_hash() == coin.puzzle_hash.into())
+        {
+            return Ok(Self::Clawback { info: clawback });
+        }
+
         Ok(Self::Unknown)
     }
 
-    pub fn p2_puzzle_hash(&self) -> Option<Bytes32> {
+    pub fn custody_p2_puzzle_hash(&self) -> Option<Bytes32> {
         match self {
             Self::Launcher | Self::Unknown => None,
-            Self::Cat { info, .. } => Some(info.p2_puzzle_hash),
-            Self::Did { info, .. } => Some(info.p2_puzzle_hash),
-            Self::Nft { info, .. } => Some(info.p2_puzzle_hash),
+            Self::Clawback { info } => Some(info.receiver_puzzle_hash),
+            Self::Cat { info, clawback, .. } => {
+                Some(clawback.map_or(info.p2_puzzle_hash, |clawback| {
+                    clawback.receiver_puzzle_hash
+                }))
+            }
+            Self::Did { info, clawback, .. } => {
+                Some(clawback.map_or(info.p2_puzzle_hash, |clawback| {
+                    clawback.receiver_puzzle_hash
+                }))
+            }
+            Self::Nft { info, clawback, .. } => {
+                Some(clawback.map_or(info.p2_puzzle_hash, |clawback| {
+                    clawback.receiver_puzzle_hash
+                }))
+            }
         }
     }
 
     pub fn subscribe(&self) -> bool {
-        matches!(self, Self::Cat { .. } | Self::Did { .. } | Self::Nft { .. })
+        matches!(
+            self,
+            Self::Clawback { .. } | Self::Cat { .. } | Self::Did { .. } | Self::Nft { .. }
+        )
     }
+}
+
+fn parse_clawback_unchecked(
+    allocator: &Allocator,
+    create_coin: &CreateCoin<NodePtr>,
+    hinted: bool,
+) -> Option<ClawbackV2> {
+    let Memos::Some(memos) = create_coin.memos else {
+        return None;
+    };
+
+    let (hint, (clawback_memo, _)) =
+        <(Bytes32, (NodePtr, NodePtr))>::from_clvm(allocator, memos).ok()?;
+
+    clawback_from_memo_unchecked(allocator, clawback_memo, hint, create_coin.amount, hinted)
+}
+
+pub fn clawback_from_memo_unchecked(
+    allocator: &Allocator,
+    memo: NodePtr,
+    receiver_puzzle_hash: Bytes32,
+    amount: u64,
+    hinted: bool,
+) -> Option<ClawbackV2> {
+    let (sender_puzzle_hash, (seconds, ())) =
+        <(Bytes32, (u64, ()))>::from_clvm(allocator, memo).ok()?;
+
+    let clawback = ClawbackV2 {
+        sender_puzzle_hash,
+        receiver_puzzle_hash,
+        seconds,
+        amount,
+        hinted,
+    };
+
+    Some(clawback)
 }
