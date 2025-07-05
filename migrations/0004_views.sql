@@ -62,6 +62,26 @@ WHERE 1=1
   AND spent_height IS NULL
   AND (mempool_coins.id IS NULL OR mempool_coins.is_input = FALSE);
 
+
+CREATE VIEW internal_coins AS
+SELECT
+  coins.id AS coin_id,
+  coins.hash AS coin_hash,
+  coins.asset_id AS asset_id,
+  coins.parent_coin_hash,
+  coins.puzzle_hash,
+  coins.amount,
+  coins.hidden_puzzle_hash,
+  coins.p2_puzzle_id,
+  coins.spent_height,
+  coins.created_height,
+  assets.hash AS asset_hash,
+  assets.kind AS asset_kind,
+  p2_puzzles.hash AS p2_puzzle_hash
+FROM coins
+  INNER JOIN assets ON assets.id = coins.asset_id
+  INNER JOIN p2_puzzles ON p2_puzzles.id = coins.p2_puzzle_id;
+
 CREATE VIEW transaction_coins AS
 SELECT
   blocks.height,
