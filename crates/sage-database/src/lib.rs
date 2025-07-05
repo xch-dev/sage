@@ -26,6 +26,13 @@ impl Database {
         Ok(DatabaseTx::new(tx))
     }
 
+    pub async fn database_version(&self) -> Result<i64> {
+        let row: (i32,) = sqlx::query_as("PRAGMA user_version")
+            .fetch_one(&self.pool)
+            .await?;
+        Ok(row.0 as i64)
+    }
+
     pub async fn run_rust_migrations(&self, ticker: String) -> Result<()> {
         let mut tx = self.tx().await?;
 

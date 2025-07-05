@@ -265,6 +265,12 @@ impl Sage {
 
         let pool = self.connect_to_database(fingerprint).await?;
         let db = Database::new(pool);
+        let version = db.database_version().await?;
+
+        if version < 2 {
+            return Err(Error::DatabaseVersionTooOld);
+        }
+
         db.run_rust_migrations(self.network().ticker.clone())
             .await?;
 
