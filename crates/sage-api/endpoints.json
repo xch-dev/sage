@@ -72,7 +72,7 @@
   "set_network_override": true,
   "get_networks": false,
   "get_network": false,
-  "remove_cat": true,
+  "resync_cat": true,
   "update_cat": true,
   "update_did": true,
   "update_nft": true,

@@ -139,7 +139,7 @@ async fn offer_assets(
                     is_visible: row.is_visible,
                     created_height: row.created_height.map(|h| h as u32),
                     icon_url: row.icon_url,
-                    kind: kind,
+                    kind,
                     name: row.name,
                 },
                 amount: row.amount.convert()?,
@@ -191,19 +191,32 @@ async fn offer_xch_assets(
 
 async fn insert_offer(conn: impl SqliteExecutor<'_>, offer: OfferRow) -> Result<()> {
     let offer_id_ref = offer.offer_id.as_ref();
+
+    let expiration_height: Option<i64> = offer.expiration_height.map(Into::into);
+    let expiration_timestamp: Option<i64> = offer
+        .expiration_timestamp
+        .map(TryInto::try_into)
+        .transpose()?;
+    let inserted_timestamp: i64 = offer.inserted_timestamp.try_into()?;
+
     sqlx::query(
-        "INSERT INTO offers (hash, encoded_offer, fee, status, expiration_height, expiration_timestamp, inserted_timestamp) 
-        VALUES (?, ?, ?, ?, ?, ?, ?)",
+        "
+        INSERT INTO offers (
+            hash, encoded_offer, fee, status,
+            expiration_height, expiration_timestamp, inserted_timestamp
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        ",
     )
-        .bind(offer_id_ref)
-        .bind(offer.encoded_offer)
-        .bind(offer.fee as i64)
-        .bind(offer.status as u8)
-        .bind(offer.expiration_height.map(|h| h as i64))
-        .bind(offer.expiration_timestamp.map(|t| t as i64))
-        .bind(offer.inserted_timestamp as i64)
-        .execute(conn)
-        .await?;
+    .bind(offer_id_ref)
+    .bind(offer.encoded_offer)
+    .bind(i64::try_from(offer.fee)?)
+    .bind(offer.status as u8)
+    .bind(expiration_height)
+    .bind(expiration_timestamp)
+    .bind(inserted_timestamp)
+    .execute(conn)
+    .await?;
     Ok(())
 }
 
@@ -217,17 +230,28 @@ async fn insert_offer_asset(
 ) -> Result<()> {
     let offer_id_ref = offer_id.as_ref();
     let asset_id_ref = asset_id.as_ref();
+
+    let amount: i64 = amount.try_into()?;
+    let royalty: i64 = royalty.try_into()?;
+
     sqlx::query(
-        "INSERT INTO offer_assets (offer_id, asset_id, amount, royalty, is_requested) 
-        VALUES ((SELECT id FROM offers WHERE hash = ?), (SELECT id FROM assets WHERE hash = ?), ?, ?, ?)",
+        "
+        INSERT INTO offer_assets (offer_id, asset_id, amount, royalty, is_requested) 
+        VALUES (
+            (SELECT id FROM offers WHERE hash = ?), 
+            (SELECT id FROM assets WHERE hash = ?), 
+            ?, ?, ?
+        )
+        ",
     )
-        .bind(offer_id_ref)
-        .bind(asset_id_ref)
-        .bind(amount as i64)
-        .bind(royalty as i64)
-        .bind(is_requested)
-        .execute(conn)
-        .await?;
+    .bind(offer_id_ref)
+    .bind(asset_id_ref)
+    .bind(amount)
+    .bind(royalty)
+    .bind(is_requested)
+    .execute(conn)
+    .await?;
+
     Ok(())
 }
 
@@ -239,16 +263,26 @@ async fn insert_offer_xch(
     is_requested: bool,
 ) -> Result<()> {
     let offer_id_ref = offer_hash.as_ref();
+
+    let xch: i64 = xch.try_into()?;
+    let royalty: i64 = royalty.try_into()?;
+
     sqlx::query(
-        "INSERT INTO offer_assets (offer_id, asset_id, amount, royalty, is_requested) 
-    VALUES ((SELECT id FROM offers WHERE hash = ?), 0, ?, ?, ?)",
+        "
+        INSERT INTO offer_assets (offer_id, asset_id, amount, royalty, is_requested) 
+        VALUES (
+            (SELECT id FROM offers WHERE hash = ?),
+            0, ?, ?, ?
+        )
+        ",
     )
     .bind(offer_id_ref)
-    .bind(xch as i64)
-    .bind(royalty as i64)
+    .bind(xch)
+    .bind(royalty)
     .bind(is_requested)
     .execute(conn)
     .await?;
+
     Ok(())
 }
 
@@ -267,6 +301,7 @@ async fn insert_offered_coin(
     .bind(coin_hash_ref)
     .execute(conn)
     .await?;
+
     Ok(())
 }
 
