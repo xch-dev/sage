@@ -16,7 +16,7 @@ use sage_api::{
     OfferSummary, OfferXch, TakeOffer, TakeOfferResponse, ViewOffer, ViewOfferResponse,
 };
 use sage_assets::fetch_uris_with_hash;
-use sage_database::{OfferRow, OfferStatus, OfferedAsset};
+use sage_database::{OfferRow, OfferStatus};
 use sage_wallet::{
     aggregate_offers, fetch_nft_offer_details, insert_transaction, sort_offer, Offered, Requested,
     SyncCommand, Transaction, Wallet,
@@ -219,6 +219,7 @@ impl Sage {
     }
 
     pub async fn import_offer(&self, req: ImportOffer) -> Result<ImportOfferResponse> {
+        // TODO: this now assumes all assets already exist in the database. Is that right?
         let wallet = self.wallet()?;
         let spend_bundle = sort_offer(decode_offer(&req.offer)?);
         let offer_id = spend_bundle.name();
@@ -258,11 +259,6 @@ impl Sage {
         let mut nft_rows = Vec::new();
 
         for (asset_id, amount) in offered_amounts.cats {
-            let info = wallet.db.cat_asset(asset_id).await?;
-            let name = info.as_ref().and_then(|info| info.asset.name.clone());
-            let ticker = info.as_ref().and_then(|info| info.ticker.clone());
-            let icon = info.as_ref().and_then(|info| info.asset.icon_url.clone());
-
             cat_rows.push(AssetToOffer {
                 offer_id,
                 is_requested: false,
@@ -273,7 +269,7 @@ impl Sage {
         }
 
         for nft in offer.offered_coins().nfts.values() {
-            let info = if let Ok(metadata) = ctx.extract::<NftMetadata>(nft.info.metadata.ptr()) {
+            let _info = if let Ok(metadata) = ctx.extract::<NftMetadata>(nft.info.metadata.ptr()) {
                 let mut confirmation_info = ConfirmationInfo::default();
 
                 if let Some(hash) = metadata.data_hash {
@@ -313,11 +309,6 @@ impl Sage {
         }
 
         for (asset_id, amount) in requested_amounts.cats {
-            let info = wallet.db.cat_asset(asset_id).await?;
-            let name = info.as_ref().and_then(|info| info.asset.name.clone());
-            let ticker = info.as_ref().and_then(|info| info.ticker.clone());
-            let icon = info.as_ref().and_then(|info| info.asset.icon_url.clone());
-
             cat_rows.push(AssetToOffer {
                 offer_id,
                 is_requested: true,
@@ -337,7 +328,7 @@ impl Sage {
                 .nft(launcher_id)
                 .ok_or(DriverError::MissingAssetInfo)?;
 
-            let info = if let Ok(metadata) = ctx.extract::<NftMetadata>(nft.metadata.ptr()) {
+            let _info = if let Ok(metadata) = ctx.extract::<NftMetadata>(nft.metadata.ptr()) {
                 let mut confirmation_info = ConfirmationInfo::default();
 
                 if let Some(hash) = metadata.data_hash {
@@ -365,12 +356,6 @@ impl Sage {
                 extract_nft_data(Some(&wallet.db), Some(metadata), &confirmation_info).await?
             } else {
                 ExtractedNftData::default()
-            };
-
-            let thumbnail_mime_type = if info.icon.is_some() {
-                Some("image/png".to_string())
-            } else {
-                None
             };
 
             nft_rows.push(AssetToOffer {
