@@ -12,7 +12,7 @@ use sage_api::{
 };
 use sage_assets::Data;
 use sage_database::Database;
-use sage_wallet::{compute_nft_info, ChildKind, CoinKind, Transaction};
+use sage_wallet::{compute_nft_info, CoinKind, Transaction};
 
 use crate::{Error, Result, Sage};
 
@@ -93,13 +93,10 @@ impl Sage {
             let mut outputs = Vec::new();
 
             for output in input.outputs {
-                let p2_puzzle_hash = match output.kind {
-                    ChildKind::Unknown { hint } => hint.unwrap_or(output.coin.puzzle_hash),
-                    ChildKind::Launcher => output.coin.puzzle_hash,
-                    ChildKind::Cat { p2_puzzle_hash, .. } => p2_puzzle_hash,
-                    ChildKind::Did { info, .. } => info.p2_puzzle_hash,
-                    ChildKind::Nft { info, .. } => info.p2_puzzle_hash,
-                };
+                let p2_puzzle_hash = output
+                    .kind
+                    .custody_p2_puzzle_hash()
+                    .unwrap_or(output.coin.puzzle_hash);
 
                 let address = Address::new(p2_puzzle_hash, self.network().prefix()).encode()?;
 
@@ -161,11 +158,11 @@ pub async fn extract_nft_data(
 
     if let Some(metadata_hash) = onchain_metadata.metadata_hash {
         if let Some(metadata) = cache.nft_data.get(&metadata_hash) {
-            let info = compute_nft_info(None, Some(&metadata.blob));
+            let info = compute_nft_info(None, &metadata.blob);
             result.name = info.name;
         } else if let Some(db) = &db {
             if let Some(metadata) = db.full_file_data(metadata_hash).await? {
-                let info = compute_nft_info(None, Some(&metadata.blob));
+                let info = compute_nft_info(None, &metadata.data);
                 result.name = info.name;
             }
         }

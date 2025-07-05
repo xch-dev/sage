@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use chia::{
-    protocol::{Bytes, Coin, CoinSpend},
+    protocol::{Coin, CoinSpend},
     puzzles::nft::NftMetadata,
 };
 use chia_wallet_sdk::{driver::MetadataUpdate, utils::Address};
@@ -33,7 +33,7 @@ impl Sage {
         let memos = parse_memos(req.memos)?;
 
         let coin_spends = wallet
-            .send_xch(vec![(puzzle_hash, amount)], fee, memos)
+            .send_xch(vec![(puzzle_hash, amount)], fee, memos, None)
             .await?;
         self.transact(coin_spends, req.auto_submit).await
     }
@@ -52,7 +52,7 @@ impl Sage {
         let fee = parse_amount(req.fee)?;
         let memos = parse_memos(req.memos)?;
 
-        let coin_spends = wallet.send_xch(amounts, fee, memos).await?;
+        let coin_spends = wallet.send_xch(amounts, fee, memos, None).await?;
         self.transact(coin_spends, req.auto_submit).await
     }
 
@@ -212,6 +212,7 @@ impl Sage {
                 fee,
                 req.include_hint,
                 memos,
+                None,
             )
             .await?;
         self.transact(coin_spends, req.auto_submit).await
@@ -233,7 +234,7 @@ impl Sage {
         let memos = parse_memos(req.memos)?;
 
         let coin_spends = wallet
-            .send_cat(asset_id, amounts, fee, req.include_hint, memos)
+            .send_cat(asset_id, amounts, fee, req.include_hint, memos, None)
             .await?;
         self.transact(coin_spends, req.auto_submit).await
     }
@@ -251,15 +252,7 @@ impl Sage {
             };
             let amount = parse_amount(payment.amount)?;
             let puzzle_hash = self.parse_address(payment.address)?;
-            let memos = if let Some(list) = payment.memos {
-                let mut memos = Vec::new();
-                for memo in list {
-                    memos.push(Bytes::from(hex::decode(memo)?));
-                }
-                Some(memos)
-            } else {
-                None
-            };
+            let memos = parse_memos(payment.memos)?;
 
             payments.push(MultiSendPayment {
                 asset_id,
@@ -405,7 +398,9 @@ impl Sage {
         let puzzle_hash = self.parse_address(req.address)?;
         let fee = parse_amount(req.fee)?;
 
-        let coin_spends = wallet.transfer_nfts(nft_ids, puzzle_hash, fee).await?;
+        let coin_spends = wallet
+            .transfer_nfts(nft_ids, puzzle_hash, fee, None)
+            .await?;
         self.transact(coin_spends, req.auto_submit).await
     }
 
@@ -448,7 +443,9 @@ impl Sage {
         let puzzle_hash = self.parse_address(req.address)?;
         let fee = parse_amount(req.fee)?;
 
-        let coin_spends = wallet.transfer_dids(did_ids, puzzle_hash, fee).await?;
+        let coin_spends = wallet
+            .transfer_dids(did_ids, puzzle_hash, fee, None)
+            .await?;
         self.transact(coin_spends, req.auto_submit).await
     }
 
