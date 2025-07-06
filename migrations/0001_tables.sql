@@ -171,6 +171,7 @@ CREATE TABLE coins (
   p2_puzzle_id INTEGER,
   created_height INTEGER,
   spent_height INTEGER,
+  is_children_synced BOOLEAN NOT NULL DEFAULT FALSE,
   FOREIGN KEY (asset_id) REFERENCES assets(id) ON DELETE CASCADE,
   FOREIGN KEY (p2_puzzle_id) REFERENCES p2_puzzles(id) ON DELETE SET NULL,
   FOREIGN KEY (created_height) REFERENCES blocks(height) ON DELETE CASCADE,

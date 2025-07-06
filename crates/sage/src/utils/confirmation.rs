@@ -95,7 +95,7 @@ impl Sage {
             for output in input.outputs {
                 let p2_puzzle_hash = output
                     .kind
-                    .custody_p2_puzzle_hash()
+                    .receiver_custody_p2_puzzle_hash()
                     .unwrap_or(output.coin.puzzle_hash);
 
                 let address = Address::new(p2_puzzle_hash, self.network().prefix()).encode()?;
@@ -104,7 +104,7 @@ impl Sage {
                     coin_id: hex::encode(output.coin.coin_id()),
                     amount: Amount::u64(output.coin.amount),
                     address,
-                    receiving: wallet.db.is_p2_puzzle_hash(p2_puzzle_hash).await?,
+                    receiving: wallet.db.is_custody_p2_puzzle_hash(p2_puzzle_hash).await?,
                     burning: p2_puzzle_hash.to_bytes() == BURN_PUZZLE_HASH,
                 });
             }

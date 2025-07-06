@@ -91,7 +91,7 @@ async fn insert_mempool_item(
 
     query!(
         "
-        INSERT INTO mempool_items (hash, aggregated_signature, fee) VALUES (?, ?, ?)
+        INSERT OR IGNORE INTO mempool_items (hash, aggregated_signature, fee) VALUES (?, ?, ?)
         ",
         hash,
         aggregated_signature,
@@ -115,7 +115,7 @@ async fn insert_mempool_coin(
 
     query!(
         "
-        INSERT INTO mempool_coins (mempool_item_id, coin_id, is_input, is_output)
+        INSERT OR IGNORE INTO mempool_coins (mempool_item_id, coin_id, is_input, is_output)
         VALUES ((SELECT id FROM mempool_items WHERE hash = ?), (SELECT id FROM coins WHERE hash = ?), ?, ?)
         ",
         mempool_item_id,
@@ -147,7 +147,7 @@ async fn insert_mempool_spend(
 
     query!(
         "
-        INSERT INTO mempool_spends (mempool_item_id, coin_hash, parent_coin_hash, puzzle_hash, amount, puzzle_reveal, solution, seq)
+        INSERT OR IGNORE INTO mempool_spends (mempool_item_id, coin_hash, parent_coin_hash, puzzle_hash, amount, puzzle_reveal, solution, seq)
         VALUES ((SELECT id FROM mempool_items WHERE hash = ?), ?, ?, ?, ?, ?, ?, ?)
         ",
         mempool_item_id,

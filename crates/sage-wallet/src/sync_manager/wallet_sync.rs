@@ -209,8 +209,11 @@ pub async fn incremental_sync(
 
         tx.insert_coin(coin_state).await?;
 
-        if tx.is_p2_puzzle_hash(coin_state.coin.puzzle_hash).await? {
-            tx.sync_coin(
+        if tx
+            .is_custody_p2_puzzle_hash(coin_state.coin.puzzle_hash)
+            .await?
+        {
+            tx.update_coin(
                 coin_state.coin.coin_id(),
                 Bytes32::default(),
                 coin_state.coin.puzzle_hash,

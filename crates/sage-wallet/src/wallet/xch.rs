@@ -208,7 +208,7 @@ mod tests {
 
         alice.wait_for_coins().await;
 
-        assert_eq!(alice.wallet.db.xch_balance().await?, 0);
+        assert_eq!(alice.wallet.db.xch_balance().await?, 1000);
         assert_eq!(alice.wallet.db.spendable_xch_balance().await?, 0);
         assert_eq!(alice.wallet.db.spendable_xch_coins().await?.len(), 0);
 
@@ -220,6 +220,10 @@ mod tests {
 
         sleep(Duration::from_secs(6)).await;
         bob.new_block_with_current_time().await?;
+
+        assert_eq!(alice.wallet.db.xch_balance().await?, 0);
+        assert_eq!(alice.wallet.db.spendable_xch_balance().await?, 0);
+        assert_eq!(alice.wallet.db.spendable_xch_coins().await?.len(), 0);
 
         assert_eq!(bob.wallet.db.xch_balance().await?, 1000);
         assert_eq!(bob.wallet.db.spendable_xch_balance().await?, 1000);
@@ -234,7 +238,7 @@ mod tests {
 
         bob.transact(coin_spends).await?;
         bob.wait_for_coins().await;
-        alice.wait_for_coins().await;
+        alice.wait_for_puzzles().await;
 
         assert_eq!(alice.wallet.db.xch_balance().await?, 1000);
         assert_eq!(alice.wallet.db.spendable_xch_balance().await?, 1000);

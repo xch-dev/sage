@@ -16,27 +16,29 @@ pub async fn insert_puzzle(
     tx: &mut DatabaseTx<'_>,
     coin_state: CoinState,
     info: ChildKind,
-    minter_did: Option<Bytes32>,
+    minter_hash: Option<Bytes32>,
 ) -> Result<bool, WalletError> {
     let coin_id = coin_state.coin.coin_id();
 
-    let Some(custody_p2_puzzle_hash) = info.custody_p2_puzzle_hash() else {
-        warn!(
-            "Deleting coin {} because it has no custody p2 puzzle hash",
-            coin_id
-        );
-        tx.delete_coin(coin_id).await?;
-        return Ok(false);
-    };
+    let custody_p2_puzzle_hashes = info.custody_p2_puzzle_hashes();
 
-    if !tx.is_p2_puzzle_hash(custody_p2_puzzle_hash).await? {
+    let mut is_relevant = false;
+
+    for custody_p2_puzzle_hash in custody_p2_puzzle_hashes {
+        if tx.is_custody_p2_puzzle_hash(custody_p2_puzzle_hash).await? {
+            is_relevant = true;
+            break;
+        }
+    }
+
+    if !is_relevant {
         warn!(
-            "Deleting coin {} because it has a custody p2 puzzle hash we don't know about",
+            "Deleting coin {} because it isn't relevant to this wallet",
             coin_id
         );
         tx.delete_coin(coin_id).await?;
         return Ok(false);
-    };
+    }
 
     match info {
         ChildKind::Launcher | ChildKind::Unknown => {
@@ -47,7 +49,7 @@ pub async fn insert_puzzle(
         ChildKind::Clawback { info } => {
             tx.insert_clawback_p2_puzzle(info).await?;
 
-            tx.sync_coin(coin_id, Bytes32::default(), info.tree_hash().into(), None)
+            tx.update_coin(coin_id, Bytes32::default(), info.tree_hash().into(), None)
                 .await?;
         }
         ChildKind::Cat {
@@ -67,7 +69,7 @@ pub async fn insert_puzzle(
                 tx.insert_clawback_p2_puzzle(clawback).await?;
             }
 
-            tx.sync_coin(
+            tx.update_coin(
                 coin_id,
                 info.asset_id,
                 info.p2_puzzle_hash,
@@ -103,7 +105,7 @@ pub async fn insert_puzzle(
                 tx.insert_clawback_p2_puzzle(clawback).await?;
             }
 
-            tx.sync_coin(coin_id, info.launcher_id, info.p2_puzzle_hash, None)
+            tx.update_coin(coin_id, info.launcher_id, info.p2_puzzle_hash, None)
                 .await?;
         }
         ChildKind::Nft {
@@ -122,7 +124,7 @@ pub async fn insert_puzzle(
                 Some(lineage_proof),
                 info,
                 metadata,
-                minter_did,
+                minter_hash,
             )
             .await?;
         }
@@ -137,7 +139,7 @@ pub async fn insert_nft(
     lineage_proof: Option<LineageProof>,
     info: NftInfo<Program>,
     metadata: Option<NftMetadata>,
-    minter_did: Option<Bytes32>,
+    minter_hash: Option<Bytes32>,
 ) -> Result<(), WalletError> {
     if let Some(lineage_proof) = lineage_proof {
         tx.insert_lineage_proof(coin_state.coin.coin_id(), lineage_proof)
@@ -148,7 +150,7 @@ pub async fn insert_nft(
     let mut coin_info = NftCoinInfo {
         collection_hash: Bytes32::default(),
         collection_name: None,
-        minter_hash: minter_did,
+        minter_hash,
         owner_hash: info.current_owner,
         metadata: info.metadata,
         metadata_updater_puzzle_hash: info.metadata_updater_puzzle_hash,
@@ -163,7 +165,7 @@ pub async fn insert_nft(
 
     if let Some(metadata_hash) = &metadata.as_ref().and_then(|m| m.metadata_hash) {
         if let Some(blob) = tx.file_data(*metadata_hash).await? {
-            let computed = compute_nft_info(minter_did, &blob);
+            let computed = compute_nft_info(minter_hash, &blob);
             asset.name = computed.name;
             asset.description = computed.description;
             asset.is_sensitive_content = computed.sensitive_content;
@@ -182,10 +184,8 @@ pub async fn insert_nft(
             .await?;
     }
 
-    // A (ours) => B (not ours) => C (ours)
-
     if lineage_proof.is_some() {
-        tx.sync_coin(
+        tx.update_coin(
             coin_state.coin.coin_id(),
             info.launcher_id,
             info.p2_puzzle_hash,
@@ -276,11 +276,11 @@ pub async fn insert_transaction(
 
     let mut subscriptions = Vec::new();
 
-    for (index, input) in transaction.inputs.into_iter().enumerate() {
+    for (index, input) in transaction.inputs.iter().enumerate() {
         let input_coin_id = input.coin_spend.coin.coin_id();
 
         // Insert the spend into the database in the proper order so it can be reconstructed later.
-        tx.insert_mempool_spend(transaction_id, input.coin_spend, index)
+        tx.insert_mempool_spend(transaction_id, input.coin_spend.clone(), index)
             .await?;
 
         // If the coin isn't ephemeral (exists on-chain) and we already have it in the database,
@@ -290,17 +290,20 @@ pub async fn insert_transaction(
                 .await?;
         }
 
-        for output in input.outputs {
+        for output in &input.outputs {
             // Coins that don't exist on-chain yet don't have a created or spent height.
             let coin_state = CoinState::new(output.coin, None, None);
             let coin_id = output.coin.coin_id();
 
             // If it's an XCH coin, we can insert it and sync it immediately.
             // Attach it to the transaction as an output for display purposes.
-            if tx.is_p2_puzzle_hash(output.coin.puzzle_hash).await? {
+            if tx
+                .is_custody_p2_puzzle_hash(output.coin.puzzle_hash)
+                .await?
+            {
                 tx.insert_coin(coin_state).await?;
 
-                tx.sync_coin(coin_id, Bytes32::default(), output.coin.puzzle_hash, None)
+                tx.update_coin(coin_id, Bytes32::default(), output.coin.puzzle_hash, None)
                     .await?;
 
                 tx.insert_mempool_coin(
@@ -315,11 +318,18 @@ pub async fn insert_transaction(
             }
 
             // We don't want to insert output coins that we won't own in the future.
-            let Some(custody_p2_puzzle_hash) = output.kind.custody_p2_puzzle_hash() else {
-                continue;
-            };
+            let custody_p2_puzzle_hashes = output.kind.custody_p2_puzzle_hashes();
 
-            if !tx.is_p2_puzzle_hash(custody_p2_puzzle_hash).await? {
+            let mut is_relevant = false;
+
+            for custody_p2_puzzle_hash in custody_p2_puzzle_hashes {
+                if tx.is_custody_p2_puzzle_hash(custody_p2_puzzle_hash).await? {
+                    is_relevant = true;
+                    break;
+                }
+            }
+
+            if !is_relevant {
                 continue;
             }
 
@@ -344,11 +354,17 @@ pub async fn insert_transaction(
             insert_puzzle(
                 &mut tx,
                 coin_state,
-                output.kind,
+                output.kind.clone(),
                 minter_dids.get(&output.coin.coin_id()).copied(),
             )
             .await?;
         }
+    }
+
+    for input in transaction.inputs {
+        // We are inserting the children as part of inserting the transaction, so we don't need to do it again
+        tx.set_children_synced(input.coin_spend.coin.coin_id())
+            .await?;
     }
 
     tx.commit().await?;
