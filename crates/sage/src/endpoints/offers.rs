@@ -9,29 +9,25 @@ use chrono::{Local, TimeZone};
 use indexmap::IndexMap;
 use itertools::Itertools;
 use sage_api::{
-    Amount, CancelOffer, CancelOfferResponse, CancelOffers, CancelOffersResponse, CatAmount,
-    CombineOffers, CombineOffersResponse, DeleteOffer, DeleteOfferResponse, GetOffer,
-    GetOfferResponse, GetOffers, GetOffersResponse, ImportOffer, ImportOfferResponse, MakeOffer,
-    MakeOfferResponse, OfferAssets, OfferCat, OfferNft, OfferRecord, OfferRecordStatus,
-    OfferSummary, OfferXch, TakeOffer, TakeOfferResponse, ViewOffer, ViewOfferResponse,
+    Amount, CancelOffer, CancelOfferResponse, CancelOffers, CancelOffersResponse, CombineOffers,
+    CombineOffersResponse, DeleteOffer, DeleteOfferResponse, GetOffer, GetOfferResponse, GetOffers,
+    GetOffersResponse, ImportOffer, ImportOfferResponse, MakeOffer, MakeOfferResponse, OfferAssets,
+    OfferCat, OfferNft, OfferRecord, OfferRecordStatus, OfferSummary, OfferXch, TakeOffer,
+    TakeOfferResponse, ViewOffer, ViewOfferResponse,
 };
 use sage_assets::fetch_uris_with_hash;
 use sage_database::{OfferRow, OfferStatus};
 use sage_wallet::{
-    aggregate_offers, fetch_nft_offer_details, insert_transaction, sort_offer, Offered, Requested,
-    SyncCommand, Transaction, Wallet,
+    aggregate_offers, insert_transaction, sort_offer, Offered, Requested, SyncCommand, Transaction,
+    Wallet, WalletError,
 };
-use std::{
-    collections::HashMap,
-    time::{Duration, SystemTime, UNIX_EPOCH},
-};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tokio::time::timeout;
-use tracing::{debug, warn};
+use tracing::debug;
 
 use crate::{
-    extract_nft_data, json_bundle, lookup_coin_creation, offer_expiration, parse_amount,
-    parse_asset_id, parse_nft_id, parse_offer_id, ConfirmationInfo, Error, ExtractedNftData,
-    Result, Sage,
+    extract_nft_data, json_bundle, offer_expiration, parse_amount, parse_asset_id, parse_nft_id,
+    parse_offer_id, ConfirmationInfo, Error, ExtractedNftData, Result, Sage,
 };
 
 #[derive(Debug, Clone)]
@@ -47,29 +43,38 @@ impl Sage {
     pub async fn make_offer(&self, req: MakeOffer) -> Result<MakeOfferResponse> {
         let wallet = self.wallet()?;
 
-        let offered_xch = parse_amount(req.offered_assets.xch)?;
+        let offered = Offered {
+            xch: parse_amount(req.offered_assets.xch)?,
+            cats: req
+                .offered_assets
+                .cats
+                .into_iter()
+                .map(|cat| Ok((parse_asset_id(cat.asset_id)?, parse_amount(cat.amount)?)))
+                .collect::<Result<_>>()?,
+            nfts: req
+                .offered_assets
+                .nfts
+                .into_iter()
+                .map(parse_nft_id)
+                .collect::<Result<_>>()?,
+            fee: parse_amount(req.fee)?,
+            p2_puzzle_hash: req
+                .receive_address
+                .map(|address| self.parse_address(address))
+                .transpose()?,
+        };
 
-        let mut offered_cats = IndexMap::new();
+        let mut requested = Requested {
+            xch: parse_amount(req.requested_assets.xch)?,
+            cats: req
+                .requested_assets
+                .cats
+                .into_iter()
+                .map(|cat| Ok((parse_asset_id(cat.asset_id)?, parse_amount(cat.amount)?)))
+                .collect::<Result<_>>()?,
+            nfts: IndexMap::new(),
+        };
 
-        for CatAmount { asset_id, amount } in req.offered_assets.cats {
-            offered_cats.insert(parse_asset_id(asset_id)?, parse_amount(amount)?);
-        }
-
-        let mut offered_nfts = Vec::new();
-
-        for nft_id in req.offered_assets.nfts {
-            offered_nfts.push(parse_nft_id(nft_id)?);
-        }
-
-        let requested_xch = parse_amount(req.requested_assets.xch)?;
-
-        let mut requested_cats = IndexMap::new();
-
-        for CatAmount { asset_id, amount } in req.requested_assets.cats {
-            requested_cats.insert(parse_asset_id(asset_id)?, parse_amount(amount)?);
-        }
-
-        let mut requested_nfts = IndexMap::new();
         let mut peer = None;
 
         for nft_id in req.requested_assets.nfts {
@@ -77,40 +82,18 @@ impl Sage {
                 peer = self.peer_state.lock().await.acquire_peer();
             }
 
-            let peer = peer.as_ref().ok_or(Error::NoPeers)?;
-
             let nft_id = parse_nft_id(nft_id)?;
 
-            let Some(offer_details) = fetch_nft_offer_details(peer, nft_id).await? else {
+            let Some(requested_nft) = wallet.fetch_requested_nft(peer.as_ref(), nft_id).await?
+            else {
                 return Err(Error::CouldNotFetchNft(nft_id));
             };
 
-            requested_nfts.insert(nft_id, offer_details);
+            requested.nfts.insert(nft_id, requested_nft);
         }
 
-        let fee = parse_amount(req.fee)?;
-
-        let p2_puzzle_hash = req
-            .receive_address
-            .map(|address| self.parse_address(address))
-            .transpose()?;
-
         let unsigned = wallet
-            .make_offer(
-                Offered {
-                    xch: offered_xch,
-                    cats: offered_cats,
-                    nfts: offered_nfts,
-                    fee,
-                    p2_puzzle_hash,
-                },
-                Requested {
-                    xch: requested_xch,
-                    cats: requested_cats,
-                    nfts: requested_nfts,
-                },
-                req.expires_at_second,
-            )
+            .make_offer(offered, requested, req.expires_at_second)
             .await?;
 
         let (_mnemonic, Some(master_sk)) =
@@ -199,10 +182,6 @@ impl Sage {
         let json_bundle = json_bundle(&spend_bundle);
         let transaction_id = hex::encode(spend_bundle.name());
 
-        if req.auto_import {
-            self.import_offer(ImportOffer { offer: req.offer }).await?;
-        }
-
         Ok(TakeOfferResponse {
             summary: self
                 .summarize(spend_bundle.coin_spends, ConfirmationInfo::default())
@@ -219,7 +198,6 @@ impl Sage {
     }
 
     pub async fn import_offer(&self, req: ImportOffer) -> Result<ImportOfferResponse> {
-        // TODO: this now assumes all assets already exist in the database. Is that right?
         let wallet = self.wallet()?;
         let spend_bundle = sort_offer(decode_offer(&req.offer)?);
         let offer_id = spend_bundle.name();
@@ -230,8 +208,6 @@ impl Sage {
             });
         }
 
-        let peer = self.peer_state.lock().await.acquire_peer();
-
         let mut ctx = SpendContext::new();
         let offer = Offer::from_spend_bundle(&mut ctx, &spend_bundle)?;
         let coin_ids = offer
@@ -240,15 +216,7 @@ impl Sage {
             .map(|cs| cs.coin.coin_id())
             .collect_vec();
 
-        let status = if let Some(peer) = peer {
-            let coin_creation =
-                lookup_coin_creation(&peer, coin_ids.clone(), self.network().genesis_challenge)
-                    .await?;
-            offer_expiration(&mut ctx, &offer, &coin_creation)?
-        } else {
-            warn!("No peers available to fetch coin creation information, so skipping for now");
-            offer_expiration(&mut ctx, &offer, &HashMap::new())?
-        };
+        let status = offer_expiration(&mut ctx, &offer)?;
 
         let offered_amounts = offer.offered_coins().amounts();
         let requested_amounts = offer.requested_payments().amounts();
@@ -386,6 +354,10 @@ impl Sage {
         .await?;
 
         for coin_id in coin_ids {
+            if !tx.is_known_coin(coin_id).await? {
+                return Err(Error::Wallet(WalletError::CannotImportOffer));
+            }
+
             tx.insert_offered_coin(offer_id, coin_id).await?;
         }
 

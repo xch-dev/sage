@@ -351,7 +351,7 @@ async fn is_latest_singleton_coin(conn: impl SqliteExecutor<'_>, hash: Bytes32) 
     let hash_ref = hash.as_ref();
 
     let rows = query!(
-        "SELECT amount FROM internal_coins WHERE parent_coin_hash = ?",
+        "SELECT amount FROM coins WHERE parent_coin_hash = ?",
         hash_ref
     )
     .fetch_all(conn)
