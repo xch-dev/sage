@@ -106,8 +106,8 @@ impl DatabaseTx<'_> {
 async fn insert_file(conn: impl SqliteExecutor<'_>, hash: Bytes32) -> Result<()> {
     let hash = hash.as_ref();
 
-    query!("INSERT INTO files (hash) VALUES (?)", hash)
-        .fetch_one(conn)
+    query!("INSERT OR IGNORE INTO files (hash) VALUES (?)", hash)
+        .execute(conn)
         .await?;
 
     Ok(())
@@ -117,7 +117,7 @@ async fn insert_file_uri(conn: impl SqliteExecutor<'_>, hash: Bytes32, uri: Stri
     let hash = hash.as_ref();
 
     query!(
-        "INSERT INTO file_uris (file_id, uri) VALUES ((SELECT id FROM files WHERE hash = ?), ?)",
+        "INSERT OR IGNORE INTO file_uris (file_id, uri) VALUES ((SELECT id FROM files WHERE hash = ?), ?)",
         hash,
         uri
     )
@@ -169,7 +169,7 @@ async fn candidates_for_download(
         SELECT hash, uri, last_checked_timestamp, failed_attempts
         FROM file_uris
         INNER JOIN files ON files.id = file_uris.file_id
-        WHERE (data IS NULL OR NOT is_hash_match)
+        WHERE data IS NULL
         AND (last_checked_timestamp IS NULL OR unixepoch() - last_checked_timestamp >= ?)
         AND failed_attempts < ?
         ORDER BY last_checked_timestamp ASC

@@ -329,7 +329,7 @@ impl SyncManager {
 
                     wallet
                         .db
-                        .insert_block(message.height, message.peak_hash, None)
+                        .insert_block(message.height, message.peak_hash, None, true)
                         .await?;
 
                     info!(
@@ -514,6 +514,23 @@ impl SyncManager {
                         self.event_sender.send(SyncEvent::Stop).await.ok();
                     }
                 }
+            }
+        }
+
+        if let Some(task) = &mut self.puzzle_lookup_task {
+            match poll_once(task).await {
+                Some(Err(error)) => {
+                    warn!("Puzzle lookup queue failed with panic: {error}");
+                    self.puzzle_lookup_task = None;
+                }
+                Some(Ok(Err(error))) => {
+                    warn!("Puzzle lookup queue failed with error: {error}");
+                    self.puzzle_lookup_task = None;
+                }
+                Some(Ok(Ok(()))) => {
+                    self.puzzle_lookup_task = None;
+                }
+                None => {}
             }
         }
 

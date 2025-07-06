@@ -19,6 +19,7 @@ CREATE INDEX idx_options_underlying_asset_id ON options(underlying_asset_id);
 CREATE INDEX idx_options_strike_asset_id ON options(strike_asset_id);
 CREATE INDEX idx_p2_options_option_asset_id ON p2_options(option_asset_id);
 CREATE INDEX idx_resized_images_file_id ON resized_images(file_id);
+CREATE INDEX idx_peaks ON blocks(is_peak DESC, height DESC);
 
 /* search and ordering indices */
 CREATE INDEX idx_tokens_ticker ON tokens(ticker);

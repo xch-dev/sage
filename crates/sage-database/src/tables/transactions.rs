@@ -45,13 +45,13 @@ fn create_transaction_coin(row: &sqlx::sqlite::SqliteRow) -> Result<TransactionC
 
     let asset = Asset {
         hash: row.get::<Vec<u8>, _>("asset_hash").convert()?,
-        name: row.get::<Option<String>, _>("name"),
-        icon_url: row.get::<Option<String>, _>("icon_url"),
-        description: row.get::<Option<String>, _>("description"),
-        is_sensitive_content: row.get::<bool, _>("is_sensitive_content"),
-        is_visible: row.get::<bool, _>("is_visible"),
+        name: row.get::<Option<String>, _>("asset_name"),
+        icon_url: row.get::<Option<String>, _>("asset_icon_url"),
+        description: row.get::<Option<String>, _>("asset_description"),
+        is_sensitive_content: row.get::<bool, _>("asset_is_sensitive_content"),
+        is_visible: row.get::<bool, _>("asset_is_visible"),
         created_height: row
-            .get::<Option<i64>, _>("created_height")
+            .get::<Option<i64>, _>("asset_created_height")
             .map(|h| h as u32),
         kind: row
             .get::<Option<i64>, _>("asset_kind")
@@ -186,14 +186,16 @@ async fn transactions(
     );
 
     if let Some(find_value) = find_value {
-        query.push(" AND (name LIKE %");
+        query.push(" AND (asset_name LIKE %");
         query.push_bind(find_value.clone());
         query.push("% OR ticker LIKE %");
         query.push_bind(find_value);
         query.push("%)");
     }
 
-    if !sort_ascending {
+    if sort_ascending {
+        query.push(" ORDER BY height ASC");
+    } else {
         query.push(" ORDER BY height DESC");
     }
 

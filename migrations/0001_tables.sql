@@ -108,7 +108,8 @@ CREATE TABLE options (
 CREATE TABLE blocks (
   height INTEGER NOT NULL PRIMARY KEY,
   header_hash BLOB,
-  timestamp INTEGER
+  timestamp INTEGER,
+  is_peak BOOLEAN NOT NULL
 );
 
 /*

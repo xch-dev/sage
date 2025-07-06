@@ -351,7 +351,7 @@ async fn is_latest_singleton_coin(conn: impl SqliteExecutor<'_>, hash: Bytes32) 
     let hash_ref = hash.as_ref();
 
     let rows = query!(
-        "SELECT amount FROM coins WHERE parent_coin_hash = ?",
+        "SELECT amount FROM internal_coins WHERE parent_coin_hash = ?",
         hash_ref
     )
     .fetch_all(conn)
@@ -670,8 +670,6 @@ async fn coin_records(
     query.push_bind(limit as i64);
     query.push(" OFFSET ");
     query.push_bind(offset as i64);
-
-    println!("{}", query.sql());
 
     let rows = query.build().fetch_all(conn).await?;
     let total_count = rows

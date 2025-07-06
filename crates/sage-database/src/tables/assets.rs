@@ -602,10 +602,18 @@ async fn cat_assets(
     offset: u32,
 ) -> std::result::Result<(Vec<CatAsset>, u32), DatabaseError> {
     let rows = query!(
-        "SELECT hash, name, icon_url, description, ticker, is_visible, is_sensitive_content, created_height, COUNT(*) OVER () AS total
+        "
+        SELECT
+            hash, name, icon_url, description, ticker, is_visible, is_sensitive_content, created_height,
+            COUNT(*) OVER () AS total
             FROM assets
             INNER JOIN tokens ON tokens.asset_id = assets.id
             WHERE assets.id != 0 AND (? OR is_visible = 1)
+            AND EXISTS (
+                SELECT 1
+                FROM internal_coins
+                WHERE internal_coins.asset_id = assets.id
+            )
             ORDER BY name DESC
             LIMIT ?
             OFFSET ?",
@@ -701,7 +709,7 @@ async fn nft_assets(
     let mut query = sqlx::QueryBuilder::new(
         "SELECT        
             assets.hash AS asset_hash, assets.name, assets.icon_url, assets.description, is_sensitive_content,
-            assets.is_visible, assets.created_height, collections.hash AS 'collection_hash?', collections.name AS 'collection_name?, 
+            assets.is_visible, assets.created_height, collections.hash AS collection_hash, collections.name AS collection_name, 
             nfts.minter_hash, owner_hash, metadata, metadata_updater_puzzle_hash, royalty_puzzle_hash, royalty_basis_points,
             data_hash, metadata_hash, license_hash, edition_number, edition_total,
             COUNT(*) OVER() as total_count	

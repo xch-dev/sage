@@ -88,7 +88,10 @@ pub async fn sync_wallet(
             "Updating peak from peer to {} with header hash {}",
             height, header_hash
         );
-        wallet.db.insert_block(height, header_hash, None).await?;
+        wallet
+            .db
+            .insert_block(height, header_hash, None, true)
+            .await?;
     } else {
         warn!("No peak found");
     }
