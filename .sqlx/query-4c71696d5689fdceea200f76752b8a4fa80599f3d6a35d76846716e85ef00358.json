@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT DISTINCT minter_hash, COUNT(*) OVER() AS total_count FROM nfts LIMIT ? OFFSET ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "minter_hash",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "total_count",
+        "ordinal": 1,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      true,
+      false
+    ]
+  },
+  "hash": "4c71696d5689fdceea200f76752b8a4fa80599f3d6a35d76846716e85ef00358"
+}

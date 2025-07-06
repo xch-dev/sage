@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT MAX(derivation_index) AS derivation_index \n        FROM public_keys \n        WHERE is_hardened = ?\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "derivation_index",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "f2be1dbffa92a251025e98deb70406bf2981db4c0196b5acb0b766995bea4484"
+}

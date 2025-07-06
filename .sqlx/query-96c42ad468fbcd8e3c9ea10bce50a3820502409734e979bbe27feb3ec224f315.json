@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        INSERT INTO blocks (height, timestamp, header_hash, is_peak) VALUES (?, ?, ?, ?)\n        ON CONFLICT (height) DO UPDATE SET timestamp = COALESCE(excluded.timestamp, timestamp), header_hash = excluded.header_hash, is_peak = (excluded.is_peak OR is_peak)\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "96c42ad468fbcd8e3c9ea10bce50a3820502409734e979bbe27feb3ec224f315"
+}

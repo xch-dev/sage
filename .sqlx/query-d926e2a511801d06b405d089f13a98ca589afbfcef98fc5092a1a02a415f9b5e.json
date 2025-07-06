@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT hash, aggregated_signature, fee, submitted_timestamp\n        FROM mempool_items\n        WHERE submitted_timestamp IS NULL OR unixepoch() - submitted_timestamp >= ?\n        LIMIT ?\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "hash",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "aggregated_signature",
+        "ordinal": 1,
+        "type_info": "Blob"
+      },
+      {
+        "name": "fee",
+        "ordinal": 2,
+        "type_info": "Blob"
+      },
+      {
+        "name": "submitted_timestamp",
+        "ordinal": 3,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "d926e2a511801d06b405d089f13a98ca589afbfcef98fc5092a1a02a415f9b5e"
+}

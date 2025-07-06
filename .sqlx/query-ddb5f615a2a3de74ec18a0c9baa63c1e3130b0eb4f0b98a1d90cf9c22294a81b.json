@@ -1,0 +1,74 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT assets.hash AS asset_hash, assets.name, assets.icon_url, assets.description, assets.is_visible, \n            assets.is_sensitive_content, assets.created_height, dids.metadata, dids.recovery_list_hash, \n            dids.num_verifications_required\n        FROM assets\n        INNER JOIN dids ON dids.asset_id = assets.id\n        WHERE hash = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "asset_hash",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "name",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "icon_url",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "description",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "is_visible",
+        "ordinal": 4,
+        "type_info": "Bool"
+      },
+      {
+        "name": "is_sensitive_content",
+        "ordinal": 5,
+        "type_info": "Bool"
+      },
+      {
+        "name": "created_height",
+        "ordinal": 6,
+        "type_info": "Integer"
+      },
+      {
+        "name": "metadata",
+        "ordinal": 7,
+        "type_info": "Blob"
+      },
+      {
+        "name": "recovery_list_hash",
+        "ordinal": 8,
+        "type_info": "Blob"
+      },
+      {
+        "name": "num_verifications_required",
+        "ordinal": 9,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      true,
+      false,
+      false,
+      true,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "ddb5f615a2a3de74ec18a0c9baa63c1e3130b0eb4f0b98a1d90cf9c22294a81b"
+}
