@@ -5,8 +5,9 @@ use chia_wallet_sdk::driver::{
 };
 use indexmap::IndexMap;
 use itertools::Itertools;
+use sage_database::RequestedNft;
 
-use crate::{RequestedNft, Wallet, WalletError};
+use crate::{Wallet, WalletError};
 
 impl Wallet {
     pub async fn take_offer(
