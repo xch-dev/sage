@@ -1,7 +1,7 @@
 import {
   commands,
   events,
-  type TransactionCoin,
+  TransactionRecordCoin,
   TransactionRecord,
 } from '@/bindings';
 import Container from '@/components/Container';
@@ -106,7 +106,7 @@ export default function Transaction() {
 }
 
 interface TransactionCoinProps {
-  coin: TransactionCoin;
+  coin: TransactionRecordCoin;
 }
 
 function TransactionCoin({ coin }: TransactionCoinProps) {
@@ -139,7 +139,7 @@ function TransactionCoin({ coin }: TransactionCoinProps) {
 }
 
 interface TransactionCoinKindProps {
-  coin: TransactionCoin;
+  coin: TransactionRecordCoin;
 }
 
 function TransactionCoinKind({ coin }: TransactionCoinKindProps) {
@@ -214,7 +214,7 @@ function TransactionCoinKind({ coin }: TransactionCoinKindProps) {
 }
 
 interface TransactionCoinIdProps {
-  coin: TransactionCoin;
+  coin: TransactionRecordCoin;
 }
 
 function TransactionCoinId({ coin }: TransactionCoinIdProps) {
