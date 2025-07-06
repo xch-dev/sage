@@ -5,11 +5,11 @@ import { Row, SortingState } from '@tanstack/react-table';
 import BigNumber from 'bignumber.js';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
-import { TransactionCoin, TransactionRecord } from '../bindings';
+import { TransactionRecordCoin, TransactionRecord } from '../bindings';
 import { Loading } from './Loading';
 import { columns, FlattenedTransaction } from './TransactionColumns';
 
-function getDisplayName(coin: TransactionCoin) {
+function getDisplayName(coin: TransactionRecordCoin) {
   switch (coin.type) {
     case 'xch':
       return 'Chia';
@@ -24,7 +24,7 @@ function getDisplayName(coin: TransactionCoin) {
   }
 }
 
-function getItemId(coin: TransactionCoin) {
+function getItemId(coin: TransactionRecordCoin) {
   switch (coin.type) {
     case 'xch':
       return 'xch';
@@ -39,7 +39,7 @@ function getItemId(coin: TransactionCoin) {
   }
 }
 
-function getIconUrl(coin: TransactionCoin) {
+function getIconUrl(coin: TransactionRecordCoin) {
   switch (coin.type) {
     case 'xch':
       return 'https://icons.dexie.space/xch.webp';
