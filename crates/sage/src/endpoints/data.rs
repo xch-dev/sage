@@ -159,8 +159,6 @@ impl Sage {
                 offer_id: row.offer_id.map(hex::encode),
                 created_timestamp: row.created_timestamp,
                 spent_timestamp: row.spent_timestamp,
-                create_transaction_id: None, // TODO: row.create_transaction_id.map(hex::encode),
-                spend_transaction_id: None,  // TODO: row.spend_transaction_id.map(hex::encode),
             });
         }
         Ok(GetCoinsByIdsResponse { coins })
@@ -202,8 +200,6 @@ impl Sage {
                 offer_id: row.offer_id.map(hex::encode),
                 created_timestamp: row.created_timestamp,
                 spent_timestamp: row.spent_timestamp,
-                create_transaction_id: None, // TODO: row.create_transaction_id.map(hex::encode),
-                spend_transaction_id: None,  // TODO: row.spend_transaction_id.map(hex::encode),
             });
         }
 
@@ -250,8 +246,6 @@ impl Sage {
                 offer_id: row.offer_id.map(hex::encode),
                 created_timestamp: row.created_timestamp,
                 spent_timestamp: row.spent_timestamp,
-                create_transaction_id: None, // TODO: row.create_transaction_id.map(hex::encode),
-                spend_transaction_id: None,  // TODO: row.spend_transaction_id.map(hex::encode),
             });
         }
 

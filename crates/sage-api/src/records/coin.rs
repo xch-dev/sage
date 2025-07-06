@@ -14,6 +14,4 @@ pub struct CoinRecord {
     pub offer_id: Option<String>,
     pub spent_timestamp: Option<u32>,
     pub created_timestamp: Option<u32>,
-    pub create_transaction_id: Option<String>,
-    pub spend_transaction_id: Option<String>,
 }

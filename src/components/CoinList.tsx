@@ -201,7 +201,7 @@ export default function CoinList(props: CoinListProps) {
           ? formatTimestamp(row.original.created_timestamp, 'short', 'short')
           : row.original.created_height
             ? row.original.created_height.toString()
-            : row.original.create_transaction_id
+            : row.original.transaction_id
               ? t`Pending...`
               : '',
     },
@@ -271,7 +271,7 @@ export default function CoinList(props: CoinListProps) {
           ? formatTimestamp(row.original.spent_timestamp, 'short', 'short')
           : row.original.spent_height
             ? row.original.spent_height.toString()
-            : row.original.spend_transaction_id
+            : row.original.transaction_id
               ? t`Pending...`
               : row.original.offer_id
                 ? t`Locked in offer`
@@ -281,7 +281,7 @@ export default function CoinList(props: CoinListProps) {
 
   const getRowStyles = (row: Row<CoinRecord>) => {
     const coin = row.original;
-    const isSpent = !!coin.spent_height || !!coin.spend_transaction_id;
+    const isSpent = !!coin.spent_height || !!coin.transaction_id;
     const isPending = !coin.created_height;
     const isSelected = row.getIsSelected();
 
