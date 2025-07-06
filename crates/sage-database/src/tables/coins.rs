@@ -206,10 +206,6 @@ impl DatabaseTx<'_> {
         is_known_coin(&mut *self.tx, coin_id).await
     }
 
-    pub async fn is_latest_singleton_coin(&mut self, hash: Bytes32) -> Result<bool> {
-        is_latest_singleton_coin(&mut *self.tx, hash).await
-    }
-
     pub async fn sync_coin(
         &mut self,
         coin_id: Bytes32,
@@ -345,22 +341,6 @@ async fn delete_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<
         .await?;
 
     Ok(())
-}
-
-async fn is_latest_singleton_coin(conn: impl SqliteExecutor<'_>, hash: Bytes32) -> Result<bool> {
-    let hash_ref = hash.as_ref();
-
-    let rows = query!(
-        "SELECT amount FROM coins WHERE parent_coin_hash = ?",
-        hash_ref
-    )
-    .fetch_all(conn)
-    .await?
-    .into_iter()
-    .map(|row| row.amount.convert())
-    .collect::<Result<Vec<u64>>>()?;
-
-    Ok(rows.into_iter().all(|amount| amount % 2 == 0))
 }
 
 async fn sync_coin(

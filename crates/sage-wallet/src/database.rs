@@ -94,7 +94,7 @@ pub async fn insert_puzzle(
             )
             .await?;
 
-            if tx.is_latest_singleton_coin(coin_id).await? {
+            if coin_state.spent_height.is_none() {
                 tx.update_did_coin_info(info.launcher_id, &coin_info)
                     .await?;
             }
