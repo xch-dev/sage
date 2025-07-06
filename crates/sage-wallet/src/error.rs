@@ -111,6 +111,9 @@ pub enum WalletError {
     #[error("Uncancellable offer")]
     UncancellableOffer,
 
+    #[error("Cannot import offer that doesn't belong to this wallet")]
+    CannotImportOffer,
+
     #[error("Try from int error: {0}")]
     TryFromInt(#[from] TryFromIntError),
 }

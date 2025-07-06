@@ -1,6 +1,7 @@
 mod aggregate_offer;
 mod cancel_offer;
 mod make_offer;
+mod offer_assets;
 mod take_offer;
 
 pub use aggregate_offer::*;
@@ -17,11 +18,11 @@ mod tests {
     };
     use clvmr::Allocator;
     use indexmap::indexmap;
+    use sage_database::RequestedNft;
     use test_log::test;
 
     use crate::{
-        default_test_options, Offered, Requested, RequestedNft, SyncOptions, TestWallet, Timeouts,
-        WalletNftMint,
+        default_test_options, Offered, Requested, SyncOptions, TestWallet, Timeouts, WalletNftMint,
     };
 
     use super::aggregate_offers;

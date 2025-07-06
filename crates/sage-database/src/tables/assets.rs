@@ -118,6 +118,14 @@ pub struct NftMetadataInfo {
     pub collection_id: Option<Bytes32>,
 }
 
+#[derive(Debug, Clone)]
+pub struct RequestedNft {
+    pub metadata: Program,
+    pub metadata_updater_puzzle_hash: Bytes32,
+    pub royalty_puzzle_hash: Bytes32,
+    pub royalty_basis_points: u16,
+}
+
 impl Database {
     pub async fn asset_kind(&self, asset_id: Bytes32) -> Result<Option<AssetKind>> {
         asset_kind(&self.pool, asset_id).await
@@ -179,6 +187,10 @@ impl Database {
 
     pub async fn did_assets(&self) -> Result<Vec<DidAsset>> {
         did_assets(&self.pool).await
+    }
+
+    pub async fn requested_nft(&self, launcher_id: Bytes32) -> Result<Option<RequestedNft>> {
+        requested_nft(&self.pool, launcher_id).await
     }
 }
 
@@ -927,4 +939,33 @@ async fn did_assets(conn: impl SqliteExecutor<'_>) -> Result<Vec<DidAsset>> {
         })
     })
     .collect()
+}
+
+async fn requested_nft(
+    conn: impl SqliteExecutor<'_>,
+    launcher_id: Bytes32,
+) -> Result<Option<RequestedNft>> {
+    let launcher_id = launcher_id.as_ref();
+
+    query!(
+        "
+        SELECT
+            metadata, metadata_updater_puzzle_hash, royalty_puzzle_hash, royalty_basis_points
+        FROM nfts
+        INNER JOIN assets ON assets.id = nfts.asset_id
+        WHERE hash = ?
+        ",
+        launcher_id
+    )
+    .fetch_optional(conn)
+    .await?
+    .map(|row| {
+        Ok(RequestedNft {
+            metadata: Program::from(row.metadata),
+            metadata_updater_puzzle_hash: row.metadata_updater_puzzle_hash.convert()?,
+            royalty_puzzle_hash: row.royalty_puzzle_hash.convert()?,
+            royalty_basis_points: row.royalty_basis_points.convert()?,
+        })
+    })
+    .transpose()
 }

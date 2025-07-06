@@ -3,8 +3,10 @@ use std::collections::{HashMap, HashSet};
 use chia::{
     bls::Signature,
     clvm_utils::ToTreeHash,
-    protocol::{Bytes32, CoinState},
+    protocol::{Bytes32, CoinState, Program},
+    puzzles::{nft::NftMetadata, LineageProof},
 };
+use chia_wallet_sdk::driver::NftInfo;
 use sage_database::{Asset, CatAsset, Database, DatabaseTx, DidCoinInfo, NftCoinInfo};
 use tracing::warn;
 
@@ -92,7 +94,7 @@ pub async fn insert_puzzle(
             )
             .await?;
 
-            if tx.is_latest_singleton_coin(coin_id).await? {
+            if coin_state.spent_height.is_none() {
                 tx.update_did_coin_info(info.launcher_id, &coin_info)
                     .await?;
             }
@@ -110,90 +112,123 @@ pub async fn insert_puzzle(
             metadata,
             clawback,
         } => {
-            tx.insert_lineage_proof(coin_id, lineage_proof).await?;
-
-            let mut asset = Asset::empty(info.launcher_id, true, coin_state.created_height);
-            let mut coin_info = NftCoinInfo {
-                collection_hash: Bytes32::default(),
-                collection_name: None,
-                minter_hash: minter_did,
-                owner_hash: info.current_owner,
-                metadata: info.metadata,
-                metadata_updater_puzzle_hash: info.metadata_updater_puzzle_hash,
-                royalty_puzzle_hash: info.royalty_puzzle_hash,
-                royalty_basis_points: info.royalty_basis_points,
-                data_hash: metadata.as_ref().and_then(|m| m.data_hash),
-                metadata_hash: metadata.as_ref().and_then(|m| m.metadata_hash),
-                license_hash: metadata.as_ref().and_then(|m| m.license_hash),
-                edition_number: metadata.as_ref().map(|m| m.edition_number),
-                edition_total: metadata.as_ref().map(|m| m.edition_total),
-            };
-
-            if let Some(metadata_hash) = &metadata.as_ref().and_then(|m| m.metadata_hash) {
-                if let Some(blob) = tx.file_data(*metadata_hash).await? {
-                    let computed = compute_nft_info(minter_did, &blob);
-                    asset.name = computed.name;
-                    asset.description = computed.description;
-                    asset.is_sensitive_content = computed.sensitive_content;
-
-                    if let Some(collection) = computed.collection {
-                        coin_info.collection_hash = collection.hash;
-                        tx.insert_collection(collection).await?;
-                    }
-                }
-            };
-
-            tx.insert_nft(asset, &coin_info).await?;
-
-            if tx.is_latest_singleton_coin(coin_id).await? {
-                tx.update_nft_coin_info(info.launcher_id, &coin_info)
-                    .await?;
-            }
-
             if let Some(clawback) = clawback {
                 tx.insert_clawback_p2_puzzle(clawback).await?;
             }
 
-            tx.sync_coin(coin_id, info.launcher_id, info.p2_puzzle_hash, None)
-                .await?;
-
-            let (data_uris, metadata_uris, license_uris) = metadata
-                .map(|metadata| {
-                    (
-                        metadata.data_uris,
-                        metadata.metadata_uris,
-                        metadata.license_uris,
-                    )
-                })
-                .unwrap_or_default();
-
-            if let Some(hash) = coin_info.data_hash {
-                tx.insert_file(hash).await?;
-
-                for uri in data_uris {
-                    tx.insert_file_uri(hash, uri).await?;
-                }
-            }
-
-            if let Some(hash) = coin_info.metadata_hash {
-                tx.insert_file(hash).await?;
-
-                for uri in metadata_uris {
-                    tx.insert_file_uri(hash, uri).await?;
-                }
-            }
-
-            if let Some(hash) = coin_info.license_hash {
-                tx.insert_file(hash).await?;
-
-                for uri in license_uris {
-                    tx.insert_file_uri(hash, uri).await?;
-                }
-            }
+            insert_nft(
+                tx,
+                coin_state,
+                Some(lineage_proof),
+                info,
+                metadata,
+                minter_did,
+            )
+            .await?;
         }
     }
 
     Ok(true)
+}
+
+pub async fn insert_nft(
+    tx: &mut DatabaseTx<'_>,
+    coin_state: CoinState,
+    lineage_proof: Option<LineageProof>,
+    info: NftInfo<Program>,
+    metadata: Option<NftMetadata>,
+    minter_did: Option<Bytes32>,
+) -> Result<(), WalletError> {
+    if let Some(lineage_proof) = lineage_proof {
+        tx.insert_lineage_proof(coin_state.coin.coin_id(), lineage_proof)
+            .await?;
+    }
+
+    let mut asset = Asset::empty(info.launcher_id, true, coin_state.created_height);
+    let mut coin_info = NftCoinInfo {
+        collection_hash: Bytes32::default(),
+        collection_name: None,
+        minter_hash: minter_did,
+        owner_hash: info.current_owner,
+        metadata: info.metadata,
+        metadata_updater_puzzle_hash: info.metadata_updater_puzzle_hash,
+        royalty_puzzle_hash: info.royalty_puzzle_hash,
+        royalty_basis_points: info.royalty_basis_points,
+        data_hash: metadata.as_ref().and_then(|m| m.data_hash),
+        metadata_hash: metadata.as_ref().and_then(|m| m.metadata_hash),
+        license_hash: metadata.as_ref().and_then(|m| m.license_hash),
+        edition_number: metadata.as_ref().map(|m| m.edition_number),
+        edition_total: metadata.as_ref().map(|m| m.edition_total),
+    };
+
+    if let Some(metadata_hash) = &metadata.as_ref().and_then(|m| m.metadata_hash) {
+        if let Some(blob) = tx.file_data(*metadata_hash).await? {
+            let computed = compute_nft_info(minter_did, &blob);
+            asset.name = computed.name;
+            asset.description = computed.description;
+            asset.is_sensitive_content = computed.sensitive_content;
+
+            if let Some(collection) = computed.collection {
+                coin_info.collection_hash = collection.hash;
+                tx.insert_collection(collection).await?;
+            }
+        }
+    };
+
+    tx.insert_nft(asset, &coin_info).await?;
+
+    if coin_state.spent_height.is_none() || lineage_proof.is_none() {
+        tx.update_nft_coin_info(info.launcher_id, &coin_info)
+            .await?;
+    }
+
+    // A (ours) => B (not ours) => C (ours)
+
+    if lineage_proof.is_some() {
+        tx.sync_coin(
+            coin_state.coin.coin_id(),
+            info.launcher_id,
+            info.p2_puzzle_hash,
+            None,
+        )
+        .await?;
+    }
+
+    let (data_uris, metadata_uris, license_uris) = metadata
+        .map(|metadata| {
+            (
+                metadata.data_uris,
+                metadata.metadata_uris,
+                metadata.license_uris,
+            )
+        })
+        .unwrap_or_default();
+
+    if let Some(hash) = coin_info.data_hash {
+        tx.insert_file(hash).await?;
+
+        for uri in data_uris {
+            tx.insert_file_uri(hash, uri).await?;
+        }
+    }
+
+    if let Some(hash) = coin_info.metadata_hash {
+        tx.insert_file(hash).await?;
+
+        for uri in metadata_uris {
+            tx.insert_file_uri(hash, uri).await?;
+        }
+    }
+
+    if let Some(hash) = coin_info.license_hash {
+        tx.insert_file(hash).await?;
+
+        for uri in license_uris {
+            tx.insert_file_uri(hash, uri).await?;
+        }
+    }
+
+    Ok(())
 }
 
 pub async fn insert_transaction(

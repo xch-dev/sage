@@ -112,7 +112,7 @@ export function ViewOffer() {
 
               <div className='mt-4 flex gap-2'>
                 <Button variant='outline' onClick={importOffer}>
-                  <Trans>Save Offer</Trans>
+                  <Trans>Import Offer</Trans>
                 </Button>
 
                 <Button onClick={take}>
@@ -128,7 +128,7 @@ export function ViewOffer() {
         showRecipientDetails={false}
         response={response}
         close={() => setResponse(null)}
-        onConfirm={() => navigate('/offers')}
+        onConfirm={() => navigate('/')}
         additionalData={{
           title: t`Take Offer`,
           content: response && summary && (
