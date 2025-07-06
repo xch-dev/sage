@@ -1,0 +1,80 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT offers.hash as offer_id, assets.hash as asset_id, amount, royalty, is_requested, \n        assets.description, assets.is_sensitive_content, assets.is_visible, assets.created_height, assets.icon_url, assets.name\n        FROM offer_assets \n        INNER JOIN assets ON offer_assets.asset_id = assets.id\n        INNER JOIN offers ON offer_assets.offer_id = offers.id\n        WHERE offer_id = ? AND kind = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "offer_id",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "asset_id",
+        "ordinal": 1,
+        "type_info": "Blob"
+      },
+      {
+        "name": "amount",
+        "ordinal": 2,
+        "type_info": "Blob"
+      },
+      {
+        "name": "royalty",
+        "ordinal": 3,
+        "type_info": "Blob"
+      },
+      {
+        "name": "is_requested",
+        "ordinal": 4,
+        "type_info": "Bool"
+      },
+      {
+        "name": "description",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "is_sensitive_content",
+        "ordinal": 6,
+        "type_info": "Bool"
+      },
+      {
+        "name": "is_visible",
+        "ordinal": 7,
+        "type_info": "Bool"
+      },
+      {
+        "name": "created_height",
+        "ordinal": 8,
+        "type_info": "Integer"
+      },
+      {
+        "name": "icon_url",
+        "ordinal": 9,
+        "type_info": "Text"
+      },
+      {
+        "name": "name",
+        "ordinal": 10,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "a4ea0fa074aba4123d1cb4438b6eea8eb8b1e34b4dc2d21eb3ee9c5360301a2f"
+}

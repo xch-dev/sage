@@ -201,7 +201,7 @@ async fn insert_offer(conn: impl SqliteExecutor<'_>, offer: OfferRow) -> Result<
 
     sqlx::query(
         "
-        INSERT INTO offers (
+        INSERT OR IGNORE INTO offers (
             hash, encoded_offer, fee, status,
             expiration_height, expiration_timestamp, inserted_timestamp
         )
@@ -236,7 +236,7 @@ async fn insert_offer_asset(
 
     sqlx::query(
         "
-        INSERT INTO offer_assets (offer_id, asset_id, amount, royalty, is_requested) 
+        INSERT OR IGNORE INTO offer_assets (offer_id, asset_id, amount, royalty, is_requested) 
         VALUES (
             (SELECT id FROM offers WHERE hash = ?), 
             (SELECT id FROM assets WHERE hash = ?), 
@@ -269,7 +269,7 @@ async fn insert_offer_xch(
 
     sqlx::query(
         "
-        INSERT INTO offer_assets (offer_id, asset_id, amount, royalty, is_requested) 
+        INSERT OR IGNORE INTO offer_assets (offer_id, asset_id, amount, royalty, is_requested) 
         VALUES (
             (SELECT id FROM offers WHERE hash = ?),
             0, ?, ?, ?
@@ -294,7 +294,7 @@ async fn insert_offered_coin(
     let offer_id_ref = offer_hash.as_ref();
     let coin_hash_ref = coin_hash.as_ref();
     sqlx::query(
-        "INSERT INTO offer_coins (offer_id, coin_id) 
+        "INSERT OR IGNORE INTO offer_coins (offer_id, coin_id) 
         VALUES ((SELECT id FROM offers WHERE hash = ?), (SELECT id FROM coins WHERE hash = ?))",
     )
     .bind(offer_id_ref)

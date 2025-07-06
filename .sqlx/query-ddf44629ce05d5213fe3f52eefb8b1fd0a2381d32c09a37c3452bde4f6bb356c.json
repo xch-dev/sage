@@ -1,0 +1,44 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT\n            p2_puzzles.hash AS p2_puzzle_hash,\n            public_keys.derivation_index,\n            public_keys.is_hardened,\n            public_keys.key AS synthetic_key,\n            COUNT(*) OVER() AS total\n        FROM p2_puzzles\n        INNER JOIN public_keys ON public_keys.p2_puzzle_id = p2_puzzles.id\n        WHERE public_keys.is_hardened = ?\n        ORDER BY public_keys.derivation_index ASC\n        LIMIT ? OFFSET ?\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "p2_puzzle_hash",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "derivation_index",
+        "ordinal": 1,
+        "type_info": "Integer"
+      },
+      {
+        "name": "is_hardened",
+        "ordinal": 2,
+        "type_info": "Bool"
+      },
+      {
+        "name": "synthetic_key",
+        "ordinal": 3,
+        "type_info": "Blob"
+      },
+      {
+        "name": "total",
+        "ordinal": 4,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "ddf44629ce05d5213fe3f52eefb8b1fd0a2381d32c09a37c3452bde4f6bb356c"
+}

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        UPDATE coins SET\n            asset_id = (SELECT id FROM assets WHERE hash = ?),\n            p2_puzzle_id = (SELECT id FROM p2_puzzles WHERE hash = ?),\n            hidden_puzzle_hash = ?\n        WHERE hash = ?\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "f2e5255b96347dccb31a5997ad7ea69f8629756d2c74270c76bd0fc85f2e939f"
+}

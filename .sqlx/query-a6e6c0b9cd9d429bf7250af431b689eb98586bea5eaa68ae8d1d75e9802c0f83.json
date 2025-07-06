@@ -1,0 +1,74 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id, hash, uuid, minter_hash, name, icon_url, banner_url, description, is_visible, created_height \n        FROM collections\n        WHERE hash = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "hash",
+        "ordinal": 1,
+        "type_info": "Blob"
+      },
+      {
+        "name": "uuid",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "minter_hash",
+        "ordinal": 3,
+        "type_info": "Blob"
+      },
+      {
+        "name": "name",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "icon_url",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "banner_url",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "description",
+        "ordinal": 7,
+        "type_info": "Text"
+      },
+      {
+        "name": "is_visible",
+        "ordinal": 8,
+        "type_info": "Bool"
+      },
+      {
+        "name": "created_height",
+        "ordinal": 9,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      false,
+      true
+    ]
+  },
+  "hash": "a6e6c0b9cd9d429bf7250af431b689eb98586bea5eaa68ae8d1d75e9802c0f83"
+}

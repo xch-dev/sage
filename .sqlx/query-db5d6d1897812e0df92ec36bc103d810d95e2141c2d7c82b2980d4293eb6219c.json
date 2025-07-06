@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        INSERT INTO tokens (asset_id, ticker)\n        VALUES (?, ?)\n        ON CONFLICT(asset_id) DO UPDATE SET\n            ticker = excluded.ticker\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "db5d6d1897812e0df92ec36bc103d810d95e2141c2d7c82b2980d4293eb6219c"
+}

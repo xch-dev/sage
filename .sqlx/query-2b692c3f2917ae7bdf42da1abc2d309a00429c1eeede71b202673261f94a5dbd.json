@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        UPDATE file_uris\n        SET failed_attempts = failed_attempts + 1, last_checked_timestamp = unixepoch()\n        WHERE file_id = (SELECT id FROM files WHERE hash = ?) AND uri = ?\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "2b692c3f2917ae7bdf42da1abc2d309a00429c1eeede71b202673261f94a5dbd"
+}

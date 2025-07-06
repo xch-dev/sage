@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT OR IGNORE INTO blocks (height, is_peak) VALUES (?, FALSE)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "4f26a0e9ee97580232e4400f774443a5c94f5df0e530b5409cef42924d59efeb"
+}

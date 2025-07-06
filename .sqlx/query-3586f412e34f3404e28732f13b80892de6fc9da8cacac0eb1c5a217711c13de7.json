@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        INSERT INTO assets (hash, kind, name, icon_url, description, is_visible, is_pending)\n        VALUES (?, 0, ?, ?, ?, ?, FALSE)\n        ON CONFLICT(hash) DO UPDATE SET\n            name = COALESCE(name, excluded.name),\n            icon_url = COALESCE(icon_url, excluded.icon_url),\n            description = COALESCE(description, excluded.description),\n            is_sensitive_content = is_sensitive_content OR excluded.is_sensitive_content\n        RETURNING id\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 5
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "3586f412e34f3404e28732f13b80892de6fc9da8cacac0eb1c5a217711c13de7"
+}

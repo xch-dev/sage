@@ -53,6 +53,13 @@ pub struct CoinRow {
     pub spent_timestamp: Option<u32>,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct UnsyncedCoin {
+    pub coin_state: CoinState,
+    pub is_asset_unsynced: bool,
+    pub is_children_unsynced: bool,
+}
+
 impl Database {
     pub async fn coins_by_ids(&self, coin_ids: &[String]) -> Result<Vec<CoinRow>> {
         coins_by_ids(&self.pool, coin_ids).await
@@ -99,18 +106,18 @@ impl Database {
         synced_coin_count(&self.pool).await
     }
 
-    pub async fn unsynced_coins(&self, limit: usize) -> Result<Vec<CoinState>> {
+    pub async fn unsynced_coins(&self, limit: usize) -> Result<Vec<UnsyncedCoin>> {
         unsynced_coins(&self.pool, limit).await
     }
 
-    pub async fn sync_coin(
+    pub async fn update_coin(
         &self,
         coin_id: Bytes32,
         asset_hash: Bytes32,
         p2_puzzle_hash: Bytes32,
         hidden_puzzle_hash: Option<Bytes32>,
     ) -> Result<()> {
-        sync_coin(
+        update_coin(
             &self.pool,
             coin_id,
             asset_hash,
@@ -206,14 +213,14 @@ impl DatabaseTx<'_> {
         is_known_coin(&mut *self.tx, coin_id).await
     }
 
-    pub async fn sync_coin(
+    pub async fn update_coin(
         &mut self,
         coin_id: Bytes32,
         asset_hash: Bytes32,
         p2_puzzle_hash: Bytes32,
         hidden_puzzle_hash: Option<Bytes32>,
     ) -> Result<()> {
-        sync_coin(
+        update_coin(
             &mut *self.tx,
             coin_id,
             asset_hash,
@@ -221,6 +228,17 @@ impl DatabaseTx<'_> {
             hidden_puzzle_hash,
         )
         .await
+    }
+
+    pub async fn set_children_synced(&mut self, coin_id: Bytes32) -> Result<()> {
+        set_children_synced(&mut *self.tx, coin_id).await
+    }
+
+    pub async fn set_transaction_children_unsynced(
+        &mut self,
+        mempool_item_id: Bytes32,
+    ) -> Result<()> {
+        set_transaction_children_unsynced(&mut *self.tx, mempool_item_id).await
     }
 
     pub async fn delete_coin(&mut self, coin_id: Bytes32) -> Result<()> {
@@ -304,14 +322,17 @@ async fn is_known_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Resul
     Ok(row.count > 0)
 }
 
-async fn unsynced_coins(conn: impl SqliteExecutor<'_>, limit: usize) -> Result<Vec<CoinState>> {
+async fn unsynced_coins(conn: impl SqliteExecutor<'_>, limit: usize) -> Result<Vec<UnsyncedCoin>> {
     let limit = i64::try_from(limit)?;
 
     query!(
         "
-        SELECT parent_coin_hash, puzzle_hash, amount, created_height, spent_height
+        SELECT
+            parent_coin_hash, puzzle_hash, amount, created_height, spent_height,
+            (asset_id IS NULL) AS is_asset_unsynced,
+            (spent_height IS NOT NULL AND is_children_synced = FALSE) AS is_children_unsynced
         FROM coins
-        WHERE asset_id IS NULL
+        WHERE asset_id IS NULL OR (spent_height IS NOT NULL AND is_children_synced = FALSE)
         LIMIT ?
         ",
         limit
@@ -320,15 +341,19 @@ async fn unsynced_coins(conn: impl SqliteExecutor<'_>, limit: usize) -> Result<V
     .await?
     .into_iter()
     .map(|row| {
-        Ok(CoinState::new(
-            Coin::new(
-                row.parent_coin_hash.convert()?,
-                row.puzzle_hash.convert()?,
-                row.amount.convert()?,
+        Ok(UnsyncedCoin {
+            coin_state: CoinState::new(
+                Coin::new(
+                    row.parent_coin_hash.convert()?,
+                    row.puzzle_hash.convert()?,
+                    row.amount.convert()?,
+                ),
+                row.spent_height.convert()?,
+                row.created_height.convert()?,
             ),
-            row.spent_height.convert()?,
-            row.created_height.convert()?,
-        ))
+            is_asset_unsynced: row.is_asset_unsynced != 0,
+            is_children_unsynced: row.is_children_unsynced != 0,
+        })
     })
     .collect()
 }
@@ -343,7 +368,7 @@ async fn delete_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<
     Ok(())
 }
 
-async fn sync_coin(
+async fn update_coin(
     conn: impl SqliteExecutor<'_>,
     coin_id: Bytes32,
     asset_hash: Bytes32,
@@ -361,11 +386,47 @@ async fn sync_coin(
             asset_id = (SELECT id FROM assets WHERE hash = ?),
             p2_puzzle_id = (SELECT id FROM p2_puzzles WHERE hash = ?),
             hidden_puzzle_hash = ?
-        WHERE hash = ?",
+        WHERE hash = ?
+        ",
         asset_hash,
         p2_puzzle_hash,
         hidden_puzzle_hash,
         coin_id,
+    )
+    .execute(conn)
+    .await?;
+
+    Ok(())
+}
+
+async fn set_children_synced(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<()> {
+    let coin_id = coin_id.as_ref();
+
+    query!(
+        "UPDATE coins SET is_children_synced = TRUE WHERE hash = ?",
+        coin_id
+    )
+    .execute(conn)
+    .await?;
+
+    Ok(())
+}
+
+async fn set_transaction_children_unsynced(
+    conn: impl SqliteExecutor<'_>,
+    mempool_item_id: Bytes32,
+) -> Result<()> {
+    let mempool_item_id = mempool_item_id.as_ref();
+
+    query!(
+        "
+        UPDATE coins SET is_children_synced = FALSE WHERE id IN (
+            SELECT coin_id FROM mempool_coins
+            INNER JOIN mempool_items ON mempool_items.id = mempool_coins.mempool_item_id
+            WHERE mempool_items.hash = ? AND is_input = TRUE
+        )
+        ",
+        mempool_item_id
     )
     .execute(conn)
     .await?;
@@ -384,7 +445,7 @@ async fn insert_lineage_proof(
     let parent_amount = lineage_proof.parent_amount.to_be_bytes().to_vec();
 
     query!(
-        "INSERT INTO lineage_proofs
+        "INSERT OR IGNORE INTO lineage_proofs
             (coin_id, parent_parent_coin_hash, parent_inner_puzzle_hash, parent_amount)
         VALUES
             ((SELECT id FROM coins WHERE hash = ?), ?, ?, ?)
@@ -439,11 +500,17 @@ async fn total_coin_count(conn: impl SqliteExecutor<'_>) -> Result<u32> {
 }
 
 async fn synced_coin_count(conn: impl SqliteExecutor<'_>) -> Result<u32> {
-    query!("SELECT COUNT(*) as count FROM coins WHERE asset_id IS NOT NULL")
-        .fetch_one(conn)
-        .await?
-        .count
-        .convert()
+    query!(
+        "
+        SELECT COUNT(*) AS count FROM coins
+        WHERE asset_id IS NOT NULL
+        AND (spent_height IS NULL OR is_children_synced = TRUE)
+        "
+    )
+    .fetch_one(conn)
+    .await?
+    .count
+    .convert()
 }
 
 async fn xch_balance(conn: impl SqliteExecutor<'_>) -> Result<u128> {

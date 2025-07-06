@@ -246,7 +246,7 @@ mod tests {
 
         alice.wait_for_coins().await;
 
-        assert_eq!(alice.wallet.db.cat_balance(asset_id).await?, 0);
+        assert_eq!(alice.wallet.db.cat_balance(asset_id).await?, 1000);
         assert_eq!(alice.wallet.db.spendable_cat_balance(asset_id).await?, 0);
         assert_eq!(
             alice.wallet.db.spendable_cat_coins(asset_id).await?.len(),
@@ -261,6 +261,13 @@ mod tests {
 
         sleep(Duration::from_secs(6)).await;
         bob.new_block_with_current_time().await?;
+
+        assert_eq!(alice.wallet.db.cat_balance(asset_id).await?, 0);
+        assert_eq!(alice.wallet.db.spendable_cat_balance(asset_id).await?, 0);
+        assert_eq!(
+            alice.wallet.db.spendable_cat_coins(asset_id).await?.len(),
+            0
+        );
 
         assert_eq!(bob.wallet.db.cat_balance(asset_id).await?, 1000);
         assert_eq!(bob.wallet.db.spendable_cat_balance(asset_id).await?, 1000);

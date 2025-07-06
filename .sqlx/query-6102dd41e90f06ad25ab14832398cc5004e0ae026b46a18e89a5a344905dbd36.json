@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE assets \n        SET name = ?, icon_url = ?, description = ?, is_visible = ?, is_sensitive_content = ?, created_height = ?\n        WHERE hash = ?\n        RETURNING id\n    ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 7
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "6102dd41e90f06ad25ab14832398cc5004e0ae026b46a18e89a5a344905dbd36"
+}

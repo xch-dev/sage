@@ -9,8 +9,6 @@ pub use make_offer::*;
 
 #[cfg(test)]
 mod tests {
-    use std::time::Duration;
-
     use chia::{
         clvm_traits::{FromClvm, ToClvm},
         protocol::{Bytes32, Program},
@@ -21,9 +19,7 @@ mod tests {
     use sage_database::RequestedNft;
     use test_log::test;
 
-    use crate::{
-        default_test_options, Offered, Requested, SyncOptions, TestWallet, Timeouts, WalletNftMint,
-    };
+    use crate::{Offered, Requested, TestWallet, WalletNftMint};
 
     use super::aggregate_offers;
 
@@ -663,22 +659,8 @@ mod tests {
 
     #[test(tokio::test)]
     async fn test_offer_nft_single_sided() -> anyhow::Result<()> {
-        let options = default_test_options();
-
         let mut alice = TestWallet::new(2).await?;
-        let mut bob = alice
-            .next_with_options(
-                0,
-                SyncOptions {
-                    puzzle_batch_size_per_peer: 1,
-                    timeouts: Timeouts {
-                        puzzle_delay: Duration::from_secs(1),
-                        ..options.timeouts
-                    },
-                    ..options
-                },
-            )
-            .await?;
+        let mut bob = alice.next(0).await?;
 
         let (coin_spends, did) = alice.wallet.create_did(0).await?;
         alice.transact(coin_spends).await?;
@@ -731,6 +713,24 @@ mod tests {
         // We need to wait for both wallets to sync in this case
         bob.wait_for_coins().await;
 
+        let nft = bob
+            .wallet
+            .db
+            .spendable_nft(nft.info.launcher_id)
+            .await?
+            .expect("NFT should be spendable");
+
+        let is_spent = bob
+            .sim
+            .lock()
+            .await
+            .coin_state(nft.coin.coin_id())
+            .expect("coin should exist")
+            .spent_height
+            .is_some();
+
+        assert!(!is_spent);
+
         // Resync to make sure the NFT is spendable even if it wasn't pending previously
         bob.resync().await?;
         bob.wait_for_puzzles().await;
@@ -739,24 +739,15 @@ mod tests {
         let nft = bob
             .wallet
             .db
-            .nft(nft.info.launcher_id)
+            .spendable_nft(nft.info.launcher_id)
             .await?
             .expect("NFT should be spendable");
-
-        let coin_id = bob
-            .wallet
-            .db
-            .nft(nft.info.launcher_id)
-            .await?
-            .expect("NFT should exist")
-            .coin
-            .coin_id();
 
         let is_spent = bob
             .sim
             .lock()
             .await
-            .coin_state(coin_id)
+            .coin_state(nft.coin.coin_id())
             .expect("coin should exist")
             .spent_height
             .is_some();

@@ -234,7 +234,7 @@ impl TestWallet {
                 .unwrap_or_else(|_| panic!("timed out listening for event"))
                 .unwrap_or_else(|| panic!("missing next event"));
 
-            debug!("Consuming event: {next:?}");
+            debug!("Consuming event for wallet {}: {next:?}", self.index);
 
             if f(next) {
                 return;

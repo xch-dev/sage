@@ -95,6 +95,7 @@ impl TransactionQueue {
 
                     let mut tx = self.db.tx().await?;
 
+                    tx.set_transaction_children_unsynced(transaction_id).await?;
                     tx.remove_mempool_item(transaction_id).await?;
 
                     tx.commit().await?;

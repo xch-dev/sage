@@ -60,7 +60,18 @@ FROM coins
   LEFT JOIN mempool_coins ON mempool_coins.coin_id = coins.id
 WHERE 1=1
   AND spent_height IS NULL
-  AND (mempool_coins.id IS NULL OR mempool_coins.is_input = FALSE);
+  AND (mempool_coins.id IS NULL OR mempool_coins.is_input = FALSE)
+  AND NOT EXISTS (
+    SELECT 1 FROM clawbacks -- If it's not a clawback, it's owned
+    WHERE clawbacks.p2_puzzle_id = p2_puzzles.id
+    -- If it is a clawback, it's not owned if neither the sender nor receiver puzzle hash is ours
+    AND (
+      NOT EXISTS (SELECT 1 FROM p2_puzzles WHERE p2_puzzles.hash = sender_puzzle_hash)
+    -- It's also not owned if the sender puzzle hash is ours and it's past the expiration
+      OR unixepoch() >= expiration_seconds
+    )
+    AND NOT EXISTS (SELECT 1 FROM p2_puzzles WHERE p2_puzzles.hash = receiver_puzzle_hash)
+  );
 
 
 CREATE VIEW internal_coins AS

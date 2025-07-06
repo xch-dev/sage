@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT created_height AS height FROM coins\n        INNER JOIN blocks ON blocks.height = coins.created_height\n        WHERE blocks.timestamp IS NULL\n        UNION\n        SELECT spent_height AS height FROM coins\n        INNER JOIN blocks ON blocks.height = coins.spent_height\n        WHERE blocks.timestamp IS NULL\n        ORDER BY height DESC\n        LIMIT ?\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "height",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "8fb0ac19831a14e60813bc15679b32f97cc0cf9ff9ecc0a7adb60017831c8aa8"
+}

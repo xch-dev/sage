@@ -85,7 +85,7 @@ impl Wallet {
         clawback: Option<u64>,
     ) -> Result<Vec<CoinSpend>, WalletError> {
         let sender_puzzle_hash = self.p2_puzzle_hash(false, true).await?;
-        let is_external = !self.db.is_p2_puzzle_hash(puzzle_hash).await?;
+        let is_external = !self.db.is_custody_p2_puzzle_hash(puzzle_hash).await?;
 
         let mut ctx = SpendContext::new();
         let mut actions = vec![Action::fee(fee)];

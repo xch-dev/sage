@@ -54,35 +54,8 @@ impl ChildKind {
         let parent_puzzle = Puzzle::parse(&allocator, parent_puzzle_ptr);
         let parent_solution = parent_solution.to_clvm(&mut allocator)?;
 
-        Self::from_parent_cached(
-            &mut allocator,
-            parent_coin,
-            parent_puzzle,
-            parent_solution,
-            coin,
-        )
-    }
-
-    pub fn from_parent_cached(
-        allocator: &mut Allocator,
-        parent_coin: Coin,
-        parent_puzzle: Puzzle,
-        parent_solution: NodePtr,
-        coin: Coin,
-    ) -> Result<Self, WalletError> {
-        let parse_span = debug_span!(
-            "parse from parent",
-            parent_coin = %parent_coin.coin_id(),
-            coin = %coin.coin_id()
-        );
-        let _span = parse_span.enter();
-
-        if coin.puzzle_hash == SINGLETON_LAUNCHER_HASH.into() {
-            return Ok(Self::Launcher);
-        }
-
-        let output = run_puzzle(allocator, parent_puzzle.ptr(), parent_solution)?;
-        let conditions = Vec::<Condition>::from_clvm(allocator, output)?;
+        let output = run_puzzle(&mut allocator, parent_puzzle.ptr(), parent_solution)?;
+        let conditions = Vec::<Condition>::from_clvm(&allocator, output)?;
 
         let Some(create_coin) = conditions
             .into_iter()
@@ -99,6 +72,79 @@ impl ChildKind {
         else {
             return Ok(Self::Unknown);
         };
+
+        Self::from_parent_cached(
+            &mut allocator,
+            parent_coin,
+            parent_puzzle,
+            parent_solution,
+            create_coin,
+        )
+    }
+
+    pub fn parse_children(
+        parent_coin: Coin,
+        parent_puzzle: &Program,
+        parent_solution: &Program,
+    ) -> Result<Vec<(Coin, Self)>, WalletError> {
+        let mut allocator = Allocator::new();
+
+        let parent_puzzle_ptr = parent_puzzle.to_clvm(&mut allocator)?;
+        let parent_puzzle = Puzzle::parse(&allocator, parent_puzzle_ptr);
+        let parent_solution = parent_solution.to_clvm(&mut allocator)?;
+
+        let output = run_puzzle(&mut allocator, parent_puzzle.ptr(), parent_solution)?;
+        let conditions = Vec::<Condition>::from_clvm(&allocator, output)?;
+
+        Ok(conditions
+            .into_iter()
+            .filter_map(Condition::into_create_coin)
+            .filter_map(|create_coin| {
+                Self::from_parent_cached(
+                    &mut allocator,
+                    parent_coin,
+                    parent_puzzle,
+                    parent_solution,
+                    create_coin,
+                )
+                .ok()
+                .map(|kind| {
+                    (
+                        Coin::new(
+                            parent_coin.coin_id(),
+                            create_coin.puzzle_hash,
+                            create_coin.amount,
+                        ),
+                        kind,
+                    )
+                })
+            })
+            .collect())
+    }
+
+    fn from_parent_cached(
+        allocator: &mut Allocator,
+        parent_coin: Coin,
+        parent_puzzle: Puzzle,
+        parent_solution: NodePtr,
+        create_coin: CreateCoin<NodePtr>,
+    ) -> Result<Self, WalletError> {
+        let coin = Coin::new(
+            parent_coin.coin_id(),
+            create_coin.puzzle_hash,
+            create_coin.amount,
+        );
+
+        let parse_span = debug_span!(
+            "parse from parent",
+            parent_coin = %parent_coin.coin_id(),
+            coin = %coin.coin_id()
+        );
+        let _span = parse_span.enter();
+
+        if coin.puzzle_hash == SINGLETON_LAUNCHER_HASH.into() {
+            return Ok(Self::Launcher);
+        }
 
         match Cat::parse_children(allocator, parent_coin, parent_puzzle, parent_solution) {
             // If there was an error parsing the CAT, we can exit early.
@@ -133,104 +179,110 @@ impl ChildKind {
             Ok(None) => {}
         }
 
-        match Nft::<HashedPtr>::parse_child(allocator, parent_coin, parent_puzzle, parent_solution)
-        {
-            // If there was an error parsing the NFT, we can exit early.
-            Err(error) => {
-                warn!("Invalid NFT: {}", error);
-                return Ok(Self::Unknown);
-            }
-
-            // If the coin is a NFT coin, return the relevant information.
-            Ok(Some(nft)) => {
-                if nft.coin != coin {
-                    warn!(
-                        "NFT coin {:?} does not match expected coin {:?}",
-                        nft.coin, coin
-                    );
+        if coin.amount % 2 == 1 {
+            match Nft::<HashedPtr>::parse_child(
+                allocator,
+                parent_coin,
+                parent_puzzle,
+                parent_solution,
+            ) {
+                // If there was an error parsing the NFT, we can exit early.
+                Err(error) => {
+                    warn!("Invalid NFT: {}", error);
                     return Ok(Self::Unknown);
                 }
 
-                // We don't support parsing eve NFTs during syncing.
-                let Proof::Lineage(lineage_proof) = nft.proof else {
-                    return Ok(Self::Unknown);
-                };
+                // If the coin is a NFT coin, return the relevant information.
+                Ok(Some(nft)) => {
+                    if nft.coin != coin {
+                        warn!(
+                            "NFT coin {:?} does not match expected coin {:?}",
+                            nft.coin, coin
+                        );
+                        return Ok(Self::Unknown);
+                    }
 
-                let metadata_program = Program::from_clvm(allocator, nft.info.metadata.ptr())?;
-                let metadata = NftMetadata::from_clvm(allocator, nft.info.metadata.ptr()).ok();
+                    // We don't support parsing eve NFTs during syncing.
+                    let Proof::Lineage(lineage_proof) = nft.proof else {
+                        return Ok(Self::Unknown);
+                    };
 
-                let clawback = parse_clawback_unchecked(allocator, &create_coin, true)
-                    .filter(|clawback| clawback.tree_hash() == nft.info.p2_puzzle_hash.into());
+                    let metadata_program = Program::from_clvm(allocator, nft.info.metadata.ptr())?;
+                    let metadata = NftMetadata::from_clvm(allocator, nft.info.metadata.ptr()).ok();
 
-                return Ok(Self::Nft {
-                    lineage_proof,
-                    info: nft.info.with_metadata(metadata_program),
-                    metadata,
-                    clawback,
-                });
+                    let clawback = parse_clawback_unchecked(allocator, &create_coin, true)
+                        .filter(|clawback| clawback.tree_hash() == nft.info.p2_puzzle_hash.into());
+
+                    return Ok(Self::Nft {
+                        lineage_proof,
+                        info: nft.info.with_metadata(metadata_program),
+                        metadata,
+                        clawback,
+                    });
+                }
+
+                // If the coin is not a NFT coin, continue parsing.
+                Ok(None) => {}
             }
 
-            // If the coin is not a NFT coin, continue parsing.
-            Ok(None) => {}
-        }
-
-        match Did::<HashedPtr>::parse_child(
-            allocator,
-            parent_coin,
-            parent_puzzle,
-            parent_solution,
-            coin,
-        ) {
-            // If there was an error parsing the DID, we can exit early.
-            Err(error) => {
-                warn!("Invalid DID: {}", error);
-                return Ok(Self::Unknown);
-            }
-
-            // If the coin is a DID coin, return the relevant information.
-            Ok(Some(did)) => {
-                // We don't support parsing eve DIDs during syncing.
-                let Proof::Lineage(lineage_proof) = did.proof else {
+            match Did::<HashedPtr>::parse_child(
+                allocator,
+                parent_coin,
+                parent_puzzle,
+                parent_solution,
+                coin,
+            ) {
+                // If there was an error parsing the DID, we can exit early.
+                Err(error) => {
+                    warn!("Invalid DID: {}", error);
                     return Ok(Self::Unknown);
-                };
+                }
 
-                let metadata = Program::from_clvm(allocator, did.info.metadata.ptr())?;
+                // If the coin is a DID coin, return the relevant information.
+                Ok(Some(did)) => {
+                    // We don't support parsing eve DIDs during syncing.
+                    let Proof::Lineage(lineage_proof) = did.proof else {
+                        return Ok(Self::Unknown);
+                    };
 
-                let clawback = parse_clawback_unchecked(allocator, &create_coin, true);
+                    let metadata = Program::from_clvm(allocator, did.info.metadata.ptr())?;
 
-                let did = if let Some(clawback) = clawback {
-                    let p2_puzzle_hash = clawback.tree_hash().into();
+                    let clawback = parse_clawback_unchecked(allocator, &create_coin, true);
 
-                    let clawback_did = Did::new(
-                        did.coin,
-                        did.proof,
-                        DidInfo::new(
-                            did.info.launcher_id,
-                            did.info.recovery_list_hash,
-                            did.info.num_verifications_required,
-                            did.info.metadata,
-                            p2_puzzle_hash,
-                        ),
-                    );
+                    let did = if let Some(clawback) = clawback {
+                        let p2_puzzle_hash = clawback.tree_hash().into();
 
-                    if clawback_did.info.puzzle_hash() == coin.puzzle_hash.into() {
-                        clawback_did
+                        let clawback_did = Did::new(
+                            did.coin,
+                            did.proof,
+                            DidInfo::new(
+                                did.info.launcher_id,
+                                did.info.recovery_list_hash,
+                                did.info.num_verifications_required,
+                                did.info.metadata,
+                                p2_puzzle_hash,
+                            ),
+                        );
+
+                        if clawback_did.info.puzzle_hash() == coin.puzzle_hash.into() {
+                            clawback_did
+                        } else {
+                            did
+                        }
                     } else {
                         did
-                    }
-                } else {
-                    did
-                };
+                    };
 
-                return Ok(Self::Did {
-                    lineage_proof,
-                    info: did.info.with_metadata(metadata),
-                    clawback,
-                });
+                    return Ok(Self::Did {
+                        lineage_proof,
+                        info: did.info.with_metadata(metadata),
+                        clawback,
+                    });
+                }
+
+                // If the coin is not a DID coin, continue parsing.
+                Ok(None) => {}
             }
-
-            // If the coin is not a DID coin, continue parsing.
-            Ok(None) => {}
         }
 
         if let Some(clawback) = parse_clawback_unchecked(allocator, &create_coin, false)
@@ -242,25 +294,41 @@ impl ChildKind {
         Ok(Self::Unknown)
     }
 
-    pub fn custody_p2_puzzle_hash(&self) -> Option<Bytes32> {
+    pub fn custody_p2_puzzle_hashes(&self) -> Vec<Bytes32> {
+        match self {
+            Self::Launcher | Self::Unknown => vec![],
+            Self::Clawback { info } => vec![info.sender_puzzle_hash, info.receiver_puzzle_hash],
+            Self::Cat { info, clawback, .. } => clawback
+                .map_or(vec![info.p2_puzzle_hash], |clawback| {
+                    vec![clawback.sender_puzzle_hash, clawback.receiver_puzzle_hash]
+                }),
+            Self::Did { info, clawback, .. } => clawback
+                .map_or(vec![info.p2_puzzle_hash], |clawback| {
+                    vec![clawback.receiver_puzzle_hash]
+                }),
+            Self::Nft { info, clawback, .. } => clawback
+                .map_or(vec![info.p2_puzzle_hash], |clawback| {
+                    vec![clawback.receiver_puzzle_hash]
+                }),
+        }
+    }
+
+    pub fn receiver_custody_p2_puzzle_hash(&self) -> Option<Bytes32> {
         match self {
             Self::Launcher | Self::Unknown => None,
             Self::Clawback { info } => Some(info.receiver_puzzle_hash),
-            Self::Cat { info, clawback, .. } => {
-                Some(clawback.map_or(info.p2_puzzle_hash, |clawback| {
-                    clawback.receiver_puzzle_hash
-                }))
-            }
-            Self::Did { info, clawback, .. } => {
-                Some(clawback.map_or(info.p2_puzzle_hash, |clawback| {
-                    clawback.receiver_puzzle_hash
-                }))
-            }
-            Self::Nft { info, clawback, .. } => {
-                Some(clawback.map_or(info.p2_puzzle_hash, |clawback| {
-                    clawback.receiver_puzzle_hash
-                }))
-            }
+            Self::Cat { info, clawback, .. } => clawback
+                .map_or(Some(info.p2_puzzle_hash), |clawback| {
+                    Some(clawback.receiver_puzzle_hash)
+                }),
+            Self::Did { info, clawback, .. } => clawback
+                .map_or(Some(info.p2_puzzle_hash), |clawback| {
+                    Some(clawback.receiver_puzzle_hash)
+                }),
+            Self::Nft { info, clawback, .. } => clawback
+                .map_or(Some(info.p2_puzzle_hash), |clawback| {
+                    Some(clawback.receiver_puzzle_hash)
+                }),
         }
     }
 

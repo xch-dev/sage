@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        INSERT OR IGNORE INTO mempool_items (hash, aggregated_signature, fee) VALUES (?, ?, ?)\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "3a1c1141a639a8e7ac636507419d24137d7601848792f519766bbeb15557bbd6"
+}

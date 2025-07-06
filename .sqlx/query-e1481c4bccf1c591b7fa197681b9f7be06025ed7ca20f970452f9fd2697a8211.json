@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        UPDATE coins SET is_children_synced = FALSE WHERE id IN (\n            SELECT coin_id FROM mempool_coins\n            INNER JOIN mempool_items ON mempool_items.id = mempool_coins.mempool_item_id\n            WHERE mempool_items.hash = ? AND is_input = TRUE\n        )\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "e1481c4bccf1c591b7fa197681b9f7be06025ed7ca20f970452f9fd2697a8211"
+}

@@ -107,6 +107,10 @@ impl DatabaseTx<'_> {
         custody_p2_puzzle_hash(&mut *self.tx, derivation_index, is_hardened).await
     }
 
+    pub async fn is_custody_p2_puzzle_hash(&mut self, puzzle_hash: Bytes32) -> Result<bool> {
+        is_custody_p2_puzzle_hash(&mut *self.tx, puzzle_hash).await
+    }
+
     pub async fn is_p2_puzzle_hash(&mut self, puzzle_hash: Bytes32) -> Result<bool> {
         is_p2_puzzle_hash(&mut *self.tx, puzzle_hash).await
     }

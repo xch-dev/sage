@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE rust_migrations SET version = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "322ec020e29d5523ca308fb0029d1e1633a66f50125404b90da98ac5bec89086"
+}

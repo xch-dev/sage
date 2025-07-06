@@ -1,0 +1,68 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT\n            hash, name, icon_url, description, ticker, is_visible, is_sensitive_content, created_height,\n            COUNT(*) OVER () AS total\n            FROM assets\n            INNER JOIN tokens ON tokens.asset_id = assets.id\n            WHERE assets.id != 0 AND (? OR is_visible = 1)\n            AND EXISTS (\n                SELECT 1\n                FROM internal_coins\n                WHERE internal_coins.asset_id = assets.id\n            )\n            ORDER BY name DESC\n            LIMIT ?\n            OFFSET ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "hash",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "name",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "icon_url",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "description",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "ticker",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "is_visible",
+        "ordinal": 5,
+        "type_info": "Bool"
+      },
+      {
+        "name": "is_sensitive_content",
+        "ordinal": 6,
+        "type_info": "Bool"
+      },
+      {
+        "name": "created_height",
+        "ordinal": 7,
+        "type_info": "Integer"
+      },
+      {
+        "name": "total",
+        "ordinal": 8,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "da16f2f50f06cf544c083b9525f50128ae023ca72305f4442ce883937aa2b998"
+}
