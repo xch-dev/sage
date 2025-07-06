@@ -47,8 +47,6 @@ pub struct TakeOffer {
     pub fee: Amount,
     #[serde(default)]
     pub auto_submit: bool,
-    #[serde(default = "yes")]
-    pub auto_import: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

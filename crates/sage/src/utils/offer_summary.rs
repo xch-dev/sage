@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::time::Duration;
 
 use base64::{prelude::BASE64_STANDARD, Engine};
@@ -6,13 +5,11 @@ use chia::{protocol::SpendBundle, puzzles::nft::NftMetadata};
 use chia_wallet_sdk::driver::{DriverError, Offer};
 use chia_wallet_sdk::{driver::SpendContext, utils::Address};
 use indexmap::IndexMap;
-use itertools::Itertools;
 use sage_api::{Amount, OfferAssets, OfferCat, OfferNft, OfferSummary, OfferXch};
 use sage_assets::fetch_uris_with_hash;
 use tokio::time::timeout;
-use tracing::warn;
 
-use crate::utils::offer_status::{lookup_coin_creation, offer_expiration};
+use crate::utils::offer_status::offer_expiration;
 use crate::{Result, Sage};
 
 use super::{extract_nft_data, ConfirmationInfo, ExtractedNftData};
@@ -24,23 +21,9 @@ impl Sage {
         let mut ctx = SpendContext::new();
 
         let offer = Offer::from_spend_bundle(&mut ctx, &spend_bundle)?;
-        let coin_ids = offer
-            .cancellable_coin_spends()?
-            .into_iter()
-            .map(|cs| cs.coin.coin_id())
-            .collect_vec();
 
         // Get expiration information
-        let peer = self.peer_state.lock().await.acquire_peer();
-        let status = if let Some(peer) = peer {
-            let coin_creation =
-                lookup_coin_creation(&peer, coin_ids.clone(), self.network().genesis_challenge)
-                    .await?;
-            offer_expiration(&mut ctx, &offer, &coin_creation)?
-        } else {
-            warn!("No peers available to fetch coin creation information, so skipping for now");
-            offer_expiration(&mut ctx, &offer, &HashMap::new())?
-        };
+        let status = offer_expiration(&mut ctx, &offer)?;
 
         let offered_amounts = offer.offered_coins().amounts();
         let requested_amounts = offer.requested_payments().amounts();
