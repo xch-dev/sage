@@ -49,14 +49,11 @@ impl Sage {
         sqlx::query!(
             "
             DELETE FROM coins;
-            DELETE FROM assets;
-            DELETE FROM mempool_items;
+            DELETE FROM assets WHERE id != 0;
             DELETE FROM collections;
-            DELETE FROM nfts;
-            DELETE FROM dids;
-            DELETE FROM tokens;
-            DELETE FROM options;
+            DELETE FROM mempool_items;
             DELETE FROM files;
+            UPDATE blocks SET is_peak = FALSE WHERE is_peak = TRUE;
             "
         )
         .execute(&pool)

@@ -82,7 +82,7 @@ impl BlockTimeQueue {
         match peer.block_timestamp(height).await {
             Ok((header_hash, timestamp)) => {
                 self.db
-                    .insert_block(height, header_hash, Some(timestamp.try_into()?))
+                    .insert_block(height, header_hash, Some(timestamp.try_into()?), false)
                     .await?;
             }
             Err(error) => {

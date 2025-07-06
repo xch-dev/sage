@@ -12,8 +12,9 @@ impl Database {
         height: u32,
         header_hash: Bytes32,
         timestamp: Option<i64>,
+        is_peak: bool,
     ) -> Result<()> {
-        insert_block(&self.pool, height, header_hash, timestamp).await
+        insert_block(&self.pool, height, header_hash, timestamp, is_peak).await
     }
 
     pub async fn latest_peak(&self) -> Result<Option<(u32, Bytes32)>> {
@@ -28,9 +29,12 @@ impl DatabaseTx<'_> {
 }
 
 async fn insert_height(conn: impl SqliteExecutor<'_>, height: u32) -> Result<()> {
-    sqlx::query!("INSERT OR IGNORE INTO blocks (height) VALUES (?)", height)
-        .execute(conn)
-        .await?;
+    sqlx::query!(
+        "INSERT OR IGNORE INTO blocks (height, is_peak) VALUES (?, FALSE)",
+        height
+    )
+    .execute(conn)
+    .await?;
 
     Ok(())
 }
@@ -63,16 +67,18 @@ async fn insert_block(
     height: u32,
     header_hash: Bytes32,
     unix_timestamp: Option<i64>,
+    is_peak: bool,
 ) -> Result<()> {
     let header_hash = header_hash.as_ref();
     sqlx::query!(
         "
-        INSERT INTO blocks (height, timestamp, header_hash) VALUES (?, ?, ?)
-        ON CONFLICT (height) DO UPDATE SET timestamp = COALESCE(excluded.timestamp, timestamp), header_hash = excluded.header_hash
+        INSERT INTO blocks (height, timestamp, header_hash, is_peak) VALUES (?, ?, ?, ?)
+        ON CONFLICT (height) DO UPDATE SET timestamp = COALESCE(excluded.timestamp, timestamp), header_hash = excluded.header_hash, is_peak = (excluded.is_peak OR is_peak)
         ",
         height,
         unix_timestamp,
-        header_hash
+        header_hash,
+        is_peak
     )
     .execute(conn)
     .await?;
@@ -85,7 +91,7 @@ async fn latest_peak(conn: impl SqliteExecutor<'_>) -> Result<Option<(u32, Bytes
         "
         SELECT height, header_hash
         FROM blocks
-        WHERE header_hash IS NOT NULL
+        WHERE header_hash IS NOT NULL AND is_peak = TRUE
         ORDER BY height DESC
         LIMIT 1
         "
