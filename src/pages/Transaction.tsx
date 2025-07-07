@@ -19,6 +19,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 
+// TODO: come through here and reduce or eliminate xch vs cat code
 export default function Transaction() {
   const { height } = useParams();
 
@@ -28,15 +29,12 @@ export default function Transaction() {
 
   const updateTransaction = useCallback(() => {
     commands
-      .getTransactions({
-        offset: 0,
-        limit: 1,
-        ascending: true,
-        find_value: height ?? '',
+      .getTransaction({
+        height: Number(height),
       })
       .then((data) => {
-        if (data.transactions.length > 0) {
-          setTransaction(data.transactions[0]);
+        if (data.transaction) {
+          setTransaction(data.transaction);
         } else {
           setTransaction(null);
         }
@@ -180,7 +178,7 @@ function TransactionCoinKind({ coin }: TransactionCoinKindProps) {
           <div className='flex flex-col'>
             <div className='text-md text-neutral-700 dark:text-neutral-300 break-all'>
               <NumberFormat
-                value={fromMojos(coin.amount, 3)}
+                value={fromMojos(coin.amount, coin.precision)}
                 minimumFractionDigits={0}
                 maximumFractionDigits={3}
               />{' '}

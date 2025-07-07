@@ -206,6 +206,18 @@ pub struct GetMinterDidIdsResponse {
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct GetPendingTransactions {}
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct GetTransaction {
+    pub height: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct GetTransactionResponse {
+    pub transaction: Option<TransactionRecord>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct GetPendingTransactionsResponse {

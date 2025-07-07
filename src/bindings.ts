@@ -164,6 +164,9 @@ async getNftThumbnail(req: GetNftThumbnail) : Promise<GetNftThumbnailResponse> {
 async getPendingTransactions(req: GetPendingTransactions) : Promise<GetPendingTransactionsResponse> {
     return await TAURI_INVOKE("get_pending_transactions", { req });
 },
+async getTransaction(req: GetTransaction) : Promise<GetTransactionResponse> {
+    return await TAURI_INVOKE("get_transaction", { req });
+},
 async getTransactions(req: GetTransactions) : Promise<GetTransactionsResponse> {
     return await TAURI_INVOKE("get_transactions", { req });
 },
@@ -430,6 +433,8 @@ export type GetSpendableCoinCount = { asset_id: string }
 export type GetSpendableCoinCountResponse = { count: number }
 export type GetSyncStatus = Record<string, never>
 export type GetSyncStatusResponse = { balance: Amount; unit: Unit; synced_coins: number; total_coins: number; receive_address: string; burn_address: string; unhardened_derivation_index: number; hardened_derivation_index: number; checked_uris: number; total_uris: number; database_size: number }
+export type GetTransaction = { height: number }
+export type GetTransactionResponse = { transaction: TransactionRecord | null }
 export type GetTransactions = { offset: number; limit: number; ascending: boolean; find_value: string | null }
 export type GetTransactionsResponse = { transactions: TransactionRecord[]; total: number }
 export type GetVersion = Record<string, never>

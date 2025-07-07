@@ -21,10 +21,11 @@ use sage_api::{
     GetNftCollectionsResponse, GetNftData, GetNftDataResponse, GetNftIcon, GetNftIconResponse,
     GetNftResponse, GetNftThumbnail, GetNftThumbnailResponse, GetNfts, GetNftsResponse,
     GetPendingTransactions, GetPendingTransactionsResponse, GetSpendableCoinCount,
-    GetSpendableCoinCountResponse, GetSyncStatus, GetSyncStatusResponse, GetTransactions,
-    GetTransactionsResponse, GetVersion, GetVersionResponse, GetXchCoins, GetXchCoinsResponse,
-    NftCollectionRecord, NftData, NftRecord, NftSortMode as ApiNftSortMode,
-    PendingTransactionRecord, TransactionRecord, TransactionRecordCoin,
+    GetSpendableCoinCountResponse, GetSyncStatus, GetSyncStatusResponse, GetTransaction,
+    GetTransactionResponse, GetTransactions, GetTransactionsResponse, GetVersion,
+    GetVersionResponse, GetXchCoins, GetXchCoinsResponse, NftCollectionRecord, NftData, NftRecord,
+    NftSortMode as ApiNftSortMode, PendingTransactionRecord, TransactionRecord,
+    TransactionRecordCoin,
 };
 use sage_database::{
     AssetFilter, AssetKind as DatabaseAssetKind, CoinFilterMode, CoinSortMode, NftAsset,
@@ -363,6 +364,18 @@ impl Sage {
             .collect::<Result<Vec<_>>>()?;
 
         Ok(GetPendingTransactionsResponse { transactions })
+    }
+
+    pub async fn get_transaction(&self, req: GetTransaction) -> Result<GetTransactionResponse> {
+        let wallet = self.wallet()?;
+
+        let transaction = wallet.db.transaction(req.height).await?;
+
+        let transaction = transaction
+            .map(|row| self.transaction_record(row))
+            .transpose()?;
+
+        Ok(GetTransactionResponse { transaction })
     }
 
     pub async fn get_transactions(&self, req: GetTransactions) -> Result<GetTransactionsResponse> {
