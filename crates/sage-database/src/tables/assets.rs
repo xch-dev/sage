@@ -192,6 +192,10 @@ impl Database {
     pub async fn requested_nft(&self, launcher_id: Bytes32) -> Result<Option<RequestedNft>> {
         requested_nft(&self.pool, launcher_id).await
     }
+
+    pub async fn insert_did_asset(&self, did: Asset) -> Result<()> {
+        insert_did_asset(&self.pool, did).await
+    }
 }
 
 impl DatabaseTx<'_> {
@@ -341,7 +345,11 @@ async fn insert_cat(conn: &mut SqliteConnection, cat: CatAsset) -> Result<()> {
     Ok(())
 }
 
-async fn insert_singleton(conn: &mut SqliteConnection, kind: i64, singleton: Asset) -> Result<i64> {
+async fn insert_singleton(
+    conn: impl SqliteExecutor<'_>,
+    kind: i64,
+    singleton: Asset,
+) -> Result<i64> {
     let hash = singleton.hash.as_ref();
 
     let asset_id = query!(
@@ -365,11 +373,16 @@ async fn insert_singleton(conn: &mut SqliteConnection, kind: i64, singleton: Ass
         singleton.is_visible,
         singleton.created_height
     )
-    .fetch_one(&mut *conn)
+    .fetch_one(conn)
     .await?
     .id;
 
     Ok(asset_id)
+}
+
+async fn insert_did_asset(conn: impl SqliteExecutor<'_>, did: Asset) -> Result<()> {
+    insert_singleton(conn, 2, did).await?;
+    Ok(())
 }
 
 async fn insert_did(
@@ -377,7 +390,7 @@ async fn insert_did(
     did: Asset,
     coin_info: &DidCoinInfo,
 ) -> Result<()> {
-    let asset_id = insert_singleton(conn, 2, did).await?;
+    let asset_id = insert_singleton(&mut *conn, 2, did).await?;
 
     let metadata = coin_info.metadata.as_slice();
     let recovery_list_hash = coin_info.recovery_list_hash.as_deref();
@@ -434,7 +447,7 @@ async fn insert_nft(
     nft: Asset,
     coin_info: &NftCoinInfo,
 ) -> Result<()> {
-    let asset_id = insert_singleton(conn, 1, nft).await?;
+    let asset_id = insert_singleton(&mut *conn, 1, nft).await?;
 
     let collection_id = coin_info.collection_hash.as_ref();
     let minter_hash = coin_info.minter_hash.as_deref();

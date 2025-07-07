@@ -5805,6 +5805,7 @@ version = "0.10.3"
 dependencies = [
  "chia",
  "chia-wallet-sdk",
+ "hex",
  "sqlx",
  "thiserror 1.0.69",
  "tracing",
