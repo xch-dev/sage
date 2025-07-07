@@ -75,6 +75,8 @@ impl Sage {
             hardened_derivation_index: wallet.db.max_derivation_index(true).await?,
 
             // TODO: add checked_uris and total_uris
+            // SELECT COUNT(*) AS count FROM file_uris WHERE last_checked_timestamp IS NOT NULL
+            // SELECT COUNT(*) AS count FROM file_uris
             checked_uris: 0, //wallet.db.checked_uris().await?,
             total_uris: 0,   //wallet.db.total_uris().await?,
             database_size,
@@ -255,7 +257,6 @@ impl Sage {
 
     pub async fn get_cats(&self, _req: GetCats) -> Result<GetCatsResponse> {
         let wallet = self.wallet()?;
-        // TODO: finish paging
         let (cats, _) = wallet.db.cat_assets(false, 10000, 0).await?;
 
         let mut records = Vec::with_capacity(cats.len());

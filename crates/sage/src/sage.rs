@@ -410,7 +410,6 @@ impl Sage {
             .await?;
 
         if let Err(_error) = sqlx::migrate!("../../migrations").run(&pool).await {
-            // TODO: Handle migration error
             return Err(Error::DatabaseVersionTooOld);
         }
 
