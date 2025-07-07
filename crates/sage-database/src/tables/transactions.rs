@@ -231,7 +231,7 @@ async fn transactions(
         .first()
         .map_or(Ok(0), |row| row.get::<i64, _>("total_count").try_into())?;
 
-    let transactions = group_rows_into_transactions(rows)?;
+    let transactions = group_rows_into_transactions(rows, sort_ascending)?;
 
     Ok((transactions, total_count as u32))
 }
@@ -247,7 +247,10 @@ fn puzzle_hash_from_address(address: &str) -> Option<String> {
 }
 
 // Helper function to group rows by height and create Transaction structs
-fn group_rows_into_transactions(rows: Vec<sqlx::sqlite::SqliteRow>) -> Result<Vec<Transaction>> {
+fn group_rows_into_transactions(
+    rows: Vec<sqlx::sqlite::SqliteRow>,
+    sort_ascending: bool,
+) -> Result<Vec<Transaction>> {
     use std::collections::HashMap;
 
     #[allow(clippy::type_complexity)]
@@ -286,6 +289,13 @@ fn group_rows_into_transactions(rows: Vec<sqlx::sqlite::SqliteRow>) -> Result<Ve
             spent: spent_coins,
             created: created_coins,
         });
+    }
+
+    // Sort transactions by height to maintain the order from the SQL query
+    if sort_ascending {
+        transactions.sort_by_key(|tx| tx.height);
+    } else {
+        transactions.sort_by_key(|tx| std::cmp::Reverse(tx.height));
     }
 
     Ok(transactions)
