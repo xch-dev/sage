@@ -14,8 +14,6 @@ export default function useInitialization() {
       setInitialized(true);
       await commands.switchWallet();
     } catch (error: any) {
-      console.warn('onInitialize');
-
       // Check if this is a database migration, which is recoverable
       if (error.kind === 'database_migration') {
         try {
