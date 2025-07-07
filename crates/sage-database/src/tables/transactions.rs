@@ -192,9 +192,9 @@ async fn transactions(
 
     if let Some(find_value) = find_value {
         query.push(" AND (asset_name LIKE ");
-        query.push_bind(format!("%{}%", find_value));
+        query.push_bind(format!("%{find_value}%"));
         query.push(" OR ticker LIKE ");
-        query.push_bind(format!("%{}%", find_value));
+        query.push_bind(format!("%{find_value}%"));
 
         if is_valid_asset_id(&find_value) {
             query.push(" OR asset_hash = X'");
