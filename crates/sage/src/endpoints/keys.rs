@@ -1,4 +1,3 @@
-use glob::glob;
 use std::{fs, str::FromStr};
 
 use bip39::Mnemonic;
@@ -208,21 +207,11 @@ impl Sage {
         let path = self.path.join("wallets").join(req.fingerprint.to_string());
 
         if path.try_exists()? {
-            // Create pattern to match files that start with req.network
-            let pattern = path.join(format!("{}.*", req.network));
-
-            // Find all files matching the pattern
-            if let Ok(entries) = glob(
-                pattern
-                    .to_str()
-                    .expect("pattern path should be valid UTF-8"),
-            ) {
-                for path in entries.flatten() {
-                    if path.is_file() {
-                        if let Err(e) = fs::remove_file(&path) {
-                            tracing::warn!("Failed to delete file {:?}: {}", path, e);
-                        }
-                    }
+            // Delete the specific SQLite file for this network
+            let db_file = path.join(format!("{}.sqlite", req.network));
+            if db_file.try_exists()? {
+                if let Err(e) = fs::remove_file(&db_file) {
+                    tracing::warn!("Failed to delete database file {:?}: {}", db_file, e);
                 }
             }
         }

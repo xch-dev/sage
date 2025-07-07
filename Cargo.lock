@@ -5683,7 +5683,6 @@ dependencies = [
  "chia-wallet-sdk",
  "chrono",
  "clvmr",
- "glob",
  "hex",
  "hex-literal",
  "indexmap 2.10.0",
