@@ -274,6 +274,20 @@ impl Sage {
 
         let (coin_spends, did) = wallet.create_did(fee).await?;
 
+        wallet
+            .db
+            .insert_did_asset(Asset {
+                name: Some(req.name.clone()),
+                hash: did.info.launcher_id,
+                icon_url: None,
+                description: None,
+                is_sensitive_content: false,
+                is_visible: true,
+                created_height: None,
+                kind: AssetKind::Did,
+            })
+            .await?;
+
         let mut info = ConfirmationInfo::default();
         info.did_names.insert(did.info.launcher_id, req.name);
         self.transact_with(coin_spends, req.auto_submit, info).await
