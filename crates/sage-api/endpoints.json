@@ -5,6 +5,7 @@
   "generate_mnemonic": false,
   "import_key": true,
   "delete_key": false,
+  "delete_database": false,
   "rename_key": false,
   "get_key": false,
   "get_secret_key": false,

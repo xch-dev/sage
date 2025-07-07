@@ -1,3 +1,4 @@
+use glob::glob;
 use std::{fs, str::FromStr};
 
 use bip39::Mnemonic;
@@ -11,10 +12,10 @@ use chia::{
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use sage_api::{
-    DeleteKey, DeleteKeyResponse, GenerateMnemonic, GenerateMnemonicResponse, GetKey,
-    GetKeyResponse, GetKeys, GetKeysResponse, GetSecretKey, GetSecretKeyResponse, ImportKey,
-    ImportKeyResponse, KeyInfo, KeyKind, Login, LoginResponse, Logout, LogoutResponse, RenameKey,
-    RenameKeyResponse, Resync, ResyncResponse, SecretKeyInfo,
+    DeleteDatabase, DeleteDatabaseResponse, DeleteKey, DeleteKeyResponse, GenerateMnemonic,
+    GenerateMnemonicResponse, GetKey, GetKeyResponse, GetKeys, GetKeysResponse, GetSecretKey,
+    GetSecretKeyResponse, ImportKey, ImportKeyResponse, KeyInfo, KeyKind, Login, LoginResponse,
+    Logout, LogoutResponse, RenameKey, RenameKeyResponse, Resync, ResyncResponse, SecretKeyInfo,
 };
 use sage_config::{ChangeMode, DerivationMode, Wallet};
 use sage_database::{Database, Derivation};
@@ -201,6 +202,32 @@ impl Sage {
         }
 
         Ok(ImportKeyResponse { fingerprint })
+    }
+
+    pub fn delete_database(&mut self, req: DeleteDatabase) -> Result<DeleteDatabaseResponse> {
+        let path = self.path.join("wallets").join(req.fingerprint.to_string());
+
+        if path.try_exists()? {
+            // Create pattern to match files that start with req.network
+            let pattern = path.join(format!("{}.*", req.network));
+
+            // Find all files matching the pattern
+            if let Ok(entries) = glob(
+                pattern
+                    .to_str()
+                    .expect("pattern path should be valid UTF-8"),
+            ) {
+                for path in entries.flatten() {
+                    if path.is_file() {
+                        if let Err(e) = fs::remove_file(&path) {
+                            tracing::warn!("Failed to delete file {:?}: {}", path, e);
+                        }
+                    }
+                }
+            }
+        }
+
+        Ok(DeleteDatabaseResponse {})
     }
 
     pub fn delete_key(&mut self, req: DeleteKey) -> Result<DeleteKeyResponse> {

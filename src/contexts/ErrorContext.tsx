@@ -41,7 +41,6 @@ export function ErrorProvider({ children }: { children: ReactNode }) {
 
   const addError = useMemo(
     () => (error: CustomError) => {
-      console.log('addError', error);
       setErrors([...errorsRef.current, error]);
     },
     [],
@@ -105,8 +104,6 @@ export default function ErrorDialog({ error, setError }: ErrorDialogProps) {
     default:
       kind = null;
   }
-
-  console.log(error);
 
   return (
     <Dialog open={error !== null} onOpenChange={() => setError(null)}>
