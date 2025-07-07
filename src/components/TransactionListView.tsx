@@ -75,6 +75,7 @@ export function TransactionListView({
       transactionHeight: transaction.height,
       iconUrl: getIconUrl(coin),
       timestamp: transaction.timestamp,
+      precision: coin.precision,
     }));
 
     const spent: FlattenedTransaction[] = transaction.spent.map((coin) => ({
@@ -86,6 +87,7 @@ export function TransactionListView({
       transactionHeight: transaction.height,
       iconUrl: getIconUrl(coin),
       timestamp: transaction.timestamp,
+      precision: coin.precision,
     }));
 
     if (!summarized) {

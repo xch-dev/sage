@@ -101,7 +101,8 @@ SELECT
   assets.is_visible AS asset_is_visible,
   assets.is_sensitive_content AS asset_is_sensitive_content,
   assets.created_height AS asset_created_height,
-  tokens.ticker
+  tokens.ticker,
+  tokens.precision
 FROM blocks
 LEFT JOIN coins ON coins.created_height = blocks.height OR coins.spent_height = blocks.height
 INNER JOIN assets ON assets.id = coins.asset_id

@@ -20,4 +20,5 @@ pub struct TransactionRecordCoin {
     pub address_kind: AddressKind,
     #[serde(flatten)]
     pub kind: AssetKind,
+    pub precision: u8,
 }

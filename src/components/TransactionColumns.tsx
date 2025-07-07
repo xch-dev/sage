@@ -25,6 +25,7 @@ export interface FlattenedTransaction {
   itemId: string;
   displayName: string;
   timestamp: number | null;
+  precision: number;
 }
 
 export const columns: ColumnDef<FlattenedTransaction>[] = [
@@ -100,7 +101,11 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
     enableSorting: false,
     size: 120,
     cell: ({ row }) => (
-      <AmountCell amount={row.getValue('amount')} type={row.getValue('type')} />
+      <AmountCell
+        amount={row.getValue('amount')}
+        type={row.getValue('type')}
+        precision={row.original.precision}
+      />
     ),
   },
   {

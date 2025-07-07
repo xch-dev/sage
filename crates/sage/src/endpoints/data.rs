@@ -769,6 +769,7 @@ impl Sage {
             address_kind,
             amount: Amount::u64(amount),
             kind,
+            precision: transaction_coin.precision,
         })
     }
 
