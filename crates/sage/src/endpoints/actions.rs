@@ -57,9 +57,9 @@ impl Sage {
                 name: req.record.name,
                 icon_url: req.record.icon_url,
                 description: req.record.description,
-                is_sensitive_content: false, // TODO: add is_sensitive_content
+                is_sensitive_content: false,
                 is_visible: req.record.visible,
-                created_height: None, // TODO: add created_height
+                created_height: None,
                 kind: AssetKind::Token,
             },
             ticker: req.record.ticker,
