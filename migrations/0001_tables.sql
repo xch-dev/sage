@@ -16,6 +16,19 @@ CREATE TABLE rust_migrations (
   version INTEGER NOT NULL PRIMARY KEY
 );
 
+CREATE TABLE collections (
+  id INTEGER NOT NULL PRIMARY KEY,
+  hash BLOB NOT NULL UNIQUE,
+  uuid TEXT NOT NULL,
+  minter_hash BLOB NOT NULL,
+  name TEXT,
+  icon_url TEXT,
+  banner_url TEXT,
+  description TEXT,
+  is_visible BOOLEAN NOT NULL,
+  created_height INTEGER
+);
+
 /*
  * A single table that represents all kinds of supported assets on the Chia blockchain:
  * Token = 0
@@ -66,7 +79,7 @@ CREATE TABLE nfts (
   license_hash BLOB,
   edition_number INTEGER,
   edition_total INTEGER,
-  FOREIGN KEY (collection_id) REFERENCES collections(id) ON DELETE SET NULL,
+  FOREIGN KEY (collection_id) REFERENCES collections(id) ON DELETE SET DEFAULT,
   FOREIGN KEY (asset_id) REFERENCES assets(id) ON DELETE CASCADE
 );
 
@@ -258,19 +271,6 @@ CREATE TABLE mempool_spends (
   seq INTEGER NOT NULL,
   FOREIGN KEY (mempool_item_id) REFERENCES mempool_items(id) ON DELETE CASCADE,
   UNIQUE(mempool_item_id, coin_hash)
-);
-
-CREATE TABLE collections (
-  id INTEGER NOT NULL PRIMARY KEY,
-  hash BLOB NOT NULL UNIQUE,
-  uuid TEXT NOT NULL,
-  minter_hash BLOB NOT NULL,
-  name TEXT,
-  icon_url TEXT,
-  banner_url TEXT,
-  description TEXT,
-  is_visible BOOLEAN NOT NULL,
-  created_height INTEGER
 );
 
 CREATE TABLE files (
