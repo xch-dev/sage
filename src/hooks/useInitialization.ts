@@ -18,8 +18,6 @@ export default function useInitialization() {
 
       // Check if this is a database migration, which is recoverable
       if (error.kind === 'database_migration') {
-        console.log('2');
-
         try {
           await logoutAndUpdateState();
         } catch (logoutError) {
