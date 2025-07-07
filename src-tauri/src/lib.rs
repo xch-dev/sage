@@ -30,6 +30,7 @@ pub fn run() {
             commands::generate_mnemonic,
             commands::import_key,
             commands::delete_key,
+            commands::delete_database,
             commands::rename_key,
             commands::get_keys,
             commands::get_key,

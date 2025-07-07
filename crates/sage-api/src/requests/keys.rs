@@ -72,6 +72,17 @@ pub struct ImportKeyResponse {
     pub fingerprint: u32,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct DeleteDatabase {
+    pub fingerprint: u32,
+    pub network: String,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct DeleteDatabaseResponse {}
+
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct DeleteKey {

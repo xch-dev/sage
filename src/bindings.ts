@@ -26,6 +26,9 @@ async importKey(req: ImportKey) : Promise<ImportKeyResponse> {
 async deleteKey(req: DeleteKey) : Promise<DeleteKeyResponse> {
     return await TAURI_INVOKE("delete_key", { req });
 },
+async deleteDatabase(req: DeleteDatabase) : Promise<DeleteDatabaseResponse> {
+    return await TAURI_INVOKE("delete_database", { req });
+},
 async renameKey(req: RenameKey) : Promise<RenameKeyResponse> {
     return await TAURI_INVOKE("rename_key", { req });
 },
@@ -359,6 +362,8 @@ export type CombineOffers = { offers: string[] }
 export type CombineOffersResponse = { offer: string }
 export type CombineXch = { coin_ids: string[]; fee: Amount; auto_submit?: boolean }
 export type CreateDid = { name: string; fee: Amount; auto_submit?: boolean }
+export type DeleteDatabase = { fingerprint: number; network: string }
+export type DeleteDatabaseResponse = Record<string, never>
 export type DeleteKey = { fingerprint: number }
 export type DeleteKeyResponse = Record<string, never>
 export type DeleteOffer = { offer_id: string }

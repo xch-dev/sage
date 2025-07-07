@@ -11,10 +11,10 @@ use chia::{
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use sage_api::{
-    DeleteKey, DeleteKeyResponse, GenerateMnemonic, GenerateMnemonicResponse, GetKey,
-    GetKeyResponse, GetKeys, GetKeysResponse, GetSecretKey, GetSecretKeyResponse, ImportKey,
-    ImportKeyResponse, KeyInfo, KeyKind, Login, LoginResponse, Logout, LogoutResponse, RenameKey,
-    RenameKeyResponse, Resync, ResyncResponse, SecretKeyInfo,
+    DeleteDatabase, DeleteDatabaseResponse, DeleteKey, DeleteKeyResponse, GenerateMnemonic,
+    GenerateMnemonicResponse, GetKey, GetKeyResponse, GetKeys, GetKeysResponse, GetSecretKey,
+    GetSecretKeyResponse, ImportKey, ImportKeyResponse, KeyInfo, KeyKind, Login, LoginResponse,
+    Logout, LogoutResponse, RenameKey, RenameKeyResponse, Resync, ResyncResponse, SecretKeyInfo,
 };
 use sage_config::{ChangeMode, DerivationMode, Wallet};
 use sage_database::{Database, Derivation};
@@ -201,6 +201,22 @@ impl Sage {
         }
 
         Ok(ImportKeyResponse { fingerprint })
+    }
+
+    pub fn delete_database(&mut self, req: DeleteDatabase) -> Result<DeleteDatabaseResponse> {
+        let path = self.path.join("wallets").join(req.fingerprint.to_string());
+
+        if path.try_exists()? {
+            // Delete the specific SQLite file for this network
+            let db_file = path.join(format!("{}.sqlite", req.network));
+            if db_file.try_exists()? {
+                if let Err(e) = fs::remove_file(&db_file) {
+                    tracing::warn!("Failed to delete database file {:?}: {}", db_file, e);
+                }
+            }
+        }
+
+        Ok(DeleteDatabaseResponse {})
     }
 
     pub fn delete_key(&mut self, req: DeleteKey) -> Result<DeleteKeyResponse> {

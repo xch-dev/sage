@@ -72,7 +72,8 @@ import { Spoiler } from 'spoiled';
 import { commands, KeyInfo, SecretKeyInfo } from '../bindings';
 import Container from '../components/Container';
 import { useWallet } from '../contexts/WalletContext';
-import { loginAndUpdateState } from '../state';
+import { CustomError } from '../contexts/ErrorContext';
+import { loginAndUpdateState, logoutAndUpdateState } from '../state';
 
 const isMobile = platform() === 'ios' || platform() === 'android';
 
@@ -265,6 +266,7 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
   const [isRenameOpen, setRenameOpen] = useState(false);
   const [newName, setNewName] = useState('');
   const [isResyncOpen, setResyncOpen] = useState(false);
+  const [isMigrationDialogOpen, setMigrationDialogOpen] = useState(false);
 
   const deleteSelf = async () => {
     if (await promptIfEnabled()) {
@@ -321,20 +323,22 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
     }
   };
 
-  const loginSelf = (explicit: boolean) => {
+  const loginSelf = async (explicit: boolean) => {
     if (isMenuOpen && !explicit) return;
 
-    loginAndUpdateState(info.fingerprint, addError)
-      .then(() => {
-        commands
-          .getKey({})
-          .then((data) => setWallet(data.key))
-          .then(() => navigate('/wallet'))
-          .catch(addError);
-      })
-      .catch((error) => {
-        addError(error);
-      });
+    try {
+      await loginAndUpdateState(info.fingerprint, addError);
+
+      const data = await commands.getKey({});
+      setWallet(data.key);
+      navigate('/wallet');
+    } catch (error: unknown) {
+      if ((error as any).kind === 'database_migration') {
+        setMigrationDialogOpen(true);
+      } else {
+        addError(error as CustomError);
+      }
+    }
   };
 
   useEffect(() => {
@@ -635,6 +639,55 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
           <DialogFooter>
             <Button onClick={() => setDetailsOpen(false)}>
               <Trans>Done</Trans>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={isMigrationDialogOpen}
+        onOpenChange={(open) => !open && setMigrationDialogOpen(false)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              <Trans>Database Migration Required</Trans>
+            </DialogTitle>
+            <DialogDescription>
+              <Trans>
+                This wallet requires a database migration to continue. Would you
+                like to delete this wallet and start fresh, or cancel the login?
+              </Trans>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant='outline'
+              onClick={async () => {
+                setMigrationDialogOpen(false);
+                try {
+                  await logoutAndUpdateState();
+                } catch (error) {
+                  console.error('Error during logout:', error);
+                }
+              }}
+            >
+              <Trans>Cancel</Trans>
+            </Button>
+            <Button
+              variant='destructive'
+              onClick={async () => {
+                setMigrationDialogOpen(false);
+                await logoutAndUpdateState();
+                await commands.deleteDatabase({
+                  fingerprint: info.fingerprint,
+                  network: info.network_id,
+                });
+                await loginSelf(false);
+              }}
+              autoFocus
+            >
+              <Trans>Delete Wallet</Trans>
             </Button>
           </DialogFooter>
         </DialogContent>

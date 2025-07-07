@@ -14,9 +14,6 @@ export default function useInitialization() {
       setInitialized(true);
       await commands.switchWallet();
     } catch (error: any) {
-      // Always add the error to be displayed
-      addError(error);
-
       // Check if this is a database migration, which is recoverable
       if (error.kind === 'database_migration') {
         try {
@@ -25,6 +22,8 @@ export default function useInitialization() {
           console.error('Error during logout:', logoutError);
         }
       } else {
+        // Only add non-migration errors to be displayed
+        addError(error);
         console.error('Unrecoverable initialization error', error);
       }
     }
