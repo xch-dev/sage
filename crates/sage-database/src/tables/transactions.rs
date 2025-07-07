@@ -17,6 +17,7 @@ pub struct TransactionCoin {
     pub asset: Asset,
     pub p2_puzzle_hash: Option<Bytes32>,
     pub ticker: Option<String>,
+    pub precision: u8,
 }
 
 impl Database {
@@ -67,6 +68,7 @@ fn create_transaction_coin(row: &sqlx::sqlite::SqliteRow) -> Result<TransactionC
         asset,
         p2_puzzle_hash,
         ticker: row.get::<Option<String>, _>("ticker"),
+        precision: row.get::<Option<u8>, _>("precision").unwrap_or(1),
     })
 }
 
@@ -90,7 +92,8 @@ async fn transaction(conn: impl SqliteExecutor<'_>, height: u32) -> Result<Optio
             asset_icon_url,
             asset_kind,
             p2_puzzle_hash,
-            ticker
+            ticker,
+            precision
         FROM transaction_coins 
         WHERE height = ?",
         height
@@ -133,6 +136,7 @@ async fn transaction(conn: impl SqliteExecutor<'_>, height: u32) -> Result<Optio
             asset,
             p2_puzzle_hash: row.p2_puzzle_hash.convert()?,
             ticker: row.ticker,
+            precision: row.precision.unwrap_or(1) as u8,
         };
 
         // these represent whether the coins was spent and/or created in this block
@@ -180,17 +184,37 @@ async fn transactions(
             asset_kind,
             p2_puzzle_hash,
             ticker,
+            precision,
             COUNT(*) OVER() as total_count
         FROM transaction_coins
         WHERE 1=1",
     );
 
     if let Some(find_value) = find_value {
-        query.push(" AND (asset_name LIKE %");
-        query.push_bind(find_value.clone());
-        query.push("% OR ticker LIKE %");
-        query.push_bind(find_value);
-        query.push("%)");
+        query.push(" AND (asset_name LIKE ");
+        query.push_bind(format!("%{find_value}%"));
+        query.push(" OR ticker LIKE ");
+        query.push_bind(format!("%{find_value}%"));
+
+        if is_valid_asset_id(&find_value) {
+            query.push(" OR asset_hash = X'");
+            query.push(find_value.clone());
+            query.push("'");
+        }
+
+        // match on nft or did launcher id
+        if let Some(puzzle_hash) = puzzle_hash_from_address(&find_value) {
+            query.push(" OR asset_hash = X'");
+            query.push(puzzle_hash);
+            query.push("'");
+        }
+
+        // match on height if the find value is parsable as a u32
+        if let Ok(height) = find_value.parse::<u32>() {
+            query.push(" OR height = ");
+            query.push_bind(height);
+        }
+        query.push(")");
     }
 
     if sort_ascending {
@@ -210,6 +234,16 @@ async fn transactions(
     let transactions = group_rows_into_transactions(rows)?;
 
     Ok((transactions, total_count as u32))
+}
+
+pub fn is_valid_asset_id(asset_id: &str) -> bool {
+    asset_id.len() == 64 && asset_id.chars().all(|c| c.is_ascii_hexdigit())
+}
+
+fn puzzle_hash_from_address(address: &str) -> Option<String> {
+    chia_wallet_sdk::utils::Address::decode(address)
+        .map(|decoded| hex::encode(decoded.puzzle_hash.as_ref()))
+        .ok()
 }
 
 // Helper function to group rows by height and create Transaction structs

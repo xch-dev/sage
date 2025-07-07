@@ -23,6 +23,7 @@
   "get_dids": true,
   "get_minter_did_ids": true,
   "get_pending_transactions": true,
+  "get_transaction": true,
   "get_transactions": true,
   "get_nft_collections": true,
   "get_nft_collection": true,

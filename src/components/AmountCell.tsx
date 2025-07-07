@@ -7,12 +7,14 @@ import { NumberFormat } from './NumberFormat';
 interface AmountCellProps {
   amount: Amount;
   type: AssetCoinType;
+  precision?: number;
 }
 
-export function AmountCell({ amount, type }: AmountCellProps) {
+export function AmountCell({ amount, type, precision }: AmountCellProps) {
   const walletState = useWalletState();
   const amountNum = BigNumber(amount);
-  const decimals = type === 'cat' ? 3 : walletState.sync.unit.decimals;
+  const decimals =
+    precision ?? (type === 'cat' ? 3 : walletState.sync.unit.decimals);
 
   return (
     <div className='whitespace-nowrap'>
