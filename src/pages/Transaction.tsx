@@ -19,7 +19,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 
-// TODO: come through here and reduce or eliminate xch vs cat code
+// TODO: come through here and reduce or eliminate xch vs cat
 export default function Transaction() {
   const { height } = useParams();
 
@@ -144,27 +144,6 @@ function TransactionCoinKind({ coin }: TransactionCoinKindProps) {
   const walletState = useWalletState();
 
   switch (coin.type) {
-    case 'xch': {
-      return (
-        <div className='flex items-center gap-2'>
-          <img
-            alt={t`XCH`}
-            src='https://icons.dexie.space/xch.webp'
-            className='w-8 h-8'
-            aria-hidden={true}
-          />
-
-          <div className='text-md text-neutral-700 dark:text-neutral-300 break-all'>
-            <NumberFormat
-              value={fromMojos(coin.amount, walletState.sync.unit.decimals)}
-              minimumFractionDigits={0}
-              maximumFractionDigits={walletState.sync.unit.decimals}
-            />{' '}
-            <span className='break-normal'>{walletState.sync.unit.ticker}</span>
-          </div>
-        </div>
-      );
-    }
     case 'cat': {
       return (
         <div className='flex items-center gap-2'>
@@ -180,7 +159,7 @@ function TransactionCoinKind({ coin }: TransactionCoinKindProps) {
               <NumberFormat
                 value={fromMojos(coin.amount, coin.precision)}
                 minimumFractionDigits={0}
-                maximumFractionDigits={3}
+                maximumFractionDigits={coin.precision}
               />{' '}
               <span className='break-normal'>
                 {coin.ticker ?? coin.name ?? 'CAT'}
