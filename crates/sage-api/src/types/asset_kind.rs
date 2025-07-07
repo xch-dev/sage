@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum AssetKind {
     Unknown,
-    Xch,
+    Xch, //TODO: remove this and replace Cat with Token
     Launcher,
     Cat {
         asset_id: String,
