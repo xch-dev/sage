@@ -191,11 +191,15 @@ async fn transactions(
     );
 
     if let Some(find_value) = find_value {
-        query.push(" AND (asset_name LIKE %");
-        query.push_bind(find_value.clone());
-        query.push("% OR ticker LIKE %");
-        query.push_bind(find_value);
-        query.push("%)");
+        query.push(" AND (asset_name LIKE ");
+        query.push_bind(format!("%{}%", find_value));
+        query.push(" OR ticker LIKE ");
+        query.push_bind(format!("%{}%", find_value));
+        if let Ok(height) = find_value.parse::<u32>() {
+            query.push(" OR height = ");
+            query.push_bind(height);
+        }
+        query.push(")");
     }
 
     if sort_ascending {
