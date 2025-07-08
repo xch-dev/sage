@@ -12,7 +12,6 @@ pub struct CollectionRow {
     pub banner_url: Option<String>,
     pub description: Option<String>,
     pub is_visible: bool,
-    pub created_height: Option<u32>,
 }
 
 impl Database {
@@ -46,9 +45,12 @@ impl DatabaseTx<'_> {
 
 async fn collection(conn: impl SqliteExecutor<'_>, hash: Bytes32) -> Result<Option<CollectionRow>> {
     let hash_ref = hash.as_ref();
-    let row = query!("SELECT id, hash, uuid, minter_hash, name, icon_url, banner_url, description, is_visible, created_height 
+    let row = query!(
+        "SELECT id, hash, uuid, minter_hash, name, icon_url, banner_url, description, is_visible 
         FROM collections
-        WHERE hash = ?", hash_ref)
+        WHERE hash = ?",
+        hash_ref
+    )
     .fetch_optional(conn)
     .await?;
 
@@ -62,7 +64,6 @@ async fn collection(conn: impl SqliteExecutor<'_>, hash: Bytes32) -> Result<Opti
             banner_url: row.banner_url,
             description: row.description,
             is_visible: row.is_visible,
-            created_height: row.created_height.map(|h| h as u32),
         })
     })
     .transpose()
@@ -75,7 +76,7 @@ async fn collections(
     include_hidden: bool,
 ) -> Result<(Vec<CollectionRow>, u32)> {
     let rows = query!(
-        "SELECT hash, uuid, minter_hash, name, icon_url, banner_url, description, is_visible, created_height,
+        "SELECT hash, uuid, minter_hash, name, icon_url, banner_url, description, is_visible,
         COUNT(*) OVER() as total_count
         FROM collections
         WHERE ? OR is_visible = 1
@@ -105,7 +106,6 @@ async fn collections(
                 banner_url: row.banner_url,
                 description: row.description,
                 is_visible: row.is_visible,
-                created_height: row.created_height.map(|h| h as u32),
             })
         })
         .collect::<Result<Vec<_>>>()?;
@@ -117,8 +117,13 @@ async fn insert_collection(conn: impl SqliteExecutor<'_>, row: CollectionRow) ->
     let hash_ref = row.hash.as_ref();
     let minter_hash_ref = row.minter_hash.as_ref();
     query!(
-        "INSERT OR IGNORE INTO collections (hash, uuid, minter_hash, name, icon_url, banner_url, description, is_visible, created_height)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "
+        INSERT OR IGNORE INTO collections (
+            hash, uuid, minter_hash, name, icon_url,
+            banner_url, description, is_visible
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ",
         hash_ref,
         row.uuid,
         minter_hash_ref,
@@ -127,7 +132,6 @@ async fn insert_collection(conn: impl SqliteExecutor<'_>, row: CollectionRow) ->
         row.banner_url,
         row.description,
         row.is_visible,
-        row.created_height,
     )
     .execute(conn)
     .await?;

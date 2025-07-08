@@ -26,7 +26,8 @@ impl Sage {
         let cat = DexieCat::fetch(asset_id, testnet).await?;
 
         let mut tx = wallet.db.tx().await?;
-        tx.update_cat_asset(CatAsset {
+
+        tx.update_cat(CatAsset {
             asset: Asset {
                 hash: asset_id,
                 name: cat.name,
@@ -34,12 +35,13 @@ impl Sage {
                 description: cat.description,
                 is_sensitive_content: false,
                 is_visible: true,
-                created_height: None,
                 kind: AssetKind::Token,
             },
             ticker: cat.ticker,
+            precision: 3,
         })
         .await?;
+
         tx.commit().await?;
 
         Ok(ResyncCatResponse {})
@@ -51,20 +53,22 @@ impl Sage {
         let asset_id = parse_asset_id(req.record.asset_id)?;
 
         let mut tx = wallet.db.tx().await?;
-        tx.update_cat_asset(CatAsset {
+
+        tx.update_cat(CatAsset {
             asset: Asset {
                 hash: asset_id,
                 name: req.record.name,
                 icon_url: req.record.icon_url,
                 description: req.record.description,
-                is_sensitive_content: false, // TODO: add is_sensitive_content
+                is_sensitive_content: false,
                 is_visible: req.record.visible,
-                created_height: None, // TODO: add created_height
                 kind: AssetKind::Token,
             },
             ticker: req.record.ticker,
+            precision: 3,
         })
         .await?;
+
         tx.commit().await?;
 
         Ok(UpdateCatResponse {})

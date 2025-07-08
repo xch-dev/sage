@@ -13,5 +13,5 @@ pub struct DidRecord {
     pub amount: Amount,
     pub recovery_hash: Option<String>,
     pub created_height: Option<u32>,
-    pub create_transaction_id: Option<String>,
+    pub transaction_id: Option<String>,
 }

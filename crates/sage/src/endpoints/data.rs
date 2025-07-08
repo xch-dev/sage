@@ -255,8 +255,8 @@ impl Sage {
 
     pub async fn get_cats(&self, _req: GetCats) -> Result<GetCatsResponse> {
         let wallet = self.wallet()?;
-        // TODO: finish paging
-        let (cats, _) = wallet.db.cat_assets(false, 10000, 0).await?;
+
+        let cats = wallet.db.owned_cats().await?;
 
         let mut records = Vec::with_capacity(cats.len());
 
@@ -306,17 +306,18 @@ impl Sage {
 
         let mut dids = Vec::new();
 
-        for row in wallet.db.did_assets().await? {
+        for row in wallet.db.owned_dids().await? {
             dids.push(DidRecord {
                 launcher_id: Address::new(row.asset.hash, "did:chia:".to_string()).encode()?,
                 name: row.asset.name,
                 visible: row.asset.is_visible,
-                coin_id: "TODO".to_string(), // TODO: hex::encode(row.did_info.coin_id),
-                address: "TODO".to_string(), // TODO: Address::new(row.did_info.p2_puzzle_hash, self.network().prefix()).encode()?,
-                amount: Amount::Number(0),   // TODO: Amount::u64(row.did_info.amount),
+                coin_id: hex::encode(row.coin_row.coin.coin_id()),
+                address: Address::new(row.coin_row.p2_puzzle_hash, self.network().prefix())
+                    .encode()?,
+                amount: Amount::u64(row.coin_row.coin.amount),
                 recovery_hash: row.did_info.recovery_list_hash.map(hex::encode),
-                created_height: row.asset.created_height,
-                create_transaction_id: None, // TODO: did.transaction_id.map(hex::encode),
+                created_height: row.coin_row.created_height,
+                transaction_id: row.coin_row.transaction_id.map(hex::encode),
             });
         }
 
@@ -719,7 +720,7 @@ impl Sage {
             license_hash: license_hash.map(hex::encode),
             edition_number: metadata.as_ref().map(|m| m.edition_number as u32),
             edition_total: metadata.as_ref().map(|m| m.edition_total as u32),
-            created_height: nft_row.asset.created_height,
+            created_height: None, // TODO: nft_row.asset.created_height,
         })
     }
 

@@ -1,62 +1,17 @@
+mod asset;
+mod cat;
+mod did;
+
+pub use asset::*;
+pub use cat::*;
+pub use did::*;
+
 use chia::protocol::{Bytes32, Program};
 use sqlx::{query, Row, SqliteConnection, SqliteExecutor};
 
 use crate::{Convert, Database, DatabaseError, DatabaseTx, Result};
 
 pub static XCH_ASSET_HASH: Bytes32 = Bytes32::new([0; 32]);
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum AssetKind {
-    Token,
-    Nft,
-    Did,
-    Option,
-}
-
-impl Convert<AssetKind> for i64 {
-    fn convert(self) -> Result<AssetKind> {
-        Ok(match self {
-            0 => AssetKind::Token,
-            1 => AssetKind::Nft,
-            2 => AssetKind::Did,
-            3 => AssetKind::Option,
-            _ => return Err(DatabaseError::InvalidEnumVariant),
-        })
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct Asset {
-    pub hash: Bytes32,
-    pub name: Option<String>,
-    pub icon_url: Option<String>,
-    pub description: Option<String>,
-    pub is_sensitive_content: bool,
-    pub is_visible: bool,
-    pub created_height: Option<u32>,
-    pub kind: AssetKind,
-}
-
-impl Asset {
-    pub fn empty(hash: Bytes32, is_visible: bool, created_height: Option<u32>) -> Self {
-        Self {
-            hash,
-            name: None,
-            icon_url: None,
-            description: None,
-            is_sensitive_content: false,
-            is_visible,
-            created_height,
-            kind: AssetKind::Token,
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct CatAsset {
-    pub asset: Asset,
-    pub ticker: Option<String>,
-}
 
 #[derive(Debug, Clone)]
 pub struct DidAsset {
@@ -135,19 +90,6 @@ impl Database {
         set_asset_visible(&self.pool, asset_id, is_visible).await
     }
 
-    pub async fn cat_asset(&self, asset_id: Bytes32) -> Result<Option<CatAsset>> {
-        cat_asset(&self.pool, asset_id).await
-    }
-
-    pub async fn cat_assets(
-        &self,
-        include_hidden: bool,
-        limit: u32,
-        offset: u32,
-    ) -> std::result::Result<(Vec<CatAsset>, u32), DatabaseError> {
-        cat_assets(&self.pool, include_hidden, limit, offset).await
-    }
-
     pub async fn nft_asset(&self, asset_id: Bytes32) -> Result<Option<NftAsset>> {
         nft_asset(&self.pool, asset_id).await
     }
@@ -185,10 +127,6 @@ impl Database {
         did_asset(&self.pool, asset_id).await
     }
 
-    pub async fn did_assets(&self) -> Result<Vec<DidAsset>> {
-        did_assets(&self.pool).await
-    }
-
     pub async fn requested_nft(&self, launcher_id: Bytes32) -> Result<Option<RequestedNft>> {
         requested_nft(&self.pool, launcher_id).await
     }
@@ -199,14 +137,6 @@ impl Database {
 }
 
 impl DatabaseTx<'_> {
-    pub async fn update_cat_asset(&mut self, cat: CatAsset) -> Result<()> {
-        update_cat_asset(&mut self.tx, cat).await
-    }
-
-    pub async fn insert_cat(&mut self, cat: CatAsset) -> Result<()> {
-        insert_cat(&mut self.tx, cat).await
-    }
-
     pub async fn insert_did(&mut self, did: Asset, coin_info: &DidCoinInfo) -> Result<()> {
         insert_did(&mut self.tx, did, coin_info).await
     }
@@ -268,83 +198,6 @@ async fn set_asset_visible(
     Ok(())
 }
 
-async fn update_cat_asset(conn: &mut SqliteConnection, cat: CatAsset) -> Result<()> {
-    let hash = cat.asset.hash.as_ref();
-
-    let asset_id = query!(
-        "UPDATE assets 
-        SET name = ?, icon_url = ?, description = ?, is_visible = ?, is_sensitive_content = ?, created_height = ?
-        WHERE hash = ?
-        RETURNING id
-    ",
-        cat.asset.name,
-        cat.asset.icon_url,
-        cat.asset.description,
-        cat.asset.is_visible,
-        cat.asset.is_sensitive_content,
-        cat.asset.created_height,
-        hash
-    )
-    .fetch_one(&mut *conn)
-    .await?
-    .id;
-
-    query!(
-        "
-        INSERT INTO tokens (asset_id, ticker)
-        VALUES (?, ?)
-        ON CONFLICT(asset_id) DO UPDATE SET
-            ticker = excluded.ticker
-        ",
-        asset_id,
-        cat.ticker,
-    )
-    .execute(&mut *conn)
-    .await?;
-
-    Ok(())
-}
-
-async fn insert_cat(conn: &mut SqliteConnection, cat: CatAsset) -> Result<()> {
-    let hash = cat.asset.hash.as_ref();
-
-    let asset_id = query!(
-        "
-        INSERT INTO assets (hash, kind, name, icon_url, description, is_visible, is_pending)
-        VALUES (?, 0, ?, ?, ?, ?, FALSE)
-        ON CONFLICT(hash) DO UPDATE SET
-            name = COALESCE(name, excluded.name),
-            icon_url = COALESCE(icon_url, excluded.icon_url),
-            description = COALESCE(description, excluded.description),
-            is_sensitive_content = is_sensitive_content OR excluded.is_sensitive_content
-        RETURNING id
-        ",
-        hash,
-        cat.asset.name,
-        cat.asset.icon_url,
-        cat.asset.description,
-        cat.asset.is_visible
-    )
-    .fetch_one(&mut *conn)
-    .await?
-    .id;
-
-    query!(
-        "
-        INSERT INTO tokens (asset_id, ticker)
-        VALUES (?, ?)
-        ON CONFLICT(asset_id) DO UPDATE SET
-            ticker = COALESCE(ticker, excluded.ticker)
-        ",
-        asset_id,
-        cat.ticker,
-    )
-    .execute(&mut *conn)
-    .await?;
-
-    Ok(())
-}
-
 async fn insert_singleton(
     conn: impl SqliteExecutor<'_>,
     kind: i64,
@@ -354,14 +207,13 @@ async fn insert_singleton(
 
     let asset_id = query!(
         "
-        INSERT INTO assets (hash, kind, name, icon_url, description, is_sensitive_content, is_visible, is_pending, created_height)
-        VALUES (?, ?, ?, ?, ?, ?, ?, FALSE, ?)
+        INSERT INTO assets (hash, kind, name, icon_url, description, is_sensitive_content, is_visible)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(hash) DO UPDATE SET
             name = COALESCE(name, excluded.name),
             icon_url = COALESCE(icon_url, excluded.icon_url),
             description = COALESCE(description, excluded.description),
-            is_sensitive_content = is_sensitive_content OR excluded.is_sensitive_content,
-            created_height = COALESCE(MAX(created_height, excluded.created_height), created_height, excluded.created_height)
+            is_sensitive_content = is_sensitive_content OR excluded.is_sensitive_content
         RETURNING id
         ",
         hash,
@@ -371,7 +223,6 @@ async fn insert_singleton(
         singleton.description,
         singleton.is_sensitive_content,
         singleton.is_visible,
-        singleton.created_height
     )
     .fetch_one(conn)
     .await?
@@ -590,98 +441,17 @@ async fn update_nft_metadata(
     Ok(())
 }
 
-async fn cat_asset(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<Option<CatAsset>> {
-    let asset_id = asset_id.as_ref();
-
-    query!(
-        "SELECT hash, name, icon_url, description, ticker, is_visible, is_sensitive_content, created_height
-        FROM assets
-        INNER JOIN tokens ON tokens.asset_id = assets.id
-        WHERE assets.id != 0 AND hash = ?",
-        asset_id
-    )
-    .fetch_optional(conn)
-    .await?
-    .map(|row| {
-        Ok(CatAsset {
-            asset: Asset {
-                hash: row.hash.convert()?,
-                name: row.name,
-                icon_url: row.icon_url,
-                description: row.description,
-                is_visible: row.is_visible,
-                is_sensitive_content: row.is_sensitive_content,
-                created_height: row.created_height.map(TryInto::try_into).transpose()?,
-                kind: AssetKind::Token,
-            },
-            ticker: row.ticker,
-        })
-    })
-    .transpose()
-}
-
-async fn cat_assets(
-    conn: impl SqliteExecutor<'_>,
-    include_hidden: bool,
-    limit: u32,
-    offset: u32,
-) -> std::result::Result<(Vec<CatAsset>, u32), DatabaseError> {
-    let rows = query!(
-        "
-        SELECT
-            hash, name, icon_url, description, ticker, is_visible, is_sensitive_content, created_height,
-            COUNT(*) OVER () AS total
-            FROM assets
-            INNER JOIN tokens ON tokens.asset_id = assets.id
-            WHERE assets.id != 0 AND (? OR is_visible = 1)
-            AND EXISTS (
-                SELECT 1
-                FROM internal_coins
-                WHERE internal_coins.asset_id = assets.id
-            )
-            ORDER BY name DESC
-            LIMIT ?
-            OFFSET ?",
-        include_hidden,
-        limit,
-        offset
-    )
-    .fetch_all(conn)
-    .await?;
-
-    let total_count = rows.first().map_or(Ok(0), |row| row.total.try_into())?;
-
-    let cats = rows
-        .into_iter()
-        .map(|row| {
-            Ok(CatAsset {
-                asset: Asset {
-                    hash: row.hash.convert()?,
-                    name: row.name,
-                    icon_url: row.icon_url,
-                    description: row.description,
-                    is_visible: row.is_visible,
-                    is_sensitive_content: row.is_sensitive_content,
-                    created_height: row.created_height.map(TryInto::try_into).transpose()?,
-                    kind: AssetKind::Token,
-                },
-                ticker: row.ticker,
-            })
-        })
-        .collect::<std::result::Result<Vec<CatAsset>, DatabaseError>>()?;
-
-    Ok((cats, total_count))
-}
-
 async fn nft_asset(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<Option<NftAsset>> {
     let asset_id = asset_id.as_ref();
 
     query!(
         "SELECT        
-            assets.hash AS asset_hash, assets.name, assets.icon_url, assets.description, is_sensitive_content,
-            assets.is_visible, assets.created_height, collections.hash AS 'collection_hash?', collections.name AS 'collection_name?', 
-            nfts.minter_hash, owner_hash, metadata, metadata_updater_puzzle_hash, royalty_puzzle_hash, royalty_basis_points,
-            data_hash, metadata_hash, license_hash, edition_number, edition_total
+            assets.hash AS asset_hash, assets.name, assets.icon_url,
+            assets.description, is_sensitive_content, assets.is_visible,
+            collections.hash AS 'collection_hash?', collections.name AS 'collection_name?', 
+            nfts.minter_hash, owner_hash, metadata, metadata_updater_puzzle_hash,
+            royalty_puzzle_hash, royalty_basis_points, data_hash, metadata_hash, license_hash,
+            edition_number, edition_total
         FROM assets
         INNER JOIN nfts ON nfts.asset_id = assets.id
         LEFT JOIN collections ON collections.id = nfts.collection_id
@@ -699,7 +469,6 @@ async fn nft_asset(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<O
                 description: row.description,
                 is_sensitive_content: row.is_sensitive_content,
                 is_visible: row.is_visible,
-                created_height: row.created_height.map(TryInto::try_into).transpose()?,
                 kind: AssetKind::Nft,
             },
             nft_info: NftCoinInfo {
@@ -733,15 +502,17 @@ async fn nft_assets(
 ) -> std::result::Result<(Vec<NftAsset>, u32), DatabaseError> {
     let mut query = sqlx::QueryBuilder::new(
         "SELECT        
-            assets.hash AS asset_hash, assets.name, assets.icon_url, assets.description, is_sensitive_content,
-            assets.is_visible, assets.created_height, collections.hash AS collection_hash, collections.name AS collection_name, 
-            nfts.minter_hash, owner_hash, metadata, metadata_updater_puzzle_hash, royalty_puzzle_hash, royalty_basis_points,
-            data_hash, metadata_hash, license_hash, edition_number, edition_total,
+            assets.hash AS asset_hash, assets.name, assets.icon_url,
+            assets.description, is_sensitive_content, assets.is_visible,
+            collections.hash AS collection_hash, collections.name AS collection_name, 
+            nfts.minter_hash, owner_hash, metadata, metadata_updater_puzzle_hash,
+            royalty_puzzle_hash, royalty_basis_points, data_hash, metadata_hash, license_hash,
+            edition_number, edition_total,
             COUNT(*) OVER() as total_count	
         FROM assets
         INNER JOIN nfts ON nfts.asset_id = assets.id
         LEFT JOIN collections ON collections.id = nfts.collection_id
-        WHERE 1=1 "
+        WHERE 1=1 ",
     );
 
     if let Some(name_search) = name_search {
@@ -784,10 +555,10 @@ async fn nft_assets(
 
     match sort_mode {
         NftSortMode::Recent => {
-            query.push("assets.is_pending DESC, assets.created_height DESC");
+            query.push("assets.created_height DESC");
         }
         NftSortMode::Name => {
-            query.push("assets.is_pending DESC, assets.name ASC, nfts.edition_number ASC");
+            query.push("assets.name ASC, nfts.edition_number ASC");
         }
     }
 
@@ -810,10 +581,6 @@ async fn nft_assets(
                     description: row.get::<Option<String>, _>("description"),
                     is_visible: row.get::<bool, _>("is_visible"),
                     is_sensitive_content: row.get::<bool, _>("is_sensitive_content"),
-                    created_height: row
-                        .get::<Option<i64>, _>("created_height")
-                        .map(TryInto::try_into)
-                        .transpose()?,
                     kind: AssetKind::Nft,
                 },
                 nft_info: NftCoinInfo {
@@ -890,12 +657,15 @@ async fn did_asset(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<O
     let asset_id = asset_id.as_ref();
 
     query!(
-        "SELECT assets.hash AS asset_hash, assets.name, assets.icon_url, assets.description, assets.is_visible, 
-            assets.is_sensitive_content, assets.created_height, dids.metadata, dids.recovery_list_hash, 
-            dids.num_verifications_required
+        "
+        SELECT
+            assets.hash AS asset_hash, assets.name, assets.icon_url,
+            assets.description, assets.is_visible,  assets.is_sensitive_content,
+            dids.metadata, dids.recovery_list_hash, dids.num_verifications_required
         FROM assets
         INNER JOIN dids ON dids.asset_id = assets.id
-        WHERE hash = ?",
+        WHERE hash = ?
+        ",
         asset_id
     )
     .fetch_optional(conn)
@@ -909,7 +679,6 @@ async fn did_asset(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<O
                 description: row.description,
                 is_visible: row.is_visible,
                 is_sensitive_content: row.is_sensitive_content,
-                created_height: row.created_height.map(TryInto::try_into).transpose()?,
                 kind: AssetKind::Did,
             },
             did_info: DidCoinInfo {
@@ -920,38 +689,6 @@ async fn did_asset(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<O
         })
     })
     .transpose()
-}
-
-async fn did_assets(conn: impl SqliteExecutor<'_>) -> Result<Vec<DidAsset>> {
-    query!(
-        "SELECT assets.hash AS asset_hash, assets.name, assets.icon_url, assets.description, assets.is_visible, 
-            assets.is_sensitive_content, assets.created_height, dids.metadata, dids.recovery_list_hash, dids.num_verifications_required
-        FROM assets
-        INNER JOIN dids ON dids.asset_id = assets.id"
-    )
-    .fetch_all(conn)
-    .await?
-    .into_iter()
-    .map(|row| {
-        Ok(DidAsset {
-            asset: Asset {
-                hash: row.asset_hash.convert()?,
-                name: row.name,
-                icon_url: row.icon_url,
-                description: row.description,
-                is_visible: row.is_visible,
-                is_sensitive_content: row.is_sensitive_content,
-                created_height: row.created_height.map(TryInto::try_into).transpose()?,
-                kind: AssetKind::Did,
-            },
-            did_info: DidCoinInfo {
-                metadata: Program::from(row.metadata),
-                recovery_list_hash: row.recovery_list_hash.map(Convert::convert).transpose()?,
-                num_verifications_required: row.num_verifications_required.convert()?,
-            },
-        })
-    })
-    .collect()
 }
 
 async fn requested_nft(

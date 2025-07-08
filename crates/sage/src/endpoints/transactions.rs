@@ -178,6 +178,7 @@ impl Sage {
 
         let (coin_spends, asset_id) = wallet.issue_cat(amount, fee, None).await?;
         let mut tx = wallet.db.tx().await?;
+
         tx.insert_cat(CatAsset {
             asset: Asset {
                 hash: asset_id,
@@ -186,10 +187,10 @@ impl Sage {
                 description: None,
                 is_sensitive_content: false,
                 is_visible: true,
-                created_height: None,
                 kind: AssetKind::Token,
             },
             ticker: Some(req.ticker),
+            precision: 3,
         })
         .await?;
         tx.commit().await?;
@@ -283,7 +284,6 @@ impl Sage {
                 description: None,
                 is_sensitive_content: false,
                 is_visible: true,
-                created_height: None,
                 kind: AssetKind::Did,
             })
             .await?;

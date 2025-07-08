@@ -23,5 +23,5 @@ CREATE INDEX idx_peaks ON blocks(is_peak DESC, height DESC);
 
 /* search and ordering indices */
 CREATE INDEX idx_tokens_ticker ON tokens(ticker);
-CREATE INDEX idx_assets_search_order ON assets(is_visible DESC, is_pending DESC, name ASC, created_height DESC);
+CREATE INDEX idx_assets_search_order ON assets(is_visible DESC, name ASC);
 CREATE INDEX idx_assets_name ON assets(name);
