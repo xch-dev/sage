@@ -113,8 +113,7 @@ pub async fn insert_puzzle(
             tx.insert_did(info.launcher_id, &coin_info).await?;
 
             if coin_state.spent_height.is_none() {
-                tx.update_did_coin_info(info.launcher_id, &coin_info)
-                    .await?;
+                tx.update_did(info.launcher_id, &coin_info).await?;
             }
 
             if let Some(clawback) = clawback {

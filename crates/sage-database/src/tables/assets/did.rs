@@ -1,9 +1,14 @@
-use chia::protocol::{Bytes32, Coin};
+use chia::protocol::{Bytes32, Coin, Program};
 use sqlx::query;
 
-use crate::{
-    Asset, AssetKind, CoinKind, CoinRow, Convert, Database, DatabaseTx, DidCoinInfo, Result,
-};
+use crate::{Asset, AssetKind, CoinKind, CoinRow, Convert, Database, DatabaseTx, Result};
+
+#[derive(Debug, Clone)]
+pub struct DidCoinInfo {
+    pub metadata: Program,
+    pub recovery_list_hash: Option<Bytes32>,
+    pub num_verifications_required: u64,
+}
 
 #[derive(Debug, Clone)]
 pub struct DidRow {
@@ -101,6 +106,32 @@ impl DatabaseTx<'_> {
             metadata,
             recovery_list_hash,
             num_verifications_required
+        )
+        .execute(&mut *self.tx)
+        .await?;
+
+        Ok(())
+    }
+
+    pub async fn update_did(&mut self, hash: Bytes32, coin_info: &DidCoinInfo) -> Result<()> {
+        let hash = hash.as_ref();
+        let metadata = coin_info.metadata.as_slice();
+        let recovery_list_hash = coin_info.recovery_list_hash.as_deref();
+        let num_verifications_required: i64 = coin_info.num_verifications_required.try_into()?;
+
+        query!(
+            "
+            UPDATE dids
+            SET
+                metadata = ?,
+                recovery_list_hash = ?,
+                num_verifications_required = ?
+            WHERE asset_id = (SELECT id FROM assets WHERE hash = ?)
+            ",
+            metadata,
+            recovery_list_hash,
+            num_verifications_required,
+            hash
         )
         .execute(&mut *self.tx)
         .await?;

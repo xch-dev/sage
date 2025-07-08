@@ -70,6 +70,16 @@ impl Database {
         Ok(())
     }
 
+    pub async fn asset_kind(&self, hash: Bytes32) -> Result<Option<AssetKind>> {
+        let hash = hash.as_ref();
+
+        query!("SELECT kind FROM assets WHERE hash = ?", hash)
+            .fetch_optional(&self.pool)
+            .await?
+            .map(|row| row.kind.convert())
+            .transpose()
+    }
+
     pub async fn asset(&self, hash: Bytes32) -> Result<Option<Asset>> {
         let hash = hash.as_ref();
 
