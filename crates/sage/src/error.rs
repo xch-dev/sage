@@ -169,6 +169,9 @@ pub enum Error {
     #[error("Missing coin: {0}")]
     MissingCoin(Bytes32),
 
+    #[error("Missing CAT: {0}")]
+    MissingCat(Bytes32),
+
     #[error("Missing DID: {0}")]
     MissingDid(Bytes32),
 
@@ -252,6 +255,7 @@ impl Error {
             | Self::MissingCatCoin(..)
             | Self::MissingDidCoin(..)
             | Self::MissingNftCoin(..)
+            | Self::MissingCat(..)
             | Self::MissingDid(..)
             | Self::MissingNft(..)
             | Self::MissingOffer(..) => ErrorKind::NotFound,

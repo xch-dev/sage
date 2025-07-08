@@ -116,12 +116,17 @@ async fn offer_assets(
     let offer_id_ref = offer_id.as_ref();
     let kind_u8 = kind as u8;
     let rows = sqlx::query!(
-        "SELECT offers.hash as offer_id, assets.hash as asset_id, amount, royalty, is_requested, 
-        assets.description, assets.is_sensitive_content, assets.is_visible, assets.created_height, assets.icon_url, assets.name
+        "
+        SELECT
+            offers.hash as offer_id, assets.hash as asset_id,
+            amount, royalty, is_requested, 
+            assets.description, assets.is_sensitive_content,
+            assets.is_visible, assets.icon_url, assets.name
         FROM offer_assets 
         INNER JOIN assets ON offer_assets.asset_id = assets.id
         INNER JOIN offers ON offer_assets.offer_id = offers.id
-        WHERE offer_id = ? AND kind = ?",
+        WHERE offer_id = ? AND kind = ?
+        ",
         offer_id_ref,
         kind_u8
     )
@@ -137,7 +142,6 @@ async fn offer_assets(
                     description: row.description,
                     is_sensitive_content: row.is_sensitive_content,
                     is_visible: row.is_visible,
-                    created_height: row.created_height.map(|h| h as u32),
                     icon_url: row.icon_url,
                     kind,
                     name: row.name,
@@ -156,12 +160,17 @@ async fn offer_xch_assets(
 ) -> Result<Vec<OfferedAsset>> {
     let offer_id_ref = offer_id.as_ref();
     let rows = sqlx::query!(
-        "SELECT offers.hash as offer_id, assets.hash as asset_id, amount, royalty, is_requested, 
-        assets.description, assets.is_sensitive_content, assets.is_visible, assets.created_height, assets.icon_url, assets.name
+        "
+        SELECT
+            offers.hash as offer_id, assets.hash as asset_id,
+            amount, royalty, is_requested, 
+            assets.description, assets.is_sensitive_content,
+            assets.is_visible, assets.icon_url, assets.name
         FROM offer_assets 
         INNER JOIN assets ON offer_assets.asset_id = assets.id
         INNER JOIN offers ON offer_assets.offer_id = offers.id
-        WHERE asset_id = 0 AND offer_id = ?",
+        WHERE asset_id = 0 AND offer_id = ?
+        ",
         offer_id_ref,
     )
     .fetch_all(conn)
@@ -176,7 +185,6 @@ async fn offer_xch_assets(
                     description: row.description,
                     is_sensitive_content: row.is_sensitive_content,
                     is_visible: row.is_visible,
-                    created_height: row.created_height.map(|h| h as u32),
                     icon_url: row.icon_url,
                     kind: AssetKind::Token,
                     name: row.name,

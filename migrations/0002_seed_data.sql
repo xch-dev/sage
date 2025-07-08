@@ -1,5 +1,5 @@
-INSERT INTO assets (id, kind, hash, name, description, icon_url, is_visible, is_pending, created_height) 
-VALUES (0, 0, x'0000000000000000000000000000000000000000000000000000000000000000', 'Chia', 'The primary asset on the Chia blockchain.', 'https://icons.dexie.space/xch.webp', TRUE, FALSE, NULL);
+INSERT INTO assets (id, kind, hash, name, description, icon_url, is_visible) 
+VALUES (0, 0, x'0000000000000000000000000000000000000000000000000000000000000000', 'Chia', 'The primary asset on the Chia blockchain.', 'https://icons.dexie.space/xch.webp', TRUE);
 
 INSERT INTO tokens (id, asset_id, ticker, precision)
 VALUES (0, 0, 'XCH', 12);

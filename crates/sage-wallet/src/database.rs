@@ -7,7 +7,7 @@ use chia::{
     puzzles::{nft::NftMetadata, LineageProof},
 };
 use chia_wallet_sdk::driver::NftInfo;
-use sage_database::{Asset, CatAsset, Database, DatabaseTx, DidCoinInfo, NftCoinInfo};
+use sage_database::{Asset, AssetKind, CatAsset, Database, DatabaseTx, DidCoinInfo, NftCoinInfo};
 use tracing::warn;
 
 use crate::{compute_nft_info, fetch_nft_did, ChildKind, Transaction, WalletError, WalletPeer};
@@ -60,8 +60,17 @@ pub async fn insert_puzzle(
             tx.insert_lineage_proof(coin_id, lineage_proof).await?;
 
             tx.insert_cat(CatAsset {
-                asset: Asset::empty(info.asset_id, true, None),
+                asset: Asset {
+                    hash: info.asset_id,
+                    name: None,
+                    icon_url: None,
+                    description: None,
+                    is_sensitive_content: false,
+                    is_visible: true,
+                    kind: AssetKind::Token,
+                },
                 ticker: None,
+                precision: 3,
             })
             .await?;
 
@@ -90,15 +99,21 @@ pub async fn insert_puzzle(
                 num_verifications_required: info.num_verifications_required,
             };
 
-            tx.insert_did(
-                Asset::empty(info.launcher_id, true, coin_state.created_height),
-                &coin_info,
-            )
+            tx.insert_asset(Asset {
+                hash: info.launcher_id,
+                name: None,
+                icon_url: None,
+                description: None,
+                is_sensitive_content: false,
+                is_visible: true,
+                kind: AssetKind::Did,
+            })
             .await?;
 
+            tx.insert_did(info.launcher_id, &coin_info).await?;
+
             if coin_state.spent_height.is_none() {
-                tx.update_did_coin_info(info.launcher_id, &coin_info)
-                    .await?;
+                tx.update_did(info.launcher_id, &coin_info).await?;
             }
 
             if let Some(clawback) = clawback {
@@ -146,7 +161,16 @@ pub async fn insert_nft(
             .await?;
     }
 
-    let mut asset = Asset::empty(info.launcher_id, true, coin_state.created_height);
+    let mut asset = Asset {
+        hash: info.launcher_id,
+        name: None,
+        icon_url: None,
+        description: None,
+        is_sensitive_content: false,
+        is_visible: true,
+        kind: AssetKind::Nft,
+    };
+
     let mut coin_info = NftCoinInfo {
         collection_hash: Bytes32::default(),
         collection_name: None,
@@ -177,11 +201,12 @@ pub async fn insert_nft(
         }
     };
 
-    tx.insert_nft(asset, &coin_info).await?;
+    tx.insert_asset(asset).await?;
+
+    tx.insert_nft(info.launcher_id, &coin_info).await?;
 
     if coin_state.spent_height.is_none() || lineage_proof.is_none() {
-        tx.update_nft_coin_info(info.launcher_id, &coin_info)
-            .await?;
+        tx.update_nft(info.launcher_id, &coin_info).await?;
     }
 
     if lineage_proof.is_some() {

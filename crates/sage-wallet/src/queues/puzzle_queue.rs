@@ -65,11 +65,7 @@ impl PuzzleQueue {
             return Ok(());
         }
 
-        debug!(
-            "Syncing coins for wallet {}: {:?}",
-            self.db.custody_p2_puzzle_hashes().await?[0],
-            coin_states
-        );
+        debug!("Syncing {} coins", coin_states.len());
 
         let mut futures = FuturesUnordered::new();
         let mut remaining = coin_states.into_iter();

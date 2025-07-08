@@ -51,9 +51,6 @@ fn create_transaction_coin(row: &sqlx::sqlite::SqliteRow) -> Result<TransactionC
         description: row.get::<Option<String>, _>("asset_description"),
         is_sensitive_content: row.get::<bool, _>("asset_is_sensitive_content"),
         is_visible: row.get::<bool, _>("asset_is_visible"),
-        created_height: row
-            .get::<Option<i64>, _>("asset_created_height")
-            .map(|h| h as u32),
         kind: row
             .get::<Option<i64>, _>("asset_kind")
             .map(Convert::convert)
@@ -75,25 +72,10 @@ fn create_transaction_coin(row: &sqlx::sqlite::SqliteRow) -> Result<TransactionC
 async fn transaction(conn: impl SqliteExecutor<'_>, height: u32) -> Result<Option<Transaction>> {
     let rows = sqlx::query!(
         "SELECT 	
-            height,
-            timestamp,
-            coin_id,
-            puzzle_hash,
-            parent_coin_hash,
-            amount,
-            is_created_in_block,
-            is_spent_in_block,
-            asset_hash,
-            asset_description,
-            asset_is_visible,
-            asset_is_sensitive_content,
-            asset_created_height,
-            asset_name,
-            asset_icon_url,
-            asset_kind,
-            p2_puzzle_hash,
-            ticker,
-            precision
+            height, timestamp, coin_id, puzzle_hash, parent_coin_hash, amount,
+            is_created_in_block, is_spent_in_block, asset_hash, asset_description,
+            asset_is_visible, asset_is_sensitive_content, asset_name, asset_icon_url,
+            asset_kind, p2_puzzle_hash, ticker, precision
         FROM transaction_coins 
         WHERE height = ?",
         height
@@ -127,7 +109,6 @@ async fn transaction(conn: impl SqliteExecutor<'_>, height: u32) -> Result<Optio
             description: row.asset_description,
             is_sensitive_content: row.asset_is_sensitive_content,
             is_visible: row.asset_is_visible,
-            created_height: row.asset_created_height.map(|h| h as u32),
             kind: row.asset_kind.convert()?,
         };
 
@@ -166,25 +147,10 @@ async fn transactions(
 ) -> Result<(Vec<Transaction>, u32)> {
     let mut query = sqlx::QueryBuilder::new(
         "SELECT 	
-            height,
-            timestamp,
-            coin_id,
-            puzzle_hash,
-            parent_coin_hash,
-            amount,
-            is_created_in_block,
-            is_spent_in_block,
-            asset_hash,
-            asset_description,
-            asset_is_visible,
-            asset_is_sensitive_content,
-            asset_created_height,
-            asset_name,
-            asset_icon_url,
-            asset_kind,
-            p2_puzzle_hash,
-            ticker,
-            precision,
+            height, timestamp, coin_id, puzzle_hash, parent_coin_hash, amount,
+            is_created_in_block, is_spent_in_block, asset_hash, asset_description,
+            asset_is_visible, asset_is_sensitive_content, asset_name, asset_icon_url,
+            asset_kind, p2_puzzle_hash, ticker, precision,
             COUNT(*) OVER() as total_count
         FROM transaction_coins
         WHERE 1=1",

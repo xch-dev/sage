@@ -47,6 +47,12 @@ impl Convert<u128> for Vec<u8> {
     }
 }
 
+impl Convert<u8> for i64 {
+    fn convert(self) -> Result<u8> {
+        Ok(self.try_into()?)
+    }
+}
+
 impl Convert<u16> for i64 {
     fn convert(self) -> Result<u16> {
         Ok(self.try_into()?)

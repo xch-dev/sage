@@ -5,11 +5,11 @@ use crate::{
 use base64::{prelude::BASE64_STANDARD, Engine};
 use chia::{
     clvm_traits::{FromClvm, ToClvm},
-    protocol::{Bytes32, Program},
+    protocol::Bytes32,
     puzzles::nft::NftMetadata,
 };
 use chia_puzzles::{SETTLEMENT_PAYMENT_HASH, SINGLETON_LAUNCHER_HASH};
-use chia_wallet_sdk::{driver::Nft, utils::Address};
+use chia_wallet_sdk::utils::Address;
 use clvmr::Allocator;
 use sage_api::{
     AddressKind, Amount, AssetKind, CatRecord, CheckAddress, CheckAddressResponse, CoinRecord,
@@ -28,8 +28,8 @@ use sage_api::{
     TransactionRecordCoin,
 };
 use sage_database::{
-    AssetFilter, AssetKind as DatabaseAssetKind, CoinFilterMode, CoinSortMode, NftAsset,
-    NftGroupSearch, NftSortMode, Transaction, TransactionCoin,
+    AssetFilter, AssetKind as DatabaseAssetKind, CoinFilterMode, CoinSortMode, NftGroupSearch,
+    NftRow, NftSortMode, Transaction, TransactionCoin,
 };
 use sage_wallet::WalletError;
 
@@ -158,8 +158,8 @@ impl Sage {
                 amount: Amount::u64(row.coin.amount),
                 created_height: row.created_height,
                 spent_height: row.spent_height,
-                transaction_id: row.transaction_id.map(hex::encode),
-                offer_id: row.offer_id.map(hex::encode),
+                transaction_id: row.mempool_item_hash.map(hex::encode),
+                offer_id: row.offer_hash.map(hex::encode),
                 created_timestamp: row.created_timestamp,
                 spent_timestamp: row.spent_timestamp,
             });
@@ -199,8 +199,8 @@ impl Sage {
                 amount: Amount::u64(row.coin.amount),
                 created_height: row.created_height,
                 spent_height: row.spent_height,
-                transaction_id: row.transaction_id.map(hex::encode),
-                offer_id: row.offer_id.map(hex::encode),
+                transaction_id: row.mempool_item_hash.map(hex::encode),
+                offer_id: row.offer_hash.map(hex::encode),
                 created_timestamp: row.created_timestamp,
                 spent_timestamp: row.spent_timestamp,
             });
@@ -245,8 +245,8 @@ impl Sage {
                 amount: Amount::u64(row.coin.amount),
                 created_height: row.created_height,
                 spent_height: row.spent_height,
-                transaction_id: row.transaction_id.map(hex::encode),
-                offer_id: row.offer_id.map(hex::encode),
+                transaction_id: row.mempool_item_hash.map(hex::encode),
+                offer_id: row.offer_hash.map(hex::encode),
                 created_timestamp: row.created_timestamp,
                 spent_timestamp: row.spent_timestamp,
             });
@@ -257,7 +257,8 @@ impl Sage {
 
     pub async fn get_cats(&self, _req: GetCats) -> Result<GetCatsResponse> {
         let wallet = self.wallet()?;
-        let (cats, _) = wallet.db.cat_assets(false, 10000, 0).await?;
+
+        let cats = wallet.db.owned_cats().await?;
 
         let mut records = Vec::with_capacity(cats.len());
 
@@ -307,17 +308,17 @@ impl Sage {
 
         let mut dids = Vec::new();
 
-        for row in wallet.db.did_assets().await? {
+        for row in wallet.db.owned_dids().await? {
             dids.push(DidRecord {
                 launcher_id: Address::new(row.asset.hash, "did:chia:".to_string()).encode()?,
                 name: row.asset.name,
                 visible: row.asset.is_visible,
-                coin_id: "TODO".to_string(), // TODO: hex::encode(row.did_info.coin_id),
-                address: "TODO".to_string(), // TODO: Address::new(row.did_info.p2_puzzle_hash, self.network().prefix()).encode()?,
-                amount: Amount::Number(0),   // TODO: Amount::u64(row.did_info.amount),
+                coin_id: hex::encode(row.coin_row.coin.coin_id()),
+                address: Address::new(row.coin_row.p2_puzzle_hash, self.network().prefix())
+                    .encode()?,
+                amount: Amount::u64(row.coin_row.coin.amount),
                 recovery_hash: row.did_info.recovery_list_hash.map(hex::encode),
-                created_height: row.asset.created_height,
-                create_transaction_id: None, // TODO: did.transaction_id.map(hex::encode),
+                created_height: row.coin_row.created_height,
             });
         }
 
@@ -516,7 +517,7 @@ impl Sage {
 
         let (nfts, total) = wallet
             .db
-            .nft_assets(
+            .owned_nfts(
                 req.name,
                 group,
                 sort_mode,
@@ -526,14 +527,8 @@ impl Sage {
             )
             .await?;
 
-        // TODO - we should not need the secondary fetches here any longer
-        for nft_row in nfts {
-            let Some(nft) = wallet.db.nft(nft_row.asset.hash).await? else {
-                continue;
-            };
-
-            let collection_name = nft_row.nft_info.collection_name.clone();
-            records.push(self.nft_record(nft_row, nft, collection_name)?);
+        for row in nfts {
+            records.push(self.nft_record(row)?);
         }
 
         Ok(GetNftsResponse {
@@ -547,18 +542,12 @@ impl Sage {
 
         let nft_id = parse_nft_id(req.nft_id)?;
 
-        let Some(nft_row) = wallet.db.nft_asset(nft_id).await? else {
+        let Some(row) = wallet.db.owned_nft(nft_id).await? else {
             return Ok(GetNftResponse { nft: None });
         };
-
-        let Some(nft) = wallet.db.nft(nft_id).await? else {
-            return Ok(GetNftResponse { nft: None });
-        };
-
-        let collection_name = nft_row.nft_info.collection_name.clone();
 
         Ok(GetNftResponse {
-            nft: Some(self.nft_record(nft_row, nft, collection_name)?),
+            nft: Some(self.nft_record(row)?),
         })
     }
 
@@ -664,14 +653,9 @@ impl Sage {
         })
     }
 
-    fn nft_record(
-        &self,
-        nft_row: NftAsset,
-        nft: Nft<Program>,
-        collection_name: Option<String>,
-    ) -> Result<NftRecord> {
+    fn nft_record(&self, row: NftRow) -> Result<NftRecord> {
         let mut allocator = Allocator::new();
-        let metadata_ptr = nft.info.metadata.to_clvm(&mut allocator)?;
+        let metadata_ptr = row.nft_info.metadata.to_clvm(&mut allocator)?;
         let metadata = NftMetadata::from_clvm(&allocator, metadata_ptr).ok();
 
         let data_hash = metadata.as_ref().and_then(|m| m.data_hash);
@@ -679,29 +663,32 @@ impl Sage {
         let license_hash = metadata.as_ref().and_then(|m| m.license_hash);
 
         Ok(NftRecord {
-            launcher_id: Address::new(nft_row.asset.hash, "nft".to_string()).encode()?,
+            launcher_id: Address::new(row.asset.hash, "nft".to_string()).encode()?,
             collection_id: Some(
-                Address::new(nft_row.nft_info.collection_hash, "col".to_string()).encode()?,
+                Address::new(row.nft_info.collection_hash, "col".to_string()).encode()?,
             ),
-            collection_name,
-            minter_did: nft_row
+            collection_name: row.nft_info.collection_name,
+            minter_did: row
                 .nft_info
                 .minter_hash
                 .map(|did| Address::new(did, "did:chia:".to_string()).encode())
                 .transpose()?,
-            owner_did: nft_row
+            owner_did: row
                 .nft_info
                 .owner_hash
                 .map(|did| Address::new(did, "did:chia:".to_string()).encode())
                 .transpose()?,
-            visible: nft_row.asset.is_visible,
-            name: nft_row.asset.name,
-            sensitive_content: nft_row.asset.is_sensitive_content,
-            coin_id: hex::encode(nft.coin.coin_id()),
-            address: Address::new(nft.info.p2_puzzle_hash, self.network().prefix()).encode()?,
-            royalty_address: Address::new(nft.info.royalty_puzzle_hash, self.network().prefix())
-                .encode()?,
-            royalty_ten_thousandths: nft.info.royalty_basis_points,
+            visible: row.asset.is_visible,
+            name: row.asset.name,
+            sensitive_content: row.asset.is_sensitive_content,
+            coin_id: hex::encode(row.coin_row.coin.coin_id()),
+            address: Address::new(row.coin_row.p2_puzzle_hash, self.network().prefix()).encode()?,
+            royalty_address: Address::new(
+                row.nft_info.royalty_puzzle_hash,
+                self.network().prefix(),
+            )
+            .encode()?,
+            royalty_ten_thousandths: row.nft_info.royalty_basis_points,
             data_uris: metadata
                 .as_ref()
                 .map(|m| m.data_uris.clone())
@@ -719,7 +706,7 @@ impl Sage {
             license_hash: license_hash.map(hex::encode),
             edition_number: metadata.as_ref().map(|m| m.edition_number as u32),
             edition_total: metadata.as_ref().map(|m| m.edition_total as u32),
-            created_height: nft_row.asset.created_height,
+            created_height: row.coin_row.created_height,
         })
     }
 

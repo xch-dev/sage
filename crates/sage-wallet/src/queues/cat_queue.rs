@@ -51,10 +51,10 @@ impl CatQueue {
                     description: cat.description,
                     is_sensitive_content: false,
                     is_visible: true,
-                    created_height: None,
                     kind: AssetKind::Token,
                 },
                 ticker: cat.ticker,
+                precision: 3,
             })
             .await?;
         }
