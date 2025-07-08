@@ -187,7 +187,7 @@ impl Sage {
                 if req.include_spent_coins {
                     CoinFilterMode::All
                 } else {
-                    CoinFilterMode::Spendable
+                    CoinFilterMode::Owned
                 },
             )
             .await?;
@@ -233,7 +233,7 @@ impl Sage {
                 if req.include_spent_coins {
                     CoinFilterMode::All
                 } else {
-                    CoinFilterMode::Spendable
+                    CoinFilterMode::Owned
                 },
             )
             .await?;
