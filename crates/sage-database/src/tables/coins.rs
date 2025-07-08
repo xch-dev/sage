@@ -45,8 +45,8 @@ pub struct CoinRow {
     pub coin: Coin,
     pub p2_puzzle_hash: Bytes32,
     pub kind: CoinKind,
-    pub transaction_id: Option<Bytes32>,
-    pub offer_id: Option<Bytes32>,
+    pub mempool_item_hash: Option<Bytes32>,
+    pub offer_hash: Option<Bytes32>,
     pub created_height: Option<u32>,
     pub spent_height: Option<u32>,
     pub created_timestamp: Option<u32>,
@@ -576,8 +576,20 @@ async fn coins_by_ids(conn: impl SqliteExecutor<'_>, coin_ids: &[String]) -> Res
         "
         SELECT
             parent_coin_hash, puzzle_hash, amount, spent_height, created_height, p2_puzzle_hash,
-            (SELECT hash FROM mempool_items WHERE id = mempool_coins.mempool_item_id) AS transaction_id,
-            (SELECT hash FROM offers WHERE id = offer_coins.offer_id) AS offer_id,
+            (
+                SELECT hash FROM mempool_items
+                INNER JOIN mempool_coins ON mempool_coins.mempool_item_id = mempool_items.id
+                WHERE mempool_coins.coin_id = coins.id
+                AND mempool_coins.is_input = TRUE
+                LIMIT 1
+            ) AS mempool_item_hash,
+            (
+                SELECT hash FROM offers
+                INNER JOIN offer_coins ON offer_coins.offer_id = offers.id
+                WHERE offer_coins.coin_id = coins.id
+                AND offers.status <= 1
+                LIMIT 1
+            ) AS offer_hash,
             (SELECT timestamp FROM blocks WHERE height = coins.created_height) AS created_timestamp,
             (SELECT timestamp FROM blocks WHERE height = coins.spent_height) AS spent_timestamp,
         FROM coins WHERE hash IN (",
@@ -588,24 +600,6 @@ async fn coins_by_ids(conn: impl SqliteExecutor<'_>, coin_ids: &[String]) -> Res
         separated.push(format!("X'{coin_id}'"));
     }
     separated.push_unseparated(")");
-
-    query.push(
-        "
-        LEFT JOIN mempool_coins ON mempool_coins.id = (
-            SELECT id FROM mempool_coins
-            WHERE mempool_coins.coin_id = coins.id
-            AND mempool_coins.is_input = TRUE
-            LIMIT 1
-        )
-        LEFT JOIN offer_coins ON offer_coins.id = (
-            SELECT id FROM offer_coins
-            INNER JOIN offers ON offers.id = offer_coins.offer_id
-            WHERE offer_coins.coin_id = coins.id
-            AND offers.status <= 1
-            LIMIT 1
-        )
-        ",
-    );
 
     let rows = query.build().fetch_all(conn).await?;
 
@@ -619,12 +613,12 @@ async fn coins_by_ids(conn: impl SqliteExecutor<'_>, coin_ids: &[String]) -> Res
                     row.get::<Vec<u8>, _>("amount").convert()?,
                 ),
                 p2_puzzle_hash: row.get::<Vec<u8>, _>("p2_puzzle_hash").convert()?,
-                transaction_id: row
-                    .get::<Option<Vec<u8>>, _>("transaction_id")
+                mempool_item_hash: row
+                    .get::<Option<Vec<u8>>, _>("mempool_item_hash")
                     .map(Convert::convert)
                     .transpose()?,
-                offer_id: row
-                    .get::<Option<Vec<u8>>, _>("offer_id")
+                offer_hash: row
+                    .get::<Option<Vec<u8>>, _>("offer_hash")
                     .map(Convert::convert)
                     .transpose()?,
                 kind: CoinKind::Xch,
@@ -665,25 +659,24 @@ async fn coin_records(
         SELECT
             parent_coin_hash, puzzle_hash, amount,
             spent_height, created_height, p2_puzzle_hash,
-            (SELECT hash FROM mempool_items WHERE mempool_items.id = mempool_coins.mempool_item_id) AS transaction_id,
-            (SELECT hash FROM offers WHERE offers.id = offer_coins.offer_id) AS offer_id,
+            (
+                SELECT hash FROM mempool_items
+                INNER JOIN mempool_coins ON mempool_coins.mempool_item_id = mempool_items.id
+                WHERE mempool_coins.coin_id = coin_id
+                AND mempool_coins.is_input = TRUE
+                LIMIT 1
+            ) AS mempool_item_hash,
+            (
+                SELECT hash FROM offers
+                INNER JOIN offer_coins ON offer_coins.offer_id = offers.id
+                WHERE offer_coins.coin_id = coin_id
+                AND offers.status <= 1
+                LIMIT 1
+            ) AS offer_hash,
             (SELECT timestamp FROM blocks WHERE height = created_height) AS created_timestamp,
             (SELECT timestamp FROM blocks WHERE height = spent_height) AS spent_timestamp,
             COUNT(*) OVER () AS total_count
         FROM {table}
-        LEFT JOIN mempool_coins ON mempool_coins.id = (
-            SELECT mempool_coins.id FROM mempool_coins
-            WHERE mempool_coins.coin_id = coin_id
-            AND mempool_coins.is_input = TRUE
-            LIMIT 1
-        )
-        LEFT JOIN offer_coins ON offer_coins.id = (
-            SELECT offer_coins.id FROM offer_coins
-            INNER JOIN offers ON offers.id = offer_coins.offer_id
-            WHERE offer_coins.coin_id = coin_id
-            AND offers.status <= 1
-            LIMIT 1
-        )
         ",
     ));
 
@@ -732,12 +725,12 @@ async fn coin_records(
                     row.get::<Vec<u8>, _>("amount").convert()?,
                 ),
                 p2_puzzle_hash: row.get::<Vec<u8>, _>("p2_puzzle_hash").convert()?,
-                transaction_id: row
-                    .get::<Option<Vec<u8>>, _>("transaction_id")
+                mempool_item_hash: row
+                    .get::<Option<Vec<u8>>, _>("mempool_item_hash")
                     .map(Convert::convert)
                     .transpose()?,
-                offer_id: row
-                    .get::<Option<Vec<u8>>, _>("offer_id")
+                offer_hash: row
+                    .get::<Option<Vec<u8>>, _>("offer_hash")
                     .map(Convert::convert)
                     .transpose()?,
                 kind: CoinKind::Xch,

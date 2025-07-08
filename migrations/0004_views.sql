@@ -12,6 +12,11 @@ SELECT
   coins.created_height,
   assets.hash AS asset_hash,
   assets.kind AS asset_kind,
+  assets.name AS asset_name,
+  assets.icon_url AS asset_icon_url,
+  assets.description AS asset_description,
+  assets.is_visible AS asset_is_visible,
+  assets.is_sensitive_content AS asset_is_sensitive_content,
   p2_puzzles.hash AS p2_puzzle_hash
 FROM coins
   INNER JOIN assets ON assets.id = coins.asset_id
@@ -53,14 +58,21 @@ SELECT
   coins.created_height,
   assets.hash AS asset_hash,
   assets.kind AS asset_kind,
+  assets.name AS asset_name,
+  assets.icon_url AS asset_icon_url,
+  assets.description AS asset_description,
+  assets.is_visible AS asset_is_visible,
+  assets.is_sensitive_content AS asset_is_sensitive_content,
   p2_puzzles.hash AS p2_puzzle_hash
 FROM coins
   INNER JOIN assets ON assets.id = coins.asset_id
   INNER JOIN p2_puzzles ON p2_puzzles.id = coins.p2_puzzle_id
-  LEFT JOIN mempool_coins ON mempool_coins.coin_id = coins.id
 WHERE 1=1
   AND spent_height IS NULL
-  AND (mempool_coins.id IS NULL OR mempool_coins.is_input = FALSE)
+  AND NOT EXISTS (
+    SELECT 1 FROM mempool_coins
+    WHERE mempool_coins.coin_id = coins.id AND mempool_coins.is_input = TRUE
+  )
   AND NOT EXISTS (
     SELECT 1 FROM clawbacks -- If it's not a clawback, it's owned
     WHERE clawbacks.p2_puzzle_id = p2_puzzles.id
@@ -88,6 +100,11 @@ SELECT
   coins.created_height,
   assets.hash AS asset_hash,
   assets.kind AS asset_kind,
+  assets.name AS asset_name,
+  assets.icon_url AS asset_icon_url,
+  assets.description AS asset_description,
+  assets.is_visible AS asset_is_visible,
+  assets.is_sensitive_content AS asset_is_sensitive_content,
   p2_puzzles.hash AS p2_puzzle_hash
 FROM coins
   INNER JOIN assets ON assets.id = coins.asset_id
@@ -111,7 +128,6 @@ SELECT
   assets.description AS asset_description,
   assets.is_visible AS asset_is_visible,
   assets.is_sensitive_content AS asset_is_sensitive_content,
-  assets.created_height AS asset_created_height,
   tokens.ticker,
   tokens.precision
 FROM blocks

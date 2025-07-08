@@ -1,4 +1,5 @@
 import ConfirmationDialog from '@/components/ConfirmationDialog';
+import { DidConfirmation } from '@/components/confirmations/DidConfirmation';
 import Container from '@/components/Container';
 import { FeeOnlyDialog } from '@/components/FeeOnlyDialog';
 import Header from '@/components/Header';
@@ -50,7 +51,6 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { commands, DidRecord, TransactionResponse } from '../bindings';
-import { DidConfirmation } from '@/components/confirmations/DidConfirmation';
 
 export function DidList() {
   const navigate = useNavigate();
@@ -211,7 +211,7 @@ function Profile({ did, updateDids }: ProfileProps) {
     <>
       <Card
         key={did.launcher_id}
-        className={`${!did.visible ? 'opacity-50 grayscale' : did.create_transaction_id !== null ? 'pulsate-opacity' : ''}`}
+        className={`${!did.visible ? 'opacity-50 grayscale' : did.created_height === null ? 'pulsate-opacity' : ''}`}
       >
         <CardHeader className='-mt-2 flex flex-row items-center justify-between space-y-0 pb-2 pr-2 space-x-2'>
           <CardTitle className='text-md font-medium truncate flex items-center'>
@@ -232,6 +232,7 @@ function Profile({ did, updateDids }: ProfileProps) {
                     e.stopPropagation();
                     setTransferOpen(true);
                   }}
+                  disabled={did.created_height === null}
                 >
                   <SendIcon className='mr-2 h-4 w-4' />
                   <span>
@@ -246,6 +247,7 @@ function Profile({ did, updateDids }: ProfileProps) {
                       e.stopPropagation();
                       setNormalizeOpen(true);
                     }}
+                    disabled={did.created_height === null}
                   >
                     <ActivityIcon className='mr-2 h-4 w-4' />
                     <span>
@@ -260,6 +262,7 @@ function Profile({ did, updateDids }: ProfileProps) {
                     e.stopPropagation();
                     setBurnOpen(true);
                   }}
+                  disabled={did.created_height === null}
                 >
                   <Flame className='mr-2 h-4 w-4' />
                   <span>

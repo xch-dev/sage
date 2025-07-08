@@ -127,7 +127,7 @@ impl Sage {
                 coin_name: hex::encode(row.coin.coin_id()),
                 puzzle: hex::encode(ctx.serialize(&puzzle)?),
                 confirmed_block_index: row.created_height.unwrap_or(0),
-                locked: row.transaction_id.is_some() || row.offer_id.is_some(),
+                locked: row.mempool_item_hash.is_some() || row.offer_hash.is_some(),
                 lineage_proof: match proof {
                     None => None,
                     Some(Proof::Eve(proof)) => Some(LineageProof {

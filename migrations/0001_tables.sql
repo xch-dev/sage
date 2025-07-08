@@ -25,8 +25,7 @@ CREATE TABLE collections (
   icon_url TEXT,
   banner_url TEXT,
   description TEXT,
-  is_visible BOOLEAN NOT NULL,
-  created_height INTEGER
+  is_visible BOOLEAN NOT NULL
 );
 
 /*
@@ -51,9 +50,7 @@ CREATE TABLE assets (
   icon_url TEXT,
   description TEXT,
   is_sensitive_content BOOLEAN NOT NULL DEFAULT FALSE,
-  is_visible BOOLEAN NOT NULL,
-  is_pending BOOLEAN NOT NULL,
-  created_height INTEGER
+  is_visible BOOLEAN NOT NULL
 );
 
 CREATE TABLE tokens (

@@ -63,8 +63,11 @@ impl Sage {
                     let name = if let Some(name) = cache.did_names.get(&info.launcher_id).cloned() {
                         Some(name)
                     } else {
-                        let did = wallet.db.did_asset(info.launcher_id).await?;
-                        did.and_then(|did| did.asset.name)
+                        wallet
+                            .db
+                            .asset(info.launcher_id)
+                            .await?
+                            .and_then(|asset| asset.name)
                     };
 
                     let kind = AssetKind::Did {
