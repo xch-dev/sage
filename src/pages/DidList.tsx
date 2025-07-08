@@ -232,6 +232,7 @@ function Profile({ did, updateDids }: ProfileProps) {
                     e.stopPropagation();
                     setTransferOpen(true);
                   }}
+                  disabled={did.created_height === null}
                 >
                   <SendIcon className='mr-2 h-4 w-4' />
                   <span>
@@ -246,6 +247,7 @@ function Profile({ did, updateDids }: ProfileProps) {
                       e.stopPropagation();
                       setNormalizeOpen(true);
                     }}
+                    disabled={did.created_height === null}
                   >
                     <ActivityIcon className='mr-2 h-4 w-4' />
                     <span>
@@ -260,6 +262,7 @@ function Profile({ did, updateDids }: ProfileProps) {
                     e.stopPropagation();
                     setBurnOpen(true);
                   }}
+                  disabled={did.created_height === null}
                 >
                   <Flame className='mr-2 h-4 w-4' />
                   <span>

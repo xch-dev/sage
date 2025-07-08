@@ -45,8 +45,8 @@ pub struct CoinRow {
     pub coin: Coin,
     pub p2_puzzle_hash: Bytes32,
     pub kind: CoinKind,
-    pub transaction_id: Option<Bytes32>,
-    pub offer_id: Option<Bytes32>,
+    pub mempool_item_hash: Option<Bytes32>,
+    pub offer_hash: Option<Bytes32>,
     pub created_height: Option<u32>,
     pub spent_height: Option<u32>,
     pub created_timestamp: Option<u32>,
@@ -582,14 +582,14 @@ async fn coins_by_ids(conn: impl SqliteExecutor<'_>, coin_ids: &[String]) -> Res
                 WHERE mempool_coins.coin_id = coins.id
                 AND mempool_coins.is_input = TRUE
                 LIMIT 1
-            ) AS offer_id,
+            ) AS mempool_item_hash,
             (
                 SELECT hash FROM offers
                 INNER JOIN offer_coins ON offer_coins.offer_id = offers.id
                 WHERE offer_coins.coin_id = coins.id
                 AND offers.status <= 1
                 LIMIT 1
-            ) AS offer_id,
+            ) AS offer_hash,
             (SELECT timestamp FROM blocks WHERE height = coins.created_height) AS created_timestamp,
             (SELECT timestamp FROM blocks WHERE height = coins.spent_height) AS spent_timestamp,
         FROM coins WHERE hash IN (",
@@ -613,12 +613,12 @@ async fn coins_by_ids(conn: impl SqliteExecutor<'_>, coin_ids: &[String]) -> Res
                     row.get::<Vec<u8>, _>("amount").convert()?,
                 ),
                 p2_puzzle_hash: row.get::<Vec<u8>, _>("p2_puzzle_hash").convert()?,
-                transaction_id: row
-                    .get::<Option<Vec<u8>>, _>("transaction_id")
+                mempool_item_hash: row
+                    .get::<Option<Vec<u8>>, _>("mempool_item_hash")
                     .map(Convert::convert)
                     .transpose()?,
-                offer_id: row
-                    .get::<Option<Vec<u8>>, _>("offer_id")
+                offer_hash: row
+                    .get::<Option<Vec<u8>>, _>("offer_hash")
                     .map(Convert::convert)
                     .transpose()?,
                 kind: CoinKind::Xch,
@@ -665,14 +665,14 @@ async fn coin_records(
                 WHERE mempool_coins.coin_id = coin_id
                 AND mempool_coins.is_input = TRUE
                 LIMIT 1
-            ) AS offer_id,
+            ) AS mempool_item_hash,
             (
                 SELECT hash FROM offers
                 INNER JOIN offer_coins ON offer_coins.offer_id = offers.id
                 WHERE offer_coins.coin_id = coin_id
                 AND offers.status <= 1
                 LIMIT 1
-            ) AS offer_id,
+            ) AS offer_hash,
             (SELECT timestamp FROM blocks WHERE height = created_height) AS created_timestamp,
             (SELECT timestamp FROM blocks WHERE height = spent_height) AS spent_timestamp,
             COUNT(*) OVER () AS total_count
@@ -725,12 +725,12 @@ async fn coin_records(
                     row.get::<Vec<u8>, _>("amount").convert()?,
                 ),
                 p2_puzzle_hash: row.get::<Vec<u8>, _>("p2_puzzle_hash").convert()?,
-                transaction_id: row
-                    .get::<Option<Vec<u8>>, _>("transaction_id")
+                mempool_item_hash: row
+                    .get::<Option<Vec<u8>>, _>("mempool_item_hash")
                     .map(Convert::convert)
                     .transpose()?,
-                offer_id: row
-                    .get::<Option<Vec<u8>>, _>("offer_id")
+                offer_hash: row
+                    .get::<Option<Vec<u8>>, _>("offer_hash")
                     .map(Convert::convert)
                     .transpose()?,
                 kind: CoinKind::Xch,

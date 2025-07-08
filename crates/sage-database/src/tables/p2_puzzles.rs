@@ -266,7 +266,7 @@ async fn derivations(
                 synthetic_key: row.synthetic_key.convert()?,
             })
         })
-        .collect::<std::result::Result<Vec<DerivationRow>, DatabaseError>>()?;
+        .collect::<Result<Vec<DerivationRow>>>()?;
 
     Ok((derivations, total_count))
 }

@@ -33,7 +33,7 @@ impl Database {
                     WHERE offer_coins.coin_id = owned_coins.coin_id
                     AND offers.status <= 1
                     LIMIT 1
-                ) AS offer_id,
+                ) AS offer_hash,
                 (
                     SELECT timestamp FROM blocks
                     WHERE height = owned_coins.created_height
@@ -44,7 +44,6 @@ impl Database {
                 ) AS spent_timestamp
             FROM owned_coins
             INNER JOIN dids ON dids.asset_id = owned_coins.asset_id
-            WHERE asset_kind = 2
             ORDER BY asset_name ASC
             "
         )
@@ -75,8 +74,8 @@ impl Database {
                     ),
                     p2_puzzle_hash: row.p2_puzzle_hash.convert()?,
                     kind: CoinKind::Did,
-                    transaction_id: None,
-                    offer_id: row.offer_id.convert()?,
+                    mempool_item_hash: None,
+                    offer_hash: row.offer_hash.convert()?,
                     created_height: row.created_height.convert()?,
                     spent_height: row.spent_height.convert()?,
                     created_timestamp: row.created_timestamp.convert()?,

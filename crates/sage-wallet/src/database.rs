@@ -206,8 +206,7 @@ pub async fn insert_nft(
     tx.insert_nft(info.launcher_id, &coin_info).await?;
 
     if coin_state.spent_height.is_none() || lineage_proof.is_none() {
-        tx.update_nft_coin_info(info.launcher_id, &coin_info)
-            .await?;
+        tx.update_nft(info.launcher_id, &coin_info).await?;
     }
 
     if lineage_proof.is_some() {
