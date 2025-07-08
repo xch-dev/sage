@@ -1,7 +1,9 @@
-use chia::protocol::Coin;
+use chia::protocol::{Bytes32, Coin};
 use sqlx::query;
 
-use crate::{Asset, AssetKind, CoinKind, CoinRow, Convert, Database, DidCoinInfo, Result};
+use crate::{
+    Asset, AssetKind, CoinKind, CoinRow, Convert, Database, DatabaseTx, DidCoinInfo, Result,
+};
 
 #[derive(Debug, Clone)]
 pub struct DidRow {
@@ -78,5 +80,31 @@ impl Database {
             })
         })
         .collect()
+    }
+}
+
+impl DatabaseTx<'_> {
+    pub async fn insert_did(&mut self, hash: Bytes32, coin_info: &DidCoinInfo) -> Result<()> {
+        let hash = hash.as_ref();
+        let metadata = coin_info.metadata.as_slice();
+        let recovery_list_hash = coin_info.recovery_list_hash.as_deref();
+        let num_verifications_required: i64 = coin_info.num_verifications_required.try_into()?;
+
+        query!(
+            "
+            INSERT OR IGNORE INTO dids (
+                asset_id, metadata, recovery_list_hash, num_verifications_required
+            )
+            VALUES ((SELECT id FROM assets WHERE hash = ?), ?, ?, ?)
+            ",
+            hash,
+            metadata,
+            recovery_list_hash,
+            num_verifications_required
+        )
+        .execute(&mut *self.tx)
+        .await?;
+
+        Ok(())
     }
 }

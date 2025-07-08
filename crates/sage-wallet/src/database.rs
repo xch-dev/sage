@@ -99,19 +99,18 @@ pub async fn insert_puzzle(
                 num_verifications_required: info.num_verifications_required,
             };
 
-            tx.insert_did(
-                Asset {
-                    hash: info.launcher_id,
-                    name: None,
-                    icon_url: None,
-                    description: None,
-                    is_sensitive_content: false,
-                    is_visible: true,
-                    kind: AssetKind::Did,
-                },
-                &coin_info,
-            )
+            tx.insert_asset(Asset {
+                hash: info.launcher_id,
+                name: None,
+                icon_url: None,
+                description: None,
+                is_sensitive_content: false,
+                is_visible: true,
+                kind: AssetKind::Did,
+            })
             .await?;
+
+            tx.insert_did(info.launcher_id, &coin_info).await?;
 
             if coin_state.spent_height.is_none() {
                 tx.update_did_coin_info(info.launcher_id, &coin_info)
@@ -203,7 +202,9 @@ pub async fn insert_nft(
         }
     };
 
-    tx.insert_nft(asset, &coin_info).await?;
+    tx.insert_asset(asset).await?;
+
+    tx.insert_nft(info.launcher_id, &coin_info).await?;
 
     if coin_state.spent_height.is_none() || lineage_proof.is_none() {
         tx.update_nft_coin_info(info.launcher_id, &coin_info)

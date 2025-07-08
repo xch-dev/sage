@@ -317,7 +317,6 @@ impl Sage {
                 amount: Amount::u64(row.coin_row.coin.amount),
                 recovery_hash: row.did_info.recovery_list_hash.map(hex::encode),
                 created_height: row.coin_row.created_height,
-                transaction_id: row.coin_row.transaction_id.map(hex::encode),
             });
         }
 

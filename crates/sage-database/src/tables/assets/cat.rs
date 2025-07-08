@@ -11,6 +11,30 @@ pub struct CatAsset {
 }
 
 impl Database {
+    pub async fn update_cat(
+        &self,
+        hash: Bytes32,
+        ticker: Option<String>,
+        precision: u8,
+    ) -> Result<()> {
+        let hash = hash.as_ref();
+
+        query!(
+            "
+            UPDATE tokens 
+            SET ticker = ?, precision = ?
+            WHERE asset_id = (SELECT id FROM assets WHERE hash = ?)
+            ",
+            ticker,
+            precision,
+            hash
+        )
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
+    }
+
     pub async fn cat_asset(&self, asset_id: Bytes32) -> Result<Option<CatAsset>> {
         let asset_id = asset_id.as_ref();
 
@@ -85,45 +109,6 @@ impl Database {
 }
 
 impl DatabaseTx<'_> {
-    pub async fn update_cat(&mut self, cat: CatAsset) -> Result<()> {
-        let hash = cat.asset.hash.as_ref();
-
-        let asset_id = query!(
-            "
-            UPDATE assets 
-            SET
-                name = ?, icon_url = ?, description = ?, is_visible = ?,
-                is_sensitive_content = ?
-            WHERE hash = ?
-            RETURNING id
-            ",
-            cat.asset.name,
-            cat.asset.icon_url,
-            cat.asset.description,
-            cat.asset.is_visible,
-            cat.asset.is_sensitive_content,
-            hash
-        )
-        .fetch_one(&mut *self.tx)
-        .await?
-        .id;
-
-        query!(
-            "
-            INSERT INTO tokens (asset_id, ticker)
-            VALUES (?, ?)
-            ON CONFLICT(asset_id) DO UPDATE SET
-                ticker = excluded.ticker
-            ",
-            asset_id,
-            cat.ticker,
-        )
-        .execute(&mut *self.tx)
-        .await?;
-
-        Ok(())
-    }
-
     pub async fn insert_cat(&mut self, cat: CatAsset) -> Result<()> {
         let hash = cat.asset.hash.as_ref();
 

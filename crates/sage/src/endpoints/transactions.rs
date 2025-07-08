@@ -277,7 +277,7 @@ impl Sage {
 
         wallet
             .db
-            .insert_did_asset(Asset {
+            .insert_asset(Asset {
                 name: Some(req.name.clone()),
                 hash: did.info.launcher_id,
                 icon_url: None,

@@ -379,7 +379,7 @@ export type DerivationMode = { mode: "default" } |
  */
 { mode: "static" }
 export type DerivationRecord = { index: number; public_key: string; address: string }
-export type DidRecord = { launcher_id: string; name: string | null; visible: boolean; coin_id: string; address: string; amount: Amount; recovery_hash: string | null; created_height: number | null; create_transaction_id: string | null }
+export type DidRecord = { launcher_id: string; name: string | null; visible: boolean; coin_id: string; address: string; amount: Amount; recovery_hash: string | null; created_height: number | null; transaction_id: string | null }
 export type Error = { kind: ErrorKind; reason: string }
 export type ErrorKind = "wallet" | "api" | "not_found" | "unauthorized" | "internal" | "database_migration" | "nfc"
 export type FilterUnlockedCoins = { coin_ids: string[] }

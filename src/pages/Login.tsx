@@ -71,8 +71,8 @@ import { toast } from 'react-toastify';
 import { Spoiler } from 'spoiled';
 import { commands, KeyInfo, SecretKeyInfo } from '../bindings';
 import Container from '../components/Container';
-import { useWallet } from '../contexts/WalletContext';
 import { CustomError } from '../contexts/ErrorContext';
+import { useWallet } from '../contexts/WalletContext';
 import { loginAndUpdateState, logoutAndUpdateState } from '../state';
 
 const isMobile = platform() === 'ios' || platform() === 'android';
@@ -656,7 +656,8 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
             <DialogDescription>
               <Trans>
                 This wallet requires a database migration to continue. Would you
-                like to delete this wallet and start fresh, or cancel the login?
+                like to delete the wallet's data or cancel the login? The keys
+                will not be affected.
               </Trans>
             </DialogDescription>
           </DialogHeader>
@@ -687,7 +688,7 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
               }}
               autoFocus
             >
-              <Trans>Delete Wallet</Trans>
+              <Trans>Delete Data</Trans>
             </Button>
           </DialogFooter>
         </DialogContent>

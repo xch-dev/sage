@@ -25,10 +25,9 @@ impl Sage {
 
         let cat = DexieCat::fetch(asset_id, testnet).await?;
 
-        let mut tx = wallet.db.tx().await?;
-
-        tx.update_cat(CatAsset {
-            asset: Asset {
+        wallet
+            .db
+            .update_asset(Asset {
                 hash: asset_id,
                 name: cat.name,
                 icon_url: cat.icon_url,
@@ -36,13 +35,10 @@ impl Sage {
                 is_sensitive_content: false,
                 is_visible: true,
                 kind: AssetKind::Token,
-            },
-            ticker: cat.ticker,
-            precision: 3,
-        })
-        .await?;
+            })
+            .await?;
 
-        tx.commit().await?;
+        wallet.db.update_cat(asset_id, cat.ticker, 3).await?;
 
         Ok(ResyncCatResponse {})
     }
@@ -52,24 +48,17 @@ impl Sage {
 
         let asset_id = parse_asset_id(req.record.asset_id)?;
 
-        let mut tx = wallet.db.tx().await?;
+        let Some(CatAsset { mut asset, .. }) = wallet.db.cat_asset(asset_id).await? else {
+            return Err(Error::MissingCat(asset_id));
+        };
 
-        tx.update_cat(CatAsset {
-            asset: Asset {
-                hash: asset_id,
-                name: req.record.name,
-                icon_url: req.record.icon_url,
-                description: req.record.description,
-                is_sensitive_content: false,
-                is_visible: req.record.visible,
-                kind: AssetKind::Token,
-            },
-            ticker: req.record.ticker,
-            precision: 3,
-        })
-        .await?;
+        asset.name = req.record.name;
+        asset.icon_url = req.record.icon_url;
+        asset.description = req.record.description;
+        asset.is_visible = req.record.visible;
 
-        tx.commit().await?;
+        wallet.db.update_asset(asset).await?;
+        wallet.db.update_cat(asset_id, req.record.ticker, 3).await?;
 
         Ok(UpdateCatResponse {})
     }
@@ -79,13 +68,14 @@ impl Sage {
 
         let did_id = parse_did_id(req.did_id)?;
 
-        let Some(row) = wallet.db.did_asset(did_id).await? else {
+        let Some(mut asset) = wallet.db.asset(did_id).await? else {
             return Err(Error::MissingDid(did_id));
         };
 
-        let mut tx = wallet.db.tx().await?;
-        tx.insert_did(row.asset, &row.did_info).await?;
-        tx.commit().await?;
+        asset.name = req.name;
+        asset.is_visible = req.visible;
+
+        wallet.db.update_asset(asset).await?;
 
         Ok(UpdateDidResponse {})
     }
@@ -94,7 +84,14 @@ impl Sage {
         let wallet = self.wallet()?;
 
         let nft_id = parse_nft_id(req.nft_id)?;
-        wallet.db.set_asset_visible(nft_id, req.visible).await?;
+
+        let Some(mut asset) = wallet.db.asset(nft_id).await? else {
+            return Err(Error::MissingNft(nft_id));
+        };
+
+        asset.is_visible = req.visible;
+
+        wallet.db.update_asset(asset).await?;
 
         Ok(UpdateNftResponse {})
     }
