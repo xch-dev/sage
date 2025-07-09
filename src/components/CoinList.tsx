@@ -272,7 +272,7 @@ export default function CoinList(props: CoinListProps) {
           : row.original.spent_height
             ? row.original.spent_height.toString()
             : row.original.transaction_id
-              ? t`Pending...`
+              ? ``
               : row.original.offer_id
                 ? t`Locked in offer`
                 : '',
