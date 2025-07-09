@@ -695,7 +695,7 @@ async fn coin_records(
 
     query.push(" ORDER BY ");
     match sort_mode {
-        CoinSortMode::CoinId => query.push("coins.hash"),
+        CoinSortMode::CoinId => query.push("coin_hash"),
         CoinSortMode::Amount => query.push("amount"),
         CoinSortMode::CreatedHeight => query.push("created_height"),
         CoinSortMode::SpentHeight => query.push("spent_height"),
