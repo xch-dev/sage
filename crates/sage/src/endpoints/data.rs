@@ -73,12 +73,8 @@ impl Sage {
                 .encode()?,
             unhardened_derivation_index: wallet.db.max_derivation_index(false).await?,
             hardened_derivation_index: wallet.db.max_derivation_index(true).await?,
-
-            // TODO: add checked_uris and total_uris
-            // SELECT COUNT(*) AS count FROM file_uris WHERE last_checked_timestamp IS NOT NULL
-            // SELECT COUNT(*) AS count FROM file_uris
-            checked_uris: 0, //wallet.db.checked_uris().await?,
-            total_uris: 0,   //wallet.db.total_uris().await?,
+            checked_uris: wallet.db.checked_uris().await?.try_into().unwrap_or(0),
+            total_uris: wallet.db.total_uris().await?.try_into().unwrap_or(0),
             database_size,
         })
     }
@@ -732,8 +728,6 @@ impl Sage {
             }
             DatabaseAssetKind::Nft => {
                 if let Some(item_id) = item_id {
-                    //let icon: Option<Vec<u8>> = None; // TODO: transaction_coin.get("nft_icon");
-
                     AssetKind::Nft {
                         launcher_id: Address::new(item_id, "nft".to_string()).encode()?,
                         name,
