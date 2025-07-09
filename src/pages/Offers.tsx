@@ -8,15 +8,7 @@ import { NfcScanDialog } from '@/components/dialogs/NfcScanDialog';
 import { ViewOfferDialog } from '@/components/dialogs/ViewOfferDialog';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
+import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import { useErrors } from '@/hooks/useErrors';
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
 import { amount } from '@/lib/formTypes';

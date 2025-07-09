@@ -22,6 +22,7 @@ pub struct OfferRow {
     pub status: OfferStatus,
     pub inserted_timestamp: u64,
 }
+
 #[derive(Debug, Clone)]
 pub struct OfferedAsset {
     pub offer_id: Bytes32,
@@ -52,8 +53,8 @@ impl Database {
         delete_offer(&self.pool, offer_id).await
     }
 
-    pub async fn active_offers(&self) -> Result<Vec<OfferRow>> {
-        active_offers(&self.pool).await
+    pub async fn offers(&self, status: Option<OfferStatus>) -> Result<Vec<OfferRow>> {
+        offers(&self.pool, status).await
     }
 
     pub async fn update_offer_status(&self, offer_id: Bytes32, status: OfferStatus) -> Result<()> {
@@ -125,7 +126,7 @@ async fn offer_assets(
         FROM offer_assets 
         INNER JOIN assets ON offer_assets.asset_id = assets.id
         INNER JOIN offers ON offer_assets.offer_id = offers.id
-        WHERE offer_id = ? AND kind = ?
+        WHERE offers.hash = ? AND kind = ?
         ",
         offer_id_ref,
         kind_u8
@@ -352,7 +353,11 @@ async fn offer(conn: impl SqliteExecutor<'_>, offer_id: Bytes32) -> Result<Optio
     .transpose()
 }
 
-async fn active_offers(conn: impl SqliteExecutor<'_>) -> Result<Vec<OfferRow>> {
+async fn offers(
+    conn: impl SqliteExecutor<'_>,
+    status: Option<OfferStatus>,
+) -> Result<Vec<OfferRow>> {
+    let status_value = status.map(|s| s as u8);
     let rows = sqlx::query!(
         "SELECT
             hash as offer_id,
@@ -362,8 +367,10 @@ async fn active_offers(conn: impl SqliteExecutor<'_>) -> Result<Vec<OfferRow>> {
             expiration_height,
             expiration_timestamp,
             inserted_timestamp
-        FROM offers WHERE status = ?",
-        OfferStatus::Active as u8
+        FROM offers 
+        WHERE status = ? OR ? IS NULL",
+        status_value,
+        status_value
     )
     .fetch_all(conn)
     .await?;

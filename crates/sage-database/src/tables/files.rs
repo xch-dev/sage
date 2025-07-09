@@ -52,6 +52,14 @@ impl Database {
     pub async fn full_file_data(&self, hash: Bytes32) -> Result<Option<FileData>> {
         full_file_data(&self.pool, hash).await
     }
+
+    pub async fn checked_uris(&self) -> Result<u64> {
+        checked_uris(&self.pool).await
+    }
+
+    pub async fn total_uris(&self) -> Result<u64> {
+        total_uris(&self.pool).await
+    }
 }
 
 impl DatabaseTx<'_> {
@@ -326,4 +334,22 @@ async fn set_uri_unchecked(conn: impl SqliteExecutor<'_>, uri: String) -> Result
     .await?;
 
     Ok(())
+}
+
+async fn checked_uris(conn: impl SqliteExecutor<'_>) -> Result<u64> {
+    query!("SELECT COUNT(*) AS count FROM file_uris WHERE last_checked_timestamp IS NOT NULL")
+        .fetch_one(conn)
+        .await?
+        .count
+        .try_into()
+        .map_err(crate::DatabaseError::PrecisionLost)
+}
+
+async fn total_uris(conn: impl SqliteExecutor<'_>) -> Result<u64> {
+    query!("SELECT COUNT(*) AS count FROM file_uris")
+        .fetch_one(conn)
+        .await?
+        .count
+        .try_into()
+        .map_err(crate::DatabaseError::PrecisionLost)
 }
