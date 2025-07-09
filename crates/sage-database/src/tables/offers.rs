@@ -126,7 +126,7 @@ async fn offer_assets(
         FROM offer_assets 
         INNER JOIN assets ON offer_assets.asset_id = assets.id
         INNER JOIN offers ON offer_assets.offer_id = offers.id
-        WHERE offer_id = ? AND kind = ?
+        WHERE offers.hash = ? AND kind = ?
         ",
         offer_id_ref,
         kind_u8
