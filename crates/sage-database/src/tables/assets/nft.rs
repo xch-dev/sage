@@ -48,7 +48,7 @@ pub struct NftMetadataInfo {
     pub name: Option<String>,
     pub description: Option<String>,
     pub is_sensitive_content: bool,
-    pub collection_id: Option<Bytes32>,
+    pub collection_id: Bytes32,
 }
 
 #[derive(Debug, Clone)]
@@ -463,7 +463,7 @@ impl DatabaseTx<'_> {
         metadata_info: NftMetadataInfo,
     ) -> Result<()> {
         let hash = hash.as_ref();
-        let collection_id = metadata_info.collection_id.as_deref();
+        let collection_id = metadata_info.collection_id.as_ref();
 
         query!(
             "
