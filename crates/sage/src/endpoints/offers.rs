@@ -484,7 +484,7 @@ impl Sage {
                 amount: Amount::u64(cat.amount),
                 royalty: Amount::u64(cat.royalty),
                 name: cat.asset.name,
-                ticker: cat_asset.map(|cat| cat.ticker).unwrap_or_default(),
+                ticker: cat_asset.and_then(|cat| cat.ticker),
                 icon_url: cat.asset.icon_url,
             };
 

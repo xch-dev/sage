@@ -1,6 +1,6 @@
 use crate::{Asset, AssetKind, Convert, Database, DatabaseTx, Result};
 use chia::protocol::Bytes32;
-use sqlx::{Row, SqliteExecutor};
+use sqlx::SqliteExecutor;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(u8)]
