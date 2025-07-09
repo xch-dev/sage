@@ -419,7 +419,7 @@ impl Sage {
 
     pub async fn get_offers(&self, _req: GetOffers) -> Result<GetOffersResponse> {
         let wallet = self.wallet()?;
-        let offers = wallet.db.active_offers().await?;
+        let offers = wallet.db.offers(None).await?;
 
         let mut records = Vec::new();
 

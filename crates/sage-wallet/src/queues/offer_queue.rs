@@ -51,7 +51,7 @@ impl OfferQueue {
             return Ok(());
         }
 
-        let offers = self.db.active_offers().await?;
+        let offers = self.db.offers(Some(OfferStatus::Active)).await?;
 
         if offers.is_empty() {
             return Ok(());
