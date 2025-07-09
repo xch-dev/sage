@@ -357,51 +357,33 @@ async fn offers(
     conn: impl SqliteExecutor<'_>,
     status: Option<OfferStatus>,
 ) -> Result<Vec<OfferRow>> {
-    let rows = if let Some(status) = status {
-        sqlx::query(
-            "SELECT
-                hash as offer_id,
-                encoded_offer,
-                fee,
-                status,
-                expiration_height,
-                expiration_timestamp,
-                inserted_timestamp
-            FROM offers 
-            WHERE status = ?",
-        )
-        .bind(status as u8)
-        .fetch_all(conn)
-        .await?
-    } else {
-        sqlx::query(
-            "SELECT
-                hash as offer_id,
-                encoded_offer,
-                fee,
-                status,
-                expiration_height,
-                expiration_timestamp,
-                inserted_timestamp
-            FROM offers",
-        )
-        .fetch_all(conn)
-        .await?
-    };
+    let status_value = status.map(|s| s as u8);
+    let rows = sqlx::query!(
+        "SELECT
+            hash as offer_id,
+            encoded_offer,
+            fee,
+            status,
+            expiration_height,
+            expiration_timestamp,
+            inserted_timestamp
+        FROM offers 
+        WHERE status = ? OR ? IS NULL",
+        status_value,
+        status_value
+    )
+    .fetch_all(conn)
+    .await?;
 
     rows.into_iter()
         .map(|row| {
             Ok(OfferRow {
-                offer_id: row.try_get::<Vec<u8>, _>("offer_id")?.convert()?,
-                encoded_offer: row.try_get::<String, _>("encoded_offer")?,
-                expiration_height: row
-                    .try_get::<Option<i64>, _>("expiration_height")?
-                    .map(|h| h as u32),
-                expiration_timestamp: row
-                    .try_get::<Option<i64>, _>("expiration_timestamp")?
-                    .map(|t| t as u64),
-                fee: row.try_get::<Vec<u8>, _>("fee")?.convert()?,
-                status: match row.try_get::<i64, _>("status")? {
+                offer_id: row.offer_id.convert()?,
+                encoded_offer: row.encoded_offer,
+                expiration_height: row.expiration_height.map(|h| h as u32),
+                expiration_timestamp: row.expiration_timestamp.map(|t| t as u64),
+                fee: row.fee.convert()?,
+                status: match row.status {
                     0 => OfferStatus::Pending,
                     1 => OfferStatus::Active,
                     2 => OfferStatus::Completed,
@@ -409,7 +391,7 @@ async fn offers(
                     4 => OfferStatus::Expired,
                     _ => return Err(crate::DatabaseError::InvalidEnumVariant),
                 },
-                inserted_timestamp: row.try_get::<i64, _>("inserted_timestamp")? as u64,
+                inserted_timestamp: row.inserted_timestamp as u64,
             })
         })
         .collect()
