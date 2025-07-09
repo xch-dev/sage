@@ -32,7 +32,6 @@ function createDefaultDidRecord(name: string, launcherId: string): DidRecord {
     address: 'No address',
     amount: 0,
     created_height: 0,
-    create_transaction_id: 'No transaction',
     recovery_hash: '',
   };
 }

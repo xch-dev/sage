@@ -5,7 +5,6 @@ use chia_wallet_sdk::{
     signer::AggSigConstants,
     utils::Address,
 };
-use chrono::{Local, TimeZone};
 use indexmap::IndexMap;
 use itertools::Itertools;
 use sage_api::{
@@ -479,12 +478,13 @@ impl Sage {
 
         for cat in cats {
             let asset_id = hex::encode(cat.asset.hash);
+            let cat_asset = wallet.db.cat_asset(cat.asset.hash).await?;
 
             let record = OfferCat {
                 amount: Amount::u64(cat.amount),
                 royalty: Amount::u64(cat.royalty),
                 name: cat.asset.name,
-                ticker: Some("TODO".to_string()), // TODO cat.asset.ticker,
+                ticker: cat_asset.map(|cat| cat.ticker).unwrap_or_default(),
                 icon_url: cat.asset.icon_url,
             };
 
@@ -503,7 +503,7 @@ impl Sage {
 
             let record = OfferNft {
                 royalty_address: "TODO".to_string(), // TODO Address::new(nft.royalty_puzzle_hash, self.network().prefix()).encode()?,
-                royalty_ten_thousandths: nft.royalty as u16, // TODO: is this right?
+                royalty_ten_thousandths: 0,          // TODO
                 name: nft.asset.name,
                 icon: None, // TODO nft.thumbnail.map(|data| BASE64_STANDARD.encode(data)),
             };
@@ -525,11 +525,7 @@ impl Sage {
                 OfferStatus::Cancelled => OfferRecordStatus::Cancelled,
                 OfferStatus::Expired => OfferRecordStatus::Expired,
             },
-            creation_date: Local
-                .timestamp_opt(offer.inserted_timestamp.try_into()?, 0)
-                .unwrap()
-                .format("%b %d, %Y %r")
-                .to_string(),
+            creation_timestamp: offer.inserted_timestamp,
             summary: OfferSummary {
                 maker: OfferAssets {
                     xch: OfferXch {

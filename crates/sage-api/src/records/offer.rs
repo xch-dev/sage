@@ -8,7 +8,7 @@ pub struct OfferRecord {
     pub offer_id: String,
     pub offer: String,
     pub status: OfferRecordStatus,
-    pub creation_date: String,
+    pub creation_timestamp: u64,
     pub summary: OfferSummary,
 }
 
