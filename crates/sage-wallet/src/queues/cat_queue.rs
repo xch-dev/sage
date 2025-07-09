@@ -10,19 +10,6 @@ use tokio::{
 
 use crate::{SyncEvent, WalletError};
 
-// TODO: unused. Remove?
-// #[derive(Deserialize)]
-// struct Response {
-//     assets: Vec<AssetData>,
-// }
-
-// #[derive(Deserialize, Clone)]
-// struct AssetData {
-//     name: Option<String>,
-//     code: Option<String>,
-//     description: Option<String>,
-// }
-
 #[derive(Debug)]
 pub struct CatQueue {
     db: Database,

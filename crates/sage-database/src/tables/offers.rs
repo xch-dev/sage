@@ -239,8 +239,10 @@ async fn insert_offer_asset(
     let offer_id_ref = offer_id.as_ref();
     let asset_id_ref = asset_id.as_ref();
 
-    let amount: i64 = amount.try_into()?;
-    let royalty: i64 = royalty.try_into()?;
+    let amount_bytes = amount.to_be_bytes();
+    let royalty_bytes = royalty.to_be_bytes();
+    let amount = amount_bytes.as_ref();
+    let royalty = royalty_bytes.as_ref();
 
     sqlx::query(
         "
@@ -272,8 +274,10 @@ async fn insert_offer_xch(
 ) -> Result<()> {
     let offer_id_ref = offer_hash.as_ref();
 
-    let xch: i64 = xch.try_into()?;
-    let royalty: i64 = royalty.try_into()?;
+    let xch_bytes = xch.to_be_bytes();
+    let royalty_bytes = royalty.to_be_bytes();
+    let xch = xch_bytes.as_ref();
+    let royalty = royalty_bytes.as_ref();
 
     sqlx::query(
         "

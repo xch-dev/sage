@@ -210,9 +210,7 @@ impl Sage {
             // Delete the specific SQLite file for this network
             let db_file = path.join(format!("{}.sqlite", req.network));
             if db_file.try_exists()? {
-                if let Err(e) = fs::remove_file(&db_file) {
-                    tracing::warn!("Failed to delete database file {:?}: {}", db_file, e);
-                }
+                fs::remove_file(&db_file)?;
             }
         }
 

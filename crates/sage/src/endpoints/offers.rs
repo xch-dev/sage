@@ -271,7 +271,7 @@ impl Sage {
                 offer_id,
                 is_requested: false,
                 asset_id: nft.info.launcher_id,
-                amount: 0, // TODO is this right?
+                amount: nft.coin.amount,
                 royalty: nft.info.royalty_basis_points as u64,
             });
         }

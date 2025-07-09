@@ -75,6 +75,8 @@ impl Sage {
             hardened_derivation_index: wallet.db.max_derivation_index(true).await?,
 
             // TODO: add checked_uris and total_uris
+            // SELECT COUNT(*) AS count FROM file_uris WHERE last_checked_timestamp IS NOT NULL
+            // SELECT COUNT(*) AS count FROM file_uris
             checked_uris: 0, //wallet.db.checked_uris().await?,
             total_uris: 0,   //wallet.db.total_uris().await?,
             database_size,
@@ -185,7 +187,7 @@ impl Sage {
                 if req.include_spent_coins {
                     CoinFilterMode::All
                 } else {
-                    CoinFilterMode::Spendable
+                    CoinFilterMode::Owned
                 },
             )
             .await?;
@@ -231,7 +233,7 @@ impl Sage {
                 if req.include_spent_coins {
                     CoinFilterMode::All
                 } else {
-                    CoinFilterMode::Spendable
+                    CoinFilterMode::Owned
                 },
             )
             .await?;
@@ -357,7 +359,6 @@ impl Sage {
                 Result::Ok(PendingTransactionRecord {
                     transaction_id: hex::encode(tx.hash),
                     fee: Amount::u64(tx.fee),
-                    // TODO: Date format?
                     submitted_at: Some(tx.submitted_timestamp.to_string()),
                 })
             })

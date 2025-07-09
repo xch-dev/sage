@@ -264,7 +264,7 @@ async fn are_coins_spendable(conn: impl SqliteExecutor<'_>, coin_ids: &[String])
         SELECT COUNT(*) AS count
         FROM spendable_coins
         WHERE 1=1
-        AND hash IN (",
+        AND coin_hash IN (",
     );
 
     let mut separated = query.separated(", ");
