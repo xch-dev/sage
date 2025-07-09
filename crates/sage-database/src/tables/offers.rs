@@ -206,6 +206,7 @@ async fn insert_offer(conn: impl SqliteExecutor<'_>, offer: OfferRow) -> Result<
         .map(TryInto::try_into)
         .transpose()?;
     let inserted_timestamp: i64 = offer.inserted_timestamp.try_into()?;
+    let fee = offer.fee.to_be_bytes().to_vec();
 
     sqlx::query(
         "
@@ -218,7 +219,7 @@ async fn insert_offer(conn: impl SqliteExecutor<'_>, offer: OfferRow) -> Result<
     )
     .bind(offer_id_ref)
     .bind(offer.encoded_offer)
-    .bind(i64::try_from(offer.fee)?)
+    .bind(fee)
     .bind(offer.status as u8)
     .bind(expiration_height)
     .bind(expiration_timestamp)
@@ -239,10 +240,8 @@ async fn insert_offer_asset(
     let offer_id_ref = offer_id.as_ref();
     let asset_id_ref = asset_id.as_ref();
 
-    let amount_bytes = amount.to_be_bytes();
-    let royalty_bytes = royalty.to_be_bytes();
-    let amount = amount_bytes.as_ref();
-    let royalty = royalty_bytes.as_ref();
+    let amount = amount.to_be_bytes().to_vec();
+    let royalty = royalty.to_be_bytes().to_vec();
 
     sqlx::query(
         "
@@ -274,10 +273,8 @@ async fn insert_offer_xch(
 ) -> Result<()> {
     let offer_id_ref = offer_hash.as_ref();
 
-    let xch_bytes = xch.to_be_bytes();
-    let royalty_bytes = royalty.to_be_bytes();
-    let xch = xch_bytes.as_ref();
-    let royalty = royalty_bytes.as_ref();
+    let xch = xch.to_be_bytes().to_vec();
+    let royalty = royalty.to_be_bytes().to_vec();
 
     sqlx::query(
         "
