@@ -77,7 +77,7 @@ impl NftUriQueue {
                                 name: info.name,
                                 description: info.description,
                                 is_sensitive_content: info.sensitive_content,
-                                collection_id,
+                                collection_id: collection_id.unwrap_or_default(),
                             },
                         )
                         .await?;
