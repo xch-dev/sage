@@ -15,7 +15,7 @@ use sage_api::{
     ViewCoinSpendsResponse,
 };
 use sage_assets::fetch_uris_without_hash;
-use sage_database::{Asset, AssetKind, CatAsset};
+use sage_database::{Asset, AssetKind, TokenAsset};
 use sage_wallet::{MultiSendPayment, WalletNftMint};
 use tokio::time::timeout;
 
@@ -179,7 +179,7 @@ impl Sage {
         let (coin_spends, asset_id) = wallet.issue_cat(amount, fee, None).await?;
         let mut tx = wallet.db.tx().await?;
 
-        tx.insert_cat(CatAsset {
+        tx.insert_cat(TokenAsset {
             asset: Asset {
                 hash: asset_id,
                 name: Some(req.name),

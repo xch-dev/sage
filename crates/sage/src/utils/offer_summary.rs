@@ -40,7 +40,7 @@ impl Sage {
         };
 
         for (asset_id, amount) in offered_amounts.cats {
-            let cat = wallet.db.cat_asset(asset_id).await?;
+            let cat = wallet.db.token_asset(asset_id).await?;
 
             maker.cats.insert(
                 hex::encode(asset_id),
@@ -112,7 +112,7 @@ impl Sage {
         };
 
         for (asset_id, amount) in requested_amounts.cats {
-            let cat = wallet.db.cat_asset(asset_id).await?;
+            let cat = wallet.db.token_asset(asset_id).await?;
 
             taker.cats.insert(
                 hex::encode(asset_id),
