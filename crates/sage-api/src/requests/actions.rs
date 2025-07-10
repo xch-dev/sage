@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::CatRecord;
+use crate::TokenRecord;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
@@ -15,7 +15,7 @@ pub struct ResyncCatResponse {}
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct UpdateCat {
-    pub record: CatRecord,
+    pub record: TokenRecord,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]

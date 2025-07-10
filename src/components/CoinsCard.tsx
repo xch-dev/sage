@@ -32,7 +32,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import {
-  CatRecord,
+  TokenRecord,
   CoinRecord,
   CoinSortMode,
   commands,
@@ -43,7 +43,7 @@ import { FeeAmountInput } from './ui/masked-input';
 interface CoinsCardProps {
   precision: number;
   coins: CoinRecord[];
-  asset: CatRecord | null;
+  asset: TokenRecord | null;
   splitHandler: typeof commands.splitXch | null;
   combineHandler: typeof commands.combineXch | null;
   autoCombineHandler: typeof commands.autoCombineXch | null;

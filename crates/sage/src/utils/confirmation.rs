@@ -42,7 +42,13 @@ impl Sage {
             let (kind, p2_puzzle_hash) = match input.kind {
                 CoinKind::Unknown => {
                     let kind = if wallet.db.is_p2_puzzle_hash(coin.puzzle_hash).await? {
-                        AssetKind::Xch
+                        let cat = wallet.db.token_asset(Bytes32::default()).await?;
+                        AssetKind::Token {
+                            asset_id: hex::encode(Bytes32::default()),
+                            name: cat.as_ref().and_then(|cat| cat.asset.name.clone()),
+                            ticker: cat.as_ref().and_then(|cat| cat.ticker.clone()),
+                            icon_url: cat.as_ref().and_then(|cat| cat.asset.icon_url.clone()),
+                        }
                     } else {
                         AssetKind::Unknown
                     };
@@ -50,8 +56,8 @@ impl Sage {
                 }
                 CoinKind::Launcher => (AssetKind::Launcher, coin.puzzle_hash),
                 CoinKind::Cat { info } => {
-                    let cat = wallet.db.cat_asset(info.asset_id).await?;
-                    let kind = AssetKind::Cat {
+                    let cat = wallet.db.token_asset(info.asset_id).await?;
+                    let kind = AssetKind::Token {
                         asset_id: hex::encode(info.asset_id),
                         name: cat.as_ref().and_then(|cat| cat.asset.name.clone()),
                         ticker: cat.as_ref().and_then(|cat| cat.ticker.clone()),

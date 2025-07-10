@@ -12,13 +12,13 @@ import { Trans } from '@lingui/react/macro';
 import { Coins, InfoIcon } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CatRecord, commands, events } from '../bindings';
+import { TokenRecord, commands, events } from '../bindings';
 import { useWalletState } from '../state';
 import { TokenListView } from '@/components/TokenListView';
 import { TokenGridView } from '@/components/TokenGridView';
 import { TokenOptions } from '@/components/TokenOptions';
 import { TokenSortMode } from '@/hooks/useTokenParams';
-import { TokenRecord } from '@/types/TokenViewProps';
+import { UITokenRecord } from '@/types/TokenViewProps';
 import { toast } from 'react-toastify';
 import { exportTokens } from '@/lib/exportTokens';
 
@@ -29,7 +29,7 @@ export function TokenList() {
   const { addError } = useErrors();
   const [params, setParams] = useTokenParams();
   const { viewMode, sortMode, showZeroBalanceTokens, showHiddenCats } = params;
-  const [cats, setCats] = useState<CatRecord[]>([]);
+  const [cats, setCats] = useState<TokenRecord[]>([]);
 
   const xchRecord = useMemo(
     () => ({
@@ -142,7 +142,7 @@ export function TokenList() {
   }, [updateCats]);
 
   const tokenActionHandlers = {
-    onEdit: (asset: TokenRecord) => {
+    onEdit: (asset: UITokenRecord) => {
       navigate(`/wallet/token/${asset.asset_id}`);
     },
     onRefreshInfo: (assetId: string) => {
@@ -155,7 +155,7 @@ export function TokenList() {
         })
         .catch(addError);
     },
-    onToggleVisibility: (asset: TokenRecord) => {
+    onToggleVisibility: (asset: UITokenRecord) => {
       if (asset.asset_id === 'xch') return;
       const updatedCat = cats.find((cat) => cat.asset_id === asset.asset_id);
       if (!updatedCat) return;

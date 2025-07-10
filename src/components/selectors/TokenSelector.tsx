@@ -1,4 +1,4 @@
-import { CatRecord, commands } from '@/bindings';
+import { TokenRecord, commands } from '@/bindings';
 import { useErrors } from '@/hooks/useErrors';
 import { useEffect, useState } from 'react';
 import { Input } from '../ui/input';
@@ -27,8 +27,8 @@ export function TokenSelector({
   const { addError } = useErrors();
   const { getCatList } = usePrices();
 
-  const [tokens, setTokens] = useState<CatRecord[]>([]);
-  const [selectedToken, setSelectedToken] = useState<CatRecord | null>(null);
+  const [tokens, setTokens] = useState<TokenRecord[]>([]);
+  const [selectedToken, setSelectedToken] = useState<TokenRecord | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
@@ -43,8 +43,8 @@ export function TokenSelector({
         let allTokens = walletTokens;
 
         if (includeDexieList) {
-          // Convert CatListItem[] to CatRecord[]
-          const dexieTokens: CatRecord[] = getCatList().map((cat) => ({
+          // Convert CatListItem[] to UITokenRecord[]
+          const dexieTokens: TokenRecord[] = getCatList().map((cat) => ({
             asset_id: cat.asset_id,
             name: cat.name,
             ticker: cat.ticker,
@@ -55,7 +55,7 @@ export function TokenSelector({
           }));
 
           // Merge and deduplicate by asset_id
-          const tokenMap = new Map<string, CatRecord>();
+          const tokenMap = new Map<string, TokenRecord>();
           [...walletTokens, ...dexieTokens].forEach((token) => {
             if (!tokenMap.has(token.asset_id)) {
               tokenMap.set(token.asset_id, token);

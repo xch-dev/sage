@@ -1,13 +1,17 @@
-import { CatRecord } from '../bindings';
+import { TokenRecord } from '../bindings';
 
 export interface TokenViewProps {
   cats: Array<
-    CatRecord & { balanceInUsd: number; sortValue: number; priceInUsd: number }
+    TokenRecord & {
+      balanceInUsd: number;
+      sortValue: number;
+      priceInUsd: number;
+    }
   >;
-  xchRecord: TokenRecord;
+  xchRecord: UITokenRecord;
 }
 
-export interface TokenRecord {
+export interface UITokenRecord {
   asset_id: string;
   name: string | null;
   ticker: string | null;

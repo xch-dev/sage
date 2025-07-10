@@ -29,7 +29,12 @@ import { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router-dom';
 import * as z from 'zod';
-import { CatRecord, commands, events, TransactionResponse } from '../bindings';
+import {
+  TokenRecord,
+  commands,
+  events,
+  TransactionResponse,
+} from '../bindings';
 import { NumberFormat } from '@/components/NumberFormat';
 import { toHex } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
@@ -55,9 +60,9 @@ export default function Send() {
   const { addError } = useErrors();
   const { fee: defaultFee } = useDefaultFee();
 
-  const [asset, setAsset] = useState<(CatRecord & { decimals: number }) | null>(
-    null,
-  );
+  const [asset, setAsset] = useState<
+    (TokenRecord & { decimals: number }) | null
+  >(null);
   const [response, setResponse] = useState<TransactionResponse | null>(null);
   const [currentMemo, setCurrentMemo] = useState<string | undefined>(undefined);
 

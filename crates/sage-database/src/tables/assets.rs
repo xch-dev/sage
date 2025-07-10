@@ -1,9 +1,9 @@
 mod asset;
-mod cat;
 mod did;
 mod nft;
+mod token;
 
 pub use asset::*;
-pub use cat::*;
 pub use did::*;
 pub use nft::*;
+pub use token::*;

@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    Amount, CatRecord, CoinRecord, DerivationRecord, DidRecord, NftCollectionRecord, NftData,
-    NftRecord, PendingTransactionRecord, TransactionRecord, Unit,
+    Amount, CoinRecord, DerivationRecord, DidRecord, NftCollectionRecord, NftData, NftRecord,
+    PendingTransactionRecord, TokenRecord, TransactionRecord, Unit,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -163,7 +163,7 @@ pub struct GetCats {}
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct GetCatsResponse {
-    pub cats: Vec<CatRecord>,
+    pub cats: Vec<TokenRecord>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -175,7 +175,7 @@ pub struct GetCat {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct GetCatResponse {
-    pub cat: Option<CatRecord>,
+    pub cat: Option<TokenRecord>,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]

@@ -5,7 +5,7 @@ import { usePrices } from '@/hooks/usePrices';
 import { toDecimal } from '@/lib/utils';
 import { RowSelectionState } from '@tanstack/react-table';
 import {
-  CatRecord,
+  TokenRecord,
   CoinRecord,
   commands,
   events,
@@ -32,7 +32,7 @@ export function useTokenState(assetId: string | undefined) {
   const { getBalanceInUsd } = usePrices();
   const { addError } = useErrors();
 
-  const [asset, setAsset] = useState<CatRecord | null>(null);
+  const [asset, setAsset] = useState<TokenRecord | null>(null);
   const [coins, setCoins] = useState<CoinRecord[]>([]);
   const [response, setResponse] = useState<EnhancedTransactionResponse | null>(
     null,
@@ -173,7 +173,7 @@ export function useTokenState(assetId: string | undefined) {
     commands.updateCat({ record: updatedAsset }).catch(addError);
   };
 
-  const updateCatDetails = async (updatedAsset: CatRecord) => {
+  const updateCatDetails = async (updatedAsset: TokenRecord) => {
     return commands
       .updateCat({ record: updatedAsset })
       .then(() => updateCat())

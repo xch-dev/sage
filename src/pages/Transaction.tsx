@@ -131,7 +131,7 @@ function TransactionCoin({ coin }: TransactionCoinProps) {
           </div>
         </div>
       </div>
-      {coin.type !== 'xch' && <TransactionCoinId coin={coin} />}
+      <TransactionCoinId coin={coin} />
     </div>
   );
 }
@@ -144,7 +144,7 @@ function TransactionCoinKind({ coin }: TransactionCoinKindProps) {
   const walletState = useWalletState();
 
   switch (coin.type) {
-    case 'cat': {
+    case 'token': {
       return (
         <div className='flex items-center gap-2'>
           <img
@@ -200,7 +200,7 @@ function TransactionCoinId({ coin }: TransactionCoinIdProps) {
   let toastMessage = '';
 
   switch (coin.type) {
-    case 'cat':
+    case 'token':
       id = coin.asset_id;
       label = t`Asset ID`;
       toastMessage = t`Asset ID copied to clipboard`;

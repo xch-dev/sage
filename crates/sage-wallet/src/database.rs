@@ -8,7 +8,7 @@ use chia::{
 };
 use chia_wallet_sdk::driver::NftInfo;
 use sage_assets::base64_data_uri;
-use sage_database::{Asset, AssetKind, CatAsset, Database, DatabaseTx, DidCoinInfo, NftCoinInfo};
+use sage_database::{Asset, AssetKind, Database, DatabaseTx, DidCoinInfo, NftCoinInfo, TokenAsset};
 use tracing::warn;
 
 use crate::{compute_nft_info, fetch_nft_did, ChildKind, Transaction, WalletError, WalletPeer};
@@ -60,7 +60,7 @@ pub async fn insert_puzzle(
         } => {
             tx.insert_lineage_proof(coin_id, lineage_proof).await?;
 
-            tx.insert_cat(CatAsset {
+            tx.insert_cat(TokenAsset {
                 asset: Asset {
                     hash: info.asset_id,
                     name: None,

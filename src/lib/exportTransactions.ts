@@ -63,25 +63,19 @@ export async function exportTransactions(params: TransactionQueryParams) {
           coin.address || '',
           coin.coin_id,
           coin.type.toUpperCase(),
-          coin.type === 'xch'
-            ? 'XCH'
-            : coin.type === 'cat'
-              ? coin.asset_id
-              : coin.type === 'nft'
-                ? coin.launcher_id
-                : coin.type === 'did'
-                  ? coin.launcher_id
-                  : '',
-          (coin.type === 'xch'
-            ? 'XCH'
-            : coin.type === 'cat'
-              ? coin.name || ''
-              : coin.type === 'nft'
-                ? coin.name || ''
-                : coin.type === 'did'
-                  ? coin.name || ''
-                  : ''
-          ).replace(/,/g, ''),
+          (() => {
+            if (coin.type === 'token') return coin.asset_id || '';
+            if (coin.type === 'nft') return coin.launcher_id || '';
+            if (coin.type === 'did') return coin.launcher_id || '';
+            return '';
+          })(),
+          (() => {
+            if (coin.type === 'token')
+              return coin.asset_id ? coin.name || '' : '';
+            if (coin.type === 'nft') return coin.name || '';
+            if (coin.type === 'did') return coin.name || '';
+            return '';
+          })().replace(/,/g, ''),
         ]),
         ...tx.created.map((coin) => [
           tx.height,
@@ -92,25 +86,20 @@ export async function exportTransactions(params: TransactionQueryParams) {
           coin.address || '',
           coin.coin_id,
           coin.type.toUpperCase(),
-          coin.type === 'xch'
-            ? 'XCH'
-            : coin.type === 'cat'
-              ? coin.asset_id
-              : coin.type === 'nft'
+          coin.type === 'token'
+            ? coin.asset_id
+            : coin.type === 'nft'
+              ? coin.launcher_id
+              : coin.type === 'did'
                 ? coin.launcher_id
-                : coin.type === 'did'
-                  ? coin.launcher_id
-                  : '',
-          (coin.type === 'xch'
-            ? 'XCH'
-            : coin.type === 'cat'
-              ? coin.name || ''
-              : coin.type === 'nft'
-                ? coin.name || ''
-                : coin.type === 'did'
-                  ? coin.name || ''
-                  : ''
-          ).replace(/,/g, ''),
+                : '',
+          (() => {
+            if (coin.type === 'token')
+              return coin.asset_id ? coin.ticker || '' : '';
+            if (coin.type === 'nft') return coin.name || '';
+            if (coin.type === 'did') return coin.name || '';
+            return '';
+          })().replace(/,/g, ''),
         ]),
       ];
     });

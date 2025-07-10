@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { toast } from 'react-toastify';
-import { CatRecord } from '../bindings';
+import { TokenRecord } from '../bindings';
 import { useState } from 'react';
 import {
   Dialog,
@@ -39,13 +39,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
 interface TokenCardProps {
-  asset: CatRecord | null;
+  asset: TokenRecord | null;
   assetId: string | undefined;
   precision: number;
   balanceInUsd: string;
   onRedownload: () => void;
   onVisibilityChange: (visible: boolean) => void;
-  onUpdateCat: (updatedAsset: CatRecord) => Promise<void>;
+  onUpdateCat: (updatedAsset: TokenRecord) => Promise<void>;
   receive_address: string;
 }
 

@@ -132,7 +132,7 @@ export function calculateTransaction(
   const created: CreatedCoin[] = [];
 
   for (const input of summary.inputs || []) {
-    if (input.type === 'xch') {
+    if (input.type === 'token' && input.asset_id === 'xch') {
       spent.push({
         badge: 'Chia',
         label: `${formatNumber({
@@ -166,7 +166,7 @@ export function calculateTransaction(
       }
     }
 
-    if (input.type === 'cat') {
+    if (input.type === 'token' && input.asset_id !== 'xch') {
       const ticker = input.ticker || 'CAT';
 
       spent.push({

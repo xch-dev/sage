@@ -1,9 +1,9 @@
 import { t } from '@lingui/core/macro';
 import { toast } from 'react-toastify';
-import { TokenRecord } from '@/types/TokenViewProps';
+import { UITokenRecord } from '@/types/TokenViewProps';
 import { exportText } from '@/lib/exportText';
 
-export async function exportTokens(tokens: TokenRecord[]) {
+export async function exportTokens(tokens: UITokenRecord[]) {
   try {
     if (tokens.length === 0) {
       toast.error(t`No tokens to export`);

@@ -10,9 +10,7 @@ import { columns, FlattenedTransaction } from './TransactionColumns';
 
 function getDisplayName(coin: TransactionRecordCoin) {
   switch (coin.type) {
-    case 'xch':
-      return 'Chia';
-    case 'cat':
+    case 'token':
       return coin.name ?? 'Unknown CAT';
     case 'did':
       return coin.name ? `${coin.name}` : 'Unknown DID';
@@ -25,9 +23,7 @@ function getDisplayName(coin: TransactionRecordCoin) {
 
 function getItemId(coin: TransactionRecordCoin) {
   switch (coin.type) {
-    case 'xch':
-      return 'xch';
-    case 'cat':
+    case 'token':
       return coin.asset_id;
     case 'did':
       return coin.launcher_id;
@@ -40,9 +36,7 @@ function getItemId(coin: TransactionRecordCoin) {
 
 function getIconUrl(coin: TransactionRecordCoin) {
   switch (coin.type) {
-    case 'xch':
-      return 'https://icons.dexie.space/xch.webp';
-    case 'cat':
+    case 'token':
       return coin.icon_url;
     case 'nft':
       return coin.icon;

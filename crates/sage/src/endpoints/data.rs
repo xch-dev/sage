@@ -12,7 +12,7 @@ use chia_puzzles::{SETTLEMENT_PAYMENT_HASH, SINGLETON_LAUNCHER_HASH};
 use chia_wallet_sdk::utils::Address;
 use clvmr::Allocator;
 use sage_api::{
-    AddressKind, Amount, AssetKind, CatRecord, CheckAddress, CheckAddressResponse, CoinRecord,
+    AddressKind, Amount, AssetKind, CheckAddress, CheckAddressResponse, CoinRecord,
     CoinSortMode as ApiCoinSortMode, DerivationRecord, DidRecord, GetAreCoinsSpendable,
     GetAreCoinsSpendableResponse, GetCat, GetCatCoins, GetCatCoinsResponse, GetCatResponse,
     GetCats, GetCatsResponse, GetCoinsByIds, GetCoinsByIdsResponse, GetDerivations,
@@ -24,7 +24,7 @@ use sage_api::{
     GetSpendableCoinCountResponse, GetSyncStatus, GetSyncStatusResponse, GetTransaction,
     GetTransactionResponse, GetTransactions, GetTransactionsResponse, GetVersion,
     GetVersionResponse, GetXchCoins, GetXchCoinsResponse, NftCollectionRecord, NftData, NftRecord,
-    NftSortMode as ApiNftSortMode, PendingTransactionRecord, TransactionRecord,
+    NftSortMode as ApiNftSortMode, PendingTransactionRecord, TokenRecord, TransactionRecord,
     TransactionRecordCoin,
 };
 use sage_database::{
@@ -259,9 +259,9 @@ impl Sage {
         let mut records = Vec::with_capacity(cats.len());
 
         for cat in cats {
-            let balance = wallet.db.cat_balance(cat.asset.hash).await?;
+            let balance = wallet.db.token_balance(cat.asset.hash).await?;
 
-            records.push(CatRecord {
+            records.push(TokenRecord {
                 asset_id: hex::encode(cat.asset.hash),
                 name: cat.asset.name,
                 ticker: cat.ticker,
@@ -279,12 +279,12 @@ impl Sage {
         let wallet = self.wallet()?;
 
         let asset_id = parse_asset_id(req.asset_id)?;
-        let cat = wallet.db.cat_asset(asset_id).await?;
-        let balance = wallet.db.cat_balance(asset_id).await?;
+        let cat = wallet.db.token_asset(asset_id).await?;
+        let balance = wallet.db.token_balance(asset_id).await?;
 
         let cat = cat
             .map(|cat| {
-                Result::Ok(CatRecord {
+                Result::Ok(TokenRecord {
                     asset_id: cat.asset.hash.to_string(),
                     name: cat.asset.name,
                     ticker: cat.ticker,
@@ -716,7 +716,7 @@ impl Sage {
         let kind = match transaction_coin.asset.kind {
             DatabaseAssetKind::Token => {
                 if let Some(item_id) = item_id {
-                    AssetKind::Cat {
+                    AssetKind::Token {
                         asset_id: hex::encode(item_id),
                         name,
                         ticker: transaction_coin.ticker,

@@ -132,19 +132,19 @@ impl Database {
     }
 
     pub async fn xch_balance(&self) -> Result<u128> {
-        xch_balance(&self.pool).await
+        token_balance(&self.pool, Bytes32::default()).await
     }
 
-    pub async fn cat_balance(&self, asset_id: Bytes32) -> Result<u128> {
-        cat_balance(&self.pool, asset_id).await
+    pub async fn token_balance(&self, asset_id: Bytes32) -> Result<u128> {
+        token_balance(&self.pool, asset_id).await
     }
 
     pub async fn spendable_xch_balance(&self) -> Result<u128> {
-        spendable_xch_balance(&self.pool).await
+        spendable_token_balance(&self.pool, Bytes32::default()).await
     }
 
-    pub async fn spendable_cat_balance(&self, asset_id: Bytes32) -> Result<u128> {
-        spendable_cat_balance(&self.pool, asset_id).await
+    pub async fn spendable_token_balance(&self, asset_id: Bytes32) -> Result<u128> {
+        spendable_token_balance(&self.pool, asset_id).await
     }
 
     pub async fn spendable_xch_coins(&self) -> Result<Vec<Coin>> {
@@ -513,19 +513,7 @@ async fn synced_coin_count(conn: impl SqliteExecutor<'_>) -> Result<u32> {
     .convert()
 }
 
-async fn xch_balance(conn: impl SqliteExecutor<'_>) -> Result<u128> {
-    query!("SELECT amount FROM owned_coins WHERE owned_coins.asset_id = 0")
-        .fetch_all(conn)
-        .await?
-        .into_iter()
-        .map(|row| {
-            let amount: u64 = row.amount.convert()?;
-            Ok(amount as u128)
-        })
-        .sum()
-}
-
-async fn cat_balance(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<u128> {
+async fn token_balance(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<u128> {
     let asset_id_ref = asset_id.as_ref();
 
     query!(
@@ -542,19 +530,7 @@ async fn cat_balance(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result
     .sum()
 }
 
-async fn spendable_xch_balance(conn: impl SqliteExecutor<'_>) -> Result<u128> {
-    query!("SELECT amount FROM spendable_coins WHERE asset_id = 0")
-        .fetch_all(conn)
-        .await?
-        .into_iter()
-        .map(|row| {
-            let amount: u64 = row.amount.convert()?;
-            Ok(amount as u128)
-        })
-        .sum()
-}
-
-async fn spendable_cat_balance(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<u128> {
+async fn spendable_token_balance(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<u128> {
     let asset_id_ref = asset_id.as_ref();
 
     query!(

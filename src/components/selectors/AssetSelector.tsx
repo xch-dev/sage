@@ -1,4 +1,4 @@
-import { Assets, CatRecord, commands } from '@/bindings';
+import { Assets, TokenRecord, commands } from '@/bindings';
 import { NftSelector } from '@/components/selectors/NftSelector';
 import { TokenSelector } from '@/components/selectors/TokenSelector';
 import { Button } from '@/components/ui/button';
@@ -44,7 +44,7 @@ export function AssetSelector({
 }: AssetSelectorProps) {
   const [currentState] = useOfferStateWithDefault();
   const [includeAmount, setIncludeAmount] = useState(!!assets.xch);
-  const [tokens, setTokens] = useState<CatRecord[]>([]);
+  const [tokens, setTokens] = useState<TokenRecord[]>([]);
   const { getCatAskPriceInXch } = usePrices();
 
   useEffect(() => {

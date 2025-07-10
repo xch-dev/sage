@@ -4,7 +4,7 @@ use sqlx::query;
 use crate::{Asset, AssetKind, Convert, Database, DatabaseTx, Result};
 
 #[derive(Debug, Clone)]
-pub struct CatAsset {
+pub struct TokenAsset {
     pub asset: Asset,
     pub ticker: Option<String>,
     pub precision: u8,
@@ -19,11 +19,12 @@ impl Database {
     ) -> Result<()> {
         let hash = hash.as_ref();
 
+        // specifically exclude the xch token form being updated
         query!(
             "
             UPDATE tokens 
             SET ticker = ?, precision = ?
-            WHERE asset_id = (SELECT id FROM assets WHERE hash = ?)
+            WHERE asset_id = (SELECT id FROM assets WHERE hash = ?) AND asset_id != 0
             ",
             ticker,
             precision,
@@ -35,7 +36,7 @@ impl Database {
         Ok(())
     }
 
-    pub async fn cat_asset(&self, asset_id: Bytes32) -> Result<Option<CatAsset>> {
+    pub async fn token_asset(&self, asset_id: Bytes32) -> Result<Option<TokenAsset>> {
         let asset_id = asset_id.as_ref();
 
         query!(
@@ -45,14 +46,14 @@ impl Database {
                 is_visible, is_sensitive_content
             FROM assets
             INNER JOIN tokens ON tokens.asset_id = assets.id
-            WHERE assets.id != 0 AND hash = ?
+            WHERE hash = ?
             ",
             asset_id
         )
         .fetch_optional(&self.pool)
         .await?
         .map(|row| {
-            Ok(CatAsset {
+            Ok(TokenAsset {
                 asset: Asset {
                     hash: row.hash.convert()?,
                     name: row.name,
@@ -69,7 +70,7 @@ impl Database {
         .transpose()
     }
 
-    pub async fn owned_cats(&self) -> Result<Vec<CatAsset>> {
+    pub async fn owned_cats(&self) -> Result<Vec<TokenAsset>> {
         query!(
             "
             SELECT
@@ -90,7 +91,7 @@ impl Database {
         .await?
         .into_iter()
         .map(|row| {
-            Ok(CatAsset {
+            Ok(TokenAsset {
                 asset: Asset {
                     hash: row.hash.convert()?,
                     name: row.name,
@@ -109,7 +110,7 @@ impl Database {
 }
 
 impl DatabaseTx<'_> {
-    pub async fn insert_cat(&mut self, cat: CatAsset) -> Result<()> {
+    pub async fn insert_cat(&mut self, cat: TokenAsset) -> Result<()> {
         let hash = cat.asset.hash.as_ref();
 
         let asset_id = query!(

@@ -9,7 +9,7 @@ import {
 import { t } from '@lingui/core/macro';
 import { NumberFormat } from '@/components/NumberFormat';
 import { formatUsdPrice, fromMojos } from '@/lib/utils';
-import { TokenViewProps, TokenRecord } from '@/types/TokenViewProps';
+import { TokenViewProps, UITokenRecord } from '@/types/TokenViewProps';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -29,7 +29,7 @@ function TokenCardMenu({
   record,
   actionHandlers,
 }: {
-  record: TokenRecord;
+  record: UITokenRecord;
   actionHandlers?: TokenActionHandlers;
 }) {
   const balance = fromMojos(record.balance, record.decimals);
@@ -164,7 +164,7 @@ export function TokenGridView({
           </Card>
         </Link>
         {cats.map((cat) => {
-          const record: TokenRecord = {
+          const record: UITokenRecord = {
             asset_id: cat.asset_id,
             name: cat.name,
             ticker: cat.ticker,

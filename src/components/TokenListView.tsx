@@ -1,6 +1,6 @@
 import { DataTable } from '@/components/ui/data-table';
 import { cn } from '@/lib/utils';
-import { TokenRecord, TokenViewProps } from '@/types/TokenViewProps';
+import { UITokenRecord, TokenViewProps } from '@/types/TokenViewProps';
 import { t } from '@lingui/core/macro';
 import { columns, TokenActionHandlers } from './TokenColumns';
 
@@ -13,7 +13,7 @@ export function TokenListView({
   xchRecord,
   actionHandlers,
 }: TokenListViewProps) {
-  const tokens: TokenRecord[] = [
+  const tokens: UITokenRecord[] = [
     xchRecord,
     ...cats.map((cat) => ({
       asset_id: cat.asset_id,

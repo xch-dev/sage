@@ -6,7 +6,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { formatUsdPrice, toDecimal } from '@/lib/utils';
-import { TokenRecord } from '@/types/TokenViewProps';
+import { UITokenRecord } from '@/types/TokenViewProps';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { ColumnDef } from '@tanstack/react-table';
@@ -27,12 +27,12 @@ import { NumberFormat } from './NumberFormat';
 // Add new interface for token action handlers
 export interface TokenActionHandlers {
   onRefreshInfo?: (assetId: string) => void;
-  onToggleVisibility?: (asset: TokenRecord) => void;
+  onToggleVisibility?: (asset: UITokenRecord) => void;
 }
 
 export const columns = (
   actionHandlers?: TokenActionHandlers,
-): ColumnDef<TokenRecord>[] => [
+): ColumnDef<UITokenRecord>[] => [
   {
     id: 'icon',
     enableSorting: false,
