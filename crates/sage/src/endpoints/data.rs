@@ -716,11 +716,12 @@ impl Sage {
         let kind = match transaction_coin.asset.kind {
             DatabaseAssetKind::Token => {
                 if let Some(item_id) = item_id {
-                    AssetKind::Cat {
+                    AssetKind::Token {
                         asset_id: hex::encode(item_id),
                         name,
                         ticker: transaction_coin.ticker,
                         icon_url: transaction_coin.asset.icon_url,
+                        precision: transaction_coin.precision,
                     }
                 } else {
                     AssetKind::Unknown
@@ -729,9 +730,9 @@ impl Sage {
             DatabaseAssetKind::Nft => {
                 if let Some(item_id) = item_id {
                     AssetKind::Nft {
-                        launcher_id: Address::new(item_id, "nft".to_string()).encode()?,
+                        asset_id: hex::encode(item_id),
                         name,
-                        icon: transaction_coin.asset.icon_url,
+                        icon_url: transaction_coin.asset.icon_url,
                     }
                 } else {
                     AssetKind::Unknown
@@ -740,8 +741,9 @@ impl Sage {
             DatabaseAssetKind::Did => {
                 if let Some(item_id) = item_id {
                     AssetKind::Did {
-                        launcher_id: Address::new(item_id, "did:chia:".to_string()).encode()?,
+                        asset_id: hex::encode(item_id),
                         name,
+                        icon_url: None,
                     }
                 } else {
                     AssetKind::Unknown

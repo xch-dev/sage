@@ -11,7 +11,6 @@ import { NumberFormat } from '@/components/NumberFormat';
 import { Card } from '@/components/ui/card';
 import { nftUri } from '@/lib/nftUri';
 import { formatAddress, fromMojos, formatTimestamp } from '@/lib/utils';
-import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { openUrl } from '@tauri-apps/plugin-opener';
@@ -131,7 +130,7 @@ function TransactionCoin({ coin }: TransactionCoinProps) {
           </div>
         </div>
       </div>
-      {coin.type !== 'xch' && <TransactionCoinId coin={coin} />}
+      <TransactionCoinId coin={coin} />
     </div>
   );
 }
@@ -141,10 +140,8 @@ interface TransactionCoinKindProps {
 }
 
 function TransactionCoinKind({ coin }: TransactionCoinKindProps) {
-  const walletState = useWalletState();
-
   switch (coin.type) {
-    case 'cat': {
+    case 'token': {
       return (
         <div className='flex items-center gap-2'>
           <img
@@ -174,7 +171,7 @@ function TransactionCoinKind({ coin }: TransactionCoinKindProps) {
         <div className='flex items-center gap-2'>
           <img
             alt={coin.name ?? t`Unknown`}
-            src={nftUri(coin.icon ? 'image/png' : null, coin.icon)}
+            src={nftUri(coin.icon_url ? 'image/png' : null, coin.icon_url)}
             className='w-8 h-8'
             aria-label={coin.name ?? t`Unknown`}
           />
@@ -200,18 +197,18 @@ function TransactionCoinId({ coin }: TransactionCoinIdProps) {
   let toastMessage = '';
 
   switch (coin.type) {
-    case 'cat':
+    case 'token':
       id = coin.asset_id;
       label = t`Asset ID`;
       toastMessage = t`Asset ID copied to clipboard`;
       break;
     case 'nft':
-      id = coin.launcher_id;
+      id = coin.asset_id;
       label = t`Launcher ID`;
       toastMessage = t`Launcher ID copied to clipboard`;
       break;
     case 'did':
-      id = coin.launcher_id;
+      id = coin.asset_id;
       label = t`Launcher ID`;
       toastMessage = t`Launcher ID copied to clipboard`;
       break;

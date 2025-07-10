@@ -132,14 +132,14 @@ export function calculateTransaction(
   const created: CreatedCoin[] = [];
 
   for (const input of summary.inputs || []) {
-    if (input.type === 'xch') {
+    if (input.type === 'token') {
       spent.push({
-        badge: 'Chia',
+        badge: input.name || 'CAT',
         label: `${formatNumber({
-          value: fromMojos(input.amount, xch.decimals),
+          value: fromMojos(input.amount, input.precision),
           minimumFractionDigits: 0,
-          maximumFractionDigits: xch.decimals,
-        })} ${xch.ticker}`,
+          maximumFractionDigits: input.precision,
+        })} ${input.ticker}`,
         coinId: input.coin_id,
         sort: 1,
       });
@@ -162,42 +162,6 @@ export function calculateTransaction(
               ? t`You`
               : output.address,
           sort: 1,
-        });
-      }
-    }
-
-    if (input.type === 'cat') {
-      const ticker = input.ticker || 'CAT';
-
-      spent.push({
-        badge: `CAT ${input.name || input.asset_id}`,
-        label: `${formatNumber({
-          value: fromMojos(input.amount, 3),
-          minimumFractionDigits: 0,
-          maximumFractionDigits: 3,
-        })} ${ticker}`,
-        coinId: input.coin_id,
-        sort: 2,
-      });
-
-      for (const output of input.outputs) {
-        if (summary.inputs.find((i) => i.coin_id === output.coin_id)) {
-          continue;
-        }
-
-        created.push({
-          badge: `CAT ${input.name || input.asset_id}`,
-          label: `${formatNumber({
-            value: fromMojos(output.amount, 3),
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 3,
-          })} ${ticker}`,
-          address: output.burning
-            ? t`Permanently Burned`
-            : output.receiving
-              ? t`You`
-              : output.address,
-          sort: 2,
         });
       }
     }

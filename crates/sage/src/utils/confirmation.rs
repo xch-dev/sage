@@ -42,7 +42,16 @@ impl Sage {
             let (kind, p2_puzzle_hash) = match input.kind {
                 CoinKind::Unknown => {
                     let kind = if wallet.db.is_p2_puzzle_hash(coin.puzzle_hash).await? {
-                        AssetKind::Xch
+                        let xch = wallet.db.token_asset(Bytes32::default()).await?;
+                        AssetKind::Token {
+                            asset_id: hex::encode(
+                                xch.as_ref().map(|xch| xch.asset.hash).unwrap_or_default(),
+                            ),
+                            name: xch.as_ref().and_then(|xch| xch.asset.name.clone()),
+                            ticker: xch.as_ref().and_then(|xch| xch.ticker.clone()),
+                            icon_url: xch.as_ref().and_then(|xch| xch.asset.icon_url.clone()),
+                            precision: xch.as_ref().map(|xch| xch.precision).unwrap_or(12),
+                        }
                     } else {
                         AssetKind::Unknown
                     };
@@ -51,11 +60,12 @@ impl Sage {
                 CoinKind::Launcher => (AssetKind::Launcher, coin.puzzle_hash),
                 CoinKind::Cat { info } => {
                     let cat = wallet.db.token_asset(info.asset_id).await?;
-                    let kind = AssetKind::Cat {
+                    let kind = AssetKind::Token {
                         asset_id: hex::encode(info.asset_id),
                         name: cat.as_ref().and_then(|cat| cat.asset.name.clone()),
                         ticker: cat.as_ref().and_then(|cat| cat.ticker.clone()),
                         icon_url: cat.as_ref().and_then(|cat| cat.asset.icon_url.clone()),
+                        precision: cat.as_ref().map(|cat| cat.precision).unwrap_or(3),
                     };
                     (kind, info.p2_puzzle_hash)
                 }
@@ -71,9 +81,9 @@ impl Sage {
                     };
 
                     let kind = AssetKind::Did {
-                        launcher_id: Address::new(info.launcher_id, "did:chia:".to_string())
-                            .encode()?,
+                        asset_id: hex::encode(info.launcher_id),
                         name,
+                        icon_url: None,
                     };
 
                     (kind, info.p2_puzzle_hash)
@@ -82,8 +92,8 @@ impl Sage {
                     let extracted = extract_nft_data(Some(&wallet.db), metadata, &cache).await?;
 
                     let kind = AssetKind::Nft {
-                        launcher_id: Address::new(info.launcher_id, "nft".to_string()).encode()?,
-                        icon: extracted.icon.map(|icon| BASE64_STANDARD.encode(icon)),
+                        asset_id: hex::encode(info.launcher_id),
+                        icon_url: extracted.icon.map(|icon| BASE64_STANDARD.encode(icon)),
                         name: extracted.name,
                     };
 

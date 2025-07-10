@@ -63,24 +63,12 @@ export async function exportTransactions(params: TransactionQueryParams) {
           coin.address || '',
           coin.coin_id,
           coin.type.toUpperCase(),
-          coin.type === 'xch'
-            ? 'XCH'
-            : coin.type === 'cat'
-              ? coin.asset_id
-              : coin.type === 'nft'
-                ? coin.launcher_id
-                : coin.type === 'did'
-                  ? coin.launcher_id
-                  : '',
-          (coin.type === 'xch'
-            ? 'XCH'
-            : coin.type === 'cat'
-              ? coin.name || ''
-              : coin.type === 'nft'
-                ? coin.name || ''
-                : coin.type === 'did'
-                  ? coin.name || ''
-                  : ''
+          coin.type === 'token' || coin.type === 'nft' || coin.type === 'did'
+            ? coin.asset_id || ''
+            : '',
+          (coin.type === 'token' || coin.type === 'nft' || coin.type === 'did'
+            ? coin.name || ''
+            : ''
           ).replace(/,/g, ''),
         ]),
         ...tx.created.map((coin) => [
@@ -92,24 +80,12 @@ export async function exportTransactions(params: TransactionQueryParams) {
           coin.address || '',
           coin.coin_id,
           coin.type.toUpperCase(),
-          coin.type === 'xch'
-            ? 'XCH'
-            : coin.type === 'cat'
-              ? coin.asset_id
-              : coin.type === 'nft'
-                ? coin.launcher_id
-                : coin.type === 'did'
-                  ? coin.launcher_id
-                  : '',
-          (coin.type === 'xch'
-            ? 'XCH'
-            : coin.type === 'cat'
-              ? coin.name || ''
-              : coin.type === 'nft'
-                ? coin.name || ''
-                : coin.type === 'did'
-                  ? coin.name || ''
-                  : ''
+          coin.type === 'token' || coin.type === 'nft' || coin.type === 'did'
+            ? coin.asset_id || ''
+            : '',
+          (coin.type === 'token' || coin.type === 'nft' || coin.type === 'did'
+            ? coin.name || ''
+            : ''
           ).replace(/,/g, ''),
         ]),
       ];

@@ -5,22 +5,23 @@ use serde::{Deserialize, Serialize};
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum AssetKind {
     Unknown,
-    Xch, //TODO: remove this and replace Cat with Token
     Launcher,
-    Cat {
+    Token {
         asset_id: String,
         name: Option<String>,
-        ticker: Option<String>,
         icon_url: Option<String>,
+        ticker: Option<String>,
+        precision: u8,
     },
     Did {
-        launcher_id: String,
+        asset_id: String,
         name: Option<String>,
+        icon_url: Option<String>,
     },
     Nft {
-        launcher_id: String,
-        icon: Option<String>,
+        asset_id: String,
         name: Option<String>,
+        icon_url: Option<String>,
     },
     Option, // TODO: add option fields
 }
