@@ -140,8 +140,8 @@ export function defaultState(): WalletState {
       synced_coins: 0,
       unhardened_derivation_index: 0,
       hardened_derivation_index: 0,
-      checked_uris: 0,
-      total_uris: 0,
+      checked_files: 0,
+      total_files: 0,
       database_size: 0,
     },
   };

@@ -31,6 +31,12 @@ pub struct FileData {
     pub is_hash_match: bool,
 }
 
+#[derive(Debug, Clone)]
+pub struct ResizedImage {
+    pub data: Vec<u8>,
+    pub mime_type: Option<String>,
+}
+
 impl Database {
     pub async fn candidates_for_download(
         &self,
@@ -41,11 +47,11 @@ impl Database {
         candidates_for_download(&self.pool, check_every_seconds, max_failed_attempts, limit).await
     }
 
-    pub async fn thumbnail(&self, hash: Bytes32) -> Result<Option<Vec<u8>>> {
+    pub async fn thumbnail(&self, hash: Bytes32) -> Result<Option<ResizedImage>> {
         resized_image(&self.pool, hash, ResizedImageKind::Thumbnail).await
     }
 
-    pub async fn icon(&self, hash: Bytes32) -> Result<Option<Vec<u8>>> {
+    pub async fn icon(&self, hash: Bytes32) -> Result<Option<ResizedImage>> {
         resized_image(&self.pool, hash, ResizedImageKind::Icon).await
     }
 
@@ -53,12 +59,12 @@ impl Database {
         full_file_data(&self.pool, hash).await
     }
 
-    pub async fn checked_uris(&self) -> Result<u64> {
-        checked_uris(&self.pool).await
+    pub async fn checked_files(&self) -> Result<u64> {
+        checked_files(&self.pool).await
     }
 
-    pub async fn total_uris(&self) -> Result<u64> {
-        total_uris(&self.pool).await
+    pub async fn total_files(&self) -> Result<u64> {
+        total_files(&self.pool).await
     }
 }
 
@@ -73,6 +79,10 @@ impl DatabaseTx<'_> {
 
     pub async fn file_data(&mut self, hash: Bytes32) -> Result<Option<Vec<u8>>> {
         file_data(&mut *self.tx, hash).await
+    }
+
+    pub async fn update_checked_uri(&mut self, hash: Bytes32, uri: String) -> Result<()> {
+        update_checked_uri(&mut *self.tx, hash, uri).await
     }
 
     pub async fn update_failed_uri(&mut self, hash: Bytes32, uri: String) -> Result<()> {
@@ -96,6 +106,10 @@ impl DatabaseTx<'_> {
         data: Vec<u8>,
     ) -> Result<()> {
         insert_resized_image(&mut *self.tx, file_hash, kind, data).await
+    }
+
+    pub async fn icon(&mut self, hash: Bytes32) -> Result<Option<ResizedImage>> {
+        resized_image(&mut *self.tx, hash, ResizedImageKind::Icon).await
     }
 
     pub async fn nfts_with_metadata_hash(&mut self, hash: Bytes32) -> Result<Vec<UpdateableNft>> {
@@ -223,6 +237,28 @@ async fn update_failed_uri(
     Ok(())
 }
 
+async fn update_checked_uri(
+    conn: impl SqliteExecutor<'_>,
+    hash: Bytes32,
+    uri: String,
+) -> Result<()> {
+    let hash = hash.as_ref();
+
+    query!(
+        "
+        UPDATE file_uris
+        SET last_checked_timestamp = unixepoch()
+        WHERE file_id = (SELECT id FROM files WHERE hash = ?) AND uri = ?
+        ",
+        hash,
+        uri
+    )
+    .execute(conn)
+    .await?;
+
+    Ok(())
+}
+
 async fn update_file(
     conn: impl SqliteExecutor<'_>,
     hash: Bytes32,
@@ -294,12 +330,12 @@ async fn resized_image(
     conn: impl SqliteExecutor<'_>,
     hash: Bytes32,
     kind: ResizedImageKind,
-) -> Result<Option<Vec<u8>>> {
+) -> Result<Option<ResizedImage>> {
     let hash = hash.as_ref();
     let kind = kind as i64;
 
     let row = query!(
-        "SELECT resized_images.data 
+        "SELECT resized_images.data, mime_type
         FROM resized_images 
         INNER JOIN files ON files.id = resized_images.file_id
         WHERE files.hash = ? AND kind = ?",
@@ -309,7 +345,10 @@ async fn resized_image(
     .fetch_optional(conn)
     .await?;
 
-    Ok(row.map(|row| row.data))
+    Ok(row.map(|row| ResizedImage {
+        data: row.data,
+        mime_type: row.mime_type,
+    }))
 }
 
 async fn delete_file(conn: impl SqliteExecutor<'_>, hash: Bytes32) -> Result<()> {
@@ -336,20 +375,37 @@ async fn set_uri_unchecked(conn: impl SqliteExecutor<'_>, uri: String) -> Result
     Ok(())
 }
 
-async fn checked_uris(conn: impl SqliteExecutor<'_>) -> Result<u64> {
-    query!("SELECT COUNT(*) AS count FROM file_uris WHERE last_checked_timestamp IS NOT NULL")
-        .fetch_one(conn)
-        .await?
-        .count
-        .try_into()
-        .map_err(crate::DatabaseError::PrecisionLost)
+async fn checked_files(conn: impl SqliteExecutor<'_>) -> Result<u64> {
+    query!(
+        "
+        SELECT COUNT(*) AS count FROM files
+        WHERE EXISTS (
+            SELECT 1 FROM file_uris
+            WHERE file_uris.file_id = files.id
+            AND file_uris.last_checked_timestamp IS NOT NULL
+        )
+        "
+    )
+    .fetch_one(conn)
+    .await?
+    .count
+    .try_into()
+    .map_err(crate::DatabaseError::PrecisionLost)
 }
 
-async fn total_uris(conn: impl SqliteExecutor<'_>) -> Result<u64> {
-    query!("SELECT COUNT(*) AS count FROM file_uris")
-        .fetch_one(conn)
-        .await?
-        .count
-        .try_into()
-        .map_err(crate::DatabaseError::PrecisionLost)
+async fn total_files(conn: impl SqliteExecutor<'_>) -> Result<u64> {
+    query!(
+        "
+        SELECT COUNT(*) AS count FROM files
+        WHERE EXISTS (
+            SELECT 1 FROM file_uris
+            WHERE file_uris.file_id = files.id
+        )
+        "
+    )
+    .fetch_one(conn)
+    .await?
+    .count
+    .try_into()
+    .map_err(crate::DatabaseError::PrecisionLost)
 }

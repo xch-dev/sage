@@ -153,8 +153,8 @@ pub async fn extract_nft_data(
         {
             result.icon = Some(thumbnail.icon.clone());
         } else if let Some(db) = &db {
-            if let Some(data) = db.icon(data_hash).await? {
-                result.icon = Some(data);
+            if let Some(icon) = db.icon(data_hash).await? {
+                result.icon = Some(icon.data);
             }
         }
     }
