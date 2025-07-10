@@ -1,11 +1,10 @@
 import { DataTable } from '@/components/ui/data-table';
-import { nftUri } from '@/lib/nftUri';
 import { t } from '@lingui/core/macro';
 import { Row, SortingState } from '@tanstack/react-table';
 import BigNumber from 'bignumber.js';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
-import { TransactionRecordCoin, TransactionRecord } from '../bindings';
+import { TransactionRecord, TransactionRecordCoin } from '../bindings';
 import { Loading } from './Loading';
 import { columns, FlattenedTransaction } from './TransactionColumns';
 
@@ -46,7 +45,7 @@ function getIconUrl(coin: TransactionRecordCoin) {
     case 'cat':
       return coin.icon_url;
     case 'nft':
-      return nftUri(coin.icon ? 'image/png' : null, coin.icon);
+      return coin.icon;
     default:
       return null;
   }

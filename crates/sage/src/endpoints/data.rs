@@ -73,8 +73,8 @@ impl Sage {
                 .encode()?,
             unhardened_derivation_index: wallet.db.max_derivation_index(false).await?,
             hardened_derivation_index: wallet.db.max_derivation_index(true).await?,
-            checked_uris: wallet.db.checked_uris().await?.try_into().unwrap_or(0),
-            total_uris: wallet.db.total_uris().await?.try_into().unwrap_or(0),
+            checked_files: wallet.db.checked_files().await?.try_into().unwrap_or(0),
+            total_files: wallet.db.total_files().await?.try_into().unwrap_or(0),
             database_size,
         })
     }
@@ -619,7 +619,7 @@ impl Sage {
                 .db
                 .icon(data_hash)
                 .await?
-                .map(|icon| BASE64_STANDARD.encode(icon)),
+                .map(|icon| BASE64_STANDARD.encode(icon.data)),
         })
     }
 
@@ -645,7 +645,7 @@ impl Sage {
                 .db
                 .thumbnail(data_hash)
                 .await?
-                .map(|thumbnail| BASE64_STANDARD.encode(thumbnail)),
+                .map(|thumbnail| BASE64_STANDARD.encode(thumbnail.data)),
         })
     }
 
@@ -731,8 +731,7 @@ impl Sage {
                     AssetKind::Nft {
                         launcher_id: Address::new(item_id, "nft".to_string()).encode()?,
                         name,
-                        icon: None, // TODO: transaction_coin.get("nft_icon")
-                                    //icon: icon.map(|icon| BASE64_STANDARD.encode(icon)),
+                        icon: transaction_coin.asset.icon_url,
                     }
                 } else {
                     AssetKind::Unknown

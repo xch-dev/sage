@@ -5734,6 +5734,7 @@ dependencies = [
 name = "sage-assets"
 version = "0.10.3"
 dependencies = [
+ "base64 0.22.1",
  "chia",
  "futures-lite",
  "futures-util",

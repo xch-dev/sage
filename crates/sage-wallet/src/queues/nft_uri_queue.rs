@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use futures_lite::StreamExt;
 use futures_util::stream::FuturesUnordered;
-use sage_assets::fetch_uri;
+use sage_assets::{base64_data_uri, fetch_uri};
 use sage_database::{Database, NftMetadataInfo, ResizedImageKind};
 use tokio::{
     sync::mpsc,
@@ -62,6 +62,11 @@ impl NftUriQueue {
                         );
                     }
 
+                    let icon_url = data
+                        .thumbnail
+                        .as_ref()
+                        .map(|thumbnail| base64_data_uri(&thumbnail.icon, &data.mime_type));
+
                     for nft in tx.nfts_with_metadata_hash(item.hash).await? {
                         let info = compute_nft_info(nft.minter_hash, &data.blob);
 
@@ -75,6 +80,7 @@ impl NftUriQueue {
                             nft.hash,
                             NftMetadataInfo {
                                 name: info.name,
+                                icon_url: icon_url.clone(),
                                 description: info.description,
                                 is_sensitive_content: info.sensitive_content,
                                 collection_id: collection_id.unwrap_or_default(),
@@ -97,6 +103,8 @@ impl NftUriQueue {
                         )
                         .await?;
                     }
+
+                    tx.update_checked_uri(item.hash, item.uri).await?;
                 }
                 Ok(Err(error)) => {
                     debug!("Error fetching URI {}: {error}", item.uri);
