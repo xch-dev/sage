@@ -7,6 +7,7 @@ use chia::{
     puzzles::{nft::NftMetadata, LineageProof},
 };
 use chia_wallet_sdk::driver::NftInfo;
+use sage_assets::base64_data_uri;
 use sage_database::{Asset, AssetKind, CatAsset, Database, DatabaseTx, DidCoinInfo, NftCoinInfo};
 use tracing::warn;
 
@@ -161,10 +162,22 @@ pub async fn insert_nft(
             .await?;
     }
 
+    let icon_url =
+        if let Some(data_hash) = metadata.as_ref().and_then(|metadata| metadata.data_hash) {
+            tx.icon(data_hash).await?.map(|icon| {
+                base64_data_uri(
+                    &icon.data,
+                    &icon.mime_type.unwrap_or_else(|| "image/png".to_string()),
+                )
+            })
+        } else {
+            None
+        };
+
     let mut asset = Asset {
         hash: info.launcher_id,
         name: None,
-        icon_url: None,
+        icon_url,
         description: None,
         is_sensitive_content: false,
         is_visible: true,

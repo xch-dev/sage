@@ -50,7 +50,7 @@ impl Sage {
             "
             DELETE FROM coins;
             DELETE FROM assets WHERE id != 0;
-            DELETE FROM collections;
+            DELETE FROM collections WHERE id != 0;
             DELETE FROM mempool_items;
             DELETE FROM files;
             UPDATE blocks SET is_peak = FALSE WHERE is_peak = TRUE;
