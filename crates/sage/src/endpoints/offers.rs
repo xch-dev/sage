@@ -478,7 +478,7 @@ impl Sage {
 
         for cat in cats {
             let asset_id = hex::encode(cat.asset.hash);
-            let cat_asset = wallet.db.cat_asset(cat.asset.hash).await?;
+            let cat_asset = wallet.db.token_asset(cat.asset.hash).await?;
 
             let record = OfferCat {
                 amount: Amount::u64(cat.amount),
