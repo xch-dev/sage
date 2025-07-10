@@ -193,12 +193,14 @@ export function OfferCard({ record, summary, content }: OfferCardProps) {
               </div>
             )}
 
-            {record?.creation_date && (
+            {record?.creation_timestamp && (
               <div className='space-y-1.5'>
                 <div className='text-sm font-medium text-muted-foreground'>
                   <Trans>Created</Trans>
                 </div>
-                <div>{new Date(record.creation_date).toLocaleString()}</div>
+                <div>
+                  {new Date(record.creation_timestamp).toLocaleString()}
+                </div>
               </div>
             )}
 
