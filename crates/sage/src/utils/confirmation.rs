@@ -51,6 +51,7 @@ impl Sage {
                             ticker: xch.as_ref().and_then(|xch| xch.ticker.clone()),
                             icon_url: xch.as_ref().and_then(|xch| xch.asset.icon_url.clone()),
                             precision: xch.as_ref().map_or(12, |xch| xch.precision),
+                            is_xch: true,
                         }
                     } else {
                         AssetKind::Unknown
@@ -66,6 +67,7 @@ impl Sage {
                         ticker: cat.as_ref().and_then(|cat| cat.ticker.clone()),
                         icon_url: cat.as_ref().and_then(|cat| cat.asset.icon_url.clone()),
                         precision: cat.as_ref().map_or(3, |cat| cat.precision),
+                        is_xch: info.asset_id == Bytes32::default(),
                     };
                     (kind, info.p2_puzzle_hash)
                 }

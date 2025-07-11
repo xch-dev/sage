@@ -722,6 +722,7 @@ impl Sage {
                         ticker: transaction_coin.ticker,
                         icon_url: transaction_coin.asset.icon_url,
                         precision: transaction_coin.precision,
+                        is_xch: item_id == Bytes32::default(),
                     }
                 } else {
                     AssetKind::Unknown

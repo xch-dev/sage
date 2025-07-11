@@ -12,6 +12,7 @@ pub enum AssetKind {
         icon_url: Option<String>,
         ticker: Option<String>,
         precision: u8,
+        is_xch: bool,
     },
     Did {
         asset_id: String,
