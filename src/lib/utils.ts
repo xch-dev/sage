@@ -12,6 +12,15 @@ export function dbg<T>(value: T): T {
   return value;
 }
 
+export function isXch(assetId: string | undefined): boolean {
+  if (!assetId) return false;
+  return (
+    assetId ===
+    '0000000000000000000000000000000000000000000000000000000000000000' ||
+    assetId === 'xch'
+  );
+}
+
 export function formatTimestamp(
   timestamp: number | null,
   dateStyle: string = 'medium',

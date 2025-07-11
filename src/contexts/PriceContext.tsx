@@ -6,6 +6,7 @@ import {
   useEffect,
   useState,
 } from 'react';
+import { isXch } from '@/lib/utils';
 
 // Add an interface for the price data structure
 interface CatPriceData {
@@ -112,7 +113,7 @@ export function PriceProvider({ children }: { children: ReactNode }) {
 
   const getPriceInUsd = useCallback(
     (assetId: string) => {
-      if (assetId === 'xch') {
+      if (isXch(assetId)) {
         return xchUsdPrice;
       }
       const priceData = catPrices[assetId];
@@ -124,7 +125,7 @@ export function PriceProvider({ children }: { children: ReactNode }) {
 
   const getBalanceInUsd = useCallback(
     (assetId: string, balance: string) => {
-      if (assetId === 'xch') {
+      if (isXch(assetId)) {
         return (Number(balance) * xchUsdPrice).toFixed(2);
       }
       const priceData = catPrices[assetId];

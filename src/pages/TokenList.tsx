@@ -21,6 +21,7 @@ import { TokenSortMode } from '@/hooks/useTokenParams';
 import { TokenRecord } from '@/types/TokenViewProps';
 import { toast } from 'react-toastify';
 import { exportTokens } from '@/lib/exportTokens';
+import { isXch } from '@/lib/utils';
 
 export function TokenList() {
   const navigate = useNavigate();
@@ -146,7 +147,7 @@ export function TokenList() {
       navigate(`/wallet/token/${asset.asset_id}`);
     },
     onRefreshInfo: (assetId: string) => {
-      if (assetId === 'xch') return;
+      if (isXch(assetId)) return;
       commands
         .resyncCat({ asset_id: assetId })
         .then(() => {
@@ -156,7 +157,7 @@ export function TokenList() {
         .catch(addError);
     },
     onToggleVisibility: (asset: TokenRecord) => {
-      if (asset.asset_id === 'xch') return;
+      if (isXch(asset.asset_id)) return;
       const updatedCat = cats.find((cat) => cat.asset_id === asset.asset_id);
       if (!updatedCat) return;
 

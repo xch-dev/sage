@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useErrors } from '@/hooks/useErrors';
 import { useWalletState } from '@/state';
 import { usePrices } from '@/hooks/usePrices';
-import { toDecimal } from '@/lib/utils';
+import { toDecimal, isXch } from '@/lib/utils';
 import { RowSelectionState } from '@tanstack/react-table';
 import {
   CatRecord,
@@ -47,7 +47,7 @@ export function useTokenState(assetId: string | undefined) {
   const pageSize = 10;
 
   const precision = useMemo(
-    () => (assetId === 'xch' ? walletState.sync.unit.decimals : 3),
+    () => (isXch(assetId) ? walletState.sync.unit.decimals : 3),
     [assetId, walletState.sync.unit.decimals],
   );
 
@@ -62,22 +62,22 @@ export function useTokenState(assetId: string | undefined) {
         const offset = page * pageSize;
 
         const getCoins =
-          assetId === 'xch'
+          isXch(assetId)
             ? commands.getXchCoins({
-                offset,
-                limit: pageSize,
-                sort_mode: sortMode,
-                ascending: sortDirection,
-                include_spent_coins: includeSpentCoins,
-              })
+              offset,
+              limit: pageSize,
+              sort_mode: sortMode,
+              ascending: sortDirection,
+              include_spent_coins: includeSpentCoins,
+            })
             : commands.getCatCoins({
-                asset_id: assetId!,
-                offset,
-                limit: pageSize,
-                sort_mode: sortMode,
-                ascending: sortDirection,
-                include_spent_coins: includeSpentCoins,
-              });
+              asset_id: assetId!,
+              offset,
+              limit: pageSize,
+              sort_mode: sortMode,
+              ascending: sortDirection,
+              include_spent_coins: includeSpentCoins,
+            });
 
         getCoins
           .then((res) => {
@@ -99,7 +99,7 @@ export function useTokenState(assetId: string | undefined) {
 
   const updateCat = useMemo(
     () => () => {
-      if (assetId === 'xch') return;
+      if (isXch(assetId)) return;
 
       commands
         .getCat({ asset_id: assetId! })
@@ -126,7 +126,7 @@ export function useTokenState(assetId: string | undefined) {
   }, [updateCoins]);
 
   useEffect(() => {
-    if (assetId === 'xch') {
+    if (isXch(assetId)) {
       setAsset({
         asset_id: 'xch',
         name: 'Chia',
@@ -158,7 +158,7 @@ export function useTokenState(assetId: string | undefined) {
   }, [assetId, updateCat, walletState.sync]);
 
   const redownload = () => {
-    if (!assetId || assetId === 'xch') return;
+    if (!assetId || isXch(assetId)) return;
 
     commands
       .resyncCat({ asset_id: assetId })
@@ -167,7 +167,7 @@ export function useTokenState(assetId: string | undefined) {
   };
 
   const setVisibility = (visible: boolean) => {
-    if (!asset || assetId === 'xch') return;
+    if (!asset || isXch(assetId)) return;
     const updatedAsset = { ...asset, visible };
 
     commands.updateCat({ record: updatedAsset }).catch(addError);

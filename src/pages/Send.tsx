@@ -42,6 +42,7 @@ import {
 import { ArrowUpToLine } from 'lucide-react';
 import { TokenConfirmation } from '@/components/confirmations/TokenConfirmation';
 import { useDefaultFee } from '@/hooks/useDefaultFee';
+import { isXch } from '@/lib/utils';
 
 function stringToUint8Array(str: string): Uint8Array {
   return new TextEncoder().encode(str);
@@ -49,7 +50,7 @@ function stringToUint8Array(str: string): Uint8Array {
 
 export default function Send() {
   const { asset_id: assetId } = useParams();
-  const isXch = assetId === 'xch';
+  const _isXch = isXch(assetId);
   const navigate = useNavigate();
   const walletState = useWalletState();
   const { addError } = useErrors();
@@ -75,7 +76,7 @@ export default function Send() {
   );
 
   useEffect(() => {
-    if (isXch) {
+    if (_isXch) {
       setAsset({
         asset_id: 'xch',
         name: 'Chia',
@@ -106,7 +107,7 @@ export default function Send() {
     }
   }, [
     updateCat,
-    isXch,
+    _isXch,
     walletState.sync.balance,
     walletState.sync.unit.decimals,
     walletState.sync.unit.ticker,
@@ -163,7 +164,7 @@ export default function Send() {
     setCurrentMemo(values.memo);
 
     let commandFn;
-    if (isXch) {
+    if (_isXch) {
       if (bulk) {
         commandFn = commands.bulkSendXch;
       } else {
@@ -188,7 +189,7 @@ export default function Send() {
     };
 
     // Add asset_id for CAT tokens
-    if (!isXch) {
+    if (!_isXch) {
       params.asset_id = assetId!;
     }
 

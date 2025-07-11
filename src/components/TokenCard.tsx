@@ -2,7 +2,7 @@ import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ReceiveAddress } from '@/components/ReceiveAddress';
 import { NumberFormat } from '@/components/NumberFormat';
-import { fromMojos } from '@/lib/utils';
+import { fromMojos, isXch } from '@/lib/utils';
 import { Link } from 'react-router-dom';
 import { Trans } from '@lingui/react/macro';
 import { t } from '@lingui/core/macro';
@@ -129,7 +129,7 @@ export function TokenCard({
               <HandHelping className='mr-2 h-4 w-4' />
               <Trans>Receive</Trans>
             </Button>
-            {asset && assetId !== 'xch' && (
+            {asset && !isXch(assetId) && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant='outline' size='icon'>

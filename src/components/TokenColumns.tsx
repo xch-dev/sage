@@ -40,9 +40,7 @@ export const columns = (
     size: 40,
     cell: ({ row }) => {
       const record = row.original;
-      const iconUrl = record.isXch
-        ? 'https://icons.dexie.space/xch.webp'
-        : record.icon_url;
+      const iconUrl = record.icon_url;
 
       return iconUrl ? (
         <img

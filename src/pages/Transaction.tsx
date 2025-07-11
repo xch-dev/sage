@@ -130,7 +130,9 @@ function TransactionCoin({ coin }: TransactionCoinProps) {
           </div>
         </div>
       </div>
-      <TransactionCoinId coin={coin} />
+      {coin.type === 'token' && !coin.is_xch && (
+        <TransactionCoinId coin={coin} />
+      )}
     </div>
   );
 }

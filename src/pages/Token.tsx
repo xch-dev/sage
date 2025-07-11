@@ -12,6 +12,7 @@ import { useParams } from 'react-router-dom';
 import { commands } from '../bindings';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import { isXch } from '@/lib/utils';
 
 export default function Token() {
   const { asset_id: assetId } = useParams();
@@ -79,19 +80,18 @@ export default function Token() {
 
   // Get the appropriate handlers based on the asset type
   const splitHandler = useMemo(
-    () => (asset?.asset_id === 'xch' ? commands.splitXch : commands.splitCat),
+    () => (isXch(asset?.asset_id) ? commands.splitXch : commands.splitCat),
     [asset?.asset_id],
   );
 
   const combineHandler = useMemo(
-    () =>
-      asset?.asset_id === 'xch' ? commands.combineXch : commands.combineCat,
+    () => (isXch(asset?.asset_id) ? commands.combineXch : commands.combineCat),
     [asset?.asset_id],
   );
 
   const autoCombineHandler = useMemo(
     () =>
-      asset?.asset_id === 'xch'
+      isXch(asset?.asset_id)
         ? commands.autoCombineXch
         : (...[req]: Parameters<typeof commands.autoCombineXch>) =>
             commands.autoCombineCat({
@@ -107,7 +107,7 @@ export default function Token() {
         title={
           <span>
             {asset ? (asset.name ?? t`Unknown asset`) : ''}{' '}
-            {asset?.asset_id !== 'xch' && (
+            {!isXch(asset?.asset_id) && (
               <CopyButton
                 value={asset?.asset_id ?? ''}
                 onCopy={() => {
