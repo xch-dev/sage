@@ -83,7 +83,8 @@ impl Sage {
                     };
 
                     let kind = AssetKind::Did {
-                        asset_id: hex::encode(info.launcher_id),
+                        asset_id: Address::new(info.launcher_id, "did:chia:".to_string())
+                            .encode()?,
                         name,
                         icon_url: None,
                     };
@@ -94,7 +95,7 @@ impl Sage {
                     let extracted = extract_nft_data(Some(&wallet.db), metadata, &cache).await?;
 
                     let kind = AssetKind::Nft {
-                        asset_id: hex::encode(info.launcher_id),
+                        asset_id: Address::new(info.launcher_id, "nft".to_string()).encode()?,
                         icon_url: extracted.icon.map(|icon| BASE64_STANDARD.encode(icon)),
                         name: extracted.name,
                     };

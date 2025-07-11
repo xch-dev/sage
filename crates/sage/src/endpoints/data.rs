@@ -731,7 +731,7 @@ impl Sage {
             DatabaseAssetKind::Nft => {
                 if let Some(item_id) = item_id {
                     AssetKind::Nft {
-                        asset_id: hex::encode(item_id),
+                        asset_id: Address::new(item_id, "nft".to_string()).encode()?,
                         name,
                         icon_url: transaction_coin.asset.icon_url,
                     }
@@ -742,7 +742,7 @@ impl Sage {
             DatabaseAssetKind::Did => {
                 if let Some(item_id) = item_id {
                     AssetKind::Did {
-                        asset_id: hex::encode(item_id),
+                        asset_id: Address::new(item_id, "did:chia:".to_string()).encode()?,
                         name,
                         icon_url: None,
                     }
