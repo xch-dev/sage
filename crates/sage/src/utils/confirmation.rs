@@ -50,7 +50,7 @@ impl Sage {
                             name: xch.as_ref().and_then(|xch| xch.asset.name.clone()),
                             ticker: xch.as_ref().and_then(|xch| xch.ticker.clone()),
                             icon_url: xch.as_ref().and_then(|xch| xch.asset.icon_url.clone()),
-                            precision: xch.as_ref().map(|xch| xch.precision).unwrap_or(12),
+                            precision: xch.as_ref().map_or(12, |xch| xch.precision),
                         }
                     } else {
                         AssetKind::Unknown
@@ -65,7 +65,7 @@ impl Sage {
                         name: cat.as_ref().and_then(|cat| cat.asset.name.clone()),
                         ticker: cat.as_ref().and_then(|cat| cat.ticker.clone()),
                         icon_url: cat.as_ref().and_then(|cat| cat.asset.icon_url.clone()),
-                        precision: cat.as_ref().map(|cat| cat.precision).unwrap_or(3),
+                        precision: cat.as_ref().map_or(3, |cat| cat.precision),
                     };
                     (kind, info.p2_puzzle_hash)
                 }
