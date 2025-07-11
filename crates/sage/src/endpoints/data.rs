@@ -164,89 +164,31 @@ impl Sage {
     }
 
     pub async fn get_xch_coins(&self, req: GetXchCoins) -> Result<GetXchCoinsResponse> {
-        let wallet = self.wallet()?;
-        let sort_mode = match req.sort_mode {
-            ApiCoinSortMode::CoinId => CoinSortMode::CoinId,
-            ApiCoinSortMode::Amount => CoinSortMode::Amount,
-            ApiCoinSortMode::CreatedHeight => CoinSortMode::CreatedHeight,
-            ApiCoinSortMode::SpentHeight => CoinSortMode::SpentHeight,
-        };
-        let mut coins = Vec::new();
-        let (rows, total) = wallet
-            .db
-            .coin_records(
-                AssetFilter::Id(Bytes32::default()),
+        let (coins, total) = self
+            .get_token_coins(
+                Bytes32::default().to_string(),
+                req.sort_mode,
                 req.limit,
                 req.offset,
-                sort_mode,
                 req.ascending,
-                if req.include_spent_coins {
-                    CoinFilterMode::All
-                } else {
-                    CoinFilterMode::Owned
-                },
+                req.include_spent_coins,
             )
             .await?;
-
-        for row in rows {
-            coins.push(CoinRecord {
-                coin_id: hex::encode(row.coin.coin_id()),
-                address: Address::new(row.coin.puzzle_hash, self.network().prefix()).encode()?,
-                amount: Amount::u64(row.coin.amount),
-                created_height: row.created_height,
-                spent_height: row.spent_height,
-                transaction_id: row.mempool_item_hash.map(hex::encode),
-                offer_id: row.offer_hash.map(hex::encode),
-                created_timestamp: row.created_timestamp,
-                spent_timestamp: row.spent_timestamp,
-            });
-        }
 
         Ok(GetXchCoinsResponse { coins, total })
     }
 
     pub async fn get_cat_coins(&self, req: GetCatCoins) -> Result<GetCatCoinsResponse> {
-        let wallet = self.wallet()?;
-        let asset_id = parse_asset_id(req.asset_id)?;
-
-        let mut coins = Vec::new();
-
-        let sort_mode: CoinSortMode = match req.sort_mode {
-            ApiCoinSortMode::CoinId => CoinSortMode::CoinId,
-            ApiCoinSortMode::Amount => CoinSortMode::Amount,
-            ApiCoinSortMode::CreatedHeight => CoinSortMode::CreatedHeight,
-            ApiCoinSortMode::SpentHeight => CoinSortMode::SpentHeight,
-        };
-
-        let (rows, total) = wallet
-            .db
-            .coin_records(
-                AssetFilter::Id(asset_id),
+        let (coins, total) = self
+            .get_token_coins(
+                req.asset_id,
+                req.sort_mode,
                 req.limit,
                 req.offset,
-                sort_mode,
                 req.ascending,
-                if req.include_spent_coins {
-                    CoinFilterMode::All
-                } else {
-                    CoinFilterMode::Owned
-                },
+                req.include_spent_coins,
             )
             .await?;
-
-        for row in rows {
-            coins.push(CoinRecord {
-                coin_id: hex::encode(row.coin.coin_id()),
-                address: Address::new(row.coin.puzzle_hash, self.network().prefix()).encode()?,
-                amount: Amount::u64(row.coin.amount),
-                created_height: row.created_height,
-                spent_height: row.spent_height,
-                transaction_id: row.mempool_item_hash.map(hex::encode),
-                offer_id: row.offer_hash.map(hex::encode),
-                created_timestamp: row.created_timestamp,
-                spent_timestamp: row.spent_timestamp,
-            });
-        }
 
         Ok(GetCatCoinsResponse { coins, total })
     }
@@ -786,6 +728,60 @@ impl Sage {
             spent,
             created,
         })
+    }
+
+    async fn get_token_coins(
+        &self,
+        asset_id: String,
+        sort_mode: ApiCoinSortMode,
+        limit: u32,
+        offset: u32,
+        ascending: bool,
+        include_spent_coins: bool,
+    ) -> Result<(Vec<CoinRecord>, u32)> {
+        let wallet = self.wallet()?;
+        let asset_id = parse_asset_id(asset_id)?;
+
+        let mut coins = Vec::new();
+
+        let sort_mode: CoinSortMode = match sort_mode {
+            ApiCoinSortMode::CoinId => CoinSortMode::CoinId,
+            ApiCoinSortMode::Amount => CoinSortMode::Amount,
+            ApiCoinSortMode::CreatedHeight => CoinSortMode::CreatedHeight,
+            ApiCoinSortMode::SpentHeight => CoinSortMode::SpentHeight,
+        };
+
+        let (rows, total) = wallet
+            .db
+            .coin_records(
+                AssetFilter::Id(asset_id),
+                limit,
+                offset,
+                sort_mode,
+                ascending,
+                if include_spent_coins {
+                    CoinFilterMode::All
+                } else {
+                    CoinFilterMode::Owned
+                },
+            )
+            .await?;
+
+        for row in rows {
+            coins.push(CoinRecord {
+                coin_id: hex::encode(row.coin.coin_id()),
+                address: Address::new(row.coin.puzzle_hash, self.network().prefix()).encode()?,
+                amount: Amount::u64(row.coin.amount),
+                created_height: row.created_height,
+                spent_height: row.spent_height,
+                transaction_id: row.mempool_item_hash.map(hex::encode),
+                offer_id: row.offer_hash.map(hex::encode),
+                created_timestamp: row.created_timestamp,
+                spent_timestamp: row.spent_timestamp,
+            });
+        }
+
+        Ok((coins, total))
     }
 }
 
