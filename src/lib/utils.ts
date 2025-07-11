@@ -15,9 +15,9 @@ export function dbg<T>(value: T): T {
 export function isXch(assetId: string | undefined): boolean {
   if (!assetId) return false;
   return (
+    assetId === 'xch' ||
     assetId ===
-    '0000000000000000000000000000000000000000000000000000000000000000' ||
-    assetId === 'xch'
+      '0000000000000000000000000000000000000000000000000000000000000000'
   );
 }
 

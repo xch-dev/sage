@@ -9,7 +9,6 @@ import { CopyButton } from '@/components/CopyButton';
 import Header from '@/components/Header';
 import { NumberFormat } from '@/components/NumberFormat';
 import { Card } from '@/components/ui/card';
-import { nftUri } from '@/lib/nftUri';
 import { formatAddress, fromMojos, formatTimestamp } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -173,7 +172,7 @@ function TransactionCoinKind({ coin }: TransactionCoinKindProps) {
         <div className='flex items-center gap-2'>
           <img
             alt={coin.name ?? t`Unknown`}
-            src={nftUri(coin.icon_url ? 'image/png' : null, coin.icon_url)}
+            src={coin.icon_url ?? ''}
             className='w-8 h-8'
             aria-label={coin.name ?? t`Unknown`}
           />

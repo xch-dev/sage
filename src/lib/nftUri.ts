@@ -49,6 +49,7 @@ export function getBaseMimeType(mimeType: string | null): string | null {
 
 export function nftUri(mimeType: string | null, data: string | null): string {
   if (data === null || mimeType === null) return missing;
+  if (data.startsWith('data:')) return data;
 
   const baseMimeType = getBaseMimeType(mimeType);
   if (

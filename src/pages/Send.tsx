@@ -41,7 +41,6 @@ import {
 } from '@/components/ui/tooltip';
 import { ArrowUpToLine } from 'lucide-react';
 import { TokenConfirmation } from '@/components/confirmations/TokenConfirmation';
-import { useDefaultFee } from '@/hooks/useDefaultFee';
 import { isXch } from '@/lib/utils';
 
 function stringToUint8Array(str: string): Uint8Array {
@@ -54,7 +53,6 @@ export default function Send() {
   const navigate = useNavigate();
   const walletState = useWalletState();
   const { addError } = useErrors();
-  const { fee: defaultFee } = useDefaultFee();
 
   const [asset, setAsset] = useState<(CatRecord & { decimals: number }) | null>(
     null,

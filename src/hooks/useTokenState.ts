@@ -61,16 +61,15 @@ export function useTokenState(assetId: string | undefined) {
       (page: number = currentPage) => {
         const offset = page * pageSize;
 
-        const getCoins =
-          isXch(assetId)
-            ? commands.getXchCoins({
+        const getCoins = isXch(assetId)
+          ? commands.getXchCoins({
               offset,
               limit: pageSize,
               sort_mode: sortMode,
               ascending: sortDirection,
               include_spent_coins: includeSpentCoins,
             })
-            : commands.getCatCoins({
+          : commands.getCatCoins({
               asset_id: assetId!,
               offset,
               limit: pageSize,
