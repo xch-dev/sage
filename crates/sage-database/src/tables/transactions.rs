@@ -45,8 +45,8 @@ fn create_transaction_coin(row: &sqlx::sqlite::SqliteRow) -> Result<TransactionC
     let asset = Asset {
         hash: row.get::<Vec<u8>, _>("asset_hash").convert()?,
         name: row.get::<Option<String>, _>("asset_name"),
-        ticker: row.get::<Option<String>, _>("ticker"),
-        precision: row.get::<i64, _>("precision").convert()?,
+        ticker: row.get::<Option<String>, _>("asset_ticker"),
+        precision: row.get::<i64, _>("asset_precision").convert()?,
         icon_url: row.get::<Option<String>, _>("asset_icon_url"),
         description: row.get::<Option<String>, _>("asset_description"),
         is_sensitive_content: row.get::<bool, _>("asset_is_sensitive_content"),

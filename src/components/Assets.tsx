@@ -1,8 +1,6 @@
-import { OfferAssets } from '@/bindings';
+import { OfferAsset } from '@/bindings';
 import { NumberFormat } from '@/components/NumberFormat';
-import { nftUri } from '@/lib/nftUri';
 import { fromMojos } from '@/lib/utils';
-import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import BigNumber from 'bignumber.js';
@@ -23,182 +21,123 @@ export interface CatPresence {
 }
 
 export interface AssetsProps {
-  assets: OfferAssets;
+  assets: OfferAsset[];
   catPresence?: CatPresence;
 }
 
 export function Assets({ assets, catPresence = {} }: AssetsProps) {
-  const walletState = useWalletState();
-  const amount = BigNumber(assets.xch.amount);
-
-  if (
-    amount.isLessThanOrEqualTo(0) &&
-    Object.keys(assets.cats).length === 0 &&
-    Object.keys(assets.nfts).length === 0
-  ) {
-    return <></>;
-  }
-
   return (
     <div className='flex flex-col gap-3'>
-      {amount.isGreaterThan(0) && (
-        <div className='flex flex-col gap-2 rounded-lg border p-3'>
-          <div className='flex items-center gap-2'>
-            <Badge className='px-2 py-0.5'>
-              <span className='truncate'>{walletState.sync.unit.ticker}</span>
-            </Badge>
-
-            <div className='font-medium'>
-              <NumberFormat
-                value={fromMojos(
-                  BigNumber(amount).plus(assets.xch.royalty),
-                  walletState.sync.unit.decimals,
-                )}
-                minimumFractionDigits={0}
-                maximumFractionDigits={walletState.sync.unit.decimals}
-              />{' '}
-              <span className='truncate'>{walletState.sync.unit.ticker}</span>
-            </div>
-          </div>
-
-          {BigNumber(assets.xch.royalty).isGreaterThan(0) && (
-            <div className='text-sm text-muted-foreground'>
-              <Trans>Amount includes</Trans>{' '}
-              <NumberFormat
-                value={fromMojos(
-                  assets.xch.royalty,
-                  walletState.sync.unit.decimals,
-                )}
-                minimumFractionDigits={0}
-                maximumFractionDigits={walletState.sync.unit.decimals}
-              />{' '}
-              <span className='truncate'>{walletState.sync.unit.ticker}</span>{' '}
-              <Trans>royalty</Trans>
-            </div>
-          )}
-        </div>
-      )}
-
-      {Object.entries(assets.cats).map(([assetId, cat], i) => (
+      {assets.map(({ asset, amount, royalty, nft_royalty }, i) => (
         <div key={i} className='flex flex-col gap-2 rounded-lg border p-3'>
           <div className='flex items-center gap-2'>
             <Badge className='px-2 py-0.5 bg-blue-600 text-white dark:bg-blue-600 dark:text-white'>
-              <span className='truncate'>{cat.ticker ?? 'CAT'}</span>
+              <span className='truncate'>
+                {asset.ticker ??
+                  (asset.kind === 'token' ? 'CAT' : asset.kind.toUpperCase())}
+              </span>
             </Badge>
 
             <div className='font-medium'>
               <NumberFormat
-                value={fromMojos(BigNumber(cat.amount).plus(cat.royalty), 3)}
+                value={fromMojos(
+                  BigNumber(amount).plus(royalty),
+                  asset.precision,
+                )}
                 minimumFractionDigits={0}
-                maximumFractionDigits={3}
+                maximumFractionDigits={asset.precision}
               />{' '}
               <span className='text-sm font-medium break-words'>
-                {cat.name ?? cat.ticker ?? t`Unknown`}
+                {asset.name ?? asset.ticker ?? t`Unknown`}
               </span>
             </div>
 
-            {catPresence && assetId in catPresence && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger>
-                    {catPresence[assetId] ? (
-                      <CheckCircleIcon className='h-5 w-5 text-green-500' />
-                    ) : (
-                      <XCircleIcon className='h-5 w-5 text-amber-500' />
-                    )}
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    {catPresence[assetId] ? (
-                      <p>
-                        <Trans>This CAT is already in your wallet</Trans>
-                      </p>
-                    ) : (
-                      <p>
-                        <Trans>This CAT is not in your wallet yet</Trans>
-                      </p>
-                    )}
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
+            {catPresence &&
+              asset.kind === 'token' &&
+              asset.asset_id &&
+              asset.asset_id in catPresence && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      {catPresence[asset.asset_id] ? (
+                        <CheckCircleIcon className='h-5 w-5 text-green-500' />
+                      ) : (
+                        <XCircleIcon className='h-5 w-5 text-amber-500' />
+                      )}
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {catPresence[asset.asset_id] ? (
+                        <p>
+                          <Trans>This CAT is already in your wallet</Trans>
+                        </p>
+                      ) : (
+                        <p>
+                          <Trans>This CAT is not in your wallet yet</Trans>
+                        </p>
+                      )}
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
           </div>
 
           <div className='flex items-center gap-2'>
-            {cat.icon_url && (
+            {asset.icon_url && (
               <img
-                src={cat.icon_url}
-                className='w-6 h-6 rounded-full'
-                alt={t`CAT icon`}
+                src={asset.icon_url}
+                className={`w-6 h-6 ${asset.kind === 'token' ? 'rounded-full' : 'rounded-sm'}`}
+                alt={t`Icon`}
               />
             )}
 
-            <div className='text-sm font-mono text-muted-foreground truncate'>
-              {assetId.slice(0, 10) + '...' + assetId.slice(-10)}
-            </div>
+            {asset.asset_id && (
+              <>
+                <div className='text-sm font-mono text-muted-foreground truncate'>
+                  {asset.asset_id.slice(0, 10) +
+                    '...' +
+                    asset.asset_id.slice(-10)}
+                </div>
 
-            <CopyButton value={assetId} className='w-4 h-4' />
+                <CopyButton value={asset.asset_id} className='w-4 h-4' />
+              </>
+            )}
           </div>
 
-          {BigNumber(cat.royalty).isGreaterThan(0) && (
+          {BigNumber(royalty).isGreaterThan(0) && (
             <div className='text-sm text-muted-foreground'>
               <Trans>Amount includes</Trans>{' '}
               <NumberFormat
-                value={fromMojos(cat.royalty, 3)}
+                value={fromMojos(royalty, asset.precision)}
                 minimumFractionDigits={0}
-                maximumFractionDigits={3}
+                maximumFractionDigits={asset.precision}
               />{' '}
-              <span className='truncate'>{cat.ticker ?? 'CAT'}</span>{' '}
+              <span className='truncate'>{asset.ticker ?? 'CAT'}</span>{' '}
               <Trans>royalty</Trans>
             </div>
           )}
-        </div>
-      ))}
 
-      {Object.entries(assets.nfts).map(([launcherId, nft], i) => (
-        <div key={i} className='flex flex-col gap-2 rounded-lg border p-3'>
-          <div className='overflow-hidden flex items-center gap-2'>
-            <div className='truncate flex items-center gap-2'>
-              <Badge className='max-w-[100px] bg-green-600 text-white dark:bg-green-600 dark:text-white'>
-                <Trans>NFT</Trans>
-              </Badge>
-            </div>
+          {nft_royalty && (
+            <>
+              <Separator className='my-1' />
 
-            <div className='text-sm font-medium break-words'>
-              {nft.name ?? t`Unnamed`}
-            </div>
-          </div>
-
-          <Separator className='my-1' />
-
-          <div className='flex gap-1.5 items-center'>
-            <img
-              src={nftUri(nft.icon ? 'image/png' : null, nft.icon)}
-              className='w-6 h-6 rounded-sm'
-              alt={t`NFT preview`}
-            />
-
-            <div className='text-sm text-muted-foreground truncate font-mono'>
-              {launcherId.slice(0, 10) + '...' + launcherId.slice(-10)}
-            </div>
-
-            <CopyButton value={launcherId} className='w-4 h-4' />
-          </div>
-
-          <Separator className='my-1' />
-
-          <div className='flex gap-1.5 items-center text-sm text-muted-foreground truncate'>
-            <span>
-              <span className='text-neutral-600 dark:text-neutral-300'>
-                {nft.royalty_ten_thousandths / 100}% {t`royalty to`}{' '}
-              </span>
-              <span className='font-mono'>
-                {nft.royalty_address.slice(0, 10) +
-                  '...' +
-                  nft.royalty_address.slice(-10)}
-              </span>
-            </span>
-            <CopyButton value={nft.royalty_address} className='w-4 h-4' />
-          </div>
+              <div className='flex gap-1.5 items-center text-sm text-muted-foreground truncate'>
+                <span>
+                  <span className='text-neutral-600 dark:text-neutral-300'>
+                    {nft_royalty.royalty_basis_points / 100}% {t`royalty to`}{' '}
+                  </span>
+                  <span className='font-mono'>
+                    {nft_royalty.royalty_address.slice(0, 10) +
+                      '...' +
+                      nft_royalty.royalty_address.slice(-10)}
+                  </span>
+                </span>
+                <CopyButton
+                  value={nft_royalty.royalty_address}
+                  className='w-4 h-4'
+                />
+              </div>
+            </>
+          )}
         </div>
       ))}
     </div>

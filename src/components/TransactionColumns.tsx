@@ -1,3 +1,4 @@
+import { AssetKind } from '@/bindings';
 import { Button } from '@/components/ui/button';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import {
@@ -17,8 +18,7 @@ import { AmountCell } from './AmountCell';
 
 export interface FlattenedTransaction {
   transactionHeight: number;
-  type: string;
-  ticker?: string | null;
+  type: AssetKind;
   iconUrl?: string | null;
   amount: string;
   address: string | null;
@@ -102,8 +102,8 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
     size: 120,
     cell: ({ row }) => (
       <AmountCell
-        amount={row.getValue('amount')}
-        type={row.getValue('type')}
+        amount={row.original.amount}
+        assetKind={row.original.type}
         precision={row.original.precision}
       />
     ),

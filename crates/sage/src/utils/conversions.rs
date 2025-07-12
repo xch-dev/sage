@@ -11,7 +11,7 @@ pub fn address_kind(p2_puzzle_hash: Option<Bytes32>) -> AddressKind {
         return AddressKind::External;
     };
 
-    if p2_puzzle_hash == BURN_PUZZLE_HASH.into() {
+    if p2_puzzle_hash == BURN_PUZZLE_HASH {
         return AddressKind::Burn;
     }
     if p2_puzzle_hash == SINGLETON_LAUNCHER_HASH.into() {

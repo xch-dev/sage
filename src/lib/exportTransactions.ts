@@ -1,7 +1,6 @@
-import { TransactionRecord } from '@/bindings';
+import { commands, TransactionRecord } from '@/bindings';
 import { t } from '@lingui/core/macro';
 import { toast } from 'react-toastify';
-import { commands } from '@/bindings';
 import { exportText } from './exportText';
 
 interface TransactionQueryParams {
@@ -53,65 +52,48 @@ export async function exportTransactions(params: TransactionQueryParams) {
       const timestamp = tx.timestamp
         ? new Date(tx.timestamp * 1000).toISOString()
         : '';
+
       return [
-        ...tx.spent.map((coin) => [
-          tx.height,
-          timestamp.replace(/,/g, ''),
-          'Sent',
-          coin.amount.toString(),
-          '-' + coin.amount.toString(),
-          coin.address || '',
-          coin.coin_id,
-          coin.type.toUpperCase(),
-          coin.type === 'xch'
-            ? 'XCH'
-            : coin.type === 'cat'
-              ? coin.asset_id
-              : coin.type === 'nft'
-                ? coin.launcher_id
-                : coin.type === 'did'
-                  ? coin.launcher_id
-                  : '',
-          (coin.type === 'xch'
-            ? 'XCH'
-            : coin.type === 'cat'
-              ? coin.name || ''
-              : coin.type === 'nft'
-                ? coin.name || ''
-                : coin.type === 'did'
-                  ? coin.name || ''
-                  : ''
-          ).replace(/,/g, ''),
-        ]),
-        ...tx.created.map((coin) => [
-          tx.height,
-          timestamp.replace(/,/g, ''),
-          'Received',
-          coin.amount.toString(),
-          coin.amount.toString(),
-          coin.address || '',
-          coin.coin_id,
-          coin.type.toUpperCase(),
-          coin.type === 'xch'
-            ? 'XCH'
-            : coin.type === 'cat'
-              ? coin.asset_id
-              : coin.type === 'nft'
-                ? coin.launcher_id
-                : coin.type === 'did'
-                  ? coin.launcher_id
-                  : '',
-          (coin.type === 'xch'
-            ? 'XCH'
-            : coin.type === 'cat'
-              ? coin.name || ''
-              : coin.type === 'nft'
-                ? coin.name || ''
-                : coin.type === 'did'
-                  ? coin.name || ''
-                  : ''
-          ).replace(/,/g, ''),
-        ]),
+        ...tx.spent.map((coin) => {
+          const type = coin.asset.asset_id
+            ? coin.asset.kind === 'token'
+              ? 'cat'
+              : coin.asset.kind
+            : 'xch';
+
+          return [
+            tx.height,
+            timestamp.replace(/,/g, ''),
+            'Sent',
+            coin.amount.toString(),
+            '-' + coin.amount.toString(),
+            coin.address || '',
+            coin.coin_id,
+            type.toUpperCase(),
+            type === 'xch' ? 'XCH' : coin.asset.asset_id,
+            (coin.asset.name ?? coin.asset.ticker ?? '').replace(/,/g, ''),
+          ];
+        }),
+        ...tx.created.map((coin) => {
+          const type = coin.asset.asset_id
+            ? coin.asset.kind === 'token'
+              ? 'cat'
+              : coin.asset.kind
+            : 'xch';
+
+          return [
+            tx.height,
+            timestamp.replace(/,/g, ''),
+            'Received',
+            coin.amount.toString(),
+            coin.amount.toString(),
+            coin.address || '',
+            coin.coin_id,
+            type.toUpperCase(),
+            type === 'xch' ? 'XCH' : coin.asset.asset_id,
+            (coin.asset.name ?? coin.asset.ticker ?? '').replace(/,/g, ''),
+          ];
+        }),
       ];
     });
 

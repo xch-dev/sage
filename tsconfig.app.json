@@ -22,6 +22,7 @@
     "noUnusedLocals": false,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
+    "noImplicitAny": true,
 
     /** Shadcn UI */
     "baseUrl": ".",

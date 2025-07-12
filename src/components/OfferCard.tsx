@@ -1,26 +1,25 @@
 import { commands, NetworkKind, OfferRecord, OfferSummary } from '@/bindings';
-import { NumberFormat } from '@/components/NumberFormat';
-import { fromMojos, formatTimestamp } from '@/lib/utils';
-import { useWalletState } from '@/state';
-import { Trans } from '@lingui/react/macro';
-import { t } from '@lingui/core/macro';
-import {
-  ShoppingBasketIcon,
-  InfoIcon,
-  Tags,
-  HandCoinsIcon,
-  Share,
-  Copy,
-} from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { cn } from '@/lib/utils';
 import { Assets } from '@/components/Assets';
 import { MarketplaceCard } from '@/components/MarketplaceCard';
+import { NumberFormat } from '@/components/NumberFormat';
 import { marketplaces } from '@/lib/marketplaces';
+import { cn, formatTimestamp, fromMojos } from '@/lib/utils';
+import { useWalletState } from '@/state';
 import { shareText } from '@buildyourwebapp/tauri-plugin-sharesheet';
+import { t } from '@lingui/core/macro';
+import { Trans } from '@lingui/react/macro';
 import { platform } from '@tauri-apps/plugin-os';
+import {
+  Copy,
+  HandCoinsIcon,
+  InfoIcon,
+  Share,
+  ShoppingBasketIcon,
+  Tags,
+} from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 
 // Interface to track CAT presence in wallet
 interface CatPresence {
@@ -69,28 +68,15 @@ export function OfferCard({ record, summary, content }: OfferCardProps) {
     }
   };
 
-  // Check if CATs in the receiving section are present in the wallet
   useEffect(() => {
-    if (!offerSummary) return;
-    const checkCatPresence = async () => {
+    commands.getCats({}).then((data) => {
       const presence: CatPresence = {};
-
-      // Check each CAT in the maker section (receiving)
-      for (const assetId of Object.keys(offerSummary.maker.cats)) {
-        try {
-          const response = await commands.getCat({ asset_id: assetId });
-          presence[assetId] = !!response.cat; // true if cat exists, false otherwise
-        } catch (error) {
-          console.error(`Error checking CAT presence for ${assetId}:`, error);
-          presence[assetId] = false;
-        }
-      }
-
+      data.cats.forEach((cat) => {
+        presence[cat.asset_id] = true;
+      });
       setCatPresence(presence);
-    };
-
-    checkCatPresence();
-  }, [offerSummary]);
+    });
+  }, []);
 
   useEffect(() => {
     commands.getNetwork({}).then((data) => setNetwork(data.kind));

@@ -1,7 +1,8 @@
 import {
+  AssetKind,
   commands,
   events,
-  TransactionRecordCoin,
+  TransactionCoinRecord,
   TransactionRecord,
 } from '@/bindings';
 import Container from '@/components/Container';
@@ -9,9 +10,7 @@ import { CopyButton } from '@/components/CopyButton';
 import Header from '@/components/Header';
 import { NumberFormat } from '@/components/NumberFormat';
 import { Card } from '@/components/ui/card';
-import { nftUri } from '@/lib/nftUri';
-import { formatAddress, fromMojos, formatTimestamp } from '@/lib/utils';
-import { useWalletState } from '@/state';
+import { formatAddress, formatTimestamp, fromMojos } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { openUrl } from '@tauri-apps/plugin-opener';
@@ -104,7 +103,7 @@ export default function Transaction() {
 }
 
 interface TransactionCoinProps {
-  coin: TransactionRecordCoin;
+  coin: TransactionCoinRecord;
 }
 
 function TransactionCoin({ coin }: TransactionCoinProps) {
@@ -131,87 +130,54 @@ function TransactionCoin({ coin }: TransactionCoinProps) {
           </div>
         </div>
       </div>
-      {coin.type !== 'xch' && <TransactionCoinId coin={coin} />}
+      {coin.asset.asset_id && (
+        <TransactionCoinId kind={coin.asset.kind} id={coin.asset.asset_id} />
+      )}
     </div>
   );
 }
 
 interface TransactionCoinKindProps {
-  coin: TransactionRecordCoin;
+  coin: TransactionCoinRecord;
 }
 
 function TransactionCoinKind({ coin }: TransactionCoinKindProps) {
-  const walletState = useWalletState();
+  return (
+    <div className='flex items-center gap-2'>
+      <img
+        alt={coin.asset.name ?? t`Unknown`}
+        src={coin.asset.icon_url!}
+        className='w-8 h-8'
+        aria-hidden={true}
+      />
 
-  switch (coin.type) {
-    case 'cat': {
-      return (
-        <div className='flex items-center gap-2'>
-          <img
-            alt={coin.name ?? t`Unknown`}
-            src={coin.icon_url!}
-            className='w-8 h-8'
-            aria-hidden={true}
-          />
-
-          <div className='flex flex-col'>
-            <div className='text-md text-neutral-700 dark:text-neutral-300 break-all'>
-              <NumberFormat
-                value={fromMojos(coin.amount, coin.precision)}
-                minimumFractionDigits={0}
-                maximumFractionDigits={coin.precision}
-              />{' '}
-              <span className='break-normal'>
-                {coin.ticker ?? coin.name ?? 'CAT'}
-              </span>
-            </div>
-          </div>
+      <div className='flex flex-col'>
+        <div className='text-md text-neutral-700 dark:text-neutral-300 break-all'>
+          <NumberFormat
+            value={fromMojos(coin.amount, coin.asset.precision)}
+            minimumFractionDigits={0}
+            maximumFractionDigits={coin.asset.precision}
+          />{' '}
+          <span className='break-normal'>
+            {coin.asset.ticker ?? coin.asset.name ?? 'CAT'}
+          </span>
         </div>
-      );
-    }
-    case 'nft': {
-      return (
-        <div className='flex items-center gap-2'>
-          <img
-            alt={coin.name ?? t`Unknown`}
-            src={nftUri(coin.icon ? 'image/png' : null, coin.icon)}
-            className='w-8 h-8'
-            aria-label={coin.name ?? t`Unknown`}
-          />
-
-          <div className='text-md text-neutral-700 dark:text-neutral-300'>
-            {coin.name ?? t`Unknown`}
-          </div>
-        </div>
-      );
-    }
-  }
-
-  return <div className='break-all'>{coin.coin_id}</div>;
+      </div>
+    </div>
+  );
 }
 
-interface TransactionCoinIdProps {
-  coin: TransactionRecordCoin;
-}
-
-function TransactionCoinId({ coin }: TransactionCoinIdProps) {
-  let id = '';
+function TransactionCoinId({ kind, id }: { kind: AssetKind; id: string }) {
   let label = '';
   let toastMessage = '';
 
-  switch (coin.type) {
-    case 'cat':
-      id = coin.asset_id;
+  switch (kind) {
+    case 'token':
       label = t`Asset ID`;
       toastMessage = t`Asset ID copied to clipboard`;
       break;
     case 'nft':
-      id = coin.launcher_id;
-      label = t`Launcher ID`;
-      toastMessage = t`Launcher ID copied to clipboard`;
-      break;
     case 'did':
-      id = coin.launcher_id;
       label = t`Launcher ID`;
       toastMessage = t`Launcher ID copied to clipboard`;
       break;

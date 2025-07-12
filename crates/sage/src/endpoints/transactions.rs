@@ -288,9 +288,8 @@ impl Sage {
             })
             .await?;
 
-        let mut info = ConfirmationInfo::default();
-        info.did_names.insert(did.info.launcher_id, req.name);
-        self.transact_with(coin_spends, req.auto_submit, info).await
+        self.transact_with(coin_spends, req.auto_submit, ConfirmationInfo::default())
+            .await
     }
 
     pub async fn bulk_mint_nfts(&self, req: BulkMintNfts) -> Result<BulkMintNftsResponse> {

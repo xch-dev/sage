@@ -1,3 +1,4 @@
+mod cache;
 mod confirmation;
 mod conversions;
 mod offer_status;
