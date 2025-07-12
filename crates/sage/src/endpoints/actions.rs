@@ -11,7 +11,7 @@ use sage_api::{
     UpdateNft, UpdateNftCollection, UpdateNftCollectionResponse, UpdateNftResponse,
 };
 use sage_assets::DexieCat;
-use sage_database::{Asset, AssetKind, CatAsset, Derivation};
+use sage_database::{Asset, AssetKind, Derivation, TokenAsset};
 use sage_wallet::SyncCommand;
 
 use crate::{parse_asset_id, parse_collection_id, parse_did_id, parse_nft_id, Error, Result, Sage};
@@ -48,7 +48,7 @@ impl Sage {
 
         let asset_id = parse_asset_id(req.record.asset_id)?;
 
-        let Some(CatAsset { mut asset, .. }) = wallet.db.cat_asset(asset_id).await? else {
+        let Some(TokenAsset { mut asset, .. }) = wallet.db.token_asset(asset_id).await? else {
             return Err(Error::MissingCat(asset_id));
         };
 

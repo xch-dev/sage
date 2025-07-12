@@ -50,7 +50,7 @@ impl Sage {
                 }
                 CoinKind::Launcher => (AssetKind::Launcher, coin.puzzle_hash),
                 CoinKind::Cat { info } => {
-                    let cat = wallet.db.cat_asset(info.asset_id).await?;
+                    let cat = wallet.db.token_asset(info.asset_id).await?;
                     let kind = AssetKind::Cat {
                         asset_id: hex::encode(info.asset_id),
                         name: cat.as_ref().and_then(|cat| cat.asset.name.clone()),

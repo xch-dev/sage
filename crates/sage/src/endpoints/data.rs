@@ -279,7 +279,7 @@ impl Sage {
         let wallet = self.wallet()?;
 
         let asset_id = parse_asset_id(req.asset_id)?;
-        let cat = wallet.db.cat_asset(asset_id).await?;
+        let cat = wallet.db.token_asset(asset_id).await?;
         let balance = wallet.db.cat_balance(asset_id).await?;
 
         let cat = cat

@@ -95,11 +95,11 @@ impl Database {
     }
 
     pub async fn spendable_xch_coin_count(&self) -> Result<u32> {
-        spendable_xch_coin_count(&self.pool).await
+        spendable_coin_count(&self.pool, Bytes32::default()).await
     }
 
     pub async fn spendable_cat_coin_count(&self, asset_id: Bytes32) -> Result<u32> {
-        spendable_cat_coin_count(&self.pool, asset_id).await
+        spendable_coin_count(&self.pool, asset_id).await
     }
 
     pub async fn synced_coin_count(&self) -> Result<u32> {
@@ -132,19 +132,19 @@ impl Database {
     }
 
     pub async fn xch_balance(&self) -> Result<u128> {
-        xch_balance(&self.pool).await
+        token_balance(&self.pool, Bytes32::default()).await
     }
 
     pub async fn cat_balance(&self, asset_id: Bytes32) -> Result<u128> {
-        cat_balance(&self.pool, asset_id).await
+        token_balance(&self.pool, asset_id).await
     }
 
     pub async fn spendable_xch_balance(&self) -> Result<u128> {
-        spendable_xch_balance(&self.pool).await
+        spendable_token_balance(&self.pool, Bytes32::default()).await
     }
 
     pub async fn spendable_cat_balance(&self, asset_id: Bytes32) -> Result<u128> {
-        spendable_cat_balance(&self.pool, asset_id).await
+        spendable_token_balance(&self.pool, asset_id).await
     }
 
     pub async fn spendable_xch_coins(&self) -> Result<Vec<Coin>> {
@@ -470,15 +470,7 @@ async fn subscription_coin_ids(conn: impl SqliteExecutor<'_>) -> Result<Vec<Byte
         .collect()
 }
 
-async fn spendable_xch_coin_count(conn: impl SqliteExecutor<'_>) -> Result<u32> {
-    query!("SELECT COUNT(*) AS count FROM spendable_coins WHERE asset_id = 0")
-        .fetch_one(conn)
-        .await?
-        .count
-        .convert()
-}
-
-async fn spendable_cat_coin_count(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<u32> {
+async fn spendable_coin_count(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<u32> {
     let asset_id_ref = asset_id.as_ref();
 
     query!(
@@ -513,19 +505,7 @@ async fn synced_coin_count(conn: impl SqliteExecutor<'_>) -> Result<u32> {
     .convert()
 }
 
-async fn xch_balance(conn: impl SqliteExecutor<'_>) -> Result<u128> {
-    query!("SELECT amount FROM owned_coins WHERE owned_coins.asset_id = 0")
-        .fetch_all(conn)
-        .await?
-        .into_iter()
-        .map(|row| {
-            let amount: u64 = row.amount.convert()?;
-            Ok(amount as u128)
-        })
-        .sum()
-}
-
-async fn cat_balance(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<u128> {
+async fn token_balance(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<u128> {
     let asset_id_ref = asset_id.as_ref();
 
     query!(
@@ -542,19 +522,7 @@ async fn cat_balance(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result
     .sum()
 }
 
-async fn spendable_xch_balance(conn: impl SqliteExecutor<'_>) -> Result<u128> {
-    query!("SELECT amount FROM spendable_coins WHERE asset_id = 0")
-        .fetch_all(conn)
-        .await?
-        .into_iter()
-        .map(|row| {
-            let amount: u64 = row.amount.convert()?;
-            Ok(amount as u128)
-        })
-        .sum()
-}
-
-async fn spendable_cat_balance(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<u128> {
+async fn spendable_token_balance(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<u128> {
     let asset_id_ref = asset_id.as_ref();
 
     query!(
@@ -574,8 +542,8 @@ async fn spendable_cat_balance(conn: impl SqliteExecutor<'_>, asset_id: Bytes32)
 async fn coins_by_ids(conn: impl SqliteExecutor<'_>, coin_ids: &[String]) -> Result<Vec<CoinRow>> {
     let mut query = sqlx::QueryBuilder::new(
         "
-        SELECT
-            parent_coin_hash, puzzle_hash, amount, spent_height, created_height, p2_puzzle_hash,
+       SELECT
+            parent_coin_hash, puzzle_hash, amount, spent_height, created_height, p2_puzzles.hash AS p2_puzzle_hash,
             (
                 SELECT hash FROM mempool_items
                 INNER JOIN mempool_coins ON mempool_coins.mempool_item_id = mempool_items.id
@@ -590,9 +558,13 @@ async fn coins_by_ids(conn: impl SqliteExecutor<'_>, coin_ids: &[String]) -> Res
                 AND offers.status <= 1
                 LIMIT 1
             ) AS offer_hash,
-            (SELECT timestamp FROM blocks WHERE height = coins.created_height) AS created_timestamp,
-            (SELECT timestamp FROM blocks WHERE height = coins.spent_height) AS spent_timestamp,
-        FROM coins WHERE hash IN (",
+            created_blocks.timestamp AS created_timestamp,
+            spent_blocks.timestamp AS spent_timestamp
+        FROM coins
+            INNER JOIN p2_puzzles ON p2_puzzles.id = coins.p2_puzzle_id
+            LEFT JOIN blocks AS created_blocks ON created_blocks.height = coins.created_height
+            LEFT JOIN blocks AS spent_blocks ON spent_blocks.height = coins.spent_height            
+        WHERE coins.hash IN (",
     );
     let mut separated = query.separated(", ");
 
@@ -752,22 +724,18 @@ async fn coin_records(
 }
 
 async fn spendable_xch_coins(conn: impl SqliteExecutor<'_>) -> Result<Vec<Coin>> {
-    query!(
-        "
-        SELECT parent_coin_hash, puzzle_hash, amount FROM spendable_coins WHERE asset_id = 0
-        "
-    )
-    .fetch_all(conn)
-    .await?
-    .into_iter()
-    .map(|row| {
-        Ok(Coin::new(
-            row.parent_coin_hash.convert()?,
-            row.puzzle_hash.convert()?,
-            row.amount.convert()?,
-        ))
-    })
-    .collect()
+    query!("SELECT parent_coin_hash, puzzle_hash, amount FROM spendable_coins WHERE asset_id = 0")
+        .fetch_all(conn)
+        .await?
+        .into_iter()
+        .map(|row| {
+            Ok(Coin::new(
+                row.parent_coin_hash.convert()?,
+                row.puzzle_hash.convert()?,
+                row.amount.convert()?,
+            ))
+        })
+        .collect()
 }
 
 async fn spendable_cat_coins(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<Vec<Cat>> {

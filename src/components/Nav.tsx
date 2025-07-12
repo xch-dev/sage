@@ -135,7 +135,7 @@ export function BottomNav({ isCollapsed }: NavProps) {
             </>
           ) : coinsSynced ? (
             <Trans>
-              Downloading {checkedUris} / {totalUris}
+              Downloading {checkedFiles} / {totalFiles}
             </Trans>
           ) : (
             <Trans>
