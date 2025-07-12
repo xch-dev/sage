@@ -11,6 +11,8 @@ pub struct SendXch {
     #[serde(default)]
     pub memos: Vec<String>,
     #[serde(default)]
+    pub clawback: Option<u64>,
+    #[serde(default)]
     pub auto_submit: bool,
 }
 
@@ -124,6 +126,8 @@ pub struct SendCat {
     #[serde(default)]
     pub memos: Vec<String>,
     #[serde(default)]
+    pub clawback: Option<u64>,
+    #[serde(default)]
     pub auto_submit: bool,
 }
 
@@ -227,6 +231,8 @@ pub struct TransferNfts {
     pub address: String,
     pub fee: Amount,
     #[serde(default)]
+    pub clawback: Option<u64>,
+    #[serde(default)]
     pub auto_submit: bool,
 }
 
@@ -266,6 +272,8 @@ pub struct TransferDids {
     pub did_ids: Vec<String>,
     pub address: String,
     pub fee: Amount,
+    #[serde(default)]
+    pub clawback: Option<u64>,
     #[serde(default)]
     pub auto_submit: bool,
 }

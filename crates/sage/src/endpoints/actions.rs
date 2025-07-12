@@ -11,7 +11,7 @@ use sage_api::{
     UpdateNft, UpdateNftCollection, UpdateNftCollectionResponse, UpdateNftResponse,
 };
 use sage_assets::DexieCat;
-use sage_database::{Asset, AssetKind, Derivation, TokenAsset};
+use sage_database::{Asset, AssetKind, Derivation};
 use sage_wallet::SyncCommand;
 
 use crate::{parse_asset_id, parse_collection_id, parse_did_id, parse_nft_id, Error, Result, Sage};
@@ -30,6 +30,8 @@ impl Sage {
             .update_asset(Asset {
                 hash: asset_id,
                 name: cat.name,
+                ticker: cat.ticker,
+                precision: 3,
                 icon_url: cat.icon_url,
                 description: cat.description,
                 is_sensitive_content: false,
@@ -37,8 +39,6 @@ impl Sage {
                 kind: AssetKind::Token,
             })
             .await?;
-
-        wallet.db.update_cat(asset_id, cat.ticker, 3).await?;
 
         Ok(ResyncCatResponse {})
     }
@@ -48,17 +48,17 @@ impl Sage {
 
         let asset_id = parse_asset_id(req.record.asset_id)?;
 
-        let Some(TokenAsset { mut asset, .. }) = wallet.db.token_asset(asset_id).await? else {
+        let Some(mut asset) = wallet.db.asset(asset_id).await? else {
             return Err(Error::MissingCat(asset_id));
         };
 
         asset.name = req.record.name;
+        asset.ticker = req.record.ticker;
         asset.icon_url = req.record.icon_url;
         asset.description = req.record.description;
         asset.is_visible = req.record.visible;
 
         wallet.db.update_asset(asset).await?;
-        wallet.db.update_cat(asset_id, req.record.ticker, 3).await?;
 
         Ok(UpdateCatResponse {})
     }

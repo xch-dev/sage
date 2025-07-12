@@ -36,7 +36,7 @@ impl Database {
         if version < 1 {
             let ticker_upper = ticker.to_uppercase();
             info!("Migrating to version 1 - setting chia token ticker to {ticker_upper}");
-            sqlx::query!("UPDATE tokens SET ticker = ? WHERE id = 0", ticker_upper)
+            sqlx::query!("UPDATE assets SET ticker = ? WHERE id = 0", ticker_upper)
                 .execute(&mut *tx.tx)
                 .await?;
             tx.set_rust_migration_version(1).await?;

@@ -8,7 +8,7 @@ use chia::{
 };
 use chia_wallet_sdk::driver::NftInfo;
 use sage_assets::base64_data_uri;
-use sage_database::{Asset, AssetKind, Database, DatabaseTx, DidCoinInfo, NftCoinInfo, TokenAsset};
+use sage_database::{Asset, AssetKind, Database, DatabaseTx, DidCoinInfo, NftCoinInfo};
 use tracing::warn;
 
 use crate::{compute_nft_info, fetch_nft_did, ChildKind, Transaction, WalletError, WalletPeer};
@@ -60,18 +60,16 @@ pub async fn insert_puzzle(
         } => {
             tx.insert_lineage_proof(coin_id, lineage_proof).await?;
 
-            tx.insert_cat(TokenAsset {
-                asset: Asset {
-                    hash: info.asset_id,
-                    name: None,
-                    icon_url: None,
-                    description: None,
-                    is_sensitive_content: false,
-                    is_visible: true,
-                    kind: AssetKind::Token,
-                },
+            tx.insert_asset(Asset {
+                hash: info.asset_id,
+                name: None,
                 ticker: None,
                 precision: 3,
+                icon_url: None,
+                description: None,
+                is_sensitive_content: false,
+                is_visible: true,
+                kind: AssetKind::Token,
             })
             .await?;
 
@@ -103,6 +101,8 @@ pub async fn insert_puzzle(
             tx.insert_asset(Asset {
                 hash: info.launcher_id,
                 name: None,
+                ticker: None,
+                precision: 1,
                 icon_url: None,
                 description: None,
                 is_sensitive_content: false,
@@ -177,6 +177,8 @@ pub async fn insert_nft(
     let mut asset = Asset {
         hash: info.launcher_id,
         name: None,
+        ticker: None,
+        precision: 1,
         icon_url,
         description: None,
         is_sensitive_content: false,

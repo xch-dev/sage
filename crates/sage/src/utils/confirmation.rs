@@ -39,6 +39,19 @@ impl Sage {
         for input in transaction.inputs {
             let coin = input.coin_spend.coin;
 
+            let (asset_info, p2_puzzle_hash) = match input.kind {
+                CoinKind::Launcher => (None, coin.puzzle_hash),
+                CoinKind::Unknown => {
+                    let info = if wallet.db.is_p2_puzzle_hash(coin.puzzle_hash).await? {
+                        Some((AssetKind::Token, Bytes32::default()))
+                    } else {
+                        None
+                    };
+                    (info, coin.puzzle_hash)
+                }
+                CoinKind::Cat { info } => {}
+            };
+
             let (kind, p2_puzzle_hash) = match input.kind {
                 CoinKind::Unknown => {
                     let kind = if wallet.db.is_p2_puzzle_hash(coin.puzzle_hash).await? {

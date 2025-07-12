@@ -9,13 +9,13 @@ import {
 } from '@tanstack/react-table';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { ArrowDown, ArrowUp, FilterIcon, FilterXIcon } from 'lucide-react';
+import { useMemo } from 'react';
 import { CoinRecord, CoinSortMode } from '../bindings';
 import { NumberFormat } from './NumberFormat';
 import { SimplePagination } from './SimplePagination';
 import { Button } from './ui/button';
 import { Checkbox } from './ui/checkbox';
 import { DataTable } from './ui/data-table';
-import { useMemo } from 'react';
 
 export interface CoinListProps {
   precision: number;
@@ -201,9 +201,7 @@ export default function CoinList(props: CoinListProps) {
           ? formatTimestamp(row.original.created_timestamp, 'short', 'short')
           : row.original.created_height
             ? row.original.created_height.toString()
-            : row.original.transaction_id
-              ? t`Pending...`
-              : '',
+            : t`Pending...`,
     },
     {
       accessorKey: 'spent_height',
@@ -272,7 +270,7 @@ export default function CoinList(props: CoinListProps) {
           : row.original.spent_height
             ? row.original.spent_height.toString()
             : row.original.transaction_id
-              ? ``
+              ? t`Pending...`
               : row.original.offer_id
                 ? t`Locked in offer`
                 : '',
@@ -282,19 +280,16 @@ export default function CoinList(props: CoinListProps) {
   const getRowStyles = (row: Row<CoinRecord>) => {
     const coin = row.original;
     const isSpent = !!coin.spent_height || !!coin.transaction_id;
-    const isPending = !coin.created_height;
     const isSelected = row.getIsSelected();
 
     let className = '';
 
     if (isSelected) {
-      className = 'bg-accent';
+      className += ' bg-accent';
     }
 
     if (isSpent) {
-      className += (className ? ' ' : '') + 'opacity-50 relative';
-    } else if (isPending) {
-      className += (className ? ' ' : '') + 'font-medium';
+      className += ' opacity-50 relative';
     }
 
     return {

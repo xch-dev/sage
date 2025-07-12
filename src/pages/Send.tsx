@@ -1,6 +1,8 @@
 import ConfirmationDialog from '@/components/ConfirmationDialog';
+import { TokenConfirmation } from '@/components/confirmations/TokenConfirmation';
 import Container from '@/components/Container';
 import Header from '@/components/Header';
+import { NumberFormat } from '@/components/NumberFormat';
 import { PasteInput } from '@/components/PasteInput';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -12,36 +14,37 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { FeeAmountInput, TokenAmountInput } from '@/components/ui/masked-input';
+import {
+  FeeAmountInput,
+  IntegerInput,
+  TokenAmountInput,
+} from '@/components/ui/masked-input';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import { useErrors } from '@/hooks/useErrors';
-import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
-import { amount, positiveAmount } from '@/lib/formTypes';
-import { fromMojos, toDecimal, toMojos } from '@/lib/utils';
-import { useWalletState } from '@/state';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { t } from '@lingui/core/macro';
-import { Trans } from '@lingui/react/macro';
-import BigNumber from 'bignumber.js';
-import { useCallback, useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { useNavigate, useParams } from 'react-router-dom';
-import * as z from 'zod';
-import { CatRecord, commands, events, TransactionResponse } from '../bindings';
-import { NumberFormat } from '@/components/NumberFormat';
-import { toHex } from '@/lib/utils';
-import { Input } from '@/components/ui/input';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { useDefaultClawback } from '@/hooks/useDefaultClawback';
+import { useErrors } from '@/hooks/useErrors';
+import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
+import { amount, positiveAmount } from '@/lib/formTypes';
+import { fromMojos, toDecimal, toHex, toMojos } from '@/lib/utils';
+import { useWalletState } from '@/state';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { t } from '@lingui/core/macro';
+import { Trans } from '@lingui/react/macro';
+import BigNumber from 'bignumber.js';
 import { ArrowUpToLine } from 'lucide-react';
-import { TokenConfirmation } from '@/components/confirmations/TokenConfirmation';
-import { useDefaultFee } from '@/hooks/useDefaultFee';
+import { useCallback, useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { useNavigate, useParams } from 'react-router-dom';
+import * as z from 'zod';
+import { CatRecord, commands, events, TransactionResponse } from '../bindings';
 
 function stringToUint8Array(str: string): Uint8Array {
   return new TextEncoder().encode(str);
@@ -53,7 +56,7 @@ export default function Send() {
   const navigate = useNavigate();
   const walletState = useWalletState();
   const { addError } = useErrors();
-  const { fee: defaultFee } = useDefaultFee();
+  const { clawback } = useDefaultClawback();
 
   const [asset, setAsset] = useState<(CatRecord & { decimals: number }) | null>(
     null,
@@ -145,6 +148,14 @@ export default function Send() {
     ),
     fee: amount(walletState.sync.unit.decimals).optional(),
     memo: z.string().optional(),
+    clawbackEnabled: z.boolean().optional(),
+    clawback: z
+      .object({
+        days: z.string(),
+        hours: z.string(),
+        minutes: z.string(),
+      })
+      .optional(),
   });
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -162,7 +173,12 @@ export default function Send() {
     // Store the memo for the confirmation dialog
     setCurrentMemo(values.memo);
 
-    let commandFn;
+    let commandFn:
+      | typeof commands.sendXch
+      | typeof commands.sendCat
+      | typeof commands.bulkSendXch
+      | typeof commands.bulkSendCat;
+
     if (isXch) {
       if (bulk) {
         commandFn = commands.bulkSendXch;
@@ -177,6 +193,20 @@ export default function Send() {
       }
     }
 
+    // Calculate clawback seconds if enabled
+    let clawbackSeconds: number | null = null;
+
+    if (values.clawbackEnabled && values.clawback) {
+      const days = parseInt(values.clawback.days) || 0;
+      const hours = parseInt(values.clawback.hours) || 0;
+      const minutes = parseInt(values.clawback.minutes) || 0;
+      clawbackSeconds =
+        Date.now() / 1000 +
+        (days * 24 * 60 * 60 + hours * 60 * 60 + minutes * 60);
+    }
+
+    console.log(clawbackSeconds);
+
     // Prepare common parameters
     const params: any = {
       amount: toMojos(values.amount.toString(), asset?.decimals || 12),
@@ -185,6 +215,7 @@ export default function Send() {
         walletState.sync.unit.decimals,
       ),
       memos,
+      clawback: clawbackSeconds,
     };
 
     // Add asset_id for CAT tokens
@@ -369,6 +400,89 @@ export default function Send() {
                   </FormItem>
                 )}
               />
+
+              {!bulk && (
+                <div className='col-span-2'>
+                  <div className='flex flex-col gap-2'>
+                    <div className='flex items-center gap-2'>
+                      <Label htmlFor='clawbackEnabled'>
+                        <Trans>Enable clawback</Trans>
+                      </Label>
+                      <Switch
+                        id='clawbackEnabled'
+                        checked={form.watch('clawbackEnabled')}
+                        onCheckedChange={(checked) => {
+                          form.setValue('clawbackEnabled', checked);
+                          if (checked) {
+                            form.setValue('clawback', {
+                              days: clawback.days.toString(),
+                              hours: clawback.hours.toString(),
+                              minutes: clawback.minutes.toString(),
+                            });
+                          } else {
+                            form.setValue('clawback', undefined);
+                          }
+                        }}
+                      />
+                    </div>
+
+                    {form.watch('clawbackEnabled') && (
+                      <div className='flex gap-2'>
+                        <div className='relative'>
+                          <IntegerInput
+                            className='pr-12'
+                            value={form.watch('clawback.days')}
+                            placeholder='0'
+                            min={0}
+                            onValueChange={(values: { value: string }) => {
+                              form.setValue('clawback.days', values.value);
+                            }}
+                          />
+                          <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
+                            <span className='text-gray-500 text-sm'>
+                              <Trans>Days</Trans>
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className='relative'>
+                          <IntegerInput
+                            className='pr-12'
+                            value={form.watch('clawback.hours')}
+                            placeholder='0'
+                            min={0}
+                            onValueChange={(values: { value: string }) => {
+                              form.setValue('clawback.hours', values.value);
+                            }}
+                          />
+                          <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
+                            <span className='text-gray-500 text-sm'>
+                              <Trans>Hours</Trans>
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className='relative'>
+                          <IntegerInput
+                            className='pr-12'
+                            value={form.watch('clawback.minutes')}
+                            placeholder='0'
+                            min={0}
+                            onValueChange={(values: { value: string }) => {
+                              form.setValue('clawback.minutes', values.value);
+                            }}
+                          />
+                          <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
+                            <span className='text-gray-500 text-sm'>
+                              <Trans>Minutes</Trans>
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             <Button type='submit'>

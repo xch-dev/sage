@@ -15,7 +15,7 @@ use sage_api::{
     ViewCoinSpendsResponse,
 };
 use sage_assets::fetch_uris_without_hash;
-use sage_database::{Asset, AssetKind, TokenAsset};
+use sage_database::{Asset, AssetKind};
 use sage_wallet::{MultiSendPayment, WalletNftMint};
 use tokio::time::timeout;
 
@@ -33,7 +33,7 @@ impl Sage {
         let memos = parse_memos(req.memos)?;
 
         let coin_spends = wallet
-            .send_xch(vec![(puzzle_hash, amount)], fee, memos, None)
+            .send_xch(vec![(puzzle_hash, amount)], fee, memos, req.clawback)
             .await?;
         self.transact(coin_spends, req.auto_submit).await
     }
@@ -179,18 +179,16 @@ impl Sage {
         let (coin_spends, asset_id) = wallet.issue_cat(amount, fee, None).await?;
         let mut tx = wallet.db.tx().await?;
 
-        tx.insert_cat(TokenAsset {
-            asset: Asset {
-                hash: asset_id,
-                name: Some(req.name),
-                icon_url: None,
-                description: None,
-                is_sensitive_content: false,
-                is_visible: true,
-                kind: AssetKind::Token,
-            },
+        tx.insert_asset(Asset {
+            hash: asset_id,
+            name: Some(req.name),
             ticker: Some(req.ticker),
             precision: 3,
+            icon_url: None,
+            description: None,
+            is_sensitive_content: false,
+            is_visible: true,
+            kind: AssetKind::Token,
         })
         .await?;
         tx.commit().await?;
@@ -213,7 +211,7 @@ impl Sage {
                 fee,
                 req.include_hint,
                 memos,
-                None,
+                req.clawback,
             )
             .await?;
         self.transact(coin_spends, req.auto_submit).await
@@ -279,6 +277,8 @@ impl Sage {
             .db
             .insert_asset(Asset {
                 name: Some(req.name.clone()),
+                ticker: None,
+                precision: 1,
                 hash: did.info.launcher_id,
                 icon_url: None,
                 description: None,
@@ -413,7 +413,7 @@ impl Sage {
         let fee = parse_amount(req.fee)?;
 
         let coin_spends = wallet
-            .transfer_nfts(nft_ids, puzzle_hash, fee, None)
+            .transfer_nfts(nft_ids, puzzle_hash, fee, req.clawback)
             .await?;
         self.transact(coin_spends, req.auto_submit).await
     }
@@ -458,7 +458,7 @@ impl Sage {
         let fee = parse_amount(req.fee)?;
 
         let coin_spends = wallet
-            .transfer_dids(did_ids, puzzle_hash, fee, None)
+            .transfer_dids(did_ids, puzzle_hash, fee, req.clawback)
             .await?;
         self.transact(coin_spends, req.auto_submit).await
     }

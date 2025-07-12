@@ -38,6 +38,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useInsets } from '@/contexts/SafeAreaContext';
 import { useWallet } from '@/contexts/WalletContext';
 import { useBiometric } from '@/hooks/useBiometric';
+import { useDefaultClawback } from '@/hooks/useDefaultClawback';
 import { useDefaultFee } from '@/hooks/useDefaultFee';
 import { useDefaultOfferExpiry } from '@/hooks/useDefaultOfferExpiry';
 import { useErrors } from '@/hooks/useErrors';
@@ -63,8 +64,6 @@ import { z } from 'zod';
 import { commands, Network, NetworkConfig, Wallet } from '../bindings';
 import { DarkModeContext } from '../contexts/DarkModeContext';
 import { isValidU32 } from '../validation';
-import { TransactionFailureTest } from '@/components/TransactionFailureTest';
-
 export default function Settings() {
   const { wallet } = useWallet();
   const [version, setVersion] = useState<string | null>(null);
@@ -245,8 +244,9 @@ function GlobalSettings() {
   const { dark, setDark } = useContext(DarkModeContext);
   const { locale, changeLanguage } = useLanguage();
   const { expiry, setExpiry } = useDefaultOfferExpiry();
+  const { clawback, setClawback } = useDefaultClawback();
   const { enabled, available, enableIfAvailable, disable } = useBiometric();
-  const { fee, setFee } = useDefaultFee();
+  const { setFee } = useDefaultFee();
 
   const isMobile = platform() === 'ios' || platform() === 'android';
 
@@ -307,6 +307,41 @@ function GlobalSettings() {
         }
       />
       <SettingItem
+        label={t`Default Clawback`}
+        description={t`Set a default clawback time for transactions`}
+        control={
+          <Switch
+            checked={clawback.enabled}
+            onCheckedChange={(checked) => {
+              setClawback({
+                ...clawback,
+                enabled: checked,
+              });
+            }}
+          />
+        }
+      >
+        {clawback.enabled && (
+          <div className='grid grid-cols-3 gap-4 mt-2'>
+            <TimeInput
+              label={t`Days`}
+              value={clawback.days}
+              onChange={(value) => setClawback({ ...clawback, days: value })}
+            />
+            <TimeInput
+              label={t`Hours`}
+              value={clawback.hours}
+              onChange={(value) => setClawback({ ...clawback, hours: value })}
+            />
+            <TimeInput
+              label={t`Minutes`}
+              value={clawback.minutes}
+              onChange={(value) => setClawback({ ...clawback, minutes: value })}
+            />
+          </div>
+        )}
+      </SettingItem>
+      <SettingItem
         label={t`Default Offer Expiry`}
         description={t`Set a default expiration time for new offers`}
         control={
@@ -316,7 +351,6 @@ function GlobalSettings() {
               setExpiry({
                 ...expiry,
                 enabled: checked,
-                days: checked ? '1' : '',
               });
             }}
           />

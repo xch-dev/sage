@@ -1,11 +1,11 @@
-mod coins;
 mod confirmation;
+mod conversions;
 mod offer_status;
 mod offer_summary;
 mod parse;
 mod spends;
 
-pub use coins::*;
 pub use confirmation::*;
+pub use conversions::*;
 pub use offer_status::*;
 pub use parse::*;

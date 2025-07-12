@@ -67,7 +67,7 @@ impl Database {
         query!(
             "
             SELECT        
-                asset_hash, asset_name, asset_icon_url,
+                asset_hash, asset_name, asset_ticker, asset_precision, asset_icon_url,
                 asset_description, asset_is_sensitive_content, asset_is_visible,
                 collections.hash AS 'collection_hash?', collections.name AS collection_name, 
                 nfts.minter_hash, owner_hash, metadata, metadata_updater_puzzle_hash,
@@ -103,6 +103,8 @@ impl Database {
                 asset: Asset {
                     hash: row.asset_hash.convert()?,
                     name: row.asset_name,
+                    ticker: row.asset_ticker,
+                    precision: row.asset_precision.convert()?,
                     icon_url: row.asset_icon_url,
                     description: row.asset_description,
                     is_sensitive_content: row.asset_is_sensitive_content,
@@ -156,7 +158,7 @@ impl Database {
         let mut query = sqlx::QueryBuilder::new(
             "
             SELECT        
-                asset_hash, asset_name, asset_icon_url,
+                asset_hash, asset_name, asset_ticker, asset_precision, asset_icon_url,
                 asset_description, asset_is_sensitive_content, asset_is_visible,
                 collections.hash AS collection_hash, collections.name AS collection_name, 
                 nfts.minter_hash, owner_hash, metadata, metadata_updater_puzzle_hash,
@@ -248,6 +250,8 @@ impl Database {
                     asset: Asset {
                         hash: row.get::<Vec<u8>, _>("asset_hash").convert()?,
                         name: row.get::<Option<String>, _>("asset_name"),
+                        ticker: row.get::<Option<String>, _>("asset_ticker"),
+                        precision: row.get::<i64, _>("asset_precision").convert()?,
                         icon_url: row.get::<Option<String>, _>("asset_icon_url"),
                         description: row.get::<Option<String>, _>("asset_description"),
                         is_visible: row.get::<bool, _>("asset_is_visible"),

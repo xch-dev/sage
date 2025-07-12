@@ -27,11 +27,29 @@ impl Convert<AssetKind> for i64 {
 pub struct Asset {
     pub hash: Bytes32,
     pub name: Option<String>,
+    pub ticker: Option<String>,
+    pub precision: u8,
     pub icon_url: Option<String>,
     pub description: Option<String>,
     pub is_sensitive_content: bool,
     pub is_visible: bool,
     pub kind: AssetKind,
+}
+
+impl Asset {
+    pub fn default_cat(hash: Bytes32) -> Self {
+        Self {
+            hash,
+            name: None,
+            ticker: None,
+            precision: 3,
+            icon_url: None,
+            description: None,
+            is_sensitive_content: false,
+            is_visible: true,
+            kind: AssetKind::Token,
+        }
+    }
 }
 
 impl Database {
@@ -50,6 +68,8 @@ impl Database {
             UPDATE assets SET
                 kind = ?,
                 name = ?,
+                ticker = ?,
+                precision = ?,
                 icon_url = ?,
                 description = ?,
                 is_sensitive_content = ?,
@@ -58,6 +78,8 @@ impl Database {
             ",
             kind,
             asset.name,
+            asset.ticker,
+            asset.precision,
             asset.icon_url,
             asset.description,
             asset.is_sensitive_content,
@@ -86,7 +108,7 @@ impl Database {
         query!(
             "
             SELECT
-                hash, kind, name, icon_url, description,
+                hash, kind, name, ticker, precision, icon_url, description,
                 is_sensitive_content, is_visible
             FROM assets
             WHERE hash = ?
@@ -100,6 +122,8 @@ impl Database {
                 hash: row.hash.convert()?,
                 kind: row.kind.convert()?,
                 name: row.name,
+                ticker: row.ticker,
+                precision: row.precision.convert()?,
                 icon_url: row.icon_url,
                 description: row.description,
                 is_sensitive_content: row.is_sensitive_content,
@@ -125,12 +149,13 @@ async fn insert_asset(conn: impl SqliteExecutor<'_>, asset: Asset) -> Result<()>
     query!(
         "
         INSERT INTO assets (
-            hash, kind, name, icon_url, description,
+            hash, kind, name, ticker, precision, icon_url, description,
             is_sensitive_content, is_visible
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(hash) DO UPDATE SET
             name = COALESCE(name, excluded.name),
+            ticker = COALESCE(ticker, excluded.ticker),
             icon_url = COALESCE(icon_url, excluded.icon_url),
             description = COALESCE(description, excluded.description),
             is_sensitive_content = is_sensitive_content OR excluded.is_sensitive_content
@@ -138,6 +163,8 @@ async fn insert_asset(conn: impl SqliteExecutor<'_>, asset: Asset) -> Result<()>
         hash,
         kind,
         asset.name,
+        asset.ticker,
+        asset.precision,
         asset.icon_url,
         asset.description,
         asset.is_sensitive_content,

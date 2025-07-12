@@ -1,16 +1,16 @@
-import { useState, useEffect, useMemo } from 'react';
 import { useErrors } from '@/hooks/useErrors';
-import { useWalletState } from '@/state';
 import { usePrices } from '@/hooks/usePrices';
 import { toDecimal } from '@/lib/utils';
+import { useWalletState } from '@/state';
 import { RowSelectionState } from '@tanstack/react-table';
+import { useEffect, useMemo, useState } from 'react';
 import {
   CatRecord,
   CoinRecord,
+  CoinSortMode,
   commands,
   events,
   TransactionResponse,
-  CoinSortMode,
 } from '../bindings';
 
 // Extend the TransactionResponse type to include additionalData
@@ -61,25 +61,15 @@ export function useTokenState(assetId: string | undefined) {
       (page: number = currentPage) => {
         const offset = page * pageSize;
 
-        const getCoins =
-          assetId === 'xch'
-            ? commands.getXchCoins({
-                offset,
-                limit: pageSize,
-                sort_mode: sortMode,
-                ascending: sortDirection,
-                include_spent_coins: includeSpentCoins,
-              })
-            : commands.getCatCoins({
-                asset_id: assetId!,
-                offset,
-                limit: pageSize,
-                sort_mode: sortMode,
-                ascending: sortDirection,
-                include_spent_coins: includeSpentCoins,
-              });
-
-        getCoins
+        commands
+          .getCoins({
+            asset_id: assetId === 'xch' ? null : assetId,
+            offset,
+            limit: pageSize,
+            sort_mode: sortMode,
+            ascending: sortDirection,
+            filter_mode: includeSpentCoins ? 'spent' : 'owned',
+          })
           .then((res) => {
             setCoins(res.coins);
             setTotalCoins(res.total);
