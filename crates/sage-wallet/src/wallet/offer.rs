@@ -16,7 +16,7 @@ mod tests {
     };
     use clvmr::Allocator;
     use indexmap::indexmap;
-    use sage_database::RequestedNft;
+    use sage_database::NftOfferInfo;
     use test_log::test;
 
     use crate::{Offered, Requested, TestWallet, WalletNftMint};
@@ -114,7 +114,7 @@ mod tests {
                 },
                 Requested {
                     nfts: indexmap! {
-                        nft.info.launcher_id => RequestedNft {
+                        nft.info.launcher_id => NftOfferInfo {
                             metadata,
                             metadata_updater_puzzle_hash: nft.info.metadata_updater_puzzle_hash,
                             royalty_puzzle_hash: nft.info.royalty_puzzle_hash,

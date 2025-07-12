@@ -83,7 +83,7 @@ impl Sage {
 
             let nft_id = parse_nft_id(nft_id)?;
 
-            let Some(requested_nft) = wallet.fetch_requested_nft(peer.as_ref(), nft_id).await?
+            let Some(requested_nft) = wallet.fetch_offer_nft_info(peer.as_ref(), nft_id).await?
             else {
                 return Err(Error::CouldNotFetchNft(nft_id));
             };
@@ -505,7 +505,7 @@ impl Sage {
                 royalty_address: "TODO".to_string(), // TODO Address::new(nft.royalty_puzzle_hash, self.network().prefix()).encode()?,
                 royalty_ten_thousandths: 0,          // TODO
                 name: nft.asset.name,
-                icon: None, // TODO nft.thumbnail.map(|data| BASE64_STANDARD.encode(data)),
+                icon: nft.asset.icon_url,
             };
 
             if nft.is_requested {

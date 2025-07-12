@@ -14,7 +14,7 @@ use chia_wallet_sdk::driver::{
 };
 use indexmap::IndexMap;
 use itertools::Itertools;
-use sage_database::RequestedNft;
+use sage_database::NftOfferInfo;
 
 use crate::{Wallet, WalletError};
 
@@ -31,7 +31,7 @@ pub struct Offered {
 pub struct Requested {
     pub xch: u64,
     pub cats: IndexMap<Bytes32, u64>,
-    pub nfts: IndexMap<Bytes32, RequestedNft>,
+    pub nfts: IndexMap<Bytes32, NftOfferInfo>,
 }
 
 impl Wallet {
