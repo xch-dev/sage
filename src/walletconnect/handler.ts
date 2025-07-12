@@ -34,9 +34,9 @@ export const handleCommand = async (
 ) => {
   switch (command) {
     case 'chip0002_connect':
-      return await handleConnect(parseCommand(command, params));
+      return await handleConnect();
     case 'chip0002_chainId':
-      return await handleChainId(parseCommand(command, params));
+      return await handleChainId();
     case 'chip0002_getPublicKeys':
       return await handleGetPublicKeys(parseCommand(command, params));
     case 'chip0002_filterUnlockedCoins':
@@ -62,7 +62,7 @@ export const handleCommand = async (
     case 'chia_send':
       return await handleSend(parseCommand(command, params), context);
     case 'chia_getAddress':
-      return await handleGetAddress(parseCommand(command, params));
+      return await handleGetAddress();
     case 'chia_signMessageByAddress':
       return await handleSignMessageByAddress(
         parseCommand(command, params),

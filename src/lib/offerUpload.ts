@@ -53,7 +53,7 @@ export function isMintGardenSupported(state: OfferState, isSplitting = false) {
   );
 }
 
-export function isDexieSupported(state: OfferState, _ = false) {
+export function isDexieSupported(state: OfferState) {
   return !isOneSideOffer(state);
 }
 

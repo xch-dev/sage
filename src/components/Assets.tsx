@@ -16,9 +16,7 @@ import {
 } from './ui/tooltip';
 
 // Interface to track CAT presence in wallet
-export interface CatPresence {
-  [assetId: string]: boolean;
-}
+export type CatPresence = Record<string, boolean>;
 
 export interface AssetsProps {
   assets: OfferAsset[];

@@ -22,9 +22,7 @@ import { toast } from 'react-toastify';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 
 // Interface to track CAT presence in wallet
-interface CatPresence {
-  [assetId: string]: boolean;
-}
+type CatPresence = Record<string, boolean>;
 
 interface OfferCardProps {
   record?: OfferRecord;

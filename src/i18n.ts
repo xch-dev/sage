@@ -42,7 +42,7 @@ export function formatNumber({
       minimumFractionDigits,
       maximumFractionDigits,
     });
-  } catch (e) {
+  } catch {
     // Fallback if toLocaleString fails
     return value.toString();
   }

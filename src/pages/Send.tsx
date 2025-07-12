@@ -71,8 +71,10 @@ export default function Send() {
   const updateCat = useCallback(
     () =>
       commands
-        .getCat({ asset_id: assetId! })
-        .then((data) => setAsset({ ...data.cat!, decimals: 3 }))
+        .getCat({ asset_id: assetId ?? '' })
+        .then((data) => {
+          if (data.cat) setAsset({ ...data.cat, decimals: 3 });
+        })
         .catch(addError),
     [assetId, addError],
   );
@@ -173,67 +175,65 @@ export default function Send() {
     // Store the memo for the confirmation dialog
     setCurrentMemo(values.memo);
 
-    let commandFn:
-      | typeof commands.sendXch
-      | typeof commands.sendCat
-      | typeof commands.bulkSendXch
-      | typeof commands.bulkSendCat;
-
-    if (isXch) {
-      if (bulk) {
-        commandFn = commands.bulkSendXch;
-      } else {
-        commandFn = commands.sendXch;
-      }
-    } else {
-      if (bulk) {
-        commandFn = commands.bulkSendCat;
-      } else {
-        commandFn = commands.sendCat;
-      }
-    }
-
     // Calculate clawback seconds if enabled
-    let clawbackSeconds: number | null = null;
+    let clawback: number | null = null;
 
     if (values.clawbackEnabled && values.clawback) {
       const days = parseInt(values.clawback.days) || 0;
       const hours = parseInt(values.clawback.hours) || 0;
       const minutes = parseInt(values.clawback.minutes) || 0;
-      clawbackSeconds =
+      clawback =
         Date.now() / 1000 +
         (days * 24 * 60 * 60 + hours * 60 * 60 + minutes * 60);
     }
 
-    console.log(clawbackSeconds);
+    let result: Promise<TransactionResponse>;
 
-    // Prepare common parameters
-    const params: any = {
-      amount: toMojos(values.amount.toString(), asset?.decimals || 12),
-      fee: toMojos(
-        values.fee?.toString() || '0',
-        walletState.sync.unit.decimals,
-      ),
-      memos,
-      clawback: clawbackSeconds,
-    };
+    const amount = toMojos(values.amount.toString(), asset?.decimals || 12);
+    const fee = toMojos(
+      values.fee?.toString() || '0',
+      walletState.sync.unit.decimals,
+    );
 
-    // Add asset_id for CAT tokens
-    if (!isXch) {
-      params.asset_id = assetId!;
-    }
-
-    // Handle address formatting for bulk operations
-    if (bulk) {
-      params.addresses = [...new Set(addressList(values.address))];
+    if (isXch) {
+      if (bulk) {
+        result = commands.bulkSendXch({
+          addresses: [...new Set(addressList(values.address))],
+          amount,
+          fee,
+          memos,
+        });
+      } else {
+        result = commands.sendXch({
+          address: values.address,
+          amount,
+          fee,
+          memos,
+          clawback,
+        });
+      }
     } else {
-      params.address = values.address;
+      if (bulk) {
+        result = commands.bulkSendCat({
+          asset_id: assetId ?? '',
+          addresses: [...new Set(addressList(values.address))],
+          amount,
+          fee,
+          memos,
+        });
+      } else {
+        result = commands.sendCat({
+          asset_id: assetId ?? '',
+          address: values.address,
+          amount,
+          fee,
+          memos,
+          clawback,
+        });
+      }
     }
 
-    // Execute the command
-    commandFn(params)
-      .then((confirmation) => setResponse(confirmation))
-      .catch(addError);
+    result.then((confirmation) => setResponse(confirmation)).catch(addError);
   };
 
   return (

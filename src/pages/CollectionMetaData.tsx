@@ -1,13 +1,9 @@
-import {
-  commands,
-  NetworkKind,
-  NftCollectionRecord,
-  NftRecord,
-} from '@/bindings';
+import { commands, NetworkKind, NftCollectionRecord } from '@/bindings';
 import Container from '@/components/Container';
 import { CopyBox } from '@/components/CopyBox';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
+import { CustomError } from '@/contexts/ErrorContext';
 import { useErrors } from '@/hooks/useErrors';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -16,16 +12,16 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 
-type MetadataContent = {
+interface MetadataContent {
   collection?: {
-    [key: string]: any;
+    attributes: AttributeType[];
   };
-};
+}
 
-type AttributeType = {
+interface AttributeType {
   type: string;
   value: string;
-};
+}
 
 export default function CollectionMetaData() {
   const { collection_id } = useParams();
@@ -33,7 +29,6 @@ export default function CollectionMetaData() {
   const [collection, setCollection] = useState<NftCollectionRecord | null>(
     null,
   );
-  const [firstNft, setFirstNft] = useState<NftRecord | null>(null);
   const [metadataContent, setMetadataContent] =
     useState<MetadataContent | null>(null);
   const [loading, setLoading] = useState(true);
@@ -63,7 +58,6 @@ export default function CollectionMetaData() {
 
           if (nftsResponse.nfts.length > 0) {
             const nft = nftsResponse.nfts[0];
-            setFirstNft(nft);
 
             // Find first HTTPS metadata URI
             const httpsUri = nft.metadata_uris.find((uri) =>
@@ -80,8 +74,8 @@ export default function CollectionMetaData() {
             }
           }
         }
-      } catch (error: any) {
-        addError(error);
+      } catch (error: unknown) {
+        addError(error as CustomError);
       } finally {
         setLoading(false);
       }
@@ -149,7 +143,7 @@ export default function CollectionMetaData() {
     );
   }
 
-  const renderMetadataValue = (value: any): JSX.Element => {
+  const renderMetadataValue = (value: unknown): JSX.Element => {
     // Helper function to render a string that might be a link
     const renderPossibleLink = (str: string, isDescription = false) => {
       if (str.match(/^(https?|ipfs|data):\/\/\S+/i)) {
@@ -265,7 +259,7 @@ export default function CollectionMetaData() {
           {getBannerUrl() && (
             <div className='w-full h-48 mb-4 rounded-lg overflow-hidden'>
               <img
-                src={getBannerUrl()!}
+                src={getBannerUrl() ?? ''}
                 alt={t`Banner for ${collectionName}`}
                 className='w-full h-full object-cover'
               />

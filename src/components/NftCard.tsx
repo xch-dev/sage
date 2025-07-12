@@ -29,13 +29,15 @@ import {
   SendIcon,
   UserRoundPlus,
 } from 'lucide-react';
-import { memo, useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { z } from 'zod';
 import { AssignNftDialog } from './AssignNftDialog';
 import ConfirmationDialog from './ConfirmationDialog';
+import { AddUrlConfirmation } from './confirmations/AddUrlConfirmation';
+import { NftConfirmation } from './confirmations/NftConfirmation';
 import { FeeOnlyDialog } from './FeeOnlyDialog';
 import { TransferDialog } from './TransferDialog';
 import { Button } from './ui/button';
@@ -79,8 +81,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from './ui/tooltip';
-import { AddUrlConfirmation } from './confirmations/AddUrlConfirmation';
-import { NftConfirmation } from './confirmations/NftConfirmation';
 export interface NftProps {
   nft: NftRecord;
   updateNfts: () => void;

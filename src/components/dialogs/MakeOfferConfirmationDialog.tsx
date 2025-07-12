@@ -29,8 +29,8 @@ interface MakeOfferConfirmationDialogProps {
   fee: string;
   walletUnit: string;
   walletDecimals: number;
-  enabledMarketplaces: { [key: string]: boolean };
-  setEnabledMarketplaces: (marketplaces: { [key: string]: boolean }) => void;
+  enabledMarketplaces: Record<string, boolean>;
+  setEnabledMarketplaces: (marketplaces: Record<string, boolean>) => void;
 }
 
 interface DisplayableNft {

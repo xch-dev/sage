@@ -69,7 +69,7 @@ function AssetPreview({ label, assets }: AssetPreviewProps) {
         <div className='flex items-center gap-2' key={i}>
           <img
             alt={asset.name ?? asset.ticker ?? t`Unknown`}
-            src={asset.icon_url!}
+            src={asset.icon_url ?? ''}
             className='w-8 h-8'
           />
 

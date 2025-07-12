@@ -140,6 +140,8 @@ export default function Login() {
     commands.moveKey(active.id as number, newIndex).catch(addError);
   }
 
+  const activeKey = keys?.find((key) => key.fingerprint === activeId);
+
   return (
     <SafeAreaView>
       <div
@@ -196,15 +198,9 @@ export default function Login() {
                 </div>
               </SortableContext>
               <DragOverlay>
-                {activeId &&
-                  keys.findIndex((key) => key.fingerprint === activeId) !==
-                    -1 && (
-                    <WalletItem
-                      info={keys.find((key) => key.fingerprint === activeId)!}
-                      keys={keys}
-                      setKeys={setKeys}
-                    />
-                  )}
+                {activeId && activeKey && (
+                  <WalletItem info={activeKey} keys={keys} setKeys={setKeys} />
+                )}
               </DragOverlay>
             </DndContext>
           ) : (
@@ -258,8 +254,6 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
   const { dark } = useContext(DarkModeContext);
   const { promptIfEnabled } = useBiometric();
 
-  const [anchorEl, _setAnchorEl] = useState<HTMLElement | null>(null);
-  const isMenuOpen = Boolean(anchorEl);
   const [isDeleteOpen, setDeleteOpen] = useState(false);
   const [isDetailsOpen, setDetailsOpen] = useState(false);
   const [secrets, setSecrets] = useState<SecretKeyInfo | null>(null);
@@ -312,7 +306,7 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
       } else {
         toast.error(t`No address found`);
       }
-    } catch (error) {
+    } catch {
       toast.error(t`Failed to copy address to clipboard`);
     } finally {
       try {
@@ -324,7 +318,7 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
   };
 
   const loginSelf = async (explicit: boolean) => {
-    if (isMenuOpen && !explicit) return;
+    if (!explicit) return;
 
     try {
       await loginAndUpdateState(info.fingerprint, addError);
@@ -333,7 +327,12 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
       setWallet(data.key);
       navigate('/wallet');
     } catch (error: unknown) {
-      if ((error as any).kind === 'database_migration') {
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'kind' in error &&
+        error.kind === 'database_migration'
+      ) {
         setMigrationDialogOpen(true);
       } else {
         addError(error as CustomError);

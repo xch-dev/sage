@@ -14,7 +14,7 @@ export function dbg<T>(value: T): T {
 
 export function formatTimestamp(
   timestamp: number | null,
-  dateStyle: string = 'medium',
+  dateStyle = 'medium',
   timeStyle: string = dateStyle,
 ): string {
   if (!timestamp) return '';
@@ -27,7 +27,7 @@ export function formatTimestamp(
 
 export function formatAddress(
   address: string,
-  chars: number = 8,
+  chars = 8,
   trailingChars: number = chars,
 ): string {
   const cleanAddress = address.startsWith('0x') ? address.slice(2) : address;
@@ -93,7 +93,7 @@ export function isValidAddress(address: string, prefix: string): boolean {
   try {
     const info = addressInfo(address);
     return info.puzzleHash.length === 64 && info.prefix === prefix;
-  } catch (error) {
+  } catch {
     return false;
   }
 }
@@ -119,10 +119,6 @@ export function isValidAssetId(assetId: string): boolean {
 
 function sanitizeHex(hex: string): string {
   return hex.replace(/0x/i, '');
-}
-
-function formatHex(hex: string): string {
-  return /^0x/i.test(hex) ? hex : `0x${hex}`;
 }
 
 const HEX_STRINGS = '0123456789abcdef';

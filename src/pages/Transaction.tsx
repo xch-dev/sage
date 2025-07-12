@@ -146,7 +146,7 @@ function TransactionCoinKind({ coin }: TransactionCoinKindProps) {
     <div className='flex items-center gap-2'>
       <img
         alt={coin.asset.name ?? t`Unknown`}
-        src={coin.asset.icon_url!}
+        src={coin.asset.icon_url ?? ''}
         className='w-8 h-8'
         aria-hidden={true}
       />

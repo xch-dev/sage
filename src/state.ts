@@ -96,9 +96,14 @@ export async function loginAndUpdateState(
   try {
     await commands.login({ fingerprint });
     await fetchState();
-  } catch (error) {
+  } catch (error: unknown) {
     // Don't call onError for database_migration errors since they're handled specially
-    if ((error as any).kind === 'database_migration') {
+    if (
+      typeof error === 'object' &&
+      error !== null &&
+      'kind' in error &&
+      error.kind === 'database_migration'
+    ) {
       console.warn('Database migration required');
     } else if (onError) {
       onError(error as CustomError);

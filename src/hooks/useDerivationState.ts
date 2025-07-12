@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { DerivationRecord, commands, events } from '../bindings';
 import { useErrors } from './useErrors';
 
-export function useDerivationState(hardened: boolean = false) {
+export function useDerivationState(hardened = false) {
   const { addError } = useErrors();
   const [derivations, setDerivations] = useState<DerivationRecord[]>([]);
   const [currentPage, setCurrentPage] = useState(0);

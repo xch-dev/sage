@@ -92,7 +92,7 @@ export function useTokenState(assetId: string | undefined) {
       if (assetId === 'xch') return;
 
       commands
-        .getCat({ asset_id: assetId! })
+        .getCat({ asset_id: assetId ?? '' })
         .then((res) => setAsset(res.cat))
         .catch(addError);
     },

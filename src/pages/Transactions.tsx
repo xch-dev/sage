@@ -6,30 +6,25 @@ import { ReceiveAddress } from '@/components/ReceiveAddress';
 import { TransactionListView } from '@/components/TransactionListView';
 import { TransactionOptions } from '@/components/TransactionOptions';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { CustomError } from '@/contexts/ErrorContext';
 import { useErrors } from '@/hooks/useErrors';
 import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
 import { useTransactionsParams } from '@/hooks/useTransactionsParams';
+import {
+  exportTransactions,
+  queryTransactions,
+} from '@/lib/exportTransactions';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Info } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  exportTransactions,
-  queryTransactions,
-} from '@/lib/exportTransactions';
-import {
-  commands,
-  events,
-  PendingTransactionRecord,
-  TransactionRecord,
-} from '../bindings';
+import { events, TransactionRecord } from '../bindings';
 
 export function Transactions() {
   const { addError } = useErrors();
   const [params, setParams] = useTransactionsParams();
   const { page, pageSize, search, ascending, summarized } = params;
-  const [_pending, setPending] = useState<PendingTransactionRecord[]>([]);
   const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
   const [totalTransactions, setTotalTransactions] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
@@ -47,9 +42,6 @@ export function Transactions() {
       if (showLoader) setIsLoading(true);
 
       try {
-        const pendingResult = await commands.getPendingTransactions({});
-        setPending(pendingResult.transactions);
-
         const result = await queryTransactions({
           search,
           ascending,
@@ -59,8 +51,8 @@ export function Transactions() {
 
         setTransactions(result.transactions);
         setTotalTransactions(result.total);
-      } catch (error) {
-        addError(error as any);
+      } catch (error: unknown) {
+        addError(error as CustomError);
       } finally {
         setIsLoading(false);
         setIsPaginationLoading(false);
@@ -128,7 +120,7 @@ export function Transactions() {
   );
 
   const renderPagination = useCallback(
-    (compact: boolean = false) => (
+    (compact = false) => (
       <Pagination
         page={page}
         total={totalTransactions}
