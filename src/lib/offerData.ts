@@ -92,6 +92,24 @@ async function fetchChiaOfferComOffer(id: string): Promise<string> {
   } as CustomError;
 }
 
+export async function fetchDexieOffersFromNftId(id: string): Promise<any[]> {
+  // this will only get a single page of offers (20 by default) which is fine
+  const response = await fetch(`https://api.dexie.space/v1/offers?requested=${id}&status=0&sort=price`);
+  const data = await response.json();
+  if (!data) {
+    throw {
+      kind: 'api',
+      reason: 'Failed to fetch nft offers from Dexie: Invalid response data',
+    } as CustomError;
+  }
+
+  if (data.success && data?.offers) {
+    return data.offers;
+  }
+
+  return [];
+}
+
 async function fetchDexieOffer(id: string): Promise<string> {
   const response = await fetch(`https://api.dexie.space/v1/offers/${id}`);
   const data = await response.json();
