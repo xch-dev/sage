@@ -7,20 +7,20 @@ use chia::{
 };
 use chia_wallet_sdk::driver::{HashedPtr, Nft, Puzzle};
 use clvmr::Allocator;
-use sage_database::RequestedNft;
+use sage_database::NftOfferInfo;
 use tokio::time::{sleep, timeout};
 
 use crate::{fetch_nft_did, insert_nft, Wallet, WalletError, WalletPeer};
 
 impl Wallet {
-    pub async fn fetch_requested_nft(
+    pub async fn fetch_offer_nft_info(
         &self,
         peer: Option<&WalletPeer>,
         launcher_id: Bytes32,
-    ) -> Result<Option<RequestedNft>, WalletError> {
+    ) -> Result<Option<NftOfferInfo>, WalletError> {
         let Some(peer) = peer else {
-            if let Some(requested_nft) = self.db.requested_nft(launcher_id).await? {
-                return Ok(Some(requested_nft));
+            if let Some(row) = self.db.offer_nft_info(launcher_id).await? {
+                return Ok(Some(row));
             };
 
             return Ok(None);
@@ -94,7 +94,7 @@ impl Wallet {
 
         tx.commit().await?;
 
-        let offer_details = Some(RequestedNft {
+        let offer_details = Some(NftOfferInfo {
             metadata,
             metadata_updater_puzzle_hash: nft.info.metadata_updater_puzzle_hash,
             royalty_puzzle_hash: nft.info.royalty_puzzle_hash,

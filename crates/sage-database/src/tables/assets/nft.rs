@@ -53,7 +53,7 @@ pub struct NftMetadataInfo {
 }
 
 #[derive(Debug, Clone)]
-pub struct RequestedNft {
+pub struct NftOfferInfo {
     pub metadata: Program,
     pub metadata_updater_puzzle_hash: Bytes32,
     pub royalty_puzzle_hash: Bytes32,
@@ -331,7 +331,7 @@ impl Database {
         Ok((dids, total_count))
     }
 
-    pub async fn requested_nft(&self, hash: Bytes32) -> Result<Option<RequestedNft>> {
+    pub async fn offer_nft_info(&self, hash: Bytes32) -> Result<Option<NftOfferInfo>> {
         let hash = hash.as_ref();
 
         query!(
@@ -347,7 +347,7 @@ impl Database {
         .fetch_optional(&self.pool)
         .await?
         .map(|row| {
-            Ok(RequestedNft {
+            Ok(NftOfferInfo {
                 metadata: Program::from(row.metadata),
                 metadata_updater_puzzle_hash: row.metadata_updater_puzzle_hash.convert()?,
                 royalty_puzzle_hash: row.royalty_puzzle_hash.convert()?,
