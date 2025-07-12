@@ -126,7 +126,7 @@ export function NftSelector({
             })
             .catch(addError);
         }
-      } catch (error) {
+      } catch {
         // Handle any errors silently
       }
     }

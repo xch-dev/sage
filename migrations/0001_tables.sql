@@ -47,18 +47,12 @@ CREATE TABLE assets (
   hash BLOB NOT NULL UNIQUE,
   kind INTEGER NOT NULL,
   name TEXT,
+  ticker TEXT,
+  precision INTEGER NOT NULL,
   icon_url TEXT,
   description TEXT,
   is_sensitive_content BOOLEAN NOT NULL DEFAULT FALSE,
   is_visible BOOLEAN NOT NULL
-);
-
-CREATE TABLE tokens (
-  id INTEGER NOT NULL PRIMARY KEY,
-  asset_id INTEGER NOT NULL UNIQUE,
-  ticker TEXT,
-  precision INTEGER NOT NULL DEFAULT 3,
-  FOREIGN KEY (asset_id) REFERENCES assets(id) ON DELETE CASCADE
 );
 
 CREATE TABLE nfts (

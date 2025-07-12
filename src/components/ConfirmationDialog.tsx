@@ -154,7 +154,7 @@ export default function ConfirmationDialog({
               });
               // Keep the original label format but update the total
               acc[key].label = acc[key].originalLabel;
-            } catch (e) {
+            } catch {
               // If parsing fails, keep the original amount
             }
           }
@@ -614,7 +614,7 @@ export default function ConfirmationDialog({
 
                   const data = await commands
                     .signCoinSpends({
-                      coin_spends: response!.coin_spends,
+                      coin_spends: response.coin_spends,
                     })
                     .catch(addError);
 
@@ -632,7 +632,7 @@ export default function ConfirmationDialog({
                           : 'coin_spends' in response
                             ? response.coin_spends
                             : response.spend_bundle.coin_spends,
-                      aggregated_signature: finalSignature!,
+                      aggregated_signature: finalSignature ?? '',
                     },
                   })
                   .catch(addError);

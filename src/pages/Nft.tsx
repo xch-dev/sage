@@ -23,7 +23,7 @@ export default function Nft() {
   const updateNft = useMemo(
     () => () => {
       commands
-        .getNft({ nft_id: launcherId! })
+        .getNft({ nft_id: launcherId ?? '' })
         .then((data) => setNft(data.nft))
         .catch(addError);
     },
@@ -51,7 +51,7 @@ export default function Nft() {
 
   useEffect(() => {
     commands
-      .getNftData({ nft_id: launcherId! })
+      .getNftData({ nft_id: launcherId ?? '' })
       .then((response) => setData(response.data))
       .catch(addError);
   }, [launcherId, addError]);
@@ -160,36 +160,41 @@ export default function Nft() {
                   <Trans>Attributes</Trans>
                 </h6>
                 <div className='grid grid-cols-2 gap-2'>
-                  {metadata.attributes.map((attr: any, i: number) => (
-                    <div key={i} className='px-2 py-1 border-2 rounded-lg'>
-                      <h6
-                        className='text-sm font-semibold truncate'
-                        title={attr.trait_type}
-                      >
-                        {attr.trait_type}
-                      </h6>
-                      {isValidUrl(attr.value) ? (
-                        <div
-                          onClick={() => openUrl(attr.value)}
-                          className='text-sm break-all text-blue-700 dark:text-blue-300 cursor-pointer hover:underline'
+                  {metadata.attributes.map(
+                    (
+                      attr: { trait_type: string; value: string },
+                      i: number,
+                    ) => (
+                      <div key={i} className='px-2 py-1 border-2 rounded-lg'>
+                        <h6
+                          className='text-sm font-semibold truncate'
+                          title={attr.trait_type}
                         >
-                          {attr.value}
-                        </div>
-                      ) : (
-                        <div className='text-sm break-all'>{attr.value}</div>
-                      )}
-                    </div>
-                  ))}
+                          {attr.trait_type}
+                        </h6>
+                        {isValidUrl(attr.value) ? (
+                          <div
+                            onClick={() => openUrl(attr.value)}
+                            className='text-sm break-all text-blue-700 dark:text-blue-300 cursor-pointer hover:underline'
+                          >
+                            {attr.value}
+                          </div>
+                        ) : (
+                          <div className='text-sm break-all'>{attr.value}</div>
+                        )}
+                      </div>
+                    ),
+                  )}
                 </div>
               </div>
             )}
 
-            {(nft?.data_uris.length || null) && (
+            {!!nft?.data_uris.length && (
               <div>
                 <h6 className='text-md font-bold'>
                   <Trans>Data URIs</Trans>
                 </h6>
-                {nft!.data_uris.map((uri, i) => (
+                {nft.data_uris.map((uri, i) => (
                   <div
                     key={i}
                     className='truncate text-sm text-blue-700 dark:text-blue-300 cursor-pointer'
@@ -206,7 +211,7 @@ export default function Nft() {
                 <h6 className='text-md font-bold'>
                   <Trans>Metadata URIs</Trans>
                 </h6>
-                {nft!.metadata_uris.map((uri, i) => (
+                {nft?.metadata_uris.map((uri, i) => (
                   <div
                     key={i}
                     className='truncate text-sm text-blue-700 dark:text-blue-300 cursor-pointer'
@@ -223,7 +228,7 @@ export default function Nft() {
                 <h6 className='text-md font-bold'>
                   <Trans>License URIs</Trans>
                 </h6>
-                {nft!.license_uris.map((uri, i) => (
+                {nft?.license_uris.map((uri, i) => (
                   <div
                     key={i}
                     className='truncate text-sm text-blue-700 dark:text-blue-300 cursor-pointer'

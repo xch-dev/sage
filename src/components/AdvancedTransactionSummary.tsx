@@ -1,12 +1,12 @@
-import { toDecimal, fromMojos } from '@/lib/utils';
+import { fromMojos, toDecimal } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import BigNumber from 'bignumber.js';
 import { BadgeMinus, BadgePlus, BoxIcon, ForwardIcon } from 'lucide-react';
 import { TransactionSummary, Unit } from '../bindings';
-import { Badge } from './ui/badge';
 import { formatNumber } from '../i18n';
+import { Badge } from './ui/badge';
 
 interface SpentCoin {
   sort: number;
@@ -132,7 +132,7 @@ export function calculateTransaction(
   const created: CreatedCoin[] = [];
 
   for (const input of summary.inputs || []) {
-    if (input.type === 'xch') {
+    if (input.asset && !input.asset.asset_id) {
       spent.push({
         badge: 'Chia',
         label: `${formatNumber({
@@ -166,11 +166,11 @@ export function calculateTransaction(
       }
     }
 
-    if (input.type === 'cat') {
-      const ticker = input.ticker || 'CAT';
+    if (input.asset?.kind === 'token' && input.asset.asset_id) {
+      const ticker = input.asset.ticker || 'CAT';
 
       spent.push({
-        badge: `CAT ${input.name || input.asset_id}`,
+        badge: `CAT ${input.asset.name ?? input.asset.ticker ?? input.asset.asset_id}`,
         label: `${formatNumber({
           value: fromMojos(input.amount, 3),
           minimumFractionDigits: 0,
@@ -186,7 +186,7 @@ export function calculateTransaction(
         }
 
         created.push({
-          badge: `CAT ${input.name || input.asset_id}`,
+          badge: `CAT ${input.asset.name ?? input.asset.ticker ?? input.asset.asset_id}`,
           label: `${formatNumber({
             value: fromMojos(output.amount, 3),
             minimumFractionDigits: 0,
@@ -202,7 +202,7 @@ export function calculateTransaction(
       }
     }
 
-    if (input.type === 'did') {
+    if (input.asset?.kind === 'did') {
       if (
         !summary.inputs
           .map((i) => i.outputs)
@@ -211,7 +211,7 @@ export function calculateTransaction(
       ) {
         spent.push({
           badge: t`Profile`,
-          label: input.name || t`Unnamed`,
+          label: input.asset.name ?? t`Unnamed`,
           coinId: input.coin_id,
           sort: 3,
         });
@@ -225,7 +225,7 @@ export function calculateTransaction(
         if (BigNumber(output.amount).mod(2).eq(1)) {
           created.push({
             badge: t`Profile`,
-            label: input.name || t`Unnamed`,
+            label: input.asset.name ?? t`Unnamed`,
             address: output.burning
               ? t`Permanently Burned`
               : output.receiving
@@ -237,7 +237,7 @@ export function calculateTransaction(
       }
     }
 
-    if (input.type === 'nft') {
+    if (input.asset?.kind === 'nft') {
       if (
         !summary.inputs
           .map((i) => i.outputs)
@@ -246,7 +246,7 @@ export function calculateTransaction(
       ) {
         spent.push({
           badge: 'NFT',
-          label: input.name || t`Unknown`,
+          label: input.asset.name ?? t`Unknown`,
           coinId: input.coin_id,
           sort: 4,
         });
@@ -260,7 +260,7 @@ export function calculateTransaction(
         if (BigNumber(output.amount).mod(2).isEqualTo(1)) {
           created.push({
             badge: 'NFT',
-            label: input.name || t`Unknown`,
+            label: input.asset.name ?? t`Unknown`,
             address: output.burning
               ? t`Permanently Burned`
               : output.receiving

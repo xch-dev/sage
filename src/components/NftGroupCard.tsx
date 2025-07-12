@@ -19,8 +19,8 @@ import {
   LibraryBig,
   MoreVertical,
   Paintbrush,
-  UserIcon,
   ScrollText,
+  UserIcon,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -59,7 +59,7 @@ export function NftGroupCard({
   item,
   updateNfts,
   page,
-  onToggleVisibility = () => {},
+  onToggleVisibility,
   isLoading,
   error,
   isPlaceHolder = false,
@@ -299,7 +299,7 @@ export function NftGroupCard({
                     className='cursor-pointer'
                     onClick={(e) => {
                       e.stopPropagation();
-                      onToggleVisibility();
+                      onToggleVisibility?.();
                     }}
                     disabled={isPlaceHolder}
                     aria-label={
@@ -425,9 +425,11 @@ export function NftGroupCard({
                           state: { splitNftOffers: true },
                         }),
                     });
-                  } catch (error: any) {
+                  } catch (error: unknown) {
                     toast.error(
-                      error.message || t`Failed to add NFTs to offer`,
+                      error instanceof Error
+                        ? error.message
+                        : t`Failed to add NFTs to offer`,
                     );
                   }
                 }}

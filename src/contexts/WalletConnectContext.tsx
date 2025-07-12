@@ -29,6 +29,7 @@ import {
   walletConnectCommands,
 } from '@/walletconnect/commands';
 import { handleCommand } from '@/walletconnect/handler';
+import { Trans } from '@lingui/react/macro';
 import { getCurrentWindow, UserAttentionType } from '@tauri-apps/api/window';
 import { platform } from '@tauri-apps/plugin-os';
 import SignClient from '@walletconnect/sign-client';
@@ -42,7 +43,6 @@ import {
   useState,
 } from 'react';
 import { formatNumber } from '../i18n';
-import { Trans } from '@lingui/react/macro';
 
 export interface WalletConnectContextType {
   sessions: SessionTypes.Struct[];
@@ -151,12 +151,7 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
 
       try {
         const {
-          id: _id,
-          params: {
-            pairingTopic,
-            proposer: { metadata: _proposerMetadata },
-            requiredNamespaces,
-          },
+          params: { pairingTopic, requiredNamespaces },
         } = proposal;
 
         if (!pairingTopic) {
@@ -186,7 +181,7 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
         const availableMethods = methods;
         const availableEvents = events;
 
-        const { topic, acknowledged } = await signClient.approve({
+        const { acknowledged } = await signClient.approve({
           id: proposal.id,
           namespaces: {
             chia: {
@@ -377,7 +372,7 @@ interface RequestDialogProps {
 }
 
 interface CommandDialogProps<T extends WalletConnectCommand> {
-  params: Params<T>;
+  params: Partial<Params<T>>;
 }
 
 function SignCoinSpendsDialog({
@@ -387,15 +382,16 @@ function SignCoinSpendsDialog({
   const { addError } = useErrors();
 
   useEffect(() => {
-    const coinSpends = params.coinSpends.map((coinSpend) => ({
-      coin: {
-        parent_coin_info: coinSpend.coin.parent_coin_info,
-        puzzle_hash: coinSpend.coin.puzzle_hash,
-        amount: coinSpend.coin.amount.toString(),
-      },
-      puzzle_reveal: coinSpend.puzzle_reveal,
-      solution: coinSpend.solution,
-    }));
+    const coinSpends =
+      params.coinSpends?.map((coinSpend) => ({
+        coin: {
+          parent_coin_info: coinSpend.coin.parent_coin_info,
+          puzzle_hash: coinSpend.coin.puzzle_hash,
+          amount: coinSpend.coin.amount.toString(),
+        },
+        puzzle_reveal: coinSpend.puzzle_reveal,
+        solution: coinSpend.solution,
+      })) ?? [];
 
     commands
       .viewCoinSpends({ coin_spends: coinSpends })
@@ -457,7 +453,7 @@ function SignMessageDialog({
           {params.publicKey}
         </div>
       </div>
-      <MessageToSign message={params.message} />
+      <MessageToSign message={params.message ?? ''} />
     </div>
   );
 }
@@ -473,7 +469,7 @@ function SignMessageByAddressDialog({
           {params.address}
         </div>
       </div>
-      <MessageToSign message={params.message} />
+      <MessageToSign message={params.message ?? ''} />
     </div>
   );
 }
@@ -484,7 +480,7 @@ function TakeOfferDialog({ params }: CommandDialogProps<'chia_takeOffer'>) {
 
   useEffect(() => {
     commands
-      .viewOffer({ offer: params.offer })
+      .viewOffer({ offer: params.offer ?? '' })
       .then((data) => setOffer(data.offer))
       .catch(addError);
   }, [params, addError]);
@@ -506,7 +502,7 @@ function CreateOfferDialog({ params }: CommandDialogProps<'chia_createOffer'>) {
       <div>
         <div className='font-medium mb-2'>Offering</div>
         <ul className='list-disc list-inside space-y-1'>
-          {params.offerAssets.map((asset, i) => (
+          {params.offerAssets?.map((asset, i) => (
             <li key={i} className='text-sm'>
               {formatNumber({
                 value: fromMojos(
@@ -525,7 +521,7 @@ function CreateOfferDialog({ params }: CommandDialogProps<'chia_createOffer'>) {
       <div>
         <div className='font-medium mb-2'>Requesting</div>
         <ul className='list-disc list-inside space-y-1'>
-          {params.requestAssets.map((asset, i) => (
+          {params.requestAssets?.map((asset, i) => (
             <li key={i} className='text-sm'>
               {formatNumber({
                 value: fromMojos(
@@ -563,7 +559,7 @@ function CancelOfferDialog({ params }: CommandDialogProps<'chia_cancelOffer'>) {
 
   useEffect(() => {
     commands
-      .getOffer({ offer_id: params.id })
+      .getOffer({ offer_id: params.id ?? '' })
       .then((data) => setRecord(data.offer))
       .catch(addError);
   }, [params, addError]);
@@ -608,7 +604,7 @@ function SendDialog({ params }: CommandDialogProps<'chia_send'>) {
         <div className='text-sm text-muted-foreground'>
           {formatNumber({
             value: fromMojos(
-              params.amount,
+              params.amount ?? 0,
               params.assetId ? 3 : walletState.sync.unit.decimals,
             ),
             minimumFractionDigits: 0,
@@ -663,12 +659,15 @@ const COMMAND_COMPONENTS: {
   chia_signMessageByAddress: SignMessageByAddressDialog,
 };
 
-const COMMAND_METADATA: {
-  [K in WalletConnectCommand]?: {
-    title: string;
-    description: string;
-  };
-} = {
+const COMMAND_METADATA: Partial<
+  Record<
+    WalletConnectCommand,
+    {
+      title: string;
+      description: string;
+    }
+  >
+> = {
   chip0002_signCoinSpends: {
     title: 'Sign Transaction',
     description: 'Review and approve the transaction details below',
@@ -735,9 +734,7 @@ function RequestDialog({
         </DialogHeader>
 
         <div className='max-h-[60vh] overflow-y-auto mb-2'>
-          {CommandComponent && (
-            <CommandComponent params={parsedParams as any} />
-          )}
+          {CommandComponent && <CommandComponent params={parsedParams ?? {}} />}
         </div>
 
         <DialogFooter>

@@ -73,9 +73,7 @@ export async function handleSend(
   return {};
 }
 
-export async function handleGetAddress(
-  _params: Params<'chia_getAddress'>,
-): Promise<Return<'chia_getAddress'>> {
+export async function handleGetAddress(): Promise<Return<'chia_getAddress'>> {
   return {
     address: useWalletState.getState().sync.receive_address,
   };

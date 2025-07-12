@@ -10,12 +10,12 @@ use itertools::Itertools;
 use sage_api::{
     Amount, CancelOffer, CancelOfferResponse, CancelOffers, CancelOffersResponse, CombineOffers,
     CombineOffersResponse, DeleteOffer, DeleteOfferResponse, GetOffer, GetOfferResponse, GetOffers,
-    GetOffersResponse, ImportOffer, ImportOfferResponse, MakeOffer, MakeOfferResponse, OfferAssets,
-    OfferCat, OfferNft, OfferRecord, OfferRecordStatus, OfferSummary, OfferXch, TakeOffer,
-    TakeOfferResponse, ViewOffer, ViewOfferResponse,
+    GetOffersResponse, ImportOffer, ImportOfferResponse, MakeOffer, MakeOfferResponse, NftRoyalty,
+    OfferAsset, OfferRecord, OfferRecordStatus, OfferSummary, TakeOffer, TakeOfferResponse,
+    ViewOffer, ViewOfferResponse,
 };
 use sage_assets::fetch_uris_with_hash;
-use sage_database::{OfferRow, OfferStatus};
+use sage_database::{AssetKind, OfferRow, OfferStatus, OfferedAsset};
 use sage_wallet::{
     aggregate_offers, insert_transaction, sort_offer, Offered, Requested, SyncCommand, Transaction,
     Wallet, WalletError,
@@ -25,8 +25,8 @@ use tokio::time::timeout;
 use tracing::debug;
 
 use crate::{
-    extract_nft_data, json_bundle, offer_expiration, parse_amount, parse_asset_id, parse_nft_id,
-    parse_offer_id, ConfirmationInfo, Error, ExtractedNftData, Result, Sage,
+    encode_asset, extract_nft_data, json_bundle, offer_expiration, parse_amount, parse_asset_id,
+    parse_nft_id, parse_offer_id, ConfirmationInfo, Error, ExtractedNftData, Result, Sage,
 };
 
 #[derive(Debug, Clone)]
@@ -361,13 +361,20 @@ impl Sage {
         }
 
         if offered_amounts.xch > 0 || offered_royalties.xch > 0 {
-            tx.insert_offer_xch(offer_id, offered_amounts.xch, offered_royalties.xch, false)
-                .await?;
+            tx.insert_offer_asset(
+                offer_id,
+                Bytes32::default(),
+                offered_amounts.xch,
+                offered_royalties.xch,
+                false,
+            )
+            .await?;
         }
 
         if requested_amounts.xch > 0 || requested_royalties.xch > 0 {
-            tx.insert_offer_xch(
+            tx.insert_offer_asset(
                 offer_id,
+                Bytes32::default(),
                 requested_amounts.xch,
                 requested_royalties.xch,
                 true,
@@ -454,64 +461,48 @@ impl Sage {
     }
 
     async fn offer_record(&self, wallet: &Wallet, offer: OfferRow) -> Result<OfferRecord> {
-        let xch = wallet.db.offer_xch_assets(offer.offer_id).await?;
-        let cats = wallet.db.offer_cat_assets(offer.offer_id).await?;
-        let nfts = wallet.db.offer_nft_assets(offer.offer_id).await?;
+        let assets = wallet.db.offer_assets(offer.offer_id).await?;
 
-        let mut maker_xch_amount = 0;
-        let mut maker_xch_royalty = 0;
-        let mut taker_xch_amount = 0;
-        let mut taker_xch_royalty = 0;
+        let mut maker = Vec::new();
+        let mut taker = Vec::new();
 
-        for xch in xch {
-            if xch.is_requested {
-                taker_xch_amount += xch.amount;
-                taker_xch_royalty += xch.royalty;
+        for OfferedAsset {
+            asset,
+            amount,
+            royalty,
+            is_requested,
+            ..
+        } in assets
+        {
+            let nft_royalty = if asset.kind == AssetKind::Nft {
+                let info = wallet.db.offer_nft_info(asset.hash).await?;
+
+                info.map(|info| {
+                    Result::Ok(NftRoyalty {
+                        royalty_address: Address::new(
+                            info.royalty_puzzle_hash,
+                            self.network().prefix(),
+                        )
+                        .encode()?,
+                        royalty_basis_points: info.royalty_basis_points,
+                    })
+                })
+                .transpose()?
             } else {
-                maker_xch_amount += xch.amount;
-                maker_xch_royalty += xch.royalty;
-            }
-        }
-
-        let mut maker_cats = IndexMap::new();
-        let mut taker_cats = IndexMap::new();
-
-        for cat in cats {
-            let asset_id = hex::encode(cat.asset.hash);
-            let cat_asset = wallet.db.token_asset(cat.asset.hash).await?;
-
-            let record = OfferCat {
-                amount: Amount::u64(cat.amount),
-                royalty: Amount::u64(cat.royalty),
-                name: cat.asset.name,
-                ticker: cat_asset.and_then(|cat| cat.ticker),
-                icon_url: cat.asset.icon_url,
+                None
             };
 
-            if cat.is_requested {
-                taker_cats.insert(asset_id, record);
-            } else {
-                maker_cats.insert(asset_id, record);
-            }
-        }
-
-        let mut maker_nfts = IndexMap::new();
-        let mut taker_nfts = IndexMap::new();
-
-        for nft in nfts {
-            let nft_id = Address::new(nft.asset.hash, "nft".to_string()).encode()?;
-
-            let record = OfferNft {
-                royalty_address: "TODO".to_string(), // TODO Address::new(nft.royalty_puzzle_hash, self.network().prefix()).encode()?,
-                royalty_ten_thousandths: 0,          // TODO
-                name: nft.asset.name,
-                icon: nft.asset.icon_url,
+            let asset = OfferAsset {
+                amount: Amount::u64(amount),
+                royalty: Amount::u64(royalty),
+                asset: encode_asset(asset)?,
+                nft_royalty,
             };
 
-            if nft.is_requested {
-                taker_nfts.insert(nft_id, record);
+            if is_requested {
+                taker.push(asset);
             } else {
-                maker_nfts.insert(nft_id, record);
+                maker.push(asset);
             }
         }
 
@@ -527,22 +518,8 @@ impl Sage {
             },
             creation_timestamp: offer.inserted_timestamp,
             summary: OfferSummary {
-                maker: OfferAssets {
-                    xch: OfferXch {
-                        amount: Amount::u64(maker_xch_amount),
-                        royalty: Amount::u64(maker_xch_royalty),
-                    },
-                    cats: maker_cats,
-                    nfts: maker_nfts,
-                },
-                taker: OfferAssets {
-                    xch: OfferXch {
-                        amount: Amount::u64(taker_xch_amount),
-                        royalty: Amount::u64(taker_xch_royalty),
-                    },
-                    cats: taker_cats,
-                    nfts: taker_nfts,
-                },
+                maker,
+                taker,
                 fee: Amount::u64(offer.fee),
                 expiration_height: offer.expiration_height,
                 expiration_timestamp: offer.expiration_timestamp,

@@ -26,7 +26,7 @@ interface OfferCreationProgressDialogProps {
   onOpenChange: (open: boolean) => void;
   offerState: OfferState;
   splitNftOffers: boolean;
-  enabledMarketplaces: { [key: string]: boolean };
+  enabledMarketplaces: Record<string, boolean>;
   clearOfferState: () => void;
 }
 
@@ -44,7 +44,6 @@ export function OfferCreationProgressDialog({
   const [isUploading, setIsUploading] = useState(false);
   const [hasStartedProcessing, setHasStartedProcessing] = useState(false);
   const [isCanceling, setIsCanceling] = useState(false);
-  const [uploadsCompleted, setUploadsCompleted] = useState(false);
   const [currentStep, setCurrentStep] = useState<'creating' | 'uploading'>(
     'creating',
   );
@@ -86,7 +85,6 @@ export function OfferCreationProgressDialog({
         );
 
         if (enabledMarketplaceConfigs.length === 0) {
-          setUploadsCompleted(true);
           return;
         }
 
@@ -127,7 +125,6 @@ export function OfferCreationProgressDialog({
 
         if (isMounted && !isCanceling) {
           setIsUploading(false);
-          setUploadsCompleted(true);
         }
       };
 
@@ -187,7 +184,6 @@ export function OfferCreationProgressDialog({
     if (!open) {
       setHasStartedProcessing(false);
       setIsCanceling(false);
-      setUploadsCompleted(false);
       setCurrentStep('creating');
       setCurrentOfferIndex(0);
     }
@@ -207,7 +203,6 @@ export function OfferCreationProgressDialog({
     }
     clearProcessedOffers();
     setIsUploading(false);
-    setUploadsCompleted(false);
     onOpenChange(false);
   };
 

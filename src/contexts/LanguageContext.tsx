@@ -10,7 +10,9 @@ export interface LanguageContextType {
 
 export const LanguageContext = createContext<LanguageContextType>({
   locale: 'en-US',
-  changeLanguage: async () => {},
+  changeLanguage: async () => {
+    // Intentionally left blank
+  },
 });
 
 export const getBrowserLanguage = (): SupportedLanguage => {

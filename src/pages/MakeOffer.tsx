@@ -1,9 +1,12 @@
 import Container from '@/components/Container';
+import { MakeOfferConfirmationDialog } from '@/components/dialogs/MakeOfferConfirmationDialog';
+import { OfferCreationProgressDialog } from '@/components/dialogs/OfferCreationProgressDialog';
 import Header from '@/components/Header';
+import { AssetSelector } from '@/components/selectors/AssetSelector';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { IntegerInput, FeeAmountInput } from '@/components/ui/masked-input';
+import { FeeAmountInput, IntegerInput } from '@/components/ui/masked-input';
 import { Switch } from '@/components/ui/switch';
 import { useDefaultOfferExpiry } from '@/hooks/useDefaultOfferExpiry';
 import { useErrors } from '@/hooks/useErrors';
@@ -13,10 +16,7 @@ import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { HandCoins, Handshake } from 'lucide-react';
 import { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { MakeOfferConfirmationDialog } from '@/components/dialogs/MakeOfferConfirmationDialog';
-import { AssetSelector } from '@/components/selectors/AssetSelector';
-import { OfferCreationProgressDialog } from '@/components/dialogs/OfferCreationProgressDialog';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 export function MakeOffer() {
   const [state, setState] = useOfferStateWithDefault();
@@ -30,9 +30,9 @@ export function MakeOffer() {
   );
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [isProgressDialogOpen, setIsProgressDialogOpen] = useState(false);
-  const [enabledMarketplaces, setEnabledMarketplaces] = useState<{
-    [key: string]: boolean;
-  }>({});
+  const [enabledMarketplaces, setEnabledMarketplaces] = useState<
+    Record<string, boolean>
+  >({});
 
   const makeAction = () => {
     if (state.expiration !== null) {
@@ -114,7 +114,7 @@ export function MakeOffer() {
                 offering
                 prefix='offer'
                 assets={state.offered}
-                setAssets={(assets: any) => setState({ offered: assets })}
+                setAssets={(assets) => setState({ offered: assets })}
                 splitNftOffers={splitNftOffers}
                 setSplitNftOffers={setSplitNftOffers}
               />
@@ -136,7 +136,7 @@ export function MakeOffer() {
               <AssetSelector
                 prefix='requested'
                 assets={state.requested}
-                setAssets={(assets: any) => setState({ requested: assets })}
+                setAssets={(assets) => setState({ requested: assets })}
                 splitNftOffers={splitNftOffers}
                 setSplitNftOffers={setSplitNftOffers}
               />

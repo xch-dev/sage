@@ -4,52 +4,9 @@ import { Row, SortingState } from '@tanstack/react-table';
 import BigNumber from 'bignumber.js';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
-import { TransactionRecord, TransactionRecordCoin } from '../bindings';
+import { TransactionRecord } from '../bindings';
 import { Loading } from './Loading';
 import { columns, FlattenedTransaction } from './TransactionColumns';
-
-function getDisplayName(coin: TransactionRecordCoin) {
-  switch (coin.type) {
-    case 'xch':
-      return 'Chia';
-    case 'cat':
-      return coin.name ?? 'Unknown CAT';
-    case 'did':
-      return coin.name ? `${coin.name}` : 'Unknown DID';
-    case 'nft':
-      return coin.name ? `${coin.name}` : 'Unknown NFT';
-    default:
-      return coin.type === 'unknown' ? 'Unknown' : coin.type.toUpperCase();
-  }
-}
-
-function getItemId(coin: TransactionRecordCoin) {
-  switch (coin.type) {
-    case 'xch':
-      return 'xch';
-    case 'cat':
-      return coin.asset_id;
-    case 'did':
-      return coin.launcher_id;
-    case 'nft':
-      return coin.launcher_id;
-    default:
-      return coin.type;
-  }
-}
-
-function getIconUrl(coin: TransactionRecordCoin) {
-  switch (coin.type) {
-    case 'xch':
-      return 'https://icons.dexie.space/xch.webp';
-    case 'cat':
-      return coin.icon_url;
-    case 'nft':
-      return coin.icon;
-    default:
-      return null;
-  }
-}
 
 export function TransactionListView({
   transactions,
@@ -65,29 +22,33 @@ export function TransactionListView({
   const [sorting, setSorting] = useState<SortingState>([]);
 
   const flattenedTransactions = transactions.flatMap((transaction) => {
-    const created: FlattenedTransaction[] = transaction.created.map((coin) => ({
-      type: coin.type,
-      address: coin.address,
-      displayName: getDisplayName(coin),
-      itemId: getItemId(coin),
-      amount: coin.amount.toString(),
-      transactionHeight: transaction.height,
-      iconUrl: getIconUrl(coin),
-      timestamp: transaction.timestamp,
-      precision: coin.precision,
-    }));
+    const created = transaction.created.map(
+      (coin): FlattenedTransaction => ({
+        type: coin.asset.kind,
+        address: coin.address,
+        displayName: coin.asset.name ?? coin.asset.ticker ?? 'Unknown',
+        itemId: coin.asset.asset_id ?? 'XCH',
+        amount: coin.amount.toString(),
+        transactionHeight: transaction.height,
+        iconUrl: coin.asset.icon_url ?? '',
+        timestamp: transaction.timestamp,
+        precision: coin.asset.precision,
+      }),
+    );
 
-    const spent: FlattenedTransaction[] = transaction.spent.map((coin) => ({
-      type: coin.type,
-      address: coin.address,
-      displayName: getDisplayName(coin),
-      itemId: getItemId(coin),
-      amount: BigNumber(coin.amount).negated().toString(),
-      transactionHeight: transaction.height,
-      iconUrl: getIconUrl(coin),
-      timestamp: transaction.timestamp,
-      precision: coin.precision,
-    }));
+    const spent = transaction.spent.map(
+      (coin): FlattenedTransaction => ({
+        type: coin.asset.kind,
+        address: coin.address,
+        displayName: coin.asset.name ?? coin.asset.ticker ?? 'Unknown',
+        itemId: coin.asset.asset_id ?? 'XCH',
+        amount: BigNumber(coin.amount).negated().toString(),
+        transactionHeight: transaction.height,
+        iconUrl: coin.asset.icon_url ?? '',
+        timestamp: transaction.timestamp,
+        precision: coin.asset.precision,
+      }),
+    );
 
     if (!summarized) {
       return [...created, ...spent];

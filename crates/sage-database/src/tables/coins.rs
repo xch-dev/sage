@@ -30,6 +30,7 @@ pub enum CoinSortMode {
 pub enum CoinFilterMode {
     All,
     Owned,
+    Spent,
     Spendable,
 }
 
@@ -621,8 +622,9 @@ async fn coin_records(
     filter_mode: CoinFilterMode,
 ) -> Result<(Vec<CoinRow>, u32)> {
     let table = match filter_mode {
-        CoinFilterMode::All => "internal_coins",
         CoinFilterMode::Owned => "owned_coins",
+        CoinFilterMode::Spent => "spent_coins",
+        CoinFilterMode::All => "wallet_coins",
         CoinFilterMode::Spendable => "spendable_coins",
     };
 
@@ -634,14 +636,14 @@ async fn coin_records(
             (
                 SELECT hash FROM mempool_items
                 INNER JOIN mempool_coins ON mempool_coins.mempool_item_id = mempool_items.id
-                WHERE mempool_coins.coin_id = coin_id
+                WHERE mempool_coins.coin_id = {table}.coin_id
                 AND mempool_coins.is_input = TRUE
                 LIMIT 1
             ) AS mempool_item_hash,
             (
                 SELECT hash FROM offers
                 INNER JOIN offer_coins ON offer_coins.offer_id = offers.id
-                WHERE offer_coins.coin_id = coin_id
+                WHERE offer_coins.coin_id = {table}.coin_id
                 AND offers.status <= 1
                 LIMIT 1
             ) AS offer_hash,

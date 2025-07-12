@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{Amount, AssetKind};
+use crate::{Amount, Asset};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
@@ -38,8 +38,7 @@ pub struct TransactionInput {
     pub coin_id: String,
     pub amount: Amount,
     pub address: String,
-    #[serde(flatten)]
-    pub kind: AssetKind,
+    pub asset: Option<Asset>,
     pub outputs: Vec<TransactionOutput>,
 }
 

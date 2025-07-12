@@ -3,12 +3,12 @@ import { BigNumber } from 'bignumber.js';
 import { Params } from '../commands';
 import { HandlerContext } from '../handler';
 
-export async function handleChainId(_params: Params<'chip0002_chainId'>) {
+export async function handleChainId() {
   const data = await commands.getNetwork({});
   return data.network.network_id;
 }
 
-export async function handleConnect(_params: Params<'chip0002_connect'>) {
+export async function handleConnect() {
   // This command is only supported for compatibility with the CHIP-0002 spec.
   // It does not need to do anything.
   return true;

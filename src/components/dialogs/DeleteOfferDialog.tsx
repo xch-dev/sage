@@ -1,4 +1,3 @@
-import { OfferRecord } from '@/bindings';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,

@@ -63,22 +63,6 @@ pub struct GetVersionResponse {
     pub version: String,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-#[cfg_attr(feature = "tauri", derive(specta::Type))]
-#[serde(rename_all = "snake_case")]
-pub enum CoinSortMode {
-    CoinId,
-    Amount,
-    CreatedHeight,
-    SpentHeight,
-}
-
-impl Default for CoinSortMode {
-    fn default() -> Self {
-        Self::CreatedHeight
-    }
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct GetAreCoinsSpendable {
@@ -103,17 +87,48 @@ pub struct GetSpendableCoinCountResponse {
     pub count: u32,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Copy, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
-pub struct GetXchCoins {
+#[serde(rename_all = "snake_case")]
+pub enum CoinSortMode {
+    CoinId,
+    Amount,
+    #[default]
+    CreatedHeight,
+    SpentHeight,
+}
+
+#[derive(Debug, Default, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[serde(rename_all = "snake_case")]
+pub enum CoinFilterMode {
+    All,
+    #[default]
+    Owned,
+    Spent,
+    Spendable,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct GetCoins {
+    #[serde(default)]
+    pub asset_id: Option<String>,
     pub offset: u32,
     pub limit: u32,
     #[serde(default)]
     pub sort_mode: CoinSortMode,
     #[serde(default)]
-    pub ascending: bool,
+    pub filter_mode: CoinFilterMode,
     #[serde(default)]
-    pub include_spent_coins: bool,
+    pub ascending: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct GetCoinsResponse {
+    pub coins: Vec<CoinRecord>,
+    pub total: u32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -126,34 +141,6 @@ pub struct GetCoinsByIds {
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct GetCoinsByIdsResponse {
     pub coins: Vec<CoinRecord>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(feature = "tauri", derive(specta::Type))]
-pub struct GetXchCoinsResponse {
-    pub coins: Vec<CoinRecord>,
-    pub total: u32,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(feature = "tauri", derive(specta::Type))]
-pub struct GetCatCoins {
-    pub asset_id: String,
-    pub offset: u32,
-    pub limit: u32,
-    #[serde(default)]
-    pub sort_mode: CoinSortMode,
-    #[serde(default)]
-    pub ascending: bool,
-    #[serde(default)]
-    pub include_spent_coins: bool,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(feature = "tauri", derive(specta::Type))]
-pub struct GetCatCoinsResponse {
-    pub coins: Vec<CoinRecord>,
-    pub total: u32,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]

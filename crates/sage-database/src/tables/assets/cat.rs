@@ -1,94 +1,20 @@
-use chia::protocol::Bytes32;
 use sqlx::query;
 
-use crate::{Asset, AssetKind, Convert, Database, DatabaseError, DatabaseTx, Result};
-
-#[derive(Debug, Clone)]
-pub struct TokenAsset {
-    pub asset: Asset,
-    pub ticker: Option<String>,
-    pub precision: u8,
-}
+use crate::{Asset, AssetKind, Convert, Database, Result};
 
 impl Database {
-    pub async fn update_cat(
-        &self,
-        hash: Bytes32,
-        ticker: Option<String>,
-        precision: u8,
-    ) -> Result<()> {
-        let hash = hash.as_ref();
-
-        query!(
-            "
-            UPDATE tokens 
-            SET ticker = ?, precision = ?
-            WHERE asset_id = (SELECT id FROM assets WHERE hash = ?)
-            ",
-            ticker,
-            precision,
-            hash
-        )
-        .execute(&self.pool)
-        .await?;
-
-        Ok(())
-    }
-
-    pub async fn xch_asset(&self) -> Result<TokenAsset> {
-        let asset_id = Bytes32::default();
-        self.token_asset(asset_id)
-            .await?
-            .ok_or_else(|| DatabaseError::InvalidEnumVariant)
-    }
-
-    pub async fn token_asset(&self, asset_id: Bytes32) -> Result<Option<TokenAsset>> {
-        let asset_id = asset_id.as_ref();
-
+    pub async fn owned_cats(&self) -> Result<Vec<Asset>> {
         query!(
             "
             SELECT
                 hash, name, icon_url, description, ticker, precision,
                 is_visible, is_sensitive_content
             FROM assets
-            INNER JOIN tokens ON tokens.asset_id = assets.id
-            WHERE hash = ?
-            ",
-            asset_id
-        )
-        .fetch_optional(&self.pool)
-        .await?
-        .map(|row| {
-            Ok(TokenAsset {
-                asset: Asset {
-                    hash: row.hash.convert()?,
-                    name: row.name,
-                    icon_url: row.icon_url,
-                    description: row.description,
-                    is_visible: row.is_visible,
-                    is_sensitive_content: row.is_sensitive_content,
-                    kind: AssetKind::Token,
-                },
-                ticker: row.ticker,
-                precision: row.precision.convert()?,
-            })
-        })
-        .transpose()
-    }
-
-    pub async fn owned_cats(&self) -> Result<Vec<TokenAsset>> {
-        query!(
-            "
-            SELECT
-                hash, name, icon_url, description, ticker, precision,
-                is_visible, is_sensitive_content
-            FROM assets
-            INNER JOIN tokens ON tokens.asset_id = assets.id
-            WHERE assets.id != 0
+            WHERE assets.kind = 0 AND assets.id != 0
             AND EXISTS (
-                SELECT 1
-                FROM internal_coins
-                WHERE internal_coins.asset_id = assets.id
+                SELECT 1 FROM coins
+                INNER JOIN p2_puzzles ON p2_puzzles.id = coins.p2_puzzle_id
+                WHERE coins.asset_id = assets.id
             )
             ORDER BY name ASC
             "
@@ -97,62 +23,18 @@ impl Database {
         .await?
         .into_iter()
         .map(|row| {
-            Ok(TokenAsset {
-                asset: Asset {
-                    hash: row.hash.convert()?,
-                    name: row.name,
-                    icon_url: row.icon_url,
-                    description: row.description,
-                    is_visible: row.is_visible,
-                    is_sensitive_content: row.is_sensitive_content,
-                    kind: AssetKind::Token,
-                },
+            Ok(Asset {
+                hash: row.hash.convert()?,
+                name: row.name,
                 ticker: row.ticker,
                 precision: row.precision.convert()?,
+                icon_url: row.icon_url,
+                description: row.description,
+                is_visible: row.is_visible,
+                is_sensitive_content: row.is_sensitive_content,
+                kind: AssetKind::Token,
             })
         })
         .collect()
-    }
-}
-
-impl DatabaseTx<'_> {
-    pub async fn insert_cat(&mut self, cat: TokenAsset) -> Result<()> {
-        let hash = cat.asset.hash.as_ref();
-
-        let asset_id = query!(
-            "
-            INSERT INTO assets (hash, kind, name, icon_url, description, is_visible)
-            VALUES (?, 0, ?, ?, ?, ?)
-            ON CONFLICT(hash) DO UPDATE SET
-                name = COALESCE(name, excluded.name),
-                icon_url = COALESCE(icon_url, excluded.icon_url),
-                description = COALESCE(description, excluded.description),
-                is_sensitive_content = is_sensitive_content OR excluded.is_sensitive_content
-            RETURNING id
-            ",
-            hash,
-            cat.asset.name,
-            cat.asset.icon_url,
-            cat.asset.description,
-            cat.asset.is_visible
-        )
-        .fetch_one(&mut *self.tx)
-        .await?
-        .id;
-
-        query!(
-            "
-            INSERT INTO tokens (asset_id, ticker)
-            VALUES (?, ?)
-            ON CONFLICT(asset_id) DO UPDATE SET
-                ticker = COALESCE(ticker, excluded.ticker)
-            ",
-            asset_id,
-            cat.ticker,
-        )
-        .execute(&mut *self.tx)
-        .await?;
-
-        Ok(())
     }
 }

@@ -13,6 +13,8 @@ SELECT
   assets.hash AS asset_hash,
   assets.kind AS asset_kind,
   assets.name AS asset_name,
+  assets.ticker AS asset_ticker,
+  assets.precision AS asset_precision,
   assets.icon_url AS asset_icon_url,
   assets.description AS asset_description,
   assets.is_visible AS asset_is_visible,
@@ -44,7 +46,7 @@ WHERE 1=1
     )
   );
 
-CREATE VIEW owned_coins AS
+CREATE VIEW wallet_coins AS
 SELECT
   coins.id AS coin_id,
   coins.hash AS coin_hash,
@@ -59,56 +61,54 @@ SELECT
   assets.hash AS asset_hash,
   assets.kind AS asset_kind,
   assets.name AS asset_name,
+  assets.ticker AS asset_ticker,
+  assets.precision AS asset_precision,
   assets.icon_url AS asset_icon_url,
   assets.description AS asset_description,
   assets.is_visible AS asset_is_visible,
   assets.is_sensitive_content AS asset_is_sensitive_content,
-  p2_puzzles.hash AS p2_puzzle_hash
+  p2_puzzles.hash AS p2_puzzle_hash,
+  clawbacks.sender_puzzle_hash AS clawback_sender_puzzle_hash,
+  clawbacks.receiver_puzzle_hash AS clawback_receiver_puzzle_hash,
+  clawbacks.expiration_seconds AS clawback_expiration_seconds,
+  sender_p2_puzzle.id AS clawback_sender_p2_puzzle_id,
+  receiver_p2_puzzle.id AS clawback_receiver_p2_puzzle_id
 FROM coins
   INNER JOIN assets ON assets.id = coins.asset_id
   INNER JOIN p2_puzzles ON p2_puzzles.id = coins.p2_puzzle_id
+  LEFT JOIN clawbacks ON clawbacks.p2_puzzle_id = p2_puzzles.id
+  LEFT JOIN p2_puzzles AS sender_p2_puzzle ON sender_p2_puzzle.hash = clawbacks.sender_puzzle_hash
+  LEFT JOIN p2_puzzles AS receiver_p2_puzzle ON receiver_p2_puzzle.hash = clawbacks.receiver_puzzle_hash;
+
+CREATE VIEW owned_coins AS
+SELECT *
+FROM wallet_coins
 WHERE 1=1
   AND spent_height IS NULL
   AND NOT EXISTS (
     SELECT 1 FROM mempool_coins
-    WHERE mempool_coins.coin_id = coins.id AND mempool_coins.is_input = TRUE
+    WHERE mempool_coins.coin_id = wallet_coins.coin_id AND mempool_coins.is_input = TRUE
   )
-  AND NOT EXISTS (
-    SELECT 1 FROM clawbacks -- If it's not a clawback, it's owned
-    WHERE clawbacks.p2_puzzle_id = p2_puzzles.id
-    -- If it is a clawback, it's not owned if neither the sender nor receiver puzzle hash is ours
-    AND (
-      NOT EXISTS (SELECT 1 FROM p2_puzzles WHERE p2_puzzles.hash = sender_puzzle_hash)
-    -- It's also not owned if the sender puzzle hash is ours and it's past the expiration
-      OR unixepoch() >= expiration_seconds
-    )
-    AND NOT EXISTS (SELECT 1 FROM p2_puzzles WHERE p2_puzzles.hash = receiver_puzzle_hash)
+  AND (
+    clawback_expiration_seconds IS NULL
+    OR clawback_receiver_p2_puzzle_id IS NOT NULL
+    OR (clawback_sender_p2_puzzle_id IS NOT NULL AND unixepoch() < clawback_expiration_seconds)
   );
 
-
-CREATE VIEW internal_coins AS
-SELECT
-  coins.id AS coin_id,
-  coins.hash AS coin_hash,
-  coins.asset_id AS asset_id,
-  coins.parent_coin_hash,
-  coins.puzzle_hash,
-  coins.amount,
-  coins.hidden_puzzle_hash,
-  coins.p2_puzzle_id,
-  coins.spent_height,
-  coins.created_height,
-  assets.hash AS asset_hash,
-  assets.kind AS asset_kind,
-  assets.name AS asset_name,
-  assets.icon_url AS asset_icon_url,
-  assets.description AS asset_description,
-  assets.is_visible AS asset_is_visible,
-  assets.is_sensitive_content AS asset_is_sensitive_content,
-  p2_puzzles.hash AS p2_puzzle_hash
-FROM coins
-  INNER JOIN assets ON assets.id = coins.asset_id
-  INNER JOIN p2_puzzles ON p2_puzzles.id = coins.p2_puzzle_id;
+CREATE VIEW spent_coins AS
+SELECT *
+FROM wallet_coins
+WHERE spent_height IS NOT NULL
+  OR EXISTS (
+    SELECT 1 FROM mempool_coins
+    WHERE mempool_coins.coin_id = wallet_coins.coin_id AND mempool_coins.is_input = TRUE
+  )
+  OR (
+    clawback_expiration_seconds IS NOT NULL
+    AND clawback_receiver_p2_puzzle_id IS NULL
+    AND clawback_sender_p2_puzzle_id IS NOT NULL
+    AND unixepoch() >= clawback_expiration_seconds
+  );
 
 CREATE VIEW transaction_coins AS
 SELECT
@@ -123,15 +123,14 @@ SELECT
   p2_puzzles.hash AS p2_puzzle_hash,
   assets.hash AS asset_hash,
   assets.name AS asset_name,
+  assets.ticker AS asset_ticker,
+  assets.precision AS asset_precision,
   assets.icon_url AS asset_icon_url,
   assets.kind AS asset_kind,
   assets.description AS asset_description,
   assets.is_visible AS asset_is_visible,
-  assets.is_sensitive_content AS asset_is_sensitive_content,
-  tokens.ticker,
-  tokens.precision
+  assets.is_sensitive_content AS asset_is_sensitive_content
 FROM blocks
 LEFT JOIN coins ON coins.created_height = blocks.height OR coins.spent_height = blocks.height
 INNER JOIN assets ON assets.id = coins.asset_id
-LEFT JOIN p2_puzzles ON p2_puzzles.id = coins.p2_puzzle_id
-LEFT JOIN tokens ON tokens.asset_id = assets.id
+LEFT JOIN p2_puzzles ON p2_puzzles.id = coins.p2_puzzle_id;

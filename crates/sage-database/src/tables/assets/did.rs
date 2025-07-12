@@ -22,7 +22,7 @@ impl Database {
         query!(
             "
             SELECT
-                asset_hash, asset_name, asset_icon_url, asset_description,
+                asset_hash, asset_name, asset_ticker, asset_precision, asset_icon_url, asset_description,
                 asset_is_visible, asset_is_sensitive_content,
                 owned_coins.created_height, spent_height,
                 parent_coin_hash, puzzle_hash, amount, p2_puzzle_hash,
@@ -55,6 +55,8 @@ impl Database {
                 asset: Asset {
                     hash: row.asset_hash.convert()?,
                     name: row.asset_name,
+                    ticker: row.asset_ticker,
+                    precision: row.asset_precision.convert()?,
                     icon_url: row.asset_icon_url,
                     description: row.asset_description,
                     is_visible: row.asset_is_visible,

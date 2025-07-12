@@ -1,3 +1,5 @@
+import { CustomError } from '@/contexts/ErrorContext';
+import { queryNfts } from '@/lib/exportNfts';
 import { useCallback, useEffect, useState } from 'react';
 import {
   commands,
@@ -8,7 +10,6 @@ import {
 } from '../bindings';
 import { useErrors } from './useErrors';
 import { NftGroupMode, NftSortMode } from './useNftParams';
-import { queryNfts } from '@/lib/exportNfts';
 
 interface NftDataParams {
   pageSize: number;
@@ -132,10 +133,10 @@ export function useNftData(params: NftDataParams) {
 
             setCollections(collections);
             setCollectionTotal(response.total + 1); // Add 1 for No Collection
-          } catch (error: any) {
+          } catch (error: unknown) {
             setCollections([]);
             setCollectionTotal(0);
-            addError(error);
+            addError(error as CustomError);
           }
         } else if (params.group === NftGroupMode.OwnerDid) {
           try {
@@ -154,10 +155,10 @@ export function useNftData(params: NftDataParams) {
 
             setOwnerDids(ownerDids);
             setOwnerDidsTotal(response.dids.length + 1); // Add 1 for Unassigned NFTs
-          } catch (error: any) {
+          } catch (error: unknown) {
             setOwnerDids([]);
             setOwnerDidsTotal(0);
-            addError(error);
+            addError(error as CustomError);
           }
         } else if (params.group === NftGroupMode.MinterDid) {
           try {
@@ -186,15 +187,15 @@ export function useNftData(params: NftDataParams) {
 
             setMinterDids(minterDids);
             setMinterDidsTotal(uniqueMinterDids.total + 1); // Add 1 for Unknown Minter
-          } catch (error: any) {
+          } catch (error: unknown) {
             setMinterDids([]);
             setMinterDidsTotal(0);
-            addError(error);
+            addError(error as CustomError);
           }
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('Error fetching NFTs:', error);
-        addError(error);
+        addError(error as CustomError);
       } finally {
         setIsLoading(false);
       }

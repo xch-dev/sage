@@ -6,14 +6,6 @@ BEGIN
     SELECT RAISE(ABORT, 'Cannot delete XCH asset');
 END;
 
-CREATE TRIGGER trigger_prevent_delete_xch_token
-    BEFORE DELETE ON tokens
-    FOR EACH ROW
-    WHEN OLD.id = 0
-BEGIN
-    SELECT RAISE(ABORT, 'Cannot delete XCH token');
-END;
-
 CREATE TRIGGER trigger_prevent_delete_default_collection
     BEFORE DELETE ON collections
     FOR EACH ROW

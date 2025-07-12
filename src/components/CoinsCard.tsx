@@ -173,7 +173,7 @@ export function CoinsCard({
           if (isMounted) {
             setCanAutoCombine(spendable.count > 1);
           }
-        } catch (error) {
+        } catch {
           if (isMounted) {
             setCanAutoCombine(false);
           }

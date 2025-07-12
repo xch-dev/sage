@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "lint": "eslint .",
     "preview": "vite preview",
     "prettier": "prettier --write .",
     "prettier:check": "prettier --check .",
@@ -75,6 +75,7 @@
     "zustand": "^4.5.5"
   },
   "devDependencies": {
+    "@eslint/js": "^9.31.0",
     "@lingui/cli": "^5.1.2",
     "@lingui/format-po": "^5.1.2",
     "@lingui/swc-plugin": "^5.0.1",
@@ -95,6 +96,7 @@
     "prettier": "^3.3.3",
     "tailwindcss": "^3.4.12",
     "typescript": "^5.5.4",
+    "typescript-eslint": "^8.36.0",
     "vite": "^5.3.5"
   }
 }

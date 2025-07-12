@@ -16,8 +16,6 @@ pub struct TransactionCoin {
     pub coin: Coin,
     pub asset: Asset,
     pub p2_puzzle_hash: Option<Bytes32>,
-    pub ticker: Option<String>,
-    pub precision: u8,
 }
 
 impl Database {
@@ -47,6 +45,8 @@ fn create_transaction_coin(row: &sqlx::sqlite::SqliteRow) -> Result<TransactionC
     let asset = Asset {
         hash: row.get::<Vec<u8>, _>("asset_hash").convert()?,
         name: row.get::<Option<String>, _>("asset_name"),
+        ticker: row.get::<Option<String>, _>("asset_ticker"),
+        precision: row.get::<i64, _>("asset_precision").convert()?,
         icon_url: row.get::<Option<String>, _>("asset_icon_url"),
         description: row.get::<Option<String>, _>("asset_description"),
         is_sensitive_content: row.get::<bool, _>("asset_is_sensitive_content"),
@@ -64,8 +64,6 @@ fn create_transaction_coin(row: &sqlx::sqlite::SqliteRow) -> Result<TransactionC
         coin,
         asset,
         p2_puzzle_hash,
-        ticker: row.get::<Option<String>, _>("ticker"),
-        precision: row.get::<Option<u8>, _>("precision").unwrap_or(1),
     })
 }
 
@@ -75,7 +73,7 @@ async fn transaction(conn: impl SqliteExecutor<'_>, height: u32) -> Result<Optio
             height, timestamp, coin_id, puzzle_hash, parent_coin_hash, amount,
             is_created_in_block, is_spent_in_block, asset_hash, asset_description,
             asset_is_visible, asset_is_sensitive_content, asset_name, asset_icon_url,
-            asset_kind, p2_puzzle_hash, ticker, precision
+            asset_kind, p2_puzzle_hash, asset_ticker, asset_precision
         FROM transaction_coins 
         WHERE height = ?",
         height
@@ -105,6 +103,8 @@ async fn transaction(conn: impl SqliteExecutor<'_>, height: u32) -> Result<Optio
         let asset = Asset {
             hash: row.asset_hash.convert()?,
             name: row.asset_name,
+            ticker: row.asset_ticker,
+            precision: row.asset_precision.convert()?,
             icon_url: row.asset_icon_url,
             description: row.asset_description,
             is_sensitive_content: row.asset_is_sensitive_content,
@@ -116,8 +116,6 @@ async fn transaction(conn: impl SqliteExecutor<'_>, height: u32) -> Result<Optio
             coin,
             asset,
             p2_puzzle_hash: row.p2_puzzle_hash.convert()?,
-            ticker: row.ticker,
-            precision: row.precision.unwrap_or(1) as u8,
         };
 
         // these represent whether the coins was spent and/or created in this block
@@ -150,7 +148,7 @@ async fn transactions(
             height, timestamp, coin_id, puzzle_hash, parent_coin_hash, amount,
             is_created_in_block, is_spent_in_block, asset_hash, asset_description,
             asset_is_visible, asset_is_sensitive_content, asset_name, asset_icon_url,
-            asset_kind, p2_puzzle_hash, ticker, precision,
+            asset_kind, p2_puzzle_hash, asset_ticker, asset_precision,
             COUNT(*) OVER() as total_count
         FROM transaction_coins
         WHERE 1=1",
@@ -159,7 +157,7 @@ async fn transactions(
     if let Some(find_value) = find_value {
         query.push(" AND (asset_name LIKE ");
         query.push_bind(format!("%{find_value}%"));
-        query.push(" OR ticker LIKE ");
+        query.push(" OR asset_ticker LIKE ");
         query.push_bind(format!("%{find_value}%"));
 
         if is_valid_asset_id(&find_value) {
