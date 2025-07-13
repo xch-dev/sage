@@ -22,5 +22,7 @@ CREATE INDEX idx_resized_images_file_id ON resized_images(file_id);
 CREATE INDEX idx_peaks ON blocks(is_peak DESC, height DESC);
 
 /* search and ordering indices */
-CREATE INDEX idx_assets_search_order ON assets(is_visible DESC, name ASC);
-CREATE INDEX idx_assets_name ON assets(name);
+CREATE INDEX idx_assets_name_edition_number ON assets(name ASC);
+CREATE INDEX idx_assets_ticker ON assets(ticker);
+CREATE INDEX idx_nfts_minter_hash ON nfts(minter_hash);
+CREATE INDEX idx_nfts_owner_hash ON nfts(owner_hash);
