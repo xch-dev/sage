@@ -83,7 +83,7 @@ async fn collections(
         WHERE 1=1
         AND EXISTS (SELECT 1 FROM owned_nfts WHERE owned_nfts.collection_id = collections.id)
         AND (? OR is_visible = 1)
-        ORDER BY name ASC
+        ORDER BY CASE WHEN collections.id = 0 THEN 1 ELSE 0 END, name ASC
         LIMIT ?
         OFFSET ?",
         include_hidden,

@@ -297,7 +297,10 @@ impl Database {
         offset: u32,
     ) -> Result<(Vec<Bytes32>, u32)> {
         let rows = query!(
-            "SELECT DISTINCT minter_hash, COUNT(*) OVER() AS total_count FROM nfts LIMIT ? OFFSET ?",
+            "SELECT DISTINCT minter_hash, COUNT(*) OVER() AS total_count 
+            FROM owned_nfts 
+            ORDER BY minter_hash ASC
+            LIMIT ? OFFSET ?",
             limit,
             offset
         )
