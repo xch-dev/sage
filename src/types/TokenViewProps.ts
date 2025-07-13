@@ -1,7 +1,11 @@
 import { CatRecord } from '../bindings';
 
 export interface TokenViewProps {
-  cats: (CatRecord & { balanceInUsd: number; sortValue: number; priceInUsd: number })[];
+  cats: (CatRecord & {
+    balanceInUsd: number;
+    sortValue: number;
+    priceInUsd: number;
+  })[];
   xchRecord: TokenRecord;
 }
 

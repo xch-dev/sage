@@ -70,29 +70,14 @@ impl Database {
                 asset_hash, asset_name, asset_ticker, asset_precision, asset_icon_url,
                 asset_description, asset_is_sensitive_content, asset_is_visible,
                 collections.hash AS 'collection_hash?', collections.name AS collection_name, 
-                nfts.minter_hash, owner_hash, metadata, metadata_updater_puzzle_hash,
+                owned_nfts.minter_hash, owner_hash, metadata, metadata_updater_puzzle_hash,
                 royalty_puzzle_hash, royalty_basis_points, data_hash, metadata_hash, license_hash,
                 edition_number, edition_total,
                 parent_coin_hash, puzzle_hash, amount, p2_puzzle_hash, created_height, spent_height,
-                (
-                    SELECT hash FROM offers
-                    INNER JOIN offer_coins ON offer_coins.offer_id = offers.id
-                    WHERE offer_coins.coin_id = owned_coins.coin_id
-                    AND offers.status <= 1
-                    LIMIT 1
-                ) AS 'offer_hash?',
-                (
-                    SELECT timestamp FROM blocks
-                    WHERE height = owned_coins.created_height
-                ) AS created_timestamp,
-                (
-                    SELECT timestamp FROM blocks
-                    WHERE height = owned_coins.spent_height
-                ) AS spent_timestamp
-            FROM owned_coins
-            INNER JOIN nfts ON nfts.asset_id = owned_coins.asset_id
-            LEFT JOIN collections ON collections.id = nfts.collection_id
-            WHERE owned_coins.asset_hash = ?
+                offer_hash AS 'offer_hash?', created_timestamp, spent_timestamp
+            FROM owned_nfts
+            LEFT JOIN collections ON collections.id = owned_nfts.collection_id
+            WHERE owned_nfts.asset_hash = ?
             ",
             hash
         )
@@ -159,34 +144,23 @@ impl Database {
             "
             SELECT        
                 asset_hash, asset_name, asset_ticker, asset_precision, asset_icon_url,
-                asset_description, asset_is_sensitive_content, asset_is_visible,
+                asset_description, asset_is_sensitive_content, 
+                asset_is_visible AND (collections.id IS NOT NULL AND collections.is_visible) as is_visible,
                 collections.hash AS collection_hash, collections.name AS collection_name, 
-                nfts.minter_hash, owner_hash, metadata, metadata_updater_puzzle_hash,
-                royalty_puzzle_hash, royalty_basis_points, data_hash, metadata_hash, license_hash,
-                edition_number, edition_total,
-                parent_coin_hash, puzzle_hash, amount, p2_puzzle_hash, created_height, spent_height,
-                (
-                    SELECT hash FROM offers
-                    INNER JOIN offer_coins ON offer_coins.offer_id = offers.id
-                    WHERE offer_coins.coin_id = owned_coins.coin_id
-                    AND offers.status <= 1
-                    LIMIT 1
-                ) AS offer_hash,
-                (
-                    SELECT timestamp FROM blocks
-                    WHERE height = owned_coins.created_height
-                ) AS created_timestamp,
-                (
-                    SELECT timestamp FROM blocks
-                    WHERE height = owned_coins.spent_height
-                ) AS spent_timestamp,
+                owned_nfts.minter_hash, owner_hash, metadata, metadata_updater_puzzle_hash,
+                royalty_puzzle_hash, royalty_basis_points, data_hash, metadata_hash, license_hash,                
+                parent_coin_hash, puzzle_hash, amount, p2_puzzle_hash, edition_number, edition_total,
+                created_height, spent_height, offer_hash, created_timestamp, spent_timestamp,
                 COUNT(*) OVER() as total_count	
-            FROM owned_coins
-            INNER JOIN nfts ON nfts.asset_id = owned_coins.asset_id
-            LEFT JOIN collections ON collections.id = nfts.collection_id
+            FROM owned_nfts
+            LEFT JOIN collections ON collections.id = owned_nfts.collection_id
             WHERE 1=1
             ",
         );
+
+        if !include_hidden {
+            query.push("AND (asset_is_visible = 1 AND (collections.id IS NULL OR collections.is_visible = 1))");
+        }
 
         if let Some(name_search) = name_search {
             query.push("AND asset_name LIKE ");
@@ -203,14 +177,14 @@ impl Database {
                     query.push(" AND collections.hash IS NULL");
                 }
                 NftGroupSearch::MinterDid(id) => {
-                    query.push(" AND nfts.minter_hash = ");
+                    query.push(" AND owned_nfts.minter_hash = ");
                     query.push_bind(id.as_ref().to_vec());
                 }
                 NftGroupSearch::NoMinterDid => {
-                    query.push(" AND minter_hash IS NULL");
+                    query.push(" AND owned_nfts.minter_hash IS NULL");
                 }
                 NftGroupSearch::OwnerDid(id) => {
-                    query.push(" AND nfts.owner_hash = ");
+                    query.push(" AND owned_nfts.owner_hash = ");
                     query.push_bind(id.as_ref().to_vec());
                 }
                 NftGroupSearch::NoOwnerDid => {
@@ -220,11 +194,6 @@ impl Database {
         }
         // Add ORDER BY clause based on sort_mode
         query.push(" ORDER BY ");
-
-        // Add visible DESC to sort order if including hidden NFTs
-        if include_hidden {
-            query.push("asset_is_visible DESC, ");
-        }
 
         match sort_mode {
             NftSortMode::Recent => {
@@ -254,7 +223,7 @@ impl Database {
                         precision: row.get::<i64, _>("asset_precision").convert()?,
                         icon_url: row.get::<Option<String>, _>("asset_icon_url"),
                         description: row.get::<Option<String>, _>("asset_description"),
-                        is_visible: row.get::<bool, _>("asset_is_visible"),
+                        is_visible: row.get::<bool, _>("is_visible"),
                         is_sensitive_content: row.get::<bool, _>("asset_is_sensitive_content"),
                         kind: AssetKind::Nft,
                     },
@@ -312,7 +281,10 @@ impl Database {
         offset: u32,
     ) -> Result<(Vec<Bytes32>, u32)> {
         let rows = query!(
-            "SELECT DISTINCT minter_hash, COUNT(*) OVER() AS total_count FROM nfts LIMIT ? OFFSET ?",
+            "SELECT DISTINCT minter_hash, COUNT(*) OVER() AS total_count 
+            FROM owned_nfts 
+            ORDER BY minter_hash ASC
+            LIMIT ? OFFSET ?",
             limit,
             offset
         )

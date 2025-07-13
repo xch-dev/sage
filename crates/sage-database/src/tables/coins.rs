@@ -647,10 +647,12 @@ async fn coin_records(
                 AND offers.status <= 1
                 LIMIT 1
             ) AS offer_hash,
-            (SELECT timestamp FROM blocks WHERE height = created_height) AS created_timestamp,
-            (SELECT timestamp FROM blocks WHERE height = spent_height) AS spent_timestamp,
+            created_blocks.timestamp AS created_timestamp,
+            spent_blocks.timestamp AS spent_timestamp,
             COUNT(*) OVER () AS total_count
         FROM {table}
+            LEFT JOIN blocks AS created_blocks ON created_blocks.height = {table}.created_height
+            LEFT JOIN blocks AS spent_blocks ON spent_blocks.height = {table}.spent_height  
         ",
     ));
 

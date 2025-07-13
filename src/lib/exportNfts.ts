@@ -24,10 +24,7 @@ export async function queryNfts(params: ExportParams): Promise<NftRecord[]> {
 
   const queryParams = {
     name: params.query || null,
-    collection_id:
-      params.collectionId === 'No collection'
-        ? 'none'
-        : (params.collectionId ?? null),
+    collection_id: params.collectionId ?? null,
     owner_did_id:
       params.ownerDid === 'No did' ? 'none' : (params.ownerDid ?? null),
     minter_did_id:

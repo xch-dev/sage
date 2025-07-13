@@ -1,6 +1,7 @@
 import { NftCard } from '@/components/NftCard';
 import { NftGroupCard } from '@/components/NftGroupCard';
 import { CardSize, NftGroupMode } from '@/hooks/useNftParams';
+import { NO_COLLECTION_ID } from '@/hooks/useNftData';
 import { t } from '@lingui/core/macro';
 import { ReactNode, useCallback } from 'react';
 import {
@@ -86,7 +87,7 @@ export function NftCardList({
               item={col}
               updateNfts={updateNfts}
               page={page}
-              isPlaceHolder={col.collection_id === 'No collection'}
+              isPlaceHolder={col.collection_id === NO_COLLECTION_ID}
               onToggleVisibility={() => {
                 commands
                   .updateNftCollection({

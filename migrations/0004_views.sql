@@ -134,3 +134,29 @@ FROM blocks
 LEFT JOIN coins ON coins.created_height = blocks.height OR coins.spent_height = blocks.height
 INNER JOIN assets ON assets.id = coins.asset_id
 LEFT JOIN p2_puzzles ON p2_puzzles.id = coins.p2_puzzle_id;
+
+CREATE VIEW owned_nfts AS
+  SELECT        
+      asset_hash, asset_name, asset_ticker, asset_precision, asset_icon_url,
+      asset_description, asset_is_sensitive_content, asset_is_visible,
+      nfts.minter_hash, owner_hash, metadata, metadata_updater_puzzle_hash,
+      royalty_puzzle_hash, royalty_basis_points, data_hash, metadata_hash, license_hash,
+      edition_number, edition_total, nfts.collection_id,
+      parent_coin_hash, puzzle_hash, amount, p2_puzzle_hash, created_height, spent_height,
+      (
+          SELECT hash FROM offers
+          INNER JOIN offer_coins ON offer_coins.offer_id = offers.id
+          WHERE offer_coins.coin_id = owned_coins.coin_id
+          AND offers.status <= 1
+          LIMIT 1
+      ) AS offer_hash,
+      (
+          SELECT timestamp FROM blocks
+          WHERE height = owned_coins.created_height
+      ) AS created_timestamp,
+      (
+          SELECT timestamp FROM blocks
+          WHERE height = owned_coins.spent_height
+      ) AS spent_timestamp
+  FROM owned_coins
+  INNER JOIN nfts ON nfts.asset_id = owned_coins.asset_id
