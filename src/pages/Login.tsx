@@ -317,9 +317,7 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
     }
   };
 
-  const loginSelf = async (explicit: boolean) => {
-    if (!explicit) return;
-
+  const loginSelf = async () => {
     try {
       await loginAndUpdateState(info.fingerprint, addError);
 
@@ -378,9 +376,7 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
         {...values.listeners}
         {...values.attributes}
         style={style}
-        onClick={() => {
-          loginSelf(false);
-        }}
+        onClick={loginSelf}
         className='cursor-pointer'
       >
         <CardHeader className='flex flex-row items-center justify-between p-5 pt-4 pb-2'>
@@ -396,7 +392,7 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
                 <DropdownMenuItem
                   className='cursor-pointer'
                   onClick={(e) => {
-                    loginSelf(false);
+                    loginSelf();
                     e.stopPropagation();
                   }}
                 >
@@ -683,7 +679,7 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
                   fingerprint: info.fingerprint,
                   network: info.network_id,
                 });
-                await loginSelf(false);
+                await loginSelf();
               }}
               autoFocus
             >
