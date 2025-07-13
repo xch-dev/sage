@@ -23,12 +23,12 @@ export const marketplaces: MarketplaceConfig[] = [
     logo: 'https://raw.githubusercontent.com/dexie-space/dexie-kit/refs/heads/main/svg/duck.svg',
     qrCodeLogo:
       'https://raw.githubusercontent.com/dexie-space/dexie-kit/refs/heads/main/svg/duck.svg',
-    isSupported: (offer: OfferSummary | OfferState, isSplitting: boolean) => {
+    isSupported: (offer: OfferSummary | OfferState, _: boolean) => { //eslint-disable-line
       if ('taker' in offer) {
         return isDexieSupportedForSummary(offer);
       }
 
-      return isDexieSupported(offer, isSplitting);
+      return isDexieSupported(offer);
     },
     isOnMarketplace: (_, offerId, isTestnet) =>
       offerIsOnDexie(offerId, isTestnet),
