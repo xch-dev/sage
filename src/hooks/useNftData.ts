@@ -11,6 +11,9 @@ import {
 import { useErrors } from './useErrors';
 import { NftGroupMode, NftSortMode } from './useNftParams';
 
+export const NO_COLLECTION_ID =
+  'col1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq6rdgel';
+
 interface NftDataParams {
   pageSize: number;
   sort: NftSortMode;
@@ -88,7 +91,7 @@ export function useNftData(params: NftDataParams) {
           if (params.collectionId) {
             const collectionResponse = await commands.getNftCollection({
               collection_id:
-                params.collectionId === 'No collection'
+                params.collectionId === NO_COLLECTION_ID
                   ? null
                   : params.collectionId,
             });
@@ -116,23 +119,8 @@ export function useNftData(params: NftDataParams) {
 
             const collections = response.collections;
 
-            // Add No Collection to the end if we're on the last page and there's room
-            if (
-              collections.length < params.pageSize &&
-              page === Math.ceil((response.total + 1) / params.pageSize)
-            ) {
-              collections.push({
-                name: 'No Collection',
-                icon: '',
-                did_id: 'Miscellaneous',
-                metadata_collection_id: 'Uncategorized NFTs',
-                collection_id: 'No collection',
-                visible: true,
-              });
-            }
-
             setCollections(collections);
-            setCollectionTotal(response.total + 1); // Add 1 for No Collection
+            setCollectionTotal(response.total);
           } catch (error: unknown) {
             setCollections([]);
             setCollectionTotal(0);

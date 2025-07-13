@@ -75,12 +75,15 @@ async fn collections(
     offset: u32,
     include_hidden: bool,
 ) -> Result<(Vec<CollectionRow>, u32)> {
+    // we only return collections that have nfts
     let rows = query!(
-        "SELECT hash, uuid, minter_hash, name, icon_url, banner_url, description, is_visible,
-        COUNT(*) OVER() as total_count
+        "SELECT collections.hash, uuid, collections.minter_hash, collections.name, collections.icon_url, 
+        collections.banner_url, collections.description, collections.is_visible, COUNT(*) OVER() as total_count
         FROM collections
-        WHERE ? OR is_visible = 1
-        ORDER BY name DESC
+        WHERE 1=1
+        AND EXISTS (SELECT 1 FROM owned_nfts WHERE owned_nfts.collection_id = collections.id)
+        AND (? OR is_visible = 1)
+        ORDER BY name ASC
         LIMIT ?
         OFFSET ?",
         include_hidden,
