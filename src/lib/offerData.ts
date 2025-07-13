@@ -93,16 +93,16 @@ async function fetchChiaOfferComOffer(id: string): Promise<string> {
 }
 
 export async function fetchOfferedDexieOffersFromNftId(id: string): Promise<any[]> {
-  return await fetchDexieOffersFromNftId(id, 'offered');
+  return await fetchDexieOffersFromNftId(id, 'offered', 'price'); // lowest price first
 }
 
 export async function fetchRequestedDexieOffersFromNftId(id: string): Promise<any[]> {
-  return await fetchDexieOffersFromNftId(id, 'requested');
+  return await fetchDexieOffersFromNftId(id, 'requested', 'price_desc'); // highest price first
 }
 
-async function fetchDexieOffersFromNftId(id: string, type: string): Promise<any[]> {
+async function fetchDexieOffersFromNftId(id: string, type: string, sort: string): Promise<any[]> {
   // this will only get a single page of offers (20 by default) which is fine
-  const response = await fetch(`https://api.dexie.space/v1/offers?${type}=${id}&status=0&sort=price`);
+  const response = await fetch(`https://api.dexie.space/v1/offers?${type}=${id}&status=0&sort=${sort}`);
   const data = await response.json();
   if (!data) {
     throw {
