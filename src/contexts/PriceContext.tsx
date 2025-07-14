@@ -1,3 +1,4 @@
+import { commands, NetworkKind } from '@/bindings';
 import { useWalletState } from '@/state';
 import {
   createContext,
@@ -48,10 +49,39 @@ export function PriceProvider({ children }: { children: ReactNode }) {
   const [xchUsdPrice, setChiaPrice] = useState<number>(0);
   const [catPrices, setCatPrices] = useState<Record<string, CatPriceData>>({});
   const [catList, setCatList] = useState<CatListItem[]>([]);
+  const [network, setNetwork] = useState<NetworkKind | null>(null);
+  const [isNetworkLoading, setIsNetworkLoading] = useState(true);
 
+  // Fetch network on mount
   useEffect(() => {
+    const fetchNetwork = async () => {
+      try {
+        setIsNetworkLoading(true);
+        const data = await commands.getNetwork({});
+        setNetwork(data.kind);
+      } catch (error) {
+        console.error('Failed to fetch network:', error);
+        // Set a default network or handle error appropriately
+        setNetwork('mainnet');
+      } finally {
+        setIsNetworkLoading(false);
+      }
+    };
+
+    fetchNetwork();
+  }, []);
+
+  // Fetch prices when network is available and wallet is synced
+  useEffect(() => {
+    // Don't fetch prices until network is loaded
+    if (isNetworkLoading || network === null) {
+      return;
+    }
+
     const fetchCatPrices = () =>
-      fetch('https://api.dexie.space/v3/prices/tickers')
+      fetch(
+        `https://${network === 'testnet' ? 'api-testnet' : 'api'}.dexie.space/v3/prices/tickers`,
+      )
         .then((res) => res.json())
         .then((data: DexieResponse) => {
           const tickers = data.tickers.reduce(
@@ -66,23 +96,18 @@ export function PriceProvider({ children }: { children: ReactNode }) {
           );
           setCatPrices(tickers);
 
-          // Extract unique CAT list
-          const uniqueCats = Array.from(
-            new Map(
-              data.tickers.map((ticker: DexieTicker) => [
-                ticker.base_currency,
-                {
-                  asset_id: ticker.base_currency,
-                  name: ticker.base_name,
-                  ticker: ticker.base_code,
-                  icon_url: `https://icons.dexie.space/${ticker.base_currency}.webp`,
-                },
-              ]),
-            ).values(),
-          );
-          setCatList(uniqueCats);
+          commands.getAllCats({}).then((data) => {
+            const cats = data.cats.map((cat) => ({
+              asset_id: cat.asset_id ?? '',
+              name: cat.name ?? '',
+              ticker: cat.ticker ?? '',
+              icon_url: cat.icon_url ?? '',
+            }));
+            setCatList(cats);
+          });
         })
-        .catch(() => {
+        .catch((error) => {
+          console.error('Failed to fetch CAT prices:', error);
           setCatPrices({});
         });
 
@@ -94,7 +119,8 @@ export function PriceProvider({ children }: { children: ReactNode }) {
         .then((data) => {
           setChiaPrice(data.chia.usd || 0);
         })
-        .catch(() => {
+        .catch((error) => {
+          console.error('Failed to fetch Chia price:', error);
           setChiaPrice(0);
         });
 
@@ -108,7 +134,7 @@ export function PriceProvider({ children }: { children: ReactNode }) {
       setChiaPrice(0);
       setCatPrices({});
     }
-  }, [walletState.sync.unit.ticker]);
+  }, [walletState.sync.unit.ticker, network, isNetworkLoading]);
 
   const getPriceInUsd = useCallback(
     (assetId: string) => {

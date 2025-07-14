@@ -37,19 +37,20 @@ export function Assets({ assets, catPresence = {} }: AssetsProps) {
             </Badge>
 
             <div className='font-medium'>
-              <NumberFormat
-                value={fromMojos(
-                  BigNumber(amount).plus(royalty),
-                  asset.precision,
-                )}
-                minimumFractionDigits={0}
-                maximumFractionDigits={asset.precision}
-              />{' '}
+              {asset.kind !== 'nft' && (
+                <NumberFormat
+                  value={fromMojos(
+                    BigNumber(amount).plus(royalty),
+                    asset.precision,
+                  )}
+                  minimumFractionDigits={0}
+                  maximumFractionDigits={asset.precision}
+                />
+              )}{' '}
               <span className='text-sm font-medium break-words'>
                 {asset.name ?? asset.ticker ?? t`Unknown`}
               </span>
             </div>
-
             {catPresence &&
               asset.kind === 'token' &&
               asset.asset_id &&

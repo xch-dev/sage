@@ -50,6 +50,18 @@ export function MakeOffer() {
       }
     }
 
+    for (const cat of [...state.offered.cats, ...state.requested.cats]) {
+      const amount = parseFloat(cat.amount?.toString() || '');
+
+      if (isNaN(amount) || amount <= 0) {
+        addError({
+          kind: 'invalid',
+          reason: t`CATs must have a positive amount.`,
+        });
+        return;
+      }
+    }
+
     const hasOfferedXch = state.offered.xch && state.offered.xch !== '0';
     const hasOfferedCats = state.offered.cats.length > 0;
     const hasOfferedNfts = state.offered.nfts.filter((n) => n).length > 0;

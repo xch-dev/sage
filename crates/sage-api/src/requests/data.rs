@@ -145,6 +145,16 @@ pub struct GetCoinsByIdsResponse {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct GetAllCats {}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct GetAllCatsResponse {
+    pub cats: Vec<CatRecord>,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct GetCats {}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

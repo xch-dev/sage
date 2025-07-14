@@ -131,6 +131,9 @@ async getCoins(req: GetCoins) : Promise<GetCoinsResponse> {
 async getCats(req: GetCats) : Promise<GetCatsResponse> {
     return await TAURI_INVOKE("get_cats", { req });
 },
+async getAllCats(req: GetAllCats) : Promise<GetAllCatsResponse> {
+    return await TAURI_INVOKE("get_all_cats", { req });
+},
 async getCat(req: GetCat) : Promise<GetCatResponse> {
     return await TAURI_INVOKE("get_cat", { req });
 },
@@ -386,6 +389,8 @@ export type FilterUnlockedCoins = { coin_ids: string[] }
 export type FilterUnlockedCoinsResponse = { coin_ids: string[] }
 export type GenerateMnemonic = { use_24_words: boolean }
 export type GenerateMnemonicResponse = { mnemonic: string }
+export type GetAllCats = Record<string, never>
+export type GetAllCatsResponse = { cats: CatRecord[] }
 export type GetAreCoinsSpendable = { coin_ids: string[] }
 export type GetAreCoinsSpendableResponse = { spendable: boolean }
 export type GetAssetCoins = { type?: AssetCoinType | null; assetId?: string | null; includedLocked?: boolean | null; offset?: number | null; limit?: number | null }
