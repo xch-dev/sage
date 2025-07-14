@@ -1,5 +1,4 @@
 import { commands, NetworkKind } from '@/bindings';
-import { useWalletState } from '@/state';
 import {
   createContext,
   ReactNode,
@@ -39,7 +38,6 @@ export const PriceContext = createContext<PriceContextType | undefined>(
 );
 
 export function PriceProvider({ children }: { children: ReactNode }) {
-  const walletState = useWalletState();
   const [xchUsdPrice, setChiaPrice] = useState<number>(0);
   const [catPrices, setCatPrices] = useState<Record<string, CatPriceData>>({});
   const [network, setNetwork] = useState<NetworkKind | null>(null);
@@ -56,7 +54,6 @@ export function PriceProvider({ children }: { children: ReactNode }) {
         setNetwork(data.kind);
       } catch (error) {
         console.error('Failed to fetch network:', error);
-        // Set a default network or handle error appropriately
         setNetwork('mainnet');
       } finally {
         setIsNetworkLoading(false);
@@ -66,14 +63,12 @@ export function PriceProvider({ children }: { children: ReactNode }) {
     fetchNetwork();
   }, []);
 
-  // Fetch prices when network is available and wallet is synced
   useEffect(() => {
     // Don't fetch prices until network is loaded
     if (isNetworkLoading || network === null) {
       return;
     }
 
-    // Clear any existing interval
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
@@ -134,13 +129,8 @@ export function PriceProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    if (walletState.sync.unit.ticker.toLowerCase() === 'xch') {
-      fetchPrices();
-      intervalRef.current = setInterval(fetchPrices, 60000);
-    } else {
-      setChiaPrice(0);
-      setCatPrices({});
-    }
+    fetchPrices();
+    intervalRef.current = setInterval(fetchPrices, 60000);
 
     return () => {
       if (intervalRef.current) {
@@ -148,7 +138,7 @@ export function PriceProvider({ children }: { children: ReactNode }) {
         intervalRef.current = null;
       }
     };
-  }, [walletState.sync.unit.ticker, network]);
+  }, [network]);
 
   const getPriceInUsd = useCallback(
     (assetId: string) => {
