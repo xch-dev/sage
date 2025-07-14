@@ -1,4 +1,4 @@
-import { commands, NetworkKind } from '@/bindings';
+import { CatRecord, commands, NetworkKind } from '@/bindings';
 import { useWalletState } from '@/state';
 import {
   createContext,
@@ -12,13 +12,6 @@ import {
 interface CatPriceData {
   lastPrice: number | null;
   askPrice: number | null;
-}
-
-interface CatListItem {
-  asset_id: string;
-  name: string;
-  ticker: string;
-  icon_url: string;
 }
 
 interface DexieTicker {
@@ -37,7 +30,7 @@ export interface PriceContextType {
   getBalanceInUsd: (assetId: string, balance: string) => string;
   getPriceInUsd: (assetId: string) => number;
   getCatAskPriceInXch: (assetId: string) => number | null;
-  getCatList: () => CatListItem[];
+  getCatList: () => CatRecord[];
 }
 
 export const PriceContext = createContext<PriceContextType | undefined>(
@@ -48,7 +41,7 @@ export function PriceProvider({ children }: { children: ReactNode }) {
   const walletState = useWalletState();
   const [xchUsdPrice, setChiaPrice] = useState<number>(0);
   const [catPrices, setCatPrices] = useState<Record<string, CatPriceData>>({});
-  const [catList, setCatList] = useState<CatListItem[]>([]);
+  const [catList, setCatList] = useState<CatRecord[]>([]);
   const [network, setNetwork] = useState<NetworkKind | null>(null);
   const [isNetworkLoading, setIsNetworkLoading] = useState(true);
 
@@ -69,6 +62,12 @@ export function PriceProvider({ children }: { children: ReactNode }) {
     };
 
     fetchNetwork();
+  }, []);
+
+  useEffect(() => {
+    commands.getAllCats({}).then((data) => {
+      setCatList(data.cats);
+    });
   }, []);
 
   // Fetch prices when network is available and wallet is synced
@@ -95,16 +94,6 @@ export function PriceProvider({ children }: { children: ReactNode }) {
             {},
           );
           setCatPrices(tickers);
-
-          commands.getAllCats({}).then((data) => {
-            const cats = data.cats.map((cat) => ({
-              asset_id: cat.asset_id ?? '',
-              name: cat.name ?? '',
-              ticker: cat.ticker ?? '',
-              icon_url: cat.icon_url ?? '',
-            }));
-            setCatList(cats);
-          });
         })
         .catch((error) => {
           console.error('Failed to fetch CAT prices:', error);
