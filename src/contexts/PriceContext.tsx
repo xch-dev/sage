@@ -1,4 +1,4 @@
-import { CatRecord, commands, NetworkKind } from '@/bindings';
+import { commands, NetworkKind } from '@/bindings';
 import { useWalletState } from '@/state';
 import {
   createContext,
@@ -30,7 +30,6 @@ export interface PriceContextType {
   getBalanceInUsd: (assetId: string, balance: string) => string;
   getPriceInUsd: (assetId: string) => number;
   getCatAskPriceInXch: (assetId: string) => number | null;
-  getCatList: () => CatRecord[];
 }
 
 export const PriceContext = createContext<PriceContextType | undefined>(
@@ -41,7 +40,6 @@ export function PriceProvider({ children }: { children: ReactNode }) {
   const walletState = useWalletState();
   const [xchUsdPrice, setChiaPrice] = useState<number>(0);
   const [catPrices, setCatPrices] = useState<Record<string, CatPriceData>>({});
-  const [catList, setCatList] = useState<CatRecord[]>([]);
   const [network, setNetwork] = useState<NetworkKind | null>(null);
   const [isNetworkLoading, setIsNetworkLoading] = useState(true);
 
@@ -62,12 +60,6 @@ export function PriceProvider({ children }: { children: ReactNode }) {
     };
 
     fetchNetwork();
-  }, []);
-
-  useEffect(() => {
-    commands.getAllCats({}).then((data) => {
-      setCatList(data.cats);
-    });
   }, []);
 
   // Fetch prices when network is available and wallet is synced
@@ -157,17 +149,12 @@ export function PriceProvider({ children }: { children: ReactNode }) {
     [catPrices],
   );
 
-  const getCatList = useCallback(() => {
-    return catList;
-  }, [catList]);
-
   return (
     <PriceContext.Provider
       value={{
         getBalanceInUsd,
         getPriceInUsd,
         getCatAskPriceInXch,
-        getCatList,
       }}
     >
       {children}
