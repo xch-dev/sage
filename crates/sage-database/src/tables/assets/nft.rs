@@ -433,13 +433,23 @@ impl DatabaseTx<'_> {
         Ok(())
     }
 
-    pub async fn update_nft_icon_url(&mut self, hash: Bytes32, icon_url: String) -> Result<()> {
-        let hash = hash.as_ref();
+    pub async fn update_nft_data_hash_urls(
+        &mut self,
+        data_hash: Bytes32,
+        icon_url: String,
+    ) -> Result<()> {
+        let data_hash = data_hash.as_ref();
 
         query!(
-            "UPDATE assets SET icon_url = ? WHERE hash = ?",
+            "
+            UPDATE assets SET icon_url = ?
+            WHERE assets.id IN (
+                SELECT asset_id FROM nfts
+                WHERE data_hash = ?
+            )
+            ",
             icon_url,
-            hash
+            data_hash
         )
         .execute(&mut *self.tx)
         .await?;
