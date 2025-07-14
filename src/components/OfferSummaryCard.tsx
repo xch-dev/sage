@@ -74,11 +74,16 @@ function AssetPreview({ label, assets }: AssetPreviewProps) {
           />
 
           <div className='text-sm text-muted-foreground truncate'>
-            <NumberFormat
-              value={fromMojos(BigNumber(amount).plus(royalty), 3)}
-              minimumFractionDigits={0}
-              maximumFractionDigits={3}
-            />{' '}
+            {asset.kind !== 'nft' && (
+              <NumberFormat
+                value={fromMojos(
+                  BigNumber(amount).plus(royalty),
+                  asset.precision,
+                )}
+                minimumFractionDigits={0}
+                maximumFractionDigits={asset.precision}
+              />
+            )}{' '}
             {asset.name ?? asset.ticker ?? t`Unknown`}
           </div>
         </div>
