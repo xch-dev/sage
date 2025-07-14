@@ -46,7 +46,6 @@ pub struct NftRow {
 #[derive(Debug, Clone)]
 pub struct NftMetadataInfo {
     pub name: Option<String>,
-    pub icon_url: Option<String>,
     pub description: Option<String>,
     pub is_sensitive_content: bool,
     pub collection_id: Bytes32,
@@ -434,6 +433,20 @@ impl DatabaseTx<'_> {
         Ok(())
     }
 
+    pub async fn update_nft_icon_url(&mut self, hash: Bytes32, icon_url: String) -> Result<()> {
+        let hash = hash.as_ref();
+
+        query!(
+            "UPDATE assets SET icon_url = ? WHERE hash = ?",
+            icon_url,
+            hash
+        )
+        .execute(&mut *self.tx)
+        .await?;
+
+        Ok(())
+    }
+
     pub async fn update_nft_metadata(
         &mut self,
         hash: Bytes32,
@@ -446,13 +459,11 @@ impl DatabaseTx<'_> {
             "
             UPDATE assets SET
                 name = ?,
-                icon_url = ?,
                 description = ?,
                 is_sensitive_content = ?
             WHERE hash = ?
             ",
             metadata_info.name,
-            metadata_info.icon_url,
             metadata_info.description,
             metadata_info.is_sensitive_content,
             hash

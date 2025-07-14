@@ -112,6 +112,10 @@ impl DatabaseTx<'_> {
         resized_image(&mut *self.tx, hash, ResizedImageKind::Icon).await
     }
 
+    pub async fn nfts_with_data_hash(&mut self, hash: Bytes32) -> Result<Vec<Bytes32>> {
+        nfts_with_data_hash(&mut *self.tx, hash).await
+    }
+
     pub async fn nfts_with_metadata_hash(&mut self, hash: Bytes32) -> Result<Vec<UpdateableNft>> {
         nfts_with_metadata_hash(&mut *self.tx, hash).await
     }
@@ -283,6 +287,20 @@ async fn update_file(
     .await?;
 
     Ok(())
+}
+
+async fn nfts_with_data_hash(conn: impl SqliteExecutor<'_>, hash: Bytes32) -> Result<Vec<Bytes32>> {
+    let hash = hash.as_ref();
+
+    query!(
+        "SELECT hash FROM nfts INNER JOIN assets ON assets.id = asset_id WHERE data_hash = ?",
+        hash
+    )
+    .fetch_all(conn)
+    .await?
+    .into_iter()
+    .map(|row| row.hash.convert())
+    .collect()
 }
 
 async fn nfts_with_metadata_hash(

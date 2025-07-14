@@ -67,6 +67,12 @@ impl NftUriQueue {
                         .as_ref()
                         .map(|thumbnail| base64_data_uri(&thumbnail.icon, &data.mime_type));
 
+                    if let Some(icon_url) = icon_url {
+                        for nft_id in tx.nfts_with_data_hash(item.hash).await? {
+                            tx.update_nft_icon_url(nft_id, icon_url.clone()).await?;
+                        }
+                    }
+
                     for nft in tx.nfts_with_metadata_hash(item.hash).await? {
                         let info = compute_nft_info(nft.minter_hash, &data.blob);
 
@@ -80,7 +86,6 @@ impl NftUriQueue {
                             nft.hash,
                             NftMetadataInfo {
                                 name: info.name,
-                                icon_url: icon_url.clone(),
                                 description: info.description,
                                 is_sensitive_content: info.sensitive_content,
                                 collection_id: collection_id.unwrap_or_default(),
