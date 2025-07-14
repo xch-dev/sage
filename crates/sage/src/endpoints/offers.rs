@@ -276,6 +276,8 @@ impl Sage {
         }
 
         for (asset_id, amount) in requested_amounts.cats {
+            self.cache_cat(asset_id).await?;
+
             cat_rows.push(AssetToOffer {
                 offer_id,
                 is_requested: true,
@@ -294,6 +296,14 @@ impl Sage {
                 .asset_info()
                 .nft(launcher_id)
                 .ok_or(DriverError::MissingAssetInfo)?;
+
+            self.cache_nft(
+                &ctx,
+                launcher_id,
+                nft.metadata.ptr(),
+                &mut ConfirmationInfo::default(),
+            )
+            .await?;
 
             let _info = if let Ok(metadata) = ctx.extract::<NftMetadata>(nft.metadata.ptr()) {
                 let mut confirmation_info = ConfirmationInfo::default();
