@@ -96,21 +96,15 @@ export function PriceProvider({ children }: { children: ReactNode }) {
           );
           setCatPrices(tickers);
 
-          // Extract unique CAT list
-          const uniqueCats = Array.from(
-            new Map(
-              data.tickers.map((ticker: DexieTicker) => [
-                ticker.base_currency,
-                {
-                  asset_id: ticker.base_currency,
-                  name: ticker.base_name,
-                  ticker: ticker.base_code,
-                  icon_url: `https://icons.dexie.space/${ticker.base_currency}.webp`,
-                },
-              ]),
-            ).values(),
-          );
-          setCatList(uniqueCats);
+          commands.getAllCats({}).then((data) => {
+            const cats = data.cats.map((cat) => ({
+              asset_id: cat.asset_id ?? '',
+              name: cat.name ?? '',
+              ticker: cat.ticker ?? '',
+              icon_url: cat.icon_url ?? '',
+            }));
+            setCatList(cats);
+          });
         })
         .catch((error) => {
           console.error('Failed to fetch CAT prices:', error);

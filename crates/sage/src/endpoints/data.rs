@@ -11,18 +11,18 @@ use chia_wallet_sdk::{driver::BURN_PUZZLE_HASH, utils::Address};
 use clvmr::Allocator;
 use sage_api::{
     Amount, CatRecord, CheckAddress, CheckAddressResponse, CoinFilterMode as ApiCoinFilterMode,
-    CoinRecord, CoinSortMode as ApiCoinSortMode, DerivationRecord, DidRecord, GetAreCoinsSpendable,
-    GetAreCoinsSpendableResponse, GetCat, GetCatResponse, GetCats, GetCatsResponse, GetCoins,
-    GetCoinsByIds, GetCoinsByIdsResponse, GetCoinsResponse, GetDerivations, GetDerivationsResponse,
-    GetDids, GetDidsResponse, GetMinterDidIds, GetMinterDidIdsResponse, GetNft, GetNftCollection,
-    GetNftCollectionResponse, GetNftCollections, GetNftCollectionsResponse, GetNftData,
-    GetNftDataResponse, GetNftIcon, GetNftIconResponse, GetNftResponse, GetNftThumbnail,
-    GetNftThumbnailResponse, GetNfts, GetNftsResponse, GetPendingTransactions,
-    GetPendingTransactionsResponse, GetSpendableCoinCount, GetSpendableCoinCountResponse,
-    GetSyncStatus, GetSyncStatusResponse, GetTransaction, GetTransactionResponse, GetTransactions,
-    GetTransactionsResponse, GetVersion, GetVersionResponse, NftCollectionRecord, NftData,
-    NftRecord, NftSortMode as ApiNftSortMode, PendingTransactionRecord, TransactionCoinRecord,
-    TransactionRecord,
+    CoinRecord, CoinSortMode as ApiCoinSortMode, DerivationRecord, DidRecord, GetAllCats,
+    GetAllCatsResponse, GetAreCoinsSpendable, GetAreCoinsSpendableResponse, GetCat, GetCatResponse,
+    GetCats, GetCatsResponse, GetCoins, GetCoinsByIds, GetCoinsByIdsResponse, GetCoinsResponse,
+    GetDerivations, GetDerivationsResponse, GetDids, GetDidsResponse, GetMinterDidIds,
+    GetMinterDidIdsResponse, GetNft, GetNftCollection, GetNftCollectionResponse, GetNftCollections,
+    GetNftCollectionsResponse, GetNftData, GetNftDataResponse, GetNftIcon, GetNftIconResponse,
+    GetNftResponse, GetNftThumbnail, GetNftThumbnailResponse, GetNfts, GetNftsResponse,
+    GetPendingTransactions, GetPendingTransactionsResponse, GetSpendableCoinCount,
+    GetSpendableCoinCountResponse, GetSyncStatus, GetSyncStatusResponse, GetTransaction,
+    GetTransactionResponse, GetTransactions, GetTransactionsResponse, GetVersion,
+    GetVersionResponse, NftCollectionRecord, NftData, NftRecord, NftSortMode as ApiNftSortMode,
+    PendingTransactionRecord, TransactionCoinRecord, TransactionRecord,
 };
 use sage_database::{
     AssetFilter, CoinFilterMode, CoinSortMode, NftGroupSearch, NftRow, NftSortMode, Transaction,
@@ -206,6 +206,29 @@ impl Sage {
         }
 
         Ok(GetCoinsResponse { coins, total })
+    }
+
+    pub async fn get_all_cats(&self, _req: GetAllCats) -> Result<GetAllCatsResponse> {
+        let wallet = self.wallet()?;
+
+        let cats = wallet.db.all_cats().await?;
+        let mut records = Vec::with_capacity(cats.len());
+
+        for cat in cats {
+            let balance = wallet.db.cat_balance(cat.hash).await?;
+
+            records.push(CatRecord {
+                asset_id: hex::encode(cat.hash),
+                name: cat.name,
+                ticker: cat.ticker,
+                description: cat.description,
+                icon_url: cat.icon_url,
+                visible: cat.is_visible,
+                balance: Amount::u128(balance),
+            });
+        }
+
+        Ok(GetAllCatsResponse { cats: records })
     }
 
     pub async fn get_cats(&self, _req: GetCats) -> Result<GetCatsResponse> {

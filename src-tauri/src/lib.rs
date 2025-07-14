@@ -65,6 +65,7 @@ pub fn run() {
             commands::get_coins_by_ids,
             commands::get_coins,
             commands::get_cats,
+            commands::get_all_cats,
             commands::get_cat,
             commands::get_dids,
             commands::get_minter_did_ids,
