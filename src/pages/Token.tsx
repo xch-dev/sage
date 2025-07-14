@@ -8,10 +8,9 @@ import { TokenConfirmation } from '@/components/confirmations/TokenConfirmation'
 import { useTokenState } from '@/hooks/useTokenState';
 import { t } from '@lingui/core/macro';
 import { useMemo } from 'react';
-import { useParams } from 'react-router-dom';
-import { commands } from '../bindings';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import { commands } from '../bindings';
 
 export default function Token() {
   const { asset_id: assetId } = useParams();
@@ -108,12 +107,27 @@ export default function Token() {
           <span>
             {asset ? (asset.name ?? t`Unknown asset`) : ''}{' '}
             {asset?.asset_id !== 'xch' && (
-              <CopyButton
-                value={asset?.asset_id ?? ''}
-                onCopy={() => {
-                  toast.success(t`Asset ID copied to clipboard`);
-                }}
-              />
+              <>
+                {' '}
+                <span className='text-sm text-muted-foreground font-mono font-normal'>
+                  {asset?.asset_id?.slice(0, 6) +
+                    '...' +
+                    asset?.asset_id.slice(-4)}
+                </span>{' '}
+                <CopyButton
+                  value={asset?.asset_id ?? ''}
+                  className='w-4 h-4'
+                  onCopy={() => {
+                    toast.success(t`Asset ID copied to clipboard`);
+                  }}
+                />
+              </>
+              // <CopyButton
+              //   value={asset?.asset_id ?? ''}
+              //   onCopy={() => {
+              //     toast.success(t`Asset ID copied to clipboard`);
+              //   }}
+              // />
             )}
           </span>
         }
