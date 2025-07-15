@@ -8,6 +8,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { useErrors } from '@/hooks/useErrors';
 import { usePrices } from '@/hooks/usePrices';
+import { useXchToken } from '@/hooks/useXchToken';
 import { TokenSortMode, useTokenParams } from '@/hooks/useTokenParams';
 import { exportTokens } from '@/lib/exportTokens';
 import { isValidAssetId, toDecimal } from '@/lib/utils';
@@ -30,47 +31,7 @@ export function TokenList() {
   const { viewMode, sortMode, showZeroBalanceTokens, showHiddenCats } = params;
   const [cats, setCats] = useState<TokenRecord[]>([]);
 
-  const [xchRecord, setXchRecord] = useState<TokenRecordWithPrices | null>(
-    null,
-  );
-
-  const updateXchRecord = useCallback(async () => {
-    try {
-      const response = await commands.getXchToken({});
-      const xch = response.xch;
-
-      const balanceInUsd = Number(
-        getBalanceInUsd(
-          'xch',
-          toDecimal(walletState.sync.balance, walletState.sync.unit.decimals),
-        ),
-      );
-
-      setXchRecord({
-        ...xch,
-        balanceInUsd,
-        priceInUsd: getPriceInUsd('xch'),
-        decimals: walletState.sync.unit.decimals,
-        isXch: true,
-      });
-    } catch (error) {
-      addError({
-        kind: 'api',
-        reason:
-          error instanceof Error ? error.message : 'Failed to fetch XCH token',
-      });
-    }
-  }, [
-    walletState.sync.balance,
-    walletState.sync.unit.decimals,
-    getBalanceInUsd,
-    getPriceInUsd,
-    addError,
-  ]);
-
-  useEffect(() => {
-    updateXchRecord();
-  }, [updateXchRecord]);
+  const { xchTokenWithPrices: xchRecord } = useXchToken();
 
   const catsWithBalanceInUsd = useMemo(
     () =>

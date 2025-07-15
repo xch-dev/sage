@@ -1,5 +1,6 @@
 import { useErrors } from '@/hooks/useErrors';
 import { usePrices } from '@/hooks/usePrices';
+import { useXchToken } from '@/hooks/useXchToken';
 import { toDecimal } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { RowSelectionState } from '@tanstack/react-table';
@@ -31,6 +32,7 @@ export function useTokenState(assetId: string | undefined) {
   const walletState = useWalletState();
   const { getBalanceInUsd } = usePrices();
   const { addError } = useErrors();
+  const { xchToken } = useXchToken();
 
   const [asset, setAsset] = useState<TokenRecord | null>(null);
   const [coins, setCoins] = useState<CoinRecord[]>([]);
@@ -90,18 +92,8 @@ export function useTokenState(assetId: string | undefined) {
   const updateAsset = useMemo(
     () => () => {
       if (assetId === 'xch') {
-        commands
-          .getXchToken({})
-          .then((res) => setAsset(res.xch))
-          .catch((error) => {
-            addError({
-              kind: 'api',
-              reason:
-                error instanceof Error
-                  ? error.message
-                  : 'Failed to fetch XCH token',
-            });
-          });
+        // XCH token is handled by useXchToken hook
+        return;
       } else {
         commands
           .getCat({ asset_id: assetId ?? '' })
@@ -128,7 +120,15 @@ export function useTokenState(assetId: string | undefined) {
     };
   }, [updateCoins]);
 
+  // Use xchToken when assetId is 'xch', otherwise use local asset state
+  const effectiveAsset = assetId === 'xch' ? xchToken : asset;
+
   useEffect(() => {
+    if (assetId === 'xch') {
+      // XCH token is handled by useXchToken hook
+      return;
+    }
+
     updateAsset();
 
     const unlisten = events.syncEvent.listen((event) => {
@@ -182,7 +182,7 @@ export function useTokenState(assetId: string | undefined) {
   }, [sortMode, sortDirection, includeSpentCoins]);
 
   return {
-    asset,
+    asset: effectiveAsset,
     coins,
     precision,
     balanceInUsd,
