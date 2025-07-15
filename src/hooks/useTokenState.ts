@@ -87,14 +87,27 @@ export function useTokenState(assetId: string | undefined) {
     ],
   );
 
-  const updateCat = useMemo(
+  const updateAsset = useMemo(
     () => () => {
-      if (assetId === 'xch') return;
-
-      commands
-        .getCat({ asset_id: assetId ?? '' })
-        .then((res) => setAsset(res.cat))
-        .catch(addError);
+      if (assetId === 'xch') {
+        commands
+          .getXchToken({})
+          .then((res) => setAsset(res.xch))
+          .catch((error) => {
+            addError({
+              kind: 'api',
+              reason:
+                error instanceof Error
+                  ? error.message
+                  : 'Failed to fetch XCH token',
+            });
+          });
+      } else {
+        commands
+          .getCat({ asset_id: assetId ?? '' })
+          .then((res) => setAsset(res.cat))
+          .catch(addError);
+      }
     },
     [assetId, addError],
   );
@@ -116,43 +129,31 @@ export function useTokenState(assetId: string | undefined) {
   }, [updateCoins]);
 
   useEffect(() => {
-    if (assetId === 'xch') {
-      setAsset({
-        asset_id: 'xch',
-        name: 'Chia',
-        description: 'The native token of the Chia blockchain.',
-        ticker: walletState.sync.unit.ticker,
-        balance: walletState.sync.balance,
-        icon_url: 'https://icons.dexie.space/xch.webp',
-        visible: true,
-      });
-    } else {
-      updateCat();
+    updateAsset();
 
-      const unlisten = events.syncEvent.listen((event) => {
-        const type = event.payload.type;
+    const unlisten = events.syncEvent.listen((event) => {
+      const type = event.payload.type;
 
-        if (
-          type === 'coin_state' ||
-          type === 'puzzle_batch_synced' ||
-          type === 'cat_info'
-        ) {
-          updateCat();
-        }
-      });
+      if (
+        type === 'coin_state' ||
+        type === 'puzzle_batch_synced' ||
+        type === 'cat_info'
+      ) {
+        updateAsset();
+      }
+    });
 
-      return () => {
-        unlisten.then((u) => u());
-      };
-    }
-  }, [assetId, updateCat, walletState.sync]);
+    return () => {
+      unlisten.then((u) => u());
+    };
+  }, [assetId, updateAsset]);
 
   const redownload = () => {
     if (!assetId || assetId === 'xch') return;
 
     commands
       .resyncCat({ asset_id: assetId })
-      .then(() => updateCat())
+      .then(() => updateAsset())
       .catch(addError);
   };
 
@@ -166,7 +167,7 @@ export function useTokenState(assetId: string | undefined) {
   const updateCatDetails = async (updatedAsset: TokenRecord) => {
     return commands
       .updateCat({ record: updatedAsset })
-      .then(() => updateCat())
+      .then(() => updateAsset())
       .catch(addError);
   };
 

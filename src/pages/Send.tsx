@@ -32,6 +32,7 @@ import {
 import { useDefaultClawback } from '@/hooks/useDefaultClawback';
 import { useErrors } from '@/hooks/useErrors';
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
+import { useTokenState } from '@/hooks/useTokenState';
 import { amount, positiveAmount } from '@/lib/formTypes';
 import { fromMojos, toDecimal, toHex, toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
@@ -40,16 +41,11 @@ import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import BigNumber from 'bignumber.js';
 import { ArrowUpToLine } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router-dom';
 import * as z from 'zod';
-import {
-  commands,
-  events,
-  TokenRecord,
-  TransactionResponse,
-} from '../bindings';
+import { commands, TransactionResponse } from '../bindings';
 
 function stringToUint8Array(str: string): Uint8Array {
   return new TextEncoder().encode(str);
@@ -63,64 +59,13 @@ export default function Send() {
   const { addError } = useErrors();
   const { clawback } = useDefaultClawback();
 
-  const [asset, setAsset] = useState<
-    (TokenRecord & { decimals: number }) | null
-  >(null);
+  const { asset, precision } = useTokenState(assetId);
   const [response, setResponse] = useState<TransactionResponse | null>(null);
   const [currentMemo, setCurrentMemo] = useState<string | undefined>(undefined);
 
   const [bulk, setBulk] = useState(false);
 
   const ticker = asset?.ticker || 'CAT';
-
-  const updateCat = useCallback(
-    () =>
-      commands
-        .getCat({ asset_id: assetId ?? '' })
-        .then((data) => {
-          if (data.cat) setAsset({ ...data.cat, decimals: 3 });
-        })
-        .catch(addError),
-    [assetId, addError],
-  );
-
-  useEffect(() => {
-    if (isXch) {
-      setAsset({
-        asset_id: 'xch',
-        name: 'Chia',
-        description: 'The native token of the Chia blockchain.',
-        ticker: walletState.sync.unit.ticker,
-        decimals: walletState.sync.unit.decimals,
-        balance: walletState.sync.balance,
-        icon_url: 'https://icons.dexie.space/xch.webp',
-        visible: true,
-      });
-    } else {
-      updateCat();
-
-      const unlisten = events.syncEvent.listen((event) => {
-        const type = event.payload.type;
-        if (
-          type === 'coin_state' ||
-          type === 'puzzle_batch_synced' ||
-          type === 'cat_info'
-        ) {
-          updateCat();
-        }
-      });
-
-      return () => {
-        unlisten.then((u) => u());
-      };
-    }
-  }, [
-    updateCat,
-    isXch,
-    walletState.sync.balance,
-    walletState.sync.unit.decimals,
-    walletState.sync.unit.ticker,
-  ]);
 
   const addressList = (value: string) => {
     if (bulk) {
@@ -146,10 +91,10 @@ export default function Send() {
           ).then((values) => values.every(Boolean)),
         bulk ? t`Invalid addresses` : t`Invalid address`,
       ),
-    amount: positiveAmount(asset?.decimals || 12).refine(
+    amount: positiveAmount(precision).refine(
       (amount) =>
         asset
-          ? BigNumber(amount).lte(toDecimal(asset.balance, asset.decimals))
+          ? BigNumber(amount).lte(toDecimal(asset.balance, precision))
           : true,
       'Amount exceeds balance',
     ),
@@ -194,7 +139,7 @@ export default function Send() {
 
     let result: Promise<TransactionResponse>;
 
-    const amount = toMojos(values.amount.toString(), asset?.decimals || 12);
+    const amount = toMojos(values.amount.toString(), precision);
     const fee = toMojos(
       values.fee?.toString() || '0',
       walletState.sync.unit.decimals,
@@ -254,9 +199,9 @@ export default function Send() {
               </div>
               <div className='text-2xl font-medium mt-1'>
                 <NumberFormat
-                  value={fromMojos(asset.balance, asset.decimals)}
+                  value={fromMojos(asset.balance, precision)}
                   minimumFractionDigits={0}
-                  maximumFractionDigits={asset.decimals}
+                  maximumFractionDigits={precision}
                 />{' '}
                 {asset.ticker}
               </div>
@@ -333,7 +278,7 @@ export default function Send() {
                                   if (asset) {
                                     const maxAmount = fromMojos(
                                       asset.balance,
-                                      asset.decimals,
+                                      precision,
                                     );
                                     form.setValue(
                                       'amount',

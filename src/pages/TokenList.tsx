@@ -30,27 +30,47 @@ export function TokenList() {
   const { viewMode, sortMode, showZeroBalanceTokens, showHiddenCats } = params;
   const [cats, setCats] = useState<TokenRecord[]>([]);
 
-  const xchRecord = useMemo(
-    () => ({
-      asset_id: 'xch',
-      name: 'Chia',
-      ticker: walletState.sync.unit.ticker,
-      description: null,
-      icon_url: 'https://icons.dexie.space/xch.webp',
-      visible: true,
-      balance: walletState.sync.balance.toString(),
-      balanceInUsd: Number(
+  const [xchRecord, setXchRecord] = useState<TokenRecordWithPrices | null>(
+    null,
+  );
+
+  const updateXchRecord = useCallback(async () => {
+    try {
+      const response = await commands.getXchToken({});
+      const xch = response.xch;
+
+      const balanceInUsd = Number(
         getBalanceInUsd(
           'xch',
           toDecimal(walletState.sync.balance, walletState.sync.unit.decimals),
         ),
-      ),
-      priceInUsd: getPriceInUsd('xch'),
-      decimals: walletState.sync.unit.decimals,
-      isXch: true,
-    }),
-    [walletState.sync, getBalanceInUsd, getPriceInUsd],
-  );
+      );
+
+      setXchRecord({
+        ...xch,
+        balanceInUsd,
+        priceInUsd: getPriceInUsd('xch'),
+        decimals: walletState.sync.unit.decimals,
+        isXch: true,
+      });
+    } catch (error) {
+      addError({
+        kind: 'api',
+        reason:
+          error instanceof Error ? error.message : 'Failed to fetch XCH token',
+      });
+    }
+  }, [
+    walletState.sync.balance,
+    walletState.sync.unit.decimals,
+    getBalanceInUsd,
+    getPriceInUsd,
+    addError,
+  ]);
+
+  useEffect(() => {
+    updateXchRecord();
+  }, [updateXchRecord]);
 
   const catsWithBalanceInUsd = useMemo(
     () =>
@@ -205,7 +225,9 @@ export function TokenList() {
             setParams({ search: value });
           }}
           className='mb-4'
-          onExport={() => exportTokens([xchRecord, ...filteredCats])}
+          onExport={() =>
+            xchRecord && exportTokens([xchRecord, ...filteredCats])
+          }
         />
 
         {walletState.sync.synced_coins < walletState.sync.total_coins && (
@@ -223,20 +245,24 @@ export function TokenList() {
           </Alert>
         )}
 
-        {viewMode === 'grid' ? (
-          <TokenGridView
-            cats={filteredCats}
-            xchRecord={xchRecord}
-            actionHandlers={tokenActionHandlers}
-          />
-        ) : (
-          <div className='mt-4'>
-            <TokenListView
-              cats={filteredCats}
-              xchRecord={xchRecord}
-              actionHandlers={tokenActionHandlers}
-            />
-          </div>
+        {xchRecord && (
+          <>
+            {viewMode === 'grid' ? (
+              <TokenGridView
+                cats={filteredCats}
+                xchRecord={xchRecord}
+                actionHandlers={tokenActionHandlers}
+              />
+            ) : (
+              <div className='mt-4'>
+                <TokenListView
+                  cats={filteredCats}
+                  xchRecord={xchRecord}
+                  actionHandlers={tokenActionHandlers}
+                />
+              </div>
+            )}
+          </>
         )}
       </Container>
     </>
