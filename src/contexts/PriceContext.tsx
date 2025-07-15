@@ -87,7 +87,7 @@ export function PriceProvider({ children }: { children: ReactNode }) {
         const data: DexieResponse = await response.json();
         const tickers = data.tickers.reduce(
           (acc: Record<string, CatPriceData>, ticker: DexieTicker) => {
-            acc[ticker.base_currency] = {
+            acc[ticker.base_currency.toLowerCase()] = {
               lastPrice: ticker.last_price ? Number(ticker.last_price) : null,
               askPrice: ticker.ask ? Number(ticker.ask) : null,
             };

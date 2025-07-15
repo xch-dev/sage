@@ -112,7 +112,7 @@ export default function Token() {
                 <span className='text-sm text-muted-foreground font-mono font-normal'>
                   {asset?.asset_id?.slice(0, 6) +
                     '...' +
-                    asset?.asset_id.slice(-4)}
+                    asset?.asset_id?.slice(-4)}
                 </span>{' '}
                 <CopyButton
                   value={asset?.asset_id ?? ''}
@@ -122,12 +122,6 @@ export default function Token() {
                   }}
                 />
               </>
-              // <CopyButton
-              //   value={asset?.asset_id ?? ''}
-              //   onCopy={() => {
-              //     toast.success(t`Asset ID copied to clipboard`);
-              //   }}
-              // />
             )}
           </span>
         }

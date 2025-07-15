@@ -38,7 +38,6 @@ export function TokenSelector({
     command
       .then((data) => {
         if (!isMounted) return;
-        if (tokens.length) return;
 
         const allTokens = data.cats;
 
