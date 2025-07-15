@@ -3,6 +3,7 @@ use crate::{
     Error, Result, Sage,
 };
 use base64::{prelude::BASE64_STANDARD, Engine};
+use chia::protocol::Bytes32;
 use chia::{
     clvm_traits::{FromClvm, ToClvm},
     puzzles::nft::NftMetadata,
@@ -10,10 +11,10 @@ use chia::{
 use chia_wallet_sdk::{driver::BURN_PUZZLE_HASH, utils::Address};
 use clvmr::Allocator;
 use sage_api::{
-    Amount, CatRecord, CheckAddress, CheckAddressResponse, CoinFilterMode as ApiCoinFilterMode,
-    CoinRecord, CoinSortMode as ApiCoinSortMode, DerivationRecord, DidRecord, GetAllCats,
-    GetAllCatsResponse, GetAreCoinsSpendable, GetAreCoinsSpendableResponse, GetCat, GetCatResponse,
-    GetCats, GetCatsResponse, GetCoins, GetCoinsByIds, GetCoinsByIdsResponse, GetCoinsResponse,
+    Amount, CheckAddress, CheckAddressResponse, CoinFilterMode as ApiCoinFilterMode, CoinRecord,
+    CoinSortMode as ApiCoinSortMode, DerivationRecord, DidRecord, GetAllCats, GetAllCatsResponse,
+    GetAreCoinsSpendable, GetAreCoinsSpendableResponse, GetCat, GetCatResponse, GetCats,
+    GetCatsResponse, GetCoins, GetCoinsByIds, GetCoinsByIdsResponse, GetCoinsResponse,
     GetDerivations, GetDerivationsResponse, GetDids, GetDidsResponse, GetMinterDidIds,
     GetMinterDidIdsResponse, GetNft, GetNftCollection, GetNftCollectionResponse, GetNftCollections,
     GetNftCollectionsResponse, GetNftData, GetNftDataResponse, GetNftIcon, GetNftIconResponse,
@@ -21,8 +22,9 @@ use sage_api::{
     GetPendingTransactions, GetPendingTransactionsResponse, GetSpendableCoinCount,
     GetSpendableCoinCountResponse, GetSyncStatus, GetSyncStatusResponse, GetTransaction,
     GetTransactionResponse, GetTransactions, GetTransactionsResponse, GetVersion,
-    GetVersionResponse, NftCollectionRecord, NftData, NftRecord, NftSortMode as ApiNftSortMode,
-    PendingTransactionRecord, TransactionCoinRecord, TransactionRecord,
+    GetVersionResponse, GetXchToken, GetXchTokenResponse, NftCollectionRecord, NftData, NftRecord,
+    NftSortMode as ApiNftSortMode, PendingTransactionRecord, TokenRecord, TransactionCoinRecord,
+    TransactionRecord,
 };
 use sage_database::{
     AssetFilter, CoinFilterMode, CoinSortMode, NftGroupSearch, NftRow, NftSortMode, Transaction,
@@ -217,7 +219,7 @@ impl Sage {
         for cat in cats {
             let balance = wallet.db.cat_balance(cat.hash).await?;
 
-            records.push(CatRecord {
+            records.push(TokenRecord {
                 asset_id: hex::encode(cat.hash),
                 name: cat.name,
                 ticker: cat.ticker,
@@ -241,7 +243,7 @@ impl Sage {
         for cat in cats {
             let balance = wallet.db.cat_balance(cat.hash).await?;
 
-            records.push(CatRecord {
+            records.push(TokenRecord {
                 asset_id: hex::encode(cat.hash),
                 name: cat.name,
                 ticker: cat.ticker,
@@ -255,6 +257,29 @@ impl Sage {
         Ok(GetCatsResponse { cats: records })
     }
 
+    pub async fn get_xch_token(&self, _req: GetXchToken) -> Result<GetXchTokenResponse> {
+        let wallet = self.wallet()?;
+
+        let xch = wallet.db.asset(Bytes32::default()).await?;
+        let balance = wallet.db.xch_balance().await?;
+
+        let xch = xch
+            .map(|cat| {
+                Result::Ok(TokenRecord {
+                    asset_id: "xch".to_string(),
+                    name: xch.name,
+                    ticker: xch.ticker,
+                    description: xch.description,
+                    icon_url: xch.icon_url,
+                    visible: xch.is_visible,
+                    balance: Amount::u128(balance),
+                })
+            })
+            .transpose()?;
+
+        Ok(GetXchTokenResponse { xch })
+    }
+
     pub async fn get_cat(&self, req: GetCat) -> Result<GetCatResponse> {
         let wallet = self.wallet()?;
 
@@ -264,7 +289,7 @@ impl Sage {
 
         let cat = cat
             .map(|cat| {
-                Result::Ok(CatRecord {
+                Result::Ok(TokenRecord {
                     asset_id: cat.hash.to_string(),
                     name: cat.name,
                     ticker: cat.ticker,

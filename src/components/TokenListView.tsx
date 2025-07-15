@@ -1,6 +1,6 @@
 import { DataTable } from '@/components/ui/data-table';
 import { cn } from '@/lib/utils';
-import { TokenRecord, TokenViewProps } from '@/types/TokenViewProps';
+import { TokenRecordWithPrices, TokenViewProps } from '@/types/TokenViewProps';
 import { t } from '@lingui/core/macro';
 import { columns, TokenActionHandlers } from './TokenColumns';
 
@@ -13,21 +13,7 @@ export function TokenListView({
   xchRecord,
   actionHandlers,
 }: TokenListViewProps) {
-  const tokens: TokenRecord[] = [
-    xchRecord,
-    ...cats.map((cat) => ({
-      asset_id: cat.asset_id,
-      name: cat.name,
-      ticker: cat.ticker,
-      icon_url: cat.icon_url,
-      balance: cat.balance,
-      balanceInUsd: cat.balanceInUsd,
-      priceInUsd: cat.priceInUsd,
-      decimals: 3,
-      isXch: false,
-      visible: cat.visible,
-    })),
-  ];
+  const tokens: TokenRecordWithPrices[] = [xchRecord, ...cats];
 
   return (
     <div role='region' aria-label={t`Token List`}>

@@ -1,26 +1,25 @@
 import Container from '@/components/Container';
 import Header from '@/components/Header';
 import { ReceiveAddress } from '@/components/ReceiveAddress';
+import { TokenGridView } from '@/components/TokenGridView';
+import { TokenListView } from '@/components/TokenListView';
+import { TokenOptions } from '@/components/TokenOptions';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { useErrors } from '@/hooks/useErrors';
 import { usePrices } from '@/hooks/usePrices';
-import { useTokenParams } from '@/hooks/useTokenParams';
-import { toDecimal, isValidAssetId } from '@/lib/utils';
+import { TokenSortMode, useTokenParams } from '@/hooks/useTokenParams';
+import { exportTokens } from '@/lib/exportTokens';
+import { isValidAssetId, toDecimal } from '@/lib/utils';
+import { TokenRecordWithPrices } from '@/types/TokenViewProps';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { Coins, InfoIcon } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CatRecord, commands, events } from '../bindings';
-import { useWalletState } from '../state';
-import { TokenListView } from '@/components/TokenListView';
-import { TokenGridView } from '@/components/TokenGridView';
-import { TokenOptions } from '@/components/TokenOptions';
-import { TokenSortMode } from '@/hooks/useTokenParams';
-import { TokenRecord } from '@/types/TokenViewProps';
 import { toast } from 'react-toastify';
-import { exportTokens } from '@/lib/exportTokens';
+import { TokenRecord, commands, events } from '../bindings';
+import { useWalletState } from '../state';
 
 export function TokenList() {
   const navigate = useNavigate();
@@ -29,14 +28,16 @@ export function TokenList() {
   const { addError } = useErrors();
   const [params, setParams] = useTokenParams();
   const { viewMode, sortMode, showZeroBalanceTokens, showHiddenCats } = params;
-  const [cats, setCats] = useState<CatRecord[]>([]);
+  const [cats, setCats] = useState<TokenRecord[]>([]);
 
   const xchRecord = useMemo(
     () => ({
       asset_id: 'xch',
       name: 'Chia',
       ticker: walletState.sync.unit.ticker,
+      description: null,
       icon_url: 'https://icons.dexie.space/xch.webp',
+      visible: true,
       balance: walletState.sync.balance.toString(),
       balanceInUsd: Number(
         getBalanceInUsd(
@@ -64,6 +65,8 @@ export function TokenList() {
           balanceInUsd: usdValue,
           sortValue: usdValue,
           priceInUsd: getPriceInUsd(cat.asset_id),
+          decimals: 3,
+          isXch: false,
         };
       }),
     [cats, getBalanceInUsd, getPriceInUsd],
@@ -142,7 +145,7 @@ export function TokenList() {
   }, [updateCats]);
 
   const tokenActionHandlers = {
-    onEdit: (asset: TokenRecord) => {
+    onEdit: (asset: TokenRecordWithPrices) => {
       navigate(`/wallet/token/${asset.asset_id}`);
     },
     onRefreshInfo: (assetId: string) => {
@@ -155,7 +158,7 @@ export function TokenList() {
         })
         .catch(addError);
     },
-    onToggleVisibility: (asset: TokenRecord) => {
+    onToggleVisibility: (asset: TokenRecordWithPrices) => {
       if (asset.asset_id === 'xch') return;
       const updatedCat = cats.find((cat) => cat.asset_id === asset.asset_id);
       if (!updatedCat) return;
@@ -202,12 +205,7 @@ export function TokenList() {
             setParams({ search: value });
           }}
           className='mb-4'
-          onExport={() =>
-            exportTokens([
-              xchRecord,
-              ...filteredCats.map((cat) => ({ ...cat, decimals: 3 })),
-            ])
-          }
+          onExport={() => exportTokens([xchRecord, ...filteredCats])}
         />
 
         {walletState.sync.synced_coins < walletState.sync.total_coins && (

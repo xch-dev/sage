@@ -1,23 +1,18 @@
-import { CatRecord } from '../bindings';
+import { TokenRecord } from '../bindings';
 
 export interface TokenViewProps {
-  cats: (CatRecord & {
-    balanceInUsd: number;
-    sortValue: number;
-    priceInUsd: number;
-  })[];
-  xchRecord: TokenRecord;
+  cats: TokenRecordWithPrices[];
+  xchRecord: TokenRecordWithPrices;
 }
 
-export interface TokenRecord {
-  asset_id: string;
-  name: string | null;
-  ticker: string | null;
-  icon_url: string | null;
+// Keep the old interface for backward compatibility if needed
+export interface TokenRecordWithPrices extends TokenRecord {
+  // Override balance to be more flexible (number | string instead of Amount)
   balance: number | string;
+  // Add price-related fields
   balanceInUsd: number;
   priceInUsd: number;
   decimals: number;
   isXch?: boolean;
-  visible?: boolean;
+  sortValue?: number;
 }

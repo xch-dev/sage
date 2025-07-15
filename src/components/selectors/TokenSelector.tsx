@@ -1,4 +1,4 @@
-import { CatRecord, commands } from '@/bindings';
+import { TokenRecord, commands } from '@/bindings';
 import { useErrors } from '@/hooks/useErrors';
 import { isValidAssetId } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
@@ -25,8 +25,8 @@ export function TokenSelector({
 }: TokenSelectorProps) {
   const { addError } = useErrors();
 
-  const [tokens, setTokens] = useState<CatRecord[]>([]);
-  const [selectedToken, setSelectedToken] = useState<CatRecord | null>(null);
+  const [tokens, setTokens] = useState<TokenRecord[]>([]);
+  const [selectedToken, setSelectedToken] = useState<TokenRecord | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {

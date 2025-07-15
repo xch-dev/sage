@@ -44,7 +44,12 @@ import { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router-dom';
 import * as z from 'zod';
-import { CatRecord, commands, events, TransactionResponse } from '../bindings';
+import {
+  commands,
+  events,
+  TokenRecord,
+  TransactionResponse,
+} from '../bindings';
 
 function stringToUint8Array(str: string): Uint8Array {
   return new TextEncoder().encode(str);
@@ -58,9 +63,9 @@ export default function Send() {
   const { addError } = useErrors();
   const { clawback } = useDefaultClawback();
 
-  const [asset, setAsset] = useState<(CatRecord & { decimals: number }) | null>(
-    null,
-  );
+  const [asset, setAsset] = useState<
+    (TokenRecord & { decimals: number }) | null
+  >(null);
   const [response, setResponse] = useState<TransactionResponse | null>(null);
   const [currentMemo, setCurrentMemo] = useState<string | undefined>(undefined);
 
