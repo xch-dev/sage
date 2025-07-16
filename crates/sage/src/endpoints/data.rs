@@ -263,21 +263,19 @@ impl Sage {
         let xch = wallet.db.asset(Bytes32::default()).await?;
         let balance = wallet.db.xch_balance().await?;
 
-        let Some(asset) = xch else {
-            return Err(Error::InvalidAssetId(
-                "XCH asset not found in database".to_string(),
-            ));
-        };
-
-        let xch = TokenRecord {
-            asset_id: "xch".to_string(),
-            name: asset.name,
-            ticker: asset.ticker,
-            description: asset.description,
-            icon_url: asset.icon_url,
-            visible: asset.is_visible,
-            balance: Amount::u128(balance),
-        };
+        let xch = xch
+            .map(|cat| {
+                Result::Ok(TokenRecord {
+                    asset_id: "xch".to_string(),
+                    name: xch.name,
+                    ticker: xch.ticker,
+                    description: xch.description,
+                    icon_url: xch.icon_url,
+                    visible: xch.is_visible,
+                    balance: Amount::u128(balance),
+                })
+            })
+            .transpose()?;
 
         Ok(GetXchTokenResponse { xch })
     }

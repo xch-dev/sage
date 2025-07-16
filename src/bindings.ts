@@ -137,9 +137,6 @@ async getAllCats(req: GetAllCats) : Promise<GetAllCatsResponse> {
 async getCat(req: GetCat) : Promise<GetCatResponse> {
     return await TAURI_INVOKE("get_cat", { req });
 },
-async getXchToken(req: GetXchToken) : Promise<GetXchTokenResponse> {
-    return await TAURI_INVOKE("get_xch_token", { req });
-},
 async getDids(req: GetDids) : Promise<GetDidsResponse> {
     return await TAURI_INVOKE("get_dids", { req });
 },
@@ -451,8 +448,6 @@ export type GetTransactions = { offset: number; limit: number; ascending: boolea
 export type GetTransactionsResponse = { transactions: TransactionRecord[]; total: number }
 export type GetVersion = Record<string, never>
 export type GetVersionResponse = { version: string }
-export type GetXchToken = Record<string, never>
-export type GetXchTokenResponse = { xch: TokenRecord }
 export type ImportKey = { name: string; key: string; derivation_index?: number; save_secrets?: boolean; login?: boolean }
 export type ImportKeyResponse = { fingerprint: number }
 export type ImportOffer = { offer: string }

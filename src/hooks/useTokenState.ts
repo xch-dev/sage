@@ -1,6 +1,5 @@
 import { useErrors } from '@/hooks/useErrors';
 import { usePrices } from '@/hooks/usePrices';
-import { useXchToken } from '@/hooks/useXchToken';
 import { toDecimal } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { RowSelectionState } from '@tanstack/react-table';
@@ -32,7 +31,6 @@ export function useTokenState(assetId: string | undefined) {
   const walletState = useWalletState();
   const { getBalanceInUsd } = usePrices();
   const { addError } = useErrors();
-  const { xchToken } = useXchToken();
 
   const [asset, setAsset] = useState<TokenRecord | null>(null);
   const [coins, setCoins] = useState<CoinRecord[]>([]);
@@ -89,17 +87,14 @@ export function useTokenState(assetId: string | undefined) {
     ],
   );
 
-  const updateAsset = useMemo(
+  const updateCat = useMemo(
     () => () => {
-      if (assetId === 'xch') {
-        // XCH token is handled by useXchToken hook
-        return;
-      } else {
-        commands
-          .getCat({ asset_id: assetId ?? '' })
-          .then((res) => setAsset(res.cat))
-          .catch(addError);
-      }
+      if (assetId === 'xch') return;
+
+      commands
+        .getCat({ asset_id: assetId ?? '' })
+        .then((res) => setAsset(res.cat))
+        .catch(addError);
     },
     [assetId, addError],
   );
@@ -120,40 +115,44 @@ export function useTokenState(assetId: string | undefined) {
     };
   }, [updateCoins]);
 
-  // Use xchToken when assetId is 'xch', otherwise use local asset state
-  const effectiveAsset = assetId === 'xch' ? xchToken : asset;
-
   useEffect(() => {
     if (assetId === 'xch') {
-      // XCH token is handled by useXchToken hook
-      return;
+      setAsset({
+        asset_id: 'xch',
+        name: 'Chia',
+        description: 'The native token of the Chia blockchain.',
+        ticker: walletState.sync.unit.ticker,
+        balance: walletState.sync.balance,
+        icon_url: 'https://icons.dexie.space/xch.webp',
+        visible: true,
+      });
+    } else {
+      updateCat();
+
+      const unlisten = events.syncEvent.listen((event) => {
+        const type = event.payload.type;
+
+        if (
+          type === 'coin_state' ||
+          type === 'puzzle_batch_synced' ||
+          type === 'cat_info'
+        ) {
+          updateCat();
+        }
+      });
+
+      return () => {
+        unlisten.then((u) => u());
+      };
     }
-
-    updateAsset();
-
-    const unlisten = events.syncEvent.listen((event) => {
-      const type = event.payload.type;
-
-      if (
-        type === 'coin_state' ||
-        type === 'puzzle_batch_synced' ||
-        type === 'cat_info'
-      ) {
-        updateAsset();
-      }
-    });
-
-    return () => {
-      unlisten.then((u) => u());
-    };
-  }, [assetId, updateAsset]);
+  }, [assetId, updateCat, walletState.sync]);
 
   const redownload = () => {
     if (!assetId || assetId === 'xch') return;
 
     commands
       .resyncCat({ asset_id: assetId })
-      .then(() => updateAsset())
+      .then(() => updateCat())
       .catch(addError);
   };
 
@@ -167,7 +166,7 @@ export function useTokenState(assetId: string | undefined) {
   const updateCatDetails = async (updatedAsset: TokenRecord) => {
     return commands
       .updateCat({ record: updatedAsset })
-      .then(() => updateAsset())
+      .then(() => updateCat())
       .catch(addError);
   };
 
@@ -182,7 +181,7 @@ export function useTokenState(assetId: string | undefined) {
   }, [sortMode, sortDirection, includeSpentCoins]);
 
   return {
-    asset: effectiveAsset,
+    asset,
     coins,
     precision,
     balanceInUsd,

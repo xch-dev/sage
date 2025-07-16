@@ -8,7 +8,6 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { useErrors } from '@/hooks/useErrors';
 import { usePrices } from '@/hooks/usePrices';
-import { useXchToken } from '@/hooks/useXchToken';
 import { TokenSortMode, useTokenParams } from '@/hooks/useTokenParams';
 import { exportTokens } from '@/lib/exportTokens';
 import { isValidAssetId, toDecimal } from '@/lib/utils';
@@ -31,7 +30,27 @@ export function TokenList() {
   const { viewMode, sortMode, showZeroBalanceTokens, showHiddenCats } = params;
   const [cats, setCats] = useState<TokenRecord[]>([]);
 
-  const { xchTokenWithPrices: xchRecord } = useXchToken();
+  const xchRecord = useMemo(
+    () => ({
+      asset_id: 'xch',
+      name: 'Chia',
+      ticker: walletState.sync.unit.ticker,
+      description: null,
+      icon_url: 'https://icons.dexie.space/xch.webp',
+      visible: true,
+      balance: walletState.sync.balance.toString(),
+      balanceInUsd: Number(
+        getBalanceInUsd(
+          'xch',
+          toDecimal(walletState.sync.balance, walletState.sync.unit.decimals),
+        ),
+      ),
+      priceInUsd: getPriceInUsd('xch'),
+      decimals: walletState.sync.unit.decimals,
+      isXch: true,
+    }),
+    [walletState.sync, getBalanceInUsd, getPriceInUsd],
+  );
 
   const catsWithBalanceInUsd = useMemo(
     () =>
@@ -186,9 +205,7 @@ export function TokenList() {
             setParams({ search: value });
           }}
           className='mb-4'
-          onExport={() =>
-            xchRecord && exportTokens([xchRecord, ...filteredCats])
-          }
+          onExport={() => exportTokens([xchRecord, ...filteredCats])}
         />
 
         {walletState.sync.synced_coins < walletState.sync.total_coins && (
@@ -206,24 +223,20 @@ export function TokenList() {
           </Alert>
         )}
 
-        {xchRecord && (
-          <>
-            {viewMode === 'grid' ? (
-              <TokenGridView
-                cats={filteredCats}
-                xchRecord={xchRecord}
-                actionHandlers={tokenActionHandlers}
-              />
-            ) : (
-              <div className='mt-4'>
-                <TokenListView
-                  cats={filteredCats}
-                  xchRecord={xchRecord}
-                  actionHandlers={tokenActionHandlers}
-                />
-              </div>
-            )}
-          </>
+        {viewMode === 'grid' ? (
+          <TokenGridView
+            cats={filteredCats}
+            xchRecord={xchRecord}
+            actionHandlers={tokenActionHandlers}
+          />
+        ) : (
+          <div className='mt-4'>
+            <TokenListView
+              cats={filteredCats}
+              xchRecord={xchRecord}
+              actionHandlers={tokenActionHandlers}
+            />
+          </div>
         )}
       </Container>
     </>
